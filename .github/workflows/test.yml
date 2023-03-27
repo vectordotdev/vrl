@@ -36,3 +36,5 @@ jobs:
         run: |
           cd lib/tests
           cargo run
+      - name: Clippy
+        run: cargo clippy --all
