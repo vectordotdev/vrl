@@ -88,34 +88,3 @@ impl FunctionExpression for EncodeZstdFn {
         TypeDef::bytes().infallible()
     }
 }
-
-#[cfg(test)]
-mod test {
-    use super::*;
-    use base64::Engine;
-
-    fn decode_base64(text: &str) -> Vec<u8> {
-        let engine = base64::engine::GeneralPurpose::new(
-            &base64::alphabet::STANDARD,
-            base64::engine::general_purpose::GeneralPurposeConfig::new(),
-        );
-
-        engine.decode(text).expect("Cannot decode from Base64")
-    }
-
-    test_function![
-        encode_zstd => EncodeZstd;
-
-        with_defaults {
-            args: func_args![value: value!("you_have_successfully_decoded_me.congratulations.you_are_breathtaking.")],
-            want: Ok(value!(decode_base64("KLUv/QBY/QEAYsQOFKClbQBedqXsb96EWDax/f/F/z+gNU4ZTInaUeAj82KqPFjUzKqhcfDqAIsLvAsnY1bI/N2mHzDixRQA").as_bytes())),
-            tdef: TypeDef::bytes().infallible(),
-        }
-
-        with_custom_compression_level {
-            args: func_args![value: value!("you_have_successfully_decoded_me.congratulations.you_are_breathtaking."), compression_level: 22],
-            want: Ok(value!(decode_base64("KLUv/QCIFQIAIkQOFKClbQBedqXsb96EWDYp/f+l/x+hNU4ZrER9FNiRKw8WtVk1GgevDjBxgXdhyZgVMn+3aQ+Y2GIKAQBBAwUF").as_bytes())),
-            tdef: TypeDef::bytes().infallible(),
-        }
-    ];
-}

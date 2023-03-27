@@ -1,0 +1,5 @@
+# result: true
+
+msg = "you_have_successfully_decoded_me.congratulations.you_are_breathtaking."
+assert_eq!(decode_zstd!(encode_zstd(msg, compression_level: 22)), msg);
+assert_eq!(decode_zstd!(encode_zstd(msg)), msg);

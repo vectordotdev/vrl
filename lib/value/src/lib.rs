@@ -23,6 +23,7 @@
     unused
 )]
 #![allow(
+    deprecated,
     clippy::cast_lossless,
     clippy::cargo_common_metadata,
     clippy::single_match_else,
