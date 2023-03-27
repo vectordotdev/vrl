@@ -1,5 +1,13 @@
 name: Test Suite
 
+on:
+  pull_request:
+  merge_group:
+    types: [checks_requested]
+  push:
+    branches:
+      - master
+
 concurrency:
   # For pull requests, cancel running workflows, for master, run all
   #
