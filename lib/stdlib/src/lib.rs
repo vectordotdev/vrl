@@ -9,6 +9,7 @@
     unused_comparisons
 )]
 #![allow(
+    deprecated,
     clippy::cast_possible_truncation, // allowed in initial deny commit
     clippy::cast_precision_loss, // allowed in initial deny commit
     clippy::cast_sign_loss, // allowed in initial deny commit
