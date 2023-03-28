@@ -37,4 +37,4 @@ jobs:
           cd lib/tests
           cargo run
       - name: Clippy
-        run: cargo clippy --workspace --all-targets
+        run: cargo clippy --workspace --all-targets -- -D warnings
