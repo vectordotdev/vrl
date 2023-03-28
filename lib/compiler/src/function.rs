@@ -239,6 +239,7 @@ impl ArgumentList {
     /// If the argument exists and is either a literal or a variable containing a known literal,
     /// return that literal; otherwise return the optional expression.
     #[cfg(feature = "expr-literal")]
+    #[must_use]
     pub fn optional_resolve_literal(&self, keyword: &'static str) -> Option<Expr> {
         self.optional_expr(keyword).map(|expr| match expr {
             literal @ Expr::Literal(_) => literal,
@@ -253,6 +254,7 @@ impl ArgumentList {
     }
 
     #[cfg(not(feature = "expr-literal"))]
+    #[must_use]
     pub fn optional_resolve_literal(&self, keyword: &'static str) -> Option<Expr> {
         Some(crate::expression::Noop)
     }
