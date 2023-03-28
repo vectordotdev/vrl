@@ -220,24 +220,13 @@ impl ArgumentList {
         Box::new(self.required_expr(keyword)) as _
     }
 
-    #[cfg(feature = "expr-literal")]
     pub fn optional_literal(
         &self,
         keyword: &'static str,
     ) -> Result<Option<crate::expression::Literal>, Error> {
-        self.optional_expr(keyword)
+        self.optional_resolve_literal(keyword)
             .map(|expr| match expr {
                 Expr::Literal(literal) => Ok(literal),
-                Expr::Variable(var) if var.value().is_some() => {
-                    match var.value().unwrap().clone().into() {
-                        Expr::Literal(literal) => Ok(literal),
-                        expr => Err(Error::UnexpectedExpression {
-                            keyword,
-                            expected: "literal",
-                            expr,
-                        }),
-                    }
-                }
                 expr => Err(Error::UnexpectedExpression {
                     keyword,
                     expected: "literal",
@@ -247,12 +236,25 @@ impl ArgumentList {
             .transpose()
     }
 
+    /// If the argument exists and is either a literal or a variable containing a known literal,
+    /// return that literal; otherwise return the optional expression.
+    #[cfg(feature = "expr-literal")]
+    pub fn optional_resolve_literal(&self, keyword: &'static str) -> Option<Expr> {
+        self.optional_expr(keyword).map(|expr| match expr {
+            literal @ Expr::Literal(_) => literal,
+            Expr::Variable(var) if var.value().is_some() => {
+                match var.value().unwrap().clone().into() {
+                    literal @ Expr::Literal(_) => literal,
+                    _ => Expr::Variable(var),
+                }
+            }
+            expr => expr,
+        })
+    }
+
     #[cfg(not(feature = "expr-literal"))]
-    pub fn optional_literal(
-        &self,
-        _: &'static str,
-    ) -> Result<Option<crate::expression::Noop>, Error> {
-        Ok(Some(crate::expression::Noop))
+    pub fn optional_resolve_literal(&self, keyword: &'static str) -> Option<Expr> {
+        Some(crate::expression::Noop)
     }
 
     /// Returns the argument if it is a literal, an object or an array.
@@ -282,6 +284,10 @@ impl ArgumentList {
         keyword: &'static str,
     ) -> Result<crate::expression::Noop, Error> {
         Ok(required(self.optional_literal(keyword)?))
+    }
+
+    pub fn required_resolve_literal(&self, keyword: &'static str) -> Result<Expr, Error> {
+        Ok(required(self.optional_resolve_literal(keyword)))
     }
 
     pub fn optional_enum(
