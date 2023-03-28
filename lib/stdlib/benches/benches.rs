@@ -1,3 +1,5 @@
+#![allow(deprecated)]
+
 use ::value::{btreemap, Value};
 use chrono::{DateTime, Datelike, TimeZone, Utc};
 use criterion::{criterion_group, criterion_main, Criterion};
