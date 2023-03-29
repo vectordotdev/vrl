@@ -16,7 +16,7 @@ ordered-float = { version = "3.4.0", default-features = false }
 tracing = { version = "0.1.34", default-features = false }
 snafu = { version = "0.7" }
 serde_json = { version = "1.0.93", default-features = false, features = ["std", "raw_value"] }
-serde = { version = "1.0.152", features = ["derive"] }
+serde = { version = "1.0.159", features = ["derive"] }
 bytes = { version = "1.4.0", default-features = false }
 nom = { version = "7" }
 
