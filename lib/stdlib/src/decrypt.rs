@@ -136,7 +136,7 @@ impl Function for Decrypt {
         let key = arguments.required("key");
         let iv = arguments.required("iv");
 
-        if let Some(algorithm) = algorithm.as_value() {
+        if let Some(algorithm) = algorithm.resolve_constant() {
             if !is_valid_algorithm(algorithm.clone()) {
                 return Err(vrl::function::Error::InvalidArgument {
                     keyword: "algorithm",

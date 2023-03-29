@@ -56,12 +56,12 @@ impl Function for MatchAny {
 
         let mut re_strings = Vec::with_capacity(patterns.len());
         for expr in patterns {
-            let value = expr
-                .as_value()
-                .ok_or(vrl::function::Error::ExpectedStaticExpression {
-                    keyword: "patterns",
-                    expr,
-                })?;
+            let value =
+                expr.resolve_constant()
+                    .ok_or(vrl::function::Error::ExpectedStaticExpression {
+                        keyword: "patterns",
+                        expr,
+                    })?;
 
             let re = value
                 .try_regex()

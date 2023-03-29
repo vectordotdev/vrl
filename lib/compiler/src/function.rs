@@ -290,7 +290,7 @@ impl ArgumentList {
         variants: &[Value],
     ) -> Result<Option<Value>, Error> {
         self.optional_literal(keyword)?
-            .and_then(|literal| literal.as_value())
+            .and_then(|literal| literal.resolve_constant())
             .map(|value| {
                 variants
                     .iter()
