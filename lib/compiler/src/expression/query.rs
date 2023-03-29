@@ -117,7 +117,7 @@ impl Expression for Query {
         Ok(value.get(&self.path).cloned().unwrap_or(Value::Null))
     }
 
-    fn as_value(&self) -> Option<Value> {
+    fn resolve_constant(&self) -> Option<Value> {
         match self.target {
             Target::Internal(ref variable) => {
                 variable.value().and_then(|v| v.get(self.path())).cloned()

@@ -37,10 +37,10 @@ impl Expression for Object {
             .map(Value::Object)
     }
 
-    fn as_value(&self) -> Option<Value> {
+    fn resolve_constant(&self) -> Option<Value> {
         self.inner
             .iter()
-            .map(|(key, expr)| expr.as_value().map(|v| (key.clone(), v)))
+            .map(|(key, expr)| expr.resolve_constant().map(|v| (key.clone(), v)))
             .collect::<Option<BTreeMap<_, _>>>()
             .map(Value::Object)
     }

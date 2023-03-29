@@ -118,7 +118,7 @@ impl FunctionExpression for HmacFn {
 
         let mut valid_static_algo = false;
         if let Some(algorithm) = self.algorithm.as_ref() {
-            if let Some(algorithm) = algorithm.as_value() {
+            if let Some(algorithm) = algorithm.resolve_constant() {
                 if let Ok(algorithm) = algorithm.try_bytes_utf8_lossy() {
                     let algorithm = algorithm.to_uppercase();
                     valid_static_algo = valid_algorithms.contains(&algorithm.as_str());

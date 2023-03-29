@@ -109,7 +109,7 @@ impl Function for ParseGroks {
             .into_iter()
             .map(|expr| {
                 let pattern = expr
-                    .as_value()
+                    .resolve_constant()
                     .ok_or(vrl::function::Error::ExpectedStaticExpression {
                         keyword: "patterns",
                         expr,
@@ -127,7 +127,7 @@ impl Function for ParseGroks {
             .into_iter()
             .map(|(key, expr)| {
                 let alias = expr
-                    .as_value()
+                    .resolve_constant()
                     .ok_or(vrl::function::Error::ExpectedStaticExpression {
                         keyword: "aliases",
                         expr,
