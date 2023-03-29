@@ -121,6 +121,7 @@ features = [
     "parse_user_agent",
     "parse_xml",
     "push",
+    "random_bytes",
     "random_bool",
     "random_int",
     "random_float",
