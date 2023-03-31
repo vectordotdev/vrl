@@ -5,6 +5,7 @@
 - renamed `Expression::as_value` to `Expression::resolve_constant`
 - `match` function now precompiles static regular expressions
 - enabled the `encrypt` and `decrypt` VRL functions on the WASM playground
+- update default branch to `main`
 
 ## `0.1.0` (2023-03-27)
 - VRL was split from the Vector repo
