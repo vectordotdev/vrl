@@ -34,6 +34,7 @@ mod non_wasm {
     }
 }
 
+#[allow(clippy::wildcard_imports)]
 #[cfg(not(target_arch = "wasm32"))]
 use non_wasm::*;
 
