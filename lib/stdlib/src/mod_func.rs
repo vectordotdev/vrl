@@ -66,7 +66,7 @@ impl FunctionExpression for ModFn {
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {
         // Division is infallible if the rhs is a literal normal float or a literal non-zero integer.
-        match self.modulus.as_value() {
+        match self.modulus.resolve_constant() {
             Some(value) if value.is_float() || value.is_integer() => match value {
                 Value::Float(v) if v.is_normal() => TypeDef::float().infallible(),
                 Value::Float(_) => TypeDef::float().fallible(),

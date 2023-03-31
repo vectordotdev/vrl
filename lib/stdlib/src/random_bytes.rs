@@ -47,7 +47,7 @@ impl Function for RandomBytes {
     ) -> Compiled {
         let length = arguments.required("length");
 
-        if let Some(literal) = length.as_value() {
+        if let Some(literal) = length.resolve_constant() {
             // check if length is valid
             let _ = get_length(literal.clone()).map_err(|err| {
                 vrl::function::Error::InvalidArgument {
@@ -85,7 +85,7 @@ impl FunctionExpression for RandomBytesFn {
     }
 
     fn type_def(&self, _state: &state::TypeState) -> TypeDef {
-        match self.length.as_value() {
+        match self.length.resolve_constant() {
             None => TypeDef::bytes().fallible(),
             Some(value) => {
                 if get_length(value).is_ok() {

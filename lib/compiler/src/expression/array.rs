@@ -36,10 +36,10 @@ impl Expression for Array {
             .map(Value::Array)
     }
 
-    fn as_value(&self) -> Option<Value> {
+    fn resolve_constant(&self) -> Option<Value> {
         self.inner
             .iter()
-            .map(Expr::as_value)
+            .map(Expr::resolve_constant)
             .collect::<Option<Vec<_>>>()
             .map(Value::Array)
     }

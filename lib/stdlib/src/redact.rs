@@ -70,7 +70,7 @@ impl Function for Redact {
             .required_array("filters")?
             .into_iter()
             .map(|expr| {
-                expr.as_value()
+                expr.resolve_constant()
                     .ok_or(vrl::function::Error::ExpectedStaticExpression {
                         keyword: "filters",
                         expr,

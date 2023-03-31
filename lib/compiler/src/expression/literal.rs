@@ -51,7 +51,7 @@ impl Expression for Literal {
         Ok(self.to_value())
     }
 
-    fn as_value(&self) -> Option<Value> {
+    fn resolve_constant(&self) -> Option<Value> {
         Some(self.to_value())
     }
 

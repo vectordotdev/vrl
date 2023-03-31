@@ -60,7 +60,7 @@ impl Function for Match {
         let value = arguments.required("value");
         let pattern = arguments.required("pattern");
 
-        match pattern.as_value() {
+        match pattern.resolve_constant() {
             Some(pattern) => {
                 let pattern = pattern
                     .try_regex()

@@ -82,9 +82,10 @@ pub trait Expression: Send + Sync + fmt::Debug + DynClone {
     fn resolve(&self, ctx: &mut Context) -> Resolved;
 
     /// Resolve an expression to a value without any context, if possible.
+    /// This attempts to resolve expressions using only compile-time information.
     ///
     /// This returns `Some` for static expressions, or `None` for dynamic expressions.
-    fn as_value(&self) -> Option<Value> {
+    fn resolve_constant(&self) -> Option<Value> {
         None
     }
 
@@ -205,7 +206,7 @@ impl Expr {
             }),
         }?;
 
-        match literal.as_value() {
+        match literal.resolve_constant() {
             Some(value) => Ok(value),
             None => Err(super::function::Error::UnexpectedExpression {
                 keyword,
@@ -270,7 +271,7 @@ impl Expression for Expr {
         }
     }
 
-    fn as_value(&self) -> Option<Value> {
+    fn resolve_constant(&self) -> Option<Value> {
         use Expr::{
             Abort, Assignment, Container, FunctionCall, IfStatement, Literal, Noop, Op, Query,
             Unary, Variable,
@@ -278,24 +279,24 @@ impl Expression for Expr {
 
         match self {
             #[cfg(feature = "expr-literal")]
-            Literal(v) => Expression::as_value(v),
-            Container(v) => Expression::as_value(v),
+            Literal(v) => Expression::resolve_constant(v),
+            Container(v) => Expression::resolve_constant(v),
             #[cfg(feature = "expr-if_statement")]
-            IfStatement(v) => Expression::as_value(v),
+            IfStatement(v) => Expression::resolve_constant(v),
             #[cfg(feature = "expr-op")]
-            Op(v) => Expression::as_value(v),
+            Op(v) => Expression::resolve_constant(v),
             #[cfg(feature = "expr-assignment")]
-            Assignment(v) => Expression::as_value(v),
+            Assignment(v) => Expression::resolve_constant(v),
             #[cfg(feature = "expr-query")]
-            Query(v) => Expression::as_value(v),
+            Query(v) => Expression::resolve_constant(v),
             #[cfg(feature = "expr-function_call")]
-            FunctionCall(v) => Expression::as_value(v),
-            Variable(v) => Expression::as_value(v),
-            Noop(v) => Expression::as_value(v),
+            FunctionCall(v) => Expression::resolve_constant(v),
+            Variable(v) => Expression::resolve_constant(v),
+            Noop(v) => Expression::resolve_constant(v),
             #[cfg(feature = "expr-unary")]
-            Unary(v) => Expression::as_value(v),
+            Unary(v) => Expression::resolve_constant(v),
             #[cfg(feature = "expr-abort")]
-            Abort(v) => Expression::as_value(v),
+            Abort(v) => Expression::resolve_constant(v),
         }
     }
 
