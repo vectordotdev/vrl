@@ -28,6 +28,8 @@
 )]
 
 mod util;
+mod wasm_unsupported_function;
+pub use wasm_unsupported_function::WasmUnsupportedFunction;
 
 #[cfg(feature = "abs")]
 mod abs;
