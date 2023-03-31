@@ -1,18 +1,42 @@
-use std::net::IpAddr;
-
-use ::value::Value;
-use dns_lookup::lookup_addr;
 use vrl::prelude::*;
 
-fn reverse_dns(value: Value) -> Resolved {
-    let ip: IpAddr = value
-        .try_bytes_utf8_lossy()?
-        .parse()
-        .map_err(|err| format!("unable to parse IP address: {err}"))?;
-    let host = lookup_addr(&ip).map_err(|err| format!("unable to perform a lookup : {err}"))?;
+#[cfg(not(target_arch = "wasm32"))]
+mod non_wasm {
+    use ::value::Value;
+    use dns_lookup::lookup_addr;
+    use std::net::IpAddr;
+    use vrl::prelude::*;
 
-    Ok(host.into())
+    fn reverse_dns(value: Value) -> Resolved {
+        let ip: IpAddr = value
+            .try_bytes_utf8_lossy()?
+            .parse()
+            .map_err(|err| format!("unable to parse IP address: {err}"))?;
+        let host = lookup_addr(&ip).map_err(|err| format!("unable to perform a lookup : {err}"))?;
+
+        Ok(host.into())
+    }
+
+    #[derive(Debug, Clone)]
+    pub(super) struct ReverseDnsFn {
+        pub(super) value: Box<dyn Expression>,
+    }
+
+    impl FunctionExpression for ReverseDnsFn {
+        fn resolve(&self, ctx: &mut Context) -> Resolved {
+            let value = self.value.resolve(ctx)?;
+            reverse_dns(value)
+        }
+
+        fn type_def(&self, _: &state::TypeState) -> TypeDef {
+            TypeDef::bytes().fallible()
+        }
+    }
 }
+
+#[allow(clippy::wildcard_imports)]
+#[cfg(not(target_arch = "wasm32"))]
+use non_wasm::*;
 
 #[derive(Clone, Copy, Debug)]
 pub struct ReverseDns;
@@ -38,6 +62,7 @@ impl Function for ReverseDns {
         }]
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
     fn compile(
         &self,
         _state: &state::TypeState,
@@ -48,21 +73,15 @@ impl Function for ReverseDns {
 
         Ok(ReverseDnsFn { value }.as_expr())
     }
-}
 
-#[derive(Debug, Clone)]
-struct ReverseDnsFn {
-    value: Box<dyn Expression>,
-}
-
-impl FunctionExpression for ReverseDnsFn {
-    fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = self.value.resolve(ctx)?;
-        reverse_dns(value)
-    }
-
-    fn type_def(&self, _: &state::TypeState) -> TypeDef {
-        TypeDef::bytes().fallible()
+    #[cfg(target_arch = "wasm32")]
+    fn compile(
+        &self,
+        _state: &state::TypeState,
+        ctx: &mut FunctionCompileContext,
+        _arguments: ArgumentList,
+    ) -> Compiled {
+        Ok(crate::WasmUnsupportedFunction::new(ctx.span(), TypeDef::bytes().fallible()).as_expr())
     }
 }
 

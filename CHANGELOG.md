@@ -7,6 +7,7 @@
 - update default branch to `main`
 - the following VRL functions now compile on WASM (but abort at runtime)
   - `get_hostname`
+  - `reverse_dns'
   - `parse_grok`
   - `parse_groks`
 
