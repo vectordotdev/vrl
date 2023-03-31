@@ -67,7 +67,7 @@ impl Function for RandomInt {
         let min = arguments.required("min");
         let max = arguments.required("max");
 
-        if let (Some(min), Some(max)) = (min.as_value(), max.as_value()) {
+        if let (Some(min), Some(max)) = (min.resolve_constant(), max.resolve_constant()) {
             // check if range is valid
             let _ = get_range(min, max.clone()).map_err(|err| {
                 vrl::function::Error::InvalidArgument {
@@ -97,7 +97,7 @@ impl FunctionExpression for RandomIntFn {
     }
 
     fn type_def(&self, _state: &state::TypeState) -> TypeDef {
-        match (self.min.as_value(), self.max.as_value()) {
+        match (self.min.resolve_constant(), self.max.resolve_constant()) {
             (Some(min), Some(max)) => {
                 if get_range(min, max).is_ok() {
                     TypeDef::integer()

@@ -70,7 +70,7 @@ impl Function for Chunks {
 
         // chunk_size is converted to a usize, so if a user-supplied Value::Integer (i64) is
         // larger than the platform's usize::MAX, it could fail to convert.
-        if let Some(literal) = chunk_size.as_value() {
+        if let Some(literal) = chunk_size.resolve_constant() {
             if let Some(integer) = literal.as_integer() {
                 if integer < 1 {
                     return Err(vrl::function::Error::InvalidArgument {
@@ -111,7 +111,7 @@ impl FunctionExpression for ChunksFn {
     }
 
     fn type_def(&self, _state: &TypeState) -> TypeDef {
-        let not_literal = self.chunk_size.as_value().is_none();
+        let not_literal = self.chunk_size.resolve_constant().is_none();
 
         TypeDef::array(Collection::from_unknown(Kind::bytes())).with_fallibility(not_literal)
     }

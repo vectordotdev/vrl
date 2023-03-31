@@ -181,7 +181,7 @@ impl Expression for DelFn {
         let compact: Option<bool> = self
             .compact
             .as_ref()
-            .and_then(|compact| compact.as_value())
+            .and_then(|compact| compact.resolve_constant())
             .and_then(|compact| compact.as_boolean());
 
         if let Some(compact) = compact {

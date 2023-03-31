@@ -38,14 +38,14 @@ impl Expression for Container {
         }
     }
 
-    fn as_value(&self) -> Option<Value> {
+    fn resolve_constant(&self) -> Option<Value> {
         use Variant::{Array, Block, Group, Object};
 
         match &self.variant {
-            Group(v) => v.as_value(),
-            Block(v) => v.as_value(),
-            Array(v) => v.as_value(),
-            Object(v) => v.as_value(),
+            Group(v) => v.resolve_constant(),
+            Block(v) => v.resolve_constant(),
+            Array(v) => v.resolve_constant(),
+            Object(v) => v.resolve_constant(),
         }
     }
 
