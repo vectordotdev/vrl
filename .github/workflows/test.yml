@@ -6,13 +6,13 @@ on:
     types: [checks_requested]
   push:
     branches:
-      - master
+      - main
 
 concurrency:
-  # For pull requests, cancel running workflows, for master, run all
+  # For pull requests, cancel running workflows, for main, run all
   #
   # `github.event.number` exists for pull requests, otherwise fall back to SHA
-  # for master
+  # for main
   group: ${{ github.workflow }}-${{ github.event.number || github.sha }}
   cancel-in-progress: true
 

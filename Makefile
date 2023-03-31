@@ -41,7 +41,7 @@ export CURRENT_DIR = $(shell pwd)
 
 # Override this to automatically enter a container containing the correct, full, official build environment for Vector, ready for development
 export ENVIRONMENT ?= false
-# The upstream container we publish artifacts to on a successful master build.
+# The upstream container we publish artifacts to on a successful main build.
 export ENVIRONMENT_UPSTREAM ?= docker.io/timberio/vector-dev:sha-3eadc96742a33754a5859203b58249f6a806972a
 # Override to disable building the container, having it pull from the GitHub packages repo instead
 # TODO: Disable this by default. Blocked by `docker pull` from GitHub Packages requiring authenticated login
