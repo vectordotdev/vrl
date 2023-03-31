@@ -1,44 +1,70 @@
-use datadog_grok::{
-    parse_grok,
-    parse_grok_rules::{self, GrokRule},
-};
-use std::{collections::BTreeMap, fmt};
-use vrl::{
-    diagnostic::{Label, Span},
-    prelude::*,
-};
+use vrl::prelude::*;
 
-#[derive(Debug)]
-pub(crate) enum Error {
-    InvalidGrokPattern(datadog_grok::parse_grok_rules::Error),
-}
+#[cfg(not(target_arch = "wasm32"))]
+mod non_wasm {
+    use datadog_grok::{parse_grok, parse_grok_rules::GrokRule};
+    use std::fmt;
+    use vrl::prelude::*;
+    use vrl_diagnostic::{Label, Span};
 
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Error::InvalidGrokPattern(err) => err.fmt(f),
-        }
-    }
-}
-
-impl std::error::Error for Error {}
-
-impl DiagnosticMessage for Error {
-    fn code(&self) -> usize {
-        109
+    #[derive(Debug)]
+    pub(crate) enum Error {
+        InvalidGrokPattern(datadog_grok::parse_grok_rules::Error),
     }
 
-    fn labels(&self) -> Vec<Label> {
-        match self {
-            Error::InvalidGrokPattern(err) => {
-                vec![Label::primary(
-                    format!("grok pattern error: {err}"),
-                    Span::default(),
-                )]
+    impl fmt::Display for Error {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            match self {
+                Error::InvalidGrokPattern(err) => err.fmt(f),
             }
         }
     }
+
+    impl std::error::Error for Error {}
+
+    impl DiagnosticMessage for Error {
+        fn code(&self) -> usize {
+            109
+        }
+
+        fn labels(&self) -> Vec<Label> {
+            match self {
+                Error::InvalidGrokPattern(err) => {
+                    vec![Label::primary(
+                        format!("grok pattern error: {err}"),
+                        Span::default(),
+                    )]
+                }
+            }
+        }
+    }
+
+    #[derive(Clone, Debug)]
+    pub(super) struct ParseGroksFn {
+        pub(super) value: Box<dyn Expression>,
+        pub(super) grok_rules: Vec<GrokRule>,
+    }
+
+    impl FunctionExpression for ParseGroksFn {
+        fn resolve(&self, ctx: &mut Context) -> Resolved {
+            let value = self.value.resolve(ctx)?;
+            let bytes = value.try_bytes_utf8_lossy()?;
+
+            let v = parse_grok::parse_grok(bytes.as_ref(), &self.grok_rules)
+                .map_err(|err| format!("unable to parse grok: {err}"))?;
+
+            Ok(v)
+        }
+
+        fn type_def(&self, _: &state::TypeState) -> TypeDef {
+            TypeDef::object(Collection::any()).fallible()
+        }
+    }
 }
+
+#[allow(clippy::wildcard_imports)]
+#[cfg(not(target_arch = "wasm32"))]
+use non_wasm::*;
 
 #[derive(Clone, Copy, Debug)]
 pub struct ParseGroks;
@@ -96,6 +122,7 @@ impl Function for ParseGroks {
         }]
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
     fn compile(
         &self,
         _state: &state::TypeState,
@@ -142,32 +169,24 @@ impl Function for ParseGroks {
             .collect::<std::result::Result<BTreeMap<String, String>, vrl::function::Error>>()?;
 
         // we use a datadog library here because it is a superset of grok
-        let grok_rules = parse_grok_rules::parse_grok_rules(&patterns, aliases)
+        let grok_rules = datadog_grok::parse_grok_rules::parse_grok_rules(&patterns, aliases)
             .map_err(|e| Box::new(Error::InvalidGrokPattern(e)) as Box<dyn DiagnosticMessage>)?;
 
         Ok(ParseGroksFn { value, grok_rules }.as_expr())
     }
-}
 
-#[derive(Clone, Debug)]
-struct ParseGroksFn {
-    value: Box<dyn Expression>,
-    grok_rules: Vec<GrokRule>,
-}
-
-impl FunctionExpression for ParseGroksFn {
-    fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = self.value.resolve(ctx)?;
-        let bytes = value.try_bytes_utf8_lossy()?;
-
-        let v = parse_grok::parse_grok(bytes.as_ref(), &self.grok_rules)
-            .map_err(|err| format!("unable to parse grok: {err}"))?;
-
-        Ok(v)
-    }
-
-    fn type_def(&self, _: &state::TypeState) -> TypeDef {
-        TypeDef::object(Collection::any()).fallible()
+    #[cfg(target_arch = "wasm32")]
+    fn compile(
+        &self,
+        _state: &state::TypeState,
+        ctx: &mut FunctionCompileContext,
+        _: ArgumentList,
+    ) -> Compiled {
+        Ok(crate::WasmUnsupportedFunction::new(
+            ctx.span(),
+            TypeDef::object(Collection::any()).fallible(),
+        )
+        .as_expr())
     }
 }
 

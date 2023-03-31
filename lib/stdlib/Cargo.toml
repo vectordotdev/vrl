@@ -11,7 +11,6 @@ vrl = { path = "../.." }
 value = { path = "../value", default-features = false }
 
 datadog-filter = { path = "../datadog/filter", optional = true }
-datadog-grok = { path = "../datadog/grok", optional = true }
 datadog-search-syntax = { path = "../datadog/search-syntax", optional = true }
 lookup_lib = {package = "lookup", path = "../lookup", optional = true }
 vrl-core = { path = "../core" }
@@ -27,7 +26,6 @@ csv = { version = "1.2", optional = true }
 data-encoding = { version = "2.3.3", optional = true }
 dns-lookup = { version = "1.0.8", optional = true }
 flate2 = { version = "1.0.25", default-features = false, features = ["default"], optional = true }
-grok = { version = "2", optional = true }
 hex = { version = "0.4", optional = true }
 hmac = { version = "0.12.1", optional = true }
 indexmap = { version = "~1.9.2", default-features = false, optional = true}
@@ -56,9 +54,11 @@ uaparser = { version = "0.6.0", default-features = false, optional = true }
 utf8-width = { version = "0.1.6", optional = true }
 zstd = { version = "0.12.2", default-features = false, features = ["wasm"], optional = true }
 
-# Feature dependencies that don't work in WASM
+# Dependencies that don't work in WASM
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 hostname = { version = "0.3", optional = true }
+grok = { version = "2", optional = true }
+datadog-grok = { path = "../datadog/grok", optional = true }
 
 # Cryptography
 aes = { version = "0.8.2", optional = true }
