@@ -626,7 +626,8 @@ impl Expression for FunctionCall {
         self.expr.resolve(ctx).map_err(|err| match err {
             #[cfg(feature = "expr-abort")]
             ExpressionError::Abort { .. } => {
-                panic!("abort errors must only be defined by `abort` statement")
+                // propagate the error
+                err
             }
             ExpressionError::Error {
                 message,

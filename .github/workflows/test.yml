@@ -32,9 +32,15 @@ jobs:
         run: cargo test --workspace
       - name: Check code style
         run: cargo fmt --check --all
+      - name: WASM compile check
+        run: |
+          cd lib/web-playground
+          cargo check --target wasm32-unknown-unknown
       - name: Run VRL tests
         run: |
           cd lib/tests
           cargo run
       - name: Clippy
         run: cargo clippy --workspace --all-targets -- -D warnings
+
+

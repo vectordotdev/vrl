@@ -58,6 +58,7 @@ features = [
     "format_timestamp",
     "get",
     "get_env_var",
+    "get_hostname",
     "includes",
     "ip_aton",
     "ip_cidr_contains",
