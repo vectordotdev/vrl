@@ -1,7 +1,7 @@
 use vrl::prelude::*;
 
 #[cfg(not(target_arch = "wasm32"))]
-mod implementation {
+mod non_wasm {
     use datadog_grok::{parse_grok, parse_grok_rules::GrokRule};
     use std::fmt;
     use vrl::prelude::*;
@@ -63,7 +63,7 @@ mod implementation {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-use implementation::*;
+use non_wasm::*;
 
 #[derive(Clone, Copy, Debug)]
 pub struct ParseGroks;
