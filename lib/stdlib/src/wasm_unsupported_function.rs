@@ -8,6 +8,7 @@ pub struct WasmUnsupportedFunction {
 }
 
 impl WasmUnsupportedFunction {
+    #[must_use]
     pub fn new(span: Span, type_def: TypeDef) -> Self {
         Self { span, type_def }
     }
