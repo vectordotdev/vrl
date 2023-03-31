@@ -56,10 +56,6 @@ uaparser = { version = "0.6.0", default-features = false, optional = true }
 utf8-width = { version = "0.1.6", optional = true }
 zstd = { version = "0.12.2", default-features = false, features = ["wasm"], optional = true }
 
-# Feature dependencies that don't work in WASM
-[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-hostname = { version = "0.3", optional = true }
-
 # Cryptography
 aes = { version = "0.8.2", optional = true }
 
@@ -69,6 +65,9 @@ cbc = { version = "0.1.2", optional = true, features = ["alloc"] }
 cfb-mode = { version = "0.8.2", optional = true }
 ofb = { version = "0.6.1", optional = true }
 
+# Feature dependencies that don't work in WASM
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+hostname = { version = "0.3", optional = true }
 
 [dev-dependencies]
 anyhow = "1"
