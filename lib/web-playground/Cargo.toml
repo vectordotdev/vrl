@@ -129,6 +129,7 @@ features = [
     "redact",
     "remove",
     "replace",
+    "reverse_dns",
     "round",
     "set",
     "sha1",
