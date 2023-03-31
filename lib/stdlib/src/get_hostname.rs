@@ -23,7 +23,7 @@ impl Function for GetHostname {
         _ctx: &mut FunctionCompileContext,
         _: ArgumentList,
     ) -> Compiled {
-        return Ok(GetHostnameFn.as_expr());
+        Ok(GetHostnameFn.as_expr())
     }
 
     #[cfg(target_arch = "wasm32")]
@@ -33,9 +33,7 @@ impl Function for GetHostname {
         ctx: &mut FunctionCompileContext,
         _: ArgumentList,
     ) -> Compiled {
-        return Ok(
-            crate::WasmUnsupportedFunction::new(ctx.span(), TypeDef::bytes().fallible()).as_expr(),
-        );
+        crate::WasmUnsupportedFunction::new(ctx.span(), TypeDef::bytes().fallible()).as_expr()
     }
 
     fn examples(&self) -> &'static [Example] {
