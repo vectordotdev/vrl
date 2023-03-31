@@ -43,5 +43,3 @@ jobs:
           cargo run
       - name: Clippy
         run: cargo clippy --workspace --all-targets -- -D warnings
-
-
