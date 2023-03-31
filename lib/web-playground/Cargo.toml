@@ -104,6 +104,8 @@ features = [
     "parse_csv",
     "parse_duration",
     "parse_glog",
+    "parse_grok",
+    "parse_groks",
     "parse_int",
     "parse_json",
     "parse_key_value",
