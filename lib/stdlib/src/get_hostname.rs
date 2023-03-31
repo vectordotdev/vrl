@@ -1,5 +1,6 @@
 use vrl::prelude::*;
 
+#[cfg(not(target_arch = "wasm32"))]
 fn get_hostname() -> Resolved {
     Ok(hostname::get()
         .map_err(|error| format!("failed to get hostname: {error}"))?
@@ -15,6 +16,7 @@ impl Function for GetHostname {
         "get_hostname"
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
     fn compile(
         &self,
         _state: &state::TypeState,
@@ -22,6 +24,16 @@ impl Function for GetHostname {
         _: ArgumentList,
     ) -> Compiled {
         Ok(GetHostnameFn.as_expr())
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    fn compile(
+        &self,
+        _state: &state::TypeState,
+        ctx: &mut FunctionCompileContext,
+        _: ArgumentList,
+    ) -> Compiled {
+        Ok(crate::WasmUnsupportedFunction::new(ctx.span(), TypeDef::bytes().fallible()).as_expr())
     }
 
     fn examples(&self) -> &'static [Example] {
@@ -33,9 +45,11 @@ impl Function for GetHostname {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 #[derive(Debug, Clone)]
 struct GetHostnameFn;
 
+#[cfg(not(target_arch = "wasm32"))]
 impl FunctionExpression for GetHostnameFn {
     fn resolve(&self, _: &mut Context) -> Resolved {
         get_hostname()
