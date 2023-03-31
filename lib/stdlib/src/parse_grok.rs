@@ -1,59 +1,87 @@
-use std::{collections::BTreeMap, fmt, sync::Arc};
+use vrl::prelude::*;
 
-use ::value::Value;
-use vrl::state::TypeState;
-use vrl::{
-    diagnostic::{Label, Span},
-    prelude::*,
-};
+#[cfg(not(target_arch = "wasm32"))]
+mod non_wasm {
+    use ::value::Value;
+    pub(super) use std::sync::Arc;
+    use std::{collections::BTreeMap, fmt};
+    use vrl::prelude::*;
+    use vrl::state::TypeState;
+    use vrl_diagnostic::{Label, Span};
 
-fn parse_grok(value: Value, pattern: Arc<grok::Pattern>) -> Resolved {
-    let bytes = value.try_bytes_utf8_lossy()?;
-    match pattern.match_against(&bytes) {
-        Some(matches) => {
-            let mut result = BTreeMap::new();
+    fn parse_grok(value: Value, pattern: Arc<grok::Pattern>) -> Resolved {
+        let bytes = value.try_bytes_utf8_lossy()?;
+        match pattern.match_against(&bytes) {
+            Some(matches) => {
+                let mut result = BTreeMap::new();
 
-            for (name, value) in matches.iter() {
-                result.insert(name.to_string(), Value::from(value));
+                for (name, value) in matches.iter() {
+                    result.insert(name.to_string(), Value::from(value));
+                }
+
+                Ok(Value::from(result))
             }
-
-            Ok(Value::from(result))
-        }
-        None => Err("unable to parse input with grok pattern".into()),
-    }
-}
-
-#[derive(Debug)]
-pub(crate) enum Error {
-    InvalidGrokPattern(grok::Error),
-}
-
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Error::InvalidGrokPattern(err) => err.fmt(f),
+            None => Err("unable to parse input with grok pattern".into()),
         }
     }
-}
 
-impl std::error::Error for Error {}
-
-impl DiagnosticMessage for Error {
-    fn code(&self) -> usize {
-        109
+    #[derive(Debug)]
+    pub(crate) enum Error {
+        InvalidGrokPattern(grok::Error),
     }
 
-    fn labels(&self) -> Vec<Label> {
-        match self {
-            Error::InvalidGrokPattern(err) => {
-                vec![Label::primary(
-                    format!("grok pattern error: {err}"),
-                    Span::default(),
-                )]
+    impl fmt::Display for Error {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            match self {
+                Error::InvalidGrokPattern(err) => err.fmt(f),
             }
         }
     }
+
+    impl std::error::Error for Error {}
+
+    impl DiagnosticMessage for Error {
+        fn code(&self) -> usize {
+            109
+        }
+
+        fn labels(&self) -> Vec<Label> {
+            match self {
+                Error::InvalidGrokPattern(err) => {
+                    vec![Label::primary(
+                        format!("grok pattern error: {err}"),
+                        Span::default(),
+                    )]
+                }
+            }
+        }
+    }
+
+    #[derive(Clone, Debug)]
+    pub(super) struct ParseGrokFn {
+        pub(super) value: Box<dyn Expression>,
+
+        // Wrapping pattern in an Arc, as cloning the pattern could otherwise be expensive.
+        pub(super) pattern: Arc<grok::Pattern>,
+    }
+
+    impl FunctionExpression for ParseGrokFn {
+        fn resolve(&self, ctx: &mut Context) -> Resolved {
+            let value = self.value.resolve(ctx)?;
+            let pattern = self.pattern.clone();
+
+            parse_grok(value, pattern)
+        }
+
+        fn type_def(&self, _: &TypeState) -> TypeDef {
+            TypeDef::object(Collection::any()).fallible()
+        }
+    }
 }
+
+#[allow(clippy::wildcard_imports)]
+#[cfg(not(target_arch = "wasm32"))]
+use non_wasm::*;
 
 #[derive(Clone, Copy, Debug)]
 pub struct ParseGrok;
@@ -97,6 +125,7 @@ impl Function for ParseGrok {
         }]
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
     fn compile(
         &self,
         _state: &state::TypeState,
@@ -120,32 +149,26 @@ impl Function for ParseGrok {
 
         Ok(ParseGrokFn { value, pattern }.as_expr())
     }
-}
 
-#[derive(Clone, Debug)]
-struct ParseGrokFn {
-    value: Box<dyn Expression>,
-
-    // Wrapping pattern in an Arc, as cloning the pattern could otherwise be expensive.
-    pattern: Arc<grok::Pattern>,
-}
-
-impl FunctionExpression for ParseGrokFn {
-    fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = self.value.resolve(ctx)?;
-        let pattern = self.pattern.clone();
-
-        parse_grok(value, pattern)
-    }
-
-    fn type_def(&self, _: &TypeState) -> TypeDef {
-        TypeDef::object(Collection::any()).fallible()
+    #[cfg(target_arch = "wasm32")]
+    fn compile(
+        &self,
+        _state: &state::TypeState,
+        ctx: &mut FunctionCompileContext,
+        _: ArgumentList,
+    ) -> Compiled {
+        Ok(crate::WasmUnsupportedFunction::new(
+            ctx.span(),
+            TypeDef::object(Collection::any()).fallible(),
+        )
+        .as_expr())
     }
 }
 
 #[cfg(test)]
 mod test {
     use ::value::btreemap;
+    use ::value::Value;
 
     use super::*;
 
