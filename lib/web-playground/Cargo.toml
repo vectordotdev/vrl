@@ -87,6 +87,7 @@ features = [
     "join",
     "keys",
     "length",
+    "log",
     "map_keys",
     "map_values",
     "match",
