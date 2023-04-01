@@ -28,6 +28,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      - uses: Swatinem/rust-cache@v2
       - name: "clippy"
         run: cargo clippy --workspace --all-targets -- -D warnings
 
@@ -35,6 +36,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      - uses: Swatinem/rust-cache@v2
       - name: "fmt"
         run: cargo fmt --check --all
 
@@ -42,6 +44,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      - uses: Swatinem/rust-cache@v2
       - name: "test"
         run: cargo test --workspace
 
@@ -49,6 +52,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      - uses: Swatinem/rust-cache@v2
       - name: VRL tests
         run: cargo run
         working-directory: lib/tests
@@ -57,8 +61,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - name: "Install wasm32-unknown-unknown target"
+      - name: "Add wasm32-unknown-unknown target"
         run: rustup target add wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
       - name: "check"
         run: cargo check --target wasm32-unknown-unknown
         working-directory: lib/web-playground
