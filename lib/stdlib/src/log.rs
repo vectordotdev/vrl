@@ -73,6 +73,7 @@ impl Function for Log {
         ]
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
     fn compile(
         &self,
         _state: &state::TypeState,
@@ -102,6 +103,16 @@ impl Function for Log {
             rate_limit_secs,
         }
         .as_expr())
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    fn compile(
+        &self,
+        _state: &state::TypeState,
+        ctx: &mut FunctionCompileContext,
+        _arguments: ArgumentList,
+    ) -> Compiled {
+        Ok(crate::WasmUnsupportedFunction::new(ctx.span(), TypeDef::null().infallible()).as_expr())
     }
 }
 
