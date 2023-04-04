@@ -66,4 +66,4 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - name: "check"
         run: cargo check --target wasm32-unknown-unknown
-        working-directory: lib/web-playground
+        working-directory: lib/stdlib
