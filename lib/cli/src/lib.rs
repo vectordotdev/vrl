@@ -28,7 +28,7 @@ pub enum Error {
     Parse(String),
 
     #[error(transparent)]
-    Runtime(#[from] vrl::Terminate),
+    Runtime(#[from] Terminate),
 
     #[error("input error: {}", .0)]
     Json(#[from] serde_json::Error),

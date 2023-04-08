@@ -1,5 +1,7 @@
 use core::TargetValue;
 use std::borrow::Cow::{self, Borrowed, Owned};
+use std::collections::BTreeMap;
+use std::fmt::Formatter;
 use std::rc::Rc;
 
 use ::value::Value;
@@ -19,11 +21,8 @@ use rustyline::{
     Context, Editor, Helper,
 };
 use value::Secrets;
-use vrl::state::TypeState;
-use vrl::{
-    diagnostic::Formatter, prelude::BTreeMap, state, CompileConfig, Function, Runtime, Target,
-    VrlRuntime,
-};
+use vrl_compiler::state::{Runtime, TypeState};
+use vrl_compiler::{CompileConfig, Function, Program, Target, VrlRuntime};
 
 // Create a list of all possible error values for potential docs lookup
 static ERRORS: Lazy<Vec<String>> = Lazy::new(|| {
@@ -182,7 +181,7 @@ fn resolve(
 
 fn execute(
     runtime: &mut Runtime,
-    program: &vrl::Program,
+    program: &Program,
     object: &mut dyn Target,
     timezone: TimeZone,
     vrl_runtime: VrlRuntime,

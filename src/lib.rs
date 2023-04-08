@@ -8,14 +8,14 @@
 #![allow(clippy::module_name_repetitions)]
 
 pub mod prelude;
-mod runtime;
 
 pub use compiler::{
-    function, state, value, CompilationResult, CompileConfig, Compiler, Context, Expression,
-    Function, Program, ProgramInfo, SecretTarget, Target, TargetValue, TargetValueRef, VrlRuntime,
+    function,
+    runtime::{Runtime, RuntimeResult, Terminate},
+    state, value, CompilationResult, CompileConfig, Compiler, Context, Expression, Function,
+    Program, ProgramInfo, SecretTarget, Target, TargetValue, TargetValueRef, VrlRuntime,
 };
 pub use diagnostic;
-pub use runtime::{Runtime, RuntimeResult, Terminate};
 pub use vrl_core::TimeZone;
 
 use crate::state::TypeState;

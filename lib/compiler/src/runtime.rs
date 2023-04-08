@@ -1,10 +1,11 @@
+use core::TimeZone;
 use std::{error::Error, fmt};
 
-use compiler::ExpressionError;
+use super::ExpressionError;
 use lookup::OwnedTargetPath;
 use value::Value;
 
-use crate::{state, Context, Program, Target, TimeZone};
+use crate::{state, Context, Program, Target};
 
 pub type RuntimeResult = Result<Value, Terminate>;
 
