@@ -11,7 +11,7 @@ pub type RuntimeResult = Result<Value, Terminate>;
 
 #[derive(Debug, Default)]
 pub struct Runtime {
-    state: state::Runtime,
+    state: state::RuntimeState,
 }
 
 /// The error raised if the runtime is terminated.
@@ -53,7 +53,7 @@ impl Error for Terminate {
 }
 
 impl Runtime {
-    pub fn new(state: state::Runtime) -> Self {
+    pub fn new(state: state::RuntimeState) -> Self {
         Self { state }
     }
 

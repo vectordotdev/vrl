@@ -1,16 +1,20 @@
 use core::TimeZone;
 
-use crate::{state::Runtime, Target};
+use crate::{state::RuntimeState, Target};
 
 pub struct Context<'a> {
     target: &'a mut dyn Target,
-    state: &'a mut Runtime,
+    state: &'a mut RuntimeState,
     timezone: &'a TimeZone,
 }
 
 impl<'a> Context<'a> {
     /// Create a new [`Context`].
-    pub fn new(target: &'a mut dyn Target, state: &'a mut Runtime, timezone: &'a TimeZone) -> Self {
+    pub fn new(
+        target: &'a mut dyn Target,
+        state: &'a mut RuntimeState,
+        timezone: &'a TimeZone,
+    ) -> Self {
         Self {
             target,
             state,
@@ -31,12 +35,12 @@ impl<'a> Context<'a> {
 
     /// Get a reference to the [`runtime state`](Runtime).
     #[must_use]
-    pub fn state(&self) -> &Runtime {
+    pub fn state(&self) -> &RuntimeState {
         self.state
     }
 
     /// Get a mutable reference to the [`runtime state`](Runtime).
-    pub fn state_mut(&mut self) -> &mut Runtime {
+    pub fn state_mut(&mut self) -> &mut RuntimeState {
         self.state
     }
 

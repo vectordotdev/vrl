@@ -21,7 +21,8 @@ use rustyline::{
     Context, Editor, Helper,
 };
 use value::Secrets;
-use vrl_compiler::state::{Runtime, TypeState};
+use vrl_compiler::runtime::Runtime;
+use vrl_compiler::state::{RuntimeState, TypeState};
 use vrl_compiler::{CompileConfig, Function, Program, Target, VrlRuntime};
 
 // Create a list of all possible error values for potential docs lookup
@@ -63,7 +64,7 @@ pub(crate) fn run(
 
     let mut state = TypeState::default();
 
-    let mut rt = Runtime::new(state::Runtime::default());
+    let mut rt = RuntimeState::new(RuntimeState::default());
     let mut rl = Editor::<Repl, MemHistory>::new()?;
     rl.set_helper(Some(Repl::new(stdlib_functions.clone())));
 
@@ -157,7 +158,7 @@ pub(crate) fn run(
 
 fn resolve(
     target: &mut TargetValue,
-    runtime: &mut Runtime,
+    runtime: &mut RuntimeState,
     program: &str,
     state: &mut TypeState,
     timezone: TimeZone,
@@ -180,7 +181,7 @@ fn resolve(
 }
 
 fn execute(
-    runtime: &mut Runtime,
+    runtime: &mut RuntimeState,
     program: &Program,
     object: &mut dyn Target,
     timezone: TimeZone,
@@ -293,7 +294,7 @@ impl Validator for Repl {
     ) -> rustyline::Result<ValidationResult> {
         let timezone = TimeZone::default();
         let mut state = TypeState::default();
-        let mut rt = Runtime::new(state::Runtime::default());
+        let mut rt = Runtime::new(RuntimeState::default());
         let mut target = TargetValue {
             value: Value::Null,
             metadata: Value::Object(BTreeMap::new()),

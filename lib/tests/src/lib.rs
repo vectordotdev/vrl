@@ -84,7 +84,7 @@ pub fn run_tests<T>(
             println!("{}", Colour::Yellow.bold().paint("SKIPPED"));
         }
 
-        let state = state::Runtime::default();
+        let state = state::RuntimeState::default();
         let runtime = Runtime::new(state);
 
         let external_env = vrl::state::ExternalEnv::default();

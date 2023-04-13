@@ -9,7 +9,7 @@ use value::{
 
 use super::Example;
 use crate::{
-    state::Runtime,
+    state::RuntimeState,
     value::{Kind, VrlValueConvert},
     Context,
 };
@@ -263,11 +263,11 @@ where
     }
 }
 
-fn insert(state: &mut Runtime, ident: Option<&Ident>, data: Value) -> Option<Value> {
+fn insert(state: &mut RuntimeState, ident: Option<&Ident>, data: Value) -> Option<Value> {
     ident.and_then(|ident| state.swap_variable(ident.clone(), data))
 }
 
-fn cleanup(state: &mut Runtime, ident: Option<&Ident>, data: Option<Value>) {
+fn cleanup(state: &mut RuntimeState, ident: Option<&Ident>, data: Option<Value>) {
     match (ident, data) {
         (Some(ident), Some(value)) => {
             state.insert_variable(ident.clone(), value);

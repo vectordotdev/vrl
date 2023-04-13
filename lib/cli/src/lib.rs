@@ -17,6 +17,7 @@ pub mod cmd;
 mod repl;
 
 pub use cmd::{cmd, Opts};
+use vrl_compiler::runtime::Terminate;
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {

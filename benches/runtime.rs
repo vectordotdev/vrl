@@ -104,7 +104,7 @@ fn benchmark_vrl_runtimes(c: &mut Criterion) {
         } = vrl::compile(source.program, &functions).unwrap();
 
         group.bench_with_input(BenchmarkId::new(source.name, "ast"), &(), |b, _| {
-            let state = state::Runtime::default();
+            let state = state::RuntimeState::default();
             let mut runtime = Runtime::new(state);
             let target: Value = serde_json::from_str(source.target).expect("valid json");
 

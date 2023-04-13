@@ -1,4 +1,5 @@
 use core::TargetValueRef;
+use std::fmt::Formatter;
 use std::{
     collections::BTreeMap,
     fs::File,
@@ -12,7 +13,11 @@ use clap::Parser;
 use core::TimeZone;
 use lookup::{owned_value_path, OwnedTargetPath};
 use value::Secrets;
-use vrl_compiler::VrlRuntime;
+use vrl_compiler::runtime::Runtime;
+use vrl_compiler::state::RuntimeState;
+use vrl_compiler::{
+    CompilationResult, CompileConfig, Function, Program, Target, TypeState, VrlRuntime,
+};
 
 #[cfg(feature = "repl")]
 use super::repl;
@@ -133,10 +138,9 @@ fn run(opts: &Opts, stdlib_functions: Vec<Box<dyn Function>>) -> Result<(), Erro
             program,
             warnings,
             config: _,
-        } = vrl::compile_with_state(&source, &stdlib::all(), &state, CompileConfig::default())
-            .map_err(|diagnostics| {
-                Error::Parse(Formatter::new(&source, diagnostics).colored().to_string())
-            })?;
+        } = compile_with_state(&source, &stdlib::all(), &state, CompileConfig::default()).map_err(
+            |diagnostics| Error::Parse(Formatter::new(&source, diagnostics).colored().to_string()),
+        )?;
 
         #[allow(clippy::print_stderr)]
         if opts.print_warnings {
@@ -152,7 +156,7 @@ fn run(opts: &Opts, stdlib_functions: Vec<Box<dyn Function>>) -> Result<(), Erro
                 metadata: &mut metadata,
                 secrets: &mut secrets,
             };
-            let state = state::Runtime::default();
+            let state = RuntimeState::default();
             let runtime = Runtime::new(state);
 
             let result = execute(&mut target, &program, tz, runtime, opts.runtime).map(|v| {
