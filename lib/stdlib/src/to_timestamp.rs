@@ -279,7 +279,7 @@ mod tests {
     #[test]
     fn out_of_range_integer() {
         let mut object: Value = BTreeMap::new().into();
-        let mut runtime_state = vrl::state::Runtime::default();
+        let mut runtime_state = vrl::state::RuntimeState::default();
         let tz = TimeZone::default();
         let mut ctx = Context::new(&mut object, &mut runtime_state, &tz);
         let f = ToTimestampFn {
@@ -293,7 +293,7 @@ mod tests {
     #[test]
     fn out_of_range_float() {
         let mut object: Value = BTreeMap::new().into();
-        let mut runtime_state = vrl::state::Runtime::default();
+        let mut runtime_state = vrl::state::RuntimeState::default();
         let tz = TimeZone::default();
         let mut ctx = Context::new(&mut object, &mut runtime_state, &tz);
         let f = ToTimestampFn {

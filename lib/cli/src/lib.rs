@@ -17,6 +17,7 @@ pub mod cmd;
 mod repl;
 
 pub use cmd::{cmd, Opts};
+use vrl_compiler::runtime::Terminate;
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
@@ -28,7 +29,7 @@ pub enum Error {
     Parse(String),
 
     #[error(transparent)]
-    Runtime(#[from] vrl::Terminate),
+    Runtime(#[from] Terminate),
 
     #[error("input error: {}", .0)]
     Json(#[from] serde_json::Error),

@@ -37,12 +37,14 @@ mod test_util;
 
 pub mod expression;
 pub mod function;
+pub mod runtime;
 pub mod state;
 pub mod type_def;
 pub mod value;
 
 pub use self::compile_config::CompileConfig;
 pub use self::deprecation_warning::DeprecationWarning;
+use ::parser::parse;
 pub use compiler::{CompilationResult, Compiler};
 pub use core::{
     value, ExpressionError, Resolved, SecretTarget, Target, TargetValue, TargetValueRef,
@@ -63,6 +65,40 @@ pub use state::{TypeInfo, TypeState};
 pub use type_def::TypeDef;
 
 pub type Result<T = CompilationResult> = std::result::Result<T, DiagnosticList>;
+
+/// Compile a given source into the final [`Program`].
+pub fn compile(source: &str, fns: &[Box<dyn Function>]) -> Result {
+    let external = state::ExternalEnv::default();
+    let config = CompileConfig::default();
+
+    compile_with_external(source, fns, &external, config)
+}
+
+pub fn compile_with_external(
+    source: &str,
+    fns: &[Box<dyn Function>],
+    external: &state::ExternalEnv,
+    config: CompileConfig,
+) -> Result {
+    let state = TypeState {
+        local: state::LocalEnv::default(),
+        external: external.clone(),
+    };
+
+    compile_with_state(source, fns, &state, config)
+}
+
+pub fn compile_with_state(
+    source: &str,
+    fns: &[Box<dyn Function>],
+    state: &TypeState,
+    config: CompileConfig,
+) -> Result {
+    let ast = parse(source)
+        .map_err(|err| diagnostic::DiagnosticList::from(vec![Box::new(err) as Box<_>]))?;
+
+    Compiler::compile(fns, ast, state, config)
+}
 
 /// Available VRL runtimes.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]

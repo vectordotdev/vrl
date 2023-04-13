@@ -451,7 +451,7 @@ mod tests {
         let tz = TimeZone::default();
         for (object, expected, func, expected_typedef) in cases {
             let mut object = object.clone();
-            let mut runtime_state = vrl::state::Runtime::default();
+            let mut runtime_state = vrl::state::RuntimeState::default();
             let mut ctx = Context::new(&mut object, &mut runtime_state, &tz);
 
             let got_typedef = func.type_def(&state);

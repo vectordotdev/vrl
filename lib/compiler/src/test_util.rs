@@ -52,7 +52,7 @@ macro_rules! bench_function {
 
                     let (expression, want) = $crate::__prep_bench_or_test!($func, &state, $args, $(Ok(::value::Value::from($ok)))? $(Err($err.to_owned()))?);
                     let expression = expression.unwrap();
-                    let mut runtime_state = $crate::state::Runtime::default();
+                    let mut runtime_state = $crate::state::RuntimeState::default();
                     let mut target: ::value::Value = ::std::collections::BTreeMap::default().into();
                     let tz = vrl_core::TimeZone::Named(chrono_tz::Tz::UTC);
                     let mut ctx = $crate::Context::new(&mut target, &mut runtime_state, &tz);
@@ -93,7 +93,7 @@ macro_rules! test_function {
                 let (expression, want) = $crate::__prep_bench_or_test!($func, &state, $args, $(Ok(::value::Value::from($ok)))? $(Err($err.to_owned()))?);
                 match expression {
                     Ok(expression) => {
-                        let mut runtime_state = $crate::state::Runtime::default();
+                        let mut runtime_state = $crate::state::RuntimeState::default();
                         let mut target: ::value::Value = ::std::collections::BTreeMap::default().into();
                         let tz = $tz;
                         let mut ctx = $crate::Context::new(&mut target, &mut runtime_state, &tz);

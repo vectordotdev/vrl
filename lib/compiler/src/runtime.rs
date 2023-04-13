@@ -1,16 +1,17 @@
+use core::TimeZone;
 use std::{error::Error, fmt};
 
-use compiler::ExpressionError;
+use super::ExpressionError;
 use lookup::OwnedTargetPath;
 use value::Value;
 
-use crate::{state, Context, Program, Target, TimeZone};
+use crate::{state, Context, Program, Target};
 
 pub type RuntimeResult = Result<Value, Terminate>;
 
 #[derive(Debug, Default)]
 pub struct Runtime {
-    state: state::Runtime,
+    state: state::RuntimeState,
 }
 
 /// The error raised if the runtime is terminated.
@@ -28,6 +29,7 @@ pub enum Terminate {
 }
 
 impl Terminate {
+    #[must_use]
     pub fn get_expression_error(self) -> ExpressionError {
         match self {
             Terminate::Abort(error) => error,
@@ -52,10 +54,12 @@ impl Error for Terminate {
 }
 
 impl Runtime {
-    pub fn new(state: state::Runtime) -> Self {
+    #[must_use]
+    pub fn new(state: state::RuntimeState) -> Self {
         Self { state }
     }
 
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.state.is_empty()
     }
@@ -82,7 +86,7 @@ impl Runtime {
             }
             Err(err) => {
                 return Err(Terminate::Error(
-                    format!("error querying target object: {}", err).into(),
+                    format!("error querying target object: {err}").into(),
                 ))
             }
         };

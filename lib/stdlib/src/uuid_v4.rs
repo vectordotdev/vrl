@@ -64,7 +64,7 @@ mod tests {
 
     #[test]
     fn uuid_v4() {
-        let mut state = vrl::state::Runtime::default();
+        let mut state = vrl::state::RuntimeState::default();
         let mut object: Value = Value::Object(BTreeMap::new());
         let tz = TimeZone::default();
         let mut ctx = Context::new(&mut object, &mut state, &tz);
