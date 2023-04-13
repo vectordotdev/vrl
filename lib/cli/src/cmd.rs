@@ -1,5 +1,4 @@
 use core::TargetValueRef;
-use std::fmt::Formatter;
 use std::{
     collections::BTreeMap,
     fs::File,
@@ -16,8 +15,10 @@ use value::Secrets;
 use vrl_compiler::runtime::Runtime;
 use vrl_compiler::state::RuntimeState;
 use vrl_compiler::{
-    CompilationResult, CompileConfig, Function, Program, Target, TypeState, VrlRuntime,
+    compile_with_state, CompilationResult, CompileConfig, Function, Program, Target, TypeState,
+    VrlRuntime,
 };
+use vrl_diagnostic::Formatter;
 
 #[cfg(feature = "repl")]
 use super::repl;

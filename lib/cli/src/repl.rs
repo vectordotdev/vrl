@@ -1,7 +1,6 @@
 use core::TargetValue;
 use std::borrow::Cow::{self, Borrowed, Owned};
 use std::collections::BTreeMap;
-use std::fmt::Formatter;
 use std::rc::Rc;
 
 use ::value::Value;
@@ -23,7 +22,8 @@ use rustyline::{
 use value::Secrets;
 use vrl_compiler::runtime::Runtime;
 use vrl_compiler::state::{RuntimeState, TypeState};
-use vrl_compiler::{CompileConfig, Function, Program, Target, VrlRuntime};
+use vrl_compiler::{compile_with_state, CompileConfig, Function, Program, Target, VrlRuntime};
+use vrl_diagnostic::Formatter;
 
 // Create a list of all possible error values for potential docs lookup
 static ERRORS: Lazy<Vec<String>> = Lazy::new(|| {
@@ -64,7 +64,7 @@ pub(crate) fn run(
 
     let mut state = TypeState::default();
 
-    let mut rt = RuntimeState::new(RuntimeState::default());
+    let mut rt = Runtime::new(RuntimeState::default());
     let mut rl = Editor::<Repl, MemHistory>::new()?;
     rl.set_helper(Some(Repl::new(stdlib_functions.clone())));
 
@@ -158,7 +158,7 @@ pub(crate) fn run(
 
 fn resolve(
     target: &mut TargetValue,
-    runtime: &mut RuntimeState,
+    runtime: &mut Runtime,
     program: &str,
     state: &mut TypeState,
     timezone: TimeZone,
@@ -169,7 +169,7 @@ fn resolve(
     // The CLI should be moved out of the "vrl" module, and then it can use the `vector-core::compile_vrl` function which includes this automatically
     config.set_read_only_path(OwnedTargetPath::metadata(owned_value_path!("vector")), true);
 
-    let program = match vrl::compile_with_state(program, stdlib_functions, state, config) {
+    let program = match compile_with_state(program, stdlib_functions, state, config) {
         Ok(result) => result.program,
         Err(diagnostics) => {
             return Err(Formatter::new(program, diagnostics).colored().to_string());
@@ -181,7 +181,7 @@ fn resolve(
 }
 
 fn execute(
-    runtime: &mut RuntimeState,
+    runtime: &mut Runtime,
     program: &Program,
     object: &mut dyn Target,
     timezone: TimeZone,

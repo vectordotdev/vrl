@@ -29,6 +29,7 @@ pub enum Terminate {
 }
 
 impl Terminate {
+    #[must_use]
     pub fn get_expression_error(self) -> ExpressionError {
         match self {
             Terminate::Abort(error) => error,
@@ -53,10 +54,12 @@ impl Error for Terminate {
 }
 
 impl Runtime {
+    #[must_use]
     pub fn new(state: state::RuntimeState) -> Self {
         Self { state }
     }
 
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.state.is_empty()
     }
@@ -83,7 +86,7 @@ impl Runtime {
             }
             Err(err) => {
                 return Err(Terminate::Error(
-                    format!("error querying target object: {}", err).into(),
+                    format!("error querying target object: {err}").into(),
                 ))
             }
         };
