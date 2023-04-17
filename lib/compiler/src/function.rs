@@ -6,6 +6,7 @@ use parser::ast::Ident;
 use std::{
     collections::{BTreeMap, HashMap},
     fmt,
+    path::PathBuf,
 };
 use value::{kind::Collection, Value};
 
@@ -519,18 +520,22 @@ pub enum Error {
 
     #[error(r#"mutation of read-only value"#)]
     ReadOnlyMutation { context: String },
+
+    #[error(r#"invalid alias source"#)]
+    InvalidAliasSource { path: PathBuf },
 }
 
 impl diagnostic::DiagnosticMessage for Error {
     fn code(&self) -> usize {
         use Error::{
-            ExpectedFunctionClosure, ExpectedStaticExpression, InvalidArgument, InvalidEnumVariant,
-            ReadOnlyMutation, UnexpectedExpression,
+            ExpectedFunctionClosure, ExpectedStaticExpression, InvalidAliasSource, InvalidArgument,
+            InvalidEnumVariant, ReadOnlyMutation, UnexpectedExpression,
         };
 
         match self {
             UnexpectedExpression { .. } => 400,
             InvalidEnumVariant { .. } => 401,
+            InvalidAliasSource { .. } => 401,
             ExpectedStaticExpression { .. } => 402,
             InvalidArgument { .. } => 403,
             ExpectedFunctionClosure => 420,
@@ -540,8 +545,8 @@ impl diagnostic::DiagnosticMessage for Error {
 
     fn labels(&self) -> Vec<Label> {
         use Error::{
-            ExpectedFunctionClosure, ExpectedStaticExpression, InvalidArgument, InvalidEnumVariant,
-            ReadOnlyMutation, UnexpectedExpression,
+            ExpectedFunctionClosure, ExpectedStaticExpression, InvalidAliasSource, InvalidArgument,
+            InvalidEnumVariant, ReadOnlyMutation, UnexpectedExpression,
         };
 
         match self {
@@ -598,6 +603,11 @@ impl diagnostic::DiagnosticMessage for Error {
                 Label::context(format!("received: {value}"), Span::default()),
                 Label::context(format!("error: {error}"), Span::default()),
             ],
+
+            InvalidAliasSource { path } => vec![Label::primary(
+                format!(r#"invalid source at "{}""#, path.display()),
+                Span::default(),
+            )],
 
             ExpectedFunctionClosure => vec![],
             ReadOnlyMutation { context } => vec![

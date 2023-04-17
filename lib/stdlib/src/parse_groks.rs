@@ -3,7 +3,6 @@ use vrl::prelude::*;
 #[cfg(not(target_arch = "wasm32"))]
 mod non_wasm {
     use datadog_grok::{parse_grok, parse_grok_rules::GrokRule};
-    use std::fmt;
     use vrl::prelude::*;
     use vrl_diagnostic::{Label, Span};
 
@@ -65,6 +64,7 @@ mod non_wasm {
 #[allow(clippy::wildcard_imports)]
 #[cfg(not(target_arch = "wasm32"))]
 use non_wasm::*;
+use std::{fs::File, io::BufReader, path::Path};
 
 #[derive(Clone, Copy, Debug)]
 pub struct ParseGroks;
@@ -89,6 +89,11 @@ impl Function for ParseGroks {
             Parameter {
                 keyword: "aliases",
                 kind: kind::OBJECT,
+                required: false,
+            },
+            Parameter {
+                keyword: "alias_sources",
+                kind: kind::ARRAY,
                 required: false,
             },
         ]
@@ -148,7 +153,7 @@ impl Function for ParseGroks {
             })
             .collect::<std::result::Result<Vec<String>, vrl::function::Error>>()?;
 
-        let aliases = arguments
+        let mut aliases = arguments
             .optional_object("aliases")?
             .unwrap_or_default()
             .into_iter()
@@ -167,6 +172,39 @@ impl Function for ParseGroks {
                 Ok((key, alias))
             })
             .collect::<std::result::Result<BTreeMap<String, String>, vrl::function::Error>>()?;
+
+        let alias_sources = arguments
+            .optional_array("alias_sources")?
+            .unwrap_or_default()
+            .into_iter()
+            .map(|expr| {
+                let path = expr
+                    .resolve_constant()
+                    .ok_or(vrl::function::Error::ExpectedStaticExpression {
+                        keyword: "alias_sources",
+                        expr,
+                    })?
+                    .try_bytes_utf8_lossy()
+                    .expect("filename not bytes")
+                    .into_owned();
+                Ok(path)
+            })
+            .collect::<std::result::Result<Vec<String>, vrl::function::Error>>()?;
+
+        for src in alias_sources {
+            let path = Path::new(&src);
+            let file = File::open(&path).map_err(|_| vrl::function::Error::InvalidAliasSource {
+                path: path.to_owned(),
+            })?;
+            let reader = BufReader::new(file);
+            let mut src_aliases = serde_json::from_reader(reader).map_err(|_| {
+                vrl::function::Error::InvalidAliasSource {
+                    path: path.to_owned(),
+                }
+            })?;
+
+            aliases.append(&mut src_aliases);
+        }
 
         // we use a datadog library here because it is a superset of grok
         let grok_rules = datadog_grok::parse_grok_rules::parse_grok_rules(&patterns, aliases)
@@ -255,6 +293,31 @@ mod test {
                     "_status": "%{POSINT:status}",
                     "_message": "%{GREEDYDATA:message}"
                 })
+            ],
+            want: Ok(Value::from(btreemap! {
+                "timestamp" => "2020-10-02T23:22:12.223222Z",
+                "level" => "info",
+                "status" => "200",
+                "message" => "hello world"
+            })),
+            tdef: TypeDef::object(Collection::any()).fallible(),
+        }
+
+        presence_of_alias_sources_argument {
+            args: func_args![
+                value: r##"2020-10-02T23:22:12.223222Z info 200 hello world"##,
+                patterns: Value::Array(vec![
+                    "%{common_prefix} %{_status} %{_message}".into(),
+                    "%{common_prefix} %{_message}".into(),
+                    ]),
+                aliases: value!({
+                    "common_prefix": "%{_timestamp} %{_loglevel}",
+                    "_timestamp": "%{TIMESTAMP_ISO8601:timestamp}",
+                    "_loglevel": "%{LOGLEVEL:level}",
+                    "_status": "%{POSINT:status}",
+                    "_message": "%{GREEDYDATA:message}"
+                }),
+                alias_sources: Value::Array(vec![]),
             ],
             want: Ok(Value::from(btreemap! {
                 "timestamp" => "2020-10-02T23:22:12.223222Z",
