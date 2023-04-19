@@ -352,15 +352,11 @@ impl TypeDef {
 
     #[must_use]
     pub fn with_type_inserted(self, path: &LookupBuf, other: Self) -> Self {
-        if path.is_root() {
-            other
-        } else {
-            let mut kind = self.kind;
-            kind.insert(path, other.kind);
-            Self {
-                fallible: self.fallible || other.fallible,
-                kind,
-            }
+        let mut kind = self.kind;
+        kind.insert(path, other.kind);
+        Self {
+            fallible: self.fallible || other.fallible,
+            kind,
         }
     }
 

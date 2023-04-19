@@ -331,7 +331,7 @@ impl Target {
             Self::Noop => {}
             Self::Internal(ident, path) => {
                 let type_def = match state.local.variable(ident) {
-                    None => TypeDef::null().with_type_inserted(&path.clone().into(), new_type_def),
+                    None => TypeDef::never().with_type_inserted(&path.clone().into(), new_type_def),
                     Some(Details { type_def, .. }) => type_def
                         .clone()
                         .with_type_inserted(&path.clone().into(), new_type_def),
@@ -740,5 +740,108 @@ impl DiagnosticMessage for Error {
             }
             _ => vec![],
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::state::{ExternalEnv, LocalEnv};
+    use crate::value::Kind;
+    use crate::{compile_with_state, CompileConfig, TypeState};
+
+    #[test]
+    fn never_assignment_to_target() {
+        let src = ". = abort";
+        let result = compile_with_state(
+            src,
+            &[],
+            &TypeState {
+                local: LocalEnv::default(),
+                external: ExternalEnv::new_with_kind(Kind::boolean(), Kind::integer()),
+            },
+            CompileConfig::default(),
+        )
+        .unwrap();
+        assert_eq!(
+            result
+                .program
+                .final_type_state()
+                .external
+                .target()
+                .type_def
+                .kind(),
+            &Kind::boolean()
+        );
+    }
+
+    #[test]
+    fn never_assignment_to_metadata() {
+        let src = "% = abort";
+        let result = compile_with_state(
+            src,
+            &[],
+            &TypeState {
+                local: LocalEnv::default(),
+                external: ExternalEnv::new_with_kind(Kind::boolean(), Kind::integer()),
+            },
+            CompileConfig::default(),
+        )
+        .unwrap();
+        assert_eq!(
+            result.program.final_type_state().external.metadata_kind(),
+            &Kind::integer()
+        );
+    }
+
+    #[test]
+    fn never_assignment_to_new_local() {
+        let src = "foo = abort";
+        let result = compile_with_state(
+            src,
+            &[],
+            &TypeState {
+                local: LocalEnv::default(),
+                external: ExternalEnv::new_with_kind(Kind::boolean(), Kind::integer()),
+            },
+            CompileConfig::default(),
+        )
+        .unwrap();
+        assert_eq!(
+            result
+                .program
+                .final_type_state()
+                .local
+                .variable(&"foo".to_string().into())
+                .unwrap()
+                .type_def
+                .kind(),
+            &Kind::never()
+        );
+    }
+
+    #[test]
+    fn never_assignment_to_existing_local() {
+        let src = "foo = 3; foo = abort";
+        let result = compile_with_state(
+            src,
+            &[],
+            &TypeState {
+                local: LocalEnv::default(),
+                external: ExternalEnv::new_with_kind(Kind::boolean(), Kind::integer()),
+            },
+            CompileConfig::default(),
+        )
+        .unwrap();
+        assert_eq!(
+            result
+                .program
+                .final_type_state()
+                .local
+                .variable(&"foo".to_string().into())
+                .unwrap()
+                .type_def
+                .kind(),
+            &Kind::integer()
+        );
     }
 }

@@ -31,10 +31,9 @@ impl Kind {
         mut iter: impl Iterator<Item = BorrowedSegment<'b>> + Clone,
         kind: Self,
     ) {
-        if self.is_never() || kind.is_never() {
-            // If `self` or `kind` is `never`, the program would have already terminated
+        if kind.is_never() {
+            // If `kind` is `never`, the program would have already terminated
             // so this assignment can't happen.
-            *self = Self::never();
             return;
         }
 
@@ -658,9 +657,9 @@ mod tests {
                 "insert into never",
                 TestCase {
                     this: Kind::never(),
-                    path: parse_value_path(".x").unwrap(),
+                    path: parse_value_path(".").unwrap(),
                     kind: Kind::bytes(),
-                    expected: Kind::never(),
+                    expected: Kind::bytes(),
                 },
             ),
             (
@@ -669,7 +668,7 @@ mod tests {
                     this: Kind::object(Collection::empty()),
                     path: parse_value_path(".x").unwrap(),
                     kind: Kind::never(),
-                    expected: Kind::never(),
+                    expected: Kind::object(Collection::empty()),
                 },
             ),
             (
