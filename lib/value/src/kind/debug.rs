@@ -34,7 +34,7 @@ fn insert_kind(tree: &mut BTreeMap<String, Value>, kind: &Kind, show_unknown: bo
             for (field, field_kind) in fields.known() {
                 let mut field_tree = BTreeMap::new();
                 insert_kind(&mut field_tree, field_kind, show_unknown);
-                object_tree.insert(field.name.clone(), Value::Object(field_tree));
+                object_tree.insert(field.to_string(), Value::Object(field_tree));
             }
             tree.insert("object".to_owned(), Value::Object(object_tree));
             if show_unknown {
