@@ -7,7 +7,7 @@ use datadog_filter::{
     Filter, Matcher, Resolver, Run,
 };
 use datadog_search_syntax::{parse, Comparison, ComparisonValue, Field};
-use lookup_lib::{parser::parse_lookup, LookupBuf};
+use lookup_lib::{lookup_v2::parse_value_path, owned_value_path, OwnedValuePath};
 use vrl::prelude::*;
 
 #[derive(Clone, Copy, Debug)]
@@ -394,10 +394,13 @@ impl Filter<Value> for VrlFilter {
     }
 }
 
-fn resolve_value(buf: LookupBuf, match_fn: Box<dyn Matcher<Value>>) -> Box<dyn Matcher<Value>> {
+fn resolve_value(
+    buf: OwnedValuePath,
+    match_fn: Box<dyn Matcher<Value>>,
+) -> Box<dyn Matcher<Value>> {
     let func = move |obj: &Value| {
         // Get the value by path, or return early with `false` if it doesn't exist.
-        let Some(value) = obj.get_by_path(&buf) else {return false};
+        let Some(value) = obj.get(&buf) else {return false};
 
         match_fn.run(value)
     };
@@ -407,12 +410,12 @@ fn resolve_value(buf: LookupBuf, match_fn: Box<dyn Matcher<Value>>) -> Box<dyn M
 
 /// If the provided field is a `Field::Tag`, will return a "tags" lookup buf. Otherwise,
 /// parses the field and returns a lookup buf is the lookup itself is valid.
-fn lookup_field(field: &Field) -> LookupBuf {
+fn lookup_field(field: &Field) -> OwnedValuePath {
     match field {
-        Field::Default(p) | Field::Reserved(p) | Field::Facet(p) => parse_lookup(p.as_str())
-            .expect("should parse lookup buf")
-            .into_buf(),
-        Field::Tag(_) => LookupBuf::from("tags"),
+        Field::Default(p) | Field::Reserved(p) | Field::Facet(p) => {
+            parse_value_path(p.as_str()).expect("should parse value path (lookup_field)")
+        }
+        Field::Tag(_) => owned_value_path!("tags"),
     }
 }
 

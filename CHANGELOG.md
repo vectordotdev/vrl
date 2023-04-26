@@ -3,7 +3,9 @@
 ## unreleased
 - fixed a type definition bug for assignments where the right-hand side of the assignment expression resolved to the `never` type
 - removed the deprecated `FieldBuf` from `Field`
-- migrated the stdlib `get` function to the new path code
+- migrated the following components to the new path logic
+  - stdlib `get` function
+  - stdlib `match_datadog_query` function
 
 ## `0.2.0` (2023-04-03)
 - added guard for the `limit` param of the `split` function to ensure it's not negative
