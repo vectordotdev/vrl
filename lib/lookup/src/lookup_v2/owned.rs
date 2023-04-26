@@ -230,14 +230,14 @@ impl From<OwnedValuePath> for String {
             .enumerate()
             .map(|(i, segment)| match segment {
                 OwnedSegment::Field(field) => {
-                    serialize_field(field.as_ref(), (i != 0).then_some("."))
+                    serialize_field_with_separator(field.as_ref(), (i != 0).then_some("."))
                 }
                 OwnedSegment::Index(index) => format!("[{}]", index),
                 OwnedSegment::Coalesce(fields) => {
                     let mut output = String::new();
                     let (last, fields) = fields.split_last().expect("coalesce must not be empty");
                     for field in fields {
-                        let field_output = serialize_field(
+                        let field_output = serialize_field_with_separator(
                             field.as_ref(),
                             Some(if coalesce_i == 0 {
                                 if i == 0 {
@@ -252,7 +252,10 @@ impl From<OwnedValuePath> for String {
                         coalesce_i += 1;
                         output.push_str(&field_output);
                     }
-                    output += &serialize_field(last.as_ref(), (coalesce_i != 0).then_some("|"));
+                    output += &serialize_field_with_separator(
+                        last.as_ref(),
+                        (coalesce_i != 0).then_some("|"),
+                    );
                     output += ")";
                     output
                 }
@@ -262,7 +265,7 @@ impl From<OwnedValuePath> for String {
     }
 }
 
-fn serialize_field(field: &str, separator: Option<&str>) -> String {
+fn serialize_field_with_separator(field: &str, separator: Option<&str>) -> String {
     // These characters should match the ones from the parser, implemented in `JitLookup`
     let needs_quotes = field
         .chars()
