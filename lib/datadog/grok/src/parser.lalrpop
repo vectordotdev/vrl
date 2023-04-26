@@ -1,6 +1,5 @@
 use crate::ast::*;
 use crate::lexer::*;
-use lookup::{LookupBuf, SegmentBuf, FieldBuf};
 use lookup::{owned_value_path, OwnedValuePath};
 use lookup::lookup_v2::OwnedSegment;
 use ordered_float::NotNan;
