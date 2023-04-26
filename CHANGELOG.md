@@ -6,6 +6,7 @@
 - migrated the following components to the new path logic
   - stdlib `get` function
   - stdlib `match_datadog_query` function
+  - stdlib `parse_grok` function
 
 ## `0.2.0` (2023-04-03)
 - added guard for the `limit` param of the `split` function to ensure it's not negative

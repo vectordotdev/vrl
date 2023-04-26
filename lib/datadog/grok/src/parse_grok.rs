@@ -69,16 +69,16 @@ fn apply_grok_rule(source: &str, grok_rule: &GrokRule) -> Result<Value, Error> {
                         // anything else at the root leve must be ignored
                         _ if field.is_root() => {}
                         // otherwise just apply VRL lookup insert logic
-                        _ => match parsed.get_by_path(field).cloned() {
+                        _ => match parsed.get(field).cloned() {
                             Some(Value::Array(mut values)) => {
                                 values.push(value);
-                                parsed.insert_by_path(field, values.into());
+                                parsed.insert(field, values);
                             }
                             Some(v) => {
-                                parsed.insert_by_path(field, Value::Array(vec![v, value]));
+                                parsed.insert(field, Value::Array(vec![v, value]));
                             }
                             None => {
-                                parsed.insert_by_path(field, value);
+                                parsed.insert(field, value);
                             }
                         },
                     };

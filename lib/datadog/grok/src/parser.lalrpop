@@ -1,6 +1,7 @@
 use crate::ast::*;
 use crate::lexer::*;
-use lookup::{LookupBuf, SegmentBuf, FieldBuf};
+use lookup::{owned_value_path, OwnedValuePath};
+use lookup::lookup_v2::OwnedSegment;
 use ordered_float::NotNan;
 use value::Value;
 grammar<'err, 'input>(input: &'input str);
@@ -39,29 +40,29 @@ pub GrokFilter: GrokPattern = {
 
 DestinationAndFilter: Destination = {
     ":" <path:Lookup> <filter_fn:(FilterFn)?> => Destination {path: path, filter_fn},
-    ":" <filter_fn:(FilterFn)> => Destination {path: LookupBuf::root(), filter_fn: Some(filter_fn)}
+    ":" <filter_fn:(FilterFn)> => Destination {path: owned_value_path!(), filter_fn: Some(filter_fn)}
 }
 
 FilterFn: Function = ":" <FunctionOrRef>;
 
-Lookup: LookupBuf = {
+Lookup: OwnedValuePath = {
   <s: PathSegment> <l: Lookup?> => match l {
-    None => LookupBuf::from(s),
+    None => owned_value_path!(s),
     Some(mut l) => {
-      l.push_front(s);
+      l.push_front_segment(s);
       l
     }
   }
 }
 
-PathSegment: SegmentBuf = {
-    "."? <Field> =>  SegmentBuf::field(<>), // DD path can't start with `.` but the grammar is simpler this way
-    "[" <String> "]" => SegmentBuf::field(FieldBuf::from(<>)),
+PathSegment: OwnedSegment = {
+    "."? <Field> =>  OwnedSegment::field(&<>), // DD path can't start with `.` but the grammar is simpler this way
+    "[" <String> "]" => OwnedSegment::field(&<>),
 };
 
-Field: FieldBuf = {
-    Identifier => FieldBuf::from(<>),
-    ExtendedIdentifier => FieldBuf::from(<>),
+Field: String = {
+    Identifier => String::from(<>),
+    ExtendedIdentifier => String::from(<>),
 };
 
 FunctionOrRef: Function = <name:QualifiedName> <args:ArgsList?> => Function { name, args };
