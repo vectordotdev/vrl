@@ -3,7 +3,7 @@ use std::{
     convert::TryFrom,
 };
 
-use lookup::LookupBuf;
+use lookup::OwnedValuePath;
 use once_cell::sync::Lazy;
 use tracing::error;
 use value::Value;
@@ -33,7 +33,7 @@ pub struct GrokRule {
 /// post-processing filters to apply.
 #[derive(Debug, Clone)]
 pub struct GrokField {
-    pub lookup: LookupBuf,
+    pub lookup: OwnedValuePath,
     pub filters: Vec<GrokFilter>,
 }
 

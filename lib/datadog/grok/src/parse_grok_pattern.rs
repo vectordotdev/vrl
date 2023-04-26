@@ -22,20 +22,11 @@ pub fn parse_grok_pattern(input: &str) -> Result<GrokPattern, String> {
 
 #[cfg(test)]
 mod tests {
-    use lookup::{LookupBuf, SegmentBuf};
+    use lookup::owned_value_path;
     use value::Value;
 
     use super::*;
     use crate::ast::{Destination, Function, FunctionArgument};
-
-    fn from_path_segments(path_segments: Vec<&str>) -> LookupBuf {
-        LookupBuf::from_segments(
-            path_segments
-                .iter()
-                .map(|&s| s.into())
-                .collect::<Vec<SegmentBuf>>(),
-        )
-    }
 
     #[test]
     fn parse_grok_filter() {
@@ -47,7 +38,7 @@ mod tests {
         let destination = parsed.destination.unwrap();
         assert_eq!(
             destination.path,
-            from_path_segments(vec!["e-http", "status", "abc", r#".""#])
+            owned_value_path!("e-http", "status", "abc", r#".""#)
         );
         let filter = destination.filter_fn.unwrap();
         assert_eq!(filter.name, "integer");
@@ -86,7 +77,7 @@ mod tests {
         assert_eq!(
             parsed.destination,
             Some(Destination {
-                path: LookupBuf::from("field"),
+                path: owned_value_path!("field"),
                 filter_fn: Some(Function {
                     name: "filter".to_string(),
                     args: Some(vec![FunctionArgument::Arg(r#"escaped "quotes""#.into())])
@@ -104,7 +95,7 @@ mod tests {
         assert_eq!(
             parsed.destination,
             Some(Destination {
-                path: LookupBuf::root(),
+                path: owned_value_path!(),
                 filter_fn: Some(Function {
                     name: "json".to_string(),
                     args: None,
@@ -131,7 +122,7 @@ mod tests {
         assert_eq!(
             parsed.destination,
             Some(Destination {
-                path: LookupBuf::root(),
+                path: owned_value_path!(),
                 filter_fn: Some(Function {
                     name: "array".to_string(),
                     args: Some(vec![FunctionArgument::Arg("\n".into())]),
