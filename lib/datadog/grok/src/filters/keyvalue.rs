@@ -2,7 +2,6 @@ use std::collections::BTreeMap;
 use std::fmt::Formatter;
 
 use bytes::Bytes;
-use lookup::{Lookup, LookupBuf};
 use nom::{
     self,
     branch::alt,

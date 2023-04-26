@@ -6,69 +6,6 @@ use lookup::{FieldBuf, LookupBuf, SegmentBuf};
 use crate::Value;
 
 impl Value {
-    /// Get a reference to a value from a given path.
-    ///
-    /// # Examples
-    ///
-    /// Given an existing value, there are three routes this function can take:
-    ///
-    /// 1. If the path points to the root (`.`), it will return the current
-    ///    value:
-    ///
-    ///    ```rust
-    ///    # use value::Value;
-    ///    # use lookup::LookupBuf;
-    ///    # use std::str::FromStr;
-    ///
-    ///    let value = Value::Boolean(true);
-    ///    let path = LookupBuf::root();
-    ///
-    ///    assert_eq!(value.get_by_path(&path), Some(&Value::Boolean(true)))
-    ///    ```
-    ///
-    /// 2. If the path points to an index, if the value is an `Array`, it will
-    ///    return the value at the given index, if one exists, or it will return
-    ///    `None`:
-    ///
-    ///    ```rust
-    ///    # use value::Value;
-    ///    # use lookup::LookupBuf;
-    ///    # use std::str::FromStr;
-    ///
-    ///    let value = Value::Array(vec![false.into(), true.into()]);
-    ///    let path = LookupBuf::from_str("[1]").unwrap();
-    ///
-    ///    assert_eq!(value.get_by_path(&path), Some(&Value::Boolean(true)))
-    ///    ```
-    ///
-    /// 3. If the path points to a nested path, if the value is an `Object`, it will
-    ///    traverse into the map, and return the appropriate value, if one
-    ///    exists:
-    ///
-    ///    ```rust
-    ///    # use value::Value;
-    ///    # use lookup::LookupBuf;
-    ///    # use std::str::FromStr;
-    ///    # use std::collections::BTreeMap;
-    ///    # use std::iter::FromIterator;
-    ///
-    ///    let map = BTreeMap::from_iter(vec![("foo".to_owned(), true.into())].into_iter());
-    ///    let value = Value::Object(map);
-    ///    let path = LookupBuf::from_str("foo").unwrap();
-    ///
-    ///    assert_eq!(value.get_by_path(&path), Some(&Value::Boolean(true)))
-    ///    ```
-    ///
-    pub fn get_by_path(&self, path: &LookupBuf) -> Option<&Self> {
-        self.get_by_segments(path.as_segments().iter())
-    }
-
-    /// Similar to [`Value::get_by_path`], but returns a mutable reference to
-    /// the value.
-    pub fn get_by_path_mut(&mut self, path: &LookupBuf) -> Option<&mut Self> {
-        self.get_by_segments_mut(path.as_segments().iter())
-    }
-
     /// Insert a value, given the provided path.
     ///
     /// # Examples
@@ -134,47 +71,6 @@ impl Value {
     /// well.
     pub fn remove_by_path(&mut self, path: &LookupBuf, compact: bool) -> Option<Self> {
         self.remove_by_segments(path.as_segments().iter().peekable(), compact)
-    }
-
-    fn get_by_segments<'a, T>(&self, mut segments: T) -> Option<&Self>
-    where
-        T: Iterator<Item = &'a SegmentBuf>,
-    {
-        let Some(segment) = segments.next() else {return Some(self)};
-
-        self.get_by_segment(segment)
-            .and_then(|value| value.get_by_segments(segments))
-    }
-
-    fn get_by_segment(&self, segment: &SegmentBuf) -> Option<&Self> {
-        match segment {
-            SegmentBuf::Field(FieldBuf { name, .. }) => {
-                self.as_object().and_then(|map| map.get(name.as_str()))
-            }
-            SegmentBuf::Coalesce(fields) => self
-                .as_object()
-                .and_then(|map| fields.iter().find_map(|field| map.get(field.as_str()))),
-            SegmentBuf::Index(index) => self.as_array().and_then(|array| {
-                let len = array.len() as isize;
-                if *index >= len || index.abs() > len {
-                    return None;
-                }
-
-                index
-                    .checked_rem_euclid(len)
-                    .and_then(|i| array.get(i as usize))
-            }),
-        }
-    }
-
-    fn get_by_segments_mut<'a, T>(&mut self, mut segments: T) -> Option<&mut Self>
-    where
-        T: Iterator<Item = &'a SegmentBuf>,
-    {
-        let Some(segment) = segments.next() else {return Some(self)};
-
-        self.get_by_segment_mut(segment)
-            .and_then(|value| value.get_by_segments_mut(segments))
     }
 
     fn get_by_segment_mut(&mut self, segment: &SegmentBuf) -> Option<&mut Self> {
