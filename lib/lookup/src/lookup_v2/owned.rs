@@ -262,6 +262,17 @@ impl From<OwnedValuePath> for String {
     }
 }
 
+impl Display for OwnedSegment {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        // This isn't the most efficient method, but it re-uses existing code
+        // Displaying is likely not in a hot path
+        let path = OwnedValuePath {
+            segments: vec![self.clone()],
+        };
+        Display::fmt(&path, f)
+    }
+}
+
 fn serialize_field(field: &str, separator: Option<&str>) -> String {
     // These characters should match the ones from the parser, implemented in `JitLookup`
     let needs_quotes = field
@@ -358,6 +369,12 @@ impl From<Vec<String>> for OwnedSegment {
 impl<'a> From<&'a str> for OwnedSegment {
     fn from(field: &'a str) -> Self {
         OwnedSegment::field(field)
+    }
+}
+
+impl From<String> for OwnedSegment {
+    fn from(field: String) -> Self {
+        OwnedSegment::Field(field)
     }
 }
 

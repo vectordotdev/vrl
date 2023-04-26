@@ -2,7 +2,6 @@
 
 use crate::Kind;
 use lookup::lookup_v2::{BorrowedSegment, ValuePath};
-use std::borrow::Cow;
 
 impl Kind {
     /// Returns the type of a value that is retrieved from a certain path.
@@ -27,11 +26,11 @@ impl Kind {
         self.get_recursive(path.segment_iter())
     }
 
-    fn get_field(&self, field: Cow<'_, str>) -> Self {
+    fn get_field(&self, field: &str) -> Self {
         self.as_object().map_or_else(Self::undefined, |object| {
             let mut kind = object
                 .known()
-                .get(&field.into_owned().into())
+                .get(&field.into())
                 .cloned()
                 .unwrap_or_else(|| object.unknown_kind());
 
@@ -53,7 +52,7 @@ impl Kind {
 
         match iter.next() {
             Some(BorrowedSegment::Field(field) | BorrowedSegment::CoalesceEnd(field)) => {
-                self.get_field(field).get_recursive(iter)
+                self.get_field(field.as_ref()).get_recursive(iter)
             }
             Some(BorrowedSegment::Index(mut index)) => {
                 if let Some(array) = self.as_array() {
@@ -119,7 +118,7 @@ impl Kind {
                 }
             }
             Some(BorrowedSegment::CoalesceField(field)) => {
-                let field_kind = self.get_field(field);
+                let field_kind = self.get_field(field.as_ref());
 
                 // The remaining segments if this match succeeded.
                 #[allow(clippy::needless_collect)]
