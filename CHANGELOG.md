@@ -2,6 +2,7 @@
 
 ## unreleased
 - fixed a type definition bug for assignments where the right-hand side of the assignment expression resolved to the `never` type
+- migrated `Field` from the deprecated `FieldBuf` to `OwnedSegment`
 
 ## `0.2.0` (2023-04-03)
 - added guard for the `limit` param of the `split` function to ensure it's not negative
