@@ -11,7 +11,6 @@ fn get(value: Value, value_path: Value) -> Resolved {
                 let segment = match segment {
                     Value::Bytes(field) => {
                         OwnedSegment::field(String::from_utf8_lossy(&field).as_ref())
-                        // SegmentBuf::Field(String::from_utf8_lossy(&field).into_owned().into())
                     }
                     Value::Integer(index) => OwnedSegment::index(index as isize),
                     value => {
