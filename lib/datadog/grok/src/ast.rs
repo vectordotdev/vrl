@@ -1,4 +1,4 @@
-use lookup::LookupBuf;
+use lookup::OwnedValuePath;
 use value::Value;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -7,9 +7,9 @@ pub struct GrokPattern {
     pub destination: Option<Destination>,
 }
 
-#[derive(Clone, Debug, PartialEq, Default)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Destination {
-    pub path: LookupBuf,
+    pub path: OwnedValuePath,
     pub filter_fn: Option<Function>,
 }
 
