@@ -1,18 +1,18 @@
 use ::value::Value;
-use lookup_lib::{LookupBuf, SegmentBuf};
+use lookup_lib::{lookup_v2::OwnedSegment, OwnedValuePath};
 use vrl::prelude::*;
 
 fn set(path: Value, mut value: Value, data: Value) -> Resolved {
     let path = match path {
         Value::Array(segments) => {
-            let mut insert = LookupBuf::root();
+            let mut insert = OwnedValuePath::root();
 
             for segment in segments {
                 let segment = match segment {
                     Value::Bytes(path) => {
-                        SegmentBuf::Field(String::from_utf8_lossy(&path).into_owned().into())
+                        OwnedSegment::Field(String::from_utf8_lossy(&path).into_owned())
                     }
-                    Value::Integer(index) => SegmentBuf::Index(index as isize),
+                    Value::Integer(index) => OwnedSegment::Index(index as isize),
                     value => {
                         return Err(format!(
                             r#"path segment must be either string or integer, not {}"#,
@@ -22,7 +22,7 @@ fn set(path: Value, mut value: Value, data: Value) -> Resolved {
                     }
                 };
 
-                insert.push_back(segment)
+                insert.push_segment(segment);
             }
 
             insert
@@ -35,7 +35,7 @@ fn set(path: Value, mut value: Value, data: Value) -> Resolved {
             .into())
         }
     };
-    value.insert_by_path(&path, data);
+    value.insert(&path, data);
     Ok(value)
 }
 
