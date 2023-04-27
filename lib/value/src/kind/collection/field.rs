@@ -1,27 +1,14 @@
 use crate::kind::collection::{CollectionKey, CollectionRemove};
 use crate::kind::Collection;
 use lookup::lookup_v2::OwnedSegment;
-use once_cell::sync::Lazy;
-use regex::Regex;
 
 /// A `field` type that can be used in `Collection<Field>`
 #[derive(Debug, Clone, Eq, PartialEq, PartialOrd, Ord, Hash)]
 pub struct Field(String);
 
-static VALID_FIELD: Lazy<Regex> =
-    Lazy::new(|| Regex::new("^[0-9]*[a-zA-Z_@][0-9a-zA-Z_@]*$").unwrap());
-
 impl std::fmt::Display for Field {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        // This can eventually just parse the field and see if it's valid, but the
-        // parser is currently lenient in what it accepts so it doesn't catch all errors that
-        // should be quoted
-        let needs_quotes = !VALID_FIELD.is_match(&self.0);
-        if needs_quotes {
-            write!(f, "\"{}\"", self.0)
-        } else {
-            write!(f, "{}", self.0)
-        }
+        write!(f, "{}", OwnedSegment::field(&self.0))
     }
 }
 

@@ -10,7 +10,7 @@ impl Kind {
     /// Insert the `Kind` at the given `path` within `self`.
     /// This has the same behavior as `Value::insert`.
     #[allow(clippy::needless_pass_by_value)] // only reference types implement Path
-    pub fn insert<'a>(&'a mut self, path: impl ValuePath<'a>, kind: Self) {
+    pub fn insert<'a>(&mut self, path: impl ValuePath<'a>, kind: Self) {
         self.insert_recursive(path.segment_iter(), kind.upgrade_undefined());
     }
 
@@ -18,7 +18,7 @@ impl Kind {
     /// There is a subtle difference
     /// between this and `Kind::insert` where this function does _not_ convert undefined to null.
     #[allow(clippy::needless_pass_by_value)] // only reference types implement Path
-    pub fn set_at_path<'a>(&'a mut self, path: impl ValuePath<'a>, kind: Self) {
+    pub fn set_at_path<'a>(&mut self, path: impl ValuePath<'a>, kind: Self) {
         self.insert_recursive(path.segment_iter(), kind);
     }
 

@@ -3,11 +3,9 @@
 mod convert;
 mod crud;
 mod display;
-mod error;
 mod iter;
 mod path;
 mod regex;
-mod target;
 
 #[cfg(any(test, feature = "api"))]
 mod api;
