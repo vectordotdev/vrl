@@ -3,10 +3,7 @@
 ## unreleased
 - fixed a type definition bug for assignments where the right-hand side of the assignment expression resolved to the `never` type
 - removed the deprecated `FieldBuf` from `Field`
-- migrated the following components to the new path logic
-  - stdlib `get`, `set`, and `remove` functions
-  - stdlib `match_datadog_query` function
-  - stdlib `parse_grok` function
+- removed the lookup v1 code
 
 ## `0.2.0` (2023-04-03)
 - added guard for the `limit` param of the `split` function to ensure it's not negative
