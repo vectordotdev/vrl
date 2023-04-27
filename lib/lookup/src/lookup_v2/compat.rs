@@ -91,29 +91,3 @@ impl<'a> Iterator for LookupBufPathIter<'a> {
             })
     }
 }
-
-#[cfg(test)]
-mod test {
-    use crate::lookup_v2::ValuePath;
-    use crate::LookupBuf;
-
-    #[test]
-    fn test() {
-        let tests = [
-            "foo.bar",
-            "foo.bar[0]",
-            ".",
-            "[-5]",
-            ".(a|b|c)",
-            ".(a|b)",
-            ".(a|b|c).foo.bar[42]",
-        ];
-
-        for test in tests {
-            let lookup_buf = LookupBuf::from_str(test).unwrap();
-            if !ValuePath::eq(&test, &lookup_buf) {
-                panic!("Equality failed. Path={:?}", test);
-            }
-        }
-    }
-}

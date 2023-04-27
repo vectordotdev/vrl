@@ -1,4 +1,3 @@
-use core::fmt;
 use std::{
     collections::VecDeque,
     fmt::{Display, Formatter},
@@ -8,15 +7,8 @@ use std::{
 };
 
 use inherent::inherent;
-use serde::{
-    de::{self, Visitor},
-    Deserialize, Deserializer, Serialize, Serializer,
-};
 
-use crate::{Look, LookupBuf, LookupError, SegmentBuf};
-
-#[cfg(test)]
-mod test;
+use crate::{Look, LookupBuf, SegmentBuf};
 
 mod segment;
 pub use segment::{Field, Segment};
@@ -128,6 +120,13 @@ impl<'a> Lookup<'a> {
     pub fn into_buf(self) -> LookupBuf {
         LookupBuf::from(self)
     }
+
+    // /// Parse the lookup from a str.
+    // #[allow(clippy::should_implement_trait)]
+    // // Cannot be defined as `FromStr` due to lifetime constraint on return type
+    // pub fn from_str(input: &'a str) -> Result<Self, LookupError> {
+    //     crate::parser::parse_lookup(input).map_err(|err| LookupError::Invalid { message: err })
+    // }
 }
 
 #[inherent]
@@ -164,13 +163,6 @@ impl<'a> Look<'a> for Lookup<'a> {
 
     pub fn is_empty(&self) -> bool {
         self.segments.is_empty()
-    }
-
-    /// Parse the lookup from a str.
-    #[allow(clippy::should_implement_trait)]
-    // Cannot be defined as `FromStr` due to lifetime constraint on return type
-    pub fn from_str(input: &'a str) -> Result<Self, LookupError> {
-        crate::parser::parse_lookup(input).map_err(|err| LookupError::Invalid { message: err })
     }
 
     /// Merge a lookup.
@@ -272,49 +264,6 @@ impl<'a> Index<usize> for Lookup<'a> {
 impl<'a> IndexMut<usize> for Lookup<'a> {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
         self.segments.index_mut(index)
-    }
-}
-
-impl<'a> Serialize for Lookup<'a> {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        serializer.serialize_str(&self.to_string())
-    }
-}
-
-impl<'de> Deserialize<'de> for Lookup<'de> {
-    fn deserialize<D>(deserializer: D) -> Result<Lookup<'de>, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        deserializer.deserialize_str(LookupVisitor {
-            _marker: Default::default(),
-        })
-    }
-}
-
-/// **WARNING:**: You **can not** deserialize lookups (that is, views, the buffers
-/// are fine) out of str slices with escapes. It's invalid. You **must** use lookupbufs.
-struct LookupVisitor<'a> {
-    // This must exist to make the lifetime bounded.
-    _marker: std::marker::PhantomData<&'a ()>,
-}
-
-impl<'de> Visitor<'de> for LookupVisitor<'de> {
-    type Value = Lookup<'de>;
-
-    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        formatter
-            .write_str("Expected valid Lookup path. If deserializing a string, use a LookupBuf.")
-    }
-
-    fn visit_borrowed_str<E>(self, value: &'de str) -> Result<Self::Value, E>
-    where
-        E: de::Error,
-    {
-        Lookup::from_str(value).map_err(de::Error::custom)
     }
 }
 

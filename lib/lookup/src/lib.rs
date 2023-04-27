@@ -40,8 +40,6 @@ pub trait Look<'a>:
         self.len() == 0
     }
 
-    fn from_str(input: &'a str) -> Result<Self, LookupError>;
-
     fn extend(&mut self, other: Self);
 
     fn starts_with(&self, needle: &Self) -> bool;

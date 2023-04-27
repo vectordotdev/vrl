@@ -1,24 +1,17 @@
 use std::{
     borrow::Cow,
     collections::VecDeque,
-    fmt::{self, Display, Formatter},
+    fmt::{Display, Formatter},
     ops::{Index, IndexMut},
     str,
-    str::FromStr,
 };
 
 use inherent::inherent;
 #[cfg(any(test, feature = "arbitrary"))]
 use quickcheck::{Arbitrary, Gen};
-use serde::{
-    de::{self, Visitor},
-    Deserialize, Deserializer, Serialize, Serializer,
-};
+use serde::{Serialize, Serializer};
 
-use crate::{Look, Lookup, LookupError};
-
-#[cfg(test)]
-mod test;
+use crate::{Look, Lookup};
 
 mod segmentbuf;
 pub use segmentbuf::{FieldBuf, SegmentBuf};
@@ -161,6 +154,14 @@ impl LookupBuf {
     pub fn as_segments(&self) -> &VecDeque<SegmentBuf> {
         &self.segments
     }
+
+    // #[allow(clippy::should_implement_trait)]
+    // // This is also defined as `FromStr` on `LookupBuf` but we need `from_str` to be defined on the
+    // // `Lookup` trait itself since we cannot define `FromStr` for `LookupView` due to the lifetime
+    // // constraint
+    // pub fn from_str(value: &'static str) -> Result<LookupBuf, LookupError> {
+    //     Lookup::from_str(value).map(|l| l.into_buf())
+    // }
 }
 
 #[inherent]
@@ -197,14 +198,6 @@ impl Look<'static> for LookupBuf {
         self.is_empty()
     }
 
-    #[allow(clippy::should_implement_trait)]
-    // This is also defined as `FromStr` on `LookupBuf` but we need `from_str` to be defined on the
-    // `Lookup` trait itself since we cannot define `FromStr` for `LookupView` due to the lifetime
-    // constraint
-    pub fn from_str(value: &'static str) -> Result<LookupBuf, LookupError> {
-        Lookup::from_str(value).map(|l| l.into_buf())
-    }
-
     /// Merge a lookup.
     pub fn extend(&mut self, other: Self) {
         self.segments.extend(other.segments)
@@ -222,15 +215,15 @@ impl Look<'static> for LookupBuf {
     }
 }
 
-impl FromStr for LookupBuf {
-    type Err = LookupError;
+// impl FromStr for LookupBuf {
+//     type Err = LookupError;
 
-    fn from_str(input: &str) -> Result<Self, Self::Err> {
-        let lookup = Lookup::from_str(input)?;
-        let lookup_buf: LookupBuf = lookup.into();
-        Ok(lookup_buf)
-    }
-}
+//     fn from_str(input: &str) -> Result<Self, Self::Err> {
+//         let lookup = Lookup::from_str(input)?;
+//         let lookup_buf: LookupBuf = lookup.into();
+//         Ok(lookup_buf)
+//     }
+// }
 
 impl IntoIterator for LookupBuf {
     type Item = SegmentBuf;
@@ -318,38 +311,38 @@ impl Serialize for LookupBuf {
     }
 }
 
-impl<'de> Deserialize<'de> for LookupBuf {
-    fn deserialize<D>(deserializer: D) -> Result<LookupBuf, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        deserializer.deserialize_string(LookupBufVisitor)
-    }
-}
+// impl<'de> Deserialize<'de> for LookupBuf {
+//     fn deserialize<D>(deserializer: D) -> Result<LookupBuf, D::Error>
+//     where
+//         D: Deserializer<'de>,
+//     {
+//         deserializer.deserialize_string(LookupBufVisitor)
+//     }
+// }
 
-struct LookupBufVisitor;
+// struct LookupBufVisitor;
 
-impl<'de> Visitor<'de> for LookupBufVisitor {
-    type Value = LookupBuf;
+// impl<'de> Visitor<'de> for LookupBufVisitor {
+//     type Value = LookupBuf;
 
-    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        formatter.write_str("Expected valid Lookup path.")
-    }
+//     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+//         formatter.write_str("Expected valid Lookup path.")
+//     }
 
-    fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
-    where
-        E: de::Error,
-    {
-        FromStr::from_str(value).map_err(de::Error::custom)
-    }
+//     fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+//     where
+//         E: de::Error,
+//     {
+//         FromStr::from_str(value).map_err(de::Error::custom)
+//     }
 
-    fn visit_string<E>(self, value: String) -> Result<Self::Value, E>
-    where
-        E: de::Error,
-    {
-        FromStr::from_str(&value).map_err(de::Error::custom)
-    }
-}
+//     fn visit_string<E>(self, value: String) -> Result<Self::Value, E>
+//     where
+//         E: de::Error,
+//     {
+//         FromStr::from_str(&value).map_err(de::Error::custom)
+//     }
+// }
 
 impl<'a> From<Lookup<'a>> for LookupBuf {
     fn from(v: Lookup<'a>) -> Self {
