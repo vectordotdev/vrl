@@ -207,7 +207,6 @@ fn verify_overwritable(
     rhs_expr: Expr,
 ) -> Result<(), Error> {
     let mut path = target.path();
-    // let mut path = LookupBuf::from(target.path());
 
     let root_kind = match target {
         Target::Noop => Kind::any(),

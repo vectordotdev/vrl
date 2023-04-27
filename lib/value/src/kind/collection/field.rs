@@ -6,9 +6,6 @@ use lookup::lookup_v2::OwnedSegment;
 #[derive(Debug, Clone, Eq, PartialEq, PartialOrd, Ord, Hash)]
 pub struct Field(String);
 
-// static VALID_FIELD: Lazy<Regex> =
-//     Lazy::new(|| Regex::new("^[0-9]*[a-zA-Z_@][0-9a-zA-Z_@]*$").unwrap());
-
 impl std::fmt::Display for Field {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", OwnedSegment::field(&self.0))
