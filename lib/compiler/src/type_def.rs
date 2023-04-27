@@ -25,6 +25,7 @@
 
 use std::ops::{Deref, DerefMut};
 
+use lookup::lookup_v2::ValuePath;
 use lookup::LookupBuf;
 use value::{
     kind::{merge, Collection, Field, Index},
@@ -351,7 +352,7 @@ impl TypeDef {
     }
 
     #[must_use]
-    pub fn with_type_inserted(self, path: &LookupBuf, other: Self) -> Self {
+    pub fn with_type_inserted<'a>(self, path: impl ValuePath<'a>, other: Self) -> Self {
         let mut kind = self.kind;
         kind.insert(path, other.kind);
         Self {

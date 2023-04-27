@@ -19,7 +19,7 @@ impl Value {
 mod at_path_tests {
     use std::collections::BTreeMap;
 
-    use lookup::{lookup_v2::parse_value_path, parser, LookupBuf};
+    use lookup::{lookup_v2::parse_value_path, LookupBuf};
 
     use crate::Value;
 
@@ -48,17 +48,17 @@ mod at_path_tests {
 
     #[test]
     fn test_array() {
-        let path = parser::parse_lookup("[2]").unwrap();
+        let path = parse_value_path("[2]").unwrap();
         let value = Value::Integer(12);
 
         let object = Value::Array(vec![Value::Null, Value::Null, Value::Integer(12)]);
 
-        assert_eq!(value.at_path(&path.into_buf()), object);
+        assert_eq!(value.at_path(&path), object);
     }
 
     #[test]
     fn test_complex() {
-        let path = parser::parse_lookup("[2].foo.(bar | baz )[1]").unwrap();
+        let path = parse_value_path("[2].foo.(bar | baz )[1]").unwrap();
         let value = Value::Object([("bar".into(), vec![12].into())].into()); //value!({ "bar": [12] });
 
         let baz_value = Value::Array(vec![Value::Null, value.clone()]);
@@ -70,6 +70,6 @@ mod at_path_tests {
             Value::Object(BTreeMap::from([("foo".into(), foo_value)])),
         ]);
 
-        assert_eq!(value.at_path(&path.into_buf()), object);
+        assert_eq!(value.at_path(&path), object);
     }
 }

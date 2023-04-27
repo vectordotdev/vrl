@@ -331,10 +331,10 @@ impl Target {
             Self::Noop => {}
             Self::Internal(ident, path) => {
                 let type_def = match state.local.variable(ident) {
-                    None => TypeDef::never().with_type_inserted(&path.clone().into(), new_type_def),
-                    Some(Details { type_def, .. }) => type_def
-                        .clone()
-                        .with_type_inserted(&path.clone().into(), new_type_def),
+                    None => TypeDef::never().with_type_inserted(path, new_type_def),
+                    Some(Details { type_def, .. }) => {
+                        type_def.clone().with_type_inserted(path, new_type_def)
+                    }
                 };
 
                 let details = Details { type_def, value };
@@ -350,7 +350,7 @@ impl Target {
                                 .target()
                                 .type_def
                                 .clone()
-                                .with_type_inserted(&target_path.path.clone().into(), new_type_def),
+                                .with_type_inserted(&target_path.path, new_type_def),
                             value,
                         });
                     }
