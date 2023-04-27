@@ -6,7 +6,7 @@ use diagnostic::span;
 use std::collections::BTreeMap;
 use lalrpop_util::ErrorRecovery;
 use ordered_float::NotNan;
-use lookup::{LookupBuf, SegmentBuf, FieldBuf, PathPrefix, OwnedTargetPath, OwnedValuePath};
+use lookup::{PathPrefix, OwnedTargetPath, OwnedValuePath};
 use lookup::lookup_v2::OwnedSegment;
 
 
