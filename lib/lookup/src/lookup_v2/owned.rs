@@ -25,6 +25,10 @@ impl OwnedValuePath {
         self.segments.push(OwnedSegment::field(field));
     }
 
+    pub fn push_segment(&mut self, segment: OwnedSegment) {
+        self.segments.push(segment);
+    }
+
     pub fn push_front_field(&mut self, field: &str) {
         self.segments.insert(0, OwnedSegment::field(field));
     }

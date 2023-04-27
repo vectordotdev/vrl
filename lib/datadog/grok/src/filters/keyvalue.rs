@@ -2,7 +2,6 @@ use std::collections::BTreeMap;
 use std::fmt::Formatter;
 
 use bytes::Bytes;
-use lookup::{Lookup, LookupBuf};
 use nom::{
     self,
     branch::alt,
@@ -144,9 +143,7 @@ pub fn apply_filter(value: &Value, filter: &KeyValueFilter) -> Result<Value, Gro
                     || matches!(&v, Value::Bytes(b) if b.is_empty())
                     || k.trim().is_empty())
                 {
-                    let lookup: LookupBuf = Lookup::from(&k).into();
-
-                    result.insert_by_path(&lookup, v);
+                    result.insert(lookup::path!(&k), v);
                 }
             });
             Ok(result)
