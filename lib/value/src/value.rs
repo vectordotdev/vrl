@@ -3,7 +3,6 @@
 mod convert;
 mod crud;
 mod display;
-mod error;
 mod iter;
 mod path;
 mod regex;
