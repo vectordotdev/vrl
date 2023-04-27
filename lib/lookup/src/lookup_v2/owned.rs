@@ -2,6 +2,8 @@ use crate::lookup_v2::{
     parse_target_path, parse_value_path, BorrowedSegment, PathParseError, ValuePath,
 };
 use crate::PathPrefix;
+use once_cell::sync::Lazy;
+use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::fmt::{Debug, Display, Formatter};
 
@@ -406,6 +408,38 @@ impl<'a> ValuePath<'a> for &'a OwnedValuePath {
 
     fn segment_iter(&self) -> Self::Iter {
         (&self.segments).segment_iter()
+    }
+}
+
+static VALID_FIELD: Lazy<Regex> =
+    Lazy::new(|| Regex::new("^[0-9]*[a-zA-Z_@][0-9a-zA-Z_@]*$").unwrap());
+
+fn field_to_string(field: &str) -> String {
+    // This can eventually just parse the field and see if it's valid, but the
+    // parser is currently lenient in what it accepts so it doesn't catch all cases that
+    // should be quoted
+    let needs_quotes = !VALID_FIELD.is_match(field);
+    if needs_quotes {
+        format!("\"{}\"", field)
+    } else {
+        field.to_string()
+    }
+}
+
+impl Display for OwnedSegment {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            OwnedSegment::Index(i) => write!(f, "[{}]", i),
+            OwnedSegment::Field(field) => write!(f, "{}", field_to_string(field)),
+            OwnedSegment::Coalesce(v) => write!(
+                f,
+                "({})",
+                v.iter()
+                    .map(|field| field_to_string(field))
+                    .collect::<Vec<_>>()
+                    .join(" | ")
+            ),
+        }
     }
 }
 

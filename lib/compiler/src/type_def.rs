@@ -26,7 +26,6 @@
 use std::ops::{Deref, DerefMut};
 
 use lookup::lookup_v2::ValuePath;
-use lookup::LookupBuf;
 use value::{
     kind::{merge, Collection, Field, Index},
     Kind, Value,
@@ -72,7 +71,7 @@ impl TypeDef {
     }
 
     #[must_use]
-    pub fn at_path(&self, path: &LookupBuf) -> TypeDef {
+    pub fn at_path<'a>(&self, path: impl ValuePath<'a>) -> TypeDef {
         let fallible = self.fallible;
         let kind = self.kind.at_path(path);
 

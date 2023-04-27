@@ -1,8 +1,8 @@
 use std::{convert::TryFrom, fmt};
 
 use diagnostic::{DiagnosticMessage, Label, Note};
-use lookup::lookup_v2::OwnedTargetPath;
-use lookup::{LookupBuf, OwnedValuePath, PathPrefix, SegmentBuf};
+use lookup::lookup_v2::{OwnedSegment, OwnedTargetPath};
+use lookup::{OwnedValuePath, PathPrefix};
 use value::{Kind, Value};
 
 use crate::{
@@ -206,7 +206,8 @@ fn verify_overwritable(
     assignment_span: Span,
     rhs_expr: Expr,
 ) -> Result<(), Error> {
-    let mut path = LookupBuf::from(target.path());
+    let mut path = target.path();
+    // let mut path = LookupBuf::from(target.path());
 
     let root_kind = match target {
         Target::Noop => Kind::any(),
@@ -223,11 +224,16 @@ fn verify_overwritable(
     // Walk the entire path from back to front. If the popped segment is a field
     // or index, check the segment before it, and ensure that its kind is an
     // object or array.
-    while let Some(last) = path.pop_back() {
+    while let Some(last) = path.segments.pop() {
         let parent_kind = root_kind.at_path(&path);
 
+        // TODO: This assumes that the Display impl of `OwnedSegment` exactly matches the
+        // VRL source code, which is not always the same. `saturating_sub` is used to guard
+        // against panics here, but the spans can be inaccurate in some cases. A different
+        // approach should be taken here
+        // https://github.com/vectordotdev/vrl/issues/206
         let (variant, segment_span, valid) = match last {
-            segment @ (SegmentBuf::Field(_) | SegmentBuf::Coalesce(_)) => {
+            segment @ (OwnedSegment::Field(_) | OwnedSegment::Coalesce(_)) => {
                 let segment_str = segment.to_string();
                 let segment_start = parent_span.end().saturating_sub(segment_str.len());
                 let segment_span = Span::new(segment_start, parent_span.end());
@@ -237,8 +243,8 @@ fn verify_overwritable(
 
                 ("object", segment_span, parent_kind.contains_object())
             }
-            SegmentBuf::Index(index) => {
-                let segment_start = parent_span.end() - format!("[{index}]").len();
+            OwnedSegment::Index(index) => {
+                let segment_start = parent_span.end().saturating_sub(format!("[{index}]").len());
                 let segment_span = Span::new(segment_start, parent_span.end());
 
                 parent_span = Span::new(parent_span.start(), segment_start);
