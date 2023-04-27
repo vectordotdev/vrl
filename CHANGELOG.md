@@ -4,7 +4,7 @@
 - fixed a type definition bug for assignments where the right-hand side of the assignment expression resolved to the `never` type
 - removed the deprecated `FieldBuf` from `Field`
 - migrated the following components to the new path logic
-  - stdlib `get` and `set` function
+  - stdlib `get`, `set`, and `remove` functions
   - stdlib `match_datadog_query` function
   - stdlib `parse_grok` function
 
