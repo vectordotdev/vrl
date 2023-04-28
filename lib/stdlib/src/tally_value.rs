@@ -1,5 +1,4 @@
-use ::value::Value;
-use vrl::prelude::*;
+use crate::prelude::*;
 
 fn tally_value(array: Value, value: Value) -> Resolved {
     let array = array.try_array()?;

@@ -1,3 +1,4 @@
+use crate::prelude::*;
 use ::value::Value;
 use charset::Charset;
 use data_encoding::BASE64_MIME;
@@ -10,8 +11,6 @@ use nom::{
     sequence::{delimited, pair, separated_pair},
     IResult,
 };
-use vrl::prelude::expression::FunctionExpression;
-use vrl::prelude::*;
 
 #[derive(Clone, Copy, Debug)]
 pub struct DecodeMimeQ;
@@ -85,7 +84,7 @@ fn decode_mime_q(bytes: Value) -> Resolved {
     let (remaining, decoded) = alt((
         fold_many1(
             parse_delimited_q,
-            || Result::<String>::Ok(String::new()),
+            || ExpressionResult::<String>::Ok(String::new()),
             |result, (head, word)| {
                 let mut result = result?;
 
@@ -155,7 +154,7 @@ struct EncodedWord<'a> {
 }
 
 impl<'a> EncodedWord<'a> {
-    fn decode_word(&self) -> Result<String> {
+    fn decode_word(&self) -> Result<String, ExpressionError> {
         // Modified version from https://github.com/staktrace/mailparse/blob/a83d961fe53fd6504d75ee951a0e91dfea03c830/src/header.rs#L39
 
         // Decode

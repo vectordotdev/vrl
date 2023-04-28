@@ -1,5 +1,4 @@
-use ::value::Value;
-use vrl::prelude::*;
+use crate::prelude::*;
 
 fn is_json(value: Value) -> Resolved {
     let bytes = value.try_bytes()?;

@@ -1,12 +1,10 @@
+use crate::prelude::*;
+use once_cell::sync::Lazy;
 use std::{
     borrow::Cow,
     convert::{TryFrom, TryInto},
     str::FromStr,
 };
-
-use ::value::Value;
-use once_cell::sync::Lazy;
-use vrl::prelude::*;
 
 // https://www.oreilly.com/library/view/regular-expressions-cookbook/9781449327453/ch04s12.html
 // (converted to non-lookaround version given `regex` does not support lookarounds)
@@ -71,20 +69,21 @@ impl Function for Redact {
             .into_iter()
             .map(|expr| {
                 expr.resolve_constant()
-                    .ok_or(vrl::function::Error::ExpectedStaticExpression {
+                    .ok_or(function::Error::ExpectedStaticExpression {
                         keyword: "filters",
                         expr,
                     })
             })
             .map(|value| {
                 value.and_then(|value| {
-                    value.clone().try_into().map_err(|error| {
-                        vrl::function::Error::InvalidArgument {
+                    value
+                        .clone()
+                        .try_into()
+                        .map_err(|error| function::Error::InvalidArgument {
                             keyword: "filters",
                             value,
                             error,
-                        }
-                    })
+                        })
                 })
             })
             .collect::<std::result::Result<Vec<Filter>, _>>()?;

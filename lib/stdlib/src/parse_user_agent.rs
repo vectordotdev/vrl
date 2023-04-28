@@ -1,14 +1,13 @@
+use crate::prelude::*;
+use once_cell::sync::Lazy;
 use std::{
     borrow::{Borrow, Cow},
+    collections::BTreeMap,
     fmt,
     str::FromStr,
     sync::Arc,
 };
-
-use ::value::Value;
-use once_cell::sync::Lazy;
 use uaparser::UserAgentParser as UAParser;
-use vrl::prelude::*;
 use woothee::parser::Parser as WootheeParser;
 
 static UA_PARSER: Lazy<UAParser> = Lazy::new(|| {

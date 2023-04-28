@@ -1,5 +1,5 @@
-use ::value::{kind::Collection, Value};
-use vrl::prelude::*;
+use crate::prelude::*;
+use std::collections::BTreeMap;
 
 fn filter<T>(value: Value, ctx: &mut Context, runner: closure::Runner<T>) -> Resolved
 where
@@ -17,7 +17,7 @@ where
                     Err(err) => Some(Err(err)),
                 },
             )
-            .collect::<Result<BTreeMap<_, _>>>()
+            .collect::<ExpressionResult<BTreeMap<_, _>>>()
             .map(Into::into),
 
         Value::Array(array) => array
@@ -32,7 +32,7 @@ where
                     Err(err) => Some(Err(err)),
                 },
             )
-            .collect::<Result<Vec<_>>>()
+            .collect::<ExpressionResult<Vec<_>>>()
             .map(Into::into),
 
         _ => Err("function requires collection types as input".into()),
@@ -116,7 +116,7 @@ struct FilterFn {
 }
 
 impl FunctionExpression for FilterFn {
-    fn resolve(&self, ctx: &mut Context) -> Result<Value> {
+    fn resolve(&self, ctx: &mut Context) -> ExpressionResult<Value> {
         let value = self.value.resolve(ctx)?;
         let FunctionClosure {
             variables,

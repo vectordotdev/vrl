@@ -1,5 +1,4 @@
-use ::value::Value;
-use vrl::prelude::*;
+use crate::prelude::*;
 
 fn for_each<T>(value: Value, ctx: &mut Context, runner: closure::Runner<T>) -> Resolved
 where
@@ -93,7 +92,7 @@ struct ForEachFn {
 }
 
 impl FunctionExpression for ForEachFn {
-    fn resolve(&self, ctx: &mut Context) -> Result<Value> {
+    fn resolve(&self, ctx: &mut Context) -> ExpressionResult<Value> {
         let value = self.value.resolve(ctx)?;
         let FunctionClosure {
             variables,

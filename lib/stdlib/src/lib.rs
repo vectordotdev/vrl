@@ -29,7 +29,37 @@
 
 mod util;
 mod wasm_unsupported_function;
+use vrl_compiler::Function;
 pub use wasm_unsupported_function::WasmUnsupportedFunction;
+
+pub mod prelude {
+    //! Imports that are useful for most stdlib functions
+
+    pub use ::value::{
+        kind::{Collection, Field, Index},
+        value::IterItem,
+        Kind, Value, ValueRegex,
+    };
+    pub use bytes::Bytes;
+    pub use indoc::indoc;
+    pub use ordered_float::NotNan;
+    pub use std::fmt;
+    pub use vrl_compiler::{
+        expr, expression, func_args,
+        function::{
+            self, closure, ArgumentList, Compiled, Example, FunctionClosure, FunctionCompileContext,
+        },
+        state::{self, TypeInfo, TypeState},
+        test_function, test_type_def, type_def, value,
+        value::kind,
+        value::{VrlValueArithmetic, VrlValueConvert},
+        Context, Expression, ExpressionError, Function, FunctionExpression, Parameter, TypeDef,
+    };
+    pub use vrl_core::Resolved;
+    pub use vrl_diagnostic::{DiagnosticMessage, Note, Span};
+
+    pub type ExpressionResult<T> = Result<T, ExpressionError>;
+}
 
 #[cfg(feature = "abs")]
 mod abs;
@@ -667,7 +697,7 @@ pub use crate::seahash::Seahash;
 pub use crate::sha1::Sha1;
 
 #[must_use]
-pub fn all() -> Vec<Box<dyn vrl::Function>> {
+pub fn all() -> Vec<Box<dyn Function>> {
     vec![
         #[cfg(feature = "abs")]
         Box::new(Abs),

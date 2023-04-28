@@ -1,6 +1,5 @@
-use ::value::Value;
+use crate::prelude::*;
 use rust_decimal::{prelude::FromPrimitive, Decimal};
-use vrl::prelude::*;
 
 fn format_number(
     value: Value,

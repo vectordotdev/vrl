@@ -1,8 +1,6 @@
-use std::str::FromStr;
-
-use ::value::Value;
+use crate::prelude::*;
 use chrono::{TimeZone as _, Utc};
-use vrl::prelude::*;
+use std::str::FromStr;
 use vrl_core::{conversion::Conversion, TimeZone};
 
 fn to_timestamp(value: Value, unit: Unit) -> Resolved {

@@ -1,9 +1,8 @@
-use ::value::Value;
+use crate::prelude::*;
 use chrono::{
     format::{strftime::StrftimeItems, Item},
     DateTime, Utc,
 };
-use vrl::prelude::*;
 
 fn format_timestamp(bytes: Value, ts: Value) -> Resolved {
     let bytes = bytes.try_bytes()?;
@@ -76,13 +75,13 @@ impl FunctionExpression for FormatTimestampFn {
     }
 }
 
-fn try_format(dt: &DateTime<Utc>, format: &str) -> Result<String> {
+fn try_format(dt: &DateTime<Utc>, format: &str) -> ExpressionResult<String> {
     let items = StrftimeItems::new(format)
         .map(|item| match item {
             Item::Error => Err("invalid format".into()),
             _ => Ok(item),
         })
-        .collect::<Result<Vec<_>>>()?;
+        .collect::<ExpressionResult<Vec<_>>>()?;
 
     Ok(dt.format_with_items(items.into_iter()).to_string())
 }

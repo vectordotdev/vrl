@@ -1,9 +1,7 @@
-use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
-
-use ::value::Value;
+use crate::prelude::*;
 use once_cell::sync::Lazy;
 use regex::Regex;
-use vrl::prelude::*;
+use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
 fn ip_subnet(value: Value, mask: Value) -> Resolved {
     let value: IpAddr = value
@@ -104,7 +102,7 @@ impl FunctionExpression for IpSubnetFn {
 }
 
 /// Parses a subnet in the form "/8" returns the number.
-fn parse_subnet(subnet: &str) -> Result<u32> {
+fn parse_subnet(subnet: &str) -> ExpressionResult<u32> {
     let subnet = RE
         .captures(subnet)
         .ok_or_else(|| format!("{subnet} is not a valid subnet"))?;
@@ -115,7 +113,7 @@ fn parse_subnet(subnet: &str) -> Result<u32> {
 }
 
 /// Masks the address by performing a bitwise AND between the two addresses.
-fn mask_ips(ip: IpAddr, mask: IpAddr) -> Result<IpAddr> {
+fn mask_ips(ip: IpAddr, mask: IpAddr) -> ExpressionResult<IpAddr> {
     match (ip, mask) {
         (IpAddr::V4(addr), IpAddr::V4(mask)) => {
             let addr: u32 = addr.into();

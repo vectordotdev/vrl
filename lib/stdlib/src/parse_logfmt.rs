@@ -1,6 +1,5 @@
-use vrl::prelude::*;
-
 use crate::parse_key_value::{ParseKeyValueFn, Whitespace};
+use crate::prelude::*;
 
 #[derive(Clone, Copy, Debug)]
 pub struct ParseLogFmt;

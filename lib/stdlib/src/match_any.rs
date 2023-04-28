@@ -1,6 +1,5 @@
-use ::value::Value;
+use crate::prelude::*;
 use regex::bytes::RegexSet;
-use vrl::prelude::*;
 
 fn match_any(value: Value, pattern: &RegexSet) -> Resolved {
     let bytes = value.try_bytes()?;
@@ -58,7 +57,7 @@ impl Function for MatchAny {
         for expr in patterns {
             let value =
                 expr.resolve_constant()
-                    .ok_or(vrl::function::Error::ExpectedStaticExpression {
+                    .ok_or(function::Error::ExpectedStaticExpression {
                         keyword: "patterns",
                         expr,
                     })?;

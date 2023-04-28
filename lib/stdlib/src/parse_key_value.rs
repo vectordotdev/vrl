@@ -1,9 +1,4 @@
-use std::{
-    collections::{btree_map::Entry, BTreeMap},
-    str::FromStr,
-};
-
-use ::value::Value;
+use crate::prelude::*;
 use nom::{
     self,
     branch::alt,
@@ -15,7 +10,10 @@ use nom::{
     sequence::{delimited, preceded, terminated, tuple},
     IResult,
 };
-use vrl::prelude::*;
+use std::{
+    collections::{btree_map::Entry, BTreeMap},
+    str::FromStr,
+};
 
 pub(crate) fn parse_key_value(
     bytes: Value,
@@ -257,7 +255,7 @@ fn parse<'a>(
     field_delimiter: &'a str,
     whitespace: Whitespace,
     standalone_key: bool,
-) -> Result<Vec<(String, Value)>> {
+) -> ExpressionResult<Vec<(String, Value)>> {
     let (rest, result) = parse_line(
         input,
         key_value_delimiter,

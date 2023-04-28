@@ -1,6 +1,5 @@
+use crate::prelude::*;
 use ::sha1::Digest;
-use ::value::Value;
-use vrl::prelude::*;
 
 fn sha1(value: Value) -> Resolved {
     let value = value.try_bytes()?;

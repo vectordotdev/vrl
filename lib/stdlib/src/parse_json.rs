@@ -1,11 +1,9 @@
-use std::collections::HashMap;
-
-use ::value::Value;
+use crate::prelude::*;
 use serde_json::{
     value::{RawValue, Value as JsonValue},
     Error, Map,
 };
-use vrl::prelude::*;
+use std::collections::HashMap;
 
 fn parse_json(value: Value) -> Resolved {
     let bytes = value.try_bytes()?;
@@ -71,7 +69,7 @@ fn parse_layer(value: &RawValue, remaining_depth: u8) -> std::result::Result<Jso
     }
 }
 
-fn validate_depth(value: Value) -> std::result::Result<u8, ExpressionError> {
+fn validate_depth(value: Value) -> ExpressionResult<u8> {
     let res = value.try_integer()?;
 
     // The lower cap is 1 because it is pointless to use anything lower,

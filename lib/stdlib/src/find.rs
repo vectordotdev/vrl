@@ -1,5 +1,4 @@
-use ::value::{Value, ValueRegex};
-use vrl::prelude::*;
+use crate::prelude::*;
 
 fn find(value: Value, pattern: Value, from: Option<Value>) -> Resolved {
     let from = match from {
@@ -91,7 +90,7 @@ impl FindFn {
         None
     }
 
-    fn find(value: Value, pattern: Value, offset: usize) -> Result<Option<usize>> {
+    fn find(value: Value, pattern: Value, offset: usize) -> ExpressionResult<Option<usize>> {
         match pattern {
             Value::Bytes(bytes) => Ok(Self::find_bytes_in_bytes(value.try_bytes()?, bytes, offset)),
             Value::Regex(regex) => Ok(Self::find_regex_in_str(

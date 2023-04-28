@@ -1,8 +1,4 @@
-use std::result::Result;
-
-use ::value::Value;
-use vrl::prelude::expression::FunctionExpression;
-use vrl::prelude::*;
+use crate::prelude::*;
 use vrl_core::encode_key_value;
 
 /// Also used by `encode_logfmt`.
@@ -12,7 +8,7 @@ pub(crate) fn encode_key_value(
     key_value_delimiter: Value,
     field_delimiter: Value,
     flatten_boolean: Value,
-) -> Result<Value, ExpressionError> {
+) -> ExpressionResult<Value> {
     let fields = match fields {
         None => Ok(vec![]),
         Some(fields) => resolve_fields(fields),
@@ -131,7 +127,7 @@ pub(crate) struct EncodeKeyValueFn {
     pub(crate) flatten_boolean: Box<dyn Expression>,
 }
 
-fn resolve_fields(fields: Value) -> Result<Vec<String>, ExpressionError> {
+fn resolve_fields(fields: Value) -> ExpressionResult<Vec<String>> {
     let arr = fields.try_array()?;
     arr.iter()
         .enumerate()

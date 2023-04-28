@@ -1,5 +1,4 @@
-use ::value::Value;
-use vrl::prelude::*;
+use crate::prelude::*;
 use vrl_core::tokenize;
 
 fn parse_tokens(value: Value) -> Resolved {

@@ -1,6 +1,5 @@
-use ::value::Value;
+use crate::prelude::*;
 use rand::{thread_rng, RngCore};
-use vrl::prelude::*;
 
 const MAX_LENGTH: i64 = 1024 * 64;
 const LENGTH_TOO_LARGE_ERR: &str = "Length is too large. Maximum is 64k";
@@ -49,13 +48,12 @@ impl Function for RandomBytes {
 
         if let Some(literal) = length.resolve_constant() {
             // check if length is valid
-            let _ = get_length(literal.clone()).map_err(|err| {
-                vrl::function::Error::InvalidArgument {
+            let _ =
+                get_length(literal.clone()).map_err(|err| function::Error::InvalidArgument {
                     keyword: "length",
                     value: literal,
                     error: err,
-                }
-            })?;
+                })?;
         }
 
         Ok(RandomBytesFn { length }.as_expr())

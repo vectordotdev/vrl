@@ -1,12 +1,11 @@
-use vrl::prelude::*;
+use crate::prelude::*;
 
 #[cfg(not(target_arch = "wasm32"))]
 mod non_wasm {
+    use crate::prelude::*;
     use ::value::Value;
     pub(super) use std::sync::Arc;
     use std::{collections::BTreeMap, fmt};
-    use vrl::prelude::*;
-    use vrl::state::TypeState;
     use vrl_diagnostic::{Label, Span};
 
     fn parse_grok(value: Value, pattern: Arc<grok::Pattern>) -> Resolved {

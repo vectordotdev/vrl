@@ -1,7 +1,5 @@
-use ::value::Value;
 use bytes::Bytes;
-use vrl::prelude::*;
-use vrl::state::TypeState;
+use crate::prelude::*;
 
 fn uuid_v4() -> Value {
     let mut buf = [0; 36];

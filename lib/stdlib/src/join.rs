@@ -1,14 +1,12 @@
+use crate::prelude::*;
 use std::borrow::Cow;
-
-use ::value::Value;
-use vrl::prelude::*;
 
 fn join(array: Value, separator: Option<Value>) -> Resolved {
     let array = array.try_array()?;
     let string_vec = array
         .iter()
         .map(|s| s.try_bytes_utf8_lossy().map_err(Into::into))
-        .collect::<Result<Vec<Cow<'_, str>>>>()
+        .collect::<ExpressionResult<Vec<Cow<'_, str>>>>()
         .map_err(|_| "all array items must be strings")?;
     let separator: String = separator
         .map(Value::try_bytes)

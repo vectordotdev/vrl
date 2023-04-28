@@ -1,5 +1,4 @@
-use ::value::Value;
-use vrl::prelude::*;
+use crate::prelude::*;
 
 fn to_syslog_severity(level: Value) -> Resolved {
     let level = level.try_bytes_utf8_lossy()?;

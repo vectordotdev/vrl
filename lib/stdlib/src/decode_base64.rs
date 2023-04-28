@@ -1,9 +1,6 @@
-use std::str::FromStr;
-
-use ::value::Value;
+use crate::prelude::*;
 use base64::Engine as _;
-use vrl::prelude::expression::FunctionExpression;
-use vrl::prelude::*;
+use std::str::FromStr;
 
 use crate::util::Base64Charset;
 

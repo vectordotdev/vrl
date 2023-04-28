@@ -1,8 +1,6 @@
+use crate::prelude::*;
 use std::collections::BTreeMap;
-
-use ::value::Value;
 use url::Url;
-use vrl::prelude::*;
 
 #[derive(Clone, Copy, Debug)]
 pub struct ParseUrl;

@@ -1,8 +1,6 @@
-use ::value::Value;
+use crate::prelude::*;
 use flate2::read::ZlibDecoder;
 use std::io::Read;
-use vrl::prelude::expression::FunctionExpression;
-use vrl::prelude::*;
 
 fn decode_zlib(value: Value) -> Resolved {
     let value = value.try_bytes()?;

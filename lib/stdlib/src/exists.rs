@@ -1,5 +1,4 @@
-use vrl::prelude::expression::FunctionExpression;
-use vrl::prelude::*;
+use crate::prelude::*;
 
 #[derive(Clone, Copy, Debug)]
 pub struct Exists;
