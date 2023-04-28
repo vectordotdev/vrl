@@ -260,7 +260,7 @@ mod tests {
         let tz = TimeZone::default();
         for (object, exp, func) in cases {
             let mut object: Value = object.into();
-            let mut runtime_state = vrl::state::RuntimeState::default();
+            let mut runtime_state = state::RuntimeState::default();
             let mut ctx = Context::new(&mut object, &mut runtime_state, &tz);
             let got = func
                 .resolve(&mut ctx)

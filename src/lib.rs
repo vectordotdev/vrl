@@ -8,6 +8,7 @@
 #![allow(clippy::module_name_repetitions)]
 
 pub mod prelude;
+
 pub use compiler::expression::query;
 pub use compiler::{
     compile, compile_with_external, compile_with_state, function,

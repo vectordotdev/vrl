@@ -187,7 +187,6 @@ mod tests {
     use super::*;
     use ::value::btreemap;
     use lookup_lib::lookup_v2::parse_value_path;
-    use vrl::state::TypeState;
     use vrl_core::TimeZone;
 
     #[test]
@@ -450,7 +449,7 @@ mod tests {
         let tz = TimeZone::default();
         for (object, expected, func, expected_typedef) in cases {
             let mut object = object.clone();
-            let mut runtime_state = vrl::state::RuntimeState::default();
+            let mut runtime_state = state::RuntimeState::default();
             let mut ctx = Context::new(&mut object, &mut runtime_state, &tz);
 
             let got_typedef = func.type_def(&state);

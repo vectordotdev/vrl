@@ -267,17 +267,15 @@ impl FunctionExpression for ToTimestampFn {
 #[cfg(test)]
 #[allow(overflowing_literals)]
 mod tests {
-    use std::collections::BTreeMap;
-
-    use vrl::prelude::expression::Literal;
-    use vrl_core::TimeZone;
-
     use super::*;
+    use std::collections::BTreeMap;
+    use vrl_compiler::expression::Literal;
+    use vrl_core::TimeZone;
 
     #[test]
     fn out_of_range_integer() {
         let mut object: Value = BTreeMap::new().into();
-        let mut runtime_state = vrl::state::RuntimeState::default();
+        let mut runtime_state = state::RuntimeState::default();
         let tz = TimeZone::default();
         let mut ctx = Context::new(&mut object, &mut runtime_state, &tz);
         let f = ToTimestampFn {
@@ -291,7 +289,7 @@ mod tests {
     #[test]
     fn out_of_range_float() {
         let mut object: Value = BTreeMap::new().into();
-        let mut runtime_state = vrl::state::RuntimeState::default();
+        let mut runtime_state = state::RuntimeState::default();
         let tz = TimeZone::default();
         let mut ctx = Context::new(&mut object, &mut runtime_state, &tz);
         let f = ToTimestampFn {
