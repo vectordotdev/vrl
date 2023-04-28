@@ -1,8 +1,6 @@
-use std::collections::BTreeMap;
-
 use crate::prelude::*;
-
 use crate::util;
+use std::collections::BTreeMap;
 
 fn compact(
     recursive: Option<Value>,
