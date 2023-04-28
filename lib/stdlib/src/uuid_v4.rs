@@ -1,5 +1,5 @@
-use bytes::Bytes;
 use crate::prelude::*;
+use bytes::Bytes;
 
 fn uuid_v4() -> Value {
     let mut buf = [0; 36];
