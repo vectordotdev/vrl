@@ -78,7 +78,7 @@ criterion = "0.4"
 tracing-test = "0.2"
 value = { path = "../value", features = ["test"] }
 vrl-core = { path = "../core", features = ["test"] }
-vrl = { path = "../.." , features = ["test"]}
+vrl-compiler = { path = "../compiler", features = ["test"] }
 
 [features]
 default = [

@@ -128,7 +128,7 @@ macro_rules! __prep_bench_or_test {
             $func.compile(
                 $state,
                 &mut $crate::function::FunctionCompileContext::new(
-                    vrl::diagnostic::Span::new(0, 0),
+                    vrl_diagnostic::Span::new(0, 0),
                     config,
                 ),
                 $args.into(),

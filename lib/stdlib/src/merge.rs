@@ -115,10 +115,8 @@ where
 
 #[cfg(test)]
 mod tests {
-    use ::value::btreemap;
-    use vrl::value::Kind;
-
     use super::*;
+    use ::value::btreemap;
 
     test_function! [
         merge => Merge;
