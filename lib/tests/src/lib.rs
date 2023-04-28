@@ -5,19 +5,22 @@
 mod test;
 
 pub use test::Test;
+use vrl_compiler::{
+    compile_with_external,
+    runtime::{Runtime, Terminate},
+    state::{ExternalEnv, RuntimeState},
+    value::VrlValueConvert,
+    CompilationResult, CompileConfig, Function, Program, SecretTarget, TargetValueRef, VrlRuntime,
+};
+use vrl_core::TimeZone;
+use vrl_diagnostic::Formatter;
 
-use std::{str::FromStr, time::Instant};
+use std::{collections::BTreeMap, str::FromStr, time::Instant};
 
 use ::value::Value;
 use ansi_term::Colour;
 use chrono::{DateTime, SecondsFormat, Utc};
 use value::Secrets;
-use vrl::{
-    diagnostic::Formatter,
-    prelude::{BTreeMap, VrlValueConvert},
-    state, CompilationResult, CompileConfig, Runtime, SecretTarget, TargetValueRef, Terminate,
-    TimeZone, VrlRuntime,
-};
 
 pub struct TestConfig {
     pub fail_early: bool,
@@ -28,7 +31,7 @@ pub struct TestConfig {
     pub timezone: TimeZone,
 }
 
-pub fn get_tests_from_functions(functions: Vec<Box<dyn vrl::Function>>) -> Vec<Test> {
+pub fn get_tests_from_functions(functions: Vec<Box<dyn Function>>) -> Vec<Test> {
     let mut tests = vec![];
     functions.into_iter().for_each(|function| {
         if let Some(closure) = function.closure() {
@@ -53,7 +56,7 @@ pub fn get_tests_from_functions(functions: Vec<Box<dyn vrl::Function>>) -> Vec<T
 pub fn run_tests<T>(
     tests: Vec<Test>,
     cfg: &TestConfig,
-    functions: &[Box<dyn vrl::Function>],
+    functions: &[Box<dyn Function>],
     compile_config_provider: impl Fn() -> (CompileConfig, T),
     finalize_config: impl Fn(T),
 ) {
@@ -84,10 +87,10 @@ pub fn run_tests<T>(
             println!("{}", Colour::Yellow.bold().paint("SKIPPED"));
         }
 
-        let state = state::RuntimeState::default();
+        let state = RuntimeState::default();
         let runtime = Runtime::new(state);
 
-        let external_env = vrl::state::ExternalEnv::default();
+        let external_env = ExternalEnv::default();
         let (mut config, config_metadata) = (compile_config_provider)();
 
         // Set some read-only paths that can be tested
@@ -96,7 +99,7 @@ pub fn run_tests<T>(
         }
 
         let compile_start = Instant::now();
-        let result = vrl::compile_with_external(&test.source, functions, &external_env, config);
+        let result = compile_with_external(&test.source, functions, &external_env, config);
         let compile_end = compile_start.elapsed();
 
         let want = test.result.clone();
@@ -346,7 +349,7 @@ fn vrl_value_to_json_value(value: Value) -> serde_json::Value {
 #[allow(clippy::too_many_arguments)]
 fn run_vrl(
     mut runtime: Runtime,
-    program: vrl::Program,
+    program: Program,
     test: &mut Test,
     timezone: TimeZone,
     vrl_runtime: VrlRuntime,
