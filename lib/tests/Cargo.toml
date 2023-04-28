@@ -8,7 +8,6 @@ publish = false
 [dependencies]
 lookup = { path = "../lookup" }
 stdlib = { package = "vrl-stdlib", path = "../stdlib" }
-# vrl = { path = "../.." }
 vrl-diagnostic = { path = "../diagnostic" }
 vrl-compiler = { path = "../compiler" }
 vrl-core = { path = "../core" }
