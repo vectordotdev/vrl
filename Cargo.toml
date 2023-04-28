@@ -25,36 +25,42 @@ members = [
 
 
 [features]
-default = ["expressions"]
-expressions = [
-  "expr-abort",
-  "expr-assignment",
-  "expr-function_call",
-  "expr-if_statement",
-  "expr-literal",
-  "expr-op",
-  "expr-query",
-  "expr-unary",
-]
-expr-abort = ["compiler/expr-abort"]
-expr-assignment = ["compiler/expr-assignment"]
-expr-function_call = ["compiler/expr-function_call"]
-expr-if_statement = ["compiler/expr-if_statement"]
-expr-literal = ["compiler/expr-literal"]
-expr-op = ["compiler/expr-op"]
-expr-query = ["compiler/expr-query"]
-expr-unary = ["compiler/expr-unary"]
+default = ["compiler"]
+
+compiler = ["dep:vrl-compiler"]
+# expressions = [
+#   "expr-abort",
+#   "expr-assignment",
+#   "expr-function_call",
+#   "expr-if_statement",
+#   "expr-literal",
+#   "expr-op",
+#   "expr-query",
+#   "expr-unary",
+# ]
+# expr-abort = ["compiler/expr-abort"]
+# expr-assignment = ["compiler/expr-assignment"]
+# expr-function_call = ["compiler/expr-function_call"]
+# expr-if_statement = ["compiler/expr-if_statement"]
+# expr-literal = ["compiler/expr-literal"]
+# expr-op = ["compiler/expr-op"]
+# expr-query = ["compiler/expr-query"]
+# expr-unary = ["compiler/expr-unary"]
 
 [dependencies]
-bytes = "1.4.0"
-compiler = { package = "vrl-compiler", path = "lib/compiler", default-features = false }
-diagnostic = { package = "vrl-diagnostic", path = "lib/diagnostic" }
-indoc = "2"
-lookup = { path = "lib/lookup" }
-ordered-float = "3"
-parser = { package = "vrl-parser", path = "lib/parser" }
-value = { path = "lib/value", default-features = false }
-vrl-core = { path = "lib/core" }
+
+# Optional
+vrl-compiler = { path = "lib/compiler", optional = true }
+
+# bytes = "1.4.0"
+# compiler = { package = "vrl-compiler", path = "lib/compiler" }
+# diagnostic = { package = "vrl-diagnostic", path = "lib/diagnostic" }
+# indoc = "2"
+# lookup = { path = "lib/lookup" }
+# ordered-float = "3"
+# parser = { package = "vrl-parser", path = "lib/parser" }
+# value = { path = "lib/value", default-features = false }
+# vrl-core = { path = "lib/core" }
 
 [dev-dependencies]
 criterion = "0.4"
