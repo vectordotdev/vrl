@@ -1,4 +1,4 @@
-use ::value::Value;
+use crate::prelude::*;
 use aes::cipher::{
     block_padding::{AnsiX923, Iso10126, Iso7816, Pkcs7},
     generic_array::GenericArray,
@@ -7,14 +7,12 @@ use aes::cipher::{
 use cfb_mode::Encryptor as Cfb;
 use ctr::Ctr64LE;
 use ofb::Ofb;
-use vrl::prelude::expression::FunctionExpression;
-use vrl::prelude::*;
 
 type Aes128Cbc = cbc::Encryptor<aes::Aes128>;
 type Aes192Cbc = cbc::Encryptor<aes::Aes192>;
 type Aes256Cbc = cbc::Encryptor<aes::Aes256>;
 
-pub(crate) fn get_key_bytes<const N: usize>(key: Value) -> Result<[u8; N]> {
+pub(crate) fn get_key_bytes<const N: usize>(key: Value) -> ExpressionResult<[u8; N]> {
     let bytes = key.try_bytes()?;
     if bytes.len() != N {
         return Err(format!(
@@ -29,7 +27,7 @@ pub(crate) fn get_key_bytes<const N: usize>(key: Value) -> Result<[u8; N]> {
     Ok(bytes.as_ref().try_into().unwrap())
 }
 
-pub(crate) fn get_iv_bytes<const N: usize>(iv: Value) -> Result<[u8; N]> {
+pub(crate) fn get_iv_bytes<const N: usize>(iv: Value) -> ExpressionResult<[u8; N]> {
     let bytes = iv.try_bytes()?;
     if bytes.len() != N {
         return Err(format!(
@@ -197,7 +195,7 @@ impl Function for Encrypt {
 
         if let Some(algorithm) = algorithm.resolve_constant() {
             if !is_valid_algorithm(algorithm.clone()) {
-                return Err(vrl::function::Error::InvalidArgument {
+                return Err(function::Error::InvalidArgument {
                     keyword: "algorithm",
                     value: algorithm,
                     error: "Invalid algorithm",

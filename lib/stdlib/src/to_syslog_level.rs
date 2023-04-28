@@ -1,5 +1,4 @@
-use ::value::Value;
-use vrl::prelude::*;
+use crate::prelude::*;
 
 fn to_syslog_level(value: Value) -> Resolved {
     let value = value.try_integer()?;

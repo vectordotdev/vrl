@@ -1,7 +1,6 @@
 use std::collections::btree_map;
 
-use ::value::Value;
-use vrl::prelude::*;
+use crate::prelude::*;
 
 static DEFAULT_SEPARATOR: &str = ".";
 

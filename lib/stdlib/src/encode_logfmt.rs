@@ -1,5 +1,4 @@
-use vrl::prelude::expression::FunctionExpression;
-use vrl::prelude::*;
+use crate::prelude::*;
 
 use crate::encode_key_value::EncodeKeyValueFn;
 

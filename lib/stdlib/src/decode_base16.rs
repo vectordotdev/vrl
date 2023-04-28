@@ -1,8 +1,6 @@
-use ::value::Value;
+use crate::prelude::*;
 use nom::AsBytes;
 use std::str;
-use vrl::prelude::expression::FunctionExpression;
-use vrl::prelude::*;
 
 fn decode_base16(value: Value) -> Resolved {
     match base16::decode(&value.try_bytes_utf8_lossy()?.to_string()) {

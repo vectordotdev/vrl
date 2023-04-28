@@ -1,5 +1,4 @@
-use ::value::Value;
-use vrl::prelude::*;
+use crate::prelude::*;
 use vrl_core::conversion::Conversion;
 
 fn to_bool(value: Value) -> Resolved {

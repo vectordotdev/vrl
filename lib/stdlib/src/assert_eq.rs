@@ -1,6 +1,4 @@
-use ::value::Value;
-use vrl::prelude::expression::FunctionExpression;
-use vrl::{diagnostic::Note, prelude::*};
+use crate::prelude::*;
 
 fn assert_eq(left: Value, right: Value, message: Option<Value>) -> Resolved {
     if left == right {

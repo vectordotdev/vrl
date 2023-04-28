@@ -1,6 +1,5 @@
-use ::value::Value;
+use crate::prelude::*;
 use tracing::warn;
-use vrl::prelude::*;
 
 fn to_regex(value: Value) -> Resolved {
     let string = value.try_bytes_utf8_lossy()?;

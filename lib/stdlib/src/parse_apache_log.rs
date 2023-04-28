@@ -1,9 +1,6 @@
-use std::collections::BTreeMap;
-
-use ::value::Value;
-use vrl::prelude::*;
-
 use crate::log_util;
+use crate::prelude::*;
+use std::collections::BTreeMap;
 
 fn parse_apache_log(
     bytes: Value,

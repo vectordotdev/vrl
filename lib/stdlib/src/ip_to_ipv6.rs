@@ -1,7 +1,5 @@
+use crate::prelude::*;
 use std::net::IpAddr;
-
-use ::value::Value;
-use vrl::prelude::*;
 
 fn ip_to_ipv6(value: Value) -> Resolved {
     let ip: IpAddr = value

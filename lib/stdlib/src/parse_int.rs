@@ -1,5 +1,4 @@
-use ::value::Value;
-use vrl::prelude::*;
+use crate::prelude::*;
 
 fn parse_int(value: Value, base: Option<Value>) -> Resolved {
     let string = value.try_bytes_utf8_lossy()?;

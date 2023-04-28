@@ -1,5 +1,4 @@
-use ::value::Value;
-use vrl::prelude::*;
+use crate::prelude::*;
 
 fn map_keys<T>(
     value: Value,
@@ -112,7 +111,7 @@ struct MapKeysFn {
 }
 
 impl FunctionExpression for MapKeysFn {
-    fn resolve(&self, ctx: &mut Context) -> Result<Value> {
+    fn resolve(&self, ctx: &mut Context) -> ExpressionResult<Value> {
         let recursive = match &self.recursive {
             None => false,
             Some(expr) => expr.resolve(ctx)?.try_boolean()?,

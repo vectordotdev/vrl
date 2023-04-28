@@ -1,6 +1,4 @@
-use std::collections::BTreeMap;
-
-use ::value::Value;
+use crate::prelude::*;
 use nom::{
     branch::alt,
     bytes::complete::{tag, take_while1},
@@ -9,7 +7,7 @@ use nom::{
     sequence::{delimited, preceded},
     IResult,
 };
-use vrl::prelude::*;
+use std::collections::BTreeMap;
 
 fn parse_aws_alb_log(bytes: Value) -> Resolved {
     let bytes = bytes.try_bytes()?;
@@ -130,7 +128,7 @@ fn inner_kind() -> BTreeMap<Field, Kind> {
     ])
 }
 
-fn parse_log(mut input: &str) -> Result<Value> {
+fn parse_log(mut input: &str) -> ExpressionResult<Value> {
     let mut log = BTreeMap::new();
 
     macro_rules! get_value {

@@ -1,6 +1,5 @@
-use ::value::Value;
+use crate::prelude::*;
 use csv::ReaderBuilder;
-use vrl::prelude::*;
 
 fn parse_csv(csv_string: Value, delimiter: Value) -> Resolved {
     let csv_string = csv_string.try_bytes()?;

@@ -1,7 +1,5 @@
-use ::value::Value;
+use crate::prelude::*;
 use nom::AsBytes;
-use vrl::prelude::expression::FunctionExpression;
-use vrl::prelude::*;
 
 fn decode_zstd(value: Value) -> Resolved {
     let value = value.try_bytes()?;

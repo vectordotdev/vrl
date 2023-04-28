@@ -1,8 +1,6 @@
-use std::net::IpAddr;
-
-use ::value::Value;
+use crate::prelude::*;
 use bytes::Bytes;
-use vrl::prelude::*;
+use std::net::IpAddr;
 
 fn ip_pton(value: Value) -> Resolved {
     let ip: IpAddr = value

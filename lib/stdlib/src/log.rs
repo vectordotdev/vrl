@@ -1,13 +1,7 @@
-use ::value::Value;
+use crate::prelude::*;
 use tracing::{debug, error, info, trace, warn};
-use vrl::prelude::*;
 
-fn log(
-    rate_limit_secs: Value,
-    level: &Bytes,
-    value: Value,
-    span: vrl::diagnostic::Span,
-) -> Resolved {
+fn log(rate_limit_secs: Value, level: &Bytes, value: Value, span: Span) -> Resolved {
     let rate_limit_secs = rate_limit_secs.try_integer()?;
     let res = value.to_string_lossy();
     match level.as_ref() {
@@ -118,7 +112,7 @@ impl Function for Log {
 
 #[derive(Debug, Clone)]
 struct LogFn {
-    span: vrl::diagnostic::Span,
+    span: Span,
     value: Box<dyn Expression>,
     level: Bytes,
     rate_limit_secs: Option<Box<dyn Expression>>,

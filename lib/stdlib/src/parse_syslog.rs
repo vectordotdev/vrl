@@ -1,9 +1,7 @@
-use std::collections::BTreeMap;
-
-use ::value::Value;
+use crate::prelude::*;
 use chrono::{DateTime, Datelike, Utc};
+use std::collections::BTreeMap;
 use syslog_loose::{IncompleteDate, Message, ProcId, Protocol};
-use vrl::prelude::*;
 use vrl_core::TimeZone;
 
 pub(crate) fn parse_syslog(value: Value, ctx: &Context) -> Resolved {

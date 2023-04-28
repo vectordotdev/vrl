@@ -7,13 +7,13 @@ publish = false
 license = "MPL-2.0"
 
 [dependencies]
-vrl = { path = "../.." }
 value = { path = "../value", default-features = false }
 
 datadog-filter = { path = "../datadog/filter", optional = true }
 datadog-search-syntax = { path = "../datadog/search-syntax", optional = true }
 lookup_lib = {package = "lookup", path = "../lookup", optional = true }
 vrl-core = { path = "../core" }
+vrl-compiler = { path = "../compiler" }
 vrl-diagnostic = { path = "../diagnostic" }
 
 base16 = { version = "0.2", optional = true }
@@ -28,6 +28,8 @@ flate2 = { version = "1.0.25", default-features = false, features = ["default"],
 hex = { version = "0.4", optional = true }
 hmac = { version = "0.12.1", optional = true }
 indexmap = { version = "~1.9.2", default-features = false, optional = true}
+indoc = "2.0.1"
+ordered-float = "3.7.0"
 md-5 = { version = "0.10", optional = true }
 nom = { version = "7", optional = true }
 percent-encoding = { version = "2.2", optional = true }

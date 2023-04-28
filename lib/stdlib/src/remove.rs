@@ -1,6 +1,5 @@
-use ::value::Value;
+use crate::prelude::*;
 use lookup_lib::{lookup_v2::OwnedSegment, OwnedValuePath};
-use vrl::prelude::*;
 
 fn remove(path: Value, compact: Value, mut value: Value) -> Resolved {
     let path = match path {

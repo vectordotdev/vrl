@@ -1,3 +1,5 @@
+use crate::prelude::*;
+
 /// Rounds the given number to the given precision.
 /// Takes a function parameter so the exact rounding function (ceil, floor or round)
 /// can be specified.
@@ -45,22 +47,17 @@ pub(crate) fn capture_regex_to_map(
 }
 
 #[cfg(any(feature = "parse_regex", feature = "parse_regex_all"))]
-pub(crate) fn regex_kind(
-    regex: &regex::Regex,
-) -> std::collections::BTreeMap<vrl::value::kind::Field, vrl::value::Kind> {
+pub(crate) fn regex_kind(regex: &regex::Regex) -> std::collections::BTreeMap<Field, Kind> {
     let mut inner_type = std::collections::BTreeMap::new();
 
     // Add typedefs for each capture by numerical index.
     for num in 0..regex.captures_len() {
-        inner_type.insert(
-            num.to_string().into(),
-            vrl::value::Kind::bytes() | vrl::value::Kind::null(),
-        );
+        inner_type.insert(num.to_string().into(), Kind::bytes() | Kind::null());
     }
 
     // Add a typedef for each capture name.
     for name in regex.capture_names().flatten() {
-        inner_type.insert(name.to_owned().into(), vrl::value::Kind::bytes());
+        inner_type.insert(name.to_owned().into(), Kind::bytes());
     }
 
     inner_type

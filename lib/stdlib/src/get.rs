@@ -1,6 +1,5 @@
-use ::value::Value;
+use crate::prelude::*;
 use lookup_lib::{lookup_v2::OwnedSegment, OwnedValuePath};
-use vrl::prelude::*;
 
 fn get(value: Value, value_path: Value) -> Resolved {
     let path = match value_path {

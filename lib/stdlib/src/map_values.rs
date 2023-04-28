@@ -1,5 +1,4 @@
-use ::value::Value;
-use vrl::prelude::*;
+use crate::prelude::*;
 
 fn map_values<T>(
     value: Value,
@@ -111,7 +110,7 @@ struct MapValuesFn {
 }
 
 impl FunctionExpression for MapValuesFn {
-    fn resolve(&self, ctx: &mut Context) -> Result<Value> {
+    fn resolve(&self, ctx: &mut Context) -> ExpressionResult<Value> {
         let recursive = match &self.recursive {
             None => false,
             Some(expr) => expr.resolve(ctx)?.try_boolean()?,

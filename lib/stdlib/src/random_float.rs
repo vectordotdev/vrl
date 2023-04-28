@@ -1,7 +1,6 @@
-use ::value::Value;
+use crate::prelude::*;
 use rand::{thread_rng, Rng};
 use std::ops::Range;
-use vrl::prelude::*;
 
 const INVALID_RANGE_ERR: &str = "max must be greater than min";
 
@@ -74,13 +73,12 @@ impl Function for RandomFloat {
 
         if let (Some(min), Some(max)) = (min.resolve_constant(), max.resolve_constant()) {
             // check if range is valid
-            let _ = get_range(min, max.clone()).map_err(|err| {
-                vrl::function::Error::InvalidArgument {
+            let _ =
+                get_range(min, max.clone()).map_err(|err| function::Error::InvalidArgument {
                     keyword: "max",
                     value: max,
                     error: err,
-                }
-            })?;
+                })?;
         }
 
         Ok(RandomFloatFn { min, max }.as_expr())

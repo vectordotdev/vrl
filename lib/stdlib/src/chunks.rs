@@ -1,6 +1,4 @@
-use ::value::Value;
-use vrl::prelude::*;
-use vrl::state::TypeState;
+use crate::prelude::*;
 
 fn chunks(value: Value, chunk_size: Value) -> Resolved {
     let bytes = value.try_bytes()?;
@@ -73,7 +71,7 @@ impl Function for Chunks {
         if let Some(literal) = chunk_size.resolve_constant() {
             if let Some(integer) = literal.as_integer() {
                 if integer < 1 {
-                    return Err(vrl::function::Error::InvalidArgument {
+                    return Err(function::Error::InvalidArgument {
                         keyword: "chunk_size",
                         value: literal,
                         error: r#""chunk_size" must be at least 1 byte"#,
@@ -82,7 +80,7 @@ impl Function for Chunks {
                 }
 
                 if usize::try_from(integer).is_err() {
-                    return Err(vrl::function::Error::InvalidArgument {
+                    return Err(function::Error::InvalidArgument {
                         keyword: "chunk_size",
                         value: literal,
                         error: r#""chunk_size" is too large"#,

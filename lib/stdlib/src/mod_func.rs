@@ -1,5 +1,4 @@
-use ::value::Value;
-use vrl::prelude::*;
+use crate::prelude::*;
 
 fn r#mod(value: Value, modulus: Value) -> Resolved {
     let result = value.try_rem(modulus)?;

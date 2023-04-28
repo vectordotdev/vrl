@@ -1,6 +1,4 @@
-use ::value::Value;
-use vrl::prelude::*;
-use vrl::state::TypeState;
+use crate::prelude::*;
 
 fn upcase(value: Value) -> Resolved {
     Ok(value.try_bytes_utf8_lossy()?.to_uppercase().into())

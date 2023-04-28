@@ -1,5 +1,4 @@
-use ::value::Value;
-use vrl::prelude::*;
+use crate::prelude::*;
 
 fn strlen(value: Value) -> Resolved {
     let v = value.try_bytes()?;
