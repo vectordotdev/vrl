@@ -25,9 +25,24 @@ members = [
 
 
 [features]
-default = ["compiler"]
+default = ["compiler", "value", "diagnostic", "path", "parser", "stdlib", "datadog"]
 
 compiler = ["dep:vrl-compiler"]
+value = ["dep:value"]
+diagnostic = ["dep:vrl-diagnostic"]
+path = ["dep:lookup"]
+parser = ["dep:vrl-parser"]
+stdlib = ["dep:vrl-stdlib", "dep:vrl-core"]
+
+datadog = ["datadog_filter", "datadog_grok", "datadog_search"]
+datadog_filter = ["dep:datadog-filter"]
+datadog_grok = ["dep:datadog-grok"]
+datadog_search = ["dep:datadog-search-syntax"]
+
+cli = ["dep:vrl-cli"]
+test_framework = ["dep:vrl-tests"]
+
+
 # expressions = [
 #   "expr-abort",
 #   "expr-assignment",
@@ -51,6 +66,17 @@ compiler = ["dep:vrl-compiler"]
 
 # Optional
 vrl-compiler = { path = "lib/compiler", optional = true }
+value = { path = "lib/value", optional = true }
+vrl-diagnostic = { path = "lib/diagnostic", optional = true }
+lookup = { path = "lib/lookup", optional = true }
+vrl-parser = { path = "lib/parser", optional = true }
+vrl-stdlib = { path = "lib/stdlib", optional = true }
+vrl-core = { path = "lib/core", optional = true }
+vrl-cli = { path = "lib/cli", optional = true }
+vrl-tests = { path = "lib/tests", optional = true }
+datadog-filter = { path = "lib/datadog/filter", optional = true }
+datadog-grok = { path = "lib/datadog/grok", optional = true }
+datadog-search-syntax = { path = "lib/datadog/search-syntax", optional = true }
 
 # bytes = "1.4.0"
 # compiler = { package = "vrl-compiler", path = "lib/compiler" }
