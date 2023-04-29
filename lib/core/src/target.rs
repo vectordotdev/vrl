@@ -1,7 +1,7 @@
 use std::convert::AsRef;
 
-use lookup::lookup_v2::OwnedTargetPath;
-use lookup::PathPrefix;
+use path::OwnedTargetPath;
+use path::PathPrefix;
 use value::{Secrets, Value};
 
 /// Any target object you want to remap using VRL has to implement this trait.
@@ -215,7 +215,7 @@ impl SecretTarget for Secrets {
 #[cfg(any(test, feature = "test"))]
 mod value_target_impl {
     use super::{SecretTarget, Target, Value};
-    use lookup::{OwnedTargetPath, PathPrefix};
+    use path::{OwnedTargetPath, PathPrefix};
 
     impl Target for Value {
         fn target_insert(
@@ -278,7 +278,7 @@ mod value_target_impl {
 mod tests {
     #![allow(clippy::print_stdout)] // tests
 
-    use lookup::owned_value_path;
+    use path::owned_value_path;
 
     use super::*;
     use crate::value;

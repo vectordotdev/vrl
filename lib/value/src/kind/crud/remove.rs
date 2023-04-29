@@ -3,8 +3,8 @@
 use crate::kind::collection::{CollectionRemove, EmptyState};
 use crate::kind::{Collection, Field};
 use crate::Kind;
-use lookup::lookup_v2::OwnedSegment;
-use lookup::OwnedValuePath;
+use path::OwnedSegment;
+use path::OwnedValuePath;
 
 impl Kind {
     /// Removes the `Kind` at the given `path` within `self`.
@@ -263,8 +263,8 @@ impl From<EmptyState> for CompactOptions {
 #[allow(clippy::manual_assert)]
 mod test {
     use super::*;
-    use lookup::lookup_v2::parse_value_path;
-    use lookup::owned_value_path;
+    use path::owned_value_path;
+    use path::parse_value_path;
     use std::collections::BTreeMap;
 
     #[test]

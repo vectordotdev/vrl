@@ -21,10 +21,10 @@ mod toml;
 use std::collections::BTreeMap;
 
 pub use crate::value::regex::ValueRegex;
+use ::path::ValuePath;
 use bytes::{Bytes, BytesMut};
 use chrono::{DateTime, SecondsFormat, Utc};
 pub use iter::{IterItem, ValueIter};
-use lookup::lookup_v2::ValuePath;
 use ordered_float::NotNan;
 
 /// A boxed `std::error::Error`.
@@ -98,7 +98,7 @@ impl Value {
     /// ```rust
     /// use value::Value;
     /// use std::collections::BTreeMap;
-    /// use lookup::path;
+    /// use path::path;
     ///
     /// let val = Value::from(1);
     /// assert_eq!(val.is_empty(), false);
@@ -180,8 +180,7 @@ pub fn timestamp_to_string(timestamp: &DateTime<Utc>) -> String {
 
 #[cfg(test)]
 mod test {
-    use lookup::lookup_v2::BorrowedSegment;
-    use lookup::path;
+    use ::path::{path, BorrowedSegment};
     use quickcheck::{QuickCheck, TestResult};
 
     use super::*;

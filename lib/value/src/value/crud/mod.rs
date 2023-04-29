@@ -1,5 +1,5 @@
 use crate::Value;
-use lookup::lookup_v2::BorrowedSegment;
+use path::BorrowedSegment;
 use std::borrow::{Borrow, Cow};
 use std::collections::BTreeMap;
 

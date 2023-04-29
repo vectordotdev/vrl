@@ -2,7 +2,7 @@ use core::TimeZone;
 use std::{error::Error, fmt};
 
 use super::ExpressionError;
-use lookup::OwnedTargetPath;
+use path::OwnedTargetPath;
 use value::Value;
 
 use crate::{state, Context, Program, Target};

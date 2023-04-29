@@ -1,7 +1,5 @@
-use crate::lookup_v2::{
-    parse_target_path, parse_value_path, BorrowedSegment, PathParseError, ValuePath,
-};
 use crate::PathPrefix;
+use crate::{parse_target_path, parse_value_path, BorrowedSegment, PathParseError, ValuePath};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
@@ -480,7 +478,7 @@ impl<'a> Iterator for OwnedSegmentSliceIter<'a> {
 
 #[cfg(test)]
 mod test {
-    use crate::lookup_v2::parse_value_path;
+    use crate::parse_value_path;
 
     #[test]
     fn owned_path_serialize() {

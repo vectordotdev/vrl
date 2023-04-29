@@ -3,14 +3,14 @@
 #![allow(clippy::print_stderr)] // test framework
 #![allow(clippy::print_stdout)] // test framework
 use diagnostic::Span;
-use lookup::lookup_v2::OwnedSegment;
-use lookup::OwnedValuePath;
 use ordered_float::NotNan;
 use parser::ast::{
     Assignment, AssignmentOp, AssignmentTarget, Block, Container, Expr, FunctionArgument,
     FunctionCall, Group, Ident, IfStatement, Literal, Node, Op, Opcode, Predicate, Program, Query,
     QueryTarget, RootExpr,
 };
+use path::OwnedSegment;
+use path::OwnedValuePath;
 use proptest::prelude::*;
 
 static RESERVED: &[&str] = &[

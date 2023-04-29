@@ -15,7 +15,7 @@ members = [
   "lib/datadog/grok",
   "lib/datadog/search-syntax",
   "lib/diagnostic",
-  "lib/lookup",
+  "lib/path",
   "lib/parser",
   "lib/proptests",
   "lib/stdlib",
@@ -50,7 +50,7 @@ bytes = "1.4.0"
 compiler = { package = "vrl-compiler", path = "lib/compiler", default-features = false }
 diagnostic = { package = "vrl-diagnostic", path = "lib/diagnostic" }
 indoc = "2"
-lookup = { path = "lib/lookup" }
+path = { path = "lib/path" }
 ordered-float = "3"
 parser = { package = "vrl-parser", path = "lib/parser" }
 value = { path = "lib/value", default-features = false }

@@ -6,7 +6,7 @@ use crate::{
     type_def::Details,
     Context, Expression,
 };
-use lookup::{OwnedTargetPath, OwnedValuePath, PathPrefix};
+use path::{OwnedTargetPath, OwnedValuePath, PathPrefix};
 use std::fmt;
 use value::Value;
 

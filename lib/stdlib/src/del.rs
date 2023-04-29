@@ -136,7 +136,7 @@ pub(crate) struct DelFn {
 impl DelFn {
     #[cfg(test)]
     fn new(path: &str) -> Self {
-        use lookup_lib::{lookup_v2::parse_value_path, PathPrefix};
+        use path::{parse_value_path, PathPrefix};
 
         Self {
             query: expression::Query::new(

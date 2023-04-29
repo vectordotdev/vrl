@@ -1,5 +1,5 @@
 use super::Kind;
-use lookup::OwnedValuePath;
+use path::OwnedValuePath;
 
 impl Kind {
     /// Returns `true` if all type states are valid.

@@ -1,8 +1,8 @@
 use std::{convert::TryFrom, fmt};
 
 use diagnostic::{DiagnosticMessage, Label, Note};
-use lookup::lookup_v2::{OwnedSegment, OwnedTargetPath};
-use lookup::{OwnedValuePath, PathPrefix};
+use path::{OwnedSegment, OwnedTargetPath};
+use path::{OwnedValuePath, PathPrefix};
 use value::{Kind, Value};
 
 use crate::{

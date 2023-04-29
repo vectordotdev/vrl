@@ -1,8 +1,8 @@
 use std::{collections::BTreeMap, fs, path::Path};
 
 use ::value::Value;
-use lookup::lookup_v2::parse_value_path;
-use lookup::OwnedTargetPath;
+use path::parse_value_path;
+use path::OwnedTargetPath;
 use vrl_compiler::function::Example;
 
 #[derive(Debug)]
