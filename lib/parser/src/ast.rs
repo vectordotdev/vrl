@@ -10,8 +10,8 @@ use std::{
 #[cfg(feature = "fuzz")]
 use arbitrary::Arbitrary;
 use diagnostic::Span;
-use lookup::lookup_v2::{OwnedTargetPath, OwnedValuePath, PathPrefix};
 use ordered_float::NotNan;
+use path::{OwnedTargetPath, OwnedValuePath, PathPrefix};
 
 use crate::{template_string::TemplateString, Error};
 

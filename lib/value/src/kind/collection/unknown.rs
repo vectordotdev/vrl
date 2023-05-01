@@ -1,4 +1,4 @@
-use lookup::OwnedValuePath;
+use path::OwnedValuePath;
 use std::collections::BTreeMap;
 
 use super::Collection;

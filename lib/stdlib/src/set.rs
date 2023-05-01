@@ -1,5 +1,5 @@
 use crate::prelude::*;
-use lookup_lib::{lookup_v2::OwnedSegment, OwnedValuePath};
+use path::{OwnedSegment, OwnedValuePath};
 
 fn set(path: Value, mut value: Value, data: Value) -> Resolved {
     let path = match path {

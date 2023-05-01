@@ -15,7 +15,7 @@ members = [
   "lib/datadog/grok",
   "lib/datadog/search-syntax",
   "lib/diagnostic",
-  "lib/lookup",
+  "lib/path",
   "lib/parser",
   "lib/proptests",
   "lib/stdlib",
@@ -30,7 +30,7 @@ default = ["compiler", "value", "diagnostic", "path", "parser", "stdlib", "datad
 compiler = ["dep:vrl-compiler"]
 value = ["dep:value"]
 diagnostic = ["dep:vrl-diagnostic"]
-path = ["dep:lookup"]
+path = ["dep:path"]
 parser = ["dep:vrl-parser"]
 stdlib = ["dep:vrl-stdlib", "dep:vrl-core"]
 
@@ -42,33 +42,13 @@ datadog_search = ["dep:datadog-search-syntax"]
 cli = ["dep:vrl-cli"]
 test_framework = ["dep:vrl-tests"]
 
-
-# expressions = [
-#   "expr-abort",
-#   "expr-assignment",
-#   "expr-function_call",
-#   "expr-if_statement",
-#   "expr-literal",
-#   "expr-op",
-#   "expr-query",
-#   "expr-unary",
-# ]
-# expr-abort = ["compiler/expr-abort"]
-# expr-assignment = ["compiler/expr-assignment"]
-# expr-function_call = ["compiler/expr-function_call"]
-# expr-if_statement = ["compiler/expr-if_statement"]
-# expr-literal = ["compiler/expr-literal"]
-# expr-op = ["compiler/expr-op"]
-# expr-query = ["compiler/expr-query"]
-# expr-unary = ["compiler/expr-unary"]
-
 [dependencies]
 
 # Optional
 vrl-compiler = { path = "lib/compiler", optional = true }
 value = { path = "lib/value", optional = true }
 vrl-diagnostic = { path = "lib/diagnostic", optional = true }
-lookup = { path = "lib/lookup", optional = true }
+path = { path = "lib/path", optional = true }
 vrl-parser = { path = "lib/parser", optional = true }
 vrl-stdlib = { path = "lib/stdlib", optional = true }
 vrl-core = { path = "lib/core", optional = true }
@@ -78,21 +58,12 @@ datadog-filter = { path = "lib/datadog/filter", optional = true }
 datadog-grok = { path = "lib/datadog/grok", optional = true }
 datadog-search-syntax = { path = "lib/datadog/search-syntax", optional = true }
 
-# bytes = "1.4.0"
-# compiler = { package = "vrl-compiler", path = "lib/compiler" }
-# diagnostic = { package = "vrl-diagnostic", path = "lib/diagnostic" }
-# indoc = "2"
-# lookup = { path = "lib/lookup" }
-# ordered-float = "3"
-# parser = { package = "vrl-parser", path = "lib/parser" }
-# value = { path = "lib/value", default-features = false }
-# vrl-core = { path = "lib/core" }
-
 [dev-dependencies]
 criterion = "0.4"
 serde_json = "1"
 vrl-stdlib = { path = "lib/stdlib" }
 vrl-core = { path = "lib/core", features = ["test"]}
+indoc = "2.0.1"
 
 [[bench]]
 name = "runtime"

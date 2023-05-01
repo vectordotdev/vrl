@@ -1,6 +1,6 @@
 use crate::kind::collection::{CollectionKey, CollectionRemove};
 use crate::kind::Collection;
-use lookup::lookup_v2::OwnedSegment;
+use path::OwnedSegment;
 
 /// An `index` type that can be used in `Collection<Index>`
 #[derive(Debug, Clone, Default, Copy, Eq, PartialEq, PartialOrd, Ord, Hash)]

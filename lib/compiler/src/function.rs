@@ -1,8 +1,8 @@
 pub mod closure;
 
 use diagnostic::{DiagnosticMessage, Label, Note};
-use lookup::OwnedTargetPath;
 use parser::ast::Ident;
+use path::OwnedTargetPath;
 use std::{
     collections::{BTreeMap, HashMap},
     fmt,

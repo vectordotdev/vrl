@@ -1,3 +1,5 @@
+#![deny(warnings)]
+
 //! This module contains all of the logic for paths.
 //!
 //! Paths can be thought of as similar to file paths (in an operating system) pointing
@@ -106,7 +108,7 @@ pub enum PathParseError {
 #[macro_export]
 macro_rules! path {
     ($($segment:expr),*) => {{
-           &[$($crate::lookup_v2::BorrowedSegment::from($segment),)*]
+           &[$($crate::BorrowedSegment::from($segment),)*]
     }};
 }
 
@@ -115,7 +117,7 @@ macro_rules! path {
 #[macro_export]
 macro_rules! event_path {
     ($($segment:expr),*) => {{
-           ($crate::lookup_v2::PathPrefix::Event, &[$($crate::lookup_v2::BorrowedSegment::from($segment),)*])
+           ($crate::PathPrefix::Event, &[$($crate::lookup_v2::BorrowedSegment::from($segment),)*])
     }};
 }
 
@@ -124,7 +126,7 @@ macro_rules! event_path {
 #[macro_export]
 macro_rules! metadata_path {
     ($($segment:expr),*) => {{
-           ($crate::lookup_v2::PathPrefix::Metadata, &[$($crate::lookup_v2::BorrowedSegment::from($segment),)*])
+           ($crate::PathPrefix::Metadata, &[$($crate::lookup_v2::BorrowedSegment::from($segment),)*])
     }};
 }
 
@@ -137,7 +139,7 @@ macro_rules! metadata_path {
 #[macro_export]
 macro_rules! owned_value_path {
     ($($segment:expr),*) => {{
-           $crate::lookup_v2::OwnedValuePath::from(vec![$($crate::lookup_v2::OwnedSegment::from($segment),)*])
+           $crate::OwnedValuePath::from(vec![$($crate::OwnedSegment::from($segment),)*])
     }};
 }
 
@@ -313,7 +315,7 @@ pub enum PathPrefix {
 
 #[cfg(test)]
 mod test {
-    use crate::lookup_v2::parse_target_path;
+    use crate::parse_target_path;
     use crate::OwnedTargetPath;
 
     #[test]

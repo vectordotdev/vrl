@@ -17,7 +17,7 @@ pub use value;
 pub use vrl_diagnostic as diagnostic;
 
 #[cfg(feature = "path")]
-pub use lookup::lookup_v2 as path;
+pub use path;
 
 #[cfg(feature = "parser")]
 pub use vrl_parser as parser;

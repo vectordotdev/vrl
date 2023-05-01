@@ -22,7 +22,7 @@ pub fn parse_grok_pattern(input: &str) -> Result<GrokPattern, String> {
 
 #[cfg(test)]
 mod tests {
-    use lookup::owned_value_path;
+    use path::owned_value_path;
     use value::Value;
 
     use super::*;
