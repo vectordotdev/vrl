@@ -6,7 +6,7 @@
 //! to find areas of nodes that we haven't thought of.
 use arbitrary::{Arbitrary, Unstructured};
 use diagnostic::Span;
-use lookup::LookupBuf;
+use path::LookupBuf;
 
 use crate::{
     arbitrary_depth::ArbitraryDepth,

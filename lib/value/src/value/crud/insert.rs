@@ -2,7 +2,7 @@ use crate::value::crud::{
     get_matching_coalesce_key, skip_remaining_coalesce_segments, ValueCollection,
 };
 use crate::Value;
-use lookup::lookup_v2::BorrowedSegment;
+use path::BorrowedSegment;
 use std::borrow::Borrow;
 use std::collections::BTreeMap;
 

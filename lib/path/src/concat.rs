@@ -1,4 +1,4 @@
-use crate::lookup_v2::ValuePath;
+use crate::ValuePath;
 
 #[derive(Clone)]
 pub struct PathConcat<A, B> {

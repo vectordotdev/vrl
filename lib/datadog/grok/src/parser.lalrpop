@@ -1,7 +1,6 @@
 use crate::ast::*;
 use crate::lexer::*;
-use lookup::{owned_value_path, OwnedValuePath};
-use lookup::lookup_v2::OwnedSegment;
+use path::{owned_value_path, OwnedValuePath, OwnedSegment};
 use ordered_float::NotNan;
 use value::Value;
 grammar<'err, 'input>(input: &'input str);

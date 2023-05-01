@@ -1,4 +1,4 @@
-use lookup::PathPrefix;
+use path::PathPrefix;
 use std::collections::{hash_map::Entry, HashMap};
 use value::{Kind, Value};
 

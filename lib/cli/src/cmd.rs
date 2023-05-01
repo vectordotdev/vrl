@@ -10,7 +10,7 @@ use std::{
 use ::value::Value;
 use clap::Parser;
 use core::TimeZone;
-use lookup::{owned_value_path, OwnedTargetPath};
+use path::{owned_value_path, OwnedTargetPath};
 use value::Secrets;
 use vrl_compiler::runtime::Runtime;
 use vrl_compiler::state::RuntimeState;

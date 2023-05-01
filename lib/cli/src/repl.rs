@@ -6,8 +6,8 @@ use std::rc::Rc;
 use ::value::Value;
 use core::TimeZone;
 use indoc::indoc;
-use lookup::{owned_value_path, OwnedTargetPath};
 use once_cell::sync::Lazy;
+use path::{owned_value_path, OwnedTargetPath};
 use prettytable::{format, Cell, Row, Table};
 use regex::Regex;
 use rustyline::{

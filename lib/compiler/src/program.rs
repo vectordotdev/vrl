@@ -1,4 +1,4 @@
-use lookup::OwnedTargetPath;
+use path::OwnedTargetPath;
 
 use crate::state::TypeState;
 use crate::{
