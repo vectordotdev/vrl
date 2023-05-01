@@ -62,6 +62,8 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: Swatinem/rust-cache@v2
+      - name: Setup Cargo Hack
+        uses: bruxisma/setup-cargo-hack@v1.0.2
       - name: Check that all features can compile
         run: cargo hack check --feature-powerset --depth 1
 
@@ -72,8 +74,6 @@ jobs:
       - name: "Add wasm32-unknown-unknown target"
         run: rustup target add wasm32-unknown-unknown
       - uses: Swatinem/rust-cache@v2
-      - name: Setup Cargo Hack
-        uses: bruxisma/setup-cargo-hack@v1.0.2
       - name: "check"
         run: cargo check --target wasm32-unknown-unknown
         working-directory: lib/stdlib
