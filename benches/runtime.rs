@@ -1,10 +1,9 @@
 use std::time::Duration;
 
 use ::value::Value;
-use compiler::state;
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
 use indoc::indoc;
-use vrl::{CompilationResult, Runtime};
+use vrl_compiler::{compile, runtime::Runtime, state, CompilationResult};
 use vrl_core::TimeZone;
 
 struct Source {
@@ -101,7 +100,7 @@ fn benchmark_vrl_runtimes(c: &mut Criterion) {
             program,
             warnings: _,
             config: _,
-        } = vrl::compile(source.program, &functions).unwrap();
+        } = compile(source.program, &functions).unwrap();
 
         group.bench_with_input(BenchmarkId::new(source.name, "ast"), &(), |b, _| {
             let state = state::RuntimeState::default();

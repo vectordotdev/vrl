@@ -25,42 +25,45 @@ members = [
 
 
 [features]
-default = ["expressions"]
-expressions = [
-  "expr-abort",
-  "expr-assignment",
-  "expr-function_call",
-  "expr-if_statement",
-  "expr-literal",
-  "expr-op",
-  "expr-query",
-  "expr-unary",
-]
-expr-abort = ["compiler/expr-abort"]
-expr-assignment = ["compiler/expr-assignment"]
-expr-function_call = ["compiler/expr-function_call"]
-expr-if_statement = ["compiler/expr-if_statement"]
-expr-literal = ["compiler/expr-literal"]
-expr-op = ["compiler/expr-op"]
-expr-query = ["compiler/expr-query"]
-expr-unary = ["compiler/expr-unary"]
+default = ["compiler", "value", "diagnostic", "path", "parser", "stdlib", "datadog"]
+
+compiler = ["dep:vrl-compiler"]
+value = ["dep:value"]
+diagnostic = ["dep:vrl-diagnostic"]
+path = ["dep:path"]
+parser = ["dep:vrl-parser"]
+stdlib = ["dep:vrl-stdlib", "dep:vrl-core"]
+
+datadog = ["datadog_filter", "datadog_grok", "datadog_search"]
+datadog_filter = ["dep:datadog-filter"]
+datadog_grok = ["dep:datadog-grok"]
+datadog_search = ["dep:datadog-search-syntax"]
+
+cli = ["dep:vrl-cli"]
+test_framework = ["dep:vrl-tests"]
 
 [dependencies]
-bytes = "1.4.0"
-compiler = { package = "vrl-compiler", path = "lib/compiler", default-features = false }
-diagnostic = { package = "vrl-diagnostic", path = "lib/diagnostic" }
-indoc = "2"
-path = { path = "lib/path" }
-ordered-float = "3"
-parser = { package = "vrl-parser", path = "lib/parser" }
-value = { path = "lib/value", default-features = false }
-vrl-core = { path = "lib/core" }
+
+# Optional
+vrl-compiler = { path = "lib/compiler", optional = true }
+value = { path = "lib/value", optional = true }
+vrl-diagnostic = { path = "lib/diagnostic", optional = true }
+path = { path = "lib/path", optional = true }
+vrl-parser = { path = "lib/parser", optional = true }
+vrl-stdlib = { path = "lib/stdlib", optional = true }
+vrl-core = { path = "lib/core", optional = true }
+vrl-cli = { path = "lib/cli", optional = true }
+vrl-tests = { path = "lib/tests", optional = true }
+datadog-filter = { path = "lib/datadog/filter", optional = true }
+datadog-grok = { path = "lib/datadog/grok", optional = true }
+datadog-search-syntax = { path = "lib/datadog/search-syntax", optional = true }
 
 [dev-dependencies]
 criterion = "0.4"
 serde_json = "1"
 vrl-stdlib = { path = "lib/stdlib" }
 vrl-core = { path = "lib/core", features = ["test"]}
+indoc = "2.0.1"
 
 [[bench]]
 name = "runtime"
