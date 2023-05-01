@@ -72,8 +72,8 @@ jobs:
       - name: "Add wasm32-unknown-unknown target"
         run: rustup target add wasm32-unknown-unknown
       - uses: Swatinem/rust-cache@v2
-      - name: "Install cargo-hack"
-        run: cargo install cargo-hack
+      - name: Setup Cargo Hack
+        uses: bruxisma/setup-cargo-hack@v1.0.2
       - name: "check"
         run: cargo check --target wasm32-unknown-unknown
         working-directory: lib/stdlib
