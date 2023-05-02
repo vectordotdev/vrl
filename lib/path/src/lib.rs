@@ -117,7 +117,7 @@ macro_rules! path {
 #[macro_export]
 macro_rules! event_path {
     ($($segment:expr),*) => {{
-           ($crate::PathPrefix::Event, &[$($crate::lookup_v2::BorrowedSegment::from($segment),)*])
+           ($crate::PathPrefix::Event, &[$($crate::BorrowedSegment::from($segment),)*])
     }};
 }
 
@@ -126,7 +126,7 @@ macro_rules! event_path {
 #[macro_export]
 macro_rules! metadata_path {
     ($($segment:expr),*) => {{
-           ($crate::PathPrefix::Metadata, &[$($crate::lookup_v2::BorrowedSegment::from($segment),)*])
+           ($crate::PathPrefix::Metadata, &[$($crate::BorrowedSegment::from($segment),)*])
     }};
 }
 
@@ -317,6 +317,9 @@ pub enum PathPrefix {
 mod test {
     use crate::parse_target_path;
     use crate::OwnedTargetPath;
+    use crate::PathPrefix;
+    use crate::TargetPath;
+    use crate::ValuePath;
 
     #[test]
     fn test_parse_target_path() {
@@ -324,5 +327,31 @@ mod test {
             parse_target_path("i"),
             Ok(OwnedTargetPath::event(owned_value_path!("i")))
         );
+    }
+
+    #[test]
+    fn test_path_macro() {
+        assert!(ValuePath::eq(&path!("a", "b"), "a.b"))
+    }
+
+    #[test]
+    fn test_event_path_macro() {
+        let path = event_path!("a", "b");
+        let expected = "a.b";
+        assert!(ValuePath::eq(&path.value_path(), expected));
+        assert_eq!(path.prefix(), PathPrefix::Event);
+    }
+
+    #[test]
+    fn test_metadata_path_macro() {
+        let path = metadata_path!("a", "b");
+        let expected = "a.b";
+        assert!(ValuePath::eq(&path.value_path(), expected));
+        assert_eq!(path.prefix(), PathPrefix::Metadata);
+    }
+
+    #[test]
+    fn test_owned_value_path_macro() {
+        assert!(ValuePath::eq(&&owned_value_path!("a", "b"), "a.b"))
     }
 }
