@@ -11,7 +11,7 @@ fn format_number(
         Value::Integer(v) => v.into(),
         Value::Float(v) => Decimal::from_f64(*v).expect("not NaN"),
         value => {
-            return Err(value::Error::Expected {
+            return Err(ValueError::Expected {
                 got: value.kind(),
                 expected: Kind::integer() | Kind::float(),
             }

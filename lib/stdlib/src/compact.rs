@@ -46,7 +46,7 @@ fn compact(
     match value {
         Value::Object(object) => Ok(Value::from(compact_object(object, &options))),
         Value::Array(arr) => Ok(Value::from(compact_array(arr, &options))),
-        value => Err(value::Error::Expected {
+        value => Err(ValueError::Expected {
             got: value.kind(),
             expected: Kind::array(Collection::any()) | Kind::object(Collection::any()),
         }

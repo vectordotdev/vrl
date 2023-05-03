@@ -14,7 +14,7 @@ fn floor(precision: Option<Value>, value: Value) -> Resolved {
             f64::floor,
         ))),
         value @ Value::Integer(_) => Ok(value),
-        value => Err(value::Error::Expected {
+        value => Err(ValueError::Expected {
             got: value.kind(),
             expected: Kind::float() | Kind::integer(),
         }

@@ -35,7 +35,7 @@ fn unnest_root(root: &Value, path: &OwnedValuePath) -> Resolved {
     let mut trimmed = root.clone();
     let values = trimmed
         .remove(path, true)
-        .ok_or(value::Error::Expected {
+        .ok_or(ValueError::Expected {
             got: Kind::null(),
             expected: Kind::array(Collection::any()),
         })?
@@ -187,7 +187,6 @@ mod tests {
     use super::*;
     use ::value::btreemap;
     use path::parse_value_path;
-    use vrl_core::TimeZone;
 
     #[test]
     fn type_def() {

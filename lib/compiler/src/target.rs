@@ -281,7 +281,7 @@ mod tests {
     use path::owned_value_path;
 
     use super::*;
-    use crate::value;
+    use value::value;
 
     #[test]
     fn target_get() {

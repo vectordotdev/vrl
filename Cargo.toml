@@ -25,14 +25,15 @@ members = [
 
 
 [features]
-default = ["compiler", "value", "diagnostic", "path", "parser", "stdlib", "datadog"]
+default = ["compiler", "value", "diagnostic", "path", "parser", "stdlib", "datadog", "core"]
 
 compiler = ["dep:vrl-compiler"]
 value = ["dep:value"]
 diagnostic = ["dep:vrl-diagnostic"]
 path = ["dep:path"]
 parser = ["dep:vrl-parser"]
-stdlib = ["dep:vrl-stdlib", "dep:vrl-core"]
+stdlib = ["dep:vrl-stdlib"]
+core = ["dep:vrl-core"]
 
 datadog = ["datadog_filter", "datadog_grok", "datadog_search"]
 datadog_filter = ["dep:datadog-filter"]
@@ -62,7 +63,7 @@ datadog-search-syntax = { path = "lib/datadog/search-syntax", optional = true }
 criterion = "0.4"
 serde_json = "1"
 vrl-stdlib = { path = "lib/stdlib" }
-vrl-core = { path = "lib/core", features = ["test"]}
+vrl-core = { path = "lib/core"}
 indoc = "2.0.1"
 
 [[bench]]

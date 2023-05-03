@@ -3,8 +3,7 @@ use std::time::Duration;
 use ::value::Value;
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
 use indoc::indoc;
-use vrl_compiler::{compile, runtime::Runtime, state, CompilationResult};
-use vrl_core::TimeZone;
+use vrl_compiler::{compile, runtime::Runtime, state, CompilationResult, TimeZone};
 
 struct Source {
     name: &'static str,

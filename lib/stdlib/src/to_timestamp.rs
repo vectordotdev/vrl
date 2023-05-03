@@ -1,7 +1,7 @@
 use crate::prelude::*;
 use chrono::{TimeZone as _, Utc};
 use std::str::FromStr;
-use vrl_core::{conversion::Conversion, TimeZone};
+use vrl_compiler::{conversion::Conversion, TimeZone};
 
 fn to_timestamp(value: Value, unit: Unit) -> Resolved {
     use Value::{Bytes, Float, Integer, Timestamp};
@@ -270,7 +270,6 @@ mod tests {
     use super::*;
     use std::collections::BTreeMap;
     use vrl_compiler::expression::Literal;
-    use vrl_core::TimeZone;
 
     #[test]
     fn out_of_range_integer() {

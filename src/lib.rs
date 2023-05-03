@@ -22,8 +22,9 @@ pub use path;
 #[cfg(feature = "parser")]
 pub use vrl_parser as parser;
 
-#[cfg(feature = "stdlib")]
+#[cfg(feature = "core")]
 pub use vrl_core as core;
+
 #[cfg(feature = "stdlib")]
 pub use vrl_stdlib as stdlib;
 

@@ -19,7 +19,7 @@ fn split(value: Value, limit: Value, pattern: Value) -> Resolved {
                 .collect::<Vec<_>>()
                 .into())
         }
-        value => Err(value::Error::Expected {
+        value => Err(ValueError::Expected {
             got: value.kind(),
             expected: Kind::regex() | Kind::bytes(),
         }

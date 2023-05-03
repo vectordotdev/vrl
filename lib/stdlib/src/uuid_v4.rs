@@ -48,12 +48,9 @@ impl FunctionExpression for UuidV4Fn {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::BTreeMap;
-
-    use ::value::Value;
-    use vrl_core::TimeZone;
-
     use super::*;
+    use ::value::Value;
+    use std::collections::BTreeMap;
 
     test_type_def![default {
         expr: |_| { UuidV4Fn },

@@ -11,7 +11,7 @@ fn round(precision: Value, value: Value) -> Resolved {
             f64::round,
         ))),
         value @ Value::Integer(_) => Ok(value),
-        value => Err(value::Error::Expected {
+        value => Err(ValueError::Expected {
             got: value.kind(),
             expected: Kind::float() | Kind::integer(),
         }

@@ -4,7 +4,7 @@
 #[macro_export]
 macro_rules! expr {
     ($($v:tt)*) => {{
-        let value = $crate::value!($($v)*);
+        let value = ::value::value!($($v)*);
         $crate::value::VrlValueConvert::into_expression(value)
     }};
 }
@@ -54,7 +54,7 @@ macro_rules! bench_function {
                     let expression = expression.unwrap();
                     let mut runtime_state = $crate::state::RuntimeState::default();
                     let mut target: ::value::Value = ::std::collections::BTreeMap::default().into();
-                    let tz = vrl_core::TimeZone::Named(chrono_tz::Tz::UTC);
+                    let tz = ::vrl_compiler::TimeZone::Named(chrono_tz::Tz::UTC);
                     let mut ctx = $crate::Context::new(&mut target, &mut runtime_state, &tz);
 
                     b.iter(|| {
@@ -72,7 +72,7 @@ macro_rules! bench_function {
 macro_rules! test_function {
 
     ($name:tt => $func:path; $($case:ident { args: $args:expr, want: $(Ok($ok:expr))? $(Err($err:expr))?, tdef: $tdef:expr,  $(,)* })+) => {
-        test_function!($name => $func; before_each => {} $($case { args: $args, want: $(Ok($ok))? $(Err($err))?, tdef: $tdef, tz: vrl_core::TimeZone::Named(chrono_tz::Tz::UTC), })+);
+        test_function!($name => $func; before_each => {} $($case { args: $args, want: $(Ok($ok))? $(Err($err))?, tdef: $tdef, tz: vrl_compiler::TimeZone::Named(chrono_tz::Tz::UTC), })+);
     };
 
     ($name:tt => $func:path; $($case:ident { args: $args:expr, want: $(Ok($ok:expr))? $(Err($err:expr))?, tdef: $tdef:expr, tz: $tz:expr,  $(,)* })+) => {
@@ -80,7 +80,7 @@ macro_rules! test_function {
     };
 
     ($name:tt => $func:path; before_each => $before:block $($case:ident { args: $args:expr, want: $(Ok($ok:expr))? $(Err($err:expr))?, tdef: $tdef:expr,  $(,)* })+) => {
-        test_function!($name => $func; before_each => $before $($case { args: $args, want: $(Ok($ok))? $(Err($err))?, tdef: $tdef, tz: vrl_core::TimeZone::Named(chrono_tz::Tz::UTC), })+);
+        test_function!($name => $func; before_each => $before $($case { args: $args, want: $(Ok($ok))? $(Err($err))?, tdef: $tdef, tz: vrl_compiler::TimeZone::Named(chrono_tz::Tz::UTC), })+);
     };
 
     ($name:tt => $func:path; before_each => $before:block $($case:ident { args: $args:expr, want: $(Ok($ok:expr))? $(Err($err:expr))?, tdef: $tdef:expr, tz: $tz:expr,  $(,)* })+) => {
@@ -149,26 +149,26 @@ macro_rules! type_def {
     };
 
     (object {$(unknown => $unknown:expr,)? $($key:literal => $value:expr,)+ }) => {{
-        let mut v = value::kind::Collection::from(::std::collections::BTreeMap::from([$(($key.into(), $value.into()),)+]));
-        $(v.set_unknown(value::Kind::from($unknown)))?;
+        let mut v = ::value::kind::Collection::from(::std::collections::BTreeMap::from([$(($key.into(), $value.into()),)+]));
+        $(v.set_unknown(::value::Kind::from($unknown)))?;
 
         TypeDef::object(v)
     }};
 
     (array [ $($value:expr,)+ ]) => {{
-        $(let v = value::kind::Collection::from_unknown(value::Kind::from($value));)+
+        $(let v = ::value::kind::Collection::from_unknown(::value::Kind::from($value));)+
 
         TypeDef::array(v)
     }};
 
     (array { $(unknown => $unknown:expr,)? $($idx:literal => $value:expr,)+ }) => {{
-        let mut v = value::kind::Collection::from(::std::collections::BTreeMap::from([$(($idx.into(), $value.into()),)+]));
-        $(v.set_unknown(value::Kind::from($unknown)))?;
+        let mut v = ::value::kind::Collection::from(::std::collections::BTreeMap::from([$(($idx.into(), $value.into()),)+]));
+        $(v.set_unknown(::value::Kind::from($unknown)))?;
 
         TypeDef::array(v)
     }};
 
     (array) => {
-        TypeDef::array(value::kind::Collection::any())
+        TypeDef::array(::value::kind::Collection::any())
     };
 }

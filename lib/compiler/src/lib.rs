@@ -31,10 +31,14 @@
 mod compile_config;
 mod compiler;
 mod context;
+mod datetime;
 mod deprecation_warning;
+mod expression_error;
 mod program;
+mod target;
 mod test_util;
 
+pub mod conversion;
 pub mod expression;
 pub mod function;
 pub mod runtime;
@@ -44,27 +48,27 @@ pub mod value;
 
 pub use self::compile_config::CompileConfig;
 pub use self::deprecation_warning::DeprecationWarning;
-use ::parser::parse;
 pub use compiler::{CompilationResult, Compiler};
-pub use core::{
-    value, ExpressionError, Resolved, SecretTarget, Target, TargetValue, TargetValueRef,
-};
-
-use serde::{Deserialize, Serialize};
-use std::fmt::Debug;
-use std::{fmt::Display, str::FromStr};
-
 pub use context::Context;
-use diagnostic::DiagnosticList;
-pub(crate) use diagnostic::Span;
+pub use datetime::TimeZone;
 pub use expression::{Expression, FunctionExpression};
+pub use expression_error::{ExpressionError, Resolved};
 pub use function::{Function, Parameter};
 pub use paste::paste;
 pub use program::{Program, ProgramInfo};
 pub use state::{TypeInfo, TypeState};
+pub use target::{SecretTarget, Target, TargetValue, TargetValueRef};
 pub use type_def::TypeDef;
 
 pub type Result<T = CompilationResult> = std::result::Result<T, DiagnosticList>;
+
+pub(crate) use diagnostic::Span;
+
+use ::parser::parse;
+use diagnostic::DiagnosticList;
+use serde::{Deserialize, Serialize};
+use std::fmt::Debug;
+use std::{fmt::Display, str::FromStr};
 
 /// Compile a given source into the final [`Program`].
 pub fn compile(source: &str, fns: &[Box<dyn Function>]) -> Result {

@@ -27,7 +27,7 @@ fn set(path: Value, mut value: Value, data: Value) -> Resolved {
             insert
         }
         value => {
-            return Err(value::Error::Expected {
+            return Err(ValueError::Expected {
                 got: value.kind(),
                 expected: Kind::array(Collection::any()) | Kind::bytes(),
             }

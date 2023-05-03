@@ -30,7 +30,7 @@ fn replace(value: Value, with_value: Value, count: Value, pattern: Value) -> Res
 
             Ok(replaced)
         }
-        value => Err(value::Error::Expected {
+        value => Err(ValueError::Expected {
             got: value.kind(),
             expected: Kind::regex() | Kind::bytes(),
         }
