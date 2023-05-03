@@ -62,7 +62,7 @@ datadog-search-syntax = { path = "lib/datadog/search-syntax", optional = true }
 criterion = "0.4"
 serde_json = "1"
 vrl-stdlib = { path = "lib/stdlib" }
-vrl-core = { path = "lib/core", features = ["test"]}
+vrl-core = { path = "lib/core"}
 indoc = "2.0.1"
 
 [[bench]]
