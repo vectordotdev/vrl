@@ -1,4 +1,4 @@
-use crate::prelude::*;
+use vrl_compiler::prelude::*;
 
 fn replace(value: Value, with_value: Value, count: Value, pattern: Value) -> Resolved {
     let value = value.try_bytes_utf8_lossy()?;

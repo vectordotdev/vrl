@@ -1,9 +1,9 @@
-use crate::prelude::*;
 use serde_json::{
     value::{RawValue, Value as JsonValue},
     Error, Map,
 };
 use std::collections::HashMap;
+use vrl_compiler::prelude::*;
 
 fn parse_json(value: Value) -> Resolved {
     let bytes = value.try_bytes()?;

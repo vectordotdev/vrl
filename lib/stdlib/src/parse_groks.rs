@@ -1,10 +1,10 @@
-use crate::prelude::*;
+use vrl_compiler::prelude::*;
 
 #[cfg(not(target_arch = "wasm32"))]
 mod non_wasm {
-    use crate::prelude::*;
     use datadog_grok::{parse_grok, parse_grok_rules::GrokRule};
     use std::fmt;
+    use vrl_compiler::prelude::*;
     use vrl_diagnostic::{Label, Span};
 
     #[derive(Debug)]

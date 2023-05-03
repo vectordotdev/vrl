@@ -1,4 +1,3 @@
-use crate::prelude::*;
 use aes::cipher::{
     block_padding::{AnsiX923, Iso10126, Iso7816, Pkcs7},
     generic_array::GenericArray,
@@ -7,6 +6,7 @@ use aes::cipher::{
 use cfb_mode::Encryptor as Cfb;
 use ctr::Ctr64LE;
 use ofb::Ofb;
+use vrl_compiler::prelude::*;
 
 type Aes128Cbc = cbc::Encryptor<aes::Aes128>;
 type Aes192Cbc = cbc::Encryptor<aes::Aes192>;

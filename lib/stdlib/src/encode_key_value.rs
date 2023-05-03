@@ -1,4 +1,4 @@
-use crate::prelude::*;
+use vrl_compiler::prelude::*;
 use vrl_core::encode_key_value;
 
 /// Also used by `encode_logfmt`.

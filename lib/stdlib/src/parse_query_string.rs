@@ -1,6 +1,6 @@
-use crate::prelude::*;
 use std::collections::BTreeMap;
 use url::form_urlencoded;
+use vrl_compiler::prelude::*;
 
 fn parse_query_string(bytes: Value) -> Resolved {
     let bytes = bytes.try_bytes()?;

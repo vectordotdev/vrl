@@ -1,4 +1,4 @@
-use crate::prelude::*;
+use vrl_compiler::prelude::*;
 
 fn int(value: Value) -> Resolved {
     match value {

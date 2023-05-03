@@ -1,5 +1,5 @@
-use crate::prelude::*;
 use crate::util::round_to_precision;
+use vrl_compiler::prelude::*;
 
 fn ceil(value: Value, precision: Option<Value>) -> Resolved {
     let precision = match precision {

@@ -1,4 +1,4 @@
-use crate::prelude::*;
+use vrl_compiler::prelude::*;
 
 fn split(value: Value, limit: Value, pattern: Value) -> Resolved {
     let string = value.try_bytes_utf8_lossy()?;

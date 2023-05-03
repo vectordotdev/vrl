@@ -1,4 +1,4 @@
-use crate::prelude::*;
+use vrl_compiler::prelude::*;
 
 fn includes(list: Value, item: Value) -> Resolved {
     let list = list.try_array()?;

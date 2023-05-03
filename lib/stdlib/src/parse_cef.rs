@@ -1,4 +1,3 @@
-use crate::prelude::*;
 use nom::{
     self,
     branch::alt,
@@ -11,6 +10,7 @@ use nom::{
     IResult,
 };
 use std::collections::{BTreeMap, HashMap};
+use vrl_compiler::prelude::*;
 
 fn build_map() -> HashMap<&'static str, (usize, CustomField)> {
     [

@@ -1,5 +1,5 @@
-use crate::prelude::*;
 use path::{OwnedSegment, OwnedValuePath};
+use vrl_compiler::prelude::*;
 
 fn remove(path: Value, compact: Value, mut value: Value) -> Resolved {
     let path = match path {

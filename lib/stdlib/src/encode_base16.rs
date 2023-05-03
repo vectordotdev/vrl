@@ -1,4 +1,4 @@
-use crate::prelude::*;
+use vrl_compiler::prelude::*;
 
 fn encode_base16(value: Value) -> Resolved {
     let value = value.try_bytes()?;

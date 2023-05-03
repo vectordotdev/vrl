@@ -1,7 +1,7 @@
-use crate::prelude::*;
 use chrono::{serde::ts_milliseconds, DateTime, Utc};
 use serde::Deserialize;
 use std::collections::BTreeMap;
+use vrl_compiler::prelude::*;
 
 #[derive(Debug, Deserialize, Clone, Copy)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE", deny_unknown_fields)]

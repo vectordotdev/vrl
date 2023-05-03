@@ -1,5 +1,5 @@
-use crate::prelude::*;
 use path::{OwnedSegment, OwnedValuePath};
+use vrl_compiler::prelude::*;
 
 fn get(value: Value, value_path: Value) -> Resolved {
     let path = match value_path {

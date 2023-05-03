@@ -1,5 +1,5 @@
-use crate::prelude::*;
 use std::borrow::Cow;
+use vrl_compiler::prelude::*;
 
 fn join(array: Value, separator: Option<Value>) -> Resolved {
     let array = array.try_array()?;

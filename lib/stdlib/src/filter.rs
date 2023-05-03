@@ -1,5 +1,5 @@
-use crate::prelude::*;
 use std::collections::BTreeMap;
+use vrl_compiler::prelude::*;
 
 fn filter<T>(value: Value, ctx: &mut Context, runner: closure::Runner<T>) -> Resolved
 where

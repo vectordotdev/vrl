@@ -1,4 +1,4 @@
-use crate::prelude::*;
+use vrl_compiler::prelude::*;
 
 fn to_syslog_facility(value: Value) -> Resolved {
     let value = value.try_integer()?;

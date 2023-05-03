@@ -1,5 +1,5 @@
-use crate::prelude::*;
 use percent_encoding::percent_decode;
+use vrl_compiler::prelude::*;
 
 fn decode_percent(value: Value) -> Resolved {
     let value = value.try_bytes()?;

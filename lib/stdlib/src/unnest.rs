@@ -1,5 +1,5 @@
-use crate::prelude::*;
 use path::{OwnedTargetPath, OwnedValuePath};
+use vrl_compiler::prelude::*;
 
 fn unnest(path: &expression::Query, ctx: &mut Context) -> Resolved {
     let lookup_buf = path.path();

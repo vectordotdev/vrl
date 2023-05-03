@@ -1,5 +1,5 @@
-use crate::prelude::*;
 use vrl_compiler::conversion::Conversion;
+use vrl_compiler::prelude::*;
 
 fn parse_timestamp(value: Value, format: Value, ctx: &Context) -> Resolved {
     match value {

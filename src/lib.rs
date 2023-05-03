@@ -9,6 +9,8 @@
 
 #[cfg(feature = "compiler")]
 pub use vrl_compiler as compiler;
+#[cfg(feature = "compiler")]
+pub use vrl_compiler::prelude;
 
 #[cfg(feature = "value")]
 pub use value;

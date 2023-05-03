@@ -1,4 +1,4 @@
-use crate::prelude::*;
+use vrl_compiler::prelude::*;
 
 fn keys(value: Value) -> Resolved {
     let object = value.try_object()?;

@@ -1,6 +1,6 @@
-use crate::prelude::*;
 use flate2::read::MultiGzDecoder;
 use std::io::Read;
+use vrl_compiler::prelude::*;
 
 fn decode_gzip(value: Value) -> Resolved {
     let value = value.try_bytes()?;

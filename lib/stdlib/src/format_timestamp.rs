@@ -1,8 +1,8 @@
-use crate::prelude::*;
 use chrono::{
     format::{strftime::StrftimeItems, Item},
     DateTime, Utc,
 };
+use vrl_compiler::prelude::*;
 
 fn format_timestamp(bytes: Value, ts: Value) -> Resolved {
     let bytes = bytes.try_bytes()?;

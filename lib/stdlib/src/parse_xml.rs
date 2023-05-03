@@ -1,4 +1,3 @@
-use crate::prelude::*;
 use once_cell::sync::Lazy;
 use regex::{Regex, RegexBuilder};
 use roxmltree::{Document, Node, NodeType};
@@ -7,6 +6,7 @@ use std::{
     borrow::Cow,
     collections::{btree_map::Entry, BTreeMap},
 };
+use vrl_compiler::prelude::*;
 /// Used to keep Clippy's `too_many_argument` check happy.
 #[derive(Debug)]
 struct ParseOptions {

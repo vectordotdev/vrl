@@ -1,4 +1,4 @@
-use crate::prelude::*;
+use vrl_compiler::prelude::*;
 
 fn encode_json(value: Value) -> Resolved {
     // With `vrl::Value` it should not be possible to get `Err`.

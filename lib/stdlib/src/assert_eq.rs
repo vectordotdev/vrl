@@ -1,4 +1,4 @@
-use crate::prelude::*;
+use vrl_compiler::prelude::*;
 
 fn assert_eq(left: Value, right: Value, message: Option<Value>) -> Resolved {
     if left == right {

@@ -1,5 +1,5 @@
-use crate::prelude::*;
 use std::str::FromStr;
+use vrl_compiler::prelude::*;
 
 fn to_unix_timestamp(value: Value, unit: Unit) -> Resolved {
     let ts = value.try_timestamp()?;

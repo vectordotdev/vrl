@@ -1,6 +1,6 @@
-use crate::prelude::*;
 use crate::util;
 use std::collections::BTreeMap;
+use vrl_compiler::prelude::*;
 
 fn compact(
     recursive: Option<Value>,

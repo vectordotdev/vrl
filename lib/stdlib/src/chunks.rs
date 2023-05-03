@@ -1,4 +1,4 @@
-use crate::prelude::*;
+use vrl_compiler::prelude::*;
 
 fn chunks(value: Value, chunk_size: Value) -> Resolved {
     let bytes = value.try_bytes()?;

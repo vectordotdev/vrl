@@ -1,6 +1,6 @@
-use crate::prelude::*;
 use base64::Engine as _;
 use std::str::FromStr;
+use vrl_compiler::prelude::*;
 
 use crate::util::Base64Charset;
 

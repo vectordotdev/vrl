@@ -1,4 +1,4 @@
-use crate::prelude::*;
+use vrl_compiler::prelude::*;
 
 fn find(value: Value, pattern: Value, from: Option<Value>) -> Resolved {
     let from = match from {

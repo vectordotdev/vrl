@@ -1,5 +1,5 @@
-use crate::prelude::*;
 use std::net::Ipv4Addr;
+use vrl_compiler::prelude::*;
 
 fn ip_aton(value: Value) -> Resolved {
     let ip: Ipv4Addr = value

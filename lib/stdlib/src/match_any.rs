@@ -1,5 +1,5 @@
-use crate::prelude::*;
 use regex::bytes::RegexSet;
+use vrl_compiler::prelude::*;
 
 fn match_any(value: Value, pattern: &RegexSet) -> Resolved {
     let bytes = value.try_bytes()?;

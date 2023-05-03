@@ -1,7 +1,7 @@
-use crate::prelude::*;
 use hmac::{Hmac as HmacHasher, Mac};
 use sha1::Sha1;
 use sha_2::{Sha224, Sha256, Sha384, Sha512};
+use vrl_compiler::prelude::*;
 
 macro_rules! hmac {
     ($algorithm:ty, $key:expr, $val:expr) => {{

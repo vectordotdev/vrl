@@ -1,4 +1,4 @@
-use crate::prelude::*;
+use vrl_compiler::prelude::*;
 
 fn timestamp(value: Value) -> Resolved {
     match value {

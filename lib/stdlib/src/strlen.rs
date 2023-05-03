@@ -1,4 +1,4 @@
-use crate::prelude::*;
+use vrl_compiler::prelude::*;
 
 fn strlen(value: Value) -> Resolved {
     let v = value.try_bytes()?;

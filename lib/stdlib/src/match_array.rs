@@ -1,4 +1,4 @@
-use crate::prelude::*;
+use vrl_compiler::prelude::*;
 
 fn match_array(list: Value, pattern: Value, all: Option<Value>) -> Resolved {
     let pattern = pattern.try_regex()?;

@@ -1,6 +1,6 @@
-use crate::prelude::*;
 use regex::Regex;
 use std::collections::BTreeMap;
+use vrl_compiler::prelude::*;
 
 use crate::log_util;
 
