@@ -26,7 +26,7 @@ fn get(value: Value, value_path: Value) -> Resolved {
             path
         }
         value => {
-            return Err(value::Error::Expected {
+            return Err(ValueError::Expected {
                 got: value.kind(),
                 expected: Kind::array(Collection::any()),
             }

@@ -13,7 +13,7 @@ fn ceil(value: Value, precision: Option<Value>) -> Resolved {
             f64::ceil,
         ))),
         value @ Value::Integer(_) => Ok(value),
-        value => Err(value::Error::Expected {
+        value => Err(ValueError::Expected {
             got: value.kind(),
             expected: Kind::float() | Kind::integer(),
         }

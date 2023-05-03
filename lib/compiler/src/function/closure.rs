@@ -1,4 +1,4 @@
-use core::ExpressionError;
+use crate::ExpressionError;
 use std::collections::BTreeMap;
 
 use parser::ast::Ident;

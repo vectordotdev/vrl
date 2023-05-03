@@ -333,7 +333,7 @@ mod tests {
                 fields_ordering: value!(["lvl", 2])
             ],
             want: Err(format!(r"invalid field value type at index 1: {}",
-                    value::Error::Expected {
+                    ValueError::Expected {
                         got: Kind::integer(),
                         expected: Kind::bytes()
                     })),

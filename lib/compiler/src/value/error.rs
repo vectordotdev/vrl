@@ -4,7 +4,7 @@ use super::Kind;
 use crate::ExpressionError;
 
 #[derive(thiserror::Error, Debug, PartialEq, Eq)]
-pub enum Error {
+pub enum ValueError {
     #[error(
         r#"expected {}, got {got}"#,
         .expected
@@ -57,9 +57,9 @@ pub enum Error {
     Merge(Kind, Kind),
 }
 
-impl DiagnosticMessage for Error {
+impl DiagnosticMessage for ValueError {
     fn code(&self) -> usize {
-        use Error::{
+        use ValueError::{
             Add, And, Coerce, Div, DivideByZero, Expected, Ge, Gt, Le, Lt, Merge, Mul, NanFloat,
             Or, Rem, Sub,
         };
@@ -85,8 +85,8 @@ impl DiagnosticMessage for Error {
     }
 }
 
-impl From<Error> for ExpressionError {
-    fn from(err: Error) -> Self {
+impl From<ValueError> for ExpressionError {
+    fn from(err: ValueError) -> Self {
         Self::Error {
             message: err.message(),
             labels: vec![],

@@ -10,9 +10,9 @@ use vrl_compiler::{
     runtime::{Runtime, Terminate},
     state::{ExternalEnv, RuntimeState},
     value::VrlValueConvert,
-    CompilationResult, CompileConfig, Function, Program, SecretTarget, TargetValueRef, VrlRuntime,
+    CompilationResult, CompileConfig, Function, Program, SecretTarget, TargetValueRef, TimeZone,
+    VrlRuntime,
 };
-use vrl_core::TimeZone;
 use vrl_diagnostic::Formatter;
 
 use std::{collections::BTreeMap, str::FromStr, time::Instant};

@@ -1,7 +1,7 @@
-use core::Value;
 use diagnostic::{DiagnosticList, DiagnosticMessage, Severity, Span};
 use parser::ast::{self, Node, QueryTarget};
 use path::{OwnedTargetPath, OwnedValuePath, PathPrefix};
+use value::Value;
 
 use crate::state::TypeState;
 use crate::{

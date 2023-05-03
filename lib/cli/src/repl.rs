@@ -1,10 +1,9 @@
-use core::TargetValue;
 use std::borrow::Cow::{self, Borrowed, Owned};
 use std::collections::BTreeMap;
 use std::rc::Rc;
+use vrl_compiler::TargetValue;
 
 use ::value::Value;
-use core::TimeZone;
 use indoc::indoc;
 use once_cell::sync::Lazy;
 use path::{owned_value_path, OwnedTargetPath};
@@ -22,6 +21,7 @@ use rustyline::{
 use value::Secrets;
 use vrl_compiler::runtime::Runtime;
 use vrl_compiler::state::{RuntimeState, TypeState};
+use vrl_compiler::TimeZone;
 use vrl_compiler::{compile_with_state, CompileConfig, Function, Program, Target, VrlRuntime};
 use vrl_diagnostic::Formatter;
 

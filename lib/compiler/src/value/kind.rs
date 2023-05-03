@@ -3,7 +3,7 @@ use chrono::{TimeZone, Utc};
 use ordered_float::NotNan;
 use regex::Regex;
 
-use crate::value;
+use value::value;
 
 pub const BYTES: u16 = 1 << 1;
 pub const INTEGER: u16 = 1 << 2;

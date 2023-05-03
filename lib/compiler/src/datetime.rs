@@ -2,7 +2,6 @@ use std::fmt::Debug;
 
 use chrono::{DateTime, Local, ParseError, TimeZone as _, Utc};
 use chrono_tz::Tz;
-use derivative::Derivative;
 
 /// Timezone reference.
 ///
@@ -15,11 +14,10 @@ use derivative::Derivative;
     derive(::serde::Deserialize, ::serde::Serialize),
     serde(try_from = "String", into = "String")
 )]
-#[derive(Clone, Copy, Debug, Derivative, Eq, PartialEq)]
-#[derivative(Default)]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub enum TimeZone {
     /// System local timezone.
-    #[derivative(Default)]
+    #[default]
     Local,
 
     /// A named timezone.

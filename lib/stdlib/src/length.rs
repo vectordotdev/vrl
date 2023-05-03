@@ -5,7 +5,7 @@ fn length(value: Value) -> Resolved {
         Value::Array(v) => Ok(v.len().into()),
         Value::Object(v) => Ok(v.len().into()),
         Value::Bytes(v) => Ok(v.len().into()),
-        value => Err(value::Error::Expected {
+        value => Err(ValueError::Expected {
             got: value.kind(),
             expected: Kind::array(Collection::any())
                 | Kind::object(Collection::any())

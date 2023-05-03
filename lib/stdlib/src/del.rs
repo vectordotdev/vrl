@@ -206,10 +206,8 @@ impl fmt::Display for DelFn {
 
 #[cfg(test)]
 mod tests {
-    use ::value::btreemap;
-    use vrl_core::TimeZone;
-
     use super::*;
+    use ::value::btreemap;
 
     #[test]
     fn del() {

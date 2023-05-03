@@ -6,7 +6,7 @@ use value::{kind::Collection, Value, ValueRegex};
 
 use crate::{
     expression::{Container, Expr, Variant},
-    value::{Error, Kind},
+    value::{Kind, ValueError},
     Expression,
 };
 
@@ -14,20 +14,20 @@ pub trait VrlValueConvert: Sized {
     /// Convert a given [`Value`] into a [`Expression`] trait object.
     fn into_expression(self) -> Box<dyn Expression>;
 
-    fn try_integer(self) -> Result<i64, Error>;
-    fn try_float(self) -> Result<f64, Error>;
-    fn try_bytes(self) -> Result<Bytes, Error>;
-    fn try_boolean(self) -> Result<bool, Error>;
-    fn try_regex(self) -> Result<ValueRegex, Error>;
-    fn try_null(self) -> Result<(), Error>;
-    fn try_array(self) -> Result<Vec<Value>, Error>;
-    fn try_object(self) -> Result<BTreeMap<String, Value>, Error>;
-    fn try_timestamp(self) -> Result<DateTime<Utc>, Error>;
+    fn try_integer(self) -> Result<i64, ValueError>;
+    fn try_float(self) -> Result<f64, ValueError>;
+    fn try_bytes(self) -> Result<Bytes, ValueError>;
+    fn try_boolean(self) -> Result<bool, ValueError>;
+    fn try_regex(self) -> Result<ValueRegex, ValueError>;
+    fn try_null(self) -> Result<(), ValueError>;
+    fn try_array(self) -> Result<Vec<Value>, ValueError>;
+    fn try_object(self) -> Result<BTreeMap<String, Value>, ValueError>;
+    fn try_timestamp(self) -> Result<DateTime<Utc>, ValueError>;
 
-    fn try_into_i64(&self) -> Result<i64, Error>;
-    fn try_into_f64(&self) -> Result<f64, Error>;
+    fn try_into_i64(&self) -> Result<i64, ValueError>;
+    fn try_into_f64(&self) -> Result<f64, ValueError>;
 
-    fn try_bytes_utf8_lossy(&self) -> Result<Cow<'_, str>, Error>;
+    fn try_bytes_utf8_lossy(&self) -> Result<Cow<'_, str>, ValueError>;
 }
 
 impl VrlValueConvert for Value {
@@ -36,116 +36,116 @@ impl VrlValueConvert for Value {
         Box::new(Expr::from(self))
     }
 
-    fn try_integer(self) -> Result<i64, Error> {
+    fn try_integer(self) -> Result<i64, ValueError> {
         match self {
             Value::Integer(v) => Ok(v),
-            _ => Err(Error::Expected {
+            _ => Err(ValueError::Expected {
                 got: self.kind(),
                 expected: Kind::integer(),
             }),
         }
     }
 
-    fn try_into_i64(self: &Value) -> Result<i64, Error> {
+    fn try_into_i64(self: &Value) -> Result<i64, ValueError> {
         match self {
             Value::Integer(v) => Ok(*v),
             Value::Float(v) => Ok(v.into_inner() as i64),
-            _ => Err(Error::Coerce(self.kind(), Kind::integer())),
+            _ => Err(ValueError::Coerce(self.kind(), Kind::integer())),
         }
     }
 
-    fn try_float(self) -> Result<f64, Error> {
+    fn try_float(self) -> Result<f64, ValueError> {
         match self {
             Value::Float(v) => Ok(v.into_inner()),
-            _ => Err(Error::Expected {
+            _ => Err(ValueError::Expected {
                 got: self.kind(),
                 expected: Kind::float(),
             }),
         }
     }
 
-    fn try_into_f64(&self) -> Result<f64, Error> {
+    fn try_into_f64(&self) -> Result<f64, ValueError> {
         match self {
             Value::Integer(v) => Ok(*v as f64),
             Value::Float(v) => Ok(v.into_inner()),
-            _ => Err(Error::Coerce(self.kind(), Kind::float())),
+            _ => Err(ValueError::Coerce(self.kind(), Kind::float())),
         }
     }
 
-    fn try_bytes(self) -> Result<Bytes, Error> {
+    fn try_bytes(self) -> Result<Bytes, ValueError> {
         match self {
             Value::Bytes(v) => Ok(v),
-            _ => Err(Error::Expected {
+            _ => Err(ValueError::Expected {
                 got: self.kind(),
                 expected: Kind::bytes(),
             }),
         }
     }
 
-    fn try_bytes_utf8_lossy(&self) -> Result<Cow<'_, str>, Error> {
+    fn try_bytes_utf8_lossy(&self) -> Result<Cow<'_, str>, ValueError> {
         match self.as_bytes() {
             Some(bytes) => Ok(String::from_utf8_lossy(bytes)),
-            None => Err(Error::Expected {
+            None => Err(ValueError::Expected {
                 got: self.kind(),
                 expected: Kind::bytes(),
             }),
         }
     }
 
-    fn try_boolean(self) -> Result<bool, Error> {
+    fn try_boolean(self) -> Result<bool, ValueError> {
         match self {
             Value::Boolean(v) => Ok(v),
-            _ => Err(Error::Expected {
+            _ => Err(ValueError::Expected {
                 got: self.kind(),
                 expected: Kind::boolean(),
             }),
         }
     }
 
-    fn try_regex(self) -> Result<ValueRegex, Error> {
+    fn try_regex(self) -> Result<ValueRegex, ValueError> {
         match self {
             Value::Regex(v) => Ok(v),
-            _ => Err(Error::Expected {
+            _ => Err(ValueError::Expected {
                 got: self.kind(),
                 expected: Kind::regex(),
             }),
         }
     }
 
-    fn try_null(self) -> Result<(), Error> {
+    fn try_null(self) -> Result<(), ValueError> {
         match self {
             Value::Null => Ok(()),
-            _ => Err(Error::Expected {
+            _ => Err(ValueError::Expected {
                 got: self.kind(),
                 expected: Kind::null(),
             }),
         }
     }
 
-    fn try_array(self) -> Result<Vec<Value>, Error> {
+    fn try_array(self) -> Result<Vec<Value>, ValueError> {
         match self {
             Value::Array(v) => Ok(v),
-            _ => Err(Error::Expected {
+            _ => Err(ValueError::Expected {
                 got: self.kind(),
                 expected: Kind::array(Collection::any()),
             }),
         }
     }
 
-    fn try_object(self) -> Result<BTreeMap<String, Value>, Error> {
+    fn try_object(self) -> Result<BTreeMap<String, Value>, ValueError> {
         match self {
             Value::Object(v) => Ok(v),
-            _ => Err(Error::Expected {
+            _ => Err(ValueError::Expected {
                 got: self.kind(),
                 expected: Kind::object(Collection::any()),
             }),
         }
     }
 
-    fn try_timestamp(self) -> Result<DateTime<Utc>, Error> {
+    fn try_timestamp(self) -> Result<DateTime<Utc>, ValueError> {
         match self {
             Value::Timestamp(v) => Ok(v),
-            _ => Err(Error::Expected {
+            _ => Err(ValueError::Expected {
                 got: self.kind(),
                 expected: Kind::timestamp(),
             }),

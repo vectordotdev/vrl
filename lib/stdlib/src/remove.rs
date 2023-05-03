@@ -27,7 +27,7 @@ fn remove(path: Value, compact: Value, mut value: Value) -> Resolved {
             lookup
         }
         value => {
-            return Err(value::Error::Expected {
+            return Err(ValueError::Expected {
                 got: value.kind(),
                 expected: Kind::array(Collection::any()),
             }

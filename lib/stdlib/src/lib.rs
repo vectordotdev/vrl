@@ -37,6 +37,7 @@ pub mod prelude {
 
     pub use ::value::{
         kind::{Collection, Field, Index},
+        value,
         value::IterItem,
         Kind, Value, ValueRegex,
     };
@@ -44,18 +45,18 @@ pub mod prelude {
     pub use indoc::indoc;
     pub use ordered_float::NotNan;
     pub use std::fmt;
+    pub use vrl_compiler::Resolved;
     pub use vrl_compiler::{
         expr, expression, func_args,
         function::{
             self, closure, ArgumentList, Compiled, Example, FunctionClosure, FunctionCompileContext,
         },
         state::{self, TypeInfo, TypeState},
-        test_function, test_type_def, type_def, value,
-        value::kind,
-        value::{VrlValueArithmetic, VrlValueConvert},
-        Context, Expression, ExpressionError, Function, FunctionExpression, Parameter, TypeDef,
+        test_function, test_type_def, type_def,
+        value::{kind, ValueError, VrlValueArithmetic, VrlValueConvert},
+        Context, Expression, ExpressionError, Function, FunctionExpression, Parameter, TimeZone,
+        TypeDef,
     };
-    pub use vrl_core::Resolved;
     pub use vrl_diagnostic::{DiagnosticMessage, Note, Span};
 
     pub type ExpressionResult<T> = Result<T, ExpressionError>;

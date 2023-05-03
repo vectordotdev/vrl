@@ -1,4 +1,3 @@
-use core::TargetValueRef;
 use std::{
     collections::BTreeMap,
     fs::File,
@@ -6,14 +5,15 @@ use std::{
     iter::IntoIterator,
     path::PathBuf,
 };
+use vrl_compiler::TargetValueRef;
 
 use ::value::Value;
 use clap::Parser;
-use core::TimeZone;
 use path::{owned_value_path, OwnedTargetPath};
 use value::Secrets;
 use vrl_compiler::runtime::Runtime;
 use vrl_compiler::state::RuntimeState;
+use vrl_compiler::TimeZone;
 use vrl_compiler::{
     compile_with_state, CompilationResult, CompileConfig, Function, Program, Target, TypeState,
     VrlRuntime,
@@ -188,7 +188,7 @@ fn repl(
     vrl_runtime: VrlRuntime,
     stdlib_functions: Vec<Box<dyn Function>>,
 ) -> Result<(), Error> {
-    use core::TargetValue;
+    use vrl_compiler::TargetValue;
 
     let objects = objects
         .into_iter()
