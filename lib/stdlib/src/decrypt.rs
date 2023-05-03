@@ -1,4 +1,3 @@
-use crate::prelude::*;
 use ::value::Value;
 use aes::cipher::{
     block_padding::{AnsiX923, Iso10126, Iso7816, Pkcs7},
@@ -8,6 +7,7 @@ use aes::cipher::{
 use cfb_mode::Decryptor as Cfb;
 use ctr::Ctr64LE;
 use ofb::Ofb;
+use vrl_compiler::prelude::*;
 
 use crate::encrypt::{get_iv_bytes, get_key_bytes, is_valid_algorithm};
 

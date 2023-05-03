@@ -1,5 +1,5 @@
-use crate::prelude::*;
 use std::{convert::TryInto, net::Ipv4Addr};
+use vrl_compiler::prelude::*;
 
 fn ip_ntoa(value: Value) -> Resolved {
     let i: u32 = value

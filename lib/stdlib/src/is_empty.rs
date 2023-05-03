@@ -1,4 +1,4 @@
-use crate::prelude::*;
+use vrl_compiler::prelude::*;
 
 fn is_empty(value: Value) -> Resolved {
     let empty = match value {

@@ -1,5 +1,5 @@
-use crate::prelude::*;
 use bytes::Bytes;
+use vrl_compiler::prelude::*;
 
 fn strip_ansi_escape_codes(bytes: Value) -> Resolved {
     let bytes = bytes.try_bytes()?;

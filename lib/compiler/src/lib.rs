@@ -41,6 +41,7 @@ mod test_util;
 pub mod conversion;
 pub mod expression;
 pub mod function;
+pub mod prelude;
 pub mod runtime;
 pub mod state;
 pub mod type_def;

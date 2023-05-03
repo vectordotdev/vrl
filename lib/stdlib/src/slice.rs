@@ -1,5 +1,5 @@
-use crate::prelude::*;
 use std::ops::Range;
+use vrl_compiler::prelude::*;
 
 fn slice(start: i64, end: Option<i64>, value: Value) -> Resolved {
     let range = |len: i64| -> ExpressionResult<Range<usize>> {

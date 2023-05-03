@@ -1,5 +1,5 @@
-use crate::prelude::*;
 use std::collections::{BTreeMap, HashMap};
+use vrl_compiler::prelude::*;
 
 fn tally(value: Value) -> Resolved {
     let value = value.try_array()?;

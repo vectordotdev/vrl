@@ -1,7 +1,7 @@
-use crate::prelude::*;
 use flate2::read::ZlibEncoder;
 use nom::AsBytes;
 use std::io::Read;
+use vrl_compiler::prelude::*;
 
 fn encode_zlib(value: Value, compression_level: Option<Value>) -> Resolved {
     let compression_level = match compression_level {

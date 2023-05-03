@@ -1,4 +1,4 @@
-use crate::prelude::*;
+use vrl_compiler::prelude::*;
 
 #[cfg(not(target_arch = "wasm32"))]
 fn get_hostname() -> Resolved {

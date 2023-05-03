@@ -1,5 +1,5 @@
-use crate::prelude::*;
 use std::net::Ipv6Addr;
+use vrl_compiler::prelude::*;
 
 fn is_ipv6(value: Value) -> Resolved {
     let value_str = value.try_bytes_utf8_lossy()?;

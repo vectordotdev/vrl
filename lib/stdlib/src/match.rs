@@ -1,5 +1,5 @@
-use crate::prelude::*;
 use regex::Regex;
+use vrl_compiler::prelude::*;
 
 fn match_(value: Value, pattern: Value) -> Resolved {
     let string = value.try_bytes_utf8_lossy()?;

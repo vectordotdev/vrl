@@ -1,5 +1,5 @@
-use crate::prelude::*;
 use path::{OwnedSegment, OwnedValuePath};
+use vrl_compiler::prelude::*;
 
 fn set(path: Value, mut value: Value, data: Value) -> Resolved {
     let path = match path {

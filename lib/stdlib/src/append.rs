@@ -1,4 +1,4 @@
-use crate::prelude::*;
+use vrl_compiler::prelude::*;
 
 fn append(value: Value, items: Value) -> Resolved {
     let mut value = value.try_array()?;

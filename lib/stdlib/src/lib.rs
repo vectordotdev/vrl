@@ -32,36 +32,6 @@ mod wasm_unsupported_function;
 use vrl_compiler::Function;
 pub use wasm_unsupported_function::WasmUnsupportedFunction;
 
-pub mod prelude {
-    //! Imports that are useful for most stdlib functions
-
-    pub use ::value::{
-        kind::{Collection, Field, Index},
-        value,
-        value::IterItem,
-        Kind, Value, ValueRegex,
-    };
-    pub use bytes::Bytes;
-    pub use indoc::indoc;
-    pub use ordered_float::NotNan;
-    pub use std::fmt;
-    pub use vrl_compiler::Resolved;
-    pub use vrl_compiler::{
-        expr, expression, func_args,
-        function::{
-            self, closure, ArgumentList, Compiled, Example, FunctionClosure, FunctionCompileContext,
-        },
-        state::{self, TypeInfo, TypeState},
-        test_function, test_type_def, type_def,
-        value::{kind, ValueError, VrlValueArithmetic, VrlValueConvert},
-        Context, Expression, ExpressionError, Function, FunctionExpression, Parameter, TimeZone,
-        TypeDef,
-    };
-    pub use vrl_diagnostic::{DiagnosticMessage, Note, Span};
-
-    pub type ExpressionResult<T> = Result<T, ExpressionError>;
-}
-
 #[cfg(feature = "abs")]
 mod abs;
 #[cfg(feature = "append")]

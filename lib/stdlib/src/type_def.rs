@@ -1,4 +1,4 @@
-use crate::prelude::{TypeDef as VrlTypeDef, *};
+use vrl_compiler::prelude::{TypeDef as VrlTypeDef, *};
 
 fn type_def(type_def: &VrlTypeDef) -> Value {
     let mut tree = type_def.kind().canonicalize().debug_info();

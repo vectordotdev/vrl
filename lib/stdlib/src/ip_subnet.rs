@@ -1,7 +1,7 @@
-use crate::prelude::*;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
+use vrl_compiler::prelude::*;
 
 fn ip_subnet(value: Value, mask: Value) -> Resolved {
     let value: IpAddr = value

@@ -1,6 +1,6 @@
 use rust_decimal::prelude::Signed;
 
-use crate::prelude::*;
+use vrl_compiler::prelude::*;
 
 fn abs(value: Value) -> Resolved {
     match value {

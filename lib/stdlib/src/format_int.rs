@@ -1,6 +1,6 @@
 use std::collections::VecDeque;
 
-use crate::prelude::*;
+use vrl_compiler::prelude::*;
 
 fn format_int(value: Value, base: Option<Value>) -> Resolved {
     let value = value.try_integer()?;

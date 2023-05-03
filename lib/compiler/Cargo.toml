@@ -46,6 +46,7 @@ thiserror ={ version =  "1", default-features = false }
 anymap = { version = "1.0.0-beta.2" }
 chrono-tz = { version = "0.8.1", default-features = false }
 tracing = { version = "0.1.34", default-features = false }
+indoc = "2.0.1"
 
 [dev-dependencies]
 criterion = "0.4"

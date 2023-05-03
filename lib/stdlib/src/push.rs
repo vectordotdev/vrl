@@ -1,4 +1,4 @@
-use crate::prelude::*;
+use vrl_compiler::prelude::*;
 
 fn push(list: Value, item: Value) -> Resolved {
     let mut list = list.try_array()?;

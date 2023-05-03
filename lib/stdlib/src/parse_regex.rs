@@ -1,5 +1,5 @@
-use crate::prelude::*;
 use regex::Regex;
+use vrl_compiler::prelude::*;
 
 use crate::util;
 

@@ -1,4 +1,3 @@
-use crate::prelude::*;
 use nom::{
     branch::alt,
     bytes::complete::{tag, take_while1},
@@ -8,6 +7,7 @@ use nom::{
     IResult,
 };
 use std::collections::BTreeMap;
+use vrl_compiler::prelude::*;
 
 fn parse_aws_alb_log(bytes: Value) -> Resolved {
     let bytes = bytes.try_bytes()?;

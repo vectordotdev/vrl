@@ -1,4 +1,4 @@
-use crate::prelude::*;
+use vrl_compiler::prelude::*;
 
 #[inline]
 fn del(query: &expression::Query, compact: bool, ctx: &mut Context) -> Resolved {

@@ -1,4 +1,4 @@
-use crate::prelude::*;
+use vrl_compiler::prelude::*;
 
 fn to_string(value: Value) -> Resolved {
     use chrono::SecondsFormat;

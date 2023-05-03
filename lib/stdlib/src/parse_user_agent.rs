@@ -1,4 +1,3 @@
-use crate::prelude::*;
 use once_cell::sync::Lazy;
 use std::{
     borrow::{Borrow, Cow},
@@ -8,6 +7,7 @@ use std::{
     sync::Arc,
 };
 use uaparser::UserAgentParser as UAParser;
+use vrl_compiler::prelude::*;
 use woothee::parser::Parser as WootheeParser;
 
 static UA_PARSER: Lazy<UAParser> = Lazy::new(|| {

@@ -1,4 +1,3 @@
-use crate::prelude::*;
 use ::value::Value;
 use charset::Charset;
 use data_encoding::BASE64_MIME;
@@ -11,6 +10,7 @@ use nom::{
     sequence::{delimited, pair, separated_pair},
     IResult,
 };
+use vrl_compiler::prelude::*;
 
 #[derive(Clone, Copy, Debug)]
 pub struct DecodeMimeQ;

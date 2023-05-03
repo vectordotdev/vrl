@@ -1,5 +1,5 @@
-use crate::prelude::*;
 use std::collections::BTreeMap;
+use vrl_compiler::prelude::*;
 
 #[derive(Clone, Copy, Debug)]
 pub struct Merge;
