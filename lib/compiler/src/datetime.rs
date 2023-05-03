@@ -2,6 +2,7 @@ use std::fmt::Debug;
 
 use chrono::{DateTime, Local, ParseError, TimeZone as _, Utc};
 use chrono_tz::Tz;
+use serde::{Deserialize, Serialize};
 
 /// Timezone reference.
 ///
@@ -9,12 +10,9 @@ use chrono_tz::Tz;
 /// refers to the system local timezone.
 ///
 /// [tzdb]: https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
-#[cfg_attr(
-    feature = "serde",
-    derive(::serde::Deserialize, ::serde::Serialize),
-    serde(try_from = "String", into = "String")
-)]
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+#[cfg_attr(feature = "serde", derive(::serde::Deserialize, ::serde::Serialize))]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(try_from = "String", into = "String")]
 pub enum TimeZone {
     /// System local timezone.
     #[default]
