@@ -6,6 +6,7 @@
 - removed the lookup v1 code
 - renamed the `lookup` crate to `path`
 - re-exported all sub-crates in the root `vrl` crate
+- fix the `value` macro so it works when re-exported
 
 ## `0.2.0` (2023-04-03)
 - added guard for the `limit` param of the `split` function to ensure it's not negative
