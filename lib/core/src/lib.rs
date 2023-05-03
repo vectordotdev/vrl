@@ -13,8 +13,6 @@
     clippy::module_name_repetitions, // allowed in initial deny commit
 )]
 
-mod r#macro;
-
 pub mod encode_key_value;
 pub mod encode_logfmt;
 pub mod tokenize;
