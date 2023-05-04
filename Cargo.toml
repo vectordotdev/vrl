@@ -43,6 +43,9 @@ datadog_search = ["dep:datadog-search-syntax"]
 cli = ["dep:vrl-cli"]
 test_framework = ["dep:vrl-tests"]
 
+arbitrary = ["value/arbitrary"]
+lua = ["value/lua"]
+
 [dependencies]
 
 # Optional
