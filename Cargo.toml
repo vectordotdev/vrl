@@ -27,6 +27,7 @@ members = [
 [features]
 default = ["compiler", "value", "diagnostic", "path", "parser", "stdlib", "datadog", "core"]
 
+# Main features (on by default)
 compiler = ["dep:vrl-compiler"]
 value = ["dep:value"]
 diagnostic = ["dep:vrl-diagnostic"]
@@ -35,13 +36,17 @@ parser = ["dep:vrl-parser"]
 stdlib = ["dep:vrl-stdlib"]
 core = ["dep:vrl-core"]
 
+# Datadog related features (on by default)
 datadog = ["datadog_filter", "datadog_grok", "datadog_search"]
 datadog_filter = ["dep:datadog-filter"]
 datadog_grok = ["dep:datadog-grok"]
 datadog_search = ["dep:datadog-search-syntax"]
 
+# Features that aren't used as often (default off)
 cli = ["dep:vrl-cli"]
 test_framework = ["dep:vrl-tests"]
+arbitrary = ["value/arbitrary"]
+lua = ["value/lua"]
 
 [dependencies]
 
