@@ -27,7 +27,7 @@ members = [
 [features]
 default = ["compiler", "value", "diagnostic", "path", "parser", "stdlib", "datadog", "core"]
 
-# Main featres (on by default)
+# Main features (on by default)
 compiler = ["dep:vrl-compiler"]
 value = ["dep:value"]
 diagnostic = ["dep:vrl-diagnostic"]
