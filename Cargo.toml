@@ -42,7 +42,7 @@ datadog_filter = ["dep:datadog-filter"]
 datadog_grok = ["dep:datadog-grok"]
 datadog_search = ["dep:datadog-search-syntax"]
 
-# Optional features that aren't used as often (default off)
+# Features that aren't used as often (default off)
 cli = ["dep:vrl-cli"]
 test_framework = ["dep:vrl-tests"]
 arbitrary = ["value/arbitrary"]
