@@ -1,6 +1,3 @@
-use std::collections::HashMap;
-
-use ::value::Value;
 use nom::{
     self,
     branch::alt,
@@ -12,7 +9,8 @@ use nom::{
     sequence::{delimited, pair, preceded},
     IResult,
 };
-use vrl::prelude::*;
+use std::collections::{BTreeMap, HashMap};
+use vrl_compiler::prelude::*;
 
 fn build_map() -> HashMap<&'static str, (usize, CustomField)> {
     [
@@ -176,7 +174,7 @@ impl FunctionExpression for ParseCefFn {
                         Some(Ok((k, v.into())))
                     }
                 })
-                .collect::<Result<BTreeMap<String, Value>>>()?;
+                .collect::<ExpressionResult<BTreeMap<String, Value>>>()?;
 
             for (_, fields) in custom_fields {
                 match fields {
@@ -204,7 +202,7 @@ enum CustomField {
     Value = 1,
 }
 
-fn parse(input: &str) -> Result<impl Iterator<Item = (String, String)> + '_> {
+fn parse(input: &str) -> ExpressionResult<impl Iterator<Item = (String, String)> + '_> {
     let (rest, (header, mut extension)) =
         pair(parse_header, parse_extension)(input).map_err(|e| match e {
             nom::Err::Error(e) | nom::Err::Failure(e) => {

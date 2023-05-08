@@ -1,10 +1,7 @@
-use lookup::OwnedTargetPath;
+use path::OwnedTargetPath;
 
 use crate::state::TypeState;
-use crate::{
-    expression::{Block, Resolved},
-    Context, Expression,
-};
+use crate::{expression::Block, Context, Expression, Resolved};
 
 #[derive(Debug, Clone)]
 pub struct Program {

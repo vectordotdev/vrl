@@ -1,5 +1,4 @@
-use ::value::Value;
-use vrl::prelude::*;
+use vrl_compiler::prelude::*;
 
 use crate::util::round_to_precision;
 
@@ -15,7 +14,7 @@ fn floor(precision: Option<Value>, value: Value) -> Resolved {
             f64::floor,
         ))),
         value @ Value::Integer(_) => Ok(value),
-        value => Err(value::Error::Expected {
+        value => Err(ValueError::Expected {
             got: value.kind(),
             expected: Kind::float() | Kind::integer(),
         }

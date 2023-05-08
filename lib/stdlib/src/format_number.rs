@@ -1,6 +1,5 @@
-use ::value::Value;
 use rust_decimal::{prelude::FromPrimitive, Decimal};
-use vrl::prelude::*;
+use vrl_compiler::prelude::*;
 
 fn format_number(
     value: Value,
@@ -12,7 +11,7 @@ fn format_number(
         Value::Integer(v) => v.into(),
         Value::Float(v) => Decimal::from_f64(*v).expect("not NaN"),
         value => {
-            return Err(value::Error::Expected {
+            return Err(ValueError::Expected {
                 got: value.kind(),
                 expected: Kind::integer() | Kind::float(),
             }

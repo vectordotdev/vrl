@@ -1,9 +1,7 @@
-use std::str::FromStr;
-
-use ::value::Value;
 use chrono::{TimeZone as _, Utc};
-use vrl::prelude::*;
-use vrl_core::{conversion::Conversion, TimeZone};
+use std::str::FromStr;
+use vrl_compiler::prelude::*;
+use vrl_compiler::{conversion::Conversion, TimeZone};
 
 fn to_timestamp(value: Value, unit: Unit) -> Resolved {
     use Value::{Bytes, Float, Integer, Timestamp};
@@ -269,17 +267,14 @@ impl FunctionExpression for ToTimestampFn {
 #[cfg(test)]
 #[allow(overflowing_literals)]
 mod tests {
-    use std::collections::BTreeMap;
-
-    use vrl::prelude::expression::Literal;
-    use vrl_core::TimeZone;
-
     use super::*;
+    use std::collections::BTreeMap;
+    use vrl_compiler::expression::Literal;
 
     #[test]
     fn out_of_range_integer() {
         let mut object: Value = BTreeMap::new().into();
-        let mut runtime_state = vrl::state::RuntimeState::default();
+        let mut runtime_state = state::RuntimeState::default();
         let tz = TimeZone::default();
         let mut ctx = Context::new(&mut object, &mut runtime_state, &tz);
         let f = ToTimestampFn {
@@ -293,7 +288,7 @@ mod tests {
     #[test]
     fn out_of_range_float() {
         let mut object: Value = BTreeMap::new().into();
-        let mut runtime_state = vrl::state::RuntimeState::default();
+        let mut runtime_state = state::RuntimeState::default();
         let tz = TimeZone::default();
         let mut ctx = Context::new(&mut object, &mut runtime_state, &tz);
         let f = ToTimestampFn {

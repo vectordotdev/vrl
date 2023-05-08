@@ -1,8 +1,5 @@
-use ::value::Value;
-use vrl::prelude::expression::FunctionExpression;
-use vrl::prelude::*;
-
 use crate::util::round_to_precision;
+use vrl_compiler::prelude::*;
 
 fn ceil(value: Value, precision: Option<Value>) -> Resolved {
     let precision = match precision {
@@ -16,7 +13,7 @@ fn ceil(value: Value, precision: Option<Value>) -> Resolved {
             f64::ceil,
         ))),
         value @ Value::Integer(_) => Ok(value),
-        value => Err(value::Error::Expected {
+        value => Err(ValueError::Expected {
             got: value.kind(),
             expected: Kind::float() | Kind::integer(),
         }

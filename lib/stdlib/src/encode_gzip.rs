@@ -1,9 +1,7 @@
-use ::value::Value;
 use flate2::read::GzEncoder;
 use nom::AsBytes;
 use std::io::Read;
-use vrl::prelude::expression::FunctionExpression;
-use vrl::prelude::*;
+use vrl_compiler::prelude::*;
 
 fn encode_gzip(value: Value, compression_level: Option<Value>) -> Resolved {
     let compression_level = match compression_level {

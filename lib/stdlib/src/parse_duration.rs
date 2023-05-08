@@ -1,10 +1,8 @@
-use std::{collections::HashMap, str::FromStr};
-
-use ::value::Value;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rust_decimal::{prelude::ToPrimitive, Decimal};
-use vrl::prelude::*;
+use std::{collections::HashMap, str::FromStr};
+use vrl_compiler::prelude::*;
 
 fn parse_duration(bytes: Value, unit: Value) -> Resolved {
     let bytes = bytes.try_bytes()?;

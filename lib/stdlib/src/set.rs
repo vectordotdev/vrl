@@ -1,6 +1,5 @@
-use ::value::Value;
-use lookup_lib::{lookup_v2::OwnedSegment, OwnedValuePath};
-use vrl::prelude::*;
+use path::{OwnedSegment, OwnedValuePath};
+use vrl_compiler::prelude::*;
 
 fn set(path: Value, mut value: Value, data: Value) -> Resolved {
     let path = match path {
@@ -28,7 +27,7 @@ fn set(path: Value, mut value: Value, data: Value) -> Resolved {
             insert
         }
         value => {
-            return Err(value::Error::Expected {
+            return Err(ValueError::Expected {
                 got: value.kind(),
                 expected: Kind::array(Collection::any()) | Kind::bytes(),
             }

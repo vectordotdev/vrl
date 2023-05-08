@@ -1,7 +1,5 @@
-use ::value::Value;
 use bytes::Bytes;
-use vrl::prelude::*;
-use vrl::state::TypeState;
+use vrl_compiler::prelude::*;
 
 fn uuid_v4() -> Value {
     let mut buf = [0; 36];
@@ -50,12 +48,9 @@ impl FunctionExpression for UuidV4Fn {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::BTreeMap;
-
-    use ::value::Value;
-    use vrl_core::TimeZone;
-
     use super::*;
+    use ::value::Value;
+    use std::collections::BTreeMap;
 
     test_type_def![default {
         expr: |_| { UuidV4Fn },
@@ -64,7 +59,7 @@ mod tests {
 
     #[test]
     fn uuid_v4() {
-        let mut state = vrl::state::RuntimeState::default();
+        let mut state = state::RuntimeState::default();
         let mut object: Value = Value::Object(BTreeMap::new());
         let tz = TimeZone::default();
         let mut ctx = Context::new(&mut object, &mut state, &tz);

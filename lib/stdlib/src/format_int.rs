@@ -1,7 +1,6 @@
 use std::collections::VecDeque;
 
-use ::value::Value;
-use vrl::prelude::*;
+use vrl_compiler::prelude::*;
 
 fn format_int(value: Value, base: Option<Value>) -> Resolved {
     let value = value.try_integer()?;

@@ -1,5 +1,4 @@
-use ::value::Value;
-use vrl::prelude::*;
+use vrl_compiler::prelude::*;
 
 fn is_empty(value: Value) -> Resolved {
     let empty = match value {
@@ -7,7 +6,7 @@ fn is_empty(value: Value) -> Resolved {
         Value::Array(v) => v.is_empty(),
         Value::Bytes(v) => v.is_empty(),
         value => {
-            return Err(value::Error::Expected {
+            return Err(ValueError::Expected {
                 got: value.kind(),
                 expected: Kind::array(Collection::any())
                     | Kind::object(Collection::any())

@@ -1,6 +1,3 @@
-use std::num::ParseIntError;
-
-use ::value::Value;
 use nom::{
     branch::alt,
     bytes::complete::{escaped, tag, take_while, take_while1},
@@ -12,7 +9,8 @@ use nom::{
     sequence::{preceded, separated_pair, terminated, tuple},
     AsChar, IResult, InputTakeAtPosition,
 };
-use vrl::prelude::*;
+use std::num::ParseIntError;
+use vrl_compiler::prelude::*;
 
 fn parse_ruby_hash(value: Value) -> Resolved {
     let input = value.try_bytes_utf8_lossy()?;
@@ -256,7 +254,7 @@ fn parse_value<'a, E: HashParseError<&'a str>>(input: &'a str) -> IResult<&'a st
     )(input)
 }
 
-fn parse(input: &str) -> Result<Value> {
+fn parse(input: &str) -> ExpressionResult<Value> {
     let result = parse_hash(input)
         .map_err(|err| match err {
             nom::Err::Error(err) | nom::Err::Failure(err) => {

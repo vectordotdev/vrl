@@ -10,7 +10,7 @@
 use std::borrow::Cow;
 use std::str::CharIndices;
 
-use crate::lookup_v2::{BorrowedSegment, ValuePath};
+use crate::{BorrowedSegment, ValuePath};
 
 #[derive(Clone)]
 pub struct JitValuePath<'a> {
@@ -375,7 +375,7 @@ impl<'a> Iterator for JitValuePathIter<'a> {
 
 #[cfg(test)]
 mod test {
-    use crate::lookup_v2::{BorrowedSegment, ValuePath};
+    use crate::{BorrowedSegment, ValuePath};
 
     #[test]
     fn parsing() {

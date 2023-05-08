@@ -1,10 +1,7 @@
-use std::collections::BTreeMap;
-
-use ::value::Value;
 use chrono::{DateTime, Datelike, Utc};
+use std::collections::BTreeMap;
 use syslog_loose::{IncompleteDate, Message, ProcId, Protocol};
-use vrl::prelude::*;
-use vrl_core::TimeZone;
+use vrl_compiler::prelude::*;
 
 pub(crate) fn parse_syslog(value: Value, ctx: &Context) -> Resolved {
     let message = value.try_bytes_utf8_lossy()?;

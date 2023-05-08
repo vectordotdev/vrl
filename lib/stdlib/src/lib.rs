@@ -29,6 +29,7 @@
 
 mod util;
 mod wasm_unsupported_function;
+use vrl_compiler::Function;
 pub use wasm_unsupported_function::WasmUnsupportedFunction;
 
 #[cfg(feature = "abs")]
@@ -667,7 +668,7 @@ pub use crate::seahash::Seahash;
 pub use crate::sha1::Sha1;
 
 #[must_use]
-pub fn all() -> Vec<Box<dyn vrl::Function>> {
+pub fn all() -> Vec<Box<dyn Function>> {
     vec![
         #[cfg(feature = "abs")]
         Box::new(Abs),

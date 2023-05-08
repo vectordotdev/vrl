@@ -25,7 +25,7 @@
 
 use std::ops::{Deref, DerefMut};
 
-use lookup::lookup_v2::ValuePath;
+use path::ValuePath;
 use value::{
     kind::{merge, Collection, Field, Index},
     Kind, Value,

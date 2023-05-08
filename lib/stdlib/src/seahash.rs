@@ -1,5 +1,4 @@
-use ::value::Value;
-use vrl::prelude::*;
+use vrl_compiler::prelude::*;
 
 #[allow(clippy::cast_possible_wrap)]
 fn seahash(value: Value) -> Resolved {

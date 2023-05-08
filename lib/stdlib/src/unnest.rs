@@ -1,6 +1,5 @@
-use ::value::Value;
-use lookup_lib::{OwnedTargetPath, OwnedValuePath};
-use vrl::prelude::*;
+use path::{OwnedTargetPath, OwnedValuePath};
+use vrl_compiler::prelude::*;
 
 fn unnest(path: &expression::Query, ctx: &mut Context) -> Resolved {
     let lookup_buf = path.path();
@@ -36,7 +35,7 @@ fn unnest_root(root: &Value, path: &OwnedValuePath) -> Resolved {
     let mut trimmed = root.clone();
     let values = trimmed
         .remove(path, true)
-        .ok_or(value::Error::Expected {
+        .ok_or(ValueError::Expected {
             got: Kind::null(),
             expected: Kind::array(Collection::any()),
         })?
@@ -114,7 +113,7 @@ struct UnnestFn {
 impl UnnestFn {
     #[cfg(test)]
     fn new(path: &str) -> Self {
-        use lookup_lib::{lookup_v2::parse_value_path, PathPrefix};
+        use path::{parse_value_path, PathPrefix};
 
         Self {
             path: expression::Query::new(
@@ -187,9 +186,7 @@ pub(crate) fn invert_array_at_path(typedef: &TypeDef, path: &OwnedValuePath) -> 
 mod tests {
     use super::*;
     use ::value::btreemap;
-    use lookup_lib::lookup_v2::parse_value_path;
-    use vrl::state::TypeState;
-    use vrl_core::TimeZone;
+    use path::parse_value_path;
 
     #[test]
     fn type_def() {
@@ -451,7 +448,7 @@ mod tests {
         let tz = TimeZone::default();
         for (object, expected, func, expected_typedef) in cases {
             let mut object = object.clone();
-            let mut runtime_state = vrl::state::RuntimeState::default();
+            let mut runtime_state = state::RuntimeState::default();
             let mut ctx = Context::new(&mut object, &mut runtime_state, &tz);
 
             let got_typedef = func.type_def(&state);

@@ -1,6 +1,5 @@
-use ::value::Value;
 use sha_2::{Digest, Sha224, Sha256, Sha384, Sha512, Sha512_224, Sha512_256};
-use vrl::prelude::*;
+use vrl_compiler::prelude::*;
 
 fn sha2(value: Value, variant: &Bytes) -> Resolved {
     let value = value.try_bytes()?;

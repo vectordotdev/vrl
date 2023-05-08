@@ -1,6 +1,5 @@
-use ::value::Value;
-use lookup_lib::{lookup_v2::OwnedSegment, OwnedValuePath};
-use vrl::prelude::*;
+use path::{OwnedSegment, OwnedValuePath};
+use vrl_compiler::prelude::*;
 
 fn remove(path: Value, compact: Value, mut value: Value) -> Resolved {
     let path = match path {
@@ -28,7 +27,7 @@ fn remove(path: Value, compact: Value, mut value: Value) -> Resolved {
             lookup
         }
         value => {
-            return Err(value::Error::Expected {
+            return Err(ValueError::Expected {
                 got: value.kind(),
                 expected: Kind::array(Collection::any()),
             }

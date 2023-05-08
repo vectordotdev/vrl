@@ -1,5 +1,4 @@
-use vrl::prelude::*;
-use vrl_diagnostic::Span;
+use vrl_compiler::prelude::*;
 
 #[derive(Debug, Clone)]
 pub struct WasmUnsupportedFunction {

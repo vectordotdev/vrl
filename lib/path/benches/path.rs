@@ -1,5 +1,4 @@
 use criterion::{criterion_group, criterion_main, Criterion};
-use lookup::lookup_v2;
 
 criterion_group!(
     name = benches;
@@ -17,16 +16,10 @@ fn benchmark_lookup(c: &mut Criterion) {
     let lookup_str_escaped = "foo.\"b.ar\".\"asdf\\\"asdf\".asdf[7].asdf";
 
     group.bench_function("lookup_v2_parse", |b| {
-        b.iter(|| {
-            lookup_v2::ValuePath::segment_iter(&lookup_str).count()
-            // let lookup = Lookup::from_str(lookup_str);
-        })
+        b.iter(|| path::ValuePath::segment_iter(&lookup_str).count())
     });
 
     group.bench_function("lookup_v2_parse_escaped", |b| {
-        b.iter(|| {
-            lookup_v2::ValuePath::segment_iter(&lookup_str_escaped).count()
-            // let lookup = Lookup::from_str(lookup_str);
-        })
+        b.iter(|| path::ValuePath::segment_iter(&lookup_str_escaped).count())
     });
 }

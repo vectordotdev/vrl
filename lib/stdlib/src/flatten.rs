@@ -1,7 +1,6 @@
 use std::collections::btree_map;
 
-use ::value::Value;
-use vrl::prelude::*;
+use vrl_compiler::prelude::*;
 
 static DEFAULT_SEPARATOR: &str = ".";
 
@@ -17,7 +16,7 @@ fn flatten(value: Value, separator: Value) -> Resolved {
                 .map(|(k, v)| (k, v.clone()))
                 .collect(),
         )),
-        value => Err(value::Error::Expected {
+        value => Err(ValueError::Expected {
             got: value.kind(),
             expected: Kind::array(Collection::any()) | Kind::object(Collection::any()),
         }

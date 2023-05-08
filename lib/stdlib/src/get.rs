@@ -1,6 +1,5 @@
-use ::value::Value;
-use lookup_lib::{lookup_v2::OwnedSegment, OwnedValuePath};
-use vrl::prelude::*;
+use path::{OwnedSegment, OwnedValuePath};
+use vrl_compiler::prelude::*;
 
 fn get(value: Value, value_path: Value) -> Resolved {
     let path = match value_path {
@@ -27,7 +26,7 @@ fn get(value: Value, value_path: Value) -> Resolved {
             path
         }
         value => {
-            return Err(value::Error::Expected {
+            return Err(ValueError::Expected {
                 got: value.kind(),
                 expected: Kind::array(Collection::any()),
             }

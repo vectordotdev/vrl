@@ -1,7 +1,5 @@
 use std::collections::BTreeMap;
-
-use ::value::Value;
-use vrl::prelude::*;
+use vrl_compiler::prelude::*;
 
 #[derive(Clone, Copy, Debug)]
 pub struct TagTypesExternally;

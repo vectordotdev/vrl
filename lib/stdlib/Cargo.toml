@@ -7,13 +7,13 @@ publish = false
 license = "MPL-2.0"
 
 [dependencies]
-vrl = { path = "../.." }
 value = { path = "../value", default-features = false }
 
 datadog-filter = { path = "../datadog/filter", optional = true }
 datadog-search-syntax = { path = "../datadog/search-syntax", optional = true }
-lookup_lib = {package = "lookup", path = "../lookup", optional = true }
+path = {path = "../path" }
 vrl-core = { path = "../core" }
+vrl-compiler = { path = "../compiler" }
 vrl-diagnostic = { path = "../diagnostic" }
 
 base16 = { version = "0.2", optional = true }
@@ -28,6 +28,8 @@ flate2 = { version = "1.0.25", default-features = false, features = ["default"],
 hex = { version = "0.4", optional = true }
 hmac = { version = "0.12.1", optional = true }
 indexmap = { version = "~1.9.2", default-features = false, optional = true}
+indoc = "2.0.1"
+ordered-float = "3.7.0"
 md-5 = { version = "0.10", optional = true }
 nom = { version = "7", optional = true }
 percent-encoding = { version = "2.2", optional = true }
@@ -75,8 +77,8 @@ chrono-tz = "0.8"
 criterion = "0.4"
 tracing-test = "0.2"
 value = { path = "../value", features = ["test"] }
-vrl-core = { path = "../core", features = ["test"] }
-vrl = { path = "../.." , features = ["test"]}
+vrl-core = { path = "../core" }
+vrl-compiler = { path = "../compiler", features = ["test"] }
 
 [features]
 default = [
@@ -280,7 +282,7 @@ for_each = []
 format_int = []
 format_number = ["dep:rust_decimal"]
 format_timestamp = ["dep:chrono"]
-get = ["dep:lookup_lib"]
+get = []
 get_env_var = []
 get_hostname = ["dep:hostname"]
 hmac = ["dep:hmac", "dep:sha-1", "dep:sha-2", "dep:hex", "dep:base64"]
@@ -317,7 +319,7 @@ map_values = []
 match = ["dep:regex"]
 match_any = ["dep:regex"]
 match_array = ["dep:regex"]
-match_datadog_query = ["dep:datadog-search-syntax", "dep:datadog-filter", "dep:once_cell", "dep:regex", "dep:lookup_lib"]
+match_datadog_query = ["dep:datadog-search-syntax", "dep:datadog-filter", "dep:once_cell", "dep:regex"]
 md5 = ["dep:md-5", "dep:hex"]
 merge = []
 mod = []
@@ -357,12 +359,12 @@ random_bytes = ["dep:rand"]
 random_float = ["dep:rand"]
 random_int = ["dep:rand"]
 redact = ["dep:once_cell", "dep:regex"]
-remove = ["dep:lookup_lib"]
+remove = []
 replace = ["dep:regex"]
 reverse_dns = ["dep:dns-lookup"]
 round = []
 seahash = ["dep:seahash"]
-set = ["dep:lookup_lib"]
+set = []
 sha1 = ["dep:sha-1", "dep:hex"]
 sha2 = ["dep:sha-2", "dep:hex"]
 sha3 = ["dep:sha-3", "dep:hex"]
@@ -390,7 +392,7 @@ to_unix_timestamp = ["dep:chrono"]
 type_def = []
 truncate = []
 unique = ["dep:indexmap"]
-unnest = ["dep:lookup_lib"]
+unnest = []
 upcase = []
 uuid_v4 = ["dep:bytes", "dep:uuid"]
 values = []

@@ -1,9 +1,6 @@
-use std::collections::BTreeMap;
-
-use ::value::Value;
-use vrl::prelude::*;
-
 use crate::log_util;
+use std::collections::BTreeMap;
+use vrl_compiler::prelude::*;
 
 fn parse_common_log(bytes: Value, timestamp_format: Option<Value>, ctx: &Context) -> Resolved {
     let message = bytes.try_bytes_utf8_lossy()?;

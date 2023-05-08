@@ -1,6 +1,4 @@
-use ::value::Value;
-use vrl::prelude::*;
-use vrl::state::TypeInfo;
+use vrl_compiler::prelude::*;
 
 #[inline]
 fn del(query: &expression::Query, compact: bool, ctx: &mut Context) -> Resolved {
@@ -118,7 +116,7 @@ impl Function for Del {
 
         if let Some(target_path) = query.external_path() {
             if ctx.is_read_only_path(&target_path) {
-                return Err(vrl::function::Error::ReadOnlyMutation {
+                return Err(function::Error::ReadOnlyMutation {
                     context: format!("{query} is read-only, and cannot be deleted"),
                 }
                 .into());
@@ -138,7 +136,7 @@ pub(crate) struct DelFn {
 impl DelFn {
     #[cfg(test)]
     fn new(path: &str) -> Self {
-        use lookup_lib::{lookup_v2::parse_value_path, PathPrefix};
+        use path::{parse_value_path, PathPrefix};
 
         Self {
             query: expression::Query::new(
@@ -208,10 +206,8 @@ impl fmt::Display for DelFn {
 
 #[cfg(test)]
 mod tests {
-    use ::value::btreemap;
-    use vrl_core::TimeZone;
-
     use super::*;
+    use ::value::btreemap;
 
     #[test]
     fn del() {
@@ -262,7 +258,7 @@ mod tests {
         let tz = TimeZone::default();
         for (object, exp, func) in cases {
             let mut object: Value = object.into();
-            let mut runtime_state = vrl::state::RuntimeState::default();
+            let mut runtime_state = state::RuntimeState::default();
             let mut ctx = Context::new(&mut object, &mut runtime_state, &tz);
             let got = func
                 .resolve(&mut ctx)

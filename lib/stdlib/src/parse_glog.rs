@@ -1,10 +1,8 @@
-use std::collections::BTreeMap;
-
-use ::value::Value;
 use chrono::{offset::TimeZone, Utc};
 use once_cell::sync::Lazy;
 use regex::Regex;
-use vrl::prelude::*;
+use std::collections::BTreeMap;
+use vrl_compiler::prelude::*;
 
 fn parse_glog(bytes: Value) -> Resolved {
     let bytes = bytes.try_bytes()?;

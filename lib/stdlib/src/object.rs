@@ -1,5 +1,4 @@
-use ::value::Value;
-use vrl::prelude::*;
+use vrl_compiler::prelude::*;
 
 fn object(value: Value) -> Resolved {
     match value {

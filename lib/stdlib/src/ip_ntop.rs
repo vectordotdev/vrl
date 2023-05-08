@@ -1,7 +1,5 @@
 use std::net::IpAddr;
-
-use ::value::Value;
-use vrl::prelude::*;
+use vrl_compiler::prelude::*;
 
 fn ip_ntop(value: Value) -> Resolved {
     let value = value.try_bytes()?;

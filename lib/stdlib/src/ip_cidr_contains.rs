@@ -1,6 +1,5 @@
-use ::value::Value;
 use cidr_utils::cidr::IpCidr;
-use vrl::prelude::*;
+use vrl_compiler::prelude::*;
 
 fn ip_cidr_contains(value: Value, cidr: Value) -> Resolved {
     let value = value

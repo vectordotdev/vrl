@@ -1,6 +1,6 @@
 use crate::value::crud::{get_matching_coalesce_key, ValueCollection};
 use crate::Value;
-use lookup::lookup_v2::BorrowedSegment;
+use path::BorrowedSegment;
 
 pub fn get_mut<'a>(
     mut value: &mut Value,

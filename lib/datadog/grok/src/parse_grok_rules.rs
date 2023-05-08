@@ -3,8 +3,8 @@ use std::{
     convert::TryFrom,
 };
 
-use lookup::OwnedValuePath;
 use once_cell::sync::Lazy;
+use path::OwnedValuePath;
 use tracing::error;
 use value::Value;
 

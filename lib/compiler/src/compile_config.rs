@@ -1,5 +1,5 @@
 use anymap::AnyMap;
-use lookup::OwnedTargetPath;
+use path::OwnedTargetPath;
 use std::collections::BTreeSet;
 
 pub struct CompileConfig {

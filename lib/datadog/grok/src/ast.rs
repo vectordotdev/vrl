@@ -1,4 +1,4 @@
-use lookup::OwnedValuePath;
+use path::OwnedValuePath;
 use value::Value;
 
 #[derive(Clone, Debug, PartialEq)]

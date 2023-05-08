@@ -1,13 +1,12 @@
-use ::value::Value;
 use rust_decimal::prelude::Signed;
-use vrl::prelude::expression::FunctionExpression;
-use vrl::prelude::*;
+
+use vrl_compiler::prelude::*;
 
 fn abs(value: Value) -> Resolved {
     match value {
         Value::Float(f) => Ok(Value::from_f64_or_zero(*f.abs())),
         Value::Integer(i) => Ok(Value::from(i.abs())),
-        value => Err(value::Error::Expected {
+        value => Err(ValueError::Expected {
             got: value.kind(),
             expected: Kind::float() | Kind::integer(),
         }

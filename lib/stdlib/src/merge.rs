@@ -1,7 +1,5 @@
 use std::collections::BTreeMap;
-
-use ::value::Value;
-use vrl::prelude::*;
+use vrl_compiler::prelude::*;
 
 #[derive(Clone, Copy, Debug)]
 pub struct Merge;
@@ -117,10 +115,8 @@ where
 
 #[cfg(test)]
 mod tests {
-    use ::value::btreemap;
-    use vrl::value::Kind;
-
     use super::*;
+    use ::value::btreemap;
 
     test_function! [
         merge => Merge;

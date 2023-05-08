@@ -1,4 +1,4 @@
-use lookup::lookup_v2::ValuePath;
+use ::path::ValuePath;
 
 use crate::Value;
 
@@ -19,7 +19,7 @@ impl Value {
 mod at_path_tests {
     use std::collections::BTreeMap;
 
-    use lookup::lookup_v2::parse_value_path;
+    use path::{parse_value_path, path};
 
     use crate::Value;
 
@@ -42,7 +42,7 @@ mod at_path_tests {
 
         let object = Value::Integer(12);
 
-        assert_eq!(value.at_path(lookup::path!()), object);
+        assert_eq!(value.at_path(path!()), object);
     }
 
     #[test]

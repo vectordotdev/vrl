@@ -1,6 +1,5 @@
-use ::value::Value;
 use regex::Regex;
-use vrl::prelude::*;
+use vrl_compiler::prelude::*;
 
 use crate::util;
 

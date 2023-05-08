@@ -1,6 +1,6 @@
 use crate::kind::collection::{CollectionKey, CollectionRemove};
 use crate::kind::Collection;
-use lookup::lookup_v2::OwnedSegment;
+use path::OwnedSegment;
 
 /// A `field` type that can be used in `Collection<Field>`
 #[derive(Debug, Clone, Eq, PartialEq, PartialOrd, Ord, Hash)]

@@ -39,7 +39,7 @@ pub(crate) mod predicate;
 #[cfg(feature = "expr-query")]
 pub mod query;
 
-pub use core::{ExpressionError, Resolved};
+pub use crate::{ExpressionError, Resolved};
 
 use crate::state::{TypeInfo, TypeState};
 #[cfg(feature = "expr-abort")]

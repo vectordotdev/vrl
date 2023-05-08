@@ -1,7 +1,5 @@
-use ::value::Value;
 use nom::AsBytes;
-use vrl::prelude::expression::FunctionExpression;
-use vrl::prelude::*;
+use vrl_compiler::prelude::*;
 
 fn encode_zstd(value: Value, compression_level: Option<Value>) -> Resolved {
     let compression_level = match compression_level {

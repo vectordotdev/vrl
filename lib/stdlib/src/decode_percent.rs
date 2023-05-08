@@ -1,7 +1,5 @@
-use ::value::Value;
 use percent_encoding::percent_decode;
-use vrl::prelude::expression::FunctionExpression;
-use vrl::prelude::*;
+use vrl_compiler::prelude::*;
 
 fn decode_percent(value: Value) -> Resolved {
     let value = value.try_bytes()?;

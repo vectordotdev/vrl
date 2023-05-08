@@ -6,9 +6,11 @@ edition = "2021"
 publish = false
 
 [dependencies]
-lookup = { path = "../lookup" }
+path = { path = "../path" }
 stdlib = { package = "vrl-stdlib", path = "../stdlib" }
-vrl = { path = "../.." }
+vrl-diagnostic = { path = "../diagnostic" }
+vrl-compiler = { path = "../compiler" }
+vrl-core = { path = "../core" }
 value = { path = "../value" }
 
 ansi_term = "0.12"

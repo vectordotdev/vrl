@@ -1,6 +1,5 @@
-use ::value::Value;
-use vrl::prelude::*;
-use vrl_core::conversion::Conversion;
+use vrl_compiler::conversion::Conversion;
+use vrl_compiler::prelude::*;
 
 fn parse_timestamp(value: Value, format: Value, ctx: &Context) -> Resolved {
     match value {
@@ -100,7 +99,7 @@ mod tests {
                     .with_timezone(&Utc)
             )),
             tdef: TypeDef::timestamp().fallible(),
-            tz: vrl_core::TimeZone::default(),
+            tz: TimeZone::default(),
         }
 
         parse_text {
@@ -114,7 +113,7 @@ mod tests {
                     .with_timezone(&Utc)
             )),
             tdef: TypeDef::timestamp().fallible(),
-            tz: vrl_core::TimeZone::default(),
+            tz: TimeZone::default(),
         }
 
         parse_text_with_tz {
@@ -128,7 +127,7 @@ mod tests {
                     .with_timezone(&Utc)
             )),
             tdef: TypeDef::timestamp().fallible(),
-            tz: vrl_core::TimeZone::Named(chrono_tz::Europe::Paris),
+            tz: TimeZone::Named(chrono_tz::Europe::Paris),
         }
     ];
 }

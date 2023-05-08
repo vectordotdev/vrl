@@ -1,6 +1,5 @@
-use ::value::Value;
-use vrl::prelude::*;
-use vrl_core::conversion::Conversion;
+use vrl_compiler::conversion::Conversion;
+use vrl_compiler::prelude::*;
 
 fn to_bool(value: Value) -> Resolved {
     use Value::{Boolean, Bytes, Float, Integer, Null};

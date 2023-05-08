@@ -1,7 +1,5 @@
-use ::value::Value;
 use nom::AsBytes;
-use vrl::prelude::expression::FunctionExpression;
-use vrl::prelude::*;
+use vrl_compiler::prelude::*;
 
 fn decode_zstd(value: Value) -> Resolved {
     let value = value.try_bytes()?;

@@ -1,6 +1,5 @@
-use ::value::Value;
 use sha_3::{Digest, Sha3_224, Sha3_256, Sha3_384, Sha3_512};
-use vrl::prelude::*;
+use vrl_compiler::prelude::*;
 
 fn sha3(value: Value, variant: &Bytes) -> Resolved {
     let value = value.try_bytes()?;

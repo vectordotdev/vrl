@@ -1,10 +1,8 @@
-use std::collections::BTreeMap;
-
-use ::value::Value;
 use chrono::{offset::TimeZone, Datelike, Utc};
 use once_cell::sync::Lazy;
 use regex::Regex;
-use vrl::prelude::*;
+use std::collections::BTreeMap;
+use vrl_compiler::prelude::*;
 
 fn parse_klog(bytes: Value) -> Resolved {
     let bytes = bytes.try_bytes()?;

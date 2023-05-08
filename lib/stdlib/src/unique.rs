@@ -1,6 +1,5 @@
-use ::value::Value;
 use indexmap::IndexSet;
-use vrl::prelude::*;
+use vrl_compiler::prelude::*;
 
 fn unique(value: Value) -> Resolved {
     let value = value.try_array()?;

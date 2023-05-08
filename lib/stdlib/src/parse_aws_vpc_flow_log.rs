@@ -1,7 +1,5 @@
 use std::collections::BTreeMap;
-
-use ::value::Value;
-use vrl::prelude::*;
+use vrl_compiler::prelude::*;
 
 fn parse_aws_vpc_flow_log(value: Value, format: Option<Value>) -> Resolved {
     let bytes = value.try_bytes()?;

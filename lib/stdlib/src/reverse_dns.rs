@@ -1,11 +1,11 @@
-use vrl::prelude::*;
+use vrl_compiler::prelude::*;
 
 #[cfg(not(target_arch = "wasm32"))]
 mod non_wasm {
     use ::value::Value;
     use dns_lookup::lookup_addr;
     use std::net::IpAddr;
-    use vrl::prelude::*;
+    use vrl_compiler::prelude::*;
 
     fn reverse_dns(value: Value) -> Resolved {
         let ip: IpAddr = value

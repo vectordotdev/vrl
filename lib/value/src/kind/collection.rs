@@ -7,8 +7,8 @@ use std::collections::BTreeMap;
 
 pub use field::Field;
 pub use index::Index;
-use lookup::lookup_v2::OwnedSegment;
-use lookup::OwnedValuePath;
+use path::OwnedSegment;
+use path::OwnedValuePath;
 pub use unknown::Unknown;
 
 use super::Kind;
