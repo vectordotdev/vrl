@@ -8,9 +8,11 @@
 #![allow(clippy::module_name_repetitions)]
 
 #[cfg(feature = "compiler")]
-pub use vrl_compiler as compiler;
+pub mod compiler;
+// pub use vrl_compiler as compiler;
+
 #[cfg(feature = "compiler")]
-pub use vrl_compiler::prelude;
+pub use compiler::prelude;
 
 #[cfg(feature = "value")]
 pub use value;
