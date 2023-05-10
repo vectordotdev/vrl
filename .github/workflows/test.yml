@@ -67,6 +67,16 @@ jobs:
       - name: Check that all features can compile
         run: cargo hack check --feature-powerset --depth 1
 
+  check-licenses:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: Swatinem/rust-cache@v2
+      - name: Install the 3rd-party license tool
+        run: cargo install --git https://github.com/DataDog/rust-license-tool
+      - name: Check that the 3rd-party license file is up to date
+        run: rust-license-tool check
+
   wasm32-unknown-unknown:
     runs-on: ubuntu-latest
     steps:
