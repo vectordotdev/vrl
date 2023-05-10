@@ -8,7 +8,7 @@ fn main() {
     // The VRL source code to run. This just retrieves the value of field "x"
     let src = ".x";
 
-    // Use  all of the std library functions
+    // Use all of the std library functions
     let fns = vrl::stdlib::all();
 
     // Compile the program (and panic if it's invalid)
