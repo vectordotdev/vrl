@@ -14,7 +14,8 @@ fn main() {
     // Compile the program (and panic if it's invalid)
     let result = vrl::compiler::compile(src, &fns).unwrap();
 
-    // This is the target that can be accessed / modified in the VRL program
+    // This is the target that can be accessed / modified in the VRL program.
+    // You can use any custom type that implements `Target`, but `TargetValue` is also provided for convenience.
     let mut target = TargetValue {
         // the value starts as just an object with a single field "x" set to 1
         value: value!({x: 1}),
