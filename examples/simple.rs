@@ -37,5 +37,4 @@ fn main() {
     let value = result.program.resolve(&mut ctx).unwrap();
 
     assert_eq!(value, value!(1));
-    println!("Value: {:?}", value);
 }
