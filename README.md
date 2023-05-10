@@ -8,7 +8,7 @@ created for use in [Vector], it was designed to be generic and re-usable in many
 
 VRL is broken up into multiple components, which can be enabled as needed.
 
-| Feature        | Default?| Description                                                                                      |
+| Feature        | Default | Description                                                                                      |
 |:---------      |:--------|:----------                                                                                       |
 | compiler       | yes     | The contains the core functionality of VRL. Compiling and running VRL programs.                  |
 | parser         | yes     | Creates an abstract syntax tree (AST) from VRL source code.                                      |
