@@ -1,7 +1,8 @@
 use std::collections::BTreeMap;
 use vrl::{
     compiler::{state::RuntimeState, Context, TargetValue, TimeZone},
-    value::{value, Secrets, Value},
+    value,
+    value::{Secrets, Value},
 };
 
 fn main() {

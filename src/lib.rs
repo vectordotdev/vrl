@@ -1,6 +1,5 @@
 #![deny(warnings)]
 #![deny(clippy::all)]
-#![deny(unreachable_pub)]
 #![deny(unused_allocation)]
 #![deny(unused_extern_crates)]
 #![deny(unused_assignments)]
@@ -8,39 +7,46 @@
 #![allow(clippy::module_name_repetitions)]
 
 #[cfg(feature = "compiler")]
-pub use vrl_compiler as compiler;
+pub mod compiler;
+
 #[cfg(feature = "compiler")]
-pub use vrl_compiler::prelude;
+pub use compiler::prelude;
 
 #[cfg(feature = "value")]
-pub use value;
+pub mod value;
 
 #[cfg(feature = "diagnostic")]
-pub use vrl_diagnostic as diagnostic;
+pub mod diagnostic;
 
 #[cfg(feature = "path")]
-pub use path;
+pub mod path;
 
 #[cfg(feature = "parser")]
-pub use vrl_parser as parser;
+pub mod parser;
 
 #[cfg(feature = "core")]
-pub use vrl_core as core;
+pub mod core;
 
-#[cfg(feature = "stdlib")]
-pub use vrl_stdlib as stdlib;
+#[cfg(feature = "stdlib-core")]
+pub mod stdlib;
 
 #[cfg(feature = "cli")]
-pub use vrl_cli as cli;
+pub mod cli;
 
 #[cfg(feature = "test_framework")]
-pub use vrl_tests as test;
+pub mod test;
+
+mod datadog;
 
 #[cfg(feature = "datadog_filter")]
-pub use datadog_filter;
+pub use datadog::filter as datadog_filter;
 
-#[cfg(feature = "datadog_grok")]
-pub use datadog_grok;
+#[cfg(all(feature = "datadog_grok", not(target_arch = "wasm32")))]
+pub use datadog::grok as datadog_grok;
 
 #[cfg(feature = "datadog_search")]
-pub use datadog_search_syntax;
+pub use datadog::search as datadog_search_syntax;
+
+#[cfg(feature = "datadog_search")]
+#[macro_use]
+extern crate pest_derive;
