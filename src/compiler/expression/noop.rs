@@ -1,6 +1,6 @@
 use std::fmt;
 
-use value::Value;
+use crate::value::Value;
 
 use crate::compiler::state::{TypeInfo, TypeState};
 use crate::compiler::{expression::Resolved, Context, Expression, TypeDef};

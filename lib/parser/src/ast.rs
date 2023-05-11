@@ -7,7 +7,7 @@ use std::{
     str::FromStr,
 };
 
-#[cfg(feature = "fuzz")]
+#[cfg(feature = "arbitrary")]
 use arbitrary::Arbitrary;
 use diagnostic::Span;
 use ordered_float::NotNan;
@@ -682,7 +682,7 @@ impl fmt::Debug for Op {
     }
 }
 
-#[cfg_attr(feature = "fuzz", derive(Arbitrary))]
+#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
 pub enum Opcode {
     Mul,
@@ -794,7 +794,7 @@ pub enum Assignment {
     // }
 }
 
-#[cfg_attr(feature = "fuzz", derive(Arbitrary))]
+#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 #[derive(Clone, PartialEq, Eq)]
 pub enum AssignmentOp {
     Assign,

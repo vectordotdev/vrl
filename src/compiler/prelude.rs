@@ -15,7 +15,7 @@ pub use super::{
     TypeDef,
 };
 pub use crate::diagnostic::{DiagnosticMessage, Note, Span};
-pub use ::value::{
+pub use crate::value::{
     kind::{Collection, Field, Index},
     value,
     value::IterItem,

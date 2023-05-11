@@ -1,6 +1,6 @@
 use std::{collections::BTreeMap, fmt, ops::Deref};
 
-use value::Value;
+use crate::value::Value;
 
 use crate::compiler::{
     expression::{Expr, Resolved},

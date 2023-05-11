@@ -25,8 +25,8 @@
 
 use std::ops::{Deref, DerefMut};
 
-use path::ValuePath;
-use value::{
+use crate::path::ValuePath;
+use crate::value::{
     kind::{merge, Collection, Field, Index},
     Kind, Value,
 };

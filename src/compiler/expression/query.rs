@@ -6,9 +6,9 @@ use crate::compiler::{
     type_def::Details,
     Context, Expression,
 };
-use path::{OwnedTargetPath, OwnedValuePath, PathPrefix};
+use crate::path::{OwnedTargetPath, OwnedValuePath, PathPrefix};
+use crate::value::Value;
 use std::fmt;
-use value::Value;
 
 #[derive(Clone, PartialEq)]
 pub struct Query {

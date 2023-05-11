@@ -1,11 +1,11 @@
 use std::{borrow::Cow, convert::TryFrom, fmt, sync::Arc};
 
 use crate::diagnostic::{DiagnosticMessage, Label, Note, Urls};
+use crate::value::{Value, ValueRegex};
 use bytes::Bytes;
 use chrono::{DateTime, SecondsFormat, Utc};
 use ordered_float::NotNan;
 use regex::Regex;
-use value::{Value, ValueRegex};
 
 use crate::compiler::{
     expression::Resolved,

@@ -1,4 +1,4 @@
-use path::OwnedTargetPath;
+use crate::path::OwnedTargetPath;
 
 use super::state::TypeState;
 use super::{expression::Block, Context, Expression, Resolved};

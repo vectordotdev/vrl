@@ -1,9 +1,9 @@
-use ::value::Value;
+use crate::value::Value;
 use chrono::{TimeZone, Utc};
 use ordered_float::NotNan;
 use regex::Regex;
 
-use value::value;
+use crate::value;
 
 pub const BYTES: u16 = 1 << 1;
 pub const INTEGER: u16 = 1 << 2;
@@ -21,7 +21,7 @@ pub const ANY: u16 =
 pub const SCALAR: u16 = BYTES | INTEGER | FLOAT | BOOLEAN | TIMESTAMP | REGEX | NULL;
 pub const CONTAINER: u16 = OBJECT | ARRAY;
 
-pub use ::value::{
+pub use crate::value::{
     kind::{get, insert, merge, remove, Collection, Field, Index},
     Kind,
 };

@@ -1,9 +1,9 @@
 use std::time::Duration;
 
-use ::value::Value;
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
 use indoc::indoc;
-use vrl_compiler::{compile, runtime::Runtime, state, CompilationResult, TimeZone};
+use vrl::compiler::{compile, runtime::Runtime, state, CompilationResult, TimeZone};
+use vrl::value::Value;
 
 struct Source {
     name: &'static str,
@@ -94,12 +94,12 @@ fn benchmark_vrl_runtimes(c: &mut Criterion) {
     let mut group = c.benchmark_group("vrl/runtime");
     for source in SOURCES {
         let tz = TimeZone::default();
-        let functions = vrl_stdlib::all();
+        let functions = vrl::stdlib::all();
         let CompilationResult {
             program,
             warnings: _,
             config: _,
-        } = compile(source.program, &functions).unwrap();
+        } = compile(source.program, &functions[..]).unwrap();
 
         group.bench_with_input(BenchmarkId::new(source.name, "ast"), &(), |b, _| {
             let state = state::RuntimeState::default();

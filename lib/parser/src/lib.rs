@@ -32,9 +32,9 @@ lalrpop_mod!(
     parser
 );
 
-#[cfg(feature = "fuzz")]
+#[cfg(feature = "arbitrary")]
 mod arbitrary;
-#[cfg(feature = "fuzz")]
+#[cfg(feature = "arbitrary")]
 mod arbitrary_depth;
 pub mod ast;
 mod lex;

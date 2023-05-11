@@ -1,8 +1,8 @@
 use std::convert::AsRef;
 
-use path::OwnedTargetPath;
-use path::PathPrefix;
-use value::{Secrets, Value};
+use crate::path::OwnedTargetPath;
+use crate::path::PathPrefix;
+use crate::value::{Secrets, Value};
 
 /// Any target object you want to remap using VRL has to implement this trait.
 pub trait Target: std::fmt::Debug + SecretTarget {
@@ -215,7 +215,7 @@ impl SecretTarget for Secrets {
 #[cfg(any(test, feature = "test"))]
 mod value_target_impl {
     use super::{SecretTarget, Target, Value};
-    use path::{OwnedTargetPath, PathPrefix};
+    use crate::path::{OwnedTargetPath, PathPrefix};
 
     impl Target for Value {
         fn target_insert(
@@ -278,10 +278,10 @@ mod value_target_impl {
 mod tests {
     #![allow(clippy::print_stdout)] // tests
 
-    use path::owned_value_path;
+    use crate::owned_value_path;
 
     use super::*;
-    use value::value;
+    use crate::value;
 
     #[test]
     fn target_get() {

@@ -1,5 +1,5 @@
+use crate::path::OwnedTargetPath;
 use anymap::AnyMap;
-use path::OwnedTargetPath;
 use std::collections::BTreeSet;
 
 pub struct CompileConfig {

@@ -2,7 +2,7 @@ use crate::compiler::ExpressionError;
 use std::collections::BTreeMap;
 
 use crate::parser::ast::Ident;
-use value::{
+use crate::value::{
     kind::{Collection, Field, Index},
     Value,
 };

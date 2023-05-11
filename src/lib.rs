@@ -15,34 +15,40 @@ pub mod compiler;
 pub use compiler::prelude;
 
 #[cfg(feature = "value")]
-pub use value;
+pub mod value;
 
 #[cfg(feature = "diagnostic")]
-pub use vrl_diagnostic as diagnostic;
+pub mod diagnostic;
 
 #[cfg(feature = "path")]
-pub use path;
+pub mod path;
 
 #[cfg(feature = "parser")]
-pub use vrl_parser as parser;
+pub mod parser;
 
 #[cfg(feature = "core")]
-pub use vrl_core as core;
+pub mod core;
 
 #[cfg(feature = "stdlib")]
-pub use vrl_stdlib as stdlib;
+pub mod stdlib;
 
-#[cfg(feature = "cli")]
-pub use vrl_cli as cli;
+// #[cfg(feature = "cli")]
+// pub use vrl_cli as cli;
 
-#[cfg(feature = "test_framework")]
-pub use vrl_tests as test;
+// #[cfg(feature = "test_framework")]
+// pub use vrl_tests as test;
+
+mod datadog;
 
 #[cfg(feature = "datadog_filter")]
-pub use datadog_filter;
+pub use datadog::filter as datadog_filter;
 
 #[cfg(feature = "datadog_grok")]
-pub use datadog_grok;
+pub use datadog::grok as datadog_grok;
 
 #[cfg(feature = "datadog_search")]
-pub use datadog_search_syntax;
+pub use datadog::search as datadog_search_syntax;
+
+#[cfg(feature = "datadog_search")]
+#[macro_use]
+extern crate pest_derive;

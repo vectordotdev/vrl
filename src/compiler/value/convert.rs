@@ -1,8 +1,8 @@
 use std::{borrow::Cow, collections::BTreeMap};
 
+use crate::value::{kind::Collection, Value, ValueRegex};
 use bytes::Bytes;
 use chrono::{DateTime, Utc};
-use value::{kind::Collection, Value, ValueRegex};
 
 use crate::compiler::{
     expression::{Container, Expr, Variant},

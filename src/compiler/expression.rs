@@ -1,8 +1,8 @@
 use std::fmt;
 
 use crate::diagnostic::{DiagnosticMessage, Label, Note};
+use crate::value::Value;
 use dyn_clone::{clone_trait_object, DynClone};
-use value::Value;
 
 use super::{Context, Span, TypeDef};
 
@@ -352,7 +352,9 @@ impl From<Value> for Expr {
     fn from(value: Value) -> Self {
         use std::collections::BTreeMap;
 
-        use value::Value::{Array, Boolean, Bytes, Float, Integer, Null, Object, Regex, Timestamp};
+        use crate::value::Value::{
+            Array, Boolean, Bytes, Float, Integer, Null, Object, Regex, Timestamp,
+        };
 
         match value {
             Bytes(v) => Literal::from(v).into(),

@@ -1,7 +1,7 @@
 use std::fmt;
 
 use crate::diagnostic::{DiagnosticMessage, Label, Note, Span, Urls};
-use value::Value;
+use crate::value::Value;
 
 use crate::compiler::state::{TypeInfo, TypeState};
 use crate::compiler::{
@@ -82,8 +82,8 @@ impl Op {
 
 impl Expression for Op {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
+        use crate::value::Value::{Boolean, Null};
         use ast::Opcode::{Add, And, Div, Eq, Err, Ge, Gt, Le, Lt, Merge, Mul, Ne, Or, Sub};
-        use value::Value::{Boolean, Null};
 
         match self.opcode {
             Err => return self.lhs.resolve(ctx).or_else(|_| self.rhs.resolve(ctx)),
@@ -124,8 +124,8 @@ impl Expression for Op {
     }
 
     fn type_info(&self, state: &TypeState) -> TypeInfo {
+        use crate::value::Kind as K;
         use ast::Opcode::{Add, And, Div, Eq, Err, Ge, Gt, Le, Lt, Merge, Mul, Ne, Or, Sub};
-        use value::Kind as K;
 
         let mut state = state.clone();
         let mut lhs_def = self.lhs.apply_type_info(&mut state);

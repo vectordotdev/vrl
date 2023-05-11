@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
+use crate::value::Value;
 use bytes::{BufMut, Bytes, BytesMut};
-use value::Value;
 
 use super::ValueError;
 use crate::compiler::{
