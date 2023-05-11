@@ -85,5 +85,4 @@ jobs:
         run: rustup target add wasm32-unknown-unknown
       - uses: Swatinem/rust-cache@v2
       - name: "check"
-        run: cargo check --target wasm32-unknown-unknown
-        working-directory: lib/stdlib
+        run: cargo check --target wasm32-unknown-unknown --no-default-features --features stdlib
