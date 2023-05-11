@@ -1,4 +1,6 @@
-use crate::diagnostic::{DiagnosticList, DiagnosticMessage, Severity, Span};
+use crate::path::PathPrefix;
+
+use crate::diagnostic::{DiagnosticList, DiagnosticMessage, Severity};
 use crate::parser::ast::{self, Node, QueryTarget};
 use crate::path::{OwnedTargetPath, OwnedValuePath};
 use crate::value::Value;
@@ -7,8 +9,8 @@ use super::state::TypeState;
 use crate::compiler::{
     expression::{
         assignment, function_call, literal, predicate, query, Abort, Array, Assignment, Block,
-        Container, Error, Expr, Expression, FunctionArgument, FunctionCall, Group, IfStatement,
-        Literal, Noop, Not, Object, Op, Predicate, Query, Target, Unary, Variable,
+        Container, Expr, Expression, FunctionArgument, FunctionCall, Group, IfStatement, Literal,
+        Noop, Not, Object, Op, Predicate, Query, Target, Unary, Variable,
     },
     parser::ast::RootExpr,
     program::ProgramInfo,
@@ -764,13 +766,6 @@ impl<'a> Compiler<'a> {
 
     fn handle_parser_error(&mut self, error: crate::parser::Error) {
         self.diagnostics.push(Box::new(error));
-    }
-
-    fn handle_missing_feature_error(&mut self, span: Span, feature: &'static str) -> Option<Expr> {
-        self.diagnostics
-            .push(Box::new(Error::Missing { span, feature }));
-
-        None
     }
 
     fn skip_missing_assignment_target(&mut self, target: ast::AssignmentTarget) {

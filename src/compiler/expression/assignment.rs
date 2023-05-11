@@ -1,11 +1,11 @@
 use std::{convert::TryFrom, fmt};
 
-use diagnostic::{DiagnosticMessage, Label, Note};
-use path::{OwnedSegment, OwnedTargetPath};
-use path::{OwnedValuePath, PathPrefix};
-use value::{Kind, Value};
+use crate::diagnostic::{DiagnosticMessage, Label, Note};
+use crate::path::{OwnedSegment, OwnedTargetPath};
+use crate::path::{OwnedValuePath, PathPrefix};
+use crate::value::{Kind, Value};
 
-use crate::{
+use crate::compiler::{
     expression::{assignment::ErrorVariant::InvalidParentPathSegment, Expr, Resolved},
     parser::{
         ast::{self, Ident},
@@ -750,9 +750,9 @@ impl DiagnosticMessage for Error {
 
 #[cfg(test)]
 mod test {
-    use crate::state::{ExternalEnv, LocalEnv};
+    use crate::compiler::state::{ExternalEnv, LocalEnv};
+    use crate::compiler::{compile_with_state, CompileConfig, TypeState};
     use crate::value::Kind;
-    use crate::{compile_with_state, CompileConfig, TypeState};
 
     #[test]
     fn never_assignment_to_target() {

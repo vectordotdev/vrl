@@ -148,7 +148,6 @@ impl Expr {
 
     pub fn as_literal(&self, keyword: &'static str) -> Result<Value, super::function::Error> {
         let literal = match self {
-            #[cfg(feature = "expr-literal")]
             Expr::Literal(literal) => Ok(literal.clone()),
             Expr::Variable(var) if var.value().is_some() => {
                 match var.value().unwrap().clone().into() {
@@ -175,15 +174,6 @@ impl Expr {
                 expr: self.clone(),
             }),
         }
-    }
-
-    #[cfg(not(feature = "expr-literal"))]
-    pub fn as_literal(&self, keyword: &'static str) -> Result<Value, super::function::Error> {
-        Err(super::function::Error::UnexpectedExpression {
-            keyword,
-            expected: "literal",
-            expr: self.clone(),
-        })
     }
 
     pub fn as_enum(

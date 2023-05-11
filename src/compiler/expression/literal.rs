@@ -1,13 +1,13 @@
 use std::{borrow::Cow, convert::TryFrom, fmt, sync::Arc};
 
+use crate::diagnostic::{DiagnosticMessage, Label, Note, Urls};
 use bytes::Bytes;
 use chrono::{DateTime, SecondsFormat, Utc};
-use diagnostic::{DiagnosticMessage, Label, Note, Urls};
 use ordered_float::NotNan;
 use regex::Regex;
 use value::{Value, ValueRegex};
 
-use crate::{
+use crate::compiler::{
     expression::Resolved,
     state::{TypeInfo, TypeState},
     Context, Expression, Span, TypeDef,
@@ -358,7 +358,8 @@ impl From<(Span, chrono::ParseError)> for Error {
 
 #[cfg(test)]
 mod tests {
-    use crate::{expr, test_type_def, TypeDef};
+    use crate::compiler::TypeDef;
+    use crate::{expr, test_type_def};
 
     test_type_def![
         bytes {

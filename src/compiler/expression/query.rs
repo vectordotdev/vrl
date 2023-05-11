@@ -1,4 +1,4 @@
-use crate::{
+use crate::compiler::{
     expression::{Container, Resolved, Variable},
     parser::ast::Ident,
     state::ExternalEnv,
@@ -163,11 +163,7 @@ impl fmt::Debug for Query {
 pub enum Target {
     Internal(Variable),
     External(PathPrefix),
-
-    #[cfg(feature = "expr-function_call")]
-    FunctionCall(crate::expression::FunctionCall),
-    #[cfg(not(feature = "expr-function_call"))]
-    FunctionCall(crate::expression::Noop),
+    FunctionCall(crate::compiler::expression::FunctionCall),
     Container(Container),
 }
 

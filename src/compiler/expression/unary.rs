@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::{
+use crate::compiler::{
     expression::{Not, Resolved},
     state::{TypeInfo, TypeState},
     Context, Expression,

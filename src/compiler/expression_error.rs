@@ -5,9 +5,8 @@ pub type Resolved = Result<Value, ExpressionError>;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ExpressionError {
-    #[cfg(feature = "expr-abort")]
     Abort {
-        span: diagnostic::Span,
+        span: crate::diagnostic::Span,
         message: Option<String>,
     },
     Error {
@@ -47,24 +46,20 @@ impl DiagnosticMessage for ExpressionError {
     }
 
     fn message(&self) -> String {
-        #[cfg(feature = "expr-abort")]
         use ExpressionError::Abort;
         use ExpressionError::Error;
 
         match self {
-            #[cfg(feature = "expr-abort")]
             Abort { message, .. } => message.clone().unwrap_or_else(|| "aborted".to_owned()),
             Error { message, .. } => message.clone(),
         }
     }
 
     fn labels(&self) -> Vec<Label> {
-        #[cfg(feature = "expr-abort")]
         use ExpressionError::Abort;
         use ExpressionError::Error;
 
         match self {
-            #[cfg(feature = "expr-abort")]
             Abort { span, .. } => {
                 vec![Label::primary("aborted", span)]
             }
@@ -73,12 +68,10 @@ impl DiagnosticMessage for ExpressionError {
     }
 
     fn notes(&self) -> Vec<Note> {
-        #[cfg(feature = "expr-abort")]
         use ExpressionError::Abort;
         use ExpressionError::Error;
 
         match self {
-            #[cfg(feature = "expr-abort")]
             Abort { .. } => vec![],
             Error { notes, .. } => notes.clone(),
         }

@@ -1,10 +1,10 @@
 use std::fmt;
 
-use diagnostic::{DiagnosticMessage, Label, Note, Span, Urls};
+use crate::diagnostic::{DiagnosticMessage, Label, Note, Span, Urls};
 use value::Value;
 
-use crate::state::{TypeInfo, TypeState};
-use crate::{
+use crate::compiler::state::{TypeInfo, TypeState};
+use crate::compiler::{
     expression::{self, Expr, Resolved},
     parser::{ast, Node},
     value::VrlValueArithmetic,
@@ -408,7 +408,7 @@ impl DiagnosticMessage for Error {
 
 // -----------------------------------------------------------------------------
 
-#[cfg(all(test, feature = "expressions"))]
+#[cfg(test)]
 mod tests {
     use std::convert::TryInto;
 
@@ -419,10 +419,8 @@ mod tests {
     use ordered_float::NotNan;
 
     use super::*;
-    use crate::{
-        expression::{Block, IfStatement, Literal, Predicate, Variable},
-        test_type_def,
-    };
+    use crate::compiler::expression::{Block, IfStatement, Literal, Predicate, Variable};
+    use crate::test_type_def;
 
     fn op(
         opcode: ast::Opcode,
@@ -595,7 +593,7 @@ mod tests {
 
         divide_dynamic_rhs {
             expr: |state: &mut TypeState| {
-                state.local.insert_variable(Ident::new("foo"), crate::type_def::Details {
+                state.local.insert_variable(Ident::new("foo"), crate::compiler::type_def::Details {
                     type_def: TypeDef::null(),
                     value: None,
                 });

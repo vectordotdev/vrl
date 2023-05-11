@@ -1,9 +1,9 @@
 use std::fmt;
 
-use diagnostic::{DiagnosticMessage, Label, Note, Urls};
+use crate::diagnostic::{DiagnosticMessage, Label, Note, Urls};
 
-use crate::state::{TypeInfo, TypeState};
-use crate::{
+use crate::compiler::state::{TypeInfo, TypeState};
+use crate::compiler::{
     expression::{Expr, Resolved},
     parser::Node,
     value::{Kind, VrlValueConvert},

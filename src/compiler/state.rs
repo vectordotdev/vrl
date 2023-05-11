@@ -55,12 +55,10 @@ impl LocalEnv {
         self.bindings.get(ident)
     }
 
-    #[cfg(any(feature = "expr-assignment", feature = "expr-function_call"))]
     pub(crate) fn insert_variable(&mut self, ident: Ident, details: Details) {
         self.bindings.insert(ident, details);
     }
 
-    #[cfg(feature = "expr-function_call")]
     pub(crate) fn remove_variable(&mut self, ident: &Ident) -> Option<Details> {
         self.bindings.remove(ident)
     }
@@ -149,7 +147,6 @@ impl ExternalEnv {
         &self.metadata
     }
 
-    #[cfg(any(feature = "expr-assignment", feature = "expr-query"))]
     pub(crate) fn update_target(&mut self, details: Details) {
         self.target = details;
     }

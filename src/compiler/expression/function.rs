@@ -1,6 +1,5 @@
-use crate::state::{TypeInfo, TypeState};
-use crate::Resolved;
-use crate::{Context, Expression, TypeDef};
+use crate::compiler::state::{TypeInfo, TypeState};
+use crate::compiler::{Context, Expression, Resolved, TypeDef};
 use dyn_clone::DynClone;
 use std::fmt;
 use std::fmt::Debug;

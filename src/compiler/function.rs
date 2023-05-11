@@ -220,11 +220,10 @@ impl ArgumentList {
         Box::new(self.required_expr(keyword)) as _
     }
 
-    #[cfg(feature = "expr-literal")]
     pub fn optional_literal(
         &self,
         keyword: &'static str,
-    ) -> Result<Option<crate::expression::Literal>, Error> {
+    ) -> Result<Option<crate::compiler::expression::Literal>, Error> {
         self.optional_expr(keyword)
             .map(|expr| match expr {
                 Expr::Literal(literal) => Ok(literal),
@@ -247,14 +246,6 @@ impl ArgumentList {
             .transpose()
     }
 
-    #[cfg(not(feature = "expr-literal"))]
-    pub fn optional_literal(
-        &self,
-        _: &'static str,
-    ) -> Result<Option<super::expression::Noop>, Error> {
-        Ok(Some(super::expression::Noop))
-    }
-
     /// Returns the argument if it is a literal, an object or an array.
     pub fn optional_value(&self, keyword: &'static str) -> Result<Option<Value>, Error> {
         self.optional_expr(keyword)
@@ -268,19 +259,10 @@ impl ArgumentList {
             .transpose()
     }
 
-    #[cfg(feature = "expr-literal")]
     pub fn required_literal(
         &self,
         keyword: &'static str,
-    ) -> Result<crate::expression::Literal, Error> {
-        Ok(required(self.optional_literal(keyword)?))
-    }
-
-    #[cfg(not(feature = "expr-literal"))]
-    pub fn required_literal(
-        &mut self,
-        keyword: &'static str,
-    ) -> Result<super::expression::Noop, Error> {
+    ) -> Result<crate::compiler::expression::Literal, Error> {
         Ok(required(self.optional_literal(keyword)?))
     }
 
@@ -309,11 +291,10 @@ impl ArgumentList {
         Ok(required(self.optional_enum(keyword, variants)?))
     }
 
-    #[cfg(feature = "expr-query")]
     pub fn optional_query(
         &self,
         keyword: &'static str,
-    ) -> Result<Option<crate::expression::Query>, Error> {
+    ) -> Result<Option<crate::compiler::expression::Query>, Error> {
         self.optional_expr(keyword)
             .map(|expr| match expr {
                 Expr::Query(query) => Ok(query),
@@ -326,16 +307,19 @@ impl ArgumentList {
             .transpose()
     }
 
-    #[cfg(feature = "expr-query")]
-    pub fn required_query(&self, keyword: &'static str) -> Result<crate::expression::Query, Error> {
+    pub fn required_query(
+        &self,
+        keyword: &'static str,
+    ) -> Result<crate::compiler::expression::Query, Error> {
         Ok(required(self.optional_query(keyword)?))
     }
 
     pub fn optional_regex(&self, keyword: &'static str) -> Result<Option<regex::Regex>, Error> {
         self.optional_expr(keyword)
             .map(|expr| match expr {
-                #[cfg(feature = "expr-literal")]
-                Expr::Literal(crate::expression::Literal::Regex(regex)) => Ok((*regex).clone()),
+                Expr::Literal(crate::compiler::expression::Literal::Regex(regex)) => {
+                    Ok((*regex).clone())
+                }
                 expr => Err(Error::UnexpectedExpression {
                     keyword,
                     expected: "regex",
@@ -401,17 +385,14 @@ impl ArgumentList {
             .ok_or(Error::ExpectedFunctionClosure)
     }
 
-    #[cfg(feature = "expr-function_call")]
     pub(crate) fn keywords(&self) -> Vec<&'static str> {
         self.arguments.keys().copied().collect::<Vec<_>>()
     }
 
-    #[cfg(feature = "expr-function_call")]
     pub(crate) fn insert(&mut self, k: &'static str, v: Expr) {
         self.arguments.insert(k, v);
     }
 
-    #[cfg(feature = "expr-function_call")]
     pub(crate) fn set_closure(&mut self, closure: FunctionClosure) {
         self.closure = Some(closure);
     }

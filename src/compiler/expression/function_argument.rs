@@ -16,13 +16,11 @@ impl FunctionArgument {
         Self { ident, expr }
     }
 
-    #[cfg(feature = "expr-function_call")]
     pub(crate) fn keyword(&self) -> Option<&str> {
         self.ident.as_ref().map(|node| node.as_ref().as_ref())
     }
 
-    #[cfg(feature = "expr-function_call")]
-    pub(crate) fn keyword_span(&self) -> Option<crate::Span> {
+    pub(crate) fn keyword_span(&self) -> Option<crate::parser::Span> {
         self.ident.as_ref().map(Node::span)
     }
 
@@ -30,8 +28,7 @@ impl FunctionArgument {
         self.expr.inner()
     }
 
-    #[cfg(feature = "expr-function_call")]
-    pub(crate) fn expr_span(&self) -> crate::Span {
+    pub(crate) fn expr_span(&self) -> crate::parser::Span {
         self.expr.span()
     }
 

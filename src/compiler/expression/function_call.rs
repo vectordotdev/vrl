@@ -1,9 +1,9 @@
-use diagnostic::{DiagnosticMessage, Label, Note, Urls};
+use crate::diagnostic::{DiagnosticMessage, Label, Note, Urls};
 use std::{fmt, sync::Arc};
 
 use super::Block;
-use crate::state::{TypeInfo, TypeState};
-use crate::{
+use crate::compiler::state::{TypeInfo, TypeState};
+use crate::compiler::{
     expression::{levenstein, ExpressionError, FunctionArgument},
     function::{
         closure::{self, VariableKind},
@@ -624,7 +624,6 @@ impl FunctionCall {
 impl Expression for FunctionCall {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         self.expr.resolve(ctx).map_err(|err| match err {
-            #[cfg(feature = "expr-abort")]
             ExpressionError::Abort { .. } => {
                 // propagate the error
                 err
@@ -1180,7 +1179,7 @@ impl DiagnosticMessage for Error {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{value::kind, FunctionExpression};
+    use crate::compiler::{value::kind, FunctionExpression};
 
     #[derive(Clone, Debug)]
     struct Fn;
@@ -1203,7 +1202,7 @@ mod tests {
             "test"
         }
 
-        fn examples(&self) -> &'static [crate::function::Example] {
+        fn examples(&self) -> &'static [crate::compiler::function::Example] {
             &[]
         }
 
@@ -1232,19 +1231,17 @@ mod tests {
             _state: &TypeState,
             _ctx: &mut FunctionCompileContext,
             _arguments: ArgumentList,
-        ) -> crate::function::Compiled {
+        ) -> crate::compiler::function::Compiled {
             Ok(Fn.as_expr())
         }
     }
 
-    #[cfg(feature = "expr-literal")]
     fn create_node<T>(inner: T) -> Node<T> {
         Node::new(Span::new(0, 0), inner)
     }
 
-    #[cfg(feature = "expr-literal")]
     fn create_argument(ident: Option<&str>, value: i64) -> FunctionArgument {
-        use crate::expression::{Expr, Literal};
+        use crate::compiler::expression::{Expr, Literal};
 
         FunctionArgument::new(
             ident.map(|ident| create_node(Ident::new(ident))),
@@ -1252,7 +1249,6 @@ mod tests {
         )
     }
 
-    #[cfg(feature = "expr-literal")]
     fn create_function_call(arguments: Vec<Node<FunctionArgument>>) -> FunctionCall {
         let mut state = TypeState::default();
         let original_state = state.clone();
@@ -1280,7 +1276,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "expr-literal")]
     fn resolve_arguments_simple() {
         let call = create_function_call(vec![
             create_node(create_argument(None, 1)),
@@ -1299,7 +1294,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "expr-literal")]
     fn resolve_arguments_named() {
         let call = create_function_call(vec![
             create_node(create_argument(Some("one"), 1)),
@@ -1318,7 +1312,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "expr-literal")]
     fn resolve_arguments_named_unordered() {
         let call = create_function_call(vec![
             create_node(create_argument(Some("three"), 3)),
@@ -1337,7 +1330,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "expr-literal")]
     fn resolve_arguments_unnamed_unordered_one() {
         let call = create_function_call(vec![
             create_node(create_argument(Some("three"), 3)),
@@ -1356,7 +1348,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "expr-literal")]
     fn resolve_arguments_unnamed_unordered_two() {
         let call = create_function_call(vec![
             create_node(create_argument(Some("three"), 3)),

@@ -153,7 +153,6 @@ impl<'a> Compiler<'a> {
         Some(expr)
     }
 
-    #[cfg(feature = "expr-literal")]
     fn compile_literal(&mut self, node: Node<ast::Literal>, state: &mut TypeState) -> Option<Expr> {
         use ast::Literal::{Boolean, Float, Integer, Null, RawString, Regex, String, Timestamp};
         use bytes::Bytes;
@@ -191,11 +190,6 @@ impl<'a> Compiler<'a> {
             .map(Into::into)
             .map_err(|err| self.diagnostics.push(Box::new(err)))
             .ok()
-    }
-
-    #[cfg(not(feature = "expr-literal"))]
-    fn compile_literal(&mut self, node: Node<ast::Literal>, _: &mut ExternalEnv) -> Option<Expr> {
-        self.handle_missing_feature_error(node.span(), "expr-literal")
     }
 
     fn compile_container(
@@ -294,7 +288,6 @@ impl<'a> Compiler<'a> {
         ))
     }
 
-    #[cfg(feature = "expr-if_statement")]
     fn compile_if_statement(
         &mut self,
         node: Node<ast::IfStatement>,
@@ -337,16 +330,6 @@ impl<'a> Compiler<'a> {
         Some(if_statement)
     }
 
-    #[cfg(not(feature = "expr-if_statement"))]
-    fn compile_if_statement(
-        &mut self,
-        node: Node<ast::IfStatement>,
-        _: &mut ExternalEnv,
-    ) -> Option<Expr> {
-        self.handle_missing_feature_error(node.span(), "expr-if_statement")
-    }
-
-    #[cfg(feature = "expr-if_statement")]
     fn compile_predicate(
         &mut self,
         node: Node<ast::Predicate>,
@@ -368,7 +351,6 @@ impl<'a> Compiler<'a> {
         ))
     }
 
-    #[cfg(feature = "expr-op")]
     fn compile_op(&mut self, node: Node<ast::Op>, state: &mut TypeState) -> Option<Op> {
         use parser::ast::Opcode;
 
@@ -414,13 +396,7 @@ impl<'a> Compiler<'a> {
         Some(op)
     }
 
-    #[cfg(not(feature = "expr-op"))]
-    fn compile_op(&mut self, node: Node<ast::Op>, _: &mut ExternalEnv) -> Option<Expr> {
-        self.handle_missing_feature_error(node.span(), "expr-op")
-    }
-
     /// Rewrites the ast for `a |= b` to be `a = a | b`.
-    #[cfg(feature = "expr-assignment")]
     fn rewrite_to_merge(
         &mut self,
         span: diagnostic::Span,
@@ -444,7 +420,6 @@ impl<'a> Compiler<'a> {
         )))
     }
 
-    #[cfg(feature = "expr-assignment")]
     fn compile_assignment(
         &mut self,
         node: Node<ast::Assignment>,
@@ -553,16 +528,6 @@ impl<'a> Compiler<'a> {
         Some(assignment)
     }
 
-    #[cfg(not(feature = "expr-assignment"))]
-    fn compile_assignment(
-        &mut self,
-        node: Node<ast::Assignment>,
-        _: &mut ExternalEnv,
-    ) -> Option<Expr> {
-        self.handle_missing_feature_error(node.span(), "expr-assignment")
-    }
-
-    #[cfg(feature = "expr-query")]
     fn compile_query(&mut self, node: Node<ast::Query>, state: &mut TypeState) -> Option<Query> {
         let ast::Query { target, path } = node.into_inner();
 
@@ -591,12 +556,6 @@ impl<'a> Compiler<'a> {
         Some(Query::new(target, path))
     }
 
-    #[cfg(not(feature = "expr-query"))]
-    fn compile_query(&mut self, node: Node<ast::Query>, _: &mut ExternalEnv) -> Option<Expr> {
-        self.handle_missing_feature_error(node.span(), "expr-query")
-    }
-
-    #[cfg(feature = "expr-query")]
     fn compile_query_target(
         &mut self,
         node: Node<ast::QueryTarget>,
@@ -625,7 +584,6 @@ impl<'a> Compiler<'a> {
         Some(target)
     }
 
-    #[cfg(feature = "expr-function_call")]
     fn compile_function_call(
         &mut self,
         node: Node<ast::FunctionCall>,
@@ -734,7 +692,6 @@ impl<'a> Compiler<'a> {
         function_info.map(|info| info.1)
     }
 
-    #[cfg(feature = "expr-function_call")]
     fn compile_function_argument(
         &mut self,
         node: Node<ast::FunctionArgument>,
@@ -749,20 +706,6 @@ impl<'a> Compiler<'a> {
         let node = Node::new(span, expr);
 
         Some(FunctionArgument::new(ident, node))
-    }
-
-    #[cfg(not(feature = "expr-function_call"))]
-    fn compile_function_call(
-        &mut self,
-        node: Node<ast::FunctionCall>,
-        _: &mut ExternalEnv,
-    ) -> Option<Noop> {
-        // Guard against `dead_code` lint, to avoid having to sprinkle
-        // attributes all over the place.
-        let _ = self.fns;
-
-        self.handle_missing_feature_error(node.span(), "expr-function_call");
-        None
     }
 
     fn compile_variable(
@@ -784,7 +727,6 @@ impl<'a> Compiler<'a> {
             .ok()
     }
 
-    #[cfg(feature = "expr-unary")]
     fn compile_unary(&mut self, node: Node<ast::Unary>, state: &mut TypeState) -> Option<Unary> {
         use ast::Unary::Not;
 
@@ -795,18 +737,6 @@ impl<'a> Compiler<'a> {
         Some(Unary::new(variant))
     }
 
-    #[cfg(not(feature = "expr-unary"))]
-    fn compile_unary(&mut self, node: Node<ast::Unary>, _: &mut ExternalEnv) -> Option<Expr> {
-        use ast::Unary::*;
-
-        let span = match node.into_inner() {
-            Not(node) => node.take().1.take().0,
-        };
-
-        self.handle_missing_feature_error(span.span(), "expr-unary")
-    }
-
-    #[cfg(feature = "expr-unary")]
     fn compile_not(&mut self, node: Node<ast::Not>, state: &mut TypeState) -> Option<Not> {
         let (not, expr) = node.into_inner().take();
 
@@ -817,7 +747,6 @@ impl<'a> Compiler<'a> {
             .ok()
     }
 
-    #[cfg(feature = "expr-abort")]
     fn compile_abort(&mut self, node: Node<ast::Abort>, state: &mut TypeState) -> Option<Abort> {
         self.abortable = true;
         let (span, abort) = node.take();
@@ -833,11 +762,6 @@ impl<'a> Compiler<'a> {
             .ok()
     }
 
-    #[cfg(not(feature = "expr-abort"))]
-    fn compile_abort(&mut self, node: Node<ast::Abort>, _: &mut ExternalEnv) -> Option<Expr> {
-        self.handle_missing_feature_error(node.span(), "expr-abort")
-    }
-
     fn handle_parser_error(&mut self, error: parser::Error) {
         self.diagnostics.push(Box::new(error));
     }
@@ -850,7 +774,6 @@ impl<'a> Compiler<'a> {
         None
     }
 
-    #[cfg(feature = "expr-assignment")]
     fn skip_missing_assignment_target(&mut self, target: ast::AssignmentTarget) {
         let query = match &target {
             ast::AssignmentTarget::Noop => return,
