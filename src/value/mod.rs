@@ -35,6 +35,8 @@
 
 pub mod kind;
 pub mod secrets;
+
+#[allow(clippy::module_inception)]
 pub mod value;
 
 mod btreemap;

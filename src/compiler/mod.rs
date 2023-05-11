@@ -28,8 +28,10 @@
     let_underscore_drop, // allowed in initial deny commit
 )]
 
-mod compile_config;
+#[allow(clippy::module_inception)]
 mod compiler;
+
+mod compile_config;
 mod context;
 mod datetime;
 mod deprecation_warning;

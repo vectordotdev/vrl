@@ -196,8 +196,8 @@ impl Function for ParseGroks {
 
 #[cfg(test)]
 mod test {
+    use crate::btreemap;
     use crate::value;
-    use crate::value::btreemap;
     use crate::value::Value;
 
     use super::*;

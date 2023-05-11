@@ -1,11 +1,12 @@
 #![allow(deprecated)]
 
-use ::value::{btreemap, Value};
+use crate::value::Value;
 use chrono::{DateTime, Datelike, TimeZone, Utc};
 use criterion::{criterion_group, criterion_main, Criterion};
 use regex::Regex;
-use vrl_compiler::prelude::*;
-use vrl_compiler::{bench_function, func_args};
+use vrl::compiler::prelude::*;
+
+use vrl::{bench_function, btreemap, func_args, value};
 
 criterion_group!(
     name = benches;
@@ -158,7 +159,7 @@ criterion_group!(
 criterion_main!(benches);
 
 bench_function! {
-    encrypt => vrl_stdlib::Encrypt;
+    encrypt => vrl::stdlib::Encrypt;
 
     test {
         args: func_args![algorithm: value!("AES-128-OFB"), plaintext: value!("plaintext"), key: value!("1234567890123456"), iv: value!("1234567890123456") ],
@@ -167,7 +168,7 @@ bench_function! {
 }
 
 bench_function! {
-    decrypt => vrl_stdlib::Decrypt;
+    decrypt => vrl::stdlib::Decrypt;
 
     test {
         args: func_args![algorithm: value!("AES-128-OFB"), ciphertext: value!(b"\x05\x10\xace\xb2(\xf5\x92\xaf"), key: value!("1234567890123456"), iv: value!("1234567890123456") ],
@@ -176,7 +177,7 @@ bench_function! {
 }
 
 bench_function! {
-    append => vrl_stdlib::Append;
+    append => vrl::stdlib::Append;
 
     arrays {
         args: func_args![value: value!([1, 2, 3]), items: value!([4, 5, 6])],
@@ -185,7 +186,7 @@ bench_function! {
 }
 
 bench_function! {
-    array => vrl_stdlib::Array;
+    array => vrl::stdlib::Array;
 
     array {
         args: func_args![value: value!([1,2,3])],
@@ -194,7 +195,7 @@ bench_function! {
 }
 
 bench_function! {
-    assert => vrl_stdlib::Assert;
+    assert => vrl::stdlib::Assert;
 
     literal {
         args: func_args![condition: value!(true), message: "must be true"],
@@ -203,7 +204,7 @@ bench_function! {
 }
 
 bench_function! {
-    assert_eq=> vrl_stdlib::AssertEq;
+    assert_eq=> vrl::stdlib::AssertEq;
 
     literal {
         args: func_args![left: value!(true), right: value!(true), message: "must be true"],
@@ -212,7 +213,7 @@ bench_function! {
 }
 
 bench_function! {
-    r#bool => vrl_stdlib::Boolean;
+    r#bool => vrl::stdlib::Boolean;
 
     r#bool {
         args: func_args![value: value!(true)],
@@ -221,7 +222,7 @@ bench_function! {
 }
 
 bench_function! {
-    ceil => vrl_stdlib::Ceil;
+    ceil => vrl::stdlib::Ceil;
 
     literal {
         args: func_args![value: 1234.56725, precision: 4],
@@ -230,7 +231,7 @@ bench_function! {
 }
 
 bench_function! {
-    chunks => vrl_stdlib::Chunks;
+    chunks => vrl::stdlib::Chunks;
 
     literal {
         args: func_args![value: "abcdefgh", chunk_size: 4],
@@ -239,7 +240,7 @@ bench_function! {
 }
 
 bench_function! {
-    compact => vrl_stdlib::Compact;
+    compact => vrl::stdlib::Compact;
 
     array {
         args: func_args![
@@ -257,7 +258,7 @@ bench_function! {
 }
 
 bench_function! {
-    contains => vrl_stdlib::Contains;
+    contains => vrl::stdlib::Contains;
 
     case_sensitive {
         args: func_args![value: "abcdefg", substring: "cde", case_sensitive: true],
@@ -271,7 +272,7 @@ bench_function! {
 }
 
 bench_function! {
-    decode_base16 => vrl_stdlib::DecodeBase16;
+    decode_base16 => vrl::stdlib::DecodeBase16;
 
     literal {
         args: func_args![value: "736f6d652b3d737472696e672f76616c7565"],
@@ -280,7 +281,7 @@ bench_function! {
 }
 
 bench_function! {
-    decode_base64 => vrl_stdlib::DecodeBase64;
+    decode_base64 => vrl::stdlib::DecodeBase64;
 
     literal {
         args: func_args![value: "c29tZSs9c3RyaW5nL3ZhbHVl"],
@@ -289,7 +290,7 @@ bench_function! {
 }
 
 bench_function! {
-    decode_percent => vrl_stdlib::DecodePercent;
+    decode_percent => vrl::stdlib::DecodePercent;
 
     literal {
         args: func_args![value: "foo%20bar%3F"],
@@ -298,7 +299,7 @@ bench_function! {
 }
 
 bench_function! {
-    decode_mime_q => vrl_stdlib::DecodeMimeQ;
+    decode_mime_q => vrl::stdlib::DecodeMimeQ;
 
     base_64 {
         args: func_args![value: "=?utf-8?b?SGVsbG8sIFdvcmxkIQ==?="],
@@ -312,7 +313,7 @@ bench_function! {
 }
 
 bench_function! {
-    downcase => vrl_stdlib::Downcase;
+    downcase => vrl::stdlib::Downcase;
 
     literal {
         args: func_args![value: "FOO"],
@@ -321,7 +322,7 @@ bench_function! {
 }
 
 bench_function! {
-    encode_base16 => vrl_stdlib::EncodeBase16;
+    encode_base16 => vrl::stdlib::EncodeBase16;
 
     literal {
         args: func_args![value: "some+=string/value"],
@@ -330,7 +331,7 @@ bench_function! {
 }
 
 bench_function! {
-    encode_base64 => vrl_stdlib::EncodeBase64;
+    encode_base64 => vrl::stdlib::EncodeBase64;
 
     literal {
         args: func_args![value: "some+=string/value"],
@@ -339,7 +340,7 @@ bench_function! {
 }
 
 bench_function! {
-    encode_key_value => vrl_stdlib::EncodeKeyValue;
+    encode_key_value => vrl::stdlib::EncodeKeyValue;
 
     encode_complex_value {
         args: func_args![value:
@@ -392,7 +393,7 @@ bench_function! {
 }
 
 bench_function! {
-    encode_json => vrl_stdlib::EncodeJson;
+    encode_json => vrl::stdlib::EncodeJson;
 
     map {
         args: func_args![value: value![{"field": "value"}]],
@@ -401,7 +402,7 @@ bench_function! {
 }
 
 bench_function! {
-    encode_logfmt => vrl_stdlib::EncodeLogfmt;
+    encode_logfmt => vrl::stdlib::EncodeLogfmt;
 
     string_with_characters_to_escape {
         args: func_args![value:
@@ -426,7 +427,7 @@ bench_function! {
 }
 
 bench_function! {
-    encode_percent => vrl_stdlib::EncodePercent;
+    encode_percent => vrl::stdlib::EncodePercent;
 
     non_alphanumeric {
         args: func_args![value: r#"foo bar?"#],
@@ -440,7 +441,7 @@ bench_function! {
 }
 
 bench_function! {
-    ends_with => vrl_stdlib::EndsWith;
+    ends_with => vrl::stdlib::EndsWith;
 
     case_sensitive {
         args: func_args![value: "abcdefg", substring: "efg", case_sensitive: true],
@@ -454,7 +455,7 @@ bench_function! {
 }
 
 bench_function! {
-    find => vrl_stdlib::Find;
+    find => vrl::stdlib::Find;
 
     str_matching {
         args: func_args![value: "foobarfoo", pattern: "bar"],
@@ -473,7 +474,7 @@ bench_function! {
 }
 
 bench_function! {
-    flatten => vrl_stdlib::Flatten;
+    flatten => vrl::stdlib::Flatten;
 
     nested_map {
         args: func_args![value: value!({parent: {child1: 1, child2: 2}, key: "val"})],
@@ -503,7 +504,7 @@ bench_function! {
 }
 
 bench_function! {
-    float => vrl_stdlib::Float;
+    float => vrl::stdlib::Float;
 
     float {
         args: func_args![value: value!(1.2)],
@@ -512,7 +513,7 @@ bench_function! {
 }
 
 bench_function! {
-    floor  => vrl_stdlib::Floor;
+    floor  => vrl::stdlib::Floor;
 
     literal {
         args: func_args![value: 1234.56725, precision: 4],
@@ -521,7 +522,7 @@ bench_function! {
 }
 
 bench_function! {
-    format_int => vrl_stdlib::FormatInt;
+    format_int => vrl::stdlib::FormatInt;
 
     decimal {
         args: func_args![value: 42],
@@ -535,7 +536,7 @@ bench_function! {
 }
 
 bench_function! {
-    format_number => vrl_stdlib::FormatNumber;
+    format_number => vrl::stdlib::FormatNumber;
 
     literal {
         args: func_args![
@@ -549,7 +550,7 @@ bench_function! {
 }
 
 bench_function! {
-    format_timestamp => vrl_stdlib::FormatTimestamp;
+    format_timestamp => vrl::stdlib::FormatTimestamp;
 
     iso_6801 {
         args: func_args![value: Utc.timestamp_opt(10, 0).single().expect("invalid timestamp"), format: "%+"],
@@ -558,7 +559,7 @@ bench_function! {
 }
 
 bench_function! {
-    get_env_var => vrl_stdlib::GetEnvVar;
+    get_env_var => vrl::stdlib::GetEnvVar;
 
     // CARGO is set by `cargo`
     get {
@@ -568,7 +569,7 @@ bench_function! {
 }
 
 bench_function! {
-    get_hostname => vrl_stdlib::GetHostname;
+    get_hostname => vrl::stdlib::GetHostname;
 
     get {
         args: func_args![],
@@ -577,7 +578,7 @@ bench_function! {
 }
 
 bench_function! {
-    includes => vrl_stdlib::Includes;
+    includes => vrl::stdlib::Includes;
 
     mixed_included_string {
         args: func_args![value: value!(["foo", 1, true, [1,2,3]]), item: value!("foo")],
@@ -586,7 +587,7 @@ bench_function! {
 }
 
 bench_function! {
-    seahash => vrl_stdlib::Seahash;
+    seahash => vrl::stdlib::Seahash;
 
     literal {
         args: func_args![value: "foo"],
@@ -595,7 +596,7 @@ bench_function! {
 }
 
 bench_function! {
-    set => vrl_stdlib::Set;
+    set => vrl::stdlib::Set;
 
     single {
         args: func_args![value: value!({ "foo": "bar" }), path: vec!["baz"], data: true],
@@ -614,7 +615,7 @@ bench_function! {
 }
 
 bench_function! {
-    int => vrl_stdlib::Integer;
+    int => vrl::stdlib::Integer;
 
     int {
         args: func_args![value: value!(1)],
@@ -623,7 +624,7 @@ bench_function! {
 }
 
 bench_function! {
-    ip_aton => vrl_stdlib::IpAton;
+    ip_aton => vrl::stdlib::IpAton;
 
     valid {
         args: func_args![value: "1.2.3.4"],
@@ -632,7 +633,7 @@ bench_function! {
 }
 
 bench_function! {
-    ip_cidr_contains => vrl_stdlib::IpCidrContains;
+    ip_cidr_contains => vrl::stdlib::IpCidrContains;
 
     ipv4 {
         args: func_args![cidr: "192.168.0.0/16", value: "192.168.10.32"],
@@ -646,7 +647,7 @@ bench_function! {
 }
 
 bench_function! {
-    ip_ntoa => vrl_stdlib::IpNtoa;
+    ip_ntoa => vrl::stdlib::IpNtoa;
 
     valid {
         args: func_args![value: 16909060],
@@ -655,7 +656,7 @@ bench_function! {
 }
 
 bench_function! {
-    ip_ntop => vrl_stdlib::IpNtop;
+    ip_ntop => vrl::stdlib::IpNtop;
 
     ipv4 {
         args: func_args![value: "1.2.3.4"],
@@ -669,7 +670,7 @@ bench_function! {
 }
 
 bench_function! {
-    ip_pton => vrl_stdlib::IpPton;
+    ip_pton => vrl::stdlib::IpPton;
 
     ipv4 {
         args: func_args![value: "\x01\x02\x03\x04"],
@@ -683,7 +684,7 @@ bench_function! {
 }
 
 bench_function! {
-    ip_subnet => vrl_stdlib::IpSubnet;
+    ip_subnet => vrl::stdlib::IpSubnet;
 
     ipv4_mask {
         args: func_args![value: "192.168.10.23", subnet: "255.255.0.0"],
@@ -707,7 +708,7 @@ bench_function! {
 }
 
 bench_function! {
-    ip_to_ipv6 => vrl_stdlib::IpToIpv6;
+    ip_to_ipv6 => vrl::stdlib::IpToIpv6;
 
     ipv4 {
         args: func_args![value: "192.168.0.1"],
@@ -721,7 +722,7 @@ bench_function! {
 }
 
 bench_function! {
-    ipv6_to_ipv4 => vrl_stdlib::Ipv6ToIpV4;
+    ipv6_to_ipv4 => vrl::stdlib::Ipv6ToIpV4;
 
     ipv6 {
         args: func_args![value: "::ffff:192.168.0.1"],
@@ -735,7 +736,7 @@ bench_function! {
 }
 
 bench_function! {
-    is_array => vrl_stdlib::IsArray;
+    is_array => vrl::stdlib::IsArray;
 
     string {
         args: func_args![value: "foobar"],
@@ -749,7 +750,7 @@ bench_function! {
 }
 
 bench_function! {
-    is_boolean => vrl_stdlib::IsBoolean;
+    is_boolean => vrl::stdlib::IsBoolean;
 
     string {
         args: func_args![value: "foobar"],
@@ -763,7 +764,7 @@ bench_function! {
 }
 
 bench_function! {
-    is_empty => vrl_stdlib::IsEmpty;
+    is_empty => vrl::stdlib::IsEmpty;
 
     empty_array {
         args: func_args![value: value!([])],
@@ -792,7 +793,7 @@ bench_function! {
 }
 
 bench_function! {
-    is_float => vrl_stdlib::IsFloat;
+    is_float => vrl::stdlib::IsFloat;
 
     array {
         args: func_args![value: value!([1, 2, 3])],
@@ -806,7 +807,7 @@ bench_function! {
 }
 
 bench_function! {
-    is_integer => vrl_stdlib::IsInteger;
+    is_integer => vrl::stdlib::IsInteger;
 
     integer {
         args: func_args![value: 1701],
@@ -820,7 +821,7 @@ bench_function! {
 }
 
 bench_function! {
-    is_ipv4 => vrl_stdlib::IsIpv4;
+    is_ipv4 => vrl::stdlib::IsIpv4;
 
     not_string {
         args: func_args![value: 42],
@@ -844,7 +845,7 @@ bench_function! {
 }
 
 bench_function! {
-    is_ipv6 => vrl_stdlib::IsIpv6;
+    is_ipv6 => vrl::stdlib::IsIpv6;
 
     not_string {
         args: func_args![value: 42],
@@ -868,7 +869,7 @@ bench_function! {
 }
 
 bench_function! {
-    is_json => vrl_stdlib::IsJson;
+    is_json => vrl::stdlib::IsJson;
 
     map {
         args: func_args![value: r#"{"key": "value"}"#],
@@ -887,7 +888,7 @@ bench_function! {
 }
 
 bench_function! {
-    is_null => vrl_stdlib::IsNull;
+    is_null => vrl::stdlib::IsNull;
 
     string {
         args: func_args![value: "foobar"],
@@ -901,7 +902,7 @@ bench_function! {
 }
 
 bench_function! {
-    is_nullish => vrl_stdlib::IsNullish;
+    is_nullish => vrl::stdlib::IsNullish;
 
     whitespace {
         args: func_args![value: "         "],
@@ -925,7 +926,7 @@ bench_function! {
 }
 
 bench_function! {
-    is_object => vrl_stdlib::IsObject;
+    is_object => vrl::stdlib::IsObject;
 
     integer {
         args: func_args![value: 1701],
@@ -939,7 +940,7 @@ bench_function! {
 }
 
 bench_function! {
-    is_regex => vrl_stdlib::IsRegex;
+    is_regex => vrl::stdlib::IsRegex;
 
     regex {
         args: func_args![value: value!(Regex::new(r"\d+").unwrap())],
@@ -953,7 +954,7 @@ bench_function! {
 }
 
 bench_function! {
-    is_string => vrl_stdlib::IsString;
+    is_string => vrl::stdlib::IsString;
 
     string {
         args: func_args![value: "foobar"],
@@ -967,7 +968,7 @@ bench_function! {
 }
 
 bench_function! {
-    is_timestamp => vrl_stdlib::IsTimestamp;
+    is_timestamp => vrl::stdlib::IsTimestamp;
 
     string {
         args: func_args![value: Utc.ymd(2021, 1, 1).and_hms_milli(0, 0, 0, 0)],
@@ -981,7 +982,7 @@ bench_function! {
 }
 
 bench_function! {
-    join => vrl_stdlib::Join;
+    join => vrl::stdlib::Join;
 
     literal {
         args: func_args![value: value!(["hello", "world"]), separator: " "],
@@ -990,7 +991,7 @@ bench_function! {
 }
 
 bench_function! {
-    keys => vrl_stdlib::Keys;
+    keys => vrl::stdlib::Keys;
 
     literal {
         args: func_args![value: value!({"key1": "val1", "key2": "val2"})],
@@ -999,7 +1000,7 @@ bench_function! {
 }
 
 bench_function! {
-    length => vrl_stdlib::Length;
+    length => vrl::stdlib::Length;
 
     map {
         args: func_args![value: value!({foo: "bar", baz: true, baq: [1, 2, 3]})],
@@ -1019,7 +1020,7 @@ bench_function! {
 
 // TODO: Ensure tracing is enabled
 bench_function! {
-    log => vrl_stdlib::Log;
+    log => vrl::stdlib::Log;
 
     literal {
         args: func_args![value: "ohno"],
@@ -1028,7 +1029,7 @@ bench_function! {
 }
 
 bench_function! {
-    get => vrl_stdlib::Get;
+    get => vrl::stdlib::Get;
 
     single {
         args: func_args![value: value!({ "foo": "bar" }), path: vec!["foo"]],
@@ -1047,7 +1048,7 @@ bench_function! {
 }
 
 bench_function! {
-    r#match => vrl_stdlib::Match;
+    r#match => vrl::stdlib::Match;
 
     simple {
         args: func_args![value: "foo 2 bar", pattern: Regex::new("foo \\d bar").unwrap()],
@@ -1056,7 +1057,7 @@ bench_function! {
 }
 
 bench_function! {
-    match_any => vrl_stdlib::MatchAny;
+    match_any => vrl::stdlib::MatchAny;
 
     simple {
         args: func_args![value: "foo 2 bar", patterns: vec![Regex::new(r"foo \d bar").unwrap()]],
@@ -1065,7 +1066,7 @@ bench_function! {
 }
 
 bench_function! {
-    match_array => vrl_stdlib::MatchArray;
+    match_array => vrl::stdlib::MatchArray;
 
     single_match {
         args: func_args![
@@ -1111,7 +1112,7 @@ bench_function! {
 }
 
 bench_function! {
-    match_datadog_query => vrl_stdlib::MatchDatadogQuery;
+    match_datadog_query => vrl::stdlib::MatchDatadogQuery;
 
     equals_message {
         args: func_args![value: value!({"message": "match by word boundary"}), query: "match"],
@@ -1190,7 +1191,7 @@ bench_function! {
 }
 
 bench_function! {
-    md5  => vrl_stdlib::Md5;
+    md5  => vrl::stdlib::Md5;
 
     literal {
         args: func_args![value: "foo"],
@@ -1199,7 +1200,7 @@ bench_function! {
 }
 
 bench_function! {
-    r#mod => vrl_stdlib::Mod;
+    r#mod => vrl::stdlib::Mod;
 
     simple {
         args: func_args![
@@ -1211,7 +1212,7 @@ bench_function! {
 }
 
 bench_function! {
-    merge => vrl_stdlib::Merge;
+    merge => vrl::stdlib::Merge;
 
     simple {
         args: func_args![
@@ -1266,7 +1267,7 @@ bench_function! {
 }
 
 bench_function! {
-    object => vrl_stdlib::Object;
+    object => vrl::stdlib::Object;
 
     object {
         args: func_args![value: value!({"foo": "bar"})],
@@ -1275,7 +1276,7 @@ bench_function! {
 }
 
 bench_function! {
-    parse_aws_alb_log => vrl_stdlib::ParseAwsAlbLog;
+    parse_aws_alb_log => vrl::stdlib::ParseAwsAlbLog;
 
     literal {
         args: func_args![
@@ -1318,7 +1319,7 @@ bench_function! {
 }
 
 bench_function! {
-    parse_aws_cloudwatch_log_subscription_message => vrl_stdlib::ParseAwsCloudWatchLogSubscriptionMessage;
+    parse_aws_cloudwatch_log_subscription_message => vrl::stdlib::ParseAwsCloudWatchLogSubscriptionMessage;
 
     literal {
         args: func_args![value: r#"
@@ -1364,7 +1365,7 @@ bench_function! {
 }
 
 bench_function! {
-    parse_aws_vpc_flow_log => vrl_stdlib::ParseAwsVpcFlowLog;
+    parse_aws_vpc_flow_log => vrl::stdlib::ParseAwsVpcFlowLog;
 
     literal {
         args: func_args![
@@ -1394,7 +1395,7 @@ bench_function! {
 }
 
 bench_function! {
-    parse_cef => vrl_stdlib::ParseCef;
+    parse_cef => vrl::stdlib::ParseCef;
 
     simple {
         args: func_args! [
@@ -1463,7 +1464,7 @@ bench_function! {
 }
 
 bench_function! {
-    parse_apache_log => vrl_stdlib::ParseApacheLog;
+    parse_apache_log => vrl::stdlib::ParseApacheLog;
 
     common {
         args: func_args![value: r#"127.0.0.1 bob frank [10/Oct/2000:13:55:36 -0700] "GET /apache_pb.gif HTTP/1.0" 200 2326"#,
@@ -1521,7 +1522,7 @@ bench_function! {
 }
 
 bench_function! {
-    parse_common_log => vrl_stdlib::ParseCommonLog;
+    parse_common_log => vrl::stdlib::ParseCommonLog;
 
     literal {
         args: func_args![value: r#"127.0.0.1 bob frank [10/Oct/2000:13:55:36 -0700] "GET /apache_pb.gif HTTP/1.0" 200 2326"#],
@@ -1541,7 +1542,7 @@ bench_function! {
 }
 
 bench_function! {
-    parse_csv => vrl_stdlib::ParseCsv;
+    parse_csv => vrl::stdlib::ParseCsv;
 
     literal {
         args: func_args![value: "foo,bar"],
@@ -1550,7 +1551,7 @@ bench_function! {
 }
 
 bench_function! {
-    parse_duration => vrl_stdlib::ParseDuration;
+    parse_duration => vrl::stdlib::ParseDuration;
 
     literal {
         args: func_args![value: "1005ms", unit: "s"],
@@ -1559,7 +1560,7 @@ bench_function! {
 }
 
 bench_function! {
-    parse_glog  => vrl_stdlib::ParseGlog;
+    parse_glog  => vrl::stdlib::ParseGlog;
 
     literal {
         args: func_args![value: "I20210131 14:48:54.411655 15520 main.c++:9] Hello world!"],
@@ -1575,7 +1576,7 @@ bench_function! {
 }
 
 bench_function! {
-    parse_grok => vrl_stdlib::ParseGrok;
+    parse_grok => vrl::stdlib::ParseGrok;
 
     simple {
         args: func_args![
@@ -1591,7 +1592,7 @@ bench_function! {
 }
 
 bench_function! {
-    parse_groks => vrl_stdlib::ParseGroks;
+    parse_groks => vrl::stdlib::ParseGroks;
 
     simple {
         args: func_args![
@@ -1617,7 +1618,7 @@ bench_function! {
 }
 
 bench_function! {
-    parse_int => vrl_stdlib::ParseInt;
+    parse_int => vrl::stdlib::ParseInt;
 
     decimal {
         args: func_args![value: "-42"],
@@ -1636,7 +1637,7 @@ bench_function! {
 }
 
 bench_function! {
-    parse_json => vrl_stdlib::ParseJson;
+    parse_json => vrl::stdlib::ParseJson;
 
     map {
         args: func_args![value: r#"{"key": "value"}"#],
@@ -1665,7 +1666,7 @@ bench_function! {
 }
 
 bench_function! {
-    parse_key_value => vrl_stdlib::ParseKeyValue;
+    parse_key_value => vrl::stdlib::ParseKeyValue;
 
     logfmt {
         args: func_args! [
@@ -1696,7 +1697,7 @@ bench_function! {
 }
 
 bench_function! {
-    parse_klog  => vrl_stdlib::ParseKlog;
+    parse_klog  => vrl::stdlib::ParseKlog;
 
     literal {
         args: func_args![value: "I0505 17:59:40.692994   28133 klog.go:70] hello from klog"],
@@ -1712,7 +1713,7 @@ bench_function! {
 }
 
 bench_function! {
-    parse_nginx_log => vrl_stdlib::ParseNginxLog;
+    parse_nginx_log => vrl::stdlib::ParseNginxLog;
 
     combined {
         args: func_args![
@@ -1755,7 +1756,7 @@ bench_function! {
 }
 
 bench_function! {
-    parse_query_string => vrl_stdlib::ParseQueryString;
+    parse_query_string => vrl::stdlib::ParseQueryString;
 
     literal {
         args: func_args![value: "foo=%2B1&bar=2"],
@@ -1767,7 +1768,7 @@ bench_function! {
 }
 
 bench_function! {
-    parse_regex => vrl_stdlib::ParseRegex;
+    parse_regex => vrl::stdlib::ParseRegex;
 
     matches {
         args: func_args! [
@@ -1809,7 +1810,7 @@ bench_function! {
 }
 
 bench_function! {
-    parse_regex_all => vrl_stdlib::ParseRegexAll;
+    parse_regex_all => vrl::stdlib::ParseRegexAll;
 
     matches {
         args: func_args![
@@ -1836,7 +1837,7 @@ bench_function! {
 }
 
 bench_function! {
-    parse_ruby_hash => vrl_stdlib::ParseRubyHash;
+    parse_ruby_hash => vrl::stdlib::ParseRubyHash;
 
     matches {
         args: func_args![
@@ -1853,7 +1854,7 @@ bench_function! {
 }
 
 bench_function! {
-    parse_syslog => vrl_stdlib::ParseSyslog;
+    parse_syslog => vrl::stdlib::ParseSyslog;
 
     rfc3164 {
         args: func_args![
@@ -1891,7 +1892,7 @@ bench_function! {
 }
 
 bench_function! {
-    parse_timestamp => vrl_stdlib::ParseTimestamp;
+    parse_timestamp => vrl::stdlib::ParseTimestamp;
 
     rfc3339 {
         args: func_args![value: "2001-07-08T00:34:60.026490+09:30", format: "%+"],
@@ -1905,7 +1906,7 @@ bench_function! {
 }
 
 bench_function! {
-    parse_tokens => vrl_stdlib::ParseTokens;
+    parse_tokens => vrl::stdlib::ParseTokens;
 
     literal {
         args: func_args![value: "217.250.207.207 - - [07/Sep/2020:16:38:00 -0400] \"DELETE /deliverables/next-generation/user-centric HTTP/1.1\" 205 11881"],
@@ -1922,7 +1923,7 @@ bench_function! {
 }
 
 bench_function! {
-    parse_url => vrl_stdlib::ParseUrl;
+    parse_url => vrl::stdlib::ParseUrl;
 
     literal {
         args: func_args![value: "https://vector.dev"],
@@ -1940,7 +1941,7 @@ bench_function! {
 }
 
 bench_function! {
-    parse_user_agent => vrl_stdlib::ParseUserAgent;
+    parse_user_agent => vrl::stdlib::ParseUserAgent;
 
     fast {
         args: func_args![value: "Mozilla Firefox 1.0.1 Mozilla/5.0 (X11; U; Linux i686; de-DE; rv:1.7.6) Gecko/20050223 Firefox/1.0.1"],
@@ -1988,7 +1989,7 @@ bench_function! {
 }
 
 bench_function! {
-    parse_xml => vrl_stdlib::ParseXml;
+    parse_xml => vrl::stdlib::ParseXml;
 
     simple_text {
         args: func_args![ value: r#"<a>test</a>"# ],
@@ -2134,7 +2135,7 @@ bench_function! {
 }
 
 bench_function! {
-    push => vrl_stdlib::Push;
+    push => vrl::stdlib::Push;
 
     literal {
         args: func_args![value: value!([11, false, 42.5]), item: "foo"],
@@ -2143,7 +2144,7 @@ bench_function! {
 }
 
 bench_function! {
-    random_int => vrl_stdlib::RandomInt;
+    random_int => vrl::stdlib::RandomInt;
 
     literal {
         args: func_args![min: 1, max: 2],
@@ -2152,7 +2153,7 @@ bench_function! {
 }
 
 bench_function! {
-    redact => vrl_stdlib::Redact;
+    redact => vrl::stdlib::Redact;
 
     regex {
         args: func_args![
@@ -2172,7 +2173,7 @@ bench_function! {
 }
 
 bench_function! {
-    remove => vrl_stdlib::Remove;
+    remove => vrl::stdlib::Remove;
 
     single {
         args: func_args![value: value!({ "foo": "bar", "baz": true }), path: vec!["foo"]],
@@ -2191,7 +2192,7 @@ bench_function! {
 }
 
 bench_function! {
-    replace => vrl_stdlib::Replace;
+    replace => vrl::stdlib::Replace;
 
     string {
         args: func_args![
@@ -2213,7 +2214,7 @@ bench_function! {
 }
 
 bench_function! {
-    reverse_dns => vrl_stdlib::ReverseDns;
+    reverse_dns => vrl::stdlib::ReverseDns;
 
     google {
         args: func_args![value: value!("8.8.8.8")],
@@ -2222,7 +2223,7 @@ bench_function! {
 }
 
 bench_function! {
-    round => vrl_stdlib::Round;
+    round => vrl::stdlib::Round;
 
     integer {
         args: func_args![value: 1234.56789, precision: 4],
@@ -2236,7 +2237,7 @@ bench_function! {
 }
 
 bench_function! {
-    sha1 => vrl_stdlib::Sha1;
+    sha1 => vrl::stdlib::Sha1;
 
     literal {
         args: func_args![value: "foo"],
@@ -2245,7 +2246,7 @@ bench_function! {
 }
 
 bench_function! {
-    sha2 => vrl_stdlib::Sha2;
+    sha2 => vrl::stdlib::Sha2;
 
     default {
         args: func_args![value: "foo"],
@@ -2254,7 +2255,7 @@ bench_function! {
 }
 
 bench_function! {
-    sha3 => vrl_stdlib::Sha3;
+    sha3 => vrl::stdlib::Sha3;
 
     default {
         args: func_args![value: "foo"],
@@ -2263,7 +2264,7 @@ bench_function! {
 }
 
 bench_function! {
-    slice => vrl_stdlib::Slice;
+    slice => vrl::stdlib::Slice;
 
     literal {
         args: func_args![
@@ -2276,7 +2277,7 @@ bench_function! {
 }
 
 bench_function! {
-    split => vrl_stdlib::Split;
+    split => vrl::stdlib::Split;
 
     string {
         args: func_args![value: "foo,bar,baz", pattern: ","],
@@ -2290,7 +2291,7 @@ bench_function! {
 }
 
 bench_function! {
-    starts_with  => vrl_stdlib::StartsWith;
+    starts_with  => vrl::stdlib::StartsWith;
 
     case_sensitive {
         args: func_args![value: "abcdefg", substring: "abc", case_sensitive: true],
@@ -2304,7 +2305,7 @@ bench_function! {
 }
 
 bench_function! {
-    string => vrl_stdlib::String;
+    string => vrl::stdlib::String;
 
     string {
         args: func_args![value: "2"],
@@ -2313,7 +2314,7 @@ bench_function! {
 }
 
 bench_function! {
-    strip_ansi_escape_codes => vrl_stdlib::StripAnsiEscapeCodes;
+    strip_ansi_escape_codes => vrl::stdlib::StripAnsiEscapeCodes;
 
     literal {
         args: func_args![value: "\x1b[46mfoo\x1b[0m bar"],
@@ -2322,7 +2323,7 @@ bench_function! {
 }
 
 bench_function! {
-    strip_whitespace => vrl_stdlib::StripWhitespace;
+    strip_whitespace => vrl::stdlib::StripWhitespace;
 
     literal {
         args: func_args![
@@ -2333,7 +2334,7 @@ bench_function! {
 }
 
 bench_function! {
-    strlen => vrl_stdlib::Strlen;
+    strlen => vrl::stdlib::Strlen;
 
     literal {
         args: func_args![value: "ñandú"],
@@ -2342,7 +2343,7 @@ bench_function! {
 }
 
 bench_function! {
-    tag_types_externally => vrl_stdlib::TagTypesExternally;
+    tag_types_externally => vrl::stdlib::TagTypesExternally;
 
     tag_bytes {
         args: func_args![value: "foo"],
@@ -2411,7 +2412,7 @@ bench_function! {
 }
 
 bench_function! {
-    tally => vrl_stdlib::Tally;
+    tally => vrl::stdlib::Tally;
 
     default {
         args: func_args![
@@ -2422,7 +2423,7 @@ bench_function! {
 }
 
 bench_function! {
-    tally_value => vrl_stdlib::TallyValue;
+    tally_value => vrl::stdlib::TallyValue;
 
     default {
         args: func_args![
@@ -2434,7 +2435,7 @@ bench_function! {
 }
 
 bench_function! {
-    timestamp => vrl_stdlib::Timestamp;
+    timestamp => vrl::stdlib::Timestamp;
 
     timestamp {
         args: func_args![value: Utc.ymd(2021, 1, 1).and_hms_milli(0, 0, 0, 0)],
@@ -2443,7 +2444,7 @@ bench_function! {
 }
 
 bench_function! {
-    to_bool => vrl_stdlib::ToBool;
+    to_bool => vrl::stdlib::ToBool;
 
     string {
         args: func_args![value: "true"],
@@ -2467,7 +2468,7 @@ bench_function! {
 }
 
 bench_function! {
-    to_float => vrl_stdlib::ToFloat;
+    to_float => vrl::stdlib::ToFloat;
 
     string {
         args: func_args![value: "2.0"],
@@ -2491,7 +2492,7 @@ bench_function! {
 }
 
 bench_function! {
-    to_int => vrl_stdlib::ToInt;
+    to_int => vrl::stdlib::ToInt;
 
     string {
         args: func_args![value: "2"],
@@ -2515,7 +2516,7 @@ bench_function! {
 }
 
 bench_function! {
-    to_regex => vrl_stdlib::ToRegex;
+    to_regex => vrl::stdlib::ToRegex;
 
     regex {
         args: func_args![value: "^foo.*bar.*baz"],
@@ -2524,7 +2525,7 @@ bench_function! {
 }
 
 bench_function! {
-    to_string => vrl_stdlib::ToString;
+    to_string => vrl::stdlib::ToString;
 
     string {
         args: func_args![value: "2"],
@@ -2548,7 +2549,7 @@ bench_function! {
 }
 
 bench_function! {
-    to_syslog_facility => vrl_stdlib::ToSyslogFacility;
+    to_syslog_facility => vrl::stdlib::ToSyslogFacility;
 
     literal {
         args: func_args![value: value!(23)],
@@ -2557,7 +2558,7 @@ bench_function! {
 }
 
 bench_function! {
-    to_syslog_level => vrl_stdlib::ToSyslogLevel;
+    to_syslog_level => vrl::stdlib::ToSyslogLevel;
 
     literal {
         args: func_args![value: value!(5)],
@@ -2566,7 +2567,7 @@ bench_function! {
 }
 
 bench_function! {
-    to_syslog_severity => vrl_stdlib::ToSyslogSeverity;
+    to_syslog_severity => vrl::stdlib::ToSyslogSeverity;
 
     literal {
         args: func_args![value: value!("info")],
@@ -2575,7 +2576,7 @@ bench_function! {
 }
 
 bench_function! {
-    to_timestamp => vrl_stdlib::ToTimestamp;
+    to_timestamp => vrl::stdlib::ToTimestamp;
 
     string {
         args: func_args![value: "2001-07-08T00:34:60.026490+09:30"],
@@ -2594,7 +2595,7 @@ bench_function! {
 }
 
 bench_function! {
-    to_unix_timestamp => vrl_stdlib::ToUnixTimestamp;
+    to_unix_timestamp => vrl::stdlib::ToUnixTimestamp;
 
     default {
         args: func_args![value: Utc.ymd(2021, 1, 1).and_hms_milli(0, 0, 0, 0)],
@@ -2603,7 +2604,7 @@ bench_function! {
 }
 
 bench_function! {
-    truncate => vrl_stdlib::Truncate;
+    truncate => vrl::stdlib::Truncate;
 
     ellipsis {
         args: func_args![
@@ -2625,7 +2626,7 @@ bench_function! {
 }
 
 bench_function! {
-    unique => vrl_stdlib::Unique;
+    unique => vrl::stdlib::Unique;
 
     default {
         args: func_args![
@@ -2643,7 +2644,7 @@ bench_function! {
 }
 
 bench_function! {
-    upcase => vrl_stdlib::Upcase;
+    upcase => vrl::stdlib::Upcase;
 
     literal {
         args: func_args![value: "foo"],
@@ -2652,7 +2653,7 @@ bench_function! {
 }
 
 bench_function! {
-    values => vrl_stdlib::Values;
+    values => vrl::stdlib::Values;
 
     literal {
         args: func_args![value: value!({"key1": "val1", "key2": "val2"})],

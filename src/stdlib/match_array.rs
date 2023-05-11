@@ -111,6 +111,7 @@ impl FunctionExpression for MatchArrayFn {
 mod tests {
     use super::*;
     use crate::value;
+    use regex::Regex;
 
     test_function![
         match_array => MatchArray;

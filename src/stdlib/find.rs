@@ -129,6 +129,7 @@ impl FunctionExpression for FindFn {
 mod tests {
     use super::*;
     use crate::value;
+    use regex::Regex;
 
     test_function![
         find => Find;

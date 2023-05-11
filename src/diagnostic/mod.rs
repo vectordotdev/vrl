@@ -16,6 +16,7 @@
     clippy::needless_pass_by_value,  // allowed in initial deny commit
 )]
 
+#[allow(clippy::module_inception)]
 mod diagnostic;
 mod formatter;
 mod label;

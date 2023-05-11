@@ -96,6 +96,7 @@ impl FunctionExpression for MatchAnyFn {
 mod tests {
     use super::*;
     use crate::value;
+    use regex::Regex;
 
     test_function![
         r#match_any => MatchAny;

@@ -92,8 +92,8 @@ impl FunctionExpression for PushFn {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::btreemap;
     use crate::value;
-    use crate::value::btreemap;
 
     test_function![
         push => Push;

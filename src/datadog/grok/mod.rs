@@ -8,6 +8,8 @@
 mod ast;
 #[doc(hidden)]
 pub mod filters; // TODO Must be exposed for criterion. Perhaps we should pass a feature? Yuck.
+
+#[allow(clippy::module_inception)]
 mod grok;
 mod grok_filter;
 mod lexer;

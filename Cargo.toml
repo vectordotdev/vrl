@@ -48,6 +48,7 @@ test_framework = ["compiler", "dep:prettydiff", "dep:serde_json", "dep:ansi_term
 arbitrary = ["dep:quickcheck", "dep:arbitrary"]
 lua = ["dep:mlua"]
 json = ["dep:serde_json", "dep:serde"]
+test = []
 
 # stdlib without any functions
 stdlib-core = []
@@ -475,7 +476,7 @@ harness = false
 name = "keyvalue"
 harness = false
 
-# [[bench]]
-# name = "stdlib"
-# harness = false
-# required-features = ["default"]
+[[bench]]
+name = "stdlib"
+harness = false
+required-features = ["default", "test"]

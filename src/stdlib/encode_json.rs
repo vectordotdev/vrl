@@ -63,6 +63,10 @@ impl FunctionExpression for EncodeJsonFn {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::BTreeMap;
+
+    use chrono::{DateTime, Utc};
+    use regex::Regex;
 
     test_function![
         encode_json => EncodeJson;

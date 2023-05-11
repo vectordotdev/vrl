@@ -152,7 +152,7 @@ fn inner_kind() -> BTreeMap<Field, Kind> {
 
 #[cfg(test)]
 mod tests {
-    use crate::value::btreemap;
+    use crate::btreemap;
     use chrono::DateTime;
 
     use super::*;

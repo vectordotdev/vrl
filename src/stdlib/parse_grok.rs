@@ -166,7 +166,7 @@ impl Function for ParseGrok {
 
 #[cfg(test)]
 mod test {
-    use crate::value::btreemap;
+    use crate::btreemap;
     use crate::value::Value;
 
     use super::*;

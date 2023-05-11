@@ -90,6 +90,7 @@ fn try_format(dt: &DateTime<Utc>, format: &str) -> ExpressionResult<String> {
 mod tests {
     use super::*;
     use crate::value;
+    use chrono::TimeZone;
 
     test_function![
         format_timestamp => FormatTimestamp;

@@ -187,8 +187,14 @@ fn kind_error() -> BTreeMap<Field, Kind> {
 
 #[cfg(test)]
 mod tests {
+    use crate::compiler::TimeZone;
+    use chrono::prelude::*;
+    use chrono::DateTime;
+    use chrono::TimeZone as ChronoTimezone;
+
     use super::*;
     use crate::btreemap;
+    use chrono::Utc;
 
     test_function![
         parse_common_log => ParseApacheLog;

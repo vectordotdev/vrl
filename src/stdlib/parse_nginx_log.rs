@@ -190,7 +190,7 @@ fn kind_error() -> BTreeMap<Field, Kind> {
 
 #[cfg(test)]
 mod tests {
-    use crate::value::btreemap;
+    use crate::btreemap;
     use chrono::prelude::*;
 
     use super::*;
