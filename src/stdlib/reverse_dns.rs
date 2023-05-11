@@ -81,7 +81,7 @@ impl Function for ReverseDns {
         ctx: &mut FunctionCompileContext,
         _arguments: ArgumentList,
     ) -> Compiled {
-        Ok(crate::WasmUnsupportedFunction::new(ctx.span(), TypeDef::bytes().fallible()).as_expr())
+        Ok(super::WasmUnsupportedFunction::new(ctx.span(), TypeDef::bytes().fallible()).as_expr())
     }
 }
 

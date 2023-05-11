@@ -41,7 +41,7 @@ mod datadog;
 #[cfg(feature = "datadog_filter")]
 pub use datadog::filter as datadog_filter;
 
-#[cfg(feature = "datadog_grok")]
+#[cfg(all(feature = "datadog_grok", not(target_arch = "wasm32")))]
 pub use datadog::grok as datadog_grok;
 
 #[cfg(feature = "datadog_search")]

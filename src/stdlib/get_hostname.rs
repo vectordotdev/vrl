@@ -33,7 +33,7 @@ impl Function for GetHostname {
         ctx: &mut FunctionCompileContext,
         _: ArgumentList,
     ) -> Compiled {
-        Ok(crate::WasmUnsupportedFunction::new(ctx.span(), TypeDef::bytes().fallible()).as_expr())
+        Ok(super::WasmUnsupportedFunction::new(ctx.span(), TypeDef::bytes().fallible()).as_expr())
     }
 
     fn examples(&self) -> &'static [Example] {

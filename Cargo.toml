@@ -380,6 +380,7 @@ data-encoding = { version = "2.3.3", optional = true }
 dyn-clone = { version = "1.0.11", default-features = false, optional = true }
 exitcode = {version = "1", optional = true }
 flate2 = { version = "1.0.25", default-features = false, features = ["default"], optional = true }
+getrandom = { version = "0.2", features = ["js"] }
 hex = { version = "0.4", optional = true }
 hmac = { version = "0.12.1", optional = true }
 indexmap = { version = "~1.9.2", default-features = false, optional = true}
@@ -389,7 +390,6 @@ lalrpop-util = { version = "0.19", optional = true }
 mlua = { version = "0.8.8", default-features = false, features = ["lua54", "send", "vendored"], optional = true}
 nom = { version = "7.1.3", default-features = false, features = ["std"], optional = true }
 once_cell = { version = "1.17", default-features = false, features = ["std"], optional = true }
-onig = { version = "6.4", default-features = false, optional = true }
 ordered-float = { version = "3", default-features = false, optional = true }
 md-5 = { version = "0.10", optional = true }
 paste = { version = "1", default-features = false, optional = true }
@@ -441,6 +441,7 @@ ofb = { version = "0.6.1", optional = true }
 dns-lookup = { version = "1.0.8", optional = true }
 hostname = { version = "0.3", optional = true }
 grok = { version = "2", optional = true }
+onig = { version = "6.4", default-features = false, optional = true }
 
 [dev-dependencies]
 anyhow = "1"

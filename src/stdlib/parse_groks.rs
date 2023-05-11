@@ -186,7 +186,7 @@ impl Function for ParseGroks {
         ctx: &mut FunctionCompileContext,
         _: ArgumentList,
     ) -> Compiled {
-        Ok(crate::WasmUnsupportedFunction::new(
+        Ok(super::WasmUnsupportedFunction::new(
             ctx.span(),
             TypeDef::object(Collection::any()).fallible(),
         )

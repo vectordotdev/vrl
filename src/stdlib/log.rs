@@ -107,7 +107,7 @@ impl Function for Log {
         ctx: &mut FunctionCompileContext,
         _arguments: ArgumentList,
     ) -> Compiled {
-        Ok(crate::WasmUnsupportedFunction::new(ctx.span(), TypeDef::null().infallible()).as_expr())
+        Ok(super::WasmUnsupportedFunction::new(ctx.span(), TypeDef::null().infallible()).as_expr())
     }
 }
 
