@@ -36,7 +36,7 @@ macro_rules! func_args {
     ($($k:tt: $v:expr),+ $(,)?) => {
         vec![$((stringify!($k), $v.into())),+]
             .into_iter()
-            .collect::<::std::collections::HashMap<&'static str, ::value::Value>>()
+            .collect::<::std::collections::HashMap<&'static str, $crate::value::Value>>()
     };
 }
 
@@ -84,7 +84,7 @@ macro_rules! test_function {
     };
 
     ($name:tt => $func:path; before_each => $before:block $($case:ident { args: $args:expr, want: $(Ok($ok:expr))? $(Err($err:expr))?, tdef: $tdef:expr, tz: $tz:expr,  $(,)* })+) => {
-        $crate::paste!{$(
+        $crate::compiler::paste!{$(
             #[test]
             fn [<$name _ $case:snake:lower>]() {
                 $before
@@ -94,7 +94,7 @@ macro_rules! test_function {
                 match expression {
                     Ok(expression) => {
                         let mut runtime_state = $crate::state::RuntimeState::default();
-                        let mut target: ::value::Value = ::std::collections::BTreeMap::default().into();
+                        let mut target: $crate::value::Value = ::std::collections::BTreeMap::default().into();
                         let tz = $tz;
                         let mut ctx = $crate::Context::new(&mut target, &mut runtime_state, &tz);
 
@@ -110,7 +110,7 @@ macro_rules! test_function {
                         assert_eq!(err
                                    // We have to map to a value just to make sure the types match even though
                                    // it will never be used.
-                                   .map(|_| ::value::Value::Null)
+                                   .map(|_| $crate::value::Value::Null)
                                    .map_err(|e| format!("{:#}", e.message())), want);
                     }
                 }

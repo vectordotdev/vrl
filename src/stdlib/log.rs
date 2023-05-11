@@ -1,5 +1,6 @@
+use crate::compiler::prelude::*;
+use crate::value;
 use tracing::{debug, error, info, trace, warn};
-use vrl_compiler::prelude::*;
 
 fn log(rate_limit_secs: Value, level: &Bytes, value: Value, span: Span) -> Resolved {
     let rate_limit_secs = rate_limit_secs.try_integer()?;

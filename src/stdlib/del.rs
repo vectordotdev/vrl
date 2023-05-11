@@ -1,4 +1,4 @@
-use vrl_compiler::prelude::*;
+use crate::compiler::prelude::*;
 
 #[inline]
 fn del(query: &expression::Query, compact: bool, ctx: &mut Context) -> Resolved {
@@ -136,7 +136,7 @@ pub(crate) struct DelFn {
 impl DelFn {
     #[cfg(test)]
     fn new(path: &str) -> Self {
-        use path::{parse_value_path, PathPrefix};
+        use crate::path::{parse_value_path, PathPrefix};
 
         Self {
             query: expression::Query::new(
@@ -207,7 +207,8 @@ impl fmt::Display for DelFn {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ::value::btreemap;
+    use crate::btreemap;
+    use crate::value;
 
     #[test]
     fn del() {

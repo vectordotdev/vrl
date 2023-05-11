@@ -1,5 +1,5 @@
+use crate::compiler::prelude::*;
 use std::net::IpAddr;
-use vrl_compiler::prelude::*;
 
 fn ip_ntop(value: Value) -> Resolved {
     let value = value.try_bytes()?;
@@ -79,6 +79,7 @@ impl FunctionExpression for IpNtopFn {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::value;
 
     test_function![
         ip_ntop => IpNtop;

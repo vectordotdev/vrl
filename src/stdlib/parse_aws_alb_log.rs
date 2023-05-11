@@ -1,3 +1,4 @@
+use crate::compiler::prelude::*;
 use nom::{
     branch::alt,
     bytes::complete::{tag, take_while1},
@@ -7,7 +8,6 @@ use nom::{
     IResult,
 };
 use std::collections::BTreeMap;
-use vrl_compiler::prelude::*;
 
 fn parse_aws_alb_log(bytes: Value) -> Resolved {
     let bytes = bytes.try_bytes()?;
@@ -291,6 +291,7 @@ fn take_maybe_quoted_list<'a>(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::value;
 
     test_function![
         parse_aws_alb_log => ParseAwsAlbLog;

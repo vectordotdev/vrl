@@ -1,4 +1,4 @@
-use vrl_compiler::prelude::*;
+use crate::compiler::prelude::*;
 
 fn find(value: Value, pattern: Value, from: Option<Value>) -> Resolved {
     let from = match from {
@@ -127,9 +127,8 @@ impl FunctionExpression for FindFn {
 
 #[cfg(test)]
 mod tests {
-    use regex::Regex;
-
     use super::*;
+    use crate::value;
 
     test_function![
         find => Find;

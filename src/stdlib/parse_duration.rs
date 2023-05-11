@@ -1,8 +1,8 @@
+use crate::compiler::prelude::*;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rust_decimal::{prelude::ToPrimitive, Decimal};
 use std::{collections::HashMap, str::FromStr};
-use vrl_compiler::prelude::*;
 
 fn parse_duration(bytes: Value, unit: Value) -> Resolved {
     let bytes = bytes.try_bytes()?;
@@ -126,6 +126,7 @@ impl FunctionExpression for ParseDurationFn {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::value;
 
     test_function![
         parse_duration => ParseDuration;

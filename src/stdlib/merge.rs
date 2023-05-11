@@ -1,5 +1,5 @@
+use crate::compiler::prelude::*;
 use std::collections::BTreeMap;
-use vrl_compiler::prelude::*;
 
 #[derive(Clone, Copy, Debug)]
 pub struct Merge;
@@ -116,7 +116,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ::value::btreemap;
+    use crate::{btreemap, value};
 
     test_function! [
         merge => Merge;

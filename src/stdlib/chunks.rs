@@ -1,4 +1,4 @@
-use vrl_compiler::prelude::*;
+use crate::compiler::prelude::*;
 
 fn chunks(value: Value, chunk_size: Value) -> Resolved {
     let bytes = value.try_bytes()?;
@@ -118,6 +118,7 @@ impl FunctionExpression for ChunksFn {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::value;
 
     test_function![
         chunks => Chunks;

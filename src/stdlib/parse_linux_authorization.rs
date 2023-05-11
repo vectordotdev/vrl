@@ -1,5 +1,5 @@
-use crate::parse_syslog::ParseSyslogFn;
-use vrl_compiler::prelude::*;
+use super::parse_syslog::ParseSyslogFn;
+use crate::compiler::prelude::*;
 
 #[derive(Clone, Copy, Debug)]
 pub struct ParseLinuxAuthorization;

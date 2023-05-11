@@ -1,4 +1,4 @@
-use vrl_compiler::prelude::*;
+use crate::compiler::prelude::*;
 
 fn length(value: Value) -> Resolved {
     match value {
@@ -83,6 +83,7 @@ impl FunctionExpression for LengthFn {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::value;
 
     test_function![
         length => Length;

@@ -1,3 +1,4 @@
+use crate::compiler::prelude::*;
 use aes::cipher::{
     block_padding::{AnsiX923, Iso10126, Iso7816, Pkcs7},
     generic_array::GenericArray,
@@ -6,7 +7,6 @@ use aes::cipher::{
 use cfb_mode::Encryptor as Cfb;
 use ctr::Ctr64LE;
 use ofb::Ofb;
-use vrl_compiler::prelude::*;
 
 type Aes128Cbc = cbc::Encryptor<aes::Aes128>;
 type Aes192Cbc = cbc::Encryptor<aes::Aes192>;
@@ -239,6 +239,7 @@ impl FunctionExpression for EncryptFn {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::value;
 
     test_function![
         encrypt => Encrypt;

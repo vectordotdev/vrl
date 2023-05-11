@@ -1,4 +1,4 @@
-use vrl_compiler::prelude::*;
+use crate::compiler::prelude::*;
 
 fn strlen(value: Value) -> Resolved {
     let v = value.try_bytes()?;
@@ -62,6 +62,7 @@ impl FunctionExpression for StrlenFn {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::value;
 
     test_function![
         strlen => Strlen;

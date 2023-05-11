@@ -1,6 +1,6 @@
-use vrl_compiler::prelude::*;
+use crate::compiler::prelude::*;
 
-use crate::util::round_to_precision;
+use super::util::round_to_precision;
 
 fn floor(precision: Option<Value>, value: Value) -> Resolved {
     let precision = match precision {
@@ -95,6 +95,7 @@ impl FunctionExpression for FloorFn {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::value;
 
     test_function![
         floor => Floor;

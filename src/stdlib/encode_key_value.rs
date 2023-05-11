@@ -1,5 +1,5 @@
-use vrl_compiler::prelude::*;
-use vrl_core::encode_key_value;
+use crate::compiler::prelude::*;
+use crate::core::encode_key_value;
 
 /// Also used by `encode_logfmt`.
 pub(crate) fn encode_key_value(
@@ -167,9 +167,8 @@ impl FunctionExpression for EncodeKeyValueFn {
 
 #[cfg(test)]
 mod tests {
-    use ::value::btreemap;
-
     use super::*;
+    use crate::{btreemap, value};
 
     test_function![
         encode_key_value  => EncodeKeyValue;

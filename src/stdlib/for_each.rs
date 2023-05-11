@@ -1,4 +1,4 @@
-use vrl_compiler::prelude::*;
+use crate::compiler::prelude::*;
 
 fn for_each<T>(value: Value, ctx: &mut Context, runner: closure::Runner<T>) -> Resolved
 where

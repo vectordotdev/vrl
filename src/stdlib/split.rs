@@ -1,4 +1,4 @@
-use vrl_compiler::prelude::*;
+use crate::compiler::prelude::*;
 
 fn split(value: Value, limit: Value, pattern: Value) -> Resolved {
     let string = value.try_bytes_utf8_lossy()?;
@@ -119,6 +119,7 @@ impl FunctionExpression for SplitFn {
 #[allow(clippy::trivial_regex)]
 mod test {
     use super::*;
+    use crate::value;
 
     test_function![
         split => Split;

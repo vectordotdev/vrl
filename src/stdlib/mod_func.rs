@@ -1,4 +1,4 @@
-use vrl_compiler::prelude::*;
+use crate::compiler::prelude::*;
 
 fn r#mod(value: Value, modulus: Value) -> Resolved {
     let result = value.try_rem(modulus)?;
@@ -81,6 +81,7 @@ impl FunctionExpression for ModFn {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::value;
 
     test_function![
         r#mod => Mod;

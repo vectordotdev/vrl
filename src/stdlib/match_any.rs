@@ -1,5 +1,5 @@
+use crate::compiler::prelude::*;
 use regex::bytes::RegexSet;
-use vrl_compiler::prelude::*;
 
 fn match_any(value: Value, pattern: &RegexSet) -> Resolved {
     let bytes = value.try_bytes()?;
@@ -94,9 +94,8 @@ impl FunctionExpression for MatchAnyFn {
 #[cfg(test)]
 #[allow(clippy::trivial_regex)]
 mod tests {
-    use regex::Regex;
-
     use super::*;
+    use crate::value;
 
     test_function![
         r#match_any => MatchAny;

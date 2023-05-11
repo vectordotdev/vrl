@@ -1,5 +1,5 @@
-use vrl_compiler::conversion::Conversion;
-use vrl_compiler::prelude::*;
+use crate::compiler::conversion::Conversion;
+use crate::compiler::prelude::*;
 
 fn parse_timestamp(value: Value, format: Value, ctx: &Context) -> Resolved {
     match value {
@@ -79,9 +79,9 @@ impl FunctionExpression for ParseTimestampFn {
 
 #[cfg(test)]
 mod tests {
-    use chrono::{DateTime, Utc};
-
     use super::*;
+    use crate::value;
+    use chrono::{DateTime, Utc};
 
     test_function![
         parse_timestamp => ParseTimestamp;

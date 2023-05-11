@@ -1,6 +1,7 @@
-use crate::log_util;
+use super::log_util;
+use crate::compiler::prelude::*;
+use crate::value;
 use std::collections::BTreeMap;
-use vrl_compiler::prelude::*;
 
 fn parse_apache_log(
     bytes: Value,
@@ -187,10 +188,7 @@ fn kind_error() -> BTreeMap<Field, Kind> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ::value::btreemap;
-    use chrono::prelude::*;
-    use chrono::TimeZone as ChronoTimezone;
-    use vrl_compiler::TimeZone;
+    use crate::btreemap;
 
     test_function![
         parse_common_log => ParseApacheLog;

@@ -1,7 +1,7 @@
+use crate::compiler::prelude::*;
 use flate2::read::ZlibEncoder;
 use nom::AsBytes;
 use std::io::Read;
-use vrl_compiler::prelude::*;
 
 fn encode_zlib(value: Value, compression_level: Option<Value>) -> Resolved {
     let compression_level = match compression_level {
@@ -94,6 +94,7 @@ impl FunctionExpression for EncodeZlibFn {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::value;
     use base64::Engine;
 
     fn decode_base64(text: &str) -> Vec<u8> {

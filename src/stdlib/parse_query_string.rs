@@ -1,6 +1,6 @@
+use crate::compiler::prelude::*;
 use std::collections::BTreeMap;
 use url::form_urlencoded;
-use vrl_compiler::prelude::*;
 
 fn parse_query_string(bytes: Value) -> Resolved {
     let bytes = bytes.try_bytes()?;
@@ -92,6 +92,7 @@ fn inner_kind() -> Collection<Field> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::value;
 
     test_function![
         parse_query_string => ParseQueryString;

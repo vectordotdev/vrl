@@ -1,4 +1,4 @@
-use vrl_compiler::prelude::*;
+use crate::compiler::prelude::*;
 
 fn get_env_var(value: Value) -> Resolved {
     let name = value.try_bytes_utf8_lossy()?;
@@ -62,6 +62,7 @@ impl FunctionExpression for GetEnvVarFn {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::value;
 
     test_function![
         get_env_var => GetEnvVar;

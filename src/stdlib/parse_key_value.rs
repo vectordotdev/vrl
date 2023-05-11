@@ -1,3 +1,5 @@
+use crate::compiler::prelude::*;
+use crate::value;
 use nom::{
     self,
     branch::alt,
@@ -13,7 +15,6 @@ use std::{
     collections::{btree_map::Entry, BTreeMap},
     str::FromStr,
 };
-use vrl_compiler::prelude::*;
 
 pub(crate) fn parse_key_value(
     bytes: Value,

@@ -1,4 +1,4 @@
-use vrl_compiler::prelude::*;
+use crate::compiler::prelude::*;
 
 fn push(list: Value, item: Value) -> Resolved {
     let mut list = list.try_array()?;
@@ -91,9 +91,9 @@ impl FunctionExpression for PushFn {
 
 #[cfg(test)]
 mod tests {
-    use ::value::btreemap;
-
     use super::*;
+    use crate::value;
+    use crate::value::btreemap;
 
     test_function![
         push => Push;

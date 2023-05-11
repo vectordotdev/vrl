@@ -1,6 +1,6 @@
 use std::collections::VecDeque;
 
-use vrl_compiler::prelude::*;
+use crate::compiler::prelude::*;
 
 fn format_int(value: Value, base: Option<Value>) -> Resolved {
     let value = value.try_integer()?;
@@ -135,7 +135,7 @@ fn format_radix(x: i64, radix: u32) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-
+    use crate::value;
     test_function![
         format_int => FormatInt;
 

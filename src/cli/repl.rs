@@ -1,12 +1,19 @@
+use crate::compiler::TargetValue;
 use std::borrow::Cow::{self, Borrowed, Owned};
 use std::collections::BTreeMap;
 use std::rc::Rc;
-use vrl_compiler::TargetValue;
 
-use ::value::Value;
+use crate::compiler::runtime::Runtime;
+use crate::compiler::state::{RuntimeState, TypeState};
+use crate::compiler::TimeZone;
+use crate::compiler::{compile_with_state, CompileConfig, Function, Program, Target, VrlRuntime};
+use crate::diagnostic::Formatter;
+use crate::owned_value_path;
+use crate::path::OwnedTargetPath;
+use crate::value::Secrets;
+use crate::value::Value;
 use indoc::indoc;
 use once_cell::sync::Lazy;
-use path::{owned_value_path, OwnedTargetPath};
 use prettytable::{format, Cell, Row, Table};
 use regex::Regex;
 use rustyline::{
@@ -18,12 +25,6 @@ use rustyline::{
     validate::{self, ValidationResult, Validator},
     Context, Editor, Helper,
 };
-use value::Secrets;
-use vrl_compiler::runtime::Runtime;
-use vrl_compiler::state::{RuntimeState, TypeState};
-use vrl_compiler::TimeZone;
-use vrl_compiler::{compile_with_state, CompileConfig, Function, Program, Target, VrlRuntime};
-use vrl_diagnostic::Formatter;
 
 // Create a list of all possible error values for potential docs lookup
 static ERRORS: Lazy<Vec<String>> = Lazy::new(|| {
@@ -238,7 +239,7 @@ impl Hinter for Repl {
         let mut hints: Vec<String> = Vec::new();
 
         // Add all function names to the hints
-        let mut func_names = stdlib::all()
+        let mut func_names = crate::stdlib::all()
             .iter()
             .map(|f| f.identifier().into())
             .collect::<Vec<String>>();
@@ -339,7 +340,7 @@ fn print_function_list() {
 
     let mut func_table = Table::new();
     func_table.set_format(table_format);
-    stdlib::all()
+    crate::stdlib::all()
         .chunks(num_columns)
         .map(|funcs| {
             // Because it's possible that some chunks are only partial, e.g. have only two Some(_)
@@ -385,7 +386,10 @@ fn show_func_docs(line: &str, pattern: &Regex) {
     let matches = pattern.captures(line).unwrap();
     let func_name = matches.get(1).unwrap().as_str();
 
-    if stdlib::all().iter().any(|f| f.identifier() == func_name) {
+    if crate::stdlib::all()
+        .iter()
+        .any(|f| f.identifier() == func_name)
+    {
         let func_url = format!("{DOCS_URL}/functions/#{func_name}");
         open_url(&func_url);
     } else {

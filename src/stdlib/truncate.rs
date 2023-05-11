@@ -1,4 +1,4 @@
-use vrl_compiler::prelude::*;
+use crate::compiler::prelude::*;
 
 fn truncate(value: Value, limit: Value, ellipsis: Value) -> Resolved {
     let mut value = value.try_bytes_utf8_lossy()?.into_owned();

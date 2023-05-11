@@ -1,5 +1,5 @@
-use path::{OwnedSegment, OwnedValuePath};
-use vrl_compiler::prelude::*;
+use crate::compiler::prelude::*;
+use crate::path::{OwnedSegment, OwnedValuePath};
 
 fn remove(path: Value, compact: Value, mut value: Value) -> Resolved {
     let path = match path {
@@ -195,6 +195,7 @@ impl FunctionExpression for RemoveFn {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::value;
 
     test_function![
         remove => Remove;

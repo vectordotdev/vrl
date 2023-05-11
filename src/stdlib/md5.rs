@@ -1,5 +1,5 @@
+use crate::compiler::prelude::*;
 use md5::Digest;
-use vrl_compiler::prelude::*;
 
 fn md5(value: Value) -> Resolved {
     let value = value.try_bytes()?;
@@ -61,6 +61,7 @@ impl FunctionExpression for Md5Fn {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::value;
 
     test_function![
         md5 => Md5;

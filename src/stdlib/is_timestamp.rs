@@ -1,4 +1,5 @@
-use vrl_compiler::prelude::*;
+use crate::compiler::prelude::*;
+use crate::value;
 
 #[derive(Clone, Copy, Debug)]
 pub struct IsTimestamp;
@@ -65,8 +66,6 @@ impl FunctionExpression for IsTimestampFn {
 
 #[cfg(test)]
 mod tests {
-    use chrono::{DateTime, Utc};
-
     use super::*;
 
     test_function![

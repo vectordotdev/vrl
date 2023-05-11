@@ -1,6 +1,6 @@
+use crate::compiler::prelude::*;
 use flate2::read::ZlibDecoder;
 use std::io::Read;
-use vrl_compiler::prelude::*;
 
 fn decode_zlib(value: Value) -> Resolved {
     let value = value.try_bytes()?;
@@ -70,6 +70,7 @@ impl FunctionExpression for DecodeZlibFn {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::value;
     use flate2::read::ZlibEncoder;
     use nom::AsBytes;
 

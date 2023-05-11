@@ -21,7 +21,6 @@ use crate::value::Secrets;
 use crate::value::Value;
 use clap::Parser;
 
-#[cfg(feature = "repl")]
 use super::repl;
 use super::Error;
 
@@ -187,7 +186,6 @@ fn run(opts: &Opts, stdlib_functions: Vec<Box<dyn Function>>) -> Result<(), Erro
     }
 }
 
-#[cfg(feature = "repl")]
 #[allow(clippy::unnecessary_wraps)]
 fn repl(
     objects: Vec<Value>,
@@ -195,7 +193,7 @@ fn repl(
     vrl_runtime: VrlRuntime,
     stdlib_functions: Vec<Box<dyn Function>>,
 ) -> Result<(), Error> {
-    use vrl_compiler::TargetValue;
+    use crate::compiler::TargetValue;
 
     let objects = objects
         .into_iter()
@@ -207,17 +205,6 @@ fn repl(
         .collect();
 
     repl::run(objects, timezone, vrl_runtime, stdlib_functions).map_err(Into::into)
-}
-
-#[cfg(not(feature = "repl"))]
-#[allow(clippy::needless_pass_by_value)]
-fn repl(
-    _objects: Vec<Value>,
-    _timezone: TimeZone,
-    _vrl_runtime: VrlRuntime,
-    _stdlib_functions: Vec<Box<dyn Function>>,
-) -> Result<(), Error> {
-    Err(Error::ReplFeature)
 }
 
 fn execute(

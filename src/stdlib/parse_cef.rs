@@ -1,3 +1,4 @@
+use crate::compiler::prelude::*;
 use nom::{
     self,
     branch::alt,
@@ -10,7 +11,6 @@ use nom::{
     IResult,
 };
 use std::collections::{BTreeMap, HashMap};
-use vrl_compiler::prelude::*;
 
 fn build_map() -> HashMap<&'static str, (usize, CustomField)> {
     [
@@ -341,6 +341,7 @@ fn type_def() -> TypeDef {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::value;
 
     #[test]
     fn test_parse_header() {

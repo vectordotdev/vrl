@@ -1,8 +1,8 @@
+use crate::compiler::prelude::*;
 use base64::Engine as _;
 use std::str::FromStr;
-use vrl_compiler::prelude::*;
 
-use crate::util::Base64Charset;
+use super::util::Base64Charset;
 
 fn encode_base64(value: Value, padding: Option<Value>, charset: Option<Value>) -> Resolved {
     let value = value.try_bytes()?;
@@ -105,6 +105,7 @@ impl FunctionExpression for EncodeBase64Fn {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::value;
 
     test_function![
         encode_base64 => EncodeBase64;

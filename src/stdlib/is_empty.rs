@@ -1,4 +1,4 @@
-use vrl_compiler::prelude::*;
+use crate::compiler::prelude::*;
 
 fn is_empty(value: Value) -> Resolved {
     let empty = match value {
@@ -91,6 +91,7 @@ impl FunctionExpression for IsEmptyFn {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::value;
 
     test_function![
         is_empty => IsEmpty;

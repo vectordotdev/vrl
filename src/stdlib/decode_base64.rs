@@ -1,8 +1,8 @@
+use crate::compiler::prelude::*;
 use base64::Engine as _;
 use std::str::FromStr;
-use vrl_compiler::prelude::*;
 
-use crate::util::Base64Charset;
+use super::util::Base64Charset;
 
 fn decode_base64(charset: Option<Value>, value: Value) -> Resolved {
     let charset = charset
@@ -95,6 +95,7 @@ impl FunctionExpression for DecodeBase64Fn {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::value;
 
     test_function![
         decode_base64 => DecodeBase64;

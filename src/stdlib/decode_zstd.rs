@@ -1,5 +1,5 @@
+use crate::compiler::prelude::*;
 use nom::AsBytes;
-use vrl_compiler::prelude::*;
 
 fn decode_zstd(value: Value) -> Resolved {
     let value = value.try_bytes()?;
@@ -68,6 +68,7 @@ impl FunctionExpression for DecodeZstdFn {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::value;
     use nom::AsBytes;
 
     fn get_encoded_bytes(text: &str) -> Vec<u8> {

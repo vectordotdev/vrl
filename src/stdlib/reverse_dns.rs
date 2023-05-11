@@ -1,11 +1,11 @@
-use vrl_compiler::prelude::*;
+use crate::compiler::prelude::*;
 
 #[cfg(not(target_arch = "wasm32"))]
 mod non_wasm {
-    use ::value::Value;
+    use crate::compiler::prelude::*;
+    use crate::value::Value;
     use dns_lookup::lookup_addr;
     use std::net::IpAddr;
-    use vrl_compiler::prelude::*;
 
     fn reverse_dns(value: Value) -> Resolved {
         let ip: IpAddr = value
@@ -88,6 +88,7 @@ impl Function for ReverseDns {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::value;
 
     test_function![
         reverse_dns => ReverseDns;

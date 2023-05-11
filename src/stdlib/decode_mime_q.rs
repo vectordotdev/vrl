@@ -1,4 +1,5 @@
-use ::value::Value;
+use crate::compiler::prelude::*;
+use crate::value::Value;
 use charset::Charset;
 use data_encoding::BASE64_MIME;
 use nom::{
@@ -10,7 +11,6 @@ use nom::{
     sequence::{delimited, pair, separated_pair},
     IResult,
 };
-use vrl_compiler::prelude::*;
 
 #[derive(Clone, Copy, Debug)]
 pub struct DecodeMimeQ;
@@ -191,6 +191,7 @@ impl<'a> EncodedWord<'a> {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::value;
     use nom::error::VerboseError;
 
     #[test]

@@ -1,5 +1,5 @@
+use crate::compiler::prelude::*;
 use std::{convert::TryInto, net::Ipv4Addr};
-use vrl_compiler::prelude::*;
 
 fn ip_ntoa(value: Value) -> Resolved {
     let i: u32 = value
@@ -65,6 +65,7 @@ impl FunctionExpression for IpNtoaFn {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::value;
 
     test_function![
         ip_ntoa => IpNtoa;

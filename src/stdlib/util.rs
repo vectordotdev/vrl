@@ -1,9 +1,13 @@
-// use crate::compiler::prelude::*;
+use crate::compiler::prelude::*;
 
 /// Rounds the given number to the given precision.
 /// Takes a function parameter so the exact rounding function (ceil, floor or round)
 /// can be specified.
-#[cfg(any(feature = "ceil", feature = "floor", feature = "round"))]
+#[cfg(any(
+    feature = "stdlib_ceil",
+    feature = "stdlib_floor",
+    feature = "stdlib_round"
+))]
 #[inline]
 pub(crate) fn round_to_precision<F>(num: f64, precision: i64, fun: F) -> f64
 where
@@ -20,12 +24,12 @@ where
 /// "0" is the overall match.
 /// Any named captures are also added to the Map with the key as the name.
 ///
-#[cfg(any(feature = "parse_regex", feature = "parse_regex_all"))]
+#[cfg(any(feature = "stdlib_parse_regex", feature = "stdlib_parse_regex_all"))]
 pub(crate) fn capture_regex_to_map(
     regex: &regex::Regex,
     capture: &regex::Captures,
     numeric_groups: bool,
-) -> std::collections::BTreeMap<String, ::value::Value> {
+) -> std::collections::BTreeMap<String, crate::value::Value> {
     let names = regex.capture_names().flatten().map(|name| {
         (
             name.to_owned(),
@@ -46,7 +50,7 @@ pub(crate) fn capture_regex_to_map(
     }
 }
 
-#[cfg(any(feature = "parse_regex", feature = "parse_regex_all"))]
+#[cfg(any(feature = "stdlib_parse_regex", feature = "stdlib_parse_regex_all"))]
 pub(crate) fn regex_kind(regex: &regex::Regex) -> std::collections::BTreeMap<Field, Kind> {
     let mut inner_type = std::collections::BTreeMap::new();
 
@@ -63,10 +67,10 @@ pub(crate) fn regex_kind(regex: &regex::Regex) -> std::collections::BTreeMap<Fie
     inner_type
 }
 
-#[cfg(any(feature = "is_nullish", feature = "compact"))]
-pub(crate) fn is_nullish(value: &::value::Value) -> bool {
+#[cfg(any(feature = "stdlib_is_nullish", feature = "stdlib_compact"))]
+pub(crate) fn is_nullish(value: &crate::value::Value) -> bool {
     match value {
-        ::value::Value::Bytes(v) => {
+        crate::value::Value::Bytes(v) => {
             let s = &String::from_utf8_lossy(v)[..];
 
             match s {
@@ -74,26 +78,26 @@ pub(crate) fn is_nullish(value: &::value::Value) -> bool {
                 _ => s.chars().all(char::is_whitespace),
             }
         }
-        ::value::Value::Null => true,
+        crate::value::Value::Null => true,
         _ => false,
     }
 }
 
-#[cfg(any(feature = "decode_base64", feature = "encode_base64"))]
+#[cfg(any(feature = "stdlib_decode_base64", feature = "stdlib_encode_base64"))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Base64Charset {
     Standard,
     UrlSafe,
 }
 
-#[cfg(any(feature = "decode_base64", feature = "encode_base64"))]
+#[cfg(any(feature = "stdlib_decode_base64", feature = "stdlib_encode_base64"))]
 impl Default for Base64Charset {
     fn default() -> Self {
         Self::Standard
     }
 }
 
-#[cfg(any(feature = "decode_base64", feature = "encode_base64"))]
+#[cfg(any(feature = "stdlib_decode_base64", feature = "stdlib_encode_base64"))]
 impl From<Base64Charset> for base64::alphabet::Alphabet {
     fn from(charset: Base64Charset) -> base64::alphabet::Alphabet {
         use Base64Charset::{Standard, UrlSafe};
@@ -105,7 +109,7 @@ impl From<Base64Charset> for base64::alphabet::Alphabet {
     }
 }
 
-#[cfg(any(feature = "decode_base64", feature = "encode_base64"))]
+#[cfg(any(feature = "stdlib_decode_base64", feature = "stdlib_encode_base64"))]
 impl std::str::FromStr for Base64Charset {
     type Err = &'static str;
 

@@ -1,5 +1,5 @@
+use crate::compiler::prelude::*;
 use std::collections::BTreeMap;
-use vrl_compiler::prelude::*;
 
 fn parse_aws_vpc_flow_log(value: Value, format: Option<Value>) -> Resolved {
     let bytes = value.try_bytes()?;
@@ -230,6 +230,7 @@ fn parse_log(input: &str, format: Option<&str>) -> ParseResult<Value> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::value;
 
     #[test]
     fn parse_aws_vpc_flow_log() {

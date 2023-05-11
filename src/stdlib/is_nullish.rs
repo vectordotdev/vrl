@@ -1,6 +1,5 @@
-use vrl_compiler::prelude::*;
-
-use crate::util;
+use super::util;
+use crate::compiler::prelude::*;
 
 fn is_nullish(value: Value) -> bool {
     util::is_nullish(&value)
@@ -60,6 +59,7 @@ impl FunctionExpression for IsNullishFn {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::value;
     test_function![
         is_nullish => IsNullish;
 

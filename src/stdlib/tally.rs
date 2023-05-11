@@ -1,5 +1,5 @@
+use crate::compiler::prelude::*;
 use std::collections::{BTreeMap, HashMap};
-use vrl_compiler::prelude::*;
 
 fn tally(value: Value) -> Resolved {
     let value = value.try_array()?;
@@ -74,6 +74,7 @@ impl FunctionExpression for TallyFn {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::value;
 
     test_function![
         tally => Tally;

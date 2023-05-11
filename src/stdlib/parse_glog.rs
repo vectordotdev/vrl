@@ -1,8 +1,8 @@
+use crate::compiler::prelude::*;
 use chrono::{offset::TimeZone, Utc};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use std::collections::BTreeMap;
-use vrl_compiler::prelude::*;
 
 fn parse_glog(bytes: Value) -> Resolved {
     let bytes = bytes.try_bytes()?;
@@ -141,7 +141,7 @@ fn inner_kind() -> BTreeMap<Field, Kind> {
 
 #[cfg(test)]
 mod tests {
-    use ::value::btreemap;
+    use crate::value::btreemap;
     use chrono::DateTime;
 
     use super::*;

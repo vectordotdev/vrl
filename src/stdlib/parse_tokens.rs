@@ -1,5 +1,5 @@
-use vrl_compiler::prelude::*;
-use vrl_core::tokenize;
+use crate::compiler::prelude::*;
+use crate::core::tokenize;
 
 fn parse_tokens(value: Value) -> Resolved {
     let string = value.try_bytes_utf8_lossy()?;

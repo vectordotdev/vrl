@@ -1,4 +1,5 @@
-use vrl_compiler::prelude::*;
+use crate::compiler::prelude::*;
+use crate::value;
 
 #[derive(Clone, Copy, Debug)]
 pub struct IsNull;

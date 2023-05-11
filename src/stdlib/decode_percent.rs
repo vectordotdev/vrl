@@ -1,5 +1,5 @@
+use crate::compiler::prelude::*;
 use percent_encoding::percent_decode;
-use vrl_compiler::prelude::*;
 
 fn decode_percent(value: Value) -> Resolved {
     let value = value.try_bytes()?;
@@ -65,6 +65,7 @@ impl FunctionExpression for DecodePercentFn {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::value;
 
     test_function![
         decode_percent => DecodePercent;

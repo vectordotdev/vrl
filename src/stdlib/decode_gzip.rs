@@ -1,6 +1,6 @@
+use crate::compiler::prelude::*;
 use flate2::read::MultiGzDecoder;
 use std::io::Read;
-use vrl_compiler::prelude::*;
 
 fn decode_gzip(value: Value) -> Resolved {
     let value = value.try_bytes()?;
@@ -70,6 +70,7 @@ impl FunctionExpression for DecodeGzipFn {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::value;
     use flate2::read::GzEncoder;
     use nom::AsBytes;
 

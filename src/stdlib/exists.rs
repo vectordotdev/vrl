@@ -1,4 +1,4 @@
-use vrl_compiler::prelude::*;
+use crate::compiler::prelude::*;
 
 #[derive(Clone, Copy, Debug)]
 pub struct Exists;

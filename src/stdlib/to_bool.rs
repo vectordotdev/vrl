@@ -1,5 +1,5 @@
-use vrl_compiler::conversion::Conversion;
-use vrl_compiler::prelude::*;
+use crate::compiler::conversion::Conversion;
+use crate::compiler::prelude::*;
 
 fn to_bool(value: Value) -> Resolved {
     use Value::{Boolean, Bytes, Float, Integer, Null};

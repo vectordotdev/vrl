@@ -1,4 +1,4 @@
-use vrl_compiler::prelude::*;
+use crate::compiler::prelude::*;
 
 fn tally_value(array: Value, value: Value) -> Resolved {
     let array = array.try_array()?;
@@ -71,6 +71,7 @@ impl FunctionExpression for TallyValueFn {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::value;
 
     test_function![
         tally_value => TallyValue;

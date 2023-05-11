@@ -1,4 +1,4 @@
-use vrl_compiler::prelude::*;
+use crate::compiler::prelude::*;
 
 fn includes(list: Value, item: Value) -> Resolved {
     let list = list.try_array()?;
@@ -79,6 +79,7 @@ impl FunctionExpression for IncludesFn {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::value;
 
     test_function![
         includes => Includes;

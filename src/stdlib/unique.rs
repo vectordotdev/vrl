@@ -1,5 +1,5 @@
+use crate::compiler::prelude::*;
 use indexmap::IndexSet;
-use vrl_compiler::prelude::*;
 
 fn unique(value: Value) -> Resolved {
     let value = value.try_array()?;
@@ -62,6 +62,7 @@ impl FunctionExpression for UniqueFn {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::value;
 
     test_function![
         unique => Unique;

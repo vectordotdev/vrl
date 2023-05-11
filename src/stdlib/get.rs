@@ -1,5 +1,5 @@
-use path::{OwnedSegment, OwnedValuePath};
-use vrl_compiler::prelude::*;
+use crate::compiler::prelude::*;
+use crate::path::{OwnedSegment, OwnedValuePath};
 
 fn get(value: Value, value_path: Value) -> Resolved {
     let path = match value_path {
@@ -157,6 +157,7 @@ impl FunctionExpression for GetFn {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::value;
 
     test_function![
         get => Get;

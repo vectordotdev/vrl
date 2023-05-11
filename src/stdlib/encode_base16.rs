@@ -1,4 +1,4 @@
-use vrl_compiler::prelude::*;
+use crate::compiler::prelude::*;
 
 fn encode_base16(value: Value) -> Resolved {
     let value = value.try_bytes()?;
@@ -61,6 +61,7 @@ impl FunctionExpression for EncodeBase16Fn {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::value;
 
     test_function![
         encode_base16 => EncodeBase16;

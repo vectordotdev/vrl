@@ -1,5 +1,5 @@
+use crate::compiler::prelude::*;
 use std::net::Ipv4Addr;
-use vrl_compiler::prelude::*;
 
 fn is_ipv4(value: Value) -> Resolved {
     let value_str = value.try_bytes_utf8_lossy()?;
@@ -72,6 +72,7 @@ impl FunctionExpression for IsIpv4Fn {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::value;
 
     test_function![
         is_ipv4 => IsIpv4;

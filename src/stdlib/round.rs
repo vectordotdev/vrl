@@ -1,6 +1,6 @@
-use vrl_compiler::prelude::*;
+use crate::compiler::prelude::*;
 
-use crate::util::round_to_precision;
+use super::util::round_to_precision;
 
 fn round(precision: Value, value: Value) -> Resolved {
     let precision = precision.try_integer()?;

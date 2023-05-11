@@ -1,4 +1,4 @@
-use vrl_compiler::prelude::*;
+use crate::compiler::prelude::*;
 
 fn append(value: Value, items: Value) -> Resolved {
     let mut value = value.try_array()?;
@@ -93,9 +93,8 @@ impl FunctionExpression for AppendFn {
 
 #[cfg(test)]
 mod tests {
-    use ::value::btreemap;
-
     use super::*;
+    use crate::{btreemap, value};
 
     test_function![
         append => Append;

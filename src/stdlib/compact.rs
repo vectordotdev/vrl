@@ -1,6 +1,6 @@
-use crate::util;
+use super::util;
+use crate::compiler::prelude::*;
 use std::collections::BTreeMap;
-use vrl_compiler::prelude::*;
 
 fn compact(
     recursive: Option<Value>,
@@ -283,9 +283,8 @@ fn compact_array(array: Vec<Value>, options: &CompactOptions) -> Vec<Value> {
 
 #[cfg(test)]
 mod test {
-    use ::value::btreemap;
-
     use super::*;
+    use crate::btreemap;
 
     #[test]
     fn test_compacted_array() {

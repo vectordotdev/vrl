@@ -1,5 +1,5 @@
+use crate::compiler::prelude::*;
 use cidr_utils::cidr::IpCidr;
-use vrl_compiler::prelude::*;
 
 fn ip_cidr_contains(value: Value, cidr: Value) -> Resolved {
     let value = value
@@ -101,6 +101,7 @@ impl FunctionExpression for IpCidrContainsFn {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::value;
 
     test_function! [
         ip_cidr_contains => IpCidrContains;

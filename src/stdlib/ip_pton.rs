@@ -1,6 +1,6 @@
+use crate::compiler::prelude::*;
 use bytes::Bytes;
 use std::net::IpAddr;
-use vrl_compiler::prelude::*;
 
 fn ip_pton(value: Value) -> Resolved {
     let ip: IpAddr = value
@@ -78,6 +78,7 @@ impl FunctionExpression for IpPtonFn {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::value;
 
     test_function![
         ip_pton => IpPton;

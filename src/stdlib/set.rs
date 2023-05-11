@@ -1,5 +1,5 @@
-use path::{OwnedSegment, OwnedValuePath};
-use vrl_compiler::prelude::*;
+use crate::compiler::prelude::*;
+use crate::path::{OwnedSegment, OwnedValuePath};
 
 fn set(path: Value, mut value: Value, data: Value) -> Resolved {
     let path = match path {
@@ -169,6 +169,7 @@ impl FunctionExpression for SetFn {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::value;
 
     test_function![
         set => Set;

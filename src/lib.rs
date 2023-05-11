@@ -8,7 +8,6 @@
 
 #[cfg(feature = "compiler")]
 pub mod compiler;
-// pub use vrl_compiler as compiler;
 
 #[cfg(feature = "compiler")]
 pub use compiler::prelude;
@@ -28,14 +27,14 @@ pub mod parser;
 #[cfg(feature = "core")]
 pub mod core;
 
-#[cfg(feature = "stdlib")]
+#[cfg(feature = "stdlib-core")]
 pub mod stdlib;
 
 #[cfg(feature = "cli")]
 pub mod cli;
 
-// #[cfg(feature = "test_framework")]
-// pub use vrl_tests as test;
+#[cfg(feature = "test_framework")]
+pub mod test;
 
 mod datadog;
 

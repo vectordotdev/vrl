@@ -1,6 +1,6 @@
+use crate::compiler::prelude::*;
 use rand::{thread_rng, Rng};
 use std::ops::Range;
-use vrl_compiler::prelude::*;
 
 const INVALID_RANGE_ERR: &str = "max must be greater than min";
 
@@ -116,7 +116,7 @@ impl FunctionExpression for RandomFloatFn {
 #[cfg(test)]
 mod tests {
     use super::*;
-
+    use crate::value;
     // positive tests are handled by examples
 
     test_function![

@@ -1,5 +1,5 @@
-use path::{OwnedTargetPath, OwnedValuePath};
-use vrl_compiler::prelude::*;
+use crate::compiler::prelude::*;
+use crate::path::{OwnedTargetPath, OwnedValuePath};
 
 fn unnest(path: &expression::Query, ctx: &mut Context) -> Resolved {
     let lookup_buf = path.path();
@@ -113,7 +113,7 @@ struct UnnestFn {
 impl UnnestFn {
     #[cfg(test)]
     fn new(path: &str) -> Self {
-        use path::{parse_value_path, PathPrefix};
+        use crate::path::{parse_value_path, PathPrefix};
 
         Self {
             path: expression::Query::new(
@@ -185,8 +185,8 @@ pub(crate) fn invert_array_at_path(typedef: &TypeDef, path: &OwnedValuePath) -> 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ::value::btreemap;
-    use path::parse_value_path;
+    use crate::path::parse_value_path;
+    use crate::{btreemap, type_def, value};
 
     #[test]
     fn type_def() {

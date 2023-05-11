@@ -1,8 +1,8 @@
+use crate::compiler::prelude::*;
 use chrono::{
     format::{strftime::StrftimeItems, Item},
     DateTime, Utc,
 };
-use vrl_compiler::prelude::*;
 
 fn format_timestamp(bytes: Value, ts: Value) -> Resolved {
     let bytes = bytes.try_bytes()?;
@@ -88,9 +88,8 @@ fn try_format(dt: &DateTime<Utc>, format: &str) -> ExpressionResult<String> {
 
 #[cfg(test)]
 mod tests {
-    use chrono::TimeZone;
-
     use super::*;
+    use crate::value;
 
     test_function![
         format_timestamp => FormatTimestamp;

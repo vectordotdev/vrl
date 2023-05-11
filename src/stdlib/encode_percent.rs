@@ -1,5 +1,6 @@
+use crate::compiler::prelude::*;
+use crate::value;
 use percent_encoding::{utf8_percent_encode, AsciiSet};
-use vrl_compiler::prelude::*;
 
 fn encode_percent(value: Value, ascii_set: &Bytes) -> Resolved {
     let string = value.try_bytes_utf8_lossy()?;

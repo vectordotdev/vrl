@@ -1,5 +1,5 @@
+use crate::compiler::prelude::*;
 use std::net::IpAddr;
-use vrl_compiler::prelude::*;
 
 fn ip_to_ipv6(value: Value) -> Resolved {
     let ip: IpAddr = value
@@ -67,6 +67,7 @@ impl FunctionExpression for IpToIpv6Fn {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::value;
 
     test_function![
         ip_to_ipv6 => IpToIpv6;

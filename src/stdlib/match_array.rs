@@ -1,4 +1,4 @@
-use vrl_compiler::prelude::*;
+use crate::compiler::prelude::*;
 
 fn match_array(list: Value, pattern: Value, all: Option<Value>) -> Resolved {
     let pattern = pattern.try_regex()?;
@@ -109,9 +109,8 @@ impl FunctionExpression for MatchArrayFn {
 #[cfg(test)]
 #[allow(clippy::trivial_regex)]
 mod tests {
-    use regex::Regex;
-
     use super::*;
+    use crate::value;
 
     test_function![
         match_array => MatchArray;

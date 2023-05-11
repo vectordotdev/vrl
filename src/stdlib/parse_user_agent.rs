@@ -1,3 +1,4 @@
+use crate::compiler::prelude::*;
 use once_cell::sync::Lazy;
 use std::{
     borrow::{Borrow, Cow},
@@ -7,11 +8,10 @@ use std::{
     sync::Arc,
 };
 use uaparser::UserAgentParser as UAParser;
-use vrl_compiler::prelude::*;
 use woothee::parser::Parser as WootheeParser;
 
 static UA_PARSER: Lazy<UAParser> = Lazy::new(|| {
-    let regexes = include_bytes!("./../data/user_agent_regexes.yaml");
+    let regexes = include_bytes!("./../../data/user_agent_regexes.yaml");
     UAParser::from_bytes(regexes).expect("Regex file is not valid.")
 });
 
@@ -556,6 +556,7 @@ impl Parser for UAParser {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::value;
 
     test_function![
         parse_user_agent => ParseUserAgent;

@@ -1,15 +1,15 @@
-use vrl_compiler::prelude::*;
+use crate::compiler::prelude::*;
 
 #[cfg(not(target_arch = "wasm32"))]
 mod non_wasm {
-    use datadog_grok::{parse_grok, parse_grok_rules::GrokRule};
+    use crate::compiler::prelude::*;
+    use crate::datadog_grok::{parse_grok, parse_grok_rules::GrokRule};
+    use crate::diagnostic::{Label, Span};
     use std::fmt;
-    use vrl_compiler::prelude::*;
-    use vrl_diagnostic::{Label, Span};
 
     #[derive(Debug)]
     pub(crate) enum Error {
-        InvalidGrokPattern(datadog_grok::parse_grok_rules::Error),
+        InvalidGrokPattern(crate::datadog_grok::parse_grok_rules::Error),
     }
 
     impl fmt::Display for Error {
@@ -171,8 +171,10 @@ impl Function for ParseGroks {
             .collect::<std::result::Result<BTreeMap<String, String>, function::Error>>()?;
 
         // we use a datadog library here because it is a superset of grok
-        let grok_rules = datadog_grok::parse_grok_rules::parse_grok_rules(&patterns, aliases)
-            .map_err(|e| Box::new(Error::InvalidGrokPattern(e)) as Box<dyn DiagnosticMessage>)?;
+        let grok_rules = crate::datadog_grok::parse_grok_rules::parse_grok_rules(
+            &patterns, aliases,
+        )
+        .map_err(|e| Box::new(Error::InvalidGrokPattern(e)) as Box<dyn DiagnosticMessage>)?;
 
         Ok(ParseGroksFn { value, grok_rules }.as_expr())
     }
@@ -194,8 +196,9 @@ impl Function for ParseGroks {
 
 #[cfg(test)]
 mod test {
-    use ::value::btreemap;
-    use ::value::Value;
+    use crate::value;
+    use crate::value::btreemap;
+    use crate::value::Value;
 
     use super::*;
 

@@ -1,5 +1,5 @@
+use crate::compiler::prelude::*;
 use bytes::Bytes;
-use vrl_compiler::prelude::*;
 
 fn uuid_v4() -> Value {
     let mut buf = [0; 36];
@@ -49,7 +49,7 @@ impl FunctionExpression for UuidV4Fn {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ::value::Value;
+    use crate::value::Value;
     use std::collections::BTreeMap;
 
     test_type_def![default {

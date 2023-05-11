@@ -1,6 +1,6 @@
 use std::collections::btree_map;
 
-use vrl_compiler::prelude::*;
+use crate::compiler::prelude::*;
 
 static DEFAULT_SEPARATOR: &str = ".";
 
@@ -222,6 +222,7 @@ impl<'a> std::iter::Iterator for ArrayFlatten<'a> {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::value;
 
     test_function![
         flatten => Flatten;

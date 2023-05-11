@@ -1,7 +1,7 @@
+use crate::compiler::prelude::*;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
-use vrl_compiler::prelude::*;
 
 fn ip_subnet(value: Value, mask: Value) -> Resolved {
     let value: IpAddr = value
@@ -156,6 +156,7 @@ fn ipv6_mask(subnet_bits: u32) -> IpAddr {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::value;
 
     test_function![
         ip_subnet => IpSubnet;

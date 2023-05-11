@@ -1,9 +1,9 @@
+use crate::compiler::prelude::*;
 use serde_json::{
     value::{RawValue, Value as JsonValue},
     Error, Map,
 };
 use std::collections::HashMap;
-use vrl_compiler::prelude::*;
 
 fn parse_json(value: Value) -> Resolved {
     let bytes = value.try_bytes()?;
@@ -243,6 +243,7 @@ fn type_def() -> TypeDef {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::value;
 
     test_function![
         parse_json => ParseJson;

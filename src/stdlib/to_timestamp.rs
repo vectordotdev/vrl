@@ -1,7 +1,7 @@
+use crate::compiler::prelude::*;
+use crate::compiler::{conversion::Conversion, TimeZone};
 use chrono::{TimeZone as _, Utc};
 use std::str::FromStr;
-use vrl_compiler::prelude::*;
-use vrl_compiler::{conversion::Conversion, TimeZone};
 
 fn to_timestamp(value: Value, unit: Unit) -> Resolved {
     use Value::{Bytes, Float, Integer, Timestamp};
@@ -268,8 +268,9 @@ impl FunctionExpression for ToTimestampFn {
 #[allow(overflowing_literals)]
 mod tests {
     use super::*;
+    use crate::compiler::expression::Literal;
+    use crate::compiler::TimeZone;
     use std::collections::BTreeMap;
-    use vrl_compiler::expression::Literal;
 
     #[test]
     fn out_of_range_integer() {

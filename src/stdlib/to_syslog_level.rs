@@ -1,4 +1,4 @@
-use vrl_compiler::prelude::*;
+use crate::compiler::prelude::*;
 
 fn to_syslog_level(value: Value) -> Resolved {
     let value = value.try_integer()?;
@@ -82,6 +82,7 @@ impl FunctionExpression for ToSyslogLevelFn {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::value;
 
     test_function![
         to_syslog_level => ToSyslogLevel;

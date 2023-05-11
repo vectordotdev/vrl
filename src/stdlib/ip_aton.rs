@@ -1,5 +1,5 @@
+use crate::compiler::prelude::*;
 use std::net::Ipv4Addr;
-use vrl_compiler::prelude::*;
 
 fn ip_aton(value: Value) -> Resolved {
     let ip: Ipv4Addr = value
@@ -64,6 +64,7 @@ impl FunctionExpression for IpAtonFn {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::value;
 
     test_function![
         ip_aton => IpAton;

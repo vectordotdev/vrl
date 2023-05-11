@@ -1,4 +1,4 @@
-use vrl_compiler::prelude::*;
+use crate::compiler::prelude::*;
 
 fn assert(condition: Value, message: Option<Value>, format: Option<String>) -> Resolved {
     match condition.try_boolean()? {

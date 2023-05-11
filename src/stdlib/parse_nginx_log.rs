@@ -1,8 +1,9 @@
+use crate::compiler::prelude::*;
+use crate::value;
 use regex::Regex;
 use std::collections::BTreeMap;
-use vrl_compiler::prelude::*;
 
-use crate::log_util;
+use super::log_util;
 
 fn parse_nginx_log(
     bytes: Value,
@@ -189,7 +190,7 @@ fn kind_error() -> BTreeMap<Field, Kind> {
 
 #[cfg(test)]
 mod tests {
-    use ::value::btreemap;
+    use crate::value::btreemap;
     use chrono::prelude::*;
 
     use super::*;

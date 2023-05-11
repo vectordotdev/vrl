@@ -1,5 +1,5 @@
+use crate::compiler::prelude::*;
 use std::collections::BTreeMap;
-use vrl_compiler::prelude::*;
 
 #[derive(Clone, Copy, Debug)]
 pub struct TagTypesExternally;
@@ -121,7 +121,7 @@ fn tag_type_externally(value: Value) -> Value {
 
 #[cfg(test)]
 mod tests {
-    use ::value::btreemap;
+    use crate::value::btreemap;
     use chrono::{TimeZone, Utc};
     use regex::Regex;
 

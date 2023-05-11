@@ -1,4 +1,4 @@
-use vrl_compiler::prelude::*;
+use crate::compiler::prelude::*;
 
 fn encode_json(value: Value) -> Resolved {
     // With `vrl::Value` it should not be possible to get `Err`.
@@ -62,11 +62,6 @@ impl FunctionExpression for EncodeJsonFn {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::BTreeMap;
-
-    use chrono::{DateTime, Utc};
-    use regex::Regex;
-
     use super::*;
 
     test_function![

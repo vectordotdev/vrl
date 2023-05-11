@@ -1,10 +1,10 @@
+use crate::compiler::prelude::*;
 use once_cell::sync::Lazy;
 use std::{
     borrow::Cow,
     convert::{TryFrom, TryInto},
     str::FromStr,
 };
-use vrl_compiler::prelude::*;
 
 // https://www.oreilly.com/library/view/regular-expressions-cookbook/9781449327453/ch04s12.html
 // (converted to non-lookaround version given `regex` does not support lookarounds)
@@ -268,9 +268,9 @@ impl FromStr for Redactor {
 
 #[cfg(test)]
 mod test {
-    use regex::Regex;
-
     use super::*;
+    use crate::value;
+    use regex::Regex;
 
     test_function![
         redact => Redact;

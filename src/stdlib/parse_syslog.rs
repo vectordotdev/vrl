@@ -1,7 +1,7 @@
+use crate::compiler::prelude::*;
 use chrono::{DateTime, Datelike, Utc};
 use std::collections::BTreeMap;
 use syslog_loose::{IncompleteDate, Message, ProcId, Protocol};
-use vrl_compiler::prelude::*;
 
 pub(crate) fn parse_syslog(value: Value, ctx: &Context) -> Resolved {
     let message = value.try_bytes_utf8_lossy()?;
@@ -163,7 +163,7 @@ fn inner_kind() -> BTreeMap<Field, Kind> {
 
 #[cfg(test)]
 mod tests {
-    use ::value::btreemap;
+    use crate::value::btreemap;
     use chrono::TimeZone;
 
     use super::*;

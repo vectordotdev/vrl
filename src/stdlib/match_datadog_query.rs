@@ -1,12 +1,13 @@
-use datadog_filter::{
+use crate::compiler::prelude::*;
+use crate::datadog_filter::{
     build_matcher,
     regex::{wildcard_regex, word_regex},
     Filter, Matcher, Resolver, Run,
 };
-use datadog_search_syntax::{parse, Comparison, ComparisonValue, Field};
-use path::{owned_value_path, parse_value_path, OwnedValuePath};
+use crate::datadog_search_syntax::{parse, Comparison, ComparisonValue, Field};
+use crate::owned_value_path;
+use crate::path::{parse_value_path, OwnedValuePath};
 use std::borrow::Cow;
-use vrl_compiler::prelude::*;
 
 #[derive(Clone, Copy, Debug)]
 pub struct MatchDatadogQuery;
@@ -430,6 +431,7 @@ fn string_value(value: &Value) -> Cow<str> {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::value;
 
     test_function![
         match_datadog_query => MatchDatadogQuery;

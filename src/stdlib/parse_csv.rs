@@ -1,5 +1,5 @@
+use crate::compiler::prelude::*;
 use csv::ReaderBuilder;
-use vrl_compiler::prelude::*;
 
 fn parse_csv(csv_string: Value, delimiter: Value) -> Resolved {
     let csv_string = csv_string.try_bytes()?;
@@ -102,6 +102,7 @@ fn inner_kind() -> Collection<Index> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::value;
 
     test_function![
         parse_csv => ParseCsv;

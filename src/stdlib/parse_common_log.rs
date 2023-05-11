@@ -1,6 +1,6 @@
-use crate::log_util;
+use super::log_util;
+use crate::compiler::prelude::*;
 use std::collections::BTreeMap;
-use vrl_compiler::prelude::*;
 
 fn parse_common_log(bytes: Value, timestamp_format: Option<Value>, ctx: &Context) -> Resolved {
     let message = bytes.try_bytes_utf8_lossy()?;
@@ -120,7 +120,7 @@ fn inner_kind() -> BTreeMap<Field, Kind> {
 
 #[cfg(test)]
 mod tests {
-    use ::value::btreemap;
+    use crate::value::btreemap;
     use chrono::prelude::*;
 
     use super::*;

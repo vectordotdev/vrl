@@ -1,5 +1,5 @@
+use crate::compiler::prelude::*;
 use rust_decimal::{prelude::FromPrimitive, Decimal};
-use vrl_compiler::prelude::*;
 
 fn format_number(
     value: Value,
@@ -180,6 +180,7 @@ impl FunctionExpression for FormatNumberFn {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::value;
 
     test_function![
         format_number => FormatNumber;

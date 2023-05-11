@@ -1,7 +1,7 @@
+use crate::compiler::prelude::*;
 use regex::Regex;
-use vrl_compiler::prelude::*;
 
-use crate::util;
+use super::util;
 
 fn parse_regex_all(value: Value, numeric_groups: bool, pattern: &Regex) -> Resolved {
     let bytes = value.try_bytes()?;
@@ -118,9 +118,8 @@ impl FunctionExpression for ParseRegexAllFn {
 #[cfg(test)]
 #[allow(clippy::trivial_regex)]
 mod tests {
-    use ::value::btreemap;
-
     use super::*;
+    use crate::{btreemap, value};
 
     test_function![
         parse_regex_all => ParseRegexAll;

@@ -1,4 +1,4 @@
-use vrl_compiler::prelude::*;
+use crate::compiler::prelude::*;
 
 fn ends_with(value: Value, substring: Value, case_sensitive: bool) -> Resolved {
     let substring = {
@@ -113,6 +113,7 @@ impl FunctionExpression for EndsWithFn {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::value;
 
     test_function![
         ends_with => EndsWith;

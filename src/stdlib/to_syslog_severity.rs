@@ -1,4 +1,4 @@
-use vrl_compiler::prelude::*;
+use crate::compiler::prelude::*;
 
 fn to_syslog_severity(level: Value) -> Resolved {
     let level = level.try_bytes_utf8_lossy()?;
@@ -81,6 +81,7 @@ impl FunctionExpression for ToSyslogSeverityFn {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::value;
 
     test_function![
         to_level => ToSyslogSeverity;

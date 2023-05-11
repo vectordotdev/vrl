@@ -1,5 +1,5 @@
+use crate::compiler::prelude::*;
 use std::borrow::Cow;
-use vrl_compiler::prelude::*;
 
 fn join(array: Value, separator: Option<Value>) -> Resolved {
     let array = array.try_array()?;
@@ -86,6 +86,7 @@ impl FunctionExpression for JoinFn {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::value;
     test_function![
         join => Join;
 

@@ -1,5 +1,5 @@
-use crate::util::round_to_precision;
-use vrl_compiler::prelude::*;
+use super::util::round_to_precision;
+use crate::compiler::prelude::*;
 
 fn ceil(value: Value, precision: Option<Value>) -> Resolved {
     let precision = match precision {
@@ -94,6 +94,7 @@ impl FunctionExpression for CeilFn {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::value;
 
     test_function![
         ceil => Ceil;
