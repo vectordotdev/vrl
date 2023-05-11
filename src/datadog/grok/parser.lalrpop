@@ -4,7 +4,6 @@ use crate::path::{OwnedValuePath, OwnedSegment};
 use crate::owned_value_path;
 use ordered_float::NotNan;
 use crate::value::Value;
-use crate::parser::ast::Node;
 
 grammar<'err, 'input>(input: &'input str);
 
