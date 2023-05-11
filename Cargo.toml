@@ -30,31 +30,32 @@ default = ["compiler", "value", "diagnostic", "path", "parser", "stdlib", "datad
 # Main features (on by default)
 compiler = ["diagnostic", "path", "parser", "value", "dep:paste", "dep:chrono", "dep:serde", "dep:regex", "dep:bytes", "dep:ordered-float", "dep:chrono-tz", "dep:snafu", "dep:tracing",
 "dep:thiserror", "dep:anymap", "dep:dyn-clone", "dep:indoc", "dep:thiserror", "dep:lalrpop-util"]
-value = ["path", "dep:bytes", "dep:regex", "dep:ordered-float", "dep:chrono"]
+value = ["path", "dep:bytes", "dep:regex", "dep:ordered-float", "dep:chrono", "dep:serde_json"]
 diagnostic = ["dep:codespan-reporting", "dep:termcolor"]
 path = ["dep:once_cell", "dep:serde", "dep:snafu", "dep:regex"]
 parser = ["path", "diagnostic", "dep:thiserror", "dep:ordered-float", "dep:lalrpop-util"]
-core = ["json", "value", "dep:snafu", "dep:nom"]
+core = ["value", "dep:snafu", "dep:nom"]
 
 # Datadog related features (on by default)
 datadog = ["datadog_filter", "datadog_grok", "datadog_search"]
 datadog_filter = ["datadog_search", "dep:regex", "dep:dyn-clone"]
-datadog_grok = ["json", "value", "dep:nom", "dep:peeking_take_while", "dep:serde_json", "dep:onig", "dep:lalrpop-util", "dep:thiserror", "dep:chrono", "dep:chrono-tz", "dep:tracing"]
+datadog_grok = ["value", "dep:nom", "dep:peeking_take_while", "dep:serde_json", "dep:onig", "dep:lalrpop-util", "dep:thiserror", "dep:chrono", "dep:chrono-tz", "dep:tracing"]
 datadog_search = ["dep:pest", "dep:pest_derive", "dep:itertools", "dep:once_cell", "dep:regex"]
 
 # Features that aren't used as often (default off)
 cli = ["stdlib", "dep:serde_json", "dep:thiserror", "dep:clap", "dep:exitcode", "dep:webbrowser", "dep:rustyline", "dep:prettytable-rs"]
-test_framework = ["compiler", "dep:prettydiff", "dep:serde_json", "dep:ansi_term", "json"]
+test_framework = ["compiler", "dep:prettydiff", "dep:serde_json", "dep:ansi_term"]
 arbitrary = ["dep:quickcheck", "dep:arbitrary"]
 lua = ["dep:mlua"]
-json = ["dep:serde_json", "dep:serde"]
+
+# Internal testing utilities (used for benches)
 test = []
 
 # stdlib without any functions
-stdlib-core = []
+stdlib-core = ["compiler"]
 
 stdlib = [
-    "stdlib-core", "compiler",
+    "stdlib-core",
     "stdlib_abs",
     "stdlib_append",
     "stdlib_array",
@@ -236,8 +237,8 @@ stdlib_downcase = []
 stdlib_encode_base16 = ["dep:base16"]
 stdlib_encode_base64 = ["dep:base64"]
 stdlib_encode_gzip = ["dep:flate2"]
-stdlib_encode_json = ["dep:serde_json", "json", "dep:chrono", "dep:regex"]
-stdlib_encode_key_value = ["json"]
+stdlib_encode_json = ["dep:serde_json", "dep:chrono", "dep:regex"]
+stdlib_encode_key_value = ["core"]
 stdlib_encode_logfmt = ["stdlib_encode_key_value"]
 stdlib_encode_percent = ["dep:percent-encoding"]
 stdlib_encode_zlib = ["dep:flate2"]
@@ -276,7 +277,7 @@ stdlib_is_float = []
 stdlib_is_integer = []
 stdlib_is_ipv4 = []
 stdlib_is_ipv6 = []
-stdlib_is_json = ["dep:serde", "dep:serde_json", "json"]
+stdlib_is_json = ["dep:serde", "dep:serde_json"]
 stdlib_is_null = []
 stdlib_is_nullish = []
 stdlib_is_object = []
@@ -286,7 +287,7 @@ stdlib_is_timestamp = ["dep:chrono"]
 stdlib_join = []
 stdlib_keys = []
 stdlib_length = []
-stdlib_log = ["dep:tracing", "json"]
+stdlib_log = ["dep:tracing"]
 stdlib_map_keys = []
 stdlib_map_values = []
 stdlib_match = ["dep:regex"]
@@ -310,7 +311,7 @@ stdlib_parse_glog = ["dep:chrono", "dep:once_cell", "dep:regex"]
 stdlib_parse_grok = ["dep:grok"]
 stdlib_parse_groks = ["dep:grok", "datadog_grok"]
 stdlib_parse_int = []
-stdlib_parse_json = ["dep:serde_json", "json"]
+stdlib_parse_json = ["dep:serde_json"]
 stdlib_parse_key_value = ["dep:nom"]
 stdlib_parse_klog = ["dep:chrono", "dep:once_cell", "dep:regex"]
 stdlib_parse_linux_authorization = ["stdlib_parse_syslog", "dep:chrono"]

@@ -11,7 +11,6 @@ mod regex;
 mod arbitrary;
 #[cfg(any(test, feature = "lua"))]
 mod lua;
-#[cfg(any(test, feature = "json"))]
 mod serde;
 
 use std::collections::BTreeMap;
