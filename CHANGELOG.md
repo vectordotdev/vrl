@@ -1,7 +1,6 @@
 # Changelog
 
 ## unreleased
-- all crates were consolidated into the root `vrl` crate. The external API stayed the same, with the exception of macros, which are now all exported at the root of the `vrl` crate.
 
 ## `0.4.0` (2023-05-11)
 - all crates were consolidated into the root `vrl` crate. The external API stayed the same, with the exception of macros, which are now all exported at the root of the `vrl` crate.
