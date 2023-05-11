@@ -218,6 +218,10 @@ pub(crate) fn log_fields(
 }
 
 /// Attempts to extract log fields from each of the list of regexes
+#[cfg(any(
+    feature = "stdlib_parse_apache_log",
+    feature = "stdlib_parse_common_log"
+))]
 pub(crate) fn parse_message(
     regexes: &Vec<Regex>,
     message: &str,
