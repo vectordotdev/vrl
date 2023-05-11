@@ -91,9 +91,9 @@ impl Value {
     /// Return if the node is empty, that is, it is an array or map with no items.
     ///
     /// ```rust
-    /// use value::Value;
+    /// use vrl::value::Value;
     /// use std::collections::BTreeMap;
-    /// use path::path;
+    /// use vrl::path;
     ///
     /// let val = Value::from(1);
     /// assert_eq!(val.is_empty(), false);
