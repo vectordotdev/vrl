@@ -2,6 +2,7 @@
 #![allow(clippy::print_stdout)] // tests
 #![allow(clippy::print_stderr)] // tests
 
+#[allow(clippy::module_inception)]
 mod test;
 
 use crate::compiler::{
