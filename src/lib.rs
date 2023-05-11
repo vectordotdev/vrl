@@ -31,8 +31,8 @@ pub mod core;
 #[cfg(feature = "stdlib")]
 pub mod stdlib;
 
-// #[cfg(feature = "cli")]
-// pub use vrl_cli as cli;
+#[cfg(feature = "cli")]
+pub mod cli;
 
 // #[cfg(feature = "test_framework")]
 // pub use vrl_tests as test;

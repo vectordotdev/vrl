@@ -47,7 +47,7 @@ datadog_grok = ["json", "value", "dep:nom", "dep:peeking_take_while", "dep:serde
 datadog_search = ["dep:pest", "dep:pest_derive", "dep:itertools", "dep:once_cell", "dep:regex"]
 
 # Features that aren't used as often (default off)
-# cli = ["dep:vrl-cli"]
+cli = ["stdlib", "dep:serde_json", "dep:thiserror", "dep:clap", "dep:exitcode"]
 # test_framework = ["dep:vrl-tests"]
 arbitrary = ["dep:quickcheck", "dep:arbitrary"]
 lua = ["dep:mlua"]
@@ -73,8 +73,10 @@ arbitrary = { version = "1", optional = true, features = ["derive"] }
 bytes = { version = "1.4.0", default-features = false, optional = true }
 chrono = { version = "0.4", default-features = false, features = ["clock"], optional = true }
 chrono-tz = { version = "0.8.1", default-features = false, optional = true }
+clap = { version = "4.1.11", features = ["derive"], optional = true }
 codespan-reporting = {version = "0.11", optional = true }
 dyn-clone = { version = "1.0.11", default-features = false, optional = true }
+exitcode = {version = "1", optional = true }
 indoc = {version = "2.0.1", optional = true }
 itertools = { version = "0.10.5", default-features = false, optional = true }
 lalrpop-util = { version = "0.19", optional = true }
