@@ -6,22 +6,10 @@ edition = "2021"
 publish = false
 
 [dependencies]
-path = { path = "../path" }
-stdlib = { package = "vrl-stdlib", path = "../stdlib" }
-vrl-diagnostic = { path = "../diagnostic" }
-vrl-compiler = { path = "../compiler" }
-vrl-core = { path = "../core" }
-value = { path = "../value" }
-
-ansi_term = "0.12"
-chrono = "0.4"
+vrl = { path = "../../", features = ["test_framework"] }
 chrono-tz = "0.8"
 clap = { version = "4.1.11", features = ["derive"] }
 glob = "0.3"
-prettydiff = "0.6"
-regex = "1"
-serde = "1"
-serde_json = "1"
 tracing-subscriber = { version = "0.3.16", default-features = false, features = ["fmt"] }
 
 [target.'cfg(not(target_env = "msvc"))'.dependencies]

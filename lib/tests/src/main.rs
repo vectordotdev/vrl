@@ -1,5 +1,5 @@
-use vrl_compiler::{CompileConfig, TimeZone, VrlRuntime};
-use vrl_tests::{get_tests_from_functions, run_tests, Test, TestConfig};
+use vrl::compiler::{CompileConfig, TimeZone, VrlRuntime};
+use vrl::test::{get_tests_from_functions, run_tests, Test, TestConfig};
 
 use chrono_tz::Tz;
 use clap::Parser;
@@ -81,7 +81,7 @@ fn main() {
     run_tests(
         tests,
         &cfg,
-        &stdlib::all(),
+        &vrl::stdlib::all(),
         || (CompileConfig::default(), ()),
         |_| {},
     );
@@ -94,7 +94,7 @@ fn get_tests(cmd: &Cmd) -> Vec<Test> {
             let path = entry.ok()?;
             Some(Test::from_path(&path))
         })
-        .chain(get_tests_from_functions(stdlib::all()))
+        .chain(get_tests_from_functions(vrl::stdlib::all()))
         .filter(|test| should_run(&format!("{}/{}", test.category, test.name), &cmd.pattern))
         .collect::<Vec<_>>()
 }
