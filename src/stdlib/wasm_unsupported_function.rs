@@ -1,4 +1,4 @@
-use vrl_compiler::prelude::*;
+use crate::compiler::prelude::*;
 
 #[derive(Debug, Clone)]
 pub struct WasmUnsupportedFunction {

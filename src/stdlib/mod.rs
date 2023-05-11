@@ -29,7 +29,7 @@
 
 mod util;
 mod wasm_unsupported_function;
-use vrl_compiler::Function;
+use crate::compiler::Function;
 pub use wasm_unsupported_function::WasmUnsupportedFunction;
 
 #[cfg(feature = "abs")]

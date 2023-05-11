@@ -33,10 +33,6 @@ lalrpop_mod!(
     "/src/parser/parser.rs"
 );
 
-#[cfg(feature = "arbitrary")]
-mod arbitrary;
-#[cfg(feature = "arbitrary")]
-mod arbitrary_depth;
 pub mod ast;
 mod lex;
 mod template_string;

@@ -8,12 +8,12 @@ use std::{
 };
 
 use crate::diagnostic::Span;
+use crate::path::{OwnedTargetPath, OwnedValuePath, PathPrefix};
 #[cfg(feature = "arbitrary")]
 use arbitrary::Arbitrary;
 use ordered_float::NotNan;
-use path::{OwnedTargetPath, OwnedValuePath, PathPrefix};
 
-use crate::{template_string::TemplateString, Error};
+use super::{template_string::TemplateString, Error};
 
 // -----------------------------------------------------------------------------
 // node

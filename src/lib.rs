@@ -1,6 +1,5 @@
 #![deny(warnings)]
 #![deny(clippy::all)]
-#![deny(unreachable_pub)]
 #![deny(unused_allocation)]
 #![deny(unused_extern_crates)]
 #![deny(unused_assignments)]
