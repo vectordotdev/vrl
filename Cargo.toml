@@ -448,7 +448,7 @@ grok = { version = "2", optional = true }
 onig = { version = "6.4", default-features = false, optional = true }
 uuid = { version = "1", features = ["v4"], optional = true }
 
-# Dependencies use for WASM
+# Dependencies used for WASM
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 uuid = { version = "1", features = ["v4", "js"], optional = true }
 
