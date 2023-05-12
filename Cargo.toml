@@ -1,9 +1,15 @@
 [package]
 name = "vrl"
-version = "0.1.0"
+version = "0.4.0"
 authors = ["Vector Contributors <vector@datadoghq.com>"]
 edition = "2021"
-publish = false
+license = "MPL-2.0"
+description = "Vector Remap Language"
+homepage = "https://vrl.dev/"
+repository = "https://github.com/vectordotdev/vrl"
+readme = "README.md"
+keywords = ["vector", "datadog", "compiler"]
+categories = ["compilers"]
 
 [workspace]
 members = [
