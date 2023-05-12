@@ -1,5 +1,4 @@
 # Vector Remap Language (VRL)
-===========================
 
 [![Crates.io](https://img.shields.io/crates/v/vrl?style=flat-square)](https://crates.io/crates/vrl)
 [![docs.rs](https://img.shields.io/docsrs/vrl?style=flat-square)](https://docs.rs/vrl/0.4.0/vrl/)
