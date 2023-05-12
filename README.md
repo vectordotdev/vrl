@@ -1,5 +1,9 @@
 # Vector Remap Language (VRL)
 
+[![Crates.io](https://img.shields.io/crates/v/vrl?style=flat-square)](https://crates.io/crates/vrl)
+[![docs.rs](https://img.shields.io/docsrs/vrl?style=flat-square)](https://docs.rs/vrl/0.4.0/vrl/)
+![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/vectordotdev/vrl/test.yml?style=flat-square)
+
 VRL is a scripting language for processing observability data (logs, metrics, traces). Although VRL was originally
 created for use in [Vector], it was designed to be generic and re-usable in many contexts.
 
