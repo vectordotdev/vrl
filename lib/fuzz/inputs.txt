@@ -1,0 +1,46 @@
+.foo = null
+# comment
+[1, "two", .x]
+true
+false
+1.0
+1_000.0
+1000
+null
+{"foo": "bar"}
+{"foo2": true}
+regex = r'^Hello, World!$'
+.msg = "message"
+t'2021-02-11T10:32:50.553955473Z'
+abort
+1+1
+1-1
+1*1
+1/1
+"Hello" + "World"
+.(a|b) = "foo"
+1;2;3
+result, err = parse_json("1234")
+.result, .err = parse_json("1234")
+{true; 1+1; null}
+1 == 1
+2 > 1
+1 < 2
+if true { null } else { 4 }
+if false { .x = 5 }
+true && false
+.x || 4
+!false
+.x.y.foo."asdf" = 4
+append([1, 2], [3, 4])
+chunks("abcdefgh", 4)
+push([1, 2], 3)
+decode_base16!("796f752068617665207375636365737366756c6c79206465636f646564206d65")
+decode_gzip!(decode_base64!("H4sIAHEAymMAA6vML1XISCxLVSguTU5OLS5OK83JqVRISU3OT0lNUchNBQD7BGDaIAAAAA=="))
+decode_mime_q!("=?utf-8?b?SGVsbG8sIFdvcmxkIQ==?=")
+decode_percent("foo%20bar%3F")
+decode_zlib!(decode_base64!("eJwNy4ENwCAIBMCNXIlQ/KqplUSgCdvXAS41qPMHshCB2R1zJlWIVlR6UURX2+wx2YcuK3kAb9C1wd6dn7Fa+QH9gRxr"))
+decode_zstd!(decode_base64!("KLUv/QBY/QEAYsQOFKClbQBedqXsb96EWDax/f/F/z+gNU4ZTInaUeAj82KqPFjUzKqhcfDqAIsLvAsnY1bI/N2mHzDixRQA"))
+encode_base16("please encode me")
+encode_base64("please encode me")
+encode_base64(encode_gzip("please encode me"))
