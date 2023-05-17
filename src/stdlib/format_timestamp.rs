@@ -1,7 +1,7 @@
 use crate::compiler::prelude::*;
 use chrono::{
     format::{strftime::StrftimeItems, Item},
-    DateTime, Local, TimeZone, Utc,
+    DateTime, TimeZone, Utc,
 };
 use chrono_tz::Tz;
 
@@ -91,15 +91,18 @@ impl FunctionExpression for FormatTimestampFn {
             Some(tz) => {
                 let tz = &tz.resolve(ctx)?.try_bytes()?;
                 let tz = String::from_utf8_lossy(tz);
-                match tz {
+                let tz: Tz = match tz {
                     std::borrow::Cow::Borrowed("Local") => {
-                        format_timestamp_with_tz(bytes, ts, &Local)
+                        // Get the local remap timezone (Local by default, but with the possibility to be overridden from the config)
+                        String::from(*ctx.timezone())
+                            .parse()
+                            .map_err(|err| format!("unable to parse timezone: {err}"))?
                     }
-                    _ => {
-                        let tz: Tz = tz.parse().unwrap();
-                        format_timestamp_with_tz(bytes, ts, &tz)
-                    }
-                }
+                    _ => tz
+                        .parse()
+                        .map_err(|err| format!("unable to parse timezone: {err}"))?,
+                };
+                format_timestamp_with_tz(bytes, ts, &tz)
             }
         }
     }
