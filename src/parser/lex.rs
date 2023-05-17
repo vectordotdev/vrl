@@ -58,7 +58,7 @@ impl DiagnosticMessage for Error {
                 lalrpop_util::ParseError::ExtraToken { .. } => 201,
                 lalrpop_util::ParseError::User { .. } => 202,
                 lalrpop_util::ParseError::UnrecognizedToken { .. } => 203,
-                lalrpop_util::ParseError::UnrecognizedEOF { .. } => 204,
+                lalrpop_util::ParseError::UnrecognizedEof { .. } => 204,
             },
             ReservedKeyword { .. } => 205,
             NumericLiteral { .. } => 206,
@@ -142,7 +142,7 @@ impl DiagnosticMessage for Error {
                         Label::context(format!("expected one of: {}", expected.join(", ")), span),
                     ]
                 }
-                lalrpop_util::ParseError::UnrecognizedEOF { location, expected } => {
+                lalrpop_util::ParseError::UnrecognizedEof { location, expected } => {
                     let span = Span::new(*location, *location);
                     let expected = update_expected(expected.clone());
 
