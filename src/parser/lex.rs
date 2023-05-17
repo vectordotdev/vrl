@@ -142,7 +142,7 @@ impl DiagnosticMessage for Error {
                         Label::context(format!("expected one of: {}", expected.join(", ")), span),
                     ]
                 }
-                lalrpop_util::ParseError::UnrecognizedEOF { location, expected } => {
+                lalrpop_util::ParseError::UnrecognizedEof { location, expected } => {
                     let span = Span::new(*location, *location);
                     let expected = update_expected(expected.clone());
 
