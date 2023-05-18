@@ -11,8 +11,8 @@ fn format_timestamp_with_tz(ts: Value, format: Value, timezone: Option<Value>) -
     let format_bytes = format.try_bytes()?;
     let format = String::from_utf8_lossy(&format_bytes);
 
-    let timezone_bytes = timezone.map(|t| t.try_bytes()).transpose()?;
-    let timezone = timezone_bytes.as_ref().map(|b| String::from_utf8_lossy(&b));
+    let timezone_bytes = timezone.map(VrlValueConvert::try_bytes).transpose()?;
+    let timezone = timezone_bytes.as_ref().map(|b| String::from_utf8_lossy(b));
 
     try_format_with_timezone(ts, &format, timezone.as_deref()).map(Into::into)
 }
