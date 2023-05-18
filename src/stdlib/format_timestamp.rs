@@ -2,28 +2,19 @@ use crate::compiler::prelude::*;
 use crate::compiler::TimeZone;
 use chrono::{
     format::{strftime::StrftimeItems, Item},
-    DateTime, Local, Utc,
+    DateTime, Utc,
 };
-use std::borrow::Borrow;
 
 fn format_timestamp_with_tz(ts: Value, format: Value, timezone: Option<Value>) -> Resolved {
-    let format = format.try_bytes()?;
-    let format = String::from_utf8_lossy(&format);
-    let items = StrftimeItems::new(&format)
-        .map(|item| match item {
-            Item::Error => Err("invalid format".into()),
-            _ => Ok(item),
-        })
-        .collect::<ExpressionResult<Vec<_>>>()?;
-
     let ts: DateTime<Utc> = ts.try_timestamp()?;
 
-    let ts = match timezone {
-        None => ts.format_with_items(items.into_iter()).to_string(),
-        Some(timezone) => try_format_with_timezone(ts, items, timezone)?,
-    };
+    let format_bytes = format.try_bytes()?;
+    let format = String::from_utf8_lossy(&format_bytes);
 
-    Ok(ts).map(Into::into)
+    let timezone_bytes = timezone.map(|t| t.try_bytes()).transpose()?;
+    let timezone = timezone_bytes.as_ref().map(|b| String::from_utf8_lossy(&b));
+
+    try_format_with_timezone(ts, &format, timezone.as_deref()).map(Into::into)
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -62,7 +53,7 @@ impl Function for FormatTimestamp {
     ) -> Compiled {
         let value = arguments.required("value");
         let format = arguments.required("format");
-        let timezone: Option<Box<dyn Expression>> = arguments.optional("timezone");
+        let timezone = arguments.optional("timezone");
 
         Ok(FormatTimestampFn {
             value,
@@ -99,14 +90,13 @@ impl FunctionExpression for FormatTimestampFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let bytes = self.format.resolve(ctx)?;
         let ts = self.value.resolve(ctx)?;
+        let tz = self
+            .timezone
+            .as_ref()
+            .map(|tz| tz.resolve(ctx))
+            .transpose()?;
 
-        match self.timezone.clone() {
-            Some(tz) => {
-                let tz = tz.resolve(ctx)?;
-                format_timestamp_with_tz(ts, bytes, Some(tz))
-            }
-            None => format_timestamp_with_tz(ts, bytes, None),
-        }
+        format_timestamp_with_tz(ts, bytes, tz)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {
@@ -115,26 +105,33 @@ impl FunctionExpression for FormatTimestampFn {
 }
 
 fn try_format_with_timezone(
-    ts: DateTime<Utc>,
-    items: Vec<Item>,
-    timezone: Value,
+    dt: DateTime<Utc>,
+    format: &str,
+    timezone: Option<&str>,
 ) -> ExpressionResult<String> {
-    let timezone = timezone.try_bytes()?;
-    let timezone = String::from_utf8_lossy(&timezone);
-    let parsed_timezone = TimeZone::parse(timezone.borrow());
+    let items = StrftimeItems::new(format)
+        .map(|item| match item {
+            Item::Error => Err("invalid format".into()),
+            _ => Ok(item),
+        })
+        .collect::<ExpressionResult<Vec<_>>>()?;
 
-    match parsed_timezone {
-        Some(parsed_timezone) => match parsed_timezone {
-            TimeZone::Local => Ok(ts
-                .with_timezone(&Local)
-                .format_with_items(items.into_iter())
-                .to_string()),
-            TimeZone::Named(tz) => Ok(ts
-                .with_timezone(&tz)
-                .format_with_items(items.into_iter())
-                .to_string()),
-        },
-        None => Err(format!("unable to parse timezone: {timezone}").into()),
+    let timezone = timezone
+        .map(|timezone| {
+            TimeZone::parse(timezone).ok_or(format!("unable to parse timezone: {timezone}"))
+        })
+        .transpose()?;
+
+    match timezone {
+        Some(TimeZone::Named(tz)) => Ok(dt
+            .with_timezone(&tz)
+            .format_with_items(items.into_iter())
+            .to_string()),
+        Some(TimeZone::Local) => Ok(dt
+            .with_timezone(&chrono::Local)
+            .format_with_items(items.into_iter())
+            .to_string()),
+        None => Ok(dt.format_with_items(items.into_iter()).to_string()),
     }
 }
 
