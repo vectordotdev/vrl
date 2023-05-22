@@ -20,7 +20,6 @@ VRL is broken up into multiple components, which can be enabled as needed.
 | diagnostic     | yes     | Logic related to errors and displaying info about them.                                          |
 | path           | yes     | Contains the parser, datatypes, and functions related to VRL paths.                              |
 | stdlib         | yes     | All of the VRL functions from the standard library.                                              |
-| stdlib_*       | yes     | Each stdlib function has it's own feature to enable/disable them.                                |
 | core           | yes     | Various data structures and utility methods (these may be renamed / moved in the future).        |
 | datadog_filter | yes     | Implements the Datadog log search query filter syntax.                                           |
 | datadog_grok   | yes     | Implements the Datadog grok parser. (used with `parse_grok` and `parse_groks` in the stdlib).    |
