@@ -9,10 +9,6 @@ use regex::{Captures, Regex};
 // Information about the common log format taken from the
 // - W3C specification: https://www.w3.org/Daemon/User/Config/Logging.html#common-logfile-format
 // - Apache HTTP Server docs: https://httpd.apache.org/docs/1.3/logs.html#common
-#[cfg(any(
-    feature = "stdlib_parse_apache_log",
-    feature = "stdlib_parse_common_log"
-))]
 pub(crate) static REGEX_APACHE_COMMON_LOG: Lazy<Vec<Regex>> = Lazy::new(|| {
     vec![
         Regex::new(
@@ -38,7 +34,6 @@ pub(crate) static REGEX_APACHE_COMMON_LOG: Lazy<Vec<Regex>> = Lazy::new(|| {
 });
 
 // - Apache HTTP Server docs: https://httpd.apache.org/docs/1.3/logs.html#combined
-#[cfg(feature = "stdlib_parse_apache_log")]
 pub(crate) static REGEX_APACHE_COMBINED_LOG: Lazy<Vec<Regex>> = Lazy::new(|| {
     vec![
         Regex::new(
@@ -71,7 +66,6 @@ pub(crate) static REGEX_APACHE_COMBINED_LOG: Lazy<Vec<Regex>> = Lazy::new(|| {
 });
 
 // It is possible to customise the format output by apache.
-#[cfg(feature = "stdlib_parse_apache_log")]
 pub(crate) static REGEX_APACHE_ERROR_LOG: Lazy<Vec<Regex>> = Lazy::new(|| {
     vec![
         // Simple format
@@ -110,7 +104,6 @@ pub(crate) static REGEX_APACHE_ERROR_LOG: Lazy<Vec<Regex>> = Lazy::new(|| {
 });
 
 // - Nginx HTTP Server docs: http://nginx.org/en/docs/http/ngx_http_log_module.html
-#[cfg(feature = "stdlib_parse_nginx_log")]
 pub(crate) static REGEX_NGINX_COMBINED_LOG: Lazy<Regex> = Lazy::new(|| {
     Regex::new(
         r#"(?x)                                 # Ignore whitespace and comments in the regex expression.
@@ -134,7 +127,6 @@ pub(crate) static REGEX_NGINX_COMBINED_LOG: Lazy<Regex> = Lazy::new(|| {
     .expect("failed compiling regex for Nginx combined log")
 });
 
-#[cfg(feature = "stdlib_parse_nginx_log")]
 pub(crate) static REGEX_NGINX_ERROR_LOG: Lazy<Regex> = Lazy::new(|| {
     Regex::new(
         r#"(?x)                                                                  # Ignore whitespace and comments in the regex expression.
@@ -218,10 +210,6 @@ pub(crate) fn log_fields(
 }
 
 /// Attempts to extract log fields from each of the list of regexes
-#[cfg(any(
-    feature = "stdlib_parse_apache_log",
-    feature = "stdlib_parse_common_log"
-))]
 pub(crate) fn parse_message(
     regexes: &Vec<Regex>,
     message: &str,

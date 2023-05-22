@@ -2,6 +2,7 @@
 
 ## unreleased
 - added the `timezone` argument to the `format_timestamp` vrl function.
+- removed feature flags for each individual VRL function.
 
 ## `0.4.0` (2023-05-11)
 - consolidated all crates into the root `vrl` crate. The external API stayed the same, with the exception of macros, which are now all exported at the root of the `vrl` crate.

@@ -27,7 +27,7 @@ pub mod parser;
 #[cfg(feature = "core")]
 pub mod core;
 
-#[cfg(feature = "stdlib-core")]
+#[cfg(feature = "stdlib")]
 pub mod stdlib;
 
 #[cfg(feature = "cli")]
