@@ -15,7 +15,8 @@ categories = ["compilers"]
 members = [
   ".",
   "lib/cli",
-  "lib/tests"
+  "lib/tests",
+  "lib/fuzz"
 ]
 
 
