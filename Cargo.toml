@@ -1,70 +1,172 @@
 [package]
 name = "vrl"
-version = "0.1.0"
+version = "0.4.0"
 authors = ["Vector Contributors <vector@datadoghq.com>"]
 edition = "2021"
-publish = false
+license = "MPL-2.0"
+description = "Vector Remap Language"
+homepage = "https://vrl.dev/"
+repository = "https://github.com/vectordotdev/vrl"
+readme = "README.md"
+keywords = ["vector", "datadog", "compiler"]
+categories = ["compilers"]
 
 [workspace]
 members = [
   ".",
   "lib/cli",
-  "lib/compiler",
-  "lib/core",
-  "lib/datadog/filter",
-  "lib/datadog/grok",
-  "lib/datadog/search-syntax",
-  "lib/diagnostic",
-  "lib/lookup",
-  "lib/parser",
-  "lib/proptests",
-  "lib/stdlib",
-  "lib/tests",
-  "lib/value",
-  "lib/web-playground"
+  "lib/tests"
 ]
 
 
 [features]
-default = ["expressions"]
-expressions = [
-  "expr-abort",
-  "expr-assignment",
-  "expr-function_call",
-  "expr-if_statement",
-  "expr-literal",
-  "expr-op",
-  "expr-query",
-  "expr-unary",
+default = ["compiler", "value", "diagnostic", "path", "parser", "stdlib", "datadog", "core"]
+
+# Main features (on by default)
+compiler = ["diagnostic", "path", "parser", "value", "dep:paste", "dep:chrono", "dep:serde", "dep:regex", "dep:bytes", "dep:ordered-float", "dep:chrono-tz", "dep:snafu", "dep:tracing",
+"dep:thiserror", "dep:anymap", "dep:dyn-clone", "dep:indoc", "dep:thiserror", "dep:lalrpop-util"]
+value = ["path", "dep:bytes", "dep:regex", "dep:ordered-float", "dep:chrono", "dep:serde_json"]
+diagnostic = ["dep:codespan-reporting", "dep:termcolor"]
+path = ["dep:once_cell", "dep:serde", "dep:snafu", "dep:regex"]
+parser = ["path", "diagnostic", "dep:thiserror", "dep:ordered-float", "dep:lalrpop-util"]
+core = ["value", "dep:snafu", "dep:nom"]
+
+# Datadog related features (on by default)
+datadog = ["datadog_filter", "datadog_grok", "datadog_search"]
+datadog_filter = ["datadog_search", "dep:regex", "dep:dyn-clone"]
+datadog_grok = ["value", "dep:nom", "dep:peeking_take_while", "dep:serde_json", "dep:onig", "dep:lalrpop-util", "dep:thiserror", "dep:chrono", "dep:chrono-tz", "dep:tracing"]
+datadog_search = ["dep:pest", "dep:pest_derive", "dep:itertools", "dep:once_cell", "dep:regex"]
+
+# Features that aren't used as often (default off)
+cli = ["stdlib", "dep:serde_json", "dep:thiserror", "dep:clap", "dep:exitcode", "dep:webbrowser", "dep:rustyline", "dep:prettytable-rs"]
+test_framework = ["compiler", "dep:prettydiff", "dep:serde_json", "dep:ansi_term"]
+arbitrary = ["dep:quickcheck", "dep:arbitrary"]
+lua = ["dep:mlua"]
+
+# Internal testing utilities (used for benches)
+test = []
+
+# All stdlib functions
+stdlib = [
+    "compiler", "core", "datadog", "dep:aes", "dep:ctr", "dep:cbc", "dep:cfb-mode", "dep:ofb", "dep:base16", "dep:nom", "dep:strip-ansi-escapes",
+    "dep:utf8-width", "dep:hex", "dep:seahash", "dep:syslog_loose", "dep:hostname", "dep:zstd", "dep:quoted_printable", "dep:once_cell",
+    "dep:base64", "dep:uuid", "dep:percent-encoding", "dep:uaparser", "dep:rust_decimal", "dep:indexmap", "dep:flate2", "dep:charset",
+    "dep:data-encoding", "dep:hmac", "dep:sha-1", "dep:cidr-utils", "dep:sha-2", "dep:md-5", "dep:url", "dep:woothee", "dep:csv",
+    "dep:roxmltree", "dep:rand", "dep:dns-lookup", "dep:sha-3", "dep:grok"
 ]
-expr-abort = ["compiler/expr-abort"]
-expr-assignment = ["compiler/expr-assignment"]
-expr-function_call = ["compiler/expr-function_call"]
-expr-if_statement = ["compiler/expr-if_statement"]
-expr-literal = ["compiler/expr-literal"]
-expr-op = ["compiler/expr-op"]
-expr-query = ["compiler/expr-query"]
-expr-unary = ["compiler/expr-unary"]
-test = ["compiler/test"]
 
 [dependencies]
-bytes = "1.4.0"
-compiler = { package = "vrl-compiler", path = "lib/compiler", default-features = false }
-diagnostic = { package = "vrl-diagnostic", path = "lib/diagnostic" }
-indoc = "2"
-lookup = { path = "lib/lookup" }
-ordered-float = "3"
-parser = { package = "vrl-parser", path = "lib/parser" }
-value = { path = "lib/value", default-features = false }
-vrl-core = { path = "lib/core" }
+cfg-if = "1.0.0"
+
+# Optional dependencies
+anymap = { version = "1.0.0-beta.2", optional = true }
+ansi_term = {version = "0.12", optional = true }
+arbitrary = { version = "1", optional = true, features = ["derive"] }
+base16 = { version = "0.2", optional = true }
+base64 = { version = "0.21", optional = true }
+bytes = { version = "1.4.0", default-features = false, optional = true }
+charset = { version = "0.1.3", optional = true }
+chrono = { version = "0.4", default-features = false, features = ["clock", "serde"], optional = true }
+chrono-tz = { version = "0.8.1", default-features = false, optional = true }
+cidr-utils = { version = "0.5", optional = true }
+csv = { version = "1.2", optional = true }
+clap = { version = "4.1.11", features = ["derive"], optional = true }
+codespan-reporting = {version = "0.11", optional = true }
+data-encoding = { version = "2.3.3", optional = true }
+dyn-clone = { version = "1.0.11", default-features = false, optional = true }
+exitcode = {version = "1", optional = true }
+flate2 = { version = "1.0.25", default-features = false, features = ["default"], optional = true }
+hex = { version = "0.4", optional = true }
+hmac = { version = "0.12.1", optional = true }
+indexmap = { version = "~1.9.2", default-features = false, optional = true}
+indoc = {version = "2.0.1", optional = true }
+itertools = { version = "0.10.5", default-features = false, optional = true }
+lalrpop-util = { version = "0.20", optional = true }
+mlua = { version = "0.8.8", default-features = false, features = ["lua54", "send", "vendored"], optional = true}
+nom = { version = "7.1.3", default-features = false, features = ["std"], optional = true }
+once_cell = { version = "1.17", default-features = false, features = ["std"], optional = true }
+ordered-float = { version = "3", default-features = false, optional = true }
+md-5 = { version = "0.10", optional = true }
+paste = { version = "1", default-features = false, optional = true }
+peeking_take_while = { version = "1.0.0", default-features = false, optional = true }
+percent-encoding = { version = "2.2", optional = true }
+pest = { version = "2.5.6", default-features = false, optional = true, features = ["std"] }
+pest_derive = { version = "2.5.6", default-features = false, optional = true, features = ["std"] }
+prettydiff = {version = "0.6", optional = true }
+prettytable-rs = { version = "0.10", default-features = false, optional = true }
+quickcheck = { version = "1.0.3", optional = true }
+quoted_printable = {version = "0.4.7", optional = true }
+rand = { version = "0.8.5", optional = true }
+regex = { version = "1", default-features = false, optional = true, features = ["std", "perf", "unicode"] }
+roxmltree = { version = "0.18.0", optional = true }
+rustyline = { version = "11", default-features = false, optional = true }
+rust_decimal = { version = "1", optional = true }
+seahash = { version = "4.1.0", optional = true }
+serde = { version = "1", features = ["derive"], optional = true }
+serde_json = { version = "1.0.94", default-features = false, optional = true, features = ["std", "raw_value"] }
+sha-1 = { version = "0.10", optional = true }
+sha-2 = { package = "sha2", version = "0.10", optional = true }
+sha-3 = { package = "sha3", version = "0.10", optional = true }
+strip-ansi-escapes = { version = "0.1", optional = true }
+syslog_loose = { version = "0.18", optional = true }
+termcolor = {version = "1", optional = true }
+thiserror ={ version =  "1", optional = true }
+tracing = { version = "0.1.34", default-features = false, optional = true }
+uaparser = { version = "0.6.0", default-features = false, optional = true }
+utf8-width = { version = "0.1.6", optional = true }
+url = { version = "2", optional = true }
+snafu = { version = "0.7", optional = true }
+webbrowser = { version = "0.8", default-features = false, optional = true }
+woothee = { version = "0.13.0", optional = true }
+
+zstd = { version = "0.12.2", default-features = false, features = ["wasm"], optional = true }
+
+# Cryptography
+aes = { version = "0.8.2", optional = true }
+
+# Cryptography - Block Modes
+ctr = { version = "0.9.2", optional = true }
+cbc = { version = "0.1.2", optional = true, features = ["alloc"] }
+cfb-mode = { version = "0.8.2", optional = true }
+ofb = { version = "0.6.1", optional = true }
+
+# Dependencies used for non-WASM
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+dns-lookup = { version = "2.0.1", optional = true }
+hostname = { version = "0.3", optional = true }
+grok = { version = "2", optional = true }
+onig = { version = "6.4", default-features = false, optional = true }
+uuid = { version = "1", features = ["v4"], optional = true }
+
+# Dependencies used for WASM
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+uuid = { version = "1", features = ["v4", "js"], optional = true }
 
 [dev-dependencies]
+anyhow = "1"
 criterion = "0.4"
-indoc = "2"
+chrono-tz = "0.8"
 serde_json = "1"
-vrl-stdlib = { path = "lib/stdlib" }
-vrl-core = { path = "lib/core", features = ["test"]}
+indoc = "2.0.1"
+tracing-test = { version = "0.2", default-features = false }
+toml = { version = "0.7.3", default-features = false }
+mlua = { version = "0.8.8", default-features = false, features = ["lua54", "send", "vendored"]}
+quickcheck = { version = "1.0.3"}
+regex = { version = "1", default-features = false, features = ["std", "perf", "unicode"] }
+paste = { version = "1", default-features = false }
+
+[build-dependencies]
+lalrpop = { version = "0.20.0", default-features = false }
 
 [[bench]]
-name = "runtime"
+name = "kind"
 harness = false
+
+[[bench]]
+name = "keyvalue"
+harness = false
+
+[[bench]]
+name = "stdlib"
+harness = false
+required-features = ["default", "test"]

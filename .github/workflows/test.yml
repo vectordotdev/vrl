@@ -6,13 +6,13 @@ on:
     types: [checks_requested]
   push:
     branches:
-      - master
+      - main
 
 concurrency:
-  # For pull requests, cancel running workflows, for master, run all
+  # For pull requests, cancel running workflows, for main, run all
   #
   # `github.event.number` exists for pull requests, otherwise fall back to SHA
-  # for master
+  # for main
   group: ${{ github.workflow }}-${{ github.event.number || github.sha }}
   cancel-in-progress: true
 
@@ -24,17 +24,65 @@ env:
   PROFILE: debug
 
 jobs:
-  checks:
+  clippy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - name: Run tests
-        run: cargo test --workspace
-      - name: Check code style
-        run: cargo fmt --check --all
-      - name: Run VRL tests
-        run: |
-          cd lib/tests
-          cargo run
-      - name: Clippy
+      - uses: Swatinem/rust-cache@v2
+      - name: "clippy"
         run: cargo clippy --workspace --all-targets -- -D warnings
+
+  fmt:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: Swatinem/rust-cache@v2
+      - name: "fmt"
+        run: cargo fmt --check --all
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: Swatinem/rust-cache@v2
+      - name: "test"
+        run: cargo test --workspace
+
+  vrl:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: Swatinem/rust-cache@v2
+      - name: VRL tests
+        run: cargo run
+        working-directory: lib/tests
+
+  check-features:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: Swatinem/rust-cache@v2
+      - name: Setup Cargo Hack
+        uses: bruxisma/setup-cargo-hack@v1.0.2
+      - name: Check that all features can compile
+        run: cargo hack check --feature-powerset --depth 1
+
+  check-licenses:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: Swatinem/rust-cache@v2
+      - name: Install the 3rd-party license tool
+        run: cargo install --git https://github.com/DataDog/rust-license-tool
+      - name: Check that the 3rd-party license file is up to date
+        run: rust-license-tool check
+
+  wasm32-unknown-unknown:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: "Add wasm32-unknown-unknown target"
+        run: rustup target add wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+      - name: "check"
+        run: cargo check --target wasm32-unknown-unknown --no-default-features --features stdlib
