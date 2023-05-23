@@ -1,3 +1,5 @@
+#![deny(clippy::integer_arithmetic)]
+
 use std::collections::BTreeMap;
 
 use crate::value::Value;
@@ -123,6 +125,7 @@ impl VrlValueArithmetic for Value {
             .into(),
             (lhs @ Value::Bytes(_), Value::Null) => lhs,
             (Value::Bytes(lhs), Value::Bytes(rhs)) => {
+                #[allow(clippy::integer_arithmetic)]
                 let mut value = BytesMut::with_capacity(lhs.len() + rhs.len());
                 value.put(lhs);
                 value.put(rhs);
@@ -205,7 +208,10 @@ impl VrlValueArithmetic for Value {
             Value::Integer(lhv) if rhs.is_float() => {
                 Value::from_f64_or_zero(lhv as f64 % rhs.try_float()?)
             }
-            Value::Integer(lhv) => (lhv % rhs.try_into_i64().map_err(|_| err())?).into(),
+            Value::Integer(lhv) => {
+                let rhv = rhs.try_into_i64().map_err(|_| err())?;
+                i64::wrapping_rem(lhv, rhv).into()
+            }
             Value::Float(lhv) => (lhv % rhs.try_into_f64().map_err(|_| err())?).into(),
             _ => return Err(err()),
         };
