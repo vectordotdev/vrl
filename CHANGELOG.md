@@ -1,6 +1,8 @@
 # Changelog
 
 ## unreleased
+- added the `timezone` argument to the `format_timestamp` vrl function.
+- removed feature flags for each individual VRL function.
 
 - `ingress_upstreaminfo` log format has been added to `parse_nginx_log` function (https://github.com/vectordotdev/vrl/pull/193)
 
