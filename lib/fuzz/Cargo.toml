@@ -1,0 +1,15 @@
+[package]
+name = "vrl-fuzz"
+version = "0.1.0"
+authors = ["Vector Contributors <vector@datadoghq.com>"]
+edition = "2021"
+publish = false
+license = "MPL-2.0"
+
+[[bin]]
+name = "fuzz"
+path = "src/main.rs"
+
+[dependencies]
+afl = "0.12.17"
+vrl = { path = "../../" }

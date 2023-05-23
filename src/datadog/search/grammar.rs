@@ -44,7 +44,7 @@ impl QueryVisitor {
                             // If our conjunction is AND and the previous clause was
                             // just a SHOULD, we make the previous clause a MUST and
                             // our new clause will also be a MUST
-                            let mut lastitem = clauses.last_mut().unwrap();
+                            let lastitem = clauses.last_mut().unwrap();
                             if let LuceneOccur::Should = lastitem.occur {
                                 lastitem.occur = LuceneOccur::Must;
                             };
@@ -53,7 +53,7 @@ impl QueryVisitor {
                             // If our conjunction is OR and the previous clause was
                             // a MUST, we make the previous clause a SHOULD and our
                             // new clause will also be a SHOULD
-                            let mut lastitem = clauses.last_mut().unwrap();
+                            let lastitem = clauses.last_mut().unwrap();
                             if let LuceneOccur::Must = lastitem.occur {
                                 lastitem.occur = LuceneOccur::Should;
                             };
