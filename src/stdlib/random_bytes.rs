@@ -48,7 +48,7 @@ impl Function for RandomBytes {
 
         if let Some(literal) = length.resolve_constant() {
             // check if length is valid
-            let _ =
+            let _: usize =
                 get_length(literal.clone()).map_err(|err| function::Error::InvalidArgument {
                     keyword: "length",
                     value: literal,
