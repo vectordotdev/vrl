@@ -304,7 +304,7 @@ impl<'input> Lexer<'input> {
                     }
 
                     '-' if self.test_peek(|ch| ch == '>') => {
-                        let _ = self.bump();
+                        self.bump();
                         Some(Ok(self.token(start, Arrow)))
                     }
 
