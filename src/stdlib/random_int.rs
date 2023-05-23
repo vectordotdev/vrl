@@ -68,7 +68,7 @@ impl Function for RandomInt {
 
         if let (Some(min), Some(max)) = (min.resolve_constant(), max.resolve_constant()) {
             // check if range is valid
-            let _ =
+            let _: Range<i64> =
                 get_range(min, max.clone()).map_err(|err| function::Error::InvalidArgument {
                     keyword: "max",
                     value: max,
