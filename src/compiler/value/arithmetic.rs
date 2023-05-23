@@ -73,7 +73,10 @@ impl VrlValueArithmetic for Value {
             Value::Integer(lhv) if rhs.is_float() => {
                 Value::from_f64_or_zero(lhv as f64 * rhs.try_float()?)
             }
-            Value::Integer(lhv) => (lhv * rhs.try_into_i64().map_err(|_| err())?).into(),
+            Value::Integer(lhv) => {
+                let rhv = rhs.try_into_i64().map_err(|_| err())?;
+                i64::wrapping_mul(lhv, rhv).into()
+            }
             Value::Float(lhv) => (lhv * rhs.try_into_f64().map_err(|_| err())?).into(),
             Value::Bytes(lhv) if rhs.is_integer() => {
                 Bytes::from(lhv.repeat(as_usize(rhs.try_integer()?))).into()
