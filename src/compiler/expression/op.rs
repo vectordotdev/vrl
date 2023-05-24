@@ -106,6 +106,7 @@ impl Expression for Op {
         let lhs = self.lhs.resolve(ctx)?;
         let rhs = self.rhs.resolve(ctx)?;
 
+        // Arithmetic that can overflow should wrap
         match self.opcode {
             Mul => lhs.try_mul(rhs),
             Div => lhs.try_div(rhs),
