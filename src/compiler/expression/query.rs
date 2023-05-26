@@ -129,14 +129,22 @@ impl Expression for Query {
     fn type_info(&self, state: &TypeState) -> TypeInfo {
         use Target::{Container, External, FunctionCall, Internal};
 
-        let result = match &self.target {
-            External(prefix) => state.external.kind(*prefix).at_path(&self.path).into(),
-            Internal(variable) => variable.type_def(state).at_path(&self.path),
-            FunctionCall(call) => call.type_def(state).at_path(&self.path),
-            Container(container) => container.type_def(state).at_path(&self.path),
-        };
-
-        TypeInfo::new(state, result)
+        match &self.target {
+            External(prefix) => {
+                let result = state.external.kind(*prefix).at_path(&self.path).into();
+                TypeInfo::new(state, result)
+            }
+            Internal(variable) => {
+                let result = variable.type_def(state).at_path(&self.path);
+                TypeInfo::new(state, result)
+            }
+            FunctionCall(call) => call
+                .type_info(state)
+                .map_result(|result| result.at_path(&self.path)),
+            Container(container) => container
+                .type_info(state)
+                .map_result(|result| result.at_path(&self.path)),
+        }
     }
 }
 

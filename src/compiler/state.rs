@@ -17,6 +17,13 @@ impl TypeInfo {
             result,
         }
     }
+
+    pub fn map_result(self, f: impl FnOnce(TypeDef) -> TypeDef) -> Self {
+        Self {
+            state: self.state,
+            result: f(self.result),
+        }
+    }
 }
 
 impl From<&TypeState> for TypeState {
