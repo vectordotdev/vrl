@@ -1,11 +1,11 @@
 # Changelog
 
 ## unreleased
-- added the `timezone` argument to the `format_timestamp` vrl function.
-- removed feature flags for each individual VRL function.
-- fixed a panic when arithmetic overflows. It now always wraps (only in debug builds).
-
+- added the `timezone` argument to the `format_timestamp` vrl function. (https://github.com/vectordotdev/vrl/pull/247)
+- removed feature flags for each individual VRL function. (https://github.com/vectordotdev/vrl/pull/251)
+- fixed a panic when arithmetic overflows. It now always wraps (only in debug builds). (https://github.com/vectordotdev/vrl/pull/252)
 - `ingress_upstreaminfo` log format has been added to `parse_nginx_log` function (https://github.com/vectordotdev/vrl/pull/193)
+- fixed type definitions for side-effects inside of queries (https://github.com/vectordotdev/vrl/pull/258)
 
 ## `0.4.0` (2023-05-11)
 - consolidated all crates into the root `vrl` crate. The external API stayed the same, with the exception of macros, which are now all exported at the root of the `vrl` crate.
