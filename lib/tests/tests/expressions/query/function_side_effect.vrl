@@ -1,0 +1,7 @@
+# result: {"type": { "null": true }, "value": null}
+. = 3
+del(.).x
+{
+    "value": .,
+    "type": type_def(.)
+}
