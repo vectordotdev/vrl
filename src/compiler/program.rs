@@ -20,7 +20,7 @@ impl Program {
 
     /// Retrieves the state of the type system after the program runs.
     #[must_use]
-    pub fn final_type_state(&self) -> TypeInfo {
+    pub fn final_type_info(&self) -> TypeInfo {
         self.expressions.type_info(&self.initial_state)
     }
 

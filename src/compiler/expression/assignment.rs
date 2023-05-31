@@ -770,7 +770,7 @@ mod test {
         assert_eq!(
             result
                 .program
-                .final_type_state()
+                .final_type_info()
                 .state
                 .external
                 .target()
@@ -796,7 +796,7 @@ mod test {
         assert_eq!(
             result
                 .program
-                .final_type_state()
+                .final_type_info()
                 .state
                 .external
                 .metadata_kind(),
@@ -820,7 +820,7 @@ mod test {
         assert_eq!(
             result
                 .program
-                .final_type_state()
+                .final_type_info()
                 .state
                 .local
                 .variable(&"foo".to_string().into())
@@ -847,7 +847,7 @@ mod test {
         assert_eq!(
             result
                 .program
-                .final_type_state()
+                .final_type_info()
                 .state
                 .local
                 .variable(&"foo".to_string().into())
