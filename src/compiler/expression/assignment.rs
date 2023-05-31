@@ -770,7 +770,8 @@ mod test {
         assert_eq!(
             result
                 .program
-                .final_type_state()
+                .final_type_info()
+                .state
                 .external
                 .target()
                 .type_def
@@ -793,7 +794,12 @@ mod test {
         )
         .unwrap();
         assert_eq!(
-            result.program.final_type_state().external.metadata_kind(),
+            result
+                .program
+                .final_type_info()
+                .state
+                .external
+                .metadata_kind(),
             &Kind::integer()
         );
     }
@@ -814,7 +820,8 @@ mod test {
         assert_eq!(
             result
                 .program
-                .final_type_state()
+                .final_type_info()
+                .state
                 .local
                 .variable(&"foo".to_string().into())
                 .unwrap()
@@ -840,7 +847,8 @@ mod test {
         assert_eq!(
             result
                 .program
-                .final_type_state()
+                .final_type_info()
+                .state
                 .local
                 .variable(&"foo".to_string().into())
                 .unwrap()
