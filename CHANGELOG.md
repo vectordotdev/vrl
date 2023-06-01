@@ -1,6 +1,24 @@
 # Changelog
 
 ## unreleased
+- added the `timezone` argument to the `format_timestamp` vrl function. (https://github.com/vectordotdev/vrl/pull/247)
+- removed feature flags for each individual VRL function. (https://github.com/vectordotdev/vrl/pull/251)
+- fixed a panic when arithmetic overflows. It now always wraps (only in debug builds). (https://github.com/vectordotdev/vrl/pull/252)
+- `ingress_upstreaminfo` log format has been added to `parse_nginx_log` function (https://github.com/vectordotdev/vrl/pull/193)
+- fixed type definitions for side-effects inside of queries (https://github.com/vectordotdev/vrl/pull/258)
+- replaced `Program::final_type_state` with `Program::final_type_info` to give access to the type definitions of both the target and program result (https://github.com/vectordotdev/vrl/pull/262)
+
+## `0.4.0` (2023-05-11)
+- consolidated all crates into the root `vrl` crate. The external API stayed the same, with the exception of macros, which are now all exported at the root of the `vrl` crate.
+- published VRL to crates.io. Standard crate versioning will now be used instead of git tags.
+
+## `0.3.0` (2023-05-05)
+- fixed a type definition bug for assignments where the right-hand side of the assignment expression resolved to the `never` type
+- removed the deprecated `FieldBuf` from `Field`
+- removed the lookup v1 code
+- renamed the `lookup` crate to `path`
+- re-exported all sub-crates in the root `vrl` crate
+- fix the `value` macro so it works when re-exported
 
 ## `0.2.0` (2023-04-03)
 - added guard for the `limit` param of the `split` function to ensure it's not negative

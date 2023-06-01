@@ -57,6 +57,26 @@ jobs:
         run: cargo run
         working-directory: lib/tests
 
+  check-features:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: Swatinem/rust-cache@v2
+      - name: Setup Cargo Hack
+        uses: bruxisma/setup-cargo-hack@v1.0.2
+      - name: Check that all features can compile
+        run: cargo hack check --feature-powerset --depth 1
+
+  check-licenses:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: Swatinem/rust-cache@v2
+      - name: Install the 3rd-party license tool
+        run: cargo install --git https://github.com/DataDog/rust-license-tool
+      - name: Check that the 3rd-party license file is up to date
+        run: rust-license-tool check
+
   wasm32-unknown-unknown:
     runs-on: ubuntu-latest
     steps:
@@ -65,5 +85,4 @@ jobs:
         run: rustup target add wasm32-unknown-unknown
       - uses: Swatinem/rust-cache@v2
       - name: "check"
-        run: cargo check --target wasm32-unknown-unknown
-        working-directory: lib/stdlib
+        run: cargo check --target wasm32-unknown-unknown --no-default-features --features stdlib
