@@ -177,7 +177,7 @@ fn resolve(
         }
     };
 
-    *state = program.final_type_state();
+    *state = program.final_type_info().state;
     execute(runtime, &program, target, timezone, vrl_runtime)
 }
 

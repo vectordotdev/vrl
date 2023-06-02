@@ -1,6 +1,6 @@
 use crate::path::OwnedTargetPath;
 
-use super::state::TypeState;
+use super::state::{TypeInfo, TypeState};
 use super::{expression::Block, Context, Expression, Resolved};
 
 #[derive(Debug, Clone)]
@@ -20,8 +20,8 @@ impl Program {
 
     /// Retrieves the state of the type system after the program runs.
     #[must_use]
-    pub fn final_type_state(&self) -> TypeState {
-        self.expressions.type_info(&self.initial_state).state
+    pub fn final_type_info(&self) -> TypeInfo {
+        self.expressions.type_info(&self.initial_state)
     }
 
     /// Get detailed information about the program, as collected by the VRL

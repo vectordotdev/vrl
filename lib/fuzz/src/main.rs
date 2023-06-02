@@ -44,8 +44,8 @@ fn fuzz(src: &str) {
         let timezone = TimeZone::default();
         let mut ctx = Context::new(&mut target, &mut state, &timezone);
         if let Ok(_value) = result.program.resolve(&mut ctx) {
-            let type_state = result.program.final_type_state();
-            let expected_kind = type_state.external.target_kind();
+            let type_info = result.program.final_type_info();
+            let expected_kind = type_info.state.external.target_kind();
             let actual_kind = Kind::from(target.value);
             if let Err(path) = expected_kind.is_superset(&actual_kind) {
                 panic!("Value doesn't match at path: '{}'\n\nType at path = {:?}\n\nDefinition at path = {:?}",
