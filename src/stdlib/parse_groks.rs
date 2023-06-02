@@ -143,6 +143,7 @@ impl Function for ParseGroks {
             .required_array("patterns")?
             .into_iter()
             .map(|expr| {
+                let expr_ = expr.to_owned();
                 let pattern = expr
                     .resolve_constant()
                     .ok_or(function::Error::ExpectedStaticExpression {
@@ -150,7 +151,11 @@ impl Function for ParseGroks {
                         expr,
                     })?
                     .try_bytes_utf8_lossy()
-                    .expect("grok pattern not bytes")
+                    .map_err(|_| function::Error::InvalidArgument {
+                        keyword: "patterns",
+                        value: format!("{:?}", expr_).into(),
+                        error: "grok pattern should be a string",
+                    })?
                     .into_owned();
                 Ok(pattern)
             })
@@ -169,7 +174,7 @@ impl Function for ParseGroks {
                     })
                     .map(|e| {
                         e.try_bytes_utf8_lossy()
-                            .expect("should be a string")
+                            .expect("Should be a string")
                             .into_owned()
                     })?;
                 Ok((key, alias))
@@ -183,28 +188,31 @@ impl Function for ParseGroks {
             .map(|expr| {
                 let path = expr
                     .resolve_constant()
-                    .ok_or(vrl::function::Error::ExpectedStaticExpression {
+                    .ok_or(function::Error::ExpectedStaticExpression {
                         keyword: "alias_sources",
                         expr,
                     })?
                     .try_bytes_utf8_lossy()
-                    .expect("filename not bytes")
+                    .expect("Should be a string")
                     .into_owned();
                 Ok(path)
             })
-            .collect::<std::result::Result<Vec<String>, vrl::function::Error>>()?;
+            .collect::<std::result::Result<Vec<String>, function::Error>>()?;
 
         for src in alias_sources {
             let path = Path::new(&src);
-            let file = File::open(&path).map_err(|_| vrl::function::Error::InvalidAliasSource {
-                path: path.to_owned(),
+            let file = File::open(&path).map_err(|_| function::Error::InvalidArgument {
+                keyword: "alias_sources",
+                value: format!("{:?}", path).into(),
+                error: "Unable to open alias source file",
             })?;
             let reader = BufReader::new(file);
-            let mut src_aliases = serde_json::from_reader(reader).map_err(|_| {
-                vrl::function::Error::InvalidAliasSource {
-                    path: path.to_owned(),
-                }
-            })?;
+            let mut src_aliases =
+                serde_json::from_reader(reader).map_err(|_| function::Error::InvalidArgument {
+                    keyword: "alias_sources",
+                    value: format!("{:?}", path).into(),
+                    error: "Unable to read alias source",
+                })?;
 
             aliases.append(&mut src_aliases);
         }
