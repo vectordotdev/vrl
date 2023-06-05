@@ -281,6 +281,16 @@ mod test {
             tdef: TypeDef::object(Collection::any()).fallible(),
         }
 
+        error3 {
+            args: func_args![ value: "2020-10-02T23:22:12.223222Z info Hello world",
+                              patterns: vec!["%{TIMESTAMP_ISO8601:timestamp} %{LOGLEVEL:level} %{GREEDYDATA:message}"],
+                              aliases: value!({
+                                  "TEST": 3
+                              })],
+            want: Err("invalid argument"),
+            tdef: TypeDef::object(Collection::any()).fallible(),
+        }
+
         parsed {
             args: func_args![ value: "2020-10-02T23:22:12.223222Z info Hello world",
                               patterns: vec!["%{TIMESTAMP_ISO8601:timestamp} %{LOGLEVEL:level} %{GREEDYDATA:message}"]],
