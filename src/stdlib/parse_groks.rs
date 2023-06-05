@@ -143,7 +143,7 @@ impl Function for ParseGroks {
             .required_array("patterns")?
             .into_iter()
             .map(|expr| {
-                let expr_ = expr.to_owned();
+                let expr_ = expr.clone();
                 let pattern = expr
                     .resolve_constant()
                     .ok_or(function::Error::ExpectedStaticExpression {
@@ -153,7 +153,7 @@ impl Function for ParseGroks {
                     .try_bytes_utf8_lossy()
                     .map_err(|_| function::Error::InvalidArgument {
                         keyword: "patterns",
-                        value: format!("{:?}", expr_).into(),
+                        value: format!("{expr_:?}").into(),
                         error: "grok pattern should be a string",
                     })?
                     .into_owned();
@@ -166,7 +166,7 @@ impl Function for ParseGroks {
             .unwrap_or_default()
             .into_iter()
             .map(|(key, expr)| {
-                let expr_ = expr.to_owned();
+                let expr_ = expr.clone();
                 let alias = expr
                     .resolve_constant()
                     .ok_or(function::Error::ExpectedStaticExpression {
@@ -176,7 +176,7 @@ impl Function for ParseGroks {
                     .try_bytes_utf8_lossy()
                     .map_err(|_| function::Error::InvalidArgument {
                         keyword: "aliases",
-                        value: format!("{:?}", expr_).into(),
+                        value: format!("{expr_:?}").into(),
                         error: "alias pattern should be a string",
                     })?
                     .into_owned();
@@ -189,7 +189,7 @@ impl Function for ParseGroks {
             .unwrap_or_default()
             .into_iter()
             .map(|expr| {
-                let expr_ = expr.to_owned();
+                let expr_ = expr.clone();
                 let path = expr
                     .resolve_constant()
                     .ok_or(function::Error::ExpectedStaticExpression {
@@ -199,7 +199,7 @@ impl Function for ParseGroks {
                     .try_bytes_utf8_lossy()
                     .map_err(|_| function::Error::InvalidArgument {
                         keyword: "alias_sources",
-                        value: format!("{:?}", expr_).into(),
+                        value: format!("{expr_:?}").into(),
                         error: "alias source should be a string",
                     })?
                     .into_owned();
@@ -209,16 +209,16 @@ impl Function for ParseGroks {
 
         for src in alias_sources {
             let path = Path::new(&src);
-            let file = File::open(&path).map_err(|_| function::Error::InvalidArgument {
+            let file = File::open(path).map_err(|_| function::Error::InvalidArgument {
                 keyword: "alias_sources",
-                value: format!("{:?}", path).into(),
+                value: format!("{path:?}").into(),
                 error: "Unable to open alias source file",
             })?;
             let reader = BufReader::new(file);
             let mut src_aliases =
                 serde_json::from_reader(reader).map_err(|_| function::Error::InvalidArgument {
                     keyword: "alias_sources",
-                    value: format!("{:?}", path).into(),
+                    value: format!("{path:?}").into(),
                     error: "Unable to read alias source",
                 })?;
 
