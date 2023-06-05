@@ -166,17 +166,20 @@ impl Function for ParseGroks {
             .unwrap_or_default()
             .into_iter()
             .map(|(key, expr)| {
+                let expr_ = expr.to_owned();
                 let alias = expr
                     .resolve_constant()
                     .ok_or(function::Error::ExpectedStaticExpression {
                         keyword: "aliases",
                         expr,
-                    })
-                    .map(|e| {
-                        e.try_bytes_utf8_lossy()
-                            .expect("Should be a string")
-                            .into_owned()
-                    })?;
+                    })?
+                    .try_bytes_utf8_lossy()
+                    .map_err(|_| function::Error::InvalidArgument {
+                        keyword: "aliases",
+                        value: format!("{:?}", expr_).into(),
+                        error: "alias pattern should be a string",
+                    })?
+                    .into_owned();
                 Ok((key, alias))
             })
             .collect::<std::result::Result<BTreeMap<String, String>, function::Error>>()?;
@@ -186,6 +189,7 @@ impl Function for ParseGroks {
             .unwrap_or_default()
             .into_iter()
             .map(|expr| {
+                let expr_ = expr.to_owned();
                 let path = expr
                     .resolve_constant()
                     .ok_or(function::Error::ExpectedStaticExpression {
@@ -193,7 +197,11 @@ impl Function for ParseGroks {
                         expr,
                     })?
                     .try_bytes_utf8_lossy()
-                    .expect("Should be a string")
+                    .map_err(|_| function::Error::InvalidArgument {
+                        keyword: "alias_sources",
+                        value: format!("{:?}", expr_).into(),
+                        error: "alias source should be a string",
+                    })?
                     .into_owned();
                 Ok(path)
             })
