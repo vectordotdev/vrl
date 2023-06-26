@@ -96,7 +96,7 @@ pest_derive = { version = "2.5.6", default-features = false, optional = true, fe
 prettydiff = {version = "0.6", optional = true }
 prettytable-rs = { version = "0.10", default-features = false, optional = true }
 quickcheck = { version = "1.0.3", optional = true }
-quoted_printable = {version = "0.4.7", optional = true }
+quoted_printable = {version = "0.5.0", optional = true }
 rand = { version = "0.8.5", optional = true }
 regex = { version = "1", default-features = false, optional = true, features = ["std", "perf", "unicode"] }
 roxmltree = { version = "0.18.0", optional = true }
