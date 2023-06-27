@@ -1243,7 +1243,7 @@ impl<'input> Lexer<'input> {
     /// Returns Ok if the next char is a valid escape code.
     fn escape_code(&mut self, start: usize) -> Result<(), Error> {
         match self.bump() {
-            Some((_, '\n' | '\'' | '"' | '\\' | 'n' | 'r' | 't' | '{' | '}')) => Ok(()),
+            Some((_, '\n' | '\'' | '"' | '\\' | 'n' | 'r' | 't' | '{' | '}' | '0')) => Ok(()),
             Some((start, ch)) => Err(Error::EscapeChar {
                 start,
                 ch: Some(ch),
@@ -1308,6 +1308,7 @@ fn unescape_string_literal(mut s: &str) -> String {
                 b'n' => '\n',
                 b'r' => '\r',
                 b't' => '\t',
+                b'0' => '\0',
                 b'{' => '{',
                 _ => unimplemented!("invalid escape"),
             };
@@ -1485,14 +1486,15 @@ mod test {
         use StringLiteral as L;
 
         test(
-            data(r#"foo "bar\"\n" baz "" "\t" "\"\"""#),
+            data(r#"foo "bar\"\n" baz "" "\t" "\"\"" "null \0""#),
             vec![
-                (r#"~~~                             "#, Identifier("foo")),
-                (r#"    ~~~~~~~~~                   "#, L(S("bar\\\"\\n"))),
-                (r#"              ~~~               "#, Identifier("baz")),
-                (r#"                  ~~            "#, L(S(""))),
-                (r#"                     ~~~~       "#, L(S("\\t"))),
-                (r#"                          ~~~~~~"#, L(S(r#"\"\""#))),
+                (r#"~~~                                       "#, Identifier("foo")),
+                (r#"    ~~~~~~~~~                             "#, L(S("bar\\\"\\n"))),
+                (r#"              ~~~                         "#, Identifier("baz")),
+                (r#"                  ~~                      "#, L(S(""))),
+                (r#"                     ~~~~                 "#, L(S("\\t"))),
+                (r#"                          ~~~~~~          "#, L(S(r#"\"\""#))),
+                (r#"                                 ~~~~~~~~~"#, L(S("null \\0"))),
             ],
         );
         assert_eq!(TemplateString(vec![StringSegment::Literal(r#""""#.to_string(), Span::new(1, 5))]), StringLiteralToken(r#"\"\""#).template(Span::new(0, 6)));
