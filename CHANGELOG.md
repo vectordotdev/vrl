@@ -1,6 +1,6 @@
 # Changelog
 
-braking change to `parse_nginx_log()` to make it compatiple to more unstandardized events
+breaking change to `parse_nginx_log()` to make it compatible to more unstandardized events
 
 ## unreleased
 
