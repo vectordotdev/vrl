@@ -3,7 +3,7 @@
  # warning[E801]: the to_timestamp function is deprecated
  #   ┌─ :1:1
  #   │
- # 1 │ to_timestamp!({})
+ # 1 │ to_timestamp!(5)
  #   │ ^^^^^^^^^^^^^^^^^ this is deprecated
  #   │
  #   = try: using another timestamp parsing function instead

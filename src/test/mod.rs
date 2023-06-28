@@ -78,6 +78,9 @@ pub fn run_tests<T>(
         }
 
         let mut name = test.name.clone();
+        if name.contains("to_timestamp") {
+            println!("found you");
+        }
         name.truncate(58);
 
         let dots = if name.len() >= 60 { 0 } else { 60 - name.len() };

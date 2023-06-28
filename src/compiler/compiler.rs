@@ -592,8 +592,8 @@ impl<'a> Compiler<'a> {
         func: &FunctionCall,
         _args: &ArgumentList,
     ) {
-        match func.ident {
-            "to_timestamp" => self.diagnostics.push(Box::new(
+        if func.ident == "to_timestamp" {
+            self.diagnostics.push(Box::new(
                 DeprecationWarning::new(format!("the {} function", func.ident).as_str())
                     .with_span(func.span)
                     .with_notes(Note::solution(
@@ -603,8 +603,7 @@ impl<'a> Compiler<'a> {
                             r#"for all other value types, use "parse_timestamp"#,
                         ],
                     )),
-            )),
-            _ => (),
+            ));
         }
     }
 
