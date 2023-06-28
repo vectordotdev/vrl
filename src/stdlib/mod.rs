@@ -29,6 +29,7 @@
 
 mod util;
 mod wasm_unsupported_function;
+
 use crate::compiler::Function;
 pub use wasm_unsupported_function::WasmUnsupportedFunction;
 
@@ -75,6 +76,7 @@ cfg_if::cfg_if! {
         mod format_int;
         mod format_number;
         mod format_timestamp;
+        mod from_unix_timestamp;
         mod get;
         mod get_env_var;
         mod get_hostname;
@@ -234,6 +236,7 @@ cfg_if::cfg_if! {
         pub use format_int::FormatInt;
         pub use format_number::FormatNumber;
         pub use format_timestamp::FormatTimestamp;
+        pub use from_unix_timestamp::FromUnixTimestamp;
         pub use get::Get;
         pub use get_env_var::GetEnvVar;
         pub use get_hostname::GetHostname;
@@ -396,6 +399,7 @@ pub fn all() -> Vec<Box<dyn Function>> {
         Box::new(FormatInt),
         Box::new(FormatNumber),
         Box::new(FormatTimestamp),
+        Box::new(FromUnixTimestamp),
         Box::new(Get),
         Box::new(GetEnvVar),
         Box::new(GetHostname),
