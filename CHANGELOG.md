@@ -1,7 +1,9 @@
 # Changelog
 
 ## unreleased
-- added \0 (null) character literal to lex parser
+
+## `0.5.0` (2023-06-28)
+- added \0 (null) character literal to lex parser (https://github.com/vectordotdev/vrl/pull/259)
 - added the `timezone` argument to the `format_timestamp` vrl function. (https://github.com/vectordotdev/vrl/pull/247)
 - removed feature flags for each individual VRL function. (https://github.com/vectordotdev/vrl/pull/251)
 - fixed a panic when arithmetic overflows. It now always wraps (only in debug builds). (https://github.com/vectordotdev/vrl/pull/252)
