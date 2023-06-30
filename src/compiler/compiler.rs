@@ -594,7 +594,7 @@ impl<'a> Compiler<'a> {
     ) {
         if func.ident == "to_timestamp" {
             self.diagnostics.push(Box::new(
-                DeprecationWarning::new(format!("the `{}` function", func.ident).as_str())
+                DeprecationWarning::new("the `to_timestamp` function")
                     .with_span(func.span)
                     .with_notes(Note::solution(
                         r#"using another timestamp parsing function instead"#,

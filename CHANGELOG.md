@@ -1,6 +1,7 @@
 # Changelog
 
 ## unreleased
+- deprecated `to_timestamp` vrl function (https://github.com/vectordotdev/vrl/pull/285)
 
 ## `0.5.0` (2023-06-28)
 - added \0 (null) character literal to lex parser (https://github.com/vectordotdev/vrl/pull/259)
