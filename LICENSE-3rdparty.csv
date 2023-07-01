@@ -88,7 +88,6 @@ iana-time-zone-haiku,https://github.com/strawlab/iana-time-zone,MIT OR Apache-2.
 indexmap,https://github.com/bluss/indexmap,Apache-2.0 OR MIT,The indexmap Authors
 indoc,https://github.com/dtolnay/indoc,MIT OR Apache-2.0,David Tolnay <dtolnay@gmail.com>
 inout,https://github.com/RustCrypto/utils,MIT OR Apache-2.0,RustCrypto Developers
-io-lifetimes,https://github.com/sunfishcode/io-lifetimes,Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT,Dan Gohman <dev@sunfishcode.online>
 is-terminal,https://github.com/sunfishcode/is-terminal,MIT,"softprops <d.tangren@gmail.com>, Dan Gohman <dev@sunfishcode.online>"
 itertools,https://github.com/rust-itertools/itertools,MIT OR Apache-2.0,bluss
 itoa,https://github.com/dtolnay/itoa,MIT OR Apache-2.0,David Tolnay <dtolnay@gmail.com>
