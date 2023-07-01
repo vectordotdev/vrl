@@ -37,7 +37,7 @@ del(.message)
 del(.source_type)
 
 # assign parsed fields
-.timestamp = to_timestamp!(parsed[0])
+.timestamp = parse_timestamp!(parsed[0], "%d/%b/%Y:%H:%M:%S %z")
 .host = parsed[1]
 .method = parsed[2]
 .uri = parsed[3]
