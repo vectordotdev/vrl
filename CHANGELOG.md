@@ -1,6 +1,6 @@
 # Changelog
 
-breaking change to `parse_nginx_log()` to make it compatible to more unstandardized events
+- breaking change to `parse_nginx_log()` to make it compatible to more unstandardized events (https://github.com/vectordotdev/vrl/pull/249)
 
 ## unreleased
 - deprecated `to_timestamp` vrl function (https://github.com/vectordotdev/vrl/pull/285)
