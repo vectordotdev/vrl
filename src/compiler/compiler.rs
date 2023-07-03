@@ -1,6 +1,6 @@
 use crate::path::PathPrefix;
 
-use crate::diagnostic::{DiagnosticList, DiagnosticMessage, Severity};
+use crate::diagnostic::{DiagnosticList, DiagnosticMessage, Note, Severity};
 use crate::parser::ast::{self, Node, QueryTarget};
 use crate::path::{OwnedTargetPath, OwnedValuePath};
 use crate::value::Value;
@@ -14,8 +14,9 @@ use crate::compiler::{
     },
     parser::ast::RootExpr,
     program::ProgramInfo,
-    CompileConfig, Function, Program, TypeDef,
+    CompileConfig, DeprecationWarning, Function, Program, TypeDef,
 };
+use crate::prelude::ArgumentList;
 
 pub(crate) type Diagnostics = Vec<Box<dyn DiagnosticMessage>>;
 
@@ -586,6 +587,26 @@ impl<'a> Compiler<'a> {
         Some(target)
     }
 
+    pub(crate) fn check_function_deprecations(
+        &mut self,
+        func: &FunctionCall,
+        _args: &ArgumentList,
+    ) {
+        if func.ident == "to_timestamp" {
+            self.diagnostics.push(Box::new(
+                DeprecationWarning::new("the `to_timestamp` function")
+                    .with_span(func.span)
+                    .with_notes(Note::solution(
+                        r#"using another timestamp parsing function instead"#,
+                        vec![
+                            r#"for integer values, use `from_unix_timestamp`"#,
+                            r#"for all other value types, use `parse_timestamp`"#,
+                        ],
+                    )),
+            ));
+        }
+    }
+
     fn compile_function_call(
         &mut self,
         node: Node<ast::FunctionCall>,
@@ -686,7 +707,8 @@ impl<'a> Compiler<'a> {
                 .map(|func| (arg_list, func))
         });
 
-        if let Some((_args, function)) = &function_info {
+        if let Some((args, function)) = &function_info {
+            self.check_function_deprecations(function, args);
             // Update the final state using the function expression to make sure it's accurate.
             *state = function.type_info(&original_state).state;
         }

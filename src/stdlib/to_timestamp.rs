@@ -95,87 +95,9 @@ impl Function for ToTimestamp {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[
-            Example {
-                title: "timestamp",
-                source: "to_timestamp(t'2020-01-01T00:00:00Z')",
-                result: Ok("t'2020-01-01T00:00:00Z'"),
-            },
-            Example {
-                title: "integer as seconds",
-                source: "to_timestamp!(5)",
-                result: Ok("t'1970-01-01T00:00:05Z'"),
-            },
-            Example {
-                title: "float as seconds",
-                source: "to_timestamp!(5.6)",
-                result: Ok("t'1970-01-01T00:00:05.600Z'"),
-            },
-            Example {
-                title: "integer as milliseconds",
-                source: r#"to_timestamp!(5000, unit: "milliseconds")"#,
-                result: Ok("t'1970-01-01T00:00:05Z'"),
-            },
-            Example {
-                title: "float as nanoseconds",
-                source: r#"to_timestamp!(56000000000.7, unit: "nanoseconds")"#,
-                result: Ok("t'1970-01-01T00:00:56.000000001Z'"),
-            },
-            Example {
-                title: "string valid",
-                source: "to_timestamp!(s'2020-01-01T00:00:00Z')",
-                result: Ok("t'2020-01-01T00:00:00Z'"),
-            },
-            Example {
-                title: "string invalid",
-                source: "to_timestamp!(s'foo')",
-                result: Err(
-                    r#"function call error for "to_timestamp" at (0:21): No matching timestamp format found for "foo""#,
-                ),
-            },
-            Example {
-                title: "true",
-                source: "to_timestamp!(true)",
-                result: Err(
-                    r#"function call error for "to_timestamp" at (0:19): unable to coerce boolean into timestamp"#,
-                ),
-            },
-            Example {
-                title: "false",
-                source: "to_timestamp!(false)",
-                result: Err(
-                    r#"function call error for "to_timestamp" at (0:20): unable to coerce boolean into timestamp"#,
-                ),
-            },
-            Example {
-                title: "null",
-                source: "to_timestamp!(null)",
-                result: Err(
-                    r#"function call error for "to_timestamp" at (0:19): unable to coerce null into timestamp"#,
-                ),
-            },
-            Example {
-                title: "array",
-                source: "to_timestamp!([])",
-                result: Err(
-                    r#"function call error for "to_timestamp" at (0:17): unable to coerce array into timestamp"#,
-                ),
-            },
-            Example {
-                title: "object",
-                source: "to_timestamp!({})",
-                result: Err(
-                    r#"function call error for "to_timestamp" at (0:17): unable to coerce object into timestamp"#,
-                ),
-            },
-            Example {
-                title: "regex",
-                source: "to_timestamp!(r'foo')",
-                result: Err(
-                    r#"function call error for "to_timestamp" at (0:21): unable to coerce regex into timestamp"#,
-                ),
-            },
-        ]
+        // All examples were deleted because this function is deprecated.
+        // See: https://github.com/vectordotdev/vrl/issues/284
+        &[]
     }
 
     fn compile(

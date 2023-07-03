@@ -191,16 +191,16 @@ ok, err10 = r'' / now()
 
 regex_errs = [err1, err2, err3, err4, err5, err6, err7, err8, err9, err10]
 
-ok, err1  = to_timestamp(0) / "foo"
-ok, err2  = to_timestamp(0) / 1
-ok, err3  = to_timestamp(0) / 1.0
-ok, err4  = to_timestamp(0) / true
-ok, err5  = to_timestamp(0) / false
-ok, err6  = to_timestamp(0) / null
-ok, err7  = to_timestamp(0) / []
-ok, err8  = to_timestamp(0) / {}
-ok, err9  = to_timestamp(0) / r'foo'
-ok, err10 = to_timestamp(0) / now()
+ok, err1  = from_unix_timestamp(0) / "foo"
+ok, err2  = from_unix_timestamp(0) / 1
+ok, err3  = from_unix_timestamp(0) / 1.0
+ok, err4  = from_unix_timestamp(0) / true
+ok, err5  = from_unix_timestamp(0) / false
+ok, err6  = from_unix_timestamp(0) / null
+ok, err7  = from_unix_timestamp(0) / []
+ok, err8  = from_unix_timestamp(0) / {}
+ok, err9  = from_unix_timestamp(0) / r'foo'
+ok, err10 = from_unix_timestamp(0) / now()
 
 timestamp_errs = [err1, err2, err3, err4, err5, err6, err7, err8, err9, err10]
 
