@@ -5,6 +5,8 @@ use aes::cipher::{
     AsyncStreamCipher, BlockEncryptMut, KeyIvInit, StreamCipher,
 };
 use cfb_mode::Encryptor as Cfb;
+use chacha20poly1305::{aead::Aead, ChaCha20Poly1305, KeyInit, XChaCha20Poly1305};
+use crypto_secretbox::XSalsa20Poly1305;
 use ctr::{Ctr64BE, Ctr64LE};
 use ofb::Ofb;
 
@@ -78,6 +80,14 @@ macro_rules! encrypt_keystream {
     }};
 }
 
+macro_rules! encrypt_stream {
+    ($algorithm:ty, $plaintext:expr, $key:expr, $iv:expr) => {{
+        <$algorithm>::new(&GenericArray::from(get_key_bytes($key)?))
+            .encrypt(&GenericArray::from(get_iv_bytes($iv)?), $plaintext.as_ref())
+            .expect("key/iv sizes were already checked")
+    }};
+}
+
 pub(crate) fn is_valid_algorithm(algorithm: Value) -> bool {
     matches!(
         algorithm
@@ -113,6 +123,9 @@ pub(crate) fn is_valid_algorithm(algorithm: Value) -> bool {
             | "AES-256-CBC-ISO10126"
             | "AES-192-CBC-ISO10126"
             | "AES-128-CBC-ISO10126"
+            | "CHACHA20-POLY1305"
+            | "XCHACHA20-POLY1305"
+            | "XSALSA20-POLY1305"
     )
 }
 
@@ -150,6 +163,9 @@ fn encrypt(plaintext: Value, algorithm: Value, key: Value, iv: Value) -> Resolve
         "AES-256-CBC-ISO10126" => encrypt_padded!(Aes256Cbc, Iso10126, plaintext, key, iv),
         "AES-192-CBC-ISO10126" => encrypt_padded!(Aes192Cbc, Iso10126, plaintext, key, iv),
         "AES-128-CBC-ISO10126" => encrypt_padded!(Aes128Cbc, Iso10126, plaintext, key, iv),
+        "CHACHA20-POLY1305" => encrypt_stream!(ChaCha20Poly1305, plaintext, key, iv),
+        "XCHACHA20-POLY1305" => encrypt_stream!(XChaCha20Poly1305, plaintext, key, iv),
+        "XSALSA20-POLY1305" => encrypt_stream!(XSalsa20Poly1305, plaintext, key, iv),
         other => return Err(format!("Invalid algorithm: {other}").into()),
     };
 
@@ -399,6 +415,24 @@ mod tests {
         aes_128_cbc_iso10126 {
             args: func_args![plaintext: value!("morethan1blockofdata"), algorithm: "AES-128-CBC-ISO10126", key: "16_bytes_xxxxxxx", iv: "16_bytes_xxxxxxx"],
             want: Ok(value!(b"\x94R\xb5\xfeE\xd9)N1\xd3\xfe\xe66E\x05\x9ch\xae\xf6\x82\rD\xfdH\xd3T8n\xa7\xec\x98W")),
+            tdef: TypeDef::bytes().fallible(),
+        }
+
+        chacha20_poly1305 {
+            args: func_args![plaintext: value!("morethan1blockofdata"), algorithm: "CHACHA20-POLY1305", key: "32_bytes_xxxxxxxxxxxxxxxxxxxxxxx", iv: "12_bytes_xxx"],
+            want: Ok(value!(b"\x14m\xe3\xc9\xbc!\xafu\xe31\xb9\x17\x8f\x9bOo0}n\xf4{$\x95\x0f\xa0\x820\xb7R\xe3.{\xd7?\x96\x10")),
+            tdef: TypeDef::bytes().fallible(),
+        }
+
+        xchacha20_poly1305 {
+            args: func_args![plaintext: value!("morethan1blockofdata"), algorithm: "XCHACHA20-POLY1305", key: "32_bytes_xxxxxxxxxxxxxxxxxxxxxxx", iv: "24_bytes_xxxxxxxxxxxxxxx"],
+            want: Ok(value!(b"\x84\xd0S<\\\x88\x019a\xd3\xa17\xdf\xc0\xe0\xd3h\xbcn-\x98\x85@\x19\x08\xc5ki\x18\x10\xdd!T#\x91\xcf")),
+            tdef: TypeDef::bytes().fallible(),
+        }
+
+        xsalsa20_poly1305 {
+            args: func_args![plaintext: value!("morethan1blockofdata"), algorithm: "XSALSA20-POLY1305", key: "32_bytes_xxxxxxxxxxxxxxxxxxxxxxx", iv: "24_bytes_xxxxxxxxxxxxxxx"],
+            want: Ok(value!(b"(\xc8\xb8\x88\x1d\xc0\xc0F\xa5\xc7n\xc8\x05B\t\xceiR\x8f\xaf\xc7\xa8\xeb.\x95(\x14\xe8C\x80[w\x85\xf3\x8dn")),
             tdef: TypeDef::bytes().fallible(),
         }
     ];
