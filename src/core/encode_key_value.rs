@@ -99,7 +99,9 @@ fn encode_field(output: &mut String, key: &str, value: &str, key_value_delimiter
 }
 
 fn encode_string(output: &mut String, str: &str) {
-    let needs_quoting = str.chars().any(|c| c.is_whitespace() || c == '"');
+    let needs_quoting = str
+        .chars()
+        .any(|c| c.is_whitespace() || c == '"' || c == '=');
 
     if needs_quoting {
         output.write_char('"').unwrap();
@@ -568,6 +570,24 @@ mod tests {
             )
             .unwrap(),
             r#"lvl=info msg="{\"key\":\"value\"}""#
+        );
+    }
+
+    #[test]
+    fn string_with_equal_sign() {
+        assert_eq!(
+            &to_string::<Value>(
+                &btreemap! {
+                    "lvl" => "info",
+                    "msg" => "="
+                },
+                &[],
+                "=",
+                " ",
+                true
+            )
+            .unwrap(),
+            r#"lvl=info msg="=""#
         );
     }
 
