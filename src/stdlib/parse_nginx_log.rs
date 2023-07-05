@@ -87,7 +87,7 @@ impl Function for ParseNginxLog {
                 title: "parse nginx combined log",
                 source: r#"encode_json(parse_nginx_log!(s'172.17.0.1 - - [31/Mar/2021:12:04:07 +0000] "GET / HTTP/1.1" 200 612 "-" "curl/7.75.0" "-"', "combined"))"#,
                 result: Ok(
-                    r#"s'{"agent":"curl/7.75.0","client":"172.17.0.1","method":"GET","path":"/","protocol":"HTTP/1.1","request":"GET / HTTP/1.1","size":612,"status":200,"timestamp":"2021-03-31T12:04:07Z"}'"#,
+                    r#"s'{"agent":"curl/7.75.0","client":"172.17.0.1","referer":"-","request":"GET / HTTP/1.1","size":612,"status":200,"timestamp":"2021-03-31T12:04:07Z"}'"#,
                 ),
             },
             Example {
@@ -165,9 +165,6 @@ fn kind_combined() -> BTreeMap<Field, Kind> {
         ("user".into(), Kind::bytes().or_null()),
         ("timestamp".into(), Kind::timestamp()),
         ("request".into(), Kind::bytes()),
-        ("method".into(), Kind::bytes()),
-        ("path".into(), Kind::bytes()),
-        ("protocol".into(), Kind::bytes()),
         ("status".into(), Kind::integer()),
         ("size".into(), Kind::integer()),
         ("referer".into(), Kind::bytes().or_null()),
@@ -182,9 +179,6 @@ fn kind_ingress_upstreaminfo() -> BTreeMap<Field, Kind> {
         ("remote_user".into(), Kind::bytes().or_undefined()),
         ("timestamp".into(), Kind::timestamp()),
         ("request".into(), Kind::bytes()),
-        ("method".into(), Kind::bytes()),
-        ("path".into(), Kind::bytes()),
-        ("protocol".into(), Kind::bytes()),
         ("status".into(), Kind::integer()),
         ("body_bytes_size".into(), Kind::integer()),
         ("http_referer".into(), Kind::bytes().or_undefined()),
@@ -241,10 +235,8 @@ mod tests {
             want: Ok(btreemap! {
                 "client" => "172.17.0.1",
                 "timestamp" => Value::Timestamp(DateTime::parse_from_rfc3339("2021-03-31T12:04:07Z").unwrap().into()),
+                "referer" => "-",
                 "request" => "GET / HTTP/1.1",
-                "method" => "GET",
-                "path" => "/",
-                "protocol" => "HTTP/1.1",
                 "status" => 200,
                 "size" => 612,
                 "agent" => "curl/7.75.0",
@@ -261,13 +253,44 @@ mod tests {
                 "client" => "0.0.0.0",
                 "timestamp" => Value::Timestamp(DateTime::parse_from_rfc3339("2021-04-23T14:59:24Z").unwrap().into()),
                 "request" => "GET /my-path/manifest.json HTTP/1.1",
-                "method" => "GET",
-                "path" => "/my-path/manifest.json",
-                "protocol" => "HTTP/1.1",
                 "status" => 200,
                 "size" => 504,
                 "referer" => "https://my-url.com/my-path",
                 "agent" => "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.90 Safari/537.36",
+            }),
+            tdef: TypeDef::object(kind_combined()).fallible(),
+        }
+
+        combined_line_valid_empty_fields {
+            args: func_args![
+                value: r#"0.0.0.0 - - [04/Oct/2022:04:34:49 +0000] "" 400 0 "" """#,
+                format: "combined"
+            ],
+            want: Ok(btreemap! {
+                "client" => "0.0.0.0",
+                "timestamp" => Value::Timestamp(DateTime::parse_from_rfc3339("2022-10-04T04:34:49Z").unwrap().into()),
+                "request" => "",
+                "status" => 400,
+                "size" => 0,
+                "referer" => "",
+                "agent" => "",
+            }),
+            tdef: TypeDef::object(kind_combined()).fallible(),
+        }
+
+        combined_line_valid_bot_request {
+            args: func_args![
+                value: r#"0.0.0.0 - - [04/Oct/2022:03:07:27 +0000] "]&\xDF\xBDV\xE7\xBB<\x10;\xA2b}\xDFM\x1D" 400 150 "-" "-""#,
+                format: "combined"
+            ],
+            want: Ok(btreemap! {
+                "client" => "0.0.0.0",
+                "timestamp" => Value::Timestamp(DateTime::parse_from_rfc3339("2022-10-04T03:07:27Z").unwrap().into()),
+                "request" => r#"]&\xDF\xBDV\xE7\xBB<\x10;\xA2b}\xDFM\x1D"#,
+                "status" => 400,
+                "size" => 150,
+                "referer" => "-",
+                "agent" => "-",
             }),
             tdef: TypeDef::object(kind_combined()).fallible(),
         }
@@ -282,9 +305,6 @@ mod tests {
                 "user" => "alice",
                 "timestamp" => Value::Timestamp(DateTime::parse_from_rfc3339("2021-04-01T12:02:31Z").unwrap().into()),
                 "request" => "POST /not-found HTTP/1.1",
-                "method" => "POST",
-                "path" => "/not-found",
-                "protocol" => "HTTP/1.1",
                 "status" => 404,
                 "size" => 153,
                 "referer" => "http://localhost/somewhere",
@@ -303,9 +323,6 @@ mod tests {
                 "remote_addr" => "0.0.0.0",
                 "timestamp" => Value::Timestamp(DateTime::parse_from_rfc3339("2023-03-18T15:00:00Z").unwrap().into()),
                 "request" => "GET /some/path HTTP/2.0",
-                "method" => "GET",
-                "path" => "/some/path",
-                "protocol" => "HTTP/2.0",
                 "status" => 200,
                 "body_bytes_size" => 12312,
                 "http_referer" => "https://10.0.0.1/some/referer",
@@ -332,9 +349,6 @@ mod tests {
                 "remote_user" => "bob",
                 "timestamp" => Value::Timestamp(DateTime::parse_from_rfc3339("2023-03-18T15:00:00Z").unwrap().into()),
                 "request" => "GET /some/path HTTP/2.0",
-                "method" => "GET",
-                "path" => "/some/path",
-                "protocol" => "HTTP/2.0",
                 "status" => 200,
                 "body_bytes_size" => 12312,
                 "http_referer" => "https://10.0.0.1/some/referer",
