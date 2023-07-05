@@ -2,7 +2,7 @@
 
 ## unreleased
 - deprecated `to_timestamp` vrl function (https://github.com/vectordotdev/vrl/pull/285)
-- add support for chacha20poly1305, xchacha20poly1305, xsalsa20poly1305 algorithms for encryption/decryption
+- add support for chacha20poly1305, xchacha20poly1305, xsalsa20poly1305 algorithms for encryption/decryption (https://github.com/vectordotdev/vrl/pull/293)
 
 ## `0.5.0` (2023-06-28)
 - added \0 (null) character literal to lex parser (https://github.com/vectordotdev/vrl/pull/259)
