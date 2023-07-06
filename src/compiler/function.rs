@@ -323,7 +323,7 @@ impl ArgumentList {
                 Expr::Variable(variable) if variable.value().is_some() => {
                     match variable.value().unwrap() {
                         Value::Regex(regex) => Ok((**regex).clone()),
-                        value @ _ => Err(Error::InvalidArgument {
+                        value => Err(Error::InvalidArgument {
                             keyword,
                             value: value.clone(),
                             error: "regex expected",
