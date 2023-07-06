@@ -88,7 +88,7 @@ mod concat;
 mod jit;
 mod owned;
 
-use self::jit::{JitValuePath, JitValuePathIter};
+use self::jit::JitValuePath;
 use snafu::Snafu;
 use std::fmt::Debug;
 
@@ -162,8 +162,8 @@ pub fn parse_value_path(path: &str) -> Result<OwnedValuePath, PathParseError> {
 ///
 /// See `parse_value_path` if the path doesn't contain a prefix.
 pub fn parse_target_path(path: &str) -> Result<OwnedTargetPath, PathParseError> {
-    let prefix = TargetPath::prefix(&path);
-    let value_path = parse_value_path(TargetPath::value_path(&path))?;
+    let (prefix, value_path) = get_target_prefix(path);
+    let value_path = parse_value_path(value_path)?;
 
     Ok(OwnedTargetPath {
         prefix,
@@ -244,14 +244,16 @@ pub trait ValuePath<'a>: Clone {
     }
 }
 
+#[cfg(feature = "string_path")]
 impl<'a> ValuePath<'a> for &'a str {
-    type Iter = JitValuePathIter<'a>;
+    type Iter = jit::JitValuePathIter<'a>;
 
     fn segment_iter(&self) -> Self::Iter {
         JitValuePath::new(self).segment_iter()
     }
 }
 
+#[cfg(feature = "string_path")]
 impl<'a> TargetPath<'a> for &'a str {
     type ValuePath = &'a str;
 
