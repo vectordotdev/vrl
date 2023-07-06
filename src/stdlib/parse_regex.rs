@@ -83,7 +83,7 @@ impl Function for ParseRegex {
             }"# }),
             },
             Example {
-                title: "variable use",
+                title: "match with variable",
                 source: r#"
                 variable = r'^(?P<host>[\w\.]+) - (?P<user>[\w]+)';
                 parse_regex!("8.7.6.5 - zorp", variable)"#,
