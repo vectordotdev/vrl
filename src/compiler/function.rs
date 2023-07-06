@@ -320,6 +320,16 @@ impl ArgumentList {
                 Expr::Literal(crate::compiler::expression::Literal::Regex(regex)) => {
                     Ok((*regex).clone())
                 }
+                Expr::Variable(variable) if variable.value().is_some() => {
+                    match variable.value().unwrap() {
+                        Value::Regex(regex) => Ok((**regex).clone()),
+                        value @ _ => Err(Error::InvalidArgument {
+                            keyword,
+                            value: value.clone(),
+                            error: "regex expected",
+                        }),
+                    }
+                }
                 expr => Err(Error::UnexpectedExpression {
                     keyword,
                     expected: "regex",

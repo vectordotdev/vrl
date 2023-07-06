@@ -87,6 +87,17 @@ impl Function for ParseRegexAll {
                 "1": "peaches",
                 "2": "peas"}]"# }),
             },
+            Example {
+                title: "match with variables",
+                source: r#"
+                variable = r'(?P<fruit>[\w\.]+) and (?P<veg>[\w]+)';
+                parse_regex_all!("apples and carrots, peaches and peas", variable)"#,
+                result: Ok(indoc! { r#"[
+               {"fruit": "apples",
+                "veg": "carrots"},
+               {"fruit": "peaches",
+                "veg": "peas"}]"# }),
+            },
         ]
     }
 }

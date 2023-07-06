@@ -82,6 +82,16 @@ impl Function for ParseRegex {
                 "user": "zorp"
             }"# }),
             },
+            Example {
+                title: "variable use",
+                source: r#"
+                variable = r'^(?P<host>[\w\.]+) - (?P<user>[\w]+)';
+                parse_regex!("8.7.6.5 - zorp", variable)"#,
+                result: Ok(indoc! { r#"{
+                "host": "8.7.6.5",
+                "user": "zorp"
+            }"# }),
+            },
         ]
     }
 }
