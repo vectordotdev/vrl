@@ -308,9 +308,10 @@ impl<'a> Builder<'a> {
 
                                 // The variable kind is expected to be equal to
                                 // the ind of the target of the closure.
-                                VariableKind::Target => {
-                                    (target.type_info(state).result, target.resolve_constant())
-                                }
+                                VariableKind::Target => (
+                                    target.type_info(state).result,
+                                    target.resolve_constant(state),
+                                ),
 
                                 // The variable kind is expected to be equal to
                                 // the reduced kind of all values within the

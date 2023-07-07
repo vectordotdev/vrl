@@ -127,15 +127,14 @@ impl Function for ParseGrok {
     #[cfg(not(target_arch = "wasm32"))]
     fn compile(
         &self,
-        _state: &state::TypeState,
+        state: &state::TypeState,
         _ctx: &mut FunctionCompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
 
         let pattern = arguments
-            .required_literal("pattern")?
-            .to_value()
+            .required_literal("pattern", state)?
             .try_bytes_utf8_lossy()
             .expect("grok pattern not bytes")
             .into_owned();

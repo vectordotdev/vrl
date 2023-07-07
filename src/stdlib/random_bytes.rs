@@ -40,13 +40,13 @@ impl Function for RandomBytes {
 
     fn compile(
         &self,
-        _state: &state::TypeState,
+        state: &state::TypeState,
         _ctx: &mut FunctionCompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
         let length = arguments.required("length");
 
-        if let Some(literal) = length.resolve_constant() {
+        if let Some(literal) = length.resolve_constant(state) {
             // check if length is valid
             let _: usize =
                 get_length(literal.clone()).map_err(|err| function::Error::InvalidArgument {
@@ -82,8 +82,8 @@ impl FunctionExpression for RandomBytesFn {
         random_bytes(length)
     }
 
-    fn type_def(&self, _state: &state::TypeState) -> TypeDef {
-        match self.length.resolve_constant() {
+    fn type_def(&self, state: &state::TypeState) -> TypeDef {
+        match self.length.resolve_constant(state) {
             None => TypeDef::bytes().fallible(),
             Some(value) => {
                 if get_length(value).is_ok() {

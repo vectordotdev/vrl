@@ -4,6 +4,7 @@
 # The rhs condition should never trigger in these cases.
 true || (.foo = true)
 false && (.bar = true)
-foo = 1
-5 / foo ?? (.baz = true)
+.x = 1
+5 / .x ?? (.baz = true)
+del(.x)
 .

@@ -126,7 +126,7 @@ impl Function for Decrypt {
 
     fn compile(
         &self,
-        _state: &state::TypeState,
+        state: &state::TypeState,
         _ctx: &mut FunctionCompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
@@ -135,7 +135,7 @@ impl Function for Decrypt {
         let key = arguments.required("key");
         let iv = arguments.required("iv");
 
-        if let Some(algorithm) = algorithm.resolve_constant() {
+        if let Some(algorithm) = algorithm.resolve_constant(state) {
             if !is_valid_algorithm(algorithm.clone()) {
                 return Err(function::Error::InvalidArgument {
                     keyword: "algorithm",

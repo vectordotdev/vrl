@@ -127,10 +127,11 @@ impl Expression for Op {
     fn type_info(&self, state: &TypeState) -> TypeInfo {
         use crate::value::Kind as K;
         use ast::Opcode::{Add, And, Div, Eq, Err, Ge, Gt, Le, Lt, Merge, Mul, Ne, Or, Sub};
+        let original_state = state.clone();
 
         let mut state = state.clone();
         let mut lhs_def = self.lhs.apply_type_info(&mut state);
-        let lhs_value = self.lhs.resolve_constant();
+        let lhs_value = self.lhs.resolve_constant(&original_state);
 
         // TODO: this is incorrect, but matches the existing behavior of the compiler
         // see: https://github.com/vectordotdev/vector/issues/13789
@@ -228,7 +229,7 @@ impl Expression for Op {
                 let td = TypeDef::float();
 
                 // Division is infallible if the rhs is a literal normal float or integer.
-                match self.rhs.resolve_constant() {
+                match self.rhs.resolve_constant(&state) {
                     Some(value) if lhs_def.is_float() || lhs_def.is_integer() => match value {
                         Value::Float(v) if v.is_normal() => td.infallible(),
                         Value::Integer(v) if v != 0 => td.infallible(),
