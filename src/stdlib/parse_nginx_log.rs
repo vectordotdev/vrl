@@ -61,13 +61,13 @@ impl Function for ParseNginxLog {
 
     fn compile(
         &self,
-        _state: &state::TypeState,
+        state: &state::TypeState,
         _ctx: &mut FunctionCompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
         let format = arguments
-            .required_enum("format", &variants())?
+            .required_enum("format", &variants(), state)?
             .try_bytes()
             .expect("format not bytes");
 

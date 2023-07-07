@@ -43,12 +43,12 @@ impl Function for ParseRegexAll {
 
     fn compile(
         &self,
-        _state: &state::TypeState,
+        state: &state::TypeState,
         _ctx: &mut FunctionCompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
-        let pattern = arguments.required_regex("pattern")?;
+        let pattern = arguments.required_regex("pattern", state)?;
         let numeric_groups = arguments
             .optional("numeric_groups")
             .unwrap_or_else(|| expr!(false));
@@ -86,6 +86,17 @@ impl Function for ParseRegexAll {
                 "0": "peaches and peas",
                 "1": "peaches",
                 "2": "peas"}]"# }),
+            },
+            Example {
+                title: "match with variables",
+                source: r#"
+                variable = r'(?P<fruit>[\w\.]+) and (?P<veg>[\w]+)';
+                parse_regex_all!("apples and carrots, peaches and peas", variable)"#,
+                result: Ok(indoc! { r#"[
+               {"fruit": "apples",
+                "veg": "carrots"},
+               {"fruit": "peaches",
+                "veg": "peas"}]"# }),
             },
         ]
     }

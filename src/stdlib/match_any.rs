@@ -46,7 +46,7 @@ impl Function for MatchAny {
 
     fn compile(
         &self,
-        _state: &state::TypeState,
+        state: &state::TypeState,
         _ctx: &mut FunctionCompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
@@ -56,7 +56,7 @@ impl Function for MatchAny {
         let mut re_strings = Vec::with_capacity(patterns.len());
         for expr in patterns {
             let value =
-                expr.resolve_constant()
+                expr.resolve_constant(state)
                     .ok_or(function::Error::ExpectedStaticExpression {
                         keyword: "patterns",
                         expr,
