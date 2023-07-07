@@ -21,7 +21,7 @@ members = [
 
 
 [features]
-default = ["compiler", "value", "diagnostic", "path", "parser", "stdlib", "datadog", "core"]
+default = ["compiler", "value", "diagnostic", "path", "parser", "stdlib", "datadog", "core", "string_path"]
 
 # Main features (on by default)
 compiler = ["diagnostic", "path", "parser", "value", "dep:paste", "dep:chrono", "dep:serde", "dep:regex", "dep:bytes", "dep:ordered-float", "dep:chrono-tz", "dep:snafu", "dep:tracing",
@@ -31,6 +31,7 @@ diagnostic = ["dep:codespan-reporting", "dep:termcolor"]
 path = ["dep:once_cell", "dep:serde", "dep:snafu", "dep:regex"]
 parser = ["path", "diagnostic", "dep:thiserror", "dep:ordered-float", "dep:lalrpop-util"]
 core = ["value", "dep:snafu", "dep:nom"]
+string_path = []
 
 # Datadog related features (on by default)
 datadog = ["datadog_filter", "datadog_grok", "datadog_search"]
