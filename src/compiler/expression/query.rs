@@ -127,7 +127,9 @@ impl Expression for Query {
 
     fn resolve_constant(&self, state: &TypeState) -> Option<Value> {
         match self.target {
-            Target::Internal(ref variable) => variable.resolve_constant(state),
+            Target::Internal(ref variable) => variable
+                .resolve_constant(state)
+                .and_then(|v| v.get(self.path()).cloned()),
             _ => None,
         }
     }
