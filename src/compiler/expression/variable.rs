@@ -29,6 +29,7 @@ impl Variable {
         Ok(Self { ident })
     }
 
+    #[must_use]
     pub fn ident(&self) -> &Ident {
         &self.ident
     }

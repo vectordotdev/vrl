@@ -310,7 +310,7 @@ impl<'a> Builder<'a> {
                                 // the ind of the target of the closure.
                                 VariableKind::Target => (
                                     target.type_info(state).result,
-                                    target.resolve_constant(&state),
+                                    target.resolve_constant(state),
                                 ),
 
                                 // The variable kind is expected to be equal to
