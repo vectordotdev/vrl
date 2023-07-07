@@ -93,12 +93,12 @@ impl Function for IsJson {
 
     fn compile(
         &self,
-        _state: &state::TypeState,
+        state: &state::TypeState,
         _ctx: &mut FunctionCompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
-        let variant = arguments.optional_enum("variant", &variants())?;
+        let variant = arguments.optional_enum("variant", &variants(), state)?;
 
         match variant {
             Some(raw_variant) => {

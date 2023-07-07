@@ -63,13 +63,13 @@ impl Function for Sha3 {
 
     fn compile(
         &self,
-        _state: &state::TypeState,
+        state: &state::TypeState,
         _ctx: &mut FunctionCompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
         let variant = arguments
-            .optional_enum("variant", &variants())?
+            .optional_enum("variant", &variants(), state)?
             .unwrap_or_else(|| value!("SHA3-512"))
             .try_bytes()
             .expect("variant not bytes");

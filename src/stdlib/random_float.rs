@@ -64,14 +64,14 @@ impl Function for RandomFloat {
 
     fn compile(
         &self,
-        _state: &state::TypeState,
+        state: &state::TypeState,
         _ctx: &mut FunctionCompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
         let min = arguments.required("min");
         let max = arguments.required("max");
 
-        if let (Some(min), Some(max)) = (min.resolve_constant(), max.resolve_constant()) {
+        if let (Some(min), Some(max)) = (min.resolve_constant(state), max.resolve_constant(state)) {
             // check if range is valid
             let _: Range<f64> =
                 get_range(min, max.clone()).map_err(|err| function::Error::InvalidArgument {
@@ -99,8 +99,11 @@ impl FunctionExpression for RandomFloatFn {
         random_float(min, max)
     }
 
-    fn type_def(&self, _state: &state::TypeState) -> TypeDef {
-        match (self.min.resolve_constant(), self.max.resolve_constant()) {
+    fn type_def(&self, state: &state::TypeState) -> TypeDef {
+        match (
+            self.min.resolve_constant(state),
+            self.max.resolve_constant(state),
+        ) {
             (Some(min), Some(max)) => {
                 if get_range(min, max).is_ok() {
                     TypeDef::float().infallible()

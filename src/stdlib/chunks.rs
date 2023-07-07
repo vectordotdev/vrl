@@ -59,7 +59,7 @@ impl Function for Chunks {
 
     fn compile(
         &self,
-        _state: &TypeState,
+        state: &TypeState,
         _ctx: &mut FunctionCompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
@@ -68,7 +68,7 @@ impl Function for Chunks {
 
         // chunk_size is converted to a usize, so if a user-supplied Value::Integer (i64) is
         // larger than the platform's usize::MAX, it could fail to convert.
-        if let Some(literal) = chunk_size.resolve_constant() {
+        if let Some(literal) = chunk_size.resolve_constant(state) {
             if let Some(integer) = literal.as_integer() {
                 if integer < 1 {
                     return Err(function::Error::InvalidArgument {
@@ -108,8 +108,8 @@ impl FunctionExpression for ChunksFn {
         chunks(value, chunk_size)
     }
 
-    fn type_def(&self, _state: &TypeState) -> TypeDef {
-        let not_literal = self.chunk_size.resolve_constant().is_none();
+    fn type_def(&self, state: &TypeState) -> TypeDef {
+        let not_literal = self.chunk_size.resolve_constant(state).is_none();
 
         TypeDef::array(Collection::from_unknown(Kind::bytes())).with_fallibility(not_literal)
     }

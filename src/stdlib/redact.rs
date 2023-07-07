@@ -58,7 +58,7 @@ impl Function for Redact {
 
     fn compile(
         &self,
-        _state: &state::TypeState,
+        state: &state::TypeState,
         _ctx: &mut FunctionCompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
@@ -68,7 +68,7 @@ impl Function for Redact {
             .required_array("filters")?
             .into_iter()
             .map(|expr| {
-                expr.resolve_constant()
+                expr.resolve_constant(state)
                     .ok_or(function::Error::ExpectedStaticExpression {
                         keyword: "filters",
                         expr,

@@ -113,12 +113,12 @@ impl FunctionExpression for HmacFn {
         hmac(value, key, algorithm)
     }
 
-    fn type_def(&self, _: &state::TypeState) -> TypeDef {
+    fn type_def(&self, state: &state::TypeState) -> TypeDef {
         let valid_algorithms = vec!["SHA1", "SHA-224", "SHA-256", "SHA-384", "SHA-512"];
 
         let mut valid_static_algo = false;
         if let Some(algorithm) = self.algorithm.as_ref() {
-            if let Some(algorithm) = algorithm.resolve_constant() {
+            if let Some(algorithm) = algorithm.resolve_constant(state) {
                 if let Ok(algorithm) = algorithm.try_bytes_utf8_lossy() {
                     let algorithm = algorithm.to_uppercase();
                     valid_static_algo = valid_algorithms.contains(&algorithm.as_str());

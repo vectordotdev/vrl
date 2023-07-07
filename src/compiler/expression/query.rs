@@ -20,22 +20,27 @@ impl Query {
     // TODO:
     // - error when trying to index into object
     // - error when trying to path into array
+    #[must_use]
     pub fn new(target: Target, path: OwnedValuePath) -> Self {
         Query { target, path }
     }
 
+    #[must_use]
     pub fn path(&self) -> &OwnedValuePath {
         &self.path
     }
 
+    #[must_use]
     pub fn target(&self) -> &Target {
         &self.target
     }
 
+    #[must_use]
     pub fn is_external(&self) -> bool {
         matches!(self.target, Target::External(_))
     }
 
+    #[must_use]
     pub fn external_path(&self) -> Option<OwnedTargetPath> {
         match self.target {
             Target::External(prefix) => Some(OwnedTargetPath {
@@ -46,6 +51,7 @@ impl Query {
         }
     }
 
+    #[must_use]
     pub fn as_variable(&self) -> Option<&Variable> {
         match &self.target {
             Target::Internal(variable) => Some(variable),
@@ -53,6 +59,7 @@ impl Query {
         }
     }
 
+    #[must_use]
     pub fn variable_ident(&self) -> Option<&Ident> {
         match &self.target {
             Target::Internal(v) => Some(v.ident()),
@@ -60,6 +67,7 @@ impl Query {
         }
     }
 
+    #[must_use]
     pub fn expression_target(&self) -> Option<&dyn Expression> {
         match &self.target {
             Target::FunctionCall(expr) => Some(expr),
@@ -117,11 +125,11 @@ impl Expression for Query {
         Ok(value.get(&self.path).cloned().unwrap_or(Value::Null))
     }
 
-    fn resolve_constant(&self) -> Option<Value> {
+    fn resolve_constant(&self, state: &TypeState) -> Option<Value> {
         match self.target {
-            Target::Internal(ref variable) => {
-                variable.value().and_then(|v| v.get(self.path())).cloned()
-            }
+            Target::Internal(ref variable) => variable
+                .resolve_constant(state)
+                .and_then(|v| v.get(self.path()).cloned()),
             _ => None,
         }
     }

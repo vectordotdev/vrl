@@ -63,7 +63,7 @@ pub trait Expression: Send + Sync + fmt::Debug + DynClone {
     /// This attempts to resolve expressions using only compile-time information.
     ///
     /// This returns `Some` for static expressions, or `None` for dynamic expressions.
-    fn resolve_constant(&self) -> Option<Value> {
+    fn resolve_constant(&self, _state: &TypeState) -> Option<Value> {
         None
     }
 
@@ -146,27 +146,12 @@ impl Expr {
         }
     }
 
-    pub fn as_literal(&self, keyword: &'static str) -> Result<Value, super::function::Error> {
-        let literal = match self {
-            Expr::Literal(literal) => Ok(literal.clone()),
-            Expr::Variable(var) if var.value().is_some() => {
-                match var.value().unwrap().clone().into() {
-                    Expr::Literal(literal) => Ok(literal),
-                    expr => Err(super::function::Error::UnexpectedExpression {
-                        keyword,
-                        expected: "literal",
-                        expr,
-                    }),
-                }
-            }
-            expr => Err(super::function::Error::UnexpectedExpression {
-                keyword,
-                expected: "literal",
-                expr: expr.clone(),
-            }),
-        }?;
-
-        match literal.resolve_constant() {
+    pub fn as_literal(
+        &self,
+        keyword: &'static str,
+        state: &TypeState,
+    ) -> Result<Value, super::function::Error> {
+        match self.resolve_constant(state) {
             Some(value) => Ok(value),
             None => Err(super::function::Error::UnexpectedExpression {
                 keyword,
@@ -180,8 +165,9 @@ impl Expr {
         &self,
         keyword: &'static str,
         variants: Vec<Value>,
+        state: &TypeState,
     ) -> Result<Value, super::function::Error> {
-        let value = self.as_literal(keyword)?;
+        let value = self.as_literal(keyword, state)?;
         variants.iter().find(|v| **v == value).cloned().ok_or(
             super::function::Error::InvalidEnumVariant {
                 keyword,
@@ -214,24 +200,24 @@ impl Expression for Expr {
         }
     }
 
-    fn resolve_constant(&self) -> Option<Value> {
+    fn resolve_constant(&self, state: &TypeState) -> Option<Value> {
         use Expr::{
             Abort, Assignment, Container, FunctionCall, IfStatement, Literal, Noop, Op, Query,
             Unary, Variable,
         };
 
         match self {
-            Literal(v) => Expression::resolve_constant(v),
-            Container(v) => Expression::resolve_constant(v),
-            IfStatement(v) => Expression::resolve_constant(v),
-            Op(v) => Expression::resolve_constant(v),
-            Assignment(v) => Expression::resolve_constant(v),
-            Query(v) => Expression::resolve_constant(v),
-            FunctionCall(v) => Expression::resolve_constant(v),
-            Variable(v) => Expression::resolve_constant(v),
-            Noop(v) => Expression::resolve_constant(v),
-            Unary(v) => Expression::resolve_constant(v),
-            Abort(v) => Expression::resolve_constant(v),
+            Literal(v) => Expression::resolve_constant(v, state),
+            Container(v) => Expression::resolve_constant(v, state),
+            IfStatement(v) => Expression::resolve_constant(v, state),
+            Op(v) => Expression::resolve_constant(v, state),
+            Assignment(v) => Expression::resolve_constant(v, state),
+            Query(v) => Expression::resolve_constant(v, state),
+            FunctionCall(v) => Expression::resolve_constant(v, state),
+            Variable(v) => Expression::resolve_constant(v, state),
+            Noop(v) => Expression::resolve_constant(v, state),
+            Unary(v) => Expression::resolve_constant(v, state),
+            Abort(v) => Expression::resolve_constant(v, state),
         }
     }
 

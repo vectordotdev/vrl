@@ -43,12 +43,12 @@ impl Function for ParseRegex {
 
     fn compile(
         &self,
-        _state: &state::TypeState,
+        state: &state::TypeState,
         _ctx: &mut FunctionCompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
-        let pattern = arguments.required_regex("pattern")?;
+        let pattern = arguments.required_regex("pattern", state)?;
         let numeric_groups = arguments
             .optional("numeric_groups")
             .unwrap_or_else(|| expr!(false));
@@ -78,6 +78,16 @@ impl Function for ParseRegex {
                 "0": "8.7.6.5 - zorp",
                 "1": "8.7.6.5",
                 "2": "zorp",
+                "host": "8.7.6.5",
+                "user": "zorp"
+            }"# }),
+            },
+            Example {
+                title: "match with variable",
+                source: r#"
+                variable = r'^(?P<host>[\w\.]+) - (?P<user>[\w]+)';
+                parse_regex!("8.7.6.5 - zorp", variable)"#,
+                result: Ok(indoc! { r#"{
                 "host": "8.7.6.5",
                 "user": "zorp"
             }"# }),
