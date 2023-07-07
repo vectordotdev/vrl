@@ -5,7 +5,7 @@ use aes::cipher::{
     AsyncStreamCipher, BlockEncryptMut, KeyIvInit, StreamCipher,
 };
 use cfb_mode::Encryptor as Cfb;
-use ctr::{Ctr64LE, Ctr64BE};
+use ctr::{Ctr64BE, Ctr64LE};
 use ofb::Ofb;
 
 type Aes128Cbc = cbc::Encryptor<aes::Aes128>;
@@ -126,9 +126,15 @@ fn encrypt(plaintext: Value, algorithm: Value, key: Value, iv: Value) -> Resolve
         "AES-256-OFB" => encrypt_keystream!(Ofb::<aes::Aes256>, plaintext, key, iv),
         "AES-192-OFB" => encrypt_keystream!(Ofb::<aes::Aes192>, plaintext, key, iv),
         "AES-128-OFB" => encrypt_keystream!(Ofb::<aes::Aes128>, plaintext, key, iv),
-        "AES-256-CTR" | "AES-256-CTR-LE" => encrypt_keystream!(Ctr64LE::<aes::Aes256>, plaintext, key, iv),
-        "AES-192-CTR" | "AES-192-CTR-LE" => encrypt_keystream!(Ctr64LE::<aes::Aes192>, plaintext, key, iv),
-        "AES-128-CTR" | "AES-128-CTR-LE" => encrypt_keystream!(Ctr64LE::<aes::Aes128>, plaintext, key, iv),
+        "AES-256-CTR" | "AES-256-CTR-LE" => {
+            encrypt_keystream!(Ctr64LE::<aes::Aes256>, plaintext, key, iv)
+        }
+        "AES-192-CTR" | "AES-192-CTR-LE" => {
+            encrypt_keystream!(Ctr64LE::<aes::Aes192>, plaintext, key, iv)
+        }
+        "AES-128-CTR" | "AES-128-CTR-LE" => {
+            encrypt_keystream!(Ctr64LE::<aes::Aes128>, plaintext, key, iv)
+        }
         "AES-256-CTR-BE" => encrypt_keystream!(Ctr64BE::<aes::Aes256>, plaintext, key, iv),
         "AES-192-CTR-BE" => encrypt_keystream!(Ctr64BE::<aes::Aes192>, plaintext, key, iv),
         "AES-128-CTR-BE" => encrypt_keystream!(Ctr64BE::<aes::Aes128>, plaintext, key, iv),

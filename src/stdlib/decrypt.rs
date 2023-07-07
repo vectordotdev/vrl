@@ -6,7 +6,7 @@ use aes::cipher::{
     AsyncStreamCipher, BlockDecryptMut, KeyIvInit, StreamCipher,
 };
 use cfb_mode::Decryptor as Cfb;
-use ctr::{Ctr64LE, Ctr64BE};
+use ctr::{Ctr64BE, Ctr64LE};
 use ofb::Ofb;
 
 use super::encrypt::{get_iv_bytes, get_key_bytes, is_valid_algorithm};
@@ -62,9 +62,15 @@ fn decrypt(ciphertext: Value, algorithm: Value, key: Value, iv: Value) -> Resolv
         "AES-256-OFB" => decrypt_keystream!(Ofb::<aes::Aes256>, ciphertext, key, iv),
         "AES-192-OFB" => decrypt_keystream!(Ofb::<aes::Aes192>, ciphertext, key, iv),
         "AES-128-OFB" => decrypt_keystream!(Ofb::<aes::Aes128>, ciphertext, key, iv),
-        "AES-256-CTR" | "AES-256-CTR-LE" => decrypt_keystream!(Ctr64LE::<aes::Aes256>, ciphertext, key, iv),
-        "AES-192-CTR" | "AES-192-CTR-LE" => decrypt_keystream!(Ctr64LE::<aes::Aes192>, ciphertext, key, iv),
-        "AES-128-CTR" | "AES-128-CTR-LE" => decrypt_keystream!(Ctr64LE::<aes::Aes128>, ciphertext, key, iv),
+        "AES-256-CTR" | "AES-256-CTR-LE" => {
+            decrypt_keystream!(Ctr64LE::<aes::Aes256>, ciphertext, key, iv)
+        }
+        "AES-192-CTR" | "AES-192-CTR-LE" => {
+            decrypt_keystream!(Ctr64LE::<aes::Aes192>, ciphertext, key, iv)
+        }
+        "AES-128-CTR" | "AES-128-CTR-LE" => {
+            decrypt_keystream!(Ctr64LE::<aes::Aes128>, ciphertext, key, iv)
+        }
         "AES-256-CTR-BE" => decrypt_keystream!(Ctr64BE::<aes::Aes256>, ciphertext, key, iv),
         "AES-192-CTR-BE" => decrypt_keystream!(Ctr64BE::<aes::Aes192>, ciphertext, key, iv),
         "AES-128-CTR-BE" => decrypt_keystream!(Ctr64BE::<aes::Aes128>, ciphertext, key, iv),
