@@ -136,7 +136,7 @@ impl Function for ParseKeyValue {
 
     fn compile(
         &self,
-        _state: &state::TypeState,
+        state: &state::TypeState,
         _ctx: &mut FunctionCompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
@@ -151,7 +151,7 @@ impl Function for ParseKeyValue {
             .unwrap_or_else(|| expr!(" "));
 
         let whitespace = arguments
-            .optional_enum("whitespace", &Whitespace::all_value())?
+            .optional_enum("whitespace", &Whitespace::all_value(), state)?
             .map(|s| {
                 Whitespace::from_str(&s.try_bytes_utf8_lossy().expect("whitespace not bytes"))
                     .expect("validated enum")

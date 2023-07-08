@@ -52,14 +52,14 @@ impl Function for Match {
 
     fn compile(
         &self,
-        _state: &state::TypeState,
+        state: &state::TypeState,
         _ctx: &mut FunctionCompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
         let pattern = arguments.required("pattern");
 
-        match pattern.resolve_constant() {
+        match pattern.resolve_constant(state) {
             Some(pattern) => {
                 let pattern = pattern
                     .try_regex()
