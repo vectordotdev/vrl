@@ -18,7 +18,6 @@ node_modules
 tests/data/wasm/*/target
 heaptrack.*
 massif.*
-Cargo.lock
 
 # tilt
 tilt_modules/
