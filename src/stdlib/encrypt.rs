@@ -5,7 +5,7 @@ use aes::cipher::{
     AsyncStreamCipher, BlockEncryptMut, KeyIvInit, StreamCipher,
 };
 use cfb_mode::Encryptor as Cfb;
-use ctr::Ctr64LE;
+use ctr::{Ctr64BE, Ctr64LE};
 use ofb::Ofb;
 
 type Aes128Cbc = cbc::Encryptor<aes::Aes128>;
@@ -95,6 +95,12 @@ pub(crate) fn is_valid_algorithm(algorithm: Value) -> bool {
             | "AES-256-CTR"
             | "AES-192-CTR"
             | "AES-128-CTR"
+            | "AES-256-CTR-LE"
+            | "AES-192-CTR-LE"
+            | "AES-128-CTR-LE"
+            | "AES-256-CTR-BE"
+            | "AES-192-CTR-BE"
+            | "AES-128-CTR-BE"
             | "AES-256-CBC-PKCS7"
             | "AES-192-CBC-PKCS7"
             | "AES-128-CBC-PKCS7"
@@ -120,9 +126,18 @@ fn encrypt(plaintext: Value, algorithm: Value, key: Value, iv: Value) -> Resolve
         "AES-256-OFB" => encrypt_keystream!(Ofb::<aes::Aes256>, plaintext, key, iv),
         "AES-192-OFB" => encrypt_keystream!(Ofb::<aes::Aes192>, plaintext, key, iv),
         "AES-128-OFB" => encrypt_keystream!(Ofb::<aes::Aes128>, plaintext, key, iv),
-        "AES-256-CTR" => encrypt_keystream!(Ctr64LE::<aes::Aes256>, plaintext, key, iv),
-        "AES-192-CTR" => encrypt_keystream!(Ctr64LE::<aes::Aes192>, plaintext, key, iv),
-        "AES-128-CTR" => encrypt_keystream!(Ctr64LE::<aes::Aes128>, plaintext, key, iv),
+        "AES-256-CTR" | "AES-256-CTR-LE" => {
+            encrypt_keystream!(Ctr64LE::<aes::Aes256>, plaintext, key, iv)
+        }
+        "AES-192-CTR" | "AES-192-CTR-LE" => {
+            encrypt_keystream!(Ctr64LE::<aes::Aes192>, plaintext, key, iv)
+        }
+        "AES-128-CTR" | "AES-128-CTR-LE" => {
+            encrypt_keystream!(Ctr64LE::<aes::Aes128>, plaintext, key, iv)
+        }
+        "AES-256-CTR-BE" => encrypt_keystream!(Ctr64BE::<aes::Aes256>, plaintext, key, iv),
+        "AES-192-CTR-BE" => encrypt_keystream!(Ctr64BE::<aes::Aes192>, plaintext, key, iv),
+        "AES-128-CTR-BE" => encrypt_keystream!(Ctr64BE::<aes::Aes128>, plaintext, key, iv),
         "AES-256-CBC-PKCS7" => encrypt_padded!(Aes256Cbc, Pkcs7, plaintext, key, iv),
         "AES-192-CBC-PKCS7" => encrypt_padded!(Aes192Cbc, Pkcs7, plaintext, key, iv),
         "AES-128-CBC-PKCS7" => encrypt_padded!(Aes128Cbc, Pkcs7, plaintext, key, iv),
@@ -279,21 +294,39 @@ mod tests {
             tdef: TypeDef::bytes().fallible(),
         }
 
-        aes_256_ctr {
-            args: func_args![plaintext: value!("morethan1blockofdata"), algorithm: "AES-256-CTR", key: "32_bytes_xxxxxxxxxxxxxxxxxxxxxxx", iv: "16_bytes_xxxxxxx"],
+        aes_256_ctr_le {
+            args: func_args![plaintext: value!("morethan1blockofdata"), algorithm: "AES-256-CTR-LE", key: "32_bytes_xxxxxxxxxxxxxxxxxxxxxxx", iv: "16_bytes_xxxxxxx"],
             want: Ok(value!(b"\xd13\x92\x81\x9a^\x0e=<\x88\xdc\xe7/:]\x90\x9a\x99\xa7\xb6")),
             tdef: TypeDef::bytes().fallible(),
         }
 
-        aes_192_ctr {
-            args: func_args![plaintext: value!("morethan1blockofdata"), algorithm: "AES-192-CTR", key: "24_bytes_xxxxxxxxxxxxxxx", iv: "16_bytes_xxxxxxx"],
+        aes_192_ctr_le {
+            args: func_args![plaintext: value!("morethan1blockofdata"), algorithm: "AES-192-CTR-LE", key: "24_bytes_xxxxxxxxxxxxxxx", iv: "16_bytes_xxxxxxx"],
             want: Ok(value!(b"U\xbd6\xdbZ\xbfa}&8\xebog\x19\x99x\x88\xb69n")),
             tdef: TypeDef::bytes().fallible(),
         }
 
-        aes_128_ctr {
-            args: func_args![plaintext: value!("morethan1blockofdata"), algorithm: "AES-128-CTR", key: "16_bytes_xxxxxxx", iv: "16_bytes_xxxxxxx"],
+        aes_128_ctr_le {
+            args: func_args![plaintext: value!("morethan1blockofdata"), algorithm: "AES-128-CTR-LE", key: "16_bytes_xxxxxxx", iv: "16_bytes_xxxxxxx"],
             want: Ok(value!(b"\xfd\xf9\xef\x1f@e\xef\xd0Z\xc3\x0c'\xad]\x0e\xd2v\x04\x05\xee")),
+            tdef: TypeDef::bytes().fallible(),
+        }
+
+        aes_256_ctr_be {
+            args: func_args![plaintext: value!("morethan1blockofdata"), algorithm: "AES-256-CTR-BE", key: "32_bytes_xxxxxxxxxxxxxxxxxxxxxxx", iv: "16_bytes_xxxxxxx"],
+            want: Ok(value!(b"\xd13\x92\x81\x9a^\x0e=<\x88\xdc\xe7/:]\x90k\xea\x1c\t")),
+            tdef: TypeDef::bytes().fallible(),
+        }
+
+        aes_192_ctr_be {
+            args: func_args![plaintext: value!("morethan1blockofdata"), algorithm: "AES-192-CTR-BE", key: "24_bytes_xxxxxxxxxxxxxxx", iv: "16_bytes_xxxxxxx"],
+            want: Ok(value!(b"U\xbd6\xdbZ\xbfa}&8\xebog\x19\x99x\x8a\xb3C\xfd")),
+            tdef: TypeDef::bytes().fallible(),
+        }
+
+        aes_128_ctr_be {
+            args: func_args![plaintext: value!("morethan1blockofdata"), algorithm: "AES-128-CTR-BE", key: "16_bytes_xxxxxxx", iv: "16_bytes_xxxxxxx"],
+            want: Ok(value!(b"\xfd\xf9\xef\x1f@e\xef\xd0Z\xc3\x0c'\xad]\x0e\xd2\xae\x15v\xab")),
             tdef: TypeDef::bytes().fallible(),
         }
 

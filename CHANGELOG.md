@@ -5,6 +5,7 @@
 - breaking change to `parse_nginx_log()` to make it compatible to more unstandardized events (https://github.com/vectordotdev/vrl/pull/249)
 - deprecated `to_timestamp` vrl function (https://github.com/vectordotdev/vrl/pull/285)
 - add support for resolving variables to `Expr::resolve_constant` (https://github.com/vectordotdev/vrl/pull/304)
+- introduce new encryption/decryption algorithm options (`"AES-*-CTR-BE"`, `"AES-*-CTR-LE"`) https://github.com/vectordotdev/vrl/pull/299
 
 ## `0.5.0` (2023-06-28)
 - added \0 (null) character literal to lex parser (https://github.com/vectordotdev/vrl/pull/259)
