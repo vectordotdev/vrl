@@ -153,7 +153,7 @@ chrono-tz = "0.8"
 serde_json = "1"
 indoc = "2.0.2"
 tracing-test = { version = "0.2", default-features = false }
-toml = { version = "0.7.3", default-features = false }
+toml = { version = "0.7.6", default-features = false }
 mlua = { version = "0.8.8", default-features = false, features = ["lua54", "send", "vendored"]}
 quickcheck = { version = "1.0.3"}
 regex = { version = "1", default-features = false, features = ["std", "perf", "unicode"] }
