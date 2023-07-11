@@ -1,15 +1,16 @@
 # result:
 #
-# error[E610]: function compilation error: error[E402] this argument must be a static expression
+# error[E610]: function compilation error: error[E403] invalid argument
 #   ┌─ :3:1
 #   │
 # 3 │ redact("hello 4916155524184782 world", [foo])
 #   │ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #   │ │
-#   │ expected static expression for argument "filters"
-#   │ received: variable call
+#   │ invalid argument "filters"
+#   │ error: unknown filter name
+#   │ received: { "type": "credit_card" }
 #   │
-#   = learn more about error code 402 at https://errors.vrl.dev/402
+#   = learn more about error code 403 at https://errors.vrl.dev/403
 #   = see language documentation at https://vrl.dev
 #   = try your code in the VRL REPL, learn more at https://vrl.dev/examples
 

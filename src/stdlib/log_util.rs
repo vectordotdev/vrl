@@ -112,15 +112,11 @@ pub(crate) static REGEX_NGINX_COMBINED_LOG: Lazy<Regex> = Lazy::new(|| {
         \-\s+                                   # Always a dash
         (-|(?P<user>\S+))\s+                    # Match `-` or any non space character
         \[(?P<timestamp>.+)\]\s+                # Match date between brackets
-        "(?P<request>
-        (?P<method>\w+)\s+                      # Match at least a word
-        (?P<path>\S+)\s+                        # Match any non space character
-        (?P<protocol>\S+)
-        )"\s+                                   # Match any non space character
+        "(?P<request>[^"]*)"\s+                 # Match any non double-quote character
         (?P<status>\d+)\s+                      # Match numbers
         (?P<size>\d+)\s+                        # Match numbers
-        "(-|(?P<referer>[^"]+))"\s+             # Match `-` or any non double-quote character
-        "(-|(?P<agent>[^"]+))"                  # Match `-` or any non double-quote character
+        "(?P<referer>[^"]*)"\s+                 # Match any non double-quote character
+        "(?P<agent>[^"]*)"                      # Match any non double-quote character
         (\s+"(-|(?P<compression>[^"]+))")?      # Match `-` or any non double-quote character
         \s*$                                    # Match any number of whitespaces (to be discarded).
     "#)
@@ -136,11 +132,7 @@ pub(crate) static REGEX_INGRESS_NGINX_UPSTREAMINFO_LOG: Lazy<Regex> = Lazy::new(
         \-\s+                                               # Always a dash
         (-|(?P<remote_user>\S+))\s+                         # Match `-` or any non space character
         \[(?P<timestamp>[^\]]+)\]\s+                        # Match date between brackets
-        "(?P<request>
-        (?P<method>\w+)\s+                                  # Match at least a word
-        (?P<path>\S+)\s+                                    # Match any non space character
-        (?P<protocol>[^"]+)
-        )"\s+                                               # Match any non double-quote character
+        "(?P<request>[^"]*)"\s+                             # Match any non double-quote character
         (?P<status>\d+)\s+                                  # Match numbers
         (?P<body_bytes_size>\d+)\s+                         # Match numbers
         "(-|(?P<http_referer>[^"]+))"\s+                    # Match `-` or any non double-quote character

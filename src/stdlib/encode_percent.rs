@@ -101,13 +101,13 @@ impl Function for EncodePercent {
 
     fn compile(
         &self,
-        _state: &state::TypeState,
+        state: &state::TypeState,
         _ctx: &mut FunctionCompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
         let ascii_set = arguments
-            .optional_enum("ascii_set", &ascii_sets())?
+            .optional_enum("ascii_set", &ascii_sets(), state)?
             .unwrap_or_else(|| value!("NON_ALPHANUMERIC"))
             .try_bytes()
             .expect("ascii_set not bytes");

@@ -71,7 +71,7 @@ impl Function for Log {
     #[cfg(not(target_arch = "wasm32"))]
     fn compile(
         &self,
-        _state: &state::TypeState,
+        state: &state::TypeState,
         ctx: &mut FunctionCompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
@@ -85,7 +85,7 @@ impl Function for Log {
 
         let value = arguments.required("value");
         let level = arguments
-            .optional_enum("level", &levels)?
+            .optional_enum("level", &levels, state)?
             .unwrap_or_else(|| "info".into())
             .try_bytes()
             .expect("log level not bytes");

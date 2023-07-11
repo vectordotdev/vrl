@@ -86,14 +86,14 @@ impl Function for ParseUserAgent {
 
     fn compile(
         &self,
-        _state: &state::TypeState,
+        state: &state::TypeState,
         _ctx: &mut FunctionCompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
 
         let mode = arguments
-            .optional_enum("mode", &Mode::all_value())?
+            .optional_enum("mode", &Mode::all_value(), state)?
             .map(|s| {
                 Mode::from_str(&s.try_bytes_utf8_lossy().expect("mode not bytes"))
                     .expect("validated enum")

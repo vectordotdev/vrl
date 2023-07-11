@@ -223,21 +223,12 @@ impl ArgumentList {
     pub fn optional_literal(
         &self,
         keyword: &'static str,
-    ) -> Result<Option<crate::compiler::expression::Literal>, Error> {
+        state: &TypeState,
+    ) -> Result<Option<Value>, Error> {
         self.optional_expr(keyword)
-            .map(|expr| match expr {
-                Expr::Literal(literal) => Ok(literal),
-                Expr::Variable(var) if var.value().is_some() => {
-                    match var.value().unwrap().clone().into() {
-                        Expr::Literal(literal) => Ok(literal),
-                        expr => Err(Error::UnexpectedExpression {
-                            keyword,
-                            expected: "literal",
-                            expr,
-                        }),
-                    }
-                }
-                expr => Err(Error::UnexpectedExpression {
+            .map(|expr| match expr.resolve_constant(state) {
+                Some(value) => Ok(value),
+                _ => Err(Error::UnexpectedExpression {
                     keyword,
                     expected: "literal",
                     expr,
@@ -246,33 +237,21 @@ impl ArgumentList {
             .transpose()
     }
 
-    /// Returns the argument if it is a literal, an object or an array.
-    pub fn optional_value(&self, keyword: &'static str) -> Result<Option<Value>, Error> {
-        self.optional_expr(keyword)
-            .map(|expr| {
-                expr.try_into().map_err(|err| Error::UnexpectedExpression {
-                    keyword,
-                    expected: "literal",
-                    expr: err,
-                })
-            })
-            .transpose()
-    }
-
     pub fn required_literal(
         &self,
         keyword: &'static str,
-    ) -> Result<crate::compiler::expression::Literal, Error> {
-        Ok(required(self.optional_literal(keyword)?))
+        state: &TypeState,
+    ) -> Result<Value, Error> {
+        Ok(required(self.optional_literal(keyword, state)?))
     }
 
     pub fn optional_enum(
         &self,
         keyword: &'static str,
         variants: &[Value],
+        state: &TypeState,
     ) -> Result<Option<Value>, Error> {
-        self.optional_literal(keyword)?
-            .and_then(|literal| literal.resolve_constant())
+        self.optional_literal(keyword, state)?
             .map(|value| {
                 variants
                     .iter()
@@ -287,8 +266,13 @@ impl ArgumentList {
             .transpose()
     }
 
-    pub fn required_enum(&self, keyword: &'static str, variants: &[Value]) -> Result<Value, Error> {
-        Ok(required(self.optional_enum(keyword, variants)?))
+    pub fn required_enum(
+        &self,
+        keyword: &'static str,
+        variants: &[Value],
+        state: &TypeState,
+    ) -> Result<Value, Error> {
+        Ok(required(self.optional_enum(keyword, variants, state)?))
     }
 
     pub fn optional_query(
@@ -314,13 +298,15 @@ impl ArgumentList {
         Ok(required(self.optional_query(keyword)?))
     }
 
-    pub fn optional_regex(&self, keyword: &'static str) -> Result<Option<regex::Regex>, Error> {
+    pub fn optional_regex(
+        &self,
+        keyword: &'static str,
+        state: &TypeState,
+    ) -> Result<Option<regex::Regex>, Error> {
         self.optional_expr(keyword)
-            .map(|expr| match expr {
-                Expr::Literal(crate::compiler::expression::Literal::Regex(regex)) => {
-                    Ok((*regex).clone())
-                }
-                expr => Err(Error::UnexpectedExpression {
+            .map(|expr| match expr.resolve_constant(state) {
+                Some(Value::Regex(regex)) => Ok((*regex).clone()),
+                _ => Err(Error::UnexpectedExpression {
                     keyword,
                     expected: "regex",
                     expr,
@@ -329,8 +315,12 @@ impl ArgumentList {
             .transpose()
     }
 
-    pub fn required_regex(&self, keyword: &'static str) -> Result<regex::Regex, Error> {
-        Ok(required(self.optional_regex(keyword)?))
+    pub fn required_regex(
+        &self,
+        keyword: &'static str,
+        state: &TypeState,
+    ) -> Result<regex::Regex, Error> {
+        Ok(required(self.optional_regex(keyword, state)?))
     }
 
     pub fn optional_object(
