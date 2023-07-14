@@ -131,7 +131,7 @@ impl Function for ParseGroks {
     #[cfg(not(target_arch = "wasm32"))]
     fn compile(
         &self,
-        _state: &state::TypeState,
+        state: &state::TypeState,
         _ctx: &mut FunctionCompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
@@ -145,7 +145,7 @@ impl Function for ParseGroks {
             .map(|expr| {
                 let expr_ = expr.clone();
                 let pattern = expr
-                    .resolve_constant()
+                    .resolve_constant(state)
                     .ok_or(function::Error::ExpectedStaticExpression {
                         keyword: "patterns",
                         expr,
@@ -168,7 +168,7 @@ impl Function for ParseGroks {
             .map(|(key, expr)| {
                 let expr_ = expr.clone();
                 let alias = expr
-                    .resolve_constant()
+                    .resolve_constant(state)
                     .ok_or(function::Error::ExpectedStaticExpression {
                         keyword: "aliases",
                         expr,

@@ -13,31 +13,25 @@ use crate::compiler::{
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Variable {
     ident: Ident,
-    value: Option<Value>,
 }
 
 impl Variable {
     pub(crate) fn new(span: Span, ident: Ident, local: &LocalEnv) -> Result<Self, Error> {
-        let value = if let Some(variable) = local.variable(&ident) {
-            variable.value.as_ref().cloned()
-        } else {
+        if local.variable(&ident).is_none() {
             let idents = local
                 .variable_idents()
                 .map(std::clone::Clone::clone)
                 .collect::<Vec<_>>();
 
             return Err(Error::undefined(ident, span, idents));
-        };
+        }
 
-        Ok(Self { ident, value })
+        Ok(Self { ident })
     }
 
+    #[must_use]
     pub fn ident(&self) -> &Ident {
         &self.ident
-    }
-
-    pub fn value(&self) -> Option<&Value> {
-        self.value.as_ref()
     }
 }
 
@@ -48,6 +42,13 @@ impl Expression for Variable {
             .variable(&self.ident)
             .cloned()
             .unwrap_or(Value::Null))
+    }
+
+    fn resolve_constant(&self, state: &TypeState) -> Option<Value> {
+        state
+            .local
+            .variable(self.ident())
+            .and_then(|details| details.value.clone())
     }
 
     fn type_info(&self, state: &TypeState) -> TypeInfo {
@@ -144,5 +145,27 @@ impl DiagnosticMessage for Error {
                 vec
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::compiler::type_def::Details;
+
+    use super::*;
+
+    #[test]
+    fn test_resolve_const() {
+        let mut state = TypeState::default();
+        state.local.insert_variable(
+            Ident::new("foo"),
+            Details {
+                type_def: TypeDef::integer(),
+                value: Some(Value::Integer(42)),
+            },
+        );
+
+        let var = Variable::new((0, 0).into(), Ident::new("foo"), &state.local).unwrap();
+        assert_eq!(var.resolve_constant(&state), Some(Value::Integer(42)));
     }
 }

@@ -1,12 +1,22 @@
 # Changelog
 
 ## unreleased
+- enquote values containing `=` in `encode_logfmt` vrl function (https://github.com/vectordotdev/vector/issues/17855)
+- breaking change to `parse_nginx_log()` to make it compatible to more unstandardized events (https://github.com/vectordotdev/vrl/pull/249)
+- deprecated `to_timestamp` vrl function (https://github.com/vectordotdev/vrl/pull/285)
+- add support for chacha20poly1305, xchacha20poly1305, xsalsa20poly1305 algorithms for encryption/decryption (https://github.com/vectordotdev/vrl/pull/293)
+- add support for resolving variables to `Expr::resolve_constant` (https://github.com/vectordotdev/vrl/pull/304)
+- introduce new encryption/decryption algorithm options (`"AES-*-CTR-BE"`, `"AES-*-CTR-LE"`) https://github.com/vectordotdev/vrl/pull/299
+
+## `0.5.0` (2023-06-28)
+- added \0 (null) character literal to lex parser (https://github.com/vectordotdev/vrl/pull/259)
 - added the `timezone` argument to the `format_timestamp` vrl function. (https://github.com/vectordotdev/vrl/pull/247)
 - removed feature flags for each individual VRL function. (https://github.com/vectordotdev/vrl/pull/251)
 - fixed a panic when arithmetic overflows. It now always wraps (only in debug builds). (https://github.com/vectordotdev/vrl/pull/252)
 - `ingress_upstreaminfo` log format has been added to `parse_nginx_log` function (https://github.com/vectordotdev/vrl/pull/193)
 - fixed type definitions for side-effects inside of queries (https://github.com/vectordotdev/vrl/pull/258)
 - replaced `Program::final_type_state` with `Program::final_type_info` to give access to the type definitions of both the target and program result (https://github.com/vectordotdev/vrl/pull/262)
+- added `from_unix_timestamp` vrl function (https://github.com/vectordotdev/vrl/pull/277)
 
 ## `0.4.0` (2023-05-11)
 - consolidated all crates into the root `vrl` crate. The external API stayed the same, with the exception of macros, which are now all exported at the root of the `vrl` crate.

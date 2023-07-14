@@ -1,6 +1,6 @@
 [package]
 name = "vrl"
-version = "0.4.0"
+version = "0.5.0"
 authors = ["Vector Contributors <vector@datadoghq.com>"]
 edition = "2021"
 license = "MPL-2.0"
@@ -21,7 +21,7 @@ members = [
 
 
 [features]
-default = ["compiler", "value", "diagnostic", "path", "parser", "stdlib", "datadog", "core"]
+default = ["compiler", "value", "diagnostic", "path", "parser", "stdlib", "datadog", "core", "string_path"]
 
 # Main features (on by default)
 compiler = ["diagnostic", "path", "parser", "value", "dep:paste", "dep:chrono", "dep:serde", "dep:regex", "dep:bytes", "dep:ordered-float", "dep:chrono-tz", "dep:snafu", "dep:tracing",
@@ -31,6 +31,7 @@ diagnostic = ["dep:codespan-reporting", "dep:termcolor"]
 path = ["dep:once_cell", "dep:serde", "dep:snafu", "dep:regex"]
 parser = ["path", "diagnostic", "dep:thiserror", "dep:ordered-float", "dep:lalrpop-util"]
 core = ["value", "dep:snafu", "dep:nom"]
+string_path = []
 
 # Datadog related features (on by default)
 datadog = ["datadog_filter", "datadog_grok", "datadog_search"]
@@ -49,9 +50,9 @@ test = []
 
 # All stdlib functions
 stdlib = [
-    "compiler", "core", "datadog", "dep:aes", "dep:ctr", "dep:cbc", "dep:cfb-mode", "dep:ofb", "dep:base16", "dep:nom", "dep:strip-ansi-escapes",
-    "dep:utf8-width", "dep:hex", "dep:seahash", "dep:syslog_loose", "dep:hostname", "dep:zstd", "dep:quoted_printable", "dep:once_cell",
-    "dep:base64", "dep:uuid", "dep:percent-encoding", "dep:uaparser", "dep:rust_decimal", "dep:indexmap", "dep:flate2", "dep:charset",
+    "compiler", "core", "datadog", "dep:aes", "dep:chacha20poly1305", "dep:crypto_secretbox", "dep:ctr", "dep:cbc", "dep:cfb-mode", "dep:ofb", "dep:base16",
+    "dep:nom", "dep:strip-ansi-escapes", "dep:utf8-width", "dep:hex", "dep:seahash", "dep:syslog_loose", "dep:hostname", "dep:zstd", "dep:quoted_printable",
+    "dep:once_cell", "dep:base64", "dep:uuid", "dep:percent-encoding", "dep:uaparser", "dep:rust_decimal", "dep:indexmap", "dep:flate2", "dep:charset",
     "dep:data-encoding", "dep:hmac", "dep:sha-1", "dep:cidr-utils", "dep:sha-2", "dep:md-5", "dep:url", "dep:woothee", "dep:csv",
     "dep:roxmltree", "dep:rand", "dep:dns-lookup", "dep:sha-3", "dep:grok"
 ]
@@ -68,10 +69,10 @@ base64 = { version = "0.21", optional = true }
 bytes = { version = "1.4.0", default-features = false, optional = true }
 charset = { version = "0.1.3", optional = true }
 chrono = { version = "0.4", default-features = false, features = ["clock", "serde"], optional = true }
-chrono-tz = { version = "0.8.1", default-features = false, optional = true }
+chrono-tz = { version = "0.8.3", default-features = false, optional = true }
 cidr-utils = { version = "0.5", optional = true }
 csv = { version = "1.2", optional = true }
-clap = { version = "4.1.11", features = ["derive"], optional = true }
+clap = { version = "4.3.11", features = ["derive"], optional = true }
 codespan-reporting = {version = "0.11", optional = true }
 data-encoding = { version = "2.3.3", optional = true }
 dyn-clone = { version = "1.0.11", default-features = false, optional = true }
@@ -79,9 +80,9 @@ exitcode = {version = "1", optional = true }
 flate2 = { version = "1.0.25", default-features = false, features = ["default"], optional = true }
 hex = { version = "0.4", optional = true }
 hmac = { version = "0.12.1", optional = true }
-indexmap = { version = "~1.9.2", default-features = false, optional = true}
-indoc = {version = "2.0.1", optional = true }
-itertools = { version = "0.10.5", default-features = false, optional = true }
+indexmap = { version = "~2.0.0", default-features = false, features = ["std"], optional = true}
+indoc = {version = "2.0.2", optional = true }
+itertools = { version = "0.11.0", default-features = false, optional = true }
 lalrpop-util = { version = "0.20", optional = true }
 mlua = { version = "0.8.8", default-features = false, features = ["lua54", "send", "vendored"], optional = true}
 nom = { version = "7.1.3", default-features = false, features = ["std"], optional = true }
@@ -91,20 +92,20 @@ md-5 = { version = "0.10", optional = true }
 paste = { version = "1", default-features = false, optional = true }
 peeking_take_while = { version = "1.0.0", default-features = false, optional = true }
 percent-encoding = { version = "2.2", optional = true }
-pest = { version = "2.5.6", default-features = false, optional = true, features = ["std"] }
-pest_derive = { version = "2.5.6", default-features = false, optional = true, features = ["std"] }
+pest = { version = "2.7.0", default-features = false, optional = true, features = ["std"] }
+pest_derive = { version = "2.7.0", default-features = false, optional = true, features = ["std"] }
 prettydiff = {version = "0.6", optional = true }
 prettytable-rs = { version = "0.10", default-features = false, optional = true }
 quickcheck = { version = "1.0.3", optional = true }
-quoted_printable = {version = "0.4.7", optional = true }
+quoted_printable = {version = "0.5.0", optional = true }
 rand = { version = "0.8.5", optional = true }
 regex = { version = "1", default-features = false, optional = true, features = ["std", "perf", "unicode"] }
 roxmltree = { version = "0.18.0", optional = true }
-rustyline = { version = "11", default-features = false, optional = true }
+rustyline = { version = "12", default-features = false, optional = true }
 rust_decimal = { version = "1", optional = true }
 seahash = { version = "4.1.0", optional = true }
 serde = { version = "1", features = ["derive"], optional = true }
-serde_json = { version = "1.0.94", default-features = false, optional = true, features = ["std", "raw_value"] }
+serde_json = { version = "1.0.102", default-features = false, optional = true, features = ["std", "raw_value"] }
 sha-1 = { version = "0.10", optional = true }
 sha-2 = { package = "sha2", version = "0.10", optional = true }
 sha-3 = { package = "sha3", version = "0.10", optional = true }
@@ -124,6 +125,8 @@ zstd = { version = "0.12.2", default-features = false, features = ["wasm"], opti
 
 # Cryptography
 aes = { version = "0.8.2", optional = true }
+chacha20poly1305 = { version = "0.10.1", optional = true }
+crypto_secretbox = { version = "0.1.1", features = ["salsa20"], optional = true }
 
 # Cryptography - Block Modes
 ctr = { version = "0.9.2", optional = true }
@@ -148,9 +151,9 @@ anyhow = "1"
 criterion = "0.5"
 chrono-tz = "0.8"
 serde_json = "1"
-indoc = "2.0.1"
+indoc = "2.0.2"
 tracing-test = { version = "0.2", default-features = false }
-toml = { version = "0.7.3", default-features = false }
+toml = { version = "0.7.6", default-features = false }
 mlua = { version = "0.8.8", default-features = false, features = ["lua54", "send", "vendored"]}
 quickcheck = { version = "1.0.3"}
 regex = { version = "1", default-features = false, features = ["std", "perf", "unicode"] }

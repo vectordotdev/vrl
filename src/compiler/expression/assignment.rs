@@ -541,7 +541,9 @@ where
         match &self {
             Variant::Single { target, expr } => {
                 let expr_result = expr.apply_type_info(&mut state);
-                target.insert_type_def(&mut state, expr_result.clone(), expr.resolve_constant());
+
+                let const_value = expr.resolve_constant(&state);
+                target.insert_type_def(&mut state, expr_result.clone(), const_value);
                 TypeInfo::new(state, expr_result)
             }
             Variant::Infallible {
@@ -557,7 +559,9 @@ where
                     .clone()
                     .union(TypeDef::from(default.kind()))
                     .infallible();
-                ok.insert_type_def(&mut state, ok_type, expr.resolve_constant());
+
+                let const_value = expr.resolve_constant(&state);
+                ok.insert_type_def(&mut state, ok_type, const_value);
 
                 // The "err" type is either the error message "bytes" or "null" (not undefined).
                 let err_type = TypeDef::from(Kind::bytes().or_null());

@@ -1,13 +1,11 @@
 use crate::compiler::prelude::*;
-use crate::compiler::{conversion::Conversion, TimeZone};
 use chrono::{TimeZone as _, Utc};
 use std::str::FromStr;
 
-fn to_timestamp(value: Value, unit: Unit) -> Resolved {
-    use Value::{Bytes, Float, Integer, Timestamp};
+fn from_unix_timestamp(value: Value, unit: Unit) -> Resolved {
+    use Value::Integer;
 
     let value = match value {
-        v @ Timestamp(_) => v,
         Integer(v) => match unit {
             Unit::Seconds => {
                 let t = Utc.timestamp_opt(v, 0).single();
@@ -25,65 +23,24 @@ fn to_timestamp(value: Value, unit: Unit) -> Resolved {
             }
             Unit::Nanoseconds => Utc.timestamp_nanos(v).into(),
         },
-        Float(v) => match unit {
-            Unit::Seconds => {
-                let t = Utc
-                    .timestamp_opt(
-                        v.trunc() as i64,
-                        (v.fract() * 1_000_000_000.0).round() as u32,
-                    )
-                    .single();
-                match t {
-                    Some(time) => time.into(),
-                    None => return Err(format!("unable to coerce {v} into timestamp").into()),
-                }
-            }
-            Unit::Milliseconds => {
-                let t = Utc
-                    .timestamp_opt(
-                        (v.trunc() / 1_000.0) as i64,
-                        (v.fract() * 1_000_000.0).round() as u32,
-                    )
-                    .single();
-                match t {
-                    Some(time) => time.into(),
-                    None => return Err(format!("unable to coerce {v} into timestamp").into()),
-                }
-            }
-            Unit::Nanoseconds => {
-                let t = Utc
-                    .timestamp_opt(
-                        (v.trunc() / 1_000_000_000.0) as i64,
-                        v.fract().round() as u32,
-                    )
-                    .single();
-                match t {
-                    Some(time) => time.into(),
-                    None => return Err(format!("unable to coerce {v} into timestamp").into()),
-                }
-            }
-        },
-        Bytes(v) => Conversion::Timestamp(TimeZone::Local)
-            .convert::<Value>(v)
-            .map_err(|err| err.to_string())?,
         v => return Err(format!("unable to coerce {} into timestamp", v.kind()).into()),
     };
     Ok(value)
 }
 
 #[derive(Clone, Copy, Debug)]
-pub struct ToTimestamp;
+pub struct FromUnixTimestamp;
 
-impl Function for ToTimestamp {
+impl Function for FromUnixTimestamp {
     fn identifier(&self) -> &'static str {
-        "to_timestamp"
+        "from_unix_timestamp"
     }
 
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {
                 keyword: "value",
-                kind: kind::ANY,
+                kind: kind::INTEGER,
                 required: true,
             },
             Parameter {
@@ -95,9 +52,23 @@ impl Function for ToTimestamp {
     }
 
     fn examples(&self) -> &'static [Example] {
-        // All examples were deleted because this function is deprecated.
-        // See: https://github.com/vectordotdev/vrl/issues/284
-        &[]
+        &[
+            Example {
+                title: "integer as seconds",
+                source: "from_unix_timestamp!(5)",
+                result: Ok("t'1970-01-01T00:00:05Z'"),
+            },
+            Example {
+                title: "integer as milliseconds",
+                source: r#"from_unix_timestamp!(5000, unit: "milliseconds")"#,
+                result: Ok("t'1970-01-01T00:00:05Z'"),
+            },
+            Example {
+                title: "integer as nanoseconds",
+                source: r#"from_unix_timestamp!(5000, unit: "nanoseconds")"#,
+                result: Ok("t'1970-01-01T00:00:00.000005Z'"),
+            },
+        ]
     }
 
     fn compile(
@@ -116,7 +87,7 @@ impl Function for ToTimestamp {
             })
             .unwrap_or_default();
 
-        Ok(ToTimestampFn { value, unit }.as_expr())
+        Ok(FromUnixTimestampFn { value, unit }.as_expr())
     }
 }
 
@@ -165,24 +136,20 @@ impl FromStr for Unit {
 }
 
 #[derive(Debug, Clone)]
-struct ToTimestampFn {
+struct FromUnixTimestampFn {
     value: Box<dyn Expression>,
     unit: Unit,
 }
 
-impl FunctionExpression for ToTimestampFn {
+impl FunctionExpression for FromUnixTimestampFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let value = self.value.resolve(ctx)?;
         let unit = self.unit;
-
-        to_timestamp(value, unit)
+        from_unix_timestamp(value, unit)
     }
 
-    fn type_def(&self, state: &state::TypeState) -> TypeDef {
-        self.value
-            .type_def(state)
-            .fallible_unless(Kind::timestamp())
-            .with_kind(Kind::timestamp())
+    fn type_def(&self, _state: &state::TypeState) -> TypeDef {
+        TypeDef::timestamp().fallible()
     }
 }
 
@@ -192,6 +159,8 @@ mod tests {
     use super::*;
     use crate::compiler::expression::Literal;
     use crate::compiler::TimeZone;
+    use crate::value;
+    use regex::Regex;
     use std::collections::BTreeMap;
 
     #[test]
@@ -200,7 +169,7 @@ mod tests {
         let mut runtime_state = state::RuntimeState::default();
         let tz = TimeZone::default();
         let mut ctx = Context::new(&mut object, &mut runtime_state, &tz);
-        let f = ToTimestampFn {
+        let f = FromUnixTimestampFn {
             value: Box::new(Literal::Integer(9_999_999_999_999)),
             unit: Unit::default(),
         };
@@ -208,22 +177,8 @@ mod tests {
         assert_eq!(string, r#"unable to coerce 9999999999999 into timestamp"#)
     }
 
-    #[test]
-    fn out_of_range_float() {
-        let mut object: Value = BTreeMap::new().into();
-        let mut runtime_state = state::RuntimeState::default();
-        let tz = TimeZone::default();
-        let mut ctx = Context::new(&mut object, &mut runtime_state, &tz);
-        let f = ToTimestampFn {
-            value: Box::new(Literal::Float(NotNan::new(9_999_999_999_999.9).unwrap())),
-            unit: Unit::default(),
-        };
-        let string = f.resolve(&mut ctx).err().unwrap().message();
-        assert_eq!(string, r#"unable to coerce 9999999999999.9 into timestamp"#)
-    }
-
     test_function![
-        to_timestamp => ToTimestamp;
+        from_unix_timestamp => FromUnixTimestamp;
 
         integer {
              args: func_args![value: 1_431_648_000],
@@ -249,27 +204,51 @@ mod tests {
             tdef: TypeDef::timestamp().fallible(),
         }
 
-        float {
-            args: func_args![value: 1_431_648_000.5],
-            want: Ok(chrono::Utc.ymd(2015, 5, 15).and_hms_milli(0, 0, 0, 500)),
-            tdef: TypeDef::timestamp().fallible(),
-       }
-
-        float_seconds {
-            args: func_args![value: 1_609_459_200.0_f64, unit: "seconds"],
-            want: Ok(chrono::Utc.ymd(2021, 1, 1).and_hms_milli(0,0,0,0)),
+        float_type_invalid {
+            args: func_args![value: 5.123],
+            want: Err("unable to coerce float into timestamp"),
             tdef: TypeDef::timestamp().fallible(),
         }
 
-        float_milliseconds {
-            args: func_args![value: 1_609_459_200_000.0_f64, unit: "milliseconds"],
-            want: Ok(chrono::Utc.ymd(2021, 1, 1).and_hms_milli(0,0,0,0)),
+        float_type_invalid_milliseconds {
+            args: func_args![value: 5.123, unit: "milliseconds"],
+            want: Err("unable to coerce float into timestamp"),
             tdef: TypeDef::timestamp().fallible(),
         }
 
-        float_nanoseconds {
-            args: func_args![value: 1_609_459_200_000_000_000.0_f64, unit: "nanoseconds"],
-            want: Ok(chrono::Utc.ymd(2021, 1, 1).and_hms_milli(0,0,0,0)),
+        timestamp_type_invalid {
+            args: func_args![value: chrono::Utc.ymd(2021, 1, 1).and_hms_milli(0,0,0,0)],
+            want: Err("unable to coerce timestamp into timestamp"),
+            tdef: TypeDef::timestamp().fallible(),
+        }
+
+        boolean_type_invalid {
+            args: func_args![value: true],
+            want: Err("unable to coerce boolean into timestamp"),
+            tdef: TypeDef::timestamp().fallible(),
+        }
+
+        null_type_invalid {
+            args: func_args![value: value!(null)],
+            want: Err("unable to coerce null into timestamp"),
+            tdef: TypeDef::timestamp().fallible(),
+        }
+
+        array_type_invalid {
+            args: func_args![value: value!([])],
+            want: Err("unable to coerce array into timestamp"),
+            tdef: TypeDef::timestamp().fallible(),
+        }
+
+        object_type_invalid {
+            args: func_args![value: value!({})],
+            want: Err("unable to coerce object into timestamp"),
+            tdef: TypeDef::timestamp().fallible(),
+        }
+
+        regex_type_invalid {
+            args: func_args![value: value!(Regex::new(r"\d+").unwrap())],
+            want: Err("unable to coerce regex into timestamp"),
             tdef: TypeDef::timestamp().fallible(),
         }
     ];

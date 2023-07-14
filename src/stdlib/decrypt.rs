@@ -6,7 +6,9 @@ use aes::cipher::{
     AsyncStreamCipher, BlockDecryptMut, KeyIvInit, StreamCipher,
 };
 use cfb_mode::Decryptor as Cfb;
-use ctr::Ctr64LE;
+use chacha20poly1305::{aead::Aead, ChaCha20Poly1305, KeyInit, XChaCha20Poly1305};
+use crypto_secretbox::XSalsa20Poly1305;
+use ctr::{Ctr64BE, Ctr64LE};
 use ofb::Ofb;
 
 use super::encrypt::{get_iv_bytes, get_key_bytes, is_valid_algorithm};
@@ -52,6 +54,14 @@ macro_rules! decrypt_keystream {
     }};
 }
 
+macro_rules! decrypt_stream {
+    ($algorithm:ty, $plaintext:expr, $key:expr, $iv:expr) => {{
+        <$algorithm>::new(&GenericArray::from(get_key_bytes($key)?))
+            .decrypt(&GenericArray::from(get_iv_bytes($iv)?), $plaintext.as_ref())
+            .expect("key/iv sizes were already checked")
+    }};
+}
+
 fn decrypt(ciphertext: Value, algorithm: Value, key: Value, iv: Value) -> Resolved {
     let ciphertext = ciphertext.try_bytes()?;
     let algorithm = algorithm.try_bytes_utf8_lossy()?.as_ref().to_uppercase();
@@ -62,9 +72,18 @@ fn decrypt(ciphertext: Value, algorithm: Value, key: Value, iv: Value) -> Resolv
         "AES-256-OFB" => decrypt_keystream!(Ofb::<aes::Aes256>, ciphertext, key, iv),
         "AES-192-OFB" => decrypt_keystream!(Ofb::<aes::Aes192>, ciphertext, key, iv),
         "AES-128-OFB" => decrypt_keystream!(Ofb::<aes::Aes128>, ciphertext, key, iv),
-        "AES-256-CTR" => decrypt_keystream!(Ctr64LE::<aes::Aes256>, ciphertext, key, iv),
-        "AES-192-CTR" => decrypt_keystream!(Ctr64LE::<aes::Aes192>, ciphertext, key, iv),
-        "AES-128-CTR" => decrypt_keystream!(Ctr64LE::<aes::Aes128>, ciphertext, key, iv),
+        "AES-256-CTR" | "AES-256-CTR-LE" => {
+            decrypt_keystream!(Ctr64LE::<aes::Aes256>, ciphertext, key, iv)
+        }
+        "AES-192-CTR" | "AES-192-CTR-LE" => {
+            decrypt_keystream!(Ctr64LE::<aes::Aes192>, ciphertext, key, iv)
+        }
+        "AES-128-CTR" | "AES-128-CTR-LE" => {
+            decrypt_keystream!(Ctr64LE::<aes::Aes128>, ciphertext, key, iv)
+        }
+        "AES-256-CTR-BE" => decrypt_keystream!(Ctr64BE::<aes::Aes256>, ciphertext, key, iv),
+        "AES-192-CTR-BE" => decrypt_keystream!(Ctr64BE::<aes::Aes192>, ciphertext, key, iv),
+        "AES-128-CTR-BE" => decrypt_keystream!(Ctr64BE::<aes::Aes128>, ciphertext, key, iv),
         "AES-256-CBC-PKCS7" => decrypt_padded!(Aes256Cbc, Pkcs7, ciphertext, key, iv),
         "AES-192-CBC-PKCS7" => decrypt_padded!(Aes192Cbc, Pkcs7, ciphertext, key, iv),
         "AES-128-CBC-PKCS7" => decrypt_padded!(Aes128Cbc, Pkcs7, ciphertext, key, iv),
@@ -77,6 +96,9 @@ fn decrypt(ciphertext: Value, algorithm: Value, key: Value, iv: Value) -> Resolv
         "AES-256-CBC-ISO10126" => decrypt_padded!(Aes256Cbc, Iso10126, ciphertext, key, iv),
         "AES-192-CBC-ISO10126" => decrypt_padded!(Aes192Cbc, Iso10126, ciphertext, key, iv),
         "AES-128-CBC-ISO10126" => decrypt_padded!(Aes128Cbc, Iso10126, ciphertext, key, iv),
+        "CHACHA20-POLY1305" => decrypt_stream!(ChaCha20Poly1305, ciphertext, key, iv),
+        "XCHACHA20-POLY1305" => decrypt_stream!(XChaCha20Poly1305, ciphertext, key, iv),
+        "XSALSA20-POLY1305" => decrypt_stream!(XSalsa20Poly1305, ciphertext, key, iv),
         other => return Err(format!("Invalid algorithm: {other}").into()),
     };
 
@@ -126,7 +148,7 @@ impl Function for Decrypt {
 
     fn compile(
         &self,
-        _state: &state::TypeState,
+        state: &state::TypeState,
         _ctx: &mut FunctionCompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
@@ -135,7 +157,7 @@ impl Function for Decrypt {
         let key = arguments.required("key");
         let iv = arguments.required("iv");
 
-        if let Some(algorithm) = algorithm.resolve_constant() {
+        if let Some(algorithm) = algorithm.resolve_constant(state) {
             if !is_valid_algorithm(algorithm.clone()) {
                 return Err(function::Error::InvalidArgument {
                     keyword: "algorithm",
@@ -221,20 +243,38 @@ mod tests {
             tdef: TypeDef::bytes().fallible(),
         }
 
-        aes_256_ctr {
-            args: func_args![ciphertext: value!(b"\xd13\x92\x81\x9a^\x0e=<\x88\xdc\xe7/:]\x90\x9a\x99\xa7\xb6"), algorithm: "AES-256-CTR", key: "32_bytes_xxxxxxxxxxxxxxxxxxxxxxx", iv: "16_bytes_xxxxxxx"],
+        aes_256_ctr_le {
+            args: func_args![ciphertext: value!(b"\xd13\x92\x81\x9a^\x0e=<\x88\xdc\xe7/:]\x90\x9a\x99\xa7\xb6"), algorithm: "AES-256-CTR-LE", key: "32_bytes_xxxxxxxxxxxxxxxxxxxxxxx", iv: "16_bytes_xxxxxxx"],
             want: Ok(value!("morethan1blockofdata")),
             tdef: TypeDef::bytes().fallible(),
         }
 
-        aes_192_ctr {
-            args: func_args![ciphertext: value!(b"U\xbd6\xdbZ\xbfa}&8\xebog\x19\x99x\x88\xb69n"), algorithm: "AES-192-CTR", key: "24_bytes_xxxxxxxxxxxxxxx", iv: "16_bytes_xxxxxxx"],
+        aes_192_ctr_le {
+            args: func_args![ciphertext: value!(b"U\xbd6\xdbZ\xbfa}&8\xebog\x19\x99x\x88\xb69n"), algorithm: "AES-192-CTR-LE", key: "24_bytes_xxxxxxxxxxxxxxx", iv: "16_bytes_xxxxxxx"],
             want: Ok(value!("morethan1blockofdata")),
             tdef: TypeDef::bytes().fallible(),
         }
 
-        aes_128_ctr {
-            args: func_args![ciphertext: value!(b"\xfd\xf9\xef\x1f@e\xef\xd0Z\xc3\x0c'\xad]\x0e\xd2v\x04\x05\xee"), algorithm: "AES-128-CTR", key: "16_bytes_xxxxxxx", iv: "16_bytes_xxxxxxx"],
+        aes_128_ctr_le {
+            args: func_args![ciphertext: value!(b"\xfd\xf9\xef\x1f@e\xef\xd0Z\xc3\x0c'\xad]\x0e\xd2v\x04\x05\xee"), algorithm: "AES-128-CTR-LE", key: "16_bytes_xxxxxxx", iv: "16_bytes_xxxxxxx"],
+            want: Ok(value!("morethan1blockofdata")),
+            tdef: TypeDef::bytes().fallible(),
+        }
+
+        aes_256_ctr_be {
+            args: func_args![ciphertext: value!(b"\xd13\x92\x81\x9a^\x0e=<\x88\xdc\xe7/:]\x90k\xea\x1c\t"), algorithm: "AES-256-CTR-BE", key: "32_bytes_xxxxxxxxxxxxxxxxxxxxxxx", iv: "16_bytes_xxxxxxx"],
+            want: Ok(value!("morethan1blockofdata")),
+            tdef: TypeDef::bytes().fallible(),
+        }
+
+        aes_192_ctr_be {
+            args: func_args![ciphertext: value!(b"U\xbd6\xdbZ\xbfa}&8\xebog\x19\x99x\x8a\xb3C\xfd"), algorithm: "AES-192-CTR-BE", key: "24_bytes_xxxxxxxxxxxxxxx", iv: "16_bytes_xxxxxxx"],
+            want: Ok(value!("morethan1blockofdata")),
+            tdef: TypeDef::bytes().fallible(),
+        }
+
+        aes_128_ctr_be {
+            args: func_args![ciphertext: value!(b"\xfd\xf9\xef\x1f@e\xef\xd0Z\xc3\x0c'\xad]\x0e\xd2\xae\x15v\xab"), algorithm: "AES-128-CTR-BE", key: "16_bytes_xxxxxxx", iv: "16_bytes_xxxxxxx"],
             want: Ok(value!("morethan1blockofdata")),
             tdef: TypeDef::bytes().fallible(),
         }
@@ -311,5 +351,22 @@ mod tests {
             tdef: TypeDef::bytes().fallible(),
         }
 
+        chacha20_poly1305 {
+            args: func_args![ciphertext: value!(b"\x14m\xe3\xc9\xbc!\xafu\xe31\xb9\x17\x8f\x9bOo0}n\xf4{$\x95\x0f\xa0\x820\xb7R\xe3.{\xd7?\x96\x10"), algorithm: "CHACHA20-POLY1305", key: "32_bytes_xxxxxxxxxxxxxxxxxxxxxxx", iv: "12_bytes_xxx"],
+            want: Ok(value!("morethan1blockofdata")),
+            tdef: TypeDef::bytes().fallible(),
+        }
+
+        xchacha20_poly1305 {
+            args: func_args![ciphertext: value!(b"\x84\xd0S<\\\x88\x019a\xd3\xa17\xdf\xc0\xe0\xd3h\xbcn-\x98\x85@\x19\x08\xc5ki\x18\x10\xdd!T#\x91\xcf"), algorithm: "XCHACHA20-POLY1305", key: "32_bytes_xxxxxxxxxxxxxxxxxxxxxxx", iv: "24_bytes_xxxxxxxxxxxxxxx"],
+            want: Ok(value!("morethan1blockofdata")),
+            tdef: TypeDef::bytes().fallible(),
+        }
+
+        xsalsa20_poly1305 {
+            args: func_args![ciphertext: value!(b"(\xc8\xb8\x88\x1d\xc0\xc0F\xa5\xc7n\xc8\x05B\t\xceiR\x8f\xaf\xc7\xa8\xeb.\x95(\x14\xe8C\x80[w\x85\xf3\x8dn"), algorithm: "XSALSA20-POLY1305", key: "32_bytes_xxxxxxxxxxxxxxxxxxxxxxx", iv: "24_bytes_xxxxxxxxxxxxxxx"],
+            want: Ok(value!("morethan1blockofdata")),
+            tdef: TypeDef::bytes().fallible(),
+        }
     ];
 }
