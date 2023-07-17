@@ -1,6 +1,6 @@
 # Changelog
 
-## unreleased
+## `0.6.0` (2023-07-17)
 - enquote values containing `=` in `encode_logfmt` vrl function (https://github.com/vectordotdev/vector/issues/17855)
 - breaking change to `parse_nginx_log()` to make it compatible to more unstandardized events (https://github.com/vectordotdev/vrl/pull/249)
 - deprecated `to_timestamp` vrl function (https://github.com/vectordotdev/vrl/pull/285)
