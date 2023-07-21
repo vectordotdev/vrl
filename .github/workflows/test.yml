@@ -73,9 +73,9 @@ jobs:
       - uses: actions/checkout@v3
       - uses: Swatinem/rust-cache@v2
       - name: Install the 3rd-party license tool
-        run: cargo install --git https://github.com/DataDog/rust-license-tool
+        run: cargo install dd-rust-license-tool --version 1.0.1 --force --locked
       - name: Check that the 3rd-party license file is up to date
-        run: rust-license-tool check
+        run: dd-rust-license-tool check
 
   wasm32-unknown-unknown:
     runs-on: ubuntu-latest
