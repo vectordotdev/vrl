@@ -11,5 +11,5 @@ name = "vrl"
 path = "src/main.rs"
 
 [dependencies]
-clap = { version = "4.3.12", features = ["derive"] }
+clap = { version = "4.3.17", features = ["derive"] }
 vrl = { path = "../../", features = ["cli"] }
