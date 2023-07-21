@@ -35,7 +35,7 @@ version = "0.13.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8ef07cce9e163681c61b91356dc0658743269c2a05bf4b758186c39b42c9c288"
 dependencies = [
- "clap 4.3.12",
+ "clap 4.3.17",
  "fs_extra",
  "home",
  "libc",
@@ -567,9 +567,9 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "4.3.12"
+version = "4.3.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3eab9e8ceb9afdade1ab3f0fd8dbce5b1b2f468ad653baf10e771781b2b67b73"
+checksum = "5b0827b011f6f8ab38590295339817b0d26f344aa4932c3ced71b45b0c54b4a9"
 dependencies = [
  "clap_builder",
  "clap_derive",
@@ -578,9 +578,9 @@ dependencies = [
 
 [[package]]
 name = "clap_builder"
-version = "4.3.12"
+version = "4.3.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9f2763db829349bf00cfc06251268865ed4363b93a943174f638daf3ecdba2cd"
+checksum = "9441b403be87be858db6a23edb493e7f694761acdc3343d5a0fcaafd304cbc9e"
 dependencies = [
  "anstream",
  "anstyle",
@@ -693,7 +693,7 @@ dependencies = [
  "anes",
  "cast",
  "ciborium",
- "clap 4.3.12",
+ "clap 4.3.17",
  "criterion-plot",
  "is-terminal",
  "itertools 0.10.5",
@@ -2970,7 +2970,7 @@ dependencies = [
  "chrono",
  "chrono-tz",
  "cidr-utils",
- "clap 4.3.12",
+ "clap 4.3.17",
  "codespan-reporting",
  "criterion",
  "crypto_secretbox",
@@ -3038,7 +3038,7 @@ dependencies = [
 name = "vrl-cli"
 version = "0.1.0"
 dependencies = [
- "clap 4.3.12",
+ "clap 4.3.17",
  "vrl",
 ]
 
@@ -3055,7 +3055,7 @@ name = "vrl-tests"
 version = "0.1.0"
 dependencies = [
  "chrono-tz",
- "clap 4.3.12",
+ "clap 4.3.17",
  "glob",
  "tikv-jemallocator",
  "tracing-subscriber",
