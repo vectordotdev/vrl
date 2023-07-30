@@ -1,7 +1,7 @@
 use crate::compiler::prelude::*;
 use chrono::{DateTime, Datelike, Utc};
 use std::collections::BTreeMap;
-use syslog_loose::{IncompleteDate, Message, ProcId, Protocol};
+use syslog_loose::{IncompleteDate, Message, ProcId, Protocol, Variant};
 
 pub(crate) fn parse_syslog(value: Value, ctx: &Context) -> Resolved {
     let message = value.try_bytes_utf8_lossy()?;
@@ -9,7 +9,12 @@ pub(crate) fn parse_syslog(value: Value, ctx: &Context) -> Resolved {
         TimeZone::Local => None,
         TimeZone::Named(tz) => Some(*tz),
     };
-    let parsed = syslog_loose::parse_message_with_year_exact_tz(&message, resolve_year, timezone)?;
+    let parsed = syslog_loose::parse_message_with_year_exact_tz(
+        &message,
+        resolve_year,
+        timezone,
+        Variant::Either,
+    )?;
     Ok(message_to_value(parsed))
 }
 
