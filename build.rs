@@ -11,7 +11,7 @@ use std::{
 fn main() {
     read_grok_patterns();
 
-    println!("cargo:rerun-if-changed=src/parser.lalrpop");
+    println!("cargo:rerun-if-changed=src/parser/parser.lalrpop");
     lalrpop::Configuration::new()
         .always_use_colors()
         .process_dir("src/datadog/grok")
