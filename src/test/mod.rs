@@ -16,7 +16,8 @@ use crate::compiler::{
 use crate::diagnostic::Formatter;
 pub use test::Test;
 
-use std::{collections::BTreeMap, str::FromStr, time::Instant};
+use std::path::{PathBuf, MAIN_SEPARATOR};
+use std::{collections::BTreeMap, env, str::FromStr, time::Instant};
 
 use crate::value::Secrets;
 use crate::value::Value;
@@ -30,6 +31,19 @@ pub struct TestConfig {
     pub timings: bool,
     pub runtime: VrlRuntime,
     pub timezone: TimeZone,
+}
+pub fn test_dir() -> PathBuf {
+    PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap())
+}
+
+pub fn test_prefix() -> String {
+    let mut prefix = test_dir().join("tests").to_string_lossy().to_string();
+    prefix.push(MAIN_SEPARATOR);
+    prefix
+}
+
+pub fn example_vrl_path() -> PathBuf {
+    test_dir().join("tests").join("example.vrl")
 }
 
 pub fn get_tests_from_functions(functions: Vec<Box<dyn Function>>) -> Vec<Test> {
