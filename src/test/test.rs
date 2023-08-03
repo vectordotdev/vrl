@@ -182,7 +182,7 @@ fn test_category(path: &Path) -> String {
     stripped_path
         .clone()
         .rsplit_once('/')
-        .map_or(stripped_path.to_owned(), |x| x.0.to_owned())
+        .map_or(stripped_path, |x| x.0.to_owned())
 }
 
 fn test_name(path: &Path) -> String {
