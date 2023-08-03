@@ -93,7 +93,7 @@ paste = { version = "1", default-features = false, optional = true }
 peeking_take_while = { version = "1.0.0", default-features = false, optional = true }
 percent-encoding = { version = "2.2", optional = true }
 pest = { version = "2.7.2", default-features = false, optional = true, features = ["std"] }
-pest_derive = { version = "2.7.1", default-features = false, optional = true, features = ["std"] }
+pest_derive = { version = "2.7.2", default-features = false, optional = true, features = ["std"] }
 prettydiff = {version = "0.6", optional = true }
 prettytable-rs = { version = "0.10", default-features = false, optional = true }
 quickcheck = { version = "1.0.3", optional = true }
