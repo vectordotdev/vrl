@@ -24,13 +24,11 @@ fn community_id(
     let protocol = u8::try_from(protocol.try_integer()?)
         .map_err(|err| format!("protocol must be between 0 and 255: {err}"))?;
 
-    let src_port = match src_port {
-        None => Option::None,
-        Some(value) => Some(
-            u16::try_from(value.try_integer()?)
-                .map_err(|err| format!("source port must be between 0 and 65535: {err}"))?,
-        ),
-    };
+let src_port = src_port.map(|value| {
+    u16::try_from(value.try_integer()?)
+        .map_err(|err| format!("source port must be between 0 and 65535: {err}"))
+}).transpose()?;
+
 
     let dst_port = match dst_port {
         None => Option::None,
