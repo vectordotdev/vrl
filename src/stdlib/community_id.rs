@@ -30,13 +30,12 @@ let src_port = src_port.map(|value| {
 }).transpose()?;
 
 
-    let dst_port = match dst_port {
-        None => Option::None,
-        Some(value) => Some(
+    let dst_port = dst_port
+        .map(|value| {
             u16::try_from(value.try_integer()?)
-                .map_err(|err| format!("destination port must be between 0 and 65535: {err}"))?,
-        ),
-    };
+                .map_err(|err| format!("destination port must be between 0 and 65535: {err}"))
+        })
+        .transpose()?;
 
     let seed = seed
         .map(VrlValueConvert::try_integer)
