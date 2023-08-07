@@ -1,5 +1,9 @@
 # Changelog
 
+## unreleased
+
+- added `pretty` parameter for `encode_json` vrl function to produce pretty-printed JSON string (https://github.com/vectordotdev/vrl/pull/370).
+
 ## `0.6.0` (2023-08-02)
 
 #### Bug Fixes
