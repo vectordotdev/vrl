@@ -3,11 +3,8 @@ use bytes::Bytes;
 
 fn strip_ansi_escape_codes(bytes: Value) -> Resolved {
     let bytes = bytes.try_bytes()?;
-    strip_ansi_escapes::strip(&bytes)
-        .map(Bytes::from)
-        .map(Value::from)
-        .map(Into::into)
-        .map_err(|e| e.to_string().into())
+    let stripped_bytes = Bytes::from(strip_ansi_escapes::strip(&bytes));
+    Ok(stripped_bytes.into())
 }
 
 #[derive(Clone, Copy, Debug)]
