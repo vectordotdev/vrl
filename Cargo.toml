@@ -109,7 +109,7 @@ serde_json = { version = "1.0.104", default-features = false, optional = true, f
 sha-1 = { version = "0.10", optional = true }
 sha-2 = { package = "sha2", version = "0.10", optional = true }
 sha-3 = { package = "sha3", version = "0.10", optional = true }
-strip-ansi-escapes = { version = "0.1", optional = true }
+strip-ansi-escapes = { version = "0.2", optional = true }
 syslog_loose = { version = "0.19", optional = true }
 termcolor = {version = "1", optional = true }
 thiserror ={ version =  "1", optional = true }
