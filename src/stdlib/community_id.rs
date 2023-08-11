@@ -103,22 +103,22 @@ impl Function for CommunityID {
             Example {
                 title: "TCP",
                 source: r#"community_id!(source_ip: "1.2.3.4", destination_ip: "5.6.7.8", source_port: 1122, destination_port: 3344, protocol: 6)"#,
-                result: Ok("b'1:wCb3OG7yAFWelaUydu0D+125CLM='"),
+                result: Ok("1:wCb3OG7yAFWelaUydu0D+125CLM="),
             },
             Example {
                 title: "UDP",
                 source: r#"community_id!(source_ip: "1.2.3.4", destination_ip: "5.6.7.8", source_port: 1122, destination_port: 3344, protocol: 17)"#,
-                result: Ok("b'1:0Mu9InQx6z4ZiCZM/7HXi2WMhOg='"),
+                result: Ok("1:0Mu9InQx6z4ZiCZM/7HXi2WMhOg="),
             },
             Example {
                 title: "ICMP",
                 source: r#"community_id!(source_ip: "1.2.3.4", destination_ip: "5.6.7.8", source_port: 8, destination_port: 0, protocol: 1)"#,
-                result: Ok("b'1:crodRHL2FEsHjbv3UkRrfbs4bZ0='"),
+                result: Ok("1:crodRHL2FEsHjbv3UkRrfbs4bZ0="),
             },
             Example {
                 title: "RSVP",
                 source: r#"community_id!(source_ip: "1.2.3.4", destination_ip: "5.6.7.8", protocol: 46)"#,
-                result: Ok("b'1:ikv3kmf89luf73WPz1jOs49S768='"),
+                result: Ok("1:ikv3kmf89luf73WPz1jOs49S768="),
             },
         ]
     }
