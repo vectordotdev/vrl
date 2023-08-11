@@ -20,19 +20,23 @@ fn community_id(
         .parse()
         .map_err(|err| format!("unable to parse destination IP address: {err}"))?;
 
-    // The library used accepts a i32, however the spec states the protocol must be one byte. The library also casts to a u8.
     let protocol = u8::try_from(protocol.try_integer()?)
         .map_err(|err| format!("protocol must be between 0 and 255: {err}"))?;
 
-let src_port = src_port.map(|value| {
-    u16::try_from(value.try_integer()?)
-        .map_err(|err| format!("source port must be between 0 and 65535: {err}"))
-}).transpose()?;
-
+    let src_port = src_port
+        .map(VrlValueConvert::try_integer)
+        .transpose()?
+        .map(|value| {
+            u16::try_from(value)
+                .map_err(|err| format!("source port must be between 0 and 65535: {err}"))
+        })
+        .transpose()?;
 
     let dst_port = dst_port
+        .map(VrlValueConvert::try_integer)
+        .transpose()?
         .map(|value| {
-            u16::try_from(value.try_integer()?)
+            u16::try_from(value)
                 .map_err(|err| format!("destination port must be between 0 and 65535: {err}"))
         })
         .transpose()?;
@@ -43,15 +47,7 @@ let src_port = src_port.map(|value| {
         .map_or(Ok(0), u16::try_from)
         .map_err(|err| format!("seed must be between 0 and 65535: {err}"))?;
 
-    let id = calculate_community_id(
-        seed,
-        src_ip,
-        dst_ip,
-        src_port,
-        dst_port,
-        protocol.into(),
-        false,
-    );
+    let id = calculate_community_id(seed, src_ip, dst_ip, src_port, dst_port, protocol, false);
 
     match id {
         Ok(id) => Ok(Value::Bytes(id.into())),

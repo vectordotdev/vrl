@@ -646,15 +646,14 @@ dependencies = [
 
 [[package]]
 name = "community-id"
-version = "0.1.2"
+version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cc76f9d8c2956a8271a375a514bd50b2b9b0728ebb67a78c2e3e47097ec93699"
+checksum = "2a97e158411823bf87634e2e47552f712e51fa4119cdb2255da799e7cb5c90a9"
 dependencies = [
  "anyhow",
  "base64 0.21.2",
  "hex",
  "lazy_static",
- "libc",
  "num_enum",
  "sha1",
 ]
