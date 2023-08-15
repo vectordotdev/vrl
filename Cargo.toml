@@ -24,8 +24,7 @@ members = [
 default = ["compiler", "value", "diagnostic", "path", "parser", "stdlib", "datadog", "core", "string_path"]
 
 # Main features (on by default)
-compiler = ["diagnostic", "path", "parser", "value", "dep:paste", "dep:chrono", "dep:serde", "dep:regex", "dep:bytes", "dep:ordered-float", "dep:chrono-tz", "dep:snafu", "dep:tracing",
-"dep:thiserror", "dep:anymap", "dep:dyn-clone", "dep:indoc", "dep:thiserror", "dep:lalrpop-util"]
+compiler = ["diagnostic", "path", "parser", "value", "dep:paste", "dep:chrono", "dep:serde", "dep:regex", "dep:bytes", "dep:ordered-float", "dep:chrono-tz", "dep:snafu", "dep:tracing", "dep:thiserror", "dep:anymap", "dep:dyn-clone", "dep:indoc", "dep:thiserror", "dep:lalrpop-util"]
 value = ["path", "dep:bytes", "dep:regex", "dep:ordered-float", "dep:chrono", "dep:serde_json"]
 diagnostic = ["dep:codespan-reporting", "dep:termcolor"]
 path = ["dep:once_cell", "dep:serde", "dep:snafu", "dep:regex"]
@@ -49,13 +48,7 @@ lua = ["dep:mlua"]
 test = []
 
 # All stdlib functions
-stdlib = [
-    "compiler", "core", "datadog", "dep:aes", "dep:chacha20poly1305", "dep:crypto_secretbox", "dep:ctr", "dep:cbc", "dep:cfb-mode", "dep:ofb", "dep:base16",
-    "dep:nom", "dep:strip-ansi-escapes", "dep:utf8-width", "dep:hex", "dep:seahash", "dep:syslog_loose", "dep:hostname", "dep:zstd", "dep:quoted_printable",
-    "dep:once_cell", "dep:base64", "dep:uuid", "dep:percent-encoding", "dep:uaparser", "dep:rust_decimal", "dep:indexmap", "dep:flate2", "dep:charset",
-    "dep:data-encoding", "dep:hmac", "dep:sha-1", "dep:cidr-utils", "dep:sha-2", "dep:md-5", "dep:url", "dep:woothee", "dep:csv",
-    "dep:roxmltree", "dep:rand", "dep:dns-lookup", "dep:sha-3", "dep:grok"
-]
+stdlib = ["compiler", "core", "datadog", "dep:aes", "dep:chacha20poly1305", "dep:crypto_secretbox", "dep:ctr", "dep:cbc", "dep:cfb-mode", "dep:ofb", "dep:base16", "dep:nom", "dep:strip-ansi-escapes", "dep:utf8-width", "dep:hex", "dep:seahash", "dep:syslog_loose", "dep:hostname", "dep:zstd", "dep:quoted_printable", "dep:once_cell", "dep:base64", "dep:uuid", "dep:percent-encoding", "dep:uaparser", "dep:rust_decimal", "dep:indexmap", "dep:flate2", "dep:charset", "dep:data-encoding", "dep:hmac", "dep:sha-1", "dep:cidr-utils", "dep:sha-2", "dep:md-5", "dep:url", "dep:woothee", "dep:csv", "dep:roxmltree", "dep:rand", "dep:dns-lookup", "dep:sha-3", "dep:grok", "dep:community-id"]
 
 [dependencies]
 cfg-if = "1.0.0"
@@ -120,6 +113,7 @@ url = { version = "2", optional = true }
 snafu = { version = "0.7", optional = true }
 webbrowser = { version = "0.8", default-features = false, optional = true }
 woothee = { version = "0.13.0", optional = true }
+community-id = { version = "0.2.1", optional = true}
 
 zstd = { version = "0.12.4", default-features = false, features = ["wasm"], optional = true }
 

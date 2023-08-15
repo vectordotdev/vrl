@@ -185,6 +185,7 @@ cfg_if::cfg_if! {
         mod to_syslog_severity;
         mod to_timestamp;
         mod to_unix_timestamp;
+        mod community_id;
         mod truncate;
         mod type_def;
         mod unique;
@@ -237,6 +238,7 @@ cfg_if::cfg_if! {
         pub use format_number::FormatNumber;
         pub use format_timestamp::FormatTimestamp;
         pub use from_unix_timestamp::FromUnixTimestamp;
+        pub use self::community_id::CommunityID;
         pub use get::Get;
         pub use get_env_var::GetEnvVar;
         pub use get_hostname::GetHostname;
@@ -507,6 +509,7 @@ pub fn all() -> Vec<Box<dyn Function>> {
         Box::new(ToSyslogSeverity),
         Box::new(ToTimestamp),
         Box::new(ToUnixTimestamp),
+        Box::new(CommunityID),
         Box::new(Truncate),
         Box::new(TypeDef),
         Box::new(Unique),
