@@ -709,9 +709,18 @@ mod test {
         assert_eq!(
             Ok(vec![
                 ("key1".to_string(), "val1".into()),
-                ("key2".to_string(), "some value with \"nested quotes\"".into())
+                (
+                    "key2".to_string(),
+                    "some value with \"nested quotes\"".into()
+                )
             ]),
-            parse(r#"key1=val1,key2='some value with "nested quotes"'"#, "=", ",", Whitespace::Strict, false)
+            parse(
+                r#"key1=val1,key2='some value with "nested quotes"'"#,
+                "=",
+                ",",
+                Whitespace::Strict,
+                false
+            )
         );
     }
 
