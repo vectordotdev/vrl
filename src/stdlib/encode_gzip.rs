@@ -3,10 +3,20 @@ use flate2::read::GzEncoder;
 use nom::AsBytes;
 use std::io::Read;
 
+const MAX_COMPRESSION_LEVEL: u32 = 10;
+
 fn encode_gzip(value: Value, compression_level: Option<Value>) -> Resolved {
     let compression_level = match compression_level {
         None => flate2::Compression::default(),
-        Some(value) => flate2::Compression::new(value.try_integer()? as u32),
+        Some(value) => {
+            let level = value.try_integer()? as u32;
+            if level > MAX_COMPRESSION_LEVEL {
+                return Err(
+                    format!("compression level must be <= {}", MAX_COMPRESSION_LEVEL).into(),
+                );
+            }
+            flate2::Compression::new(level)
+        }
     };
 
     let value = value.try_bytes()?;
@@ -86,8 +96,18 @@ impl FunctionExpression for EncodeGzipFn {
         encode_gzip(value, compression_level)
     }
 
-    fn type_def(&self, _: &state::TypeState) -> TypeDef {
-        TypeDef::bytes().infallible()
+    fn type_def(&self, state: &state::TypeState) -> TypeDef {
+        let is_compression_level_valid_constant = if let Some(level) = &self.compression_level {
+            if let Some(Value::Integer(level)) = level.resolve_constant(state) {
+                level <= (MAX_COMPRESSION_LEVEL as i64)
+            } else {
+                false
+            }
+        } else {
+            true
+        };
+
+        TypeDef::bytes().with_fallibility(!is_compression_level_valid_constant)
     }
 }
 
@@ -119,6 +139,11 @@ mod test {
             args: func_args![value: value!("you_have_successfully_decoded_me.congratulations.you_are_breathtaking."), compression_level: 9],
             want: Ok(value!(decode_base64("H4sIAAAAAAAC/w3LgQ3AIAgEwI1ciVD8qqmVRKAJ29cBLjWo8weyEIHZHXMmVYhWVHpRRFfb7DHZhy4reQBv0LXB3p2fsVr5AXeBkepGAAAA").as_bytes())),
             tdef: TypeDef::bytes().infallible(),
+        }
+        invalid_constant_compression {
+            args: func_args![value: value!("test"), compression_level: 11],
+            want: Err("compression level must be <= 10"),
+            tdef: TypeDef::bytes().fallible(),
         }
     ];
 }
