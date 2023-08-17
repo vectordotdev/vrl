@@ -155,6 +155,7 @@ criterion_group!(
               //uuidv4,
               upcase,
               values,
+              community_id,
 );
 criterion_main!(benches);
 
@@ -2685,5 +2686,14 @@ bench_function! {
     literal {
         args: func_args![value: value!({"key1": "val1", "key2": "val2"})],
         want: Ok(value!(["val1", "val2"])),
+    }
+}
+
+bench_function! {
+    community_id => vrl::stdlib::CommunityID;
+
+    literal {
+        args: func_args![source_ip: "1.2.3.4", destination_ip: "5.6.7.8", protocol: 6, source_port: 1122, destination_port: 3344],
+        want: Ok("1:wCb3OG7yAFWelaUydu0D+125CLM="),
     }
 }
