@@ -1744,7 +1744,7 @@ bench_function! {
         ],
         want: Ok(value!({
             "remote_addr": "0.0.0.0",
-            "timestamp": Value::Timestamp(DateTime::parse_from_rfc3339("2023-03-18T15:00:00Z").unwrap().info()),
+            "timestamp": (DateTime::parse_from_rfc3339("2023-03-18T15:00:00Z").unwrap().with_timezone(&Utc)),
             "request": "GET /some/path HTTP/2.0",
             "method": "GET",
             "path": "/some/path",
