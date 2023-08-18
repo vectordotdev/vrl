@@ -1,6 +1,6 @@
 use crate::compiler::prelude::*;
 
-fn encode_json(value: Value, pretty: bool) -> Resolved {
+fn encode_json(value: Value, pretty: bool) -> Value {
     // With `vrl::Value` it should not be possible to get `Err`.
 
     let result = if pretty {
@@ -10,7 +10,7 @@ fn encode_json(value: Value, pretty: bool) -> Resolved {
     };
 
     match result {
-        Ok(value) => Ok(value.into()),
+        Ok(value) => value.into(),
         Err(error) => unreachable!("unable encode to json: {}", error),
     }
 }
@@ -81,7 +81,7 @@ impl FunctionExpression for EncodeJsonFn {
             Some(pretty) => pretty.resolve(ctx)?.try_boolean()?,
             None => false,
         };
-        encode_json(value, pretty)
+        Ok(encode_json(value, pretty))
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {
