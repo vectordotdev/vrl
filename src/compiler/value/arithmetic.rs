@@ -1,7 +1,7 @@
 #![deny(clippy::arithmetic_side_effects)]
 
 use std::collections::BTreeMap;
-use std::ops::{Div, Mul, Sub};
+use std::ops::{Add, Mul, Rem, Sub};
 
 use crate::value::Value;
 use bytes::{BufMut, Bytes, BytesMut};
@@ -126,7 +126,7 @@ impl VrlValueArithmetic for Value {
                 let rhs = rhs
                     .try_into_f64()
                     .map_err(|_| ValueError::Add(Kind::float(), rhs.kind()))?;
-                lhs.mul(rhs).into()
+                lhs.add(rhs).into()
             }
             (lhs @ Value::Bytes(_), Value::Null) => lhs,
             (Value::Bytes(lhs), Value::Bytes(rhs)) => {
@@ -222,7 +222,7 @@ impl VrlValueArithmetic for Value {
             }
             Value::Float(lhv) => {
                 let rhv = rhs.try_into_f64().map_err(|_| err())?;
-                lhv.div(rhv).into()
+                lhv.rem(rhv).into()
             }
             _ => return Err(err()),
         };
