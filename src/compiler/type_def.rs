@@ -295,6 +295,16 @@ impl TypeDef {
         self
     }
 
+    /// VRL has an interesting property where accessing an undefined value "upgrades"
+    /// it to a "null" value.
+    /// This should be used in places those implicit upgrades can occur.
+    // see: https://github.com/vectordotdev/vector/issues/13594
+    #[must_use]
+    pub fn upgrade_undefined(mut self) -> Self {
+        self.kind = self.kind.upgrade_undefined();
+        self
+    }
+
     /// Collects any subtypes that can contain multiple indexed types (array, object) and collects
     /// them into a single type for all indexes.
     ///
