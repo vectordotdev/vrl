@@ -51,7 +51,7 @@ impl Expression for Object {
 
         let mut type_defs = BTreeMap::new();
         for (k, expr) in &self.inner {
-            let type_def = expr.apply_type_info(&mut state);
+            let type_def = expr.apply_type_info(&mut state).upgrade_undefined();
 
             // If any expression is fallible, the entire object is fallible.
             fallible |= type_def.is_fallible();

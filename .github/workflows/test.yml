@@ -30,59 +30,52 @@ jobs:
       - uses: actions/checkout@v3
       - uses: Swatinem/rust-cache@v2
       - name: "clippy"
-        run: cargo clippy --workspace --all-targets --features "test" -- -D warnings
+        run: ./scripts/clippy.sh
 
   fmt:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - uses: Swatinem/rust-cache@v2
-      - name: "fmt"
-        run: cargo fmt --check --all
+      - name: "Format check"
+        run: ./scripts/format_check.sh
 
   test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - uses: Swatinem/rust-cache@v2
-      - name: "test"
-        run: cargo test --workspace --features "test"
+      - name: "Tests"
+        run: ./scripts/tests.sh
 
   vrl:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - uses: Swatinem/rust-cache@v2
-      - name: VRL tests
-        run: cargo run
-        working-directory: lib/tests
+      - name: "VRL tests"
+        run: ./scripts/vrl_tests.sh
 
   check-features:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - uses: Swatinem/rust-cache@v2
-      - name: Setup Cargo Hack
-        uses: bruxisma/setup-cargo-hack@v1.0.2
-      - name: Check that all features can compile
-        run: cargo hack check --feature-powerset --depth 1
+      - name: "Check that all features can compile"
+        run: ./scripts/check_features.sh
 
   check-licenses:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - uses: Swatinem/rust-cache@v2
-      - name: Install the 3rd-party license tool
-        run: cargo install dd-rust-license-tool --version 1.0.1 --force --locked
-      - name: Check that the 3rd-party license file is up to date
-        run: dd-rust-license-tool check
+      - name: "Check that the 3rd-party license file is up to date"
+        run: ./scripts/check_licenses.sh
 
   wasm32-unknown-unknown:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - name: "Add wasm32-unknown-unknown target"
-        run: rustup target add wasm32-unknown-unknown
       - uses: Swatinem/rust-cache@v2
-      - name: "check"
-        run: cargo check --target wasm32-unknown-unknown --no-default-features --features stdlib
+      - name: "Check wasm32-unknown-unknown target"
+        run: ./scripts/check_wasm32.sh

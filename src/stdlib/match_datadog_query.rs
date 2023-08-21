@@ -64,7 +64,7 @@ impl Function for MatchDatadogQuery {
         // Build the matcher function that accepts a VRL event value. This will parse the `node`
         // at boot-time and return a boxed func that contains just the logic required to match a
         // VRL `Value` against the Datadog Search Syntax literal.
-        let filter = build_matcher(&node, &VrlFilter::default());
+        let filter = build_matcher(&node, &VrlFilter);
 
         Ok(MatchDatadogQueryFn { value, filter }.as_expr())
     }
