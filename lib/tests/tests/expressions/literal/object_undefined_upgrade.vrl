@@ -1,0 +1,7 @@
+# result: {"x": {"foo": null}, "typedef": {"object": {"foo": {"null": true}}}}
+
+. = {}
+
+# x is an object containing a single field foo that is assigned an undefined value that is upgraded to null
+x = {"foo": .x}
+{"x": x, "typedef": type_def(x)}
