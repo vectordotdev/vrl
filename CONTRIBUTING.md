@@ -14,8 +14,9 @@ provide everything you need to get started.
 3. [Create a new Git branch][urls.create_branch].
 4. Make your changes.
 5. Add and/or update tests to cover your changes.
-6. Add a one line summary of changes to the "unreleased" section of `CHANGELOG.md`.
-7. [Submit the branch as a pull request][urls.submit_pr] to the repo. A team member should
+6. Run `./scripts/checks.sh` to run tests and other checks.
+7. Add a one line summary of changes to the "unreleased" section of `CHANGELOG.md`.
+8. [Submit the branch as a pull request][urls.submit_pr] to the repo. A team member should
    comment and/or review your pull request.
 
 

@@ -1,6 +1,7 @@
-#![deny(clippy::integer_arithmetic)]
+#![deny(clippy::arithmetic_side_effects)]
 
 use std::collections::BTreeMap;
+use std::ops::{Add, Mul, Rem, Sub};
 
 use crate::value::Value;
 use bytes::{BufMut, Bytes, BytesMut};
@@ -79,7 +80,10 @@ impl VrlValueArithmetic for Value {
                 let rhv = rhs.try_into_i64().map_err(|_| err())?;
                 i64::wrapping_mul(lhv, rhv).into()
             }
-            Value::Float(lhv) => (lhv * rhs.try_into_f64().map_err(|_| err())?).into(),
+            Value::Float(lhv) => {
+                let rhs = rhs.try_into_f64().map_err(|_| err())?;
+                lhv.mul(rhs).into()
+            }
             Value::Bytes(lhv) if rhs.is_integer() => {
                 Bytes::from(lhv.repeat(as_usize(rhs.try_integer()?))).into()
             }
@@ -118,14 +122,15 @@ impl VrlValueArithmetic for Value {
                     .map_err(|_| ValueError::Add(Kind::integer(), rhs.kind()))?;
                 i64::wrapping_add(lhs, rhv).into()
             }
-            (Value::Float(lhs), rhs) => (lhs
-                + rhs
+            (Value::Float(lhs), rhs) => {
+                let rhs = rhs
                     .try_into_f64()
-                    .map_err(|_| ValueError::Add(Kind::float(), rhs.kind()))?)
-            .into(),
+                    .map_err(|_| ValueError::Add(Kind::float(), rhs.kind()))?;
+                lhs.add(rhs).into()
+            }
             (lhs @ Value::Bytes(_), Value::Null) => lhs,
             (Value::Bytes(lhs), Value::Bytes(rhs)) => {
-                #[allow(clippy::integer_arithmetic)]
+                #[allow(clippy::arithmetic_side_effects)]
                 let mut value = BytesMut::with_capacity(lhs.len() + rhs.len());
                 value.put(lhs);
                 value.put(rhs);
@@ -150,7 +155,10 @@ impl VrlValueArithmetic for Value {
                 let rhv = rhs.try_into_i64().map_err(|_| err())?;
                 i64::wrapping_sub(lhv, rhv).into()
             }
-            Value::Float(lhv) => (lhv - rhs.try_into_f64().map_err(|_| err())?).into(),
+            Value::Float(lhv) => {
+                let rhv = rhs.try_into_f64().map_err(|_| err())?;
+                lhv.sub(rhv).into()
+            }
             _ => return Err(err()),
         };
 
@@ -212,7 +220,10 @@ impl VrlValueArithmetic for Value {
                 let rhv = rhs.try_into_i64().map_err(|_| err())?;
                 i64::wrapping_rem(lhv, rhv).into()
             }
-            Value::Float(lhv) => (lhv % rhs.try_into_f64().map_err(|_| err())?).into(),
+            Value::Float(lhv) => {
+                let rhv = rhs.try_into_f64().map_err(|_| err())?;
+                lhv.rem(rhv).into()
+            }
             _ => return Err(err()),
         };
 
