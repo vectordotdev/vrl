@@ -1,12 +1,12 @@
 use mlua::prelude::LuaResult;
-use mlua::{FromLua, Lua, ToLua, Value as LuaValue};
+use mlua::{FromLua, IntoLua, Lua, Value as LuaValue};
 use ordered_float::NotNan;
 
 use crate::value::Value;
 
-impl<'a> ToLua<'a> for Value {
+impl<'a> IntoLua<'a> for Value {
     #![allow(clippy::wrong_self_convention)] // this trait is defined by mlua
-    fn to_lua(self, lua: &'a Lua) -> LuaResult<LuaValue<'_>> {
+    fn into_lua(self, lua: &'a Lua) -> LuaResult<LuaValue<'_>> {
         match self {
             Self::Bytes(b) => lua.create_string(b.as_ref()).map(LuaValue::String),
             Self::Regex(regex) => lua
