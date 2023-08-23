@@ -165,7 +165,6 @@ salsa20,https://github.com/RustCrypto/stream-ciphers,MIT OR Apache-2.0,RustCrypt
 scopeguard,https://github.com/bluss/scopeguard,MIT OR Apache-2.0,bluss
 seahash,https://gitlab.redox-os.org/redox-os/seahash,MIT,"ticki <ticki@users.noreply.github.com>, Tom Almeida <tom@tommoa.me>"
 serde,https://github.com/serde-rs/serde,MIT OR Apache-2.0,"Erick Tryzelaar <erick.tryzelaar@gmail.com>, David Tolnay <dtolnay@gmail.com>"
-serde_derive,https://github.com/serde-rs/serde,MIT OR Apache-2.0,David Tolnay <dtolnay@gmail.com>
 serde_json,https://github.com/serde-rs/json,MIT OR Apache-2.0,"Erick Tryzelaar <erick.tryzelaar@gmail.com>, David Tolnay <dtolnay@gmail.com>"
 serde_yaml,https://github.com/dtolnay/serde-yaml,MIT OR Apache-2.0,David Tolnay <dtolnay@gmail.com>
 sha-1,https://github.com/RustCrypto/hashes,MIT OR Apache-2.0,RustCrypto Developers
