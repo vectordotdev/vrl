@@ -28,7 +28,7 @@ impl Function for ParseAwsVpcFlowLog {
                 source: r#"parse_aws_vpc_flow_log!("2 123456789010 eni-1235b8ca123456789 - - - - - - - 1431280876 1431280934 - NODATA")"#,
                 result: Ok(indoc! { r#"{
                     "version": 2,
-                    "account_id": 123456789010,
+                    "account_id": "123456789010",
                     "interface_id": "eni-1235b8ca123456789",
                     "srcaddr": null,
                     "dstaddr": null,
@@ -117,7 +117,7 @@ impl FunctionExpression for ParseAwsVpcFlowLogFn {
 
 fn inner_kind() -> BTreeMap<Field, Kind> {
     BTreeMap::from([
-        (Field::from("account_id"), Kind::integer() | Kind::null()),
+        (Field::from("account_id"), Kind::bytes() | Kind::null()),
         (Field::from("action"), Kind::bytes() | Kind::null()),
         (Field::from("az_id"), Kind::bytes() | Kind::null()),
         (Field::from("bytes"), Kind::integer() | Kind::null()),
@@ -191,7 +191,7 @@ fn parse_log(input: &str, format: Option<&str>) -> ParseResult<Value> {
             (Some(key), Some(value)) => {
                 create_match!(
                     log, key, value,
-                    "account_id" => parse_i64,
+                    "account_id" => identity,
                     "action" => identity,
                     "az_id" => identity,
                     "bytes" => parse_i64,
@@ -291,7 +291,7 @@ mod tests {
         default {
              args: func_args![value: "2 123456789010 eni-1235b8ca123456789 172.31.16.139 172.31.16.21 20641 22 6 20 4249 1418530010 1418530070 ACCEPT OK"],
              want: Ok(value!({
-                 "account_id": 123_456_789_010_i64,
+                 "account_id": "123456789010",
                  "action": "ACCEPT",
                  "bytes": 4249,
                  "dstaddr": "172.31.16.21",
@@ -313,7 +313,7 @@ mod tests {
              args: func_args![value: "3 vpc-abcdefab012345678 subnet-aaaaaaaa012345678 i-01234567890123456 eni-1235b8ca123456789 123456789010 IPv4 52.213.180.42 10.0.0.62 43416 5001 52.213.180.42 10.0.0.62 6 568 8 1566848875 1566848933 ACCEPT 2 OK",
                               format: "version vpc_id subnet_id instance_id interface_id account_id type srcaddr dstaddr srcport dstport pkt_srcaddr pkt_dstaddr protocol bytes packets start end action tcp_flags log_status"],
              want: Ok(value!({
-                 "account_id": 123_456_789_010_i64,
+                 "account_id": "123456789010",
                  "action": "ACCEPT",
                  "bytes": 568,
                  "dstaddr": "10.0.0.62",
