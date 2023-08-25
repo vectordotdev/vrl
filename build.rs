@@ -27,7 +27,9 @@ fn main() {
 
 /// Reads grok patterns defined in the `patterns` folder into the static `PATTERNS` variable
 fn read_grok_patterns() {
-    let mut output = "static PATTERNS: &[(&str, &str)] = &[\n".to_string();
+    let mut output =
+        "#[allow(clippy::needless_raw_string_hashes)]\nstatic PATTERNS: &[(&str, &str)] = &[\n"
+            .to_string();
 
     fs::read_dir(Path::new("src/datadog/grok/patterns"))
         .expect("can't read 'patterns' dir")
