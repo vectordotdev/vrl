@@ -26,7 +26,7 @@ impl Function for IsRegex {
             },
             Example {
                 title: "regex",
-                source: r#"is_regex(r'\d+')"#,
+                source: r"is_regex(r'\d+')",
                 result: Ok("true"),
             },
             Example {

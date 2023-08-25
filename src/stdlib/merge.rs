@@ -100,7 +100,7 @@ fn merge_maps<K>(map1: &mut BTreeMap<K, Value>, map2: &BTreeMap<K, Value>, deep:
 where
     K: std::cmp::Ord + Clone,
 {
-    for (key2, value2) in map2.iter() {
+    for (key2, value2) in map2 {
         match (deep, map1.get_mut(key2), value2) {
             (true, Some(Value::Object(ref mut child1)), Value::Object(ref child2)) => {
                 // We are doing a deep merge and both fields are maps.

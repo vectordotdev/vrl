@@ -286,7 +286,7 @@ mod tests {
             want: Ok(btreemap! {
                 "client" => "0.0.0.0",
                 "timestamp" => Value::Timestamp(DateTime::parse_from_rfc3339("2022-10-04T03:07:27Z").unwrap().into()),
-                "request" => r#"]&\xDF\xBDV\xE7\xBB<\x10;\xA2b}\xDFM\x1D"#,
+                "request" => r"]&\xDF\xBDV\xE7\xBB<\x10;\xA2b}\xDFM\x1D",
                 "status" => 400,
                 "size" => 150,
                 "referer" => "-",

@@ -257,9 +257,9 @@ fn unescape_string_literal(mut s: &str) -> Result<String, Error> {
     while let Some(i) = s.bytes().position(|b| b == b'\\') {
         if s.len() > i + 2 {
             let c = match &s[i..i + 3] {
-                r#"\\n"# => '\n',
-                r#"\\r"# => '\r',
-                r#"\\t"# => '\t',
+                r"\\n" => '\n',
+                r"\\r" => '\r',
+                r"\\t" => '\t',
                 _ => '\0',
             };
             if c != '\0' {
