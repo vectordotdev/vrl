@@ -10,6 +10,9 @@ use crate::value::value::{timestamp_to_string, StdError, Value};
 
 impl Value {
     /// Converts self into a `Bytes`, using JSON for Map/Array.
+    ///
+    /// # Panics
+    /// If map or array serialization fails.
     pub fn coerce_to_bytes(&self) -> Bytes {
         match self {
             Self::Bytes(bytes) => bytes.clone(), // cloning `Bytes` is cheap
@@ -29,6 +32,9 @@ impl Value {
     }
 
     /// Converts self into a `String` representation, using JSON for `Map`/`Array`.
+    ///
+    /// # Panics
+    /// If map or array serialization fails.
     pub fn to_string_lossy(&self) -> Cow<'_, str> {
         match self {
             Self::Bytes(bytes) => String::from_utf8_lossy(bytes),
