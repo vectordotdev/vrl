@@ -1,7 +1,5 @@
-use crate::diagnostic::{DiagnosticMessage, Label, Note, Urls};
 use std::{fmt, sync::Arc};
 
-use super::Block;
 use crate::compiler::state::{TypeInfo, TypeState};
 use crate::compiler::{
     expression::{levenstein, ExpressionError, FunctionArgument},
@@ -15,6 +13,9 @@ use crate::compiler::{
     value::Kind,
     CompileConfig, Context, Expression, Function, Resolved, Span, TypeDef,
 };
+use crate::diagnostic::{DiagnosticMessage, Label, Note, Urls};
+
+use super::Block;
 
 pub(crate) struct Builder<'a> {
     abort_on_error: bool,
@@ -50,7 +51,8 @@ impl<'a> Builder<'a> {
         let Some((function_id, function)) = funcs
             .iter()
             .enumerate()
-            .find(|(_pos, f)| f.identifier() == ident.as_ref()) else {
+            .find(|(_pos, f)| f.identifier() == ident.as_ref())
+        else {
             let idents = funcs
                 .iter()
                 .map(|func| func.identifier())
@@ -1179,8 +1181,9 @@ impl DiagnosticMessage for Error {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use crate::compiler::{value::kind, FunctionExpression};
+
+    use super::*;
 
     #[derive(Clone, Debug)]
     struct Fn;
