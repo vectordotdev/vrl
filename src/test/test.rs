@@ -3,6 +3,7 @@ use std::{collections::BTreeMap, fs, path::Path};
 use crate::compiler::function::Example;
 use crate::path::parse_value_path;
 use crate::path::OwnedTargetPath;
+use crate::test::{example_vrl_path, test_prefix};
 use crate::value::Value;
 
 #[derive(Debug)]
@@ -168,21 +169,20 @@ impl Test {
 }
 
 fn test_category(path: &Path) -> String {
-    if path.as_os_str() == "tests/example.vrl" {
-        return "".to_owned();
+    if path == example_vrl_path() {
+        return "uncategorized".to_owned();
     }
 
-    path.to_string_lossy()
-        .strip_prefix("tests/")
+    let stripped_path = path
+        .to_string_lossy()
+        .strip_prefix(test_prefix().as_str())
         .expect("test")
+        .to_string();
+
+    stripped_path
+        .clone()
         .rsplit_once('/')
-        .map_or(
-            path.to_string_lossy()
-                .strip_prefix("tests/")
-                .unwrap()
-                .to_owned(),
-            |x| x.0.to_owned(),
-        )
+        .map_or(stripped_path, |x| x.0.to_owned())
 }
 
 fn test_name(path: &Path) -> String {

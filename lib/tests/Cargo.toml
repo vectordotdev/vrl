@@ -8,12 +8,12 @@ publish = false
 [dependencies]
 vrl = { path = "../../", features = ["test_framework"] }
 chrono-tz = "0.8"
-clap = { version = "4.3.11", features = ["derive"] }
+clap = { version = "4.3.23", features = ["derive"] }
 glob = "0.3"
 tracing-subscriber = { version = "0.3.16", default-features = false, features = ["fmt"] }
 
 [target.'cfg(not(target_env = "msvc"))'.dependencies]
-tikv-jemallocator = { version = "0.5.0" }
+tikv-jemallocator = { version = "0.5.4" }
 
 [features]
 default = []
