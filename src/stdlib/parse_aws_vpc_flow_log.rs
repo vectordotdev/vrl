@@ -124,12 +124,21 @@ fn inner_kind() -> BTreeMap<Field, Kind> {
         (Field::from("dstaddr"), Kind::bytes() | Kind::null()),
         (Field::from("dstport"), Kind::integer() | Kind::null()),
         (Field::from("end"), Kind::integer() | Kind::null()),
+        (Field::from("flow_direction"), Kind::bytes() | Kind::null()),
         (Field::from("instance_id"), Kind::bytes() | Kind::null()),
         (Field::from("interface_id"), Kind::bytes() | Kind::null()),
         (Field::from("log_status"), Kind::bytes() | Kind::null()),
         (Field::from("packets"), Kind::integer() | Kind::null()),
         (Field::from("pkt_dstaddr"), Kind::bytes() | Kind::null()),
+        (
+            Field::from("pkt_dst_aws_service"),
+            Kind::bytes() | Kind::null(),
+        ),
         (Field::from("pkt_srcaddr"), Kind::bytes() | Kind::null()),
+        (
+            Field::from("pkt_src_aws_service"),
+            Kind::bytes() | Kind::null(),
+        ),
         (Field::from("protocol"), Kind::integer() | Kind::null()),
         (Field::from("region"), Kind::bytes() | Kind::null()),
         (Field::from("srcaddr"), Kind::bytes() | Kind::null()),
@@ -142,6 +151,7 @@ fn inner_kind() -> BTreeMap<Field, Kind> {
         ),
         (Field::from("subnet_id"), Kind::bytes() | Kind::null()),
         (Field::from("tcp_flags"), Kind::integer() | Kind::null()),
+        (Field::from("traffic_path"), Kind::integer() | Kind::null()),
         (Field::from("type"), Kind::bytes() | Kind::null()),
         (Field::from("version"), Kind::integer() | Kind::null()),
         (Field::from("vpc_id"), Kind::bytes() | Kind::null()),
@@ -198,12 +208,15 @@ fn parse_log(input: &str, format: Option<&str>) -> ParseResult<Value> {
                     "dstaddr" => identity,
                     "dstport" => parse_i64,
                     "end" => parse_i64,
+                    "flow_direction" => identity,
                     "instance_id" => identity,
                     "interface_id" => identity,
                     "log_status" => identity,
                     "packets" => parse_i64,
                     "pkt_dstaddr" => identity,
+                    "pkt_dst_aws_service" => identity,
                     "pkt_srcaddr" => identity,
+                    "pkt_src_aws_service" => identity,
                     "protocol" => parse_i64,
                     "region" => identity,
                     "srcaddr" => identity,
@@ -213,6 +226,7 @@ fn parse_log(input: &str, format: Option<&str>) -> ParseResult<Value> {
                     "sublocation_type" => identity,
                     "subnet_id" => identity,
                     "tcp_flags" => parse_i64,
+                    "traffic_path" => parse_i64,
                     "type" => identity,
                     "version" => parse_i64,
                     "vpc_id" => identity
@@ -275,6 +289,12 @@ mod tests {
                  "3 eni-33333333333333333 123456789010 vpc-abcdefab012345678 subnet-22222222bbbbbbbbb i-01234567890123456 10.40.2.236 10.20.33.164 80 39812 6 19 IPv4 10.40.2.236 10.20.33.164 ACCEPT OK",
                  "3 eni-11111111111111111 123456789010 vpc-abcdefab012345678 subnet-11111111aaaaaaaaa - 10.40.1.175 10.40.2.236 39812 80 6 3 IPv4 10.20.33.164 10.40.2.236 ACCEPT OK",
                  "3 eni-22222222222222222 123456789010 vpc-abcdefab012345678 subnet-22222222bbbbbbbbb - 10.40.2.236 10.40.2.31 80 39812 6 19 IPv4 10.40.2.236 10.20.33.164 ACCEPT OK",
+             ]
+         ), (
+             Some("version srcaddr dstaddr srcport dstport protocol start end type packets bytes account_id vpc_id subnet_id instance_id interface_id region az_id sublocation_type sublocation_id action tcp_flags pkt_srcaddr pkt_dstaddr pkt_src_aws_service pkt_dst_aws_service traffic_path flow_direction log_status"),
+             vec![
+                "5 52.95.128.179 10.0.0.71 80 34210 6 1616729292 1616729349 IPv4 14 15044 123456789012 vpc-abcdefab012345678 subnet-aaaaaaaa012345678 i-0c50d5961bcb2d47b eni-1235b8ca123456789 ap-southeast-2 apse2-az3 - - ACCEPT 19 52.95.128.179 10.0.0.71 S3 - - ingress OK",
+                "5 10.0.0.71 52.95.128.179 34210 80 6 1616729292 1616729349 IPv4 7 471 123456789012 vpc-abcdefab012345678 subnet-aaaaaaaa012345678 i-0c50d5961bcb2d47b eni-1235b8ca123456789 ap-southeast-2 apse2-az3 - - ACCEPT 3 10.0.0.71 52.95.128.179 - S3 8 egress OK"
              ]
          )];
 
