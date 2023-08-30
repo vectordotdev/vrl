@@ -8,6 +8,10 @@ use nom::{
     sequence::{delimited, terminated},
 };
 
+/// Parses the specified `input` and returns a vector of tokens.
+///
+/// # Panics
+/// Parsing is expected to always succeed. Panics if there is a parsing error.
 pub fn parse(input: &str) -> Vec<&str> {
     let simple = is_not::<_, _, (&str, ErrorKind)>(" \t[\"");
     let string = delimited(

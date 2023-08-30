@@ -98,7 +98,7 @@ impl Function for ParseCef {
             },
             Example {
                 title: "escapes",
-                source: r#"parse_cef!(s'CEF:0|security|threatmanager|1.0|100|Detected a \| in message. No action needed.|10|src=10.0.0.1 msg=Detected a threat.\n No action needed act=blocked a \= dst=1.1.1.1')"#,
+                source: r"parse_cef!(s'CEF:0|security|threatmanager|1.0|100|Detected a \| in message. No action needed.|10|src=10.0.0.1 msg=Detected a threat.\n No action needed act=blocked a \= dst=1.1.1.1')",
                 result: Ok(
                     r#"{"cefVersion":"0","deviceVendor":"security","deviceProduct":"threatmanager","deviceVersion":"1.0","deviceEventClassId":"100","name":"Detected a | in message. No action needed.","severity":"10","src":"10.0.0.1","msg":"Detected a threat.\n No action needed","act":"blocked a =", "dst":"1.1.1.1"}"#,
                 ),
@@ -451,7 +451,7 @@ mod test {
                 ("name".to_string(), "worm | successfully | stopped".into()),
                 ("severity".to_string(), "10".into()),
             ]),
-            parse(r#"CEF:1|Security|threatmanager|1.0|100|worm \| successfully \| stopped|10|"#)
+            parse(r"CEF:1|Security|threatmanager|1.0|100|worm \| successfully \| stopped|10|")
                 .map(Iterator::collect)
         );
     }
@@ -468,7 +468,7 @@ mod test {
                 ("name".to_string(), "worm \\ successfully \\ stopped".into()),
                 ("severity".to_string(), "10".into()),
             ]),
-            parse(r#"CEF:1|Security|threatmanager|1.0|100|worm \\ successfully \\ stopped|10|"#)
+            parse(r"CEF:1|Security|threatmanager|1.0|100|worm \\ successfully \\ stopped|10|")
                 .map(Iterator::collect)
         );
     }
@@ -488,7 +488,7 @@ mod test {
                 ("name".to_string(), "worm successfully stopped".into()),
                 ("severity".to_string(), "10".into()),
             ]),
-            parse(r#"CEF:1|Security|threatmanager|1.0|100|worm successfully stopped|10|src=ip\=10.0.0.1 dst=2.1.2.2 spt=1232"#)
+            parse(r"CEF:1|Security|threatmanager|1.0|100|worm successfully stopped|10|src=ip\=10.0.0.1 dst=2.1.2.2 spt=1232")
                 .map(Iterator::collect)
         );
     }
@@ -508,7 +508,7 @@ mod test {
                 ("name".to_string(), "worm successfully stopped".into()),
                 ("severity".to_string(), "10".into()),
             ]),
-            parse(r#"CEF:1|Security|threatmanager|1.0|100|worm successfully stopped|10|dst=2.1.2.2 path=\\home\\ spt=1232"#)
+            parse(r"CEF:1|Security|threatmanager|1.0|100|worm successfully stopped|10|dst=2.1.2.2 path=\\home\\ spt=1232")
                 .map(Iterator::collect)
         );
     }
@@ -528,7 +528,7 @@ mod test {
                 ("name".to_string(), "worm successfully stopped".into()),
                 ("severity".to_string(), "10".into()),
             ]),
-            parse(r#"CEF:1|Security|threatmanager|1.0|100|worm successfully stopped|10|dst=2.1.2.2 msg=Detected a threat.\r No action needed spt=1232"#)
+            parse(r"CEF:1|Security|threatmanager|1.0|100|worm successfully stopped|10|dst=2.1.2.2 msg=Detected a threat.\r No action needed spt=1232")
                 .map(Iterator::collect)
         );
     }
@@ -596,7 +596,7 @@ mod test {
 
         real_case {
             args: func_args! [
-                value: r#"CEF:0|Check Point|VPN-1 & FireWall-1|Check Point|Log|https|Unknown|act=Accept destinationTranslatedAddress=0.0.0.0 destinationTranslatedPort=0 deviceDirection=0 rt=1543270652000 sourceTranslatedAddress=192.168.103.254 sourceTranslatedPort=35398 spt=49363 dpt=443 cs2Label=Rule Name layer_name=Network layer_uuid=b406b732-2437-4848-9741-6eae1f5bf112 match_id=4 parent_rule=0 rule_action=Accept rule_uid=9e5e6e74-aa9a-4693-b9fe-53712dd27bea ifname=eth0 logid=0 loguid={0x5bfc70fc,0x1,0xfe65a8c0,0xc0000001} origin=192.168.101.254 originsicname=CN\=R80,O\=R80_M..6u6bdo sequencenum=1 version=5 dst=52.173.84.157 inzone=Internal nat_addtnl_rulenum=1 nat_rulenum=4 outzone=External product=VPN-1 & FireWall-1 proto=6 service_id=https src=192.168.101.100"#,
+                value: r"CEF:0|Check Point|VPN-1 & FireWall-1|Check Point|Log|https|Unknown|act=Accept destinationTranslatedAddress=0.0.0.0 destinationTranslatedPort=0 deviceDirection=0 rt=1543270652000 sourceTranslatedAddress=192.168.103.254 sourceTranslatedPort=35398 spt=49363 dpt=443 cs2Label=Rule Name layer_name=Network layer_uuid=b406b732-2437-4848-9741-6eae1f5bf112 match_id=4 parent_rule=0 rule_action=Accept rule_uid=9e5e6e74-aa9a-4693-b9fe-53712dd27bea ifname=eth0 logid=0 loguid={0x5bfc70fc,0x1,0xfe65a8c0,0xc0000001} origin=192.168.101.254 originsicname=CN\=R80,O\=R80_M..6u6bdo sequencenum=1 version=5 dst=52.173.84.157 inzone=Internal nat_addtnl_rulenum=1 nat_rulenum=4 outzone=External product=VPN-1 & FireWall-1 proto=6 service_id=https src=192.168.101.100",
             ],
             want: Ok(value!({
                 "cefVersion":"0",
@@ -702,7 +702,7 @@ mod test {
 
         utf8_escape {
             args: func_args! [
-                value: r#"CEF:0|xxx|xxx|123456|xxx|xxx|5|TestField={'blabla': 'blabla\xc3\xaablabla'}"#,
+                value: r"CEF:0|xxx|xxx|123456|xxx|xxx|5|TestField={'blabla': 'blabla\xc3\xaablabla'}",
             ],
             want: Ok(value!({
                 "cefVersion":"0",
@@ -712,7 +712,7 @@ mod test {
                 "deviceEventClassId":"xxx",
                 "name":"xxx",
                 "severity":"5",
-                "TestField": r#"{'blabla': 'blabla\xc3\xaablabla'}"#,
+                "TestField": r"{'blabla': 'blabla\xc3\xaablabla'}",
             })),
             tdef: type_def(),
         }

@@ -71,7 +71,7 @@ pub(crate) static REGEX_APACHE_ERROR_LOG: Lazy<Vec<Regex>> = Lazy::new(|| {
         // Simple format
         // https://github.com/mingrammer/flog/blob/9bc83b14408ca446e934c32e4a88a81a46e78d83/log.go#L16
         Regex::new(
-            r#"(?x)                                     # Ignore whitespace and comments in the regex expression.
+            r"(?x)                                     # Ignore whitespace and comments in the regex expression.
             ^\s*                                        # Start with any number of whitespaces.
             (-|\[(-|(?P<timestamp>[^\[]*))\])\s+        # Match `-` or `[` followed by `-` or any character except `]`, `]` and at least one whitespace.
             (-|\[(-|(?P<module>[^:]*):                  # Match `-` or `[` followed by `-` or any character except `:`.
@@ -82,13 +82,13 @@ pub(crate) static REGEX_APACHE_ERROR_LOG: Lazy<Vec<Regex>> = Lazy::new(|| {
             (?P<port>[^\[]*))\])\s                      # Match `-` or `[` followed by `-` or any character except `]`, `]` and at least one whitespace.
             (-|(?P<message>.*))                         # Match `-` or any character.
             \s*$                                        # Match any number of whitespaces (to be discarded).
-        "#)
+        ")
         .expect("failed compiling regex for error log"),
 
         // threaded MPM format
         // https://httpd.apache.org/docs/current/mod/core.html#errorlogformat
         Regex::new(
-            r#"(?x)                                              # Ignore whitespace and comments in the regex expression.
+            r"(?x)                                              # Ignore whitespace and comments in the regex expression.
             ^\s*                                                 # Start with any number of whitespaces.
             \[(?P<timestamp>[^\]]+)\]\s+                         # [%{u}t]
             \[(-|(?P<module>[^:]+)):(?P<severity>[^\]]+)\]\s+    # [%-m:%l]
@@ -98,7 +98,7 @@ pub(crate) static REGEX_APACHE_ERROR_LOG: Lazy<Vec<Regex>> = Lazy::new(|| {
             (?P<message2>.*)                                     # %M
             (, referer .*)?                                      # ,\ referer\ %{Referer}
             \s*$                                                 # Match any number of whitespaces (to be discarded).
-        "#)
+        ")
         .expect("failed compiling regex for error log")
     ]
 });

@@ -154,7 +154,7 @@ mod tests {
                 "_method" => r#"%{word:http.method}"#.to_string(),
                 "_date_access" => r#"%{notSpace:date_access}"#.to_string(),
                 "_x_forwarded_for" => r#"%{regex("[^\\\"]*"):http._x_forwarded_for:nullIf("-")}"#.to_string()}).expect("couldn't parse rules");
-        let parsed = parse_grok(r##"127.0.0.1 - frank [13/Jul/2016:10:55:36] "GET /apache_pb.gif HTTP/1.0" 200 2326 0.202 "http://www.perdu.com/" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.87 Safari/537.36" "-""##, &rules).unwrap();
+        let parsed = parse_grok(r#"127.0.0.1 - frank [13/Jul/2016:10:55:36] "GET /apache_pb.gif HTTP/1.0" 200 2326 0.202 "http://www.perdu.com/" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.87 Safari/537.36" "-""#, &rules).unwrap();
 
         assert_eq!(
             parsed,
@@ -420,7 +420,7 @@ mod tests {
     #[test]
     fn extracts_field_with_regex_capture() {
         test_grok_pattern(vec![(
-            r#"(?<field>\w+)"#,
+            r"(?<field>\w+)",
             "abc",
             Ok(Value::Bytes("abc".into())),
         )]);
@@ -429,7 +429,7 @@ mod tests {
         // though we don't validate group names(it would be unnecessary overhead at boot-time),
         // field names are treated as literals, not as lookup paths
         test_full_grok(vec![(
-            r#"(?<nested.field.name>\w+)"#,
+            r"(?<nested.field.name>\w+)",
             "abc",
             Ok(Value::from(btreemap! {
                 "nested.field.name" => Value::Bytes("abc".into()),

@@ -470,12 +470,12 @@ mod test {
     #[test]
     fn test_quote_and_escape_char() {
         assert_eq!(
-            Ok(vec![("key".to_string(), r#"a\a"#.into()),]),
+            Ok(vec![("key".to_string(), r"a\a".into()),]),
             parse(r#"key="a\a""#, "=", " ", Whitespace::Strict, true,)
         );
 
         assert_eq!(
-            Ok(vec![(r#"a\ a"#.to_string(), r#"val"#.into()),]),
+            Ok(vec![(r"a\ a".to_string(), r#"val"#.into()),]),
             parse(r#""a\ a"=val"#, "=", " ", Whitespace::Strict, true,)
         );
     }
@@ -643,7 +643,7 @@ mod test {
 
         // delimited with escaped char (3)
         assert_eq!(
-            Ok(("=baz", r#"foo \ bar"#)),
+            Ok(("=baz", r"foo \ bar")),
             parse_key::<VerboseError<&str>>("=", " ", false)(r#""foo \ bar"=baz"#)
         );
 

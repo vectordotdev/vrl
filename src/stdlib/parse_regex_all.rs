@@ -138,7 +138,7 @@ mod tests {
         matches {
             args: func_args![
                 value: "apples and carrots, peaches and peas",
-                pattern: Regex::new(r#"(?P<fruit>[\w\.]+) and (?P<veg>[\w]+)"#).unwrap(),
+                pattern: Regex::new(r"(?P<fruit>[\w\.]+) and (?P<veg>[\w]+)").unwrap(),
             ],
             want: Ok(value!([{"fruit": "apples",
                               "veg": "carrots"},
@@ -156,7 +156,7 @@ mod tests {
         numeric_groups {
             args: func_args![
                 value: "apples and carrots, peaches and peas",
-                pattern: Regex::new(r#"(?P<fruit>[\w\.]+) and (?P<veg>[\w]+)"#).unwrap(),
+                pattern: Regex::new(r"(?P<fruit>[\w\.]+) and (?P<veg>[\w]+)").unwrap(),
                 numeric_groups: true
             ],
             want: Ok(value!([{"fruit": "apples",
@@ -181,7 +181,7 @@ mod tests {
         no_matches {
             args: func_args![
                 value: "I don't match",
-                pattern: Regex::new(r#"(?P<fruit>[\w\.]+) and (?P<veg>[\w]+)"#).unwrap()
+                pattern: Regex::new(r"(?P<fruit>[\w\.]+) and (?P<veg>[\w]+)").unwrap()
             ],
             want: Ok(value!([])),
             tdef: TypeDef::array(Collection::from_unknown(Kind::null().or_object(btreemap! {

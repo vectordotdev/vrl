@@ -1,8 +1,7 @@
 //! All types related to inserting one [`Kind`] into another.
 
-use crate::path::{BorrowedSegment, ValuePath};
-
 use crate::path;
+use crate::path::{BorrowedSegment, ValuePath};
 use crate::value::kind::Collection;
 use crate::value::Kind;
 
@@ -24,6 +23,9 @@ impl Kind {
 
     /// Insert the `Kind` at the given `path` within `self`.
     /// This has the same behavior as `Value::insert`.
+    ///
+    /// # Panics
+    /// Object/Array not present in `self`.
     #[allow(clippy::too_many_lines)]
     #[allow(clippy::needless_pass_by_value)] // only reference types implement Path
     pub fn insert_recursive<'a, 'b>(
@@ -229,12 +231,13 @@ impl Kind {
 
 #[cfg(test)]
 mod tests {
-    use crate::owned_value_path;
-    use crate::path::{parse_value_path, OwnedValuePath};
     use std::collections::BTreeMap;
 
-    use super::*;
+    use crate::owned_value_path;
+    use crate::path::{parse_value_path, OwnedValuePath};
     use crate::value::kind::Collection;
+
+    use super::*;
 
     #[test]
     #[allow(clippy::too_many_lines)]
