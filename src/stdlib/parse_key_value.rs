@@ -419,6 +419,7 @@ fn parse_value<'a, E: ParseError<&'a str> + ContextError<&'a str>>(
     move |input| {
         map(
             alt((
+                parse_delimited('\'', field_delimiter),
                 parse_delimited('"', field_delimiter),
                 parse_undelimited(field_delimiter),
             )),
@@ -438,6 +439,8 @@ fn parse_key<'a, E: ParseError<&'a str> + ContextError<&'a str>>(
     if standalone_key {
         Box::new(move |input| {
             alt((
+                parse_delimited('\'', key_value_delimiter),
+                parse_delimited('\'', field_delimiter),
                 parse_delimited('"', key_value_delimiter),
                 parse_delimited('"', field_delimiter),
                 verify(parse_undelimited(key_value_delimiter), |s: &str| {
@@ -449,6 +452,7 @@ fn parse_key<'a, E: ParseError<&'a str> + ContextError<&'a str>>(
     } else {
         Box::new(move |input| {
             alt((
+                parse_delimited('\'', key_value_delimiter),
                 parse_delimited('"', key_value_delimiter),
                 parse_undelimited(key_value_delimiter),
             ))(input)
@@ -678,6 +682,45 @@ mod test {
         assert_eq!(
             Ok(("", "".into())),
             parse_value::<VerboseError<&str>>(" ")("")
+        );
+    }
+
+    #[test]
+    fn test_parse_delimited_with_single_quotes() {
+        assert_eq!(
+            Ok(("", "test")),
+            parse_delimited::<VerboseError<&str>>('\'', " ")(r#"'test'"#)
+        );
+    }
+
+    #[test]
+    fn test_parse_key_values_with_single_quotes() {
+        assert_eq!(
+            Ok(vec![
+                ("key1".to_string(), "val1".into()),
+                ("key2".to_string(), "val2".into())
+            ]),
+            parse("key1=val1,key2='val2'", "=", ",", Whitespace::Strict, false)
+        );
+    }
+
+    #[test]
+    fn test_parse_key_values_with_single_quotes_and_nested_double_quotes() {
+        assert_eq!(
+            Ok(vec![
+                ("key1".to_string(), "val1".into()),
+                (
+                    "key2".to_string(),
+                    "some value with \"nested quotes\"".into()
+                )
+            ]),
+            parse(
+                r#"key1=val1,key2='some value with "nested quotes"'"#,
+                "=",
+                ",",
+                Whitespace::Strict,
+                false
+            )
         );
     }
 
