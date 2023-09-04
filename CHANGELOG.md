@@ -29,6 +29,7 @@
 - fixed type definitions for side-effects inside of queries (https://github.com/vectordotdev/vrl/pull/258)
 - replaced `Program::final_type_state` with `Program::final_type_info` to give access to the type definitions of both the target and program result (https://github.com/vectordotdev/vrl/pull/262)
 - added `from_unix_timestamp` vrl function (https://github.com/vectordotdev/vrl/pull/277)
+- added the `alias_sources` parameter for `parse_groks` to read sources from files
 
 ## `0.4.0` (2023-05-11)
 - consolidated all crates into the root `vrl` crate. The external API stayed the same, with the exception of macros, which are now all exported at the root of the `vrl` crate.
