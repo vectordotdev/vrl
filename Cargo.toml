@@ -59,7 +59,7 @@ ansi_term = {version = "0.12", optional = true }
 arbitrary = { version = "1", optional = true, features = ["derive"] }
 base16 = { version = "0.2", optional = true }
 base64 = { version = "0.21", optional = true }
-bytes = { version = "1.4.0", default-features = false, optional = true }
+bytes = { version = "1.5.0", default-features = false, optional = true }
 charset = { version = "0.1.3", optional = true }
 chrono = { version = "0.4", default-features = false, features = ["clock", "serde"], optional = true }
 chrono-tz = { version = "0.8.3", default-features = false, optional = true }
