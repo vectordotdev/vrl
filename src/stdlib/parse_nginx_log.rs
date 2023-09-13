@@ -422,6 +422,28 @@ mod tests {
             tdef: TypeDef::object(kind_error()).fallible(),
         }
 
+        error_line_with_empty_values {
+            args: func_args![
+                value: r#"2023/09/08 13:50:28 [warn] 3#3: *531 an upstream response is buffered to a temporary file /var/lib/nginx/tmp/fastcgi/6/03/0000000036 while reading upstream, client: 10.224.1.1, server: , request: "GET / HTTP/1.1", upstream: "fastcgi://127.0.0.1:9000", host: "", referrer: """#,
+                format: "error"
+            ],
+            want: Ok(btreemap! {
+                "timestamp" => Value::Timestamp(DateTime::parse_from_rfc3339("2023-09-08T13:50:28Z").unwrap().into()),
+                "severity" => "warn",
+                "pid" => 3,
+                "tid" => 3,
+                "cid" => 531,
+                "message" => "an upstream response is buffered to a temporary file /var/lib/nginx/tmp/fastcgi/6/03/0000000036 while reading upstream",
+                "client" => "10.224.1.1",
+                "server" => "",
+                "request" => "GET / HTTP/1.1",
+                "upstream" => "fastcgi://127.0.0.1:9000",
+                "host" => "",
+                "referer" => "",
+            }),
+            tdef: TypeDef::object(kind_error()).fallible(),
+        }
+
         error_line_with_upstream {
             args: func_args![
                 value: r#"2022/04/15 08:16:13 [error] 7164#7164: *20 connect() failed (113: No route to host) while connecting to upstream, client: 10.244.0.0, server: test.local, request: "GET / HTTP/2.0", upstream: "http://127.0.0.1:80/""#,
