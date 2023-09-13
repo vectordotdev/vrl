@@ -1,5 +1,6 @@
 use std::fmt::Debug;
 
+use chrono::format::{parse, Parsed, StrftimeItems};
 use chrono::{DateTime, Local, ParseError, TimeZone as _, Utc};
 use chrono_tz::Tz;
 use serde::{Deserialize, Serialize};
@@ -33,13 +34,18 @@ impl TimeZone {
     ///
     /// Returns parse errors from the underlying time parsing functions.
     pub fn datetime_from_str(&self, s: &str, format: &str) -> Result<DateTime<Utc>, ParseError> {
+        let mut parsed = Parsed::new();
+        parse(&mut parsed, s, StrftimeItems::new(format))?;
+
         match self {
-            Self::Local => Local
-                .datetime_from_str(s, format)
-                .map(|dt| datetime_to_utc(&dt)),
-            Self::Named(tz) => tz
-                .datetime_from_str(s, format)
-                .map(|dt| datetime_to_utc(&dt)),
+            Self::Local => {
+                let local_datetime = parsed.to_datetime_with_timezone(&Local)?;
+                Ok(datetime_to_utc(&local_datetime))
+            }
+            Self::Named(tz) => {
+                let tz_datetime = parsed.to_datetime_with_timezone(tz)?;
+                Ok(datetime_to_utc(&tz_datetime))
+            }
         }
     }
 
