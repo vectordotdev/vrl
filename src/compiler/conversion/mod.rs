@@ -249,7 +249,6 @@ const TIMESTAMP_TZ_FORMATS: &[&str] = &[
 
 fn parse_unix_timestamp(timestamp_str: &str) -> LocalResult<DateTime<Utc>> {
     if let Ok(seconds_since_epoch) = timestamp_str.parse::<i64>() {
-        // Create a DateTime<Utc> from the Unix timestamp
         Utc.timestamp_opt(seconds_since_epoch, 0)
     } else {
         LocalResult::None
