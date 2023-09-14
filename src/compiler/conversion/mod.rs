@@ -268,6 +268,11 @@ fn parse_timestamp(tz: TimeZone, s: &str) -> Result<DateTime<Utc>, Error> {
         }
     }
 
+    // This is equivalent to the "%s" format.
+    if let LocalResult::Single(result) = parse_unix_timestamp(s) {
+        return Ok(result);
+    }
+
     // This also handles "%FT%TZ" formats.
     if let Ok(result) = DateTime::parse_from_rfc3339(s) {
         return Ok(datetime_to_utc(&result));
@@ -281,11 +286,6 @@ fn parse_timestamp(tz: TimeZone, s: &str) -> Result<DateTime<Utc>, Error> {
         if let Ok(result) = DateTime::parse_from_str(s, format) {
             return Ok(datetime_to_utc(&result));
         }
-    }
-
-    // This is equivalent to the "%s" format.
-    if let LocalResult::Single(result) = parse_unix_timestamp(s) {
-        return Ok(result);
     }
 
     Err(Error::AutoTimestampParse { s: s.into() })
