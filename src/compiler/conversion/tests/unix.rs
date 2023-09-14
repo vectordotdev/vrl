@@ -24,6 +24,7 @@ fn parse_timestamp_auto() {
     assert_eq!(parse_timestamp(tz, "3-Feb-2001 14:05:06"), good);
     assert_eq!(parse_timestamp(tz, "2001-02-02T22:05:06-06:00"), good);
     assert_eq!(parse_timestamp(tz, "Sat, 03 Feb 2001 07:05:06 +0300"), good);
+    assert_eq!(parse_timestamp(tz, "981173106"), good);
 }
 
 #[test]
@@ -41,6 +42,7 @@ fn parse_timestamp_auto_tz_env() {
     assert_eq!(parse_timestamp(tz, "2001-02-02T22:05:06-06:00"), good);
     assert_eq!(parse_timestamp(tz, "Sat, 03 Feb 2001 07:05:06 +0300"), good);
     assert_eq!(parse_timestamp(tz, "03/Feb/2001:02:05:06 -0200"), good);
+    assert_eq!(parse_timestamp(tz, "981173106"), good);
 }
 
 #[test]
