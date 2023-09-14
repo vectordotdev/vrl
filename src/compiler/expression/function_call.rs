@@ -1126,7 +1126,7 @@ impl DiagnosticMessage for Error {
                 } else if kind.is_boolean() {
                     Some(format!("to_bool({argument}) ?? false"))
                 } else if kind.is_timestamp() {
-                    Some(format!("to_timestamp({argument}) ?? now()"))
+                    Some(format!("to_unix_timestamp({argument}) ?? now()"))
                 } else {
                     None
                 };

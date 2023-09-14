@@ -1,11 +1,3 @@
-use crate::path::PathPrefix;
-
-use crate::diagnostic::{DiagnosticList, DiagnosticMessage, Note, Severity};
-use crate::parser::ast::{self, Node, QueryTarget};
-use crate::path::{OwnedTargetPath, OwnedValuePath};
-use crate::value::Value;
-
-use super::state::TypeState;
 use crate::compiler::{
     expression::{
         assignment, function_call, literal, predicate, query, Abort, Array, Assignment, Block,
@@ -14,9 +6,16 @@ use crate::compiler::{
     },
     parser::ast::RootExpr,
     program::ProgramInfo,
-    CompileConfig, DeprecationWarning, Function, Program, TypeDef,
+    CompileConfig, Function, Program, TypeDef,
 };
+use crate::diagnostic::{DiagnosticList, DiagnosticMessage};
+use crate::parser::ast::{self, Node, QueryTarget};
+use crate::path::PathPrefix;
+use crate::path::{OwnedTargetPath, OwnedValuePath};
 use crate::prelude::ArgumentList;
+use crate::value::Value;
+
+use super::state::TypeState;
 
 pub(crate) type Diagnostics = Vec<Box<dyn DiagnosticMessage>>;
 
@@ -83,7 +82,10 @@ impl<'a> Compiler<'a> {
 
         let (errors, warnings): (Vec<_>, Vec<_>) =
             compiler.diagnostics.into_iter().partition(|diagnostic| {
-                matches!(diagnostic.severity(), Severity::Bug | Severity::Error)
+                matches!(
+                    diagnostic.severity(),
+                    crate::diagnostic::Severity::Bug | crate::diagnostic::Severity::Error
+                )
             });
 
         if !errors.is_empty() {
@@ -587,25 +589,8 @@ impl<'a> Compiler<'a> {
         Some(target)
     }
 
-    pub(crate) fn check_function_deprecations(
-        &mut self,
-        func: &FunctionCall,
-        _args: &ArgumentList,
-    ) {
-        if func.ident == "to_timestamp" {
-            self.diagnostics.push(Box::new(
-                DeprecationWarning::new("the `to_timestamp` function")
-                    .with_span(func.span)
-                    .with_notes(Note::solution(
-                        r#"using another timestamp parsing function instead"#,
-                        vec![
-                            r#"for integer values, use `from_unix_timestamp`"#,
-                            r#"for all other value types, use `parse_timestamp`"#,
-                        ],
-                    )),
-            ));
-        }
-    }
+    #[allow(clippy::unused_self)]
+    pub(crate) fn check_function_deprecations(&self, _func: &FunctionCall, _args: &ArgumentList) {}
 
     fn compile_function_call(
         &mut self,
