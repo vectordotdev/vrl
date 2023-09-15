@@ -11,6 +11,7 @@
 - `parse_aws_vpc_flow_log` now handles account-id value as a string, avoiding loss of leading zeros and case where value is `unknown` (https://github.com/vectordotdev/vrl/issues/263)
 - added `community_id` function for generation of [V1 Community IDs](https://github.com/corelight/community-id-spec) (https://github.com/vectordotdev/vrl/pull/360). 
 - removed deprecated `to_timestamp` function (https://github.com/vectordotdev/vrl/pull/452)
+- changed `truncate` arguments, it now accepts a suffix string instead of a boolean (https://github.com/vectordotdev/vrl/pull/454) 
 
 ## `0.6.0` (2023-08-02)
 

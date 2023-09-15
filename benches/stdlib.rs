@@ -2619,16 +2619,15 @@ bench_function! {
         args: func_args![
             value: "Supercalifragilisticexpialidocious",
             limit: 5,
-            ellipsis: true,
+            suffix: "...",
         ],
         want: Ok("Super..."),
     }
 
-    no_ellipsis {
+    no_suffix {
         args: func_args![
             value: "Supercalifragilisticexpialidocious",
             limit: 5,
-            ellipsis: false,
         ],
         want: Ok("Super"),
     }
