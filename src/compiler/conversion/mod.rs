@@ -5,7 +5,7 @@ use std::{
 };
 
 use bytes::Bytes;
-use chrono::{DateTime, ParseError as ChronoParseError, TimeZone as _, Utc};
+use chrono::{DateTime, LocalResult, ParseError as ChronoParseError, TimeZone as _, Utc};
 use ordered_float::NotNan;
 use snafu::{ResultExt, Snafu};
 
@@ -238,12 +238,6 @@ const TIMESTAMP_LOCAL_FORMATS: &[&str] = &[
     "%a %b %e %T %Y",  // ctime format
 ];
 
-/// The list of allowed "automatic" timestamp formats for UTC
-const TIMESTAMP_UTC_FORMATS: &[&str] = &[
-    "%s",     // UNIX timestamp
-    "%FT%TZ", // ISO 8601 / RFC 3339 UTC
-];
-
 /// The list of allowed "automatic" timestamp formats with time zones
 const TIMESTAMP_TZ_FORMATS: &[&str] = &[
     "%+",                 // ISO 8601 / RFC 3339
@@ -252,6 +246,14 @@ const TIMESTAMP_TZ_FORMATS: &[&str] = &[
     "%a %d %b %T %#z %Y", // `date` command output, numeric TZ
     "%d/%b/%Y:%T %z",     // Common Log
 ];
+
+fn parse_unix_timestamp(timestamp_str: &str) -> LocalResult<DateTime<Utc>> {
+    if let Ok(seconds_since_epoch) = timestamp_str.parse::<i64>() {
+        Utc.timestamp_opt(seconds_since_epoch, 0)
+    } else {
+        LocalResult::None
+    }
+}
 
 /// Parse a string into a timestamp using one of a set of formats
 ///
@@ -265,21 +267,26 @@ fn parse_timestamp(tz: TimeZone, s: &str) -> Result<DateTime<Utc>, Error> {
             return Ok(result);
         }
     }
-    for format in TIMESTAMP_UTC_FORMATS {
-        if let Ok(result) = Utc.datetime_from_str(s, format) {
-            return Ok(result);
-        }
+
+    // This is equivalent to the "%s" format.
+    if let LocalResult::Single(result) = parse_unix_timestamp(s) {
+        return Ok(result);
     }
+
+    // This also handles "%FT%TZ" formats.
     if let Ok(result) = DateTime::parse_from_rfc3339(s) {
         return Ok(datetime_to_utc(&result));
     }
+
     if let Ok(result) = DateTime::parse_from_rfc2822(s) {
         return Ok(datetime_to_utc(&result));
     }
+
     for format in TIMESTAMP_TZ_FORMATS {
         if let Ok(result) = DateTime::parse_from_str(s, format) {
             return Ok(datetime_to_utc(&result));
         }
     }
+
     Err(Error::AutoTimestampParse { s: s.into() })
 }

@@ -286,7 +286,7 @@ mod tests {
             want: Ok(btreemap! {
                 "client" => "0.0.0.0",
                 "timestamp" => Value::Timestamp(DateTime::parse_from_rfc3339("2022-10-04T03:07:27Z").unwrap().into()),
-                "request" => r#"]&\xDF\xBDV\xE7\xBB<\x10;\xA2b}\xDFM\x1D"#,
+                "request" => r"]&\xDF\xBDV\xE7\xBB<\x10;\xA2b}\xDFM\x1D",
                 "status" => 400,
                 "size" => 150,
                 "referer" => "-",
@@ -418,6 +418,28 @@ mod tests {
                 "pid" => 133_309,
                 "tid" => 133_309,
                 "message" => "signal process started",
+            }),
+            tdef: TypeDef::object(kind_error()).fallible(),
+        }
+
+        error_line_with_empty_values {
+            args: func_args![
+                value: r#"2023/09/08 13:50:28 [warn] 3#3: *531 an upstream response is buffered to a temporary file /var/lib/nginx/tmp/fastcgi/6/03/0000000036 while reading upstream, client: 10.224.1.1, server: , request: "GET / HTTP/1.1", upstream: "fastcgi://127.0.0.1:9000", host: "", referrer: """#,
+                format: "error"
+            ],
+            want: Ok(btreemap! {
+                "timestamp" => Value::Timestamp(DateTime::parse_from_rfc3339("2023-09-08T13:50:28Z").unwrap().into()),
+                "severity" => "warn",
+                "pid" => 3,
+                "tid" => 3,
+                "cid" => 531,
+                "message" => "an upstream response is buffered to a temporary file /var/lib/nginx/tmp/fastcgi/6/03/0000000036 while reading upstream",
+                "client" => "10.224.1.1",
+                "server" => "",
+                "request" => "GET / HTTP/1.1",
+                "upstream" => "fastcgi://127.0.0.1:9000",
+                "host" => "",
+                "referer" => "",
             }),
             tdef: TypeDef::object(kind_error()).fallible(),
         }

@@ -320,7 +320,7 @@ mod tests {
             want: Ok(btreemap!{
                 "appname" => "evntslog",
                 "exampleSDID@32473" => btreemap! {
-                    "key" => r#"hello a\b"#,
+                    "key" => r"hello a\b",
                 },
                 "facility" => "local4",
                 "hostname" => "mymachine.example.com",

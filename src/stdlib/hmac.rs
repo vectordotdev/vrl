@@ -114,7 +114,7 @@ impl FunctionExpression for HmacFn {
     }
 
     fn type_def(&self, state: &state::TypeState) -> TypeDef {
-        let valid_algorithms = vec!["SHA1", "SHA-224", "SHA-256", "SHA-384", "SHA-512"];
+        let valid_algorithms = ["SHA1", "SHA-224", "SHA-256", "SHA-384", "SHA-512"];
 
         let mut valid_static_algo = false;
         if let Some(algorithm) = self.algorithm.as_ref() {

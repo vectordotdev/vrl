@@ -1,6 +1,8 @@
-use crate::compiler::prelude::*;
 use std::ops::Range;
 
+use crate::compiler::prelude::*;
+
+#[allow(clippy::cast_possible_wrap)]
 fn slice(start: i64, end: Option<i64>, value: Value) -> Resolved {
     let range = |len: i64| -> ExpressionResult<Range<usize>> {
         let start = match start {
@@ -132,8 +134,9 @@ impl FunctionExpression for SliceFn {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use crate::value;
+
+    use super::*;
 
     test_function![
         slice => Slice;

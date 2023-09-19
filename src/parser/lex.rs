@@ -1539,7 +1539,7 @@ mod test {
     #[rustfmt::skip]
     fn regex_literals() {
         test(
-            data(r#"r'[fb]oo+' r'a/b\[rz\]' r''"#),
+            data(r"r'[fb]oo+' r'a/b\[rz\]' r''"),
             vec![
                 (r#"~~~~~~~~~~                 "#, RegexLiteral("[fb]oo+")),
                 (r#"           ~~~~~~~~~~~~    "#, RegexLiteral("a/b\\[rz\\]")),
@@ -1560,7 +1560,7 @@ mod test {
     #[rustfmt::skip]
     fn timestamp_literals() {
         test(
-            data(r#"t'foo \' bar'"#),
+            data(r"t'foo \' bar'"),
             vec![
                 (r#"~~~~~~~~~~~~~"#, TimestampLiteral("foo \\' bar")),
             ],

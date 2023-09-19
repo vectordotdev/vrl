@@ -177,9 +177,9 @@ fn parse_pattern(
     parse_grok_rule(pattern, context)?;
     let mut pattern = String::new();
     // \A, \z - parses from the beginning to the end of string, not line(until \n)
-    pattern.push_str(r#"\A"#);
+    pattern.push_str(r"\A");
     pattern.push_str(&context.regex);
-    pattern.push_str(r#"\z"#);
+    pattern.push_str(r"\z");
 
     // our regex engine(onig) uses (?m) mode modifier instead of (?s) to make the dot match all characters
     pattern = pattern.replace("(?s)", "(?m)").replace("(?-s)", "(?-m)");

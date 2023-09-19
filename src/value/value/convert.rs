@@ -1,14 +1,15 @@
 use std::borrow::Cow;
 use std::collections::BTreeMap;
+use std::sync::Arc;
 
 use bytes::Bytes;
 use chrono::{DateTime, Utc};
 use ordered_float::NotNan;
 use regex::Regex;
-use std::sync::Arc;
+
+use crate::value::value::regex::ValueRegex;
 
 use super::super::{Kind, Value};
-use crate::value::value::regex::ValueRegex;
 
 impl Value {
     /// Returns self as `NotNan<f64>`, only if self is `Value::Float`.
@@ -104,6 +105,9 @@ impl Value {
     // This replaces the more implicit "From<f64>", but keeps the same behavior.
     // Ideally https://github.com/vectordotdev/vector/issues/11177 will remove this entirely
     /// Creates a Value from an f64. If the value is Nan, it is converted to 0.0
+    ///
+    /// # Panics
+    /// If NaN is used as a default value.
     #[must_use]
     pub fn from_f64_or_zero(value: f64) -> Self {
         NotNan::new(value).map_or_else(

@@ -1,5 +1,6 @@
 use crate::compiler::prelude::*;
 
+#[allow(clippy::cast_possible_wrap)]
 fn find(value: Value, pattern: Value, from: Option<Value>) -> Resolved {
     let from = match from {
         Some(value) => value.try_integer()?,
@@ -127,9 +128,11 @@ impl FunctionExpression for FindFn {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::value;
     use regex::Regex;
+
+    use crate::value;
+
+    use super::*;
 
     test_function![
         find => Find;

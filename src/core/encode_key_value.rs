@@ -46,7 +46,7 @@ pub fn to_string<V: Serialize>(
 
     let mut input = flatten(input, '.')?;
 
-    for field in fields_order.iter() {
+    for field in fields_order {
         match (input.remove(field), flatten_boolean) {
             (Some(Data::Boolean(false)), true) | (None, _) => (),
             (Some(Data::Boolean(true)), true) => {
@@ -109,9 +109,9 @@ fn encode_string(output: &mut String, str: &str) {
 
     for c in str.chars() {
         match c {
-            '\\' => output.push_str(r#"\\"#),
+            '\\' => output.push_str(r"\\"),
             '"' => output.push_str(r#"\""#),
-            '\n' => output.push_str(r#"\\n"#),
+            '\n' => output.push_str(r"\\n"),
             _ => output.push(c),
         }
     }

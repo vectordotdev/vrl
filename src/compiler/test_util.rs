@@ -19,6 +19,7 @@ macro_rules! test_type_def {
                 #[test]
                 fn $name() {
                     let mut state = $crate::compiler::state::TypeState::default();
+                    #[allow(clippy::redundant_closure_call)]
                     let expression = Box::new($expr(&mut state));
 
                     assert_eq!(expression.type_def(&state), $def);
