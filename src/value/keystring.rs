@@ -1,21 +1,24 @@
 use std::borrow::Cow;
 use std::fmt::{self, Display, Formatter};
 
+#[cfg(any(test, feature = "proptest"))]
+use proptest::prelude::*;
 use serde::{Deserialize, Serialize};
+use smol_str::SmolStr;
 
 /// The key type value. This is a simple zero-overhead wrapper set up to make it explicit that
 /// object keys are read-only and their underlying type is opaque and may change for efficiency.
 #[derive(Clone, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
-#[cfg_attr(any(test, feature = "proptest"), derive(proptest_derive::Arbitrary))]
 #[serde(transparent)]
-pub struct KeyString(String);
+pub struct KeyString(SmolStr);
 
 impl KeyString {
     /// Convert the key into a boxed slice of bytes (`u8`).
     #[inline]
     #[must_use]
     pub fn into_bytes(self) -> Box<[u8]> {
-        self.0.into_bytes().into()
+        let s: String = self.0.into();
+        s.into_bytes().into()
     }
 
     /// Is this string empty?
@@ -79,7 +82,7 @@ impl From<&str> for KeyString {
 
 impl From<String> for KeyString {
     fn from(s: String) -> Self {
-        Self(s)
+        Self(SmolStr::from(s))
     }
 }
 
@@ -91,19 +94,29 @@ impl From<Cow<'_, str>> for KeyString {
 
 impl From<KeyString> for String {
     fn from(s: KeyString) -> Self {
-        s.0
+        s.0.into()
+    }
+}
+
+#[cfg(any(test, feature = "proptest"))]
+impl Arbitrary for KeyString {
+    type Parameters = ();
+    type Strategy = BoxedStrategy<Self>;
+
+    fn arbitrary_with((): Self::Parameters) -> Self::Strategy {
+        any::<String>().prop_map(Into::into).boxed()
     }
 }
 
 #[cfg(any(test, feature = "arbitrary"))]
 impl quickcheck::Arbitrary for KeyString {
     fn arbitrary(g: &mut quickcheck::Gen) -> Self {
-        String::arbitrary(g).into()
+        <String as quickcheck::Arbitrary>::arbitrary(g).into()
     }
 
     fn shrink(&self) -> Box<dyn Iterator<Item = Self>> {
-        let s = self.0.clone();
-        Box::new(s.shrink().map(Into::into))
+        let s: String = self.0.clone().into();
+        Box::new(<String as quickcheck::Arbitrary>::shrink(&s).map(Into::into))
     }
 }
 
