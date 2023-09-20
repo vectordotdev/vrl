@@ -12,6 +12,8 @@
 - added `community_id` function for generation of [V1 Community IDs](https://github.com/corelight/community-id-spec) (https://github.com/vectordotdev/vrl/pull/360). 
 - removed deprecated `to_timestamp` function (https://github.com/vectordotdev/vrl/pull/452)
 
+- added `contains_all` function (https://github.com/vectordotdev/vrl/pull/468)
+- 
 ## `0.6.0` (2023-08-02)
 
 #### Bug Fixes
