@@ -8,14 +8,14 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 #[cfg_attr(any(test, feature = "proptest"), derive(proptest_derive::Arbitrary))]
 #[serde(transparent)]
-pub struct KeyString(String);
+pub struct KeyString(Box<str>);
 
 impl KeyString {
     /// Convert the key into a boxed slice of bytes (`u8`).
     #[inline]
     #[must_use]
     pub fn into_bytes(self) -> Box<[u8]> {
-        self.0.into_bytes().into()
+        self.0.into_boxed_bytes()
     }
 
     /// Is this string empty?
@@ -79,7 +79,9 @@ impl From<&str> for KeyString {
 
 impl From<String> for KeyString {
     fn from(s: String) -> Self {
-        Self(s)
+        // TODO: This can end up reallocating the underlying `Vec` if there is excess capacity,
+        // which can make `Box::new(s.as_str())` faster.
+        Self(s.into())
     }
 }
 
@@ -91,7 +93,7 @@ impl From<Cow<'_, str>> for KeyString {
 
 impl From<KeyString> for String {
     fn from(s: KeyString) -> Self {
-        s.0
+        s.0.into()
     }
 }
 
@@ -102,7 +104,7 @@ impl quickcheck::Arbitrary for KeyString {
     }
 
     fn shrink(&self) -> Box<dyn Iterator<Item = Self>> {
-        let s = self.0.clone();
+        let s: String = self.0.clone().into();
         Box::new(s.shrink().map(Into::into))
     }
 }
