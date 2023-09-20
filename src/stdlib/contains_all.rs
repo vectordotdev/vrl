@@ -63,24 +63,14 @@ impl Function for ContainsAll {
     fn examples(&self) -> &'static [Example] {
         &[
             Example {
-                title: "contains",
-                source: r#"contains("The Needle In The Haystack", "Needle", "Haystack")"#,
+                title: "contains_all true",
+                source: r#"contains_all("The Needle In The Haystack", ["Needle", "Haystack"])"#,
                 result: Ok("true"),
             },
             Example {
-                title: "contains",
-                source: r#"contains("The Needle In The Haystack", "Needle", "Haystack", "chicken")"#,
+                title: "contains_all false",
+                source: r#"contains("the NEEDLE in the haystack", "needle", "haystack")"#,
                 result: Ok("false"),
-            },
-            Example {
-                title: "case sensitive",
-                source: r#"contains("banana", ["AnA", "ana"])"#,
-                result: Ok("false"),
-            },
-            Example {
-                title: "case insensitive",
-                source: r#"contains("banana", ["AnA", "ana"])"#,
-                result: Ok("true"),
             },
         ]
     }
