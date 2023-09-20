@@ -1,23 +1,9 @@
 use crate::compiler::prelude::*;
+use crate::stdlib::string_utils::convert_to_string;
 
 fn contains(value: Value, substring: Value, case_sensitive: bool) -> Resolved {
-    let substring = {
-        let bytes = substring.try_bytes()?;
-        let string = String::from_utf8_lossy(&bytes);
-
-        match case_sensitive {
-            true => string.into_owned(),
-            false => string.to_lowercase(),
-        }
-    };
-    let value = {
-        let string = value.try_bytes_utf8_lossy()?;
-
-        match case_sensitive {
-            true => string.into_owned(),
-            false => string.to_lowercase(),
-        }
-    };
+    let value = convert_to_string(value, case_sensitive)?;
+    let substring = convert_to_string(substring, case_sensitive)?;
     Ok(value.contains(&substring).into())
 }
 
@@ -106,8 +92,9 @@ impl FunctionExpression for ContainsFn {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use crate::value;
+
+    use super::*;
 
     test_function![
         contains => Contains;
