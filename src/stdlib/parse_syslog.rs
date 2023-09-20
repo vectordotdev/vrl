@@ -102,35 +102,41 @@ fn resolve_year((month, _date, _hour, _min, _sec): IncompleteDate) -> i32 {
 fn message_to_value(message: Message<&str>) -> Value {
     let mut result = BTreeMap::new();
 
-    result.insert("message".to_string(), message.msg.to_string().into());
+    result.insert("message".to_string().into(), message.msg.to_string().into());
 
     if let Some(host) = message.hostname {
-        result.insert("hostname".to_string(), host.to_string().into());
+        result.insert("hostname".to_string().into(), host.to_string().into());
     }
 
     if let Some(severity) = message.severity {
-        result.insert("severity".to_string(), severity.as_str().to_owned().into());
+        result.insert(
+            "severity".to_string().into(),
+            severity.as_str().to_owned().into(),
+        );
     }
 
     if let Some(facility) = message.facility {
-        result.insert("facility".to_string(), facility.as_str().to_owned().into());
+        result.insert(
+            "facility".to_string().into(),
+            facility.as_str().to_owned().into(),
+        );
     }
 
     if let Protocol::RFC5424(version) = message.protocol {
-        result.insert("version".to_string(), version.into());
+        result.insert("version".to_string().into(), version.into());
     }
 
     if let Some(app_name) = message.appname {
-        result.insert("appname".to_string(), app_name.to_owned().into());
+        result.insert("appname".to_string().into(), app_name.to_owned().into());
     }
 
     if let Some(msg_id) = message.msgid {
-        result.insert("msgid".to_string(), msg_id.to_owned().into());
+        result.insert("msgid".to_string().into(), msg_id.to_owned().into());
     }
 
     if let Some(timestamp) = message.timestamp {
         let timestamp: DateTime<Utc> = timestamp.into();
-        result.insert("timestamp".to_string(), timestamp.into());
+        result.insert("timestamp".to_string().into(), timestamp.into());
     }
 
     if let Some(procid) = message.procid {
@@ -138,15 +144,15 @@ fn message_to_value(message: Message<&str>) -> Value {
             ProcId::PID(pid) => pid.into(),
             ProcId::Name(name) => name.to_string().into(),
         };
-        result.insert("procid".to_string(), value);
+        result.insert("procid".to_string().into(), value);
     }
 
     for element in message.structured_data {
         let mut sdata = BTreeMap::new();
         for (name, value) in element.params() {
-            sdata.insert(name.to_string(), value.into());
+            sdata.insert(name.to_string().into(), value.into());
         }
-        result.insert(element.id.to_string(), sdata.into());
+        result.insert(element.id.to_string().into(), sdata.into());
     }
 
     result.into()

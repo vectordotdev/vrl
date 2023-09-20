@@ -1,6 +1,6 @@
 use std::{marker::PhantomData, ops::IndexMut};
 
-use super::Value;
+use super::{KeyString, Value};
 
 impl Value {
     /// Create an iterator over the `Value`.
@@ -11,7 +11,7 @@ impl Value {
     /// For collection types, it returns all elements in the collection.
     ///
     /// The resulting item is an [`IterItem`], which contains either a mutable
-    /// `Value` for non-collection types, a (`&mut String`, `&mut Value`) pair for
+    /// `Value` for non-collection types, a (`&mut KeyString`, `&mut Value`) pair for
     /// object-type collections, or an immutable/mutable (`usize`, `&mut Value`)
     /// pair for array-type collections.
     ///
@@ -63,7 +63,7 @@ pub enum IterItem<'a> {
     Value(&'a mut Value),
 
     /// A key/value combination.
-    KeyValue(&'a mut String, &'a mut Value),
+    KeyValue(&'a mut KeyString, &'a mut Value),
 
     /// An index/value combination.
     IndexValue(usize, &'a mut Value),
@@ -71,11 +71,11 @@ pub enum IterItem<'a> {
 
 /// The internal data representation used by the iterator.
 ///
-/// Objects are stored as a `Vec<(String, Value)>`, to allow mutating the object
+/// Objects are stored as a `Vec<(KeyString, Value)>`, to allow mutating the object
 /// keys during iteration.
 enum IterData {
     Value(Value),
-    Object(Vec<(String, Value)>),
+    Object(Vec<(KeyString, Value)>),
     Array(Vec<Value>),
 }
 
@@ -320,7 +320,7 @@ mod tests {
             (
                 "object non-recursive",
                 TestCase {
-                    value: Value::Object(BTreeMap::from([("foo".to_owned(), true.into())])),
+                    value: Value::Object(BTreeMap::from([("foo".into(), true.into())])),
                     recursive: false,
                     items: vec![true.into()],
                 },
@@ -329,21 +329,15 @@ mod tests {
                 "object recursive",
                 TestCase {
                     value: BTreeMap::from([(
-                        "foo".to_owned(),
-                        BTreeMap::from([
-                            ("foo".to_owned(), true.into()),
-                            ("bar".to_owned(), "baz".into()),
-                        ])
-                        .into(),
+                        "foo".into(),
+                        BTreeMap::from([("foo".into(), true.into()), ("bar".into(), "baz".into())])
+                            .into(),
                     )])
                     .into(),
                     recursive: true,
                     items: vec![
-                        BTreeMap::from([
-                            ("foo".to_owned(), true.into()),
-                            ("bar".to_owned(), "baz".into()),
-                        ])
-                        .into(),
+                        BTreeMap::from([("foo".into(), true.into()), ("bar".into(), "baz".into())])
+                            .into(),
                         "baz".into(),
                         true.into(),
                     ],
@@ -354,16 +348,16 @@ mod tests {
                 TestCase {
                     value: BTreeMap::from([
                         (
-                            "foo".to_owned(),
-                            BTreeMap::from([("bar".to_owned(), Value::Null)]).into(),
+                            "foo".into(),
+                            BTreeMap::from([("bar".into(), Value::Null)]).into(),
                         ),
-                        ("baz".to_owned(), true.into()),
+                        ("baz".into(), true.into()),
                     ])
                     .into(),
                     recursive: true,
                     items: vec![
                         true.into(),
-                        BTreeMap::from([("bar".to_owned(), Value::Null)]).into(),
+                        BTreeMap::from([("bar".into(), Value::Null)]).into(),
                         Value::Null,
                     ],
                 },
@@ -384,7 +378,7 @@ mod tests {
 
     #[test]
     fn test_mutations() {
-        let data: Value = BTreeMap::from([("foo".to_owned(), vec![true].into())]).into();
+        let data: Value = BTreeMap::from([("foo".into(), vec![true].into())]).into();
 
         // Empty vec before recursing means recursion doesn't find any elements.
         let mut iter = data.clone().into_iter(true);
@@ -451,7 +445,7 @@ mod tests {
                 IterItem::Value(value) => values.push(value.clone()),
                 IterItem::KeyValue(key, value) => match value {
                     value @ Value::Array(..) => {
-                        *value = BTreeMap::from([("bar".to_owned(), true.into())]).into();
+                        *value = BTreeMap::from([("bar".into(), true.into())]).into();
                         changed = true;
                     }
                     value => values.push(value.clone()),

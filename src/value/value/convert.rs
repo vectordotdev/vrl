@@ -1,5 +1,4 @@
 use std::borrow::Cow;
-use std::collections::BTreeMap;
 use std::sync::Arc;
 
 use bytes::Bytes;
@@ -9,7 +8,7 @@ use regex::Regex;
 
 use crate::value::value::regex::ValueRegex;
 
-use super::super::{Kind, Value};
+use super::super::{KeyString, Kind, ObjectMap, Value};
 
 impl Value {
     /// Returns self as `NotNan<f64>`, only if self is `Value::Float`.
@@ -20,8 +19,8 @@ impl Value {
         }
     }
 
-    /// Returns self as `BTreeMap<String, Value>`, only if self is `Value::Object`.
-    pub fn into_object(self) -> Option<BTreeMap<String, Self>> {
+    /// Returns self as `ObjectMap`, only if self is `Value::Object`.
+    pub fn into_object(self) -> Option<ObjectMap> {
         match self {
             Self::Object(map) => Some(map),
             _ => None,
@@ -48,12 +47,12 @@ impl Value {
         }
     }
 
-    /// Returns self as a mutable `BTreeMap<String, Value>`.
+    /// Returns self as a mutable `ObjectMap`.
     ///
     /// # Panics
     ///
     /// This function will panic if self is anything other than `Value::Object`.
-    pub fn as_object_mut_unwrap(&mut self) -> &mut BTreeMap<String, Self> {
+    pub fn as_object_mut_unwrap(&mut self) -> &mut ObjectMap {
         match self {
             Self::Object(ref mut m) => m,
             _ => panic!("Tried to call `Value::as_map` on a non-map value."),
@@ -224,16 +223,16 @@ impl Value {
         matches!(self, Self::Object(_))
     }
 
-    /// Returns self as `&BTreeMap<String, Value>`, only if self is `Value::Object`.
-    pub fn as_object(&self) -> Option<&BTreeMap<String, Self>> {
+    /// Returns self as `&ObjectMap`, only if self is `Value::Object`.
+    pub fn as_object(&self) -> Option<&ObjectMap> {
         match self {
             Self::Object(v) => Some(v),
             _ => None,
         }
     }
 
-    /// Returns self as `&mut BTreeMap<String, Value>`, only if self is `Value::Object`.
-    pub fn as_object_mut(&mut self) -> Option<&mut BTreeMap<String, Self>> {
+    /// Returns self as `&mut ObjectMap`, only if self is `Value::Object`.
+    pub fn as_object_mut(&mut self) -> Option<&mut ObjectMap> {
         match self {
             Self::Object(v) => Some(v),
             _ => None,
@@ -289,6 +288,12 @@ impl From<String> for Value {
     }
 }
 
+impl From<KeyString> for Value {
+    fn from(string: KeyString) -> Self {
+        Self::Bytes(string.into_bytes().into())
+    }
+}
+
 impl From<&str> for Value {
     fn from(v: &str) -> Self {
         Self::Bytes(Bytes::copy_from_slice(v.as_bytes()))
@@ -339,8 +344,8 @@ impl From<f64> for Value {
     }
 }
 
-impl From<BTreeMap<String, Self>> for Value {
-    fn from(value: BTreeMap<String, Self>) -> Self {
+impl From<ObjectMap> for Value {
+    fn from(value: ObjectMap) -> Self {
         Self::Object(value)
     }
 }
@@ -351,9 +356,17 @@ impl FromIterator<Self> for Value {
     }
 }
 
+impl FromIterator<(KeyString, Self)> for Value {
+    fn from_iter<I: IntoIterator<Item = (KeyString, Self)>>(iter: I) -> Self {
+        Self::Object(iter.into_iter().collect())
+    }
+}
+
 impl FromIterator<(String, Self)> for Value {
     fn from_iter<I: IntoIterator<Item = (String, Self)>>(iter: I) -> Self {
-        Self::Object(iter.into_iter().collect::<BTreeMap<String, Self>>())
+        iter.into_iter()
+            .map(|(k, v)| (KeyString::from(k), v))
+            .collect()
     }
 }
 

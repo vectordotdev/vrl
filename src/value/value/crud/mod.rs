@@ -1,7 +1,6 @@
 use crate::path::BorrowedSegment;
-use crate::value::Value;
+use crate::value::{KeyString, ObjectMap, Value};
 use std::borrow::{Borrow, Cow};
-use std::collections::BTreeMap;
 
 mod get;
 mod get_mut;
@@ -55,8 +54,8 @@ impl ValueCollection for Value {
     }
 }
 
-impl ValueCollection for BTreeMap<String, Value> {
-    type Key = String;
+impl ValueCollection for ObjectMap {
+    type Key = KeyString;
     type BorrowedKey = str;
 
     fn get_value(&self, key: &str) -> Option<&Value> {
@@ -67,7 +66,7 @@ impl ValueCollection for BTreeMap<String, Value> {
         self.get_mut(key)
     }
 
-    fn insert_value(&mut self, key: String, value: Value) -> Option<Value> {
+    fn insert_value(&mut self, key: KeyString, value: Value) -> Option<Value> {
         self.insert(key, value)
     }
 
@@ -164,7 +163,7 @@ pub fn skip_remaining_coalesce_segments<'a>(
 /// If none matches, returns Err with the last key.
 pub fn get_matching_coalesce_key<'a>(
     initial_key: Cow<'a, str>,
-    map: &BTreeMap<String, Value>,
+    map: &ObjectMap,
     path_iter: &mut impl Iterator<Item = BorrowedSegment<'a>>,
 ) -> Result<Cow<'a, str>, Cow<'a, str>> {
     let mut key = initial_key;
@@ -203,7 +202,7 @@ mod test {
 
     #[test]
     fn single_field() {
-        let mut value = Value::from(BTreeMap::default());
+        let mut value = Value::from(ObjectMap::default());
         let key = "root";
         let mut marker = Value::from(true);
         assert_eq!(value.insert(key, marker.clone()), None);
@@ -215,7 +214,7 @@ mod test {
 
     #[test]
     fn nested_field() {
-        let mut value = Value::from(BTreeMap::default());
+        let mut value = Value::from(ObjectMap::default());
         let key = "root.doot";
         let mut marker = Value::from(true);
         assert_eq!(value.insert(key, marker.clone()), None);
@@ -230,7 +229,7 @@ mod test {
 
     #[test]
     fn double_nested_field() {
-        let mut value = Value::from(BTreeMap::default());
+        let mut value = Value::from(ObjectMap::default());
         let key = "root.doot.toot";
         let mut marker = Value::from(true);
         assert_eq!(value.insert(key, marker.clone()), None);
@@ -271,7 +270,7 @@ mod test {
 
     #[test]
     fn field_index() {
-        let mut value = Value::from(BTreeMap::default());
+        let mut value = Value::from(ObjectMap::default());
         let key = "root[0]";
         let mut marker = Value::from(true);
         assert_eq!(value.insert(key, marker.clone()), None);
@@ -318,7 +317,7 @@ mod test {
 
     #[test]
     fn field_with_nested_index_field() {
-        let mut value = Value::from(BTreeMap::default());
+        let mut value = Value::from(ObjectMap::default());
         let key = "root[0][0].boot";
         let mut marker = Value::from(true);
         assert_eq!(value.insert(key, marker.clone()), None);
@@ -335,7 +334,7 @@ mod test {
 
     #[test]
     fn populated_field() {
-        let mut value = Value::from(BTreeMap::default());
+        let mut value = Value::from(ObjectMap::default());
         let marker = Value::from(true);
         assert_eq!(value.insert("a[2]", marker.clone()), None);
 

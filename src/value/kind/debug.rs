@@ -1,18 +1,17 @@
-use super::{Kind, Value};
-use std::collections::BTreeMap;
+use super::{super::ObjectMap, Kind, Value};
 
 impl Kind {
     /// Returns a tree representation of `Kind`, in a more human readable format.
     /// This is for debugging / development purposes only.
     #[must_use]
-    pub fn debug_info(&self) -> BTreeMap<String, Value> {
-        let mut output = BTreeMap::new();
+    pub fn debug_info(&self) -> ObjectMap {
+        let mut output = ObjectMap::new();
         insert_kind(&mut output, self, true);
         output
     }
 }
 
-fn insert_kind(tree: &mut BTreeMap<String, Value>, kind: &Kind, show_unknown: bool) {
+fn insert_kind(tree: &mut ObjectMap, kind: &Kind, show_unknown: bool) {
     if kind.is_never() {
         insert_if_true(tree, "never", true);
     } else if kind.is_any() {
@@ -30,13 +29,13 @@ fn insert_kind(tree: &mut BTreeMap<String, Value>, kind: &Kind, show_unknown: bo
         insert_if_true(tree, "undefined", kind.contains_undefined());
 
         if let Some(fields) = &kind.object {
-            let mut object_tree = BTreeMap::new();
+            let mut object_tree = ObjectMap::new();
             for (field, field_kind) in fields.known() {
-                let mut field_tree = BTreeMap::new();
+                let mut field_tree = ObjectMap::new();
                 insert_kind(&mut field_tree, field_kind, show_unknown);
-                object_tree.insert(field.to_string(), Value::Object(field_tree));
+                object_tree.insert(field.to_string().into(), Value::Object(field_tree));
             }
-            tree.insert("object".to_owned(), Value::Object(object_tree));
+            tree.insert("object".into(), Value::Object(object_tree));
             if show_unknown {
                 insert_unknown(
                     tree,
@@ -48,13 +47,13 @@ fn insert_kind(tree: &mut BTreeMap<String, Value>, kind: &Kind, show_unknown: bo
         }
 
         if let Some(indices) = &kind.array {
-            let mut array_tree = BTreeMap::new();
+            let mut array_tree = ObjectMap::new();
             for (index, index_kind) in indices.known() {
-                let mut index_tree = BTreeMap::new();
+                let mut index_tree = ObjectMap::new();
                 insert_kind(&mut index_tree, index_kind, show_unknown);
-                array_tree.insert(index.to_string(), Value::Object(index_tree));
+                array_tree.insert(index.to_string().into(), Value::Object(index_tree));
             }
-            tree.insert("array".to_owned(), Value::Object(array_tree));
+            tree.insert("array".to_owned().into(), Value::Object(array_tree));
             if show_unknown {
                 insert_unknown(
                     tree,
@@ -69,32 +68,27 @@ fn insert_kind(tree: &mut BTreeMap<String, Value>, kind: &Kind, show_unknown: bo
 
 // Clippy complains with "needless_borrow" if you try to fix this.
 #[allow(clippy::needless_pass_by_value)]
-fn insert_unknown(
-    tree: &mut BTreeMap<String, Value>,
-    unknown: Kind,
-    unknown_exact: bool,
-    prefix: &str,
-) {
+fn insert_unknown(tree: &mut ObjectMap, unknown: Kind, unknown_exact: bool, prefix: &str) {
     if unknown.is_undefined() {
         return;
     }
-    let mut unknown_tree = BTreeMap::new();
+    let mut unknown_tree = ObjectMap::new();
     insert_kind(&mut unknown_tree, &unknown, unknown_exact);
     if unknown.is_exact() {
         tree.insert(
-            format!("{prefix}_unknown_exact"),
+            format!("{prefix}_unknown_exact").into(),
             Value::Object(unknown_tree),
         );
     } else {
         tree.insert(
-            format!("{prefix}_unknown_infinite"),
+            format!("{prefix}_unknown_infinite").into(),
             Value::Object(unknown_tree),
         );
     }
 }
 
-fn insert_if_true(tree: &mut BTreeMap<String, Value>, key: &str, value: bool) {
+fn insert_if_true(tree: &mut ObjectMap, key: &str, value: bool) {
     if value {
-        tree.insert(key.to_owned(), Value::Boolean(true));
+        tree.insert(key.to_owned().into(), Value::Boolean(true));
     }
 }

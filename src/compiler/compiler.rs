@@ -289,7 +289,10 @@ impl<'a> Compiler<'a> {
         let exprs = exprs.into_iter().collect::<Option<Vec<_>>>()?;
 
         Some(Object::new(
-            keys.into_iter().zip(exprs).collect::<BTreeMap<_, _>>(),
+            keys.into_iter()
+                .zip(exprs)
+                .map(|(key, value)| (key.into(), value))
+                .collect::<BTreeMap<_, _>>(),
         ))
     }
 

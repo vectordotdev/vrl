@@ -129,7 +129,7 @@ fn inner_kind() -> BTreeMap<Field, Kind> {
 }
 
 fn parse_log(mut input: &str) -> ExpressionResult<Value> {
-    let mut log = BTreeMap::new();
+    let mut log = BTreeMap::<KeyString, Value>::new();
 
     macro_rules! get_value {
         ($name:expr, $parser:expr) => {{
@@ -190,7 +190,7 @@ fn parse_log(mut input: &str) -> ExpressionResult<Value> {
     let request = get_value!("request", take_quoted1);
     let mut iter = request.splitn(2, ' ');
     log.insert(
-        "request_method".to_owned(),
+        "request_method".to_owned().into(),
         match iter.next().unwrap().into() {
             Value::Bytes(bytes) if bytes == "-" => Value::Null,
             value => value,
@@ -200,7 +200,7 @@ fn parse_log(mut input: &str) -> ExpressionResult<Value> {
         Some(value) => {
             let mut iter = value.rsplitn(2, ' ');
             log.insert(
-                "request_protocol".to_owned(),
+                "request_protocol".to_owned().into(),
                 match iter.next().unwrap().into() {
                     Value::Bytes(bytes) if bytes == "-" => Value::Null,
                     value => value,

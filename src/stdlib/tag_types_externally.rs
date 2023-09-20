@@ -96,7 +96,7 @@ fn tag_type_externally(value: Value) -> Value {
             object
                 .into_iter()
                 .map(|(key, value)| (key, tag_type_externally(value)))
-                .collect::<BTreeMap<String, Value>>()
+                .collect::<ObjectMap>()
                 .into(),
         ),
         Value::Array(array) => (
@@ -113,7 +113,7 @@ fn tag_type_externally(value: Value) -> Value {
     };
 
     if let Some(key) = key {
-        BTreeMap::from([(key.to_owned(), value)]).into()
+        BTreeMap::from([(key.to_owned().into(), value)]).into()
     } else {
         value
     }
