@@ -26,7 +26,7 @@ default = ["compiler", "value", "diagnostic", "path", "parser", "stdlib", "datad
 
 # Main features (on by default)
 compiler = ["diagnostic", "path", "parser", "value", "dep:paste", "dep:chrono", "dep:serde", "dep:regex", "dep:bytes", "dep:ordered-float", "dep:chrono-tz", "dep:snafu", "dep:thiserror", "dep:dyn-clone", "dep:indoc", "dep:thiserror", "dep:lalrpop-util"]
-value = ["path", "dep:bytes", "dep:regex", "dep:ordered-float", "dep:chrono", "dep:serde_json"]
+value = ["path", "dep:bytes", "dep:chrono", "dep:compact_str", "dep:ordered-float", "dep:regex", "dep:serde_json"]
 diagnostic = ["dep:codespan-reporting", "dep:termcolor"]
 path = ["value", "dep:once_cell", "dep:serde", "dep:snafu", "dep:regex"]
 parser = ["path", "diagnostic", "value", "dep:thiserror", "dep:ordered-float", "dep:lalrpop-util"]
@@ -128,6 +128,7 @@ charset = { version = "0.1", optional = true }
 chrono = { version = "0.4", default-features = false, features = ["clock", "serde", "wasmbind"], optional = true }
 chrono-tz = { version = "0.10", default-features = false, optional = true }
 cidr-utils = { version = "0.6", optional = true }
+compact_str = { version = "0.7.1", default-features = false, features = ["serde"], optional = true }
 csv = { version = "1", optional = true }
 clap = { version = "4", features = ["derive"], optional = true }
 codespan-reporting = {version = "0.11", optional = true }
@@ -226,6 +227,7 @@ uuid = { version = "1", features = ["v4", "v7", "js"], optional = true }
 anyhow = "1"
 criterion = "0.5"
 chrono-tz = "0.10"
+compact_str = { version = "0.7.1", default-features = false, features = ["proptest", "serde"] }
 serde_json = "1"
 indoc = "2"
 tracing-test = { version = "0.2", default-features = false }
