@@ -1,12 +1,17 @@
 use crate::compiler::prelude::*;
 use crate::stdlib::string_utils::convert_to_string;
 
-fn contains_all(value: Value, substrings: Value, case_sensitive: bool) -> Resolved {
-    let value_string = convert_to_string(value, case_sensitive)?;
+fn contains_all(value: Value, substrings: Value, case_sensitive: Option<Value>) -> Resolved {
+    let to_lowercase = match case_sensitive {
+        Some(v) => v.try_boolean()?,
+        None => true,
+    };
+
+    let value_string = convert_to_string(value, to_lowercase)?;
     let substring_values = substrings.try_array()?;
 
     for substring_value in substring_values {
-        let substring = convert_to_string(substring_value, case_sensitive)?;
+        let substring = convert_to_string(substring_value, to_lowercase)?;
         if !value_string.contains(&substring) {
             return Ok(false.into());
         }
@@ -50,7 +55,7 @@ impl Function for ContainsAll {
     ) -> Compiled {
         let value = arguments.required("value");
         let substrings = arguments.required("substrings");
-        let case_sensitive = arguments.optional("case_sensitive").unwrap_or(expr!(true));
+        let case_sensitive = arguments.optional("case_sensitive");
 
         Ok(ContainsAllFn {
             value,
@@ -80,14 +85,18 @@ impl Function for ContainsAll {
 struct ContainsAllFn {
     value: Box<dyn Expression>,
     substrings: Box<dyn Expression>,
-    case_sensitive: Box<dyn Expression>,
+    case_sensitive: Option<Box<dyn Expression>>,
 }
 
 impl FunctionExpression for ContainsAllFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let value = self.value.resolve(ctx)?;
         let substrings = self.substrings.resolve(ctx)?;
-        let case_sensitive = self.case_sensitive.resolve(ctx)?.try_boolean()?;
+        let case_sensitive = self
+            .case_sensitive
+            .as_ref()
+            .map(|expr| expr.resolve(ctx))
+            .transpose()?;
         contains_all(value, substrings, case_sensitive)
     }
 
