@@ -1,5 +1,17 @@
 //! Contains the main "Value" type for Vector and VRL, as well as helper methods.
 
+use std::collections::BTreeMap;
+
+use bytes::{Bytes, BytesMut};
+use chrono::{DateTime, SecondsFormat, Utc};
+use ordered_float::NotNan;
+
+pub use iter::{IterItem, ValueIter};
+
+use crate::path::ValuePath;
+
+pub use super::value::regex::ValueRegex;
+
 mod convert;
 mod crud;
 mod display;
@@ -12,15 +24,6 @@ mod arbitrary;
 #[cfg(any(test, feature = "lua"))]
 mod lua;
 mod serde;
-
-use std::collections::BTreeMap;
-
-pub use super::value::regex::ValueRegex;
-use crate::path::ValuePath;
-use bytes::{Bytes, BytesMut};
-use chrono::{DateTime, SecondsFormat, Utc};
-pub use iter::{IterItem, ValueIter};
-use ordered_float::NotNan;
 
 /// A boxed `std::error::Error`.
 pub type StdError = Box<dyn std::error::Error + Send + Sync + 'static>;
@@ -107,9 +110,9 @@ impl Value {
     ///
     /// let mut val = Value::from(BTreeMap::default());
     /// assert_eq!(val.is_empty(), true);
-    /// val.insert("foo", 1);
+    /// val.insert(path!("foo"), 1);
     /// assert_eq!(val.is_empty(), false);
-    /// val.insert("bar", 2);
+    /// val.insert(path!("bar"), 2);
     /// assert_eq!(val.is_empty(), false);
     /// ```
     pub fn is_empty(&self) -> bool {
@@ -175,9 +178,10 @@ pub fn timestamp_to_string(timestamp: &DateTime<Utc>) -> String {
 
 #[cfg(test)]
 mod test {
+    use quickcheck::{QuickCheck, TestResult};
+
     use crate::path;
     use crate::path::BorrowedSegment;
-    use quickcheck::{QuickCheck, TestResult};
 
     use super::*;
 

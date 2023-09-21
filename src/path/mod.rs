@@ -83,18 +83,20 @@
 //! - `owned_value_path!("foo.bar", "x")` will create a path with *two* segments. Equivalent to `."foo.bar".x`
 //!
 
-mod borrowed;
-mod concat;
-mod jit;
-mod owned;
-
-use self::jit::JitValuePath;
-use snafu::Snafu;
 use std::fmt::Debug;
+
+use snafu::Snafu;
 
 pub use borrowed::BorrowedSegment;
 pub use concat::PathConcat;
 pub use owned::{OwnedSegment, OwnedTargetPath, OwnedValuePath};
+
+use self::jit::JitValuePath;
+
+mod borrowed;
+mod concat;
+mod jit;
+mod owned;
 
 #[derive(Clone, Debug, Eq, PartialEq, Snafu)]
 pub enum PathParseError {
@@ -244,7 +246,7 @@ pub trait ValuePath<'a>: Clone {
     }
 }
 
-#[cfg(feature = "string_path")]
+#[cfg(any(feature = "string_path", test))]
 impl<'a> ValuePath<'a> for &'a str {
     type Iter = jit::JitValuePathIter<'a>;
 
@@ -253,7 +255,7 @@ impl<'a> ValuePath<'a> for &'a str {
     }
 }
 
-#[cfg(feature = "string_path")]
+#[cfg(any(feature = "string_path", test))]
 impl<'a> TargetPath<'a> for &'a str {
     type ValuePath = &'a str;
 
