@@ -1,2 +1,2 @@
 #!/bin/bash
-cargo test --workspace --features "test"
+cargo test --workspace
