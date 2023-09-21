@@ -1,9 +1,10 @@
 use crate::compiler::prelude::*;
 
-fn truncate(value: Value, limit: Value, suffix: Value) -> Resolved {
+fn truncate(value: Value, limit: Value, ellipsis: Value, suffix: Value) -> Resolved {
     let mut value = value.try_bytes_utf8_lossy()?.into_owned();
     let limit = limit.try_integer()?;
     let limit = if limit < 0 { 0 } else { limit as usize };
+    let ellipsis = ellipsis.try_boolean()?;
     let suffix = suffix.try_bytes_utf8_lossy()?.to_string();
     let pos = if let Some((pos, chr)) = value.char_indices().take(limit).last() {
         // char_indices gives us the starting position of the character at limit,
@@ -15,7 +16,9 @@ fn truncate(value: Value, limit: Value, suffix: Value) -> Resolved {
     };
     if value.len() > pos {
         value.truncate(pos);
-        if !suffix.is_empty() {
+        if ellipsis {
+            value.push_str("...");
+        } else if !suffix.is_empty() {
             value.push_str(&suffix);
         }
     }
@@ -43,6 +46,11 @@ impl Function for Truncate {
                 required: true,
             },
             Parameter {
+                keyword: "ellipsis",
+                kind: kind::BOOLEAN,
+                required: false,
+            },
+            Parameter {
                 keyword: "suffix",
                 kind: kind::BYTES,
                 required: false,
@@ -63,9 +71,14 @@ impl Function for Truncate {
                 result: Ok("foo"),
             },
             Example {
+                title: "too short",
+                source: r#"truncate("foobarzoo", 3, true)"#,
+                result: Ok("foo..."),
+            },
+            Example {
                 title: "suffix",
-                source: r#"truncate("foo", 2, "...")"#,
-                result: Ok("fo..."),
+                source: r#"truncate("foo", 2, false, "!")"#,
+                result: Ok("fo!"),
             },
         ]
     }
@@ -78,11 +91,13 @@ impl Function for Truncate {
     ) -> Compiled {
         let value = arguments.required("value");
         let limit = arguments.required("limit");
+        let ellipsis = arguments.optional("ellipsis").unwrap_or(expr!(false));
         let suffix = arguments.optional("suffix").unwrap_or(expr!(""));
 
         Ok(TruncateFn {
             value,
             limit,
+            ellipsis,
             suffix,
         }
         .as_expr())
@@ -93,6 +108,7 @@ impl Function for Truncate {
 struct TruncateFn {
     value: Box<dyn Expression>,
     limit: Box<dyn Expression>,
+    ellipsis: Box<dyn Expression>,
     suffix: Box<dyn Expression>,
 }
 
