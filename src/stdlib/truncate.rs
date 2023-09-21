@@ -66,19 +66,14 @@ impl Function for Truncate {
                 result: Ok("foo"),
             },
             Example {
-                title: "too short",
-                source: r#"truncate("foo", 4)"#,
-                result: Ok("foo"),
-            },
-            Example {
-                title: "too short",
-                source: r#"truncate("foobarzoo", 3, true)"#,
+                title: "ellipsis",
+                source: r#"truncate("foobarzoo", 3, suffix: "...")"#,
                 result: Ok("foo..."),
             },
             Example {
-                title: "suffix",
-                source: r#"truncate("foo", 2, false, "!")"#,
-                result: Ok("fo!"),
+                title: "custom suffix",
+                source: r#"truncate("foo bar zoo", 4, suffix: "[TRUNCATED]")"#,
+                result: Ok("foo [TRUNCATED]"),
             },
         ]
     }
@@ -116,9 +111,10 @@ impl FunctionExpression for TruncateFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let value = self.value.resolve(ctx)?;
         let limit = self.limit.resolve(ctx)?;
+        let ellipsis = self.ellipsis.resolve(ctx)?;
         let suffix = self.suffix.resolve(ctx)?;
 
-        truncate(value, limit, suffix)
+        truncate(value, limit, ellipsis, suffix)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {
@@ -141,10 +137,10 @@ mod tests {
              tdef: TypeDef::bytes().infallible(),
          }
 
-        suffix {
+        ellipsis {
             args: func_args![value: "Super",
                              limit: 0,
-                             suffix: "..."
+                             ellipsis: true
             ],
             want: Ok("..."),
             tdef: TypeDef::bytes().infallible(),
@@ -161,7 +157,7 @@ mod tests {
         exact {
             args: func_args![value: "Super",
                              limit: 5,
-                             suffix: "..."
+                             ellipsis: true
             ],
             want: Ok("Super"),
             tdef: TypeDef::bytes().infallible(),
@@ -175,10 +171,10 @@ mod tests {
             tdef: TypeDef::bytes().infallible(),
         }
 
-        big_suffix {
+        big_ellipsis {
             args: func_args![value: "Supercalifragilisticexpialidocious",
                              limit: 5,
-                             suffix: "...",
+                             ellipsis: true,
             ],
             want: Ok("Super..."),
             tdef: TypeDef::bytes().infallible(),
@@ -187,7 +183,7 @@ mod tests {
         unicode {
             args: func_args![value: "♔♕♖♗♘♙♚♛♜♝♞♟",
                              limit: 6,
-                             suffix: "..."
+                             ellipsis: true
             ],
             want: Ok("♔♕♖♗♘♙..."),
             tdef: TypeDef::bytes().infallible(),
