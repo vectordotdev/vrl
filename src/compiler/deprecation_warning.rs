@@ -1,19 +1,23 @@
-use super::Span;
-use crate::diagnostic::{DiagnosticMessage, Label, Note, Severity};
 use std::fmt::{Display, Formatter};
+
+use crate::diagnostic::{DiagnosticMessage, Label, Note, Severity};
+
+use super::Span;
 
 #[derive(Debug)]
 pub struct DeprecationWarning {
     item: String,
+    version: String,
     notes: Vec<Note>,
     span: Option<Span>,
 }
 
 impl DeprecationWarning {
     #[must_use]
-    pub fn new(item: &str) -> Self {
+    pub fn new(item: &str, version: &str) -> Self {
         DeprecationWarning {
             item: item.to_string(),
+            version: version.to_string(),
             notes: vec![],
             span: None,
         }
@@ -52,7 +56,7 @@ impl DiagnosticMessage for DeprecationWarning {
     }
 
     fn message(&self) -> String {
-        format!("{} is deprecated", self.item)
+        format!("{} is deprecated since v{}", self.item, self.version)
     }
 
     fn labels(&self) -> Vec<Label> {
