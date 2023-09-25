@@ -1,10 +1,11 @@
 use crate::compiler::prelude::*;
 
-fn truncate(value: Value, limit: Value, ellipsis: Value) -> Resolved {
+fn truncate(value: Value, limit: Value, ellipsis: Value, suffix: Value) -> Resolved {
     let mut value = value.try_bytes_utf8_lossy()?.into_owned();
     let limit = limit.try_integer()?;
     let limit = if limit < 0 { 0 } else { limit as usize };
     let ellipsis = ellipsis.try_boolean()?;
+    let suffix = suffix.try_bytes_utf8_lossy()?.to_string();
     let pos = if let Some((pos, chr)) = value.char_indices().take(limit).last() {
         // char_indices gives us the starting position of the character at limit,
         // we want the end position.
@@ -15,9 +16,10 @@ fn truncate(value: Value, limit: Value, ellipsis: Value) -> Resolved {
     };
     if value.len() > pos {
         value.truncate(pos);
-
         if ellipsis {
             value.push_str("...");
+        } else if !suffix.is_empty() {
+            value.push_str(&suffix);
         }
     }
     Ok(value.into())
@@ -48,6 +50,11 @@ impl Function for Truncate {
                 kind: kind::BOOLEAN,
                 required: false,
             },
+            Parameter {
+                keyword: "suffix",
+                kind: kind::BYTES,
+                required: false,
+            },
         ]
     }
 
@@ -59,14 +66,14 @@ impl Function for Truncate {
                 result: Ok("foo"),
             },
             Example {
-                title: "too short",
-                source: r#"truncate("foo", 4)"#,
-                result: Ok("foo"),
+                title: "ellipsis",
+                source: r#"truncate("foobarzoo", 3, suffix: "...")"#,
+                result: Ok("foo..."),
             },
             Example {
-                title: "ellipsis",
-                source: r#"truncate("foo", 2, true)"#,
-                result: Ok("fo..."),
+                title: "custom suffix",
+                source: r#"truncate("foo bar zoo", 4, suffix: "[TRUNCATED]")"#,
+                result: Ok("foo [TRUNCATED]"),
             },
         ]
     }
@@ -80,11 +87,13 @@ impl Function for Truncate {
         let value = arguments.required("value");
         let limit = arguments.required("limit");
         let ellipsis = arguments.optional("ellipsis").unwrap_or(expr!(false));
+        let suffix = arguments.optional("suffix").unwrap_or(expr!(""));
 
         Ok(TruncateFn {
             value,
             limit,
             ellipsis,
+            suffix,
         }
         .as_expr())
     }
@@ -95,6 +104,7 @@ struct TruncateFn {
     value: Box<dyn Expression>,
     limit: Box<dyn Expression>,
     ellipsis: Box<dyn Expression>,
+    suffix: Box<dyn Expression>,
 }
 
 impl FunctionExpression for TruncateFn {
@@ -102,8 +112,9 @@ impl FunctionExpression for TruncateFn {
         let value = self.value.resolve(ctx)?;
         let limit = self.limit.resolve(ctx)?;
         let ellipsis = self.ellipsis.resolve(ctx)?;
+        let suffix = self.suffix.resolve(ctx)?;
 
-        truncate(value, limit, ellipsis)
+        truncate(value, limit, ellipsis, suffix)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {
@@ -175,6 +186,15 @@ mod tests {
                              ellipsis: true
             ],
             want: Ok("♔♕♖♗♘♙..."),
+            tdef: TypeDef::bytes().infallible(),
+        }
+
+        alternative_suffix {
+            args: func_args![value: "Super",
+                             limit: 1,
+                             suffix: "[TRUNCATED]"
+            ],
+            want: Ok("S[TRUNCATED]"),
             tdef: TypeDef::bytes().infallible(),
         }
     ];

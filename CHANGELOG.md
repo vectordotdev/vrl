@@ -16,6 +16,7 @@
 - added `community_id` function for generation of [V1 Community IDs](https://github.com/corelight/community-id-spec) (https://github.com/vectordotdev/vrl/pull/360)
 - updated aws vpc flow log parsing to include version 5 fields (https://github.com/vectordotdev/vrl/issues/227)
 - removed deprecated `to_timestamp` function (https://github.com/vectordotdev/vrl/pull/452)
+- changed `truncate` arguments, it now accepts a suffix string instead of a boolean (https://github.com/vectordotdev/vrl/pull/454) 
 
 ## `0.6.0` (2023-08-02)
 

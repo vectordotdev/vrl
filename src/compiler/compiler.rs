@@ -6,9 +6,9 @@ use crate::compiler::{
     },
     parser::ast::RootExpr,
     program::ProgramInfo,
-    CompileConfig, Function, Program, TypeDef,
+    CompileConfig, DeprecationWarning, Function, Program, TypeDef,
 };
-use crate::diagnostic::{DiagnosticList, DiagnosticMessage};
+use crate::diagnostic::{DiagnosticList, DiagnosticMessage, Note};
 use crate::parser::ast::{self, Node, QueryTarget};
 use crate::path::PathPrefix;
 use crate::path::{OwnedTargetPath, OwnedValuePath};
@@ -590,7 +590,18 @@ impl<'a> Compiler<'a> {
     }
 
     #[allow(clippy::unused_self)]
-    pub(crate) fn check_function_deprecations(&self, _func: &FunctionCall, _args: &ArgumentList) {}
+    pub(crate) fn check_function_deprecations(&mut self, func: &FunctionCall, args: &ArgumentList) {
+        if func.ident == "truncate" && args.optional("ellipsis").is_some() {
+            self.diagnostics.push(Box::new(
+                DeprecationWarning::new("the `ellipsis` argument", "0.7.0")
+                    .with_span(func.span)
+                    .with_notes(Note::solution(
+                        "the `truncate` function now supports a `suffix` argument.",
+                        vec!["The `suffix` argument can be used for appending arbitrary strings."],
+                    )),
+            ));
+        }
+    }
 
     fn compile_function_call(
         &mut self,
