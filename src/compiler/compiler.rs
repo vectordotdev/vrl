@@ -593,7 +593,7 @@ impl<'a> Compiler<'a> {
     pub(crate) fn check_function_deprecations(&mut self, func: &FunctionCall, args: &ArgumentList) {
         if func.ident == "truncate" && args.optional("ellipsis").is_some() {
             self.diagnostics.push(Box::new(
-                DeprecationWarning::new("the `ellipsis` argument")
+                DeprecationWarning::new("the `ellipsis` argument", "0.7.0")
                     .with_span(func.span)
                     .with_notes(Note::solution(
                         "the `truncate` function now supports a `suffix` argument.",
