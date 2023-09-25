@@ -80,7 +80,7 @@ lalrpop-util = { version = "0.20", optional = true }
 mlua = { version = "0.9.1", default-features = false, features = ["lua54", "send", "vendored"], optional = true}
 nom = { version = "7.1.3", default-features = false, features = ["std"], optional = true }
 once_cell = { version = "1.17", default-features = false, features = ["std"], optional = true }
-ordered-float = { version = "3", default-features = false, optional = true }
+ordered-float = { version = "4", default-features = false, optional = true }
 md-5 = { version = "0.10", optional = true }
 paste = { version = "1", default-features = false, optional = true }
 peeking_take_while = { version = "1.0.0", default-features = false, optional = true }
