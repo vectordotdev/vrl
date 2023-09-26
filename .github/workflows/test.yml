@@ -72,6 +72,14 @@ jobs:
       - name: "Check that the 3rd-party license file is up to date"
         run: ./scripts/check_licenses.sh
 
+  check-msrv:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: Swatinem/rust-cache@v2
+      - name: "Check that the MSRV is up to date"
+        run: ./scripts/check_msrv.sh
+
   wasm32-unknown-unknown:
     runs-on: ubuntu-latest
     steps:
