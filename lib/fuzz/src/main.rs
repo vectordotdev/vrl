@@ -2,6 +2,7 @@
 extern crate afl;
 
 use std::collections::BTreeMap;
+
 use vrl::compiler::state::RuntimeState;
 use vrl::compiler::CompileConfig;
 use vrl::compiler::TargetValue;
@@ -14,6 +15,7 @@ use vrl::value::Secrets;
 fn main() {
     fuzz!(|data: &[u8]| {
         if let Ok(src) = std::str::from_utf8(data) {
+            println!("{src:?}");
             if src.contains('\\') {
                 // skipping known issues with invalid escapes
                 return;

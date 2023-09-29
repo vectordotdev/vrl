@@ -104,11 +104,7 @@ impl FunctionExpression for ContainsAllFn {
         let substring_type_def = self.substrings.type_def(state).restrict_array();
         let collection = substring_type_def.as_array().expect("must be an array");
         let bytes_collection = Collection::from_unknown(Kind::bytes());
-        if bytes_collection.is_superset(collection).is_ok() {
-            TypeDef::boolean().infallible()
-        } else {
-            TypeDef::boolean().fallible()
-        }
+        TypeDef::boolean().with_fallibility(bytes_collection.is_superset(collection).is_ok())
     }
 }
 
