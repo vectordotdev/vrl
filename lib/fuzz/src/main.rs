@@ -15,7 +15,6 @@ use vrl::value::Secrets;
 fn main() {
     fuzz!(|data: &[u8]| {
         if let Ok(src) = std::str::from_utf8(data) {
-            println!("{src:?}");
             if src.contains('\\') {
                 // skipping known issues with invalid escapes
                 return;
