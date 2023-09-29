@@ -100,8 +100,15 @@ impl FunctionExpression for ContainsAllFn {
         contains_all(value, substrings, case_sensitive)
     }
 
-    fn type_def(&self, _: &TypeState) -> TypeDef {
-        TypeDef::boolean().infallible()
+    fn type_def(&self, state: &TypeState) -> TypeDef {
+        let substring_type_def = self.substrings.type_def(state).restrict_array();
+        let collection = substring_type_def.as_array().expect("must be an array");
+        let bytes_collection = Collection::from_unknown(Kind::bytes());
+        if bytes_collection.is_superset(collection).is_ok() {
+            TypeDef::boolean().infallible()
+        } else {
+            TypeDef::boolean().fallible()
+        }
     }
 }
 
@@ -119,6 +126,13 @@ mod tests {
                              substrings: value!(["the", "duck"])],
             want: Ok(value!(false)),
             tdef: TypeDef::boolean().infallible(),
+        }
+
+        substring_type {
+            args: func_args![value: value!("The Needle In The Haystack"),
+                             substrings: value!([1, 2])],
+            want: Err("expected string, got integer"),
+            tdef: TypeDef::boolean().fallible(),
         }
 
         yes {
