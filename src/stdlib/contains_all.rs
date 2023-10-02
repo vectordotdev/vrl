@@ -1,4 +1,3 @@
-use tracing::dispatcher::get_default;
 use crate::compiler::prelude::*;
 use crate::stdlib::string_utils::convert_to_string;
 
@@ -105,7 +104,7 @@ impl FunctionExpression for ContainsAllFn {
         let substring_type_def = self.substrings.type_def(state);
         let collection = substring_type_def.as_array().expect("must be an array");
         let bytes_collection = Collection::from_unknown(Kind::bytes());
-        TypeDef::boolean().with_fallibility(bytes_collection.is_superset(collection).is_err()get_default())
+        TypeDef::boolean().with_fallibility(bytes_collection.is_superset(collection).is_err())
     }
 }
 
