@@ -84,3 +84,12 @@ impl TryFrom<String> for TimeZone {
         }
     }
 }
+
+impl From<TimeZone> for FixedOffset {
+    fn from(tz: TimeZone) -> Self {
+        match tz {
+            TimeZone::Local => *Utc::now().with_timezone(&Local).offset(),
+            TimeZone::Named(tz) => Utc::now().with_timezone(&tz).offset().fix()
+        }
+    }
+}
