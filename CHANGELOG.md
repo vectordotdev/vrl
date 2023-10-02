@@ -18,6 +18,8 @@
 - removed deprecated `to_timestamp` function (https://github.com/vectordotdev/vrl/pull/452)
 - changed `truncate` arguments, it now accepts a suffix string instead of a boolean (https://github.com/vectordotdev/vrl/pull/454) 
 
+- added `contains_all` function (https://github.com/vectordotdev/vrl/pull/468)
+- 
 ## `0.6.0` (2023-08-02)
 
 #### Bug Fixes

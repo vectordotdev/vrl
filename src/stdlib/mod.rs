@@ -27,11 +27,13 @@
     clippy::trivially_copy_pass_by_ref, // allowed in initial deny commit
 )]
 
-mod util;
-mod wasm_unsupported_function;
+pub use wasm_unsupported_function::WasmUnsupportedFunction;
 
 use crate::compiler::Function;
-pub use wasm_unsupported_function::WasmUnsupportedFunction;
+
+mod string_utils;
+mod util;
+mod wasm_unsupported_function;
 
 cfg_if::cfg_if! {
     if #[cfg(feature = "stdlib")] {
@@ -45,6 +47,7 @@ cfg_if::cfg_if! {
         mod chunks;
         mod compact;
         mod contains;
+        mod contains_all;
         mod decode_base16;
         mod decode_base64;
         mod decode_gzip;
@@ -205,6 +208,7 @@ cfg_if::cfg_if! {
         pub use chunks::Chunks;
         pub use compact::Compact;
         pub use contains::Contains;
+        pub use contains_all::ContainsAll;
         pub use decode_base16::DecodeBase16;
         pub use decode_base64::DecodeBase64;
         pub use decode_gzip::DecodeGzip;
