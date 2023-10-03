@@ -2733,9 +2733,9 @@ dependencies = [
 
 [[package]]
 name = "toml"
-version = "0.8.1"
+version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1bc1433177506450fe920e46a4f9812d0c211f5dd556da10e731a0a3dfa151f0"
+checksum = "185d8ab0dfbb35cf1399a6344d8484209c088f75f8f68230da55d48d95d43e3d"
 dependencies = [
  "serde",
  "serde_spanned",
@@ -3034,7 +3034,7 @@ dependencies = [
  "syslog_loose",
  "termcolor",
  "thiserror",
- "toml 0.8.1",
+ "toml 0.8.2",
  "tracing",
  "tracing-test",
  "uaparser",
