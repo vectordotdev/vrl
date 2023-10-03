@@ -7,20 +7,18 @@ fn from_unix_timestamp(value: Value, unit: Unit) -> Resolved {
 
     let value = match value {
         Integer(v) => match unit {
-            Unit::Seconds => {
-                let t = Utc.timestamp_opt(v, 0).single();
-                match t {
-                    Some(time) => time.into(),
-                    None => return Err(format!("unable to coerce {v} into timestamp").into()),
-                }
-            }
-            Unit::Milliseconds => {
-                let t = Utc.timestamp_millis_opt(v).single();
-                match t {
-                    Some(time) => time.into(),
-                    None => return Err(format!("unable to coerce {v} into timestamp").into()),
-                }
-            }
+            Unit::Seconds => match Utc.timestamp_opt(v, 0).single() {
+                Some(time) => time.into(),
+                None => return Err(format!("unable to coerce {v} into timestamp").into()),
+            },
+            Unit::Milliseconds => match Utc.timestamp_millis_opt(v).single() {
+                Some(time) => time.into(),
+                None => return Err(format!("unable to coerce {v} into timestamp").into()),
+            },
+            Unit::Microseconds => match Utc.timestamp_micros(v).single() {
+                Some(time) => time.into(),
+                None => return Err(format!("unable to coerce {v} into timestamp").into()),
+            },
             Unit::Nanoseconds => Utc.timestamp_nanos(v).into(),
         },
         v => return Err(format!("unable to coerce {} into timestamp", v.kind()).into()),
@@ -64,6 +62,11 @@ impl Function for FromUnixTimestamp {
                 result: Ok("t'1970-01-01T00:00:05Z'"),
             },
             Example {
+                title: "integer as microseconds",
+                source: r#"from_unix_timestamp!(5000, unit: "microseconds")"#,
+                result: Ok("t'1970-01-01T00:00:00.005Z'"),
+            },
+            Example {
                 title: "integer as nanoseconds",
                 source: r#"from_unix_timestamp!(5000, unit: "nanoseconds")"#,
                 result: Ok("t'1970-01-01T00:00:00.000005Z'"),
@@ -96,25 +99,27 @@ enum Unit {
     #[default]
     Seconds,
     Milliseconds,
+    Microseconds,
     Nanoseconds,
 }
 
 impl Unit {
     fn all_value() -> Vec<Value> {
-        use Unit::{Milliseconds, Nanoseconds, Seconds};
+        use Unit::{Microseconds, Milliseconds, Nanoseconds, Seconds};
 
-        vec![Seconds, Milliseconds, Nanoseconds]
+        vec![Seconds, Milliseconds, Microseconds, Nanoseconds]
             .into_iter()
             .map(|u| u.as_str().into())
             .collect::<Vec<_>>()
     }
 
     const fn as_str(self) -> &'static str {
-        use Unit::{Milliseconds, Nanoseconds, Seconds};
+        use Unit::{Microseconds, Milliseconds, Nanoseconds, Seconds};
 
         match self {
             Seconds => "seconds",
             Milliseconds => "milliseconds",
+            Microseconds => "microseconds",
             Nanoseconds => "nanoseconds",
         }
     }
@@ -124,11 +129,12 @@ impl FromStr for Unit {
     type Err = &'static str;
 
     fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
-        use Unit::{Milliseconds, Nanoseconds, Seconds};
+        use Unit::{Microseconds, Milliseconds, Nanoseconds, Seconds};
 
         match s {
             "seconds" => Ok(Seconds),
             "milliseconds" => Ok(Milliseconds),
+            "microseconds" => Ok(Microseconds),
             "nanoseconds" => Ok(Nanoseconds),
             _ => Err("unit not recognized"),
         }
@@ -194,6 +200,12 @@ mod tests {
 
         integer_milliseconds {
             args: func_args![value: 1_609_459_200_000_i64, unit: "milliseconds"],
+            want: Ok(chrono::Utc.ymd(2021, 1, 1).and_hms_milli(0,0,0,0)),
+            tdef: TypeDef::timestamp().fallible(),
+        }
+
+        integer_microseconds {
+            args: func_args![value: 1_609_459_200_000_000_i64, unit: "microseconds"],
             want: Ok(chrono::Utc.ymd(2021, 1, 1).and_hms_milli(0,0,0,0)),
             tdef: TypeDef::timestamp().fallible(),
         }
