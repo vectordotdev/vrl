@@ -15,7 +15,7 @@ impl std::fmt::Display for Field {
 
 impl CollectionKey for Field {
     fn to_segment(&self) -> OwnedSegment {
-        OwnedSegment::Field(self.0.clone().into())
+        OwnedSegment::Field(self.0.clone())
     }
 }
 

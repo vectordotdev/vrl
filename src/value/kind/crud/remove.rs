@@ -125,7 +125,7 @@ impl Kind {
 
                         for field in fields {
                             let field_kind =
-                                original.at_path([OwnedSegment::Field(field.to_string())].as_ref());
+                                original.at_path([OwnedSegment::Field(field.clone())].as_ref());
 
                             if field_kind.contains_any_defined() {
                                 let mut child_kind = original.clone();

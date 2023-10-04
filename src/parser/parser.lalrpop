@@ -2,12 +2,13 @@ use std::str::FromStr;
 use super::ast::*;
 use super::template_string::TemplateString;
 use super::lex::*;
-use crate::diagnostic::span;
 use std::collections::BTreeMap;
 use lalrpop_util::ErrorRecovery;
 use ordered_float::NotNan;
+use crate::diagnostic::span;
 use crate::path::{PathPrefix, OwnedTargetPath, OwnedValuePath, OwnedSegment};
 use crate::parser::ast::Expr;
+use crate::value::KeyString;
 
 
 grammar<'err, 'input>(input: &'input str);
@@ -351,10 +352,10 @@ QueryTarget: QueryTarget = {
 // path
 // -----------------------------------------------------------------------------
 
-pub Field: String = {
-    AnyIdent => <>.to_string(),
-    PathField => <>.to_string(),
-    String => <>.to_string(),
+pub Field: KeyString = {
+    AnyIdent => <>.to_string().into(),
+    PathField => <>.to_string().into(),
+    String => <>.to_string().into(),
 }
 
 #[inline]

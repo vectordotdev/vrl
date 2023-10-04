@@ -28,8 +28,8 @@ default = ["compiler", "value", "diagnostic", "path", "parser", "stdlib", "datad
 compiler = ["diagnostic", "path", "parser", "value", "dep:paste", "dep:chrono", "dep:serde", "dep:regex", "dep:bytes", "dep:ordered-float", "dep:chrono-tz", "dep:snafu", "dep:tracing", "dep:thiserror", "dep:anymap", "dep:dyn-clone", "dep:indoc", "dep:thiserror", "dep:lalrpop-util"]
 value = ["path", "dep:bytes", "dep:regex", "dep:ordered-float", "dep:chrono", "dep:serde_json"]
 diagnostic = ["dep:codespan-reporting", "dep:termcolor"]
-path = ["dep:once_cell", "dep:serde", "dep:snafu", "dep:regex"]
-parser = ["path", "diagnostic", "dep:thiserror", "dep:ordered-float", "dep:lalrpop-util"]
+path = ["value", "dep:once_cell", "dep:serde", "dep:snafu", "dep:regex"]
+parser = ["path", "diagnostic", "value", "dep:thiserror", "dep:ordered-float", "dep:lalrpop-util"]
 core = ["value", "dep:snafu", "dep:nom"]
 string_path = []
 
