@@ -2,6 +2,9 @@
 
 ## unreleased
 
+#### Features
+- 'from_unix_timestamp' now accepts a new unit: Microseconds.
+
 ## `0.7.0` (2023-09-25)
 
 #### Bug Fixes
