@@ -132,6 +132,7 @@ cfg_if::cfg_if! {
         mod parse_common_log;
         mod parse_csv;
         mod parse_duration;
+        mod parse_float;
         mod parse_glog;
         mod parse_grok;
         mod parse_groks;
@@ -290,6 +291,7 @@ cfg_if::cfg_if! {
         pub use parse_common_log::ParseCommonLog;
         pub use parse_csv::ParseCsv;
         pub use parse_duration::ParseDuration;
+        pub use parse_float::ParseFloat;
         pub use parse_glog::ParseGlog;
         pub use parse_grok::ParseGrok;
         pub use parse_groks::ParseGroks;
@@ -455,6 +457,7 @@ pub fn all() -> Vec<Box<dyn Function>> {
         Box::new(ParseCommonLog),
         Box::new(ParseCsv),
         Box::new(ParseDuration),
+        Box::new(ParseFloat),
         Box::new(ParseGlog),
         Box::new(ParseGrok),
         Box::new(ParseGroks),

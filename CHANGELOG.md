@@ -2,10 +2,11 @@
 
 ## unreleased
 
-- `parse_nginx_log` no longer fails if `upstream_response_length`, `upstream_response_time`, `upstream_status` are missing (https://github.com/vectordotdev/vrl/pull/498)
-
 #### Features
+- added `contains_all` function (https://github.com/vectordotdev/vrl/pull/468)
 - 'from_unix_timestamp' now accepts a new unit: Microseconds.
+- `parse_nginx_log` no longer fails if `upstream_response_length`, `upstream_response_time`, `upstream_status` are missing (https://github.com/vectordotdev/vrl/pull/498)
+- added `parse_float` function (https://github.com/vectordotdev/vrl/pull/484)
 
 ## `0.7.0` (2023-09-25)
 
@@ -23,8 +24,6 @@
 - removed deprecated `to_timestamp` function (https://github.com/vectordotdev/vrl/pull/452)
 - changed `truncate` arguments, it now accepts a suffix string instead of a boolean (https://github.com/vectordotdev/vrl/pull/454) 
 
-- added `contains_all` function (https://github.com/vectordotdev/vrl/pull/468)
-- 
 ## `0.6.0` (2023-08-02)
 
 #### Bug Fixes
