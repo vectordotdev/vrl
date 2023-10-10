@@ -142,9 +142,9 @@ pub(crate) static REGEX_INGRESS_NGINX_UPSTREAMINFO_LOG: Lazy<Regex> = Lazy::new(
         \[(?P<proxy_upstream_name>[^\]]+)\]\s+              # Match all characters within square brackets
         \[(?P<proxy_alternative_upstream_name>[^\]]+)?\]\s+ # Match all characters within square brackets, optional
         (?P<upstream_addr>\S+)\s+                           # Match any non space character
-        (?P<upstream_response_length>\d+)\s+                # Match numbers
-        (?P<upstream_response_time>\d+\.\d+)\s+             # Match numbers with dot
-        (?P<upstream_status>\d+)\s+                         # Match numbers
+        (-|(?P<upstream_response_length>\d+))\s+            # Match `-` or numbers
+        (-|(?P<upstream_response_time>\d+\.\d+))\s+         # Match `-` or numbers with dot
+        (-|(?P<upstream_status>\d+))\s+                     # Match `-` or numbers
         (?P<req_id>\S+)                                     # Match any non space character
         \s*$                                                # Match any number of whitespaces (to be discarded).
     "#)

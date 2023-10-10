@@ -2,6 +2,8 @@
 
 ## unreleased
 
+- `parse_nginx_log` no longer fails if `upstream_response_length`, `upstream_response_time`, `upstream_status` are missing (https://github.com/vectordotdev/vrl/pull/498)
+
 #### Features
 - 'from_unix_timestamp' now accepts a new unit: Microseconds.
 
