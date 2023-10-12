@@ -79,15 +79,24 @@ impl From<&str> for KeyString {
 
 impl From<String> for KeyString {
     fn from(s: String) -> Self {
-        // TODO: This can end up reallocating the underlying `Vec` if there is excess capacity,
-        // which can make `Box::new(s.as_str())` faster.
-        Self(s.into())
+        // A näive `s.into()` here can end up reallocating the underlying `Vec` if there is excess
+        // capacity. This actually ends up making `Box::new(s.as_str())` run faster.
+        Self(if s.capacity() > s.len() {
+            s.as_str().into()
+        } else {
+            s.into()
+        })
     }
 }
 
 impl From<Cow<'_, str>> for KeyString {
     fn from(s: Cow<'_, str>) -> Self {
-        Self(s.into())
+        Self(match s {
+            // See above.
+            Cow::Owned(s) if s.capacity() > s.len() => s.as_str().into(),
+            Cow::Owned(s) => s.into(),
+            Cow::Borrowed(s) => s.into(),
+        })
     }
 }
 
