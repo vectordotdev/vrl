@@ -71,7 +71,7 @@ codespan-reporting = {version = "0.11", optional = true }
 data-encoding = { version = "2.3.3", optional = true }
 dyn-clone = { version = "1.0.14", default-features = false, optional = true }
 exitcode = {version = "1", optional = true }
-flate2 = { version = "1.0.27", default-features = false, features = ["default"], optional = true }
+flate2 = { version = "1.0.28", default-features = false, features = ["default"], optional = true }
 hex = { version = "0.4", optional = true }
 hmac = { version = "0.12.1", optional = true }
 indexmap = { version = "~2.0.2", default-features = false, features = ["std"], optional = true}
