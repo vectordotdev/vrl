@@ -1,7 +1,7 @@
 use std::fmt::Debug;
 
 use chrono::format::{parse, Parsed, StrftimeItems};
-use chrono::{DateTime, Local, ParseError, TimeZone as _, Utc};
+use chrono::{DateTime, FixedOffset, Local, Offset, ParseError, TimeZone as _, Utc};
 use chrono_tz::Tz;
 use serde::{Deserialize, Serialize};
 
@@ -81,6 +81,15 @@ impl TryFrom<String> for TimeZone {
         match TimeZone::parse(&value) {
             Some(tz) => Ok(tz),
             None => Err("No such time zone".to_string()),
+        }
+    }
+}
+
+impl From<TimeZone> for FixedOffset {
+    fn from(tz: TimeZone) -> Self {
+        match tz {
+            TimeZone::Local => *Utc::now().with_timezone(&Local).offset(),
+            TimeZone::Named(tz) => Utc::now().with_timezone(&tz).offset().fix(),
         }
     }
 }

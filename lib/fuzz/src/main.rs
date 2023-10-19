@@ -2,6 +2,7 @@
 extern crate afl;
 
 use std::collections::BTreeMap;
+
 use vrl::compiler::state::RuntimeState;
 use vrl::compiler::CompileConfig;
 use vrl::compiler::TargetValue;

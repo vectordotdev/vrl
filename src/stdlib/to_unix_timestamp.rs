@@ -6,6 +6,7 @@ fn to_unix_timestamp(value: Value, unit: Unit) -> Resolved {
     let time = match unit {
         Unit::Seconds => ts.timestamp(),
         Unit::Milliseconds => ts.timestamp_millis(),
+        Unit::Microseconds => ts.timestamp_micros(),
         Unit::Nanoseconds => ts.timestamp_nanos(),
     };
     Ok(time.into())
@@ -30,6 +31,11 @@ impl Function for ToUnixTimestamp {
                 title: "milliseconds",
                 source: r#"to_unix_timestamp(t'2010-01-01T00:00:00Z', unit: "milliseconds")"#,
                 result: Ok("1262304000000"),
+            },
+            Example {
+                title: "microseconds",
+                source: r#"to_unix_timestamp(t'2010-01-01T00:00:00Z', unit: "microseconds")"#,
+                result: Ok("1262304000000000"),
             },
             Example {
                 title: "nanoseconds",
@@ -79,25 +85,27 @@ enum Unit {
     #[default]
     Seconds,
     Milliseconds,
+    Microseconds,
     Nanoseconds,
 }
 
 impl Unit {
     fn all_value() -> Vec<Value> {
-        use Unit::{Milliseconds, Nanoseconds, Seconds};
+        use Unit::{Microseconds, Milliseconds, Nanoseconds, Seconds};
 
-        vec![Seconds, Milliseconds, Nanoseconds]
+        vec![Seconds, Milliseconds, Microseconds, Nanoseconds]
             .into_iter()
             .map(|u| u.as_str().into())
             .collect::<Vec<_>>()
     }
 
     const fn as_str(self) -> &'static str {
-        use Unit::{Milliseconds, Nanoseconds, Seconds};
+        use Unit::{Microseconds, Milliseconds, Nanoseconds, Seconds};
 
         match self {
             Seconds => "seconds",
             Milliseconds => "milliseconds",
+            Microseconds => "microseconds",
             Nanoseconds => "nanoseconds",
         }
     }
@@ -107,11 +115,12 @@ impl FromStr for Unit {
     type Err = &'static str;
 
     fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
-        use Unit::{Milliseconds, Nanoseconds, Seconds};
+        use Unit::{Microseconds, Milliseconds, Nanoseconds, Seconds};
 
         match s {
             "seconds" => Ok(Seconds),
             "milliseconds" => Ok(Milliseconds),
+            "microseconds" => Ok(Microseconds),
             "nanoseconds" => Ok(Nanoseconds),
             _ => Err("unit not recognized"),
         }
@@ -159,6 +168,14 @@ mod test {
                              unit: "milliseconds"
             ],
             want: Ok(1_609_459_200_000_i64),
+            tdef: TypeDef::integer().infallible(),
+        }
+
+        microseconds {
+            args: func_args![value: chrono::Utc.ymd(2021, 1, 1).and_hms_milli(0, 0, 0, 0),
+                             unit: "microseconds"
+            ],
+            want: Ok(1_609_459_200_000_000_i64),
             tdef: TypeDef::integer().infallible(),
         }
 

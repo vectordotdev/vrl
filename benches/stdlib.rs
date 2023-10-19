@@ -1,12 +1,13 @@
 #![allow(deprecated)]
 
-use crate::value::Value;
 use chrono::{DateTime, Datelike, TimeZone, Utc};
 use criterion::{criterion_group, criterion_main, Criterion};
 use regex::Regex;
-use vrl::compiler::prelude::*;
 
+use vrl::compiler::prelude::*;
 use vrl::{bench_function, btreemap, func_args, value};
+
+use crate::value::Value;
 
 criterion_group!(
     name = benches;
@@ -145,7 +146,6 @@ criterion_group!(
               to_syslog_facility,
               to_syslog_level,
               to_syslog_severity,
-              to_timestamp,
               to_unix_timestamp,
               truncate,
               unique,
@@ -2604,25 +2604,6 @@ bench_function! {
 }
 
 bench_function! {
-    to_timestamp => vrl::stdlib::ToTimestamp;
-
-    string {
-        args: func_args![value: "2001-07-08T00:34:60.026490+09:30"],
-        want: Ok(DateTime::parse_from_rfc3339("2001-07-08T00:34:60.026490+09:30").unwrap().with_timezone(&Utc))
-    }
-
-    int {
-        args: func_args![value: 1612814266],
-        want: Ok(DateTime::parse_from_rfc3339("2021-02-08T19:57:46+00:00").unwrap().with_timezone(&Utc))
-    }
-
-    float {
-        args: func_args![value: 1612814266.1],
-        want: Ok(DateTime::parse_from_rfc3339("2021-02-08T19:57:46.099999905+00:00").unwrap().with_timezone(&Utc))
-    }
-}
-
-bench_function! {
     to_unix_timestamp => vrl::stdlib::ToUnixTimestamp;
 
     default {
@@ -2638,16 +2619,15 @@ bench_function! {
         args: func_args![
             value: "Supercalifragilisticexpialidocious",
             limit: 5,
-            ellipsis: true,
+            suffix: "...",
         ],
         want: Ok("Super..."),
     }
 
-    no_ellipsis {
+    no_suffix {
         args: func_args![
             value: "Supercalifragilisticexpialidocious",
             limit: 5,
-            ellipsis: false,
         ],
         want: Ok("Super"),
     }

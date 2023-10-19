@@ -1,11 +1,3 @@
-use crate::path::PathPrefix;
-
-use crate::diagnostic::{DiagnosticList, DiagnosticMessage, Note, Severity};
-use crate::parser::ast::{self, Node, QueryTarget};
-use crate::path::{OwnedTargetPath, OwnedValuePath};
-use crate::value::Value;
-
-use super::state::TypeState;
 use crate::compiler::{
     expression::{
         assignment, function_call, literal, predicate, query, Abort, Array, Assignment, Block,
@@ -16,7 +8,14 @@ use crate::compiler::{
     program::ProgramInfo,
     CompileConfig, DeprecationWarning, Function, Program, TypeDef,
 };
+use crate::diagnostic::{DiagnosticList, DiagnosticMessage, Note};
+use crate::parser::ast::{self, Node, QueryTarget};
+use crate::path::PathPrefix;
+use crate::path::{OwnedTargetPath, OwnedValuePath};
 use crate::prelude::ArgumentList;
+use crate::value::Value;
+
+use super::state::TypeState;
 
 pub(crate) type Diagnostics = Vec<Box<dyn DiagnosticMessage>>;
 
@@ -83,7 +82,10 @@ impl<'a> Compiler<'a> {
 
         let (errors, warnings): (Vec<_>, Vec<_>) =
             compiler.diagnostics.into_iter().partition(|diagnostic| {
-                matches!(diagnostic.severity(), Severity::Bug | Severity::Error)
+                matches!(
+                    diagnostic.severity(),
+                    crate::diagnostic::Severity::Bug | crate::diagnostic::Severity::Error
+                )
             });
 
         if !errors.is_empty() {
@@ -587,21 +589,15 @@ impl<'a> Compiler<'a> {
         Some(target)
     }
 
-    pub(crate) fn check_function_deprecations(
-        &mut self,
-        func: &FunctionCall,
-        _args: &ArgumentList,
-    ) {
-        if func.ident == "to_timestamp" {
+    #[allow(clippy::unused_self)]
+    pub(crate) fn check_function_deprecations(&mut self, func: &FunctionCall, args: &ArgumentList) {
+        if func.ident == "truncate" && args.optional("ellipsis").is_some() {
             self.diagnostics.push(Box::new(
-                DeprecationWarning::new("the `to_timestamp` function")
+                DeprecationWarning::new("the `ellipsis` argument", "0.7.0")
                     .with_span(func.span)
                     .with_notes(Note::solution(
-                        r#"using another timestamp parsing function instead"#,
-                        vec![
-                            r#"for integer values, use `from_unix_timestamp`"#,
-                            r#"for all other value types, use `parse_timestamp`"#,
-                        ],
+                        "the `truncate` function now supports a `suffix` argument.",
+                        vec!["The `suffix` argument can be used for appending arbitrary strings."],
                     )),
             ));
         }
