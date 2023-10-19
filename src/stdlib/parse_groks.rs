@@ -191,7 +191,7 @@ impl Function for ParseGroks {
             .map(|expr| {
                 let expr_ = expr.clone();
                 let path = expr
-                    .resolve_constant()
+                    .resolve_constant(state)
                     .ok_or(function::Error::ExpectedStaticExpression {
                         keyword: "alias_sources",
                         expr,
@@ -335,7 +335,6 @@ mod test {
             tdef: TypeDef::object(Collection::any()).fallible(),
         }
 
-        #[cfg(not(target_arch = "wasm32"))]
         presence_of_alias_sources_argument {
             args: func_args![
                 value: r##"2020-10-02T23:22:12.223222Z info 200 hello world"##,
