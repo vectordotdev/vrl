@@ -98,6 +98,7 @@ impl Urls {
         format!("{VRL_DOCS_ROOT_URL}/examples")
     }
 
+    #[must_use]
     pub fn func_characteristics() -> String {
         format!("{VRL_DOCS_ROOT_URL}/expressions/#function-call-characteristics")
     }

@@ -37,7 +37,11 @@ impl Note {
 
 impl fmt::Display for Note {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        use Note::*;
+        use Note::{
+            Basic, CoerceValue, Example, Hint, SeeCodeDocs, SeeDocs, SeeErrorDocs,
+            SeeFunctionCharacteristicsDocs, SeeFunctionDocs, SeeLangDocs, SeeRepl,
+            UserErrorMessage,
+        };
 
         match self {
             Hint(hint) => {
