@@ -671,7 +671,7 @@ impl DiagnosticMessage for Error {
             FallibleAssignment(target, expr) => vec![
                 Label::primary("this expression is fallible", self.expr_span),
                 Label::context(
-                    "note that argument types can affect fallibility",
+                    "note if an argument type is invalid it can render a function fallible",
                     self.expr_span,
                 ),
                 Label::context("update the expression to be infallible", self.expr_span),

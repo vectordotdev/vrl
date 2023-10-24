@@ -9,7 +9,7 @@
 #   │ │    │
 #   │ │    this expression is fallible
 #   │ │    update the expression to be infallible
-#   │ │    note that argument types can affect fallibility
+#   │ │    note if an argument type is invalid it can render a function fallible
 #   │ or change this to an infallible assignment:
 #   │ .a, err = sha3(.result[0].an)
 #   │
