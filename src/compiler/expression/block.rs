@@ -1,10 +1,10 @@
 use std::fmt;
 
-use crate::compiler::state::{TypeInfo, TypeState};
 use crate::compiler::{
-    expression::{Expr, Resolved},
-    Context, Expression, TypeDef,
+    Context,
+    expression::{Expr, Resolved}, Expression, TypeDef,
 };
+use crate::compiler::state::{TypeInfo, TypeState};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Block {
@@ -77,7 +77,7 @@ impl Expression for Block {
             state.local = parent_locals.apply_child_scope(state.local);
         }
 
-        TypeInfo::new(state, result.with_fallibility(fallible))
+        TypeInfo::new(state, result.maybe_fallible(fallible))
     }
 }
 

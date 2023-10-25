@@ -31,6 +31,26 @@ use crate::value::{
     Kind, Value,
 };
 
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub enum Fallibility {
+    CannotFail,
+    MightFail,
+    AlwaysFails,
+}
+
+impl Fallibility {
+    #[must_use]
+    pub fn merge(&self, other: &Self) -> Self {
+        use Fallibility::{AlwaysFails, CannotFail, MightFail};
+
+        match (self, other) {
+            (AlwaysFails, _) | (_, AlwaysFails) => AlwaysFails,
+            (MightFail, _) | (_, MightFail) => MightFail,
+            _ => CannotFail,
+        }
+    }
+}
+
 /// Properties for a given expression that express the expected outcome of the
 /// expression.
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -39,7 +59,7 @@ pub struct TypeDef {
     ///
     /// Some expressions are infallible (e.g. the [`Literal`][crate::expression::Literal] expression, or any
     /// custom function designed to be infallible).
-    fallible: bool,
+    fallibility: Fallibility,
 
     /// The [`Kind`][value::Kind]s this definition represents.
     kind: Kind,
@@ -72,30 +92,49 @@ impl TypeDef {
 
     #[must_use]
     pub fn at_path<'a>(&self, path: impl ValuePath<'a>) -> TypeDef {
-        let fallible = self.fallible;
-        let kind = self.kind.at_path(path);
-
-        Self { fallible, kind }
+        Self {
+            fallibility: self.fallibility.clone(),
+            kind: self.kind.at_path(path),
+        }
     }
 
     #[inline]
     #[must_use]
     pub fn fallible(mut self) -> Self {
-        self.fallible = true;
+        self.fallibility = Fallibility::MightFail;
         self
     }
 
     #[inline]
     #[must_use]
     pub fn infallible(mut self) -> Self {
-        self.fallible = false;
+        self.fallibility = Fallibility::CannotFail;
         self
     }
 
     #[inline]
     #[must_use]
-    pub fn with_fallibility(mut self, fallible: bool) -> Self {
-        self.fallible = fallible;
+    pub fn always_fails(mut self) -> Self {
+        self.fallibility = Fallibility::AlwaysFails;
+        self
+    }
+
+    #[inline]
+    #[must_use]
+    /// Provided for backwards compatibility. Prefer `with_fallibility` for new code.
+    pub fn maybe_fallible(mut self, might_fail: bool) -> Self {
+        if might_fail {
+            self.fallibility = Fallibility::MightFail;
+        } else {
+            self.fallibility = Fallibility::CannotFail;
+        }
+        self
+    }
+
+    #[inline]
+    #[must_use]
+    pub fn with_fallibility(mut self, fallibility: Fallibility) -> Self {
+        self.fallibility = fallibility;
         self
     }
 
@@ -243,14 +282,14 @@ impl TypeDef {
     #[inline]
     #[must_use]
     pub fn restrict_array(self) -> Self {
-        let fallible = self.fallible;
+        let fallible = self.fallibility;
         let collection = match self.kind.into_array() {
             Some(array) => array,
             None => Collection::any(),
         };
 
         Self {
-            fallible,
+            fallibility: fallible,
             kind: Kind::array(collection),
         }
     }
@@ -276,14 +315,14 @@ impl TypeDef {
     #[inline]
     #[must_use]
     pub fn restrict_object(self) -> Self {
-        let fallible = self.fallible;
+        let fallible = self.fallibility;
         let collection = match self.kind.into_object() {
             Some(object) => object,
             None => Collection::any(),
         };
 
         Self {
-            fallible,
+            fallibility: fallible,
             kind: Kind::object(collection),
         }
     }
@@ -328,7 +367,7 @@ impl TypeDef {
 
     #[must_use]
     pub fn is_fallible(&self) -> bool {
-        self.fallible
+        self.fallibility == Fallibility::MightFail || self.fallibility == Fallibility::AlwaysFails
     }
 
     #[must_use]
@@ -341,7 +380,7 @@ impl TypeDef {
     pub fn fallible_unless(mut self, kind: impl Into<Kind>) -> Self {
         let kind = kind.into();
         if kind.is_superset(&self.kind).is_err() {
-            self.fallible = true
+            self.fallibility = Fallibility::MightFail
         }
 
         self
@@ -349,14 +388,14 @@ impl TypeDef {
 
     #[must_use]
     pub fn union(mut self, other: Self) -> Self {
-        self.fallible |= other.fallible;
+        self.fallibility = self.fallibility.merge(&other.fallibility);
         self.kind = self.kind.union(other.kind);
         self
     }
 
     // deprecated
     pub fn merge(&mut self, other: Self, strategy: merge::Strategy) {
-        self.fallible |= other.fallible;
+        self.fallibility = self.fallibility.merge(&other.fallibility);
         self.kind.merge(other.kind, strategy);
     }
 
@@ -365,7 +404,7 @@ impl TypeDef {
         let mut kind = self.kind;
         kind.insert(path, other.kind);
         Self {
-            fallible: self.fallible || other.fallible,
+            fallibility: self.fallibility.merge(&other.fallibility),
             kind,
         }
     }
@@ -386,7 +425,7 @@ impl TypeDef {
 impl From<Kind> for TypeDef {
     fn from(kind: Kind) -> Self {
         Self {
-            fallible: false,
+            fallibility: Fallibility::CannotFail,
             kind,
         }
     }

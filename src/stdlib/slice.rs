@@ -1,6 +1,7 @@
 use std::ops::Range;
 
 use crate::compiler::prelude::*;
+use crate::prelude::type_def::Fallibility;
 
 #[allow(clippy::cast_possible_wrap)]
 fn slice(start: i64, end: Option<i64>, value: Value) -> Resolved {
@@ -107,6 +108,55 @@ struct SliceFn {
     value: Box<dyn Expression>,
     start: Box<dyn Expression>,
     end: Option<Box<dyn Expression>>,
+}
+
+#[allow(unused)]
+// For backwards compatibility we cannot change the behavior even if the compiler can make a better decision.
+fn determine_fallibility(
+    value: &dyn Expression,
+    start: &dyn Expression,
+    end: Option<&dyn Expression>,
+    state: &state::TypeState,
+) -> Fallibility {
+    let array = match value.resolve_constant(state) {
+        None => return Fallibility::AlwaysFails,
+        Some(value) => match value.try_array() {
+            Ok(value) => value,
+            Err(_e) => return Fallibility::AlwaysFails,
+        },
+    };
+    let start = match start
+        .resolve_constant(state)
+        .and_then(|c| c.try_integer().ok())
+    {
+        None => return Fallibility::AlwaysFails,
+        Some(value) => value as usize,
+    };
+    let end = match end {
+        None => None,
+        Some(expression) => match expression.resolve_constant(state) {
+            None => None,
+            Some(value) => match value.try_integer() {
+                Ok(integer) => Some(integer as usize),
+                Err(_) => return Fallibility::AlwaysFails,
+            },
+        },
+    };
+
+    if array.len() < start {
+        Fallibility::AlwaysFails
+    } else {
+        match end {
+            None => Fallibility::CannotFail,
+            Some(end) => {
+                if array.len() > end {
+                    Fallibility::AlwaysFails
+                } else {
+                    Fallibility::CannotFail
+                }
+            }
+        }
+    }
 }
 
 impl FunctionExpression for SliceFn {

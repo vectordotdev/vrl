@@ -111,14 +111,15 @@ impl FunctionExpression for ChunksFn {
     fn type_def(&self, state: &TypeState) -> TypeDef {
         let not_literal = self.chunk_size.resolve_constant(state).is_none();
 
-        TypeDef::array(Collection::from_unknown(Kind::bytes())).with_fallibility(not_literal)
+        TypeDef::array(Collection::from_unknown(Kind::bytes())).maybe_fallible(not_literal)
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use crate::value;
+
+    use super::*;
 
     test_function![
         chunks => Chunks;

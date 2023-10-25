@@ -128,7 +128,7 @@ impl FunctionExpression for ToIntFn {
     fn type_def(&self, state: &state::TypeState) -> TypeDef {
         let td = self.value.type_def(state);
 
-        TypeDef::integer().with_fallibility(
+        TypeDef::integer().maybe_fallible(
             td.contains_bytes()
                 || td.contains_array()
                 || td.contains_object()

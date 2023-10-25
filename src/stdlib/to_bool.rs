@@ -174,7 +174,7 @@ impl FunctionExpression for ToBoolFn {
     fn type_def(&self, state: &state::TypeState) -> TypeDef {
         let td = self.value.type_def(state);
 
-        TypeDef::boolean().with_fallibility(
+        TypeDef::boolean().maybe_fallible(
             td.contains_bytes()
                 || td.contains_timestamp()
                 || td.contains_array()

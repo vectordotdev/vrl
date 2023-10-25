@@ -1,15 +1,14 @@
 use std::fmt;
 
+use crate::compiler::{
+    Context,
+    expression::{self, Expr, Resolved},
+    Expression,
+    parser::{ast, Node}, TypeDef, value::VrlValueArithmetic,
+};
+use crate::compiler::state::{TypeInfo, TypeState};
 use crate::diagnostic::{DiagnosticMessage, Label, Note, Span, Urls};
 use crate::value::Value;
-
-use crate::compiler::state::{TypeInfo, TypeState};
-use crate::compiler::{
-    expression::{self, Expr, Resolved},
-    parser::{ast, Node},
-    value::VrlValueArithmetic,
-    Context, Expression, TypeDef,
-};
 
 #[derive(Clone, PartialEq)]
 pub struct Op {
@@ -153,7 +152,7 @@ impl Expression for Op {
                 // entire expression is only fallible if both lhs and rhs were fallible
                 let fallible = lhs_def.is_fallible() && rhs_def.is_fallible();
 
-                lhs_def.union(rhs_def).with_fallibility(fallible)
+                lhs_def.union(rhs_def).maybe_fallible(fallible)
             }
 
             Or => {
@@ -414,15 +413,17 @@ impl DiagnosticMessage for Error {
 mod tests {
     use std::convert::TryInto;
 
+    use ordered_float::NotNan;
+
     use ast::{
         Ident,
         Opcode::{Add, And, Div, Eq, Err, Ge, Gt, Le, Lt, Mul, Ne, Or, Sub},
     };
-    use ordered_float::NotNan;
 
-    use super::*;
     use crate::compiler::expression::{Block, IfStatement, Literal, Predicate, Variable};
     use crate::test_type_def;
+
+    use super::*;
 
     fn op(
         opcode: ast::Opcode,

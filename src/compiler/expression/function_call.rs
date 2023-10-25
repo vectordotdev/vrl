@@ -727,7 +727,7 @@ impl Expression for FunctionCall {
         //
 
         if !self.arguments_with_unknown_type_validity.is_empty() {
-            expr_result = expr_result.with_fallibility(true);
+            expr_result = expr_result.fallible();
         }
 
         // If the function has a closure attached, and that closure is fallible,
@@ -743,11 +743,11 @@ impl Expression for FunctionCall {
         // possible to silence potential closure errors using the "abort on
         // error" function-call feature (see below).
         if self.closure_fallible {
-            expr_result = expr_result.with_fallibility(true);
+            expr_result = expr_result.fallible();
         }
 
         if self.abort_on_error {
-            expr_result = expr_result.with_fallibility(false);
+            expr_result = expr_result.infallible();
         }
 
         TypeInfo::new(state, expr_result)
