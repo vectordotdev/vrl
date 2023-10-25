@@ -1,12 +1,12 @@
 use std::fmt;
 
-use crate::compiler::{
-    Context,
-    expression::{Expr, Resolved},
-    Expression,
-    parser::Node, Span, TypeDef, value::{Kind, VrlValueConvert},
-};
 use crate::compiler::state::{TypeInfo, TypeState};
+use crate::compiler::{
+    expression::{Expr, Resolved},
+    parser::Node,
+    value::{Kind, VrlValueConvert},
+    Context, Expression, Span, TypeDef,
+};
 use crate::diagnostic::{DiagnosticMessage, Label, Note, Urls};
 
 pub(crate) type Result = std::result::Result<Not, Error>;

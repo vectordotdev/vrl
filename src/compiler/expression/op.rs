@@ -1,12 +1,12 @@
 use std::fmt;
 
-use crate::compiler::{
-    Context,
-    expression::{self, Expr, Resolved},
-    Expression,
-    parser::{ast, Node}, TypeDef, value::VrlValueArithmetic,
-};
 use crate::compiler::state::{TypeInfo, TypeState};
+use crate::compiler::{
+    expression::{self, Expr, Resolved},
+    parser::{ast, Node},
+    value::VrlValueArithmetic,
+    Context, Expression, TypeDef,
+};
 use crate::diagnostic::{DiagnosticMessage, Label, Note, Span, Urls};
 use crate::value::Value;
 

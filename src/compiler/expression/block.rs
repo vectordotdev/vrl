@@ -1,10 +1,10 @@
 use std::fmt;
 
-use crate::compiler::{
-    Context,
-    expression::{Expr, Resolved}, Expression, TypeDef,
-};
 use crate::compiler::state::{TypeInfo, TypeState};
+use crate::compiler::{
+    expression::{Expr, Resolved},
+    Context, Expression, TypeDef,
+};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Block {

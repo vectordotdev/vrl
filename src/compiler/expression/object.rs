@@ -1,9 +1,9 @@
 use std::{collections::BTreeMap, fmt, ops::Deref};
 
 use crate::compiler::{
-    Context,
     expression::{Expr, Resolved},
-    Expression, state::{TypeInfo, TypeState}, TypeDef,
+    state::{TypeInfo, TypeState},
+    Context, Expression, TypeDef,
 };
 use crate::value::Value;
 

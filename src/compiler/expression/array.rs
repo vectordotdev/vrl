@@ -1,9 +1,9 @@
 use std::{collections::BTreeMap, fmt, ops::Deref};
 
 use crate::compiler::{
-    Context,
     expression::{Expr, Resolved},
-    Expression, state::{TypeInfo, TypeState}, TypeDef,
+    state::{TypeInfo, TypeState},
+    Context, Expression, TypeDef,
 };
 use crate::value::Value;
 
@@ -93,8 +93,8 @@ impl From<Vec<Expr>> for Array {
 
 #[cfg(test)]
 mod tests {
-    use crate::{expr, test_type_def, value::Kind};
     use crate::value::kind::Collection;
+    use crate::{expr, test_type_def, value::Kind};
 
     use super::*;
 
