@@ -111,7 +111,10 @@ struct SliceFn {
 }
 
 #[allow(unused)]
-// For backwards compatibility we cannot change the behavior even if the compiler can make a better decision.
+/// This function is an example of what we can do for future functions.
+/// For backwards compatibility, we cannot use this to improve existing behavior.
+/// After going through the deprecation process, we can use this to produce
+/// a more accurate type definition and make more `slice` uses infallible.
 fn determine_fallibility(
     value: &dyn Expression,
     start: &dyn Expression,
