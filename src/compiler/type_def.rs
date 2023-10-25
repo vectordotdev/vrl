@@ -40,10 +40,17 @@ pub enum Fallibility {
 
 impl Fallibility {
     #[must_use]
-    pub fn merge(&self, other: &Self) -> Self {
+    /// Merges two [`Fallibility`] values using the following rules:
+    ///
+    /// - Merging with [`Fallibility::AlwaysFails`] always results in [`Fallibility::AlwaysFails`].
+    /// - Merging [`Fallibility::MightFail`] with any variant results in [`Fallibility::MightFail`].
+    /// - Merging two [`Fallibility::CannotFail`] values results in [`Fallibility::CannotFail`].
+    ///
+    /// This is useful for combining the fallibility of sub-expressions.
+    pub fn merge(left: &Self, right: &Self) -> Self {
         use Fallibility::{AlwaysFails, CannotFail, MightFail};
 
-        match (self, other) {
+        match (left, right) {
             (AlwaysFails, _) | (_, AlwaysFails) => AlwaysFails,
             (MightFail, _) | (_, MightFail) => MightFail,
             _ => CannotFail,
@@ -55,10 +62,15 @@ impl Fallibility {
 /// expression.
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct TypeDef {
-    /// True, if an expression can return an error.
+    /// If the function *might* fail, the fallibility must not be [`Fallibility::CannotFail`].
     ///
-    /// Some expressions are infallible (e.g. the [`Literal`][crate::expression::Literal] expression, or any
-    /// custom function designed to be infallible).
+    /// If the function *might* succeed, the fallibility must not be [`Fallibility::AlwaysFails`].
+    ///
+    /// Prefer [`Fallibility::AlwaysFails`] over [`Fallibility::MightFail`] whenever possible. If not possible,
+    /// choose [`Fallibility::MightFail`].
+    ///
+    /// Some expressions are infallible e.g. the [`Literal`][crate::expression::Literal] expression, or any
+    // custom function designed to be infallible.
     fallibility: Fallibility,
 
     /// The [`Kind`][value::Kind]s this definition represents.
@@ -388,14 +400,14 @@ impl TypeDef {
 
     #[must_use]
     pub fn union(mut self, other: Self) -> Self {
-        self.fallibility = self.fallibility.merge(&other.fallibility);
+        self.fallibility = Fallibility::merge(&self.fallibility, &other.fallibility);
         self.kind = self.kind.union(other.kind);
         self
     }
 
     // deprecated
     pub fn merge(&mut self, other: Self, strategy: merge::Strategy) {
-        self.fallibility = self.fallibility.merge(&other.fallibility);
+        self.fallibility = Fallibility::merge(&self.fallibility, &other.fallibility);
         self.kind.merge(other.kind, strategy);
     }
 
@@ -404,7 +416,7 @@ impl TypeDef {
         let mut kind = self.kind;
         kind.insert(path, other.kind);
         Self {
-            fallibility: self.fallibility.merge(&other.fallibility),
+            fallibility: Fallibility::merge(&self.fallibility, &other.fallibility),
             kind,
         }
     }
@@ -459,6 +471,7 @@ impl Details {
 
 #[cfg(test)]
 mod test {
+    use super::Fallibility::*;
     use super::*;
 
     #[test]
@@ -475,7 +488,7 @@ mod test {
             a.merge(b),
             Details {
                 type_def: TypeDef::integer().or_float(),
-                value: Some(Value::from(5))
+                value: Some(Value::from(5)),
             }
         )
     }
@@ -494,8 +507,23 @@ mod test {
             a.merge(b),
             Details {
                 type_def: TypeDef::any(),
-                value: None
+                value: None,
             }
         )
+    }
+
+    #[test]
+    fn merge_fallibility_instances() {
+        assert_eq!(Fallibility::merge(&AlwaysFails, &MightFail), AlwaysFails);
+        assert_eq!(Fallibility::merge(&AlwaysFails, &CannotFail), AlwaysFails);
+        assert_eq!(
+            Fallibility::merge(&Fallibility::merge(&CannotFail, &MightFail), &AlwaysFails),
+            AlwaysFails
+        );
+
+        assert_eq!(Fallibility::merge(&MightFail, &MightFail), MightFail);
+        assert_eq!(Fallibility::merge(&CannotFail, &MightFail), MightFail);
+
+        assert_eq!(Fallibility::merge(&CannotFail, &CannotFail), CannotFail);
     }
 }
