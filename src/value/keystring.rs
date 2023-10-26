@@ -3,7 +3,8 @@ use std::fmt::{self, Display, Formatter};
 
 use serde::{Deserialize, Serialize};
 
-/// The key type value.
+/// The key type value. This is a simple zero-overhead wrapper set up to make it explicit that
+/// object keys are read-only and their underlying type is opaque and may change for efficiency.
 #[derive(Clone, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 #[serde(transparent)]
 pub struct KeyString(String);
