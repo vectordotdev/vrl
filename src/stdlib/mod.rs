@@ -374,6 +374,7 @@ pub fn all() -> Vec<Box<dyn Function>> {
         Box::new(Chunks),
         Box::new(Compact),
         Box::new(Contains),
+        Box::new(ContainsAll),
         Box::new(DecodeBase16),
         Box::new(DecodeBase64),
         Box::new(DecodeGzip),
