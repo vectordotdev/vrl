@@ -16,6 +16,13 @@
     clippy::needless_pass_by_value,  // allowed in initial deny commit
 )]
 
+pub use diagnostic::{Diagnostic, DiagnosticList};
+pub use formatter::Formatter;
+pub use label::Label;
+pub use note::Note;
+pub use severity::Severity;
+pub use span::{span, Span};
+
 #[allow(clippy::module_inception)]
 mod diagnostic;
 mod formatter;
@@ -23,13 +30,6 @@ mod label;
 mod note;
 mod severity;
 mod span;
-
-pub use diagnostic::{Diagnostic, DiagnosticList};
-pub use formatter::Formatter;
-pub use label::Label;
-pub use note::Note;
-pub use severity::Severity;
-pub use span::{span, Span};
 
 const VRL_DOCS_ROOT_URL: &str = "https://vrl.dev";
 const VRL_ERROR_DOCS_ROOT_URL: &str = "https://errors.vrl.dev";
@@ -96,5 +96,10 @@ impl Urls {
 
     fn example_docs() -> String {
         format!("{VRL_DOCS_ROOT_URL}/examples")
+    }
+
+    #[must_use]
+    pub fn func_characteristics() -> String {
+        format!("{VRL_DOCS_ROOT_URL}/expressions/#function-call-characteristics")
     }
 }

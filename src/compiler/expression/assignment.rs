@@ -1,10 +1,5 @@
 use std::{convert::TryFrom, fmt};
 
-use crate::diagnostic::{DiagnosticMessage, Label, Note};
-use crate::path::{OwnedSegment, OwnedTargetPath};
-use crate::path::{OwnedValuePath, PathPrefix};
-use crate::value::{Kind, Value};
-
 use crate::compiler::{
     expression::{assignment::ErrorVariant::InvalidParentPathSegment, Expr, Resolved},
     parser::{
@@ -16,6 +11,10 @@ use crate::compiler::{
     value::kind::DefaultValue,
     CompileConfig, Context, Expression, Span, TypeDef,
 };
+use crate::diagnostic::{DiagnosticMessage, Label, Note};
+use crate::path::{OwnedSegment, OwnedTargetPath};
+use crate::path::{OwnedValuePath, PathPrefix};
+use crate::value::{Kind, Value};
 
 #[derive(Clone, PartialEq)]
 pub struct Assignment {
@@ -671,6 +670,10 @@ impl DiagnosticMessage for Error {
             ],
             FallibleAssignment(target, expr) => vec![
                 Label::primary("this expression is fallible", self.expr_span),
+                Label::context(
+                    "note if an argument type is invalid it can render a function fallible",
+                    self.expr_span,
+                ),
                 Label::context("update the expression to be infallible", self.expr_span),
                 Label::context(
                     "or change this to an infallible assignment:",
@@ -718,7 +721,12 @@ impl DiagnosticMessage for Error {
         use ErrorVariant::{FallibleAssignment, InfallibleAssignment};
 
         match &self.variant {
-            FallibleAssignment(..) | InfallibleAssignment(..) => vec![Note::SeeErrorDocs],
+            FallibleAssignment(..) => {
+                vec![Note::SeeErrorDocs, Note::SeeFunctionCharacteristicsDocs]
+            }
+            InfallibleAssignment(..) => {
+                vec![Note::SeeErrorDocs]
+            }
             InvalidParentPathSegment {
                 variant,
                 parent_str,
