@@ -154,7 +154,7 @@ impl fmt::Display for Data {
 }
 
 struct KeyValueSerializer<'a> {
-    key: String,
+    key: KeyString,
     separator: char,
     output: &'a mut BTreeMap<KeyString, Data>,
 }
@@ -162,7 +162,7 @@ struct KeyValueSerializer<'a> {
 impl<'a> KeyValueSerializer<'a> {
     fn new(key: KeyString, separator: char, output: &'a mut BTreeMap<KeyString, Data>) -> Self {
         Self {
-            key: key.into(),
+            key,
             separator,
             output,
         }
@@ -183,14 +183,13 @@ impl<'a> KeyValueSerializer<'a> {
     }
 
     fn descend(mut self, child: impl fmt::Display) -> Self {
-        self.key.push(self.separator);
-        write!(&mut self.key, "{child}").expect("Shouldn't be reachable.");
+        self.key = format!("{}{}{child}", self.key, self.separator).into();
         self
     }
 
     fn child(&mut self, child: impl fmt::Display) -> KeyValueSerializer<'_> {
         KeyValueSerializer {
-            key: format!("{}{}{child}", self.key, self.separator),
+            key: format!("{}{}{child}", self.key, self.separator).into(),
             separator: self.separator,
             output: self.output,
         }
@@ -198,7 +197,7 @@ impl<'a> KeyValueSerializer<'a> {
 
     #[allow(clippy::unnecessary_wraps)]
     fn process(self, data: Data) -> Result<(), EncodingError> {
-        self.output.insert(self.key.into(), data);
+        self.output.insert(self.key, data);
         Ok(())
     }
 }
