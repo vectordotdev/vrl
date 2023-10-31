@@ -155,7 +155,7 @@ regex = { version = "1", default-features = false, features = ["std", "perf", "u
 paste = { version = "1", default-features = false }
 
 [build-dependencies]
-lalrpop = { version = "0.20.1", default-features = false }
+lalrpop = { version = "0.20", default-features = false }
 
 [[bench]]
 name = "kind"
