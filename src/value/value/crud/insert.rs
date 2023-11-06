@@ -13,10 +13,11 @@ pub fn insert<'a, T: ValueCollection>(
     match path_iter.next() {
         Some(BorrowedSegment::Field(field)) => {
             if let Some(Value::Object(map)) = value.get_mut_value(key.borrow()) {
-                insert(map, field.to_string(), path_iter, insert_value)
+                insert(map, field.to_string().into(), path_iter, insert_value)
             } else {
                 let mut map = BTreeMap::new();
-                let prev_value = insert(&mut map, field.to_string(), path_iter, insert_value);
+                let prev_value =
+                    insert(&mut map, field.to_string().into(), path_iter, insert_value);
                 value.insert_value(key, Value::Object(map));
                 prev_value
             }
@@ -40,14 +41,14 @@ pub fn insert<'a, T: ValueCollection>(
             if let Some(Value::Object(map)) = value.get_mut_value(key.borrow()) {
                 let (Ok(matched_key) | Err(matched_key)) =
                     get_matching_coalesce_key(field, map, &mut path_iter);
-                insert(map, matched_key.to_string(), path_iter, insert_value)
+                insert(map, matched_key.to_string().into(), path_iter, insert_value)
             } else {
                 let mut map = BTreeMap::new();
                 // The map is empty, so only the last segment will be used.
                 let last_coalesce_key = skip_remaining_coalesce_segments(&mut path_iter);
                 let prev_value = insert(
                     &mut map,
-                    last_coalesce_key.to_string(),
+                    last_coalesce_key.to_string().into(),
                     path_iter,
                     insert_value,
                 );

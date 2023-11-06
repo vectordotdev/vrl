@@ -1,7 +1,5 @@
-use std::collections::BTreeMap;
-
 use crate::compiler::TimeZone;
-use crate::value::Value;
+use crate::value::{ObjectMap, Value};
 use chrono::prelude::{DateTime, Utc};
 use once_cell::sync::Lazy;
 use regex::{Captures, Regex};
@@ -232,13 +230,13 @@ pub(crate) fn log_fields(
             name.and_then(|name| {
                 captures.name(name).map(|value| {
                     Ok((
-                        name.to_string(),
+                        name.to_string().into(),
                         capture_value(name, value.as_str(), timestamp_format, timezone)?,
                     ))
                 })
             })
         })
-        .collect::<std::result::Result<BTreeMap<String, Value>, String>>()?
+        .collect::<std::result::Result<ObjectMap, String>>()?
         .into())
 }
 

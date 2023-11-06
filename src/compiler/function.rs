@@ -3,7 +3,7 @@ pub mod closure;
 use crate::diagnostic::{DiagnosticMessage, Label, Note};
 use crate::parser::ast::Ident;
 use crate::path::OwnedTargetPath;
-use crate::value::{kind::Collection, Value};
+use crate::value::{kind::Collection, KeyString, Value};
 use std::{
     collections::{BTreeMap, HashMap},
     fmt,
@@ -326,7 +326,7 @@ impl ArgumentList {
     pub fn optional_object(
         &self,
         keyword: &'static str,
-    ) -> Result<Option<BTreeMap<String, Expr>>, Error> {
+    ) -> Result<Option<BTreeMap<KeyString, Expr>>, Error> {
         self.optional_expr(keyword)
             .map(|expr| match expr {
                 Expr::Container(Container {
@@ -341,7 +341,10 @@ impl ArgumentList {
             .transpose()
     }
 
-    pub fn required_object(&self, keyword: &'static str) -> Result<BTreeMap<String, Expr>, Error> {
+    pub fn required_object(
+        &self,
+        keyword: &'static str,
+    ) -> Result<BTreeMap<KeyString, Expr>, Error> {
         Ok(required(self.optional_object(keyword)?))
     }
 

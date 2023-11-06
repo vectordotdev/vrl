@@ -1,3 +1,5 @@
+use crate::value::{KeyString, ObjectMap};
+
 /// Rounds the given number to the given precision.
 /// Takes a function parameter so the exact rounding function (ceil, floor or round)
 /// can be specified.
@@ -21,10 +23,10 @@ pub(crate) fn capture_regex_to_map(
     regex: &regex::Regex,
     capture: &regex::Captures,
     numeric_groups: bool,
-) -> std::collections::BTreeMap<String, crate::value::Value> {
+) -> ObjectMap {
     let names = regex.capture_names().flatten().map(|name| {
         (
-            name.to_owned(),
+            name.to_owned().into(),
             capture.name(name).map(|s| s.as_str()).into(),
         )
     });
@@ -34,7 +36,7 @@ pub(crate) fn capture_regex_to_map(
             .iter()
             .flatten()
             .enumerate()
-            .map(|(idx, c)| (idx.to_string(), c.as_str().into()));
+            .map(|(idx, c)| (KeyString::from(idx.to_string()), c.as_str().into()));
 
         indexed.chain(names).collect()
     } else {

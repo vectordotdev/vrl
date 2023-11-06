@@ -280,14 +280,14 @@ fn inner_kind() -> Kind {
 /// Process an XML node, and return a VRL `Value`.
 fn process_node(node: Node, config: &ParseXmlConfig) -> Value {
     // Helper to recurse over a `Node`s children, and build an object.
-    let recurse = |node: Node| -> BTreeMap<String, Value> {
+    let recurse = |node: Node| -> ObjectMap {
         let mut map = BTreeMap::new();
 
         // Expand attributes, if required.
         if config.include_attr {
             for attr in node.attributes() {
                 map.insert(
-                    format!("{}{}", config.attr_prefix, attr.name()),
+                    format!("{}{}", config.attr_prefix, attr.name()).into(),
                     attr.value().into(),
                 );
             }
@@ -295,8 +295,8 @@ fn process_node(node: Node, config: &ParseXmlConfig) -> Value {
 
         for n in node.children().filter(|n| n.is_element() || n.is_text()) {
             let name = match n.node_type() {
-                NodeType::Element => n.tag_name().name().to_string(),
-                NodeType::Text => config.text_key.to_string(),
+                NodeType::Element => n.tag_name().name().to_string().into(),
+                NodeType::Text => config.text_key.to_string().into(),
                 _ => unreachable!("shouldn't be other XML nodes"),
             };
 
@@ -352,7 +352,7 @@ fn process_node(node: Node, config: &ParseXmlConfig) -> Value {
                             let mut map = BTreeMap::new();
 
                             map.insert(
-                                node.tag_name().name().to_string(),
+                                node.tag_name().name().to_string().into(),
                                 Value::Object(recurse(node)),
                             );
 

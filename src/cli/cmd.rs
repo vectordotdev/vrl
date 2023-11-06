@@ -228,7 +228,7 @@ fn serde_to_vrl(value: serde_json::Value) -> Value {
         JsonValue::Null => crate::value::Value::Null,
         JsonValue::Object(v) => v
             .into_iter()
-            .map(|(k, v)| (k, serde_to_vrl(v)))
+            .map(|(k, v)| (k.into(), serde_to_vrl(v)))
             .collect::<BTreeMap<_, _>>()
             .into(),
         JsonValue::Bool(v) => v.into(),

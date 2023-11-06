@@ -4,7 +4,7 @@ use std::{
 };
 
 use crate::path::OwnedValuePath;
-use crate::value::Value;
+use crate::value::{KeyString, Value};
 use once_cell::sync::Lazy;
 use tracing::error;
 
@@ -45,7 +45,7 @@ pub struct GrokRuleParseContext {
     /// a map of capture names(grok0, grok1, ...) to field information.
     pub fields: HashMap<String, GrokField>,
     /// aliases and their definitions
-    pub aliases: BTreeMap<String, String>,
+    pub aliases: BTreeMap<KeyString, String>,
     /// used to detect cycles in alias definitions
     pub alias_stack: Vec<String>,
 }
@@ -68,7 +68,7 @@ impl GrokRuleParseContext {
             .and_modify(|v| v.filters.insert(0, filter));
     }
 
-    fn new(aliases: BTreeMap<String, String>) -> Self {
+    fn new(aliases: BTreeMap<KeyString, String>) -> Self {
         Self {
             regex: String::new(),
             fields: HashMap::new(),
@@ -115,7 +115,7 @@ pub enum Error {
 /// For further documentation and the full list of available matcher and filters check out <https://docs.datadoghq.com/logs/processing/parsing>
 pub fn parse_grok_rules(
     patterns: &[String],
-    aliases: BTreeMap<String, String>,
+    aliases: BTreeMap<KeyString, String>,
 ) -> Result<Vec<GrokRule>, Error> {
     let mut grok = Grok::with_patterns();
 
@@ -270,7 +270,7 @@ fn resolve_grok_pattern(
     }
 
     let match_name = &pattern.match_fn.name;
-    match context.aliases.get(match_name).cloned() {
+    match context.aliases.get(match_name.as_str()).cloned() {
         Some(alias_def) => match &grok_alias {
             Some(grok_alias) => {
                 context.append_regex("(?<");

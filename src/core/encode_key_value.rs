@@ -8,6 +8,8 @@ use serde::ser::{
     SerializeTuple, SerializeTupleStruct, SerializeTupleVariant, Serializer,
 };
 
+use crate::value::KeyString;
+
 #[derive(Debug, snafu::Snafu)]
 pub enum EncodingError {
     #[snafu(display("Key is not String."))]
@@ -36,8 +38,8 @@ impl Error for EncodingError {
 ///
 /// Returns an `EncodingError` if the input contains non-`String` map keys.
 pub fn to_string<V: Serialize>(
-    input: &BTreeMap<String, V>,
-    fields_order: &[String],
+    input: &BTreeMap<KeyString, V>,
+    fields_order: &[KeyString],
     key_value_delimiter: &str,
     field_delimiter: &str,
     flatten_boolean: bool,
@@ -82,9 +84,9 @@ pub fn to_string<V: Serialize>(
 }
 
 fn flatten<'a>(
-    input: impl IntoIterator<Item = (&'a String, impl Serialize)> + 'a,
+    input: impl IntoIterator<Item = (&'a KeyString, impl Serialize)> + 'a,
     separator: char,
-) -> Result<BTreeMap<String, Data>, EncodingError> {
+) -> Result<BTreeMap<KeyString, Data>, EncodingError> {
     let mut map = BTreeMap::new();
     for (key, value) in input {
         value.serialize(KeyValueSerializer::new(key.clone(), separator, &mut map))?;
@@ -152,13 +154,13 @@ impl fmt::Display for Data {
 }
 
 struct KeyValueSerializer<'a> {
-    key: String,
+    key: KeyString,
     separator: char,
-    output: &'a mut BTreeMap<String, Data>,
+    output: &'a mut BTreeMap<KeyString, Data>,
 }
 
 impl<'a> KeyValueSerializer<'a> {
-    fn new(key: String, separator: char, output: &'a mut BTreeMap<String, Data>) -> Self {
+    fn new(key: KeyString, separator: char, output: &'a mut BTreeMap<KeyString, Data>) -> Self {
         Self {
             key,
             separator,
@@ -181,14 +183,13 @@ impl<'a> KeyValueSerializer<'a> {
     }
 
     fn descend(mut self, child: impl fmt::Display) -> Self {
-        self.key.push(self.separator);
-        write!(&mut self.key, "{child}").expect("Shouldn't be reachable.");
+        self.key = format!("{}{}{child}", self.key, self.separator).into();
         self
     }
 
     fn child(&mut self, child: impl fmt::Display) -> KeyValueSerializer<'_> {
         KeyValueSerializer {
-            key: format!("{}{}{child}", self.key, self.separator),
+            key: format!("{}{}{child}", self.key, self.separator).into(),
             separator: self.separator,
             output: self.output,
         }
@@ -709,7 +710,7 @@ mod tests {
                     "msg" => "This is a log message",
                     "log_id" => 12345,
                 },
-                &["lvl".to_string(), "msg".to_string()],
+                &[KeyString::from("lvl"), KeyString::from("msg")],
                 "=",
                 " ",
                 true
@@ -735,9 +736,9 @@ mod tests {
                     "event" => "log"
                 },
                 &[
-                    "event".to_owned(),
-                    "log.file.path".to_owned(),
-                    "agent.name".to_owned()
+                    KeyString::from("event"),
+                    KeyString::from("log.file.path"),
+                    KeyString::from("agent.name"),
                 ],
                 "=",
                 " ",

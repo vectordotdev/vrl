@@ -1,27 +1,26 @@
 use std::{collections::BTreeMap, fmt, ops::Deref};
 
-use crate::value::Value;
-
 use crate::compiler::{
     expression::{Expr, Resolved},
     state::{TypeInfo, TypeState},
     Context, Expression, TypeDef,
 };
+use crate::value::{KeyString, Value};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Object {
-    inner: BTreeMap<String, Expr>,
+    inner: BTreeMap<KeyString, Expr>,
 }
 
 impl Object {
     #[must_use]
-    pub fn new(inner: BTreeMap<String, Expr>) -> Self {
+    pub fn new(inner: BTreeMap<KeyString, Expr>) -> Self {
         Self { inner }
     }
 }
 
 impl Deref for Object {
-    type Target = BTreeMap<String, Expr>;
+    type Target = BTreeMap<KeyString, Expr>;
 
     fn deref(&self) -> &Self::Target {
         &self.inner
@@ -86,8 +85,8 @@ impl fmt::Display for Object {
     }
 }
 
-impl From<BTreeMap<String, Expr>> for Object {
-    fn from(inner: BTreeMap<String, Expr>) -> Self {
+impl From<BTreeMap<KeyString, Expr>> for Object {
+    fn from(inner: BTreeMap<KeyString, Expr>) -> Self {
         Self { inner }
     }
 }

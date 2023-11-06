@@ -168,7 +168,7 @@ impl Function for ParseGroks {
                     })?;
                 Ok((key, alias))
             })
-            .collect::<std::result::Result<BTreeMap<String, String>, function::Error>>()?;
+            .collect::<std::result::Result<BTreeMap<KeyString, String>, function::Error>>()?;
 
         // we use a datadog library here because it is a superset of grok
         let grok_rules = crate::datadog_grok::parse_grok_rules::parse_grok_rules(

@@ -1,5 +1,3 @@
-use std::collections::BTreeMap;
-
 use bytes::Bytes;
 use chrono::{DateTime, NaiveDateTime, Utc};
 use ordered_float::NotNan;
@@ -45,7 +43,13 @@ impl Arbitrary for Value {
             4 => Self::Timestamp(datetime(g)),
             5 => {
                 let mut gen = Gen::new(MAX_MAP_SIZE);
-                Self::Object(BTreeMap::arbitrary(&mut gen))
+                Self::Object(
+                    // `Arbitrary` is not directly implemented for `KeyString` so have to convert.
+                    Vec::<(String, Self)>::arbitrary(&mut gen)
+                        .into_iter()
+                        .map(|(k, v)| (k.into(), v))
+                        .collect(),
+                )
             }
             6 => {
                 let mut gen = Gen::new(MAX_ARRAY_SIZE);

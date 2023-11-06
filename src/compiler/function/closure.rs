@@ -4,7 +4,7 @@ use std::collections::BTreeMap;
 use crate::parser::ast::Ident;
 use crate::value::{
     kind::{Collection, Field, Index},
-    Value,
+    KeyString, Value,
 };
 
 use super::Example;
@@ -221,14 +221,14 @@ where
     /// value of the closure after completion.
     ///
     /// See `run_key_value` and `run_index_value` for immutable alternatives.
-    pub fn map_key(&self, ctx: &mut Context, key: &mut String) -> Result<(), ExpressionError> {
+    pub fn map_key(&self, ctx: &mut Context, key: &mut KeyString) -> Result<(), ExpressionError> {
         // TODO: we need to allow `LocalEnv` to take a mutable reference to
         // values, instead of owning them.
         let cloned_key = key.clone();
         let ident = self.ident(0);
         let old_key = insert(ctx.state_mut(), ident, cloned_key.into());
 
-        *key = (self.runner)(ctx)?.try_bytes_utf8_lossy()?.into_owned();
+        *key = (self.runner)(ctx)?.try_bytes_utf8_lossy()?.into();
 
         cleanup(ctx.state_mut(), ident, old_key);
 
