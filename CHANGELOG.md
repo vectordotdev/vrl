@@ -10,13 +10,14 @@
 - `parse_nginx_log` no longer fails if `upstream_response_length`, `upstream_response_time`, `upstream_status` are missing (https://github.com/vectordotdev/vrl/pull/498)
 - added `parse_float` function (https://github.com/vectordotdev/vrl/pull/484)
 - improved fallibility diagnostics (https://github.com/vectordotdev/vrl/pull/523)
+- added `encode_snappy` and `decode_snappy` functions (https://github.com/vectordotdev/vrl/pull/543)
 ## `0.7.0` (2023-09-25)
 
 #### Bug Fixes
 - `parse_nginx_log` doesn't fail if the values of key-value pairs in error logs is missing (https://github.com/vectordotdev/vrl/pull/442)
 - `encode_gzip` and `encode_zlib` now correctly check the compression level (preventing a panic) (https://github.com/vectordotdev/vrl/pull/393)
 - fix the type definition of array/object literal expressions where one of the values is undefined (https://github.com/vectordotdev/vrl/pull/401)
-- `parse_aws_vpc_flow_log` now handles account-id value as a string, avoiding loss of leading zeros and case where value is `unknown` (https://github.com/vectordotdev/vrl/issues/263) 
+- `parse_aws_vpc_flow_log` now handles account-id value as a string, avoiding loss of leading zeros and case where value is `unknown` (https://github.com/vectordotdev/vrl/issues/263)
 
 #### Features
 - `parse_key_value` can now parse values enclosed in single quote characters (https://github.com/vectordotdev/vrl/pull/382)
@@ -24,7 +25,7 @@
 - added `community_id` function for generation of [V1 Community IDs](https://github.com/corelight/community-id-spec) (https://github.com/vectordotdev/vrl/pull/360)
 - updated aws vpc flow log parsing to include version 5 fields (https://github.com/vectordotdev/vrl/issues/227)
 - removed deprecated `to_timestamp` function (https://github.com/vectordotdev/vrl/pull/452)
-- changed `truncate` arguments, it now accepts a suffix string instead of a boolean (https://github.com/vectordotdev/vrl/pull/454) 
+- changed `truncate` arguments, it now accepts a suffix string instead of a boolean (https://github.com/vectordotdev/vrl/pull/454)
 
 ## `0.6.0` (2023-08-02)
 
