@@ -77,7 +77,7 @@ impl Expression for Block {
             state.local = parent_locals.apply_child_scope(state.local);
         }
 
-        TypeInfo::new(state, result.with_fallibility(fallible))
+        TypeInfo::new(state, result.maybe_fallible(fallible))
     }
 }
 

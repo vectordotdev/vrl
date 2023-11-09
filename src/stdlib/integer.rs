@@ -65,6 +65,6 @@ impl FunctionExpression for IntegerFn {
     fn type_def(&self, state: &state::TypeState) -> TypeDef {
         let non_integer = !self.value.type_def(state).is_integer();
 
-        TypeDef::integer().with_fallibility(non_integer)
+        TypeDef::integer().maybe_fallible(non_integer)
     }
 }

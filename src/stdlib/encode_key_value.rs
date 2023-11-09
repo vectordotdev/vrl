@@ -162,14 +162,15 @@ impl FunctionExpression for EncodeKeyValueFn {
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {
-        TypeDef::bytes().with_fallibility(self.fields.is_some())
+        TypeDef::bytes().maybe_fallible(self.fields.is_some())
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use crate::{btreemap, value};
+
+    use super::*;
 
     test_function![
         encode_key_value  => EncodeKeyValue;

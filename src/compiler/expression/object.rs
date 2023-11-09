@@ -57,7 +57,7 @@ impl Expression for Object {
 
             // If any expression aborts, the entire object aborts
             if type_def.is_never() {
-                return TypeInfo::new(state, TypeDef::never().with_fallibility(fallible));
+                return TypeInfo::new(state, TypeDef::never().maybe_fallible(fallible));
             }
             type_defs.insert(k.clone(), type_def);
         }
@@ -67,7 +67,7 @@ impl Expression for Object {
             .map(|(field, type_def)| (field.into(), type_def.into()))
             .collect::<BTreeMap<_, _>>();
 
-        let result = TypeDef::object(collection).with_fallibility(fallible);
+        let result = TypeDef::object(collection).maybe_fallible(fallible);
         TypeInfo::new(state, result)
     }
 }

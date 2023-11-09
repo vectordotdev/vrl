@@ -1,7 +1,5 @@
 use std::fmt;
 
-use crate::diagnostic::{DiagnosticMessage, Label, Note, Urls};
-
 use crate::compiler::state::{TypeInfo, TypeState};
 use crate::compiler::{
     expression::{Expr, Resolved},
@@ -9,6 +7,7 @@ use crate::compiler::{
     value::{Kind, VrlValueConvert},
     Context, Expression, Span, TypeDef,
 };
+use crate::diagnostic::{DiagnosticMessage, Label, Note, Urls};
 
 pub(crate) type Result = std::result::Result<Not, Error>;
 
@@ -46,7 +45,7 @@ impl Expression for Not {
         let result = self.inner.apply_type_info(&mut state);
         TypeInfo::new(
             state,
-            TypeDef::boolean().with_fallibility(result.is_fallible()),
+            TypeDef::boolean().maybe_fallible(result.is_fallible()),
         )
     }
 }
