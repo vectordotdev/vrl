@@ -396,7 +396,7 @@ mod tests {
 
     impl CollectionKey for &'static str {
         fn to_segment(&self) -> OwnedSegment {
-            OwnedSegment::Field((*self).to_string())
+            OwnedSegment::Field((*self).into())
         }
     }
 

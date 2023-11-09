@@ -14,7 +14,12 @@ fn tally(value: Value) -> Resolved {
     }
     let map: BTreeMap<_, _> = map
         .into_iter()
-        .map(|(k, v)| (String::from_utf8_lossy(&k).into_owned(), Value::from(v)))
+        .map(|(k, v)| {
+            (
+                String::from_utf8_lossy(&k).into_owned().into(),
+                Value::from(v),
+            )
+        })
         .collect();
     Ok(map.into())
 }

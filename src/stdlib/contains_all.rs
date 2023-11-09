@@ -74,7 +74,7 @@ impl Function for ContainsAll {
             },
             Example {
                 title: "contains_all false",
-                source: r#"contains("the NEEDLE in the haystack", "needle", "haystack")"#,
+                source: r#"contains_all("the NEEDLE in the haystack", ["needle", "haystack"])"#,
                 result: Ok("false"),
             },
         ]

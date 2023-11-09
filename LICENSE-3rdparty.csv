@@ -173,6 +173,7 @@ sha3,https://github.com/RustCrypto/hashes,MIT OR Apache-2.0,RustCrypto Developer
 simdutf8,https://github.com/rusticstuff/simdutf8,MIT OR Apache-2.0,Hans Kratz <hans@appfour.com>
 siphasher,https://github.com/jedisct1/rust-siphash,MIT OR Apache-2.0,Frank Denis <github@pureftpd.org>
 snafu,https://github.com/shepmaster/snafu,MIT OR Apache-2.0,Jake Goulding <jake.goulding@gmail.com>
+snap,https://github.com/BurntSushi/rust-snappy,BSD-3-Clause,Andrew Gallant <jamslam@gmail.com>
 socket2,https://github.com/rust-lang/socket2,MIT OR Apache-2.0,"Alex Crichton <alex@alexcrichton.com>, Thomas de Zeeuw <thomasdezeeuw@gmail.com>"
 static_assertions,https://github.com/nvzqz/static-assertions-rs,MIT OR Apache-2.0,Nikolai Vazquez
 str-buf,https://github.com/DoumanAsh/str-buf,BSL-1.0,Douman <douman@gmx.se>

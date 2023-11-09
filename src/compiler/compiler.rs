@@ -278,8 +278,6 @@ impl<'a> Compiler<'a> {
     }
 
     fn compile_object(&mut self, node: Node<ast::Object>, state: &mut TypeState) -> Option<Object> {
-        use std::collections::BTreeMap;
-
         let (keys, exprs): (Vec<String>, Vec<Option<Expr>>) = node
             .into_inner()
             .into_iter()
@@ -289,7 +287,10 @@ impl<'a> Compiler<'a> {
         let exprs = exprs.into_iter().collect::<Option<Vec<_>>>()?;
 
         Some(Object::new(
-            keys.into_iter().zip(exprs).collect::<BTreeMap<_, _>>(),
+            keys.into_iter()
+                .zip(exprs)
+                .map(|(key, value)| (key.into(), value))
+                .collect(),
         ))
     }
 

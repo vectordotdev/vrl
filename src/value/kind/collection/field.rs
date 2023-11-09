@@ -1,10 +1,11 @@
 use crate::path::OwnedSegment;
 use crate::value::kind::collection::{CollectionKey, CollectionRemove};
 use crate::value::kind::Collection;
+use crate::value::KeyString;
 
 /// A `field` type that can be used in `Collection<Field>`
 #[derive(Debug, Clone, Eq, PartialEq, PartialOrd, Ord, Hash)]
-pub struct Field(String);
+pub struct Field(KeyString);
 
 impl std::fmt::Display for Field {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -22,7 +23,7 @@ impl Field {
     /// Get a `str` representation of the field.
     #[must_use]
     pub fn as_str(&self) -> &str {
-        self.0.as_str()
+        &self.0
     }
 }
 
@@ -35,9 +36,9 @@ impl CollectionRemove for Collection<Field> {
 }
 
 impl std::ops::Deref for Field {
-    type Target = String;
+    type Target = KeyString;
 
-    fn deref(&self) -> &String {
+    fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
@@ -50,6 +51,12 @@ impl From<&str> for Field {
 
 impl From<String> for Field {
     fn from(field: String) -> Self {
+        Self(field.into())
+    }
+}
+
+impl From<KeyString> for Field {
+    fn from(field: KeyString) -> Self {
         Self(field)
     }
 }

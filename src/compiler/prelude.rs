@@ -19,7 +19,7 @@ pub use crate::value::{
     kind::{Collection, Field, Index},
     value,
     value::IterItem,
-    Kind, Value, ValueRegex,
+    KeyString, Kind, ObjectMap, Value, ValueRegex,
 };
 pub use bytes::Bytes;
 pub use indoc::indoc;

@@ -166,13 +166,13 @@ where
 
 fn parse_colon_key<'a, E: ParseError<&'a str> + ContextError<&'a str>>(
     input: &'a str,
-) -> IResult<&'a str, String, E> {
+) -> IResult<&'a str, KeyString, E> {
     map(
         preceded(
             char(':'),
             alt((parse_str('"'), parse_str('\''), parse_symbol_key)),
         ),
-        |res| String::from(":") + res,
+        |res| (String::from(":") + res).into(),
     )(input)
 }
 
@@ -184,11 +184,11 @@ fn parse_colon_key<'a, E: ParseError<&'a str> + ContextError<&'a str>>(
 // That being said, handling all the corner cases from Ruby's syntax would imply
 // increasing a lot the code complexity which is probably not necessary considering
 // that Vector is not a Ruby parser.
-fn parse_key<'a, E: HashParseError<&'a str>>(input: &'a str) -> IResult<&'a str, String, E> {
+fn parse_key<'a, E: HashParseError<&'a str>>(input: &'a str) -> IResult<&'a str, KeyString, E> {
     alt((
         map(
             alt((parse_str('"'), parse_str('\''), parse_symbol_key, digit1)),
-            String::from,
+            KeyString::from,
         ),
         parse_colon_key,
     ))(input)
@@ -212,7 +212,7 @@ fn parse_array<'a, E: HashParseError<&'a str>>(input: &'a str) -> IResult<&'a st
 
 fn parse_key_value<'a, E: HashParseError<&'a str>>(
     input: &'a str,
-) -> IResult<&'a str, (String, Value), E> {
+) -> IResult<&'a str, (KeyString, Value), E> {
     separated_pair(
         preceded(sp, parse_key),
         cut(preceded(sp, alt((tag(":"), tag("=>"))))),

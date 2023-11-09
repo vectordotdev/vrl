@@ -1,9 +1,8 @@
 #![deny(clippy::arithmetic_side_effects)]
 
-use std::collections::BTreeMap;
 use std::ops::{Add, Mul, Rem, Sub};
 
-use crate::value::Value;
+use crate::value::{ObjectMap, Value};
 use bytes::{BufMut, Bytes, BytesMut};
 
 use super::ValueError;
@@ -302,7 +301,7 @@ impl VrlValueArithmetic for Value {
                 .iter()
                 .chain(rhv.iter())
                 .map(|(k, v)| (k.clone(), v.clone()))
-                .collect::<BTreeMap<String, Value>>()
+                .collect::<ObjectMap>()
                 .into(),
             _ => return Err(err()),
         };

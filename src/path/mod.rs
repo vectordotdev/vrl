@@ -230,14 +230,12 @@ pub trait ValuePath<'a>: Clone {
             match segment {
                 BorrowedSegment::Invalid => return Err(()),
                 BorrowedSegment::Index(i) => owned_path.push(OwnedSegment::Index(i)),
-                BorrowedSegment::Field(field) => {
-                    owned_path.push(OwnedSegment::Field(field.to_string()))
-                }
+                BorrowedSegment::Field(field) => owned_path.push(OwnedSegment::Field(field.into())),
                 BorrowedSegment::CoalesceField(field) => {
-                    coalesce.push(field.to_string());
+                    coalesce.push(field.into());
                 }
                 BorrowedSegment::CoalesceEnd(field) => {
-                    coalesce.push(field.to_string());
+                    coalesce.push(field.into());
                     owned_path.push(OwnedSegment::Coalesce(std::mem::take(&mut coalesce)));
                 }
             }

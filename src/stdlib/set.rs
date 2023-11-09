@@ -9,7 +9,7 @@ fn set(path: Value, mut value: Value, data: Value) -> Resolved {
             for segment in segments {
                 let segment = match segment {
                     Value::Bytes(path) => {
-                        OwnedSegment::Field(String::from_utf8_lossy(&path).into_owned())
+                        OwnedSegment::Field(String::from_utf8_lossy(&path).into())
                     }
                     Value::Integer(index) => OwnedSegment::Index(index as isize),
                     value => {

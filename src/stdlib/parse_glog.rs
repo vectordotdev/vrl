@@ -7,7 +7,7 @@ use std::collections::BTreeMap;
 fn parse_glog(bytes: Value) -> Resolved {
     let bytes = bytes.try_bytes()?;
     let message = String::from_utf8_lossy(&bytes);
-    let mut log: BTreeMap<String, Value> = BTreeMap::new();
+    let mut log = ObjectMap::new();
     let captures = REGEX_GLOG
         .captures(&message)
         .ok_or("failed parsing glog message")?;

@@ -8,9 +8,9 @@ use ordered_float::NotNan;
 
 pub use iter::{IterItem, ValueIter};
 
-use crate::path::ValuePath;
-
 pub use super::value::regex::ValueRegex;
+use super::KeyString;
+use crate::path::ValuePath;
 
 mod convert;
 mod crud;
@@ -27,6 +27,9 @@ mod serde;
 
 /// A boxed `std::error::Error`.
 pub type StdError = Box<dyn std::error::Error + Send + Sync + 'static>;
+
+/// The storage mapping for the `Object` variant.
+pub type ObjectMap = BTreeMap<KeyString, Value>;
 
 /// The main value type used in Vector events, and VRL.
 #[derive(Eq, PartialEq, Hash, Debug, Clone)]
@@ -52,7 +55,7 @@ pub enum Value {
     Timestamp(DateTime<Utc>),
 
     /// Object.
-    Object(BTreeMap<String, Value>),
+    Object(ObjectMap),
 
     /// Array.
     Array(Vec<Value>),

@@ -1,5 +1,6 @@
 use crate::compiler::prelude::*;
 use crate::core::encode_key_value;
+use crate::value::KeyString;
 
 /// Also used by `encode_logfmt`.
 pub(crate) fn encode_key_value(
@@ -127,13 +128,13 @@ pub(crate) struct EncodeKeyValueFn {
     pub(crate) flatten_boolean: Box<dyn Expression>,
 }
 
-fn resolve_fields(fields: Value) -> ExpressionResult<Vec<String>> {
+fn resolve_fields(fields: Value) -> ExpressionResult<Vec<KeyString>> {
     let arr = fields.try_array()?;
     arr.iter()
         .enumerate()
         .map(|(idx, v)| {
             v.try_bytes_utf8_lossy()
-                .map(|v| v.to_string())
+                .map(|v| v.to_string().into())
                 .map_err(|e| format!("invalid field value type at index {idx}: {e}").into())
         })
         .collect()

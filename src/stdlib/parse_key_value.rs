@@ -256,7 +256,7 @@ fn parse<'a>(
     field_delimiter: &'a str,
     whitespace: Whitespace,
     standalone_key: bool,
-) -> ExpressionResult<Vec<(String, Value)>> {
+) -> ExpressionResult<Vec<(KeyString, Value)>> {
     let (rest, result) = parse_line(
         input,
         key_value_delimiter,
@@ -286,7 +286,7 @@ fn parse_line<'a>(
     field_delimiter: &'a str,
     whitespace: Whitespace,
     standalone_key: bool,
-) -> IResult<&'a str, Vec<(String, Value)>, VerboseError<&'a str>> {
+) -> IResult<&'a str, Vec<(KeyString, Value)>, VerboseError<&'a str>> {
     separated_list1(
         parse_field_delimiter(field_delimiter),
         parse_key_value_(
@@ -321,7 +321,7 @@ fn parse_key_value_<'a, E: ParseError<&'a str> + ContextError<&'a str>>(
     field_delimiter: &'a str,
     whitespace: Whitespace,
     standalone_key: bool,
-) -> impl Fn(&'a str) -> IResult<&'a str, (String, Value), E> {
+) -> impl Fn(&'a str) -> IResult<&'a str, (KeyString, Value), E> {
     move |input| {
         map(
             |input| match whitespace {
@@ -347,11 +347,10 @@ fn parse_key_value_<'a, E: ParseError<&'a str> + ContextError<&'a str>>(
                 ))(input),
             },
             |(field, sep, value): (&str, Vec<&str>, Value)| {
-                if sep.len() == 1 {
-                    (field.to_string(), value)
-                } else {
-                    (field.to_string(), value!(true))
-                }
+                (
+                    field.to_string().into(),
+                    if sep.len() == 1 { value } else { value!(true) },
+                )
             },
         )(input)
     }
@@ -474,12 +473,12 @@ mod test {
     #[test]
     fn test_quote_and_escape_char() {
         assert_eq!(
-            Ok(vec![("key".to_string(), r"a\a".into()),]),
+            Ok(vec![("key".to_string().into(), r"a\a".into()),]),
             parse(r#"key="a\a""#, "=", " ", Whitespace::Strict, true,)
         );
 
         assert_eq!(
-            Ok(vec![(r"a\ a".to_string(), r#"val"#.into()),]),
+            Ok(vec![(r"a\ a".to_string().into(), r#"val"#.into()),]),
             parse(r#""a\ a"=val"#, "=", " ", Whitespace::Strict, true,)
         );
     }
@@ -488,14 +487,17 @@ mod test {
     fn test_parse() {
         assert_eq!(
             Ok(vec![
-                ("ook".to_string(), "pook".into()),
+                ("ook".to_string().into(), "pook".into()),
                 (
-                    "@timestamp".to_string(),
+                    "@timestamp".to_string().into(),
                     "2020-12-31T12:43:22.2322232Z".into()
                 ),
-                ("key#hash".to_string(), "value".into()),
-                ("key=with=special=characters".to_string(), "value".into()),
-                ("key".to_string(), "with special=characters".into()),
+                ("key#hash".to_string().into(), "value".into()),
+                (
+                    "key=with=special=characters".to_string().into(),
+                    "value".into()
+                ),
+                ("key".to_string().into(), "with special=characters".into()),
             ]),
             parse(
                 r#"ook=pook @timestamp=2020-12-31T12:43:22.2322232Z key#hash=value "key=with=special=characters"=value key="with special=characters""#,
@@ -510,14 +512,14 @@ mod test {
     #[test]
     fn test_parse_key_value() {
         assert_eq!(
-            Ok(("", ("ook".to_string(), "pook".into()))),
+            Ok(("", ("ook".to_string().into(), "pook".into()))),
             parse_key_value_::<VerboseError<&str>>("=", " ", Whitespace::Lenient, false)(
                 "ook=pook"
             )
         );
 
         assert_eq!(
-            Ok(("", ("key".to_string(), "".into()))),
+            Ok(("", ("key".to_string().into(), "".into()))),
             parse_key_value_::<VerboseError<&str>>("=", " ", Whitespace::Strict, false)("key=")
         );
     }
@@ -526,8 +528,8 @@ mod test {
     fn test_parse_key_values() {
         assert_eq!(
             Ok(vec![
-                ("ook".to_string(), "pook".into()),
-                ("onk".to_string(), "ponk".into())
+                ("ook".to_string().into(), "pook".into()),
+                ("onk".to_string().into(), "ponk".into())
             ]),
             parse("ook=pook onk=ponk", "=", " ", Whitespace::Lenient, false)
         );
@@ -537,8 +539,8 @@ mod test {
     fn test_parse_key_values_strict() {
         assert_eq!(
             Ok(vec![
-                ("ook".to_string(), "".into()),
-                ("onk".to_string(), "ponk".into())
+                ("ook".to_string().into(), "".into()),
+                ("onk".to_string().into(), "ponk".into())
             ]),
             parse("ook= onk=ponk", "=", " ", Whitespace::Strict, false)
         );
@@ -548,8 +550,8 @@ mod test {
     fn test_parse_standalone_key() {
         assert_eq!(
             Ok(vec![
-                ("foo".to_string(), "bar".into()),
-                ("foobar".to_string(), value!(true))
+                ("foo".to_string().into(), "bar".into()),
+                ("foobar".to_string().into(), value!(true))
             ]),
             parse("foo:bar ,   foobar   ", ":", ",", Whitespace::Lenient, true)
         );
@@ -559,10 +561,10 @@ mod test {
     fn test_multiple_standalone_key() {
         assert_eq!(
             Ok(vec![
-                ("foo".to_string(), "bar".into()),
-                ("foobar".to_string(), value!(true)),
-                ("bar".to_string(), "baz".into()),
-                ("barfoo".to_string(), value!(true)),
+                ("foo".to_string().into(), "bar".into()),
+                ("foobar".to_string().into(), value!(true)),
+                ("bar".to_string().into(), "baz".into()),
+                ("barfoo".to_string().into(), value!(true)),
             ]),
             parse(
                 "foo=bar foobar bar=baz barfoo",
@@ -578,11 +580,11 @@ mod test {
     fn test_only_standalone_key() {
         assert_eq!(
             Ok(vec![
-                ("foo".to_string(), value!(true)),
-                ("bar".to_string(), value!(true)),
-                ("foobar".to_string(), value!(true)),
-                ("baz".to_string(), value!(true)),
-                ("barfoo".to_string(), value!(true)),
+                ("foo".to_string().into(), value!(true)),
+                ("bar".to_string().into(), value!(true)),
+                ("foobar".to_string().into(), value!(true)),
+                ("baz".to_string().into(), value!(true)),
+                ("barfoo".to_string().into(), value!(true)),
             ]),
             parse(
                 "foo bar foobar baz barfoo",
@@ -597,7 +599,7 @@ mod test {
     #[test]
     fn test_parse_single_standalone_key() {
         assert_eq!(
-            Ok(vec![("foobar".to_string(), value!(true))]),
+            Ok(vec![("foobar".to_string().into(), value!(true))]),
             parse("foobar", ":", ",", Whitespace::Lenient, true)
         );
     }
@@ -606,8 +608,8 @@ mod test {
     fn test_parse_standalone_key_strict() {
         assert_eq!(
             Ok(vec![
-                ("foo".to_string(), "bar".into()),
-                ("foobar".to_string(), value!(true))
+                ("foo".to_string().into(), "bar".into()),
+                ("foobar".to_string().into(), value!(true))
             ]),
             parse("foo:bar ,   foobar   ", ":", ",", Whitespace::Strict, true)
         );
@@ -697,8 +699,8 @@ mod test {
     fn test_parse_key_values_with_single_quotes() {
         assert_eq!(
             Ok(vec![
-                ("key1".to_string(), "val1".into()),
-                ("key2".to_string(), "val2".into())
+                ("key1".to_string().into(), "val1".into()),
+                ("key2".to_string().into(), "val2".into())
             ]),
             parse("key1=val1,key2='val2'", "=", ",", Whitespace::Strict, false)
         );
@@ -708,9 +710,9 @@ mod test {
     fn test_parse_key_values_with_single_quotes_and_nested_double_quotes() {
         assert_eq!(
             Ok(vec![
-                ("key1".to_string(), "val1".into()),
+                ("key1".to_string().into(), "val1".into()),
                 (
-                    "key2".to_string(),
+                    "key2".to_string().into(),
                     "some value with \"nested quotes\"".into()
                 )
             ]),
