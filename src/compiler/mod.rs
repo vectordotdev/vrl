@@ -28,6 +28,30 @@
     let_underscore_drop, // allowed in initial deny commit
 )]
 
+use std::fmt::Debug;
+use std::{fmt::Display, str::FromStr};
+
+pub use paste::paste;
+use serde::{Deserialize, Serialize};
+
+pub use compiler::{CompilationResult, Compiler};
+pub use context::Context;
+pub use datetime::TimeZone;
+pub use expression::{Expression, FunctionExpression};
+pub use expression_error::{ExpressionError2, Resolved};
+pub use function::{Function, Parameter};
+pub use program::{Program, ProgramInfo};
+pub use state::{TypeInfo, TypeState};
+pub use target::{SecretTarget, Target, TargetValue, TargetValueRef};
+pub use type_def::TypeDef;
+
+use crate::diagnostic::DiagnosticList;
+pub(crate) use crate::diagnostic::Span;
+use crate::parser::parse;
+
+pub use self::compile_config::CompileConfig;
+pub use self::deprecation_warning::DeprecationWarning;
+
 #[allow(clippy::module_inception)]
 mod compiler;
 
@@ -49,29 +73,7 @@ pub mod state;
 pub mod type_def;
 pub mod value;
 
-pub use self::compile_config::CompileConfig;
-pub use self::deprecation_warning::DeprecationWarning;
-pub use compiler::{CompilationResult, Compiler};
-pub use context::Context;
-pub use datetime::TimeZone;
-pub use expression::{Expression, FunctionExpression};
-pub use expression_error::{ExpressionError, Resolved};
-pub use function::{Function, Parameter};
-pub use paste::paste;
-pub use program::{Program, ProgramInfo};
-pub use state::{TypeInfo, TypeState};
-pub use target::{SecretTarget, Target, TargetValue, TargetValueRef};
-pub use type_def::TypeDef;
-
 pub type Result<T = CompilationResult> = std::result::Result<T, DiagnosticList>;
-
-pub(crate) use crate::diagnostic::Span;
-
-use crate::diagnostic::DiagnosticList;
-use crate::parser::parse;
-use serde::{Deserialize, Serialize};
-use std::fmt::Debug;
-use std::{fmt::Display, str::FromStr};
 
 /// Compile a given source into the final [`Program`].
 pub fn compile(source: &str, fns: &[Box<dyn Function>]) -> Result {

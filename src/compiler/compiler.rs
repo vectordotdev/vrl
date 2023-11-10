@@ -1,3 +1,5 @@
+use crate::compiler::expression::function_call::FunctionCallError;
+use crate::compiler::expression::ExpressionError;
 use crate::compiler::{
     expression::{
         assignment, function_call, literal, predicate, query, Abort, Array, Assignment, Block,
@@ -12,7 +14,7 @@ use crate::diagnostic::{DiagnosticList, DiagnosticMessage, Note};
 use crate::parser::ast::{self, Node, QueryTarget};
 use crate::path::PathPrefix;
 use crate::path::{OwnedTargetPath, OwnedValuePath};
-use crate::prelude::ArgumentList;
+use crate::prelude::{expression, ArgumentList};
 use crate::value::Value;
 
 use super::state::TypeState;
@@ -52,9 +54,33 @@ pub struct Compiler<'a> {
     // This should probably be kept on the call stack as the "compile_*" functions are called
     // otherwise some expressions may remove it when they shouldn't (such as the RHS of an operation removing
     // the error from the LHS)
-    fallible_expression_error: Option<Box<dyn DiagnosticMessage>>,
+    fallible_expression_error: Option<CompilerError>,
 
     config: CompileConfig,
+}
+
+// TODO: The diagnostic related code is in dire need of refactoring.
+// This is a workaround to avoid doing this work upfront.
+#[derive(Debug)]
+pub(crate) enum CompilerError {
+    FunctionCallError(FunctionCallError),
+    ExpressionError(ExpressionError),
+}
+
+impl CompilerError {
+    fn to_diagnostic(&self) -> &dyn DiagnosticMessage {
+        match self {
+            CompilerError::FunctionCallError(e) => e,
+            CompilerError::ExpressionError(e) => e,
+        }
+    }
+
+    fn into_diagnostic_boxed(self) -> Box<dyn DiagnosticMessage> {
+        match self {
+            CompilerError::FunctionCallError(e) => Box::new(e),
+            CompilerError::ExpressionError(e) => Box::new(e),
+        }
+    }
 }
 
 impl<'a> Compiler<'a> {
@@ -151,8 +177,9 @@ impl<'a> Compiler<'a> {
 
         let type_def = expr.type_info(&original_state).result;
         if type_def.is_fallible() && self.fallible_expression_error.is_none() {
-            let error = super::expression::Error::Fallible { span };
-            self.fallible_expression_error = Some(Box::new(error) as _);
+            self.fallible_expression_error = Some(CompilerError::ExpressionError(
+                expression::ExpressionError::Fallible { span },
+            ));
         }
 
         Some(expr)
@@ -234,7 +261,7 @@ impl<'a> Compiler<'a> {
 
                     if let Some(expr) = self.compile_expr(node_expr, state) {
                         if let Some(error) = self.fallible_expression_error.take() {
-                            self.diagnostics.push(error);
+                            self.diagnostics.push(error.into_diagnostic_boxed());
                         }
 
                         node_exprs.push(expr);
@@ -353,7 +380,9 @@ impl<'a> Compiler<'a> {
         Some(Predicate::new(
             Node::new(span, exprs),
             state,
-            self.fallible_expression_error.as_deref(),
+            self.fallible_expression_error
+                .as_ref()
+                .map(CompilerError::to_diagnostic),
         ))
     }
 
@@ -510,7 +539,7 @@ impl<'a> Compiler<'a> {
         let assignment = Assignment::new(
             node,
             state,
-            self.fallible_expression_error.as_deref(),
+            self.fallible_expression_error.as_ref(),
             &self.config,
         )
         .map_err(|err| self.diagnostics.push(Box::new(err)))
@@ -696,12 +725,16 @@ impl<'a> Compiler<'a> {
                     state,
                     block,
                     local_snapshot,
-                    &mut self.fallible_expression_error,
                     &mut self.config,
                 )
                 .map_err(|err| self.diagnostics.push(Box::new(err)))
                 .ok()
-                .map(|func| (arg_list, func))
+                .map(|result| {
+                    if let Some(e) = result.error {
+                        self.fallible_expression_error = Some(CompilerError::FunctionCallError(e));
+                    }
+                    (arg_list, result.function_call)
+                })
         });
 
         if let Some((args, function)) = &function_info {

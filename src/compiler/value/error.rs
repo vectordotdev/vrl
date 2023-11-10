@@ -1,7 +1,7 @@
+use crate::compiler::ExpressionError2;
 use crate::diagnostic::DiagnosticMessage;
 
 use super::Kind;
-use crate::compiler::ExpressionError;
 
 #[derive(thiserror::Error, Debug, PartialEq, Eq)]
 pub enum ValueError {
@@ -36,7 +36,7 @@ pub enum ValueError {
     Sub(Kind, Kind),
 
     #[error("can't apply an OR to these types - {0}")]
-    Or(#[from] ExpressionError),
+    Or(#[from] ExpressionError2),
 
     #[error("can't apply an AND to types {0} and {1}")]
     And(Kind, Kind),
@@ -85,7 +85,7 @@ impl DiagnosticMessage for ValueError {
     }
 }
 
-impl From<ValueError> for ExpressionError {
+impl From<ValueError> for ExpressionError2 {
     fn from(err: ValueError) -> Self {
         Self::Error {
             message: err.message(),

@@ -5,13 +5,13 @@ fn assert_eq(left: Value, right: Value, message: Option<Value>) -> Resolved {
         Ok(true.into())
     } else if let Some(message) = message {
         let message = message.try_bytes_utf8_lossy()?.into_owned();
-        Err(ExpressionError::Error {
+        Err(ExpressionError2::Error {
             message: message.clone(),
             labels: vec![],
             notes: vec![Note::UserErrorMessage(message)],
         })
     } else {
-        Err(ExpressionError::from(format!(
+        Err(ExpressionError2::from(format!(
             "assertion failed: {left} == {right}"
         )))
     }

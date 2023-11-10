@@ -1,6 +1,11 @@
-use crate::compiler::ExpressionError;
 use std::collections::BTreeMap;
 
+use crate::compiler::ExpressionError2;
+use crate::compiler::{
+    state::RuntimeState,
+    value::{Kind, VrlValueConvert},
+    Context,
+};
 use crate::parser::ast::Ident;
 use crate::value::{
     kind::{Collection, Field, Index},
@@ -8,11 +13,6 @@ use crate::value::{
 };
 
 use super::Example;
-use crate::compiler::{
-    state::RuntimeState,
-    value::{Kind, VrlValueConvert},
-    Context,
-};
 
 /// The definition of a function-closure block a function expects to
 /// receive.
@@ -149,7 +149,7 @@ pub struct Runner<'a, T> {
 
 impl<'a, T> Runner<'a, T>
 where
-    T: Fn(&mut Context) -> Result<Value, ExpressionError>,
+    T: Fn(&mut Context) -> Result<Value, ExpressionError2>,
 {
     pub fn new(variables: &'a [Ident], runner: T) -> Self {
         Self { variables, runner }
@@ -165,7 +165,7 @@ where
         ctx: &mut Context,
         key: &str,
         value: &Value,
-    ) -> Result<Value, ExpressionError> {
+    ) -> Result<Value, ExpressionError2> {
         // TODO: we need to allow `LocalEnv` to take a mutable reference to
         // values, instead of owning them.
         let cloned_key = key.to_owned();
@@ -195,7 +195,7 @@ where
         ctx: &mut Context,
         index: usize,
         value: &Value,
-    ) -> Result<Value, ExpressionError> {
+    ) -> Result<Value, ExpressionError2> {
         // TODO: we need to allow `LocalEnv` to take a mutable reference to
         // values, instead of owning them.
         let cloned_value = value.clone();
@@ -221,7 +221,7 @@ where
     /// value of the closure after completion.
     ///
     /// See `run_key_value` and `run_index_value` for immutable alternatives.
-    pub fn map_key(&self, ctx: &mut Context, key: &mut KeyString) -> Result<(), ExpressionError> {
+    pub fn map_key(&self, ctx: &mut Context, key: &mut KeyString) -> Result<(), ExpressionError2> {
         // TODO: we need to allow `LocalEnv` to take a mutable reference to
         // values, instead of owning them.
         let cloned_key = key.clone();
@@ -242,7 +242,7 @@ where
     /// value of the closure after completion.
     ///
     /// See `run_key_value` and `run_index_value` for immutable alternatives.
-    pub fn map_value(&self, ctx: &mut Context, value: &mut Value) -> Result<(), ExpressionError> {
+    pub fn map_value(&self, ctx: &mut Context, value: &mut Value) -> Result<(), ExpressionError2> {
         // TODO: we need to allow `LocalEnv` to take a mutable reference to
         // values, instead of owning them.
         let cloned_value = value.clone();

@@ -1,6 +1,8 @@
-use crate::compiler::prelude::*;
-use community_id::calculate_community_id;
 use std::net::IpAddr;
+
+use community_id::calculate_community_id;
+
+use crate::compiler::prelude::*;
 
 fn community_id(
     src_ip: Value,
@@ -51,7 +53,7 @@ fn community_id(
 
     match id {
         Ok(id) => Ok(Value::Bytes(id.into())),
-        Err(err) => Err(ExpressionError::from(err.to_string())),
+        Err(err) => Err(ExpressionError2::from(err.to_string())),
     }
 }
 
