@@ -6,7 +6,7 @@ use bytes::{BufMut, Bytes, BytesMut};
 
 use crate::compiler::{
     value::{Kind, VrlValueConvert},
-    ExpressionError2,
+    ExpressionError,
 };
 use crate::value::{ObjectMap, Value};
 
@@ -30,10 +30,8 @@ pub trait VrlValueArithmetic: Sized {
     /// If the lhs value is `null` or `false`, the rhs is evaluated and
     /// returned. The rhs is a closure that can return an error, and thus this
     /// method can return an error as well.
-    fn try_or(
-        self,
-        rhs: impl FnMut() -> Result<Self, ExpressionError2>,
-    ) -> Result<Self, ValueError>;
+    fn try_or(self, rhs: impl FnMut() -> Result<Self, ExpressionError>)
+        -> Result<Self, ValueError>;
 
     /// Try to "AND" (`&&`) two values types.
     ///
@@ -174,7 +172,7 @@ impl VrlValueArithmetic for Value {
     /// method can return an error as well.
     fn try_or(
         self,
-        mut rhs: impl FnMut() -> Result<Self, ExpressionError2>,
+        mut rhs: impl FnMut() -> Result<Self, ExpressionError>,
     ) -> Result<Self, ValueError> {
         let err = ValueError::Or;
 

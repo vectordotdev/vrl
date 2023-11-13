@@ -82,7 +82,7 @@ fn validate_depth(value: Value) -> ExpressionResult<u8> {
     if (1..=128).contains(&res) {
         Ok(res as u8)
     } else {
-        Err(ExpressionError2::from(format!(
+        Err(ExpressionError::from(format!(
             "max_depth value should be greater than 0 and less than 128, got {res}"
         )))
     }

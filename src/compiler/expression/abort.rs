@@ -1,7 +1,7 @@
 use std::fmt;
 
 use crate::compiler::{
-    expression::{ExpressionError2, Resolved},
+    expression::{ExpressionError, Resolved},
     state::{TypeInfo, TypeState},
     value::{Kind, VrlValueConvert},
     Context, Expression, Span, TypeDef,
@@ -53,12 +53,12 @@ impl Expression for Abort {
         let message = self
             .message
             .as_ref()
-            .map::<Result<_, ExpressionError2>, _>(|expr| {
+            .map::<Result<_, ExpressionError>, _>(|expr| {
                 Ok(expr.resolve(ctx)?.try_bytes_utf8_lossy()?.to_string())
             })
             .transpose()?;
 
-        Err(ExpressionError2::Abort {
+        Err(ExpressionError::Abort {
             span: self.span,
             message,
         })

@@ -67,7 +67,7 @@ impl Function for Match {
                     .map_err(|e| Box::new(e) as Box<dyn DiagnosticMessage>)?;
 
                 let pattern = Regex::new(pattern.as_str()).map_err(|e| {
-                    Box::new(ExpressionError2::from(e.to_string())) as Box<dyn DiagnosticMessage>
+                    Box::new(ExpressionError::from(e.to_string())) as Box<dyn DiagnosticMessage>
                 })?;
 
                 Ok(MatchStaticFn { value, pattern }.as_expr())
