@@ -9,7 +9,7 @@
 #   │ │    │
 #   │ │    this expression is fallible
 #   │ │    update the expression to be infallible
-#   │ │    '.result[0].an' argument type is 'string or undefined' and this function expects parameter 'value' of type 'string'
+#   │ │    '.result[0].an' argument type is 'string or undefined' and this function expected a parameter 'value' of type 'string'
 #   │ or change this to an infallible assignment:
 #   │ .a, err = sha3(.result[0].an)
 #   │
