@@ -3,7 +3,7 @@ use std::{error::Error, fmt};
 use crate::path::OwnedTargetPath;
 use crate::value::Value;
 
-use super::ExpressionError2;
+use super::ExpressionError;
 use super::TimeZone;
 use super::{state, Context, Program, Target};
 
@@ -22,15 +22,15 @@ pub enum Terminate {
     /// This is an intentional termination that does not result in an
     /// `Ok(Value)` result, but should neither be interpreted as an unexpected
     /// outcome.
-    Abort(ExpressionError2),
+    Abort(ExpressionError),
 
     /// An unexpected program termination.
-    Error(ExpressionError2),
+    Error(ExpressionError),
 }
 
 impl Terminate {
     #[must_use]
-    pub fn get_expression_error(self) -> ExpressionError2 {
+    pub fn get_expression_error(self) -> ExpressionError {
         match self {
             Terminate::Abort(error) => error,
             Terminate::Error(error) => error,
@@ -94,8 +94,10 @@ impl Runtime {
         let mut ctx = Context::new(target, &mut self.state, timezone);
 
         program.resolve(&mut ctx).map_err(|err| match err {
-            ExpressionError2::Abort { .. } => Terminate::Abort(err),
-            err @ ExpressionError2::Error { .. } => Terminate::Error(err),
+            ExpressionError::Abort { .. }
+            | ExpressionError::Fallible { .. }
+            | ExpressionError::Missing { .. } => Terminate::Abort(err),
+            err @ ExpressionError::Error { .. } => Terminate::Error(err),
         })
     }
 }

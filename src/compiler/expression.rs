@@ -22,12 +22,11 @@ pub use query::{Query, Target};
 pub use unary::Unary;
 pub use variable::Variable;
 
-use crate::diagnostic::{DiagnosticMessage, Label, Note};
 use crate::value::Value;
 
 use super::state::{TypeInfo, TypeState};
-use super::{Context, Span, TypeDef};
-pub use super::{ExpressionError2, Resolved};
+use super::{Context, TypeDef};
+pub use super::{ExpressionError, Resolved};
 
 mod abort;
 mod array;
@@ -366,55 +365,6 @@ impl From<Value> for Expr {
             Timestamp(v) => Literal::from(v).into(),
             Regex(v) => Literal::from(v).into(),
             Null => Literal::from(()).into(),
-        }
-    }
-}
-
-// -----------------------------------------------------------------------------
-
-#[derive(thiserror::Error, Debug)]
-pub enum ExpressionError {
-    #[error("unhandled error")]
-    Fallible { span: Span },
-
-    #[error("expression type unavailable")]
-    Missing { span: Span, feature: &'static str },
-}
-
-impl DiagnosticMessage for ExpressionError {
-    fn code(&self) -> usize {
-        use ExpressionError::{Fallible, Missing};
-
-        match self {
-            Fallible { .. } => 100,
-            Missing { .. } => 900,
-        }
-    }
-
-    fn labels(&self) -> Vec<Label> {
-        use ExpressionError::{Fallible, Missing};
-
-        match self {
-            Fallible { span } => vec![
-                Label::primary("expression can result in runtime error", span),
-                Label::context("handle the error case to ensure runtime success", span),
-            ],
-            Missing { span, feature } => vec![
-                Label::primary("expression type is disabled in this version of vrl", span),
-                Label::context(
-                    format!("build vrl using the `{feature}` feature to enable it"),
-                    span,
-                ),
-            ],
-        }
-    }
-
-    fn notes(&self) -> Vec<Note> {
-        use ExpressionError::{Fallible, Missing};
-
-        match self {
-            Fallible { .. } => vec![Note::SeeErrorDocs],
-            Missing { .. } => vec![],
         }
     }
 }

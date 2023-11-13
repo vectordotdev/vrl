@@ -2,7 +2,7 @@ use std::{fmt, sync::Arc};
 
 use crate::compiler::state::{TypeInfo, TypeState};
 use crate::compiler::{
-    expression::{levenstein, ExpressionError2, FunctionArgument},
+    expression::{levenstein, ExpressionError, FunctionArgument},
     function::{
         closure::{self, VariableKind},
         ArgumentList, Example, FunctionClosure, FunctionCompileContext, Parameter,
@@ -637,18 +637,20 @@ impl FunctionCall {
 impl Expression for FunctionCall {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         self.expr.resolve(ctx).map_err(|err| match err {
-            ExpressionError2::Abort { .. } => {
+            ExpressionError::Abort { .. }
+            | ExpressionError::Fallible { .. }
+            | ExpressionError::Missing { .. } => {
                 // propagate the error
                 err
             }
-            ExpressionError2::Error {
+            ExpressionError::Error {
                 message,
                 mut labels,
                 notes,
             } => {
                 labels.push(Label::primary(message.clone(), self.span));
 
-                ExpressionError2::Error {
+                ExpressionError::Error {
                     message: format!(
                         r#"function call error for "{}" at ({}:{}): {}"#,
                         self.ident,

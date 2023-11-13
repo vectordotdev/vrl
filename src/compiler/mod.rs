@@ -38,7 +38,7 @@ pub use compiler::{CompilationResult, Compiler};
 pub use context::Context;
 pub use datetime::TimeZone;
 pub use expression::{Expression, FunctionExpression};
-pub use expression_error::{ExpressionError2, Resolved};
+pub use expression_error::{ExpressionError, Resolved};
 pub use function::{Function, Parameter};
 pub use program::{Program, ProgramInfo};
 pub use state::{TypeInfo, TypeState};

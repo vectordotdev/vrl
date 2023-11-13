@@ -6,7 +6,7 @@ fn assert(condition: Value, message: Option<Value>, format: Option<String>) -> R
         false => {
             if let Some(message) = message {
                 let message = message.try_bytes_utf8_lossy()?.into_owned();
-                Err(ExpressionError2::Error {
+                Err(ExpressionError::Error {
                     message: message.clone(),
                     labels: vec![],
                     notes: vec![Note::UserErrorMessage(message)],
@@ -16,7 +16,7 @@ fn assert(condition: Value, message: Option<Value>, format: Option<String>) -> R
                     Some(string) => format!("assertion failed: {string}"),
                     None => "assertion failed".to_owned(),
                 };
-                Err(ExpressionError2::from(message))
+                Err(ExpressionError::from(message))
             }
         }
     }

@@ -59,7 +59,7 @@ impl Function for MatchDatadogQuery {
 
         // Compile the Datadog search query to AST.
         let node = parse(&query).map_err(|e| {
-            Box::new(ExpressionError2::from(e.to_string())) as Box<dyn DiagnosticMessage>
+            Box::new(ExpressionError::from(e.to_string())) as Box<dyn DiagnosticMessage>
         })?;
 
         // Build the matcher function that accepts a VRL event value. This will parse the `node`

@@ -155,7 +155,7 @@ struct EncodedWord<'a> {
 }
 
 impl<'a> EncodedWord<'a> {
-    fn decode_word(&self) -> Result<String, ExpressionError2> {
+    fn decode_word(&self) -> Result<String, ExpressionError> {
         // Modified version from https://github.com/staktrace/mailparse/blob/a83d961fe53fd6504d75ee951a0e91dfea03c830/src/header.rs#L39
 
         // Decode

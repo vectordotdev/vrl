@@ -53,7 +53,7 @@ fn community_id(
 
     match id {
         Ok(id) => Ok(Value::Bytes(id.into())),
-        Err(err) => Err(ExpressionError2::from(err.to_string())),
+        Err(err) => Err(ExpressionError::from(err.to_string())),
     }
 }
 
