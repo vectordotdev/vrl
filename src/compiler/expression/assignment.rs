@@ -703,8 +703,9 @@ impl DiagnosticMessage for Error {
                     if !context.arguments_fmt.is_empty() {
                         labels.push(
                             Label::context(format!(
-                                "'{}' argument type is unknown and this function expects parameter '{}' of type '{}'",
+                                "'{}' argument type is '{}' and this function expects parameter '{}' of type '{}'",
                                 context.arguments_fmt[0],
+                                context.got,
                                 context.parameter.keyword,
                                 context.parameter.kind()),
                             self.expr_span));
