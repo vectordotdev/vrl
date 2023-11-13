@@ -2,14 +2,15 @@
 
 use std::ops::{Add, Mul, Rem, Sub};
 
-use crate::value::{ObjectMap, Value};
 use bytes::{BufMut, Bytes, BytesMut};
 
-use super::ValueError;
 use crate::compiler::{
     value::{Kind, VrlValueConvert},
-    ExpressionError,
+    ExpressionError2,
 };
+use crate::value::{ObjectMap, Value};
+
+use super::ValueError;
 
 pub trait VrlValueArithmetic: Sized {
     /// Similar to [`std::ops::Mul`], but fallible (e.g. `TryMul`).
@@ -29,8 +30,10 @@ pub trait VrlValueArithmetic: Sized {
     /// If the lhs value is `null` or `false`, the rhs is evaluated and
     /// returned. The rhs is a closure that can return an error, and thus this
     /// method can return an error as well.
-    fn try_or(self, rhs: impl FnMut() -> Result<Self, ExpressionError>)
-        -> Result<Self, ValueError>;
+    fn try_or(
+        self,
+        rhs: impl FnMut() -> Result<Self, ExpressionError2>,
+    ) -> Result<Self, ValueError>;
 
     /// Try to "AND" (`&&`) two values types.
     ///
@@ -171,7 +174,7 @@ impl VrlValueArithmetic for Value {
     /// method can return an error as well.
     fn try_or(
         self,
-        mut rhs: impl FnMut() -> Result<Self, ExpressionError>,
+        mut rhs: impl FnMut() -> Result<Self, ExpressionError2>,
     ) -> Result<Self, ValueError> {
         let err = ValueError::Or;
 

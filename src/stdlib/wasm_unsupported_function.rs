@@ -15,7 +15,7 @@ impl WasmUnsupportedFunction {
 
 impl FunctionExpression for WasmUnsupportedFunction {
     fn resolve(&self, _: &mut Context) -> Resolved {
-        Err(ExpressionError::Abort {
+        Err(ExpressionError2::Abort {
             span: self.span,
             message: Some("This function is not supported in WebAssembly".to_owned()),
         })

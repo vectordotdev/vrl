@@ -334,7 +334,7 @@ pub enum Error {
     },
 
     #[error("fallible operation")]
-    Expr(#[from] expression::Error),
+    Expr(#[from] expression::ExpressionError),
 }
 
 impl DiagnosticMessage for Error {

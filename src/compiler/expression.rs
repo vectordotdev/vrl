@@ -1,10 +1,33 @@
 use std::fmt;
 
-use crate::diagnostic::{DiagnosticMessage, Label, Note};
-use crate::value::Value;
 use dyn_clone::{clone_trait_object, DynClone};
 
+pub use abort::Abort;
+pub use array::Array;
+pub use assignment::Assignment;
+pub use block::Block;
+pub use container::{Container, Variant};
+pub use function::FunctionExpression;
+pub use function_argument::FunctionArgument;
+pub use function_call::FunctionCall;
+pub use group::Group;
+pub use if_statement::IfStatement;
+pub use literal::Literal;
+pub use noop::Noop;
+pub use not::Not;
+pub use object::Object;
+pub use op::Op;
+pub use predicate::Predicate;
+pub use query::{Query, Target};
+pub use unary::Unary;
+pub use variable::Variable;
+
+use crate::diagnostic::{DiagnosticMessage, Label, Note};
+use crate::value::Value;
+
+use super::state::{TypeInfo, TypeState};
 use super::{Context, Span, TypeDef};
+pub use super::{ExpressionError2, Resolved};
 
 mod abort;
 mod array;
@@ -27,29 +50,6 @@ pub(crate) mod function_call;
 pub(crate) mod literal;
 pub(crate) mod predicate;
 pub mod query;
-
-pub use super::{ExpressionError, Resolved};
-
-use super::state::{TypeInfo, TypeState};
-pub use abort::Abort;
-pub use array::Array;
-pub use assignment::Assignment;
-pub use block::Block;
-pub use container::{Container, Variant};
-pub use function::FunctionExpression;
-pub use function_argument::FunctionArgument;
-pub use function_call::FunctionCall;
-pub use group::Group;
-pub use if_statement::IfStatement;
-pub use literal::Literal;
-pub use noop::Noop;
-pub use not::Not;
-pub use object::Object;
-pub use op::Op;
-pub use predicate::Predicate;
-pub use query::{Query, Target};
-pub use unary::Unary;
-pub use variable::Variable;
 
 pub trait Expression: Send + Sync + fmt::Debug + DynClone {
     /// Resolve an expression to a concrete [`Value`].
@@ -373,7 +373,7 @@ impl From<Value> for Expr {
 // -----------------------------------------------------------------------------
 
 #[derive(thiserror::Error, Debug)]
-pub enum Error {
+pub enum ExpressionError {
     #[error("unhandled error")]
     Fallible { span: Span },
 
@@ -381,9 +381,9 @@ pub enum Error {
     Missing { span: Span, feature: &'static str },
 }
 
-impl DiagnosticMessage for Error {
+impl DiagnosticMessage for ExpressionError {
     fn code(&self) -> usize {
-        use Error::{Fallible, Missing};
+        use ExpressionError::{Fallible, Missing};
 
         match self {
             Fallible { .. } => 100,
@@ -392,7 +392,7 @@ impl DiagnosticMessage for Error {
     }
 
     fn labels(&self) -> Vec<Label> {
-        use Error::{Fallible, Missing};
+        use ExpressionError::{Fallible, Missing};
 
         match self {
             Fallible { span } => vec![
@@ -410,7 +410,7 @@ impl DiagnosticMessage for Error {
     }
 
     fn notes(&self) -> Vec<Note> {
-        use Error::{Fallible, Missing};
+        use ExpressionError::{Fallible, Missing};
 
         match self {
             Fallible { .. } => vec![Note::SeeErrorDocs],

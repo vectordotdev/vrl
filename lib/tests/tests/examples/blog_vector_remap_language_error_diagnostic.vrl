@@ -15,7 +15,7 @@
 #   │ │   │
 #   │ │   this expression is fallible
 #   │ │   update the expression to be infallible
-#   │ │   note if an argument type is invalid it can render a function fallible
+#   │ │   '.log' argument type is 'any' and this function expected a parameter 'value' of type 'string'
 #   │ or change this to an infallible assignment:
 #   │ ., err = parse_common_log(.log)
 #   │

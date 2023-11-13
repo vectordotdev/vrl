@@ -1,5 +1,3 @@
-use crate::compiler::prelude::*;
-use crate::value::Value;
 use charset::Charset;
 use data_encoding::BASE64_MIME;
 use nom::{
@@ -11,6 +9,9 @@ use nom::{
     sequence::{delimited, pair, separated_pair},
     IResult,
 };
+
+use crate::compiler::prelude::*;
+use crate::value::Value;
 
 #[derive(Clone, Copy, Debug)]
 pub struct DecodeMimeQ;
@@ -154,7 +155,7 @@ struct EncodedWord<'a> {
 }
 
 impl<'a> EncodedWord<'a> {
-    fn decode_word(&self) -> Result<String, ExpressionError> {
+    fn decode_word(&self) -> Result<String, ExpressionError2> {
         // Modified version from https://github.com/staktrace/mailparse/blob/a83d961fe53fd6504d75ee951a0e91dfea03c830/src/header.rs#L39
 
         // Decode
@@ -190,9 +191,11 @@ impl<'a> EncodedWord<'a> {
 
 #[cfg(test)]
 mod test {
-    use super::*;
-    use crate::value;
     use nom::error::VerboseError;
+
+    use crate::value;
+
+    use super::*;
 
     #[test]
     fn internal() {

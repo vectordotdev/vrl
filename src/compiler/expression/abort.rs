@@ -1,15 +1,15 @@
 use std::fmt;
 
-use crate::diagnostic::{DiagnosticMessage, Label, Note, Urls};
-use crate::parser::ast::Node;
-
-use super::Expr;
 use crate::compiler::{
-    expression::{ExpressionError, Resolved},
+    expression::{ExpressionError2, Resolved},
     state::{TypeInfo, TypeState},
     value::{Kind, VrlValueConvert},
     Context, Expression, Span, TypeDef,
 };
+use crate::diagnostic::{DiagnosticMessage, Label, Note, Urls};
+use crate::parser::ast::Node;
+
+use super::Expr;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Abort {
@@ -53,12 +53,12 @@ impl Expression for Abort {
         let message = self
             .message
             .as_ref()
-            .map::<Result<_, ExpressionError>, _>(|expr| {
+            .map::<Result<_, ExpressionError2>, _>(|expr| {
                 Ok(expr.resolve(ctx)?.try_bytes_utf8_lossy()?.to_string())
             })
             .transpose()?;
 
-        Err(ExpressionError::Abort {
+        Err(ExpressionError2::Abort {
             span: self.span,
             message,
         })

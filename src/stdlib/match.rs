@@ -1,5 +1,6 @@
-use crate::compiler::prelude::*;
 use regex::Regex;
+
+use crate::compiler::prelude::*;
 
 fn match_(value: Value, pattern: Value) -> Resolved {
     let string = value.try_bytes_utf8_lossy()?;
@@ -66,7 +67,7 @@ impl Function for Match {
                     .map_err(|e| Box::new(e) as Box<dyn DiagnosticMessage>)?;
 
                 let pattern = Regex::new(pattern.as_str()).map_err(|e| {
-                    Box::new(ExpressionError::from(e.to_string())) as Box<dyn DiagnosticMessage>
+                    Box::new(ExpressionError2::from(e.to_string())) as Box<dyn DiagnosticMessage>
                 })?;
 
                 Ok(MatchStaticFn { value, pattern }.as_expr())
@@ -116,8 +117,9 @@ impl FunctionExpression for MatchStaticFn {
 #[cfg(test)]
 #[allow(clippy::trivial_regex)]
 mod tests {
-    use super::*;
     use crate::value;
+
+    use super::*;
 
     test_function![
         r#match => Match;

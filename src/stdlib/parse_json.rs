@@ -1,9 +1,11 @@
-use crate::compiler::prelude::*;
+use std::collections::HashMap;
+
 use serde_json::{
     value::{RawValue, Value as JsonValue},
     Error, Map,
 };
-use std::collections::HashMap;
+
+use crate::compiler::prelude::*;
 
 fn parse_json(value: Value) -> Resolved {
     let bytes = value.try_bytes()?;
@@ -80,7 +82,7 @@ fn validate_depth(value: Value) -> ExpressionResult<u8> {
     if (1..=128).contains(&res) {
         Ok(res as u8)
     } else {
-        Err(ExpressionError::from(format!(
+        Err(ExpressionError2::from(format!(
             "max_depth value should be greater than 0 and less than 128, got {res}"
         )))
     }
@@ -242,8 +244,9 @@ fn type_def() -> TypeDef {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use crate::value;
+
+    use super::*;
 
     test_function![
         parse_json => ParseJson;
