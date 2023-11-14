@@ -24,8 +24,6 @@ block-buffer,https://github.com/RustCrypto/utils,MIT OR Apache-2.0,RustCrypto De
 block-padding,https://github.com/RustCrypto/utils,MIT OR Apache-2.0,RustCrypto Developers
 borsh,https://github.com/near/borsh-rs,MIT OR Apache-2.0,Near Inc <hello@near.org>
 borsh-derive,https://github.com/nearprotocol/borsh,Apache-2.0,Near Inc <hello@nearprotocol.com>
-borsh-derive-internal,https://github.com/nearprotocol/borsh,Apache-2.0,Near Inc <hello@nearprotocol.com>
-borsh-schema-derive-internal,https://github.com/nearprotocol/borsh,Apache-2.0,Near Inc <hello@nearprotocol.com>
 bumpalo,https://github.com/fitzgen/bumpalo,MIT OR Apache-2.0,Nick Fitzgerald <fitzgen@gmail.com>
 bytecheck,https://github.com/djkoloski/bytecheck,MIT,David Koloski <djkoloski@gmail.com>
 bytes,https://github.com/tokio-rs/bytes,MIT,"Carl Lerche <me@carllerche.com>, Sean McArthur <sean@seanmonstar.com>"
@@ -136,7 +134,6 @@ poly1305,https://github.com/RustCrypto/universal-hashes,Apache-2.0 OR MIT,RustCr
 ppv-lite86,https://github.com/cryptocorrosion/cryptocorrosion,MIT OR Apache-2.0,The CryptoCorrosion Contributors
 prettydiff,https://github.com/romankoblov/prettydiff,MIT,Roman Koblov <penpen938@me.com>
 prettytable-rs,https://github.com/phsym/prettytable-rs,BSD-3-Clause,Pierre-Henri Symoneaux
-proc-macro-crate,https://github.com/bkchr/proc-macro-crate,Apache-2.0 OR MIT,Bastian Köcher <git@kchr.de>
 proc-macro-crate,https://github.com/bkchr/proc-macro-crate,MIT OR Apache-2.0,Bastian Köcher <git@kchr.de>
 proc-macro-error,https://gitlab.com/CreepySkeleton/proc-macro-error,MIT OR Apache-2.0,CreepySkeleton <creepy-skeleton@yandex.ru>
 proc-macro2,https://github.com/dtolnay/proc-macro2,MIT OR Apache-2.0,"David Tolnay <dtolnay@gmail.com>, Alex Crichton <alex@alexcrichton.com>"
@@ -184,6 +181,7 @@ structopt,https://github.com/TeXitoi/structopt,Apache-2.0 OR MIT,"Guillaume Pino
 structopt-derive,https://github.com/TeXitoi/structopt,Apache-2.0 OR MIT,Guillaume Pinot <texitoi@texitoi.eu>
 subtle,https://github.com/dalek-cryptography/subtle,BSD-3-Clause,"Isis Lovecruft <isis@patternsinthevoid.net>, Henry de Valence <hdevalence@hdevalence.ca>"
 syn,https://github.com/dtolnay/syn,MIT OR Apache-2.0,David Tolnay <dtolnay@gmail.com>
+syn_derive,https://github.com/Kyuuhachi/syn_derive,MIT OR Apache-2.0,Kyuuhachi <caagr98@gmail.com>
 syslog_loose,https://github.com/FungusHumungus/syslog-loose,MIT,Stephen Wakely <fungus.humungus@gmail.com>
 tap,https://github.com/myrrlyn/tap,MIT,"Elliott Linder <elliott.darfink@gmail.com>, myrrlyn <self@myrrlyn.dev>"
 term,https://github.com/Stebalien/term,MIT OR Apache-2.0,"The Rust Project Developers, Steven Allen"
@@ -192,7 +190,7 @@ textwrap,https://github.com/mgeisler/textwrap,MIT,Martin Geisler <martin@geisler
 thiserror,https://github.com/dtolnay/thiserror,MIT OR Apache-2.0,David Tolnay <dtolnay@gmail.com>
 tinyvec,https://github.com/Lokathor/tinyvec,Zlib OR Apache-2.0 OR MIT,Lokathor <zefria@gmail.com>
 tinyvec_macros,https://github.com/Soveu/tinyvec_macros,MIT OR Apache-2.0 OR Zlib,Soveu <marx.tomasz@gmail.com>
-toml,https://github.com/toml-rs/toml,MIT OR Apache-2.0,Alex Crichton <alex@alexcrichton.com>
+toml_datetime,https://github.com/toml-rs/toml,MIT OR Apache-2.0,Alex Crichton <alex@alexcrichton.com>
 toml_edit,https://github.com/toml-rs/toml,MIT OR Apache-2.0,"Andronik Ordian <write@reusable.software>, Ed Page <eopage@gmail.com>"
 tracing,https://github.com/tokio-rs/tracing,MIT,"Eliza Weisman <eliza@buoyant.io>, Tokio Contributors <team@tokio.rs>"
 tracing-core,https://github.com/tokio-rs/tracing,MIT,Tokio Contributors <team@tokio.rs>
