@@ -13,9 +13,9 @@
 # 2 │ . = parse_common_log(.log)
 #   │ --- ^^^^^^^^^^^^^^^^^^^^^^
 #   │ │   │
-#   │ │   this expression is fallible
-#   │ │   update the expression to be infallible
-#   │ │   '.log' argument type is 'any' and this function expected a parameter 'value' of type 'string'
+#   │ │   this expression is fallible because at least one argument's type cannot be verified to be valid
+#   │ │   update the expression to be infallible by adding a `!`: `parse_common_log!(.log)`
+#   │ │   `.log` argument type is `any` and this function expected a parameter `value` of type `string`
 #   │ or change this to an infallible assignment:
 #   │ ., err = parse_common_log(.log)
 #   │

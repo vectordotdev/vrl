@@ -695,25 +695,34 @@ impl DiagnosticMessage for Error {
                 expression,
                 context,
             }) => {
-                let mut labels = vec![Label::primary(
-                    "this expression is fallible",
-                    self.expr_span,
-                )];
+                let mut labels = vec![
+                    Label::primary("this expression is fallible because at least one argument's type cannot be verified to be valid", self.expr_span)];
                 if let Some(context) = context {
+                    let helper = "update the expression to be infallible by adding a `!`";
                     if !context.arguments_fmt.is_empty() {
                         labels.push(
-                            Label::context(format!(
-                                "'{}' argument type is '{}' and this function expected a parameter '{}' of type '{}'",
+                            Label::primary(format!(
+                                "`{}` argument type is `{}` and this function expected a parameter `{}` of type `{}`",
                                 context.arguments_fmt[0],
                                 context.got,
                                 context.parameter.keyword,
                                 context.parameter.kind()),
-                            self.expr_span));
+                                           self.expr_span));
+
+                        let fixed_expression = expression.replace(
+                            context.function_ident,
+                            format!("{}!", context.function_ident).as_str(),
+                        );
+                        labels.push(Label::primary(
+                            format!("{helper}: `{fixed_expression}`"),
+                            self.expr_span,
+                        ));
+                    } else {
+                        labels.push(Label::primary(helper, self.expr_span));
                     }
                 };
 
                 labels.extend(vec![
-                    Label::context("update the expression to be infallible", self.expr_span),
                     Label::context(
                         "or change this to an infallible assignment:",
                         self.assignment_span,

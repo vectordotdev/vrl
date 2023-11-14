@@ -7,9 +7,9 @@
 # 3 │ .a = sha3(.result[0].an)
 #   │ ---- ^^^^^^^^^^^^^^^^^^^
 #   │ │    │
-#   │ │    this expression is fallible
-#   │ │    update the expression to be infallible
-#   │ │    '.result[0].an' argument type is 'string or undefined' and this function expected a parameter 'value' of type 'string'
+#   │ │    this expression is fallible because at least one argument's type cannot be verified to be valid
+#   │ │    update the expression to be infallible by adding a `!`: `sha3!(.result[0].an)`
+#   │ │    `.result[0].an` argument type is `string or undefined` and this function expected a parameter `value` of type `string`
 #   │ or change this to an infallible assignment:
 #   │ .a, err = sha3(.result[0].an)
 #   │
