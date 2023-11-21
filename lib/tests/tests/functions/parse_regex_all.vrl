@@ -2,12 +2,11 @@
 # result: [[{ "0": "pattern1" }], [{ "0": "pattern2" }]]
 
 regex_list = [ r'pattern1', r'pattern2' ]
-
-result = {}
-for_each(regex_list) -> |i, pattern| {
+result = []
+for_each(regex_list) -> |_, pattern| {
     parse_result = parse_regex_all!(to_string!(.http_status), pattern, numeric_groups: true)
     if length(parse_result) > 0 {
-        result = set!(result, [i], parse_result)
+        result = push(result, parse_result)
     }
 }
 . = result
