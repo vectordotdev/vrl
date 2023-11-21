@@ -124,9 +124,18 @@ impl FunctionExpression for ParseRegexAllFn {
         parse_regex_all(value, numeric_groups.try_boolean()?, &pattern)
     }
 
-    fn type_def(&self, _state: &state::TypeState) -> TypeDef {
+    fn type_def(&self, state: &state::TypeState) -> TypeDef {
+        if let Some(value) = self.pattern.resolve_constant(state) {
+            if let Some(regex) = value.as_regex() {
+                return TypeDef::array(Collection::from_unknown(
+                    Kind::object(util::regex_kind(regex)).or_null(),
+                ))
+                .fallible();
+            }
+        }
+
         TypeDef::array(Collection::from_unknown(
-            Kind::object(Collection::any()).or_null(),
+            Kind::object(Collection::from_unknown(Kind::bytes() | Kind::null())).or_null(),
         ))
         .fallible()
     }
