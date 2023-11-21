@@ -1,10 +1,9 @@
 //! Contains the main "Value" type for Vector and VRL, as well as helper methods.
 
-use std::collections::BTreeMap;
-
 use bytes::{Bytes, BytesMut};
 use chrono::{DateTime, SecondsFormat, Utc};
 use ordered_float::NotNan;
+use std::collections::BTreeMap;
 
 pub use iter::{IterItem, ValueIter};
 
