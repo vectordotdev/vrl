@@ -99,8 +99,24 @@ impl<'de> Deserialize<'de> for Value {
             }
 
             #[inline]
-            fn visit_u64<E>(self, value: u64) -> Result<Value, E> {
-                Ok((value as i64).into())
+            fn visit_u64<E>(self, value: u64) -> Result<Value, E>
+            where
+                E: serde::de::Error,
+            {
+                if let Ok(value) = i64::try_from(value) {
+                    Ok(value.into())
+                } else {
+                    // TODO: Address this issue by providing a lossless conversion option.
+                    #[allow(clippy::cast_precision_loss)]
+                    let converted_value = value as f64;
+                    let wrapped_value = NotNan::new(converted_value).map_err(|_| {
+                        SerdeError::invalid_value(
+                            serde::de::Unexpected::Float(converted_value),
+                            &self,
+                        )
+                    })?;
+                    Ok(Value::Float(wrapped_value))
+                }
             }
 
             #[inline]
