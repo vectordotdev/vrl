@@ -1,6 +1,7 @@
 # Changelog
 
 ## unreleased
+* `parse_regex_all` `pattern` param  can now be resolved from a variable
 
 ## `0.8.0` (2023-10-31)
 
@@ -11,6 +12,7 @@
 - added `parse_float` function (https://github.com/vectordotdev/vrl/pull/484)
 - improved fallibility diagnostics (https://github.com/vectordotdev/vrl/pull/523)
 - added `encode_snappy` and `decode_snappy` functions (https://github.com/vectordotdev/vrl/pull/543)
+
 ## `0.7.0` (2023-09-25)
 
 #### Bug Fixes
