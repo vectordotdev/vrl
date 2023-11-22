@@ -174,7 +174,7 @@ impl Expression for DelFn {
     fn type_info(&self, state: &state::TypeState) -> TypeInfo {
         let mut state = state.clone();
 
-        let return_type = self.query.apply_type_info(&mut state);
+        let return_type = self.query.apply_type_info(&mut state).impure();
 
         let compact: Option<bool> = self
             .compact

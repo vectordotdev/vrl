@@ -58,6 +58,30 @@ impl Fallibility {
     }
 }
 
+#[derive(Default, Debug, Clone, Eq, PartialEq)]
+pub enum Purity {
+    /// Used for functions that are idempotent and have no side effects.
+    /// The vast majority of VRL expressions (and functions) are pure.
+    #[default]
+    Pure,
+    /// Used for impure functions.
+    Impure,
+}
+
+impl Purity {
+    #[must_use]
+    /// Merges two [`Purity`] values. There is only one rule, [`Purity::Impure`] trumps [`Purity::Pure`].
+    fn merge(left: &Self, right: &Self) -> Self {
+        use Purity::{Impure, Pure};
+
+        match (left, right) {
+            (Pure, Pure) => Pure,
+            (Impure, _) => Impure,
+            (_, Impure) => Impure,
+        }
+    }
+}
+
 /// Properties for a given expression that express the expected outcome of the
 /// expression.
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -75,6 +99,10 @@ pub struct TypeDef {
 
     /// The [`Kind`][value::Kind]s this definition represents.
     kind: Kind,
+
+    /// A function is [`Purity::Pure`] if it is idempotent and has no side effects.
+    /// Otherwise, it is [`Purity::Impure`].
+    purity: Purity,
 }
 
 impl Deref for TypeDef {
@@ -107,6 +135,7 @@ impl TypeDef {
         Self {
             fallibility: self.fallibility.clone(),
             kind: self.kind.at_path(path),
+            purity: self.purity.clone(),
         }
     }
 
@@ -147,6 +176,20 @@ impl TypeDef {
     #[must_use]
     pub fn with_fallibility(mut self, fallibility: Fallibility) -> Self {
         self.fallibility = fallibility;
+        self
+    }
+
+    #[inline]
+    #[must_use]
+    pub fn pure(mut self) -> Self {
+        self.purity = Purity::Pure;
+        self
+    }
+
+    #[inline]
+    #[must_use]
+    pub fn impure(mut self) -> Self {
+        self.purity = Purity::Impure;
         self
     }
 
@@ -303,6 +346,7 @@ impl TypeDef {
         Self {
             fallibility: fallible,
             kind: Kind::array(collection),
+            purity: self.purity.clone(),
         }
     }
 
@@ -336,6 +380,7 @@ impl TypeDef {
         Self {
             fallibility: fallible,
             kind: Kind::object(collection),
+            purity: self.purity.clone(),
         }
     }
 
@@ -387,6 +432,16 @@ impl TypeDef {
         !self.is_fallible()
     }
 
+    #[must_use]
+    pub fn is_pure(&self) -> bool {
+        self.purity == Purity::Pure
+    }
+
+    #[must_use]
+    pub fn is_impure(&self) -> bool {
+        self.purity == Purity::Impure
+    }
+
     /// Set the type definition to be fallible if its kind is not contained
     /// within the provided kind.
     pub fn fallible_unless(mut self, kind: impl Into<Kind>) -> Self {
@@ -402,6 +457,7 @@ impl TypeDef {
     pub fn union(mut self, other: Self) -> Self {
         self.fallibility = Fallibility::merge(&self.fallibility, &other.fallibility);
         self.kind = self.kind.union(other.kind);
+        self.purity = Purity::merge(&self.purity, &other.purity);
         self
     }
 
@@ -409,6 +465,7 @@ impl TypeDef {
     pub fn merge(&mut self, other: Self, strategy: merge::Strategy) {
         self.fallibility = Fallibility::merge(&self.fallibility, &other.fallibility);
         self.kind.merge(other.kind, strategy);
+        self.purity = Purity::merge(&self.purity, &other.purity);
     }
 
     #[must_use]
@@ -418,6 +475,7 @@ impl TypeDef {
         Self {
             fallibility: Fallibility::merge(&self.fallibility, &other.fallibility),
             kind,
+            purity: Purity::merge(&self.purity, &other.purity),
         }
     }
 
@@ -439,6 +497,7 @@ impl From<Kind> for TypeDef {
         Self {
             fallibility: Fallibility::CannotFail,
             kind,
+            purity: Purity::Pure,
         }
     }
 }
@@ -472,6 +531,7 @@ impl Details {
 #[cfg(test)]
 mod test {
     use super::Fallibility::*;
+    use super::Purity::*;
     use super::*;
 
     #[test]
@@ -525,5 +585,13 @@ mod test {
         assert_eq!(Fallibility::merge(&CannotFail, &MightFail), MightFail);
 
         assert_eq!(Fallibility::merge(&CannotFail, &CannotFail), CannotFail);
+    }
+
+    #[test]
+    fn merge_purity() {
+        assert_eq!(Purity::merge(&Pure, &Impure), Impure);
+        assert_eq!(Purity::merge(&Impure, &Pure), Impure);
+        assert_eq!(Purity::merge(&Impure, &Impure), Impure);
+        assert_eq!(Purity::merge(&Pure, &Pure), Pure);
     }
 }
