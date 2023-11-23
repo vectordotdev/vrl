@@ -85,7 +85,7 @@ ordered-float = { version = "4", default-features = false, optional = true }
 md-5 = { version = "0.10", optional = true }
 paste = { version = "1", default-features = false, optional = true }
 peeking_take_while = { version = "1.0.0", default-features = false, optional = true }
-percent-encoding = { version = "2.2", optional = true }
+percent-encoding = { version = "2.3", optional = true }
 pest = { version = "2.7.5", default-features = false, optional = true, features = ["std"] }
 pest_derive = { version = "2.7.5", default-features = false, optional = true, features = ["std"] }
 prettydiff = {version = "0.6", optional = true }
