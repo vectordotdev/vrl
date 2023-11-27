@@ -208,7 +208,13 @@ impl Expression for Op {
                 // "a" >= "a"
                 // "a" <  "b"
                 // "b" <= "b"
-                if lhs_def.is_bytes() && rhs_def.is_bytes() {
+                // t'2023-05-04T22:22:22.234142Z' >  t'2023-04-04T22:22:22.234142Z'
+                // t'2023-05-04T22:22:22.234142Z' >= t'2023-04-04T22:22:22.234142Z'
+                // t'2023-05-04T22:22:22.234142Z' <  t'2023-04-04T22:22:22.234142Z'
+                // t'2023-05-04T22:22:22.234142Z' <= t'2023-04-04T22:22:22.234142Z'
+                if (lhs_def.is_bytes() && rhs_def.is_bytes())
+                    || (lhs_def.is_timestamp() && rhs_def.is_timestamp())
+                {
                     lhs_def.union(rhs_def).with_kind(K::boolean())
                 }
                 // ... >  ...
@@ -413,6 +419,7 @@ impl DiagnosticMessage for Error {
 mod tests {
     use std::convert::TryInto;
 
+    use chrono::Utc;
     use ordered_float::NotNan;
 
     use ast::{
@@ -665,6 +672,11 @@ mod tests {
             want: TypeDef::boolean().infallible(),
         }
 
+        greater_timestamps {
+            expr: |_| op(Gt, Utc::now(), Utc::now()),
+            want: TypeDef::boolean().infallible(),
+        }
+
         greater_other {
             expr: |_| op(Gt, 1, "foo"),
             want: TypeDef::boolean().fallible(),
@@ -687,6 +699,11 @@ mod tests {
 
         greater_or_equal_bytes {
             expr: |_| op(Ge, "foo", "foo"),
+            want: TypeDef::boolean().infallible(),
+        }
+
+        greater_or_equal_timestamps {
+            expr: |_| op(Ge, Utc::now(), Utc::now()),
             want: TypeDef::boolean().infallible(),
         }
 
@@ -715,6 +732,11 @@ mod tests {
             want: TypeDef::boolean().infallible(),
         }
 
+        less_timestamps {
+            expr: |_| op(Lt, Utc::now(), Utc::now()),
+            want: TypeDef::boolean().infallible(),
+        }
+
         less_other {
             expr: |_| op(Lt, 1, "foo"),
             want: TypeDef::boolean().fallible(),
@@ -737,6 +759,11 @@ mod tests {
 
         less_or_equal_bytes {
             expr: |_| op(Le, "bar", "bar"),
+            want: TypeDef::boolean().infallible(),
+        }
+
+        less_or_equal_timestamps {
+            expr: |_| op(Le, Utc::now(), Utc::now()),
             want: TypeDef::boolean().infallible(),
         }
 
