@@ -133,7 +133,7 @@ impl FunctionExpression for LogFn {
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {
-        TypeDef::null().infallible()
+        TypeDef::null().infallible().impure()
     }
 }
 
@@ -151,7 +151,7 @@ mod tests {
                                level: value!("warn"),
                                rate_limit_secs: value!(5) ],
             want: Ok(Value::Null),
-            tdef: TypeDef::null().infallible(),
+            tdef: TypeDef::null().infallible().impure(),
         }
     ];
 

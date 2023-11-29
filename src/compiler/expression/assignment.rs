@@ -554,7 +554,7 @@ where
         let mut state = state.clone();
         match &self {
             Variant::Single { target, expr } => {
-                let expr_result = expr.apply_type_info(&mut state);
+                let expr_result = expr.apply_type_info(&mut state).impure();
 
                 let const_value = expr.resolve_constant(&state);
                 target.insert_type_def(&mut state, expr_result.clone(), const_value);
@@ -582,7 +582,7 @@ where
                 err.insert_type_def(&mut state, err_type, None);
 
                 // Return type of the assignment expression itself is either the "expr" type or "bytes (the error message).
-                let assignment_result = expr_result.infallible().or_bytes();
+                let assignment_result = expr_result.infallible().impure().or_bytes();
 
                 TypeInfo::new(state, assignment_result)
             }
