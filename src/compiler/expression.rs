@@ -39,7 +39,7 @@ mod noop;
 mod not;
 mod object;
 mod op;
-mod unary;
+pub(crate) mod unary;
 mod variable;
 
 pub(crate) mod assignment;

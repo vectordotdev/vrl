@@ -16,6 +16,7 @@ pub struct Test {
     pub result: String,
     pub result_approx: bool,
     pub skip: bool,
+    pub check_diagnostics: bool,
     // paths set to read-only
     pub read_only_paths: Vec<(OwnedTargetPath, bool)>,
 }
@@ -134,6 +135,7 @@ impl Test {
             result,
             result_approx,
             skip: content.starts_with("# SKIP"),
+            check_diagnostics: content.starts_with("# DIAGNOSTICS"),
             read_only_paths,
         }
     }
@@ -154,6 +156,7 @@ impl Test {
             result,
             result_approx: false,
             skip: false,
+            check_diagnostics: false,
             read_only_paths: vec![],
         }
     }

@@ -136,7 +136,10 @@ pub fn run_tests<T>(
                 warnings,
                 config: _,
             }) => {
-                if warnings.is_empty() {
+                warnings_count += warnings.len();
+                if test.check_diagnostics {
+                    process_compilation_diagnostics(&test, cfg, warnings, compile_timing_fmt)
+                } else {
                     let run_start = Instant::now();
 
                     finalize_config(config_metadata);
@@ -153,9 +156,6 @@ pub fn run_tests<T>(
                     };
 
                     process_result(result, &mut test, cfg, timings)
-                } else {
-                    warnings_count += warnings.len();
-                    process_compilation_diagnostics(&test, cfg, warnings, compile_timing_fmt)
                 }
             }
             Err(diagnostics) => {
