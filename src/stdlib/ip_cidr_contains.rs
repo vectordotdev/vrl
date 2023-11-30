@@ -53,7 +53,7 @@ impl Function for IpCidrContains {
                 title: "invalid cidr",
                 source: r#"ip_cidr_contains!("INVALID", "192.168.10.32")"#,
                 result: Err(
-                    r#"function call error for "ip_cidr_contains" at (0:45): unable to parse CIDR: The CIDR string is incorrect."#,
+                    r#"function call error for "ip_cidr_contains" at (0:45): unable to parse CIDR: couldn't parse address in network: invalid IP address syntax"#,
                 ),
             },
             Example {
