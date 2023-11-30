@@ -1,4 +1,4 @@
-# result: [false, true, true, false, true, true, false, true, true, false, true, true, true, true, false, "nope", "nope", "nope", "nope", "nope"]
+# result: [false, true, true, false, true, true, false, true, true, false, true, true, true, true, false, false, true, true, true, false, true, "nope", "nope", "nope", "nope", "nope"]
 
 [
     1 >= 2,
@@ -20,6 +20,14 @@
     "foo" >= "bar",
     "foo" >= "foo",
     "bar" >= "foo",
+
+    t'2024-04-04T22:22:22.234142Z' >= t'2024-05-04T22:22:22.234142Z',
+    t'2024-04-04T22:22:22.234142Z' >= t'2024-04-04T22:22:22.234142Z',
+    t'2024-05-04T22:22:22.234142Z' >= t'2024-04-04T22:22:22.234142Z',
+
+    t'2024-04-04T22:22:22.234142+01:00' >= t'2024-04-04T22:22:22.234142+01:00',
+    t'2024-04-04T22:22:22.234142+03:00' >= t'2024-04-04T22:22:22.234142+01:00',
+    t'2024-04-04T22:22:22.234142+01:00' >= t'2024-04-04T22:22:22.234142+04:00',
 
     # fallible
     null >= 1 ?? "nope",

@@ -239,6 +239,7 @@ impl VrlValueArithmetic for Value {
             Value::Integer(lhv) => (lhv > rhs.try_into_i64().map_err(|_| err())?).into(),
             Value::Float(lhv) => (lhv.into_inner() > rhs.try_into_f64().map_err(|_| err())?).into(),
             Value::Bytes(lhv) => (lhv > rhs.try_bytes()?).into(),
+            Value::Timestamp(lhv) => (lhv > rhs.try_timestamp()?).into(),
             _ => return Err(err()),
         };
 
@@ -256,6 +257,7 @@ impl VrlValueArithmetic for Value {
                 (lhv.into_inner() >= rhs.try_into_f64().map_err(|_| err())?).into()
             }
             Value::Bytes(lhv) => (lhv >= rhs.try_bytes()?).into(),
+            Value::Timestamp(lhv) => (lhv >= rhs.try_timestamp()?).into(),
             _ => return Err(err()),
         };
 
@@ -271,6 +273,7 @@ impl VrlValueArithmetic for Value {
             Value::Integer(lhv) => (lhv < rhs.try_into_i64().map_err(|_| err())?).into(),
             Value::Float(lhv) => (lhv.into_inner() < rhs.try_into_f64().map_err(|_| err())?).into(),
             Value::Bytes(lhv) => (lhv < rhs.try_bytes()?).into(),
+            Value::Timestamp(lhv) => (lhv < rhs.try_timestamp()?).into(),
             _ => return Err(err()),
         };
 
@@ -288,6 +291,7 @@ impl VrlValueArithmetic for Value {
                 (lhv.into_inner() <= rhs.try_into_f64().map_err(|_| err())?).into()
             }
             Value::Bytes(lhv) => (lhv <= rhs.try_bytes()?).into(),
+            Value::Timestamp(lhv) => (lhv <= rhs.try_timestamp()?).into(),
             _ => return Err(err()),
         };
 
