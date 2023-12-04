@@ -15,7 +15,6 @@ anstyle-wincon,https://github.com/rust-cli/anstyle,MIT OR Apache-2.0,The anstyle
 anyhow,https://github.com/dtolnay/anyhow,MIT OR Apache-2.0,David Tolnay <dtolnay@gmail.com>
 anymap,https://github.com/chris-morgan/anymap,BlueOak-1.0.0 OR MIT OR Apache-2.0,Chris Morgan <rust@chrismorgan.info>
 arrayvec,https://github.com/bluss/arrayvec,MIT OR Apache-2.0,bluss
-atty,https://github.com/softprops/atty,MIT,softprops <d.tangren@gmail.com>
 base16,https://github.com/thomcc/rust-base16,CC0-1.0,Thom Chiovoloni <tchiovoloni@mozilla.com>
 base64,https://github.com/marshallpierce/rust-base64,MIT OR Apache-2.0,"Alice Maz <alice@alicemaz.com>, Marshall Pierce <marshall@mpierce.org>"
 bitflags,https://github.com/bitflags/bitflags,MIT OR Apache-2.0,The Rust Project Developers
@@ -38,7 +37,6 @@ chrono,https://github.com/chronotope/chrono,MIT OR Apache-2.0,The chrono Authors
 chrono-tz,https://github.com/chronotope/chrono-tz,MIT OR Apache-2.0,The chrono-tz Authors
 cidr-utils,https://github.com/magiclen/cidr-utils,MIT,Magic Len <len@magiclen.org>
 cipher,https://github.com/RustCrypto/traits,MIT OR Apache-2.0,RustCrypto Developers
-clap,https://github.com/clap-rs/clap,MIT,Kevin K. <kbknapp@gmail.com>
 clap,https://github.com/clap-rs/clap,MIT OR Apache-2.0,The clap Authors
 clap_builder,https://github.com/clap-rs/clap,MIT OR Apache-2.0,The clap_builder Authors
 clap_derive,https://github.com/clap-rs/clap/tree/master/clap_derive,MIT OR Apache-2.0,The clap_derive Authors
@@ -80,7 +78,6 @@ getrandom,https://github.com/rust-random/getrandom,MIT OR Apache-2.0,The Rand Pr
 grok,https://github.com/daschl/grok,Apache-2.0,Michael Nitschinger <michael@nitschinger.at>
 hashbrown,https://github.com/rust-lang/hashbrown,MIT OR Apache-2.0,Amanieu d'Antras <amanieu@gmail.com>
 heck,https://github.com/withoutboats/heck,MIT OR Apache-2.0,Without Boats <woboats@gmail.com>
-hermit-abi,https://github.com/hermitcore/libhermit-rs,MIT OR Apache-2.0,Stefan Lankes
 hermit-abi,https://github.com/hermitcore/rusty-hermit,MIT OR Apache-2.0,Stefan Lankes
 hex,https://github.com/KokaKiwi/rust-hex,MIT OR Apache-2.0,KokaKiwi <kokakiwi@kokakiwi.net>
 hmac,https://github.com/RustCrypto/MACs,MIT OR Apache-2.0,RustCrypto Developers
@@ -176,9 +173,6 @@ static_assertions,https://github.com/nvzqz/static-assertions-rs,MIT OR Apache-2.
 str-buf,https://github.com/DoumanAsh/str-buf,BSL-1.0,Douman <douman@gmx.se>
 strip-ansi-escapes,https://github.com/luser/strip-ansi-escapes,Apache-2.0 OR MIT,Ted Mielczarek <ted@mielczarek.org>
 strsim,https://github.com/dguo/strsim-rs,MIT,Danny Guo <danny@dannyguo.com>
-strsim,https://github.com/dguo/strsim-rs,MIT,Danny Guo <dannyguo91@gmail.com>
-structopt,https://github.com/TeXitoi/structopt,Apache-2.0 OR MIT,"Guillaume Pinot <texitoi@texitoi.eu>, others"
-structopt-derive,https://github.com/TeXitoi/structopt,Apache-2.0 OR MIT,Guillaume Pinot <texitoi@texitoi.eu>
 subtle,https://github.com/dalek-cryptography/subtle,BSD-3-Clause,"Isis Lovecruft <isis@patternsinthevoid.net>, Henry de Valence <hdevalence@hdevalence.ca>"
 syn,https://github.com/dtolnay/syn,MIT OR Apache-2.0,David Tolnay <dtolnay@gmail.com>
 syn_derive,https://github.com/Kyuuhachi/syn_derive,MIT OR Apache-2.0,Kyuuhachi <caagr98@gmail.com>
@@ -186,7 +180,6 @@ syslog_loose,https://github.com/FungusHumungus/syslog-loose,MIT,Stephen Wakely <
 tap,https://github.com/myrrlyn/tap,MIT,"Elliott Linder <elliott.darfink@gmail.com>, myrrlyn <self@myrrlyn.dev>"
 term,https://github.com/Stebalien/term,MIT OR Apache-2.0,"The Rust Project Developers, Steven Allen"
 termcolor,https://github.com/BurntSushi/termcolor,Unlicense OR MIT,Andrew Gallant <jamslam@gmail.com>
-textwrap,https://github.com/mgeisler/textwrap,MIT,Martin Geisler <martin@geisler.net>
 thiserror,https://github.com/dtolnay/thiserror,MIT OR Apache-2.0,David Tolnay <dtolnay@gmail.com>
 tinyvec,https://github.com/Lokathor/tinyvec,Zlib OR Apache-2.0 OR MIT,Lokathor <zefria@gmail.com>
 tinyvec_macros,https://github.com/Soveu/tinyvec_macros,MIT OR Apache-2.0 OR Zlib,Soveu <marx.tomasz@gmail.com>
@@ -207,7 +200,6 @@ url,https://github.com/servo/rust-url,MIT OR Apache-2.0,The rust-url developers
 utf8-width,https://github.com/magiclen/utf8-width,MIT,Magic Len <len@magiclen.org>
 uuid,https://github.com/uuid-rs/uuid,Apache-2.0 OR MIT,"Ashley Mannix<ashleymannix@live.com.au>, Christopher Armstrong, Dylan DPC<dylan.dpc@gmail.com>, Hunar Roop Kahlon<hunar.roop@gmail.com>"
 valuable,https://github.com/tokio-rs/valuable,MIT,The valuable Authors
-vec_map,https://github.com/contain-rs/vec-map,MIT OR Apache-2.0,"Alex Crichton <alex@alexcrichton.com>, Jorge Aparicio <japaricious@gmail.com>, Alexis Beingessner <a.beingessner@gmail.com>, Brian Anderson <>, tbu- <>, Manish Goregaokar <>, Aaron Turon <aturon@mozilla.com>, Adolfo Ochagavía <>, Niko Matsakis <>, Steven Fackler <>, Chase Southwood <csouth3@illinois.edu>, Eduard Burtescu <>, Florian Wilkens <>, Félix Raimundo <>, Tibor Benke <>, Markus Siemens <markus@m-siemens.de>, Josh Branchaud <jbranchaud@gmail.com>, Huon Wilson <dbau.pp@gmail.com>, Corey Farwell <coref@rwell.org>, Aaron Liblong <>, Nick Cameron <nrc@ncameron.org>, Patrick Walton <pcwalton@mimiga.net>, Felix S Klock II <>, Andrew Paseltiner <apaseltiner@gmail.com>, Sean McArthur <sean.monstar@gmail.com>, Vadim Petrochenkov <>"
 vte,https://github.com/alacritty/vte,Apache-2.0 OR MIT,"Joe Wilm <joe@jwilm.com>, Christian Duerr <contact@christianduerr.com>"
 vte_generate_state_changes,https://github.com/jwilm/vte,Apache-2.0 OR MIT,Christian Duerr <contact@christianduerr.com>
 wasi,https://github.com/bytecodealliance/wasi,Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT,The Cranelift Project Developers
