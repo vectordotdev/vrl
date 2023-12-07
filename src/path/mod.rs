@@ -83,6 +83,7 @@
 //! - `owned_value_path!("foo.bar", "x")` will create a path with *two* segments. Equivalent to `."foo.bar".x`
 //!
 
+use std::fmt;
 use std::fmt::Debug;
 
 use snafu::Snafu;
@@ -313,6 +314,15 @@ fn get_target_prefix(path: &str) -> (PathPrefix, &str) {
 pub enum PathPrefix {
     Event,
     Metadata,
+}
+
+impl fmt::Display for PathPrefix {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            PathPrefix::Event => write!(f, "."),
+            PathPrefix::Metadata => write!(f, "%"),
+        }
+    }
 }
 
 #[cfg(test)]
