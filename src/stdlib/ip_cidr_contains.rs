@@ -1,17 +1,17 @@
 use crate::compiler::prelude::*;
 use cidr_utils::cidr::IpCidr;
+use std::net::IpAddr;
+use std::str::FromStr;
 
 fn ip_cidr_contains(value: Value, cidr: Value) -> Resolved {
-    let value = value
-        .try_bytes_utf8_lossy()?
-        .parse()
-        .map_err(|err| format!("unable to parse IP address: {err}"))?;
+    let bytes = value.try_bytes_utf8_lossy()?;
+    let ip_addr =
+        IpAddr::from_str(&bytes).map_err(|err| format!("unable to parse IP address: {err}"))?;
     let cidr = {
         let cidr = cidr.try_bytes_utf8_lossy()?;
-
-        IpCidr::from_str(cidr).map_err(|err| format!("unable to parse CIDR: {err}"))?
+        IpCidr::from_str(&cidr).map_err(|err| format!("unable to parse CIDR: {err}"))?
     };
-    Ok(cidr.contains(value).into())
+    Ok(cidr.contains(&ip_addr).into())
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -53,7 +53,7 @@ impl Function for IpCidrContains {
                 title: "invalid cidr",
                 source: r#"ip_cidr_contains!("INVALID", "192.168.10.32")"#,
                 result: Err(
-                    r#"function call error for "ip_cidr_contains" at (0:45): unable to parse CIDR: The CIDR string is incorrect."#,
+                    r#"function call error for "ip_cidr_contains" at (0:45): unable to parse CIDR: couldn't parse address in network: invalid IP address syntax"#,
                 ),
             },
             Example {
