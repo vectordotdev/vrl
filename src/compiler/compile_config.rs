@@ -1,7 +1,12 @@
 use crate::path::OwnedTargetPath;
-use anymap::AnyMap;
-use std::collections::BTreeSet;
+use std::{
+    any::{Any, TypeId},
+    collections::{BTreeSet, HashMap},
+};
 
+type AnyMap = HashMap<TypeId, Box<dyn Any>>;
+
+#[derive(Default)]
 pub struct CompileConfig {
     /// Custom context injected by the external environment
     custom: AnyMap,
@@ -12,17 +17,21 @@ impl CompileConfig {
     /// Get external context data from the external environment.
     #[must_use]
     pub fn get_custom<T: 'static>(&self) -> Option<&T> {
-        self.custom.get::<T>()
+        self.custom
+            .get(&TypeId::of::<T>())
+            .and_then(|t| t.downcast_ref())
     }
 
     /// Get external context data from the external environment.
     pub fn get_custom_mut<T: 'static>(&mut self) -> Option<&mut T> {
-        self.custom.get_mut::<T>()
+        self.custom
+            .get_mut(&TypeId::of::<T>())
+            .and_then(|t| t.downcast_mut())
     }
 
     /// Sets the external context data for VRL functions to use.
     pub fn set_custom<T: 'static>(&mut self, data: T) {
-        self.custom.insert::<T>(data);
+        self.custom.insert(TypeId::of::<T>(), Box::new(data) as _);
     }
 
     pub fn custom_mut(&mut self) -> &mut AnyMap {
@@ -63,17 +72,35 @@ impl CompileConfig {
     }
 }
 
-impl Default for CompileConfig {
-    fn default() -> Self {
-        Self {
-            custom: AnyMap::new(),
-            read_only_paths: BTreeSet::new(),
-        }
-    }
-}
-
 #[derive(Debug, Clone, Ord, Eq, PartialEq, PartialOrd)]
 struct ReadOnlyPath {
     path: OwnedTargetPath,
     recursive: bool,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[derive(PartialEq, Eq, Debug)]
+    struct Potato(usize);
+
+    #[test]
+    fn can_get_custom() {
+        let mut config = CompileConfig::default();
+        config.set_custom(Potato(42));
+
+        assert_eq!(&Potato(42), config.get_custom::<Potato>().unwrap());
+    }
+
+    #[test]
+    fn can_get_custom_mut() {
+        let mut config = CompileConfig::default();
+        config.set_custom(Potato(42));
+
+        let potato = config.get_custom_mut::<Potato>().unwrap();
+        potato.0 = 43;
+
+        assert_eq!(&Potato(43), config.get_custom::<Potato>().unwrap());
+    }
 }
