@@ -1,7 +1,12 @@
 use crate::path::OwnedTargetPath;
-use anymap::AnyMap;
-use std::collections::BTreeSet;
+use std::{
+    any::{Any, TypeId},
+    collections::{BTreeSet, HashMap},
+};
 
+type AnyMap = HashMap<TypeId, Box<dyn Any>>;
+
+#[derive(Default)]
 pub struct CompileConfig {
     /// Custom context injected by the external environment
     custom: AnyMap,
@@ -12,17 +17,21 @@ impl CompileConfig {
     /// Get external context data from the external environment.
     #[must_use]
     pub fn get_custom<T: 'static>(&self) -> Option<&T> {
-        self.custom.get::<T>()
+        self.custom
+            .get(&TypeId::of::<T>())
+            .and_then(|t| t.downcast_ref())
     }
 
     /// Get external context data from the external environment.
     pub fn get_custom_mut<T: 'static>(&mut self) -> Option<&mut T> {
-        self.custom.get_mut::<T>()
+        self.custom
+            .get_mut(&TypeId::of::<T>())
+            .and_then(|t| t.downcast_mut())
     }
 
     /// Sets the external context data for VRL functions to use.
     pub fn set_custom<T: 'static>(&mut self, data: T) {
-        self.custom.insert::<T>(data);
+        self.custom.insert(TypeId::of::<T>(), Box::new(data) as _);
     }
 
     pub fn custom_mut(&mut self) -> &mut AnyMap {
@@ -60,15 +69,6 @@ impl CompileConfig {
     pub fn set_read_only_path(&mut self, path: OwnedTargetPath, recursive: bool) {
         self.read_only_paths
             .insert(ReadOnlyPath { path, recursive });
-    }
-}
-
-impl Default for CompileConfig {
-    fn default() -> Self {
-        Self {
-            custom: AnyMap::new(),
-            read_only_paths: BTreeSet::new(),
-        }
     }
 }
 
