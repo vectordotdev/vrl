@@ -77,3 +77,30 @@ struct ReadOnlyPath {
     path: OwnedTargetPath,
     recursive: bool,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[derive(PartialEq, Eq, Debug)]
+    struct Potato(usize);
+
+    #[test]
+    fn can_get_custom() {
+        let mut config = CompileConfig::default();
+        config.set_custom(Potato(42));
+
+        assert_eq!(&Potato(42), config.get_custom::<Potato>().unwrap());
+    }
+
+    #[test]
+    fn can_get_custom_mut() {
+        let mut config = CompileConfig::default();
+        config.set_custom(Potato(42));
+
+        let potato = config.get_custom_mut::<Potato>().unwrap();
+        potato.0 = 43;
+
+        assert_eq!(&Potato(43), config.get_custom::<Potato>().unwrap());
+    }
+}
