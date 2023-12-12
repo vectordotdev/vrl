@@ -1,6 +1,8 @@
 # Changelog
 
 ## unreleased
+
+## `0.9.0` (2023-12-12)
 * `parse_regex_all` `pattern` param  can now be resolved from a variable
 * fixed `parse_json` data corruption issue for numbers greater or equal to `i64::MAX` 
 * support timestamp comparison using operators <, <=, >, >=
