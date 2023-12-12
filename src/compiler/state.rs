@@ -88,6 +88,8 @@ impl LocalEnv {
         for (ident, other_details) in other.bindings {
             if let Some(self_details) = self.bindings.get_mut(&ident) {
                 *self_details = self_details.clone().merge(other_details);
+            } else {
+                self.bindings.insert(ident, other_details);
             }
         }
         self
