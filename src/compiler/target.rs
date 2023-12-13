@@ -278,7 +278,10 @@ mod value_target_impl {
 mod tests {
     #![allow(clippy::print_stdout)] // tests
 
-    use crate::owned_value_path;
+    use crate::{
+        compiler::{parser::Ident, state::LocalEnv, type_def::Details, TypeDef},
+        owned_value_path,
+    };
 
     use super::*;
     use crate::value;
@@ -529,5 +532,29 @@ mod tests {
                 Ok(expect)
             );
         }
+    }
+
+    #[test]
+    fn merge_multiple_local_env() {
+        let mut a = LocalEnv::default();
+        a.insert_variable(
+            Ident("foo".into()),
+            Details {
+                type_def: TypeDef::any(),
+                value: None,
+            },
+        );
+
+        let mut b = LocalEnv::default();
+        b.insert_variable(
+            Ident("bar".into()),
+            Details {
+                type_def: TypeDef::any(),
+                value: None,
+            },
+        );
+
+        let merged = a.merge(b);
+        assert_eq!(merged.bindings.len(), 2);
     }
 }
