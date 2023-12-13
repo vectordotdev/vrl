@@ -1,6 +1,7 @@
 # Changelog
 
 ## unreleased
+- added the `alias_sources` parameter for `parse_groks` to read sources from files
 
 #### Features
 - added `contains_all` function (https://github.com/vectordotdev/vrl/pull/468)
@@ -14,7 +15,7 @@
 - `parse_nginx_log` doesn't fail if the values of key-value pairs in error logs is missing (https://github.com/vectordotdev/vrl/pull/442)
 - `encode_gzip` and `encode_zlib` now correctly check the compression level (preventing a panic) (https://github.com/vectordotdev/vrl/pull/393)
 - fix the type definition of array/object literal expressions where one of the values is undefined (https://github.com/vectordotdev/vrl/pull/401)
-- `parse_aws_vpc_flow_log` now handles account-id value as a string, avoiding loss of leading zeros and case where value is `unknown` (https://github.com/vectordotdev/vrl/issues/263) 
+- `parse_aws_vpc_flow_log` now handles account-id value as a string, avoiding loss of leading zeros and case where value is `unknown` (https://github.com/vectordotdev/vrl/issues/263)
 
 #### Features
 - `parse_key_value` can now parse values enclosed in single quote characters (https://github.com/vectordotdev/vrl/pull/382)
@@ -22,7 +23,7 @@
 - added `community_id` function for generation of [V1 Community IDs](https://github.com/corelight/community-id-spec) (https://github.com/vectordotdev/vrl/pull/360)
 - updated aws vpc flow log parsing to include version 5 fields (https://github.com/vectordotdev/vrl/issues/227)
 - removed deprecated `to_timestamp` function (https://github.com/vectordotdev/vrl/pull/452)
-- changed `truncate` arguments, it now accepts a suffix string instead of a boolean (https://github.com/vectordotdev/vrl/pull/454) 
+- changed `truncate` arguments, it now accepts a suffix string instead of a boolean (https://github.com/vectordotdev/vrl/pull/454)
 
 ## `0.6.0` (2023-08-02)
 
@@ -47,7 +48,6 @@
 - fixed type definitions for side-effects inside of queries (https://github.com/vectordotdev/vrl/pull/258)
 - replaced `Program::final_type_state` with `Program::final_type_info` to give access to the type definitions of both the target and program result (https://github.com/vectordotdev/vrl/pull/262)
 - added `from_unix_timestamp` vrl function (https://github.com/vectordotdev/vrl/pull/277)
-- added the `alias_sources` parameter for `parse_groks` to read sources from files
 
 ## `0.4.0` (2023-05-11)
 - consolidated all crates into the root `vrl` crate. The external API stayed the same, with the exception of macros, which are now all exported at the root of the `vrl` crate.
