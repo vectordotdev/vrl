@@ -1,6 +1,8 @@
-use crate::compiler::prelude::*;
-use community_id::calculate_community_id;
 use std::net::IpAddr;
+
+use community_id::calculate_community_id;
+
+use crate::compiler::prelude::*;
 
 fn community_id(
     src_ip: Value,

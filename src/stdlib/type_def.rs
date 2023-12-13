@@ -4,7 +4,7 @@ fn type_def(type_def: &VrlTypeDef) -> Value {
     let mut tree = type_def.kind().canonicalize().debug_info();
 
     if type_def.is_fallible() {
-        tree.insert("fallible".to_owned(), true.into());
+        tree.insert("fallible".to_owned().into(), true.into());
     }
 
     tree.into()

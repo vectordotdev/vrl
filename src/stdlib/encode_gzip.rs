@@ -1,7 +1,9 @@
-use crate::compiler::prelude::*;
+use std::io::Read;
+
 use flate2::read::GzEncoder;
 use nom::AsBytes;
-use std::io::Read;
+
+use crate::compiler::prelude::*;
 
 const MAX_COMPRESSION_LEVEL: u32 = 10;
 
@@ -105,15 +107,17 @@ impl FunctionExpression for EncodeGzipFn {
             true
         };
 
-        TypeDef::bytes().with_fallibility(!is_compression_level_valid_constant)
+        TypeDef::bytes().maybe_fallible(!is_compression_level_valid_constant)
     }
 }
 
 #[cfg(test)]
 mod test {
-    use super::*;
-    use crate::value;
     use base64::Engine;
+
+    use crate::value;
+
+    use super::*;
 
     fn decode_base64(text: &str) -> Vec<u8> {
         let engine = base64::engine::GeneralPurpose::new(

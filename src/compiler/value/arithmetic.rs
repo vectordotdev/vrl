@@ -1,16 +1,16 @@
 #![deny(clippy::arithmetic_side_effects)]
 
-use std::collections::BTreeMap;
 use std::ops::{Add, Mul, Rem, Sub};
 
-use crate::value::Value;
 use bytes::{BufMut, Bytes, BytesMut};
 
-use super::ValueError;
 use crate::compiler::{
     value::{Kind, VrlValueConvert},
     ExpressionError,
 };
+use crate::value::{ObjectMap, Value};
+
+use super::ValueError;
 
 pub trait VrlValueArithmetic: Sized {
     /// Similar to [`std::ops::Mul`], but fallible (e.g. `TryMul`).
@@ -239,6 +239,7 @@ impl VrlValueArithmetic for Value {
             Value::Integer(lhv) => (lhv > rhs.try_into_i64().map_err(|_| err())?).into(),
             Value::Float(lhv) => (lhv.into_inner() > rhs.try_into_f64().map_err(|_| err())?).into(),
             Value::Bytes(lhv) => (lhv > rhs.try_bytes()?).into(),
+            Value::Timestamp(lhv) => (lhv > rhs.try_timestamp()?).into(),
             _ => return Err(err()),
         };
 
@@ -256,6 +257,7 @@ impl VrlValueArithmetic for Value {
                 (lhv.into_inner() >= rhs.try_into_f64().map_err(|_| err())?).into()
             }
             Value::Bytes(lhv) => (lhv >= rhs.try_bytes()?).into(),
+            Value::Timestamp(lhv) => (lhv >= rhs.try_timestamp()?).into(),
             _ => return Err(err()),
         };
 
@@ -271,6 +273,7 @@ impl VrlValueArithmetic for Value {
             Value::Integer(lhv) => (lhv < rhs.try_into_i64().map_err(|_| err())?).into(),
             Value::Float(lhv) => (lhv.into_inner() < rhs.try_into_f64().map_err(|_| err())?).into(),
             Value::Bytes(lhv) => (lhv < rhs.try_bytes()?).into(),
+            Value::Timestamp(lhv) => (lhv < rhs.try_timestamp()?).into(),
             _ => return Err(err()),
         };
 
@@ -288,6 +291,7 @@ impl VrlValueArithmetic for Value {
                 (lhv.into_inner() <= rhs.try_into_f64().map_err(|_| err())?).into()
             }
             Value::Bytes(lhv) => (lhv <= rhs.try_bytes()?).into(),
+            Value::Timestamp(lhv) => (lhv <= rhs.try_timestamp()?).into(),
             _ => return Err(err()),
         };
 
@@ -302,7 +306,7 @@ impl VrlValueArithmetic for Value {
                 .iter()
                 .chain(rhv.iter())
                 .map(|(k, v)| (k.clone(), v.clone()))
-                .collect::<BTreeMap<String, Value>>()
+                .collect::<ObjectMap>()
                 .into(),
             _ => return Err(err()),
         };

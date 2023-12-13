@@ -40,11 +40,13 @@ pub mod secrets;
 pub mod value;
 
 mod btreemap;
+mod keystring;
 
 pub use kind::Kind;
 
+pub use self::keystring::KeyString;
 pub use self::secrets::Secrets;
-pub use self::value::{Value, ValueRegex};
+pub use self::value::{ObjectMap, Value, ValueRegex};
 
 /// A macro to easily generate Values
 #[macro_export]
@@ -63,7 +65,7 @@ macro_rules! value {
     });
 
     ({$($($k1:literal)? $($k2:ident)?: $v:tt),+ $(,)?}) => ({
-        let map = vec![$((String::from($($k1)? $(stringify!($k2))?), $crate::value!($v))),+]
+        let map = vec![$((String::from($($k1)? $(stringify!($k2))?).into(), $crate::value!($v))),+]
             .into_iter()
             .collect::<::std::collections::BTreeMap<_, $crate::value::Value>>();
 

@@ -1,8 +1,5 @@
 use std::fmt;
 
-use crate::diagnostic::{DiagnosticMessage, Label, Note, Span, Urls};
-use crate::value::Value;
-
 use crate::compiler::state::{TypeInfo, TypeState};
 use crate::compiler::{
     expression::{self, Expr, Resolved},
@@ -10,6 +7,8 @@ use crate::compiler::{
     value::VrlValueArithmetic,
     Context, Expression, TypeDef,
 };
+use crate::diagnostic::{DiagnosticMessage, Label, Note, Span, Urls};
+use crate::value::Value;
 
 #[derive(Clone, PartialEq)]
 pub struct Op {
@@ -153,7 +152,7 @@ impl Expression for Op {
                 // entire expression is only fallible if both lhs and rhs were fallible
                 let fallible = lhs_def.is_fallible() && rhs_def.is_fallible();
 
-                lhs_def.union(rhs_def).with_fallibility(fallible)
+                lhs_def.union(rhs_def).maybe_fallible(fallible)
             }
 
             Or => {
@@ -209,7 +208,13 @@ impl Expression for Op {
                 // "a" >= "a"
                 // "a" <  "b"
                 // "b" <= "b"
-                if lhs_def.is_bytes() && rhs_def.is_bytes() {
+                // t'2023-05-04T22:22:22.234142Z' >  t'2023-04-04T22:22:22.234142Z'
+                // t'2023-05-04T22:22:22.234142Z' >= t'2023-04-04T22:22:22.234142Z'
+                // t'2023-05-04T22:22:22.234142Z' <  t'2023-04-04T22:22:22.234142Z'
+                // t'2023-05-04T22:22:22.234142Z' <= t'2023-04-04T22:22:22.234142Z'
+                if (lhs_def.is_bytes() && rhs_def.is_bytes())
+                    || (lhs_def.is_timestamp() && rhs_def.is_timestamp())
+                {
                     lhs_def.union(rhs_def).with_kind(K::boolean())
                 }
                 // ... >  ...
@@ -335,7 +340,7 @@ pub enum Error {
     },
 
     #[error("fallible operation")]
-    Expr(#[from] expression::Error),
+    Expr(#[from] expression::ExpressionError),
 }
 
 impl DiagnosticMessage for Error {
@@ -414,15 +419,18 @@ impl DiagnosticMessage for Error {
 mod tests {
     use std::convert::TryInto;
 
+    use chrono::Utc;
+    use ordered_float::NotNan;
+
     use ast::{
         Ident,
         Opcode::{Add, And, Div, Eq, Err, Ge, Gt, Le, Lt, Mul, Ne, Or, Sub},
     };
-    use ordered_float::NotNan;
 
-    use super::*;
     use crate::compiler::expression::{Block, IfStatement, Literal, Predicate, Variable};
     use crate::test_type_def;
+
+    use super::*;
 
     fn op(
         opcode: ast::Opcode,
@@ -664,6 +672,11 @@ mod tests {
             want: TypeDef::boolean().infallible(),
         }
 
+        greater_timestamps {
+            expr: |_| op(Gt, Utc::now(), Utc::now()),
+            want: TypeDef::boolean().infallible(),
+        }
+
         greater_other {
             expr: |_| op(Gt, 1, "foo"),
             want: TypeDef::boolean().fallible(),
@@ -686,6 +699,11 @@ mod tests {
 
         greater_or_equal_bytes {
             expr: |_| op(Ge, "foo", "foo"),
+            want: TypeDef::boolean().infallible(),
+        }
+
+        greater_or_equal_timestamps {
+            expr: |_| op(Ge, Utc::now(), Utc::now()),
             want: TypeDef::boolean().infallible(),
         }
 
@@ -714,6 +732,11 @@ mod tests {
             want: TypeDef::boolean().infallible(),
         }
 
+        less_timestamps {
+            expr: |_| op(Lt, Utc::now(), Utc::now()),
+            want: TypeDef::boolean().infallible(),
+        }
+
         less_other {
             expr: |_| op(Lt, 1, "foo"),
             want: TypeDef::boolean().fallible(),
@@ -736,6 +759,11 @@ mod tests {
 
         less_or_equal_bytes {
             expr: |_| op(Le, "bar", "bar"),
+            want: TypeDef::boolean().infallible(),
+        }
+
+        less_or_equal_timestamps {
+            expr: |_| op(Le, Utc::now(), Utc::now()),
             want: TypeDef::boolean().infallible(),
         }
 

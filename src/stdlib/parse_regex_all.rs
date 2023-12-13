@@ -1,5 +1,6 @@
-use crate::compiler::prelude::*;
 use regex::Regex;
+
+use crate::compiler::prelude::*;
 
 use super::util;
 
@@ -30,7 +31,7 @@ impl Function for ParseRegexAll {
             },
             Parameter {
                 keyword: "pattern",
-                kind: kind::ANY,
+                kind: kind::REGEX,
                 required: true,
             },
             Parameter {
@@ -43,12 +44,12 @@ impl Function for ParseRegexAll {
 
     fn compile(
         &self,
-        state: &state::TypeState,
+        _state: &state::TypeState,
         _ctx: &mut FunctionCompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
-        let pattern = arguments.required_regex("pattern", state)?;
+        let pattern = arguments.required("pattern");
         let numeric_groups = arguments
             .optional("numeric_groups")
             .unwrap_or_else(|| expr!(false));
@@ -105,7 +106,7 @@ impl Function for ParseRegexAll {
 #[derive(Debug, Clone)]
 pub(crate) struct ParseRegexAllFn {
     value: Box<dyn Expression>,
-    pattern: Regex,
+    pattern: Box<dyn Expression>,
     numeric_groups: Box<dyn Expression>,
 }
 
@@ -113,14 +114,28 @@ impl FunctionExpression for ParseRegexAllFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let value = self.value.resolve(ctx)?;
         let numeric_groups = self.numeric_groups.resolve(ctx)?;
-        let pattern = &self.pattern;
+        let pattern = self
+            .pattern
+            .resolve(ctx)?
+            .as_regex()
+            .ok_or_else(|| ExpressionError::from("failed to resolve regex"))?
+            .clone();
 
-        parse_regex_all(value, numeric_groups.try_boolean()?, pattern)
+        parse_regex_all(value, numeric_groups.try_boolean()?, &pattern)
     }
 
-    fn type_def(&self, _: &state::TypeState) -> TypeDef {
+    fn type_def(&self, state: &state::TypeState) -> TypeDef {
+        if let Some(value) = self.pattern.resolve_constant(state) {
+            if let Some(regex) = value.as_regex() {
+                return TypeDef::array(Collection::from_unknown(
+                    Kind::object(util::regex_kind(regex)).or_null(),
+                ))
+                .fallible();
+            }
+        }
+
         TypeDef::array(Collection::from_unknown(
-            Kind::object(util::regex_kind(&self.pattern)).or_null(),
+            Kind::object(Collection::from_unknown(Kind::bytes() | Kind::null())).or_null(),
         ))
         .fallible()
     }
@@ -129,8 +144,9 @@ impl FunctionExpression for ParseRegexAllFn {
 #[cfg(test)]
 #[allow(clippy::trivial_regex)]
 mod tests {
-    use super::*;
     use crate::{btreemap, value};
+
+    use super::*;
 
     test_function![
         parse_regex_all => ParseRegexAll;

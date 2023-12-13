@@ -1,9 +1,11 @@
-use super::PathPrefix;
-use super::{parse_target_path, parse_value_path, BorrowedSegment, PathParseError, ValuePath};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::fmt::{Debug, Display, Formatter};
+
+use super::PathPrefix;
+use super::{parse_target_path, parse_value_path, BorrowedSegment, PathParseError, ValuePath};
+use crate::value::KeyString;
 
 /// A lookup path.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
@@ -225,6 +227,22 @@ impl TryFrom<String> for OwnedTargetPath {
     }
 }
 
+impl TryFrom<KeyString> for OwnedValuePath {
+    type Error = PathParseError;
+
+    fn try_from(src: KeyString) -> Result<Self, Self::Error> {
+        parse_value_path(&src).map_err(|_| PathParseError::InvalidPathSyntax { path: src.into() })
+    }
+}
+
+impl TryFrom<KeyString> for OwnedTargetPath {
+    type Error = PathParseError;
+
+    fn try_from(src: KeyString) -> Result<Self, Self::Error> {
+        parse_target_path(&src).map_err(|_| PathParseError::InvalidPathSyntax { path: src.into() })
+    }
+}
+
 impl From<OwnedValuePath> for String {
     fn from(owned: OwnedValuePath) -> Self {
         let mut coalesce_i = 0;
@@ -303,20 +321,20 @@ impl From<Vec<OwnedSegment>> for OwnedValuePath {
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash, PartialOrd, Ord)]
 pub enum OwnedSegment {
-    Field(String),
+    Field(KeyString),
     Index(isize),
-    Coalesce(Vec<String>),
+    Coalesce(Vec<KeyString>),
 }
 
 impl OwnedSegment {
     pub fn field(value: &str) -> OwnedSegment {
-        OwnedSegment::Field(value.to_string())
+        OwnedSegment::Field(value.into())
     }
     pub fn index(value: isize) -> OwnedSegment {
         OwnedSegment::Index(value)
     }
 
-    pub fn coalesce(fields: Vec<String>) -> OwnedSegment {
+    pub fn coalesce(fields: Vec<KeyString>) -> OwnedSegment {
         OwnedSegment::Coalesce(fields)
     }
 
@@ -347,14 +365,14 @@ impl From<Vec<&'static str>> for OwnedSegment {
     fn from(fields: Vec<&'static str>) -> Self {
         fields
             .into_iter()
-            .map(ToString::to_string)
+            .map(KeyString::from)
             .collect::<Vec<_>>()
             .into()
     }
 }
 
-impl From<Vec<String>> for OwnedSegment {
-    fn from(fields: Vec<String>) -> Self {
+impl From<Vec<KeyString>> for OwnedSegment {
+    fn from(fields: Vec<KeyString>) -> Self {
         OwnedSegment::Coalesce(fields)
     }
 }

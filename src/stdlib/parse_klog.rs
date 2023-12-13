@@ -7,7 +7,7 @@ use std::collections::BTreeMap;
 fn parse_klog(bytes: Value) -> Resolved {
     let bytes = bytes.try_bytes()?;
     let message = String::from_utf8_lossy(&bytes);
-    let mut log: BTreeMap<String, Value> = BTreeMap::new();
+    let mut log = ObjectMap::new();
     let captures = REGEX_KLOG
         .captures(&message)
         .ok_or("failed parsing klog message")?;

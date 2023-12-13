@@ -1,7 +1,7 @@
+use crate::compiler::ExpressionError;
 use crate::diagnostic::DiagnosticMessage;
 
 use super::Kind;
-use crate::compiler::ExpressionError;
 
 #[derive(thiserror::Error, Debug, PartialEq, Eq)]
 pub enum ValueError {

@@ -13,7 +13,7 @@ fn parse_query_string(bytes: Value) -> Resolved {
     for (k, value) in parsed {
         let value = value.as_ref();
         result
-            .entry(k.into_owned())
+            .entry(k.into_owned().into())
             .and_modify(|v| {
                 match v {
                     Value::Array(v) => {

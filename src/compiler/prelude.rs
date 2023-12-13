@@ -1,8 +1,20 @@
-pub use super::Resolved;
+pub use std::fmt;
 
-// macros
+pub use bytes::Bytes;
+pub use indoc::indoc;
+pub use ordered_float::NotNan;
+
 pub use crate::{expr, func_args, test_function, test_type_def};
+// macros
+pub use crate::diagnostic::{DiagnosticMessage, Note, Span};
+pub use crate::value::{
+    kind::{Collection, Field, Index},
+    value,
+    value::IterItem,
+    KeyString, Kind, ObjectMap, Value, ValueRegex,
+};
 
+pub use super::Resolved;
 pub use super::{
     expression,
     function::{
@@ -14,16 +26,5 @@ pub use super::{
     Context, Expression, ExpressionError, Function, FunctionExpression, Parameter, TimeZone,
     TypeDef,
 };
-pub use crate::diagnostic::{DiagnosticMessage, Note, Span};
-pub use crate::value::{
-    kind::{Collection, Field, Index},
-    value,
-    value::IterItem,
-    Kind, Value, ValueRegex,
-};
-pub use bytes::Bytes;
-pub use indoc::indoc;
-pub use ordered_float::NotNan;
-pub use std::fmt;
 
 pub type ExpressionResult<T> = Result<T, ExpressionError>;

@@ -31,18 +31,78 @@ use crate::value::{
     Kind, Value,
 };
 
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub enum Fallibility {
+    CannotFail,
+    MightFail,
+    AlwaysFails,
+}
+
+impl Fallibility {
+    #[must_use]
+    /// Merges two [`Fallibility`] values using the following rules:
+    ///
+    /// - Merging with [`Fallibility::AlwaysFails`] always results in [`Fallibility::AlwaysFails`].
+    /// - Merging [`Fallibility::MightFail`] with any variant results in [`Fallibility::MightFail`].
+    /// - Merging two [`Fallibility::CannotFail`] values results in [`Fallibility::CannotFail`].
+    ///
+    /// This is useful for combining the fallibility of sub-expressions.
+    pub fn merge(left: &Self, right: &Self) -> Self {
+        use Fallibility::{AlwaysFails, CannotFail, MightFail};
+
+        match (left, right) {
+            (AlwaysFails, _) | (_, AlwaysFails) => AlwaysFails,
+            (MightFail, _) | (_, MightFail) => MightFail,
+            _ => CannotFail,
+        }
+    }
+}
+
+#[derive(Default, Debug, Clone, Eq, PartialEq)]
+pub enum Purity {
+    /// Used for functions that are idempotent and have no side effects.
+    /// The vast majority of VRL expressions (and functions) are pure.
+    #[default]
+    Pure,
+    /// Used for impure functions.
+    Impure,
+}
+
+impl Purity {
+    #[must_use]
+    /// Merges two [`Purity`] values. There is only one rule, [`Purity::Impure`] trumps [`Purity::Pure`].
+    fn merge(left: &Self, right: &Self) -> Self {
+        use Purity::{Impure, Pure};
+
+        match (left, right) {
+            (Pure, Pure) => Pure,
+            (Impure, _) => Impure,
+            (_, Impure) => Impure,
+        }
+    }
+}
+
 /// Properties for a given expression that express the expected outcome of the
 /// expression.
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct TypeDef {
-    /// True, if an expression can return an error.
+    /// If the function *might* fail, the fallibility must not be [`Fallibility::CannotFail`].
     ///
-    /// Some expressions are infallible (e.g. the [`Literal`][crate::expression::Literal] expression, or any
-    /// custom function designed to be infallible).
-    fallible: bool,
+    /// If the function *might* succeed, the fallibility must not be [`Fallibility::AlwaysFails`].
+    ///
+    /// Prefer [`Fallibility::AlwaysFails`] over [`Fallibility::MightFail`] whenever possible. If not possible,
+    /// choose [`Fallibility::MightFail`].
+    ///
+    /// Some expressions are infallible e.g. the [`Literal`][crate::expression::Literal] expression, or any
+    // custom function designed to be infallible.
+    fallibility: Fallibility,
 
     /// The [`Kind`][value::Kind]s this definition represents.
     kind: Kind,
+
+    /// A function is [`Purity::Pure`] if it is idempotent and has no side effects.
+    /// Otherwise, it is [`Purity::Impure`].
+    purity: Purity,
 }
 
 impl Deref for TypeDef {
@@ -72,30 +132,64 @@ impl TypeDef {
 
     #[must_use]
     pub fn at_path<'a>(&self, path: impl ValuePath<'a>) -> TypeDef {
-        let fallible = self.fallible;
-        let kind = self.kind.at_path(path);
-
-        Self { fallible, kind }
+        Self {
+            fallibility: self.fallibility.clone(),
+            kind: self.kind.at_path(path),
+            purity: self.purity.clone(),
+        }
     }
 
     #[inline]
     #[must_use]
     pub fn fallible(mut self) -> Self {
-        self.fallible = true;
+        self.fallibility = Fallibility::MightFail;
         self
     }
 
     #[inline]
     #[must_use]
     pub fn infallible(mut self) -> Self {
-        self.fallible = false;
+        self.fallibility = Fallibility::CannotFail;
         self
     }
 
     #[inline]
     #[must_use]
-    pub fn with_fallibility(mut self, fallible: bool) -> Self {
-        self.fallible = fallible;
+    pub fn always_fails(mut self) -> Self {
+        self.fallibility = Fallibility::AlwaysFails;
+        self
+    }
+
+    #[inline]
+    #[must_use]
+    /// Provided for backwards compatibility. Prefer `with_fallibility` for new code.
+    pub fn maybe_fallible(mut self, might_fail: bool) -> Self {
+        if might_fail {
+            self.fallibility = Fallibility::MightFail;
+        } else {
+            self.fallibility = Fallibility::CannotFail;
+        }
+        self
+    }
+
+    #[inline]
+    #[must_use]
+    pub fn with_fallibility(mut self, fallibility: Fallibility) -> Self {
+        self.fallibility = fallibility;
+        self
+    }
+
+    #[inline]
+    #[must_use]
+    pub fn pure(mut self) -> Self {
+        self.purity = Purity::Pure;
+        self
+    }
+
+    #[inline]
+    #[must_use]
+    pub fn impure(mut self) -> Self {
+        self.purity = Purity::Impure;
         self
     }
 
@@ -243,15 +337,16 @@ impl TypeDef {
     #[inline]
     #[must_use]
     pub fn restrict_array(self) -> Self {
-        let fallible = self.fallible;
+        let fallible = self.fallibility;
         let collection = match self.kind.into_array() {
             Some(array) => array,
             None => Collection::any(),
         };
 
         Self {
-            fallible,
+            fallibility: fallible,
             kind: Kind::array(collection),
+            purity: self.purity.clone(),
         }
     }
 
@@ -276,15 +371,16 @@ impl TypeDef {
     #[inline]
     #[must_use]
     pub fn restrict_object(self) -> Self {
-        let fallible = self.fallible;
+        let fallible = self.fallibility;
         let collection = match self.kind.into_object() {
             Some(object) => object,
             None => Collection::any(),
         };
 
         Self {
-            fallible,
+            fallibility: fallible,
             kind: Kind::object(collection),
+            purity: self.purity.clone(),
         }
     }
 
@@ -328,7 +424,7 @@ impl TypeDef {
 
     #[must_use]
     pub fn is_fallible(&self) -> bool {
-        self.fallible
+        self.fallibility == Fallibility::MightFail || self.fallibility == Fallibility::AlwaysFails
     }
 
     #[must_use]
@@ -336,12 +432,22 @@ impl TypeDef {
         !self.is_fallible()
     }
 
+    #[must_use]
+    pub fn is_pure(&self) -> bool {
+        self.purity == Purity::Pure
+    }
+
+    #[must_use]
+    pub fn is_impure(&self) -> bool {
+        self.purity == Purity::Impure
+    }
+
     /// Set the type definition to be fallible if its kind is not contained
     /// within the provided kind.
     pub fn fallible_unless(mut self, kind: impl Into<Kind>) -> Self {
         let kind = kind.into();
         if kind.is_superset(&self.kind).is_err() {
-            self.fallible = true
+            self.fallibility = Fallibility::MightFail
         }
 
         self
@@ -349,15 +455,17 @@ impl TypeDef {
 
     #[must_use]
     pub fn union(mut self, other: Self) -> Self {
-        self.fallible |= other.fallible;
+        self.fallibility = Fallibility::merge(&self.fallibility, &other.fallibility);
         self.kind = self.kind.union(other.kind);
+        self.purity = Purity::merge(&self.purity, &other.purity);
         self
     }
 
     // deprecated
     pub fn merge(&mut self, other: Self, strategy: merge::Strategy) {
-        self.fallible |= other.fallible;
+        self.fallibility = Fallibility::merge(&self.fallibility, &other.fallibility);
         self.kind.merge(other.kind, strategy);
+        self.purity = Purity::merge(&self.purity, &other.purity);
     }
 
     #[must_use]
@@ -365,8 +473,9 @@ impl TypeDef {
         let mut kind = self.kind;
         kind.insert(path, other.kind);
         Self {
-            fallible: self.fallible || other.fallible,
+            fallibility: Fallibility::merge(&self.fallibility, &other.fallibility),
             kind,
+            purity: Purity::merge(&self.purity, &other.purity),
         }
     }
 
@@ -386,8 +495,9 @@ impl TypeDef {
 impl From<Kind> for TypeDef {
     fn from(kind: Kind) -> Self {
         Self {
-            fallible: false,
+            fallibility: Fallibility::CannotFail,
             kind,
+            purity: Purity::Pure,
         }
     }
 }
@@ -420,6 +530,8 @@ impl Details {
 
 #[cfg(test)]
 mod test {
+    use super::Fallibility::*;
+    use super::Purity::*;
     use super::*;
 
     #[test]
@@ -436,7 +548,7 @@ mod test {
             a.merge(b),
             Details {
                 type_def: TypeDef::integer().or_float(),
-                value: Some(Value::from(5))
+                value: Some(Value::from(5)),
             }
         )
     }
@@ -455,8 +567,31 @@ mod test {
             a.merge(b),
             Details {
                 type_def: TypeDef::any(),
-                value: None
+                value: None,
             }
         )
+    }
+
+    #[test]
+    fn merge_fallibility_instances() {
+        assert_eq!(Fallibility::merge(&AlwaysFails, &MightFail), AlwaysFails);
+        assert_eq!(Fallibility::merge(&AlwaysFails, &CannotFail), AlwaysFails);
+        assert_eq!(
+            Fallibility::merge(&Fallibility::merge(&CannotFail, &MightFail), &AlwaysFails),
+            AlwaysFails
+        );
+
+        assert_eq!(Fallibility::merge(&MightFail, &MightFail), MightFail);
+        assert_eq!(Fallibility::merge(&CannotFail, &MightFail), MightFail);
+
+        assert_eq!(Fallibility::merge(&CannotFail, &CannotFail), CannotFail);
+    }
+
+    #[test]
+    fn merge_purity() {
+        assert_eq!(Purity::merge(&Pure, &Impure), Impure);
+        assert_eq!(Purity::merge(&Impure, &Pure), Impure);
+        assert_eq!(Purity::merge(&Impure, &Impure), Impure);
+        assert_eq!(Purity::merge(&Pure, &Pure), Pure);
     }
 }

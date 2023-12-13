@@ -1,4 +1,6 @@
-use crate::diagnostic::{Diagnostic, DiagnosticMessage, Label, Note, Severity};
+use ExpressionError::{Abort, Error, Fallible, Missing};
+
+use crate::diagnostic::{Diagnostic, DiagnosticMessage, Label, Note, Severity, Span};
 use crate::value::Value;
 
 pub type Resolved = Result<Value, ExpressionError>;
@@ -6,13 +8,22 @@ pub type Resolved = Result<Value, ExpressionError>;
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ExpressionError {
     Abort {
-        span: crate::diagnostic::Span,
+        span: Span,
         message: Option<String>,
     },
     Error {
         message: String,
         labels: Vec<Label>,
         notes: Vec<Note>,
+    },
+
+    Fallible {
+        span: Span,
+    },
+
+    Missing {
+        span: Span,
+        feature: &'static str,
     },
 }
 
@@ -42,38 +53,49 @@ impl From<ExpressionError> for Diagnostic {
 
 impl DiagnosticMessage for ExpressionError {
     fn code(&self) -> usize {
-        0
+        match self {
+            Abort { .. } => 0,
+            Error { .. } => 0,
+            Fallible { .. } => 100,
+            Missing { .. } => 900,
+        }
     }
 
     fn message(&self) -> String {
-        use ExpressionError::Abort;
-        use ExpressionError::Error;
-
         match self {
             Abort { message, .. } => message.clone().unwrap_or_else(|| "aborted".to_owned()),
             Error { message, .. } => message.clone(),
+            Fallible { .. } => "unhandled error".to_string(),
+            Missing { .. } => "expression type unavailable".to_string(),
         }
     }
 
     fn labels(&self) -> Vec<Label> {
-        use ExpressionError::Abort;
-        use ExpressionError::Error;
-
         match self {
             Abort { span, .. } => {
                 vec![Label::primary("aborted", span)]
             }
             Error { labels, .. } => labels.clone(),
+            Fallible { span } => vec![
+                Label::primary("expression can result in runtime error", span),
+                Label::context("handle the error case to ensure runtime success", span),
+            ],
+            Missing { span, feature } => vec![
+                Label::primary("expression type is disabled in this version of vrl", span),
+                Label::context(
+                    format!("build vrl using the `{feature}` feature to enable it"),
+                    span,
+                ),
+            ],
         }
     }
 
     fn notes(&self) -> Vec<Note> {
-        use ExpressionError::Abort;
-        use ExpressionError::Error;
-
         match self {
             Abort { .. } => vec![],
             Error { notes, .. } => notes.clone(),
+            Fallible { .. } => vec![Note::SeeErrorDocs],
+            Missing { .. } => vec![],
         }
     }
 }

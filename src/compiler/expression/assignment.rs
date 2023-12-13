@@ -1,11 +1,9 @@
 use std::{convert::TryFrom, fmt};
 
-use crate::diagnostic::{DiagnosticMessage, Label, Note};
-use crate::path::{OwnedSegment, OwnedTargetPath};
-use crate::path::{OwnedValuePath, PathPrefix};
-use crate::value::{Kind, Value};
-
+use crate::compiler::expression::function_call::FunctionCallError::InvalidArgumentKind;
+use crate::compiler::expression::function_call::InvalidArgumentErrorContext;
 use crate::compiler::{
+    compiler::CompilerError,
     expression::{assignment::ErrorVariant::InvalidParentPathSegment, Expr, Resolved},
     parser::{
         ast::{self, Ident},
@@ -16,6 +14,10 @@ use crate::compiler::{
     value::kind::DefaultValue,
     CompileConfig, Context, Expression, Span, TypeDef,
 };
+use crate::diagnostic::{DiagnosticMessage, Label, Note};
+use crate::path::{OwnedSegment, OwnedTargetPath};
+use crate::path::{OwnedValuePath, PathPrefix};
+use crate::value::{Kind, Value};
 
 #[derive(Clone, PartialEq)]
 pub struct Assignment {
@@ -23,10 +25,11 @@ pub struct Assignment {
 }
 
 impl Assignment {
+    #[allow(unused_variables)]
     pub(crate) fn new(
         node: Node<Variant<Node<ast::AssignmentTarget>, Node<Expr>>>,
         state: &TypeState,
-        fallible_rhs: Option<&dyn DiagnosticMessage>,
+        fallible_rhs: Option<&CompilerError>,
         config: &CompileConfig,
     ) -> Result<Self, Error> {
         let (_, variant) = node.take();
@@ -36,14 +39,25 @@ impl Assignment {
                 let target_span = target.span();
                 let expr_span = expr.span();
                 let assignment_span = Span::new(target_span.start(), expr_span.start() - 1);
-
                 // Fallible expressions require infallible assignment.
-                if fallible_rhs.is_some() {
+                if let Some(expr_error) = fallible_rhs {
+                    let assignment_error_data = match expr_error {
+                        CompilerError::FunctionCallError(InvalidArgumentKind(context)) => {
+                            AssignmentErrorData {
+                                target: target.to_string(),
+                                expression: expr.to_string(),
+                                context: Some(context.clone()),
+                            }
+                        }
+                        _ => AssignmentErrorData {
+                            target: target.to_string(),
+                            expression: expr.to_string(),
+                            context: None,
+                        },
+                    };
+
                     return Err(Error {
-                        variant: ErrorVariant::FallibleAssignment(
-                            target.to_string(),
-                            expr.to_string(),
-                        ),
+                        variant: ErrorVariant::FallibleAssignment(assignment_error_data),
                         expr_span,
                         assignment_span,
                     });
@@ -466,7 +480,7 @@ impl TryFrom<ast::AssignmentTarget> for Target {
                             variant: ErrorVariant::InvalidTarget(span),
                             expr_span: span,
                             assignment_span: span,
-                        })
+                        });
                     }
                 }
             }
@@ -540,7 +554,7 @@ where
         let mut state = state.clone();
         match &self {
             Variant::Single { target, expr } => {
-                let expr_result = expr.apply_type_info(&mut state);
+                let expr_result = expr.apply_type_info(&mut state).impure();
 
                 let const_value = expr.resolve_constant(&state);
                 target.insert_type_def(&mut state, expr_result.clone(), const_value);
@@ -568,7 +582,7 @@ where
                 err.insert_type_def(&mut state, err_type, None);
 
                 // Return type of the assignment expression itself is either the "expr" type or "bytes (the error message).
-                let assignment_result = expr_result.infallible().or_bytes();
+                let assignment_result = expr_result.infallible().impure().or_bytes();
 
                 TypeInfo::new(state, assignment_result)
             }
@@ -600,6 +614,13 @@ pub(crate) struct Error {
     assignment_span: Span,
 }
 
+#[derive(Debug)]
+pub(crate) struct AssignmentErrorData {
+    target: String,
+    expression: String,
+    context: Option<InvalidArgumentErrorContext>,
+}
+
 #[derive(thiserror::Error, Debug)]
 #[allow(clippy::large_enum_variant)]
 pub(crate) enum ErrorVariant {
@@ -607,7 +628,7 @@ pub(crate) enum ErrorVariant {
     UnnecessaryNoop(Span),
 
     #[error("unhandled fallible assignment")]
-    FallibleAssignment(String, String),
+    FallibleAssignment(AssignmentErrorData),
 
     #[error("unnecessary error assignment")]
     InfallibleAssignment(String, String, Span, Span),
@@ -669,15 +690,51 @@ impl DiagnosticMessage for Error {
                 Label::context("either assign to a path or variable here", *target_span),
                 Label::context("or remove the assignment", self.assignment_span),
             ],
-            FallibleAssignment(target, expr) => vec![
-                Label::primary("this expression is fallible", self.expr_span),
-                Label::context("update the expression to be infallible", self.expr_span),
-                Label::context(
-                    "or change this to an infallible assignment:",
-                    self.assignment_span,
-                ),
-                Label::context(format!("{target}, err = {expr}"), self.assignment_span),
-            ],
+            FallibleAssignment(AssignmentErrorData {
+                target,
+                expression,
+                context,
+            }) => {
+                let mut labels = vec![
+                    Label::primary("this expression is fallible because at least one argument's type cannot be verified to be valid", self.expr_span)];
+                if let Some(context) = context {
+                    let helper = "update the expression to be infallible by adding a `!`";
+                    if !context.arguments_fmt.is_empty() {
+                        labels.push(
+                            Label::primary(format!(
+                                "`{}` argument type is `{}` and this function expected a parameter `{}` of type `{}`",
+                                context.arguments_fmt[0],
+                                context.got,
+                                context.parameter.keyword,
+                                context.parameter.kind()),
+                                           self.expr_span));
+
+                        let fixed_expression = expression.replace(
+                            context.function_ident,
+                            format!("{}!", context.function_ident).as_str(),
+                        );
+                        labels.push(Label::primary(
+                            format!("{helper}: `{fixed_expression}`"),
+                            self.expr_span,
+                        ));
+                    } else {
+                        labels.push(Label::primary(helper, self.expr_span));
+                    }
+                };
+
+                labels.extend(vec![
+                    Label::context(
+                        "or change this to an infallible assignment:",
+                        self.assignment_span,
+                    ),
+                    Label::context(
+                        format!("{target}, err = {expression}"),
+                        self.assignment_span,
+                    ),
+                ]);
+
+                labels
+            }
             InfallibleAssignment(target, expr, ok_span, err_span) => vec![
                 Label::primary("this error assignment is unnecessary", err_span),
                 Label::context("because this expression can't fail", self.expr_span),
@@ -718,7 +775,12 @@ impl DiagnosticMessage for Error {
         use ErrorVariant::{FallibleAssignment, InfallibleAssignment};
 
         match &self.variant {
-            FallibleAssignment(..) | InfallibleAssignment(..) => vec![Note::SeeErrorDocs],
+            FallibleAssignment(..) => {
+                vec![Note::SeeErrorDocs, Note::SeeFunctionCharacteristicsDocs]
+            }
+            InfallibleAssignment(..) => {
+                vec![Note::SeeErrorDocs]
+            }
             InvalidParentPathSegment {
                 variant,
                 parent_str,

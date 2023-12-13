@@ -130,8 +130,8 @@ fn url_to_value(url: Url, default_known_ports: bool) -> Value {
         "query",
         url.query_pairs()
             .into_owned()
-            .map(|(k, v)| (k, v.into()))
-            .collect::<BTreeMap<String, Value>>()
+            .map(|(k, v)| (k.into(), v.into()))
+            .collect::<ObjectMap>()
             .into(),
     );
 

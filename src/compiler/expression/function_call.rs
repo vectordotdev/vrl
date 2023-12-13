@@ -29,6 +29,11 @@ pub(crate) struct Builder<'a> {
     function: &'a dyn Function,
 }
 
+pub(crate) struct CallCompilationResult {
+    pub(crate) function_call: FunctionCall,
+    pub(crate) error: Option<FunctionCallError>,
+}
+
 impl<'a> Builder<'a> {
     pub(crate) fn get_arg_list(&self) -> &ArgumentList {
         &self.list
@@ -44,7 +49,7 @@ impl<'a> Builder<'a> {
         state_before_function_args: &TypeState,
         state: &mut TypeState,
         closure_variables: Option<Node<Vec<Node<Ident>>>>,
-    ) -> Result<Self, Error> {
+    ) -> Result<Self, FunctionCallError> {
         let (ident_span, ident) = ident.take();
 
         // Check if function exists.
@@ -58,7 +63,7 @@ impl<'a> Builder<'a> {
                 .map(|func| func.identifier())
                 .collect::<Vec<_>>();
 
-            return Err(Error::Undefined {
+            return Err(FunctionCallError::Undefined {
                 ident_span,
                 ident: ident.clone(),
                 idents,
@@ -74,7 +79,7 @@ impl<'a> Builder<'a> {
                 Span::new(start, end)
             };
 
-            return Err(Error::WrongNumberOfArgs {
+            return Err(FunctionCallError::WrongNumberOfArgs {
                 arguments_span,
                 max: function.parameters().len(),
             });
@@ -113,7 +118,7 @@ impl<'a> Builder<'a> {
                         param
                     }),
             }
-            .ok_or_else(|| Error::UnknownKeyword {
+            .ok_or_else(|| FunctionCallError::UnknownKeyword {
                 keyword_span: argument.keyword_span().expect("exists"),
                 ident_span,
                 keywords: function.parameters().iter().map(|p| p.keyword).collect(),
@@ -125,25 +130,27 @@ impl<'a> Builder<'a> {
             let param_kind = parameter.kind();
 
             if !param_kind.intersects(expr_kind) {
-                return Err(Error::InvalidArgumentKind {
-                    function_ident: function.identifier(),
-                    abort_on_error,
-                    arguments_fmt: arguments
-                        .iter()
-                        .map(|arg| arg.inner().to_string())
-                        .collect::<Vec<_>>(),
-                    parameter: *parameter,
-                    got: expr_kind.clone(),
-                    argument,
-                    argument_span,
-                });
+                return Err(FunctionCallError::InvalidArgumentKind(
+                    InvalidArgumentErrorContext {
+                        function_ident: function.identifier(),
+                        abort_on_error,
+                        arguments_fmt: arguments
+                            .iter()
+                            .map(|arg| arg.inner().to_string())
+                            .collect::<Vec<_>>(),
+                        parameter: *parameter,
+                        got: expr_kind.clone(),
+                        argument,
+                        argument_span,
+                    },
+                ));
             } else if param_kind.is_superset(expr_kind).is_err() {
                 arguments_with_unknown_type_validity.push((*parameter, node.clone()));
             }
 
             // Check if the argument is infallible.
             if argument_type_def.is_fallible() {
-                return Err(Error::FallibleArgument {
+                return Err(FunctionCallError::FallibleArgument {
                     expr_span: argument.span(),
                 });
             }
@@ -159,7 +166,7 @@ impl<'a> Builder<'a> {
             .filter(|(_, p)| p.required)
             .filter(|(_, p)| !list.keywords().contains(&p.keyword))
             .try_for_each(|(i, p)| -> Result<_, _> {
-                Err(Error::MissingArgument {
+                Err(FunctionCallError::MissingArgument {
                     call_span,
                     keyword: p.keyword,
                     position: i,
@@ -196,14 +203,14 @@ impl<'a> Builder<'a> {
         list: &ArgumentList,
         state: &mut TypeState,
         ident_span: Span,
-    ) -> Result<Option<(Vec<Ident>, closure::Input)>, Error> {
+    ) -> Result<Option<(Vec<Ident>, closure::Input)>, FunctionCallError> {
         let closure = match (function.closure(), closure_variables) {
             // Error if closure is provided for function that doesn't support
             // any.
             (None, Some(variables)) => {
                 let closure_span = variables.span();
 
-                return Err(Error::UnexpectedClosure {
+                return Err(FunctionCallError::UnexpectedClosure {
                     call_span,
                     closure_span,
                 });
@@ -213,7 +220,7 @@ impl<'a> Builder<'a> {
             (Some(definition), None) => {
                 let example = definition.inputs.get(0).map(|input| input.example);
 
-                return Err(Error::MissingClosure { call_span, example });
+                return Err(FunctionCallError::MissingClosure { call_span, example });
             }
 
             // Check for invalid closure signature.
@@ -257,10 +264,10 @@ impl<'a> Builder<'a> {
                 // None of the inputs matched the value type, this is a user error.
                 match matched {
                     None => {
-                        return Err(Error::ClosureParameterTypeMismatch {
+                        return Err(FunctionCallError::ClosureParameterTypeMismatch {
                             call_span,
                             found_kind: err_found_type_def.unwrap_or_else(Kind::any),
-                        })
+                        });
                     }
 
                     Some((input, target)) => {
@@ -278,7 +285,7 @@ impl<'a> Builder<'a> {
                                         .into()
                                 });
 
-                            return Err(Error::ClosureArityMismatch {
+                            return Err(FunctionCallError::ClosureArityMismatch {
                                 ident_span,
                                 closure_arguments_span,
                                 expected: input.variables.len(),
@@ -391,9 +398,8 @@ impl<'a> Builder<'a> {
         state: &mut TypeState,
         closure_block: Option<Node<(Block, TypeDef)>>,
         local_snapshot: LocalEnv,
-        fallible_expression_error: &mut Option<Box<dyn DiagnosticMessage>>,
         config: &mut CompileConfig,
-    ) -> Result<FunctionCall, Error> {
+    ) -> Result<CallCompilationResult, FunctionCallError> {
         let (closure, closure_fallible) =
             self.compile_closure(closure_block, local_snapshot, state)?;
 
@@ -414,7 +420,7 @@ impl<'a> Builder<'a> {
                 &mut compile_ctx,
                 self.list.clone(),
             )
-            .map_err(|error| Error::Compilation { call_span, error })?;
+            .map_err(|error| FunctionCallError::Compilation { call_span, error })?;
 
         // Re-insert the external context into the compiler state.
         *config = compile_ctx.into_config();
@@ -429,7 +435,7 @@ impl<'a> Builder<'a> {
                 .result
                 .is_fallible()
         {
-            return Err(Error::AbortInfallible {
+            return Err(FunctionCallError::AbortInfallible {
                 ident_span,
                 abort_span: Span::new(ident_span.end(), ident_span.end() + 1),
             });
@@ -438,44 +444,48 @@ impl<'a> Builder<'a> {
         // The function is expected to abort at boot-time if any error occurred,
         // and one or more arguments are of an invalid type, so we'll return the
         // appropriate error.
+        let mut invalid_argument_error = None;
         if let Some((parameter, argument)) =
             self.arguments_with_unknown_type_validity.first().cloned()
         {
             if !self.abort_on_error {
-                let error = Error::InvalidArgumentKind {
-                    function_ident: self.function.identifier(),
-                    abort_on_error: self.abort_on_error,
-                    arguments_fmt: self
-                        .arguments
-                        .iter()
-                        .map(|arg| arg.inner().to_string())
-                        .collect::<Vec<_>>(),
-                    parameter,
-                    got: argument
-                        .expr()
-                        .type_info(state_before_function_args)
-                        .result
-                        .into(),
-                    argument: argument.clone().into_inner(),
-                    argument_span: argument
-                        .keyword_span()
-                        .unwrap_or_else(|| argument.expr_span()),
-                };
-
-                *fallible_expression_error = Some(Box::new(error) as _);
+                invalid_argument_error = Some(FunctionCallError::InvalidArgumentKind(
+                    InvalidArgumentErrorContext {
+                        function_ident: self.function.identifier(),
+                        abort_on_error: self.abort_on_error,
+                        arguments_fmt: self
+                            .arguments
+                            .iter()
+                            .map(|arg| arg.inner().to_string())
+                            .collect::<Vec<_>>(),
+                        parameter,
+                        got: argument
+                            .expr()
+                            .type_info(state_before_function_args)
+                            .result
+                            .into(),
+                        argument: argument.clone().into_inner(),
+                        argument_span: argument
+                            .keyword_span()
+                            .unwrap_or_else(|| argument.expr_span()),
+                    },
+                ));
             }
         }
 
-        Ok(FunctionCall {
-            abort_on_error: self.abort_on_error,
-            expr,
-            arguments_with_unknown_type_validity: self.arguments_with_unknown_type_validity,
-            closure_fallible,
-            closure,
-            span: call_span,
-            ident: self.function.identifier(),
-            function_id: self.function_id,
-            arguments: self.arguments.clone(),
+        Ok(CallCompilationResult {
+            function_call: FunctionCall {
+                abort_on_error: self.abort_on_error,
+                expr,
+                arguments_with_unknown_type_validity: self.arguments_with_unknown_type_validity,
+                closure_fallible,
+                closure,
+                span: call_span,
+                ident: self.function.identifier(),
+                function_id: self.function_id,
+                arguments: self.arguments.clone(),
+            },
+            error: invalid_argument_error,
         })
     }
 
@@ -484,7 +494,7 @@ impl<'a> Builder<'a> {
         closure_block: Option<Node<(Block, TypeDef)>>,
         mut locals: LocalEnv,
         state: &mut TypeState,
-    ) -> Result<(Option<FunctionClosure>, bool), Error> {
+    ) -> Result<(Option<FunctionClosure>, bool), FunctionCallError> {
         // Check if we have a closure we need to compile.
         if let Some((variables, input)) = self.closure.clone() {
             // TODO: This assumes the closure will run exactly once, which is incorrect.
@@ -511,7 +521,7 @@ impl<'a> Builder<'a> {
             // whatever is configured by the closure input type.
             let expected_kind = input.output.into_kind();
             if expected_kind.is_superset(block_type_def.kind()).is_err() {
-                return Err(Error::ReturnTypeMismatch {
+                return Err(FunctionCallError::ReturnTypeMismatch {
                     block_span,
                     found_kind: block_type_def.kind().clone(),
                     expected_kind,
@@ -627,7 +637,9 @@ impl FunctionCall {
 impl Expression for FunctionCall {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         self.expr.resolve(ctx).map_err(|err| match err {
-            ExpressionError::Abort { .. } => {
+            ExpressionError::Abort { .. }
+            | ExpressionError::Fallible { .. }
+            | ExpressionError::Missing { .. } => {
                 // propagate the error
                 err
             }
@@ -727,7 +739,7 @@ impl Expression for FunctionCall {
         //
 
         if !self.arguments_with_unknown_type_validity.is_empty() {
-            expr_result = expr_result.with_fallibility(true);
+            expr_result = expr_result.fallible();
         }
 
         // If the function has a closure attached, and that closure is fallible,
@@ -743,11 +755,11 @@ impl Expression for FunctionCall {
         // possible to silence potential closure errors using the "abort on
         // error" function-call feature (see below).
         if self.closure_fallible {
-            expr_result = expr_result.with_fallibility(true);
+            expr_result = expr_result.fallible();
         }
 
         if self.abort_on_error {
-            expr_result = expr_result.with_fallibility(false);
+            expr_result = expr_result.infallible();
         }
 
         TypeInfo::new(state, expr_result)
@@ -801,10 +813,20 @@ impl PartialEq for FunctionCall {
 }
 
 // -----------------------------------------------------------------------------
+#[derive(Debug, Clone)]
+pub(crate) struct InvalidArgumentErrorContext {
+    pub(crate) function_ident: &'static str,
+    pub(crate) abort_on_error: bool,
+    pub(crate) arguments_fmt: Vec<String>,
+    pub(crate) parameter: Parameter,
+    pub(crate) got: Kind,
+    pub(crate) argument: FunctionArgument,
+    pub(crate) argument_span: Span,
+}
 
 #[derive(thiserror::Error, Debug)]
 #[allow(clippy::large_enum_variant)]
-pub(crate) enum Error {
+pub(crate) enum FunctionCallError {
     #[error("call to undefined function")]
     Undefined {
         ident_span: Span,
@@ -839,15 +861,7 @@ pub(crate) enum Error {
     AbortInfallible { ident_span: Span, abort_span: Span },
 
     #[error("invalid argument type")]
-    InvalidArgumentKind {
-        function_ident: &'static str,
-        abort_on_error: bool,
-        arguments_fmt: Vec<String>,
-        parameter: Parameter,
-        got: Kind,
-        argument: FunctionArgument,
-        argument_span: Span,
-    },
+    InvalidArgumentKind(InvalidArgumentErrorContext),
 
     #[error("fallible argument")]
     FallibleArgument { expr_span: Span },
@@ -878,9 +892,9 @@ pub(crate) enum Error {
     },
 }
 
-impl DiagnosticMessage for Error {
+impl DiagnosticMessage for FunctionCallError {
     fn code(&self) -> usize {
-        use Error::{
+        use FunctionCallError::{
             AbortInfallible, ClosureArityMismatch, ClosureParameterTypeMismatch, Compilation,
             FallibleArgument, InvalidArgumentKind, MissingArgument, MissingClosure,
             ReturnTypeMismatch, Undefined, UnexpectedClosure, UnknownKeyword, WrongNumberOfArgs,
@@ -904,7 +918,7 @@ impl DiagnosticMessage for Error {
     }
 
     fn labels(&self) -> Vec<Label> {
-        use Error::{
+        use FunctionCallError::{
             AbortInfallible, ClosureArityMismatch, ClosureParameterTypeMismatch, Compilation,
             FallibleArgument, InvalidArgumentKind, MissingArgument, MissingClosure,
             ReturnTypeMismatch, Undefined, UnexpectedClosure, UnknownKeyword, WrongNumberOfArgs,
@@ -1006,16 +1020,10 @@ impl DiagnosticMessage for Error {
                 ]
             }
 
-            InvalidArgumentKind {
-                parameter,
-                got,
-                argument,
-                argument_span,
-                ..
-            } => {
-                let keyword = parameter.keyword;
-                let expected = parameter.kind();
-                let expr_span = argument.span();
+            InvalidArgumentKind(context) => {
+                let keyword = context.parameter.keyword;
+                let expected = context.parameter.kind();
+                let expr_span = context.argument.span();
 
                 // TODO: extract this out into a helper
                 let kind_str = |kind: &Kind| {
@@ -1030,7 +1038,7 @@ impl DiagnosticMessage for Error {
 
                 vec![
                     Label::primary(
-                        format!("this expression resolves to {}", kind_str(got)),
+                        format!("this expression resolves to {}", kind_str(&context.got)),
                         expr_span,
                     ),
                     Label::context(
@@ -1039,7 +1047,7 @@ impl DiagnosticMessage for Error {
                             keyword,
                             kind_str(&expected)
                         ),
-                        argument_span,
+                        context.argument_span,
                     ),
                 ]
             }
@@ -1053,12 +1061,12 @@ impl DiagnosticMessage for Error {
             ],
             UnexpectedClosure { call_span, closure_span } => vec![
                 Label::primary("unexpected closure", closure_span),
-                Label::context("this function does not accept a closure", call_span)
+                Label::context("this function does not accept a closure", call_span),
             ],
             MissingClosure { call_span, .. } => vec![Label::primary("this function expects a closure", call_span)],
             ClosureArityMismatch { ident_span, closure_arguments_span, expected, supplied } => vec![
                 Label::primary(format!("this function requires a closure with {expected} argument(s)"), ident_span),
-                Label::context(format!("but {supplied} argument(s) are supplied"), closure_arguments_span)
+                Label::context(format!("but {supplied} argument(s) are supplied"), closure_arguments_span),
             ],
             ClosureParameterTypeMismatch {
                 call_span,
@@ -1078,7 +1086,7 @@ impl DiagnosticMessage for Error {
     }
 
     fn notes(&self) -> Vec<Note> {
-        use Error::{
+        use FunctionCallError::{
             AbortInfallible, Compilation, FallibleArgument, InvalidArgumentKind, MissingClosure,
             WrongNumberOfArgs,
         };
@@ -1089,16 +1097,10 @@ impl DiagnosticMessage for Error {
                 Urls::expression_docs_url("#arguments"),
             )],
             AbortInfallible { .. } | FallibleArgument { .. } => vec![Note::SeeErrorDocs],
-            InvalidArgumentKind {
-                function_ident,
-                abort_on_error,
-                arguments_fmt,
-                parameter,
-                argument,
-                ..
-            } => {
+            InvalidArgumentKind(context) => {
                 // TODO: move this into a generic helper function
-                let kind = parameter.kind();
+                let kind = &context.parameter.kind();
+                let argument = &context.argument;
                 let guard = if kind.is_bytes() {
                     format!("string!({argument})")
                 } else if kind.is_integer() {
@@ -1133,7 +1135,7 @@ impl DiagnosticMessage for Error {
 
                 let args = {
                     let mut args = String::new();
-                    let mut iter = arguments_fmt.iter().peekable();
+                    let mut iter = context.arguments_fmt.iter().peekable();
                     while let Some(arg) = iter.next() {
                         args.push_str(arg);
                         if iter.peek().is_some() {
@@ -1144,11 +1146,11 @@ impl DiagnosticMessage for Error {
                     args
                 };
 
-                let abort = if *abort_on_error { "!" } else { "" };
+                let abort = if context.abort_on_error { "!" } else { "" };
 
                 let mut notes = vec![];
 
-                let call = format!("{function_ident}{abort}({args})");
+                let call = format!("{}{abort}({args})", context.function_ident);
 
                 notes.append(&mut Note::solution(
                     "ensuring an appropriate type at runtime",
@@ -1273,10 +1275,10 @@ mod tests {
             &mut state,
             None,
             LocalEnv::default(),
-            &mut None,
             &mut config,
         )
         .unwrap()
+        .function_call
     }
 
     #[test]

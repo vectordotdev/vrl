@@ -156,7 +156,7 @@ impl FunctionExpression for ParseCefFn {
 
             let mut result = result
                 .filter_map(|(k, v)| {
-                    if let Some(&(i, custom_field)) = self.custom_field_map.get(k.as_str()) {
+                    if let Some(&(i, custom_field)) = self.custom_field_map.get(&k[..]) {
                         let previous =
                             custom_fields.entry(i).or_default()[custom_field as usize].replace(v);
                         if previous.is_some() {
@@ -171,15 +171,15 @@ impl FunctionExpression for ParseCefFn {
                         }
                         None
                     } else {
-                        Some(Ok((k, v.into())))
+                        Some(Ok((k.into(), v.into())))
                     }
                 })
-                .collect::<ExpressionResult<BTreeMap<String, Value>>>()?;
+                .collect::<ExpressionResult<ObjectMap>>()?;
 
             for (_, fields) in custom_fields {
                 match fields {
                     [Some(label), value] => {
-                        result.insert(label, value.into());
+                        result.insert(label.into(), value.into());
                     }
                     _ => return Err("Custom field with missing label or value".into()),
                 }

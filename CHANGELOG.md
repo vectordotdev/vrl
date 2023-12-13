@@ -3,11 +3,20 @@
 ## unreleased
 - added the `alias_sources` parameter for `parse_groks` to read sources from files
 
+## `0.9.0` (2023-12-12)
+* `parse_regex_all` `pattern` param  can now be resolved from a variable
+* fixed `parse_json` data corruption issue for numbers greater or equal to `i64::MAX` 
+* support timestamp comparison using operators <, <=, >, >=
+
+## `0.8.0` (2023-10-31)
+
 #### Features
 - added `contains_all` function (https://github.com/vectordotdev/vrl/pull/468)
-- 'from_unix_timestamp' now accepts a new unit: Microseconds.
+- `from_unix_timestamp` now accepts a new unit: Microseconds. (https://github.com/vectordotdev/vrl/pull/492)
 - `parse_nginx_log` no longer fails if `upstream_response_length`, `upstream_response_time`, `upstream_status` are missing (https://github.com/vectordotdev/vrl/pull/498)
 - added `parse_float` function (https://github.com/vectordotdev/vrl/pull/484)
+- improved fallibility diagnostics (https://github.com/vectordotdev/vrl/pull/523)
+- added `encode_snappy` and `decode_snappy` functions (https://github.com/vectordotdev/vrl/pull/543)
 
 ## `0.7.0` (2023-09-25)
 

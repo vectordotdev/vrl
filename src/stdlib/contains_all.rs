@@ -74,7 +74,7 @@ impl Function for ContainsAll {
             },
             Example {
                 title: "contains_all false",
-                source: r#"contains("the NEEDLE in the haystack", "needle", "haystack")"#,
+                source: r#"contains_all("the NEEDLE in the haystack", ["needle", "haystack"])"#,
                 result: Ok("false"),
             },
         ]
@@ -104,7 +104,7 @@ impl FunctionExpression for ContainsAllFn {
         let substring_type_def = self.substrings.type_def(state);
         let collection = substring_type_def.as_array().expect("must be an array");
         let bytes_collection = Collection::from_unknown(Kind::bytes());
-        TypeDef::boolean().with_fallibility(bytes_collection.is_superset(collection).is_err())
+        TypeDef::boolean().maybe_fallible(bytes_collection.is_superset(collection).is_err())
     }
 }
 

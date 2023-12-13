@@ -1,5 +1,6 @@
-use crate::compiler::prelude::*;
 use regex::Regex;
+
+use crate::compiler::prelude::*;
 
 fn match_(value: Value, pattern: Value) -> Resolved {
     let string = value.try_bytes_utf8_lossy()?;
@@ -116,8 +117,9 @@ impl FunctionExpression for MatchStaticFn {
 #[cfg(test)]
 #[allow(clippy::trivial_regex)]
 mod tests {
-    use super::*;
     use crate::value;
+
+    use super::*;
 
     test_function![
         r#match => Match;

@@ -66,6 +66,6 @@ impl FunctionExpression for TimestampFn {
     fn type_def(&self, state: &state::TypeState) -> TypeDef {
         let non_timestamp = !self.value.type_def(state).is_timestamp();
 
-        TypeDef::timestamp().with_fallibility(non_timestamp)
+        TypeDef::timestamp().maybe_fallible(non_timestamp)
     }
 }

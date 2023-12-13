@@ -183,7 +183,7 @@ impl Function for ParseGroks {
                     .into_owned();
                 Ok((key, alias))
             })
-            .collect::<std::result::Result<BTreeMap<String, String>, function::Error>>()?;
+            .collect::<std::result::Result<BTreeMap<KeyString, String>, function::Error>>()?;
 
         let alias_sources = arguments
             .optional_array("alias_sources")?

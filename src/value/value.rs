@@ -1,16 +1,15 @@
 //! Contains the main "Value" type for Vector and VRL, as well as helper methods.
 
-use std::collections::BTreeMap;
-
 use bytes::{Bytes, BytesMut};
 use chrono::{DateTime, SecondsFormat, Utc};
 use ordered_float::NotNan;
+use std::collections::BTreeMap;
 
 pub use iter::{IterItem, ValueIter};
 
-use crate::path::ValuePath;
-
 pub use super::value::regex::ValueRegex;
+use super::KeyString;
+use crate::path::ValuePath;
 
 mod convert;
 mod crud;
@@ -27,6 +26,9 @@ mod serde;
 
 /// A boxed `std::error::Error`.
 pub type StdError = Box<dyn std::error::Error + Send + Sync + 'static>;
+
+/// The storage mapping for the `Object` variant.
+pub type ObjectMap = BTreeMap<KeyString, Value>;
 
 /// The main value type used in Vector events, and VRL.
 #[derive(Eq, PartialEq, Hash, Debug, Clone)]
@@ -52,7 +54,7 @@ pub enum Value {
     Timestamp(DateTime<Utc>),
 
     /// Object.
-    Object(BTreeMap<String, Value>),
+    Object(ObjectMap),
 
     /// Array.
     Array(Vec<Value>),

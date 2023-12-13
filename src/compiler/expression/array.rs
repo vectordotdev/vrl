@@ -1,12 +1,11 @@
 use std::{collections::BTreeMap, fmt, ops::Deref};
 
-use crate::value::Value;
-
 use crate::compiler::{
     expression::{Expr, Resolved},
     state::{TypeInfo, TypeState},
     Context, Expression, TypeDef,
 };
+use crate::value::Value;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Array {
@@ -58,7 +57,7 @@ impl Expression for Array {
 
             // If any expression aborts, the entire array aborts
             if type_def.is_never() {
-                return TypeInfo::new(state, TypeDef::never().with_fallibility(fallible));
+                return TypeInfo::new(state, TypeDef::never().maybe_fallible(fallible));
             }
             type_defs.push(type_def);
         }
@@ -69,7 +68,7 @@ impl Expression for Array {
             .map(|(index, type_def)| (index.into(), type_def.into()))
             .collect::<BTreeMap<_, _>>();
 
-        TypeInfo::new(state, TypeDef::array(collection).with_fallibility(fallible))
+        TypeInfo::new(state, TypeDef::array(collection).maybe_fallible(fallible))
     }
 }
 
@@ -95,9 +94,9 @@ impl From<Vec<Expr>> for Array {
 #[cfg(test)]
 mod tests {
     use crate::value::kind::Collection;
+    use crate::{expr, test_type_def, value::Kind};
 
     use super::*;
-    use crate::{expr, test_type_def, value::Kind};
 
     test_type_def![
         empty_array {

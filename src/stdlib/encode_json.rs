@@ -92,7 +92,6 @@ impl FunctionExpression for EncodeJsonFn {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::collections::BTreeMap;
 
     use chrono::{DateTime, Utc};
     use regex::Regex;
@@ -149,13 +148,13 @@ mod tests {
         }
 
         map {
-            args: func_args![value: Value::from(BTreeMap::from([(String::from("field"), Value::from("value"))]))],
+            args: func_args![value: Value::from_iter([(String::from("field"), Value::from("value"))])],
             want: Ok(r#"{"field":"value"}"#),
             tdef: TypeDef::bytes().infallible(),
         }
 
         map_pretty {
-            args: func_args![value: Value::from(BTreeMap::from([(String::from("field"), Value::from("value"))])), pretty: true],
+            args: func_args![value: Value::from_iter([(String::from("field"), Value::from("value"))]), pretty: true],
             want: Ok("{\n  \"field\": \"value\"\n}"),
             tdef: TypeDef::bytes().infallible(),
         }

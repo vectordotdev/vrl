@@ -65,6 +65,6 @@ impl FunctionExpression for StringFn {
     fn type_def(&self, state: &state::TypeState) -> TypeDef {
         let non_bytes = !self.value.type_def(state).is_bytes();
 
-        TypeDef::bytes().with_fallibility(non_bytes)
+        TypeDef::bytes().maybe_fallible(non_bytes)
     }
 }

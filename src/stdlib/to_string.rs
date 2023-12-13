@@ -120,7 +120,7 @@ impl FunctionExpression for ToStringFn {
         let td = self.value.type_def(state);
 
         TypeDef::bytes()
-            .with_fallibility(td.contains_array() || td.contains_object() || td.contains_regex())
+            .maybe_fallible(td.contains_array() || td.contains_object() || td.contains_regex())
     }
 }
 
