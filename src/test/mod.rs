@@ -26,8 +26,8 @@ use crate::value::Value;
 mod test;
 
 fn measure_time<F, R>(f: F) -> (R, std::time::Duration)
-where
-    F: FnOnce() -> R, // F is a closure that takes no argument and returns a value of type R
+    where
+        F: FnOnce() -> R, // F is a closure that takes no argument and returns a value of type R
 {
     let start = Instant::now();
     let result = f(); // Execute the closure
@@ -89,6 +89,7 @@ pub fn run_tests<T>(
 ) {
     let total_count = tests.len();
     let mut failed_count = 0;
+    let mut warnings_count = 0;
     let mut category = "".to_owned();
 
     for mut test in tests {
@@ -131,10 +132,10 @@ pub fn run_tests<T>(
 
         let failed = match result {
             Ok(CompilationResult {
-                program,
-                warnings,
-                config: _,
-            }) => {
+                   program,
+                   warnings,
+                   config: _,
+               }) => {
                 if warnings.is_empty() {
                     let run_start = Instant::now();
 
@@ -153,10 +154,12 @@ pub fn run_tests<T>(
 
                     process_result(result, &mut test, cfg, timings)
                 } else {
+                    warnings_count += warnings.len();
                     process_compilation_diagnostics(&test, cfg, warnings, compile_timing_fmt)
                 }
             }
             Err(diagnostics) => {
+                warnings_count += diagnostics.warnings().len();
                 process_compilation_diagnostics(&test, cfg, diagnostics, compile_timing_fmt)
             }
         };
@@ -165,7 +168,7 @@ pub fn run_tests<T>(
         }
     }
 
-    print_result(total_count, failed_count)
+    print_result(total_count, failed_count, warnings_count);
 }
 
 fn sanitize_lines(input: String) -> String {
@@ -332,24 +335,30 @@ fn process_compilation_diagnostics(
     failed
 }
 
-fn print_result(total_count: usize, failed_count: usize) {
+fn print_result(total_count: usize, failed_count: usize, warnings_count: usize) {
     let code = i32::from(failed_count > 0);
 
     println!("\n");
 
+    let passed_count = total_count - failed_count;
     if failed_count > 0 {
         println!(
             "Overall result: {}\n\n  Number failed: {}\n  Number passed: {}",
             Colour::Red.bold().paint("FAILED"),
-            failed_count,
-            total_count - failed_count
+            Colour::Red.bold().paint(failed_count.to_string()),
+            Colour::Green.bold().paint(passed_count.to_string())
         );
     } else {
         println!(
-            "Overall result: {}\n  Number passed: {total_count}",
-            Colour::Green.bold().paint("SUCCESS")
+            "Overall result: {}\n  Number passed: {}",
+            Colour::Green.bold().paint("SUCCESS"),
+            Colour::Green.bold().paint(passed_count.to_string())
         );
     }
+    println!(
+        "  Number warnings: {}",
+        Colour::Yellow.bold().paint(warnings_count.to_string())
+    );
 
     std::process::exit(code)
 }
