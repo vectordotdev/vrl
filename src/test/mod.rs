@@ -7,7 +7,6 @@ use std::{collections::BTreeMap, env, str::FromStr, time::Instant};
 
 use ansi_term::Colour;
 use chrono::{DateTime, SecondsFormat, Utc};
-use onig::EncodedChars;
 
 pub use test::Test;
 
