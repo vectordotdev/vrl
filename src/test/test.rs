@@ -16,7 +16,6 @@ pub struct Test {
     pub result: String,
     pub result_approx: bool,
     pub skip: bool,
-
     // paths set to read-only
     pub read_only_paths: Vec<(OwnedTargetPath, bool)>,
 }
@@ -38,11 +37,6 @@ impl Test {
         let mut object = String::new();
         let mut result = String::new();
         let mut result_approx = false;
-        let mut skip = false;
-
-        if content.starts_with("# SKIP") {
-            skip = true;
-        }
 
         let mut read_only_paths = vec![];
 
@@ -123,13 +117,10 @@ impl Test {
         let object = if object.is_empty() {
             Value::Object(BTreeMap::default())
         } else {
-            match serde_json::from_str::<'_, Value>(&object) {
-                Ok(value) => value,
-                Err(err) => {
-                    error = Some(format!("unable to parse object as JSON: {}", err));
-                    Value::Null
-                }
-            }
+            serde_json::from_str::<'_, Value>(&object).unwrap_or_else(|err| {
+                error = Some(format!("unable to parse object as JSON: {}", err));
+                Value::Null
+            })
         };
 
         result = result.trim_end().to_owned();
@@ -142,7 +133,7 @@ impl Test {
             object,
             result,
             result_approx,
-            skip,
+            skip: content.starts_with("# SKIP"),
             read_only_paths,
         }
     }
