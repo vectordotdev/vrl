@@ -1,9 +1,10 @@
-use vrl::compiler::{CompileConfig, TimeZone, VrlRuntime};
-use vrl::test::{get_tests_from_functions, run_tests, test_dir, Test, TestConfig};
-
 use chrono_tz::Tz;
 use clap::Parser;
 use glob::glob;
+
+use vrl::compiler::{CompileConfig, TimeZone, VrlRuntime};
+use vrl::test::{get_tests_from_functions, run_tests, test_dir, Test, TestConfig};
+
 #[cfg(not(target_env = "msvc"))]
 #[global_allocator]
 static ALLOC: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
@@ -51,6 +52,7 @@ impl Cmd {
 }
 
 fn should_run(name: &str, pat: &Option<String>) -> bool {
+    // name.contains("truncate")
     if let Some(pat) = pat {
         if !name.contains(pat) {
             return false;

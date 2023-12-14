@@ -2,8 +2,13 @@
 #![allow(clippy::print_stdout)] // tests
 #![allow(clippy::print_stderr)] // tests
 
-#[allow(clippy::module_inception)]
-mod test;
+use std::path::{PathBuf, MAIN_SEPARATOR};
+use std::{collections::BTreeMap, env, str::FromStr, time::Instant};
+
+use ansi_term::Colour;
+use chrono::{DateTime, SecondsFormat, Utc};
+
+pub use test::Test;
 
 use crate::compiler::{
     compile_with_external,
@@ -13,16 +18,22 @@ use crate::compiler::{
     CompilationResult, CompileConfig, Function, Program, SecretTarget, TargetValueRef, TimeZone,
     VrlRuntime,
 };
-use crate::diagnostic::Formatter;
-pub use test::Test;
-
-use std::path::{PathBuf, MAIN_SEPARATOR};
-use std::{collections::BTreeMap, env, str::FromStr, time::Instant};
-
+use crate::diagnostic::{DiagnosticList, Formatter};
 use crate::value::Secrets;
 use crate::value::Value;
-use ansi_term::Colour;
-use chrono::{DateTime, SecondsFormat, Utc};
+
+#[allow(clippy::module_inception)]
+mod test;
+
+fn measure_time<F, R>(f: F) -> (R, std::time::Duration)
+where
+    F: FnOnce() -> R, // F is a closure that takes no argument and returns a value of type R
+{
+    let start = Instant::now();
+    let result = f(); // Execute the closure
+    let duration = start.elapsed();
+    (result, duration) // Return the result of the closure and the elapsed time
+}
 
 pub struct TestConfig {
     pub fail_early: bool,
@@ -32,6 +43,7 @@ pub struct TestConfig {
     pub runtime: VrlRuntime,
     pub timezone: TimeZone,
 }
+
 pub fn test_dir() -> PathBuf {
     PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap())
 }
@@ -77,6 +89,7 @@ pub fn run_tests<T>(
 ) {
     let total_count = tests.len();
     let mut failed_count = 0;
+    let mut warnings_count = 0;
     let mut category = "".to_owned();
 
     for mut test in tests {
@@ -96,240 +109,256 @@ pub fn run_tests<T>(
         name.truncate(58);
 
         let dots = if name.len() >= 60 { 0 } else { 60 - name.len() };
-
         print!("  {}{}", name, Colour::Fixed(240).paint(".".repeat(dots)));
 
         if test.skip {
             println!("{}", Colour::Yellow.bold().paint("SKIPPED"));
+            continue;
         }
 
-        let state = RuntimeState::default();
-        let runtime = Runtime::new(state);
-
-        let external_env = ExternalEnv::default();
         let (mut config, config_metadata) = (compile_config_provider)();
-
         // Set some read-only paths that can be tested
         for (path, recursive) in &test.read_only_paths {
             config.set_read_only_path(path.clone(), *recursive);
         }
 
-        let compile_start = Instant::now();
-        let result = compile_with_external(&test.source, functions, &external_env, config);
-        let compile_end = compile_start.elapsed();
-
-        let want = test.result.clone();
-        let timezone = cfg.timezone;
-
+        let (result, compile_duration) = measure_time(|| {
+            compile_with_external(&test.source, functions, &ExternalEnv::default(), config)
+        });
         let compile_timing_fmt = cfg
             .timings
-            .then(|| format!("comp: {:>9.3?}", compile_end))
+            .then(|| format!("comp: {:>9.3?}", compile_duration))
             .unwrap_or_default();
 
-        match result {
+        let failed = match result {
             Ok(CompilationResult {
                 program,
                 warnings,
                 config: _,
-            }) if warnings.is_empty() => {
-                let run_start = Instant::now();
-                finalize_config(config_metadata);
-                let result = run_vrl(runtime, program, &mut test, timezone, cfg.runtime);
-                let run_end = run_start.elapsed();
+            }) => {
+                if warnings.is_empty() {
+                    let run_start = Instant::now();
 
-                let timings_fmt = cfg
-                    .timings
-                    .then(|| format!(" ({}, run: {:>9.3?})", compile_timing_fmt, run_end))
-                    .unwrap_or_default();
+                    finalize_config(config_metadata);
+                    let result = run_vrl(program, &mut test.object, cfg.timezone, cfg.runtime);
+                    let run_end = run_start.elapsed();
 
-                let timings_color = if run_end.as_millis() > 10 { 1 } else { 245 };
-                let timings = Colour::Fixed(timings_color).paint(timings_fmt);
-
-                match result {
-                    Ok(got) => {
-                        let got = vrl_value_to_json_value(got);
-                        let mut failed = false;
-
-                        if !test.skip {
-                            let want = if want.starts_with("r'") && want.ends_with('\'') {
-                                match regex::Regex::new(
-                                    &want[2..want.len() - 1].replace("\\'", "'"),
-                                ) {
-                                    Ok(want) => want.to_string().into(),
-                                    Err(_) => want.into(),
-                                }
-                            } else if want.starts_with("t'") && want.ends_with('\'') {
-                                match DateTime::<Utc>::from_str(&want[2..want.len() - 1]) {
-                                    Ok(want) => {
-                                        want.to_rfc3339_opts(SecondsFormat::AutoSi, true).into()
-                                    }
-                                    Err(_) => want.into(),
-                                }
-                            } else if want.starts_with("s'") && want.ends_with('\'') {
-                                want[2..want.len() - 1].into()
-                            } else {
-                                match serde_json::from_str::<'_, serde_json::Value>(want.trim()) {
-                                    Ok(want) => want,
-                                    Err(err) => {
-                                        eprintln!("{}", err);
-                                        want.into()
-                                    }
-                                }
-                            };
-                            if got == want {
-                                print!("{}{}", Colour::Green.bold().paint("OK"), timings,);
-                            } else {
-                                print!("{} (expectation)", Colour::Red.bold().paint("FAILED"));
-                                failed_count += 1;
-
-                                if !cfg.no_diff {
-                                    let want = serde_json::to_string_pretty(&want).unwrap();
-                                    let got = serde_json::to_string_pretty(&got).unwrap();
-
-                                    let diff = prettydiff::diff_lines(&want, &got);
-                                    println!("  {}", diff);
-                                }
-
-                                failed = true;
-                            }
-
-                            println!();
-                        }
-
-                        if cfg.verbose {
-                            println!("{:#}", got);
-                        }
-
-                        if failed && cfg.fail_early {
-                            std::process::exit(1)
-                        }
-                    }
-                    Err(err) => {
-                        let mut failed = false;
-                        if !test.skip {
-                            let got = err.to_string().trim().to_owned();
-                            let want = want.trim().to_owned();
-
-                            if (test.result_approx && compare_partial_diagnostic(&got, &want))
-                                || got == want
-                            {
-                                println!("{}{}", Colour::Green.bold().paint("OK"), timings);
-                            } else if matches!(err, Terminate::Abort { .. }) {
-                                let want =
-                                    match serde_json::from_str::<'_, serde_json::Value>(&want) {
-                                        Ok(want) => want,
-                                        Err(err) => {
-                                            eprintln!("{}", err);
-                                            want.into()
-                                        }
-                                    };
-
-                                let got = vrl_value_to_json_value(test.object.clone());
-                                if got == want {
-                                    println!("{}{}", Colour::Green.bold().paint("OK"), timings);
-                                } else {
-                                    println!("{} (abort)", Colour::Red.bold().paint("FAILED"));
-                                    failed_count += 1;
-
-                                    if !cfg.no_diff {
-                                        let want = serde_json::to_string_pretty(&want).unwrap();
-                                        let got = serde_json::to_string_pretty(&got).unwrap();
-                                        let diff = prettydiff::diff_lines(&want, &got);
-                                        println!("{}", diff);
-                                    }
-
-                                    failed = true;
-                                }
-                            } else {
-                                println!("{} (runtime)", Colour::Red.bold().paint("FAILED"));
-                                failed_count += 1;
-
-                                if !cfg.no_diff {
-                                    let diff = prettydiff::diff_lines(&want, &got);
-                                    println!("{}", diff);
-                                }
-
-                                failed = true;
-                            }
-                        }
-
-                        if cfg.verbose {
-                            println!("{:#}", err);
-                        }
-
-                        if failed && cfg.fail_early {
-                            std::process::exit(1)
-                        }
-                    }
-                }
-            }
-            Ok(CompilationResult {
-                program: _,
-                warnings: diagnostics,
-                config: _,
-            })
-            | Err(diagnostics) => {
-                let mut failed = false;
-                let mut formatter = Formatter::new(&test.source, diagnostics);
-                if !test.skip {
-                    let got = formatter.to_string().trim().to_owned();
-                    let want = want.trim().to_owned();
-
-                    if (test.result_approx && compare_partial_diagnostic(&got, &want))
-                        || got == want
-                    {
+                    let timings = {
+                        let timings_color = if run_end.as_millis() > 10 { 1 } else { 245 };
                         let timings_fmt = cfg
                             .timings
-                            .then(|| format!(" ({})", compile_timing_fmt))
+                            .then(|| format!(" ({}, run: {:>9.3?})", compile_timing_fmt, run_end))
                             .unwrap_or_default();
-                        let timings = Colour::Fixed(245).paint(timings_fmt);
+                        Colour::Fixed(timings_color).paint(timings_fmt).to_string()
+                    };
 
-                        println!("{}{}", Colour::Green.bold().paint("OK"), timings);
-                    } else {
-                        println!("{} (compilation)", Colour::Red.bold().paint("FAILED"));
-                        failed_count += 1;
-
-                        if !cfg.no_diff {
-                            let diff = prettydiff::diff_lines(&want, &got);
-                            println!("{}", diff);
-                        }
-
-                        failed = true;
-                    }
-                }
-
-                if cfg.verbose {
-                    formatter.enable_colors(true);
-                    println!("{:#}", formatter);
-                }
-
-                if failed && cfg.fail_early {
-                    std::process::exit(1)
+                    process_result(result, &mut test, cfg, timings)
+                } else {
+                    warnings_count += warnings.len();
+                    process_compilation_diagnostics(&test, cfg, warnings, compile_timing_fmt)
                 }
             }
+            Err(diagnostics) => {
+                warnings_count += diagnostics.warnings().len();
+                process_compilation_diagnostics(&test, cfg, diagnostics, compile_timing_fmt)
+            }
+        };
+        if failed {
+            failed_count += 1;
         }
     }
-    print_result(total_count, failed_count)
+
+    print_result(total_count, failed_count, warnings_count);
 }
 
-fn print_result(total_count: usize, failed_count: usize) {
+fn sanitize_lines(input: String) -> String {
+    input
+        .lines()
+        .filter(|line| !line.is_empty())
+        .map(|line| line.trim())
+        .collect::<Vec<&str>>()
+        .join("\n")
+}
+
+fn process_result(
+    result: Result<Value, Terminate>,
+    test: &mut Test,
+    config: &TestConfig,
+    timings: String,
+) -> bool {
+    if test.skip {
+        return false;
+    }
+
+    match result {
+        Ok(got) => {
+            let got_value = vrl_value_to_json_value(got);
+            let mut failed = false;
+
+            let want = test.result.clone();
+            let want_value = if want.starts_with("r'") && want.ends_with('\'') {
+                match regex::Regex::new(&want[2..want.len() - 1].replace("\\'", "'")) {
+                    Ok(regex) => regex.to_string().into(),
+                    Err(_) => want.into(),
+                }
+            } else if want.starts_with("t'") && want.ends_with('\'') {
+                match DateTime::<Utc>::from_str(&want[2..want.len() - 1]) {
+                    Ok(dt) => dt.to_rfc3339_opts(SecondsFormat::AutoSi, true).into(),
+                    Err(_) => want.into(),
+                }
+            } else if want.starts_with("s'") && want.ends_with('\'') {
+                want[2..want.len() - 1].into()
+            } else {
+                serde_json::from_str::<'_, serde_json::Value>(want.trim()).unwrap_or_else(|err| {
+                    eprintln!("{}", err);
+                    want.into()
+                })
+            };
+
+            if got_value == want_value {
+                print!("{timings}{}", Colour::Green.bold().paint("OK"));
+            } else {
+                print!("{} (expectation)", Colour::Red.bold().paint("FAILED"));
+
+                if !config.no_diff {
+                    let want = serde_json::to_string_pretty(&test.result.clone()).unwrap();
+                    let got = serde_json::to_string_pretty(&got_value).unwrap();
+
+                    let diff = prettydiff::diff_lines(&want, &got);
+                    println!("  {}", diff);
+                }
+
+                failed = true;
+            }
+            println!();
+
+            if config.verbose {
+                println!("{:#}", got_value);
+            }
+
+            if failed && config.fail_early {
+                std::process::exit(1)
+            }
+            failed
+        }
+        Err(err) => {
+            let mut failed = false;
+            let got = err.to_string().trim().to_owned();
+            let want = test.result.clone().trim().to_owned();
+
+            if (test.result_approx && compare_partial_diagnostic(&got, &want)) || got == want {
+                println!("{}{}", Colour::Green.bold().paint("OK"), timings);
+            } else if matches!(err, Terminate::Abort { .. }) {
+                let want =
+                    serde_json::from_str::<'_, serde_json::Value>(&want).unwrap_or_else(|err| {
+                        eprintln!("{}", err);
+                        want.into()
+                    });
+
+                let got = vrl_value_to_json_value(test.object.clone());
+                if got == want {
+                    println!("{}{}", Colour::Green.bold().paint("OK"), timings);
+                } else {
+                    println!("{} (abort)", Colour::Red.bold().paint("FAILED"));
+
+                    if !config.no_diff {
+                        let want = serde_json::to_string_pretty(&want).unwrap();
+                        let got = serde_json::to_string_pretty(&got).unwrap();
+                        let diff = prettydiff::diff_lines(&want, &got);
+                        println!("{}", diff);
+                    }
+
+                    failed = true;
+                }
+            } else {
+                println!("{} (runtime)", Colour::Red.bold().paint("FAILED"));
+
+                if !config.no_diff {
+                    let diff = prettydiff::diff_lines(&want, &got);
+                    println!("{}", diff);
+                }
+
+                failed = true;
+            }
+
+            if config.verbose {
+                println!("{:#}", err);
+            }
+
+            if failed && config.fail_early {
+                std::process::exit(1)
+            }
+            failed
+        }
+    }
+}
+
+fn process_compilation_diagnostics(
+    test: &Test,
+    cfg: &TestConfig,
+    diagnostics: DiagnosticList,
+    compile_timing_fmt: String,
+) -> bool {
+    let mut failed = false;
+
+    let mut formatter = Formatter::new(&test.source, diagnostics);
+    let got = sanitize_lines(formatter.to_string());
+    let want = sanitize_lines(test.result.clone());
+    if (test.result_approx && compare_partial_diagnostic(&got, &want)) || got == want {
+        let timings = {
+            let timings_fmt = cfg
+                .timings
+                .then(|| format!(" ({})", compile_timing_fmt))
+                .unwrap_or_default();
+            Colour::Fixed(245).paint(timings_fmt).to_string()
+        };
+        println!("{}{timings}", Colour::Green.bold().paint("OK"));
+    } else {
+        println!("{} (compilation)", Colour::Red.bold().paint("FAILED"));
+
+        if !cfg.no_diff {
+            let diff = prettydiff::diff_lines(&want, &got);
+            println!("{}", diff);
+        }
+
+        failed = true;
+    }
+
+    if cfg.verbose {
+        formatter.enable_colors(true);
+        println!("{:#}", formatter);
+    }
+
+    if failed && cfg.fail_early {
+        std::process::exit(1)
+    }
+    failed
+}
+
+fn print_result(total_count: usize, failed_count: usize, warnings_count: usize) {
     let code = i32::from(failed_count > 0);
 
     println!("\n");
 
+    let passed_count = total_count - failed_count;
     if failed_count > 0 {
         println!(
             "Overall result: {}\n\n  Number failed: {}\n  Number passed: {}",
             Colour::Red.bold().paint("FAILED"),
-            failed_count,
-            total_count - failed_count
+            Colour::Red.bold().paint(failed_count.to_string()),
+            Colour::Green.bold().paint(passed_count.to_string())
         );
     } else {
         println!(
-            "Overall result: {}\n  Number passed: {total_count}",
-            Colour::Green.bold().paint("SUCCESS")
+            "Overall result: {}\n  Number passed: {}",
+            Colour::Green.bold().paint("SUCCESS"),
+            Colour::Green.bold().paint(passed_count.to_string())
         );
     }
+    println!(
+        "  Number warnings: {}",
+        Colour::Yellow.bold().paint(warnings_count.to_string())
+    );
 
     std::process::exit(code)
 }
@@ -363,17 +392,15 @@ fn vrl_value_to_json_value(value: Value) -> serde_json::Value {
     }
 }
 
-#[allow(clippy::too_many_arguments)]
 fn run_vrl(
-    mut runtime: Runtime,
     program: Program,
-    test: &mut Test,
+    test_object: &mut Value,
     timezone: TimeZone,
     vrl_runtime: VrlRuntime,
 ) -> Result<Value, Terminate> {
     let mut metadata = Value::from(BTreeMap::new());
     let mut target = TargetValueRef {
-        value: &mut test.object,
+        value: test_object,
         metadata: &mut metadata,
         secrets: &mut Secrets::new(),
     };
@@ -385,6 +412,7 @@ fn run_vrl(
     match vrl_runtime {
         VrlRuntime::Ast => {
             // test_enrichment.finish_load();
+            let mut runtime = Runtime::new(RuntimeState::default());
             runtime.resolve(&mut target, &program, &timezone)
         }
     }
