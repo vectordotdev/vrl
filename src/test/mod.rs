@@ -26,8 +26,8 @@ use crate::value::Value;
 mod test;
 
 fn measure_time<F, R>(f: F) -> (R, std::time::Duration)
-    where
-        F: FnOnce() -> R, // F is a closure that takes no argument and returns a value of type R
+where
+    F: FnOnce() -> R, // F is a closure that takes no argument and returns a value of type R
 {
     let start = Instant::now();
     let result = f(); // Execute the closure
@@ -132,10 +132,10 @@ pub fn run_tests<T>(
 
         let failed = match result {
             Ok(CompilationResult {
-                   program,
-                   warnings,
-                   config: _,
-               }) => {
+                program,
+                warnings,
+                config: _,
+            }) => {
                 if warnings.is_empty() {
                     let run_start = Instant::now();
 
