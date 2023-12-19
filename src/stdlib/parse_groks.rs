@@ -144,17 +144,16 @@ impl Function for ParseGroks {
             .required_array("patterns")?
             .into_iter()
             .map(|expr| {
-                let expr_ = expr.clone();
-                let pattern = expr
+                let pattern = expr.clone()
                     .resolve_constant(state)
                     .ok_or(function::Error::ExpectedStaticExpression {
                         keyword: "patterns",
-                        expr,
+                        expr: expr.clone(),
                     })?
                     .try_bytes_utf8_lossy()
                     .map_err(|_| function::Error::InvalidArgument {
                         keyword: "patterns",
-                        value: format!("{expr_:?}").into(),
+                        value: format!("{expr:?}").into(),
                         error: "grok pattern should be a string",
                     })?
                     .into_owned();
@@ -167,17 +166,16 @@ impl Function for ParseGroks {
             .unwrap_or_default()
             .into_iter()
             .map(|(key, expr)| {
-                let expr_ = expr.clone();
-                let alias = expr
+                let alias = expr.clone()
                     .resolve_constant(state)
                     .ok_or(function::Error::ExpectedStaticExpression {
                         keyword: "aliases",
-                        expr,
+                        expr: expr.clone(),
                     })?
                     .try_bytes_utf8_lossy()
                     .map_err(|_| function::Error::InvalidArgument {
                         keyword: "aliases",
-                        value: format!("{expr_:?}").into(),
+                        value: format!("{expr:?}").into(),
                         error: "alias pattern should be a string",
                     })?
                     .into_owned();
@@ -190,17 +188,16 @@ impl Function for ParseGroks {
             .unwrap_or_default()
             .into_iter()
             .map(|expr| {
-                let expr_ = expr.clone();
-                let path = expr
+                let path = expr.clone()
                     .resolve_constant(state)
                     .ok_or(function::Error::ExpectedStaticExpression {
                         keyword: "alias_sources",
-                        expr,
+                        expr: expr.clone(),
                     })?
                     .try_bytes_utf8_lossy()
                     .map_err(|_| function::Error::InvalidArgument {
                         keyword: "alias_sources",
-                        value: format!("{expr_:?}").into(),
+                        value: format!("{expr:?}").into(),
                         error: "alias source should be a string",
                     })?
                     .into_owned();
