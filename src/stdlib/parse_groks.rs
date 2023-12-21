@@ -144,7 +144,8 @@ impl Function for ParseGroks {
             .required_array("patterns")?
             .into_iter()
             .map(|expr| {
-                let pattern = expr.clone()
+                let pattern = expr
+                    .clone()
                     .resolve_constant(state)
                     .ok_or(function::Error::ExpectedStaticExpression {
                         keyword: "patterns",
@@ -166,7 +167,8 @@ impl Function for ParseGroks {
             .unwrap_or_default()
             .into_iter()
             .map(|(key, expr)| {
-                let alias = expr.clone()
+                let alias = expr
+                    .clone()
                     .resolve_constant(state)
                     .ok_or(function::Error::ExpectedStaticExpression {
                         keyword: "aliases",
@@ -188,7 +190,8 @@ impl Function for ParseGroks {
             .unwrap_or_default()
             .into_iter()
             .map(|expr| {
-                let path = expr.clone()
+                let path = expr
+                    .clone()
                     .resolve_constant(state)
                     .ok_or(function::Error::ExpectedStaticExpression {
                         keyword: "alias_sources",
