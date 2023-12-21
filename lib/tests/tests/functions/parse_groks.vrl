@@ -4,5 +4,5 @@
 . = parse_groks!(
     .message,
     patterns: [ "%{TEST}" ],
-    alias_sources: [ "lib/tests/tests/functions/test.json" ]
+    alias_sources: [ "lib/tests/tests/functions/parse_groks_alias_source.json" ]
 )
