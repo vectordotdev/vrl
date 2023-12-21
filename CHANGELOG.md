@@ -2,8 +2,10 @@
 
 ## unreleased
 
+## `0.9.1` (2023-12-21)
+
 #### Bug Fixes
-* Support WASM features using `chrono` was readded. This was accidentally dropped in 0.9.0.
+* Support for WASM features using `chrono` was readded. This was accidentally dropped in 0.9.0.
 
 ## `0.9.0` (2023-12-12)
 * `parse_regex_all` `pattern` param  can now be resolved from a variable
