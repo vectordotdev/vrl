@@ -1,6 +1,7 @@
 # Changelog
 
 ## unreleased
+- added the `alias_sources` parameter for `parse_groks` to read sources from files
 
 ## `0.9.1` (2023-12-21)
 

@@ -1,0 +1,4 @@
+{
+  "TEST": "%{OTHER_TEST}",
+  "OTHER_TEST": "username=%{USERNAME:username}"
+}
