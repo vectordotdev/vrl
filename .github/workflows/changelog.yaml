@@ -1,0 +1,32 @@
+# Changelog
+#
+# Validates that a changelog entry was added.
+# Runs on PRs when:
+#   - opened/re-opened
+#   - new commits pushed
+#   - label is added or removed
+
+name: Changelog
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+
+jobs:
+  check-changelog:
+    env:
+      PR_HAS_LABEL: ${{ contains( github.event.pull_request.labels.*.name, 'no-changelog') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - run: |
+          if [[ $PR_HAS_LABEL == 'true' ]] ; then
+            echo "'no-changelog' label detected."
+            exit 0
+          fi
+
+          # helper script needs to reference the master branch to compare against
+          git fetch origin main:refs/remotes/origin/main
+
+          ./scripts/check_changelog_fragments.sh

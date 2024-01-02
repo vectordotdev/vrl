@@ -15,10 +15,10 @@ provide everything you need to get started.
 4. Make your changes.
 5. Add and/or update tests to cover your changes.
 6. Run `./scripts/checks.sh` to run tests and other checks.
-7. Add a one line summary of changes to the "unreleased" section of `CHANGELOG.md`.
-8. [Submit the branch as a pull request][urls.submit_pr] to the repo. A team member should
+7. [Submit the branch as a pull request][urls.submit_pr] to the repo. A team member should
    comment and/or review your pull request.
-
+8. Add a changelog fragment (requires the PR number) to describe your changes which will
+   be included in the release changelog. See the [README.md](changelog.d/README.md) for details.
 
 [urls.existing_issues]: https://github.com/vectordotdev/vrl/issues
 [urls.new_issue]: https://github.com/vectordotdev/vrl/issues/new
