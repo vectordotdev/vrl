@@ -1,7 +1,8 @@
 # Changelog
 
-## unreleased
-- added the `alias_sources` parameter for `parse_groks` to read sources from files
+ This project uses [*towncrier*](https://towncrier.readthedocs.io/) for changelog generation.
+
+<!-- changelog start -->
 
 ## `0.9.1` (2023-12-21)
 
