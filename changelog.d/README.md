@@ -11,8 +11,9 @@ The changelog fragments are located in `changelog.d/`.
 
 Fragments for un-released changes are placed in the root of this directory during PRs.
 
-During a release when the changelog is generated, the fragments in the root of this
-directory are moved into a new directory with the name of the release (e.g. '0.10.0').
+During a release, `scripts/generate_release_changelog.sh` is run in order to automatically
+generate the changes to the CHANGELOG.md file. As part of the script execution, the
+changelog fragment files that are being released, are removed from the repo.
 
 ### Pull Requests
 
@@ -22,7 +23,7 @@ This is enforced during CI.
 To mark a PR as not requiring changelog notes, add the label 'no-changelog'.
 
 To run the same check that is run in CI to validate that your changelog fragments have
-the correct syntax, commit the fragment additions and then run ./scripts/check_changelog_fragments.sh
+the correct syntax, commit the fragment additions and then run `./scripts/check_changelog_fragments.sh`
 
 The format for fragments is: `<pr_number>.<fragment_type>.md`
 
@@ -54,17 +55,6 @@ Filename rules:
 When using the type 'breaking' to add notes for a breaking change, these should be more verbose than
 other entries typically. It should include all details that would be relevant for the user to need
 to handle upgrading to the breaking change.
-
-## Community Contributors
-
-When a PR is authored/has commits by a contributor from the VRL community, the fragment contents
-can optionally contain a line which specifies the community members involved in making the change.
-This is later used during the release process to render as a link to the github user profile for
-the authors specified.
-
-The process for adding this is simply to have the last line of the file be in this format:
-
-    authors: <author1_gh_username>, <author2_gh_username>, <...>
 
 ## Example
 
