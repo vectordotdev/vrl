@@ -111,7 +111,7 @@ tracing = { version = "0.1.40", default-features = false, optional = true }
 uaparser = { version = "0.6.1", default-features = false, optional = true }
 utf8-width = { version = "0.1.7", optional = true }
 url = { version = "2", optional = true }
-snafu = { version = "0.7", optional = true }
+snafu = { version = "0.8", optional = true }
 webbrowser = { version = "0.8", default-features = false, optional = true }
 woothee = { version = "0.13.0", optional = true }
 community-id = { version = "0.2.2", optional = true}
