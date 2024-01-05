@@ -21,10 +21,7 @@
 use crate::compiler::codes::WARNING_UNUSED_CODE;
 use crate::compiler::parser::{Ident, Node};
 use crate::diagnostic::{Diagnostic, DiagnosticList, Label, Note, Severity};
-use crate::parser::ast::{
-    Array, Assignment, AssignmentTarget, Block, Container, Expr, FunctionCall, Object, Predicate,
-    QueryTarget, RootExpr, Unary,
-};
+use crate::parser::ast::{Array, Assignment, AssignmentTarget, Block, Container, Expr, FunctionCall, IfStatement, Object, Predicate, QueryTarget, RootExpr, Unary};
 use crate::parser::{Program, Span};
 use std::collections::{BTreeMap, HashMap};
 
@@ -104,6 +101,14 @@ impl VisitorState {
     }
 }
 
+fn scoped_visit(state: &mut VisitorState, f: impl FnOnce(&mut VisitorState)) {
+    state.level += 1;
+    state.expecting_result.insert(state.level, true);
+    f(state);
+    state.expecting_result.insert(state.level, false);
+    state.level -= 1;
+}
+
 impl AstVisitor<'_> {
     fn visit_node(&self, node: &Node<Expr>, state: &mut VisitorState) {
         let expression = node.inner();
@@ -121,22 +126,13 @@ impl AstVisitor<'_> {
                 self.visit_container(container, state);
             }
             Expr::IfStatement(if_statement) => {
-                match &if_statement.predicate.node {
-                    Predicate::One(expr) => self.visit_node(expr, state),
-                    Predicate::Many(exprs) => {
-                        for expr in exprs {
-                            self.visit_node(expr, state);
-                        }
-                    }
-                }
-                self.visit_block(&if_statement.if_node, state);
-                if let Some(else_block) = &if_statement.else_node {
-                    self.visit_block(else_block, state);
-                }
+                self.visit_if_statement(if_statement, state);
             }
             Expr::Op(op) => {
                 self.visit_node(&op.0, state);
-                self.visit_node(&op.2, state);
+                scoped_visit(state, |state| {
+                    self.visit_node(&op.2, state);
+                });
             }
             Expr::Unary(unary) => match &unary.node {
                 Unary::Not(not) => {
@@ -216,11 +212,30 @@ impl AstVisitor<'_> {
             state.append_diagnostic(format!("unused object `{object}`"), &object.span);
         }
         for value in object.0.values() {
-            state.level += 1;
-            state.expecting_result.insert(state.level, true);
-            self.visit_node(value, state);
-            state.expecting_result.insert(state.level, false);
-            state.level -= 1;
+            scoped_visit(state, |state| {
+                self.visit_node(value, state);
+            });
+        }
+    }
+
+    fn visit_if_statement(&self, if_statement: &Node<IfStatement>, state: &mut VisitorState) {
+        match &if_statement.predicate.node {
+            Predicate::One(expr) => self.visit_node(expr, state),
+            Predicate::Many(exprs) => {
+                for expr in exprs {
+                    self.visit_node(expr, state);
+                }
+            }
+        }
+
+        scoped_visit(state, |state| {
+            self.visit_block(&if_statement.if_node, state);
+        });
+
+        if let Some(else_block) = &if_statement.else_node {
+            scoped_visit(state, |state| {
+                self.visit_block(else_block, state);
+            });
         }
     }
 
@@ -343,13 +358,13 @@ mod test {
     use crate::compiler::codes::WARNING_UNUSED_CODE;
     use crate::stdlib;
     use indoc::indoc;
-    // use crate::diagnostic::Formatter;
+    use crate::diagnostic::Formatter;
 
     fn unused_test(source: &str, expected_warnings: Vec<String>) {
         let warnings = crate::compiler::compile(source, &stdlib::all())
             .unwrap()
             .warnings;
-        // println!("{}", Formatter::new(source, warnings.clone()).colored());
+        println!("{}", Formatter::new(source, warnings.clone()).colored());
         assert_eq!(warnings.len(), expected_warnings.len());
 
         for (i, content) in expected_warnings.iter().enumerate() {
@@ -472,7 +487,7 @@ mod test {
     }
 
     #[test]
-    fn unused_coalesce_branches() {
+    fn unused_coalesce_result() {
         let source = indoc! {r#"
            parse_syslog("not syslog") ?? parse_common_log("not common") ?? "malformed"
            .res = parse_syslog("not syslog") ?? parse_common_log("not common") ?? "malformed"
@@ -481,8 +496,6 @@ mod test {
             source,
             vec![
                 r#"unused result for function call `parse_syslog("not syslog")`"#.to_string(),
-                r#"unused result for function call `parse_common_log("not common")`"#.to_string(),
-                r#"unused literal `"malformed"`"#.to_string(),
             ],
         );
     }
@@ -509,7 +522,7 @@ mod test {
 
             y = 2
             z = 3
-            .b = if (y < z) { 0 } else { 1 }
+            if (y < 2 && random_int(0, 4) < 3 ) { 0 } else { .b = z }
 
             x = {}
             x.a = 1
@@ -542,6 +555,22 @@ mod test {
             value = 42
             for_each({ "a": 1, "b": 2 }) -> |_key, value| { count = count + value };
             count
+        "#};
+        // Note that the `value` outside of the closure block is unused but not detected.
+        unused_test(source, vec![]);
+    }
+
+    #[test]
+    fn used_closure_result() {
+        let source = indoc! {r#"
+            patterns = [r'foo', r'bar']
+            matched = false
+            for_each(patterns) -> |_, pattern| {
+              if !matched && match!(.message, pattern) {
+                matched = true
+              }
+            }
+            matched
         "#};
         // Note that the `value` outside of the closure block is unused but not detected.
         unused_test(source, vec![]);

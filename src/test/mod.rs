@@ -141,9 +141,11 @@ pub fn run_tests<T>(
                 } else {
                     warnings_count += warnings.len();
                     if !warnings.is_empty() {
-                        println!("pront: {test:?}");
+                        println!("pront: {}  {}", test.name, test.category);
+                        let formatter = Formatter::new(&test.source, warnings);
+                        println!("{formatter}");
                     }
-                    
+
                     let run_start = Instant::now();
 
                     finalize_config(config_metadata);
