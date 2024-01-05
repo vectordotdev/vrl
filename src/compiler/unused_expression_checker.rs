@@ -24,6 +24,7 @@ use crate::diagnostic::{Diagnostic, DiagnosticList, Label, Note, Severity};
 use crate::parser::ast::{Array, Assignment, AssignmentTarget, Block, Container, Expr, FunctionCall, IfStatement, Object, Predicate, QueryTarget, RootExpr, Unary};
 use crate::parser::{Program, Span};
 use std::collections::{BTreeMap, HashMap};
+use onig::EncodedChars;
 
 #[must_use]
 pub fn check_for_unused_results(ast: &Program) -> DiagnosticList {
@@ -58,18 +59,26 @@ impl VisitorState {
         !pending_result
     }
 
+    fn mark_ident_as_pending(&mut self, ident: &Ident, span: &Span) {
+        if ident.is_empty() {
+            return;
+        }
+
+        self.ident_pending_usage
+            .entry(ident.clone())
+            .and_modify(|state| {
+                state.pending_usage = true;
+            })
+            .or_insert(IdentState {
+                span: *span,
+                pending_usage: true,
+            });
+    }
+
     fn mark_query_target_as_pending(&mut self, query_target: &Node<QueryTarget>) {
         match &query_target.node {
             QueryTarget::Internal(ident) => {
-                self.ident_pending_usage
-                    .entry(ident.clone())
-                    .and_modify(|state| {
-                        state.pending_usage = true;
-                    })
-                    .or_insert(IdentState {
-                        span: query_target.span,
-                        pending_usage: true,
-                    });
+                self.mark_ident_as_pending(ident, &query_target.span);
             }
             QueryTarget::External(_) => {}
             QueryTarget::FunctionCall(_) => {}
@@ -126,7 +135,9 @@ impl AstVisitor<'_> {
                 self.visit_container(container, state);
             }
             Expr::IfStatement(if_statement) => {
-                self.visit_if_statement(if_statement, state);
+                scoped_visit(state, |state| {
+                    self.visit_if_statement(if_statement, state);
+                });
             }
             Expr::Op(op) => {
                 self.visit_node(&op.0, state);
@@ -302,14 +313,7 @@ impl AstVisitor<'_> {
             _ => {
                 if let Some(closure) = &function_call.closure {
                     for variable in &closure.variables {
-                        state
-                            .ident_pending_usage
-                            .entry(variable.node.clone())
-                            .and_modify(|state| state.pending_usage = true)
-                            .or_insert(IdentState {
-                                span: *span,
-                                pending_usage: true,
-                            });
+                        state.mark_ident_as_pending(&variable.node, &variable.span);
                     }
                     self.visit_block(&closure.block, state);
                 } else if state.is_unused() {
@@ -517,16 +521,22 @@ mod test {
     #[test]
     fn used_in_if_condition() {
         let source = indoc! {r#"
+            if starts_with!(.a, "foo") {
+                .a = "foo"
+            } else if starts_with!(.a, "bar") {
+                .a = "bar"
+            }
+
             x = 1
-            .a = if (x < 1) { 0 } else { 1 }
+            .b = if (x < 1) { 0 } else { 1 }
 
             y = 2
             z = 3
-            if (y < 2 && random_int(0, 4) < 3 ) { 0 } else { .b = z }
+            if (y < 2 && random_int(0, 4) < 3 ) { 0 } else { .c = z }
 
             x = {}
             x.a = 1
-            .c = if (x.a < 1) { 0 } else { 1 }
+            .d = if (x.a < 1) { 0 } else { 1 }
         "#};
         unused_test(source, vec![]);
     }
