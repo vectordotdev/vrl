@@ -1,4 +1,4 @@
-/// # AST Visitor
+/// # Unused Expression Checker
 ///
 /// This module provides functionality for traversing VRL (Vector Remap Language) Abstract Syntax Trees (AST).
 /// It's designed to detect and report unused expressions, helping users clean up and optimize their VRL scripts.
@@ -13,7 +13,6 @@
 ///   takes into account variable scopes, assignments, and the flow of the program.
 /// - **Detection**: Identifies and reports expressions that do not contribute to assignments,
 ///   affect external events, or influence the outcome of function calls.
-
 // #[allow(clippy::print_stdout)]
 use crate::compiler::codes::WARNING_UNUSED_CODE;
 use crate::compiler::parser::{Ident, Node};
@@ -36,10 +35,16 @@ pub struct AstVisitor<'a> {
 }
 
 #[derive(Default, Debug, Clone)]
+struct IdentState {
+    span: Span,
+    pending_usage: bool,
+}
+
+#[derive(Default, Debug, Clone)]
 struct VisitorState {
     level: usize,
     expecting_result: HashMap<usize, bool>,
-    ident_pending_usage: BTreeMap<Ident, bool>,
+    ident_pending_usage: BTreeMap<Ident, IdentState>,
     diagnostics: DiagnosticList,
 }
 
@@ -57,8 +62,13 @@ impl VisitorState {
             QueryTarget::Internal(ident) => {
                 self.ident_pending_usage
                     .entry(ident.clone())
-                    .and_modify(|pending_usage| *pending_usage = true)
-                    .or_insert(true);
+                    .and_modify(|state| {
+                        state.pending_usage = true;
+                    })
+                    .or_insert(IdentState {
+                        span: query_target.span,
+                        pending_usage: true,
+                    });
             }
             QueryTarget::External(_) => {}
             QueryTarget::FunctionCall(_) => {}
@@ -82,20 +92,10 @@ impl VisitorState {
     }
 
     fn extend_diagnostics_for_unused_variables(&mut self) {
-        let unused_variables: Vec<Ident> = self
-            .ident_pending_usage
-            .iter()
-            .filter(|(_ident, pending_usage)| **pending_usage)
-            .map(|(ident, _)| ident.clone())
-            .collect();
-        for ident in unused_variables {
-            self.diagnostics.push(Diagnostic {
-                severity: Severity::Warning,
-                code: WARNING_UNUSED_CODE,
-                message: format!("unused variable `{}`", ident.0),
-                labels: vec![],
-                notes: vec![],
-            })
+        for (ident, state) in self.ident_pending_usage.clone() {
+            if state.pending_usage {
+                self.append_diagnostic(format!("unused variable `{ident}`"), &state.span);
+            }
         }
     }
 }
@@ -148,22 +148,34 @@ impl AstVisitor<'_> {
                         state
                             .ident_pending_usage
                             .entry(ident.clone())
-                            .and_modify(|pending_usage| *pending_usage = false)
-                            .or_insert(false);
+                            .and_modify(|state| state.pending_usage = false)
+                            .or_insert({
+                                IdentState {
+                                    span: query.node.target.span,
+                                    pending_usage: false,
+                                }
+                            });
                     }
                 }
                 QueryTarget::External(_) => {}
-                QueryTarget::FunctionCall(function_call) => self.visit_function_call(function_call, &query.node.target.span, state),
+                QueryTarget::FunctionCall(function_call) => {
+                    self.visit_function_call(function_call, &query.node.target.span, state)
+                }
                 QueryTarget::Container(_) => {}
             },
-            Expr::FunctionCall(function_call) => self.visit_function_call(function_call, &function_call.span, state),
+            Expr::FunctionCall(function_call) => {
+                self.visit_function_call(function_call, &function_call.span, state)
+            }
             Expr::Variable(variable) => {
                 let key = variable.node.clone();
                 state
                     .ident_pending_usage
                     .entry(key)
-                    .and_modify(|pending_usage| *pending_usage = false)
-                    .or_insert(false);
+                    .and_modify(|state| state.pending_usage = false)
+                    .or_insert(IdentState {
+                        span: variable.span,
+                        pending_usage: false,
+                    });
             }
             Expr::Abort(_) => {}
         }
@@ -229,7 +241,10 @@ impl AstVisitor<'_> {
                         state
                             .ident_pending_usage
                             .entry(ident.clone())
-                            .or_insert(true);
+                            .or_insert(IdentState {
+                                span: target.span,
+                                pending_usage: true,
+                            });
                     }
                 }
                 AssignmentTarget::External(_path) => {}
@@ -249,7 +264,12 @@ impl AstVisitor<'_> {
         state.level -= 1;
     }
 
-    fn visit_function_call(&self, function_call: &FunctionCall, span: &Span, state: &mut VisitorState) {
+    fn visit_function_call(
+        &self,
+        function_call: &FunctionCall,
+        span: &Span,
+        state: &mut VisitorState,
+    ) {
         for argument in &function_call.arguments {
             state.level += 1;
             state.expecting_result.insert(state.level, true);
@@ -271,8 +291,8 @@ impl AstVisitor<'_> {
         }
     }
 
-    /// This function traverses the VRL AST and detects unused results. Each expression is associated with a
-    /// [Purity](crate::compiler::type_def::Purity) which is used to determine if the expression has side-effects or not.
+    /// This function traverses the VRL AST and detects unused results.
+    /// An expression might have side-effects, in that case we do not except its result to be used.
     ///
     /// We want to detect the following cases:
     /// * Unused Variables: a variable which is assigned a value but never used in any expression
@@ -445,10 +465,7 @@ mod test {
 
             y = {"foo": 3}.foo
         "#};
-        unused_test(
-            source,
-            vec![r#"unused variable `y`"#.to_string()],
-        );
+        unused_test(source, vec![r#"unused variable `y`"#.to_string()]);
     }
 
     #[test]

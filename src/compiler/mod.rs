@@ -34,7 +34,7 @@ use std::{fmt::Display, str::FromStr};
 pub use paste::paste;
 use serde::{Deserialize, Serialize};
 
-use crate::compiler::ast_visitor::check_for_unused_results;
+use crate::compiler::unused_expression_checker::check_for_unused_results;
 pub use compiler::{CompilationResult, Compiler};
 pub use context::Context;
 pub use datetime::TimeZone;
@@ -65,7 +65,7 @@ mod program;
 mod target;
 mod test_util;
 
-pub mod ast_visitor;
+pub mod unused_expression_checker;
 pub mod codes;
 pub mod conversion;
 pub mod expression;
@@ -110,11 +110,15 @@ pub fn compile_with_state(
         .map_err(|err| crate::diagnostic::DiagnosticList::from(vec![Box::new(err) as Box<_>]))?;
 
     let result = Compiler::compile(fns, ast.clone(), state, config);
-    result.map(|mut compilation_result| {
-        let unused_warnings = check_for_unused_results(&ast);
-        compilation_result.warnings.extend(unused_warnings);
-        compilation_result
-    })
+    let unused_warnings = check_for_unused_results(&ast);
+    if unused_warnings.is_empty() {
+        result
+    } else {
+        result.map(|mut compilation_result| {
+            compilation_result.warnings.extend(unused_warnings);
+            compilation_result
+        })
+    }
 }
 
 /// Available VRL runtimes.
