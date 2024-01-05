@@ -1,4 +1,18 @@
-#![allow(clippy::print_stdout)]
+/// # AST Visitor
+///
+/// This module provides functionality for traversing VRL (Vector Remap Language) Abstract Syntax Trees (AST).
+/// It's designed to detect and report unused expressions, helping users clean up and optimize their VRL scripts.
+/// Initially, it will generate warnings for unused expressions. These warnings might be escalated to errors
+/// in future versions, once the module has been battle-tested.
+///
+/// ## How it works
+///
+/// - **Traversal**: Recursively explores each node of the AST. This process begins after the program has
+///   been successfully compiled.
+/// - **Stateful Context**: Builds context on the fly to determine whether an expression is unused. The context
+///   takes into account variable scopes, assignments, and the flow of the program.
+/// - **Detection**: Identifies and reports expressions that do not contribute to assignments,
+///   affect external events, or influence the outcome of function calls.
 
 use crate::compiler::codes::WARNING_UNUSED_CODE;
 use crate::compiler::parser::{Ident, Node};
@@ -88,9 +102,6 @@ impl AstVisitor<'_> {
     fn visit_node(&self, node: &Node<Expr>, state: &mut VisitorState) {
         let expression = node.inner();
         let span = &node.span();
-        println!("\n{} visit_node: {expression:#?}", state.level);
-        println!("pending_assignment {:#?}", state.expecting_result);
-        println!("ident_pending_usage {:#?}", state.ident_pending_usage);
 
         match expression {
             Expr::Literal(literal) => {
@@ -174,7 +185,6 @@ impl AstVisitor<'_> {
         let exprs = &block.node.0;
         for (i, expr) in exprs.iter().enumerate() {
             if i == exprs.len() - 1 {
-                // state.mark_end_of_block(block_level);
                 state.level -= 1;
             }
             self.visit_node(expr, state);
@@ -289,7 +299,6 @@ mod test {
         let warnings = crate::compiler::compile(source, &stdlib::all())
             .unwrap()
             .warnings;
-        println!("{}", Formatter::new(source, warnings.clone()).colored());
         assert_eq!(warnings.len(), expected_warnings.len());
 
         for (i, content) in expected_warnings.iter().enumerate() {
@@ -355,6 +364,7 @@ mod test {
     #[test]
     fn unused_object() {
         let source = indoc! {r#"
+            .o = { "key": 1 }
             { "array": [{"a": "b"}], "b": 2}
         "#};
         unused_test(
