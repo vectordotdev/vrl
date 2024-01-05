@@ -14,6 +14,7 @@
 /// - **Detection**: Identifies and reports expressions that do not contribute to assignments,
 ///   affect external events, or influence the outcome of function calls.
 
+// #[allow(clippy::print_stdout)]
 use crate::compiler::codes::WARNING_UNUSED_CODE;
 use crate::compiler::parser::{Ident, Node};
 use crate::diagnostic::{Diagnostic, DiagnosticList, Label, Note, Severity};
@@ -64,6 +65,7 @@ impl VisitorState {
             QueryTarget::Container(_) => {}
         }
     }
+
     fn append_diagnostic(&mut self, message: String, span: &Span) {
         self.diagnostics.push(Diagnostic {
             severity: Severity::Warning,
@@ -101,12 +103,14 @@ impl VisitorState {
 impl AstVisitor<'_> {
     fn visit_node(&self, node: &Node<Expr>, state: &mut VisitorState) {
         let expression = node.inner();
-        let span = &node.span();
+        // println!("\n{} visit_node: {expression:#?}", state.level);
+        // println!("pending_assignment {:#?}", state.expecting_result);
+        // println!("ident_pending_usage {:#?}", state.ident_pending_usage);
 
         match expression {
             Expr::Literal(literal) => {
                 if state.is_unused() {
-                    state.append_diagnostic(format!("unused literal `{literal}`"), span);
+                    state.append_diagnostic(format!("unused literal `{literal}`"), &node.span());
                 }
             }
             Expr::Container(container) => {
@@ -149,10 +153,10 @@ impl AstVisitor<'_> {
                     }
                 }
                 QueryTarget::External(_) => {}
-                QueryTarget::FunctionCall(_) => {}
+                QueryTarget::FunctionCall(function_call) => self.visit_function_call(function_call, &query.node.target.span, state),
                 QueryTarget::Container(_) => {}
             },
-            Expr::FunctionCall(function_call) => self.visit_function_call(function_call, state),
+            Expr::FunctionCall(function_call) => self.visit_function_call(function_call, &function_call.span, state),
             Expr::Variable(variable) => {
                 let key = variable.node.clone();
                 state
@@ -245,7 +249,7 @@ impl AstVisitor<'_> {
         state.level -= 1;
     }
 
-    fn visit_function_call(&self, function_call: &Node<FunctionCall>, state: &mut VisitorState) {
+    fn visit_function_call(&self, function_call: &FunctionCall, span: &Span, state: &mut VisitorState) {
         for argument in &function_call.arguments {
             state.level += 1;
             state.expecting_result.insert(state.level, true);
@@ -260,7 +264,7 @@ impl AstVisitor<'_> {
                 if state.is_unused() {
                     state.append_diagnostic(
                         format!("unused result for function call `{function_call}`"),
-                        &function_call.span,
+                        span,
                     );
                 }
             }
@@ -291,14 +295,15 @@ impl AstVisitor<'_> {
 #[cfg(test)]
 mod test {
     use crate::compiler::codes::WARNING_UNUSED_CODE;
-    use crate::diagnostic::Formatter;
     use crate::stdlib;
     use indoc::indoc;
+    // use crate::diagnostic::Formatter;
 
     fn unused_test(source: &str, expected_warnings: Vec<String>) {
         let warnings = crate::compiler::compile(source, &stdlib::all())
             .unwrap()
             .warnings;
+        // println!("{}", Formatter::new(source, warnings.clone()).colored());
         assert_eq!(warnings.len(), expected_warnings.len());
 
         for (i, content) in expected_warnings.iter().enumerate() {
@@ -427,6 +432,22 @@ mod test {
                 r#"unused result for function call `parse_common_log("not common")`"#.to_string(),
                 r#"unused literal `"malformed"`"#.to_string(),
             ],
+        );
+    }
+
+    #[test]
+    fn used_queries() {
+        let source = indoc! {r#"
+            x = {}
+            x.foo = 1
+            x.bar = 2
+            .bar = remove!(x, ["foo"]).bar
+
+            y = {"foo": 3}.foo
+        "#};
+        unused_test(
+            source,
+            vec![r#"unused variable `y`"#.to_string()],
         );
     }
 
