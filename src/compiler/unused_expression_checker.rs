@@ -14,7 +14,9 @@
 /// - **Detection**: Identifies and reports expressions that do not contribute to assignments,
 ///   affect external events, or influence the outcome of function calls.
 /// - **Ignored Variables**: Variable names prefixed with '_' are ignored.
-
+///
+/// ## Caveats
+/// - **Closures**: Closure support is minimal. For example, shadowed variables are not detected.
 // #[allow(clippy::print_stdout)]
 
 use crate::compiler::codes::WARNING_UNUSED_CODE;
@@ -284,7 +286,16 @@ impl AstVisitor<'_> {
             //  All bets are off for functions with side-effects.
             "del" | "log" => (),
             _ => {
-                if state.is_unused() {
+                if let Some(closure) = &function_call.closure {
+                    for variable in &closure.variables {
+                        state.ident_pending_usage.entry(variable.node.clone()).and_modify(|state| state.pending_usage = true)
+                            .or_insert(IdentState {
+                                span: *span,
+                                pending_usage: true,
+                            });
+                    }
+                    self.visit_block(&closure.block, state);
+                } else if state.is_unused() {
                     state.append_diagnostic(
                         format!("unused result for function call `{function_call}`"),
                         span,
@@ -330,13 +341,13 @@ mod test {
     use crate::compiler::codes::WARNING_UNUSED_CODE;
     use crate::stdlib;
     use indoc::indoc;
-    use crate::diagnostic::Formatter;
+    // use crate::diagnostic::Formatter;
 
     fn unused_test(source: &str, expected_warnings: Vec<String>) {
         let warnings = crate::compiler::compile(source, &stdlib::all())
             .unwrap()
             .warnings;
-        println!("{}", Formatter::new(source, warnings.clone()).colored());
+        // println!("{}", Formatter::new(source, warnings.clone()).colored());
         assert_eq!(warnings.len(), expected_warnings.len());
 
         for (i, content) in expected_warnings.iter().enumerate() {
@@ -519,6 +530,21 @@ mod test {
         unused_test(
             source,
             vec![r#"unused result for function call `exists(field: xbar)`"#.to_string()],
+        );
+    }
+
+    #[test]
+    fn closure_shadows_unused_variable() {
+        let source = indoc! {r#"
+            count = 0;
+            value = 42
+            for_each({ "a": 1, "b": 2 }) -> |_key, value| { count = count + value };
+            count
+        "#};
+        // Note that the `value` outside of the closure block is unused but not detected.
+        unused_test(
+            source,
+            vec![],
         );
     }
 }
