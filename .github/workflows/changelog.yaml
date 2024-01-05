@@ -18,7 +18,7 @@ jobs:
       PR_HAS_LABEL: ${{ contains( github.event.pull_request.labels.*.name, 'no-changelog') }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - run: |
           if [[ $PR_HAS_LABEL == 'true' ]] ; then
