@@ -136,13 +136,14 @@ pub fn run_tests<T>(
                 warnings,
                 config: _,
             }) => {
-                warnings_count += warnings.len();
-                if !warnings.is_empty() {
-                    println!("pront: {test:?}");
-                }
                 if test.check_diagnostics {
                     process_compilation_diagnostics(&test, cfg, warnings, compile_timing_fmt)
                 } else {
+                    warnings_count += warnings.len();
+                    if !warnings.is_empty() {
+                        println!("pront: {test:?}");
+                    }
+                    
                     let run_start = Instant::now();
 
                     finalize_config(config_metadata);

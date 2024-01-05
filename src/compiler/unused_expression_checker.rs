@@ -18,7 +18,6 @@
 /// ## Caveats
 /// - **Closures**: Closure support is minimal. For example, shadowed variables are not detected.
 // #[allow(clippy::print_stdout)]
-
 use crate::compiler::codes::WARNING_UNUSED_CODE;
 use crate::compiler::parser::{Ident, Node};
 use crate::diagnostic::{Diagnostic, DiagnosticList, Label, Note, Severity};
@@ -288,7 +287,10 @@ impl AstVisitor<'_> {
             _ => {
                 if let Some(closure) = &function_call.closure {
                     for variable in &closure.variables {
-                        state.ident_pending_usage.entry(variable.node.clone()).and_modify(|state| state.pending_usage = true)
+                        state
+                            .ident_pending_usage
+                            .entry(variable.node.clone())
+                            .and_modify(|state| state.pending_usage = true)
                             .or_insert(IdentState {
                                 span: *span,
                                 pending_usage: true,
@@ -542,9 +544,6 @@ mod test {
             count
         "#};
         // Note that the `value` outside of the closure block is unused but not detected.
-        unused_test(
-            source,
-            vec![],
-        );
+        unused_test(source, vec![]);
     }
 }
