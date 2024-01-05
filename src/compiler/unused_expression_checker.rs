@@ -13,7 +13,10 @@
 ///   takes into account variable scopes, assignments, and the flow of the program.
 /// - **Detection**: Identifies and reports expressions that do not contribute to assignments,
 ///   affect external events, or influence the outcome of function calls.
+/// - **Ignored Variables**: Variable names prefixed with '_' are ignored.
+
 // #[allow(clippy::print_stdout)]
+
 use crate::compiler::codes::WARNING_UNUSED_CODE;
 use crate::compiler::parser::{Ident, Node};
 use crate::diagnostic::{Diagnostic, DiagnosticList, Label, Note, Severity};
@@ -93,7 +96,7 @@ impl VisitorState {
 
     fn extend_diagnostics_for_unused_variables(&mut self) {
         for (ident, state) in self.ident_pending_usage.clone() {
-            if state.pending_usage {
+            if state.pending_usage && !ident.starts_with('_') {
                 self.append_diagnostic(format!("unused variable `{ident}`"), &state.span);
             }
         }
@@ -327,13 +330,13 @@ mod test {
     use crate::compiler::codes::WARNING_UNUSED_CODE;
     use crate::stdlib;
     use indoc::indoc;
-    // use crate::diagnostic::Formatter;
+    use crate::diagnostic::Formatter;
 
     fn unused_test(source: &str, expected_warnings: Vec<String>) {
         let warnings = crate::compiler::compile(source, &stdlib::all())
             .unwrap()
             .warnings;
-        // println!("{}", Formatter::new(source, warnings.clone()).colored());
+        println!("{}", Formatter::new(source, warnings.clone()).colored());
         assert_eq!(warnings.len(), expected_warnings.len());
 
         for (i, content) in expected_warnings.iter().enumerate() {
@@ -474,6 +477,7 @@ mod test {
     #[test]
     fn used_queries() {
         let source = indoc! {r#"
+            _i_am_ignored = 42
             x = {}
             x.foo = 1
             x.bar = 2
