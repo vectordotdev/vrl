@@ -65,7 +65,6 @@ mod program;
 mod target;
 mod test_util;
 
-pub mod unused_expression_checker;
 pub mod codes;
 pub mod conversion;
 pub mod expression;
@@ -74,6 +73,7 @@ pub mod prelude;
 pub mod runtime;
 pub mod state;
 pub mod type_def;
+pub mod unused_expression_checker;
 pub mod value;
 
 pub type Result<T = CompilationResult> = std::result::Result<T, DiagnosticList>;

@@ -300,10 +300,20 @@ impl AstVisitor<'_> {
     fn check_for_unused_results(&self) -> DiagnosticList {
         let mut unused_warnings = DiagnosticList::default();
         let mut state = VisitorState::default();
-        for root_node in &self.ast.0 {
+        let root_expressions = &self.ast.0;
+        for (i, root_node) in root_expressions.iter().enumerate() {
+            let is_last = i == root_expressions.len() - 1;
+            if is_last {
+                state.level += 1;
+                state.expecting_result.insert(state.level, true);
+            }
             match root_node.inner() {
                 RootExpr::Expr(node) => self.visit_node(node, &mut state),
                 RootExpr::Error(_) => {}
+            }
+            if is_last {
+                state.level -= 1;
+                state.expecting_result.insert(state.level, true);
             }
         }
         state.extend_diagnostics_for_unused_variables();
@@ -339,7 +349,10 @@ mod test {
 
     #[test]
     fn unused_top_level_literal() {
-        let source = indoc! {r#""foo""#};
+        let source = indoc! {r#"
+            "foo"
+            "program result"
+        "#};
         unused_test(source, vec![r#"unused literal `"foo"`"#.to_string()]);
     }
 
@@ -347,9 +360,10 @@ mod test {
     fn unused_literal() {
         let source = indoc! {r#"
             . = {
-            "unused"
-            "a"
-        }"#};
+                "unused"
+                "a"
+            }
+        "#};
         unused_test(source, vec![r#"unused literal `"unused"`"#.to_string()]);
     }
 
@@ -391,6 +405,7 @@ mod test {
         let source = indoc! {r#"
             .o = { "key": 1 }
             { "array": [{"a": "b"}], "b": 2}
+            "program result"
         "#};
         unused_test(
             source,
@@ -421,6 +436,7 @@ mod test {
         let source = indoc! {r#"
             .r = random_int(0,1)
             random_bool()
+            "program result"
         "#};
         unused_test(
             source,
