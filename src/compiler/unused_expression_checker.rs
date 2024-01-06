@@ -17,7 +17,7 @@
 ///
 /// ## Caveats
 /// - **Closures**: Closure support is minimal. For example, shadowed variables are not detected.
-#[allow(clippy::print_stdout)]
+// #[allow(clippy::print_stdout)]
 use crate::compiler::codes::WARNING_UNUSED_CODE;
 use crate::compiler::parser::{Ident, Node};
 use crate::diagnostic::{Diagnostic, DiagnosticList, Label, Note, Severity};
@@ -165,18 +165,12 @@ impl AstVisitor<'_> {
 
         match expression {
             Expr::Literal(literal) => {
-                match &literal.node {
-                    Literal::String(template) => {
-                        for segment in &template.0 {
-                            match segment {
-                                StringSegment::Template(ident, _) => {
-                                    state.mark_identifier_used(&Ident::from(ident.clone()));
-                                }
-                                _ => (),
-                            }
+                if let Literal::String(template) = &literal.node {
+                    for segment in &template.0 {
+                        if let StringSegment::Template(ident, _) = segment {
+                            state.mark_identifier_used(&Ident::from(ident.clone()));
                         }
                     }
-                    _ => (),
                 }
                 if state.is_unused() {
                     state.append_diagnostic(format!("unused literal `{literal}`"), &node.span());
@@ -430,13 +424,13 @@ mod test {
     use crate::compiler::codes::WARNING_UNUSED_CODE;
     use crate::stdlib;
     use indoc::indoc;
-    use crate::diagnostic::Formatter;
+    // use crate::diagnostic::Formatter;
 
     fn unused_test(source: &str, expected_warnings: Vec<String>) {
         let warnings = crate::compiler::compile(source, &stdlib::all())
             .unwrap()
             .warnings;
-        println!("{}", Formatter::new(source, warnings.clone()).colored());
+        // println!("{}", Formatter::new(source, warnings.clone()).colored());
         assert_eq!(warnings.len(), expected_warnings.len());
 
         for (i, content) in expected_warnings.iter().enumerate() {
@@ -659,6 +653,17 @@ mod test {
             matched
         "#};
         // Note that the `value` outside of the closure block is unused but not detected.
+        unused_test(source, vec![]);
+    }
+
+    #[test]
+    fn used_function_result_in_fallible_block() {
+        let source = indoc! {r#"
+            {
+              parse_json("invalid")
+              2
+            } ?? 1
+        "#};
         unused_test(source, vec![]);
     }
 }
