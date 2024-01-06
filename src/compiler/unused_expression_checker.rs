@@ -17,14 +17,15 @@
 ///
 /// ## Caveats
 /// - **Closures**: Closure support is minimal. For example, shadowed variables are not detected.
-// #[allow(clippy::print_stdout)]
+#[allow(clippy::print_stdout)]
 use crate::compiler::codes::WARNING_UNUSED_CODE;
 use crate::compiler::parser::{Ident, Node};
 use crate::diagnostic::{Diagnostic, DiagnosticList, Label, Note, Severity};
 use crate::parser::ast::{Array, Assignment, AssignmentTarget, Block, Container, Expr, FunctionCall, IfStatement, Object, Predicate, QueryTarget, RootExpr, Unary};
-use crate::parser::{Program, Span};
+use crate::parser::{Literal, Program, Span};
 use std::collections::{BTreeMap, HashMap};
 use onig::EncodedChars;
+use crate::parser::template_string::StringSegment;
 
 #[must_use]
 pub fn check_for_unused_results(ast: &Program) -> DiagnosticList {
@@ -73,6 +74,12 @@ impl VisitorState {
                 span: *span,
                 pending_usage: true,
             });
+    }
+
+    fn mark_ident_as_not_pending(&mut self, ident: &Ident) {
+        if let Some(entry) = self.ident_pending_usage.get_mut(ident) {
+            entry.pending_usage = false;
+        }
     }
 
     fn mark_query_target_as_pending(&mut self, query_target: &Node<QueryTarget>) {
@@ -127,6 +134,19 @@ impl AstVisitor<'_> {
 
         match expression {
             Expr::Literal(literal) => {
+                match &literal.node {
+                    Literal::String(template) => {
+                        for segment in &template.0 {
+                            match segment {
+                                StringSegment::Template(ident, _) => {
+                                    state.mark_ident_as_not_pending(&Ident::from(ident.clone()));
+                                }
+                                _ => (),
+                            }
+                        }
+                    }
+                    _ => (),
+                }
                 if state.is_unused() {
                     state.append_diagnostic(format!("unused literal `{literal}`"), &node.span());
                 }
