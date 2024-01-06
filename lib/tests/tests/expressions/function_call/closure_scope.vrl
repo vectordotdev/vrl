@@ -12,7 +12,7 @@
 #   = see language documentation at https://vrl.dev
 #   = try your code in the VRL REPL, learn more at https://vrl.dev/examples
 
-for_each({ "foo": "bar" }) -> |key, value| {
+for_each({ "foo": "bar" }) -> |key, _value| {
   key = upcase(key)
   zoog = 72
 }

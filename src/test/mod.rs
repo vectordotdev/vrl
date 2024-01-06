@@ -136,16 +136,11 @@ pub fn run_tests<T>(
                 warnings,
                 config: _,
             }) => {
+                warnings_count += warnings.len();
+
                 if test.check_diagnostics {
                     process_compilation_diagnostics(&test, cfg, warnings, compile_timing_fmt)
-                } else {
-                    warnings_count += warnings.len();
-                    if !warnings.is_empty() {
-                        println!("pront: {}  {}", test.name, test.category);
-                        let formatter = Formatter::new(&test.source, warnings);
-                        println!("{formatter}");
-                    }
-
+                } else if warnings.is_empty() {
                     let run_start = Instant::now();
 
                     finalize_config(config_metadata);
@@ -162,6 +157,14 @@ pub fn run_tests<T>(
                     };
 
                     process_result(result, &mut test, cfg, timings)
+                } else {
+                    println!("{} (diagnostics)", Colour::Red.bold().paint("FAILED"));
+                    if cfg.verbose {
+                        let formatter = Formatter::new(&test.source, warnings);
+                        println!("{formatter}");
+                    }
+                    // mark as failure, did not expect any warnings
+                    true
                 }
             }
             Err(diagnostics) => {

@@ -1,7 +1,7 @@
 # result: true
 
 # function names using reserved keywords are allowed
-string(.foo) ?? ""
+_x = string(.foo) ?? ""
 
 # partially reserved keywords in variables are allowed
 _if_foo = true

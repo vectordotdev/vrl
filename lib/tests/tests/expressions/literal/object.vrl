@@ -1,19 +1,20 @@
 # result: { "bar": 12.0, "foo": null }
 
 # empty
-{ }
+_o = { }
 
 # single
-{ "foo": null }
-{ "foo": null, }
+_o = { "foo": null }
+_o = { "foo": null, }
 
 # multiple
-{ "foo": null, "bar": 12.0 }
-{ "foo": null, "bar": 12.0, }
-{
+_o = { "foo": null, "bar": 12.0 }
+_o = { "foo": null, "bar": 12.0, }
+_o = {
     "foo": null,
     "bar": 12.0,
 }
+
 {
     "foo": null,
     "bar": 12.0

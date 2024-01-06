@@ -47,6 +47,7 @@ struct IdentState {
 struct VisitorState {
     level: usize,
     expecting_result: HashMap<usize, bool>,
+    within_block_expression: HashMap<usize, bool>,
     ident_pending_usage: BTreeMap<Ident, IdentState>,
     diagnostics: DiagnosticList,
 }
@@ -60,7 +61,37 @@ impl VisitorState {
         !pending_result
     }
 
-    fn mark_ident_as_pending(&mut self, ident: &Ident, span: &Span) {
+    fn is_within_block(&self) -> bool {
+        self.within_block_expression
+            .get(&self.level)
+            .is_some_and(|within_block| *within_block)
+    }
+
+    fn increase_level(&mut self) {
+        self.level += 1;
+    }
+
+    fn decrease_level(&mut self) {
+        self.level -= 1;
+    }
+
+    fn mark_as_currently_in_block(&mut self) {
+        self.within_block_expression.insert(self.level, true);
+    }
+
+    fn mark_as_currently_not_in_block(&mut self) {
+        self.within_block_expression.insert(self.level, false);
+    }
+
+    fn mark_level_as_expecting_result(&mut self) {
+        self.expecting_result.insert(self.level, true);
+    }
+
+    fn mark_level_as_not_expecting_result(&mut self) {
+        self.expecting_result.insert(self.level, false);
+    }
+
+    fn mark_identifier_pending_usage(&mut self, ident: &Ident, span: &Span) {
         if ident.is_empty() {
             return;
         }
@@ -76,16 +107,16 @@ impl VisitorState {
             });
     }
 
-    fn mark_ident_as_not_pending(&mut self, ident: &Ident) {
+    fn mark_identifier_used(&mut self, ident: &Ident) {
         if let Some(entry) = self.ident_pending_usage.get_mut(ident) {
             entry.pending_usage = false;
         }
     }
 
-    fn mark_query_target_as_pending(&mut self, query_target: &Node<QueryTarget>) {
+    fn mark_query_target_pending_usage(&mut self, query_target: &Node<QueryTarget>) {
         match &query_target.node {
             QueryTarget::Internal(ident) => {
-                self.mark_ident_as_pending(ident, &query_target.span);
+                self.mark_identifier_pending_usage(ident, &query_target.span);
             }
             QueryTarget::External(_) => {}
             QueryTarget::FunctionCall(_) => {}
@@ -118,11 +149,11 @@ impl VisitorState {
 }
 
 fn scoped_visit(state: &mut VisitorState, f: impl FnOnce(&mut VisitorState)) {
-    state.level += 1;
-    state.expecting_result.insert(state.level, true);
+    state.increase_level();
+    state.mark_level_as_expecting_result();
     f(state);
-    state.expecting_result.insert(state.level, false);
-    state.level -= 1;
+    state.mark_level_as_not_expecting_result();
+    state.decrease_level();
 }
 
 impl AstVisitor<'_> {
@@ -139,7 +170,7 @@ impl AstVisitor<'_> {
                         for segment in &template.0 {
                             match segment {
                                 StringSegment::Template(ident, _) => {
-                                    state.mark_ident_as_not_pending(&Ident::from(ident.clone()));
+                                    state.mark_identifier_used(&Ident::from(ident.clone()));
                                 }
                                 _ => (),
                             }
@@ -228,11 +259,16 @@ impl AstVisitor<'_> {
     }
 
     fn visit_block(&self, block: &Node<Block>, state: &mut VisitorState) {
-        state.level += 1;
-        let exprs = &block.node.0;
-        for (i, expr) in exprs.iter().enumerate() {
-            if i == exprs.len() - 1 {
-                state.level -= 1;
+        let block_expressions = &block.node.0;
+        if block_expressions.is_empty() {
+            return;
+        }
+        state.increase_level();
+        state.mark_as_currently_in_block();
+        for (i, expr) in block_expressions.iter().enumerate() {
+            if i == block_expressions.len() - 1 {
+                state.mark_as_currently_not_in_block();
+                state.decrease_level();
             }
             self.visit_node(expr, state);
         }
@@ -271,7 +307,7 @@ impl AstVisitor<'_> {
     }
 
     fn visit_assignment(&self, assignment: &Node<Assignment>, state: &mut VisitorState) {
-        state.level += 1;
+        state.increase_level();
         let level = state.level;
         state.expecting_result.insert(level, true);
 
@@ -284,7 +320,7 @@ impl AstVisitor<'_> {
             match &target.node {
                 AssignmentTarget::Noop => {}
                 AssignmentTarget::Query(query) => {
-                    state.mark_query_target_as_pending(&query.target);
+                    state.mark_query_target_pending_usage(&query.target);
                 }
                 AssignmentTarget::Internal(ident, path) => {
                     if path.is_none() {
@@ -311,7 +347,7 @@ impl AstVisitor<'_> {
             }
         }
         state.expecting_result.insert(level, false);
-        state.level -= 1;
+        state.decrease_level();
     }
 
     fn visit_function_call(
@@ -321,21 +357,29 @@ impl AstVisitor<'_> {
         state: &mut VisitorState,
     ) {
         for argument in &function_call.arguments {
-            state.level += 1;
-            state.expecting_result.insert(state.level, true);
+            state.increase_level();
+            state.mark_level_as_expecting_result();
             self.visit_node(&argument.node.expr, state);
-            state.expecting_result.insert(state.level, true);
-            state.level -= 1;
+            state.mark_level_as_not_expecting_result();
+            state.decrease_level();
         }
+
+        // This function call might be part of fallible block.
+        if !function_call.abort_on_error && state.is_within_block() {
+            state.mark_level_as_expecting_result();
+        }
+
         match function_call.ident.0.as_str() {
             //  All bets are off for functions with side-effects.
-            "del" | "log" => (),
+            "del" | "log" | "assert" | "assert_eq" => (),
             _ => {
                 if let Some(closure) = &function_call.closure {
                     for variable in &closure.variables {
-                        state.mark_ident_as_pending(&variable.node, &variable.span);
+                        state.mark_identifier_pending_usage(&variable.node, &variable.span);
                     }
+                    state.mark_level_as_expecting_result();
                     self.visit_block(&closure.block, state);
+                    state.mark_level_as_not_expecting_result();
                 } else if state.is_unused() {
                     state.append_diagnostic(
                         format!("unused result for function call `{function_call}`"),
@@ -343,6 +387,10 @@ impl AstVisitor<'_> {
                     );
                 }
             }
+        }
+
+        if !function_call.abort_on_error && state.is_within_block() {
+            state.mark_level_as_not_expecting_result();
         }
     }
 
@@ -359,16 +407,16 @@ impl AstVisitor<'_> {
         for (i, root_node) in root_expressions.iter().enumerate() {
             let is_last = i == root_expressions.len() - 1;
             if is_last {
-                state.level += 1;
-                state.expecting_result.insert(state.level, true);
+                state.increase_level();
+                state.mark_level_as_expecting_result();
             }
             match root_node.inner() {
                 RootExpr::Expr(node) => self.visit_node(node, &mut state),
                 RootExpr::Error(_) => {}
             }
             if is_last {
-                state.level -= 1;
-                state.expecting_result.insert(state.level, true);
+                state.decrease_level();
+                state.mark_level_as_not_expecting_result();
             }
         }
         state.extend_diagnostics_for_unused_variables();
@@ -409,6 +457,14 @@ mod test {
             "program result"
         "#};
         unused_test(source, vec![r#"unused literal `"foo"`"#.to_string()]);
+    }
+
+    #[test]
+    fn unused_variable_in_assignment() {
+        let source = indoc! {r#"
+            foo = 5
+        "#};
+        unused_test(source, vec![r#"unused variable `foo`"#.to_string()]);
     }
 
     #[test]

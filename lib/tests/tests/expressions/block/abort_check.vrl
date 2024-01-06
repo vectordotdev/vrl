@@ -3,6 +3,6 @@
 
 .a = "string"
 {
-  x = .a
+  _x = .a
   .a = abort
 }
