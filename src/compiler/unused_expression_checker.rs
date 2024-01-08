@@ -18,7 +18,7 @@
 /// ## Caveats
 /// - **Closures**: Closure support is minimal. For now, we are only ensuring that there are no false positives.
 /// - **Variable Shadowing**: Variable shadowing is not supported. Unused variables will not be detected in this case.
-// #[allow(clippy::print_stdout)]
+
 use crate::compiler::codes::WARNING_UNUSED_CODE;
 use crate::compiler::parser::{Ident, Node};
 use crate::diagnostic::{Diagnostic, DiagnosticList, Label, Note, Severity};
@@ -28,7 +28,6 @@ use crate::parser::ast::{
 };
 use crate::parser::template_string::StringSegment;
 use crate::parser::{Literal, Program, Span};
-use onig::EncodedChars;
 use std::collections::{BTreeMap, HashMap};
 use tracing::warn;
 
@@ -172,9 +171,6 @@ fn scoped_visit(state: &mut VisitorState, f: impl FnOnce(&mut VisitorState)) {
 impl AstVisitor<'_> {
     fn visit_node(&self, node: &Node<Expr>, state: &mut VisitorState) {
         let expression = node.inner();
-        // println!("\n{} visit_node: {expression:#?}", state.level);
-        // println!("pending_assignment {:#?}", state.expecting_result);
-        // println!("ident state {:#?}", state.ident_to_state);
 
         match expression {
             Expr::Literal(literal) => {
@@ -414,7 +410,6 @@ impl AstVisitor<'_> {
 #[cfg(test)]
 mod test {
     use crate::compiler::codes::WARNING_UNUSED_CODE;
-    // use crate::diagnostic::Formatter;
     use crate::stdlib;
     use indoc::indoc;
 
@@ -422,7 +417,7 @@ mod test {
         let warnings = crate::compiler::compile(source, &stdlib::all())
             .unwrap()
             .warnings;
-        // println!("{}", Formatter::new(source, warnings.clone()).colored());
+
         assert_eq!(warnings.len(), expected_warnings.len());
 
         for (i, content) in expected_warnings.iter().enumerate() {
