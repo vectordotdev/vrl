@@ -21,11 +21,14 @@
 use crate::compiler::codes::WARNING_UNUSED_CODE;
 use crate::compiler::parser::{Ident, Node};
 use crate::diagnostic::{Diagnostic, DiagnosticList, Label, Note, Severity};
-use crate::parser::ast::{Array, Assignment, AssignmentTarget, Block, Container, Expr, FunctionCall, IfStatement, Object, Predicate, QueryTarget, RootExpr, Unary};
-use crate::parser::{Literal, Program, Span};
-use std::collections::{BTreeMap, HashMap};
-use onig::EncodedChars;
+use crate::parser::ast::{
+    Array, Assignment, AssignmentTarget, Block, Container, Expr, FunctionCall, IfStatement, Object,
+    Predicate, QueryTarget, RootExpr, Unary,
+};
 use crate::parser::template_string::StringSegment;
+use crate::parser::{Literal, Program, Span};
+use onig::EncodedChars;
+use std::collections::{BTreeMap, HashMap};
 
 #[must_use]
 pub fn check_for_unused_results(ast: &Program) -> DiagnosticList {
@@ -568,9 +571,7 @@ mod test {
         "#};
         unused_test(
             source,
-            vec![
-                r#"unused result for function call `parse_syslog("not syslog")`"#.to_string(),
-            ],
+            vec![r#"unused result for function call `parse_syslog("not syslog")`"#.to_string()],
         );
     }
 
