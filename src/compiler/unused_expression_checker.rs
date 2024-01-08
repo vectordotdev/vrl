@@ -478,7 +478,7 @@ mod test {
                     }
                 }
 
-                . = {{{ 42 }}}
+                . = {{{ x = 42; x }}}
 
                 "4"
                 "5"
@@ -668,6 +668,17 @@ mod test {
                 }
                 x
             }
+        "#};
+        unused_test(source, vec![]);
+    }
+
+    #[test]
+    fn undetected_merge_assignment() {
+        // `x` is not used after the merging operation. This case is not detected.
+        let source = indoc! {r#"
+            x = {}
+            x |= { "a" : 1}
+            .
         "#};
         unused_test(source, vec![]);
     }
