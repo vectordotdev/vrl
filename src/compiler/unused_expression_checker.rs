@@ -16,19 +16,21 @@
 /// - **Ignored Variables**: Variable names prefixed with '_' are ignored.
 ///
 /// ## Caveats
-/// - **Closures**: Closure support is minimal. For example, shadowed variables are not detected.
+/// - **Closures**: Closure support is minimal. For now, we are only ensuring that there are no false positives.
+/// - **Variable Shadowing**: Variable shadowing is not supported. Unused variables will not be detected in this case.
 // #[allow(clippy::print_stdout)]
 use crate::compiler::codes::WARNING_UNUSED_CODE;
 use crate::compiler::parser::{Ident, Node};
 use crate::diagnostic::{Diagnostic, DiagnosticList, Label, Note, Severity};
 use crate::parser::ast::{
-    Array, Assignment, AssignmentTarget, Block, Container, Expr, FunctionCall, IfStatement, Object,
-    Predicate, QueryTarget, RootExpr, Unary,
+    Array, Assignment, AssignmentOp, AssignmentTarget, Block, Container, Expr, FunctionCall,
+    IfStatement, Object, Predicate, QueryTarget, RootExpr, Unary,
 };
 use crate::parser::template_string::StringSegment;
 use crate::parser::{Literal, Program, Span};
 use onig::EncodedChars;
 use std::collections::{BTreeMap, HashMap};
+use tracing::warn;
 
 #[must_use]
 pub fn check_for_unused_results(ast: &Program) -> DiagnosticList {
@@ -51,7 +53,7 @@ struct VisitorState {
     level: usize,
     expecting_result: HashMap<usize, bool>,
     within_block_expression: HashMap<usize, bool>,
-    ident_pending_usage: BTreeMap<Ident, IdentState>,
+    ident_to_state: BTreeMap<Ident, IdentState>,
     diagnostics: DiagnosticList,
 }
 
@@ -78,12 +80,14 @@ impl VisitorState {
         self.level -= 1;
     }
 
-    fn mark_as_currently_in_block(&mut self) {
+    fn enter_block(&mut self) {
+        self.increase_level();
         self.within_block_expression.insert(self.level, true);
     }
 
-    fn mark_as_currently_not_in_block(&mut self) {
+    fn exiting_block(&mut self) {
         self.within_block_expression.insert(self.level, false);
+        self.decrease_level();
     }
 
     fn mark_level_as_expecting_result(&mut self) {
@@ -95,11 +99,11 @@ impl VisitorState {
     }
 
     fn mark_identifier_pending_usage(&mut self, ident: &Ident, span: &Span) {
-        if ident.is_empty() {
+        if ident.is_empty() || ident.starts_with('_') {
             return;
         }
 
-        self.ident_pending_usage
+        self.ident_to_state
             .entry(ident.clone())
             .and_modify(|state| {
                 state.pending_usage = true;
@@ -111,8 +115,14 @@ impl VisitorState {
     }
 
     fn mark_identifier_used(&mut self, ident: &Ident) {
-        if let Some(entry) = self.ident_pending_usage.get_mut(ident) {
+        if ident.is_empty() || ident.starts_with('_') {
+            return;
+        }
+
+        if let Some(entry) = self.ident_to_state.get_mut(ident) {
             entry.pending_usage = false;
+        } else {
+            warn!("unexpected identifier `{}` reported as used", ident);
         }
     }
 
@@ -143,8 +153,8 @@ impl VisitorState {
     }
 
     fn extend_diagnostics_for_unused_variables(&mut self) {
-        for (ident, state) in self.ident_pending_usage.clone() {
-            if state.pending_usage && !ident.starts_with('_') {
+        for (ident, state) in self.ident_to_state.clone() {
+            if state.pending_usage {
                 self.append_diagnostic(format!("unused variable `{ident}`"), &state.span);
             }
         }
@@ -164,7 +174,7 @@ impl AstVisitor<'_> {
         let expression = node.inner();
         // println!("\n{} visit_node: {expression:#?}", state.level);
         // println!("pending_assignment {:#?}", state.expecting_result);
-        // println!("ident_pending_usage {:#?}", state.ident_pending_usage);
+        // println!("ident state {:#?}", state.ident_to_state);
 
         match expression {
             Expr::Literal(literal) => {
@@ -204,16 +214,7 @@ impl AstVisitor<'_> {
             Expr::Query(query) => match &query.node.target.node {
                 QueryTarget::Internal(ident) => {
                     if !state.is_unused() {
-                        state
-                            .ident_pending_usage
-                            .entry(ident.clone())
-                            .and_modify(|state| state.pending_usage = false)
-                            .or_insert({
-                                IdentState {
-                                    span: query.node.target.span,
-                                    pending_usage: false,
-                                }
-                            });
+                        state.mark_identifier_used(ident);
                     }
                 }
                 QueryTarget::External(_) => {}
@@ -226,15 +227,7 @@ impl AstVisitor<'_> {
                 self.visit_function_call(function_call, &function_call.span, state)
             }
             Expr::Variable(variable) => {
-                let key = variable.node.clone();
-                state
-                    .ident_pending_usage
-                    .entry(key)
-                    .and_modify(|state| state.pending_usage = false)
-                    .or_insert(IdentState {
-                        span: variable.span,
-                        pending_usage: false,
-                    });
+                state.mark_identifier_used(&variable.node);
             }
             Expr::Abort(_) => {}
         }
@@ -260,12 +253,11 @@ impl AstVisitor<'_> {
         if block_expressions.is_empty() {
             return;
         }
-        state.increase_level();
-        state.mark_as_currently_in_block();
+        state.enter_block();
+
         for (i, expr) in block_expressions.iter().enumerate() {
             if i == block_expressions.len() - 1 {
-                state.mark_as_currently_not_in_block();
-                state.decrease_level();
+                state.exiting_block();
             }
             self.visit_node(expr, state);
         }
@@ -309,9 +301,9 @@ impl AstVisitor<'_> {
         state.expecting_result.insert(level, true);
 
         // All targets needs to be used later.
-        let targets = match &assignment.node {
-            Assignment::Single { target, .. } => vec![target],
-            Assignment::Infallible { ok, err, .. } => vec![ok, err],
+        let (op, targets) = match &assignment.node {
+            Assignment::Single { target, op, .. } => (op, vec![target]),
+            Assignment::Infallible { ok, err, op, .. } => (op, vec![ok, err]),
         };
         for target in targets {
             match &target.node {
@@ -320,14 +312,11 @@ impl AstVisitor<'_> {
                     state.mark_query_target_pending_usage(&query.target);
                 }
                 AssignmentTarget::Internal(ident, path) => {
-                    if path.is_none() {
-                        state
-                            .ident_pending_usage
-                            .entry(ident.clone())
-                            .or_insert(IdentState {
-                                span: target.span,
-                                pending_usage: true,
-                            });
+                    if *op == AssignmentOp::Assign && path.is_none() {
+                        state.mark_identifier_pending_usage(ident, &target.span);
+                    } else if *op == AssignmentOp::Merge {
+                        // The following example: `x |= {}` falls under shadowing and is not handled.
+                        state.mark_identifier_used(ident);
                     }
                 }
                 AssignmentTarget::External(_path) => {}
@@ -425,9 +414,9 @@ impl AstVisitor<'_> {
 #[cfg(test)]
 mod test {
     use crate::compiler::codes::WARNING_UNUSED_CODE;
+    // use crate::diagnostic::Formatter;
     use crate::stdlib;
     use indoc::indoc;
-    // use crate::diagnostic::Formatter;
 
     fn unused_test(source: &str, expected_warnings: Vec<String>) {
         let warnings = crate::compiler::compile(source, &stdlib::all())
@@ -664,6 +653,27 @@ mod test {
               parse_json("invalid")
               2
             } ?? 1
+        "#};
+        unused_test(source, vec![]);
+    }
+
+    #[test]
+    fn unused_shadow_variable_not_detected() {
+        // TODO: Support variable shadowing. A potential solution is to introduce the following type:
+        // type IdentState = HashMap<usize, (bool, Span)>;
+        let source = indoc! {r#"
+            x = 1
+            x = 2
+            {
+                x = {
+                    x = {
+                        x = 3
+                        4
+                    }
+                    x
+                }
+                x
+            }
         "#};
         unused_test(source, vec![]);
     }
