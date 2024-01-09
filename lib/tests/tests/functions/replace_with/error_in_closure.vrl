@@ -1,0 +1,7 @@
+# result:
+# function call error for "replace_with" at (1:104): function call error for "assert" at (58:91): failed to parse
+
+replace_with("this is a test", r'(?i)test') -> |m| {
+    assert!(false, "failed to parse")
+    "TEST"
+}
