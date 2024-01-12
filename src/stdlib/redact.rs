@@ -3,7 +3,6 @@ use once_cell::sync::Lazy;
 use std::{
     borrow::Cow,
     convert::{TryFrom, TryInto},
-    str::FromStr,
 };
 
 // https://www.oreilly.com/library/view/regular-expressions-cookbook/9781449327453/ch04s12.html
@@ -38,6 +37,11 @@ impl Function for Redact {
                 kind: kind::ARRAY,
                 required: true,
             },
+            Parameter {
+                keyword: "redactor",
+                kind: kind::OBJECT | kind::BYTES,
+                required: false,
+            },
         ]
     }
 
@@ -53,6 +57,7 @@ impl Function for Redact {
                 source: r#"redact({ "name": "John Doe", "ssn": "123-12-1234"}, filters: ["us_social_security_number"])"#,
                 result: Ok(r#"{ "name": "John Doe", "ssn": "[REDACTED]" }"#),
             },
+            // TODO: redactor examples
         ]
     }
 
@@ -88,7 +93,20 @@ impl Function for Redact {
             })
             .collect::<std::result::Result<Vec<Filter>, _>>()?;
 
-        let redactor = Redactor::Full;
+        let redactor = arguments
+            .optional_literal("redactor", state)?
+            .map(|value| {
+                value
+                    .clone()
+                    .try_into()
+                    .map_err(|error| function::Error::InvalidArgument {
+                        keyword: "redactor",
+                        value,
+                        error,
+                    })
+            })
+            .transpose()?
+            .unwrap_or(Redactor::Full);
 
         Ok(RedactFn {
             value,
@@ -109,6 +127,9 @@ struct RedactFn {
 }
 
 fn redact(value: Value, filters: &[Filter], redactor: &Redactor) -> Value {
+    // possible optimization. match the redactor here, and use different calls depending on
+    // the value, so that we don't have to do the comparision in the loop of replacment.
+    // that would complicate the code though.
     match value {
         Value::Bytes(bytes) => {
             let input = String::from_utf8_lossy(&bytes);
@@ -220,50 +241,160 @@ impl Filter {
                 patterns
                     .iter()
                     .fold(Cow::Borrowed(input), |input, pattern| match pattern {
-                        Pattern::Regex(regex) => regex
-                            .replace_all(&input, redactor.pattern())
-                            .into_owned()
-                            .into(),
-                        Pattern::String(pattern) => {
-                            input.replace(pattern, redactor.pattern()).into()
+                        Pattern::Regex(regex) => {
+                            regex.replace_all(&input, redactor).into_owned().into()
                         }
+                        Pattern::String(pattern) => str_replace(&input, pattern, redactor).into(),
                     })
             }
             Filter::UsSocialSecurityNumber => {
-                US_SOCIAL_SECURITY_NUMBER.replace_all(input, redactor.pattern())
+                US_SOCIAL_SECURITY_NUMBER.replace_all(input, redactor)
             }
         }
     }
 }
 
+fn str_replace(haystack: &str, pattern: &str, redactor: &Redactor) -> String {
+    let mut result = String::new();
+    let mut last_end = 0;
+    for (start, original) in haystack.match_indices(pattern) {
+        result.push_str(&haystack[last_end..start]);
+        redactor.replace_str(original, &mut result);
+        last_end = start + original.len();
+    }
+    result.push_str(&haystack[last_end..]);
+    result
+}
+
 /// The recipe for redacting the matched filters.
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
 enum Redactor {
     #[default]
     Full,
+    /// Replace with a fixed string
+    Text(String), // possible optimization: use Arc<str> instead of String to speed up cloning
+    // this simplifies the code, but the Debug implmentation probably isn't very useful
+    // alternatively we could have a separate variant for each hash algorithm/variant combination
+    // we could also create a custom Debug implementation that does a comparison of the fn pointer
+    // to function pointers we might use.
+    /// Replace with a hash of the redacted content
+    Hash(fn(&[u8]) -> String),
 }
+
+const REDACTED: &str = "[REDACTED]";
 
 impl Redactor {
-    fn pattern(&self) -> &str {
-        use Redactor::Full;
-
+    fn replace_str(&self, original: &str, dst: &mut String) {
         match self {
-            Full => "[REDACTED]",
+            Redactor::Full => {
+                dst.push_str(REDACTED);
+            }
+            Redactor::Text(s) => {
+                dst.push_str(s);
+            }
+            Redactor::Hash(hash) => dst.push_str(&hash(original.as_bytes())),
+        }
+    }
+
+    fn from_object(obj: ObjectMap) -> std::result::Result<Self, &'static str> {
+        let r#type = match obj.get("type").ok_or(
+            "redactor specified as objects must have type
+        parameter",
+        )? {
+            Value::Bytes(bytes) => Ok(bytes.clone()),
+            _ => Err("type key in redactor must be a string"),
+        }?;
+
+        match r#type.as_ref() {
+            b"full" => Ok(Redactor::Full),
+            b"text" => {
+                match obj.get("replacement").ok_or(
+                    "text redactor must have
+                `replacement` specified",
+                )? {
+                    Value::Bytes(bytes) => {
+                        Ok(Redactor::Text(String::from_utf8_lossy(bytes).into_owned()))
+                    }
+                    _ => Err("`replacement` must be a string"),
+                }
+            }
+            b"sha2" => {
+                let hash = if let Some(variant) = obj.get("variant") {
+                    match variant
+                        .as_bytes()
+                        .ok_or("`variant` must be a string")?
+                        .as_ref()
+                    {
+                        b"SHA-224" => hex_digest::<sha_2::Sha224>,
+                        b"SHA-256" => hex_digest::<sha_2::Sha256>,
+                        b"SHA-384" => hex_digest::<sha_2::Sha384>,
+                        b"SHA-512" => hex_digest::<sha_2::Sha512>,
+                        b"SHA-512/224" => hex_digest::<sha_2::Sha512_224>,
+                        b"SHA-512/256" => hex_digest::<sha_2::Sha512_256>,
+                        _ => return Err("invalid sha2 variant"),
+                    }
+                } else {
+                    hex_digest::<sha_2::Sha512_256>
+                };
+                Ok(Redactor::Hash(hash))
+            }
+            b"sha3" => {
+                let hash = if let Some(variant) = obj.get("variant") {
+                    match variant
+                        .as_bytes()
+                        .ok_or("`variant must be a string")?
+                        .as_ref()
+                    {
+                        b"SHA3-224" => hex_digest::<sha_3::Sha3_224>,
+                        b"SHA3-256" => hex_digest::<sha_3::Sha3_256>,
+                        b"SHA3-384" => hex_digest::<sha_3::Sha3_384>,
+                        b"SHA3-512" => hex_digest::<sha_3::Sha3_512>,
+                        _ => return Err("invalid sha2 variant"),
+                    }
+                } else {
+                    hex_digest::<sha_2::Sha512_256>
+                };
+                Ok(Redactor::Hash(hash))
+            }
+            _ => Err("unknown `type` for `redactor`"),
         }
     }
 }
 
-impl FromStr for Redactor {
-    type Err = &'static str;
+impl regex::Replacer for &Redactor {
+    fn replace_append(&mut self, caps: &regex::Captures, dst: &mut String) {
+        self.replace_str(&caps[0], dst);
+    }
 
-    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
-        use Redactor::Full;
-
-        match s {
-            "full" => Ok(Full),
-            _ => Err("unknown redactor"),
+    fn no_expansion(&mut self) -> Option<Cow<str>> {
+        match self {
+            Redactor::Full => Some(REDACTED.into()),
+            Redactor::Text(s) => Some(s.into()),
+            _ => None,
         }
     }
+}
+
+impl TryFrom<Value> for Redactor {
+    type Error = &'static str;
+
+    fn try_from(value: Value) -> std::result::Result<Self, Self::Error> {
+        match value {
+            Value::Object(object) => Redactor::from_object(object),
+            Value::Bytes(bytes) => match bytes.as_ref() {
+                b"full" => Ok(Redactor::Full),
+                b"sha2" => Ok(Redactor::Hash(hex_digest::<sha_2::Sha512_256>)),
+                b"sha3" => Ok(Redactor::Hash(hex_digest::<sha_3::Sha3_512>)),
+                _ => Err("unknown name of redactor"),
+            },
+            _ => Err("unknown literal for redactor, must be redactor name or object"),
+        }
+    }
+}
+
+/// Compute the digest of some bytes as hex string
+fn hex_digest<T: digest::Digest>(value: &[u8]) -> String {
+    hex::encode(T::digest(value))
 }
 
 #[cfg(test)]
