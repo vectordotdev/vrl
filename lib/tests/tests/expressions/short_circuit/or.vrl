@@ -1,11 +1,11 @@
 # result: true
 
 # This should be infallible (even though the right-hand side is fallible)
-true || (1/0)
+_x = true || (1/0)
 
 
 x = false
-true || {x = "string"}
+_x = true || {x = "string"}
 
 # The typedef of the RHS is not applied (since it is guaranteed to short-circuit)
 assert!(type_def(x) == { "boolean": true })
@@ -16,5 +16,5 @@ assert!(type_def(x) == { "boolean": true, "bytes": true })
 
 
 # The typedef of RHS is always applied
-true && {x = "string"; true}
+_x = true && {x = "string"; true}
 assert!(type_def(x) == {"bytes": true })

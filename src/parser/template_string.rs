@@ -24,6 +24,7 @@ pub struct TemplateString(pub Vec<StringSegment>);
 
 impl TemplateString {
     /// Rewrites the ast for the template string to be a series of string concatenations
+    #[must_use]
     pub fn rewrite_to_concatenated_strings(&self) -> Expr {
         self.0
             .iter()
@@ -65,6 +66,7 @@ impl TemplateString {
     /// If the template string is just a single literal string return that string
     /// as we can just represent it in the ast as a single literal, otherwise return
     /// None as we will need to rewrite it into an expression.
+    #[must_use]
     pub fn as_literal_string(&self) -> Option<&str> {
         match self.0.as_slice() {
             [StringSegment::Literal(s, _)] => Some(s),

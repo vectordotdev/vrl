@@ -35,7 +35,7 @@ lalrpop_mod!(
 
 pub mod ast;
 mod lex;
-mod template_string;
+pub mod template_string;
 
 pub use crate::diagnostic::Span;
 pub use ast::{Literal, Program};

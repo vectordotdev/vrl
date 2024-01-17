@@ -1,20 +1,22 @@
 # result: [true, 1, "bar"]
 
 # empty
-[ ]
+_arr = [ ]
 
 # single
-[true]
-[true,]
+_arr = [true]
+_arr = [true,]
 
 # multiple
-[true, 1, "bar"]
-[true, 1, "bar",]
-[
+_arr = [true, 1, "bar"]
+_arr = [true, 1, "bar",]
+
+_arr = [
     true,
     1,
     "bar",
 ]
+
 [
     true,
     1,

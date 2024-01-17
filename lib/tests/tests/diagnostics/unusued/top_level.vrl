@@ -1,0 +1,25 @@
+# DIAGNOSTICS
+# result:
+#
+# warning[E900]: unused literal `"foo"`
+#   ┌─ :2:1
+#   │
+# 2 │ "foo"
+#   │ ^^^^^ help: use the result of this expression or remove it
+#   │
+#   = this expression has no side-effects
+#   = see language documentation at https://vrl.dev
+#   = try your code in the VRL REPL, learn more at https://vrl.dev/examples
+# warning[E900]: unused variable `x`
+#  ┌─ :4:1
+#  │
+#  4 │ x = "bar"
+#  │ ^ help: use the result of this expression or remove it
+#  │
+#  = this expression has no side-effects
+#  = see language documentation at https://vrl.dev
+#  = try your code in the VRL REPL, learn more at https://vrl.dev/examples
+
+"foo"
+
+x = "bar"

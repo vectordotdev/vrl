@@ -1,31 +1,31 @@
 #![deny(
-    // warnings,
-    clippy::all,
-    clippy::pedantic,
-    unreachable_pub,
-    unused_allocation,
-    unused_extern_crates,
-    unused_assignments,
-    unused_comparisons
+// warnings,
+clippy::all,
+clippy::pedantic,
+unreachable_pub,
+unused_allocation,
+unused_extern_crates,
+unused_assignments,
+unused_comparisons
 )]
 #![allow(
-    clippy::cast_possible_truncation, // allowed in initial deny commit
-    clippy::cast_possible_wrap, // allowed in initial deny commit
-    clippy::cast_precision_loss, // allowed in initial deny commit
-    clippy::cast_sign_loss, // allowed in initial deny commit
-    clippy::if_not_else, // allowed in initial deny commit
-    clippy::match_bool, // allowed in initial deny commit
-    clippy::match_same_arms, // allowed in initial deny commit
-    clippy::match_wild_err_arm, // allowed in initial deny commit
-    clippy::missing_errors_doc, // allowed in initial deny commit
-    clippy::missing_panics_doc, // allowed in initial deny commit
-    clippy::module_name_repetitions, // allowed in initial deny commit
-    clippy::needless_pass_by_value, // allowed in initial deny commit
-    clippy::return_self_not_must_use, // allowed in initial deny commit
-    clippy::semicolon_if_nothing_returned,  // allowed in initial deny commit
-    clippy::similar_names, // allowed in initial deny commit
-    clippy::too_many_lines, // allowed in initial deny commit
-    let_underscore_drop, // allowed in initial deny commit
+clippy::cast_possible_truncation, // allowed in initial deny commit
+clippy::cast_possible_wrap, // allowed in initial deny commit
+clippy::cast_precision_loss, // allowed in initial deny commit
+clippy::cast_sign_loss, // allowed in initial deny commit
+clippy::if_not_else, // allowed in initial deny commit
+clippy::match_bool, // allowed in initial deny commit
+clippy::match_same_arms, // allowed in initial deny commit
+clippy::match_wild_err_arm, // allowed in initial deny commit
+clippy::missing_errors_doc, // allowed in initial deny commit
+clippy::missing_panics_doc, // allowed in initial deny commit
+clippy::module_name_repetitions, // allowed in initial deny commit
+clippy::needless_pass_by_value, // allowed in initial deny commit
+clippy::return_self_not_must_use, // allowed in initial deny commit
+clippy::semicolon_if_nothing_returned,  // allowed in initial deny commit
+clippy::similar_names, // allowed in initial deny commit
+clippy::too_many_lines, // allowed in initial deny commit
+let_underscore_drop, // allowed in initial deny commit
 )]
 
 use std::fmt::Debug;
@@ -34,6 +34,7 @@ use std::{fmt::Display, str::FromStr};
 pub use paste::paste;
 use serde::{Deserialize, Serialize};
 
+use crate::compiler::unused_expression_checker::check_for_unused_results;
 pub use compiler::{CompilationResult, Compiler};
 pub use context::Context;
 pub use datetime::TimeZone;
@@ -64,6 +65,7 @@ mod program;
 mod target;
 mod test_util;
 
+pub mod codes;
 pub mod conversion;
 pub mod expression;
 pub mod function;
@@ -71,6 +73,7 @@ pub mod prelude;
 pub mod runtime;
 pub mod state;
 pub mod type_def;
+pub mod unused_expression_checker;
 pub mod value;
 
 pub type Result<T = CompilationResult> = std::result::Result<T, DiagnosticList>;
@@ -106,7 +109,16 @@ pub fn compile_with_state(
     let ast = parse(source)
         .map_err(|err| crate::diagnostic::DiagnosticList::from(vec![Box::new(err) as Box<_>]))?;
 
-    Compiler::compile(fns, ast, state, config)
+    let result = Compiler::compile(fns, ast.clone(), state, config);
+    let unused_warnings = check_for_unused_results(&ast);
+    if unused_warnings.is_empty() {
+        result
+    } else {
+        result.map(|mut compilation_result| {
+            compilation_result.warnings.extend(unused_warnings);
+            compilation_result
+        })
+    }
 }
 
 /// Available VRL runtimes.

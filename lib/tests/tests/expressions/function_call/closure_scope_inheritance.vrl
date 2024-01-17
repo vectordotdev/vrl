@@ -3,7 +3,7 @@
 key = "yay"
 zoog = "yay"
 
-for_each({ "foo": "bar" }) -> |key, value| {
+for_each({ "foo": "bar" }) -> |key, _value| {
   key = "boo"
   zoog = "boo"
 }

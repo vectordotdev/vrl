@@ -93,114 +93,114 @@
 #     "can't multiply type timestamp by timestamp"
 # ]
 
-ok, err1 = 1 * true
-ok, err2 = 1 * false
-ok, err3 = 1 * null
-ok, err4 = 1 * []
-ok, err5 = 1 * {}
-ok, err6 = 1 * r'foo'
-ok, err7 = 1 * now()
+_ok, err1 = 1 * true
+_ok, err2 = 1 * false
+_ok, err3 = 1 * null
+_ok, err4 = 1 * []
+_ok, err5 = 1 * {}
+_ok, err6 = 1 * r'foo'
+_ok, err7 = 1 * now()
 
 integer_errs = [err1, err2, err3, err4, err5, err6, err7]
 
-ok, err1 = 1.0 * "foo"
-ok, err2 = 1.0 * true
-ok, err3 = 1.0 * false
-ok, err4 = 1.0 * null
-ok, err5 = 1.0 * []
-ok, err6 = 1.0 * {}
-ok, err7 = 1.0 * r'foo'
-ok, err8 = 1.0 * now()
+_ok, err1 = 1.0 * "foo"
+_ok, err2 = 1.0 * true
+_ok, err3 = 1.0 * false
+_ok, err4 = 1.0 * null
+_ok, err5 = 1.0 * []
+_ok, err6 = 1.0 * {}
+_ok, err7 = 1.0 * r'foo'
+_ok, err8 = 1.0 * now()
 
 float_errs = [err1, err2, err3, err4, err5, err6, err7, err8]
 
-ok, err1 = "foo" * "foo"
-ok, err2 = "foo" * 1.0
-ok, err3 = "foo" * true
-ok, err4 = "foo" * false
-ok, err5 = "foo" * null
-ok, err6 = "foo" * []
-ok, err7 = "foo" * {}
-ok, err8 = "foo" * r'foo'
-ok, err9 = "foo" * now()
+_ok, err1 = "foo" * "foo"
+_ok, err2 = "foo" * 1.0
+_ok, err3 = "foo" * true
+_ok, err4 = "foo" * false
+_ok, err5 = "foo" * null
+_ok, err6 = "foo" * []
+_ok, err7 = "foo" * {}
+_ok, err8 = "foo" * r'foo'
+_ok, err9 = "foo" * now()
 
 string_errs = [err1, err2, err3, err4, err5, err6, err7, err8, err9]
 
-ok, err1  = true * "foo"
-ok, err2  = true * 1
-ok, err3  = true * 1.0
-ok, err4  = true * true
-ok, err5  = true * false
-ok, err6  = true * null
-ok, err7  = true * []
-ok, err8  = true * {}
-ok, err9  = true * r'foo'
-ok, err10 = true * now()
+_ok, err1  = true * "foo"
+_ok, err2  = true * 1
+_ok, err3  = true * 1.0
+_ok, err4  = true * true
+_ok, err5  = true * false
+_ok, err6  = true * null
+_ok, err7  = true * []
+_ok, err8  = true * {}
+_ok, err9  = true * r'foo'
+_ok, err10 = true * now()
 
 bool_errs = [err1, err2, err3, err4, err5, err6, err7, err8, err9, err10]
 
-ok, err1  = null * "foo"
-ok, err2  = null * 1
-ok, err3  = null * 1.0
-ok, err4  = null * true
-ok, err5  = null * false
-ok, err6  = null * null
-ok, err7  = null * []
-ok, err8  = null * {}
-ok, err9  = null * r'foo'
-ok, err10 = null * now()
+_ok, err1  = null * "foo"
+_ok, err2  = null * 1
+_ok, err3  = null * 1.0
+_ok, err4  = null * true
+_ok, err5  = null * false
+_ok, err6  = null * null
+_ok, err7  = null * []
+_ok, err8  = null * {}
+_ok, err9  = null * r'foo'
+_ok, err10 = null * now()
 
 null_errs = [err1, err2, err3, err4, err5, err6, err7, err8, err9, err10]
 
-ok, err1  = [] * "foo"
-ok, err2  = [] * 1
-ok, err3  = [] * 1.0
-ok, err4  = [] * true
-ok, err5  = [] * false
-ok, err6  = [] * null
-ok, err7  = [] * []
-ok, err8  = [] * {}
-ok, err9  = [] * r'foo'
-ok, err10 = [] * now()
+_ok, err1  = [] * "foo"
+_ok, err2  = [] * 1
+_ok, err3  = [] * 1.0
+_ok, err4  = [] * true
+_ok, err5  = [] * false
+_ok, err6  = [] * null
+_ok, err7  = [] * []
+_ok, err8  = [] * {}
+_ok, err9  = [] * r'foo'
+_ok, err10 = [] * now()
 
 array_errs = [err1, err2, err3, err4, err5, err6, err7, err8, err9, err10]
 
-ok, err1  = {} * "foo"
-ok, err2  = {} * 1
-ok, err3  = {} * 1.0
-ok, err4  = {} * true
-ok, err5  = {} * false
-ok, err6  = {} * null
-ok, err7  = {} * []
-ok, err8  = {} * {}
-ok, err9  = {} * r'foo'
-ok, err10 = {} * now()
+_ok, err1  = {} * "foo"
+_ok, err2  = {} * 1
+_ok, err3  = {} * 1.0
+_ok, err4  = {} * true
+_ok, err5  = {} * false
+_ok, err6  = {} * null
+_ok, err7  = {} * []
+_ok, err8  = {} * {}
+_ok, err9  = {} * r'foo'
+_ok, err10 = {} * now()
 
 object_errs = [err1, err2, err3, err4, err5, err6, err7, err8, err9, err10]
 
-ok, err1  = r'' * "foo"
-ok, err2  = r'' * 1
-ok, err3  = r'' * 1.0
-ok, err4  = r'' * true
-ok, err5  = r'' * false
-ok, err6  = r'' * null
-ok, err7  = r'' * []
-ok, err8  = r'' * {}
-ok, err9  = r'' * r'foo'
-ok, err10 = r'' * now()
+_ok, err1  = r'' * "foo"
+_ok, err2  = r'' * 1
+_ok, err3  = r'' * 1.0
+_ok, err4  = r'' * true
+_ok, err5  = r'' * false
+_ok, err6  = r'' * null
+_ok, err7  = r'' * []
+_ok, err8  = r'' * {}
+_ok, err9  = r'' * r'foo'
+_ok, err10 = r'' * now()
 
 regex_errs = [err1, err2, err3, err4, err5, err6, err7, err8, err9, err10]
 
-ok, err1  = from_unix_timestamp(0) * "foo"
-ok, err2  = from_unix_timestamp(0) * 1
-ok, err3  = from_unix_timestamp(0) * 1.0
-ok, err4  = from_unix_timestamp(0) * true
-ok, err5  = from_unix_timestamp(0) * false
-ok, err6  = from_unix_timestamp(0) * null
-ok, err7  = from_unix_timestamp(0) * []
-ok, err8  = from_unix_timestamp(0) * {}
-ok, err9  = from_unix_timestamp(0) * r'foo'
-ok, err10 = from_unix_timestamp(0) * now()
+_ok, err1  = from_unix_timestamp(0) * "foo"
+_ok, err2  = from_unix_timestamp(0) * 1
+_ok, err3  = from_unix_timestamp(0) * 1.0
+_ok, err4  = from_unix_timestamp(0) * true
+_ok, err5  = from_unix_timestamp(0) * false
+_ok, err6  = from_unix_timestamp(0) * null
+_ok, err7  = from_unix_timestamp(0) * []
+_ok, err8  = from_unix_timestamp(0) * {}
+_ok, err9  = from_unix_timestamp(0) * r'foo'
+_ok, err10 = from_unix_timestamp(0) * now()
 
 timestamp_errs = [err1, err2, err3, err4, err5, err6, err7, err8, err9, err10]
 

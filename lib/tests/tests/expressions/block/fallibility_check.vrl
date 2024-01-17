@@ -2,7 +2,7 @@
 # result: {"a": {}}
 .a = "string"
 {
-  x = to_string(.a)
+  _x = to_string(.a)
   .a = {}
 }
 .

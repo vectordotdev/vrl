@@ -138,7 +138,7 @@ impl<T: Hash> Hash for Node<T> {
 // program
 // -----------------------------------------------------------------------------
 
-#[derive(PartialEq)]
+#[derive(Clone, PartialEq)]
 pub struct Program(pub Vec<Node<RootExpr>>);
 
 impl fmt::Debug for Program {
@@ -183,7 +183,7 @@ impl IntoIterator for Program {
 // -----------------------------------------------------------------------------
 
 #[allow(clippy::large_enum_variant)]
-#[derive(PartialEq)]
+#[derive(Clone, PartialEq)]
 pub enum RootExpr {
     Expr(Node<Expr>),
 
@@ -285,7 +285,7 @@ impl fmt::Display for Expr {
 // ident
 // -----------------------------------------------------------------------------
 
-#[derive(Clone, PartialEq, Eq, Hash)]
+#[derive(Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Ident(pub(crate) String);
 
 impl Ident {
