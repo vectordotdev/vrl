@@ -1,10 +1,12 @@
 use std::collections::BTreeMap;
 
+use regex::Regex;
+
 use crate::compiler::prelude::*;
 
 fn replace_with<T>(
     value: Value,
-    pattern: Value,
+    pattern: &Regex,
     count: Value,
     ctx: &mut Context,
     runner: closure::Runner<T>,
@@ -19,17 +21,8 @@ where
         // this is when i == 0
         _ => return Ok(value),
     };
-    match pattern {
-        Value::Regex(regex) => {
-            let captures = regex.captures_iter(&haystack);
-            make_replacement(captures, &haystack, count, ctx, runner)
-        }
-        value => Err(ValueError::Expected {
-            got: value.kind(),
-            expected: Kind::regex(),
-        }
-        .into()),
-    }
+    let captures = pattern.captures_iter(&haystack);
+    make_replacement(captures, &haystack, count, ctx, runner)
 }
 
 fn make_replacement<T>(
@@ -48,18 +41,18 @@ where
     let mut last_match = 0;
     // we loop over the matches ourselves instead of calling Regex::replacen, so that we can
     // handle errors. This is however based on the implementation of Regex::replacen
-    for (i, cap) in caps.enumerate() {
+    for (idx, captures) in caps.enumerate() {
         // Safe to unrap because the 0th index always includes the full match.
-        let m = cap.get(0).unwrap(); // full match
+        let m = captures.get(0).unwrap(); // full match
 
-        let mut value = captures_to_value(&cap);
+        let mut value = captures_to_value(&captures);
         runner.map_value(ctx, &mut value)?;
         let replacement = value.try_bytes_utf8_lossy()?;
 
         replaced.push_str(&haystack[last_match..m.start()]);
         replaced.push_str(&replacement);
         last_match = m.end();
-        if i >= limit {
+        if idx >= limit {
             break;
         }
     }
@@ -196,6 +189,9 @@ impl FunctionExpression for ReplaceWithFn {
     fn resolve(&self, ctx: &mut Context) -> ExpressionResult<Value> {
         let value = self.value.resolve(ctx)?;
         let pattern = self.pattern.resolve(ctx)?;
+        let pattern = pattern
+            .as_regex()
+            .ok_or_else(|| ExpressionError::from("failed to resolve regex"))?;
         let count = self.count.resolve(ctx)?;
         let FunctionClosure {
             variables, block, ..
