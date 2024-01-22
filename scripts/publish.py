@@ -24,8 +24,24 @@ def read_version_from_cargo_toml(filepath):
         return cargo_toml["package"]["version"]
 
 
+def generate_and_commit_changelog():
+    try:
+        subprocess.run(["./generate_release_changelog.sh"], check=True, cwd=SCRIPTS_DIR)
+        print(f"Generated release changelog.")
+
+        changelog_file = os.path.join(REPO_ROOT_DIR, "CHANGELOG.md")
+
+        subprocess.check_call(['git', 'add', changelog_file])
+        subprocess.check_call(['git', 'commit', '-m', "Generated CHANGELOG.md"])
+        print(f"Committed `{changelog_file}` to git.")
+    except subprocess.CalledProcessError as e:
+        print(f"An error occurred: {e}")
+
+
 def publish_vrl(version):
     try:
+        generate_and_commit_changelog()
+
         subprocess.run(["cargo", "publish"], check=True, cwd=REPO_ROOT_DIR)
         print(f"Published VRL v{version}.")
 
