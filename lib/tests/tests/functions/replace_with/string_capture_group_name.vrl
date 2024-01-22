@@ -1,0 +1,4 @@
+# result:
+# function call error for "replace_with" at (1:64): Capture group cannot be named "string" or "captures"
+
+replace_with("a test", r'"(?P<string>.*)"') -> |m| { m.string }

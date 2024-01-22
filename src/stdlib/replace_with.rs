@@ -3,7 +3,6 @@ use std::collections::BTreeMap;
 use regex::{CaptureMatches, CaptureNames, Captures, Regex};
 
 use crate::compiler::prelude::*;
-use crate::value;
 
 fn replace_with<T>(
     value: Value,
@@ -70,11 +69,16 @@ where
     Ok(replaced.into())
 }
 
+const STRING_NAME: &str = "string";
+const CAPTURES_NAME: &str = "captures";
+
 fn captures_to_value(captures: &Captures, capture_names: CaptureNames) -> Value {
-    let full_match: Value = captures.get(0).unwrap().as_str().into();
+    let mut object: ObjectMap = BTreeMap::new();
+
+    // The full match, named "string"
+    object.insert(STRING_NAME.into(), captures.get(0).unwrap().as_str().into());
     // The length includes the total match, so subtract 1
     let mut capture_groups: Vec<Value> = Vec::with_capacity(captures.len() - 1);
-    let mut named_groups: ObjectMap = BTreeMap::new();
 
     // We skip the first entry, because it is for the full match, which we have already
     // extracted
@@ -85,16 +89,14 @@ fn captures_to_value(captures: &Captures, capture_names: CaptureNames) -> Value 
             Value::Null
         };
         if let Some(name) = name {
-            named_groups.insert(name.into(), value.clone());
+            object.insert(name.into(), value.clone());
         }
         capture_groups.push(value);
     }
 
-    value!({
-        string: full_match,
-        captures: capture_groups,
-        named: named_groups,
-    })
+    object.insert(CAPTURES_NAME.into(), capture_groups.into());
+
+    object.into()
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -154,7 +156,7 @@ impl Function for ReplaceWith {
             },
             Example {
                 title: "Named capture group",
-                source: r#"replace_with("foo123bar", r'foo(?P<num>\d+)bar') -> |m| { x = to_int!(m.named.num); to_string(x+ 1) }"#, //to_string(to_int!(m.named.num) + 1) }"#,
+                source: r#"replace_with("foo123bar", r'foo(?P<num>\d+)bar') -> |m| { x = to_int!(m.num); to_string(x+ 1) }"#, //to_string(to_int!(m.named.num) + 1) }"#,
                 result: Ok("\"124\""),
             },
         ]
@@ -184,17 +186,16 @@ impl Function for ReplaceWith {
     fn closure(&self) -> Option<closure::Definition> {
         use closure::{Definition, Input, Output, Variable, VariableKind};
 
-        let match_type: BTreeMap<Field, Kind> = BTreeMap::from([
-            ("string".into(), Kind::bytes()),
-            (
-                "captures".into(),
-                Kind::array(Collection::from_unknown(Kind::bytes().or_null())),
-            ),
-            (
-                "named".into(),
-                Kind::object(Collection::from_unknown(Kind::bytes().or_null())),
-            ),
-        ]);
+        let match_type = Collection::from_parts(
+            BTreeMap::from([
+                (STRING_NAME.into(), Kind::bytes()),
+                (
+                    CAPTURES_NAME.into(),
+                    Kind::array(Collection::from_unknown(Kind::bytes().or_null())),
+                ),
+            ]),
+            Kind::bytes().or_null(),
+        );
 
         Some(Definition {
             inputs: vec![Input {
@@ -232,6 +233,13 @@ impl FunctionExpression for ReplaceWithFn {
         let pattern = pattern
             .as_regex()
             .ok_or_else(|| ExpressionError::from("failed to resolve regex"))?;
+        for name in pattern.capture_names().flatten() {
+            if name == STRING_NAME || name == CAPTURES_NAME {
+                return Err(ExpressionError::from(
+                    r#"Capture group cannot be named "string" or "captures""#,
+                ));
+            }
+        }
         let count = self.count.resolve(ctx)?;
         let FunctionClosure {
             variables, block, ..

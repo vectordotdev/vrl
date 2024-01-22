@@ -1,0 +1,4 @@
+# result:
+# function call error for "replace_with" at (1:73): Capture group cannot be named "string" or "captures"
+
+replace_with("captain bold", r'cap(?P<captures>\w*)') -> |_m| { "test" }
