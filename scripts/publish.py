@@ -40,7 +40,7 @@ def publish_vrl(version):
 
 def assert_no_changelog_fragments():
     entries = os.listdir(CHANGELOG_DIR)
-    error = f"{CHANGELOG_DIR} should only contain a README.md file. Did you run ./scripts/generate_changelog.py?"
+    error = f"{CHANGELOG_DIR} should only contain a README.md file. Did you run ./scripts/generate_release_changelog.sh?"
     assert len(entries) == 1, error
     assert entries[0] == "README.md", error
 
