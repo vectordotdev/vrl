@@ -1,0 +1,15 @@
+# result:
+# error[E122]: type mismatch in closure return type
+#  ┌─ :2:34
+#  │
+#  2 │ replace_with("", r'test') -> |m| { to_int!(m.string) }
+#  │                                  ^^^^^^^^^^^^^^^^^^^^^
+#  │                                  │
+#  │                                  block returns invalid value type
+#  │                                  received: integer
+#  │                                  expected: string
+#  │
+#  = see language documentation at https://vrl.dev
+#  = try your code in the VRL REPL, learn more at https://vrl.dev/examples
+
+replace_with("", r'test') -> |m| { to_int!(m.string) }

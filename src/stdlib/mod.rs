@@ -163,6 +163,7 @@ cfg_if::cfg_if! {
         mod redact;
         mod remove;
         mod replace;
+        mod replace_with;
         mod reverse_dns;
         mod round;
         mod seahash;
@@ -325,6 +326,7 @@ cfg_if::cfg_if! {
         pub use redact::Redact;
         pub use remove::Remove;
         pub use replace::Replace;
+        pub use replace_with::ReplaceWith;
         pub use reverse_dns::ReverseDns;
         pub use round::Round;
         pub use set::Set;
@@ -493,6 +495,7 @@ pub fn all() -> Vec<Box<dyn Function>> {
         Box::new(Redact),
         Box::new(Remove),
         Box::new(Replace),
+        Box::new(ReplaceWith),
         Box::new(ReverseDns),
         Box::new(Round),
         Box::new(Seahash),

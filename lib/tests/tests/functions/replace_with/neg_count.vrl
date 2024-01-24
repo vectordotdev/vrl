@@ -1,0 +1,3 @@
+# result: "fOO bAr cAt dOg"
+
+replace_with("foo bar cat dog", r'[oa]*', count: -32) -> |m| { upcase(m.string) }

@@ -1,0 +1,3 @@
+# result: F bar F F fo F G
+
+replace_with("foo bar faa fee fo fum gum", r'([fg])\w\w') -> |m| { upcase(string!(m.captures[0])) }
