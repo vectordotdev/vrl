@@ -32,7 +32,7 @@ def publish_vrl(version):
         tag_name = f"v{version}"
         tag_message = f"Release {version}"
         subprocess.run(["git", "tag", "-a", tag_name, "-m", tag_message], check=True, cwd=REPO_ROOT_DIR)
-        subprocess.run(["git", "push", "origin", version], check=True, cwd=REPO_ROOT_DIR)
+        subprocess.run(["git", "push", "origin", tag_name], check=True, cwd=REPO_ROOT_DIR)
         print(f"Tagged version.")
     except subprocess.CalledProcessError as e:
         print(f"An error occurred while publishing the crate: {e}")
