@@ -11,7 +11,8 @@
 
 - Introduced an unused expression checker. It's designed to detect and report unused expressions,
   helping users to clean up and optimize their VRL scripts. Note that this checker will not catch everything, 
-  but it does aim to eliminate false positives. For example, shadowed variables are not reported as unused. 
+  but it does aim to eliminate false positives. For example, shadowed variables are not reported as unused.
+  (https://github.com/vectordotdev/vrl/pull/622)
 - Add a `replace_with` function that is similar to `replace` but takes a closure instead of a
   replacement string. (https://github.com/vectordotdev/vrl/pull/628)
 
