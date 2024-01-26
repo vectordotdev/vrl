@@ -1,4 +1,5 @@
 use crate::compiler::prelude::*;
+use base64::engine::Engine;
 use once_cell::sync::Lazy;
 use std::{
     borrow::Cow,
@@ -57,7 +58,30 @@ impl Function for Redact {
                 source: r#"redact({ "name": "John Doe", "ssn": "123-12-1234"}, filters: ["us_social_security_number"])"#,
                 result: Ok(r#"{ "name": "John Doe", "ssn": "[REDACTED]" }"#),
             },
-            // TODO: redactor examples
+            Example {
+                title: "text redactor",
+                source: r#"redact("my id is 123456", filters: [r'\d+'], redactor: {"type": "text", "replacement": "***"})"#,
+                result: Ok(r#"my id is ***"#),
+            },
+            Example {
+                title: "sha2",
+                source: r#"redact("my id is 123456", filters: [r'\d+'], redactor: "sha2")"#,
+                result: Ok(r#"my id is GEtTedW1p6tC094dDKH+3B8P+xSnZz69AmpjaXRd63I="#),
+            },
+            Example {
+                title: "sha3",
+                source: r#"redact("my id is 123456", filters: [r'\d+'], redactor: "sha3")"#,
+                result: Ok(
+                    r#"my id is ZNCdmTDI7PeeUTFnpYjLdUObdizo+bIupZdl8yqnTKGdLx6X3JIqPUlUWUoFBikX+yTR+OcvLtAqWO11NPlNJw=="#,
+                ),
+            },
+            Example {
+                title: "sha256 hex",
+                source: r#"redact("my id is 123456", filters: [r'\d+'], redactor: {"type": "sha2", "variant": "SHA-256", "encoding": "base16"})"#,
+                result: Ok(
+                    r#"my id is 8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92"#,
+                ),
+            },
         ]
     }
 
@@ -273,12 +297,16 @@ enum Redactor {
     Full,
     /// Replace with a fixed string
     Text(String), // possible optimization: use Arc<str> instead of String to speed up cloning
-    // this simplifies the code, but the Debug implmentation probably isn't very useful
+    // using function pointers simplifies the code,
+    // but the Debug implmentation probably isn't very useful
     // alternatively we could have a separate variant for each hash algorithm/variant combination
     // we could also create a custom Debug implementation that does a comparison of the fn pointer
     // to function pointers we might use.
     /// Replace with a hash of the redacted content
-    Hash(fn(&[u8]) -> String),
+    Hash {
+        encoder: Encoder,
+        hasher: fn(Encoder, &[u8]) -> String,
+    },
 }
 
 const REDACTED: &str = "[REDACTED]";
@@ -292,7 +320,9 @@ impl Redactor {
             Redactor::Text(s) => {
                 dst.push_str(s);
             }
-            Redactor::Hash(hash) => dst.push_str(&hash(original.as_bytes())),
+            Redactor::Hash { encoder, hasher } => {
+                dst.push_str(&hasher(*encoder, original.as_bytes()))
+            }
         }
     }
 
@@ -319,42 +349,52 @@ impl Redactor {
                 }
             }
             b"sha2" => {
-                let hash = if let Some(variant) = obj.get("variant") {
+                let hasher = if let Some(variant) = obj.get("variant") {
                     match variant
                         .as_bytes()
                         .ok_or("`variant` must be a string")?
                         .as_ref()
                     {
-                        b"SHA-224" => hex_digest::<sha_2::Sha224>,
-                        b"SHA-256" => hex_digest::<sha_2::Sha256>,
-                        b"SHA-384" => hex_digest::<sha_2::Sha384>,
-                        b"SHA-512" => hex_digest::<sha_2::Sha512>,
-                        b"SHA-512/224" => hex_digest::<sha_2::Sha512_224>,
-                        b"SHA-512/256" => hex_digest::<sha_2::Sha512_256>,
+                        b"SHA-224" => encoded_hash::<sha_2::Sha224>,
+                        b"SHA-256" => encoded_hash::<sha_2::Sha256>,
+                        b"SHA-384" => encoded_hash::<sha_2::Sha384>,
+                        b"SHA-512" => encoded_hash::<sha_2::Sha512>,
+                        b"SHA-512/224" => encoded_hash::<sha_2::Sha512_224>,
+                        b"SHA-512/256" => encoded_hash::<sha_2::Sha512_256>,
                         _ => return Err("invalid sha2 variant"),
                     }
                 } else {
-                    hex_digest::<sha_2::Sha512_256>
+                    encoded_hash::<sha_2::Sha512_256>
                 };
-                Ok(Redactor::Hash(hash))
+                let encoder = obj
+                    .get("encoding")
+                    .map(Encoder::try_from)
+                    .transpose()?
+                    .unwrap_or(Encoder::Base64);
+                Ok(Redactor::Hash { hasher, encoder })
             }
             b"sha3" => {
-                let hash = if let Some(variant) = obj.get("variant") {
+                let hasher = if let Some(variant) = obj.get("variant") {
                     match variant
                         .as_bytes()
                         .ok_or("`variant must be a string")?
                         .as_ref()
                     {
-                        b"SHA3-224" => hex_digest::<sha_3::Sha3_224>,
-                        b"SHA3-256" => hex_digest::<sha_3::Sha3_256>,
-                        b"SHA3-384" => hex_digest::<sha_3::Sha3_384>,
-                        b"SHA3-512" => hex_digest::<sha_3::Sha3_512>,
+                        b"SHA3-224" => encoded_hash::<sha_3::Sha3_224>,
+                        b"SHA3-256" => encoded_hash::<sha_3::Sha3_256>,
+                        b"SHA3-384" => encoded_hash::<sha_3::Sha3_384>,
+                        b"SHA3-512" => encoded_hash::<sha_3::Sha3_512>,
                         _ => return Err("invalid sha2 variant"),
                     }
                 } else {
-                    hex_digest::<sha_2::Sha512_256>
+                    encoded_hash::<sha_3::Sha3_512>
                 };
-                Ok(Redactor::Hash(hash))
+                let encoder = obj
+                    .get("encoding")
+                    .map(Encoder::try_from)
+                    .transpose()?
+                    .unwrap_or(Encoder::Base64);
+                Ok(Redactor::Hash { hasher, encoder })
             }
             _ => Err("unknown `type` for `redactor`"),
         }
@@ -370,7 +410,7 @@ impl regex::Replacer for &Redactor {
         match self {
             Redactor::Full => Some(REDACTED.into()),
             Redactor::Text(s) => Some(s.into()),
-            _ => None,
+            Redactor::Hash { .. } => None,
         }
     }
 }
@@ -383,8 +423,14 @@ impl TryFrom<Value> for Redactor {
             Value::Object(object) => Redactor::from_object(object),
             Value::Bytes(bytes) => match bytes.as_ref() {
                 b"full" => Ok(Redactor::Full),
-                b"sha2" => Ok(Redactor::Hash(hex_digest::<sha_2::Sha512_256>)),
-                b"sha3" => Ok(Redactor::Hash(hex_digest::<sha_3::Sha3_512>)),
+                b"sha2" => Ok(Redactor::Hash {
+                    hasher: encoded_hash::<sha_2::Sha512_256>,
+                    encoder: Encoder::Base64,
+                }),
+                b"sha3" => Ok(Redactor::Hash {
+                    hasher: encoded_hash::<sha_3::Sha3_512>,
+                    encoder: Encoder::Base64,
+                }),
                 _ => Err("unknown name of redactor"),
             },
             _ => Err("unknown literal for redactor, must be redactor name or object"),
@@ -392,9 +438,38 @@ impl TryFrom<Value> for Redactor {
     }
 }
 
-/// Compute the digest of some bytes as hex string
-fn hex_digest<T: digest::Digest>(value: &[u8]) -> String {
-    hex::encode(T::digest(value))
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+enum Encoder {
+    Base64,
+    Base16,
+}
+
+impl TryFrom<&Value> for Encoder {
+    type Error = &'static str;
+
+    fn try_from(value: &Value) -> std::result::Result<Self, Self::Error> {
+        match value.as_bytes().ok_or("encoding must be string")?.as_ref() {
+            b"base64" => Ok(Self::Base64),
+            b"base16" | b"hex" => Ok(Self::Base16),
+            _ => Err("unexpected encoding"),
+        }
+    }
+}
+
+impl Encoder {
+    fn encode(self, data: &[u8]) -> String {
+        use Encoder::{Base16, Base64};
+        match self {
+            Base64 => base64::engine::general_purpose::STANDARD.encode(data),
+            Base16 => base16::encode_lower(data),
+        }
+    }
+}
+
+/// Compute the hash of `data` using `T` as the digest, then encode it using `encoder`
+/// to get a String
+fn encoded_hash<T: digest::Digest>(encoder: Encoder, data: &[u8]) -> String {
+    encoder.encode(&T::digest(data))
 }
 
 #[cfg(test)]
