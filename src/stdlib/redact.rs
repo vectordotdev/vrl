@@ -475,7 +475,7 @@ fn encoded_hash<T: digest::Digest>(encoder: Encoder, data: &[u8]) -> String {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::value;
+    use crate::{btreemap, value};
     use regex::Regex;
 
     test_function![
@@ -530,6 +530,87 @@ mod test {
                          "type": "pattern",
                      })
                  ],
+             ],
+             want: Err("invalid argument"),
+             tdef: TypeDef::bytes().infallible(),
+        }
+
+        text_redactor {
+            args: func_args![
+                value: "my id is 123456",
+                filters: vec![Regex::new(r"\d+").unwrap()],
+                redactor: btreemap!{"type" => "text", "replacement" => "***"},
+            ],
+            want: Ok("my id is ***"),
+            tdef: TypeDef::bytes().infallible(),
+        }
+
+        sha2 {
+            args: func_args![
+                value: "my id is 123456",
+                filters: vec![Regex::new(r"\d+").unwrap()],
+                redactor: "sha2",
+            ],
+            want: Ok("my id is GEtTedW1p6tC094dDKH+3B8P+xSnZz69AmpjaXRd63I="),
+            tdef: TypeDef::bytes().infallible(),
+        }
+
+        sha3 {
+            args: func_args![
+                value: "my id is 123456",
+                filters: vec![Regex::new(r"\d+").unwrap()],
+                redactor: "sha3",
+            ],
+            want: Ok("my id is ZNCdmTDI7PeeUTFnpYjLdUObdizo+bIupZdl8yqnTKGdLx6X3JIqPUlUWUoFBikX+yTR+OcvLtAqWO11NPlNJw=="),
+            tdef: TypeDef::bytes().infallible(),
+        }
+
+        sha256_hex {
+            args: func_args![
+                value: "my id is 123456",
+                filters: vec![Regex::new(r"\d+").unwrap()],
+                redactor: btreemap!{"type" => "sha2", "variant" => "SHA-256", "encoding" =>
+                    "base16"},
+            ],
+            want: Ok("my id is 8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92"),
+            tdef: TypeDef::bytes().infallible(),
+        }
+
+        invalid_redactor {
+             args: func_args![
+                 value: "hello 123456 world",
+                 filters: vec!["us_social_security_number"],
+                 redactor: "not a redactor"
+             ],
+             want: Err("invalid argument"),
+             tdef: TypeDef::bytes().infallible(),
+        }
+
+        invalid_redactor_obj {
+             args: func_args![
+                 value: "hello 123456 world",
+                 filters: vec!["us_social_security_number"],
+                 redactor: btreemap!{"type" => "wrongtype"},
+             ],
+             want: Err("invalid argument"),
+             tdef: TypeDef::bytes().infallible(),
+        }
+
+        invalid_redactor_no_type {
+             args: func_args![
+                 value: "hello 123456 world",
+                 filters: vec!["us_social_security_number"],
+                 redactor: btreemap!{"key" => "value"},
+             ],
+             want: Err("invalid argument"),
+             tdef: TypeDef::bytes().infallible(),
+        }
+
+        invalid_hash_variant {
+             args: func_args![
+                 value: "hello 123456 world",
+                 filters: vec!["us_social_security_number"],
+                 redactor: btreemap!{"type" => "sha2", "variant" => "MD5"},
              ],
              want: Err("invalid argument"),
              tdef: TypeDef::bytes().infallible(),
