@@ -311,6 +311,7 @@ fn get_target_prefix(path: &str) -> (PathPrefix, &str) {
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[cfg_attr(feature = "proptest", derive(proptest_derive::Arbitrary))]
 pub enum PathPrefix {
     Event,
     Metadata,
