@@ -44,6 +44,7 @@ cli = ["stdlib", "dep:serde_json", "dep:thiserror", "dep:clap", "dep:exitcode", 
 test_framework = ["compiler", "dep:prettydiff", "dep:serde_json", "dep:ansi_term"]
 arbitrary = ["dep:quickcheck", "dep:arbitrary"]
 lua = ["dep:mlua"]
+proptest = ["dep:proptest", "dep:proptest-derive"]
 
 # Internal testing utilities (used for benches)
 test = ["string_path"]
@@ -87,6 +88,8 @@ peeking_take_while = { version = "1.0.0", default-features = false, optional = t
 percent-encoding = { version = "2.3", optional = true }
 pest = { version = "2.7.6", default-features = false, optional = true, features = ["std"] }
 pest_derive = { version = "2.7.6", default-features = false, optional = true, features = ["std"] }
+proptest = { version = "1.4", optional = true }
+proptest-derive = { version = "0.4", optional = true }
 prettydiff = {version = "0.6", default-features = false, optional = true }
 prettytable-rs = { version = "0.10", default-features = false, optional = true }
 quickcheck = { version = "1.0.3", optional = true }
