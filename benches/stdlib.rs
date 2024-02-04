@@ -49,6 +49,7 @@ criterion_group!(
               get,
               get_env_var,
               get_hostname,
+              get_timezone_name,
               includes,
               int,
               ip_aton,
@@ -575,6 +576,15 @@ bench_function! {
     get {
         args: func_args![],
         want: Ok(hostname::get().unwrap().to_string_lossy()),
+    }
+}
+
+bench_function! {
+    get_timezone_name => vrl::stdlib::GetTimezoneName;
+
+    get {
+        args: func_args![],
+        want: Ok(vrl::stdlib::get_name_for_timezone(&vrl::compiler::TimeZone::Named(chrono_tz::Tz::UTC))),
     }
 }
 
