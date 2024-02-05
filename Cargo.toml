@@ -50,7 +50,7 @@ proptest = ["dep:proptest", "dep:proptest-derive"]
 test = ["string_path"]
 
 # All stdlib functions
-stdlib = ["compiler", "core", "datadog", "dep:aes", "dep:chacha20poly1305", "dep:crypto_secretbox", "dep:ctr", "dep:cbc", "dep:cfb-mode", "dep:ofb", "dep:base16", "dep:nom", "dep:strip-ansi-escapes", "dep:utf8-width", "dep:hex", "dep:seahash", "dep:syslog_loose", "dep:hostname", "dep:zstd", "dep:quoted_printable", "dep:once_cell", "dep:base64", "dep:uuid", "dep:percent-encoding", "dep:uaparser", "dep:rust_decimal", "dep:indexmap", "dep:flate2", "dep:charset", "dep:data-encoding", "dep:hmac", "dep:sha-1", "dep:cidr-utils", "dep:sha-2", "dep:md-5", "dep:url", "dep:woothee", "dep:csv", "dep:roxmltree", "dep:rand", "dep:dns-lookup", "dep:sha-3", "dep:grok", "dep:community-id", "dep:snap"]
+stdlib = ["compiler", "core", "datadog", "dep:aes", "dep:chacha20poly1305", "dep:crypto_secretbox", "dep:ctr", "dep:cbc", "dep:cfb-mode", "dep:ofb", "dep:base16", "dep:nom", "dep:strip-ansi-escapes", "dep:utf8-width", "dep:hex", "dep:seahash", "dep:syslog_loose", "dep:hostname", "dep:zstd", "dep:quoted_printable", "dep:once_cell", "dep:base64", "dep:uuid", "dep:percent-encoding", "dep:uaparser", "dep:rust_decimal", "dep:indexmap", "dep:flate2", "dep:charset", "dep:data-encoding", "dep:hmac", "dep:sha-1", "dep:cidr-utils", "dep:sha-2", "dep:md-5", "dep:url", "dep:woothee", "dep:csv", "dep:roxmltree", "dep:rand", "dep:dns-lookup", "dep:sha-3", "dep:grok", "dep:community-id", "dep:snap", "dep:idna"]
 
 [dependencies]
 cfg-if = "1.0.0"
@@ -74,6 +74,7 @@ exitcode = {version = "1", optional = true }
 flate2 = { version = "1.0.28", default-features = false, features = ["default"], optional = true }
 hex = { version = "0.4", optional = true }
 hmac = { version = "0.12.1", optional = true }
+idna = { version = "0.5", optional = true }
 indexmap = { version = "~2.2.2", default-features = false, features = ["std"], optional = true}
 indoc = {version = "2.0.4", optional = true }
 itertools = { version = "0.12.1", default-features = false, optional = true }
