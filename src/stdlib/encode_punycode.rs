@@ -30,7 +30,7 @@ impl Function for EncodePunycode {
     fn examples(&self) -> &'static [Example] {
         &[
             Example {
-                title: "demo string",
+                title: "IDN string",
                 source: r#"encode_punycode("www.café.com")"#,
                 result: Ok("www.xn--caf-dma.com"),
             },
@@ -38,6 +38,11 @@ impl Function for EncodePunycode {
                 title: "mixed case string",
                 source: r#"encode_punycode("www.CAFé.com")"#,
                 result: Ok("www.xn--caf-dma.com"),
+            },
+            Example {
+                title: "ascii string",
+                source: r#"encode_punycode("www.cafe.com")"#,
+                result: Ok("www.cafe.com"),
             },
         ]
     }
@@ -72,7 +77,7 @@ mod test {
     test_function![
         encode_punycode => EncodePunycode;
 
-        demo_string {
+        idn_string {
             args: func_args![value: value!("www.café.com")],
             want: Ok(value!("www.xn--caf-dma.com")),
             tdef: TypeDef::bytes().infallible(),
@@ -81,6 +86,12 @@ mod test {
         mixed_case {
             args: func_args![value: value!("www.CAFé.com")],
             want: Ok(value!("www.xn--caf-dma.com")),
+            tdef: TypeDef::bytes().infallible(),
+        }
+
+        ascii_string {
+            args: func_args![value: value!("www.cafe.com")],
+            want: Ok(value!("www.cafe.com")),
             tdef: TypeDef::bytes().infallible(),
         }
     ];
