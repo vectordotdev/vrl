@@ -1,6 +1,7 @@
 use std::fmt::{Debug, Display, Formatter};
 use std::str::FromStr;
 
+use itertools::Itertools as _;
 use once_cell::sync::Lazy;
 #[cfg(any(test, feature = "proptest"))]
 use proptest::prelude::*;
@@ -311,7 +312,6 @@ impl From<OwnedValuePath> for String {
                     output
                 }
             })
-            .collect::<Vec<_>>()
             .join("")
     }
 }
@@ -500,10 +500,7 @@ impl Display for OwnedSegment {
             OwnedSegment::Coalesce(v) => write!(
                 f,
                 "({})",
-                v.iter()
-                    .map(|field| field_to_string(field))
-                    .collect::<Vec<_>>()
-                    .join(" | ")
+                v.iter().map(|field| field_to_string(field)).join(" | ")
             ),
         }
     }
