@@ -1,7 +1,9 @@
+use std::fmt::{Debug, Display, Formatter};
+use std::str::FromStr;
+
 use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
-use std::fmt::{Debug, Display, Formatter};
 
 use super::PathPrefix;
 use super::{parse_target_path, parse_value_path, BorrowedSegment, PathParseError, ValuePath};
@@ -209,11 +211,29 @@ impl Display for OwnedValuePath {
     }
 }
 
+impl FromStr for OwnedValuePath {
+    type Err = PathParseError;
+
+    fn from_str(src: &str) -> Result<Self, Self::Err> {
+        parse_value_path(src).map_err(|_| PathParseError::InvalidPathSyntax {
+            path: src.to_owned(),
+        })
+    }
+}
+
 impl TryFrom<String> for OwnedValuePath {
     type Error = PathParseError;
 
     fn try_from(src: String) -> Result<Self, Self::Error> {
-        parse_value_path(&src).map_err(|_| PathParseError::InvalidPathSyntax {
+        src.parse()
+    }
+}
+
+impl FromStr for OwnedTargetPath {
+    type Err = PathParseError;
+
+    fn from_str(src: &str) -> Result<Self, Self::Err> {
+        parse_target_path(src).map_err(|_| PathParseError::InvalidPathSyntax {
             path: src.to_owned(),
         })
     }
@@ -223,9 +243,7 @@ impl TryFrom<String> for OwnedTargetPath {
     type Error = PathParseError;
 
     fn try_from(src: String) -> Result<Self, Self::Error> {
-        parse_target_path(&src).map_err(|_| PathParseError::InvalidPathSyntax {
-            path: src.to_owned(),
-        })
+        src.parse()
     }
 }
 
@@ -233,7 +251,7 @@ impl TryFrom<KeyString> for OwnedValuePath {
     type Error = PathParseError;
 
     fn try_from(src: KeyString) -> Result<Self, Self::Error> {
-        parse_value_path(&src).map_err(|_| PathParseError::InvalidPathSyntax { path: src.into() })
+        src.parse()
     }
 }
 
@@ -241,7 +259,7 @@ impl TryFrom<KeyString> for OwnedTargetPath {
     type Error = PathParseError;
 
     fn try_from(src: KeyString) -> Result<Self, Self::Error> {
-        parse_target_path(&src).map_err(|_| PathParseError::InvalidPathSyntax { path: src.into() })
+        src.parse()
     }
 }
 
