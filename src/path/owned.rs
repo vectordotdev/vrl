@@ -201,7 +201,7 @@ impl OwnedTargetPath {
 
 impl Display for OwnedTargetPath {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", String::from(self.to_owned()))
+        write!(f, "{}", String::from(self))
     }
 }
 
@@ -213,6 +213,12 @@ impl Debug for OwnedTargetPath {
 
 impl From<OwnedTargetPath> for String {
     fn from(target_path: OwnedTargetPath) -> Self {
+        Self::from(&target_path)
+    }
+}
+
+impl From<&OwnedTargetPath> for String {
+    fn from(target_path: &OwnedTargetPath) -> Self {
         match target_path.prefix {
             PathPrefix::Event => format!(".{}", target_path.path),
             PathPrefix::Metadata => format!("%{}", target_path.path),
@@ -222,7 +228,7 @@ impl From<OwnedTargetPath> for String {
 
 impl Display for OwnedValuePath {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", String::from(self.clone()))
+        write!(f, "{}", String::from(self))
     }
 }
 
@@ -280,6 +286,12 @@ impl TryFrom<KeyString> for OwnedTargetPath {
 
 impl From<OwnedValuePath> for String {
     fn from(owned: OwnedValuePath) -> Self {
+        Self::from(&owned)
+    }
+}
+
+impl From<&OwnedValuePath> for String {
+    fn from(owned: &OwnedValuePath) -> Self {
         let mut output = String::new();
         for (i, segment) in owned.segments.iter().enumerate() {
             match segment {
