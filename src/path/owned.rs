@@ -2,6 +2,8 @@ use std::fmt::{Debug, Display, Formatter};
 use std::str::FromStr;
 
 use once_cell::sync::Lazy;
+#[cfg(any(test, feature = "proptest"))]
+use proptest::prelude::*;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 
@@ -11,7 +13,6 @@ use crate::value::KeyString;
 
 /// A lookup path.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
-#[cfg_attr(feature = "proptest", derive(proptest_derive::Arbitrary))]
 #[serde(try_from = "String", into = "String")]
 pub struct OwnedValuePath {
     pub segments: Vec<OwnedSegment>,
@@ -117,6 +118,19 @@ impl OwnedValuePath {
 
     pub fn push(&mut self, segment: OwnedSegment) {
         self.segments.push(segment);
+    }
+}
+
+// OwnedValuePath values must have at least one segment.
+#[cfg(any(test, feature = "proptest"))]
+impl Arbitrary for OwnedValuePath {
+    type Parameters = ();
+    type Strategy = BoxedStrategy<Self>;
+
+    fn arbitrary_with((): Self::Parameters) -> Self::Strategy {
+        prop::collection::vec(any::<OwnedSegment>(), 1..10)
+            .prop_map(|segments| OwnedValuePath { segments })
+            .boxed()
     }
 }
 
@@ -383,12 +397,11 @@ impl OwnedSegment {
 // restrict the length of the `Coalesce` variant to at least two elements, which is a constraint of
 // the textual representation.
 #[cfg(any(test, feature = "proptest"))]
-impl proptest::arbitrary::Arbitrary for OwnedSegment {
+impl Arbitrary for OwnedSegment {
     type Parameters = ();
-    type Strategy = proptest::strategy::BoxedStrategy<Self>;
+    type Strategy = BoxedStrategy<Self>;
 
     fn arbitrary_with((): Self::Parameters) -> Self::Strategy {
-        use proptest::prelude::*;
         prop_oneof![
             any::<KeyString>().prop_map(OwnedSegment::Field),
             any::<isize>().prop_map(OwnedSegment::Index),
