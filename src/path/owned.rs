@@ -509,7 +509,10 @@ impl Display for OwnedSegment {
             OwnedSegment::Field(field) => format_field(f, field),
             OwnedSegment::Coalesce(v) => {
                 write!(f, "(")?;
-                for field in v {
+                for (i, field) in v.iter().enumerate() {
+                    if i > 0 {
+                        write!(f, " | ")?;
+                    }
                     format_field(f, field)?;
                 }
                 write!(f, ")")
