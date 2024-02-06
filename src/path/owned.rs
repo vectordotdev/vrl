@@ -136,7 +136,7 @@ impl Arbitrary for OwnedValuePath {
 
 /// An owned path that contains a target (pointing to either an Event or Metadata)
 #[derive(Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
-#[cfg_attr(feature = "proptest", derive(proptest_derive::Arbitrary))]
+#[cfg_attr(any(test, feature = "proptest"), derive(proptest_derive::Arbitrary))]
 #[serde(try_from = "String", into = "String")]
 pub struct OwnedTargetPath {
     pub prefix: PathPrefix,
@@ -546,6 +546,7 @@ impl<'a> Iterator for OwnedSegmentSliceIter<'a> {
 
 #[cfg(test)]
 mod test {
+    use super::*;
     use crate::path::parse_value_path;
 
     #[test]
@@ -594,6 +595,27 @@ mod test {
             let path = parse_value_path(path).map(String::from).ok();
 
             assert_eq!(path, expected.map(|x| x.to_owned()));
+        }
+    }
+
+    fn reparse_thing<T: std::fmt::Debug + std::fmt::Display + Eq + FromStr>(thing: T)
+    where
+        <T as FromStr>::Err: std::fmt::Debug,
+    {
+        let text = thing.to_string();
+        let thing2: T = text.parse().unwrap();
+        assert_eq!(thing, thing2);
+    }
+
+    proptest::proptest! {
+        #[test]
+        fn reparses_valid_value_path(path: OwnedValuePath) {
+            reparse_thing(path);
+        }
+
+        #[test]
+        fn reparses_valid_target_path(path: OwnedTargetPath) {
+            reparse_thing(path);
         }
     }
 }
