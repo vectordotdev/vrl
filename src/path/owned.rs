@@ -288,13 +288,14 @@ impl From<OwnedValuePath> for String {
 
 fn serialize_field(field: &str, separator: Option<&str>) -> String {
     // These characters should match the ones from the parser, implemented in `JitLookup`
-    let needs_quotes = field
-        .chars()
-        .any(|c| !matches!(c, 'A'..='Z' | 'a'..='z' | '_' | '0'..='9' | '@'));
+    let needs_quotes = field.is_empty()
+        || field
+            .chars()
+            .any(|c| !matches!(c, 'A'..='Z' | 'a'..='z' | '_' | '0'..='9' | '@'));
 
     // Allocate enough to fit the field, a `.` and two `"` characters. This
     // should suffice for the majority of cases when no escape sequence is used.
-    let separator_len = separator.map(|x| x.len()).unwrap_or(0);
+    let separator_len = separator.map_or(0, |x| x.len());
     let mut string = String::with_capacity(field.as_bytes().len() + 2 + separator_len);
     if let Some(separator) = separator {
         string.push_str(separator);
@@ -308,11 +309,10 @@ fn serialize_field(field: &str, separator: Option<&str>) -> String {
             string.push(c);
         }
         string.push('"');
-        string
     } else {
         string.push_str(field);
-        string
     }
+    string
 }
 
 impl From<Vec<OwnedSegment>> for OwnedValuePath {
