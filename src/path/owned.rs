@@ -1,8 +1,6 @@
-use std::borrow::Cow;
-use std::fmt::{Debug, Display, Formatter, Write};
+use std::fmt::{self, Debug, Display, Formatter, Write};
 use std::str::FromStr;
 
-use itertools::Itertools as _;
 use once_cell::sync::Lazy;
 #[cfg(any(test, feature = "proptest"))]
 use proptest::prelude::*;
@@ -201,7 +199,7 @@ impl OwnedTargetPath {
 }
 
 impl Display for OwnedTargetPath {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self.prefix {
             PathPrefix::Event => write!(f, ".")?,
             PathPrefix::Metadata => write!(f, "%")?,
@@ -211,7 +209,7 @@ impl Display for OwnedTargetPath {
 }
 
 impl Debug for OwnedTargetPath {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         Display::fmt(self, f)
     }
 }
@@ -229,7 +227,7 @@ impl From<&OwnedTargetPath> for String {
 }
 
 impl Display for OwnedValuePath {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "{}", String::from(self))
     }
 }
@@ -492,28 +490,30 @@ impl<'a> ValuePath<'a> for &'a OwnedValuePath {
 static VALID_FIELD: Lazy<Regex> =
     Lazy::new(|| Regex::new("^[0-9]*[a-zA-Z_@][0-9a-zA-Z_@]*$").unwrap());
 
-fn field_to_string(field: &str) -> Cow<'_, str> {
+fn format_field(f: &mut Formatter<'_>, field: &str) -> fmt::Result {
     // This can eventually just parse the field and see if it's valid, but the
     // parser is currently lenient in what it accepts so it doesn't catch all cases that
     // should be quoted
     let needs_quotes = !VALID_FIELD.is_match(field);
     if needs_quotes {
-        format!("\"{field}\"").into()
+        write!(f, "\"{field}\"")
     } else {
-        field.into()
+        write!(f, "{field}")
     }
 }
 
 impl Display for OwnedSegment {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
             OwnedSegment::Index(i) => write!(f, "[{i}]"),
-            OwnedSegment::Field(field) => write!(f, "{}", field_to_string(field)),
-            OwnedSegment::Coalesce(v) => write!(
-                f,
-                "({})",
-                v.iter().map(|field| field_to_string(field)).join(" | ")
-            ),
+            OwnedSegment::Field(field) => format_field(f, field),
+            OwnedSegment::Coalesce(v) => {
+                write!(f, "(")?;
+                for field in v {
+                    format_field(f, field)?;
+                }
+                write!(f, ")")
+            }
         }
     }
 }
