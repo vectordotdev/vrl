@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::fmt::{Debug, Display, Formatter, Write};
 use std::str::FromStr;
 
@@ -491,15 +492,15 @@ impl<'a> ValuePath<'a> for &'a OwnedValuePath {
 static VALID_FIELD: Lazy<Regex> =
     Lazy::new(|| Regex::new("^[0-9]*[a-zA-Z_@][0-9a-zA-Z_@]*$").unwrap());
 
-fn field_to_string(field: &str) -> String {
+fn field_to_string(field: &str) -> Cow<'_, str> {
     // This can eventually just parse the field and see if it's valid, but the
     // parser is currently lenient in what it accepts so it doesn't catch all cases that
     // should be quoted
     let needs_quotes = !VALID_FIELD.is_match(field);
     if needs_quotes {
-        format!("\"{}\"", field)
+        format!("\"{field}\"").into()
     } else {
-        field.to_string()
+        field.into()
     }
 }
 
