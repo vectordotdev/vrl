@@ -247,7 +247,6 @@ impl TryFrom<KeyString> for OwnedTargetPath {
 
 impl From<OwnedValuePath> for String {
     fn from(owned: OwnedValuePath) -> Self {
-        let mut coalesce_i = 0;
         owned
             .segments
             .iter()
@@ -258,22 +257,21 @@ impl From<OwnedValuePath> for String {
                 }
                 OwnedSegment::Index(index) => format!("[{}]", index),
                 OwnedSegment::Coalesce(fields) => {
+                    let mut coalesce_i = 0;
                     let mut output = String::new();
                     let (last, fields) = fields.split_last().expect("coalesce must not be empty");
                     for field in fields {
                         let field_output = serialize_field(
                             field.as_ref(),
-                            Some(if coalesce_i == 0 {
-                                if i == 0 {
-                                    "("
-                                } else {
-                                    ".("
-                                }
-                            } else {
+                            Some(if coalesce_i != 0 {
                                 "|"
+                            } else if i == 0 {
+                                "("
+                            } else {
+                                ".("
                             }),
                         );
-                        coalesce_i += 1;
+                        coalesce_i = 1;
                         output.push_str(&field_output);
                     }
                     output += &serialize_field(last.as_ref(), (coalesce_i != 0).then_some("|"));
@@ -288,13 +286,14 @@ impl From<OwnedValuePath> for String {
 
 fn serialize_field(field: &str, separator: Option<&str>) -> String {
     // These characters should match the ones from the parser, implemented in `JitLookup`
-    let needs_quotes = field
-        .chars()
-        .any(|c| !matches!(c, 'A'..='Z' | 'a'..='z' | '_' | '0'..='9' | '@'));
+    let needs_quotes = field.is_empty()
+        || field
+            .chars()
+            .any(|c| !matches!(c, 'A'..='Z' | 'a'..='z' | '_' | '0'..='9' | '@'));
 
     // Allocate enough to fit the field, a `.` and two `"` characters. This
     // should suffice for the majority of cases when no escape sequence is used.
-    let separator_len = separator.map(|x| x.len()).unwrap_or(0);
+    let separator_len = separator.map_or(0, |x| x.len());
     let mut string = String::with_capacity(field.as_bytes().len() + 2 + separator_len);
     if let Some(separator) = separator {
         string.push_str(separator);
@@ -308,11 +307,10 @@ fn serialize_field(field: &str, separator: Option<&str>) -> String {
             string.push(c);
         }
         string.push('"');
-        string
     } else {
         string.push_str(field);
-        string
     }
+    string
 }
 
 impl From<Vec<OwnedSegment>> for OwnedValuePath {
