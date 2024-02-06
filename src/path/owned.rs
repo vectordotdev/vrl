@@ -247,7 +247,6 @@ impl TryFrom<KeyString> for OwnedTargetPath {
 
 impl From<OwnedValuePath> for String {
     fn from(owned: OwnedValuePath) -> Self {
-        let mut coalesce_i = 0;
         owned
             .segments
             .iter()
@@ -258,22 +257,21 @@ impl From<OwnedValuePath> for String {
                 }
                 OwnedSegment::Index(index) => format!("[{}]", index),
                 OwnedSegment::Coalesce(fields) => {
+                    let mut coalesce_i = 0;
                     let mut output = String::new();
                     let (last, fields) = fields.split_last().expect("coalesce must not be empty");
                     for field in fields {
                         let field_output = serialize_field(
                             field.as_ref(),
-                            Some(if coalesce_i == 0 {
-                                if i == 0 {
-                                    "("
-                                } else {
-                                    ".("
-                                }
-                            } else {
+                            Some(if coalesce_i != 0 {
                                 "|"
+                            } else if i == 0 {
+                                "("
+                            } else {
+                                ".("
                             }),
                         );
-                        coalesce_i += 1;
+                        coalesce_i = 1;
                         output.push_str(&field_output);
                     }
                     output += &serialize_field(last.as_ref(), (coalesce_i != 0).then_some("|"));
