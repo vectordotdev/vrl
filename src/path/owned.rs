@@ -1,4 +1,4 @@
-use std::fmt::{Debug, Display, Formatter};
+use std::fmt::{Debug, Display, Formatter, Write};
 use std::str::FromStr;
 
 use itertools::Itertools as _;
@@ -280,21 +280,21 @@ impl TryFrom<KeyString> for OwnedTargetPath {
 
 impl From<OwnedValuePath> for String {
     fn from(owned: OwnedValuePath) -> Self {
-        owned
-            .segments
-            .iter()
-            .enumerate()
-            .map(|(i, segment)| match segment {
+        let mut output = String::new();
+        for (i, segment) in owned.segments.iter().enumerate() {
+            match segment {
                 OwnedSegment::Field(field) => {
-                    serialize_field(field.as_ref(), (i != 0).then_some("."))
+                    serialize_field(&mut output, field.as_ref(), (i != 0).then_some("."))
                 }
-                OwnedSegment::Index(index) => format!("[{}]", index),
+                OwnedSegment::Index(index) => {
+                    write!(output, "[{index}]").expect("Could not write to string")
+                }
                 OwnedSegment::Coalesce(fields) => {
                     let mut coalesce_i = 0;
-                    let mut output = String::new();
                     let (last, fields) = fields.split_last().expect("coalesce must not be empty");
                     for field in fields {
-                        let field_output = serialize_field(
+                        serialize_field(
+                            &mut output,
                             field.as_ref(),
                             Some(if coalesce_i != 0 {
                                 "|"
@@ -305,28 +305,27 @@ impl From<OwnedValuePath> for String {
                             }),
                         );
                         coalesce_i = 1;
-                        output.push_str(&field_output);
                     }
-                    output += &serialize_field(last.as_ref(), (coalesce_i != 0).then_some("|"));
-                    output += ")";
-                    output
+                    serialize_field(&mut output, last.as_ref(), (coalesce_i != 0).then_some("|"));
+                    output.push(')');
                 }
-            })
-            .join("")
+            }
+        }
+        output
     }
 }
 
-fn serialize_field(field: &str, separator: Option<&str>) -> String {
+fn serialize_field(string: &mut String, field: &str, separator: Option<&str>) {
     // These characters should match the ones from the parser, implemented in `JitLookup`
     let needs_quotes = field.is_empty()
         || field
             .chars()
             .any(|c| !matches!(c, 'A'..='Z' | 'a'..='z' | '_' | '0'..='9' | '@'));
 
-    // Allocate enough to fit the field, a `.` and two `"` characters. This
+    // Reserve enough to fit the field, a `.` and two `"` characters. This
     // should suffice for the majority of cases when no escape sequence is used.
     let separator_len = separator.map_or(0, |x| x.len());
-    let mut string = String::with_capacity(field.as_bytes().len() + 2 + separator_len);
+    string.reserve(field.as_bytes().len() + 2 + separator_len);
     if let Some(separator) = separator {
         string.push_str(separator);
     }
@@ -342,7 +341,6 @@ fn serialize_field(field: &str, separator: Option<&str>) -> String {
     } else {
         string.push_str(field);
     }
-    string
 }
 
 impl From<Vec<OwnedSegment>> for OwnedValuePath {
