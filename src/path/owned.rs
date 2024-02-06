@@ -338,7 +338,6 @@ impl From<Vec<OwnedSegment>> for OwnedValuePath {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash, PartialOrd, Ord)]
-#[cfg_attr(feature = "proptest", derive(proptest_derive::Arbitrary))]
 pub enum OwnedSegment {
     Field(KeyString),
     Index(isize),
@@ -377,6 +376,25 @@ impl OwnedSegment {
                 a.iter().any(|a_field| b.contains(a_field))
             }
         }
+    }
+}
+
+// This is almost the same as the automatically-derived implementation, except that we explictly
+// restrict the length of the `Coalesce` variant to at least two elements, which is a constraint of
+// the textual representation.
+#[cfg(any(test, feature = "proptest"))]
+impl proptest::arbitrary::Arbitrary for OwnedSegment {
+    type Parameters = ();
+    type Strategy = proptest::strategy::BoxedStrategy<Self>;
+
+    fn arbitrary_with((): Self::Parameters) -> Self::Strategy {
+        use proptest::prelude::*;
+        prop_oneof![
+            any::<KeyString>().prop_map(OwnedSegment::Field),
+            any::<isize>().prop_map(OwnedSegment::Index),
+            prop::collection::vec(any::<KeyString>(), 2..10).prop_map(OwnedSegment::Coalesce),
+        ]
+        .boxed()
     }
 }
 
