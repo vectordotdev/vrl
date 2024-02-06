@@ -201,7 +201,11 @@ impl OwnedTargetPath {
 
 impl Display for OwnedTargetPath {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", String::from(self))
+        match self.prefix {
+            PathPrefix::Event => write!(f, ".")?,
+            PathPrefix::Metadata => write!(f, "%")?,
+        }
+        Display::fmt(&self.path, f)
     }
 }
 
@@ -219,10 +223,7 @@ impl From<OwnedTargetPath> for String {
 
 impl From<&OwnedTargetPath> for String {
     fn from(target_path: &OwnedTargetPath) -> Self {
-        match target_path.prefix {
-            PathPrefix::Event => format!(".{}", target_path.path),
-            PathPrefix::Metadata => format!("%{}", target_path.path),
-        }
+        target_path.to_string()
     }
 }
 
@@ -505,7 +506,7 @@ fn field_to_string(field: &str) -> String {
 impl Display for OwnedSegment {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            OwnedSegment::Index(i) => write!(f, "[{}]", i),
+            OwnedSegment::Index(i) => write!(f, "[{i}]"),
             OwnedSegment::Field(field) => write!(f, "{}", field_to_string(field)),
             OwnedSegment::Coalesce(v) => write!(
                 f,
