@@ -132,6 +132,8 @@ prettytable-rs,https://github.com/phsym/prettytable-rs,BSD-3-Clause,Pierre-Henri
 proc-macro-crate,https://github.com/bkchr/proc-macro-crate,MIT OR Apache-2.0,Bastian Köcher <git@kchr.de>
 proc-macro-error,https://gitlab.com/CreepySkeleton/proc-macro-error,MIT OR Apache-2.0,CreepySkeleton <creepy-skeleton@yandex.ru>
 proc-macro2,https://github.com/dtolnay/proc-macro2,MIT OR Apache-2.0,"David Tolnay <dtolnay@gmail.com>, Alex Crichton <alex@alexcrichton.com>"
+psl,https://github.com/addr-rs/psl,MIT OR Apache-2.0,rushmorem <rushmore@webenchanter.com>
+psl-types,https://github.com/addr-rs/psl-types,MIT OR Apache-2.0,rushmorem <rushmore@webenchanter.com>
 ptr_meta,https://github.com/djkoloski/ptr_meta,MIT,David Koloski <djkoloski@gmail.com>
 quote,https://github.com/dtolnay/quote,MIT OR Apache-2.0,David Tolnay <dtolnay@gmail.com>
 quoted_printable,https://github.com/staktrace/quoted-printable,0BSD,Kartikaya Gupta <kats@seldon.staktrace.com>
