@@ -97,6 +97,7 @@ keccak,https://github.com/RustCrypto/sponges/tree/master/keccak,Apache-2.0 OR MI
 lalrpop-util,https://github.com/lalrpop/lalrpop,Apache-2.0 OR MIT,Niko Matsakis <niko@alum.mit.edu>
 lazy_static,https://github.com/rust-lang-nursery/lazy-static.rs,MIT OR Apache-2.0,Marvin Löbel <loebel.marvin@gmail.com>
 libc,https://github.com/rust-lang/libc,MIT OR Apache-2.0,The Rust Project Developers
+libm,https://github.com/rust-lang/libm,MIT OR Apache-2.0,Jorge Aparicio <jorge@japaric.io>
 linked-hash-map,https://github.com/contain-rs/linked-hash-map,MIT OR Apache-2.0,"Stepan Koltsov <stepan.koltsov@gmail.com>, Andrew Paseltiner <apaseltiner@gmail.com>"
 linux-raw-sys,https://github.com/sunfishcode/linux-raw-sys,Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT,Dan Gohman <dev@sunfishcode.online>
 log,https://github.com/rust-lang/log,MIT OR Apache-2.0,The Rust Project Developers
