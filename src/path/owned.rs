@@ -1,7 +1,11 @@
+use std::fmt::{Debug, Display, Formatter};
+use std::str::FromStr;
+
 use once_cell::sync::Lazy;
+#[cfg(any(test, feature = "proptest"))]
+use proptest::prelude::*;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
-use std::fmt::{Debug, Display, Formatter};
 
 use super::PathPrefix;
 use super::{parse_target_path, parse_value_path, BorrowedSegment, PathParseError, ValuePath};
@@ -9,7 +13,6 @@ use crate::value::KeyString;
 
 /// A lookup path.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
-#[cfg_attr(feature = "proptest", derive(proptest_derive::Arbitrary))]
 #[serde(try_from = "String", into = "String")]
 pub struct OwnedValuePath {
     pub segments: Vec<OwnedSegment>,
@@ -118,9 +121,22 @@ impl OwnedValuePath {
     }
 }
 
+// OwnedValuePath values must have at least one segment.
+#[cfg(any(test, feature = "proptest"))]
+impl Arbitrary for OwnedValuePath {
+    type Parameters = ();
+    type Strategy = BoxedStrategy<Self>;
+
+    fn arbitrary_with((): Self::Parameters) -> Self::Strategy {
+        prop::collection::vec(any::<OwnedSegment>(), 1..10)
+            .prop_map(|segments| OwnedValuePath { segments })
+            .boxed()
+    }
+}
+
 /// An owned path that contains a target (pointing to either an Event or Metadata)
 #[derive(Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
-#[cfg_attr(feature = "proptest", derive(proptest_derive::Arbitrary))]
+#[cfg_attr(any(test, feature = "proptest"), derive(proptest_derive::Arbitrary))]
 #[serde(try_from = "String", into = "String")]
 pub struct OwnedTargetPath {
     pub prefix: PathPrefix,
@@ -209,11 +225,29 @@ impl Display for OwnedValuePath {
     }
 }
 
+impl FromStr for OwnedValuePath {
+    type Err = PathParseError;
+
+    fn from_str(src: &str) -> Result<Self, Self::Err> {
+        parse_value_path(src).map_err(|_| PathParseError::InvalidPathSyntax {
+            path: src.to_owned(),
+        })
+    }
+}
+
 impl TryFrom<String> for OwnedValuePath {
     type Error = PathParseError;
 
     fn try_from(src: String) -> Result<Self, Self::Error> {
-        parse_value_path(&src).map_err(|_| PathParseError::InvalidPathSyntax {
+        src.parse()
+    }
+}
+
+impl FromStr for OwnedTargetPath {
+    type Err = PathParseError;
+
+    fn from_str(src: &str) -> Result<Self, Self::Err> {
+        parse_target_path(src).map_err(|_| PathParseError::InvalidPathSyntax {
             path: src.to_owned(),
         })
     }
@@ -223,9 +257,7 @@ impl TryFrom<String> for OwnedTargetPath {
     type Error = PathParseError;
 
     fn try_from(src: String) -> Result<Self, Self::Error> {
-        parse_target_path(&src).map_err(|_| PathParseError::InvalidPathSyntax {
-            path: src.to_owned(),
-        })
+        src.parse()
     }
 }
 
@@ -233,7 +265,7 @@ impl TryFrom<KeyString> for OwnedValuePath {
     type Error = PathParseError;
 
     fn try_from(src: KeyString) -> Result<Self, Self::Error> {
-        parse_value_path(&src).map_err(|_| PathParseError::InvalidPathSyntax { path: src.into() })
+        src.parse()
     }
 }
 
@@ -241,7 +273,7 @@ impl TryFrom<KeyString> for OwnedTargetPath {
     type Error = PathParseError;
 
     fn try_from(src: KeyString) -> Result<Self, Self::Error> {
-        parse_target_path(&src).map_err(|_| PathParseError::InvalidPathSyntax { path: src.into() })
+        src.parse()
     }
 }
 
@@ -320,7 +352,6 @@ impl From<Vec<OwnedSegment>> for OwnedValuePath {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash, PartialOrd, Ord)]
-#[cfg_attr(feature = "proptest", derive(proptest_derive::Arbitrary))]
 pub enum OwnedSegment {
     Field(KeyString),
     Index(isize),
@@ -359,6 +390,24 @@ impl OwnedSegment {
                 a.iter().any(|a_field| b.contains(a_field))
             }
         }
+    }
+}
+
+// This is almost the same as the automatically-derived implementation, except that we explictly
+// restrict the length of the `Coalesce` variant to at least two elements, which is a constraint of
+// the textual representation.
+#[cfg(any(test, feature = "proptest"))]
+impl Arbitrary for OwnedSegment {
+    type Parameters = ();
+    type Strategy = BoxedStrategy<Self>;
+
+    fn arbitrary_with((): Self::Parameters) -> Self::Strategy {
+        prop_oneof![
+            any::<KeyString>().prop_map(OwnedSegment::Field),
+            any::<isize>().prop_map(OwnedSegment::Index),
+            prop::collection::vec(any::<KeyString>(), 2..10).prop_map(OwnedSegment::Coalesce),
+        ]
+        .boxed()
     }
 }
 
@@ -497,6 +546,7 @@ impl<'a> Iterator for OwnedSegmentSliceIter<'a> {
 
 #[cfg(test)]
 mod test {
+    use super::*;
     use crate::path::parse_value_path;
 
     #[test]
@@ -545,6 +595,27 @@ mod test {
             let path = parse_value_path(path).map(String::from).ok();
 
             assert_eq!(path, expected.map(|x| x.to_owned()));
+        }
+    }
+
+    fn reparse_thing<T: std::fmt::Debug + std::fmt::Display + Eq + FromStr>(thing: T)
+    where
+        <T as FromStr>::Err: std::fmt::Debug,
+    {
+        let text = thing.to_string();
+        let thing2: T = text.parse().unwrap();
+        assert_eq!(thing, thing2);
+    }
+
+    proptest::proptest! {
+        #[test]
+        fn reparses_valid_value_path(path: OwnedValuePath) {
+            reparse_thing(path);
+        }
+
+        #[test]
+        fn reparses_valid_target_path(path: OwnedTargetPath) {
+            reparse_thing(path);
         }
     }
 }
