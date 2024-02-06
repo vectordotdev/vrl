@@ -181,7 +181,7 @@ mod tests {
         }
 
         short_plus {
-            args: func_args![value: value!("vector.dev"), plus_parts: 3],
+            args: func_args![value: value!("vector.dev"), plus_parts: 10],
             want: Ok(value!({
                 etld: "dev",
                 etld_plus: "vector.dev",
