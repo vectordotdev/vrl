@@ -1,0 +1,12 @@
+# object: { "url": "https://www.CAFé.com" }
+# result: { "host": "www.xn--caf-dma.com", "host_decoded": "www.café.com" }
+
+# parse url
+parsed_url = parse_url!(.url)
+
+# delete url - no longer needed
+del(.url)
+
+.host = parsed_url.host
+.host_decoded = decode_punycode!(.host)
+.

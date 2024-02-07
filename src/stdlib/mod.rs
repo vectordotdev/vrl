@@ -53,6 +53,7 @@ cfg_if::cfg_if! {
         mod decode_gzip;
         mod decode_mime_q;
         mod decode_percent;
+        mod decode_punycode;
         mod decode_snappy;
         mod decode_zlib;
         mod decode_zstd;
@@ -66,6 +67,7 @@ cfg_if::cfg_if! {
         mod encode_key_value;
         mod encode_logfmt;
         mod encode_percent;
+        mod encode_punycode;
         mod encode_snappy;
         mod encode_zlib;
         mod encode_zstd;
@@ -220,6 +222,7 @@ cfg_if::cfg_if! {
         pub use decode_gzip::DecodeGzip;
         pub use decode_mime_q::DecodeMimeQ;
         pub use decode_percent::DecodePercent;
+        pub use decode_punycode::DecodePunycode;
         pub use decode_snappy::DecodeSnappy;
         pub use decode_zlib::DecodeZlib;
         pub use decode_zstd::DecodeZstd;
@@ -233,6 +236,7 @@ cfg_if::cfg_if! {
         pub use encode_key_value::EncodeKeyValue;
         pub use encode_logfmt::EncodeLogfmt;
         pub use encode_percent::EncodePercent;
+        pub use encode_punycode::EncodePunycode;
         pub use encode_snappy::EncodeSnappy;
         pub use encode_zlib::EncodeZlib;
         pub use encode_zstd::EncodeZstd;
@@ -390,6 +394,7 @@ pub fn all() -> Vec<Box<dyn Function>> {
         Box::new(DecodeBase64),
         Box::new(DecodeGzip),
         Box::new(DecodePercent),
+        Box::new(DecodePunycode),
         Box::new(DecodeMimeQ),
         Box::new(DecodeSnappy),
         Box::new(DecodeZlib),
@@ -404,6 +409,7 @@ pub fn all() -> Vec<Box<dyn Function>> {
         Box::new(EncodeKeyValue),
         Box::new(EncodeLogfmt),
         Box::new(EncodePercent),
+        Box::new(EncodePunycode),
         Box::new(EncodeSnappy),
         Box::new(EncodeZlib),
         Box::new(EncodeZstd),

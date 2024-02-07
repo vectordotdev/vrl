@@ -25,6 +25,7 @@ criterion_group!(
               decode_base16,
               decode_base64,
               decode_percent,
+              decode_punycode,
               decrypt,
               // TODO: Cannot pass a Path to bench_function
               //del,
@@ -35,6 +36,7 @@ criterion_group!(
               encode_json,
               encode_logfmt,
               encode_percent,
+              encode_punycode,
               encrypt,
               ends_with,
               // TODO: Cannot pass a Path to bench_function
@@ -302,6 +304,20 @@ bench_function! {
 }
 
 bench_function! {
+    decode_punycode => vrl::stdlib::DecodePunycode;
+
+    encoded {
+        args: func_args![value: "www.xn--caf-dma.com"],
+        want: Ok("www.café.com"),
+    }
+
+    non_encoded {
+        args: func_args![value: "www.cafe.com"],
+        want: Ok("www.cafe.com"),
+    }
+}
+
+bench_function! {
     decode_mime_q => vrl::stdlib::DecodeMimeQ;
 
     base_64 {
@@ -440,6 +456,20 @@ bench_function! {
     controls {
         args: func_args![value: r#"foo bar"#, ascii_set: "CONTROLS"],
         want: Ok(r#"foo %14bar"#),
+    }
+}
+
+bench_function! {
+    encode_punycode => vrl::stdlib::EncodePunycode;
+
+    idn {
+        args: func_args![value: "www.CAFé.com"],
+        want: Ok("www.xn--caf-dma.com"),
+    }
+
+    ascii {
+        args: func_args![value: "www.cafe.com"],
+        want: Ok("www.cafe.com"),
     }
 }
 

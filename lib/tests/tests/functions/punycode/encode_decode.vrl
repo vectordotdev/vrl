@@ -1,0 +1,5 @@
+# object: { "host": "www.ليهمابتكلموشعربي؟.他们为什么不说中文" }
+# result: "www.ليهمابتكلموشعربي؟.他们为什么不说中文"
+
+encoded = encode_punycode!(.host)
+decode_punycode!(encoded)

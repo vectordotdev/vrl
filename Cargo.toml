@@ -74,6 +74,7 @@ stdlib = [
  "dep:hex",
  "dep:hmac",
  "dep:hostname",
+ "dep:idna",
  "dep:indexmap",
  "dep:md-5",
  "dep:nom",
@@ -123,6 +124,7 @@ exitcode = {version = "1", optional = true }
 flate2 = { version = "1.0.28", default-features = false, features = ["default"], optional = true }
 hex = { version = "0.4", optional = true }
 hmac = { version = "0.12.1", optional = true }
+idna = { version = "0.5", optional = true }
 iana-time-zone = "0.1.59"
 indexmap = { version = "~2.2.2", default-features = false, features = ["std"], optional = true}
 indoc = {version = "2.0.4", optional = true }

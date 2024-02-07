@@ -1,0 +1,3 @@
+# result: "www.xn--ihqwcrb4cv8a8dqg056pqjye.com"
+
+encode_punycode!("www.他们为什么不说中文.com")
