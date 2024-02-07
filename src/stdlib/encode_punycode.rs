@@ -31,17 +31,17 @@ impl Function for EncodePunycode {
         &[
             Example {
                 title: "IDN string",
-                source: r#"encode_punycode("www.café.com")"#,
+                source: r#"encode_punycode!("www.café.com")"#,
                 result: Ok("www.xn--caf-dma.com"),
             },
             Example {
                 title: "mixed case string",
-                source: r#"encode_punycode("www.CAFé.com")"#,
+                source: r#"encode_punycode!("www.CAFé.com")"#,
                 result: Ok("www.xn--caf-dma.com"),
             },
             Example {
                 title: "ascii string",
-                source: r#"encode_punycode("www.cafe.com")"#,
+                source: r#"encode_punycode!("www.cafe.com")"#,
                 result: Ok("www.cafe.com"),
             },
         ]
@@ -65,7 +65,7 @@ impl FunctionExpression for EncodePunycodeFn {
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {
-        TypeDef::bytes().infallible()
+        TypeDef::bytes().fallible()
     }
 }
 
@@ -80,19 +80,19 @@ mod test {
         idn_string {
             args: func_args![value: value!("www.café.com")],
             want: Ok(value!("www.xn--caf-dma.com")),
-            tdef: TypeDef::bytes().infallible(),
+            tdef: TypeDef::bytes().fallible(),
         }
 
         mixed_case {
             args: func_args![value: value!("www.CAFé.com")],
             want: Ok(value!("www.xn--caf-dma.com")),
-            tdef: TypeDef::bytes().infallible(),
+            tdef: TypeDef::bytes().fallible(),
         }
 
         ascii_string {
             args: func_args![value: value!("www.cafe.com")],
             want: Ok(value!("www.cafe.com")),
-            tdef: TypeDef::bytes().infallible(),
+            tdef: TypeDef::bytes().fallible(),
         }
     ];
 }

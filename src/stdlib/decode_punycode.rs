@@ -31,12 +31,12 @@ impl Function for DecodePunycode {
         &[
             Example {
                 title: "punycode string",
-                source: r#"decode_punycode("www.xn--caf-dma.com")"#,
+                source: r#"decode_punycode!("www.xn--caf-dma.com")"#,
                 result: Ok("www.café.com"),
             },
             Example {
                 title: "ascii string",
-                source: r#"decode_punycode("www.cafe.com")"#,
+                source: r#"decode_punycode!("www.cafe.com")"#,
                 result: Ok("www.cafe.com"),
             },
         ]
@@ -60,7 +60,7 @@ impl FunctionExpression for DecodePunycodeFn {
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {
-        TypeDef::bytes().infallible()
+        TypeDef::bytes().fallible()
     }
 }
 
@@ -75,13 +75,13 @@ mod test {
         demo_string {
             args: func_args![value: value!("www.xn--caf-dma.com")],
             want: Ok(value!("www.café.com")),
-            tdef: TypeDef::bytes().infallible(),
+            tdef: TypeDef::bytes().fallible(),
         }
 
         ascii_string {
             args: func_args![value: value!("www.cafe.com")],
             want: Ok(value!("www.cafe.com")),
-            tdef: TypeDef::bytes().infallible(),
+            tdef: TypeDef::bytes().fallible(),
         }
     ];
 }

@@ -8,5 +8,5 @@ parsed_url = parse_url!(.url)
 del(.url)
 
 .host = parsed_url.host
-.host_decoded = decode_punycode(.host)
+.host_decoded = decode_punycode!(.host)
 .
