@@ -95,6 +95,7 @@ criterion_group!(
               parse_common_log,
               parse_csv,
               parse_duration,
+              parse_etld,
               parse_glog,
               parse_grok,
               parse_groks,
@@ -1567,6 +1568,19 @@ bench_function! {
     literal {
         args: func_args![value: "1005ms", unit: "s"],
         want: Ok(1.005),
+    }
+}
+
+bench_function! {
+    parse_etld => vrl::stdlib::ParseEtld;
+
+    literal {
+        args: func_args![value: "vector.dev"],
+        want: Ok(Value::from(btreemap! {
+                    "etld" => "dev",
+                    "etld_plus" => "dev",
+                    "known_suffix" => true
+        }))
     }
 }
 

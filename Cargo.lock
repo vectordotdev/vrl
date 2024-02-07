@@ -31,9 +31,9 @@ dependencies = [
 
 [[package]]
 name = "afl"
-version = "0.15.2"
+version = "0.15.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "11d0c45b015c110dd9c4075c60103dbe2306a6ef1a6add9613839aeedadf6d8d"
+checksum = "a9c13149713128204a4075232d6ff49397defe1c2fbbf407d13adafef4259ca2"
 dependencies = [
  "home",
  "libc",
@@ -1672,9 +1672,9 @@ checksum = "e3148f5046208a5d56bcfc03053e3ca6334e51da8dfb19b6cdc8b306fae3283e"
 
 [[package]]
 name = "pest"
-version = "2.7.6"
+version = "2.7.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1f200d8d83c44a45b21764d1916299752ca035d15ecd46faca3e9a2a2bf6ad06"
+checksum = "219c0dcc30b6a27553f9cc242972b67f75b60eb0db71f0b5462f38b058c41546"
 dependencies = [
  "memchr",
  "thiserror",
@@ -1939,6 +1939,21 @@ dependencies = [
  "quote",
  "syn 1.0.109",
 ]
+
+[[package]]
+name = "psl"
+version = "2.1.18"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e109d6dd5679c4dce63a1c6bd7b61ed6758368af1ccf0701dfb02c021fbb9d0d"
+dependencies = [
+ "psl-types",
+]
+
+[[package]]
+name = "psl-types"
+version = "2.0.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "33cb294fe86a74cbcf50d4445b37da762029549ebeea341421c7c70370f86cac"
 
 [[package]]
 name = "ptr_meta"
@@ -2366,9 +2381,9 @@ dependencies = [
 
 [[package]]
 name = "serde_spanned"
-version = "0.6.4"
+version = "0.6.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "12022b835073e5b11e90a14f86838ceb1c8fb0325b72416845c487ac0fa95e80"
+checksum = "eb3622f419d1296904700073ea6cc23ad690adbd66f13ea683df73298736f0c1"
 dependencies = [
  "serde",
 ]
@@ -2695,9 +2710,9 @@ checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 
 [[package]]
 name = "toml"
-version = "0.8.8"
+version = "0.8.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a1a195ec8c9da26928f773888e0742ca3ca1040c6cd859c919c9f59c1954ab35"
+checksum = "9a9aad4a3066010876e8dcf5a8a06e70a558751117a145c6ce2b82c2e2054290"
 dependencies = [
  "serde",
  "serde_spanned",
@@ -2960,6 +2975,7 @@ dependencies = [
  "csv",
  "ctr",
  "data-encoding",
+ "digest",
  "dns-lookup",
  "dyn-clone",
  "exitcode",
@@ -2991,6 +3007,7 @@ dependencies = [
  "prettytable-rs",
  "proptest",
  "proptest-derive",
+ "psl",
  "quickcheck",
  "quoted_printable",
  "rand",
