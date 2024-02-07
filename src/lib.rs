@@ -52,7 +52,3 @@ pub use datadog::grok as datadog_grok;
 
 #[cfg(feature = "datadog_search")]
 pub use datadog::search as datadog_search_syntax;
-
-#[cfg(feature = "datadog_search")]
-#[macro_use]
-extern crate pest_derive;
