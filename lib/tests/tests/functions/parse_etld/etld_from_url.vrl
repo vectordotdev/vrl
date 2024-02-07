@@ -1,0 +1,6 @@
+# object: { "url": "https://vector.dev" }
+# result: { "etld": "dev", "etld_plus": "vector.dev", "known_suffix": true }
+
+parsed_url = parse_url!(.url)
+etld_result = parse_etld!(parsed_url.host, plus_parts: 1)
+etld_result
