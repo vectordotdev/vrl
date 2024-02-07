@@ -1,0 +1,5 @@
+# object: { "host": "vector.dev" }
+# result: { "etld": "dev", "etld_plus": "vector.dev", "known_suffix": true }
+
+etld_result = parse_etld!(.host, plus_parts: 1)
+etld_result

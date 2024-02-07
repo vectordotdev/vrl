@@ -129,6 +129,7 @@ fn inner_kind() -> BTreeMap<Field, Kind> {
     BTreeMap::from([
         ("etld".into(), Kind::bytes()),
         ("etld_plus".into(), Kind::bytes()),
+        ("known_suffix".into(), Kind::boolean()),
     ])
 }
 
