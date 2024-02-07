@@ -4,6 +4,26 @@
 
 <!-- changelog start -->
 
+## [0.11.0 (2024-02-07)]
+
+
+### New Features
+
+- Added `parse_etld` function for extracting eTLD and eTLD+1 (https://github.com/vectordotdev/vrl/pull/669)
+- Added `encode_punycode` and `decode_punycode` functions (https://github.com/vectordotdev/vrl/pull/672)
+
+### Enhancements
+
+- Introduced a `redactor` option in `redact` function to enable the substitution of redacted content with either a custom string or a hash representation. (https://github.com/vectordotdev/vrl/pull/633)
+- Add VRL function `get_timezone_name` to return the configured/resolved IANA timezone name.
+
+  authors: klondikedragon (https://github.com/vectordotdev/vrl/pull/671)
+
+### Fixes
+
+- Fixed a bug in exporting paths containing more than one "coalesce" segment. (https://github.com/vectordotdev/vrl/pull/679)
+
+
 ## [0.10.0 (2024-01-24)]
 
 
