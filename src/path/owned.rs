@@ -1,4 +1,4 @@
-use std::fmt::{Debug, Display, Formatter};
+use std::fmt::{self, Debug, Display, Formatter, Write};
 use std::str::FromStr;
 
 use once_cell::sync::Lazy;
@@ -199,29 +199,36 @@ impl OwnedTargetPath {
 }
 
 impl Display for OwnedTargetPath {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", String::from(self.to_owned()))
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self.prefix {
+            PathPrefix::Event => write!(f, ".")?,
+            PathPrefix::Metadata => write!(f, "%")?,
+        }
+        Display::fmt(&self.path, f)
     }
 }
 
 impl Debug for OwnedTargetPath {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         Display::fmt(self, f)
     }
 }
 
 impl From<OwnedTargetPath> for String {
     fn from(target_path: OwnedTargetPath) -> Self {
-        match target_path.prefix {
-            PathPrefix::Event => format!(".{}", target_path.path),
-            PathPrefix::Metadata => format!("%{}", target_path.path),
-        }
+        Self::from(&target_path)
+    }
+}
+
+impl From<&OwnedTargetPath> for String {
+    fn from(target_path: &OwnedTargetPath) -> Self {
+        target_path.to_string()
     }
 }
 
 impl Display for OwnedValuePath {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", String::from(self.clone()))
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", String::from(self))
     }
 }
 
@@ -279,21 +286,27 @@ impl TryFrom<KeyString> for OwnedTargetPath {
 
 impl From<OwnedValuePath> for String {
     fn from(owned: OwnedValuePath) -> Self {
-        owned
-            .segments
-            .iter()
-            .enumerate()
-            .map(|(i, segment)| match segment {
+        Self::from(&owned)
+    }
+}
+
+impl From<&OwnedValuePath> for String {
+    fn from(owned: &OwnedValuePath) -> Self {
+        let mut output = String::new();
+        for (i, segment) in owned.segments.iter().enumerate() {
+            match segment {
                 OwnedSegment::Field(field) => {
-                    serialize_field(field.as_ref(), (i != 0).then_some("."))
+                    serialize_field(&mut output, field.as_ref(), (i != 0).then_some("."))
                 }
-                OwnedSegment::Index(index) => format!("[{}]", index),
+                OwnedSegment::Index(index) => {
+                    write!(output, "[{index}]").expect("Could not write to string")
+                }
                 OwnedSegment::Coalesce(fields) => {
                     let mut coalesce_i = 0;
-                    let mut output = String::new();
                     let (last, fields) = fields.split_last().expect("coalesce must not be empty");
                     for field in fields {
-                        let field_output = serialize_field(
+                        serialize_field(
+                            &mut output,
                             field.as_ref(),
                             Some(if coalesce_i != 0 {
                                 "|"
@@ -304,29 +317,27 @@ impl From<OwnedValuePath> for String {
                             }),
                         );
                         coalesce_i = 1;
-                        output.push_str(&field_output);
                     }
-                    output += &serialize_field(last.as_ref(), (coalesce_i != 0).then_some("|"));
-                    output += ")";
-                    output
+                    serialize_field(&mut output, last.as_ref(), (coalesce_i != 0).then_some("|"));
+                    output.push(')');
                 }
-            })
-            .collect::<Vec<_>>()
-            .join("")
+            }
+        }
+        output
     }
 }
 
-fn serialize_field(field: &str, separator: Option<&str>) -> String {
+fn serialize_field(string: &mut String, field: &str, separator: Option<&str>) {
     // These characters should match the ones from the parser, implemented in `JitLookup`
     let needs_quotes = field.is_empty()
         || field
             .chars()
             .any(|c| !matches!(c, 'A'..='Z' | 'a'..='z' | '_' | '0'..='9' | '@'));
 
-    // Allocate enough to fit the field, a `.` and two `"` characters. This
+    // Reserve enough to fit the field, a `.` and two `"` characters. This
     // should suffice for the majority of cases when no escape sequence is used.
     let separator_len = separator.map_or(0, |x| x.len());
-    let mut string = String::with_capacity(field.as_bytes().len() + 2 + separator_len);
+    string.reserve(field.as_bytes().len() + 2 + separator_len);
     if let Some(separator) = separator {
         string.push_str(separator);
     }
@@ -342,7 +353,6 @@ fn serialize_field(field: &str, separator: Option<&str>) -> String {
     } else {
         string.push_str(field);
     }
-    string
 }
 
 impl From<Vec<OwnedSegment>> for OwnedValuePath {
@@ -480,31 +490,33 @@ impl<'a> ValuePath<'a> for &'a OwnedValuePath {
 static VALID_FIELD: Lazy<Regex> =
     Lazy::new(|| Regex::new("^[0-9]*[a-zA-Z_@][0-9a-zA-Z_@]*$").unwrap());
 
-fn field_to_string(field: &str) -> String {
+fn format_field(f: &mut Formatter<'_>, field: &str) -> fmt::Result {
     // This can eventually just parse the field and see if it's valid, but the
     // parser is currently lenient in what it accepts so it doesn't catch all cases that
     // should be quoted
     let needs_quotes = !VALID_FIELD.is_match(field);
     if needs_quotes {
-        format!("\"{}\"", field)
+        write!(f, "\"{field}\"")
     } else {
-        field.to_string()
+        write!(f, "{field}")
     }
 }
 
 impl Display for OwnedSegment {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            OwnedSegment::Index(i) => write!(f, "[{}]", i),
-            OwnedSegment::Field(field) => write!(f, "{}", field_to_string(field)),
-            OwnedSegment::Coalesce(v) => write!(
-                f,
-                "({})",
-                v.iter()
-                    .map(|field| field_to_string(field))
-                    .collect::<Vec<_>>()
-                    .join(" | ")
-            ),
+            OwnedSegment::Index(i) => write!(f, "[{i}]"),
+            OwnedSegment::Field(field) => format_field(f, field),
+            OwnedSegment::Coalesce(v) => {
+                write!(f, "(")?;
+                for (i, field) in v.iter().enumerate() {
+                    if i > 0 {
+                        write!(f, " | ")?;
+                    }
+                    format_field(f, field)?;
+                }
+                write!(f, ")")
+            }
         }
     }
 }
