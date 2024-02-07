@@ -59,7 +59,7 @@ impl FunctionExpression for EncodePunycodeFn {
         let string = value.try_bytes_utf8_lossy()?;
 
         let encoded = idna::domain_to_ascii(&string)
-            .map_err(|err| format!("unable to encode to punycode: {err}"))?;
+            .map_err(|errors| format!("unable to encode to punycode: {errors}"))?;
 
         Ok(encoded.into())
     }

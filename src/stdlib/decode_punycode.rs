@@ -54,7 +54,7 @@ impl FunctionExpression for DecodePunycodeFn {
         let string = value.try_bytes_utf8_lossy()?;
 
         let (encoded, result) = idna::domain_to_unicode(&string);
-        result.map_err(|err| format!("unable to decode punycode: {err}"))?;
+        result.map_err(|errors| format!("unable to decode punycode: {errors}"))?;
 
         Ok(encoded.into())
     }
