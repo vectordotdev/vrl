@@ -12,4 +12,4 @@ mod parser;
 
 pub use field::{normalize_fields, Field};
 pub use node::{BooleanType, Comparison, ComparisonValue, QueryNode};
-pub use parser::{parse, Error};
+pub use parser::Error as ParseError;

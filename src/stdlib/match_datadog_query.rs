@@ -6,7 +6,7 @@ use crate::datadog_filter::{
     regex::{wildcard_regex, word_regex},
     Filter, Matcher, Resolver, Run,
 };
-use crate::datadog_search_syntax::{parse, Comparison, ComparisonValue, Field};
+use crate::datadog_search_syntax::{Comparison, ComparisonValue, Field, ParseError, QueryNode};
 use crate::owned_value_path;
 use crate::path::{parse_value_path, OwnedValuePath};
 
@@ -58,7 +58,7 @@ impl Function for MatchDatadogQuery {
             .expect("datadog search query should be a UTF8 string");
 
         // Compile the Datadog search query to AST.
-        let node = parse(&query).map_err(|e| {
+        let node: QueryNode = query.parse().map_err(|e: ParseError| {
             Box::new(ExpressionError::from(e.to_string())) as Box<dyn DiagnosticMessage>
         })?;
 
