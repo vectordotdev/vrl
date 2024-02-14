@@ -314,7 +314,7 @@ mod test {
 
         multiple_patterns_and_aliases_first_pattern_matches {
             args: func_args![
-                value: r##"2020-10-02T23:22:12.223222Z info 200 hello world"##,
+                value: "2020-10-02T23:22:12.223222Z info 200 hello world",
                 patterns: Value::Array(vec![
                     "%{common_prefix} %{_status} %{_message}".into(),
                     "%{common_prefix} %{_message}".into(),
@@ -338,7 +338,7 @@ mod test {
 
         presence_of_alias_sources_argument {
             args: func_args![
-                value: r##"2020-10-02T23:22:12.223222Z info 200 hello world"##,
+                value: "2020-10-02T23:22:12.223222Z info 200 hello world",
                 patterns: Value::Array(vec![
                     "%{common_prefix} %{_status} %{_message}".into(),
                     "%{common_prefix} %{_message}".into(),
@@ -363,7 +363,7 @@ mod test {
 
         multiple_patterns_and_aliases_second_pattern_matches {
             args: func_args![
-                value: r##"2020-10-02T23:22:12.223222Z info hello world"##,
+                value: "2020-10-02T23:22:12.223222Z info hello world",
                 patterns: Value::Array(vec![
                     "%{common_prefix} %{_status} %{_message}".into(),
                     "%{common_prefix} %{_message}".into(),

@@ -1651,7 +1651,7 @@ bench_function! {
 
     simple {
         args: func_args![
-            value: r##"2020-10-02T23:22:12.223222Z info hello world"##,
+            value: r"2020-10-02T23:22:12.223222Z info hello world",
             patterns: Value::Array(vec![
                 "%{common_prefix} %{_status} %{_message}".into(),
                 "%{common_prefix} %{_message}".into(),

@@ -78,11 +78,11 @@ pub(crate) fn run(
         let readline = rl.readline("$ ");
         match readline.as_deref() {
             Ok(line) if line == "exit" || line == "quit" => break,
-            Ok(line) if line == "help" => print_help_text(),
+            Ok("help") => print_help_text(),
             Ok(line) if line == "help functions" || line == "help funcs" || line == "help fs" => {
                 print_function_list()
             }
-            Ok(line) if line == "help docs" => open_url(DOCS_URL),
+            Ok("help docs") => open_url(DOCS_URL),
             // Capture "help error <code>"
             Ok(line) if error_docs_regex.is_match(line) => show_error_docs(line, &error_docs_regex),
             // Capture "help docs <func_name>"
