@@ -176,7 +176,7 @@ community-id = { version = "0.2.2", optional = true}
 zstd = { version = "0.13.0", default-features = false, features = ["wasm"], optional = true }
 
 # Cryptography
-aes = { version = "0.8.2", optional = true }
+aes = { version = "0.8.4", optional = true }
 chacha20poly1305 = { version = "0.10.1", optional = true }
 crypto_secretbox = { version = "0.1.1", features = ["salsa20"], optional = true }
 
