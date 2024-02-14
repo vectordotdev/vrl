@@ -27,7 +27,7 @@ impl Function for Array {
         &[
             Example {
                 title: "valid",
-                source: r#"array([1,2,3])"#,
+                source: "array([1,2,3])",
                 result: Ok("[1,2,3]"),
             },
             Example {

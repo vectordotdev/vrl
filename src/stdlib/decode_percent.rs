@@ -40,7 +40,7 @@ impl Function for DecodePercent {
         &[Example {
             title: "percent decode string",
             source: r#"decode_percent("foo%20bar%3F")"#,
-            result: Ok(r#"foo bar?"#),
+            result: Ok("foo bar?"),
         }]
     }
 }

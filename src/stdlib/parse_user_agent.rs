@@ -28,12 +28,12 @@ impl Function for ParseUserAgent {
     }
 
     fn usage(&self) -> &'static str {
-        indoc! {r#"
+        indoc! {"
             Parses the provided `value` as a user agent.
 
             Parses on the basis of best effort. Returned schema depends only on the configured `mode`,
             so if the function fails to parse a field it will set it to `null`.
-        "#}
+        "}
     }
 
     fn parameters(&self) -> &'static [Parameter] {
@@ -562,13 +562,13 @@ mod tests {
         parse_user_agent => ParseUserAgent;
 
         parses {
-            args: func_args![ value: r#"Mozilla/4.0 (compatible; MSIE 7.66; Windows NT 5.1; SV1)"# ],
+            args: func_args![ value: "Mozilla/4.0 (compatible; MSIE 7.66; Windows NT 5.1; SV1)" ],
             want: Ok(value!({ browser: { family: "Internet Explorer", version: "7.66" }, device: { category: "pc" }, os: { family: "Windows XP", version: "NT 5.1" } })),
             tdef: Mode::Fast.type_def(),
         }
 
         unknown_user_agent {
-            args: func_args![ value: r#"w3m/0.3"#, mode: "enriched"],
+            args: func_args![ value: "w3m/0.3", mode: "enriched"],
             want: Ok(value!({ browser: { family: null, major: null, minor: null, patch: null, version: null }, device: { brand: null, category: null, family: null, model: null }, os: { family: null, major: null, minor: null, patch: null, patch_minor: null, version: null } })),
             tdef: Mode::Enriched.type_def(),
         }

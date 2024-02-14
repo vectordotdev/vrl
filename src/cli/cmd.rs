@@ -101,7 +101,7 @@ impl Opts {
 #[must_use]
 pub fn cmd(opts: &Opts, stdlib_functions: Vec<Box<dyn Function>>) -> exitcode::ExitCode {
     match run(opts, stdlib_functions) {
-        Ok(_) => exitcode::OK,
+        Ok(()) => exitcode::OK,
         Err(err) => {
             #[allow(clippy::print_stderr)]
             {

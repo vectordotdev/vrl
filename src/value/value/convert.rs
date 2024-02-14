@@ -307,7 +307,7 @@ impl From<DateTime<Utc>> for Value {
 }
 
 impl From<()> for Value {
-    fn from(_: ()) -> Self {
+    fn from((): ()) -> Self {
         Self::Null
     }
 }

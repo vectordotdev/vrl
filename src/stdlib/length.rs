@@ -35,7 +35,7 @@ impl Function for Length {
         &[
             Example {
                 title: "array",
-                source: r#"length([0, 1])"#,
+                source: "length([0, 1])",
                 result: Ok("2"),
             },
             Example {

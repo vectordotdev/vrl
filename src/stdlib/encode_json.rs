@@ -100,13 +100,13 @@ mod tests {
         encode_json => EncodeJson;
 
         bytes {
-            args: func_args![value: r#"hello"#],
+            args: func_args![value: "hello"],
             want: Ok(r#""hello""#),
             tdef: TypeDef::bytes().infallible(),
         }
 
         bytes_pretty {
-            args: func_args![value: r#"hello"#, pretty: true],
+            args: func_args![value: "hello", pretty: true],
             want: Ok(r#""hello""#),
             tdef: TypeDef::bytes().infallible(),
         }

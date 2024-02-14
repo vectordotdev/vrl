@@ -45,17 +45,17 @@ impl Function for DecodeMimeQ {
             Example {
                 title: "Single",
                 source: r#"decode_mime_q!("=?utf-8?b?SGVsbG8sIFdvcmxkIQ==?=")"#,
-                result: Ok(r#"Hello, World!"#),
+                result: Ok("Hello, World!"),
             },
             Example {
                 title: "Embedded",
                 source: r#"decode_mime_q!("From: =?utf-8?b?SGVsbG8sIFdvcmxkIQ==?= <=?utf-8?q?hello=5Fworld=40example=2ecom?=>")"#,
-                result: Ok(r#"From: Hello, World! <hello_world@example.com>"#),
+                result: Ok("From: Hello, World! <hello_world@example.com>"),
             },
             Example {
                 title: "Without charset",
                 source: r#"decode_mime_q!("?b?SGVsbG8sIFdvcmxkIQ==")"#,
-                result: Ok(r#"Hello, World!"#),
+                result: Ok("Hello, World!"),
             },
         ]
     }
@@ -169,13 +169,14 @@ impl<'a> EncodedWord<'a> {
                 // whitespace
                 let to_decode = self.input.replace('_', " ");
                 let trimmed = to_decode.trim_end();
-                let mut d = quoted_printable::decode(trimmed, quoted_printable::ParseMode::Robust);
-                if d.is_ok() && to_decode.len() != trimmed.len() {
-                    d.as_mut()
-                        .unwrap()
-                        .extend_from_slice(to_decode[trimmed.len()..].as_bytes());
+                let mut result =
+                    quoted_printable::decode(trimmed, quoted_printable::ParseMode::Robust);
+                if let Ok(ref mut d) = result {
+                    if to_decode.len() != trimmed.len() {
+                        d.extend_from_slice(to_decode[trimmed.len()..].as_bytes());
+                    }
                 }
-                d.map_err(|_| "Unable to decode quoted_printable value")?
+                result.map_err(|_| "Unable to decode quoted_printable value")?
             }
             _ => return Err(format!("Invalid encoding: {:?}", self.encoding).into()),
         };

@@ -61,8 +61,8 @@ impl Function for Flatten {
             },
             Example {
                 title: "array",
-                source: r#"flatten([[true]])"#,
-                result: Ok(r#"[true]"#),
+                source: "flatten([[true]])",
+                result: Ok("[true]"),
             },
         ]
     }

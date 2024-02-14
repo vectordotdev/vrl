@@ -61,18 +61,18 @@ impl Function for FormatInt {
         &[
             Example {
                 title: "format decimal integer",
-                source: r#"format_int!(42)"#,
+                source: "format_int!(42)",
                 // extra "s are needed to avoid being read as an integer by tests
                 result: Ok("\"42\""),
             },
             Example {
                 title: "format hexadecimal integer",
-                source: r#"format_int!(42, 16)"#,
+                source: "format_int!(42, 16)",
                 result: Ok("2a"),
             },
             Example {
                 title: "format negative hexadecimal integer",
-                source: r#"format_int!(-42, 16)"#,
+                source: "format_int!(-42, 16)",
                 result: Ok("-2a"),
             },
         ]

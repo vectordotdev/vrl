@@ -31,6 +31,6 @@ impl Expression for Group {
 
 impl fmt::Display for Group {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, r#"({})"#, self.inner)
+        write!(f, "({})", self.inner)
     }
 }

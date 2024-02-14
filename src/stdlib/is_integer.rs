@@ -26,12 +26,12 @@ impl Function for IsInteger {
             },
             Example {
                 title: "integer",
-                source: r#"is_integer(1515)"#,
+                source: "is_integer(1515)",
                 result: Ok("true"),
             },
             Example {
                 title: "null",
-                source: r#"is_integer(null)"#,
+                source: "is_integer(null)",
                 result: Ok("false"),
             },
         ]

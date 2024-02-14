@@ -66,7 +66,7 @@ impl Function for DecodeBase64 {
         &[Example {
             title: "demo string",
             source: r#"decode_base64!("c29tZSBzdHJpbmcgdmFsdWU=")"#,
-            result: Ok(r#"some string value"#),
+            result: Ok("some string value"),
         }]
     }
 }

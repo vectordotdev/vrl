@@ -3,7 +3,7 @@ use crate::compiler::prelude::*;
 fn timestamp(value: Value) -> Resolved {
     match value {
         v @ Value::Timestamp(_) => Ok(v),
-        v => Err(format!(r#"expected timestamp, got {}"#, v.kind()).into()),
+        v => Err(format!("expected timestamp, got {}", v.kind()).into()),
     }
 }
 
@@ -27,7 +27,7 @@ impl Function for Timestamp {
         &[
             Example {
                 title: "valid",
-                source: r#"to_string(timestamp(t'2021-02-11 21:42:01Z'))"#,
+                source: "to_string(timestamp(t'2021-02-11 21:42:01Z'))",
                 result: Ok(r#""2021-02-11T21:42:01Z""#),
             },
             Example {

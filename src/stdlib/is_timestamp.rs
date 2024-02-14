@@ -26,12 +26,12 @@ impl Function for IsTimestamp {
             },
             Example {
                 title: "boolean",
-                source: r#"is_timestamp(true)"#,
+                source: "is_timestamp(true)",
                 result: Ok("false"),
             },
             Example {
                 title: "null",
-                source: r#"is_timestamp(t'2021-03-26T16:00:00Z')"#,
+                source: "is_timestamp(t'2021-03-26T16:00:00Z')",
                 result: Ok("true"),
             },
         ]

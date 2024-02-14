@@ -39,7 +39,7 @@ fn format_number(
     debug_assert!(parts.len() <= 2);
     // Manipulate fractional part based on configuration.
     match scale {
-        Some(i) if i == 0 => parts.truncate(1),
+        Some(0) => parts.truncate(1),
         Some(i) => {
             let i = i as usize;
 

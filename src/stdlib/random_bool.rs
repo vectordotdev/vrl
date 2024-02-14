@@ -23,7 +23,7 @@ impl Function for RandomBool {
     fn examples(&self) -> &'static [Example] {
         &[Example {
             title: "generate a random boolean",
-            source: r#"is_boolean(random_bool())"#,
+            source: "is_boolean(random_bool())",
             result: Ok("true"),
         }]
     }

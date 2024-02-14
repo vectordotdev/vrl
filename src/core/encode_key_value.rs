@@ -647,7 +647,7 @@ mod tests {
                 true
             )
             .unwrap(),
-            r#"tag_a:val_a,tag_b:val_b,tag_c"#
+            "tag_a:val_a,tag_b:val_b,tag_c"
         );
     }
 

@@ -23,7 +23,7 @@ impl Function for DecodeZstd {
         &[Example {
             title: "demo string",
             source: r#"decode_zstd!(decode_base64!("KLUv/QBY/QEAYsQOFKClbQBedqXsb96EWDax/f/F/z+gNU4ZTInaUeAj82KqPFjUzKqhcfDqAIsLvAsnY1bI/N2mHzDixRQA"))"#,
-            result: Ok(r#"you_have_successfully_decoded_me.congratulations.you_are_breathtaking."#),
+            result: Ok("you_have_successfully_decoded_me.congratulations.you_are_breathtaking."),
         }]
     }
 

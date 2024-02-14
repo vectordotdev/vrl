@@ -388,7 +388,7 @@ bench_function! {
             key_value_delimiter: ":",
             field_delimiter: ","
         ],
-        want: Ok(r#"can:pnh,hrb:tsn,mow:vvo,pkc:hrb,pnh:sin,sin:syd,tsn:can,vvo:pkc"#),
+        want: Ok("can:pnh,hrb:tsn,mow:vvo,pkc:hrb,pnh:sin,sin:syd,tsn:can,vvo:pkc"),
     }
 
     fields_ordering {
@@ -407,7 +407,7 @@ bench_function! {
             key_value_delimiter: ":",
             field_delimiter: ","
         ],
-        want: Ok(r#"mow:vvo,vvo:pkc,pkc:hrb,hrb:tsn,tsn:can,can:pnh,pnh:sin,sin:syd"#),
+        want: Ok("mow:vvo,vvo:pkc,pkc:hrb,hrb:tsn,tsn:can,can:pnh,pnh:sin,sin:syd"),
     }
 }
 
@@ -449,13 +449,13 @@ bench_function! {
     encode_percent => vrl::stdlib::EncodePercent;
 
     non_alphanumeric {
-        args: func_args![value: r#"foo bar?"#],
-        want: Ok(r#"foo%20bar%3F"#),
+        args: func_args![value: "foo bar?"],
+        want: Ok("foo%20bar%3F"),
     }
 
     controls {
-        args: func_args![value: r#"foo bar"#, ascii_set: "CONTROLS"],
-        want: Ok(r#"foo %14bar"#),
+        args: func_args![value: "foo bar", ascii_set: "CONTROLS"],
+        want: Ok("foo %14bar"),
     }
 }
 
@@ -1441,7 +1441,7 @@ bench_function! {
 
     simple {
         args: func_args! [
-            value: r#"CEF:0|CyberArk|PTA|12.6|1|Suspected credentials theft|8|suser=mike2@prod1.domain.com shost=prod1.domain.com src=1.1.1.1"#
+            value: "CEF:0|CyberArk|PTA|12.6|1|Suspected credentials theft|8|suser=mike2@prod1.domain.com shost=prod1.domain.com src=1.1.1.1"
         ],
         want: Ok(value!({
             "cefVersion": "0",
@@ -1547,7 +1547,7 @@ bench_function! {
     }
 
     error {
-        args: func_args![value: r#"[01/Mar/2021:12:00:19 +0000] [ab:alert] [pid 4803:tid 3814] [client 147.159.108.175:24259] I will bypass the haptic COM bandwidth, that should matrix the CSS driver!"#,
+        args: func_args![value: "[01/Mar/2021:12:00:19 +0000] [ab:alert] [pid 4803:tid 3814] [client 147.159.108.175:24259] I will bypass the haptic COM bandwidth, that should matrix the CSS driver!",
                          format: "error"
         ],
         want: Ok(value!({
@@ -1651,7 +1651,7 @@ bench_function! {
 
     simple {
         args: func_args![
-            value: r##"2020-10-02T23:22:12.223222Z info hello world"##,
+            value: r"2020-10-02T23:22:12.223222Z info hello world",
             patterns: Value::Array(vec![
                 "%{common_prefix} %{_status} %{_message}".into(),
                 "%{common_prefix} %{_message}".into(),
@@ -1883,7 +1883,7 @@ bench_function! {
     single_match {
         args: func_args! [
             value: "first group and second group",
-            pattern: Regex::new(r#"(?P<number>.*?) group"#).unwrap()
+            pattern: Regex::new("(?P<number>.*?) group").unwrap()
         ],
         want: Ok(value!({
             "number": "first",
@@ -2074,7 +2074,7 @@ bench_function! {
     parse_xml => vrl::stdlib::ParseXml;
 
     simple_text {
-        args: func_args![ value: r#"<a>test</a>"# ],
+        args: func_args![ value: "<a>test</a>" ],
         want: Ok(value!({ "a": "test" }))
     }
 
@@ -2089,17 +2089,17 @@ bench_function! {
     }
 
     custom_text_key {
-        args: func_args![ value: r#"<b>test</b>"#, text_key: "node", always_use_text_key: true ],
+        args: func_args![ value: "<b>test</b>", text_key: "node", always_use_text_key: true ],
         want: Ok(value!({ "b": { "node": "test" } }))
     }
 
     nested_object {
-        args: func_args![ value: r#"<a><b>one</b><c>two</c></a>"# ],
+        args: func_args![ value: "<a><b>one</b><c>two</c></a>" ],
         want: Ok(value!({ "a": { "b": "one", "c": "two" } }))
     }
 
     nested_object_array {
-        args: func_args![ value: r#"<a><b>one</b><b>two</b></a>"# ],
+        args: func_args![ value: "<a><b>one</b><b>two</b></a>" ],
         want: Ok(value!({ "a": { "b": ["one", "two"] } }))
     }
 

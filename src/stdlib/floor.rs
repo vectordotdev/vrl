@@ -60,7 +60,7 @@ impl Function for Floor {
     fn examples(&self) -> &'static [Example] {
         &[Example {
             title: "floor",
-            source: r#"floor(9.8)"#,
+            source: "floor(9.8)",
             result: Ok("9.0"),
         }]
     }

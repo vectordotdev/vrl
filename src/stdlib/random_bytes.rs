@@ -33,7 +33,7 @@ impl Function for RandomBytes {
     fn examples(&self) -> &'static [Example] {
         &[Example {
             title: "get 16 random bytes",
-            source: r#"length(random_bytes(16))"#,
+            source: "length(random_bytes(16))",
             result: Ok("16"),
         }]
     }

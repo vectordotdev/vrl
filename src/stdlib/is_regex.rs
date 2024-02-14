@@ -31,7 +31,7 @@ impl Function for IsRegex {
             },
             Example {
                 title: "null",
-                source: r#"is_regex(null)"#,
+                source: "is_regex(null)",
                 result: Ok("false"),
             },
         ]

@@ -21,17 +21,17 @@ impl Function for IsFloat {
         &[
             Example {
                 title: "float",
-                source: r#"is_float(0.577)"#,
+                source: "is_float(0.577)",
                 result: Ok("true"),
             },
             Example {
                 title: "boolean",
-                source: r#"is_float(true)"#,
+                source: "is_float(true)",
                 result: Ok("false"),
             },
             Example {
                 title: "null",
-                source: r#"is_float(null)"#,
+                source: "is_float(null)",
                 result: Ok("false"),
             },
         ]

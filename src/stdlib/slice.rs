@@ -17,12 +17,12 @@ fn slice(start: i64, end: Option<i64>, value: Value) -> Resolved {
         };
 
         match () {
-            _ if start < 0 || start > len => {
+            () if start < 0 || start > len => {
                 Err(format!(r#""start" must be between "{}" and "{len}""#, -len).into())
             }
-            _ if end < start => Err(r#""end" must be greater or equal to "start""#.into()),
-            _ if end > len => Ok(start as usize..len as usize),
-            _ => Ok(start as usize..end as usize),
+            () if end < start => Err(r#""end" must be greater or equal to "start""#.into()),
+            () if end > len => Ok(start as usize..len as usize),
+            () => Ok(start as usize..end as usize),
         }
     };
     match value {
@@ -82,7 +82,7 @@ impl Function for Slice {
             },
             Example {
                 title: "array start",
-                source: r#"slice!([0, 1, 2], 1)"#,
+                source: "slice!([0, 1, 2], 1)",
                 result: Ok("[1, 2]"),
             },
         ]

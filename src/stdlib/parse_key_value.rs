@@ -478,7 +478,7 @@ mod test {
         );
 
         assert_eq!(
-            Ok(vec![(r"a\ a".to_string().into(), r#"val"#.into()),]),
+            Ok(vec![(r"a\ a".to_string().into(), "val".into()),]),
             parse(r#""a\ a"=val"#, "=", " ", Whitespace::Strict, true,)
         );
     }
@@ -656,7 +656,7 @@ mod test {
         // Standalone key
         assert_eq!(
             Ok((" bar=baz", "foo")),
-            parse_key::<VerboseError<&str>>("=", " ", true)(r#"foo bar=baz"#)
+            parse_key::<VerboseError<&str>>("=", " ", true)("foo bar=baz")
         );
     }
 
@@ -691,7 +691,7 @@ mod test {
     fn test_parse_delimited_with_single_quotes() {
         assert_eq!(
             Ok(("", "test")),
-            parse_delimited::<VerboseError<&str>>('\'', " ")(r#"'test'"#)
+            parse_delimited::<VerboseError<&str>>('\'', " ")("'test'")
         );
     }
 
@@ -802,7 +802,7 @@ mod test {
 
         strict {
             args: func_args! [
-                value: r#"foo= bar= tar=data"#,
+                value: "foo= bar= tar=data",
                 whitespace: "strict"
             ],
             want: Ok(value!({foo: "",
@@ -856,7 +856,7 @@ mod test {
 
         error {
             args: func_args! [
-                value: r#"I am not a valid line."#,
+                value: "I am not a valid line.",
                 key_value_delimiter: "--",
                 field_delimiter: "||",
                 accept_standalone_key: false,
@@ -871,11 +871,11 @@ mod test {
         // key_value_delimiter is the value since there is no terminator to stop the parsing.
         missing_separator {
             args: func_args! [
-                value: r#"zork: zoog, nonk: nink norgle: noog"#,
+                value: "zork: zoog, nonk: nink norgle: noog",
                 key_value_delimiter: ":",
                 field_delimiter: ",",
             ],
-            want: Ok(value!({zork: r#"zoog"#,
+            want: Ok(value!({zork: "zoog",
                              nonk: "nink norgle: noog"})),
             tdef: type_def(),
         }

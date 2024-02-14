@@ -27,7 +27,7 @@ impl Function for Float {
         &[
             Example {
                 title: "valid",
-                source: r#"float(3.1415)"#,
+                source: "float(3.1415)",
                 result: Ok("3.1415"),
             },
             Example {

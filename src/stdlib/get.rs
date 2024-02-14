@@ -14,7 +14,7 @@ fn get(value: Value, value_path: Value) -> Resolved {
                     Value::Integer(index) => OwnedSegment::index(index as isize),
                     value => {
                         return Err(format!(
-                            r#"path segment must be either string or integer, not {}"#,
+                            "path segment must be either string or integer, not {}",
                             value.kind()
                         )
                         .into())
@@ -74,11 +74,11 @@ impl Function for Get {
             Example {
                 title: "nested path",
                 source: r#"get!(value: {"foo": { "bar": true }}, path: ["foo", "bar"])"#,
-                result: Ok(r#"true"#),
+                result: Ok("true"),
             },
             Example {
                 title: "indexing",
-                source: r#"get!(value: [92, 42], path: [0])"#,
+                source: "get!(value: [92, 42], path: [0])",
                 result: Ok("92"),
             },
             Example {

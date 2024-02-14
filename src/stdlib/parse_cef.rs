@@ -548,7 +548,7 @@ mod test {
                 ("name".to_string(), "worm successfully stopped".into()),
                 ("severity".to_string(), "10".into()),
             ]),
-            parse(r#"CEF:1|Security|threatmanager|1.0|100|worm successfully stopped|10|dst=2.1.2.2 msg=Detected a threat. No action needed   spt=1232"#)
+            parse("CEF:1|Security|threatmanager|1.0|100|worm successfully stopped|10|dst=2.1.2.2 msg=Detected a threat. No action needed   spt=1232")
                 .map(Iterator::collect)
         );
     }
@@ -567,7 +567,7 @@ mod test {
                 ("name".to_string(), "worm successfully stopped".into()),
                 ("severity".to_string(), "10".into()),
             ]),
-            parse(r#"CEF:1|Security|threatmanager|1.0|100|worm successfully stopped|10|dst=2.1.2.2 msg=Detected a threat. No action needed   "#)
+            parse("CEF:1|Security|threatmanager|1.0|100|worm successfully stopped|10|dst=2.1.2.2 msg=Detected a threat. No action needed   ")
                 .map(Iterator::collect)
         );
     }
@@ -577,7 +577,7 @@ mod test {
 
         default {
             args: func_args! [
-                value: r#"CEF:0|CyberArk|PTA|12.6|1|Suspected credentials theft|8|suser=mike2@prod1.domain.com shost=prod1.domain.com src=1.1.1.1"#,
+                value: "CEF:0|CyberArk|PTA|12.6|1|Suspected credentials theft|8|suser=mike2@prod1.domain.com shost=prod1.domain.com src=1.1.1.1",
             ],
             want: Ok(value!({
                 "cefVersion":"0",
@@ -645,7 +645,7 @@ mod test {
 
         translate_custom_fields {
             args: func_args! [
-                value: r#"CEF:0|CyberArk|PTA|12.6|1|Suspected credentials theft|8|suser=mike2@prod1.domain.com cn1=1254323565 shost=prod1.domain.com src=1.1.1.1 cfp1Label=Uptime hours cfp1=35.46 cn1Label=Internal ID"#,
+                value: "CEF:0|CyberArk|PTA|12.6|1|Suspected credentials theft|8|suser=mike2@prod1.domain.com cn1=1254323565 shost=prod1.domain.com src=1.1.1.1 cfp1Label=Uptime hours cfp1=35.46 cn1Label=Internal ID",
                 translate_custom_fields: true
             ],
             want: Ok(value!({
@@ -667,7 +667,7 @@ mod test {
 
         missing_value {
             args: func_args! [
-                value: r#"CEF:0|CyberArk|PTA|12.6||Suspected credentials theft||suser=mike2@prod1.domain.com shost= src=1.1.1.1"#,
+                value: "CEF:0|CyberArk|PTA|12.6||Suspected credentials theft||suser=mike2@prod1.domain.com shost= src=1.1.1.1",
             ],
             want: Ok(value!({
                 "cefVersion":"0",
@@ -686,7 +686,7 @@ mod test {
 
         missing_key {
             args: func_args! [
-                value: r#"CEF:0|Check Point|VPN-1 & FireWall-1|Check Point|Log|https|Unknown|act=Accept =0.0.0.0"#,
+                value: "CEF:0|Check Point|VPN-1 & FireWall-1|Check Point|Log|https|Unknown|act=Accept =0.0.0.0",
             ],
             want: Err("Could not parse whole line successfully"),
             tdef: type_def(),
@@ -694,7 +694,7 @@ mod test {
 
         incomplete_header {
             args: func_args! [
-                value: r#"CEF:0|Check Point|VPN-1 & FireWall-1|Check Point|Log|https|"#,
+                value: "CEF:0|Check Point|VPN-1 & FireWall-1|Check Point|Log|https|",
             ],
             want: Err("0: at line 1, in Tag:\nCEF:0|Check Point|VPN-1 & FireWall-1|Check Point|Log|https|\n                                                           ^\n\n1: at line 1, in Alt:\nCEF:0|Check Point|VPN-1 & FireWall-1|Check Point|Log|https|\n                                                           ^\n\n"),
             tdef: type_def(),
@@ -719,7 +719,7 @@ mod test {
 
         missing_custom_label {
             args: func_args! [
-                value: r#"CEF:0|CyberArk|PTA|12.6|1|Suspected credentials theft|8|cfp1=1.23"#,
+                value: "CEF:0|CyberArk|PTA|12.6|1|Suspected credentials theft|8|cfp1=1.23",
                 translate_custom_fields: true
             ],
             want: Err("Custom field with missing label or value"),
@@ -728,7 +728,7 @@ mod test {
 
         duplicate_value {
             args: func_args! [
-                value: r#"CEF:0|CyberArk|PTA|12.6|1|Suspected credentials theft|8|flexString1=1.23 flexString1=1.24 flexString1Label=Version"#,
+                value: "CEF:0|CyberArk|PTA|12.6|1|Suspected credentials theft|8|flexString1=1.23 flexString1=1.24 flexString1Label=Version",
                 translate_custom_fields: true
             ],
             want: Err("Custom field with duplicate value"),

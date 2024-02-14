@@ -11,11 +11,11 @@ use std::{
 // See also: https://www.ssa.gov/history/ssn/geocard.html
 static US_SOCIAL_SECURITY_NUMBER: Lazy<regex::Regex> = Lazy::new(|| {
     regex::Regex::new(
-    r#"(?x)                                                               # Ignore whitespace and comments in the regex expression.
+        "(?x)                                                               # Ignore whitespace and comments in the regex expression.
     (?:00[1-9]|0[1-9][0-9]|[1-578][0-9]{2}|6[0-57-9][0-9]|66[0-57-9])-    # Area number: 001-899 except 666
     (?:0[1-9]|[1-9]0|[1-9][1-9])-                                         # Group number: 01-99
     (?:000[1-9]|00[1-9]0|0[1-9]00|[1-9]000|[1-9]{4})                      # Serial number: 0001-9999
-    "#).unwrap()
+    ").unwrap()
 });
 
 #[derive(Clone, Copy, Debug)]
@@ -51,7 +51,7 @@ impl Function for Redact {
             Example {
                 title: "regex",
                 source: r#"redact("my id is 123456", filters: [r'\d+'])"#,
-                result: Ok(r#"my id is [REDACTED]"#),
+                result: Ok("my id is [REDACTED]"),
             },
             Example {
                 title: "us_social_security_number",
@@ -61,25 +61,25 @@ impl Function for Redact {
             Example {
                 title: "text redactor",
                 source: r#"redact("my id is 123456", filters: [r'\d+'], redactor: {"type": "text", "replacement": "***"})"#,
-                result: Ok(r#"my id is ***"#),
+                result: Ok("my id is ***"),
             },
             Example {
                 title: "sha2",
                 source: r#"redact("my id is 123456", filters: [r'\d+'], redactor: "sha2")"#,
-                result: Ok(r#"my id is GEtTedW1p6tC094dDKH+3B8P+xSnZz69AmpjaXRd63I="#),
+                result: Ok("my id is GEtTedW1p6tC094dDKH+3B8P+xSnZz69AmpjaXRd63I="),
             },
             Example {
                 title: "sha3",
                 source: r#"redact("my id is 123456", filters: [r'\d+'], redactor: "sha3")"#,
                 result: Ok(
-                    r#"my id is ZNCdmTDI7PeeUTFnpYjLdUObdizo+bIupZdl8yqnTKGdLx6X3JIqPUlUWUoFBikX+yTR+OcvLtAqWO11NPlNJw=="#,
+                    "my id is ZNCdmTDI7PeeUTFnpYjLdUObdizo+bIupZdl8yqnTKGdLx6X3JIqPUlUWUoFBikX+yTR+OcvLtAqWO11NPlNJw==",
                 ),
             },
             Example {
                 title: "sha256 hex",
                 source: r#"redact("my id is 123456", filters: [r'\d+'], redactor: {"type": "sha2", "variant": "SHA-256", "encoding": "base16"})"#,
                 result: Ok(
-                    r#"my id is 8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92"#,
+                    "my id is 8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
                 ),
             },
         ]

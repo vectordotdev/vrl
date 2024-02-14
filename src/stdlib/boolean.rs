@@ -27,7 +27,7 @@ impl Function for Boolean {
         &[
             Example {
                 title: "valid",
-                source: r#"bool(false)"#,
+                source: "bool(false)",
                 result: Ok("false"),
             },
             Example {

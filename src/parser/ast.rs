@@ -353,7 +353,7 @@ impl fmt::Display for Literal {
 
         match self {
             String(v) => write!(f, r#""{v}""#),
-            RawString(v) => write!(f, r#"s'{v}'"#),
+            RawString(v) => write!(f, "s'{v}'"),
             Integer(v) => v.fmt(f),
             Float(v) => v.fmt(f),
             Boolean(v) => v.fmt(f),
@@ -483,13 +483,13 @@ impl Group {
 
 impl fmt::Display for Group {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, r#"({})"#, self.0)
+        write!(f, "({})", self.0)
     }
 }
 
 impl fmt::Debug for Group {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, r#"Group({:?})"#, self.0)
+        write!(f, "Group({:?})", self.0)
     }
 }
 

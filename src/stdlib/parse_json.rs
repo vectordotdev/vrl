@@ -101,12 +101,12 @@ impl Function for ParseJson {
     }
 
     fn usage(&self) -> &'static str {
-        indoc! {r#"
+        indoc! {"
             Parses the provided `value` as JSON.
 
             Only JSON types are returned. If you need to convert a `string` into a `timestamp`,
             consider the `parse_timestamp` function.
-        "#}
+        "}
     }
 
     fn parameters(&self) -> &'static [Parameter] {

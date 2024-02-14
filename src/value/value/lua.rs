@@ -198,27 +198,27 @@ mod test {
             ),
             (
                 Value::Integer(123),
-                r#"
+                "
                 function (value)
                     return value == 123
                 end
-                "#,
+                ",
             ),
             (
                 Value::from(4.333),
-                r#"
+                "
                 function (value)
                     return value == 4.333
                 end
-                "#,
+                ",
             ),
             (
                 Value::Null,
-                r#"
+                "
                 function (value)
                     return value == ''
                 end
-                "#,
+                ",
             ),
             (
                 Value::Object(
@@ -235,23 +235,23 @@ mod test {
                     .into_iter()
                     .collect(),
                 ),
-                r#"
+                "
                 function (value)
                     return value.x == 1 and
                         value['y'] == '2' and
                         value.nested.other == 5.111
                 end
-                "#,
+                ",
             ),
             (
                 Value::Array(vec![1_i64.into(), "2".into(), 0.577_215_66.into()]),
-                r#"
+                "
                 function (value)
                     return value[1] == 1 and
                         value[2] == '2' and
                         value[3] == 0.57721566
                 end
-                "#,
+                ",
             ),
             (
                 Value::Timestamp(

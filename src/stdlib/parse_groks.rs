@@ -314,7 +314,7 @@ mod test {
 
         multiple_patterns_and_aliases_first_pattern_matches {
             args: func_args![
-                value: r##"2020-10-02T23:22:12.223222Z info 200 hello world"##,
+                value: "2020-10-02T23:22:12.223222Z info 200 hello world",
                 patterns: Value::Array(vec![
                     "%{common_prefix} %{_status} %{_message}".into(),
                     "%{common_prefix} %{_message}".into(),
@@ -338,7 +338,7 @@ mod test {
 
         presence_of_alias_sources_argument {
             args: func_args![
-                value: r##"2020-10-02T23:22:12.223222Z info 200 hello world"##,
+                value: "2020-10-02T23:22:12.223222Z info 200 hello world",
                 patterns: Value::Array(vec![
                     "%{common_prefix} %{_status} %{_message}".into(),
                     "%{common_prefix} %{_message}".into(),
@@ -363,7 +363,7 @@ mod test {
 
         multiple_patterns_and_aliases_second_pattern_matches {
             args: func_args![
-                value: r##"2020-10-02T23:22:12.223222Z info hello world"##,
+                value: "2020-10-02T23:22:12.223222Z info hello world",
                 patterns: Value::Array(vec![
                     "%{common_prefix} %{_status} %{_message}".into(),
                     "%{common_prefix} %{_message}".into(),
@@ -388,22 +388,22 @@ mod test {
             args: func_args![
                 value: r#"127.0.0.1 - frank [13/Jul/2016:10:55:36] "GET /apache_pb.gif HTTP/1.0" 200 2326 0.202 "http://www.perdu.com/" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.87 Safari/537.36" "-""#,
                 patterns: Value::Array(vec![
-                    r#"%{access_common}"#.into(),
+                    "%{access_common}".into(),
                     r#"%{access_common} (%{number:duration:scale(1000000000)} )?"%{_referer}" "%{_user_agent}"( "%{_x_forwarded_for}")?.*"#.into(),
                     ]),
                 aliases: value!({
                     "access_common": r#"%{_client_ip} %{_ident} %{_auth} \[%{_date_access}\] "(?>%{_method} |)%{_url}(?> %{_version}|)" %{_status_code} (?>%{_bytes_written}|-)"#,
                     "_auth": r#"%{notSpace:http.auth:nullIf("-")}"#,
-                    "_bytes_written": r#"%{integer:network.bytes_written}"#,
-                    "_client_ip": r#"%{ipOrHost:network.client.ip}"#,
+                    "_bytes_written": "%{integer:network.bytes_written}",
+                    "_client_ip": "%{ipOrHost:network.client.ip}",
                     "_version": r#"HTTP\/%{regex("\\d+\\.\\d+"):http.version}"#,
-                    "_url": r#"%{notSpace:http.url}"#,
-                    "_ident": r#"%{notSpace:http.ident}"#,
+                    "_url": "%{notSpace:http.url}",
+                    "_ident": "%{notSpace:http.ident}",
                     "_user_agent": r#"%{regex("[^\\\"]*"):http.useragent}"#,
-                    "_referer": r#"%{notSpace:http.referer}"#,
-                    "_status_code": r#"%{integer:http.status_code}"#,
-                    "_method": r#"%{word:http.method}"#,
-                    "_date_access": r#"%{notSpace:date_access}"#,
+                    "_referer": "%{notSpace:http.referer}",
+                    "_status_code": "%{integer:http.status_code}",
+                    "_method": "%{word:http.method}",
+                    "_date_access": "%{notSpace:date_access}",
                     "_x_forwarded_for": r#"%{regex("[^\\\"]*"):http._x_forwarded_for:nullIf("-")}"#
                 })
             ],

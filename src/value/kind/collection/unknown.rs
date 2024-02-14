@@ -245,40 +245,41 @@ impl Infinite {
     ///
     /// Meaning, if `self` is `Any`, then it's always a superset of `other`, otherwise its
     /// accumulative types need to be a superset of `other`.
+    #[allow(clippy::nursery)]
     pub(super) const fn is_superset(&self, other: &Self) -> bool {
-        if let (None, Some(_)) = (self.bytes, other.bytes) {
+        if let (None, Some(())) = (self.bytes, other.bytes) {
             return false;
         };
 
-        if let (None, Some(_)) = (self.integer, other.integer) {
+        if let (None, Some(())) = (self.integer, other.integer) {
             return false;
         };
 
-        if let (None, Some(_)) = (self.float, other.float) {
+        if let (None, Some(())) = (self.float, other.float) {
             return false;
         };
 
-        if let (None, Some(_)) = (self.boolean, other.boolean) {
+        if let (None, Some(())) = (self.boolean, other.boolean) {
             return false;
         };
 
-        if let (None, Some(_)) = (self.timestamp, other.timestamp) {
+        if let (None, Some(())) = (self.timestamp, other.timestamp) {
             return false;
         };
 
-        if let (None, Some(_)) = (self.regex, other.regex) {
+        if let (None, Some(())) = (self.regex, other.regex) {
             return false;
         };
 
-        if let (None, Some(_)) = (self.null, other.null) {
+        if let (None, Some(())) = (self.null, other.null) {
             return false;
         };
 
-        if let (None, Some(_)) = (self.array, other.array) {
+        if let (None, Some(())) = (self.array, other.array) {
             return false;
         };
 
-        if let (None, Some(_)) = (self.object, other.object) {
+        if let (None, Some(())) = (self.object, other.object) {
             return false;
         };
 

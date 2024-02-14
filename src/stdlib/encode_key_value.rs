@@ -113,7 +113,7 @@ impl Function for EncodeKeyValue {
             Example {
                 title: "custom delimiters",
                 source: r#"encode_key_value({"start": "ool", "end": "kul", "stop1": "yyc", "stop2" : "gdx"}, key_value_delimiter: ":", field_delimiter: ",")"#,
-                result: Ok(r#"s'end:kul,start:ool,stop1:yyc,stop2:gdx'"#),
+                result: Ok("s'end:kul,start:ool,stop1:yyc,stop2:gdx'"),
             },
         ]
     }
@@ -255,7 +255,7 @@ mod tests {
                 field_delimiter: value!(","),
                 flatten_boolean: value!(true)
             ],
-            want: Ok(r#"tag_a:val_a,tag_b:val_b,tag_c"#),
+            want: Ok("tag_a:val_a,tag_b:val_b,tag_c"),
             tdef: TypeDef::bytes().infallible(),
         }
         string_with_characters_to_escape {

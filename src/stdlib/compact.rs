@@ -111,7 +111,7 @@ impl Function for Compact {
             Example {
                 title: "nullish",
                 source: r#"compact(["-", "   ", "\n", null, true], nullish: true)"#,
-                result: Ok(r#"[true]"#),
+                result: Ok("[true]"),
             },
         ]
     }

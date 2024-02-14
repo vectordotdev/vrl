@@ -40,7 +40,7 @@ impl Function for ForEach {
             },
             Example {
                 title: "iterate array",
-                source: r#"count = 0; for_each([1,2,3]) -> |index, value| { count = count + index + value }; count"#,
+                source: "count = 0; for_each([1,2,3]) -> |index, value| { count = count + index + value }; count",
                 result: Ok("9"),
             },
         ]
@@ -76,7 +76,7 @@ impl Function for ForEach {
                 output: Output::Kind(Kind::any()),
                 example: Example {
                     title: "iterate array",
-                    source: r#"for_each([1, 2]) -> |index, value| { .foo = to_int!(.foo) + index + value }"#,
+                    source: "for_each([1, 2]) -> |index, value| { .foo = to_int!(.foo) + index + value }",
                     result: Ok("null"),
                 },
             }],
