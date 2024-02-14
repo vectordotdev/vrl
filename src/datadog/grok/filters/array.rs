@@ -155,7 +155,7 @@ mod tests {
 
     #[test]
     fn parses_default() {
-        let result = parse(r#"[ 1 ,2]"#, None, None).unwrap();
+        let result = parse("[ 1 ,2]", None, None).unwrap();
         assert_eq!(result, vec![" 1 ".into(), "2".into()]);
     }
 

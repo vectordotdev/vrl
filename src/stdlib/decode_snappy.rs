@@ -24,7 +24,7 @@ impl Function for DecodeSnappy {
         &[Example {
             title: "demo string",
             source: r#"decode_snappy!(decode_base64!("LKxUaGUgcXVpY2sgYnJvd24gZm94IGp1bXBzIG92ZXIgMTMgbGF6eSBkb2dzLg=="))"#,
-            result: Ok(r#"The quick brown fox jumps over 13 lazy dogs."#),
+            result: Ok("The quick brown fox jumps over 13 lazy dogs."),
         }]
     }
 

@@ -64,7 +64,7 @@ mod tests {
 
     #[test]
     fn quotes() {
-        assert_eq!(parse(r#"foo "bar baz""#), &["foo", r#"bar baz"#]);
+        assert_eq!(parse(r#"foo "bar baz""#), &["foo", "bar baz"]);
     }
 
     #[test]

@@ -33,7 +33,7 @@ impl Function for Append {
     fn examples(&self) -> &'static [Example] {
         &[Example {
             title: "append array",
-            source: r#"append([0, 1], [2, 3])"#,
+            source: "append([0, 1], [2, 3])",
             result: Ok("[0, 1, 2, 3]"),
         }]
     }

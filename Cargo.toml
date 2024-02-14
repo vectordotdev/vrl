@@ -10,7 +10,7 @@ repository = "https://github.com/vectordotdev/vrl"
 readme = "README.md"
 keywords = ["vector", "datadog", "compiler"]
 categories = ["compilers"]
-rust-version = "1.70.0" # msrv
+rust-version = "1.74" # msrv
 
 [workspace]
 members = [

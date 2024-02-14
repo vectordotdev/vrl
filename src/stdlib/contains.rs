@@ -58,12 +58,12 @@ impl Function for Contains {
             Example {
                 title: "case sensitive",
                 source: r#"contains("banana", "AnA")"#,
-                result: Ok(r#"false"#),
+                result: Ok("false"),
             },
             Example {
                 title: "case insensitive",
                 source: r#"contains("banana", "AnA", case_sensitive: false)"#,
-                result: Ok(r#"true"#),
+                result: Ok("true"),
             },
         ]
     }

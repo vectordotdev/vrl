@@ -142,7 +142,7 @@ impl Function for ReplaceWith {
             Example {
                 title: "replace with capture group",
                 source: r#"replace_with("foo123bar", r'foo(\d+)bar') -> |m| { x = m.captures[0]; "x={{x}}" }"#,
-                result: Ok(r#"x=123"#),
+                result: Ok("x=123"),
             },
             Example {
                 title: "process capture group",

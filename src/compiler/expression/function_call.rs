@@ -1030,7 +1030,7 @@ impl DiagnosticMessage for FunctionCallError {
                     if kind.is_any() {
                         kind.to_string()
                     } else if kind.is_exact() {
-                        format!(r#"the exact type {kind}"#)
+                        format!("the exact type {kind}")
                     } else {
                         format!("one of {kind}")
                     }

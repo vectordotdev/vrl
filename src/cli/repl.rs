@@ -427,7 +427,7 @@ const HELP_TEXT: &str = indoc! {r#"
       exit               Terminate the program
 "#};
 
-const BANNER_TEXT: &str = indoc! {r#"
+const BANNER_TEXT: &str = indoc! {"
     > VVVVVVVV           VVVVVVVVRRRRRRRRRRRRRRRRR   LLLLLLLLLLL
     > V::::::V           V::::::VR::::::::::::::::R  L:::::::::L
     > V::::::V           V::::::VR::::::RRRRRR:::::R L:::::::::L
@@ -463,4 +463,4 @@ const BANNER_TEXT: &str = indoc! {r#"
     > Any other value is resolved to a VRL expression.
     >
     > Try it out now by typing `.` and hitting [enter] to see the result.
-"#};
+"};

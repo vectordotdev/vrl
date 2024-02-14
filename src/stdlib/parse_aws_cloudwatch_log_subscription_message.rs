@@ -246,7 +246,7 @@ mod tests {
         }
 
         invalid_value {
-            args: func_args![value: r#"{ INVALID }"#],
+            args: func_args![value: "{ INVALID }"],
             want: Err("unable to parse: key must be a string at line 1 column 3"),
             tdef: TypeDef::object(inner_kind()).fallible(),
         }

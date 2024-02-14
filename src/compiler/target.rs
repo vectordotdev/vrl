@@ -315,7 +315,7 @@ mod tests {
             ),
             (
                 value!({foo: {"bar baz": {baz: 2}}}),
-                owned_value_path!("foo", vec!["qux", r#"bar baz"#], "baz"),
+                owned_value_path!("foo", vec!["qux", "bar baz"], "baz"),
                 Ok(Some(value!(2))),
             ),
         ];
@@ -377,7 +377,7 @@ mod tests {
             ),
             (
                 value!({foo: "bar"}),
-                owned_value_path!("foo", 2, r#"bar baz"#, "a", "b"),
+                owned_value_path!("foo", 2, "bar baz", "a", "b"),
                 true.into(),
                 value!({foo: [null, null, {"bar baz": {"a": {"b": true}}}]}),
                 Ok(()),
@@ -465,7 +465,7 @@ mod tests {
             ),
             (
                 value!({foo: "bar"}),
-                owned_value_path!(vec![r#"foo bar"#, "foo"]),
+                owned_value_path!(vec!["foo bar", "foo"]),
                 false,
                 Some(value!("bar")),
                 Some(value!({})),
@@ -500,14 +500,14 @@ mod tests {
             ),
             (
                 value!({foo: {"bar baz": [0]}, bar: "baz"}),
-                owned_value_path!("foo", r#"bar baz"#, 0),
+                owned_value_path!("foo", "bar baz", 0),
                 false,
                 Some(value!(0)),
                 Some(value!({foo: {"bar baz": []}, bar: "baz"})),
             ),
             (
                 value!({foo: {"bar baz": [0]}, bar: "baz"}),
-                owned_value_path!("foo", r#"bar baz"#, 0),
+                owned_value_path!("foo", "bar baz", 0),
                 true,
                 Some(value!(0)),
                 Some(value!({bar: "baz"})),

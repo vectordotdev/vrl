@@ -472,7 +472,7 @@ mod tests {
         assert_eq!(
             Ok(vec![("/key".to_string(), "/valueStr".into()),]),
             parse(
-                r#"/key:/valueStr"#,
+                "/key:/valueStr",
                 ":",
                 default_field_delimiters,
                 default_quotes,
@@ -482,7 +482,7 @@ mod tests {
         assert_eq!(
             Ok(vec![("key".to_string(), "valueStr".into()),]),
             parse(
-                r#"key:={valueStr}"#,
+                "key:={valueStr}",
                 ":=",
                 default_field_delimiters,
                 &[('{', '}')],
@@ -495,7 +495,7 @@ mod tests {
                 ("key2".to_string(), "value2".into())
             ]),
             parse(
-                r#"key1=value1|key2=value2"#,
+                "key1=value1|key2=value2",
                 default_key_value_delimiter,
                 &["|"],
                 default_quotes,

@@ -31,7 +31,7 @@ impl Function for Mod {
     fn examples(&self) -> &'static [Example] {
         &[Example {
             title: "mod",
-            source: r#"mod(5, 3)"#,
+            source: "mod(5, 3)",
             result: Ok("2"),
         }]
     }

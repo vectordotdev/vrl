@@ -262,7 +262,7 @@ mod tests {
         }
 
         error_line_valid {
-            args: func_args![value: r#"[01/Mar/2021:12:00:19 +0000] [ab:alert] [pid 4803:tid 3814] [client 147.159.108.175:24259] I'll bypass the haptic COM bandwidth, that should matrix the CSS driver!"#,
+            args: func_args![value: "[01/Mar/2021:12:00:19 +0000] [ab:alert] [pid 4803:tid 3814] [client 147.159.108.175:24259] I'll bypass the haptic COM bandwidth, that should matrix the CSS driver!",
                              format: "error"
                              ],
             want: Ok(btreemap! {
@@ -280,7 +280,7 @@ mod tests {
         }
 
         error_line_ip_v6 {
-            args: func_args![value: r#"[01/Mar/2021:12:00:19 +0000] [ab:alert] [pid 4803:tid 3814] [client eda7:35d:3ceb:ef1e:2133:e7bf:116e:24cc:24259] I'll bypass the haptic COM bandwidth, that should matrix the CSS driver!"#,
+            args: func_args![value: "[01/Mar/2021:12:00:19 +0000] [ab:alert] [pid 4803:tid 3814] [client eda7:35d:3ceb:ef1e:2133:e7bf:116e:24cc:24259] I'll bypass the haptic COM bandwidth, that should matrix the CSS driver!",
                              format: "error"
                              ],
             want: Ok(btreemap! {
@@ -318,7 +318,7 @@ mod tests {
         }
 
         error_line_threaded_mpms_valid {
-            args: func_args![value: r#"[01/Mar/2021:12:00:19 +0000] [proxy:error] [pid 23964] (113)No route to host: AH00957: HTTP: attempt to connect to 10.1.0.244:9000 (hostname.domain.com) failed"#,
+            args: func_args![value: "[01/Mar/2021:12:00:19 +0000] [proxy:error] [pid 23964] (113)No route to host: AH00957: HTTP: attempt to connect to 10.1.0.244:9000 (hostname.domain.com) failed",
                              format: "error"
                              ],
             want: Ok(btreemap! {
@@ -381,7 +381,7 @@ mod tests {
         }
 
         log_line_invalid {
-            args: func_args![value: r#"not a common log line"#,
+            args: func_args![value: "not a common log line",
                              format: "common",
             ],
             want: Err("failed parsing common log line"),
@@ -390,7 +390,7 @@ mod tests {
         }
 
         log_line_invalid_timestamp {
-            args: func_args![value: r#"- - - [1234] - - - - - "#,
+            args: func_args![value: "- - - [1234] - - - - - ",
                              format: "combined",
             ],
             want: Err("failed parsing timestamp 1234 using format %d/%b/%Y:%T %z: input contains invalid characters"),

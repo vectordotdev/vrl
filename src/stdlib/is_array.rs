@@ -21,17 +21,17 @@ impl Function for IsArray {
         &[
             Example {
                 title: "array",
-                source: r#"is_array([1, 2, 3])"#,
+                source: "is_array([1, 2, 3])",
                 result: Ok("true"),
             },
             Example {
                 title: "boolean",
-                source: r#"is_array(true)"#,
+                source: "is_array(true)",
                 result: Ok("false"),
             },
             Example {
                 title: "null",
-                source: r#"is_array(null)"#,
+                source: "is_array(null)",
                 result: Ok("false"),
             },
         ]

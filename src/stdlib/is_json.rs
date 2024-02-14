@@ -155,7 +155,7 @@ mod tests {
         is_json => IsJson;
 
         object {
-            args: func_args![value: r#"{}"#],
+            args: func_args![value: "{}"],
             want: Ok(value!(true)),
             tdef: TypeDef::boolean().infallible(),
         }
@@ -167,37 +167,37 @@ mod tests {
         }
 
         invalid {
-            args: func_args![value: r#"}{"#],
+            args: func_args![value: "}{"],
             want: Ok(value!(false)),
             tdef: TypeDef::boolean().infallible(),
         }
 
         exact_variant {
-            args: func_args![value: r#"{}"#, variant: "object"],
+            args: func_args![value: "{}", variant: "object"],
             want: Ok(value!(true)),
             tdef: TypeDef::boolean().infallible(),
         }
 
         exact_variant_invalid {
-            args: func_args![value: r#"123"#, variant: "null"],
+            args: func_args![value: "123", variant: "null"],
             want: Ok(value!(false)),
             tdef: TypeDef::boolean().infallible(),
         }
 
         variant_with_spaces {
-            args: func_args![value: r#"   []"#, variant: "array"],
+            args: func_args![value: "   []", variant: "array"],
             want: Ok(value!(true)),
             tdef: TypeDef::boolean().infallible(),
         }
 
         invalid_variant {
-            args: func_args![value: r#"[]"#, variant: "invalid-variant"],
+            args: func_args![value: "[]", variant: "invalid-variant"],
             want: Err(r#"invalid enum variant""#),
             tdef: TypeDef::boolean().infallible(),
         }
 
         invalid_variant_type {
-            args: func_args![value: r#"[]"#, variant: 100],
+            args: func_args![value: "[]", variant: 100],
             want: Err(r#"invalid enum variant""#),
             tdef: TypeDef::boolean().infallible(),
         }

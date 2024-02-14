@@ -55,7 +55,7 @@ impl Function for Join {
         &[Example {
             title: "join",
             source: r#"join!(["a","b","c"], ",")"#,
-            result: Ok(r#"a,b,c"#),
+            result: Ok("a,b,c"),
         }]
     }
 }

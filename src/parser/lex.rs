@@ -627,7 +627,7 @@ impl StringLiteralToken<&str> {
                     && chars.get(pos + 2) == Some(&'{') =>
                 {
                     // Handle open escape `/{{`.
-                    current.push_str(r#"{{"#);
+                    current.push_str("{{");
                     pos += 3;
                 }
                 '\\' if !template
@@ -635,7 +635,7 @@ impl StringLiteralToken<&str> {
                     && chars.get(pos + 2) == Some(&'}') =>
                 {
                     // Handle close escape `\}}`
-                    current.push_str(r#"}}"#);
+                    current.push_str("}}");
                     pos += 3;
                 }
                 '{' if !template && chars.get(pos + 1) == Some(&'{') => {
@@ -846,28 +846,28 @@ impl<'input> Lexer<'input> {
                 '"' => {
                     let result = Lexer::new(&self.input[pos + 1..]).string_literal(0);
                     match take_until_end(result, &mut last_char, &mut end, &mut chars) {
-                        Ok(_) => continue,
+                        Ok(()) => continue,
                         Err(_) => break,
                     }
                 }
                 's' if chars.peek().map(|(_, ch)| ch) == Some(&'\'') => {
                     let result = Lexer::new(&self.input[pos + 1..]).raw_string_literal(0);
                     match take_until_end(result, &mut last_char, &mut end, &mut chars) {
-                        Ok(_) => continue,
+                        Ok(()) => continue,
                         Err(_) => break,
                     }
                 }
                 'r' if chars.peek().map(|(_, ch)| ch) == Some(&'\'') => {
                     let result = Lexer::new(&self.input[pos + 1..]).regex_literal(0);
                     match take_until_end(result, &mut last_char, &mut end, &mut chars) {
-                        Ok(_) => continue,
+                        Ok(()) => continue,
                         Err(_) => break,
                     }
                 }
                 't' if chars.peek().map(|(_, ch)| ch) == Some(&'\'') => {
                     let result = Lexer::new(&self.input[pos + 1..]).timestamp_literal(0);
                     match take_until_end(result, &mut last_char, &mut end, &mut chars) {
-                        Ok(_) => continue,
+                        Ok(()) => continue,
                         Err(_) => break,
                     }
                 }
@@ -931,7 +931,7 @@ impl<'input> Lexer<'input> {
                                 let r = Lexer::new(&self.input[pos + 1..]).string_literal(0)?;
                                 match literal_check(r, &mut chars) {
                                     Ok(ch) => ch,
-                                    Err(_) => {
+                                    Err(()) => {
                                         // The call to lexer above should have raised an appropriate error by now,
                                         // so these errors should only occur if there is a bug somewhere previously.
                                         return Err(Error::UnexpectedParseError(
@@ -945,7 +945,7 @@ impl<'input> Lexer<'input> {
                                 let r = Lexer::new(&self.input[pos + 1..]).raw_string_literal(0)?;
                                 match literal_check(r, &mut chars) {
                                     Ok(ch) => ch,
-                                    Err(_) => {
+                                    Err(()) => {
                                         return Err(Error::UnexpectedParseError(
                                             "Expected characters at end of raw string literal."
                                                 .to_string(),
@@ -957,7 +957,7 @@ impl<'input> Lexer<'input> {
                                 let r = Lexer::new(&self.input[pos + 1..]).regex_literal(0)?;
                                 match literal_check(r, &mut chars) {
                                     Ok(ch) => ch,
-                                    Err(_) => {
+                                    Err(()) => {
                                         return Err(Error::UnexpectedParseError(
                                             "Expected characters at end of regex literal."
                                                 .to_string(),
@@ -969,7 +969,7 @@ impl<'input> Lexer<'input> {
                                 let r = Lexer::new(&self.input[pos + 1..]).timestamp_literal(0)?;
                                 match literal_check(r, &mut chars) {
                                     Ok(ch) => ch,
-                                    Err(_) => {
+                                    Err(()) => {
                                         return Err(Error::UnexpectedParseError(
                                             "Expected characters at end of timestamp literal."
                                                 .to_string(),
@@ -1367,12 +1367,12 @@ mod test {
     #[test]
     fn test_1() {
         test(
-            data(r#"%foo"#),
+            data("%foo"),
             vec![
-                (r#"~   "#, LQuery),
-                (r#"~   "#, Percent),
-                (r#" ~~~"#, Identifier("foo")),
-                (r#"   ~"#, RQuery),
+                ("~   ", LQuery),
+                ("~   ", Percent),
+                (" ~~~", Identifier("foo")),
+                ("   ~", RQuery),
             ],
         );
     }
@@ -1380,12 +1380,12 @@ mod test {
     #[test]
     fn test_2() {
         test(
-            data(r#"%@foo"#),
+            data("%@foo"),
             vec![
-                (r#"~    "#, LQuery),
-                (r#"~    "#, Percent),
-                (r#" ~~~~"#, PathField("@foo")),
-                (r#"    ~"#, RQuery),
+                ("~    ", LQuery),
+                ("~    ", Percent),
+                (" ~~~~", PathField("@foo")),
+                ("    ~", RQuery),
             ],
         );
     }
@@ -1393,18 +1393,18 @@ mod test {
     #[test]
     fn test_3() {
         test(
-            data(r#"%foo[%bar]"#),
+            data("%foo[%bar]"),
             vec![
-                (r#"~    "#, LQuery),
-                (r#"~    "#, Percent),
-                (r#" ~~~ "#, Identifier("foo")),
-                (r#"    ~ "#, LBracket),
-                (r#"     ~ "#, LQuery),
-                (r#"     ~ "#, Percent),
-                (r#"      ~~~ "#, Identifier("bar")),
-                (r#"        ~"#, RQuery),
-                (r#"         ~ "#, RBracket),
-                (r#"         ~"#, RQuery),
+                ("~    ", LQuery),
+                ("~    ", Percent),
+                (" ~~~ ", Identifier("foo")),
+                ("    ~ ", LBracket),
+                ("     ~ ", LQuery),
+                ("     ~ ", Percent),
+                ("      ~~~ ", Identifier("bar")),
+                ("        ~", RQuery),
+                ("         ~ ", RBracket),
+                ("         ~", RQuery),
             ],
         );
     }
@@ -1412,14 +1412,14 @@ mod test {
     #[test]
     fn test_4() {
         test(
-            data(r#"%foo.@bar"#),
+            data("%foo.@bar"),
             vec![
-                (r#"~    "#, LQuery),
-                (r#"~    "#, Percent),
-                (r#" ~~~ "#, Identifier("foo")),
-                (r#"    ~ "#, Dot),
-                (r#"     ~~~~ "#, PathField("@bar")),
-                (r#"        ~"#, RQuery),
+                ("~    ", LQuery),
+                ("~    ", Percent),
+                (" ~~~ ", Identifier("foo")),
+                ("    ~ ", Dot),
+                ("     ~~~~ ", PathField("@bar")),
+                ("        ~", RQuery),
             ],
         );
     }
@@ -1427,16 +1427,16 @@ mod test {
     #[test]
     fn test_5() {
         test(
-            data(r#".(a|b)"#),
+            data(".(a|b)"),
             vec![
-                (r#"~    "#, LQuery),
-                (r#"~    "#, Dot),
-                (r#" ~ "#, LParen),
-                (r#"  ~ "#, Identifier("a")),
-                (r#"   ~ "#, Operator("|")),
-                (r#"    ~ "#, Identifier("b")),
-                (r#"     ~ "#, RParen),
-                (r#"     ~ "#, RQuery),
+                ("~    ", LQuery),
+                ("~    ", Dot),
+                (" ~ ", LParen),
+                ("  ~ ", Identifier("a")),
+                ("   ~ ", Operator("|")),
+                ("    ~ ", Identifier("b")),
+                ("     ~ ", RParen),
+                ("     ~ ", RQuery),
             ],
         );
     }
@@ -1444,16 +1444,16 @@ mod test {
     #[test]
     fn test_6() {
         test(
-            data(r#".(@a|b)"#),
+            data(".(@a|b)"),
             vec![
-                (r#"~    "#, LQuery),
-                (r#"~    "#, Dot),
-                (r#" ~ "#, LParen),
-                (r#"  ~~ "#, PathField("@a")),
-                (r#"    ~ "#, Operator("|")),
-                (r#"     ~ "#, Identifier("b")),
-                (r#"      ~ "#, RParen),
-                (r#"      ~ "#, RQuery),
+                ("~    ", LQuery),
+                ("~    ", Dot),
+                (" ~ ", LParen),
+                ("  ~~ ", PathField("@a")),
+                ("    ~ ", Operator("|")),
+                ("     ~ ", Identifier("b")),
+                ("      ~ ", RParen),
+                ("      ~ ", RQuery),
             ],
         );
     }
@@ -1488,13 +1488,13 @@ mod test {
         test(
             data(r#"foo "bar\"\n" baz "" "\t" "\"\"" "null \0""#),
             vec![
-                (r#"~~~                                       "#, Identifier("foo")),
-                (r#"    ~~~~~~~~~                             "#, L(S("bar\\\"\\n"))),
-                (r#"              ~~~                         "#, Identifier("baz")),
-                (r#"                  ~~                      "#, L(S(""))),
-                (r#"                     ~~~~                 "#, L(S("\\t"))),
-                (r#"                          ~~~~~~          "#, L(S(r#"\"\""#))),
-                (r#"                                 ~~~~~~~~~"#, L(S("null \\0"))),
+                ("~~~                                       ", Identifier("foo")),
+                ("    ~~~~~~~~~                             ", L(S("bar\\\"\\n"))),
+                ("              ~~~                         ", Identifier("baz")),
+                ("                  ~~                      ", L(S(""))),
+                ("                     ~~~~                 ", L(S("\\t"))),
+                ("                          ~~~~~~          ", L(S(r#"\"\""#))),
+                ("                                 ~~~~~~~~~", L(S("null \\0"))),
             ],
         );
         assert_eq!(TemplateString(vec![StringSegment::Literal(r#""""#.to_string(), Span::new(1, 5))]), StringLiteralToken(r#"\"\""#).template(Span::new(0, 6)));
@@ -1541,9 +1541,9 @@ mod test {
         test(
             data(r"r'[fb]oo+' r'a/b\[rz\]' r''"),
             vec![
-                (r#"~~~~~~~~~~                 "#, RegexLiteral("[fb]oo+")),
-                (r#"           ~~~~~~~~~~~~    "#, RegexLiteral("a/b\\[rz\\]")),
-                (r#"                        ~~~"#, RegexLiteral("")),
+                ("~~~~~~~~~~                 ", RegexLiteral("[fb]oo+")),
+                ("           ~~~~~~~~~~~~    ", RegexLiteral("a/b\\[rz\\]")),
+                ("                        ~~~", RegexLiteral("")),
             ],
         );
     }
@@ -1551,7 +1551,7 @@ mod test {
     #[test]
     fn regex_literal_unterminated() {
         assert_eq!(
-            lexer(r#"r'foo bar"#).last(),
+            lexer("r'foo bar").last(),
             Some(Err(Error::Literal { start: 0 }))
         );
     }
@@ -1562,7 +1562,7 @@ mod test {
         test(
             data(r"t'foo \' bar'"),
             vec![
-                (r#"~~~~~~~~~~~~~"#, TimestampLiteral("foo \\' bar")),
+                ("~~~~~~~~~~~~~", TimestampLiteral("foo \\' bar")),
             ],
         );
     }
@@ -1570,7 +1570,7 @@ mod test {
     #[test]
     fn timestamp_literal_unterminated() {
         assert_eq!(
-            lexer(r#"t'foo"#).last(),
+            lexer("t'foo").last(),
             Some(Err(Error::Literal { start: 0 }))
         );
     }
@@ -1584,7 +1584,7 @@ mod test {
         test(
             data(r#"s'a "bc" \n \'d'"#),
             vec![
-                (r#"~~~~~~~~~~~~~~~~"#, R(S(r#"a "bc" \n \'d"#))),
+                ("~~~~~~~~~~~~~~~~", R(S(r#"a "bc" \n \'d"#))),
             ],
         );
     }
@@ -1592,7 +1592,7 @@ mod test {
     #[test]
     fn raw_string_literal_unterminated() {
         assert_eq!(
-            lexer(r#"s'foo"#).last(),
+            lexer("s'foo").last(),
             Some(Err(Error::Literal { start: 0 }))
         );
     }
@@ -1601,14 +1601,14 @@ mod test {
     #[rustfmt::skip]
     fn number_literals() {
         test(
-            data(r#"12 012 12.43 12. 0 902.0001"#),
+            data("12 012 12.43 12. 0 902.0001"),
             vec![
-                (r#"~~                         "#, IntegerLiteral(12)),
-                (r#"   ~~~                     "#, IntegerLiteral(12)),
-                (r#"       ~~~~~               "#, FloatLiteral(NotNan::new(12.43).unwrap())),
-                (r#"             ~~~           "#, FloatLiteral(NotNan::new(12.0).unwrap())),
-                (r#"                 ~         "#, IntegerLiteral(0)),
-                (r#"                   ~~~~~~~~"#, FloatLiteral(NotNan::new(902.0001).unwrap())),
+                ("~~                         ", IntegerLiteral(12)),
+                ("   ~~~                     ", IntegerLiteral(12)),
+                ("       ~~~~~               ", FloatLiteral(NotNan::new(12.43).unwrap())),
+                ("             ~~~           ", FloatLiteral(NotNan::new(12.0).unwrap())),
+                ("                 ~         ", IntegerLiteral(0)),
+                ("                   ~~~~~~~~", FloatLiteral(NotNan::new(902.0001).unwrap())),
             ],
         );
     }
@@ -1617,10 +1617,10 @@ mod test {
     #[rustfmt::skip]
     fn number_literals_underscore() {
         test(
-            data(r#"1_000 1_2_3._4_0_"#),
+            data("1_000 1_2_3._4_0_"),
             vec![
-                (r#"~~~~~            "#, IntegerLiteral(1000)),
-                (r#"      ~~~~~~~~~~~"#, FloatLiteral(NotNan::new(123.40).unwrap())),
+                ("~~~~~            ", IntegerLiteral(1000)),
+                ("      ~~~~~~~~~~~", FloatLiteral(NotNan::new(123.40).unwrap())),
             ],
         );
     }
@@ -1628,13 +1628,13 @@ mod test {
     #[test]
     fn identifiers() {
         test(
-            data(r#"foo bar1 if baz_12_qux else "#),
+            data("foo bar1 if baz_12_qux else "),
             vec![
-                (r#"~~~                         "#, Identifier("foo")),
-                (r#"    ~~~~                    "#, Identifier("bar1")),
-                (r#"         ~~                 "#, If),
-                (r#"            ~~~~~~~~~~      "#, Identifier("baz_12_qux")),
-                (r#"                       ~~~~ "#, Else),
+                ("~~~                         ", Identifier("foo")),
+                ("    ~~~~                    ", Identifier("bar1")),
+                ("         ~~                 ", If),
+                ("            ~~~~~~~~~~      ", Identifier("baz_12_qux")),
+                ("                       ~~~~ ", Else),
             ],
         );
     }
@@ -1642,17 +1642,17 @@ mod test {
     #[test]
     fn function_calls() {
         test(
-            data(r#"foo() bar_1() if() "#),
+            data("foo() bar_1() if() "),
             vec![
-                (r#"~~~                "#, FunctionCall("foo")),
-                (r#"   ~               "#, LParen),
-                (r#"    ~              "#, RParen),
-                (r#"      ~~~~~        "#, FunctionCall("bar_1")),
-                (r#"           ~       "#, LParen),
-                (r#"            ~      "#, RParen),
-                (r#"              ~~   "#, FunctionCall("if")),
-                (r#"                ~  "#, LParen),
-                (r#"                 ~ "#, RParen),
+                ("~~~                ", FunctionCall("foo")),
+                ("   ~               ", LParen),
+                ("    ~              ", RParen),
+                ("      ~~~~~        ", FunctionCall("bar_1")),
+                ("           ~       ", LParen),
+                ("            ~      ", RParen),
+                ("              ~~   ", FunctionCall("if")),
+                ("                ~  ", LParen),
+                ("                 ~ ", RParen),
             ],
         );
     }
@@ -1660,12 +1660,12 @@ mod test {
     #[test]
     fn single_query() {
         test(
-            data(r#"."#),
+            data("."),
             vec![
                 //
-                (r#"~"#, LQuery),
-                (r#"~"#, Dot),
-                (r#"~"#, RQuery),
+                ("~", LQuery),
+                ("~", Dot),
+                ("~", RQuery),
             ],
         );
     }
@@ -1673,25 +1673,25 @@ mod test {
     #[test]
     fn root_query() {
         test(
-            data(r#". .foo . .bar ."#),
+            data(". .foo . .bar ."),
             vec![
-                (r#"~              "#, LQuery),
-                (r#"~              "#, Dot),
-                (r#"~              "#, RQuery),
-                (r#"  ~            "#, LQuery),
-                (r#"  ~            "#, Dot),
-                (r#"   ~~~         "#, Identifier("foo")),
-                (r#"     ~         "#, RQuery),
-                (r#"       ~       "#, LQuery),
-                (r#"       ~       "#, Dot),
-                (r#"       ~       "#, RQuery),
-                (r#"         ~     "#, LQuery),
-                (r#"         ~     "#, Dot),
-                (r#"          ~~~  "#, Identifier("bar")),
-                (r#"            ~  "#, RQuery),
-                (r#"              ~"#, LQuery),
-                (r#"              ~"#, Dot),
-                (r#"              ~"#, RQuery),
+                ("~              ", LQuery),
+                ("~              ", Dot),
+                ("~              ", RQuery),
+                ("  ~            ", LQuery),
+                ("  ~            ", Dot),
+                ("   ~~~         ", Identifier("foo")),
+                ("     ~         ", RQuery),
+                ("       ~       ", LQuery),
+                ("       ~       ", Dot),
+                ("       ~       ", RQuery),
+                ("         ~     ", LQuery),
+                ("         ~     ", Dot),
+                ("          ~~~  ", Identifier("bar")),
+                ("            ~  ", RQuery),
+                ("              ~", LQuery),
+                ("              ~", Dot),
+                ("              ~", RQuery),
             ],
         );
     }
@@ -1699,18 +1699,18 @@ mod test {
     #[test]
     fn at_sign_in_query() {
         test(
-            data(r#".@foo .bar.@ook"#),
+            data(".@foo .bar.@ook"),
             vec![
-                (r#"~              "#, LQuery),
-                (r#"~              "#, Dot),
-                (r#" ~~~~          "#, PathField("@foo")),
-                (r#"    ~          "#, RQuery),
-                (r#"      ~        "#, LQuery),
-                (r#"      ~        "#, Dot),
-                (r#"       ~~~     "#, Identifier("bar")),
-                (r#"          ~    "#, Dot),
-                (r#"           ~~~~"#, PathField("@ook")),
-                (r#"              ~"#, RQuery),
+                ("~              ", LQuery),
+                ("~              ", Dot),
+                (" ~~~~          ", PathField("@foo")),
+                ("    ~          ", RQuery),
+                ("      ~        ", LQuery),
+                ("      ~        ", Dot),
+                ("       ~~~     ", Identifier("bar")),
+                ("          ~    ", Dot),
+                ("           ~~~~", PathField("@ook")),
+                ("              ~", RQuery),
             ],
         );
     }
@@ -1718,23 +1718,23 @@ mod test {
     #[test]
     fn queries() {
         test(
-            data(r#".foo bar.baz .baz.qux"#),
+            data(".foo bar.baz .baz.qux"),
             vec![
-                (r#"~                    "#, LQuery),
-                (r#"~                    "#, Dot),
-                (r#" ~~~                 "#, Identifier("foo")),
-                (r#"   ~                 "#, RQuery),
-                (r#"     ~               "#, LQuery),
-                (r#"     ~~~             "#, Identifier("bar")),
-                (r#"        ~            "#, Dot),
-                (r#"         ~~~         "#, Identifier("baz")),
-                (r#"           ~         "#, RQuery),
-                (r#"             ~       "#, LQuery),
-                (r#"             ~       "#, Dot),
-                (r#"              ~~~    "#, Identifier("baz")),
-                (r#"                 ~   "#, Dot),
-                (r#"                  ~~~"#, Identifier("qux")),
-                (r#"                    ~"#, RQuery),
+                ("~                    ", LQuery),
+                ("~                    ", Dot),
+                (" ~~~                 ", Identifier("foo")),
+                ("   ~                 ", RQuery),
+                ("     ~               ", LQuery),
+                ("     ~~~             ", Identifier("bar")),
+                ("        ~            ", Dot),
+                ("         ~~~         ", Identifier("baz")),
+                ("           ~         ", RQuery),
+                ("             ~       ", LQuery),
+                ("             ~       ", Dot),
+                ("              ~~~    ", Identifier("baz")),
+                ("                 ~   ", Dot),
+                ("                  ~~~", Identifier("qux")),
+                ("                    ~", RQuery),
             ],
         );
     }
@@ -1748,28 +1748,28 @@ mod test {
         test(
             data(r#"[.foo].bar { "foo": [2][0] }"#),
             vec![
-                (r#"~                           "#, LQuery),
-                (r#"~                           "#, LBracket),
-                (r#" ~                          "#, LQuery),
-                (r#" ~                          "#, Dot),
-                (r#"  ~~~                       "#, Identifier("foo")),
-                (r#"    ~                       "#, RQuery),
-                (r#"     ~                      "#, RBracket),
-                (r#"      ~                     "#, Dot),
-                (r#"       ~~~                  "#, Identifier("bar")),
-                (r#"         ~                  "#, RQuery),
-                (r#"           ~                "#, LBrace),
-                (r#"             ~~~~~          "#, L(S("foo"))),
-                (r#"                  ~         "#, Colon),
-                (r#"                    ~       "#, LQuery),
-                (r#"                    ~       "#, LBracket),
-                (r#"                     ~      "#, IntegerLiteral(2)),
-                (r#"                      ~     "#, RBracket),
-                (r#"                       ~    "#, LBracket),
-                (r#"                        ~   "#, IntegerLiteral(0)),
-                (r#"                         ~  "#, RBracket),
-                (r#"                         ~  "#, RQuery),
-                (r#"                           ~"#, RBrace),
+                ("~                           ", LQuery),
+                ("~                           ", LBracket),
+                (" ~                          ", LQuery),
+                (" ~                          ", Dot),
+                ("  ~~~                       ", Identifier("foo")),
+                ("    ~                       ", RQuery),
+                ("     ~                      ", RBracket),
+                ("      ~                     ", Dot),
+                ("       ~~~                  ", Identifier("bar")),
+                ("         ~                  ", RQuery),
+                ("           ~                ", LBrace),
+                ("             ~~~~~          ", L(S("foo"))),
+                ("                  ~         ", Colon),
+                ("                    ~       ", LQuery),
+                ("                    ~       ", LBracket),
+                ("                     ~      ", IntegerLiteral(2)),
+                ("                      ~     ", RBracket),
+                ("                       ~    ", LBracket),
+                ("                        ~   ", IntegerLiteral(0)),
+                ("                         ~  ", RBracket),
+                ("                         ~  ", RQuery),
+                ("                           ~", RBrace),
             ],
         );
     }
@@ -1777,18 +1777,18 @@ mod test {
     #[test]
     fn coalesced_queries() {
         test(
-            data(r#".foo.(bar | baz)"#),
+            data(".foo.(bar | baz)"),
             vec![
-                (r#"~               "#, LQuery),
-                (r#"~               "#, Dot),
-                (r#" ~~~            "#, Identifier("foo")),
-                (r#"    ~           "#, Dot),
-                (r#"     ~          "#, LParen),
-                (r#"      ~~~       "#, Identifier("bar")),
-                (r#"          ~     "#, Operator("|")),
-                (r#"            ~~~ "#, Identifier("baz")),
-                (r#"               ~"#, RParen),
-                (r#"               ~"#, RQuery),
+                ("~               ", LQuery),
+                ("~               ", Dot),
+                (" ~~~            ", Identifier("foo")),
+                ("    ~           ", Dot),
+                ("     ~          ", LParen),
+                ("      ~~~       ", Identifier("bar")),
+                ("          ~     ", Operator("|")),
+                ("            ~~~ ", Identifier("baz")),
+                ("               ~", RParen),
+                ("               ~", RQuery),
             ],
         );
     }
@@ -1801,23 +1801,23 @@ mod test {
         test(
             data(r#".a.(b | c  )."d\"e"[2 ][ 1]"#),
             vec![
-                (r#"~                          "#, LQuery),
-                (r#"~                          "#, Dot),
-                (r#" ~                         "#, Identifier("a")),
-                (r#"  ~                        "#, Dot),
-                (r#"   ~                       "#, LParen),
-                (r#"    ~                      "#, Identifier("b")),
-                (r#"      ~                    "#, Operator("|")),
-                (r#"        ~                  "#, Identifier("c")),
-                (r#"           ~               "#, RParen),
-                (r#"            ~              "#, Dot),
-                (r#"             ~~~~~~        "#, L(S("d\\\"e"))),
-                (r#"                   ~       "#, LBracket),
-                (r#"                    ~      "#, IntegerLiteral(2)),
-                (r#"                      ~    "#, RBracket),
-                (r#"                       ~   "#, LBracket),
-                (r#"                         ~ "#, IntegerLiteral(1)),
-                (r#"                          ~"#, RBracket),
+                ("~                          ", LQuery),
+                ("~                          ", Dot),
+                (" ~                         ", Identifier("a")),
+                ("  ~                        ", Dot),
+                ("   ~                       ", LParen),
+                ("    ~                      ", Identifier("b")),
+                ("      ~                    ", Operator("|")),
+                ("        ~                  ", Identifier("c")),
+                ("           ~               ", RParen),
+                ("            ~              ", Dot),
+                ("             ~~~~~~        ", L(S("d\\\"e"))),
+                ("                   ~       ", LBracket),
+                ("                    ~      ", IntegerLiteral(2)),
+                ("                      ~    ", RBracket),
+                ("                       ~   ", LBracket),
+                ("                         ~ ", IntegerLiteral(1)),
+                ("                          ~", RBracket),
             ],
         );
     }
@@ -1831,19 +1831,19 @@ mod test {
         test(
             data(r#"{ "a": parse_json!("{ \"b\": 0 }").c }"#),
             vec![
-                (r#"~                                     "#, LBrace),
-                (r#"  ~~~                                 "#, L(S("a"))),
-                (r#"     ~                                "#, Colon),
-                (r#"       ~                              "#, LQuery),
-                (r#"       ~~~~~~~~~~                     "#, FunctionCall("parse_json")),
-                (r#"                 ~                    "#, Bang),
-                (r#"                  ~                   "#, LParen),
-                (r#"                   ~~~~~~~~~~~~~~     "#, L(S("{ \\\"b\\\": 0 }"))),
-                (r#"                                 ~    "#, RParen),
-                (r#"                                  ~   "#, Dot),
-                (r#"                                   ~  "#, Identifier("c")),
-                (r#"                                   ~  "#, RQuery),
-                (r#"                                     ~"#, RBrace),
+                ("~                                     ", LBrace),
+                ("  ~~~                                 ", L(S("a"))),
+                ("     ~                                ", Colon),
+                ("       ~                              ", LQuery),
+                ("       ~~~~~~~~~~                     ", FunctionCall("parse_json")),
+                ("                 ~                    ", Bang),
+                ("                  ~                   ", LParen),
+                ("                   ~~~~~~~~~~~~~~     ", L(S("{ \\\"b\\\": 0 }"))),
+                ("                                 ~    ", RParen),
+                ("                                  ~   ", Dot),
+                ("                                   ~  ", Identifier("c")),
+                ("                                   ~  ", RQuery),
+                ("                                     ~", RBrace),
             ],
         );
     }
@@ -1859,23 +1859,23 @@ mod test {
         test(
             data(r#"{ "a": r'b?c', "d": s'"e"\'f', "g": t'1.0T0' }.h"#),
             vec![
-                (r#"~                                               "#, LQuery),
-                (r#"~                                               "#, LBrace),
-                (r#"  ~~~                                           "#, L(S("a"))),
-                (r#"     ~                                          "#, Colon),
-                (r#"       ~~~~~~                                   "#, RegexLiteral("b?c")),
-                (r#"             ~                                  "#, Comma),
-                (r#"               ~~~                              "#, L(S("d"))),
-                (r#"                  ~                             "#, Colon),
-                (r#"                    ~~~~~~~~~                   "#, R(RS("\"e\"\\\'f"))),
-                (r#"                             ~                  "#, Comma),
-                (r#"                               ~~~              "#, L(S("g"))),
-                (r#"                                  ~             "#, Colon),
-                (r#"                                    ~~~~~~~~    "#, TimestampLiteral("1.0T0")),
-                (r#"                                             ~  "#, RBrace),
-                (r#"                                              ~ "#, Dot),
-                (r#"                                               ~"#, Identifier("h")),
-                (r#"                                               ~"#, RQuery),
+                ("~                                               ", LQuery),
+                ("~                                               ", LBrace),
+                ("  ~~~                                           ", L(S("a"))),
+                ("     ~                                          ", Colon),
+                ("       ~~~~~~                                   ", RegexLiteral("b?c")),
+                ("             ~                                  ", Comma),
+                ("               ~~~                              ", L(S("d"))),
+                ("                  ~                             ", Colon),
+                ("                    ~~~~~~~~~                   ", R(RS("\"e\"\\\'f"))),
+                ("                             ~                  ", Comma),
+                ("                               ~~~              ", L(S("g"))),
+                ("                                  ~             ", Colon),
+                ("                                    ~~~~~~~~    ", TimestampLiteral("1.0T0")),
+                ("                                             ~  ", RBrace),
+                ("                                              ~ ", Dot),
+                ("                                               ~", Identifier("h")),
+                ("                                               ~", RQuery),
             ],
         );
     }
@@ -1883,19 +1883,19 @@ mod test {
     #[test]
     fn variable_queries() {
         test(
-            data(r#"foo.bar foo[2]"#),
+            data("foo.bar foo[2]"),
             vec![
-                (r#"~             "#, LQuery),
-                (r#"~~~           "#, Identifier("foo")),
-                (r#"   ~          "#, Dot),
-                (r#"    ~~~       "#, Identifier("bar")),
-                (r#"      ~       "#, RQuery),
-                (r#"        ~     "#, LQuery),
-                (r#"        ~~~   "#, Identifier("foo")),
-                (r#"           ~  "#, LBracket),
-                (r#"            ~ "#, IntegerLiteral(2)),
-                (r#"             ~"#, RBracket),
-                (r#"             ~"#, RQuery),
+                ("~             ", LQuery),
+                ("~~~           ", Identifier("foo")),
+                ("   ~          ", Dot),
+                ("    ~~~       ", Identifier("bar")),
+                ("      ~       ", RQuery),
+                ("        ~     ", LQuery),
+                ("        ~~~   ", Identifier("foo")),
+                ("           ~  ", LBracket),
+                ("            ~ ", IntegerLiteral(2)),
+                ("             ~", RBracket),
+                ("             ~", RQuery),
             ],
         );
     }
@@ -1908,15 +1908,15 @@ mod test {
         test(
             data(r#"{ "foo": "bar" }.foo"#),
             vec![
-                (r#"~                   "#, LQuery),
-                (r#"~                   "#, LBrace),
-                (r#"  ~~~~~             "#, L(S("foo"))),
-                (r#"       ~            "#, Colon),
-                (r#"         ~~~~~      "#, L(S("bar"))),
-                (r#"               ~    "#, RBrace),
-                (r#"                ~   "#, Dot),
-                (r#"                 ~~~"#, Identifier("foo")),
-                (r#"                   ~"#, RQuery),
+                ("~                   ", LQuery),
+                ("~                   ", LBrace),
+                ("  ~~~~~             ", L(S("foo"))),
+                ("       ~            ", Colon),
+                ("         ~~~~~      ", L(S("bar"))),
+                ("               ~    ", RBrace),
+                ("                ~   ", Dot),
+                ("                 ~~~", Identifier("foo")),
+                ("                   ~", RQuery),
             ],
         );
     }
@@ -1924,19 +1924,19 @@ mod test {
     #[test]
     fn array_queries() {
         test(
-            data(r#"[ 1, 2 , 3].foo"#),
+            data("[ 1, 2 , 3].foo"),
             vec![
-                (r#"~              "#, LQuery),
-                (r#"~              "#, LBracket),
-                (r#"  ~            "#, IntegerLiteral(1)),
-                (r#"   ~           "#, Comma),
-                (r#"     ~         "#, IntegerLiteral(2)),
-                (r#"       ~       "#, Comma),
-                (r#"         ~     "#, IntegerLiteral(3)),
-                (r#"          ~    "#, RBracket),
-                (r#"           ~   "#, Dot),
-                (r#"            ~~~"#, Identifier("foo")),
-                (r#"              ~"#, RQuery),
+                ("~              ", LQuery),
+                ("~              ", LBracket),
+                ("  ~            ", IntegerLiteral(1)),
+                ("   ~           ", Comma),
+                ("     ~         ", IntegerLiteral(2)),
+                ("       ~       ", Comma),
+                ("         ~     ", IntegerLiteral(3)),
+                ("          ~    ", RBracket),
+                ("           ~   ", Dot),
+                ("            ~~~", Identifier("foo")),
+                ("              ~", RQuery),
             ],
         );
     }
@@ -1949,19 +1949,19 @@ mod test {
         test(
             data(r#"foo(ab: "c")[2].d"#),
             vec![
-                (r#"~                "#, LQuery),
-                (r#"~~~              "#, FunctionCall("foo")),
-                (r#"   ~             "#, LParen),
-                (r#"    ~~           "#, Identifier("ab")),
-                (r#"      ~          "#, Colon),
-                (r#"        ~~~      "#, L(S("c"))),
-                (r#"           ~     "#, RParen),
-                (r#"            ~    "#, LBracket),
-                (r#"             ~   "#, IntegerLiteral(2)),
-                (r#"              ~  "#, RBracket),
-                (r#"               ~ "#, Dot),
-                (r#"                ~"#, Identifier("d")),
-                (r#"                ~"#, RQuery),
+                ("~                ", LQuery),
+                ("~~~              ", FunctionCall("foo")),
+                ("   ~             ", LParen),
+                ("    ~~           ", Identifier("ab")),
+                ("      ~          ", Colon),
+                ("        ~~~      ", L(S("c"))),
+                ("           ~     ", RParen),
+                ("            ~    ", LBracket),
+                ("             ~   ", IntegerLiteral(2)),
+                ("              ~  ", RBracket),
+                ("               ~ ", Dot),
+                ("                ~", Identifier("d")),
+                ("                ~", RQuery),
             ],
         );
     }
@@ -1986,20 +1986,20 @@ mod test {
     #[test]
     fn queries_op() {
         test(
-            data(r#".a + 3 .b == true"#),
+            data(".a + 3 .b == true"),
             vec![
-                (r#"~                "#, LQuery),
-                (r#"~                "#, Dot),
-                (r#" ~               "#, Identifier("a")),
-                (r#" ~               "#, RQuery),
-                (r#"   ~             "#, Operator("+")),
-                (r#"     ~           "#, IntegerLiteral(3)),
-                (r#"       ~         "#, LQuery),
-                (r#"       ~         "#, Dot),
-                (r#"        ~        "#, Identifier("b")),
-                (r#"        ~        "#, RQuery),
-                (r#"          ~~     "#, Operator("==")),
-                (r#"             ~~~~"#, True),
+                ("~                ", LQuery),
+                ("~                ", Dot),
+                (" ~               ", Identifier("a")),
+                (" ~               ", RQuery),
+                ("   ~             ", Operator("+")),
+                ("     ~           ", IntegerLiteral(3)),
+                ("       ~         ", LQuery),
+                ("       ~         ", Dot),
+                ("        ~        ", Identifier("b")),
+                ("        ~        ", RQuery),
+                ("          ~~     ", Operator("==")),
+                ("             ~~~~", True),
             ],
         );
     }
@@ -2048,12 +2048,12 @@ mod test {
         test(
             data(r#"."parent.key.with.special characters".child"#),
             vec![
-                (r#"~                                          "#, LQuery),
-                (r#"~                                          "#, Dot),
-                (r#" ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~      "#, L(S("parent.key.with.special characters"))),
-                (r#"                                     ~     "#, Dot),
-                (r#"                                      ~~~~~"#, Identifier("child")),
-                (r#"                                          ~"#, RQuery),
+                ("~                                          ", LQuery),
+                ("~                                          ", Dot),
+                (" ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~      ", L(S("parent.key.with.special characters"))),
+                ("                                     ~     ", Dot),
+                ("                                      ~~~~~", Identifier("child")),
+                ("                                          ~", RQuery),
             ],
         );
     }
@@ -2061,19 +2061,19 @@ mod test {
     #[test]
     fn queries_digit_path() {
         test(
-            data(r#".0foo foo.00_7bar.tar"#),
+            data(".0foo foo.00_7bar.tar"),
             vec![
-                (r#"~                    "#, LQuery),
-                (r#"~                    "#, Dot),
-                (r#" ~~~~                "#, Identifier("0foo")),
-                (r#"    ~                "#, RQuery),
-                (r#"      ~              "#, LQuery),
-                (r#"      ~~~            "#, Identifier("foo")),
-                (r#"         ~           "#, Dot),
-                (r#"          ~~~~~~~    "#, Identifier("00_7bar")),
-                (r#"                 ~   "#, Dot),
-                (r#"                  ~~~"#, Identifier("tar")),
-                (r#"                    ~"#, RQuery),
+                ("~                    ", LQuery),
+                ("~                    ", Dot),
+                (" ~~~~                ", Identifier("0foo")),
+                ("    ~                ", RQuery),
+                ("      ~              ", LQuery),
+                ("      ~~~            ", Identifier("foo")),
+                ("         ~           ", Dot),
+                ("          ~~~~~~~    ", Identifier("00_7bar")),
+                ("                 ~   ", Dot),
+                ("                  ~~~", Identifier("tar")),
+                ("                    ~", RQuery),
             ],
         );
     }
@@ -2086,20 +2086,20 @@ mod test {
         test(
             data(r#"{ "foo": [true] }.foo[0]"#),
             vec![
-                (r#"~                       "#, LQuery),
-                (r#"~                       "#, LBrace),
-                (r#"  ~~~~~                 "#, L(S("foo"))),
-                (r#"       ~                "#, Colon),
-                (r#"         ~              "#, LBracket),
-                (r#"          ~~~~          "#, True),
-                (r#"              ~         "#, RBracket),
-                (r#"                ~       "#, RBrace),
-                (r#"                 ~      "#, Dot),
-                (r#"                  ~~~   "#, Identifier("foo")),
-                (r#"                     ~  "#, LBracket),
-                (r#"                      ~ "#, IntegerLiteral(0)),
-                (r#"                       ~"#, RBracket),
-                (r#"                       ~"#, RQuery),
+                ("~                       ", LQuery),
+                ("~                       ", LBrace),
+                ("  ~~~~~                 ", L(S("foo"))),
+                ("       ~                ", Colon),
+                ("         ~              ", LBracket),
+                ("          ~~~~          ", True),
+                ("              ~         ", RBracket),
+                ("                ~       ", RBrace),
+                ("                 ~      ", Dot),
+                ("                  ~~~   ", Identifier("foo")),
+                ("                     ~  ", LBracket),
+                ("                      ~ ", IntegerLiteral(0)),
+                ("                       ~", RBracket),
+                ("                       ~", RQuery),
             ],
         );
     }

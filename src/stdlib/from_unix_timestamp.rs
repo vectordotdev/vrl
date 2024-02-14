@@ -180,7 +180,7 @@ mod tests {
             unit: Unit::default(),
         };
         let string = f.resolve(&mut ctx).err().unwrap().message();
-        assert_eq!(string, r#"unable to coerce 9999999999999 into timestamp"#)
+        assert_eq!(string, "unable to coerce 9999999999999 into timestamp")
     }
 
     test_function![

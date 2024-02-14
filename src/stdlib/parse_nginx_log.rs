@@ -431,7 +431,7 @@ mod tests {
 
         error_line_starting {
             args: func_args![
-                value: r#"2021/06/17 19:25:59 [notice] 133309#133309: signal process started"#,
+                value: "2021/06/17 19:25:59 [notice] 133309#133309: signal process started",
                 format: "error"
             ],
             want: Ok(btreemap! {

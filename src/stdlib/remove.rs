@@ -14,7 +14,7 @@ fn remove(path: Value, compact: Value, mut value: Value) -> Resolved {
                     Value::Integer(index) => OwnedSegment::Index(index as isize),
                     value => {
                         return Err(format!(
-                            r#"path segment must be either string or integer, not {}"#,
+                            "path segment must be either string or integer, not {}",
                             value.kind()
                         )
                         .into())
@@ -87,11 +87,11 @@ impl Function for Remove {
             Example {
                 title: "compact object",
                 source: r#"remove!(value: {"foo": { "bar": true }}, path: ["foo", "bar"], compact: true)"#,
-                result: Ok(r#"{}"#),
+                result: Ok("{}"),
             },
             Example {
                 title: "indexing",
-                source: r#"remove!(value: [92, 42], path: [0])"#,
+                source: "remove!(value: [92, 42], path: [0])",
                 result: Ok("[42]"),
             },
             Example {

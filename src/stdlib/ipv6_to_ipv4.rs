@@ -75,7 +75,7 @@ mod tests {
 
         error {
             args: func_args![value: "i am not an ipaddress"],
-            want: Err(r#"unable to parse IP address: invalid IP address syntax"#.to_string()),
+            want: Err("unable to parse IP address: invalid IP address syntax".to_string()),
             tdef: TypeDef::bytes().fallible(),
         }
 

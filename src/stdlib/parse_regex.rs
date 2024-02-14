@@ -175,7 +175,7 @@ mod tests {
         single_match {
             args: func_args! [
                 value: "first group and second group",
-                pattern: Regex::new(r#"(?P<number>.*?) group"#).unwrap()
+                pattern: Regex::new("(?P<number>.*?) group").unwrap()
             ],
             want: Ok(value!({"number": "first"})),
             tdef: TypeDef::object(btreemap! {

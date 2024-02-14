@@ -37,7 +37,7 @@ impl Function for TagTypesExternally {
             },
             Example {
                 title: "null",
-                source: r#"tag_types_externally(null)"#,
+                source: "tag_types_externally(null)",
                 result: Ok("null"),
             },
         ]

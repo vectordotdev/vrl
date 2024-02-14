@@ -40,7 +40,7 @@ impl Function for DecodeBase16 {
         &[Example {
             title: "demo string",
             source: r#"decode_base16!("736F6D6520737472696E672076616C7565")"#,
-            result: Ok(r#"some string value"#),
+            result: Ok("some string value"),
         }]
     }
 }

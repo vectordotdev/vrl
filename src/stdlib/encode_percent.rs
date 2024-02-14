@@ -120,12 +120,12 @@ impl Function for EncodePercent {
             Example {
                 title: "percent encode string",
                 source: r#"encode_percent("foo bar?")"#,
-                result: Ok(r#"s'foo%20bar%3F'"#),
+                result: Ok("s'foo%20bar%3F'"),
             },
             Example {
                 title: "percent encode for query",
                 source: r#"encode_percent("foo@bar?")"#,
-                result: Ok(r#"s'foo%40bar%3F'"#),
+                result: Ok("s'foo%40bar%3F'"),
             },
         ]
     }
@@ -156,56 +156,56 @@ mod tests {
         encode_percent => EncodePercent;
 
         default {
-            args: func_args![value: r#"foo bar?"#],
-            want: Ok(r#"foo%20bar%3F"#),
+            args: func_args![value: "foo bar?"],
+            want: Ok("foo%20bar%3F"),
             tdef: TypeDef::bytes().infallible(),
         }
 
         controls {
-            args: func_args![value: r#"foo bar"#, ascii_set: "CONTROLS"],
-            want: Ok(r#"foo %14bar"#),
+            args: func_args![value: "foo bar", ascii_set: "CONTROLS"],
+            want: Ok("foo %14bar"),
             tdef: TypeDef::bytes().infallible(),
         }
 
         fragment {
             args: func_args![value: r#"foo <>" `bar"#, ascii_set: "FRAGMENT"],
-            want: Ok(r#"foo%20%3C%3E%22%20%60bar"#),
+            want: Ok("foo%20%3C%3E%22%20%60bar"),
             tdef: TypeDef::bytes().infallible(),
         }
 
         query {
             args: func_args![value: r#"foo #"<>bar"#, ascii_set: "QUERY"],
-            want: Ok(r#"foo%20%23%22%3C%3Ebar"#),
+            want: Ok("foo%20%23%22%3C%3Ebar"),
             tdef: TypeDef::bytes().infallible(),
         }
 
         special {
             args: func_args![value: r#"foo #"<>'bar"#, ascii_set: "SPECIAL"],
-            want: Ok(r#"foo%20%23%22%3C%3E%27bar"#),
+            want: Ok("foo%20%23%22%3C%3E%27bar"),
             tdef: TypeDef::bytes().infallible(),
         }
 
         path {
             args: func_args![value: r#"foo #"<>?`{}bar"#, ascii_set: "PATH"],
-            want: Ok(r#"foo%20%23%22%3C%3E%3F%60%7B%7Dbar"#),
+            want: Ok("foo%20%23%22%3C%3E%3F%60%7B%7Dbar"),
             tdef: TypeDef::bytes().infallible(),
         }
 
         userinfo {
             args: func_args![value: r#"foo #"<>?`{}/:;=@[\]^|bar"#, ascii_set: "USERINFO"],
-            want: Ok(r#"foo%20%23%22%3C%3E%3F%60%7B%7D%2F%3A%3B%3D%40%5B%5C%5D%5E%7Cbar"#),
+            want: Ok("foo%20%23%22%3C%3E%3F%60%7B%7D%2F%3A%3B%3D%40%5B%5C%5D%5E%7Cbar"),
             tdef: TypeDef::bytes().infallible(),
         }
 
         component {
             args: func_args![value: r#"foo #"<>?`{}/:;=@[\]^|$%&+,bar"#, ascii_set: "COMPONENT"],
-            want: Ok(r#"foo%20%23%22%3C%3E%3F%60%7B%7D%2F%3A%3B%3D%40%5B%5C%5D%5E%7C%24%25%26%2B%2Cbar"#),
+            want: Ok("foo%20%23%22%3C%3E%3F%60%7B%7D%2F%3A%3B%3D%40%5B%5C%5D%5E%7C%24%25%26%2B%2Cbar"),
             tdef: TypeDef::bytes().infallible(),
         }
 
         www_form_urlencoded {
             args: func_args![value: r#"foo #"<>?`{}/:;=@[\]^|$%&+,!'()~bar"#, ascii_set: "WWW_FORM_URLENCODED"],
-            want: Ok(r#"foo%20%23%22%3C%3E%3F%60%7B%7D%2F%3A%3B%3D%40%5B%5C%5D%5E%7C%24%25%26%2B%2C%21%27%28%29%7Ebar"#),
+            want: Ok("foo%20%23%22%3C%3E%3F%60%7B%7D%2F%3A%3B%3D%40%5B%5C%5D%5E%7C%24%25%26%2B%2C%21%27%28%29%7Ebar"),
             tdef: TypeDef::bytes().infallible(),
         }
     ];

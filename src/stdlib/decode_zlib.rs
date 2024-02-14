@@ -25,7 +25,7 @@ impl Function for DecodeZlib {
         &[Example {
             title: "demo string",
             source: r#"decode_zlib!(decode_base64!("eJxLzUvOT0mNz00FABI5A6A="))"#,
-            result: Ok(r#"encode_me"#),
+            result: Ok("encode_me"),
         }]
     }
 

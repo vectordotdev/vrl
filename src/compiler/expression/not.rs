@@ -52,7 +52,7 @@ impl Expression for Not {
 
 impl fmt::Display for Not {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, r#"!{}"#, self.inner)
+        write!(f, "!{}", self.inner)
     }
 }
 

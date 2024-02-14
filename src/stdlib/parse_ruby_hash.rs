@@ -355,7 +355,7 @@ mod tests {
 
     #[test]
     fn test_parse_colon_object_single_quote() {
-        let result = parse(r#"{ 'hello': 'world' }"#).unwrap();
+        let result = parse("{ 'hello': 'world' }").unwrap();
         assert!(result.is_object());
         let result = result.as_object().unwrap();
         let value = result.get("hello").unwrap();

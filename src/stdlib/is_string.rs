@@ -26,12 +26,12 @@ impl Function for IsString {
             },
             Example {
                 title: "boolean",
-                source: r#"is_string(true)"#,
+                source: "is_string(true)",
                 result: Ok("false"),
             },
             Example {
                 title: "null",
-                source: r#"is_string(null)"#,
+                source: "is_string(null)",
                 result: Ok("false"),
             },
         ]

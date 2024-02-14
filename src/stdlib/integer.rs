@@ -3,7 +3,7 @@ use crate::compiler::prelude::*;
 fn int(value: Value) -> Resolved {
     match value {
         v @ Value::Integer(_) => Ok(v),
-        v => Err(format!(r#"expected integer, got {}"#, v.kind()).into()),
+        v => Err(format!("expected integer, got {}", v.kind()).into()),
     }
 }
 
@@ -27,7 +27,7 @@ impl Function for Integer {
         &[
             Example {
                 title: "valid",
-                source: r#"int(42)"#,
+                source: "int(42)",
                 result: Ok("42"),
             },
             Example {

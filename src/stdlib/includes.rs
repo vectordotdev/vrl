@@ -33,7 +33,7 @@ impl Function for Includes {
         &[
             Example {
                 title: "includes",
-                source: r#"includes([1, true], true)"#,
+                source: "includes([1, true], true)",
                 result: Ok("true"),
             },
             Example {

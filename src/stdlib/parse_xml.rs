@@ -421,7 +421,7 @@ mod tests {
         parse_xml => ParseXml;
 
         simple_text {
-            args: func_args![ value: r#"<a>test</a>"# ],
+            args: func_args![ value: "<a>test</a>" ],
             want: Ok(value!({ "a": "test" })),
             tdef: type_def(),
         }
@@ -439,7 +439,7 @@ mod tests {
         }
 
         custom_text_key {
-            args: func_args![ value: r#"<b>test</b>"#, text_key: "node", always_use_text_key: true ],
+            args: func_args![ value: "<b>test</b>", text_key: "node", always_use_text_key: true ],
             want: Ok(value!({ "b": { "node": "test" } })),
             tdef: type_def(),
         }
@@ -465,7 +465,7 @@ mod tests {
         }
 
         nested_object_array {
-            args: func_args![ value: r#"<a><b>one</b><b>two</b></a>"# ],
+            args: func_args![ value: "<a><b>one</b><b>two</b></a>" ],
             want: Ok(value!({ "a": { "b": ["one", "two"] } })),
             tdef: type_def(),
         }
@@ -498,7 +498,7 @@ mod tests {
         }
 
         header_inside_element {
-            args: func_args![ value: r#"<p><?xml?>text123</p>"# ],
+            args: func_args![ value: "<p><?xml?>text123</p>" ],
             want: Ok(value!(
                 {
                     "p": {

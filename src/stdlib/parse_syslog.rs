@@ -210,7 +210,7 @@ mod tests {
         }
 
         haproxy {
-            args: func_args![value: r#"<133>Jun 13 16:33:35 haproxy[73411]: Proxy sticky-servers started."#],
+            args: func_args![value: "<133>Jun 13 16:33:35 haproxy[73411]: Proxy sticky-servers started."],
             want: Ok(btreemap! {
                     "facility" => "local0",
                     "severity" => "notice",
@@ -223,7 +223,7 @@ mod tests {
         }
 
         missing_pri {
-            args: func_args![value: r#"Jun 13 16:33:35 haproxy[73411]: I am missing a pri."#],
+            args: func_args![value: "Jun 13 16:33:35 haproxy[73411]: I am missing a pri."],
             want: Ok(btreemap! {
                 "message" => "I am missing a pri.",
                 "timestamp" => chrono::Utc.ymd(Utc::now().year(), 6, 13).and_hms_milli(16, 33, 35, 0),
@@ -234,7 +234,7 @@ mod tests {
         }
 
         empty_sd_element {
-            args: func_args![value: r#"<13>1 2019-02-13T19:48:34+00:00 74794bfb6795 root 8449 - [empty] qwerty"#],
+            args: func_args![value: "<13>1 2019-02-13T19:48:34+00:00 74794bfb6795 root 8449 - [empty] qwerty"],
             want: Ok(btreemap!{
                 "message" => "qwerty",
                 "appname" => "root",

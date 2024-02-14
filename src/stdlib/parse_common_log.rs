@@ -168,13 +168,13 @@ mod tests {
         }
 
         log_line_invalid {
-            args: func_args![value: r#"not a common log line"#],
+            args: func_args![value: "not a common log line"],
             want: Err("failed parsing common log line"),
             tdef: TypeDef::object(inner_kind()).fallible(),
         }
 
         log_line_invalid_timestamp {
-            args: func_args![value: r#"- - - [1234] - - -"#],
+            args: func_args![value: "- - - [1234] - - -"],
             want: Err("failed parsing timestamp 1234 using format %d/%b/%Y:%T %z: input contains invalid characters"),
             tdef: TypeDef::object(inner_kind()).fallible(),
         }

@@ -14,7 +14,7 @@ fn set(path: Value, mut value: Value, data: Value) -> Resolved {
                     Value::Integer(index) => OwnedSegment::Index(index as isize),
                     value => {
                         return Err(format!(
-                            r#"path segment must be either string or integer, not {}"#,
+                            "path segment must be either string or integer, not {}",
                             value.kind()
                         )
                         .into())

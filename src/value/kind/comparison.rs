@@ -234,36 +234,37 @@ impl Kind {
     /// # Errors
     /// If the type is not a superset, a path to one field that doesn't match is returned.
     /// This is mostly useful for debugging.
+    #[allow(clippy::nursery)]
     pub fn is_superset(&self, other: &Self) -> Result<(), OwnedValuePath> {
-        if let (None, Some(_)) = (self.bytes, other.bytes) {
+        if let (None, Some(())) = (self.bytes, other.bytes) {
             return Err(OwnedValuePath::root());
         };
 
-        if let (None, Some(_)) = (self.integer, other.integer) {
+        if let (None, Some(())) = (self.integer, other.integer) {
             return Err(OwnedValuePath::root());
         };
 
-        if let (None, Some(_)) = (self.float, other.float) {
+        if let (None, Some(())) = (self.float, other.float) {
             return Err(OwnedValuePath::root());
         };
 
-        if let (None, Some(_)) = (self.boolean, other.boolean) {
+        if let (None, Some(())) = (self.boolean, other.boolean) {
             return Err(OwnedValuePath::root());
         };
 
-        if let (None, Some(_)) = (self.timestamp, other.timestamp) {
+        if let (None, Some(())) = (self.timestamp, other.timestamp) {
             return Err(OwnedValuePath::root());
         };
 
-        if let (None, Some(_)) = (self.regex, other.regex) {
+        if let (None, Some(())) = (self.regex, other.regex) {
             return Err(OwnedValuePath::root());
         };
 
-        if let (None, Some(_)) = (self.null, other.null) {
+        if let (None, Some(())) = (self.null, other.null) {
             return Err(OwnedValuePath::root());
         };
 
-        if let (None, Some(_)) = (self.undefined, other.undefined) {
+        if let (None, Some(())) = (self.undefined, other.undefined) {
             return Err(OwnedValuePath::root());
         };
 
