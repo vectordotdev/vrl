@@ -62,7 +62,7 @@ mod tests {
 
     #[test]
     fn empty_field() {
-        let input = r#"%{data:}"#;
+        let input = "%{data:}";
         let parsed = parse_grok_pattern(input).unwrap_or_else(|error| {
             panic!("Problem parsing grok: {:?}", error);
         });
@@ -89,7 +89,7 @@ mod tests {
 
     #[test]
     fn empty_field_with_filter() {
-        let input = r#"%{data::json}"#;
+        let input = "%{data::json}";
         let parsed = parse_grok_pattern(input).unwrap_or_else(|error| {
             panic!("Problem parsing grok: {:?}", error);
         });
