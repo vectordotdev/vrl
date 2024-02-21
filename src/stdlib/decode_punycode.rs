@@ -9,11 +9,18 @@ impl Function for DecodePunycode {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[Parameter {
-            keyword: "value",
-            kind: kind::BYTES,
-            required: true,
-        }]
+        &[
+            Parameter {
+                keyword: "value",
+                kind: kind::BYTES,
+                required: true,
+            },
+            Parameter {
+                keyword: "validate",
+                kind: kind::BOOLEAN,
+                required: false,
+            },
+        ]
     }
 
     fn compile(
@@ -23,8 +30,11 @@ impl Function for DecodePunycode {
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
+        let validate = arguments
+            .optional("validate")
+            .unwrap_or_else(|| expr!(true));
 
-        Ok(DecodePunycodeFn { value }.as_expr())
+        Ok(DecodePunycodeFn { value, validate }.as_expr())
     }
 
     fn examples(&self) -> &'static [Example] {
@@ -39,6 +49,11 @@ impl Function for DecodePunycode {
                 source: r#"decode_punycode!("www.cafe.com")"#,
                 result: Ok("www.cafe.com"),
             },
+            Example {
+                title: "ignore validation",
+                source: r#"decode_punycode!("xn--8hbb.xn--fiba.xn--8hbf.xn--eib.", validate: false)"#,
+                result: Ok("١٠.٦٦.٣٠.٥."),
+            },
         ]
     }
 }
@@ -46,6 +61,7 @@ impl Function for DecodePunycode {
 #[derive(Clone, Debug)]
 struct DecodePunycodeFn {
     value: Box<dyn Expression>,
+    validate: Box<dyn Expression>,
 }
 
 impl FunctionExpression for DecodePunycodeFn {
@@ -53,8 +69,13 @@ impl FunctionExpression for DecodePunycodeFn {
         let value = self.value.resolve(ctx)?;
         let string = value.try_bytes_utf8_lossy()?;
 
+        let validate = self.validate.resolve(ctx)?.try_boolean()?;
+
         let (encoded, result) = idna::domain_to_unicode(&string);
-        result.map_err(|errors| format!("unable to decode punycode: {errors}"))?;
+
+        if validate {
+            result.map_err(|errors| format!("unable to decode punycode: {errors}"))?;
+        }
 
         Ok(encoded.into())
     }
@@ -81,6 +102,30 @@ mod test {
         ascii_string {
             args: func_args![value: value!("www.cafe.com")],
             want: Ok(value!("www.cafe.com")),
+            tdef: TypeDef::bytes().fallible(),
+        }
+
+        bidi_error {
+            args: func_args![value: value!("xn--8hbb.xn--fiba.xn--8hbf.xn--eib.")],
+            want: Err("unable to decode punycode: Errors { check_bidi }"),
+            tdef: TypeDef::bytes().fallible(),
+        }
+
+        multiple_errors {
+            args: func_args![value: value!("dns1.webproxy.idc.csesvcgateway.xn--line-svcgateway-jp-mvm-ri-d060072.\\-1roslin.canva.cn.")],
+            want: Err("unable to decode punycode: Errors { punycode, check_bidi }"),
+            tdef: TypeDef::bytes().fallible(),
+        }
+
+        bidi_error_ignore {
+            args: func_args![value: value!("xn--8hbb.xn--fiba.xn--8hbf.xn--eib."), validate: false],
+            want: Ok(value!("١٠.٦٦.٣٠.٥.")),
+            tdef: TypeDef::bytes().fallible(),
+        }
+
+        multiple_errors_ignore {
+            args: func_args![value: value!("dns1.webproxy.idc.csesvcgateway.xn--line-svcgateway-jp-mvm-ri-d060072.\\-1roslin.canva.cn."), validate: false],
+            want: Ok(value!("dns1.webproxy.idc.csesvcgateway..\\-1roslin.canva.cn.")),
             tdef: TypeDef::bytes().fallible(),
         }
     ];

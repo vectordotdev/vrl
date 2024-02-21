@@ -1,3 +1,5 @@
+use idna::{Config, Idna};
+
 use crate::compiler::prelude::*;
 
 #[derive(Clone, Copy, Debug)]
@@ -9,11 +11,18 @@ impl Function for EncodePunycode {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[Parameter {
-            keyword: "value",
-            kind: kind::BYTES,
-            required: true,
-        }]
+        &[
+            Parameter {
+                keyword: "value",
+                kind: kind::BYTES,
+                required: true,
+            },
+            Parameter {
+                keyword: "validate",
+                kind: kind::BOOLEAN,
+                required: false,
+            },
+        ]
     }
 
     fn compile(
@@ -23,8 +32,11 @@ impl Function for EncodePunycode {
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
+        let validate = arguments
+            .optional("validate")
+            .unwrap_or_else(|| expr!(true));
 
-        Ok(EncodePunycodeFn { value }.as_expr())
+        Ok(EncodePunycodeFn { value, validate }.as_expr())
     }
 
     fn examples(&self) -> &'static [Example] {
@@ -44,6 +56,11 @@ impl Function for EncodePunycode {
                 source: r#"encode_punycode!("www.cafe.com")"#,
                 result: Ok("www.cafe.com"),
             },
+            Example {
+                title: "ignore validation",
+                source: r#"encode_punycode!("xn--8hbb.xn--fiba.xn--8hbf.xn--eib.", validate: false)"#,
+                result: Ok("xn--8hbb.xn--fiba.xn--8hbf.xn--eib."),
+            },
         ]
     }
 }
@@ -51,6 +68,7 @@ impl Function for EncodePunycode {
 #[derive(Clone, Debug)]
 struct EncodePunycodeFn {
     value: Box<dyn Expression>,
+    validate: Box<dyn Expression>,
 }
 
 impl FunctionExpression for EncodePunycodeFn {
@@ -58,8 +76,15 @@ impl FunctionExpression for EncodePunycodeFn {
         let value = self.value.resolve(ctx)?;
         let string = value.try_bytes_utf8_lossy()?;
 
-        let encoded = idna::domain_to_ascii(&string)
-            .map_err(|errors| format!("unable to encode to punycode: {errors}"))?;
+        let validate = self.validate.resolve(ctx)?.try_boolean()?;
+
+        let mut encoded = String::with_capacity(string.len());
+        let mut codec = Idna::new(Config::default());
+        let result = codec.to_ascii(&string, &mut encoded);
+
+        if validate {
+            result.map_err(|errors| format!("unable to encode to punycode: {errors}"))?;
+        }
 
         Ok(encoded.into())
     }
@@ -92,6 +117,42 @@ mod test {
         ascii_string {
             args: func_args![value: value!("www.cafe.com")],
             want: Ok(value!("www.cafe.com")),
+            tdef: TypeDef::bytes().fallible(),
+        }
+
+        bidi_error {
+            args: func_args![value: value!("xn--8hbb.xn--fiba.xn--8hbf.xn--eib.")],
+            want: Err("unable to encode to punycode: Errors { check_bidi }"),
+            tdef: TypeDef::bytes().fallible(),
+        }
+
+        multiple_errors {
+            args: func_args![value: value!("dns1.webproxy.idc.csesvcgateway.xn--line-svcgateway-jp-mvm-ri-d060072.\\-1roslin.canva.cn.")],
+            want: Err("unable to encode to punycode: Errors { punycode, check_bidi }"),
+            tdef: TypeDef::bytes().fallible(),
+        }
+
+        bidi_error2 {
+            args: func_args![value: value!("wwes.ir.abadgostaran.ir.taakads.ir.farhadrahimy.ir.regk.ir.2qok.com.خرید-پستی.com.maskancto.com.phpars.com.eshelstore.ir.techtextile.ir.mrafiei.ir.hamtamotor.com.surfiran.ir.negar3d.com.tjketab.ir.3d4dl.ir.cabindooshsahand.com.mashtikebab.sbs.")],
+            want: Err("unable to encode to punycode: Errors { check_bidi }"),
+            tdef: TypeDef::bytes().fallible(),
+        }
+
+        bidi_error_ignore {
+            args: func_args![value: value!("xn--8hbb.xn--fiba.xn--8hbf.xn--eib."), validate: false],
+            want: Ok(value!("xn--8hbb.xn--fiba.xn--8hbf.xn--eib.")),
+            tdef: TypeDef::bytes().fallible(),
+        }
+
+        bidi_error2_ignore {
+            args: func_args![value: value!("wwes.ir.abadgostaran.ir.taakads.ir.farhadrahimy.ir.regk.ir.2qok.com.خرید-پستی.com.maskancto.com.phpars.com.eshelstore.ir.techtextile.ir.mrafiei.ir.hamtamotor.com.surfiran.ir.negar3d.com.tjketab.ir.3d4dl.ir.cabindooshsahand.com.mashtikebab.sbs."), validate: false],
+            want: Ok(value!("wwes.ir.abadgostaran.ir.taakads.ir.farhadrahimy.ir.regk.ir.2qok.com.xn----5mckejo83c6tfa.com.maskancto.com.phpars.com.eshelstore.ir.techtextile.ir.mrafiei.ir.hamtamotor.com.surfiran.ir.negar3d.com.tjketab.ir.3d4dl.ir.cabindooshsahand.com.mashtikebab.sbs.")),
+            tdef: TypeDef::bytes().fallible(),
+        }
+
+        multiple_errors_ignore {
+            args: func_args![value: value!("dns1.webproxy.idc.csesvcgateway.xn--line-svcgateway-jp-mvm-ri-d060072.\\-1roslin.canva.cn."), validate: false],
+            want: Ok(value!("dns1.webproxy.idc.csesvcgateway..\\-1roslin.canva.cn.")),
             tdef: TypeDef::bytes().fallible(),
         }
     ];
