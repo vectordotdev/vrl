@@ -1,6 +1,6 @@
-use idna::{Config, Idna};
-
 use crate::compiler::prelude::*;
+
+const PUNYCODE_PREFIX: &str = "xn--";
 
 #[derive(Clone, Copy, Debug)]
 pub struct EncodePunycode;
@@ -78,15 +78,28 @@ impl FunctionExpression for EncodePunycodeFn {
 
         let validate = self.validate.resolve(ctx)?.try_boolean()?;
 
-        let mut encoded = String::with_capacity(string.len());
-        let mut codec = Idna::new(Config::default());
-        let result = codec.to_ascii(&string, &mut encoded);
-
         if validate {
-            result.map_err(|errors| format!("unable to encode to punycode: {errors}"))?;
+            let encoded = idna::domain_to_ascii(&string)
+                .map_err(|errors| format!("unable to encode to punycode: {errors}"))?;
+            Ok(encoded.into())
+        } else {
+            let encoded = string
+                .split('.')
+                .map(|part| {
+                    if part.starts_with(PUNYCODE_PREFIX) || part.is_ascii() {
+                        part.to_string()
+                    } else {
+                        format!(
+                            "{}{}",
+                            PUNYCODE_PREFIX,
+                            idna::punycode::encode_str(part).unwrap_or(part.to_string())
+                        )
+                    }
+                })
+                .collect::<Vec<String>>()
+                .join(".");
+            Ok(encoded.into())
         }
-
-        Ok(encoded.into())
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {
@@ -152,7 +165,7 @@ mod test {
 
         multiple_errors_ignore {
             args: func_args![value: value!("dns1.webproxy.idc.csesvcgateway.xn--line-svcgateway-jp-mvm-ri-d060072.\\-1roslin.canva.cn."), validate: false],
-            want: Ok(value!("dns1.webproxy.idc.csesvcgateway..\\-1roslin.canva.cn.")),
+            want: Ok(value!("dns1.webproxy.idc.csesvcgateway.xn--line-svcgateway-jp-mvm-ri-d060072.\\-1roslin.canva.cn.")),
             tdef: TypeDef::bytes().fallible(),
         }
     ];
