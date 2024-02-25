@@ -371,6 +371,7 @@ pub enum Token<S> {
     False,
     True,
     Abort,
+    Return,
 
     // tokens
     Colon,
@@ -436,7 +437,8 @@ impl<S> Token<S> {
             FloatLiteral, FunctionCall, Identifier, If, IntegerLiteral, InvalidToken, LBrace,
             LBracket, LParen, LQuery, MergeEquals, Newline, Null, Operator, PathField, Percent,
             Question, RBrace, RBracket, RParen, RQuery, RawStringLiteral, RegexLiteral,
-            ReservedIdentifier, SemiColon, StringLiteral, TimestampLiteral, True, Underscore,
+            ReservedIdentifier, Return, SemiColon, StringLiteral, TimestampLiteral, True,
+            Underscore,
         };
 
         match self {
@@ -465,6 +467,7 @@ impl<S> Token<S> {
             Null => Null,
             True => True,
             Abort => Abort,
+            Return => Return,
 
             // tokens
             Colon => Colon,
@@ -505,7 +508,8 @@ where
             FloatLiteral, FunctionCall, Identifier, If, IntegerLiteral, InvalidToken, LBrace,
             LBracket, LParen, LQuery, MergeEquals, Newline, Null, Operator, PathField, Percent,
             Question, RBrace, RBracket, RParen, RQuery, RawStringLiteral, RegexLiteral,
-            ReservedIdentifier, SemiColon, StringLiteral, TimestampLiteral, True, Underscore,
+            ReservedIdentifier, Return, SemiColon, StringLiteral, TimestampLiteral, True,
+            Underscore,
         };
 
         let s = match *self {
@@ -528,6 +532,7 @@ where
             Null => "Null",
             True => "True",
             Abort => "Abort",
+            Return => "Return",
 
             // tokens
             Colon => "Colon",
@@ -564,7 +569,7 @@ impl<'input> Token<&'input str> {
     /// Returns either a literal, reserved, or generic identifier.
     fn ident(s: &'input str) -> Self {
         use Token::{
-            Abort, Else, False, Identifier, If, Null, PathField, ReservedIdentifier, True,
+            Abort, Else, False, Identifier, If, Null, PathField, ReservedIdentifier, Return, True,
         };
 
         match s {
@@ -574,12 +579,13 @@ impl<'input> Token<&'input str> {
             "false" => False,
             "null" => Null,
             "abort" => Abort,
+            "return" => Return,
 
             // reserved identifiers
             "array" | "bool" | "boolean" | "break" | "continue" | "do" | "emit" | "float"
             | "for" | "forall" | "foreach" | "all" | "each" | "any" | "try" | "undefined"
-            | "int" | "integer" | "iter" | "object" | "regex" | "return" | "string"
-            | "traverse" | "timestamp" | "duration" | "unless" | "walk" | "while" | "loop" => {
+            | "int" | "integer" | "iter" | "object" | "regex" | "string" | "traverse"
+            | "timestamp" | "duration" | "unless" | "walk" | "while" | "loop" => {
                 ReservedIdentifier(s)
             }
 

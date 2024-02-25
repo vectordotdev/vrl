@@ -4,7 +4,7 @@ use crate::compiler::{
     expression::{
         assignment, function_call, literal, predicate, query, Abort, Array, Assignment, Block,
         Container, Expr, Expression, FunctionArgument, FunctionCall, Group, IfStatement, Literal,
-        Noop, Not, Object, Op, Predicate, Query, Target, Unary, Variable,
+        Noop, Not, Object, Op, Predicate, Query, Return, Target, Unary, Variable,
     },
     parser::ast::RootExpr,
     program::ProgramInfo,
@@ -150,8 +150,8 @@ impl<'a> Compiler<'a> {
 
     fn compile_expr(&mut self, node: Node<ast::Expr>, state: &mut TypeState) -> Option<Expr> {
         use ast::Expr::{
-            Abort, Assignment, Container, FunctionCall, IfStatement, Literal, Op, Query, Unary,
-            Variable,
+            Abort, Assignment, Container, FunctionCall, IfStatement, Literal, Op, Query, Return,
+            Unary, Variable,
         };
         let original_state = state.clone();
 
@@ -168,6 +168,7 @@ impl<'a> Compiler<'a> {
             Variable(node) => self.compile_variable(node, state).map(Into::into),
             Unary(node) => self.compile_unary(node, state).map(Into::into),
             Abort(node) => self.compile_abort(node, state).map(Into::into),
+            Return(node) => self.compile_return(node, state).map(Into::into),
         }?;
 
         // If the previously compiled expression is fallible, _and_ we are
@@ -812,6 +813,17 @@ impl<'a> Compiler<'a> {
         };
 
         Abort::new(span, message, state)
+            .map_err(|err| self.diagnostics.push(Box::new(err)))
+            .ok()
+    }
+
+    fn compile_return(&mut self, node: Node<ast::Return>, state: &mut TypeState) -> Option<Return> {
+        let (span, r#return) = node.take();
+
+        let expr = self.compile_expr(*r#return.expr, state)?;
+        let node = Node::new(span, expr);
+
+        Return::new(span, node, state)
             .map_err(|err| self.diagnostics.push(Box::new(err)))
             .ok()
     }

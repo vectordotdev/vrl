@@ -1,0 +1,29 @@
+# DIAGNOSTICS
+# result:
+#
+# error[E203]: syntax error
+# ┌─ :3:3
+# │
+# 3 │   return 42
+# │   ^^^^^^
+# │   │
+# │   unexpected syntax token: "Return"
+# │   expected one of: "\n", "!", "(", "[", "_", "abort", "false", "float literal", "function call", "identifier", "if", "integer literal", "null", "raw string literal", "regex literal", "string literal", "timestamp literal", "true", "{", "path literal"
+# │
+# = see language documentation at https://vrl.dev
+# = try your code in the VRL REPL, learn more at https://vrl.dev/examples
+# error[E203]: syntax error
+# ┌─ :4:1
+# │
+# 4 │ }
+# │ ^
+# │ │
+# │ unexpected syntax token: "RBrace"
+# │ expected one of: "!", "(", "[", "_", "abort", "false", "float literal", "function call", "identifier", "if", "integer literal", "null", "raw string literal", "regex literal", "return", "string literal", "timestamp literal", "true", "{", "path literal"
+# │
+# = see language documentation at https://vrl.dev
+# = try your code in the VRL REPL, learn more at https://vrl.dev/examples
+
+for_each({ "foo": "bar", "lorem": "ipsum" }) -> |_key, _value| {
+  return 42
+}

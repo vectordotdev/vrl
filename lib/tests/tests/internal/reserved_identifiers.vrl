@@ -1,0 +1,40 @@
+# result: { "abort": true, "all": true, "any": true, "array": true, "bool": true, "boolean": true, "break": true, "continue": true, "do": true, "duration": true, "each": true, "else": true, "emit": true, "false": true, "floa": true, "for": true, "forall": true, "foreach": true, "if": true, "int": true, "integer": true, "iter": true, "loop": true, "null": true, "object": true, "regex": true, "return": true, "string": true, "timestamp": true, "travers": true, "true": true, "try": true, "undefine": true, "unless": true, "walk": true, "while": true }
+
+.abort = true
+.all = true
+.any = true
+.array = true
+.bool = true
+.boolean = true
+.break = true
+.continue = true
+.do = true
+.duration = true
+.each = true
+.else = true
+.emit = true
+.false = true
+.floa = true
+.for = true
+.forall = true
+.foreach = true
+.if = true
+.int = true
+.integer = true
+.iter = true
+.loop = true
+.null = true
+.object = true
+.regex = true
+.return = true
+.string = true
+.timestamp = true
+.travers = true
+.true = true
+.try = true
+.undefine = true
+.unless = true
+.walk = true
+.while = true
+
+.

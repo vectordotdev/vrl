@@ -1,0 +1,33 @@
+# result: {
+#   "a": {"never": true},
+#   "b": {"bytes": true},
+#   "b2": {"bytes": true},
+#   "c": {"never": true},
+#   "d": {"object": {}},
+#   "e": {"null": true},
+#   "f": {"bytes": true, "integer": true},
+#   "g": {"never": true}
+#   }
+
+x = "string"
+
+.a = type_def({return .})
+.b = type_def({if false {return .} else {"string"}})
+.b2 = type_def({if true {return .} else {"string"}})
+.c = type_def({return {if false {abort} else {"string"}}})
+.d = type_def({{} | {return .}})
+.e = type_def({ if false {return .} })
+.f = type_def({
+   x = "string"
+   if false {
+      return .
+   } else {
+      x = 3
+   }
+   x
+})
+.g = type_def({
+   return .
+   "string"
+})
+.

@@ -233,13 +233,14 @@ pub enum Expr {
     Variable(Node<Ident>),
     Unary(Node<Unary>),
     Abort(Node<Abort>),
+    Return(Node<Return>),
 }
 
 impl fmt::Debug for Expr {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use Expr::{
-            Abort, Assignment, Container, FunctionCall, IfStatement, Literal, Op, Query, Unary,
-            Variable,
+            Abort, Assignment, Container, FunctionCall, IfStatement, Literal, Op, Query, Return,
+            Unary, Variable,
         };
 
         let value = match self {
@@ -253,6 +254,7 @@ impl fmt::Debug for Expr {
             Variable(v) => format!("{v:?}"),
             Unary(v) => format!("{v:?}"),
             Abort(v) => format!("{v:?}"),
+            Return(v) => format!("{v:?}"),
         };
 
         write!(f, "Expr({value})")
@@ -262,8 +264,8 @@ impl fmt::Debug for Expr {
 impl fmt::Display for Expr {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use Expr::{
-            Abort, Assignment, Container, FunctionCall, IfStatement, Literal, Op, Query, Unary,
-            Variable,
+            Abort, Assignment, Container, FunctionCall, IfStatement, Literal, Op, Query, Return,
+            Unary, Variable,
         };
 
         match self {
@@ -277,6 +279,7 @@ impl fmt::Display for Expr {
             Variable(v) => v.fmt(f),
             Unary(v) => v.fmt(f),
             Abort(v) => v.fmt(f),
+            Return(v) => v.fmt(f),
         }
     }
 }
@@ -1201,5 +1204,26 @@ impl fmt::Display for Abort {
 impl fmt::Debug for Abort {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "Abort({:?})", self.message)
+    }
+}
+
+// -----------------------------------------------------------------------------
+// return
+// -----------------------------------------------------------------------------
+
+#[derive(Clone, PartialEq)]
+pub struct Return {
+    pub expr: Box<Node<Expr>>,
+}
+
+impl fmt::Display for Return {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "return {}", self.expr)
+    }
+}
+
+impl fmt::Debug for Return {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Return({:?})", self.expr)
     }
 }
