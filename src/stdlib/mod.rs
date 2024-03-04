@@ -175,6 +175,7 @@ cfg_if::cfg_if! {
         mod sha1;
         mod sha2;
         mod sha3;
+        mod sieve;
         mod slice;
         mod split;
         mod starts_with;
@@ -341,6 +342,7 @@ cfg_if::cfg_if! {
         pub use set::Set;
         pub use sha2::Sha2;
         pub use sha3::Sha3;
+        pub use sieve::Sieve;
         pub use slice::Slice;
         pub use split::Split;
         pub use starts_with::StartsWith;
@@ -516,6 +518,7 @@ pub fn all() -> Vec<Box<dyn Function>> {
         Box::new(Sha1),
         Box::new(Sha2),
         Box::new(Sha3),
+        Box::new(Sieve),
         Box::new(Slice),
         Box::new(Split),
         Box::new(StartsWith),

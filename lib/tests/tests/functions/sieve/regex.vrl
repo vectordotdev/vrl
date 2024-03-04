@@ -1,0 +1,3 @@
+# result: 37ccx6a5uf52a7dv2hfxgpmltji09x6xkg0zv6yxsoi4kqs9atmjh7k50dcjb7z..net.
+
+sieve("37ccx6a5uf52a7dv2hfxgpmltji09x6xkg0zv6yxsoi4kqs9atmjh7k50dcjb7z.فوائد.net.", r'[a-z.0-9]')

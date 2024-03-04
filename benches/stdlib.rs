@@ -132,6 +132,7 @@ criterion_group!(
               sha1,
               sha2,
               sha3,
+              sieve,
               slice,
               split,
               starts_with,
@@ -2342,6 +2343,20 @@ bench_function! {
     default {
         args: func_args![value: "foo"],
         want: Ok("4bca2b137edc580fe50a88983ef860ebaca36c857b1f492839d6d7392452a63c82cbebc68e3b70a2a1480b4bb5d437a7cba6ecf9d89f9ff3ccd14cd6146ea7e7")
+    }
+}
+
+bench_function! {
+    sieve => vrl::stdlib::Sieve;
+
+    regex {
+        args: func_args![value: value!("test123%456.فوائد.net."), permitted_characters: regex::Regex::new("[a-z.0-9]").unwrap(), replace_single: "X", replace_repeated: "<REMOVED>"],
+        want: Ok(value!("test123X456.<REMOVED>.net.")),
+    }
+
+    string {
+        args: func_args![value: value!("37ccx6a5uf52a7dv2hfxgpmltji09x6xkg0zv6yxsoi4kqs9atmjh7k50dcjb7z.فوائد.net."), permitted_characters: "acx.", replace_single: "0", replace_repeated: "<REMOVED>"],
+        want: Ok(value!("<REMOVED>ccx0a<REMOVED>a<REMOVED>x<REMOVED>x0x<Removed>x<Removed>a<Removed>c<REMOVED>.<REMOVED>.<REMOVED>.")),
     }
 }
 
