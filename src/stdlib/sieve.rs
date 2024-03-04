@@ -19,16 +19,16 @@ fn sieve(
             let mut result = String::with_capacity(value.len());
             let mut missed_length = 0;
             for char in value.chars() {
-                if !characters.contains(&char) {
-                    missed_length += 1;
-                } else {
+                if characters.contains(&char) {
                     match missed_length {
                         l if l > 1 => result += &replace_repeated,
-                        l if l == 1 => result += &replace_single,
+                        1 => result += &replace_single,
                         _ => (),
                     }
                     missed_length = 0;
                     result.push(char);
+                } else {
+                    missed_length += 1;
                 }
             }
             Ok(result.into())
@@ -39,7 +39,7 @@ fn sieve(
             for m in regex.find_iter(&value) {
                 match m.start() - last_end {
                     l if l > 1 => result += &replace_repeated,
-                    l if l == 1 => result += &replace_single,
+                    1 => result += &replace_single,
                     _ => (),
                 }
                 last_end = m.end();
