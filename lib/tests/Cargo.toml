@@ -8,7 +8,7 @@ publish = false
 [dependencies]
 vrl = { path = "../../", features = ["test_framework"] }
 chrono-tz = "0.8"
-clap = { version = "4.5.1", features = ["derive"] }
+clap = { version = "4.5.2", features = ["derive"] }
 glob = "0.3"
 tracing-subscriber = { version = "0.3.18", default-features = false, features = ["fmt"] }
 
