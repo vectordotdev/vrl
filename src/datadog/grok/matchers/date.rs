@@ -311,7 +311,7 @@ pub fn apply_date_filter(value: &Value, filter: &DateFilter) -> Result<Value, Gr
                                 .timestamp_millis()
                                 .into())
                         } else {
-                            Ok(dt.timestamp_millis().into())
+                            Ok(dt.and_utc().timestamp_millis().into())
                         }
                     } else if let Ok(nt) = NaiveTime::parse_from_str(&value, &filter.strp_format) {
                         // try parsing as a naive time
@@ -319,6 +319,7 @@ pub fn apply_date_filter(value: &Value, filter: &DateFilter) -> Result<Value, Gr
                             NaiveDate::from_ymd_opt(1970, 1, 1).expect("invalid date"),
                             nt,
                         )
+                        .and_utc()
                         .timestamp_millis()
                         .into())
                     } else {
