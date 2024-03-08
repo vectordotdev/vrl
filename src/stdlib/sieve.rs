@@ -1,5 +1,3 @@
-use std::collections::HashSet;
-
 use crate::compiler::prelude::*;
 
 fn sieve(
@@ -13,26 +11,6 @@ fn sieve(
     let replace_repeated = replace_repeated.try_bytes_utf8_lossy()?;
 
     match permitted_characters {
-        Value::Bytes(bytes) => {
-            let string = String::from_utf8_lossy(&bytes);
-            let characters: HashSet<char> = string.chars().collect();
-            let mut result = String::with_capacity(value.len());
-            let mut missed_length = 0;
-            for char in value.chars() {
-                if characters.contains(&char) {
-                    match missed_length {
-                        l if l > 1 => result += &replace_repeated,
-                        1 => result += &replace_single,
-                        _ => (),
-                    }
-                    missed_length = 0;
-                    result.push(char);
-                } else {
-                    missed_length += 1;
-                }
-            }
-            Ok(result.into())
-        }
         Value::Regex(regex) => {
             let mut result = String::with_capacity(value.len());
             let mut last_end = 0;
@@ -49,7 +27,7 @@ fn sieve(
         }
         value => Err(ValueError::Expected {
             got: value.kind(),
-            expected: Kind::regex() | Kind::bytes(),
+            expected: Kind::regex(),
         }
         .into()),
     }
@@ -72,7 +50,7 @@ impl Function for Sieve {
             },
             Parameter {
                 keyword: "permitted_characters",
-                kind: kind::BYTES | kind::REGEX,
+                kind: kind::REGEX,
                 required: true,
             },
             Parameter {
@@ -169,12 +147,6 @@ mod tests {
             tdef: TypeDef::bytes().infallible(),
         }
 
-        single_symbol_only {
-            args: func_args![value: value!("vector.dev"), permitted_characters: "."],
-            want: Ok(value!(".")),
-            tdef: TypeDef::bytes().infallible(),
-        }
-
         all_options {
             args: func_args![value: value!("test123%456.فوائد.net."), permitted_characters: regex::Regex::new("[a-z.0-9]").unwrap(), replace_single: "X", replace_repeated: "<REMOVED>"],
             want: Ok(value!("test123X456.<REMOVED>.net.")),
@@ -182,14 +154,8 @@ mod tests {
         }
 
         replace_repeated {
-            args: func_args![value: value!("37ccx6a5uf52a7dv2hfxgpmltji09x6xkg0zv6yxsoi4kqs9atmjh7k50dcjb7z.فوائد.net."), permitted_characters: ".", replace_repeated: "<REMOVED>"],
+            args: func_args![value: value!("37ccx6a5uf52a7dv2hfxgpmltji09x6xkg0zv6yxsoi4kqs9atmjh7k50dcjb7z.فوائد.net."), permitted_characters: regex::Regex::new(r"[\.]").unwrap(), replace_repeated: "<REMOVED>"],
             want: Ok(value!("<REMOVED>.<REMOVED>.<REMOVED>.")),
-            tdef: TypeDef::bytes().infallible(),
-        }
-
-        multiple_specific_characters {
-            args: func_args![value: value!("vector.dev"), permitted_characters: "veo"],
-            want: Ok(value!("veoev")),
             tdef: TypeDef::bytes().infallible(),
         }
     ];
