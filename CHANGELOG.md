@@ -4,6 +4,15 @@
 
 <!-- changelog start -->
 
+## [0.12.0 (2024-03-08)]
+
+
+### New Features
+
+- Added `validate` option to `encode_punycode` and `decode_punycode`, which defaults to true, but can
+  be used to skip validation when set to false. (https://github.com/vectordotdev/vrl/pull/709)
+
+
 ## [0.11.0 (2024-02-07)]
 
 
