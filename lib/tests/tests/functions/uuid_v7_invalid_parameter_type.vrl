@@ -1,0 +1,26 @@
+# result:
+# error[E110]: invalid argument type
+# ┌─ :2:9
+# │
+# 2 │ uuid_v7(123)
+# │         ^^^
+# │         │
+# │         this expression resolves to the exact type integer
+# │         but the parameter "timestamp" expects the exact type timestamp
+# │
+# = try: ensuring an appropriate type at runtime
+# =
+# =     123 = timestamp!(123)
+# =     uuid_v7(123)
+# =
+# = try: coercing to an appropriate type and specifying a default value as a fallback in case coercion fails
+# =
+# =     123 = to_unix_timestamp(123) ?? now()
+# =     uuid_v7(123)
+# =
+# = see documentation about error handling at https://errors.vrl.dev/#handling
+# = learn more about error code 110 at https://errors.vrl.dev/110
+# = see language documentation at https://vrl.dev
+# = try your code in the VRL REPL, learn more at https://vrl.dev/examples
+
+uuid_v7(123)
