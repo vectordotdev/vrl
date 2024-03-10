@@ -205,6 +205,7 @@ cfg_if::cfg_if! {
         mod unnest;
         mod upcase;
         mod uuid_v4;
+        mod uuid_v7;
         mod values;
 
         // -----------------------------------------------------------------------------
@@ -373,6 +374,7 @@ cfg_if::cfg_if! {
         pub use unnest::Unnest;
         pub use upcase::Upcase;
         pub use uuid_v4::UuidV4;
+        pub use uuid_v7::UuidV7;
         pub use values::Values;
         pub use self::array::Array;
         pub use self::md5::Md5;
@@ -552,6 +554,7 @@ pub fn all() -> Vec<Box<dyn Function>> {
         Box::new(Unnest),
         Box::new(Upcase),
         Box::new(UuidV4),
+        Box::new(UuidV7),
         Box::new(Values),
     ]
 }
