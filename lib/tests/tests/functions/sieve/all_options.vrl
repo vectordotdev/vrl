@@ -1,0 +1,3 @@
+# result: test123X456.<REMOVED>.net.
+
+sieve("test123%456.فوائد.net.", r'[a-z.0-9]', replace_single: "X", replace_repeated: "<REMOVED>")
