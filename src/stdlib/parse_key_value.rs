@@ -447,11 +447,14 @@ fn parse_key<'a, E: ParseError<&'a str> + ContextError<&'a str>>(
         })
     } else {
         Box::new(move |input| {
-            alt((
-                parse_delimited('\'', key_value_delimiter),
-                parse_delimited('"', key_value_delimiter),
-                parse_undelimited(key_value_delimiter),
-            ))(input)
+            verify(
+                alt((
+                    parse_delimited('\'', key_value_delimiter),
+                    parse_delimited('"', key_value_delimiter),
+                    parse_undelimited(key_value_delimiter),
+                )),
+                |key: &str| !key.is_empty(),
+            )(input)
         })
     }
 }
@@ -518,6 +521,11 @@ mod test {
         assert_eq!(
             Ok(("", ("key".to_string().into(), "".into()))),
             parse_key_value_::<VerboseError<&str>>("=", " ", Whitespace::Strict, false)("key=")
+        );
+
+        assert!(
+            parse_key_value_::<VerboseError<&str>>("=", " ", Whitespace::Strict, false)("=value")
+                .is_err()
         );
     }
 
@@ -655,6 +663,14 @@ mod test {
             Ok((" bar=baz", "foo")),
             parse_key::<VerboseError<&str>>("=", " ", true)("foo bar=baz")
         );
+
+        // empty is invalid
+        assert!(parse_key::<VerboseError<&str>>("=", " ", true)("").is_err());
+        assert!(parse_key::<VerboseError<&str>>("=", " ", false)("").is_err());
+
+        // quoted but empty also invalid
+        assert!(parse_key::<VerboseError<&str>>("=", " ", true)(r#""""#).is_err());
+        assert!(parse_key::<VerboseError<&str>>("=", " ", false)(r#""""#).is_err());
     }
 
     #[test]
@@ -971,6 +987,19 @@ mod test {
                 field_delimiter: " ",
             ],
             want: Err("could not parse whole line successfully"),
+            tdef: type_def(),
+        }
+
+        empty_keys_are_invalid {
+            args: func_args! [
+                value: "level=info =(key)",
+                key_value_delimiter: "=",
+                field_delimiter: " ",
+            ],
+            want: Ok(value!({
+                "=(key)": true,
+                "level": "info",
+            })),
             tdef: type_def(),
         }
 
