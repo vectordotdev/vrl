@@ -30,6 +30,9 @@ pub mod core;
 #[cfg(feature = "stdlib")]
 pub mod stdlib;
 
+#[cfg(feature = "stdlib")]
+pub mod protobuf;
+
 #[cfg(feature = "cli")]
 pub mod cli;
 

@@ -1,112 +1,10 @@
-use super::util::get_message_descriptor;
 use crate::compiler::prelude::*;
-use prost_reflect::ReflectMessage;
-use prost_reflect::{DynamicMessage, MessageDescriptor};
+use crate::protobuf::get_message_descriptor;
+use crate::protobuf::parse_proto;
+use prost_reflect::MessageDescriptor;
 use std::ffi::OsString;
 use std::path::Path;
 use std::path::PathBuf;
-
-fn proto_to_value(
-    prost_reflect_value: &prost_reflect::Value,
-    field_descriptor: Option<&prost_reflect::FieldDescriptor>,
-) -> std::result::Result<Value, String> {
-    let vrl_value = match prost_reflect_value {
-        prost_reflect::Value::Bool(v) => Value::from(*v),
-        prost_reflect::Value::I32(v) => Value::from(*v),
-        prost_reflect::Value::I64(v) => Value::from(*v),
-        prost_reflect::Value::U32(v) => Value::from(*v),
-        prost_reflect::Value::U64(v) => Value::from(*v),
-        prost_reflect::Value::F32(v) => {
-            Value::Float(NotNan::new(f64::from(*v)).map_err(|_e| "Float number cannot be Nan")?)
-        }
-        prost_reflect::Value::F64(v) => {
-            Value::Float(NotNan::new(*v).map_err(|_e| "F64 number cannot be Nan")?)
-        }
-        prost_reflect::Value::String(v) => Value::from(v.as_str()),
-        prost_reflect::Value::Bytes(v) => Value::from(v.clone()),
-        prost_reflect::Value::EnumNumber(v) => {
-            if let Some(field_descriptor) = field_descriptor {
-                let kind = field_descriptor.kind();
-                let enum_desc = kind.as_enum().ok_or_else(|| {
-                    format!(
-                        "Internal error while parsing protobuf enum. Field descriptor: {:?}",
-                        field_descriptor
-                    )
-                })?;
-                Value::from(
-                    enum_desc
-                        .get_value(*v)
-                        .ok_or_else(|| {
-                            format!("The number {} cannot be in '{}'", v, enum_desc.name())
-                        })?
-                        .name(),
-                )
-            } else {
-                Err("Expected valid field descriptor")?
-            }
-        }
-        prost_reflect::Value::Message(v) => {
-            let mut obj_map = ObjectMap::new();
-            for field_desc in v.descriptor().fields() {
-                if v.has_field(&field_desc) {
-                    let field_value = v.get_field(&field_desc);
-                    let out = proto_to_value(field_value.as_ref(), Some(&field_desc))?;
-                    obj_map.insert(field_desc.name().into(), out);
-                }
-            }
-            Value::from(obj_map)
-        }
-        prost_reflect::Value::List(v) => {
-            let vec = v
-                .iter()
-                .map(|o| proto_to_value(o, field_descriptor))
-                .collect::<Result<Vec<_>, String>>()?;
-            Value::from(vec)
-        }
-        prost_reflect::Value::Map(v) => {
-            if let Some(field_descriptor) = field_descriptor {
-                let kind = field_descriptor.kind();
-                let message_desc = kind.as_message().ok_or_else(|| {
-                    format!(
-                        "Internal error while parsing protobuf field descriptor: {:?}",
-                        field_descriptor
-                    )
-                })?;
-                Value::from(
-                    v.iter()
-                        .map(|kv| {
-                            Ok((
-                                kv.0.as_str()
-                                    .ok_or_else(|| {
-                                        format!(
-                                            "Internal error while parsing protobuf map. Field descriptor: {:?}",
-                                            field_descriptor
-                                        )
-                                    })?
-                                    .into(),
-                                proto_to_value(kv.1, Some(&message_desc.map_entry_value_field()))?,
-                            ))
-                        })
-                        .collect::<std::result::Result<ObjectMap, String>>()?,
-                )
-            } else {
-                Err("Expected valid field descriptor")?
-            }
-        }
-    };
-    Ok(vrl_value)
-}
-
-fn parse_proto(descriptor: &MessageDescriptor, value: Value) -> Resolved {
-    let bytes = value.try_bytes()?;
-
-    let dynamic_message = DynamicMessage::decode(descriptor.clone(), bytes)
-        .map_err(|error| format!("Error parsing protobuf: {:?}", error))?;
-    Ok(proto_to_value(
-        &prost_reflect::Value::Message(dynamic_message),
-        None,
-    )?)
-}
 
 #[derive(Clone, Copy, Debug)]
 pub struct ParseProto;
@@ -149,7 +47,7 @@ impl Function for ParseProto {
     fn examples(&self) -> &'static [Example] {
         &[
             Example {
-                title: "nested message",
+                title: "message",
                 source: r#"parse_proto!(base64_decode("CCoSCEpvaG4gRG9lGi4SDDEyMyBNYWluIFN0EghOZXcgWW9yaxoDVVNB"), "person.desc", "proto.Person")"#,
                 result: Ok(
                     r#"{ "id": 42, "name": "John Doe", "address": { "street": "123 Main St", "city": "New York", "country": "USA" } }"#,
