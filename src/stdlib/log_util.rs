@@ -133,7 +133,7 @@ pub(crate) static REGEX_INGRESS_NGINX_UPSTREAMINFO_LOG: Lazy<Regex> = Lazy::new(
         "(?P<request>[^"]*)"\s+                             # Match any non double-quote character
         (?P<status>\d+)\s+                                  # Match numbers
         (?P<body_bytes_size>\d+)\s+                         # Match numbers
-        "(-|(?P<http_referer>[^"]+))"\s+                    # Match `-` or any non double-quote character
+        "(-|(?P<http_referer>[^"]*))"\s+                    # Match `-` or any non double-quote character
         "(-|(?P<http_user_agent>[^"]+))"\s+                 # Match `-` or any non double-quote character
         (?P<request_length>\d+)\s+                          # Match numbers
         (?P<request_time>\d+\.\d+)\s+                       # Match numbers with dot

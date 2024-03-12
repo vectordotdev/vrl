@@ -295,6 +295,23 @@ mod tests {
             tdef: TypeDef::object(kind_combined()).fallible(),
         }
 
+        combined_line_valid_empty_referer {
+            args: func_args![
+                value: r#"0.0.0.0 - - [04/Oct/2022:03:07:27 +0000] "]&\xDF\xBDV\xE7\xBB<\x10;\xA2b}\xDFM\x1D" 400 150 "" "-""#,
+                format: "combined"
+            ],
+            want: Ok(btreemap! {
+                "client" => "0.0.0.0",
+                "timestamp" => Value::Timestamp(DateTime::parse_from_rfc3339("2022-10-04T03:07:27Z").unwrap().into()),
+                "request" => r"]&\xDF\xBDV\xE7\xBB<\x10;\xA2b}\xDFM\x1D",
+                "status" => 400,
+                "size" => 150,
+                "referer" => "",
+                "agent" => "-",
+            }),
+            tdef: TypeDef::object(kind_combined()).fallible(),
+        }
+
         combined_line_valid_all_fields {
             args: func_args![
                 value: r#"172.17.0.1 - alice [01/Apr/2021:12:02:31 +0000] "POST /not-found HTTP/1.1" 404 153 "http://localhost/somewhere" "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.119 Safari/537.36" "2.75""#,
@@ -351,6 +368,28 @@ mod tests {
                 "status" => 200,
                 "body_bytes_size" => 12312,
                 "http_referer" => "https://10.0.0.1/some/referer",
+                "http_user_agent" => "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36",
+                "request_length" => 462,
+                "request_time" => 0.050,
+                "upstream_addr" => "-",
+                "proxy_upstream_name" => "some-upstream-service-9000",
+                "req_id" => "752178adb17130b291aefd8c386279e7",
+            }),
+            tdef: TypeDef::object(kind_ingress_upstreaminfo()).fallible(),
+        }
+
+        ingress_nginx_upstreaminfo_valid_empty_referer {
+            args: func_args![
+                value: r#"0.0.0.0 - - [18/Mar/2023:15:00:00 +0000] "GET /some/path HTTP/2.0" 200 12312 "" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36" 462 0.050 [some-upstream-service-9000] [] - - - - 752178adb17130b291aefd8c386279e7"#,
+                format: "ingress_upstreaminfo"
+            ],
+            want: Ok(btreemap! {
+                "remote_addr" => "0.0.0.0",
+                "timestamp" => Value::Timestamp(DateTime::parse_from_rfc3339("2023-03-18T15:00:00Z").unwrap().into()),
+                "request" => "GET /some/path HTTP/2.0",
+                "status" => 200,
+                "body_bytes_size" => 12312,
+                "http_referer" => "",
                 "http_user_agent" => "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36",
                 "request_length" => 462,
                 "request_time" => 0.050,
@@ -425,6 +464,27 @@ mod tests {
                 "request" => "GET /favicon.ico HTTP/1.1",
                 "host" => "65.21.190.83:31256",
                 "referer" => "http://65.21.190.83:31256/",
+            }),
+            tdef: TypeDef::object(kind_error()).fallible(),
+        }
+
+        error_line_with_empty_referrer {
+            args: func_args![
+                value: r#"2021/06/03 09:30:50 [error] 32#32: *6 open() "/usr/share/nginx/html/favicon.ico" failed (2: No such file or directory), client: 10.244.0.0, server: localhost, request: "GET /favicon.ico HTTP/1.1", host: "65.21.190.83:31256", referrer: """#,
+                format: "error"
+            ],
+            want: Ok(btreemap! {
+                "timestamp" => Value::Timestamp(DateTime::parse_from_rfc3339("2021-06-03T09:30:50Z").unwrap().into()),
+                "severity" => "error",
+                "pid" => 32,
+                "tid" => 32,
+                "cid" => 6,
+                "message" => "open() \"/usr/share/nginx/html/favicon.ico\" failed (2: No such file or directory)",
+                "client" => "10.244.0.0",
+                "server" => "localhost",
+                "request" => "GET /favicon.ico HTTP/1.1",
+                "host" => "65.21.190.83:31256",
+                "referer" => "",
             }),
             tdef: TypeDef::object(kind_error()).fallible(),
         }
