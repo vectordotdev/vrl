@@ -13,6 +13,5 @@ pub fn get_message_descriptor(
     })?;
     pool.get_message_by_name(message_type).ok_or_else(|| {
         format!("The message type '{message_type}' could not be found in '{descriptor_set_path:?}'")
-            .into()
     })
 }

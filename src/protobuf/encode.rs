@@ -30,8 +30,7 @@ fn convert_value_raw(
                     "Enum `{}` has no value that matches string '{}'",
                     descriptor.full_name(),
                     string
-                )
-                .into())
+                ))
             }
         }
         (Value::Float(f), Kind::Double) => Ok(prost_reflect::Value::F64(f.into_inner())),
@@ -85,7 +84,9 @@ fn convert_value_raw(
                 .map_err(|e| format!("Error setting 'nanos' field: {}", e))?;
             Ok(prost_reflect::Value::Message(message))
         }
-        _ => Err(format!("Cannot encode `{kind_str}` into protobuf `{kind:?}`",).into()),
+        _ => Err(format!(
+            "Cannot encode `{kind_str}` into protobuf `{kind:?}`",
+        )),
     }
 }
 

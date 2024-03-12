@@ -119,7 +119,7 @@ impl Function for EncodeProto {
         let path_buf = PathBuf::from(os_string);
         let path = Path::new(&path_buf);
         let descriptor =
-            get_message_descriptor(&path, &message_type_str).expect("message type not found");
+            get_message_descriptor(path, &message_type_str).expect("message type not found");
 
         Ok(EncodeProtoFn { descriptor, value }.as_expr())
     }
