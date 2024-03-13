@@ -1,0 +1,10 @@
+# result: 0
+
+foo = 0
+
+for_each({ "foo": "bar", "lorem": "ipsum" }) -> |_key, _value| {
+  return 42
+  foo = 1
+}
+
+foo

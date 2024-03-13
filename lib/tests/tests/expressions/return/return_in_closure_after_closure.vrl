@@ -1,0 +1,10 @@
+# result: null
+
+for_each({ "foo": "bar", "lorem": "ipsum" }) -> |_key, _value| {
+  
+  for_each({ "foo": "bar", "lorem": "ipsum" }) -> |_key, _value| {
+    true
+  }
+
+  return 42
+}

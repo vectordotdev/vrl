@@ -1,13 +1,31 @@
 # result: {
-#   "a": {"never": true},
-#   "b": {"bytes": true},
-#   "b2": {"bytes": true},
-#   "c": {"never": true},
-#   "d": {"object": {}},
-#   "e": {"null": true},
-#   "f": {"bytes": true, "integer": true},
-#   "g": {"never": true}
+#   "a": {
+#     "never": true
+#   },
+#   "b": {
+#     "bytes": true
+#   },
+#   "b2": {
+#     "bytes": true
+#   },
+#   "c": {
+#     "never": true
+#   },
+#   "d": {
+#     "object": {}
+#   },
+#   "e": {
+#     "null": true
+#   },
+#   "f": {
+#     "bytes": true,
+#     "integer": true
+#   },
+#   "g": {
+#     "bytes": true
 #   }
+# }
+
 
 x = "string"
 

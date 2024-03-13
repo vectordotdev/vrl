@@ -1,0 +1,10 @@
+# result: [0, 1]
+
+foo = 0
+bar = 0
+
+for_each({ "foo": for_each({}) -> |_key, _value| { foo = 1; return true } }) -> |_key, _value| {
+  bar = 1
+}
+
+[foo, bar]
