@@ -1,13 +1,39 @@
 use crate::compiler::prelude::*;
 use crate::protobuf::get_message_descriptor;
 use crate::protobuf::parse_proto;
+use once_cell::sync::Lazy;
 use prost_reflect::MessageDescriptor;
+use std::env;
 use std::ffi::OsString;
 use std::path::Path;
 use std::path::PathBuf;
 
 #[derive(Clone, Copy, Debug)]
 pub struct ParseProto;
+
+// This needs to be static because parse_proto needs to read a file
+// and the file path needs to be a literal.
+static EXAMPLE_PARSE_PROTO_EXPR: Lazy<&str> = Lazy::new(|| {
+    let path = PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap())
+        .join("tests/data/protobuf/test_protobuf.desc")
+        .display()
+        .to_string();
+
+    Box::leak(
+        format!(
+            r#"parse_proto!(decode_base64!("Cgdzb21lb25lIggKBjEyMzQ1Ng=="), "{path}", "test_protobuf.Person")"#
+        )
+        .into_boxed_str(),
+    )
+});
+
+static EXAMPLES: Lazy<Vec<Example>> = Lazy::new(|| {
+    vec![Example {
+        title: "message",
+        source: &EXAMPLE_PARSE_PROTO_EXPR,
+        result: Ok(r#"{ "name": "someone", "phones": [{"number": "123456"}] }"#),
+    }]
+});
 
 impl Function for ParseProto {
     fn identifier(&self) -> &'static str {
@@ -45,39 +71,7 @@ impl Function for ParseProto {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[
-            Example {
-                title: "message",
-                source: r#"parse_proto!(base64_decode("CCoSCEpvaG4gRG9lGi4SDDEyMyBNYWluIFN0EghOZXcgWW9yaxoDVVNB"), "person.desc", "proto.Person")"#,
-                result: Ok(
-                    r#"{ "id": 42, "name": "John Doe", "address": { "street": "123 Main St", "city": "New York", "country": "USA" } }"#,
-                ),
-            },
-            Example {
-                title: "repeated fields",
-                source: r#"parse_proto!(base64_decode("EhIKBWl0ZW0xEAoSEQoFaXRlbTIQBQ=="), "order.desc", "proto.Order")"#,
-                result: Ok(
-                    r#"{ "items": [ { "name": "item1", "quantity": 10 }, { "name": "item2", "quantity": 5 } ] }"#,
-                ),
-            },
-            Example {
-                title: "enum field",
-                source: r#"parse_proto!(base64_decode("CAESCVByb2plY3QgWA=="), "project.desc", "proto.Project")"#,
-                result: Ok(r#"{ "status": "ACTIVE", "name": "Project X" }"#),
-            },
-            Example {
-                title: "timestamp field",
-                source: r#"parse_proto!(base64_decode("CPDBrubNCRIOBUV2ZW50IG9jY3VycmVk"), "event.desc", "proto.Event")"#,
-                result: Ok(
-                    r#"{ "event_time": t'2023-05-26T10:30:00Z', "message": "Event occurred" }"#,
-                ),
-            },
-            Example {
-                title: "map field",
-                source: r#"parse_proto!(base64_decode("ChIKBGtleTESBnZhbHVlMQoEa2V5MhIGdmFsdWUy"), "metadata.desc", "proto.Metadata")"#,
-                result: Ok(r#"{ "labels": { "key1": "value1", "key2": "value2" } }"#),
-            },
-        ]
+        EXAMPLES.as_slice()
     }
 
     fn compile(
@@ -147,7 +141,7 @@ fn type_def() -> TypeDef {
 mod tests {
     use super::*;
     use crate::value;
-    use std::{env, fs};
+    use std::fs;
 
     fn test_data_dir() -> PathBuf {
         PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap()).join("tests/data/protobuf")
