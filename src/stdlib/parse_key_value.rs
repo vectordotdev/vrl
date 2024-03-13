@@ -3,9 +3,9 @@ use crate::value;
 use nom::{
     self,
     branch::alt,
-    bytes::complete::{escaped, tag, take_until, take_while1},
+    bytes::complete::{escaped, tag, take, take_until},
     character::complete::{char, satisfy, space0},
-    combinator::{eof, map, opt, peek, recognize, rest, verify},
+    combinator::{eof, map, opt, peek, rest, verify},
     error::{ContextError, ParseError, VerboseError},
     multi::{many0, many1, many_m_n, separated_list1},
     sequence::{delimited, preceded, terminated, tuple},
@@ -374,16 +374,10 @@ fn parse_delimited<'a, E: ParseError<&'a str> + ContextError<&'a str>>(
                 char(delimiter),
                 map(
                     opt(escaped(
-                        recognize(many1(tuple((
-                            take_while1(|c: char| c != '\\' && c != delimiter),
-                            // Consume \something
-                            opt(tuple((
-                                satisfy(|c| c == '\\'),
-                                satisfy(|c| c != '\\' && c != delimiter),
-                            ))),
-                        )))),
+                        satisfy(|c| c != '\\' && c != delimiter),
                         '\\',
-                        satisfy(|c| c == '\\' || c == delimiter),
+                        // match literally any character, there are no invalid escape sequences
+                        take(1usize),
                     )),
                     |inner| inner.unwrap_or(""),
                 ),
@@ -437,24 +431,30 @@ fn parse_key<'a, E: ParseError<&'a str> + ContextError<&'a str>>(
 ) -> Box<dyn Fn(&'a str) -> IResult<&'a str, &'a str, E> + 'a> {
     if standalone_key {
         Box::new(move |input| {
-            alt((
-                parse_delimited('\'', key_value_delimiter),
-                parse_delimited('\'', field_delimiter),
-                parse_delimited('"', key_value_delimiter),
-                parse_delimited('"', field_delimiter),
-                verify(parse_undelimited(key_value_delimiter), |s: &str| {
-                    !s.contains(field_delimiter)
-                }),
-                parse_undelimited(field_delimiter),
-            ))(input)
+            verify(
+                alt((
+                    parse_delimited('\'', key_value_delimiter),
+                    parse_delimited('\'', field_delimiter),
+                    parse_delimited('"', key_value_delimiter),
+                    parse_delimited('"', field_delimiter),
+                    verify(parse_undelimited(key_value_delimiter), |s: &str| {
+                        !s.is_empty() && !s.contains(field_delimiter)
+                    }),
+                    parse_undelimited(field_delimiter),
+                )),
+                |key: &str| !key.is_empty(),
+            )(input)
         })
     } else {
         Box::new(move |input| {
-            alt((
-                parse_delimited('\'', key_value_delimiter),
-                parse_delimited('"', key_value_delimiter),
-                parse_undelimited(key_value_delimiter),
-            ))(input)
+            verify(
+                alt((
+                    parse_delimited('\'', key_value_delimiter),
+                    parse_delimited('"', key_value_delimiter),
+                    parse_undelimited(key_value_delimiter),
+                )),
+                |key: &str| !key.is_empty(),
+            )(input)
         })
     }
 }
@@ -521,6 +521,11 @@ mod test {
         assert_eq!(
             Ok(("", ("key".to_string().into(), "".into()))),
             parse_key_value_::<VerboseError<&str>>("=", " ", Whitespace::Strict, false)("key=")
+        );
+
+        assert!(
+            parse_key_value_::<VerboseError<&str>>("=", " ", Whitespace::Strict, false)("=value")
+                .is_err()
         );
     }
 
@@ -658,6 +663,14 @@ mod test {
             Ok((" bar=baz", "foo")),
             parse_key::<VerboseError<&str>>("=", " ", true)("foo bar=baz")
         );
+
+        // empty is invalid
+        assert!(parse_key::<VerboseError<&str>>("=", " ", true)("").is_err());
+        assert!(parse_key::<VerboseError<&str>>("=", " ", false)("").is_err());
+
+        // quoted but empty also invalid
+        assert!(parse_key::<VerboseError<&str>>("=", " ", true)(r#""""#).is_err());
+        assert!(parse_key::<VerboseError<&str>>("=", " ", false)(r#""""#).is_err());
     }
 
     #[test]
@@ -932,6 +945,111 @@ mod test {
                 field_delimiter: " ",
             ],
             want: Ok(value!({"Cc": "bob"})),
+            tdef: type_def(),
+        }
+
+        escaped_tab_escapes_in_quoted_value {
+            args: func_args! [
+                value: r#"level=info field="escaped tabs \t\t""#,
+                key_value_delimiter: "=",
+                field_delimiter: " ",
+            ],
+            want: Ok(value!({
+                "field": "escaped tabs \\t\\t",
+                "level": "info",
+            })),
+            tdef: type_def(),
+        }
+
+        escaped_quote_escapes_in_quoted_value {
+            args: func_args! [
+                value: r#"level=info field="quote -> \" <-""#,
+                key_value_delimiter: "=",
+                field_delimiter: " ",
+            ],
+            want: Ok(value!({
+                "field": "quote -> \\\" <-",
+                "level": "info",
+            })),
+            tdef: type_def(),
+        }
+
+        invalid_quotes_in_quoted_value {
+            args: func_args! [
+                value: r#"level=error field="no quote here """#,
+                //                 this extra quote causes  ~
+                //               the quoted parser to fail
+                //                        and these quotes ~~
+                //       cause the unquoted parser to fail
+                //             when there is an empty key!
+
+                key_value_delimiter: "=",
+                field_delimiter: " ",
+            ],
+            want: Err("could not parse whole line successfully"),
+            tdef: type_def(),
+        }
+
+        empty_keys_are_invalid {
+            args: func_args! [
+                value: "level=info =(key)",
+                key_value_delimiter: "=",
+                field_delimiter: " ",
+            ],
+            want: Ok(value!({
+                "=(key)": true,
+                "level": "info",
+            })),
+            tdef: type_def(),
+        }
+
+        unquoted_field_delimiter_followed_by_key_value_delimiter {
+            args: func_args! [
+                value: r"argh=no =",
+                key_value_delimiter: "=",
+                field_delimiter: " ",
+            ],
+            want: Ok(value!({
+                "argh": "no",
+                "=": true,
+            })),
+            tdef: type_def(),
+        }
+
+        field_delimiter_followed_by_unpaired_quote_followed_by_key_value_delimiter {
+            args: func_args! [
+                value: r"argh=no '=",
+                key_value_delimiter: "=",
+                field_delimiter: " ",
+            ],
+            want: Ok(value!({
+                "argh": "no",
+                "'": "",
+            })),
+            tdef: type_def(),
+        }
+
+        quoted_key_value_delimiter {
+            args: func_args! [
+                value: r#"argh="no =""#,
+                key_value_delimiter: "=",
+                field_delimiter: " ",
+            ],
+            want: Ok(value!({
+                "argh": "no =",
+            })),
+            tdef: type_def(),
+        }
+
+        backslash_key {
+            args: func_args! [
+                value: r#"\="oh boy""#,
+                key_value_delimiter: "=",
+                field_delimiter: " ",
+            ],
+            want: Ok(value!({
+                "\\": "oh boy",
+            })),
             tdef: type_def(),
         }
     ];
