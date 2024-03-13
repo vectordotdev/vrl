@@ -67,6 +67,7 @@ cfg_if::cfg_if! {
         mod encode_key_value;
         mod encode_logfmt;
         mod encode_percent;
+        mod encode_proto;
         mod encode_punycode;
         mod encode_snappy;
         mod encode_zlib;
@@ -149,6 +150,7 @@ cfg_if::cfg_if! {
         mod parse_linux_authorization;
         mod parse_logfmt;
         mod parse_nginx_log;
+        mod parse_proto;
         mod parse_query_string;
         mod parse_regex;
         mod parse_regex_all;
@@ -237,6 +239,7 @@ cfg_if::cfg_if! {
         pub use encode_key_value::EncodeKeyValue;
         pub use encode_logfmt::EncodeLogfmt;
         pub use encode_percent::EncodePercent;
+        pub use encode_proto::EncodeProto;
         pub use encode_punycode::EncodePunycode;
         pub use encode_snappy::EncodeSnappy;
         pub use encode_zlib::EncodeZlib;
@@ -317,6 +320,7 @@ cfg_if::cfg_if! {
         pub use parse_linux_authorization::ParseLinuxAuthorization;
         pub use parse_logfmt::ParseLogFmt;
         pub use parse_nginx_log::ParseNginxLog;
+        pub use parse_proto::ParseProto;
         pub use parse_query_string::ParseQueryString;
         pub use parse_regex::ParseRegex;
         pub use parse_regex_all::ParseRegexAll;
@@ -411,6 +415,7 @@ pub fn all() -> Vec<Box<dyn Function>> {
         Box::new(EncodeKeyValue),
         Box::new(EncodeLogfmt),
         Box::new(EncodePercent),
+        Box::new(EncodeProto),
         Box::new(EncodePunycode),
         Box::new(EncodeSnappy),
         Box::new(EncodeZlib),
@@ -492,6 +497,7 @@ pub fn all() -> Vec<Box<dyn Function>> {
         Box::new(ParseLinuxAuthorization),
         Box::new(ParseLogFmt),
         Box::new(ParseNginxLog),
+        Box::new(ParseProto),
         Box::new(ParseQueryString),
         Box::new(ParseRegex),
         Box::new(ParseRegexAll),

@@ -82,6 +82,8 @@ stdlib = [
  "dep:ofb",
  "dep:once_cell",
  "dep:percent-encoding",
+ "dep:prost",
+ "dep:prost-reflect",
  "dep:psl",
  "dep:quoted_printable",
  "dep:rand",
@@ -185,6 +187,10 @@ ctr = { version = "0.9", optional = true }
 cbc = { version = "0.1", optional = true, features = ["alloc"] }
 cfb-mode = { version = "0.8", optional = true }
 ofb = { version = "0.6", optional = true }
+
+# Protobuf support.
+prost = { version = "0.12", default-features = false, optional = true, features = ["std"]}
+prost-reflect = { version = "0.13", default-features = false, optional = true}
 
 # Dependencies used for non-WASM
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
