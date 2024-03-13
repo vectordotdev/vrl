@@ -31,7 +31,7 @@ impl Expression for IfStatement {
 
     fn type_info(&self, state: &TypeState) -> TypeInfo {
         let mut state = state.clone();
-        self.predicate.apply_type_info(&mut state);
+        let predicate_info = self.predicate.apply_type_info(&mut state);
 
         let if_info = self.if_block.type_info(&state);
 
@@ -42,7 +42,12 @@ impl Expression for IfStatement {
             let final_state = if_info.state.merge(else_info.state);
 
             // result is from either "if" or the "else" block
-            let result = if_info.result.union(else_info.result);
+            let mut result = if_info.result.union(else_info.result);
+
+            // predicate can also return
+            result
+                .returns_mut()
+                .merge_keep(predicate_info.returns().clone(), false);
 
             TypeInfo::new(final_state, result)
         } else {
@@ -50,7 +55,12 @@ impl Expression for IfStatement {
             let final_state = if_info.state.merge(state);
 
             // if the predicate is false, "null" is returned.
-            let result = if_info.result.or_null();
+            let mut result = if_info.result.or_null();
+
+            // predicate can also return
+            result
+                .returns_mut()
+                .merge_keep(predicate_info.returns().clone(), false);
 
             TypeInfo::new(final_state, result)
         }

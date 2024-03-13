@@ -45,7 +45,9 @@ impl Expression for Not {
         let result = self.inner.apply_type_info(&mut state);
         TypeInfo::new(
             state,
-            TypeDef::boolean().maybe_fallible(result.is_fallible()),
+            TypeDef::boolean()
+                .maybe_fallible(result.is_fallible())
+                .with_returns(result.returns().clone()),
         )
     }
 }

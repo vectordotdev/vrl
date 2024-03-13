@@ -47,7 +47,11 @@ impl Expression for Return {
     }
 
     fn type_info(&self, state: &TypeState) -> TypeInfo {
-        TypeInfo::new(state, TypeDef::never())
+        let value = self.expr.type_info(state);
+        TypeInfo::new(
+            state,
+            TypeDef::never().with_returns(value.result.kind().clone()),
+        )
     }
 }
 
