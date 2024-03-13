@@ -1,10 +1,9 @@
 use std::collections::BTreeMap;
 
-use crate::compiler::ExpressionError;
 use crate::compiler::{
     state::RuntimeState,
     value::{Kind, VrlValueConvert},
-    Context,
+    Context, ExpressionError,
 };
 use crate::parser::ast::Ident;
 use crate::value::{
