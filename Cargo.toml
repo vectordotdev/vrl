@@ -198,11 +198,11 @@ dns-lookup = { version = "2", optional = true }
 hostname = { version = "0.3", optional = true }
 grok = { version = "2", optional = true }
 onig = { version = "6", default-features = false, optional = true }
-uuid = { version = "1", features = ["v4"], optional = true }
+uuid = { version = "1", features = ["v4", "v7"], optional = true }
 
 # Dependencies used for WASM
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-uuid = { version = "1", features = ["v4", "js"], optional = true }
+uuid = { version = "1", features = ["v4", "v7", "js"], optional = true }
 
 [dev-dependencies]
 anyhow = "1"
