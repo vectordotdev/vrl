@@ -580,7 +580,10 @@ mod tests {
 
     #[test]
     fn parses_boolean_nodes_with_explicit_operators() {
-        let cases = ["foo:bar OR baz:qux AND quux:quuz"];
+        let cases = [
+            "foo:bar OR baz:qux AND quux:quuz",
+            "foo:bar || baz:qux && quux:quuz",
+        ];
         for query in cases.iter() {
             let res = parse(query);
             if let QueryNode::Boolean {
@@ -603,7 +606,10 @@ mod tests {
 
     #[test]
     fn parses_boolean_nodes_with_implicit_and_explicit_operators() {
-        let cases = ["foo:bar OR baz:qux quux:quuz"];
+        let cases = [
+            "foo:bar OR baz:qux quux:quuz",
+            "foo:bar || baz:qux quux:quuz",
+        ];
         for query in cases.iter() {
             let res = parse(query);
             if let QueryNode::Boolean {
