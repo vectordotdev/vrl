@@ -68,7 +68,7 @@ to handle upgrading to the breaking change.
 
 Here is an example of a changelog fragment that adds a breaking change explanation.
 
-    $ cat changelog.d/42_very_good_words.breaking.md
+    $ cat changelog.d/42.breaking.md
     This change is so great. It's such a great change that this sentence
     explaining the change has to span multiple lines of text.
 
