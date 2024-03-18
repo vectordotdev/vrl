@@ -218,7 +218,7 @@ impl<'a> Builder<'a> {
 
             // Error if closure is missing from function that expects one.
             (Some(definition), None) => {
-                let example = definition.inputs.get(0).map(|input| input.example);
+                let example = definition.inputs.first().map(|input| input.example);
 
                 return Err(FunctionCallError::MissingClosure { call_span, example });
             }
