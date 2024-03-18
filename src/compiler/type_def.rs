@@ -103,6 +103,9 @@ pub struct TypeDef {
     /// A function is [`Purity::Pure`] if it is idempotent and has no side effects.
     /// Otherwise, it is [`Purity::Impure`].
     purity: Purity,
+
+    /// The union of [`Kind`][value::Kind]s that can be returned from a nested expression.
+    returns: Kind,
 }
 
 impl Deref for TypeDef {
@@ -131,11 +134,22 @@ impl TypeDef {
     }
 
     #[must_use]
+    pub fn returns(&self) -> &Kind {
+        &self.returns
+    }
+
+    #[must_use]
+    pub fn returns_mut(&mut self) -> &mut Kind {
+        &mut self.returns
+    }
+
+    #[must_use]
     pub fn at_path<'a>(&self, path: impl ValuePath<'a>) -> TypeDef {
         Self {
             fallibility: self.fallibility.clone(),
             kind: self.kind.at_path(path),
             purity: self.purity.clone(),
+            returns: self.returns.clone(),
         }
     }
 
@@ -347,6 +361,7 @@ impl TypeDef {
             fallibility: fallible,
             kind: Kind::array(collection),
             purity: self.purity.clone(),
+            returns: self.returns.clone(),
         }
     }
 
@@ -381,6 +396,7 @@ impl TypeDef {
             fallibility: fallible,
             kind: Kind::object(collection),
             purity: self.purity.clone(),
+            returns: self.returns.clone(),
         }
     }
 
@@ -388,6 +404,13 @@ impl TypeDef {
     #[must_use]
     pub fn with_kind(mut self, kind: Kind) -> Self {
         self.kind = kind;
+        self
+    }
+
+    #[inline]
+    #[must_use]
+    pub fn with_returns(mut self, returns: Kind) -> Self {
+        self.returns = returns;
         self
     }
 
@@ -458,6 +481,7 @@ impl TypeDef {
         self.fallibility = Fallibility::merge(&self.fallibility, &other.fallibility);
         self.kind = self.kind.union(other.kind);
         self.purity = Purity::merge(&self.purity, &other.purity);
+        self.returns = self.returns.union(other.returns);
         self
     }
 
@@ -466,6 +490,7 @@ impl TypeDef {
         self.fallibility = Fallibility::merge(&self.fallibility, &other.fallibility);
         self.kind.merge(other.kind, strategy);
         self.purity = Purity::merge(&self.purity, &other.purity);
+        self.returns = self.returns.union(other.returns);
     }
 
     #[must_use]
@@ -476,6 +501,7 @@ impl TypeDef {
             fallibility: Fallibility::merge(&self.fallibility, &other.fallibility),
             kind,
             purity: Purity::merge(&self.purity, &other.purity),
+            returns: self.returns.clone(),
         }
     }
 
@@ -498,6 +524,7 @@ impl From<Kind> for TypeDef {
             fallibility: Fallibility::CannotFail,
             kind,
             purity: Purity::Pure,
+            returns: Kind::never(),
         }
     }
 }

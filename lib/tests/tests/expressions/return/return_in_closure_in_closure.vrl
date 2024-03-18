@@ -1,0 +1,9 @@
+# result: {}
+
+filter({ "bar": null }) -> |_key, _value| {
+  for_each({ "foo": null }) -> |_key, _value| {
+    return 0
+  }
+
+  false
+}

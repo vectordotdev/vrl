@@ -42,6 +42,7 @@ extern {
         "true" => Token::True,
         "false" => Token::False,
         "abort" => Token::Abort,
+        "return" => Token::Return,
 
         ";" => Token::SemiColon,
         "\n" => Token::Newline,
@@ -175,6 +176,7 @@ Exprs: Vec<Node<Expr>> = {
 Expr: Node<Expr> = {
     Sp<IfStatement> => Node::new(<>.span(), Expr::IfStatement(<>)),
     Sp<AbortExpr>,
+    Sp<ReturnExpr>,
     AssignmentExpr,
 };
 
@@ -192,6 +194,17 @@ AbortExpr: Expr = {
     <n: Sp<"abort">> <message: Expr> => Expr::Abort(n.map(|_| Abort { message: Some(Box::new(message.clone())) })),
 }
 
+ReturnExpr: Expr = {
+    <ret: Sp<"return">> <expr: Expr> => {
+        // let span = span(ret.span().start(), expr.span().end());
+        // let ret = Return(Node::new(span, Return(expr)));
+        // Expr::Return(ret)
+        Expr::Return(
+            ret.map(|_| Return { expr: Box::new(expr.clone()) })
+        )
+    },
+};
+
 // An identifier that is allowed to include reserved keywords.
 #[inline]
 AnyIdent: Ident = {
@@ -203,6 +216,7 @@ AnyIdent: Ident = {
     "true" => Ident("true".to_owned()),
     "false" => Ident("false".to_owned()),
     "abort" => Ident("abort".to_owned()),
+    "return" => Ident("return".to_owned()),
 };
 
 // -----------------------------------------------------------------------------

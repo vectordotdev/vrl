@@ -5,6 +5,7 @@ use crate::compiler::{
     expression::{Expr, Resolved},
     Context, Expression, TypeDef,
 };
+use crate::value::Kind;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Block {
@@ -61,23 +62,26 @@ impl Expression for Block {
         let mut state = state.clone();
         let mut result = TypeDef::null();
         let mut fallible = false;
+        let mut returns = Kind::never();
+        let mut after_never_expression = false;
 
         for expr in &self.inner {
             result = expr.apply_type_info(&mut state);
 
-            if result.is_fallible() {
+            if !after_never_expression && result.is_fallible() {
                 fallible = true;
             }
             if result.is_never() {
-                break;
+                after_never_expression = true;
             }
+            returns.merge_keep(result.returns().clone(), false);
         }
 
         if self.new_scope {
             state.local = parent_locals.apply_child_scope(state.local);
         }
 
-        TypeInfo::new(state, result.maybe_fallible(fallible))
+        TypeInfo::new(state, result.maybe_fallible(fallible).with_returns(returns))
     }
 }
 

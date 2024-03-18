@@ -23,7 +23,7 @@ use crate::compiler::parser::{Ident, Node};
 use crate::diagnostic::{Diagnostic, DiagnosticList, Label, Note, Severity};
 use crate::parser::ast::{
     Array, Assignment, AssignmentOp, AssignmentTarget, Block, Container, Expr, FunctionCall,
-    IfStatement, Object, Predicate, QueryTarget, RootExpr, Unary,
+    IfStatement, Object, Predicate, QueryTarget, Return, RootExpr, Unary,
 };
 use crate::parser::template_string::StringSegment;
 use crate::parser::{Literal, Program, Span};
@@ -225,6 +225,7 @@ impl AstVisitor<'_> {
                 state.mark_identifier_used(&variable.node);
             }
             Expr::Abort(_) => {}
+            Expr::Return(r#return) => self.visit_return(r#return, state),
         }
     }
 
@@ -373,6 +374,15 @@ impl AstVisitor<'_> {
         if !function_call.abort_on_error && state.is_within_block() {
             state.mark_level_as_not_expecting_result();
         }
+    }
+
+    fn visit_return(&self, r#return: &Node<Return>, state: &mut VisitorState) {
+        state.increase_level();
+        let level = state.level;
+        state.expecting_result.insert(level, true);
+        self.visit_node(&r#return.node.expr, state);
+        state.expecting_result.insert(level, false);
+        state.decrease_level();
     }
 
     /// This function traverses the VRL AST and detects unused results.

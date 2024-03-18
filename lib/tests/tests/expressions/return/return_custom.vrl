@@ -1,0 +1,5 @@
+# result: { "foo": true, "bar": 42 }
+
+ret.foo = true
+ret.bar = 42
+return ret

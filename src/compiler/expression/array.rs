@@ -1,11 +1,14 @@
 use std::{collections::BTreeMap, fmt, ops::Deref};
 
-use crate::compiler::{
-    expression::{Expr, Resolved},
-    state::{TypeInfo, TypeState},
-    Context, Expression, TypeDef,
-};
 use crate::value::Value;
+use crate::{
+    compiler::{
+        expression::{Expr, Resolved},
+        state::{TypeInfo, TypeState},
+        Context, Expression, TypeDef,
+    },
+    value::Kind,
+};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Array {
@@ -62,13 +65,22 @@ impl Expression for Array {
             type_defs.push(type_def);
         }
 
+        let returns = type_defs.iter().fold(Kind::never(), |returns, type_def| {
+            returns.union(type_def.returns().clone())
+        });
+
         let collection = type_defs
             .into_iter()
             .enumerate()
             .map(|(index, type_def)| (index.into(), type_def.into()))
             .collect::<BTreeMap<_, _>>();
 
-        TypeInfo::new(state, TypeDef::array(collection).maybe_fallible(fallible))
+        TypeInfo::new(
+            state,
+            TypeDef::array(collection)
+                .maybe_fallible(fallible)
+                .with_returns(returns),
+        )
     }
 }
 
