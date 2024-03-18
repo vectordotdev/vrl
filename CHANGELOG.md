@@ -4,6 +4,28 @@
 
 <!-- changelog start -->
 
+## [0.13.0 (2024-03-18)]
+
+
+### Breaking Changes & Upgrade Guide
+
+- fixed `parse_logfmt` handling of escapes in values that could cause spurious keys to be created. As a result of this fix, the breaking change has been made to no longer allow empty keys in key-value pair formats (https://github.com/vectordotdev/vrl/pull/725)
+
+### New Features
+
+- Added the `return` expression as per [RFC 7496](https://github.com/vectordotdev/vector/blob/4671ccbf0a6359ef8b752fa99fae9eb9c60fdee5/rfcs/2023-02-08-7496-vrl-return.md). This expression can be used to terminate the VRL program early while still emitting a value. (https://github.com/vectordotdev/vrl/pull/712)
+- Added `sieve` string function, which can remove unwanted characters from a string using a regex of
+  allowed patterns. (https://github.com/vectordotdev/vrl/pull/724)
+- Add VRL function `uuid_v7` that generates UUIDv7 timestamp-based unique identifiers. (https://github.com/vectordotdev/vrl/pull/738)
+- Added `encode_proto` and `parse_proto` functions, which can be used to encode and decode protobufs.
+
+  `parse_proto` accepts a bytes value, a proto descriptor file path and a message type and returns the VRL value as parsed from the proto. `encode_proto` does the reverse and converts a VRL value into a protobuf bytes value. (https://github.com/vectordotdev/vrl/pull/739)
+
+### Fixes
+
+- `parse_nginx` now accepts empty values for http referer (https://github.com/vectordotdev/vrl/pull/643)
+
+
 ## [0.12.0 (2024-03-08)]
 
 
