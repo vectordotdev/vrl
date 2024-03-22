@@ -25,7 +25,7 @@ jobs:
           username: ${{ github.actor }}
           team: vector
           GITHUB_TOKEN: ${{ steps.generate_token.outputs.token }}
-      - uses: actions/add-to-project@v0.6.0
+      - uses: actions/add-to-project@v0.6.1
         if: ${{ steps.checkVectorMember.outputs.isTeamMember == 'false' }}
         with:
           project-url: https://github.com/orgs/vectordotdev/projects/49
@@ -35,7 +35,7 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ github.actor == 'dependabot[bot]' }}
     steps:
-      - uses: actions/add-to-project@v0.6.0
+      - uses: actions/add-to-project@v0.6.1
         with:
           project-url: https://github.com/orgs/vectordotdev/projects/49
           github-token: ${{ secrets.GH_PROJECT_PAT }}
