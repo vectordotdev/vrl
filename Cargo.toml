@@ -45,6 +45,7 @@ test_framework = ["compiler", "dep:prettydiff", "dep:serde_json", "dep:ansi_term
 arbitrary = ["dep:quickcheck", "dep:arbitrary"]
 lua = ["dep:mlua"]
 proptest = ["dep:proptest", "dep:proptest-derive"]
+float_roundtrip = ["dep:serde_json", "serde_json/float_roundtrip"]
 
 # Internal testing utilities (used for benches)
 test = ["string_path"]
@@ -157,7 +158,7 @@ rustyline = { version = "14", default-features = false, optional = true }
 rust_decimal = { version = "1", optional = true }
 seahash = { version = "4", optional = true }
 serde = { version = "1", features = ["derive"], optional = true }
-serde_json = { version = "1", default-features = false, optional = true, features = ["std", "raw_value", "float_roundtrip"] }
+serde_json = { version = "1", default-features = false, optional = true, features = ["std", "raw_value"] }
 sha-1 = { version = "0.10", optional = true }
 sha-2 = { package = "sha2", version = "0.10", optional = true }
 sha-3 = { package = "sha3", version = "0.10", optional = true }
