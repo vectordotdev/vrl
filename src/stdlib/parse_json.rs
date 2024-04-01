@@ -323,4 +323,26 @@ mod tests {
             tdef: type_def(),
         }
     ];
+
+    #[cfg(not(feature = "float_roundtrip"))]
+    test_function![
+        parse_json => ParseJson;
+
+        no_roundtrip_float_conversion {
+            args: func_args![ value: r#"{"num": 1626175065.5934923}"#],
+            want: Ok(value!({"num": 1_626_175_065.593_492_5})),
+            tdef: type_def(),
+        }
+    ];
+
+    #[cfg(feature = "float_roundtrip")]
+    test_function![
+        parse_json => ParseJson;
+
+        roundtrip_float_conversion {
+            args: func_args![ value: r#"{"num": 1626175065.5934923}"#],
+            want: Ok(value!({"num": 1_626_175_065.593_492_3})),
+            tdef: type_def(),
+        }
+    ];
 }

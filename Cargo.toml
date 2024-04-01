@@ -45,6 +45,7 @@ test_framework = ["compiler", "dep:prettydiff", "dep:serde_json", "dep:ansi_term
 arbitrary = ["dep:quickcheck", "dep:arbitrary"]
 lua = ["dep:mlua"]
 proptest = ["dep:proptest", "dep:proptest-derive"]
+float_roundtrip = ["dep:serde_json", "serde_json/float_roundtrip"]
 
 # Internal testing utilities (used for benches)
 test = ["string_path"]
