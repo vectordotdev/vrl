@@ -1,0 +1,4 @@
+[overrides]
+# `ring` has a custom license that is mostly "ISC-style" but parts of it also fall under OpenSSL licensing.
+"ring-0.16.20" = { license = "ISC AND Custom" }
+"ring-0.17.3" = { license = "ISC AND Custom" }
