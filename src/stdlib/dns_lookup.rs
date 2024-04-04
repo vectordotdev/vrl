@@ -3,6 +3,7 @@ use crate::compiler::prelude::*;
 #[cfg(not(target_arch = "wasm32"))]
 mod non_wasm {
     use std::collections::BTreeMap;
+    use std::net::SocketAddr;
     use std::str::FromStr;
 
     use hickory_client::client::{Client, SyncClient};
@@ -13,8 +14,19 @@ mod non_wasm {
     use crate::compiler::prelude::*;
     use crate::value::Value;
 
-    fn dns_lookup(value: Value, qtype: Value, qclass: Value, options: Value) -> Resolved {
-        let conn = UdpClientConnection::new("127.0.0.53:53".parse().unwrap()).unwrap();
+    fn dns_lookup(
+        value: Value,
+        qtype: Value,
+        qclass: Value,
+        nameserver: Value,
+        options: Value,
+    ) -> Resolved {
+        let nameserver: SocketAddr = nameserver
+            .try_bytes_utf8_lossy()?
+            .parse()
+            .map_err(|err| format!("parsing nameserver failed: {err}"))?;
+        let conn = UdpClientConnection::new(nameserver)
+            .map_err(|err| format!("connecting to nameserver failed: {err}"))?;
         let client = SyncClient::new(conn);
 
         let host = Name::from_str(&value.try_bytes_utf8_lossy()?)
@@ -42,6 +54,7 @@ mod non_wasm {
     #[derive(Debug, Clone)]
     pub(super) struct DnsLookupFn {
         pub(super) value: Box<dyn Expression>,
+        pub(super) nameserver: Box<dyn Expression>,
         pub(super) qtype: Box<dyn Expression>,
         pub(super) class: Box<dyn Expression>,
         pub(super) options: Box<dyn Expression>,
@@ -51,6 +64,7 @@ mod non_wasm {
         fn default() -> Self {
             Self {
                 value: expr!(""),
+                nameserver: expr!(""),
                 qtype: expr!("A"),
                 class: expr!("IN"),
                 options: expr!({}),
@@ -141,8 +155,9 @@ mod non_wasm {
             let value = self.value.resolve(ctx)?;
             let qtype = self.qtype.resolve(ctx)?;
             let class = self.class.resolve(ctx)?;
+            let nameserver = self.nameserver.resolve(ctx)?;
             let options = self.options.resolve(ctx)?;
-            dns_lookup(value, qtype, class, options)
+            dns_lookup(value, qtype, class, nameserver, options)
         }
 
         fn type_def(&self, _: &state::TypeState) -> TypeDef {
@@ -236,6 +251,11 @@ impl Function for DnsLookup {
                 required: true,
             },
             Parameter {
+                keyword: "nameserver",
+                kind: kind::BYTES,
+                required: true,
+            },
+            Parameter {
                 keyword: "qtype",
                 kind: kind::BYTES,
                 required: false,
@@ -257,7 +277,7 @@ impl Function for DnsLookup {
         // TODO: add
         &[Example {
             title: "Example",
-            source: r#"dns_lookup!("localhost")"#,
+            source: r#"dns_lookup!("localhost", nameserver: "127.0.0.53:53")"#,
             result: Ok(r#"["127.0.0.1"]"#),
         }]
     }
@@ -270,12 +290,14 @@ impl Function for DnsLookup {
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
+        let nameserver = arguments.required("nameserver");
         let qtype = arguments.optional("qtype").unwrap_or_else(|| expr!("A"));
         let class = arguments.optional("class").unwrap_or_else(|| expr!("IN"));
         let options = arguments.optional("options").unwrap_or_else(|| expr!({}));
 
         Ok(DnsLookupFn {
             value,
+            nameserver,
             qtype,
             class,
             options,
@@ -306,6 +328,7 @@ mod tests {
     fn test_invalid_name() {
         let result = execute_dns_lookup(DnsLookupFn {
             value: expr!("wrong.local"),
+            nameserver: expr!("127.0.0.53:53"),
             ..Default::default()
         });
 
@@ -326,6 +349,7 @@ mod tests {
     fn test_localhost() {
         let result = execute_dns_lookup(DnsLookupFn {
             value: expr!("localhost"),
+            nameserver: expr!("127.0.0.53:53"),
             ..Default::default()
         });
 
@@ -348,6 +372,7 @@ mod tests {
     fn test_google() {
         let result = execute_dns_lookup(DnsLookupFn {
             value: expr!("dns.google"),
+            nameserver: expr!("127.0.0.53:53"),
             ..Default::default()
         });
 
