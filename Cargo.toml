@@ -116,7 +116,7 @@ base64 = { version = "0.22", optional = true }
 bytes = { version = "1", default-features = false, optional = true }
 charset = { version = "0.1", optional = true }
 chrono = { version = "0.4", default-features = false, features = ["clock", "serde", "wasmbind"], optional = true }
-chrono-tz = { version = "0.8", default-features = false, optional = true }
+chrono-tz = { version = "0.9", default-features = false, optional = true }
 cidr-utils = { version = "0.6", optional = true }
 csv = { version = "1", optional = true }
 clap = { version = "4", features = ["derive"], optional = true }
@@ -208,7 +208,7 @@ uuid = { version = "1", features = ["v4", "v7", "js"], optional = true }
 [dev-dependencies]
 anyhow = "1"
 criterion = "0.5"
-chrono-tz = "0.8"
+chrono-tz = "0.9"
 serde_json = "1"
 indoc = "2"
 tracing-test = { version = "0.2", default-features = false }
