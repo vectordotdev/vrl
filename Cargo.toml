@@ -57,6 +57,7 @@ stdlib = [
  "datadog",
  "dep:aes",
  "dep:base16",
+ "dep:base62",
  "dep:base64",
  "dep:cbc",
  "dep:cfb-mode",
@@ -112,6 +113,7 @@ cfg-if = "1"
 ansi_term = {version = "0.12", optional = true }
 arbitrary = { version = "1", optional = true, features = ["derive"] }
 base16 = { version = "0.2", optional = true }
+base62 = { version = "2.0.2", optional = true }
 base64 = { version = "0.22", optional = true }
 bytes = { version = "1", default-features = false, optional = true }
 charset = { version = "0.1", optional = true }
