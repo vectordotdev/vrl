@@ -24,6 +24,14 @@ impl Function for UuidFromFriendlyId {
         "uuid_from_friendly_id"
     }
 
+    fn parameters(&self) -> &'static [Parameter] {
+        &[Parameter {
+            keyword: "value",
+            kind: kind::BYTES,
+            required: true,
+        }]
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[Example {
             title: "Decode UUID from 128-bit Friendly ID",
