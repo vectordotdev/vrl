@@ -1,17 +1,19 @@
 // use std::fmt::format;
 use crate::compiler::prelude::*;
-use bytes::Bytes;
 use crate::stdlib::string_utils::convert_to_string;
+use bytes::Bytes;
 
 fn uuid_from_friendly_id(value: Value) -> Resolved {
     let mut buf = [0; 36];
     let value = convert_to_string(value, false)?;
     match base62::decode(value) {
-      Err(err) => Err(format!("failed to decode friendly id: {}", err).into()),
-      Ok(w128) => {
-        let uuid = uuid::Uuid::from_u128(w128).hyphenated().encode_lower(&mut buf);
-        Ok(Bytes::copy_from_slice(uuid.as_bytes()).into())
-      }
+        Err(err) => Err(format!("failed to decode friendly id: {err}").into()),
+        Ok(w128) => {
+            let uuid = uuid::Uuid::from_u128(w128)
+                .hyphenated()
+                .encode_lower(&mut buf);
+            Ok(Bytes::copy_from_slice(uuid.as_bytes()).into())
+        }
     }
 }
 
@@ -38,16 +40,13 @@ impl Function for UuidFromFriendlyId {
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
-        Ok(UuidFromFriendlyIdFn {
-            value
-        }
-        .as_expr())
+        Ok(UuidFromFriendlyIdFn { value }.as_expr())
     }
 }
 
 #[derive(Debug, Clone)]
-struct UuidFromFriendlyIdFn{
-    value: Box<dyn Expression>
+struct UuidFromFriendlyIdFn {
+    value: Box<dyn Expression>,
 }
 
 impl FunctionExpression for UuidFromFriendlyIdFn {
@@ -63,8 +62,8 @@ impl FunctionExpression for UuidFromFriendlyIdFn {
 
 #[cfg(test)]
 mod tests {
-    use crate::value;
     use super::*;
+    use crate::value;
 
     test_function![
         uuid_from_friendly_id => UuidFromFriendlyId;
@@ -75,4 +74,3 @@ mod tests {
         }
     ];
 }
-
