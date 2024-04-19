@@ -56,7 +56,7 @@ impl FunctionExpression for UuidFromFriendlyIdFn {
     }
 
     fn type_def(&self, _: &TypeState) -> TypeDef {
-        TypeDef::bytes().infallible()
+        TypeDef::bytes().fallible()
     }
 }
 
