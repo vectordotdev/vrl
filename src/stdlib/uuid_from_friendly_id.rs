@@ -1,4 +1,3 @@
-// use std::fmt::format;
 use crate::compiler::prelude::*;
 use crate::stdlib::string_utils::convert_to_string;
 use bytes::Bytes;
@@ -70,7 +69,7 @@ mod tests {
         example_from_docs {
             args: func_args![value: value!("3s87yEvnmkiPBMHsj8bwwc")],
             want: Ok(value!("7f41deed-d5e2-8b5e-7a13-ab4ff93cfad2")),
-            tdef: TypeDef::bytes().infallible(),
+            tdef: TypeDef::bytes().fallible(),
         }
     ];
 }
