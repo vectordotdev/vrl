@@ -84,7 +84,6 @@ home,https://github.com/rust-lang/cargo,MIT OR Apache-2.0,Brian Anderson <anders
 hostname,https://github.com/svartalf/hostname,MIT,"fengcen <fengcen.love@gmail.com>, svartalf <self@svartalf.info>"
 iana-time-zone,https://github.com/strawlab/iana-time-zone,MIT OR Apache-2.0,"Andrew Straw <strawman@astraw.com>, René Kijewski <rene.kijewski@fu-berlin.de>, Ryan Lopopolo <rjl@hyperbo.la>"
 iana-time-zone-haiku,https://github.com/strawlab/iana-time-zone,MIT OR Apache-2.0,René Kijewski <crates.io@k6i.de>
-indexmap,https://github.com/bluss/indexmap,Apache-2.0 OR MIT,The indexmap Authors
 indexmap,https://github.com/indexmap-rs/indexmap,Apache-2.0 OR MIT,The indexmap Authors
 indoc,https://github.com/dtolnay/indoc,MIT OR Apache-2.0,David Tolnay <dtolnay@gmail.com>
 inout,https://github.com/RustCrypto/utils,MIT OR Apache-2.0,RustCrypto Developers
@@ -100,7 +99,6 @@ lalrpop-util,https://github.com/lalrpop/lalrpop,Apache-2.0 OR MIT,Niko Matsakis 
 lazy_static,https://github.com/rust-lang-nursery/lazy-static.rs,MIT OR Apache-2.0,Marvin Löbel <loebel.marvin@gmail.com>
 libc,https://github.com/rust-lang/libc,MIT OR Apache-2.0,The Rust Project Developers
 libm,https://github.com/rust-lang/libm,MIT OR Apache-2.0,Jorge Aparicio <jorge@japaric.io>
-linked-hash-map,https://github.com/contain-rs/linked-hash-map,MIT OR Apache-2.0,"Stepan Koltsov <stepan.koltsov@gmail.com>, Andrew Paseltiner <apaseltiner@gmail.com>"
 linux-raw-sys,https://github.com/sunfishcode/linux-raw-sys,Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT,Dan Gohman <dev@sunfishcode.online>
 log,https://github.com/rust-lang/log,MIT OR Apache-2.0,The Rust Project Developers
 malloc_buf,https://github.com/SSheldon/malloc_buf,MIT,Steven Sheldon
@@ -191,7 +189,7 @@ toml_edit,https://github.com/toml-rs/toml,MIT OR Apache-2.0,"Andronik Ordian <wr
 tracing,https://github.com/tokio-rs/tracing,MIT,"Eliza Weisman <eliza@buoyant.io>, Tokio Contributors <team@tokio.rs>"
 tracing-core,https://github.com/tokio-rs/tracing,MIT,Tokio Contributors <team@tokio.rs>
 typenum,https://github.com/paholg/typenum,MIT OR Apache-2.0,"Paho Lurie-Gregg <paho@paholg.com>, Andre Bogus <bogusandre@gmail.com>"
-uaparser,https://github.com/davidarmstronglewis/uap-rs,MIT,David Lewis
+uaparser,https://github.com/davidarmstronglewis/uap-rs,MIT,Ocean Lewis
 ucd-trie,https://github.com/BurntSushi/ucd-generate,MIT OR Apache-2.0,Andrew Gallant <jamslam@gmail.com>
 unicode-bidi,https://github.com/servo/unicode-bidi,MIT OR Apache-2.0,The Servo Project Developers
 unicode-ident,https://github.com/dtolnay/unicode-ident,(MIT OR Apache-2.0) AND Unicode-DFS-2016,David Tolnay <dtolnay@gmail.com>
@@ -199,6 +197,7 @@ unicode-normalization,https://github.com/unicode-rs/unicode-normalization,MIT OR
 unicode-segmentation,https://github.com/unicode-rs/unicode-segmentation,MIT OR Apache-2.0,"kwantam <kwantam@gmail.com>, Manish Goregaokar <manishsmail@gmail.com>"
 unicode-width,https://github.com/unicode-rs/unicode-width,MIT OR Apache-2.0,"kwantam <kwantam@gmail.com>, Manish Goregaokar <manishsmail@gmail.com>"
 universal-hash,https://github.com/RustCrypto/traits,MIT OR Apache-2.0,RustCrypto Developers
+unsafe-libyaml,https://github.com/dtolnay/unsafe-libyaml,MIT,David Tolnay <dtolnay@gmail.com>
 url,https://github.com/servo/rust-url,MIT OR Apache-2.0,The rust-url developers
 utf8-width,https://github.com/magiclen/utf8-width,MIT,Magic Len <len@magiclen.org>
 uuid,https://github.com/uuid-rs/uuid,Apache-2.0 OR MIT,"Ashley Mannix<ashleymannix@live.com.au>, Christopher Armstrong, Dylan DPC<dylan.dpc@gmail.com>, Hunar Roop Kahlon<hunar.roop@gmail.com>"
@@ -228,7 +227,6 @@ windows_x86_64_msvc,https://github.com/microsoft/windows-rs,MIT OR Apache-2.0,Mi
 winnow,https://github.com/winnow-rs/winnow,MIT,The winnow Authors
 woothee,https://github.com/woothee/woothee-rust,Apache-2.0,hhatto <hhatto.jp@gmail.com>
 wyz,https://github.com/myrrlyn/wyz,MIT,myrrlyn <self@myrrlyn.dev>
-yaml-rust,https://github.com/chyh1990/yaml-rust,MIT OR Apache-2.0,Yuheng Chen <yuhengchen@sensetime.com>
 zeroize,https://github.com/RustCrypto/utils/tree/master/zeroize,Apache-2.0 OR MIT,The RustCrypto Project Developers
 zstd,https://github.com/gyscos/zstd-rs,MIT,Alexandre Bury <alexandre.bury@gmail.com>
 zstd-safe,https://github.com/gyscos/zstd-rs,MIT OR Apache-2.0,Alexandre Bury <alexandre.bury@gmail.com>
