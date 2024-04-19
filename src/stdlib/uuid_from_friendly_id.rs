@@ -6,7 +6,7 @@ fn uuid_from_friendly_id(value: Value) -> Resolved {
     let mut buf = [0; 36];
     let value = convert_to_string(value, true)?;
     match base62::decode(value) {
-      Err(_) => Err("friendly id decode failure".into()),
+      Err(err) => Err(fmt!("failed to decode friendly id: {}", err).into()),
       Ok(w128) => {
         let uuid = uuid::Uuid::from_u128(w128).hyphenated().encode_lower(&mut buf);
         Ok(Bytes::copy_from_slice(uuid.as_bytes()).into())
