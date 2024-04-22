@@ -2,16 +2,16 @@ use crate::compiler::prelude::*;
 use crate::stdlib::string_utils::convert_to_string;
 
 fn contains_all(value: Value, substrings: Value, case_sensitive: Option<Value>) -> Resolved {
-    let to_lowercase = match case_sensitive {
+    let case_sensitive = match case_sensitive {
         Some(v) => v.try_boolean()?,
         None => true,
     };
 
-    let value_string = convert_to_string(value, to_lowercase)?;
+    let value_string = convert_to_string(value, !case_sensitive)?;
     let substring_values = substrings.try_array()?;
 
     for substring_value in substring_values {
-        let substring = convert_to_string(substring_value, to_lowercase)?;
+        let substring = convert_to_string(substring_value, !case_sensitive)?;
         if !value_string.contains(&substring) {
             return Ok(false.into());
         }

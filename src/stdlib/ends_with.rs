@@ -2,8 +2,8 @@ use crate::compiler::prelude::*;
 use crate::stdlib::string_utils::convert_to_string;
 
 fn ends_with(value: Value, substring: Value, case_sensitive: bool) -> Resolved {
-    let value = convert_to_string(value, case_sensitive)?;
-    let substring = convert_to_string(substring, case_sensitive)?;
+    let value = convert_to_string(value, !case_sensitive)?;
+    let substring = convert_to_string(substring, !case_sensitive)?;
     Ok(value.ends_with(&substring).into())
 }
 

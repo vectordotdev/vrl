@@ -17,5 +17,6 @@ updates:
       interval: "daily"
     labels:
       - "domain: ci"
+      - "no-changelog"
     commit-message:
       prefix: "chore(ci)"

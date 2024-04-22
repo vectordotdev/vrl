@@ -113,7 +113,7 @@ pub fn parse_timezone(tz: &str) -> Result<FixedOffset, String> {
 }
 
 fn parse_tz_id_or_name(tz: &str) -> Result<FixedOffset, String> {
-    let tz = tz.parse::<Tz>()?;
+    let tz = tz.parse::<Tz>().map_err(|e| e.to_string())?;
     Ok(Utc::now().with_timezone(&tz).offset().fix())
 }
 

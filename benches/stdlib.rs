@@ -157,6 +157,7 @@ criterion_group!(
               unique,
               // TODO: Cannot pass a Path to bench_function
               //unnest
+              uuid_from_friendly_id,
               // TODO: value is dynamic so we cannot assert equality
               //uuidv4,
               upcase,
@@ -2736,6 +2737,15 @@ bench_function! {
     literal {
         args: func_args![value: "foo"],
         want: Ok("FOO")
+    }
+}
+
+bench_function! {
+    uuid_from_friendly_id => vrl::stdlib::UuidFromFriendlyId;
+
+    literal {
+        args: func_args![value: "1s87yavXmkiPBMHsj8baw5"],
+        want: Ok("3d8b2932-6ac0-b083-4bdb-910cbc8db059"),
     }
 }
 
