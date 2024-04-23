@@ -3,40 +3,43 @@ use crate::compiler::prelude::*;
 #[cfg(not(target_arch = "wasm32"))]
 mod non_wasm {
     use std::collections::BTreeMap;
-    use std::str::FromStr;
+    use std::net::ToSocketAddrs;
+    use std::time::Duration;
 
-    use hickory_client::client::{Client, SyncClient};
-    use hickory_client::op::{DnsResponse, MessageType};
-    use hickory_client::rr::{Name, Record};
-    use hickory_client::udp::UdpClientConnection;
+    use domain::base::iana::Class;
+    use domain::base::{Dname, RecordSection, Rtype};
+    use domain::rdata::AllRecordData;
+    use domain::resolv::stub::conf::{ResolvConf, ResolvOptions, ServerConf, Transport};
+    use domain::resolv::stub::Answer;
+    use domain::resolv::StubResolver;
 
     use crate::compiler::prelude::*;
     use crate::value::Value;
 
     fn dns_lookup(value: Value, qtype: Value, qclass: Value, options: Value) -> Resolved {
-        let conn = UdpClientConnection::new("127.0.0.53:53".parse().unwrap()).unwrap();
-        let client = SyncClient::new(conn);
-
-        let host = Name::from_str(&value.try_bytes_utf8_lossy()?)
+        let host: Dname<Vec<_>> = value
+            .try_bytes_utf8_lossy()?
+            .to_string()
+            .parse()
             .map_err(|err| format!("parsing host name failed: {err}"))?;
-        let qtype = qtype
+        let qtype: Rtype = qtype
             .try_bytes_utf8_lossy()?
             .to_string()
             .parse()
             .map_err(|err| format!("parsing query type failed: {err}"))?;
-        let qclass = qclass
+        let qclass: Class = qclass
             .try_bytes_utf8_lossy()?
             .to_string()
             .parse()
             .map_err(|err| format!("parsing query class failed: {err}"))?;
 
-        let response = client
-            .query(&host, qclass, qtype)
-            .map_err(|err| format!("query failed: {err}"))?;
+        let conf = build_options(options.try_object()?)?;
+        let answer = StubResolver::run_with_conf(conf, move |stub| async move {
+            stub.query((host, qtype, qclass)).await
+        })
+        .map_err(|err| format!("query failed: {err}"))?;
 
-        println!("{}", options);
-
-        Ok(parse_response(response)?.into())
+        Ok(parse_answer(answer)?.into())
     }
 
     #[derive(Debug, Clone)]
@@ -58,49 +61,129 @@ mod non_wasm {
         }
     }
 
-    fn parse_response(answer: DnsResponse) -> Result<ObjectMap, ExpressionError> {
+    fn build_options(options: ObjectMap) -> Result<ResolvConf, ExpressionError> {
+        let mut resolv_options = ResolvOptions::default();
+
+        if let Some(ndots) = options
+            .get("ndots")
+            .map(|v| v.clone().try_integer())
+            .transpose()?
+        {
+            resolv_options.ndots = ndots
+                .try_into()
+                .map_err(|err| format!("ndots has to be a positive integer: {err}"))?;
+        }
+
+        if let Some(timeout) = options
+            .get("timeout")
+            .map(|v| v.clone().try_integer())
+            .transpose()?
+        {
+            resolv_options.timeout = Duration::from_secs(
+                timeout
+                    .try_into()
+                    .map_err(|err| format!("timeout has to be a positive integer: {err}"))?,
+            );
+        }
+
+        if let Some(attempts) = options
+            .get("attempts")
+            .map(|v| v.clone().try_integer())
+            .transpose()?
+        {
+            resolv_options.attempts = attempts
+                .try_into()
+                .map_err(|err| format!("attempts has to be a positive integer: {err}"))?;
+        }
+
+        macro_rules! read_bool_opt {
+            ($name:ident, $resolv_name:ident) => {
+                if let Some($name) = options
+                    .get(stringify!($name))
+                    .map(|v| v.clone().try_boolean())
+                    .transpose()?
+                {
+                    resolv_options.$resolv_name = $name;
+                }
+            };
+            ($name:ident) => {
+                read_bool_opt!($name, $name);
+            };
+        }
+
+        read_bool_opt!(aa_only);
+        read_bool_opt!(tcp, use_vc);
+        read_bool_opt!(ignore, ign_tc);
+        read_bool_opt!(recurse, recurse);
+        read_bool_opt!(rotate, rotate);
+
+        let mut conf = ResolvConf {
+            options: resolv_options,
+            ..Default::default()
+        };
+
+        if let Some(servers) = options
+            .get("servers")
+            .map(|s| s.clone().try_array())
+            .transpose()?
+        {
+            for server in servers {
+                let server = server.try_bytes_utf8_lossy()?;
+                for addr in server
+                    .to_socket_addrs()
+                    .map_err(|err| format!("can't resolve nameserver ({server}): {err}"))?
+                {
+                    conf.servers.push(ServerConf::new(addr, Transport::Udp));
+                    conf.servers.push(ServerConf::new(addr, Transport::Tcp));
+                }
+            }
+        }
+
+        conf.finalize();
+        Ok(conf)
+    }
+
+    fn parse_answer(answer: Answer) -> Result<ObjectMap, ExpressionError> {
         let mut result = ObjectMap::new();
         let header_section = answer.header();
-        let rcode = header_section.response_code();
-        result.insert("fullRcode".into(), u16::from(rcode).into());
+        let rcode = header_section.rcode();
+        result.insert("fullRcode".into(), rcode.to_int().into());
         result.insert("rcodeName".into(), rcode.to_string().into());
         let header = {
             let mut header_obj = ObjectMap::new();
-            header_obj.insert("aa".into(), header_section.authoritative().into());
-            header_obj.insert("ad".into(), header_section.authentic_data().into());
-            header_obj.insert("cd".into(), header_section.checking_disabled().into());
-            header_obj.insert("ra".into(), header_section.recursion_available().into());
-            header_obj.insert("rd".into(), header_section.recursion_desired().into());
-            header_obj.insert("tc".into(), header_section.truncated().into());
-            header_obj.insert(
-                "qr".into(),
-                matches!(header_section.message_type(), MessageType::Query).into(),
-            );
+            let counts = answer.header_counts();
+            header_obj.insert("aa".into(), header_section.aa().into());
+            header_obj.insert("ad".into(), header_section.ad().into());
+            header_obj.insert("cd".into(), header_section.cd().into());
+            header_obj.insert("ra".into(), header_section.ra().into());
+            header_obj.insert("rd".into(), header_section.rd().into());
+            header_obj.insert("tc".into(), header_section.tc().into());
+            header_obj.insert("qr".into(), header_section.qr().into());
             header_obj.insert("id".into(), header_section.id().into());
-            header_obj.insert("opcode".into(), u8::from(header_section.op_code()).into());
-            header_obj.insert("rcode".into(), header_section.response_code().low().into());
-            header_obj.insert("anCount".into(), answer.answer_count().into());
-            header_obj.insert("arCount".into(), answer.additional_count().into());
-            header_obj.insert("nsCount".into(), answer.name_server_count().into());
-            header_obj.insert("qdCount".into(), answer.query_count().into());
+            header_obj.insert("opcode".into(), header_section.opcode().to_int().into());
+            header_obj.insert("rcode".into(), header_section.rcode().to_int().into());
+            header_obj.insert("anCount".into(), counts.ancount().into());
+            header_obj.insert("arCount".into(), counts.arcount().into());
+            header_obj.insert("nsCount".into(), counts.nscount().into());
+            header_obj.insert("qdCount".into(), counts.qdcount().into());
             header_obj
         };
         result.insert("header".into(), header.into());
 
-        let question = answer.queries();
-        let answer_section = answer.answers();
-        let authority = answer.name_servers();
-        let additional = answer.additionals();
+        let (question, answer_section, authority, additional) = answer
+            .sections()
+            .map_err(|err| format!("parsing response sections failed: {err}"))?;
 
         let question = {
             let mut questions = Vec::<ObjectMap>::new();
             for q in question {
+                let q = q.map_err(|err| format!("parsing question section failed: {err}"))?;
                 let mut question_obj = ObjectMap::new();
-                question_obj.insert("class".into(), q.query_class().to_string().into());
-                question_obj.insert("domainName".into(), q.name().to_string().into());
-                let qtype = q.query_type();
+                question_obj.insert("class".into(), q.qclass().to_string().into());
+                question_obj.insert("domainName".into(), q.qname().to_string().into());
+                let qtype = q.qtype();
                 question_obj.insert("questionType".into(), qtype.to_string().into());
-                question_obj.insert("questionTypeId".into(), u16::from(qtype).into());
+                question_obj.insert("questionTypeId".into(), qtype.to_int().into());
                 questions.push(question_obj);
             }
             questions
@@ -119,18 +202,24 @@ mod non_wasm {
         Ok(result)
     }
 
-    fn parse_record_section(section: &[Record]) -> Result<Vec<ObjectMap>, ExpressionError> {
+    fn parse_record_section(
+        section: RecordSection<'_, Bytes>,
+    ) -> Result<Vec<ObjectMap>, ExpressionError> {
         let mut records = Vec::<ObjectMap>::new();
         for r in section {
+            let r = r.map_err(|err| format!("parsing record section failed: {err}"))?;
             let mut record_obj = ObjectMap::new();
-            record_obj.insert("class".into(), r.dns_class().to_string().into());
-            record_obj.insert("domainName".into(), r.name().to_string().into());
-            let rtype = r.record_type();
-            let record_data = r.data().map(|r| r.to_string());
+            record_obj.insert("class".into(), r.class().to_string().into());
+            record_obj.insert("domainName".into(), r.owner().to_string().into());
+            let rtype = r.rtype();
+            let record_data = r
+                .to_record::<AllRecordData<_, _>>()
+                .map_err(|err| format!("parsing rData failed: {err}"))?
+                .map(|r| r.data().to_string());
             record_obj.insert("rData".into(), record_data.into());
             record_obj.insert("recordType".into(), rtype.to_string().into());
-            record_obj.insert("recordTypeId".into(), u16::from(rtype).into());
-            record_obj.insert("ttl".into(), r.ttl().into());
+            record_obj.insert("recordTypeId".into(), rtype.to_int().into());
+            record_obj.insert("ttl".into(), r.ttl().as_secs().into());
             records.push(record_obj);
         }
         Ok(records)
@@ -310,14 +399,14 @@ mod tests {
         });
 
         assert_eq!(result["fullRcode"], value!(2));
-        assert_eq!(result["rcodeName"], value!("Server Failure"));
+        assert_eq!(result["rcodeName"], value!("SERVFAIL"));
         assert_eq!(
             result["question"].as_array_unwrap()[0],
             value!({
                 "questionTypeId": 1,
                 "questionType": "A",
                 "class": "IN",
-                "domainName": "wrong.local."
+                "domainName": "wrong.local"
             })
         );
     }
@@ -330,14 +419,14 @@ mod tests {
         });
 
         assert_eq!(result["fullRcode"], value!(0));
-        assert_eq!(result["rcodeName"], value!("No Error"));
+        assert_eq!(result["rcodeName"], value!("NOERROR"));
         assert_eq!(
             result["question"].as_array_unwrap()[0],
             value!({
                 "questionTypeId": 1,
                 "questionType": "A",
                 "class": "IN",
-                "domainName": "localhost."
+                "domainName": "localhost"
             })
         );
         let answer = result["answers"].as_array_unwrap()[0].as_object().unwrap();
@@ -352,14 +441,14 @@ mod tests {
         });
 
         assert_eq!(result["fullRcode"], value!(0));
-        assert_eq!(result["rcodeName"], value!("No Error"));
+        assert_eq!(result["rcodeName"], value!("NOERROR"));
         assert_eq!(
             result["question"].as_array_unwrap()[0],
             value!({
                 "questionTypeId": 1,
                 "questionType": "A",
                 "class": "IN",
-                "domainName": "dns.google."
+                "domainName": "dns.google"
             })
         );
         let answers: HashSet<String> = result["answers"]
