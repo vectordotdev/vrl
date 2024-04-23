@@ -398,8 +398,8 @@ mod tests {
             ..Default::default()
         });
 
-        assert_eq!(result["fullRcode"], value!(2));
-        assert_eq!(result["rcodeName"], value!("SERVFAIL"));
+        assert_eq!(result["fullRcode"], value!(3));
+        assert_eq!(result["rcodeName"], value!("NXDOMAIN"));
         assert_eq!(
             result["question"].as_array_unwrap()[0],
             value!({
