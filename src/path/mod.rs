@@ -88,7 +88,7 @@ use std::fmt::Debug;
 
 use snafu::Snafu;
 
-pub use borrowed::{BorrowedSegment, BorrowedValuePath};
+pub use borrowed::{BorrowedSegment, BorrowedTargetPath, BorrowedValuePath};
 pub use concat::PathConcat;
 pub use owned::{OwnedSegment, OwnedTargetPath, OwnedValuePath};
 
@@ -119,8 +119,9 @@ macro_rules! path {
 /// This path points at an event (as opposed to metadata).
 #[macro_export]
 macro_rules! event_path {
-    ($($segment:expr),*) => {{
-        ($crate::path::PathPrefix::Event, $crate::path!($($segment),*))
+    ($($segment:expr),*) => { $crate::path::BorrowedTargetPath {
+        prefix: $crate::path::PathPrefix::Event,
+        path: $crate::path!($($segment),*),
     }};
 }
 
@@ -128,8 +129,9 @@ macro_rules! event_path {
 /// This path points at metadata (as opposed to the event).
 #[macro_export]
 macro_rules! metadata_path {
-    ($($segment:expr),*) => {{
-        ($crate::path::PathPrefix::Metadata, $crate::path!($($segment),*))
+    ($($segment:expr),*) => { $crate::path::BorrowedTargetPath {
+        prefix: $crate::path::PathPrefix::Metadata,
+        path: $crate::path!($($segment),*),
     }};
 }
 
@@ -281,18 +283,6 @@ impl<'a> TargetPath<'a> for &'a OwnedTargetPath {
 
     fn value_path(&self) -> Self::ValuePath {
         &self.path
-    }
-}
-
-impl<'a, T: ValuePath<'a>> TargetPath<'a> for (PathPrefix, T) {
-    type ValuePath = T;
-
-    fn prefix(&self) -> PathPrefix {
-        self.0
-    }
-
-    fn value_path(&self) -> Self::ValuePath {
-        self.1.clone()
     }
 }
 

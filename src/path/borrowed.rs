@@ -1,14 +1,37 @@
-use super::ValuePath;
 use std::borrow::Cow;
 use std::iter::Cloned;
 use std::slice::Iter;
+
+use super::{PathPrefix, TargetPath, ValuePath};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct BorrowedValuePath<'a, 'b> {
     pub segments: &'b [BorrowedSegment<'a>],
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct BorrowedTargetPath<'a, 'b> {
+    pub prefix: PathPrefix,
+    pub path: BorrowedValuePath<'a, 'b>,
+}
+
+impl<'a, 'b> BorrowedTargetPath<'a, 'b> {
+    pub fn event(path: BorrowedValuePath<'a, 'b>) -> Self {
+        Self {
+            prefix: PathPrefix::Event,
+            path,
+        }
+    }
+
+    pub fn metadata(path: BorrowedValuePath<'a, 'b>) -> Self {
+        Self {
+            prefix: PathPrefix::Metadata,
+            path,
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum BorrowedSegment<'a> {
     Field(Cow<'a, str>),
     Index(isize),
@@ -66,6 +89,18 @@ impl<'a, 'b> ValuePath<'a> for &'b Vec<BorrowedSegment<'a>> {
 
     fn segment_iter(&self) -> Self::Iter {
         self.as_slice().iter().cloned()
+    }
+}
+
+impl<'a, 'b> TargetPath<'a> for BorrowedTargetPath<'a, 'b> {
+    type ValuePath = BorrowedValuePath<'a, 'b>;
+
+    fn prefix(&self) -> PathPrefix {
+        self.prefix
+    }
+
+    fn value_path(&self) -> Self::ValuePath {
+        self.path.clone()
     }
 }
 
