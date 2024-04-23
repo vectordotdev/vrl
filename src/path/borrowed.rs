@@ -3,7 +3,12 @@ use std::borrow::Cow;
 use std::iter::Cloned;
 use std::slice::Iter;
 
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct BorrowedValuePath<'a, 'b> {
+    pub segments: &'b [BorrowedSegment<'a>],
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum BorrowedSegment<'a> {
     Field(Cow<'a, str>),
     Index(isize),
@@ -48,27 +53,19 @@ impl From<isize> for BorrowedSegment<'_> {
     }
 }
 
+impl<'a, 'b> ValuePath<'a> for BorrowedValuePath<'a, 'b> {
+    type Iter = Cloned<Iter<'b, BorrowedSegment<'a>>>;
+
+    fn segment_iter(&self) -> Self::Iter {
+        self.segments.iter().cloned()
+    }
+}
+
 impl<'a, 'b> ValuePath<'a> for &'b Vec<BorrowedSegment<'a>> {
     type Iter = Cloned<Iter<'b, BorrowedSegment<'a>>>;
 
     fn segment_iter(&self) -> Self::Iter {
         self.as_slice().iter().cloned()
-    }
-}
-
-impl<'a, 'b> ValuePath<'a> for &'b [BorrowedSegment<'a>] {
-    type Iter = Cloned<Iter<'b, BorrowedSegment<'a>>>;
-
-    fn segment_iter(&self) -> Self::Iter {
-        self.iter().cloned()
-    }
-}
-
-impl<'a, 'b, const A: usize> ValuePath<'a> for &'b [BorrowedSegment<'a>; A] {
-    type Iter = Cloned<Iter<'b, BorrowedSegment<'a>>>;
-
-    fn segment_iter(&self) -> Self::Iter {
-        self.iter().cloned()
     }
 }
 
