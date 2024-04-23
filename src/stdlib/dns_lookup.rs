@@ -64,38 +64,6 @@ mod non_wasm {
     fn build_options(options: ObjectMap) -> Result<ResolvConf, ExpressionError> {
         let mut resolv_options = ResolvOptions::default();
 
-        if let Some(ndots) = options
-            .get("ndots")
-            .map(|v| v.clone().try_integer())
-            .transpose()?
-        {
-            resolv_options.ndots = ndots
-                .try_into()
-                .map_err(|err| format!("ndots has to be a positive integer: {err}"))?;
-        }
-
-        if let Some(timeout) = options
-            .get("timeout")
-            .map(|v| v.clone().try_integer())
-            .transpose()?
-        {
-            resolv_options.timeout = Duration::from_secs(
-                timeout
-                    .try_into()
-                    .map_err(|err| format!("timeout has to be a positive integer: {err}"))?,
-            );
-        }
-
-        if let Some(attempts) = options
-            .get("attempts")
-            .map(|v| v.clone().try_integer())
-            .transpose()?
-        {
-            resolv_options.attempts = attempts
-                .try_into()
-                .map_err(|err| format!("attempts has to be a positive integer: {err}"))?;
-        }
-
         macro_rules! read_bool_opt {
             ($name:ident, $resolv_name:ident) => {
                 if let Some($name) = options
@@ -111,11 +79,42 @@ mod non_wasm {
             };
         }
 
+        macro_rules! read_int_opt {
+            ($name:ident, $resolv_name:ident) => {
+                if let Some($name) = options
+                    .get(stringify!($name))
+                    .map(|v| v.clone().try_integer())
+                    .transpose()?
+                {
+                    resolv_options.$resolv_name = $name.try_into().map_err(|err| {
+                        format!("{} has to be a positive integer: {}", $name, err)
+                    })?;
+                }
+            };
+            ($name:ident) => {
+                read_int_opt!($name, $name);
+            };
+        }
+
+        read_int_opt!(ndots);
+        read_int_opt!(attempts);
         read_bool_opt!(aa_only);
         read_bool_opt!(tcp, use_vc);
         read_bool_opt!(ignore, ign_tc);
         read_bool_opt!(recurse, recurse);
         read_bool_opt!(rotate, rotate);
+
+        if let Some(timeout) = options
+            .get("timeout")
+            .map(|v| v.clone().try_integer())
+            .transpose()?
+        {
+            resolv_options.timeout = Duration::from_secs(
+                timeout
+                    .try_into()
+                    .map_err(|err| format!("timeout has to be a positive integer: {err}"))?,
+            );
+        }
 
         let mut conf = ResolvConf {
             options: resolv_options,
