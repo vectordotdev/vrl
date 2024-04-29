@@ -4,6 +4,18 @@
 
 <!-- changelog start -->
 
+## [0.14.0 (2024-04-29)]
+
+
+### New Features
+
+- Add `uuid_from_friendly_id` for converting base62-encoded 128-bit identifiers to the hyphenated UUID format (https://github.com/vectordotdev/vrl/pull/803)
+
+### Fixes
+
+- `parse_json` now supports round-tripable float parsing by activating the `float_roundtrip` feature in serde_json (https://github.com/vectordotdev/vrl/pull/755)
+
+
 ## [0.13.0 (2024-03-18)]
 
 
