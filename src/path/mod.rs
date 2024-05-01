@@ -286,6 +286,19 @@ impl<'a> TargetPath<'a> for &'a OwnedTargetPath {
     }
 }
 
+// This is deprecated but still used in Vector (results in 10 compile errors)
+impl<'a, T: ValuePath<'a>> TargetPath<'a> for (PathPrefix, T) {
+    type ValuePath = T;
+
+    fn prefix(&self) -> PathPrefix {
+        self.0
+    }
+
+    fn value_path(&self) -> Self::ValuePath {
+        self.1.clone()
+    }
+}
+
 /// Determines the prefix of a "TargetPath", and also returns the remaining
 /// "ValuePath" portion of the string.
 fn get_target_prefix(path: &str) -> (PathPrefix, &str) {
