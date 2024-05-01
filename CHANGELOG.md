@@ -4,6 +4,15 @@
 
 <!-- changelog start -->
 
+## [0.15.0 (2024-05-01)]
+
+
+### Deprecations
+
+- Coalesce paths (i.e. `(field1|field2)`) are deprecated and will be removed in a
+  future version.  This feature is rarely used and not very useful. (https://github.com/vectordotdev/vrl/pull/815)
+
+
 ## [0.14.0 (2024-04-29)]
 
 
