@@ -100,7 +100,7 @@ impl<'a, 'b> TargetPath<'a> for BorrowedTargetPath<'a, 'b> {
     }
 
     fn value_path(&self) -> Self::ValuePath {
-        self.path.clone()
+        self.path
     }
 }
 
