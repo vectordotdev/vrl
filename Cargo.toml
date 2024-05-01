@@ -25,7 +25,7 @@ members = [
 default = ["compiler", "value", "diagnostic", "path", "parser", "stdlib", "datadog", "core"]
 
 # Main features (on by default)
-compiler = ["diagnostic", "path", "parser", "value", "dep:paste", "dep:chrono", "dep:serde", "dep:regex", "dep:bytes", "dep:ordered-float", "dep:chrono-tz", "dep:snafu", "dep:tracing", "dep:thiserror", "dep:dyn-clone", "dep:indoc", "dep:thiserror", "dep:lalrpop-util"]
+compiler = ["diagnostic", "path", "parser", "value", "dep:paste", "dep:chrono", "dep:serde", "dep:regex", "dep:bytes", "dep:ordered-float", "dep:chrono-tz", "dep:snafu", "dep:thiserror", "dep:dyn-clone", "dep:indoc", "dep:thiserror", "dep:lalrpop-util"]
 value = ["path", "dep:bytes", "dep:regex", "dep:ordered-float", "dep:chrono", "dep:serde_json"]
 diagnostic = ["dep:codespan-reporting", "dep:termcolor"]
 path = ["value", "dep:once_cell", "dep:serde", "dep:snafu", "dep:regex"]
@@ -36,7 +36,7 @@ string_path = []
 # Datadog related features (on by default)
 datadog = ["datadog_filter", "datadog_grok", "datadog_search"]
 datadog_filter = ["datadog_search", "dep:regex", "dep:dyn-clone"]
-datadog_grok = ["value", "dep:nom", "dep:peeking_take_while", "dep:serde_json", "dep:onig", "dep:lalrpop-util", "dep:thiserror", "dep:chrono", "dep:chrono-tz", "dep:tracing"]
+datadog_grok = ["value", "dep:nom", "dep:peeking_take_while", "dep:serde_json", "dep:onig", "dep:lalrpop-util", "dep:thiserror", "dep:chrono", "dep:chrono-tz"]
 datadog_search = ["dep:pest", "dep:pest_derive", "dep:itertools", "dep:once_cell", "dep:regex"]
 
 # Features that aren't used as often (default off)
@@ -169,7 +169,7 @@ snap = { version = "1", optional = true }
 syslog_loose = { version = "0.21", optional = true }
 termcolor = {version = "1", optional = true }
 thiserror ={ version =  "1", optional = true }
-tracing = { version = "0.1", default-features = false, optional = true }
+tracing = { version = "0.1", default-features = false }
 uaparser = { version = "0.6", default-features = false, optional = true }
 utf8-width = { version = "0.1", optional = true }
 url = { version = "2", optional = true }
