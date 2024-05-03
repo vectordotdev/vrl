@@ -226,7 +226,7 @@ pub trait ValuePath<'a>: Clone {
     #[allow(clippy::result_unit_err)]
     fn to_owned_value_path(&self) -> Result<OwnedValuePath, ()> {
         let mut owned_path = OwnedValuePath::root();
-        let mut coalesce = vec![];
+        let mut coalesce = Vec::new();
         for segment in self.segment_iter() {
             match segment {
                 BorrowedSegment::Invalid => return Err(()),
@@ -237,6 +237,11 @@ pub trait ValuePath<'a>: Clone {
                 }
                 BorrowedSegment::CoalesceEnd(field) => {
                     coalesce.push(field.into());
+                    tracing::warn!(
+                        internal_log_rate_limit = true,
+                        fields = coalesce.join("|"),
+                        "DEPRECATED: Coalesce fields are deprecated and will be removed in a future version.",
+                    );
                     owned_path.push(OwnedSegment::Coalesce(std::mem::take(&mut coalesce)));
                 }
             }
