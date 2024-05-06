@@ -87,7 +87,12 @@ mod non_wasm {
                     .transpose()?
                 {
                     resolv_options.$resolv_name = $name.try_into().map_err(|err| {
-                        format!("{} has to be a positive integer: {}", $name, err)
+                        format!(
+                            "{} has to be a positive integer, got: {}. ({})",
+                            stringify!($resolv_name),
+                            $name,
+                            err
+                        )
                     })?;
                 }
             };
@@ -101,8 +106,8 @@ mod non_wasm {
         read_bool_opt!(aa_only);
         read_bool_opt!(tcp, use_vc);
         read_bool_opt!(ignore, ign_tc);
-        read_bool_opt!(recurse, recurse);
-        read_bool_opt!(rotate, rotate);
+        read_bool_opt!(recurse);
+        read_bool_opt!(rotate);
 
         if let Some(timeout) = options
             .get("timeout")
@@ -433,6 +438,28 @@ mod tests {
     }
 
     #[test]
+    fn test_custom_class_and_type() {
+        let result = execute_dns_lookup(DnsLookupFn {
+            value: expr!("localhost"),
+            class: expr!("*"),
+            qtype: expr!("HTTPS"),
+            ..Default::default()
+        });
+
+        assert_eq!(result["fullRcode"], value!(0));
+        assert_eq!(result["rcodeName"], value!("NOERROR"));
+        assert_eq!(
+            result["question"].as_array_unwrap()[0],
+            value!({
+                "questionTypeId": 65,
+                "questionType": "HTTPS",
+                "class": "*",
+                "domainName": "localhost"
+            })
+        );
+    }
+
+    #[test]
     fn test_google() {
         let result = execute_dns_lookup(DnsLookupFn {
             value: expr!("dns.google"),
@@ -466,16 +493,60 @@ mod tests {
         assert_eq!(answers, expected);
     }
 
-    fn execute_dns_lookup(dns_lookup_fn: DnsLookupFn) -> ObjectMap {
+    #[test]
+    fn unknown_options_ignored() {
+        let result = execute_dns_lookup(DnsLookupFn {
+            value: expr!("localhost"),
+            options: expr!({"test": "test"}),
+            ..Default::default()
+        });
+
+        assert_eq!(result["rcodeName"], value!("NOERROR"));
+    }
+
+    #[test]
+    fn invalid_option_type() {
+        let result = execute_dns_lookup_with_expected_error(DnsLookupFn {
+            value: expr!("localhost"),
+            options: expr!({"tcp": "yes"}),
+            ..Default::default()
+        });
+
+        assert_eq!(result.message(), "expected boolean, got string");
+    }
+
+    #[test]
+    fn negative_int_type() {
+        let attempts_val = -5;
+        let result = execute_dns_lookup_with_expected_error(DnsLookupFn {
+            value: expr!("localhost"),
+            options: expr!({"attempts": attempts_val}),
+            ..Default::default()
+        });
+
+        assert_eq!(
+            result.message(),
+            "attempts has to be a positive integer, got: -5. (out of range integral type conversion attempted)"
+        );
+    }
+
+    fn prepare_dns_lookup(dns_lookup_fn: DnsLookupFn) -> Resolved {
         let tz = TimeZone::default();
         let mut object: Value = Value::Object(BTreeMap::new());
         let mut runtime_state = state::RuntimeState::default();
         let mut ctx = Context::new(&mut object, &mut runtime_state, &tz);
-        dns_lookup_fn
-            .resolve(&mut ctx)
+        dns_lookup_fn.resolve(&mut ctx)
+    }
+
+    fn execute_dns_lookup(dns_lookup_fn: DnsLookupFn) -> ObjectMap {
+        prepare_dns_lookup(dns_lookup_fn)
             .map_err(|e| format!("{:#}", anyhow::anyhow!(e)))
             .unwrap()
             .try_object()
             .unwrap()
+    }
+
+    fn execute_dns_lookup_with_expected_error(dns_lookup_fn: DnsLookupFn) -> ExpressionError {
+        prepare_dns_lookup(dns_lookup_fn).unwrap_err()
     }
 }
