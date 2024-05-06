@@ -114,11 +114,9 @@ mod non_wasm {
             .map(|v| v.clone().try_integer())
             .transpose()?
         {
-            resolv_options.timeout = Duration::from_secs(
-                timeout
-                    .try_into()
-                    .map_err(|err| format!("timeout has to be a positive integer: {err}"))?,
-            );
+            resolv_options.timeout = Duration::from_secs(timeout.try_into().map_err(|err| {
+                format!("timeout has to be a positive integer, got: {timeout}. ({err})")
+            })?);
         }
 
         let mut conf = ResolvConf {
@@ -347,12 +345,36 @@ impl Function for DnsLookup {
     }
 
     fn examples(&self) -> &'static [Example] {
-        // TODO: add
-        &[Example {
-            title: "Example",
-            source: r#"dns_lookup!("localhost")"#,
-            result: Ok(r#"["127.0.0.1"]"#),
-        }]
+        &[
+            Example {
+                title: "Basic lookup",
+                source: r#"dns_lookup!("localhost")"#,
+                result: Ok(
+                    r#"{"fullRcode": 0, "rcodeName": "NOERROR", "header": {}, "additional": [], "question": {"questionTypeId": 1, "questionType": "A", "class": "IN", "domainName": "localhost"}, "answers": [{"class": "IN", "domainName": "localhost", "rData": "127.0.0.1", "recordType": "A", "recordTypeId": 1, "ttl": 0}], "authority": []}"#,
+                ),
+            },
+            Example {
+                title: "Custom class and qtype",
+                source: r#"dns_lookup!("localhost", class: "IN", qtype: "A")"#,
+                result: Ok(
+                    r#"{"fullRcode": 0, "rcodeName": "NOERROR", "header": {}, "additional": [], "question": {"questionTypeId": 1, "questionType": "A", "class": "IN", "domainName": "localhost"}, "answers": [{"class": "IN", "domainName": "localhost", "rData": "127.0.0.1", "recordType": "A", "recordTypeId": 1, "ttl": 0}], "authority": []}"#,
+                ),
+            },
+            Example {
+                title: "Custom options",
+                source: r#"dns_lookup!("localhost", options: {"timeout": 30, "attempts": 5})"#,
+                result: Ok(
+                    r#"{"fullRcode": 0, "rcodeName": "NOERROR", "header": {}, "additional": [], "question": {"questionTypeId": 1, "questionType": "A", "class": "IN", "domainName": "localhost"}, "answers": [{"class": "IN", "domainName": "localhost", "rData": "127.0.0.1", "recordType": "A", "recordTypeId": 1, "ttl": 0}], "authority": []}"#,
+                ),
+            },
+            Example {
+                title: "Custom server",
+                source: r#"dns_lookup!("localhost", options: {"servers": ["dns.google"]})"#,
+                result: Ok(
+                    r#"{"fullRcode": 0, "rcodeName": "NOERROR", "header": {}, "additional": [], "question": {"questionTypeId": 1, "questionType": "A", "class": "IN", "domainName": "localhost"}, "answers": [{"class": "IN", "domainName": "localhost", "rData": "127.0.0.1", "recordType": "A", "recordTypeId": 1, "ttl": 0}], "authority": []}"#,
+                ),
+            },
+        ]
     }
 
     #[cfg(not(target_arch = "wasm32"))]
