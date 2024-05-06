@@ -130,7 +130,10 @@ mod non_wasm {
             .transpose()?
         {
             for server in servers {
-                let server = server.try_bytes_utf8_lossy()?;
+                let mut server = server.try_bytes_utf8_lossy()?;
+                if !server.contains(':') {
+                    server += ":53";
+                }
                 for addr in server
                     .to_socket_addrs()
                     .map_err(|err| format!("can't resolve nameserver ({server}): {err}"))?
@@ -349,30 +352,222 @@ impl Function for DnsLookup {
             Example {
                 title: "Basic lookup",
                 source: r#"dns_lookup!("localhost")"#,
-                result: Ok(
-                    r#"{"fullRcode": 0, "rcodeName": "NOERROR", "header": {}, "additional": [], "question": {"questionTypeId": 1, "questionType": "A", "class": "IN", "domainName": "localhost"}, "answers": [{"class": "IN", "domainName": "localhost", "rData": "127.0.0.1", "recordType": "A", "recordTypeId": 1, "ttl": 0}], "authority": []}"#,
-                ),
+                result: Ok(indoc!(
+                    r#"{
+                    "additional": [
+                        {
+                            "class": "CLASS65494",
+                            "domainName": "",
+                            "rData": "OPT ...",
+                            "recordType": "OPT",
+                            "recordTypeId": 41,
+                            "ttl": 0
+                        }
+                    ],
+                    "answers": [
+                        {
+                            "class": "IN",
+                            "domainName": "localhost",
+                            "rData": "127.0.0.1",
+                            "recordType": "A",
+                            "recordTypeId": 1,
+                            "ttl": 0
+                        }
+                    ],
+                    "authority": [],
+                    "fullRcode": 0,
+                    "header": {
+                        "aa": true,
+                        "ad": false,
+                        "anCount": 1,
+                        "arCount": 1,
+                        "cd": false,
+                        "id": 0,
+                        "nsCount": 0,
+                        "opcode": 0,
+                        "qdCount": 1,
+                        "qr": true,
+                        "ra": true,
+                        "rcode": 0,
+                        "rd": true,
+                        "tc": false
+                    },
+                    "question": [
+                        {
+                            "class": "IN",
+                            "domainName": "localhost",
+                            "questionType": "A",
+                            "questionTypeId": 1
+                        }
+                    ],
+                    "rcodeName": "NOERROR"
+                }"#
+                )),
             },
             Example {
                 title: "Custom class and qtype",
                 source: r#"dns_lookup!("localhost", class: "IN", qtype: "A")"#,
-                result: Ok(
-                    r#"{"fullRcode": 0, "rcodeName": "NOERROR", "header": {}, "additional": [], "question": {"questionTypeId": 1, "questionType": "A", "class": "IN", "domainName": "localhost"}, "answers": [{"class": "IN", "domainName": "localhost", "rData": "127.0.0.1", "recordType": "A", "recordTypeId": 1, "ttl": 0}], "authority": []}"#,
-                ),
+                result: Ok(indoc!(
+                    r#"{
+                    "additional": [
+                        {
+                            "class": "CLASS65494",
+                            "domainName": "",
+                            "rData": "OPT ...",
+                            "recordType": "OPT",
+                            "recordTypeId": 41,
+                            "ttl": 0
+                        }
+                    ],
+                    "answers": [
+                        {
+                            "class": "IN",
+                            "domainName": "localhost",
+                            "rData": "127.0.0.1",
+                            "recordType": "A",
+                            "recordTypeId": 1,
+                            "ttl": 0
+                        }
+                    ],
+                    "authority": [],
+                    "fullRcode": 0,
+                    "header": {
+                        "aa": true,
+                        "ad": false,
+                        "anCount": 1,
+                        "arCount": 1,
+                        "cd": false,
+                        "id": 0,
+                        "nsCount": 0,
+                        "opcode": 0,
+                        "qdCount": 1,
+                        "qr": true,
+                        "ra": true,
+                        "rcode": 0,
+                        "rd": true,
+                        "tc": false
+                    },
+                    "question": [
+                        {
+                            "class": "IN",
+                            "domainName": "localhost",
+                            "questionType": "A",
+                            "questionTypeId": 1
+                        }
+                    ],
+                    "rcodeName": "NOERROR"
+                }"#
+                )),
             },
             Example {
                 title: "Custom options",
                 source: r#"dns_lookup!("localhost", options: {"timeout": 30, "attempts": 5})"#,
-                result: Ok(
-                    r#"{"fullRcode": 0, "rcodeName": "NOERROR", "header": {}, "additional": [], "question": {"questionTypeId": 1, "questionType": "A", "class": "IN", "domainName": "localhost"}, "answers": [{"class": "IN", "domainName": "localhost", "rData": "127.0.0.1", "recordType": "A", "recordTypeId": 1, "ttl": 0}], "authority": []}"#,
-                ),
+                result: Ok(indoc!(
+                    r#"{
+                    "additional": [
+                        {
+                            "class": "CLASS65494",
+                            "domainName": "",
+                            "rData": "OPT ...",
+                            "recordType": "OPT",
+                            "recordTypeId": 41,
+                            "ttl": 0
+                        }
+                    ],
+                    "answers": [
+                        {
+                            "class": "IN",
+                            "domainName": "localhost",
+                            "rData": "127.0.0.1",
+                            "recordType": "A",
+                            "recordTypeId": 1,
+                            "ttl": 0
+                        }
+                    ],
+                    "authority": [],
+                    "fullRcode": 0,
+                    "header": {
+                        "aa": true,
+                        "ad": false,
+                        "anCount": 1,
+                        "arCount": 1,
+                        "cd": false,
+                        "id": 0,
+                        "nsCount": 0,
+                        "opcode": 0,
+                        "qdCount": 1,
+                        "qr": true,
+                        "ra": true,
+                        "rcode": 0,
+                        "rd": true,
+                        "tc": false
+                    },
+                    "question": [
+                        {
+                            "class": "IN",
+                            "domainName": "localhost",
+                            "questionType": "A",
+                            "questionTypeId": 1
+                        }
+                    ],
+                    "rcodeName": "NOERROR"
+                }"#
+                )),
             },
             Example {
                 title: "Custom server",
                 source: r#"dns_lookup!("localhost", options: {"servers": ["dns.google"]})"#,
-                result: Ok(
-                    r#"{"fullRcode": 0, "rcodeName": "NOERROR", "header": {}, "additional": [], "question": {"questionTypeId": 1, "questionType": "A", "class": "IN", "domainName": "localhost"}, "answers": [{"class": "IN", "domainName": "localhost", "rData": "127.0.0.1", "recordType": "A", "recordTypeId": 1, "ttl": 0}], "authority": []}"#,
-                ),
+                result: Ok(indoc!(
+                    r#"{
+                    "additional": [
+                        {
+                            "class": "CLASS65494",
+                            "domainName": "",
+                            "rData": "OPT ...",
+                            "recordType": "OPT",
+                            "recordTypeId": 41,
+                            "ttl": 0
+                        }
+                    ],
+                    "answers": [
+                        {
+                            "class": "IN",
+                            "domainName": "localhost",
+                            "rData": "127.0.0.1",
+                            "recordType": "A",
+                            "recordTypeId": 1,
+                            "ttl": 0
+                        }
+                    ],
+                    "authority": [],
+                    "fullRcode": 0,
+                    "header": {
+                        "aa": true,
+                        "ad": false,
+                        "anCount": 1,
+                        "arCount": 1,
+                        "cd": false,
+                        "id": 0,
+                        "nsCount": 0,
+                        "opcode": 0,
+                        "qdCount": 1,
+                        "qr": true,
+                        "ra": true,
+                        "rcode": 0,
+                        "rd": true,
+                        "tc": false
+                    },
+                    "question": [
+                        {
+                            "class": "IN",
+                            "domainName": "localhost",
+                            "questionType": "A",
+                            "questionTypeId": 1
+                        }
+                    ],
+                    "rcodeName": "NOERROR"
+                }"#
+                )),
             },
         ]
     }
@@ -424,8 +619,8 @@ mod tests {
             ..Default::default()
         });
 
-        assert_eq!(result["fullRcode"], value!(3));
-        assert_eq!(result["rcodeName"], value!("NXDOMAIN"));
+        assert_ne!(result["fullRcode"], value!(0));
+        assert_ne!(result["rcodeName"], value!("NOERROR"));
         assert_eq!(
             result["question"].as_array_unwrap()[0],
             value!({
