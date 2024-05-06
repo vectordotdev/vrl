@@ -70,6 +70,7 @@ stdlib = [
  "dep:ctr",
  "dep:data-encoding",
  "dep:digest",
+ "dep:domain",
  "dep:dns-lookup",
  "dep:flate2",
  "dep:grok",
@@ -198,6 +199,7 @@ prost-reflect = { version = "0.13", default-features = false, optional = true}
 # Dependencies used for non-WASM
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 dns-lookup = { version = "2", optional = true }
+domain = { version = "0.9.3", optional = true, features = ["resolv-sync", "serde"] }
 hostname = { version = "0.4", optional = true }
 grok = { version = "2", optional = true }
 onig = { version = "6", default-features = false, optional = true }

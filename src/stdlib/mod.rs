@@ -59,6 +59,7 @@ cfg_if::cfg_if! {
         mod decode_zstd;
         mod decrypt;
         mod del;
+        mod dns_lookup;
         mod downcase;
         mod encode_base16;
         mod encode_base64;
@@ -233,6 +234,7 @@ cfg_if::cfg_if! {
         pub use decode_zstd::DecodeZstd;
         pub use decrypt::Decrypt;
         pub use del::Del;
+        pub use dns_lookup::DnsLookup;
         pub use downcase::Downcase;
         pub use encode_base16::EncodeBase16;
         pub use encode_base64::EncodeBase64;
@@ -411,6 +413,7 @@ pub fn all() -> Vec<Box<dyn Function>> {
         Box::new(DecodeZstd),
         Box::new(Decrypt),
         Box::new(Del),
+        Box::new(DnsLookup),
         Box::new(Downcase),
         Box::new(EncodeBase16),
         Box::new(EncodeBase64),

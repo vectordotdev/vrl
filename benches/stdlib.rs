@@ -27,6 +27,7 @@ criterion_group!(
               decode_percent,
               decode_punycode,
               decrypt,
+              dns_lookup,
               // TODO: Cannot pass a Path to bench_function
               //del,
               downcase,
@@ -2294,6 +2295,15 @@ bench_function! {
             with: "o",
         ],
         want: Ok("I like opples ond bononos")
+    }
+}
+
+bench_function! {
+    dns_lookup => vrl::stdlib::DnsLookup;
+
+    localhost {
+        args: func_args![value: value!("8.8.8.8")],
+        want: Ok(value!("dns.google")),
     }
 }
 
