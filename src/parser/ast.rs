@@ -1196,7 +1196,7 @@ impl fmt::Display for Abort {
             &self
                 .message
                 .as_ref()
-                .map_or_else(|| "abort".to_owned(), |m| format!("abort: {m}")),
+                .map_or_else(|| "abort".to_owned(), |m| format!("abort {m}")),
         )
     }
 }
