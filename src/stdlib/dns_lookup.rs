@@ -515,7 +515,7 @@ impl Function for DnsLookup {
             },
             Example {
                 title: "Custom server",
-                source: r#"dns_lookup!("localhost", options: {"servers": ["dns.google"]})"#,
+                source: r#"dns_lookup!("localhost", options: {"servers": ["dns.quad9.net"]})"#,
                 result: Ok(indoc!(
                     r#"{
                     "additional": [
