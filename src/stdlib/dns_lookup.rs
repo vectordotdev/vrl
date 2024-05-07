@@ -7,7 +7,7 @@ mod non_wasm {
     use std::time::Duration;
 
     use domain::base::iana::Class;
-    use domain::base::{Dname, RecordSection, Rtype};
+    use domain::base::{Name, RecordSection, Rtype};
     use domain::rdata::AllRecordData;
     use domain::resolv::stub::conf::{ResolvConf, ResolvOptions, ServerConf, Transport};
     use domain::resolv::stub::Answer;
@@ -17,7 +17,7 @@ mod non_wasm {
     use crate::value::Value;
 
     fn dns_lookup(value: Value, qtype: Value, qclass: Value, options: Value) -> Resolved {
-        let host: Dname<Vec<_>> = value
+        let host: Name<Vec<_>> = value
             .try_bytes_utf8_lossy()?
             .to_string()
             .parse()
@@ -105,7 +105,6 @@ mod non_wasm {
         read_int_opt!(attempts);
         read_bool_opt!(aa_only);
         read_bool_opt!(tcp, use_vc);
-        read_bool_opt!(ignore, ign_tc);
         read_bool_opt!(recurse);
         read_bool_opt!(rotate);
 
@@ -138,7 +137,7 @@ mod non_wasm {
                     .to_socket_addrs()
                     .map_err(|err| format!("can't resolve nameserver ({server}): {err}"))?
                 {
-                    conf.servers.push(ServerConf::new(addr, Transport::Udp));
+                    conf.servers.push(ServerConf::new(addr, Transport::UdpTcp));
                     conf.servers.push(ServerConf::new(addr, Transport::Tcp));
                 }
             }
