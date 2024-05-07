@@ -1002,6 +1002,9 @@ pub struct FunctionCall {
 impl fmt::Display for FunctionCall {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.ident.fmt(f)?;
+        if self.abort_on_error {
+            f.write_str("!")?;
+        }
         f.write_str("(")?;
 
         let mut iter = self.arguments.iter().peekable();
