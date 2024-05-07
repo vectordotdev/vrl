@@ -933,7 +933,7 @@ pub struct Query {
 
 impl fmt::Display for Query {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}{}", self.target, self.path)
+        write!(f, "{}.{}", self.target, self.path)
     }
 }
 
@@ -958,7 +958,7 @@ impl fmt::Display for QueryTarget {
         match self {
             Internal(v) => v.fmt(f),
             External(prefix) => match prefix {
-                PathPrefix::Event => write!(f, "."),
+                PathPrefix::Event => write!(f, ""),
                 PathPrefix::Metadata => write!(f, "&"),
             },
             FunctionCall(v) => v.fmt(f),
