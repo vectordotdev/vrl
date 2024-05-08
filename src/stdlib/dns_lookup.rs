@@ -163,7 +163,6 @@ mod non_wasm {
             header_obj.insert("rd".into(), header_section.rd().into());
             header_obj.insert("tc".into(), header_section.tc().into());
             header_obj.insert("qr".into(), header_section.qr().into());
-            header_obj.insert("id".into(), header_section.id().into());
             header_obj.insert("opcode".into(), header_section.opcode().to_int().into());
             header_obj.insert("rcode".into(), header_section.rcode().to_int().into());
             header_obj.insert("anCount".into(), counts.ancount().into());
@@ -250,7 +249,6 @@ mod non_wasm {
             (Field::from("anCount"), Kind::integer()),
             (Field::from("arCount"), Kind::integer()),
             (Field::from("cd"), Kind::boolean()),
-            (Field::from("id"), Kind::integer()),
             (Field::from("nsCount"), Kind::integer()),
             (Field::from("opcode"), Kind::integer()),
             (Field::from("qdCount"), Kind::integer()),
@@ -381,7 +379,6 @@ impl Function for DnsLookup {
                         "anCount": 1,
                         "arCount": 1,
                         "cd": false,
-                        "id": 0,
                         "nsCount": 0,
                         "opcode": 0,
                         "qdCount": 1,
@@ -436,7 +433,6 @@ impl Function for DnsLookup {
                         "anCount": 1,
                         "arCount": 1,
                         "cd": false,
-                        "id": 0,
                         "nsCount": 0,
                         "opcode": 0,
                         "qdCount": 1,
@@ -491,7 +487,6 @@ impl Function for DnsLookup {
                         "anCount": 1,
                         "arCount": 1,
                         "cd": false,
-                        "id": 0,
                         "nsCount": 0,
                         "opcode": 0,
                         "qdCount": 1,
@@ -546,7 +541,6 @@ impl Function for DnsLookup {
                         "anCount": 1,
                         "arCount": 1,
                         "cd": false,
-                        "id": 0,
                         "nsCount": 0,
                         "opcode": 0,
                         "qdCount": 1,
