@@ -25,21 +25,11 @@ pub trait Target: std::fmt::Debug + SecretTarget {
     ///   .foo."bar.baz"
     ///   ```
     ///
-    /// * coalesced path segments:
-    ///
-    ///   ```txt
-    ///   .foo.(bar | "bar.baz").qux
-    ///   ```
-    ///
     /// * path indices:
     ///
     ///   ```txt
     ///   .foo[2][-1]
     ///   ```
-    ///
-    /// When inserting into a coalesced path, the implementor is encouraged to
-    /// insert into the right-most segment if none exists, but can return an
-    /// error if needed.
     fn target_insert(&mut self, path: &OwnedTargetPath, value: Value) -> Result<(), String>;
 
     /// Get a value for a given path, or `None` if no value is found.
@@ -313,11 +303,6 @@ mod tests {
                 owned_value_path!("foo", 0, "bar"),
                 Ok(Some(value!(true))),
             ),
-            (
-                value!({foo: {"bar baz": {baz: 2}}}),
-                owned_value_path!("foo", vec!["qux", "bar baz"], "baz"),
-                Ok(Some(value!(2))),
-            ),
         ];
 
         for (value, path, expect) in cases {
@@ -459,13 +444,6 @@ mod tests {
             (
                 value!({foo: "bar"}),
                 owned_value_path!("foo"),
-                false,
-                Some(value!("bar")),
-                Some(value!({})),
-            ),
-            (
-                value!({foo: "bar"}),
-                owned_value_path!(vec!["foo bar", "foo"]),
                 false,
                 Some(value!("bar")),
                 Some(value!({})),
