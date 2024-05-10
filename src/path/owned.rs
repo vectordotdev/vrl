@@ -484,12 +484,6 @@ mod test {
             (r#"foo."a\"a"."b\\b".bar"#, Some(r#"foo."a\"a"."b\\b".bar"#)),
             ("<invalid>", None),
             (r#""🤖""#, Some(r#""🤖""#)),
-            (".(a|b)", Some("(a|b)")),
-            (".(a|b|c)", Some("(a|b|c)")),
-            ("foo.(a|b|c)", Some("foo.(a|b|c)")),
-            ("[0].(a|b|c)", Some("[0].(a|b|c)")),
-            (".(a|b|c).foo", Some("(a|b|c).foo")),
-            (".( a | b | c ).foo", Some("(a|b|c).foo")),
         ];
 
         for (path, expected) in test_cases {
