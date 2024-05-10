@@ -1,7 +1,35 @@
-use super::ValuePath;
 use std::borrow::Cow;
 use std::iter::Cloned;
 use std::slice::Iter;
+
+use super::{PathPrefix, TargetPath, ValuePath};
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct BorrowedValuePath<'a, 'b> {
+    pub segments: &'b [BorrowedSegment<'a>],
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct BorrowedTargetPath<'a, 'b> {
+    pub prefix: PathPrefix,
+    pub path: BorrowedValuePath<'a, 'b>,
+}
+
+impl<'a, 'b> BorrowedTargetPath<'a, 'b> {
+    pub fn event(path: BorrowedValuePath<'a, 'b>) -> Self {
+        Self {
+            prefix: PathPrefix::Event,
+            path,
+        }
+    }
+
+    pub fn metadata(path: BorrowedValuePath<'a, 'b>) -> Self {
+        Self {
+            prefix: PathPrefix::Metadata,
+            path,
+        }
+    }
+}
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum BorrowedSegment<'a> {
@@ -48,6 +76,14 @@ impl From<isize> for BorrowedSegment<'_> {
     }
 }
 
+impl<'a, 'b> ValuePath<'a> for BorrowedValuePath<'a, 'b> {
+    type Iter = Cloned<Iter<'b, BorrowedSegment<'a>>>;
+
+    fn segment_iter(&self) -> Self::Iter {
+        self.segments.iter().cloned()
+    }
+}
+
 impl<'a, 'b> ValuePath<'a> for &'b Vec<BorrowedSegment<'a>> {
     type Iter = Cloned<Iter<'b, BorrowedSegment<'a>>>;
 
@@ -56,19 +92,15 @@ impl<'a, 'b> ValuePath<'a> for &'b Vec<BorrowedSegment<'a>> {
     }
 }
 
-impl<'a, 'b> ValuePath<'a> for &'b [BorrowedSegment<'a>] {
-    type Iter = Cloned<Iter<'b, BorrowedSegment<'a>>>;
+impl<'a, 'b> TargetPath<'a> for BorrowedTargetPath<'a, 'b> {
+    type ValuePath = BorrowedValuePath<'a, 'b>;
 
-    fn segment_iter(&self) -> Self::Iter {
-        self.iter().cloned()
+    fn prefix(&self) -> PathPrefix {
+        self.prefix
     }
-}
 
-impl<'a, 'b, const A: usize> ValuePath<'a> for &'b [BorrowedSegment<'a>; A] {
-    type Iter = Cloned<Iter<'b, BorrowedSegment<'a>>>;
-
-    fn segment_iter(&self) -> Self::Iter {
-        self.iter().cloned()
+    fn value_path(&self) -> Self::ValuePath {
+        self.path
     }
 }
 
