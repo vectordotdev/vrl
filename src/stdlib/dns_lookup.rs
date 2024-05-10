@@ -7,7 +7,7 @@ mod non_wasm {
     use std::time::Duration;
 
     use domain::base::iana::Class;
-    use domain::base::{Dname, RecordSection, Rtype};
+    use domain::base::{Name, RecordSection, Rtype};
     use domain::rdata::AllRecordData;
     use domain::resolv::stub::conf::{ResolvConf, ResolvOptions, ServerConf, Transport};
     use domain::resolv::stub::Answer;
@@ -17,7 +17,7 @@ mod non_wasm {
     use crate::value::Value;
 
     fn dns_lookup(value: Value, qtype: Value, qclass: Value, options: Value) -> Resolved {
-        let host: Dname<Vec<_>> = value
+        let host: Name<Vec<_>> = value
             .try_bytes_utf8_lossy()?
             .to_string()
             .parse()
@@ -105,7 +105,6 @@ mod non_wasm {
         read_int_opt!(attempts);
         read_bool_opt!(aa_only);
         read_bool_opt!(tcp, use_vc);
-        read_bool_opt!(ignore, ign_tc);
         read_bool_opt!(recurse);
         read_bool_opt!(rotate);
 
@@ -138,7 +137,7 @@ mod non_wasm {
                     .to_socket_addrs()
                     .map_err(|err| format!("can't resolve nameserver ({server}): {err}"))?
                 {
-                    conf.servers.push(ServerConf::new(addr, Transport::Udp));
+                    conf.servers.push(ServerConf::new(addr, Transport::UdpTcp));
                     conf.servers.push(ServerConf::new(addr, Transport::Tcp));
                 }
             }
@@ -164,7 +163,6 @@ mod non_wasm {
             header_obj.insert("rd".into(), header_section.rd().into());
             header_obj.insert("tc".into(), header_section.tc().into());
             header_obj.insert("qr".into(), header_section.qr().into());
-            header_obj.insert("id".into(), header_section.id().into());
             header_obj.insert("opcode".into(), header_section.opcode().to_int().into());
             header_obj.insert("rcode".into(), header_section.rcode().to_int().into());
             header_obj.insert("anCount".into(), counts.ancount().into());
@@ -251,7 +249,6 @@ mod non_wasm {
             (Field::from("anCount"), Kind::integer()),
             (Field::from("arCount"), Kind::integer()),
             (Field::from("cd"), Kind::boolean()),
-            (Field::from("id"), Kind::integer()),
             (Field::from("nsCount"), Kind::integer()),
             (Field::from("opcode"), Kind::integer()),
             (Field::from("qdCount"), Kind::integer()),
@@ -382,7 +379,6 @@ impl Function for DnsLookup {
                         "anCount": 1,
                         "arCount": 1,
                         "cd": false,
-                        "id": 0,
                         "nsCount": 0,
                         "opcode": 0,
                         "qdCount": 1,
@@ -437,7 +433,6 @@ impl Function for DnsLookup {
                         "anCount": 1,
                         "arCount": 1,
                         "cd": false,
-                        "id": 0,
                         "nsCount": 0,
                         "opcode": 0,
                         "qdCount": 1,
@@ -492,7 +487,6 @@ impl Function for DnsLookup {
                         "anCount": 1,
                         "arCount": 1,
                         "cd": false,
-                        "id": 0,
                         "nsCount": 0,
                         "opcode": 0,
                         "qdCount": 1,
@@ -516,7 +510,7 @@ impl Function for DnsLookup {
             },
             Example {
                 title: "Custom server",
-                source: r#"dns_lookup!("localhost", options: {"servers": ["dns.google"]})"#,
+                source: r#"dns_lookup!("localhost", options: {"servers": ["dns.quad9.net"]})"#,
                 result: Ok(indoc!(
                     r#"{
                     "additional": [
@@ -547,7 +541,6 @@ impl Function for DnsLookup {
                         "anCount": 1,
                         "arCount": 1,
                         "cd": false,
-                        "id": 0,
                         "nsCount": 0,
                         "opcode": 0,
                         "qdCount": 1,
