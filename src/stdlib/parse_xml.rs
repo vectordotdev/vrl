@@ -353,7 +353,7 @@ fn process_node(node: Node, config: &ParseXmlConfig) -> Value {
 
                             map.insert(
                                 node.tag_name().name().to_string().into(),
-                                Value::Object(recurse(node)),
+                                process_node(node, config),
                             );
 
                             Value::Object(map)
@@ -423,6 +423,18 @@ mod tests {
         simple_text {
             args: func_args![ value: "<a>test</a>" ],
             want: Ok(value!({ "a": "test" })),
+            tdef: type_def(),
+        }
+
+        if_no_sibling {
+            args: func_args![ value: "<root><a>test</a></root>"],
+            want: Ok(value!({ "root": { "a": "test" } })),
+            tdef: type_def(),
+        }
+
+        if_no_sibling2 {
+            args: func_args![ value: "<root><a><a1>test</a1></a><b>test2</b></root>"],
+            want: Ok(value!({ "root": { "a": { "a1": "test" }, "b" : "test2" } })),
             tdef: type_def(),
         }
 
