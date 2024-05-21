@@ -114,49 +114,6 @@ impl Kind {
                         CompactOptions::Never
                     }
                 }
-                OwnedSegment::Coalesce(fields) => {
-                    let original = self.clone();
-
-                    #[allow(clippy::option_if_let_else)] // false positive due to lifetime issues
-                    if let Some(object) = self.as_object_mut() {
-                        let mut output = Self::never();
-
-                        let mut compact_options = None;
-
-                        for field in fields {
-                            let field_kind =
-                                original.at_path([OwnedSegment::Field(field.clone())].as_ref());
-
-                            if field_kind.contains_any_defined() {
-                                let mut child_kind = original.clone();
-                                let mut child_segments = segments.to_vec();
-                                child_segments[0] = OwnedSegment::Field(field.clone());
-
-                                let child_compact_options = child_kind
-                                    .remove_inner(&child_segments, compact)
-                                    .compact(object, field.to_string(), compact);
-
-                                compact_options = Some(compact_options.map_or(
-                                    child_compact_options,
-                                    |compact_options: CompactOptions| {
-                                        compact_options.or(child_compact_options)
-                                    },
-                                ));
-                                output = output.union(child_kind);
-
-                                if !field_kind.contains_undefined() {
-                                    // No other field will be visited, so return early
-                                    break;
-                                }
-                            }
-                        }
-                        *self = output;
-                        compact_options.unwrap_or(CompactOptions::Never)
-                    } else {
-                        // guaranteed to not delete anything
-                        CompactOptions::Never
-                    }
-                }
             }
         } else {
             CompactOptions::new(self.contains_any_defined(), self.contains_undefined())
@@ -223,22 +180,6 @@ impl CompactOptions {
         }
     }
 
-    #[allow(clippy::trivially_copy_pass_by_ref)]
-    fn should_not_compact(&self) -> bool {
-        match self {
-            Self::Always => false,
-            Self::Maybe | Self::Never => true,
-        }
-    }
-
-    /// Combines two sets of options. Each setting is "or"ed together.
-    fn or(self, other: Self) -> Self {
-        Self::new(
-            self.should_compact() || other.should_compact(),
-            self.should_not_compact() || other.should_not_compact(),
-        )
-    }
-
     /// If the value is true, the `should_compact` option is set to false.
     fn disable_should_compact(self, value: bool) -> Self {
         if value {
@@ -264,7 +205,6 @@ impl From<EmptyState> for CompactOptions {
 mod test {
     use super::*;
     use crate::owned_value_path;
-    use crate::path::parse_value_path;
     use std::collections::BTreeMap;
 
     #[test]
@@ -817,83 +757,6 @@ mod test {
                     compact: false,
                     want: Kind::array(Collection::empty().with_unknown(Kind::float())),
                     return_value: Kind::null(),
-                },
-            ),
-            (
-                "coalesce 1",
-                TestCase {
-                    kind: Kind::object(Collection::from(BTreeMap::from([(
-                        "a".into(),
-                        Kind::integer(),
-                    )]))),
-                    path: parse_value_path("(a|b)").unwrap(),
-                    compact: false,
-                    want: Kind::object(Collection::empty()),
-                    return_value: Kind::integer(),
-                },
-            ),
-            (
-                "coalesce 2",
-                TestCase {
-                    kind: Kind::object(Collection::from(BTreeMap::from([(
-                        "b".into(),
-                        Kind::integer(),
-                    )]))),
-                    path: parse_value_path("(a|b)").unwrap(),
-                    compact: false,
-                    want: Kind::object(Collection::empty()),
-                    return_value: Kind::integer(),
-                },
-            ),
-            (
-                "coalesce 3",
-                TestCase {
-                    kind: Kind::object(Collection::from(BTreeMap::from([
-                        ("a".into(), Kind::integer().or_undefined()),
-                        ("b".into(), Kind::float()),
-                    ]))),
-                    path: parse_value_path("(a|b)").unwrap(),
-                    compact: false,
-                    want: Kind::object(Collection::from(BTreeMap::from([
-                        ("a".into(), Kind::integer().or_undefined()),
-                        ("b".into(), Kind::float().or_undefined()),
-                    ]))),
-                    return_value: Kind::integer().or_float(),
-                },
-            ),
-            (
-                "coalesce 4",
-                TestCase {
-                    kind: Kind::object(Collection::from(BTreeMap::from([
-                        ("a".into(), Kind::integer().or_undefined()),
-                        ("b".into(), Kind::float().or_undefined()),
-                    ]))),
-                    path: parse_value_path("(a|b)").unwrap(),
-                    compact: false,
-                    want: Kind::object(Collection::from(BTreeMap::from([
-                        ("a".into(), Kind::integer().or_undefined()),
-                        ("b".into(), Kind::float().or_undefined()),
-                    ]))),
-                    return_value: Kind::integer().or_float().or_null(),
-                },
-            ),
-            (
-                "nested coalesce 1",
-                TestCase {
-                    kind: Kind::object(Collection::from(BTreeMap::from([(
-                        "a".into(),
-                        Kind::object(Collection::from(BTreeMap::from([(
-                            "b".into(),
-                            Kind::integer(),
-                        )]))),
-                    )]))),
-                    path: parse_value_path("(a|a2).b").unwrap(),
-                    compact: false,
-                    want: Kind::object(Collection::from(BTreeMap::from([(
-                        "a".into(),
-                        Kind::object(Collection::empty()),
-                    )]))),
-                    return_value: Kind::integer(),
                 },
             ),
         ] {

@@ -58,7 +58,7 @@ mod at_path_tests {
 
     #[test]
     fn test_complex() {
-        let path = parse_value_path("[2].foo.(bar | baz )[1]").unwrap();
+        let path = parse_value_path("[2].foo.baz[1]").unwrap();
         let value = Value::Object([("bar".into(), vec![12].into())].into()); //value!({ "bar": [12] });
 
         let baz_value = Value::Array(vec![Value::Null, value.clone()]);
