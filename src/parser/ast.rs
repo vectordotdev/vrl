@@ -358,7 +358,7 @@ impl fmt::Display for Literal {
             String(v) => write!(f, r#""{v}""#),
             RawString(v) => write!(f, "s'{v}'"),
             Integer(v) => v.fmt(f),
-            Float(v) => v.fmt(f),
+            Float(v) => write!(f, "{:?}", v.as_ref()),
             Boolean(v) => v.fmt(f),
             Regex(v) => write!(f, "r'{v}'"),
             Timestamp(v) => write!(f, "t'{v}'"),
