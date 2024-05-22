@@ -2,14 +2,14 @@
 # result:
 #
 # error[E610]: function compilation error: error[E403] invalid argument
-# ┌─ :2:15
+# ┌─ :2:1
 # │
-# 2 │ etld_result = parse_etld!(.host, plus_parts: 1, psl: "lib/tests/tests/functions/definitelydoesnot.exist")
-# │               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-# │               │
-# │               invalid argument "psl"
-# │               error: Unable to read psl file
-# │               received: "\"lib/tests/tests/functions/definitelydoesnot.exist\""
+# 2 │ parse_etld!(.host, plus_parts: 1, psl: "lib/tests/tests/functions/definitelydoesnot.exist")
+# │ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# │ │
+# │ invalid argument "psl"
+# │ error: Unable to read psl file
+# │ received: "\"lib/tests/tests/functions/definitelydoesnot.exist\""
 # │
 # = learn more about error code 403 at https://errors.vrl.dev/403
 # = see language documentation at https://vrl.dev
