@@ -11,6 +11,7 @@ use nom::{
     IResult,
 };
 use std::collections::{BTreeMap, HashMap};
+use nom::character::complete::multispace1;
 
 fn build_map() -> HashMap<&'static str, (usize, CustomField)> {
     [
@@ -316,7 +317,7 @@ fn take_till1_input<'a, F: Fn(&'a str) -> bool, Error: ParseError<&'a str>>(
 
 fn parse_key(input: &str) -> IResult<&str, &str, VerboseError<&str>> {
     delimited(
-        alt((char(' '), char('|'))),
+        alt((multispace1, tag("|"))),
         take_till1(|c| c == ' ' || c == '=' || c == '\\'),
         char('='),
     )(input)
@@ -548,7 +549,7 @@ mod test {
                 ("name".to_string(), "worm successfully stopped".into()),
                 ("severity".to_string(), "10".into()),
             ]),
-            parse("CEF:1|Security|threatmanager|1.0|100|worm successfully stopped|10|dst=2.1.2.2 msg=Detected a threat. No action needed   spt=1232")
+            parse("CEF:1|Security|threatmanager|1.0|100|worm successfully stopped|10| dst=2.1.2.2 msg=Detected a threat. No action needed   spt=1232")
                 .map(Iterator::collect)
         );
     }
