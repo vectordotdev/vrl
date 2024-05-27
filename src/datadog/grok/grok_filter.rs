@@ -2,6 +2,7 @@ use std::{convert::TryFrom, fmt, string::ToString};
 
 use crate::value::Value;
 use ordered_float::NotNan;
+use percent_encoding::percent_decode;
 use crate::parsing::query_string::parse_query_string;
 use crate::parsing::ruby_hash::parse_ruby_hash;
 
@@ -30,6 +31,7 @@ pub enum GrokFilter {
     Rubyhash,
     Querystring,
     Boolean,
+    Decodeuricomponent,
     Array(
         Option<(String, String)>,
         Option<String>,
@@ -54,6 +56,7 @@ impl fmt::Display for GrokFilter {
             GrokFilter::Rubyhash => f.pad("RubyHash"),
             GrokFilter::Querystring => f.pad("QueryString"),
             GrokFilter::Boolean => f.pad("Boolean"),
+            GrokFilter::Decodeuricomponent => f.pad("DecodeUriComponent"),
             GrokFilter::Array(..) => f.pad("Array(..)"),
             GrokFilter::KeyValue(..) => f.pad("KeyValue(..)"),
         }
@@ -233,6 +236,13 @@ pub fn apply_filter(value: &Value, filter: &GrokFilter) -> Result<Value, GrokRun
                 let is_true = "true".eq_ignore_ascii_case(String::from_utf8_lossy(v).as_ref());
                 Ok(is_true.into())
             }
+            _ => Err(GrokRuntimeError::FailedToApplyFilter(
+                filter.to_string(),
+                value.to_string(),
+            )),
+        },
+        GrokFilter::Decodeuricomponent => match value {
+            Value::Bytes(bytes) => Ok(percent_decode(bytes).decode_utf8_lossy().to_string().into()),
             _ => Err(GrokRuntimeError::FailedToApplyFilter(
                 filter.to_string(),
                 value.to_string(),
