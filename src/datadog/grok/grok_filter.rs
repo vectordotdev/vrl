@@ -25,6 +25,7 @@ pub enum GrokFilter {
     Lowercase,
     Uppercase,
     Json,
+    Rubyhash,
     Array(
         Option<(String, String)>,
         Option<String>,
@@ -46,6 +47,7 @@ impl fmt::Display for GrokFilter {
             GrokFilter::Lowercase => f.pad("Lowercase"),
             GrokFilter::Uppercase => f.pad("Uppercase"),
             GrokFilter::Json => f.pad("Json"),
+            GrokFilter::Rubyhash => f.pad("RubyHash"),
             GrokFilter::Array(..) => f.pad("Array(..)"),
             GrokFilter::KeyValue(..) => f.pad("KeyValue(..)"),
         }
@@ -77,6 +79,7 @@ impl TryFrom<&Function> for GrokFilter {
             "lowercase" => Ok(GrokFilter::Lowercase),
             "uppercase" => Ok(GrokFilter::Uppercase),
             "json" => Ok(GrokFilter::Json),
+            "rubyhash" => Ok(GrokFilter::Rubyhash),
             "nullIf" => f
                 .args
                 .as_ref()
@@ -190,6 +193,19 @@ pub fn apply_filter(value: &Value, filter: &GrokFilter) -> Result<Value, GrokRun
                     GrokRuntimeError::FailedToApplyFilter(filter.to_string(), value.to_string())
                 })
                 .map(|v| v.into()),
+            _ => Err(GrokRuntimeError::FailedToApplyFilter(
+                filter.to_string(),
+                value.to_string(),
+            )),
+        },
+        GrokFilter::Rubyhash => match value {
+            Value::Bytes(bytes) => crate::parsing::ruby_hash::parse(String::from_utf8_lossy(&bytes).as_ref())
+                .map_err(|_e| {
+                    GrokRuntimeError::FailedToApplyFilter(
+                        filter.to_string(),
+                        value.to_string(),
+                    )
+                }),
             _ => Err(GrokRuntimeError::FailedToApplyFilter(
                 filter.to_string(),
                 value.to_string(),
