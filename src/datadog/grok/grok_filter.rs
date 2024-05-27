@@ -29,6 +29,7 @@ pub enum GrokFilter {
     Json,
     Rubyhash,
     Querystring,
+    Boolean,
     Array(
         Option<(String, String)>,
         Option<String>,
@@ -52,6 +53,7 @@ impl fmt::Display for GrokFilter {
             GrokFilter::Json => f.pad("Json"),
             GrokFilter::Rubyhash => f.pad("RubyHash"),
             GrokFilter::Querystring => f.pad("QueryString"),
+            GrokFilter::Boolean => f.pad("Boolean"),
             GrokFilter::Array(..) => f.pad("Array(..)"),
             GrokFilter::KeyValue(..) => f.pad("KeyValue(..)"),
         }
@@ -220,6 +222,17 @@ pub fn apply_filter(value: &Value, filter: &GrokFilter) -> Result<Value, GrokRun
             Value::Bytes(bytes) => parse_query_string(bytes).map_err(|_e| {
                 GrokRuntimeError::FailedToApplyFilter(filter.to_string(), value.to_string())
             }),
+            _ => Err(GrokRuntimeError::FailedToApplyFilter(
+                filter.to_string(),
+                value.to_string(),
+            )),
+        },
+        GrokFilter::Boolean => match value {
+            Value::Bytes(v) => {
+                // this is exact DD grok parser behavior
+                let is_true = "true".eq_ignore_ascii_case(String::from_utf8_lossy(v).as_ref());
+                Ok(is_true.into())
+            }
             _ => Err(GrokRuntimeError::FailedToApplyFilter(
                 filter.to_string(),
                 value.to_string(),
