@@ -1,3 +1,4 @@
+use crate::compiler::prelude::*;
 use nom::{
     branch::alt,
     bytes::complete::{escaped, tag, take_while, take_while1},
@@ -10,7 +11,6 @@ use nom::{
     AsChar, IResult, InputTakeAtPosition,
 };
 use std::num::ParseIntError;
-use crate::compiler::prelude::*;
 
 pub(crate) fn parse_ruby_hash(input: &str) -> ExpressionResult<Value> {
     let result = parse_hash(input)
@@ -33,7 +33,7 @@ pub(crate) fn parse_ruby_hash(input: &str) -> ExpressionResult<Value> {
 
 trait HashParseError<T>: ParseError<T> + ContextError<T> + FromExternalError<T, ParseIntError> {}
 impl<T, E: ParseError<T> + ContextError<T> + FromExternalError<T, ParseIntError>> HashParseError<T>
-for E
+    for E
 {
 }
 
@@ -99,9 +99,9 @@ fn parse_bytes<'a, E: HashParseError<&'a str>>(input: &'a str) -> IResult<&'a st
 }
 
 fn parse_symbol_key<T, E: ParseError<T>>(input: T) -> IResult<T, T, E>
-    where
-        T: InputTakeAtPosition,
-        <T as InputTakeAtPosition>::Item: AsChar,
+where
+    T: InputTakeAtPosition,
+    <T as InputTakeAtPosition>::Item: AsChar,
 {
     take_while1(move |item: <T as InputTakeAtPosition>::Item| {
         let c = item.as_char();
@@ -251,9 +251,10 @@ mod tests {
 
     #[test]
     fn test_parse_arrow_object_key_colon() {
-        let result =
-            parse_ruby_hash(r#"{ :colon => "hello world", :"double" => "quote", :'simple' => "quote" }"#)
-                .unwrap();
+        let result = parse_ruby_hash(
+            r#"{ :colon => "hello world", :"double" => "quote", :'simple' => "quote" }"#,
+        )
+        .unwrap();
         assert!(result.is_object());
         let result = result.as_object().unwrap();
         assert!(result.get(":colon").unwrap().is_bytes());
@@ -315,7 +316,8 @@ mod tests {
 
     #[test]
     fn test_parse_weird_format() {
-        let result = parse_ruby_hash(r#"{:hello=>"world",'number'=>42,"weird"=>'format\'here'}"#).unwrap();
+        let result =
+            parse_ruby_hash(r#"{:hello=>"world",'number'=>42,"weird"=>'format\'here'}"#).unwrap();
         assert!(result.is_object());
         let result = result.as_object().unwrap();
         assert!(result.get(":hello").unwrap().is_bytes());

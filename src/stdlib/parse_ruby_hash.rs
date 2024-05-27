@@ -74,9 +74,6 @@ fn inner_kinds() -> Kind {
         | Kind::object(Collection::any())
 }
 
-
-
-
 #[cfg(test)]
 mod tests {
     use super::*;

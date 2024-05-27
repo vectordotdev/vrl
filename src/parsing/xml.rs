@@ -1,8 +1,8 @@
 use crate::compiler::prelude::*;
-use roxmltree::{Document, Node, NodeType};
-use rust_decimal::prelude::Zero;
 use once_cell::sync::Lazy;
 use regex::{Regex, RegexBuilder};
+use roxmltree::{Document, Node, NodeType};
+use rust_decimal::prelude::Zero;
 use std::{
     borrow::Cow,
     collections::{btree_map::Entry, BTreeMap},

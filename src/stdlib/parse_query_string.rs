@@ -1,7 +1,6 @@
 use crate::compiler::prelude::*;
 use crate::parsing::query_string::parse_query_string;
 
-
 #[derive(Clone, Copy, Debug)]
 pub struct ParseQueryString;
 

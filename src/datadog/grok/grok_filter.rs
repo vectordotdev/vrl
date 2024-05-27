@@ -1,11 +1,11 @@
 use std::{convert::TryFrom, fmt, string::ToString};
 
-use crate::value::Value;
-use ordered_float::NotNan;
-use percent_encoding::percent_decode;
 use crate::parsing::query_string::parse_query_string;
 use crate::parsing::ruby_hash::parse_ruby_hash;
 use crate::parsing::xml::{parse_xml, ParseOptions};
+use crate::value::Value;
+use ordered_float::NotNan;
+use percent_encoding::percent_decode;
 
 use super::{
     ast::{Function, FunctionArgument},
@@ -216,10 +216,7 @@ pub fn apply_filter(value: &Value, filter: &GrokFilter) -> Result<Value, GrokRun
         GrokFilter::Rubyhash => match value {
             Value::Bytes(bytes) => parse_ruby_hash(String::from_utf8_lossy(&bytes).as_ref())
                 .map_err(|_e| {
-                    GrokRuntimeError::FailedToApplyFilter(
-                        filter.to_string(),
-                        value.to_string(),
-                    )
+                    GrokRuntimeError::FailedToApplyFilter(filter.to_string(), value.to_string())
                 }),
             _ => Err(GrokRuntimeError::FailedToApplyFilter(
                 filter.to_string(),
@@ -254,9 +251,11 @@ pub fn apply_filter(value: &Value, filter: &GrokFilter) -> Result<Value, GrokRun
             )),
         },
         GrokFilter::Xml => match value {
-            Value::Bytes(_bytes) => parse_xml(value.to_owned(), ParseOptions::default()).map_err(|_e| {
-                GrokRuntimeError::FailedToApplyFilter(filter.to_string(), value.to_string())
-            }),
+            Value::Bytes(_bytes) => {
+                parse_xml(value.to_owned(), ParseOptions::default()).map_err(|_e| {
+                    GrokRuntimeError::FailedToApplyFilter(filter.to_string(), value.to_string())
+                })
+            }
             _ => Err(GrokRuntimeError::FailedToApplyFilter(
                 filter.to_string(),
                 value.to_string(),

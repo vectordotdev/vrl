@@ -27,4 +27,3 @@ pub(crate) fn parse_query_string(bytes: &Bytes) -> Resolved {
     }
     Ok(result.into())
 }
-
