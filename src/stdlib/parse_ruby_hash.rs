@@ -2,7 +2,7 @@ use crate::compiler::prelude::*;
 
 fn parse_ruby_hash(value: Value) -> Resolved {
     let input = value.try_bytes_utf8_lossy()?;
-    crate::parsing::ruby_hash::parse(&input)
+    crate::parsing::ruby_hash::parse_ruby_hash(&input)
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -72,4 +72,28 @@ fn inner_kinds() -> Kind {
         | Kind::boolean()
         | Kind::array(Collection::any())
         | Kind::object(Collection::any())
+}
+
+
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    test_function![
+        parse_ruby_hash => ParseRubyHash;
+
+        complete {
+            args: func_args![value: value!(r#"{ "test" => "value", "testNum" => 0.2, "testObj" => { "testBool" => true } }"#)],
+            want: Ok(value!({
+                test: "value",
+                testNum: 0.2,
+                testObj: {
+                    testBool: true
+                }
+            })),
+            tdef: TypeDef::object(Collection::from_unknown(inner_kinds())).fallible(),
+        }
+    ];
 }

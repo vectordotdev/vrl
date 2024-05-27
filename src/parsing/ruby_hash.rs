@@ -12,7 +12,7 @@ use nom::{
 use std::num::ParseIntError;
 use crate::compiler::prelude::*;
 
-pub(crate) fn parse(input: &str) -> ExpressionResult<Value> {
+pub(crate) fn parse_ruby_hash(input: &str) -> ExpressionResult<Value> {
     let result = parse_hash(input)
         .map_err(|err| match err {
             nom::Err::Error(err) | nom::Err::Failure(err) => {
@@ -199,26 +199,24 @@ fn parse_value<'a, E: HashParseError<&'a str>>(input: &'a str) -> IResult<&'a st
     )(input)
 }
 
-
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn test_parse_empty_object() {
-        let result = parse("{}").unwrap();
+        let result = parse_ruby_hash("{}").unwrap();
         assert!(result.is_object());
     }
 
     #[test]
     fn test_parse_arrow_empty_array() {
-        parse("{ :array => [] }").unwrap();
+        parse_ruby_hash("{ :array => [] }").unwrap();
     }
 
     #[test]
     fn test_parse_symbol_value() {
-        let result = parse(r#"{ "key" => :foo }"#).unwrap();
+        let result = parse_ruby_hash(r#"{ "key" => :foo }"#).unwrap();
         assert!(result.is_object());
         let result = result.as_object().unwrap();
         let value = result.get("key").unwrap();
@@ -228,7 +226,7 @@ mod tests {
 
     #[test]
     fn test_parse_arrow_object() {
-        let result = parse(
+        let result = parse_ruby_hash(
             r#"{ "hello" => "world", "number" => 42, "float" => 4.2, "array" => [1, 2.3], "object" => { "nope" => nil } }"#,
         )
             .unwrap();
@@ -245,7 +243,7 @@ mod tests {
 
     #[test]
     fn test_parse_arrow_object_key_number() {
-        let result = parse(r#"{ 42 => "hello world" }"#).unwrap();
+        let result = parse_ruby_hash(r#"{ 42 => "hello world" }"#).unwrap();
         assert!(result.is_object());
         let result = result.as_object().unwrap();
         assert!(result.get("42").unwrap().is_bytes());
@@ -254,7 +252,7 @@ mod tests {
     #[test]
     fn test_parse_arrow_object_key_colon() {
         let result =
-            parse(r#"{ :colon => "hello world", :"double" => "quote", :'simple' => "quote" }"#)
+            parse_ruby_hash(r#"{ :colon => "hello world", :"double" => "quote", :'simple' => "quote" }"#)
                 .unwrap();
         assert!(result.is_object());
         let result = result.as_object().unwrap();
@@ -265,7 +263,7 @@ mod tests {
 
     #[test]
     fn test_parse_arrow_object_key_underscore() {
-        let result = parse(r#"{ :with_underscore => "hello world" }"#).unwrap();
+        let result = parse_ruby_hash(r#"{ :with_underscore => "hello world" }"#).unwrap();
         assert!(result.is_object());
         let result = result.as_object().unwrap();
         assert!(result.get(":with_underscore").unwrap().is_bytes());
@@ -273,7 +271,7 @@ mod tests {
 
     #[test]
     fn test_parse_colon_object_double_quote() {
-        let result = parse(r#"{ "hello": "world" }"#).unwrap();
+        let result = parse_ruby_hash(r#"{ "hello": "world" }"#).unwrap();
         assert!(result.is_object());
         let result = result.as_object().unwrap();
         let value = result.get("hello").unwrap();
@@ -282,7 +280,7 @@ mod tests {
 
     #[test]
     fn test_parse_colon_object_single_quote() {
-        let result = parse("{ 'hello': 'world' }").unwrap();
+        let result = parse_ruby_hash("{ 'hello': 'world' }").unwrap();
         assert!(result.is_object());
         let result = result.as_object().unwrap();
         let value = result.get("hello").unwrap();
@@ -291,7 +289,7 @@ mod tests {
 
     #[test]
     fn test_parse_colon_object_no_quote() {
-        let result = parse(r#"{ hello: "world" }"#).unwrap();
+        let result = parse_ruby_hash(r#"{ hello: "world" }"#).unwrap();
         assert!(result.is_object());
         let result = result.as_object().unwrap();
         let value = result.get("hello").unwrap();
@@ -300,7 +298,7 @@ mod tests {
 
     #[test]
     fn test_parse_dash() {
-        let result = parse(r#"{ "with-dash" => "foo" }"#).unwrap();
+        let result = parse_ruby_hash(r#"{ "with-dash" => "foo" }"#).unwrap();
         assert!(result.is_object());
         let result = result.as_object().unwrap();
         assert!(result.get("with-dash").unwrap().is_bytes());
@@ -308,7 +306,7 @@ mod tests {
 
     #[test]
     fn test_parse_quote() {
-        let result = parse(r#"{ "with'quote" => "and\"double\"quote" }"#).unwrap();
+        let result = parse_ruby_hash(r#"{ "with'quote" => "and\"double\"quote" }"#).unwrap();
         assert!(result.is_object());
         let result = result.as_object().unwrap();
         let value = result.get("with'quote").unwrap();
@@ -317,7 +315,7 @@ mod tests {
 
     #[test]
     fn test_parse_weird_format() {
-        let result = parse(r#"{:hello=>"world",'number'=>42,"weird"=>'format\'here'}"#).unwrap();
+        let result = parse_ruby_hash(r#"{:hello=>"world",'number'=>42,"weird"=>'format\'here'}"#).unwrap();
         assert!(result.is_object());
         let result = result.as_object().unwrap();
         assert!(result.get(":hello").unwrap().is_bytes());
@@ -326,22 +324,6 @@ mod tests {
 
     #[test]
     fn test_non_hash() {
-        assert!(parse(r#""hello world""#).is_err());
+        assert!(parse_ruby_hash(r#""hello world""#).is_err());
     }
-
-    test_function![
-        parse_ruby_hash => ParseRubyHash;
-
-        complete {
-            args: func_args![value: value!(r#"{ "test" => "value", "testNum" => 0.2, "testObj" => { "testBool" => true } }"#)],
-            want: Ok(value!({
-                test: "value",
-                testNum: 0.2,
-                testObj: {
-                    testBool: true
-                }
-            })),
-            tdef: TypeDef::object(Collection::from_unknown(inner_kinds())).fallible(),
-        }
-    ];
 }

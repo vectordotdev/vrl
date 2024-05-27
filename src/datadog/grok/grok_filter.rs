@@ -2,6 +2,8 @@ use std::{convert::TryFrom, fmt, string::ToString};
 
 use crate::value::Value;
 use ordered_float::NotNan;
+use crate::parsing::query_string::parse_query_string;
+use crate::parsing::ruby_hash::parse_ruby_hash;
 
 use super::{
     ast::{Function, FunctionArgument},
@@ -26,6 +28,7 @@ pub enum GrokFilter {
     Uppercase,
     Json,
     Rubyhash,
+    Querystring,
     Array(
         Option<(String, String)>,
         Option<String>,
@@ -48,6 +51,7 @@ impl fmt::Display for GrokFilter {
             GrokFilter::Uppercase => f.pad("Uppercase"),
             GrokFilter::Json => f.pad("Json"),
             GrokFilter::Rubyhash => f.pad("RubyHash"),
+            GrokFilter::Querystring => f.pad("QueryString"),
             GrokFilter::Array(..) => f.pad("Array(..)"),
             GrokFilter::KeyValue(..) => f.pad("KeyValue(..)"),
         }
@@ -80,6 +84,7 @@ impl TryFrom<&Function> for GrokFilter {
             "uppercase" => Ok(GrokFilter::Uppercase),
             "json" => Ok(GrokFilter::Json),
             "rubyhash" => Ok(GrokFilter::Rubyhash),
+            "querystring" => Ok(GrokFilter::Querystring),
             "nullIf" => f
                 .args
                 .as_ref()
@@ -199,13 +204,22 @@ pub fn apply_filter(value: &Value, filter: &GrokFilter) -> Result<Value, GrokRun
             )),
         },
         GrokFilter::Rubyhash => match value {
-            Value::Bytes(bytes) => crate::parsing::ruby_hash::parse(String::from_utf8_lossy(&bytes).as_ref())
+            Value::Bytes(bytes) => parse_ruby_hash(String::from_utf8_lossy(&bytes).as_ref())
                 .map_err(|_e| {
                     GrokRuntimeError::FailedToApplyFilter(
                         filter.to_string(),
                         value.to_string(),
                     )
                 }),
+            _ => Err(GrokRuntimeError::FailedToApplyFilter(
+                filter.to_string(),
+                value.to_string(),
+            )),
+        },
+        GrokFilter::Querystring => match value {
+            Value::Bytes(bytes) => parse_query_string(bytes).map_err(|_e| {
+                GrokRuntimeError::FailedToApplyFilter(filter.to_string(), value.to_string())
+            }),
             _ => Err(GrokRuntimeError::FailedToApplyFilter(
                 filter.to_string(),
                 value.to_string(),
