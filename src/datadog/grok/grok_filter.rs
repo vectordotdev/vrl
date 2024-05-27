@@ -5,6 +5,7 @@ use ordered_float::NotNan;
 use percent_encoding::percent_decode;
 use crate::parsing::query_string::parse_query_string;
 use crate::parsing::ruby_hash::parse_ruby_hash;
+use crate::parsing::xml::{parse_xml, ParseOptions};
 
 use super::{
     ast::{Function, FunctionArgument},
@@ -32,6 +33,7 @@ pub enum GrokFilter {
     Querystring,
     Boolean,
     Decodeuricomponent,
+    Xml,
     Array(
         Option<(String, String)>,
         Option<String>,
@@ -57,6 +59,7 @@ impl fmt::Display for GrokFilter {
             GrokFilter::Querystring => f.pad("QueryString"),
             GrokFilter::Boolean => f.pad("Boolean"),
             GrokFilter::Decodeuricomponent => f.pad("DecodeUriComponent"),
+            GrokFilter::Xml => f.pad("Xml"),
             GrokFilter::Array(..) => f.pad("Array(..)"),
             GrokFilter::KeyValue(..) => f.pad("KeyValue(..)"),
         }
@@ -90,6 +93,8 @@ impl TryFrom<&Function> for GrokFilter {
             "json" => Ok(GrokFilter::Json),
             "rubyhash" => Ok(GrokFilter::Rubyhash),
             "querystring" => Ok(GrokFilter::Querystring),
+            "decodeuricomponent" => Ok(GrokFilter::Decodeuricomponent),
+            "xml" => Ok(GrokFilter::Xml),
             "nullIf" => f
                 .args
                 .as_ref()
@@ -243,6 +248,15 @@ pub fn apply_filter(value: &Value, filter: &GrokFilter) -> Result<Value, GrokRun
         },
         GrokFilter::Decodeuricomponent => match value {
             Value::Bytes(bytes) => Ok(percent_decode(bytes).decode_utf8_lossy().to_string().into()),
+            _ => Err(GrokRuntimeError::FailedToApplyFilter(
+                filter.to_string(),
+                value.to_string(),
+            )),
+        },
+        GrokFilter::Xml => match value {
+            Value::Bytes(_bytes) => parse_xml(value.to_owned(), ParseOptions::default()).map_err(|_e| {
+                GrokRuntimeError::FailedToApplyFilter(filter.to_string(), value.to_string())
+            }),
             _ => Err(GrokRuntimeError::FailedToApplyFilter(
                 filter.to_string(),
                 value.to_string(),
