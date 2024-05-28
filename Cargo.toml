@@ -56,7 +56,7 @@ stdlib = [
  "compiler",
  "core",
  "datadog",
-  "parsing",
+ "parsing",
  "dep:aes",
  "dep:base16",
  "dep:base62",
