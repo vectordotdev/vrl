@@ -77,6 +77,7 @@ fn inner_kinds() -> Kind {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::value;
 
     test_function![
         parse_ruby_hash => ParseRubyHash;
