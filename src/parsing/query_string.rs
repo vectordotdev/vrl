@@ -8,7 +8,7 @@ pub(crate) fn parse_query_string(bytes: &Bytes) -> Resolved {
         query_string = &query_string[1..];
     }
     let mut result = BTreeMap::new();
-    let parsed = form_urlencoded::parse_query_string(query_string);
+    let parsed = form_urlencoded::parse(query_string);
     for (k, value) in parsed {
         let value = value.as_ref();
         result

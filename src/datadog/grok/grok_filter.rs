@@ -6,6 +6,7 @@ use crate::parsing::xml::{parse_xml, ParseOptions};
 use crate::value::Value;
 use ordered_float::NotNan;
 use percent_encoding::percent_decode;
+use crate::compiler::prelude::Bytes;
 
 use super::{
     ast::{Function, FunctionArgument},
@@ -188,79 +189,14 @@ pub fn apply_filter(value: &Value, filter: &GrokFilter) -> Result<Value, GrokRun
                 _ => v,
             }
         }
-        GrokFilter::Lowercase => match value {
-            Value::Bytes(bytes) => Ok(String::from_utf8_lossy(bytes).to_lowercase().into()),
-            _ => Err(GrokRuntimeError::FailedToApplyFilter(
-                filter.to_string(),
-                value.to_string(),
-            )),
-        },
-        GrokFilter::Uppercase => match value {
-            Value::Bytes(bytes) => Ok(String::from_utf8_lossy(bytes).to_uppercase().into()),
-            _ => Err(GrokRuntimeError::FailedToApplyFilter(
-                filter.to_string(),
-                value.to_string(),
-            )),
-        },
-        GrokFilter::Json => match value {
-            Value::Bytes(bytes) => serde_json::from_slice::<'_, serde_json::Value>(bytes.as_ref())
-                .map_err(|_e| {
-                    GrokRuntimeError::FailedToApplyFilter(filter.to_string(), value.to_string())
-                })
-                .map(|v| v.into()),
-            _ => Err(GrokRuntimeError::FailedToApplyFilter(
-                filter.to_string(),
-                value.to_string(),
-            )),
-        },
-        GrokFilter::Rubyhash => match value {
-            Value::Bytes(bytes) => parse_ruby_hash(String::from_utf8_lossy(&bytes).as_ref())
-                .map_err(|_e| {
-                    GrokRuntimeError::FailedToApplyFilter(filter.to_string(), value.to_string())
-                }),
-            _ => Err(GrokRuntimeError::FailedToApplyFilter(
-                filter.to_string(),
-                value.to_string(),
-            )),
-        },
-        GrokFilter::Querystring => match value {
-            Value::Bytes(bytes) => parse_query_string(bytes).map_err(|_e| {
-                GrokRuntimeError::FailedToApplyFilter(filter.to_string(), value.to_string())
-            }),
-            _ => Err(GrokRuntimeError::FailedToApplyFilter(
-                filter.to_string(),
-                value.to_string(),
-            )),
-        },
-        GrokFilter::Boolean => match value {
-            Value::Bytes(v) => {
-                // this is exact DD grok parser behavior
-                let is_true = "true".eq_ignore_ascii_case(String::from_utf8_lossy(v).as_ref());
-                Ok(is_true.into())
-            }
-            _ => Err(GrokRuntimeError::FailedToApplyFilter(
-                filter.to_string(),
-                value.to_string(),
-            )),
-        },
-        GrokFilter::Decodeuricomponent => match value {
-            Value::Bytes(bytes) => Ok(percent_decode(bytes).decode_utf8_lossy().to_string().into()),
-            _ => Err(GrokRuntimeError::FailedToApplyFilter(
-                filter.to_string(),
-                value.to_string(),
-            )),
-        },
-        GrokFilter::Xml => match value {
-            Value::Bytes(_bytes) => {
-                parse_xml(value.to_owned(), ParseOptions::default()).map_err(|_e| {
-                    GrokRuntimeError::FailedToApplyFilter(filter.to_string(), value.to_string())
-                })
-            }
-            _ => Err(GrokRuntimeError::FailedToApplyFilter(
-                filter.to_string(),
-                value.to_string(),
-            )),
-        },
+        GrokFilter::Lowercase => parse_value(value, filter, |b| String::from_utf8_lossy(b).to_lowercase()),
+        GrokFilter::Uppercase => parse_value(value, filter, |b| String::from_utf8_lossy(b).to_uppercase()),
+        GrokFilter::Json => parse_value_error_prone(value, filter, |b| serde_json::from_slice::<'_, serde_json::Value>(b)),
+        GrokFilter::Rubyhash => parse_value_error_prone(value, filter, |b| parse_ruby_hash(String::from_utf8_lossy(b).as_ref())),
+        GrokFilter::Querystring => parse_value_error_prone(value, filter, parse_query_string),
+        GrokFilter::Boolean => parse_value(value, filter, |b| "true".eq_ignore_ascii_case(String::from_utf8_lossy(b).as_ref())),
+        GrokFilter::Decodeuricomponent => parse_value(value, filter, |b| percent_decode(b).decode_utf8_lossy().to_string()),
+        GrokFilter::Xml => parse_value_error_prone(value, filter, |_b| parse_xml(value.to_owned(), ParseOptions::default())),
         GrokFilter::NullIf(null_value) => match value {
             Value::Bytes(bytes) => {
                 if String::from_utf8_lossy(bytes) == *null_value {
@@ -303,5 +239,29 @@ pub fn apply_filter(value: &Value, filter: &GrokFilter) -> Result<Value, GrokRun
                 value.to_string(),
             )),
         },
+    }
+}
+
+fn parse_value<V: Into<Value>>(value: &Value, filter: &GrokFilter, parse: impl Fn(&Bytes) -> V) -> Result<Value, GrokRuntimeError> {
+    match value {
+        Value::Bytes(bytes) => Ok(parse(bytes).into()),
+        _ => Err(GrokRuntimeError::FailedToApplyFilter(
+            filter.to_string(),
+            value.to_string(),
+        )),
+    }
+}
+
+fn parse_value_error_prone<V: Into<Value>, E: std::error::Error>(value: &Value, filter: &GrokFilter, parse: impl Fn(&Bytes) -> Result<V, E>) -> Result<Value, GrokRuntimeError> {
+    match value {
+        Value::Bytes(bytes) => {
+            parse(bytes).map_err(|_e| {
+                GrokRuntimeError::FailedToApplyFilter(filter.to_string(), value.to_string())
+            }).map(Into::into)
+        },
+        _ => Err(GrokRuntimeError::FailedToApplyFilter(
+            filter.to_string(),
+            value.to_string(),
+        )),
     }
 }
