@@ -30,7 +30,7 @@ value = ["path", "dep:bytes", "dep:regex", "dep:ordered-float", "dep:chrono", "d
 diagnostic = ["dep:codespan-reporting", "dep:termcolor"]
 path = ["value", "dep:once_cell", "dep:serde", "dep:snafu", "dep:regex"]
 parser = ["path", "diagnostic", "value", "dep:thiserror", "dep:ordered-float", "dep:lalrpop-util"]
-parsing = []
+parsing = ["value", "compiler", "dep:url", "dep:nom", "dep:regex", "dep:roxmltree", "dep:rust_decimal"]
 core = ["value", "dep:snafu", "dep:nom"]
 string_path = []
 
