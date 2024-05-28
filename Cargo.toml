@@ -30,13 +30,14 @@ value = ["path", "dep:bytes", "dep:regex", "dep:ordered-float", "dep:chrono", "d
 diagnostic = ["dep:codespan-reporting", "dep:termcolor"]
 path = ["value", "dep:once_cell", "dep:serde", "dep:snafu", "dep:regex"]
 parser = ["path", "diagnostic", "value", "dep:thiserror", "dep:ordered-float", "dep:lalrpop-util"]
+parsing = ["value", "compiler", "dep:url", "dep:nom", "dep:regex", "dep:roxmltree", "dep:rust_decimal"]
 core = ["value", "dep:snafu", "dep:nom"]
 string_path = []
 
 # Datadog related features (on by default)
 datadog = ["datadog_filter", "datadog_grok", "datadog_search"]
 datadog_filter = ["datadog_search", "dep:regex", "dep:dyn-clone"]
-datadog_grok = ["value", "dep:nom", "dep:peeking_take_while", "dep:serde_json", "dep:onig", "dep:lalrpop-util", "dep:thiserror", "dep:chrono", "dep:chrono-tz"]
+datadog_grok = ["value", "parsing", "dep:nom", "dep:peeking_take_while", "dep:serde_json", "dep:onig", "dep:lalrpop-util", "dep:thiserror", "dep:chrono", "dep:chrono-tz", "dep:percent-encoding"]
 datadog_search = ["dep:pest", "dep:pest_derive", "dep:itertools", "dep:once_cell", "dep:regex"]
 
 # Features that aren't used as often (default off)
@@ -55,6 +56,7 @@ stdlib = [
  "compiler",
  "core",
  "datadog",
+ "parsing",
  "dep:aes",
  "dep:base16",
  "dep:base62",

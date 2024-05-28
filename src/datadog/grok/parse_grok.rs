@@ -261,7 +261,7 @@ mod tests {
         assert_eq!(
             parse_grok_rules(
                 &["%{data:field:unknownFilter}".to_string()],
-                BTreeMap::new()
+                BTreeMap::new(),
             )
             .unwrap_err()
             .to_string(),
@@ -541,7 +541,7 @@ mod tests {
         assert_eq!(
             parse_grok_rules(
                 &[r#"%{date("ABC:XYZ"):field}"#.to_string()],
-                BTreeMap::new()
+                BTreeMap::new(),
             )
             .unwrap_err()
             .to_string(),
@@ -970,5 +970,76 @@ mod tests {
                 })),
             ),
         ]);
+    }
+
+    #[test]
+    fn supports_rubyhash_filter() {
+        test_grok_pattern(vec![(
+            "%{data:field:rubyhash}",
+            r#"{hello=>"world",'number'=>42.0}"#,
+            Ok(Value::from(btreemap! {
+                "hello" => "world",
+                "number" =>  42.0
+            })),
+        )]);
+    }
+
+    #[test]
+    fn supports_querystring_filter() {
+        test_grok_pattern(vec![(
+            "%{data:field:querystring}",
+            "foo=bar",
+            Ok(Value::from(btreemap! {
+                "foo" => "bar",
+            })),
+        )]);
+    }
+
+    #[test]
+    fn supports_boolean_filter() {
+        test_grok_pattern(vec![
+            ("%{data:field:boolean}", "True", Ok(Value::Boolean(true))),
+            (
+                "%{data:field:boolean}",
+                "NotTrue",
+                Ok(Value::Boolean(false)),
+            ),
+        ]);
+    }
+
+    #[test]
+    fn supports_decodeuricomponent_filter() {
+        test_grok_pattern(vec![(
+            "%{data:field:decodeuricomponent}",
+            "%2Fservice%2Ftest",
+            Ok(Value::Bytes("/service/test".into())),
+        )]);
+    }
+
+    #[test]
+    fn supports_xml_filter() {
+        test_grok_pattern(vec![(
+            "(?s)%{data:field:xml}", // (?s) enables DOTALL mode to include newlines
+            r#"<book category="CHILDREN">
+                  <title lang="en">Harry Potter</title>
+                  <author>J K. Rowling</author>
+                  <year>2005</year>
+                  <booleanValue>true</booleanValue>
+                  <nullValue>null</nullValue>
+                </book>"#,
+            Ok(Value::from(btreemap! {
+            "book" => btreemap! {
+              "year" => "2005",
+              "category" => "CHILDREN",
+              "author" => "J K. Rowling",
+              "booleanValue" => "true",
+              "nullValue" => "null",
+              "title" => btreemap! {
+                "lang" => "en",
+                "value" => "Harry Potter"
+              }
+            }
+            })),
+        )]);
     }
 }
