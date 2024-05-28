@@ -22,7 +22,7 @@ members = [
 
 
 [features]
-default = ["compiler", "value", "diagnostic", "path", "parser", "parsing", "stdlib", "datadog", "core"]
+default = ["compiler", "value", "diagnostic", "path", "parser", "stdlib", "datadog", "core"]
 
 # Main features (on by default)
 compiler = ["diagnostic", "path", "parser", "value", "dep:paste", "dep:chrono", "dep:serde", "dep:regex", "dep:bytes", "dep:ordered-float", "dep:chrono-tz", "dep:snafu", "dep:thiserror", "dep:dyn-clone", "dep:indoc", "dep:thiserror", "dep:lalrpop-util"]
