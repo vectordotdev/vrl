@@ -25,9 +25,9 @@ impl Function for ParseAwsAlbLog {
     fn examples(&self) -> &'static [Example] {
         &[Example {
             title: "valid",
-            source: r#"parse_aws_alb_log!(s'http 2018-11-30T22:23:00.186641Z app/my-loadbalancer/50dc6c495c0c9188 192.168.131.39:2817 - 0.000 0.001 0.000 200 200 34 366 "GET http://www.example.com:80/ HTTP/1.1" "curl/7.46.0" - - arn:aws:elasticloadbalancing:us-east-2:123456789012:targetgroup/my-targets/73e2d6bc24d8a067 "Root=1-58337364-23a8c76965a2ef7629b185e3" "-" "-" 0 2018-11-30T22:22:48.364000Z "forward" "-" "-" "-" "-" "-" "-"')"#,
+            source: r#"parse_aws_alb_log!(s'http 2018-11-30T22:23:00.186641Z app/my-loadbalancer/50dc6c495c0c9188 192.168.131.39:2817 - 0.000 0.001 0.000 200 200 34 366 "GET http://www.example.com:80/ HTTP/1.1" "curl/7.46.0" - - arn:aws:elasticloadbalancing:us-east-2:123456789012:targetgroup/my-targets/73e2d6bc24d8a067 "Root=1-58337364-23a8c76965a2ef7629b185e3" "-" "-" 0 2018-11-30T22:22:48.364000Z "forward" "-" "-" "-" "-" "-" "-" TID_dc57cebed65b444ebc8177bb698fe166')"#,
             result: Ok(
-                r#"{ "actions_executed": "forward", "chosen_cert_arn": null, "classification": null, "classification_reason": null, "client_host": "192.168.131.39:2817", "domain_name": null, "elb": "app/my-loadbalancer/50dc6c495c0c9188", "elb_status_code": "200", "error_reason": null, "matched_rule_priority": "0", "received_bytes": 34, "redirect_url": null, "request_creation_time": "2018-11-30T22:22:48.364000Z", "request_method": "GET", "request_processing_time": 0.0, "request_protocol": "HTTP/1.1", "request_url": "http://www.example.com:80/", "response_processing_time": 0.0, "sent_bytes": 366, "ssl_cipher": null, "ssl_protocol": null, "target_group_arn": "arn:aws:elasticloadbalancing:us-east-2:123456789012:targetgroup/my-targets/73e2d6bc24d8a067", "target_host": null, "target_port_list": [], "target_processing_time": 0.001, "target_status_code": "200", "target_status_code_list": [], "timestamp": "2018-11-30T22:23:00.186641Z", "trace_id": "Root=1-58337364-23a8c76965a2ef7629b185e3", "type": "http", "user_agent": "curl/7.46.0" }"#,
+                r#"{ "actions_executed": "forward", "chosen_cert_arn": null, "classification": null, "classification_reason": null, "client_host": "192.168.131.39:2817", "domain_name": null, "elb": "app/my-loadbalancer/50dc6c495c0c9188", "elb_status_code": "200", "error_reason": null, "matched_rule_priority": "0", "received_bytes": 34, "redirect_url": null, "request_creation_time": "2018-11-30T22:22:48.364000Z", "request_method": "GET", "request_processing_time": 0.0, "request_protocol": "HTTP/1.1", "request_url": "http://www.example.com:80/", "response_processing_time": 0.0, "sent_bytes": 366, "ssl_cipher": null, "ssl_protocol": null, "target_group_arn": "arn:aws:elasticloadbalancing:us-east-2:123456789012:targetgroup/my-targets/73e2d6bc24d8a067", "target_host": null, "target_port_list": [], "target_processing_time": 0.001, "target_status_code": "200", "target_status_code_list": [], "timestamp": "2018-11-30T22:23:00.186641Z", "trace_id": "Root=1-58337364-23a8c76965a2ef7629b185e3", "type": "http", "user_agent": "curl/7.46.0", "traceability_id": "TID_dc57cebed65b444ebc8177bb698fe166" }"#,
             ),
         }]
     }
@@ -125,6 +125,7 @@ fn inner_kind() -> BTreeMap<Field, Kind> {
         (Field::from("trace_id"), Kind::bytes()),
         (Field::from("type"), Kind::bytes()),
         (Field::from("user_agent"), Kind::bytes()),
+        (Field::from("traceability_id"), Kind::bytes()),
     ])
 }
 
@@ -238,6 +239,7 @@ fn parse_log(mut input: &str) -> ExpressionResult<Value> {
     );
     field_raw!("classification", take_quoted1);
     field_raw!("classification_reason", take_quoted1);
+    field_raw!("traceability_id", take_anything);
 
     match input.is_empty() {
         true => Ok(log.into()),
@@ -297,7 +299,7 @@ mod tests {
         parse_aws_alb_log => ParseAwsAlbLog;
 
         one {
-            args: func_args![value: r#"http 2018-07-02T22:23:00.186641Z app/my-loadbalancer/50dc6c495c0c9188 192.168.131.39:2817 10.0.0.1:80 0.000 0.001 0.000 200 200 34 366 "GET http://www.example.com:80/ HTTP/1.1" "curl/7.46.0" - - arn:aws:elasticloadbalancing:us-east-2:123456789012:targetgroup/my-targets/73e2d6bc24d8a067 "Root=1-58337262-36d228ad5d99923122bbe354" "-" "-" 0 2018-07-02T22:22:48.364000Z "forward" "-" "-" 10.0.0.1:80 200 "-" "-""#],
+            args: func_args![value: r#"http 2018-07-02T22:23:00.186641Z app/my-loadbalancer/50dc6c495c0c9188 192.168.131.39:2817 10.0.0.1:80 0.000 0.001 0.000 200 200 34 366 "GET http://www.example.com:80/ HTTP/1.1" "curl/7.46.0" - - arn:aws:elasticloadbalancing:us-east-2:123456789012:targetgroup/my-targets/73e2d6bc24d8a067 "Root=1-58337262-36d228ad5d99923122bbe354" "-" "-" 0 2018-07-02T22:22:48.364000Z "forward" "-" "-" 10.0.0.1:80 200 "-" "-" TID_dc57cebed65b444ebc8177bb698fe166"#],
             want: Ok(value!({actions_executed: "forward",
                              chosen_cert_arn: null,
                              classification: null,
@@ -328,14 +330,16 @@ mod tests {
                              timestamp: "2018-07-02T22:23:00.186641Z",
                              trace_id: "Root=1-58337262-36d228ad5d99923122bbe354",
                              type: "http",
-                             user_agent: "curl/7.46.0"
+                             user_agent: "curl/7.46.0",
+                             traceability_id: "TID_dc57cebed65b444ebc8177bb698fe166"
+                             
 
             })),
             tdef: TypeDef::object(inner_kind()).fallible(),
         }
 
         two {
-            args: func_args![value: r#"https 2018-07-02T22:23:00.186641Z app/my-loadbalancer/50dc6c495c0c9188 192.168.131.39:2817 10.0.0.1:80 0.086 0.048 0.037 200 200 0 57 "GET https://www.example.com:443/ HTTP/1.1" "curl/7.46.0" ECDHE-RSA-AES128-GCM-SHA256 TLSv1.2 arn:aws:elasticloadbalancing:us-east-2:123456789012:targetgroup/my-targets/73e2d6bc24d8a067 "Root=1-58337281-1d84f3d73c47ec4e58577259" "www.example.com" "arn:aws:acm:us-east-2:123456789012:certificate/12345678-1234-1234-1234-123456789012" 1 2018-07-02T22:22:48.364000Z "authenticate,forward" "-" "-" 10.0.0.1:80 200 "-" "-""#],
+            args: func_args![value: r#"https 2018-07-02T22:23:00.186641Z app/my-loadbalancer/50dc6c495c0c9188 192.168.131.39:2817 10.0.0.1:80 0.086 0.048 0.037 200 200 0 57 "GET https://www.example.com:443/ HTTP/1.1" "curl/7.46.0" ECDHE-RSA-AES128-GCM-SHA256 TLSv1.2 arn:aws:elasticloadbalancing:us-east-2:123456789012:targetgroup/my-targets/73e2d6bc24d8a067 "Root=1-58337281-1d84f3d73c47ec4e58577259" "www.example.com" "arn:aws:acm:us-east-2:123456789012:certificate/12345678-1234-1234-1234-123456789012" 1 2018-07-02T22:22:48.364000Z "authenticate,forward" "-" "-" 10.0.0.1:80 200 "-" "-" TID_dc57cebed65b444ebc8177bb698fe166"#],
             want: Ok(value! ({actions_executed: "authenticate,forward",
                               chosen_cert_arn: "arn:aws:acm:us-east-2:123456789012:certificate/12345678-1234-1234-1234-123456789012",
                               classification: null,
@@ -366,12 +370,13 @@ mod tests {
                               timestamp: "2018-07-02T22:23:00.186641Z",
                               trace_id: "Root=1-58337281-1d84f3d73c47ec4e58577259",
                               type: "https",
-                              user_agent: "curl/7.46.0"})),
+                              user_agent: "curl/7.46.0",
+                              traceability_id: "TID_dc57cebed65b444ebc8177bb698fe166"})),
             tdef: TypeDef::object(inner_kind()).fallible(),
         }
 
         three {
-            args: func_args![value: r#"h2 2018-07-02T22:23:00.186641Z app/my-loadbalancer/50dc6c495c0c9188 10.0.1.252:48160 10.0.0.66:9000 0.000 0.002 0.000 200 200 5 257 "GET https://10.0.2.105:773/ HTTP/2.0" "curl/7.46.0" ECDHE-RSA-AES128-GCM-SHA256 TLSv1.2 arn:aws:elasticloadbalancing:us-east-2:123456789012:targetgroup/my-targets/73e2d6bc24d8a067 "Root=1-58337327-72bd00b0343d75b906739c42" "-" "-" 1 2018-07-02T22:22:48.364000Z "redirect" "https://example.com:80/" "-" 10.0.0.66:9000 200 "-" "-""#],
+            args: func_args![value: r#"h2 2018-07-02T22:23:00.186641Z app/my-loadbalancer/50dc6c495c0c9188 10.0.1.252:48160 10.0.0.66:9000 0.000 0.002 0.000 200 200 5 257 "GET https://10.0.2.105:773/ HTTP/2.0" "curl/7.46.0" ECDHE-RSA-AES128-GCM-SHA256 TLSv1.2 arn:aws:elasticloadbalancing:us-east-2:123456789012:targetgroup/my-targets/73e2d6bc24d8a067 "Root=1-58337327-72bd00b0343d75b906739c42" "-" "-" 1 2018-07-02T22:22:48.364000Z "redirect" "https://example.com:80/" "-" 10.0.0.66:9000 200 "-" "-" TID_dc57cebed65b444ebc8177bb698fe166"#],
             want: Ok(value! ({actions_executed: "redirect",
                               chosen_cert_arn: null,
                               classification: null,
@@ -402,12 +407,13 @@ mod tests {
                               timestamp: "2018-07-02T22:23:00.186641Z",
                               trace_id: "Root=1-58337327-72bd00b0343d75b906739c42",
                               type: "h2",
-                              user_agent: "curl/7.46.0"})),
+                              user_agent: "curl/7.46.0",
+                              traceability_id: "TID_dc57cebed65b444ebc8177bb698fe166"})),
             tdef: TypeDef::object(inner_kind()).fallible(),
         }
 
         four {
-            args: func_args![value: r#"ws 2018-07-02T22:23:00.186641Z app/my-loadbalancer/50dc6c495c0c9188 10.0.0.140:40914 10.0.1.192:8010 0.001 0.003 0.000 101 101 218 587 "GET http://10.0.0.30:80/ HTTP/1.1" "-" - - arn:aws:elasticloadbalancing:us-east-2:123456789012:targetgroup/my-targets/73e2d6bc24d8a067 "Root=1-58337364-23a8c76965a2ef7629b185e3" "-" "-" 1 2018-07-02T22:22:48.364000Z "forward" "-" "-" 10.0.1.192:8010 101 "-" "-""#],
+            args: func_args![value: r#"ws 2018-07-02T22:23:00.186641Z app/my-loadbalancer/50dc6c495c0c9188 10.0.0.140:40914 10.0.1.192:8010 0.001 0.003 0.000 101 101 218 587 "GET http://10.0.0.30:80/ HTTP/1.1" "-" - - arn:aws:elasticloadbalancing:us-east-2:123456789012:targetgroup/my-targets/73e2d6bc24d8a067 "Root=1-58337364-23a8c76965a2ef7629b185e3" "-" "-" 1 2018-07-02T22:22:48.364000Z "forward" "-" "-" 10.0.1.192:8010 101 "-" "-" TID_dc57cebed65b444ebc8177bb698fe166"#],
             want: Ok(value!({actions_executed: "forward",
                              chosen_cert_arn: null,
                              classification: null,
@@ -438,12 +444,13 @@ mod tests {
                              timestamp: "2018-07-02T22:23:00.186641Z",
                              trace_id: "Root=1-58337364-23a8c76965a2ef7629b185e3",
                              type: "ws",
-                             user_agent: null})),
+                             user_agent: null,
+                             traceability_id: "TID_dc57cebed65b444ebc8177bb698fe166"})),
             tdef: TypeDef::object(inner_kind()).fallible(),
         }
 
         five {
-            args: func_args![value: r#"wss 2018-07-02T22:23:00.186641Z app/my-loadbalancer/50dc6c495c0c9188 10.0.0.140:44244 10.0.0.171:8010 0.000 0.001 0.000 101 101 218 786 "GET https://10.0.0.30:443/ HTTP/1.1" "-" ECDHE-RSA-AES128-GCM-SHA256 TLSv1.2 arn:aws:elasticloadbalancing:us-west-2:123456789012:targetgroup/my-targets/73e2d6bc24d8a067 "Root=1-58337364-23a8c76965a2ef7629b185e3" "-" "-" 1 2018-07-02T22:22:48.364000Z "forward" "-" "-" 10.0.0.171:8010 101 "-" "-""#],
+            args: func_args![value: r#"wss 2018-07-02T22:23:00.186641Z app/my-loadbalancer/50dc6c495c0c9188 10.0.0.140:44244 10.0.0.171:8010 0.000 0.001 0.000 101 101 218 786 "GET https://10.0.0.30:443/ HTTP/1.1" "-" ECDHE-RSA-AES128-GCM-SHA256 TLSv1.2 arn:aws:elasticloadbalancing:us-west-2:123456789012:targetgroup/my-targets/73e2d6bc24d8a067 "Root=1-58337364-23a8c76965a2ef7629b185e3" "-" "-" 1 2018-07-02T22:22:48.364000Z "forward" "-" "-" 10.0.0.171:8010 101 "-" "-" TID_dc57cebed65b444ebc8177bb698fe166"#],
             want: Ok(value! ({actions_executed: "forward",
                               chosen_cert_arn: null,
                               classification: null,
@@ -474,12 +481,13 @@ mod tests {
                               timestamp: "2018-07-02T22:23:00.186641Z",
                               trace_id: "Root=1-58337364-23a8c76965a2ef7629b185e3",
                               type: "wss",
-                              user_agent: null})),
+                              user_agent: null,
+                              traceability_id: "TID_dc57cebed65b444ebc8177bb698fe166"})),
             tdef: TypeDef::object(inner_kind()).fallible(),
         }
 
         six {
-            args: func_args![value: r#"http 2018-11-30T22:23:00.186641Z app/my-loadbalancer/50dc6c495c0c9188 192.168.131.39:2817 - 0.000 0.001 0.000 200 200 34 366 "GET http://www.example.com:80/ HTTP/1.1" "curl/7.46.0" - - arn:aws:elasticloadbalancing:us-east-2:123456789012:targetgroup/my-targets/73e2d6bc24d8a067 "Root=1-58337364-23a8c76965a2ef7629b185e3" "-" "-" 0 2018-11-30T22:22:48.364000Z "forward" "-" "-" "-" "-" "-" "-""#],
+            args: func_args![value: r#"http 2018-11-30T22:23:00.186641Z app/my-loadbalancer/50dc6c495c0c9188 192.168.131.39:2817 - 0.000 0.001 0.000 200 200 34 366 "GET http://www.example.com:80/ HTTP/1.1" "curl/7.46.0" - - arn:aws:elasticloadbalancing:us-east-2:123456789012:targetgroup/my-targets/73e2d6bc24d8a067 "Root=1-58337364-23a8c76965a2ef7629b185e3" "-" "-" 0 2018-11-30T22:22:48.364000Z "forward" "-" "-" "-" "-" "-" "-" TID_dc57cebed65b444ebc8177bb698fe166"#],
             want: Ok(value! ({actions_executed: "forward",
                               chosen_cert_arn: null,
                               classification: null,
@@ -510,12 +518,13 @@ mod tests {
                               timestamp: "2018-11-30T22:23:00.186641Z",
                               trace_id: "Root=1-58337364-23a8c76965a2ef7629b185e3",
                               type: "http",
-                              user_agent: "curl/7.46.0"})),
+                              user_agent: "curl/7.46.0",
+                              traceability_id: "TID_dc57cebed65b444ebc8177bb698fe166"})),
             tdef: TypeDef::object(inner_kind()).fallible(),
         }
 
         seven {
-            args: func_args![value: r#"http 2018-11-30T22:23:00.186641Z app/my-loadbalancer/50dc6c495c0c9188 192.168.131.39:2817 - 0.000 0.001 0.000 502 - 34 366 "GET http://www.example.com:80/ HTTP/1.1" "curl/7.46.0" - - arn:aws:elasticloadbalancing:us-east-2:123456789012:targetgroup/my-targets/73e2d6bc24d8a067 "Root=1-58337364-23a8c76965a2ef7629b185e3" "-" "-" 0 2018-11-30T22:22:48.364000Z "forward" "-" "LambdaInvalidResponse" "-" "-" "-" "-""#],
+            args: func_args![value: r#"http 2018-11-30T22:23:00.186641Z app/my-loadbalancer/50dc6c495c0c9188 192.168.131.39:2817 - 0.000 0.001 0.000 502 - 34 366 "GET http://www.example.com:80/ HTTP/1.1" "curl/7.46.0" - - arn:aws:elasticloadbalancing:us-east-2:123456789012:targetgroup/my-targets/73e2d6bc24d8a067 "Root=1-58337364-23a8c76965a2ef7629b185e3" "-" "-" 0 2018-11-30T22:22:48.364000Z "forward" "-" "LambdaInvalidResponse" "-" "-" "-" "-" TID_dc57cebed65b444ebc8177bb698fe166"#],
             want: Ok(value!({actions_executed: "forward",
                              chosen_cert_arn: null,
                              classification: null,
@@ -546,12 +555,13 @@ mod tests {
                              timestamp: "2018-11-30T22:23:00.186641Z",
                              trace_id: "Root=1-58337364-23a8c76965a2ef7629b185e3",
                              type: "http",
-                             user_agent: "curl/7.46.0"})),
+                             user_agent: "curl/7.46.0",
+                             traceability_id: "TID_dc57cebed65b444ebc8177bb698fe166"})),
             tdef: TypeDef::object(inner_kind()).fallible(),
         }
 
         eight {
-            args: func_args![value: r#"https 2021-03-16T20:20:00.135052Z app/awseb-AWSEB-1MVD8OW91UMOH/a32a5528b8fdaa6b 10.209.14.140:50599 10.119.5.47:80 0.001 0.052 0.000 200 200 589 2084 "POST https://test.domain.com:443/api/deposits/transactions:search?detailsLevel=FULL&offset=0&limit=50 HTTP/1.1" "User 1.0" ECDHE-RSA-AES128-GCM-SHA256 TLSv1.2 arn:aws:elasticloadbalancing:us-east-1:755269215481:targetgroup/awseb-AWSEB-91MZX0WA1A0F/5a03cc723870f039 "Root=1-605112f0-31f367be4fd3da651daa4157" "some.domain.com" "arn:aws:acm:us-east-1:765229915481:certificate/d8450a8a-b4f6-4714-8535-17c625c36899" 0 2021-03-16T20:20:00.081000Z "waf,forward" "-" "-" "10.229.5.47:80" "200" "-" "-""#],
+            args: func_args![value: r#"https 2021-03-16T20:20:00.135052Z app/awseb-AWSEB-1MVD8OW91UMOH/a32a5528b8fdaa6b 10.209.14.140:50599 10.119.5.47:80 0.001 0.052 0.000 200 200 589 2084 "POST https://test.domain.com:443/api/deposits/transactions:search?detailsLevel=FULL&offset=0&limit=50 HTTP/1.1" "User 1.0" ECDHE-RSA-AES128-GCM-SHA256 TLSv1.2 arn:aws:elasticloadbalancing:us-east-1:755269215481:targetgroup/awseb-AWSEB-91MZX0WA1A0F/5a03cc723870f039 "Root=1-605112f0-31f367be4fd3da651daa4157" "some.domain.com" "arn:aws:acm:us-east-1:765229915481:certificate/d8450a8a-b4f6-4714-8535-17c625c36899" 0 2021-03-16T20:20:00.081000Z "waf,forward" "-" "-" "10.229.5.47:80" "200" "-" "-" TID_dc57cebed65b444ebc8177bb698fe166"#],
             want: Ok(value!({type: "https",
                              timestamp: "2021-03-16T20:20:00.135052Z",
                              elb: "app/awseb-AWSEB-1MVD8OW91UMOH/a32a5528b8fdaa6b",
@@ -582,12 +592,13 @@ mod tests {
                              target_port_list: ["10.229.5.47:80"],
                              target_status_code_list: ["200"],
                              classification: null,
-                             classification_reason: null})),
+                             classification_reason: null,
+                             traceability_id: "TID_dc57cebed65b444ebc8177bb698fe166"})),
             tdef: TypeDef::object(inner_kind()).fallible(),
         }
 
         nine {
-            args: func_args![value: r#"http 2021-03-17T18:54:14.216357Z app/awseb-AWSEB-1KGU6EBAG3FAD/7f0dc2b05788640f 113.241.19.90:15070 - -1 -1 -1 400 - 0 272 "- http://awseb-awseb-1kgu6fbag3fad-640112591.us-east-1.elb.amazonaws.com:80- -" "-" - - - "-" "-" "-" - 2021-03-17T18:54:13.967000Z "-" "-" "-" "-" "-" "-" "-""#],
+            args: func_args![value: r#"http 2021-03-17T18:54:14.216357Z app/awseb-AWSEB-1KGU6EBAG3FAD/7f0dc2b05788640f 113.241.19.90:15070 - -1 -1 -1 400 - 0 272 "- http://awseb-awseb-1kgu6fbag3fad-640112591.us-east-1.elb.amazonaws.com:80- -" "-" - - - "-" "-" "-" - 2021-03-17T18:54:13.967000Z "-" "-" "-" "-" "-" "-" "-" TID_dc57cebed65b444ebc8177bb698fe166"#],
             want: Ok(value!({type: "http",
                              timestamp: "2021-03-17T18:54:14.216357Z",
                              elb: "app/awseb-AWSEB-1KGU6EBAG3FAD/7f0dc2b05788640f",
@@ -618,12 +629,13 @@ mod tests {
                              target_port_list: [],
                              target_status_code_list: [],
                              classification: null,
-                             classification_reason: null})),
+                             classification_reason: null,
+                             traceability_id: "TID_dc57cebed65b444ebc8177bb698fe166"})),
             tdef: TypeDef::object(inner_kind()).fallible(),
         }
 
         ten {
-            args: func_args![value: r#"http 2021-03-18T04:00:26.920977Z app/awseb-AWSEB-1KGU6EBAG3FAD/7f0dc2b05788640f 31.211.20.175:57720 - -1 -1 -1 400 - 191 272 "POST http://awseb-awseb-1kgu6fbag3fad-640112591.us-east-1.elb.amazonaws.com:80/cgi-bin/login.cgi HTTP/1.1" "Mozilla/5.0 (X11; Linux x86_64; rv:60.0) Gecko/20100101 Firefox/60.0" - - - "-" "-" "-" - 2021-03-18T04:00:26.599000Z "-" "-" "-" "-" "-" "-" "-""#],
+            args: func_args![value: r#"http 2021-03-18T04:00:26.920977Z app/awseb-AWSEB-1KGU6EBAG3FAD/7f0dc2b05788640f 31.211.20.175:57720 - -1 -1 -1 400 - 191 272 "POST http://awseb-awseb-1kgu6fbag3fad-640112591.us-east-1.elb.amazonaws.com:80/cgi-bin/login.cgi HTTP/1.1" "Mozilla/5.0 (X11; Linux x86_64; rv:60.0) Gecko/20100101 Firefox/60.0" - - - "-" "-" "-" - 2021-03-18T04:00:26.599000Z "-" "-" "-" "-" "-" "-" "-" TID_dc57cebed65b444ebc8177bb698fe166"#],
             want: Ok(value!({type: "http",
                              timestamp: "2021-03-18T04:00:26.920977Z",
                              elb: "app/awseb-AWSEB-1KGU6EBAG3FAD/7f0dc2b05788640f",
@@ -654,12 +666,13 @@ mod tests {
                              target_port_list: [],
                              target_status_code_list: [],
                              classification: null,
-                             classification_reason: null})),
+                             classification_reason: null,
+                             traceability_id: "TID_dc57cebed65b444ebc8177bb698fe166"})),
             tdef: TypeDef::object(inner_kind()).fallible(),
         }
 
         eleven {
-            args: func_args![value: r#"https 2021-03-16T20:20:00.135052Z app/awseb-AWSEB-1MVD8OW91UMOH/a32a5528b8fdaa6b 2601:6bbc:c529:9dad:6bbc:c529:9dad:6bbc:50599 fd6d:6bbc:c529:6::face:ed83:f46:80 0.001 0.052 0.000 200 200 589 2084 "POST https://test.domain.com:443/api/deposits/transactions:search?detailsLevel=FULL&offset=0&limit=50 HTTP/1.1" "User 1.0" ECDHE-RSA-AES128-GCM-SHA256 TLSv1.2 arn:aws:elasticloadbalancing:us-east-1:755269215481:targetgroup/awseb-AWSEB-91MZX0WA1A0F/5a03cc723870f039 "Root=1-605112f0-31f367be4fd3da651daa4157" "some.domain.com" "arn:aws:acm:us-east-1:765229915481:certificate/d8450a8a-b4f6-4714-8535-17c625c36899" 0 2021-03-16T20:20:00.081000Z "waf,forward" "-" "-" "fd6d:6bbc:c529:27ff:b::dead:ed84:80" "200" "-" "-""#],
+            args: func_args![value: r#"https 2021-03-16T20:20:00.135052Z app/awseb-AWSEB-1MVD8OW91UMOH/a32a5528b8fdaa6b 2601:6bbc:c529:9dad:6bbc:c529:9dad:6bbc:50599 fd6d:6bbc:c529:6::face:ed83:f46:80 0.001 0.052 0.000 200 200 589 2084 "POST https://test.domain.com:443/api/deposits/transactions:search?detailsLevel=FULL&offset=0&limit=50 HTTP/1.1" "User 1.0" ECDHE-RSA-AES128-GCM-SHA256 TLSv1.2 arn:aws:elasticloadbalancing:us-east-1:755269215481:targetgroup/awseb-AWSEB-91MZX0WA1A0F/5a03cc723870f039 "Root=1-605112f0-31f367be4fd3da651daa4157" "some.domain.com" "arn:aws:acm:us-east-1:765229915481:certificate/d8450a8a-b4f6-4714-8535-17c625c36899" 0 2021-03-16T20:20:00.081000Z "waf,forward" "-" "-" "fd6d:6bbc:c529:27ff:b::dead:ed84:80" "200" "-" "-" TID_dc57cebed65b444ebc8177bb698fe166"#],
             want: Ok(value!({type: "https",
                              timestamp: "2021-03-16T20:20:00.135052Z",
                              elb: "app/awseb-AWSEB-1MVD8OW91UMOH/a32a5528b8fdaa6b",
@@ -690,7 +703,8 @@ mod tests {
                              target_port_list: ["fd6d:6bbc:c529:27ff:b::dead:ed84:80"],
                              target_status_code_list: ["200"],
                              classification: null,
-                             classification_reason: null})),
+                             classification_reason: null,
+                             traceability_id: "TID_dc57cebed65b444ebc8177bb698fe166"})),
             tdef: TypeDef::object(inner_kind()).fallible(),
         }
     ];
