@@ -1,6 +1,6 @@
 use std::{
     collections::BTreeMap,
-    fmt,
+    fmt::{self, Write},
     hash::{Hash, Hasher},
     iter::IntoIterator,
     ops::Deref,
@@ -318,7 +318,7 @@ impl AsRef<str> for Ident {
 
 impl fmt::Display for Ident {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.0.fmt(f)
+        f.write_str(&self.0)
     }
 }
 
@@ -359,7 +359,7 @@ impl fmt::Display for Literal {
             RawString(v) => write!(f, "s'{v}'"),
             Integer(v) => v.fmt(f),
             Float(v) => write!(f, "{:?}", v.as_ref()),
-            Boolean(v) => v.fmt(f),
+            Boolean(v) => write!(f, "{v}"),
             Regex(v) => write!(f, "r'{v}'"),
             Timestamp(v) => write!(f, "t'{v}'"),
             Null => f.write_str("null"),
@@ -442,14 +442,19 @@ impl fmt::Display for Block {
 
         let mut iter = self.0.iter().peekable();
         while let Some(expr) = iter.next() {
-            f.write_str("\t")?;
+            (0..f.width().unwrap_or_default()).try_for_each(|_| f.write_char(' '))?;
             expr.fmt(f)?;
             if iter.peek().is_some() {
                 f.write_str("\n")?;
             }
         }
 
-        f.write_str("\n}")
+        f.write_str("\n")?;
+        f.write_fmt(format_args!(
+            "{:>width$}",
+            "}",
+            width = f.width().unwrap_or(4) - 3
+        ))
     }
 }
 
@@ -602,14 +607,16 @@ impl fmt::Debug for IfStatement {
 
 impl fmt::Display for IfStatement {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let width = f.width().unwrap_or_default() + 4;
+
         f.write_str("if ")?;
         self.predicate.fmt(f)?;
         f.write_str(" ")?;
-        self.if_node.fmt(f)?;
+        f.write_fmt(format_args!("{:width$}", self.if_node,))?;
 
         if let Some(alt) = &self.else_node {
-            f.write_str(" else")?;
-            alt.fmt(f)?;
+            f.write_str(" else ")?;
+            f.write_fmt(format_args!("{:width$}", alt))?;
         }
 
         Ok(())
@@ -830,9 +837,12 @@ impl fmt::Display for Assignment {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use Assignment::{Infallible, Single};
 
+        let width = f.width().unwrap_or_default();
         match self {
-            Single { target, op, expr } => write!(f, "{target} {op} {expr}"),
-            Infallible { ok, err, op, expr } => write!(f, "{ok}, {err} {op} {expr}"),
+            Single { target, op, expr } => f.write_fmt(format_args!("{target} {op} {expr:width$}")),
+            Infallible { ok, err, op, expr } => {
+                f.write_fmt(format_args!("{ok}, {err} {op} {expr:width$}"))
+            }
         }
     }
 }
@@ -1019,7 +1029,6 @@ impl fmt::Display for FunctionCall {
         f.write_str(")")?;
 
         if let Some(closure) = &self.closure {
-            f.write_str(" ")?;
             closure.fmt(f)?;
         }
 
@@ -1095,7 +1104,7 @@ pub struct FunctionClosure {
 
 impl fmt::Display for FunctionClosure {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str("-> |")?;
+        f.write_str(" -> |")?;
 
         let mut iter = self.variables.iter().peekable();
         while let Some(var) = iter.next() {
@@ -1106,18 +1115,10 @@ impl fmt::Display for FunctionClosure {
             }
         }
 
-        f.write_str("| {\n")?;
+        f.write_str("| ")?;
 
-        let mut iter = self.block.0.iter().peekable();
-        while let Some(expr) = iter.next() {
-            f.write_str("\t")?;
-            expr.fmt(f)?;
-            if iter.peek().is_some() {
-                f.write_str("\n")?;
-            }
-        }
-
-        f.write_str("\n}")
+        let width = f.width().unwrap_or_default() + 4;
+        f.write_fmt(format_args!("{:width$}", self.block))
     }
 }
 
