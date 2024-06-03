@@ -269,8 +269,8 @@ fn take_quoted1(input: &str) -> SResult<String> {
 }
 
 fn take_tid_or_nothing(input: &str) -> SResult<Option<&str>> {
-    if input.starts_with( " TID_") {
-        let (rest, value) = take_anything(&input)?; 
+    if input.starts_with(" TID_") {
+        let (rest, value) = take_anything(input)?;
         Ok((rest, Some(value)))
     } else {
         Ok((input, None))
@@ -352,7 +352,7 @@ mod tests {
                              type: "http",
                              user_agent: "curl/7.46.0",
                              traceability_id: "TID_dc57cebed65b444ebc8177bb698fe166"
-                             
+
 
             })),
             tdef: TypeDef::object(inner_kind()).fallible(),
