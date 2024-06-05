@@ -41,7 +41,9 @@ pub fn convert_time_format(format: &str) -> std::result::Result<String, String> 
                 'x' => time_format.push_str("%D"),
                 // century
                 'c' | 'C' => time_format.push_str("%C"),
-                // day
+                // day w/o 0-padding
+                'd' if token.len() == 1 => time_format.push_str("%-d"),
+                // day with 0-padding
                 'd' => time_format.push_str("%d"),
                 // day of week
                 'e' => time_format.push_str("%u"),
@@ -51,8 +53,11 @@ pub fn convert_time_format(format: &str) -> std::result::Result<String, String> 
                 'w' => time_format.push_str("%V"),
                 // month of year
                 'M' => {
-                    if token.len() == 2 {
-                        // Month number
+                    if token.len() == 1 {
+                        // Month number w/o 0-padding
+                        time_format.push_str("%-m");
+                    } else if token.len() == 2 {
+                        // Month number with 0-padding
                         time_format.push_str("%m");
                     } else if token.len() == 3 {
                         // Abbreviated month name. Always 3 letters.
@@ -148,16 +153,14 @@ pub fn time_format_to_regex(
                     regex.push_str(format!("[\\d]{{{}}}", token.len()).as_str())
                 }
                 // days
-                'd' if token.len() == 1 => regex.push_str("[\\d]{2}"), // expand d to dd
+                'd' if token.len() == 1 => regex.push_str("[\\d]{1,2}"), // support 0-padding
                 'd' => regex.push_str(format!("[\\d]{{{}}}", token.len()).as_str()),
                 // years
                 'y' if token.len() == 1 => regex.push_str("[\\d]{4}"), // expand y to yyyy
                 'y' => regex.push_str(format!("[\\d]{{{}}}", token.len()).as_str()),
-                'M' if token.len() == 2 =>
                 // Month number
-                {
-                    regex.push_str("[\\d]{2}")
-                }
+                'M' if token.len() == 1 => regex.push_str("[\\d]{1,2}"), // with 0-padding
+                'M' if token.len() == 2 => regex.push_str("[\\d]{2}"),
                 'M' if token.len() == 3 =>
                 // Abbreviated month name. Always 3 letters.
                 {
