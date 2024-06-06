@@ -696,7 +696,7 @@ mod tests {
     }
 
     #[test]
-    fn test_custom_class() {
+    fn test_custom_type() {
         let result = execute_dns_lookup(DnsLookupFn {
             value: expr!("google.com"),
             qtype: expr!("mx"),
