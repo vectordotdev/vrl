@@ -132,7 +132,7 @@ fn parse_offset(tz: &str) -> Result<FixedOffset, String> {
     Ok(datetime.timezone())
 }
 
-const FRACTION_CHAR_GROUP: &'static str = "fr";
+const FRACTION_CHAR_GROUP: &str = "fr";
 
 pub fn time_format_to_regex(format: &str, with_captures: bool) -> Result<RegexResult, String> {
     let mut regex = String::new();
@@ -162,12 +162,12 @@ pub fn time_format_to_regex(format: &str, with_captures: bool) -> Result<RegexRe
                             fraction_char.to_string()
                         };
                         if with_captures {
-                            // add the capture group for the fraction of a second so we can convert value to a dot-leading format later
+                            // add the noncapture group for the fraction of a second so we can convert value to a dot-leading format later
                             regex.push_str(
                                 format!("(?P<{}>{})", FRACTION_CHAR_GROUP, fraction_char,).as_str(),
                             );
                         } else {
-                            regex.push_str(format!("{}", fraction_char).as_str());
+                            regex.push_str(&fraction_char);
                         }
                     }
                     regex.push_str(format!("[\\d]{{{}}}", token.len()).as_str());
@@ -232,7 +232,7 @@ pub fn time_format_to_regex(format: &str, with_captures: bool) -> Result<RegexRe
             }
         } else {
             if c == '.' {
-                regex.push_str("\\"); // escape . in regex
+                regex.push('\\'); // escape . in regex
             }
             regex.push(c);
             chars.next();
@@ -360,7 +360,7 @@ pub fn apply_date_filter(value: &Value, filter: &DateFilter) -> Result<Value, Gr
 
 // replace fraction of a second char with a dot - we always use %.f in strptime format
 fn replace_sec_fraction_with_dot(filter: &DateFilter, value: &mut String) {
-    if let Some(caps) = filter.regex.captures(&value) {
+    if let Some(caps) = filter.regex.captures(value) {
         if let Some(m) = caps.name(FRACTION_CHAR_GROUP) {
             value.replace_range(m.start()..m.end(), ".");
         }
