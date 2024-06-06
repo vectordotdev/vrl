@@ -375,7 +375,7 @@ pub struct DateFilter {
     pub strp_format: String,
     // whether the format is naive or timezone-aware
     pub tz_aware: bool,
-    // an regex, used to extract timezone of a fraction of a second char
+    // an regex, used to extract timezone or a fraction of a second char
     pub regex: Regex,
     // an optional target TZ name
     pub target_tz: Option<String>,
