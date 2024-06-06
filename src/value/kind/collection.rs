@@ -298,7 +298,7 @@ impl<T: Ord + Clone + CollectionKey> Collection<T> {
         // All known fields in `self` not known in `other` need to be a superset of other's
         // `unknown` type state.
         for (key, self_kind) in &self.known {
-            if other.known.get(key).is_none() {
+            if !other.known.contains_key(key) {
                 self_kind
                     .is_superset(&other.unknown_kind())
                     .map_err(|path| path.with_segment_prefix(key.to_segment()))?;
