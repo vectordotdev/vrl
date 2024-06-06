@@ -153,8 +153,7 @@ pub fn time_format_to_regex(format: &str, with_captures: bool) -> Result<RegexRe
                 'y' => regex.push_str(format!("[\\d]{{{}}}", token.len()).as_str()),
                 // decimal fraction of a second
                 'S' => {
-                    if let Some(fraction_char) = regex.chars().last() {
-                        regex.pop(); // drop the fraction character
+                    if let Some(fraction_char) = regex.pop() {
                         let fraction_char = if fraction_char == '.' {
                             regex.pop(); // drop the escape character for .
                             "\\.".to_string() // escape . in regex
@@ -164,13 +163,13 @@ pub fn time_format_to_regex(format: &str, with_captures: bool) -> Result<RegexRe
                         if with_captures {
                             // add the non-capturing group for the fraction of a second so we can convert value to a dot-leading format later
                             regex.push_str(
-                                format!("(?P<{}>{})", FRACTION_CHAR_GROUP, fraction_char,).as_str(),
+                                format!("(?P<{}>{})", FRACTION_CHAR_GROUP, fraction_char).as_str(),
                             );
                         } else {
                             regex.push_str(&fraction_char);
                         }
                     }
-                    regex.push_str(format!("[\\d]{{{}}}", token.len()).as_str());
+                    regex.push_str(&format!("[\\d]{{{}}}", token.len()));
                 }
                 // Month number
                 'M' if token.len() == 1 => regex.push_str("[\\d]{1,2}"), // with 0-padding
@@ -358,7 +357,7 @@ pub fn apply_date_filter(value: &Value, filter: &DateFilter) -> Result<Value, Gr
     timestamp.map(Value::from)
 }
 
-// replace fraction of a second char with a dot - we always use %.f in strptime format
+/// Replace fraction of a second char with a dot - we always use %.f in strptime format
 fn replace_sec_fraction_with_dot(filter: &DateFilter, value: &mut String) {
     if let Some(caps) = filter.regex.captures(value) {
         if let Some(m) = caps.name(FRACTION_CHAR_GROUP) {
