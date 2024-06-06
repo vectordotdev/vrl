@@ -672,7 +672,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(linux)]
+    #[cfg(target_os = "linux")]
     // MacOS resolver doesn't always handle localhost
     fn test_localhost() {
         let result = execute_dns_lookup(DnsLookupFn {
