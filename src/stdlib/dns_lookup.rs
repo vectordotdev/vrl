@@ -359,13 +359,17 @@ impl Function for DnsLookup {
                     res.answers = filter(res.answers) -> |_, value| {
                         value.rData == "8.8.8.8"
                     }
+                    # remove class since this is also dynamic
+                    res.additional = map_values(res.additional) -> |value| {
+                        del(value.class)
+                        value
+                    }
                     res
                     "#,
                 result: Ok(indoc!(
                     r#"{
                     "additional": [
                       {
-                        "class": "CLASS512",
                         "domainName": "",
                         "rData": "OPT ...",
                         "recordType": "OPT",
@@ -425,13 +429,17 @@ impl Function for DnsLookup {
                     res.answers = filter(res.answers) -> |_, value| {
                         value.rData == "8.8.8.8"
                     }
+                    # remove class since this is also dynamic
+                    res.additional = map_values(res.additional) -> |value| {
+                        del(value.class)
+                        value
+                    }
                     res
                     "#,
                 result: Ok(indoc!(
                     r#"{
                     "additional": [
                       {
-                        "class": "CLASS512",
                         "domainName": "",
                         "rData": "OPT ...",
                         "recordType": "OPT",
@@ -490,13 +498,17 @@ impl Function for DnsLookup {
                     res.answers = filter(res.answers) -> |_, value| {
                         value.rData == "8.8.8.8"
                     }
+                    # remove class since this is also dynamic
+                    res.additional = map_values(res.additional) -> |value| {
+                        del(value.class)
+                        value
+                    }
                     res
                     "#,
                 result: Ok(indoc!(
                     r#"{
                     "additional": [
                       {
-                        "class": "CLASS512",
                         "domainName": "",
                         "rData": "OPT ...",
                         "recordType": "OPT",
@@ -555,13 +567,17 @@ impl Function for DnsLookup {
                     res.answers = filter(res.answers) -> |_, value| {
                         value.rData == "8.8.8.8"
                     }
+                    # remove class since this is also dynamic
+                    res.additional = map_values(res.additional) -> |value| {
+                        del(value.class)
+                        value
+                    }
                     res
                     "#,
                 result: Ok(indoc!(
                     r#"{
                     "additional": [
                       {
-                        "class": "CLASS512",
                         "domainName": "",
                         "rData": "OPT ...",
                         "recordType": "OPT",
