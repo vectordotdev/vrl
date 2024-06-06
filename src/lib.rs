@@ -39,6 +39,9 @@ pub mod cli;
 #[cfg(feature = "test_framework")]
 pub mod test;
 
+#[cfg(feature = "parsing")]
+pub mod parsing;
+
 mod datadog;
 
 #[cfg(feature = "datadog_filter")]

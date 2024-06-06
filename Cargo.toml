@@ -1,6 +1,6 @@
 [package]
 name = "vrl"
-version = "0.15.0"
+version = "0.16.0"
 authors = ["Vector Contributors <vector@datadoghq.com>"]
 edition = "2021"
 license = "MPL-2.0"
@@ -30,13 +30,14 @@ value = ["path", "dep:bytes", "dep:regex", "dep:ordered-float", "dep:chrono", "d
 diagnostic = ["dep:codespan-reporting", "dep:termcolor"]
 path = ["value", "dep:once_cell", "dep:serde", "dep:snafu", "dep:regex"]
 parser = ["path", "diagnostic", "value", "dep:thiserror", "dep:ordered-float", "dep:lalrpop-util"]
+parsing = ["value", "compiler", "dep:url", "dep:nom", "dep:regex", "dep:roxmltree", "dep:rust_decimal"]
 core = ["value", "dep:snafu", "dep:nom"]
 string_path = []
 
 # Datadog related features (on by default)
 datadog = ["datadog_filter", "datadog_grok", "datadog_search"]
 datadog_filter = ["datadog_search", "dep:regex", "dep:dyn-clone"]
-datadog_grok = ["value", "dep:nom", "dep:peeking_take_while", "dep:serde_json", "dep:onig", "dep:lalrpop-util", "dep:thiserror", "dep:chrono", "dep:chrono-tz"]
+datadog_grok = ["value", "parsing", "dep:nom", "dep:peeking_take_while", "dep:serde_json", "dep:onig", "dep:lalrpop-util", "dep:thiserror", "dep:chrono", "dep:chrono-tz", "dep:percent-encoding"]
 datadog_search = ["dep:pest", "dep:pest_derive", "dep:itertools", "dep:once_cell", "dep:regex"]
 
 # Features that aren't used as often (default off)
@@ -55,6 +56,7 @@ stdlib = [
  "compiler",
  "core",
  "datadog",
+ "parsing",
  "dep:aes",
  "dep:base16",
  "dep:base62",
@@ -88,6 +90,8 @@ stdlib = [
  "dep:prost",
  "dep:prost-reflect",
  "dep:psl",
+ "dep:psl-types",
+ "dep:publicsuffix",
  "dep:quoted_printable",
  "dep:rand",
  "dep:roxmltree",
@@ -154,9 +158,11 @@ prettytable-rs = { version = "0.10", default-features = false, optional = true }
 quickcheck = { version = "1", optional = true }
 quoted_printable = {version = "0.5", optional = true }
 psl = { version = "2", optional = true }
+psl-types = { version = "2", optional = true }
+publicsuffix = { version = "2", optional = true }
 rand = { version = "0.8", optional = true }
 regex = { version = "1", default-features = false, optional = true, features = ["std", "perf", "unicode"] }
-roxmltree = { version = "0.19", optional = true }
+roxmltree = { version = "0.20", optional = true }
 rustyline = { version = "14", default-features = false, optional = true }
 rust_decimal = { version = "1", optional = true }
 seahash = { version = "4", optional = true }

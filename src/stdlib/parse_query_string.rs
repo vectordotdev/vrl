@@ -1,33 +1,5 @@
 use crate::compiler::prelude::*;
-use std::collections::BTreeMap;
-use url::form_urlencoded;
-
-fn parse_query_string(bytes: Value) -> Resolved {
-    let bytes = bytes.try_bytes()?;
-    let mut query_string = bytes.as_ref();
-    if !query_string.is_empty() && query_string[0] == b'?' {
-        query_string = &query_string[1..];
-    }
-    let mut result = BTreeMap::new();
-    let parsed = form_urlencoded::parse(query_string);
-    for (k, value) in parsed {
-        let value = value.as_ref();
-        result
-            .entry(k.into_owned().into())
-            .and_modify(|v| {
-                match v {
-                    Value::Array(v) => {
-                        v.push(value.into());
-                    }
-                    v => {
-                        *v = Value::Array(vec![v.clone(), value.into()]);
-                    }
-                };
-            })
-            .or_insert_with(|| value.into());
-    }
-    Ok(result.into())
-}
+use crate::parsing::query_string::parse_query_string;
 
 #[derive(Clone, Copy, Debug)]
 pub struct ParseQueryString;
@@ -76,8 +48,8 @@ struct ParseQueryStringFn {
 
 impl FunctionExpression for ParseQueryStringFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let bytes = self.value.resolve(ctx)?;
-        parse_query_string(bytes)
+        let bytes = self.value.resolve(ctx)?.try_bytes()?;
+        parse_query_string(&bytes)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

@@ -194,12 +194,6 @@ impl DiagnosticMessage for Error {
     }
 }
 
-#[derive(Debug)]
-enum CoalesceState {
-    Dot,
-    Coalesce,
-}
-
 // -----------------------------------------------------------------------------
 // lexer
 // -----------------------------------------------------------------------------
@@ -214,9 +208,6 @@ pub(crate) struct Lexer<'input> {
     open_braces: usize,
     open_parens: usize,
     query_start: Option<usize>,
-
-    // used to track if the lexer is inside a coalesce (to differentiate a '@' path prefix from a coalesce field starting with '@')
-    coalesce_state: Option<CoalesceState>,
 
     /// Keep track of when the lexer is supposed to emit an `RQuery` token.
     ///
@@ -692,18 +683,7 @@ impl<'input> Iterator for Lexer<'input> {
     type Item = SpannedResult<'input, usize>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let result = self.next_token();
-        if let Some(Ok((_, token, _))) = &result {
-            self.coalesce_state = match (&self.coalesce_state, token) {
-                (None, Token::Dot) => Some(CoalesceState::Dot),
-                (Some(CoalesceState::Coalesce), Token::RParen) => None,
-                (Some(CoalesceState::Coalesce), _) | (Some(CoalesceState::Dot), Token::LParen) => {
-                    Some(CoalesceState::Coalesce)
-                }
-                _ => None,
-            };
-        }
-        result
+        self.next_token()
     }
 }
 
@@ -754,11 +734,6 @@ impl<'input> Lexer<'input> {
 
         // If the iterator is at the end, we don't want to open another one
         if self.peek().is_none() {
-            return Ok(false);
-        }
-
-        // If we are in the middle of a coalesce query, this can't be the start of another query
-        if matches!(self.coalesce_state, Some(CoalesceState::Coalesce)) {
             return Ok(false);
         }
 
@@ -1195,7 +1170,6 @@ impl<'input> Lexer<'input> {
             open_parens: 0,
             rquery_indices: vec![],
             query_start: None,
-            coalesce_state: None,
         }
     }
 
@@ -1776,25 +1750,6 @@ mod test {
                 ("                         ~  ", RBracket),
                 ("                         ~  ", RQuery),
                 ("                           ~", RBrace),
-            ],
-        );
-    }
-
-    #[test]
-    fn coalesced_queries() {
-        test(
-            data(".foo.(bar | baz)"),
-            vec![
-                ("~               ", LQuery),
-                ("~               ", Dot),
-                (" ~~~            ", Identifier("foo")),
-                ("    ~           ", Dot),
-                ("     ~          ", LParen),
-                ("      ~~~       ", Identifier("bar")),
-                ("          ~     ", Operator("|")),
-                ("            ~~~ ", Identifier("baz")),
-                ("               ~", RParen),
-                ("               ~", RQuery),
             ],
         );
     }

@@ -348,218 +348,280 @@ impl Function for DnsLookup {
         &[
             Example {
                 title: "Basic lookup",
-                source: r#"dns_lookup!("localhost")"#,
+                source: r#"
+                    res = dns_lookup!("dns.google")
+                    # reset non-static ttl so result is static
+                    res.answers = map_values(res.answers) -> |value| {
+                      value.ttl = 600
+                      value
+                    }
+                    # remove extra responses for example
+                    res.answers = filter(res.answers) -> |_, value| {
+                        value.rData == "8.8.8.8"
+                    }
+                    # remove class since this is also dynamic
+                    res.additional = map_values(res.additional) -> |value| {
+                        del(value.class)
+                        value
+                    }
+                    res
+                    "#,
                 result: Ok(indoc!(
                     r#"{
                     "additional": [
-                        {
-                            "class": "CLASS65494",
-                            "domainName": "",
-                            "rData": "OPT ...",
-                            "recordType": "OPT",
-                            "recordTypeId": 41,
-                            "ttl": 0
-                        }
+                      {
+                        "domainName": "",
+                        "rData": "OPT ...",
+                        "recordType": "OPT",
+                        "recordTypeId": 41,
+                        "ttl": 0
+                      }
                     ],
                     "answers": [
-                        {
-                            "class": "IN",
-                            "domainName": "localhost",
-                            "rData": "127.0.0.1",
-                            "recordType": "A",
-                            "recordTypeId": 1,
-                            "ttl": 0
-                        }
+                      {
+                        "class": "IN",
+                        "domainName": "dns.google",
+                        "rData": "8.8.8.8",
+                        "recordType": "A",
+                        "recordTypeId": 1,
+                        "ttl": 600
+                      }
                     ],
                     "authority": [],
                     "fullRcode": 0,
                     "header": {
-                        "aa": true,
-                        "ad": false,
-                        "anCount": 1,
-                        "arCount": 1,
-                        "cd": false,
-                        "nsCount": 0,
-                        "opcode": 0,
-                        "qdCount": 1,
-                        "qr": true,
-                        "ra": true,
-                        "rcode": 0,
-                        "rd": true,
-                        "tc": false
+                      "aa": false,
+                      "ad": false,
+                      "anCount": 2,
+                      "arCount": 1,
+                      "cd": false,
+                      "nsCount": 0,
+                      "opcode": 0,
+                      "qdCount": 1,
+                      "qr": true,
+                      "ra": true,
+                      "rcode": 0,
+                      "rd": true,
+                      "tc": false
                     },
                     "question": [
-                        {
-                            "class": "IN",
-                            "domainName": "localhost",
-                            "questionType": "A",
-                            "questionTypeId": 1
-                        }
+                      {
+                        "class": "IN",
+                        "domainName": "dns.google",
+                        "questionType": "A",
+                        "questionTypeId": 1
+                      }
                     ],
                     "rcodeName": "NOERROR"
-                }"#
+                  }"#
                 )),
             },
             Example {
                 title: "Custom class and qtype",
-                source: r#"dns_lookup!("localhost", class: "IN", qtype: "A")"#,
+                source: r#"
+                    res = dns_lookup!("dns.google", class: "IN", qtype: "A")
+                    # reset non-static ttl so result is static
+                    res.answers = map_values(res.answers) -> |value| {
+                      value.ttl = 600
+                      value
+                    }
+                    # remove extra responses for example
+                    res.answers = filter(res.answers) -> |_, value| {
+                        value.rData == "8.8.8.8"
+                    }
+                    # remove class since this is also dynamic
+                    res.additional = map_values(res.additional) -> |value| {
+                        del(value.class)
+                        value
+                    }
+                    res
+                    "#,
                 result: Ok(indoc!(
                     r#"{
                     "additional": [
-                        {
-                            "class": "CLASS65494",
-                            "domainName": "",
-                            "rData": "OPT ...",
-                            "recordType": "OPT",
-                            "recordTypeId": 41,
-                            "ttl": 0
-                        }
+                      {
+                        "domainName": "",
+                        "rData": "OPT ...",
+                        "recordType": "OPT",
+                        "recordTypeId": 41,
+                        "ttl": 0
+                      }
                     ],
                     "answers": [
-                        {
-                            "class": "IN",
-                            "domainName": "localhost",
-                            "rData": "127.0.0.1",
-                            "recordType": "A",
-                            "recordTypeId": 1,
-                            "ttl": 0
-                        }
+                      {
+                        "class": "IN",
+                        "domainName": "dns.google",
+                        "rData": "8.8.8.8",
+                        "recordType": "A",
+                        "recordTypeId": 1,
+                        "ttl": 600
+                      }
                     ],
                     "authority": [],
                     "fullRcode": 0,
                     "header": {
-                        "aa": true,
-                        "ad": false,
-                        "anCount": 1,
-                        "arCount": 1,
-                        "cd": false,
-                        "nsCount": 0,
-                        "opcode": 0,
-                        "qdCount": 1,
-                        "qr": true,
-                        "ra": true,
-                        "rcode": 0,
-                        "rd": true,
-                        "tc": false
+                      "aa": false,
+                      "ad": false,
+                      "anCount": 2,
+                      "arCount": 1,
+                      "cd": false,
+                      "nsCount": 0,
+                      "opcode": 0,
+                      "qdCount": 1,
+                      "qr": true,
+                      "ra": true,
+                      "rcode": 0,
+                      "rd": true,
+                      "tc": false
                     },
                     "question": [
-                        {
-                            "class": "IN",
-                            "domainName": "localhost",
-                            "questionType": "A",
-                            "questionTypeId": 1
-                        }
+                      {
+                        "class": "IN",
+                        "domainName": "dns.google",
+                        "questionType": "A",
+                        "questionTypeId": 1
+                      }
                     ],
                     "rcodeName": "NOERROR"
-                }"#
+                  }"#
                 )),
             },
             Example {
                 title: "Custom options",
-                source: r#"dns_lookup!("localhost", options: {"timeout": 30, "attempts": 5})"#,
+                source: r#"
+                    res = dns_lookup!("dns.google", options: {"timeout": 30, "attempts": 5})
+                    res.answers = map_values(res.answers) -> |value| {
+                      value.ttl = 600
+                      value
+                    }
+                    # remove extra responses for example
+                    res.answers = filter(res.answers) -> |_, value| {
+                        value.rData == "8.8.8.8"
+                    }
+                    # remove class since this is also dynamic
+                    res.additional = map_values(res.additional) -> |value| {
+                        del(value.class)
+                        value
+                    }
+                    res
+                    "#,
                 result: Ok(indoc!(
                     r#"{
                     "additional": [
-                        {
-                            "class": "CLASS65494",
-                            "domainName": "",
-                            "rData": "OPT ...",
-                            "recordType": "OPT",
-                            "recordTypeId": 41,
-                            "ttl": 0
-                        }
+                      {
+                        "domainName": "",
+                        "rData": "OPT ...",
+                        "recordType": "OPT",
+                        "recordTypeId": 41,
+                        "ttl": 0
+                      }
                     ],
                     "answers": [
-                        {
-                            "class": "IN",
-                            "domainName": "localhost",
-                            "rData": "127.0.0.1",
-                            "recordType": "A",
-                            "recordTypeId": 1,
-                            "ttl": 0
-                        }
+                      {
+                        "class": "IN",
+                        "domainName": "dns.google",
+                        "rData": "8.8.8.8",
+                        "recordType": "A",
+                        "recordTypeId": 1,
+                        "ttl": 600
+                      }
                     ],
                     "authority": [],
                     "fullRcode": 0,
                     "header": {
-                        "aa": true,
-                        "ad": false,
-                        "anCount": 1,
-                        "arCount": 1,
-                        "cd": false,
-                        "nsCount": 0,
-                        "opcode": 0,
-                        "qdCount": 1,
-                        "qr": true,
-                        "ra": true,
-                        "rcode": 0,
-                        "rd": true,
-                        "tc": false
+                      "aa": false,
+                      "ad": false,
+                      "anCount": 2,
+                      "arCount": 1,
+                      "cd": false,
+                      "nsCount": 0,
+                      "opcode": 0,
+                      "qdCount": 1,
+                      "qr": true,
+                      "ra": true,
+                      "rcode": 0,
+                      "rd": true,
+                      "tc": false
                     },
                     "question": [
-                        {
-                            "class": "IN",
-                            "domainName": "localhost",
-                            "questionType": "A",
-                            "questionTypeId": 1
-                        }
+                      {
+                        "class": "IN",
+                        "domainName": "dns.google",
+                        "questionType": "A",
+                        "questionTypeId": 1
+                      }
                     ],
                     "rcodeName": "NOERROR"
-                }"#
+                  }"#
                 )),
             },
             Example {
                 title: "Custom server",
-                source: r#"dns_lookup!("localhost", options: {"servers": ["dns.quad9.net"]})"#,
+                source: r#"
+                    res = dns_lookup!("dns.google", options: {"servers": ["dns.quad9.net"]})
+                    res.answers = map_values(res.answers) -> |value| {
+                      value.ttl = 600
+                      value
+                    }
+                    # remove extra responses for example
+                    res.answers = filter(res.answers) -> |_, value| {
+                        value.rData == "8.8.8.8"
+                    }
+                    # remove class since this is also dynamic
+                    res.additional = map_values(res.additional) -> |value| {
+                        del(value.class)
+                        value
+                    }
+                    res
+                    "#,
                 result: Ok(indoc!(
                     r#"{
                     "additional": [
-                        {
-                            "class": "CLASS65494",
-                            "domainName": "",
-                            "rData": "OPT ...",
-                            "recordType": "OPT",
-                            "recordTypeId": 41,
-                            "ttl": 0
-                        }
+                      {
+                        "domainName": "",
+                        "rData": "OPT ...",
+                        "recordType": "OPT",
+                        "recordTypeId": 41,
+                        "ttl": 0
+                      }
                     ],
                     "answers": [
-                        {
-                            "class": "IN",
-                            "domainName": "localhost",
-                            "rData": "127.0.0.1",
-                            "recordType": "A",
-                            "recordTypeId": 1,
-                            "ttl": 0
-                        }
+                      {
+                        "class": "IN",
+                        "domainName": "dns.google",
+                        "rData": "8.8.8.8",
+                        "recordType": "A",
+                        "recordTypeId": 1,
+                        "ttl": 600
+                      }
                     ],
                     "authority": [],
                     "fullRcode": 0,
                     "header": {
-                        "aa": true,
-                        "ad": false,
-                        "anCount": 1,
-                        "arCount": 1,
-                        "cd": false,
-                        "nsCount": 0,
-                        "opcode": 0,
-                        "qdCount": 1,
-                        "qr": true,
-                        "ra": true,
-                        "rcode": 0,
-                        "rd": true,
-                        "tc": false
+                      "aa": false,
+                      "ad": false,
+                      "anCount": 2,
+                      "arCount": 1,
+                      "cd": false,
+                      "nsCount": 0,
+                      "opcode": 0,
+                      "qdCount": 1,
+                      "qr": true,
+                      "ra": true,
+                      "rcode": 0,
+                      "rd": true,
+                      "tc": false
                     },
                     "question": [
-                        {
-                            "class": "IN",
-                            "domainName": "localhost",
-                            "questionType": "A",
-                            "questionTypeId": 1
-                        }
+                      {
+                        "class": "IN",
+                        "domainName": "dns.google",
+                        "questionType": "A",
+                        "questionTypeId": 1
+                      }
                     ],
                     "rcodeName": "NOERROR"
-                }"#
+                  }"#
                 )),
             },
         ]
@@ -626,6 +688,8 @@ mod tests {
     }
 
     #[test]
+    #[cfg(target_os = "linux")]
+    // MacOS resolver doesn't always handle localhost
     fn test_localhost() {
         let result = execute_dns_lookup(DnsLookupFn {
             value: expr!("localhost"),
@@ -648,11 +712,10 @@ mod tests {
     }
 
     #[test]
-    fn test_custom_class_and_type() {
+    fn test_custom_type() {
         let result = execute_dns_lookup(DnsLookupFn {
-            value: expr!("localhost"),
-            class: expr!("*"),
-            qtype: expr!("HTTPS"),
+            value: expr!("google.com"),
+            qtype: expr!("mx"),
             ..Default::default()
         });
 
@@ -661,10 +724,10 @@ mod tests {
         assert_eq!(
             result["question"].as_array_unwrap()[0],
             value!({
-                "questionTypeId": 65,
-                "questionType": "HTTPS",
-                "class": "*",
-                "domainName": "localhost"
+                "questionTypeId": 15,
+                "questionType": "MX",
+                "class": "IN",
+                "domainName": "google.com"
             })
         );
     }
@@ -706,7 +769,7 @@ mod tests {
     #[test]
     fn unknown_options_ignored() {
         let result = execute_dns_lookup(DnsLookupFn {
-            value: expr!("localhost"),
+            value: expr!("dns.google"),
             options: expr!({"test": "test"}),
             ..Default::default()
         });
@@ -717,7 +780,7 @@ mod tests {
     #[test]
     fn invalid_option_type() {
         let result = execute_dns_lookup_with_expected_error(DnsLookupFn {
-            value: expr!("localhost"),
+            value: expr!("dns.google"),
             options: expr!({"tcp": "yes"}),
             ..Default::default()
         });
@@ -729,7 +792,7 @@ mod tests {
     fn negative_int_type() {
         let attempts_val = -5;
         let result = execute_dns_lookup_with_expected_error(DnsLookupFn {
-            value: expr!("localhost"),
+            value: expr!("dns.google"),
             options: expr!({"attempts": attempts_val}),
             ..Default::default()
         });

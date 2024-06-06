@@ -1,6 +1,5 @@
 //! All types related to inserting one [`Kind`] into another.
 
-use crate::path;
 use crate::path::{BorrowedSegment, ValuePath};
 use crate::value::kind::Collection;
 use crate::value::Kind;
@@ -41,7 +40,7 @@ impl Kind {
 
         if let Some(segment) = iter.next() {
             match segment {
-                BorrowedSegment::Field(field) | BorrowedSegment::CoalesceEnd(field) => {
+                BorrowedSegment::Field(field) => {
                     // Field insertion converts the value to an object, so remove all other types.
                     *self = Self::object(self.object.clone().unwrap_or_else(Collection::empty));
 
@@ -182,44 +181,6 @@ impl Kind {
                         .entry(index.into())
                         .or_insert(unknown_kind)
                         .insert_recursive(iter, kind);
-                }
-                BorrowedSegment::CoalesceField(field) => {
-                    let field_kind = self.at_path(path!(field.as_ref()));
-                    if field_kind.is_undefined() {
-                        // this field is guaranteed to never match. Just skip it
-                        return self.insert_recursive(iter, kind);
-                    }
-
-                    // Need to collect to prevent infinite recursive iterator type.
-                    #[allow(clippy::needless_collect)]
-                    // The remaining segments if this match succeeded.
-                    let match_iter = iter
-                        .clone()
-                        .skip_while(|segment| matches!(segment, BorrowedSegment::CoalesceField(_)))
-                        // Skip the `CoalesceEnd`, which always exists after `CoalesceFields`.
-                        .skip(1)
-                        .collect::<Vec<_>>();
-
-                    // This is the resulting type, assuming the match succeeded.
-                    let mut match_type = self.clone();
-                    if let Some(object) = match_type.as_object_mut() {
-                        if let Some(field_kind) = object.known_mut().get_mut(&field.as_ref().into())
-                        {
-                            // "match_type" is only valid if the match succeeded, which means this field wasn't undefined.
-                            field_kind.remove_undefined();
-                            field_kind.insert_recursive(match_iter.into_iter(), kind.clone());
-                        }
-                    }
-
-                    if !field_kind.contains_undefined() {
-                        // This coalesce field will always be defined, so skip the others.
-                        *self = match_type;
-                        return;
-                    }
-
-                    // The first field may or may not succeed. Try both.
-                    self.insert_recursive(iter, kind);
-                    *self = self.clone().union(match_type);
                 }
                 BorrowedSegment::Invalid => { /* An invalid path does nothing. */ }
             };
@@ -585,75 +546,6 @@ mod tests {
                                 .or_object(BTreeMap::from([("foo".into(), Kind::bytes())])),
                         ),
                     ),
-                },
-            ),
-            (
-                "coalesce empty object",
-                TestCase {
-                    this: Kind::object(Collection::empty()),
-                    path: parse_value_path(".(a|b)").unwrap(),
-                    kind: Kind::bytes(),
-                    expected: Kind::object(Collection::from(BTreeMap::from([(
-                        "b".into(),
-                        Kind::bytes(),
-                    )]))),
-                },
-            ),
-            (
-                "coalesce first exists",
-                TestCase {
-                    this: Kind::object(Collection::from(BTreeMap::from([(
-                        "a".into(),
-                        Kind::integer(),
-                    )]))),
-                    path: parse_value_path(".(a|b)").unwrap(),
-                    kind: Kind::bytes(),
-                    expected: Kind::object(Collection::from(BTreeMap::from([(
-                        "a".into(),
-                        Kind::bytes(),
-                    )]))),
-                },
-            ),
-            (
-                "coalesce second exists",
-                TestCase {
-                    this: Kind::object(Collection::from(BTreeMap::from([(
-                        "b".into(),
-                        Kind::integer(),
-                    )]))),
-                    path: parse_value_path(".(a|b)").unwrap(),
-                    kind: Kind::bytes(),
-                    expected: Kind::object(Collection::from(BTreeMap::from([(
-                        "b".into(),
-                        Kind::bytes(),
-                    )]))),
-                },
-            ),
-            (
-                "coalesce both exist",
-                TestCase {
-                    this: Kind::object(Collection::from(BTreeMap::from([
-                        ("a".into(), Kind::integer()),
-                        ("b".into(), Kind::integer()),
-                    ]))),
-                    path: parse_value_path(".(a|b)").unwrap(),
-                    kind: Kind::bytes(),
-                    expected: Kind::object(Collection::from(BTreeMap::from([
-                        ("a".into(), Kind::bytes()),
-                        ("b".into(), Kind::integer()),
-                    ]))),
-                },
-            ),
-            (
-                "coalesce nested",
-                TestCase {
-                    this: Kind::object(Collection::from(BTreeMap::from([]))),
-                    path: parse_value_path(".(a|b).x").unwrap(),
-                    kind: Kind::bytes(),
-                    expected: Kind::object(Collection::from(BTreeMap::from([(
-                        "b".into(),
-                        Kind::object(BTreeMap::from([("x".into(), Kind::bytes())])),
-                    )]))),
                 },
             ),
             (
