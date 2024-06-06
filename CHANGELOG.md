@@ -4,7 +4,7 @@
 
 <!-- changelog start -->
 
-## [0.15.0 (2024-06-06)]
+## [0.16.0 (2024-06-06)]
 
 
 ### Breaking Changes & Upgrade Guide
@@ -104,7 +104,7 @@
 ### New Features
 
 - Introduced an unused expression checker. It's designed to detect and report unused expressions,
-  helping users to clean up and optimize their VRL scripts. Note that this checker will not catch everything, 
+  helping users to clean up and optimize their VRL scripts. Note that this checker will not catch everything,
   but it does aim to eliminate false positives. For example, shadowed variables are not reported as unused.
   (https://github.com/vectordotdev/vrl/pull/622)
 - Add a `replace_with` function that is similar to `replace` but takes a closure instead of a
@@ -122,7 +122,7 @@
 
 ## `0.9.0` (2023-12-12)
 * `parse_regex_all` `pattern` param  can now be resolved from a variable
-* fixed `parse_json` data corruption issue for numbers greater or equal to `i64::MAX` 
+* fixed `parse_json` data corruption issue for numbers greater or equal to `i64::MAX`
 * support timestamp comparison using operators <, <=, >, >=
 
 ## `0.8.0` (2023-10-31)
