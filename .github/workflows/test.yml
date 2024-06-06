@@ -41,6 +41,7 @@ jobs:
         run: ./scripts/format_check.sh
 
   test:
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
@@ -52,6 +53,7 @@ jobs:
         run: ./scripts/tests.sh
 
   vrl:
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
