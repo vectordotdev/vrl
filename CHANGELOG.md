@@ -16,10 +16,7 @@
 - Added experimental `dns_lookup` function. It should be used with caution, since it involves network
   calls and is therefore very slow.
 
-  authors: esensar (https://github.com/vectordotdev/vrl/pull/764)
 - Added `psl` argument to the `parse_etld` function. It enables customizing used public suffix list. If none is provided the default (https://publicsuffix.org/list/public_suffix_list.dat) is used, which is that was used before this change.
-
-  authors: esensar (https://github.com/vectordotdev/vrl/pull/851)
 
 ### Enhancements
 
@@ -90,8 +87,6 @@
 
 - Introduced a `redactor` option in `redact` function to enable the substitution of redacted content with either a custom string or a hash representation. (https://github.com/vectordotdev/vrl/pull/633)
 - Add VRL function `get_timezone_name` to return the configured/resolved IANA timezone name.
-
-  authors: klondikedragon (https://github.com/vectordotdev/vrl/pull/671)
 
 ### Fixes
 
