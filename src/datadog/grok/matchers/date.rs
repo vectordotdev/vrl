@@ -162,7 +162,7 @@ pub fn time_format_to_regex(format: &str, with_captures: bool) -> Result<RegexRe
                             fraction_char.to_string()
                         };
                         if with_captures {
-                            // add the noncapture group for the fraction of a second so we can convert value to a dot-leading format later
+                            // add the non-capturing group for the fraction of a second so we can convert value to a dot-leading format later
                             regex.push_str(
                                 format!("(?P<{}>{})", FRACTION_CHAR_GROUP, fraction_char,).as_str(),
                             );
