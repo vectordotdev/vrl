@@ -141,7 +141,7 @@ pub fn time_format_to_regex(format: &str, with_captures: bool) -> Result<RegexRe
     while let Some(&c) = chars.peek() {
         if c.is_ascii_uppercase() || c.is_ascii_lowercase() {
             let token: String = chars.by_ref().peeking_take_while(|&cn| cn == c).collect();
-            match token.chars().next().unwrap() {
+            match c {
                 'h' | 'H' | 'm' | 's' | 'Y' | 'x' | 'c' | 'C' | 'e' | 'D' | 'w' => {
                     regex.push_str(format!("[\\d]{{{}}}", token.len()).as_str())
                 }
@@ -153,30 +153,24 @@ pub fn time_format_to_regex(format: &str, with_captures: bool) -> Result<RegexRe
                 'y' => regex.push_str(format!("[\\d]{{{}}}", token.len()).as_str()),
                 // decimal fraction of a second
                 'S' => {
-                    match regex.chars().last() {
-                        // add the capture group for the fraction of a second so we can convert value to a dot-leading format later
-                        Some(fraction_char) => {
-                            regex.pop();
-                            if with_captures {
-                                regex.push_str(
-                                    format!(
-                                        "(?P<{}>{})[\\d]{{{}}}",
-                                        FRACTION_CHAR_GROUP,
-                                        fraction_char,
-                                        token.len()
-                                    )
-                                    .as_str(),
-                                );
-                            } else {
-                                regex.push_str(
-                                    format!("{}[\\d]{{{}}}", fraction_char, token.len()).as_str(),
-                                );
-                            }
-                        }
-                        _ => {
-                            regex.push_str(format!("[\\d]{{{}}})", token.len()).as_str());
+                    if let Some(fraction_char) = regex.chars().last() {
+                        regex.pop(); // drop the fraction character
+                        let fraction_char = if fraction_char == '.' {
+                            regex.pop(); // drop the escape character for .
+                            "\\.".to_string() // escape . in regex
+                        } else {
+                            fraction_char.to_string()
+                        };
+                        if with_captures {
+                            // add the capture group for the fraction of a second so we can convert value to a dot-leading format later
+                            regex.push_str(
+                                format!("(?P<{}>{})", FRACTION_CHAR_GROUP, fraction_char,).as_str(),
+                            );
+                        } else {
+                            regex.push_str(format!("{}", fraction_char).as_str());
                         }
                     }
+                    regex.push_str(format!("[\\d]{{{}}}", token.len()).as_str());
                 }
                 // Month number
                 'M' if token.len() == 1 => regex.push_str("[\\d]{1,2}"), // with 0-padding
@@ -236,13 +230,12 @@ pub fn time_format_to_regex(format: &str, with_captures: bool) -> Result<RegexRe
                     .collect();
                 regex.push_str(literal.as_str());
             }
-        } else if c == '.' {
-            // escape .
-            {
-                regex.push_str("\\.");
-            }
         } else {
-            regex.push(chars.next().unwrap());
+            if c == '.' {
+                regex.push_str("\\"); // escape . in regex
+            }
+            regex.push(c);
+            chars.next();
         }
     }
     Ok(RegexResult { regex, with_tz })
