@@ -366,15 +366,14 @@ fn resolves_match_function(
                 Some(args) if !args.is_empty() && args.len() <= 2 => {
                     if let ast::FunctionArgument::Arg(Value::Bytes(b)) = &args[0] {
                         let format = String::from_utf8_lossy(b);
+                        // get regex with captures, so that we can extract timezone and fraction char in the filter
                         let result = date::time_format_to_regex(&format, true)
                             .map_err(|_e| Error::InvalidFunctionArguments(match_fn.name.clone()))?;
-                        let mut regex_opt = None;
-                        if result.tz_captured {
-                            regex_opt = Some(regex::Regex::new(&result.regex).map_err(|error| {
-                                error!(message = "Error compiling regex", regex = %result.regex, %error);
-                                Error::InvalidFunctionArguments(match_fn.name.clone())
-                            })?);
-                        }
+                        let filter_re = regex::Regex::new(&result.regex).map_err(|error| {
+                            error!(message = "Error compiling regex", regex = %result.regex, %error);
+                            Error::InvalidFunctionArguments(match_fn.name.clone())
+                        })?;
+
                         let strp_format = date::convert_time_format(&format).map_err(|error| {
                             error!(message = "Error compiling regex", regex = %result.regex, %error);
                             Error::InvalidFunctionArguments(match_fn.name.clone())
@@ -393,19 +392,21 @@ fn resolves_match_function(
                         let filter = GrokFilter::Date(DateFilter {
                             original_format: format.to_string(),
                             strp_format,
-                            regex_with_tz: regex_opt,
+                            regex: filter_re,
                             target_tz,
                             tz_aware: result.with_tz,
                         });
-                        let result =
-                            date::time_format_to_regex(&format, false).map_err(|error| {
+                        // get the regex without captures, so that we can append it to the grok pattern
+                        let grok_re = date::time_format_to_regex(&format, false)
+                            .map_err(|error| {
                                 error!(message = "Invalid time format", format = %format, %error);
                                 Error::InvalidFunctionArguments(match_fn.name.clone())
-                            })?;
+                            })?
+                            .regex;
                         if let Some(grok_alias) = &grok_alias {
                             context.register_filter(grok_alias, filter);
                         }
-                        context.append_regex(&result.regex);
+                        context.append_regex(&grok_re);
                         return Ok(());
                     }
                     Err(Error::InvalidFunctionArguments(match_fn.name.clone()))

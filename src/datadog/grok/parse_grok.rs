@@ -545,6 +545,26 @@ mod tests {
                 "11/16/18 19:40:59 GMT",
                 Ok(Value::Integer(1542397259000)),
             ),
+            (
+                r#"%{date("M/d/yy HH:mm:ss,SSS z"):field}"#,
+                "11/16/18 19:40:59,123 GMT",
+                Ok(Value::Integer(1542397259123)),
+            ),
+            (
+                r#"%{date("M/d/yy HH:mm:ss,SSSS z"):field}"#,
+                "11/16/18 19:40:59,1234 GMT",
+                Ok(Value::Integer(1542397259123)),
+            ),
+            (
+                r#"%{date("M/d/yy HH:mm:ss,SSSSSSSSS z"):field}"#,
+                "11/16/18 19:40:59,123456789 GMT",
+                Ok(Value::Integer(1542397259123)),
+            ),
+            (
+                r#"%{date("M/d/yy HH:mm:ss.SSSS z"):field}"#,
+                "11/16/18 19:40:59.1234 GMT",
+                Ok(Value::Integer(1542397259123)),
+            ),
         ]);
 
         // check error handling
