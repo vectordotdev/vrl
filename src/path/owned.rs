@@ -14,6 +14,7 @@ use crate::value::KeyString;
 /// A lookup path.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(try_from = "String", into = "String")]
+#[cfg_attr(feature = "proptest", derive(proptest_derive::Arbitrary))]
 pub struct OwnedValuePath {
     pub segments: Vec<OwnedSegment>,
 }
