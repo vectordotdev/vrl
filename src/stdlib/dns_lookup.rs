@@ -4,6 +4,7 @@ use crate::compiler::prelude::*;
 mod non_wasm {
     use std::collections::BTreeMap;
     use std::net::ToSocketAddrs;
+    use std::thread;
     use std::time::Duration;
 
     use domain::base::iana::Class;
@@ -12,6 +13,7 @@ mod non_wasm {
     use domain::resolv::stub::conf::{ResolvConf, ResolvOptions, ServerConf, Transport};
     use domain::resolv::stub::Answer;
     use domain::resolv::StubResolver;
+    use tokio::runtime::Handle;
 
     use crate::compiler::prelude::*;
     use crate::value::Value;
@@ -34,9 +36,18 @@ mod non_wasm {
             .map_err(|err| format!("parsing query class failed: {err}"))?;
 
         let conf = build_options(options.try_object()?)?;
-        let answer = StubResolver::run_with_conf(conf, move |stub| async move {
-            stub.query((host, qtype, qclass)).await
-        })
+        let answer = match Handle::try_current() {
+            Ok(_) => thread::spawn(move || {
+                StubResolver::run_with_conf(conf, move |stub| async move {
+                    stub.query((host, qtype, qclass)).await
+                })
+            })
+            .join()
+            .map_err(|_| format!("starting a thread for the lookup failed"))?,
+            Err(_) => StubResolver::run_with_conf(conf, move |stub| async move {
+                stub.query((host, qtype, qclass)).await
+            }),
+        }
         .map_err(|err| format!("query failed: {err}"))?;
 
         Ok(parse_answer(answer)?.into())
