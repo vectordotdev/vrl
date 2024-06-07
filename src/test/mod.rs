@@ -94,7 +94,7 @@ pub fn run_tests<T>(
 
     for mut test in tests {
         if category != test.category {
-            category = test.category.clone();
+            category.clone_from(&test.category);
             println!("{}", Colour::Fixed(3).bold().paint(category.to_string()));
         }
 

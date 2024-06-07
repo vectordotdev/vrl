@@ -275,7 +275,11 @@ fn verify_overwritable(
             Target::Internal(ident, _) => format!("{ident}{path}"),
             Target::External(_) => {
                 if path.is_root() && remainder_str.starts_with('.') {
-                    remainder_str = remainder_str[1..].to_owned();
+                    // See https://github.com/rust-lang/rust-clippy/pull/12756
+                    #[allow(clippy::assigning_clones)]
+                    {
+                        remainder_str = remainder_str[1..].to_owned();
+                    }
                 }
 
                 format!(".{path}")
