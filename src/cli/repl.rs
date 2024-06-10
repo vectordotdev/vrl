@@ -8,8 +8,7 @@ use crate::compiler::state::{RuntimeState, TypeState};
 use crate::compiler::TimeZone;
 use crate::compiler::{compile_with_state, CompileConfig, Function, Program, Target, VrlRuntime};
 use crate::diagnostic::Formatter;
-use crate::owned_value_path;
-use crate::path::OwnedTargetPath;
+use crate::owned_metadata_path;
 use crate::value::Secrets;
 use crate::value::Value;
 use indoc::indoc;
@@ -168,7 +167,7 @@ fn resolve(
 ) -> Result<Value, String> {
     let mut config = CompileConfig::default();
     // The CLI should be moved out of the "vrl" module, and then it can use the `vector-core::compile_vrl` function which includes this automatically
-    config.set_read_only_path(OwnedTargetPath::metadata(owned_value_path!("vector")), true);
+    config.set_read_only_path(owned_metadata_path!("vector"), true);
 
     let program = match compile_with_state(program, stdlib_functions, state, config) {
         Ok(result) => result.program,
