@@ -3,7 +3,9 @@ use crate::compiler::prelude::*;
 #[cfg(not(target_arch = "wasm32"))]
 mod non_wasm {
     use std::collections::BTreeMap;
+    use std::io::Error;
     use std::net::ToSocketAddrs;
+    use std::sync::{mpsc, Arc, Mutex};
     use std::thread;
     use std::time::Duration;
 
@@ -13,10 +15,68 @@ mod non_wasm {
     use domain::resolv::stub::conf::{ResolvConf, ResolvOptions, ServerConf, Transport};
     use domain::resolv::stub::Answer;
     use domain::resolv::StubResolver;
+    use once_cell::sync::Lazy;
     use tokio::runtime::Handle;
 
     use crate::compiler::prelude::*;
     use crate::value::Value;
+
+    static WORKER: Lazy<Worker> = Lazy::new(|| Worker::new());
+
+    type Job<T> = Box<dyn FnOnce() -> T + Send + 'static>;
+    struct JobHandle<T> {
+        job: Job<T>,
+        result: Arc<mpsc::Sender<T>>,
+    }
+
+    struct Worker {
+        thread: Option<thread::JoinHandle<()>>,
+        queue: Option<mpsc::Sender<JobHandle<Result<Answer, Error>>>>,
+    }
+
+    impl Worker {
+        fn new() -> Self {
+            let (sender, receiver) = mpsc::channel::<JobHandle<Result<Answer, Error>>>();
+            let receiver = Arc::new(Mutex::new(receiver));
+            Self {
+                thread: Some(thread::spawn(move || loop {
+                    match receiver.lock().unwrap().recv() {
+                        Ok(handle) => {
+                            let result = (handle.job)();
+                            handle.result.as_ref().send(result).unwrap();
+                        }
+                        Err(_) => todo!(),
+                    }
+                })),
+                queue: Some(sender),
+            }
+        }
+
+        fn execute<F>(&self, f: F) -> Result<Answer, Error>
+        where
+            F: FnOnce() -> Result<Answer, Error> + Send + 'static,
+        {
+            let job = Box::new(f);
+            let (sender, receiver) = mpsc::channel();
+            let receiver = Arc::new(Mutex::new(receiver));
+            let handle = JobHandle {
+                job,
+                result: Arc::new(sender),
+            };
+
+            self.queue.as_ref().unwrap().send(handle).unwrap();
+            return receiver.lock().unwrap().recv().unwrap();
+        }
+    }
+
+    impl Drop for Worker {
+        fn drop(&mut self) {
+            drop(self.queue.take());
+            if let Some(thread) = self.thread.take() {
+                thread.join().unwrap();
+            }
+        }
+    }
 
     fn dns_lookup(value: Value, qtype: Value, qclass: Value, options: Value) -> Resolved {
         let host: Name<Vec<_>> = value
@@ -37,13 +97,11 @@ mod non_wasm {
 
         let conf = build_options(options.try_object()?)?;
         let answer = match Handle::try_current() {
-            Ok(_) => thread::spawn(move || {
+            Ok(_) => WORKER.execute(move || {
                 StubResolver::run_with_conf(conf, move |stub| async move {
                     stub.query((host, qtype, qclass)).await
                 })
-            })
-            .join()
-            .map_err(|_| format!("starting a thread for the lookup failed"))?,
+            }),
             Err(_) => StubResolver::run_with_conf(conf, move |stub| async move {
                 stub.query((host, qtype, qclass)).await
             }),
