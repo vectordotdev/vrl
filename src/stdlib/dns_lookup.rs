@@ -21,7 +21,7 @@ mod non_wasm {
     use crate::compiler::prelude::*;
     use crate::value::Value;
 
-    static WORKER: Lazy<Worker> = Lazy::new(|| Worker::new());
+    static WORKER: Lazy<Worker> = Lazy::new(Worker::new);
 
     type Job<T> = Box<dyn FnOnce() -> T + Send + 'static>;
     struct JobHandle<T> {
