@@ -131,4 +131,12 @@ mod tests {
             })
         );
     }
+
+    #[test]
+    fn parses_string_with_escaped_quote_followed_by_multibyte_character() {
+        let input = r#"%{regex("[^\\\"“]*"):traefik.backend_url}"#;
+        parse_grok_pattern(input).unwrap_or_else(|error| {
+            panic!("Problem parsing grok: {:?}", error);
+        });
+    }
 }

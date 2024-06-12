@@ -15,8 +15,7 @@ use crate::compiler::{
     VrlRuntime,
 };
 use crate::diagnostic::Formatter;
-use crate::owned_value_path;
-use crate::path::OwnedTargetPath;
+use crate::owned_metadata_path;
 use crate::value::Secrets;
 use crate::value::Value;
 use clap::Parser;
@@ -131,7 +130,7 @@ fn run(opts: &Opts, stdlib_functions: Vec<Box<dyn Function>>) -> Result<(), Erro
 
         // The CLI should be moved out of the "vrl" module, and then it can use the `vector-core::compile_vrl` function which includes this automatically
         let mut config = CompileConfig::default();
-        config.set_read_only_path(OwnedTargetPath::metadata(owned_value_path!("vector")), true);
+        config.set_read_only_path(owned_metadata_path!("vector"), true);
 
         let state = TypeState::default();
 
