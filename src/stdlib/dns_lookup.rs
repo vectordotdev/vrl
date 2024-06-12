@@ -40,13 +40,17 @@ mod non_wasm {
             let receiver = Arc::new(Mutex::new(receiver));
             Self {
                 thread: Some(thread::spawn(move || loop {
-                    match receiver.lock().unwrap().recv() {
-                        Ok(handle) => {
-                            let result = (handle.job)();
-                            handle.result.as_ref().send(result).unwrap();
-                        }
-                        Err(_) => todo!(),
-                    }
+                    let handle = receiver
+                        .lock()
+                        .expect("Locking job queue failed")
+                        .recv()
+                        .expect("Worker queue closed");
+                    let result = (handle.job)();
+                    handle
+                        .result
+                        .as_ref()
+                        .send(result)
+                        .expect("Sending result back from worker failed");
                 })),
                 queue: Some(sender),
             }
@@ -64,8 +68,16 @@ mod non_wasm {
                 result: Arc::new(sender),
             };
 
-            self.queue.as_ref().unwrap().send(handle).unwrap();
-            return receiver.lock().unwrap().recv().unwrap();
+            self.queue
+                .as_ref()
+                .expect("Expected queue to be present in the worker")
+                .send(handle)
+                .expect("Submitting job to the queue failed");
+            return receiver
+                .lock()
+                .expect("Locking result receiver failed")
+                .recv()
+                .expect("Job result channel closed");
         }
     }
 
