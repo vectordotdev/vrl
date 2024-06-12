@@ -4,6 +4,7 @@ allow = [
   "CC0-1.0",
   "ISC",
   "OpenSSL",
+  "Unicode-3.0",
   "Unlicense",
   "BSD-2-Clause",
   "BSD-3-Clause",

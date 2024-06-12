@@ -40,9 +40,9 @@ dependencies = [
 
 [[package]]
 name = "afl"
-version = "0.15.7"
+version = "0.15.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "df319d2080b52b5f8cfe9b685d1a70549c4fe2d12b60ecad48cf6cc202c82100"
+checksum = "1ff7c9e6d8b0f28402139fcbff21a22038212c94c44ecf90812ce92f384308f6"
 dependencies = [
  "home",
  "libc",
@@ -2271,9 +2271,9 @@ dependencies = [
 
 [[package]]
 name = "psl"
-version = "2.1.42"
+version = "2.1.43"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "71cad2f472a847f48e9b6d4712238b77ce586801c4b1702dc6c026290b25c6ff"
+checksum = "ecec637c2e9d0c8c4bf78df069a53a103ebe3dbd0dc7eff1d60c1006a1c97254"
 dependencies = [
  "psl-types",
 ]
@@ -3272,9 +3272,9 @@ checksum = "497961ef93d974e23eb6f433eb5fe1b7930b659f06d12dec6fc44a8f554c0bba"
 
 [[package]]
 name = "uaparser"
-version = "0.6.3"
+version = "0.6.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2a4d8fcdf9685cad74cecf1553af084ab4c494e833c47d3c50ca32cba8035545"
+checksum = "a4c9e1c3f893758f154004195fc2d2c52fbda462df725220ceaef830ac29affa"
 dependencies = [
  "derive_more",
  "lazy_static",
