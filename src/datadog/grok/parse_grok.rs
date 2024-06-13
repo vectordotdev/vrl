@@ -441,11 +441,6 @@ mod tests {
     fn supports_date_matcher() {
         test_grok_pattern(vec![
             (
-                r#"%{date("HH:mm:ss"):field}"#,
-                "14:20:15",
-                Ok(Value::Integer(51615000)),
-            ),
-            (
                 r#"%{date("dd/MMM/yyyy"):field}"#,
                 "06/Mar/2013",
                 Ok(Value::Integer(1362528000000)),
@@ -564,6 +559,18 @@ mod tests {
                 r#"%{date("M/d/yy HH:mm:ss.SSSS z"):field}"#,
                 "11/16/18 19:40:59.1234 GMT",
                 Ok(Value::Integer(1542397259123)),
+            ),
+            // year is missing - assume the current year
+            (
+                r#"%{date("d MMM HH:mm:ss"):field}"#,
+                "9 Oct 13:06:36",
+                Ok(Value::Integer(1728479196000)),
+            ),
+            // date is missing - assume the current date
+            (
+                r#"%{date("HH:mm:ss"):field}"#,
+                "14:20:15",
+                Ok(Value::Integer(1718288415000)),
             ),
         ]);
 
@@ -1069,6 +1076,23 @@ mod tests {
                 "value" => "Harry Potter"
               }
             }
+            })),
+        )]);
+    }
+
+    #[test]
+    fn parses_sample() {
+        test_full_grok(vec![(
+            r#"\[%{date("yyyy-MM-dd HH:mm:ss,SSS"):date}\]\[%{notSpace:level}\s*\]\[%{notSpace:logger.thread_name}-#%{integer:logger.thread_id}\]\[%{notSpace:logger.name}\] .*"#,
+            r#"[2020-04-03 07:01:55,248][INFO ][exchange-worker-#43][FileWriteAheadLogManager] Started write-ahead log manager [mode=LOG_ONLY]"#,
+            Ok(Value::from(btreemap! {
+              "date"=> 1585897315248_i64,
+              "level"=> "INFO",
+              "logger"=> btreemap! {
+                "name"=> "FileWriteAheadLogManager",
+                "thread_id"=> 43,
+                "thread_name"=> "exchange-worker"
+              }
             })),
         )]);
     }
