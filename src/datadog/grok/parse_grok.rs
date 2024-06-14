@@ -101,7 +101,7 @@ fn apply_grok_rule(source: &str, grok_rule: &GrokRule) -> Result<Value, Error> {
 
 #[cfg(test)]
 mod tests {
-    use chrono::{Datelike, Timelike};
+    use chrono::{Datelike, DateTime, Timelike};
     use crate::btreemap;
     use crate::value::Value;
     use ordered_float::NotNan;
@@ -440,6 +440,9 @@ mod tests {
 
     #[test]
     fn supports_date_matcher() {
+        let today = DateTime::from_timestamp_millis(chrono::Utc::now().timestamp_millis()).unwrap();
+        let day_before = DateTime::from_timestamp_millis(today.timestamp_millis() - 86400000).unwrap();
+        let day_after = DateTime::from_timestamp_millis(today.timestamp_millis() + 86400000).unwrap();
         test_grok_pattern(vec![
             (
                 r#"%{date("dd/MMM/yyyy"):field}"#,
@@ -564,26 +567,26 @@ mod tests {
             // date is missing - assume the current day, if time is in the past
             (
                 r#"%{date("HH:mm:ss"):field}"#,
-                "00:00:00",
-                Ok(Value::Integer(chrono::Utc::now().with_hour(00).unwrap().with_minute(00).unwrap().with_second(00).unwrap().timestamp() * 1000))
+                &format!("{}:{}:{}", day_before.hour(), day_before.minute(), day_before.second()),
+                Ok(Value::Integer(today.timestamp() * 1000))
             ),
             // otherwise if time is in the future - assume the previous day
             (
                 r#"%{date("HH:mm:ss"):field}"#,
-                "23:59:59",
-                Ok(Value::Integer(chrono::Utc::now().with_day(chrono::Utc::now().day() - 1).unwrap().with_hour(23).unwrap().with_minute(59).unwrap().with_second(59).unwrap().timestamp() * 1000))
+                &format!("{}:{}:{}", day_after.hour(), day_after.minute(), day_after.second()),
+                Ok(Value::Integer(today.timestamp() * 1000))
             ),
             // if the year is missing - assume the current year if the date is in the past
             (
-                r#"%{date("dd/MM HH:mm:ss"):field}"#,
-                &format!("{}/{} 13:06:36", chrono::Utc::now().day() - 1, chrono::Utc::now().month()),
-                Ok(Value::Integer(chrono::Utc::now().with_hour(13).unwrap().with_minute(06).unwrap().with_second(36).unwrap().timestamp_millis()- 86400000)),
+                r#"%{date("d/M HH:mm:ss"):field}"#,
+                &format!("{}/{} {}:{}:{}", day_before.day(), day_before.month(), day_before.hour(), day_before.minute(), day_before.second()),
+                Ok(Value::Integer(day_before.timestamp() * 1000)),
             ),
             // otherwise if the date is in the future, assume the previous year
             (
-                r#"%{date("dd/MM HH:mm:ss"):field}"#,
-                &format!("{}/{} 13:06:36", chrono::Utc::now().day() + 1, chrono::Utc::now().month()),
-                Ok(Value::Integer(chrono::Utc::now().with_hour(13).unwrap().with_minute(06).unwrap().with_second(36).unwrap().timestamp_millis() + 86400000)),
+                r#"%{date("d/M HH:mm:ss"):field}"#,
+                &format!("{}/{} {}:{}:{}", day_after.day(), day_after.month(), day_after.hour(), day_after.minute(), day_after.second()),
+                Ok(day_after.with_year(day_after.year() - 1).map(|t| t.timestamp() * 1000).map(Value::from).unwrap_or(Value::Null)),
             ),
         ]);
 

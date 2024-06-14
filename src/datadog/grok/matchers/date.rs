@@ -419,9 +419,14 @@ pub fn apply_date_filter(value: &Value, filter: &DateFilter) -> Result<Value, Gr
         if let Ok(timestamp) = timestamp {
             if timestamp > now {
                 let timestamp = DateTime::from_timestamp_millis(timestamp);
-                if let Some(Some(timestamp)) = timestamp.map(|t| t.with_year(t.year() - 1)) {
-                    return Ok(Value::from(timestamp.timestamp_millis()));
-                }
+                return match timestamp.map(|t| t.with_year(t.year() - 1)) {
+                    Some(Some(timestamp)) => {
+                        Ok(Value::from(timestamp.timestamp_millis()))
+                    }
+                    _ => {
+                        Ok(Value::Null)
+                    }
+                };
             }
         }
     }
