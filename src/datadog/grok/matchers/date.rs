@@ -275,7 +275,7 @@ pub fn apply_date_filter(value: &Value, filter: &DateFilter) -> Result<Value, Gr
             }
 
             // append month if it's not present in the value
-            if day_is_missing {
+            if month_is_missing {
                 value_to_parse = format!("{} {}", Utc::now().month(), value_to_parse);
             }
 
@@ -401,6 +401,30 @@ pub fn apply_date_filter(value: &Value, filter: &DateFilter) -> Result<Value, Gr
             value.to_string(),
         )),
     };
+
+    if day_is_missing {
+        // if the time is in the future, assume the previous day
+        let now = Utc::now().timestamp_millis();
+        if let Ok(timestamp) = timestamp {
+            if timestamp > now {
+                let timestamp = DateTime::from_timestamp_millis(timestamp);
+                if let Some(Some(timestamp)) = timestamp.map(|t| t.with_day(t.day() - 1)) {
+                    return Ok(Value::from(timestamp.timestamp_millis()));
+                }
+            }
+        }
+    } else if year_is_missing {
+        // if the date is in the future, assume the previous year
+        let now = Utc::now().timestamp_millis();
+        if let Ok(timestamp) = timestamp {
+            if timestamp > now {
+                let timestamp = DateTime::from_timestamp_millis(timestamp);
+                if let Some(Some(timestamp)) = timestamp.map(|t| t.with_year(t.year() - 1)) {
+                    return Ok(Value::from(timestamp.timestamp_millis()));
+                }
+            }
+        }
+    }
 
     timestamp.map(Value::from)
 }

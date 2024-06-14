@@ -101,6 +101,7 @@ fn apply_grok_rule(source: &str, grok_rule: &GrokRule) -> Result<Value, Error> {
 
 #[cfg(test)]
 mod tests {
+    use chrono::{Datelike, Timelike};
     use crate::btreemap;
     use crate::value::Value;
     use ordered_float::NotNan;
@@ -560,17 +561,29 @@ mod tests {
                 "11/16/18 19:40:59.1234 GMT",
                 Ok(Value::Integer(1542397259123)),
             ),
-            // year is missing - assume the current year
-            (
-                r#"%{date("d MMM HH:mm:ss"):field}"#,
-                "9 Oct 13:06:36",
-                Ok(Value::Integer(1728479196000)),
-            ),
-            // date is missing - assume the current date
+            // date is missing - assume the current day, if time is in the past
             (
                 r#"%{date("HH:mm:ss"):field}"#,
-                "14:20:15",
-                Ok(Value::Integer(1718288415000)),
+                "00:00:00",
+                Ok(Value::Integer(chrono::Utc::now().with_hour(00).unwrap().with_minute(00).unwrap().with_second(00).unwrap().timestamp() * 1000))
+            ),
+            // otherwise if time is in the future - assume the previous day
+            (
+                r#"%{date("HH:mm:ss"):field}"#,
+                "23:59:59",
+                Ok(Value::Integer(chrono::Utc::now().with_day(chrono::Utc::now().day() - 1).unwrap().with_hour(23).unwrap().with_minute(59).unwrap().with_second(59).unwrap().timestamp() * 1000))
+            ),
+            // if the year is missing - assume the current year if the date is in the past
+            (
+                r#"%{date("dd/MM HH:mm:ss"):field}"#,
+                &format!("{}/{} 13:06:36", chrono::Utc::now().day() - 1, chrono::Utc::now().month()),
+                Ok(Value::Integer(chrono::Utc::now().with_hour(13).unwrap().with_minute(06).unwrap().with_second(36).unwrap().timestamp_millis()- 86400000)),
+            ),
+            // otherwise if the date is in the future, assume the previous year
+            (
+                r#"%{date("dd/MM HH:mm:ss"):field}"#,
+                &format!("{}/{} 13:06:36", chrono::Utc::now().day() + 1, chrono::Utc::now().month()),
+                Ok(Value::Integer(chrono::Utc::now().with_hour(13).unwrap().with_minute(06).unwrap().with_second(36).unwrap().timestamp_millis() + 86400000)),
             ),
         ]);
 
