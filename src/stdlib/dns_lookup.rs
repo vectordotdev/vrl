@@ -84,6 +84,7 @@ mod non_wasm {
             if let Some(thread) = self.thread.take() {
                 thread.join().unwrap();
             }
+            drop(self.result_receiver.take());
         }
     }
 
