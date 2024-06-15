@@ -22,37 +22,37 @@ mod non_wasm {
     use crate::value::Value;
 
     static WORKER: Lazy<Worker> = Lazy::new(Worker::new);
+    const CHANNEL_CAPACITY: usize = 0;
 
     type Job<T> = Box<dyn FnOnce() -> T + Send + 'static>;
-    struct JobHandle<T> {
-        job: Job<T>,
-        result: Arc<mpsc::Sender<T>>,
-    }
 
     struct Worker {
         thread: Option<thread::JoinHandle<()>>,
-        queue: Option<mpsc::Sender<JobHandle<Result<Answer, Error>>>>,
+        queue: Option<mpsc::SyncSender<Job<Result<Answer, Error>>>>,
+        result_receiver: Option<Mutex<mpsc::Receiver<Result<Answer, Error>>>>,
     }
 
     impl Worker {
         fn new() -> Self {
-            let (sender, receiver) = mpsc::channel::<JobHandle<Result<Answer, Error>>>();
+            let (sender, receiver) =
+                mpsc::sync_channel::<Job<Result<Answer, Error>>>(CHANNEL_CAPACITY);
+            let (result_sender, result_receiver) =
+                mpsc::sync_channel::<Result<Answer, Error>>(CHANNEL_CAPACITY);
             let receiver = Arc::new(Mutex::new(receiver));
             Self {
                 thread: Some(thread::spawn(move || loop {
-                    let handle = receiver
+                    let job = receiver
                         .lock()
                         .expect("Locking job queue failed")
                         .recv()
                         .expect("Worker queue closed");
-                    let result = (handle.job)();
-                    handle
-                        .result
-                        .as_ref()
+                    let result = job();
+                    result_sender
                         .send(result)
                         .expect("Sending result back from worker failed");
                 })),
                 queue: Some(sender),
+                result_receiver: Some(result_receiver.into()),
             }
         }
 
@@ -61,19 +61,16 @@ mod non_wasm {
             F: FnOnce() -> Result<Answer, Error> + Send + 'static,
         {
             let job = Box::new(f);
-            let (sender, receiver) = mpsc::channel();
-            let receiver = Arc::new(Mutex::new(receiver));
-            let handle = JobHandle {
-                job,
-                result: Arc::new(sender),
-            };
 
             self.queue
                 .as_ref()
                 .expect("Expected queue to be present in the worker")
-                .send(handle)
+                .send(job)
                 .expect("Submitting job to the queue failed");
-            return receiver
+            return self
+                .result_receiver
+                .as_ref()
+                .expect("Expected result queue to be present in the worker")
                 .lock()
                 .expect("Locking result receiver failed")
                 .recv()
