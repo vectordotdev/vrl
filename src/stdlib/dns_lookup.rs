@@ -1,3 +1,8 @@
+//! Function providing DNS lookup functionality
+//! This function involves network calls and should therefore be avoided in most pipelines
+//! Implementation also relies on a single threaded worker for executing calls, blocking on each
+//! call until result is received, which will greatly reduce performance
+//! Use only if absolutely needed
 use crate::compiler::prelude::*;
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -21,6 +26,9 @@ mod non_wasm {
     use crate::compiler::prelude::*;
     use crate::value::Value;
 
+    // Single threaded worker for executing DNS requests
+    // Currently blocks on each request until result is received
+    // It should be avoided unless absolutely needed
     static WORKER: Lazy<Worker> = Lazy::new(Worker::new);
     const CHANNEL_CAPACITY: usize = 0;
 
@@ -33,6 +41,7 @@ mod non_wasm {
     }
 
     impl Worker {
+        // Creates a thread and 2 channels - one for jobs and one for results
         fn new() -> Self {
             let (sender, receiver) =
                 mpsc::sync_channel::<Job<Result<Answer, Error>>>(CHANNEL_CAPACITY);
@@ -56,6 +65,8 @@ mod non_wasm {
             }
         }
 
+        // Sends a job to the worker
+        // Blocks until result is received
         fn execute<F>(&self, f: F) -> Result<Answer, Error>
         where
             F: FnOnce() -> Result<Answer, Error> + Send + 'static,
@@ -78,6 +89,7 @@ mod non_wasm {
         }
     }
 
+    // Custom drop implementation which stops the started thread
     impl Drop for Worker {
         fn drop(&mut self) {
             drop(self.queue.take());
