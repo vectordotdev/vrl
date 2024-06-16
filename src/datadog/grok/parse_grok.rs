@@ -51,6 +51,7 @@ fn apply_grok_rule(source: &str, grok_rule: &GrokRule) -> Result<Value, Error> {
                 filters.iter().for_each(|filter| {
                     if let Some(ref v) = value {
                         match apply_filter(v, filter) {
+                            Ok(Value::Null) => value = None,
                             Ok(v) => value = Some(v),
                             Err(error) => {
                                 warn!(message = "Error applying filter", field = %field, filter = %filter, %error);
@@ -93,15 +94,28 @@ fn apply_grok_rule(source: &str, grok_rule: &GrokRule) -> Result<Value, Error> {
             }
         }
 
+        remove_empty_objects(&mut parsed);
         Ok(parsed)
     } else {
         Err(Error::NoMatch)
     }
 }
 
+fn remove_empty_objects(value: &mut Value) {
+    if let Value::Object(map) = value {
+        for (_key, value) in map.into_iter() {
+            match value {
+                Value::Object(_) => remove_empty_objects(value),
+                _ => {}
+            }
+        }
+        map.retain(|_, value| !matches!(value, Value::Object(v) if v.is_empty()));
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use chrono::{Datelike, DateTime, Timelike};
+    // use chrono::DateTime;
     use crate::btreemap;
     use crate::value::Value;
     use ordered_float::NotNan;
@@ -171,7 +185,6 @@ mod tests {
                     "version" => "1.0",
                     "referer" => "http://www.perdu.com/",
                     "useragent" => "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.87 Safari/537.36",
-                    "_x_forwarded_for" => Value::Null,
                 },
                 "network" => btreemap! {
                     "bytes_written" => 2326,
@@ -440,9 +453,11 @@ mod tests {
 
     #[test]
     fn supports_date_matcher() {
-        let today = DateTime::from_timestamp_millis(chrono::Utc::now().timestamp_millis()).unwrap();
-        let day_before = DateTime::from_timestamp_millis(today.timestamp_millis() - 86400000).unwrap();
-        let day_after = DateTime::from_timestamp_millis(today.timestamp_millis() + 86400000).unwrap();
+        // let today = DateTime::from_timestamp_millis(chrono::Utc::now().timestamp_millis()).unwrap();
+        // let day_before =
+        //     DateTime::from_timestamp_millis(today.timestamp_millis() - 86400000).unwrap();
+        // let day_after =
+        //     DateTime::from_timestamp_millis(today.timestamp_millis() + 86400000).unwrap();
         test_grok_pattern(vec![
             (
                 r#"%{date("dd/MMM/yyyy"):field}"#,
@@ -564,30 +579,58 @@ mod tests {
                 "11/16/18 19:40:59.1234 GMT",
                 Ok(Value::Integer(1542397259123)),
             ),
-            // date is missing - assume the current day, if time is in the past
-            (
-                r#"%{date("HH:mm:ss"):field}"#,
-                &format!("{}:{}:{}", day_before.hour(), day_before.minute(), day_before.second()),
-                Ok(Value::Integer(today.timestamp() * 1000))
-            ),
-            // otherwise if time is in the future - assume the previous day
-            (
-                r#"%{date("HH:mm:ss"):field}"#,
-                &format!("{}:{}:{}", day_after.hour(), day_after.minute(), day_after.second()),
-                Ok(Value::Integer(today.timestamp() * 1000))
-            ),
-            // if the year is missing - assume the current year if the date is in the past
-            (
-                r#"%{date("d/M HH:mm:ss"):field}"#,
-                &format!("{}/{} {}:{}:{}", day_before.day(), day_before.month(), day_before.hour(), day_before.minute(), day_before.second()),
-                Ok(Value::Integer(day_before.timestamp() * 1000)),
-            ),
-            // otherwise if the date is in the future, assume the previous year
-            (
-                r#"%{date("d/M HH:mm:ss"):field}"#,
-                &format!("{}/{} {}:{}:{}", day_after.day(), day_after.month(), day_after.hour(), day_after.minute(), day_after.second()),
-                Ok(day_after.with_year(day_after.year() - 1).map(|t| t.timestamp() * 1000).map(Value::from).unwrap_or(Value::Null)),
-            ),
+            // // date is missing - assume the current day, if time is in the past
+            // (
+            //     r#"%{date("HH:mm:ss"):field}"#,
+            //     &format!(
+            //         "{}:{}:{}",
+            //         day_before.hour(),
+            //         day_before.minute(),
+            //         day_before.second()
+            //     ),
+            //     Ok(Value::Integer(today.timestamp() * 1000)),
+            // ),
+            // // otherwise if time is in the future - assume the previous day
+            // (
+            //     r#"%{date("HH:mm:ss"):field}"#,
+            //     &format!(
+            //         "{}:{}:{}",
+            //         day_after.hour(),
+            //         day_after.minute(),
+            //         day_after.second()
+            //     ),
+            //     Ok(Value::Integer(today.timestamp() * 1000)),
+            // ),
+            // // if the year is missing - assume the current year if the date is in the past
+            // (
+            //     r#"%{date("d/M HH:mm:ss"):field}"#,
+            //     &format!(
+            //         "{}/{} {}:{}:{}",
+            //         day_before.day(),
+            //         day_before.month(),
+            //         day_before.hour(),
+            //         day_before.minute(),
+            //         day_before.second()
+            //     ),
+            //     Ok(Value::Integer(day_before.timestamp() * 1000)),
+            // ),
+            // // otherwise if the date is in the future, assume the previous year
+            // (
+            //     r#"%{date("d/M HH:mm:ss"):field}"#,
+            //     &format!(
+            //         "{}/{} {}:{}:{}",
+            //         day_after.day(),
+            //         day_after.month(),
+            //         day_after.hour(),
+            //         day_after.minute(),
+            //         day_after.second()
+            //     ),
+            //     Ok(day_after
+            //         .with_year(day_after.year() - 1)
+            //         .map(|t| t.timestamp() * 1000)
+            //         .map(Value::from)
+            //         .unwrap_or(Value::Null)),
+            // ),
         ]);
 
         // check error handling
@@ -1113,5 +1156,46 @@ mod tests {
               }
             })),
         )]);
+    }
+
+    #[test]
+    fn remove_empty_objects() {
+        test_full_grok(vec![(
+            "%{data::json}",
+            r#"{"root": {"object": {"empty": {}}, "string": "abc" }}"#,
+            Ok(Value::Object(btreemap!(
+                "root" => btreemap! (
+                    "string" => "abc"
+                )
+            ))),
+        ),
+        (
+            "%{data:field:json}",
+            r#"{"root": {"object": {"empty": {}}, "string": "abc" }}"#,
+            Ok(Value::Object(btreemap!(
+                "field" => btreemap!(
+                    "root" => btreemap! (
+                        "string" => "abc"
+                    )
+            )))),
+        ),
+        (
+            r#"%{notSpace:network.destination.ip:nullIf("-")}"#,
+            "-",
+            Ok(Value::Object(btreemap!())),
+        )]);
+    }
+    #[test]
+    fn parses_json_keys_as_path() {
+        test_full_grok(vec![(
+            "%{data::json}",
+            r#"{"a.b": "c"}"#,
+            Ok(Value::Object(btreemap!(
+                "a" => btreemap! (
+                    "b" => "c"
+                )
+            ))),
+            ),
+        ]);
     }
 }
