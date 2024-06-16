@@ -1,7 +1,8 @@
 use std::collections::BTreeMap;
 
-use crate::value::Value;
+use crate::value::{ObjectMap, Value};
 use tracing::warn;
+use crate::path::parse_value_path;
 
 use super::{
     grok_filter::apply_filter,
@@ -49,15 +50,16 @@ fn apply_grok_rule(source: &str, grok_rule: &GrokRule) -> Result<Value, Error> {
             }) = grok_rule.fields.get(name)
             {
                 filters.iter().for_each(|filter| {
-                    if let Some(ref v) = value {
-                        match apply_filter(v, filter) {
-                            Ok(Value::Null) => value = None,
-                            Ok(v) => value = Some(v),
+                    if let Some(ref mut v) = value {
+                        value = match apply_filter(v, filter) {
+                            Ok(Value::Null) => None,
+                            Ok(v ) if v.is_object() => Some(parse_keys_as_path(v)),
+                            Ok(v) => Some(v),
                             Err(error) => {
                                 warn!(message = "Error applying filter", field = %field, filter = %filter, %error);
-                                value = None;
+                                None
                             }
-                        }
+                        };
                     }
                 });
 
@@ -99,6 +101,22 @@ fn apply_grok_rule(source: &str, grok_rule: &GrokRule) -> Result<Value, Error> {
     } else {
         Err(Error::NoMatch)
     }
+}
+
+// parse all internal objeck keys as path
+fn parse_keys_as_path(value: Value) -> Value {
+    let mut result = Value::Object(ObjectMap::new());
+    if let Value::Object(map) = value {
+        for (k, v) in map.into_iter() {
+            let path = parse_value_path(&k).unwrap_or_else(|_| crate::owned_value_path!(&k.to_string()));
+            if let Value::Object(_) = v {
+                result.insert(&path, parse_keys_as_path(v));
+            } else {
+                result.insert(&path, v.clone());
+            }
+        }
+    }
+    result
 }
 
 fn remove_empty_objects(value: &mut Value) {

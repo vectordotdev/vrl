@@ -17,7 +17,6 @@ use nom::{
 use once_cell::sync::Lazy;
 use ordered_float::NotNan;
 use regex::Regex;
-use crate::path::parse_value_path;
 
 use super::super::{
     ast::{Function, FunctionArgument},
@@ -144,7 +143,7 @@ pub fn apply_filter(value: &Value, filter: &KeyValueFilter) -> Result<Value, Gro
                     || matches!(&v, Value::Bytes(b) if b.is_empty())
                     || k.trim().is_empty())
                 {
-                    result.insert(&parse_value_path(&k).unwrap_or_else(|_| crate::owned_value_path!(&k)), v);
+                    result.insert(crate::path!(&k), v);
                 }
             });
             Ok(result)
