@@ -85,12 +85,12 @@
 
 use std::fmt;
 use std::fmt::Debug;
-
 use snafu::Snafu;
 
 pub use borrowed::{BorrowedSegment, BorrowedTargetPath, BorrowedValuePath};
 pub use concat::PathConcat;
 pub use owned::{OwnedSegment, OwnedTargetPath, OwnedValuePath};
+use crate::path::owned::OwnedSegmentSliceIter;
 
 use self::jit::JitValuePath;
 
@@ -258,6 +258,14 @@ impl<'a> ValuePath<'a> for &'a str {
 
     fn segment_iter(&self) -> Self::Iter {
         JitValuePath::new(self).segment_iter()
+    }
+}
+
+impl<'a> ValuePath<'a> for &'a OwnedValuePath {
+    type Iter = OwnedSegmentSliceIter<'a>;
+
+    fn segment_iter(&self) -> Self::Iter {
+        (&self.segments).segment_iter()
     }
 }
 

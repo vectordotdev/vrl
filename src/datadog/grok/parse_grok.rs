@@ -890,8 +890,10 @@ mod tests {
                 "%{data::keyvalue}",
                 "db.name=my_db,db.operation=insert",
                 Ok(Value::from(btreemap! {
-                    "db.name" => "my_db",
-                    "db.operation" => "insert",
+                    "db" => btreemap! {
+                        "name" => "my_db",
+                        "operation" => "insert",
+                    }
                 })),
             ),
         ]);
