@@ -473,10 +473,6 @@ mod tests {
     #[test]
     fn supports_date_matcher() {
         let today = DateTime::from_timestamp_millis(chrono::Utc::now().timestamp_millis()).unwrap();
-        let day_before =
-            DateTime::from_timestamp_millis(today.timestamp_millis() - 86400000).unwrap();
-        let day_after =
-            DateTime::from_timestamp_millis(today.timestamp_millis() + 86400000).unwrap();
         test_grok_pattern(vec![
             (
                 r#"%{date("dd/MMM/yyyy"):field}"#,
@@ -598,57 +594,29 @@ mod tests {
                 "11/16/18 19:40:59.1234 GMT",
                 Ok(Value::Integer(1542397259123)),
             ),
-            // date is missing - assume the current day, if time is in the past
+            // date is missing - assume the current day
             (
                 r#"%{date("HH:mm:ss"):field}"#,
                 &format!(
                     "{}:{}:{}",
-                    day_before.hour(),
-                    day_before.minute(),
-                    day_before.second()
+                    today.hour(),
+                    today.minute(),
+                    today.second()
                 ),
                 Ok(Value::Integer(today.timestamp() * 1000)),
             ),
-            // otherwise if time is in the future - assume the previous day
-            (
-                r#"%{date("HH:mm:ss"):field}"#,
-                &format!(
-                    "{}:{}:{}",
-                    day_after.hour(),
-                    day_after.minute(),
-                    day_after.second()
-                ),
-                Ok(Value::Integer(today.timestamp() * 1000)),
-            ),
-            // if the year is missing - assume the current year if the date is in the past
+            // if the year is missing - assume the current year
             (
                 r#"%{date("d/M HH:mm:ss"):field}"#,
                 &format!(
                     "{}/{} {}:{}:{}",
-                    day_before.day(),
-                    day_before.month(),
-                    day_before.hour(),
-                    day_before.minute(),
-                    day_before.second()
+                    today.day(),
+                    today.month(),
+                    today.hour(),
+                    today.minute(),
+                    today.second()
                 ),
-                Ok(Value::Integer(day_before.timestamp() * 1000)),
-            ),
-            // otherwise if the date is in the future, assume the previous year
-            (
-                r#"%{date("d/M HH:mm:ss"):field}"#,
-                &format!(
-                    "{}/{} {}:{}:{}",
-                    day_after.day(),
-                    day_after.month(),
-                    day_after.hour(),
-                    day_after.minute(),
-                    day_after.second()
-                ),
-                Ok(day_after
-                    .with_year(day_after.year() - 1)
-                    .map(|t| t.timestamp() * 1000)
-                    .map(Value::from)
-                    .unwrap_or(Value::Null)),
+                Ok(Value::Integer(today.timestamp() * 1000)),
             ),
         ]);
 

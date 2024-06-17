@@ -402,35 +402,6 @@ pub fn apply_date_filter(value: &Value, filter: &DateFilter) -> Result<Value, Gr
         )),
     };
 
-    if day_is_missing {
-        // if the time is in the future, assume the previous day
-        let now = Utc::now().timestamp_millis();
-        if let Ok(timestamp) = timestamp {
-            if timestamp > now {
-                let timestamp = DateTime::from_timestamp_millis(timestamp);
-                if let Some(Some(timestamp)) = timestamp.map(|t| t.with_day(t.day() - 1)) {
-                    return Ok(Value::from(timestamp.timestamp_millis()));
-                }
-            }
-        }
-    } else if year_is_missing {
-        // if the date is in the future, assume the previous year
-        let now = Utc::now().timestamp_millis();
-        if let Ok(timestamp) = timestamp {
-            if timestamp > now {
-                let timestamp = DateTime::from_timestamp_millis(timestamp);
-                return match timestamp.map(|t| t.with_year(t.year() - 1)) {
-                    Some(Some(timestamp)) => {
-                        Ok(Value::from(timestamp.timestamp_millis()))
-                    }
-                    _ => {
-                        Ok(Value::Null)
-                    }
-                };
-            }
-        }
-    }
-
     timestamp.map(Value::from)
 }
 
