@@ -1,9 +1,17 @@
+//! Function providing DNS lookup functionality
+//! This function involves network calls and should therefore be avoided in most pipelines
+//! Implementation also relies on a single threaded worker for executing calls, blocking on each
+//! call until result is received, which will greatly reduce performance
+//! Use only if absolutely needed
 use crate::compiler::prelude::*;
 
 #[cfg(not(target_arch = "wasm32"))]
 mod non_wasm {
     use std::collections::BTreeMap;
+    use std::io::Error;
     use std::net::ToSocketAddrs;
+    use std::sync::{mpsc, Arc, Mutex};
+    use std::thread;
     use std::time::Duration;
 
     use domain::base::iana::Class;
@@ -12,9 +20,85 @@ mod non_wasm {
     use domain::resolv::stub::conf::{ResolvConf, ResolvOptions, ServerConf, Transport};
     use domain::resolv::stub::Answer;
     use domain::resolv::StubResolver;
+    use once_cell::sync::Lazy;
+    use tokio::runtime::Handle;
 
     use crate::compiler::prelude::*;
     use crate::value::Value;
+
+    // Single threaded worker for executing DNS requests
+    // Currently blocks on each request until result is received
+    // It should be avoided unless absolutely needed
+    static WORKER: Lazy<Worker> = Lazy::new(Worker::new);
+    const CHANNEL_CAPACITY: usize = 100;
+
+    type Job<T> = Box<dyn FnOnce() -> T + Send + 'static>;
+
+    struct Worker {
+        thread: Option<thread::JoinHandle<()>>,
+        queue: Option<mpsc::SyncSender<Job<Result<Answer, Error>>>>,
+        result_receiver: Option<Mutex<mpsc::Receiver<Result<Answer, Error>>>>,
+    }
+
+    impl Worker {
+        // Creates a thread and 2 channels - one for jobs and one for results
+        fn new() -> Self {
+            let (sender, receiver) =
+                mpsc::sync_channel::<Job<Result<Answer, Error>>>(CHANNEL_CAPACITY);
+            let (result_sender, result_receiver) =
+                mpsc::sync_channel::<Result<Answer, Error>>(CHANNEL_CAPACITY);
+            let receiver = Arc::new(Mutex::new(receiver));
+            Self {
+                thread: Some(thread::spawn(move || loop {
+                    let job = receiver
+                        .lock()
+                        .expect("Locking job queue failed")
+                        .recv()
+                        .expect("Worker queue closed");
+                    let result = job();
+                    result_sender
+                        .send(result)
+                        .expect("Sending result back from worker failed");
+                })),
+                queue: Some(sender),
+                result_receiver: Some(result_receiver.into()),
+            }
+        }
+
+        // Sends a job to the worker
+        // Blocks until result is received
+        fn execute<F>(&self, f: F) -> Result<Answer, Error>
+        where
+            F: FnOnce() -> Result<Answer, Error> + Send + 'static,
+        {
+            let job = Box::new(f);
+
+            self.queue
+                .as_ref()
+                .expect("Expected queue to be present in the worker")
+                .send(job)
+                .expect("Submitting job to the queue failed");
+            return self
+                .result_receiver
+                .as_ref()
+                .expect("Expected result queue to be present in the worker")
+                .lock()
+                .expect("Locking result receiver failed")
+                .recv()
+                .expect("Job result channel closed");
+        }
+    }
+
+    // Custom drop implementation which stops the started thread
+    impl Drop for Worker {
+        fn drop(&mut self) {
+            drop(self.queue.take());
+            if let Some(thread) = self.thread.take() {
+                thread.join().unwrap();
+            }
+            drop(self.result_receiver.take());
+        }
+    }
 
     fn dns_lookup(value: Value, qtype: Value, qclass: Value, options: Value) -> Resolved {
         let host: Name<Vec<_>> = value
@@ -34,9 +118,16 @@ mod non_wasm {
             .map_err(|err| format!("parsing query class failed: {err}"))?;
 
         let conf = build_options(options.try_object()?)?;
-        let answer = StubResolver::run_with_conf(conf, move |stub| async move {
-            stub.query((host, qtype, qclass)).await
-        })
+        let answer = match Handle::try_current() {
+            Ok(_) => WORKER.execute(move || {
+                StubResolver::run_with_conf(conf, move |stub| async move {
+                    stub.query((host, qtype, qclass)).await
+                })
+            }),
+            Err(_) => StubResolver::run_with_conf(conf, move |stub| async move {
+                stub.query((host, qtype, qclass)).await
+            }),
+        }
         .map_err(|err| format!("query failed: {err}"))?;
 
         Ok(parse_answer(answer)?.into())

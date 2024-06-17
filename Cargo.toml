@@ -103,6 +103,7 @@ stdlib = [
  "dep:snap",
  "dep:strip-ansi-escapes",
  "dep:syslog_loose",
+ "dep:tokio",
  "dep:uaparser",
  "dep:url",
  "dep:utf8-width",
@@ -209,6 +210,7 @@ domain = { version = "0.10.1", optional = true, features = ["resolv-sync", "serd
 hostname = { version = "0.4", optional = true }
 grok = { version = "2", optional = true }
 onig = { version = "6", default-features = false, optional = true }
+tokio = { version = "1.37", optional = true, features = ["io-util", "macros", "net", "time", "sync", "rt", "rt-multi-thread" ] }
 uuid = { version = "1", features = ["v4", "v7"], optional = true }
 
 # Dependencies used for WASM
