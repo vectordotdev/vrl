@@ -207,7 +207,7 @@ fn parse_line<'a>(
 }
 
 /// Parses the field_delimiter between the key/value pairs, ignoring surrounding spaces
-fn parse_field_delimiter<'a>(field_delimiter: &'a str) -> impl Fn(&'a str) -> SResult<&'a str> {
+fn parse_field_delimiter(field_delimiter: &str) -> impl Fn(&str) -> SResult<&str> + '_ {
     move |input| {
         if field_delimiter == " " {
             space1(input)
@@ -281,7 +281,7 @@ fn parse_quoted<'a>(
 
 /// A delimited value is all the text until our field_delimiter, or the rest of the string if it is the last value in the line,
 #[inline]
-fn parse_delimited<'a>(field_delimiter: &'a str) -> impl Fn(&'a str) -> SResult<&'a str> {
+fn parse_delimited(field_delimiter: &str) -> impl Fn(&str) -> SResult<&str> + '_ {
     move |input| map(alt((take_until(field_delimiter), rest)), |s: &str| s.trim())(input)
 }
 
@@ -356,7 +356,7 @@ fn parse_value<'a>(
     }
 }
 
-fn parse_number<'a>(field_delimiter: &'a str) -> impl Fn(&'a str) -> SResult<Value> {
+fn parse_number(field_delimiter: &str) -> impl Fn(&str) -> SResult<Value> + '_ {
     move |input| {
         map(
             terminated(
