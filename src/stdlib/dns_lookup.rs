@@ -30,7 +30,7 @@ mod non_wasm {
     // Currently blocks on each request until result is received
     // It should be avoided unless absolutely needed
     static WORKER: Lazy<Worker> = Lazy::new(Worker::new);
-    const CHANNEL_CAPACITY: usize = 0;
+    const CHANNEL_CAPACITY: usize = 100;
 
     type Job<T> = Box<dyn FnOnce() -> T + Send + 'static>;
 
