@@ -1,7 +1,6 @@
 use std::collections::BTreeMap;
-
-use crate::value::{ObjectMap, Value};
 use tracing::warn;
+use crate::value::{ObjectMap, Value};
 use crate::path::parse_value_path;
 
 use super::{
@@ -96,45 +95,46 @@ fn apply_grok_rule(source: &str, grok_rule: &GrokRule) -> Result<Value, Error> {
             }
         }
 
-        remove_empty_objects(&mut parsed);
+        postprocess_value(&mut parsed);
         Ok(parsed)
     } else {
         Err(Error::NoMatch)
     }
 }
 
-// parse all internal objeck keys as path
+// parse all internal object keys as path
 fn parse_keys_as_path(value: Value) -> Value {
-    let mut result = Value::Object(ObjectMap::new());
-    if let Value::Object(map) = value {
-        for (k, v) in map.into_iter() {
-            let path = parse_value_path(&k).unwrap_or_else(|_| crate::owned_value_path!(&k.to_string()));
-            if let Value::Object(_) = v {
+    match value {
+        Value::Object(map) => {
+            let mut result = Value::Object(ObjectMap::new());
+            for (k, v) in map.into_iter() {
+                let path = parse_value_path(&k).unwrap_or_else(|_| crate::owned_value_path!(&k.to_string()));
                 result.insert(&path, parse_keys_as_path(v));
-            } else {
-                result.insert(&path, v.clone());
             }
+            result
         }
+        Value::Array(a) => {
+            Value::Array(a.into_iter().map(parse_keys_as_path).collect())
+        }
+        v => v
     }
-    result
 }
 
-fn remove_empty_objects(value: &mut Value) {
-    if let Value::Object(map) = value {
-        for (_key, value) in map.into_iter() {
-            match value {
-                Value::Object(_) => remove_empty_objects(value),
-                _ => {}
-            }
-        }
-        map.retain(|_, value| !matches!(value, Value::Object(v) if v.is_empty()));
+/// postprocess parsed values
+fn postprocess_value(value: &mut Value) {
+    // remove empty objects
+    match value {
+        Value::Array(a) => a.iter_mut().for_each(postprocess_value),
+        Value::Object(map) => {
+            map.values_mut().for_each(postprocess_value);
+            map.retain(|_, value| !matches!(value, Value::Object(v) if v.is_empty()) && !matches!(value, Value::Null))},
+        _ => {}
     }
 }
 
 #[cfg(test)]
 mod tests {
     use chrono::{Datelike, DateTime, Timelike};
-    // use chrono::DateTime;
     use crate::btreemap;
     use crate::value::Value;
     use ordered_float::NotNan;
