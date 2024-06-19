@@ -318,7 +318,7 @@ impl AsRef<str> for Ident {
 
 impl fmt::Display for Ident {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.0)
+        write!(f, "{}", &self.0)
     }
 }
 
@@ -357,7 +357,7 @@ impl fmt::Display for Literal {
         match self {
             String(v) => write!(f, r#""{v}""#),
             RawString(v) => write!(f, "s'{v}'"),
-            Integer(v) => v.fmt(f),
+            Integer(v) => write!(f, "{v}"),
             Float(v) => write!(f, "{:?}", v.as_ref()),
             Boolean(v) => write!(f, "{v}"),
             Regex(v) => write!(f, "r'{v}'"),
@@ -389,9 +389,11 @@ impl fmt::Display for Container {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use Container::{Array, Block, Group, Object};
 
+        let width = f.width().unwrap_or_default() + 4;
+
         match self {
             Group(v) => v.fmt(f),
-            Block(v) => v.fmt(f),
+            Block(v) => f.write_fmt(format_args!("{:width$}", v)),
             Array(v) => v.fmt(f),
             Object(v) => v.fmt(f),
         }
@@ -607,10 +609,10 @@ impl fmt::Debug for IfStatement {
 
 impl fmt::Display for IfStatement {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let width = f.width().unwrap_or_default() + 4;
-
         f.write_str("if ")?;
         self.predicate.fmt(f)?;
+
+        let width = f.width().unwrap_or_default() + 4;
         f.write_str(" ")?;
         f.write_fmt(format_args!("{:width$}", self.if_node,))?;
 
@@ -682,7 +684,13 @@ pub struct Op(pub Box<Node<Expr>>, pub Node<Opcode>, pub Box<Node<Expr>>);
 
 impl fmt::Display for Op {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{} {} {}", self.0, self.1, self.2)
+        f.write_fmt(format_args!(
+            "{:width$} {:width$} {:width$}",
+            self.0,
+            self.1,
+            self.2,
+            width = f.width().unwrap_or_default()
+        ))
     }
 }
 
@@ -713,7 +721,7 @@ pub enum Opcode {
 
 impl fmt::Display for Opcode {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.as_str().fmt(f)
+        write!(f, "{}", self.as_str())
     }
 }
 
