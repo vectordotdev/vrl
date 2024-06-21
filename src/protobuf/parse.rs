@@ -1,8 +1,10 @@
 use crate::compiler::prelude::*;
+use crate::protobuf::get_message_descriptor_from_pool;
 use prost_reflect::ReflectMessage;
 use prost_reflect::{DynamicMessage, MessageDescriptor};
 
 pub fn proto_to_value(
+    descriptor_pool: Option<&prost_reflect::DescriptorPool>,
     prost_reflect_value: &prost_reflect::Value,
     field_descriptor: Option<&prost_reflect::FieldDescriptor>,
 ) -> std::result::Result<Value, String> {
@@ -42,11 +44,27 @@ pub fn proto_to_value(
             }
         }
         prost_reflect::Value::Message(v) => {
+            if let Some(descriptor_pool) = descriptor_pool {
+                if let Some(type_url_cow) = v.get_field_by_name("type_url") {
+                    if let Some(value_cow) = v.get_field_by_name("value") {
+                        if let prost_reflect::Value::String(type_url) = &*type_url_cow {
+                            if let prost_reflect::Value::Bytes(value) = &*value_cow {
+                                let type_name = type_url.trim_start_matches("type.googleapis.com/");
+                                let message_descriptor = get_message_descriptor_from_pool(descriptor_pool, type_name)?;
+                                let dynamic_message = DynamicMessage::decode(message_descriptor, value.clone())
+                                    .map_err(|error| format!("Error parsing embedded protobuf message: {:?}", error))?;
+                                return proto_to_value(Some(descriptor_pool), &prost_reflect::Value::Message(dynamic_message), None);
+                            }
+                        }
+                    }
+                }
+            }
+
             let mut obj_map = ObjectMap::new();
             for field_desc in v.descriptor().fields() {
                 if v.has_field(&field_desc) {
                     let field_value = v.get_field(&field_desc);
-                    let out = proto_to_value(field_value.as_ref(), Some(&field_desc))?;
+                    let out = proto_to_value(descriptor_pool, field_value.as_ref(), Some(&field_desc))?;
                     obj_map.insert(field_desc.name().into(), out);
                 }
             }
@@ -55,7 +73,7 @@ pub fn proto_to_value(
         prost_reflect::Value::List(v) => {
             let vec = v
                 .iter()
-                .map(|o| proto_to_value(o, field_descriptor))
+                .map(|o| proto_to_value(descriptor_pool, o, field_descriptor))
                 .collect::<Result<Vec<_>, String>>()?;
             Value::from(vec)
         }
@@ -80,7 +98,7 @@ pub fn proto_to_value(
                                         )
                                     })?
                                     .into(),
-                                proto_to_value(kv.1, Some(&message_desc.map_entry_value_field()))?,
+                                proto_to_value(descriptor_pool, kv.1, Some(&message_desc.map_entry_value_field()))?,
                             ))
                         })
                         .collect::<std::result::Result<ObjectMap, String>>()?,
@@ -99,6 +117,7 @@ pub(crate) fn parse_proto(descriptor: &MessageDescriptor, value: Value) -> Resol
     let dynamic_message = DynamicMessage::decode(descriptor.clone(), bytes)
         .map_err(|error| format!("Error parsing protobuf: {:?}", error))?;
     Ok(proto_to_value(
+        None,
         &prost_reflect::Value::Message(dynamic_message),
         None,
     )?)
