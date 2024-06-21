@@ -3,6 +3,8 @@ use crate::protobuf::get_message_descriptor_from_pool;
 use prost_reflect::ReflectMessage;
 use prost_reflect::{DynamicMessage, MessageDescriptor};
 
+use tracing::debug;
+
 pub fn proto_to_value(
     descriptor_pool: Option<&prost_reflect::DescriptorPool>,
     prost_reflect_value: &prost_reflect::Value,
@@ -50,10 +52,21 @@ pub fn proto_to_value(
                         if let prost_reflect::Value::String(type_url) = &*type_url_cow {
                             if let prost_reflect::Value::Bytes(value) = &*value_cow {
                                 let type_name = type_url.trim_start_matches("type.googleapis.com/");
-                                let message_descriptor = get_message_descriptor_from_pool(descriptor_pool, type_name)?;
-                                let dynamic_message = DynamicMessage::decode(message_descriptor, value.clone())
-                                    .map_err(|error| format!("Error parsing embedded protobuf message: {:?}", error))?;
-                                return proto_to_value(Some(descriptor_pool), &prost_reflect::Value::Message(dynamic_message), None);
+                                match get_message_descriptor_from_pool(descriptor_pool, type_name) {
+                                    Ok(message_descriptor) => {
+                                        match DynamicMessage::decode(message_descriptor, value.clone()) {
+                                            Ok(dynamic_message) => {
+                                                return proto_to_value(Some(descriptor_pool), &prost_reflect::Value::Message(dynamic_message), None);
+                                            }
+                                            Err(error) => {
+                                                return Err(format!("Error parsing embedded protobuf message: {:?}", error));
+                                            }
+                                        }
+                                    }
+                                    Err(_) => {
+                                        debug!("Message type '{}' not found in the descriptor pool, ignoring message.", type_name);
+                                    }
+                                }
                             }
                         }
                     }
