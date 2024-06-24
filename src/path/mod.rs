@@ -83,14 +83,14 @@
 //! - `owned_value_path!("foo.bar", "x")` will create a path with *two* segments. Equivalent to `."foo.bar".x`
 //!
 
+use snafu::Snafu;
 use std::fmt;
 use std::fmt::Debug;
-use snafu::Snafu;
 
+use crate::path::owned::OwnedSegmentSliceIter;
 pub use borrowed::{BorrowedSegment, BorrowedTargetPath, BorrowedValuePath};
 pub use concat::PathConcat;
 pub use owned::{OwnedSegment, OwnedTargetPath, OwnedValuePath};
-use crate::path::owned::OwnedSegmentSliceIter;
 
 use self::jit::JitValuePath;
 

@@ -1,7 +1,7 @@
+use crate::path::parse_value_path;
+use crate::value::{ObjectMap, Value};
 use std::collections::BTreeMap;
 use tracing::warn;
-use crate::value::{ObjectMap, Value};
-use crate::path::parse_value_path;
 
 use super::{
     grok_filter::apply_filter,
@@ -108,15 +108,14 @@ fn parse_keys_as_path(value: Value) -> Value {
         Value::Object(map) => {
             let mut result = Value::Object(ObjectMap::new());
             for (k, v) in map.into_iter() {
-                let path = parse_value_path(&k).unwrap_or_else(|_| crate::owned_value_path!(&k.to_string()));
+                let path = parse_value_path(&k)
+                    .unwrap_or_else(|_| crate::owned_value_path!(&k.to_string()));
                 result.insert(&path, parse_keys_as_path(v));
             }
             result
         }
-        Value::Array(a) => {
-            Value::Array(a.into_iter().map(parse_keys_as_path).collect())
-        }
-        v => v
+        Value::Array(a) => Value::Array(a.into_iter().map(parse_keys_as_path).collect()),
+        v => v,
     }
 }
 
@@ -127,16 +126,19 @@ fn postprocess_value(value: &mut Value) {
         Value::Array(a) => a.iter_mut().for_each(postprocess_value),
         Value::Object(map) => {
             map.values_mut().for_each(postprocess_value);
-            map.retain(|_, value| !matches!(value, Value::Object(v) if v.is_empty()) && !matches!(value, Value::Null))},
+            map.retain(|_, value| {
+                !matches!(value, Value::Object(v) if v.is_empty()) && !matches!(value, Value::Null)
+            })
+        }
         _ => {}
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use chrono::{Datelike, DateTime, Timelike};
     use crate::btreemap;
     use crate::value::Value;
+    use chrono::{DateTime, Datelike, Timelike};
     use ordered_float::NotNan;
     use tracing_test::traced_test;
 
@@ -597,12 +599,7 @@ mod tests {
             // date is missing - assume the current day
             (
                 r#"%{date("HH:mm:ss"):field}"#,
-                &format!(
-                    "{}:{}:{}",
-                    today.hour(),
-                    today.minute(),
-                    today.second()
-                ),
+                &format!("{}:{}:{}", today.hour(), today.minute(), today.second()),
                 Ok(Value::Integer(today.timestamp() * 1000)),
             ),
             // if the year is missing - assume the current year
@@ -1147,30 +1144,32 @@ mod tests {
 
     #[test]
     fn remove_empty_objects() {
-        test_full_grok(vec![(
-            "%{data::json}",
-            r#"{"root": {"object": {"empty": {}}, "string": "abc" }}"#,
-            Ok(Value::Object(btreemap!(
-                "root" => btreemap! (
-                    "string" => "abc"
-                )
-            ))),
-        ),
-        (
-            "%{data:field:json}",
-            r#"{"root": {"object": {"empty": {}}, "string": "abc" }}"#,
-            Ok(Value::Object(btreemap!(
-                "field" => btreemap!(
+        test_full_grok(vec![
+            (
+                "%{data::json}",
+                r#"{"root": {"object": {"empty": {}}, "string": "abc" }}"#,
+                Ok(Value::Object(btreemap!(
                     "root" => btreemap! (
                         "string" => "abc"
                     )
-            )))),
-        ),
-        (
-            r#"%{notSpace:network.destination.ip:nullIf("-")}"#,
-            "-",
-            Ok(Value::Object(btreemap!())),
-        )]);
+                ))),
+            ),
+            (
+                "%{data:field:json}",
+                r#"{"root": {"object": {"empty": {}}, "string": "abc" }}"#,
+                Ok(Value::Object(btreemap!(
+                    "field" => btreemap!(
+                        "root" => btreemap! (
+                            "string" => "abc"
+                        )
+                )))),
+            ),
+            (
+                r#"%{notSpace:network.destination.ip:nullIf("-")}"#,
+                "-",
+                Ok(Value::Object(btreemap!())),
+            ),
+        ]);
     }
     #[test]
     fn parses_json_keys_as_path() {
@@ -1182,7 +1181,6 @@ mod tests {
                     "b" => "c"
                 )
             ))),
-            ),
-        ]);
+        )]);
     }
 }
