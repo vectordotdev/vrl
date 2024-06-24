@@ -247,9 +247,9 @@ pub fn apply_date_filter(value: &Value, filter: &DateFilter) -> Result<Value, Gr
     let mut strp_format = filter.strp_format.clone();
 
     let year_is_missing =
-        !filter.original_format.contains("y") && !filter.original_format.contains("Y");
-    let month_is_missing = !filter.original_format.contains("M");
-    let day_is_missing = !strp_format.contains("d");
+        !filter.original_format.contains('y') && !filter.original_format.contains('Y');
+    let month_is_missing = !filter.original_format.contains('M');
+    let day_is_missing = !strp_format.contains('d');
 
     if day_is_missing {
         strp_format = format!("%-d {}", strp_format);
