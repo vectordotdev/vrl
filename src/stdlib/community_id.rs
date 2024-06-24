@@ -271,7 +271,7 @@ mod tests {
 
         tcp_no_ports {
             args: func_args![source_ip: "1.2.3.4", destination_ip: "5.6.7.8", protocol: 6],
-            want: Err("src port and dst port should be set when protocol is icmp/icmp6/tcp/udp/sctp"),
+            want: Err("src port and dst port should be set when protocol is tcp/udp/sctp"),
             tdef: TypeDef::bytes().fallible(),
         }
 
