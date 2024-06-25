@@ -390,6 +390,14 @@ impl<'a> ValuePath<'a> for &'a [OwnedSegment] {
     }
 }
 
+impl<'a> ValuePath<'a> for &'a OwnedValuePath {
+    type Iter = OwnedSegmentSliceIter<'a>;
+
+    fn segment_iter(&self) -> Self::Iter {
+        (&self.segments).segment_iter()
+    }
+}
+
 impl<'a> TryFrom<BorrowedSegment<'a>> for OwnedSegment {
     type Error = ();
 

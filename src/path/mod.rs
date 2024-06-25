@@ -83,11 +83,11 @@
 //! - `owned_value_path!("foo.bar", "x")` will create a path with *two* segments. Equivalent to `."foo.bar".x`
 //!
 
-use snafu::Snafu;
 use std::fmt;
 use std::fmt::Debug;
 
-use crate::path::owned::OwnedSegmentSliceIter;
+use snafu::Snafu;
+
 pub use borrowed::{BorrowedSegment, BorrowedTargetPath, BorrowedValuePath};
 pub use concat::PathConcat;
 pub use owned::{OwnedSegment, OwnedTargetPath, OwnedValuePath};
@@ -258,14 +258,6 @@ impl<'a> ValuePath<'a> for &'a str {
 
     fn segment_iter(&self) -> Self::Iter {
         JitValuePath::new(self).segment_iter()
-    }
-}
-
-impl<'a> ValuePath<'a> for &'a OwnedValuePath {
-    type Iter = OwnedSegmentSliceIter<'a>;
-
-    fn segment_iter(&self) -> Self::Iter {
-        (&self.segments).segment_iter()
     }
 }
 
