@@ -219,6 +219,7 @@ mod non_wasm {
             .map(|s| s.clone().try_array())
             .transpose()?
         {
+            conf.servers.clear();
             for server in servers {
                 let mut server = server.try_bytes_utf8_lossy()?;
                 if !server.contains(':') {
