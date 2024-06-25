@@ -246,11 +246,8 @@ pub fn apply_date_filter(value: &Value, filter: &DateFilter) -> Result<Value, Gr
     let original_value = String::from_utf8_lossy(value.as_bytes().ok_or_else(|| {
         GrokRuntimeError::FailedToApplyFilter(filter.to_string(), value.to_string())
     })?);
-    let (strp_format, mut datetime) = adjust_strp_format_and_value(
-        &filter.original_format,
-        &filter.strp_format,
-        &original_value,
-    );
+    let (strp_format, mut datetime) =
+        adjust_strp_format_and_value(&filter.strp_format, &original_value);
 
     // Ideally this Z should be quoted in the pattern, but DataDog supports this as a special case:
     // yyyy-MM-dd'T'HH:mm:ss.SSSZ - e.g. 2016-09-02T15:02:29.648Z
@@ -364,27 +361,23 @@ pub fn apply_date_filter(value: &Value, filter: &DateFilter) -> Result<Value, Gr
 }
 
 /// adjusts strp format and value to matches formats w/o the date or the year
-pub fn adjust_strp_format_and_value(
-    original_format: &str,
-    strp_format: &str,
-    original_value: &str,
-) -> (String, String) {
+pub fn adjust_strp_format_and_value(strp_format: &str, original_value: &str) -> (String, String) {
     let mut adjusted_format = String::from(strp_format);
     let mut adjusted_value = String::from(original_value);
     let now = Utc::now();
 
     // day is missing
-    if !original_format.contains('d') {
+    if !strp_format.contains('d') {
         adjusted_format = format!("%-d {}", adjusted_format);
         adjusted_value = format!("{} {}", now.day(), adjusted_value);
     }
     // month is missing
-    if !original_format.contains('M') {
+    if !strp_format.contains('m') && !strp_format.contains('b') && !strp_format.contains('B') {
         adjusted_format = format!("%-m {}", adjusted_format);
         adjusted_value = format!("{} {}", now.month(), adjusted_value);
     }
     // year is missing
-    if !original_format.contains('y') && !original_format.contains('Y') {
+    if !strp_format.contains('y') && !strp_format.contains('Y') {
         adjusted_format = format!("%Y {}", adjusted_format);
         adjusted_value = format!("{} {}", now.year(), adjusted_value);
     }
@@ -418,5 +411,40 @@ pub struct DateFilter {
 impl std::fmt::Display for DateFilter {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "date(\"{}\")", self.original_format)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn adjusts_datetime_format_and_value_when_day_missing() {
+        let (adj_format, adj_value) = adjust_strp_format_and_value("%H:%M:%S", "12:03:42");
+        let now = Utc::now();
+        assert_eq!(adj_format, "%Y %-m %-d %H:%M:%S");
+        assert_eq!(
+            adj_value,
+            format!("{} {} {} 12:03:42", now.year(), now.month(), now.day())
+        );
+
+        let (adj_format, adj_value) = adjust_strp_format_and_value("%H:%M:%S", "12:03:42");
+        let now = Utc::now();
+        assert_eq!(adj_format, "%Y %-m %-d %H:%M:%S");
+        assert_eq!(
+            adj_value,
+            format!("{} {} {} 12:03:42", now.year(), now.month(), now.day())
+        );
+    }
+
+    #[test]
+    fn adjusts_datetime_format_and_value_when_year_missing() {
+        let (adj_format, adj_value) = adjust_strp_format_and_value("%H:%M:%S", "12:03:42");
+        let now = Utc::now();
+        assert_eq!(adj_format, "%Y %-m %-d %H:%M:%S");
+        assert_eq!(
+            adj_value,
+            format!("{} {} {} 12:03:42", now.year(), now.month(), now.day())
+        );
     }
 }
