@@ -368,13 +368,8 @@ pub fn adjust_strp_format_and_value(strp_format: &str, original_value: &str) -> 
 
     // day is missing
     if !strp_format.contains('d') {
-        adjusted_format = format!("%-d {}", adjusted_format);
-        adjusted_value = format!("{} {}", now.day(), adjusted_value);
-    }
-    // month is missing
-    if !strp_format.contains('m') && !strp_format.contains('b') && !strp_format.contains('B') {
-        adjusted_format = format!("%-m {}", adjusted_format);
-        adjusted_value = format!("{} {}", now.month(), adjusted_value);
+        adjusted_format = format!("%-m %-d {}", adjusted_format);
+        adjusted_value = format!("{} {} {}", now.month(), now.day(), adjusted_value);
     }
     // year is missing
     if !strp_format.contains('y') && !strp_format.contains('Y') {
@@ -420,14 +415,6 @@ mod tests {
 
     #[test]
     fn adjusts_datetime_format_and_value_when_day_missing() {
-        let (adj_format, adj_value) = adjust_strp_format_and_value("%H:%M:%S", "12:03:42");
-        let now = Utc::now();
-        assert_eq!(adj_format, "%Y %-m %-d %H:%M:%S");
-        assert_eq!(
-            adj_value,
-            format!("{} {} {} 12:03:42", now.year(), now.month(), now.day())
-        );
-
         let (adj_format, adj_value) = adjust_strp_format_and_value("%H:%M:%S", "12:03:42");
         let now = Utc::now();
         assert_eq!(adj_format, "%Y %-m %-d %H:%M:%S");
