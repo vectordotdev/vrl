@@ -1,22 +1,22 @@
 use std::collections::BTreeMap;
 use std::fmt::Formatter;
 
-use crate::value::Value;
 use bytes::Bytes;
 use nom::{
     self,
     branch::alt,
-    bytes::complete::{tag, take_until, take_while1},
-    character::complete::{char, space0, space1},
-    combinator::{eof, map, opt, peek, rest, value},
-    multi::{many_m_n, separated_list1},
+    bytes::complete::{tag, take_while1},
+    character::complete::char,
+    combinator::{map, opt, rest, value},
     number::complete::double,
-    sequence::{delimited, preceded, terminated, tuple},
-    IResult, Slice,
+    sequence::{delimited, terminated},
+    IResult, Parser,
 };
-use once_cell::sync::Lazy;
+use nom::combinator::eof;
+use onig::EncodedChars;
 use ordered_float::NotNan;
-use regex::Regex;
+use fancy_regex::{Captures, Regex};
+use crate::value::Value;
 
 use super::super::{
     ast::{Function, FunctionArgument},
@@ -25,7 +25,11 @@ use super::super::{
     parse_grok_rules::Error as GrokStaticError,
 };
 
-static DEFAULT_FILTER_RE: Lazy<regex::Regex> = Lazy::new(|| Regex::new(r"^[\w.\-_@]*").unwrap());
+const DEFAULT_VALUE_RE: &str = r"\w.\-_@";
+const DEFAULT_DELIMITERS: (&str, &str) = (r"\s,;(\[{", r"\s,;)\]}");
+
+const DEFAULT_KEYVALUE_DELIMITER: &str = "=";
+const DEFAULT_QUOTES: &[(char, char)] = &[('"', '"'), ('\'', '\''), ('<', '>')];
 
 pub fn filter_from_function(f: &Function) -> Result<GrokFilter, GrokStaticError> {
     {
@@ -33,90 +37,140 @@ pub fn filter_from_function(f: &Function) -> Result<GrokFilter, GrokStaticError>
 
         let key_value_delimiter = if args_len > 0 {
             match f.args.as_ref().unwrap()[0] {
-                FunctionArgument::Arg(Value::Bytes(ref bytes)) => {
-                    String::from_utf8_lossy(bytes).to_string()
-                }
+                FunctionArgument::Arg(Value::Bytes(ref bytes)) => &String::from_utf8_lossy(bytes),
                 _ => return Err(GrokStaticError::InvalidFunctionArguments(f.name.clone())),
             }
         } else {
-            // default key/value delimiter
-            "=".to_string()
+            DEFAULT_KEYVALUE_DELIMITER
         };
         let value_re = if args_len > 1 {
             match f.args.as_ref().unwrap()[1] {
                 FunctionArgument::Arg(Value::Bytes(ref bytes)) => {
-                    let mut re_str = String::new();
-                    re_str.push_str(r"^[\w.\-_@");
+                    let mut re_str = String::from(DEFAULT_VALUE_RE);
                     re_str.push_str(&String::from_utf8_lossy(bytes));
-                    re_str.push_str("]+");
-                    Regex::new(re_str.as_str())
-                        .map_err(|_e| GrokStaticError::InvalidFunctionArguments(f.name.clone()))?
+                    re_str
                 }
                 _ => return Err(GrokStaticError::InvalidFunctionArguments(f.name.clone())),
             }
         } else {
             // default allowed unescaped symbols
-            DEFAULT_FILTER_RE.clone()
+            DEFAULT_VALUE_RE.to_string()
         };
 
         let quotes = if args_len > 2 {
             match f.args.as_ref().unwrap()[2] {
                 FunctionArgument::Arg(Value::Bytes(ref bytes)) => {
-                    let quotes = String::from_utf8_lossy(bytes);
-                    if quotes.len() == 2 {
-                        let mut chars = quotes.chars();
-                        vec![(
-                            chars.next().expect("open quote"),
-                            chars.next().expect("closing quote"),
-                        )]
-                    } else if quotes.is_empty() {
-                        // default
-                        vec![('"', '"'), ('\'', '\''), ('<', '>')]
-                    } else {
-                        return Err(GrokStaticError::InvalidFunctionArguments(f.name.clone()));
+                    let pair = String::from_utf8_lossy(bytes);
+                    match pair {
+                        pair if pair.len() == 2 => {
+                            let mut chars = pair.chars();
+                            Ok(vec![(
+                                chars.next().expect("open quote"),
+                                chars.next().expect("closing quote"),
+                            )])
+                        }
+                        pair if pair.is_empty() => Ok(Vec::from(DEFAULT_QUOTES)),
+                        _ => Err(GrokStaticError::InvalidFunctionArguments(f.name.clone())),
+                    }
+                }
+                _ => Err(GrokStaticError::InvalidFunctionArguments(f.name.clone())),
+            }
+        } else {
+            Ok(Vec::from(DEFAULT_QUOTES))
+        }?;
+
+        let field_delimiters = if args_len > 3 {
+            match f.args.as_ref().unwrap()[3] {
+                FunctionArgument::Arg(Value::Bytes(ref bytes)) => {
+                    let delimiter = String::from_utf8_lossy(bytes).to_string();
+                    match (&delimiter[..1], &delimiter[1..]) {
+                        (left, right) if !right.is_empty() => (left.to_string(), right.to_string()),
+                        (single, "") => (single.to_string(), single.to_string()),
+                        _ => return Err(GrokStaticError::InvalidFunctionArguments(f.name.clone())),
                     }
                 }
                 _ => return Err(GrokStaticError::InvalidFunctionArguments(f.name.clone())),
             }
         } else {
-            // default quotes
-            vec![('"', '"'), ('\'', '\''), ('<', '>')]
+            (
+                DEFAULT_DELIMITERS.0.to_string(),
+                DEFAULT_DELIMITERS.1.to_string(),
+            )
         };
 
-        let field_delimiters = if args_len > 3 {
-            match f.args.as_ref().unwrap()[3] {
-                FunctionArgument::Arg(Value::Bytes(ref bytes)) => {
-                    vec![String::from_utf8_lossy(bytes).to_string()]
-                }
-                _ => return Err(GrokStaticError::InvalidFunctionArguments(f.name.clone())),
-            }
-        } else {
-            // default field delimiters
-            vec![" ".into(), ",".into(), ";".into()]
-        };
         Ok(GrokFilter::KeyValue(KeyValueFilter {
-            key_value_delimiter,
-            value_re,
+            re_pattern: regex_from_config(
+                key_value_delimiter,
+                value_re,
+                quotes.clone(),
+                field_delimiters,
+            )?,
             quotes,
-            field_delimiters,
+            key_value_delimiter: key_value_delimiter.to_string(),
         }))
     }
 }
 
+fn regex_from_config(
+    key_value_delimiter: &str,
+    value_re: String,
+    quotes: Vec<(char, char)>,
+    _field_delimiters: (String, String),
+) -> Result<Regex, GrokStaticError> {
+    let mut quoting = String::new();
+
+    // start group
+    quoting.push('(');
+    // add quotes with OR
+    for (left, right) in quotes {
+        quoting.push_str(&regex::escape(&left.to_string()));
+        quoting.push_str("[^");
+        quoting.push_str(&regex::escape(&left.to_string()));
+        quoting.push_str("]+");
+        quoting.push_str(&regex::escape(&right.to_string()));
+        quoting.push('|');
+    }
+
+    quoting.push('[');
+
+    let mut keyvalue = String::from("(?<=[");
+    keyvalue.push_str(&_field_delimiters.0);
+    keyvalue.push_str("]|^)");
+
+    // key
+    keyvalue.push_str(quoting.as_str());
+    keyvalue.push_str(&value_re);
+    keyvalue.push_str("]+)");
+
+    // delimiter
+    keyvalue.push_str(&key_value_delimiter);
+
+    // value
+    keyvalue.push_str(quoting.as_str());
+    keyvalue.push_str(&value_re);
+    keyvalue.push_str("]+)");
+
+    keyvalue.push_str("(?:[");
+    keyvalue.push_str(&_field_delimiters.1);
+    keyvalue.push_str("]|$)");
+
+    Regex::new(keyvalue.as_str())
+        .map_err(|_e| GrokStaticError::InvalidFunctionArguments("keyvalue".to_string()))
+}
+
 #[derive(Debug, Clone)]
 pub struct KeyValueFilter {
-    pub key_value_delimiter: String,
-    pub value_re: Regex,
+    pub re_pattern: Regex,
     pub quotes: Vec<(char, char)>,
-    pub field_delimiters: Vec<String>,
+    pub key_value_delimiter: String,
 }
 
 impl std::fmt::Display for KeyValueFilter {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "keyvalue(\"{}\", \"{}\", \"{:?}\", \"{:?}\")",
-            self.key_value_delimiter, self.value_re, self.quotes, self.field_delimiters,
+            "keyvalue(\"{:?}\", \"{:?}\")",
+            self.re_pattern, self.quotes
         )
     }
 }
@@ -125,25 +179,20 @@ pub fn apply_filter(value: &Value, filter: &KeyValueFilter) -> Result<Value, Gro
     match value {
         Value::Bytes(bytes) => {
             let mut result = Value::Object(BTreeMap::default());
-            parse(
-                String::from_utf8_lossy(bytes).as_ref(),
-                &filter.key_value_delimiter,
-                &filter
-                    .field_delimiters
-                    .iter()
-                    .map(|s| s.as_str())
-                    .collect::<Vec<&str>>(),
-                &filter.quotes,
-                &filter.value_re,
-            )
-            .unwrap_or_default()
-            .into_iter()
-            .for_each(|(k, v)| {
-                if !(v.is_null()
-                    || matches!(&v, Value::Bytes(b) if b.is_empty())
-                    || k.trim().is_empty())
+            let value = String::from_utf8_lossy(bytes);
+            filter.re_pattern.captures_iter(value.as_ref()).for_each(|c| {
+                let key = parse_key(extract_capture(&c, 1), filter.quotes.as_slice());
+                let value = extract_capture(&c, 2);
+                // trim trailing comma for value
+                let value = value.trim_end_matches(|c| c == ',');
+
+                if let Ok((_, value)) = parse_value(value, filter.quotes.as_slice()) {
+                if !(value.is_null()
+                    || matches!(&value, Value::Bytes(b) if b.is_empty())
+                    || key.is_empty())
                 {
-                    result.insert(crate::path!(&k), v);
+                    result.insert(crate::path!(key), value);
+                }
                 }
             });
             Ok(result)
@@ -155,145 +204,32 @@ pub fn apply_filter(value: &Value, filter: &KeyValueFilter) -> Result<Value, Gro
     }
 }
 
+fn extract_capture<'a>(c: &'a Result<Captures<'a>, fancy_regex::Error>, i: usize) -> &'a str {
+    c.as_ref().map(|c| c.get(i).map(|m| m.as_str())).unwrap_or_default().unwrap_or_default().trim()
+}
+
 type SResult<'a, O> = IResult<&'a str, O, (&'a str, nom::error::ErrorKind)>;
-
-#[inline]
-fn parse<'a>(
-    input: &'a str,
-    key_value_delimiter: &'a str,
-    field_delimiters: &'a [&'a str],
-    quotes: &'a [(char, char)],
-    value_re: &Regex,
-) -> Result<Vec<(String, Value)>, String> {
-    let (rest, result) = parse_line(
-        input,
-        key_value_delimiter,
-        field_delimiters,
-        quotes,
-        value_re,
-    )
-    .map_err(|_| format!("could not parse '{}' as 'keyvalue'", input))?;
-
-    if rest.trim().is_empty() {
-        Ok(result)
-    } else {
-        Err("could not parse whole line successfully".into())
-    }
-}
-
-/// Parse the line as a separated list of key value pairs.
-#[inline]
-fn parse_line<'a>(
-    input: &'a str,
-    key_value_delimiter: &'a str,
-    field_delimiters: &'a [&'a str],
-    quotes: &'a [(char, char)],
-    value_re: &'a Regex,
-) -> SResult<'a, Vec<(String, Value)>> {
-    let mut last_result = None;
-    for &field_delimiter in field_delimiters {
-        match separated_list1(
-            parse_field_delimiter(field_delimiter),
-            parse_key_value(key_value_delimiter, field_delimiter, quotes, value_re),
-        )(input)
-        {
-            Ok((rest, v)) if rest.trim().is_empty() => {
-                return Ok((rest, v));
-            }
-            res => last_result = Some(res), // continue
-        }
-    }
-    last_result.unwrap()
-}
-
-/// Parses the field_delimiter between the key/value pairs, ignoring surrounding spaces
-fn parse_field_delimiter(field_delimiter: &str) -> impl Fn(&str) -> SResult<&str> + '_ {
-    move |input| {
-        if field_delimiter == " " {
-            space1(input)
-        } else {
-            preceded(space0, tag(field_delimiter))(input)
-        }
-    }
-}
-
-/// Parses the end of input ignoring any trailing spaces.
-fn parse_end_of_input<'a>() -> impl Fn(&'a str) -> SResult<&'a str> {
-    move |input| preceded(space0, eof)(input)
-}
-
-/// Parse a single `key=value` tuple.
-/// Does not accept standalone keys(`key=`)
-fn parse_key_value<'a>(
-    key_value_delimiter: &'a str,
-    field_delimiter: &'a str,
-    quotes: &'a [(char, char)],
-    non_quoted_re: &'a Regex,
-) -> impl Fn(&'a str) -> SResult<(String, Value)> {
-    move |input| {
-        map(
-            |input| {
-                tuple((
-                    alt((
-                        preceded(
-                            space0,
-                            parse_key(key_value_delimiter, quotes, non_quoted_re),
-                        ),
-                        preceded(space0, parse_key(field_delimiter, quotes, non_quoted_re)),
-                    )),
-                    many_m_n(0, 1, tag(key_value_delimiter)),
-                    parse_value(field_delimiter, quotes, non_quoted_re),
-                ))(input)
-            },
-            |(field, sep, value): (&str, Vec<&str>, Value)| {
-                if sep.len() == 1 {
-                    (field.to_string(), value)
-                } else {
-                    (field.to_string(), Value::Null) // will be removed
-                }
-            },
-        )(input)
-    }
-}
 
 /// Parses quoted strings.
 #[inline]
-fn parse_quoted<'a>(
-    quotes: &'a (char, char),
-    field_terminator: &'a str,
-) -> impl Fn(&'a str) -> SResult<&'a str> {
+fn parse_quoted(quotes: &(char, char)) -> impl Fn(&str) -> SResult<&str> + '_ {
     move |input| {
-        terminated(
             delimited(
                 char(quotes.0),
                 map(opt(take_while1(|c: char| c != quotes.1)), |inner| {
                     inner.unwrap_or("")
                 }),
                 char(quotes.1),
-            ),
-            peek(alt((
-                parse_field_delimiter(field_terminator),
-                parse_end_of_input(),
-            ))),
         )(input)
     }
 }
 
-/// A delimited value is all the text until our field_delimiter, or the rest of the string if it is the last value in the line,
 #[inline]
-fn parse_delimited(field_delimiter: &str) -> impl Fn(&str) -> SResult<&str> + '_ {
-    move |input| map(alt((take_until(field_delimiter), rest)), |s: &str| s.trim())(input)
-}
-
-#[inline]
-fn quoted<'a>(
-    quotes: &'a [(char, char)],
-    delimiter: &'a str,
-) -> impl Fn(&'a str) -> SResult<&'a str> {
+fn quoted(quotes: &[(char, char)]) -> impl Fn(&str) -> SResult<&str> + '_ {
     move |input| {
         let mut last_err = None;
         for quotes in quotes {
-            match parse_quoted(quotes, delimiter)(input) {
+            match parse_quoted(quotes)(input) {
                 done @ Ok(..) => return done,
                 err @ Err(..) => last_err = Some(err), // continue
             }
@@ -302,85 +238,38 @@ fn quoted<'a>(
     }
 }
 
-fn re_find<'a, E>(re: &'a Regex) -> impl Fn(&'a str) -> IResult<&'a str, &'a str, E>
-where
-    E: nom::error::ParseError<&'a str>,
-{
-    move |i| {
-        if let Some(m) = re.find(i) {
-            Ok((i.slice(m.end()..), i.slice(m.start()..m.end())))
-        } else {
-            Err(nom::Err::Error(E::from_error_kind(
-                i,
-                nom::error::ErrorKind::RegexpFind,
-            )))
-        }
-    }
-}
-
-/// Parses an input while it matches a given regex, otherwise skips an input until the next field delimiter
-#[inline]
-fn match_re_or_empty<'a>(
-    value_re: &'a Regex,
-    field_delimiter: &'a str,
-) -> impl Fn(&'a str) -> SResult<&'a str> {
-    move |input| {
-        re_find::<'a, (&'a str, nom::error::ErrorKind)>(value_re)(input)
-            .or_else(|_| parse_delimited(field_delimiter)(input).map(|(rest, _v)| (rest, "")))
-    }
-}
-
 /// Parses the value.
 /// The value has two parsing strategies.
 ///
 /// 1. The value is quoted - parse until the end quote
-/// 2. Otherwise we parse until regex matches
+/// 2. Otherwise, we parse until regex matches
 #[inline]
-fn parse_value<'a>(
-    field_delimiter: &'a str,
-    quotes: &'a [(char, char)],
-    re: &'a Regex,
-) -> impl Fn(&'a str) -> SResult<Value> {
-    move |input| {
-        alt((
-            map(quoted(quotes, field_delimiter), |value| {
-                Value::Bytes(Bytes::copy_from_slice(value.as_bytes()))
-            }),
-            parse_null,
-            parse_boolean,
-            parse_number(field_delimiter),
-            map(match_re_or_empty(re, field_delimiter), |value| {
-                Value::Bytes(Bytes::copy_from_slice(value.as_bytes()))
-            }),
-        ))(input)
-    }
+fn parse_value<'a>(input: &'a str, quotes: &'a[(char, char)]) -> SResult<'a, Value> {
+    alt((
+        map(quoted(quotes), |value| {
+            Value::Bytes(Bytes::copy_from_slice(value.as_bytes()))
+        }),
+        parse_null,
+        parse_boolean,
+        parse_number,
+        rest.map(Value::from),
+    ))(input)
 }
 
-fn parse_number(field_delimiter: &str) -> impl Fn(&str) -> SResult<Value> + '_ {
-    move |input| {
-        map(
-            terminated(
-                double,
-                peek(alt((
-                    parse_field_delimiter(field_delimiter),
-                    parse_end_of_input(),
-                ))),
-            ),
-            |v| {
-                if ((v as i64) as f64 - v).abs() == 0.0 {
-                    // can be safely converted to Integer without precision loss
-                    Value::Integer(v as i64)
-                } else {
-                    Value::Float(NotNan::new(v).expect("not a float"))
-                }
-            },
-        )(input)
-        .map_err(|e| match e {
-            // double might return Failure(an unrecoverable error) - make it recoverable
-            nom::Err::Failure(_) => nom::Err::Error((input, nom::error::ErrorKind::Float)),
-            e => e,
-        })
-    }
+fn parse_number(input: &str) -> SResult<Value> {
+    map(terminated(double, eof), |v| {
+        if ((v as i64) as f64 - v).abs() == 0.0 {
+            // can be safely converted to Integer without precision loss
+            Value::Integer(v as i64)
+        } else {
+            Value::Float(NotNan::new(v).expect("not a float"))
+        }
+    })(input)
+    .map_err(|e| match e {
+        // double might return Failure(an unrecoverable error) - make it recoverable
+        nom::Err::Failure(_) => nom::Err::Error((input, nom::error::ErrorKind::Float)),
+        e => e,
+    })
 }
 
 fn parse_null(input: &str) -> SResult<Value> {
@@ -394,126 +283,67 @@ fn parse_boolean(input: &str) -> SResult<Value> {
     alt((parse_true, parse_false))(input)
 }
 
-/// Parses the key.
-/// Parsing strategies are the same as parse_value, but we don't need to convert the result to a `Value`.
+/// Removes quotes from the key if needed.
 fn parse_key<'a>(
-    key_value_delimiter: &'a str,
+    input: &'a str,
     quotes: &'a [(char, char)],
-    re: &'a Regex,
-) -> impl Fn(&'a str) -> SResult<&'a str> {
-    move |input| alt((quoted(quotes, key_value_delimiter), re_find(re)))(input)
+) -> &'a str {
+    quoted(quotes)(input).map(|(_, key)| key).unwrap_or_else(|_| input)
 }
 
 #[cfg(test)]
 mod tests {
-    use regex::Regex;
-
     use super::*;
 
     #[test]
-    fn test_parse_keyvalue() {
-        // DD examples from https://docs.datadoghq.com/logs/log_configuration/parsing/?tab=filters#key-value-or-logfmt
-        let default_value_re = Regex::new(r"^[\w.\-_@]+").unwrap();
-        let default_quotes = &[('"', '"'), ('\'', '\''), ('<', '>')];
+    fn test_parse_key() {
+        assert_eq!(
+            "key",
+            parse_key("key", DEFAULT_QUOTES)
+        );
+        assert_eq!(
+            "key",
+            parse_key(r#""key""#, DEFAULT_QUOTES)
+        );
+        assert_eq!(
+           "key",
+            parse_key( r#"#key#"#, &[('#', '#')])
+        );
+    }
 
-        let default_key_value_delimiter = "=";
-        let default_field_delimiters = &[" ", ",", ";"];
-
+    #[test]
+    fn test_parse_value() {
         assert_eq!(
-            Ok(vec![("key".to_string(), "valueStr".into()),]),
-            parse(
-                "key=valueStr",
-                default_key_value_delimiter,
-                default_field_delimiters,
-                default_quotes,
-                &default_value_re,
-            )
+            Ok(("", Value::from("value"))),
+            parse_value("value", DEFAULT_QUOTES)
         );
         assert_eq!(
-            Ok(vec![("key".to_string(), "valueStr".into()),]),
-            parse(
-                "key=<valueStr>",
-                default_key_value_delimiter,
-                default_field_delimiters,
-                default_quotes,
-                &default_value_re,
-            )
+            Ok(("", Value::from("value"))),
+            parse_value(r#""value""#, DEFAULT_QUOTES)
         );
         assert_eq!(
-            Ok(vec![("key".to_string(), "valueStr".into()),]),
-            parse(
-                r#""key"="valueStr""#,
-                default_key_value_delimiter,
-                default_field_delimiters,
-                default_quotes,
-                &default_value_re,
-            )
+            Ok(("", Value::from("value"))),
+            parse_value(r#"#value#"#, &[('#', '#')])
         );
         assert_eq!(
-            Ok(vec![("key".to_string(), "valueStr".into()),]),
-            parse(
-                "key:valueStr",
-                ":",
-                default_field_delimiters,
-                default_quotes,
-                &default_value_re,
-            )
+            Ok(("", Value::Null)),
+            parse_value(r#"null"#, DEFAULT_QUOTES)
         );
         assert_eq!(
-            Ok(vec![("key".to_string(), "/valueStr".into()),]),
-            parse(
-                r#"key:"/valueStr""#,
-                ":",
-                default_field_delimiters,
-                default_quotes,
-                &default_value_re,
-            )
+            Ok(("", Value::from(true))),
+            parse_value(r#"true"#, DEFAULT_QUOTES)
         );
         assert_eq!(
-            Ok(vec![("/key".to_string(), "/valueStr".into()),]),
-            parse(
-                "/key:/valueStr",
-                ":",
-                default_field_delimiters,
-                default_quotes,
-                &Regex::new(r"^[\w.\-_@/]+").unwrap(),
-            )
+            Ok(("", Value::from(false))),
+            parse_value(r#"false"#, DEFAULT_QUOTES)
         );
         assert_eq!(
-            Ok(vec![("key".to_string(), "valueStr".into()),]),
-            parse(
-                "key:={valueStr}",
-                ":=",
-                default_field_delimiters,
-                &[('{', '}')],
-                &default_value_re,
-            )
+            Ok(("", Value::from(12))),
+            parse_value(r#"12"#, DEFAULT_QUOTES)
         );
         assert_eq!(
-            Ok(vec![
-                ("key1".to_string(), "value1".into()),
-                ("key2".to_string(), "value2".into())
-            ]),
-            parse(
-                "key1=value1|key2=value2",
-                default_key_value_delimiter,
-                &["|"],
-                default_quotes,
-                &default_value_re,
-            )
-        );
-        assert_eq!(
-            Ok(vec![
-                ("key1".to_string(), "value1".into()),
-                ("key2".to_string(), "value2".into())
-            ]),
-            parse(
-                r#"key1="value1"|key2="value2""#,
-                default_key_value_delimiter,
-                &["|"],
-                default_quotes,
-                &default_value_re,
-            )
+            Ok(("", Value::from(1.2))),
+            parse_value(r#"1.2"#, DEFAULT_QUOTES)
         );
     }
 }

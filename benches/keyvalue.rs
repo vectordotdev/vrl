@@ -20,7 +20,7 @@ fn apply_filter_bench(c: &mut Criterion) {
                 let value = Value::Bytes(Bytes::from("key=valueStr"));
                 let filter = KeyValueFilter {
                     key_value_delimiter: "=".into(),
-                    value_re: Regex::new(r"^[\w.\-_@]+").unwrap(),
+                    re_pattern: Regex::new(r"^[\w.\-_@]+").unwrap(),
                     quotes: vec![('"', '"'), ('\'', '\''), ('<', '>')],
                     field_delimiters: [" ", ",", ";"]
                         .iter()
@@ -42,7 +42,7 @@ fn apply_filter_bench(c: &mut Criterion) {
                 let value = Value::Bytes(Bytes::from("key1=value1|key2=value2"));
                 let filter = KeyValueFilter {
                     key_value_delimiter: "=".into(),
-                    value_re: Regex::new(r"^[\w.\-_@]+").unwrap(),
+                    re_pattern: Regex::new(r"^[\w.\-_@]+").unwrap(),
                     quotes: vec![('"', '"'), ('\'', '\''), ('<', '>')],
                     field_delimiters: ["|"]
                         .iter()

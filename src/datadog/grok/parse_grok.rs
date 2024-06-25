@@ -140,6 +140,7 @@ mod tests {
     use crate::value::Value;
     use chrono::{Datelike, NaiveDate, Timelike, Utc};
     use ordered_float::NotNan;
+    // use ordered_float::NotNan;
     use tracing_test::traced_test;
 
     use super::super::parse_grok_rules::parse_grok_rules;
@@ -255,7 +256,7 @@ mod tests {
     fn test_grok_pattern(tests: Vec<(&str, &str, Result<Value, Error>)>) {
         for (filter, k, v) in tests {
             let rules = parse_grok_rules(&[filter.to_string()], BTreeMap::new())
-                .expect("couldn't parse rules");
+                .expect(&format!("failed ot parse {k} with filter {filter}"));
             let parsed = parse_grok(k, &rules);
 
             if v.is_ok() {
@@ -263,10 +264,11 @@ mod tests {
                     parsed.unwrap_or_else(|_| panic!("{filter} does not match {k}")),
                     Value::from(btreemap! {
                         "field" =>  v.unwrap(),
-                    })
+                    }),
+                    "failed to parse {k} with filter {filter}"
                 );
             } else {
-                assert_eq!(parsed, v);
+                assert_eq!(parsed, v, "failed to parse {k} with filter {filter}");
             }
         }
     }
@@ -274,10 +276,10 @@ mod tests {
     fn test_full_grok(tests: Vec<(&str, &str, Result<Value, Error>)>) {
         for (filter, k, v) in tests {
             let rules = parse_grok_rules(&[filter.to_string()], BTreeMap::new())
-                .expect("couldn't parse rules");
+                .expect(&format!("failed to parse {k} with filter {filter}"));
             let parsed = parse_grok(k, &rules);
 
-            assert_eq!(parsed, v);
+            assert_eq!(parsed, v, "failed to parse {k} with filter {filter}");
         }
     }
 
@@ -790,6 +792,24 @@ mod tests {
                     "key" => "valueStr"
                 })),
             ),
+            // ignore space after the delimiter(comma)
+            (
+                r#"%{data::keyvalue}"#,
+                "key1=value1, key2=value2",
+                Ok(Value::from(btreemap! {
+                    "key1" => "value1",
+                    "key2" => "value2",
+                })),
+            ),
+            // allow space as a legit value character, but trim key/values
+            (
+                r#"%{data::keyvalue("="," ")}"#,
+                "key1=value1, key2 = value 2 ",
+                Ok(Value::from(btreemap! {
+                    "key1" => "value1",
+                    "key2" => "value 2",
+                })),
+            ),
             (
                 r#"%{data::keyvalue("=", "", "", "|")}"#,
                 "key1=value1|key2=value2",
@@ -926,6 +946,26 @@ mod tests {
                         "name" => "my_db",
                         "operation" => "insert",
                     }
+                })),
+            ),
+            // capture all possilbe key-value pairs from the string
+            (
+                "%{data::keyvalue}",
+                r#" , key1=value1 "key2"="value2",key3=value3 "#,
+                Ok(Value::from(btreemap! {
+                    "key1" => "value1",
+                    "key2" => "value2",
+                    "key3" => "value3",
+                })),
+            ),
+            (
+                r#"%{data::keyvalue(": ",",")}"#,
+                r#"client: 217.92.148.44, server: localhost, request: "HEAD http://174.138.82.103:80/sql/sql-admin/ HTTP/1.1", host: "174.138.82.103""#,
+                Ok(Value::from(btreemap! {
+                    "client" => "217.92.148.44",
+                    "host" => "174.138.82.103",
+                    "request" => "HEAD http://174.138.82.103:80/sql/sql-admin/ HTTP/1.1",
+                    "server" => "localhost",
                 })),
             ),
         ]);
