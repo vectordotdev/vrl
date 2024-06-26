@@ -165,6 +165,7 @@ pub fn apply_filter(value: &Value, filter: &GrokFilter) -> Result<Value, GrokRun
             )),
         },
         GrokFilter::Scale(scale_factor) => {
+            let scale_factor = scale_factor * 1000_f64 / 1000_f64;
             let v = match value {
                 Value::Integer(v) => Ok(Value::Float(
                     NotNan::new((*v as f64) * scale_factor).expect("NaN"),
