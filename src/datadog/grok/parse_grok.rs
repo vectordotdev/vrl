@@ -260,7 +260,7 @@ mod tests {
 
             if v.is_ok() {
                 assert_eq!(
-                    parsed.expect(&format!("{filter} does not match {k}")),
+                    parsed.unwrap_or_else(|_| panic!("{filter} does not match {k}")),
                     Value::from(btreemap! {
                         "field" =>  v.unwrap(),
                     })

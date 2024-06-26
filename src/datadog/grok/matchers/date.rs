@@ -419,7 +419,7 @@ mod tests {
         let now = Utc::now();
         let expected_datetime = NaiveDate::from_ymd_opt(now.year(), now.month(), now.day())
             .unwrap()
-            .and_hms_opt(12, 03, 42)
+            .and_hms_opt(12, 3, 42)
             .unwrap();
         // make sure we can parse the date with the expected result
         assert_eq!(
@@ -435,7 +435,7 @@ mod tests {
         let now = Utc::now();
         let expected_datetime = NaiveDate::from_ymd_opt(now.year(), 3, 25)
             .unwrap()
-            .and_hms_opt(12, 03, 42)
+            .and_hms_opt(12, 3, 42)
             .unwrap();
         // make sure we can parse the date with the expected result
         assert_eq!(
