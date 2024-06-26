@@ -11,6 +11,9 @@ pub(crate) fn parse_query_string(bytes: &Bytes) -> Resolved {
     let parsed = form_urlencoded::parse(query_string);
     for (k, value) in parsed {
         let value = value.as_ref();
+        if value.is_empty() {
+            continue;
+        }
         result
             .entry(k.into_owned().into())
             .and_modify(|v| {
@@ -41,8 +44,6 @@ mod tests {
             Value::from(btreemap! {
                 "foo" => "+1",
                 "bar" => "2",
-                "xyz" => "",
-                "abc" => "",
             })
         );
     }
@@ -72,23 +73,19 @@ mod tests {
     #[test]
     fn test_parses_empty_key() {
         let result = parse_query_string(&"=&=".into()).unwrap();
-        assert_eq!(
-            result,
-            Value::from(btreemap! {
-                "" => vec!["", ""],
-            })
-        );
+        assert_eq!(result, Value::from(btreemap! {}));
+    }
+
+    #[test]
+    fn test_parses_empty_value() {
+        let result = parse_query_string(&"-".into()).unwrap();
+        assert_eq!(result, Value::from(btreemap! {}));
     }
 
     #[test]
     fn test_parses_single_key() {
         let result = parse_query_string(&"foo".into()).unwrap();
-        assert_eq!(
-            result,
-            Value::from(btreemap! {
-                "foo" => "",
-            })
-        );
+        assert_eq!(result, Value::from(btreemap! {}));
     }
 
     #[test]
