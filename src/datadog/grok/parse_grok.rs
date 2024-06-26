@@ -138,7 +138,7 @@ fn postprocess_value(value: &mut Value) {
 mod tests {
     use crate::btreemap;
     use crate::value::Value;
-    use chrono::{DateTime, Datelike, Timelike};
+    use chrono::{Datelike, NaiveDate, Timelike, Utc};
     use ordered_float::NotNan;
     use tracing_test::traced_test;
 
@@ -474,7 +474,12 @@ mod tests {
 
     #[test]
     fn supports_date_matcher() {
-        let now = DateTime::from_timestamp_millis(chrono::Utc::now().timestamp_millis()).unwrap();
+        let now = Utc::now();
+        let now = NaiveDate::from_ymd_opt(now.year(), now.month(), now.day())
+            .unwrap()
+            .and_hms_opt(12, 13, 14)
+            .unwrap()
+            .and_utc();
         test_grok_pattern(vec![
             (
                 r#"%{date("dd/MMM/yyyy"):field}"#,
