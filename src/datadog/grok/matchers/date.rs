@@ -417,21 +417,30 @@ mod tests {
     fn adjusts_datetime_format_and_value_when_day_missing() {
         let (adj_format, adj_value) = adjust_strp_format_and_value("%H:%M:%S", "12:03:42");
         let now = Utc::now();
-        assert_eq!(adj_format, "%Y %-m %-d %H:%M:%S");
+        let expected_datetime = NaiveDate::from_ymd_opt(now.year(), now.month(), now.day())
+            .unwrap()
+            .and_hms_opt(12, 03, 42)
+            .unwrap();
+        // make sure we can parse the date with the expected result
         assert_eq!(
-            adj_value,
-            format!("{} {} {} 12:03:42", now.year(), now.month(), now.day())
-        );
+            expected_datetime,
+            NaiveDateTime::parse_from_str(&adj_value, &adj_format).unwrap()
+        )
     }
 
     #[test]
     fn adjusts_datetime_format_and_value_when_year_missing() {
-        let (adj_format, adj_value) = adjust_strp_format_and_value("%H:%M:%S", "12:03:42");
+        let (adj_format, adj_value) =
+            adjust_strp_format_and_value("%-d/%-m %H:%M:%S", "25/03 12:03:42");
         let now = Utc::now();
-        assert_eq!(adj_format, "%Y %-m %-d %H:%M:%S");
+        let expected_datetime = NaiveDate::from_ymd_opt(now.year(), 3, 25)
+            .unwrap()
+            .and_hms_opt(12, 03, 42)
+            .unwrap();
+        // make sure we can parse the date with the expected result
         assert_eq!(
-            adj_value,
-            format!("{} {} {} 12:03:42", now.year(), now.month(), now.day())
-        );
+            expected_datetime,
+            NaiveDateTime::parse_from_str(&adj_value, &adj_format).unwrap()
+        )
     }
 }

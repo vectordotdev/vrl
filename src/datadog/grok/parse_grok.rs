@@ -474,7 +474,7 @@ mod tests {
 
     #[test]
     fn supports_date_matcher() {
-        let today = DateTime::from_timestamp_millis(chrono::Utc::now().timestamp_millis()).unwrap();
+        let now = DateTime::from_timestamp_millis(chrono::Utc::now().timestamp_millis()).unwrap();
         test_grok_pattern(vec![
             (
                 r#"%{date("dd/MMM/yyyy"):field}"#,
@@ -599,21 +599,21 @@ mod tests {
             // date is missing - assume the current day
             (
                 r#"%{date("HH:mm:ss"):field}"#,
-                &format!("{}:{}:{}", today.hour(), today.minute(), today.second()),
-                Ok(Value::Integer(today.timestamp() * 1000)),
+                &format!("{}:{}:{}", now.hour(), now.minute(), now.second()),
+                Ok(Value::Integer(now.timestamp() * 1000)),
             ),
             // if the year is missing - assume the current year
             (
                 r#"%{date("d/M HH:mm:ss"):field}"#,
                 &format!(
                     "{}/{} {}:{}:{}",
-                    today.day(),
-                    today.month(),
-                    today.hour(),
-                    today.minute(),
-                    today.second()
+                    now.day(),
+                    now.month(),
+                    now.hour(),
+                    now.minute(),
+                    now.second()
                 ),
-                Ok(Value::Integer(today.timestamp() * 1000)),
+                Ok(Value::Integer(now.timestamp() * 1000)),
             ),
         ]);
 
