@@ -49,7 +49,7 @@ struct ParseQueryStringFn {
 impl FunctionExpression for ParseQueryStringFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let bytes = self.value.resolve(ctx)?.try_bytes()?;
-        parse_query_string(&bytes)
+        parse_query_string(&bytes, false)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {
