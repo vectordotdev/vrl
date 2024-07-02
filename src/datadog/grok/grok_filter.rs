@@ -165,6 +165,7 @@ pub fn apply_filter(value: &Value, filter: &GrokFilter) -> Result<Value, GrokRun
             )),
         },
         GrokFilter::Scale(scale_factor) => {
+            let scale_factor = scale_factor * 1000_f64 / 1000_f64;
             let v = match value {
                 Value::Integer(v) => Ok(Value::Float(
                     NotNan::new((*v as f64) * scale_factor).expect("NaN"),
@@ -202,7 +203,9 @@ pub fn apply_filter(value: &Value, filter: &GrokFilter) -> Result<Value, GrokRun
         GrokFilter::Rubyhash => parse_value_error_prone(value, filter, |b| {
             parse_ruby_hash(String::from_utf8_lossy(b).as_ref())
         }),
-        GrokFilter::Querystring => parse_value_error_prone(value, filter, parse_query_string),
+        GrokFilter::Querystring => {
+            parse_value_error_prone(value, filter, |s| parse_query_string(s, true))
+        }
         GrokFilter::Boolean => parse_value(value, filter, |b| {
             "true".eq_ignore_ascii_case(String::from_utf8_lossy(b).as_ref())
         }),

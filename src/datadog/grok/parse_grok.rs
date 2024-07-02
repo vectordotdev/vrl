@@ -1,6 +1,6 @@
+use crate::path::parse_value_path;
+use crate::value::{ObjectMap, Value};
 use std::collections::BTreeMap;
-
-use crate::value::Value;
 use tracing::warn;
 
 use super::{
@@ -49,14 +49,16 @@ fn apply_grok_rule(source: &str, grok_rule: &GrokRule) -> Result<Value, Error> {
             }) = grok_rule.fields.get(name)
             {
                 filters.iter().for_each(|filter| {
-                    if let Some(ref v) = value {
-                        match apply_filter(v, filter) {
-                            Ok(v) => value = Some(v),
+                    if let Some(ref mut v) = value {
+                        value = match apply_filter(v, filter) {
+                            Ok(Value::Null) => None,
+                            Ok(v ) if v.is_object() => Some(parse_keys_as_path(v)),
+                            Ok(v) => Some(v),
                             Err(error) => {
                                 warn!(message = "Error applying filter", field = %field, filter = %filter, %error);
-                                value = None;
+                                None
                             }
-                        }
+                        };
                     }
                 });
 
@@ -93,9 +95,42 @@ fn apply_grok_rule(source: &str, grok_rule: &GrokRule) -> Result<Value, Error> {
             }
         }
 
+        postprocess_value(&mut parsed);
         Ok(parsed)
     } else {
         Err(Error::NoMatch)
+    }
+}
+
+// parse all internal object keys as path
+fn parse_keys_as_path(value: Value) -> Value {
+    match value {
+        Value::Object(map) => {
+            let mut result = Value::Object(ObjectMap::new());
+            for (k, v) in map.into_iter() {
+                let path = parse_value_path(&k)
+                    .unwrap_or_else(|_| crate::owned_value_path!(&k.to_string()));
+                result.insert(&path, parse_keys_as_path(v));
+            }
+            result
+        }
+        Value::Array(a) => Value::Array(a.into_iter().map(parse_keys_as_path).collect()),
+        v => v,
+    }
+}
+
+/// postprocess parsed values
+fn postprocess_value(value: &mut Value) {
+    // remove empty objects
+    match value {
+        Value::Array(a) => a.iter_mut().for_each(postprocess_value),
+        Value::Object(map) => {
+            map.values_mut().for_each(postprocess_value);
+            map.retain(|_, value| {
+                !matches!(value, Value::Object(v) if v.is_empty()) && !matches!(value, Value::Null)
+            })
+        }
+        _ => {}
     }
 }
 
@@ -103,6 +138,7 @@ fn apply_grok_rule(source: &str, grok_rule: &GrokRule) -> Result<Value, Error> {
 mod tests {
     use crate::btreemap;
     use crate::value::Value;
+    use chrono::{Datelike, NaiveDate, Timelike, Utc};
     use ordered_float::NotNan;
     use tracing_test::traced_test;
 
@@ -170,7 +206,6 @@ mod tests {
                     "version" => "1.0",
                     "referer" => "http://www.perdu.com/",
                     "useragent" => "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.87 Safari/537.36",
-                    "_x_forwarded_for" => Value::Null,
                 },
                 "network" => btreemap! {
                     "bytes_written" => 2326,
@@ -225,7 +260,7 @@ mod tests {
 
             if v.is_ok() {
                 assert_eq!(
-                    parsed.unwrap(),
+                    parsed.unwrap_or_else(|_| panic!("{filter} does not match {k}")),
                     Value::from(btreemap! {
                         "field" =>  v.unwrap(),
                     })
@@ -439,12 +474,13 @@ mod tests {
 
     #[test]
     fn supports_date_matcher() {
+        let now = Utc::now();
+        let now = NaiveDate::from_ymd_opt(now.year(), now.month(), now.day())
+            .unwrap()
+            .and_hms_opt(12, 13, 14)
+            .unwrap()
+            .and_utc();
         test_grok_pattern(vec![
-            (
-                r#"%{date("HH:mm:ss"):field}"#,
-                "14:20:15",
-                Ok(Value::Integer(51615000)),
-            ),
             (
                 r#"%{date("dd/MMM/yyyy"):field}"#,
                 "06/Mar/2013",
@@ -564,6 +600,25 @@ mod tests {
                 r#"%{date("M/d/yy HH:mm:ss.SSSS z"):field}"#,
                 "11/16/18 19:40:59.1234 GMT",
                 Ok(Value::Integer(1542397259123)),
+            ),
+            // date is missing - assume the current day
+            (
+                r#"%{date("HH:mm:ss"):field}"#,
+                &format!("{}:{}:{}", now.hour(), now.minute(), now.second()),
+                Ok(Value::Integer(now.timestamp() * 1000)),
+            ),
+            // if the year is missing - assume the current year
+            (
+                r#"%{date("d/M HH:mm:ss"):field}"#,
+                &format!(
+                    "{}/{} {}:{}:{}",
+                    now.day(),
+                    now.month(),
+                    now.hour(),
+                    now.minute(),
+                    now.second()
+                ),
+                Ok(Value::Integer(now.timestamp() * 1000)),
             ),
         ]);
 
@@ -867,8 +922,10 @@ mod tests {
                 "%{data::keyvalue}",
                 "db.name=my_db,db.operation=insert",
                 Ok(Value::from(btreemap! {
-                    "db.name" => "my_db",
-                    "db.operation" => "insert",
+                    "db" => btreemap! {
+                        "name" => "my_db",
+                        "operation" => "insert",
+                    }
                 })),
             ),
         ]);
@@ -1070,6 +1127,65 @@ mod tests {
               }
             }
             })),
+        )]);
+    }
+
+    #[test]
+    fn parses_sample() {
+        test_full_grok(vec![(
+            r#"\[%{date("yyyy-MM-dd HH:mm:ss,SSS"):date}\]\[%{notSpace:level}\s*\]\[%{notSpace:logger.thread_name}-#%{integer:logger.thread_id}\]\[%{notSpace:logger.name}\] .*"#,
+            r#"[2020-04-03 07:01:55,248][INFO ][exchange-worker-#43][FileWriteAheadLogManager] Started write-ahead log manager [mode=LOG_ONLY]"#,
+            Ok(Value::from(btreemap! {
+              "date"=> 1585897315248_i64,
+              "level"=> "INFO",
+              "logger"=> btreemap! {
+                "name"=> "FileWriteAheadLogManager",
+                "thread_id"=> 43,
+                "thread_name"=> "exchange-worker"
+              }
+            })),
+        )]);
+    }
+
+    #[test]
+    fn remove_empty_objects() {
+        test_full_grok(vec![
+            (
+                "%{data::json}",
+                r#"{"root": {"object": {"empty": {}}, "string": "abc" }}"#,
+                Ok(Value::Object(btreemap!(
+                    "root" => btreemap! (
+                        "string" => "abc"
+                    )
+                ))),
+            ),
+            (
+                "%{data:field:json}",
+                r#"{"root": {"object": {"empty": {}}, "string": "abc" }}"#,
+                Ok(Value::Object(btreemap!(
+                    "field" => btreemap!(
+                        "root" => btreemap! (
+                            "string" => "abc"
+                        )
+                )))),
+            ),
+            (
+                r#"%{notSpace:network.destination.ip:nullIf("-")}"#,
+                "-",
+                Ok(Value::Object(btreemap!())),
+            ),
+        ]);
+    }
+    #[test]
+    fn parses_json_keys_as_path() {
+        test_full_grok(vec![(
+            "%{data::json}",
+            r#"{"a.b": "c"}"#,
+            Ok(Value::Object(btreemap!(
+                "a" => btreemap! (
+                    "b" => "c"
+                )
+            ))),
         )]);
     }
 }

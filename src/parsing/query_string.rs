@@ -2,7 +2,7 @@ use crate::compiler::prelude::*;
 use std::collections::BTreeMap;
 use url::form_urlencoded;
 
-pub(crate) fn parse_query_string(bytes: &Bytes) -> Resolved {
+pub(crate) fn parse_query_string(bytes: &Bytes, ignore_keys_without_values: bool) -> Resolved {
     let mut query_string = bytes.as_ref();
     if !query_string.is_empty() && query_string[0] == b'?' {
         query_string = &query_string[1..];
@@ -11,6 +11,9 @@ pub(crate) fn parse_query_string(bytes: &Bytes) -> Resolved {
     let parsed = form_urlencoded::parse(query_string);
     for (k, value) in parsed {
         let value = value.as_ref();
+        if ignore_keys_without_values && value.is_empty() {
+            continue;
+        }
         result
             .entry(k.into_owned().into())
             .and_modify(|v| {
@@ -35,7 +38,7 @@ mod tests {
 
     #[test]
     fn test_parses_complete() {
-        let result = parse_query_string(&"foo=%2B1&bar=2&xyz=&abc".into()).unwrap();
+        let result = parse_query_string(&"foo=%2B1&bar=2&xyz=&abc".into(), false).unwrap();
         assert_eq!(
             result,
             Value::from(btreemap! {
@@ -49,7 +52,7 @@ mod tests {
 
     #[test]
     fn test_parses_multiple_values() {
-        let result = parse_query_string(&"foo=bar&foo=xyz".into()).unwrap();
+        let result = parse_query_string(&"foo=bar&foo=xyz".into(), false).unwrap();
         assert_eq!(
             result,
             Value::from(btreemap! {
@@ -60,7 +63,7 @@ mod tests {
 
     #[test]
     fn test_parses_ruby_on_rails_multiple_values() {
-        let result = parse_query_string(&"?foo%5b%5d=bar&foo%5b%5d=xyz".into()).unwrap();
+        let result = parse_query_string(&"?foo%5b%5d=bar&foo%5b%5d=xyz".into(), false).unwrap();
         assert_eq!(
             result,
             Value::from(btreemap! {
@@ -71,7 +74,7 @@ mod tests {
 
     #[test]
     fn test_parses_empty_key() {
-        let result = parse_query_string(&"=&=".into()).unwrap();
+        let result = parse_query_string(&"=&=".into(), false).unwrap();
         assert_eq!(
             result,
             Value::from(btreemap! {
@@ -82,7 +85,7 @@ mod tests {
 
     #[test]
     fn test_parses_single_key() {
-        let result = parse_query_string(&"foo".into()).unwrap();
+        let result = parse_query_string(&"foo".into(), false).unwrap();
         assert_eq!(
             result,
             Value::from(btreemap! {
@@ -92,14 +95,20 @@ mod tests {
     }
 
     #[test]
+    fn ignores_key_without_values() {
+        let result = parse_query_string(&"foo".into(), true).unwrap();
+        assert_eq!(result, Value::from(btreemap! {}));
+    }
+
+    #[test]
     fn test_parses_empty_string() {
-        let result = parse_query_string(&"".into()).unwrap();
+        let result = parse_query_string(&"".into(), false).unwrap();
         assert_eq!(result, Value::from(btreemap! {}));
     }
 
     #[test]
     fn test_parses_if_starts_with_question_mark() {
-        let result = parse_query_string(&"?foo=bar".into()).unwrap();
+        let result = parse_query_string(&"?foo=bar".into(), false).unwrap();
         assert_eq!(
             result,
             Value::from(btreemap! {
