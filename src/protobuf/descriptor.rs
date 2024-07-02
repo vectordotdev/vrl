@@ -7,9 +7,8 @@ pub fn get_message_pool_descriptor(
     let b = std::fs::read(descriptor_set_path).map_err(|e| {
         format!("Failed to open protobuf desc file '{descriptor_set_path:?}': {e}",)
     })?;
-    DescriptorPool::decode(b.as_slice()).map_err(|e| {
-        format!("Failed to parse protobuf desc file '{descriptor_set_path:?}': {e}")
-    })
+    DescriptorPool::decode(b.as_slice())
+        .map_err(|e| format!("Failed to parse protobuf desc file '{descriptor_set_path:?}': {e}"))
 }
 
 pub fn get_message_descriptor(

@@ -54,12 +54,22 @@ pub fn proto_to_value(
                                 let type_name = type_url.trim_start_matches("type.googleapis.com/");
                                 match get_message_descriptor_from_pool(descriptor_pool, type_name) {
                                     Ok(message_descriptor) => {
-                                        match DynamicMessage::decode(message_descriptor, value.clone()) {
+                                        match DynamicMessage::decode(
+                                            message_descriptor,
+                                            value.clone(),
+                                        ) {
                                             Ok(dynamic_message) => {
-                                                return proto_to_value(Some(descriptor_pool), &prost_reflect::Value::Message(dynamic_message), None);
+                                                return proto_to_value(
+                                                    Some(descriptor_pool),
+                                                    &prost_reflect::Value::Message(dynamic_message),
+                                                    None,
+                                                );
                                             }
                                             Err(error) => {
-                                                return Err(format!("Error parsing embedded protobuf message: {:?}", error));
+                                                return Err(format!(
+                                                    "Error parsing embedded protobuf message: {:?}",
+                                                    error
+                                                ));
                                             }
                                         }
                                     }
@@ -77,7 +87,8 @@ pub fn proto_to_value(
             for field_desc in v.descriptor().fields() {
                 if v.has_field(&field_desc) {
                     let field_value = v.get_field(&field_desc);
-                    let out = proto_to_value(descriptor_pool, field_value.as_ref(), Some(&field_desc))?;
+                    let out =
+                        proto_to_value(descriptor_pool, field_value.as_ref(), Some(&field_desc))?;
                     obj_map.insert(field_desc.name().into(), out);
                 }
             }
