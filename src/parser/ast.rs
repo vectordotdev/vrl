@@ -1190,7 +1190,8 @@ impl Not {
 
 impl fmt::Display for Not {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "!{}", self.1)
+        let width = f.width().unwrap_or_default();
+        write!(f, "!{:width$}", self.1)
     }
 }
 
