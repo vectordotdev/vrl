@@ -4,6 +4,12 @@
 
 <!-- changelog start -->
 
+## [0.16.1 (2024-07-08)]
+
+### Enhancements
+
+- `server` option for `dns_lookup` now properly replaces default server settings (https://github.com/vectordotdev/vrl/pull/910/files)
+
 ## [0.16.0 (2024-06-06)]
 
 
