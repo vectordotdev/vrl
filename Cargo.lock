@@ -2236,6 +2236,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "prost"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ac47baaef3631368888abc13a62cb6d42b88bfd5c3fc6f920a9cbe4d7d3ddc9d"
+dependencies = [
+ "bytes",
+]
+
+[[package]]
 name = "prost-derive"
 version = "0.12.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2255,7 +2264,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6f5eec97d5d34bdd17ad2db2219aabf46b054c6c41bd5529767c9ce55be5898f"
 dependencies = [
  "once_cell",
- "prost",
+ "prost 0.12.6",
  "prost-types",
 ]
 
@@ -2265,7 +2274,7 @@ version = "0.12.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "193898f59edcf43c26227dcd4c8427f00d99d61e95dcde58dabd49fa291d470e"
 dependencies = [
- "prost",
+ "prost 0.12.6",
 ]
 
 [[package]]
@@ -3457,7 +3466,7 @@ dependencies = [
  "prettytable-rs",
  "proptest",
  "proptest-derive",
- "prost",
+ "prost 0.13.0",
  "prost-reflect",
  "psl",
  "psl-types",
