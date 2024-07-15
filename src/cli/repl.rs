@@ -168,6 +168,7 @@ fn resolve(
     let mut config = CompileConfig::default();
     // The CLI should be moved out of the "vrl" module, and then it can use the `vector-core::compile_vrl` function which includes this automatically
     config.set_read_only_path(owned_metadata_path!("vector"), true);
+    config.disable_unused_expression_check();
 
     let program = match compile_with_state(program, stdlib_functions, state, config) {
         Ok(result) => result.program,

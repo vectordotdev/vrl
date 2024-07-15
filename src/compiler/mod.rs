@@ -109,16 +109,20 @@ pub fn compile_with_state(
     let ast = parse(source)
         .map_err(|err| crate::diagnostic::DiagnosticList::from(vec![Box::new(err) as Box<_>]))?;
 
+    let unused_expression_check_enabled = config.unused_expression_check_enabled();
     let result = Compiler::compile(fns, ast.clone(), state, config);
-    let unused_warnings = check_for_unused_results(&ast);
-    if unused_warnings.is_empty() {
-        result
-    } else {
-        result.map(|mut compilation_result| {
-            compilation_result.warnings.extend(unused_warnings);
-            compilation_result
-        })
+
+    if unused_expression_check_enabled {
+        let unused_warnings = check_for_unused_results(&ast);
+        if !unused_warnings.is_empty() {
+            return result.map(|mut compilation_result| {
+                compilation_result.warnings.extend(unused_warnings);
+                compilation_result
+            });
+        }
     }
+
+    result
 }
 
 /// Available VRL runtimes.
