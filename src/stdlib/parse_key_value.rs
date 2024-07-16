@@ -387,6 +387,7 @@ fn escape_char(c: char, rest: &mut Peekable<Chars>) -> char {
                 let _ = rest.next();
                 '\"'
             }
+            // ignore escape sequences not added by encode_key_value and return the backslash untouched
             Some(_) => c,
             // trailing escape char is a little odd... Might need to error here!
             None => c,
