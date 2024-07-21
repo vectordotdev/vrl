@@ -1,0 +1,11 @@
+[workspace]
+# prevent release-plz to update the changelog. This is handled
+# manually by the developers.
+changelog_update = false
+# prevent the CI to break due to a missing changelog update.
+pr_labels = ["no-changelog"]
+
+[[package]]
+name = "vrl"
+changelog_path = "./CHANGELOG.md"
+changelog_update = false
