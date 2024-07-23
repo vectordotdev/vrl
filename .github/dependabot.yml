@@ -11,6 +11,11 @@ updates:
     commit-message:
       prefix: "chore(deps)"
     open-pull-requests-limit: 10
+    groups:
+      prost:
+        patterns:
+        - "prost"
+        - "prost-*"
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
