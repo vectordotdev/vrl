@@ -4,6 +4,14 @@
 
 <!-- changelog start -->
 
+## [0.17.0 (2024-07-24)]
+
+
+### Breaking Changes & Upgrade Guide
+
+- `parse_logfmt` now processes 3 escape sequences when parsing: `\n`, `\"` and `\\`. This means that for example, `\n` in the input will be replaced with an actual newline character in parsed keys or values. (https://github.com/vectordotdev/vrl/pull/777)
+
+
 ## [0.16.1 (2024-07-08)]
 
 ### Enhancements
