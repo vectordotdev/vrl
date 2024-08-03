@@ -2766,3 +2766,48 @@ bench_function! {
         want: Ok("1:wCb3OG7yAFWelaUydu0D+125CLM="),
     }
 }
+
+bench_function! {
+    camelcase => vrl::stdlib::Camelcase;
+
+    default {
+        args: func_args![value: "input-string"],
+        want: Ok("inputString"),
+    }
+}
+
+bench_function! {
+    pascalcase => vrl::stdlib::Pascalcase;
+
+    default {
+        args: func_args![value: "input-string"],
+        want: Ok("InputString"),
+    }
+}
+
+bench_function! {
+    kebabcase => vrl::stdlib::Kebabcase;
+
+    default {
+        args: func_args![value: "inputString"],
+        want: Ok("input-string"),
+    }
+}
+
+bench_function! {
+    snakecase => vrl::stdlib::Snakecase;
+
+    default {
+        args: func_args![value: "input-string"],
+        want: Ok("input_string"),
+    }
+}
+
+bench_function! {
+    screamingsnakecase => vrl::stdlib::ScreamingSnakecase;
+
+    default {
+        args: func_args![value: "input-string"],
+        want: Ok("INPUT_STRING"),
+    }
+}

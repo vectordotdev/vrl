@@ -44,6 +44,7 @@ cfg_if::cfg_if! {
         mod assert_eq;
         mod boolean;
         mod ceil;
+        mod casing;
         mod chunks;
         mod compact;
         mod contains;
@@ -236,6 +237,11 @@ cfg_if::cfg_if! {
         pub use del::Del;
         pub use dns_lookup::DnsLookup;
         pub use downcase::Downcase;
+        pub use casing::camelcase::Camelcase;
+        pub use casing::pascalcase::Pascalcase;
+        pub use casing::snakecase::Snakecase;
+        pub use casing::screamingsnakecase::ScreamingSnakecase;
+        pub use casing::kebabcase::Kebabcase;
         pub use encode_base16::EncodeBase16;
         pub use encode_base64::EncodeBase64;
         pub use encode_gzip::EncodeGzip;
@@ -397,6 +403,7 @@ pub fn all() -> Vec<Box<dyn Function>> {
         Box::new(Assert),
         Box::new(AssertEq),
         Box::new(Boolean),
+        Box::new(Camelcase),
         Box::new(Ceil),
         Box::new(Chunks),
         Box::new(Compact),
@@ -470,6 +477,7 @@ pub fn all() -> Vec<Box<dyn Function>> {
         Box::new(IsString),
         Box::new(IsTimestamp),
         Box::new(Join),
+        Box::new(Kebabcase),
         Box::new(Keys),
         Box::new(Length),
         Box::new(Log),
@@ -515,6 +523,7 @@ pub fn all() -> Vec<Box<dyn Function>> {
         Box::new(ParseUrl),
         Box::new(ParseUserAgent),
         Box::new(ParseXml),
+        Box::new(Pascalcase),
         Box::new(Push),
         Box::new(RandomBool),
         Box::new(RandomBytes),
@@ -532,6 +541,8 @@ pub fn all() -> Vec<Box<dyn Function>> {
         Box::new(Sha2),
         Box::new(Sha3),
         Box::new(Sieve),
+        Box::new(ScreamingSnakecase),
+        Box::new(Snakecase),
         Box::new(Slice),
         Box::new(Split),
         Box::new(StartsWith),
