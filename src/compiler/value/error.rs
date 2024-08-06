@@ -56,7 +56,7 @@ pub enum ValueError {
     #[error("can't merge type {1} into {0}")]
     Merge(Kind, Kind),
 
-    #[error("can't convert {0}")]
+    #[error("can't convert out of range {0}")]
     OutOfRange(Kind),
 }
 

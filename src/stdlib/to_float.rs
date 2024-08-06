@@ -9,11 +9,11 @@ fn to_float(value: Value) -> Resolved {
         Boolean(v) => Ok(NotNan::new(if v { 1.0 } else { 0.0 }).unwrap().into()),
         Null => Ok(NotNan::new(0.0).unwrap().into()),
         Timestamp(v) => {
-            let nanos = match v.timestamp_nanos_opt() {
+            let nanoseconds = match v.timestamp_nanos_opt() {
                 Some(nanos) => nanos as f64,
                 None => return Err(ValueError::OutOfRange(Kind::timestamp()).into()),
             };
-            Ok(Value::from_f64_or_zero(nanos / 1_000_000_000_f64))
+            Ok(Value::from_f64_or_zero(nanoseconds / 1_000_000_000_f64))
         }
         Bytes(v) => Conversion::Float
             .convert(v)

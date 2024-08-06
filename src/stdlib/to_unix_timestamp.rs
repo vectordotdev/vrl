@@ -189,11 +189,11 @@ mod test {
              want: Ok(1_609_459_200_000_000_000_i64),
              tdef: TypeDef::integer().infallible(),
          }
-         crash {
+         out_of_range {
              args: func_args![value: chrono::Utc.ymd(0, 1, 1).and_hms_milli(0, 0, 0, 0),
                               unit: "nanoseconds"
              ],
-             want: Err("can't convert timestamp"),
+             want: Err("can't convert out of range timestamp"),
              tdef: TypeDef::integer().infallible(),
          }
     ];
