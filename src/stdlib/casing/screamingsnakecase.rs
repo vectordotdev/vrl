@@ -86,10 +86,10 @@ mod tests {
     use crate::value;
 
     test_function![
-        pascalcase => ScreamingSnakecase;
+        screamingsnakecase => ScreamingSnakecase;
 
         simple {
-            args: func_args![value: value!("into_string"), original_case: "snake_case"],
+            args: func_args![value: value!("input_string"), original_case: "snake_case"],
             want: Ok(value!("INPUT_STRING")),
             tdef: TypeDef::bytes(),
         }
