@@ -7,7 +7,10 @@ fn to_unix_timestamp(value: Value, unit: Unit) -> Resolved {
         Unit::Seconds => ts.timestamp(),
         Unit::Milliseconds => ts.timestamp_millis(),
         Unit::Microseconds => ts.timestamp_micros(),
-        Unit::Nanoseconds => ts.timestamp_nanos(),
+        Unit::Nanoseconds => match ts.timestamp_nanos_opt() {
+            None => return Err(ValueError::OutOfRange(Kind::timestamp()).into()),
+            Some(nanos) => nanos,
+        },
     };
     Ok(time.into())
 }
@@ -184,6 +187,13 @@ mod test {
                               unit: "nanoseconds"
              ],
              want: Ok(1_609_459_200_000_000_000_i64),
+             tdef: TypeDef::integer().infallible(),
+         }
+         crash {
+             args: func_args![value: chrono::Utc.ymd(0, 1, 1).and_hms_milli(0, 0, 0, 0),
+                              unit: "nanoseconds"
+             ],
+             want: Err("can't convert timestamp"),
              tdef: TypeDef::integer().infallible(),
          }
     ];
