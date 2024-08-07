@@ -65,6 +65,7 @@ stdlib = [
  "dep:cfb-mode",
  "dep:chacha20poly1305",
  "dep:charset",
+ "dep:convert_case",
  "dep:cidr-utils",
  "dep:community-id",
  "dep:crypto_secretbox",
@@ -129,6 +130,7 @@ cidr-utils = { version = "0.6", optional = true }
 csv = { version = "1", optional = true }
 clap = { version = "4", features = ["derive"], optional = true }
 codespan-reporting = {version = "0.11", optional = true }
+convert_case = { version = "0.6.0", optional = true }
 data-encoding = { version = "2", optional = true }
 digest = { version = "0.10", optional = true }
 dyn-clone = { version = "1", default-features = false, optional = true }

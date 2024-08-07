@@ -18,6 +18,7 @@ criterion_group!(
               assert,
               assert_eq,
               r#bool,
+              camelcase,
               ceil,
               chunks,
               compact,
@@ -79,6 +80,7 @@ criterion_group!(
               is_timestamp,
               join,
               keys,
+              kebabcase,
               length,
               log,
               r#match,
@@ -117,6 +119,7 @@ criterion_group!(
               parse_url,
               parse_user_agent,
               parse_xml,
+              pascalcase,
               push,
               // TODO: value is non-deterministic and so cannot assert equality
               // random_bool,
@@ -130,6 +133,8 @@ criterion_group!(
               round,
               seahash,
               set,
+              screamingsnakecase,
+              snakecase,
               sha1,
               sha2,
               sha3,
@@ -2764,5 +2769,50 @@ bench_function! {
     literal {
         args: func_args![source_ip: "1.2.3.4", destination_ip: "5.6.7.8", protocol: 6, source_port: 1122, destination_port: 3344],
         want: Ok("1:wCb3OG7yAFWelaUydu0D+125CLM="),
+    }
+}
+
+bench_function! {
+    camelcase => vrl::stdlib::Camelcase;
+
+    default {
+        args: func_args![value: "input-string"],
+        want: Ok("inputString"),
+    }
+}
+
+bench_function! {
+    pascalcase => vrl::stdlib::Pascalcase;
+
+    default {
+        args: func_args![value: "input-string"],
+        want: Ok("InputString"),
+    }
+}
+
+bench_function! {
+    kebabcase => vrl::stdlib::Kebabcase;
+
+    default {
+        args: func_args![value: "inputString"],
+        want: Ok("input-string"),
+    }
+}
+
+bench_function! {
+    snakecase => vrl::stdlib::Snakecase;
+
+    default {
+        args: func_args![value: "input-string"],
+        want: Ok("input_string"),
+    }
+}
+
+bench_function! {
+    screamingsnakecase => vrl::stdlib::ScreamingSnakecase;
+
+    default {
+        args: func_args![value: "input-string"],
+        want: Ok("INPUT_STRING"),
     }
 }
