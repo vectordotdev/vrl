@@ -144,6 +144,7 @@ cfg_if::cfg_if! {
         mod parse_glog;
         mod parse_grok;
         mod parse_groks;
+        mod parse_influxdb;
         mod parse_int;
         mod parse_json;
         mod parse_key_value;
