@@ -21,7 +21,7 @@ fn influxdb_lines_to_metrics(line: ParsedLine) -> Vec<ObjectMap> {
     });
 
     field_set
-        .iter()
+        .into_iter()
         .filter_map(|f| {
             let mut metric = ObjectMap::new();
             let measurement = &series.measurement;
