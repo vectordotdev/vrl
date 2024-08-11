@@ -78,7 +78,7 @@ fn parse_influxdb(bytes: Value) -> Resolved {
     let metrics = parsed_line
         .collect::<Result<Vec<_>, _>>()?
         .into_iter()
-        .flat_map(influxdb_lines_to_metrics)
+        .flat_map(influxdb_line_to_metrics)
         .map(Value::from);
 
     Ok(Value::Array(metrics.collect()))
