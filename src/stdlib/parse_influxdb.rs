@@ -5,7 +5,7 @@ use influxdb_line_protocol::{FieldValue, ParsedLine};
 
 use crate::compiler::prelude::*;
 
-fn influxdb_lines_to_metrics(line: ParsedLine) -> Vec<ObjectMap> {
+fn influxdb_line_to_metrics(line: ParsedLine) -> Vec<ObjectMap> {
     let ParsedLine {
         series,
         field_set,
