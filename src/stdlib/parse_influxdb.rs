@@ -124,9 +124,7 @@ impl Function for ParseInfluxDB {
     fn examples(&self) -> &'static [Example] {
         &[Example {
             title: "parse influxdb line protocol",
-            source: indoc! {r#"
-                    parse_influxdb("cpu,host=A,region=us-west usage_system=64i,usage_user=10u,temperature=50.5,on=true,sleep=false 1590488773254420000")
-            "#},
+            source: r#"parse_influxdb!("cpu,host=A,region=us-west usage_system=64i,usage_user=10u,temperature=50.5,on=true,sleep=false 1590488773254420000")"#,
             result: Ok(indoc! {r#"
                 [
                     {
@@ -135,7 +133,7 @@ impl Function for ParseInfluxDB {
                             "host": "A",
                             "region": "us-west"
                         },
-                        "timestamp": "2020-05-26T14:52:53.254420000Z",
+                        "timestamp": "2020-05-26T10:26:13.254420Z",
                         "kind": "absolute",
                         "gauge": {
                             "value": 64.0
@@ -147,7 +145,7 @@ impl Function for ParseInfluxDB {
                             "host": "A",
                             "region": "us-west"
                         },
-                        "timestamp": "2020-05-26T14:52:53.254420000Z",
+                        "timestamp": "2020-05-26T10:26:13.254420Z",
                         "kind": "absolute",
                         "gauge": {
                             "value": 10.0
@@ -159,7 +157,7 @@ impl Function for ParseInfluxDB {
                             "host": "A",
                             "region": "us-west"
                         },
-                        "timestamp": "2020-05-26T14:52:53.254420000Z",
+                        "timestamp": "2020-05-26T10:26:13.254420Z",
                         "kind": "absolute",
                         "gauge": {
                             "value": 50.5
@@ -171,7 +169,7 @@ impl Function for ParseInfluxDB {
                             "host": "A",
                             "region": "us-west"
                         },
-                        "timestamp": "2020-05-26T14:52:53.254420000Z",
+                        "timestamp": "2020-05-26T10:26:13.254420Z",
                         "kind": "absolute",
                         "gauge": {
                             "value": 1.0
@@ -183,7 +181,7 @@ impl Function for ParseInfluxDB {
                             "host": "A",
                             "region": "us-west"
                         },
-                        "timestamp": "2020-05-26T14:52:53.254420000Z",
+                        "timestamp": "2020-05-26T10:26:13.254420Z",
                         "kind": "absolute",
                         "gauge": {
                             "value": 0.0
