@@ -102,23 +102,16 @@ impl Function for ParseInfluxDB {
         "parse_influxdb"
     }
 
+    fn summary(&self) -> &'static str {
+        "parse an InfluxDB line protocol string into a list of vector-compatible metrics"
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",
             kind: kind::BYTES,
             required: true,
         }]
-    }
-
-    fn compile(
-        &self,
-        _state: &state::TypeState,
-        _ctx: &mut FunctionCompileContext,
-        arguments: ArgumentList,
-    ) -> Compiled {
-        let value = arguments.required("value");
-
-        Ok(ParseInfluxDBFn { value }.as_expr())
     }
 
     fn examples(&self) -> &'static [Example] {
@@ -191,6 +184,17 @@ impl Function for ParseInfluxDB {
             "#}),
         }]
     }
+
+    fn compile(
+        &self,
+        _state: &state::TypeState,
+        _ctx: &mut FunctionCompileContext,
+        arguments: ArgumentList,
+    ) -> Compiled {
+        let value = arguments.required("value");
+
+        Ok(ParseInfluxDBFn { value }.as_expr())
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -218,7 +222,7 @@ fn gauge_kind() -> Kind {
     Kind::object(BTreeMap::from([("value".into(), Kind::float())]))
 }
 
-fn inner_kind() -> BTreeMap<Field, Kind> {
+fn metric_kind() -> BTreeMap<Field, Kind> {
     BTreeMap::from([
         ("name".into(), Kind::bytes()),
         ("tags".into(), tags_kind()),
@@ -228,8 +232,12 @@ fn inner_kind() -> BTreeMap<Field, Kind> {
     ])
 }
 
+fn inner_kind() -> Kind {
+    Kind::object(metric_kind())
+}
+
 fn type_def() -> TypeDef {
-    TypeDef::object(inner_kind()).fallible()
+    TypeDef::array(Collection::from_unknown(inner_kind()))
 }
 
 #[cfg(test)]
