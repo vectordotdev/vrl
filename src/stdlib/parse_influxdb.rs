@@ -122,8 +122,76 @@ impl Function for ParseInfluxDB {
     }
 
     fn examples(&self) -> &'static [Example] {
-        // TODO: add examples
-        &[]
+        &[Example {
+            title: "parse influxdb line protocol",
+            source: indoc! {r#"
+                    parse_influxdb("cpu,host=A,region=us-west usage_system=64i,usage_user=10u,temperature=50.5,on=true,sleep=false 1590488773254420000")
+            "#},
+            result: Ok(indoc! {r#"
+                [
+                    {
+                        "name": "cpu_usage_system",
+                        "tags": {
+                            "host": "A",
+                            "region": "us-west"
+                        },
+                        "timestamp": "2020-05-26T14:52:53.254420000Z",
+                        "kind": "absolute",
+                        "gauge": {
+                            "value": 64.0
+                        }
+                    },
+                    {
+                        "name": "cpu_usage_user",
+                        "tags": {
+                            "host": "A",
+                            "region": "us-west"
+                        },
+                        "timestamp": "2020-05-26T14:52:53.254420000Z",
+                        "kind": "absolute",
+                        "gauge": {
+                            "value": 10.0
+                        }
+                    },
+                    {
+                        "name": "cpu_temperature",
+                        "tags": {
+                            "host": "A",
+                            "region": "us-west"
+                        },
+                        "timestamp": "2020-05-26T14:52:53.254420000Z",
+                        "kind": "absolute",
+                        "gauge": {
+                            "value": 50.5
+                        }
+                    },
+                    {
+                        "name": "cpu_on",
+                        "tags": {
+                            "host": "A",
+                            "region": "us-west"
+                        },
+                        "timestamp": "2020-05-26T14:52:53.254420000Z",
+                        "kind": "absolute",
+                        "gauge": {
+                            "value": 1.0
+                        }
+                    },
+                    {
+                        "name": "cpu_sleep",
+                        "tags": {
+                            "host": "A",
+                            "region": "us-west"
+                        },
+                        "timestamp": "2020-05-26T14:52:53.254420000Z",
+                        "kind": "absolute",
+                        "gauge": {
+                            "value": 0.0
+                        }
+                    }
+                ]
+            "#}),
+        }]
     }
 }
 
