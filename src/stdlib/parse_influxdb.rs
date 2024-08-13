@@ -237,7 +237,7 @@ fn inner_kind() -> Kind {
 }
 
 fn type_def() -> TypeDef {
-    TypeDef::array(Collection::from_unknown(inner_kind()))
+    TypeDef::array(Collection::from_unknown(inner_kind())).fallible()
 }
 
 #[cfg(test)]
