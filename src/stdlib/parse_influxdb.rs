@@ -171,13 +171,11 @@ mod test {
     use super::*;
     use crate::btreemap;
 
-    const TIMESTAMP_NANOS: i64 = 1590488773254420000;
-
     test_function![
         parse_influxdb => ParseInfluxDB;
 
         influxdb_valid {
-            args: func_args![ value: format!("cpu,host=A,region=us-west usage_system=64i,usage_user=10u,temperature=50.5,on=true,sleep=false {TIMESTAMP_NANOS}") ],
+            args: func_args![ value: format!("cpu,host=A,region=us-west usage_system=64i,usage_user=10u,temperature=50.5,on=true,sleep=false 1590488773254420000") ],
             want: Ok(Value::from(vec![
                 Value::from(btreemap! {
                     "name" => "cpu_usage_system",
@@ -185,7 +183,7 @@ mod test {
                         "host" => "A",
                         "region" => "us-west",
                     },
-                    "timestamp" => DateTime::from_timestamp_nanos(TIMESTAMP_NANOS),
+                    "timestamp" => DateTime::from_timestamp_nanos(1_590_488_773_254_420_000),
                     "kind" => "absolute",
                     "gauge" => btreemap! {
                         "value" => 64.0,
@@ -197,7 +195,7 @@ mod test {
                         "host" => "A",
                         "region" => "us-west",
                     },
-                    "timestamp" => DateTime::from_timestamp_nanos(TIMESTAMP_NANOS),
+                    "timestamp" => DateTime::from_timestamp_nanos(1_590_488_773_254_420_000),
                     "kind" => "absolute",
                     "gauge" => btreemap! {
                         "value" => 10.0,
@@ -209,7 +207,7 @@ mod test {
                         "host" => "A",
                         "region" => "us-west",
                     },
-                    "timestamp" => DateTime::from_timestamp_nanos(TIMESTAMP_NANOS),
+                    "timestamp" => DateTime::from_timestamp_nanos(1_590_488_773_254_420_000),
                     "kind" => "absolute",
                     "gauge" => btreemap! {
                         "value" => 50.5,
@@ -221,7 +219,7 @@ mod test {
                         "host" => "A",
                         "region" => "us-west",
                     },
-                    "timestamp" => DateTime::from_timestamp_nanos(TIMESTAMP_NANOS),
+                    "timestamp" => DateTime::from_timestamp_nanos(1_590_488_773_254_420_000),
                     "kind" => "absolute",
                     "gauge" => btreemap! {
                         "value" => 1.0,
@@ -233,7 +231,7 @@ mod test {
                         "host" => "A",
                         "region" => "us-west",
                     },
-                    "timestamp" => DateTime::from_timestamp_nanos(TIMESTAMP_NANOS),
+                    "timestamp" => DateTime::from_timestamp_nanos(1_590_488_773_254_420_000),
                     "kind" => "absolute",
                     "gauge" => btreemap! {
                         "value" => 0.0,
@@ -274,11 +272,11 @@ mod test {
         }
 
         influxdb_valid_no_tags {
-            args: func_args![ value: format!("cpu usage_system=64i,usage_user=10i {TIMESTAMP_NANOS}") ],
+            args: func_args![ value: format!("cpu usage_system=64i,usage_user=10i 1590488773254420000") ],
             want: Ok(Value::from(vec![
                 Value::from(btreemap! {
                     "name" => "cpu_usage_system",
-                    "timestamp" => DateTime::from_timestamp_nanos(TIMESTAMP_NANOS),
+                    "timestamp" => DateTime::from_timestamp_nanos(1_590_488_773_254_420_000),
                     "kind" => "absolute",
                     "gauge" => btreemap! {
                         "value" => 64.0,
@@ -286,7 +284,7 @@ mod test {
                 }),
                 Value::from(btreemap! {
                     "name" => "cpu_usage_user",
-                    "timestamp" => DateTime::from_timestamp_nanos(TIMESTAMP_NANOS),
+                    "timestamp" => DateTime::from_timestamp_nanos(1_590_488_773_254_420_000),
                     "kind" => "absolute",
                     "gauge" => btreemap! {
                         "value" => 10.0,
