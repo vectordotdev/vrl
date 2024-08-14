@@ -361,8 +361,7 @@ mod tests {
             // 0x22 is a quote character
             // 0xf5 is out of the range of valid UTF-8 bytes
             args: func_args![ value: Bytes::from_static(&[0x22,0xf5,0x22])],
-            // U+FFFD is the replacement character for invalid UTF-8
-            want: Ok(value!("\u{fffd}")),
+            want: Ok(value!(std::char::REPLACEMENT_CHARACTER.to_string())),
             tdef: type_def(),
         }
 
@@ -370,7 +369,7 @@ mod tests {
             // 0xf5 is out of the range of valid UTF-8 bytes
             args: func_args![ value: Bytes::from_static(&[0x22,0xf5,0x22]), lossy: true],
             // U+FFFD is the replacement character for invalid UTF-8
-            want: Ok(value!("\u{fffd}")),
+            want: Ok(value!(std::char::REPLACEMENT_CHARACTER.to_string())),
             tdef: type_def(),
         }
 
