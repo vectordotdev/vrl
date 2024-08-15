@@ -7,8 +7,13 @@ use serde_json::{
 
 use crate::compiler::prelude::*;
 
-fn parse_json(value: Value) -> Resolved {
-    let bytes = value.try_bytes()?;
+fn parse_json(value: Value, lossy: Option<Value>) -> Resolved {
+    let lossy = lossy.map(Value::try_boolean).transpose()?.unwrap_or(true);
+    let bytes = if lossy {
+        value.try_bytes_utf8_lossy()?.into_owned().into()
+    } else {
+        value.try_bytes()?
+    };
     let value = serde_json::from_slice::<'_, Value>(&bytes)
         .map_err(|e| format!("unable to parse json: {e}"))?;
     Ok(value)
@@ -16,9 +21,14 @@ fn parse_json(value: Value) -> Resolved {
 
 // parse_json_with_depth method recursively traverses the value and returns raw JSON-formatted bytes
 // after reaching provided depth.
-fn parse_json_with_depth(value: Value, max_depth: Value) -> Resolved {
-    let bytes = value.try_bytes()?;
+fn parse_json_with_depth(value: Value, max_depth: Value, lossy: Option<Value>) -> Resolved {
     let parsed_depth = validate_depth(max_depth)?;
+    let lossy = lossy.map(Value::try_boolean).transpose()?.unwrap_or(true);
+    let bytes = if lossy {
+        value.try_bytes_utf8_lossy()?.into_owned().into()
+    } else {
+        value.try_bytes()?
+    };
 
     let raw_value = serde_json::from_slice::<'_, &RawValue>(&bytes)
         .map_err(|e| format!("unable to read json: {e}"))?;
@@ -121,6 +131,11 @@ impl Function for ParseJson {
                 kind: kind::INTEGER,
                 required: false,
             },
+            Parameter {
+                keyword: "lossy",
+                kind: kind::BOOLEAN,
+                required: false,
+            },
         ]
     }
 
@@ -179,10 +194,16 @@ impl Function for ParseJson {
     ) -> Compiled {
         let value = arguments.required("value");
         let max_depth = arguments.optional("max_depth");
+        let lossy = arguments.optional("lossy");
 
         match max_depth {
-            Some(max_depth) => Ok(ParseJsonMaxDepthFn { value, max_depth }.as_expr()),
-            None => Ok(ParseJsonFn { value }.as_expr()),
+            Some(max_depth) => Ok(ParseJsonMaxDepthFn {
+                value,
+                max_depth,
+                lossy,
+            }
+            .as_expr()),
+            None => Ok(ParseJsonFn { value, lossy }.as_expr()),
         }
     }
 }
@@ -190,12 +211,18 @@ impl Function for ParseJson {
 #[derive(Debug, Clone)]
 struct ParseJsonFn {
     value: Box<dyn Expression>,
+    lossy: Option<Box<dyn Expression>>,
 }
 
 impl FunctionExpression for ParseJsonFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let value = self.value.resolve(ctx)?;
-        parse_json(value)
+        let lossy = self
+            .lossy
+            .as_ref()
+            .map(|expr| expr.resolve(ctx))
+            .transpose()?;
+        parse_json(value, lossy)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {
@@ -207,13 +234,19 @@ impl FunctionExpression for ParseJsonFn {
 struct ParseJsonMaxDepthFn {
     value: Box<dyn Expression>,
     max_depth: Box<dyn Expression>,
+    lossy: Option<Box<dyn Expression>>,
 }
 
 impl FunctionExpression for ParseJsonMaxDepthFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let value = self.value.resolve(ctx)?;
         let max_depth = self.max_depth.resolve(ctx)?;
-        parse_json_with_depth(value, max_depth)
+        let lossy = self
+            .lossy
+            .as_ref()
+            .map(|expr| expr.resolve(ctx))
+            .transpose()?;
+        parse_json_with_depth(value, max_depth, lossy)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {
@@ -320,6 +353,29 @@ mod tests {
         lossy_float_conversion {
             args: func_args![ value: r#"{"num": 9223372036854775808}"#],
             want: Ok(value!({"num": 9.223_372_036_854_776e18})),
+            tdef: type_def(),
+        }
+
+        // Checks that the parsing uses the default lossy argument value
+        parse_invalid_utf8_default_lossy_arg {
+            // 0x22 is a quote character
+            // 0xf5 is out of the range of valid UTF-8 bytes
+            args: func_args![ value: Bytes::from_static(&[0x22,0xf5,0x22])],
+            want: Ok(value!(std::char::REPLACEMENT_CHARACTER.to_string())),
+            tdef: type_def(),
+        }
+
+        parse_invalid_utf8_lossy_arg_true {
+            // 0xf5 is out of the range of valid UTF-8 bytes
+            args: func_args![ value: Bytes::from_static(&[0x22,0xf5,0x22]), lossy: true],
+            // U+FFFD is the replacement character for invalid UTF-8
+            want: Ok(value!(std::char::REPLACEMENT_CHARACTER.to_string())),
+            tdef: type_def(),
+        }
+
+        invalid_utf8_json_lossy_arg_false {
+            args: func_args![ value: Bytes::from_static(&[0x22,0xf5,0x22]), lossy: false],
+            want: Err("unable to parse json: invalid unicode code point at line 1 column 3"),
             tdef: type_def(),
         }
     ];
