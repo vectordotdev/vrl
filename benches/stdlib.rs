@@ -102,6 +102,7 @@ criterion_group!(
               parse_glog,
               parse_grok,
               parse_groks,
+              parse_influxdb,
               parse_key_value,
               parse_klog,
               parse_int,
