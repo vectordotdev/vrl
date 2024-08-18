@@ -568,6 +568,7 @@ pub fn all() -> Vec<Box<dyn Function>> {
         Box::new(CommunityID),
         Box::new(Truncate),
         Box::new(TypeDef),
+        Box::new(Unflatten),
         Box::new(Unique),
         Box::new(Unnest),
         Box::new(Upcase),
