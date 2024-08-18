@@ -18,7 +18,6 @@ fn do_unflatten(value: Value, separator: &str) -> Value {
     }
 }
 
-// this should return the key to insert?
 fn do_unflatten_entries<I>(entries: I, separator: &str) -> ObjectMap
 where
     I: IntoIterator<Item = (KeyString, Value)>,
