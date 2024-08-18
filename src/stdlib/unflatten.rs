@@ -83,7 +83,7 @@ impl Function for Unflatten {
         &[
             Parameter {
                 keyword: "value",
-                kind: kind::OBJECT | kind::ARRAY,
+                kind: kind::OBJECT,
                 required: true,
             },
             Parameter {
