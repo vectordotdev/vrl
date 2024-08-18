@@ -7,7 +7,7 @@ static DEFAULT_SEPARATOR: &str = ".";
 fn unflatten(value: Value, separator: Value) -> Resolved {
     let separator = separator.try_bytes_utf8_lossy()?.into_owned();
     let map = value.try_object()?;
-    Ok(do_unflatten(map.into(), &separator).into())
+    Ok(do_unflatten(map.into(), &separator))
 }
 
 fn do_unflatten(value: Value, separator: &str) -> Value {
@@ -50,23 +50,19 @@ where
             let new_entries = values
                 .into_iter()
                 .filter_map(|(_, rest, value)| {
-                    if let Some(rest) = rest {
-                        Some((rest.into(), value))
-                    } else {
-                        // In this case, there is more than one value with the same key
-                        // and then there must be nested values, we can't set a single top-level value
-                        // so we filter it out.
-                        // Example input of this case:
-                        // {
-                        //    "a.b": 1,
-                        //    "a": 2
-                        // }
-                        // Here, we will have two items grouped by "a",
-                        // one will have "b" as rest and the other will have None.
-                        // We have to filter the second, as we can't set the second value
-                        // as the value of "a" (considered the top-level key at this level)
-                        None
-                    }
+                    // In this case, there is more than one value with the same key
+                    // and then there must be nested values, we can't set a single top-level value
+                    // so we filter it out.
+                    // Example input of this case:
+                    // {
+                    //    "a.b": 1,
+                    //    "a": 2
+                    // }
+                    // Here, we will have two items grouped by "a",
+                    // one will have "b" as rest and the other will have None.
+                    // We have to filter the second, as we can't set the second value
+                    // as the value of "a" (considered the top-level key at this level)
+                    rest.map(|rest| (rest.into(), value))
                 })
                 .collect::<Vec<_>>();
             let result = do_unflatten_entries(new_entries, separator);
