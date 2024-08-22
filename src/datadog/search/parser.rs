@@ -35,7 +35,7 @@ mod tests {
 
     fn parse(s: &str) -> QueryNode {
         s.parse()
-            .unwrap_or_else(|_| panic!("Unable to parse {s:?}."))
+            .unwrap_or_else(|error| panic!("Unable to parse {s:?}: {error}."))
     }
 
     #[test]
