@@ -4,21 +4,22 @@ use crate::compiler::prelude::*;
 
 static DEFAULT_SEPARATOR: &str = ".";
 
-fn unflatten(value: Value, separator: Value) -> Resolved {
+fn unflatten(value: Value, separator: Value, recursive: Value) -> Resolved {
     let separator = separator.try_bytes_utf8_lossy()?.into_owned();
+    let recursive = recursive.try_boolean()?;
     let map = value.try_object()?;
-    Ok(do_unflatten(map.into(), &separator))
+    Ok(do_unflatten(map.into(), &separator, recursive))
 }
 
-fn do_unflatten(value: Value, separator: &str) -> Value {
+fn do_unflatten(value: Value, separator: &str, recursive: bool) -> Value {
     match value {
-        Value::Object(map) => do_unflatten_entries(map, separator).into(),
+        Value::Object(map) => do_unflatten_entries(map, separator, recursive).into(),
         // Note that objects inside arrays are not unflattened
         _ => value,
     }
 }
 
-fn do_unflatten_entries<I>(entries: I, separator: &str) -> ObjectMap
+fn do_unflatten_entries<I>(entries: I, separator: &str, recursive: bool) -> ObjectMap
 where
     I: IntoIterator<Item = (KeyString, Value)>,
 {
@@ -38,9 +39,16 @@ where
         .map(|(key, mut values)| {
             if values.len() == 1 {
                 match values.pop().unwrap() {
-                    (_, None, value) => return (key, do_unflatten(value, separator)),
+                    (_, None, value) => {
+                        return if recursive {
+                            (key, do_unflatten(value, separator, recursive))
+                        } else {
+                            (key, value)
+                        };
+                    }
                     (_, Some(rest), value) => {
-                        let result = do_unflatten_entries([(rest.into(), value)], separator);
+                        let result =
+                            do_unflatten_entries([(rest.into(), value)], separator, recursive);
                         return (key, result.into());
                     }
                 }
@@ -64,7 +72,7 @@ where
                     rest.map(|rest| (rest.into(), value))
                 })
                 .collect::<Vec<_>>();
-            let result = do_unflatten_entries(new_entries, separator);
+            let result = do_unflatten_entries(new_entries, separator, recursive);
             (key, result.into())
         })
         .collect()
@@ -90,19 +98,38 @@ impl Function for Unflatten {
                 kind: kind::BYTES,
                 required: false,
             },
+            Parameter {
+                keyword: "recursive",
+                kind: kind::BOOLEAN,
+                required: false,
+            },
         ]
     }
 
     fn examples(&self) -> &'static [Example] {
         &[
             Example {
-                title: "object",
-                source: r#"unflatten({ "foo.bar": true })"#,
-                result: Ok(r#"{ "foo": { "bar": true }}"#),
+                title: "simple",
+                source: r#"unflatten({ "foo.bar.baz": true, "foo.bar.qux": false, "foo.quux": 42 })"#,
+                result: Ok(r#"{ "foo": { "bar": { "baz": true, "qux": false }, "quux": 42 } }"#),
             },
             Example {
-                title: "object",
-                source: r#"unflatten({ "foo_bar": true },"_")"#,
+                title: "inner flattened not recursive",
+                source: r#"unflatten({ "flattened.parent": { "foo.bar": true, "foo.baz": false } })"#,
+                result: Ok(
+                    r#"{ "flattened": { "parent": { "foo.bar": true, "foo.baz": false } } }"#,
+                ),
+            },
+            Example {
+                title: "inner flattened recursive",
+                source: r#"unflatten({ "flattened.parent": { "foo.bar": true, "foo.baz": false } }, recursive: true)"#,
+                result: Ok(
+                    r#"{ "flattened": { "parent": { "foo": { "bar": true, "baz": false } } } }"#,
+                ),
+            },
+            Example {
+                title: "with custom separator",
+                source: r#"unflatten({ "foo_bar": true }, "_")"#,
                 result: Ok(r#"{"foo": { "bar": true }}"#),
             },
         ]
@@ -114,11 +141,20 @@ impl Function for Unflatten {
         _ctx: &mut FunctionCompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
+        let value = arguments.required("value");
         let separator = arguments
             .optional("separator")
             .unwrap_or_else(|| expr!(DEFAULT_SEPARATOR));
-        let value = arguments.required("value");
-        Ok(UnflattenFn { value, separator }.as_expr())
+        let recursive = arguments
+            .optional("recursive")
+            .unwrap_or_else(|| expr!(false));
+
+        Ok(UnflattenFn {
+            value,
+            separator,
+            recursive,
+        }
+        .as_expr())
     }
 }
 
@@ -126,14 +162,16 @@ impl Function for Unflatten {
 struct UnflattenFn {
     value: Box<dyn Expression>,
     separator: Box<dyn Expression>,
+    recursive: Box<dyn Expression>,
 }
 
 impl FunctionExpression for UnflattenFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let value = self.value.resolve(ctx)?;
         let separator = self.separator.resolve(ctx)?;
+        let recursive = self.recursive.resolve(ctx)?;
 
-        unflatten(value, separator)
+        unflatten(value, separator, recursive)
     }
 
     fn type_def(&self, _: &TypeState) -> TypeDef {
@@ -185,11 +223,24 @@ mod test {
         }
 
         // Not only keys at first level are unflattened
-        double_inner_nested_map {
+        double_inner_nested_map_not_recursive {
             args: func_args![value: value!({
                 "parent": {"child1":1, "child2.grandchild1": 1, "child2.grandchild2": 2 },
                 key: "val",
             })],
+            want: Ok(value!({
+                "parent": {"child1":1, "child2.grandchild1": 1, "child2.grandchild2": 2 },
+                key: "val",
+            })),
+            tdef: TypeDef::object(Collection::any()),
+        }
+
+        // Not only keys at first level are unflattened
+        double_inner_nested_map_recursive {
+            args: func_args![value: value!({
+                "parent": {"child1":1, "child2.grandchild1": 1, "child2.grandchild2": 2 },
+                key: "val",
+            }), recursive: true],
             want: Ok(value!({
                 parent: {
                     child1: 1,
