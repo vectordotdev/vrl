@@ -104,6 +104,7 @@ criterion_group!(
               parse_glog,
               parse_grok,
               parse_groks,
+              parse_influxdb,
               parse_key_value,
               parse_klog,
               parse_int,
@@ -1677,6 +1678,76 @@ bench_function! {
             "level" => "info",
             "message" => "hello world"
         }))
+    }
+}
+
+bench_function! {
+    parse_influxdb => vrl::stdlib::ParseInfluxDB;
+
+    simple {
+        args: func_args![ value: format!("cpu,host=A,region=us-west usage_system=64i,usage_user=10u,temperature=50.5,on=true,sleep=false 1590488773254420000") ],
+        want: Ok(Value::from(vec![
+            Value::from(btreemap! {
+                "name" => "cpu_usage_system",
+                "tags" => btreemap! {
+                    "host" => "A",
+                    "region" => "us-west",
+                },
+                "timestamp" => DateTime::from_timestamp_nanos(1_590_488_773_254_420_000),
+                "kind" => "absolute",
+                "gauge" => btreemap! {
+                    "value" => 64.0,
+                },
+            }),
+            Value::from(btreemap! {
+                "name" => "cpu_usage_user",
+                "tags" => btreemap! {
+                    "host" => "A",
+                    "region" => "us-west",
+                },
+                "timestamp" => DateTime::from_timestamp_nanos(1_590_488_773_254_420_000),
+                "kind" => "absolute",
+                "gauge" => btreemap! {
+                    "value" => 10.0,
+                },
+            }),
+            Value::from(btreemap! {
+                "name" => "cpu_temperature",
+                "tags" => btreemap! {
+                    "host" => "A",
+                    "region" => "us-west",
+                },
+                "timestamp" => DateTime::from_timestamp_nanos(1_590_488_773_254_420_000),
+                "kind" => "absolute",
+                "gauge" => btreemap! {
+                    "value" => 50.5,
+                },
+            }),
+            Value::from(btreemap! {
+                "name" => "cpu_on",
+                "tags" => btreemap! {
+                    "host" => "A",
+                    "region" => "us-west",
+                },
+                "timestamp" => DateTime::from_timestamp_nanos(1_590_488_773_254_420_000),
+                "kind" => "absolute",
+                "gauge" => btreemap! {
+                    "value" => 1.0,
+                },
+            }),
+            Value::from(btreemap! {
+                "name" => "cpu_sleep",
+                "tags" => btreemap! {
+                    "host" => "A",
+                    "region" => "us-west",
+                },
+                "timestamp" => DateTime::from_timestamp_nanos(1_590_488_773_254_420_000),
+                "kind" => "absolute",
+                "gauge" => btreemap! {
+                    "value" => 0.0,
+                },
+            }),
+        ]))
     }
 }
 

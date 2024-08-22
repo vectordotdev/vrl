@@ -145,6 +145,7 @@ cfg_if::cfg_if! {
         mod parse_glog;
         mod parse_grok;
         mod parse_groks;
+        mod parse_influxdb;
         mod parse_int;
         mod parse_json;
         mod parse_key_value;
@@ -323,6 +324,7 @@ cfg_if::cfg_if! {
         pub use parse_glog::ParseGlog;
         pub use parse_grok::ParseGrok;
         pub use parse_groks::ParseGroks;
+        pub use parse_influxdb::ParseInfluxDB;
         pub use parse_int::ParseInt;
         pub use parse_json::ParseJson;
         pub use parse_key_value::ParseKeyValue;
@@ -505,6 +507,7 @@ pub fn all() -> Vec<Box<dyn Function>> {
         Box::new(ParseGlog),
         Box::new(ParseGrok),
         Box::new(ParseGroks),
+        Box::new(ParseInfluxDB),
         Box::new(ParseInt),
         Box::new(ParseJson),
         Box::new(ParseKeyValue),
