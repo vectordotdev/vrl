@@ -4,8 +4,9 @@ use chrono::DateTime;
 use influxdb_line_protocol::{FieldValue, ParsedLine};
 
 use crate::compiler::prelude::*;
+use crate::{btreemap, value};
 
-fn influxdb_line_to_metrics(line: ParsedLine) -> Vec<ObjectMap> {
+fn influxdb_line_to_metrics(line: ParsedLine) -> Result<Vec<ObjectMap>, ExpressionError> {
     let ParsedLine {
         series,
         field_set,
@@ -22,7 +23,7 @@ fn influxdb_line_to_metrics(line: ParsedLine) -> Vec<ObjectMap> {
 
     field_set
         .into_iter()
-        .filter_map(|f| {
+        .map(|f| {
             let mut metric = ObjectMap::new();
             let measurement = &series.measurement;
             let field_key = f.0.to_string();
@@ -37,16 +38,16 @@ fn influxdb_line_to_metrics(line: ParsedLine) -> Vec<ObjectMap> {
                         0.0
                     }
                 }
-                // TODO: return none or return Error?
-                FieldValue::String(_) => return None,
+                FieldValue::String(_) => {
+                    return Err(Error::StringFieldSetValuesNotSupported.into());
+                }
             };
 
             // influxdb_line_protocol crate seems to not allow NaN float values while parsing
             // field values and this case should not happen, but just in case, we should
-            // ignore the field.
+            // handle it.
             let Ok(field_value) = NotNan::new(field_value) else {
-                // TODO: return none or return error?
-                return None;
+                return Err(Error::NaNFieldSetValuesNotSupported.into());
             };
 
             let metric_name = format!("{measurement}_{field_key}");
@@ -62,12 +63,32 @@ fn influxdb_line_to_metrics(line: ParsedLine) -> Vec<ObjectMap> {
 
             metric.insert("kind".into(), "absolute".into());
 
-            let gauge_object: ObjectMap = [("value".into(), field_value.into())].into();
-            metric.insert("gauge".into(), gauge_object.into());
+            let gauge_object = value!({
+                value: field_value
+            });
+            metric.insert("gauge".into(), gauge_object);
 
-            Some(metric)
+            Ok(metric)
         })
         .collect()
+}
+
+#[derive(Debug, Clone, thiserror::Error)]
+enum Error {
+    #[error("field set values of type string are not supported")]
+    StringFieldSetValuesNotSupported,
+    #[error("NaN field set values are not supported")]
+    NaNFieldSetValuesNotSupported,
+}
+
+impl From<Error> for ExpressionError {
+    fn from(error: Error) -> Self {
+        Self::Error {
+            message: format!("Error while converting InfluxDB line protocol metric to Vector's metric model: {error}"),
+            labels: vec![],
+            notes: vec![],
+        }
+    }
 }
 
 fn parse_influxdb(bytes: Value) -> Resolved {
@@ -76,12 +97,16 @@ fn parse_influxdb(bytes: Value) -> Resolved {
     let parsed_line = influxdb_line_protocol::parse_lines(&line);
 
     let metrics = parsed_line
+        .into_iter()
+        .map(|line_result| line_result.map_err(ExpressionError::from))
+        .map(|line_result| line_result.and_then(influxdb_line_to_metrics))
         .collect::<Result<Vec<_>, _>>()?
         .into_iter()
-        .flat_map(influxdb_line_to_metrics)
-        .map(Value::from);
+        .flatten()
+        .map(Value::from)
+        .collect();
 
-    Ok(Value::Array(metrics.collect()))
+    Ok(Value::Array(metrics))
 }
 
 impl From<influxdb_line_protocol::Error> for ExpressionError {
@@ -219,17 +244,19 @@ fn tags_kind() -> Kind {
 }
 
 fn gauge_kind() -> Kind {
-    Kind::object(BTreeMap::from([("value".into(), Kind::float())]))
+    Kind::object(btreemap! {
+        "value" => Kind::float(),
+    })
 }
 
 fn metric_kind() -> BTreeMap<Field, Kind> {
-    BTreeMap::from([
-        ("name".into(), Kind::bytes()),
-        ("tags".into(), tags_kind()),
-        ("timestamp".into(), Kind::timestamp()),
-        ("kind".into(), Kind::bytes()),
-        ("gauge".into(), gauge_kind()),
-    ])
+    btreemap! {
+        "name" => Kind::bytes(),
+        "tags" => tags_kind(),
+        "timestamp" => Kind::timestamp(),
+        "kind" => Kind::bytes(),
+        "gauge" => gauge_kind(),
+    }
 }
 
 fn inner_kind() -> Kind {
@@ -389,9 +416,9 @@ mod test {
             tdef: type_def(),
         }
 
-        influxdb_valid_ignores_string_value {
+        influxdb_invalid_string_field_set_value {
             args: func_args![ value: r#"valid foo="bar""# ],
-            want: Ok(Value::Array(vec![])),
+            want: Err("Error while converting InfluxDB line protocol metric to Vector's metric model: field set values of type string are not supported"),
             tdef: type_def(),
         }
 
