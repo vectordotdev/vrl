@@ -43,7 +43,7 @@ fn influxdb_line_to_metrics(line: ParsedLine) -> Result<Vec<ObjectMap>, Expressi
                 }
             };
 
-            // influxdb_line_protocol crate seems to not allow NaN float values while parsing
+            // `influxdb_line_protocol` crate seems to not allow NaN float values while parsing
             // field values and this case should not happen, but just in case, we should
             // handle it.
             let Ok(field_value) = NotNan::new(field_value) else {
