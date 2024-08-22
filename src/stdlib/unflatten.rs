@@ -97,13 +97,13 @@ impl Function for Unflatten {
         &[
             Example {
                 title: "object",
-                source: r#"{ "foo.bar": true }"#,
-                result: Ok(r#"flatten({ "foo": { "bar": true }})"#),
+                source: r#"unflatten({ "foo.bar": true })"#,
+                result: Ok(r#"{ "foo": { "bar": true }}"#),
             },
             Example {
                 title: "object",
-                source: r#"{ "foo_bar": true }"#,
-                result: Ok(r#"flatten({ "foo": { "bar": true }}, "_")"#),
+                source: r#"unflatten({ "foo_bar": true },"_")"#,
+                result: Ok(r#"{"foo": { "bar": true }}"#),
             },
         ]
     }
