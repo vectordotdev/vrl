@@ -1,4 +1,4 @@
-use crate::datadog::search::{normalize_fields, Field};
+use super::{normalize_fields, Field};
 
 /// A `Resolver` is type that can build and return an `IntoIterator` of Datadog Search
 /// Syntax `Field`s. These are intended to be passed along to `Filter` methods as pre-parsed

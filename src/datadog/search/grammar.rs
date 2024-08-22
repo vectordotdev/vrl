@@ -1,6 +1,7 @@
 #![allow(clippy::upper_case_acronyms)]
 use itertools::Itertools;
 use pest::iterators::Pair;
+use pest_derive::Parser;
 
 use super::node::{
     BooleanBuilder, Comparison, ComparisonValue, LuceneClause, LuceneOccur, QueryNode, Range,

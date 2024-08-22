@@ -1,9 +1,8 @@
 use std::{fmt, marker::PhantomData};
 
-use crate::datadog::search::{BooleanType, QueryNode};
 use dyn_clone::{clone_trait_object, DynClone};
 
-use super::{Filter, Resolver};
+use super::{BooleanType, Filter, QueryNode, Resolver};
 
 /// A `Matcher` is a type that contains a "run" method which returns true/false if value `V`
 /// matches a filter.

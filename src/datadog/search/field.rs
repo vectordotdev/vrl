@@ -27,6 +27,8 @@ pub enum Field {
     /// Default field (when tag/facet isn't provided)
     Default(String),
 
+    // TODO investigate making this be an enum which may make more sense
+    //      when dealing with a fixed set of field names
     /// Reserved field that receives special treatment in Datadog.
     Reserved(String),
 
