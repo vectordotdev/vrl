@@ -242,11 +242,13 @@ mod test {
         // Not only keys at first level are unflattened
         double_inner_nested_map_not_recursive {
             args: func_args![value: value!({
-                "parent": {"child1":1, "child2.grandchild1": 1, "child2.grandchild2": 2 },
+                "parent.children": {"child1":1, "child2.grandchild1": 1, "child2.grandchild2": 2 },
                 key: "val",
             }), recursive: false],
             want: Ok(value!({
-                "parent": {"child1":1, "child2.grandchild1": 1, "child2.grandchild2": 2 },
+                parent: {
+                    children: {child1: 1, "child2.grandchild1": 1, "child2.grandchild2": 2 }
+                },
                 key: "val",
             })),
             tdef: TypeDef::object(Collection::any()),
@@ -255,13 +257,15 @@ mod test {
         // Not only keys at first level are unflattened
         double_inner_nested_map_recursive {
             args: func_args![value: value!({
-                "parent": {"child1":1, "child2.grandchild1": 1, "child2.grandchild2": 2 },
+                "parent.children": {child1:1, "child2.grandchild1": 1, "child2.grandchild2": 2 },
                 key: "val",
             })],
             want: Ok(value!({
                 parent: {
-                    child1: 1,
-                    child2: { grandchild1: 1, grandchild2: 2 },
+                    children: {
+                        child1: 1,
+                        child2: { grandchild1: 1, grandchild2: 2 },
+                    },
                 },
                 key: "val",
             })),
@@ -348,6 +352,20 @@ mod test {
                                 },
                             },
                         },
+                    },
+                },
+            })),
+            tdef: TypeDef::object(Collection::any()),
+        }
+
+        consecutive_separators {
+            args: func_args![value: value!({
+                "a..b": 1,
+            })],
+            want: Ok(value!({
+                a: {
+                    "": {
+                        b: 1,
                     },
                 },
             })),
