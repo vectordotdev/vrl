@@ -27,7 +27,7 @@ where
         .into_iter()
         .map(|(key, value)| {
             let (head, rest) = match key.split_once(separator) {
-                Some((key, rest)) => (key.to_string().into(), Some(rest.to_string())),
+                Some((key, rest)) => (key.to_string().into(), Some(rest.to_string().into())),
                 None => (key.clone(), None),
             };
             (head, rest, value)
@@ -38,18 +38,18 @@ where
         .into_iter()
         .map(|(key, mut values)| {
             if values.len() == 1 {
-                match values.pop().unwrap() {
+                match values.pop().expect("exactly one element") {
                     (_, None, value) => {
-                        return if recursive {
-                            (key, do_unflatten(value, separator, recursive))
+                        let value = if recursive {
+                            do_unflatten(value, separator, recursive)
                         } else {
-                            (key, value)
+                            value
                         };
+                        return (key, value);
                     }
                     (_, Some(rest), value) => {
-                        let result =
-                            do_unflatten_entries([(rest.into(), value)], separator, recursive);
-                        return (key, result.into());
+                        let result = do_unflatten_entry((rest, value), separator, recursive);
+                        return (key, result);
                     }
                 }
             }
@@ -57,25 +57,42 @@ where
             let new_entries = values
                 .into_iter()
                 .filter_map(|(_, rest, value)| {
-                    // In this case, there is more than one value with the same key
-                    // and then there must be nested values, we can't set a single top-level value
-                    // so we filter it out.
+                    // In this case, there is more than one value prefixed with the same key
+                    // and therefore there must be nested values, so we can't set a single top-level value
+                    // and we must filter it out.
                     // Example input of this case:
                     // {
                     //    "a.b": 1,
                     //    "a": 2
                     // }
                     // Here, we will have two items grouped by "a",
-                    // one will have "b" as rest and the other will have None.
+                    // one will have `"b"` as rest and the other will have `None`.
                     // We have to filter the second, as we can't set the second value
-                    // as the value of "a" (considered the top-level key at this level)
-                    rest.map(|rest| (rest.into(), value))
+                    // as the value of the entry `"a"` (considered the top-level key at this level)
+                    rest.map(|rest| (rest, value))
                 })
                 .collect::<Vec<_>>();
             let result = do_unflatten_entries(new_entries, separator, recursive);
             (key, result.into())
         })
         .collect()
+}
+
+// Optimization in the case we have to flatten objects like
+// { "a.b.c.d": 1 }
+// and avoid doing recursive calls to `do_unflatten_entries` with a single entry every time
+fn do_unflatten_entry(entry: (KeyString, Value), separator: &str, recursive: bool) -> Value {
+    let (key, value) = entry;
+    let keys = key.split(separator).map(Into::into).collect::<Vec<_>>();
+    let mut result = if recursive {
+        do_unflatten(value, separator, recursive)
+    } else {
+        value
+    };
+    for key in keys.into_iter().rev() {
+        result = Value::Object(ObjectMap::from_iter([(key, result)]));
+    }
+    result
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -114,17 +131,17 @@ impl Function for Unflatten {
                 result: Ok(r#"{ "foo": { "bar": { "baz": true, "qux": false }, "quux": 42 } }"#),
             },
             Example {
-                title: "inner flattened not recursive",
+                title: "inner flattened recursive",
                 source: r#"unflatten({ "flattened.parent": { "foo.bar": true, "foo.baz": false } })"#,
                 result: Ok(
-                    r#"{ "flattened": { "parent": { "foo.bar": true, "foo.baz": false } } }"#,
+                    r#"{ "flattened": { "parent": { "foo": { "bar": true, "baz": false } } } }"#,
                 ),
             },
             Example {
-                title: "inner flattened recursive",
-                source: r#"unflatten({ "flattened.parent": { "foo.bar": true, "foo.baz": false } }, recursive: true)"#,
+                title: "inner flattened not recursive",
+                source: r#"unflatten({ "flattened.parent": { "foo.bar": true, "foo.baz": false } }, recursive: false)"#,
                 result: Ok(
-                    r#"{ "flattened": { "parent": { "foo": { "bar": true, "baz": false } } } }"#,
+                    r#"{ "flattened": { "parent": { "foo.bar": true, "foo.baz": false } } }"#,
                 ),
             },
             Example {
@@ -147,7 +164,7 @@ impl Function for Unflatten {
             .unwrap_or_else(|| expr!(DEFAULT_SEPARATOR));
         let recursive = arguments
             .optional("recursive")
-            .unwrap_or_else(|| expr!(false));
+            .unwrap_or_else(|| expr!(true));
 
         Ok(UnflattenFn {
             value,
@@ -227,7 +244,7 @@ mod test {
             args: func_args![value: value!({
                 "parent": {"child1":1, "child2.grandchild1": 1, "child2.grandchild2": 2 },
                 key: "val",
-            })],
+            }), recursive: false],
             want: Ok(value!({
                 "parent": {"child1":1, "child2.grandchild1": 1, "child2.grandchild2": 2 },
                 key: "val",
@@ -240,7 +257,7 @@ mod test {
             args: func_args![value: value!({
                 "parent": {"child1":1, "child2.grandchild1": 1, "child2.grandchild2": 2 },
                 key: "val",
-            }), recursive: true],
+            })],
             want: Ok(value!({
                 parent: {
                     child1: 1,
@@ -311,6 +328,28 @@ mod test {
                     child2: { grandchild2: 2, grandchild3: 3 },
                 },
                 parent2: 4,
+            })),
+            tdef: TypeDef::object(Collection::any()),
+        }
+
+        single_very_nested_map{
+            args: func_args![value: value!({
+                "a.b.c.d.e.f.g": 1,
+            })],
+            want: Ok(value!({
+                a: {
+                    b: {
+                        c: {
+                            d: {
+                                e: {
+                                    f: {
+                                        g: 1,
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
             })),
             tdef: TypeDef::object(Collection::any()),
         }
