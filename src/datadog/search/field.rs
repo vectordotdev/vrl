@@ -35,7 +35,7 @@ pub enum Field {
     /// An Attribute-- i.e. started with `@`.
     // In Datadog Log Search the `@` prefix is used to define a Facet for
     // attribute searching, and the event structure is assumed to have a
-    // root level field "custom". In VRL we do not have this event
+    // root level field "custom". In VRL we do not guarantee this event
     // structure so we are diverging a little from the DD Log Search
     // definition and implementation a bit here, by calling this "Attribute".
     //
