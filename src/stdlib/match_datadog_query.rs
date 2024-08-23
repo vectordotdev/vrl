@@ -32,7 +32,7 @@ impl Function for MatchDatadogQuery {
             },
             Example {
                 title: "Facet wildcard",
-                source: r#"match_datadog_query({"custom": {"name": "vector"}}, "@name:vec*")"#,
+                source: r#"match_datadog_query({"name": "vector"}, "@name:vec*")"#,
                 result: Ok("true"),
             },
             Example {
@@ -291,8 +291,8 @@ impl Filter<Value> for VrlFilter {
         let rhs = Cow::from(comparison_value.to_string());
 
         match field {
-            // Facets are compared numerically if the value is numeric, or as strings otherwise.
-            Field::Facet(_) => {
+            // Attributes are compared numerically if the value is numeric, or as strings otherwise.
+            Field::Attribute(_) => {
                 resolve_value(
                     buf,
                     Run::boxed(move |value| match (value, &comparison_value) {
@@ -414,7 +414,7 @@ fn resolve_value(
 /// parses the field and returns a lookup buf is the lookup itself is valid.
 fn lookup_field(field: &Field) -> OwnedValuePath {
     match field {
-        Field::Default(p) | Field::Reserved(p) | Field::Facet(p) => {
+        Field::Default(p) | Field::Reserved(p) | Field::Attribute(p) => {
             parse_value_path(p.as_str()).expect("should parse value path (lookup_field)")
         }
         Field::Tag(_) => owned_value_path!("tags"),
@@ -459,19 +459,19 @@ mod test {
         }
 
         facet_exists {
-            args: func_args![value: value!({"custom": {"a": "value" }}), query: "_exists_:@a"],
+            args: func_args![value: value!({"a": "value" }), query: "_exists_:@a"],
             want: Ok(true),
             tdef: type_def(),
         }
 
         not_facet_exists {
-            args: func_args![value: value!({"custom": {"a": "value" }}), query: "NOT _exists_:@a"],
+            args: func_args![value: value!({"a": "value" }), query: "NOT _exists_:@a"],
             want: Ok(false),
             tdef: type_def(),
         }
 
         negate_facet_exists {
-            args: func_args![value: value!({"custom": {"a": "value" }}), query: "-_exists_:@a"],
+            args: func_args![value: value!({"a": "value" }), query: "-_exists_:@a"],
             want: Ok(false),
             tdef: type_def(),
         }
@@ -555,19 +555,19 @@ mod test {
         }
 
         facet_missing {
-            args: func_args![value: value!({"custom": {"b": "value" }}), query: "_missing_:@a"],
+            args: func_args![value: value!({"b": "value" }), query: "_missing_:@a"],
             want: Ok(true),
             tdef: type_def(),
         }
 
         not_facet_missing {
-            args: func_args![value: value!({"custom": {"b": "value" }}), query: "NOT _missing_:@a"],
+            args: func_args![value: value!({"b": "value" }), query: "NOT _missing_:@a"],
             want: Ok(false),
             tdef: type_def(),
         }
 
         negate_facet_missing {
-            args: func_args![value: value!({"custom": {"b": "value" }}), query: "-_missing_:@a"],
+            args: func_args![value: value!({"b": "value" }), query: "-_missing_:@a"],
             want: Ok(false),
             tdef: type_def(),
         }
@@ -681,19 +681,19 @@ mod test {
         }
 
         equals_facet {
-            args: func_args![value: value!({"custom": {"z": 1}}), query: "@z:1"],
+            args: func_args![value: value!({"z": 1}), query: "@z:1"],
             want: Ok(true),
             tdef: type_def(),
         }
 
         not_equals_facet {
-            args: func_args![value: value!({"custom": {"z": 1}}), query: "NOT @z:1"],
+            args: func_args![value: value!({"z": 1}), query: "NOT @z:1"],
             want: Ok(false),
             tdef: type_def(),
         }
 
         negate_equals_facet {
-            args: func_args![value: value!({"custom": {"z": 1}}), query: "-@z:1"],
+            args: func_args![value: value!({"z": 1}), query: "-@z:1"],
             want: Ok(false),
             tdef: type_def(),
         }
@@ -771,37 +771,37 @@ mod test {
         }
 
         wildcard_prefix_facet {
-            args: func_args![value: value!({"custom": {"a": "vector"}}), query: "@a:*tor"],
+            args: func_args![value: value!({"a": "vector"}), query: "@a:*tor"],
             want: Ok(true),
             tdef: type_def(),
         }
 
         not_wildcard_prefix_facet {
-            args: func_args![value: value!({"custom": {"a": "vector"}}), query: "NOT @a:*tor"],
+            args: func_args![value: value!({"a": "vector"}), query: "NOT @a:*tor"],
             want: Ok(false),
             tdef: type_def(),
         }
 
         negate_wildcard_prefix_facet {
-            args: func_args![value: value!({"custom": {"a": "vector"}}), query: "-@a:*tor"],
+            args: func_args![value: value!({"a": "vector"}), query: "-@a:*tor"],
             want: Ok(false),
             tdef: type_def(),
         }
 
         wildcard_prefix_facet_no_match {
-            args: func_args![value: value!({"custom": {"b": "vector"}}), query: "@a:*tor"],
+            args: func_args![value: value!({"b": "vector"}), query: "@a:*tor"],
             want: Ok(false),
             tdef: type_def(),
         }
 
         not_wildcard_prefix_facet_no_match {
-            args: func_args![value: value!({"custom": {"b": "vector"}}), query: "NOT @a:*tor"],
+            args: func_args![value: value!({"b": "vector"}), query: "NOT @a:*tor"],
             want: Ok(true),
             tdef: type_def(),
         }
 
         negate_wildcard_prefix_facet_no_match {
-            args: func_args![value: value!({"custom": {"b": "vector"}}), query: "-@a:*tor"],
+            args: func_args![value: value!({"b": "vector"}), query: "-@a:*tor"],
             want: Ok(true),
             tdef: type_def(),
         }
@@ -879,37 +879,37 @@ mod test {
         }
 
         wildcard_suffix_facet {
-            args: func_args![value: value!({"custom": {"a": "vector"}}), query: "@a:vec*"],
+            args: func_args![value: value!({"a": "vector"}), query: "@a:vec*"],
             want: Ok(true),
             tdef: type_def(),
         }
 
         not_wildcard_suffix_facet {
-            args: func_args![value: value!({"custom": {"a": "vector"}}), query: "NOT @a:vec*"],
+            args: func_args![value: value!({"a": "vector"}), query: "NOT @a:vec*"],
             want: Ok(false),
             tdef: type_def(),
         }
 
         negate_wildcard_suffix_facet {
-            args: func_args![value: value!({"custom": {"a": "vector"}}), query: "-@a:vec*"],
+            args: func_args![value: value!({"a": "vector"}), query: "-@a:vec*"],
             want: Ok(false),
             tdef: type_def(),
         }
 
         wildcard_suffix_facet_no_match {
-            args: func_args![value: value!({"custom": {"b": "vector"}}), query: "@a:vec*"],
+            args: func_args![value: value!({"b": "vector"}), query: "@a:vec*"],
             want: Ok(false),
             tdef: type_def(),
         }
 
         not_wildcard_suffix_facet_no_match {
-            args: func_args![value: value!({"custom": {"b": "vector"}}), query: "NOT @a:vec*"],
+            args: func_args![value: value!({"b": "vector"}), query: "NOT @a:vec*"],
             want: Ok(true),
             tdef: type_def(),
         }
 
         negate_wildcard_suffix_facet_no_match {
-            args: func_args![value: value!({"custom": {"b": "vector"}}), query: "-@a:vec*"],
+            args: func_args![value: value!({"b": "vector"}), query: "-@a:vec*"],
             want: Ok(true),
             tdef: type_def(),
         }
@@ -987,37 +987,37 @@ mod test {
         }
 
         wildcard_multiple_facet {
-            args: func_args![value: value!({"custom": {"a": "vector"}}), query: "@a:v*c*r"],
+            args: func_args![value: value!({"a": "vector"}), query: "@a:v*c*r"],
             want: Ok(true),
             tdef: type_def(),
         }
 
         not_wildcard_multiple_facet {
-            args: func_args![value: value!({"custom": {"a": "vector"}}), query: "NOT @a:v*c*r"],
+            args: func_args![value: value!({"a": "vector"}), query: "NOT @a:v*c*r"],
             want: Ok(false),
             tdef: type_def(),
         }
 
         negate_wildcard_multiple_facet {
-            args: func_args![value: value!({"custom": {"a": "vector"}}), query: "-@a:v*c*r"],
+            args: func_args![value: value!({"a": "vector"}), query: "-@a:v*c*r"],
             want: Ok(false),
             tdef: type_def(),
         }
 
         wildcard_multiple_facet_no_match {
-            args: func_args![value: value!({"custom": {"b": "vector"}}), query: "@a:v*c*r"],
+            args: func_args![value: value!({"b": "vector"}), query: "@a:v*c*r"],
             want: Ok(false),
             tdef: type_def(),
         }
 
         not_wildcard_multiple_facet_no_match {
-            args: func_args![value: value!({"custom": {"b": "vector"}}), query: "NOT @a:v*c*r"],
+            args: func_args![value: value!({"b": "vector"}), query: "NOT @a:v*c*r"],
             want: Ok(true),
             tdef: type_def(),
         }
 
         negate_wildcard_multiple_facet_no_match {
-            args: func_args![value: value!({"custom": {"b": "vector"}}), query: "-@a:v*c*r"],
+            args: func_args![value: value!({"b": "vector"}), query: "-@a:v*c*r"],
             want: Ok(true),
             tdef: type_def(),
         }
@@ -1503,235 +1503,235 @@ mod test {
         }
 
         range_facet_unbounded {
-            args: func_args![value: value!({"custom": {"a": 1}}), query: "@a:[* TO *]"],
+            args: func_args![value: value!({"a": 1}), query: "@a:[* TO *]"],
             want: Ok(true),
             tdef: type_def(),
         }
 
         not_range_facet_unbounded {
-            args: func_args![value: value!({"custom": {"a": 1}}), query: "NOT @a:[* TO *]"],
+            args: func_args![value: value!({"a": 1}), query: "NOT @a:[* TO *]"],
             want: Ok(false),
             tdef: type_def(),
         }
 
         negate_range_facet_unbounded {
-            args: func_args![value: value!({"custom": {"a": 1}}), query: "-@a:[* TO *]"],
+            args: func_args![value: value!({"a": 1}), query: "-@a:[* TO *]"],
             want: Ok(false),
             tdef: type_def(),
         }
 
         range_facet_lower_bound {
-            args: func_args![value: value!({"custom": {"a": 5}}), query: "@a:[4 TO *]"],
+            args: func_args![value: value!({"a": 5}), query: "@a:[4 TO *]"],
             want: Ok(true),
             tdef: type_def(),
         }
 
         not_range_facet_lower_bound {
-            args: func_args![value: value!({"custom": {"a": 5}}), query: "NOT @a:[4 TO *]"],
+            args: func_args![value: value!({"a": 5}), query: "NOT @a:[4 TO *]"],
             want: Ok(false),
             tdef: type_def(),
         }
 
         negate_range_facet_lower_bound {
-            args: func_args![value: value!({"custom": {"a": 5}}), query: "-@a:[4 TO *]"],
+            args: func_args![value: value!({"a": 5}), query: "-@a:[4 TO *]"],
             want: Ok(false),
             tdef: type_def(),
         }
 
         range_facet_lower_bound_no_match {
-            args: func_args![value: value!({"custom": {"a": 5}}), query: "@a:[50 TO *]"],
+            args: func_args![value: value!({"a": 5}), query: "@a:[50 TO *]"],
             want: Ok(false),
             tdef: type_def(),
         }
 
         not_range_facet_lower_bound_no_match {
-            args: func_args![value: value!({"custom": {"a": 5}}), query: "NOT @a:[50 TO *]"],
+            args: func_args![value: value!({"a": 5}), query: "NOT @a:[50 TO *]"],
             want: Ok(true),
             tdef: type_def(),
         }
 
         negate_range_facet_lower_bound_no_match {
-            args: func_args![value: value!({"custom": {"a": 5}}), query: "-@a:[50 TO *]"],
+            args: func_args![value: value!({"a": 5}), query: "-@a:[50 TO *]"],
             want: Ok(true),
             tdef: type_def(),
         }
 
         range_facet_lower_bound_string {
-            args: func_args![value: value!({"custom": {"a": "5"}}), query: r#"@a:["4" TO *]"#],
+            args: func_args![value: value!({"a": "5"}), query: r#"@a:["4" TO *]"#],
             want: Ok(true),
             tdef: type_def(),
         }
 
         not_range_facet_lower_bound_string {
-            args: func_args![value: value!({"custom": {"a": "5"}}), query: r#"NOT @a:["4" TO *]"#],
+            args: func_args![value: value!({"a": "5"}), query: r#"NOT @a:["4" TO *]"#],
             want: Ok(false),
             tdef: type_def(),
         }
 
         negate_range_facet_lower_bound_string {
-            args: func_args![value: value!({"custom": {"a": "5"}}), query: r#"-@a:["4" TO *]"#],
+            args: func_args![value: value!({"a": "5"}), query: r#"-@a:["4" TO *]"#],
             want: Ok(false),
             tdef: type_def(),
         }
 
         range_facet_lower_bound_string_no_match {
-            args: func_args![value: value!({"custom": {"a": "400"}}), query: r#"@a:["50" TO *]"#],
+            args: func_args![value: value!({"a": "400"}), query: r#"@a:["50" TO *]"#],
             want: Ok(false),
             tdef: type_def(),
         }
 
         not_range_facet_lower_bound_string_no_match {
-            args: func_args![value: value!({"custom": {"a": "400"}}), query: r#"NOT @a:["50" TO *]"#],
+            args: func_args![value: value!({"a": "400"}), query: r#"NOT @a:["50" TO *]"#],
             want: Ok(true),
             tdef: type_def(),
         }
 
         negate_range_facet_lower_bound_string_no_match {
-            args: func_args![value: value!({"custom": {"a": "400"}}), query: r#"-@a:["50" TO *]"#],
+            args: func_args![value: value!({"a": "400"}), query: r#"-@a:["50" TO *]"#],
             want: Ok(true),
             tdef: type_def(),
         }
 
         range_facet_upper_bound {
-            args: func_args![value: value!({"custom": {"a": 1}}), query: "@a:[* TO 4]"],
+            args: func_args![value: value!({"a": 1}), query: "@a:[* TO 4]"],
             want: Ok(true),
             tdef: type_def(),
         }
 
         not_range_facet_upper_bound {
-            args: func_args![value: value!({"custom": {"a": 1}}), query: "NOT @a:[* TO 4]"],
+            args: func_args![value: value!({"a": 1}), query: "NOT @a:[* TO 4]"],
             want: Ok(false),
             tdef: type_def(),
         }
 
         negate_range_facet_upper_bound {
-            args: func_args![value: value!({"custom": {"a": 1}}), query: "-@a:[* TO 4]"],
+            args: func_args![value: value!({"a": 1}), query: "-@a:[* TO 4]"],
             want: Ok(false),
             tdef: type_def(),
         }
 
         range_facet_upper_bound_no_match {
-            args: func_args![value: value!({"custom": {"a": 500}}), query: "@a:[* TO 400]"],
+            args: func_args![value: value!({"a": 500}), query: "@a:[* TO 400]"],
             want: Ok(false),
             tdef: type_def(),
         }
 
         not_range_facet_upper_bound_no_match {
-            args: func_args![value: value!({"custom": {"a": 500}}), query: "NOT @a:[* TO 400]"],
+            args: func_args![value: value!({"a": 500}), query: "NOT @a:[* TO 400]"],
             want: Ok(true),
             tdef: type_def(),
         }
 
         negate_range_facet_upper_bound_no_match {
-            args: func_args![value: value!({"custom": {"a": 500}}), query: "-@a:[* TO 400]"],
+            args: func_args![value: value!({"a": 500}), query: "-@a:[* TO 400]"],
             want: Ok(true),
             tdef: type_def(),
         }
 
         range_facet_upper_bound_string {
-            args: func_args![value: value!({"custom": {"a": "3"}}), query: r#"@a:[* TO "4"]"#],
+            args: func_args![value: value!({"a": "3"}), query: r#"@a:[* TO "4"]"#],
             want: Ok(true),
             tdef: type_def(),
         }
 
         not_range_facet_upper_bound_string {
-            args: func_args![value: value!({"custom": {"a": "3"}}), query: r#"NOT @a:[* TO "4"]"#],
+            args: func_args![value: value!({"a": "3"}), query: r#"NOT @a:[* TO "4"]"#],
             want: Ok(false),
             tdef: type_def(),
         }
 
         negate_range_facet_upper_bound_string {
-            args: func_args![value: value!({"custom": {"a": "3"}}), query: r#"-@a:[* TO "4"]"#],
+            args: func_args![value: value!({"a": "3"}), query: r#"-@a:[* TO "4"]"#],
             want: Ok(false),
             tdef: type_def(),
         }
 
         range_facet_upper_bound_string_no_match {
-            args: func_args![value: value!({"custom": {"a": "5"}}), query: r#"@a:[* TO "400"]"#],
+            args: func_args![value: value!({"a": "5"}), query: r#"@a:[* TO "400"]"#],
             want: Ok(false),
             tdef: type_def(),
         }
 
         not_range_facet_upper_bound_string_no_match {
-            args: func_args![value: value!({"custom": {"a": "5"}}), query: r#"NOT @a:[* TO "400"]"#],
+            args: func_args![value: value!({"a": "5"}), query: r#"NOT @a:[* TO "400"]"#],
             want: Ok(true),
             tdef: type_def(),
         }
 
         negate_range_facet_upper_bound_string_no_match {
-            args: func_args![value: value!({"custom": {"a": "5"}}), query: r#"-@a:[* TO "400"]"#],
+            args: func_args![value: value!({"a": "5"}), query: r#"-@a:[* TO "400"]"#],
             want: Ok(true),
             tdef: type_def(),
         }
 
         range_facet_between {
-            args: func_args![value: value!({"custom": {"a": 5}}), query: "@a:[1 TO 6]"],
+            args: func_args![value: value!({"a": 5}), query: "@a:[1 TO 6]"],
             want: Ok(true),
             tdef: type_def(),
         }
 
         not_range_facet_between {
-            args: func_args![value: value!({"custom": {"a": 5}}), query: "NOT @a:[1 TO 6]"],
+            args: func_args![value: value!({"a": 5}), query: "NOT @a:[1 TO 6]"],
             want: Ok(false),
             tdef: type_def(),
         }
 
         negate_range_facet_between {
-            args: func_args![value: value!({"custom": {"a": 5}}), query: "-@a:[1 TO 6]"],
+            args: func_args![value: value!({"a": 5}), query: "-@a:[1 TO 6]"],
             want: Ok(false),
             tdef: type_def(),
         }
 
         range_facet_between_no_match {
-            args: func_args![value: value!({"custom": {"a": 200}}), query: "@a:[1 TO 6]"],
+            args: func_args![value: value!({"a": 200}), query: "@a:[1 TO 6]"],
             want: Ok(false),
             tdef: type_def(),
         }
 
         not_range_facet_between_no_match {
-            args: func_args![value: value!({"custom": {"a": 200}}), query: "NOT @a:[1 TO 6]"],
+            args: func_args![value: value!({"a": 200}), query: "NOT @a:[1 TO 6]"],
             want: Ok(true),
             tdef: type_def(),
         }
 
         negate_range_facet_between_no_match {
-            args: func_args![value: value!({"custom": {"a": 200}}), query: "-@a:[1 TO 6]"],
+            args: func_args![value: value!({"a": 200}), query: "-@a:[1 TO 6]"],
             want: Ok(true),
             tdef: type_def(),
         }
 
         range_facet_between_string {
-            args: func_args![value: value!({"custom": {"a": "500"}}), query: r#"@a:["1" TO "6"]"#],
+            args: func_args![value: value!({"a": "500"}), query: r#"@a:["1" TO "6"]"#],
             want: Ok(true),
             tdef: type_def(),
         }
 
         not_range_facet_between_string {
-            args: func_args![value: value!({"custom": {"a": "500"}}), query: r#"NOT @a:["1" TO "6"]"#],
+            args: func_args![value: value!({"a": "500"}), query: r#"NOT @a:["1" TO "6"]"#],
             want: Ok(false),
             tdef: type_def(),
         }
 
         negate_range_facet_between_string {
-            args: func_args![value: value!({"custom": {"a": "500"}}), query: r#"-@a:["1" TO "6"]"#],
+            args: func_args![value: value!({"a": "500"}), query: r#"-@a:["1" TO "6"]"#],
             want: Ok(false),
             tdef: type_def(),
         }
 
         range_facet_between_no_match_string {
-            args: func_args![value: value!({"custom": {"a": "7"}}), query: r#"@a:["1" TO "60"]"#],
+            args: func_args![value: value!({"a": "7"}), query: r#"@a:["1" TO "60"]"#],
             want: Ok(false),
             tdef: type_def(),
         }
 
         not_range_facet_between_no_match_string {
-            args: func_args![value: value!({"custom": {"a": "7"}}), query: r#"NOT @a:["1" TO "60"]"#],
+            args: func_args![value: value!({"a": "7"}), query: r#"NOT @a:["1" TO "60"]"#],
             want: Ok(true),
             tdef: type_def(),
         }
 
         negate_range_facet_between_no_match_string {
-            args: func_args![value: value!({"custom": {"a": "7"}}), query: r#"-@a:["1" TO "60"]"#],
+            args: func_args![value: value!({"a": "7"}), query: r#"-@a:["1" TO "60"]"#],
             want: Ok(true),
             tdef: type_def(),
         }
@@ -1935,31 +1935,31 @@ mod test {
         }
 
         kitchen_sink_2 {
-            args: func_args![value: value!({"tags": ["c:that", "d:the_other"], "custom": {"b": "testing", "e": 3}}), query: "host:this OR ((@b:test* AND c:that) AND d:the_other @e:[1 TO 5])"],
+            args: func_args![value: value!({"tags": ["c:that", "d:the_other"], "b": "testing", "e": 3}), query: "host:this OR ((@b:test* AND c:that) AND d:the_other @e:[1 TO 5])"],
             want: Ok(true),
             tdef: type_def(),
         }
 
         integer_range_float_value_match {
-            args: func_args![value: value!({"custom": {"level": 7.0}}), query: "@level:[7 TO 10]"],
+            args: func_args![value: value!({"level": 7.0}), query: "@level:[7 TO 10]"],
             want: Ok(true),
             tdef: type_def(),
         }
 
         integer_range_float_value_no_match {
-            args: func_args![value: value!({"custom": {"level": 6.9}}), query: "@level:[7 TO 10]"],
+            args: func_args![value: value!({"level": 6.9}), query: "@level:[7 TO 10]"],
             want: Ok(false),
             tdef: type_def(),
         }
 
         float_range_integer_value_match {
-            args: func_args![value: value!({"custom": {"level": 7}}), query: "@level:[7.0 TO 10.0]"],
+            args: func_args![value: value!({"level": 7}), query: "@level:[7.0 TO 10.0]"],
             want: Ok(true),
             tdef: type_def(),
         }
 
         float_range_integer_value_no_match {
-            args: func_args![value: value!({"custom": {"level": 6}}), query: "@level:[7.0 TO 10.0]"],
+            args: func_args![value: value!({"level": 6}), query: "@level:[7.0 TO 10.0]"],
             want: Ok(false),
             tdef: type_def(),
         }
