@@ -38,7 +38,7 @@ string_path = []
 datadog = ["datadog_filter", "datadog_grok", "datadog_search"]
 datadog_filter = ["datadog_search", "dep:regex", "dep:dyn-clone"]
 datadog_grok = ["value", "parsing", "dep:nom", "dep:peeking_take_while", "dep:serde_json", "dep:onig", "dep:lalrpop-util", "dep:thiserror", "dep:chrono", "dep:chrono-tz", "dep:percent-encoding"]
-datadog_search = ["dep:pest", "dep:pest_derive", "dep:itertools", "dep:once_cell", "dep:regex"]
+datadog_search = ["dep:pest", "dep:pest_derive", "dep:itertools", "dep:once_cell", "dep:regex", "dep:serde"]
 
 # Features that aren't used as often (default off)
 cli = ["stdlib", "dep:serde_json", "dep:thiserror", "dep:clap", "dep:exitcode", "dep:webbrowser", "dep:rustyline", "dep:prettytable-rs"]

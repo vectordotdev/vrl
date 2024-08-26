@@ -1,5 +1,6 @@
 use once_cell::sync::Lazy;
 use regex::Regex;
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use super::grammar::{unescape, DEFAULT_FIELD};
 
@@ -341,6 +342,29 @@ impl QueryNode {
         } else {
             format!("{}:", attr)
         }
+    }
+}
+
+impl<'de> Deserialize<'de> for QueryNode {
+    fn deserialize<D>(deserializer: D) -> Result<QueryNode, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        use serde::de::Error;
+
+        let s = String::deserialize(deserializer)?;
+
+        s.parse::<QueryNode>()
+            .map_err(|e| D::Error::custom(e.to_string()))
+    }
+}
+
+impl Serialize for QueryNode {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(self.to_lucene().as_str())
     }
 }
 
