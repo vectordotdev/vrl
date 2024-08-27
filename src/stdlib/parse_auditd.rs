@@ -6,6 +6,7 @@ use linux_audit_parser::{Number, Value as AuditValue};
 fn parse_auditd(bytes: Value) -> Resolved {
     let bytes = bytes.try_bytes()?;
     // check if bytes ends with newline, otherwise append it
+    // TODO: make the parser accept bytes without newline in the linux_audit_parser crate
     let bytes = if bytes.last() == Some(&b'\n') {
         bytes
     } else {
