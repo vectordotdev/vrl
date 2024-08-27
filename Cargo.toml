@@ -38,7 +38,7 @@ string_path = []
 datadog = ["datadog_filter", "datadog_grok", "datadog_search"]
 datadog_filter = ["datadog_search", "dep:regex", "dep:dyn-clone"]
 datadog_grok = ["value", "parsing", "dep:nom", "dep:peeking_take_while", "dep:serde_json", "dep:onig", "dep:lalrpop-util", "dep:thiserror", "dep:chrono", "dep:chrono-tz", "dep:percent-encoding"]
-datadog_search = ["dep:pest", "dep:pest_derive", "dep:itertools", "dep:once_cell", "dep:regex"]
+datadog_search = ["dep:pest", "dep:pest_derive", "dep:itertools", "dep:once_cell", "dep:regex", "dep:serde"]
 
 # Features that aren't used as often (default off)
 cli = ["stdlib", "dep:serde_json", "dep:thiserror", "dep:clap", "dep:exitcode", "dep:webbrowser", "dep:rustyline", "dep:prettytable-rs"]
@@ -83,6 +83,7 @@ stdlib = [
  "dep:iana-time-zone",
  "dep:idna",
  "dep:indexmap",
+ "dep:influxdb-line-protocol",
  "dep:md-5",
  "dep:nom",
  "dep:ofb",
@@ -140,10 +141,11 @@ hex = { version = "0.4", optional = true }
 hmac = { version = "0.12", optional = true }
 iana-time-zone = { version = "0.1", optional = true }
 idna = { version = "0.5", optional = true }
-indexmap = { version = "~2.4.0", default-features = false, features = ["std"], optional = true}
+indexmap = { version = "2", default-features = false, features = ["std"], optional = true}
+influxdb-line-protocol = { version = "2.0.0", optional = true }
 indoc = {version = "2", optional = true }
 itertools = { version = "0.13", default-features = false, features=["use_std"], optional = true }
-lalrpop-util = { version = "0.20", optional = true }
+lalrpop-util = { version = "0.21", optional = true }
 mlua = { version = "0.9", default-features = false, features = ["lua54", "send", "vendored"], optional = true}
 nom = { version = "7", default-features = false, features = ["std"], optional = true }
 once_cell = { version = "1", default-features = false, features = ["std"], optional = true }
