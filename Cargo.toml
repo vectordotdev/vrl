@@ -145,7 +145,7 @@ indexmap = { version = "~2.4.0", default-features = false, features = ["std"], o
 influxdb-line-protocol = { version = "2.0.0", optional = true }
 indoc = {version = "2", optional = true }
 itertools = { version = "0.13", default-features = false, optional = true }
-lalrpop-util = { version = "0.20", optional = true }
+lalrpop-util = { version = "0.21", optional = true }
 mlua = { version = "0.9", default-features = false, features = ["lua54", "send", "vendored"], optional = true}
 nom = { version = "7", default-features = false, features = ["std"], optional = true }
 once_cell = { version = "1", default-features = false, features = ["std"], optional = true }
