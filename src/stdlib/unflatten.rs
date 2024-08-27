@@ -83,9 +83,7 @@ where
 // and avoid doing recursive calls to `do_unflatten_entries` with a single entry every time
 fn do_unflatten_entry(entry: (KeyString, Value), separator: &str, recursive: bool) -> Value {
     let (key, value) = entry;
-    dbg!(&key);
     let keys = key.split(separator).map(Into::into).collect::<Vec<_>>();
-    dbg!(&keys);
     let mut result = if recursive {
         do_unflatten(value, separator, recursive)
     } else {
