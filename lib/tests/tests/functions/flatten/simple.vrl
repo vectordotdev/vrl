@@ -1,0 +1,4 @@
+# object: { "a": { "b": { "c": { "d": 1, "e": 2 }, "f": 3 }, "g": 4 } }
+# result: { "a.b.c.d": 1, "a.b.c.e": 2, "a.b.f": 3, "a.g": 4 }
+
+flatten(.)

@@ -160,6 +160,7 @@ criterion_group!(
               to_syslog_severity,
               to_unix_timestamp,
               truncate,
+              unflatten,
               unique,
               // TODO: Cannot pass a Path to bench_function
               //unnest
@@ -2786,6 +2787,31 @@ bench_function! {
             limit: 5,
         ],
         want: Ok("Super"),
+    }
+}
+
+bench_function! {
+    unflatten => vrl::stdlib::Unflatten;
+
+    nested_map {
+        args: func_args![value: value!({"parent.child1": 1, "parent.child2": 2, key: "val"})],
+        want: Ok(value!({parent: {child1: 1, child2: 2}, key: "val"})),
+    }
+
+    map_and_array {
+        args: func_args![value: value!({
+            "parent.child1": [1, [2, 3]],
+            "parent.child2.grandchild1": 1,
+            "parent.child2.grandchild2": [1, [2, 3], 4],
+            "key": "val",
+        })],
+        want: Ok(value!({
+            "parent": {
+                "child1": [1, [2, 3]],
+                "child2": {"grandchild1": 1, "grandchild2": [1, [2, 3], 4]},
+            },
+            "key": "val",
+        })),
     }
 }
 
