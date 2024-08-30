@@ -261,17 +261,6 @@ mod tests {
     use super::*;
     const ENRICHMENT_SEPARATOR: char = 0x1d as char;
 
-    // #[test]
-    // fn test_parse_auditd() {
-    //     let line = r#"type=DAEMON_START msg=audit(1724423274.618:6439): op=start ver=4.0.2 format=enriched kernel=6.10.4-arch2-1 auid=1000 pid=1240242 uid=0 ses=2 res=successAUID="jorge" UID="root""#;
-    //     let value = Value::from(line);
-    //     println!("{}", parse_auditd(value).expect("expected ok "));
-
-    //     let other_line = r#"type=SYSCALL msg=audit(1522927552.749:917): arch=c000003e syscall=2 success=yes exit=3 a0=7ffe2ce05793 a1=0 a2=1fffffffffff0000 a3=7ffe2ce043a0 items=1 ppid=2906 pid=4668 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts4 ses=1 comm="cat" exe="/bin/cat" key="passwd""#;
-    //     let value = Value::from(other_line);
-    //     println!("{}", parse_auditd(value).expect("expected ok "));
-    // }
-
     test_function![
         parse_auditd => ParseAuditd;
 
@@ -331,25 +320,24 @@ mod tests {
         // TODO: anonymize all those tests cases with random values while keeping actual syntax
         // TODO: include this in examples
         syscall {
-            args: func_args![ value: format!(r#"type=SYSCALL msg=audit(1615114232.375:15558): arch=c000003e syscall=59 success=yes exit=0 a0=63b29337fd18 a1=63b293387d58 a2=63b293375640 a3=fffffffffffff000 items=2 ppid=10883 pid=10884 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts1 ses=1 comm="whoami" exe="/usr/bin/whoami" key=(null){}ARCH=x86_64 SYSCALL=execve AUID="user" UID="root" GID="root" EUID="root" SUID="root" FSUID="root" EGID="root" SGID="root" FSGID="root""#,
+            args: func_args![ value: format!(r#"type=SYSCALL msg=audit(1724423274.618:6439): arch=c000003e syscall=59 success=yes exit=0 a0=123456789abcdef a1=123456789abcdef a2=123456789abcdef a3=123456789abcdef items=2 ppid=1240241 pid=1240242 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts1 ses=1 comm="whoami" exe="/usr/bin/whoami" key=(null){}ARCH=x86_64 SYSCALL=execve AUID="vrl" UID="root" GID="root" EUID="root" SUID="root" FSUID="root" EGID="root" SGID="root" FSGID="root""#,
             ENRICHMENT_SEPARATOR) ],
             want: Ok(btreemap! {
                 "type" => "SYSCALL",
-                "timestamp" => DateTime::from_timestamp_millis(1_615_114_232_375),
-                "sequence" => 15558,
-
+                "timestamp" => DateTime::from_timestamp_millis(1_724_423_274_618),
+                "sequence" => 6439,
                 "body" => btreemap! {
                     "arch" => "0xc000003e",
                     "syscall" => 59,
                     "success" => "yes",
                     "exit" => 0,
-                    "a0" => "0x63b29337fd18",
-                    "a1" => "0x63b293387d58",
-                    "a2" => "0x63b293375640",
-                    "a3" => "0xfffffffffffff000",
+                    "a0" => "0x123456789abcdef",
+                    "a1" => "0x123456789abcdef",
+                    "a2" => "0x123456789abcdef",
+                    "a3" => "0x123456789abcdef",
                     "items" => 2,
-                    "ppid" => 10_883,
-                    "pid" => 10_884,
+                    "ppid" => 1_240_241,
+                    "pid" => 1_240_242,
                     "auid" => 1000,
                     "uid" => 0,
                     "gid" => 0,
@@ -363,12 +351,12 @@ mod tests {
                     "ses" => 1,
                     "comm" => "whoami",
                     "exe" => "/usr/bin/whoami",
-                    "key" => Value::Null,
+                    "key" => Value::Null
                 },
                 "enrichment" => btreemap! {
                     "ARCH" => "x86_64",
                     "SYSCALL" => "execve",
-                    "AUID" => "user",
+                    "AUID" => "vrl",
                     "UID" => "root",
                     "GID" => "root",
                     "EUID" => "root",
@@ -384,15 +372,15 @@ mod tests {
 
         // TODO: include this different types (denied Array) in examples
         avc_denied {
-            args: func_args![value: r#"type=AVC msg=audit(1631798689.083:65686): avc:  denied  { setuid } for  pid=15381 comm="laurel" capability=7  scontext=system_u:system_r:auditd_t:s0 tcontext=system_u:system_r:auditd_t:s0 tclass=capability permissive=1"#],
+            args: func_args![value: r#"type=AVC msg=audit(1724423274.618:6439): avc:  denied  { setuid setuid2 setuid3 } for  pid=1240242 comm="vrl" capability=7  scontext=system_u:system_r:auditd_t:s0 tcontext=system_u:system_r:auditd_t:s0 tclass=capability permissive=1"#],
             want: Ok(btreemap! {
                 "type" => "AVC",
-                "timestamp" => DateTime::from_timestamp_millis(1_631_798_689_083),
-                "sequence" => 65686,
+                "timestamp" => DateTime::from_timestamp_millis(1_724_423_274_618),
+                "sequence" => 6439,
                 "body" => btreemap! {
-                    "denied" => vec!["setuid"],
-                    "pid" => 15_381,
-                    "comm" => "laurel",
+                    "denied" => vec!["setuid", "setuid2", "setuid3"],
+                    "pid" => 1_240_242,
+                    "comm" => "vrl",
                     "capability" => 7,
                     "scontext" => "system_u:system_r:auditd_t:s0",
                     "tcontext" => "system_u:system_r:auditd_t:s0",
@@ -404,16 +392,16 @@ mod tests {
         }
 
         avc_granted{
-            args: func_args![value: r#"type=AVC msg=audit(1631870323.500:7098): avc:  granted  { setsecparam } for  pid=11209 comm="tuned" scontext=system_u:system_r:tuned_t:s0 tcontext=system_u:object_r:security_t:s0 tclass=security"#],
+            args: func_args![value: r#"type=AVC msg=audit(1724423274.618:6439): avc:  granted  { setsecparam setsecparam2 setsecparam3} for  pid=1240242 comm="vrl" scontext=system_u:system_r:vrl_t:s0 tcontext=system_u:object_r:security_t:s0 tclass=security"#],
             want: Ok(btreemap! {
                 "type" => "AVC",
-                "timestamp" => DateTime::from_timestamp_millis(1_631_870_323_500),
-                "sequence" => 7098,
+                "timestamp" => DateTime::from_timestamp_millis(1_724_423_274_618),
+                "sequence" => 6439,
                 "body" => btreemap! {
-                    "granted" => vec!["setsecparam"],
-                    "pid" => 11_209,
-                    "comm" => "tuned",
-                    "scontext" => "system_u:system_r:tuned_t:s0",
+                    "granted" => vec!["setsecparam","setsecparam2","setsecparam3"],
+                    "pid" => 1_240_242,
+                    "comm" => "vrl",
+                    "scontext" => "system_u:system_r:vrl_t:s0",
                     "tcontext" => "system_u:object_r:security_t:s0",
                     "tclass" => "security"
                 }
@@ -422,23 +410,23 @@ mod tests {
         }
 
         user_acct {
-            args: func_args![value: format!(r#"type=USER_ACCT msg=audit(1724505830.648:19): pid=445523 uid=1000 auid=1000 ses=2 msg='op=PAM:accounting grantors=pam_unix,pam_permit,pam_time acct="jorge" exe="/usr/bin/sudo" hostname=? addr=? terminal=/dev/pts/1 res=success'{}UID="jorge" AUID="jorge""#, ENRICHMENT_SEPARATOR)],
+            args: func_args![value: format!(r#"type=USER_ACCT msg=audit(1724423274.618:6439): pid=1240242 uid=1000 auid=1000 ses=2 msg='op=PAM:accounting grantors=pam_unix,pam_permit,pam_time acct="vrl" exe="/usr/bin/sudo" hostname=? addr=? terminal=/dev/pts/1 res=success'{}UID="vrl" AUID="vrl""#, ENRICHMENT_SEPARATOR)],
             want: Ok(btreemap! {
                 "type" => "USER_ACCT",
-                "timestamp" => DateTime::from_timestamp_millis(1_724_505_830_648),
-                "sequence" => 19,
+                "timestamp" => DateTime::from_timestamp_millis(1_724_423_274_618),
+                "sequence" => 6439,
                 "body" => btreemap! {
-                    "pid" => 445_523,
+                    "pid" => 1_240_242,
                     "uid" => 1_000,
                     "auid" => 1_000,
                     "ses" => 2,
                     // TODO: this should be parsed into a nested object, but it is lack of implementation
                     // from the linux-audit-parse crate
-                    "msg" => r#"op=PAM:accounting grantors=pam_unix,pam_permit,pam_time acct="jorge" exe="/usr/bin/sudo" hostname=? addr=? terminal=/dev/pts/1 res=success"#,
+                    "msg" => r#"op=PAM:accounting grantors=pam_unix,pam_permit,pam_time acct="vrl" exe="/usr/bin/sudo" hostname=? addr=? terminal=/dev/pts/1 res=success"#,
                 },
                 "enrichment" => btreemap! {
-                    "UID" => "jorge",
-                    "AUID" => "jorge"
+                    "UID" => "vrl",
+                    "AUID" => "vrl"
                 }
             }),
             tdef: type_def(),
