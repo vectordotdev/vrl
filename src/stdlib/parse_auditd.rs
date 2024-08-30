@@ -1,4 +1,6 @@
-use crate::compiler::prelude::*;
+use std::collections::BTreeMap;
+
+use crate::{btreemap, compiler::prelude::*};
 use bytes::BytesMut;
 use chrono::DateTime;
 use linux_audit_parser::{Number, Value as AuditValue};
@@ -6,7 +8,7 @@ use linux_audit_parser::{Number, Value as AuditValue};
 fn parse_auditd(bytes: Value) -> Resolved {
     let bytes = bytes.try_bytes()?;
     // check if bytes ends with newline, otherwise append it
-    // TODO: make the parser accept bytes without newline in the linux_audit_parser crate
+    // TODO: make the parser accept bytes without newline in the linux_audit_parser crate (to-be-contributed)
     let bytes = if bytes.last() == Some(&b'\n') {
         bytes
     } else {
@@ -36,7 +38,7 @@ fn parse_auditd(bytes: Value) -> Resolved {
     log.insert("sequence".into(), Value::from(sequence));
 
     if let Some(node) = parsed.node {
-        log.insert("node".into(), Value::from(node));
+        log.insert("node".into(), Value::from(Bytes::from(node)));
     }
 
     let message_type = parsed.ty.to_string();
@@ -46,7 +48,8 @@ fn parse_auditd(bytes: Value) -> Resolved {
         .body
         .into_iter()
         // TODO: improve this auditd crate with a IntoIter implementation for Body and not only
-        // for &Body, so we can have owned values
+        // for &Body, so we can have owned values. currently, the `into_iter` `Body` implementation
+        // relies on Vec::iter instead of Vec::into_iter, which forces us to clone the value in L56
         .map(|(key, value)| {
             let key = KeyString::from(key.to_string());
             // TODO: remove this clone with a new auditd crate version (to-be-contributed yet)
@@ -54,13 +57,16 @@ fn parse_auditd(bytes: Value) -> Resolved {
             value.map(|value| (key, value))
         })
         .collect::<Result<Vec<_>, _>>()?
-        // partition whether the key is all caps or not
         .into_iter()
+        // Keys with only uppercase characters are considered enrichments of its lowercase counterpart
+        // https://github.com/linux-audit/audit-documentation/wiki/SPEC-Audit-Event-Enrichment
         .partition(|(key, _)| key.chars().all(char::is_uppercase));
 
     log.insert("body".into(), Value::from(body));
-    // TODO: do not insert enrichment if it is empty. Create a test for this
-    log.insert("enrichment".into(), Value::from(enrichment));
+
+    if !enrichment.is_empty() {
+        log.insert("enrichment".into(), Value::from(enrichment));
+    }
 
     Ok(Value::from(log))
 }
@@ -78,7 +84,7 @@ impl<'a> TryFrom<AuditValue<'a>> for Value {
                     .map(Value::try_from)
                     .collect::<Result<Vec<_>, _>>()?,
             ),
-            AuditValue::Owned(string) => Value::from(string),
+            AuditValue::Owned(string) => Value::from(Bytes::from(string)),
             // Currently, AuditValue::Map is not generated from the parser (https://github.com/hillu/linux-audit-parser-rs/blob/d8c448c8d8227467b81cd5267790415b8b73f0cb/src/value.rs#L70)
             // but I think we should use that data type to represent the key-value pairs of the internal (nested) msg field
             // as depicted here: https://github.com/vectordotdev/vrl/issues/66
@@ -111,7 +117,7 @@ impl From<Number> for Value {
             Number::Dec(decimal) => Value::from(decimal),
             // TODO: should we store hexadecimals as its integer value or as an hexadecimal string?
             // TODO: Uppercase hexa or lowercase hex format?
-            Number::Hex(hex) => Value::from(format!("0x{hex:X}")),
+            Number::Hex(hex) => Value::from(format!("0x{hex:x}")),
             // TODO: should we store octals as its integer value or as an octal string?
             Number::Oct(oct) => Value::from(format!("0o{oct:o}")),
         }
@@ -157,7 +163,7 @@ impl Function for ParseAuditd {
     }
 
     fn summary(&self) -> &'static str {
-        "Parse an auditd record"
+        "Parse an auditd log record"
     }
 
     fn parameters(&self) -> &'static [Parameter] {
@@ -170,7 +176,32 @@ impl Function for ParseAuditd {
 
     fn examples(&self) -> &'static [Example] {
         // TODO
-        &[]
+        &[Example {
+            title: "parse auditd log",
+            source: "parse_auditd(\"type=DAEMON_START msg=audit(1724423274.618:6439): op=start ver=4.0.2 format=enriched kernel=6.10.4-arch2-1 auid=1000 pid=1240242 uid=0 ses=2 res=success\0x1dAUID=\\\"vrl\\\" UID=\\\"root\\\"\")",
+            result: Ok(indoc! {r#"
+                {
+                    "body": {
+                        "auid": 1000,
+                        "format": "enriched",
+                        "kernel": "6.10.4-arch2-1",
+                        "op": "start",
+                        "pid": 1240242,
+                        "res": "success",
+                        "ses": 2,
+                        "uid": 0,
+                        "ver": "4.0.2"
+                    },
+                    "enrichment": {
+                        "AUID": "vrl",
+                        "UID": "root"
+                    },
+                    "sequence": 6439,
+                    "timestamp": "2024-08-23T14:27:54.618Z",
+                    "type": "DAEMON_START"
+                }
+            "#}),
+        }]
     }
 
     fn compile(
@@ -202,23 +233,215 @@ impl FunctionExpression for ParseAuditdFn {
     }
 }
 
+fn body_kind() -> Kind {
+    Kind::object(Collection::any())
+}
+
+fn enrichment_kind() -> Kind {
+    Kind::object(Collection::any()) | Kind::null()
+}
+
+fn inner_kind() -> BTreeMap<Field, Kind> {
+    btreemap! {
+        "body" => body_kind(),
+        "enrichment" => enrichment_kind(),
+        "sequence" => Kind::integer(),
+        "timestamp" => Kind::timestamp(),
+        "type" => Kind::bytes(),
+        "node" => Kind::bytes() | Kind::null()
+    }
+}
+
 fn type_def() -> TypeDef {
-    // TODO: improve typedef
-    TypeDef::object(Collection::any())
+    TypeDef::object(inner_kind())
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    const ENRICHMENT_SEPARATOR: char = 0x1d as char;
 
-    #[test]
-    fn test_parse_auditd() {
-        let line = r#"type=DAEMON_START msg=audit(1724423274.618:6439): op=start ver=4.0.2 format=enriched kernel=6.10.4-arch2-1 auid=1000 pid=1240242 uid=0 ses=2 res=successAUID="jorge" UID="root""#;
-        let value = Value::from(line);
-        println!("{}", parse_auditd(value).expect("expected ok "));
+    // #[test]
+    // fn test_parse_auditd() {
+    //     let line = r#"type=DAEMON_START msg=audit(1724423274.618:6439): op=start ver=4.0.2 format=enriched kernel=6.10.4-arch2-1 auid=1000 pid=1240242 uid=0 ses=2 res=successAUID="jorge" UID="root""#;
+    //     let value = Value::from(line);
+    //     println!("{}", parse_auditd(value).expect("expected ok "));
 
-        let other_line = r#"type=SYSCALL msg=audit(1522927552.749:917): arch=c000003e syscall=2 success=yes exit=3 a0=7ffe2ce05793 a1=0 a2=1fffffffffff0000 a3=7ffe2ce043a0 items=1 ppid=2906 pid=4668 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts4 ses=1 comm="cat" exe="/bin/cat" key="passwd""#;
-        let value = Value::from(other_line);
-        println!("{}", parse_auditd(value).expect("expected ok "));
-    }
+    //     let other_line = r#"type=SYSCALL msg=audit(1522927552.749:917): arch=c000003e syscall=2 success=yes exit=3 a0=7ffe2ce05793 a1=0 a2=1fffffffffff0000 a3=7ffe2ce043a0 items=1 ppid=2906 pid=4668 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts4 ses=1 comm="cat" exe="/bin/cat" key="passwd""#;
+    //     let value = Value::from(other_line);
+    //     println!("{}", parse_auditd(value).expect("expected ok "));
+    // }
+
+    test_function![
+        parse_auditd => ParseAuditd;
+
+        daemon_start {
+            args: func_args![value: format!(r#"type=DAEMON_START msg=audit(1724423274.618:6439): op=start ver=4.0.2 format=enriched kernel=6.10.4-arch2-1 auid=1000 pid=1240242 uid=0 ses=2 res=success{}AUID="vrl" UID="root""#,
+            ENRICHMENT_SEPARATOR)],
+            want: Ok(btreemap! {
+                "type" => "DAEMON_START",
+                "timestamp" => DateTime::from_timestamp_millis(1_724_423_274_618),
+                "sequence" => 6439,
+                "body" => btreemap! {
+                    "op" => "start",
+                    "ver" => "4.0.2",
+                    "format" => "enriched",
+                    "kernel" => "6.10.4-arch2-1",
+                    "auid" => 1000,
+                    "pid" => 1_240_242,
+                    "uid" => 0,
+                    "ses" => 2,
+                    "res" => "success"
+                },
+                "enrichment" => btreemap! {
+                    "AUID" => "vrl",
+                    "UID" => "root"
+                }
+            }),
+            tdef: type_def(),
+        }
+
+        daemon_start_with_node {
+            args: func_args![value: format!(r#"node=vrl-node type=DAEMON_START msg=audit(1724423274.618:6439): op=start ver=4.0.2 format=enriched kernel=6.10.4-arch2-1 auid=1000 pid=1240242 uid=0 ses=2 res=success{}AUID="vrl" UID="root""#,
+            ENRICHMENT_SEPARATOR)],
+            want: Ok(btreemap! {
+                "node" => "vrl-node",
+                "type" => "DAEMON_START",
+                "timestamp" => DateTime::from_timestamp_millis(1_724_423_274_618),
+                "sequence" => 6439,
+                "body" => btreemap! {
+                    "op" => "start",
+                    "ver" => "4.0.2",
+                    "format" => "enriched",
+                    "kernel" => "6.10.4-arch2-1",
+                    "auid" => 1000,
+                    "pid" => 1_240_242,
+                    "uid" => 0,
+                    "ses" => 2,
+                    "res" => "success"
+                },
+                "enrichment" => btreemap! {
+                    "AUID" => "vrl",
+                    "UID" => "root"
+                }
+            }),
+            tdef: type_def(),
+        }
+
+        // TODO: anonymize all those tests cases with random values while keeping actual syntax
+        // TODO: include this in examples
+        syscall {
+            args: func_args![ value: format!(r#"type=SYSCALL msg=audit(1615114232.375:15558): arch=c000003e syscall=59 success=yes exit=0 a0=63b29337fd18 a1=63b293387d58 a2=63b293375640 a3=fffffffffffff000 items=2 ppid=10883 pid=10884 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts1 ses=1 comm="whoami" exe="/usr/bin/whoami" key=(null){}ARCH=x86_64 SYSCALL=execve AUID="user" UID="root" GID="root" EUID="root" SUID="root" FSUID="root" EGID="root" SGID="root" FSGID="root""#,
+            ENRICHMENT_SEPARATOR) ],
+            want: Ok(btreemap! {
+                "type" => "SYSCALL",
+                "timestamp" => DateTime::from_timestamp_millis(1_615_114_232_375),
+                "sequence" => 15558,
+
+                "body" => btreemap! {
+                    "arch" => "0xc000003e",
+                    "syscall" => 59,
+                    "success" => "yes",
+                    "exit" => 0,
+                    "a0" => "0x63b29337fd18",
+                    "a1" => "0x63b293387d58",
+                    "a2" => "0x63b293375640",
+                    "a3" => "0xfffffffffffff000",
+                    "items" => 2,
+                    "ppid" => 10_883,
+                    "pid" => 10_884,
+                    "auid" => 1000,
+                    "uid" => 0,
+                    "gid" => 0,
+                    "euid" => 0,
+                    "suid" => 0,
+                    "fsuid" => 0,
+                    "egid" => 0,
+                    "sgid" => 0,
+                    "fsgid" => 0,
+                    "tty" => "pts1",
+                    "ses" => 1,
+                    "comm" => "whoami",
+                    "exe" => "/usr/bin/whoami",
+                    "key" => Value::Null,
+                },
+                "enrichment" => btreemap! {
+                    "ARCH" => "x86_64",
+                    "SYSCALL" => "execve",
+                    "AUID" => "user",
+                    "UID" => "root",
+                    "GID" => "root",
+                    "EUID" => "root",
+                    "SUID" => "root",
+                    "FSUID" => "root",
+                    "EGID" => "root",
+                    "SGID" => "root",
+                    "FSGID" => "root"
+                }
+            }),
+            tdef: type_def(),
+        }
+
+        // TODO: include this different types (denied Array) in examples
+        avc_denied {
+            args: func_args![value: r#"type=AVC msg=audit(1631798689.083:65686): avc:  denied  { setuid } for  pid=15381 comm="laurel" capability=7  scontext=system_u:system_r:auditd_t:s0 tcontext=system_u:system_r:auditd_t:s0 tclass=capability permissive=1"#],
+            want: Ok(btreemap! {
+                "type" => "AVC",
+                "timestamp" => DateTime::from_timestamp_millis(1_631_798_689_083),
+                "sequence" => 65686,
+                "body" => btreemap! {
+                    "denied" => vec!["setuid"],
+                    "pid" => 15_381,
+                    "comm" => "laurel",
+                    "capability" => 7,
+                    "scontext" => "system_u:system_r:auditd_t:s0",
+                    "tcontext" => "system_u:system_r:auditd_t:s0",
+                    "tclass" => "capability",
+                    "permissive" => 1
+                }
+            }),
+            tdef: type_def(),
+        }
+
+        avc_granted{
+            args: func_args![value: r#"type=AVC msg=audit(1631870323.500:7098): avc:  granted  { setsecparam } for  pid=11209 comm="tuned" scontext=system_u:system_r:tuned_t:s0 tcontext=system_u:object_r:security_t:s0 tclass=security"#],
+            want: Ok(btreemap! {
+                "type" => "AVC",
+                "timestamp" => DateTime::from_timestamp_millis(1_631_870_323_500),
+                "sequence" => 7098,
+                "body" => btreemap! {
+                    "granted" => vec!["setsecparam"],
+                    "pid" => 11_209,
+                    "comm" => "tuned",
+                    "scontext" => "system_u:system_r:tuned_t:s0",
+                    "tcontext" => "system_u:object_r:security_t:s0",
+                    "tclass" => "security"
+                }
+            }),
+            tdef: type_def(),
+        }
+
+        user_acct {
+            args: func_args![value: format!(r#"type=USER_ACCT msg=audit(1724505830.648:19): pid=445523 uid=1000 auid=1000 ses=2 msg='op=PAM:accounting grantors=pam_unix,pam_permit,pam_time acct="jorge" exe="/usr/bin/sudo" hostname=? addr=? terminal=/dev/pts/1 res=success'{}UID="jorge" AUID="jorge""#, ENRICHMENT_SEPARATOR)],
+            want: Ok(btreemap! {
+                "type" => "USER_ACCT",
+                "timestamp" => DateTime::from_timestamp_millis(1_724_505_830_648),
+                "sequence" => 19,
+                "body" => btreemap! {
+                    "pid" => 445_523,
+                    "uid" => 1_000,
+                    "auid" => 1_000,
+                    "ses" => 2,
+                    // TODO: this should be parsed into a nested object, but it is lack of implementation
+                    // from the linux-audit-parse crate
+                    "msg" => r#"op=PAM:accounting grantors=pam_unix,pam_permit,pam_time acct="jorge" exe="/usr/bin/sudo" hostname=? addr=? terminal=/dev/pts/1 res=success"#,
+                },
+                "enrichment" => btreemap! {
+                    "UID" => "jorge",
+                    "AUID" => "jorge"
+                }
+            }),
+            tdef: type_def(),
+        }
+    ];
 }
