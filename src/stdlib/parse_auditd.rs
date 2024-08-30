@@ -175,7 +175,7 @@ impl Function for ParseAuditd {
     }
 
     fn examples(&self) -> &'static [Example] {
-        // TODO
+        // TODO: add more examples based on tests
         &[Example {
             title: "parse auditd log",
             source: "parse_auditd(\"type=DAEMON_START msg=audit(1724423274.618:6439): op=start ver=4.0.2 format=enriched kernel=6.10.4-arch2-1 auid=1000 pid=1240242 uid=0 ses=2 res=success\0x1dAUID=\\\"vrl\\\" UID=\\\"root\\\"\")",
