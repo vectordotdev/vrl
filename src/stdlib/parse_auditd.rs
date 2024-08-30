@@ -317,8 +317,6 @@ mod tests {
             tdef: type_def(),
         }
 
-        // TODO: anonymize all those tests cases with random values while keeping actual syntax
-        // TODO: include this in examples
         syscall {
             args: func_args![ value: format!(r#"type=SYSCALL msg=audit(1724423274.618:6439): arch=c000003e syscall=59 success=yes exit=0 a0=123456789abcdef a1=123456789abcdef a2=123456789abcdef a3=123456789abcdef items=2 ppid=1240241 pid=1240242 auid=1000 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts1 ses=1 comm="whoami" exe="/usr/bin/whoami" key=(null){}ARCH=x86_64 SYSCALL=execve AUID="vrl" UID="root" GID="root" EUID="root" SUID="root" FSUID="root" EGID="root" SGID="root" FSGID="root""#,
             ENRICHMENT_SEPARATOR) ],
@@ -370,7 +368,6 @@ mod tests {
             tdef: type_def(),
         }
 
-        // TODO: include this different types (denied Array) in examples
         avc_denied {
             args: func_args![value: r#"type=AVC msg=audit(1724423274.618:6439): avc:  denied  { setuid setuid2 setuid3 } for  pid=1240242 comm="vrl" capability=7  scontext=system_u:system_r:auditd_t:s0 tcontext=system_u:system_r:auditd_t:s0 tclass=capability permissive=1"#],
             want: Ok(btreemap! {
