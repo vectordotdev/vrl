@@ -98,7 +98,7 @@ impl<'a> TryFrom<AuditValue<'a>> for Value {
                     })
                     .collect::<Result<ObjectMap, _>>()?,
             ),
-            // There is a few values that `linux-audit-parser` does not return in its parsing
+            // There are a few values that `linux-audit-parser` does not return in its parsing
             // https://github.com/hillu/linux-audit-parser-rs/blob/d8c448c8d8227467b81cd5267790415b8b73f0cb/src/value.rs#L72
             // We do not plan to support those values, as they are only produced by [laurel](https://github.com/threathunters-io/laurel)
             // Maybe we should contribute to `linux-audit-parser` to remove the values the parser does not produce, as it
