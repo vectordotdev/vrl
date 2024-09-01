@@ -240,7 +240,7 @@ impl FunctionExpression for ParseInfluxDBFn {
 }
 
 fn tags_kind() -> Kind {
-    Kind::object(Collection::from_unknown(Kind::bytes()))
+    Kind::object(Collection::from_unknown(Kind::bytes())) | Kind::null()
 }
 
 fn gauge_kind() -> Kind {
@@ -253,7 +253,7 @@ fn metric_kind() -> BTreeMap<Field, Kind> {
     btreemap! {
         "name" => Kind::bytes(),
         "tags" => tags_kind(),
-        "timestamp" => Kind::timestamp(),
+        "timestamp" => Kind::timestamp() | Kind::null(),
         "kind" => Kind::bytes(),
         "gauge" => gauge_kind(),
     }
@@ -276,7 +276,7 @@ mod test {
         parse_influxdb => ParseInfluxDB;
 
         influxdb_valid {
-            args: func_args![ value: format!("cpu,host=A,region=us-west usage_system=64i,usage_user=10u,temperature=50.5,on=true,sleep=false 1590488773254420000") ],
+            args: func_args![ value: "cpu,host=A,region=us-west usage_system=64i,usage_user=10u,temperature=50.5,on=true,sleep=false 1590488773254420000" ],
             want: Ok(Value::from(vec![
                 Value::from(btreemap! {
                     "name" => "cpu_usage_system",
@@ -373,7 +373,7 @@ mod test {
         }
 
         influxdb_valid_no_tags {
-            args: func_args![ value: format!("cpu usage_system=64i,usage_user=10i 1590488773254420000") ],
+            args: func_args![ value: "cpu usage_system=64i,usage_user=10i 1590488773254420000" ],
             want: Ok(Value::from(vec![
                 Value::from(btreemap! {
                     "name" => "cpu_usage_system",
