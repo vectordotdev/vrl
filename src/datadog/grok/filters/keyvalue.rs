@@ -191,7 +191,19 @@ pub fn apply_filter(value: &Value, filter: &KeyValueFilter) -> Result<Value, Gro
                     || matches!(&value, Value::Bytes(b) if b.is_empty())
                     || key.is_empty())
                 {
-                    result.insert(crate::path!(key), value);
+                    let path = crate::path!(key);
+                    match result.get(path).cloned() {
+                        Some(Value::Array(mut values)) => {
+                            values.push(value);
+                            result.insert(path, values);
+                        }
+                        Some(prev) => {
+                            result.insert(path, Value::Array(vec![prev, value]));
+                        }
+                        None => {
+                            result.insert(path, value);
+                        }
+                    };
                 }
                 }
             });

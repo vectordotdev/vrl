@@ -140,7 +140,6 @@ mod tests {
     use crate::value::Value;
     use chrono::{Datelike, NaiveDate, Timelike, Utc};
     use ordered_float::NotNan;
-    // use ordered_float::NotNan;
     use tracing_test::traced_test;
 
     use super::super::parse_grok_rules::parse_grok_rules;
@@ -966,6 +965,13 @@ mod tests {
                     "host" => "174.138.82.103",
                     "request" => "HEAD http://174.138.82.103:80/sql/sql-admin/ HTTP/1.1",
                     "server" => "localhost",
+                })),
+            ),
+            (
+                r#"%{data::keyvalue}"#,
+                r#"a=1, a=1, a=2"#,
+                Ok(Value::from(btreemap! {
+                    "a" => vec![1, 1, 2]
                 })),
             ),
         ]);
