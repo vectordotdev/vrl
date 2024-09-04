@@ -182,6 +182,9 @@ pub fn apply_filter(value: &Value, filter: &KeyValueFilter) -> Result<Value, Gro
             let value = String::from_utf8_lossy(bytes);
             filter.re_pattern.captures_iter(value.as_ref()).for_each(|c| {
                 let key = parse_key(extract_capture(&c, 1), filter.quotes.as_slice());
+                if key.contains(' ') {
+                    return;
+                }
                 let value = extract_capture(&c, 2);
                 // trim trailing comma for value
                 let value = value.trim_end_matches(|c| c == ',');

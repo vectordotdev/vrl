@@ -983,6 +983,12 @@ mod tests {
                     "a" => "foo"
                 })),
             ),
+            // ignore if key contains spaces
+            (
+                r#"%{data::keyvalue("="," ")}"#,
+                "a key=value",
+                Ok(Value::from(btreemap! {})),
+            ),
         ]);
     }
 
