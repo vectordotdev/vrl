@@ -88,6 +88,14 @@ jobs:
       - name: "Check that the MSRV is up to date"
         run: ./scripts/check_msrv.sh
 
+  check-deny:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: Swatinem/rust-cache@v2
+      - name: "Check that the 3rd-party license file is up to date"
+        run: ./scripts/check_deny.sh
+
   wasm32-unknown-unknown:
     runs-on: ubuntu-latest
     steps:
