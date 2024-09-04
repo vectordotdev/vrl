@@ -4,6 +4,33 @@
 
 <!-- changelog start -->
 
+## [0.18.0 (2024-09-05)]
+
+
+### New Features
+
+- Added `unflatten` function to inverse the result of the `flatten` function. This function is useful when you want to convert a flattened object back to its original form.
+- The `parse_json` function now accepts an optional `lossy` parameter (which defaults to `true`).
+
+  This new parameter allows to control whether the UTF-8 decoding should be lossy or not, replacing
+  invalid UTF-8 sequences with the Unicode replacement character (U+FFFD) if set to `true` or raising an error
+  if set to `false` and an invalid utf-8 sequence is found. (https://github.com/vectordotdev/vrl/pull/269)
+- Added casing functions `camelcase`, `kebabcase`, `screamingsnakecase`, `snakecase`, `pascalcase` (https://github.com/vectordotdev/vrl/pull/973)
+- Added `parse_influxdb` function to parse events encoded using the [InfluxDB line protocol](https://docs.influxdata.com/influxdb/cloud/reference/syntax/line-protocol/).
+
+### Enhancements
+
+- The `match_datadog_query` function now accepts `||` in place of `OR` and `&&` in
+  place of `AND` in the query string, which is common Datadog syntax. (https://github.com/vectordotdev/vrl/pull/1001)
+
+### Fixes
+
+- `decode_base64` no longer requires canonical padding. (https://github.com/vectordotdev/vrl/pull/960)
+- The assumption of a Datadog Logs-based intake event structure has been removed
+  from the `match_datadog_query` function. (https://github.com/vectordotdev/vrl/pull/1003)
+- For the `parse_influxdb` function the `timestamp` and `tags` fields of returned objects are now
+  correctly marked as nullable.
+
 ## [0.17.0 (2024-07-24)]
 
 
