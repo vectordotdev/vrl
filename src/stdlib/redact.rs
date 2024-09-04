@@ -156,7 +156,7 @@ fn redact(value: Value, filters: &[Filter], redactor: &Redactor) -> Value {
     // that would complicate the code though.
     match value {
         Value::Bytes(bytes) => {
-            let input = String::from_utf8_lossy(&bytes);
+            let input = bytes.as_utf8_lossy();
             let output = filters.iter().fold(input, |input, filter| {
                 filter.redact(&input, redactor).into_owned().into()
             });
@@ -223,7 +223,7 @@ impl TryFrom<Value> for Filter {
                     _ => Err("type key in filters must be a string"),
                 }?;
 
-                match r#type.as_ref() {
+                match r#type.as_bytes_slice() {
                     b"us_social_security_number" => Ok(Filter::UsSocialSecurityNumber),
                     b"pattern" => {
                         let patterns = match object
@@ -234,9 +234,9 @@ impl TryFrom<Value> for Filter {
                                 .iter()
                                 .map(|value| match value {
                                     Value::Regex(regex) => Ok(Pattern::Regex((**regex).clone())),
-                                    Value::Bytes(bytes) => Ok(Pattern::String(
-                                        String::from_utf8_lossy(bytes).into_owned(),
-                                    )),
+                                    Value::Bytes(bytes) => {
+                                        Ok(Pattern::String(bytes.to_utf8_lossy()))
+                                    }
                                     _ => Err("`patterns` must be regular expressions"),
                                 })
                                 .collect::<std::result::Result<Vec<_>, _>>()?),
@@ -247,7 +247,7 @@ impl TryFrom<Value> for Filter {
                     _ => Err("unknown filter name"),
                 }
             }
-            Value::Bytes(bytes) => match bytes.as_ref() {
+            Value::Bytes(bytes) => match bytes.as_bytes_slice() {
                 b"pattern" => Err("pattern cannot be used without arguments"),
                 b"us_social_security_number" => Ok(Filter::UsSocialSecurityNumber),
                 _ => Err("unknown filter name"),
@@ -335,16 +335,14 @@ impl Redactor {
             _ => Err("type key in redactor must be a string"),
         }?;
 
-        match r#type.as_ref() {
+        match r#type.as_bytes_slice() {
             b"full" => Ok(Redactor::Full),
             b"text" => {
                 match obj.get("replacement").ok_or(
                     "text redactor must have
                 `replacement` specified",
                 )? {
-                    Value::Bytes(bytes) => {
-                        Ok(Redactor::Text(String::from_utf8_lossy(bytes).into_owned()))
-                    }
+                    Value::Bytes(bytes) => Ok(Redactor::Text(bytes.to_utf8_lossy())),
                     _ => Err("`replacement` must be a string"),
                 }
             }
@@ -353,7 +351,7 @@ impl Redactor {
                     match variant
                         .as_bytes()
                         .ok_or("`variant` must be a string")?
-                        .as_ref()
+                        .as_bytes_slice()
                     {
                         b"SHA-224" => encoded_hash::<sha_2::Sha224>,
                         b"SHA-256" => encoded_hash::<sha_2::Sha256>,
@@ -378,7 +376,7 @@ impl Redactor {
                     match variant
                         .as_bytes()
                         .ok_or("`variant must be a string")?
-                        .as_ref()
+                        .as_bytes_slice()
                     {
                         b"SHA3-224" => encoded_hash::<sha_3::Sha3_224>,
                         b"SHA3-256" => encoded_hash::<sha_3::Sha3_256>,
@@ -421,7 +419,7 @@ impl TryFrom<Value> for Redactor {
     fn try_from(value: Value) -> std::result::Result<Self, Self::Error> {
         match value {
             Value::Object(object) => Redactor::from_object(object),
-            Value::Bytes(bytes) => match bytes.as_ref() {
+            Value::Bytes(bytes) => match bytes.as_bytes_slice() {
                 b"full" => Ok(Redactor::Full),
                 b"sha2" => Ok(Redactor::Hash {
                     hasher: encoded_hash::<sha_2::Sha512_256>,
@@ -448,7 +446,11 @@ impl TryFrom<&Value> for Encoder {
     type Error = &'static str;
 
     fn try_from(value: &Value) -> std::result::Result<Self, Self::Error> {
-        match value.as_bytes().ok_or("encoding must be string")?.as_ref() {
+        match value
+            .as_bytes()
+            .ok_or("encoding must be string")?
+            .as_bytes_slice()
+        {
             b"base64" => Ok(Self::Base64),
             b"base16" | b"hex" => Ok(Self::Base16),
             _ => Err("unexpected encoding"),

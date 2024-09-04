@@ -84,7 +84,7 @@ impl FindFn {
         }
         for from in offset..=(value.len() - pattern.len()) {
             let to = from + pattern.len();
-            if value[from..to] == pattern {
+            if value.as_bytes_slice()[from..to] == pattern {
                 return Some(from);
             }
         }

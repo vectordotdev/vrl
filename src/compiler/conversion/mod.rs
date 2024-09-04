@@ -4,12 +4,12 @@ use std::{
     num::{ParseFloatError, ParseIntError},
 };
 
-use bytes::Bytes;
 use chrono::{DateTime, LocalResult, ParseError as ChronoParseError, TimeZone as _, Utc};
 use ordered_float::NotNan;
 use snafu::{ResultExt, Snafu};
 
 use super::datetime::{datetime_to_utc, TimeZone};
+use crate::value::Bytes;
 
 #[cfg(test)]
 mod tests;
@@ -149,23 +149,23 @@ impl Conversion {
         Ok(match self {
             Self::Bytes => bytes.into(),
             Self::Integer => {
-                let s = String::from_utf8_lossy(&bytes);
+                let s = bytes.as_utf8_lossy();
                 s.parse::<i64>()
                     .with_context(|_| IntParseSnafu { s })?
                     .into()
             }
             Self::Float => {
-                let s = String::from_utf8_lossy(&bytes);
+                let s = bytes.as_utf8_lossy();
                 let parsed = s
                     .parse::<f64>()
                     .with_context(|_| FloatParseSnafu { s: s.clone() })?;
                 let f = NotNan::new(parsed).map_err(|_| Error::NanFloat { s: s.to_string() })?;
                 f.into()
             }
-            Self::Boolean => parse_bool(&String::from_utf8_lossy(&bytes))?.into(),
-            Self::Timestamp(tz) => parse_timestamp(*tz, &String::from_utf8_lossy(&bytes))?.into(),
+            Self::Boolean => parse_bool(&bytes.as_utf8_lossy())?.into(),
+            Self::Timestamp(tz) => parse_timestamp(*tz, &bytes.as_utf8_lossy())?.into(),
             Self::TimestampFmt(format, tz) => {
-                let s = String::from_utf8_lossy(&bytes);
+                let s = bytes.as_utf8_lossy();
                 let dt = tz
                     .datetime_from_str(&s, format)
                     .context(TimestampParseSnafu { s })?;
@@ -173,7 +173,7 @@ impl Conversion {
                 datetime_to_utc(&dt).into()
             }
             Self::TimestampTzFmt(format) => {
-                let s = String::from_utf8_lossy(&bytes);
+                let s = bytes.as_utf8_lossy();
                 let dt = DateTime::parse_from_str(&s, format)
                     .with_context(|_| TimestampParseSnafu { s })?;
 

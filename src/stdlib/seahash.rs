@@ -3,7 +3,7 @@ use crate::compiler::prelude::*;
 #[allow(clippy::cast_possible_wrap)]
 fn seahash(value: Value) -> Resolved {
     let value = value.try_bytes()?;
-    Ok(Value::Integer(seahash::hash(&value) as i64))
+    Ok(Value::Integer(seahash::hash(value.as_bytes_slice()) as i64))
 }
 
 #[derive(Clone, Copy, Debug)]

@@ -1,12 +1,12 @@
 use std::{borrow::Cow, collections::BTreeMap, fmt};
 
-use bytes::Bytes;
 use ordered_float::NotNan;
 use serde::de::Error as SerdeError;
 use serde::de::{MapAccess, SeqAccess, Visitor};
 use serde::{Deserialize, Serialize, Serializer};
 
 use crate::value::value::{timestamp_to_string, StdError, Value};
+use crate::value::Bytes;
 
 impl Value {
     /// Converts self into a `Bytes`, using JSON for Map/Array.
@@ -37,7 +37,7 @@ impl Value {
     /// If map or array serialization fails.
     pub fn to_string_lossy(&self) -> Cow<'_, str> {
         match self {
-            Self::Bytes(bytes) => String::from_utf8_lossy(bytes),
+            Self::Bytes(bytes) => bytes.as_utf8_lossy(),
             Self::Regex(regex) => regex.as_str().into(),
             Self::Timestamp(timestamp) => timestamp_to_string(timestamp).into(),
             Self::Integer(num) => num.to_string().into(),
@@ -63,7 +63,7 @@ impl Serialize for Value {
             Self::Integer(i) => serializer.serialize_i64(*i),
             Self::Float(f) => serializer.serialize_f64(f.into_inner()),
             Self::Boolean(b) => serializer.serialize_bool(*b),
-            Self::Bytes(b) => serializer.serialize_str(String::from_utf8_lossy(b).as_ref()),
+            Self::Bytes(b) => serializer.serialize_str(b.as_utf8_lossy().as_ref()),
             Self::Timestamp(ts) => serializer.serialize_str(&timestamp_to_string(ts)),
             Self::Regex(regex) => serializer.serialize_str(regex.as_str()),
             Self::Object(m) => serializer.collect_map(m),
@@ -227,7 +227,7 @@ impl TryInto<serde_json::Value> for Value {
             Self::Boolean(v) => Ok(serde_json::Value::from(v)),
             Self::Integer(v) => Ok(serde_json::Value::from(v)),
             Self::Float(v) => Ok(serde_json::Value::from(v.into_inner())),
-            Self::Bytes(v) => Ok(serde_json::Value::from(String::from_utf8(v.to_vec())?)),
+            Self::Bytes(v) => Ok(serde_json::Value::from(String::from_utf8(v.into_vec())?)),
             Self::Regex(regex) => Ok(serde_json::Value::from(regex.as_str().to_string())),
             Self::Object(v) => Ok(serde_json::to_value(v)?),
             Self::Array(v) => Ok(serde_json::to_value(v)?),

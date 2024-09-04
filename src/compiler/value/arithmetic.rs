@@ -2,13 +2,13 @@
 
 use std::ops::{Add, Mul, Rem, Sub};
 
-use bytes::{BufMut, Bytes, BytesMut};
+use bytes::{BufMut, BytesMut};
 
 use crate::compiler::{
     value::{Kind, VrlValueConvert},
     ExpressionError,
 };
-use crate::value::{ObjectMap, Value};
+use crate::value::{Bytes, ObjectMap, Value};
 
 use super::ValueError;
 
@@ -132,8 +132,8 @@ impl VrlValueArithmetic for Value {
             (Value::Bytes(lhs), Value::Bytes(rhs)) => {
                 #[allow(clippy::arithmetic_side_effects)]
                 let mut value = BytesMut::with_capacity(lhs.len() + rhs.len());
-                value.put(lhs);
-                value.put(rhs);
+                value.put(lhs.as_bytes_slice());
+                value.put(rhs.as_bytes_slice());
                 value.freeze().into()
             }
             (Value::Null, rhs @ Value::Bytes(_)) => rhs,

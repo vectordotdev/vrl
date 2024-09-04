@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use url::form_urlencoded;
 
 pub(crate) fn parse_query_string(bytes: &Bytes, ignore_keys_without_values: bool) -> Resolved {
-    let mut query_string = bytes.as_ref();
+    let mut query_string = bytes.as_bytes_slice();
     if !query_string.is_empty() && query_string[0] == b'?' {
         query_string = &query_string[1..];
     }

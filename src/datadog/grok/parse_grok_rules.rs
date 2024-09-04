@@ -326,7 +326,7 @@ fn resolves_match_function(
         "regex" => match match_fn.args.as_ref() {
             Some(args) if !args.is_empty() => {
                 if let ast::FunctionArgument::Arg(Value::Bytes(ref b)) = args[0] {
-                    context.append_regex(&String::from_utf8_lossy(b));
+                    context.append_regex(&b.as_utf8_lossy());
                     return Ok(());
                 }
                 Err(Error::InvalidFunctionArguments(match_fn.name.clone()))
@@ -365,7 +365,7 @@ fn resolves_match_function(
             return match match_fn.args.as_ref() {
                 Some(args) if !args.is_empty() && args.len() <= 2 => {
                     if let ast::FunctionArgument::Arg(Value::Bytes(b)) = &args[0] {
-                        let format = String::from_utf8_lossy(b);
+                        let format = b.as_utf8_lossy();
                         // get regex with captures, so that we can extract timezone and fraction char in the filter
                         let result = date::time_format_to_regex(&format, true)
                             .map_err(|_e| Error::InvalidFunctionArguments(match_fn.name.clone()))?;
@@ -381,7 +381,7 @@ fn resolves_match_function(
                         let mut target_tz = None;
                         if args.len() == 2 {
                             if let ast::FunctionArgument::Arg(Value::Bytes(b)) = &args[1] {
-                                let tz = String::from_utf8_lossy(b);
+                                let tz = b.as_utf8_lossy();
                                 date::parse_timezone(&tz).map_err(|error| {
                                     error!(message = "Invalid(unrecognized) timezone", %error);
                                     Error::InvalidFunctionArguments(match_fn.name.clone())

@@ -1,8 +1,7 @@
 use std::{borrow::Cow, convert::TryFrom, fmt, sync::Arc};
 
 use crate::diagnostic::{DiagnosticMessage, Label, Note, Urls};
-use crate::value::{Value, ValueRegex};
-use bytes::Bytes;
+use crate::value::{Bytes, Value, ValueRegex};
 use chrono::{DateTime, SecondsFormat, Utc};
 use ordered_float::NotNan;
 use regex::Regex;
@@ -77,7 +76,7 @@ impl fmt::Display for Literal {
         use Literal::{Boolean, Float, Integer, Null, Regex, String, Timestamp};
 
         match self {
-            String(v) => write!(f, r#""{}""#, std::string::String::from_utf8_lossy(v)),
+            String(v) => write!(f, r#""{}""#, v.as_utf8_lossy()),
             Integer(v) => v.fmt(f),
             Float(v) => v.fmt(f),
             Boolean(v) => v.fmt(f),

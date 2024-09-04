@@ -3,7 +3,7 @@ use md5::Digest;
 
 fn md5(value: Value) -> Resolved {
     let value = value.try_bytes()?;
-    Ok(hex::encode(md5::Md5::digest(&value)).into())
+    Ok(hex::encode(md5::Md5::digest(value.as_bytes_slice())).into())
 }
 
 #[derive(Clone, Copy, Debug)]

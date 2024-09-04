@@ -12,7 +12,7 @@ fn split(value: Value, limit: Value, pattern: Value) -> Resolved {
             .collect::<Vec<_>>()
             .into()),
         Value::Bytes(bytes) => {
-            let pattern = String::from_utf8_lossy(&bytes);
+            let pattern = bytes.as_utf8_lossy();
 
             Ok(string
                 .splitn(limit, pattern.as_ref())

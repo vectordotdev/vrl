@@ -1,7 +1,5 @@
 use std::convert::TryFrom;
 
-use crate::value::Value;
-use bytes::Bytes;
 use nom::{
     branch::alt,
     bytes::complete::{tag, take, take_until},
@@ -16,6 +14,7 @@ use super::super::{
     grok_filter::GrokFilter,
     parse_grok_rules::Error as GrokStaticError,
 };
+use crate::value::{Bytes, Value};
 
 pub fn filter_from_function(f: &Function) -> Result<GrokFilter, GrokStaticError> {
     let args = f.args.as_ref();
@@ -27,7 +26,7 @@ pub fn filter_from_function(f: &Function) -> Result<GrokFilter, GrokStaticError>
     if args_len == 1 {
         match &args.unwrap()[0] {
             FunctionArgument::Arg(Value::Bytes(ref bytes)) => {
-                delimiter = Some(String::from_utf8_lossy(bytes).to_string());
+                delimiter = Some(bytes.to_utf8_lossy());
             }
             FunctionArgument::Function(f) => value_filter = Some(GrokFilter::try_from(f)?),
             _ => return Err(GrokStaticError::InvalidFunctionArguments(f.name.clone())),
@@ -38,14 +37,14 @@ pub fn filter_from_function(f: &Function) -> Result<GrokFilter, GrokStaticError>
                 FunctionArgument::Arg(Value::Bytes(ref brackets_b)),
                 FunctionArgument::Arg(Value::Bytes(ref delimiter_b)),
             ) => {
-                brackets = Some(String::from_utf8_lossy(brackets_b).to_string());
-                delimiter = Some(String::from_utf8_lossy(delimiter_b).to_string());
+                brackets = Some(brackets_b.to_utf8_lossy());
+                delimiter = Some(delimiter_b.to_utf8_lossy());
             }
             (
                 FunctionArgument::Arg(Value::Bytes(ref delimiter_b)),
                 FunctionArgument::Function(f),
             ) => {
-                delimiter = Some(String::from_utf8_lossy(delimiter_b).to_string());
+                delimiter = Some(delimiter_b.to_utf8_lossy());
                 value_filter = Some(GrokFilter::try_from(f)?);
             }
             _ => return Err(GrokStaticError::InvalidFunctionArguments(f.name.clone())),
@@ -57,8 +56,8 @@ pub fn filter_from_function(f: &Function) -> Result<GrokFilter, GrokStaticError>
                 FunctionArgument::Arg(Value::Bytes(ref delimiter_b)),
                 FunctionArgument::Function(f),
             ) => {
-                brackets = Some(String::from_utf8_lossy(brackets_b).to_string());
-                delimiter = Some(String::from_utf8_lossy(delimiter_b).to_string());
+                brackets = Some(brackets_b.to_utf8_lossy());
+                delimiter = Some(delimiter_b.to_utf8_lossy());
                 value_filter = Some(GrokFilter::try_from(f)?);
             }
             _ => return Err(GrokStaticError::InvalidFunctionArguments(f.name.clone())),

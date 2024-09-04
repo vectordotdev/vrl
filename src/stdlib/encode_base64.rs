@@ -13,7 +13,7 @@ fn encode_base64(value: Value, padding: Option<Value>, charset: Option<Value>) -
     let charset = charset
         .map(VrlValueConvert::try_bytes)
         .transpose()?
-        .map(|c| Base64Charset::from_str(&String::from_utf8_lossy(&c)))
+        .map(|c| Base64Charset::from_str(&c.as_utf8_lossy()))
         .transpose()?
         .unwrap_or_default();
 
@@ -23,7 +23,7 @@ fn encode_base64(value: Value, padding: Option<Value>, charset: Option<Value>) -
             .with_encode_padding(padding),
     );
 
-    Ok(engine.encode(value).into())
+    Ok(engine.encode(value.as_bytes_slice()).into())
 }
 
 #[derive(Clone, Copy, Debug)]

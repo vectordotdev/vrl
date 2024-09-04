@@ -5,7 +5,7 @@ use super::util;
 
 fn parse_regex(value: Value, numeric_groups: bool, pattern: &Regex) -> Resolved {
     let bytes = value.try_bytes()?;
-    let value = String::from_utf8_lossy(&bytes);
+    let value = bytes.as_utf8_lossy();
     let parsed = pattern
         .captures(&value)
         .map(|capture| util::capture_regex_to_map(pattern, &capture, numeric_groups))

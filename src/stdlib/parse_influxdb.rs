@@ -93,7 +93,7 @@ impl From<Error> for ExpressionError {
 
 fn parse_influxdb(bytes: Value) -> Resolved {
     let bytes = bytes.try_bytes()?;
-    let line = String::from_utf8_lossy(&bytes);
+    let line = bytes.as_utf8_lossy();
     let parsed_line = influxdb_line_protocol::parse_lines(&line);
 
     let metrics = parsed_line

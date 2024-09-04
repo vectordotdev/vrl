@@ -1,6 +1,5 @@
 use crate::compiler::prelude::*;
 use crate::stdlib::string_utils::convert_to_string;
-use bytes::Bytes;
 
 fn uuid_from_friendly_id(value: Value) -> Resolved {
     let mut buf = [0; 36];

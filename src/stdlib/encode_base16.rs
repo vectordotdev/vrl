@@ -2,7 +2,7 @@ use crate::compiler::prelude::*;
 
 fn encode_base16(value: Value) -> Resolved {
     let value = value.try_bytes()?;
-    Ok(base16::encode_lower(&value).into())
+    Ok(base16::encode_lower(value.as_bytes_slice()).into())
 }
 
 #[derive(Clone, Copy, Debug)]

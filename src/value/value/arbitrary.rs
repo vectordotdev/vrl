@@ -1,9 +1,9 @@
-use bytes::Bytes;
 use chrono::{DateTime, NaiveDateTime, Utc};
 use ordered_float::NotNan;
 use quickcheck::{Arbitrary, Gen};
 
 use super::Value;
+use crate::value::Bytes;
 
 const MAX_ARRAY_SIZE: usize = 4;
 const MAX_MAP_SIZE: usize = 4;

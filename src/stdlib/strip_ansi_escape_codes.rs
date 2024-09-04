@@ -1,9 +1,8 @@
 use crate::compiler::prelude::*;
-use bytes::Bytes;
 
 fn strip_ansi_escape_codes(bytes: Value) -> Resolved {
     let bytes = bytes.try_bytes()?;
-    let stripped_bytes = Bytes::from(strip_ansi_escapes::strip(&bytes));
+    let stripped_bytes = Bytes::from(strip_ansi_escapes::strip(bytes.as_bytes_slice()));
     Ok(stripped_bytes.into())
 }
 

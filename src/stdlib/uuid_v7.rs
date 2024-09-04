@@ -1,5 +1,4 @@
 use crate::compiler::prelude::*;
-use bytes::Bytes;
 use chrono::{DateTime, Utc};
 use uuid::{timestamp::Timestamp, NoContext};
 
@@ -108,7 +107,7 @@ mod tests {
 
         match value {
             Value::Bytes(val) => {
-                let val = String::from_utf8_lossy(&val);
+                let val = val.as_utf8_lossy();
                 uuid::Uuid::parse_str(&val).expect("valid UUID V7");
             }
             _ => unreachable!(),

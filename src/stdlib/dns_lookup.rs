@@ -298,7 +298,7 @@ mod non_wasm {
     }
 
     fn parse_record_section(
-        section: RecordSection<'_, Bytes>,
+        section: RecordSection<'_, bytes::Bytes>,
     ) -> Result<Vec<ObjectMap>, ExpressionError> {
         let mut records = Vec::<ObjectMap>::new();
         for r in section {

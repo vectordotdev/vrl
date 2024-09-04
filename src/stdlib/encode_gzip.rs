@@ -1,7 +1,6 @@
 use std::io::Read;
 
 use flate2::read::GzEncoder;
-use nom::AsBytes;
 
 use crate::compiler::prelude::*;
 
@@ -22,7 +21,7 @@ fn encode_gzip(value: Value, compression_level: Option<Value>) -> Resolved {
     let value = value.try_bytes()?;
     let mut buf = Vec::new();
     // We can safely ignore the error here because the value being read from, `Bytes`, never fails a `read()` call and the value being written to, a `Vec`, never fails a `write()` call
-    GzEncoder::new(value.as_bytes(), compression_level)
+    GzEncoder::new(value.as_bytes_slice(), compression_level)
         .read_to_end(&mut buf)
         .expect("gzip compression failed, please report");
 
@@ -114,6 +113,7 @@ impl FunctionExpression for EncodeGzipFn {
 #[cfg(test)]
 mod test {
     use base64::Engine;
+    use nom::AsBytes;
 
     use crate::value;
 

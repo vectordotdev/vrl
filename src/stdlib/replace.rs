@@ -6,7 +6,7 @@ fn replace(value: Value, with_value: Value, count: Value, pattern: Value) -> Res
     let count = count.try_integer()?;
     match pattern {
         Value::Bytes(bytes) => {
-            let pattern = String::from_utf8_lossy(&bytes);
+            let pattern = bytes.as_utf8_lossy();
             let replaced = match count {
                 i if i > 0 => value.replacen(pattern.as_ref(), &with, i as usize),
                 i if i < 0 => value.replace(pattern.as_ref(), &with),

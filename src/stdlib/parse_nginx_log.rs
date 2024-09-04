@@ -13,10 +13,10 @@ fn parse_nginx_log(
 ) -> Resolved {
     let message = bytes.try_bytes_utf8_lossy()?;
     let timestamp_format = match timestamp_format {
-        None => time_format_for_format(format.as_ref()),
+        None => time_format_for_format(format.as_bytes_slice()),
         Some(timestamp_format) => timestamp_format.try_bytes_utf8_lossy()?.to_string(),
     };
-    let regex = regex_for_format(format.as_ref());
+    let regex = regex_for_format(format.as_bytes_slice());
     let captures = regex.captures(&message).ok_or("failed parsing log line")?;
     log_util::log_fields(regex, &captures, &timestamp_format, ctx.timezone())
         .map(rename_referrer)
@@ -149,7 +149,7 @@ impl FunctionExpression for ParseNginxLogFn {
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {
-        TypeDef::object(match self.format.as_ref() {
+        TypeDef::object(match self.format.as_bytes_slice() {
             b"combined" => kind_combined(),
             b"ingress_upstreaminfo" => kind_ingress_upstreaminfo(),
             b"error" => kind_error(),

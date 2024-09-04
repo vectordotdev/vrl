@@ -8,7 +8,7 @@ impl<'a> IntoLua<'a> for Value {
     #![allow(clippy::wrong_self_convention)] // this trait is defined by mlua
     fn into_lua(self, lua: &'a Lua) -> LuaResult<LuaValue<'_>> {
         match self {
-            Self::Bytes(b) => lua.create_string(b.as_ref()).map(LuaValue::String),
+            Self::Bytes(b) => lua.create_string(b.as_bytes_slice()).map(LuaValue::String),
             Self::Regex(regex) => lua
                 .create_string(regex.as_bytes_slice())
                 .map(LuaValue::String),

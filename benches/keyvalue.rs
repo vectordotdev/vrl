@@ -1,13 +1,12 @@
 use std::time::Duration;
 
-use bytes::Bytes;
 use criterion::{
     black_box, criterion_group, criterion_main, measurement::WallTime, BatchSize, BenchmarkGroup,
     Criterion, SamplingMode,
 };
 use regex::Regex;
 use vrl::datadog_grok::filters::keyvalue::{apply_filter, KeyValueFilter};
-use vrl::value::Value;
+use vrl::value::{Bytes, Value};
 
 fn apply_filter_bench(c: &mut Criterion) {
     let mut group: BenchmarkGroup<WallTime> =

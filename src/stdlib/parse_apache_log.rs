@@ -14,7 +14,7 @@ fn parse_apache_log(
         None => "%d/%b/%Y:%T %z".to_owned(),
         Some(timestamp_format) => timestamp_format.try_bytes_utf8_lossy()?.to_string(),
     };
-    let regexes = match format.as_ref() {
+    let regexes = match format.as_bytes_slice() {
         b"common" => &*log_util::REGEX_APACHE_COMMON_LOG,
         b"combined" => &*log_util::REGEX_APACHE_COMBINED_LOG,
         b"error" => &*log_util::REGEX_APACHE_ERROR_LOG,
@@ -26,7 +26,7 @@ fn parse_apache_log(
         &message,
         &timestamp_format,
         ctx.timezone(),
-        std::str::from_utf8(format.as_ref()).unwrap(),
+        format.as_utf8().unwrap(),
     )
     .map_err(Into::into)
 }
@@ -132,7 +132,7 @@ impl FunctionExpression for ParseApacheLogFn {
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {
-        TypeDef::object(match self.format.as_ref() {
+        TypeDef::object(match self.format.as_bytes_slice() {
             b"common" => kind_common(),
             b"combined" => kind_combined(),
             b"error" => kind_error(),

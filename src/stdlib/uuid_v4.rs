@@ -1,5 +1,4 @@
 use crate::compiler::prelude::*;
-use bytes::Bytes;
 
 fn uuid_v4() -> Value {
     let mut buf = [0; 36];
@@ -69,7 +68,7 @@ mod tests {
 
         match value {
             Value::Bytes(val) => {
-                let val = String::from_utf8_lossy(&val);
+                let val = val.as_utf8_lossy();
                 uuid::Uuid::parse_str(&val).expect("valid UUID V4");
             }
             _ => unreachable!(),

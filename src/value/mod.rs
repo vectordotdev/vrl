@@ -33,6 +33,7 @@
     unused_variables
 )]
 
+pub mod bytes;
 pub mod kind;
 pub mod secrets;
 
@@ -42,9 +43,9 @@ pub mod value;
 mod btreemap;
 mod keystring;
 
-pub use kind::Kind;
-
+pub use self::bytes::Bytes;
 pub use self::keystring::KeyString;
+pub use self::kind::Kind;
 pub use self::secrets::Secrets;
 pub use self::value::{ObjectMap, Value, ValueRegex};
 

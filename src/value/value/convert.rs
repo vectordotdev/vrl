@@ -1,14 +1,13 @@
 use std::borrow::Cow;
 use std::sync::Arc;
 
-use bytes::Bytes;
 use chrono::{DateTime, Utc};
 use ordered_float::NotNan;
 use regex::Regex;
 
 use crate::value::value::regex::ValueRegex;
 
-use super::super::{KeyString, Kind, ObjectMap, Value};
+use super::super::{Bytes, KeyString, Kind, ObjectMap, Value};
 
 impl Value {
     /// Returns self as `NotNan<f64>`, only if self is `Value::Float`.
@@ -130,8 +129,7 @@ impl Value {
 
     /// Returns self as `Cow<str>`, only if self is `Value::Bytes`
     pub fn as_str(&self) -> Option<Cow<'_, str>> {
-        self.as_bytes()
-            .map(|bytes| String::from_utf8_lossy(bytes.as_ref()))
+        self.as_bytes().map(|bytes| bytes.as_utf8_lossy())
     }
 
     /// Converts the Value into a byte representation regardless of its original type.
@@ -253,6 +251,12 @@ impl Value {
 impl From<Bytes> for Value {
     fn from(bytes: Bytes) -> Self {
         Self::Bytes(bytes)
+    }
+}
+
+impl From<bytes::Bytes> for Value {
+    fn from(bytes: bytes::Bytes) -> Self {
+        Self::Bytes(bytes.into())
     }
 }
 

@@ -5,7 +5,8 @@ use std::io::Read;
 fn decode_gzip(value: Value) -> Resolved {
     let value = value.try_bytes()?;
     let mut buf = Vec::new();
-    let result = MultiGzDecoder::new(std::io::Cursor::new(value)).read_to_end(&mut buf);
+    let result =
+        MultiGzDecoder::new(std::io::Cursor::new(value.as_bytes_slice())).read_to_end(&mut buf);
 
     match result {
         Ok(_) => Ok(Value::Bytes(buf.into())),

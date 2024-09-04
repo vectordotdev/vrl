@@ -1,6 +1,6 @@
 //! Contains the main "Value" type for Vector and VRL, as well as helper methods.
 
-use bytes::{Bytes, BytesMut};
+use bytes::BytesMut;
 use chrono::{DateTime, SecondsFormat, Utc};
 use ordered_float::NotNan;
 use std::collections::BTreeMap;
@@ -8,7 +8,7 @@ use std::collections::BTreeMap;
 pub use iter::{IterItem, ValueIter};
 
 pub use super::value::regex::ValueRegex;
-use super::KeyString;
+use super::{Bytes, KeyString};
 use crate::path::ValuePath;
 
 mod convert;
@@ -85,9 +85,9 @@ impl Value {
         match (self, incoming) {
             (Self::Bytes(self_bytes), Self::Bytes(ref incoming)) => {
                 let mut bytes = BytesMut::with_capacity(self_bytes.len() + incoming.len());
-                bytes.extend_from_slice(&self_bytes[..]);
-                bytes.extend_from_slice(&incoming[..]);
-                *self_bytes = bytes.freeze();
+                bytes.extend_from_slice(self_bytes.as_bytes_slice());
+                bytes.extend_from_slice(incoming.as_bytes_slice());
+                *self_bytes = bytes.freeze().into();
             }
             (current, incoming) => *current = incoming,
         }

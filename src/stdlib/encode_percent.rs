@@ -4,7 +4,7 @@ use percent_encoding::{utf8_percent_encode, AsciiSet};
 
 fn encode_percent(value: Value, ascii_set: &Bytes) -> Resolved {
     let string = value.try_bytes_utf8_lossy()?;
-    let ascii_set = match ascii_set.as_ref() {
+    let ascii_set = match ascii_set.as_bytes_slice() {
         b"NON_ALPHANUMERIC" => percent_encoding::NON_ALPHANUMERIC,
         b"CONTROLS" => percent_encoding::CONTROLS,
         b"FRAGMENT" => FRAGMENT,

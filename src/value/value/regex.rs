@@ -1,4 +1,3 @@
-use bytes::Bytes;
 use regex::Regex;
 use std::cmp::Ordering;
 use std::sync::Arc;
@@ -6,6 +5,8 @@ use std::{
     hash::{Hash, Hasher},
     ops::Deref,
 };
+
+use crate::value::Bytes;
 
 /// Wraps a `Regex` and provides several trait implementations, such as `PartialOrd`
 #[derive(Debug, Clone)]
@@ -21,7 +22,7 @@ impl ValueRegex {
     /// Returns a `Bytes` of the string representation of the regex
     #[must_use]
     pub fn as_bytes(&self) -> Bytes {
-        bytes::Bytes::copy_from_slice(self.as_bytes_slice())
+        Bytes::copy_from_slice(self.as_bytes_slice())
     }
 
     /// Returns a byte array of the string representation of the regex

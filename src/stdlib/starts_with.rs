@@ -19,12 +19,13 @@ impl<'a> Iterator for Chars<'a> {
             return None;
         }
 
-        let width = utf8_width::get_width(self.bytes[self.pos]);
+        let bytes = self.bytes.as_bytes_slice();
+        let width = utf8_width::get_width(bytes[self.pos]);
         if width == 1 {
             self.pos += 1;
-            Some(Ok(self.bytes[self.pos - 1] as char))
+            Some(Ok(bytes[self.pos - 1] as char))
         } else {
-            let c = std::str::from_utf8(&self.bytes[self.pos..self.pos + width]);
+            let c = std::str::from_utf8(&bytes[self.pos..self.pos + width]);
             match c {
                 Ok(chr) => {
                     self.pos += width;
@@ -32,7 +33,7 @@ impl<'a> Iterator for Chars<'a> {
                 }
                 Err(_) => {
                     self.pos += 1;
-                    Some(Err(self.bytes[self.pos]))
+                    Some(Err(bytes[self.pos]))
                 }
             }
         }
@@ -50,7 +51,7 @@ fn starts_with(bytes: &Bytes, starts: &Bytes, case: Case) -> bool {
     }
 
     match case {
-        Case::Sensitive => starts[..] == bytes[0..starts.len()],
+        Case::Sensitive => starts.as_bytes_slice()[..] == bytes.as_bytes_slice()[0..starts.len()],
         Case::Insensitive => {
             return Chars::new(starts)
                 .zip(Chars::new(bytes))

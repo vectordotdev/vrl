@@ -67,7 +67,7 @@ pub(crate) fn regex_kind(
 pub(crate) fn is_nullish(value: &crate::value::Value) -> bool {
     match value {
         crate::value::Value::Bytes(v) => {
-            let s = &String::from_utf8_lossy(v)[..];
+            let s = &v.as_utf8_lossy()[..];
 
             match s {
                 "-" => true,

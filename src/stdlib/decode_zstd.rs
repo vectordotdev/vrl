@@ -1,9 +1,8 @@
 use crate::compiler::prelude::*;
-use nom::AsBytes;
 
 fn decode_zstd(value: Value) -> Resolved {
     let value = value.try_bytes()?;
-    let result = zstd::decode_all(value.as_bytes());
+    let result = zstd::decode_all(value.as_bytes_slice());
 
     match result {
         Ok(decoded_bytes) => Ok(Value::Bytes(decoded_bytes.into())),

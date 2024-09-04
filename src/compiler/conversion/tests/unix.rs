@@ -1,4 +1,3 @@
-use bytes::Bytes;
 use chrono::{DateTime, Utc};
 use chrono_tz::{Australia, Tz};
 use ordered_float::NotNan;
@@ -7,6 +6,7 @@ use crate::compiler::{
     conversion::{parse_timestamp, tests::StubValue, Conversion, Error},
     datetime::TimeZone,
 };
+use crate::value::Bytes;
 
 const TIMEZONE_NAME: &str = "Australia/Brisbane";
 const TIMEZONE: Tz = Australia::Brisbane;

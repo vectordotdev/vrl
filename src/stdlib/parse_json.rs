@@ -14,7 +14,7 @@ fn parse_json(value: Value, lossy: Option<Value>) -> Resolved {
     } else {
         value.try_bytes()?
     };
-    let value = serde_json::from_slice::<'_, Value>(&bytes)
+    let value = serde_json::from_slice::<'_, Value>(bytes.as_bytes_slice())
         .map_err(|e| format!("unable to parse json: {e}"))?;
     Ok(value)
 }
@@ -30,7 +30,7 @@ fn parse_json_with_depth(value: Value, max_depth: Value, lossy: Option<Value>) -
         value.try_bytes()?
     };
 
-    let raw_value = serde_json::from_slice::<'_, &RawValue>(&bytes)
+    let raw_value = serde_json::from_slice::<'_, &RawValue>(bytes.as_bytes_slice())
         .map_err(|e| format!("unable to read json: {e}"))?;
 
     let res = parse_layer(raw_value, parsed_depth)

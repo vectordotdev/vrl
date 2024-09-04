@@ -165,7 +165,7 @@ impl Filter<Value> for VrlFilter {
                 resolve_value(
                     buf,
                     Run::boxed(move |value| match value {
-                        Value::Bytes(val) => re.is_match(&String::from_utf8_lossy(val)),
+                        Value::Bytes(val) => re.is_match(&val.as_utf8_lossy()),
                         _ => false,
                     }),
                 )
@@ -426,7 +426,7 @@ fn lookup_field(field: &Field) -> OwnedValuePath {
 /// instead of the raw control characters.
 fn string_value(value: &Value) -> Cow<str> {
     match value {
-        Value::Bytes(val) => String::from_utf8_lossy(val),
+        Value::Bytes(val) => val.as_utf8_lossy(),
         _ => Cow::from(value.to_string()),
     }
 }

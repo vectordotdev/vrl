@@ -14,12 +14,10 @@ fn convert_value_raw(
     let kind_str = value.kind_str().to_owned();
     match (value, kind) {
         (Value::Boolean(b), Kind::Bool) => Ok(prost_reflect::Value::Bool(b)),
-        (Value::Bytes(b), Kind::Bytes) => Ok(prost_reflect::Value::Bytes(b)),
-        (Value::Bytes(b), Kind::String) => Ok(prost_reflect::Value::String(
-            String::from_utf8_lossy(&b).into_owned(),
-        )),
+        (Value::Bytes(b), Kind::Bytes) => Ok(prost_reflect::Value::Bytes(b.to_bytes())),
+        (Value::Bytes(b), Kind::String) => Ok(prost_reflect::Value::String(b.to_utf8_lossy())),
         (Value::Bytes(b), Kind::Enum(descriptor)) => {
-            let string = String::from_utf8_lossy(&b).into_owned();
+            let string = b.to_utf8_lossy();
             if let Some(d) = descriptor
                 .values()
                 .find(|v| v.name().eq_ignore_ascii_case(&string))
@@ -70,7 +68,7 @@ fn convert_value_raw(
             }
         }
         (Value::Regex(r), Kind::String) => Ok(prost_reflect::Value::String(r.as_str().to_owned())),
-        (Value::Regex(r), Kind::Bytes) => Ok(prost_reflect::Value::Bytes(r.as_bytes())),
+        (Value::Regex(r), Kind::Bytes) => Ok(prost_reflect::Value::Bytes(r.as_bytes().to_bytes())),
         (Value::Timestamp(t), Kind::Int64) => Ok(prost_reflect::Value::I64(t.timestamp_micros())),
         (Value::Timestamp(t), Kind::Message(descriptor))
             if descriptor.full_name() == "google.protobuf.Timestamp" =>
@@ -146,17 +144,18 @@ pub(crate) fn encode_proto(descriptor: &MessageDescriptor, value: Value) -> Reso
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::protobuf::get_message_descriptor;
-    use crate::protobuf::parse_proto;
-    use crate::value;
-    use bytes::Bytes;
     use chrono::DateTime;
     use ordered_float::NotNan;
     use prost_reflect::MapKey;
     use std::collections::{BTreeMap, HashMap};
     use std::path::PathBuf;
     use std::{env, fs};
+
+    use super::*;
+    use crate::protobuf::get_message_descriptor;
+    use crate::protobuf::parse_proto;
+    use crate::value;
+    use crate::value::Bytes;
 
     fn test_data_dir() -> PathBuf {
         PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap()).join("tests/data/protobuf")
@@ -217,7 +216,10 @@ mod tests {
         )
         .unwrap();
         assert_eq!(Some("vector"), mfield!(message, "text").as_str());
-        assert_eq!(Some(&bytes), mfield!(message, "binary").as_bytes());
+        assert_eq!(
+            Some(&bytes.to_bytes()),
+            mfield!(message, "binary").as_bytes()
+        );
     }
 
     #[test]

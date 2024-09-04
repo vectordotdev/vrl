@@ -96,7 +96,7 @@ mod implementation {
     pub(super) fn log(rate_limit_secs: Value, level: &Bytes, value: Value, span: Span) -> Resolved {
         let rate_limit_secs = rate_limit_secs.try_integer()?;
         let res = value.to_string_lossy();
-        match level.as_ref() {
+        match level.as_bytes_slice() {
             b"trace" => {
                 trace!(message = %res, internal_log_rate_secs = rate_limit_secs, vrl_position = span.start())
             }

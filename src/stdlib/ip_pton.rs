@@ -1,6 +1,6 @@
-use crate::compiler::prelude::*;
-use bytes::Bytes;
 use std::net::IpAddr;
+
+use crate::compiler::prelude::*;
 
 fn ip_pton(value: Value) -> Resolved {
     let ip: IpAddr = value

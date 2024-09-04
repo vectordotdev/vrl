@@ -8,9 +8,7 @@ fn remove(path: Value, compact: Value, mut value: Value) -> Resolved {
 
             for segment in path {
                 let segment = match segment {
-                    Value::Bytes(field) => {
-                        OwnedSegment::Field(String::from_utf8_lossy(&field).into())
-                    }
+                    Value::Bytes(field) => OwnedSegment::Field(field.into_utf8_lossy().into()),
                     Value::Integer(index) => OwnedSegment::Index(index as isize),
                     value => {
                         return Err(format!(

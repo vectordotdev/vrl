@@ -8,9 +8,7 @@ fn get(value: Value, value_path: Value) -> Resolved {
 
             for segment in array {
                 let segment = match segment {
-                    Value::Bytes(field) => {
-                        OwnedSegment::field(String::from_utf8_lossy(&field).as_ref())
-                    }
+                    Value::Bytes(field) => OwnedSegment::field(&field.as_utf8_lossy()),
                     Value::Integer(index) => OwnedSegment::index(index as isize),
                     value => {
                         return Err(format!(

@@ -8,7 +8,7 @@ fn decode_base64(charset: Option<Value>, value: Value) -> Resolved {
     let charset = charset
         .map(Value::try_bytes)
         .transpose()?
-        .map(|c| Base64Charset::from_str(&String::from_utf8_lossy(&c)))
+        .map(|c| Base64Charset::from_str(&c.as_utf8_lossy()))
         .transpose()?
         .unwrap_or_default();
     let alphabet = match charset {
@@ -20,7 +20,7 @@ fn decode_base64(charset: Option<Value>, value: Value) -> Resolved {
         .with_decode_padding_mode(base64::engine::DecodePaddingMode::Indifferent);
     let engine = base64::engine::GeneralPurpose::new(&alphabet, config);
 
-    match engine.decode(value) {
+    match engine.decode(value.as_bytes_slice()) {
         Ok(s) => Ok(Value::from(Bytes::from(s))),
         Err(_) => Err("unable to decode value to base64".into()),
     }

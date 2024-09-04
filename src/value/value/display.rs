@@ -10,7 +10,7 @@ impl fmt::Display for Value {
             Self::Bytes(val) => write!(
                 f,
                 r#""{}""#,
-                String::from_utf8_lossy(val)
+                val.as_utf8_lossy()
                     .replace('\\', r"\\")
                     .replace('"', r#"\""#)
                     .replace('\n', r"\n")
@@ -45,13 +45,13 @@ impl fmt::Display for Value {
 
 #[cfg(test)]
 mod test {
-    use bytes::Bytes;
     use chrono::DateTime;
     use indoc::indoc;
     use ordered_float::NotNan;
     use regex::Regex;
 
     use super::Value;
+    use crate::value::Bytes;
 
     #[test]
     fn test_display_string() {

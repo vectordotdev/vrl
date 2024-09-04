@@ -1,8 +1,6 @@
 use std::collections::BTreeMap;
 use std::fmt::Formatter;
 
-use crate::value::Value;
-use bytes::Bytes;
 use nom::{
     self,
     branch::alt,
@@ -24,6 +22,7 @@ use super::super::{
     parse_grok::Error as GrokRuntimeError,
     parse_grok_rules::Error as GrokStaticError,
 };
+use crate::value::{Bytes, Value};
 
 static DEFAULT_FILTER_RE: Lazy<regex::Regex> = Lazy::new(|| Regex::new(r"^[\w.\-_@]*").unwrap());
 
@@ -33,9 +32,7 @@ pub fn filter_from_function(f: &Function) -> Result<GrokFilter, GrokStaticError>
 
         let key_value_delimiter = if args_len > 0 {
             match f.args.as_ref().unwrap()[0] {
-                FunctionArgument::Arg(Value::Bytes(ref bytes)) => {
-                    String::from_utf8_lossy(bytes).to_string()
-                }
+                FunctionArgument::Arg(Value::Bytes(ref bytes)) => bytes.to_utf8_lossy(),
                 _ => return Err(GrokStaticError::InvalidFunctionArguments(f.name.clone())),
             }
         } else {
@@ -47,7 +44,7 @@ pub fn filter_from_function(f: &Function) -> Result<GrokFilter, GrokStaticError>
                 FunctionArgument::Arg(Value::Bytes(ref bytes)) => {
                     let mut re_str = String::new();
                     re_str.push_str(r"^[\w.\-_@");
-                    re_str.push_str(&String::from_utf8_lossy(bytes));
+                    re_str.push_str(&bytes.as_utf8_lossy());
                     re_str.push_str("]+");
                     Regex::new(re_str.as_str())
                         .map_err(|_e| GrokStaticError::InvalidFunctionArguments(f.name.clone()))?
@@ -62,7 +59,7 @@ pub fn filter_from_function(f: &Function) -> Result<GrokFilter, GrokStaticError>
         let quotes = if args_len > 2 {
             match f.args.as_ref().unwrap()[2] {
                 FunctionArgument::Arg(Value::Bytes(ref bytes)) => {
-                    let quotes = String::from_utf8_lossy(bytes);
+                    let quotes = bytes.as_utf8_lossy();
                     if quotes.len() == 2 {
                         let mut chars = quotes.chars();
                         vec![(
@@ -86,7 +83,7 @@ pub fn filter_from_function(f: &Function) -> Result<GrokFilter, GrokStaticError>
         let field_delimiters = if args_len > 3 {
             match f.args.as_ref().unwrap()[3] {
                 FunctionArgument::Arg(Value::Bytes(ref bytes)) => {
-                    vec![String::from_utf8_lossy(bytes).to_string()]
+                    vec![bytes.to_utf8_lossy()]
                 }
                 _ => return Err(GrokStaticError::InvalidFunctionArguments(f.name.clone())),
             }
@@ -126,7 +123,7 @@ pub fn apply_filter(value: &Value, filter: &KeyValueFilter) -> Result<Value, Gro
         Value::Bytes(bytes) => {
             let mut result = Value::Object(BTreeMap::default());
             parse(
-                String::from_utf8_lossy(bytes).as_ref(),
+                bytes.as_utf8_lossy().as_ref(),
                 &filter.key_value_delimiter,
                 &filter
                     .field_delimiters

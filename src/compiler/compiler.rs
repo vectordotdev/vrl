@@ -188,7 +188,8 @@ impl<'a> Compiler<'a> {
 
     fn compile_literal(&mut self, node: Node<ast::Literal>, state: &mut TypeState) -> Option<Expr> {
         use ast::Literal::{Boolean, Float, Integer, Null, RawString, Regex, String, Timestamp};
-        use bytes::Bytes;
+
+        use crate::value::Bytes;
 
         let (span, lit) = node.take();
 

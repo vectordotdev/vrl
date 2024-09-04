@@ -3,7 +3,7 @@ use regex::bytes::RegexSet;
 
 fn match_any(value: Value, pattern: &RegexSet) -> Resolved {
     let bytes = value.try_bytes()?;
-    Ok(pattern.is_match(&bytes).into())
+    Ok(pattern.is_match(bytes.as_bytes_slice()).into())
 }
 
 #[derive(Clone, Copy, Debug)]

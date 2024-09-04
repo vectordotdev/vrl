@@ -3,7 +3,7 @@ use percent_encoding::percent_decode;
 
 fn decode_percent(value: Value) -> Resolved {
     let value = value.try_bytes()?;
-    Ok(percent_decode(&value)
+    Ok(percent_decode(value.as_bytes_slice())
         .decode_utf8_lossy()
         .to_string()
         .into())

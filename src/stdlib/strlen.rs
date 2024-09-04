@@ -3,7 +3,7 @@ use crate::compiler::prelude::*;
 fn strlen(value: Value) -> Resolved {
     let v = value.try_bytes()?;
 
-    Ok(String::from_utf8_lossy(&v).chars().count().into())
+    Ok(v.as_utf8_lossy().chars().count().into())
 }
 
 #[derive(Clone, Copy, Debug)]

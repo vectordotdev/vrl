@@ -26,7 +26,7 @@ pub(crate) fn get_key_bytes<const N: usize>(key: Value) -> ExpressionResult<[u8;
     }
 
     // This cannot fail since the length was already checked
-    Ok(bytes.as_ref().try_into().unwrap())
+    Ok(bytes.as_bytes_slice().try_into().unwrap())
 }
 
 pub(crate) fn get_iv_bytes<const N: usize>(iv: Value) -> ExpressionResult<[u8; N]> {
@@ -41,7 +41,7 @@ pub(crate) fn get_iv_bytes<const N: usize>(iv: Value) -> ExpressionResult<[u8; N
     }
 
     // This cannot fail since the length was already checked
-    Ok(bytes.as_ref().try_into().unwrap())
+    Ok(bytes.as_bytes_slice().try_into().unwrap())
 }
 
 macro_rules! encrypt {
@@ -51,7 +51,7 @@ macro_rules! encrypt {
             &GenericArray::from(get_key_bytes($key)?),
             &GenericArray::from(get_iv_bytes($iv)?),
         )
-        .encrypt_b2b($plaintext.as_ref(), buffer.as_mut())
+        .encrypt_b2b($plaintext.as_bytes_slice(), buffer.as_mut())
         .expect("key/iv sizes were already checked");
         buffer
     }};
@@ -63,7 +63,7 @@ macro_rules! encrypt_padded {
             &GenericArray::from(get_key_bytes($key)?),
             &GenericArray::from(get_iv_bytes($iv)?),
         )
-        .encrypt_padded_vec_mut::<$padding>($plaintext.as_ref())
+        .encrypt_padded_vec_mut::<$padding>($plaintext.as_bytes_slice())
     }};
 }
 
@@ -74,7 +74,7 @@ macro_rules! encrypt_keystream {
             &GenericArray::from(get_key_bytes($key)?),
             &GenericArray::from(get_iv_bytes($iv)?),
         )
-        .apply_keystream_b2b($plaintext.as_ref(), buffer.as_mut())
+        .apply_keystream_b2b($plaintext.as_bytes_slice(), buffer.as_mut())
         .expect("key/iv sizes were already checked");
         buffer
     }};
@@ -83,7 +83,10 @@ macro_rules! encrypt_keystream {
 macro_rules! encrypt_stream {
     ($algorithm:ty, $plaintext:expr, $key:expr, $iv:expr) => {{
         <$algorithm>::new(&GenericArray::from(get_key_bytes($key)?))
-            .encrypt(&GenericArray::from(get_iv_bytes($iv)?), $plaintext.as_ref())
+            .encrypt(
+                &GenericArray::from(get_iv_bytes($iv)?),
+                $plaintext.as_bytes_slice(),
+            )
             .expect("key/iv sizes were already checked")
     }};
 }

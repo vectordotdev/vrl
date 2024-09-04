@@ -6,10 +6,10 @@ use std::{collections::HashMap, str::FromStr};
 
 fn parse_duration(bytes: Value, unit: Value) -> Resolved {
     let bytes = bytes.try_bytes()?;
-    let value = String::from_utf8_lossy(&bytes);
+    let value = bytes.as_utf8_lossy();
     let conversion_factor = {
         let bytes = unit.try_bytes()?;
-        let string = String::from_utf8_lossy(&bytes);
+        let string = bytes.as_utf8_lossy();
 
         UNITS
             .get(string.as_ref())

@@ -4,7 +4,7 @@ use snap::raw::Decoder;
 fn decode_snappy(value: Value) -> Resolved {
     let value = value.try_bytes()?;
     let mut decoder = Decoder::new();
-    let result = decoder.decompress_vec(&value);
+    let result = decoder.decompress_vec(value.as_bytes_slice());
 
     match result {
         Ok(buf) => Ok(Value::Bytes(buf.into())),

@@ -24,7 +24,7 @@ macro_rules! decrypt {
             &GenericArray::from(get_key_bytes($key)?),
             &GenericArray::from(get_iv_bytes($iv)?),
         )
-        .decrypt_b2b($ciphertext.as_ref(), buffer.as_mut())
+        .decrypt_b2b($ciphertext.as_bytes_slice(), buffer.as_mut())
         .unwrap();
         buffer
     }};
@@ -36,7 +36,7 @@ macro_rules! decrypt_padded {
             &GenericArray::from(get_key_bytes($key)?),
             &GenericArray::from(get_iv_bytes($iv)?),
         )
-        .decrypt_padded_vec_mut::<$padding>($ciphertext.as_ref())
+        .decrypt_padded_vec_mut::<$padding>($ciphertext.as_bytes_slice())
         .map_err(|_| format!("Invalid input"))?
     }};
 }
@@ -48,7 +48,7 @@ macro_rules! decrypt_keystream {
             &GenericArray::from(get_key_bytes($key)?),
             &GenericArray::from(get_iv_bytes($iv)?),
         )
-        .apply_keystream_b2b($ciphertext.as_ref(), buffer.as_mut())
+        .apply_keystream_b2b($ciphertext.as_bytes_slice(), buffer.as_mut())
         .unwrap();
         buffer
     }};
@@ -57,7 +57,10 @@ macro_rules! decrypt_keystream {
 macro_rules! decrypt_stream {
     ($algorithm:ty, $plaintext:expr, $key:expr, $iv:expr) => {{
         <$algorithm>::new(&GenericArray::from(get_key_bytes($key)?))
-            .decrypt(&GenericArray::from(get_iv_bytes($iv)?), $plaintext.as_ref())
+            .decrypt(
+                &GenericArray::from(get_iv_bytes($iv)?),
+                $plaintext.as_bytes_slice(),
+            )
             .expect("key/iv sizes were already checked")
     }};
 }

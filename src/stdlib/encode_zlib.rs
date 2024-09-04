@@ -1,7 +1,6 @@
 use std::io::Read;
 
 use flate2::read::ZlibEncoder;
-use nom::AsBytes;
 
 use crate::compiler::prelude::*;
 
@@ -23,7 +22,7 @@ fn encode_zlib(value: Value, compression_level: Option<Value>) -> Resolved {
     let mut buf = Vec::new();
 
     // We can safely ignore the error here because the value being read from, `Bytes`, never fails a `read()` call and the value being written to, a `Vec`, never fails a `write()` call
-    ZlibEncoder::new(value.as_bytes(), compression_level)
+    ZlibEncoder::new(value.as_bytes_slice(), compression_level)
         .read_to_end(&mut buf)
         .expect("zlib compression failed, please report");
 
@@ -115,6 +114,7 @@ impl FunctionExpression for EncodeZlibFn {
 #[cfg(test)]
 mod test {
     use base64::Engine;
+    use nom::AsBytes;
 
     use crate::value;
 

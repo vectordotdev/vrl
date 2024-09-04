@@ -96,7 +96,7 @@ pub fn proto_to_value(
 pub(crate) fn parse_proto(descriptor: &MessageDescriptor, value: Value) -> Resolved {
     let bytes = value.try_bytes()?;
 
-    let dynamic_message = DynamicMessage::decode(descriptor.clone(), bytes)
+    let dynamic_message = DynamicMessage::decode(descriptor.clone(), bytes.as_bytes_slice())
         .map_err(|error| format!("Error parsing protobuf: {:?}", error))?;
     Ok(proto_to_value(
         &prost_reflect::Value::Message(dynamic_message),

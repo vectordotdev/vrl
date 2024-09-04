@@ -7,8 +7,8 @@ use sha_2::{Sha224, Sha256, Sha384, Sha512};
 macro_rules! hmac {
     ($algorithm:ty, $key:expr, $val:expr) => {{
         let mut mac =
-            <HmacHasher<$algorithm>>::new_from_slice($key.as_ref()).expect("key is bytes");
-        mac.update($val.as_ref());
+            <HmacHasher<$algorithm>>::new_from_slice($key.as_bytes_slice()).expect("key is bytes");
+        mac.update($val.as_bytes_slice());
         let result = mac.finalize();
         let code_bytes = result.into_bytes();
         code_bytes.to_vec()

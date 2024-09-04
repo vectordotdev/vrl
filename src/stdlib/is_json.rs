@@ -3,8 +3,9 @@ use crate::value;
 
 fn is_json(value: Value) -> Resolved {
     let bytes = value.try_bytes()?;
+    let bytes = bytes.as_bytes_slice();
 
-    match serde_json::from_slice::<'_, serde::de::IgnoredAny>(&bytes) {
+    match serde_json::from_slice::<'_, serde::de::IgnoredAny>(bytes) {
         Ok(_) => Ok(value!(true)),
         Err(_) => Ok(value!(false)),
     }
@@ -12,18 +13,20 @@ fn is_json(value: Value) -> Resolved {
 
 fn is_json_with_variant(value: Value, variant: &Bytes) -> Resolved {
     let bytes = value.try_bytes()?;
+    let bytes = bytes.as_bytes_slice();
+    let variant = variant.as_bytes_slice();
 
-    if serde_json::from_slice::<'_, serde::de::IgnoredAny>(&bytes).is_ok() {
+    if serde_json::from_slice::<'_, serde::de::IgnoredAny>(bytes).is_ok() {
         for c in bytes {
             return match c {
                 // Search for the first non whitespace char
                 b' ' | b'\n' | b'\t' | b'\r' => continue,
-                b'{' => Ok(value!(variant.as_ref() == b"object")),
-                b'[' => Ok(value!(variant.as_ref() == b"array")),
-                b't' | b'f' => Ok(value!(variant.as_ref() == b"bool")),
-                b'-' | b'0'..=b'9' => Ok(value!(variant.as_ref() == b"number")),
-                b'"' => Ok(value!(variant.as_ref() == b"string")),
-                b'n' => Ok(value!(variant.as_ref() == b"null")),
+                b'{' => Ok(value!(variant == b"object")),
+                b'[' => Ok(value!(variant == b"array")),
+                b't' | b'f' => Ok(value!(variant == b"bool")),
+                b'-' | b'0'..=b'9' => Ok(value!(variant == b"number")),
+                b'"' => Ok(value!(variant == b"string")),
+                b'n' => Ok(value!(variant == b"null")),
                 _ => break,
             };
         }

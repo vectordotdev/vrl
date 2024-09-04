@@ -1,5 +1,4 @@
 use crate::compiler::prelude::*;
-use nom::AsBytes;
 
 fn encode_zstd(value: Value, compression_level: Option<Value>) -> Resolved {
     let compression_level = match compression_level {
@@ -9,7 +8,7 @@ fn encode_zstd(value: Value, compression_level: Option<Value>) -> Resolved {
 
     let value = value.try_bytes()?;
     // Zstd encoding will not fail in the case of using `encode_all` function
-    let encoded_bytes = zstd::encode_all(value.as_bytes(), compression_level)
+    let encoded_bytes = zstd::encode_all(value.as_bytes_slice(), compression_level)
         .expect("zstd compression failed, please report");
 
     Ok(Value::Bytes(encoded_bytes.into()))

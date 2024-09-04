@@ -3,7 +3,8 @@ use ::sha1::Digest;
 
 fn sha1(value: Value) -> Resolved {
     let value = value.try_bytes()?;
-    Ok(hex::encode(sha1::Sha1::digest(&value)).into())
+    let value = value.as_bytes_slice();
+    Ok(hex::encode(sha1::Sha1::digest(value)).into())
 }
 
 #[derive(Clone, Copy, Debug)]

@@ -3,10 +3,10 @@ use std::collections::BTreeMap;
 
 fn parse_aws_vpc_flow_log(value: Value, format: Option<Value>) -> Resolved {
     let bytes = value.try_bytes()?;
-    let input = String::from_utf8_lossy(&bytes);
+    let input = bytes.as_utf8_lossy();
     if let Some(expr) = format {
         let bytes = expr.try_bytes()?;
-        parse_log(&input, Some(&String::from_utf8_lossy(&bytes)))
+        parse_log(&input, Some(&bytes.as_utf8_lossy()))
     } else {
         parse_log(&input, None)
     }

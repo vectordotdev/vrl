@@ -1,6 +1,5 @@
 pub use std::fmt;
 
-pub use bytes::Bytes;
 pub use indoc::indoc;
 pub use ordered_float::NotNan;
 
@@ -11,7 +10,7 @@ pub use crate::value::{
     kind::{Collection, Field, Index},
     value,
     value::IterItem,
-    KeyString, Kind, ObjectMap, Value, ValueRegex,
+    Bytes, KeyString, Kind, ObjectMap, Value, ValueRegex,
 };
 
 pub use super::Resolved;

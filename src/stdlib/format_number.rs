@@ -58,8 +58,8 @@ fn format_number(
         None => {}
     }
     // Manipulate integral part based on configuration.
-    if let Some(sep) = grouping_separator.as_deref() {
-        let sep = String::from_utf8_lossy(sep);
+    if let Some(sep) = grouping_separator.as_ref() {
+        let sep = sep.as_utf8_lossy();
         let start = parts[0].len() % 3;
 
         let positions: Vec<usize> = parts[0]
@@ -75,9 +75,7 @@ fn format_number(
         }
     }
     // Join results, using configured decimal separator.
-    Ok(parts
-        .join(&String::from_utf8_lossy(&decimal_separator[..]))
-        .into())
+    Ok(parts.join(&decimal_separator.as_utf8_lossy()).into())
 }
 
 #[derive(Clone, Copy, Debug)]

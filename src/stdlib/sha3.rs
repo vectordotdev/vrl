@@ -4,11 +4,12 @@ use sha_3::{Digest, Sha3_224, Sha3_256, Sha3_384, Sha3_512};
 
 fn sha3(value: Value, variant: &Bytes) -> Resolved {
     let value = value.try_bytes()?;
-    let hash = match variant.as_ref() {
-        b"SHA3-224" => encode::<Sha3_224>(&value),
-        b"SHA3-256" => encode::<Sha3_256>(&value),
-        b"SHA3-384" => encode::<Sha3_384>(&value),
-        b"SHA3-512" => encode::<Sha3_512>(&value),
+    let value = value.as_bytes_slice();
+    let hash = match variant.as_bytes_slice() {
+        b"SHA3-224" => encode::<Sha3_224>(value),
+        b"SHA3-256" => encode::<Sha3_256>(value),
+        b"SHA3-384" => encode::<Sha3_384>(value),
+        b"SHA3-512" => encode::<Sha3_512>(value),
         _ => unreachable!("enum invariant"),
     };
     Ok(hash.into())

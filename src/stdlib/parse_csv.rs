@@ -4,6 +4,7 @@ use csv::ReaderBuilder;
 fn parse_csv(csv_string: Value, delimiter: Value) -> Resolved {
     let csv_string = csv_string.try_bytes()?;
     let delimiter = delimiter.try_bytes()?;
+    let delimiter = delimiter.as_bytes_slice();
     if delimiter.len() != 1 {
         return Err("delimiter must be a single character".into());
     }
@@ -11,7 +12,7 @@ fn parse_csv(csv_string: Value, delimiter: Value) -> Resolved {
     let reader = ReaderBuilder::new()
         .has_headers(false)
         .delimiter(delimiter)
-        .from_reader(&*csv_string);
+        .from_reader(csv_string.as_bytes_slice());
     reader
         .into_byte_records()
         .next()

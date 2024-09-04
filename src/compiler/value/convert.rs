@@ -1,7 +1,6 @@
 use std::borrow::Cow;
 
 use crate::value::{kind::Collection, Value, ValueRegex};
-use bytes::Bytes;
 use chrono::{DateTime, Utc};
 
 use crate::compiler::{
@@ -9,6 +8,7 @@ use crate::compiler::{
     value::{Kind, ObjectMap, ValueError},
     Expression,
 };
+use crate::value::Bytes;
 
 pub trait VrlValueConvert: Sized {
     /// Convert a given [`Value`] into a [`Expression`] trait object.
@@ -84,7 +84,7 @@ impl VrlValueConvert for Value {
 
     fn try_bytes_utf8_lossy(&self) -> Result<Cow<'_, str>, ValueError> {
         match self.as_bytes() {
-            Some(bytes) => Ok(String::from_utf8_lossy(bytes)),
+            Some(bytes) => Ok(bytes.as_utf8_lossy()),
             None => Err(ValueError::Expected {
                 got: self.kind(),
                 expected: Kind::bytes(),
