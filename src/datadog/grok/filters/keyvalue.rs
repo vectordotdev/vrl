@@ -258,14 +258,16 @@ fn quoted(quotes: &[(char, char)]) -> impl Fn(&str) -> SResult<&str> + '_ {
 #[inline]
 fn parse_value<'a>(input: &'a str, quotes: &'a[(char, char)]) -> SResult<'a, Value> {
     alt((
-        map(quoted(quotes), |value| {
-            Value::Bytes(Bytes::copy_from_slice(value.as_bytes()))
-        }),
         parse_null,
         parse_boolean,
         parse_number,
-        rest.map(Value::from),
+        quoted(quotes).and_then(alt((parse_number, parse_string))),
+        parse_string,
     ))(input)
+}
+
+fn parse_string(input: &str) -> SResult<Value> {
+    map(rest, |s: &str| Value::Bytes(Bytes::copy_from_slice(s.trim().as_bytes())))(input)
 }
 
 fn parse_number(input: &str) -> SResult<Value> {
@@ -329,10 +331,17 @@ mod tests {
             Ok(("", Value::from("value"))),
             parse_value("value", DEFAULT_QUOTES)
         );
+        // trim whitespaces
+        assert_eq!(
+            Ok(("", Value::from("value"))),
+            parse_value(" value ", DEFAULT_QUOTES)
+        );
+        // remove quotes
         assert_eq!(
             Ok(("", Value::from("value"))),
             parse_value(r#""value""#, DEFAULT_QUOTES)
         );
+        // remove non-default quotes
         assert_eq!(
             Ok(("", Value::from("value"))),
             parse_value(r#"#value#"#, &[('#', '#')])

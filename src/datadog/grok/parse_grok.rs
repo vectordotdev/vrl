@@ -967,11 +967,20 @@ mod tests {
                     "server" => "localhost",
                 })),
             ),
+            // append values with the same key
             (
                 r#"%{data::keyvalue}"#,
                 r#"a=1, a=1, a=2"#,
                 Ok(Value::from(btreemap! {
                     "a" => vec![1, 1, 2]
+                })),
+            ),
+            // trim string values
+            (
+                r#"%{data::keyvalue("="," ")}"#,
+                r#"a= foo"#,
+                Ok(Value::from(btreemap! {
+                    "a" => "foo"
                 })),
             ),
         ]);
