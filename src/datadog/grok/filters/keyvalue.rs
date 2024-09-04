@@ -1,7 +1,10 @@
 use std::collections::BTreeMap;
 use std::fmt::Formatter;
 
+use crate::value::Value;
 use bytes::Bytes;
+use fancy_regex::{Captures, Regex};
+use nom::combinator::eof;
 use nom::{
     self,
     branch::alt,
@@ -12,11 +15,8 @@ use nom::{
     sequence::{delimited, terminated},
     IResult, Parser,
 };
-use nom::combinator::eof;
 use onig::EncodedChars;
 use ordered_float::NotNan;
-use fancy_regex::{Captures, Regex};
-use crate::value::Value;
 
 use super::super::{
     ast::{Function, FunctionArgument},
@@ -143,7 +143,7 @@ fn regex_from_config(
     keyvalue.push_str("]+)");
 
     // delimiter
-    keyvalue.push_str(&key_value_delimiter);
+    keyvalue.push_str(key_value_delimiter);
 
     // value
     keyvalue.push_str(quoting.as_str());
@@ -180,36 +180,39 @@ pub fn apply_filter(value: &Value, filter: &KeyValueFilter) -> Result<Value, Gro
         Value::Bytes(bytes) => {
             let mut result = Value::Object(BTreeMap::default());
             let value = String::from_utf8_lossy(bytes);
-            filter.re_pattern.captures_iter(value.as_ref()).for_each(|c| {
-                let key = parse_key(extract_capture(&c, 1), filter.quotes.as_slice());
-                if key.contains(' ') {
-                    return;
-                }
-                let value = extract_capture(&c, 2);
-                // trim trailing comma for value
-                let value = value.trim_end_matches(|c| c == ',');
+            filter
+                .re_pattern
+                .captures_iter(value.as_ref())
+                .for_each(|c| {
+                    let key = parse_key(extract_capture(&c, 1), filter.quotes.as_slice());
+                    if key.contains(' ') {
+                        return;
+                    }
+                    let value = extract_capture(&c, 2);
+                    // trim trailing comma for value
+                    let value = value.trim_end_matches(|c| c == ',');
 
-                if let Ok((_, value)) = parse_value(value, filter.quotes.as_slice()) {
-                if !(value.is_null()
-                    || matches!(&value, Value::Bytes(b) if b.is_empty())
-                    || key.is_empty())
-                {
-                    let path = crate::path!(key);
-                    match result.get(path).cloned() {
-                        Some(Value::Array(mut values)) => {
-                            values.push(value);
-                            result.insert(path, values);
+                    if let Ok((_, value)) = parse_value(value, filter.quotes.as_slice()) {
+                        if !(value.is_null()
+                            || matches!(&value, Value::Bytes(b) if b.is_empty())
+                            || key.is_empty())
+                        {
+                            let path = crate::path!(key);
+                            match result.get(path).cloned() {
+                                Some(Value::Array(mut values)) => {
+                                    values.push(value);
+                                    result.insert(path, values);
+                                }
+                                Some(prev) => {
+                                    result.insert(path, Value::Array(vec![prev, value]));
+                                }
+                                None => {
+                                    result.insert(path, value);
+                                }
+                            };
                         }
-                        Some(prev) => {
-                            result.insert(path, Value::Array(vec![prev, value]));
-                        }
-                        None => {
-                            result.insert(path, value);
-                        }
-                    };
-                }
-                }
-            });
+                    }
+                });
             Ok(result)
         }
         _ => Err(GrokRuntimeError::FailedToApplyFilter(
@@ -220,7 +223,10 @@ pub fn apply_filter(value: &Value, filter: &KeyValueFilter) -> Result<Value, Gro
 }
 
 fn extract_capture<'a>(c: &'a Result<Captures<'a>, fancy_regex::Error>, i: usize) -> &'a str {
-    c.as_ref().map(|c| c.get(i).map(|m| m.as_str())).unwrap_or_default().unwrap_or_default().trim()
+    c.as_ref()
+        .map(|c| c.get(i).map(|m| m.as_str()))
+        .unwrap_or_default()
+        .unwrap_or_default().trim()
 }
 
 type SResult<'a, O> = IResult<&'a str, O, (&'a str, nom::error::ErrorKind)>;
@@ -229,12 +235,12 @@ type SResult<'a, O> = IResult<&'a str, O, (&'a str, nom::error::ErrorKind)>;
 #[inline]
 fn parse_quoted(quotes: &(char, char)) -> impl Fn(&str) -> SResult<&str> + '_ {
     move |input| {
-            delimited(
-                char(quotes.0),
-                map(opt(take_while1(|c: char| c != quotes.1)), |inner| {
-                    inner.unwrap_or("")
-                }),
-                char(quotes.1),
+        delimited(
+            char(quotes.0),
+            map(opt(take_while1(|c: char| c != quotes.1)), |inner| {
+                inner.unwrap_or("")
+            }),
+            char(quotes.1),
         )(input)
     }
 }
@@ -259,7 +265,7 @@ fn quoted(quotes: &[(char, char)]) -> impl Fn(&str) -> SResult<&str> + '_ {
 /// 1. The value is quoted - parse until the end quote
 /// 2. Otherwise, we parse until regex matches
 #[inline]
-fn parse_value<'a>(input: &'a str, quotes: &'a[(char, char)]) -> SResult<'a, Value> {
+fn parse_value<'a>(input: &'a str, quotes: &'a [(char, char)]) -> SResult<'a, Value> {
     alt((
         parse_null,
         parse_boolean,
@@ -270,7 +276,9 @@ fn parse_value<'a>(input: &'a str, quotes: &'a[(char, char)]) -> SResult<'a, Val
 }
 
 fn parse_string(input: &str) -> SResult<Value> {
-    map(rest, |s: &str| Value::Bytes(Bytes::copy_from_slice(s.trim().as_bytes())))(input)
+    map(rest, |s: &str| {
+        Value::Bytes(Bytes::copy_from_slice(s.trim().as_bytes()))
+    })(input)
 }
 
 fn parse_number(input: &str) -> SResult<Value> {
@@ -282,14 +290,16 @@ fn parse_number(input: &str) -> SResult<Value> {
             Value::Float(NotNan::new(v).expect("not a float"))
         }
     })(input)
-        .map_err(|e| match e {
-            // double might return Failure(an unrecoverable error) - make it recoverable
-            nom::Err::Failure(_) => nom::Err::Error((input, nom::error::ErrorKind::Float)),
-            e => e,
-        });
+    .map_err(|e| match e {
+        // double might return Failure(an unrecoverable error) - make it recoverable
+        nom::Err::Failure(_) => nom::Err::Error((input, nom::error::ErrorKind::Float)),
+        e => e,
+    });
     match res {
         // check if it is a valid octal number(start with 0) - keep parsed as a decimal though
-        Ok((_, Value::Integer(_))) if input.starts_with('0') && input.contains(|c| c == '8' || c == '9') => {
+        Ok((_, Value::Integer(_)))
+            if input.starts_with('0') && input.contains(|c| c == '8' || c == '9') =>
+        {
             Err(nom::Err::Error((input, nom::error::ErrorKind::OctDigit)))
         }
         res => res,
@@ -308,11 +318,11 @@ fn parse_boolean(input: &str) -> SResult<Value> {
 }
 
 /// Removes quotes from the key if needed.
-fn parse_key<'a>(
-    input: &'a str,
-    quotes: &'a [(char, char)],
-) -> &'a str {
-    quoted(quotes)(input).map(|(_, key)| key).unwrap_or_else(|_| input)
+fn parse_key<'a>(input: &'a str, quotes: &'a [(char, char)]) -> &'a str {
+    quoted(quotes)(input)
+        .map(|(_, key)| key)
+        .unwrap_or_else(|_| input)
+
 }
 
 #[cfg(test)]
@@ -321,18 +331,9 @@ mod tests {
 
     #[test]
     fn test_parse_key() {
-        assert_eq!(
-            "key",
-            parse_key("key", DEFAULT_QUOTES)
-        );
-        assert_eq!(
-            "key",
-            parse_key(r#""key""#, DEFAULT_QUOTES)
-        );
-        assert_eq!(
-           "key",
-            parse_key( r#"#key#"#, &[('#', '#')])
-        );
+        assert_eq!("key", parse_key("key", DEFAULT_QUOTES));
+        assert_eq!("key", parse_key(r#""key""#, DEFAULT_QUOTES));
+        assert_eq!("key", parse_key(r#"#key#"#, &[('#', '#')]));
     }
 
     #[test]
