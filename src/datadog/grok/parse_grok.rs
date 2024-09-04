@@ -989,6 +989,22 @@ mod tests {
                 "a key=value",
                 Ok(Value::from(btreemap! {})),
             ),
+            // parses valid octal numbers (start with 0) as decimals
+            (
+                r#"%{data::keyvalue}"#,
+                "a=07",
+                Ok(Value::from(btreemap! {
+                    "a" => 7
+                })),
+            ),
+            // parses invalid octal numbers (start with 0) as strings
+            (
+                r#"%{data::keyvalue}"#,
+                "a=08",
+                Ok(Value::from(btreemap! {
+                    "a" => "08"
+                })),
+            ),
         ]);
     }
 

@@ -264,7 +264,7 @@ fn parse_value<'a>(input: &'a str, quotes: &'a[(char, char)]) -> SResult<'a, Val
         parse_null,
         parse_boolean,
         parse_number,
-        quoted(quotes).and_then(alt((parse_number, parse_string))),
+        quoted(quotes).and_then(parse_string),
         parse_string,
     ))(input)
 }
@@ -274,7 +274,7 @@ fn parse_string(input: &str) -> SResult<Value> {
 }
 
 fn parse_number(input: &str) -> SResult<Value> {
-    map(terminated(double, eof), |v| {
+    let res = map(terminated(double, eof), |v| {
         if ((v as i64) as f64 - v).abs() == 0.0 {
             // can be safely converted to Integer without precision loss
             Value::Integer(v as i64)
@@ -282,11 +282,18 @@ fn parse_number(input: &str) -> SResult<Value> {
             Value::Float(NotNan::new(v).expect("not a float"))
         }
     })(input)
-    .map_err(|e| match e {
-        // double might return Failure(an unrecoverable error) - make it recoverable
-        nom::Err::Failure(_) => nom::Err::Error((input, nom::error::ErrorKind::Float)),
-        e => e,
-    })
+        .map_err(|e| match e {
+            // double might return Failure(an unrecoverable error) - make it recoverable
+            nom::Err::Failure(_) => nom::Err::Error((input, nom::error::ErrorKind::Float)),
+            e => e,
+        });
+    match res {
+        // check if it is a valid octal number(start with 0) - keep parsed as a decimal though
+        Ok((_, Value::Integer(_))) if input.starts_with('0') && input.contains(|c| c == '8' || c == '9') => {
+            Err(nom::Err::Error((input, nom::error::ErrorKind::OctDigit)))
+        }
+        res => res,
+    }
 }
 
 fn parse_null(input: &str) -> SResult<Value> {
