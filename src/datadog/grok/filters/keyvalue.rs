@@ -131,26 +131,25 @@ fn regex_from_config(
 
     quoting.push('[');
 
-    let mut keyvalue = String::from("(?<=[");
-    keyvalue.push_str(&_field_delimiters.0);
-    keyvalue.push_str("]|^)");
-
-    // key
-    keyvalue.push_str(quoting.as_str());
-    keyvalue.push_str(&value_re);
-    keyvalue.push_str("]+)");
-
-    // delimiter
-    keyvalue.push_str(key_value_delimiter);
-
-    // value
-    keyvalue.push_str(quoting.as_str());
-    keyvalue.push_str(&value_re);
-    keyvalue.push_str("]+)");
-
-    keyvalue.push_str("(?:[");
-    keyvalue.push_str(&_field_delimiters.1);
-    keyvalue.push_str("]|$)");
+    let keyvalue = [
+        "(?<=[",
+        &_field_delimiters.0,
+        "]|^)",
+        // key
+        quoting.as_str(),
+        &value_re,
+        "]+)",
+        // delimiter
+        key_value_delimiter,
+        // value
+        quoting.as_str(),
+        &value_re,
+        "]+)",
+        "(?:[",
+        &_field_delimiters.1,
+        "]|$)",
+    ]
+        .concat();
 
     Regex::new(keyvalue.as_str())
         .map_err(|_e| GrokStaticError::InvalidFunctionArguments("keyvalue".to_string()))
