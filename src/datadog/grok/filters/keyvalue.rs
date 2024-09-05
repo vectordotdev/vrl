@@ -80,10 +80,11 @@ pub fn filter_from_function(f: &Function) -> Result<GrokFilter, GrokStaticError>
         let field_delimiters = if args_len > 3 {
             match f.args.as_ref().unwrap()[3] {
                 FunctionArgument::Arg(Value::Bytes(ref bytes)) => {
-                    let delimiter = String::from_utf8_lossy(bytes).to_string();
-                    match (&delimiter[..1], &delimiter[1..]) {
-                        (left, right) if !right.is_empty() => (left.to_string(), right.to_string()),
-                        (single, "") => (single.to_string(), single.to_string()),
+                    let delimiter_str = String::from_utf8_lossy(bytes);
+                    let mut delimiter_chars = delimiter_str.chars();
+                    match (delimiter_chars.next(), delimiter_chars.as_str()) {
+                        (Some(left), right) if !right.is_empty() => (left.to_string(), right.to_string()),
+                        (Some(single), "") => (single.to_string(), single.to_string()),
                         _ => return Err(GrokStaticError::InvalidFunctionArguments(f.name.clone())),
                     }
                 }
