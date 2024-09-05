@@ -120,12 +120,13 @@ fn regex_from_config(
     let mut quoting = String::from("(");
     // add quotes with OR
     for (left, right) in quotes {
-        quoting.push_str(&regex::escape(&left.to_string()));
-        quoting.push_str("[^");
-        quoting.push_str(&regex::escape(&left.to_string()));
-        quoting.push_str("]+");
-        quoting.push_str(&regex::escape(&right.to_string()));
-        quoting.push('|');
+        quoting.extend([
+            &regex::escape(&left.to_string()),
+            "[^",
+            &regex::escape(&left.to_string()),
+            "]+",
+            &regex::escape(&right.to_string()),
+            "|"]);
     }
 
     quoting.push('[');
