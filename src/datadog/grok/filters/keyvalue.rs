@@ -117,10 +117,8 @@ fn regex_from_config(
     quotes: Vec<(char, char)>,
     _field_delimiters: (String, String),
 ) -> Result<Regex, GrokStaticError> {
-    let mut quoting = String::new();
-
     // start group
-    quoting.push('(');
+    let mut quoting = String::from("(");
     // add quotes with OR
     for (left, right) in quotes {
         quoting.push_str(&regex::escape(&left.to_string()));
