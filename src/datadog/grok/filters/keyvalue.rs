@@ -46,9 +46,7 @@ pub fn filter_from_function(f: &Function) -> Result<GrokFilter, GrokStaticError>
         let value_re = if args_len > 1 {
             match f.args.as_ref().unwrap()[1] {
                 FunctionArgument::Arg(Value::Bytes(ref bytes)) => {
-                    let mut re_str = String::from(DEFAULT_VALUE_RE);
-                    re_str.push_str(&String::from_utf8_lossy(bytes));
-                    re_str
+                    [DEFAULT_VALUE_RE, &String::from_utf8_lossy(bytes)].concat()
                 }
                 _ => return Err(GrokStaticError::InvalidFunctionArguments(f.name.clone())),
             }
