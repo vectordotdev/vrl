@@ -15,6 +15,7 @@ use nom::{
     sequence::{delimited, terminated},
     IResult, Parser,
 };
+use nom::error::ErrorKind;
 use onig::EncodedChars;
 use ordered_float::NotNan;
 
@@ -296,13 +297,18 @@ fn parse_number(input: &str) -> SResult<Value> {
         nom::Err::Failure(_) => nom::Err::Error((input, nom::error::ErrorKind::Float)),
         e => e,
     });
+    validate_octal_number(input, res)
+}
+
+/// Checks if it is a valid octal number(start with 0) - keep parsed as a decimal though.
+fn validate_octal_number<'a>(input: &'a str, res: Result<(&'a str, Value), nom::Err<(&'a str, ErrorKind)>>) -> SResult<'a, Value> {
     match res {
-        // check if it is a valid octal number(start with 0) - keep parsed as a decimal though
+
         Ok((_, Value::Integer(_)))
-            if input.starts_with('0') && input.contains(|c| c == '8' || c == '9') =>
-        {
-            Err(nom::Err::Error((input, nom::error::ErrorKind::OctDigit)))
-        }
+        if input.starts_with('0') && input.contains(|c| c == '8' || c == '9') =>
+            {
+                Err(nom::Err::Error((input, nom::error::ErrorKind::OctDigit)))
+            }
         res => res,
     }
 }
