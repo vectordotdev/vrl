@@ -5,6 +5,7 @@ use crate::value::Value;
 use bytes::Bytes;
 use fancy_regex::{Captures, Regex};
 use nom::combinator::eof;
+use nom::error::ErrorKind;
 use nom::{
     self,
     branch::alt,
@@ -15,7 +16,6 @@ use nom::{
     sequence::{delimited, terminated},
     IResult, Parser,
 };
-use nom::error::ErrorKind;
 use onig::EncodedChars;
 use ordered_float::NotNan;
 
@@ -84,7 +84,9 @@ pub fn filter_from_function(f: &Function) -> Result<GrokFilter, GrokStaticError>
                     let delimiter_str = String::from_utf8_lossy(bytes);
                     let mut delimiter_chars = delimiter_str.chars();
                     match (delimiter_chars.next(), delimiter_chars.as_str()) {
-                        (Some(left), right) if !right.is_empty() => (left.to_string(), right.to_string()),
+                        (Some(left), right) if !right.is_empty() => {
+                            (left.to_string(), right.to_string())
+                        }
                         (Some(single), "") => (single.to_string(), single.to_string()),
                         _ => return Err(GrokStaticError::InvalidFunctionArguments(f.name.clone())),
                     }
@@ -127,7 +129,8 @@ fn regex_from_config(
             &regex::escape(&left.to_string()),
             "]+",
             &regex::escape(&right.to_string()),
-            "|"]);
+            "|",
+        ]);
     }
 
     quoting.push('[');
@@ -150,7 +153,7 @@ fn regex_from_config(
         &_field_delimiters.1,
         "]|$)",
     ]
-        .concat();
+    .concat();
 
     Regex::new(keyvalue.as_str())
         .map_err(|_e| GrokStaticError::InvalidFunctionArguments("keyvalue".to_string()))
@@ -193,7 +196,11 @@ pub fn apply_filter(value: &Value, filter: &KeyValueFilter) -> Result<Value, Gro
     }
 }
 
-fn parse_key_value_capture(filter: &KeyValueFilter, result: &mut Value, c: Result<Captures, fancy_regex::Error>) {
+fn parse_key_value_capture(
+    filter: &KeyValueFilter,
+    result: &mut Value,
+    c: Result<Captures, fancy_regex::Error>,
+) {
     let key = parse_key(extract_capture(&c, 1), filter.quotes.as_slice());
     if !key.contains(' ') {
         let value = extract_capture(&c, 2);
@@ -301,14 +308,16 @@ fn parse_number(input: &str) -> SResult<Value> {
 }
 
 /// Checks if it is a valid octal number(start with 0) - keep parsed as a decimal though.
-fn validate_octal_number<'a>(input: &'a str, res: Result<(&'a str, Value), nom::Err<(&'a str, ErrorKind)>>) -> SResult<'a, Value> {
+fn validate_octal_number<'a>(
+    input: &'a str,
+    res: Result<(&'a str, Value), nom::Err<(&'a str, ErrorKind)>>,
+) -> SResult<'a, Value> {
     match res {
-
         Ok((_, Value::Integer(_)))
-        if input.starts_with('0') && input.contains(|c| c == '8' || c == '9') =>
-            {
-                Err(nom::Err::Error((input, nom::error::ErrorKind::OctDigit)))
-            }
+            if input.starts_with('0') && input.contains(|c| c == '8' || c == '9') =>
+        {
+            Err(nom::Err::Error((input, nom::error::ErrorKind::OctDigit)))
+        }
         res => res,
     }
 }

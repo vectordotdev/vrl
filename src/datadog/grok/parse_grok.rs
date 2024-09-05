@@ -254,8 +254,10 @@ mod tests {
 
     fn test_grok_pattern(tests: Vec<(&str, &str, Result<Value, Error>)>) {
         for (filter, k, v) in tests {
-            let rules = parse_grok_rules(&[filter.to_string()], BTreeMap::new())
-                .unwrap_or_else(|error| panic!("failed to parse {k} with filter {filter}: {error}"));
+            let rules =
+                parse_grok_rules(&[filter.to_string()], BTreeMap::new()).unwrap_or_else(|error| {
+                    panic!("failed to parse {k} with filter {filter}: {error}")
+                });
             let parsed = parse_grok(k, &rules);
 
             if v.is_ok() {
