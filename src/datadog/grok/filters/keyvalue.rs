@@ -183,31 +183,30 @@ pub fn apply_filter(value: &Value, filter: &KeyValueFilter) -> Result<Value, Gro
                 .captures_iter(value.as_ref())
                 .for_each(|c| {
                     let key = parse_key(extract_capture(&c, 1), filter.quotes.as_slice());
-                    if key.contains(' ') {
-                        return;
-                    }
-                    let value = extract_capture(&c, 2);
-                    // trim trailing comma for value
-                    let value = value.trim_end_matches(|c| c == ',');
+                    if !key.contains(' ') {
+                        let value = extract_capture(&c, 2);
+                        // trim trailing comma for value
+                        let value = value.trim_end_matches(|c| c == ',');
 
-                    if let Ok((_, value)) = parse_value(value, filter.quotes.as_slice()) {
-                        if !(value.is_null()
-                            || matches!(&value, Value::Bytes(b) if b.is_empty())
-                            || key.is_empty())
-                        {
-                            let path = crate::path!(key);
-                            match result.get(path).cloned() {
-                                Some(Value::Array(mut values)) => {
-                                    values.push(value);
-                                    result.insert(path, values);
-                                }
-                                Some(prev) => {
-                                    result.insert(path, Value::Array(vec![prev, value]));
-                                }
-                                None => {
-                                    result.insert(path, value);
-                                }
-                            };
+                        if let Ok((_, value)) = parse_value(value, filter.quotes.as_slice()) {
+                            if !(value.is_null()
+                                || matches!(&value, Value::Bytes(b) if b.is_empty())
+                                || key.is_empty())
+                            {
+                                let path = crate::path!(key);
+                                match result.get(path).cloned() {
+                                    Some(Value::Array(mut values)) => {
+                                        values.push(value);
+                                        result.insert(path, values);
+                                    }
+                                    Some(prev) => {
+                                        result.insert(path, Value::Array(vec![prev, value]));
+                                    }
+                                    None => {
+                                        result.insert(path, value);
+                                    }
+                                };
+                            }
                         }
                     }
                 });
