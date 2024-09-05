@@ -226,7 +226,8 @@ fn extract_capture<'a>(c: &'a Result<Captures<'a>, fancy_regex::Error>, i: usize
     c.as_ref()
         .map(|c| c.get(i).map(|m| m.as_str()))
         .unwrap_or_default()
-        .unwrap_or_default().trim()
+        .unwrap_or_default()
+        .trim()
 }
 
 type SResult<'a, O> = IResult<&'a str, O, (&'a str, nom::error::ErrorKind)>;
@@ -322,7 +323,6 @@ fn parse_key<'a>(input: &'a str, quotes: &'a [(char, char)]) -> &'a str {
     quoted(quotes)(input)
         .map(|(_, key)| key)
         .unwrap_or_else(|_| input)
-
 }
 
 #[cfg(test)]
