@@ -20,11 +20,13 @@ pub enum Bytes {
     Invalid(bytes::Bytes),
     /// Source data that is valid UTF-8 are stored as a `String`.
     Valid(String),
+    /// Source data that comes from a `'static` source is stored by reference.
+    ValidStatic(&'static str),
 }
 
-impl From<&str> for Bytes {
-    fn from(src: &str) -> Self {
-        Self::Valid(src.into())
+impl From<&'static str> for Bytes {
+    fn from(src: &'static str) -> Self {
+        Self::ValidStatic(src)
     }
 }
 
@@ -119,6 +121,7 @@ impl Bytes {
         match self {
             Self::Invalid(bytes) => bytes.len(),
             Self::Valid(string) => string.len(),
+            Self::ValidStatic(string) => string.len(),
         }
     }
 
@@ -126,6 +129,7 @@ impl Bytes {
         match self {
             Self::Invalid(bytes) => bytes.is_empty(),
             Self::Valid(string) => string.is_empty(),
+            Self::ValidStatic(string) => string.is_empty(),
         }
     }
 
@@ -142,6 +146,7 @@ impl Bytes {
         match self {
             Self::Invalid(bytes) => bytes.as_ref(),
             Self::Valid(string) => string.as_bytes(),
+            Self::ValidStatic(string) => string.as_bytes(),
         }
     }
 
@@ -151,6 +156,7 @@ impl Bytes {
         match self {
             Self::Invalid(bytes) => bytes.clone(),
             Self::Valid(string) => bytes::Bytes::copy_from_slice(string.as_bytes()),
+            Self::ValidStatic(string) => bytes::Bytes::from_static(string.as_bytes()),
         }
     }
 
@@ -159,6 +165,7 @@ impl Bytes {
         match self {
             Self::Invalid(..) => None,
             Self::Valid(string) => Some(string.as_ref()),
+            Self::ValidStatic(string) => Some(string),
         }
     }
 
@@ -167,6 +174,7 @@ impl Bytes {
         match self {
             Self::Invalid(bytes) => String::from_utf8_lossy(bytes.as_ref()),
             Self::Valid(string) => Cow::Borrowed(string.as_ref()),
+            Self::ValidStatic(string) => Cow::Borrowed(string),
         }
     }
 
@@ -176,6 +184,7 @@ impl Bytes {
         match self {
             Self::Invalid(bytes) => String::from_utf8_lossy(bytes.as_ref()).into_owned(),
             Self::Valid(string) => string.clone(),
+            Self::ValidStatic(string) => string.to_string(),
         }
     }
 
@@ -184,6 +193,7 @@ impl Bytes {
         match self {
             Self::Invalid(bytes) => String::from_utf8_lossy(bytes.as_ref()).into_owned(),
             Self::Valid(string) => string,
+            Self::ValidStatic(string) => string.to_owned(),
         }
     }
 
@@ -192,6 +202,7 @@ impl Bytes {
         match self {
             Self::Invalid(bytes) => bytes.to_vec(),
             Self::Valid(string) => string.into_bytes(),
+            Self::ValidStatic(string) => string.into(),
         }
     }
 
@@ -202,6 +213,7 @@ impl Bytes {
         match self {
             Self::Invalid(bytes) => bytes.repeat(count),
             Self::Valid(string) => string.as_bytes().repeat(count),
+            Self::ValidStatic(string) => string.as_bytes().repeat(count),
         }
     }
 
@@ -209,7 +221,7 @@ impl Bytes {
     pub fn from_static(src: &'static [u8]) -> Self {
         std::str::from_utf8(src).map_or_else(
             |_| Self::Invalid(bytes::Bytes::from_static(src)),
-            |s| Self::Valid(s.into()),
+            Self::ValidStatic,
         )
     }
 
@@ -217,6 +229,7 @@ impl Bytes {
         match self {
             Self::Invalid(bytes) => bytes.chunks(size),
             Self::Valid(string) => string.as_bytes().chunks(size),
+            Self::ValidStatic(string) => string.as_bytes().chunks(size),
         }
     }
 }
