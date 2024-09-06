@@ -52,7 +52,7 @@ fn apply_grok_rule(source: &str, grok_rule: &GrokRule) -> Result<Value, Error> {
                     if let Some(ref mut v) = value {
                         value = match apply_filter(v, filter) {
                             Ok(Value::Null) => None,
-                            Ok(v ) if v.is_object() => Some(parse_keys_as_path(v)),
+                            Ok(v) if v.is_object() => Some(parse_keys_as_path(v)),
                             Ok(v) => Some(v),
                             Err(error) => {
                                 warn!(message = "Error applying filter", field = %field, filter = %filter, %error);
@@ -287,7 +287,7 @@ mod tests {
             parse_grok_rules(&["%{unknown}".to_string()], BTreeMap::new())
                 .unwrap_err()
                 .to_string(),
-            r#"failed to parse grok expression '\A%{unknown}\z': The given pattern definition name "unknown" could not be found in the definition map"#
+            r#"failed to parse grok expression '(?m)\A%{unknown}\z': The given pattern definition name "unknown" could not be found in the definition map"#
         );
     }
 
@@ -657,7 +657,7 @@ mod tests {
                 Ok(Value::Array(vec!["1".into(), "2".into()])),
             ),
             (
-                r#"(?m)%{data:field:array("[]","\\n")}"#,
+                r#"%{data:field:array("[]","\\n")}"#,
                 "[1\n2]",
                 Ok(Value::Array(vec!["1".into(), "2".into()])),
             ),
@@ -1021,23 +1021,22 @@ mod tests {
     #[test]
     fn parses_with_new_lines() {
         test_full_grok(vec![
+            // multi-line mode is enabled by default
             (
-                "(?m)%{data:field}",
+                "%{data:field}",
                 "a\nb",
                 Ok(Value::from(btreemap! {
                     "field" => "a\nb"
                 })),
             ),
             (
-                "(?m)%{data:line1}\n%{data:line2}",
+                "%{data:line1}\n%{data:line2}",
                 "a\nb",
                 Ok(Value::from(btreemap! {
                     "line1" => "a",
                     "line2" => "b"
                 })),
             ),
-            // no DOTALL mode by default
-            ("%{data:field}", "a\nb", Err(Error::NoMatch)),
             // (?s) is not supported by the underlying regex engine(onig) - it uses (?m) instead, so we convert it silently
             (
                 "(?s)%{data:field}",
@@ -1106,7 +1105,7 @@ mod tests {
     #[test]
     fn supports_xml_filter() {
         test_grok_pattern(vec![(
-            "(?s)%{data:field:xml}", // (?s) enables DOTALL mode to include newlines
+            "%{data:field:xml}",
             r#"<book category="CHILDREN">
                   <title lang="en">Harry Potter</title>
                   <author>J K. Rowling</author>

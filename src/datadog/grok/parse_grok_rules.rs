@@ -177,7 +177,7 @@ fn parse_pattern(
     parse_grok_rule(pattern, context)?;
     let mut pattern = String::new();
     // \A, \z - parses from the beginning to the end of string, not line(until \n)
-    pattern.push_str(r"\A");
+    pattern.push_str(r"(?m)\A"); // (?m) enables multiline mode
     pattern.push_str(&context.regex);
     pattern.push_str(r"\z");
 
