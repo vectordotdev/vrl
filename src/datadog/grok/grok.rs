@@ -11,7 +11,7 @@ include!(concat!(env!("OUT_DIR"), "/patterns.rs"));
 use std::collections::{btree_map, BTreeMap};
 use std::sync::Arc;
 
-use onig::{Captures, Regex};
+use fancy_regex::{Captures, Regex};
 use thiserror::Error;
 
 const MAX_RECURSION: usize = 1024;
@@ -64,7 +64,11 @@ impl<'a> Iterator for MatchesIter<'a> {
         // that index, if anything.
         self.names.next().map(|(k, v)| {
             let key = k.as_str();
-            let value = self.captures.at(*v).unwrap_or("");
+            let value = self
+                .captures
+                .get(*v)
+                .map(|m| m.as_str())
+                .unwrap_or_default();
             (key, value)
         })
     }
@@ -84,18 +88,26 @@ pub struct Pattern {
 impl Pattern {
     /// Creates a new pattern from a raw regex string and an alias map to identify the
     /// fields properly.
-    fn new(regex: &str, alias: &BTreeMap<String, String>) -> Result<Self, Error> {
-        match Regex::new(regex) {
+    fn new(regex: &str, aliases: &BTreeMap<String, String>) -> Result<Self, Error> {
+        match Regex::new(&regex) {
             Ok(r) => Ok({
                 let mut names: BTreeMap<String, usize> = BTreeMap::new();
-                r.foreach_name(|cap_name, cap_idx| {
-                    let name = match alias.iter().find(|&(_k, v)| *v == cap_name) {
-                        Some(item) => item.0.clone(),
-                        None => String::from(cap_name),
-                    };
-                    names.insert(name, cap_idx[0] as usize);
-                    true
-                });
+                r.capture_names()
+                    .enumerate()
+                    .for_each(|(cap_idx, cap_name)| {
+                        if let Some(cap_name) = cap_name {
+                            let name = if let Some(alias) = aliases
+                                .iter()
+                                .find(|(_k, v)| *v == cap_name)
+                                .map(|(k, _)| k)
+                            {
+                                alias
+                            } else {
+                                cap_name
+                            };
+                            names.insert(name.to_string(), cap_idx);
+                        };
+                    });
                 Pattern {
                     regex: Arc::new(r),
                     names,
@@ -110,6 +122,7 @@ impl Pattern {
     pub fn match_against<'a>(&'a self, text: &'a str) -> Option<Matches<'a>> {
         self.regex
             .captures(text)
+            .unwrap_or_default()
             .map(|cap| Matches::new(cap, &self.names))
     }
 }
@@ -133,8 +146,8 @@ impl Grok {
     }
 
     /// Inserts a custom pattern.
-    pub fn insert_definition<S: Into<String>>(&mut self, name: S, pattern: S) {
-        self.definitions.insert(name.into(), pattern.into());
+    pub fn insert_definition(&mut self, name: String, pattern: String) {
+        self.definitions.insert(name, pattern);
     }
 
     /// Compiles the given pattern, making it ready for matching.
@@ -158,30 +171,38 @@ impl Grok {
             }
             iteration_left -= 1;
 
-            if let Some(m) = grok_regex.captures(&named_regex.clone()) {
+            if let Some(m) = grok_regex
+                .captures(&named_regex.clone())
+                .unwrap_or_default()
+            {
                 continue_iteration = true;
-                let raw_pattern = match m.at(PATTERN_INDEX) {
+                let raw_pattern = match m.get(PATTERN_INDEX) {
                     Some(p) => p,
                     None => {
                         return Err(Error::GenericCompilationFailure(
                             "Could not find pattern in matches".into(),
                         ))
                     }
-                };
+                }
+                .as_str();
 
-                let mut name = match m.at(NAME_INDEX) {
-                    Some(n) => String::from(n),
+                let mut name = match m.get(NAME_INDEX) {
+                    Some(n) => n.as_str(),
                     None => {
                         return Err(Error::GenericCompilationFailure(
                             "Could not find name in matches".into(),
                         ))
                     }
-                };
-
-                if let Some(definition) = m.at(DEFINITION_INDEX) {
-                    self.insert_definition(raw_pattern, definition);
-                    name = format!("{}={}", name, definition);
                 }
+                .to_string();
+
+                if let Some(definition) = m.get(DEFINITION_INDEX) {
+                    self.insert_definition(
+                        raw_pattern.to_string(),
+                        definition.as_str().to_string(),
+                    );
+                    name = format!("{}={}", name, definition.as_str())
+                };
 
                 // Since a pattern with a given name can show up more than once, we need to
                 // loop through the number of matches found and apply the transformations
@@ -191,7 +212,7 @@ impl Grok {
                     // if not.
                     let pattern_definition = match self.definitions.get(raw_pattern) {
                         Some(d) => d,
-                        None => return Err(Error::DefinitionNotFound(String::from(raw_pattern))),
+                        None => return Err(Error::DefinitionNotFound(raw_pattern.to_string())),
                     };
 
                     // If no alias is specified and all but with alias are ignored,
@@ -199,16 +220,16 @@ impl Grok {
                     // Otherwise, the definition is turned into a regex that the
                     // engine understands and uses a named group.
 
-                    let replacement = if with_alias_only && m.at(ALIAS_INDEX).is_none() {
+                    let replacement = if with_alias_only && m.get(ALIAS_INDEX).is_none() {
                         format!("(?:{})", pattern_definition)
                     } else {
                         // If an alias is specified by the user use that one to
                         // match the name<index> conversion, otherwise just use
                         // the name of the pattern definition directly.
                         alias.insert(
-                            match m.at(ALIAS_INDEX) {
-                                Some(a) => String::from(a),
-                                None => name.clone(),
+                            match m.get(ALIAS_INDEX) {
+                                Some(a) => a.as_str().to_string(),
+                                None => name.to_string(),
                             },
                             format!("name{}", index),
                         );

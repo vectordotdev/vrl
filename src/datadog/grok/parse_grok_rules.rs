@@ -1,3 +1,4 @@
+use fancy_regex::Regex;
 use std::{
     collections::{BTreeMap, HashMap},
     convert::TryFrom,
@@ -16,8 +17,8 @@ use super::{
     parse_grok_pattern::parse_grok_pattern,
 };
 
-static GROK_PATTERN_RE: Lazy<onig::Regex> =
-    Lazy::new(|| onig::Regex::new(r#"%\{(?:[^"\}]|(?<!\\)"(?:\\"|[^"])*(?<!\\)")+\}"#).unwrap());
+static GROK_PATTERN_RE: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r#"%\{(?:[^"\}]|(?<!\\)"(?:\\"|[^"])*(?<!\\)")+\}"#).unwrap());
 
 /// The result of parsing a grok rule with a final regular expression and the
 /// related field information, needed at runtime.
@@ -176,13 +177,9 @@ fn parse_pattern(
 ) -> Result<GrokRule, Error> {
     parse_grok_rule(pattern, context)?;
     let mut pattern = String::new();
-    // \A, \z - parses from the beginning to the end of string, not line(until \n)
-    pattern.push_str(r"\A");
+    pattern.push_str(r"(?s)^"); // (?s) enables DOTALL mode - . includes newline
     pattern.push_str(&context.regex);
-    pattern.push_str(r"\z");
-
-    // our regex engine(onig) uses (?m) mode modifier instead of (?s) to make the dot match all characters
-    pattern = pattern.replace("(?s)", "(?m)").replace("(?-s)", "(?-m)");
+    pattern.push_str(r"$");
 
     // compile pattern
     let pattern = grok
@@ -204,7 +201,10 @@ fn parse_pattern(
 /// - `context` - the context required to parse the current grok rule
 fn parse_grok_rule(rule: &str, context: &mut GrokRuleParseContext) -> Result<(), Error> {
     let mut regex_i = 0;
-    for (start, end) in GROK_PATTERN_RE.find_iter(rule) {
+    for (start, end) in GROK_PATTERN_RE
+        .find_iter(rule)
+        .filter_map(|m| m.map(|m| (m.start(), m.end())).ok())
+    {
         context.append_regex(&rule[regex_i..start]);
         regex_i = end;
         let pattern = parse_grok_pattern(&rule[start..end])

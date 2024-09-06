@@ -13,7 +13,7 @@ qs %{quotedString}
 uuid [A-Fa-f0-9]{8}-(?:[A-Fa-f0-9]{4}-){3}[A-Fa-f0-9]{12}
 
 notSpace \S+
-data .*?
+data .*
 greedyData .*
 space \s+
 
