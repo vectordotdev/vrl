@@ -11,7 +11,17 @@
 
 use std::borrow::Cow;
 use std::hash::{Hash, Hasher};
+use std::sync::atomic::{AtomicUsize, Ordering::Relaxed};
+use std::sync::Once;
 use std::{cmp::Ordering, string::FromUtf8Error};
+
+static FROM_STATIC: AtomicUsize = AtomicUsize::new(0);
+static CREATE_COUNT: AtomicUsize = AtomicUsize::new(0);
+static AS_UTF8_COUNT: AtomicUsize = AtomicUsize::new(0);
+static TO_UTF8_COUNT: AtomicUsize = AtomicUsize::new(0);
+static INTO_UTF8_COUNT: AtomicUsize = AtomicUsize::new(0);
+
+static REPORT_INIT: Once = Once::new();
 
 /// The bytes storage type used in VRL's `Value` type.
 #[derive(Clone, Debug, Eq)]
@@ -24,20 +34,41 @@ pub enum Bytes {
     ValidStatic(&'static str),
 }
 
+macro_rules! bump {
+    ($counter:ident) => {
+        $counter.fetch_add(1, Relaxed);
+        REPORT_INIT.call_once(|| unsafe {
+            libc::atexit(report);
+        });
+    };
+}
+
+extern "C" fn report() {
+    let created = CREATE_COUNT.load(Relaxed);
+    let from_static = FROM_STATIC.load(Relaxed);
+    let as_utf8 = AS_UTF8_COUNT.load(Relaxed);
+    let to_utf8 = TO_UTF8_COUNT.load(Relaxed);
+    let into_utf8 = INTO_UTF8_COUNT.load(Relaxed);
+    println!("Bytes created: {created} from static: {from_static} as: {as_utf8} to: {to_utf8} into: {into_utf8}");
+}
+
 impl From<&'static str> for Bytes {
     fn from(src: &'static str) -> Self {
+        bump!(FROM_STATIC);
         Self::ValidStatic(src)
     }
 }
 
 impl From<String> for Bytes {
     fn from(src: String) -> Self {
+        bump!(CREATE_COUNT);
         Self::Valid(src)
     }
 }
 
 impl From<Vec<u8>> for Bytes {
     fn from(src: Vec<u8>) -> Self {
+        bump!(CREATE_COUNT);
         String::from_utf8(src).map_or_else(
             |invalid: FromUtf8Error| Self::Invalid(invalid.into_bytes().into()),
             Self::Valid,
@@ -135,6 +166,7 @@ impl Bytes {
 
     #[must_use]
     pub fn copy_from_slice(bytes: &[u8]) -> Self {
+        bump!(CREATE_COUNT);
         std::str::from_utf8(bytes).map_or_else(
             |_| Self::Invalid(bytes::Bytes::copy_from_slice(bytes)),
             |string| Self::Valid(string.into()),
@@ -171,6 +203,7 @@ impl Bytes {
 
     /// Copy the bytes into a UTF-8 string including invalid bytes.
     pub fn as_utf8_lossy(&self) -> Cow<'_, str> {
+        bump!(AS_UTF8_COUNT);
         match self {
             Self::Invalid(bytes) => String::from_utf8_lossy(bytes.as_ref()),
             Self::Valid(string) => Cow::Borrowed(string.as_ref()),
@@ -181,6 +214,7 @@ impl Bytes {
     /// Convert the owned bytes into a UTF-8 string including invalid bytes.
     #[must_use]
     pub fn to_utf8_lossy(&self) -> String {
+        bump!(TO_UTF8_COUNT);
         match self {
             Self::Invalid(bytes) => String::from_utf8_lossy(bytes.as_ref()).into_owned(),
             Self::Valid(string) => string.clone(),
@@ -190,6 +224,7 @@ impl Bytes {
 
     #[must_use]
     pub fn into_utf8_lossy(self) -> String {
+        bump!(INTO_UTF8_COUNT);
         match self {
             Self::Invalid(bytes) => String::from_utf8_lossy(bytes.as_ref()).into_owned(),
             Self::Valid(string) => string,
@@ -219,6 +254,7 @@ impl Bytes {
 
     #[must_use]
     pub fn from_static(src: &'static [u8]) -> Self {
+        bump!(FROM_STATIC);
         std::str::from_utf8(src).map_or_else(
             |_| Self::Invalid(bytes::Bytes::from_static(src)),
             Self::ValidStatic,

@@ -3511,6 +3511,7 @@ dependencies = [
  "itertools 0.13.0",
  "lalrpop",
  "lalrpop-util 0.21.0",
+ "libc",
  "md-5",
  "mlua",
  "nom",
