@@ -1021,7 +1021,7 @@ mod tests {
     #[test]
     fn parses_with_new_lines() {
         test_full_grok(vec![
-            // multi-line mode is enabled by default
+            // multiline mode is enabled by default
             (
                 "%{data:field}",
                 "a\nb",
