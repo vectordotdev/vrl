@@ -126,7 +126,7 @@ impl<'a> Iterator for JitValuePathIter<'a> {
                             _ => (Some(Some(BorrowedSegment::Invalid)), JitState::End),
                         },
                         JitState::Field { start } => match c {
-                            'A'..='Z' | 'a'..='z' | '_' | '0'..='9' | '@' => {
+                            'A'..='Z' | 'a'..='z' | '_' | '0'..='9' | '@' | '-' => {
                                 (None, JitState::Field { start })
                             }
                             '.' => (
@@ -266,6 +266,8 @@ mod test {
                 ],
             ),
             (".foo", vec![BorrowedSegment::Field("foo".into())]),
+            (".a-b", vec![BorrowedSegment::Field("a-b".into())]),
+            (".-a-b", vec![BorrowedSegment::Invalid]),
             (
                 ".@timestamp",
                 vec![BorrowedSegment::Field("@timestamp".into())],
