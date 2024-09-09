@@ -115,7 +115,7 @@ fn regex_from_config(
     key_value_delimiter: &str,
     value_re: String,
     quotes: Vec<(char, char)>,
-    _field_delimiters: (String, String),
+    field_delimiters: (String, String),
 ) -> Result<Regex, GrokStaticError> {
     // start group
     let mut quoting = String::from("(");
@@ -135,7 +135,7 @@ fn regex_from_config(
 
     let keyvalue = [
         "(?<=[",
-        &_field_delimiters.0,
+        &field_delimiters.0,
         "]|^)",
         // key
         quoting.as_str(),
@@ -148,7 +148,7 @@ fn regex_from_config(
         &value_re,
         "]+)",
         "(?:[",
-        &_field_delimiters.1,
+        &field_delimiters.1,
         "]|$)",
     ]
     .concat();
