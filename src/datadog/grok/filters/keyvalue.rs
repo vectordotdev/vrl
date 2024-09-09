@@ -33,42 +33,59 @@ const DEFAULT_KEYVALUE_DELIMITER: &str = "=";
 const DEFAULT_QUOTES: &[(char, char)] = &[('"', '"'), ('\'', '\''), ('<', '>')];
 
 pub fn filter_from_function(f: &Function) -> Result<GrokFilter, GrokStaticError> {
-    let filter = key_value_filter_from_args(f.args.as_deref().unwrap_or_default().iter())
+    let filter = KeyValueFilter::from_args(f.args.as_deref().unwrap_or_default().iter())
         .ok_or_else(|| GrokStaticError::InvalidFunctionArguments(f.name.clone()))?;
     Ok(GrokFilter::KeyValue(filter))
 }
 
-fn key_value_filter_from_args<'a>(
-    mut args: impl Iterator<Item = &'a FunctionArgument>,
-) -> Option<KeyValueFilter> {
-    let key_value_delimiter = match args.next() {
-        Some(FunctionArgument::Arg(Value::Bytes(ref bytes))) => &String::from_utf8_lossy(bytes),
-        Some(_) => return None,
-        None => DEFAULT_KEYVALUE_DELIMITER,
-    };
+#[derive(Debug, Clone)]
+pub struct KeyValueFilter {
+    pub re_pattern: Regex,
+    pub quotes: Vec<(char, char)>,
+    pub key_value_delimiter: String,
+}
 
-    let value_re = match args.next() {
-        Some(FunctionArgument::Arg(Value::Bytes(ref bytes))) => {
-            [DEFAULT_VALUE_RE, &String::from_utf8_lossy(bytes)].concat()
-        }
-        Some(_) => return None,
-        // default allowed unescaped symbols
-        None => DEFAULT_VALUE_RE.to_string(),
-    };
+impl std::fmt::Display for KeyValueFilter {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "keyvalue(\"{:?}\", \"{:?}\")",
+            self.re_pattern, self.quotes
+        )
+    }
+}
 
-    let quotes = parse_quotes(args.next())?;
-    let field_delimiters = parse_field_delimiters(args.next())?;
+impl KeyValueFilter {
+    fn from_args<'a>(mut args: impl Iterator<Item = &'a FunctionArgument>) -> Option<Self> {
+        let key_value_delimiter = match args.next() {
+            Some(FunctionArgument::Arg(Value::Bytes(ref bytes))) => &String::from_utf8_lossy(bytes),
+            Some(_) => return None,
+            None => DEFAULT_KEYVALUE_DELIMITER,
+        };
 
-    Some(KeyValueFilter {
-        re_pattern: regex_from_config(
-            key_value_delimiter,
-            value_re,
-            quotes.clone(),
-            field_delimiters,
-        )?,
-        quotes,
-        key_value_delimiter: key_value_delimiter.to_string(),
-    })
+        let value_re = match args.next() {
+            Some(FunctionArgument::Arg(Value::Bytes(ref bytes))) => {
+                [DEFAULT_VALUE_RE, &String::from_utf8_lossy(bytes)].concat()
+            }
+            Some(_) => return None,
+            // default allowed unescaped symbols
+            None => DEFAULT_VALUE_RE.to_string(),
+        };
+
+        let quotes = parse_quotes(args.next())?;
+        let field_delimiters = parse_field_delimiters(args.next())?;
+
+        Some(Self {
+            re_pattern: regex_from_config(
+                key_value_delimiter,
+                value_re,
+                quotes.clone(),
+                field_delimiters,
+            )?,
+            quotes,
+            key_value_delimiter: key_value_delimiter.to_string(),
+        })
+    }
 }
 
 fn parse_quotes(arg: Option<&FunctionArgument>) -> Option<Vec<(char, char)>> {
@@ -156,72 +173,50 @@ fn regex_from_config(
     Regex::new(keyvalue.as_str()).ok()
 }
 
-#[derive(Debug, Clone)]
-pub struct KeyValueFilter {
-    pub re_pattern: Regex,
-    pub quotes: Vec<(char, char)>,
-    pub key_value_delimiter: String,
-}
-
-impl std::fmt::Display for KeyValueFilter {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "keyvalue(\"{:?}\", \"{:?}\")",
-            self.re_pattern, self.quotes
-        )
-    }
-}
-
-pub fn apply_filter(value: &Value, filter: &KeyValueFilter) -> Result<Value, GrokRuntimeError> {
-    match value {
-        Value::Bytes(bytes) => {
-            let mut result = Value::Object(BTreeMap::default());
-            let value = String::from_utf8_lossy(bytes);
-            filter
-                .re_pattern
-                .captures_iter(value.as_ref())
-                .for_each(|c| {
-                    parse_key_value_capture(filter, &mut result, c);
+impl KeyValueFilter {
+    pub fn apply_filter(&self, value: &Value) -> Result<Value, GrokRuntimeError> {
+        match value {
+            Value::Bytes(bytes) => {
+                let mut result = Value::Object(BTreeMap::default());
+                let value = String::from_utf8_lossy(bytes);
+                self.re_pattern.captures_iter(value.as_ref()).for_each(|c| {
+                    self.parse_key_value_capture(&mut result, c);
                 });
-            Ok(result)
+                Ok(result)
+            }
+            _ => Err(GrokRuntimeError::FailedToApplyFilter(
+                self.to_string(),
+                value.to_string(),
+            )),
         }
-        _ => Err(GrokRuntimeError::FailedToApplyFilter(
-            filter.to_string(),
-            value.to_string(),
-        )),
     }
-}
 
-fn parse_key_value_capture(
-    filter: &KeyValueFilter,
-    result: &mut Value,
-    c: Result<Captures, fancy_regex::Error>,
-) {
-    let key = parse_key(extract_capture(&c, 1), filter.quotes.as_slice());
-    if !key.contains(' ') {
-        let value = extract_capture(&c, 2);
-        // trim trailing comma for value
-        let value = value.trim_end_matches(|c| c == ',');
+    fn parse_key_value_capture(&self, result: &mut Value, c: Result<Captures, fancy_regex::Error>) {
+        let key = parse_key(extract_capture(&c, 1), self.quotes.as_slice());
+        if !key.contains(' ') {
+            let value = extract_capture(&c, 2);
+            // trim trailing comma for value
+            let value = value.trim_end_matches(|c| c == ',');
 
-        if let Ok((_, value)) = parse_value(value, filter.quotes.as_slice()) {
-            if !(value.is_null()
-                || matches!(&value, Value::Bytes(b) if b.is_empty())
-                || key.is_empty())
-            {
-                let path = crate::path!(key);
-                match result.get(path).cloned() {
-                    Some(Value::Array(mut values)) => {
-                        values.push(value);
-                        result.insert(path, values);
-                    }
-                    Some(prev) => {
-                        result.insert(path, Value::Array(vec![prev, value]));
-                    }
-                    None => {
-                        result.insert(path, value);
-                    }
-                };
+            if let Ok((_, value)) = parse_value(value, self.quotes.as_slice()) {
+                if !(value.is_null()
+                    || matches!(&value, Value::Bytes(b) if b.is_empty())
+                    || key.is_empty())
+                {
+                    let path = crate::path!(key);
+                    match result.get(path).cloned() {
+                        Some(Value::Array(mut values)) => {
+                            values.push(value);
+                            result.insert(path, values);
+                        }
+                        Some(prev) => {
+                            result.insert(path, Value::Array(vec![prev, value]));
+                        }
+                        None => {
+                            result.insert(path, value);
+                        }
+                    };
+                }
             }
         }
     }
