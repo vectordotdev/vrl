@@ -41,7 +41,6 @@ pub fn filter_from_function(f: &Function) -> Result<GrokFilter, GrokStaticError>
 pub struct KeyValueFilter {
     pub re_pattern: Regex,
     pub quotes: Vec<(char, char)>,
-    pub key_value_delimiter: String,
 }
 
 impl std::fmt::Display for KeyValueFilter {
@@ -82,7 +81,6 @@ impl KeyValueFilter {
                 field_delimiters,
             )?,
             quotes,
-            key_value_delimiter: key_value_delimiter.to_string(),
         })
     }
 }
@@ -191,13 +189,13 @@ impl KeyValueFilter {
     }
 
     fn parse_key_value_capture(&self, result: &mut Value, c: Result<Captures, fancy_regex::Error>) {
-        let key = parse_key(extract_capture(&c, 1), self.quotes.as_slice());
+        let key = parse_key(extract_capture(&c, 1), &self.quotes);
         if !key.contains(' ') {
             let value = extract_capture(&c, 2);
             // trim trailing comma for value
             let value = value.trim_end_matches(|c| c == ',');
 
-            if let Ok((_, value)) = parse_value(value, self.quotes.as_slice()) {
+            if let Ok((_, value)) = parse_value(value, &self.quotes) {
                 if !(value.is_null()
                     || matches!(&value, Value::Bytes(b) if b.is_empty())
                     || key.is_empty())
