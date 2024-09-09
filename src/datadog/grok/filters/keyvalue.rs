@@ -76,7 +76,7 @@ impl KeyValueFilter {
         Some(Self {
             re_pattern: regex_from_config(
                 key_value_delimiter,
-                value_re,
+                &value_re,
                 quotes.clone(),
                 field_delimiters,
             )?,
@@ -127,7 +127,7 @@ fn parse_field_delimiters(arg: Option<&FunctionArgument>) -> Option<(String, Str
 
 fn regex_from_config(
     key_value_delimiter: &str,
-    value_re: String,
+    value_re: &str,
     quotes: Vec<(char, char)>,
     field_delimiters: (String, String),
 ) -> Option<Regex> {
@@ -135,14 +135,9 @@ fn regex_from_config(
     let mut quoting = String::from("(");
     // add quotes with OR
     for (left, right) in quotes {
-        quoting.extend([
-            &regex::escape(&left.to_string()),
-            "[^",
-            &regex::escape(&left.to_string()),
-            "]+",
-            &regex::escape(&right.to_string()),
-            "|",
-        ]);
+        let left = left.to_string();
+        let right = right.to_string();
+        quoting.extend([&left, "[^", &left, "]+", &right, "|"]);
     }
 
     quoting.push('[');
@@ -153,13 +148,13 @@ fn regex_from_config(
         "]|^)",
         // key
         quoting.as_str(),
-        &value_re,
+        value_re,
         "]+)",
         // delimiter
         key_value_delimiter,
         // value
         quoting.as_str(),
-        &value_re,
+        value_re,
         "]+)",
         "(?:[",
         &field_delimiters.1,
