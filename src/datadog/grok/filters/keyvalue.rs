@@ -82,12 +82,10 @@ pub fn filter_from_function(f: &Function) -> Result<GrokFilter, GrokStaticError>
             match f.args.as_ref().unwrap()[3] {
                 FunctionArgument::Arg(Value::Bytes(ref bytes)) => {
                     let delimiter_str = String::from_utf8_lossy(bytes);
-                    let mut delimiter_chars = delimiter_str.chars();
-                    match (delimiter_chars.next(), delimiter_chars.as_str()) {
-                        (Some(left), right) if !right.is_empty() => {
-                            (left.to_string(), right.to_string())
-                        }
-                        (Some(single), "") => (single.to_string(), single.to_string()),
+                    let mut chars = delimiter_str.chars();
+                    match (chars.next(), chars.next(), chars.as_str()) {
+                        (Some(single), None, _) => (single.to_string(), single.to_string()),
+                        (Some(left), Some(right), "") => (left.to_string(), right.to_string()),
                         _ => return Err(GrokStaticError::InvalidFunctionArguments(f.name.clone())),
                     }
                 }
