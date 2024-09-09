@@ -1,5 +1,3 @@
-use std::borrow::Cow;
-use tracing::error;
 use crate::compiler::prelude::*;
 use crate::datadog_filter::{
     build_matcher,
@@ -9,6 +7,8 @@ use crate::datadog_filter::{
 use crate::datadog_search_syntax::{Comparison, ComparisonValue, Field, ParseError, QueryNode};
 use crate::owned_value_path;
 use crate::path::{parse_value_path, OwnedValuePath, PathParseError};
+use std::borrow::Cow;
+use tracing::error;
 
 #[derive(Clone, Copy, Debug)]
 pub struct MatchDatadogQuery;
@@ -169,7 +169,6 @@ impl Filter<Value> for VrlFilter {
             }
         };
 
-
         match field {
             // Default fields are compared by word boundary.
             Field::Default(_) => {
@@ -230,7 +229,6 @@ impl Filter<Value> for VrlFilter {
             }
         };
 
-
         match field {
             // Default fields are matched by word boundary.
             Field::Default(_) => {
@@ -275,7 +273,6 @@ impl Filter<Value> for VrlFilter {
                 return Run::boxed(|_| false);
             }
         };
-
 
         match field {
             Field::Default(_) => {
