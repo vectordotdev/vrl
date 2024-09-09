@@ -204,18 +204,20 @@ impl KeyValueFilter {
                     || key.is_empty())
                 {
                     let path = crate::path!(key);
-                    match result.get(path).cloned() {
-                        Some(Value::Array(mut values)) => {
-                            values.push(value);
-                            result.insert(path, values);
-                        }
+                    match result.get_mut(path) {
+                        Some(Value::Array(ref mut values)) => values.push(value),
                         Some(prev) => {
-                            result.insert(path, Value::Array(vec![prev, value]));
+                            // Replace existing non-array values with an array containing that value
+                            // followed by the new one. We can't just put that old value into the
+                            // array directly because we only have a `mut` reference to it, hence
+                            // the need `replace` it first.
+                            let old_value = std::mem::replace(prev, Value::Null);
+                            *prev = Value::Array(vec![old_value, value]);
                         }
                         None => {
                             result.insert(path, value);
                         }
-                    };
+                    }
                 }
             }
         }
