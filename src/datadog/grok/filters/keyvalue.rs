@@ -33,81 +33,81 @@ const DEFAULT_KEYVALUE_DELIMITER: &str = "=";
 const DEFAULT_QUOTES: &[(char, char)] = &[('"', '"'), ('\'', '\''), ('<', '>')];
 
 pub fn filter_from_function(f: &Function) -> Result<GrokFilter, GrokStaticError> {
-    {
-        let args_len = f.args.as_ref().map_or(0, |args| args.len());
+    let filter = key_value_filter_from_args(f.args.as_deref().unwrap_or_default().iter())
+        .ok_or_else(|| GrokStaticError::InvalidFunctionArguments(f.name.clone()))?;
+    Ok(GrokFilter::KeyValue(filter))
+}
 
-        let key_value_delimiter = if args_len > 0 {
-            match f.args.as_ref().unwrap()[0] {
-                FunctionArgument::Arg(Value::Bytes(ref bytes)) => &String::from_utf8_lossy(bytes),
-                _ => return Err(GrokStaticError::InvalidFunctionArguments(f.name.clone())),
-            }
-        } else {
-            DEFAULT_KEYVALUE_DELIMITER
-        };
-        let value_re = if args_len > 1 {
-            match f.args.as_ref().unwrap()[1] {
-                FunctionArgument::Arg(Value::Bytes(ref bytes)) => {
-                    [DEFAULT_VALUE_RE, &String::from_utf8_lossy(bytes)].concat()
+fn key_value_filter_from_args<'a>(
+    mut args: impl Iterator<Item = &'a FunctionArgument>,
+) -> Option<KeyValueFilter> {
+    let key_value_delimiter = match args.next() {
+        Some(FunctionArgument::Arg(Value::Bytes(ref bytes))) => &String::from_utf8_lossy(bytes),
+        Some(_) => return None,
+        None => DEFAULT_KEYVALUE_DELIMITER,
+    };
+
+    let value_re = match args.next() {
+        Some(FunctionArgument::Arg(Value::Bytes(ref bytes))) => {
+            [DEFAULT_VALUE_RE, &String::from_utf8_lossy(bytes)].concat()
+        }
+        Some(_) => return None,
+        // default allowed unescaped symbols
+        None => DEFAULT_VALUE_RE.to_string(),
+    };
+
+    let quotes = parse_quotes(args.next())?;
+    let field_delimiters = parse_field_delimiters(args.next())?;
+
+    Some(KeyValueFilter {
+        re_pattern: regex_from_config(
+            key_value_delimiter,
+            value_re,
+            quotes.clone(),
+            field_delimiters,
+        )?,
+        quotes,
+        key_value_delimiter: key_value_delimiter.to_string(),
+    })
+}
+
+fn parse_quotes(arg: Option<&FunctionArgument>) -> Option<Vec<(char, char)>> {
+    match arg {
+        Some(FunctionArgument::Arg(Value::Bytes(ref bytes))) => {
+            let pair = String::from_utf8_lossy(bytes);
+            match pair {
+                pair if pair.len() == 2 => {
+                    let mut chars = pair.chars();
+                    Some(vec![(
+                        chars.next().expect("open quote"),
+                        chars.next().expect("closing quote"),
+                    )])
                 }
-                _ => return Err(GrokStaticError::InvalidFunctionArguments(f.name.clone())),
+                pair if pair.is_empty() => Some(Vec::from(DEFAULT_QUOTES)),
+                _ => None,
             }
-        } else {
-            // default allowed unescaped symbols
-            DEFAULT_VALUE_RE.to_string()
-        };
+        }
+        Some(_) => None,
+        None => Some(Vec::from(DEFAULT_QUOTES)),
+    }
+}
 
-        let quotes = if args_len > 2 {
-            match f.args.as_ref().unwrap()[2] {
-                FunctionArgument::Arg(Value::Bytes(ref bytes)) => {
-                    let pair = String::from_utf8_lossy(bytes);
-                    match pair {
-                        pair if pair.len() == 2 => {
-                            let mut chars = pair.chars();
-                            Ok(vec![(
-                                chars.next().expect("open quote"),
-                                chars.next().expect("closing quote"),
-                            )])
-                        }
-                        pair if pair.is_empty() => Ok(Vec::from(DEFAULT_QUOTES)),
-                        _ => Err(GrokStaticError::InvalidFunctionArguments(f.name.clone())),
-                    }
-                }
-                _ => Err(GrokStaticError::InvalidFunctionArguments(f.name.clone())),
+fn parse_field_delimiters(arg: Option<&FunctionArgument>) -> Option<(String, String)> {
+    match arg {
+        Some(FunctionArgument::Arg(Value::Bytes(ref bytes))) => {
+            let delimiter_str = String::from_utf8_lossy(bytes);
+            let mut chars = delimiter_str.chars();
+            match (chars.next(), chars.next(), chars.as_str()) {
+                (Some(single), None, _) => Some((single.to_string(), single.to_string())),
+                (Some(left), Some(right), "") => Some((left.to_string(), right.to_string())),
+                _ => None,
             }
-        } else {
-            Ok(Vec::from(DEFAULT_QUOTES))
-        }?;
-
-        let field_delimiters = if args_len > 3 {
-            match f.args.as_ref().unwrap()[3] {
-                FunctionArgument::Arg(Value::Bytes(ref bytes)) => {
-                    let delimiter_str = String::from_utf8_lossy(bytes);
-                    let mut chars = delimiter_str.chars();
-                    match (chars.next(), chars.next(), chars.as_str()) {
-                        (Some(single), None, _) => (single.to_string(), single.to_string()),
-                        (Some(left), Some(right), "") => (left.to_string(), right.to_string()),
-                        _ => return Err(GrokStaticError::InvalidFunctionArguments(f.name.clone())),
-                    }
-                }
-                _ => return Err(GrokStaticError::InvalidFunctionArguments(f.name.clone())),
-            }
-        } else {
-            (
-                DEFAULT_DELIMITERS.0.to_string(),
-                DEFAULT_DELIMITERS.1.to_string(),
-            )
-        };
-
-        Ok(GrokFilter::KeyValue(KeyValueFilter {
-            re_pattern: regex_from_config(
-                key_value_delimiter,
-                value_re,
-                quotes.clone(),
-                field_delimiters,
-            )?,
-            quotes,
-            key_value_delimiter: key_value_delimiter.to_string(),
-        }))
+        }
+        Some(_) => None,
+        None => Some((
+            DEFAULT_DELIMITERS.0.to_string(),
+            DEFAULT_DELIMITERS.1.to_string(),
+        )),
     }
 }
 
@@ -116,7 +116,7 @@ fn regex_from_config(
     value_re: String,
     quotes: Vec<(char, char)>,
     field_delimiters: (String, String),
-) -> Result<Regex, GrokStaticError> {
+) -> Option<Regex> {
     // start group
     let mut quoting = String::from("(");
     // add quotes with OR
@@ -153,8 +153,7 @@ fn regex_from_config(
     ]
     .concat();
 
-    Regex::new(keyvalue.as_str())
-        .map_err(|_e| GrokStaticError::InvalidFunctionArguments("keyvalue".to_string()))
+    Regex::new(keyvalue.as_str()).ok()
 }
 
 #[derive(Debug, Clone)]
