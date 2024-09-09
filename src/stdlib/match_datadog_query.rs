@@ -1,5 +1,5 @@
 use std::borrow::Cow;
-
+use tracing::error;
 use crate::compiler::prelude::*;
 use crate::datadog_filter::{
     build_matcher,
@@ -120,8 +120,12 @@ impl Resolver for VrlFilter {}
 /// Implements `Filter`, which provides methods for matching against (in this case) VRL values.
 impl Filter<Value> for VrlFilter {
     fn exists(&self, field: Field) -> Box<dyn Matcher<Value>> {
-        let Ok(buf) = lookup_field(&field) else {
-            return Run::boxed(|_| false);
+        let buf = match lookup_field(&field) {
+            Ok(path) => path,
+            Err(error) => {
+                error!(message = "Invalid query field", %error);
+                return Run::boxed(|_| false);
+            }
         };
 
         match field {
@@ -157,9 +161,14 @@ impl Filter<Value> for VrlFilter {
     }
 
     fn equals(&self, field: Field, to_match: &str) -> Box<dyn Matcher<Value>> {
-        let Ok(buf) = lookup_field(&field) else {
-            return Run::boxed(|_| false);
+        let buf = match lookup_field(&field) {
+            Ok(path) => path,
+            Err(error) => {
+                error!(message = "Invalid query field", %error);
+                return Run::boxed(|_| false);
+            }
         };
+
 
         match field {
             // Default fields are compared by word boundary.
@@ -213,9 +222,14 @@ impl Filter<Value> for VrlFilter {
     }
 
     fn prefix(&self, field: Field, prefix: &str) -> Box<dyn Matcher<Value>> {
-        let Ok(buf) = lookup_field(&field) else {
-            return Run::boxed(|_| false);
+        let buf = match lookup_field(&field) {
+            Ok(path) => path,
+            Err(error) => {
+                error!(message = "Invalid query field", %error);
+                return Run::boxed(|_| false);
+            }
         };
+
 
         match field {
             // Default fields are matched by word boundary.
@@ -254,9 +268,14 @@ impl Filter<Value> for VrlFilter {
     }
 
     fn wildcard(&self, field: Field, wildcard: &str) -> Box<dyn Matcher<Value>> {
-        let Ok(buf) = lookup_field(&field) else {
-            return Run::boxed(|_| false);
+        let buf = match lookup_field(&field) {
+            Ok(path) => path,
+            Err(error) => {
+                error!(message = "Invalid query field", %error);
+                return Run::boxed(|_| false);
+            }
         };
+
 
         match field {
             Field::Default(_) => {
@@ -295,9 +314,14 @@ impl Filter<Value> for VrlFilter {
         comparator: Comparison,
         comparison_value: ComparisonValue,
     ) -> Box<dyn Matcher<Value>> {
-        let Ok(buf) = lookup_field(&field) else {
-            return Run::boxed(|_| false);
+        let buf = match lookup_field(&field) {
+            Ok(path) => path,
+            Err(error) => {
+                error!(message = "Invalid query field", %error);
+                return Run::boxed(|_| false);
+            }
         };
+
         let rhs = Cow::from(comparison_value.to_string());
 
         match field {
