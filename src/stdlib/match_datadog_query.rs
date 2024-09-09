@@ -8,7 +8,7 @@ use crate::datadog_filter::{
 };
 use crate::datadog_search_syntax::{Comparison, ComparisonValue, Field, ParseError, QueryNode};
 use crate::owned_value_path;
-use crate::path::{parse_value_path, OwnedValuePath};
+use crate::path::{parse_value_path, OwnedValuePath, PathParseError};
 
 #[derive(Clone, Copy, Debug)]
 pub struct MatchDatadogQuery;
@@ -120,7 +120,9 @@ impl Resolver for VrlFilter {}
 /// Implements `Filter`, which provides methods for matching against (in this case) VRL values.
 impl Filter<Value> for VrlFilter {
     fn exists(&self, field: Field) -> Box<dyn Matcher<Value>> {
-        let buf = lookup_field(&field);
+        let Ok(buf) = lookup_field(&field) else {
+            return Run::boxed(|_| false);
+        };
 
         match field {
             // Tags need to check the element value.
@@ -155,7 +157,9 @@ impl Filter<Value> for VrlFilter {
     }
 
     fn equals(&self, field: Field, to_match: &str) -> Box<dyn Matcher<Value>> {
-        let buf = lookup_field(&field);
+        let Ok(buf) = lookup_field(&field) else {
+            return Run::boxed(|_| false);
+        };
 
         match field {
             // Default fields are compared by word boundary.
@@ -209,7 +213,9 @@ impl Filter<Value> for VrlFilter {
     }
 
     fn prefix(&self, field: Field, prefix: &str) -> Box<dyn Matcher<Value>> {
-        let buf = lookup_field(&field);
+        let Ok(buf) = lookup_field(&field) else {
+            return Run::boxed(|_| false);
+        };
 
         match field {
             // Default fields are matched by word boundary.
@@ -248,7 +254,9 @@ impl Filter<Value> for VrlFilter {
     }
 
     fn wildcard(&self, field: Field, wildcard: &str) -> Box<dyn Matcher<Value>> {
-        let buf = lookup_field(&field);
+        let Ok(buf) = lookup_field(&field) else {
+            return Run::boxed(|_| false);
+        };
 
         match field {
             Field::Default(_) => {
@@ -287,7 +295,9 @@ impl Filter<Value> for VrlFilter {
         comparator: Comparison,
         comparison_value: ComparisonValue,
     ) -> Box<dyn Matcher<Value>> {
-        let buf = lookup_field(&field);
+        let Ok(buf) = lookup_field(&field) else {
+            return Run::boxed(|_| false);
+        };
         let rhs = Cow::from(comparison_value.to_string());
 
         match field {
@@ -412,12 +422,12 @@ fn resolve_value(
 
 /// If the provided field is a `Field::Tag`, will return a "tags" lookup buf. Otherwise,
 /// parses the field and returns a lookup buf is the lookup itself is valid.
-fn lookup_field(field: &Field) -> OwnedValuePath {
+fn lookup_field(field: &Field) -> Result<OwnedValuePath, PathParseError> {
     match field {
         Field::Default(p) | Field::Reserved(p) | Field::Attribute(p) => {
-            parse_value_path(p.as_str()).expect("should parse value path (lookup_field)")
+            parse_value_path(p.as_str())
         }
-        Field::Tag(_) => owned_value_path!("tags"),
+        Field::Tag(_) => Ok(owned_value_path!("tags")),
     }
 }
 
@@ -1961,6 +1971,18 @@ mod test {
         float_range_integer_value_no_match {
             args: func_args![value: value!({"level": 6}), query: "@level:[7.0 TO 10.0]"],
             want: Ok(false),
+            tdef: type_def(),
+        }
+
+        path_parser_failure {
+            args: func_args![value: value!({"a-b": "3"}), query: "@a-b:3"],
+            want: Ok(false),
+            tdef: type_def(),
+        }
+
+        quoted_query_key_match {
+            args: func_args![value: value!({"a-b": 1}), query: "@\\\"a-b\\\":1"],
+            want: Ok(true),
             tdef: type_def(),
         }
     ];
