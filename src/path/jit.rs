@@ -267,6 +267,7 @@ mod test {
             ),
             (".foo", vec![BorrowedSegment::Field("foo".into())]),
             (".a-b", vec![BorrowedSegment::Field("a-b".into())]),
+            (".a-b-", vec![BorrowedSegment::Field("a-b-".into())]),
             (".-a-b", vec![BorrowedSegment::Invalid]),
             (
                 ".@timestamp",
