@@ -1,6 +1,6 @@
 [package]
 name = "vrl"
-version = "0.17.0"
+version = "0.18.0"
 authors = ["Vector Contributors <vector@datadoghq.com>"]
 edition = "2021"
 license = "MPL-2.0"
@@ -36,7 +36,7 @@ string_path = []
 
 # Datadog related features (on by default)
 datadog = ["datadog_filter", "datadog_grok", "datadog_search"]
-datadog_filter = ["datadog_search", "dep:regex", "dep:dyn-clone"]
+datadog_filter = ["path", "datadog_search", "dep:regex", "dep:dyn-clone"]
 datadog_grok = ["value", "parsing", "dep:nom", "dep:peeking_take_while", "dep:serde_json", "dep:onig", "dep:lalrpop-util", "dep:thiserror", "dep:chrono", "dep:chrono-tz", "dep:percent-encoding", "dep:fancy-regex"]
 datadog_search = ["dep:pest", "dep:pest_derive", "dep:itertools", "dep:once_cell", "dep:regex", "dep:serde"]
 
@@ -126,7 +126,7 @@ base64 = { version = "0.22", optional = true }
 bytes = { version = "1", default-features = false, optional = true }
 charset = { version = "0.1", optional = true }
 chrono = { version = "0.4", default-features = false, features = ["clock", "serde", "wasmbind"], optional = true }
-chrono-tz = { version = "0.9", default-features = false, optional = true }
+chrono-tz = { version = "0.10", default-features = false, optional = true }
 cidr-utils = { version = "0.6", optional = true }
 csv = { version = "1", optional = true }
 clap = { version = "4", features = ["derive"], optional = true }
@@ -225,7 +225,7 @@ uuid = { version = "1", features = ["v4", "v7", "js"], optional = true }
 [dev-dependencies]
 anyhow = "1"
 criterion = "0.5"
-chrono-tz = "0.9"
+chrono-tz = "0.10"
 serde_json = "1"
 indoc = "2"
 tracing-test = { version = "0.2", default-features = false }
@@ -243,12 +243,10 @@ lalrpop = { version = "0.20", default-features = false }
 [[bench]]
 name = "kind"
 harness = false
-required-features = ["default", "test"]
 
 [[bench]]
 name = "keyvalue"
 harness = false
-required-features = ["default", "test"]
 
 [[bench]]
 name = "stdlib"

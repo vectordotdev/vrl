@@ -1,22 +1,28 @@
 [licenses]
 allow = [
-  "MIT",
-  "CC0-1.0",
-  "ISC",
-  "OpenSSL",
-  "Unicode-3.0",
-  "Unlicense",
+  "0BSD",
+  "Apache-2.0 WITH LLVM-exception",
+  "Apache-2.0",
   "BSD-2-Clause",
   "BSD-3-Clause",
-  "Apache-2.0",
-  "Apache-2.0 WITH LLVM-exception",
+  "BSL-1.0",
+  "CC0-1.0",
+  "ISC",
+  "MIT",
+  "OpenSSL",
+  "Unicode-3.0",
+  "Unicode-DFS-2016",
+  "Unlicense",
   "Zlib",
 ]
 
-unlicensed = "warn"
-default = "warn"
-
 private = { ignore = true }
+
+exceptions = [
+    # MPL-2.0 are added case-by-case to make sure we are in compliance. To be in
+    # compliance we cannot be modifying the source files.
+    { allow = ["MPL-2.0"], name = "vrl", version = "*" },
+]
 
 [[licenses.clarify]]
 name = "ring"
@@ -24,4 +30,12 @@ version = "*"
 expression = "MIT AND ISC AND OpenSSL"
 license-files = [
     { path = "LICENSE", hash = 0xbd0eed23 }
+]
+
+[advisories]
+ignore = [
+    # ansi_term is Unmaintained
+    # Only used when test_framework feature is enabled for tests
+    # TODO: We should swap this out for a maintained library
+    "RUSTSEC-2021-0139"
 ]
