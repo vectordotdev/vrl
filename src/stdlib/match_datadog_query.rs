@@ -7,8 +7,8 @@ use crate::datadog_filter::{
 use crate::datadog_search_syntax::{Comparison, ComparisonValue, Field, ParseError, QueryNode};
 use crate::owned_value_path;
 use crate::path::{parse_value_path, OwnedValuePath, PathParseError};
-use std::borrow::Cow;
 use crate::prelude::function::Error::InvalidArgument;
+use std::borrow::Cow;
 
 const QUERY_KEYWORD: &str = "query";
 
@@ -67,10 +67,13 @@ impl Function for MatchDatadogQuery {
         // Build the matcher function that accepts a VRL event value. This will parse the `node`
         // at boot-time and return a boxed func that contains just the logic required to match a
         // VRL `Value` against the Datadog Search Syntax literal.
-        let filter = build_matcher(&node, &VrlFilter)
-            .map_err(|_| {
-                Box::new(InvalidArgument { keyword: QUERY_KEYWORD, value: query_value, error: "failed to build matcher" }) as Box<dyn DiagnosticMessage>
-            })?;
+        let filter = build_matcher(&node, &VrlFilter).map_err(|_| {
+            Box::new(InvalidArgument {
+                keyword: QUERY_KEYWORD,
+                value: query_value,
+                error: "failed to build matcher",
+            }) as Box<dyn DiagnosticMessage>
+        })?;
 
         Ok(MatchDatadogQueryFn { value, filter }.as_expr())
     }
