@@ -1,5 +1,3 @@
-use std::borrow::Cow;
-
 use crate::compiler::prelude::*;
 use crate::datadog_filter::{
     build_matcher,
@@ -8,7 +6,11 @@ use crate::datadog_filter::{
 };
 use crate::datadog_search_syntax::{Comparison, ComparisonValue, Field, ParseError, QueryNode};
 use crate::owned_value_path;
-use crate::path::{parse_value_path, OwnedValuePath};
+use crate::path::{parse_value_path, OwnedValuePath, PathParseError};
+use crate::prelude::function::Error::InvalidArgument;
+use std::borrow::Cow;
+
+const QUERY_KEYWORD: &str = "query";
 
 #[derive(Clone, Copy, Debug)]
 pub struct MatchDatadogQuery;
@@ -50,7 +52,7 @@ impl Function for MatchDatadogQuery {
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
-        let query_value = arguments.required_literal("query", state)?;
+        let query_value = arguments.required_literal(QUERY_KEYWORD, state)?;
 
         // Query should always be a string.
         let query = query_value
@@ -65,7 +67,13 @@ impl Function for MatchDatadogQuery {
         // Build the matcher function that accepts a VRL event value. This will parse the `node`
         // at boot-time and return a boxed func that contains just the logic required to match a
         // VRL `Value` against the Datadog Search Syntax literal.
-        let filter = build_matcher(&node, &VrlFilter);
+        let filter = build_matcher(&node, &VrlFilter).map_err(|_| {
+            Box::new(InvalidArgument {
+                keyword: QUERY_KEYWORD,
+                value: query_value,
+                error: "failed to build matcher",
+            }) as Box<dyn DiagnosticMessage>
+        })?;
 
         Ok(MatchDatadogQueryFn { value, filter }.as_expr())
     }
@@ -119,10 +127,10 @@ impl Resolver for VrlFilter {}
 
 /// Implements `Filter`, which provides methods for matching against (in this case) VRL values.
 impl Filter<Value> for VrlFilter {
-    fn exists(&self, field: Field) -> Box<dyn Matcher<Value>> {
-        let buf = lookup_field(&field);
+    fn exists(&self, field: Field) -> Result<Box<dyn Matcher<Value>>, PathParseError> {
+        let buf = lookup_field(&field)?;
 
-        match field {
+        Ok(match field {
             // Tags need to check the element value.
             Field::Tag(tag) => {
                 let starts_with = format!("{tag}:");
@@ -151,13 +159,17 @@ impl Filter<Value> for VrlFilter {
 
             // Other field types have already resolved at this point, so just return true.
             _ => resolve_value(buf, Box::new(true)),
-        }
+        })
     }
 
-    fn equals(&self, field: Field, to_match: &str) -> Box<dyn Matcher<Value>> {
-        let buf = lookup_field(&field);
+    fn equals(
+        &self,
+        field: Field,
+        to_match: &str,
+    ) -> Result<Box<dyn Matcher<Value>>, PathParseError> {
+        let buf = lookup_field(&field)?;
 
-        match field {
+        Ok(match field {
             // Default fields are compared by word boundary.
             Field::Default(_) => {
                 let re = word_regex(to_match);
@@ -205,13 +217,17 @@ impl Filter<Value> for VrlFilter {
                     Run::boxed(move |value| string_value(value) == to_match),
                 )
             }
-        }
+        })
     }
 
-    fn prefix(&self, field: Field, prefix: &str) -> Box<dyn Matcher<Value>> {
-        let buf = lookup_field(&field);
+    fn prefix(
+        &self,
+        field: Field,
+        prefix: &str,
+    ) -> Result<Box<dyn Matcher<Value>>, PathParseError> {
+        let buf = lookup_field(&field)?;
 
-        match field {
+        Ok(match field {
             // Default fields are matched by word boundary.
             Field::Default(_) => {
                 let re = word_regex(&format!("{prefix}*"));
@@ -244,13 +260,17 @@ impl Filter<Value> for VrlFilter {
                     Run::boxed(move |value| string_value(value).starts_with(&prefix)),
                 )
             }
-        }
+        })
     }
 
-    fn wildcard(&self, field: Field, wildcard: &str) -> Box<dyn Matcher<Value>> {
-        let buf = lookup_field(&field);
+    fn wildcard(
+        &self,
+        field: Field,
+        wildcard: &str,
+    ) -> Result<Box<dyn Matcher<Value>>, PathParseError> {
+        let buf = lookup_field(&field)?;
 
-        match field {
+        Ok(match field {
             Field::Default(_) => {
                 let re = word_regex(wildcard);
 
@@ -278,7 +298,7 @@ impl Filter<Value> for VrlFilter {
                     Run::boxed(move |value| re.is_match(&string_value(value))),
                 )
             }
-        }
+        })
     }
 
     fn compare(
@@ -286,11 +306,12 @@ impl Filter<Value> for VrlFilter {
         field: Field,
         comparator: Comparison,
         comparison_value: ComparisonValue,
-    ) -> Box<dyn Matcher<Value>> {
-        let buf = lookup_field(&field);
+    ) -> Result<Box<dyn Matcher<Value>>, PathParseError> {
+        let buf = lookup_field(&field)?;
+
         let rhs = Cow::from(comparison_value.to_string());
 
-        match field {
+        Ok(match field {
             // Attributes are compared numerically if the value is numeric, or as strings otherwise.
             Field::Attribute(_) => {
                 resolve_value(
@@ -390,7 +411,7 @@ impl Filter<Value> for VrlFilter {
                     }
                 }),
             ),
-        }
+        })
     }
 }
 
@@ -412,12 +433,12 @@ fn resolve_value(
 
 /// If the provided field is a `Field::Tag`, will return a "tags" lookup buf. Otherwise,
 /// parses the field and returns a lookup buf is the lookup itself is valid.
-fn lookup_field(field: &Field) -> OwnedValuePath {
+fn lookup_field(field: &Field) -> Result<OwnedValuePath, PathParseError> {
     match field {
         Field::Default(p) | Field::Reserved(p) | Field::Attribute(p) => {
-            parse_value_path(p.as_str()).expect("should parse value path (lookup_field)")
+            parse_value_path(p.as_str())
         }
-        Field::Tag(_) => owned_value_path!("tags"),
+        Field::Tag(_) => Ok(owned_value_path!("tags")),
     }
 }
 
@@ -1961,6 +1982,18 @@ mod test {
         float_range_integer_value_no_match {
             args: func_args![value: value!({"level": 6}), query: "@level:[7.0 TO 10.0]"],
             want: Ok(false),
+            tdef: type_def(),
+        }
+
+        path_parser_failure {
+            args: func_args![value: value!({"a-b": "3"}), query: "@a-b:3"],
+            want: Err("invalid argument"),
+            tdef: type_def(),
+        }
+
+        quoted_query_key_match {
+            args: func_args![value: value!({"a-b": 1}), query: "@\\\"a-b\\\":1"],
+            want: Ok(true),
             tdef: type_def(),
         }
     ];
