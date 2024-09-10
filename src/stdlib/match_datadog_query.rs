@@ -5,11 +5,12 @@ use crate::datadog_filter::{
     Filter, Matcher, Resolver, Run,
 };
 use crate::datadog_search_syntax::{Comparison, ComparisonValue, Field, ParseError, QueryNode};
-use crate::diagnostic::Label;
 use crate::owned_value_path;
 use crate::path::{parse_value_path, OwnedValuePath, PathParseError};
-use crate::stdlib::match_datadog_query::Error::InvalidFilter;
 use std::borrow::Cow;
+use crate::prelude::function::Error::InvalidArgument;
+
+const QUERY_KEYWORD: &str = "query";
 
 #[derive(Clone, Copy, Debug)]
 pub struct MatchDatadogQuery;
@@ -51,7 +52,7 @@ impl Function for MatchDatadogQuery {
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
-        let query_value = arguments.required_literal("query", state)?;
+        let query_value = arguments.required_literal(QUERY_KEYWORD, state)?;
 
         // Query should always be a string.
         let query = query_value
@@ -67,7 +68,9 @@ impl Function for MatchDatadogQuery {
         // at boot-time and return a boxed func that contains just the logic required to match a
         // VRL `Value` against the Datadog Search Syntax literal.
         let filter = build_matcher(&node, &VrlFilter)
-            .map_err(|error| Box::new(InvalidFilter(error)) as Box<dyn DiagnosticMessage>)?;
+            .map_err(|_| {
+                Box::new(InvalidArgument { keyword: QUERY_KEYWORD, value: query_value, error: "failed to build matcher" }) as Box<dyn DiagnosticMessage>
+            })?;
 
         Ok(MatchDatadogQueryFn { value, filter }.as_expr())
     }
@@ -85,38 +88,6 @@ impl Function for MatchDatadogQuery {
                 required: true,
             },
         ]
-    }
-}
-
-#[derive(Debug)]
-pub(crate) enum Error {
-    InvalidFilter(PathParseError),
-}
-
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Error::InvalidFilter(err) => err.fmt(f),
-        }
-    }
-}
-
-impl std::error::Error for Error {}
-
-impl DiagnosticMessage for Error {
-    fn code(&self) -> usize {
-        112
-    }
-
-    fn labels(&self) -> Vec<Label> {
-        match self {
-            Error::InvalidFilter(err) => {
-                vec![Label::primary(
-                    format!("grok pattern error: {err}"),
-                    Span::default(),
-                )]
-            }
-        }
     }
 }
 
@@ -2013,7 +1984,7 @@ mod test {
 
         path_parser_failure {
             args: func_args![value: value!({"a-b": "3"}), query: "@a-b:3"],
-            want: Err("Invalid field path \".a-b\""),
+            want: Err("invalid argument"),
             tdef: type_def(),
         }
 
