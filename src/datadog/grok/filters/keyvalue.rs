@@ -125,7 +125,7 @@ fn parse_field_delimiters(arg: Option<&FunctionArgument>) -> Option<(String, Str
     }
 }
 
-fn regex_from_config(
+pub fn regex_from_config(
     key_value_delimiter: &str,
     value_re: &str,
     quotes: Vec<(char, char)>,
