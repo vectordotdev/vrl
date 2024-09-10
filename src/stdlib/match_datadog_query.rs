@@ -1997,8 +1997,14 @@ mod test {
             tdef: type_def(),
         }
 
-        path_parser_failure {
+        path_parser_hyphen {
             args: func_args![value: value!({"a-b": "3"}), query: "@a-b:3"],
+            want: Ok(true),
+            tdef: type_def(),
+        }
+
+        path_parser_failure {
+            args: func_args![value: value!({"a-b": "3"}), query: "@a%:3"],
             want: Err("invalid argument"),
             tdef: type_def(),
         }
