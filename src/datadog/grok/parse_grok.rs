@@ -254,8 +254,10 @@ mod tests {
 
     fn test_grok_pattern(tests: Vec<(&str, &str, Result<Value, Error>)>) {
         for (filter, k, v) in tests {
-            let rules = parse_grok_rules(&[filter.to_string()], BTreeMap::new())
-                .expect("couldn't parse rules");
+            let rules =
+                parse_grok_rules(&[filter.to_string()], BTreeMap::new()).unwrap_or_else(|error| {
+                    panic!("failed to parse {k} with filter {filter}: {error}")
+                });
             let parsed = parse_grok(k, &rules);
 
             if v.is_ok() {
@@ -263,10 +265,11 @@ mod tests {
                     parsed.unwrap_or_else(|_| panic!("{filter} does not match {k}")),
                     Value::from(btreemap! {
                         "field" =>  v.unwrap(),
-                    })
+                    }),
+                    "failed to parse {k} with filter {filter}"
                 );
             } else {
-                assert_eq!(parsed, v);
+                assert_eq!(parsed, v, "failed to parse {k} with filter {filter}");
             }
         }
     }
@@ -274,10 +277,10 @@ mod tests {
     fn test_full_grok(tests: Vec<(&str, &str, Result<Value, Error>)>) {
         for (filter, k, v) in tests {
             let rules = parse_grok_rules(&[filter.to_string()], BTreeMap::new())
-                .expect("couldn't parse rules");
+                .unwrap_or_else(|_| panic!("failed to parse {k} with filter {filter}"));
             let parsed = parse_grok(k, &rules);
 
-            assert_eq!(parsed, v);
+            assert_eq!(parsed, v, "failed to parse {k} with filter {filter}");
         }
     }
 
@@ -790,6 +793,24 @@ mod tests {
                     "key" => "valueStr"
                 })),
             ),
+            // ignore space after the delimiter(comma)
+            (
+                r#"%{data::keyvalue}"#,
+                "key1=value1, key2=value2",
+                Ok(Value::from(btreemap! {
+                    "key1" => "value1",
+                    "key2" => "value2",
+                })),
+            ),
+            // allow space as a legit value character, but trim key/values
+            (
+                r#"%{data::keyvalue("="," ")}"#,
+                "key1=value1, key2 = value 2 ",
+                Ok(Value::from(btreemap! {
+                    "key1" => "value1",
+                    "key2" => "value 2",
+                })),
+            ),
             (
                 r#"%{data::keyvalue("=", "", "", "|")}"#,
                 "key1=value1|key2=value2",
@@ -926,6 +947,64 @@ mod tests {
                         "name" => "my_db",
                         "operation" => "insert",
                     }
+                })),
+            ),
+            // capture all possilbe key-value pairs from the string
+            (
+                "%{data::keyvalue}",
+                r#" , key1=value1 "key2"="value2",key3=value3 "#,
+                Ok(Value::from(btreemap! {
+                    "key1" => "value1",
+                    "key2" => "value2",
+                    "key3" => "value3",
+                })),
+            ),
+            (
+                r#"%{data::keyvalue(": ",",")}"#,
+                r#"client: 217.92.148.44, server: localhost, request: "HEAD http://174.138.82.103:80/sql/sql-admin/ HTTP/1.1", host: "174.138.82.103""#,
+                Ok(Value::from(btreemap! {
+                    "client" => "217.92.148.44",
+                    "host" => "174.138.82.103",
+                    "request" => "HEAD http://174.138.82.103:80/sql/sql-admin/ HTTP/1.1",
+                    "server" => "localhost",
+                })),
+            ),
+            // append values with the same key
+            (
+                r#"%{data::keyvalue}"#,
+                r#"a=1, a=1, a=2"#,
+                Ok(Value::from(btreemap! {
+                    "a" => vec![1, 1, 2]
+                })),
+            ),
+            // trim string values
+            (
+                r#"%{data::keyvalue("="," ")}"#,
+                r#"a= foo"#,
+                Ok(Value::from(btreemap! {
+                    "a" => "foo"
+                })),
+            ),
+            // ignore if key contains spaces
+            (
+                r#"%{data::keyvalue("="," ")}"#,
+                "a key=value",
+                Ok(Value::from(btreemap! {})),
+            ),
+            // parses valid octal numbers (start with 0) as decimals
+            (
+                r#"%{data::keyvalue}"#,
+                "a=07",
+                Ok(Value::from(btreemap! {
+                    "a" => 7
+                })),
+            ),
+            // parses invalid octal numbers (start with 0) as strings
+            (
+                r#"%{data::keyvalue}"#,
+                "a=08",
+                Ok(Value::from(btreemap! {
+                    "a" => "08"
                 })),
             ),
         ]);

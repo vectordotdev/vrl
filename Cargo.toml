@@ -10,7 +10,7 @@ repository = "https://github.com/vectordotdev/vrl"
 readme = "README.md"
 keywords = ["vector", "datadog", "compiler"]
 categories = ["compilers"]
-rust-version = "1.78" # msrv
+rust-version = "1.79" # msrv
 
 [workspace]
 members = [
@@ -37,7 +37,7 @@ string_path = []
 # Datadog related features (on by default)
 datadog = ["datadog_filter", "datadog_grok", "datadog_search"]
 datadog_filter = ["path", "datadog_search", "dep:regex", "dep:dyn-clone"]
-datadog_grok = ["value", "parsing", "dep:nom", "dep:peeking_take_while", "dep:serde_json", "dep:onig", "dep:lalrpop-util", "dep:thiserror", "dep:chrono", "dep:chrono-tz", "dep:percent-encoding"]
+datadog_grok = ["value", "parsing", "dep:nom", "dep:peeking_take_while", "dep:serde_json", "dep:onig", "dep:lalrpop-util", "dep:thiserror", "dep:chrono", "dep:chrono-tz", "dep:percent-encoding", "dep:fancy-regex"]
 datadog_search = ["dep:pest", "dep:pest_derive", "dep:itertools", "dep:once_cell", "dep:regex", "dep:serde"]
 
 # Features that aren't used as often (default off)
@@ -173,6 +173,7 @@ rust_decimal = { version = "1", optional = true }
 seahash = { version = "4", optional = true }
 serde = { version = "1", features = ["derive"], optional = true }
 serde_json = { version = "1", default-features = false, optional = true, features = ["std", "raw_value"] }
+fancy-regex = { version = "0.13.0", default-features = false, optional = true }
 sha-1 = { version = "0.10", optional = true }
 sha-2 = { package = "sha2", version = "0.10", optional = true }
 sha-3 = { package = "sha3", version = "0.10", optional = true }
