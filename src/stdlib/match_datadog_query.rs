@@ -497,6 +497,12 @@ mod test {
             tdef: type_def(),
         }
 
+        hyphen_facet_exists {
+            args: func_args![value: value!({"a-b": "value"}), query: "_exists_:@a-b"],
+            want: Ok(true),
+            tdef: type_def(),
+        }
+
         tag_bare {
             args: func_args![value: value!({"tags": ["a","b","c"]}), query: "tags:a"],
             want: Ok(true),
@@ -590,6 +596,12 @@ mod test {
         negate_facet_missing {
             args: func_args![value: value!({"b": "value" }), query: "-_missing_:@a"],
             want: Ok(false),
+            tdef: type_def(),
+        }
+
+        hyphen_facet_missing {
+            args: func_args![value: value!({"a-b": "value"}), query: "_missing_:@c-d"],
+            want: Ok(true),
             tdef: type_def(),
         }
 
@@ -1985,8 +1997,14 @@ mod test {
             tdef: type_def(),
         }
 
-        path_parser_failure {
+        path_parser_hyphen {
             args: func_args![value: value!({"a-b": "3"}), query: "@a-b:3"],
+            want: Ok(true),
+            tdef: type_def(),
+        }
+
+        path_parser_failure {
+            args: func_args![value: value!({"a-b": "3"}), query: "@a%:3"],
             want: Err("invalid argument"),
             tdef: type_def(),
         }
