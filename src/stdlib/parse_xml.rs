@@ -205,18 +205,6 @@ mod tests {
             tdef: type_def(),
         }
 
-        if_no_sibling {
-            args: func_args![ value: "<root><a>test</a></root>"],
-            want: Ok(value!({ "root": { "a": "test" } })),
-            tdef: type_def(),
-        }
-
-        if_no_sibling2 {
-            args: func_args![ value: "<root><a><a1>test</a1></a><b>test2</b></root>"],
-            want: Ok(value!({ "root": { "a": { "a1": "test" }, "b" : "test2" } })),
-            tdef: type_def(),
-        }
-
         include_attr {
             args: func_args![ value: r#"<a href="https://vector.dev">test</a>"# ],
             want: Ok(value!({ "a": { "@href": "https://vector.dev", "text": "test" } })),
@@ -477,6 +465,18 @@ mod tests {
                   }
                 }
             )),
+            tdef: type_def(),
+        }
+
+        if_no_sibling {
+            args: func_args![ value: "<root><a>test</a></root>"],
+            want: Ok(value!({ "root": { "a": "test" } })),
+            tdef: type_def(),
+        }
+
+        if_no_sibling2 {
+            args: func_args![ value: "<root><a><a1>test</a1></a><b>test2</b></root>"],
+            want: Ok(value!({ "root": { "a": { "a1": "test" }, "b" : "test2" } })),
             tdef: type_def(),
         }
     ];

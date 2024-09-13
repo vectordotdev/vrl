@@ -171,7 +171,7 @@ fn process_node(node: Node, config: &ParseXmlConfig) -> Value {
 
                             map.insert(
                                 node.tag_name().name().to_string().into(),
-                                Value::Object(recurse(node)),
+                                process_node(node, config),
                             );
 
                             Value::Object(map)
