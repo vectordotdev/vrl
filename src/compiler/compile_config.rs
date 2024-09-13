@@ -6,11 +6,21 @@ use std::{
 
 type AnyMap = HashMap<TypeId, Box<dyn Any>>;
 
-#[derive(Default)]
 pub struct CompileConfig {
     /// Custom context injected by the external environment
     custom: AnyMap,
     read_only_paths: BTreeSet<ReadOnlyPath>,
+    check_unused_expressions: bool,
+}
+
+impl Default for CompileConfig {
+    fn default() -> Self {
+        CompileConfig {
+            custom: AnyMap::default(),
+            read_only_paths: BTreeSet::default(),
+            check_unused_expressions: true,
+        }
+    }
 }
 
 impl CompileConfig {
@@ -69,6 +79,15 @@ impl CompileConfig {
     pub fn set_read_only_path(&mut self, path: OwnedTargetPath, recursive: bool) {
         self.read_only_paths
             .insert(ReadOnlyPath { path, recursive });
+    }
+
+    #[must_use]
+    pub fn unused_expression_check_enabled(&self) -> bool {
+        self.check_unused_expressions
+    }
+
+    pub fn disable_unused_expression_check(&mut self) {
+        self.check_unused_expressions = false;
     }
 }
 

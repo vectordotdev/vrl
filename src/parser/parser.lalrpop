@@ -379,11 +379,6 @@ Path: OwnedValuePath = PathSegment+ => OwnedValuePath::from(<>);
 PathSegment: OwnedSegment = {
     "."? <Field> => OwnedSegment::field(&<>),
     "[" <Integer> "]" => OwnedSegment::index(<> as isize),
-    "."? "(" <v:(<Field> "|")+> <e:Field> ")" => {
-            let mut v = v;
-            v.push(e);
-            OwnedSegment::coalesce(v)
-        },
 };
 
 #[inline]

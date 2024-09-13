@@ -29,8 +29,6 @@ pub struct JitValuePathIter<'a> {
     chars: CharIndices<'a>,
     state: JitState,
     escape_buffer: String,
-    // keep track of the number of options in a coalesce to prevent size 1 coalesces
-    coalesce_count: u32,
 }
 
 impl<'a> JitValuePathIter<'a> {
@@ -40,7 +38,6 @@ impl<'a> JitValuePathIter<'a> {
             path,
             state: JitState::Start,
             escape_buffer: String::new(),
-            coalesce_count: 0,
         }
     }
 }
@@ -65,12 +62,6 @@ enum JitState {
     Field { start: usize },
     Quote { start: usize },
     EscapedQuote,
-    CoalesceStart,
-    CoalesceField { start: usize },
-    CoalesceFieldEnd { start: usize, end: usize },
-    CoalesceEscapedFieldEnd,
-    CoalesceQuote { start: usize },
-    CoalesceEscapedQuote,
     End,
 }
 
@@ -88,12 +79,6 @@ impl<'a> Iterator for JitValuePathIter<'a> {
                         | JitState::NegativeIndex { .. }
                         | JitState::Quote { .. }
                         | JitState::EscapedQuote { .. }
-                        | JitState::CoalesceStart
-                        | JitState::CoalesceField { .. }
-                        | JitState::CoalesceFieldEnd { .. }
-                        | JitState::CoalesceQuote { .. }
-                        | JitState::CoalesceEscapedQuote { .. }
-                        | JitState::CoalesceEscapedFieldEnd
                         | JitState::Dot => Some(BorrowedSegment::Invalid),
 
                         JitState::Continue | JitState::EventRoot | JitState::End => None,
@@ -109,43 +94,39 @@ impl<'a> Iterator for JitValuePathIter<'a> {
                     let (result, state) = match self.state {
                         JitState::Start => match c {
                             '.' => (None, JitState::EventRoot),
-                            'A'..='Z' | 'a'..='z' | '_' | '0'..='9' | '@' => {
+                            'A'..='Z' | 'a'..='z' | '_' | '0'..='9' | '@' | '-' => {
                                 (None, JitState::Field { start: index })
                             }
                             '[' => (None, JitState::IndexStart),
-                            '(' => (None, JitState::CoalesceStart),
                             '\"' => (None, JitState::Quote { start: index + 1 }),
                             _ => (Some(Some(BorrowedSegment::Invalid)), JitState::End),
                         },
                         JitState::Continue => match c {
                             '.' => (None, JitState::Dot),
-                            'A'..='Z' | 'a'..='z' | '_' | '0'..='9' | '@' => {
+                            'A'..='Z' | 'a'..='z' | '_' | '0'..='9' | '@' | '-' => {
                                 (None, JitState::Field { start: index })
                             }
                             '[' => (None, JitState::IndexStart),
-                            '(' => (None, JitState::CoalesceStart),
                             '\"' => (None, JitState::Quote { start: index + 1 }),
                             _ => (Some(Some(BorrowedSegment::Invalid)), JitState::End),
                         },
                         JitState::EventRoot => match c {
-                            'A'..='Z' | 'a'..='z' | '_' | '0'..='9' | '@' => {
+                            'A'..='Z' | 'a'..='z' | '_' | '0'..='9' | '@' | '-' => {
                                 (None, JitState::Field { start: index })
                             }
                             '[' => (None, JitState::IndexStart),
-                            '(' => (None, JitState::CoalesceStart),
                             '\"' => (None, JitState::Quote { start: index + 1 }),
                             _ => (Some(Some(BorrowedSegment::Invalid)), JitState::End),
                         },
                         JitState::Dot => match c {
-                            'A'..='Z' | 'a'..='z' | '_' | '0'..='9' | '@' => {
+                            'A'..='Z' | 'a'..='z' | '_' | '0'..='9' | '@' | '-' => {
                                 (None, JitState::Field { start: index })
                             }
-                            '(' => (None, JitState::CoalesceStart),
                             '\"' => (None, JitState::Quote { start: index + 1 }),
                             _ => (Some(Some(BorrowedSegment::Invalid)), JitState::End),
                         },
                         JitState::Field { start } => match c {
-                            'A'..='Z' | 'a'..='z' | '_' | '0'..='9' | '@' => {
+                            'A'..='Z' | 'a'..='z' | '_' | '0'..='9' | '@' | '-' => {
                                 (None, JitState::Field { start })
                             }
                             '.' => (
@@ -243,124 +224,6 @@ impl<'a> Iterator for JitValuePathIter<'a> {
                             ),
                             _ => (Some(Some(BorrowedSegment::Invalid)), JitState::End),
                         },
-                        JitState::CoalesceStart => match c {
-                            'A'..='Z' | 'a'..='z' | '_' | '0'..='9' | '@' => {
-                                (None, JitState::CoalesceField { start: index })
-                            }
-                            ' ' => (None, JitState::CoalesceStart),
-                            '\"' => (None, JitState::CoalesceQuote { start: index + 1 }),
-                            _ => (Some(Some(BorrowedSegment::Invalid)), JitState::End),
-                        },
-                        JitState::CoalesceField { start } => match c {
-                            'A'..='Z' | 'a'..='z' | '_' | '0'..='9' | '@' => {
-                                (None, JitState::CoalesceField { start })
-                            }
-                            ' ' => (None, JitState::CoalesceFieldEnd { start, end: index }),
-                            '|' => {
-                                self.coalesce_count += 1;
-                                (
-                                    Some(Some(BorrowedSegment::CoalesceField(Cow::Borrowed(
-                                        &self.path[start..index],
-                                    )))),
-                                    JitState::CoalesceStart,
-                                )
-                            }
-                            ')' => {
-                                if self.coalesce_count == 0 {
-                                    (Some(Some(BorrowedSegment::Invalid)), JitState::End)
-                                } else {
-                                    self.coalesce_count = 0;
-                                    (
-                                        Some(Some(BorrowedSegment::CoalesceEnd(Cow::Borrowed(
-                                            &self.path[start..index],
-                                        )))),
-                                        JitState::Continue,
-                                    )
-                                }
-                            }
-                            _ => (Some(Some(BorrowedSegment::Invalid)), JitState::End),
-                        },
-                        JitState::CoalesceFieldEnd { start, end } => match c {
-                            ' ' => (None, JitState::CoalesceFieldEnd { start, end }),
-                            '|' => {
-                                self.coalesce_count += 1;
-                                (
-                                    Some(Some(BorrowedSegment::CoalesceField(Cow::Borrowed(
-                                        &self.path[start..end],
-                                    )))),
-                                    JitState::CoalesceStart,
-                                )
-                            }
-                            ')' => {
-                                if self.coalesce_count == 0 {
-                                    (Some(Some(BorrowedSegment::Invalid)), JitState::End)
-                                } else {
-                                    self.coalesce_count = 0;
-                                    (
-                                        Some(Some(BorrowedSegment::CoalesceEnd(Cow::Borrowed(
-                                            &self.path[start..end],
-                                        )))),
-                                        JitState::Continue,
-                                    )
-                                }
-                            }
-                            _ => (Some(Some(BorrowedSegment::Invalid)), JitState::End),
-                        },
-                        JitState::CoalesceEscapedFieldEnd => match c {
-                            ' ' => (None, JitState::CoalesceEscapedFieldEnd),
-                            '|' => {
-                                self.coalesce_count += 1;
-                                (
-                                    (Some(Some(BorrowedSegment::CoalesceField(
-                                        std::mem::take(&mut self.escape_buffer).into(),
-                                    )))),
-                                    JitState::CoalesceStart,
-                                )
-                            }
-                            ')' => {
-                                if self.coalesce_count == 0 {
-                                    (Some(Some(BorrowedSegment::Invalid)), JitState::End)
-                                } else {
-                                    self.coalesce_count = 0;
-                                    (
-                                        (Some(Some(BorrowedSegment::CoalesceEnd(
-                                            std::mem::take(&mut self.escape_buffer).into(),
-                                        )))),
-                                        JitState::Continue,
-                                    )
-                                }
-                            }
-                            _ => (Some(Some(BorrowedSegment::Invalid)), JitState::End),
-                        },
-                        JitState::CoalesceQuote { start } => match c {
-                            '\"' => (None, JitState::CoalesceFieldEnd { start, end: index }),
-                            '\\' => {
-                                // Character escaping requires copying chars to a new String.
-                                // State is reverted back to the start of the quote to start over
-                                // with the copy method (which is slower)
-                                self.path = &self.path[start..];
-                                self.chars = self.path.char_indices();
-                                (None, JitState::CoalesceEscapedQuote)
-                            }
-                            _ => (None, JitState::CoalesceQuote { start }),
-                        },
-                        JitState::CoalesceEscapedQuote => match c {
-                            '\"' => (None, JitState::CoalesceEscapedFieldEnd),
-                            '\\' => match self.chars.next() {
-                                Some((_, c)) => match c {
-                                    '\\' | '\"' => {
-                                        self.escape_buffer.push(c);
-                                        (None, JitState::CoalesceEscapedQuote)
-                                    }
-                                    _ => (Some(Some(BorrowedSegment::Invalid)), JitState::End),
-                                },
-                                None => (Some(Some(BorrowedSegment::Invalid)), JitState::End),
-                            },
-                            _ => {
-                                self.escape_buffer.push(c);
-                                (None, JitState::CoalesceEscapedQuote)
-                            }
-                        },
                         JitState::End => (Some(None), JitState::End),
                     };
                     self.state = state;
@@ -403,6 +266,9 @@ mod test {
                 ],
             ),
             (".foo", vec![BorrowedSegment::Field("foo".into())]),
+            (".a-b", vec![BorrowedSegment::Field("a-b".into())]),
+            (".a-b-", vec![BorrowedSegment::Field("a-b-".into())]),
+            (".-a-b", vec![BorrowedSegment::Field("-a-b".into())]),
             (
                 ".@timestamp",
                 vec![BorrowedSegment::Field("@timestamp".into())],
@@ -498,103 +364,6 @@ mod test {
                 ],
             ),
             (r#"."🤖""#, vec![BorrowedSegment::Field("🤖".into())]),
-            (
-                ".(a|b)",
-                vec![
-                    BorrowedSegment::CoalesceField("a".into()),
-                    BorrowedSegment::CoalesceEnd("b".into()),
-                ],
-            ),
-            (
-                "(a|b)",
-                vec![
-                    BorrowedSegment::CoalesceField("a".into()),
-                    BorrowedSegment::CoalesceEnd("b".into()),
-                ],
-            ),
-            (
-                "( a | b )",
-                vec![
-                    BorrowedSegment::CoalesceField("a".into()),
-                    BorrowedSegment::CoalesceEnd("b".into()),
-                ],
-            ),
-            (
-                ".(a|b)[1]",
-                vec![
-                    BorrowedSegment::CoalesceField("a".into()),
-                    BorrowedSegment::CoalesceEnd("b".into()),
-                    BorrowedSegment::Index(1),
-                ],
-            ),
-            (
-                ".(a|b).foo",
-                vec![
-                    BorrowedSegment::CoalesceField("a".into()),
-                    BorrowedSegment::CoalesceEnd("b".into()),
-                    BorrowedSegment::Field("foo".into()),
-                ],
-            ),
-            (
-                ".(a|b|c)",
-                vec![
-                    BorrowedSegment::CoalesceField("a".into()),
-                    BorrowedSegment::CoalesceField("b".into()),
-                    BorrowedSegment::CoalesceEnd("c".into()),
-                ],
-            ),
-            (
-                "[1](a|b)",
-                vec![
-                    BorrowedSegment::Index(1),
-                    BorrowedSegment::CoalesceField("a".into()),
-                    BorrowedSegment::CoalesceEnd("b".into()),
-                ],
-            ),
-            (
-                "[1].(a|b)",
-                vec![
-                    BorrowedSegment::Index(1),
-                    BorrowedSegment::CoalesceField("a".into()),
-                    BorrowedSegment::CoalesceEnd("b".into()),
-                ],
-            ),
-            (
-                "foo.(a|b)",
-                vec![
-                    BorrowedSegment::Field("foo".into()),
-                    BorrowedSegment::CoalesceField("a".into()),
-                    BorrowedSegment::CoalesceEnd("b".into()),
-                ],
-            ),
-            (
-                "(\"a\"|b)",
-                vec![
-                    BorrowedSegment::CoalesceField("a".into()),
-                    BorrowedSegment::CoalesceEnd("b".into()),
-                ],
-            ),
-            (
-                "(a|\"b.c\")",
-                vec![
-                    BorrowedSegment::CoalesceField("a".into()),
-                    BorrowedSegment::CoalesceEnd("b.c".into()),
-                ],
-            ),
-            (
-                "(a|\"b\\\"c\")",
-                vec![
-                    BorrowedSegment::CoalesceField("a".into()),
-                    BorrowedSegment::CoalesceEnd("b\"c".into()),
-                ],
-            ),
-            (
-                "(\"b\\\"c\"|a)",
-                vec![
-                    BorrowedSegment::CoalesceField("b\"c".into()),
-                    BorrowedSegment::CoalesceEnd("a".into()),
-                ],
-            ),
             ("(a)", vec![BorrowedSegment::Invalid]),
         ];
 

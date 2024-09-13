@@ -12,8 +12,10 @@ use nom::{
     IResult,
 };
 use std::{
+    borrow::Cow,
     collections::{btree_map::Entry, BTreeMap},
-    str::FromStr,
+    iter::Peekable,
+    str::{Chars, FromStr},
 };
 
 pub(crate) fn parse_key_value(
@@ -346,13 +348,52 @@ fn parse_key_value_<'a, E: ParseError<&'a str> + ContextError<&'a str>>(
                     parse_value(field_delimiter),
                 ))(input),
             },
-            |(field, sep, value): (&str, Vec<&str>, Value)| {
+            |(field, sep, value): (Cow<'_, str>, Vec<&str>, Value)| {
                 (
                     field.to_string().into(),
                     if sep.len() == 1 { value } else { value!(true) },
                 )
             },
         )(input)
+    }
+}
+
+fn escape_str(s: &str) -> Cow<'_, str> {
+    if s.contains('\\') {
+        let mut out = String::new();
+        let mut chars = s.chars().peekable();
+
+        while let Some(c) = chars.next() {
+            out.push(escape_char(c, &mut chars))
+        }
+        Cow::Owned(out)
+    } else {
+        Cow::Borrowed(s)
+    }
+}
+
+fn escape_char(c: char, rest: &mut Peekable<Chars>) -> char {
+    if c == '\\' {
+        match rest.peek() {
+            Some('n') => {
+                let _ = rest.next();
+                '\n'
+            }
+            Some('\\') => {
+                let _ = rest.next();
+                '\\'
+            }
+            Some('"') => {
+                let _ = rest.next();
+                '\"'
+            }
+            // ignore escape sequences not added by encode_key_value and return the backslash untouched
+            Some(_) => c,
+            // trailing escape char is a little odd... Might need to error here!
+            None => c,
+        }
+    } else {
+        c
     }
 }
 
@@ -367,7 +408,7 @@ fn parse_key_value_<'a, E: ParseError<&'a str> + ContextError<&'a str>>(
 fn parse_delimited<'a, E: ParseError<&'a str> + ContextError<&'a str>>(
     delimiter: char,
     field_terminator: &'a str,
-) -> impl Fn(&'a str) -> IResult<&'a str, &'a str, E> {
+) -> impl Fn(&'a str) -> IResult<&'a str, Cow<'a, str>, E> {
     move |input| {
         terminated(
             delimited(
@@ -379,7 +420,8 @@ fn parse_delimited<'a, E: ParseError<&'a str> + ContextError<&'a str>>(
                         // match literally any character, there are no invalid escape sequences
                         take(1usize),
                     )),
-                    |inner| inner.unwrap_or(""),
+                    // process the escape sequences that we encode
+                    |inner| inner.map_or(Cow::Borrowed(""), escape_str),
                 ),
                 char(delimiter),
             ),
@@ -395,8 +437,12 @@ fn parse_delimited<'a, E: ParseError<&'a str> + ContextError<&'a str>>(
 /// just take the rest of the string.
 fn parse_undelimited<'a, E: ParseError<&'a str> + ContextError<&'a str>>(
     field_delimiter: &'a str,
-) -> impl Fn(&'a str) -> IResult<&'a str, &'a str, E> {
-    move |input| map(alt((take_until(field_delimiter), rest)), str::trim)(input)
+) -> impl Fn(&'a str) -> IResult<&'a str, Cow<'a, str>, E> {
+    move |input| {
+        map(alt((take_until(field_delimiter), rest)), |s: &'_ str| {
+            Cow::Borrowed(s.trim())
+        })(input)
+    }
 }
 
 /// Parses the value.
@@ -421,6 +467,8 @@ fn parse_value<'a, E: ParseError<&'a str> + ContextError<&'a str>>(
     }
 }
 
+type ParseKeyIResult<'a, E> = IResult<&'a str, Cow<'a, str>, E>;
+
 /// Parses the key.
 /// Overall parsing strategies are the same as `parse_value`, but we don't need to convert the result to a `Value`.
 /// Standalone key are handled here so a quoted standalone key that contains a delimiter will be dealt with correctly.
@@ -428,7 +476,7 @@ fn parse_key<'a, E: ParseError<&'a str> + ContextError<&'a str>>(
     key_value_delimiter: &'a str,
     field_delimiter: &'a str,
     standalone_key: bool,
-) -> Box<dyn Fn(&'a str) -> IResult<&'a str, &'a str, E> + 'a> {
+) -> Box<dyn Fn(&'a str) -> ParseKeyIResult<'a, E> + 'a> {
     if standalone_key {
         Box::new(move |input| {
             verify(
@@ -630,37 +678,37 @@ mod test {
     fn test_parse_key() {
         // delimited
         assert_eq!(
-            Ok(("", "noog")),
+            Ok(("", Cow::Borrowed("noog"))),
             parse_key::<VerboseError<&str>>("=", " ", false)(r#""noog""#)
         );
 
         // undelimited
         assert_eq!(
-            Ok(("", "noog")),
+            Ok(("", Cow::Borrowed("noog"))),
             parse_key::<VerboseError<&str>>("=", " ", false)("noog")
         );
 
         // delimited with escaped char (1)
         assert_eq!(
-            Ok(("=baz", r#"foo \" bar"#)),
+            Ok(("=baz", Cow::Borrowed(r#"foo " bar"#))),
             parse_key::<VerboseError<&str>>("=", " ", false)(r#""foo \" bar"=baz"#)
         );
 
         // delimited with escaped char (2)
         assert_eq!(
-            Ok(("=baz", r#"foo \\ \" \ bar"#)),
+            Ok(("=baz", Cow::Borrowed(r#"foo \ " \ bar"#))),
             parse_key::<VerboseError<&str>>("=", " ", false)(r#""foo \\ \" \ bar"=baz"#)
         );
 
         // delimited with escaped char (3)
         assert_eq!(
-            Ok(("=baz", r"foo \ bar")),
+            Ok(("=baz", Cow::Borrowed(r"foo \ bar"))),
             parse_key::<VerboseError<&str>>("=", " ", false)(r#""foo \ bar"=baz"#)
         );
 
         // Standalone key
         assert_eq!(
-            Ok((" bar=baz", "foo")),
+            Ok((" bar=baz", Cow::Borrowed("foo"))),
             parse_key::<VerboseError<&str>>("=", " ", true)("foo bar=baz")
         );
 
@@ -703,7 +751,7 @@ mod test {
     #[test]
     fn test_parse_delimited_with_single_quotes() {
         assert_eq!(
-            Ok(("", "test")),
+            Ok(("", Cow::Borrowed("test"))),
             parse_delimited::<VerboseError<&str>>('\'', " ")("'test'")
         );
     }
@@ -747,7 +795,7 @@ mod test {
     #[test]
     fn test_parse_delimited_with_internal_delimiters() {
         assert_eq!(
-            Ok(("", "noog nonk")),
+            Ok(("", Cow::Borrowed("noog nonk"))),
             parse_delimited::<VerboseError<&str>>('"', " ")(r#""noog nonk""#)
         );
     }
@@ -755,7 +803,7 @@ mod test {
     #[test]
     fn test_parse_undelimited_with_quotes() {
         assert_eq!(
-            Ok(("", r#""noog" nonk"#)),
+            Ok(("", Cow::Borrowed(r#""noog" nonk"#))),
             parse_undelimited::<VerboseError<&str>>(":")(r#""noog" nonk"#)
         );
     }
@@ -829,7 +877,7 @@ mod test {
                 value: r#""zork one" : "zoog\"zink\"zork"        nonk          : nink"#,
                 key_value_delimiter: ":",
             ],
-            want: Ok(value!({"zork one": r#"zoog\"zink\"zork"#,
+            want: Ok(value!({"zork one": r#"zoog"zink"zork"#,
                              nonk: "nink"})),
             tdef: type_def(),
         }
@@ -840,7 +888,7 @@ mod test {
                 key_value_delimiter: ":",
                 field_delimiter: ",",
             ],
-            want: Ok(value!({"zork one": r#"zoog\"zink\"zork"#,
+            want: Ok(value!({"zork one": r#"zoog"zink"zork"#,
                              nonk: "nink"})),
             tdef: type_def(),
         }
@@ -851,7 +899,7 @@ mod test {
                 key_value_delimiter: ":",
                 field_delimiter: ",",
             ],
-            want: Ok(value!({"zork one": r#"zoog\"zink\"zork"#,
+            want: Ok(value!({"zork one": r#"zoog"zink"zork"#,
                              nonk: "nink"})),
             tdef: type_def(),
         }
@@ -862,7 +910,7 @@ mod test {
                 key_value_delimiter: "--",
                 field_delimiter: "||",
             ],
-            want: Ok(value!({"zork one": r#"zoog\"zink\"zork"#,
+            want: Ok(value!({"zork one": r#"zoog"zink"zork"#,
                              nonk: "nink"})),
             tdef: type_def(),
         }
@@ -968,7 +1016,7 @@ mod test {
                 field_delimiter: " ",
             ],
             want: Ok(value!({
-                "field": "quote -> \\\" <-",
+                "field": "quote -> \" <-",
                 "level": "info",
             })),
             tdef: type_def(),

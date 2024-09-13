@@ -144,8 +144,26 @@ macro_rules! metadata_path {
 #[macro_export]
 macro_rules! owned_value_path {
     ($($segment:expr),*) => {{
-           $crate::path::OwnedValuePath::from(vec![$($crate::path::OwnedSegment::from($segment),)*])
+        $crate::path::OwnedValuePath::from(vec![$($crate::path::OwnedSegment::from($segment),)*])
     }};
+}
+
+/// Syntactic sugar for creating a pre-parsed owned event path.
+/// This path points at the event (as opposed to metadata).
+#[macro_export]
+macro_rules! owned_event_path {
+    ($($tokens:tt)*) => {
+        $crate::path::OwnedTargetPath::event($crate::owned_value_path!($($tokens)*))
+    }
+}
+
+/// Syntactic sugar for creating a pre-parsed owned metadata path.
+/// This path points at metadata (as opposed to the event).
+#[macro_export]
+macro_rules! owned_metadata_path {
+    ($($tokens:tt)*) => {
+        $crate::path::OwnedTargetPath::metadata($crate::owned_value_path!($($tokens)*))
+    }
 }
 
 /// Used to pre-parse a path.
@@ -227,28 +245,10 @@ pub trait ValuePath<'a>: Clone {
 
     #[allow(clippy::result_unit_err)]
     fn to_owned_value_path(&self) -> Result<OwnedValuePath, ()> {
-        let mut owned_path = OwnedValuePath::root();
-        let mut coalesce = Vec::new();
-        for segment in self.segment_iter() {
-            match segment {
-                BorrowedSegment::Invalid => return Err(()),
-                BorrowedSegment::Index(i) => owned_path.push(OwnedSegment::Index(i)),
-                BorrowedSegment::Field(field) => owned_path.push(OwnedSegment::Field(field.into())),
-                BorrowedSegment::CoalesceField(field) => {
-                    coalesce.push(field.into());
-                }
-                BorrowedSegment::CoalesceEnd(field) => {
-                    coalesce.push(field.into());
-                    tracing::warn!(
-                        internal_log_rate_limit = true,
-                        fields = coalesce.join("|"),
-                        "DEPRECATED: Coalesce fields are deprecated and will be removed in a future version.",
-                    );
-                    owned_path.push(OwnedSegment::Coalesce(std::mem::take(&mut coalesce)));
-                }
-            }
-        }
-        Ok(owned_path)
+        self.segment_iter()
+            .map(OwnedSegment::try_from)
+            .collect::<Result<Vec<OwnedSegment>, ()>>()
+            .map(OwnedValuePath::from)
     }
 }
 
@@ -337,17 +337,13 @@ impl fmt::Display for PathPrefix {
 #[cfg(test)]
 mod test {
     use crate::path::parse_target_path;
-    use crate::path::OwnedTargetPath;
     use crate::path::PathPrefix;
     use crate::path::TargetPath;
     use crate::path::ValuePath;
 
     #[test]
     fn test_parse_target_path() {
-        assert_eq!(
-            parse_target_path("i"),
-            Ok(OwnedTargetPath::event(owned_value_path!("i")))
-        );
+        assert_eq!(parse_target_path("i"), Ok(owned_event_path!("i")));
     }
 
     #[test]

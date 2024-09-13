@@ -1,6 +1,6 @@
+use crate::path::parse_value_path;
+use crate::value::{ObjectMap, Value};
 use std::collections::BTreeMap;
-
-use crate::value::Value;
 use tracing::warn;
 
 use super::{
@@ -49,14 +49,16 @@ fn apply_grok_rule(source: &str, grok_rule: &GrokRule) -> Result<Value, Error> {
             }) = grok_rule.fields.get(name)
             {
                 filters.iter().for_each(|filter| {
-                    if let Some(ref v) = value {
-                        match apply_filter(v, filter) {
-                            Ok(v) => value = Some(v),
+                    if let Some(ref mut v) = value {
+                        value = match apply_filter(v, filter) {
+                            Ok(Value::Null) => None,
+                            Ok(v ) if v.is_object() => Some(parse_keys_as_path(v)),
+                            Ok(v) => Some(v),
                             Err(error) => {
                                 warn!(message = "Error applying filter", field = %field, filter = %filter, %error);
-                                value = None;
+                                None
                             }
-                        }
+                        };
                     }
                 });
 
@@ -93,9 +95,42 @@ fn apply_grok_rule(source: &str, grok_rule: &GrokRule) -> Result<Value, Error> {
             }
         }
 
+        postprocess_value(&mut parsed);
         Ok(parsed)
     } else {
         Err(Error::NoMatch)
+    }
+}
+
+// parse all internal object keys as path
+fn parse_keys_as_path(value: Value) -> Value {
+    match value {
+        Value::Object(map) => {
+            let mut result = Value::Object(ObjectMap::new());
+            for (k, v) in map.into_iter() {
+                let path = parse_value_path(&k)
+                    .unwrap_or_else(|_| crate::owned_value_path!(&k.to_string()));
+                result.insert(&path, parse_keys_as_path(v));
+            }
+            result
+        }
+        Value::Array(a) => Value::Array(a.into_iter().map(parse_keys_as_path).collect()),
+        v => v,
+    }
+}
+
+/// postprocess parsed values
+fn postprocess_value(value: &mut Value) {
+    // remove empty objects
+    match value {
+        Value::Array(a) => a.iter_mut().for_each(postprocess_value),
+        Value::Object(map) => {
+            map.values_mut().for_each(postprocess_value);
+            map.retain(|_, value| {
+                !matches!(value, Value::Object(v) if v.is_empty()) && !matches!(value, Value::Null)
+            })
+        }
+        _ => {}
     }
 }
 
@@ -103,6 +138,7 @@ fn apply_grok_rule(source: &str, grok_rule: &GrokRule) -> Result<Value, Error> {
 mod tests {
     use crate::btreemap;
     use crate::value::Value;
+    use chrono::{Datelike, NaiveDate, Timelike, Utc};
     use ordered_float::NotNan;
     use tracing_test::traced_test;
 
@@ -170,7 +206,6 @@ mod tests {
                     "version" => "1.0",
                     "referer" => "http://www.perdu.com/",
                     "useragent" => "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.87 Safari/537.36",
-                    "_x_forwarded_for" => Value::Null,
                 },
                 "network" => btreemap! {
                     "bytes_written" => 2326,
@@ -219,19 +254,22 @@ mod tests {
 
     fn test_grok_pattern(tests: Vec<(&str, &str, Result<Value, Error>)>) {
         for (filter, k, v) in tests {
-            let rules = parse_grok_rules(&[filter.to_string()], BTreeMap::new())
-                .expect("couldn't parse rules");
+            let rules =
+                parse_grok_rules(&[filter.to_string()], BTreeMap::new()).unwrap_or_else(|error| {
+                    panic!("failed to parse {k} with filter {filter}: {error}")
+                });
             let parsed = parse_grok(k, &rules);
 
             if v.is_ok() {
                 assert_eq!(
-                    parsed.unwrap(),
+                    parsed.unwrap_or_else(|_| panic!("{filter} does not match {k}")),
                     Value::from(btreemap! {
                         "field" =>  v.unwrap(),
-                    })
+                    }),
+                    "failed to parse {k} with filter {filter}"
                 );
             } else {
-                assert_eq!(parsed, v);
+                assert_eq!(parsed, v, "failed to parse {k} with filter {filter}");
             }
         }
     }
@@ -239,10 +277,10 @@ mod tests {
     fn test_full_grok(tests: Vec<(&str, &str, Result<Value, Error>)>) {
         for (filter, k, v) in tests {
             let rules = parse_grok_rules(&[filter.to_string()], BTreeMap::new())
-                .expect("couldn't parse rules");
+                .unwrap_or_else(|_| panic!("failed to parse {k} with filter {filter}"));
             let parsed = parse_grok(k, &rules);
 
-            assert_eq!(parsed, v);
+            assert_eq!(parsed, v, "failed to parse {k} with filter {filter}");
         }
     }
 
@@ -261,7 +299,7 @@ mod tests {
         assert_eq!(
             parse_grok_rules(
                 &["%{data:field:unknownFilter}".to_string()],
-                BTreeMap::new()
+                BTreeMap::new(),
             )
             .unwrap_err()
             .to_string(),
@@ -439,12 +477,13 @@ mod tests {
 
     #[test]
     fn supports_date_matcher() {
+        let now = Utc::now();
+        let now = NaiveDate::from_ymd_opt(now.year(), now.month(), now.day())
+            .unwrap()
+            .and_hms_opt(12, 13, 14)
+            .unwrap()
+            .and_utc();
         test_grok_pattern(vec![
-            (
-                r#"%{date("HH:mm:ss"):field}"#,
-                "14:20:15",
-                Ok(Value::Integer(51615000)),
-            ),
             (
                 r#"%{date("dd/MMM/yyyy"):field}"#,
                 "06/Mar/2013",
@@ -535,13 +574,62 @@ mod tests {
                 "171113 14:14:20",
                 Ok(Value::Integer(1510582460000)),
             ),
+            (
+                r#"%{date("M/d/yy HH:mm:ss z"):field}"#,
+                "5/6/18 19:40:59 GMT",
+                Ok(Value::Integer(1525635659000)),
+            ),
+            (
+                r#"%{date("M/d/yy HH:mm:ss z"):field}"#,
+                "11/16/18 19:40:59 GMT",
+                Ok(Value::Integer(1542397259000)),
+            ),
+            (
+                r#"%{date("M/d/yy HH:mm:ss,SSS z"):field}"#,
+                "11/16/18 19:40:59,123 GMT",
+                Ok(Value::Integer(1542397259123)),
+            ),
+            (
+                r#"%{date("M/d/yy HH:mm:ss,SSSS z"):field}"#,
+                "11/16/18 19:40:59,1234 GMT",
+                Ok(Value::Integer(1542397259123)),
+            ),
+            (
+                r#"%{date("M/d/yy HH:mm:ss,SSSSSSSSS z"):field}"#,
+                "11/16/18 19:40:59,123456789 GMT",
+                Ok(Value::Integer(1542397259123)),
+            ),
+            (
+                r#"%{date("M/d/yy HH:mm:ss.SSSS z"):field}"#,
+                "11/16/18 19:40:59.1234 GMT",
+                Ok(Value::Integer(1542397259123)),
+            ),
+            // date is missing - assume the current day
+            (
+                r#"%{date("HH:mm:ss"):field}"#,
+                &format!("{}:{}:{}", now.hour(), now.minute(), now.second()),
+                Ok(Value::Integer(now.timestamp() * 1000)),
+            ),
+            // if the year is missing - assume the current year
+            (
+                r#"%{date("d/M HH:mm:ss"):field}"#,
+                &format!(
+                    "{}/{} {}:{}:{}",
+                    now.day(),
+                    now.month(),
+                    now.hour(),
+                    now.minute(),
+                    now.second()
+                ),
+                Ok(Value::Integer(now.timestamp() * 1000)),
+            ),
         ]);
 
         // check error handling
         assert_eq!(
             parse_grok_rules(
                 &[r#"%{date("ABC:XYZ"):field}"#.to_string()],
-                BTreeMap::new()
+                BTreeMap::new(),
             )
             .unwrap_err()
             .to_string(),
@@ -705,6 +793,24 @@ mod tests {
                     "key" => "valueStr"
                 })),
             ),
+            // ignore space after the delimiter(comma)
+            (
+                r#"%{data::keyvalue}"#,
+                "key1=value1, key2=value2",
+                Ok(Value::from(btreemap! {
+                    "key1" => "value1",
+                    "key2" => "value2",
+                })),
+            ),
+            // allow space as a legit value character, but trim key/values
+            (
+                r#"%{data::keyvalue("="," ")}"#,
+                "key1=value1, key2 = value 2 ",
+                Ok(Value::from(btreemap! {
+                    "key1" => "value1",
+                    "key2" => "value 2",
+                })),
+            ),
             (
                 r#"%{data::keyvalue("=", "", "", "|")}"#,
                 "key1=value1|key2=value2",
@@ -837,8 +943,68 @@ mod tests {
                 "%{data::keyvalue}",
                 "db.name=my_db,db.operation=insert",
                 Ok(Value::from(btreemap! {
-                    "db.name" => "my_db",
-                    "db.operation" => "insert",
+                    "db" => btreemap! {
+                        "name" => "my_db",
+                        "operation" => "insert",
+                    }
+                })),
+            ),
+            // capture all possilbe key-value pairs from the string
+            (
+                "%{data::keyvalue}",
+                r#" , key1=value1 "key2"="value2",key3=value3 "#,
+                Ok(Value::from(btreemap! {
+                    "key1" => "value1",
+                    "key2" => "value2",
+                    "key3" => "value3",
+                })),
+            ),
+            (
+                r#"%{data::keyvalue(": ",",")}"#,
+                r#"client: 217.92.148.44, server: localhost, request: "HEAD http://174.138.82.103:80/sql/sql-admin/ HTTP/1.1", host: "174.138.82.103""#,
+                Ok(Value::from(btreemap! {
+                    "client" => "217.92.148.44",
+                    "host" => "174.138.82.103",
+                    "request" => "HEAD http://174.138.82.103:80/sql/sql-admin/ HTTP/1.1",
+                    "server" => "localhost",
+                })),
+            ),
+            // append values with the same key
+            (
+                r#"%{data::keyvalue}"#,
+                r#"a=1, a=1, a=2"#,
+                Ok(Value::from(btreemap! {
+                    "a" => vec![1, 1, 2]
+                })),
+            ),
+            // trim string values
+            (
+                r#"%{data::keyvalue("="," ")}"#,
+                r#"a= foo"#,
+                Ok(Value::from(btreemap! {
+                    "a" => "foo"
+                })),
+            ),
+            // ignore if key contains spaces
+            (
+                r#"%{data::keyvalue("="," ")}"#,
+                "a key=value",
+                Ok(Value::from(btreemap! {})),
+            ),
+            // parses valid octal numbers (start with 0) as decimals
+            (
+                r#"%{data::keyvalue}"#,
+                "a=07",
+                Ok(Value::from(btreemap! {
+                    "a" => 7
+                })),
+            ),
+            // parses invalid octal numbers (start with 0) as strings
+            (
+                r#"%{data::keyvalue}"#,
+                "a=08",
+                Ok(Value::from(btreemap! {
+                    "a" => "08"
                 })),
             ),
         ]);
@@ -970,5 +1136,135 @@ mod tests {
                 })),
             ),
         ]);
+    }
+
+    #[test]
+    fn supports_rubyhash_filter() {
+        test_grok_pattern(vec![(
+            "%{data:field:rubyhash}",
+            r#"{hello=>"world",'number'=>42.0}"#,
+            Ok(Value::from(btreemap! {
+                "hello" => "world",
+                "number" =>  42.0
+            })),
+        )]);
+    }
+
+    #[test]
+    fn supports_querystring_filter() {
+        test_grok_pattern(vec![(
+            "%{data:field:querystring}",
+            "foo=bar",
+            Ok(Value::from(btreemap! {
+                "foo" => "bar",
+            })),
+        )]);
+    }
+
+    #[test]
+    fn supports_boolean_filter() {
+        test_grok_pattern(vec![
+            ("%{data:field:boolean}", "True", Ok(Value::Boolean(true))),
+            (
+                "%{data:field:boolean}",
+                "NotTrue",
+                Ok(Value::Boolean(false)),
+            ),
+        ]);
+    }
+
+    #[test]
+    fn supports_decodeuricomponent_filter() {
+        test_grok_pattern(vec![(
+            "%{data:field:decodeuricomponent}",
+            "%2Fservice%2Ftest",
+            Ok(Value::Bytes("/service/test".into())),
+        )]);
+    }
+
+    #[test]
+    fn supports_xml_filter() {
+        test_grok_pattern(vec![(
+            "(?s)%{data:field:xml}", // (?s) enables DOTALL mode to include newlines
+            r#"<book category="CHILDREN">
+                  <title lang="en">Harry Potter</title>
+                  <author>J K. Rowling</author>
+                  <year>2005</year>
+                  <booleanValue>true</booleanValue>
+                  <nullValue>null</nullValue>
+                </book>"#,
+            Ok(Value::from(btreemap! {
+            "book" => btreemap! {
+              "year" => "2005",
+              "category" => "CHILDREN",
+              "author" => "J K. Rowling",
+              "booleanValue" => "true",
+              "nullValue" => "null",
+              "title" => btreemap! {
+                "lang" => "en",
+                "value" => "Harry Potter"
+              }
+            }
+            })),
+        )]);
+    }
+
+    #[test]
+    fn parses_sample() {
+        test_full_grok(vec![(
+            r#"\[%{date("yyyy-MM-dd HH:mm:ss,SSS"):date}\]\[%{notSpace:level}\s*\]\[%{notSpace:logger.thread_name}-#%{integer:logger.thread_id}\]\[%{notSpace:logger.name}\] .*"#,
+            r#"[2020-04-03 07:01:55,248][INFO ][exchange-worker-#43][FileWriteAheadLogManager] Started write-ahead log manager [mode=LOG_ONLY]"#,
+            Ok(Value::from(btreemap! {
+              "date"=> 1585897315248_i64,
+              "level"=> "INFO",
+              "logger"=> btreemap! {
+                "name"=> "FileWriteAheadLogManager",
+                "thread_id"=> 43,
+                "thread_name"=> "exchange-worker"
+              }
+            })),
+        )]);
+    }
+
+    #[test]
+    fn remove_empty_objects() {
+        test_full_grok(vec![
+            (
+                "%{data::json}",
+                r#"{"root": {"object": {"empty": {}}, "string": "abc" }}"#,
+                Ok(Value::Object(btreemap!(
+                    "root" => btreemap! (
+                        "string" => "abc"
+                    )
+                ))),
+            ),
+            (
+                "%{data:field:json}",
+                r#"{"root": {"object": {"empty": {}}, "string": "abc" }}"#,
+                Ok(Value::Object(btreemap!(
+                    "field" => btreemap!(
+                        "root" => btreemap! (
+                            "string" => "abc"
+                        )
+                )))),
+            ),
+            (
+                r#"%{notSpace:network.destination.ip:nullIf("-")}"#,
+                "-",
+                Ok(Value::Object(btreemap!())),
+            ),
+        ]);
+    }
+    #[test]
+    fn parses_json_keys_as_path() {
+        test_full_grok(vec![(
+            "%{data::json}",
+            r#"{"a.b": "c"}"#,
+            Ok(Value::Object(btreemap!(
+                "a" => btreemap! (
+                    "b" => "c"
+                )
+            ))),
+        )]);
     }
 }

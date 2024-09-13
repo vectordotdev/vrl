@@ -17,3 +17,5 @@ mod resolver;
 pub use filter::*;
 pub use matcher::*;
 pub use resolver::*;
+
+use super::search::{normalize_fields, BooleanType, Field, QueryNode};

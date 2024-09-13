@@ -1,5 +1,8 @@
+use psl::Psl;
+use publicsuffix::List;
+
 use crate::compiler::prelude::*;
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, path::Path};
 
 #[derive(Clone, Copy, Debug)]
 pub struct ParseEtld;
@@ -19,6 +22,11 @@ impl Function for ParseEtld {
             Parameter {
                 keyword: "plus_parts",
                 kind: kind::INTEGER,
+                required: false,
+            },
+            Parameter {
+                keyword: "psl",
+                kind: kind::BYTES,
                 required: false,
             },
         ]
@@ -64,14 +72,54 @@ impl Function for ParseEtld {
 
     fn compile(
         &self,
-        _state: &state::TypeState,
+        state: &state::TypeState,
         _ctx: &mut FunctionCompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
         let plus_parts = arguments.optional("plus_parts").unwrap_or_else(|| expr!(0));
 
-        Ok(ParseEtldFn { value, plus_parts }.as_expr())
+        let psl_expr = arguments.optional_expr("psl");
+        let mut psl: Option<List> = None;
+        if let Some(psl_expr) = psl_expr {
+            let psl_location = psl_expr
+                .clone()
+                .resolve_constant(state)
+                .ok_or(function::Error::ExpectedStaticExpression {
+                    keyword: "psl",
+                    expr: psl_expr.clone(),
+                })?
+                .try_bytes_utf8_lossy()
+                .map_err(|_| function::Error::InvalidArgument {
+                    keyword: "psl",
+                    value: format!("{psl_expr:?}").into(),
+                    error: "psl should be a string",
+                })?
+                .into_owned();
+
+            let path = Path::new(&psl_location);
+            psl = Some(
+                std::fs::read_to_string(path)
+                    .map_err(|_| function::Error::InvalidArgument {
+                        keyword: "psl",
+                        value: format!("{path:?}").into(),
+                        error: "Unable to read psl file",
+                    })?
+                    .parse()
+                    .map_err(|_| function::Error::InvalidArgument {
+                        keyword: "psl",
+                        value: format!("{path:?}").into(),
+                        error: "Unable to parse psl file",
+                    })?,
+            );
+        }
+
+        Ok(ParseEtldFn {
+            value,
+            plus_parts,
+            psl,
+        }
+        .as_expr())
     }
 }
 
@@ -79,6 +127,7 @@ impl Function for ParseEtld {
 struct ParseEtldFn {
     value: Box<dyn Expression>,
     plus_parts: Box<dyn Expression>,
+    psl: Option<List>,
 }
 
 impl FunctionExpression for ParseEtldFn {
@@ -91,8 +140,12 @@ impl FunctionExpression for ParseEtldFn {
             x => x as usize,
         };
 
-        let etld = psl::suffix(string.as_bytes())
-            .ok_or(format!("unable to determine eTLD for {string}"))?;
+        let suffix_result = if let Some(list) = &self.psl {
+            list.suffix(string.as_bytes())
+        } else {
+            psl::suffix(string.as_bytes())
+        };
+        let etld = suffix_result.ok_or(format!("unable to determine eTLD for {string}"))?;
         let etld_string = core::str::from_utf8(etld.as_bytes())
             .map_err(|err| format!("could not convert eTLD to UTF8 {err}"))?;
 
@@ -234,6 +287,12 @@ mod tests {
         empty_host {
             args: func_args![value: value!("")],
             want: Err("unable to determine eTLD for "),
+            tdef: TypeDef::object(inner_kind()).fallible(),
+        }
+
+        bad_psl_file {
+            args: func_args![value: value!("vector.dev"), psl: value!("definitelynotafile")],
+            want: Err("invalid argument"),
             tdef: TypeDef::object(inner_kind()).fallible(),
         }
     ];

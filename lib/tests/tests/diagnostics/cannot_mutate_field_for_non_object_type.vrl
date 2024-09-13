@@ -67,23 +67,6 @@
 #    = see documentation about error handling at https://errors.vrl.dev/#handling
 #    = see language documentation at https://vrl.dev
 #    = try your code in the VRL REPL, learn more at https://vrl.dev/examples
-#
-# error[E642]: parent path segment rejects this mutation
-#    ┌─ :14:5
-#    │
-# 14 │ foo.(bar | baz) = "bar baz"
-#    │ --- ^^^^^^^^^^^ querying a field of a non-object type is unsupported
-#    │ │
-#    │ this path resolves to a value of type integer
-#    │
-#    = try: change parent value to object, before assignment
-#    =
-#    =     foo = {}
-#    =     foo.(bar | baz) = "bar baz"
-#    =
-#    = see documentation about error handling at https://errors.vrl.dev/#handling
-#    = see language documentation at https://vrl.dev
-#    = try your code in the VRL REPL, learn more at https://vrl.dev/examples
 
 
 foo = "foo"
@@ -97,7 +80,6 @@ foo.bar.baz = "baz"
 .foo.bar = "bar"
 
 foo = 42
-foo.(bar | baz) = "bar baz"
 
 foo = {}
 foo.bar = {}

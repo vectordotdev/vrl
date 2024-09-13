@@ -557,18 +557,6 @@ mod test {
     }
 
     #[test]
-    fn unused_coalesce_result() {
-        let source = indoc! {r#"
-           parse_syslog("not syslog") ?? parse_common_log("not common") ?? "malformed"
-           .res = parse_syslog("not syslog") ?? parse_common_log("not common") ?? "malformed"
-        "#};
-        unused_test(
-            source,
-            vec![r#"unused result for function call `parse_syslog("not syslog")`"#.to_string()],
-        );
-    }
-
-    #[test]
     fn used_queries() {
         let source = indoc! {r#"
             _i_am_ignored = 42

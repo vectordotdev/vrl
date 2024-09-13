@@ -18,6 +18,7 @@ criterion_group!(
               assert,
               assert_eq,
               r#bool,
+              camelcase,
               ceil,
               chunks,
               compact,
@@ -79,6 +80,7 @@ criterion_group!(
               is_timestamp,
               join,
               keys,
+              kebabcase,
               length,
               log,
               r#match,
@@ -102,6 +104,7 @@ criterion_group!(
               parse_glog,
               parse_grok,
               parse_groks,
+              parse_influxdb,
               parse_key_value,
               parse_klog,
               parse_int,
@@ -117,6 +120,7 @@ criterion_group!(
               parse_url,
               parse_user_agent,
               parse_xml,
+              pascalcase,
               push,
               // TODO: value is non-deterministic and so cannot assert equality
               // random_bool,
@@ -130,6 +134,8 @@ criterion_group!(
               round,
               seahash,
               set,
+              screamingsnakecase,
+              snakecase,
               sha1,
               sha2,
               sha3,
@@ -154,6 +160,7 @@ criterion_group!(
               to_syslog_severity,
               to_unix_timestamp,
               truncate,
+              unflatten,
               unique,
               // TODO: Cannot pass a Path to bench_function
               //unnest
@@ -1676,6 +1683,76 @@ bench_function! {
 }
 
 bench_function! {
+    parse_influxdb => vrl::stdlib::ParseInfluxDB;
+
+    simple {
+        args: func_args![ value: format!("cpu,host=A,region=us-west usage_system=64i,usage_user=10u,temperature=50.5,on=true,sleep=false 1590488773254420000") ],
+        want: Ok(Value::from(vec![
+            Value::from(btreemap! {
+                "name" => "cpu_usage_system",
+                "tags" => btreemap! {
+                    "host" => "A",
+                    "region" => "us-west",
+                },
+                "timestamp" => DateTime::from_timestamp_nanos(1_590_488_773_254_420_000),
+                "kind" => "absolute",
+                "gauge" => btreemap! {
+                    "value" => 64.0,
+                },
+            }),
+            Value::from(btreemap! {
+                "name" => "cpu_usage_user",
+                "tags" => btreemap! {
+                    "host" => "A",
+                    "region" => "us-west",
+                },
+                "timestamp" => DateTime::from_timestamp_nanos(1_590_488_773_254_420_000),
+                "kind" => "absolute",
+                "gauge" => btreemap! {
+                    "value" => 10.0,
+                },
+            }),
+            Value::from(btreemap! {
+                "name" => "cpu_temperature",
+                "tags" => btreemap! {
+                    "host" => "A",
+                    "region" => "us-west",
+                },
+                "timestamp" => DateTime::from_timestamp_nanos(1_590_488_773_254_420_000),
+                "kind" => "absolute",
+                "gauge" => btreemap! {
+                    "value" => 50.5,
+                },
+            }),
+            Value::from(btreemap! {
+                "name" => "cpu_on",
+                "tags" => btreemap! {
+                    "host" => "A",
+                    "region" => "us-west",
+                },
+                "timestamp" => DateTime::from_timestamp_nanos(1_590_488_773_254_420_000),
+                "kind" => "absolute",
+                "gauge" => btreemap! {
+                    "value" => 1.0,
+                },
+            }),
+            Value::from(btreemap! {
+                "name" => "cpu_sleep",
+                "tags" => btreemap! {
+                    "host" => "A",
+                    "region" => "us-west",
+                },
+                "timestamp" => DateTime::from_timestamp_nanos(1_590_488_773_254_420_000),
+                "kind" => "absolute",
+                "gauge" => btreemap! {
+                    "value" => 0.0,
+                },
+            }),
+        ]))
+    }
+}
+
+bench_function! {
     parse_int => vrl::stdlib::ParseInt;
 
     decimal {
@@ -2714,6 +2791,31 @@ bench_function! {
 }
 
 bench_function! {
+    unflatten => vrl::stdlib::Unflatten;
+
+    nested_map {
+        args: func_args![value: value!({"parent.child1": 1, "parent.child2": 2, key: "val"})],
+        want: Ok(value!({parent: {child1: 1, child2: 2}, key: "val"})),
+    }
+
+    map_and_array {
+        args: func_args![value: value!({
+            "parent.child1": [1, [2, 3]],
+            "parent.child2.grandchild1": 1,
+            "parent.child2.grandchild2": [1, [2, 3], 4],
+            "key": "val",
+        })],
+        want: Ok(value!({
+            "parent": {
+                "child1": [1, [2, 3]],
+                "child2": {"grandchild1": 1, "grandchild2": [1, [2, 3], 4]},
+            },
+            "key": "val",
+        })),
+    }
+}
+
+bench_function! {
     unique => vrl::stdlib::Unique;
 
     default {
@@ -2764,5 +2866,50 @@ bench_function! {
     literal {
         args: func_args![source_ip: "1.2.3.4", destination_ip: "5.6.7.8", protocol: 6, source_port: 1122, destination_port: 3344],
         want: Ok("1:wCb3OG7yAFWelaUydu0D+125CLM="),
+    }
+}
+
+bench_function! {
+    camelcase => vrl::stdlib::Camelcase;
+
+    default {
+        args: func_args![value: "input-string"],
+        want: Ok("inputString"),
+    }
+}
+
+bench_function! {
+    pascalcase => vrl::stdlib::Pascalcase;
+
+    default {
+        args: func_args![value: "input-string"],
+        want: Ok("InputString"),
+    }
+}
+
+bench_function! {
+    kebabcase => vrl::stdlib::Kebabcase;
+
+    default {
+        args: func_args![value: "inputString"],
+        want: Ok("input-string"),
+    }
+}
+
+bench_function! {
+    snakecase => vrl::stdlib::Snakecase;
+
+    default {
+        args: func_args![value: "input-string"],
+        want: Ok("input_string"),
+    }
+}
+
+bench_function! {
+    screamingsnakecase => vrl::stdlib::ScreamingSnakecase;
+
+    default {
+        args: func_args![value: "input-string"],
+        want: Ok("INPUT_STRING"),
     }
 }
