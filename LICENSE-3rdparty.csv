@@ -58,7 +58,7 @@ community-id,https://github.com/traceflight/rs-community-id,MIT OR Apache-2.0,Ju
 concurrent-queue,https://github.com/smol-rs/concurrent-queue,Apache-2.0 OR MIT,"Stjepan Glavina <stjepang@gmail.com>, Taiki Endo <te316e89@gmail.com>, John Nunley <dev@notgull.net>"
 convert_case,https://github.com/rutrum/convert-case,MIT,David Purdum <purdum41@gmail.com>
 convert_case,https://github.com/rutrum/convert-case,MIT,Rutrum <dave@rutrum.net>
-core-foundation,https://github.com/servo/core-foundation-rs,MIT  OR  Apache-2.0,The Servo Project Developers
+core-foundation,https://github.com/servo/core-foundation-rs,MIT OR Apache-2.0,The Servo Project Developers
 cpufeatures,https://github.com/RustCrypto/utils,MIT OR Apache-2.0,RustCrypto Developers
 crc32fast,https://github.com/srijs/rust-crc32fast,MIT OR Apache-2.0,"Sam Rijs <srijs@airpost.net>, Alex Crichton <alex@alexcrichton.com>"
 crossbeam-channel,https://github.com/crossbeam-rs/crossbeam,MIT OR Apache-2.0,The crossbeam-channel Authors
