@@ -117,7 +117,7 @@ fn parse_colon_key<'a, E: ParseError<&'a str> + ContextError<&'a str>>(
             char(':'),
             alt((parse_str('"'), parse_str('\''), parse_symbol_key)),
         ),
-        |res| res.into(),
+        KeyString::from,
     )(input)
 }
 
