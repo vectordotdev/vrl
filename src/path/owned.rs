@@ -4,7 +4,6 @@ use std::str::FromStr;
 use once_cell::sync::Lazy;
 #[cfg(any(test, feature = "proptest"))]
 use proptest::prelude::*;
-use proptest_derive::Arbitrary;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 
@@ -13,7 +12,7 @@ use super::{parse_target_path, parse_value_path, BorrowedSegment, PathParseError
 use crate::value::KeyString;
 
 /// A lookup path.
-#[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize, Arbitrary)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(try_from = "String", into = "String")]
 pub struct OwnedValuePath {
     pub segments: Vec<OwnedSegment>,
