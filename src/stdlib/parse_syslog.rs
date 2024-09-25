@@ -92,7 +92,8 @@ impl FunctionExpression for ParseSyslogFn {
         let variant = match self.variant.as_bytes() {
             b"rfc3164" => Variant::RFC3164,
             b"rfc5424" => Variant::RFC5424,
-            _ => Variant::Either,
+            b"either" => Variant::Either,
+            _ => panic!("No such variant for syslog RFC"),
         };
 
         parse_syslog(value, variant, ctx)
