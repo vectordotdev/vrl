@@ -376,13 +376,13 @@ mod tests {
         }
 
         force_rfc_3164 {
-            args: func_args![value: "2024-09-19T15:39:45.469435+02:00 node1234 slurmstepd[548422]: [65684352.batch] done with job", variant: "rfc3164"],
+            args: func_args![value: "2024-09-19T15:39:45.469+02:00 node1234 slurmstepd[548422]: [65684352.batch] done with job", variant: "rfc3164"],
             want: Ok(btreemap!{
                 "appname" => "slurmstepd",
-                "hostname" => "node3521",
+                "hostname" => "node1234",
                 "message" => "[65684352.batch] done with job",
                 "procid" => 548422,
-                "timestamp" => "2024-09-19T13:39:45.469435Z"
+                "timestamp" => chrono::Utc.ymd(2024, 09, 19).and_hms_milli(13,39,45,469),
             }),
             tdef: TypeDef::object(inner_kind()).fallible(),
         }
