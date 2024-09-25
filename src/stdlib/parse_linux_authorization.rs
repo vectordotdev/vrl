@@ -41,6 +41,10 @@ impl Function for ParseLinuxAuthorization {
         let value = arguments.required("value");
 
         // The parse_linux_authorization function is just an alias for parse_syslog
-        Ok(ParseSyslogFn { value }.as_expr())
+        Ok(ParseSyslogFn {
+            value: value,
+            variant: "either".into(),
+        }
+        .as_expr())
     }
 }
