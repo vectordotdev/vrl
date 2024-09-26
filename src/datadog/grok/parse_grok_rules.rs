@@ -175,14 +175,18 @@ fn parse_pattern(
     grok: &mut Grok,
 ) -> Result<GrokRule, Error> {
     parse_grok_rule(pattern, context)?;
-    let mut pattern = String::new();
-    // \A, \z - parses from the beginning to the end of string, not line(until \n)
-    pattern.push_str(r"\A");
-    pattern.push_str(&context.regex);
-    pattern.push_str(r"\z");
-
-    // our regex engine(onig) uses (?m) mode modifier instead of (?s) to make the dot match all characters
-    pattern = pattern.replace("(?s)", "(?m)").replace("(?-s)", "(?-m)");
+    let pattern = [
+        // In Oniguruma the (?m) modifier is used to enable the DOTALL mode(dot includes newlines),
+        // as opposed to the (?s) modifier in other regex flavors.
+        // \A, \z - parses from the beginning to the end of string, not line(until \n)
+        r"(?m)\A", // (?m) enables the DOTALL mode by default
+        &context
+            .regex
+            .replace("(?s)", "(?m)")
+            .replace("(?-s)", "(?-m)"),
+        r"\z",
+    ]
+    .concat();
 
     // compile pattern
     let pattern = grok
