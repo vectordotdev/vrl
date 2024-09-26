@@ -180,9 +180,13 @@ fn parse_pattern(
         // as opposed to the (?s) modifier in other regex flavors.
         // \A, \z - parses from the beginning to the end of string, not line(until \n)
         r"(?m)\A", // (?m) enables the DOTALL mode by default
-        &context.regex.replace("(?s)", "(?m)").replace("(?-s)", "(?-m)"),
+        &context
+            .regex
+            .replace("(?s)", "(?m)")
+            .replace("(?-s)", "(?-m)"),
         r"\z",
-    ].concat();
+    ]
+    .concat();
 
     // compile pattern
     let pattern = grok
