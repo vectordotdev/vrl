@@ -10,7 +10,7 @@ use percent_encoding::percent_decode;
 
 use super::{
     ast::{Function, FunctionArgument},
-    filters::{array, keyvalue, keyvalue::KeyValueFilter},
+    filters::{array, keyvalue, keyvalue::KeyValueFilter, url},
     matchers::date::{apply_date_filter, DateFilter},
     parse_grok::Error as GrokRuntimeError,
     parse_grok_rules::Error as GrokStaticError,
@@ -41,6 +41,7 @@ pub enum GrokFilter {
         Box<Option<GrokFilter>>,
     ),
     KeyValue(KeyValueFilter),
+    Url,
 }
 
 impl fmt::Display for GrokFilter {
@@ -63,6 +64,7 @@ impl fmt::Display for GrokFilter {
             GrokFilter::Xml => f.pad("Xml"),
             GrokFilter::Array(..) => f.pad("Array(..)"),
             GrokFilter::KeyValue(..) => f.pad("KeyValue(..)"),
+            GrokFilter::Url => f.pad("Url"),
         }
     }
 }
@@ -112,6 +114,7 @@ impl TryFrom<&Function> for GrokFilter {
                 .ok_or_else(|| GrokStaticError::InvalidFunctionArguments(f.name.clone())),
             "array" => array::filter_from_function(f),
             "keyvalue" => keyvalue::filter_from_function(f),
+            "url" => Ok(GrokFilter::Url),
             _ => Err(GrokStaticError::UnknownFilter(f.name.clone())),
         }
     }
@@ -267,6 +270,9 @@ pub fn apply_filter(value: &Value, filter: &GrokFilter) -> Result<Value, GrokRun
                 value.to_string(),
             )),
         },
+        GrokFilter::Url => parse_value_error_prone(value, filter, |b| {
+            url::parse_url(String::from_utf8_lossy(b).as_ref())
+        }),
     }
 }
 

@@ -1210,6 +1210,30 @@ mod tests {
     }
 
     #[test]
+    fn supports_url_filter() {
+        test_grok_pattern(vec![(
+            "%{data:field:url}",
+            "https://user:password@api.logmatic.io:8080/a/long/path/file.txt?debug&param1=foo&param2=bar#!/super/hash",
+            Ok(Value::from(btreemap! {
+                "scheme" => "https",
+                "host" => "api.logmatic.io",
+                "port" => 8080,
+                "path" => "/a/long/path/file.txt",
+                "queryString" => btreemap! {
+                    "debug" => "",
+                    "param1" => "foo",
+                    "param2" => "bar"
+                },
+                "auth" => btreemap! {
+                "username" => "user",
+                "password" => "password"
+                },
+                "hash" => "!/super/hash"
+            })),
+        )]);
+    }
+
+    #[test]
     fn parses_sample() {
         test_full_grok(vec![(
             r#"\[%{date("yyyy-MM-dd HH:mm:ss,SSS"):date}\]\[%{notSpace:level}\s*\]\[%{notSpace:logger.thread_name}-#%{integer:logger.thread_id}\]\[%{notSpace:logger.name}\] .*"#,
