@@ -76,39 +76,38 @@ impl Function for ParseProto {
 
     fn compile(
         &self,
-        state: &state::TypeState,
+        _state: &state::TypeState,
         _ctx: &mut FunctionCompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
-        let desc_file = arguments.required_literal("desc_file", state)?;
-        let desc_file_str = desc_file
-            .try_bytes_utf8_lossy()
-            .expect("descriptor file must be a string");
-        let message_type = arguments.required_literal("message_type", state)?;
-        let message_type_str = message_type
-            .try_bytes_utf8_lossy()
-            .expect("message_type must be a string");
-        let os_string: OsString = desc_file_str.into_owned().into();
-        let path_buf = PathBuf::from(os_string);
-        let path = Path::new(&path_buf);
-        let descriptor =
-            get_message_descriptor(path, &message_type_str).expect("message type not found");
+        let desc_file = arguments.required("desc_file");
+        let message_type = arguments.required("message_type");
 
-        Ok(ParseProtoFn { descriptor, value }.as_expr())
+        Ok(ParseProtoFn { desc_file, message_type, value }.as_expr())
     }
 }
 
 #[derive(Debug, Clone)]
 struct ParseProtoFn {
-    descriptor: MessageDescriptor,
+    desc_file: Box<dyn Expression>,
+    message_type: Box<dyn Expression>,
     value: Box<dyn Expression>,
 }
 
 impl FunctionExpression for ParseProtoFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let value = self.value.resolve(ctx)?;
-        parse_proto(&self.descriptor, value)
+        let desc_file = self.desc_file.resolve(ctx)?;
+        let desc_file_str = desc_file.try_bytes_utf8_lossy()?;
+        let message_type = self.message_type.resolve(ctx)?;
+        let message_type_str = message_type.try_bytes_utf8_lossy()?;
+        let os_string: OsString = desc_file_str.into_owned().into();
+        let path_buf = PathBuf::from(os_string);
+        let path = Path::new(&path_buf);
+        let descriptor: MessageDescriptor =
+            get_message_descriptor(path, &message_type_str).expect("message type not found");
+        parse_proto(&descriptor, value)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {
