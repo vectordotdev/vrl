@@ -30,7 +30,7 @@ pub fn parse_grok(source_field: &str, grok_rules: &[GrokRule]) -> Result<Value, 
 
 /// Tries to parse a given string with a given grok rule.
 /// Returns a result value or an error otherwise.
-/// Possible errors:
+/// Errors:
 /// - FailedToApplyFilter - matches the rule, but there was a runtime error while applying on of the filters
 /// - NoMatch - this rule does not match a given string
 /// - FailedToMatch - there was a runtime error while matching the compiled pattern against the source
