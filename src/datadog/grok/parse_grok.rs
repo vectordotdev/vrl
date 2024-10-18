@@ -424,23 +424,30 @@ mod tests {
 
     #[test]
     fn fails_on_too_many_match_retries() {
-        let pattern = std::fs::read_to_string(format!("{}/pattern/excessive-match-retries.txt", FIXTURE_ROOT)).expect("Failed to read pattern file");
-        let value = std::fs::read_to_string(format!("{}/value/excessive-match-retries.txt", FIXTURE_ROOT)).expect("Failed to read value file");
+        let pattern = std::fs::read_to_string(format!(
+            "{}/pattern/excessive-match-retries.txt",
+            FIXTURE_ROOT
+        ))
+        .expect("Failed to read pattern file");
+        let value = std::fs::read_to_string(format!(
+            "{}/value/excessive-match-retries.txt",
+            FIXTURE_ROOT
+        ))
+        .expect("Failed to read value file");
 
         let rules = parse_grok_rules(
             // patterns
-            &[
-                pattern
-            ],
-            BTreeMap::new()
-        ).expect("couldn't parse rules");
+            &[pattern],
+            BTreeMap::new(),
+        )
+        .expect("couldn't parse rules");
 
-        let parsed = parse_grok(
-            &value,
-            &rules,
-        );
+        let parsed = parse_grok(&value, &rules);
 
-        assert_eq!(parsed.unwrap_err(), Error::FailedToMatch("Regex search error in the underlying engine".to_string()))
+        assert_eq!(
+            parsed.unwrap_err(),
+            Error::FailedToMatch("Regex search error in the underlying engine".to_string())
+        )
     }
 
     #[test]
