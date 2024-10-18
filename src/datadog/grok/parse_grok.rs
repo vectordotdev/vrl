@@ -1,12 +1,11 @@
-use crate::path::parse_value_path;
-use crate::value::{ObjectMap, Value};
-use std::collections::BTreeMap;
-use tracing::warn;
-
 use super::{
     grok_filter::apply_filter,
     parse_grok_rules::{GrokField, GrokRule},
 };
+use crate::path::parse_value_path;
+use crate::value::{ObjectMap, Value};
+use std::collections::BTreeMap;
+use tracing::{error, warn};
 
 #[derive(thiserror::Error, Debug, PartialEq, Eq)]
 pub enum Error {
@@ -14,6 +13,8 @@ pub enum Error {
     FailedToApplyFilter(String, String),
     #[error("value does not match any rule")]
     NoMatch,
+    #[error("failure occurred during match of the pattern against the value: '{}'", .0)]
+    FailedToMatch(String),
 }
 
 /// Parses a given source field value by applying the list of grok rules until the first match found.
@@ -29,26 +30,28 @@ pub fn parse_grok(source_field: &str, grok_rules: &[GrokRule]) -> Result<Value, 
 
 /// Tries to parse a given string with a given grok rule.
 /// Returns a result value or an error otherwise.
-/// Possible errors:
+/// Errors:
 /// - FailedToApplyFilter - matches the rule, but there was a runtime error while applying on of the filters
 /// - NoMatch - this rule does not match a given string
+/// - FailedToMatch - there was a runtime error while matching the compiled pattern against the source
 fn apply_grok_rule(source: &str, grok_rule: &GrokRule) -> Result<Value, Error> {
     let mut parsed = Value::Object(BTreeMap::new());
 
-    if let Some(ref matches) = grok_rule.pattern.match_against(source) {
-        for (name, match_str) in matches.iter() {
-            if match_str.is_empty() {
-                continue;
-            }
+    match grok_rule.pattern.match_against(source) {
+        Ok(Some(matches)) => {
+            for (name, match_str) in matches.iter() {
+                if match_str.is_empty() {
+                    continue;
+                }
 
-            let mut value = Some(Value::from(match_str));
+                let mut value = Some(Value::from(match_str));
 
-            if let Some(GrokField {
-                lookup: field,
-                filters,
-            }) = grok_rule.fields.get(name)
-            {
-                filters.iter().for_each(|filter| {
+                if let Some(GrokField {
+                    lookup: field,
+                    filters,
+                }) = grok_rule.fields.get(name)
+                {
+                    filters.iter().for_each(|filter| {
                     if let Some(ref mut v) = value {
                         value = match apply_filter(v, filter) {
                             Ok(Value::Null) => None,
@@ -62,43 +65,44 @@ fn apply_grok_rule(source: &str, grok_rule: &GrokRule) -> Result<Value, Error> {
                     }
                 });
 
-                if let Some(value) = value {
-                    match value {
-                        // root-level maps must be merged
-                        Value::Object(map) if field.is_root() => {
-                            parsed.as_object_mut().expect("root is object").extend(map);
-                        }
-                        // anything else at the root leve must be ignored
-                        _ if field.is_root() => {}
-                        // otherwise just apply VRL lookup insert logic
-                        _ => match parsed.get(field).cloned() {
-                            Some(Value::Array(mut values)) => {
-                                values.push(value);
-                                parsed.insert(field, values);
+                    if let Some(value) = value {
+                        match value {
+                            // root-level maps must be merged
+                            Value::Object(map) if field.is_root() => {
+                                parsed.as_object_mut().expect("root is object").extend(map);
                             }
-                            Some(v) => {
-                                parsed.insert(field, Value::Array(vec![v, value]));
-                            }
-                            None => {
-                                parsed.insert(field, value);
-                            }
-                        },
-                    };
+                            // anything else at the root leve must be ignored
+                            _ if field.is_root() => {}
+                            // otherwise just apply VRL lookup insert logic
+                            _ => match parsed.get(field).cloned() {
+                                Some(Value::Array(mut values)) => {
+                                    values.push(value);
+                                    parsed.insert(field, values);
+                                }
+                                Some(v) => {
+                                    parsed.insert(field, Value::Array(vec![v, value]));
+                                }
+                                None => {
+                                    parsed.insert(field, value);
+                                }
+                            },
+                        };
+                    }
+                } else {
+                    // this must be a regex named capturing group (?<name>group),
+                    // where name can only be alphanumeric - thus we do not need to parse field names(no nested fields)
+                    parsed
+                        .as_object_mut()
+                        .expect("parsed value is not an object")
+                        .insert(name.to_string().into(), value.into());
                 }
-            } else {
-                // this must be a regex named capturing group (?<name>group),
-                // where name can only be alphanumeric - thus we do not need to parse field names(no nested fields)
-                parsed
-                    .as_object_mut()
-                    .expect("parsed value is not an object")
-                    .insert(name.to_string().into(), value.into());
             }
-        }
 
-        postprocess_value(&mut parsed);
-        Ok(parsed)
-    } else {
-        Err(Error::NoMatch)
+            postprocess_value(&mut parsed);
+            Ok(parsed)
+        }
+        Ok(None) => Err(Error::NoMatch),
+        Err(e) => Err(e),
     }
 }
 
@@ -144,6 +148,8 @@ mod tests {
 
     use super::super::parse_grok_rules::parse_grok_rules;
     use super::*;
+
+    const FIXTURE_ROOT: &str = "tests/data/fixtures/parse_grok";
 
     #[test]
     fn parses_simple_grok() {
@@ -414,6 +420,34 @@ mod tests {
         let error = parse_grok("an ungrokkable message", &rules).unwrap_err();
 
         assert_eq!(error, Error::NoMatch);
+    }
+
+    #[test]
+    fn fails_on_too_many_match_retries() {
+        let pattern = std::fs::read_to_string(format!(
+            "{}/pattern/excessive-match-retries.txt",
+            FIXTURE_ROOT
+        ))
+        .expect("Failed to read pattern file");
+        let value = std::fs::read_to_string(format!(
+            "{}/value/excessive-match-retries.txt",
+            FIXTURE_ROOT
+        ))
+        .expect("Failed to read value file");
+
+        let rules = parse_grok_rules(
+            // patterns
+            &[pattern],
+            BTreeMap::new(),
+        )
+        .expect("couldn't parse rules");
+
+        let parsed = parse_grok(&value, &rules);
+
+        assert_eq!(
+            parsed.unwrap_err(),
+            Error::FailedToMatch("Regex search error in the underlying engine".to_string())
+        )
     }
 
     #[test]
