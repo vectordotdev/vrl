@@ -440,7 +440,7 @@ mod tests {
             &rules,
         );
 
-        assert_eq!(parsed.unwrap_err(), Error::FailedToMatch("Regex search error, try simplifying your regex to decrease the amount of match retries".to_string()))
+        assert_eq!(parsed.unwrap_err(), Error::FailedToMatch("Regex search error in the underlying engine".to_string()))
     }
 
     #[test]

@@ -121,7 +121,7 @@ impl Pattern {
             Ok(None) => Ok(None),
             // https://github.com/rust-onig/rust-onig/issues/178
             Err(_) => Err(GrokRuntimeError::FailedToMatch(
-                "Regex search error, try simplifying your regex to decrease the amount of match retries".into(),
+                "Regex search error in the underlying engine".into(),
             )),
         }
     }
