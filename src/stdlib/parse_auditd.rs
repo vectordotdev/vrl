@@ -64,6 +64,7 @@ fn parse_auditd(bytes: Value) -> Resolved {
 
     log.insert("body".into(), Value::from(body));
 
+    // TODO: should we downcase the keys of the enrichment so that they match its body counterparts?
     if !enrichment.is_empty() {
         log.insert("enrichment".into(), Value::from(enrichment));
     }
@@ -85,11 +86,6 @@ impl<'a> TryFrom<AuditValue<'a>> for Value {
                     .collect::<Result<Vec<_>, _>>()?,
             ),
             AuditValue::Owned(string) => Value::from(Bytes::from(string)),
-            // Currently, AuditValue::Map is not generated from the parser (https://github.com/hillu/linux-audit-parser-rs/blob/d8c448c8d8227467b81cd5267790415b8b73f0cb/src/value.rs#L70)
-            // but I think we should use that data type to represent the key-value pairs of the internal (nested) msg field
-            // as depicted here: https://github.com/vectordotdev/vrl/issues/66
-            // For example, in the following linux-audit-parser test https://github.com/hillu/linux-audit-parser-rs/blob/d8c448c8d8227467b81cd5267790415b8b73f0cb/src/test.rs#L168
-            // we see that the msg field is parsed as a string, although it could be key-value pairs
             AuditValue::Map(entries) => Value::from(
                 entries
                     .into_iter()
@@ -417,9 +413,16 @@ mod tests {
                     "uid" => 1_000,
                     "auid" => 1_000,
                     "ses" => 2,
-                    // TODO: this should be parsed into a nested object, but it is lack of implementation
-                    // from the linux-audit-parse crate
-                    "msg" => r#"op=PAM:accounting grantors=pam_unix,pam_permit,pam_time acct="vrl" exe="/usr/bin/sudo" hostname=? addr=? terminal=/dev/pts/1 res=success"#,
+                    "msg"=> btreemap! {
+                        "op" => "PAM:accounting",
+                        "grantors" => "pam_unix,pam_permit,pam_time",
+                        "acct" => "vrl",
+                        "exe" => "/usr/bin/sudo",
+                        "hostname" => Value::Null,
+                        "addr" => Value::Null,
+                        "terminal" => "/dev/pts/1",
+                        "res" => "success"
+                    }
                 },
                 "enrichment" => btreemap! {
                     "UID" => "vrl",

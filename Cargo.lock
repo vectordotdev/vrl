@@ -1515,9 +1515,9 @@ dependencies = [
 
 [[package]]
 name = "linux-audit-parser"
-version = "0.1.1"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1a4056b37f64fbc83d1bc0ffdabd77a9238fadf46677cbc7f9e373e8389f9865"
+checksum = "58f7d9e3689f07f34e7a1aeede0afbb749210c28ce4fcc362f8ff3bc5da63937"
 dependencies = [
  "indexmap",
  "lazy_static",
