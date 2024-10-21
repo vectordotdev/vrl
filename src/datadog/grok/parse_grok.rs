@@ -1,12 +1,11 @@
-use crate::path::parse_value_path;
-use crate::value::{ObjectMap, Value};
-use std::collections::BTreeMap;
-use tracing::warn;
-
 use super::{
     grok_filter::apply_filter,
     parse_grok_rules::{GrokField, GrokRule},
 };
+use crate::path::parse_value_path;
+use crate::value::{ObjectMap, Value};
+use std::collections::BTreeMap;
+use tracing::{error, warn};
 
 #[derive(thiserror::Error, Debug, PartialEq, Eq)]
 pub enum Error {
@@ -14,6 +13,8 @@ pub enum Error {
     FailedToApplyFilter(String, String),
     #[error("value does not match any rule")]
     NoMatch,
+    #[error("failure occurred during match of the pattern against the value: '{}'", .0)]
+    FailedToMatch(String),
 }
 
 /// Parses a given source field value by applying the list of grok rules until the first match found.
@@ -29,30 +30,32 @@ pub fn parse_grok(source_field: &str, grok_rules: &[GrokRule]) -> Result<Value, 
 
 /// Tries to parse a given string with a given grok rule.
 /// Returns a result value or an error otherwise.
-/// Possible errors:
+/// Errors:
 /// - FailedToApplyFilter - matches the rule, but there was a runtime error while applying on of the filters
 /// - NoMatch - this rule does not match a given string
+/// - FailedToMatch - there was a runtime error while matching the compiled pattern against the source
 fn apply_grok_rule(source: &str, grok_rule: &GrokRule) -> Result<Value, Error> {
     let mut parsed = Value::Object(BTreeMap::new());
 
-    if let Some(ref matches) = grok_rule.pattern.match_against(source) {
-        for (name, match_str) in matches.iter() {
-            if match_str.is_empty() {
-                continue;
-            }
+    match grok_rule.pattern.match_against(source) {
+        Ok(Some(matches)) => {
+            for (name, match_str) in matches.iter() {
+                if match_str.is_empty() {
+                    continue;
+                }
 
-            let mut value = Some(Value::from(match_str));
+                let mut value = Some(Value::from(match_str));
 
-            if let Some(GrokField {
-                lookup: field,
-                filters,
-            }) = grok_rule.fields.get(name)
-            {
-                filters.iter().for_each(|filter| {
+                if let Some(GrokField {
+                    lookup: field,
+                    filters,
+                }) = grok_rule.fields.get(name)
+                {
+                    filters.iter().for_each(|filter| {
                     if let Some(ref mut v) = value {
                         value = match apply_filter(v, filter) {
                             Ok(Value::Null) => None,
-                            Ok(v ) if v.is_object() => Some(parse_keys_as_path(v)),
+                            Ok(v) if v.is_object() => Some(parse_keys_as_path(v)),
                             Ok(v) => Some(v),
                             Err(error) => {
                                 warn!(message = "Error applying filter", field = %field, filter = %filter, %error);
@@ -62,43 +65,44 @@ fn apply_grok_rule(source: &str, grok_rule: &GrokRule) -> Result<Value, Error> {
                     }
                 });
 
-                if let Some(value) = value {
-                    match value {
-                        // root-level maps must be merged
-                        Value::Object(map) if field.is_root() => {
-                            parsed.as_object_mut().expect("root is object").extend(map);
-                        }
-                        // anything else at the root leve must be ignored
-                        _ if field.is_root() => {}
-                        // otherwise just apply VRL lookup insert logic
-                        _ => match parsed.get(field).cloned() {
-                            Some(Value::Array(mut values)) => {
-                                values.push(value);
-                                parsed.insert(field, values);
+                    if let Some(value) = value {
+                        match value {
+                            // root-level maps must be merged
+                            Value::Object(map) if field.is_root() => {
+                                parsed.as_object_mut().expect("root is object").extend(map);
                             }
-                            Some(v) => {
-                                parsed.insert(field, Value::Array(vec![v, value]));
-                            }
-                            None => {
-                                parsed.insert(field, value);
-                            }
-                        },
-                    };
+                            // anything else at the root leve must be ignored
+                            _ if field.is_root() => {}
+                            // otherwise just apply VRL lookup insert logic
+                            _ => match parsed.get(field).cloned() {
+                                Some(Value::Array(mut values)) => {
+                                    values.push(value);
+                                    parsed.insert(field, values);
+                                }
+                                Some(v) => {
+                                    parsed.insert(field, Value::Array(vec![v, value]));
+                                }
+                                None => {
+                                    parsed.insert(field, value);
+                                }
+                            },
+                        };
+                    }
+                } else {
+                    // this must be a regex named capturing group (?<name>group),
+                    // where name can only be alphanumeric - thus we do not need to parse field names(no nested fields)
+                    parsed
+                        .as_object_mut()
+                        .expect("parsed value is not an object")
+                        .insert(name.to_string().into(), value.into());
                 }
-            } else {
-                // this must be a regex named capturing group (?<name>group),
-                // where name can only be alphanumeric - thus we do not need to parse field names(no nested fields)
-                parsed
-                    .as_object_mut()
-                    .expect("parsed value is not an object")
-                    .insert(name.to_string().into(), value.into());
             }
-        }
 
-        postprocess_value(&mut parsed);
-        Ok(parsed)
-    } else {
-        Err(Error::NoMatch)
+            postprocess_value(&mut parsed);
+            Ok(parsed)
+        }
+        Ok(None) => Err(Error::NoMatch),
+        Err(e) => Err(e),
     }
 }
 
@@ -144,6 +148,8 @@ mod tests {
 
     use super::super::parse_grok_rules::parse_grok_rules;
     use super::*;
+
+    const FIXTURE_ROOT: &str = "tests/data/fixtures/parse_grok";
 
     #[test]
     fn parses_simple_grok() {
@@ -254,8 +260,10 @@ mod tests {
 
     fn test_grok_pattern(tests: Vec<(&str, &str, Result<Value, Error>)>) {
         for (filter, k, v) in tests {
-            let rules = parse_grok_rules(&[filter.to_string()], BTreeMap::new())
-                .expect("couldn't parse rules");
+            let rules =
+                parse_grok_rules(&[filter.to_string()], BTreeMap::new()).unwrap_or_else(|error| {
+                    panic!("failed to parse {k} with filter {filter}: {error}")
+                });
             let parsed = parse_grok(k, &rules);
 
             if v.is_ok() {
@@ -263,10 +271,11 @@ mod tests {
                     parsed.unwrap_or_else(|_| panic!("{filter} does not match {k}")),
                     Value::from(btreemap! {
                         "field" =>  v.unwrap(),
-                    })
+                    }),
+                    "failed to parse {k} with filter {filter}"
                 );
             } else {
-                assert_eq!(parsed, v);
+                assert_eq!(parsed, v, "failed to parse {k} with filter {filter}");
             }
         }
     }
@@ -274,10 +283,10 @@ mod tests {
     fn test_full_grok(tests: Vec<(&str, &str, Result<Value, Error>)>) {
         for (filter, k, v) in tests {
             let rules = parse_grok_rules(&[filter.to_string()], BTreeMap::new())
-                .expect("couldn't parse rules");
+                .unwrap_or_else(|_| panic!("failed to parse {k} with filter {filter}"));
             let parsed = parse_grok(k, &rules);
 
-            assert_eq!(parsed, v);
+            assert_eq!(parsed, v, "failed to parse {k} with filter {filter}");
         }
     }
 
@@ -287,7 +296,7 @@ mod tests {
             parse_grok_rules(&["%{unknown}".to_string()], BTreeMap::new())
                 .unwrap_err()
                 .to_string(),
-            r#"failed to parse grok expression '\A%{unknown}\z': The given pattern definition name "unknown" could not be found in the definition map"#
+            r#"failed to parse grok expression '(?m)\A%{unknown}\z': The given pattern definition name "unknown" could not be found in the definition map"#
         );
     }
 
@@ -411,6 +420,34 @@ mod tests {
         let error = parse_grok("an ungrokkable message", &rules).unwrap_err();
 
         assert_eq!(error, Error::NoMatch);
+    }
+
+    #[test]
+    fn fails_on_too_many_match_retries() {
+        let pattern = std::fs::read_to_string(format!(
+            "{}/pattern/excessive-match-retries.txt",
+            FIXTURE_ROOT
+        ))
+        .expect("Failed to read pattern file");
+        let value = std::fs::read_to_string(format!(
+            "{}/value/excessive-match-retries.txt",
+            FIXTURE_ROOT
+        ))
+        .expect("Failed to read value file");
+
+        let rules = parse_grok_rules(
+            // patterns
+            &[pattern],
+            BTreeMap::new(),
+        )
+        .expect("couldn't parse rules");
+
+        let parsed = parse_grok(&value, &rules);
+
+        assert_eq!(
+            parsed.unwrap_err(),
+            Error::FailedToMatch("Regex search error in the underlying engine".to_string())
+        )
     }
 
     #[test]
@@ -657,7 +694,7 @@ mod tests {
                 Ok(Value::Array(vec!["1".into(), "2".into()])),
             ),
             (
-                r#"(?m)%{data:field:array("[]","\\n")}"#,
+                r#"%{data:field:array("[]","\\n")}"#,
                 "[1\n2]",
                 Ok(Value::Array(vec!["1".into(), "2".into()])),
             ),
@@ -788,6 +825,24 @@ mod tests {
                 "key:={valueStr}",
                 Ok(Value::from(btreemap! {
                     "key" => "valueStr"
+                })),
+            ),
+            // ignore space after the delimiter(comma)
+            (
+                r#"%{data::keyvalue}"#,
+                "key1=value1, key2=value2",
+                Ok(Value::from(btreemap! {
+                    "key1" => "value1",
+                    "key2" => "value2",
+                })),
+            ),
+            // allow space as a legit value character, but trim key/values
+            (
+                r#"%{data::keyvalue("="," ")}"#,
+                "key1=value1, key2 = value 2 ",
+                Ok(Value::from(btreemap! {
+                    "key1" => "value1",
+                    "key2" => "value 2",
                 })),
             ),
             (
@@ -928,6 +983,64 @@ mod tests {
                     }
                 })),
             ),
+            // capture all possilbe key-value pairs from the string
+            (
+                "%{data::keyvalue}",
+                r#" , key1=value1 "key2"="value2",key3=value3 "#,
+                Ok(Value::from(btreemap! {
+                    "key1" => "value1",
+                    "key2" => "value2",
+                    "key3" => "value3",
+                })),
+            ),
+            (
+                r#"%{data::keyvalue(": ",",")}"#,
+                r#"client: 217.92.148.44, server: localhost, request: "HEAD http://174.138.82.103:80/sql/sql-admin/ HTTP/1.1", host: "174.138.82.103""#,
+                Ok(Value::from(btreemap! {
+                    "client" => "217.92.148.44",
+                    "host" => "174.138.82.103",
+                    "request" => "HEAD http://174.138.82.103:80/sql/sql-admin/ HTTP/1.1",
+                    "server" => "localhost",
+                })),
+            ),
+            // append values with the same key
+            (
+                r#"%{data::keyvalue}"#,
+                r#"a=1, a=1, a=2"#,
+                Ok(Value::from(btreemap! {
+                    "a" => vec![1, 1, 2]
+                })),
+            ),
+            // trim string values
+            (
+                r#"%{data::keyvalue("="," ")}"#,
+                r#"a= foo"#,
+                Ok(Value::from(btreemap! {
+                    "a" => "foo"
+                })),
+            ),
+            // ignore if key contains spaces
+            (
+                r#"%{data::keyvalue("="," ")}"#,
+                "a key=value",
+                Ok(Value::from(btreemap! {})),
+            ),
+            // parses valid octal numbers (start with 0) as decimals
+            (
+                r#"%{data::keyvalue}"#,
+                "a=07",
+                Ok(Value::from(btreemap! {
+                    "a" => 7
+                })),
+            ),
+            // parses invalid octal numbers (start with 0) as strings
+            (
+                r#"%{data::keyvalue}"#,
+                "a=08",
+                Ok(Value::from(btreemap! {
+                    "a" => "08"
+                })),
+            ),
         ]);
     }
 
@@ -1021,24 +1134,15 @@ mod tests {
     #[test]
     fn parses_with_new_lines() {
         test_full_grok(vec![
+            // the DOTALL mode is enabled by default
             (
-                "(?m)%{data:field}",
+                "%{data:field}",
                 "a\nb",
                 Ok(Value::from(btreemap! {
                     "field" => "a\nb"
                 })),
             ),
-            (
-                "(?m)%{data:line1}\n%{data:line2}",
-                "a\nb",
-                Ok(Value::from(btreemap! {
-                    "line1" => "a",
-                    "line2" => "b"
-                })),
-            ),
-            // no DOTALL mode by default
-            ("%{data:field}", "a\nb", Err(Error::NoMatch)),
-            // (?s) is not supported by the underlying regex engine(onig) - it uses (?m) instead, so we convert it silently
+            // (?s) enables the DOTALL mode
             (
                 "(?s)%{data:field}",
                 "a\nb",
@@ -1046,9 +1150,17 @@ mod tests {
                     "field" => "a\nb"
                 })),
             ),
-            // disable DOTALL mode with (?-s)
+            (
+                "%{data:line1}\n%{data:line2}",
+                "a\nb",
+                Ok(Value::from(btreemap! {
+                    "line1" => "a",
+                    "line2" => "b"
+                })),
+            ),
+            // disable the DOTALL mode with (?-s)
             ("(?s)(?-s)%{data:field}", "a\nb", Err(Error::NoMatch)),
-            // disable and then enable DOTALL mode
+            // disable and then enable the DOTALL mode
             (
                 "(?-s)%{data:field} (?s)%{data:field}",
                 "abc d\ne",
@@ -1106,7 +1218,7 @@ mod tests {
     #[test]
     fn supports_xml_filter() {
         test_grok_pattern(vec![(
-            "(?s)%{data:field:xml}", // (?s) enables DOTALL mode to include newlines
+            "%{data:field:xml}",
             r#"<book category="CHILDREN">
                   <title lang="en">Harry Potter</title>
                   <author>J K. Rowling</author>

@@ -94,7 +94,7 @@ impl<'a> Iterator for JitValuePathIter<'a> {
                     let (result, state) = match self.state {
                         JitState::Start => match c {
                             '.' => (None, JitState::EventRoot),
-                            'A'..='Z' | 'a'..='z' | '_' | '0'..='9' | '@' => {
+                            'A'..='Z' | 'a'..='z' | '_' | '0'..='9' | '@' | '-' => {
                                 (None, JitState::Field { start: index })
                             }
                             '[' => (None, JitState::IndexStart),
@@ -103,7 +103,7 @@ impl<'a> Iterator for JitValuePathIter<'a> {
                         },
                         JitState::Continue => match c {
                             '.' => (None, JitState::Dot),
-                            'A'..='Z' | 'a'..='z' | '_' | '0'..='9' | '@' => {
+                            'A'..='Z' | 'a'..='z' | '_' | '0'..='9' | '@' | '-' => {
                                 (None, JitState::Field { start: index })
                             }
                             '[' => (None, JitState::IndexStart),
@@ -111,7 +111,7 @@ impl<'a> Iterator for JitValuePathIter<'a> {
                             _ => (Some(Some(BorrowedSegment::Invalid)), JitState::End),
                         },
                         JitState::EventRoot => match c {
-                            'A'..='Z' | 'a'..='z' | '_' | '0'..='9' | '@' => {
+                            'A'..='Z' | 'a'..='z' | '_' | '0'..='9' | '@' | '-' => {
                                 (None, JitState::Field { start: index })
                             }
                             '[' => (None, JitState::IndexStart),
@@ -119,14 +119,14 @@ impl<'a> Iterator for JitValuePathIter<'a> {
                             _ => (Some(Some(BorrowedSegment::Invalid)), JitState::End),
                         },
                         JitState::Dot => match c {
-                            'A'..='Z' | 'a'..='z' | '_' | '0'..='9' | '@' => {
+                            'A'..='Z' | 'a'..='z' | '_' | '0'..='9' | '@' | '-' => {
                                 (None, JitState::Field { start: index })
                             }
                             '\"' => (None, JitState::Quote { start: index + 1 }),
                             _ => (Some(Some(BorrowedSegment::Invalid)), JitState::End),
                         },
                         JitState::Field { start } => match c {
-                            'A'..='Z' | 'a'..='z' | '_' | '0'..='9' | '@' => {
+                            'A'..='Z' | 'a'..='z' | '_' | '0'..='9' | '@' | '-' => {
                                 (None, JitState::Field { start })
                             }
                             '.' => (
@@ -266,6 +266,9 @@ mod test {
                 ],
             ),
             (".foo", vec![BorrowedSegment::Field("foo".into())]),
+            (".a-b", vec![BorrowedSegment::Field("a-b".into())]),
+            (".a-b-", vec![BorrowedSegment::Field("a-b-".into())]),
+            (".-a-b", vec![BorrowedSegment::Field("-a-b".into())]),
             (
                 ".@timestamp",
                 vec![BorrowedSegment::Field("@timestamp".into())],

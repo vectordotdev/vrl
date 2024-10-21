@@ -1,0 +1,17 @@
+# result:
+#
+# error[E610]: function compilation error: error[E403] invalid argument
+#   ┌─ :2:1
+#   │
+# 2 │ match_datadog_query({"a": 1}, "@a%:1")
+#   │ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#   │ │
+#   │ invalid argument "query"
+#   │ error: failed to build matcher
+#   │ received: "@a%:1"
+#   │
+#   = learn more about error code 403 at https://errors.vrl.dev/403
+#   = see language documentation at https://vrl.dev
+#   = try your code in the VRL REPL, learn more at https://vrl.dev/examples
+
+match_datadog_query({"a": 1}, "@a%:1")
