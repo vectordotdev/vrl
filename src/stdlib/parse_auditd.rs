@@ -384,7 +384,7 @@ mod tests {
             tdef: type_def(),
         }
 
-        avc_granted{
+        avc_granted {
             args: func_args![value: r#"type=AVC msg=audit(1724423274.618:6439): avc:  granted  { setsecparam setsecparam2 setsecparam3} for  pid=1240242 comm="vrl" scontext=system_u:system_r:vrl_t:s0 tcontext=system_u:object_r:security_t:s0 tclass=security"#],
             want: Ok(btreemap! {
                 "type" => "AVC",
