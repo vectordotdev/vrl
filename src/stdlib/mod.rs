@@ -133,6 +133,7 @@ cfg_if::cfg_if! {
         mod now;
         mod object;
         mod parse_apache_log;
+        mod parse_auditd;
         mod parse_aws_alb_log;
         mod parse_aws_cloudwatch_log_subscription_message;
         mod parse_aws_vpc_flow_log;
@@ -313,6 +314,7 @@ cfg_if::cfg_if! {
         pub use now::Now;
         pub use object::Object;
         pub use parse_apache_log::ParseApacheLog;
+        pub use parse_auditd::ParseAuditd;
         pub use parse_aws_alb_log::ParseAwsAlbLog;
         pub use parse_aws_cloudwatch_log_subscription_message::ParseAwsCloudWatchLogSubscriptionMessage;
         pub use parse_aws_vpc_flow_log::ParseAwsVpcFlowLog;
@@ -497,6 +499,7 @@ pub fn all() -> Vec<Box<dyn Function>> {
         Box::new(Now),
         Box::new(Object),
         Box::new(ParseApacheLog),
+        Box::new(ParseAuditd),
         Box::new(ParseAwsAlbLog),
         Box::new(ParseAwsCloudWatchLogSubscriptionMessage),
         Box::new(ParseAwsVpcFlowLog),
