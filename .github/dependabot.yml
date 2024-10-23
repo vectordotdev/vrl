@@ -12,6 +12,12 @@ updates:
       prefix: "chore(deps)"
     open-pull-requests-limit: 10
     groups:
+      patches:
+        applies-to: version-updates
+        patterns:
+          - "*"
+        update-types:
+          - "patch"
       prost:
         patterns:
         - "prost"
