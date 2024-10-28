@@ -440,7 +440,9 @@ impl Function for DnsLookup {
     }
 
     #[cfg(not(feature = "test"))]
-    fn examples(&self) -> &'static [Example] { &[] }
+    fn examples(&self) -> &'static [Example] {
+        &[]
+    }
 
     #[cfg(feature = "test")]
     fn examples(&self) -> &'static [Example] {
