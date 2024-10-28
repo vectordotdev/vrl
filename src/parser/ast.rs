@@ -538,6 +538,15 @@ impl IntoIterator for Array {
     }
 }
 
+impl FromIterator<Node<Expr>> for Array {
+    fn from_iter<T>(iter: T) -> Self
+    where
+        T: IntoIterator<Item = Node<Expr>>,
+    {
+        Self(iter.into_iter().collect())
+    }
+}
+
 // -----------------------------------------------------------------------------
 // object
 // -----------------------------------------------------------------------------
@@ -577,6 +586,15 @@ impl IntoIterator for Object {
 
     fn into_iter(self) -> Self::IntoIter {
         self.0.into_iter()
+    }
+}
+
+impl FromIterator<(Node<String>, Node<Expr>)> for Object {
+    fn from_iter<T>(iter: T) -> Self
+    where
+        T: IntoIterator<Item = (Node<String>, Node<Expr>)>,
+    {
+        Self(iter.into_iter().collect())
     }
 }
 
