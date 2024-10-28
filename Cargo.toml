@@ -48,8 +48,9 @@ lua = ["dep:mlua"]
 proptest = ["dep:proptest", "dep:proptest-derive"]
 float_roundtrip = ["dep:serde_json", "serde_json/float_roundtrip"]
 
-# Internal testing utilities (used for benches)
+# Testing Utilities. Enables additional tests, including those with external dependencies such as network calls.
 test = ["string_path"]
+
 
 # All stdlib functions
 stdlib = [
