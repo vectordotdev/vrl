@@ -1185,6 +1185,11 @@ impl Not {
     pub fn take(self) -> (Node<()>, Box<Node<Expr>>) {
         (self.0, self.1)
     }
+
+    #[must_use]
+    pub fn new(span: Span, expr: Node<Expr>) -> Self {
+        Self(Node::new(span, ()), Box::new(expr))
+    }
 }
 
 impl fmt::Display for Not {
