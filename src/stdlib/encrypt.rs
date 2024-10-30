@@ -4,7 +4,7 @@ use aes::cipher::{
     generic_array::GenericArray,
     AsyncStreamCipher, BlockEncryptMut, KeyIvInit, StreamCipher,
 };
-use aes_siv::{Aes256SivAead, Aes128SivAead};
+use aes_siv::{Aes128SivAead, Aes256SivAead};
 use cfb_mode::Encryptor as Cfb;
 use chacha20poly1305::{aead::Aead, ChaCha20Poly1305, KeyInit, XChaCha20Poly1305};
 use crypto_secretbox::XSalsa20Poly1305;
