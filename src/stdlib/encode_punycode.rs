@@ -83,6 +83,10 @@ impl FunctionExpression for EncodePunycodeFn {
                 .map_err(|errors| format!("unable to encode to punycode: {errors}"))?;
             Ok(encoded.into())
         } else {
+            if string.is_ascii() {
+                return Ok(string.into());
+            }
+
             let encoded = string
                 .split('.')
                 .map(|part| {
