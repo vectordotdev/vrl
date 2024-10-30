@@ -5,11 +5,9 @@ provide everything you need to get started.
 
 ## Steps
 
-1. Ensure your change has an issue! Find an
-   [existing issue][urls.existing_issues] or [open a new issue][urls.new_issue].
-  - This is where you can get a feel if the change will be accepted or not.
-    Changes that are questionable will have a `needs: approval` label.
-2. [fork the Vector repository][urls.fork_repo] in your own
+1. Ensure your change has an issue!
+   Find an [existing issue][urls.existing_issues] or [open a new issue][urls.new_issue].
+2. [fork the VRL repository][urls.fork_repo] in your own
    GitHub account (only applicable to outside contributors).
 3. [Create a new Git branch][urls.create_branch].
 4. Make your changes.
