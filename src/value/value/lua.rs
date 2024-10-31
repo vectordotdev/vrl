@@ -276,13 +276,13 @@ mod test {
 
         let lua = Lua::new();
         for (value, test_src) in pairs {
-            let test_fn: LuaFunction<'_> = lua
+            let test_fn: LuaFunction = lua
                 .load(test_src)
                 .eval()
                 .unwrap_or_else(|_| panic!("Failed to load {test_src} for value {value:?}"));
             assert!(
                 test_fn
-                    .call::<_, bool>(value.clone())
+                    .call::<bool>(value.clone())
                     .unwrap_or_else(|_| panic!("Failed to call {test_src} for value {value:?}")),
                 "Test function: {test_src}, value: {value:?}"
             );
