@@ -93,17 +93,14 @@ impl FunctionExpression for EncodePunycodeFn {
             let encoded = string
                 .split('.')
                 .map(|part| {
-                    if part.starts_with(PUNYCODE_PREFIX)
-                        || part
-                            .chars()
-                            .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit())
-                    {
-                        part.to_string()
+                    if part.starts_with(PUNYCODE_PREFIX) || part.chars().all(|c| c.is_ascii()) {
+                        part.to_lowercase()
                     } else {
                         format!(
                             "{}{}",
                             PUNYCODE_PREFIX,
-                            idna::punycode::encode_str(part).unwrap_or(part.to_string())
+                            idna::punycode::encode_str(&part.to_lowercase())
+                                .unwrap_or(part.to_lowercase())
                         )
                     }
                 })
