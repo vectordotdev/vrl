@@ -5,7 +5,7 @@ use super::{
 use crate::path::parse_value_path;
 use crate::value::{ObjectMap, Value};
 use std::collections::BTreeMap;
-use tracing::{error, warn};
+use tracing::error;
 
 #[derive(thiserror::Error, Debug, PartialEq, Eq)]
 pub enum Error {
@@ -51,19 +51,15 @@ fn apply_grok_rule(source: &str, grok_rule: &GrokRule) -> Result<Value, Error> {
                     filters,
                 }) = grok_rule.fields.get(name)
                 {
-                    filters.iter().for_each(|filter| {
-                    if let Some(ref mut v) = value {
-                        value = match apply_filter(v, filter) {
-                            Ok(Value::Null) => None,
-                            Ok(v) if v.is_object() => Some(parse_keys_as_path(v)),
-                            Ok(v) => Some(v),
-                            Err(error) => {
-                                warn!(message = "Error applying filter", field = %field, filter = %filter, %error);
-                                None
-                            }
-                        };
+                    for filter in filters {
+                        if let Some(ref mut v) = value {
+                            value = match apply_filter(v, filter)? {
+                                Value::Null => None,
+                                v if v.is_object() => Some(parse_keys_as_path(v)),
+                                v => Some(v),
+                            };
+                        }
                     }
-                });
 
                     if let Some(value) = value {
                         match value {
@@ -99,6 +95,7 @@ fn apply_grok_rule(source: &str, grok_rule: &GrokRule) -> Result<Value, Error> {
             }
 
             postprocess_value(&mut parsed);
+
             Ok(parsed)
         }
         Ok(None) => Err(Error::NoMatch),
@@ -286,7 +283,7 @@ mod tests {
                 .unwrap_or_else(|_| panic!("failed to parse {k} with filter {filter}"));
             let parsed = parse_grok(k, &rules);
 
-            assert_eq!(parsed, v, "failed to parse {k} with filter {filter}");
+            assert_eq!(parsed, v);
         }
     }
 
@@ -372,7 +369,7 @@ mod tests {
                 })),
             ),
             (
-                "%{notSpace:standalone_field} '%{data::json}' '%{data::json}' %{number::number}",
+                "%{notSpace:standalone_field} '%{data::json}' '%{data::json}' %{data::integer}",
                 r#"value1 '{ "json_field1": "value2" }' '{ "json_field2": "value3" }' 3"#,
                 Ok(Value::from(btreemap! {
                     "standalone_field" => Value::Bytes("value1".into()),
@@ -388,23 +385,49 @@ mod tests {
                     "standalone_field" => Value::Bytes("value1".into()),
                 })),
             ),
-            // empty map if fails
-            (
-                "%{data::json}",
-                "not a json",
-                Ok(Value::from(BTreeMap::new())),
-            ),
         ]);
     }
 
     #[test]
-    fn ignores_field_if_filter_fails() {
-        // empty map for filters like json
-        test_full_grok(vec![(
-            "%{notSpace:field1:integer} %{data:field2:json}",
-            "not_a_number not a json",
-            Ok(Value::from(BTreeMap::new())),
-        )]);
+    fn fails_if_filter_fails() {
+        test_full_grok(vec![
+            // not a number
+            (
+                "%{notSpace:field1:integer} %{data:field2:json}",
+                "not_a_number not a json",
+                Err(Error::FailedToApplyFilter(
+                    "Integer".to_owned(),
+                    "\"not_a_number\"".to_owned(),
+                )),
+            ),
+            // not a json
+            (
+                "%{data::json}",
+                "not a json",
+                Err(Error::FailedToApplyFilter(
+                    "Json".to_owned(),
+                    "\"not a json\"".to_owned(),
+                )),
+            ),
+            // not an array
+            (
+                "%{data:field:array}",
+                "abc",
+                Err(Error::FailedToApplyFilter(
+                    "Array(..)".to_owned(),
+                    "\"abc\"".to_owned(),
+                )),
+            ),
+            // failed to apply scale filter(values are strings)
+            (
+                "%{data:field:array(scale(10))}",
+                "[a,b]",
+                Err(Error::FailedToApplyFilter(
+                    "Scale(..)".to_owned(),
+                    "\"a\"".to_owned(),
+                )),
+            ),
+        ]);
     }
 
     #[test]
@@ -742,21 +765,6 @@ mod tests {
                 r#"%{data:field:array("{}",";", scale(10))}"#,
                 "{1;2.1}",
                 Ok(Value::Array(vec![10.into(), 21.into()])),
-            ),
-        ]);
-
-        test_full_grok(vec![
-            // not an array
-            (
-                "%{data:field:array}",
-                "abc",
-                Ok(Value::Object(BTreeMap::new())),
-            ),
-            // failed to apply value filter(values are strings)
-            (
-                "%{data:field:array(scale(10))}",
-                "[a,b]",
-                Ok(Value::Object(BTreeMap::new())),
             ),
         ]);
     }
