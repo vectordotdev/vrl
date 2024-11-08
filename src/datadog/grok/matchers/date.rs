@@ -101,6 +101,8 @@ pub fn convert_time_format(format: &str) -> Result<String, String> {
 pub struct RegexResult {
     pub regex: String,
     pub with_tz: bool,
+    pub with_tz_capture: bool,
+    pub with_fraction_second: bool,
 }
 
 pub fn parse_timezone(tz: &str) -> Result<FixedOffset, String> {
@@ -140,6 +142,8 @@ pub fn time_format_to_regex(format: &str, with_captures: bool) -> Result<RegexRe
     let mut regex = String::new();
     let mut chars = format.chars().peekable();
     let mut with_tz = false;
+    let mut with_tz_capture = false;
+    let mut with_fraction_second = false;
     while let Some(&c) = chars.peek() {
         if c.is_ascii_uppercase() || c.is_ascii_lowercase() {
             let token: String = chars.by_ref().peeking_take_while(|&cn| cn == c).collect();
@@ -167,6 +171,7 @@ pub fn time_format_to_regex(format: &str, with_captures: bool) -> Result<RegexRe
                             regex.push_str(
                                 format!("(?P<{}>{})", FRACTION_CHAR_GROUP, fraction_char).as_str(),
                             );
+                            with_fraction_second = true;
                         } else {
                             regex.push_str(&fraction_char);
                         }
@@ -200,11 +205,13 @@ pub fn time_format_to_regex(format: &str, with_captures: bool) -> Result<RegexRe
                     if token.len() >= 4 {
                         if with_captures {
                             regex.push_str("(?P<tz>[\\w]+(?:/[\\w]+)?)");
+                            with_tz_capture = true;
                         } else {
                             regex.push_str("[\\w]+(?:\\/[\\w]+)?");
                         }
                     } else if with_captures {
                         regex.push_str("(?P<tz>[\\w]+)");
+                        with_tz_capture = true;
                     } else {
                         regex.push_str("[\\w]+");
                     }
@@ -239,7 +246,12 @@ pub fn time_format_to_regex(format: &str, with_captures: bool) -> Result<RegexRe
             chars.next();
         }
     }
-    Ok(RegexResult { regex, with_tz })
+    Ok(RegexResult {
+        regex,
+        with_tz,
+        with_tz_capture,
+        with_fraction_second,
+    })
 }
 
 pub fn apply_date_filter(value: &Value, filter: &DateFilter) -> Result<Value, GrokRuntimeError> {
@@ -256,37 +268,45 @@ pub fn apply_date_filter(value: &Value, filter: &DateFilter) -> Result<Value, Gr
         datetime.push_str("+0000");
     };
 
-    if let Some(tz) = filter
-        .regex
-        .captures(&original_value)
-        .and_then(|caps| caps.name("tz"))
-    {
-        let tz = tz.as_str();
-        let tz: Tz = tz.parse().map_err(|error| {
-            warn!(message = "Error parsing tz", tz = %tz, % error);
-            GrokRuntimeError::FailedToApplyFilter(filter.to_string(), original_value.to_string())
-        })?;
-        replace_sec_fraction_with_dot(filter, &mut datetime);
-        let naive_date = NaiveDateTime::parse_from_str(&datetime, &strp_format).map_err(|error|
+    if filter.with_tz_capture {
+        if let Some(tz) = filter
+            .regex
+            .captures(&original_value)
+            .and_then(|caps| caps.name("tz"))
         {
-            warn!(message = "Error parsing date", value = %original_value, format = %strp_format, % error);
-            GrokRuntimeError::FailedToApplyFilter(
-                filter.to_string(),
-                original_value.to_string(),
-            )
-        })?;
-        let dt = tz
-            .from_local_datetime(&naive_date)
-            .single()
-            .ok_or_else(|| {
+            let tz = tz.as_str();
+            let tz: Tz = tz.parse().map_err(|error| {
+                warn!(message = "Error parsing tz", tz = %tz, % error);
                 GrokRuntimeError::FailedToApplyFilter(
                     filter.to_string(),
                     original_value.to_string(),
                 )
             })?;
-        Ok(Value::from(
-            Utc.from_utc_datetime(&dt.naive_utc()).timestamp_millis(),
-        ))
+            replace_sec_fraction_with_dot(filter, &mut datetime);
+            let naive_date = NaiveDateTime::parse_from_str(&datetime, &strp_format).map_err(|error|
+            {
+                warn!(message = "Error parsing date", value = %original_value, format = %strp_format, % error);
+                GrokRuntimeError::FailedToApplyFilter(
+                    filter.to_string(),
+                    original_value.to_string(),
+                )
+            })?;
+            let dt = tz
+                .from_local_datetime(&naive_date)
+                .single()
+                .ok_or_else(|| {
+                    GrokRuntimeError::FailedToApplyFilter(
+                        filter.to_string(),
+                        original_value.to_string(),
+                    )
+                })?;
+            Ok(Value::from(
+                Utc.from_utc_datetime(&dt.naive_utc()).timestamp_millis(),
+            ))
+        } else {
+            // this code path means we have a bug in the upstream building of the Filters
+            panic!("Filter should contain tz capture");
+        }
     } else {
         replace_sec_fraction_with_dot(filter, &mut datetime);
         if filter.tz_aware {
@@ -382,9 +402,11 @@ pub fn adjust_strp_format_and_value(strp_format: &str, original_value: &str) -> 
 
 /// Replace fraction of a second char with a dot - we always use %.f in strptime format
 fn replace_sec_fraction_with_dot(filter: &DateFilter, value: &mut String) {
-    if let Some(caps) = filter.regex.captures(value) {
-        if let Some(m) = caps.name(FRACTION_CHAR_GROUP) {
-            value.replace_range(m.start()..m.end(), ".");
+    if filter.with_fraction_second {
+        if let Some(caps) = filter.regex.captures(value) {
+            if let Some(m) = caps.name(FRACTION_CHAR_GROUP) {
+                value.replace_range(m.start()..m.end(), ".");
+            }
         }
     }
 }
@@ -401,6 +423,10 @@ pub struct DateFilter {
     pub regex: Regex,
     // an optional target TZ name
     pub target_tz: Option<String>,
+    // if the regex contains captures
+    pub with_tz_capture: bool,
+    // if the regex contains fraction second capture
+    pub with_fraction_second: bool,
 }
 
 impl std::fmt::Display for DateFilter {
