@@ -266,8 +266,6 @@ mod tests {
                 });
             let parsed = parse_grok(k, &rules);
 
-            // println!("parsed: {parsed:?}");
-
             if v.is_ok() {
                 assert_eq!(
                     parsed.unwrap_or_else(|_| panic!("{filter} does not match {k}")),
