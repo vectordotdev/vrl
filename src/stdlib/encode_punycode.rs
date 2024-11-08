@@ -83,20 +83,24 @@ impl FunctionExpression for EncodePunycodeFn {
                 .map_err(|errors| format!("unable to encode to punycode: {errors}"))?;
             Ok(encoded.into())
         } else {
-            if string.is_ascii() {
+            if string
+                .chars()
+                .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '.')
+            {
                 return Ok(string.into());
             }
 
             let encoded = string
                 .split('.')
                 .map(|part| {
-                    if part.starts_with(PUNYCODE_PREFIX) || part.is_ascii() {
-                        part.to_string()
+                    if part.starts_with(PUNYCODE_PREFIX) || part.chars().all(|c| c.is_ascii()) {
+                        part.to_lowercase()
                     } else {
                         format!(
                             "{}{}",
                             PUNYCODE_PREFIX,
-                            idna::punycode::encode_str(part).unwrap_or(part.to_string())
+                            idna::punycode::encode_str(&part.to_lowercase())
+                                .unwrap_or(part.to_lowercase())
                         )
                     }
                 })
@@ -131,8 +135,20 @@ mod test {
             tdef: TypeDef::bytes().fallible(),
         }
 
+        mixed_case_ignore_validation {
+            args: func_args![value: value!("www.CAFé.com"), validate: false],
+            want: Ok(value!("www.xn--caf-dma.com")),
+            tdef: TypeDef::bytes().fallible(),
+        }
+
         ascii_string {
             args: func_args![value: value!("www.cafe.com")],
+            want: Ok(value!("www.cafe.com")),
+            tdef: TypeDef::bytes().fallible(),
+        }
+
+        ascii_string_ignore_validation {
+            args: func_args![value: value!("www.cafe.com"), validate: false],
             want: Ok(value!("www.cafe.com")),
             tdef: TypeDef::bytes().fallible(),
         }
