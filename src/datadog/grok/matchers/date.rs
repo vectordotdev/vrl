@@ -269,21 +269,19 @@ pub fn apply_date_filter(value: &Value, filter: &DateFilter) -> Result<Value, Gr
     };
 
     if filter.with_tz_capture {
-        if let Some(tz) = filter
+        let tz = filter
             .regex
             .captures(&original_value)
             .and_then(|caps| caps.name("tz"))
-        {
-            let tz = tz.as_str();
-            let tz: Tz = tz.parse().map_err(|error| {
-                warn!(message = "Error parsing tz", tz = %tz, % error);
-                GrokRuntimeError::FailedToApplyFilter(
-                    filter.to_string(),
-                    original_value.to_string(),
-                )
-            })?;
-            replace_sec_fraction_with_dot(filter, &mut datetime);
-            let naive_date = NaiveDateTime::parse_from_str(&datetime, &strp_format).map_err(|error|
+            .expect("Filter should contain tz capture")
+            .as_str();
+
+        let tz: Tz = tz.parse().map_err(|error| {
+            warn!(message = "Error parsing tz", %tz, %error);
+            GrokRuntimeError::FailedToApplyFilter(filter.to_string(), original_value.to_string())
+        })?;
+        replace_sec_fraction_with_dot(filter, &mut datetime);
+        let naive_date = NaiveDateTime::parse_from_str(&datetime, &strp_format).map_err(|error|
             {
                 warn!(message = "Error parsing date", value = %original_value, format = %strp_format, % error);
                 GrokRuntimeError::FailedToApplyFilter(
@@ -291,22 +289,18 @@ pub fn apply_date_filter(value: &Value, filter: &DateFilter) -> Result<Value, Gr
                     original_value.to_string(),
                 )
             })?;
-            let dt = tz
-                .from_local_datetime(&naive_date)
-                .single()
-                .ok_or_else(|| {
-                    GrokRuntimeError::FailedToApplyFilter(
-                        filter.to_string(),
-                        original_value.to_string(),
-                    )
-                })?;
-            Ok(Value::from(
-                Utc.from_utc_datetime(&dt.naive_utc()).timestamp_millis(),
-            ))
-        } else {
-            // this code path means we have a bug in the upstream building of the Filters
-            panic!("Filter should contain tz capture");
-        }
+        let dt = tz
+            .from_local_datetime(&naive_date)
+            .single()
+            .ok_or_else(|| {
+                GrokRuntimeError::FailedToApplyFilter(
+                    filter.to_string(),
+                    original_value.to_string(),
+                )
+            })?;
+        Ok(Value::from(
+            Utc.from_utc_datetime(&dt.naive_utc()).timestamp_millis(),
+        ))
     } else {
         replace_sec_fraction_with_dot(filter, &mut datetime);
         if filter.tz_aware {
@@ -423,7 +417,7 @@ pub struct DateFilter {
     pub regex: Regex,
     // an optional target TZ name
     pub target_tz: Option<String>,
-    // if the regex contains captures
+    // if the regex captures contain the TZ
     pub with_tz_capture: bool,
     // if the regex contains fraction second capture
     pub with_fraction_second: bool,
