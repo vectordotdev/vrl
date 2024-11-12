@@ -9,7 +9,7 @@ use tracing::error;
 
 /// Errors which cause the Datadog grok algorithm to stop processing and not return a parsed result.
 #[derive(thiserror::Error, Debug, PartialEq, Eq)]
-pub enum FatalGrokError {
+pub enum FatalError {
     #[error("value does not match any rule")]
     NoMatch,
     #[error("failure during regex engine runtime for match of the pattern against the value.")]
@@ -18,7 +18,7 @@ pub enum FatalGrokError {
 
 /// Errors that do not prohibit the Datadog grok algorithm from continuing processing.
 #[derive(thiserror::Error, Debug, PartialEq, Eq)]
-pub enum RecoverableGrokError {
+pub enum InternalError {
     /// When this error is encountered, the value associated with the filter is not parsed into the
     /// resulting object.
     #[error("failed to apply filter '{}' to '{}'", .0, .1)]
@@ -29,37 +29,37 @@ pub enum RecoverableGrokError {
 pub struct ParsedGrokObject {
     /// Resulting parsed object from the Grok operation.
     pub parsed: Value,
-    /// List of recoverable errors that were encounted during the parsing.
-    pub recoverable_errors: Vec<RecoverableGrokError>,
+    /// List of internal errors that were encounted during the parsing.
+    pub internal_errors: Vec<InternalError>,
 }
 
 /// Parses a given source field value by applying the list of grok rules until the first match found.
 pub fn parse_grok(
     source_field: &str,
     grok_rules: &[GrokRule],
-) -> Result<ParsedGrokObject, FatalGrokError> {
+) -> Result<ParsedGrokObject, FatalError> {
     for rule in grok_rules {
         match apply_grok_rule(source_field, rule) {
-            Err(FatalGrokError::NoMatch) => continue,
+            Err(FatalError::NoMatch) => continue,
             other => return other,
         }
     }
-    Err(FatalGrokError::NoMatch)
+    Err(FatalError::NoMatch)
 }
 
 /// Tries to parse a given string with a given grok rule.
-/// Returns a parsed object and any recoverable errors encountered during operation, or errors
+/// Returns a parsed object and any internal errors encountered during operation, or errors
 /// if any were fatal.
 ///
 /// Fatal Errors:
 /// - NoMatch - this rule does not match a given string
 /// - FailedToMatch - there was a runtime error while matching the compiled pattern against the source
 ///
-/// Recoverable Errors:
+/// Internal Errors:
 /// - FailedToApplyFilter - matches the rule, but there was a runtime error while applying on of the filters
-fn apply_grok_rule(source: &str, grok_rule: &GrokRule) -> Result<ParsedGrokObject, FatalGrokError> {
+fn apply_grok_rule(source: &str, grok_rule: &GrokRule) -> Result<ParsedGrokObject, FatalError> {
     let mut parsed = Value::Object(BTreeMap::new());
-    let mut recoverable_errors = vec![];
+    let mut internal_errors = vec![];
 
     match grok_rule.pattern.match_against(source) {
         Ok(Some(matches)) => {
@@ -82,7 +82,7 @@ fn apply_grok_rule(source: &str, grok_rule: &GrokRule) -> Result<ParsedGrokObjec
                                 Ok(v) if v.is_object() => Some(parse_keys_as_path(v)),
                                 Ok(v) => Some(v),
                                 Err(e) => {
-                                    recoverable_errors.push(e);
+                                    internal_errors.push(e);
                                     None
                                 }
                             };
@@ -126,10 +126,10 @@ fn apply_grok_rule(source: &str, grok_rule: &GrokRule) -> Result<ParsedGrokObjec
 
             Ok(ParsedGrokObject {
                 parsed,
-                recoverable_errors,
+                internal_errors,
             })
         }
-        Ok(None) => Err(FatalGrokError::NoMatch),
+        Ok(None) => Err(FatalError::NoMatch),
         Err(e) => Err(e),
     }
 }
@@ -266,11 +266,7 @@ mod tests {
             ("%{integerExt:field}", "+2", Ok(Value::from(2))),
             ("%{integerExt:field}", "-2", Ok(Value::from(-2))),
             ("%{integerExt:field}", "-1e+2", Ok(Value::from(-100))),
-            (
-                "%{integerExt:field}",
-                "1234.1e+5",
-                Err(FatalGrokError::NoMatch),
-            ),
+            ("%{integerExt:field}", "1234.1e+5", Err(FatalError::NoMatch)),
         ]);
     }
 
@@ -294,11 +290,11 @@ mod tests {
         ]);
     }
 
-    fn test_grok_pattern(tests: Vec<(&str, &str, Result<Value, FatalGrokError>)>) {
+    fn test_grok_pattern(tests: Vec<(&str, &str, Result<Value, FatalError>)>) {
         for (filter, k, v) in tests {
             let v = v.map(|parsed| ParsedGrokObject {
                 parsed,
-                recoverable_errors: vec![],
+                internal_errors: vec![],
             });
             let rules =
                 parse_grok_rules(&[filter.to_string()], BTreeMap::new()).unwrap_or_else(|error| {
@@ -322,11 +318,11 @@ mod tests {
         }
     }
 
-    fn test_full_grok(tests: Vec<(&str, &str, Result<Value, FatalGrokError>)>) {
+    fn test_full_grok(tests: Vec<(&str, &str, Result<Value, FatalError>)>) {
         for (filter, k, v) in tests {
             let v = v.map(|parsed| ParsedGrokObject {
                 parsed,
-                recoverable_errors: vec![],
+                internal_errors: vec![],
             });
             let rules = parse_grok_rules(&[filter.to_string()], BTreeMap::new())
                 .unwrap_or_else(|_| panic!("failed to parse {k} with filter {filter}"));
@@ -336,8 +332,8 @@ mod tests {
         }
     }
 
-    fn test_full_grok_recoverable_errors(
-        tests: Vec<(&str, &str, Result<ParsedGrokObject, FatalGrokError>)>,
+    fn test_full_grok_internal_errors(
+        tests: Vec<(&str, &str, Result<ParsedGrokObject, FatalError>)>,
     ) {
         for (filter, k, v) in tests {
             let rules = parse_grok_rules(&[filter.to_string()], BTreeMap::new())
@@ -439,7 +435,7 @@ mod tests {
             ),
         ]);
 
-        test_full_grok_recoverable_errors(vec![(
+        test_full_grok_internal_errors(vec![(
             "%{notSpace:standalone_field} '%{data::json}' '%{data::json}' %{number::number}",
             r#"value1 '{ "json_field1": "value2" }' '{ "json_field2": "value3" }' 3"#,
             Ok(ParsedGrokObject {
@@ -449,7 +445,7 @@ mod tests {
                     "json_field2" => Value::Bytes("value3".into())
                 }),
 
-                recoverable_errors: vec![RecoverableGrokError::FailedToApplyFilter(
+                internal_errors: vec![InternalError::FailedToApplyFilter(
                     "Number".to_owned(),
                     "3".to_owned(),
                 )],
@@ -460,17 +456,17 @@ mod tests {
     #[test]
     fn ignores_field_if_filter_fails() {
         // empty map for filters like json
-        test_full_grok_recoverable_errors(vec![(
+        test_full_grok_internal_errors(vec![(
             "%{notSpace:field1:integer} %{data:field2:json}",
             "not_a_number not a json",
             Ok(ParsedGrokObject {
                 parsed: Value::from(BTreeMap::new()),
-                recoverable_errors: vec![
-                    RecoverableGrokError::FailedToApplyFilter(
+                internal_errors: vec![
+                    InternalError::FailedToApplyFilter(
                         "Integer".to_owned(),
                         "\"not_a_number\"".to_owned(),
                     ),
-                    RecoverableGrokError::FailedToApplyFilter(
+                    InternalError::FailedToApplyFilter(
                         "Json".to_owned(),
                         "\"not a json\"".to_owned(),
                     ),
@@ -491,7 +487,7 @@ mod tests {
         .expect("couldn't parse rules");
         let error = parse_grok("an ungrokkable message", &rules).unwrap_err();
 
-        assert_eq!(error, FatalGrokError::NoMatch);
+        assert_eq!(error, FatalError::NoMatch);
     }
 
     #[test]
@@ -516,7 +512,7 @@ mod tests {
 
         let parsed = parse_grok(&value, &rules);
 
-        assert_eq!(parsed.unwrap_err(), FatalGrokError::RegexEngineError)
+        assert_eq!(parsed.unwrap_err(), FatalError::RegexEngineError)
     }
 
     #[test]
@@ -814,14 +810,14 @@ mod tests {
             ),
         ]);
 
-        test_full_grok_recoverable_errors(vec![
+        test_full_grok_internal_errors(vec![
             // not an array
             (
                 "%{data:field:array}",
                 "abc",
                 Ok(ParsedGrokObject {
                     parsed: Value::from(BTreeMap::new()),
-                    recoverable_errors: vec![RecoverableGrokError::FailedToApplyFilter(
+                    internal_errors: vec![InternalError::FailedToApplyFilter(
                         "Array(..)".to_owned(),
                         "\"abc\"".to_owned(),
                     )],
@@ -833,7 +829,7 @@ mod tests {
                 "[a,b]",
                 Ok(ParsedGrokObject {
                     parsed: Value::from(BTreeMap::new()),
-                    recoverable_errors: vec![RecoverableGrokError::FailedToApplyFilter(
+                    internal_errors: vec![InternalError::FailedToApplyFilter(
                         "Scale(..)".to_owned(),
                         "\"a\"".to_owned(),
                     )],
@@ -1240,11 +1236,7 @@ mod tests {
                 })),
             ),
             // disable the DOTALL mode with (?-s)
-            (
-                "(?s)(?-s)%{data:field}",
-                "a\nb",
-                Err(FatalGrokError::NoMatch),
-            ),
+            ("(?s)(?-s)%{data:field}", "a\nb", Err(FatalError::NoMatch)),
             // disable and then enable the DOTALL mode
             (
                 "(?-s)%{data:field} (?s)%{data:field}",

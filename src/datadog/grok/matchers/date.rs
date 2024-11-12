@@ -9,7 +9,7 @@ use peeking_take_while::PeekableExt;
 use regex::Regex;
 use tracing::warn;
 
-use super::super::parse_grok::RecoverableGrokError;
+use super::super::parse_grok::InternalError;
 
 /// converts Joda time format to strptime format
 pub fn convert_time_format(format: &str) -> Result<String, String> {
@@ -242,12 +242,9 @@ pub fn time_format_to_regex(format: &str, with_captures: bool) -> Result<RegexRe
     Ok(RegexResult { regex, with_tz })
 }
 
-pub fn apply_date_filter(
-    value: &Value,
-    filter: &DateFilter,
-) -> Result<Value, RecoverableGrokError> {
+pub fn apply_date_filter(value: &Value, filter: &DateFilter) -> Result<Value, InternalError> {
     let original_value = String::from_utf8_lossy(value.as_bytes().ok_or_else(|| {
-        RecoverableGrokError::FailedToApplyFilter(filter.to_string(), value.to_string())
+        InternalError::FailedToApplyFilter(filter.to_string(), value.to_string())
     })?);
     let (strp_format, mut datetime) =
         adjust_strp_format_and_value(&filter.strp_format, &original_value);
@@ -267,16 +264,13 @@ pub fn apply_date_filter(
         let tz = tz.as_str();
         let tz: Tz = tz.parse().map_err(|error| {
             warn!(message = "Error parsing tz", tz = %tz, % error);
-            RecoverableGrokError::FailedToApplyFilter(
-                filter.to_string(),
-                original_value.to_string(),
-            )
+            InternalError::FailedToApplyFilter(filter.to_string(), original_value.to_string())
         })?;
         replace_sec_fraction_with_dot(filter, &mut datetime);
         let naive_date = NaiveDateTime::parse_from_str(&datetime, &strp_format).map_err(|error|
         {
             warn!(message = "Error parsing date", value = %original_value, format = %strp_format, % error);
-            RecoverableGrokError::FailedToApplyFilter(
+            InternalError::FailedToApplyFilter(
                 filter.to_string(),
                 original_value.to_string(),
             )
@@ -285,10 +279,7 @@ pub fn apply_date_filter(
             .from_local_datetime(&naive_date)
             .single()
             .ok_or_else(|| {
-                RecoverableGrokError::FailedToApplyFilter(
-                    filter.to_string(),
-                    original_value.to_string(),
-                )
+                InternalError::FailedToApplyFilter(filter.to_string(), original_value.to_string())
             })?;
         Ok(Value::from(
             Utc.from_utc_datetime(&dt.naive_utc()).timestamp_millis(),
@@ -299,10 +290,7 @@ pub fn apply_date_filter(
             // parse as a tz-aware complete date/time
             let timestamp = DateTime::parse_from_str(&datetime, &strp_format).map_err(|error| {
                 warn!(message = "Error parsing date", date = %original_value, % error);
-                RecoverableGrokError::FailedToApplyFilter(
-                    filter.to_string(),
-                    original_value.to_string(),
-                )
+                InternalError::FailedToApplyFilter(filter.to_string(), original_value.to_string())
             })?;
             Ok(Value::from(timestamp.to_utc().timestamp_millis()))
         } else if let Ok(dt) = NaiveDateTime::parse_from_str(&datetime, &strp_format) {
@@ -310,14 +298,14 @@ pub fn apply_date_filter(
             if let Some(tz) = &filter.target_tz {
                 let tzs = parse_timezone(tz).map_err(|error| {
                     warn!(message = "Error parsing tz", tz = %tz, % error);
-                    RecoverableGrokError::FailedToApplyFilter(
+                    InternalError::FailedToApplyFilter(
                         filter.to_string(),
                         original_value.to_string(),
                     )
                 })?;
                 let dt = tzs.from_local_datetime(&dt).single().ok_or_else(|| {
                     warn!(message = "Error parsing date", date = %original_value);
-                    RecoverableGrokError::FailedToApplyFilter(
+                    InternalError::FailedToApplyFilter(
                         filter.to_string(),
                         original_value.to_string(),
                     )
@@ -340,10 +328,7 @@ pub fn apply_date_filter(
             // try parsing as a naive date
             let nd = NaiveDate::parse_from_str(&datetime, &strp_format).map_err(|error| {
                 warn!(message = "Error parsing date", date = %original_value, % error);
-                RecoverableGrokError::FailedToApplyFilter(
-                    filter.to_string(),
-                    original_value.to_string(),
-                )
+                InternalError::FailedToApplyFilter(filter.to_string(), original_value.to_string())
             })?;
             let datetime_tz = UTC
                 .from_local_datetime(&NaiveDateTime::new(
@@ -353,7 +338,7 @@ pub fn apply_date_filter(
                 .single()
                 .ok_or_else(|| {
                     warn!(message = "Error parsing date", date = %original_value);
-                    RecoverableGrokError::FailedToApplyFilter(
+                    InternalError::FailedToApplyFilter(
                         filter.to_string(),
                         original_value.to_string(),
                     )

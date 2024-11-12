@@ -12,7 +12,7 @@ use std::collections::{btree_map, BTreeMap};
 use std::panic;
 use std::sync::Arc;
 
-use super::parse_grok::FatalGrokError;
+use super::parse_grok::FatalError;
 
 use onig::{Captures, Regex};
 use thiserror::Error;
@@ -110,17 +110,14 @@ impl Pattern {
 
     /// Matches this compiled `Pattern` against the text and returns the matches.
     #[inline]
-    pub fn match_against<'a>(
-        &'a self,
-        text: &'a str,
-    ) -> Result<Option<Matches<'a>>, FatalGrokError> {
+    pub fn match_against<'a>(&'a self, text: &'a str) -> Result<Option<Matches<'a>>, FatalError> {
         let result = panic::catch_unwind(|| self.regex.captures(text));
 
         match result {
             Ok(Some(cap)) => Ok(Some(Matches::new(cap, &self.names))),
             Ok(None) => Ok(None),
             // https://github.com/rust-onig/rust-onig/issues/178
-            Err(_) => Err(FatalGrokError::RegexEngineError),
+            Err(_) => Err(FatalError::RegexEngineError),
         }
     }
 }
