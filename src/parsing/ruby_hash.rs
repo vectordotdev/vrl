@@ -117,7 +117,7 @@ fn parse_colon_key<'a, E: ParseError<&'a str> + ContextError<&'a str>>(
             char(':'),
             alt((parse_str('"'), parse_str('\''), parse_symbol_key)),
         ),
-        |res| (String::from(":") + res).into(),
+        KeyString::from,
     )(input)
 }
 
@@ -215,13 +215,24 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_symbol_value() {
-        let result = parse_ruby_hash(r#"{ "key" => :foo }"#).unwrap();
+    fn test_parse_symbol_key() {
+        let result = parse_ruby_hash(r#"{ :key => "foo", :number => 500 }"#).unwrap();
         assert!(result.is_object());
         let result = result.as_object().unwrap();
         let value = result.get("key").unwrap();
         assert!(value.is_bytes());
-        assert_eq!(value.as_bytes().unwrap(), ":foo");
+        assert_eq!(value.as_bytes().unwrap(), "foo");
+        assert!(result.get("number").unwrap().is_float());
+    }
+
+    #[test]
+    fn test_parse_symbol_colon_separator() {
+        let result = parse_ruby_hash(r#"{ key: "foo" }"#).unwrap();
+        assert!(result.is_object());
+        let result = result.as_object().unwrap();
+        let value = result.get("key").unwrap();
+        assert!(value.is_bytes());
+        assert_eq!(value.as_bytes().unwrap(), "foo");
     }
 
     #[test]
@@ -257,9 +268,9 @@ mod tests {
         .unwrap();
         assert!(result.is_object());
         let result = result.as_object().unwrap();
-        assert!(result.get(":colon").unwrap().is_bytes());
-        assert!(result.get(":double").unwrap().is_bytes());
-        assert!(result.get(":simple").unwrap().is_bytes());
+        assert!(result.get("colon").unwrap().is_bytes());
+        assert!(result.get("double").unwrap().is_bytes());
+        assert!(result.get("simple").unwrap().is_bytes());
     }
 
     #[test]
@@ -267,7 +278,7 @@ mod tests {
         let result = parse_ruby_hash(r#"{ :with_underscore => "hello world" }"#).unwrap();
         assert!(result.is_object());
         let result = result.as_object().unwrap();
-        assert!(result.get(":with_underscore").unwrap().is_bytes());
+        assert!(result.get("with_underscore").unwrap().is_bytes());
     }
 
     #[test]
@@ -320,7 +331,7 @@ mod tests {
             parse_ruby_hash(r#"{:hello=>"world",'number'=>42,"weird"=>'format\'here'}"#).unwrap();
         assert!(result.is_object());
         let result = result.as_object().unwrap();
-        assert!(result.get(":hello").unwrap().is_bytes());
+        assert!(result.get("hello").unwrap().is_bytes());
         assert!(result.get("number").unwrap().is_float());
     }
 

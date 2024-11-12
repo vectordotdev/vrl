@@ -1,6 +1,6 @@
 [package]
 name = "vrl"
-version = "0.17.0"
+version = "0.19.0"
 authors = ["Vector Contributors <vector@datadoghq.com>"]
 edition = "2021"
 license = "MPL-2.0"
@@ -10,7 +10,7 @@ repository = "https://github.com/vectordotdev/vrl"
 readme = "README.md"
 keywords = ["vector", "datadog", "compiler"]
 categories = ["compilers"]
-rust-version = "1.78" # msrv
+rust-version = "1.79" # msrv
 
 [workspace]
 members = [
@@ -36,9 +36,9 @@ string_path = []
 
 # Datadog related features (on by default)
 datadog = ["datadog_filter", "datadog_grok", "datadog_search"]
-datadog_filter = ["datadog_search", "dep:regex", "dep:dyn-clone"]
-datadog_grok = ["value", "parsing", "dep:nom", "dep:peeking_take_while", "dep:serde_json", "dep:onig", "dep:lalrpop-util", "dep:thiserror", "dep:chrono", "dep:chrono-tz", "dep:percent-encoding"]
-datadog_search = ["dep:pest", "dep:pest_derive", "dep:itertools", "dep:once_cell", "dep:regex"]
+datadog_filter = ["path", "datadog_search", "dep:regex", "dep:dyn-clone"]
+datadog_grok = ["value", "parsing", "dep:nom", "dep:peeking_take_while", "dep:serde_json", "dep:onig", "dep:lalrpop-util", "dep:thiserror", "dep:chrono", "dep:chrono-tz", "dep:percent-encoding", "dep:fancy-regex"]
+datadog_search = ["dep:pest", "dep:pest_derive", "dep:itertools", "dep:once_cell", "dep:regex", "dep:serde"]
 
 # Features that aren't used as often (default off)
 cli = ["stdlib", "dep:serde_json", "dep:thiserror", "dep:clap", "dep:exitcode", "dep:webbrowser", "dep:rustyline", "dep:prettytable-rs"]
@@ -48,8 +48,9 @@ lua = ["dep:mlua"]
 proptest = ["dep:proptest", "dep:proptest-derive"]
 float_roundtrip = ["dep:serde_json", "serde_json/float_roundtrip"]
 
-# Internal testing utilities (used for benches)
+# Testing Utilities. Enables additional tests, including those with external dependencies such as network calls.
 test = ["string_path"]
+
 
 # All stdlib functions
 stdlib = [
@@ -58,6 +59,7 @@ stdlib = [
  "datadog",
  "parsing",
  "dep:aes",
+ "dep:aes-siv",
  "dep:base16",
  "dep:base62",
  "dep:base64",
@@ -121,12 +123,12 @@ cfg-if = "1"
 ansi_term = {version = "0.12", optional = true }
 arbitrary = { version = "1", optional = true, features = ["derive"] }
 base16 = { version = "0.2", optional = true }
-base62 = { version = "2.0.2", optional = true }
+base62 = { version = "2.0.3", optional = true }
 base64 = { version = "0.22", optional = true }
 bytes = { version = "1", default-features = false, optional = true }
 charset = { version = "0.1", optional = true }
 chrono = { version = "0.4", default-features = false, features = ["clock", "serde", "wasmbind"], optional = true }
-chrono-tz = { version = "0.9", default-features = false, optional = true }
+chrono-tz = { version = "0.10", default-features = false, optional = true }
 cidr-utils = { version = "0.6", optional = true }
 csv = { version = "1", optional = true }
 clap = { version = "4", features = ["derive"], optional = true }
@@ -141,12 +143,12 @@ hex = { version = "0.4", optional = true }
 hmac = { version = "0.12", optional = true }
 iana-time-zone = { version = "0.1", optional = true }
 idna = { version = "1.0", optional = true }
-indexmap = { version = "~2.4.0", default-features = false, features = ["std"], optional = true}
+indexmap = { version = "2", default-features = false, features = ["std"], optional = true}
 influxdb-line-protocol = { version = "2.0.0", optional = true }
 indoc = {version = "2", optional = true }
-itertools = { version = "0.13", default-features = false, optional = true }
-lalrpop-util = { version = "0.20", optional = true }
-mlua = { version = "0.9", default-features = false, features = ["lua54", "send", "vendored"], optional = true}
+itertools = { version = "0.13", default-features = false, features=["use_std"], optional = true }
+lalrpop-util = { version = "0.22", optional = true }
+mlua = { version = "0.10", default-features = false, features = ["lua54", "send", "vendored"], optional = true}
 nom = { version = "7", default-features = false, features = ["std"], optional = true }
 once_cell = { version = "1", default-features = false, features = ["std"], optional = true }
 ordered-float = { version = "4", default-features = false, optional = true }
@@ -157,7 +159,7 @@ percent-encoding = { version = "2", optional = true }
 pest = { version = "2", default-features = false, optional = true, features = ["std"] }
 pest_derive = { version = "2", default-features = false, optional = true, features = ["std"] }
 proptest = { version = "1", optional = true }
-proptest-derive = { version = "0.4", optional = true }
+proptest-derive = { version = "0.5", optional = true }
 prettydiff = {version = "0.7", default-features = false, optional = true }
 prettytable-rs = { version = "0.10", default-features = false, optional = true }
 quickcheck = { version = "1", optional = true }
@@ -173,6 +175,7 @@ rust_decimal = { version = "1", optional = true }
 seahash = { version = "4", optional = true }
 serde = { version = "1", features = ["derive"], optional = true }
 serde_json = { version = "1", default-features = false, optional = true, features = ["std", "raw_value"] }
+fancy-regex = { version = "0.14.0", default-features = false, optional = true }
 sha-1 = { version = "0.10", optional = true }
 sha-2 = { package = "sha2", version = "0.10", optional = true }
 sha-3 = { package = "sha3", version = "0.10", optional = true }
@@ -194,6 +197,7 @@ zstd = { version = "0.13", default-features = false, features = ["wasm"], option
 
 # Cryptography
 aes = { version = "0.8", optional = true }
+aes-siv = { version = "0.7.0", optional = true }
 chacha20poly1305 = { version = "0.10", optional = true }
 crypto_secretbox = { version = "0.1", features = ["salsa20"], optional = true }
 
@@ -210,7 +214,7 @@ prost-reflect = { version = "0.14", default-features = false, optional = true}
 # Dependencies used for non-WASM
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 dns-lookup = { version = "2", optional = true }
-domain = { version = "0.10.1", optional = true, features = ["resolv-sync", "serde"] }
+domain = { version = "0.10.3", optional = true, features = ["resolv-sync", "serde"] }
 hostname = { version = "0.4", optional = true }
 grok = { version = "2", optional = true }
 onig = { version = "6", default-features = false, optional = true }
@@ -224,17 +228,17 @@ uuid = { version = "1", features = ["v4", "v7", "js"], optional = true }
 [dev-dependencies]
 anyhow = "1"
 criterion = "0.5"
-chrono-tz = "0.9"
+chrono-tz = "0.10"
 serde_json = "1"
 indoc = "2"
 tracing-test = { version = "0.2", default-features = false }
 toml = { version = "0.8", default-features = false }
-mlua = { version = "0.9", default-features = false, features = ["lua54", "send", "vendored"]}
+mlua = { version = "0.10", default-features = false, features = ["lua54", "send", "vendored"]}
 quickcheck = { version = "1"}
 regex = { version = "1", default-features = false, features = ["std", "perf", "unicode"] }
 paste = { version = "1", default-features = false }
 proptest = { version = "1" }
-proptest-derive = { version = "0.4" }
+proptest-derive = { version = "0.5" }
 
 [build-dependencies]
 lalrpop = { version = "0.20", default-features = false }
@@ -242,12 +246,10 @@ lalrpop = { version = "0.20", default-features = false }
 [[bench]]
 name = "kind"
 harness = false
-required-features = ["default", "test"]
 
 [[bench]]
 name = "keyvalue"
 harness = false
-required-features = ["default", "test"]
 
 [[bench]]
 name = "stdlib"

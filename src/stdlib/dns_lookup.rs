@@ -1,8 +1,12 @@
-//! Function providing DNS lookup functionality
-//! This function involves network calls and should therefore be avoided in most pipelines
-//! Implementation also relies on a single threaded worker for executing calls, blocking on each
-//! call until result is received, which will greatly reduce performance
-//! Use only if absolutely needed
+//! # DNS Lookup Function
+//!
+//! This function provides DNS lookup capabilities but is not recommended for frequent or performance-critical workflows.
+//! It performs network calls, relying on a single-threaded worker that blocks on each request
+//! until a response is received, which can degrade performance in high-throughput applications.
+//!
+//! Due to the potential for network-related delays or failures, avoid using this function
+//! in latency-sensitive contexts.
+
 use crate::compiler::prelude::*;
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -26,9 +30,8 @@ mod non_wasm {
     use crate::compiler::prelude::*;
     use crate::value::Value;
 
-    // Single threaded worker for executing DNS requests
-    // Currently blocks on each request until result is received
-    // It should be avoided unless absolutely needed
+    /// Single threaded worker for executing DNS requests.
+    /// Currently blocks on each request until result is received.
     static WORKER: Lazy<Worker> = Lazy::new(Worker::new);
     const CHANNEL_CAPACITY: usize = 100;
 
@@ -436,6 +439,12 @@ impl Function for DnsLookup {
         ]
     }
 
+    #[cfg(not(feature = "test"))]
+    fn examples(&self) -> &'static [Example] {
+        &[]
+    }
+
+    #[cfg(feature = "test")]
     fn examples(&self) -> &'static [Example] {
         &[
             Example {

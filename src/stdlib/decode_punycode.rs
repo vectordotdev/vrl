@@ -71,6 +71,10 @@ impl FunctionExpression for DecodePunycodeFn {
         let value = self.value.resolve(ctx)?;
         let string = value.try_bytes_utf8_lossy()?;
 
+        if !string.contains(PUNYCODE_PREFIX) {
+            return Ok(string.into());
+        }
+
         let validate = self.validate.resolve(ctx)?.try_boolean()?;
 
         if validate {

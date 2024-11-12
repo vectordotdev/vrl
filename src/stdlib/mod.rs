@@ -203,6 +203,7 @@ cfg_if::cfg_if! {
         mod to_unix_timestamp;
         mod community_id;
         mod truncate;
+        mod unflatten;
         mod type_def;
         mod unique;
         mod unnest;
@@ -381,6 +382,7 @@ cfg_if::cfg_if! {
         pub use to_unix_timestamp::ToUnixTimestamp;
         pub use truncate::Truncate;
         pub use type_def::TypeDef;
+        pub use unflatten::Unflatten;
         pub use unique::Unique;
         pub use unnest::Unnest;
         pub use upcase::Upcase;
@@ -569,6 +571,7 @@ pub fn all() -> Vec<Box<dyn Function>> {
         Box::new(CommunityID),
         Box::new(Truncate),
         Box::new(TypeDef),
+        Box::new(Unflatten),
         Box::new(Unique),
         Box::new(Unnest),
         Box::new(Upcase),
