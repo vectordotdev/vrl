@@ -80,7 +80,7 @@ impl FunctionExpression for EncodePunycodeFn {
 
         if validate {
             let encoded = idna::domain_to_ascii(&string)
-                .map_err(|errors| format!("unable to encode to punycode: {errors}"))?;
+                .map_err(|_errors| "unable to encode to punycode".to_string())?;
             Ok(encoded.into())
         } else {
             if string
@@ -155,19 +155,19 @@ mod test {
 
         bidi_error {
             args: func_args![value: value!("xn--8hbb.xn--fiba.xn--8hbf.xn--eib.")],
-            want: Err("unable to encode to punycode: Errors { check_bidi }"),
+            want: Err("unable to encode to punycode"),
             tdef: TypeDef::bytes().fallible(),
         }
 
         multiple_errors {
             args: func_args![value: value!("dns1.webproxy.idc.csesvcgateway.xn--line-svcgateway-jp-mvm-ri-d060072.\\-1roslin.canva.cn.")],
-            want: Err("unable to encode to punycode: Errors { punycode, check_bidi }"),
+            want: Err("unable to encode to punycode"),
             tdef: TypeDef::bytes().fallible(),
         }
 
         bidi_error2 {
             args: func_args![value: value!("wwes.ir.abadgostaran.ir.taakads.ir.farhadrahimy.ir.regk.ir.2qok.com.خرید-پستی.com.maskancto.com.phpars.com.eshelstore.ir.techtextile.ir.mrafiei.ir.hamtamotor.com.surfiran.ir.negar3d.com.tjketab.ir.3d4dl.ir.cabindooshsahand.com.mashtikebab.sbs.")],
-            want: Err("unable to encode to punycode: Errors { check_bidi }"),
+            want: Err("unable to encode to punycode"),
             tdef: TypeDef::bytes().fallible(),
         }
 

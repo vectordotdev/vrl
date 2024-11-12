@@ -80,7 +80,7 @@ impl FunctionExpression for DecodePunycodeFn {
         if validate {
             let (decoded, result) = idna::domain_to_unicode(&string);
 
-            result.map_err(|errors| format!("unable to decode punycode: {errors}"))?;
+            result.map_err(|_errors| "unable to decode punycode".to_string())?;
             Ok(decoded.into())
         } else {
             let decoded = string
@@ -125,13 +125,13 @@ mod test {
 
         bidi_error {
             args: func_args![value: value!("xn--8hbb.xn--fiba.xn--8hbf.xn--eib.")],
-            want: Err("unable to decode punycode: Errors { check_bidi }"),
+            want: Err("unable to decode punycode"),
             tdef: TypeDef::bytes().fallible(),
         }
 
         multiple_errors {
             args: func_args![value: value!("dns1.webproxy.idc.csesvcgateway.xn--line-svcgateway-jp-mvm-ri-d060072.\\-1roslin.canva.cn.")],
-            want: Err("unable to decode punycode: Errors { punycode, check_bidi }"),
+            want: Err("unable to decode punycode"),
             tdef: TypeDef::bytes().fallible(),
         }
 
