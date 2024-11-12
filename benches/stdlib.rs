@@ -321,8 +321,18 @@ bench_function! {
         want: Ok("www.café.com"),
     }
 
+    encoded_no_validation {
+        args: func_args![value: "www.xn--caf-dma.com", validate: false],
+        want: Ok("www.café.com"),
+    }
+
     non_encoded {
         args: func_args![value: "www.cafe.com"],
+        want: Ok("www.cafe.com"),
+    }
+
+    non_encoded_no_validation {
+        args: func_args![value: "www.cafe.com", validate: false],
         want: Ok("www.cafe.com"),
     }
 }
@@ -477,8 +487,18 @@ bench_function! {
         want: Ok("www.xn--caf-dma.com"),
     }
 
+    idn_no_validation {
+        args: func_args![value: "www.CAFé.com", validate: false],
+        want: Ok("www.xn--caf-dma.com"),
+    }
+
     ascii {
         args: func_args![value: "www.cafe.com"],
+        want: Ok("www.cafe.com"),
+    }
+
+    ascii_no_validation {
+        args: func_args![value: "www.cafe.com", validate: false],
         want: Ok("www.cafe.com"),
     }
 }

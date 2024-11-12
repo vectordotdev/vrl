@@ -399,6 +399,8 @@ fn resolves_match_function(
                             regex: filter_re,
                             target_tz,
                             tz_aware: result.with_tz,
+                            with_tz_capture: result.with_tz_capture,
+                            with_fraction_second: result.with_fraction_second,
                         });
                         // get the regex without captures, so that we can append it to the grok pattern
                         let grok_re = date::time_format_to_regex(&format, false)
