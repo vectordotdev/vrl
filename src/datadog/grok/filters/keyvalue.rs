@@ -21,7 +21,7 @@ use ordered_float::NotNan;
 use super::super::{
     ast::{Function, FunctionArgument},
     grok_filter::GrokFilter,
-    parse_grok::Error as GrokRuntimeError,
+    parse_grok::InternalError,
     parse_grok_rules::Error as GrokStaticError,
 };
 
@@ -166,7 +166,7 @@ pub fn regex_from_config(
 }
 
 impl KeyValueFilter {
-    pub fn apply_filter(&self, value: &Value) -> Result<Value, GrokRuntimeError> {
+    pub fn apply_filter(&self, value: &Value) -> Result<Value, InternalError> {
         match value {
             Value::Bytes(bytes) => {
                 let mut result = Value::Object(BTreeMap::default());
@@ -176,7 +176,7 @@ impl KeyValueFilter {
                 });
                 Ok(result)
             }
-            _ => Err(GrokRuntimeError::FailedToApplyFilter(
+            _ => Err(InternalError::FailedToApplyFilter(
                 self.to_string(),
                 value.to_string(),
             )),

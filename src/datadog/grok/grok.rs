@@ -12,7 +12,7 @@ use std::collections::{btree_map, BTreeMap};
 use std::panic;
 use std::sync::Arc;
 
-use super::parse_grok::Error as GrokRuntimeError;
+use super::parse_grok::FatalError;
 
 use onig::{Captures, Regex};
 use thiserror::Error;
@@ -110,19 +110,14 @@ impl Pattern {
 
     /// Matches this compiled `Pattern` against the text and returns the matches.
     #[inline]
-    pub fn match_against<'a>(
-        &'a self,
-        text: &'a str,
-    ) -> Result<Option<Matches<'a>>, GrokRuntimeError> {
+    pub fn match_against<'a>(&'a self, text: &'a str) -> Result<Option<Matches<'a>>, FatalError> {
         let result = panic::catch_unwind(|| self.regex.captures(text));
 
         match result {
             Ok(Some(cap)) => Ok(Some(Matches::new(cap, &self.names))),
             Ok(None) => Ok(None),
             // https://github.com/rust-onig/rust-onig/issues/178
-            Err(_) => Err(GrokRuntimeError::FailedToMatch(
-                "Regex search error in the underlying engine".into(),
-            )),
+            Err(_) => Err(FatalError::RegexEngineError),
         }
     }
 }

@@ -51,7 +51,8 @@ mod non_wasm {
             let bytes = value.try_bytes_utf8_lossy()?;
 
             let v = parse_grok::parse_grok(bytes.as_ref(), &self.grok_rules)
-                .map_err(|err| format!("unable to parse grok: {err}"))?;
+                .map_err(|err| format!("unable to parse grok: {err}"))?
+                .parsed;
 
             Ok(v)
         }
