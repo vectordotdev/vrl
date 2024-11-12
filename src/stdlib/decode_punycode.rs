@@ -80,7 +80,7 @@ impl FunctionExpression for DecodePunycodeFn {
         if validate {
             let (decoded, result) = idna::domain_to_unicode(&string);
 
-            result.map_err(|_errors| format!("unable to decode punycode"))?;
+            result.map_err(|_errors| "unable to decode punycode".to_string())?;
             Ok(decoded.into())
         } else {
             let decoded = string

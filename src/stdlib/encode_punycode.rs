@@ -80,7 +80,7 @@ impl FunctionExpression for EncodePunycodeFn {
 
         if validate {
             let encoded = idna::domain_to_ascii(&string)
-                .map_err(|_errors| format!("unable to encode to punycode"))?;
+                .map_err(|_errors| "unable to encode to punycode".to_string())?;
             Ok(encoded.into())
         } else {
             if string
