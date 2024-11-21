@@ -54,73 +54,73 @@ test = ["string_path"]
 
 # All stdlib functions
 stdlib = [
- "compiler",
- "core",
- "datadog",
- "parsing",
- "dep:aes",
- "dep:aes-siv",
- "dep:base16",
- "dep:base62",
- "dep:base64",
- "dep:cbc",
- "dep:cfb-mode",
- "dep:chacha20poly1305",
- "dep:charset",
- "dep:convert_case",
- "dep:cidr-utils",
- "dep:community-id",
- "dep:crypto_secretbox",
- "dep:csv",
- "dep:ctr",
- "dep:data-encoding",
- "dep:digest",
- "dep:domain",
- "dep:dns-lookup",
- "dep:flate2",
- "dep:grok",
- "dep:hex",
- "dep:hmac",
- "dep:hostname",
- "dep:iana-time-zone",
- "dep:idna",
- "dep:indexmap",
- "dep:influxdb-line-protocol",
- "dep:md-5",
- "dep:nom",
- "dep:ofb",
- "dep:once_cell",
- "dep:percent-encoding",
- "dep:prost",
- "dep:prost-reflect",
- "dep:psl",
- "dep:psl-types",
- "dep:publicsuffix",
- "dep:quoted_printable",
- "dep:rand",
- "dep:roxmltree",
- "dep:rust_decimal",
- "dep:seahash",
- "dep:sha-1",
- "dep:sha-2",
- "dep:sha-3",
- "dep:snap",
- "dep:strip-ansi-escapes",
- "dep:syslog_loose",
- "dep:tokio",
- "dep:uaparser",
- "dep:url",
- "dep:utf8-width",
- "dep:uuid",
- "dep:woothee",
- "dep:zstd",
- ]
+  "compiler",
+  "core",
+  "datadog",
+  "parsing",
+  "dep:aes",
+  "dep:aes-siv",
+  "dep:base16",
+  "dep:base62",
+  "dep:base64",
+  "dep:cbc",
+  "dep:cfb-mode",
+  "dep:chacha20poly1305",
+  "dep:charset",
+  "dep:convert_case",
+  "dep:cidr-utils",
+  "dep:community-id",
+  "dep:crypto_secretbox",
+  "dep:csv",
+  "dep:ctr",
+  "dep:data-encoding",
+  "dep:digest",
+  "dep:domain",
+  "dep:dns-lookup",
+  "dep:flate2",
+  "dep:grok",
+  "dep:hex",
+  "dep:hmac",
+  "dep:hostname",
+  "dep:iana-time-zone",
+  "dep:idna",
+  "dep:indexmap",
+  "dep:influxdb-line-protocol",
+  "dep:md-5",
+  "dep:nom",
+  "dep:ofb",
+  "dep:once_cell",
+  "dep:percent-encoding",
+  "dep:prost",
+  "dep:prost-reflect",
+  "dep:psl",
+  "dep:psl-types",
+  "dep:publicsuffix",
+  "dep:quoted_printable",
+  "dep:rand",
+  "dep:roxmltree",
+  "dep:rust_decimal",
+  "dep:seahash",
+  "dep:sha-1",
+  "dep:sha-2",
+  "dep:sha-3",
+  "dep:snap",
+  "dep:strip-ansi-escapes",
+  "dep:syslog_loose",
+  "dep:tokio",
+  "dep:uaparser",
+  "dep:url",
+  "dep:utf8-width",
+  "dep:uuid",
+  "dep:woothee",
+  "dep:zstd",
+]
 
 [dependencies]
 cfg-if = "1"
 
 # Optional dependencies
-ansi_term = {version = "0.12", optional = true }
+ansi_term = { version = "0.12", optional = true }
 arbitrary = { version = "1", optional = true, features = ["derive"] }
 base16 = { version = "0.2", optional = true }
 base62 = { version = "2.0.3", optional = true }
@@ -132,23 +132,23 @@ chrono-tz = { version = "0.10", default-features = false, optional = true }
 cidr-utils = { version = "0.6", optional = true }
 csv = { version = "1", optional = true }
 clap = { version = "4", features = ["derive"], optional = true }
-codespan-reporting = {version = "0.11", optional = true }
+codespan-reporting = { version = "0.11", optional = true }
 convert_case = { version = "0.6.0", optional = true }
 data-encoding = { version = "2", optional = true }
 digest = { version = "0.10", optional = true }
 dyn-clone = { version = "1", default-features = false, optional = true }
-exitcode = {version = "1", optional = true }
+exitcode = { version = "1", optional = true }
 flate2 = { version = "1", default-features = false, features = ["default"], optional = true }
 hex = { version = "0.4", optional = true }
 hmac = { version = "0.12", optional = true }
 iana-time-zone = { version = "0.1", optional = true }
 idna = { version = "1.0", optional = true }
-indexmap = { version = "2", default-features = false, features = ["std"], optional = true}
+indexmap = { version = "2", default-features = false, features = ["std"], optional = true }
 influxdb-line-protocol = { version = "2.0.0", optional = true }
-indoc = {version = "2", optional = true }
-itertools = { version = "0.13", default-features = false, features=["use_std"], optional = true }
+indoc = { version = "2", optional = true }
+itertools = { version = "0.13", default-features = false, features = ["use_std"], optional = true }
 lalrpop-util = { version = "0.22", optional = true }
-mlua = { version = "0.10", default-features = false, features = ["lua54", "send", "vendored"], optional = true}
+mlua = { version = "0.10", default-features = false, features = ["lua54", "send", "vendored"], optional = true }
 nom = { version = "7", default-features = false, features = ["std"], optional = true }
 once_cell = { version = "1", default-features = false, features = ["std"], optional = true }
 ordered-float = { version = "4", default-features = false, optional = true }
@@ -160,10 +160,10 @@ pest = { version = "2", default-features = false, optional = true, features = ["
 pest_derive = { version = "2", default-features = false, optional = true, features = ["std"] }
 proptest = { version = "1", optional = true }
 proptest-derive = { version = "0.5", optional = true }
-prettydiff = {version = "0.7", default-features = false, optional = true }
+prettydiff = { version = "0.7", default-features = false, optional = true }
 prettytable-rs = { version = "0.10", default-features = false, optional = true }
 quickcheck = { version = "1", optional = true }
-quoted_printable = {version = "0.5", optional = true }
+quoted_printable = { version = "0.5", optional = true }
 psl = { version = "2", optional = true }
 psl-types = { version = "2", optional = true }
 publicsuffix = { version = "2", optional = true }
@@ -182,8 +182,8 @@ sha-3 = { package = "sha3", version = "0.10", optional = true }
 strip-ansi-escapes = { version = "0.2", optional = true }
 snap = { version = "1", optional = true }
 syslog_loose = { version = "0.21", optional = true }
-termcolor = {version = "1", optional = true }
-thiserror ={ version =  "1", optional = true }
+termcolor = { version = "1", optional = true }
+thiserror = { version = "1", optional = true }
 tracing = { version = "0.1", default-features = false }
 uaparser = { version = "0.6", default-features = false, optional = true }
 utf8-width = { version = "0.1", optional = true }
@@ -191,7 +191,7 @@ url = { version = "2", optional = true }
 snafu = { version = "0.8", optional = true }
 webbrowser = { version = "1.0", default-features = false, optional = true }
 woothee = { version = "0.13", optional = true }
-community-id = { version = "0.2", optional = true}
+community-id = { version = "0.2", optional = true }
 
 zstd = { version = "0.13", default-features = false, features = ["wasm"], optional = true }
 
@@ -208,8 +208,8 @@ cfb-mode = { version = "0.8", optional = true }
 ofb = { version = "0.6", optional = true }
 
 # Protobuf support.
-prost = { version = "0.13", default-features = false, optional = true, features = ["std"]}
-prost-reflect = { version = "0.14", default-features = false, optional = true}
+prost = { version = "0.13", default-features = false, optional = true, features = ["std"] }
+prost-reflect = { version = "0.14", default-features = false, optional = true }
 
 # Dependencies used for non-WASM
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
@@ -218,7 +218,7 @@ domain = { version = "0.10.3", optional = true, features = ["resolv-sync", "serd
 hostname = { version = "0.4", optional = true }
 grok = { version = "2", optional = true }
 onig = { version = "6", default-features = false, optional = true }
-tokio = { version = "1.38", optional = true, features = ["io-util", "macros", "net", "time", "sync", "rt", "rt-multi-thread" ] }
+tokio = { version = "1.38", optional = true, features = ["io-util", "macros", "net", "time", "sync", "rt", "rt-multi-thread"] }
 uuid = { version = "1", features = ["v4", "v7"], optional = true }
 
 # Dependencies used for WASM
@@ -233,8 +233,8 @@ serde_json = "1"
 indoc = "2"
 tracing-test = { version = "0.2", default-features = false }
 toml = { version = "0.8", default-features = false }
-mlua = { version = "0.10", default-features = false, features = ["lua54", "send", "vendored"]}
-quickcheck = { version = "1"}
+mlua = { version = "0.10", default-features = false, features = ["lua54", "send", "vendored"] }
+quickcheck = { version = "1" }
 regex = { version = "1", default-features = false, features = ["std", "perf", "unicode"] }
 paste = { version = "1", default-features = false }
 proptest = { version = "1" }
