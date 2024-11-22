@@ -23,6 +23,7 @@ criterion_group!(
               chunks,
               compact,
               contains,
+              crc32,
               decode_base16,
               decode_base64,
               decode_percent,
@@ -283,6 +284,15 @@ bench_function! {
     case_insensitive {
         args: func_args![value: "abcdefg", substring: "CDE", case_sensitive: false],
         want: Ok(value!(true)),
+    }
+}
+
+bench_function! {
+    crc32  => vrl::stdlib::Crc32;
+
+    literal {
+        args: func_args![value: "foo"],
+        want: Ok("8c736521"),
     }
 }
 
