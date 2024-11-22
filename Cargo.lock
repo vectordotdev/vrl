@@ -62,9 +62,9 @@ dependencies = [
 
 [[package]]
 name = "afl"
-version = "0.15.11"
+version = "0.15.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "80bb240a3b9ff18002142c1a736e98046461d51a694d687c3e7329b456ab0fe4"
+checksum = "340ff652949fe6f128c91ffd557f70d2f1797133578510985762a3cf83bf3144"
 dependencies = [
  "home",
  "libc",
@@ -2515,9 +2515,9 @@ dependencies = [
 
 [[package]]
 name = "psl"
-version = "2.1.57"
+version = "2.1.59"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6d8aece545a59dcac10117b6474ef22c32db103b4bf255b7d8e42ae7156a118e"
+checksum = "f9b9bc1071e59efa5b4972b584daa069e80d5262ce1309718a2ab20dae5f84ca"
 dependencies = [
  "psl-types",
 ]
