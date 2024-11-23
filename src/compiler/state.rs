@@ -66,6 +66,10 @@ impl LocalEnv {
         self.bindings.get(ident)
     }
 
+    pub(crate) fn variable_mut(&mut self, ident: &Ident) -> Option<&mut Details> {
+        self.bindings.get_mut(ident)
+    }
+
     pub(crate) fn insert_variable(&mut self, ident: Ident, details: Details) {
         self.bindings.insert(ident, details);
     }
