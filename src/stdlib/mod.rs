@@ -84,6 +84,7 @@ cfg_if::cfg_if! {
         mod flatten;
         mod float;
         mod floor;
+        mod fold;
         mod for_each;
         mod format_int;
         mod format_number;
@@ -270,6 +271,7 @@ cfg_if::cfg_if! {
         pub use flatten::Flatten;
         pub use float::Float;
         pub use floor::Floor;
+        pub use fold::Fold;
         pub use for_each::ForEach;
         pub use format_int::FormatInt;
         pub use format_number::FormatNumber;
@@ -456,6 +458,7 @@ pub fn all() -> Vec<Box<dyn Function>> {
         Box::new(Flatten),
         Box::new(Float),
         Box::new(Floor),
+        Box::new(Fold),
         Box::new(ForEach),
         Box::new(FormatInt),
         Box::new(FormatNumber),
