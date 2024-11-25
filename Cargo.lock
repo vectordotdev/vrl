@@ -62,9 +62,9 @@ dependencies = [
 
 [[package]]
 name = "afl"
-version = "0.15.11"
+version = "0.15.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "80bb240a3b9ff18002142c1a736e98046461d51a694d687c3e7329b456ab0fe4"
+checksum = "340ff652949fe6f128c91ffd557f70d2f1797133578510985762a3cf83bf3144"
 dependencies = [
  "home",
  "libc",
@@ -2515,9 +2515,9 @@ dependencies = [
 
 [[package]]
 name = "psl"
-version = "2.1.57"
+version = "2.1.60"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6d8aece545a59dcac10117b6474ef22c32db103b4bf255b7d8e42ae7156a118e"
+checksum = "add4147324c04b450a4eeb919da7e3a86363621b351a39c5a386564720d4e465"
 dependencies = [
  "psl-types",
 ]
@@ -3632,9 +3632,9 @@ checksum = "673aac59facbab8a9007c7f6108d11f63b603f7cabff99fabf650fea5c32b861"
 
 [[package]]
 name = "url"
-version = "2.5.3"
+version = "2.5.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8d157f1b96d14500ffdc1f10ba712e780825526c03d9a49b4d0324b0d9113ada"
+checksum = "32f8b686cadd1473f4bd0117a5d28d36b1ade384ea9b5069a1c40aefed7fda60"
 dependencies = [
  "form_urlencoded",
  "idna",
