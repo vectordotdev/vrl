@@ -21,11 +21,12 @@
 - `vrl::value::Value` now implements `PartialCmp` that first checks whether the enum discriminants
   (that both are floats for example), and if they are calls `partial_cmp` on the inner values.
   Otherwise, it will return `None`. (https://github.com/vectordotdev/vrl/pull/1117)
+- The `encode_proto` function was enhanced to automatically convert valid string fields to numeric proto
+  fields. (https://github.com/vectordotdev/vrl/pull/1114)
 
 ### Fixes
 
 - The `parse_groks` VRL function and Datadog grok parsing now catch the panic coming from `rust-onig` on too many regex match retries, and handles it as a custom error. (https://github.com/vectordotdev/vrl/pull/1079)
-- The `encode_proto` function was enhanced to automatically convert valid string fields to numeric proto fields. (https://github.com/vectordotdev/vrl/pull/1114)
 - `encode_punycode` with `validate` flag set to false should be more consistent with `validate` set to true, turning all uppercase character to lowercase besides doing punycode encoding (https://github.com/vectordotdev/vrl/pull/1115)
 - Removed false warning when using `set_semantic_meaning`. (https://github.com/vectordotdev/vrl/pull/1148)
 
