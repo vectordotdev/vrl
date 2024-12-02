@@ -67,7 +67,7 @@ impl FunctionExpression for ZipFn {
     }
 
     fn type_def(&self, _state: &TypeState) -> TypeDef {
-        TypeDef::object(Collection::any())
+        TypeDef::array(Collection::any())
     }
 }
 
@@ -83,43 +83,43 @@ mod tests {
         zips_two_arrays {
             args: func_args![array: value!([[1, 2, 3], [4, 5, 6]])],
             want: Ok(value!([[1, 4], [2, 5], [3, 6]])),
-            tdef: TypeDef::object(Collection::any()),
+            tdef: TypeDef::array(Collection::any()),
         }
 
         zips_three_arrays {
             args: func_args![array: value!([[1, 2, 3], [4, 5, 6], [7, 8, 9]])],
             want: Ok(value!([[1, 4, 7], [2, 5, 8], [3, 6, 9]])),
-            tdef: TypeDef::object(Collection::any()),
+            tdef: TypeDef::array(Collection::any()),
         }
 
         uses_shortest_length1 {
             args: func_args![array: value!([[1, 2, 3], [4, 5]])],
             want: Ok(value!([[1, 4], [2, 5]])),
-            tdef: TypeDef::object(Collection::any()),
+            tdef: TypeDef::array(Collection::any()),
         }
 
         uses_shortest_length2 {
             args: func_args![array: value!([[1, 2], [4, 5, 6]])],
             want: Ok(value!([[1, 4], [2, 5]])),
-            tdef: TypeDef::object(Collection::any()),
+            tdef: TypeDef::array(Collection::any()),
         }
 
         requires_outer_array {
             args: func_args![array: 1],
             want: Err("expected array, got integer"),
-            tdef: TypeDef::object(Collection::any()),
+            tdef: TypeDef::array(Collection::any()),
         }
 
         requires_inner_arrays1 {
             args: func_args![array: value!([true, []])],
             want: Err("expected array, got boolean"),
-            tdef: TypeDef::object(Collection::any()),
+            tdef: TypeDef::array(Collection::any()),
         }
 
         requires_inner_arrays2 {
             args: func_args![array: value!([[], null])],
             want: Err("expected array, got null"),
-            tdef: TypeDef::object(Collection::any()),
+            tdef: TypeDef::array(Collection::any()),
         }
     ];
 }
