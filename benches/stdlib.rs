@@ -2939,7 +2939,7 @@ bench_function! {
     zip => vrl::stdlib::Zip;
 
     default {
-        args: func_args![value: value!([["one", "two", "three", "four"], ["one", 2, null, true]])],
+        args: func_args![array: value!([["one", "two", "three", "four"], ["one", 2, null, true]])],
         want: Ok(value!([["one","one"], ["two",2], ["three",null], ["four",true]])),
     }
 }

@@ -31,7 +31,7 @@ impl Function for Zip {
 
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
-            keyword: "value",
+            keyword: "array",
             kind: kind::ARRAY,
             required: true,
         }]
@@ -51,19 +51,19 @@ impl Function for Zip {
         _ctx: &mut FunctionCompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
-        let value = arguments.required("value");
-        Ok(ZipFn { value }.as_expr())
+        let array = arguments.required("array");
+        Ok(ZipFn { array }.as_expr())
     }
 }
 
 #[derive(Debug, Clone)]
 struct ZipFn {
-    value: Box<dyn Expression>,
+    array: Box<dyn Expression>,
 }
 
 impl FunctionExpression for ZipFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        zip(self.value.resolve(ctx)?)
+        zip(self.array.resolve(ctx)?)
     }
 
     fn type_def(&self, _state: &TypeState) -> TypeDef {
@@ -81,43 +81,43 @@ mod tests {
         zip => Zip;
 
         zips_two_arrays {
-            args: func_args![value: value!([[1, 2, 3], [4, 5, 6]])],
+            args: func_args![array: value!([[1, 2, 3], [4, 5, 6]])],
             want: Ok(value!([[1, 4], [2, 5], [3, 6]])),
             tdef: TypeDef::object(Collection::any()),
         }
 
         zips_three_arrays {
-            args: func_args![value: value!([[1, 2, 3], [4, 5, 6], [7, 8, 9]])],
+            args: func_args![array: value!([[1, 2, 3], [4, 5, 6], [7, 8, 9]])],
             want: Ok(value!([[1, 4, 7], [2, 5, 8], [3, 6, 9]])),
             tdef: TypeDef::object(Collection::any()),
         }
 
         uses_shortest_length1 {
-            args: func_args![value: value!([[1, 2, 3], [4, 5]])],
+            args: func_args![array: value!([[1, 2, 3], [4, 5]])],
             want: Ok(value!([[1, 4], [2, 5]])),
             tdef: TypeDef::object(Collection::any()),
         }
 
         uses_shortest_length2 {
-            args: func_args![value: value!([[1, 2], [4, 5, 6]])],
+            args: func_args![array: value!([[1, 2], [4, 5, 6]])],
             want: Ok(value!([[1, 4], [2, 5]])),
             tdef: TypeDef::object(Collection::any()),
         }
 
         requires_outer_array {
-            args: func_args![value: 1],
+            args: func_args![array: 1],
             want: Err("expected array, got integer"),
             tdef: TypeDef::object(Collection::any()),
         }
 
         requires_inner_arrays1 {
-            args: func_args![value: value!([true, []])],
+            args: func_args![array: value!([true, []])],
             want: Err("expected array, got boolean"),
             tdef: TypeDef::object(Collection::any()),
         }
 
         requires_inner_arrays2 {
-            args: func_args![value: value!([[], null])],
+            args: func_args![array: value!([[], null])],
             want: Err("expected array, got null"),
             tdef: TypeDef::object(Collection::any()),
         }
