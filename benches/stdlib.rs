@@ -21,6 +21,7 @@ criterion_group!(
               camelcase,
               ceil,
               chunks,
+              community_id,
               compact,
               contains,
               decode_base16,
@@ -169,7 +170,7 @@ criterion_group!(
               //uuidv4,
               upcase,
               values,
-              community_id,
+              zip,
 );
 criterion_main!(benches);
 
@@ -2931,5 +2932,14 @@ bench_function! {
     default {
         args: func_args![value: "input-string"],
         want: Ok("INPUT_STRING"),
+    }
+}
+
+bench_function! {
+    zip => vrl::stdlib::Zip;
+
+    default {
+        args: func_args![array: value!([["one", "two", "three", "four"], ["one", 2, null, true]])],
+        want: Ok(value!([["one","one"], ["two",2], ["three",null], ["four",true]])),
     }
 }
