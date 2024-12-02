@@ -4,7 +4,7 @@ fn zip2(value0: Value, value1: Value) -> Resolved {
     Ok(value0
         .try_array()?
         .into_iter()
-        .zip(value1.try_array()?.into_iter())
+        .zip(value1.try_array()?)
         .map(|(v0, v1)| Value::Array(vec![v0, v1]))
         .collect())
 }
