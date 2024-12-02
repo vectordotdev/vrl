@@ -212,6 +212,7 @@ cfg_if::cfg_if! {
         mod uuid_v4;
         mod uuid_v7;
         mod values;
+        mod zip;
 
         // -----------------------------------------------------------------------------
 
@@ -390,6 +391,7 @@ cfg_if::cfg_if! {
         pub use uuid_v4::UuidV4;
         pub use uuid_v7::UuidV7;
         pub use values::Values;
+        pub use zip::Zip;
         pub use self::array::Array;
         pub use self::md5::Md5;
         pub use self::seahash::Seahash;
@@ -579,5 +581,6 @@ pub fn all() -> Vec<Box<dyn Function>> {
         Box::new(UuidV4),
         Box::new(UuidV7),
         Box::new(Values),
+        Box::new(Zip),
     ]
 }
