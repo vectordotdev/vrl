@@ -41,12 +41,12 @@ impl Function for Zip {
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {
-                keyword: "array0",
+                keyword: "array_0",
                 kind: kind::ARRAY,
                 required: true,
             },
             Parameter {
-                keyword: "array1",
+                keyword: "array_1",
                 kind: kind::ARRAY,
                 required: false,
             },
@@ -74,24 +74,24 @@ impl Function for Zip {
         _ctx: &mut FunctionCompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
-        let array0 = arguments.required("array0");
-        let array1 = arguments.optional("array1");
-        Ok(ZipFn { array0, array1 }.as_expr())
+        let array_0 = arguments.required("array_0");
+        let array_1 = arguments.optional("array_1");
+        Ok(ZipFn { array_0, array_1 }.as_expr())
     }
 }
 
 #[derive(Debug, Clone)]
 struct ZipFn {
-    array0: Box<dyn Expression>,
-    array1: Option<Box<dyn Expression>>,
+    array_0: Box<dyn Expression>,
+    array_1: Option<Box<dyn Expression>>,
 }
 
 impl FunctionExpression for ZipFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let array0 = self.array0.resolve(ctx)?;
-        match &self.array1 {
-            None => zip_all(array0),
-            Some(array1) => zip2(array0, array1.resolve(ctx)?),
+        let array_0 = self.array_0.resolve(ctx)?;
+        match &self.array_1 {
+            None => zip_all(array_0),
+            Some(array_1) => zip2(array_0, array_1.resolve(ctx)?),
         }
     }
 
@@ -110,49 +110,49 @@ mod tests {
         zip => Zip;
 
         zips_two_arrays {
-            args: func_args![array0: value!([[1, 2, 3], [4, 5, 6]])],
+            args: func_args![array_0: value!([[1, 2, 3], [4, 5, 6]])],
             want: Ok(value!([[1, 4], [2, 5], [3, 6]])),
             tdef: TypeDef::array(Collection::any()),
         }
 
         zips_three_arrays {
-            args: func_args![array0: value!([[1, 2, 3], [4, 5, 6], [7, 8, 9]])],
+            args: func_args![array_0: value!([[1, 2, 3], [4, 5, 6], [7, 8, 9]])],
             want: Ok(value!([[1, 4, 7], [2, 5, 8], [3, 6, 9]])),
             tdef: TypeDef::array(Collection::any()),
         }
 
         zips_two_parameters {
-            args: func_args![array0: value!([1, 2, 3]), array1: value!([4, 5, 6])],
+            args: func_args![array_0: value!([1, 2, 3]), array_1: value!([4, 5, 6])],
             want: Ok(value!([[1, 4], [2, 5], [3, 6]])),
             tdef: TypeDef::array(Collection::any()),
         }
 
         uses_shortest_length1 {
-            args: func_args![array0: value!([[1, 2, 3], [4, 5]])],
+            args: func_args![array_0: value!([[1, 2, 3], [4, 5]])],
             want: Ok(value!([[1, 4], [2, 5]])),
             tdef: TypeDef::array(Collection::any()),
         }
 
         uses_shortest_length2 {
-            args: func_args![array0: value!([[1, 2], [4, 5, 6]])],
+            args: func_args![array_0: value!([[1, 2], [4, 5, 6]])],
             want: Ok(value!([[1, 4], [2, 5]])),
             tdef: TypeDef::array(Collection::any()),
         }
 
         requires_outer_array {
-            args: func_args![array0: 1],
+            args: func_args![array_0: 1],
             want: Err("expected array, got integer"),
             tdef: TypeDef::array(Collection::any()),
         }
 
         requires_inner_arrays1 {
-            args: func_args![array0: value!([true, []])],
+            args: func_args![array_0: value!([true, []])],
             want: Err("expected array, got boolean"),
             tdef: TypeDef::array(Collection::any()),
         }
 
         requires_inner_arrays2 {
-            args: func_args![array0: value!([[], null])],
+            args: func_args![array_0: value!([[], null])],
             want: Err("expected array, got null"),
             tdef: TypeDef::array(Collection::any()),
         }
