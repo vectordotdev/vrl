@@ -70,20 +70,23 @@ impl Function for Zip {
 
     fn compile(
         &self,
-        _state: &TypeState,
+        state: &TypeState,
         _ctx: &mut FunctionCompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
-        let array_0 = arguments.required("array_0");
-        let array_1 = arguments.optional("array_1");
+        let array_0 = ConstOrExpr::new(arguments.required("array_0"), state);
+        let array_1 = arguments
+            .optional("array_1")
+            .map(|a| ConstOrExpr::new(a, state));
+
         Ok(ZipFn { array_0, array_1 }.as_expr())
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 struct ZipFn {
-    array_0: Box<dyn Expression>,
-    array_1: Option<Box<dyn Expression>>,
+    array_0: ConstOrExpr,
+    array_1: Option<ConstOrExpr>,
 }
 
 impl FunctionExpression for ZipFn {
@@ -97,6 +100,28 @@ impl FunctionExpression for ZipFn {
 
     fn type_def(&self, _state: &TypeState) -> TypeDef {
         TypeDef::array(Collection::any())
+    }
+}
+
+#[derive(Clone, Debug)]
+enum ConstOrExpr {
+    Const(Value),
+    Expr(Box<dyn Expression>),
+}
+
+impl ConstOrExpr {
+    fn new(expr: Box<dyn Expression>, state: &TypeState) -> Self {
+        match expr.resolve_constant(state) {
+            Some(cnst) => Self::Const(cnst),
+            None => Self::Expr(expr),
+        }
+    }
+
+    fn resolve(&self, ctx: &mut Context) -> Resolved {
+        match self {
+            Self::Const(value) => Ok(value.clone()),
+            Self::Expr(expr) => expr.resolve(ctx),
+        }
     }
 }
 
