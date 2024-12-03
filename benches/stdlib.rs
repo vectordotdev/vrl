@@ -94,6 +94,7 @@ criterion_group!(
               // TODO: value is dynamic so we cannot assert equality
               //now,
               object,
+              object_from_array,
               parse_apache_log,
               parse_aws_alb_log,
               parse_aws_cloudwatch_log_subscription_message,
@@ -1345,6 +1346,15 @@ bench_function! {
     object {
         args: func_args![value: value!({"foo": "bar"})],
         want: Ok(value!({"foo": "bar"})),
+    }
+}
+
+bench_function! {
+    object_from_array => vrl::stdlib::ObjectFromArray;
+
+    default {
+        args: func_args![values: value!([["zero",null], ["one",true], ["two","foo"], ["three",3]])],
+        want: Ok(value!({"zero":null, "one":true, "two":"foo", "three":3})),
     }
 }
 

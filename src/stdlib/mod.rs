@@ -132,6 +132,7 @@ cfg_if::cfg_if! {
         mod mod_func;
         mod now;
         mod object;
+        mod object_from_array;
         mod parse_apache_log;
         mod parse_aws_alb_log;
         mod parse_aws_cloudwatch_log_subscription_message;
@@ -313,6 +314,7 @@ cfg_if::cfg_if! {
         pub use mod_func::Mod;
         pub use now::Now;
         pub use object::Object;
+        pub use object_from_array::ObjectFromArray;
         pub use parse_apache_log::ParseApacheLog;
         pub use parse_aws_alb_log::ParseAwsAlbLog;
         pub use parse_aws_cloudwatch_log_subscription_message::ParseAwsCloudWatchLogSubscriptionMessage;
@@ -498,6 +500,7 @@ pub fn all() -> Vec<Box<dyn Function>> {
         Box::new(Mod),
         Box::new(Now),
         Box::new(Object),
+        Box::new(ObjectFromArray),
         Box::new(ParseApacheLog),
         Box::new(ParseAwsAlbLog),
         Box::new(ParseAwsCloudWatchLogSubscriptionMessage),
