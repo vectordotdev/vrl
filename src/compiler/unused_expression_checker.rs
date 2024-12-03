@@ -30,6 +30,9 @@ use crate::parser::{Literal, Program, Span};
 use std::collections::{BTreeMap, HashMap};
 use tracing::warn;
 
+const SIDE_EFFECT_FUNCTIONS: [&str; 5] =
+    ["del", "log", "assert", "assert_eq", "set_semantic_meaning"];
+
 #[must_use]
 pub fn check_for_unused_results(ast: &Program) -> DiagnosticList {
     let expression_visitor = AstVisitor { ast };
@@ -351,23 +354,19 @@ impl AstVisitor<'_> {
             state.mark_level_as_expecting_result();
         }
 
-        match function_call.ident.0.as_str() {
-            //  All bets are off for functions with side-effects.
-            "del" | "log" | "assert" | "assert_eq" => (),
-            _ => {
-                if let Some(closure) = &function_call.closure {
-                    for variable in &closure.variables {
-                        state.mark_identifier_pending_usage(&variable.node, &variable.span);
-                    }
-                    state.mark_level_as_expecting_result();
-                    self.visit_block(&closure.block, state);
-                    state.mark_level_as_not_expecting_result();
-                } else if state.is_unused() {
-                    state.append_diagnostic(
-                        format!("unused result for function call `{function_call}`"),
-                        span,
-                    );
+        if !SIDE_EFFECT_FUNCTIONS.contains(&function_call.ident.0.as_str()) {
+            if let Some(closure) = &function_call.closure {
+                for variable in &closure.variables {
+                    state.mark_identifier_pending_usage(&variable.node, &variable.span);
                 }
+                state.mark_level_as_expecting_result();
+                self.visit_block(&closure.block, state);
+                state.mark_level_as_not_expecting_result();
+            } else if state.is_unused() {
+                state.append_diagnostic(
+                    format!("unused result for function call `{function_call}`"),
+                    span,
+                );
             }
         }
 
@@ -554,18 +553,6 @@ mod test {
             y.a = 1
         "};
         unused_test(source, vec!["unused variable `y`".to_string()]);
-    }
-
-    #[test]
-    fn unused_coalesce_result() {
-        let source = indoc! {r#"
-           parse_syslog("not syslog") ?? parse_common_log("not common") ?? "malformed"
-           .res = parse_syslog("not syslog") ?? parse_common_log("not common") ?? "malformed"
-        "#};
-        unused_test(
-            source,
-            vec![r#"unused result for function call `parse_syslog("not syslog")`"#.to_string()],
-        );
     }
 
     #[test]

@@ -5,9 +5,22 @@ use criterion::{
     black_box, criterion_group, criterion_main, measurement::WallTime, BatchSize, BenchmarkGroup,
     Criterion, SamplingMode,
 };
-use regex::Regex;
-use vrl::datadog_grok::filters::keyvalue::{apply_filter, KeyValueFilter};
+use vrl::datadog_grok::filters::keyvalue::{self, KeyValueFilter};
 use vrl::value::Value;
+
+fn make_filter() -> KeyValueFilter {
+    let quotes = vec![('"', '"'), ('\'', '\''), ('<', '>')];
+    KeyValueFilter {
+        re_pattern: keyvalue::regex_from_config(
+            "=",
+            r"\w.\-_@",
+            quotes.clone(),
+            ("|".to_string(), "|".to_string()),
+        )
+        .unwrap(),
+        quotes: vec![('"', '"'), ('\'', '\''), ('<', '>')],
+    }
+}
 
 fn apply_filter_bench(c: &mut Criterion) {
     let mut group: BenchmarkGroup<WallTime> =
@@ -16,21 +29,11 @@ fn apply_filter_bench(c: &mut Criterion) {
 
     group.bench_function("apply_filter key=valueStr", move |b| {
         b.iter_batched(
-            || {
-                let value = Value::Bytes(Bytes::from("key=valueStr"));
-                let filter = KeyValueFilter {
-                    key_value_delimiter: "=".into(),
-                    value_re: Regex::new(r"^[\w.\-_@]+").unwrap(),
-                    quotes: vec![('"', '"'), ('\'', '\''), ('<', '>')],
-                    field_delimiters: [" ", ",", ";"]
-                        .iter()
-                        .map(|x| String::from(*x))
-                        .collect::<Vec<String>>(),
-                };
-                (value, filter)
-            },
+            || (Value::Bytes(Bytes::from("key=valueStr")), make_filter()),
             |(value, filter): (Value, KeyValueFilter)| {
-                let _ = black_box(apply_filter(&value, &filter));
+                let result = black_box(filter.apply_filter(&value)).unwrap();
+                let object = result.as_object().unwrap();
+                assert_eq!(object.len(), 1);
             },
             BatchSize::SmallInput,
         )
@@ -39,20 +42,15 @@ fn apply_filter_bench(c: &mut Criterion) {
     group.bench_function("apply_filter key1=value1|key2=value2", move |b| {
         b.iter_batched(
             || {
-                let value = Value::Bytes(Bytes::from("key1=value1|key2=value2"));
-                let filter = KeyValueFilter {
-                    key_value_delimiter: "=".into(),
-                    value_re: Regex::new(r"^[\w.\-_@]+").unwrap(),
-                    quotes: vec![('"', '"'), ('\'', '\''), ('<', '>')],
-                    field_delimiters: ["|"]
-                        .iter()
-                        .map(|x| String::from(*x))
-                        .collect::<Vec<String>>(),
-                };
-                (value, filter)
+                (
+                    Value::Bytes(Bytes::from("key1=value1|key2=value2")),
+                    make_filter(),
+                )
             },
             |(value, filter): (Value, KeyValueFilter)| {
-                let _ = black_box(apply_filter(&value, &filter));
+                let result = black_box(filter.apply_filter(&value)).unwrap();
+                let object = result.as_object().unwrap();
+                assert_eq!(object.len(), 2);
             },
             BatchSize::SmallInput,
         )

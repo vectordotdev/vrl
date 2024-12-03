@@ -1,23 +1,110 @@
+//! # DNS Lookup Function
+//!
+//! This function provides DNS lookup capabilities but is not recommended for frequent or performance-critical workflows.
+//! It performs network calls, relying on a single-threaded worker that blocks on each request
+//! until a response is received, which can degrade performance in high-throughput applications.
+//!
+//! Due to the potential for network-related delays or failures, avoid using this function
+//! in latency-sensitive contexts.
+
 use crate::compiler::prelude::*;
 
 #[cfg(not(target_arch = "wasm32"))]
 mod non_wasm {
     use std::collections::BTreeMap;
+    use std::io::Error;
     use std::net::ToSocketAddrs;
+    use std::sync::{mpsc, Arc, Mutex};
+    use std::thread;
     use std::time::Duration;
 
     use domain::base::iana::Class;
-    use domain::base::{Dname, RecordSection, Rtype};
+    use domain::base::{Name, RecordSection, Rtype};
     use domain::rdata::AllRecordData;
     use domain::resolv::stub::conf::{ResolvConf, ResolvOptions, ServerConf, Transport};
     use domain::resolv::stub::Answer;
     use domain::resolv::StubResolver;
+    use once_cell::sync::Lazy;
+    use tokio::runtime::Handle;
 
     use crate::compiler::prelude::*;
     use crate::value::Value;
 
+    /// Single threaded worker for executing DNS requests.
+    /// Currently blocks on each request until result is received.
+    static WORKER: Lazy<Worker> = Lazy::new(Worker::new);
+    const CHANNEL_CAPACITY: usize = 100;
+
+    type Job<T> = Box<dyn FnOnce() -> T + Send + 'static>;
+
+    struct Worker {
+        thread: Option<thread::JoinHandle<()>>,
+        queue: Option<mpsc::SyncSender<Job<Result<Answer, Error>>>>,
+        result_receiver: Option<Mutex<mpsc::Receiver<Result<Answer, Error>>>>,
+    }
+
+    impl Worker {
+        // Creates a thread and 2 channels - one for jobs and one for results
+        fn new() -> Self {
+            let (sender, receiver) =
+                mpsc::sync_channel::<Job<Result<Answer, Error>>>(CHANNEL_CAPACITY);
+            let (result_sender, result_receiver) =
+                mpsc::sync_channel::<Result<Answer, Error>>(CHANNEL_CAPACITY);
+            let receiver = Arc::new(Mutex::new(receiver));
+            Self {
+                thread: Some(thread::spawn(move || loop {
+                    let job = receiver
+                        .lock()
+                        .expect("Locking job queue failed")
+                        .recv()
+                        .expect("Worker queue closed");
+                    let result = job();
+                    result_sender
+                        .send(result)
+                        .expect("Sending result back from worker failed");
+                })),
+                queue: Some(sender),
+                result_receiver: Some(result_receiver.into()),
+            }
+        }
+
+        // Sends a job to the worker
+        // Blocks until result is received
+        fn execute<F>(&self, f: F) -> Result<Answer, Error>
+        where
+            F: FnOnce() -> Result<Answer, Error> + Send + 'static,
+        {
+            let job = Box::new(f);
+
+            self.queue
+                .as_ref()
+                .expect("Expected queue to be present in the worker")
+                .send(job)
+                .expect("Submitting job to the queue failed");
+            return self
+                .result_receiver
+                .as_ref()
+                .expect("Expected result queue to be present in the worker")
+                .lock()
+                .expect("Locking result receiver failed")
+                .recv()
+                .expect("Job result channel closed");
+        }
+    }
+
+    // Custom drop implementation which stops the started thread
+    impl Drop for Worker {
+        fn drop(&mut self) {
+            drop(self.queue.take());
+            if let Some(thread) = self.thread.take() {
+                thread.join().unwrap();
+            }
+            drop(self.result_receiver.take());
+        }
+    }
+
     fn dns_lookup(value: Value, qtype: Value, qclass: Value, options: Value) -> Resolved {
-        let host: Dname<Vec<_>> = value
+        let host: Name<Vec<_>> = value
             .try_bytes_utf8_lossy()?
             .to_string()
             .parse()
@@ -34,9 +121,16 @@ mod non_wasm {
             .map_err(|err| format!("parsing query class failed: {err}"))?;
 
         let conf = build_options(options.try_object()?)?;
-        let answer = StubResolver::run_with_conf(conf, move |stub| async move {
-            stub.query((host, qtype, qclass)).await
-        })
+        let answer = match Handle::try_current() {
+            Ok(_) => WORKER.execute(move || {
+                StubResolver::run_with_conf(conf, move |stub| async move {
+                    stub.query((host, qtype, qclass)).await
+                })
+            }),
+            Err(_) => StubResolver::run_with_conf(conf, move |stub| async move {
+                stub.query((host, qtype, qclass)).await
+            }),
+        }
         .map_err(|err| format!("query failed: {err}"))?;
 
         Ok(parse_answer(answer)?.into())
@@ -105,7 +199,6 @@ mod non_wasm {
         read_int_opt!(attempts);
         read_bool_opt!(aa_only);
         read_bool_opt!(tcp, use_vc);
-        read_bool_opt!(ignore, ign_tc);
         read_bool_opt!(recurse);
         read_bool_opt!(rotate);
 
@@ -129,6 +222,7 @@ mod non_wasm {
             .map(|s| s.clone().try_array())
             .transpose()?
         {
+            conf.servers.clear();
             for server in servers {
                 let mut server = server.try_bytes_utf8_lossy()?;
                 if !server.contains(':') {
@@ -138,7 +232,7 @@ mod non_wasm {
                     .to_socket_addrs()
                     .map_err(|err| format!("can't resolve nameserver ({server}): {err}"))?
                 {
-                    conf.servers.push(ServerConf::new(addr, Transport::Udp));
+                    conf.servers.push(ServerConf::new(addr, Transport::UdpTcp));
                     conf.servers.push(ServerConf::new(addr, Transport::Tcp));
                 }
             }
@@ -164,7 +258,6 @@ mod non_wasm {
             header_obj.insert("rd".into(), header_section.rd().into());
             header_obj.insert("tc".into(), header_section.tc().into());
             header_obj.insert("qr".into(), header_section.qr().into());
-            header_obj.insert("id".into(), header_section.id().into());
             header_obj.insert("opcode".into(), header_section.opcode().to_int().into());
             header_obj.insert("rcode".into(), header_section.rcode().to_int().into());
             header_obj.insert("anCount".into(), counts.ancount().into());
@@ -251,7 +344,6 @@ mod non_wasm {
             (Field::from("anCount"), Kind::integer()),
             (Field::from("arCount"), Kind::integer()),
             (Field::from("cd"), Kind::boolean()),
-            (Field::from("id"), Kind::integer()),
             (Field::from("nsCount"), Kind::integer()),
             (Field::from("opcode"), Kind::integer()),
             (Field::from("qdCount"), Kind::integer()),
@@ -347,226 +439,290 @@ impl Function for DnsLookup {
         ]
     }
 
+    #[cfg(not(feature = "test"))]
+    fn examples(&self) -> &'static [Example] {
+        &[]
+    }
+
+    #[cfg(feature = "test")]
     fn examples(&self) -> &'static [Example] {
         &[
             Example {
                 title: "Basic lookup",
-                source: r#"dns_lookup!("localhost")"#,
+                source: r#"
+                    res = dns_lookup!("dns.google")
+                    # reset non-static ttl so result is static
+                    res.answers = map_values(res.answers) -> |value| {
+                      value.ttl = 600
+                      value
+                    }
+                    # remove extra responses for example
+                    res.answers = filter(res.answers) -> |_, value| {
+                        value.rData == "8.8.8.8"
+                    }
+                    # remove class since this is also dynamic
+                    res.additional = map_values(res.additional) -> |value| {
+                        del(value.class)
+                        value
+                    }
+                    res
+                    "#,
                 result: Ok(indoc!(
                     r#"{
                     "additional": [
-                        {
-                            "class": "CLASS65494",
-                            "domainName": "",
-                            "rData": "OPT ...",
-                            "recordType": "OPT",
-                            "recordTypeId": 41,
-                            "ttl": 0
-                        }
+                      {
+                        "domainName": "",
+                        "rData": "OPT ...",
+                        "recordType": "OPT",
+                        "recordTypeId": 41,
+                        "ttl": 0
+                      }
                     ],
                     "answers": [
-                        {
-                            "class": "IN",
-                            "domainName": "localhost",
-                            "rData": "127.0.0.1",
-                            "recordType": "A",
-                            "recordTypeId": 1,
-                            "ttl": 0
-                        }
+                      {
+                        "class": "IN",
+                        "domainName": "dns.google",
+                        "rData": "8.8.8.8",
+                        "recordType": "A",
+                        "recordTypeId": 1,
+                        "ttl": 600
+                      }
                     ],
                     "authority": [],
                     "fullRcode": 0,
                     "header": {
-                        "aa": true,
-                        "ad": false,
-                        "anCount": 1,
-                        "arCount": 1,
-                        "cd": false,
-                        "id": 0,
-                        "nsCount": 0,
-                        "opcode": 0,
-                        "qdCount": 1,
-                        "qr": true,
-                        "ra": true,
-                        "rcode": 0,
-                        "rd": true,
-                        "tc": false
+                      "aa": false,
+                      "ad": false,
+                      "anCount": 2,
+                      "arCount": 1,
+                      "cd": false,
+                      "nsCount": 0,
+                      "opcode": 0,
+                      "qdCount": 1,
+                      "qr": true,
+                      "ra": true,
+                      "rcode": 0,
+                      "rd": true,
+                      "tc": false
                     },
                     "question": [
-                        {
-                            "class": "IN",
-                            "domainName": "localhost",
-                            "questionType": "A",
-                            "questionTypeId": 1
-                        }
+                      {
+                        "class": "IN",
+                        "domainName": "dns.google",
+                        "questionType": "A",
+                        "questionTypeId": 1
+                      }
                     ],
                     "rcodeName": "NOERROR"
-                }"#
+                  }"#
                 )),
             },
             Example {
                 title: "Custom class and qtype",
-                source: r#"dns_lookup!("localhost", class: "IN", qtype: "A")"#,
+                source: r#"
+                    res = dns_lookup!("dns.google", class: "IN", qtype: "A")
+                    # reset non-static ttl so result is static
+                    res.answers = map_values(res.answers) -> |value| {
+                      value.ttl = 600
+                      value
+                    }
+                    # remove extra responses for example
+                    res.answers = filter(res.answers) -> |_, value| {
+                        value.rData == "8.8.8.8"
+                    }
+                    # remove class since this is also dynamic
+                    res.additional = map_values(res.additional) -> |value| {
+                        del(value.class)
+                        value
+                    }
+                    res
+                    "#,
                 result: Ok(indoc!(
                     r#"{
                     "additional": [
-                        {
-                            "class": "CLASS65494",
-                            "domainName": "",
-                            "rData": "OPT ...",
-                            "recordType": "OPT",
-                            "recordTypeId": 41,
-                            "ttl": 0
-                        }
+                      {
+                        "domainName": "",
+                        "rData": "OPT ...",
+                        "recordType": "OPT",
+                        "recordTypeId": 41,
+                        "ttl": 0
+                      }
                     ],
                     "answers": [
-                        {
-                            "class": "IN",
-                            "domainName": "localhost",
-                            "rData": "127.0.0.1",
-                            "recordType": "A",
-                            "recordTypeId": 1,
-                            "ttl": 0
-                        }
+                      {
+                        "class": "IN",
+                        "domainName": "dns.google",
+                        "rData": "8.8.8.8",
+                        "recordType": "A",
+                        "recordTypeId": 1,
+                        "ttl": 600
+                      }
                     ],
                     "authority": [],
                     "fullRcode": 0,
                     "header": {
-                        "aa": true,
-                        "ad": false,
-                        "anCount": 1,
-                        "arCount": 1,
-                        "cd": false,
-                        "id": 0,
-                        "nsCount": 0,
-                        "opcode": 0,
-                        "qdCount": 1,
-                        "qr": true,
-                        "ra": true,
-                        "rcode": 0,
-                        "rd": true,
-                        "tc": false
+                      "aa": false,
+                      "ad": false,
+                      "anCount": 2,
+                      "arCount": 1,
+                      "cd": false,
+                      "nsCount": 0,
+                      "opcode": 0,
+                      "qdCount": 1,
+                      "qr": true,
+                      "ra": true,
+                      "rcode": 0,
+                      "rd": true,
+                      "tc": false
                     },
                     "question": [
-                        {
-                            "class": "IN",
-                            "domainName": "localhost",
-                            "questionType": "A",
-                            "questionTypeId": 1
-                        }
+                      {
+                        "class": "IN",
+                        "domainName": "dns.google",
+                        "questionType": "A",
+                        "questionTypeId": 1
+                      }
                     ],
                     "rcodeName": "NOERROR"
-                }"#
+                  }"#
                 )),
             },
             Example {
                 title: "Custom options",
-                source: r#"dns_lookup!("localhost", options: {"timeout": 30, "attempts": 5})"#,
+                source: r#"
+                    res = dns_lookup!("dns.google", options: {"timeout": 30, "attempts": 5})
+                    res.answers = map_values(res.answers) -> |value| {
+                      value.ttl = 600
+                      value
+                    }
+                    # remove extra responses for example
+                    res.answers = filter(res.answers) -> |_, value| {
+                        value.rData == "8.8.8.8"
+                    }
+                    # remove class since this is also dynamic
+                    res.additional = map_values(res.additional) -> |value| {
+                        del(value.class)
+                        value
+                    }
+                    res
+                    "#,
                 result: Ok(indoc!(
                     r#"{
                     "additional": [
-                        {
-                            "class": "CLASS65494",
-                            "domainName": "",
-                            "rData": "OPT ...",
-                            "recordType": "OPT",
-                            "recordTypeId": 41,
-                            "ttl": 0
-                        }
+                      {
+                        "domainName": "",
+                        "rData": "OPT ...",
+                        "recordType": "OPT",
+                        "recordTypeId": 41,
+                        "ttl": 0
+                      }
                     ],
                     "answers": [
-                        {
-                            "class": "IN",
-                            "domainName": "localhost",
-                            "rData": "127.0.0.1",
-                            "recordType": "A",
-                            "recordTypeId": 1,
-                            "ttl": 0
-                        }
+                      {
+                        "class": "IN",
+                        "domainName": "dns.google",
+                        "rData": "8.8.8.8",
+                        "recordType": "A",
+                        "recordTypeId": 1,
+                        "ttl": 600
+                      }
                     ],
                     "authority": [],
                     "fullRcode": 0,
                     "header": {
-                        "aa": true,
-                        "ad": false,
-                        "anCount": 1,
-                        "arCount": 1,
-                        "cd": false,
-                        "id": 0,
-                        "nsCount": 0,
-                        "opcode": 0,
-                        "qdCount": 1,
-                        "qr": true,
-                        "ra": true,
-                        "rcode": 0,
-                        "rd": true,
-                        "tc": false
+                      "aa": false,
+                      "ad": false,
+                      "anCount": 2,
+                      "arCount": 1,
+                      "cd": false,
+                      "nsCount": 0,
+                      "opcode": 0,
+                      "qdCount": 1,
+                      "qr": true,
+                      "ra": true,
+                      "rcode": 0,
+                      "rd": true,
+                      "tc": false
                     },
                     "question": [
-                        {
-                            "class": "IN",
-                            "domainName": "localhost",
-                            "questionType": "A",
-                            "questionTypeId": 1
-                        }
+                      {
+                        "class": "IN",
+                        "domainName": "dns.google",
+                        "questionType": "A",
+                        "questionTypeId": 1
+                      }
                     ],
                     "rcodeName": "NOERROR"
-                }"#
+                  }"#
                 )),
             },
             Example {
                 title: "Custom server",
-                source: r#"dns_lookup!("localhost", options: {"servers": ["dns.google"]})"#,
+                source: r#"
+                    res = dns_lookup!("dns.google", options: {"servers": ["dns.quad9.net"]})
+                    res.answers = map_values(res.answers) -> |value| {
+                      value.ttl = 600
+                      value
+                    }
+                    # remove extra responses for example
+                    res.answers = filter(res.answers) -> |_, value| {
+                        value.rData == "8.8.8.8"
+                    }
+                    # remove class since this is also dynamic
+                    res.additional = map_values(res.additional) -> |value| {
+                        del(value.class)
+                        value
+                    }
+                    res
+                    "#,
                 result: Ok(indoc!(
                     r#"{
                     "additional": [
-                        {
-                            "class": "CLASS65494",
-                            "domainName": "",
-                            "rData": "OPT ...",
-                            "recordType": "OPT",
-                            "recordTypeId": 41,
-                            "ttl": 0
-                        }
+                      {
+                        "domainName": "",
+                        "rData": "OPT ...",
+                        "recordType": "OPT",
+                        "recordTypeId": 41,
+                        "ttl": 0
+                      }
                     ],
                     "answers": [
-                        {
-                            "class": "IN",
-                            "domainName": "localhost",
-                            "rData": "127.0.0.1",
-                            "recordType": "A",
-                            "recordTypeId": 1,
-                            "ttl": 0
-                        }
+                      {
+                        "class": "IN",
+                        "domainName": "dns.google",
+                        "rData": "8.8.8.8",
+                        "recordType": "A",
+                        "recordTypeId": 1,
+                        "ttl": 600
+                      }
                     ],
                     "authority": [],
                     "fullRcode": 0,
                     "header": {
-                        "aa": true,
-                        "ad": false,
-                        "anCount": 1,
-                        "arCount": 1,
-                        "cd": false,
-                        "id": 0,
-                        "nsCount": 0,
-                        "opcode": 0,
-                        "qdCount": 1,
-                        "qr": true,
-                        "ra": true,
-                        "rcode": 0,
-                        "rd": true,
-                        "tc": false
+                      "aa": false,
+                      "ad": false,
+                      "anCount": 2,
+                      "arCount": 1,
+                      "cd": false,
+                      "nsCount": 0,
+                      "opcode": 0,
+                      "qdCount": 1,
+                      "qr": true,
+                      "ra": true,
+                      "rcode": 0,
+                      "rd": true,
+                      "tc": false
                     },
                     "question": [
-                        {
-                            "class": "IN",
-                            "domainName": "localhost",
-                            "questionType": "A",
-                            "questionTypeId": 1
-                        }
+                      {
+                        "class": "IN",
+                        "domainName": "dns.google",
+                        "questionType": "A",
+                        "questionTypeId": 1
+                      }
                     ],
                     "rcodeName": "NOERROR"
-                }"#
+                  }"#
                 )),
             },
         ]
@@ -633,6 +789,8 @@ mod tests {
     }
 
     #[test]
+    #[cfg(target_os = "linux")]
+    // MacOS resolver doesn't always handle localhost
     fn test_localhost() {
         let result = execute_dns_lookup(DnsLookupFn {
             value: expr!("localhost"),
@@ -655,11 +813,10 @@ mod tests {
     }
 
     #[test]
-    fn test_custom_class_and_type() {
+    fn test_custom_type() {
         let result = execute_dns_lookup(DnsLookupFn {
-            value: expr!("localhost"),
-            class: expr!("*"),
-            qtype: expr!("HTTPS"),
+            value: expr!("google.com"),
+            qtype: expr!("mx"),
             ..Default::default()
         });
 
@@ -668,10 +825,10 @@ mod tests {
         assert_eq!(
             result["question"].as_array_unwrap()[0],
             value!({
-                "questionTypeId": 65,
-                "questionType": "HTTPS",
-                "class": "*",
-                "domainName": "localhost"
+                "questionTypeId": 15,
+                "questionType": "MX",
+                "class": "IN",
+                "domainName": "google.com"
             })
         );
     }
@@ -713,7 +870,7 @@ mod tests {
     #[test]
     fn unknown_options_ignored() {
         let result = execute_dns_lookup(DnsLookupFn {
-            value: expr!("localhost"),
+            value: expr!("dns.google"),
             options: expr!({"test": "test"}),
             ..Default::default()
         });
@@ -724,7 +881,7 @@ mod tests {
     #[test]
     fn invalid_option_type() {
         let result = execute_dns_lookup_with_expected_error(DnsLookupFn {
-            value: expr!("localhost"),
+            value: expr!("dns.google"),
             options: expr!({"tcp": "yes"}),
             ..Default::default()
         });
@@ -736,7 +893,7 @@ mod tests {
     fn negative_int_type() {
         let attempts_val = -5;
         let result = execute_dns_lookup_with_expected_error(DnsLookupFn {
-            value: expr!("localhost"),
+            value: expr!("dns.google"),
             options: expr!({"attempts": attempts_val}),
             ..Default::default()
         });

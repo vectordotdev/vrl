@@ -1,0 +1,18 @@
+# object: { "host": "vector.customdev" }
+# result:
+#
+# error[E610]: function compilation error: error[E403] invalid argument
+# ┌─ :2:1
+# │
+# 2 │ parse_etld!(.host, plus_parts: 1, psl: "lib/tests/tests/functions/definitelydoesnot.exist")
+# │ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# │ │
+# │ invalid argument "psl"
+# │ error: Unable to read psl file
+# │ received: "\"lib/tests/tests/functions/definitelydoesnot.exist\""
+# │
+# = learn more about error code 403 at https://errors.vrl.dev/403
+# = see language documentation at https://vrl.dev
+# = try your code in the VRL REPL, learn more at https://vrl.dev/examples
+
+parse_etld!(.host, plus_parts: 1, psl: "lib/tests/tests/functions/definitelydoesnot.exist")

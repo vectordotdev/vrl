@@ -1,0 +1,3 @@
+# result: true
+
+match_datadog_query({"a-b": 1}, "@a-b:1")

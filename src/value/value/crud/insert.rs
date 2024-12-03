@@ -1,4 +1,4 @@
-use super::{get_matching_coalesce_key, skip_remaining_coalesce_segments, ValueCollection};
+use super::ValueCollection;
 use crate::path::BorrowedSegment;
 use crate::value::Value;
 use std::borrow::Borrow;
@@ -37,26 +37,6 @@ pub fn insert<'a, T: ValueCollection>(
                 prev_value
             }
         }
-        Some(BorrowedSegment::CoalesceField(field)) => {
-            if let Some(Value::Object(map)) = value.get_mut_value(key.borrow()) {
-                let (Ok(matched_key) | Err(matched_key)) =
-                    get_matching_coalesce_key(field, map, &mut path_iter);
-                insert(map, matched_key.to_string().into(), path_iter, insert_value)
-            } else {
-                let mut map = BTreeMap::new();
-                // The map is empty, so only the last segment will be used.
-                let last_coalesce_key = skip_remaining_coalesce_segments(&mut path_iter);
-                let prev_value = insert(
-                    &mut map,
-                    last_coalesce_key.to_string().into(),
-                    path_iter,
-                    insert_value,
-                );
-                value.insert_value(key, Value::Object(map));
-                prev_value
-            }
-        }
-        Some(BorrowedSegment::CoalesceEnd(_)) => unreachable!("malformed path. This is a bug."),
         Some(BorrowedSegment::Invalid) => None,
         None => value.insert_value(key, insert_value),
     }
@@ -66,53 +46,6 @@ pub fn insert<'a, T: ValueCollection>(
 mod test {
     use super::*;
     use serde_json::json;
-
-    #[test]
-    fn test_insert_coalesce() {
-        let mut value = Value::Null;
-
-        value.insert("(a|b)", 1);
-        assert_eq!(
-            value,
-            Value::from(json!({
-                "b": 1
-            }))
-        );
-
-        value.insert("(a|b|c)", 2);
-        assert_eq!(
-            value,
-            Value::from(json!({
-                "b": 2
-            }))
-        );
-
-        value.insert("(a|b|c)", Value::from(json!({"x": true})));
-        assert_eq!(
-            value,
-            Value::from(json!({
-                "b": {"x": true}
-            }))
-        );
-
-        value.insert("(c|a)", 13);
-        assert_eq!(
-            value,
-            Value::from(json!({
-                "a": 13,
-                "b": {"x": true}
-            }))
-        );
-
-        value.insert("(a|b).x", 5);
-        assert_eq!(
-            value,
-            Value::from(json!({
-                "a": {"x": 5},
-                "b": {"x": true}
-            }))
-        );
-    }
 
     #[test]
     fn test_insert_nested() {

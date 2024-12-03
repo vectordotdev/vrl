@@ -44,6 +44,7 @@ cfg_if::cfg_if! {
         mod assert_eq;
         mod boolean;
         mod ceil;
+        mod casing;
         mod chunks;
         mod compact;
         mod contains;
@@ -144,6 +145,7 @@ cfg_if::cfg_if! {
         mod parse_glog;
         mod parse_grok;
         mod parse_groks;
+        mod parse_influxdb;
         mod parse_int;
         mod parse_json;
         mod parse_key_value;
@@ -201,6 +203,7 @@ cfg_if::cfg_if! {
         mod to_unix_timestamp;
         mod community_id;
         mod truncate;
+        mod unflatten;
         mod type_def;
         mod unique;
         mod unnest;
@@ -209,6 +212,7 @@ cfg_if::cfg_if! {
         mod uuid_v4;
         mod uuid_v7;
         mod values;
+        mod zip;
 
         // -----------------------------------------------------------------------------
 
@@ -236,6 +240,11 @@ cfg_if::cfg_if! {
         pub use del::Del;
         pub use dns_lookup::DnsLookup;
         pub use downcase::Downcase;
+        pub use casing::camelcase::Camelcase;
+        pub use casing::pascalcase::Pascalcase;
+        pub use casing::snakecase::Snakecase;
+        pub use casing::screamingsnakecase::ScreamingSnakecase;
+        pub use casing::kebabcase::Kebabcase;
         pub use encode_base16::EncodeBase16;
         pub use encode_base64::EncodeBase64;
         pub use encode_gzip::EncodeGzip;
@@ -317,6 +326,7 @@ cfg_if::cfg_if! {
         pub use parse_glog::ParseGlog;
         pub use parse_grok::ParseGrok;
         pub use parse_groks::ParseGroks;
+        pub use parse_influxdb::ParseInfluxDB;
         pub use parse_int::ParseInt;
         pub use parse_json::ParseJson;
         pub use parse_key_value::ParseKeyValue;
@@ -373,6 +383,7 @@ cfg_if::cfg_if! {
         pub use to_unix_timestamp::ToUnixTimestamp;
         pub use truncate::Truncate;
         pub use type_def::TypeDef;
+        pub use unflatten::Unflatten;
         pub use unique::Unique;
         pub use unnest::Unnest;
         pub use upcase::Upcase;
@@ -380,6 +391,7 @@ cfg_if::cfg_if! {
         pub use uuid_v4::UuidV4;
         pub use uuid_v7::UuidV7;
         pub use values::Values;
+        pub use zip::Zip;
         pub use self::array::Array;
         pub use self::md5::Md5;
         pub use self::seahash::Seahash;
@@ -397,6 +409,7 @@ pub fn all() -> Vec<Box<dyn Function>> {
         Box::new(Assert),
         Box::new(AssertEq),
         Box::new(Boolean),
+        Box::new(Camelcase),
         Box::new(Ceil),
         Box::new(Chunks),
         Box::new(Compact),
@@ -470,6 +483,7 @@ pub fn all() -> Vec<Box<dyn Function>> {
         Box::new(IsString),
         Box::new(IsTimestamp),
         Box::new(Join),
+        Box::new(Kebabcase),
         Box::new(Keys),
         Box::new(Length),
         Box::new(Log),
@@ -497,6 +511,7 @@ pub fn all() -> Vec<Box<dyn Function>> {
         Box::new(ParseGlog),
         Box::new(ParseGrok),
         Box::new(ParseGroks),
+        Box::new(ParseInfluxDB),
         Box::new(ParseInt),
         Box::new(ParseJson),
         Box::new(ParseKeyValue),
@@ -515,6 +530,7 @@ pub fn all() -> Vec<Box<dyn Function>> {
         Box::new(ParseUrl),
         Box::new(ParseUserAgent),
         Box::new(ParseXml),
+        Box::new(Pascalcase),
         Box::new(Push),
         Box::new(RandomBool),
         Box::new(RandomBytes),
@@ -532,6 +548,8 @@ pub fn all() -> Vec<Box<dyn Function>> {
         Box::new(Sha2),
         Box::new(Sha3),
         Box::new(Sieve),
+        Box::new(ScreamingSnakecase),
+        Box::new(Snakecase),
         Box::new(Slice),
         Box::new(Split),
         Box::new(StartsWith),
@@ -555,6 +573,7 @@ pub fn all() -> Vec<Box<dyn Function>> {
         Box::new(CommunityID),
         Box::new(Truncate),
         Box::new(TypeDef),
+        Box::new(Unflatten),
         Box::new(Unique),
         Box::new(Unnest),
         Box::new(Upcase),
@@ -562,5 +581,6 @@ pub fn all() -> Vec<Box<dyn Function>> {
         Box::new(UuidV4),
         Box::new(UuidV7),
         Box::new(Values),
+        Box::new(Zip),
     ]
 }

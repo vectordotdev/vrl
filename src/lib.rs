@@ -39,6 +39,9 @@ pub mod cli;
 #[cfg(feature = "test_framework")]
 pub mod test;
 
+#[cfg(feature = "parsing")]
+pub mod parsing;
+
 mod datadog;
 
 #[cfg(feature = "datadog_filter")]
@@ -49,7 +52,3 @@ pub use datadog::grok as datadog_grok;
 
 #[cfg(feature = "datadog_search")]
 pub use datadog::search as datadog_search_syntax;
-
-#[cfg(feature = "datadog_search")]
-#[macro_use]
-extern crate pest_derive;

@@ -1,29 +1,4 @@
 use crate::compiler::prelude::*;
-use crate::value;
-use tracing::{debug, error, info, trace, warn};
-
-fn log(rate_limit_secs: Value, level: &Bytes, value: Value, span: Span) -> Resolved {
-    let rate_limit_secs = rate_limit_secs.try_integer()?;
-    let res = value.to_string_lossy();
-    match level.as_ref() {
-        b"trace" => {
-            trace!(message = %res, internal_log_rate_secs = rate_limit_secs, vrl_position = span.start())
-        }
-        b"debug" => {
-            debug!(message = %res, internal_log_rate_secs = rate_limit_secs, vrl_position = span.start())
-        }
-        b"warn" => {
-            warn!(message = %res, internal_log_rate_secs = rate_limit_secs, vrl_position = span.start())
-        }
-        b"error" => {
-            error!(message = %res, internal_log_rate_secs = rate_limit_secs, vrl_position = span.start())
-        }
-        _ => {
-            info!(message = %res, internal_log_rate_secs = rate_limit_secs, vrl_position = span.start())
-        }
-    }
-    Ok(Value::Null)
-}
 
 #[derive(Clone, Copy, Debug)]
 pub struct Log;
@@ -91,7 +66,7 @@ impl Function for Log {
             .expect("log level not bytes");
         let rate_limit_secs = arguments.optional("rate_limit_secs");
 
-        Ok(LogFn {
+        Ok(implementation::LogFn {
             span: ctx.span(),
             value,
             level,
@@ -111,37 +86,69 @@ impl Function for Log {
     }
 }
 
-#[derive(Debug, Clone)]
-struct LogFn {
-    span: Span,
-    value: Box<dyn Expression>,
-    level: Bytes,
-    rate_limit_secs: Option<Box<dyn Expression>>,
-}
+#[cfg(not(target_arch = "wasm32"))]
+mod implementation {
+    use tracing::{debug, error, info, trace, warn};
 
-impl FunctionExpression for LogFn {
-    fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = self.value.resolve(ctx)?;
-        let rate_limit_secs = match &self.rate_limit_secs {
-            Some(expr) => expr.resolve(ctx)?,
-            None => value!(1),
-        };
+    use crate::compiler::prelude::*;
+    use crate::value;
 
-        let span = self.span;
-
-        log(rate_limit_secs, &self.level, value, span)
+    pub(super) fn log(rate_limit_secs: Value, level: &Bytes, value: Value, span: Span) -> Resolved {
+        let rate_limit_secs = rate_limit_secs.try_integer()?;
+        let res = value.to_string_lossy();
+        match level.as_ref() {
+            b"trace" => {
+                trace!(message = %res, internal_log_rate_secs = rate_limit_secs, vrl_position = span.start())
+            }
+            b"debug" => {
+                debug!(message = %res, internal_log_rate_secs = rate_limit_secs, vrl_position = span.start())
+            }
+            b"warn" => {
+                warn!(message = %res, internal_log_rate_secs = rate_limit_secs, vrl_position = span.start())
+            }
+            b"error" => {
+                error!(message = %res, internal_log_rate_secs = rate_limit_secs, vrl_position = span.start())
+            }
+            _ => {
+                info!(message = %res, internal_log_rate_secs = rate_limit_secs, vrl_position = span.start())
+            }
+        }
+        Ok(Value::Null)
     }
 
-    fn type_def(&self, _: &state::TypeState) -> TypeDef {
-        TypeDef::null().infallible().impure()
+    #[derive(Debug, Clone)]
+    pub(super) struct LogFn {
+        pub(super) span: Span,
+        pub(super) value: Box<dyn Expression>,
+        pub(super) level: Bytes,
+        pub(super) rate_limit_secs: Option<Box<dyn Expression>>,
+    }
+
+    impl FunctionExpression for LogFn {
+        fn resolve(&self, ctx: &mut Context) -> Resolved {
+            let value = self.value.resolve(ctx)?;
+            let rate_limit_secs = match &self.rate_limit_secs {
+                Some(expr) => expr.resolve(ctx)?,
+                None => value!(1),
+            };
+
+            let span = self.span;
+
+            log(rate_limit_secs, &self.level, value, span)
+        }
+
+        fn type_def(&self, _: &state::TypeState) -> TypeDef {
+            TypeDef::null().infallible().impure()
+        }
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, not(target_arch = "wasm32")))]
 mod tests {
     use tracing_test::traced_test;
 
     use super::*;
+    use crate::value;
 
     test_function![
         log => Log;
@@ -159,7 +166,7 @@ mod tests {
     #[test]
     fn output_quotes() {
         // Check that a message is logged without additional quotes
-        log(
+        implementation::log(
             value!(1),
             &Bytes::from("warn"),
             value!("simple test message"),

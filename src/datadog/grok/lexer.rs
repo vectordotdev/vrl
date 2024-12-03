@@ -256,10 +256,11 @@ fn unescape_string_literal(mut s: &str) -> Result<String, Error> {
     let mut string = String::with_capacity(s.len());
     while let Some(i) = s.bytes().position(|b| b == b'\\') {
         if s.len() > i + 2 {
-            let c = match &s[i..i + 3] {
-                r"\\n" => '\n',
-                r"\\r" => '\r',
-                r"\\t" => '\t',
+            let c = match s.as_bytes()[i..i + 3] {
+                // convert to bytes since there might be multibyte(unicode) characters
+                [b'\\', b'\\', b'n'] => '\n',
+                [b'\\', b'\\', b'r'] => '\r',
+                [b'\\', b'\\', b't'] => '\t',
                 _ => '\0',
             };
             if c != '\0' {

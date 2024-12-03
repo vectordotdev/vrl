@@ -324,63 +324,6 @@ mod tests {
                     } },
                 ] },
             },
-            // Coalesce with known path first.
-            TestCase {
-                old: type_def! { object {
-                    "nonk" => type_def! { object {
-                        "shnoog" => type_def! { array [
-                            type_def! { object {
-                                "noog" => type_def! { bytes },
-                                "nork" => type_def! { bytes },
-                            } },
-                        ] },
-                    } },
-                } },
-                path: ".(nonk | nork).shnoog",
-                new: type_def! { array [
-                    type_def! { object {
-                        "nonk" => type_def! { object {
-                            "shnoog" => {
-                                type_def! { object {
-                                    "noog" => type_def! { bytes },
-                                    "nork" => type_def! { bytes },
-                                } }
-                            },
-                        } },
-                    } },
-                ] },
-            },
-            // Coalesce with known path second
-            TestCase {
-                old: type_def! { object {
-                    unknown => type_def! { bytes },
-                    "nonk" => type_def! { object {
-                        "shnoog" => type_def! { array [
-                            type_def! { object {
-                                "noog" => type_def! { bytes },
-                                "nork" => type_def! { bytes },
-                            } },
-                        ] },
-                    } },
-                } },
-                path: ".(nork | nonk).shnoog",
-                new: type_def! { array [
-                    type_def! { object {
-                        unknown => type_def! { bytes },
-                        "nonk" => type_def! { object {
-                            "shnoog" => type_def! { object {
-                                "noog" => type_def! { bytes },
-                                "nork" => type_def! { bytes },
-                            } }.union(type_def! { array [
-                            type_def! { object {
-                                "noog" => type_def! { bytes },
-                                "nork" => type_def! { bytes },
-                            } },
-                        ] }),
-                        } },
-                    } },
-                ] },
-            },
             // Nonexistent, the types we know are moved into the returned array.
             TestCase {
                 old: type_def! { object {

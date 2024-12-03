@@ -1,0 +1,4 @@
+# object: { "host": "vector.customdev" }
+# result: { "etld": "customdev", "etld_plus": "vector.customdev", "known_suffix": true }
+
+parse_etld!(.host, plus_parts: 1, psl: "lib/tests/tests/functions/custom_public_suffix_list.dat")

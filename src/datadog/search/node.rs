@@ -1,10 +1,11 @@
 use once_cell::sync::Lazy;
 use regex::Regex;
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use super::grammar::{unescape, DEFAULT_FIELD};
 
 /// This enum represents value comparisons that Queries might perform
-#[derive(Debug, Copy, Clone)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Comparison {
     /// Greater than.
     Gt,
@@ -31,7 +32,7 @@ impl Comparison {
 /// This enum represents the values we might be using in a comparison, whether
 /// they are Strings, Numbers (currently only floating point numbers) or an
 /// Unbounded comparison with no terminating value.
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum ComparisonValue {
     Unbounded,
     String(String),
@@ -80,14 +81,14 @@ impl<T: AsRef<str>> From<T> for ComparisonValue {
 
 /// This enum represents the tokens in a range, including "greater than (or equal to)"
 /// for the left bracket, "less than (or equal to) in the right bracket, and range values.
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Range {
     Comparison(Comparison),
     Value(ComparisonValue),
 }
 
 /// This enum represents the AND or OR Boolean operations we might perform on QueryNodes.
-#[derive(Debug, Copy, Clone)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum BooleanType {
     And,
     Or,
@@ -133,7 +134,7 @@ impl BooleanBuilder {
 }
 
 /// QueryNodes represent specific search criteria to be enforced.
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum QueryNode {
     /// Match all documents.
     MatchAllDocs,
@@ -344,6 +345,29 @@ impl QueryNode {
     }
 }
 
+impl<'de> Deserialize<'de> for QueryNode {
+    fn deserialize<D>(deserializer: D) -> Result<QueryNode, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        use serde::de::Error;
+
+        let s = String::deserialize(deserializer)?;
+
+        s.parse::<QueryNode>()
+            .map_err(|e| D::Error::custom(e.to_string()))
+    }
+}
+
+impl Serialize for QueryNode {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(self.to_lucene().as_str())
+    }
+}
+
 /// Enum representing Lucene's concept of whether a node should occur.
 #[derive(Debug)]
 pub enum LuceneOccur {
@@ -363,4 +387,30 @@ static ESCAPE_RE: Lazy<Regex> = Lazy::new(|| Regex::new("^\"(.+)\"$").unwrap());
 /// Escapes surrounding `"` quotes when distinguishing between quoted terms isn't needed.
 fn escape_quotes<T: AsRef<str>>(value: T) -> String {
     ESCAPE_RE.replace_all(value.as_ref(), "$1").to_string()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn query_node_serializes_to_string() {
+        assert_eq!(
+            serde_json::to_string(&QueryNode::AttributeExists {
+                attr: "something".into()
+            })
+            .unwrap(),
+            r#""_exists_:something""#
+        );
+    }
+
+    #[test]
+    fn query_node_deserializes_from_string() {
+        assert_eq!(
+            serde_json::from_str::<QueryNode>(r#""_missing_:something_else""#).unwrap(),
+            QueryNode::AttributeMissing {
+                attr: "something_else".into()
+            }
+        );
+    }
 }

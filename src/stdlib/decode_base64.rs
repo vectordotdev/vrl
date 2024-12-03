@@ -16,10 +16,9 @@ fn decode_base64(charset: Option<Value>, value: Value) -> Resolved {
         Base64Charset::UrlSafe => base64::alphabet::URL_SAFE,
     };
     let value = value.try_bytes()?;
-    let engine = base64::engine::GeneralPurpose::new(
-        &alphabet,
-        base64::engine::general_purpose::GeneralPurposeConfig::new(),
-    );
+    let config = base64::engine::general_purpose::GeneralPurposeConfig::new()
+        .with_decode_padding_mode(base64::engine::DecodePaddingMode::Indifferent);
+    let engine = base64::engine::GeneralPurpose::new(&alphabet, config);
 
     match engine.decode(value) {
         Ok(s) => Ok(Value::from(Bytes::from(s))),
@@ -127,6 +126,13 @@ mod test {
         empty_string_urlsafe_charset {
             args: func_args![value: value!(""), charset: value!("url_safe")],
             want: Ok(value!("")),
+            tdef: TypeDef::bytes().fallible(),
+        }
+
+        // https://github.com/vectordotdev/vrl/issues/959
+        no_padding {
+            args: func_args![value: value!("eyJzY2hlbWEiOiJpZ2x1OmNvbS5zbm93cGxvd2FuYWx5dGljcy5zbm93cGxvdy91bnN0cnVjdF9ldmVudC9qc29uc2NoZW1hLzEtMC0wIiwiZGF0YSI6eyJzY2hlbWEiOiJpZ2x1OmNvbS5zbm93cGxvd2FuYWx5dGljcy5zbm93cGxvdy9saW5rX2NsaWNrL2pzb25zY2hlbWEvMS0wLTEiLCJkYXRhIjp7InRhcmdldFVybCI6Imh0dHBzOi8vaWRwLWF1dGguZ2FyLmVkdWNhdGlvbi5mci9kb21haW5lR2FyP2lkRU5UPVNqQT0maWRTcmM9WVhKck9pODBPRFUyTmk5d2RERTRNREF3TVE9PSIsImVsZW1lbnRJZCI6IiIsImVsZW1lbnRDbGFzc2VzIjpbImxpbmstYnV0dG9uIiwidHJhY2tlZCJdLCJlbGVtZW50VGFyZ2V0IjoiX2JsYW5rIn19fQ")],
+            want: Ok(value!(r#"{"schema":"iglu:com.snowplowanalytics.snowplow/unstruct_event/jsonschema/1-0-0","data":{"schema":"iglu:com.snowplowanalytics.snowplow/link_click/jsonschema/1-0-1","data":{"targetUrl":"https://idp-auth.gar.education.fr/domaineGar?idENT=SjA=&idSrc=YXJrOi80ODU2Ni9wdDE4MDAwMQ==","elementId":"","elementClasses":["link-button","tracked"],"elementTarget":"_blank"}}}"#)),
             tdef: TypeDef::bytes().fallible(),
         }
     ];

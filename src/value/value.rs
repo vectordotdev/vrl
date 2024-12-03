@@ -3,7 +3,7 @@
 use bytes::{Bytes, BytesMut};
 use chrono::{DateTime, SecondsFormat, Utc};
 use ordered_float::NotNan;
-use std::collections::BTreeMap;
+use std::{cmp::Ordering, collections::BTreeMap};
 
 pub use iter::{IterItem, ValueIter};
 
@@ -172,6 +172,25 @@ impl Value {
     }
 }
 
+impl PartialOrd for Value {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        if std::mem::discriminant(self) != std::mem::discriminant(other) {
+            return None;
+        }
+        match (self, other) {
+            (Self::Bytes(a), Self::Bytes(b)) => a.partial_cmp(b),
+            (Self::Regex(a), Self::Regex(b)) => a.partial_cmp(b),
+            (Self::Integer(a), Self::Integer(b)) => a.partial_cmp(b),
+            (Self::Float(a), Self::Float(b)) => a.partial_cmp(b),
+            (Self::Boolean(a), Self::Boolean(b)) => a.partial_cmp(b),
+            (Self::Timestamp(a), Self::Timestamp(b)) => a.partial_cmp(b),
+            (Self::Object(a), Self::Object(b)) => a.partial_cmp(b),
+            (Self::Array(a), Self::Array(b)) => a.partial_cmp(b),
+            _ => None,
+        }
+    }
+}
+
 /// Converts a timestamp to a `String`.
 #[must_use]
 pub fn timestamp_to_string(timestamp: &DateTime<Utc>) -> String {
@@ -261,5 +280,22 @@ mod test {
             .tests(100)
             .max_tests(200)
             .quickcheck(inner as fn(Vec<BorrowedSegment<'static>>) -> TestResult);
+    }
+
+    #[test]
+    fn partial_ord_value() {
+        assert_eq!(
+            Value::from(50).partial_cmp(&Value::from(77)),
+            Some(Ordering::Less)
+        );
+        assert_eq!(
+            Value::from("zzz").partial_cmp(&Value::from("aaa")),
+            Some(Ordering::Greater)
+        );
+        assert_eq!(
+            Value::from(10.5).partial_cmp(&Value::from(10.5)),
+            Some(Ordering::Equal)
+        );
+        assert_eq!(Value::from(10.5).partial_cmp(&Value::from(10)), None);
     }
 }

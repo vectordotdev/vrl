@@ -1,6 +1,5 @@
-use crate::path::BorrowedSegment;
 use crate::value::{KeyString, ObjectMap, Value};
-use std::borrow::{Borrow, Cow};
+use std::borrow::Borrow;
 
 mod get;
 mod get_mut;
@@ -142,58 +141,6 @@ impl ValueCollection for Vec<Value> {
     fn is_empty_collection(&self) -> bool {
         self.is_empty()
     }
-}
-
-/// Returns the last coalesce key
-pub fn skip_remaining_coalesce_segments<'a>(
-    path_iter: &mut impl Iterator<Item = BorrowedSegment<'a>>,
-) -> Cow<'a, str> {
-    loop {
-        match path_iter.next() {
-            Some(BorrowedSegment::CoalesceField(field)) => { /* skip */ }
-            Some(BorrowedSegment::CoalesceEnd(field)) => {
-                return field;
-            }
-            _ => unreachable!("malformed path. This is a bug."),
-        }
-    }
-}
-
-/// Returns the first matching coalesce key.
-/// If none matches, returns Err with the last key.
-pub fn get_matching_coalesce_key<'a>(
-    initial_key: Cow<'a, str>,
-    map: &ObjectMap,
-    path_iter: &mut impl Iterator<Item = BorrowedSegment<'a>>,
-) -> Result<Cow<'a, str>, Cow<'a, str>> {
-    let mut key = initial_key;
-    let mut coalesce_finished = false;
-    let matched_key = loop {
-        match map.get_value(key.as_ref()) {
-            Some(_) => {
-                if !coalesce_finished {
-                    skip_remaining_coalesce_segments(path_iter);
-                }
-                break key;
-            }
-            None => {
-                if coalesce_finished {
-                    return Err(key);
-                }
-                match path_iter.next() {
-                    Some(BorrowedSegment::CoalesceField(field)) => {
-                        key = field;
-                    }
-                    Some(BorrowedSegment::CoalesceEnd(field)) => {
-                        key = field;
-                        coalesce_finished = true;
-                    }
-                    _ => unreachable!("malformed path. This is a bug."),
-                }
-            }
-        }
-    };
-    Ok(matched_key)
 }
 
 #[cfg(test)]

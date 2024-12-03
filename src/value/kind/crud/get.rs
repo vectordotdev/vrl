@@ -52,9 +52,7 @@ impl Kind {
         }
 
         match iter.next() {
-            Some(BorrowedSegment::Field(field) | BorrowedSegment::CoalesceEnd(field)) => {
-                self.get_field(field).get_recursive(iter)
-            }
+            Some(BorrowedSegment::Field(field)) => self.get_field(field).get_recursive(iter),
             Some(BorrowedSegment::Index(mut index)) => {
                 if let Some(array) = self.as_array() {
                     if index < 0 {
@@ -118,33 +116,6 @@ impl Kind {
                     Self::undefined()
                 }
             }
-            Some(BorrowedSegment::CoalesceField(field)) => {
-                let field_kind = self.get_field(field);
-
-                // The remaining segments if this match succeeded.
-                #[allow(clippy::needless_collect)]
-                // Need to collect to prevent infinite recursive iterator type.
-                let match_iter = iter
-                    .clone()
-                    .skip_while(|segment| matches!(segment, BorrowedSegment::CoalesceField(_)))
-                    // Skip the `CoalesceEnd`, which always exists after `CoalesceFields`.
-                    .skip(1)
-                    .collect::<Vec<_>>();
-
-                // This is the resulting type, assuming the match succeeded.
-                let match_type = field_kind
-                    // This type is only valid if the match succeeded, which means this type wasn't undefined.
-                    .without_undefined()
-                    .get_recursive(match_iter.into_iter());
-
-                if !field_kind.contains_undefined() {
-                    // This coalesce field will always be defined, so skip the others.
-                    return match_type;
-                }
-
-                // The first field may or may not succeed. Try both.
-                self.get_recursive(iter).union(match_type)
-            }
             Some(BorrowedSegment::Invalid) => {
                 // Value::get returns `None` in this case, which means the value is not defined.
                 Self::undefined()
@@ -157,7 +128,7 @@ impl Kind {
 #[cfg(test)]
 mod tests {
     use crate::owned_value_path;
-    use crate::path::{parse_value_path, OwnedValuePath};
+    use crate::path::OwnedValuePath;
     use std::collections::BTreeMap;
 
     use super::*;
@@ -397,64 +368,6 @@ mod tests {
                             )]))),
                     ),
                     path: owned_value_path!(-2, "foo"),
-                    want: Kind::bytes().or_undefined(),
-                },
-            ),
-            (
-                "coalesce first defined, no unknown",
-                TestCase {
-                    kind: Kind::object(Collection::from(BTreeMap::from([(
-                        "a".into(),
-                        Kind::integer(),
-                    )]))),
-                    path: parse_value_path(".(a|b)").unwrap(),
-                    want: Kind::integer(),
-                },
-            ),
-            (
-                "coalesce 2nd defined, no unknown",
-                TestCase {
-                    kind: Kind::object(Collection::from(BTreeMap::from([(
-                        "b".into(),
-                        Kind::integer(),
-                    )]))),
-                    path: parse_value_path(".(a|b)").unwrap(),
-                    want: Kind::integer(),
-                },
-            ),
-            (
-                "coalesce first defined, unknown",
-                TestCase {
-                    kind: Kind::object(
-                        Collection::from(BTreeMap::from([("a".into(), Kind::integer())]))
-                            .with_unknown(Kind::bytes()),
-                    ),
-                    path: parse_value_path(".(a|b)").unwrap(),
-                    want: Kind::integer(),
-                },
-            ),
-            (
-                "coalesce 2nd defined, unknown",
-                TestCase {
-                    kind: Kind::object(
-                        Collection::from(BTreeMap::from([("b".into(), Kind::integer())]))
-                            .with_unknown(Kind::bytes()),
-                    ),
-                    path: parse_value_path(".(a|b)").unwrap(),
-                    want: Kind::bytes().or_integer(),
-                },
-            ),
-            (
-                "coalesce nested",
-                TestCase {
-                    kind: Kind::object(
-                        Collection::from(BTreeMap::from([("b".into(), Kind::integer())]))
-                            .with_unknown(Kind::object(BTreeMap::from([(
-                                "foo".into(),
-                                Kind::bytes(),
-                            )]))),
-                    ),
-                    path: parse_value_path(".(a|b).foo").unwrap(),
                     want: Kind::bytes().or_undefined(),
                 },
             ),

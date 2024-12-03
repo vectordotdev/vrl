@@ -94,7 +94,7 @@ pub fn run_tests<T>(
 
     for mut test in tests {
         if category != test.category {
-            category = test.category.clone();
+            category.clone_from(&test.category);
             println!("{}", Colour::Fixed(3).bold().paint(category.to_string()));
         }
 
@@ -230,7 +230,7 @@ fn process_result(
                 print!("{} (expectation)", Colour::Red.bold().paint("FAILED"));
 
                 if !config.no_diff {
-                    let want = serde_json::to_string_pretty(&test.result.clone()).unwrap();
+                    let want = serde_json::to_string_pretty(&want_value).unwrap();
                     let got = serde_json::to_string_pretty(&got_value).unwrap();
 
                     let diff = prettydiff::diff_lines(&want, &got);

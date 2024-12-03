@@ -4,6 +4,7 @@ use aes::cipher::{
     generic_array::GenericArray,
     AsyncStreamCipher, BlockEncryptMut, KeyIvInit, StreamCipher,
 };
+use aes_siv::{Aes128SivAead, Aes256SivAead};
 use cfb_mode::Encryptor as Cfb;
 use chacha20poly1305::{aead::Aead, ChaCha20Poly1305, KeyInit, XChaCha20Poly1305};
 use crypto_secretbox::XSalsa20Poly1305;
@@ -123,6 +124,8 @@ pub(crate) fn is_valid_algorithm(algorithm: Value) -> bool {
             | "AES-256-CBC-ISO10126"
             | "AES-192-CBC-ISO10126"
             | "AES-128-CBC-ISO10126"
+            | "AES-128-SIV"
+            | "AES-256-SIV"
             | "CHACHA20-POLY1305"
             | "XCHACHA20-POLY1305"
             | "XSALSA20-POLY1305"
@@ -163,6 +166,8 @@ fn encrypt(plaintext: Value, algorithm: Value, key: Value, iv: Value) -> Resolve
         "AES-256-CBC-ISO10126" => encrypt_padded!(Aes256Cbc, Iso10126, plaintext, key, iv),
         "AES-192-CBC-ISO10126" => encrypt_padded!(Aes192Cbc, Iso10126, plaintext, key, iv),
         "AES-128-CBC-ISO10126" => encrypt_padded!(Aes128Cbc, Iso10126, plaintext, key, iv),
+        "AES-128-SIV" => encrypt_stream!(Aes128SivAead, plaintext, key, iv),
+        "AES-256-SIV" => encrypt_stream!(Aes256SivAead, plaintext, key, iv),
         "CHACHA20-POLY1305" => encrypt_stream!(ChaCha20Poly1305, plaintext, key, iv),
         "XCHACHA20-POLY1305" => encrypt_stream!(XChaCha20Poly1305, plaintext, key, iv),
         "XSALSA20-POLY1305" => encrypt_stream!(XSalsa20Poly1305, plaintext, key, iv),
@@ -415,6 +420,18 @@ mod tests {
         aes_128_cbc_iso10126 {
             args: func_args![plaintext: value!("morethan1blockofdata"), algorithm: "AES-128-CBC-ISO10126", key: "16_bytes_xxxxxxx", iv: "16_bytes_xxxxxxx"],
             want: Ok(value!(b"\x94R\xb5\xfeE\xd9)N1\xd3\xfe\xe66E\x05\x9ch\xae\xf6\x82\rD\xfdH\xd3T8n\xa7\xec\x98W")),
+            tdef: TypeDef::bytes().fallible(),
+        }
+
+        aes_128_siv {
+            args: func_args![plaintext: value!("morethan1blockofdata"), algorithm: "AES-128-SIV", key: "32_bytes_xxxxxxxxxxxxxxxxxxxxxxx", iv: "16_bytes_xxxxxxx"],
+            want: Ok(value!(b"iMy\xb15\x16\x9dK\x97!\x9d1\x0fq\xe2\x9a\xb2\x15\xb2\xd2\xd0@\x19\xfa(\xffoZ\x17\xac\xe5U\xce\xd4\x81t")),
+            tdef: TypeDef::bytes().fallible(),
+        }
+
+        aes_256_siv {
+            args: func_args![plaintext: value!("morethan1blockofdata"), algorithm: "AES-256-SIV", key: "64_bytes_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", iv: "16_bytes_xxxxxxx"],
+            want: Ok(value!(b"[\x9b>c\x8c\xb9\xf8\xa4\xb9\xf8\x15\xb0\xf9g \xbf\x84{\x16\xfa\xef\xcd4',O/0\xf6\xcdx\x0b\"A\xb95")),
             tdef: TypeDef::bytes().fallible(),
         }
 

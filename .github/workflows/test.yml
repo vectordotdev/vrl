@@ -41,7 +41,11 @@ jobs:
         run: ./scripts/format_check.sh
 
   test:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
     steps:
       - uses: actions/checkout@v4
       - uses: Swatinem/rust-cache@v2
@@ -49,7 +53,11 @@ jobs:
         run: ./scripts/tests.sh
 
   vrl:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
     steps:
       - uses: actions/checkout@v4
       - uses: Swatinem/rust-cache@v2
@@ -79,6 +87,14 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - name: "Check that the MSRV is up to date"
         run: ./scripts/check_msrv.sh
+
+  check-deny:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: Swatinem/rust-cache@v2
+      - name: "Check that the 3rd-party license file is up to date"
+        run: ./scripts/check_deny.sh
 
   wasm32-unknown-unknown:
     runs-on: ubuntu-latest

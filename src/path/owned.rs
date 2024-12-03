@@ -74,9 +74,6 @@ impl OwnedValuePath {
     }
 
     /// Create the possible fields that can be followed by this lookup.
-    /// Because of coalesced paths there can be a number of different combinations.
-    /// There is the potential for this function to create a vast number of different
-    /// combinations if there are multiple coalesced segments in a path.
     ///
     /// The limit specifies the limit of the path depth we are interested in.
     /// Metrics is only interested in fields that are up to 3 levels deep (2 levels + 1 to check it
@@ -92,19 +89,6 @@ impl OwnedValuePath {
                     for component in &mut components {
                         component.push(field.as_str());
                     }
-                }
-
-                OwnedSegment::Coalesce(fields) => {
-                    components = components
-                        .iter()
-                        .flat_map(|path| {
-                            fields.iter().map(move |field| {
-                                let mut path = path.clone();
-                                path.push(field.as_str());
-                                path
-                            })
-                        })
-                        .collect();
                 }
 
                 OwnedSegment::Index(_) => {
@@ -301,26 +285,6 @@ impl From<&OwnedValuePath> for String {
                 OwnedSegment::Index(index) => {
                     write!(output, "[{index}]").expect("Could not write to string")
                 }
-                OwnedSegment::Coalesce(fields) => {
-                    let mut coalesce_i = 0;
-                    let (last, fields) = fields.split_last().expect("coalesce must not be empty");
-                    for field in fields {
-                        serialize_field(
-                            &mut output,
-                            field.as_ref(),
-                            Some(if coalesce_i != 0 {
-                                "|"
-                            } else if i == 0 {
-                                "("
-                            } else {
-                                ".("
-                            }),
-                        );
-                        coalesce_i = 1;
-                    }
-                    serialize_field(&mut output, last.as_ref(), (coalesce_i != 0).then_some("|"));
-                    output.push(')');
-                }
             }
         }
         output
@@ -362,10 +326,10 @@ impl From<Vec<OwnedSegment>> for OwnedValuePath {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash, PartialOrd, Ord)]
+#[cfg_attr(any(test, feature = "proptest"), derive(proptest_derive::Arbitrary))]
 pub enum OwnedSegment {
     Field(KeyString),
     Index(isize),
-    Coalesce(Vec<KeyString>),
 }
 
 impl OwnedSegment {
@@ -374,10 +338,6 @@ impl OwnedSegment {
     }
     pub fn index(value: isize) -> OwnedSegment {
         OwnedSegment::Index(value)
-    }
-
-    pub fn coalesce(fields: Vec<KeyString>) -> OwnedSegment {
-        OwnedSegment::Coalesce(fields)
     }
 
     pub fn is_field(&self) -> bool {
@@ -392,48 +352,7 @@ impl OwnedSegment {
             (OwnedSegment::Index(a), OwnedSegment::Index(b)) => a == b,
             (OwnedSegment::Index(_), _) | (_, OwnedSegment::Index(_)) => false,
             (OwnedSegment::Field(a), OwnedSegment::Field(b)) => a == b,
-            (OwnedSegment::Field(field), OwnedSegment::Coalesce(fields))
-            | (OwnedSegment::Coalesce(fields), OwnedSegment::Field(field)) => {
-                fields.contains(field)
-            }
-            (OwnedSegment::Coalesce(a), OwnedSegment::Coalesce(b)) => {
-                a.iter().any(|a_field| b.contains(a_field))
-            }
         }
-    }
-}
-
-// This is almost the same as the automatically-derived implementation, except that we explictly
-// restrict the length of the `Coalesce` variant to at least two elements, which is a constraint of
-// the textual representation.
-#[cfg(any(test, feature = "proptest"))]
-impl Arbitrary for OwnedSegment {
-    type Parameters = ();
-    type Strategy = BoxedStrategy<Self>;
-
-    fn arbitrary_with((): Self::Parameters) -> Self::Strategy {
-        prop_oneof![
-            any::<KeyString>().prop_map(OwnedSegment::Field),
-            any::<isize>().prop_map(OwnedSegment::Index),
-            prop::collection::vec(any::<KeyString>(), 2..10).prop_map(OwnedSegment::Coalesce),
-        ]
-        .boxed()
-    }
-}
-
-impl From<Vec<&'static str>> for OwnedSegment {
-    fn from(fields: Vec<&'static str>) -> Self {
-        fields
-            .into_iter()
-            .map(KeyString::from)
-            .collect::<Vec<_>>()
-            .into()
-    }
-}
-
-impl From<Vec<KeyString>> for OwnedSegment {
-    fn from(fields: Vec<KeyString>) -> Self {
-        OwnedSegment::Coalesce(fields)
     }
 }
 
@@ -459,11 +378,7 @@ impl<'a> ValuePath<'a> for &'a Vec<OwnedSegment> {
     type Iter = OwnedSegmentSliceIter<'a>;
 
     fn segment_iter(&self) -> Self::Iter {
-        OwnedSegmentSliceIter {
-            segments: self.as_slice(),
-            index: 0,
-            coalesce_i: 0,
-        }
+        OwnedSegmentSliceIter(self.iter())
     }
 }
 
@@ -471,11 +386,7 @@ impl<'a> ValuePath<'a> for &'a [OwnedSegment] {
     type Iter = OwnedSegmentSliceIter<'a>;
 
     fn segment_iter(&self) -> Self::Iter {
-        OwnedSegmentSliceIter {
-            segments: self,
-            index: 0,
-            coalesce_i: 0,
-        }
+        OwnedSegmentSliceIter(self.iter())
     }
 }
 
@@ -484,6 +395,18 @@ impl<'a> ValuePath<'a> for &'a OwnedValuePath {
 
     fn segment_iter(&self) -> Self::Iter {
         (&self.segments).segment_iter()
+    }
+}
+
+impl<'a> TryFrom<BorrowedSegment<'a>> for OwnedSegment {
+    type Error = ();
+
+    fn try_from(segment: BorrowedSegment<'a>) -> Result<Self, Self::Error> {
+        match segment {
+            BorrowedSegment::Invalid => Err(()),
+            BorrowedSegment::Index(i) => Ok(OwnedSegment::Index(i)),
+            BorrowedSegment::Field(field) => Ok(OwnedSegment::Field(field.into())),
+        }
     }
 }
 
@@ -507,52 +430,18 @@ impl Display for OwnedSegment {
         match self {
             OwnedSegment::Index(i) => write!(f, "[{i}]"),
             OwnedSegment::Field(field) => format_field(f, field),
-            OwnedSegment::Coalesce(v) => {
-                write!(f, "(")?;
-                for (i, field) in v.iter().enumerate() {
-                    if i > 0 {
-                        write!(f, " | ")?;
-                    }
-                    format_field(f, field)?;
-                }
-                write!(f, ")")
-            }
         }
     }
 }
 
 #[derive(Clone)]
-pub struct OwnedSegmentSliceIter<'a> {
-    segments: &'a [OwnedSegment],
-    index: usize,
-    coalesce_i: usize,
-}
+pub struct OwnedSegmentSliceIter<'a>(std::slice::Iter<'a, OwnedSegment>);
 
 impl<'a> Iterator for OwnedSegmentSliceIter<'a> {
     type Item = BorrowedSegment<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let output = self.segments.get(self.index).map(|segment| match segment {
-            OwnedSegment::Field(field) => BorrowedSegment::Field(field.as_str().into()),
-            OwnedSegment::Index(i) => BorrowedSegment::Index(*i),
-            OwnedSegment::Coalesce(fields) => {
-                let coalesce_segment;
-                if self.coalesce_i == fields.len() - 1 {
-                    coalesce_segment =
-                        BorrowedSegment::CoalesceEnd(fields[self.coalesce_i].as_str().into());
-                    self.coalesce_i = 0;
-                } else {
-                    coalesce_segment =
-                        BorrowedSegment::CoalesceField(fields[self.coalesce_i].as_str().into());
-                    self.coalesce_i += 1;
-                }
-                coalesce_segment
-            }
-        });
-        if self.coalesce_i == 0 {
-            self.index += 1;
-        }
-        output
+        self.0.next().map(BorrowedSegment::from)
     }
 }
 
@@ -595,12 +484,6 @@ mod test {
             (r#"foo."a\"a"."b\\b".bar"#, Some(r#"foo."a\"a"."b\\b".bar"#)),
             ("<invalid>", None),
             (r#""🤖""#, Some(r#""🤖""#)),
-            (".(a|b)", Some("(a|b)")),
-            (".(a|b|c)", Some("(a|b|c)")),
-            ("foo.(a|b|c)", Some("foo.(a|b|c)")),
-            ("[0].(a|b|c)", Some("[0].(a|b|c)")),
-            (".(a|b|c).foo", Some("(a|b|c).foo")),
-            (".( a | b | c ).foo", Some("(a|b|c).foo")),
         ];
 
         for (path, expected) in test_cases {
