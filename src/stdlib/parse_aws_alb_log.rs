@@ -295,7 +295,7 @@ fn until_quote(input: &str) -> SResult<String> {
 
 fn take_maybe_quoted_list<'a>(
     cond: impl Fn(char) -> bool + Clone,
-) -> impl FnOnce(&'a str) -> SResult<Vec<&'a str>> {
+) -> impl FnOnce(&'a str) -> SResult<'a, Vec<&'a str>> {
     alt((
         map_res(tag(r#" "-""#), |_| {
             Ok::<_, std::convert::Infallible>(vec![])
