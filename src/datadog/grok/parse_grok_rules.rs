@@ -366,7 +366,7 @@ fn resolves_match_function(
             Ok(())
         }
         "date" => {
-            return match match_fn.args.as_ref() {
+            match match_fn.args.as_ref() {
                 Some(args) if !args.is_empty() && args.len() <= 2 => {
                     if let ast::FunctionArgument::Arg(Value::Bytes(b)) = &args[0] {
                         let format = String::from_utf8_lossy(b);
@@ -418,7 +418,7 @@ fn resolves_match_function(
                     Err(Error::InvalidFunctionArguments(match_fn.name.clone()))
                 }
                 _ => Err(Error::InvalidFunctionArguments(match_fn.name.clone())),
-            };
+            }
         }
         // otherwise just add it as is, it should be a known grok pattern
         grok_pattern_name => {
