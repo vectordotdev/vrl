@@ -34,7 +34,7 @@ impl<'a> Formatter<'a> {
     }
 }
 
-impl<'a> fmt::Display for Formatter<'a> {
+impl fmt::Display for Formatter<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use std::str::from_utf8;
 

@@ -194,10 +194,10 @@ impl Conversion {
 /// following set of source strings are allowed:
 ///
 ///  * `"true"`, `"t"`, `"yes"`, `"y"` (all case-insensitive), and
-///  non-zero integers all convert to `true`.
+///    non-zero integers all convert to `true`.
 ///
 ///  * `"false"`, `"f"`, `"no"`, `"n"` (all case-insensitive), and `"0"`
-///  all convert to `false`.
+///    all convert to `false`.
 ///
 /// # Errors
 ///
