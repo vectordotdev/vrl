@@ -1,3 +1,4 @@
+use super::util::ConstOrExpr;
 use crate::compiler::prelude::*;
 
 fn make_object(values: Vec<Value>) -> Resolved {
@@ -8,7 +9,7 @@ fn make_object(values: Vec<Value>) -> Resolved {
         .map(Value::Object)
 }
 
-fn make_key_value(value: Value) -> Result<(KeyString, Value), ExpressionError> {
+fn make_key_value(value: Value) -> ExpressionResult<(KeyString, Value)> {
     value.try_array().map_err(Into::into).and_then(|array| {
         let mut iter = array.into_iter();
         let key: KeyString = match iter.next() {
@@ -69,28 +70,6 @@ impl FunctionExpression for OFAFn {
 
     fn type_def(&self, _state: &TypeState) -> TypeDef {
         TypeDef::object(Collection::any())
-    }
-}
-
-#[derive(Clone, Debug)]
-enum ConstOrExpr {
-    Const(Value),
-    Expr(Box<dyn Expression>),
-}
-
-impl ConstOrExpr {
-    fn new(expr: Box<dyn Expression>, state: &TypeState) -> Self {
-        match expr.resolve_constant(state) {
-            Some(cnst) => Self::Const(cnst),
-            None => Self::Expr(expr),
-        }
-    }
-
-    fn resolve(&self, ctx: &mut Context) -> Resolved {
-        match self {
-            Self::Const(value) => Ok(value.clone()),
-            Self::Expr(expr) => expr.resolve(ctx),
-        }
     }
 }
 
