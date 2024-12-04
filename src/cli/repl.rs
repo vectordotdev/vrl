@@ -18,7 +18,7 @@ use regex::Regex;
 use rustyline::{
     completion::Completer,
     error::ReadlineError,
-    highlight::{Highlighter, MatchingBracketHighlighter},
+    highlight::{CmdKind, Highlighter, MatchingBracketHighlighter},
     hint::{Hinter, HistoryHinter},
     history::MemHistory,
     validate::{self, ValidationResult, Validator},
@@ -283,7 +283,7 @@ impl Highlighter for Repl {
         self.highlighter.highlight(line, pos)
     }
 
-    fn highlight_char(&self, line: &str, pos: usize, forced: bool) -> bool {
+    fn highlight_char(&self, line: &str, pos: usize, forced: CmdKind) -> bool {
         self.highlighter.highlight_char(line, pos, forced)
     }
 }
