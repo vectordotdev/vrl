@@ -1,3 +1,4 @@
+use super::util::ConstOrExpr;
 use crate::compiler::prelude::*;
 
 fn zip2(value0: Value, value1: Value) -> Resolved {
@@ -75,9 +76,7 @@ impl Function for Zip {
         arguments: ArgumentList,
     ) -> Compiled {
         let array_0 = ConstOrExpr::new(arguments.required("array_0"), state);
-        let array_1 = arguments
-            .optional("array_1")
-            .map(|a| ConstOrExpr::new(a, state));
+        let array_1 = ConstOrExpr::optional(arguments.optional("array_1"), state);
 
         Ok(ZipFn { array_0, array_1 }.as_expr())
     }
@@ -100,28 +99,6 @@ impl FunctionExpression for ZipFn {
 
     fn type_def(&self, _state: &TypeState) -> TypeDef {
         TypeDef::array(Collection::any())
-    }
-}
-
-#[derive(Clone, Debug)]
-enum ConstOrExpr {
-    Const(Value),
-    Expr(Box<dyn Expression>),
-}
-
-impl ConstOrExpr {
-    fn new(expr: Box<dyn Expression>, state: &TypeState) -> Self {
-        match expr.resolve_constant(state) {
-            Some(cnst) => Self::Const(cnst),
-            None => Self::Expr(expr),
-        }
-    }
-
-    fn resolve(&self, ctx: &mut Context) -> Resolved {
-        match self {
-            Self::Const(value) => Ok(value.clone()),
-            Self::Expr(expr) => expr.resolve(ctx),
-        }
     }
 }
 

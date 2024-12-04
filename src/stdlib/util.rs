@@ -1,4 +1,5 @@
-use crate::value::{KeyString, ObjectMap};
+use crate::compiler::{Context, Expression, Resolved, TypeState};
+use crate::value::{KeyString, ObjectMap, Value};
 
 /// Rounds the given number to the given precision.
 /// Takes a function parameter so the exact rounding function (ceil, floor or round)
@@ -112,6 +113,32 @@ impl std::str::FromStr for Base64Charset {
             "standard" => Ok(Standard),
             "url_safe" => Ok(UrlSafe),
             _ => Err("unknown charset"),
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub(super) enum ConstOrExpr {
+    Const(Value),
+    Expr(Box<dyn Expression>),
+}
+
+impl ConstOrExpr {
+    pub(super) fn new(expr: Box<dyn Expression>, state: &TypeState) -> Self {
+        match expr.resolve_constant(state) {
+            Some(cnst) => Self::Const(cnst),
+            None => Self::Expr(expr),
+        }
+    }
+
+    pub(super) fn optional(expr: Option<Box<dyn Expression>>, state: &TypeState) -> Option<Self> {
+        expr.map(|expr| Self::new(expr, state))
+    }
+
+    pub(super) fn resolve(&self, ctx: &mut Context) -> Resolved {
+        match self {
+            Self::Const(value) => Ok(value.clone()),
+            Self::Expr(expr) => expr.resolve(ctx),
         }
     }
 }
