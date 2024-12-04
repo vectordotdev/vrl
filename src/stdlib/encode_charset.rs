@@ -74,15 +74,18 @@ impl Function for EncodeCharset {
 }
 
 fn encode_charset(value: &str, to_charset: &[u8]) -> Resolved {
-    let encoder = Encoding::for_label(to_charset).ok_or_else(|| error(to_charset))?;
+    let encoder = Encoding::for_label(to_charset).ok_or_else(|| create_error(to_charset))?;
 
     let (output, _, _) = encoder.encode(value);
     Ok(Value::Bytes(output.as_bytes().to_vec().into()))
 }
 
-fn error(from: &[u8]) -> ExpressionError {
+fn create_error(to_charset: &[u8]) -> ExpressionError {
     ExpressionError::Error {
-        message: format!("Unknown charset: {}", from_utf8(from).unwrap_or("unknown")),
+        message: format!(
+            "Unknown charset: {}",
+            from_utf8(to_charset).unwrap_or("unknown")
+        ),
         labels: vec![Label::primary("Unknown charset", Span::default())],
         notes: vec![Note::SeeDocs(
             "Encoding Living Standard".to_string(),
