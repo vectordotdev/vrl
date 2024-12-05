@@ -1,7 +1,7 @@
 use super::util::ConstOrExpr;
 use crate::compiler::prelude::*;
 
-fn make_object1(values: Vec<Value>) -> Resolved {
+fn make_object_1(values: Vec<Value>) -> Resolved {
     values
         .into_iter()
         .map(make_key_value)
@@ -9,7 +9,7 @@ fn make_object1(values: Vec<Value>) -> Resolved {
         .map(Value::Object)
 }
 
-fn make_object2(keys: Vec<Value>, values: Vec<Value>) -> Resolved {
+fn make_object_2(keys: Vec<Value>, values: Vec<Value>) -> Resolved {
     keys.into_iter()
         .zip(values)
         .map(|(key, value)| Ok((make_key_string(key)?, value)))
@@ -97,8 +97,8 @@ impl FunctionExpression for OFAFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let values = self.values.resolve(ctx)?.try_array()?;
         match &self.keys {
-            None => make_object1(values),
-            Some(keys) => make_object2(keys.resolve(ctx)?.try_array()?, values),
+            None => make_object_1(values),
+            Some(keys) => make_object_2(keys.resolve(ctx)?.try_array()?, values),
         }
     }
 
