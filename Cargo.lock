@@ -3609,6 +3609,7 @@ dependencies = [
  "codespan-reporting",
  "community-id",
  "convert_case 0.6.0",
+ "crc32fast",
  "criterion",
  "crypto_secretbox",
  "csv",
