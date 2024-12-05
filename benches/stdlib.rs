@@ -1356,6 +1356,14 @@ bench_function! {
         args: func_args![values: value!([["zero",null], ["one",true], ["two","foo"], ["three",3]])],
         want: Ok(value!({"zero":null, "one":true, "two":"foo", "three":3})),
     }
+
+    values_and_keys {
+        args: func_args![
+            keys: value!(["zero", "one", "two", "three"]),
+            values: value!([null, true, "foo", 3]),
+        ],
+        want: Ok(value!({"zero":null, "one":true, "two":"foo", "three":3})),
+    }
 }
 
 bench_function! {
