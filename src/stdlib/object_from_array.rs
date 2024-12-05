@@ -4,7 +4,7 @@ use crate::compiler::prelude::*;
 fn make_object_1(values: Vec<Value>) -> Resolved {
     values
         .into_iter()
-        .map(make_key_value)
+        .filter_map(|kv| make_key_value(kv).transpose())
         .collect::<Result<_, _>>()
         .map(Value::Object)
 }
@@ -12,24 +12,28 @@ fn make_object_1(values: Vec<Value>) -> Resolved {
 fn make_object_2(keys: Vec<Value>, values: Vec<Value>) -> Resolved {
     keys.into_iter()
         .zip(values)
-        .map(|(key, value)| Ok((make_key_string(key)?, value)))
+        .filter_map(|(key, value)| {
+            make_key_string(key)
+                .transpose()
+                .map(|key| key.map(|key| (key, value)))
+        })
         .collect::<Result<_, _>>()
         .map(Value::Object)
 }
 
-fn make_key_value(value: Value) -> ExpressionResult<(KeyString, Value)> {
-    value.try_array().map_err(Into::into).and_then(|array| {
-        let mut iter = array.into_iter();
-        let Some(key) = iter.next() else {
-            return Err("array value too short".into());
-        };
-        Ok((make_key_string(key)?, iter.next().unwrap_or(Value::Null)))
-    })
+fn make_key_value(value: Value) -> ExpressionResult<Option<(KeyString, Value)>> {
+    let array = value.try_array()?;
+    let mut iter = array.into_iter();
+    let Some(key) = iter.next() else {
+        return Err("array value too short".into());
+    };
+    Ok(make_key_string(key)?.map(|key| (key, iter.next().unwrap_or(Value::Null))))
 }
 
-fn make_key_string(key: Value) -> ExpressionResult<KeyString> {
+fn make_key_string(key: Value) -> ExpressionResult<Option<KeyString>> {
     match key {
-        Value::Bytes(key) => Ok(String::from_utf8_lossy(&key).into()),
+        Value::Bytes(key) => Ok(Some(String::from_utf8_lossy(&key).into())),
+        Value::Null => Ok(None),
         _ => Err("object keys must be strings".into()),
     }
 }
@@ -68,6 +72,11 @@ impl Function for ObjectFromArray {
                 title: "create an object from a separate arrays of keys and values",
                 source: r#"object_from_array(keys: ["a", "b", "c"], values: [1, null, true])"#,
                 result: Ok(r#"{"a": 1, "b": null, "c": true}"#),
+            },
+            Example {
+                title: "create an object with skipped keys",
+                source: r#"object_from_array([["a", 1], [null, 2], ["b", 3]])"#,
+                result: Ok(r#"{"a": 1, "b": 3}"#),
             },
         ]
     }
@@ -143,6 +152,18 @@ mod tests {
         errors_on_missing_keys {
             args: func_args![values: value!([["foo", 1], []])],
             want: Err("array value too short"),
+            tdef: TypeDef::object(Collection::any()),
+        }
+
+        skips_null_keys1 {
+            args: func_args![values: value!([["foo", 1], [null, 2], ["bar", 3]])],
+            want: Ok(value!({"foo": 1, "bar": 3})),
+            tdef: TypeDef::object(Collection::any()),
+        }
+
+        skips_null_keys2 {
+            args: func_args![values: value!([1, 2, 3]), keys: value!(["foo", null, "bar"])],
+            want: Ok(value!({"foo": 1, "bar": 3})),
             tdef: TypeDef::object(Collection::any()),
         }
     ];
