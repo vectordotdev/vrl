@@ -54,16 +54,16 @@ impl Function for ParseFloat {
     ) -> Compiled {
         let value = arguments.required("value");
 
-        Ok(ParseIntFn { value }.as_expr())
+        Ok(ParseFloatFn { value }.as_expr())
     }
 }
 
 #[derive(Debug, Clone)]
-struct ParseIntFn {
+struct ParseFloatFn {
     value: Box<dyn Expression>,
 }
 
-impl FunctionExpression for ParseIntFn {
+impl FunctionExpression for ParseFloatFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let value = self.value.resolve(ctx)?;
 
@@ -145,6 +145,12 @@ mod tests {
         max {
             args: func_args![value: "1.7976931348623157e+308"],
             want: Ok(f64::MAX),
+            tdef: TypeDef::float().fallible(),
+        }
+
+        large_string {
+            args: func_args![value: "9".repeat(9999)],
+            want: Ok(f64::INFINITY),
             tdef: TypeDef::float().fallible(),
         }
     ];
