@@ -9,6 +9,6 @@ labels: "domain: releasing"
   - [ ] Bump [Cargo.toml](https://github.com/vectordotdev/vrl/blob/main/Cargo.toml#L3) version and commit the change.
   - [ ] Run the [./scripts/generate_release_changelog.sh](https://github.com/vectordotdev/vrl/blob/main/scripts/generate_release_changelog.sh) script
     and commit the changes.
-- [ ] After the above PR is merged, run the [publish.py](https://github.com/vectordotdev/vrl/blob/main/scripts/publish.py) script.
+- [ ] After the above PR is merged, run the [scripts/publish.py](https://github.com/vectordotdev/vrl/blob/main/scripts/publish.py) script.
   - [ ] Confirm that the new tag was created: https://github.com/vectordotdev/vrl/tags
   - [ ] Confirm that the new VRL release was published: https://crates.io/crates/vrl
