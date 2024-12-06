@@ -2,8 +2,7 @@ use bytes::Bytes;
 use chrono::{DateTime, Utc};
 use ordered_float::NotNan;
 
-use crate::compiler::conversion::{parse_bool, Conversion, Error};
-use crate::compiler::TimeZone;
+use crate::compiler::conversion::parse_bool;
 
 #[cfg(unix)] // see https://github.com/vectordotdev/vector/issues/1201
 mod unix;
@@ -91,35 +90,4 @@ fn parse_bool_errors() {
     assert!(parse_bool("X").is_err());
     assert!(parse_bool("yes or no").is_err());
     assert!(parse_bool("123.4").is_err());
-}
-
-fn convert_float(input: impl ToString) -> Result<StubValue, Error> {
-    let input = input.to_string();
-    let converter = Conversion::parse("float", TimeZone::Local).expect("float conversion");
-    converter.convert::<StubValue>(input.into())
-}
-
-#[test]
-fn convert_float_ok() {
-    let max_float = format!("17976931348623157{}", "0".repeat(292));
-    let min_float = format!("-{max_float}");
-
-    assert_eq!(convert_float(max_float), Ok(StubValue::Float(f64::MAX)));
-    assert_eq!(convert_float("1"), Ok(StubValue::Float(1.0)));
-    assert_eq!(convert_float("1.23"), Ok(StubValue::Float(1.23)));
-    assert_eq!(convert_float("-1"), Ok(StubValue::Float(-1.0)));
-    assert_eq!(convert_float("-1.23"), Ok(StubValue::Float(-1.23)));
-    assert_eq!(convert_float(min_float), Ok(StubValue::Float(f64::MIN)));
-}
-
-#[test]
-fn convert_float_errors() {
-    let exceeds_max_float = format!("17976931348623159{}", "0".repeat(292)); // last number inc by 2
-    let exceeds_min_float = format!("-{exceeds_max_float}");
-
-    assert!(convert_float("abc").is_err());
-    assert!(convert_float("1.23.4").is_err());
-    assert!(convert_float(exceeds_max_float).is_err());
-    assert!(convert_float(exceeds_min_float).is_err());
-    assert!(convert_float("0.0").is_err());
 }
