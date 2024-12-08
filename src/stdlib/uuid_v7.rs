@@ -3,22 +3,25 @@ use bytes::Bytes;
 use chrono::{DateTime, Utc};
 use uuid::{timestamp::Timestamp, NoContext};
 
-fn uuid_v7(timestamp: Option<Value>) -> Value {
-    let timestamp: DateTime<Utc> = if let Some(timestamp) = timestamp {
-        timestamp.try_timestamp().unwrap()
+fn uuid_v7(timestamp: Option<Value>) -> Resolved {
+    let utc_timestamp: DateTime<Utc> = if let Some(timestamp) = timestamp {
+        timestamp.try_timestamp()?
     } else {
         Utc::now()
     };
 
-    let seconds = timestamp.timestamp() as u64;
-    let nanoseconds = timestamp.timestamp_nanos() as u32;
+    let seconds = utc_timestamp.timestamp() as u64;
+    let nanoseconds = match utc_timestamp.timestamp_nanos_opt() {
+        Some(nanos) => nanos as u32,
+        None => return Err(ValueError::OutOfRange(Kind::timestamp()).into()),
+    };
     let timestamp = Timestamp::from_unix(NoContext, seconds, nanoseconds);
 
     let mut buffer = [0; 36];
     let uuid = uuid::Uuid::new_v7(timestamp)
         .hyphenated()
         .encode_lower(&mut buffer);
-    Bytes::copy_from_slice(uuid.as_bytes()).into()
+    Ok(Bytes::copy_from_slice(uuid.as_bytes()).into())
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -77,7 +80,7 @@ impl FunctionExpression for UuidV7Fn {
             .map(|m| m.resolve(ctx))
             .transpose()?;
 
-        Ok(uuid_v7(timestamp))
+        uuid_v7(timestamp)
     }
 
     fn type_def(&self, _: &TypeState) -> TypeDef {
