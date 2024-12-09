@@ -1,6 +1,12 @@
 use crate::compiler::conversion::Conversion;
 use crate::compiler::prelude::*;
 
+pub(crate) fn bytes_to_float(bytes: Bytes) -> Resolved {
+    Conversion::Float
+        .convert(bytes)
+        .map_err(|e| e.to_string().into())
+}
+
 fn to_float(value: Value) -> Resolved {
     use Value::{Boolean, Bytes, Float, Integer, Null, Timestamp};
     match value {
