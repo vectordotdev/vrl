@@ -1,8 +1,8 @@
 use crate::compiler::prelude::*;
-use crate::stdlib::to_float::to_float;
+use crate::stdlib::to_float::{bytes_to_float};
 
 fn parse_float(value: Value) -> Resolved {
-    to_float(value)
+    bytes_to_float(value.try_bytes()?)
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -127,7 +127,7 @@ mod tests {
 
         nan {
             args: func_args![value: "Nan"],
-            want: Err("NaN number not supported".to_string()),
+            want: Err("NaN number not supported \"Nan\"".to_string()),
             tdef: TypeDef::float().fallible(),
         }
 
