@@ -4,6 +4,15 @@
 
 <!-- changelog start -->
 
+## [0.20.1 (2024-12-09)]
+
+
+### Fixes
+
+- Reverted `to_float` [change](https://github.com/vectordotdev/vrl/pull/1107) because the new logic is too restrictive
+  e.g. attempting to convert "0" returns an error. (https://github.com/vectordotdev/vrl/pull/1179)
+
+
 ## [0.20.0 (2024-11-27)]
 
 
