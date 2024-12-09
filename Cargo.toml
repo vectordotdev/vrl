@@ -241,7 +241,7 @@ proptest = { version = "1" }
 proptest-derive = { version = "0.5" }
 
 [build-dependencies]
-lalrpop = { version = "0.20", default-features = false }
+lalrpop = { version = "0.22", default-features = false }
 
 [[bench]]
 name = "kind"
