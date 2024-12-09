@@ -1,13 +1,8 @@
-use std::str::FromStr;
-
 use crate::compiler::prelude::*;
+use crate::stdlib::to_float::to_float;
 
 fn parse_float(value: Value) -> Resolved {
-    let string = value.try_bytes_utf8_lossy()?;
-    let float = f64::from_str(&string).map_err(|err| format!("could not parse float: {err}"))?;
-    let converted = NotNan::new(float).map_err(|_| "NaN number not supported")?;
-
-    Ok(converted.into())
+    to_float(value)
 }
 
 #[derive(Clone, Copy, Debug)]

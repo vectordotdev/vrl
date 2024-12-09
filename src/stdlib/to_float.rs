@@ -1,7 +1,7 @@
 use crate::compiler::conversion::Conversion;
 use crate::compiler::prelude::*;
 
-fn to_float(value: Value) -> Resolved {
+pub(crate) fn to_float(value: Value) -> Resolved {
     use Value::{Boolean, Bytes, Float, Integer, Null, Timestamp};
     match value {
         Float(_) => Ok(value),
