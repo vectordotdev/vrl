@@ -1,5 +1,5 @@
 use crate::compiler::prelude::*;
-use crate::stdlib::to_float::{bytes_to_float};
+use crate::stdlib::to_float::bytes_to_float;
 
 fn parse_float(value: Value) -> Resolved {
     bytes_to_float(value.try_bytes()?)
