@@ -2,12 +2,12 @@
 
 use std::ops::{Add, Mul, Rem};
 
-use bytes::{BufMut, Bytes, BytesMut};
 use crate::compiler::{
     value::{Kind, VrlValueConvert},
     ExpressionError,
 };
 use crate::value::{ObjectMap, Value};
+use bytes::{BufMut, Bytes, BytesMut};
 
 use super::ValueError;
 
