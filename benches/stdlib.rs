@@ -21,11 +21,13 @@ criterion_group!(
               camelcase,
               ceil,
               chunks,
+              community_id,
               compact,
               contains,
               crc32,
               decode_base16,
               decode_base64,
+              decode_charset,
               decode_percent,
               decode_punycode,
               decrypt,
@@ -35,6 +37,7 @@ criterion_group!(
               downcase,
               encode_base16,
               encode_base64,
+              encode_charset,
               encode_key_value,
               encode_json,
               encode_logfmt,
@@ -94,6 +97,7 @@ criterion_group!(
               // TODO: value is dynamic so we cannot assert equality
               //now,
               object,
+              object_from_array,
               parse_apache_log,
               parse_aws_alb_log,
               parse_aws_cloudwatch_log_subscription_message,
@@ -170,7 +174,7 @@ criterion_group!(
               //uuidv4,
               upcase,
               values,
-              community_id,
+              zip,
 );
 criterion_main!(benches);
 
@@ -315,6 +319,16 @@ bench_function! {
 }
 
 bench_function! {
+    decode_charset => vrl::stdlib::DecodeCharset;
+
+    literal {
+        args: func_args![value: b"\xbe\xc8\xb3\xe7\xc7\xcf\xbc\xbc\xbf\xe4",
+                         from_charset: value!("euc-kr")],
+        want: Ok(value!("안녕하세요")),
+    }
+}
+
+bench_function! {
     decode_percent => vrl::stdlib::DecodePercent;
 
     literal {
@@ -385,6 +399,16 @@ bench_function! {
     literal {
         args: func_args![value: "some+=string/value"],
         want: Ok("c29tZSs9c3RyaW5nL3ZhbHVl"),
+    }
+}
+
+bench_function! {
+    encode_charset => vrl::stdlib::EncodeCharset;
+
+    literal {
+        args: func_args![value: value!("안녕하세요"),
+                         to_charset: value!("euc-kr")],
+        want: Ok(value!(b"\xbe\xc8\xb3\xe7\xc7\xcf\xbc\xbc\xbf\xe4")),
     }
 }
 
@@ -1354,6 +1378,23 @@ bench_function! {
     object {
         args: func_args![value: value!({"foo": "bar"})],
         want: Ok(value!({"foo": "bar"})),
+    }
+}
+
+bench_function! {
+    object_from_array => vrl::stdlib::ObjectFromArray;
+
+    default {
+        args: func_args![values: value!([["zero",null], ["one",true], ["two","foo"], ["three",3]])],
+        want: Ok(value!({"zero":null, "one":true, "two":"foo", "three":3})),
+    }
+
+    values_and_keys {
+        args: func_args![
+            keys: value!(["zero", "one", "two", "three"]),
+            values: value!([null, true, "foo", 3]),
+        ],
+        want: Ok(value!({"zero":null, "one":true, "two":"foo", "three":3})),
     }
 }
 
@@ -2941,5 +2982,22 @@ bench_function! {
     default {
         args: func_args![value: "input-string"],
         want: Ok("INPUT_STRING"),
+    }
+}
+
+bench_function! {
+    zip => vrl::stdlib::Zip;
+
+    one_parameter {
+        args: func_args![array_0: value!([["one", "two", "three", "four"], ["one", 2, null, true]])],
+        want: Ok(value!([["one","one"], ["two",2], ["three",null], ["four",true]])),
+    }
+
+    two_parameters {
+        args: func_args![
+            array_0: value!(["one", "two", "three", "four"]),
+            array_1: value!(["one", 2, null, true]),
+        ],
+        want: Ok(value!([["one","one"], ["two",2], ["three",null], ["four",true]])),
     }
 }

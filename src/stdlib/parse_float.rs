@@ -1,13 +1,8 @@
-use std::str::FromStr;
-
 use crate::compiler::prelude::*;
+use crate::stdlib::to_float::bytes_to_float;
 
 fn parse_float(value: Value) -> Resolved {
-    let string = value.try_bytes_utf8_lossy()?;
-    let float = f64::from_str(&string).map_err(|err| format!("could not parse float: {err}"))?;
-    let converted = NotNan::new(float).map_err(|_| "NaN number not supported")?;
-
-    Ok(converted.into())
+    bytes_to_float(value.try_bytes()?)
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -54,16 +49,16 @@ impl Function for ParseFloat {
     ) -> Compiled {
         let value = arguments.required("value");
 
-        Ok(ParseIntFn { value }.as_expr())
+        Ok(ParseFloatFn { value }.as_expr())
     }
 }
 
 #[derive(Debug, Clone)]
-struct ParseIntFn {
+struct ParseFloatFn {
     value: Box<dyn Expression>,
 }
 
-impl FunctionExpression for ParseIntFn {
+impl FunctionExpression for ParseFloatFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let value = self.value.resolve(ctx)?;
 
@@ -132,7 +127,7 @@ mod tests {
 
         nan {
             args: func_args![value: "Nan"],
-            want: Err("NaN number not supported".to_string()),
+            want: Err("NaN number not supported \"Nan\"".to_string()),
             tdef: TypeDef::float().fallible(),
         }
 
@@ -145,6 +140,12 @@ mod tests {
         max {
             args: func_args![value: "1.7976931348623157e+308"],
             want: Ok(f64::MAX),
+            tdef: TypeDef::float().fallible(),
+        }
+
+        large_string {
+            args: func_args![value: "9".repeat(9999)],
+            want: Ok(f64::INFINITY),
             tdef: TypeDef::float().fallible(),
         }
     ];

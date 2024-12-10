@@ -11,7 +11,7 @@ impl<'a> Chars<'a> {
     }
 }
 
-impl<'a> Iterator for Chars<'a> {
+impl Iterator for Chars<'_> {
     type Item = std::result::Result<char, u8>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -51,20 +51,18 @@ fn starts_with(bytes: &Bytes, starts: &Bytes, case: Case) -> bool {
 
     match case {
         Case::Sensitive => starts[..] == bytes[0..starts.len()],
-        Case::Insensitive => {
-            return Chars::new(starts)
-                .zip(Chars::new(bytes))
-                .all(|(a, b)| match (a, b) {
-                    (Ok(a), Ok(b)) => {
-                        if a.is_ascii() && b.is_ascii() {
-                            a.to_ascii_lowercase() == b.to_ascii_lowercase()
-                        } else {
-                            a.to_lowercase().zip(b.to_lowercase()).all(|(a, b)| a == b)
-                        }
+        Case::Insensitive => Chars::new(starts)
+            .zip(Chars::new(bytes))
+            .all(|(a, b)| match (a, b) {
+                (Ok(a), Ok(b)) => {
+                    if a.is_ascii() && b.is_ascii() {
+                        a.to_ascii_lowercase() == b.to_ascii_lowercase()
+                    } else {
+                        a.to_lowercase().zip(b.to_lowercase()).all(|(a, b)| a == b)
                     }
-                    _ => false,
-                });
-        }
+                }
+                _ => false,
+            }),
     }
 }
 

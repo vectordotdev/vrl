@@ -79,7 +79,7 @@ enum IterData {
     Array(Vec<Value>),
 }
 
-impl<'a> ValueIter<'a> {
+impl ValueIter<'_> {
     /// Create a new iterator over the relevant [`IterData`].
     fn new(data: IterData, recursive: bool) -> Self {
         Self {

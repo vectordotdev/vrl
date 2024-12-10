@@ -109,7 +109,7 @@ pub fn parse<'a>(
 fn parse_array<'a>(
     brackets: Option<(&'a str, &'a str)>,
     delimiter: Option<&'a str>,
-) -> impl Fn(&'a str) -> SResult<Vec<Value>> {
+) -> impl Fn(&'a str) -> SResult<'a, Vec<Value>> {
     let brackets = brackets.unwrap_or(("[", "]"));
     let delimiter = delimiter.unwrap_or(",");
     move |input| {
@@ -128,7 +128,7 @@ fn parse_array<'a>(
     }
 }
 
-fn parse_value_no_brackets<'a>(delimiter: &'a str) -> impl Fn(&'a str) -> SResult<Value> {
+fn parse_value_no_brackets<'a>(delimiter: &'a str) -> impl Fn(&'a str) -> SResult<'a, Value> {
     move |input| {
         map(
             alt((take_until(delimiter), take(input.len()))),
@@ -140,7 +140,7 @@ fn parse_value_no_brackets<'a>(delimiter: &'a str) -> impl Fn(&'a str) -> SResul
 fn parse_value<'a>(
     delimiter: &'a str,
     close_bracket: &'a str,
-) -> impl Fn(&'a str) -> SResult<Value> {
+) -> impl Fn(&'a str) -> SResult<'a, Value> {
     move |input| {
         map(
             alt((take_until(delimiter), take_until(close_bracket))),

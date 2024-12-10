@@ -103,23 +103,37 @@ fn convert_float(input: impl ToString) -> Result<StubValue, Error> {
 fn convert_float_ok() {
     let max_float = format!("17976931348623157{}", "0".repeat(292));
     let min_float = format!("-{max_float}");
-
     assert_eq!(convert_float(max_float), Ok(StubValue::Float(f64::MAX)));
     assert_eq!(convert_float("1"), Ok(StubValue::Float(1.0)));
     assert_eq!(convert_float("1.23"), Ok(StubValue::Float(1.23)));
     assert_eq!(convert_float("-1"), Ok(StubValue::Float(-1.0)));
     assert_eq!(convert_float("-1.23"), Ok(StubValue::Float(-1.23)));
     assert_eq!(convert_float(min_float), Ok(StubValue::Float(f64::MIN)));
-}
 
+    assert_eq!(convert_float("0"), Ok(StubValue::Float(0.0)));
+    assert_eq!(convert_float("+0"), Ok(StubValue::Float(0.0)));
+    assert_eq!(convert_float("-0"), Ok(StubValue::Float(0.0)));
+    assert_eq!(convert_float("0.0"), Ok(StubValue::Float(0.0)));
+
+    let exceeds_max_float = format!("17976931348623159{}", "0".repeat(292));
+    let exceeds_min_float = format!("-{exceeds_max_float}");
+    assert_eq!(
+        convert_float(exceeds_max_float),
+        Ok(StubValue::Float(f64::INFINITY))
+    );
+    assert_eq!(
+        convert_float(exceeds_min_float),
+        Ok(StubValue::Float(f64::NEG_INFINITY))
+    );
+
+    let subnormal_lower_than_min = 1.0e-308_f64;
+    assert_eq!(
+        convert_float(subnormal_lower_than_min),
+        Ok(StubValue::Float(1.0e-308_f64))
+    );
+}
 #[test]
 fn convert_float_errors() {
-    let exceeds_max_float = format!("17976931348623159{}", "0".repeat(292)); // last number inc by 2
-    let exceeds_min_float = format!("-{exceeds_max_float}");
-
     assert!(convert_float("abc").is_err());
     assert!(convert_float("1.23.4").is_err());
-    assert!(convert_float(exceeds_max_float).is_err());
-    assert!(convert_float(exceeds_min_float).is_err());
-    assert!(convert_float("0.0").is_err());
 }
