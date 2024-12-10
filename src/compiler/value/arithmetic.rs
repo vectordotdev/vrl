@@ -165,7 +165,7 @@ impl VrlValueArithmetic for Value {
             }
             Value::Float(lhs) => {
                 let rhs = rhs.try_into_f64().map_err(|_| err())?;
-                safe_sub(*lhs, rhs).ok_or_else(&err)?
+                safe_sub(*lhs, rhs).ok_or_else(err)?
             }
             _ => return Err(err()),
         };
