@@ -24,7 +24,7 @@ criterion_group!(
               community_id,
               compact,
               contains,
-              crc32,
+              crc,
               decode_base16,
               decode_base64,
               decode_charset,
@@ -292,7 +292,7 @@ bench_function! {
 }
 
 bench_function! {
-    crc32  => vrl::stdlib::Crc32;
+    crc  => vrl::stdlib::Crc;
 
     literal {
         args: func_args![value: "foo"],
