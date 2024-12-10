@@ -296,7 +296,7 @@ bench_function! {
 
     literal {
         args: func_args![value: "foo"],
-        want: Ok("8c736521"),
+        want: Ok(b"2356372769"),
     }
 }
 
