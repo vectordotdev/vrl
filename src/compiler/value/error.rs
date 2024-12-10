@@ -1,7 +1,7 @@
+use super::Kind;
 use crate::compiler::ExpressionError;
 use crate::diagnostic::DiagnosticMessage;
-
-use super::Kind;
+use crate::prelude::ValueError::OutOfRange;
 
 #[derive(thiserror::Error, Debug, PartialEq, Eq)]
 pub enum ValueError {
@@ -55,6 +55,9 @@ pub enum ValueError {
 
     #[error("can't merge type {1} into {0}")]
     Merge(Kind, Kind),
+
+    #[error("can't convert out of range {0}")]
+    OutOfRange(Kind),
 }
 
 impl DiagnosticMessage for ValueError {
@@ -81,6 +84,7 @@ impl DiagnosticMessage for ValueError {
             Lt(..) => 313,
             Le(..) => 314,
             Merge(..) => 315,
+            OutOfRange(..) => 316,
         }
     }
 }

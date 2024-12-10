@@ -21,6 +21,7 @@ criterion_group!(
               camelcase,
               ceil,
               chunks,
+              community_id,
               compact,
               contains,
               decode_base16,
@@ -95,6 +96,7 @@ criterion_group!(
               // TODO: value is dynamic so we cannot assert equality
               //now,
               object,
+              object_from_array,
               parse_apache_log,
               parse_aws_alb_log,
               parse_aws_cloudwatch_log_subscription_message,
@@ -171,7 +173,7 @@ criterion_group!(
               //uuidv4,
               upcase,
               values,
-              community_id,
+              zip,
 );
 criterion_main!(benches);
 
@@ -1366,6 +1368,23 @@ bench_function! {
     object {
         args: func_args![value: value!({"foo": "bar"})],
         want: Ok(value!({"foo": "bar"})),
+    }
+}
+
+bench_function! {
+    object_from_array => vrl::stdlib::ObjectFromArray;
+
+    default {
+        args: func_args![values: value!([["zero",null], ["one",true], ["two","foo"], ["three",3]])],
+        want: Ok(value!({"zero":null, "one":true, "two":"foo", "three":3})),
+    }
+
+    values_and_keys {
+        args: func_args![
+            keys: value!(["zero", "one", "two", "three"]),
+            values: value!([null, true, "foo", 3]),
+        ],
+        want: Ok(value!({"zero":null, "one":true, "two":"foo", "three":3})),
     }
 }
 
@@ -2953,5 +2972,22 @@ bench_function! {
     default {
         args: func_args![value: "input-string"],
         want: Ok("INPUT_STRING"),
+    }
+}
+
+bench_function! {
+    zip => vrl::stdlib::Zip;
+
+    one_parameter {
+        args: func_args![array_0: value!([["one", "two", "three", "four"], ["one", 2, null, true]])],
+        want: Ok(value!([["one","one"], ["two",2], ["three",null], ["four",true]])),
+    }
+
+    two_parameters {
+        args: func_args![
+            array_0: value!(["one", "two", "three", "four"]),
+            array_1: value!(["one", 2, null, true]),
+        ],
+        want: Ok(value!([["one","one"], ["two",2], ["three",null], ["four",true]])),
     }
 }

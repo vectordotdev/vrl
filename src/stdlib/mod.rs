@@ -134,6 +134,7 @@ cfg_if::cfg_if! {
         mod mod_func;
         mod now;
         mod object;
+        mod object_from_array;
         mod parse_apache_log;
         mod parse_aws_alb_log;
         mod parse_aws_cloudwatch_log_subscription_message;
@@ -214,6 +215,7 @@ cfg_if::cfg_if! {
         mod uuid_v4;
         mod uuid_v7;
         mod values;
+        mod zip;
 
         // -----------------------------------------------------------------------------
 
@@ -316,6 +318,7 @@ cfg_if::cfg_if! {
         pub use mod_func::Mod;
         pub use now::Now;
         pub use object::Object;
+        pub use object_from_array::ObjectFromArray;
         pub use parse_apache_log::ParseApacheLog;
         pub use parse_aws_alb_log::ParseAwsAlbLog;
         pub use parse_aws_cloudwatch_log_subscription_message::ParseAwsCloudWatchLogSubscriptionMessage;
@@ -394,6 +397,7 @@ cfg_if::cfg_if! {
         pub use uuid_v4::UuidV4;
         pub use uuid_v7::UuidV7;
         pub use values::Values;
+        pub use zip::Zip;
         pub use self::array::Array;
         pub use self::md5::Md5;
         pub use self::seahash::Seahash;
@@ -502,6 +506,7 @@ pub fn all() -> Vec<Box<dyn Function>> {
         Box::new(Mod),
         Box::new(Now),
         Box::new(Object),
+        Box::new(ObjectFromArray),
         Box::new(ParseApacheLog),
         Box::new(ParseAwsAlbLog),
         Box::new(ParseAwsCloudWatchLogSubscriptionMessage),
@@ -585,5 +590,6 @@ pub fn all() -> Vec<Box<dyn Function>> {
         Box::new(UuidV4),
         Box::new(UuidV7),
         Box::new(Values),
+        Box::new(Zip),
     ]
 }

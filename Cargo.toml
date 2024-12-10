@@ -171,7 +171,7 @@ publicsuffix = { version = "2", optional = true }
 rand = { version = "0.8", optional = true }
 regex = { version = "1", default-features = false, optional = true, features = ["std", "perf", "unicode"] }
 roxmltree = { version = "0.20", optional = true }
-rustyline = { version = "14", default-features = false, optional = true }
+rustyline = { version = "15", default-features = false, optional = true }
 rust_decimal = { version = "1", optional = true }
 seahash = { version = "4", optional = true }
 serde = { version = "1", features = ["derive"], optional = true }
@@ -219,7 +219,7 @@ domain = { version = "0.10.3", optional = true, features = ["resolv-sync", "serd
 hostname = { version = "0.4", optional = true }
 grok = { version = "2", optional = true }
 onig = { version = "6", default-features = false, optional = true }
-tokio = { version = "1.38", optional = true, features = ["io-util", "macros", "net", "time", "sync", "rt", "rt-multi-thread"] }
+tokio = { version = "1.42", optional = true, features = ["io-util", "macros", "net", "time", "sync", "rt", "rt-multi-thread"] }
 uuid = { version = "1", features = ["v4", "v7"], optional = true }
 
 # Dependencies used for WASM

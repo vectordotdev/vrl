@@ -33,9 +33,9 @@
 //!
 //! - [ValuePath] is a path that points to a field inside of a `Value`.
 //! - [TargetPath] is a path that points to a field inside of a `target`. A `target` in VRL refers to
-//! the external data being processed by a VRL script. A `target` has two main sections that can be
-//! pointed to, `event` and `metadata`.  [TargetPath::prefix] identifies the section, and
-//! [TargetPath::value_path] is a [ValuePath] pointing into that section.
+//!   the external data being processed by a VRL script. A `target` has two main sections that can be
+//!   pointed to, `event` and `metadata`.  [TargetPath::prefix] identifies the section, and
+//!   [TargetPath::value_path] is a [ValuePath] pointing into that section.
 //!
 //! Note that for performance reasons, since [ValuePath] and [TargetPath] require [Clone], these
 //! traits are only implemented on types that are cheap to clone (usually references). That means
@@ -55,10 +55,10 @@
 //! For example here are two different ways to append a segment to a [OwnedValuePath]  before querying
 //! a `Value`:
 //! - Use [OwnedValuePath::with_field_appended] to create a new [OwnedValuePath] and use that. This
-//! method is preferred if the new path will be used multiple times and the path adjustment can be
-//! done in a non performance-critical part of the code (e.g. at startup).
+//!   method is preferred if the new path will be used multiple times and the path adjustment can be
+//!   done in a non performance-critical part of the code (e.g. at startup).
 //! - Use [ValuePath::concat] which con concatenate two [ValuePath]'s very efficiently without
-//! allocating on the heap.
+//!   allocating on the heap.
 //!
 //! To convert a string into an owned path, use either [parse_value_path] or [parse_target_path].
 //!
@@ -69,7 +69,7 @@
 //! Using string paths is slightly slower than using an owned path. It's still very fast
 //! but it is easy to introduce bugs since some compile-time type information is missing -
 //! such as whether it is a target vs value path, or if the entire string is meant
-//!  to be treated as a single segment vs being parsed as a path.
+//! to be treated as a single segment vs being parsed as a path.
 //!
 //! # Macros
 //! Several macros exist to make creating paths easier. These are used if the structure of the

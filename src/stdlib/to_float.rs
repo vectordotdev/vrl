@@ -1,6 +1,12 @@
 use crate::compiler::conversion::Conversion;
 use crate::compiler::prelude::*;
 
+pub(crate) fn bytes_to_float(bytes: Bytes) -> Resolved {
+    Conversion::Float
+        .convert(bytes)
+        .map_err(|e| e.to_string().into())
+}
+
 fn to_float(value: Value) -> Resolved {
     use Value::{Boolean, Bytes, Float, Integer, Null, Timestamp};
     match value {
@@ -8,9 +14,13 @@ fn to_float(value: Value) -> Resolved {
         Integer(v) => Ok(Value::from_f64_or_zero(v as f64)),
         Boolean(v) => Ok(NotNan::new(if v { 1.0 } else { 0.0 }).unwrap().into()),
         Null => Ok(NotNan::new(0.0).unwrap().into()),
-        Timestamp(v) => Ok(Value::from_f64_or_zero(
-            v.timestamp_nanos() as f64 / 1_000_000_000_f64,
-        )),
+        Timestamp(v) => {
+            let nanoseconds = match v.timestamp_nanos_opt() {
+                Some(nanos) => nanos as f64,
+                None => return Err(ValueError::OutOfRange(Kind::timestamp()).into()),
+            };
+            Ok(Value::from_f64_or_zero(nanoseconds / 1_000_000_000_f64))
+        }
         Bytes(v) => Conversion::Float
             .convert(v)
             .map_err(|e| e.to_string().into()),

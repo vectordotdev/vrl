@@ -93,7 +93,7 @@ impl FunctionExpression for EncodePunycodeFn {
             let encoded = string
                 .split('.')
                 .map(|part| {
-                    if part.starts_with(PUNYCODE_PREFIX) || part.chars().all(|c| c.is_ascii()) {
+                    if part.starts_with(PUNYCODE_PREFIX) || part.is_ascii() {
                         part.to_lowercase()
                     } else {
                         format!(
