@@ -26,6 +26,7 @@ criterion_group!(
               contains,
               decode_base16,
               decode_base64,
+              decode_charset,
               decode_percent,
               decode_punycode,
               decrypt,
@@ -35,6 +36,7 @@ criterion_group!(
               downcase,
               encode_base16,
               encode_base64,
+              encode_charset,
               encode_key_value,
               encode_json,
               encode_logfmt,
@@ -307,6 +309,16 @@ bench_function! {
 }
 
 bench_function! {
+    decode_charset => vrl::stdlib::DecodeCharset;
+
+    literal {
+        args: func_args![value: b"\xbe\xc8\xb3\xe7\xc7\xcf\xbc\xbc\xbf\xe4",
+                         from_charset: value!("euc-kr")],
+        want: Ok(value!("안녕하세요")),
+    }
+}
+
+bench_function! {
     decode_percent => vrl::stdlib::DecodePercent;
 
     literal {
@@ -377,6 +389,16 @@ bench_function! {
     literal {
         args: func_args![value: "some+=string/value"],
         want: Ok("c29tZSs9c3RyaW5nL3ZhbHVl"),
+    }
+}
+
+bench_function! {
+    encode_charset => vrl::stdlib::EncodeCharset;
+
+    literal {
+        args: func_args![value: value!("안녕하세요"),
+                         to_charset: value!("euc-kr")],
+        want: Ok(value!(b"\xbe\xc8\xb3\xe7\xc7\xcf\xbc\xbc\xbf\xe4")),
     }
 }
 
