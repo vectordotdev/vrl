@@ -24,6 +24,7 @@ criterion_group!(
               community_id,
               compact,
               contains,
+              crc,
               decode_base16,
               decode_base64,
               decode_charset,
@@ -287,6 +288,15 @@ bench_function! {
     case_insensitive {
         args: func_args![value: "abcdefg", substring: "CDE", case_sensitive: false],
         want: Ok(value!(true)),
+    }
+}
+
+bench_function! {
+    crc  => vrl::stdlib::Crc;
+
+    literal {
+        args: func_args![value: "foo"],
+        want: Ok(b"2356372769"),
     }
 }
 
