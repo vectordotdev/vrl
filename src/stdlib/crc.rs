@@ -376,13 +376,13 @@ impl Function for Crc {
         &[
             Example {
                 title: "default CRC_32_ISO_HDLC",
-                source: r#"encode_base64(crc("foobar"))"#,
-                result: Ok("MjY2NjkzMDA2OQ=="),
+                source: r#"crc("foobar")"#,
+                result: Ok(r#""2666930069""#),
             },
             Example {
                 title: "CRC_8_MAXIM_DOW",
-                source: r#"encode_base64(crc("foobar", algorithm: "CRC_8_MAXIM_DOW"))"#,
-                result: Ok("NTM="),
+                source: r#"crc("foobar", algorithm: "CRC_8_MAXIM_DOW")"#,
+                result: Ok(r#""53""#),
             },
         ]
     }
