@@ -1,14 +1,13 @@
 #![deny(clippy::arithmetic_side_effects)]
 
-use std::ops::{Add, Mul, Rem, Sub};
-
-use bytes::{BufMut, Bytes, BytesMut};
+use std::ops::{Add, Mul, Rem};
 
 use crate::compiler::{
     value::{Kind, VrlValueConvert},
     ExpressionError,
 };
 use crate::value::{ObjectMap, Value};
+use bytes::{BufMut, Bytes, BytesMut};
 
 use super::ValueError;
 
@@ -58,6 +57,15 @@ pub trait VrlValueArithmetic: Sized {
     /// Similar to [`std::cmp::Eq`], but does a lossless comparison for integers
     /// and floats.
     fn eq_lossy(&self, rhs: &Self) -> bool;
+}
+
+fn safe_sub(lhv: f64, rhv: f64) -> Option<Value> {
+    let result = lhv - rhv;
+    if result.is_nan() {
+        None
+    } else {
+        Some(Value::from_f64_or_zero(result))
+    }
 }
 
 impl VrlValueArithmetic for Value {
@@ -155,9 +163,9 @@ impl VrlValueArithmetic for Value {
                 let rhv = rhs.try_into_i64().map_err(|_| err())?;
                 i64::wrapping_sub(lhv, rhv).into()
             }
-            Value::Float(lhv) => {
-                let rhv = rhs.try_into_f64().map_err(|_| err())?;
-                lhv.sub(rhv).into()
+            Value::Float(lhs) => {
+                let rhs = rhs.try_into_f64().map_err(|_| err())?;
+                safe_sub(*lhs, rhs).ok_or_else(err)?
             }
             _ => return Err(err()),
         };

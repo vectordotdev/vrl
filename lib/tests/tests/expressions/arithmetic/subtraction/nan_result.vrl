@@ -1,0 +1,5 @@
+# result: can't subtract type float from float
+
+large = to_float!("1.7976931348623157e+308")
+inf_float = large + large
+inf_float - inf_float
