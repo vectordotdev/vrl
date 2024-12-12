@@ -621,7 +621,12 @@ impl<'a> Compiler<'a> {
     }
 
     #[allow(clippy::unused_self)]
-    pub(crate) fn check_function_deprecations(&mut self, _func: &FunctionCall, _args: &ArgumentList) {}
+    pub(crate) fn check_function_deprecations(
+        &mut self,
+        _func: &FunctionCall,
+        _args: &ArgumentList,
+    ) {
+    }
 
     fn compile_function_call(
         &mut self,
