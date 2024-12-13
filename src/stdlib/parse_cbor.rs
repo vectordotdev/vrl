@@ -1,4 +1,5 @@
 use crate::compiler::prelude::*;
+use crate::stdlib::json_utils::json_type_def::json_type_def;
 use ciborium::de::from_reader;
 use zstd::zstd_safe::WriteBuf;
 
@@ -27,11 +28,38 @@ impl Function for ParseCbor {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[Example {
-            title: "object",
-            source: r#"parse_cbor!(decode_base64!("oWVmaWVsZGV2YWx1ZQ=="))"#,
-            result: Ok(r#"{ "field": "value" }"#),
-        }]
+        &[
+            Example {
+                title: "object",
+                source: r#"parse_cbor!(decode_base64!("oWVmaWVsZGV2YWx1ZQ=="))"#,
+                result: Ok(r#"{ "field": "value" }"#),
+            },
+            Example {
+                title: "array",
+                source: r#"parse_cbor!(decode_base64!("gvUA"))"#,
+                result: Ok("[true, 0]"),
+            },
+            Example {
+                title: "string",
+                source: r#"parse_cbor!(decode_base64!("ZWhlbGxv"))"#,
+                result: Ok("hello"),
+            },
+            Example {
+                title: "integer",
+                source: r#"parse_cbor!(decode_base64!("GCo="))"#,
+                result: Ok("42"),
+            },
+            Example {
+                title: "float",
+                source: r#"parse_cbor!(decode_base64!("+0BFEKPXCj1x"))"#,
+                result: Ok("42.13"),
+            },
+            Example {
+                title: "boolean",
+                source: r#"parse_cbor!(decode_base64!("9A=="))"#,
+                result: Ok("false"),
+            },
+        ]
     }
 
     fn compile(
@@ -65,29 +93,8 @@ impl FunctionExpression for ParseCborFn {
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {
-        type_def()
+        json_type_def()
     }
-}
-
-fn inner_kind() -> Kind {
-    Kind::null()
-        | Kind::bytes()
-        | Kind::integer()
-        | Kind::float()
-        | Kind::boolean()
-        | Kind::array(Collection::any())
-        | Kind::object(Collection::any())
-}
-
-fn type_def() -> TypeDef {
-    TypeDef::bytes()
-        .fallible()
-        .or_boolean()
-        .or_integer()
-        .or_float()
-        .add_null()
-        .or_array(Collection::from_unknown(inner_kind()))
-        .or_object(Collection::from_unknown(inner_kind()))
 }
 
 #[cfg(test)]
@@ -113,13 +120,13 @@ mod tests {
         parses {
             args: func_args![ value: value!(read_cbor_file("simple.cbor").as_bytes()) ],
             want: Ok(value!({ field: "value" })),
-            tdef: type_def(),
+            tdef: json_type_def(),
         }
 
         complex_cbor {
             args: func_args![ value: value!(read_cbor_file("complex.cbor").as_bytes()) ],
             want: Ok(value!({ object: {string: "value", number: 42, array: ["hello", "world"], boolean: false} })),
-            tdef: type_def(),
+            tdef: json_type_def(),
         }
     ];
 }

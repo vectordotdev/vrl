@@ -31,6 +31,7 @@ pub use wasm_unsupported_function::WasmUnsupportedFunction;
 
 use crate::compiler::Function;
 
+mod json_utils;
 mod string_utils;
 mod util;
 mod wasm_unsupported_function;
