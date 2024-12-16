@@ -1,6 +1,7 @@
 use crate::compiler::prelude::*;
 use crate::protobuf::get_message_descriptor;
 use crate::protobuf::parse_proto;
+use crate::stdlib::json_utils::json_type_def::json_type_def;
 use once_cell::sync::Lazy;
 use prost_reflect::MessageDescriptor;
 use std::env;
@@ -112,29 +113,8 @@ impl FunctionExpression for ParseProtoFn {
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {
-        type_def()
+        json_type_def()
     }
-}
-
-fn inner_kind() -> Kind {
-    Kind::null()
-        | Kind::bytes()
-        | Kind::integer()
-        | Kind::float()
-        | Kind::boolean()
-        | Kind::array(Collection::any())
-        | Kind::object(Collection::any())
-}
-
-fn type_def() -> TypeDef {
-    TypeDef::bytes()
-        .fallible()
-        .or_boolean()
-        .or_integer()
-        .or_float()
-        .add_null()
-        .or_array(Collection::from_unknown(inner_kind()))
-        .or_object(Collection::from_unknown(inner_kind()))
 }
 
 #[cfg(test)]
@@ -159,7 +139,7 @@ mod tests {
                 desc_file: test_data_dir().join("test_protobuf.desc").to_str().unwrap().to_owned(),
                 message_type: "test_protobuf.Person"],
             want: Ok(value!({ name: "someone", phones: [{number: "123456"}] })),
-            tdef: type_def(),
+            tdef: json_type_def(),
         }
 
         parses_proto3 {
@@ -167,7 +147,7 @@ mod tests {
                 desc_file: test_data_dir().join("test_protobuf3.desc").to_str().unwrap().to_owned(),
                 message_type: "test_protobuf3.Person"],
             want: Ok(value!({ data: {data_phone: "HOME"}, name: "someone", phones: [{number: "1234", type: "MOBILE"}] })),
-            tdef: type_def(),
+            tdef: json_type_def(),
         }
     ];
 }
