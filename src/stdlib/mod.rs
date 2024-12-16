@@ -49,6 +49,7 @@ cfg_if::cfg_if! {
         mod compact;
         mod contains;
         mod contains_all;
+        mod crc;
         mod decode_base16;
         mod decode_base64;
         mod decode_charset;
@@ -402,6 +403,7 @@ cfg_if::cfg_if! {
         pub use self::md5::Md5;
         pub use self::seahash::Seahash;
         pub use self::sha1::Sha1;
+        pub use self::crc::Crc;
     }
 }
 
@@ -421,6 +423,7 @@ pub fn all() -> Vec<Box<dyn Function>> {
         Box::new(Compact),
         Box::new(Contains),
         Box::new(ContainsAll),
+        Box::new(Crc),
         Box::new(DecodeBase16),
         Box::new(DecodeBase64),
         Box::new(DecodeCharset),
