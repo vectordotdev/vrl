@@ -27,3 +27,6 @@ indent_size = 4
 
 [*.svg]
 insert_final_newline = false
+
+[*py]
+indent_size = 4
