@@ -6,6 +6,7 @@ use serde_json::{
 };
 
 use crate::compiler::prelude::*;
+use crate::stdlib::json_utils::json_type_def::json_type_def;
 
 fn parse_json(value: Value, lossy: Option<Value>) -> Resolved {
     let lossy = lossy.map(Value::try_boolean).transpose()?.unwrap_or(true);
@@ -226,7 +227,7 @@ impl FunctionExpression for ParseJsonFn {
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {
-        type_def()
+        json_type_def()
     }
 }
 
@@ -250,29 +251,8 @@ impl FunctionExpression for ParseJsonMaxDepthFn {
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {
-        type_def()
+        json_type_def()
     }
-}
-
-fn inner_kind() -> Kind {
-    Kind::null()
-        | Kind::bytes()
-        | Kind::integer()
-        | Kind::float()
-        | Kind::boolean()
-        | Kind::array(Collection::any())
-        | Kind::object(Collection::any())
-}
-
-fn type_def() -> TypeDef {
-    TypeDef::bytes()
-        .fallible()
-        .or_boolean()
-        .or_integer()
-        .or_float()
-        .add_null()
-        .or_array(Collection::from_unknown(inner_kind()))
-        .or_object(Collection::from_unknown(inner_kind()))
 }
 
 #[cfg(test)]
@@ -286,74 +266,62 @@ mod tests {
         parses {
             args: func_args![ value: r#"{"field": "value"}"# ],
             want: Ok(value!({ field: "value" })),
-            tdef: type_def(),
+            tdef: json_type_def(),
         }
 
         complex_json {
             args: func_args![ value: r#"{"object": {"string":"value","number":42,"array":["hello","world"],"boolean":false}}"# ],
             want: Ok(value!({ object: {string: "value", number: 42, array: ["hello", "world"], boolean: false} })),
-            tdef: type_def(),
+            tdef: json_type_def(),
         }
 
         invalid_json_errors {
             args: func_args![ value: r#"{"field": "value"# ],
             want: Err("unable to parse json: EOF while parsing a string at line 1 column 16"),
-            tdef: TypeDef::bytes().fallible()
-                .or_boolean()
-                .or_integer()
-                .or_float()
-                .or_null()
-                .or_array(Collection::from_unknown(inner_kind()))
-                .or_object(Collection::from_unknown(inner_kind())),
+            tdef: json_type_def(),
         }
 
         max_depth {
             args: func_args![ value: r#"{"top_layer": {"layer_one": "finish", "layer_two": 2}}"#, max_depth: 1],
             want: Ok(value!({ top_layer: r#"{"layer_one": "finish", "layer_two": 2}"# })),
-            tdef: type_def(),
+            tdef: json_type_def(),
         }
 
         max_depth_array {
             args: func_args![ value: r#"[{"top_layer": {"next_layer": ["finish"]}}]"#, max_depth: 2],
             want: Ok(value!([{ top_layer: r#"{"next_layer": ["finish"]}"# }])),
-            tdef: type_def(),
+            tdef: json_type_def(),
         }
 
         max_depth_exceeds_layers {
             args: func_args![ value: r#"{"top_layer": {"layer_one": "finish", "layer_two": 2}}"#, max_depth: 10],
             want: Ok(value!({ top_layer: {layer_one: "finish", layer_two: 2} })),
-            tdef: type_def(),
+            tdef: json_type_def(),
         }
 
         invalid_json_with_max_depth {
             args: func_args![ value: r#"{"field": "value"#, max_depth: 3 ],
             want: Err("unable to read json: EOF while parsing a string at line 1 column 16"),
-            tdef: TypeDef::bytes().fallible()
-                .or_boolean()
-                .or_integer()
-                .or_float()
-                .or_null()
-                .or_array(Collection::from_unknown(inner_kind()))
-                .or_object(Collection::from_unknown(inner_kind())),
+            tdef: json_type_def(),
         }
 
         invalid_input_max_depth {
             args: func_args![ value: r#"{"top_layer": "finish"}"#, max_depth: 129],
             want: Err("max_depth value should be greater than 0 and less than 128, got 129"),
-            tdef: type_def(),
+            tdef: json_type_def(),
         }
 
         // // TODO: provide a function version of the `test_function!` macro.
         max_int {
             args: func_args![ value: format!("{{\"num\": {}}}", i64::MAX - 1)],
             want: Ok(value!({"num": 9_223_372_036_854_775_806_i64})),
-            tdef: type_def(),
+            tdef: json_type_def(),
         }
 
         lossy_float_conversion {
             args: func_args![ value: r#"{"num": 9223372036854775808}"#],
             want: Ok(value!({"num": 9.223_372_036_854_776e18})),
-            tdef: type_def(),
+            tdef: json_type_def(),
         }
 
         // Checks that the parsing uses the default lossy argument value
@@ -362,7 +330,7 @@ mod tests {
             // 0xf5 is out of the range of valid UTF-8 bytes
             args: func_args![ value: Bytes::from_static(&[0x22,0xf5,0x22])],
             want: Ok(value!(std::char::REPLACEMENT_CHARACTER.to_string())),
-            tdef: type_def(),
+            tdef: json_type_def(),
         }
 
         parse_invalid_utf8_lossy_arg_true {
@@ -370,13 +338,13 @@ mod tests {
             args: func_args![ value: Bytes::from_static(&[0x22,0xf5,0x22]), lossy: true],
             // U+FFFD is the replacement character for invalid UTF-8
             want: Ok(value!(std::char::REPLACEMENT_CHARACTER.to_string())),
-            tdef: type_def(),
+            tdef: json_type_def(),
         }
 
         invalid_utf8_json_lossy_arg_false {
             args: func_args![ value: Bytes::from_static(&[0x22,0xf5,0x22]), lossy: false],
             want: Err("unable to parse json: invalid unicode code point at line 1 column 3"),
-            tdef: type_def(),
+            tdef: json_type_def(),
         }
     ];
 
@@ -387,7 +355,7 @@ mod tests {
         no_roundtrip_float_conversion {
             args: func_args![ value: r#"{"num": 1626175065.5934923}"#],
             want: Ok(value!({"num": 1_626_175_065.593_492_5})),
-            tdef: type_def(),
+            tdef: json_type_def(),
         }
     ];
 
@@ -398,7 +366,7 @@ mod tests {
         roundtrip_float_conversion {
             args: func_args![ value: r#"{"num": 1626175065.5934923}"#],
             want: Ok(value!({"num": 1_626_175_065.593_492_3})),
-            tdef: type_def(),
+            tdef: json_type_def(),
         }
     ];
 }
