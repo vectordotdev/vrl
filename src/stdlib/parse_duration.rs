@@ -2,11 +2,12 @@ use crate::compiler::prelude::*;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rust_decimal::{prelude::ToPrimitive, Decimal};
+use std::borrow::Cow;
 use std::{collections::HashMap, str::FromStr};
 
 fn parse_duration(bytes: Value, unit: Value) -> Resolved {
     let bytes = bytes.try_bytes()?;
-    let value = String::from_utf8_lossy(&bytes);
+    let mut value = String::from_utf8_lossy(&bytes);
     let conversion_factor = {
         let bytes = unit.try_bytes()?;
         let string = String::from_utf8_lossy(&bytes);
@@ -15,29 +16,34 @@ fn parse_duration(bytes: Value, unit: Value) -> Resolved {
             .get(string.as_ref())
             .ok_or(format!("unknown unit format: '{string}'"))?
     };
-    let captures = RE
-        .captures(&value)
-        .ok_or(format!("unable to parse duration: '{value}'"))?;
-    let value = Decimal::from_str(&captures["value"])
-        .map_err(|error| format!("unable to parse number: {error}"))?;
-    let unit = UNITS
-        .get(&captures["unit"])
-        .ok_or(format!("unknown duration unit: '{}'", &captures["unit"]))?;
-    let number = value * unit / conversion_factor;
-    let number = number
-        .to_f64()
-        .ok_or(format!("unable to format duration: '{number}'"))?;
-    Ok(Value::from_f64_or_zero(number))
+    let mut num = 0.0;
+    while !value.is_empty() {
+        let captures = RE
+            .captures(&value)
+            .ok_or(format!("unable to parse duration: '{value}'"))?;
+        let capture_match = captures.get(0).unwrap();
+
+        let value_decimal = Decimal::from_str(&captures["value"])
+            .map_err(|error| format!("unable to parse number: {error}"))?;
+        let unit = UNITS
+            .get(&captures["unit"])
+            .ok_or(format!("unknown duration unit: '{}'", &captures["unit"]))?;
+        let number = value_decimal * unit / conversion_factor;
+        let number = number
+            .to_f64()
+            .ok_or(format!("unable to format duration: '{number}'"))?;
+        num += number;
+        value = Cow::Owned(value[capture_match.end()..].to_string());
+    }
+    Ok(Value::from_f64_or_zero(num))
 }
 
 static RE: Lazy<Regex> = Lazy::new(|| {
     Regex::new(
         r"(?ix)                        # i: case-insensitive, x: ignore whitespace + comments
-            \A
             (?P<value>[0-9]*\.?[0-9]+) # value: integer or float
             \s?                        # optional space between value and unit
-            (?P<unit>[µa-z]{1,2})      # unit: one or two letters
-            \z",
+            (?P<unit>[µa-z]{1,2})      # unit: one or two letters",
     )
     .unwrap()
 });
@@ -163,6 +169,20 @@ mod tests {
             args: func_args![value: "1d",
                              unit: "s"],
             want: Ok(86400.0),
+            tdef: TypeDef::float().fallible(),
+        }
+
+        ds_s {
+            args: func_args![value: "1d1s",
+                             unit: "s"],
+            want: Ok(86401.0),
+            tdef: TypeDef::float().fallible(),
+        }
+
+        error_multiple_units {
+            args: func_args![value: "1d foo",
+                             unit: "s"],
+            want: Err("unable to parse duration: ' foo'"),
             tdef: TypeDef::float().fallible(),
         }
 
