@@ -41,6 +41,7 @@ fn parse_duration(bytes: Value, unit: Value) -> Resolved {
 static RE: Lazy<Regex> = Lazy::new(|| {
     Regex::new(
         r"(?ix)                        # i: case-insensitive, x: ignore whitespace + comments
+            \A
             (?P<value>[0-9]*\.?[0-9]+) # value: integer or float
             \s?                        # optional space between value and unit
             (?P<unit>[µa-z]{1,2})      # unit: one or two letters",
@@ -178,7 +179,12 @@ mod tests {
             want: Ok(86401.0),
             tdef: TypeDef::float().fallible(),
         }
-
+        error_multiple_units_space_not_allowed {
+            args: func_args![value: "1d 1s",
+                             unit: "s"],
+            want: Err("unable to parse duration: ' 1s'"),
+            tdef: TypeDef::float().fallible(),
+        }
         error_multiple_units {
             args: func_args![value: "1d foo",
                              unit: "s"],
