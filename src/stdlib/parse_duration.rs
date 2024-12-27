@@ -2,12 +2,12 @@ use crate::compiler::prelude::*;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rust_decimal::{prelude::ToPrimitive, Decimal};
-use std::borrow::Cow;
 use std::{collections::HashMap, str::FromStr};
 
 fn parse_duration(bytes: Value, unit: Value) -> Resolved {
     let bytes = bytes.try_bytes()?;
-    let mut value = String::from_utf8_lossy(&bytes);
+    let value = String::from_utf8_lossy(&bytes);
+    let mut value = &value[..];
     let conversion_factor = {
         let bytes = unit.try_bytes()?;
         let string = String::from_utf8_lossy(&bytes);
@@ -33,7 +33,7 @@ fn parse_duration(bytes: Value, unit: Value) -> Resolved {
             .to_f64()
             .ok_or(format!("unable to format duration: '{number}'"))?;
         num += number;
-        value = Cow::Owned(value[capture_match.end()..].to_string());
+        value = &value[capture_match.end()..];
     }
     Ok(Value::from_f64_or_zero(num))
 }
