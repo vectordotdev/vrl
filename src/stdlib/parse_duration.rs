@@ -41,7 +41,6 @@ fn parse_duration(bytes: Value, unit: Value) -> Resolved {
 static RE: Lazy<Regex> = Lazy::new(|| {
     Regex::new(
         r"(?ix)                        # i: case-insensitive, x: ignore whitespace + comments
-            \A
             (?P<value>[0-9]*\.?[0-9]+) # value: integer or float
             \s?                        # optional space between value and unit
             (?P<unit>[µa-z]{1,2})      # unit: one or two letters",
@@ -179,16 +178,25 @@ mod tests {
             want: Ok(86401.0),
             tdef: TypeDef::float().fallible(),
         }
-        error_multiple_units_space_not_allowed {
-            args: func_args![value: "1d 1s",
-                             unit: "s"],
-            want: Err("unable to parse duration: ' 1s'"),
+
+        s_space_ms_ms {
+            args: func_args![value: "1s 1ms",
+                             unit: "ms"],
+            want: Ok(1001.0),
             tdef: TypeDef::float().fallible(),
         }
-        error_multiple_units {
-            args: func_args![value: "1d foo",
-                             unit: "s"],
-            want: Err("unable to parse duration: ' foo'"),
+
+        ms_space_us_ms {
+            args: func_args![value: "1ms1 µs",
+                             unit: "ms"],
+            want: Ok(1.001),
+            tdef: TypeDef::float().fallible(),
+        }
+
+        s_space_m_ms_order_agnostic {
+            args: func_args![value: "1s1m",
+                             unit: "ms"],
+            want: Ok(61000.0),
             tdef: TypeDef::float().fallible(),
         }
 
@@ -231,6 +239,13 @@ mod tests {
             args: func_args![value: "1s",
                              unit: "w"],
             want: Err("unknown unit format: 'w'"),
+            tdef: TypeDef::float().fallible(),
+        }
+
+        error_failed_2nd_unit {
+            args: func_args![value: "1d foo",
+                             unit: "s"],
+            want: Err("unable to parse duration: ' foo'"),
             tdef: TypeDef::float().fallible(),
         }
     ];
