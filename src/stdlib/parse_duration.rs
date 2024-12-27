@@ -19,7 +19,7 @@ fn parse_duration(bytes: Value, unit: Value) -> Resolved {
     let mut num = 0.0;
     while !value.is_empty() {
         let captures = RE
-            .captures(&value)
+            .captures(value)
             .ok_or(format!("unable to parse duration: '{value}'"))?;
         let capture_match = captures.get(0).unwrap();
 
