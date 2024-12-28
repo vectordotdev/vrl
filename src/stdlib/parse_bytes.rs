@@ -109,7 +109,7 @@ impl Function for ParseBytes {
         let unit = arguments.required("unit");
         let base = arguments
             .optional_enum("base", &base_sets(), state)?
-            .unwrap_or_else(|| value!("10"))
+            .unwrap_or_else(|| value!("2"))
             .try_bytes()
             .expect("base not bytes");
 
@@ -165,72 +165,121 @@ mod tests {
     test_function![
         parse_bytes => ParseBytes;
 
+        mib_b {
+            args: func_args![value: "1MiB",
+                             unit: "B"],
+            want: Ok(value!(1_048_576.0)),
+            tdef: TypeDef::float().fallible(),
+        }
+
+        b_kib {
+            args: func_args![value: "512B",
+                             unit: "KiB"],
+            want: Ok(0.5),
+            tdef: TypeDef::float().fallible(),
+        }
+
+        gib_mib {
+            args: func_args![value: "3.5GiB",
+                             unit: "KiB"],
+            want: Ok(3_670_016.0),
+            tdef: TypeDef::float().fallible(),
+        }
+
+        tib_gib {
+            args: func_args![value: "12 TiB",
+                             unit: "GiB"],
+            want: Ok(12_288.0),
+            tdef: TypeDef::float().fallible(),
+        }
+
+        mib_pib {
+            args: func_args![value: "256TiB",
+                             unit: "PiB"],
+            want: Ok(0.25),
+            tdef: TypeDef::float().fallible(),
+        }
+
+        eib_tib {
+            args: func_args![value: "1EiB",
+                             unit: "TiB"],
+            want: Ok(value!(1_048_576.0)),
+            tdef: TypeDef::float().fallible(),
+        }
+
         mb_b {
             args: func_args![value: "1MB",
-                             unit: "B"],
+                             unit: "B",
+                             base: "10"],
             want: Ok(value!(1_000_000.0)),
             tdef: TypeDef::float().fallible(),
         }
 
         b_kb {
             args: func_args![value: "3B",
-                             unit: "kB"],
+                             unit: "kB",
+                             base: "10"],
             want: Ok(0.003),
             tdef: TypeDef::float().fallible(),
         }
 
         gb_mb {
             args: func_args![value: "3.007GB",
-                             unit: "kB"],
+                             unit: "kB",
+                             base: "10"],
             want: Ok(3_007_000.0),
             tdef: TypeDef::float().fallible(),
         }
 
         tb_gb {
             args: func_args![value: "12 TB",
-                             unit: "GB"],
+                             unit: "GB",
+                             base: "10"],
             want: Ok(12_000.0),
             tdef: TypeDef::float().fallible(),
         }
 
         mb_pb {
             args: func_args![value: "768MB",
-                             unit: "PB"],
+                             unit: "PB",
+                             base: "10"],
             want: Ok(0.000000768),
             tdef: TypeDef::float().fallible(),
         }
 
         eb_tb {
             args: func_args![value: "1EB",
-                             unit: "TB"],
+                             unit: "TB",
+                             base: "10"],
             want: Ok(value!(1_000_000.0)),
             tdef: TypeDef::float().fallible(),
         }
 
         error_invalid {
             args: func_args![value: "foo",
-                             unit: "kB"],
+                             unit: "KiB"],
             want: Err("unable to parse duration: 'foo'"),
             tdef: TypeDef::float().fallible(),
         }
 
         error_kb {
             args: func_args![value: "1",
-                             unit: "kB"],
+                             unit: "KiB"],
             want: Err("unable to parse duration: '1'"),
             tdef: TypeDef::float().fallible(),
         }
 
         error_unit {
-            args: func_args![value: "1YB",
-                             unit: "MB"],
-            want: Err("unknown duration unit: 'YB'"),
+            args: func_args![value: "1YiB",
+                             unit: "MiB"],
+            want: Err("unknown duration unit: 'YiB'"),
             tdef: TypeDef::float().fallible(),
         }
 
         error_format {
-            args: func_args![value: "100kB",
-                             unit: "ZB"],
+            args: func_args![value: "100KiB",
+                             unit: "ZB",
+                             base: "10"],
             want: Err("unknown unit format: 'ZB'"),
             tdef: TypeDef::float().fallible(),
         }
