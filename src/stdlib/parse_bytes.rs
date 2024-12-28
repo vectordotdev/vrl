@@ -1,17 +1,23 @@
 use crate::compiler::prelude::*;
+use crate::value;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rust_decimal::{prelude::ToPrimitive, Decimal};
 use std::{collections::HashMap, str::FromStr};
 
-fn parse_bytes(bytes: Value, unit: Value) -> Resolved {
+fn parse_bytes(bytes: Value, unit: Value, base: &Bytes) -> Resolved {
+    let units = match base.as_ref() {
+        b"2" => &*BIN_UNITS,
+        b"10" => &*DEC_UNITS,
+        _ => unreachable!("enum invariant"),
+    };
     let bytes = bytes.try_bytes()?;
     let value = String::from_utf8_lossy(&bytes);
     let conversion_factor = {
         let bytes = unit.try_bytes()?;
         let string = String::from_utf8_lossy(&bytes);
 
-        UNITS
+        units
             .get(string.as_ref())
             .ok_or(format!("unknown unit format: '{string}'"))?
     };
@@ -20,7 +26,7 @@ fn parse_bytes(bytes: Value, unit: Value) -> Resolved {
         .ok_or(format!("unable to parse duration: '{value}'"))?;
     let value = Decimal::from_str(&captures["value"])
         .map_err(|error| format!("unable to parse number: {error}"))?;
-    let unit = UNITS
+    let unit = units
         .get(&captures["unit"])
         .ok_or(format!("unknown duration unit: '{}'", &captures["unit"]))?;
     let number = value * unit / conversion_factor;
@@ -36,16 +42,32 @@ static RE: Lazy<Regex> = Lazy::new(|| {
             \A
             (?P<value>[0-9]*\.?[0-9]+) # value: integer or float
             \s?                        # optional space between value and unit
-            (?P<unit>[a-z]{1,2})      # unit: one or two letters
+            (?P<unit>[a-z]{1,3})      # unit: one or two letters
             \z",
     )
     .unwrap()
 });
-// The largest unit is EB, which is smaller than i64::MAX
-static UNITS: Lazy<HashMap<String, Decimal>> = Lazy::new(|| {
+// The largest unit is EB, which is smaller than i64::MAX, so we can safely use Decimal
+// power of 2 units
+static BIN_UNITS: Lazy<HashMap<String, Decimal>> = Lazy::new(|| {
     vec![
         ("B", Decimal::new(1, 0)),
-        ("KB", Decimal::new(1_000, 0)),
+        ("KiB", Decimal::new(1_024, 0)),
+        ("MiB", Decimal::new(1_048_576, 0)),
+        ("GiB", Decimal::new(1_073_741_824, 0)),
+        ("TiB", Decimal::new(1_099_511_627_776, 0)),
+        ("PiB", Decimal::new(1_125_899_906_842_624, 0)),
+        ("EiB", Decimal::new(1_152_921_504_606_846_976, 0)),
+    ]
+    .into_iter()
+    .map(|(k, v)| (k.to_owned(), v))
+    .collect()
+});
+// power of 10 units
+static DEC_UNITS: Lazy<HashMap<String, Decimal>> = Lazy::new(|| {
+    vec![
+        ("B", Decimal::new(1, 0)),
+        ("kB", Decimal::new(1_000, 0)),
         ("MB", Decimal::new(1_000_000, 0)),
         ("GB", Decimal::new(1_000_000_000, 0)),
         ("TB", Decimal::new(1_000_000_000_000, 0)),
@@ -60,6 +82,10 @@ static UNITS: Lazy<HashMap<String, Decimal>> = Lazy::new(|| {
 #[derive(Clone, Copy, Debug)]
 pub struct ParseBytes;
 
+fn base_sets() -> Vec<Value> {
+    vec![value!("2"), value!("10")]
+}
+
 impl Function for ParseBytes {
     fn identifier(&self) -> &'static str {
         "parse_bytes"
@@ -68,21 +94,26 @@ impl Function for ParseBytes {
     fn examples(&self) -> &'static [Example] {
         &[Example {
             title: "milliseconds",
-            source: r#"parse_bytes!("1GB", unit: "B")"#,
+            source: r#"parse_bytes!("1GB", unit: "B", base: "10")"#,
             result: Ok("1_000_000_000"),
         }]
     }
 
     fn compile(
         &self,
-        _state: &state::TypeState,
+        state: &state::TypeState,
         _ctx: &mut FunctionCompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
         let unit = arguments.required("unit");
+        let base = arguments
+            .optional_enum("base", &base_sets(), state)?
+            .unwrap_or_else(|| value!("10"))
+            .try_bytes()
+            .expect("base not bytes");
 
-        Ok(ParseBytesFn { value, unit }.as_expr())
+        Ok(ParseBytesFn { value, unit, base }.as_expr())
     }
 
     fn parameters(&self) -> &'static [Parameter] {
@@ -97,6 +128,11 @@ impl Function for ParseBytes {
                 kind: kind::BYTES,
                 required: true,
             },
+            Parameter {
+                keyword: "base",
+                kind: kind::BYTES,
+                required: false,
+            },
         ]
     }
 }
@@ -105,6 +141,7 @@ impl Function for ParseBytes {
 struct ParseBytesFn {
     value: Box<dyn Expression>,
     unit: Box<dyn Expression>,
+    base: Bytes,
 }
 
 impl FunctionExpression for ParseBytesFn {
@@ -112,7 +149,7 @@ impl FunctionExpression for ParseBytesFn {
         let bytes = self.value.resolve(ctx)?;
         let unit = self.unit.resolve(ctx)?;
 
-        parse_bytes(bytes, unit)
+        parse_bytes(bytes, unit, &self.base)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {
@@ -137,22 +174,22 @@ mod tests {
 
         b_kb {
             args: func_args![value: "3B",
-                             unit: "KB"],
+                             unit: "kB"],
             want: Ok(0.003),
             tdef: TypeDef::float().fallible(),
         }
 
         gb_mb {
             args: func_args![value: "3.007GB",
-                             unit: "KB"],
+                             unit: "kB"],
             want: Ok(3_007_000.0),
             tdef: TypeDef::float().fallible(),
         }
 
-        tb_kb {
+        tb_gb {
             args: func_args![value: "12 TB",
-                             unit: "KB"],
-            want: Ok(12_000_000_000.0),
+                             unit: "GB"],
+            want: Ok(12_000.0),
             tdef: TypeDef::float().fallible(),
         }
 
@@ -172,14 +209,14 @@ mod tests {
 
         error_invalid {
             args: func_args![value: "foo",
-                             unit: "KB"],
+                             unit: "kB"],
             want: Err("unable to parse duration: 'foo'"),
             tdef: TypeDef::float().fallible(),
         }
 
         error_kb {
             args: func_args![value: "1",
-                             unit: "KB"],
+                             unit: "kB"],
             want: Err("unable to parse duration: '1'"),
             tdef: TypeDef::float().fallible(),
         }
@@ -192,7 +229,7 @@ mod tests {
         }
 
         error_format {
-            args: func_args![value: "100KB",
+            args: func_args![value: "100kB",
                              unit: "ZB"],
             want: Err("unknown unit format: 'ZB'"),
             tdef: TypeDef::float().fallible(),
