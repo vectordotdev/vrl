@@ -1,5 +1,6 @@
 use crate::compiler::prelude::*;
 use crate::value;
+use core::convert::AsRef;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rust_decimal::{prelude::ToPrimitive, Decimal};
@@ -23,16 +24,16 @@ fn parse_bytes(bytes: Value, unit: Value, base: &Bytes) -> Resolved {
     };
     let captures = RE
         .captures(&value)
-        .ok_or(format!("unable to parse duration: '{value}'"))?;
+        .ok_or(format!("unable to parse bytes: '{value}'"))?;
     let value = Decimal::from_str(&captures["value"])
         .map_err(|error| format!("unable to parse number: {error}"))?;
     let unit = units
         .get(&captures["unit"])
-        .ok_or(format!("unknown duration unit: '{}'", &captures["unit"]))?;
+        .ok_or(format!("unknown bytes unit: '{}'", &captures["unit"]))?;
     let number = value * unit / conversion_factor;
     let number = number
         .to_f64()
-        .ok_or(format!("unable to format duration: '{number}'"))?;
+        .ok_or(format!("unable to format bytes: '{number}'"))?;
     Ok(Value::from_f64_or_zero(number))
 }
 
@@ -42,7 +43,7 @@ static RE: Lazy<Regex> = Lazy::new(|| {
             \A
             (?P<value>[0-9]*\.?[0-9]+) # value: integer or float
             \s?                        # optional space between value and unit
-            (?P<unit>[a-z]{1,3})      # unit: one or two letters
+            (?P<unit>[a-z]{1,3})      # unit: one, two, and three letters
             \z",
     )
     .unwrap()
@@ -58,6 +59,13 @@ static BIN_UNITS: Lazy<HashMap<String, Decimal>> = Lazy::new(|| {
         ("TiB", Decimal::new(1_099_511_627_776, 0)),
         ("PiB", Decimal::new(1_125_899_906_842_624, 0)),
         ("EiB", Decimal::new(1_152_921_504_606_846_976, 0)),
+        // decimal units also support ambiguous units
+        ("KB", Decimal::new(1_024, 0)),
+        ("MB", Decimal::new(1_048_576, 0)),
+        ("GB", Decimal::new(1_073_741_824, 0)),
+        ("TB", Decimal::new(1_099_511_627_776, 0)),
+        ("PB", Decimal::new(1_125_899_906_842_624, 0)),
+        ("EB", Decimal::new(1_152_921_504_606_846_976, 0)),
     ]
     .into_iter()
     .map(|(k, v)| (k.to_owned(), v))
@@ -207,6 +215,13 @@ mod tests {
             tdef: TypeDef::float().fallible(),
         }
 
+        mib_b_ambiguous {
+            args: func_args![value: "1MB",
+                             unit: "B",],
+            want: Ok(value!(1_048_576.0)),
+            tdef: TypeDef::float().fallible(),
+        }
+
         mb_b {
             args: func_args![value: "1MB",
                              unit: "B",
@@ -258,26 +273,26 @@ mod tests {
         error_invalid {
             args: func_args![value: "foo",
                              unit: "KiB"],
-            want: Err("unable to parse duration: 'foo'"),
+            want: Err("unable to parse bytes: 'foo'"),
             tdef: TypeDef::float().fallible(),
         }
 
         error_kb {
             args: func_args![value: "1",
                              unit: "KiB"],
-            want: Err("unable to parse duration: '1'"),
+            want: Err("unable to parse bytes: '1'"),
             tdef: TypeDef::float().fallible(),
         }
 
         error_unit {
             args: func_args![value: "1YiB",
                              unit: "MiB"],
-            want: Err("unknown duration unit: 'YiB'"),
+            want: Err("unknown bytes unit: 'YiB'"),
             tdef: TypeDef::float().fallible(),
         }
 
         error_format {
-            args: func_args![value: "100KiB",
+            args: func_args![value: "100KB",
                              unit: "ZB",
                              base: "10"],
             want: Err("unknown unit format: 'ZB'"),
