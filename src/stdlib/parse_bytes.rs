@@ -270,7 +270,7 @@ mod tests {
             args: func_args![value: "768MB",
                              unit: "PB",
                              base: "10"],
-            want: Ok(0.000000768),
+            want: Ok(0.000_000_768),
             tdef: TypeDef::float().fallible(),
         }
 
