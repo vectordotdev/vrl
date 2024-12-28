@@ -141,6 +141,7 @@ cfg_if::cfg_if! {
         mod parse_aws_alb_log;
         mod parse_aws_cloudwatch_log_subscription_message;
         mod parse_aws_vpc_flow_log;
+        mod parse_bytes;
         mod parse_cef;
         mod parse_cbor;
         mod parse_common_log;
@@ -326,6 +327,7 @@ cfg_if::cfg_if! {
         pub use parse_aws_alb_log::ParseAwsAlbLog;
         pub use parse_aws_cloudwatch_log_subscription_message::ParseAwsCloudWatchLogSubscriptionMessage;
         pub use parse_aws_vpc_flow_log::ParseAwsVpcFlowLog;
+        pub use parse_bytes::ParseBytes;
         pub use parse_cbor::ParseCbor;
         pub use parse_cef::ParseCef;
         pub use parse_common_log::ParseCommonLog;
@@ -517,6 +519,7 @@ pub fn all() -> Vec<Box<dyn Function>> {
         Box::new(ParseAwsAlbLog),
         Box::new(ParseAwsCloudWatchLogSubscriptionMessage),
         Box::new(ParseAwsVpcFlowLog),
+        Box::new(ParseBytes),
         Box::new(ParseCbor),
         Box::new(ParseCef),
         Box::new(ParseCommonLog),
