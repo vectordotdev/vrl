@@ -100,11 +100,23 @@ impl Function for ParseBytes {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[Example {
-            title: "milliseconds",
-            source: r#"parse_bytes!("1GB", unit: "B", base: "10")"#,
-            result: Ok("1_000_000_000"),
-        }]
+        &[
+            Example {
+                title: "kilobytes in default binary units",
+                source: r#"parse_bytes!("1KiB", unit: "B")"#,
+                result: Ok("1024.0"),
+            },
+            Example {
+                title: "gigabytes in decimal units",
+                source: r#"parse_bytes!("1GB", unit: "B", base: "10")"#,
+                result: Ok("1000000000.0"),
+            },
+            Example {
+                title: "gigabytes in ambiguous decimal units",
+                source: r#"parse_bytes!("1GB", unit: "MB", base: "2")"#,
+                result: Ok("1024.0"),
+            },
+        ]
     }
 
     fn compile(
