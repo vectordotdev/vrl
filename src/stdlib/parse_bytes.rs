@@ -41,7 +41,7 @@ static RE: Lazy<Regex> = Lazy::new(|| {
     )
     .unwrap()
 });
-
+// The largest unit is EB, which is smaller than i64::MAX
 static UNITS: Lazy<HashMap<String, Decimal>> = Lazy::new(|| {
     vec![
         ("B", Decimal::new(1, 0)),
@@ -50,6 +50,7 @@ static UNITS: Lazy<HashMap<String, Decimal>> = Lazy::new(|| {
         ("GB", Decimal::new(1_000_000_000, 0)),
         ("TB", Decimal::new(1_000_000_000_000, 0)),
         ("PB", Decimal::new(1_000_000_000_000_000, 0)),
+        ("EB", Decimal::new(1_000_000_000_000_000_000, 0)),
     ]
     .into_iter()
     .map(|(k, v)| (k.to_owned(), v))
@@ -159,6 +160,13 @@ mod tests {
             args: func_args![value: "768MB",
                              unit: "PB"],
             want: Ok(0.000000768),
+            tdef: TypeDef::float().fallible(),
+        }
+
+        eb_tb {
+            args: func_args![value: "1EB",
+                             unit: "TB"],
+            want: Ok(value!(1_000_000.0)),
             tdef: TypeDef::float().fallible(),
         }
 
