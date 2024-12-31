@@ -28,6 +28,7 @@ fn variants() -> Vec<Value> {
         value!("combined"),
         value!("error"),
         value!("ingress_upstreaminfo"),
+        value!("main"),
     ]
 }
 
@@ -91,6 +92,13 @@ impl Function for ParseNginxLog {
                 ),
             },
             Example {
+                title: "parse nginx main log",
+                source: r#"encode_json(parse_nginx_log!(s'172.24.0.1 - alice [03/Jan/2025:16:42:58 +0000] "GET / HTTP/1.1" 200 615 "http://domain.tld/path" "curl/8.11.1" "1.2.3.4, 10.10.1.1"', "main"))"#,
+                result: Ok(
+                    r#"s'{"body_bytes_size":615,"http_referer":"http://domain.tld/path","http_user_agent":"curl/8.11.1","http_x_forwarded_for":"1.2.3.4, 10.10.1.1","remote_addr":"172.24.0.1","remote_user":"alice","request":"GET / HTTP/1.1","status":200,"timestamp":"2025-01-03T16:42:58Z"}'"#,
+                ),
+            },
+            Example {
                 title: "parse nginx error log",
                 source: r#"encode_json(parse_nginx_log!(s'2021/04/01 13:02:31 [error] 31#31: *1 open() "/usr/share/nginx/html/not-found" failed (2: No such file or directory), client: 172.17.0.1, server: localhost, request: "POST /not-found HTTP/1.1", host: "localhost:8081"', "error"))"#,
                 result: Ok(
@@ -105,6 +113,7 @@ fn regex_for_format(format: &[u8]) -> &Regex {
     match format {
         b"combined" => &log_util::REGEX_NGINX_COMBINED_LOG,
         b"ingress_upstreaminfo" => &log_util::REGEX_INGRESS_NGINX_UPSTREAMINFO_LOG,
+        b"main" => &log_util::REGEX_NGINX_MAIN_LOG,
         b"error" => &log_util::REGEX_NGINX_ERROR_LOG,
         _ => unreachable!(),
     }
@@ -114,6 +123,7 @@ fn time_format_for_format(format: &[u8]) -> String {
     match format {
         b"combined" => "%d/%b/%Y:%T %z".to_owned(),
         b"ingress_upstreaminfo" => "%d/%b/%Y:%T %z".to_owned(),
+        b"main" => "%d/%b/%Y:%T %z".to_owned(),
         b"error" => "%Y/%m/%d %H:%M:%S".to_owned(),
         _ => unreachable!(),
     }
@@ -152,6 +162,7 @@ impl FunctionExpression for ParseNginxLogFn {
         TypeDef::object(match self.format.as_ref() {
             b"combined" => kind_combined(),
             b"ingress_upstreaminfo" => kind_ingress_upstreaminfo(),
+            b"main" => kind_main(),
             b"error" => kind_error(),
             _ => unreachable!(),
         })
@@ -195,6 +206,20 @@ fn kind_ingress_upstreaminfo() -> BTreeMap<Field, Kind> {
         ("upstream_response_time".into(), Kind::float()),
         ("upstream_status".into(), Kind::integer()),
         ("req_id".into(), Kind::bytes()),
+    ])
+}
+
+fn kind_main() -> BTreeMap<Field, Kind> {
+    BTreeMap::from([
+        ("remote_addr".into(), Kind::bytes().or_undefined()),
+        ("remote_user".into(), Kind::bytes().or_undefined()),
+        ("timestamp".into(), Kind::timestamp()),
+        ("request".into(), Kind::bytes()),
+        ("status".into(), Kind::integer()),
+        ("body_bytes_size".into(), Kind::integer()),
+        ("http_referer".into(), Kind::bytes().or_undefined()),
+        ("http_user_agent".into(), Kind::bytes().or_undefined()),
+        ("http_x_forwarded_for".into(), Kind::bytes().or_undefined()),
     ])
 }
 
@@ -425,6 +450,84 @@ mod tests {
                 "req_id" => "752178adb17130b291aefd8c386279e7",
             }),
             tdef: TypeDef::object(kind_ingress_upstreaminfo()).fallible(),
+        }
+
+        main_line_valid_no_proxy {
+            args: func_args![
+                value: r#"172.24.0.3 - - [31/Dec/2024:17:32:06 +0000] "GET / HTTP/1.1" 200 615 "-" "curl/8.11.1" "-""#,
+                format: "main"
+            ],
+            want: Ok(btreemap! {
+                "remote_addr" => "172.24.0.3",
+                "timestamp" => Value::Timestamp(DateTime::parse_from_rfc3339("2024-12-31T17:32:06Z").unwrap().into()),
+                "request" => "GET / HTTP/1.1",
+                "status" => 200,
+                "body_bytes_size" => 615,
+                "http_user_agent" => "curl/8.11.1",
+            }),
+            tdef: TypeDef::object(kind_main()).fallible(),
+        }
+
+        main_line_valid_single_proxy {
+            args: func_args![
+                value: r#"172.24.0.3 - - [31/Dec/2024:17:32:06 +0000] "GET / HTTP/1.1" 200 615 "-" "curl/8.11.1" "172.24.0.1""#,
+                format: "main"
+            ],
+            want: Ok(btreemap! {
+                "remote_addr" => "172.24.0.3",
+                "timestamp" => Value::Timestamp(DateTime::parse_from_rfc3339("2024-12-31T17:32:06Z").unwrap().into()),
+                "request" => "GET / HTTP/1.1",
+                "status" => 200,
+                "body_bytes_size" => 615,
+                "http_user_agent" => "curl/8.11.1",
+                "http_x_forwarded_for" => "172.24.0.1",
+            }),
+            tdef: TypeDef::object(kind_main()).fallible(),
+        }
+
+        main_line_valid_two_proxies {
+            args: func_args![
+                value: r#"172.24.0.3 - - [31/Dec/2024:17:32:06 +0000] "GET / HTTP/1.1" 200 615 "-" "curl/8.11.1" "1.2.3.4, 10.10.1.1""#,
+                format: "main"
+            ],
+            want: Ok(btreemap! {
+                "remote_addr" => "172.24.0.3",
+                "timestamp" => Value::Timestamp(DateTime::parse_from_rfc3339("2024-12-31T17:32:06Z").unwrap().into()),
+                "request" => "GET / HTTP/1.1",
+                "status" => 200,
+                "body_bytes_size" => 615,
+                "http_user_agent" => "curl/8.11.1",
+                "http_x_forwarded_for" => "1.2.3.4, 10.10.1.1",
+            }),
+            tdef: TypeDef::object(kind_main()).fallible(),
+        }
+
+        main_line_valid_all_fields {
+            args: func_args![
+                value: r#"172.24.0.2 - alice [03/Jan/2025:16:42:58 +0000] "GET / HTTP/1.1" 200 615 "http://domain.tld/path" "curl/8.11.1" "1.2.3.4, 10.10.1.1""#,
+                format: "main"
+            ],
+            want: Ok(btreemap! {
+                "remote_addr" => "172.24.0.2",
+                "remote_user" => "alice",
+                "timestamp" => Value::Timestamp(DateTime::parse_from_rfc3339("2025-01-03T16:42:58Z").unwrap().into()),
+                "request" => "GET / HTTP/1.1",
+                "status" => 200,
+                "body_bytes_size" => 615,
+                "http_referer" => "http://domain.tld/path",
+                "http_user_agent" => "curl/8.11.1",
+                "http_x_forwarded_for" => "1.2.3.4, 10.10.1.1",
+            }),
+            tdef: TypeDef::object(kind_main()).fallible(),
+        }
+
+        main_line_invalid {
+            args: func_args![
+                value: r#"2025/01/03 16:41:26 [error] 31#31: *3 open() "/usr/share/nginx/html/favicon.ico" failed (2: No such file or directory), client: 172.24.0.2, server: localhost, request: "GET /favicon.ico HTTP/1.1", host: "localhost:4080", referrer: "http://localhost:4080/""#,
+                format: "main"
+            ],
+            want: Err("failed parsing log line"),
+            tdef: TypeDef::object(kind_main()).fallible(),
         }
 
         error_line_valid {

@@ -1969,6 +1969,22 @@ bench_function! {
         })),
     }
 
+    main {
+        args: func_args![
+            value: r#"172.24.0.3 - - [31/Dec/2024:17:32:06 +0000] "GET / HTTP/1.1" 200 615 "-" "curl/8.11.1" "1.2.3.4, 10.10.1.1""#,
+            format: "main"
+        ],
+        want: Ok(value!({
+            "remote_addr": "172.24.0.3",
+            "timestamp": (DateTime::parse_from_rfc3339("2024-12-31T17:32:06Z").unwrap().with_timezone(&Utc)),
+            "request": "GET / HTTP/1.1",
+            "status": 200,
+            "body_bytes_size": 615,
+            "http_user_agent": "curl/8.11.1",
+            "http_x_forwarded_for": "1.2.3.4, 10.10.1.1",
+        })),
+    }
+
     error {
         args: func_args![value: r#"2021/04/01 13:02:31 [error] 31#31: *1 open() "/usr/share/nginx/html/not-found" failed (2: No such file or directory), client: 172.17.0.1, server: localhost, request: "POST /not-found HTTP/1.1", host: "localhost:8081""#,
                          format: "error"

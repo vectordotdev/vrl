@@ -149,6 +149,30 @@ pub(crate) static REGEX_INGRESS_NGINX_UPSTREAMINFO_LOG: Lazy<Regex> = Lazy::new(
     .expect("failed compiling regex for Ingress Nginx upstreaminfo log")
 });
 
+// - Main Nginx docs:
+//   - https://nginx.org/en/linux_packages.html
+//   - https://hg.nginx.org/pkg-oss/file/tip/alpine/alpine/nginx.conf
+//   - https://hg.nginx.org/pkg-oss/file/tip/debian/debian/nginx.conf
+//   - https://hg.nginx.org/pkg-oss/file/tip/rpm/SOURCES/nginx.conf
+pub(crate) static REGEX_NGINX_MAIN_LOG: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(
+        r#"(?x)                                             # Ignore whitespace and comments in the regex expression.
+        ^\s*                                                # Start with any number of whitespaces
+        (-|(?P<remote_addr>\S+))\s+                         # Match `-` or any non space character
+        \-\s+                                               # Always a dash
+        (-|(?P<remote_user>\S+))\s+                         # Match `-` or any non space character
+        \[(?P<timestamp>[^\]]+)\]\s+                        # Match date between brackets
+        "(?P<request>[^"]*)"\s+                             # Match any non double-quote character
+        (?P<status>\d+)\s+                                  # Match numbers
+        (?P<body_bytes_size>\d+)\s+                         # Match numbers
+        "(-|(?P<http_referer>[^"]*))"\s+                    # Match `-` or any non double-quote character
+        "(-|(?P<http_user_agent>[^"]+))"\s+                 # Match `-` or any non double-quote character
+        "(-|(?P<http_x_forwarded_for>[^"]+))"               # Match `-` or any non double-quote character
+        \s*$                                                # Match any number of whitespaces (to be discarded).
+    "#)
+    .expect("failed compiling regex for Nginx main log")
+});
+
 pub(crate) static REGEX_NGINX_ERROR_LOG: Lazy<Regex> = Lazy::new(|| {
     Regex::new(
         r#"(?x)                                                                  # Ignore whitespace and comments in the regex expression.
