@@ -16,12 +16,14 @@ fn parse_duration(bytes: Value, unit: Value) -> Resolved {
             .get(string.as_ref())
             .ok_or(format!("unknown unit format: '{string}'"))?
     };
-    let mut num = 0.0;
+    let mut sum = 0.0;
     while !value.is_empty() {
         let captures = RE
             .captures(value)
             .ok_or(format!("unable to parse duration: '{value}'"))?;
-        let capture_match = captures.get(0).unwrap();
+        let capture_match = captures
+            .get(0)
+            .ok_or(format!("unable to capture matched duration: '{value}'"))?;
 
         let value_decimal = Decimal::from_str(&captures["value"])
             .map_err(|error| format!("unable to parse number: {error}"))?;
@@ -32,10 +34,10 @@ fn parse_duration(bytes: Value, unit: Value) -> Resolved {
         let number = number
             .to_f64()
             .ok_or(format!("unable to format duration: '{number}'"))?;
-        num += number;
+        sum += number;
         value = &value[capture_match.end()..];
     }
-    Ok(Value::from_f64_or_zero(num))
+    Ok(Value::from_f64_or_zero(sum))
 }
 
 static RE: Lazy<Regex> = Lazy::new(|| {
