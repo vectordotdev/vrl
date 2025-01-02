@@ -21,13 +21,13 @@ impl Function for ParseLinuxAuthorization {
         &[Example {
             title: "\
             parse authorization event",
-            source: "parse_linux_authorization!(s'Mar 23 01:49:58 localhost sshd[1111]: Accepted publickey for eng from 10.1.1.1 port 8888 ssh2: RSA SHA256:foobar')",
+            source: "parse_linux_authorization!(s'Mar 23 2025 01:49:58 localhost sshd[1111]: Accepted publickey for eng from 10.1.1.1 port 8888 ssh2: RSA SHA256:foobar')",
             result: Ok(indoc! {r#"{
                 "appname": "sshd",
                 "hostname": "localhost",
                 "message": "Accepted publickey for eng from 10.1.1.1 port 8888 ssh2: RSA SHA256:foobar",
                 "procid": 1111,
-                "timestamp": "2024-03-23T01:49:58Z"
+                "timestamp": "2025-03-23T01:49:58Z"
             }"#}),
         }]
     }

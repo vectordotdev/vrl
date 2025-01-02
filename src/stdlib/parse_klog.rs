@@ -88,7 +88,7 @@ impl Function for ParseKlog {
                     "level": "info",
                     "line": 70,
                     "message": "hello from klog",
-                    "timestamp": "2024-05-05T17:59:40.692994Z"
+                    "timestamp": "2025-05-05T17:59:40.692994Z"
                 }"#}),
         }]
     }
