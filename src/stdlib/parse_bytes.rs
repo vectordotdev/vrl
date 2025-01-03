@@ -2,18 +2,19 @@ use crate::compiler::prelude::*;
 use crate::value;
 use core::convert::AsRef;
 use once_cell::sync::Lazy;
-use regex::Regex;
-use rust_decimal::{prelude::ToPrimitive, Decimal};
-use std::{collections::HashMap, str::FromStr};
+use parse_size::Config;
+use rust_decimal::{prelude::FromPrimitive, prelude::ToPrimitive, Decimal};
+use std::collections::HashMap;
 
 fn parse_bytes(bytes: Value, unit: Value, base: &Bytes) -> Resolved {
-    let units = match base.as_ref() {
-        b"2" => &*BIN_UNITS,
-        b"10" => &*DEC_UNITS,
+    let (units, parse_config) = match base.as_ref() {
+        b"2" => (&*BIN_UNITS, Config::new().with_binary()),
+        b"10" => (&*DEC_UNITS, Config::new().with_decimal()),
         _ => unreachable!("enum invariant"),
     };
     let bytes = bytes.try_bytes()?;
     let value = String::from_utf8_lossy(&bytes);
+    let value: &str = value.as_ref();
     let conversion_factor = {
         let bytes = unit.try_bytes()?;
         let string = String::from_utf8_lossy(&bytes);
@@ -22,32 +23,17 @@ fn parse_bytes(bytes: Value, unit: Value, base: &Bytes) -> Resolved {
             .get(string.as_ref())
             .ok_or(format!("unknown unit format: '{string}'"))?
     };
-    let captures = RE
-        .captures(&value)
-        .ok_or(format!("unable to parse bytes: '{value}'"))?;
-    let value = Decimal::from_str(&captures["value"])
-        .map_err(|error| format!("unable to parse number: {error}"))?;
-    let unit = units
-        .get(&captures["unit"])
-        .ok_or(format!("unknown bytes unit: '{}'", &captures["unit"]))?;
-    let number = value * unit / conversion_factor;
+    let value = parse_config
+        .parse_size(value)
+        .map_err(|e| format!("unable to parse bytes: '{e}'"))?;
+    let value = Decimal::from_u64(value).ok_or(format!("unable to parse number: {value}"))?;
+    let number = value / conversion_factor;
     let number = number
         .to_f64()
-        .ok_or(format!("unable to format bytes: '{number}'"))?;
+        .ok_or(format!("unable to parse number: '{number}'"))?;
     Ok(Value::from_f64_or_zero(number))
 }
 
-static RE: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(
-        r"(?ix)                        # i: case-insensitive, x: ignore whitespace + comments
-            \A
-            (?P<value>[0-9]*\.?[0-9]+) # value: integer or float
-            \s?                        # optional space between value and unit
-            (?P<unit>[a-z]{1,3})      # unit: one, two, and three letters
-            \z",
-    )
-    .unwrap()
-});
 // The largest unit is EB, which is smaller than i64::MAX, so we can safely use Decimal
 // power of 2 units
 static BIN_UNITS: Lazy<HashMap<String, Decimal>> = Lazy::new(|| {
@@ -285,21 +271,14 @@ mod tests {
         error_invalid {
             args: func_args![value: "foo",
                              unit: "KiB"],
-            want: Err("unable to parse bytes: 'foo'"),
-            tdef: TypeDef::float().fallible(),
-        }
-
-        error_kb {
-            args: func_args![value: "1",
-                             unit: "KiB"],
-            want: Err("unable to parse bytes: '1'"),
+            want: Err("unable to parse bytes: 'invalid digit found in string'"),
             tdef: TypeDef::float().fallible(),
         }
 
         error_unit {
             args: func_args![value: "1YiB",
                              unit: "MiB"],
-            want: Err("unknown bytes unit: 'YiB'"),
+            want: Err("unable to parse bytes: 'invalid digit found in string'"),
             tdef: TypeDef::float().fallible(),
         }
 
