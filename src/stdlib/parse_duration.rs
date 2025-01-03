@@ -1,59 +1,43 @@
 use crate::compiler::prelude::*;
+use humantime::parse_duration as ht_parse_duration;
 use once_cell::sync::Lazy;
-use regex::Regex;
-use rust_decimal::{prelude::ToPrimitive, Decimal};
-use std::{collections::HashMap, str::FromStr};
+use std::collections::HashMap;
+use std::time::Duration;
 
 fn parse_duration(bytes: Value, unit: Value) -> Resolved {
     let bytes = bytes.try_bytes()?;
     let value = String::from_utf8_lossy(&bytes);
+    // Remove all spaces and replace the micro symbol with the ASCII equivalent
+    // since the `humantime` does not support them.
+    let trimmed_value = value.replace(' ', "").replace("µs", "us");
+
     let conversion_factor = {
         let bytes = unit.try_bytes()?;
         let string = String::from_utf8_lossy(&bytes);
 
-        UNITS
+        *UNITS
             .get(string.as_ref())
             .ok_or(format!("unknown unit format: '{string}'"))?
     };
-    let captures = RE
-        .captures(&value)
-        .ok_or(format!("unable to parse duration: '{value}'"))?;
-    let value = Decimal::from_str(&captures["value"])
-        .map_err(|error| format!("unable to parse number: {error}"))?;
-    let unit = UNITS
-        .get(&captures["unit"])
-        .ok_or(format!("unknown duration unit: '{}'", &captures["unit"]))?;
-    let number = value * unit / conversion_factor;
-    let number = number
-        .to_f64()
-        .ok_or(format!("unable to format duration: '{number}'"))?;
+    let duration = ht_parse_duration(&trimmed_value)
+        .map_err(|e| format!("unable to parse duration: '{e}'"))?;
+    let number = duration.div_duration_f64(conversion_factor);
+
     Ok(Value::from_f64_or_zero(number))
 }
 
-static RE: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(
-        r"(?ix)                        # i: case-insensitive, x: ignore whitespace + comments
-            \A
-            (?P<value>[0-9]*\.?[0-9]+) # value: integer or float
-            \s?                        # optional space between value and unit
-            (?P<unit>[µa-z]{1,2})      # unit: one or two letters
-            \z",
-    )
-    .unwrap()
-});
-
-static UNITS: Lazy<HashMap<String, Decimal>> = Lazy::new(|| {
+static UNITS: Lazy<HashMap<String, Duration>> = Lazy::new(|| {
     vec![
-        ("ns", Decimal::new(1, 9)),
-        ("us", Decimal::new(1, 6)),
-        ("µs", Decimal::new(1, 6)),
-        ("ms", Decimal::new(1, 3)),
-        ("cs", Decimal::new(1, 2)),
-        ("ds", Decimal::new(1, 1)),
-        ("s", Decimal::new(1, 0)),
-        ("m", Decimal::new(60, 0)),
-        ("h", Decimal::new(3_600, 0)),
-        ("d", Decimal::new(86_400, 0)),
+        ("ns", Duration::from_nanos(1)),
+        ("us", Duration::from_micros(1)),
+        ("µs", Duration::from_micros(1)),
+        ("ms", Duration::from_millis(1)),
+        ("cs", Duration::from_millis(10)),
+        ("ds", Duration::from_millis(100)),
+        ("s", Duration::from_secs(1)),
+        ("m", Duration::from_secs(60)),
+        ("h", Duration::from_secs(3_600)),
+        ("d", Duration::from_secs(86_400)),
     ]
     .into_iter()
     .map(|(k, v)| (k.to_owned(), v))
@@ -159,10 +143,45 @@ mod tests {
             tdef: TypeDef::float().fallible(),
         }
 
+        us_ms {
+            args: func_args![value: "100µs",
+                             unit: "ms"],
+            want: Ok(0.1),
+            tdef: TypeDef::float().fallible(),
+        }
+
         d_s {
             args: func_args![value: "1d",
                              unit: "s"],
             want: Ok(86400.0),
+            tdef: TypeDef::float().fallible(),
+        }
+
+        ds_s {
+            args: func_args![value: "1d1s",
+                             unit: "s"],
+            want: Ok(86401.0),
+            tdef: TypeDef::float().fallible(),
+        }
+
+        s_space_ms_ms {
+            args: func_args![value: "1s 1ms",
+                             unit: "ms"],
+            want: Ok(1001.0),
+            tdef: TypeDef::float().fallible(),
+        }
+
+        ms_space_us_ms {
+            args: func_args![value: "1ms1 µs",
+                             unit: "ms"],
+            want: Ok(1.001),
+            tdef: TypeDef::float().fallible(),
+        }
+
+        s_space_m_ms_order_agnostic {
+            args: func_args![value: "1s1m",
+                             unit: "ms"],
+            want: Ok(61000.0),
             tdef: TypeDef::float().fallible(),
         }
 
@@ -173,31 +192,31 @@ mod tests {
             tdef: TypeDef::float().fallible(),
         }
 
-        us_ms {
+        us_space_ms {
             args: func_args![value: "1 µs",
                              unit: "ms"],
             want: Ok(0.001),
             tdef: TypeDef::float().fallible(),
         }
 
+        w_ns {
+            args: func_args![value: "1w",
+                             unit: "ns"],
+            want: Ok(604_800_000_000_000.0),
+            tdef: TypeDef::float().fallible(),
+        }
+
         error_invalid {
             args: func_args![value: "foo",
                              unit: "ms"],
-            want: Err("unable to parse duration: 'foo'"),
+            want: Err("unable to parse duration: 'expected number at 0'"),
             tdef: TypeDef::float().fallible(),
         }
 
         error_ns {
             args: func_args![value: "1",
                              unit: "ns"],
-            want: Err("unable to parse duration: '1'"),
-            tdef: TypeDef::float().fallible(),
-        }
-
-        error_unit {
-            args: func_args![value: "1w",
-                             unit: "ns"],
-            want: Err("unknown duration unit: 'w'"),
+            want: Err("unable to parse duration: 'time unit needed, for example 1sec or 1ms'"),
             tdef: TypeDef::float().fallible(),
         }
 
@@ -205,6 +224,13 @@ mod tests {
             args: func_args![value: "1s",
                              unit: "w"],
             want: Err("unknown unit format: 'w'"),
+            tdef: TypeDef::float().fallible(),
+        }
+
+        error_failed_2nd_unit {
+            args: func_args![value: "1d foo",
+                             unit: "s"],
+            want: Err("unable to parse duration: 'unknown time unit \"dfoo\", supported units: ns, us, ms, sec, min, hours, days, weeks, months, years (and few variations)'"),
             tdef: TypeDef::float().fallible(),
         }
     ];
