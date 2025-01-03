@@ -16,9 +16,9 @@ provide everything you need to get started.
 6. Run `./scripts/checks.sh` to run tests and other checks. These checks are also run by the CI.
 7. [Submit the branch as a pull request][urls.submit_pr] to the repo. A team member should
    comment and/or review your pull request.
-   8Add a changelog fragment (requires the PR number) to describe your changes which will
+8. Add a changelog fragment (requires the PR number) to describe your changes which will
    be included in the release changelog. See the [README.md](changelog.d/README.md) for details.
-8. It is normal to have multiple review iterations on a PR. To enable incremental reviews, please try to avoid force pushing if possible.
+9. It is normal to have multiple review iterations on a PR. To enable incremental reviews, please try to avoid force pushing if possible.
    - When a rebase is needed, try `git merge origin main` followed by `git push`.
 
 [urls.existing_issues]: https://github.com/vectordotdev/vrl/issues
