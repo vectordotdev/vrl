@@ -9,7 +9,7 @@ fn parse_duration(bytes: Value, unit: Value) -> Resolved {
     let value = String::from_utf8_lossy(&bytes);
     // Remove all spaces and replace the micro symbol with the ASCII equivalent
     // since the `humantime` does not support them.
-    let trimmed_value = value.replace(" ", "").replace("µs", "us");
+    let trimmed_value = value.replace(' ', "").replace("µs", "us");
 
     let conversion_factor = {
         let bytes = unit.try_bytes()?;
@@ -20,7 +20,7 @@ fn parse_duration(bytes: Value, unit: Value) -> Resolved {
             .ok_or(format!("unknown unit format: '{string}'"))?
     };
     let duration = ht_parse_duration(&trimmed_value)
-        .map_err(|_| format!("unable to parse duration: '{value}'"))?;
+        .map_err(|e| format!("unable to parse duration: '{e}'"))?;
     let number = duration.div_duration_f64(conversion_factor);
 
     Ok(Value::from_f64_or_zero(number))
@@ -202,21 +202,21 @@ mod tests {
         w_ns {
             args: func_args![value: "1w",
                              unit: "ns"],
-            want: Ok(604800000000000.0),
+            want: Ok(604_800_000_000_000.0),
             tdef: TypeDef::float().fallible(),
         }
 
         error_invalid {
             args: func_args![value: "foo",
                              unit: "ms"],
-            want: Err("unable to parse duration: 'foo'"),
+            want: Err("unable to parse duration: 'expected number at 0'"),
             tdef: TypeDef::float().fallible(),
         }
 
         error_ns {
             args: func_args![value: "1",
                              unit: "ns"],
-            want: Err("unable to parse duration: '1'"),
+            want: Err("unable to parse duration: 'time unit needed, for example 1sec or 1ms'"),
             tdef: TypeDef::float().fallible(),
         }
 
@@ -230,7 +230,7 @@ mod tests {
         error_failed_2nd_unit {
             args: func_args![value: "1d foo",
                              unit: "s"],
-            want: Err("unable to parse duration: '1d foo'"),
+            want: Err("unable to parse duration: 'unknown time unit \"dfoo\", supported units: ns, us, ms, sec, min, hours, days, weeks, months, years (and few variations)'"),
             tdef: TypeDef::float().fallible(),
         }
     ];
