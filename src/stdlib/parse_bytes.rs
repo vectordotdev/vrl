@@ -45,7 +45,7 @@ static BIN_UNITS: Lazy<HashMap<String, Decimal>> = Lazy::new(|| {
         ("TiB", Decimal::new(1_099_511_627_776, 0)),
         ("PiB", Decimal::new(1_125_899_906_842_624, 0)),
         ("EiB", Decimal::new(1_152_921_504_606_846_976, 0)),
-        // decimal units also support ambiguous units
+        // binary units also support ambiguous units
         ("KB", Decimal::new(1_024, 0)),
         ("MB", Decimal::new(1_048_576, 0)),
         ("GB", Decimal::new(1_073_741_824, 0)),
