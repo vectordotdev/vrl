@@ -102,6 +102,7 @@ criterion_group!(
               parse_aws_alb_log,
               parse_aws_cloudwatch_log_subscription_message,
               parse_aws_vpc_flow_log,
+              parse_bytes,
               parse_common_log,
               parse_csv,
               parse_duration,
@@ -1641,6 +1642,15 @@ bench_function! {
             "thread": "3814",
             "timestamp": (DateTime::parse_from_rfc3339("2021-03-01T12:00:19Z").unwrap().with_timezone(&Utc)),
         })),
+    }
+}
+
+bench_function! {
+    parse_bytes => vrl::stdlib::ParseBytes;
+
+    literal {
+        args: func_args![value: "1024KiB", unit: "MiB"],
+        want: Ok(1.0),
     }
 }
 
