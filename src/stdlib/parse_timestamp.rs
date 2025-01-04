@@ -1,11 +1,28 @@
 use crate::compiler::conversion::Conversion;
 use crate::compiler::prelude::*;
+use crate::compiler::TimeZone;
 
-fn parse_timestamp(value: Value, format: Value, ctx: &Context) -> Resolved {
+fn parse_timestamp(
+    value: Value,
+    format: Value,
+    timezone: Option<Value>,
+    ctx: &Context,
+) -> Resolved {
     match value {
         Value::Bytes(v) => {
             let format = format.try_bytes_utf8_lossy()?;
-            Conversion::parse(format!("timestamp|{format}"), *ctx.timezone())
+
+            let timezone_bytes = timezone.map(VrlValueConvert::try_bytes).transpose()?;
+            let timezone = timezone_bytes.as_ref().map(|b| String::from_utf8_lossy(b));
+            let timezone = timezone
+                .as_deref()
+                .map(|timezone| {
+                    TimeZone::parse(timezone).ok_or(format!("unable to parse timezone: {timezone}"))
+                })
+                .transpose()?
+                .unwrap_or(*ctx.timezone());
+
+            Conversion::parse(format!("timestamp|{format}"), timezone)
                 .map_err(|e| e.to_string())?
                 .convert(v)
                 .map_err(|e| e.to_string().into())
@@ -39,8 +56,14 @@ impl Function for ParseTimestamp {
     ) -> Compiled {
         let value = arguments.required("value");
         let format = arguments.required("format");
+        let timezone = arguments.optional("timezone");
 
-        Ok(ParseTimestampFn { value, format }.as_expr())
+        Ok(ParseTimestampFn {
+            value,
+            format,
+            timezone,
+        }
+        .as_expr())
     }
 
     fn parameters(&self) -> &'static [Parameter] {
@@ -55,6 +78,11 @@ impl Function for ParseTimestamp {
                 kind: kind::BYTES,
                 required: true,
             },
+            Parameter {
+                keyword: "timezone",
+                kind: kind::BYTES,
+                required: false,
+            },
         ]
     }
 }
@@ -63,13 +91,19 @@ impl Function for ParseTimestamp {
 struct ParseTimestampFn {
     value: Box<dyn Expression>,
     format: Box<dyn Expression>,
+    timezone: Option<Box<dyn Expression>>,
 }
 
 impl FunctionExpression for ParseTimestampFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let value = self.value.resolve(ctx)?;
         let format = self.format.resolve(ctx)?;
-        parse_timestamp(value, format, ctx)
+        let tz = self
+            .timezone
+            .as_ref()
+            .map(|tz| tz.resolve(ctx))
+            .transpose()?;
+        parse_timestamp(value, format, tz, &ctx)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {
