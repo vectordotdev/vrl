@@ -103,7 +103,7 @@ impl FunctionExpression for ParseTimestampFn {
             .as_ref()
             .map(|tz| tz.resolve(ctx))
             .transpose()?;
-        parse_timestamp(value, format, tz, &ctx)
+        parse_timestamp(value, format, tz, ctx)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {
