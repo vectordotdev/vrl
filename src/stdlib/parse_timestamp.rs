@@ -163,5 +163,46 @@ mod tests {
             tdef: TypeDef::timestamp().fallible(),
             tz: TimeZone::Named(chrono_tz::Europe::Paris),
         }
+
+        parse_text_with_timezone_args {
+            args: func_args![
+                value: "16/10/2019:12:00:00",
+                format:"%d/%m/%Y:%H:%M:%S",
+                timezone: "Europe/Paris"
+            ],
+            want: Ok(value!(
+                DateTime::parse_from_rfc2822("Wed, 16 Oct 2019 10:00:00 +0000")
+                    .unwrap()
+                    .with_timezone(&Utc)
+            )),
+            tdef: TypeDef::timestamp().fallible(),
+            tz: TimeZone::default(),
+        }
+
+        parse_text_with_favor_timezone_args_than_tz {
+            args: func_args![
+                value: "16/10/2019:12:00:00",
+                format:"%d/%m/%Y:%H:%M:%S",
+                timezone: "Europe/Paris"
+            ],
+            want: Ok(value!(
+                DateTime::parse_from_rfc2822("Wed, 16 Oct 2019 10:00:00 +0000")
+                    .unwrap()
+                    .with_timezone(&Utc)
+            )),
+            tdef: TypeDef::timestamp().fallible(),
+            tz: TimeZone::Named(chrono_tz::Europe::London),
+        }
+
+        err_timezone_args {
+            args: func_args![
+                value: "16/10/2019:12:00:00",
+                format:"%d/%m/%Y:%H:%M:%S",
+                timezone: "Europe/Pariss"
+            ],
+            want: Err("unable to parse timezone: Europe/Pariss"),
+            tdef: TypeDef::timestamp().fallible(),
+            tz: TimeZone::default(),
+        }
     ];
 }
