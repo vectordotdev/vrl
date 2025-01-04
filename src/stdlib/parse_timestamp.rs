@@ -41,11 +41,18 @@ impl Function for ParseTimestamp {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[Example {
-            title: "valid",
-            source: r#"parse_timestamp!("11-Feb-2021 16:00 +00:00", format: "%v %R %z")"#,
-            result: Ok("t'2021-02-11T16:00:00Z'"),
-        }]
+        &[
+            Example {
+                title: "valid",
+                source: r#"parse_timestamp!("11-Feb-2021 16:00 +00:00", format: "%v %R %z")"#,
+                result: Ok("t'2021-02-11T16:00:00Z'"),
+            },
+            Example {
+                title: "valid with timezone",
+                source: r#"parse_timestamp!("16/10/2019 12:00:00", format: "%d/%m/%Y %H:%M:%S", timezone: "Europe/Paris")"#,
+                result: Ok("t'2019-10-16T10:00:00Z'"),
+            },
+        ]
     }
 
     fn compile(
@@ -107,7 +114,7 @@ impl FunctionExpression for ParseTimestampFn {
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {
-        TypeDef::timestamp().fallible(/* always fallible because the format needs to be parsed at runtime */)
+        TypeDef::timestamp().fallible(/* always fallible because the format and the timezone need to be parsed at runtime */)
     }
 }
 
