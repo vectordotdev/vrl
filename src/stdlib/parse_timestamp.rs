@@ -171,14 +171,15 @@ mod tests {
             tz: TimeZone::Named(chrono_tz::Europe::Paris),
         }
 
-        parse_text_with_timezone_args {
+        // test without Daylight Saving Time (DST)
+        parse_text_with_timezone_args_no_dst {
             args: func_args![
-                value: "16/10/2019:12:00:00",
+                value: "31/12/2019:12:00:00",
                 format:"%d/%m/%Y:%H:%M:%S",
                 timezone: "Europe/Paris"
             ],
             want: Ok(value!(
-                DateTime::parse_from_rfc2822("Wed, 16 Oct 2019 10:00:00 +0000")
+                DateTime::parse_from_rfc2822("Tue, 31 Dec 2019 11:00:00 +0000")
                     .unwrap()
                     .with_timezone(&Utc)
             )),
@@ -186,14 +187,14 @@ mod tests {
             tz: TimeZone::default(),
         }
 
-        parse_text_with_favor_timezone_args_than_tz {
+        parse_text_with_favor_timezone_args_than_tz_no_dst {
             args: func_args![
-                value: "16/10/2019:12:00:00",
+                value: "31/12/2019:12:00:00",
                 format:"%d/%m/%Y:%H:%M:%S",
                 timezone: "Europe/Paris"
             ],
             want: Ok(value!(
-                DateTime::parse_from_rfc2822("Wed, 16 Oct 2019 10:00:00 +0000")
+                DateTime::parse_from_rfc2822("Tue, 31 Dec 2019 11:00:00 +0000")
                     .unwrap()
                     .with_timezone(&Utc)
             )),
