@@ -10,7 +10,7 @@ repository = "https://github.com/vectordotdev/vrl"
 readme = "README.md"
 keywords = ["vector", "datadog", "compiler"]
 categories = ["compilers"]
-rust-version = "1.80" # msrv
+rust-version = "1.81" # msrv
 
 [workspace]
 members = [
@@ -161,7 +161,7 @@ once_cell = { version = "1", default-features = false, features = ["std"], optio
 ordered-float = { version = "4", default-features = false, optional = true }
 md-5 = { version = "0.10", optional = true }
 paste = { version = "1", default-features = false, optional = true }
-parse-size = { version = "1.0.0",  optional = true }
+parse-size = { version = "1.1.0",  optional = true }
 peeking_take_while = { version = "1", default-features = false, optional = true }
 percent-encoding = { version = "2", optional = true }
 pest = { version = "2", default-features = false, optional = true, features = ["std"] }
