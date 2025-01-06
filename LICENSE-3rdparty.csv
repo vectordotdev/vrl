@@ -174,6 +174,7 @@ owo-colors,https://github.com/jam1garner/owo-colors,MIT,jam1garner <8260240+jam1
 pad,https://github.com/ogham/rust-pad,MIT,Ben S <ogham@bsago.me>
 parking,https://github.com/smol-rs/parking,Apache-2.0 OR MIT,"Stjepan Glavina <stjepang@gmail.com>, The Rust Project Developers"
 parking_lot,https://github.com/Amanieu/parking_lot,MIT OR Apache-2.0,Amanieu d'Antras <amanieu@gmail.com>
+parse-size,https://github.com/kennytm/parse-size,MIT,kennytm <kennytm@gmail.com>
 paste,https://github.com/dtolnay/paste,MIT OR Apache-2.0,David Tolnay <dtolnay@gmail.com>
 peeking_take_while,https://github.com/fitzgen/peeking_take_while,MIT OR Apache-2.0,Nick Fitzgerald <fitzgen@gmail.com>
 pest,https://github.com/pest-parser/pest,MIT OR Apache-2.0,Dragoș Tiselice <dragostiselice@gmail.com>
