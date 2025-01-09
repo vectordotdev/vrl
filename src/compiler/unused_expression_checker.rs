@@ -128,6 +128,9 @@ impl VisitorState {
 
         if let Some(entry) = self.ident_to_state.get_mut(ident) {
             entry.pending_usage = false;
+            if self.visiting_closure {
+                entry.used_in_closure = true;
+            }
         } else {
             warn!("unexpected identifier `{}` reported as used", ident);
         }
