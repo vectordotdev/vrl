@@ -14,8 +14,6 @@
 ### New Features
 
 - Added new `crc` function to calculate CRC (Cyclic Redundancy Check) checksum
-
-  authors: ivor11 (https://github.com/vectordotdev/vrl/pull/1136)
 - Add `parse_cbor` function (https://github.com/vectordotdev/vrl/pull/1152)
 - Added new `zip` function to iterate over an array of arrays and produce a new
   arrays containing an item from each one. (https://github.com/vectordotdev/vrl/pull/1158)
