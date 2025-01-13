@@ -16,7 +16,7 @@ use crate::compiler::{
 };
 use crate::diagnostic::Formatter;
 use crate::owned_metadata_path;
-use crate::value::Secrets;
+use crate::value::{ObjectMap, Secrets};
 use crate::value::Value;
 use clap::Parser;
 
@@ -84,7 +84,7 @@ impl Opts {
         }?;
 
         match input.as_str() {
-            "" => Ok(vec![Value::Object(BTreeMap::default())]),
+            "" => Ok(vec![Value::Object(ObjectMap::new())]),
             _ => input
                 .lines()
                 .map(|line| Ok(serde_to_vrl(serde_json::from_str(line)?)))
@@ -155,7 +155,7 @@ fn run(opts: &Opts, stdlib_functions: Vec<Box<dyn Function>>) -> Result<(), Erro
         }
 
         for mut object in objects {
-            let mut metadata = Value::Object(BTreeMap::new());
+            let mut metadata = Value::Object(ObjectMap::new());
             let mut secrets = Secrets::new();
             let mut target = TargetValueRef {
                 value: &mut object,
@@ -198,7 +198,7 @@ fn repl(
         .into_iter()
         .map(|value| TargetValue {
             value,
-            metadata: Value::Object(BTreeMap::new()),
+            metadata: Value::Object(ObjectMap::new()),
             secrets: Secrets::new(),
         })
         .collect();
@@ -246,5 +246,5 @@ fn read<R: Read>(mut reader: R) -> Result<String, Error> {
 }
 
 fn default_objects() -> Vec<Value> {
-    vec![Value::Object(BTreeMap::new())]
+    vec![Value::Object(ObjectMap::new())]
 }

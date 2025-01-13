@@ -33,7 +33,7 @@ macro_rules! value {
     });
 
     ({}) => ({
-        $crate::value::Value::Object(::std::collections::BTreeMap::default())
+        $crate::value::Value::Object($crate::value::ObjectMap::default())
     });
 
     ({$($($k1:literal)? $($k2:ident)?: $v:tt),+ $(,)?}) => ({
@@ -41,7 +41,7 @@ macro_rules! value {
             .into_iter()
             .collect::<::std::collections::BTreeMap<_, $crate::value::Value>>();
 
-        $crate::value::Value::Object(map)
+        $crate::value::Value::Object(map.into())
     });
 
     (null) => ({

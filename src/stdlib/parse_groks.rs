@@ -427,7 +427,7 @@ mod test {
                         "ip" => "127.0.0.1"
                     }
                 }
-            })),
+            }.into())),
             tdef: TypeDef::object(Collection::any()).fallible(),
         }
     ];

@@ -36,7 +36,7 @@ impl Expression for Object {
             .iter()
             .map(|(key, expr)| expr.resolve(ctx).map(|v| (key.clone(), v)))
             .collect::<Result<BTreeMap<_, _>, _>>()
-            .map(Value::Object)
+            .map(|v| Value::Object(v.into()))
     }
 
     fn resolve_constant(&self, state: &TypeState) -> Option<Value> {
@@ -44,7 +44,7 @@ impl Expression for Object {
             .iter()
             .map(|(key, expr)| expr.resolve_constant(state).map(|v| (key.clone(), v)))
             .collect::<Option<BTreeMap<_, _>>>()
-            .map(Value::Object)
+            .map(|v| Value::Object(v.into()))
     }
 
     fn type_info(&self, state: &TypeState) -> TypeInfo {

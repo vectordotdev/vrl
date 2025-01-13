@@ -4,7 +4,6 @@ use super::{
 };
 use crate::path::parse_value_path;
 use crate::value::{ObjectMap, Value};
-use std::collections::BTreeMap;
 use tracing::error;
 
 /// Errors which cause the Datadog grok algorithm to stop processing and not return a parsed result.
@@ -58,7 +57,7 @@ pub fn parse_grok(
 /// Internal Errors:
 /// - FailedToApplyFilter - matches the rule, but there was a runtime error while applying on of the filters
 fn apply_grok_rule(source: &str, grok_rule: &GrokRule) -> Result<ParsedGrokObject, FatalError> {
-    let mut parsed = Value::Object(BTreeMap::new());
+    let mut parsed = Value::Object(ObjectMap::new());
     let mut internal_errors = vec![];
 
     match grok_rule.pattern.match_against(source) {
@@ -169,6 +168,7 @@ fn postprocess_value(value: &mut Value) {
 #[cfg(test)]
 mod tests {
     use crate::btreemap;
+    use std::collections::BTreeMap;
     use crate::value::Value;
     use chrono::{Datelike, NaiveDate, Timelike, Utc};
     use ordered_float::NotNan;
@@ -816,7 +816,7 @@ mod tests {
                 "%{data:field:array}",
                 "abc",
                 Ok(ParsedGrokObject {
-                    parsed: Value::from(BTreeMap::new()),
+                    parsed: Value::object(),
                     internal_errors: vec![InternalError::FailedToApplyFilter(
                         "Array(..)".to_owned(),
                         "\"abc\"".to_owned(),
@@ -828,7 +828,7 @@ mod tests {
                 "%{data:field:array(scale(10))}",
                 "[a,b]",
                 Ok(ParsedGrokObject {
-                    parsed: Value::from(BTreeMap::new()),
+                    parsed: Value::object(),
                     internal_errors: vec![InternalError::FailedToApplyFilter(
                         "Scale(..)".to_owned(),
                         "\"a\"".to_owned(),
@@ -1346,7 +1346,7 @@ mod tests {
                     "root" => btreemap! (
                         "string" => "abc"
                     )
-                ))),
+                ).into())),
             ),
             (
                 "%{data:field:json}",
@@ -1356,12 +1356,12 @@ mod tests {
                         "root" => btreemap! (
                             "string" => "abc"
                         )
-                )))),
+                )).into())),
             ),
             (
                 r#"%{notSpace:network.destination.ip:nullIf("-")}"#,
                 "-",
-                Ok(Value::Object(btreemap!())),
+                Ok(Value::object()),
             ),
         ]);
     }
@@ -1374,7 +1374,7 @@ mod tests {
                 "a" => btreemap! (
                     "b" => "c"
                 )
-            ))),
+            ).into())),
         )]);
     }
 }

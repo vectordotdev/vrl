@@ -23,7 +23,6 @@ pub use query::{Query, Target};
 pub use r#return::Return;
 pub use unary::Unary;
 pub use variable::Variable;
-
 use crate::value::Value;
 
 use super::state::{TypeInfo, TypeState};

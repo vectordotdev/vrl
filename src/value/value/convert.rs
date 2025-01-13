@@ -1,4 +1,5 @@
 use std::borrow::Cow;
+use std::collections::BTreeMap;
 use std::sync::Arc;
 
 use crate::value::value::regex::ValueRegex;
@@ -347,6 +348,12 @@ impl From<f64> for Value {
 impl From<ObjectMap> for Value {
     fn from(value: ObjectMap) -> Self {
         Self::Object(value)
+    }
+}
+
+impl From<BTreeMap<KeyString, Value>> for Value {
+    fn from(value: BTreeMap<KeyString, Value>) -> Self {
+        Self::Object(ObjectMap::from(value))
     }
 }
 

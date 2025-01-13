@@ -63,7 +63,7 @@ pub(crate) fn parse_key_value(
             }
         }
     }
-    Ok(Value::Object(map))
+    Ok(map.into())
 }
 
 #[derive(Clone, Copy, Debug)]

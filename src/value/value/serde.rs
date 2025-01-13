@@ -182,7 +182,7 @@ impl<'de> Deserialize<'de> for Value {
                     map.insert(key, value);
                 }
 
-                Ok(Value::Object(map))
+                Ok(map.into())
             }
         }
 

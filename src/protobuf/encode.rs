@@ -234,7 +234,7 @@ mod tests {
                 ("i64".into(), Value::Integer(-9876)),
                 ("u32".into(), Value::Integer(1234)),
                 ("u64".into(), Value::Integer(9876)),
-            ])),
+            ]).into()),
         )
         .unwrap();
         assert_eq!(Some(-1234), mfield!(message, "i32").as_i32());
@@ -268,7 +268,7 @@ mod tests {
             Value::Object(BTreeMap::from([
                 ("d".into(), Value::Float(NotNan::new(11.0).unwrap())),
                 ("f".into(), Value::Float(NotNan::new(2.0).unwrap())),
-            ])),
+            ]).into()),
         )
         .unwrap();
         assert_eq!(Some(11.0), mfield!(message, "d").as_f64());
@@ -297,7 +297,7 @@ mod tests {
             Value::Object(BTreeMap::from([
                 ("text".into(), Value::Bytes(Bytes::from("vector"))),
                 ("binary".into(), Value::Bytes(bytes.clone())),
-            ])),
+            ]).into()),
         )
         .unwrap();
         assert_eq!(Some("vector"), mfield!(message, "text").as_str());
@@ -314,7 +314,7 @@ mod tests {
                     Value::Object(BTreeMap::from([
                         ("forty-four".into(), Value::Integer(44)),
                         ("one".into(), Value::Integer(1)),
-                    ])),
+                    ]).into()),
                 ),
                 (
                     "people".into(),
@@ -323,10 +323,10 @@ mod tests {
                         Value::Object(BTreeMap::from([
                             ("nickname".into(), Value::Bytes(Bytes::from("jeff"))),
                             ("age".into(), Value::Integer(22)),
-                        ])),
-                    )])),
+                        ]).into()),
+                    )]).into()),
                 ),
-            ])),
+            ]).into()),
         )
         .unwrap();
         // the simpler string->primitive map
@@ -369,7 +369,7 @@ mod tests {
                 ("breakfast".into(), Value::Bytes(Bytes::from("tomato"))),
                 ("dinner".into(), Value::Bytes(Bytes::from("OLIVE"))),
                 ("lunch".into(), Value::Integer(0)),
-            ])),
+            ]).into()),
         )
         .unwrap();
         assert_eq!(Some(2), mfield!(message, "breakfast").as_enum_number());
@@ -386,7 +386,7 @@ mod tests {
                 Value::Timestamp(
                     DateTime::from_timestamp(8675, 309).expect("could not compute timestamp"),
                 ),
-            )])),
+            )]).into()),
         )
         .unwrap();
         let timestamp = mfield!(message, "morning").as_message().unwrap().clone();
@@ -405,7 +405,7 @@ mod tests {
                     Value::Integer(6),
                     Value::Integer(4),
                 ]),
-            )])),
+            )]).into()),
         )
         .unwrap();
         let list = mfield!(message, "numbers").as_list().unwrap().to_vec();
@@ -425,14 +425,14 @@ mod tests {
                     Value::Object(BTreeMap::from([(
                         "text".into(),
                         Value::Bytes(Bytes::from("vector")),
-                    )])),
-                    Value::Object(BTreeMap::from([("index".into(), Value::Integer(4444))])),
+                    )]).into()),
+                    Value::Object(BTreeMap::from([("index".into(), Value::Integer(4444))]).into()),
                     Value::Object(BTreeMap::from([
                         ("text".into(), Value::Bytes(Bytes::from("protobuf"))),
                         ("index".into(), Value::Integer(1)),
-                    ])),
+                    ]).into()),
                 ]),
-            )])),
+            )]).into()),
         )
         .unwrap();
         let list = mfield!(message, "messages").as_list().unwrap().to_vec();

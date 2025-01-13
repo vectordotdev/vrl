@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+use std::sync::Arc;
 use mlua::prelude::LuaResult;
 use mlua::{FromLua, IntoLua, Lua, Value as LuaValue};
 use ordered_float::NotNan;
@@ -55,8 +57,15 @@ impl FromLua for Value {
     }
 }
 
+impl<'lua> FromLua<'lua> for ObjectMap {
+    fn from_lua(value: mlua::Value<'lua>, lua: &'lua Lua) -> mlua::Result<Self> {
+        Ok(Self(Arc::new(BTreeMap::from_lua(value, lua)?)))
+    }
+}
+
 use chrono::{DateTime, Datelike, TimeZone, Timelike, Utc};
 use mlua::prelude::*;
+use crate::prelude::ObjectMap;
 
 /// Convert a `DateTime<Utc>` to a `LuaTable`.
 ///

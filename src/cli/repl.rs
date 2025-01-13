@@ -20,9 +20,9 @@ use rustyline::{
     Context, Editor, Helper,
 };
 use std::borrow::Cow::{self, Borrowed, Owned};
-use std::collections::BTreeMap;
 use std::rc::Rc;
 use std::sync::LazyLock;
+use crate::prelude::ObjectMap;
 
 // Create a list of all possible error values for potential docs lookup
 static ERRORS: LazyLock<Vec<String>> = LazyLock::new(|| {
@@ -101,7 +101,7 @@ pub(crate) fn run(
                         if index == objects.len() {
                             objects.push(TargetValue {
                                 value: Value::Null,
-                                metadata: Value::Object(BTreeMap::new()),
+                                metadata: Value::Object(ObjectMap::new()),
                                 secrets: Secrets::new(),
                             });
                         }
@@ -297,7 +297,7 @@ impl Validator for Repl {
         let mut rt = Runtime::new(RuntimeState::default());
         let mut target = TargetValue {
             value: Value::Null,
-            metadata: Value::Object(BTreeMap::new()),
+            metadata: Value::object(),
             secrets: Secrets::new(),
         };
 

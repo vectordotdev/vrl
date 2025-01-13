@@ -267,7 +267,7 @@ impl From<IterData> for Value {
 #[cfg(test)]
 mod tests {
     use std::collections::{BTreeMap, HashMap};
-
+    use crate::value::ObjectMap;
     use super::*;
 
     #[test]
@@ -314,7 +314,7 @@ mod tests {
             (
                 "object non-recursive",
                 TestCase {
-                    value: Value::Object(BTreeMap::from([("foo".into(), true.into())])),
+                    value: Value::Object(ObjectMap::from([("foo".into(), true.into())])),
                     recursive: false,
                     items: vec![true.into()],
                 },

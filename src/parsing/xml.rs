@@ -185,7 +185,7 @@ pub fn process_node(node: Node, config: &ParseXmlConfig) -> Value {
             }
         }
 
-        map
+        map.into()
     };
 
     match node.node_type() {
@@ -216,7 +216,7 @@ pub fn process_node(node: Node, config: &ParseXmlConfig) -> Value {
                                 process_node(node, config),
                             );
 
-                            Value::Object(map)
+                            Value::Object(map.into())
                         } else {
                             // Otherwise, 'flatten' the object by continuing processing.
                             process_node(node, config)

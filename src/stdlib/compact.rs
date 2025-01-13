@@ -280,6 +280,7 @@ fn compact_array(array: Vec<Value>, options: &CompactOptions) -> Vec<Value> {
 
 #[cfg(test)]
 mod test {
+    use std::collections::BTreeMap;
     use super::*;
     use crate::btreemap;
 
@@ -346,17 +347,17 @@ mod test {
     #[test]
     #[allow(clippy::too_many_lines)]
     fn test_compacted_map() {
-        let cases = vec![
+        let cases: Vec<(ObjectMap, ObjectMap, CompactOptions)> = vec![
             (
                 btreemap! {
                     "key1" => "",
                     "key3" => "",
-                }, // expected
+                }.into(), // expected
                 btreemap! {
                     "key1" => "",
                     "key2" => Value::Null,
                     "key3" => "",
-                }, // original
+                }.into(), // original
                 CompactOptions {
                     string: false,
                     ..CompactOptions::default()
@@ -366,24 +367,24 @@ mod test {
                 btreemap! {
                     "key1" => Value::from(1),
                     "key3" => Value::from(2),
-                },
+                }.into(),
                 btreemap! {
                     "key1" => Value::from(1),
                     "key2" => Value::Array(vec![]),
                     "key3" => Value::from(2),
-                },
+                }.into(),
                 CompactOptions::default(),
             ),
             (
-                ObjectMap::from([
+                BTreeMap::from([
                     (KeyString::from("key1"), Value::from(1)),
                     (
                         KeyString::from("key2"),
                         Value::Object(ObjectMap::from([(KeyString::from("key2"), Value::from(3))])),
                     ),
                     (KeyString::from("key3"), Value::from(2)),
-                ]),
-                ObjectMap::from([
+                ]).into(),
+                BTreeMap::from([
                     (KeyString::from("key1"), Value::from(1)),
                     (
                         KeyString::from("key2"),
@@ -394,44 +395,44 @@ mod test {
                         ])),
                     ),
                     (KeyString::from("key3"), Value::from(2)),
-                ]),
+                ]).into(),
                 CompactOptions::default(),
             ),
             (
-                ObjectMap::from([
+                BTreeMap::from([
                     (KeyString::from("key1"), Value::from(1)),
                     (
                         KeyString::from("key2"),
                         Value::Object(ObjectMap::from([(KeyString::from("key1"), Value::Null)])),
                     ),
                     (KeyString::from("key3"), Value::from(2)),
-                ]),
-                ObjectMap::from([
+                ]).into(),
+                BTreeMap::from([
                     (KeyString::from("key1"), Value::from(1)),
                     (
                         KeyString::from("key2"),
                         Value::Object(ObjectMap::from([(KeyString::from("key1"), Value::Null)])),
                     ),
                     (KeyString::from("key3"), Value::from(2)),
-                ]),
+                ]).into(),
                 CompactOptions {
                     recursive: false,
                     ..CompactOptions::default()
                 },
             ),
             (
-                ObjectMap::from([
+                BTreeMap::from([
                     (KeyString::from("key1"), Value::from(1)),
                     (KeyString::from("key3"), Value::from(2)),
-                ]),
-                ObjectMap::from([
+                ]).into(),
+                BTreeMap::from([
                     (KeyString::from("key1"), Value::from(1)),
                     (
                         KeyString::from("key2"),
                         Value::Object(ObjectMap::from([(KeyString::from("key1"), Value::Null)])),
                     ),
                     (KeyString::from("key3"), Value::from(2)),
-                ]),
+                ]).into(),
                 CompactOptions::default(),
             ),
             (
@@ -439,12 +440,12 @@ mod test {
                     "key1" => Value::from(1),
                     "key2" => Value::Array(vec![2.into()]),
                     "key3" => Value::from(2),
-                },
+                }.into(),
                 btreemap! {
                     "key1" => Value::from(1),
                     "key2" => Value::Array(vec![Value::Null, 2.into(), Value::Null]),
                     "key3" => Value::from(2),
-                },
+                }.into(),
                 CompactOptions::default(),
             ),
         ];
@@ -478,7 +479,7 @@ mod test {
                 },
                 nullish: true
             ],
-            want: Ok(Value::Object(ObjectMap::from([(KeyString::from("key2"), Value::from(1))]))),
+            want: Ok(Value::Object(BTreeMap::from_iter([(KeyString::from("key2"), Value::from(1))]).into())),
             tdef: TypeDef::object(Collection::any()),
         }
     ];
