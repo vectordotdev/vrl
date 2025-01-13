@@ -4,6 +4,32 @@
 
 <!-- changelog start -->
 
+## [0.21.0 (2025-01-13)]
+
+
+### Breaking Changes & Upgrade Guide
+
+- `to_unix_timestamp`, `to_float`, and `uuid_v7` can now return an error if the supplied timestamp is unrepresentable as a nanosecond timestamp. Previously the function calls would panic. (https://github.com/vectordotdev/vrl/pull/979)
+
+### New Features
+
+- Added new `crc` function to calculate CRC (Cyclic Redundancy Check) checksum
+- Add `parse_cbor` function (https://github.com/vectordotdev/vrl/pull/1152)
+- Added new `zip` function to iterate over an array of arrays and produce a new
+  arrays containing an item from each one. (https://github.com/vectordotdev/vrl/pull/1158)
+- Add new `decode_charset`, `encode_charset` functions to decode and encode strings between different charsets. (https://github.com/vectordotdev/vrl/pull/1162)
+- Added new `object_from_array` function to create an object from an array of
+  value pairs such as what `zip` can produce. (https://github.com/vectordotdev/vrl/pull/1164)
+- Added support for multi-unit duration strings (e.g., `1h2s`, `2m3s`) in the `parse_duration` function. (https://github.com/vectordotdev/vrl/pull/1197)
+- Added new `parse_bytes` function to parse given bytes string such as `1MiB` or `1TB` either in binary or decimal base. (https://github.com/vectordotdev/vrl/pull/1198)
+- Add `main` log format for `parse_nginx_log`. (https://github.com/vectordotdev/vrl/pull/1202)
+- Added support for optional `timezone` argument in the `parse_timestamp` function. (https://github.com/vectordotdev/vrl/pull/1207)
+
+### Fixes
+
+- Fix a panic in float subtraction that produces NaN values. (https://github.com/vectordotdev/vrl/pull/1186)
+
+
 ## [0.20.1 (2024-12-09)]
 
 
