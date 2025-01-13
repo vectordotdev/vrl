@@ -29,7 +29,7 @@
 
 ### Fixes
 
-- Fix a panic in float subtraction that produces NaN values. (https://github.com/vectordotdev/vrl/pull/2893)
+- Fix a panic in float subtraction that produces NaN values. (https://github.com/vectordotdev/vrl/pull/1186)
 
 
 ## [0.20.1 (2024-12-09)]
