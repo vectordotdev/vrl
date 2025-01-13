@@ -47,6 +47,7 @@ pub struct AstVisitor<'a> {
 struct IdentState {
     span: Span,
     pending_usage: bool,
+    used_in_closure: bool,
 }
 
 #[derive(Default, Debug, Clone)]
@@ -55,6 +56,7 @@ struct VisitorState {
     expecting_result: HashMap<usize, bool>,
     within_block_expression: HashMap<usize, bool>,
     ident_to_state: BTreeMap<Ident, IdentState>,
+    visiting_closure: bool,
     diagnostics: DiagnosticList,
 }
 
@@ -108,10 +110,14 @@ impl VisitorState {
             .entry(ident.clone())
             .and_modify(|state| {
                 state.pending_usage = true;
+                if self.visiting_closure {
+                    state.used_in_closure = true;
+                }
             })
             .or_insert(IdentState {
                 span: *span,
                 pending_usage: true,
+                used_in_closure: self.visiting_closure,
             });
     }
 
@@ -122,6 +128,9 @@ impl VisitorState {
 
         if let Some(entry) = self.ident_to_state.get_mut(ident) {
             entry.pending_usage = false;
+            if self.visiting_closure {
+                entry.used_in_closure = true;
+            }
         } else {
             warn!("unexpected identifier `{}` reported as used", ident);
         }
@@ -136,6 +145,14 @@ impl VisitorState {
             QueryTarget::FunctionCall(_) => {}
             QueryTarget::Container(_) => {}
         }
+    }
+
+    fn mark_visiting_closure(&mut self) {
+        self.visiting_closure = true;
+    }
+
+    fn mark_not_visiting_closure(&mut self) {
+        self.visiting_closure = false;
     }
 
     fn append_diagnostic(&mut self, message: String, span: &Span) {
@@ -155,7 +172,8 @@ impl VisitorState {
 
     fn extend_diagnostics_for_unused_variables(&mut self) {
         for (ident, state) in self.ident_to_state.clone() {
-            if state.pending_usage {
+            // Remove the closure check after https://github.com/vectordotdev/vrl/issues/1216 is resolved.
+            if state.pending_usage && !state.used_in_closure {
                 self.append_diagnostic(format!("unused variable `{ident}`"), &state.span);
             }
         }
@@ -356,6 +374,7 @@ impl AstVisitor<'_> {
 
         if !SIDE_EFFECT_FUNCTIONS.contains(&function_call.ident.0.as_str()) {
             if let Some(closure) = &function_call.closure {
+                state.mark_visiting_closure();
                 for variable in &closure.variables {
                     state.mark_identifier_pending_usage(&variable.node, &variable.span);
                 }
@@ -368,6 +387,7 @@ impl AstVisitor<'_> {
                     span,
                 );
             }
+            state.mark_not_visiting_closure();
         }
 
         if !function_call.abort_on_error && state.is_within_block() {
@@ -677,6 +697,19 @@ mod test {
             x |= { "a" : 1}
             .
         "#};
+        unused_test(source, vec![]);
+    }
+
+    #[test]
+    fn false_closure_variable_unused_warning() {
+        let source = indoc! {r"
+           done = false
+            for_each([1]) -> |_i, _v| {
+                if !done {
+                    done = true
+                }
+            }
+        "};
         unused_test(source, vec![]);
     }
 }
