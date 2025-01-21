@@ -1,32 +1,73 @@
 use crate::compiler::prelude::*;
 use humantime::parse_duration as ht_parse_duration;
 use once_cell::sync::Lazy;
-use std::collections::HashMap;
+use regex::Regex;
+use rust_decimal::{prelude::ToPrimitive, Decimal};
 use std::time::Duration;
+use std::{collections::HashMap, str::FromStr};
+use tracing::warn;
 
 fn parse_duration(bytes: Value, unit: Value) -> Resolved {
     let bytes = bytes.try_bytes()?;
     let value = String::from_utf8_lossy(&bytes);
+
     // Remove all spaces and replace the micro symbol with the ASCII equivalent
     // since the `humantime` does not support them.
     let trimmed_value = value.replace(' ', "").replace("µs", "us");
 
+    // Parse the conversion factor
+    let conversion_factor = {
+        let bytes = unit.clone().try_bytes()?;
+        let string = String::from_utf8_lossy(&bytes);
+
+        *DURATION_UNITS
+            .get(string.as_ref())
+            .ok_or(format!("unknown unit format: '{string}'"))?
+    };
+
+    // Try the `ht_parse_duration` first
+    match ht_parse_duration(&trimmed_value) {
+        Ok(duration) => {
+            let number = duration.div_duration_f64(conversion_factor);
+            Ok(Value::from_f64_or_zero(number))
+        }
+        Err(ht_error) => {
+            warn!(message = "parsing duration with humantime failed, falling back to regex", trimmed_value = %trimmed_value,error =  %ht_error);
+            parse_duration_regex(&value, unit)
+        }
+    }
+}
+
+fn parse_duration_regex(value: &str, unit: Value) -> Resolved {
+    // Parse the conversion factor as a `Decimal`
     let conversion_factor = {
         let bytes = unit.try_bytes()?;
         let string = String::from_utf8_lossy(&bytes);
 
-        *UNITS
+        DECIMAL_UNITS
             .get(string.as_ref())
             .ok_or(format!("unknown unit format: '{string}'"))?
     };
-    let duration = ht_parse_duration(&trimmed_value)
-        .map_err(|e| format!("unable to parse duration: '{e}'"))?;
-    let number = duration.div_duration_f64(conversion_factor);
 
+    // Use regex to extract the value and unit
+    let captures = RE
+        .captures(value)
+        .ok_or(format!("unable to parse duration: '{value}'"))?;
+    let parsed_value = Decimal::from_str(&captures["value"])
+        .map_err(|error| format!("unable to parse number: {error}"))?;
+    let parsed_unit = DECIMAL_UNITS
+        .get(&captures["unit"])
+        .ok_or(format!("unknown duration unit: '{}'", &captures["unit"]))?;
+    let number = parsed_value * parsed_unit / conversion_factor;
+
+    // Convert to `f64` safely and return the result
+    let number = number
+        .to_f64()
+        .ok_or(format!("unable to format duration: '{number}'"))?;
     Ok(Value::from_f64_or_zero(number))
 }
 
-static UNITS: Lazy<HashMap<String, Duration>> = Lazy::new(|| {
+static DURATION_UNITS: Lazy<HashMap<String, Duration>> = Lazy::new(|| {
     vec![
         ("ns", Duration::from_nanos(1)),
         ("us", Duration::from_micros(1)),
@@ -38,6 +79,36 @@ static UNITS: Lazy<HashMap<String, Duration>> = Lazy::new(|| {
         ("m", Duration::from_secs(60)),
         ("h", Duration::from_secs(3_600)),
         ("d", Duration::from_secs(86_400)),
+    ]
+    .into_iter()
+    .map(|(k, v)| (k.to_owned(), v))
+    .collect()
+});
+
+static RE: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(
+        r"(?ix)                        # i: case-insensitive, x: ignore whitespace + comments
+            \A
+            (?P<value>[0-9]*\.?[0-9]+) # value: integer or float
+            \s?                        # optional space between value and unit
+            (?P<unit>[µa-z]{1,2})      # unit: one or two letters
+            \z",
+    )
+    .unwrap()
+});
+
+static DECIMAL_UNITS: Lazy<HashMap<String, Decimal>> = Lazy::new(|| {
+    vec![
+        ("ns", Decimal::new(1, 9)),
+        ("us", Decimal::new(1, 6)),
+        ("µs", Decimal::new(1, 6)),
+        ("ms", Decimal::new(1, 3)),
+        ("cs", Decimal::new(1, 2)),
+        ("ds", Decimal::new(1, 1)),
+        ("s", Decimal::new(1, 0)),
+        ("m", Decimal::new(60, 0)),
+        ("h", Decimal::new(3_600, 0)),
+        ("d", Decimal::new(86_400, 0)),
     ]
     .into_iter()
     .map(|(k, v)| (k.to_owned(), v))
@@ -206,17 +277,31 @@ mod tests {
             tdef: TypeDef::float().fallible(),
         }
 
+        decimal_s_ms {
+            args: func_args![value: "12.3s",
+                             unit: "ms"],
+            want: Ok(12300.0),
+            tdef: TypeDef::float().fallible(),
+        }
+
+        decimal_s_ms_2 {
+            args: func_args![value: "123.0s",
+                             unit: "ms"],
+            want: Ok(123_000.0),
+            tdef: TypeDef::float().fallible(),
+        }
+
         error_invalid {
             args: func_args![value: "foo",
                              unit: "ms"],
-            want: Err("unable to parse duration: 'expected number at 0'"),
+            want: Err("unable to parse duration: 'foo'"),
             tdef: TypeDef::float().fallible(),
         }
 
         error_ns {
             args: func_args![value: "1",
                              unit: "ns"],
-            want: Err("unable to parse duration: 'time unit needed, for example 1sec or 1ms'"),
+            want: Err("unable to parse duration: '1'"),
             tdef: TypeDef::float().fallible(),
         }
 
@@ -230,7 +315,7 @@ mod tests {
         error_failed_2nd_unit {
             args: func_args![value: "1d foo",
                              unit: "s"],
-            want: Err("unable to parse duration: 'unknown time unit \"dfoo\", supported units: ns, us, ms, sec, min, hours, days, weeks, months, years (and few variations)'"),
+            want: Err("unable to parse duration: '1d foo'"),
             tdef: TypeDef::float().fallible(),
         }
     ];
