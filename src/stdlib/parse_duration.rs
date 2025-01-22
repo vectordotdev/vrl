@@ -39,7 +39,7 @@ fn parse_duration(bytes: Value, unit: Value) -> Resolved {
 }
 
 fn parse_duration_regex(value: &str, unit: Value) -> Resolved {
-    // Parse the conversion factor as a `Decimal`
+    let mut value = &value[..];
     let conversion_factor = {
         let bytes = unit.try_bytes()?;
         let string = String::from_utf8_lossy(&bytes);
@@ -48,23 +48,26 @@ fn parse_duration_regex(value: &str, unit: Value) -> Resolved {
             .get(string.as_ref())
             .ok_or(format!("unknown unit format: '{string}'"))?
     };
+    let mut num = 0.0;
+    while !value.is_empty() {
+        let captures = RE
+            .captures(value)
+            .ok_or(format!("unable to parse duration: '{value}'"))?;
+        let capture_match = captures.get(0).unwrap();
 
-    // Use regex to extract the value and unit
-    let captures = RE
-        .captures(value)
-        .ok_or(format!("unable to parse duration: '{value}'"))?;
-    let parsed_value = Decimal::from_str(&captures["value"])
-        .map_err(|error| format!("unable to parse number: {error}"))?;
-    let parsed_unit = DECIMAL_UNITS
-        .get(&captures["unit"])
-        .ok_or(format!("unknown duration unit: '{}'", &captures["unit"]))?;
-    let number = parsed_value * parsed_unit / conversion_factor;
-
-    // Convert to `f64` safely and return the result
-    let number = number
-        .to_f64()
-        .ok_or(format!("unable to format duration: '{number}'"))?;
-    Ok(Value::from_f64_or_zero(number))
+        let value_decimal = Decimal::from_str(&captures["value"])
+            .map_err(|error| format!("unable to parse number: {error}"))?;
+        let unit = DECIMAL_UNITS
+            .get(&captures["unit"])
+            .ok_or(format!("unknown duration unit: '{}'", &captures["unit"]))?;
+        let number = value_decimal * unit / conversion_factor;
+        let number = number
+            .to_f64()
+            .ok_or(format!("unable to format duration: '{number}'"))?;
+        num += number;
+        value = &value[capture_match.end()..];
+    }
+    Ok(Value::from_f64_or_zero(num))
 }
 
 static DURATION_UNITS: Lazy<HashMap<String, Duration>> = Lazy::new(|| {
