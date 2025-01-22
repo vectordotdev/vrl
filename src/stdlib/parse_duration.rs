@@ -91,11 +91,9 @@ static DURATION_UNITS: Lazy<HashMap<String, Duration>> = Lazy::new(|| {
 static RE: Lazy<Regex> = Lazy::new(|| {
     Regex::new(
         r"(?ix)                        # i: case-insensitive, x: ignore whitespace + comments
-            \A
             (?P<value>[0-9]*\.?[0-9]+) # value: integer or float
             \s?                        # optional space between value and unit
-            (?P<unit>[µa-z]{1,2})      # unit: one or two letters
-            \z",
+            (?P<unit>[µa-z]{1,2})      # unit: one or two letters",
     )
     .unwrap()
 });
@@ -294,6 +292,20 @@ mod tests {
             tdef: TypeDef::float().fallible(),
         }
 
+        decimal_h_s_ms {
+            args: func_args![value: "1h12.3s",
+                             unit: "ms"],
+            want: Ok(3_612_300.0),
+            tdef: TypeDef::float().fallible(),
+        }
+
+        decimal_d_s_s {
+            args: func_args![value: "1.1d12.3s",
+                             unit: "s"],
+            want: Ok(95052.3),
+            tdef: TypeDef::float().fallible(),
+        }
+
         error_invalid {
             args: func_args![value: "foo",
                              unit: "ms"],
@@ -318,7 +330,7 @@ mod tests {
         error_failed_2nd_unit {
             args: func_args![value: "1d foo",
                              unit: "s"],
-            want: Err("unable to parse duration: '1d foo'"),
+            want: Err("unable to parse duration: ' foo'"),
             tdef: TypeDef::float().fallible(),
         }
     ];
