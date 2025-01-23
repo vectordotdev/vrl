@@ -1,50 +1,18 @@
 use crate::compiler::prelude::*;
-use humantime::parse_duration as ht_parse_duration;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rust_decimal::{prelude::ToPrimitive, Decimal};
-use std::time::Duration;
 use std::{collections::HashMap, str::FromStr};
-use tracing::warn;
 
 fn parse_duration(bytes: Value, unit: Value) -> Resolved {
     let bytes = bytes.try_bytes()?;
     let value = String::from_utf8_lossy(&bytes);
-
-    // Remove all spaces and replace the micro symbol with the ASCII equivalent
-    // since the `humantime` does not support them.
-    let trimmed_value = value.replace(' ', "").replace("µs", "us");
-
-    // Parse the conversion factor
-    let conversion_factor = {
-        let bytes = unit.clone().try_bytes()?;
-        let string = String::from_utf8_lossy(&bytes);
-
-        *DURATION_UNITS
-            .get(string.as_ref())
-            .ok_or(format!("unknown unit format: '{string}'"))?
-    };
-
-    // Try the `ht_parse_duration` first
-    match ht_parse_duration(&trimmed_value) {
-        Ok(duration) => {
-            let number = duration.div_duration_f64(conversion_factor);
-            Ok(Value::from_f64_or_zero(number))
-        }
-        Err(ht_error) => {
-            warn!(message = "parsing duration with humantime failed, falling back to regex", trimmed_value = %trimmed_value,error =  %ht_error);
-            parse_duration_regex(&value, unit)
-        }
-    }
-}
-
-fn parse_duration_regex(value: &str, unit: Value) -> Resolved {
     let mut value = &value[..];
     let conversion_factor = {
         let bytes = unit.try_bytes()?;
         let string = String::from_utf8_lossy(&bytes);
 
-        DECIMAL_UNITS
+        UNITS
             .get(string.as_ref())
             .ok_or(format!("unknown unit format: '{string}'"))?
     };
@@ -57,7 +25,7 @@ fn parse_duration_regex(value: &str, unit: Value) -> Resolved {
 
         let value_decimal = Decimal::from_str(&captures["value"])
             .map_err(|error| format!("unable to parse number: {error}"))?;
-        let unit = DECIMAL_UNITS
+        let unit = UNITS
             .get(&captures["unit"])
             .ok_or(format!("unknown duration unit: '{}'", &captures["unit"]))?;
         let number = value_decimal * unit / conversion_factor;
@@ -70,24 +38,6 @@ fn parse_duration_regex(value: &str, unit: Value) -> Resolved {
     Ok(Value::from_f64_or_zero(num))
 }
 
-static DURATION_UNITS: Lazy<HashMap<String, Duration>> = Lazy::new(|| {
-    vec![
-        ("ns", Duration::from_nanos(1)),
-        ("us", Duration::from_micros(1)),
-        ("µs", Duration::from_micros(1)),
-        ("ms", Duration::from_millis(1)),
-        ("cs", Duration::from_millis(10)),
-        ("ds", Duration::from_millis(100)),
-        ("s", Duration::from_secs(1)),
-        ("m", Duration::from_secs(60)),
-        ("h", Duration::from_secs(3_600)),
-        ("d", Duration::from_secs(86_400)),
-    ]
-    .into_iter()
-    .map(|(k, v)| (k.to_owned(), v))
-    .collect()
-});
-
 static RE: Lazy<Regex> = Lazy::new(|| {
     Regex::new(
         r"(?ix)                        # i: case-insensitive, x: ignore whitespace + comments
@@ -98,7 +48,7 @@ static RE: Lazy<Regex> = Lazy::new(|| {
     .unwrap()
 });
 
-static DECIMAL_UNITS: Lazy<HashMap<String, Decimal>> = Lazy::new(|| {
+static UNITS: Lazy<HashMap<String, Decimal>> = Lazy::new(|| {
     vec![
         ("ns", Decimal::new(1, 9)),
         ("us", Decimal::new(1, 6)),
@@ -110,6 +60,7 @@ static DECIMAL_UNITS: Lazy<HashMap<String, Decimal>> = Lazy::new(|| {
         ("m", Decimal::new(60, 0)),
         ("h", Decimal::new(3_600, 0)),
         ("d", Decimal::new(86_400, 0)),
+        ("w", Decimal::new(604_800, 0)),
     ]
     .into_iter()
     .map(|(k, v)| (k.to_owned(), v))
@@ -320,10 +271,10 @@ mod tests {
             tdef: TypeDef::float().fallible(),
         }
 
-        error_format {
+        s_w {
             args: func_args![value: "1s",
                              unit: "w"],
-            want: Err("unknown unit format: 'w'"),
+            want: Ok(0.000_001_653_439_153_439_153_5),
             tdef: TypeDef::float().fallible(),
         }
 
