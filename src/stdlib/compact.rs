@@ -155,6 +155,7 @@ struct CompactFn {
 }
 
 #[derive(Debug)]
+#[allow(clippy::struct_excessive_bools)] // TODO replace with bitflags
 struct CompactOptions {
     recursive: bool,
     null: bool,
