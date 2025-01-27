@@ -125,7 +125,7 @@ impl FunctionExpression for HmacFn {
                 }
             }
         } else {
-            valid_static_algo = true
+            valid_static_algo = true;
         }
 
         if valid_static_algo {

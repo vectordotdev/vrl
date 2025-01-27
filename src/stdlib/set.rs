@@ -155,11 +155,11 @@ impl FunctionExpression for SetFn {
         let mut td = TypeDef::from(Kind::never()).fallible();
 
         if value_td.is_array() {
-            td = td.or_array(Collection::any())
+            td = td.or_array(Collection::any());
         };
 
         if value_td.is_object() {
-            td = td.or_object(Collection::any())
+            td = td.or_object(Collection::any());
         };
 
         td

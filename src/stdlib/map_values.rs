@@ -139,13 +139,13 @@ impl FunctionExpression for MapValuesFn {
 fn recursive_type_def(from: &mut Kind, to: Kind, root: bool) {
     if let Some(object) = from.as_object_mut() {
         for v in object.known_mut().values_mut() {
-            recursive_type_def(v, to.clone(), false)
+            recursive_type_def(v, to.clone(), false);
         }
     }
 
     if let Some(array) = from.as_array_mut() {
         for v in array.known_mut().values_mut() {
-            recursive_type_def(v, to.clone(), false)
+            recursive_type_def(v, to.clone(), false);
         }
     }
 

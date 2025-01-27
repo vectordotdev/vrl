@@ -127,7 +127,7 @@ fn mask_ips(ip: IpAddr, mask: IpAddr) -> ExpressionResult<IpAddr> {
                 .zip(addr.segments().iter())
                 .zip(mask.segments().iter())
             {
-                *masked = addr & mask
+                *masked = addr & mask;
             }
 
             Ok(IpAddr::from(masked))

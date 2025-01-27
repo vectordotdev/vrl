@@ -321,7 +321,7 @@ impl Redactor {
                 dst.push_str(s);
             }
             Redactor::Hash { encoder, hasher } => {
-                dst.push_str(&hasher(*encoder, original.as_bytes()))
+                dst.push_str(&hasher(*encoder, original.as_bytes()));
             }
         }
     }

@@ -25,15 +25,12 @@ impl Iterator for Chars<'_> {
             Some(Ok(self.bytes[self.pos - 1] as char))
         } else {
             let c = std::str::from_utf8(&self.bytes[self.pos..self.pos + width]);
-            match c {
-                Ok(chr) => {
-                    self.pos += width;
-                    Some(Ok(chr.chars().next().unwrap()))
-                }
-                Err(_) => {
-                    self.pos += 1;
-                    Some(Err(self.bytes[self.pos]))
-                }
+            if let Ok(chr) = c {
+                self.pos += width;
+                Some(Ok(chr.chars().next().unwrap()))
+            } else {
+                self.pos += 1;
+                Some(Err(self.bytes[self.pos]))
             }
         }
     }

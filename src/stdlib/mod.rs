@@ -19,12 +19,6 @@
     clippy::match_bool, // allowed in initial deny commit
     clippy::match_same_arms, // allowed in initial deny commit
     clippy::needless_pass_by_value, // allowed in initial deny commit
-    clippy::semicolon_if_nothing_returned,  // allowed in initial deny commit
-    clippy::similar_names, // allowed in initial deny commit
-    clippy::single_match_else, // allowed in initial deny commit
-    clippy::struct_excessive_bools,  // allowed in initial deny commit
-    clippy::too_many_lines, // allowed in initial deny commit
-    clippy::trivially_copy_pass_by_ref, // allowed in initial deny commit
 )]
 
 pub use wasm_unsupported_function::WasmUnsupportedFunction;
@@ -416,6 +410,7 @@ cfg_if::cfg_if! {
 
 #[cfg(feature = "stdlib")]
 #[must_use]
+#[allow(clippy::too_many_lines)]
 pub fn all() -> Vec<Box<dyn Function>> {
     vec![
         Box::new(Abs),

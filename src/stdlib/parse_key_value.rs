@@ -364,7 +364,7 @@ fn escape_str(s: &str) -> Cow<'_, str> {
         let mut chars = s.chars().peekable();
 
         while let Some(c) = chars.next() {
-            out.push(escape_char(c, &mut chars))
+            out.push(escape_char(c, &mut chars));
         }
         Cow::Owned(out)
     } else {

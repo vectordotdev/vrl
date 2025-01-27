@@ -25,7 +25,7 @@ fn parse_apache_log(
         regexes,
         &message,
         &timestamp_format,
-        ctx.timezone(),
+        *ctx.timezone(),
         std::str::from_utf8(format.as_ref()).unwrap(),
     )
     .map_err(Into::into)

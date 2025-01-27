@@ -155,6 +155,7 @@ struct CompactFn {
 }
 
 #[derive(Debug)]
+#[allow(clippy::struct_excessive_bools)] // TODO replace with bitflags
 struct CompactOptions {
     recursive: bool,
     null: bool,
@@ -338,11 +339,12 @@ mod test {
         ];
 
         for (expected, original, options) in cases {
-            assert_eq!(expected, compact_array(original, &options))
+            assert_eq!(expected, compact_array(original, &options));
         }
     }
 
     #[test]
+    #[allow(clippy::too_many_lines)]
     fn test_compacted_map() {
         let cases = vec![
             (
@@ -448,7 +450,7 @@ mod test {
         ];
 
         for (expected, original, options) in cases {
-            assert_eq!(expected, compact_object(original, &options))
+            assert_eq!(expected, compact_object(original, &options));
         }
     }
 

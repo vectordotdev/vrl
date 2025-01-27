@@ -18,7 +18,7 @@ fn parse_nginx_log(
     };
     let regex = regex_for_format(format.as_ref());
     let captures = regex.captures(&message).ok_or("failed parsing log line")?;
-    log_util::log_fields(regex, &captures, &timestamp_format, ctx.timezone())
+    log_util::log_fields(regex, &captures, &timestamp_format, *ctx.timezone())
         .map(rename_referrer)
         .map_err(Into::into)
 }

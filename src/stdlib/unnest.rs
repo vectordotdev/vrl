@@ -189,6 +189,7 @@ mod tests {
     use crate::{btreemap, type_def, value};
 
     #[test]
+    #[allow(clippy::too_many_lines)]
     fn type_def() {
         struct TestCase {
             old: TypeDef,
