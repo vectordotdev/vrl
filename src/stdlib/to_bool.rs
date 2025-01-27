@@ -32,6 +32,7 @@ impl Function for ToBool {
         }]
     }
 
+    #[allow(clippy::too_many_lines)]
     fn examples(&self) -> &'static [Example] {
         &[
             Example {

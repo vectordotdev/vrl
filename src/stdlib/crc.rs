@@ -117,6 +117,7 @@ const VALID_ALGORITHMS: &[&str] = &[
     "CRC_82_DARC",
 ];
 
+#[allow(clippy::too_many_lines)]
 fn crc(value: Value, algorithm: Value) -> Resolved {
     let value = value.try_bytes()?;
     let algorithm = algorithm.try_bytes_utf8_lossy()?.as_ref().to_uppercase();

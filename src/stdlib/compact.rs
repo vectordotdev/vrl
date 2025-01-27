@@ -343,6 +343,7 @@ mod test {
     }
 
     #[test]
+    #[allow(clippy::too_many_lines)]
     fn test_compacted_map() {
         let cases = vec![
             (

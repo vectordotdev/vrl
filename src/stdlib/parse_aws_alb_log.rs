@@ -129,6 +129,7 @@ fn inner_kind() -> BTreeMap<Field, Kind> {
     ])
 }
 
+#[allow(clippy::too_many_lines)]
 fn parse_log(mut input: &str) -> ExpressionResult<Value> {
     let mut log = BTreeMap::<KeyString, Value>::new();
 
