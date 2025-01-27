@@ -68,7 +68,7 @@ crc32fast,https://github.com/srijs/rust-crc32fast,MIT OR Apache-2.0,"Sam Rijs <s
 crossbeam-channel,https://github.com/crossbeam-rs/crossbeam,MIT OR Apache-2.0,The crossbeam-channel Authors
 crossbeam-epoch,https://github.com/crossbeam-rs/crossbeam,MIT OR Apache-2.0,The crossbeam-epoch Authors
 crossbeam-utils,https://github.com/crossbeam-rs/crossbeam,MIT OR Apache-2.0,The crossbeam-utils Authors
-crunchy,https://github.com/eira-fransham/crunchy,MIT,Vurich <jackefransham@hotmail.co.uk>
+crunchy,https://github.com/eira-fransham/crunchy,MIT,Eira Fransham <jackefransham@gmail.com>
 crypto-common,https://github.com/RustCrypto/traits,MIT OR Apache-2.0,RustCrypto Developers
 crypto_secretbox,https://github.com/RustCrypto/nacl-compat/tree/master/crypto_secretbox,Apache-2.0 OR MIT,RustCrypto Developers
 csv,https://github.com/BurntSushi/rust-csv,Unlicense OR MIT,Andrew Gallant <jamslam@gmail.com>
