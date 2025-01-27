@@ -98,19 +98,19 @@ mod implementation {
         let res = value.to_string_lossy();
         match level.as_ref() {
             b"trace" => {
-                trace!(message = %res, internal_log_rate_secs = rate_limit_secs, vrl_position = span.start())
+                trace!(message = %res, internal_log_rate_secs = rate_limit_secs, vrl_position = span.start());
             }
             b"debug" => {
-                debug!(message = %res, internal_log_rate_secs = rate_limit_secs, vrl_position = span.start())
+                debug!(message = %res, internal_log_rate_secs = rate_limit_secs, vrl_position = span.start());
             }
             b"warn" => {
-                warn!(message = %res, internal_log_rate_secs = rate_limit_secs, vrl_position = span.start())
+                warn!(message = %res, internal_log_rate_secs = rate_limit_secs, vrl_position = span.start());
             }
             b"error" => {
-                error!(message = %res, internal_log_rate_secs = rate_limit_secs, vrl_position = span.start())
+                error!(message = %res, internal_log_rate_secs = rate_limit_secs, vrl_position = span.start());
             }
             _ => {
-                info!(message = %res, internal_log_rate_secs = rate_limit_secs, vrl_position = span.start())
+                info!(message = %res, internal_log_rate_secs = rate_limit_secs, vrl_position = span.start());
             }
         }
         Ok(Value::Null)

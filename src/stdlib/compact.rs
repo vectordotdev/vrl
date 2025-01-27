@@ -339,7 +339,7 @@ mod test {
         ];
 
         for (expected, original, options) in cases {
-            assert_eq!(expected, compact_array(original, &options))
+            assert_eq!(expected, compact_array(original, &options));
         }
     }
 
@@ -450,7 +450,7 @@ mod test {
         ];
 
         for (expected, original, options) in cases {
-            assert_eq!(expected, compact_object(original, &options))
+            assert_eq!(expected, compact_object(original, &options));
         }
     }
 

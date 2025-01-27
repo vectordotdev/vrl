@@ -19,7 +19,6 @@
     clippy::match_bool, // allowed in initial deny commit
     clippy::match_same_arms, // allowed in initial deny commit
     clippy::needless_pass_by_value, // allowed in initial deny commit
-    clippy::semicolon_if_nothing_returned,  // allowed in initial deny commit
 )]
 
 pub use wasm_unsupported_function::WasmUnsupportedFunction;

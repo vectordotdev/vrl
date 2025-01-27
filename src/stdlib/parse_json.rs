@@ -71,7 +71,7 @@ fn parse_layer(value: &RawValue, remaining_depth: u8) -> std::result::Result<Jso
 
             let mut res_arr: Vec<JsonValue> = Vec::with_capacity(arr.len());
             for v in arr {
-                res_arr.push(parse_layer(v, remaining_depth - 1)?)
+                res_arr.push(parse_layer(v, remaining_depth - 1)?);
             }
             Ok(serde_json::Value::from(res_arr))
         }

@@ -44,15 +44,15 @@ fn format_number(
             let i = i as usize;
 
             if parts.len() == 1 {
-                parts.push(String::new())
+                parts.push(String::new());
             }
 
             if i > parts[1].len() {
                 for _ in 0..i - parts[1].len() {
-                    parts[1].push('0')
+                    parts[1].push('0');
                 }
             } else {
-                parts[1].truncate(i)
+                parts[1].truncate(i);
             }
         }
         None => {}
