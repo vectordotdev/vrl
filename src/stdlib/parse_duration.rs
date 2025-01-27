@@ -239,21 +239,21 @@ mod tests {
         d_w {
             args: func_args![value: "8d",
                              unit: "w"],
-            want: Ok(1.1428571428571428),
+            want: Ok(1.142_857_142_857_142_8),
             tdef: TypeDef::float().fallible(),
         }
 
         d_w_2 {
             args: func_args![value: "30d",
                              unit: "w"],
-            want: Ok(4.285714285714286),
+            want: Ok(4.285_714_285_714_286),
             tdef: TypeDef::float().fallible(),
         }
 
         d_s_2 {
             args: func_args![value: "8d",
                              unit: "s"],
-            want: Ok(691200.0),
+            want: Ok(691_200.0),
             tdef: TypeDef::float().fallible(),
         }
 
