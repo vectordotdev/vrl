@@ -161,6 +161,7 @@ criterion_group!(
               to_int,
               to_regex,
               to_string,
+              to_syslog_facility_code,
               to_syslog_facility,
               to_syslog_level,
               to_syslog_severity,

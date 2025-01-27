@@ -204,6 +204,7 @@ cfg_if::cfg_if! {
         mod to_int;
         mod to_regex;
         mod to_string;
+        mod to_syslog_facility_code;
         mod to_syslog_facility;
         mod to_syslog_level;
         mod to_syslog_severity;
@@ -389,6 +390,7 @@ cfg_if::cfg_if! {
         pub use to_int::ToInt;
         pub use to_regex::ToRegex;
         pub use to_string::ToString;
+        pub use to_syslog_facility_code::ToSyslogFacilityCode;
         pub use to_syslog_facility::ToSyslogFacility;
         pub use to_syslog_level::ToSyslogLevel;
         pub use to_syslog_severity::ToSyslogSeverity;
@@ -585,6 +587,7 @@ pub fn all() -> Vec<Box<dyn Function>> {
         Box::new(ToInt),
         Box::new(ToRegex),
         Box::new(ToString),
+        Box::new(ToSyslogFacilityCode),
         Box::new(ToSyslogFacility),
         Box::new(ToSyslogLevel),
         Box::new(ToSyslogSeverity),
