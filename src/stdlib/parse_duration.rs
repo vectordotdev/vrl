@@ -229,6 +229,34 @@ mod tests {
             tdef: TypeDef::float().fallible(),
         }
 
+        w_d {
+            args: func_args![value: "1.1w",
+                             unit: "d"],
+            want: Ok(7.7),
+            tdef: TypeDef::float().fallible(),
+        }
+
+        d_w {
+            args: func_args![value: "8d",
+                             unit: "w"],
+            want: Ok(1.1428571428571428),
+            tdef: TypeDef::float().fallible(),
+        }
+
+        d_w_2 {
+            args: func_args![value: "30d",
+                             unit: "w"],
+            want: Ok(4.285714285714286),
+            tdef: TypeDef::float().fallible(),
+        }
+
+        d_s_2 {
+            args: func_args![value: "8d",
+                             unit: "s"],
+            want: Ok(691200.0),
+            tdef: TypeDef::float().fallible(),
+        }
+
         decimal_s_ms {
             args: func_args![value: "12.3s",
                              unit: "ms"],
