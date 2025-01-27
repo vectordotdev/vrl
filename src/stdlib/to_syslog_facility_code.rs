@@ -60,7 +60,7 @@ impl Function for ToSyslogFacilityCode {
                 title: "invalid",
                 source: "to_syslog_facility_code!(s'foobar')",
                 result: Err(
-                    r#"function call error for "to_syslog_facility_code" at (0:30): syslog facility 'foobar' not valid"#,
+                    r#"function call error for "to_syslog_facility_code" at (0:35): syslog facility 'foobar' not valid"#,
                 ),
             },
         ]
