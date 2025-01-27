@@ -60,7 +60,7 @@ impl Function for ToSyslogFacilityCode {
                 title: "invalid",
                 source: "to_syslog_facility_code!(s'foobar')",
                 result: Err(
-                    r#"function call error for "to_syslog_facility_code" at (0:30): syslog facility foobar not valid"#,
+                    r#"function call error for "to_syslog_facility_code" at (0:30): syslog facility 'foobar' not valid"#,
                 ),
             },
         ]
@@ -248,13 +248,13 @@ mod tests {
 
         invalid_facility_1 {
             args: func_args![value: value!("oopsie")],
-            want: Err("syslog facility oopsie not valid"),
+            want: Err("syslog facility 'oopsie' not valid"),
             tdef: TypeDef::integer().fallible(),
         }
 
         invalid_facility_2 {
             args: func_args![value: value!("aww schucks")],
-            want: Err("syslog facility aww schucks not valid"),
+            want: Err("syslog facility 'aww schucks' not valid"),
             tdef: TypeDef::integer().fallible(),
         }
     ];
