@@ -84,7 +84,6 @@ stdlib = [
   "dep:hex",
   "dep:hmac",
   "dep:hostname",
-  "dep:humantime",
   "dep:iana-time-zone",
   "dep:idna",
   "dep:indexmap",
@@ -200,7 +199,6 @@ snafu = { version = "0.8", optional = true }
 webbrowser = { version = "1.0", default-features = false, optional = true }
 woothee = { version = "0.13", optional = true }
 community-id = { version = "0.2", optional = true }
-humantime = { version = "2.1.0", optional = true}
 
 zstd = { version = "0.13", default-features = false, features = ["wasm"], optional = true }
 
