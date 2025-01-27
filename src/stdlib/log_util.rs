@@ -199,7 +199,7 @@ pub(crate) static REGEX_NGINX_ERROR_LOG: Lazy<Regex> = Lazy::new(|| {
 fn parse_time(
     time: &str,
     format: &str,
-    timezone: &TimeZone,
+    timezone: TimeZone,
 ) -> std::result::Result<DateTime<Utc>, String> {
     timezone
         .datetime_from_str(time, format)
@@ -214,7 +214,7 @@ fn capture_value(
     name: &str,
     value: &str,
     timestamp_format: &str,
-    timezone: &TimeZone,
+    timezone: TimeZone,
 ) -> std::result::Result<Value, String> {
     Ok(match name {
         "timestamp" => Value::Timestamp(parse_time(value, timestamp_format, timezone)?),
@@ -246,7 +246,7 @@ pub(crate) fn log_fields(
     regex: &Regex,
     captures: &Captures,
     timestamp_format: &str,
-    timezone: &TimeZone,
+    timezone: TimeZone,
 ) -> std::result::Result<Value, String> {
     Ok(regex
         .capture_names()
@@ -269,7 +269,7 @@ pub(crate) fn parse_message(
     regexes: &Vec<Regex>,
     message: &str,
     timestamp_format: &str,
-    timezone: &TimeZone,
+    timezone: TimeZone,
     log_type: &str,
 ) -> std::result::Result<Value, String> {
     for regex in regexes {

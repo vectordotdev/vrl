@@ -24,7 +24,6 @@
     clippy::single_match_else, // allowed in initial deny commit
     clippy::struct_excessive_bools,  // allowed in initial deny commit
     clippy::too_many_lines, // allowed in initial deny commit
-    clippy::trivially_copy_pass_by_ref, // allowed in initial deny commit
 )]
 
 pub use wasm_unsupported_function::WasmUnsupportedFunction;
