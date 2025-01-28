@@ -170,7 +170,7 @@ mod tests {
             value!(1),
             &Bytes::from("warn"),
             value!("simple test message"),
-            Default::default(),
+            Span::default(),
         )
         .unwrap();
 
