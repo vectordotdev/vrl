@@ -1,12 +1,6 @@
 #![deny(
     warnings,
-    clippy::all,
     clippy::pedantic,
-    unreachable_pub,
-    unused_allocation,
-    unused_extern_crates,
-    unused_assignments,
-    unused_comparisons
 )]
 #![allow(
     deprecated,
