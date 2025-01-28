@@ -1,7 +1,4 @@
-#![deny(
-    warnings,
-    clippy::pedantic,
-)]
+#![deny(warnings, clippy::pedantic)]
 #![allow(
     deprecated,
     clippy::cast_possible_truncation, // allowed in initial deny commit
