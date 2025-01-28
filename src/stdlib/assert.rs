@@ -1,24 +1,21 @@
 use crate::compiler::prelude::*;
 
 fn assert(condition: Value, message: Option<Value>, format: Option<String>) -> Resolved {
-    match condition.try_boolean()? {
-        true => Ok(true.into()),
-        false => {
-            if let Some(message) = message {
-                let message = message.try_bytes_utf8_lossy()?.into_owned();
-                Err(ExpressionError::Error {
-                    message: message.clone(),
-                    labels: vec![],
-                    notes: vec![Note::UserErrorMessage(message)],
-                })
-            } else {
-                let message = match format {
-                    Some(string) => format!("assertion failed: {string}"),
-                    None => "assertion failed".to_owned(),
-                };
-                Err(ExpressionError::from(message))
-            }
-        }
+    if condition.try_boolean()? {
+        Ok(true.into())
+    } else if let Some(message) = message {
+        let message = message.try_bytes_utf8_lossy()?.into_owned();
+        Err(ExpressionError::Error {
+            message: message.clone(),
+            labels: vec![],
+            notes: vec![Note::UserErrorMessage(message)],
+        })
+    } else {
+        let message = match format {
+            Some(string) => format!("assertion failed: {string}"),
+            None => "assertion failed".to_owned(),
+        };
+        Err(ExpressionError::from(message))
     }
 }
 
