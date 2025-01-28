@@ -12,8 +12,7 @@ fn parse_int(value: Value, base: Option<Value>) -> Resolved {
                 )
                 .into());
             }
-            #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
-            // TODO consider removal options
+            #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)] // TODO consider removal options
             (base as u32, 0)
         }
         None => match string.chars().next() {
