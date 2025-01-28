@@ -16,7 +16,8 @@ where
 {
     let haystack = value.try_bytes_utf8_lossy()?;
     let count = match count.try_integer()? {
-        #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)] // TODO consider removal options
+        #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
+        // TODO consider removal options
         i if i > 0 => i as usize,
         i if i < 0 => 0,
         // this is when i == 0
