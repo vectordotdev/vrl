@@ -21,7 +21,7 @@ fn replace(value: Value, with_value: Value, count: Value, pattern: Value) -> Res
                 i if i > 0 => Bytes::copy_from_slice(
                     regex.replacen(&value, i as usize, with.as_ref()).as_bytes(),
                 )
-                    .into(),
+                .into(),
                 i if i < 0 => {
                     Bytes::copy_from_slice(regex.replace_all(&value, with.as_ref()).as_bytes())
                         .into()
