@@ -17,7 +17,6 @@
     clippy::doc_markdown, // allowed in initial deny commit
     clippy::inefficient_to_string, // allowed in initial deny commit
     clippy::match_bool, // allowed in initial deny commit
-    clippy::match_same_arms, // allowed in initial deny commit
     clippy::needless_pass_by_value, // allowed in initial deny commit
 )]
 
