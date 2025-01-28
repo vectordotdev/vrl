@@ -7,6 +7,7 @@ pub(crate) fn bytes_to_float(bytes: Bytes) -> Resolved {
         .map_err(|e| e.to_string().into())
 }
 
+#[allow(clippy::cast_precision_loss)] //TODO evaluate removal options
 fn to_float(value: Value) -> Resolved {
     use Value::{Boolean, Bytes, Float, Integer, Null, Timestamp};
     match value {
