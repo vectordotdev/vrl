@@ -15,7 +15,6 @@
     clippy::cast_sign_loss, // allowed in initial deny commit
     clippy::default_trait_access, // allowed in initial deny commit
     clippy::doc_markdown, // allowed in initial deny commit
-    clippy::inefficient_to_string, // allowed in initial deny commit
     clippy::match_bool, // allowed in initial deny commit
     clippy::needless_pass_by_value, // allowed in initial deny commit
 )]
