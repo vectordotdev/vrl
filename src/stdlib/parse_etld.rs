@@ -137,7 +137,7 @@ impl FunctionExpression for ParseEtldFn {
 
         let plus_parts = match self.plus_parts.resolve(ctx)?.try_integer()? {
             x if x < 0 => 0,
-            x => x as usize,
+            x => usize::try_from(x).map_err(|e| e.to_string())?,
         };
 
         let suffix_result = if let Some(list) = &self.psl {

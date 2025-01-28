@@ -60,15 +60,17 @@ impl Function for RandomBytes {
     }
 }
 
-fn get_length(value: Value) -> std::result::Result<usize, &'static str> {
-    let length = value.try_integer().expect("length must be an integer");
+fn get_length(value: Value) -> Result<usize, &'static str> {
+    let length = value
+        .try_integer()
+        .map_err(|_| "Couldn't convert value to integer")?;
     if length < 0 {
         return Err(LENGTH_TOO_SMALL_ERR);
     }
     if length > MAX_LENGTH {
         return Err(LENGTH_TOO_LARGE_ERR);
     }
-    Ok(length as usize)
+    usize::try_from(length).map_err(|_| "i64 to usize conversion failed")
 }
 
 #[derive(Debug, Clone)]

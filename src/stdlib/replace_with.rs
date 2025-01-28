@@ -16,7 +16,7 @@ where
 {
     let haystack = value.try_bytes_utf8_lossy()?;
     let count = match count.try_integer()? {
-        i if i > 0 => i as usize,
+        i if i > 0 => usize::try_from(i).map_err(|e| e.to_string())?,
         i if i < 0 => 0,
         // this is when i == 0
         _ => return Ok(value),

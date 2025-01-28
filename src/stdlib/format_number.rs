@@ -41,7 +41,7 @@ fn format_number(
     match scale {
         Some(0) => parts.truncate(1),
         Some(i) => {
-            let i = i as usize;
+            let i = usize::try_from(i).map_err(|e| e.to_string())?;
 
             if parts.len() == 1 {
                 parts.push(String::new());

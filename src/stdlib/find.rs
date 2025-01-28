@@ -5,8 +5,8 @@ fn find(value: Value, pattern: Value, from: Option<Value>) -> Resolved {
     let from = match from {
         Some(value) => value.try_integer()?,
         None => 0,
-    } as usize;
-
+    };
+    let from = usize::try_from(from).map_err(|e| e.to_string())?;
     Ok(FindFn::find(value, pattern, from)?
         .map_or(Value::Integer(-1), |value| Value::Integer(value as i64)))
 }

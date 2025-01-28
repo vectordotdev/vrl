@@ -3,6 +3,7 @@ use bytes::Bytes;
 use chrono::{DateTime, Utc};
 use uuid::{timestamp::Timestamp, NoContext};
 
+#[allow(clippy::cast_sign_loss)]
 fn uuid_v7(timestamp: Option<Value>) -> Resolved {
     let utc_timestamp: DateTime<Utc> = if let Some(timestamp) = timestamp {
         timestamp.try_timestamp()?

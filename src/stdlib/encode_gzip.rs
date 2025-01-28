@@ -11,7 +11,9 @@ fn encode_gzip(value: Value, compression_level: Option<Value>) -> Resolved {
     let compression_level = match compression_level {
         None => flate2::Compression::default(),
         Some(value) => {
-            let level = value.try_integer()? as u32;
+            let level = value.try_integer()?;
+            let level = u32::try_from(level).map_err(|e| e.to_string())?;
+
             if level > MAX_COMPRESSION_LEVEL {
                 return Err(format!("compression level must be <= {MAX_COMPRESSION_LEVEL}").into());
             }

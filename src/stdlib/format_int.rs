@@ -1,6 +1,6 @@
-use std::collections::VecDeque;
-
 use crate::compiler::prelude::*;
+use std::collections::VecDeque;
+use std::num::TryFromIntError;
 
 fn format_int(value: Value, base: Option<Value>) -> Resolved {
     let value = value.try_integer()?;
@@ -14,11 +14,11 @@ fn format_int(value: Value, base: Option<Value>) -> Resolved {
                 .into());
             }
 
-            value as u32
+            u32::try_from(value).map_err(|e| e.to_string())?
         }
         None => 10u32,
     };
-    let converted = format_radix(value, base);
+    let converted = format_radix(value, base).map_err(|e| e.to_string())?;
     Ok(converted.into())
 }
 
@@ -106,13 +106,13 @@ impl FunctionExpression for FormatIntFn {
 // Formats x in the provided radix
 //
 // Panics if radix is < 2 or > 36
-fn format_radix(x: i64, radix: u32) -> String {
+fn format_radix(x: i64, radix: u32) -> Result<String, TryFromIntError> {
     let mut result: VecDeque<char> = VecDeque::new();
 
     let (mut x, negative) = if x < 0 {
-        (-x as u64, true)
+        (u64::try_from(-x)?, true)
     } else {
-        (x as u64, false)
+        (u64::try_from(x)?, false)
     };
 
     loop {
@@ -129,7 +129,7 @@ fn format_radix(x: i64, radix: u32) -> String {
         result.push_front('-');
     }
 
-    result.into_iter().collect()
+    Ok(result.into_iter().collect())
 }
 
 #[cfg(test)]
