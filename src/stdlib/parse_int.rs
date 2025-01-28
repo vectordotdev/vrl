@@ -12,7 +12,8 @@ fn parse_int(value: Value, base: Option<Value>) -> Resolved {
                 )
                 .into());
             }
-            (u32::try_from(base).map_err(|e| e.to_string())?, 0)
+            #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)] // TODO consider removal options
+            (base as u32, 0)
         }
         None => match string.chars().next() {
             Some('0') => match string.chars().nth(1) {

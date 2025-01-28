@@ -3,11 +3,8 @@ use crate::compiler::prelude::*;
 fn truncate(value: Value, limit: Value, suffix: Value) -> Resolved {
     let mut value = value.try_bytes_utf8_lossy()?.into_owned();
     let limit = limit.try_integer()?;
-    let limit = if limit < 0 {
-        0
-    } else {
-        usize::try_from(limit).map_err(|e| e.to_string())?
-    };
+    #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)] // TODO consider removal options
+    let limit = if limit < 0 { 0 } else { limit as usize };
     let suffix = suffix.try_bytes_utf8_lossy()?.to_string();
     let pos = if let Some((pos, chr)) = value.char_indices().take(limit).last() {
         // char_indices gives us the starting position of the character at limit,

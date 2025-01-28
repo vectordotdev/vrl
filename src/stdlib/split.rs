@@ -4,7 +4,8 @@ fn split(value: Value, limit: Value, pattern: Value) -> Resolved {
     let string = value.try_bytes_utf8_lossy()?;
     let limit = match limit.try_integer()? {
         x if x < 0 => 0,
-        x => usize::try_from(x).map_err(|e| e.to_string())?,
+        #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)] // TODO consider removal options
+        x => x as usize,
     };
     match pattern {
         Value::Regex(pattern) => Ok(pattern

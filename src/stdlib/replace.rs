@@ -1,5 +1,6 @@
 use crate::compiler::prelude::*;
 
+#[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)] // TODO consider removal options
 fn replace(value: Value, with_value: Value, count: Value, pattern: Value) -> Resolved {
     let value = value.try_bytes_utf8_lossy()?;
     let with = with_value.try_bytes_utf8_lossy()?;
@@ -8,10 +9,7 @@ fn replace(value: Value, with_value: Value, count: Value, pattern: Value) -> Res
         Value::Bytes(bytes) => {
             let pattern = String::from_utf8_lossy(&bytes);
             let replaced = match count {
-                i if i > 0 => {
-                    let i = usize::try_from(i).map_err(|e| e.to_string())?;
-                    value.replacen(pattern.as_ref(), &with, i)
-                }
+                i if i > 0 => value.replacen(pattern.as_ref(), &with, i as usize),
                 i if i < 0 => value.replace(pattern.as_ref(), &with),
                 _ => value.into_owned(),
             };
@@ -20,11 +18,10 @@ fn replace(value: Value, with_value: Value, count: Value, pattern: Value) -> Res
         }
         Value::Regex(regex) => {
             let replaced = match count {
-                i if i > 0 => {
-                    let i = usize::try_from(i).map_err(|e| e.to_string())?;
-                    Bytes::copy_from_slice(regex.replacen(&value, i, with.as_ref()).as_bytes())
-                        .into()
-                }
+                i if i > 0 => Bytes::copy_from_slice(
+                    regex.replacen(&value, i as usize, with.as_ref()).as_bytes(),
+                )
+                    .into(),
                 i if i < 0 => {
                     Bytes::copy_from_slice(regex.replace_all(&value, with.as_ref()).as_bytes())
                         .into()
