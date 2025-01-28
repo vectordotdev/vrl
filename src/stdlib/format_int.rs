@@ -1,7 +1,8 @@
-use crate::compiler::prelude::*;
 use std::collections::VecDeque;
-use std::num::TryFromIntError;
 
+use crate::compiler::prelude::*;
+
+#[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)] // TODO consider removal options
 fn format_int(value: Value, base: Option<Value>) -> Resolved {
     let value = value.try_integer()?;
     let base = match base {
@@ -14,11 +15,11 @@ fn format_int(value: Value, base: Option<Value>) -> Resolved {
                 .into());
             }
 
-            u32::try_from(value).map_err(|e| e.to_string())?
+            value as u32
         }
         None => 10u32,
     };
-    let converted = format_radix(value, base).map_err(|e| e.to_string())?;
+    let converted = format_radix(value, base);
     Ok(converted.into())
 }
 
@@ -106,13 +107,14 @@ impl FunctionExpression for FormatIntFn {
 // Formats x in the provided radix
 //
 // Panics if radix is < 2 or > 36
-fn format_radix(x: i64, radix: u32) -> Result<String, TryFromIntError> {
+#[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)] // TODO consider removal options
+fn format_radix(x: i64, radix: u32) -> String {
     let mut result: VecDeque<char> = VecDeque::new();
 
     let (mut x, negative) = if x < 0 {
-        (u64::try_from(-x)?, true)
+        (-x as u64, true)
     } else {
-        (u64::try_from(x)?, false)
+        (x as u64, false)
     };
 
     loop {
@@ -129,7 +131,7 @@ fn format_radix(x: i64, radix: u32) -> Result<String, TryFromIntError> {
         result.push_front('-');
     }
 
-    Ok(result.into_iter().collect())
+    result.into_iter().collect()
 }
 
 #[cfg(test)]

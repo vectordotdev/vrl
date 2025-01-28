@@ -1,6 +1,7 @@
 use crate::compiler::prelude::*;
 use crate::path::{OwnedSegment, OwnedValuePath};
 
+#[allow(clippy::cast_possible_truncation)] // TODO consider removal options
 fn get(value: Value, value_path: Value) -> Resolved {
     let path = match value_path {
         Value::Array(array) => {

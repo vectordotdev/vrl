@@ -11,6 +11,7 @@ fn remove(path: Value, compact: Value, mut value: Value) -> Resolved {
                     Value::Bytes(field) => {
                         OwnedSegment::Field(String::from_utf8_lossy(&field).into())
                     }
+                    #[allow(clippy::cast_possible_truncation)] //TODO evaluate removal options
                     Value::Integer(index) => OwnedSegment::Index(index as isize),
                     value => {
                         return Err(format!(
