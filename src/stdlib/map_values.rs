@@ -13,9 +13,9 @@ where
 
     for item in iter.by_ref() {
         let value = match item {
-            IterItem::KeyValue(_, value) => value,
-            IterItem::IndexValue(_, value) => value,
-            IterItem::Value(value) => value,
+            IterItem::KeyValue(_, value)
+            | IterItem::IndexValue(_, value)
+            | IterItem::Value(value) => value,
         };
 
         runner.map_value(ctx, value)?;

@@ -121,9 +121,7 @@ fn regex_for_format(format: &[u8]) -> &Regex {
 
 fn time_format_for_format(format: &[u8]) -> String {
     match format {
-        b"combined" => "%d/%b/%Y:%T %z".to_owned(),
-        b"ingress_upstreaminfo" => "%d/%b/%Y:%T %z".to_owned(),
-        b"main" => "%d/%b/%Y:%T %z".to_owned(),
+        b"combined" | b"ingress_upstreaminfo" | b"main" => "%d/%b/%Y:%T %z".to_owned(),
         b"error" => "%Y/%m/%d %H:%M:%S".to_owned(),
         _ => unreachable!(),
     }

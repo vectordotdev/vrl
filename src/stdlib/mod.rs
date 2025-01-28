@@ -1,23 +1,9 @@
-#![deny(
-    warnings,
-    clippy::all,
-    clippy::pedantic,
-    unreachable_pub,
-    unused_allocation,
-    unused_extern_crates,
-    unused_assignments,
-    unused_comparisons
-)]
+#![deny(warnings, clippy::pedantic)]
 #![allow(
     deprecated,
     clippy::cast_possible_truncation, // allowed in initial deny commit
     clippy::cast_precision_loss, // allowed in initial deny commit
     clippy::cast_sign_loss, // allowed in initial deny commit
-    clippy::default_trait_access, // allowed in initial deny commit
-    clippy::doc_markdown, // allowed in initial deny commit
-    clippy::inefficient_to_string, // allowed in initial deny commit
-    clippy::match_bool, // allowed in initial deny commit
-    clippy::match_same_arms, // allowed in initial deny commit
     clippy::needless_pass_by_value, // allowed in initial deny commit
 )]
 
