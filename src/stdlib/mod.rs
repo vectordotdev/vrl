@@ -7,7 +7,6 @@
     clippy::cast_possible_truncation, // allowed in initial deny commit
     clippy::cast_precision_loss, // allowed in initial deny commit
     clippy::cast_sign_loss, // allowed in initial deny commit
-    clippy::doc_markdown, // allowed in initial deny commit
     clippy::needless_pass_by_value, // allowed in initial deny commit
 )]
 

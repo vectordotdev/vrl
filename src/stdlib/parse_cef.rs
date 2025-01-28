@@ -293,7 +293,7 @@ fn parse_value(input: &str) -> IResult<&str, String, VerboseError<&str>> {
     ))(input)
 }
 
-/// As take take_till1 but can have condition on input instead of Input::Item.
+/// As take `take_till1` but can have condition on input instead of `Input::Item`.
 fn take_till1_input<'a, F: Fn(&'a str) -> bool, Error: ParseError<&'a str>>(
     cond: F,
 ) -> impl Fn(&'a str) -> IResult<&'a str, &'a str, Error> {
