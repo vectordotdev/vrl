@@ -11,6 +11,8 @@ fn encode_gzip(value: Value, compression_level: Option<Value>) -> Resolved {
     let compression_level = match compression_level {
         None => flate2::Compression::default(),
         Some(value) => {
+            // TODO consider removal options
+            #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
             let level = value.try_integer()? as u32;
             if level > MAX_COMPRESSION_LEVEL {
                 return Err(format!("compression level must be <= {MAX_COMPRESSION_LEVEL}").into());

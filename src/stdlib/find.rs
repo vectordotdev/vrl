@@ -2,6 +2,8 @@ use crate::compiler::prelude::*;
 
 #[allow(clippy::cast_possible_wrap)]
 fn find(value: Value, pattern: Value, from: Option<Value>) -> Resolved {
+    // TODO consider removal options
+    #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
     let from = match from {
         Some(value) => value.try_integer()?,
         None => 0,

@@ -5,6 +5,7 @@ use crate::value::{KeyString, ObjectMap, Value};
 /// Takes a function parameter so the exact rounding function (ceil, floor or round)
 /// can be specified.
 #[inline]
+#[allow(clippy::cast_precision_loss)] //TODO evaluate removal options
 pub(crate) fn round_to_precision<F>(num: f64, precision: i64, fun: F) -> f64
 where
     F: Fn(f64) -> f64,

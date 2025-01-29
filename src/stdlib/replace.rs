@@ -1,5 +1,6 @@
 use crate::compiler::prelude::*;
 
+#[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)] // TODO consider removal options
 fn replace(value: Value, with_value: Value, count: Value, pattern: Value) -> Resolved {
     let value = value.try_bytes_utf8_lossy()?;
     let with = with_value.try_bytes_utf8_lossy()?;

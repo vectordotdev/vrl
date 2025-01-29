@@ -107,7 +107,7 @@ impl<'de> Deserialize<'de> for Value {
                     Ok(value.into())
                 } else {
                     // TODO: Address this issue by providing a lossless conversion option.
-                    #[allow(clippy::cast_precision_loss)]
+                    #[allow(clippy::cast_precision_loss)] //TODO evaluate removal options
                     let converted_value = value as f64;
                     let wrapped_value = NotNan::new(converted_value).map_err(|_| {
                         SerdeError::invalid_value(

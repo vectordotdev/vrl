@@ -6,6 +6,7 @@ use influxdb_line_protocol::{FieldValue, ParsedLine};
 use crate::compiler::prelude::*;
 use crate::{btreemap, value};
 
+#[allow(clippy::cast_precision_loss)] //TODO evaluate removal options
 fn influxdb_line_to_metrics(line: ParsedLine) -> Result<Vec<ObjectMap>, ExpressionError> {
     let ParsedLine {
         series,

@@ -84,6 +84,7 @@ fn parse_layer(value: &RawValue, remaining_depth: u8) -> std::result::Result<Jso
 
 fn validate_depth(value: Value) -> ExpressionResult<u8> {
     let res = value.try_integer()?;
+    let res = u8::try_from(res).map_err(|e| e.to_string())?;
 
     // The lower cap is 1 because it is pointless to use anything lower,
     // because 'data = parse_json!(.message, max_depth: 0)' equals to 'data = .message'.
@@ -91,7 +92,7 @@ fn validate_depth(value: Value) -> ExpressionResult<u8> {
     // The upper cap is 128 because serde_json has the same recursion limit by default.
     // https://github.com/serde-rs/json/blob/4d57ebeea8d791b8a51c229552d2d480415d00e6/json/src/de.rs#L111
     if (1..=128).contains(&res) {
-        Ok(res as u8)
+        Ok(res)
     } else {
         Err(ExpressionError::from(format!(
             "max_depth value should be greater than 0 and less than 128, got {res}"

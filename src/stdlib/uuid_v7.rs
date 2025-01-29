@@ -3,6 +3,7 @@ use bytes::Bytes;
 use chrono::{DateTime, Utc};
 use uuid::{timestamp::Timestamp, NoContext};
 
+#[allow(clippy::cast_sign_loss)] // TODO consider removal options
 fn uuid_v7(timestamp: Option<Value>) -> Resolved {
     let utc_timestamp: DateTime<Utc> = if let Some(timestamp) = timestamp {
         timestamp.try_timestamp()?
@@ -12,6 +13,7 @@ fn uuid_v7(timestamp: Option<Value>) -> Resolved {
 
     let seconds = utc_timestamp.timestamp() as u64;
     let nanoseconds = match utc_timestamp.timestamp_nanos_opt() {
+        #[allow(clippy::cast_possible_truncation)] //TODO evaluate removal options
         Some(nanos) => nanos as u32,
         None => return Err(ValueError::OutOfRange(Kind::timestamp()).into()),
     };

@@ -301,6 +301,7 @@ impl Filter<Value> for VrlFilter {
         })
     }
 
+    #[allow(clippy::cast_precision_loss)] //TODO evaluate removal options
     fn compare(
         &self,
         field: Field,
