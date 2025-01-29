@@ -144,7 +144,7 @@ impl<'input> Lexer<'input> {
     where
         F: FnMut(char) -> bool,
     {
-        self.peek().map_or(false, |(_, ch)| test(ch))
+        self.peek().is_some_and(|(_, ch)| test(ch))
     }
 
     fn slice(&self, start: usize, end: usize) -> &'input str {
