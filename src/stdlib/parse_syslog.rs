@@ -175,7 +175,7 @@ fn inner_kind() -> BTreeMap<Field, Kind> {
 #[cfg(test)]
 mod tests {
     use crate::btreemap;
-    use chrono::{Timelike, TimeZone};
+    use chrono::{TimeZone, Timelike};
 
     use super::*;
 
