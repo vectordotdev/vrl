@@ -1,6 +1,5 @@
 #![deny(warnings, clippy::pedantic)]
 #![allow(
-    deprecated,
     clippy::needless_pass_by_value, // allowed in initial deny commit
 )]
 
