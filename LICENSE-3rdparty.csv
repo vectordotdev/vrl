@@ -164,6 +164,7 @@ num-traits,https://github.com/rust-num/num-traits,MIT OR Apache-2.0,The Rust Pro
 num_enum,https://github.com/illicitonion/num_enum,BSD-3-Clause OR MIT OR Apache-2.0,"Daniel Wagner-Hall <dawagner@gmail.com>, Daniel Henry-Mantilla <daniel.henry.mantilla@gmail.com>, Vincent Esche <regexident@gmail.com>"
 objc-sys,https://github.com/madsmtm/objc2,MIT,Mads Marquart <mads@marquart.dk>
 objc2,https://github.com/madsmtm/objc2,MIT,"Steven Sheldon, Mads Marquart <mads@marquart.dk>"
+objc2-encode,https://github.com/madsmtm/objc2,MIT,Mads Marquart <mads@marquart.dk>
 objc2-foundation,https://github.com/madsmtm/objc2,MIT,The objc2-foundation Authors
 object,https://github.com/gimli-rs/object,Apache-2.0 OR MIT,The object Authors
 octseq,https://github.com/NLnetLabs/octets/,BSD-3-Clause,NLnet Labs <rust-team@nlnetlabs.nl>
