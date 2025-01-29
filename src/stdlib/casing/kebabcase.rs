@@ -1,10 +1,7 @@
 use crate::compiler::prelude::*;
 
+use crate::stdlib::casing::into_case;
 use convert_case::Case;
-
-fn kebabcase(value: Value, orig_case: Option<Case>) -> Resolved {
-    super::convert_case(value, Case::Kebab, orig_case)
-}
 
 #[derive(Clone, Copy, Debug)]
 pub struct Kebabcase;
@@ -39,11 +36,12 @@ impl Function for Kebabcase {
         let original_case = arguments
             .optional_enum("original_case", &super::variants(), state)?
             .map(|b| {
-                b.try_bytes_utf8_lossy()
-                    .expect("cant convert to string")
-                    .into_owned()
+                into_case(
+                    b.try_bytes_utf8_lossy()
+                        .expect("cant convert to string")
+                        .as_ref(),
+                )
             })
-            .map(super::into_case)
             .transpose()?;
 
         Ok(KebabcaseFn {
@@ -71,8 +69,7 @@ struct KebabcaseFn {
 impl FunctionExpression for KebabcaseFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let value = self.value.resolve(ctx)?;
-        let original_case = self.original_case;
-        kebabcase(value, original_case)
+        super::convert_case(&value, Case::Kebab, self.original_case)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

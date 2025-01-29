@@ -2,7 +2,7 @@ use crate::compiler::prelude::*;
 use nom::AsBytes;
 use std::str;
 
-fn decode_base16(value: Value) -> Resolved {
+fn decode_base16(value: &Value) -> Resolved {
     match base16::decode(&value.try_bytes_utf8_lossy()?.to_string()) {
         Ok(s) => Ok((s.as_bytes()).into()),
         Err(_) => Err("unable to decode value to base16".into()),
@@ -54,7 +54,7 @@ impl FunctionExpression for DecodeBase16Fn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let value = self.value.resolve(ctx)?;
 
-        decode_base16(value)
+        decode_base16(&value)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

@@ -1,8 +1,4 @@
 #![deny(warnings, clippy::pedantic)]
-#![allow(
-    clippy::needless_pass_by_value, // allowed in initial deny commit
-)]
-
 pub use wasm_unsupported_function::WasmUnsupportedFunction;
 
 use crate::compiler::Function;

@@ -36,6 +36,7 @@ impl Iterator for Chars<'_> {
     }
 }
 
+#[derive(Clone, Copy)]
 enum Case {
     Sensitive,
     Insensitive,

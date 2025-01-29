@@ -1,9 +1,5 @@
 use crate::compiler::prelude::*;
 
-fn upcase(value: Value) -> Resolved {
-    Ok(value.try_bytes_utf8_lossy()?.to_uppercase().into())
-}
-
 #[derive(Clone, Copy, Debug)]
 pub struct Upcase;
 
@@ -48,7 +44,7 @@ struct UpcaseFn {
 impl FunctionExpression for UpcaseFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let value = self.value.resolve(ctx)?;
-        upcase(value)
+        Ok(value.try_bytes_utf8_lossy()?.to_uppercase().into())
     }
 
     fn type_def(&self, _: &TypeState) -> TypeDef {

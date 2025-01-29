@@ -103,7 +103,7 @@ mod non_wasm {
         }
     }
 
-    fn dns_lookup(value: Value, qtype: Value, qclass: Value, options: Value) -> Resolved {
+    fn dns_lookup(value: &Value, qtype: &Value, qclass: &Value, options: Value) -> Resolved {
         let host: Name<Vec<_>> = value
             .try_bytes_utf8_lossy()?
             .to_string()
@@ -120,7 +120,8 @@ mod non_wasm {
             .parse()
             .map_err(|err| format!("parsing query class failed: {err}"))?;
 
-        let conf = build_options(options.try_object()?)?;
+        let map = options.try_object()?;
+        let conf = build_options(&map)?;
         let answer = match Handle::try_current() {
             Ok(_) => WORKER.execute(move || {
                 StubResolver::run_with_conf(conf, move |stub| async move {
@@ -133,7 +134,7 @@ mod non_wasm {
         }
         .map_err(|err| format!("query failed: {err}"))?;
 
-        Ok(parse_answer(answer)?.into())
+        Ok(parse_answer(&answer)?.into())
     }
 
     #[derive(Debug, Clone)]
@@ -155,7 +156,7 @@ mod non_wasm {
         }
     }
 
-    fn build_options(options: ObjectMap) -> Result<ResolvConf, ExpressionError> {
+    fn build_options(options: &ObjectMap) -> Result<ResolvConf, ExpressionError> {
         let mut resolv_options = ResolvOptions::default();
 
         macro_rules! read_bool_opt {
@@ -242,7 +243,7 @@ mod non_wasm {
         Ok(conf)
     }
 
-    fn parse_answer(answer: Answer) -> Result<ObjectMap, ExpressionError> {
+    fn parse_answer(answer: &Answer) -> Result<ObjectMap, ExpressionError> {
         let mut result = ObjectMap::new();
         let header_section = answer.header();
         let rcode = header_section.rcode();
@@ -329,7 +330,7 @@ mod non_wasm {
             let qtype = self.qtype.resolve(ctx)?;
             let class = self.class.resolve(ctx)?;
             let options = self.options.resolve(ctx)?;
-            dns_lookup(value, qtype, class, options)
+            dns_lookup(&value, &qtype, &class, options)
         }
 
         fn type_def(&self, _: &state::TypeState) -> TypeDef {
@@ -904,7 +905,7 @@ mod tests {
         );
     }
 
-    fn prepare_dns_lookup(dns_lookup_fn: DnsLookupFn) -> Resolved {
+    fn prepare_dns_lookup(dns_lookup_fn: &DnsLookupFn) -> Resolved {
         let tz = TimeZone::default();
         let mut object: Value = Value::Object(BTreeMap::new());
         let mut runtime_state = state::RuntimeState::default();
@@ -913,7 +914,7 @@ mod tests {
     }
 
     fn execute_dns_lookup(dns_lookup_fn: DnsLookupFn) -> ObjectMap {
-        prepare_dns_lookup(dns_lookup_fn)
+        prepare_dns_lookup(&dns_lookup_fn)
             .map_err(|e| format!("{:#}", anyhow::anyhow!(e)))
             .unwrap()
             .try_object()
@@ -921,6 +922,6 @@ mod tests {
     }
 
     fn execute_dns_lookup_with_expected_error(dns_lookup_fn: DnsLookupFn) -> ExpressionError {
-        prepare_dns_lookup(dns_lookup_fn).unwrap_err()
+        prepare_dns_lookup(&dns_lookup_fn).unwrap_err()
     }
 }

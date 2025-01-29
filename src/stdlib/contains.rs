@@ -1,7 +1,7 @@
 use crate::compiler::prelude::*;
 use crate::stdlib::string_utils::convert_to_string;
 
-fn contains(value: Value, substring: Value, case_sensitive: bool) -> Resolved {
+fn contains(value: &Value, substring: &Value, case_sensitive: bool) -> Resolved {
     let value = convert_to_string(value, !case_sensitive)?;
     let substring = convert_to_string(substring, !case_sensitive)?;
     Ok(value.contains(&substring).into())
@@ -82,7 +82,7 @@ impl FunctionExpression for ContainsFn {
         let substring = self.substring.resolve(ctx)?;
         let case_sensitive = self.case_sensitive.resolve(ctx)?.try_boolean()?;
 
-        contains(value, substring, case_sensitive)
+        contains(&value, &substring, case_sensitive)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

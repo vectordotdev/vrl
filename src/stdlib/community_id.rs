@@ -5,8 +5,8 @@ use community_id::calculate_community_id;
 use crate::compiler::prelude::*;
 
 fn community_id(
-    src_ip: Value,
-    dst_ip: Value,
+    src_ip: &Value,
+    dst_ip: &Value,
     protocol: Value,
     src_port: Option<Value>,
     dst_port: Option<Value>,
@@ -242,7 +242,7 @@ impl FunctionExpression for CommunityIDFn {
             .map(|expr| expr.resolve(ctx))
             .transpose()?;
 
-        community_id(src_ip, dst_ip, protocol, src_port, dst_port, seed)
+        community_id(&src_ip, &dst_ip, protocol, src_port, dst_port, seed)
     }
 
     fn type_def(&self, _state: &state::TypeState) -> TypeDef {
