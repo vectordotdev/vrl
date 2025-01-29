@@ -41,8 +41,8 @@ fn format_number(
     match scale {
         Some(0) => parts.truncate(1),
         Some(i) => {
-            #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
             // TODO consider removal options
+            #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
             let i = i as usize;
 
             if parts.len() == 1 {

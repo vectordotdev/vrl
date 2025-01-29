@@ -68,8 +68,8 @@ fn get_length(value: Value) -> std::result::Result<usize, &'static str> {
     if length > MAX_LENGTH {
         return Err(LENGTH_TOO_LARGE_ERR);
     }
-    #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
     // TODO consider removal options
+    #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
     Ok(length as usize)
 }
 
