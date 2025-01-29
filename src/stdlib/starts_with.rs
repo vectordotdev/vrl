@@ -53,7 +53,7 @@ fn starts_with(bytes: &Bytes, starts: &Bytes, case: Case) -> bool {
             .all(|(a, b)| match (a, b) {
                 (Ok(a), Ok(b)) => {
                     if a.is_ascii() && b.is_ascii() {
-                        a.to_ascii_lowercase() == b.to_ascii_lowercase()
+                        a.eq_ignore_ascii_case(&b)
                     } else {
                         a.to_lowercase().zip(b.to_lowercase()).all(|(a, b)| a == b)
                     }

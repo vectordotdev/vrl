@@ -246,10 +246,7 @@ mod test {
     use crate::value::Value;
 
     pub fn parse_artifact(path: impl AsRef<Path>) -> std::io::Result<Vec<u8>> {
-        let mut test_file = match fs::File::open(path) {
-            Ok(file) => file,
-            Err(e) => return Err(e),
-        };
+        let mut test_file = fs::File::open(path)?;
 
         let mut buf = Vec::new();
         test_file.read_to_end(&mut buf)?;

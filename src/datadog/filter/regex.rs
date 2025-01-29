@@ -7,7 +7,7 @@ use regex::Regex;
 #[must_use]
 pub fn word_regex(to_match: &str) -> Regex {
     Regex::new(&format!(
-        r#"\b{}\b"#,
+        r"\b{}\b",
         regex::escape(to_match).replace("\\*", ".*")
     ))
     .expect("invalid wildcard regex")
