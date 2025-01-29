@@ -19,9 +19,9 @@ use std::{
 };
 
 pub(crate) fn parse_key_value(
-    bytes: Value,
-    key_value_delimiter: Value,
-    field_delimiter: Value,
+    bytes: &Value,
+    key_value_delimiter: &Value,
+    field_delimiter: &Value,
     standalone_key: Value,
     whitespace: Whitespace,
 ) -> Resolved {
@@ -239,9 +239,9 @@ impl FunctionExpression for ParseKeyValueFn {
         let whitespace = self.whitespace;
 
         parse_key_value(
-            bytes,
-            key_value_delimiter,
-            field_delimiter,
+            &bytes,
+            &key_value_delimiter,
+            &field_delimiter,
             standalone_key,
             whitespace,
         )

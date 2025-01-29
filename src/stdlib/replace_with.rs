@@ -9,7 +9,7 @@ fn replace_with<T>(
     pattern: &Regex,
     count: Value,
     ctx: &mut Context,
-    runner: closure::Runner<T>,
+    runner: &closure::Runner<T>,
 ) -> Resolved
 where
     T: Fn(&mut Context) -> Result<Value, ExpressionError>,
@@ -28,7 +28,7 @@ where
         captures,
         &haystack,
         count,
-        pattern.capture_names(),
+        &pattern.capture_names(),
         ctx,
         runner,
     )
@@ -38,9 +38,9 @@ fn make_replacement<T>(
     caps: CaptureMatches,
     haystack: &str,
     count: usize,
-    capture_names: CaptureNames,
+    capture_names: &CaptureNames,
     ctx: &mut Context,
-    runner: closure::Runner<T>,
+    runner: &closure::Runner<T>,
 ) -> Resolved
 where
     T: Fn(&mut Context) -> Result<Value, ExpressionError>,
@@ -249,7 +249,7 @@ impl FunctionExpression for ReplaceWithFn {
 
         let runner = closure::Runner::new(variables, |ctx| block.resolve(ctx));
 
-        replace_with(value, pattern, count, ctx, runner)
+        replace_with(value, pattern, count, ctx, &runner)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

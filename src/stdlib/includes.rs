@@ -1,8 +1,8 @@
 use crate::compiler::prelude::*;
 
-fn includes(list: Value, item: Value) -> Resolved {
+fn includes(list: Value, item: &Value) -> Resolved {
     let list = list.try_array()?;
-    let included = list.iter().any(|i| i == &item);
+    let included = list.iter().any(|i| i == item);
     Ok(included.into())
 }
 
@@ -68,7 +68,7 @@ impl FunctionExpression for IncludesFn {
         let list = self.value.resolve(ctx)?;
         let item = self.item.resolve(ctx)?;
 
-        includes(list, item)
+        includes(list, &item)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

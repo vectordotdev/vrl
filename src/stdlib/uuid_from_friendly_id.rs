@@ -2,7 +2,7 @@ use crate::compiler::prelude::*;
 use crate::stdlib::string_utils::convert_to_string;
 use bytes::Bytes;
 
-fn uuid_from_friendly_id(value: Value) -> Resolved {
+fn uuid_from_friendly_id(value: &Value) -> Resolved {
     let mut buf = [0; 36];
     let value = convert_to_string(value, false)?;
     match base62::decode(value) {
@@ -59,7 +59,7 @@ struct UuidFromFriendlyIdFn {
 impl FunctionExpression for UuidFromFriendlyIdFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let value = self.value.resolve(ctx)?;
-        uuid_from_friendly_id(value)
+        uuid_from_friendly_id(&value)
     }
 
     fn type_def(&self, _: &TypeState) -> TypeDef {

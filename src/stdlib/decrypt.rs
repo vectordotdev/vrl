@@ -63,10 +63,10 @@ macro_rules! decrypt_stream {
     }};
 }
 
-fn decrypt(ciphertext: Value, algorithm: Value, key: Value, iv: Value) -> Resolved {
+fn decrypt(ciphertext: Value, algorithm: &str, key: Value, iv: Value) -> Resolved {
     let ciphertext = ciphertext.try_bytes()?;
-    let algorithm = algorithm.try_bytes_utf8_lossy()?.as_ref().to_uppercase();
-    let ciphertext = match algorithm.as_str() {
+
+    let ciphertext = match algorithm {
         "AES-256-CFB" => decrypt!(Cfb::<aes::Aes256>, ciphertext, key, iv),
         "AES-192-CFB" => decrypt!(Cfb::<aes::Aes192>, ciphertext, key, iv),
         "AES-128-CFB" => decrypt!(Cfb::<aes::Aes128>, ciphertext, key, iv),
@@ -161,7 +161,12 @@ impl Function for Decrypt {
         let iv = arguments.required("iv");
 
         if let Some(algorithm) = algorithm.resolve_constant(state) {
-            if !is_valid_algorithm(algorithm.clone()) {
+            let algorithm_str = algorithm
+                .try_bytes_utf8_lossy()
+                .expect("already checked type")
+                .as_ref()
+                .to_uppercase();
+            if !is_valid_algorithm(&algorithm_str) {
                 return Err(function::Error::InvalidArgument {
                     keyword: "algorithm",
                     value: algorithm,
@@ -195,7 +200,9 @@ impl FunctionExpression for DecryptFn {
         let algorithm = self.algorithm.resolve(ctx)?;
         let key = self.key.resolve(ctx)?;
         let iv = self.iv.resolve(ctx)?;
-        decrypt(ciphertext, algorithm, key, iv)
+
+        let algorithm = algorithm.try_bytes_utf8_lossy()?.as_ref().to_uppercase();
+        decrypt(ciphertext, algorithm.as_str(), key, iv)
     }
 
     fn type_def(&self, _state: &state::TypeState) -> TypeDef {

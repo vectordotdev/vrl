@@ -1,8 +1,8 @@
 use crate::compiler::prelude::*;
 
-fn tally_value(array: Value, value: Value) -> Resolved {
+fn tally_value(array: Value, value: &Value) -> Resolved {
     let array = array.try_array()?;
-    Ok(array.iter().filter(|&v| v == &value).count().into())
+    Ok(array.iter().filter(|&v| v == value).count().into())
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -60,7 +60,7 @@ impl FunctionExpression for TallyValueFn {
         let array = self.array.resolve(ctx)?;
         let value = self.value.resolve(ctx)?;
 
-        tally_value(array, value)
+        tally_value(array, &value)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

@@ -3,7 +3,7 @@ use chrono::{DateTime, Datelike, Utc};
 use std::collections::BTreeMap;
 use syslog_loose::{IncompleteDate, Message, ProcId, Protocol, Variant};
 
-pub(crate) fn parse_syslog(value: Value, ctx: &Context) -> Resolved {
+pub(crate) fn parse_syslog(value: &Value, ctx: &Context) -> Resolved {
     let message = value.try_bytes_utf8_lossy()?;
     let timezone = match ctx.timezone() {
         TimeZone::Local => None,
@@ -78,7 +78,7 @@ impl FunctionExpression for ParseSyslogFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let value = self.value.resolve(ctx)?;
 
-        parse_syslog(value, ctx)
+        parse_syslog(&value, ctx)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

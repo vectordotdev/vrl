@@ -6,7 +6,7 @@ use std::collections::BTreeMap;
 use super::log_util;
 
 fn parse_nginx_log(
-    bytes: Value,
+    bytes: &Value,
     timestamp_format: Option<Value>,
     format: &Bytes,
     ctx: &Context,
@@ -153,7 +153,7 @@ impl FunctionExpression for ParseNginxLogFn {
             .transpose()?;
         let format = &self.format;
 
-        parse_nginx_log(bytes, timestamp_format, format, ctx)
+        parse_nginx_log(&bytes, timestamp_format, format, ctx)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

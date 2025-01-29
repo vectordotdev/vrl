@@ -2,7 +2,7 @@ use crate::compiler::prelude::*;
 use crate::value;
 use percent_encoding::{utf8_percent_encode, AsciiSet};
 
-fn encode_percent(value: Value, ascii_set: &Bytes) -> Resolved {
+fn encode_percent(value: &Value, ascii_set: &Bytes) -> Resolved {
     let string = value.try_bytes_utf8_lossy()?;
     let ascii_set = match ascii_set.as_ref() {
         b"NON_ALPHANUMERIC" => percent_encoding::NON_ALPHANUMERIC,
@@ -140,7 +140,7 @@ struct EncodePercentFn {
 impl FunctionExpression for EncodePercentFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let value = self.value.resolve(ctx)?;
-        encode_percent(value, &self.ascii_set)
+        encode_percent(&value, &self.ascii_set)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

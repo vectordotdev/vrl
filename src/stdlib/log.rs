@@ -93,7 +93,12 @@ mod implementation {
     use crate::compiler::prelude::*;
     use crate::value;
 
-    pub(super) fn log(rate_limit_secs: Value, level: &Bytes, value: Value, span: Span) -> Resolved {
+    pub(super) fn log(
+        rate_limit_secs: Value,
+        level: &Bytes,
+        value: &Value,
+        span: Span,
+    ) -> Resolved {
         let rate_limit_secs = rate_limit_secs.try_integer()?;
         let res = value.to_string_lossy();
         match level.as_ref() {
@@ -134,7 +139,7 @@ mod implementation {
 
             let span = self.span;
 
-            log(rate_limit_secs, &self.level, value, span)
+            log(rate_limit_secs, &self.level, &value, span)
         }
 
         fn type_def(&self, _: &state::TypeState) -> TypeDef {
@@ -169,7 +174,7 @@ mod tests {
         implementation::log(
             value!(1),
             &Bytes::from("warn"),
-            value!("simple test message"),
+            &value!("simple test message"),
             Span::default(),
         )
         .unwrap();

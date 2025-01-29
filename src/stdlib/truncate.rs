@@ -1,6 +1,6 @@
 use crate::compiler::prelude::*;
 
-fn truncate(value: Value, limit: Value, suffix: Value) -> Resolved {
+fn truncate(value: &Value, limit: Value, suffix: &Value) -> Resolved {
     let mut value = value.try_bytes_utf8_lossy()?.into_owned();
     let limit = limit.try_integer()?;
     // TODO consider removal options
@@ -104,7 +104,7 @@ impl FunctionExpression for TruncateFn {
         let limit = self.limit.resolve(ctx)?;
         let suffix = self.suffix.resolve(ctx)?;
 
-        truncate(value, limit, suffix)
+        truncate(&value, limit, &suffix)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

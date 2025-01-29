@@ -6,8 +6,8 @@ use crate::value::KeyString;
 pub(crate) fn encode_key_value(
     fields: Option<Value>,
     value: Value,
-    key_value_delimiter: Value,
-    field_delimiter: Value,
+    key_value_delimiter: &Value,
+    field_delimiter: &Value,
     flatten_boolean: Value,
 ) -> ExpressionResult<Value> {
     let fields = match fields {
@@ -155,8 +155,8 @@ impl FunctionExpression for EncodeKeyValueFn {
         encode_key_value(
             fields,
             value,
-            key_value_delimiter,
-            field_delimiter,
+            &key_value_delimiter,
+            &field_delimiter,
             flatten_boolean,
         )
     }
@@ -187,10 +187,10 @@ mod tests {
         };
 
         let after = parse_key_value(
-            encode_key_value(None, before.clone(), "=".into(), " ".into(), true.into())
+            &encode_key_value(None, before.clone(), &"=".into(), &" ".into(), true.into())
                 .expect("valid key value before"),
-            "=".into(),
-            " ".into(),
+            &Value::from("="),
+            &Value::from(" "),
             true.into(),
             Whitespace::Lenient,
         )
@@ -212,15 +212,15 @@ mod tests {
                 "quote".into(),
             ])),
             parse_key_value(
-                before.clone(),
-                "=".into(),
-                " ".into(),
+                &before,
+                &Value::from("="),
+                &Value::from(" "),
                 true.into(),
                 Whitespace::Lenient,
             )
             .expect("valid key value before"),
-            "=".into(),
-            " ".into(),
+            &Value::from("="),
+            &Value::from(" "),
             true.into(),
         )
         .expect("valid key value after");

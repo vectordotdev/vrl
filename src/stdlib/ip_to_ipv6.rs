@@ -1,7 +1,7 @@
 use crate::compiler::prelude::*;
 use std::net::IpAddr;
 
-fn ip_to_ipv6(value: Value) -> Resolved {
+fn ip_to_ipv6(value: &Value) -> Resolved {
     let ip: IpAddr = value
         .try_bytes_utf8_lossy()?
         .parse()
@@ -56,7 +56,7 @@ struct IpToIpv6Fn {
 impl FunctionExpression for IpToIpv6Fn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let value = self.value.resolve(ctx)?;
-        ip_to_ipv6(value)
+        ip_to_ipv6(&value)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {
