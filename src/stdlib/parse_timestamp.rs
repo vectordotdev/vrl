@@ -4,7 +4,7 @@ use crate::compiler::TimeZone;
 
 fn parse_timestamp(
     value: Value,
-    format: Value,
+    format: &Value,
     timezone: Option<Value>,
     ctx: &Context,
 ) -> Resolved {
@@ -110,7 +110,7 @@ impl FunctionExpression for ParseTimestampFn {
             .as_ref()
             .map(|tz| tz.resolve(ctx))
             .transpose()?;
-        parse_timestamp(value, format, tz, ctx)
+        parse_timestamp(value, &format, tz, ctx)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

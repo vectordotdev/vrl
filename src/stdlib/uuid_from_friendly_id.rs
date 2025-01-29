@@ -4,7 +4,7 @@ use bytes::Bytes;
 
 fn uuid_from_friendly_id(value: &Value) -> Resolved {
     let mut buf = [0; 36];
-    let value = convert_to_string(&value, false)?;
+    let value = convert_to_string(value, false)?;
     match base62::decode(value) {
         Err(err) => Err(format!("failed to decode friendly id: {err}").into()),
         Ok(w128) => {

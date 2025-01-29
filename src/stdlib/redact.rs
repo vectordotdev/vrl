@@ -326,7 +326,7 @@ impl Redactor {
         }
     }
 
-    fn from_object(obj: ObjectMap) -> std::result::Result<Self, &'static str> {
+    fn from_object(obj: &ObjectMap) -> std::result::Result<Self, &'static str> {
         let r#type = match obj.get("type").ok_or(
             "redactor specified as objects must have type
         parameter",
@@ -420,7 +420,7 @@ impl TryFrom<Value> for Redactor {
 
     fn try_from(value: Value) -> std::result::Result<Self, Self::Error> {
         match value {
-            Value::Object(object) => Redactor::from_object(object),
+            Value::Object(object) => Redactor::from_object(&object),
             Value::Bytes(bytes) => match bytes.as_ref() {
                 b"full" => Ok(Redactor::Full),
                 b"sha2" => Ok(Redactor::Hash {

@@ -2,13 +2,13 @@ use regex::Regex;
 
 use crate::compiler::prelude::*;
 
-fn match_(value: Value, pattern: Value) -> Resolved {
+fn match_(value: &Value, pattern: Value) -> Resolved {
     let string = value.try_bytes_utf8_lossy()?;
     let pattern = pattern.try_regex()?;
     Ok(pattern.is_match(&string).into())
 }
 
-fn match_static(value: Value, pattern: &Regex) -> Resolved {
+fn match_static(value: &Value, pattern: &Regex) -> Resolved {
     let string = value.try_bytes_utf8_lossy()?;
     Ok(pattern.is_match(&string).into())
 }
@@ -88,7 +88,7 @@ impl FunctionExpression for MatchFn {
         let value = self.value.resolve(ctx)?;
         let pattern = self.pattern.resolve(ctx)?;
 
-        match_(value, pattern)
+        match_(&value, pattern)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {
@@ -106,7 +106,7 @@ impl FunctionExpression for MatchStaticFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let value = self.value.resolve(ctx)?;
 
-        match_static(value, &self.pattern)
+        match_static(&value, &self.pattern)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

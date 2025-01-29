@@ -1,6 +1,6 @@
 use crate::compiler::prelude::*;
 
-fn get_env_var(value: Value) -> Resolved {
+fn get_env_var(value: &Value) -> Resolved {
     let name = value.try_bytes_utf8_lossy()?;
     std::env::var(name.as_ref())
         .map(Into::into)
@@ -51,7 +51,7 @@ struct GetEnvVarFn {
 impl FunctionExpression for GetEnvVarFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let value = self.name.resolve(ctx)?;
-        get_env_var(value)
+        get_env_var(&value)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

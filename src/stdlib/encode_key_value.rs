@@ -187,10 +187,10 @@ mod tests {
         };
 
         let after = parse_key_value(
-            encode_key_value(None, before.clone(), &"=".into(), &" ".into(), true.into())
+            &encode_key_value(None, before.clone(), &"=".into(), &" ".into(), true.into())
                 .expect("valid key value before"),
-            "=".into(),
-            " ".into(),
+            &Value::from("="),
+            &Value::from(" "),
             true.into(),
             Whitespace::Lenient,
         )
@@ -212,9 +212,9 @@ mod tests {
                 "quote".into(),
             ])),
             parse_key_value(
-                before.clone(),
-                "=".into(),
-                " ".into(),
+                &before,
+                &Value::from("="),
+                &Value::from(" "),
                 true.into(),
                 Whitespace::Lenient,
             )

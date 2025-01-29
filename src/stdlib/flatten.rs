@@ -4,7 +4,7 @@ use crate::compiler::prelude::*;
 
 static DEFAULT_SEPARATOR: &str = ".";
 
-fn flatten(value: Value, separator: Value) -> Resolved {
+fn flatten(value: Value, separator: &Value) -> Resolved {
     let separator = separator.try_bytes_utf8_lossy()?;
 
     match value {
@@ -92,7 +92,7 @@ impl FunctionExpression for FlattenFn {
         let value = self.value.resolve(ctx)?;
         let separator = self.separator.resolve(ctx)?;
 
-        flatten(value, separator)
+        flatten(value, &separator)
     }
 
     fn type_def(&self, state: &state::TypeState) -> TypeDef {

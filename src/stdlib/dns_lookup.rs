@@ -771,7 +771,7 @@ mod tests {
 
     #[test]
     fn test_invalid_name() {
-        let result = execute_dns_lookup(DnsLookupFn {
+        let result = execute_dns_lookup(&DnsLookupFn {
             value: expr!("wrong.local"),
             ..Default::default()
         });
@@ -793,7 +793,7 @@ mod tests {
     #[cfg(target_os = "linux")]
     // MacOS resolver doesn't always handle localhost
     fn test_localhost() {
-        let result = execute_dns_lookup(DnsLookupFn {
+        let result = execute_dns_lookup(&DnsLookupFn {
             value: expr!("localhost"),
             ..Default::default()
         });
@@ -815,7 +815,7 @@ mod tests {
 
     #[test]
     fn test_custom_type() {
-        let result = execute_dns_lookup(DnsLookupFn {
+        let result = execute_dns_lookup(&DnsLookupFn {
             value: expr!("google.com"),
             qtype: expr!("mx"),
             ..Default::default()
@@ -836,7 +836,7 @@ mod tests {
 
     #[test]
     fn test_google() {
-        let result = execute_dns_lookup(DnsLookupFn {
+        let result = execute_dns_lookup(&DnsLookupFn {
             value: expr!("dns.google"),
             ..Default::default()
         });
@@ -870,7 +870,7 @@ mod tests {
 
     #[test]
     fn unknown_options_ignored() {
-        let result = execute_dns_lookup(DnsLookupFn {
+        let result = execute_dns_lookup(&DnsLookupFn {
             value: expr!("dns.google"),
             options: expr!({"test": "test"}),
             ..Default::default()
@@ -881,7 +881,7 @@ mod tests {
 
     #[test]
     fn invalid_option_type() {
-        let result = execute_dns_lookup_with_expected_error(DnsLookupFn {
+        let result = execute_dns_lookup_with_expected_error(&DnsLookupFn {
             value: expr!("dns.google"),
             options: expr!({"tcp": "yes"}),
             ..Default::default()
@@ -893,7 +893,7 @@ mod tests {
     #[test]
     fn negative_int_type() {
         let attempts_val = -5;
-        let result = execute_dns_lookup_with_expected_error(DnsLookupFn {
+        let result = execute_dns_lookup_with_expected_error(&DnsLookupFn {
             value: expr!("dns.google"),
             options: expr!({"attempts": attempts_val}),
             ..Default::default()
@@ -913,15 +913,15 @@ mod tests {
         dns_lookup_fn.resolve(&mut ctx)
     }
 
-    fn execute_dns_lookup(dns_lookup_fn: DnsLookupFn) -> ObjectMap {
-        prepare_dns_lookup(&dns_lookup_fn)
+    fn execute_dns_lookup(dns_lookup_fn: &DnsLookupFn) -> ObjectMap {
+        prepare_dns_lookup(dns_lookup_fn)
             .map_err(|e| format!("{:#}", anyhow::anyhow!(e)))
             .unwrap()
             .try_object()
             .unwrap()
     }
 
-    fn execute_dns_lookup_with_expected_error(dns_lookup_fn: DnsLookupFn) -> ExpressionError {
-        prepare_dns_lookup(&dns_lookup_fn).unwrap_err()
+    fn execute_dns_lookup_with_expected_error(dns_lookup_fn: &DnsLookupFn) -> ExpressionError {
+        prepare_dns_lookup(dns_lookup_fn).unwrap_err()
     }
 }

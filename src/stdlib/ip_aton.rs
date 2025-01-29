@@ -1,7 +1,7 @@
 use crate::compiler::prelude::*;
 use std::net::Ipv4Addr;
 
-fn ip_aton(value: Value) -> Resolved {
+fn ip_aton(value: &Value) -> Resolved {
     let ip: Ipv4Addr = value
         .try_bytes_utf8_lossy()?
         .parse()
@@ -53,7 +53,7 @@ struct IpAtonFn {
 impl FunctionExpression for IpAtonFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let value = self.value.resolve(ctx)?;
-        ip_aton(value)
+        ip_aton(&value)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

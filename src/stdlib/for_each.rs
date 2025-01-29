@@ -1,6 +1,6 @@
 use crate::compiler::prelude::*;
 
-fn for_each<T>(value: Value, ctx: &mut Context, runner: closure::Runner<T>) -> Resolved
+fn for_each<T>(value: Value, ctx: &mut Context, runner: &closure::Runner<T>) -> Resolved
 where
     T: Fn(&mut Context) -> Resolved,
 {
@@ -101,7 +101,7 @@ impl FunctionExpression for ForEachFn {
         } = &self.closure;
         let runner = closure::Runner::new(variables, |ctx| block.resolve(ctx));
 
-        for_each(value, ctx, runner)
+        for_each(value, ctx, &runner)
     }
 
     fn type_def(&self, _ctx: &state::TypeState) -> TypeDef {

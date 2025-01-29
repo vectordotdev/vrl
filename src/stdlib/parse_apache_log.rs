@@ -4,7 +4,7 @@ use crate::value;
 use std::collections::BTreeMap;
 
 fn parse_apache_log(
-    bytes: Value,
+    bytes: &Value,
     timestamp_format: Option<Value>,
     format: &Bytes,
     ctx: &Context,
@@ -128,7 +128,7 @@ impl FunctionExpression for ParseApacheLogFn {
             .map(|expr| expr.resolve(ctx))
             .transpose()?;
 
-        parse_apache_log(bytes, timestamp_format, &self.format, ctx)
+        parse_apache_log(&bytes, timestamp_format, &self.format, ctx)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

@@ -3,7 +3,7 @@ use cidr_utils::cidr::IpCidr;
 use std::net::IpAddr;
 use std::str::FromStr;
 
-fn ip_cidr_contains(value: Value, cidr: Value) -> Resolved {
+fn ip_cidr_contains(value: &Value, cidr: &Value) -> Resolved {
     let bytes = value.try_bytes_utf8_lossy()?;
     let ip_addr =
         IpAddr::from_str(&bytes).map_err(|err| format!("unable to parse IP address: {err}"))?;
@@ -90,7 +90,7 @@ impl FunctionExpression for IpCidrContainsFn {
         let value = self.value.resolve(ctx)?;
         let cidr = self.cidr.resolve(ctx)?;
 
-        ip_cidr_contains(value, cidr)
+        ip_cidr_contains(&value, &cidr)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

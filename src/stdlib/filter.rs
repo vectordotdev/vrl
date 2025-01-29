@@ -1,7 +1,7 @@
 use crate::compiler::prelude::*;
 use std::collections::BTreeMap;
 
-fn filter<T>(value: Value, ctx: &mut Context, runner: closure::Runner<T>) -> Resolved
+fn filter<T>(value: Value, ctx: &mut Context, runner: &closure::Runner<T>) -> Resolved
 where
     T: Fn(&mut Context) -> Resolved,
 {
@@ -125,7 +125,7 @@ impl FunctionExpression for FilterFn {
         } = &self.closure;
         let runner = closure::Runner::new(variables, |ctx| block.resolve(ctx));
 
-        filter(value, ctx, runner)
+        filter(value, ctx, &runner)
     }
 
     fn type_def(&self, ctx: &state::TypeState) -> TypeDef {
