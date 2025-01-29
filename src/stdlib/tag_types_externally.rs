@@ -183,9 +183,9 @@ mod tests {
         }
 
         tag_timestamp {
-            args: func_args![value: Utc.ymd(2021, 1, 1).and_hms_milli(0, 0, 0, 0)],
+            args: func_args![value: Utc.with_ymd_and_hms(2021, 1, 1, 0, 0, 0).unwrap()],
             want: Ok(btreemap! {
-                "timestamp" => Utc.ymd(2021, 1, 1).and_hms_milli(0, 0, 0, 0)
+                "timestamp" => Utc.with_ymd_and_hms(2021, 1, 1, 0, 0, 0).unwrap()
             }),
             tdef: TypeDef::object(Collection::any()),
         }

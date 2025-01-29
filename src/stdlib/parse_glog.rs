@@ -1,5 +1,5 @@
 use crate::compiler::prelude::*;
-use chrono::{offset::TimeZone, Utc};
+use chrono::{offset::TimeZone, NaiveDateTime, Utc};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use std::collections::BTreeMap;
@@ -23,13 +23,13 @@ fn parse_glog(bytes: Value) -> Resolved {
         log.insert("level".into(), Value::Bytes(level.to_owned().into()));
     }
     if let Some(timestamp) = captures.name("timestamp").map(|capture| capture.as_str()) {
-        log.insert(
-            "timestamp".into(),
-            Value::Timestamp(
-                Utc.datetime_from_str(timestamp, "%Y%m%d %H:%M:%S%.f")
-                    .map_err(|error| format!("failed parsing timestamp {timestamp}: {error}"))?,
-            ),
-        );
+        match NaiveDateTime::parse_from_str(timestamp, "%Y%m%d %H:%M:%S%.f") {
+            Ok(naive_dt) => {
+                let utc_dt = Utc.from_utc_datetime(&naive_dt);
+                log.insert("timestamp".into(), Value::Timestamp(utc_dt));
+            }
+            Err(e) => return Err(format!("failed parsing timestamp {timestamp}: {e}").into()),
+        };
     }
     if let Some(id) = captures.name("id").map(|capture| capture.as_str()) {
         log.insert(

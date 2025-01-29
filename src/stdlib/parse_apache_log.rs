@@ -351,9 +351,9 @@ mod tests {
             tz: TimeZone::default(),
         }
 
-        log_line_valid_with_local_timestamp_format {
+       log_line_valid_with_local_timestamp_format {
             args: func_args![value: format!("[{}] - - - -",
-                                            Utc.ymd(2000, 10, 10).and_hms(20,55,36)
+                                            Utc.with_ymd_and_hms(2000, 10, 10, 20, 55, 36).unwrap()
                                               .with_timezone(&Local)
                                               .format("%a %b %d %H:%M:%S %Y")
                                             ),
@@ -366,6 +366,7 @@ mod tests {
             tdef: TypeDef::object(kind_error()).fallible(),
             tz: TimeZone::default(),
         }
+
 
         log_line_valid_with_timezone {
             args: func_args![
