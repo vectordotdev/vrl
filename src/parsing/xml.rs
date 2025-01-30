@@ -1,12 +1,44 @@
+//! XML parsing utilities. Exports functions and configuration structs
+//! that are sufficient to process a `roxmltree::Node`.
+
 use crate::compiler::prelude::*;
 use once_cell::sync::Lazy;
 use regex::{Regex, RegexBuilder};
-use roxmltree::{Document, Node, NodeType};
+// Re-export `roxmltree` to match the public API of `process_node`.
+use roxmltree::NodeType;
+pub use roxmltree::{Document, Node};
 use rust_decimal::prelude::Zero;
 use std::{
     borrow::Cow,
     collections::{btree_map::Entry, BTreeMap},
 };
+
+static XML_RE: Lazy<Regex> = Lazy::new(|| {
+    RegexBuilder::new(r">\s+?<")
+        .multi_line(true)
+        .build()
+        .expect("trim regex failed")
+});
+
+/// Configuration to determine which XML options will be used when
+/// parsing a roxmltree `Node`.
+#[derive(Debug, Clone)]
+pub struct ParseXmlConfig<'a> {
+    /// Include XML attributes. Default: true,
+    pub include_attr: bool,
+    /// XML attribute prefix, e.g. `<a href="test">` -> `{a: { "@href": "test }}`. Default: "@".
+    pub attr_prefix: Cow<'a, str>,
+    /// Key to use for text nodes when attributes are included. Default: "text".
+    pub text_key: Cow<'a, str>,
+    /// Always use text default (instead of flattening). Default: false.
+    pub always_use_text_key: bool,
+    /// Parse "true" or "false" as booleans. Default: true.
+    pub parse_bool: bool,
+    /// Parse "null" as null. Default: true.
+    pub parse_null: bool,
+    /// Parse numeric values as integers/floats. Default: true.
+    pub parse_number: bool,
+}
 
 /// Used to keep Clippy's `too_many_argument` check happy.
 #[derive(Debug, Default)]
@@ -20,30 +52,6 @@ pub(crate) struct ParseOptions {
     pub(crate) parse_null: Option<Value>,
     pub(crate) parse_number: Option<Value>,
 }
-
-struct ParseXmlConfig<'a> {
-    /// Include XML attributes. Default: true,
-    include_attr: bool,
-    /// XML attribute prefix, e.g. `<a href="test">` -> `{a: { "@href": "test }}`. Default: "@".
-    attr_prefix: Cow<'a, str>,
-    /// Key to use for text nodes when attributes are included. Default: "text".
-    text_key: Cow<'a, str>,
-    /// Always use text default (instead of flattening). Default: false.
-    always_use_text_key: bool,
-    /// Parse "true" or "false" as booleans. Default: true.
-    parse_bool: bool,
-    /// Parse "null" as null. Default: true.
-    parse_null: bool,
-    /// Parse numeric values as integers/floats. Default: true.
-    parse_number: bool,
-}
-
-static XML_RE: Lazy<Regex> = Lazy::new(|| {
-    RegexBuilder::new(r">\s+?<")
-        .multi_line(true)
-        .build()
-        .expect("trim regex failed")
-});
 
 pub(crate) fn parse_xml(value: Value, options: ParseOptions) -> Resolved {
     let string = value.try_bytes_utf8_lossy()?;
@@ -95,8 +103,8 @@ pub(crate) fn parse_xml(value: Value, options: ParseOptions) -> Resolved {
     Ok(value)
 }
 
-/// Process an XML node, and return a VRL `Value`.
-fn process_node(node: Node, config: &ParseXmlConfig) -> Value {
+/// Process an XML `Node` and return a VRL `Value`.
+pub fn process_node(node: Node, config: &ParseXmlConfig) -> Value {
     // Helper to recurse over a `Node`s children, and build an object.
     let recurse = |node: Node| -> ObjectMap {
         let mut map = BTreeMap::new();
