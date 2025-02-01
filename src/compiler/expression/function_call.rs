@@ -919,7 +919,7 @@ impl DiagnosticMessage for Warning {
             } => {
                 vec![
                     Label::primary("this function can't fail", ident_span),
-                    Label::context("remove this abort-instruction", abort_span),
+                    Label::context("remove this abort (!) instruction", abort_span),
                 ]
             }
         }
