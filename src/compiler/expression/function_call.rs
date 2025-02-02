@@ -934,9 +934,7 @@ impl DiagnosticMessage for Warning {
     }
 
     fn notes(&self) -> Vec<Note> {
-        match self {
-            _ => vec![],
-        }
+        vec![]
     }
 
     fn severity(&self) -> Severity {
