@@ -46,8 +46,8 @@ pub use state::{TypeInfo, TypeState};
 pub use target::{SecretTarget, Target, TargetValue, TargetValueRef};
 pub use type_def::TypeDef;
 
-use crate::diagnostic::{DiagnosticList, DiagnosticMessage};
 pub(crate) use crate::diagnostic::Span;
+use crate::diagnostic::{DiagnosticList, DiagnosticMessage};
 use crate::parser::parse;
 
 pub use self::compile_config::CompileConfig;

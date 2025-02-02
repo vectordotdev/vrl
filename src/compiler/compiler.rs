@@ -163,20 +163,19 @@ impl<'a> Compiler<'a> {
             Op(node) => self.compile_op(node, state).map(Into::into),
             Assignment(node) => self.compile_assignment(node, state).map(Into::into),
             Query(node) => self.compile_query(node, state).map(Into::into),
-            FunctionCall(node) => {
-                self.compile_function_call(node, state).map(|function_call|
-                    {
-                        let v = function_call
-                            .warnings
-                            .iter()
-                            .cloned()
-                            .map(|w| Box::new(w) as Box<dyn DiagnosticMessage>)
-                            .collect::<Vec<_>>();
+            FunctionCall(node) => self
+                .compile_function_call(node, state)
+                .map(|function_call| {
+                    let v = function_call
+                        .warnings
+                        .iter()
+                        .cloned()
+                        .map(|w| Box::new(w) as Box<dyn DiagnosticMessage>)
+                        .collect::<Vec<_>>();
 
-                        self.diagnostics.extend(v);
-                        function_call.into()
-                    })
-            },
+                    self.diagnostics.extend(v);
+                    function_call.into()
+                }),
             Variable(node) => self.compile_variable(node, state).map(Into::into),
             Unary(node) => self.compile_unary(node, state).map(Into::into),
             Abort(node) => self.compile_abort(node, state).map(Into::into),

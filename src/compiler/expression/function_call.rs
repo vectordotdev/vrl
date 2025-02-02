@@ -1,11 +1,19 @@
 use std::{fmt, sync::Arc};
 
-use crate::compiler::state::{TypeInfo, TypeState};
-use crate::compiler::{expression::{levenstein, ExpressionError, FunctionArgument}, function::{
-    closure::{self, VariableKind},
-    ArgumentList, Example, FunctionClosure, FunctionCompileContext, Parameter,
-}, parser::{Ident, Node}, state::LocalEnv, type_def::Details, value::Kind, CompileConfig, Context, Expression, Function, Resolved, Span, TypeDef};
 use crate::compiler::expression::function_call::Warning::AbortInfallible;
+use crate::compiler::state::{TypeInfo, TypeState};
+use crate::compiler::{
+    expression::{levenstein, ExpressionError, FunctionArgument},
+    function::{
+        closure::{self, VariableKind},
+        ArgumentList, Example, FunctionClosure, FunctionCompileContext, Parameter,
+    },
+    parser::{Ident, Node},
+    state::LocalEnv,
+    type_def::Details,
+    value::Kind,
+    CompileConfig, Context, Expression, Function, Resolved, Span, TypeDef,
+};
 use crate::diagnostic::{DiagnosticMessage, Label, Note, Severity, Urls};
 
 use super::Block;
@@ -939,9 +947,9 @@ impl DiagnosticMessage for Warning {
 impl DiagnosticMessage for FunctionCallError {
     fn code(&self) -> usize {
         use FunctionCallError::{
-            ClosureArityMismatch, ClosureParameterTypeMismatch, Compilation,
-            FallibleArgument, InvalidArgumentKind, MissingArgument, MissingClosure,
-            ReturnTypeMismatch, Undefined, UnexpectedClosure, UnknownKeyword, WrongNumberOfArgs,
+            ClosureArityMismatch, ClosureParameterTypeMismatch, Compilation, FallibleArgument,
+            InvalidArgumentKind, MissingArgument, MissingClosure, ReturnTypeMismatch, Undefined,
+            UnexpectedClosure, UnknownKeyword, WrongNumberOfArgs,
         };
 
         match self {
@@ -962,9 +970,9 @@ impl DiagnosticMessage for FunctionCallError {
 
     fn labels(&self) -> Vec<Label> {
         use FunctionCallError::{
-            ClosureArityMismatch, ClosureParameterTypeMismatch, Compilation,
-            FallibleArgument, InvalidArgumentKind, MissingArgument, MissingClosure,
-            ReturnTypeMismatch, Undefined, UnexpectedClosure, UnknownKeyword, WrongNumberOfArgs,
+            ClosureArityMismatch, ClosureParameterTypeMismatch, Compilation, FallibleArgument,
+            InvalidArgumentKind, MissingArgument, MissingClosure, ReturnTypeMismatch, Undefined,
+            UnexpectedClosure, UnknownKeyword, WrongNumberOfArgs,
         };
 
         match self {
@@ -1120,8 +1128,7 @@ impl DiagnosticMessage for FunctionCallError {
 
     fn notes(&self) -> Vec<Note> {
         use FunctionCallError::{
-            Compilation, FallibleArgument, InvalidArgumentKind, MissingClosure,
-            WrongNumberOfArgs,
+            Compilation, FallibleArgument, InvalidArgumentKind, MissingClosure, WrongNumberOfArgs,
         };
 
         match self {
