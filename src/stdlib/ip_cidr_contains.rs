@@ -3,15 +3,35 @@ use cidr_utils::cidr::IpCidr;
 use std::net::IpAddr;
 use std::str::FromStr;
 
+fn str_to_cidr(v: &str) -> Result<IpCidr, String> {
+    IpCidr::from_str(v).map_err(|err| format!("unable to parse CIDR: {err}"))
+}
+
 fn ip_cidr_contains(value: &Value, cidr: &Value) -> Resolved {
     let bytes = value.try_bytes_utf8_lossy()?;
     let ip_addr =
         IpAddr::from_str(&bytes).map_err(|err| format!("unable to parse IP address: {err}"))?;
-    let cidr = {
-        let cidr = cidr.try_bytes_utf8_lossy()?;
-        IpCidr::from_str(&cidr).map_err(|err| format!("unable to parse CIDR: {err}"))?
-    };
-    Ok(cidr.contains(&ip_addr).into())
+
+    match cidr {
+        Value::Bytes(v) => {
+            let cidr = str_to_cidr(&String::from_utf8_lossy(v))?;
+            Ok(cidr.contains(&ip_addr).into())
+        }
+        Value::Array(vec) => {
+            for v in vec {
+                let cidr = str_to_cidr(&v.try_bytes_utf8_lossy()?)?;
+                if cidr.contains(&ip_addr) {
+                    return Ok(true.into());
+                }
+            }
+            Ok(false.into())
+        }
+        value => Err(ValueError::Expected {
+            got: value.kind(),
+            expected: Kind::bytes() | Kind::array(Collection::any()),
+        }
+        .into()),
+    }
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -26,7 +46,7 @@ impl Function for IpCidrContains {
         &[
             Parameter {
                 keyword: "cidr",
-                kind: kind::BYTES,
+                kind: kind::BYTES | kind::ARRAY,
                 required: true,
             },
             Parameter {
@@ -122,6 +142,22 @@ mod tests {
             tdef: TypeDef::boolean().fallible(),
         }
 
+        ipv4_yes_array {
+            args: func_args![value: "192.168.10.32",
+                             cidr: vec!["10.0.0.0/8", "192.168.0.0/16"],
+            ],
+            want: Ok(value!(true)),
+            tdef: TypeDef::boolean().fallible(),
+        }
+
+        ipv4_no_array {
+            args: func_args![value: "192.168.10.32",
+                             cidr: vec!["10.0.0.0/8", "192.168.0.0/24"],
+            ],
+            want: Ok(value!(false)),
+            tdef: TypeDef::boolean().fallible(),
+        }
+
         ipv6_yes {
             args: func_args![value: "2001:4f8:3:ba:2e0:81ff:fe22:d1f1",
                              cidr: "2001:4f8:3:ba::/64",
@@ -133,6 +169,22 @@ mod tests {
         ipv6_no {
             args: func_args![value: "2001:4f8:3:ba:2e0:81ff:fe22:d1f1",
                              cidr: "2001:4f8:4:ba::/64",
+            ],
+            want: Ok(value!(false)),
+            tdef: TypeDef::boolean().fallible(),
+        }
+
+        ipv6_yes_array {
+            args: func_args![value: "2001:4f8:3:ba:2e0:81ff:fe22:d1f1",
+                             cidr: vec!["fc00::/7", "2001:4f8:3:ba::/64"],
+            ],
+            want: Ok(value!(true)),
+            tdef: TypeDef::boolean().fallible(),
+        }
+
+        ipv6_no_array {
+            args: func_args![value: "2001:4f8:3:ba:2e0:81ff:fe22:d1f1",
+                             cidr: vec!["fc00::/7", "2001:4f8:4:ba::/64"],
             ],
             want: Ok(value!(false)),
             tdef: TypeDef::boolean().fallible(),
