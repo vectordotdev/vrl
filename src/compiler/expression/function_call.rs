@@ -40,6 +40,7 @@ impl<'a> Builder<'a> {
         &self.list
     }
 
+    #[allow(clippy::too_many_lines)]
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
         call_span: Span,
@@ -197,6 +198,7 @@ impl<'a> Builder<'a> {
         })
     }
 
+    #[allow(clippy::too_many_lines)]
     fn check_closure(
         function: &dyn Function,
         closure_variables: Option<Node<Vec<Node<Ident>>>>,
@@ -355,15 +357,15 @@ impl<'a> Builder<'a> {
                                 VariableKind::TargetInnerKey => {
                                     let mut kind = Kind::never();
 
-                                    if !type_def.is_collection() {
-                                        kind = Kind::any()
-                                    } else {
+                                    if type_def.is_collection() {
                                         if type_def.is_object() {
                                             kind.add_bytes();
                                         }
                                         if type_def.is_array() {
                                             kind.add_integer();
                                         }
+                                    } else {
+                                        kind = Kind::any();
                                     }
 
                                     (kind.into(), None)
@@ -966,6 +968,7 @@ impl DiagnosticMessage for FunctionCallError {
         }
     }
 
+    #[allow(clippy::too_many_lines)]
     fn labels(&self) -> Vec<Label> {
         use FunctionCallError::{
             ClosureArityMismatch, ClosureParameterTypeMismatch, Compilation, FallibleArgument,
@@ -1199,7 +1202,7 @@ impl DiagnosticMessage for FunctionCallError {
                     notes.append(&mut Note::solution(
                         "coercing to an appropriate type and specifying a default value as a fallback in case coercion fails",
                         vec![format!("{argument} = {coerce}"), call],
-                    ))
+                    ));
                 }
 
                 notes.push(Note::SeeErrorDocs);

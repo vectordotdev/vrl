@@ -492,7 +492,7 @@ impl<'a> Compiler<'a> {
                             .compile_expr(*expr, state)
                             .map(|expr| Box::new(Node::new(span, expr)))
                             .or_else(|| {
-                                self.skip_missing_assignment_target(target.clone().into_inner());
+                                self.skip_missing_assignment_target(&target.clone().into_inner());
                                 None
                             })?;
 
@@ -513,8 +513,8 @@ impl<'a> Compiler<'a> {
                             .compile_expr(*expr, state)
                             .map(|expr| Box::new(Node::new(span, expr)))
                             .or_else(|| {
-                                self.skip_missing_assignment_target(ok.clone().into_inner());
-                                self.skip_missing_assignment_target(err.clone().into_inner());
+                                self.skip_missing_assignment_target(&ok.clone().into_inner());
+                                self.skip_missing_assignment_target(&err.clone().into_inner());
                                 None
                             })?;
 
@@ -837,7 +837,7 @@ impl<'a> Compiler<'a> {
         self.diagnostics.push(Box::new(error));
     }
 
-    fn skip_missing_assignment_target(&mut self, target: ast::AssignmentTarget) {
+    fn skip_missing_assignment_target(&mut self, target: &ast::AssignmentTarget) {
         let query = match &target {
             ast::AssignmentTarget::Noop => return,
             ast::AssignmentTarget::Query(ast::Query { target, path }) => {

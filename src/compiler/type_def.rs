@@ -76,8 +76,7 @@ impl Purity {
 
         match (left, right) {
             (Pure, Pure) => Pure,
-            (Impure, _) => Impure,
-            (_, Impure) => Impure,
+            _ => Impure,
         }
     }
 }
@@ -336,6 +335,7 @@ impl TypeDef {
     }
 
     #[inline]
+    #[must_use]
     pub fn or_array(mut self, collection: impl Into<Collection<Index>>) -> Self {
         self.kind.add_array(collection);
         self
@@ -371,6 +371,7 @@ impl TypeDef {
     }
 
     #[inline]
+    #[must_use]
     pub fn or_object(mut self, collection: impl Into<Collection<Field>>) -> Self {
         self.kind.add_object(collection);
         self
@@ -467,10 +468,11 @@ impl TypeDef {
 
     /// Set the type definition to be fallible if its kind is not contained
     /// within the provided kind.
+    #[must_use]
     pub fn fallible_unless(mut self, kind: impl Into<Kind>) -> Self {
         let kind = kind.into();
         if kind.is_superset(&self.kind).is_err() {
-            self.fallibility = Fallibility::MightFail
+            self.fallibility = Fallibility::MightFail;
         }
 
         self
@@ -577,7 +579,7 @@ mod test {
                 type_def: TypeDef::integer().or_float(),
                 value: Some(Value::from(5)),
             }
-        )
+        );
     }
 
     #[test]
@@ -596,7 +598,7 @@ mod test {
                 type_def: TypeDef::any(),
                 value: None,
             }
-        )
+        );
     }
 
     #[test]

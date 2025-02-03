@@ -58,9 +58,7 @@ impl From<ExpressionError> for Diagnostic {
 impl DiagnosticMessage for ExpressionError {
     fn code(&self) -> usize {
         match self {
-            Abort { .. } => 0,
-            Return { .. } => 0,
-            Error { .. } => 0,
+            Abort { .. } | Return { .. } | Error { .. } => 0,
             Fallible { .. } => 100,
             Missing { .. } => 900,
         }
@@ -99,11 +97,9 @@ impl DiagnosticMessage for ExpressionError {
 
     fn notes(&self) -> Vec<Note> {
         match self {
-            Abort { .. } => vec![],
-            Return { .. } => vec![],
+            Return { .. } | Abort { .. } | Missing { .. } => vec![],
             Error { notes, .. } => notes.clone(),
             Fallible { .. } => vec![Note::SeeErrorDocs],
-            Missing { .. } => vec![],
         }
     }
 }
