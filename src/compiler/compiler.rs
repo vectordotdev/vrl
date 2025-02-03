@@ -19,7 +19,7 @@ use crate::value::Value;
 
 use super::state::TypeState;
 
-pub(crate) type Diagnostics = Vec<Box<dyn DiagnosticMessage>>;
+pub(crate) type DiagnosticsMessages = Vec<Box<dyn DiagnosticMessage>>;
 
 pub struct CompilationResult {
     pub program: Program,
@@ -33,7 +33,7 @@ pub struct CompilationResult {
 /// state after the compiled expression executes. This logic lives in `Expression::type_info`.
 pub struct Compiler<'a> {
     fns: &'a [Box<dyn Function>],
-    diagnostics: Diagnostics,
+    diagnostics: DiagnosticsMessages,
     fallible: bool,
     abortable: bool,
     external_queries: Vec<OwnedTargetPath>,
@@ -156,7 +156,6 @@ impl<'a> Compiler<'a> {
         let original_state = state.clone();
 
         let span = node.span();
-
         let expr = match node.into_inner() {
             Literal(node) => self.compile_literal(node, state),
             Container(node) => self.compile_container(node, state).map(Into::into),
@@ -164,7 +163,19 @@ impl<'a> Compiler<'a> {
             Op(node) => self.compile_op(node, state).map(Into::into),
             Assignment(node) => self.compile_assignment(node, state).map(Into::into),
             Query(node) => self.compile_query(node, state).map(Into::into),
-            FunctionCall(node) => self.compile_function_call(node, state).map(Into::into),
+            FunctionCall(node) => self
+                .compile_function_call(node, state)
+                .map(|function_call| {
+                    let v = function_call
+                        .warnings
+                        .iter()
+                        .cloned()
+                        .map(|w| Box::new(w) as Box<dyn DiagnosticMessage>)
+                        .collect::<Vec<_>>();
+
+                    self.diagnostics.extend(v);
+                    function_call.into()
+                }),
             Variable(node) => self.compile_variable(node, state).map(Into::into),
             Unary(node) => self.compile_unary(node, state).map(Into::into),
             Abort(node) => self.compile_abort(node, state).map(Into::into),

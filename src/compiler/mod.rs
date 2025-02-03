@@ -46,8 +46,8 @@ pub use state::{TypeInfo, TypeState};
 pub use target::{SecretTarget, Target, TargetValue, TargetValueRef};
 pub use type_def::TypeDef;
 
-use crate::diagnostic::DiagnosticList;
 pub(crate) use crate::diagnostic::Span;
+use crate::diagnostic::{DiagnosticList, DiagnosticMessage};
 use crate::parser::parse;
 
 pub use self::compile_config::CompileConfig;
@@ -76,6 +76,7 @@ pub mod type_def;
 pub mod unused_expression_checker;
 pub mod value;
 
+pub type DiagnosticMessages = Vec<Box<dyn DiagnosticMessage>>;
 pub type Result<T = CompilationResult> = std::result::Result<T, DiagnosticList>;
 
 /// Compile a given source into the final [`Program`].

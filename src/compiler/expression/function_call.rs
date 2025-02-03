@@ -1,5 +1,7 @@
 use std::{fmt, sync::Arc};
 
+use super::Block;
+use crate::compiler::expression::function_call::Warning::AbortInfallible;
 use crate::compiler::state::{TypeInfo, TypeState};
 use crate::compiler::{
     expression::{levenstein, ExpressionError, FunctionArgument},
@@ -13,9 +15,8 @@ use crate::compiler::{
     value::Kind,
     CompileConfig, Context, Expression, Function, Resolved, Span, TypeDef,
 };
-use crate::diagnostic::{DiagnosticMessage, Label, Note, Urls};
-
-use super::Block;
+use crate::diagnostic::{DiagnosticMessage, Label, Note, Severity, Urls};
+use crate::prelude::Note::SeeErrorDocs;
 
 pub(crate) struct Builder<'a> {
     abort_on_error: bool,
@@ -428,6 +429,7 @@ impl<'a> Builder<'a> {
         // Asking for an infallible function to abort on error makes no sense.
         // We consider this an error at compile-time, because it makes the
         // resulting program incorrectly convey this function call might fail.
+        let mut warnings = Vec::new();
         if self.abort_on_error
             && self.arguments_with_unknown_type_validity.is_empty()
             && !expr
@@ -435,7 +437,7 @@ impl<'a> Builder<'a> {
                 .result
                 .is_fallible()
         {
-            return Err(FunctionCallError::AbortInfallible {
+            warnings.push(AbortInfallible {
                 ident_span,
                 abort_span: Span::new(ident_span.end(), ident_span.end() + 1),
             });
@@ -484,6 +486,7 @@ impl<'a> Builder<'a> {
                 ident: self.function.identifier(),
                 function_id: self.function_id,
                 arguments: self.arguments.clone(),
+                warnings,
             },
             error: invalid_argument_error,
         })
@@ -565,6 +568,8 @@ pub struct FunctionCall {
     #[allow(dead_code)]
     function_id: usize,
     arguments: Arc<Vec<Node<FunctionArgument>>>,
+
+    pub(crate) warnings: Vec<Warning>,
 }
 
 impl FunctionCall {
@@ -836,6 +841,12 @@ pub(crate) struct InvalidArgumentErrorContext {
     pub(crate) argument_span: Span,
 }
 
+#[derive(thiserror::Error, Debug, Clone)]
+pub(crate) enum Warning {
+    #[error("can't abort infallible function")]
+    AbortInfallible { ident_span: Span, abort_span: Span },
+}
+
 #[derive(thiserror::Error, Debug)]
 #[allow(clippy::large_enum_variant)]
 pub(crate) enum FunctionCallError {
@@ -869,9 +880,6 @@ pub(crate) enum FunctionCallError {
         error: Box<dyn DiagnosticMessage>,
     },
 
-    #[error("can't abort infallible function")]
-    AbortInfallible { ident_span: Span, abort_span: Span },
-
     #[error("invalid argument type")]
     InvalidArgumentKind(InvalidArgumentErrorContext),
 
@@ -904,12 +912,42 @@ pub(crate) enum FunctionCallError {
     },
 }
 
+impl DiagnosticMessage for Warning {
+    fn code(&self) -> usize {
+        match self {
+            AbortInfallible { .. } => 620,
+        }
+    }
+
+    fn labels(&self) -> Vec<Label> {
+        match self {
+            AbortInfallible {
+                ident_span,
+                abort_span,
+            } => {
+                vec![
+                    Label::primary("this function can't fail", ident_span),
+                    Label::context("remove this abort (!) instruction", abort_span),
+                ]
+            }
+        }
+    }
+
+    fn notes(&self) -> Vec<Note> {
+        vec![SeeErrorDocs]
+    }
+
+    fn severity(&self) -> Severity {
+        Severity::Warning
+    }
+}
+
 impl DiagnosticMessage for FunctionCallError {
     fn code(&self) -> usize {
         use FunctionCallError::{
-            AbortInfallible, ClosureArityMismatch, ClosureParameterTypeMismatch, Compilation,
-            FallibleArgument, InvalidArgumentKind, MissingArgument, MissingClosure,
-            ReturnTypeMismatch, Undefined, UnexpectedClosure, UnknownKeyword, WrongNumberOfArgs,
+            ClosureArityMismatch, ClosureParameterTypeMismatch, Compilation, FallibleArgument,
+            InvalidArgumentKind, MissingArgument, MissingClosure, ReturnTypeMismatch, Undefined,
+            UnexpectedClosure, UnknownKeyword, WrongNumberOfArgs,
         };
 
         match self {
@@ -918,7 +956,6 @@ impl DiagnosticMessage for FunctionCallError {
             UnknownKeyword { .. } => 108,
             Compilation { .. } => 610,
             MissingArgument { .. } => 107,
-            AbortInfallible { .. } => 620,
             InvalidArgumentKind { .. } => 110,
             FallibleArgument { .. } => 630,
             UnexpectedClosure { .. } => 109,
@@ -931,9 +968,9 @@ impl DiagnosticMessage for FunctionCallError {
 
     fn labels(&self) -> Vec<Label> {
         use FunctionCallError::{
-            AbortInfallible, ClosureArityMismatch, ClosureParameterTypeMismatch, Compilation,
-            FallibleArgument, InvalidArgumentKind, MissingArgument, MissingClosure,
-            ReturnTypeMismatch, Undefined, UnexpectedClosure, UnknownKeyword, WrongNumberOfArgs,
+            ClosureArityMismatch, ClosureParameterTypeMismatch, Compilation, FallibleArgument,
+            InvalidArgumentKind, MissingArgument, MissingClosure, ReturnTypeMismatch, Undefined,
+            UnexpectedClosure, UnknownKeyword, WrongNumberOfArgs,
         };
 
         match self {
@@ -1022,16 +1059,6 @@ impl DiagnosticMessage for FunctionCallError {
                 )]
             }
 
-            AbortInfallible {
-                ident_span,
-                abort_span,
-            } => {
-                vec![
-                    Label::primary("this function can't fail", ident_span),
-                    Label::context("remove this abort-instruction", abort_span),
-                ]
-            }
-
             InvalidArgumentKind(context) => {
                 let keyword = context.parameter.keyword;
                 let expected = context.parameter.kind();
@@ -1099,8 +1126,7 @@ impl DiagnosticMessage for FunctionCallError {
 
     fn notes(&self) -> Vec<Note> {
         use FunctionCallError::{
-            AbortInfallible, Compilation, FallibleArgument, InvalidArgumentKind, MissingClosure,
-            WrongNumberOfArgs,
+            Compilation, FallibleArgument, InvalidArgumentKind, MissingClosure, WrongNumberOfArgs,
         };
 
         match self {
@@ -1108,7 +1134,7 @@ impl DiagnosticMessage for FunctionCallError {
                 "function arguments".to_owned(),
                 Urls::expression_docs_url("#arguments"),
             )],
-            AbortInfallible { .. } | FallibleArgument { .. } => vec![Note::SeeErrorDocs],
+            FallibleArgument { .. } => vec![Note::SeeErrorDocs],
             InvalidArgumentKind(context) => {
                 // TODO: move this into a generic helper function
                 let kind = &context.parameter.kind();
