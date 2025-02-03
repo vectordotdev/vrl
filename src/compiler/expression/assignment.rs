@@ -395,9 +395,8 @@ impl Target {
             Internal(ident, path) => {
                 // Get the provided path, or else insert into the variable
                 // without any path appended and return early.
-                let path = match path.is_root() {
-                    false => path,
-                    true => return ctx.state_mut().insert_variable(ident.clone(), value),
+                if path.is_root() {
+                    return ctx.state_mut().insert_variable(ident.clone(), value);
                 };
 
                 // Update existing variable using the provided path, or create a

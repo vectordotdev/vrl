@@ -32,8 +32,7 @@ impl Terminate {
     #[must_use]
     pub fn get_expression_error(self) -> ExpressionError {
         match self {
-            Terminate::Abort(error) => error,
-            Terminate::Error(error) => error,
+            Terminate::Error(error) | Terminate::Abort(error) => error,
         }
     }
 }
@@ -41,8 +40,7 @@ impl Terminate {
 impl fmt::Display for Terminate {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Terminate::Abort(error) => error.fmt(f),
-            Terminate::Error(error) => error.fmt(f),
+            Terminate::Error(error) | Terminate::Abort(error) => error.fmt(f),
         }
     }
 }

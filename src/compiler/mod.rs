@@ -5,9 +5,6 @@ clippy::cast_possible_wrap, // allowed in initial deny commit
 clippy::cast_precision_loss, // allowed in initial deny commit
 clippy::cast_sign_loss, // allowed in initial deny commit
 clippy::if_not_else, // allowed in initial deny commit
-clippy::match_bool, // allowed in initial deny commit
-clippy::match_same_arms, // allowed in initial deny commit
-clippy::match_wild_err_arm, // allowed in initial deny commit
 clippy::missing_errors_doc, // allowed in initial deny commit
 clippy::missing_panics_doc, // allowed in initial deny commit
 clippy::module_name_repetitions, // allowed in initial deny commit

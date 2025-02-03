@@ -185,8 +185,7 @@ impl VrlValueArithmetic for Value {
         let err = ValueError::Or;
 
         match self {
-            Value::Null => rhs().map_err(err),
-            Value::Boolean(false) => rhs().map_err(err),
+            Value::Null | Value::Boolean(false) => rhs().map_err(err),
             value => Ok(value),
         }
     }

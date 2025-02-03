@@ -141,9 +141,8 @@ impl VisitorState {
             QueryTarget::Internal(ident) => {
                 self.mark_identifier_pending_usage(ident, &query_target.span);
             }
-            QueryTarget::External(_) => {}
-            QueryTarget::FunctionCall(_) => {}
-            QueryTarget::Container(_) => {}
+            QueryTarget::External(_) | QueryTarget::FunctionCall(_) | QueryTarget::Container(_) => {
+            }
         }
     }
 
@@ -233,11 +232,10 @@ impl AstVisitor<'_> {
                         state.mark_identifier_used(ident);
                     }
                 }
-                QueryTarget::External(_) => {}
+                QueryTarget::External(_) | QueryTarget::Container(_) => {}
                 QueryTarget::FunctionCall(function_call) => {
                     self.visit_function_call(function_call, &query.node.target.span, state);
                 }
-                QueryTarget::Container(_) => {}
             },
             Expr::FunctionCall(function_call) => {
                 self.visit_function_call(function_call, &function_call.span, state);
@@ -342,10 +340,7 @@ impl AstVisitor<'_> {
 
         // Visit the assignment right hand side.
         match &assignment.node {
-            Assignment::Single { expr, .. } => {
-                self.visit_node(expr, state);
-            }
-            Assignment::Infallible { expr, .. } => {
+            Assignment::Infallible { expr, .. } | Assignment::Single { expr, .. } => {
                 self.visit_node(expr, state);
             }
         }
