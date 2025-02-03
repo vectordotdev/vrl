@@ -79,7 +79,7 @@ pub(crate) fn run(
             Ok(line) if line == "exit" || line == "quit" => break,
             Ok("help") => print_help_text(),
             Ok(line) if line == "help functions" || line == "help funcs" || line == "help fs" => {
-                print_function_list()
+                print_function_list();
             }
             Ok("help docs") => open_url(DOCS_URL),
             // Capture "help error <code>"

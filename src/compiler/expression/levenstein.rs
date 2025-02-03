@@ -44,7 +44,7 @@ pub(crate) fn distance(word1: &[char], word2: &[char]) -> usize {
                 && word1[col - 2] == word2[row - 1]
             {
                 matrix[pos(col, row)] =
-                    min(matrix[pos(col, row)], matrix[pos(col - 2, row - 2)] + 1)
+                    min(matrix[pos(col, row)], matrix[pos(col - 2, row - 2)] + 1);
             }
         }
     }

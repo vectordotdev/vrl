@@ -356,7 +356,7 @@ impl<'a> Builder<'a> {
                                     let mut kind = Kind::never();
 
                                     if !type_def.is_collection() {
-                                        kind = Kind::any()
+                                        kind = Kind::any();
                                     } else {
                                         if type_def.is_object() {
                                             kind.add_bytes();
@@ -1199,7 +1199,7 @@ impl DiagnosticMessage for FunctionCallError {
                     notes.append(&mut Note::solution(
                         "coercing to an appropriate type and specifying a default value as a fallback in case coercion fails",
                         vec![format!("{argument} = {coerce}"), call],
-                    ))
+                    ));
                 }
 
                 notes.push(Note::SeeErrorDocs);

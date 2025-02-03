@@ -167,7 +167,7 @@ impl VisitorState {
             notes: vec![Note::Basic(
                 "this expression has no side-effects".to_owned(),
             )],
-        })
+        });
     }
 
     fn extend_diagnostics_for_unused_variables(&mut self) {
@@ -235,12 +235,12 @@ impl AstVisitor<'_> {
                 }
                 QueryTarget::External(_) => {}
                 QueryTarget::FunctionCall(function_call) => {
-                    self.visit_function_call(function_call, &query.node.target.span, state)
+                    self.visit_function_call(function_call, &query.node.target.span, state);
                 }
                 QueryTarget::Container(_) => {}
             },
             Expr::FunctionCall(function_call) => {
-                self.visit_function_call(function_call, &function_call.span, state)
+                self.visit_function_call(function_call, &function_call.span, state);
             }
             Expr::Variable(variable) => {
                 state.mark_identifier_used(&variable.node);

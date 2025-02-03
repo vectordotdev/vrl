@@ -1,13 +1,4 @@
-#![deny(
-// warnings,
-clippy::all,
-clippy::pedantic,
-unreachable_pub,
-unused_allocation,
-unused_extern_crates,
-unused_assignments,
-unused_comparisons
-)]
+#![deny(warnings, clippy::pedantic)]
 #![allow(
 clippy::cast_possible_truncation, // allowed in initial deny commit
 clippy::cast_possible_wrap, // allowed in initial deny commit
@@ -22,10 +13,7 @@ clippy::missing_panics_doc, // allowed in initial deny commit
 clippy::module_name_repetitions, // allowed in initial deny commit
 clippy::needless_pass_by_value, // allowed in initial deny commit
 clippy::return_self_not_must_use, // allowed in initial deny commit
-clippy::semicolon_if_nothing_returned,  // allowed in initial deny commit
-clippy::similar_names, // allowed in initial deny commit
 clippy::too_many_lines, // allowed in initial deny commit
-let_underscore_drop, // allowed in initial deny commit
 )]
 
 use std::fmt::Debug;

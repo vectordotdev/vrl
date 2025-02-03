@@ -1,17 +1,4 @@
-#![deny(
-    warnings,
-    clippy::all,
-    clippy::pedantic,
-    unreachable_pub,
-    unused_allocation,
-    unused_extern_crates,
-    unused_assignments,
-    unused_comparisons
-)]
-#![allow(
-    clippy::semicolon_if_nothing_returned, // allowed in initial deny commit
-)]
-
+#![deny(warnings, clippy::pedantic)]
 pub mod cmd;
 mod repl;
 

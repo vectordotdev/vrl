@@ -470,7 +470,7 @@ impl TypeDef {
     pub fn fallible_unless(mut self, kind: impl Into<Kind>) -> Self {
         let kind = kind.into();
         if kind.is_superset(&self.kind).is_err() {
-            self.fallibility = Fallibility::MightFail
+            self.fallibility = Fallibility::MightFail;
         }
 
         self
@@ -577,7 +577,7 @@ mod test {
                 type_def: TypeDef::integer().or_float(),
                 value: Some(Value::from(5)),
             }
-        )
+        );
     }
 
     #[test]
@@ -596,7 +596,7 @@ mod test {
                 type_def: TypeDef::any(),
                 value: None,
             }
-        )
+        );
     }
 
     #[test]
