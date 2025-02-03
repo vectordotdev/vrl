@@ -1,9 +1,9 @@
 use crate::compiler::prelude::*;
 
-fn strlen(value: Value) -> Resolved {
-    let v = value.try_bytes()?;
+fn strlen(value: &Value) -> Resolved {
+    let v = value.try_bytes_utf8_lossy()?;
 
-    Ok(String::from_utf8_lossy(&v).chars().count().into())
+    Ok(v.chars().count().into())
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -51,7 +51,7 @@ impl FunctionExpression for StrlenFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let value = self.value.resolve(ctx)?;
 
-        strlen(value)
+        strlen(&value)
     }
 
     fn type_def(&self, _state: &state::TypeState) -> TypeDef {
