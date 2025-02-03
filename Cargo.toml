@@ -26,7 +26,7 @@ default = ["compiler", "value", "diagnostic", "path", "parser", "stdlib", "datad
 
 # Main features (on by default)
 compiler = ["diagnostic", "path", "parser", "value", "dep:paste", "dep:chrono", "dep:serde", "dep:regex", "dep:bytes", "dep:ordered-float", "dep:chrono-tz", "dep:snafu", "dep:thiserror", "dep:dyn-clone", "dep:indoc", "dep:thiserror", "dep:lalrpop-util"]
-value = ["path", "dep:bytes", "dep:regex", "dep:ordered-float", "dep:chrono", "dep:serde_json"]
+value = ["path", "dep:bytes", "dep:regex", "dep:ordered-float", "dep:chrono", "dep:serde_json", "dep:simdutf8"]
 diagnostic = ["dep:codespan-reporting", "dep:termcolor"]
 path = ["value", "dep:once_cell", "dep:serde", "dep:snafu", "dep:regex"]
 parser = ["path", "diagnostic", "value", "dep:thiserror", "dep:ordered-float", "dep:lalrpop-util"]
@@ -182,6 +182,7 @@ rust_decimal = { version = "1", optional = true }
 seahash = { version = "4", optional = true }
 serde = { version = "1", features = ["derive"], optional = true }
 serde_json = { version = "1", default-features = false, optional = true, features = ["std", "raw_value"] }
+simdutf8 = { version = "0.1.5", optional = true }
 fancy-regex = { version = "0.14.0", default-features = false, optional = true }
 sha-1 = { version = "0.10", optional = true }
 sha-2 = { package = "sha2", version = "0.10", optional = true }

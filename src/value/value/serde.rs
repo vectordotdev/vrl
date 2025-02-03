@@ -1,12 +1,11 @@
 use std::{borrow::Cow, collections::BTreeMap, fmt};
 
+use crate::value::value::{simdutf_bytes_utf8_lossy, timestamp_to_string, StdError, Value};
 use bytes::Bytes;
 use ordered_float::NotNan;
 use serde::de::Error as SerdeError;
 use serde::de::{MapAccess, SeqAccess, Visitor};
 use serde::{Deserialize, Serialize, Serializer};
-
-use crate::value::value::{timestamp_to_string, StdError, Value};
 
 impl Value {
     /// Converts self into a `Bytes`, using JSON for Map/Array.
@@ -37,7 +36,7 @@ impl Value {
     /// If map or array serialization fails.
     pub fn to_string_lossy(&self) -> Cow<'_, str> {
         match self {
-            Self::Bytes(bytes) => String::from_utf8_lossy(bytes),
+            Self::Bytes(bytes) => simdutf_bytes_utf8_lossy(bytes),
             Self::Regex(regex) => regex.as_str().into(),
             Self::Timestamp(timestamp) => timestamp_to_string(timestamp).into(),
             Self::Integer(num) => num.to_string().into(),
@@ -63,7 +62,7 @@ impl Serialize for Value {
             Self::Integer(i) => serializer.serialize_i64(*i),
             Self::Float(f) => serializer.serialize_f64(f.into_inner()),
             Self::Boolean(b) => serializer.serialize_bool(*b),
-            Self::Bytes(b) => serializer.serialize_str(String::from_utf8_lossy(b).as_ref()),
+            Self::Bytes(b) => serializer.serialize_str(simdutf_bytes_utf8_lossy(b).as_ref()),
             Self::Timestamp(ts) => serializer.serialize_str(&timestamp_to_string(ts)),
             Self::Regex(regex) => serializer.serialize_str(regex.as_str()),
             Self::Object(m) => serializer.collect_map(m),
@@ -227,7 +226,7 @@ impl TryInto<serde_json::Value> for Value {
             Self::Boolean(v) => Ok(serde_json::Value::from(v)),
             Self::Integer(v) => Ok(serde_json::Value::from(v)),
             Self::Float(v) => Ok(serde_json::Value::from(v.into_inner())),
-            Self::Bytes(v) => Ok(serde_json::Value::from(String::from_utf8(v.to_vec())?)),
+            Self::Bytes(v) => Ok(serde_json::Value::from(simdutf8::compat::from_utf8(&v)?)),
             Self::Regex(regex) => Ok(serde_json::Value::from(regex.as_str().to_string())),
             Self::Object(v) => Ok(serde_json::to_value(v)?),
             Self::Array(v) => Ok(serde_json::to_value(v)?),
