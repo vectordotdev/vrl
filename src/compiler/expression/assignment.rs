@@ -702,7 +702,9 @@ impl DiagnosticMessage for Error {
                     Label::primary("this expression is fallible because at least one argument's type cannot be verified to be valid", self.expr_span)];
                 if let Some(context) = context {
                     let helper = "update the expression to be infallible by adding a `!`";
-                    if !context.arguments_fmt.is_empty() {
+                    if context.arguments_fmt.is_empty() {
+                        labels.push(Label::primary(helper, self.expr_span));
+                    } else {
                         labels.push(
                             Label::primary(format!(
                                 "`{}` argument type is `{}` and this function expected a parameter `{}` of type `{}`",
@@ -720,8 +722,6 @@ impl DiagnosticMessage for Error {
                             format!("{helper}: `{fixed_expression}`"),
                             self.expr_span,
                         ));
-                    } else {
-                        labels.push(Label::primary(helper, self.expr_span));
                     }
                 };
 

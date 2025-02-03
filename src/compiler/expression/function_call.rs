@@ -355,15 +355,15 @@ impl<'a> Builder<'a> {
                                 VariableKind::TargetInnerKey => {
                                     let mut kind = Kind::never();
 
-                                    if !type_def.is_collection() {
-                                        kind = Kind::any();
-                                    } else {
+                                    if type_def.is_collection() {
                                         if type_def.is_object() {
                                             kind.add_bytes();
                                         }
                                         if type_def.is_array() {
                                             kind.add_integer();
                                         }
+                                    } else {
+                                        kind = Kind::any();
                                     }
 
                                     (kind.into(), None)

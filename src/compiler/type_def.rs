@@ -76,7 +76,7 @@ impl Purity {
 
         match (left, right) {
             (Pure, Pure) => Pure,
-            (_, Impure) | (Impure, _) => Impure,
+            _ => Impure,
         }
     }
 }
