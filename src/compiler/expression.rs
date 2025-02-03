@@ -7,6 +7,7 @@ pub use array::Array;
 pub use assignment::Assignment;
 pub use block::Block;
 pub use container::{Container, Variant};
+#[allow(clippy::module_name_repetitions)]
 pub use function::FunctionExpression;
 pub use function_argument::FunctionArgument;
 pub use function_call::FunctionCall;
@@ -26,8 +27,10 @@ pub use variable::Variable;
 use crate::value::Value;
 
 use super::state::{TypeInfo, TypeState};
+#[allow(clippy::module_name_repetitions)]
+pub use super::ExpressionError;
+pub use super::Resolved;
 use super::{Context, TypeDef};
-pub use super::{ExpressionError, Resolved};
 
 mod abort;
 mod array;
@@ -79,7 +82,7 @@ pub trait Expression: Send + Sync + fmt::Debug + DynClone {
 
     /// Calculates the type state after an expression resolves, including the expression result itself.
     /// This must be called with the _initial_ `TypeState`.
-    ///
+    ///g
     /// Consider using `apply_type_info` instead if you want to just access
     /// the expr result type, while updating an existing state.
     fn type_info(&self, state: &TypeState) -> TypeInfo;

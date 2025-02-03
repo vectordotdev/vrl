@@ -1,13 +1,4 @@
 #![deny(warnings, clippy::pedantic)]
-#![allow(
-clippy::cast_possible_truncation, // allowed in initial deny commit
-clippy::cast_possible_wrap, // allowed in initial deny commit
-clippy::cast_precision_loss, // allowed in initial deny commit
-clippy::cast_sign_loss, // allowed in initial deny commit
-clippy::missing_errors_doc, // allowed in initial deny commit
-clippy::missing_panics_doc, // allowed in initial deny commit
-clippy::module_name_repetitions, // allowed in initial deny commit
-)]
 
 use std::fmt::Debug;
 use std::{fmt::Display, str::FromStr};
@@ -22,9 +13,9 @@ pub use datetime::TimeZone;
 pub use expression::{Expression, FunctionExpression};
 pub use expression_error::{ExpressionError, Resolved};
 pub use function::{Function, Parameter};
-pub use program::{Program, ProgramInfo};
+pub use program::{Program, Info};
 pub use state::{TypeInfo, TypeState};
-pub use target::{SecretTarget, Target, TargetValue, TargetValueRef};
+pub use target::{Secret, Target, TargetValue, TargetValueRef};
 pub use type_def::TypeDef;
 
 pub(crate) use crate::diagnostic::Span;

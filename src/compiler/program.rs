@@ -8,7 +8,7 @@ pub struct Program {
     /// The initial state that the program was compiled with.
     pub(crate) initial_state: TypeState,
     pub(crate) expressions: Block,
-    pub(crate) info: ProgramInfo,
+    pub(crate) info: Info,
 }
 
 impl Program {
@@ -27,7 +27,7 @@ impl Program {
     /// Get detailed information about the program, as collected by the VRL
     /// compiler.
     #[must_use]
-    pub fn info(&self) -> &ProgramInfo {
+    pub fn info(&self) -> &Info {
         &self.info
     }
 
@@ -42,7 +42,7 @@ impl Program {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ProgramInfo {
+pub struct Info {
     /// Returns whether the compiled program can fail at runtime.
     ///
     /// A program can only fail at runtime if the fallible-function-call

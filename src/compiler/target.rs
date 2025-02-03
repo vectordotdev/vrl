@@ -1,3 +1,4 @@
+#![allow(clippy::module_name_repetitions)]
 use std::convert::AsRef;
 
 use crate::path::OwnedTargetPath;
@@ -30,18 +31,29 @@ pub trait Target: std::fmt::Debug + SecretTarget {
     ///   ```txt
     ///   .foo[2][-1]
     ///   ```
-    fn target_insert(&mut self, path: &OwnedTargetPath, value: Value) -> Result<(), String>;
+    ///
+    /// # Errors
+    ///
+    /// Error indicating insertion failure.
+    fn insert(&mut self, path: &OwnedTargetPath, value: Value) -> Result<(), String>;
 
     /// Get a value for a given path, or `None` if no value is found.
     ///
-    /// See [`Target::target_insert`] for more details.
-    fn target_get(&self, path: &OwnedTargetPath) -> Result<Option<&Value>, String>;
+    /// See [`Target::insert`] for more details.
+    ///
+    /// # Errors
+    /// Error indicating retrieval failure.
+    fn get(&self, path: &OwnedTargetPath) -> Result<Option<&Value>, String>;
 
     /// Get a mutable reference to the value for a given path, or `None` if no
     /// value is found.
     ///
-    /// See [`Target::target_insert`] for more details.
-    fn target_get_mut(&mut self, path: &OwnedTargetPath) -> Result<Option<&mut Value>, String>;
+    /// See [`Target::insert`] for more details.
+    ///
+    /// # Errors
+    ///
+    /// Error indicating retrieval failure.
+    fn get_mut(&mut self, path: &OwnedTargetPath) -> Result<Option<&mut Value>, String>;
 
     /// Remove the given path from the object.
     ///
@@ -49,11 +61,40 @@ pub trait Target: std::fmt::Debug + SecretTarget {
     ///
     /// If `compact` is true, after deletion, if an empty object or array is
     /// left behind, it should be removed as well, cascading up to the root.
-    fn target_remove(
+    ///
+    /// # Errors
+    ///
+    /// Error indicating removal failure.
+    fn remove(
         &mut self,
         path: &OwnedTargetPath,
         compact: bool,
     ) -> Result<Option<Value>, String>;
+}
+
+/// The Secret trait defines methods for managing secret data associated with a [`Target`] struct.
+pub trait Secret {
+    /// Retrieves the value associated with the given key.
+    ///
+    /// # Parameters
+    /// - `key`: A string slice representing the key.
+    ///
+    /// # Returns
+    /// - `Option<&str>`: An optional reference to the value if found; `None` otherwise.
+    fn get(&self, key: &str) -> Option<&str>;
+
+    /// Inserts a new key-value pair into the secrets.
+    ///
+    /// # Parameters
+    /// - `key`: A string slice representing the key.
+    /// - `value`: A string slice representing the value.
+    fn insert(&mut self, key: &str, value: &str);
+
+    /// Removes the key-value pair associated with the given key.
+    ///
+    /// # Parameters
+    /// - `key`: A string slice representing the key.
+    fn remove(&mut self, key: &str);
 }
 
 pub trait SecretTarget {
@@ -72,7 +113,7 @@ pub struct TargetValueRef<'a> {
 }
 
 impl Target for TargetValueRef<'_> {
-    fn target_insert(&mut self, target_path: &OwnedTargetPath, value: Value) -> Result<(), String> {
+    fn insert(&mut self, target_path: &OwnedTargetPath, value: Value) -> Result<(), String> {
         match target_path.prefix {
             PathPrefix::Event => self.value.insert(&target_path.path, value),
             PathPrefix::Metadata => self.metadata.insert(&target_path.path, value),
@@ -80,7 +121,7 @@ impl Target for TargetValueRef<'_> {
         Ok(())
     }
 
-    fn target_get(&self, target_path: &OwnedTargetPath) -> Result<Option<&Value>, String> {
+    fn get(&self, target_path: &OwnedTargetPath) -> Result<Option<&Value>, String> {
         let value = match target_path.prefix {
             PathPrefix::Event => self.value.get(&target_path.path),
             PathPrefix::Metadata => self.metadata.get(&target_path.path),
@@ -88,7 +129,7 @@ impl Target for TargetValueRef<'_> {
         Ok(value)
     }
 
-    fn target_get_mut(
+    fn get_mut(
         &mut self,
         target_path: &OwnedTargetPath,
     ) -> Result<Option<&mut Value>, String> {
@@ -99,7 +140,7 @@ impl Target for TargetValueRef<'_> {
         Ok(value)
     }
 
-    fn target_remove(
+    fn remove(
         &mut self,
         target_path: &OwnedTargetPath,
         compact: bool,
@@ -134,7 +175,7 @@ pub struct TargetValue {
 }
 
 impl Target for TargetValue {
-    fn target_insert(&mut self, target_path: &OwnedTargetPath, value: Value) -> Result<(), String> {
+    fn insert(&mut self, target_path: &OwnedTargetPath, value: Value) -> Result<(), String> {
         match target_path.prefix {
             PathPrefix::Event => self.value.insert(&target_path.path, value),
             PathPrefix::Metadata => self.metadata.insert(&target_path.path, value),
@@ -142,7 +183,7 @@ impl Target for TargetValue {
         Ok(())
     }
 
-    fn target_get(&self, target_path: &OwnedTargetPath) -> Result<Option<&Value>, String> {
+    fn get(&self, target_path: &OwnedTargetPath) -> Result<Option<&Value>, String> {
         let value = match target_path.prefix {
             PathPrefix::Event => self.value.get(&target_path.path),
             PathPrefix::Metadata => self.metadata.get(&target_path.path),
@@ -150,7 +191,7 @@ impl Target for TargetValue {
         Ok(value)
     }
 
-    fn target_get_mut(
+    fn get_mut(
         &mut self,
         target_path: &OwnedTargetPath,
     ) -> Result<Option<&mut Value>, String> {
@@ -161,7 +202,7 @@ impl Target for TargetValue {
         Ok(value)
     }
 
-    fn target_remove(
+    fn remove(
         &mut self,
         target_path: &OwnedTargetPath,
         compact: bool,
@@ -208,7 +249,7 @@ mod value_target_impl {
     use crate::path::{OwnedTargetPath, PathPrefix};
 
     impl Target for Value {
-        fn target_insert(
+        fn insert(
             &mut self,
             target_path: &OwnedTargetPath,
             value: Value,
@@ -220,14 +261,14 @@ mod value_target_impl {
             Ok(())
         }
 
-        fn target_get(&self, target_path: &OwnedTargetPath) -> Result<Option<&Value>, String> {
+        fn get(&self, target_path: &OwnedTargetPath) -> Result<Option<&Value>, String> {
             match target_path.prefix {
                 PathPrefix::Event => Ok(self.get(&target_path.path)),
                 PathPrefix::Metadata => panic!("Value has no metadata. Use `TargetValue` instead."),
             }
         }
 
-        fn target_get_mut(
+        fn get_mut(
             &mut self,
             target_path: &OwnedTargetPath,
         ) -> Result<Option<&mut Value>, String> {
@@ -237,7 +278,7 @@ mod value_target_impl {
             }
         }
 
-        fn target_remove(
+        fn remove(
             &mut self,
             target_path: &OwnedTargetPath,
             compact: bool,
@@ -277,7 +318,7 @@ mod tests {
     use crate::value;
 
     #[test]
-    fn target_get() {
+    fn get() {
         let cases = vec![
             (value!(true), owned_value_path!(), Ok(Some(value!(true)))),
             (value!(true), owned_value_path!("foo"), Ok(None)),
@@ -315,7 +356,7 @@ mod tests {
             let path = OwnedTargetPath::event(path);
 
             assert_eq!(
-                target.target_get(&path).map(Option::<&Value>::cloned),
+                target.get(&path).map(Option::<&Value>::cloned),
                 expect
             );
         }
@@ -323,7 +364,7 @@ mod tests {
 
     #[test]
     #[allow(clippy::too_many_lines)]
-    fn target_insert() {
+    fn insert() {
         let cases = vec![
             (
                 value!({foo: "bar"}),
@@ -420,19 +461,19 @@ mod tests {
             let path = OwnedTargetPath::event(path);
 
             assert_eq!(
-                Target::target_insert(&mut target, &path, value.clone()),
+                Target::insert(&mut target, &path, value.clone()),
                 result
             );
             assert_eq!(target.value, expect);
             assert_eq!(
-                Target::target_get(&target, &path).map(Option::<&Value>::cloned),
+                Target::get(&target, &path).map(Option::<&Value>::cloned),
                 Ok(Some(value))
             );
         }
     }
 
     #[test]
-    fn target_remove() {
+    fn remove() {
         let cases = vec![
             (
                 value!({foo: "bar"}),
@@ -501,11 +542,11 @@ mod tests {
                 secrets: Secrets::new(),
             };
             assert_eq!(
-                Target::target_remove(&mut target, &path, compact),
+                Target::remove(&mut target, &path, compact),
                 Ok(value)
             );
             assert_eq!(
-                Target::target_get(&target, &OwnedTargetPath::event_root())
+                Target::get(&target, &OwnedTargetPath::event_root())
                     .map(Option::<&Value>::cloned),
                 Ok(expect)
             );

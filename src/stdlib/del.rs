@@ -7,7 +7,7 @@ fn del(query: &expression::Query, compact: bool, ctx: &mut Context) -> Resolved 
     if let Some(target_path) = query.external_path() {
         Ok(ctx
             .target_mut()
-            .target_remove(&target_path, compact)
+            .remove(&target_path, compact)
             .ok()
             .flatten()
             .unwrap_or(Value::Null))

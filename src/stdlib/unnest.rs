@@ -8,7 +8,7 @@ fn unnest(path: &expression::Query, ctx: &mut Context) -> Resolved {
         expression::Target::External(prefix) => {
             let root = ctx
                 .target()
-                .target_get(&OwnedTargetPath::root(*prefix))
+                .get(&OwnedTargetPath::root(*prefix))
                 .expect("must never fail")
                 .expect("always a value");
             unnest_root(root, lookup_buf)
