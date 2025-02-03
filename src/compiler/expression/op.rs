@@ -123,6 +123,7 @@ impl Expression for Op {
         .map_err(Into::into)
     }
 
+    #[allow(clippy::too_many_lines)]
     fn type_info(&self, state: &TypeState) -> TypeInfo {
         use crate::value::Kind as K;
         use ast::Opcode::{Add, And, Div, Eq, Err, Ge, Gt, Le, Lt, Merge, Mul, Ne, Or, Sub};
@@ -432,6 +433,7 @@ mod tests {
 
     use super::*;
 
+    #[allow(clippy::needless_pass_by_value)]
     fn op(
         opcode: ast::Opcode,
         lhs: impl TryInto<Literal> + fmt::Debug + Clone,

@@ -7,9 +7,6 @@ clippy::cast_sign_loss, // allowed in initial deny commit
 clippy::missing_errors_doc, // allowed in initial deny commit
 clippy::missing_panics_doc, // allowed in initial deny commit
 clippy::module_name_repetitions, // allowed in initial deny commit
-clippy::needless_pass_by_value, // allowed in initial deny commit
-clippy::return_self_not_must_use, // allowed in initial deny commit
-clippy::too_many_lines, // allowed in initial deny commit
 )]
 
 use std::fmt::Debug;

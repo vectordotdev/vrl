@@ -25,7 +25,7 @@ pub struct Assignment {
 }
 
 impl Assignment {
-    #[allow(unused_variables)]
+    #[allow(clippy::too_many_lines)]
     pub(crate) fn new(
         node: Node<Variant<Node<ast::AssignmentTarget>, Node<Expr>>>,
         state: &TypeState,

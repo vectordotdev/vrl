@@ -40,6 +40,7 @@ impl<'a> Builder<'a> {
         &self.list
     }
 
+    #[allow(clippy::too_many_lines)]
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
         call_span: Span,
@@ -197,6 +198,7 @@ impl<'a> Builder<'a> {
         })
     }
 
+    #[allow(clippy::too_many_lines)]
     fn check_closure(
         function: &dyn Function,
         closure_variables: Option<Node<Vec<Node<Ident>>>>,
@@ -966,6 +968,7 @@ impl DiagnosticMessage for FunctionCallError {
         }
     }
 
+    #[allow(clippy::too_many_lines)]
     fn labels(&self) -> Vec<Label> {
         use FunctionCallError::{
             ClosureArityMismatch, ClosureParameterTypeMismatch, Compilation, FallibleArgument,

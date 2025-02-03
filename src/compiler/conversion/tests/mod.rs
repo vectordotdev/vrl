@@ -93,7 +93,7 @@ fn parse_bool_errors() {
     assert!(parse_bool("123.4").is_err());
 }
 
-fn convert_float(input: impl ToString) -> Result<StubValue, Error> {
+fn convert_float(input: &str) -> Result<StubValue, Error> {
     let input = input.to_string();
     let converter = Conversion::parse("float", TimeZone::Local).expect("float conversion");
     converter.convert::<StubValue>(input.into())
@@ -103,12 +103,12 @@ fn convert_float(input: impl ToString) -> Result<StubValue, Error> {
 fn convert_float_ok() {
     let max_float = format!("17976931348623157{}", "0".repeat(292));
     let min_float = format!("-{max_float}");
-    assert_eq!(convert_float(max_float), Ok(StubValue::Float(f64::MAX)));
+    assert_eq!(convert_float(&max_float), Ok(StubValue::Float(f64::MAX)));
     assert_eq!(convert_float("1"), Ok(StubValue::Float(1.0)));
     assert_eq!(convert_float("1.23"), Ok(StubValue::Float(1.23)));
     assert_eq!(convert_float("-1"), Ok(StubValue::Float(-1.0)));
     assert_eq!(convert_float("-1.23"), Ok(StubValue::Float(-1.23)));
-    assert_eq!(convert_float(min_float), Ok(StubValue::Float(f64::MIN)));
+    assert_eq!(convert_float(&min_float), Ok(StubValue::Float(f64::MIN)));
 
     assert_eq!(convert_float("0"), Ok(StubValue::Float(0.0)));
     assert_eq!(convert_float("+0"), Ok(StubValue::Float(0.0)));
@@ -118,17 +118,17 @@ fn convert_float_ok() {
     let exceeds_max_float = format!("17976931348623159{}", "0".repeat(292));
     let exceeds_min_float = format!("-{exceeds_max_float}");
     assert_eq!(
-        convert_float(exceeds_max_float),
+        convert_float(&exceeds_max_float),
         Ok(StubValue::Float(f64::INFINITY))
     );
     assert_eq!(
-        convert_float(exceeds_min_float),
+        convert_float(&exceeds_min_float),
         Ok(StubValue::Float(f64::NEG_INFINITY))
     );
 
     let subnormal_lower_than_min = 1.0e-308_f64;
     assert_eq!(
-        convert_float(subnormal_lower_than_min),
+        convert_float(&subnormal_lower_than_min.to_string()),
         Ok(StubValue::Float(1.0e-308_f64))
     );
 }
