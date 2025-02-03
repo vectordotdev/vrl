@@ -1,5 +1,6 @@
 use std::{fmt, sync::Arc};
 
+use super::Block;
 use crate::compiler::expression::function_call::Warning::AbortInfallible;
 use crate::compiler::state::{TypeInfo, TypeState};
 use crate::compiler::{
@@ -15,8 +16,7 @@ use crate::compiler::{
     CompileConfig, Context, Expression, Function, Resolved, Span, TypeDef,
 };
 use crate::diagnostic::{DiagnosticMessage, Label, Note, Severity, Urls};
-
-use super::Block;
+use crate::prelude::Note::SeeErrorDocs;
 
 pub(crate) struct Builder<'a> {
     abort_on_error: bool,
@@ -934,7 +934,7 @@ impl DiagnosticMessage for Warning {
     }
 
     fn notes(&self) -> Vec<Note> {
-        vec![]
+        vec![SeeErrorDocs]
     }
 
     fn severity(&self) -> Severity {
