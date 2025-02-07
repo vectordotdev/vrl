@@ -31,7 +31,7 @@ impl Function for RandomBool {
     fn compile(
         &self,
         _state: &state::TypeState,
-        _ctx: &mut FunctionCompileContext,
+        _ctx: &mut CompileContext,
         _arguments: ArgumentList,
     ) -> Compiled {
         Ok(RandomBoolFn {}.as_expr())

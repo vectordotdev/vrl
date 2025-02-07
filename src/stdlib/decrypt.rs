@@ -152,7 +152,7 @@ impl Function for Decrypt {
     fn compile(
         &self,
         state: &state::TypeState,
-        _ctx: &mut FunctionCompileContext,
+        _ctx: &mut CompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
         let ciphertext = arguments.required("ciphertext");

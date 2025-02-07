@@ -3,6 +3,7 @@ use crate::compiler::ExpressionError;
 use crate::diagnostic::DiagnosticMessage;
 use crate::prelude::ValueError::OutOfRange;
 
+#[allow(clippy::module_name_repetitions)]
 #[derive(thiserror::Error, Debug, PartialEq, Eq)]
 pub enum ValueError {
     #[error(

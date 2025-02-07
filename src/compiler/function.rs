@@ -1,3 +1,4 @@
+#![allow(clippy::missing_errors_doc)]
 pub mod closure;
 
 use crate::diagnostic::{DiagnosticMessage, Label, Note};
@@ -49,7 +50,7 @@ pub trait Function: Send + Sync + fmt::Debug {
     fn compile(
         &self,
         state: &TypeState,
-        ctx: &mut FunctionCompileContext,
+        ctx: &mut CompileContext,
         arguments: ArgumentList,
     ) -> Compiled;
 
@@ -79,12 +80,12 @@ pub struct Example {
     pub result: Result<&'static str, &'static str>,
 }
 
-pub struct FunctionCompileContext {
+pub struct CompileContext {
     span: Span,
     config: CompileConfig,
 }
 
-impl FunctionCompileContext {
+impl CompileContext {
     #[must_use]
     pub fn new(span: Span, config: CompileConfig) -> Self {
         Self { span, config }
@@ -206,7 +207,7 @@ pub struct ArgumentList {
     ///
     /// We do still want to store the closure in the argument list, to allow
     /// function implementors access to the closure through `Function::compile`.
-    closure: Option<FunctionClosure>,
+    closure: Option<Closure>,
 }
 
 impl ArgumentList {
@@ -368,11 +369,11 @@ impl ArgumentList {
     }
 
     #[must_use]
-    pub fn optional_closure(&self) -> Option<&FunctionClosure> {
+    pub fn optional_closure(&self) -> Option<&Closure> {
         self.closure.as_ref()
     }
 
-    pub fn required_closure(&self) -> Result<FunctionClosure, Error> {
+    pub fn required_closure(&self) -> Result<Closure, Error> {
         self.optional_closure()
             .cloned()
             .ok_or(Error::ExpectedFunctionClosure)
@@ -386,7 +387,7 @@ impl ArgumentList {
         self.arguments.insert(k, v);
     }
 
-    pub(crate) fn set_closure(&mut self, closure: FunctionClosure) {
+    pub(crate) fn set_closure(&mut self, closure: Closure) {
         self.closure = Some(closure);
     }
 
@@ -443,13 +444,13 @@ mod test_impls {
 // -----------------------------------------------------------------------------
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct FunctionClosure {
+pub struct Closure {
     pub variables: Vec<Ident>,
     pub block: Block,
     pub block_type_def: TypeDef,
 }
 
-impl FunctionClosure {
+impl Closure {
     #[must_use]
     pub fn new<T: Into<Ident>>(variables: Vec<T>, block: Block, block_type_def: TypeDef) -> Self {
         Self {

@@ -33,12 +33,7 @@ impl Function for GetTimezoneName {
         }]
     }
 
-    fn compile(
-        &self,
-        _state: &TypeState,
-        _ctx: &mut FunctionCompileContext,
-        _: ArgumentList,
-    ) -> Compiled {
+    fn compile(&self, _state: &TypeState, _ctx: &mut CompileContext, _: ArgumentList) -> Compiled {
         Ok(GetTimezoneNameFn.as_expr())
     }
 }

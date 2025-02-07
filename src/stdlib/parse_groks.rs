@@ -134,7 +134,7 @@ impl Function for ParseGroks {
     fn compile(
         &self,
         state: &state::TypeState,
-        _ctx: &mut FunctionCompileContext,
+        _ctx: &mut CompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
         use std::collections::BTreeMap;
@@ -240,7 +240,7 @@ impl Function for ParseGroks {
     fn compile(
         &self,
         _state: &state::TypeState,
-        ctx: &mut FunctionCompileContext,
+        ctx: &mut CompileContext,
         _: ArgumentList,
     ) -> Compiled {
         Ok(super::WasmUnsupportedFunction::new(

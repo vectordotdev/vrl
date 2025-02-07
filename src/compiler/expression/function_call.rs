@@ -7,7 +7,7 @@ use crate::compiler::{
     expression::{levenstein, ExpressionError, FunctionArgument},
     function::{
         closure::{self, VariableKind},
-        ArgumentList, Example, FunctionClosure, FunctionCompileContext, Parameter,
+        ArgumentList, Closure, CompileContext, Example, Parameter,
     },
     parser::{Ident, Node},
     state::LocalEnv,
@@ -414,7 +414,7 @@ impl<'a> Builder<'a> {
         // an immutable reference, to ensure compiler state correctness.
         let temp_config = std::mem::take(config);
 
-        let mut compile_ctx = FunctionCompileContext::new(self.call_span, temp_config);
+        let mut compile_ctx = CompileContext::new(self.call_span, temp_config);
 
         let expr = self
             .function
@@ -499,7 +499,7 @@ impl<'a> Builder<'a> {
         closure_block: Option<Node<(Block, TypeDef)>>,
         mut locals: LocalEnv,
         state: &mut TypeState,
-    ) -> Result<(Option<FunctionClosure>, bool), FunctionCallError> {
+    ) -> Result<(Option<Closure>, bool), FunctionCallError> {
         // Check if we have a closure we need to compile.
         if let Some((variables, input)) = self.closure.clone() {
             // TODO: This assumes the closure will run exactly once, which is incorrect.
@@ -537,7 +537,7 @@ impl<'a> Builder<'a> {
                 });
             }
 
-            let fnclosure = FunctionClosure::new(variables, block, block_type_def);
+            let fnclosure = Closure::new(variables, block, block_type_def);
             self.list.set_closure(fnclosure.clone());
 
             // closure = Some(fnclosure);
@@ -556,7 +556,7 @@ pub struct FunctionCall {
     closure_fallible: bool,
     // will be used with: https://github.com/vectordotdev/vector/issues/13782
     #[allow(dead_code)]
-    closure: Option<FunctionClosure>,
+    closure: Option<Closure>,
 
     // used for enhancing runtime error messages (using abort-instruction).
     //
@@ -1276,7 +1276,7 @@ mod tests {
         fn compile(
             &self,
             _state: &TypeState,
-            _ctx: &mut FunctionCompileContext,
+            _ctx: &mut CompileContext,
             _arguments: ArgumentList,
         ) -> crate::compiler::function::Compiled {
             Ok(Fn.as_expr())

@@ -65,15 +65,11 @@ pub trait Target: std::fmt::Debug + SecretTarget {
     /// # Errors
     ///
     /// Error indicating removal failure.
-    fn remove(
-        &mut self,
-        path: &OwnedTargetPath,
-        compact: bool,
-    ) -> Result<Option<Value>, String>;
+    fn remove(&mut self, path: &OwnedTargetPath, compact: bool) -> Result<Option<Value>, String>;
 }
 
 /// The Secret trait defines methods for managing secret data associated with a [`Target`] struct.
-pub trait Secret {
+pub trait SecretTarget {
     /// Retrieves the value associated with the given key.
     ///
     /// # Parameters
@@ -81,27 +77,19 @@ pub trait Secret {
     ///
     /// # Returns
     /// - `Option<&str>`: An optional reference to the value if found; `None` otherwise.
-    fn get(&self, key: &str) -> Option<&str>;
+    fn get_secret(&self, key: &str) -> Option<&str>;
 
     /// Inserts a new key-value pair into the secrets.
     ///
     /// # Parameters
     /// - `key`: A string slice representing the key.
     /// - `value`: A string slice representing the value.
-    fn insert(&mut self, key: &str, value: &str);
+    fn insert_secret(&mut self, key: &str, value: &str);
 
     /// Removes the key-value pair associated with the given key.
     ///
     /// # Parameters
     /// - `key`: A string slice representing the key.
-    fn remove(&mut self, key: &str);
-}
-
-pub trait SecretTarget {
-    fn get_secret(&self, key: &str) -> Option<&str>;
-
-    fn insert_secret(&mut self, key: &str, value: &str);
-
     fn remove_secret(&mut self, key: &str);
 }
 
@@ -129,10 +117,7 @@ impl Target for TargetValueRef<'_> {
         Ok(value)
     }
 
-    fn get_mut(
-        &mut self,
-        target_path: &OwnedTargetPath,
-    ) -> Result<Option<&mut Value>, String> {
+    fn get_mut(&mut self, target_path: &OwnedTargetPath) -> Result<Option<&mut Value>, String> {
         let value = match target_path.prefix {
             PathPrefix::Event => self.value.get_mut(&target_path.path),
             PathPrefix::Metadata => self.metadata.get_mut(&target_path.path),
@@ -191,10 +176,7 @@ impl Target for TargetValue {
         Ok(value)
     }
 
-    fn get_mut(
-        &mut self,
-        target_path: &OwnedTargetPath,
-    ) -> Result<Option<&mut Value>, String> {
+    fn get_mut(&mut self, target_path: &OwnedTargetPath) -> Result<Option<&mut Value>, String> {
         let value = match target_path.prefix {
             PathPrefix::Event => self.value.get_mut(&target_path.path),
             PathPrefix::Metadata => self.metadata.get_mut(&target_path.path),
@@ -249,11 +231,7 @@ mod value_target_impl {
     use crate::path::{OwnedTargetPath, PathPrefix};
 
     impl Target for Value {
-        fn insert(
-            &mut self,
-            target_path: &OwnedTargetPath,
-            value: Value,
-        ) -> Result<(), String> {
+        fn insert(&mut self, target_path: &OwnedTargetPath, value: Value) -> Result<(), String> {
             match target_path.prefix {
                 PathPrefix::Event => self.insert(&target_path.path, value),
                 PathPrefix::Metadata => panic!("Value has no metadata. Use `TargetValue` instead."),
@@ -268,10 +246,7 @@ mod value_target_impl {
             }
         }
 
-        fn get_mut(
-            &mut self,
-            target_path: &OwnedTargetPath,
-        ) -> Result<Option<&mut Value>, String> {
+        fn get_mut(&mut self, target_path: &OwnedTargetPath) -> Result<Option<&mut Value>, String> {
             match target_path.prefix {
                 PathPrefix::Event => Ok(self.get_mut(&target_path.path)),
                 PathPrefix::Metadata => panic!("Value has no metadata. Use `TargetValue` instead."),
@@ -355,10 +330,7 @@ mod tests {
             };
             let path = OwnedTargetPath::event(path);
 
-            assert_eq!(
-                target.get(&path).map(Option::<&Value>::cloned),
-                expect
-            );
+            assert_eq!(target.get(&path).map(Option::<&Value>::cloned), expect);
         }
     }
 
@@ -460,10 +432,7 @@ mod tests {
             };
             let path = OwnedTargetPath::event(path);
 
-            assert_eq!(
-                Target::insert(&mut target, &path, value.clone()),
-                result
-            );
+            assert_eq!(Target::insert(&mut target, &path, value.clone()), result);
             assert_eq!(target.value, expect);
             assert_eq!(
                 Target::get(&target, &path).map(Option::<&Value>::cloned),
@@ -541,13 +510,9 @@ mod tests {
                 metadata: value!({}),
                 secrets: Secrets::new(),
             };
+            assert_eq!(Target::remove(&mut target, &path, compact), Ok(value));
             assert_eq!(
-                Target::remove(&mut target, &path, compact),
-                Ok(value)
-            );
-            assert_eq!(
-                Target::get(&target, &OwnedTargetPath::event_root())
-                    .map(Option::<&Value>::cloned),
+                Target::get(&target, &OwnedTargetPath::event_root()).map(Option::<&Value>::cloned),
                 Ok(expect)
             );
         }

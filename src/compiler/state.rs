@@ -34,6 +34,7 @@ impl From<&TypeState> for TypeState {
     }
 }
 
+#[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Clone, Default)]
 pub struct TypeState {
     pub local: LocalEnv,
@@ -170,6 +171,7 @@ impl ExternalEnv {
 }
 
 /// The state used at runtime to track changes as they happen.
+#[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Default)]
 pub struct RuntimeState {
     /// The [`Value`] stored in each variable.

@@ -167,7 +167,7 @@ impl Function for ReplaceWith {
     fn compile(
         &self,
         _state: &state::TypeState,
-        _ctx: &mut FunctionCompileContext,
+        _ctx: &mut CompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
@@ -225,7 +225,7 @@ struct ReplaceWithFn {
     value: Box<dyn Expression>,
     pattern: Box<dyn Expression>,
     count: Box<dyn Expression>,
-    closure: FunctionClosure,
+    closure: Closure,
 }
 
 impl FunctionExpression for ReplaceWithFn {
@@ -243,7 +243,7 @@ impl FunctionExpression for ReplaceWithFn {
             }
         }
         let count = self.count.resolve(ctx)?;
-        let FunctionClosure {
+        let Closure {
             variables, block, ..
         } = &self.closure;
 

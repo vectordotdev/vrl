@@ -733,7 +733,7 @@ impl Function for DnsLookup {
     fn compile(
         &self,
         _state: &state::TypeState,
-        _ctx: &mut FunctionCompileContext,
+        _ctx: &mut CompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
@@ -754,7 +754,7 @@ impl Function for DnsLookup {
     fn compile(
         &self,
         _state: &state::TypeState,
-        ctx: &mut FunctionCompileContext,
+        ctx: &mut CompileContext,
         _arguments: ArgumentList,
     ) -> Compiled {
         Ok(super::WasmUnsupportedFunction::new(ctx.span(), TypeDef::bytes().fallible()).as_expr())

@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
+use vrl::compiler::TargetValue;
 use vrl::{
-    compiler::{state::RuntimeState, Context, Target, TimeZone},
+    compiler::{state::RuntimeState, Context, TimeZone},
     value,
     value::{Secrets, Value},
 };
@@ -17,7 +18,7 @@ fn main() {
 
     // This is the target that can be accessed / modified in the VRL program.
     // You can use any custom type that implements `Target`, but `TargetValue` is also provided for convenience.
-    let mut target = Target {
+    let mut target = TargetValue {
         // the value starts as just an object with a single field "x" set to 1
         value: value!({x: 1}),
         // the metadata is empty
