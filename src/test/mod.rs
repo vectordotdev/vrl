@@ -9,13 +9,7 @@ use chrono::{DateTime, SecondsFormat, Utc};
 
 pub use test::Test;
 
-use crate::compiler::{
-    compile_with_external,
-    runtime::{Runtime, Terminate},
-    state::{ExternalEnv, RuntimeState},
-    value::VrlValueConvert,
-    CompilationResult, CompileConfig, Function, Program, TargetValueRef, TimeZone, VrlRuntime,
-};
+use crate::compiler::{compile_with_external, runtime::{Runtime, Terminate}, state::{ExternalEnv, RuntimeState}, value::VrlValueConvert, CompilationResult, CompileConfig, Function, Program, SecretTarget, TargetValueRef, TimeZone, VrlRuntime};
 use crate::diagnostic::{DiagnosticList, Formatter};
 use crate::value::Secrets;
 use crate::value::Value;
@@ -413,7 +407,6 @@ fn run_vrl(
     };
 
     // Insert a dummy secret for examples to use
-    use crate::compiler::SecretTarget;
     target.insert_secret("my_secret", "secret value");
     target.insert_secret("datadog_api_key", "secret value");
 
