@@ -65,7 +65,11 @@ pub trait Target: std::fmt::Debug + SecretTarget {
     /// # Errors
     ///
     /// Error indicating removal failure.
-    fn target_remove(&mut self, path: &OwnedTargetPath, compact: bool) -> Result<Option<Value>, String>;
+    fn target_remove(
+        &mut self,
+        path: &OwnedTargetPath,
+        compact: bool,
+    ) -> Result<Option<Value>, String>;
 }
 
 /// The Secret trait defines methods for managing secret data associated with a [`Target`] struct.
@@ -117,7 +121,10 @@ impl Target for TargetValueRef<'_> {
         Ok(value)
     }
 
-    fn target_get_mut(&mut self, target_path: &OwnedTargetPath) -> Result<Option<&mut Value>, String> {
+    fn target_get_mut(
+        &mut self,
+        target_path: &OwnedTargetPath,
+    ) -> Result<Option<&mut Value>, String> {
         let value = match target_path.prefix {
             PathPrefix::Event => self.value.get_mut(&target_path.path),
             PathPrefix::Metadata => self.metadata.get_mut(&target_path.path),
@@ -176,7 +183,10 @@ impl Target for TargetValue {
         Ok(value)
     }
 
-    fn target_get_mut(&mut self, target_path: &OwnedTargetPath) -> Result<Option<&mut Value>, String> {
+    fn target_get_mut(
+        &mut self,
+        target_path: &OwnedTargetPath,
+    ) -> Result<Option<&mut Value>, String> {
         let value = match target_path.prefix {
             PathPrefix::Event => self.value.get_mut(&target_path.path),
             PathPrefix::Metadata => self.metadata.get_mut(&target_path.path),
@@ -231,7 +241,11 @@ mod value_target_impl {
     use crate::path::{OwnedTargetPath, PathPrefix};
 
     impl Target for Value {
-        fn target_insert(&mut self, target_path: &OwnedTargetPath, value: Value) -> Result<(), String> {
+        fn target_insert(
+            &mut self,
+            target_path: &OwnedTargetPath,
+            value: Value,
+        ) -> Result<(), String> {
             match target_path.prefix {
                 PathPrefix::Event => self.insert(&target_path.path, value),
                 PathPrefix::Metadata => panic!("Value has no metadata. Use `TargetValue` instead."),
@@ -246,7 +260,10 @@ mod value_target_impl {
             }
         }
 
-        fn target_get_mut(&mut self, target_path: &OwnedTargetPath) -> Result<Option<&mut Value>, String> {
+        fn target_get_mut(
+            &mut self,
+            target_path: &OwnedTargetPath,
+        ) -> Result<Option<&mut Value>, String> {
             match target_path.prefix {
                 PathPrefix::Event => Ok(self.get_mut(&target_path.path)),
                 PathPrefix::Metadata => panic!("Value has no metadata. Use `TargetValue` instead."),
@@ -330,7 +347,10 @@ mod tests {
             };
             let path = OwnedTargetPath::event(path);
 
-            assert_eq!(target.target_get(&path).map(Option::<&Value>::cloned), expect);
+            assert_eq!(
+                target.target_get(&path).map(Option::<&Value>::cloned),
+                expect
+            );
         }
     }
 
@@ -432,7 +452,10 @@ mod tests {
             };
             let path = OwnedTargetPath::event(path);
 
-            assert_eq!(Target::target_insert(&mut target, &path, value.clone()), result);
+            assert_eq!(
+                Target::target_insert(&mut target, &path, value.clone()),
+                result
+            );
             assert_eq!(target.value, expect);
             assert_eq!(
                 Target::target_get(&target, &path).map(Option::<&Value>::cloned),
@@ -510,9 +533,13 @@ mod tests {
                 metadata: value!({}),
                 secrets: Secrets::new(),
             };
-            assert_eq!(Target::target_remove(&mut target, &path, compact), Ok(value));
             assert_eq!(
-                Target::target_get(&target, &OwnedTargetPath::event_root()).map(Option::<&Value>::cloned),
+                Target::target_remove(&mut target, &path, compact),
+                Ok(value)
+            );
+            assert_eq!(
+                Target::target_get(&target, &OwnedTargetPath::event_root())
+                    .map(Option::<&Value>::cloned),
                 Ok(expect)
             );
         }
