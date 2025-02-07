@@ -100,7 +100,7 @@ impl Runtime {
         timezone: &TimeZone,
     ) -> RuntimeResult {
         // Validate that the path is a value.
-        match target.get(&OwnedTargetPath::event_root()) {
+        match target.target_get(&OwnedTargetPath::event_root()) {
             Ok(Some(_)) => {}
             Ok(None) => {
                 return Err(Terminate::Error(

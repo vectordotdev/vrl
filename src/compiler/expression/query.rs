@@ -111,7 +111,7 @@ impl Expression for Query {
                 };
                 return Ok(ctx
                     .target()
-                    .get(&path)
+                    .target_get(&path)
                     .ok()
                     .flatten()
                     .cloned()

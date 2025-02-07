@@ -54,7 +54,7 @@ fn exists(query: &expression::Query, ctx: &mut Context) -> Resolved {
     if let Some(target_path) = query.external_path() {
         return Ok(ctx
             .target_mut()
-            .get(&target_path)
+            .target_get(&target_path)
             .ok()
             .flatten()
             .is_some()
