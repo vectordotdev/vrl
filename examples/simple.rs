@@ -1,7 +1,6 @@
 use std::collections::BTreeMap;
-use vrl::compiler::TargetValue;
 use vrl::{
-    compiler::{state::RuntimeState, Context, TimeZone},
+    compiler::{state::RuntimeState, Context, TargetValue, TimeZone},
     value,
     value::{Secrets, Value},
 };

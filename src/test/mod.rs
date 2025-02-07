@@ -14,8 +14,7 @@ use crate::compiler::{
     runtime::{Runtime, Terminate},
     state::{ExternalEnv, RuntimeState},
     value::VrlValueConvert,
-    CompilationResult, CompileConfig, Function, Program, TargetValueRef, TimeZone,
-    VrlRuntime,
+    CompilationResult, CompileConfig, Function, Program, TargetValueRef, TimeZone, VrlRuntime,
 };
 use crate::diagnostic::{DiagnosticList, Formatter};
 use crate::value::Secrets;
