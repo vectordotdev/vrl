@@ -1,7 +1,7 @@
 use crate::compiler::prelude::*;
-use once_cell::sync::Lazy;
 use regex::Regex;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
+use std::sync::LazyLock;
 
 fn ip_subnet(value: &Value, mask: &Value) -> Resolved {
     let value: IpAddr = value
@@ -36,7 +36,7 @@ fn ip_subnet(value: &Value, mask: &Value) -> Resolved {
     Ok(mask_ips(value, mask)?.to_string().into())
 }
 
-static RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"/(?P<subnet>\d*)").unwrap());
+static RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"/(?P<subnet>\d*)").unwrap());
 
 #[derive(Clone, Copy, Debug)]
 pub struct IpSubnet;

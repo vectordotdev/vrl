@@ -1,19 +1,19 @@
 use crate::compiler::prelude::*;
 use crate::protobuf::encode_proto;
 use crate::protobuf::get_message_descriptor;
-use once_cell::sync::Lazy;
 use prost_reflect::MessageDescriptor;
 use std::env;
 use std::ffi::OsString;
 use std::path::Path;
 use std::path::PathBuf;
+use std::sync::LazyLock;
 
 #[derive(Clone, Copy, Debug)]
 pub struct EncodeProto;
 
 // This needs to be static because parse_proto needs to read a file
 // and the file path needs to be a literal.
-static EXAMPLE_ENCODE_PROTO_EXPR: Lazy<&str> = Lazy::new(|| {
+static EXAMPLE_ENCODE_PROTO_EXPR: LazyLock<&str> = LazyLock::new(|| {
     let path = PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap())
         .join("tests/data/protobuf/test_protobuf.desc")
         .display()
@@ -27,7 +27,7 @@ static EXAMPLE_ENCODE_PROTO_EXPR: Lazy<&str> = Lazy::new(|| {
     )
 });
 
-static EXAMPLES: Lazy<Vec<Example>> = Lazy::new(|| {
+static EXAMPLES: LazyLock<Vec<Example>> = LazyLock::new(|| {
     vec![Example {
         title: "message",
         source: &EXAMPLE_ENCODE_PROTO_EXPR,

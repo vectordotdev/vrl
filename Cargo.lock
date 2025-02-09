@@ -3642,7 +3642,6 @@ dependencies = [
  "mlua",
  "nom",
  "ofb",
- "once_cell",
  "onig",
  "ordered-float",
  "parse-size",

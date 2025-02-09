@@ -28,7 +28,7 @@ default = ["compiler", "value", "diagnostic", "path", "parser", "stdlib", "datad
 compiler = ["diagnostic", "path", "parser", "value", "dep:paste", "dep:chrono", "dep:serde", "dep:regex", "dep:bytes", "dep:ordered-float", "dep:chrono-tz", "dep:snafu", "dep:thiserror", "dep:dyn-clone", "dep:indoc", "dep:thiserror", "dep:lalrpop-util"]
 value = ["path", "dep:bytes", "dep:regex", "dep:ordered-float", "dep:chrono", "dep:serde_json", "dep:simdutf8"]
 diagnostic = ["dep:codespan-reporting", "dep:termcolor"]
-path = ["value", "dep:once_cell", "dep:serde", "dep:snafu", "dep:regex"]
+path = ["value", "dep:serde", "dep:snafu", "dep:regex"]
 parser = ["path", "diagnostic", "value", "dep:thiserror", "dep:ordered-float", "dep:lalrpop-util"]
 parsing = ["value", "compiler", "dep:url", "dep:nom", "dep:regex", "dep:roxmltree", "dep:rust_decimal"]
 core = ["value", "dep:snafu", "dep:nom"]
@@ -38,7 +38,7 @@ string_path = []
 datadog = ["datadog_filter", "datadog_grok", "datadog_search"]
 datadog_filter = ["path", "datadog_search", "dep:regex", "dep:dyn-clone"]
 datadog_grok = ["value", "parsing", "dep:nom", "dep:peeking_take_while", "dep:serde_json", "dep:onig", "dep:lalrpop-util", "dep:thiserror", "dep:chrono", "dep:chrono-tz", "dep:percent-encoding", "dep:fancy-regex"]
-datadog_search = ["dep:pest", "dep:pest_derive", "dep:itertools", "dep:once_cell", "dep:regex", "dep:serde"]
+datadog_search = ["dep:pest", "dep:pest_derive", "dep:itertools", "dep:regex", "dep:serde"]
 
 # Features that aren't used as often (default off)
 cli = ["stdlib", "dep:serde_json", "dep:thiserror", "dep:clap", "dep:exitcode", "dep:webbrowser", "dep:rustyline", "dep:prettytable-rs"]
@@ -91,7 +91,6 @@ stdlib = [
   "dep:md-5",
   "dep:nom",
   "dep:ofb",
-  "dep:once_cell",
   "dep:parse-size",
   "dep:percent-encoding",
   "dep:prost",
@@ -156,7 +155,6 @@ itertools = { version = "0.14", default-features = false, features = ["use_std"]
 lalrpop-util = { version = "0.22", optional = true }
 mlua = { version = "0.10", default-features = false, features = ["lua54", "send", "vendored"], optional = true }
 nom = { version = "7", default-features = false, features = ["std"], optional = true }
-once_cell = { version = "1", default-features = false, features = ["std"], optional = true }
 ordered-float = { version = "4", default-features = false, optional = true }
 md-5 = { version = "0.10", optional = true }
 paste = { version = "1", default-features = false, optional = true }

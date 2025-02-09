@@ -1,6 +1,6 @@
-use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use std::sync::LazyLock;
 
 use super::grammar::{unescape, DEFAULT_FIELD};
 
@@ -382,7 +382,7 @@ pub struct LuceneClause {
     pub node: QueryNode,
 }
 
-static ESCAPE_RE: Lazy<Regex> = Lazy::new(|| Regex::new("^\"(.+)\"$").unwrap());
+static ESCAPE_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new("^\"(.+)\"$").unwrap());
 
 /// Escapes surrounding `"` quotes when distinguishing between quoted terms isn't needed.
 fn escape_quotes<T: AsRef<str>>(value: T) -> String {

@@ -1,15 +1,15 @@
 use crate::compiler::prelude::*;
 use base64::engine::Engine;
-use once_cell::sync::Lazy;
 use std::{
     borrow::Cow,
     convert::{TryFrom, TryInto},
+    sync::LazyLock,
 };
 
 // https://www.oreilly.com/library/view/regular-expressions-cookbook/9781449327453/ch04s12.html
 // (converted to non-lookaround version given `regex` does not support lookarounds)
 // See also: https://www.ssa.gov/history/ssn/geocard.html
-static US_SOCIAL_SECURITY_NUMBER: Lazy<regex::Regex> = Lazy::new(|| {
+static US_SOCIAL_SECURITY_NUMBER: LazyLock<regex::Regex> = LazyLock::new(|| {
     regex::Regex::new(
         "(?x)                                                               # Ignore whitespace and comments in the regex expression.
     (?:00[1-9]|0[1-9][0-9]|[1-578][0-9]{2}|6[0-57-9][0-9]|66[0-57-9])-    # Area number: 001-899 except 666

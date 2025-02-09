@@ -1,16 +1,15 @@
 use crate::compiler::prelude::*;
-use once_cell::sync::Lazy;
 use std::{
     borrow::{Borrow, Cow},
     collections::BTreeMap,
     fmt,
     str::FromStr,
-    sync::Arc,
+    sync::{Arc, LazyLock},
 };
 use uaparser::UserAgentParser as UAParser;
 use woothee::parser::Parser as WootheeParser;
 
-static UA_PARSER: Lazy<UAParser> = Lazy::new(|| {
+static UA_PARSER: LazyLock<UAParser> = LazyLock::new(|| {
     let regexes = include_bytes!("./../../data/user_agent_regexes.yaml");
     UAParser::from_bytes(regexes).expect("Regex file is not valid.")
 });
