@@ -3673,6 +3673,7 @@ dependencies = [
  "sha-1",
  "sha2",
  "sha3",
+ "simdutf8",
  "snafu 0.8.5",
  "snap",
  "strip-ansi-escapes",

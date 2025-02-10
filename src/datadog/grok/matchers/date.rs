@@ -255,9 +255,9 @@ pub fn time_format_to_regex(format: &str, with_captures: bool) -> Result<RegexRe
 }
 
 pub fn apply_date_filter(value: &Value, filter: &DateFilter) -> Result<Value, InternalError> {
-    let original_value = String::from_utf8_lossy(value.as_bytes().ok_or_else(|| {
-        InternalError::FailedToApplyFilter(filter.to_string(), value.to_string())
-    })?);
+    let original_value = value
+        .as_str()
+        .ok_or_else(|| InternalError::FailedToApplyFilter(filter.to_string(), value.to_string()))?;
     let (strp_format, mut datetime) =
         adjust_strp_format_and_value(&filter.strp_format, &original_value);
 
