@@ -7,7 +7,7 @@ use crate::compiler::{
         Noop, Not, Object, Op, Predicate, Query, Return, Target, Unary, Variable,
     },
     parser::ast::RootExpr,
-    program::ProgramInfo,
+    program::Info,
     CompileConfig, Function, Program, TypeDef,
 };
 use crate::diagnostic::{DiagnosticList, DiagnosticMessage};
@@ -84,6 +84,19 @@ impl CompilerError {
 }
 
 impl<'a> Compiler<'a> {
+    /// Compiles a given source into the final [`Program`].
+    ///
+    /// # Arguments
+    ///
+    /// * `source` - A string slice that holds the source code to be compiled.
+    /// * `fns` - A slice of boxed functions to be used during compilation.
+    ///
+    /// # Returns
+    ///
+    /// A `Result` containing the `CompilationResult` if successful, or a `DiagnosticList` if there are errors.
+    ///
+    /// # Errors
+    /// Any compilation error.
     pub fn compile(
         fns: &'a [Box<dyn Function>],
         ast: crate::parser::Program,
@@ -121,7 +134,7 @@ impl<'a> Compiler<'a> {
         let result = CompilationResult {
             program: Program {
                 expressions: Block::new_inline(expressions),
-                info: ProgramInfo {
+                info: Info {
                     fallible: compiler.fallible,
                     abortable: compiler.abortable,
                     target_queries: compiler.external_queries,

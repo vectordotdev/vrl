@@ -84,7 +84,7 @@ impl Function for ObjectFromArray {
     fn compile(
         &self,
         state: &TypeState,
-        _ctx: &mut FunctionCompileContext,
+        _ctx: &mut CompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
         let values = ConstOrExpr::new(arguments.required("values"), state);

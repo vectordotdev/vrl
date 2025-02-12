@@ -60,7 +60,7 @@ impl Function for UuidV7 {
     fn compile(
         &self,
         _state: &state::TypeState,
-        _ctx: &mut FunctionCompileContext,
+        _ctx: &mut CompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
         let timestamp = arguments.optional("timestamp");

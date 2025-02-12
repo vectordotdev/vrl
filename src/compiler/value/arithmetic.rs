@@ -1,4 +1,5 @@
 #![deny(clippy::arithmetic_side_effects)]
+#![allow(clippy::cast_precision_loss, clippy::module_name_repetitions)]
 
 use std::ops::{Add, Mul, Rem};
 
@@ -11,6 +12,7 @@ use bytes::{BufMut, Bytes, BytesMut};
 
 use super::ValueError;
 
+#[allow(clippy::missing_errors_doc)]
 pub trait VrlValueArithmetic: Sized {
     /// Similar to [`std::ops::Mul`], but fallible (e.g. `TryMul`).
     fn try_mul(self, rhs: Self) -> Result<Self, ValueError>;
@@ -75,6 +77,7 @@ impl VrlValueArithmetic for Value {
 
         // When multiplying a string by an integer, if the number is negative we set it to zero to
         // return an empty string.
+        #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
         let as_usize = |num| if num < 0 { 0 } else { num as usize };
 
         let value = match self {

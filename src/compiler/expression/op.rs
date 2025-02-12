@@ -18,6 +18,21 @@ pub struct Op {
 }
 
 impl Op {
+    /// Creates a new `Op` expression.
+    ///
+    /// # Arguments
+    /// * `lhs` - The left-hand side expression.
+    /// * `opcode` - The operator to apply.
+    /// * `rhs` - The right-hand side expression.
+    /// * `state` - The current type state.
+    ///
+    /// # Returns
+    /// A `Result` containing the new `Op` expression or an error.
+    ///
+    /// # Errors
+    /// - `ChainedComparison`: If the left-hand side expression is already a comparison operation.
+    /// - `UnnecessaryCoalesce`: If the left-hand side expression is infallible and the operator is `Err`.
+    /// - `MergeNonObjects`: If the operator is `Merge` and either operand is not an object.
     pub fn new(
         lhs: Node<Expr>,
         opcode: Node<ast::Opcode>,

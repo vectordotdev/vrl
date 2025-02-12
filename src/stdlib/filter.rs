@@ -73,7 +73,7 @@ impl Function for Filter {
     fn compile(
         &self,
         _state: &state::TypeState,
-        _ctx: &mut FunctionCompileContext,
+        _ctx: &mut CompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
@@ -112,13 +112,13 @@ impl Function for Filter {
 #[derive(Debug, Clone)]
 struct FilterFn {
     value: Box<dyn Expression>,
-    closure: FunctionClosure,
+    closure: Closure,
 }
 
 impl FunctionExpression for FilterFn {
     fn resolve(&self, ctx: &mut Context) -> ExpressionResult<Value> {
         let value = self.value.resolve(ctx)?;
-        let FunctionClosure {
+        let Closure {
             variables,
             block,
             block_type_def: _,

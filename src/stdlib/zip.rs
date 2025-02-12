@@ -72,7 +72,7 @@ impl Function for Zip {
     fn compile(
         &self,
         state: &TypeState,
-        _ctx: &mut FunctionCompileContext,
+        _ctx: &mut CompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
         let array_0 = ConstOrExpr::new(arguments.required("array_0"), state);

@@ -13,7 +13,18 @@ use std::{
     collections::{btree_map::Entry, BTreeMap},
 };
 
-static XML_RE: Lazy<Regex> = Lazy::new(|| {
+/// A lazily initialized regular expression that matches excess whitespace between XML/HTML tags.
+///
+/// This regex helps in cleaning up formatted or pretty-printed XML/HTML by removing unnecessary
+/// spaces, newlines, or indentation between tags. It specifically looks for occurrences where
+/// a `>` (closing tag or self-closing tag) is immediately followed by whitespace (spaces, tabs,
+/// or newlines) and then a `<` (opening tag).
+///
+/// ## Notes
+/// - This regex is compiled once and reused, improving performance.
+/// - The `multi_line(true)` flag (if used with `RegexBuilder`) ensures it applies across multiple lines.
+/// - This is particularly useful for XML minification or normalization before processing.
+pub static XML_RE: Lazy<Regex> = Lazy::new(|| {
     RegexBuilder::new(r">\s+?<")
         .multi_line(true)
         .build()
@@ -42,18 +53,41 @@ pub struct ParseXmlConfig<'a> {
 
 /// Used to keep Clippy's `too_many_argument` check happy.
 #[derive(Debug, Default)]
-pub(crate) struct ParseOptions {
-    pub(crate) trim: Option<Value>,
-    pub(crate) include_attr: Option<Value>,
-    pub(crate) attr_prefix: Option<Value>,
-    pub(crate) text_key: Option<Value>,
-    pub(crate) always_use_text_key: Option<Value>,
-    pub(crate) parse_bool: Option<Value>,
-    pub(crate) parse_null: Option<Value>,
-    pub(crate) parse_number: Option<Value>,
+pub struct ParseOptions {
+    pub trim: Option<Value>,
+    pub include_attr: Option<Value>,
+    pub attr_prefix: Option<Value>,
+    pub text_key: Option<Value>,
+    pub always_use_text_key: Option<Value>,
+    pub parse_bool: Option<Value>,
+    pub parse_null: Option<Value>,
+    pub parse_number: Option<Value>,
 }
 
-pub(crate) fn parse_xml(value: Value, options: ParseOptions) -> Resolved {
+/// Parses an XML string into a structured `Resolved` format based on the provided `ParseOptions`.
+///
+/// This function processes an XML document, applying transformations and extracting elements
+/// according to the given parsing options.
+///
+/// # Parameters
+/// - `value`: A [`vrl::value::Value`] containing the XML string to be parsed.
+/// - `options`: A `ParseOptions` struct that defines parsing behaviors, including:
+///   - `trim`: Whether to remove excess whitespace between XML elements (default: `true`).
+///   - `include_attr`: Whether to include XML attributes in the output (default: `true`).
+///   - `attr_prefix`: The prefix used for attribute keys (default: `"@"`).
+///   - `text_key`: The key used for text content within an element (default: `"text"`).
+///   - `always_use_text_key`: Whether text values should always be wrapped in a text key (default: `false`).
+///   - `parse_bool`: Whether to attempt parsing boolean values (default: `true`).
+///   - `parse_null`: Whether to attempt parsing null values (default: `true`).
+///   - `parse_number`: Whether to attempt parsing numeric values (default: `true`).
+///
+/// # Returns
+/// - `Ok(Resolved)`: The structured representation of the parsed XML.
+/// - `Err(String)`: If XML parsing fails or an error occurs during processing.
+///
+/// # Errors
+/// - Returns an error if the input is not valid XML or if any step in processing fails.
+pub fn parse_xml(value: Value, options: ParseOptions) -> Resolved {
     let string = value.try_bytes_utf8_lossy()?;
     let trim = match options.trim {
         Some(value) => value.try_boolean()?,

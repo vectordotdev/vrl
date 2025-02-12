@@ -146,6 +146,7 @@ pub struct Runner<'a, T> {
     pub(crate) runner: T,
 }
 
+#[allow(clippy::missing_errors_doc)]
 impl<'a, T> Runner<'a, T>
 where
     T: Fn(&mut Context) -> Result<Value, ExpressionError>,

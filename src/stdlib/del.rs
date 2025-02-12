@@ -108,7 +108,7 @@ impl Function for Del {
     fn compile(
         &self,
         _state: &state::TypeState,
-        ctx: &mut FunctionCompileContext,
+        ctx: &mut CompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
         let query = arguments.required_query("target")?;

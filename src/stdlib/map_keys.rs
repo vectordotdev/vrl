@@ -66,7 +66,7 @@ impl Function for MapKeys {
     fn compile(
         &self,
         _state: &state::TypeState,
-        _ctx: &mut FunctionCompileContext,
+        _ctx: &mut CompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
@@ -107,7 +107,7 @@ impl Function for MapKeys {
 struct MapKeysFn {
     value: Box<dyn Expression>,
     recursive: Option<Box<dyn Expression>>,
-    closure: FunctionClosure,
+    closure: Closure,
 }
 
 impl FunctionExpression for MapKeysFn {
@@ -118,7 +118,7 @@ impl FunctionExpression for MapKeysFn {
         };
 
         let value = self.value.resolve(ctx)?;
-        let FunctionClosure {
+        let Closure {
             variables,
             block,
             block_type_def: _,
