@@ -6,14 +6,13 @@ use parse_size::Config;
 use rust_decimal::{prelude::FromPrimitive, prelude::ToPrimitive, Decimal};
 use std::collections::HashMap;
 
-fn parse_bytes(bytes: Value, unit: Value, base: &Bytes) -> Resolved {
+fn parse_bytes(bytes: &Value, unit: Value, base: &Bytes) -> Resolved {
     let (units, parse_config) = match base.as_ref() {
         b"2" => (&*BIN_UNITS, Config::new().with_binary()),
         b"10" => (&*DEC_UNITS, Config::new().with_decimal()),
         _ => unreachable!("enum invariant"),
     };
-    let bytes = bytes.try_bytes()?;
-    let value = String::from_utf8_lossy(&bytes);
+    let value = bytes.try_bytes_utf8_lossy()?;
     let value: &str = value.as_ref();
     let conversion_factor = {
         let bytes = unit.try_bytes()?;
@@ -155,7 +154,7 @@ impl FunctionExpression for ParseBytesFn {
         let bytes = self.value.resolve(ctx)?;
         let unit = self.unit.resolve(ctx)?;
 
-        parse_bytes(bytes, unit, &self.base)
+        parse_bytes(&bytes, unit, &self.base)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

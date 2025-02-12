@@ -3,9 +3,8 @@ use regex::Regex;
 
 use super::util;
 
-fn parse_regex(value: Value, numeric_groups: bool, pattern: &Regex) -> Resolved {
-    let bytes = value.try_bytes()?;
-    let value = String::from_utf8_lossy(&bytes);
+fn parse_regex(value: &Value, numeric_groups: bool, pattern: &Regex) -> Resolved {
+    let value = value.try_bytes_utf8_lossy()?;
     let parsed = pattern
         .captures(&value)
         .map(|capture| util::capture_regex_to_map(pattern, &capture, numeric_groups))
@@ -109,7 +108,7 @@ impl FunctionExpression for ParseRegexFn {
         let numeric_groups = self.numeric_groups.resolve(ctx)?;
         let pattern = &self.pattern;
 
-        parse_regex(value, numeric_groups.try_boolean()?, pattern)
+        parse_regex(&value, numeric_groups.try_boolean()?, pattern)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

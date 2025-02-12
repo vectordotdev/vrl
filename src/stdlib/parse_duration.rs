@@ -4,13 +4,11 @@ use regex::Regex;
 use rust_decimal::{prelude::ToPrimitive, Decimal};
 use std::{collections::HashMap, str::FromStr};
 
-fn parse_duration(bytes: Value, unit: Value) -> Resolved {
-    let bytes = bytes.try_bytes()?;
-    let value = String::from_utf8_lossy(&bytes);
+fn parse_duration(bytes: &Value, unit: &Value) -> Resolved {
+    let value = bytes.try_bytes_utf8_lossy()?;
     let mut value = &value[..];
     let conversion_factor = {
-        let bytes = unit.try_bytes()?;
-        let string = String::from_utf8_lossy(&bytes);
+        let string = unit.try_bytes_utf8_lossy()?;
 
         UNITS
             .get(string.as_ref())
@@ -122,7 +120,7 @@ impl FunctionExpression for ParseDurationFn {
         let bytes = self.value.resolve(ctx)?;
         let unit = self.unit.resolve(ctx)?;
 
-        parse_duration(bytes, unit)
+        parse_duration(&bytes, &unit)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

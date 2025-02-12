@@ -5,11 +5,10 @@ use chrono::{
     DateTime, Utc,
 };
 
-fn format_timestamp_with_tz(ts: Value, format: Value, timezone: Option<Value>) -> Resolved {
+fn format_timestamp_with_tz(ts: Value, format: &Value, timezone: Option<Value>) -> Resolved {
     let ts: DateTime<Utc> = ts.try_timestamp()?;
 
-    let format_bytes = format.try_bytes()?;
-    let format = String::from_utf8_lossy(&format_bytes);
+    let format = format.try_bytes_utf8_lossy()?;
 
     let timezone_bytes = timezone.map(VrlValueConvert::try_bytes).transpose()?;
     let timezone = timezone_bytes.as_ref().map(|b| String::from_utf8_lossy(b));
@@ -96,7 +95,7 @@ impl FunctionExpression for FormatTimestampFn {
             .map(|tz| tz.resolve(ctx))
             .transpose()?;
 
-        format_timestamp_with_tz(ts, bytes, tz)
+        format_timestamp_with_tz(ts, &bytes, tz)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {
