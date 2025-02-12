@@ -3685,6 +3685,7 @@ dependencies = [
  "tracing",
  "tracing-test",
  "uaparser",
+ "unicode-segmentation",
  "url",
  "utf8-width",
  "uuid",
