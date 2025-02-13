@@ -99,7 +99,8 @@ where
 /// # Errors
 ///
 /// Will return `Err` if the query contains an invalid path.
-pub fn build<V, F>(
+#[allow(clippy::module_name_repetitions)]
+pub fn build_matcher<V, F>(
     node: &QueryNode,
     filter: &F,
 ) -> Result<Box<dyn Matcher<V>>, PathParseError>
@@ -195,11 +196,11 @@ where
 
             Ok(any(matchers?))
         }
-        QueryNode::NegatedNode { node } => Ok(not(build(node, filter)?)),
+        QueryNode::NegatedNode { node } => Ok(not(build_matcher(node, filter)?)),
         QueryNode::Boolean { oper, nodes } => {
             let funcs: Result<Vec<_>, _> = nodes
                 .iter()
-                .map(|node| build(node, filter))
+                .map(|node| build_matcher(node, filter))
                 .collect();
 
             match oper {

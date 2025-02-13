@@ -1,7 +1,7 @@
 use crate::compiler::prelude::*;
 use crate::datadog_filter::{
-    build,
-    regex::word,
+    build_matcher,
+    regex::{wildcard_regex, word_regex},
     Filter, Matcher, Resolver, Run,
 };
 use crate::datadog_search_syntax::{Comparison, ComparisonValue, Field, ParseError, QueryNode};
@@ -67,7 +67,7 @@ impl Function for MatchDatadogQuery {
         // Build the matcher function that accepts a VRL event value. This will parse the `node`
         // at boot-time and return a boxed func that contains just the logic required to match a
         // VRL `Value` against the Datadog Search Syntax literal.
-        let filter = build(&node, &VrlFilter).map_err(|_| {
+        let filter = build_matcher(&node, &VrlFilter).map_err(|_| {
             Box::new(InvalidArgument {
                 keyword: QUERY_KEYWORD,
                 value: query_value,
@@ -172,7 +172,7 @@ impl Filter<Value> for VrlFilter {
         Ok(match field {
             // Default fields are compared by word boundary.
             Field::Default(_) => {
-                let re = word(to_match);
+                let re = word_regex(to_match);
 
                 resolve_value(
                     buf,
@@ -230,7 +230,7 @@ impl Filter<Value> for VrlFilter {
         Ok(match field {
             // Default fields are matched by word boundary.
             Field::Default(_) => {
-                let re = word(&format!("{prefix}*"));
+                let re = word_regex(&format!("{prefix}*"));
 
                 resolve_value(
                     buf,
@@ -272,7 +272,7 @@ impl Filter<Value> for VrlFilter {
 
         Ok(match field {
             Field::Default(_) => {
-                let re = word(wildcard);
+                let re = word_regex(wildcard);
 
                 resolve_value(
                     buf,
@@ -280,7 +280,7 @@ impl Filter<Value> for VrlFilter {
                 )
             }
             Field::Tag(tag) => {
-                let re = wildcard(&format!("{tag}:{wildcard}"));
+                let re = wildcard_regex(&format!("{tag}:{wildcard}"));
 
                 resolve_value(
                     buf,
@@ -291,7 +291,7 @@ impl Filter<Value> for VrlFilter {
                 )
             }
             _ => {
-                let re = wildcard(wildcard);
+                let re = wildcard_regex(wildcard);
 
                 resolve_value(
                     buf,
