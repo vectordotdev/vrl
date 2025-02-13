@@ -3,7 +3,6 @@
 
 #![deny(warnings, clippy::pedantic)]
 #![allow(
-    clippy::cast_lossless,
     clippy::cast_possible_wrap,
     clippy::cast_sign_loss,
 )]
