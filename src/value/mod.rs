@@ -2,10 +2,7 @@
 //! and the closely linked `Kind` in support of progressive type checking.
 
 #![deny(warnings, clippy::pedantic)]
-#![allow(
-    clippy::cast_possible_wrap,
-    clippy::cast_sign_loss,
-)]
+#![allow(clippy::cast_possible_wrap, clippy::cast_sign_loss)]
 
 pub mod kind;
 pub mod secrets;

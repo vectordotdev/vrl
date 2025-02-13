@@ -149,7 +149,9 @@ impl<'a> Iterator for ValueIter<'a> {
         // If we have a recursive iterator stored, it means we're asked to
         // continue iterating that iterator until it is exhausted.
         if let Some(iter) = &mut self.recursive_iter {
-            if let item @ Some(..) = iter.next() { return item }
+            if let item @ Some(..) = iter.next() {
+                return item;
+            }
 
             let value = match &mut self.data {
                 IterData::Object(object) => &mut object.index_mut(self.index - 1).1,
