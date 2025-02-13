@@ -4,7 +4,11 @@ use unicode_segmentation::UnicodeSegmentation;
 
 use crate::compiler::prelude::*;
 
-#[allow(clippy::cast_precision_loss)] //TODO evaluate removal options
+// Casting to f64 in this function is only done to enable proper division (when calculating probability)
+// Since numbers being casted represent lenghts of input strings and number of character occurences,
+// we can assume that there will never really be precision loss here, because that would mean that
+// the string is at least 2^52 bytes in size (4.5 PB)
+#[allow(clippy::cast_precision_loss)]
 fn shannon_entropy(value: &Value, segmentation: &Segmentation) -> Resolved {
     let (occurence_counts, total_length): (Vec<usize>, usize) = match segmentation {
         Segmentation::Byte => {
