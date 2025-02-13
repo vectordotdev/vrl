@@ -1,3 +1,4 @@
+#![allow(clippy::module_name_repetitions)]
 mod exact;
 mod field;
 mod index;
@@ -51,7 +52,7 @@ impl<T: Ord + Clone> Collection<T> {
         let unknown_kind = self.unknown_kind();
         output
             .known_mut()
-            .retain(|i, i_kind| *i_kind != unknown_kind);
+            .retain(|_, i_kind| *i_kind != unknown_kind);
         output
     }
 

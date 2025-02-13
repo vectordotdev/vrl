@@ -1,5 +1,5 @@
 use bytes::Bytes;
-use chrono::{DateTime, NaiveDateTime, Utc};
+use chrono::{DateTime, Utc};
 use ordered_float::NotNan;
 use quickcheck::{Arbitrary, Gen};
 
@@ -14,11 +14,8 @@ fn datetime(g: &mut Gen) -> DateTime<Utc> {
     // nanosecond values but doesn't actually document what the valid ranges
     // are. We just sort of arbitrarily restrict things.
     let secs = i64::arbitrary(g) % 32_000;
-    let nanosecs = u32::arbitrary(g) % 32_000;
-    DateTime::<Utc>::from_utc(
-        NaiveDateTime::from_timestamp_opt(secs, nanosecs).expect("invalid timestamp"),
-        Utc,
-    )
+    let nanoseconds = u32::arbitrary(g) % 32_000;
+    DateTime::<Utc>::from_timestamp(secs, nanoseconds).expect("invalid timestamp")
 }
 
 impl Arbitrary for Value {
