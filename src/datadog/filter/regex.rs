@@ -4,9 +4,8 @@ use regex::Regex;
 ///
 /// # Panics
 /// Panics if an invalid wildcard regex is provided.
-#[allow(clippy::module_name_repetitions)]
 #[must_use]
-pub fn word_regex(to_match: &str) -> Regex {
+pub fn word(to_match: &str) -> Regex {
     Regex::new(&format!(
         r"\b{}\b",
         regex::escape(to_match).replace("\\*", ".*")
@@ -20,7 +19,7 @@ pub fn word_regex(to_match: &str) -> Regex {
 /// Panics if an invalid wildcard regex is provided.
 #[allow(clippy::module_name_repetitions)]
 #[must_use]
-pub fn wildcard_regex(to_match: &str) -> Regex {
+pub fn wildcard(to_match: &str) -> Regex {
     Regex::new(&format!(
         "^{}$",
         regex::escape(to_match).replace("\\*", ".*")
