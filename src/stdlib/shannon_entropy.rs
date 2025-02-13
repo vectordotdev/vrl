@@ -39,7 +39,7 @@ fn shannon_entropy(value: &Value, segmentation: &Segmentation) -> Resolved {
             let mut total_len = 0;
 
             for char in chars {
-                *counts.entry(char).or_default() += 1;
+                counts.entry(char).and_modify(|c| *c += 1).or_insert(1);
                 total_len += 1;
             }
 
@@ -52,7 +52,7 @@ fn shannon_entropy(value: &Value, segmentation: &Segmentation) -> Resolved {
             let mut total_len = 0;
 
             for grapheme in graphemes {
-                *counts.entry(grapheme).or_default() += 1;
+                counts.entry(grapheme).and_modify(|c| *c += 1).or_insert(1);
                 total_len += 1;
             }
 
