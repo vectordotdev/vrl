@@ -99,6 +99,7 @@ where
 /// # Errors
 ///
 /// Will return `Err` if the query contains an invalid path.
+#[allow(clippy::module_name_repetitions)]
 pub fn build_matcher<V, F>(
     node: &QueryNode,
     filter: &F,
