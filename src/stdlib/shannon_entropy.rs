@@ -188,12 +188,12 @@ mod tests {
     use std::collections::BTreeMap;
 
     use super::*;
-    use crate::stdlib::util::round_to_precision;
+    use crate::{stdlib::util::round_to_precision, value};
 
     #[test]
     fn simple_example() {
         assert_eq!(
-            2.9219,
+            value!(2.9219),
             execute_function_with_precision(
                 &ShannonEntropyFn {
                     value: expr!("vector.dev"),
@@ -207,7 +207,7 @@ mod tests {
     #[test]
     fn longer_example() {
         assert_eq!(
-            3.737,
+            value!(3.737),
             execute_function_with_precision(
                 &ShannonEntropyFn {
                     value: expr!("Supercalifragilisticexpialidocious"),
@@ -221,7 +221,7 @@ mod tests {
     #[test]
     fn fancy_foo_example() {
         assert_eq!(
-            1.5,
+            value!(1.5),
             execute_function(&ShannonEntropyFn {
                 value: expr!("ƒoo"),
                 segmentation: Segmentation::default()
@@ -232,7 +232,7 @@ mod tests {
     #[test]
     fn fancy_foo_codepoint_segmentation_example() {
         assert_eq!(
-            0.9183,
+            value!(0.9183),
             execute_function_with_precision(
                 &ShannonEntropyFn {
                     value: expr!("ƒoo"),
@@ -246,7 +246,7 @@ mod tests {
     #[test]
     fn utf_8_byte_segmentation_example() {
         assert_eq!(
-            4.0784,
+            value!(4.0784),
             execute_function_with_precision(
                 &ShannonEntropyFn {
                     value: expr!("test123%456.فوائد.net."),
@@ -260,7 +260,7 @@ mod tests {
     #[test]
     fn utf_8_codepoint_segmentation_example() {
         assert_eq!(
-            3.9363,
+            value!(3.9363),
             execute_function_with_precision(
                 &ShannonEntropyFn {
                     value: expr!("test123%456.فوائد.net."),
@@ -274,7 +274,7 @@ mod tests {
     #[test]
     fn utf_8_example() {
         assert_eq!(
-            3.9363,
+            value!(3.9363),
             execute_function_with_precision(
                 &ShannonEntropyFn {
                     value: expr!("test123%456.فوائد.net."),
@@ -293,15 +293,17 @@ mod tests {
         function.resolve(&mut ctx)
     }
 
-    fn execute_function(function: &ShannonEntropyFn) -> f64 {
+    fn execute_function(function: &ShannonEntropyFn) -> Value {
         prepare_function(function)
             .map_err(|e| format!("{:#}", anyhow::anyhow!(e)))
             .unwrap()
-            .try_float()
-            .unwrap()
     }
 
-    fn execute_function_with_precision(function: &ShannonEntropyFn, precision: i64) -> f64 {
-        round_to_precision(execute_function(function), precision, f64::round)
+    fn execute_function_with_precision(function: &ShannonEntropyFn, precision: i64) -> Value {
+        Value::from_f64_or_zero(round_to_precision(
+            execute_function(function).try_float().unwrap(),
+            precision,
+            f64::round,
+        ))
     }
 }
