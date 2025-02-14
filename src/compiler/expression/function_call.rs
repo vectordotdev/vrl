@@ -7,7 +7,7 @@ use crate::compiler::{
     expression::{levenstein, ExpressionError, FunctionArgument},
     function::{
         closure::{self, VariableKind},
-        ArgumentList, Closure, FunctionCompileContext, Example, Parameter,
+        ArgumentList, Closure, Example, FunctionCompileContext, Parameter,
     },
     parser::{Ident, Node},
     state::LocalEnv,
