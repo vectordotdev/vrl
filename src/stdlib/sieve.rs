@@ -1,10 +1,10 @@
 use crate::compiler::prelude::*;
 
 fn sieve(
-    value: Value,
+    value: &Value,
     permitted_characters: Value,
-    replace_single: Value,
-    replace_repeated: Value,
+    replace_single: &Value,
+    replace_repeated: &Value,
 ) -> Resolved {
     let value = value.try_bytes_utf8_lossy()?;
     let replace_single = replace_single.try_bytes_utf8_lossy()?;
@@ -77,7 +77,7 @@ impl Function for Sieve {
     fn compile(
         &self,
         _state: &state::TypeState,
-        _ctx: &mut FunctionCompileContext,
+        _ctx: &mut CompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
@@ -115,10 +115,10 @@ impl FunctionExpression for SieveFn {
         let replace_repeated = self.replace_repeated.resolve(ctx)?;
 
         sieve(
-            value,
+            &value,
             permitted_characters,
-            replace_single,
-            replace_repeated,
+            &replace_single,
+            &replace_repeated,
         )
     }
 

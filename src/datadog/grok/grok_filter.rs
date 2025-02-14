@@ -12,7 +12,7 @@ use super::{
     ast::{Function, FunctionArgument},
     filters::{array, keyvalue, keyvalue::KeyValueFilter},
     matchers::date::{apply_date_filter, DateFilter},
-    parse_grok::Error as GrokRuntimeError,
+    parse_grok::InternalError,
     parse_grok_rules::Error as GrokStaticError,
 };
 
@@ -119,16 +119,16 @@ impl TryFrom<&Function> for GrokFilter {
 
 /// Applies a given Grok filter to the value and returns the result or error.
 /// For detailed description and examples of specific filters check out https://docs.datadoghq.com/logs/log_configuration/parsing/?tab=filters
-pub fn apply_filter(value: &Value, filter: &GrokFilter) -> Result<Value, GrokRuntimeError> {
+pub fn apply_filter(value: &Value, filter: &GrokFilter) -> Result<Value, InternalError> {
     match filter {
         GrokFilter::Integer => match value {
             Value::Bytes(v) => Ok(String::from_utf8_lossy(v)
                 .parse::<i64>()
                 .map_err(|_e| {
-                    GrokRuntimeError::FailedToApplyFilter(filter.to_string(), value.to_string())
+                    InternalError::FailedToApplyFilter(filter.to_string(), value.to_string())
                 })?
                 .into()),
-            _ => Err(GrokRuntimeError::FailedToApplyFilter(
+            _ => Err(InternalError::FailedToApplyFilter(
                 filter.to_string(),
                 value.to_string(),
             )),
@@ -137,10 +137,10 @@ pub fn apply_filter(value: &Value, filter: &GrokFilter) -> Result<Value, GrokRun
             Value::Bytes(v) => Ok(String::from_utf8_lossy(v)
                 .parse::<f64>()
                 .map_err(|_e| {
-                    GrokRuntimeError::FailedToApplyFilter(filter.to_string(), value.to_string())
+                    InternalError::FailedToApplyFilter(filter.to_string(), value.to_string())
                 })
                 .map(|f| (f as i64).into())?),
-            _ => Err(GrokRuntimeError::FailedToApplyFilter(
+            _ => Err(InternalError::FailedToApplyFilter(
                 filter.to_string(),
                 value.to_string(),
             )),
@@ -149,7 +149,7 @@ pub fn apply_filter(value: &Value, filter: &GrokFilter) -> Result<Value, GrokRun
             Value::Bytes(v) => {
                 let v = Ok(Value::from_f64_or_zero(
                     String::from_utf8_lossy(v).parse::<f64>().map_err(|_e| {
-                        GrokRuntimeError::FailedToApplyFilter(filter.to_string(), value.to_string())
+                        InternalError::FailedToApplyFilter(filter.to_string(), value.to_string())
                     })?,
                 ));
                 match v {
@@ -159,12 +159,13 @@ pub fn apply_filter(value: &Value, filter: &GrokFilter) -> Result<Value, GrokRun
                     _ => v,
                 }
             }
-            _ => Err(GrokRuntimeError::FailedToApplyFilter(
+            _ => Err(InternalError::FailedToApplyFilter(
                 filter.to_string(),
                 value.to_string(),
             )),
         },
         GrokFilter::Scale(scale_factor) => {
+            let scale_factor = scale_factor * 1000_f64 / 1000_f64;
             let v = match value {
                 Value::Integer(v) => Ok(Value::Float(
                     NotNan::new((*v as f64) * scale_factor).expect("NaN"),
@@ -174,11 +175,11 @@ pub fn apply_filter(value: &Value, filter: &GrokFilter) -> Result<Value, GrokRun
                 )),
                 Value::Bytes(v) => {
                     let v = String::from_utf8_lossy(v).parse::<f64>().map_err(|_e| {
-                        GrokRuntimeError::FailedToApplyFilter(filter.to_string(), value.to_string())
+                        InternalError::FailedToApplyFilter(filter.to_string(), value.to_string())
                     })?;
                     Ok(Value::Float(NotNan::new(v * scale_factor).expect("NaN")))
                 }
-                _ => Err(GrokRuntimeError::FailedToApplyFilter(
+                _ => Err(InternalError::FailedToApplyFilter(
                     filter.to_string(),
                     value.to_string(),
                 )),
@@ -202,7 +203,9 @@ pub fn apply_filter(value: &Value, filter: &GrokFilter) -> Result<Value, GrokRun
         GrokFilter::Rubyhash => parse_value_error_prone(value, filter, |b| {
             parse_ruby_hash(String::from_utf8_lossy(b).as_ref())
         }),
-        GrokFilter::Querystring => parse_value_error_prone(value, filter, parse_query_string),
+        GrokFilter::Querystring => {
+            parse_value_error_prone(value, filter, |s| parse_query_string(s, true))
+        }
         GrokFilter::Boolean => parse_value(value, filter, |b| {
             "true".eq_ignore_ascii_case(String::from_utf8_lossy(b).as_ref())
         }),
@@ -230,13 +233,13 @@ pub fn apply_filter(value: &Value, filter: &GrokFilter) -> Result<Value, GrokRun
                     Ok(value.to_owned())
                 }
             }
-            _ => Err(GrokRuntimeError::FailedToApplyFilter(
+            _ => Err(InternalError::FailedToApplyFilter(
                 filter.to_string(),
                 value.to_string(),
             )),
         },
         GrokFilter::Date(date_filter) => apply_date_filter(value, date_filter),
-        GrokFilter::KeyValue(keyvalue_filter) => keyvalue::apply_filter(value, keyvalue_filter),
+        GrokFilter::KeyValue(keyvalue_filter) => keyvalue_filter.apply_filter(value),
         GrokFilter::Array(brackets, delimiter, value_filter) => match value {
             Value::Bytes(bytes) => array::parse(
                 String::from_utf8_lossy(bytes).as_ref(),
@@ -245,9 +248,7 @@ pub fn apply_filter(value: &Value, filter: &GrokFilter) -> Result<Value, GrokRun
                     .map(|(start, end)| (start.as_str(), end.as_str())),
                 delimiter.as_ref().map(|s| s.as_str()),
             )
-            .map_err(|_e| {
-                GrokRuntimeError::FailedToApplyFilter(filter.to_string(), value.to_string())
-            })
+            .map_err(|_e| InternalError::FailedToApplyFilter(filter.to_string(), value.to_string()))
             .and_then(|values| {
                 if let Some(value_filter) = value_filter.as_ref() {
                     let result = values
@@ -259,7 +260,7 @@ pub fn apply_filter(value: &Value, filter: &GrokFilter) -> Result<Value, GrokRun
                 }
                 Ok(values.into())
             }),
-            _ => Err(GrokRuntimeError::FailedToApplyFilter(
+            _ => Err(InternalError::FailedToApplyFilter(
                 filter.to_string(),
                 value.to_string(),
             )),
@@ -271,10 +272,10 @@ fn parse_value<V: Into<Value>>(
     value: &Value,
     filter: &GrokFilter,
     parse: impl Fn(&Bytes) -> V,
-) -> Result<Value, GrokRuntimeError> {
+) -> Result<Value, InternalError> {
     match value {
         Value::Bytes(bytes) => Ok(parse(bytes).into()),
-        _ => Err(GrokRuntimeError::FailedToApplyFilter(
+        _ => Err(InternalError::FailedToApplyFilter(
             filter.to_string(),
             value.to_string(),
         )),
@@ -285,14 +286,12 @@ fn parse_value_error_prone<V: Into<Value>, E: std::error::Error>(
     value: &Value,
     filter: &GrokFilter,
     parse: impl Fn(&Bytes) -> Result<V, E>,
-) -> Result<Value, GrokRuntimeError> {
+) -> Result<Value, InternalError> {
     match value {
         Value::Bytes(bytes) => parse(bytes)
-            .map_err(|_e| {
-                GrokRuntimeError::FailedToApplyFilter(filter.to_string(), value.to_string())
-            })
+            .map_err(|_e| InternalError::FailedToApplyFilter(filter.to_string(), value.to_string()))
             .map(Into::into),
-        _ => Err(GrokRuntimeError::FailedToApplyFilter(
+        _ => Err(InternalError::FailedToApplyFilter(
             filter.to_string(),
             value.to_string(),
         )),

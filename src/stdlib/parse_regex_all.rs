@@ -4,9 +4,8 @@ use crate::compiler::prelude::*;
 
 use super::util;
 
-fn parse_regex_all(value: Value, numeric_groups: bool, pattern: &Regex) -> Resolved {
-    let bytes = value.try_bytes()?;
-    let value = String::from_utf8_lossy(&bytes);
+fn parse_regex_all(value: &Value, numeric_groups: bool, pattern: &Regex) -> Resolved {
+    let value = value.try_bytes_utf8_lossy()?;
     Ok(pattern
         .captures_iter(&value)
         .map(|capture| util::capture_regex_to_map(pattern, &capture, numeric_groups).into())
@@ -45,7 +44,7 @@ impl Function for ParseRegexAll {
     fn compile(
         &self,
         _state: &state::TypeState,
-        _ctx: &mut FunctionCompileContext,
+        _ctx: &mut CompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
@@ -121,7 +120,7 @@ impl FunctionExpression for ParseRegexAllFn {
             .ok_or_else(|| ExpressionError::from("failed to resolve regex"))?
             .clone();
 
-        parse_regex_all(value, numeric_groups.try_boolean()?, &pattern)
+        parse_regex_all(&value, numeric_groups.try_boolean()?, &pattern)
     }
 
     fn type_def(&self, state: &state::TypeState) -> TypeDef {

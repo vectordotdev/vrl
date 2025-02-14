@@ -8,8 +8,7 @@ use crate::compiler::state::{RuntimeState, TypeState};
 use crate::compiler::TimeZone;
 use crate::compiler::{compile_with_state, CompileConfig, Function, Program, Target, VrlRuntime};
 use crate::diagnostic::Formatter;
-use crate::owned_value_path;
-use crate::path::OwnedTargetPath;
+use crate::owned_metadata_path;
 use crate::value::Secrets;
 use crate::value::Value;
 use indoc::indoc;
@@ -19,7 +18,7 @@ use regex::Regex;
 use rustyline::{
     completion::Completer,
     error::ReadlineError,
-    highlight::{Highlighter, MatchingBracketHighlighter},
+    highlight::{CmdKind, Highlighter, MatchingBracketHighlighter},
     hint::{Hinter, HistoryHinter},
     history::MemHistory,
     validate::{self, ValidationResult, Validator},
@@ -80,7 +79,7 @@ pub(crate) fn run(
             Ok(line) if line == "exit" || line == "quit" => break,
             Ok("help") => print_help_text(),
             Ok(line) if line == "help functions" || line == "help funcs" || line == "help fs" => {
-                print_function_list()
+                print_function_list();
             }
             Ok("help docs") => open_url(DOCS_URL),
             // Capture "help error <code>"
@@ -168,7 +167,8 @@ fn resolve(
 ) -> Result<Value, String> {
     let mut config = CompileConfig::default();
     // The CLI should be moved out of the "vrl" module, and then it can use the `vector-core::compile_vrl` function which includes this automatically
-    config.set_read_only_path(OwnedTargetPath::metadata(owned_value_path!("vector")), true);
+    config.set_read_only_path(owned_metadata_path!("vector"), true);
+    config.disable_unused_expression_check();
 
     let program = match compile_with_state(program, stdlib_functions, state, config) {
         Ok(result) => result.program,
@@ -283,7 +283,7 @@ impl Highlighter for Repl {
         self.highlighter.highlight(line, pos)
     }
 
-    fn highlight_char(&self, line: &str, pos: usize, forced: bool) -> bool {
+    fn highlight_char(&self, line: &str, pos: usize, forced: CmdKind) -> bool {
         self.highlighter.highlight_char(line, pos, forced)
     }
 }

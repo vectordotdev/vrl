@@ -1,9 +1,9 @@
 use std::fmt::Debug;
 
-use crate::datadog::search::{Comparison, ComparisonValue, Field};
-use dyn_clone::{clone_trait_object, DynClone};
-
 use super::{Matcher, Run};
+use crate::datadog::search::{Comparison, ComparisonValue, Field};
+use crate::path::PathParseError;
+use dyn_clone::{clone_trait_object, DynClone};
 
 /// A `Filter` is a generic type that contains methods that are invoked by the `build_filter`
 /// function. Each method returns a heap-allocated `Matcher<V>` (typically a closure) containing
@@ -11,27 +11,51 @@ use super::{Matcher, Run};
 /// free and idempotent, and so only receives an immutable reference to self.
 pub trait Filter<V: Debug + Send + Sync + Clone + 'static>: DynClone {
     /// Determine whether a field value exists.
-    fn exists(&self, field: Field) -> Box<dyn Matcher<V>>;
+    ///
+    /// # Errors
+    ///
+    /// Will return `Err` if the query contains an invalid path.
+    fn exists(&self, field: Field) -> Result<Box<dyn Matcher<V>>, PathParseError>;
 
     /// Determine whether a field value equals `to_match`.
-    fn equals(&self, field: Field, to_match: &str) -> Box<dyn Matcher<V>>;
+    ///
+    /// # Errors
+    ///
+    /// Will return `Err` if the query contains an invalid path.
+    fn equals(&self, field: Field, to_match: &str) -> Result<Box<dyn Matcher<V>>, PathParseError>;
 
     /// Determine whether a value starts with a prefix.
-    fn prefix(&self, field: Field, prefix: &str) -> Box<dyn Matcher<V>>;
+    ///
+    /// # Errors
+    /// Will return `Err` if the query contains an invalid path.
+    fn prefix(&self, field: Field, prefix: &str) -> Result<Box<dyn Matcher<V>>, PathParseError>;
 
     /// Determine whether a value matches a wildcard.
-    fn wildcard(&self, field: Field, wildcard: &str) -> Box<dyn Matcher<V>>;
+    ///
+    /// # Errors
+    ///
+    /// Will return `Err` if the query contains an invalid path.
+    fn wildcard(&self, field: Field, wildcard: &str)
+        -> Result<Box<dyn Matcher<V>>, PathParseError>;
 
     /// Compare a field value against `comparison_value`, using one of the `comparator` operators.
+    ///
+    /// # Errors
+    ///
+    /// Will return `Err` if the query contains an invalid path.
     fn compare(
         &self,
         field: Field,
         comparator: Comparison,
         comparison_value: ComparisonValue,
-    ) -> Box<dyn Matcher<V>>;
+    ) -> Result<Box<dyn Matcher<V>>, PathParseError>;
 
     /// Determine whether a field value falls within a range. By default, this will use
     /// `self.compare` on both the lower and upper bound.
+    ///
+    /// # Errors
+    ///
+    /// Will return `Err` if the query contains an invalid path.
     fn range(
         &self,
         field: Field,
@@ -39,7 +63,7 @@ pub trait Filter<V: Debug + Send + Sync + Clone + 'static>: DynClone {
         lower_inclusive: bool,
         upper: ComparisonValue,
         upper_inclusive: bool,
-    ) -> Box<dyn Matcher<V>> {
+    ) -> Result<Box<dyn Matcher<V>>, PathParseError> {
         match (&lower, &upper) {
             // If both bounds are wildcards, just check that the field exists to catch the
             // special case for "tags".
@@ -78,10 +102,12 @@ pub trait Filter<V: Debug + Send + Sync + Clone + 'static>: DynClone {
                     Comparison::Lt
                 };
 
-                let lower_func = self.compare(field.clone(), lower_op, lower);
-                let upper_func = self.compare(field, upper_op, upper);
+                let lower_func = self.compare(field.clone(), lower_op, lower)?;
+                let upper_func = self.compare(field, upper_op, upper)?;
 
-                Run::boxed(move |value| lower_func.run(value) && upper_func.run(value))
+                Ok(Run::boxed(move |value| {
+                    lower_func.run(value) && upper_func.run(value)
+                }))
             }
         }
     }

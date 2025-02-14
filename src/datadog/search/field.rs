@@ -27,11 +27,21 @@ pub enum Field {
     /// Default field (when tag/facet isn't provided)
     Default(String),
 
+    // TODO investigate making this be an enum which may make more sense
+    //      when dealing with a fixed set of field names
     /// Reserved field that receives special treatment in Datadog.
     Reserved(String),
 
-    /// A facet -- i.e. started with `@`, transformed to `custom.*`
-    Facet(String),
+    /// An Attribute-- i.e. started with `@`.
+    // In Datadog Log Search the `@` prefix is used to define a Facet for
+    // attribute searching, and the event structure is assumed to have a
+    // root level field "custom". In VRL we do not guarantee this event
+    // structure so we are diverging a little from the DD Log Search
+    // definition and implementation a bit here, by calling this "Attribute".
+    //
+    // Internally when we handle this enum variant, we attempt to parse the
+    // string as a log path to obtain the value.
+    Attribute(String),
 
     /// Tag type - i.e. search in the `tags` field.
     Tag(String),
@@ -42,14 +52,14 @@ impl Field {
         match self {
             Self::Default(ref s) => s,
             Self::Reserved(ref s) => s,
-            Self::Facet(ref s) => s,
+            Self::Attribute(ref s) => s,
             Self::Tag(ref s) => s,
         }
     }
 }
 
 /// Converts a field/facet name to the VRL equivalent. Datadog payloads have a `message` field
-/// (which is used whenever the default field is encountered. Facets are hosted on .custom.*.
+/// (which is used whenever the default field is encountered.
 pub fn normalize_fields<T: AsRef<str>>(value: T) -> Vec<Field> {
     let value = value.as_ref();
     if value.eq(grammar::DEFAULT_FIELD) {
@@ -59,8 +69,8 @@ pub fn normalize_fields<T: AsRef<str>>(value: T) -> Vec<Field> {
             .collect();
     }
 
-    let field = match value.replace('@', "custom.") {
-        v if value.starts_with('@') => Field::Facet(v),
+    let field = match value.replace('@', ".") {
+        v if value.starts_with('@') => Field::Attribute(v),
         v if DEFAULT_FIELDS.contains(&v.as_ref()) => Field::Default(v),
         v if RESERVED_ATTRIBUTES.contains(&v.as_ref()) => Field::Reserved(v),
         v => Field::Tag(v),

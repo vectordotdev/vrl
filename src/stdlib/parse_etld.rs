@@ -73,7 +73,7 @@ impl Function for ParseEtld {
     fn compile(
         &self,
         state: &state::TypeState,
-        _ctx: &mut FunctionCompileContext,
+        _ctx: &mut CompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
@@ -137,6 +137,8 @@ impl FunctionExpression for ParseEtldFn {
 
         let plus_parts = match self.plus_parts.resolve(ctx)?.try_integer()? {
             x if x < 0 => 0,
+            // TODO consider removal options
+            #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
             x => x as usize,
         };
 

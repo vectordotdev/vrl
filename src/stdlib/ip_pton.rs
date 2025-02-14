@@ -2,7 +2,7 @@ use crate::compiler::prelude::*;
 use bytes::Bytes;
 use std::net::IpAddr;
 
-fn ip_pton(value: Value) -> Resolved {
+fn ip_pton(value: &Value) -> Resolved {
     let ip: IpAddr = value
         .try_bytes_utf8_lossy()?
         .parse()
@@ -50,7 +50,7 @@ impl Function for IpPton {
     fn compile(
         &self,
         _state: &state::TypeState,
-        _ctx: &mut FunctionCompileContext,
+        _ctx: &mut CompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
@@ -67,7 +67,7 @@ struct IpPtonFn {
 impl FunctionExpression for IpPtonFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let value = self.value.resolve(ctx)?;
-        ip_pton(value)
+        ip_pton(&value)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

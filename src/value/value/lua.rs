@@ -4,9 +4,9 @@ use ordered_float::NotNan;
 
 use crate::value::Value;
 
-impl<'a> IntoLua<'a> for Value {
+impl IntoLua for Value {
     #![allow(clippy::wrong_self_convention)] // this trait is defined by mlua
-    fn into_lua(self, lua: &'a Lua) -> LuaResult<LuaValue<'_>> {
+    fn into_lua(self, lua: &Lua) -> LuaResult<LuaValue> {
         match self {
             Self::Bytes(b) => lua.create_string(b.as_ref()).map(LuaValue::String),
             Self::Regex(regex) => lua
@@ -23,15 +23,15 @@ impl<'a> IntoLua<'a> for Value {
     }
 }
 
-impl<'a> FromLua<'a> for Value {
-    fn from_lua(value: LuaValue<'a>, lua: &'a Lua) -> LuaResult<Self> {
+impl FromLua for Value {
+    fn from_lua(value: LuaValue, lua: &Lua) -> LuaResult<Self> {
         match value {
-            LuaValue::String(s) => Ok(Self::Bytes(Vec::from(s.as_bytes()).into())),
+            LuaValue::String(s) => Ok(Self::Bytes(s.as_bytes().to_vec().into())),
             LuaValue::Integer(i) => Ok(Self::Integer(i)),
             LuaValue::Number(f) => {
                 let f = NotNan::new(f).map_err(|_| mlua::Error::FromLuaConversionError {
                     from: value.type_name(),
-                    to: "Value",
+                    to: String::from("Value"),
                     message: Some("NaN not supported".to_string()),
                 })?;
                 Ok(Self::Float(f))
@@ -48,7 +48,7 @@ impl<'a> FromLua<'a> for Value {
             }
             other => Err(mlua::Error::FromLuaConversionError {
                 from: other.type_name(),
-                to: "Value",
+                to: String::from("Value"),
                 message: Some("Unsupported Lua type".to_string()),
             }),
         }
@@ -63,7 +63,7 @@ use mlua::prelude::*;
 /// # Errors
 ///
 /// This function will fail insertion into the table fails.
-pub fn timestamp_to_table(lua: &Lua, ts: DateTime<Utc>) -> LuaResult<LuaTable<'_>> {
+pub fn timestamp_to_table(lua: &Lua, ts: DateTime<Utc>) -> LuaResult<LuaTable> {
     let table = lua.create_table()?;
     table.raw_set("year", ts.year())?;
     table.raw_set("month", ts.month())?;
@@ -84,7 +84,7 @@ pub fn timestamp_to_table(lua: &Lua, ts: DateTime<Utc>) -> LuaResult<LuaTable<'_
 /// # Errors
 ///
 /// This function will fail if the table is malformed.
-pub fn table_is_timestamp(t: &LuaTable<'_>) -> LuaResult<bool> {
+pub fn table_is_timestamp(t: &LuaTable) -> LuaResult<bool> {
     for &key in &["year", "month", "day", "hour", "min", "sec"] {
         if !t.contains_key(key)? {
             return Ok(false);
@@ -99,14 +99,14 @@ pub fn table_is_timestamp(t: &LuaTable<'_>) -> LuaResult<bool> {
 ///
 /// This function will fail if the table is malformed.
 #[allow(clippy::needless_pass_by_value)] // constrained by mlua types
-pub fn table_to_timestamp(t: LuaTable<'_>) -> LuaResult<DateTime<Utc>> {
+pub fn table_to_timestamp(t: LuaTable) -> LuaResult<DateTime<Utc>> {
     let year = t.raw_get("year")?;
     let month = t.raw_get("month")?;
     let day = t.raw_get("day")?;
     let hour = t.raw_get("hour")?;
     let min = t.raw_get("min")?;
     let sec = t.raw_get("sec")?;
-    let nano = t.raw_get::<_, Option<u32>>("nanosec")?.unwrap_or(0);
+    let nano = t.raw_get::<Option<u32>>("nanosec")?.unwrap_or(0);
     Ok(Utc
         .ymd(year, month, day)
         .and_hms_nano_opt(hour, min, sec, nano)
@@ -276,13 +276,13 @@ mod test {
 
         let lua = Lua::new();
         for (value, test_src) in pairs {
-            let test_fn: LuaFunction<'_> = lua
+            let test_fn: LuaFunction = lua
                 .load(test_src)
                 .eval()
                 .unwrap_or_else(|_| panic!("Failed to load {test_src} for value {value:?}"));
             assert!(
                 test_fn
-                    .call::<_, bool>(value.clone())
+                    .call::<bool>(value.clone())
                     .unwrap_or_else(|_| panic!("Failed to call {test_src} for value {value:?}")),
                 "Test function: {test_src}, value: {value:?}"
             );

@@ -10,6 +10,7 @@ use crate::compiler::{
     Expression,
 };
 
+#[allow(clippy::module_name_repetitions, clippy::missing_errors_doc)]
 pub trait VrlValueConvert: Sized {
     /// Convert a given [`Value`] into a [`Expression`] trait object.
     fn into_expression(self) -> Box<dyn Expression>;
@@ -49,6 +50,7 @@ impl VrlValueConvert for Value {
     fn try_into_i64(self: &Value) -> Result<i64, ValueError> {
         match self {
             Value::Integer(v) => Ok(*v),
+            #[allow(clippy::cast_possible_truncation)]
             Value::Float(v) => Ok(v.into_inner() as i64),
             _ => Err(ValueError::Coerce(self.kind(), Kind::integer())),
         }
@@ -66,6 +68,7 @@ impl VrlValueConvert for Value {
 
     fn try_into_f64(&self) -> Result<f64, ValueError> {
         match self {
+            #[allow(clippy::cast_precision_loss)]
             Value::Integer(v) => Ok(*v as f64),
             Value::Float(v) => Ok(v.into_inner()),
             _ => Err(ValueError::Coerce(self.kind(), Kind::float())),
@@ -83,13 +86,10 @@ impl VrlValueConvert for Value {
     }
 
     fn try_bytes_utf8_lossy(&self) -> Result<Cow<'_, str>, ValueError> {
-        match self.as_bytes() {
-            Some(bytes) => Ok(String::from_utf8_lossy(bytes)),
-            None => Err(ValueError::Expected {
-                got: self.kind(),
-                expected: Kind::bytes(),
-            }),
-        }
+        self.as_str().ok_or(ValueError::Expected {
+            got: self.kind(),
+            expected: Kind::bytes(),
+        })
     }
 
     fn try_boolean(self) -> Result<bool, ValueError> {

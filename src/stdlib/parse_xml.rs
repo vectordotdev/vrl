@@ -26,7 +26,7 @@ impl Function for ParseXml {
     fn compile(
         &self,
         _state: &state::TypeState,
-        _ctx: &mut FunctionCompileContext,
+        _ctx: &mut CompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
@@ -465,6 +465,18 @@ mod tests {
                   }
                 }
             )),
+            tdef: type_def(),
+        }
+
+        if_no_sibling {
+            args: func_args![ value: "<root><a>test</a></root>"],
+            want: Ok(value!({ "root": { "a": "test" } })),
+            tdef: type_def(),
+        }
+
+        if_no_sibling2 {
+            args: func_args![ value: "<root><a><a1>test</a1></a><b>test2</b></root>"],
+            want: Ok(value!({ "root": { "a": { "a1": "test" }, "b" : "test2" } })),
             tdef: type_def(),
         }
     ];

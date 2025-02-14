@@ -369,7 +369,7 @@ impl<'a> Serializer for KeyValueSerializer<'a> {
     }
 }
 
-impl<'a> SerializeStruct for KeyValueSerializer<'a> {
+impl SerializeStruct for KeyValueSerializer<'_> {
     type Ok = ();
     type Error = EncodingError;
     fn serialize_field<T: Serialize + ?Sized>(
@@ -385,7 +385,7 @@ impl<'a> SerializeStruct for KeyValueSerializer<'a> {
     }
 }
 
-impl<'a> SerializeStructVariant for KeyValueSerializer<'a> {
+impl SerializeStructVariant for KeyValueSerializer<'_> {
     type Ok = ();
     type Error = EncodingError;
     fn serialize_field<T: Serialize + ?Sized>(
@@ -406,7 +406,7 @@ struct IndexedKeyValueSerializer<'a> {
     ser: KeyValueSerializer<'a>,
 }
 
-impl<'a> IndexedKeyValueSerializer<'a> {
+impl IndexedKeyValueSerializer<'_> {
     fn process<T: ?Sized + Serialize>(&mut self, data: &T) -> Result<(), EncodingError> {
         let key = self.index;
         self.index += 1;
@@ -414,7 +414,7 @@ impl<'a> IndexedKeyValueSerializer<'a> {
     }
 }
 
-impl<'a> SerializeTuple for IndexedKeyValueSerializer<'a> {
+impl SerializeTuple for IndexedKeyValueSerializer<'_> {
     type Ok = ();
     type Error = EncodingError;
 
@@ -427,7 +427,7 @@ impl<'a> SerializeTuple for IndexedKeyValueSerializer<'a> {
     }
 }
 
-impl<'a> SerializeSeq for IndexedKeyValueSerializer<'a> {
+impl SerializeSeq for IndexedKeyValueSerializer<'_> {
     type Ok = ();
     type Error = EncodingError;
 
@@ -440,7 +440,7 @@ impl<'a> SerializeSeq for IndexedKeyValueSerializer<'a> {
     }
 }
 
-impl<'a> SerializeTupleStruct for IndexedKeyValueSerializer<'a> {
+impl SerializeTupleStruct for IndexedKeyValueSerializer<'_> {
     type Ok = ();
     type Error = EncodingError;
 
@@ -453,7 +453,7 @@ impl<'a> SerializeTupleStruct for IndexedKeyValueSerializer<'a> {
     }
 }
 
-impl<'a> SerializeTupleVariant for IndexedKeyValueSerializer<'a> {
+impl SerializeTupleVariant for IndexedKeyValueSerializer<'_> {
     type Ok = ();
     type Error = EncodingError;
 
@@ -471,7 +471,7 @@ struct KeyedKeyValueSerializer<'a> {
     ser: KeyValueSerializer<'a>,
 }
 
-impl<'a> SerializeMap for KeyedKeyValueSerializer<'a> {
+impl SerializeMap for KeyedKeyValueSerializer<'_> {
     type Ok = ();
     type Error = EncodingError;
     fn serialize_key<T: Serialize + ?Sized>(&mut self, key: &T) -> Result<(), Self::Error> {

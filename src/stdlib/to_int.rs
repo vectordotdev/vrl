@@ -6,6 +6,7 @@ fn to_int(value: Value) -> Resolved {
 
     match value {
         Integer(_) => Ok(value),
+        #[allow(clippy::cast_possible_truncation)] //TODO evaluate removal options
         Float(v) => Ok(Integer(v.into_inner() as i64)),
         Boolean(v) => Ok(Integer(i64::from(v))),
         Null => Ok(0.into()),
@@ -104,7 +105,7 @@ impl Function for ToInt {
     fn compile(
         &self,
         _state: &state::TypeState,
-        _ctx: &mut FunctionCompileContext,
+        _ctx: &mut CompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");

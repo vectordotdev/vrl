@@ -5,8 +5,8 @@ use community_id::calculate_community_id;
 use crate::compiler::prelude::*;
 
 fn community_id(
-    src_ip: Value,
-    dst_ip: Value,
+    src_ip: &Value,
+    dst_ip: &Value,
     protocol: Value,
     src_port: Option<Value>,
     dst_port: Option<Value>,
@@ -128,7 +128,7 @@ impl Function for CommunityID {
     fn compile(
         &self,
         state: &state::TypeState,
-        _ctx: &mut FunctionCompileContext,
+        _ctx: &mut CompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
         let src_ip = arguments.required("source_ip");
@@ -242,7 +242,7 @@ impl FunctionExpression for CommunityIDFn {
             .map(|expr| expr.resolve(ctx))
             .transpose()?;
 
-        community_id(src_ip, dst_ip, protocol, src_port, dst_port, seed)
+        community_id(&src_ip, &dst_ip, protocol, src_port, dst_port, seed)
     }
 
     fn type_def(&self, _state: &state::TypeState) -> TypeDef {
@@ -271,7 +271,7 @@ mod tests {
 
         tcp_no_ports {
             args: func_args![source_ip: "1.2.3.4", destination_ip: "5.6.7.8", protocol: 6],
-            want: Err("src port and dst port should be set when protocol is icmp/icmp6/tcp/udp/sctp"),
+            want: Err("src port and dst port should be set when protocol is tcp/udp/sctp"),
             tdef: TypeDef::bytes().fallible(),
         }
 

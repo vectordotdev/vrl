@@ -4,6 +4,7 @@ use nom::AsBytes;
 fn encode_zstd(value: Value, compression_level: Option<Value>) -> Resolved {
     let compression_level = match compression_level {
         None => 0,
+        #[allow(clippy::cast_possible_truncation)] //TODO evaluate removal options
         Some(value) => value.try_integer()? as i32,
     };
 
@@ -34,7 +35,7 @@ impl Function for EncodeZstd {
     fn compile(
         &self,
         _state: &state::TypeState,
-        _ctx: &mut FunctionCompileContext,
+        _ctx: &mut CompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");

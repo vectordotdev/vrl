@@ -1,4 +1,3 @@
-#![deny(warnings)]
 #![allow(clippy::print_stdout)] // tests
 #![allow(clippy::print_stderr)] // tests
 
@@ -94,7 +93,7 @@ pub fn run_tests<T>(
 
     for mut test in tests {
         if category != test.category {
-            category = test.category.clone();
+            category.clone_from(&test.category);
             println!("{}", Colour::Fixed(3).bold().paint(category.to_string()));
         }
 

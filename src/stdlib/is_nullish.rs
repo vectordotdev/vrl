@@ -1,8 +1,8 @@
 use super::util;
 use crate::compiler::prelude::*;
 
-fn is_nullish(value: Value) -> bool {
-    util::is_nullish(&value)
+fn is_nullish(value: &Value) -> bool {
+    util::is_nullish(value)
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -32,7 +32,7 @@ impl Function for IsNullish {
     fn compile(
         &self,
         _state: &state::TypeState,
-        _ctx: &mut FunctionCompileContext,
+        _ctx: &mut CompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
@@ -48,7 +48,7 @@ struct IsNullishFn {
 impl FunctionExpression for IsNullishFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let value = self.value.resolve(ctx)?;
-        Ok(is_nullish(value).into())
+        Ok(is_nullish(&value).into())
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

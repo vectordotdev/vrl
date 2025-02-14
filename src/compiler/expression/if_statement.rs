@@ -20,12 +20,12 @@ impl Expression for IfStatement {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let predicate = self.predicate.resolve(ctx)?.try_boolean()?;
 
-        match predicate {
-            true => self.if_block.resolve(ctx),
-            false => self
-                .else_block
+        if predicate {
+            self.if_block.resolve(ctx)
+        } else {
+            self.else_block
                 .as_ref()
-                .map_or(Ok(Value::Null), |block| block.resolve(ctx)),
+                .map_or(Ok(Value::Null), |block| block.resolve(ctx))
         }
     }
 

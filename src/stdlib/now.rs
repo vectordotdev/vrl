@@ -20,7 +20,7 @@ impl Function for Now {
     fn compile(
         &self,
         _state: &state::TypeState,
-        _ctx: &mut FunctionCompileContext,
+        _ctx: &mut CompileContext,
         _: ArgumentList,
     ) -> Compiled {
         Ok(NowFn.as_expr())

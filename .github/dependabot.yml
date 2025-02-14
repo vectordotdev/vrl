@@ -2,8 +2,10 @@ version: 2
 updates:
   - package-ecosystem: "cargo"
     directory: "/"
+    allow:
+      - dependency-type: "all"
     schedule:
-      interval: "daily"
+      interval: "weekly"
       time: "04:00" # UTC
     labels:
       - "domain: deps"
@@ -11,10 +13,21 @@ updates:
     commit-message:
       prefix: "chore(deps)"
     open-pull-requests-limit: 10
+    groups:
+      patches:
+        applies-to: version-updates
+        patterns:
+          - "*"
+        update-types:
+          - "patch"
+      prost:
+        patterns:
+        - "prost"
+        - "prost-*"
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "daily"
+      interval: "weekly"
     labels:
       - "domain: ci"
       - "no-changelog"

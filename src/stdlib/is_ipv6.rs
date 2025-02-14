@@ -1,7 +1,7 @@
 use crate::compiler::prelude::*;
 use std::net::Ipv6Addr;
 
-fn is_ipv6(value: Value) -> Resolved {
+fn is_ipv6(value: &Value) -> Resolved {
     let value_str = value.try_bytes_utf8_lossy()?;
     Ok(value_str.parse::<Ipv6Addr>().is_ok().into())
 }
@@ -45,7 +45,7 @@ impl Function for IsIpv6 {
     fn compile(
         &self,
         _state: &TypeState,
-        _ctx: &mut FunctionCompileContext,
+        _ctx: &mut CompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
@@ -61,7 +61,7 @@ struct IsIpv6Fn {
 
 impl FunctionExpression for IsIpv6Fn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        self.value.resolve(ctx).and_then(is_ipv6)
+        self.value.resolve(ctx).and_then(|v| is_ipv6(&v))
     }
 
     fn type_def(&self, _: &TypeState) -> TypeDef {

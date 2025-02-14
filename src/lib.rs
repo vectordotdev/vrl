@@ -1,10 +1,5 @@
-// #![deny(warnings)]
+#![deny(warnings)]
 #![warn(clippy::all)]
-#![warn(unused_allocation)]
-#![warn(unused_extern_crates)]
-#![warn(unused_assignments)]
-#![warn(unused_comparisons)]
-#![allow(clippy::module_name_repetitions)]
 
 #[cfg(feature = "compiler")]
 pub mod compiler;
@@ -52,7 +47,3 @@ pub use datadog::grok as datadog_grok;
 
 #[cfg(feature = "datadog_search")]
 pub use datadog::search as datadog_search_syntax;
-
-#[cfg(feature = "datadog_search")]
-#[macro_use]
-extern crate pest_derive;

@@ -1,5 +1,3 @@
-#![allow(deprecated)]
-
 use chrono::{DateTime, Datelike, TimeZone, Utc};
 use criterion::{criterion_group, criterion_main, Criterion};
 use regex::Regex;
@@ -18,12 +16,16 @@ criterion_group!(
               assert,
               assert_eq,
               r#bool,
+              camelcase,
               ceil,
               chunks,
+              community_id,
               compact,
               contains,
+              crc,
               decode_base16,
               decode_base64,
+              decode_charset,
               decode_percent,
               decode_punycode,
               decrypt,
@@ -33,6 +35,7 @@ criterion_group!(
               downcase,
               encode_base16,
               encode_base64,
+              encode_charset,
               encode_key_value,
               encode_json,
               encode_logfmt,
@@ -79,6 +82,7 @@ criterion_group!(
               is_timestamp,
               join,
               keys,
+              kebabcase,
               length,
               log,
               r#match,
@@ -91,10 +95,12 @@ criterion_group!(
               // TODO: value is dynamic so we cannot assert equality
               //now,
               object,
+              object_from_array,
               parse_apache_log,
               parse_aws_alb_log,
               parse_aws_cloudwatch_log_subscription_message,
               parse_aws_vpc_flow_log,
+              parse_bytes,
               parse_common_log,
               parse_csv,
               parse_duration,
@@ -102,6 +108,7 @@ criterion_group!(
               parse_glog,
               parse_grok,
               parse_groks,
+              parse_influxdb,
               parse_key_value,
               parse_klog,
               parse_int,
@@ -117,6 +124,7 @@ criterion_group!(
               parse_url,
               parse_user_agent,
               parse_xml,
+              pascalcase,
               push,
               // TODO: value is non-deterministic and so cannot assert equality
               // random_bool,
@@ -130,6 +138,8 @@ criterion_group!(
               round,
               seahash,
               set,
+              screamingsnakecase,
+              snakecase,
               sha1,
               sha2,
               sha3,
@@ -149,11 +159,13 @@ criterion_group!(
               to_int,
               to_regex,
               to_string,
+              to_syslog_facility_code,
               to_syslog_facility,
               to_syslog_level,
               to_syslog_severity,
               to_unix_timestamp,
               truncate,
+              unflatten,
               unique,
               // TODO: Cannot pass a Path to bench_function
               //unnest
@@ -162,7 +174,7 @@ criterion_group!(
               //uuidv4,
               upcase,
               values,
-              community_id,
+              zip,
 );
 criterion_main!(benches);
 
@@ -280,6 +292,15 @@ bench_function! {
 }
 
 bench_function! {
+    crc  => vrl::stdlib::Crc;
+
+    literal {
+        args: func_args![value: "foo"],
+        want: Ok(b"2356372769"),
+    }
+}
+
+bench_function! {
     decode_base16 => vrl::stdlib::DecodeBase16;
 
     literal {
@@ -294,6 +315,16 @@ bench_function! {
     literal {
         args: func_args![value: "c29tZSs9c3RyaW5nL3ZhbHVl"],
         want: Ok("some+=string/value"),
+    }
+}
+
+bench_function! {
+    decode_charset => vrl::stdlib::DecodeCharset;
+
+    literal {
+        args: func_args![value: b"\xbe\xc8\xb3\xe7\xc7\xcf\xbc\xbc\xbf\xe4",
+                         from_charset: value!("euc-kr")],
+        want: Ok(value!("안녕하세요")),
     }
 }
 
@@ -314,8 +345,18 @@ bench_function! {
         want: Ok("www.café.com"),
     }
 
+    encoded_no_validation {
+        args: func_args![value: "www.xn--caf-dma.com", validate: false],
+        want: Ok("www.café.com"),
+    }
+
     non_encoded {
         args: func_args![value: "www.cafe.com"],
+        want: Ok("www.cafe.com"),
+    }
+
+    non_encoded_no_validation {
+        args: func_args![value: "www.cafe.com", validate: false],
         want: Ok("www.cafe.com"),
     }
 }
@@ -358,6 +399,16 @@ bench_function! {
     literal {
         args: func_args![value: "some+=string/value"],
         want: Ok("c29tZSs9c3RyaW5nL3ZhbHVl"),
+    }
+}
+
+bench_function! {
+    encode_charset => vrl::stdlib::EncodeCharset;
+
+    literal {
+        args: func_args![value: value!("안녕하세요"),
+                         to_charset: value!("euc-kr")],
+        want: Ok(value!(b"\xbe\xc8\xb3\xe7\xc7\xcf\xbc\xbc\xbf\xe4")),
     }
 }
 
@@ -470,8 +521,18 @@ bench_function! {
         want: Ok("www.xn--caf-dma.com"),
     }
 
+    idn_no_validation {
+        args: func_args![value: "www.CAFé.com", validate: false],
+        want: Ok("www.xn--caf-dma.com"),
+    }
+
     ascii {
         args: func_args![value: "www.cafe.com"],
+        want: Ok("www.cafe.com"),
+    }
+
+    ascii_no_validation {
+        args: func_args![value: "www.cafe.com", validate: false],
         want: Ok("www.cafe.com"),
     }
 }
@@ -1321,6 +1382,23 @@ bench_function! {
 }
 
 bench_function! {
+    object_from_array => vrl::stdlib::ObjectFromArray;
+
+    default {
+        args: func_args![values: value!([["zero",null], ["one",true], ["two","foo"], ["three",3]])],
+        want: Ok(value!({"zero":null, "one":true, "two":"foo", "three":3})),
+    }
+
+    values_and_keys {
+        args: func_args![
+            keys: value!(["zero", "one", "two", "three"]),
+            values: value!([null, true, "foo", 3]),
+        ],
+        want: Ok(value!({"zero":null, "one":true, "two":"foo", "three":3})),
+    }
+}
+
+bench_function! {
     parse_aws_alb_log => vrl::stdlib::ParseAwsAlbLog;
 
     literal {
@@ -1567,6 +1645,15 @@ bench_function! {
 }
 
 bench_function! {
+    parse_bytes => vrl::stdlib::ParseBytes;
+
+    literal {
+        args: func_args![value: "1024KiB", unit: "MiB"],
+        want: Ok(1.0),
+    }
+}
+
+bench_function! {
     parse_common_log => vrl::stdlib::ParseCommonLog;
 
     literal {
@@ -1672,6 +1759,76 @@ bench_function! {
             "level" => "info",
             "message" => "hello world"
         }))
+    }
+}
+
+bench_function! {
+    parse_influxdb => vrl::stdlib::ParseInfluxDB;
+
+    simple {
+        args: func_args![ value: format!("cpu,host=A,region=us-west usage_system=64i,usage_user=10u,temperature=50.5,on=true,sleep=false 1590488773254420000") ],
+        want: Ok(Value::from(vec![
+            Value::from(btreemap! {
+                "name" => "cpu_usage_system",
+                "tags" => btreemap! {
+                    "host" => "A",
+                    "region" => "us-west",
+                },
+                "timestamp" => DateTime::from_timestamp_nanos(1_590_488_773_254_420_000),
+                "kind" => "absolute",
+                "gauge" => btreemap! {
+                    "value" => 64.0,
+                },
+            }),
+            Value::from(btreemap! {
+                "name" => "cpu_usage_user",
+                "tags" => btreemap! {
+                    "host" => "A",
+                    "region" => "us-west",
+                },
+                "timestamp" => DateTime::from_timestamp_nanos(1_590_488_773_254_420_000),
+                "kind" => "absolute",
+                "gauge" => btreemap! {
+                    "value" => 10.0,
+                },
+            }),
+            Value::from(btreemap! {
+                "name" => "cpu_temperature",
+                "tags" => btreemap! {
+                    "host" => "A",
+                    "region" => "us-west",
+                },
+                "timestamp" => DateTime::from_timestamp_nanos(1_590_488_773_254_420_000),
+                "kind" => "absolute",
+                "gauge" => btreemap! {
+                    "value" => 50.5,
+                },
+            }),
+            Value::from(btreemap! {
+                "name" => "cpu_on",
+                "tags" => btreemap! {
+                    "host" => "A",
+                    "region" => "us-west",
+                },
+                "timestamp" => DateTime::from_timestamp_nanos(1_590_488_773_254_420_000),
+                "kind" => "absolute",
+                "gauge" => btreemap! {
+                    "value" => 1.0,
+                },
+            }),
+            Value::from(btreemap! {
+                "name" => "cpu_sleep",
+                "tags" => btreemap! {
+                    "host" => "A",
+                    "region" => "us-west",
+                },
+                "timestamp" => DateTime::from_timestamp_nanos(1_590_488_773_254_420_000),
+                "kind" => "absolute",
+                "gauge" => btreemap! {
+                    "value" => 0.0,
+                },
+            }),
+        ]))
     }
 }
 
@@ -1818,6 +1975,22 @@ bench_function! {
             "upstream_response_time": 0.049,
             "upstream_status": 200,
             "req_id": "752178adb17130b291aefd8c386279e7",
+        })),
+    }
+
+    main {
+        args: func_args![
+            value: r#"172.24.0.3 - - [31/Dec/2024:17:32:06 +0000] "GET / HTTP/1.1" 200 615 "-" "curl/8.11.1" "1.2.3.4, 10.10.1.1""#,
+            format: "main"
+        ],
+        want: Ok(value!({
+            "remote_addr": "172.24.0.3",
+            "timestamp": (DateTime::parse_from_rfc3339("2024-12-31T17:32:06Z").unwrap().with_timezone(&Utc)),
+            "request": "GET / HTTP/1.1",
+            "status": 200,
+            "body_bytes_size": 615,
+            "http_user_agent": "curl/8.11.1",
+            "http_x_forwarded_for": "1.2.3.4, 10.10.1.1",
         })),
     }
 
@@ -2714,6 +2887,31 @@ bench_function! {
 }
 
 bench_function! {
+    unflatten => vrl::stdlib::Unflatten;
+
+    nested_map {
+        args: func_args![value: value!({"parent.child1": 1, "parent.child2": 2, key: "val"})],
+        want: Ok(value!({parent: {child1: 1, child2: 2}, key: "val"})),
+    }
+
+    map_and_array {
+        args: func_args![value: value!({
+            "parent.child1": [1, [2, 3]],
+            "parent.child2.grandchild1": 1,
+            "parent.child2.grandchild2": [1, [2, 3], 4],
+            "key": "val",
+        })],
+        want: Ok(value!({
+            "parent": {
+                "child1": [1, [2, 3]],
+                "child2": {"grandchild1": 1, "grandchild2": [1, [2, 3], 4]},
+            },
+            "key": "val",
+        })),
+    }
+}
+
+bench_function! {
     unique => vrl::stdlib::Unique;
 
     default {
@@ -2764,5 +2962,67 @@ bench_function! {
     literal {
         args: func_args![source_ip: "1.2.3.4", destination_ip: "5.6.7.8", protocol: 6, source_port: 1122, destination_port: 3344],
         want: Ok("1:wCb3OG7yAFWelaUydu0D+125CLM="),
+    }
+}
+
+bench_function! {
+    camelcase => vrl::stdlib::Camelcase;
+
+    default {
+        args: func_args![value: "input-string"],
+        want: Ok("inputString"),
+    }
+}
+
+bench_function! {
+    pascalcase => vrl::stdlib::Pascalcase;
+
+    default {
+        args: func_args![value: "input-string"],
+        want: Ok("InputString"),
+    }
+}
+
+bench_function! {
+    kebabcase => vrl::stdlib::Kebabcase;
+
+    default {
+        args: func_args![value: "inputString"],
+        want: Ok("input-string"),
+    }
+}
+
+bench_function! {
+    snakecase => vrl::stdlib::Snakecase;
+
+    default {
+        args: func_args![value: "input-string"],
+        want: Ok("input_string"),
+    }
+}
+
+bench_function! {
+    screamingsnakecase => vrl::stdlib::ScreamingSnakecase;
+
+    default {
+        args: func_args![value: "input-string"],
+        want: Ok("INPUT_STRING"),
+    }
+}
+
+bench_function! {
+    zip => vrl::stdlib::Zip;
+
+    one_parameter {
+        args: func_args![array_0: value!([["one", "two", "three", "four"], ["one", 2, null, true]])],
+        want: Ok(value!([["one","one"], ["two",2], ["three",null], ["four",true]])),
+    }
+
+    two_parameters {
+        args: func_args![
+            array_0: value!(["one", "two", "three", "four"]),
+            array_1: value!(["one", 2, null, true]),
+        ],
+        want: Ok(value!([["one","one"], ["two",2], ["three",null], ["four",true]])),
     }
 }

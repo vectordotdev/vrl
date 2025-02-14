@@ -175,14 +175,18 @@ fn parse_pattern(
     grok: &mut Grok,
 ) -> Result<GrokRule, Error> {
     parse_grok_rule(pattern, context)?;
-    let mut pattern = String::new();
-    // \A, \z - parses from the beginning to the end of string, not line(until \n)
-    pattern.push_str(r"\A");
-    pattern.push_str(&context.regex);
-    pattern.push_str(r"\z");
-
-    // our regex engine(onig) uses (?m) mode modifier instead of (?s) to make the dot match all characters
-    pattern = pattern.replace("(?s)", "(?m)").replace("(?-s)", "(?-m)");
+    let pattern = [
+        // In Oniguruma the (?m) modifier is used to enable the DOTALL mode(dot includes newlines),
+        // as opposed to the (?s) modifier in other regex flavors.
+        // \A, \z - parses from the beginning to the end of string, not line(until \n)
+        r"(?m)\A", // (?m) enables the DOTALL mode by default
+        &context
+            .regex
+            .replace("(?s)", "(?m)")
+            .replace("(?-s)", "(?-m)"),
+        r"\z",
+    ]
+    .concat();
 
     // compile pattern
     let pattern = grok
@@ -362,7 +366,7 @@ fn resolves_match_function(
             Ok(())
         }
         "date" => {
-            return match match_fn.args.as_ref() {
+            match match_fn.args.as_ref() {
                 Some(args) if !args.is_empty() && args.len() <= 2 => {
                     if let ast::FunctionArgument::Arg(Value::Bytes(b)) = &args[0] {
                         let format = String::from_utf8_lossy(b);
@@ -395,6 +399,8 @@ fn resolves_match_function(
                             regex: filter_re,
                             target_tz,
                             tz_aware: result.with_tz,
+                            with_tz_capture: result.with_tz_capture,
+                            with_fraction_second: result.with_fraction_second,
                         });
                         // get the regex without captures, so that we can append it to the grok pattern
                         let grok_re = date::time_format_to_regex(&format, false)
@@ -412,7 +418,7 @@ fn resolves_match_function(
                     Err(Error::InvalidFunctionArguments(match_fn.name.clone()))
                 }
                 _ => Err(Error::InvalidFunctionArguments(match_fn.name.clone())),
-            };
+            }
         }
         // otherwise just add it as is, it should be a known grok pattern
         grok_pattern_name => {

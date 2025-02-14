@@ -3,7 +3,7 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
-fn ip_subnet(value: Value, mask: Value) -> Resolved {
+fn ip_subnet(value: &Value, mask: &Value) -> Resolved {
     let value: IpAddr = value
         .try_bytes_utf8_lossy()?
         .parse()
@@ -72,7 +72,7 @@ impl Function for IpSubnet {
     fn compile(
         &self,
         _state: &state::TypeState,
-        _ctx: &mut FunctionCompileContext,
+        _ctx: &mut CompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
@@ -93,7 +93,7 @@ impl FunctionExpression for IpSubnetFn {
         let value = self.value.resolve(ctx)?;
         let mask = self.subnet.resolve(ctx)?;
 
-        ip_subnet(value, mask)
+        ip_subnet(&value, &mask)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {
@@ -127,7 +127,7 @@ fn mask_ips(ip: IpAddr, mask: IpAddr) -> ExpressionResult<IpAddr> {
                 .zip(addr.segments().iter())
                 .zip(mask.segments().iter())
             {
-                *masked = addr & mask
+                *masked = addr & mask;
             }
 
             Ok(IpAddr::from(masked))

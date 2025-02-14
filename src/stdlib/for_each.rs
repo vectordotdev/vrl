@@ -1,6 +1,6 @@
 use crate::compiler::prelude::*;
 
-fn for_each<T>(value: Value, ctx: &mut Context, runner: closure::Runner<T>) -> Resolved
+fn for_each<T>(value: Value, ctx: &mut Context, runner: &closure::Runner<T>) -> Resolved
 where
     T: Fn(&mut Context) -> Resolved,
 {
@@ -49,7 +49,7 @@ impl Function for ForEach {
     fn compile(
         &self,
         _state: &state::TypeState,
-        _ctx: &mut FunctionCompileContext,
+        _ctx: &mut CompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
@@ -88,20 +88,20 @@ impl Function for ForEach {
 #[derive(Debug, Clone)]
 struct ForEachFn {
     value: Box<dyn Expression>,
-    closure: FunctionClosure,
+    closure: Closure,
 }
 
 impl FunctionExpression for ForEachFn {
     fn resolve(&self, ctx: &mut Context) -> ExpressionResult<Value> {
         let value = self.value.resolve(ctx)?;
-        let FunctionClosure {
+        let Closure {
             variables,
             block,
             block_type_def: _,
         } = &self.closure;
         let runner = closure::Runner::new(variables, |ctx| block.resolve(ctx));
 
-        for_each(value, ctx, runner)
+        for_each(value, ctx, &runner)
     }
 
     fn type_def(&self, _ctx: &state::TypeState) -> TypeDef {

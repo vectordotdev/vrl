@@ -88,7 +88,7 @@ impl Function for Redact {
     fn compile(
         &self,
         state: &state::TypeState,
-        _ctx: &mut FunctionCompileContext,
+        _ctx: &mut CompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
@@ -321,12 +321,12 @@ impl Redactor {
                 dst.push_str(s);
             }
             Redactor::Hash { encoder, hasher } => {
-                dst.push_str(&hasher(*encoder, original.as_bytes()))
+                dst.push_str(&hasher(*encoder, original.as_bytes()));
             }
         }
     }
 
-    fn from_object(obj: ObjectMap) -> std::result::Result<Self, &'static str> {
+    fn from_object(obj: &ObjectMap) -> std::result::Result<Self, &'static str> {
         let r#type = match obj.get("type").ok_or(
             "redactor specified as objects must have type
         parameter",
@@ -420,7 +420,7 @@ impl TryFrom<Value> for Redactor {
 
     fn try_from(value: Value) -> std::result::Result<Self, Self::Error> {
         match value {
-            Value::Object(object) => Redactor::from_object(object),
+            Value::Object(object) => Redactor::from_object(&object),
             Value::Bytes(bytes) => match bytes.as_ref() {
                 b"full" => Ok(Redactor::Full),
                 b"sha2" => Ok(Redactor::Hash {

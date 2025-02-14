@@ -11,6 +11,7 @@ pub struct TypeInfo {
 }
 
 impl TypeInfo {
+    #[must_use]
     pub fn new(state: impl Into<TypeState>, result: TypeDef) -> Self {
         Self {
             state: state.into(),
@@ -18,6 +19,7 @@ impl TypeInfo {
         }
     }
 
+    #[must_use]
     pub fn map_result(self, f: impl FnOnce(TypeDef) -> TypeDef) -> Self {
         Self {
             state: self.state,
@@ -32,6 +34,7 @@ impl From<&TypeState> for TypeState {
     }
 }
 
+#[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Clone, Default)]
 pub struct TypeState {
     pub local: LocalEnv,
@@ -39,6 +42,7 @@ pub struct TypeState {
 }
 
 impl TypeState {
+    #[must_use]
     pub fn merge(self, other: Self) -> Self {
         Self {
             local: self.local.merge(other.local),
@@ -116,6 +120,7 @@ impl Default for ExternalEnv {
 }
 
 impl ExternalEnv {
+    #[must_use]
     pub fn merge(self, other: Self) -> Self {
         Self {
             target: self.target.merge(other.target),
@@ -166,6 +171,7 @@ impl ExternalEnv {
 }
 
 /// The state used at runtime to track changes as they happen.
+#[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Default)]
 pub struct RuntimeState {
     /// The [`Value`] stored in each variable.

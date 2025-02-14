@@ -8,13 +8,23 @@ use std::fmt::Debug;
 /// A trait similar to `Expression`, but simplified specifically for functions.
 /// The main difference is this trait prevents mutation of variables both at runtime
 /// and compile time.
+#[allow(clippy::module_name_repetitions)]
 pub trait FunctionExpression: Send + Sync + fmt::Debug + DynClone + Clone + 'static {
-    /// Resolve an expression to a concrete [`Value`].
+    /// Resolves the function expression to a concrete [`Value`].
     /// This method is executed at runtime.
     /// An expression is allowed to fail, which aborts the running program.
     // This should be a read-only reference to `Context`, but function args
     // are resolved in the function themselves, which can theoretically mutate
     // see: https://github.com/vectordotdev/vector/issues/13752
+    ///
+    /// # Arguments
+    /// * `ctx` - The context in which to resolve the expression.
+    ///
+    /// # Returns
+    /// A `Result` containing the resolved value or an error.
+    ///
+    /// # Errors
+    /// Returns an error if the resolution fails.
     fn resolve(&self, ctx: &mut Context) -> Resolved;
 
     /// The resulting type that the function resolves to.

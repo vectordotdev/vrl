@@ -6,8 +6,8 @@ use crate::value::KeyString;
 pub(crate) fn encode_key_value(
     fields: Option<Value>,
     value: Value,
-    key_value_delimiter: Value,
-    field_delimiter: Value,
+    key_value_delimiter: &Value,
+    field_delimiter: &Value,
     flatten_boolean: Value,
 ) -> ExpressionResult<Value> {
     let fields = match fields {
@@ -70,7 +70,7 @@ impl Function for EncodeKeyValue {
     fn compile(
         &self,
         _state: &state::TypeState,
-        _ctx: &mut FunctionCompileContext,
+        _ctx: &mut CompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
@@ -155,8 +155,8 @@ impl FunctionExpression for EncodeKeyValueFn {
         encode_key_value(
             fields,
             value,
-            key_value_delimiter,
-            field_delimiter,
+            &key_value_delimiter,
+            &field_delimiter,
             flatten_boolean,
         )
     }
@@ -168,9 +168,65 @@ impl FunctionExpression for EncodeKeyValueFn {
 
 #[cfg(test)]
 mod tests {
-    use crate::{btreemap, value};
+    use std::collections::BTreeMap;
+
+    use crate::{
+        btreemap,
+        stdlib::parse_key_value::{parse_key_value, Whitespace},
+        value,
+    };
 
     use super::*;
+
+    #[test]
+    fn test_encode_decode_cycle() {
+        let before: Value = {
+            let mut map = Value::from(BTreeMap::default());
+            map.insert("key", r#"this has a " quote"#);
+            map
+        };
+
+        let after = parse_key_value(
+            &encode_key_value(None, before.clone(), &"=".into(), &" ".into(), true.into())
+                .expect("valid key value before"),
+            &Value::from("="),
+            &Value::from(" "),
+            true.into(),
+            Whitespace::Lenient,
+        )
+        .expect("valid key value after");
+
+        assert_eq!(before, after);
+    }
+
+    #[test]
+    fn test_decode_encode_cycle() {
+        let before: Value = r#"key="this has a \" quote""#.into();
+
+        let after = encode_key_value(
+            Some(Value::Array(vec![
+                "key".into(),
+                "has".into(),
+                "a".into(),
+                r#"""#.into(),
+                "quote".into(),
+            ])),
+            parse_key_value(
+                &before,
+                &Value::from("="),
+                &Value::from(" "),
+                true.into(),
+                Whitespace::Lenient,
+            )
+            .expect("valid key value before"),
+            &Value::from("="),
+            &Value::from(" "),
+            true.into(),
+        )
+        .expect("valid key value after");
+
+        assert_eq!(before, after);
+    }
 
     test_function![
         encode_key_value  => EncodeKeyValue;

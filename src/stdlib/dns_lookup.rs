@@ -1,9 +1,21 @@
+//! # DNS Lookup Function
+//!
+//! This function provides DNS lookup capabilities but is not recommended for frequent or performance-critical workflows.
+//! It performs network calls, relying on a single-threaded worker that blocks on each request
+//! until a response is received, which can degrade performance in high-throughput applications.
+//!
+//! Due to the potential for network-related delays or failures, avoid using this function
+//! in latency-sensitive contexts.
+
 use crate::compiler::prelude::*;
 
 #[cfg(not(target_arch = "wasm32"))]
 mod non_wasm {
     use std::collections::BTreeMap;
+    use std::io::Error;
     use std::net::ToSocketAddrs;
+    use std::sync::{mpsc, Arc, Mutex};
+    use std::thread;
     use std::time::Duration;
 
     use domain::base::iana::Class;
@@ -12,11 +24,86 @@ mod non_wasm {
     use domain::resolv::stub::conf::{ResolvConf, ResolvOptions, ServerConf, Transport};
     use domain::resolv::stub::Answer;
     use domain::resolv::StubResolver;
+    use once_cell::sync::Lazy;
+    use tokio::runtime::Handle;
 
     use crate::compiler::prelude::*;
     use crate::value::Value;
 
-    fn dns_lookup(value: Value, qtype: Value, qclass: Value, options: Value) -> Resolved {
+    /// Single threaded worker for executing DNS requests.
+    /// Currently blocks on each request until result is received.
+    static WORKER: Lazy<Worker> = Lazy::new(Worker::new);
+    const CHANNEL_CAPACITY: usize = 100;
+
+    type Job<T> = Box<dyn FnOnce() -> T + Send + 'static>;
+
+    struct Worker {
+        thread: Option<thread::JoinHandle<()>>,
+        queue: Option<mpsc::SyncSender<Job<Result<Answer, Error>>>>,
+        result_receiver: Option<Mutex<mpsc::Receiver<Result<Answer, Error>>>>,
+    }
+
+    impl Worker {
+        // Creates a thread and 2 channels - one for jobs and one for results
+        fn new() -> Self {
+            let (sender, receiver) =
+                mpsc::sync_channel::<Job<Result<Answer, Error>>>(CHANNEL_CAPACITY);
+            let (result_sender, result_receiver) =
+                mpsc::sync_channel::<Result<Answer, Error>>(CHANNEL_CAPACITY);
+            let receiver = Arc::new(Mutex::new(receiver));
+            Self {
+                thread: Some(thread::spawn(move || loop {
+                    let job = receiver
+                        .lock()
+                        .expect("Locking job queue failed")
+                        .recv()
+                        .expect("Worker queue closed");
+                    let result = job();
+                    result_sender
+                        .send(result)
+                        .expect("Sending result back from worker failed");
+                })),
+                queue: Some(sender),
+                result_receiver: Some(result_receiver.into()),
+            }
+        }
+
+        // Sends a job to the worker
+        // Blocks until result is received
+        fn execute<F>(&self, f: F) -> Result<Answer, Error>
+        where
+            F: FnOnce() -> Result<Answer, Error> + Send + 'static,
+        {
+            let job = Box::new(f);
+
+            self.queue
+                .as_ref()
+                .expect("Expected queue to be present in the worker")
+                .send(job)
+                .expect("Submitting job to the queue failed");
+            return self
+                .result_receiver
+                .as_ref()
+                .expect("Expected result queue to be present in the worker")
+                .lock()
+                .expect("Locking result receiver failed")
+                .recv()
+                .expect("Job result channel closed");
+        }
+    }
+
+    // Custom drop implementation which stops the started thread
+    impl Drop for Worker {
+        fn drop(&mut self) {
+            drop(self.queue.take());
+            if let Some(thread) = self.thread.take() {
+                thread.join().unwrap();
+            }
+            drop(self.result_receiver.take());
+        }
+    }
+
+    fn dns_lookup(value: &Value, qtype: &Value, qclass: &Value, options: Value) -> Resolved {
         let host: Name<Vec<_>> = value
             .try_bytes_utf8_lossy()?
             .to_string()
@@ -33,13 +120,21 @@ mod non_wasm {
             .parse()
             .map_err(|err| format!("parsing query class failed: {err}"))?;
 
-        let conf = build_options(options.try_object()?)?;
-        let answer = StubResolver::run_with_conf(conf, move |stub| async move {
-            stub.query((host, qtype, qclass)).await
-        })
+        let map = options.try_object()?;
+        let conf = build_options(&map)?;
+        let answer = match Handle::try_current() {
+            Ok(_) => WORKER.execute(move || {
+                StubResolver::run_with_conf(conf, move |stub| async move {
+                    stub.query((host, qtype, qclass)).await
+                })
+            }),
+            Err(_) => StubResolver::run_with_conf(conf, move |stub| async move {
+                stub.query((host, qtype, qclass)).await
+            }),
+        }
         .map_err(|err| format!("query failed: {err}"))?;
 
-        Ok(parse_answer(answer)?.into())
+        Ok(parse_answer(&answer)?.into())
     }
 
     #[derive(Debug, Clone)]
@@ -61,7 +156,7 @@ mod non_wasm {
         }
     }
 
-    fn build_options(options: ObjectMap) -> Result<ResolvConf, ExpressionError> {
+    fn build_options(options: &ObjectMap) -> Result<ResolvConf, ExpressionError> {
         let mut resolv_options = ResolvOptions::default();
 
         macro_rules! read_bool_opt {
@@ -128,6 +223,7 @@ mod non_wasm {
             .map(|s| s.clone().try_array())
             .transpose()?
         {
+            conf.servers.clear();
             for server in servers {
                 let mut server = server.try_bytes_utf8_lossy()?;
                 if !server.contains(':') {
@@ -147,7 +243,7 @@ mod non_wasm {
         Ok(conf)
     }
 
-    fn parse_answer(answer: Answer) -> Result<ObjectMap, ExpressionError> {
+    fn parse_answer(answer: &Answer) -> Result<ObjectMap, ExpressionError> {
         let mut result = ObjectMap::new();
         let header_section = answer.header();
         let rcode = header_section.rcode();
@@ -234,7 +330,7 @@ mod non_wasm {
             let qtype = self.qtype.resolve(ctx)?;
             let class = self.class.resolve(ctx)?;
             let options = self.options.resolve(ctx)?;
-            dns_lookup(value, qtype, class, options)
+            dns_lookup(&value, &qtype, &class, options)
         }
 
         fn type_def(&self, _: &state::TypeState) -> TypeDef {
@@ -344,6 +440,12 @@ impl Function for DnsLookup {
         ]
     }
 
+    #[cfg(not(feature = "test"))]
+    fn examples(&self) -> &'static [Example] {
+        &[]
+    }
+
+    #[cfg(feature = "test")]
     fn examples(&self) -> &'static [Example] {
         &[
             Example {
@@ -631,7 +733,7 @@ impl Function for DnsLookup {
     fn compile(
         &self,
         _state: &state::TypeState,
-        _ctx: &mut FunctionCompileContext,
+        _ctx: &mut CompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
@@ -652,7 +754,7 @@ impl Function for DnsLookup {
     fn compile(
         &self,
         _state: &state::TypeState,
-        ctx: &mut FunctionCompileContext,
+        ctx: &mut CompileContext,
         _arguments: ArgumentList,
     ) -> Compiled {
         Ok(super::WasmUnsupportedFunction::new(ctx.span(), TypeDef::bytes().fallible()).as_expr())
@@ -669,7 +771,7 @@ mod tests {
 
     #[test]
     fn test_invalid_name() {
-        let result = execute_dns_lookup(DnsLookupFn {
+        let result = execute_dns_lookup(&DnsLookupFn {
             value: expr!("wrong.local"),
             ..Default::default()
         });
@@ -691,7 +793,7 @@ mod tests {
     #[cfg(target_os = "linux")]
     // MacOS resolver doesn't always handle localhost
     fn test_localhost() {
-        let result = execute_dns_lookup(DnsLookupFn {
+        let result = execute_dns_lookup(&DnsLookupFn {
             value: expr!("localhost"),
             ..Default::default()
         });
@@ -713,7 +815,7 @@ mod tests {
 
     #[test]
     fn test_custom_type() {
-        let result = execute_dns_lookup(DnsLookupFn {
+        let result = execute_dns_lookup(&DnsLookupFn {
             value: expr!("google.com"),
             qtype: expr!("mx"),
             ..Default::default()
@@ -734,7 +836,7 @@ mod tests {
 
     #[test]
     fn test_google() {
-        let result = execute_dns_lookup(DnsLookupFn {
+        let result = execute_dns_lookup(&DnsLookupFn {
             value: expr!("dns.google"),
             ..Default::default()
         });
@@ -768,7 +870,7 @@ mod tests {
 
     #[test]
     fn unknown_options_ignored() {
-        let result = execute_dns_lookup(DnsLookupFn {
+        let result = execute_dns_lookup(&DnsLookupFn {
             value: expr!("dns.google"),
             options: expr!({"test": "test"}),
             ..Default::default()
@@ -779,7 +881,7 @@ mod tests {
 
     #[test]
     fn invalid_option_type() {
-        let result = execute_dns_lookup_with_expected_error(DnsLookupFn {
+        let result = execute_dns_lookup_with_expected_error(&DnsLookupFn {
             value: expr!("dns.google"),
             options: expr!({"tcp": "yes"}),
             ..Default::default()
@@ -791,7 +893,7 @@ mod tests {
     #[test]
     fn negative_int_type() {
         let attempts_val = -5;
-        let result = execute_dns_lookup_with_expected_error(DnsLookupFn {
+        let result = execute_dns_lookup_with_expected_error(&DnsLookupFn {
             value: expr!("dns.google"),
             options: expr!({"attempts": attempts_val}),
             ..Default::default()
@@ -803,7 +905,7 @@ mod tests {
         );
     }
 
-    fn prepare_dns_lookup(dns_lookup_fn: DnsLookupFn) -> Resolved {
+    fn prepare_dns_lookup(dns_lookup_fn: &DnsLookupFn) -> Resolved {
         let tz = TimeZone::default();
         let mut object: Value = Value::Object(BTreeMap::new());
         let mut runtime_state = state::RuntimeState::default();
@@ -811,7 +913,7 @@ mod tests {
         dns_lookup_fn.resolve(&mut ctx)
     }
 
-    fn execute_dns_lookup(dns_lookup_fn: DnsLookupFn) -> ObjectMap {
+    fn execute_dns_lookup(dns_lookup_fn: &DnsLookupFn) -> ObjectMap {
         prepare_dns_lookup(dns_lookup_fn)
             .map_err(|e| format!("{:#}", anyhow::anyhow!(e)))
             .unwrap()
@@ -819,7 +921,7 @@ mod tests {
             .unwrap()
     }
 
-    fn execute_dns_lookup_with_expected_error(dns_lookup_fn: DnsLookupFn) -> ExpressionError {
+    fn execute_dns_lookup_with_expected_error(dns_lookup_fn: &DnsLookupFn) -> ExpressionError {
         prepare_dns_lookup(dns_lookup_fn).unwrap_err()
     }
 }

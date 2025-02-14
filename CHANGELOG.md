@@ -4,6 +4,129 @@
 
 <!-- changelog start -->
 
+## [0.21.0 (2025-01-13)]
+
+
+### Breaking Changes & Upgrade Guide
+
+- `to_unix_timestamp`, `to_float`, and `uuid_v7` can now return an error if the supplied timestamp is unrepresentable as a nanosecond timestamp. Previously the function calls would panic. (https://github.com/vectordotdev/vrl/pull/979)
+
+### New Features
+
+- Added new `crc` function to calculate CRC (Cyclic Redundancy Check) checksum
+- Add `parse_cbor` function (https://github.com/vectordotdev/vrl/pull/1152)
+- Added new `zip` function to iterate over an array of arrays and produce a new
+  arrays containing an item from each one. (https://github.com/vectordotdev/vrl/pull/1158)
+- Add new `decode_charset`, `encode_charset` functions to decode and encode strings between different charsets. (https://github.com/vectordotdev/vrl/pull/1162)
+- Added new `object_from_array` function to create an object from an array of
+  value pairs such as what `zip` can produce. (https://github.com/vectordotdev/vrl/pull/1164)
+- Added support for multi-unit duration strings (e.g., `1h2s`, `2m3s`) in the `parse_duration` function. (https://github.com/vectordotdev/vrl/pull/1197)
+- Added new `parse_bytes` function to parse given bytes string such as `1MiB` or `1TB` either in binary or decimal base. (https://github.com/vectordotdev/vrl/pull/1198)
+- Add `main` log format for `parse_nginx_log`. (https://github.com/vectordotdev/vrl/pull/1202)
+- Added support for optional `timezone` argument in the `parse_timestamp` function. (https://github.com/vectordotdev/vrl/pull/1207)
+
+### Fixes
+
+- Fix a panic in float subtraction that produces NaN values. (https://github.com/vectordotdev/vrl/pull/1186)
+
+
+## [0.20.1 (2024-12-09)]
+
+
+### Fixes
+
+- Reverted `to_float` [change](https://github.com/vectordotdev/vrl/pull/1107) because the new logic is too restrictive
+  e.g. attempting to convert "0" returns an error. (https://github.com/vectordotdev/vrl/pull/1179)
+
+
+## [0.20.0 (2024-11-27)]
+
+
+### Breaking Changes & Upgrade Guide
+
+- Fixes the `to_float` function to return an error instead of `f64::INFINITY` when parsing [non-normal](https://doc.rust-lang.org/std/primitive.f64.html#method.is_normal) numbers. (https://github.com/vectordotdev/vrl/pull/1107)
+
+### New Features
+
+- The `decrypt` and `encrypt` VRL functions now support aes-siv (RFC 5297) encryption and decryption. (https://github.com/vectordotdev/vrl/pull/1100)
+
+### Enhancements
+
+- `decode_punycode` and `encode_punycode` with `validate` flag set to false should be faster now, in cases when input data needs no encoding or decoding. (https://github.com/vectordotdev/vrl/pull/1104)
+- `vrl::value::Value` now implements `PartialCmp` that first checks whether the enum discriminants
+  (that both are floats for example), and if they are calls `partial_cmp` on the inner values.
+  Otherwise, it will return `None`. (https://github.com/vectordotdev/vrl/pull/1117)
+- The `encode_proto` function was enhanced to automatically convert valid string fields to numeric proto
+  fields. (https://github.com/vectordotdev/vrl/pull/1114)
+
+### Fixes
+
+- The `parse_groks` VRL function and Datadog grok parsing now catch the panic coming from `rust-onig` on too many regex match retries, and handles it as a custom error. (https://github.com/vectordotdev/vrl/pull/1079)
+- `encode_punycode` with `validate` flag set to false should be more consistent with `validate` set to true, turning all uppercase character to lowercase besides doing punycode encoding (https://github.com/vectordotdev/vrl/pull/1115)
+- Removed false warning when using `set_semantic_meaning`. (https://github.com/vectordotdev/vrl/pull/1148)
+
+
+## [0.19.0 (2024-09-30)]
+
+
+### Breaking Changes & Upgrade Guide
+
+- The multi-line mode of the `parse_groks` VRL function is now enabled by default.
+  Use the `(?-m)` modifier to disable this behaviour. (https://github.com/vectordotdev/vrl/pull/1022)
+
+### Enhancements
+
+- The `keyvalue` grok filter is extended to match Datadog implementation. (https://github.com/vectordotdev/vrl/pull/1015)
+
+### Fixes
+
+- The `parse_xml` function now doesn't add an unnecessary `text` key when processing single nodes. (https://github.com/vectordotdev/vrl/pull/849)
+- `parse_grok` and `parse_groks` no longer require field names containing a hyphen (e.g. `@a-b`) to be quoted.
+- The function `match_datadog_query` doesn't panic if an invalid path is passed, instead it returns an error. (https://github.com/vectordotdev/vrl/pull/1031)
+- The `parse_ruby_hash` parser is extended to match Datadog implementation. Previously it would parse the key in `{:key => "value"}` as `:key`, now it will parse it as `key`. (https://github.com/vectordotdev/vrl/pull/1050)
+
+
+## [0.18.0 (2024-09-05)]
+
+
+### New Features
+
+- Added `unflatten` function to inverse the result of the `flatten` function. This function is useful when you want to convert a flattened object back to its original form.
+- The `parse_json` function now accepts an optional `lossy` parameter (which defaults to `true`).
+
+  This new parameter allows to control whether the UTF-8 decoding should be lossy or not, replacing
+  invalid UTF-8 sequences with the Unicode replacement character (U+FFFD) if set to `true` or raising an error
+  if set to `false` and an invalid utf-8 sequence is found. (https://github.com/vectordotdev/vrl/pull/269)
+- Added casing functions `camelcase`, `kebabcase`, `screamingsnakecase`, `snakecase`, `pascalcase` (https://github.com/vectordotdev/vrl/pull/973)
+- Added `parse_influxdb` function to parse events encoded using the [InfluxDB line protocol](https://docs.influxdata.com/influxdb/cloud/reference/syntax/line-protocol/).
+
+### Enhancements
+
+- The `match_datadog_query` function now accepts `||` in place of `OR` and `&&` in
+  place of `AND` in the query string, which is common Datadog syntax. (https://github.com/vectordotdev/vrl/pull/1001)
+
+### Fixes
+
+- `decode_base64` no longer requires canonical padding. (https://github.com/vectordotdev/vrl/pull/960)
+- The assumption of a Datadog Logs-based intake event structure has been removed
+  from the `match_datadog_query` function. (https://github.com/vectordotdev/vrl/pull/1003)
+- For the `parse_influxdb` function the `timestamp` and `tags` fields of returned objects are now
+  correctly marked as nullable.
+
+## [0.17.0 (2024-07-24)]
+
+
+### Breaking Changes & Upgrade Guide
+
+- `parse_logfmt` now processes 3 escape sequences when parsing: `\n`, `\"` and `\\`. This means that for example, `\n` in the input will be replaced with an actual newline character in parsed keys or values. (https://github.com/vectordotdev/vrl/pull/777)
+
+
+## [0.16.1 (2024-07-08)]
+
+### Enhancements
+
+- `server` option for `dns_lookup` now properly replaces default server settings (https://github.com/vectordotdev/vrl/pull/910/files)
+
 ## [0.16.0 (2024-06-06)]
 
 
@@ -16,10 +139,7 @@
 - Added experimental `dns_lookup` function. It should be used with caution, since it involves network
   calls and is therefore very slow.
 
-  authors: esensar (https://github.com/vectordotdev/vrl/pull/764)
 - Added `psl` argument to the `parse_etld` function. It enables customizing used public suffix list. If none is provided the default (https://publicsuffix.org/list/public_suffix_list.dat) is used, which is that was used before this change.
-
-  authors: esensar (https://github.com/vectordotdev/vrl/pull/851)
 
 ### Enhancements
 
@@ -90,8 +210,6 @@
 
 - Introduced a `redactor` option in `redact` function to enable the substitution of redacted content with either a custom string or a hash representation. (https://github.com/vectordotdev/vrl/pull/633)
 - Add VRL function `get_timezone_name` to return the configured/resolved IANA timezone name.
-
-  authors: klondikedragon (https://github.com/vectordotdev/vrl/pull/671)
 
 ### Fixes
 

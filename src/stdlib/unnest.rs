@@ -97,7 +97,7 @@ impl Function for Unnest {
     fn compile(
         &self,
         _state: &state::TypeState,
-        _ctx: &mut FunctionCompileContext,
+        _ctx: &mut CompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
         let path = arguments.required_query("path")?;
@@ -189,6 +189,7 @@ mod tests {
     use crate::{btreemap, type_def, value};
 
     #[test]
+    #[allow(clippy::too_many_lines)]
     fn type_def() {
         struct TestCase {
             old: TypeDef,

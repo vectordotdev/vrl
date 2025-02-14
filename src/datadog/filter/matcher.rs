@@ -1,9 +1,8 @@
 use std::{fmt, marker::PhantomData};
 
-use crate::datadog::search::{BooleanType, QueryNode};
+use super::{BooleanType, Filter, QueryNode, Resolver};
+use crate::path::PathParseError;
 use dyn_clone::{clone_trait_object, DynClone};
-
-use super::{Filter, Resolver};
 
 /// A `Matcher` is a type that contains a "run" method which returns true/false if value `V`
 /// matches a filter.
@@ -96,75 +95,82 @@ where
 /// returns a `Matcher<V>` which is intended to be invoked at runtime. `F` should implement both
 /// `Fielder` + `Filter` in order to applying any required caching which may affect the operation
 /// of a filter method. This function is intended to be used at boot-time and NOT in a hot path!
-pub fn build_matcher<V, F>(node: &QueryNode, filter: &F) -> Box<dyn Matcher<V>>
+///
+/// # Errors
+///
+/// Will return `Err` if the query contains an invalid path.
+pub fn build_matcher<V, F>(
+    node: &QueryNode,
+    filter: &F,
+) -> Result<Box<dyn Matcher<V>>, PathParseError>
 where
     V: fmt::Debug + Send + Sync + Clone + 'static,
     F: Filter<V> + Resolver,
 {
     match node {
-        QueryNode::MatchNoDocs => Box::new(false),
-        QueryNode::MatchAllDocs => Box::new(true),
+        QueryNode::MatchNoDocs => Ok(Box::new(false)),
+        QueryNode::MatchAllDocs => Ok(Box::new(true)),
         QueryNode::AttributeExists { attr } => {
-            let matchers = filter
+            let matchers: Result<Vec<_>, _> = filter
                 .build_fields(attr)
                 .into_iter()
                 .map(|field| filter.exists(field))
                 .collect();
 
-            any(matchers)
+            Ok(any(matchers?))
         }
         QueryNode::AttributeMissing { attr } => {
-            let matchers = filter
+            let matchers: Result<Vec<_>, _> = filter
                 .build_fields(attr)
                 .into_iter()
-                .map(|field| not(filter.exists(field)))
+                .map(|field| filter.exists(field).map(|matcher| not(matcher)))
                 .collect();
 
-            all(matchers)
+            Ok(all(matchers?))
         }
         QueryNode::AttributeTerm { attr, value }
         | QueryNode::QuotedAttribute {
             attr,
             phrase: value,
         } => {
-            let matchers = filter
+            let matchers: Result<Vec<_>, _> = filter
                 .build_fields(attr)
                 .into_iter()
                 .map(|field| filter.equals(field, value))
                 .collect();
 
-            any(matchers)
+            Ok(any(matchers?))
         }
         QueryNode::AttributePrefix { attr, prefix } => {
-            let matchers = filter
+            let matchers: Result<Vec<_>, _> = filter
                 .build_fields(attr)
                 .into_iter()
                 .map(|field| filter.prefix(field, prefix))
                 .collect();
 
-            any(matchers)
+            Ok(any(matchers?))
         }
         QueryNode::AttributeWildcard { attr, wildcard } => {
-            let matchers = filter
+            let matchers: Result<Vec<_>, _> = filter
                 .build_fields(attr)
                 .into_iter()
                 .map(|field| filter.wildcard(field, wildcard))
                 .collect();
 
-            any(matchers)
+            Ok(any(matchers?))
         }
         QueryNode::AttributeComparison {
             attr,
             comparator,
             value,
         } => {
-            let matchers = filter
+            let matchers: Result<Vec<_>, _> = filter
                 .build_fields(attr)
                 .into_iter()
                 .map(|field| filter.compare(field, *comparator, value.clone()))
                 .collect();
 
-            any(matchers)
+            Ok(any(matchers?))
         }
         QueryNode::AttributeRange {
             attr,
@@ -173,7 +179,7 @@ where
             upper,
             upper_inclusive,
         } => {
-            let matchers = filter
+            let matchers: Result<Vec<_>, _> = filter
                 .build_fields(attr)
                 .into_iter()
                 .map(|field| {
@@ -187,18 +193,18 @@ where
                 })
                 .collect();
 
-            any(matchers)
+            Ok(any(matchers?))
         }
-        QueryNode::NegatedNode { node } => not(build_matcher(node, filter)),
+        QueryNode::NegatedNode { node } => Ok(not(build_matcher(node, filter)?)),
         QueryNode::Boolean { oper, nodes } => {
-            let funcs = nodes
+            let funcs: Result<Vec<_>, _> = nodes
                 .iter()
                 .map(|node| build_matcher(node, filter))
                 .collect();
 
             match oper {
-                BooleanType::And => all(funcs),
-                BooleanType::Or => any(funcs),
+                BooleanType::And => Ok(all(funcs?)),
+                BooleanType::Or => Ok(any(funcs?)),
             }
         }
     }

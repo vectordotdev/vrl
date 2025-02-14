@@ -35,6 +35,20 @@ fn convert_value_raw(
         }
         (Value::Float(f), Kind::Double) => Ok(prost_reflect::Value::F64(f.into_inner())),
         (Value::Float(f), Kind::Float) => Ok(prost_reflect::Value::F32(f.into_inner() as f32)),
+        (Value::Bytes(b), Kind::Double) => {
+            let string = String::from_utf8_lossy(&b).into_owned();
+            let val = string
+                .parse::<f64>()
+                .map_err(|e| format!("Cannot parse `{}` as double: {}", string, e))?;
+            Ok(prost_reflect::Value::F64(val))
+        }
+        (Value::Bytes(b), Kind::Float) => {
+            let string = String::from_utf8_lossy(&b).into_owned();
+            let val = string
+                .parse::<f32>()
+                .map_err(|e| format!("Cannot parse `{}` as float: {}", string, e))?;
+            Ok(prost_reflect::Value::F32(val))
+        }
         (Value::Integer(i), Kind::Int32) => Ok(prost_reflect::Value::I32(i as i32)),
         (Value::Integer(i), Kind::Int64) => Ok(prost_reflect::Value::I64(i)),
         (Value::Integer(i), Kind::Sint32) => Ok(prost_reflect::Value::I32(i as i32)),
@@ -46,6 +60,34 @@ fn convert_value_raw(
         (Value::Integer(i), Kind::Fixed32) => Ok(prost_reflect::Value::U32(i as u32)),
         (Value::Integer(i), Kind::Fixed64) => Ok(prost_reflect::Value::U64(i as u64)),
         (Value::Integer(i), Kind::Enum(_)) => Ok(prost_reflect::Value::EnumNumber(i as i32)),
+        (Value::Bytes(b), Kind::Int32 | Kind::Sfixed32 | Kind::Sint32) => {
+            let string = String::from_utf8_lossy(&b).into_owned();
+            let number: i32 = string
+                .parse()
+                .map_err(|e| format!("Can't convert '{}' to i32: {}", string, e))?;
+            Ok(prost_reflect::Value::I32(number))
+        }
+        (Value::Bytes(b), Kind::Int64 | Kind::Sfixed64 | Kind::Sint64) => {
+            let string = String::from_utf8_lossy(&b).into_owned();
+            let number: i64 = string
+                .parse()
+                .map_err(|e| format!("Can't convert '{}' to i64: {}", string, e))?;
+            Ok(prost_reflect::Value::I64(number))
+        }
+        (Value::Bytes(b), Kind::Uint32 | Kind::Fixed32) => {
+            let string = String::from_utf8_lossy(&b).into_owned();
+            let number: u32 = string
+                .parse()
+                .map_err(|e| format!("Can't convert '{}' to u32: {}", string, e))?;
+            Ok(prost_reflect::Value::U32(number))
+        }
+        (Value::Bytes(b), Kind::Uint64 | Kind::Fixed64) => {
+            let string = String::from_utf8_lossy(&b).into_owned();
+            let number: u64 = string
+                .parse()
+                .map_err(|e| format!("Can't convert '{}' to u64: {}", string, e))?;
+            Ok(prost_reflect::Value::U64(number))
+        }
         (Value::Object(o), Kind::Message(message_descriptor)) => {
             if message_descriptor.is_map_entry() {
                 let value_field = message_descriptor
@@ -192,12 +234,44 @@ mod tests {
     }
 
     #[test]
+    fn test_encode_integers_from_bytes() {
+        let message = encode_message(
+            &test_message_descriptor("Integers"),
+            Value::Object(BTreeMap::from([
+                ("i32".into(), Value::Bytes(Bytes::from("-1234"))),
+                ("i64".into(), Value::Bytes(Bytes::from("-9876"))),
+                ("u32".into(), Value::Bytes(Bytes::from("1234"))),
+                ("u64".into(), Value::Bytes(Bytes::from("9876"))),
+            ])),
+        )
+        .unwrap();
+        assert_eq!(Some(-1234), mfield!(message, "i32").as_i32());
+        assert_eq!(Some(-9876), mfield!(message, "i64").as_i64());
+        assert_eq!(Some(1234), mfield!(message, "u32").as_u32());
+        assert_eq!(Some(9876), mfield!(message, "u64").as_u64());
+    }
+
+    #[test]
     fn test_encode_floats() {
         let message = encode_message(
             &test_message_descriptor("Floats"),
             Value::Object(BTreeMap::from([
                 ("d".into(), Value::Float(NotNan::new(11.0).unwrap())),
                 ("f".into(), Value::Float(NotNan::new(2.0).unwrap())),
+            ])),
+        )
+        .unwrap();
+        assert_eq!(Some(11.0), mfield!(message, "d").as_f64());
+        assert_eq!(Some(2.0), mfield!(message, "f").as_f32());
+    }
+
+    #[test]
+    fn test_encode_bytes_as_float() {
+        let message = encode_message(
+            &test_message_descriptor("Floats"),
+            Value::Object(BTreeMap::from([
+                ("d".into(), Value::Bytes(Bytes::from("11.0"))),
+                ("f".into(), Value::Bytes(Bytes::from("2.0"))),
             ])),
         )
         .unwrap();

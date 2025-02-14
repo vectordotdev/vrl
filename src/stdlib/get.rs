@@ -1,7 +1,8 @@
 use crate::compiler::prelude::*;
 use crate::path::{OwnedSegment, OwnedValuePath};
 
-fn get(value: Value, value_path: Value) -> Resolved {
+#[allow(clippy::cast_possible_truncation)] // TODO consider removal options
+fn get(value: &Value, value_path: Value) -> Resolved {
     let path = match value_path {
         Value::Array(array) => {
             let mut path = OwnedValuePath::root();
@@ -125,7 +126,7 @@ impl Function for Get {
     fn compile(
         &self,
         _state: &state::TypeState,
-        _ctx: &mut FunctionCompileContext,
+        _ctx: &mut CompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
@@ -146,7 +147,7 @@ impl FunctionExpression for GetFn {
         let path = self.path.resolve(ctx)?;
         let value = self.value.resolve(ctx)?;
 
-        get(value, path)
+        get(&value, path)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

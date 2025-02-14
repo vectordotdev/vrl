@@ -1,5 +1,4 @@
-# result: { "array": {  }, "array_unknown_infinite": { "object": { "foo": { "object": { "a": { "bytes": true, "integer": true } } } }, "undefined": true } }
-
+# result: { "array": { "0": { "object": { "foo": { "object": { "a": { "integer": true } } } } }, "1": { "object": { "foo": { "object": { "a": { "bytes": true } } } } } } }
 
 a = []
 a[0] = {"foo": {"a": 1}}

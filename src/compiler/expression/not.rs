@@ -17,6 +17,18 @@ pub struct Not {
 }
 
 impl Not {
+    /// Creates a new `Not` expression.
+    ///
+    /// # Errors
+    /// Returns an `Error` if the provided expression's type is not boolean.
+    ///
+    /// # Arguments
+    /// * `node` - The node representing the expression.
+    /// * `not_span` - The span of the `not` operator.
+    /// * `state` - The current type state.
+    ///
+    /// # Returns
+    /// A `Result` containing the new `Not` expression or an error.
     pub fn new(node: Node<Expr>, not_span: Span, state: &TypeState) -> Result {
         let (expr_span, expr) = node.take();
         let type_def = expr.type_info(state).result;

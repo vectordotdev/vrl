@@ -7,6 +7,7 @@ pub use array::Array;
 pub use assignment::Assignment;
 pub use block::Block;
 pub use container::{Container, Variant};
+#[allow(clippy::module_name_repetitions)]
 pub use function::FunctionExpression;
 pub use function_argument::FunctionArgument;
 pub use function_call::FunctionCall;
@@ -26,8 +27,10 @@ pub use variable::Variable;
 use crate::value::Value;
 
 use super::state::{TypeInfo, TypeState};
+#[allow(clippy::module_name_repetitions)]
+pub use super::ExpressionError;
+pub use super::Resolved;
 use super::{Context, TypeDef};
-pub use super::{ExpressionError, Resolved};
 
 mod abort;
 mod array;
@@ -52,6 +55,7 @@ pub(crate) mod literal;
 pub(crate) mod predicate;
 pub mod query;
 
+#[allow(clippy::missing_errors_doc)]
 pub trait Expression: Send + Sync + fmt::Debug + DynClone {
     /// Resolve an expression to a concrete [`Value`].
     ///
@@ -149,6 +153,28 @@ impl Expr {
         }
     }
 
+    /// Attempts to resolve the current expression into a literal value.
+    ///
+    /// This function checks if the expression can be resolved to a constant
+    /// value within the given [`TypeState`]. If it can, the resolved value
+    /// is returned. Otherwise, an error is returned indicating that a
+    /// literal was expected but not found.
+    ///
+    /// # Arguments
+    ///
+    /// * `keyword` - A static string representing the keyword associated with this expression.
+    /// * `state` - A reference to the [`TypeState`] used to resolve constants.
+    ///
+    /// # Returns
+    ///
+    /// Returns a [`Result`] containing the resolved [`Value`] if the expression
+    /// evaluates to a constant. Otherwise, returns an [`Error`] indicating
+    /// an unexpected expression.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`super::function::Error::UnexpectedExpression`] if the
+    /// expression does not resolve to a literal.
     pub fn as_literal(
         &self,
         keyword: &'static str,
@@ -164,6 +190,26 @@ impl Expr {
         }
     }
 
+    /// Attempts to convert the value into an enumeration variant.
+    ///
+    /// This function checks whether the given value matches one of the provided
+    /// enumeration variants. If the value is not a valid variant, it returns an error.
+    ///
+    /// # Arguments
+    ///
+    /// * `keyword` - A static string representing the keyword associated with the enumeration.
+    /// * `variants` - A vector of possible valid `Value` variants.
+    /// * `state` - A reference to the `TypeState` used for type resolution.
+    ///
+    /// # Returns
+    ///
+    /// Returns `Ok(Value)` if the value is one of the allowed enumeration variants.
+    /// Otherwise, it returns an `Err(super::function::Error::InvalidEnumVariant)`.
+    ///
+    /// # Errors
+    ///
+    /// This function returns an `InvalidEnumVariant` error if the value is not found
+    /// in the provided list of valid variants.
     pub fn as_enum(
         &self,
         keyword: &'static str,

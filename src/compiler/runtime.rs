@@ -7,6 +7,7 @@ use super::ExpressionError;
 use super::TimeZone;
 use super::{state, Context, Program, Target};
 
+#[allow(clippy::module_name_repetitions)]
 pub type RuntimeResult = Result<Value, Terminate>;
 
 #[derive(Debug, Default)]
@@ -32,8 +33,7 @@ impl Terminate {
     #[must_use]
     pub fn get_expression_error(self) -> ExpressionError {
         match self {
-            Terminate::Abort(error) => error,
-            Terminate::Error(error) => error,
+            Terminate::Error(error) | Terminate::Abort(error) => error,
         }
     }
 }
@@ -41,8 +41,7 @@ impl Terminate {
 impl fmt::Display for Terminate {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Terminate::Abort(error) => error.fmt(f),
-            Terminate::Error(error) => error.fmt(f),
+            Terminate::Error(error) | Terminate::Abort(error) => error.fmt(f),
         }
     }
 }
@@ -68,8 +67,32 @@ impl Runtime {
         self.state.clear();
     }
 
-    /// Given the provided [`Target`], resolve the provided [`Program`] to
-    /// completion.
+    /// Resolves the provided [`Program`] to completion using the given [`Target`].
+    ///
+    /// This function ensures that the target contains a valid root object before proceeding.
+    /// If the target is invalid or missing, an error is returned. The resolution process
+    /// is performed using a [`Context`] that maintains execution state and timezone information.
+    ///
+    /// # Arguments
+    ///
+    /// * `target` - A mutable reference to an object implementing the [`Target`] trait. This
+    ///   serves as the execution environment for resolving the program.
+    /// * `program` - A reference to the [`Program`] that needs to be resolved.
+    /// * `timezone` - A reference to the [`TimeZone`] used for resolving time-dependent expressions.
+    ///
+    /// # Returns
+    ///
+    /// Returns a [`RuntimeResult`], which is either:
+    /// - `Ok(value)`: The program resolved successfully, producing a value.
+    /// - `Err(Terminate::Error)`: A fatal error occurred during resolution.
+    /// - `Err(Terminate::Abort)`: The resolution was aborted due to a non-fatal expression error.
+    ///
+    /// # Errors
+    ///
+    /// The function may return an error in the following cases:
+    /// - If the target does not contain a valid root object, an error is returned.
+    /// - If the resolution process encounters an [`ExpressionError::Error`].
+    /// - If the program execution results in an [`ExpressionError::Abort`], [`ExpressionError::Fallible`], or [`ExpressionError::Missing`], the function aborts with `Terminate::Abort`.
     pub fn resolve(
         &mut self,
         target: &mut dyn Target,

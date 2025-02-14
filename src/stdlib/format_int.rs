@@ -2,6 +2,7 @@ use std::collections::VecDeque;
 
 use crate::compiler::prelude::*;
 
+#[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)] // TODO consider removal options
 fn format_int(value: Value, base: Option<Value>) -> Resolved {
     let value = value.try_integer()?;
     let base = match base {
@@ -48,7 +49,7 @@ impl Function for FormatInt {
     fn compile(
         &self,
         _state: &state::TypeState,
-        _ctx: &mut FunctionCompileContext,
+        _ctx: &mut CompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
@@ -106,6 +107,7 @@ impl FunctionExpression for FormatIntFn {
 // Formats x in the provided radix
 //
 // Panics if radix is < 2 or > 36
+#[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)] // TODO consider removal options
 fn format_radix(x: i64, radix: u32) -> String {
     let mut result: VecDeque<char> = VecDeque::new();
 
