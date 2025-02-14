@@ -41,7 +41,7 @@ impl Function for RandomBytes {
     fn compile(
         &self,
         state: &state::TypeState,
-        _ctx: &mut CompileContext,
+        _ctx: &mut FunctionCompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
         let length = arguments.required("length");

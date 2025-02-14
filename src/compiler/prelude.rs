@@ -17,7 +17,7 @@ pub use crate::{expr, func_args, test_function, test_type_def};
 pub use super::Resolved;
 pub use super::{
     expression,
-    function::{self, closure, ArgumentList, Closure, CompileContext, Compiled, Example},
+    function::{self, closure, ArgumentList, Closure, Compiled, Example, FunctionCompileContext},
     state::{self, TypeInfo, TypeState},
     type_def,
     value::{kind, ValueError, VrlValueArithmetic, VrlValueConvert},
