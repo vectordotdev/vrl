@@ -13,7 +13,7 @@ pub use datetime::TimeZone;
 pub use expression::{Expression, FunctionExpression};
 pub use expression_error::{ExpressionError, Resolved};
 pub use function::{Function, Parameter};
-pub use program::{Info, Program};
+pub use program::{Program, ProgramInfo};
 pub use state::{TypeInfo, TypeState};
 pub use target::{SecretTarget, Target, TargetValue, TargetValueRef};
 pub use type_def::TypeDef;

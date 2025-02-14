@@ -8,7 +8,7 @@ pub struct Program {
     /// The initial state that the program was compiled with.
     pub(crate) initial_state: TypeState,
     pub(crate) expressions: Block,
-    pub(crate) info: Info,
+    pub(crate) info: ProgramInfo,
 }
 
 impl Program {
@@ -27,7 +27,7 @@ impl Program {
     /// Get detailed information about the program, as collected by the VRL
     /// compiler.
     #[must_use]
-    pub fn info(&self) -> &Info {
+    pub fn info(&self) -> &ProgramInfo {
         &self.info
     }
 
@@ -41,8 +41,10 @@ impl Program {
     }
 }
 
+// This type is re-exposed so renaming it is a breaking change.
+#[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Info {
+pub struct ProgramInfo {
     /// Returns whether the compiled program can fail at runtime.
     ///
     /// A program can only fail at runtime if the fallible-function-call

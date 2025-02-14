@@ -128,7 +128,7 @@ impl Function for CommunityID {
     fn compile(
         &self,
         state: &state::TypeState,
-        _ctx: &mut CompileContext,
+        _ctx: &mut FunctionCompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
         let src_ip = arguments.required("source_ip");
