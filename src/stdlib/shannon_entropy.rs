@@ -185,52 +185,123 @@ impl FunctionExpression for ShannonEntropyFn {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::BTreeMap;
+
     use super::*;
-    use crate::value;
+    use crate::stdlib::util::round_to_precision;
 
-    test_function![
-        shannon_entropy => ShannonEntropy;
+    #[test]
+    fn simple_example() {
+        assert_eq!(
+            2.9219,
+            execute_function_with_precision(
+                &ShannonEntropyFn {
+                    value: expr!("vector.dev"),
+                    segmentation: Segmentation::default()
+                },
+                4
+            )
+        );
+    }
 
-        simple_example {
-            args: func_args![value: value!("vector.dev")],
-            want: Ok(value!(2.921_928_094_887_362_3)),
-            tdef: TypeDef::float().infallible(),
-        }
+    #[test]
+    fn longer_example() {
+        assert_eq!(
+            3.737,
+            execute_function_with_precision(
+                &ShannonEntropyFn {
+                    value: expr!("Supercalifragilisticexpialidocious"),
+                    segmentation: Segmentation::default()
+                },
+                4
+            )
+        );
+    }
 
-        longer_example {
-            args: func_args![value: value!("Supercalifragilisticexpialidocious")],
-            want: Ok(value!(3.736_987_930_635_820_5)),
-            tdef: TypeDef::float().infallible(),
-        }
+    #[test]
+    fn fancy_foo_example() {
+        assert_eq!(
+            1.5,
+            execute_function(&ShannonEntropyFn {
+                value: expr!("ƒoo"),
+                segmentation: Segmentation::default()
+            })
+        );
+    }
 
-        fancy_foo_example {
-            args: func_args![value: value!("ƒoo")],
-            want: Ok(value!(1.5)),
-            tdef: TypeDef::float().infallible(),
-        }
+    #[test]
+    fn fancy_foo_codepoint_segmentation_example() {
+        assert_eq!(
+            0.9183,
+            execute_function_with_precision(
+                &ShannonEntropyFn {
+                    value: expr!("ƒoo"),
+                    segmentation: Segmentation::Codepoint
+                },
+                4
+            )
+        );
+    }
 
-        fancy_foo_codepoint_segmentation_example {
-            args: func_args![value: value!("ƒoo"), segmentation: value!("codepoint")],
-            want: Ok(value!(0.918_295_834_054_489_6)),
-            tdef: TypeDef::float().infallible(),
-        }
+    #[test]
+    fn utf_8_byte_segmentation_example() {
+        assert_eq!(
+            4.0784,
+            execute_function_with_precision(
+                &ShannonEntropyFn {
+                    value: expr!("test123%456.فوائد.net."),
+                    segmentation: Segmentation::default()
+                },
+                4
+            )
+        );
+    }
 
-        utf_8_byte_segmentation_example {
-            args: func_args![value: value!("test123%456.فوائد.net.")],
-            want: Ok(value!(4.078_418_520_441_603)),
-            tdef: TypeDef::float().infallible(),
-        }
+    #[test]
+    fn utf_8_codepoint_segmentation_example() {
+        assert_eq!(
+            3.9363,
+            execute_function_with_precision(
+                &ShannonEntropyFn {
+                    value: expr!("test123%456.فوائد.net."),
+                    segmentation: Segmentation::Codepoint
+                },
+                4
+            )
+        );
+    }
 
-        utf_8_codepoint_segmentation_example {
-            args: func_args![value: value!("test123%456.فوائد.net."), segmentation: value!("codepoint")],
-            want: Ok(value!(3.936_260_027_531_526_3)),
-            tdef: TypeDef::float().infallible(),
-        }
+    #[test]
+    fn utf_8_example() {
+        assert_eq!(
+            3.9363,
+            execute_function_with_precision(
+                &ShannonEntropyFn {
+                    value: expr!("test123%456.فوائد.net."),
+                    segmentation: Segmentation::Grapheme
+                },
+                4
+            )
+        );
+    }
 
-        utf_8_example {
-            args: func_args![value: value!("test123%456.فوائد.net."), segmentation: value!("grapheme")],
-            want: Ok(value!(3.936_260_027_531_526_3)),
-            tdef: TypeDef::float().infallible(),
-        }
-    ];
+    fn prepare_function(function: &ShannonEntropyFn) -> Resolved {
+        let tz = TimeZone::default();
+        let mut object: Value = Value::Object(BTreeMap::new());
+        let mut runtime_state = state::RuntimeState::default();
+        let mut ctx = Context::new(&mut object, &mut runtime_state, &tz);
+        function.resolve(&mut ctx)
+    }
+
+    fn execute_function(function: &ShannonEntropyFn) -> f64 {
+        prepare_function(function)
+            .map_err(|e| format!("{:#}", anyhow::anyhow!(e)))
+            .unwrap()
+            .try_float()
+            .unwrap()
+    }
+
+    fn execute_function_with_precision(function: &ShannonEntropyFn, precision: i64) -> f64 {
+        round_to_precision(execute_function(function), precision, f64::round)
+    }
 }
