@@ -4,6 +4,7 @@ use regex::Regex;
 ///
 /// # Panics
 /// Panics if an invalid wildcard regex is provided.
+#[allow(clippy::module_name_repetitions)] // Renaming is a breaking change.
 #[must_use]
 pub fn word_regex(to_match: &str) -> Regex {
     Regex::new(&format!(
@@ -17,6 +18,7 @@ pub fn word_regex(to_match: &str) -> Regex {
 ///
 /// # Panics
 /// Panics if an invalid wildcard regex is provided.
+#[allow(clippy::module_name_repetitions)] // Renaming is a breaking change.
 #[must_use]
 pub fn wildcard_regex(to_match: &str) -> Regex {
     Regex::new(&format!(

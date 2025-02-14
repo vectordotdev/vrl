@@ -46,6 +46,7 @@ impl Value {
 }
 
 /// An [`Iterator`] over a [`Value`].
+#[allow(clippy::module_name_repetitions)]
 pub struct ValueIter<'a> {
     data: IterData,
     recursive: bool,
@@ -58,6 +59,7 @@ pub struct ValueIter<'a> {
 /// The [`Iterator::Item`] returned by the [`ValueIter`] iterator.
 #[derive(Debug, PartialEq, Eq)]
 #[allow(clippy::enum_variant_names)]
+#[allow(clippy::module_name_repetitions)]
 pub enum IterItem<'a> {
     /// A single primitive value.
     Value(&'a mut Value),
@@ -147,27 +149,19 @@ impl<'a> Iterator for ValueIter<'a> {
         // If we have a recursive iterator stored, it means we're asked to
         // continue iterating that iterator until it is exhausted.
         if let Some(iter) = &mut self.recursive_iter {
-            match iter.next() {
-                // Keep returning recursive items until the iterator is
-                // exhausted.
-                item @ Some(..) => return item,
-
-                // Now that we're done recursing, we need to update the relevant `Value`
-                // collection type stored in this iterator, with the updated
-                // inner elements that the recursive iterator might have
-                // mutated.
-                None => {
-                    let value = match &mut self.data {
-                        IterData::Object(object) => &mut object.index_mut(self.index - 1).1,
-                        IterData::Array(array) => array.index_mut(self.index - 1),
-                        IterData::Value(_) => {
-                            unreachable!("cannot recurse into non-container type")
-                        }
-                    };
-
-                    *value = (*self.recursive_iter.take().unwrap()).into();
-                }
+            if let item @ Some(..) = iter.next() {
+                return item;
             }
+
+            let value = match &mut self.data {
+                IterData::Object(object) => &mut object.index_mut(self.index - 1).1,
+                IterData::Array(array) => array.index_mut(self.index - 1),
+                IterData::Value(_) => {
+                    unreachable!("cannot recurse into non-container type")
+                }
+            };
+
+            *value = (*self.recursive_iter.take().unwrap()).into();
         };
 
         // If we got here, we are either done with recursively iterating the
@@ -391,13 +385,13 @@ mod tests {
 
             match item {
                 IterItem::Value(value) => values.push(value.clone()),
-                IterItem::KeyValue(key, value) => {
+                IterItem::KeyValue(_key, value) => {
                     if let Value::Array(array) = value {
                         array.clear();
                         cleared = true;
                     }
                 }
-                IterItem::IndexValue(index, value) => values.push(value.clone()),
+                IterItem::IndexValue(_index, value) => values.push(value.clone()),
             }
         }
 
@@ -417,13 +411,13 @@ mod tests {
 
             match item {
                 IterItem::Value(value) => values.push(value.clone()),
-                IterItem::KeyValue(key, value) => {
+                IterItem::KeyValue(_key, value) => {
                     if let value @ Value::Array(..) = value {
                         *value = Value::Null;
                         changed = true;
                     }
                 }
-                IterItem::IndexValue(index, value) => values.push(value.clone()),
+                IterItem::IndexValue(_index, value) => values.push(value.clone()),
             }
         }
 
@@ -443,14 +437,14 @@ mod tests {
 
             match item {
                 IterItem::Value(value) => values.push(value.clone()),
-                IterItem::KeyValue(key, value) => match value {
+                IterItem::KeyValue(_key, value) => match value {
                     value @ Value::Array(..) => {
                         *value = BTreeMap::from([("bar".into(), true.into())]).into();
                         changed = true;
                     }
                     value => values.push(value.clone()),
                 },
-                IterItem::IndexValue(index, value) => values.push(value.clone()),
+                IterItem::IndexValue(_index, value) => values.push(value.clone()),
             }
         }
 

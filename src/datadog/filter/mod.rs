@@ -1,12 +1,4 @@
-#![deny(warnings)]
-#![deny(clippy::all)]
-#![deny(clippy::pedantic)]
-#![deny(unreachable_pub)]
-#![deny(unused_allocation)]
-#![deny(unused_extern_crates)]
-#![deny(unused_assignments)]
-#![deny(unused_comparisons)]
-#![allow(clippy::module_name_repetitions)]
+#![deny(warnings, clippy::pedantic)]
 
 #[allow(clippy::module_inception)]
 mod filter;

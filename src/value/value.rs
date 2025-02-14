@@ -1,13 +1,16 @@
 //! Contains the main "Value" type for Vector and VRL, as well as helper methods.
 
+#[allow(clippy::module_name_repetitions)]
+pub use super::value::regex::ValueRegex;
+#[allow(clippy::module_name_repetitions)]
+pub use iter::{IterItem, ValueIter};
+
 use bytes::{Bytes, BytesMut};
 use chrono::{DateTime, SecondsFormat, Utc};
-pub use iter::{IterItem, ValueIter};
 use ordered_float::NotNan;
 use std::borrow::Cow;
 use std::{cmp::Ordering, collections::BTreeMap};
 
-pub use super::value::regex::ValueRegex;
 use super::KeyString;
 use crate::path::ValuePath;
 

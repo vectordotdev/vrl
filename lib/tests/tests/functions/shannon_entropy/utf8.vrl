@@ -1,0 +1,4 @@
+# result: true
+
+# UTF-8 example
+floor(shannon_entropy("test123%456.فوائد.net.", segmentation: "grapheme"), precision: 4) != floor(shannon_entropy("test123%456.فوائد.net."), precision: 4)

@@ -1,0 +1,3 @@
+# result: 3.7369
+
+floor(shannon_entropy("Supercalifragilisticexpialidocious"), precision: 4)
