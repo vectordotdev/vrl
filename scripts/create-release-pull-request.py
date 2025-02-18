@@ -67,8 +67,8 @@ def create_branch(branch_name, dry_run=False):
                        cwd=REPO_ROOT_DIR)
 
 def create_pull_request(branch_name, new_version, dry_run=False):
-    title = f"Prepare {new_version} release"
-    body = "Generated with the create-release-pull-request.py script."
+    title = f"chore(releasing): Prepare {new_version} release"
+    body = "Generated with `./scripts/create-release-pull-request.py`."
     print(f"Creating pull request with title: {title}")
     if dry_run:
         print("Dry-run mode: Skipping PR creation.")
