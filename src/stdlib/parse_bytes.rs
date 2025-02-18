@@ -1,10 +1,10 @@
 use crate::compiler::prelude::*;
 use crate::value;
 use core::convert::AsRef;
-use once_cell::sync::Lazy;
 use parse_size::Config;
 use rust_decimal::{prelude::FromPrimitive, prelude::ToPrimitive, Decimal};
 use std::collections::HashMap;
+use std::sync::LazyLock;
 
 fn parse_bytes(bytes: &Value, unit: Value, base: &Bytes) -> Resolved {
     let (units, parse_config) = match base.as_ref() {
@@ -35,7 +35,7 @@ fn parse_bytes(bytes: &Value, unit: Value, base: &Bytes) -> Resolved {
 
 // The largest unit is EB, which is smaller than i64::MAX, so we can safely use Decimal
 // power of 2 units
-static BIN_UNITS: Lazy<HashMap<String, Decimal>> = Lazy::new(|| {
+static BIN_UNITS: LazyLock<HashMap<String, Decimal>> = LazyLock::new(|| {
     vec![
         ("B", Decimal::new(1, 0)),
         ("KiB", Decimal::new(1_024, 0)),
@@ -57,7 +57,7 @@ static BIN_UNITS: Lazy<HashMap<String, Decimal>> = Lazy::new(|| {
     .collect()
 });
 // power of 10 units
-static DEC_UNITS: Lazy<HashMap<String, Decimal>> = Lazy::new(|| {
+static DEC_UNITS: LazyLock<HashMap<String, Decimal>> = LazyLock::new(|| {
     vec![
         ("B", Decimal::new(1, 0)),
         ("kB", Decimal::new(1_000, 0)),

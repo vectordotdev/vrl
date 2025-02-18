@@ -1,8 +1,7 @@
 use crate::compiler::prelude::*;
-use once_cell::sync::Lazy;
 use regex::Regex;
 use rust_decimal::{prelude::ToPrimitive, Decimal};
-use std::{collections::HashMap, str::FromStr};
+use std::{collections::HashMap, str::FromStr, sync::LazyLock};
 
 fn parse_duration(bytes: &Value, unit: &Value) -> Resolved {
     let value = bytes.try_bytes_utf8_lossy()?;
@@ -36,7 +35,7 @@ fn parse_duration(bytes: &Value, unit: &Value) -> Resolved {
     Ok(Value::from_f64_or_zero(num))
 }
 
-static RE: Lazy<Regex> = Lazy::new(|| {
+static RE: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(
         r"(?ix)                        # i: case-insensitive, x: ignore whitespace + comments
             (?P<value>[0-9]*\.?[0-9]+) # value: integer or float
@@ -46,7 +45,7 @@ static RE: Lazy<Regex> = Lazy::new(|| {
     .unwrap()
 });
 
-static UNITS: Lazy<HashMap<String, Decimal>> = Lazy::new(|| {
+static UNITS: LazyLock<HashMap<String, Decimal>> = LazyLock::new(|| {
     vec![
         ("ns", Decimal::new(1, 9)),
         ("us", Decimal::new(1, 6)),

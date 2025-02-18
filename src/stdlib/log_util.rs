@@ -1,13 +1,13 @@
 use crate::compiler::TimeZone;
 use crate::value::{ObjectMap, Value};
 use chrono::prelude::{DateTime, Utc};
-use once_cell::sync::Lazy;
 use regex::{Captures, Regex};
+use std::sync::LazyLock;
 
 // Information about the common log format taken from the
 // - W3C specification: https://www.w3.org/Daemon/User/Config/Logging.html#common-logfile-format
 // - Apache HTTP Server docs: https://httpd.apache.org/docs/1.3/logs.html#common
-pub(crate) static REGEX_APACHE_COMMON_LOG: Lazy<Vec<Regex>> = Lazy::new(|| {
+pub(crate) static REGEX_APACHE_COMMON_LOG: LazyLock<Vec<Regex>> = LazyLock::new(|| {
     vec![
         Regex::new(
             r#"(?x)                                 # Ignore whitespace and comments in the regex expression.
@@ -32,7 +32,7 @@ pub(crate) static REGEX_APACHE_COMMON_LOG: Lazy<Vec<Regex>> = Lazy::new(|| {
 });
 
 // - Apache HTTP Server docs: https://httpd.apache.org/docs/1.3/logs.html#combined
-pub(crate) static REGEX_APACHE_COMBINED_LOG: Lazy<Vec<Regex>> = Lazy::new(|| {
+pub(crate) static REGEX_APACHE_COMBINED_LOG: LazyLock<Vec<Regex>> = LazyLock::new(|| {
     vec![
         Regex::new(
             r#"(?x)                                 # Ignore whitespace and comments in the regex expression.
@@ -64,7 +64,7 @@ pub(crate) static REGEX_APACHE_COMBINED_LOG: Lazy<Vec<Regex>> = Lazy::new(|| {
 });
 
 // It is possible to customise the format output by apache.
-pub(crate) static REGEX_APACHE_ERROR_LOG: Lazy<Vec<Regex>> = Lazy::new(|| {
+pub(crate) static REGEX_APACHE_ERROR_LOG: LazyLock<Vec<Regex>> = LazyLock::new(|| {
     vec![
         // Simple format
         // https://github.com/mingrammer/flog/blob/9bc83b14408ca446e934c32e4a88a81a46e78d83/log.go#L16
@@ -102,7 +102,7 @@ pub(crate) static REGEX_APACHE_ERROR_LOG: Lazy<Vec<Regex>> = Lazy::new(|| {
 });
 
 // - Nginx HTTP Server docs: http://nginx.org/en/docs/http/ngx_http_log_module.html
-pub(crate) static REGEX_NGINX_COMBINED_LOG: Lazy<Regex> = Lazy::new(|| {
+pub(crate) static REGEX_NGINX_COMBINED_LOG: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(
         r#"(?x)                                 # Ignore whitespace and comments in the regex expression.
         ^\s*                                    # Start with any number of whitespaces.
@@ -122,7 +122,7 @@ pub(crate) static REGEX_NGINX_COMBINED_LOG: Lazy<Regex> = Lazy::new(|| {
 });
 
 // - Ingress Nginx docs: https://kubernetes.github.io/ingress-nginx/user-guide/nginx-configuration/log-format/
-pub(crate) static REGEX_INGRESS_NGINX_UPSTREAMINFO_LOG: Lazy<Regex> = Lazy::new(|| {
+pub(crate) static REGEX_INGRESS_NGINX_UPSTREAMINFO_LOG: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(
         r#"(?x)                                             # Ignore whitespace and comments in the regex expression.
         ^\s*                                                # Start with any number of whitespaces
@@ -154,7 +154,7 @@ pub(crate) static REGEX_INGRESS_NGINX_UPSTREAMINFO_LOG: Lazy<Regex> = Lazy::new(
 //   - https://hg.nginx.org/pkg-oss/file/tip/alpine/alpine/nginx.conf
 //   - https://hg.nginx.org/pkg-oss/file/tip/debian/debian/nginx.conf
 //   - https://hg.nginx.org/pkg-oss/file/tip/rpm/SOURCES/nginx.conf
-pub(crate) static REGEX_NGINX_MAIN_LOG: Lazy<Regex> = Lazy::new(|| {
+pub(crate) static REGEX_NGINX_MAIN_LOG: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(
         r#"(?x)                                             # Ignore whitespace and comments in the regex expression.
         ^\s*                                                # Start with any number of whitespaces
@@ -173,7 +173,7 @@ pub(crate) static REGEX_NGINX_MAIN_LOG: Lazy<Regex> = Lazy::new(|| {
     .expect("failed compiling regex for Nginx main log")
 });
 
-pub(crate) static REGEX_NGINX_ERROR_LOG: Lazy<Regex> = Lazy::new(|| {
+pub(crate) static REGEX_NGINX_ERROR_LOG: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(
         r#"(?x)                                                                  # Ignore whitespace and comments in the regex expression.
         ^\s*                                                                     # Start with any number of whitespaces.
