@@ -1,6 +1,6 @@
+import argparse
 import os
 import subprocess
-import sys
 from inspect import getsourcefile
 from os.path import abspath
 
@@ -10,7 +10,6 @@ import toml
 SCRIPTS_DIR = os.path.dirname(abspath(getsourcefile(lambda: 0)))
 REPO_ROOT_DIR = os.path.dirname(SCRIPTS_DIR)
 CHANGELOG_DIR = os.path.join(REPO_ROOT_DIR, "changelog.d")
-
 
 def overwrite_version(version, dry_run=False):
     toml_path = os.path.join(REPO_ROOT_DIR, "Cargo.toml")
@@ -39,7 +38,6 @@ def validate_version(version):
         print(f"Invalid version: {version}. Please provide a valid SemVer string.")
         exit(1)
 
-
 def generate_changelog(dry_run=False):
     print("Generating changelog...")
     if not dry_run:
@@ -47,13 +45,11 @@ def generate_changelog(dry_run=False):
         subprocess.run(["git", "commit", "-am", "Generate changelog"], check=True,
                        cwd=REPO_ROOT_DIR)
 
-
 def create_branch(branch_name, dry_run=False):
     print(f"Creating branch: {branch_name}")
     subprocess.run(["git", "checkout", "-b", branch_name], check=True, cwd=REPO_ROOT_DIR)
     if not dry_run:
         subprocess.run(["git", "push", "-u", "origin", branch_name], check=True, cwd=REPO_ROOT_DIR)
-
 
 def create_pull_request(branch_name, new_version, dry_run=False):
     title = f"Prepare {new_version} release"
@@ -70,12 +66,14 @@ def create_pull_request(branch_name, new_version, dry_run=False):
             print(f"Failed to create pull request: {e}")
 
 def main():
-    if len(sys.argv) < 2 or len(sys.argv) > 3:
-        print("Usage: script.py <version> [--dry-run]")
-        exit(1)
+    parser = argparse.ArgumentParser(description="Prepare a new release")
+    parser.add_argument("version", help="The new version to release")
+    parser.add_argument("--dry-run", action="store_true",
+                        help="Run the script without making remote changes")
+    args = parser.parse_args()
 
-    new_version = sys.argv[1]
-    dry_run = len(sys.argv) == 3 and sys.argv[2] == "--dry-run"
+    new_version = args.version
+    dry_run = args.dry_run
 
     validate_version(new_version)
     branch_name = f"prepare-{new_version}-release"
