@@ -14,7 +14,7 @@ mod non_wasm {
     use std::collections::BTreeMap;
     use std::io::Error;
     use std::net::ToSocketAddrs;
-    use std::sync::{mpsc, Arc, Mutex};
+    use std::sync::{mpsc, Arc, LazyLock, Mutex};
     use std::thread;
     use std::time::Duration;
 
@@ -24,7 +24,6 @@ mod non_wasm {
     use domain::resolv::stub::conf::{ResolvConf, ResolvOptions, ServerConf, Transport};
     use domain::resolv::stub::Answer;
     use domain::resolv::StubResolver;
-    use once_cell::sync::Lazy;
     use tokio::runtime::Handle;
 
     use crate::compiler::prelude::*;
@@ -32,7 +31,7 @@ mod non_wasm {
 
     /// Single threaded worker for executing DNS requests.
     /// Currently blocks on each request until result is received.
-    static WORKER: Lazy<Worker> = Lazy::new(Worker::new);
+    static WORKER: LazyLock<Worker> = LazyLock::new(Worker::new);
     const CHANNEL_CAPACITY: usize = 100;
 
     type Job<T> = Box<dyn FnOnce() -> T + Send + 'static>;
@@ -733,7 +732,7 @@ impl Function for DnsLookup {
     fn compile(
         &self,
         _state: &state::TypeState,
-        _ctx: &mut CompileContext,
+        _ctx: &mut FunctionCompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
@@ -754,7 +753,7 @@ impl Function for DnsLookup {
     fn compile(
         &self,
         _state: &state::TypeState,
-        ctx: &mut CompileContext,
+        ctx: &mut FunctionCompileContext,
         _arguments: ArgumentList,
     ) -> Compiled {
         Ok(super::WasmUnsupportedFunction::new(ctx.span(), TypeDef::bytes().fallible()).as_expr())

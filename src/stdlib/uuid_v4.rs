@@ -26,7 +26,7 @@ impl Function for UuidV4 {
     fn compile(
         &self,
         _state: &state::TypeState,
-        _ctx: &mut CompileContext,
+        _ctx: &mut FunctionCompileContext,
         _: ArgumentList,
     ) -> Compiled {
         Ok(UuidV4Fn.as_expr())

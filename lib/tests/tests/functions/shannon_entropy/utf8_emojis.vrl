@@ -1,0 +1,9 @@
+# result: true
+
+# UTF-8 example
+utf8string = "🙋🏿🇯🇵"
+bytes_result = floor(shannon_entropy(utf8string), precision: 4)
+codepoints_result = floor(shannon_entropy(utf8string, segmentation: "codepoint"), precision: 4)
+grapheme_result = floor(shannon_entropy(utf8string, segmentation: "grapheme"), precision: 4)
+
+bytes_result != codepoints_result && bytes_result != grapheme_result && codepoints_result != grapheme_result

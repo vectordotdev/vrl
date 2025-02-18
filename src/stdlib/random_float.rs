@@ -65,7 +65,7 @@ impl Function for RandomFloat {
     fn compile(
         &self,
         state: &state::TypeState,
-        _ctx: &mut CompileContext,
+        _ctx: &mut FunctionCompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
         let min = arguments.required("min");

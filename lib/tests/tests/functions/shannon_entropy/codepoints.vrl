@@ -1,0 +1,5 @@
+# result: true
+
+# fancy f - not regular f
+# this string has 4 bytes, but only 3 chars, changing entropy
+floor(shannon_entropy("ƒoo", segmentation: "codepoint"), precision: 4) != floor(shannon_entropy("ƒoo"), precision: 4)

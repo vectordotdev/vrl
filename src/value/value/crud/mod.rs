@@ -26,19 +26,19 @@ impl ValueCollection for Value {
     type Key = ();
     type BorrowedKey = ();
 
-    fn get_value(&self, key: &()) -> Option<&Self> {
+    fn get_value(&self, _key: &()) -> Option<&Self> {
         Some(self)
     }
 
-    fn get_mut_value(&mut self, key: &()) -> Option<&mut Self> {
+    fn get_mut_value(&mut self, _key: &()) -> Option<&mut Self> {
         Some(self)
     }
 
-    fn insert_value(&mut self, key: (), value: Self) -> Option<Self> {
+    fn insert_value(&mut self, _key: (), value: Self) -> Option<Self> {
         Some(std::mem::replace(self, value))
     }
 
-    fn remove_value(&mut self, key: &()) -> Option<Self> {
+    fn remove_value(&mut self, _key: &()) -> Option<Self> {
         match self {
             Self::Object(map) => return Some(Self::Object(std::mem::take(map))),
             Self::Array(array) => return Some(Self::Array(std::mem::take(array))),

@@ -215,7 +215,7 @@ impl Function for Encrypt {
     fn compile(
         &self,
         state: &state::TypeState,
-        _ctx: &mut CompileContext,
+        _ctx: &mut FunctionCompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
         let plaintext = arguments.required("plaintext");

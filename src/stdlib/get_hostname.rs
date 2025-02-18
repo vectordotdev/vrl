@@ -20,7 +20,7 @@ impl Function for GetHostname {
     fn compile(
         &self,
         _state: &state::TypeState,
-        _ctx: &mut CompileContext,
+        _ctx: &mut FunctionCompileContext,
         _: ArgumentList,
     ) -> Compiled {
         Ok(GetHostnameFn.as_expr())
@@ -30,7 +30,7 @@ impl Function for GetHostname {
     fn compile(
         &self,
         _state: &state::TypeState,
-        ctx: &mut CompileContext,
+        ctx: &mut FunctionCompileContext,
         _: ArgumentList,
     ) -> Compiled {
         Ok(super::WasmUnsupportedFunction::new(ctx.span(), TypeDef::bytes().fallible()).as_expr())

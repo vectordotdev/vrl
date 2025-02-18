@@ -50,7 +50,7 @@ pub trait Function: Send + Sync + fmt::Debug {
     fn compile(
         &self,
         state: &TypeState,
-        ctx: &mut CompileContext,
+        ctx: &mut FunctionCompileContext,
         arguments: ArgumentList,
     ) -> Compiled;
 
@@ -80,12 +80,14 @@ pub struct Example {
     pub result: Result<&'static str, &'static str>,
 }
 
-pub struct CompileContext {
+// This type is re-exposed so renaming it is a breaking change.
+#[allow(clippy::module_name_repetitions)]
+pub struct FunctionCompileContext {
     span: Span,
     config: CompileConfig,
 }
 
-impl CompileContext {
+impl FunctionCompileContext {
     #[must_use]
     pub fn new(span: Span, config: CompileConfig) -> Self {
         Self { span, config }

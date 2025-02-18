@@ -396,35 +396,35 @@ impl From<i64> for Value {
 
 impl From<i32> for Value {
     fn from(value: i32) -> Self {
-        Self::Integer(value as i64)
+        Self::Integer(i64::from(value))
     }
 }
 
 impl From<i16> for Value {
     fn from(value: i16) -> Self {
-        Self::Integer(value as i64)
+        Self::Integer(i64::from(value))
     }
 }
 
 impl From<i8> for Value {
     fn from(value: i8) -> Self {
-        Self::Integer(value as i64)
+        Self::Integer(i64::from(value))
     }
 }
 
 impl From<u16> for Value {
     fn from(value: u16) -> Self {
-        Self::Integer(value as i64)
+        Self::Integer(i64::from(value))
     }
 }
 impl From<u8> for Value {
     fn from(value: u8) -> Self {
-        Self::Integer(value as i64)
+        Self::Integer(i64::from(value))
     }
 }
 impl From<u32> for Value {
     fn from(value: u32) -> Self {
-        Self::Integer(value as i64)
+        Self::Integer(i64::from(value))
     }
 }
 impl From<isize> for Value {

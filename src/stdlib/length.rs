@@ -54,7 +54,7 @@ impl Function for Length {
     fn compile(
         &self,
         _state: &state::TypeState,
-        _ctx: &mut CompileContext,
+        _ctx: &mut FunctionCompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");

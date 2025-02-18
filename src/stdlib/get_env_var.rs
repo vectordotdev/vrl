@@ -34,7 +34,7 @@ impl Function for GetEnvVar {
     fn compile(
         &self,
         _state: &state::TypeState,
-        _ctx: &mut CompileContext,
+        _ctx: &mut FunctionCompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
         let name = arguments.required("name");

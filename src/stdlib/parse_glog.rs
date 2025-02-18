@@ -1,8 +1,8 @@
 use crate::compiler::prelude::*;
 use chrono::{offset::TimeZone, NaiveDateTime, Utc};
-use once_cell::sync::Lazy;
 use regex::Regex;
 use std::collections::BTreeMap;
+use std::sync::LazyLock;
 
 fn parse_glog(bytes: Value) -> Resolved {
     let bytes = bytes.try_bytes()?;
@@ -52,7 +52,7 @@ fn parse_glog(bytes: Value) -> Resolved {
     Ok(log.into())
 }
 
-static REGEX_GLOG: Lazy<Regex> = Lazy::new(|| {
+static REGEX_GLOG: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(
         r"(?x)                                                     # Ignore whitespace and comments in the regex expression.
         ^\s*                                                        # Start with any number of whitespaces.
@@ -95,7 +95,7 @@ impl Function for ParseGlog {
     fn compile(
         &self,
         _state: &state::TypeState,
-        _ctx: &mut CompileContext,
+        _ctx: &mut FunctionCompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");

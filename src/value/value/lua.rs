@@ -107,10 +107,19 @@ pub fn table_to_timestamp(t: LuaTable) -> LuaResult<DateTime<Utc>> {
     let min = t.raw_get("min")?;
     let sec = t.raw_get("sec")?;
     let nano = t.raw_get::<Option<u32>>("nanosec")?.unwrap_or(0);
-    Ok(Utc
-        .ymd(year, month, day)
-        .and_hms_nano_opt(hour, min, sec, nano)
-        .expect("invalid timestamp"))
+
+    let base_dt = Utc
+        .with_ymd_and_hms(year, month, day, hour, min, sec)
+        .single()
+        .ok_or_else(|| mlua::Error::external("invalid timestamp"))?;
+
+    if nano > 0 {
+        base_dt
+            .with_nanosecond(nano)
+            .ok_or_else(|| mlua::Error::external("could not adjust for nanoseconds"))
+    } else {
+        Ok(base_dt)
+    }
 }
 
 #[cfg(test)]
@@ -153,25 +162,27 @@ mod test {
             (
                 "os.date('!*t', 1584297428)",
                 Value::Timestamp(
-                    Utc.ymd(2020, 3, 15)
-                        .and_hms_opt(18, 37, 8)
-                        .expect("invalid timestamp"),
+                    Utc.with_ymd_and_hms(2020, 3, 15, 18, 37, 8)
+                        .single()
+                        .expect("invalid or ambiguous date and time"),
                 ),
             ),
             (
                 "{year=2020, month=3, day=15, hour=18, min=37, sec=8}",
                 Value::Timestamp(
-                    Utc.ymd(2020, 3, 15)
-                        .and_hms_opt(18, 37, 8)
-                        .expect("invalid timestamp"),
+                    Utc.with_ymd_and_hms(2020, 3, 15, 18, 37, 8)
+                        .single()
+                        .expect("invalid or ambiguous date and time"),
                 ),
             ),
             (
                 "{year=2020, month=3, day=15, hour=18, min=37, sec=8, nanosec=666666666}",
                 Value::Timestamp(
-                    Utc.ymd(2020, 3, 15)
-                        .and_hms_nano_opt(18, 37, 8, 666_666_666)
-                        .expect("invalid timestamp"),
+                    Utc.with_ymd_and_hms(2020, 3, 15, 18, 37, 8)
+                        .single()
+                        .expect("invalid or ambiguous date and time")
+                        .with_nanosecond(666_666_666)
+                        .expect("invalid nanosecond"),
                 ),
             ),
         ];
@@ -255,9 +266,11 @@ mod test {
             ),
             (
                 Value::Timestamp(
-                    Utc.ymd(2020, 3, 15)
-                        .and_hms_nano_opt(18, 37, 8, 666_666_666)
-                        .expect("invalid timestamp"),
+                    Utc.with_ymd_and_hms(2020, 3, 15, 18, 37, 8)
+                        .single()
+                        .expect("invalid or ambiguous date and time")
+                        .with_nanosecond(666_666_666)
+                        .expect("invalid nanosecond"),
                 ),
                 r#"
                 function (value)

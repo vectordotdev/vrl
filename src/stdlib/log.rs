@@ -47,7 +47,7 @@ impl Function for Log {
     fn compile(
         &self,
         state: &state::TypeState,
-        ctx: &mut CompileContext,
+        ctx: &mut FunctionCompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
         let levels = vec![
@@ -79,7 +79,7 @@ impl Function for Log {
     fn compile(
         &self,
         _state: &state::TypeState,
-        ctx: &mut CompileContext,
+        ctx: &mut FunctionCompileContext,
         _arguments: ArgumentList,
     ) -> Compiled {
         Ok(super::WasmUnsupportedFunction::new(ctx.span(), TypeDef::null().infallible()).as_expr())

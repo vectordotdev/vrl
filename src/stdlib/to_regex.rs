@@ -36,7 +36,7 @@ impl Function for ToRegex {
     fn compile(
         &self,
         _state: &state::TypeState,
-        _ctx: &mut CompileContext,
+        _ctx: &mut FunctionCompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
         warn!("`to_regex` is an expensive function that could impact throughput.");
