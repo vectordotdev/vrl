@@ -28,7 +28,7 @@ def overwrite_version(version):
             break
 
     if current_version is None:
-        print("Version field not found in Cargo.toml.")
+        print("The `version` field is not present in Cargo.toml.")
         exit(1)
 
     commit_message = f"chore(deps): change version from {current_version} with {version}"
@@ -36,7 +36,11 @@ def overwrite_version(version):
 
     with open(toml_path, "w") as file:
         file.writelines(lines)
-    subprocess.run(["git", "commit", "-am", commit_message], check=True, cwd=REPO_ROOT_DIR)
+
+    # Update VRL version in Cargo.lock
+    subprocess.run(["cargo", "update", "-p", "vrl"], check=True, cwd=REPO_ROOT_DIR)
+
+    subprocess.run(["git", "commit", "-a", "-m", commit_message], check=True, cwd=REPO_ROOT_DIR)
 
 
 def validate_version(version):
@@ -49,8 +53,8 @@ def validate_version(version):
 
 def generate_changelog():
     print("Generating changelog...")
-    subprocess.run(["generate_release_changelog.sh"], check=True, cwd=SCRIPTS_DIR)
-    subprocess.run(["git", "commit", "-am", "chore(releasing): generate changelog"],
+    subprocess.run(["./generate_release_changelog.sh"], check=True, cwd=SCRIPTS_DIR)
+    subprocess.run(["git", "commit", "-a", "-m", "chore(releasing): generate changelog"],
                    check=True,
                    cwd=REPO_ROOT_DIR)
 
@@ -58,7 +62,9 @@ def create_branch(branch_name, dry_run=False):
     print(f"Creating branch: {branch_name}")
     subprocess.run(["git", "checkout", "-b", branch_name], check=True, cwd=REPO_ROOT_DIR)
     if not dry_run:
-        subprocess.run(["git", "push", "-u", "origin", branch_name], check=True, cwd=REPO_ROOT_DIR)
+        subprocess.run(["git", "push", "-u", "origin", branch_name],
+                       check=True,
+                       cwd=REPO_ROOT_DIR)
 
 def create_pull_request(branch_name, new_version, dry_run=False):
     title = f"Prepare {new_version} release"
