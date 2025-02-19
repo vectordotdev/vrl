@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import argparse
 import os
 import subprocess
@@ -5,6 +6,8 @@ from inspect import getsourcefile
 from os.path import abspath
 
 import semver
+
+from utils.validate_version import assert_version_is_not_published
 
 SCRIPTS_DIR = os.path.dirname(abspath(getsourcefile(lambda: 0)))
 REPO_ROOT_DIR = os.path.dirname(SCRIPTS_DIR)
@@ -50,6 +53,7 @@ def validate_version(version):
         print(f"Invalid version: {version}. Please provide a valid SemVer string.")
         exit(1)
 
+    assert_version_is_not_published(version)
 
 def generate_changelog():
     print("Generating changelog...")
@@ -95,6 +99,7 @@ def main():
     create_branch(branch_name, dry_run)
     overwrite_version(new_version)
     generate_changelog()
+    subprocess.run(["git", "push"], check=True, cwd=REPO_ROOT_DIR)
     create_pull_request(branch_name, new_version, dry_run)
 
     if dry_run:
