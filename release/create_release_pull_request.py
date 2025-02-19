@@ -9,9 +9,10 @@ import semver
 
 from utils.validate_version import assert_version_is_not_published
 
-SCRIPTS_DIR = os.path.dirname(abspath(getsourcefile(lambda: 0)))
-REPO_ROOT_DIR = os.path.dirname(SCRIPTS_DIR)
+RELEASE_DIR = os.path.dirname(abspath(getsourcefile(lambda: 0)))
+REPO_ROOT_DIR = os.path.dirname(RELEASE_DIR)
 CHANGELOG_DIR = os.path.join(REPO_ROOT_DIR, "changelog.d")
+SCRIPTS_DIR = os.path.join(REPO_ROOT_DIR, "scripts")
 
 
 def overwrite_version(version):
