@@ -81,7 +81,7 @@ def create_pull_request(branch_name, new_version, dry_run=False):
         try:
             subprocess.run(
                 ["gh", "pr", "create", "--title", title, "--body", body, "--head", branch_name,
-                 "--base", "main"], check=True, cwd=REPO_ROOT_DIR)
+                 "--base", "main", "--label", "no-changelog"], check=True, cwd=REPO_ROOT_DIR)
         except subprocess.CalledProcessError as e:
             print(f"Failed to create pull request: {e}")
 
