@@ -4,6 +4,44 @@
 
 <!-- changelog start -->
 
+## [0.22.0 (2025-02-19)]
+
+
+### Breaking Changes & Upgrade Guide
+
+- Removed deprecated `ellipsis` argument from the `truncate` function. Use `suffix` instead. (https://github.com/vectordotdev/vrl/pull/1188)
+- Fix `slice` type_def. This is a breaking change because it might change the fallibility of the `slice` function and this VRL scripts will
+  need to be updated accordingly.
+
+  authors: pront (https://github.com/vectordotdev/vrl/pull/1246)
+
+### New Features
+
+- Added new `to_syslog_facility_code` function to convert syslog facility keyword to syslog facility code. (https://github.com/vectordotdev/vrl/pull/1221)
+- Downgrade "can't abort infallible function" error to a warning. (https://github.com/vectordotdev/vrl/pull/1247)
+- `ip_cidr_contains` method now also accepts an array of CIDRs.
+
+  authors: JakubOnderka (https://github.com/vectordotdev/vrl/pull/1248)
+- Faster converting bytes to Unicode string by using SIMD instructions provided by simdutf8 crate.
+  simdutf8 is up to 23 times faster than the std library on valid non-ASCII, up to four times on pure
+  ASCII is the same method provided by Rust's standard library. This will speed up almost all VRL methods
+  like `parse_json` or `parse_regex`.
+
+  authors: JakubOnderka (https://github.com/vectordotdev/vrl/pull/1249)
+- Added `shannon_entropy` function to generate [entropy](https://en.wikipedia.org/wiki/Entropy_(information_theory)) from a string.
+
+  authors: esensar (https://github.com/vectordotdev/vrl/pull/1267)
+
+### Fixes
+
+- Fix decimals parsing in parse_duration function
+
+  authors: sainad2222 (https://github.com/vectordotdev/vrl/pull/1223)
+- Fix `parse_nginx_log` function when a format is set to error and an error message contains comma.
+
+  authors: JakubOnderka (https://github.com/vectordotdev/vrl/pull/1280)
+
+
 ## [0.21.0 (2025-01-13)]
 
 
