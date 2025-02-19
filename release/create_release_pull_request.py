@@ -9,10 +9,11 @@ import semver
 
 from utils.validate_version import assert_version_is_not_published
 
-SCRIPTS_DIR = os.path.dirname(abspath(getsourcefile(lambda: 0)))
-REPO_ROOT_DIR = os.path.dirname(SCRIPTS_DIR)
+RELEASE_DIR = os.path.dirname(abspath(getsourcefile(lambda: 0)))
+REPO_ROOT_DIR = os.path.dirname(RELEASE_DIR)
 CHANGELOG_DIR = os.path.join(REPO_ROOT_DIR, "changelog.d")
-
+SCRIPTS_DIR = os.path.join(REPO_ROOT_DIR, "scripts")
+SCRIPT_FILENAME = os.path.basename(getsourcefile(lambda: 0))
 
 def overwrite_version(version):
     toml_path = os.path.join(REPO_ROOT_DIR, "Cargo.toml")
@@ -72,7 +73,7 @@ def create_branch(branch_name, dry_run=False):
 
 def create_pull_request(branch_name, new_version, dry_run=False):
     title = f"chore(releasing): Prepare {new_version} release"
-    body = "Generated with `./scripts/create-release-pull-request.py`."
+    body = f"Generated with {SCRIPT_FILENAME}"
     print(f"Creating pull request with title: {title}")
     if dry_run:
         print("Dry-run mode: Skipping PR creation.")
@@ -80,7 +81,7 @@ def create_pull_request(branch_name, new_version, dry_run=False):
         try:
             subprocess.run(
                 ["gh", "pr", "create", "--title", title, "--body", body, "--head", branch_name,
-                 "--base", "main"], check=True, cwd=REPO_ROOT_DIR)
+                 "--base", "main", "--label", "no-changelog"], check=True, cwd=REPO_ROOT_DIR)
         except subprocess.CalledProcessError as e:
             print(f"Failed to create pull request: {e}")
 
