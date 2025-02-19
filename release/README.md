@@ -3,7 +3,7 @@
 1. Create a release PR
 
 ```shell
-python3 -m release.create_release_pull_request <version>
+python3 create_release_pull_request.py <version>
 ```
 
 2. Wait for the PR to be merged
@@ -11,5 +11,5 @@ python3 -m release.create_release_pull_request <version>
 3. Run the publish script
 
 ```shell
-python3 -m release.publish.py
+python3 publish.py
 ```

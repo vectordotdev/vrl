@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import os
 import subprocess
 from inspect import getsourcefile
@@ -5,7 +6,7 @@ from os.path import abspath
 
 import toml
 
-from release.validate_version import assert_version_is_not_published
+from utils.validate_version import assert_version_is_not_published
 
 SCRIPTS_DIR = os.path.dirname(abspath(getsourcefile(lambda: 0)))
 REPO_ROOT_DIR = os.path.dirname(SCRIPTS_DIR)
