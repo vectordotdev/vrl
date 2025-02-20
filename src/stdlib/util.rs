@@ -66,17 +66,17 @@ pub(crate) fn regex_kind(
     inner_type
 }
 
-pub(crate) fn is_nullish(value: &crate::value::Value) -> bool {
+pub(crate) fn is_nullish(value: &Value) -> bool {
     match value {
-        crate::value::Value::Bytes(v) => {
-            let s = &String::from_utf8_lossy(v)[..];
-
-            match s {
-                "-" => true,
-                _ => s.chars().all(char::is_whitespace),
+        Value::Bytes(v) => {
+            if v.is_empty() || v.as_ref() == b"-" {
+                return true;
             }
+
+            let s = value.as_str().expect("value should be bytes");
+            s.chars().all(char::is_whitespace)
         }
-        crate::value::Value::Null => true,
+        Value::Null => true,
         _ => false,
     }
 }
