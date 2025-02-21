@@ -2,12 +2,12 @@
 //! that are sufficient to process a `roxmltree::Node`.
 
 use crate::compiler::prelude::*;
-use once_cell::sync::Lazy;
 use regex::{Regex, RegexBuilder};
 // Re-export `roxmltree` to match the public API of `process_node`.
 use roxmltree::NodeType;
 pub use roxmltree::{Document, Node};
 use rust_decimal::prelude::Zero;
+use std::sync::LazyLock;
 use std::{
     borrow::Cow,
     collections::{btree_map::Entry, BTreeMap},
@@ -24,7 +24,7 @@ use std::{
 /// - This regex is compiled once and reused, improving performance.
 /// - The `multi_line(true)` flag (if used with `RegexBuilder`) ensures it applies across multiple lines.
 /// - This is particularly useful for XML minification or normalization before processing.
-pub static XML_RE: Lazy<Regex> = Lazy::new(|| {
+pub static XML_RE: LazyLock<Regex> = LazyLock::new(|| {
     RegexBuilder::new(r">\s+?<")
         .multi_line(true)
         .build()

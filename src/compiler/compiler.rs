@@ -7,7 +7,7 @@ use crate::compiler::{
         Noop, Not, Object, Op, Predicate, Query, Return, Target, Unary, Variable,
     },
     parser::ast::RootExpr,
-    program::Info,
+    program::ProgramInfo,
     CompileConfig, Function, Program, TypeDef,
 };
 use crate::diagnostic::{DiagnosticList, DiagnosticMessage};
@@ -134,7 +134,7 @@ impl<'a> Compiler<'a> {
         let result = CompilationResult {
             program: Program {
                 expressions: Block::new_inline(expressions),
-                info: Info {
+                info: ProgramInfo {
                     fallible: compiler.fallible,
                     abortable: compiler.abortable,
                     target_queries: compiler.external_queries,

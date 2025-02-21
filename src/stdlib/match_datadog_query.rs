@@ -48,7 +48,7 @@ impl Function for MatchDatadogQuery {
     fn compile(
         &self,
         state: &state::TypeState,
-        _ctx: &mut CompileContext,
+        _ctx: &mut FunctionCompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");

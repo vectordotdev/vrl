@@ -7,7 +7,7 @@ use crate::compiler::{
     expression::{levenstein, ExpressionError, FunctionArgument},
     function::{
         closure::{self, VariableKind},
-        ArgumentList, Closure, CompileContext, Example, Parameter,
+        ArgumentList, Closure, Example, FunctionCompileContext, Parameter,
     },
     parser::{Ident, Node},
     state::LocalEnv,
@@ -414,7 +414,7 @@ impl<'a> Builder<'a> {
         // an immutable reference, to ensure compiler state correctness.
         let temp_config = std::mem::take(config);
 
-        let mut compile_ctx = CompileContext::new(self.call_span, temp_config);
+        let mut compile_ctx = FunctionCompileContext::new(self.call_span, temp_config);
 
         let expr = self
             .function
@@ -1276,7 +1276,7 @@ mod tests {
         fn compile(
             &self,
             _state: &TypeState,
-            _ctx: &mut CompileContext,
+            _ctx: &mut FunctionCompileContext,
             _arguments: ArgumentList,
         ) -> crate::compiler::function::Compiled {
             Ok(Fn.as_expr())

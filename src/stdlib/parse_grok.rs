@@ -128,7 +128,7 @@ impl Function for ParseGrok {
     fn compile(
         &self,
         state: &state::TypeState,
-        _ctx: &mut CompileContext,
+        _ctx: &mut FunctionCompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
@@ -152,7 +152,7 @@ impl Function for ParseGrok {
     fn compile(
         &self,
         _state: &state::TypeState,
-        ctx: &mut CompileContext,
+        ctx: &mut FunctionCompileContext,
         _: ArgumentList,
     ) -> Compiled {
         Ok(super::WasmUnsupportedFunction::new(
