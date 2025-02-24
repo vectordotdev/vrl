@@ -1,4 +1,5 @@
 use crate::compiler::prelude::*;
+use crate::value::value::simdutf_bytes_utf8_lossy;
 use chrono::Timelike;
 use prost::Message;
 use prost_reflect::{DynamicMessage, FieldDescriptor, Kind, MapKey, MessageDescriptor};
@@ -10,16 +11,16 @@ use std::collections::HashMap;
 fn convert_value_raw(
     value: Value,
     kind: &prost_reflect::Kind,
-) -> std::result::Result<prost_reflect::Value, String> {
+) -> Result<prost_reflect::Value, String> {
     let kind_str = value.kind_str().to_owned();
     match (value, kind) {
         (Value::Boolean(b), Kind::Bool) => Ok(prost_reflect::Value::Bool(b)),
         (Value::Bytes(b), Kind::Bytes) => Ok(prost_reflect::Value::Bytes(b)),
         (Value::Bytes(b), Kind::String) => Ok(prost_reflect::Value::String(
-            String::from_utf8_lossy(&b).into_owned(),
+            simdutf_bytes_utf8_lossy(&b).into_owned(),
         )),
         (Value::Bytes(b), Kind::Enum(descriptor)) => {
-            let string = String::from_utf8_lossy(&b).into_owned();
+            let string = simdutf_bytes_utf8_lossy(&b);
             if let Some(d) = descriptor
                 .values()
                 .find(|v| v.name().eq_ignore_ascii_case(&string))
@@ -36,14 +37,14 @@ fn convert_value_raw(
         (Value::Float(f), Kind::Double) => Ok(prost_reflect::Value::F64(f.into_inner())),
         (Value::Float(f), Kind::Float) => Ok(prost_reflect::Value::F32(f.into_inner() as f32)),
         (Value::Bytes(b), Kind::Double) => {
-            let string = String::from_utf8_lossy(&b).into_owned();
+            let string = simdutf_bytes_utf8_lossy(&b);
             let val = string
                 .parse::<f64>()
                 .map_err(|e| format!("Cannot parse `{}` as double: {}", string, e))?;
             Ok(prost_reflect::Value::F64(val))
         }
         (Value::Bytes(b), Kind::Float) => {
-            let string = String::from_utf8_lossy(&b).into_owned();
+            let string = simdutf_bytes_utf8_lossy(&b);
             let val = string
                 .parse::<f32>()
                 .map_err(|e| format!("Cannot parse `{}` as float: {}", string, e))?;
@@ -61,28 +62,28 @@ fn convert_value_raw(
         (Value::Integer(i), Kind::Fixed64) => Ok(prost_reflect::Value::U64(i as u64)),
         (Value::Integer(i), Kind::Enum(_)) => Ok(prost_reflect::Value::EnumNumber(i as i32)),
         (Value::Bytes(b), Kind::Int32 | Kind::Sfixed32 | Kind::Sint32) => {
-            let string = String::from_utf8_lossy(&b).into_owned();
+            let string = simdutf_bytes_utf8_lossy(&b);
             let number: i32 = string
                 .parse()
                 .map_err(|e| format!("Can't convert '{}' to i32: {}", string, e))?;
             Ok(prost_reflect::Value::I32(number))
         }
         (Value::Bytes(b), Kind::Int64 | Kind::Sfixed64 | Kind::Sint64) => {
-            let string = String::from_utf8_lossy(&b).into_owned();
+            let string = simdutf_bytes_utf8_lossy(&b);
             let number: i64 = string
                 .parse()
                 .map_err(|e| format!("Can't convert '{}' to i64: {}", string, e))?;
             Ok(prost_reflect::Value::I64(number))
         }
         (Value::Bytes(b), Kind::Uint32 | Kind::Fixed32) => {
-            let string = String::from_utf8_lossy(&b).into_owned();
+            let string = simdutf_bytes_utf8_lossy(&b);
             let number: u32 = string
                 .parse()
                 .map_err(|e| format!("Can't convert '{}' to u32: {}", string, e))?;
             Ok(prost_reflect::Value::U32(number))
         }
         (Value::Bytes(b), Kind::Uint64 | Kind::Fixed64) => {
-            let string = String::from_utf8_lossy(&b).into_owned();
+            let string = simdutf_bytes_utf8_lossy(&b);
             let number: u64 = string
                 .parse()
                 .map_err(|e| format!("Can't convert '{}' to u64: {}", string, e))?;
@@ -136,10 +137,10 @@ fn convert_value_raw(
 fn convert_value(
     field_descriptor: &FieldDescriptor,
     value: Value,
-) -> std::result::Result<prost_reflect::Value, String> {
+) -> Result<prost_reflect::Value, String> {
     if let Value::Array(a) = value {
         if field_descriptor.cardinality() == prost_reflect::Cardinality::Repeated {
-            let repeated: std::result::Result<Vec<prost_reflect::Value>, String> = a
+            let repeated: Result<Vec<prost_reflect::Value>, String> = a
                 .into_iter()
                 .map(|v| convert_value_raw(v, &field_descriptor.kind()))
                 .collect();
@@ -160,7 +161,7 @@ fn convert_value(
 pub fn encode_message(
     message_descriptor: &MessageDescriptor,
     value: Value,
-) -> std::result::Result<DynamicMessage, String> {
+) -> Result<DynamicMessage, String> {
     let mut message = DynamicMessage::new(message_descriptor.clone());
     if let Value::Object(map) = value {
         for field in message_descriptor.fields() {
