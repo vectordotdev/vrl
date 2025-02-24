@@ -12,7 +12,7 @@ fn contains_all(value: &Value, substrings: Value, case_sensitive: Option<Value>)
 
     for substring_value in substring_values {
         let substring = convert_to_string(&substring_value, !case_sensitive)?;
-        if !value_string.contains(&substring) {
+        if !value_string.contains(substring.as_ref()) {
             return Ok(false.into());
         }
     }
