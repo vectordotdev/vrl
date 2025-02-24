@@ -8,6 +8,7 @@ use bytes::Bytes;
 use chrono::{DateTime, Utc};
 use ordered_float::NotNan;
 use regex::Regex;
+use crate::prelude::value::ObjectArray;
 
 use super::super::{KeyString, Kind, ObjectMap, Value};
 
@@ -350,6 +351,11 @@ impl From<ObjectMap> for Value {
         Self::Object(value)
     }
 }
+impl From<ObjectArray> for Value {
+    fn from(value: ObjectArray) -> Self {
+        Self::Array(value)
+    }
+}
 
 impl From<BTreeMap<KeyString, Value>> for Value {
     fn from(value: BTreeMap<KeyString, Value>) -> Self {
@@ -359,7 +365,7 @@ impl From<BTreeMap<KeyString, Value>> for Value {
 
 impl FromIterator<Self> for Value {
     fn from_iter<I: IntoIterator<Item = Self>>(iter: I) -> Self {
-        Self::Array(iter.into_iter().collect::<Vec<Self>>())
+        Self::Array(ObjectArray::from_iter(iter))
     }
 }
 

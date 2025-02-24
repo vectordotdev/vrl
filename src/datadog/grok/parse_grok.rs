@@ -103,7 +103,7 @@ fn apply_grok_rule(source: &str, grok_rule: &GrokRule) -> Result<ParsedGrokObjec
                                     parsed.insert(field, values);
                                 }
                                 Some(v) => {
-                                    parsed.insert(field, Value::Array(vec![v, value]));
+                                    parsed.insert(field, Value::Array(vec![v, value].into()));
                                 }
                                 None => {
                                     parsed.insert(field, value);

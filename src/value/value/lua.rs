@@ -4,7 +4,7 @@ use mlua::prelude::LuaResult;
 use mlua::{FromLua, IntoLua, Lua, Value as LuaValue};
 use ordered_float::NotNan;
 
-use crate::value::Value;
+use crate::value::{KeyString, Value};
 
 impl IntoLua for Value {
     #![allow(clippy::wrong_self_convention)] // this trait is defined by mlua
@@ -41,11 +41,11 @@ impl FromLua for Value {
             LuaValue::Boolean(b) => Ok(Self::Boolean(b)),
             LuaValue::Table(t) => {
                 if t.len()? > 0 {
-                    <_>::from_lua(LuaValue::Table(t), lua).map(Self::Array)
+                    <_>::from_lua(LuaValue::Table(t), lua).map(|v: Vec<Self>| Self::Array(v.into()))
                 } else if table_is_timestamp(&t)? {
                     table_to_timestamp(t).map(Self::Timestamp)
                 } else {
-                    <_>::from_lua(LuaValue::Table(t), lua).map(Self::Object)
+                    <_>::from_lua(LuaValue::Table(t), lua).map(|v: BTreeMap<KeyString, Self>| Self::Object(v.into()))
                 }
             }
             other => Err(mlua::Error::FromLuaConversionError {

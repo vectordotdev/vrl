@@ -44,10 +44,6 @@ impl ObjectMap {
         ObjectMap(Arc::new(BTreeMap::new()))
     }
 
-    // pub fn into_iter(self) -> impl Iterator<Item = (KeyString, Value)> {
-    //     Arc::unwrap_or_clone(self.0).into_iter()
-    // }
-
     pub fn into_values(self) -> impl Iterator<Item = Value> {
         Arc::unwrap_or_clone(self.0).into_values()
     }
@@ -77,19 +73,19 @@ impl<'a> IntoIterator for &'a ObjectMap {
 
 impl FromIterator<(KeyString, Value)> for ObjectMap {
     fn from_iter<T: IntoIterator<Item=(KeyString, Value)>>(iter: T) -> Self {
-        ObjectMap(Arc::new(BTreeMap::from_iter(iter)))
+        Self(Arc::new(BTreeMap::from_iter(iter)))
     }
 }
 
 impl From<BTreeMap<KeyString, Value>> for ObjectMap {
     fn from(value: BTreeMap<KeyString, Value>) -> Self {
-        ObjectMap(Arc::new(value))
+        Self(Arc::new(value))
     }
 }
 
 impl<const N: usize> From<[(KeyString, Value); N]> for ObjectMap {
     fn from(value: [(KeyString, Value); N]) -> Self {
-        ObjectMap(Arc::new(BTreeMap::from(value)))
+        Self(Arc::new(BTreeMap::from(value)))
     }
 }
 
@@ -104,6 +100,59 @@ impl Deref for ObjectMap {
 impl DerefMut for ObjectMap {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut *Arc::make_mut(&mut self.0)
+    }
+}
+
+#[derive(Eq, PartialEq, Hash, Debug, Clone, Default, Serialize, Deserialize)]
+pub struct ObjectArray(pub Arc<Vec<Value>>);
+
+impl ObjectArray {
+    pub fn into_vec(self) -> Vec<Value> {
+        Arc::unwrap_or_clone(self.0)
+    }
+}
+
+impl Deref for ObjectArray {
+    type Target = Vec<Value>;
+
+    fn deref(&self) -> &Self::Target {
+        self.0.deref()
+    }
+}
+
+impl DerefMut for ObjectArray {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut *Arc::make_mut(&mut self.0)
+    }
+}
+
+impl IntoIterator for ObjectArray {
+    type Item = Value;
+    type IntoIter = std::vec::IntoIter<Value>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        Arc::unwrap_or_clone(self.0).into_iter()
+    }
+}
+
+impl<'a> IntoIterator for &'a ObjectArray {
+    type Item = &'a Value;
+    type IntoIter = std::slice::Iter<'a, Value>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.iter()
+    }
+}
+
+impl FromIterator<Value> for ObjectArray {
+    fn from_iter<T: IntoIterator<Item=Value>>(iter: T) -> Self {
+        Self(Arc::new(Vec::from_iter(iter)))
+    }
+}
+
+impl From<Vec<Value>> for ObjectArray {
+    fn from(value: Vec<Value>) -> Self {
+        Self(Arc::new(value))
     }
 }
 
@@ -135,7 +184,7 @@ pub enum Value {
     Object(ObjectMap),
 
     /// Array.
-    Array(Vec<Value>),
+    Array(ObjectArray),
 
     /// Null.
     Null,
@@ -143,7 +192,7 @@ pub enum Value {
 
 impl Value {
     pub fn object() -> Self {
-        Value::Object(ObjectMap::new())
+        Self::Object(ObjectMap::new())
     }
     /// Returns a string description of the value type
     pub const fn kind_str(&self) -> &str {

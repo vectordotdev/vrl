@@ -172,7 +172,7 @@ pub fn process_node(node: Node, config: &ParseXmlConfig) -> Value {
                     match v {
                         Value::Array(v) => v.push(value),
                         v => {
-                            let prev = std::mem::replace(v, Value::Array(Vec::with_capacity(2)));
+                            let prev = std::mem::replace(v, Value::Array(Vec::with_capacity(2).into()));
                             if let Value::Array(v) = v {
                                 v.extend_from_slice(&[prev, value]);
                             }

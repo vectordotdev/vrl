@@ -1,6 +1,6 @@
 use std::{collections::BTreeMap, fmt, ops::Deref};
 
-use crate::value::Value;
+use crate::value::{ObjectArray, Value};
 use crate::{
     compiler::{
         expression::{Expr, Resolved},
@@ -34,7 +34,7 @@ impl Expression for Array {
         self.inner
             .iter()
             .map(|expr| expr.resolve(ctx))
-            .collect::<Result<Vec<_>, _>>()
+            .collect::<Result<ObjectArray, _>>()
             .map(Value::Array)
     }
 
@@ -42,7 +42,7 @@ impl Expression for Array {
         self.inner
             .iter()
             .map(|x| x.resolve_constant(state))
-            .collect::<Option<Vec<_>>>()
+            .collect::<Option<ObjectArray>>()
             .map(Value::Array)
     }
 

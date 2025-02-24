@@ -14,22 +14,21 @@ mod btreemap;
 mod keystring;
 
 pub use kind::Kind;
-
 pub use self::keystring::KeyString;
 pub use self::secrets::Secrets;
 #[allow(clippy::module_name_repetitions)]
-pub use self::value::{ObjectMap, Value, ValueRegex};
+pub use self::value::{ObjectArray, ObjectMap, Value, ValueRegex};
 
 /// A macro to easily generate Values
 #[macro_export]
 macro_rules! value {
     ([]) => ({
-        $crate::value::Value::Array(vec![])
+        $crate::value::Value::Array($crate::value::ObjectArray::default())
     });
 
     ([$($v:tt),+ $(,)?]) => ({
         let vec: Vec<$crate::value::Value> = vec![$($crate::value!($v)),+];
-        $crate::value::Value::Array(vec)
+        $crate::value::Value::Array(vec.into())
     });
 
     ({}) => ({

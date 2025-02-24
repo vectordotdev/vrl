@@ -150,7 +150,7 @@ fn parse_array<'a, E: HashParseError<&'a str>>(input: &'a str) -> IResult<&'a st
                     preceded(sp, char(']')),
                 )),
             ),
-            Value::Array,
+            |v| Value::Array(v.into()),
         ),
     )(input)
 }

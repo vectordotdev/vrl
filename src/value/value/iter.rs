@@ -37,7 +37,7 @@ impl Value {
     pub fn into_iter<'a>(self, recursive: bool) -> ValueIter<'a> {
         let data = match self {
             Self::Object(object) => IterData::Object(object.into_iter().collect()),
-            Self::Array(array) => IterData::Array(array),
+            Self::Array(array) => IterData::Array(array.into_vec()),
             value => IterData::Value(value),
         };
 
@@ -124,7 +124,7 @@ impl<'a> Iterator for ValueIter<'a> {
                 Value::Object(object) => {
                     Some(IterData::Object(object.clone().into_iter().collect()))
                 }
-                Value::Array(array) => Some(IterData::Array(array.clone())),
+                Value::Array(array) => Some(IterData::Array(array.clone().into_vec())),
 
                 // It's possible the [`Value`] we're trying to iterate over is
                 // a non-collection type. This happens if the caller changed the
@@ -259,7 +259,7 @@ impl From<IterData> for Value {
         match iter {
             IterData::Value(value) => value,
             IterData::Object(object) => Self::Object(object.into_iter().collect()),
-            IterData::Array(array) => Self::Array(array),
+            IterData::Array(array) => Self::Array(array.into()),
         }
     }
 }

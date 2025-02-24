@@ -50,7 +50,7 @@ impl Arbitrary for Value {
             }
             6 => {
                 let mut gen = Gen::new(MAX_ARRAY_SIZE);
-                Self::Array(Vec::arbitrary(&mut gen))
+                Self::Array(Vec::arbitrary(&mut gen).into())
             }
             7 => Self::Null,
             _ => unreachable!(),

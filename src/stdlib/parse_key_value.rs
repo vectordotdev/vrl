@@ -56,7 +56,7 @@ pub(crate) fn parse_key_value(
                         Value::Array(array) => array.push(value),
                         _ => {
                             let values = vec![std::mem::replace(existing, Value::Null), value];
-                            *existing = Value::Array(values);
+                            *existing = Value::Array(values.into());
                         }
                     }
                 }

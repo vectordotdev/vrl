@@ -1,5 +1,7 @@
 use crate::value::{KeyString, ObjectMap, Value};
 use std::borrow::Borrow;
+use std::ops::{Deref, DerefMut};
+use crate::value::value::ObjectArray;
 
 mod get;
 mod get_mut;
@@ -75,6 +77,31 @@ impl ValueCollection for ObjectMap {
 
     fn is_empty_collection(&self) -> bool {
         self.is_empty()
+    }
+}
+
+impl ValueCollection for ObjectArray {
+    type Key = isize;
+    type BorrowedKey = isize;
+
+    fn get_value(&self, key: &isize) -> Option<&Value> {
+        ValueCollection::get_value(self.deref(), key)
+    }
+
+    fn get_mut_value(&mut self, key: &isize) -> Option<&mut Value> {
+        ValueCollection::get_mut_value(self.deref_mut(), key)
+    }
+
+    fn insert_value(&mut self, key: isize, value: Value) -> Option<Value> {
+        ValueCollection::insert_value(self.deref_mut(), key, value)
+    }
+
+    fn remove_value(&mut self, key: &isize) -> Option<Value> {
+        ValueCollection::remove_value(self.deref_mut(), key)
+    }
+
+    fn is_empty_collection(&self) -> bool {
+        ValueCollection::is_empty_collection(self.deref())
     }
 }
 

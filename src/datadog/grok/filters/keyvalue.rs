@@ -203,7 +203,7 @@ impl KeyValueFilter {
                             // array directly because we only have a `mut` reference to it, hence
                             // the need `replace` it first.
                             let old_value = std::mem::replace(prev, Value::Null);
-                            *prev = Value::Array(vec![old_value, value]);
+                            *prev = Value::Array(vec![old_value, value].into());
                         }
                         None => {
                             result.insert(path, value);

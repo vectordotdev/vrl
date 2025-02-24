@@ -22,7 +22,7 @@ pub fn parse_query_string(bytes: &Bytes, ignore_keys_without_values: bool) -> Re
                         v.push(value.into());
                     }
                     v => {
-                        *v = Value::Array(vec![v.clone(), value.into()]);
+                        *v = Value::Array(vec![v.clone(), value.into()].into());
                     }
                 };
             })

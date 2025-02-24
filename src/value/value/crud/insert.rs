@@ -33,7 +33,7 @@ pub fn insert<'a, T: ValueCollection>(
                 };
                 let mut array = Vec::with_capacity(capacity);
                 let prev_value = insert(&mut array, index, path_iter, insert_value);
-                value.insert_value(key, Value::Array(array));
+                value.insert_value(key, Value::Array(array.into()));
                 prev_value
             }
         }
