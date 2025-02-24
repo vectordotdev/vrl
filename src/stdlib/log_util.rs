@@ -183,7 +183,7 @@ pub(crate) static REGEX_NGINX_ERROR_LOG: LazyLock<Regex> = LazyLock::new(|| {
         (?P<tid>\d+):                                                            # Match any number
         (\s+\*(?P<cid>\d+))?                                                     # Match any number
         \s+(?P<message>.+?)                                                      # Match any character
-        (,\s+excess:\s+(?P<excess>[^\s]+)\sby\szone\s"(?P<zone>[^,]+)")?         # Match any character after ', excess: ' until ' by zone ' and the rest of characters
+        (,\s+excess:\s+(?P<excess>[^\s,]+),?\sby\szone\s"(?P<zone>[^,]+)")?      # Match any character after ', excess: ' until ' by zone ' and the rest of characters
         (,\s+client:\s+(?P<client>[^,]+))?                                       # Match any character after ', client: '
         (,\s+server:\s+(?P<server>[^,]*))?                                       # Match any character after ', server: '
         (,\s+request:\s+"(?P<request>[^"]*)")?                                   # Match any character after ', request: '

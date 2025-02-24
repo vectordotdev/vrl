@@ -669,6 +669,28 @@ mod tests {
             tdef: TypeDef::object(kind_error()).fallible(),
         }
 
+        error_rate_delaying {
+            args: func_args![
+                value: r#"2022/05/30 20:56:22 [error] 7164#7164: *38068741 delaying requests, excess: 50.416, by zone "api_access_token", client: 10.244.0.0, server: test.local, request: "GET / HTTP/2.0", host: "127.0.0.1:8080""#,
+                format: "error"
+            ],
+            want: Ok(btreemap! {
+                "timestamp" => Value::Timestamp(DateTime::parse_from_rfc3339("2022-05-30T20:56:22Z").unwrap().into()),
+                "severity" => "error",
+                "pid" => 7164,
+                "tid" => 7164,
+                "cid" => 38_068_741,
+                "message" => "delaying requests",
+                "excess" => 50.416,
+                "zone" => "api_access_token",
+                "client" => "10.244.0.0",
+                "server" => "test.local",
+                "request" => "GET / HTTP/2.0",
+                "host" => "127.0.0.1:8080",
+            }),
+            tdef: TypeDef::object(kind_error()).fallible(),
+        }
+
         error_message_with_comma {
             args: func_args![
                 value: r#"2022/05/30 20:56:22 [info] 3134#0: *99247 epoll_wait() reported that client prematurely closed connection, so upstream connection is closed too (104: Connection reset by peer) while reading upstream, client: 10.244.0.0, server: example.org, request: "GET / HTTP/1.1", upstream: "fastcgi://unix:/run/php-fpm/php8.3-fpm.sock:", host: "example:8080""#,
