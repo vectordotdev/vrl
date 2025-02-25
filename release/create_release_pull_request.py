@@ -58,7 +58,7 @@ def validate_version(version):
 
 def generate_changelog():
     print("Generating changelog...")
-    subprocess.run(["./generate_release_changelog.sh"], check=True, cwd=SCRIPTS_DIR)
+    subprocess.run(["./generate_release_changelog.sh", "--no-prompt"], check=True, cwd=SCRIPTS_DIR)
     subprocess.run(["git", "commit", "-a", "-m", "chore(releasing): generate changelog"],
                    check=True,
                    cwd=REPO_ROOT_DIR)
