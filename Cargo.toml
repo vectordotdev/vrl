@@ -144,7 +144,7 @@ digest = { version = "0.10", optional = true }
 dyn-clone = { version = "1", default-features = false, optional = true }
 exitcode = { version = "1", optional = true }
 flate2 = { version = "1", default-features = false, features = ["default"], optional = true }
-getrandom = { version = "0.3", features = ["wasm_js"], optional = true }
+getrandom = { version = "0.3", default-features = false, features = ["wasm_js"], optional = true }
 hex = { version = "0.4", optional = true }
 hmac = { version = "0.12", optional = true }
 iana-time-zone = { version = "0.1", optional = true }
