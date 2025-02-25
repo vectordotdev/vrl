@@ -1,6 +1,6 @@
 use crate::compiler::prelude::*;
 use std::{
-    borrow::{Borrow, Cow},
+    borrow::Cow,
     collections::BTreeMap,
     fmt,
     str::FromStr,
@@ -518,9 +518,10 @@ impl Parser for UAParser {
     fn parse_user_agent(&self, user_agent: &str) -> UserAgent {
         #[inline]
         fn unknown_to_none(s: Option<Cow<'_, str>>) -> Option<String> {
-            match s?.borrow() {
+            let cow = s?;
+            match cow.as_ref() {
                 "" | "Other" => None,
-                v => Some(v.to_owned()),
+                _ => Some(cow.into_owned()),
             }
         }
 
