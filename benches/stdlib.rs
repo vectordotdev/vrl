@@ -747,6 +747,11 @@ bench_function! {
         want: Ok(true),
     }
 
+    ipv4_array {
+        args: func_args![cidr: value!(["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"]), value: "192.168.10.32"],
+        want: Ok(true),
+    }
+
     ipv6 {
         args: func_args![cidr: "2001:4f8:3:ba::/64", value: "2001:4f8:3:ba:2e0:81ff:fe22:d1f1"],
         want: Ok(true),
