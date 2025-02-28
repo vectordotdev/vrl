@@ -2864,6 +2864,15 @@ bench_function! {
 }
 
 bench_function! {
+    to_syslog_facility_code => vrl::stdlib::ToSyslogFacilityCode;
+
+    literal {
+        args: func_args![value: value!("local7")],
+        want: Ok(value!(23)),
+    }
+}
+
+bench_function! {
     to_syslog_level => vrl::stdlib::ToSyslogLevel;
 
     literal {
