@@ -1,7 +1,7 @@
 use std::fmt;
 
 use crate::compiler::{
-    expression::{Array, Block, Group, Object, Resolved, Value},
+    expression::{Array, Block, Executed, Group, Object, Resolved, Value},
     state::{TypeInfo, TypeState},
     Context, Expression,
 };
@@ -35,6 +35,17 @@ impl Expression for Container {
             Block(v) => v.resolve(ctx),
             Array(v) => v.resolve(ctx),
             Object(v) => v.resolve(ctx),
+        }
+    }
+
+    fn execute(&self, ctx: &mut Context) -> Executed {
+        use Variant::{Array, Block, Group, Object};
+
+        match &self.variant {
+            Group(v) => v.execute(ctx),
+            Block(v) => v.execute(ctx),
+            Array(v) => v.execute(ctx),
+            Object(v) => v.execute(ctx),
         }
     }
 

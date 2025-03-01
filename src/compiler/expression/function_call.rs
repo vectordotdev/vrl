@@ -13,7 +13,7 @@ use crate::compiler::{
     state::LocalEnv,
     type_def::Details,
     value::Kind,
-    CompileConfig, Context, Expression, Function, Resolved, Span, TypeDef,
+    CompileConfig, Context, Executed, Expression, Function, Resolved, Span, TypeDef,
 };
 use crate::diagnostic::{DiagnosticMessage, Label, Note, Severity, Urls};
 use crate::prelude::Note::SeeErrorDocs;
@@ -643,11 +643,10 @@ impl FunctionCall {
             .map(|arg| format!("{:?}", arg.inner()))
             .collect::<Vec<_>>()
     }
-}
 
-impl Expression for FunctionCall {
-    fn resolve(&self, ctx: &mut Context) -> Resolved {
-        self.expr.resolve(ctx).map_err(|err| match err {
+    #[must_use]
+    fn enrich_function_call_err(&self, err: ExpressionError) -> ExpressionError {
+        match err {
             ExpressionError::Abort { .. }
             | ExpressionError::Fallible { .. }
             | ExpressionError::Missing { .. } => {
@@ -681,7 +680,21 @@ impl Expression for FunctionCall {
                     notes,
                 }
             }
-        })
+        }
+    }
+}
+
+impl Expression for FunctionCall {
+    fn resolve(&self, ctx: &mut Context) -> Resolved {
+        self.expr
+            .resolve(ctx)
+            .map_err(|err| self.enrich_function_call_err(err))
+    }
+
+    fn execute(&self, ctx: &mut Context) -> Executed {
+        self.expr
+            .execute(ctx)
+            .map_err(|err| self.enrich_function_call_err(err))
     }
 
     fn type_info(&self, state: &TypeState) -> TypeInfo {

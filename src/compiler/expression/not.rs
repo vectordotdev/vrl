@@ -2,7 +2,7 @@ use std::fmt;
 
 use crate::compiler::state::{TypeInfo, TypeState};
 use crate::compiler::{
-    expression::{Expr, Resolved},
+    expression::{Executed, Expr, Resolved},
     parser::Node,
     value::{Kind, VrlValueConvert},
     Context, Expression, Span, TypeDef,
@@ -50,6 +50,10 @@ impl Not {
 impl Expression for Not {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         Ok((!self.inner.resolve(ctx)?.try_boolean()?).into())
+    }
+
+    fn execute(&self, ctx: &mut Context) -> Executed {
+        self.inner.execute(ctx)
     }
 
     fn type_info(&self, state: &TypeState) -> TypeInfo {

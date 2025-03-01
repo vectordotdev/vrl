@@ -2,6 +2,7 @@ use std::fmt;
 
 use crate::compiler::{
     expression::{ExpressionError, Resolved},
+    expression_error::Executed,
     state::{TypeInfo, TypeState},
     value::{Kind, VrlValueConvert},
     Context, Expression, Span, TypeDef,
@@ -62,6 +63,13 @@ impl Expression for Abort {
             span: self.span,
             message,
         })
+    }
+
+    fn execute(&self, ctx: &mut Context) -> Executed {
+        if let Some(ref expr) = self.message {
+            expr.execute(ctx)?;
+        }
+        Ok(())
     }
 
     fn type_info(&self, state: &TypeState) -> TypeInfo {

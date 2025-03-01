@@ -2,7 +2,7 @@ use std::fmt;
 
 use crate::compiler::state::{TypeInfo, TypeState};
 use crate::compiler::{
-    expression::{Expr, Resolved},
+    expression::{Executed, Expr, Resolved},
     Context, Expression,
 };
 
@@ -22,6 +22,10 @@ impl Group {
 impl Expression for Group {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         self.inner.resolve(ctx)
+    }
+
+    fn execute(&self, ctx: &mut Context) -> Executed {
+        self.inner.execute(ctx)
     }
 
     fn type_info(&self, state: &TypeState) -> TypeInfo {

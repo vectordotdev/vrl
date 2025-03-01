@@ -4,7 +4,7 @@ use crate::diagnostic::{DiagnosticMessage, Label, Note, Urls};
 
 use crate::compiler::expression::Block;
 use crate::compiler::{
-    expression::{Expr, Resolved},
+    expression::{Executed, Expr, Resolved},
     parser::Node,
     state::{TypeInfo, TypeState},
     value::Kind,
@@ -57,6 +57,10 @@ impl Predicate {
 impl Expression for Predicate {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         self.inner.resolve(ctx)
+    }
+
+    fn execute(&self, ctx: &mut Context) -> Executed {
+        self.inner.execute(ctx)
     }
 
     fn type_info(&self, state: &TypeState) -> TypeInfo {

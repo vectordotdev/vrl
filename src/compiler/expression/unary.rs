@@ -1,7 +1,7 @@
 use std::fmt;
 
 use crate::compiler::{
-    expression::{Not, Resolved},
+    expression::{Executed, Not, Resolved},
     state::{TypeInfo, TypeState},
     Context, Expression,
 };
@@ -29,6 +29,14 @@ impl Expression for Unary {
 
         match &self.variant {
             Not(v) => v.resolve(ctx),
+        }
+    }
+
+    fn execute(&self, ctx: &mut Context) -> Executed {
+        use Variant::Not;
+
+        match &self.variant {
+            Not(v) => v.execute(ctx),
         }
     }
 

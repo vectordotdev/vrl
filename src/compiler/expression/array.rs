@@ -3,7 +3,7 @@ use std::{collections::BTreeMap, fmt, ops::Deref};
 use crate::value::Value;
 use crate::{
     compiler::{
-        expression::{Expr, Resolved},
+        expression::{Executed, Expr, Resolved},
         state::{TypeInfo, TypeState},
         Context, Expression, TypeDef,
     },
@@ -36,6 +36,13 @@ impl Expression for Array {
             .map(|expr| expr.resolve(ctx))
             .collect::<Result<Vec<_>, _>>()
             .map(Value::Array)
+    }
+
+    fn execute(&self, ctx: &mut Context) -> Executed {
+        for expr in &self.inner {
+            expr.execute(ctx)?;
+        }
+        Ok(())
     }
 
     fn resolve_constant(&self, state: &TypeState) -> Option<Value> {

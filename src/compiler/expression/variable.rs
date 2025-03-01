@@ -4,7 +4,7 @@ use std::fmt;
 
 use crate::compiler::state::{TypeInfo, TypeState};
 use crate::compiler::{
-    expression::{levenstein, Resolved},
+    expression::{levenstein, Executed, Resolved},
     parser::ast::Ident,
     state::LocalEnv,
     Context, Expression, Span, TypeDef,
@@ -42,6 +42,10 @@ impl Expression for Variable {
             .variable(&self.ident)
             .cloned()
             .unwrap_or(Value::Null))
+    }
+
+    fn execute(&self, _: &mut Context) -> Executed {
+        Ok(())
     }
 
     fn resolve_constant(&self, state: &TypeState) -> Option<Value> {

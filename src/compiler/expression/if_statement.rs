@@ -4,7 +4,7 @@ use crate::value::Value;
 
 use crate::compiler::state::{TypeInfo, TypeState};
 use crate::compiler::{
-    expression::{Block, Predicate, Resolved},
+    expression::{Block, Executed, Predicate, Resolved},
     value::VrlValueConvert,
     Context, Expression,
 };
@@ -27,6 +27,18 @@ impl Expression for IfStatement {
                 .as_ref()
                 .map_or(Ok(Value::Null), |block| block.resolve(ctx))
         }
+    }
+
+    fn execute(&self, ctx: &mut Context) -> Executed {
+        let predicate = self.predicate.resolve(ctx)?.try_boolean()?;
+
+        if predicate {
+            self.if_block.execute(ctx)?;
+        } else if let Some(ref block) = self.else_block {
+            block.execute(ctx)?;
+        }
+
+        Ok(())
     }
 
     fn type_info(&self, state: &TypeState) -> TypeInfo {

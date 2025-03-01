@@ -1,5 +1,5 @@
 use crate::compiler::{
-    expression::{Container, Resolved, Variable},
+    expression::{Container, Executed, Resolved, Variable},
     parser::ast::Ident,
     state::ExternalEnv,
     state::{TypeInfo, TypeState},
@@ -123,6 +123,16 @@ impl Expression for Query {
         };
 
         Ok(value.get(&self.path).cloned().unwrap_or(Value::Null))
+    }
+
+    fn execute(&self, ctx: &mut Context) -> Executed {
+        use Target::{Container, External, FunctionCall, Internal};
+
+        match &self.target {
+            FunctionCall(call) => call.execute(ctx),
+            Container(container) => container.execute(ctx),
+            External(..) | Internal(..) => Ok(()),
+        }
     }
 
     fn resolve_constant(&self, state: &TypeState) -> Option<Value> {
