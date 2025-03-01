@@ -172,7 +172,12 @@ pub fn encode_message(
             match map.get(field.name()) {
                 None | Some(Value::Null) => message.clear_field(&field),
                 Some(value) => message
-                    .try_set_field(&field, convert_value(&field, value.clone())?)
+                    .try_set_field(
+                        &field,
+                        convert_value(&field, value.clone()).map_err(|e| {
+                            format!("Error converting {} field: {}", field.name(), e)
+                        })?,
+                    )
                     .map_err(|e| format!("Error setting {} field: {}", field.name(), e))?,
             }
         }
