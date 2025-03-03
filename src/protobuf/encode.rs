@@ -127,6 +127,10 @@ fn convert_value_raw(
                 .map_err(|e| format!("Error setting 'nanos' field: {}", e))?;
             Ok(prost_reflect::Value::Message(message))
         }
+        (Value::Boolean(b), Kind::String) => Ok(prost_reflect::Value::String(b.to_string())),
+        (Value::Integer(i), Kind::String) => Ok(prost_reflect::Value::String(i.to_string())),
+        (Value::Float(f), Kind::String) => Ok(prost_reflect::Value::String(f.to_string())),
+        (Value::Timestamp(t), Kind::String) => Ok(prost_reflect::Value::String(t.to_string())),
         _ => Err(format!(
             "Cannot encode `{kind_str}` into protobuf `{kind:?}`",
         )),
@@ -168,7 +172,12 @@ pub fn encode_message(
             match map.get(field.name()) {
                 None | Some(Value::Null) => message.clear_field(&field),
                 Some(value) => message
-                    .try_set_field(&field, convert_value(&field, value.clone())?)
+                    .try_set_field(
+                        &field,
+                        convert_value(&field, value.clone()).map_err(|e| {
+                            format!("Error converting {} field: {}", field.name(), e)
+                        })?,
+                    )
                     .map_err(|e| format!("Error setting {} field: {}", field.name(), e))?,
             }
         }
@@ -445,6 +454,45 @@ mod tests {
         assert_eq!(
             Some(1),
             mfield!(list[2].as_message().unwrap(), "index").as_u32()
+        );
+    }
+
+    #[test]
+    fn test_encode_value_as_string() {
+        let mut message = encode_message(
+            &test_message_descriptor("Bytes"),
+            Value::Object(BTreeMap::from([("text".into(), Value::Boolean(true))])),
+        )
+        .unwrap();
+        assert_eq!(Some("true"), mfield!(message, "text").as_str());
+        message = encode_message(
+            &test_message_descriptor("Bytes"),
+            Value::Object(BTreeMap::from([("text".into(), Value::Integer(123))])),
+        )
+        .unwrap();
+        assert_eq!(Some("123"), mfield!(message, "text").as_str());
+        message = encode_message(
+            &test_message_descriptor("Bytes"),
+            Value::Object(BTreeMap::from([(
+                "text".into(),
+                Value::Float(NotNan::new(45.67).unwrap()),
+            )])),
+        )
+        .unwrap();
+        assert_eq!(Some("45.67"), mfield!(message, "text").as_str());
+        message = encode_message(
+            &test_message_descriptor("Bytes"),
+            Value::Object(BTreeMap::from([(
+                "text".into(),
+                Value::Timestamp(
+                    DateTime::from_timestamp(8675, 309).expect("could not compute timestamp"),
+                ),
+            )])),
+        )
+        .unwrap();
+        assert_eq!(
+            Some("1970-01-01 02:24:35.000000309 UTC"),
+            mfield!(message, "text").as_str()
         );
     }
 
