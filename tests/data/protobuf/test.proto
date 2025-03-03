@@ -22,22 +22,22 @@ message Bytes {
 }
 
 message Map {
+  message Person {
+    string nickname = 1;
+    uint32 age = 2;
+  }
+
   map<string, int32> names = 1;
   map<string, Person> people = 2;
-}
 
-message Person {
-  string nickname = 1;
-  uint32 age = 2;
-}
-
-enum Fruit {
-  APPLE = 0;
-  OLIVE = 1;
-  TOMATO = 2;
 }
 
 message Enum {
+  enum Fruit {
+    APPLE = 0;
+    OLIVE = 1;
+    TOMATO = 2;
+  }
   Fruit breakfast = 1;
   Fruit lunch = 2;
   Fruit dinner = 3;
@@ -48,14 +48,14 @@ message Timestamp {
 }
 
 message RepeatedPrimitive {
-  repeated int32 numbers = 1;
+  repeated int64 numbers = 1;
 }
 
 message RepeatedMessage {
   repeated EmbeddedMessage messages = 1;
 
   message EmbeddedMessage {
-    string text = 1;
-    uint32 index = 2;
+    optional string text = 1;
+    optional uint32 index = 2;
   }
 }
