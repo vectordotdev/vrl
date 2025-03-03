@@ -120,6 +120,7 @@ stdlib = [
 
 [dependencies]
 cfg-if = "1"
+encoding_rs = { version = "0.8.35" }
 
 # Optional dependencies
 ansi_term = { version = "0.12", optional = true }
@@ -129,7 +130,6 @@ base62 = { version = "2.2.1", optional = true }
 base64 = { version = "0.22", optional = true }
 bytes = { version = "1", default-features = false, optional = true }
 charset = { version = "0.1", optional = true }
-encoding_rs = { version = "0.8.35", optional = false }
 chrono = { version = "0.4", default-features = false, features = ["clock", "serde", "wasmbind"], optional = true }
 chrono-tz = { version = "0.10", default-features = false, optional = true }
 ciborium = { version = "0.2.2", default-features = false, optional = true }
