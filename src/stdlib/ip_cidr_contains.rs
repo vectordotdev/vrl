@@ -1,5 +1,5 @@
 use crate::compiler::prelude::*;
-use cidr_utils::cidr::IpCidr;
+use cidr::IpCidr;
 use std::net::IpAddr;
 use std::str::FromStr;
 
