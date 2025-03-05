@@ -69,7 +69,7 @@ stdlib = [
   "dep:charset",
   "dep:convert_case",
   "dep:ciborium",
-  "dep:cidr-utils",
+  "dep:cidr",
   "dep:community-id",
   "dep:crc",
   "dep:crypto_secretbox",
@@ -134,7 +134,7 @@ encoding_rs = { version = "0.8.35", optional = true }
 chrono = { version = "0.4", default-features = false, features = ["clock", "serde", "wasmbind"], optional = true }
 chrono-tz = { version = "0.10", default-features = false, optional = true }
 ciborium = { version = "0.2.2", default-features = false, optional = true }
-cidr-utils = { version = "0.6", optional = true }
+cidr = { version = "0.3", optional = true }
 csv = { version = "1", optional = true }
 clap = { version = "4", features = ["derive"], optional = true }
 codespan-reporting = { version = "0.11", optional = true }
