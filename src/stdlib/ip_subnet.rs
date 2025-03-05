@@ -1,7 +1,5 @@
 use crate::compiler::prelude::*;
-use regex::Regex;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
-use std::sync::LazyLock;
 
 fn ip_subnet(value: &Value, mask: &Value) -> Resolved {
     let value: IpAddr = value
@@ -35,8 +33,6 @@ fn ip_subnet(value: &Value, mask: &Value) -> Resolved {
     };
     Ok(mask_ips(value, mask)?.to_string().into())
 }
-
-static RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"/(?P<subnet>\d*)").unwrap());
 
 #[derive(Clone, Copy, Debug)]
 pub struct IpSubnet;
@@ -103,12 +99,9 @@ impl FunctionExpression for IpSubnetFn {
 
 /// Parses a subnet in the form "/8" returns the number.
 fn parse_subnet(subnet: &str) -> ExpressionResult<u32> {
-    let subnet = RE
-        .captures(subnet)
-        .ok_or_else(|| format!("{subnet} is not a valid subnet"))?;
-
-    let subnet = subnet["subnet"].parse().expect("digits ensured by regex");
-
+    let subnet = subnet[1..]
+        .parse()
+        .map_err(|_| format!("{subnet} is not a valid subnet"))?;
     Ok(subnet)
 }
 
