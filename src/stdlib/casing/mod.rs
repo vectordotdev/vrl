@@ -98,17 +98,17 @@ pub(crate) fn convert_case_with_excluded_boundaries(
     to_case: Case,
     from_case: Option<Case>,
     excluded_boundaries: &[Boundary],
-) -> Resolved {
+) -> Value {
     match from_case {
-        Some(case) => Ok(string_value
+        Some(case) => string_value
             .from_case(case)
             .without_boundaries(excluded_boundaries)
             .to_case(to_case)
-            .into()),
-        None => Ok(string_value
+            .into(),
+        None => string_value
             .without_boundaries(excluded_boundaries)
             .to_case(to_case)
-            .into()),
+            .into(),
     }
 }
 

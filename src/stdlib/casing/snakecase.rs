@@ -120,12 +120,12 @@ impl FunctionExpression for SnakecaseFn {
 
         match &self.excluded_boundaries {
             Some(boundaries) if !boundaries.is_empty() => {
-                super::convert_case_with_excluded_boundaries(
+                Ok(super::convert_case_with_excluded_boundaries(
                     &string_value,
                     Case::Snake,
                     self.original_case,
                     boundaries.as_slice(),
-                )
+                ))
             }
             _ => super::convert_case(&value, Case::Snake, self.original_case),
         }
