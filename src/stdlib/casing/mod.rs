@@ -82,9 +82,14 @@ pub(crate) fn into_boundary(s: &str) -> Result<convert_case::Boundary, Box<dyn D
 }
 
 #[inline]
-pub(crate) fn convert_case(value: &Value, to_case: Case, from_case: Option<Case>, excluded_boundaries: Option<Vec<Boundary>>) -> Resolved {
+pub(crate) fn convert_case(
+    value: &Value,
+    to_case: Case,
+    from_case: Option<Case>,
+    excluded_boundaries: Option<Vec<Boundary>>,
+) -> Resolved {
     let s = value.try_bytes_utf8_lossy()?;
-    
+
     match (from_case, excluded_boundaries) {
         // Both from_case and excluded_boundaries are provided
         (Some(case), Some(boundaries)) => Ok(s
@@ -92,23 +97,15 @@ pub(crate) fn convert_case(value: &Value, to_case: Case, from_case: Option<Case>
             .without_boundaries(&boundaries)
             .to_case(to_case)
             .into()),
-            
+
         // Only from_case is provided
-        (Some(case), None) => Ok(s
-            .from_case(case)
-            .to_case(to_case)
-            .into()),
-            
+        (Some(case), None) => Ok(s.from_case(case).to_case(to_case).into()),
+
         // Only excluded_boundaries is provided
-        (None, Some(boundaries)) => Ok(s
-            .without_boundaries(&boundaries)
-            .to_case(to_case)
-            .into()),
-            
+        (None, Some(boundaries)) => Ok(s.without_boundaries(&boundaries).to_case(to_case).into()),
+
         // Neither is provided
-        (None, None) => Ok(s
-            .to_case(to_case)
-            .into()),
+        (None, None) => Ok(s.to_case(to_case).into()),
     }
 }
 

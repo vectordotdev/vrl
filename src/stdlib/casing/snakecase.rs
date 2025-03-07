@@ -122,7 +122,12 @@ struct SnakecaseFn {
 impl FunctionExpression for SnakecaseFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let value = self.value.resolve(ctx)?;
-        super::convert_case(&value, Case::Snake, self.original_case, self.excluded_boundaries.clone())
+        super::convert_case(
+            &value,
+            Case::Snake,
+            self.original_case,
+            self.excluded_boundaries.clone(),
+        )
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {
