@@ -94,17 +94,17 @@ impl Function for Snakecase {
     fn examples(&self) -> &'static [Example] {
         &[
             Example {
-                title: "basic snakecase",
+                title: "snakecase",
                 source: r#"snakecase("InputString")"#,
                 result: Ok("input_string"),
             },
             Example {
-                title: "with original case",
+                title: "snakecase with original case",
                 source: r#"snakecase("camelCaseInput", original_case: "camelCase")"#,
                 result: Ok("camel_case_input"),
             },
             Example {
-                title: "with acronyms (s3)",
+                title: "snakecase with excluded boundaries",
                 source: r#"snakecase("s3BucketDetails", excluded_boundaries: ["digit_lower", "lower_digit", "upper_digit"])"#,
                 result: Ok("s3_bucket_details"),
             },
@@ -113,7 +113,6 @@ impl Function for Snakecase {
 }
 
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 struct SnakecaseFn {
     value: Box<dyn Expression>,
     original_case: Option<Case>,
