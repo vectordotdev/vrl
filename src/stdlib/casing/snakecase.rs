@@ -3,6 +3,8 @@ use crate::compiler::prelude::*;
 use crate::stdlib::casing::into_case;
 use convert_case::Case;
 
+use super::into_boundary;
+
 #[derive(Clone, Copy, Debug)]
 pub struct Snakecase;
 
@@ -49,39 +51,29 @@ impl Function for Snakecase {
             })
             .transpose()?;
 
-        let excluded_boundaries = match arguments.optional_array("excluded_boundaries") {
-            Ok(Some(array_exprs)) => {
+        let excluded_boundaries = arguments
+            .optional_array("excluded_boundaries")?
+            .map(|arr| {
                 let mut boundaries = Vec::new();
-
-                for expr in array_exprs {
-                    if let Some(value) = expr.resolve_constant(state) {
-                        if let Some(s) = value.as_str() {
-                            match super::into_boundary(s.as_ref()) {
-                                Ok(boundary) => boundaries.push(boundary),
-                                Err(e) => return Err(e),
-                            }
-                        } else {
-                            return Err(Box::new(ExpressionError::from(
-                                "excluded_boundaries must contain only strings",
+                for expr in arr {
+                    let value = expr.resolve_constant(state).ok_or_else(
+                        || -> Box<dyn DiagnosticMessage> {
+                            Box::new(ExpressionError::from(
+                                "expected static string for excluded_boundaries",
                             ))
-                                as Box<dyn DiagnosticMessage>);
-                        }
-                    } else {
-                        return Err(Box::new(ExpressionError::from(
-                            "excluded_boundaries must contain only constant values",
-                        )) as Box<dyn DiagnosticMessage>);
-                    }
+                        },
+                    )?;
+                    let boundary = into_boundary(
+                        value
+                            .try_bytes_utf8_lossy()
+                            .expect("cant convert to string")
+                            .as_ref(),
+                    )?;
+                    boundaries.push(boundary);
                 }
-
-                if boundaries.is_empty() {
-                    None
-                } else {
-                    Some(boundaries)
-                }
-            }
-            Ok(None) => None,
-            Err(e) => return Err(Box::new(e) as Box<dyn DiagnosticMessage>),
-        };
+                Ok::<_, Box<dyn DiagnosticMessage>>(boundaries)
+            })
+            .transpose()?;
 
         Ok(SnakecaseFn {
             value,
