@@ -1,7 +1,7 @@
 use crate::compiler::prelude::*;
 
 #[inline]
-fn del(query: &expression::Query, compact: bool, ctx: &mut Context) -> Resolved {
+fn resolve_del(query: &expression::Query, compact: bool, ctx: &mut Context) -> Resolved {
     let path = query.path();
 
     if let Some(target_path) = query.external_path() {
@@ -29,6 +29,23 @@ fn del(query: &expression::Query, compact: bool, ctx: &mut Context) -> Resolved 
     } else {
         Ok(Value::Null)
     }
+}
+
+#[inline]
+fn execute_del(query: &expression::Query, compact: bool, ctx: &mut Context) -> Executed {
+    let path = query.path();
+
+    if let Some(target_path) = query.external_path() {
+        let _ = ctx.target_mut().target_remove(&target_path, compact);
+    } else if let Some(ident) = query.variable_ident() {
+        if let Some(value) = ctx.state_mut().variable_mut(ident) {
+            value.remove(path, compact);
+        }
+    } else if let Some(expr) = query.expression_target() {
+        expr.execute(ctx)?;
+    }
+
+    Ok(())
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -146,6 +163,14 @@ impl DelFn {
             compact: None,
         }
     }
+
+    #[must_use]
+    fn resolve_compact(&self, ctx: &mut Context) -> Result<bool, ExpressionError> {
+        Ok(match &self.compact {
+            Some(compact) => compact.resolve(ctx)?.try_boolean()?,
+            None => false,
+        })
+    }
 }
 
 impl Expression for DelFn {
@@ -164,11 +189,13 @@ impl Expression for DelFn {
     //
     // see tracking issue: https://github.com/vectordotdev/vector/issues/5887
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let compact = match &self.compact {
-            Some(compact) => compact.resolve(ctx)?.try_boolean()?,
-            None => false,
-        };
-        del(&self.query, compact, ctx)
+        let compact = self.resolve_compact(ctx)?;
+        resolve_del(&self.query, compact, ctx)
+    }
+
+    fn execute(&self, ctx: &mut Context) -> Executed {
+        let compact = self.resolve_compact(ctx)?;
+        execute_del(&self.query, compact, ctx)
     }
 
     fn type_info(&self, state: &state::TypeState) -> TypeInfo {

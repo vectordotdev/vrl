@@ -14,6 +14,7 @@ pub use crate::value::{
 };
 pub use crate::{expr, func_args, test_function, test_type_def};
 
+pub use super::Executed;
 pub use super::Resolved;
 pub use super::{
     expression,

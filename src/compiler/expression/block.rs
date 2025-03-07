@@ -3,7 +3,7 @@ use std::fmt;
 use crate::compiler::state::{TypeInfo, TypeState};
 use crate::compiler::{
     expression::{Expr, Resolved},
-    Context, Expression, TypeDef,
+    Context, Executed, Expression, TypeDef,
 };
 use crate::value::Kind;
 
@@ -49,11 +49,14 @@ impl Expression for Block {
         // in scope can be accessed here, so it doesn't need to be checked at runtime.
         let (last, other) = self.inner.split_last().expect("at least one expression");
 
-        other
-            .iter()
-            .try_for_each(|expr| expr.resolve(ctx).map(|_| ()))?;
+        other.iter().try_for_each(|expr| expr.execute(ctx))?;
 
         last.resolve(ctx)
+    }
+
+    fn execute(&self, ctx: &mut Context) -> Executed {
+        self.inner.iter().try_for_each(|expr| expr.execute(ctx))?;
+        Ok(())
     }
 
     fn type_info(&self, state: &TypeState) -> TypeInfo {

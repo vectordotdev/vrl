@@ -3,7 +3,7 @@ use std::{collections::BTreeMap, fmt, ops::Deref};
 use crate::value::{KeyString, Value};
 use crate::{
     compiler::{
-        expression::{Expr, Resolved},
+        expression::{Executed, Expr, Resolved},
         state::{TypeInfo, TypeState},
         Context, Expression, TypeDef,
     },
@@ -37,6 +37,13 @@ impl Expression for Object {
             .map(|(key, expr)| expr.resolve(ctx).map(|v| (key.clone(), v)))
             .collect::<Result<BTreeMap<_, _>, _>>()
             .map(Value::Object)
+    }
+
+    fn execute(&self, ctx: &mut Context) -> Executed {
+        for expr in self.inner.values() {
+            expr.execute(ctx)?;
+        }
+        Ok(())
     }
 
     fn resolve_constant(&self, state: &TypeState) -> Option<Value> {
