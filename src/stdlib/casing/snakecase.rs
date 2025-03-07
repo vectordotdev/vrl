@@ -1,7 +1,7 @@
 use crate::compiler::prelude::*;
 
 use crate::stdlib::casing::into_case;
-use convert_case::{Case, Casing};
+use convert_case::Case;
 
 #[derive(Clone, Copy, Debug)]
 pub struct Snakecase;
@@ -122,29 +122,7 @@ struct SnakecaseFn {
 impl FunctionExpression for SnakecaseFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let value = self.value.resolve(ctx)?;
-        let s = value.try_bytes_utf8_lossy()?;
-
-        // Apply the conversion using the library
-        let result = match self.original_case {
-            Some(case) => {
-                let mut converter = s.from_case(case);
-                if let Some(excluded) = &self.excluded_boundaries {
-                    converter = converter.without_boundaries(excluded);
-                }
-                converter.to_case(Case::Snake)
-            }
-            None => {
-                // If excluded_boundaries are specified, use without_boundaries
-                if let Some(excluded) = &self.excluded_boundaries {
-                    s.without_boundaries(excluded).to_case(Case::Snake)
-                } else {
-                    // Otherwise use default boundaries
-                    s.to_case(Case::Snake)
-                }
-            }
-        };
-
-        Ok(result.into())
+        super::convert_case(&value, Case::Snake, self.original_case, self.excluded_boundaries.clone())
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

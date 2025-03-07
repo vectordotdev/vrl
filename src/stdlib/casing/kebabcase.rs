@@ -69,7 +69,7 @@ struct KebabcaseFn {
 impl FunctionExpression for KebabcaseFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let value = self.value.resolve(ctx)?;
-        super::convert_case(&value, Case::Kebab, self.original_case)
+        super::convert_case(&value, Case::Kebab, self.original_case, None)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {
