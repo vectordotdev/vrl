@@ -114,12 +114,21 @@ struct SnakecaseFn {
 impl FunctionExpression for SnakecaseFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let value = self.value.resolve(ctx)?;
-        super::convert_case(
-            &value,
-            Case::Snake,
-            self.original_case,
-            self.excluded_boundaries.clone(),
-        )
+        let string_value = value
+            .try_bytes_utf8_lossy()
+            .expect("can't convert to string");
+
+        match &self.excluded_boundaries {
+            Some(boundaries) if !boundaries.is_empty() => {
+                super::convert_case_with_excluded_boundaries(
+                    &string_value,
+                    Case::Snake,
+                    self.original_case,
+                    boundaries.as_slice(),
+                )
+            }
+            _ => super::convert_case(&value, Case::Snake, self.original_case),
+        }
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {
