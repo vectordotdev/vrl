@@ -22,6 +22,27 @@ pub(crate) fn variants() -> Vec<Value> {
     ]
 }
 
+pub(crate) fn boundaries() -> Vec<Value> {
+    vec![
+        crate::value!("lower_upper"), // Splits "camelCase" into "camel" and "Case"
+        crate::value!("upper_lower"), // Rarely used, splits "CamelCase" at "Camel" and "Case"
+        crate::value!("upper_upper"), // Splits "ABCdef" into "A" and "BCdef"
+        crate::value!("acronym"),     // Splits "XMLHttpRequest" into "XML" and "HttpRequest"
+        crate::value!("lower_digit"), // Splits "version2Release" into "version" and "2Release"
+        crate::value!("upper_digit"), // Splits "Version2Release" into "Version" and "2Release"
+        crate::value!("digit_lower"), // Splits "v2release" into "v2" and "release"
+        crate::value!("digit_upper"), // Splits "v2Release" into "v2" and "Release"
+    ]
+}
+
+pub(crate) fn boundaries_msg() -> String {
+    boundaries()
+        .into_iter()
+        .filter_map(|v| Some(v.as_str()?.into_owned()))
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
 pub(crate) fn variants_msg() -> String {
     variants()
         .into_iter()
@@ -40,6 +61,22 @@ pub(crate) fn into_case(s: &str) -> Result<Case, Box<dyn DiagnosticMessage>> {
         _ => Err(Box::new(ExpressionError::from(format!(
             "case must match one of: {}",
             variants_msg()
+        ))) as Box<dyn DiagnosticMessage>),
+    }
+}
+
+pub(crate) fn into_boundary(s: &str) -> Result<convert_case::Boundary, Box<dyn DiagnosticMessage>> {
+    match s {
+        "lower_upper" => Ok(convert_case::Boundary::LOWER_UPPER),
+        "upper_lower" => Ok(convert_case::Boundary::UPPER_LOWER),
+        "acronym" => Ok(convert_case::Boundary::ACRONYM),
+        "lower_digit" => Ok(convert_case::Boundary::LOWER_DIGIT),
+        "upper_digit" => Ok(convert_case::Boundary::UPPER_DIGIT),
+        "digit_lower" => Ok(convert_case::Boundary::DIGIT_LOWER),
+        "digit_upper" => Ok(convert_case::Boundary::DIGIT_UPPER),
+        _ => Err(Box::new(ExpressionError::from(format!(
+            "boundary must match one of: {}",
+            boundaries_msg()
         ))) as Box<dyn DiagnosticMessage>),
     }
 }
