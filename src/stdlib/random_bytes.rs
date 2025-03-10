@@ -1,5 +1,5 @@
 use crate::compiler::prelude::*;
-use rand::{thread_rng, RngCore};
+use rand::{rng, RngCore};
 
 const MAX_LENGTH: i64 = 1024 * 64;
 const LENGTH_TOO_LARGE_ERR: &str = "Length is too large. Maximum is 64k";
@@ -9,7 +9,7 @@ fn random_bytes(length: Value) -> Resolved {
     let mut output = vec![0_u8; get_length(length)?];
 
     // ThreadRng is a cryptographically secure generator
-    thread_rng().fill_bytes(&mut output);
+    rng().fill_bytes(&mut output);
 
     Ok(Value::Bytes(Bytes::from(output)))
 }

@@ -1,9 +1,9 @@
 use crate::compiler::prelude::*;
-use rand::{thread_rng, Rng};
+use rand::{rng, Rng};
 
 #[allow(clippy::unnecessary_wraps)] // match other VRL function implementations
 fn random_bool() -> Resolved {
-    let b: bool = thread_rng().gen();
+    let b: bool = rng().random();
 
     Ok(Value::Boolean(b))
 }
