@@ -1,7 +1,6 @@
 use std::collections::BTreeMap;
 
 use crate::compiler::{
-    state::RuntimeState,
     value::{Kind, VrlValueConvert},
     Context, ExpressionError,
 };
@@ -80,6 +79,16 @@ pub enum VariableKind {
     /// variable the closure takes will be a `Kind::bytes()`.
     Exact(Kind),
 
+    /// The variable [`Kind`] is inferred from a parameter of the closure.
+    ///
+    /// For example, `VariableKind::Parameter('initial')` is equivalent to `VariableKind::Target`
+    /// where the [`Input`] `parameter_keyword` is "initial".
+    Parameter(&'static str),
+
+    /// The variable [`Kind`] is inferred from the closure's output. The inner
+    /// value is the type used initially when determining the closure's output.
+    Closure(InitialKind),
+
     /// The variable [`Kind`] is inferred from the target of the closure.
     Target,
 
@@ -91,6 +100,38 @@ pub enum VariableKind {
     /// target. If the target is known to be exactly an object, this is always
     /// a `Value::bytes()`, if it's known to be exactly an array, it is
     /// a `Value::integer()`, otherwise it is one of the two.
+    TargetInnerKey,
+}
+
+impl From<InitialKind> for VariableKind {
+    fn from(initial_kind: InitialKind) -> Self {
+        match initial_kind {
+            InitialKind::Exact(kind) => VariableKind::Exact(kind),
+            InitialKind::Parameter(parameter) => VariableKind::Parameter(parameter),
+            InitialKind::Target => VariableKind::Target,
+            InitialKind::TargetInnerValue => VariableKind::TargetInnerValue,
+            InitialKind::TargetInnerKey => VariableKind::TargetInnerKey,
+        }
+    }
+}
+
+/// If a [`Variable`] is inferring its [`Value`] kind from a closure (see
+/// [`VariableKind::Closure`]), this is the initial value used for the variable.
+#[derive(Debug, Clone)]
+pub enum InitialKind {
+    /// Equivalent to [`VariableKind::Exact`]
+    Exact(Kind),
+
+    /// Equivalent to [`VariableKind::Parameter`]
+    Parameter(&'static str),
+
+    /// Equivalent to [`VariableKind::Target`]
+    Target,
+
+    /// Equivalent to [`VariableKind::TargetInnerValue`]
+    TargetInnerValue,
+
+    /// Equivalent to [`VariableKind::TargetInnerKey`]
     TargetInnerKey,
 }
 
@@ -141,9 +182,124 @@ impl Output {
     }
 }
 
+enum SwapSpace<'a> {
+    Owned(Vec<Option<Value>>),
+    Borrowed(&'a mut [Option<Value>]),
+}
+
+impl SwapSpace<'_> {
+    fn as_mut_slice(&mut self) -> &mut [Option<Value>] {
+        match self {
+            SwapSpace::Owned(v) => v.as_mut_slice(),
+            SwapSpace::Borrowed(s) => s,
+        }
+    }
+}
+
+#[must_use]
+pub struct FluentRunnerInterface<'a, 'b, T> {
+    parent: &'a FluentRunner<'a, T>,
+    swap_space: SwapSpace<'b>,
+}
+
+impl<'a, 'b, T> FluentRunnerInterface<'a, 'b, T>
+where
+    T: Fn(&mut Context) -> Result<Value, ExpressionError>,
+{
+    fn new(parent: &'a FluentRunner<'a, T>, swap_space: Option<&'b mut [Option<Value>]>) -> Self {
+        let swap_space = if let Some(s) = swap_space {
+            SwapSpace::Borrowed(s)
+        } else {
+            let mut swap_space = Vec::new();
+            swap_space.resize_with(parent.variables.len(), Default::default);
+            SwapSpace::Owned(swap_space)
+        };
+
+        Self { parent, swap_space }
+    }
+
+    /// Adds a new parameter to the runner. The `index` corresponds with the index of the supplied
+    /// variables.
+    pub fn parameter(mut self, ctx: &mut Context, index: usize, value: Value) -> Self {
+        self.parent
+            .parameter(self.swap_space.as_mut_slice(), ctx, index, value);
+        self
+    }
+
+    /// Run the closure to completion, given the supplied parameters, and the runtime context.
+    pub fn run(mut self, ctx: &mut Context) -> Result<Value, ExpressionError> {
+        self.parent.run(self.swap_space.as_mut_slice(), ctx)
+    }
+}
+
+pub struct FluentRunner<'a, T> {
+    variables: &'a [Ident],
+    runner: T,
+}
+
+impl<'a, T> FluentRunner<'a, T>
+where
+    T: Fn(&mut Context) -> Result<Value, ExpressionError>,
+{
+    pub fn new(variables: &'a [Ident], runner: T) -> Self {
+        Self { variables, runner }
+    }
+
+    /// Creates a new [`FluentRunnerInterface`] with a temporary swap space equal in size to the
+    /// number of provided variables.
+    ///
+    /// This is useful when a closure is expected to only run once.
+    pub fn with_tmp_swap_space(&'a self) -> FluentRunnerInterface<'a, 'a, T> {
+        FluentRunnerInterface::new(self, None)
+    }
+
+    /// Creates a new [`FluentRunnerInterface`] with a supplied swap space.
+    ///
+    /// This is useful for repeating closures that need the same sized swap space.
+    pub fn with_swap_space<'b>(
+        &'a self,
+        swap_space: &'b mut [Option<Value>],
+    ) -> FluentRunnerInterface<'a, 'b, T> {
+        FluentRunnerInterface::new(self, Some(swap_space))
+    }
+
+    fn parameter(
+        &self,
+        swap_space: &mut [Option<Value>],
+        ctx: &mut Context,
+        index: usize,
+        value: Value,
+    ) {
+        let ident = self.variables.get(index).filter(|i| !i.is_empty()).cloned();
+
+        if let Some(swap) = swap_space.get_mut(index) {
+            *swap = ident.and_then(|ident| ctx.state_mut().swap_variable(ident, value));
+        }
+    }
+
+    fn run(
+        &self,
+        swap_space: &mut [Option<Value>],
+        ctx: &mut Context,
+    ) -> Result<Value, ExpressionError> {
+        let value = (self.runner)(ctx)?;
+        let state = ctx.state_mut();
+
+        for (old_value, ident) in swap_space.iter().zip(self.variables) {
+            match old_value {
+                Some(value) => {
+                    state.insert_variable(ident.clone(), value.clone());
+                }
+                None => state.remove_variable(ident),
+            }
+        }
+
+        Ok(value)
+    }
+}
+
 pub struct Runner<'a, T> {
-    pub(crate) variables: &'a [Ident],
-    pub(crate) runner: T,
+    inner_runner: FluentRunner<'a, T>,
 }
 
 #[allow(clippy::missing_errors_doc)]
@@ -152,7 +308,8 @@ where
     T: Fn(&mut Context) -> Result<Value, ExpressionError>,
 {
     pub fn new(variables: &'a [Ident], runner: T) -> Self {
-        Self { variables, runner }
+        let inner_runner = FluentRunner::new(variables, runner);
+        Self { inner_runner }
     }
 
     /// Run the closure to completion, given the provided key/value pair, and
@@ -168,26 +325,20 @@ where
     ) -> Result<Value, ExpressionError> {
         // TODO: we need to allow `LocalEnv` to take a mutable reference to
         // values, instead of owning them.
-        let cloned_key = key.to_owned();
-        let cloned_value = value.clone();
+        let mut swap_space: [Option<Value>; 2] = [None, None];
 
-        let key_ident = self.ident(0);
-        let value_ident = self.ident(1);
-
-        let old_key = insert(ctx.state_mut(), key_ident, cloned_key.into());
-        let old_value = insert(ctx.state_mut(), value_ident, cloned_value);
-
-        let result = match (self.runner)(ctx) {
+        let result = match self
+            .inner_runner
+            .with_swap_space(&mut swap_space)
+            .parameter(ctx, 0, key.to_owned().into())
+            .parameter(ctx, 1, value.clone())
+            .run(ctx)
+        {
             Ok(value) | Err(ExpressionError::Return { value, .. }) => Ok(value),
             err @ Err(_) => err,
         };
 
-        let value = result?;
-
-        cleanup(ctx.state_mut(), key_ident, old_key);
-        cleanup(ctx.state_mut(), value_ident, old_value);
-
-        Ok(value)
+        result
     }
 
     /// Run the closure to completion, given the provided index/value pair, and
@@ -203,20 +354,13 @@ where
     ) -> Result<Value, ExpressionError> {
         // TODO: we need to allow `LocalEnv` to take a mutable reference to
         // values, instead of owning them.
-        let cloned_value = value.clone();
+        let mut swap_space: [Option<Value>; 2] = [None, None];
 
-        let index_ident = self.ident(0);
-        let value_ident = self.ident(1);
-
-        let old_index = insert(ctx.state_mut(), index_ident, index.into());
-        let old_value = insert(ctx.state_mut(), value_ident, cloned_value);
-
-        let value = (self.runner)(ctx)?;
-
-        cleanup(ctx.state_mut(), index_ident, old_index);
-        cleanup(ctx.state_mut(), value_ident, old_value);
-
-        Ok(value)
+        self.inner_runner
+            .with_swap_space(&mut swap_space)
+            .parameter(ctx, 0, index.into())
+            .parameter(ctx, 1, value.clone())
+            .run(ctx)
     }
 
     /// Run the closure to completion, given the provided key, and the runtime
@@ -229,13 +373,15 @@ where
     pub fn map_key(&self, ctx: &mut Context, key: &mut KeyString) -> Result<(), ExpressionError> {
         // TODO: we need to allow `LocalEnv` to take a mutable reference to
         // values, instead of owning them.
-        let cloned_key = key.clone();
-        let ident = self.ident(0);
-        let old_key = insert(ctx.state_mut(), ident, cloned_key.into());
+        let mut swap_space: [Option<Value>; 1] = [None];
 
-        *key = (self.runner)(ctx)?.try_bytes_utf8_lossy()?.into();
-
-        cleanup(ctx.state_mut(), ident, old_key);
+        *key = self
+            .inner_runner
+            .with_swap_space(&mut swap_space)
+            .parameter(ctx, 0, key.clone().into())
+            .run(ctx)?
+            .try_bytes_utf8_lossy()?
+            .into();
 
         Ok(())
     }
@@ -250,34 +396,14 @@ where
     pub fn map_value(&self, ctx: &mut Context, value: &mut Value) -> Result<(), ExpressionError> {
         // TODO: we need to allow `LocalEnv` to take a mutable reference to
         // values, instead of owning them.
-        let cloned_value = value.clone();
-        let ident = self.ident(0);
-        let old_value = insert(ctx.state_mut(), ident, cloned_value);
+        let mut swap_space: [Option<Value>; 1] = [None];
 
-        *value = (self.runner)(ctx)?;
-
-        cleanup(ctx.state_mut(), ident, old_value);
+        *value = self
+            .inner_runner
+            .with_swap_space(&mut swap_space)
+            .parameter(ctx, 0, value.clone())
+            .run(ctx)?;
 
         Ok(())
-    }
-
-    fn ident(&self, index: usize) -> Option<&Ident> {
-        self.variables
-            .get(index)
-            .and_then(|v| (!v.is_empty()).then_some(v))
-    }
-}
-
-fn insert(state: &mut RuntimeState, ident: Option<&Ident>, data: Value) -> Option<Value> {
-    ident.and_then(|ident| state.swap_variable(ident.clone(), data))
-}
-
-fn cleanup(state: &mut RuntimeState, ident: Option<&Ident>, data: Option<Value>) {
-    match (ident, data) {
-        (Some(ident), Some(value)) => {
-            state.insert_variable(ident.clone(), value);
-        }
-        (Some(ident), None) => state.remove_variable(ident),
-        _ => {}
     }
 }
