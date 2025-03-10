@@ -10,6 +10,17 @@ use crate::compiler::{
     Expression,
 };
 
+/// Create a boxed [`Expression`][crate::Expression] trait object from a given `Value`.
+///
+/// Supports the same format as the [`value`] macro.
+#[macro_export]
+macro_rules! expr {
+    ($($v:tt)*) => {{
+        let value = $crate::value!($($v)*);
+        $crate::compiler::value::VrlValueConvert::into_expression(value)
+    }};
+}
+
 #[allow(clippy::module_name_repetitions, clippy::missing_errors_doc)]
 pub trait VrlValueConvert: Sized {
     /// Convert a given [`Value`] into a [`Expression`] trait object.
