@@ -19,6 +19,8 @@ use crate::path::{OwnedSegment, OwnedTargetPath};
 use crate::path::{OwnedValuePath, PathPrefix};
 use crate::value::{Kind, Value};
 
+use super::Executed;
+
 #[derive(Clone, PartialEq)]
 pub struct Assignment {
     variant: Variant<Target, Expr>,
@@ -310,6 +312,10 @@ impl Expression for Assignment {
         self.variant.resolve(ctx)
     }
 
+    fn execute(&self, ctx: &mut Context) -> Executed {
+        self.variant.execute(ctx)
+    }
+
     fn type_info(&self, state: &TypeState) -> TypeInfo {
         self.variant.type_info(state)
     }
@@ -551,6 +557,35 @@ where
         };
 
         Ok(value)
+    }
+
+    fn execute(&self, ctx: &mut Context) -> Executed {
+        use Variant::{Infallible, Single};
+
+        match self {
+            Single { target, expr } => {
+                let value = expr.resolve(ctx)?;
+                target.insert(value, ctx);
+            }
+            Infallible {
+                ok,
+                err,
+                expr,
+                default,
+            } => match expr.resolve(ctx) {
+                Ok(value) => {
+                    ok.insert(value, ctx);
+                    err.insert(Value::Null, ctx);
+                }
+                Err(error) => {
+                    ok.insert(default.clone(), ctx);
+                    let value = Value::from(error.to_string());
+                    err.insert(value, ctx);
+                }
+            },
+        }
+
+        Ok(())
     }
 
     fn type_info(&self, state: &TypeState) -> TypeInfo {

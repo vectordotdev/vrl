@@ -27,6 +27,7 @@ pub use variable::Variable;
 use crate::value::Value;
 
 use super::state::{TypeInfo, TypeState};
+pub use super::Executed;
 #[allow(clippy::module_name_repetitions)]
 pub use super::ExpressionError;
 pub use super::Resolved;
@@ -63,6 +64,16 @@ pub trait Expression: Send + Sync + fmt::Debug + DynClone {
     ///
     /// An expression is allowed to fail, which aborts the running program.
     fn resolve(&self, ctx: &mut Context) -> Resolved;
+
+    /// Execute an expression.
+    /// Same as resolve() but without returning a value.
+    ///
+    /// This method is only an optimization to not need to allocate / clone() the value.
+    ///
+    /// An expression is allowed to fail, which aborts the running program.
+    fn execute(&self, ctx: &mut Context) -> Executed {
+        self.resolve(ctx).map(|_| ())
+    }
 
     /// Resolve an expression to a value without any context, if possible.
     /// This attempts to resolve expressions using only compile-time information.
@@ -247,6 +258,28 @@ impl Expression for Expr {
             Unary(v) => v.resolve(ctx),
             Abort(v) => v.resolve(ctx),
             Return(v) => v.resolve(ctx),
+        }
+    }
+
+    fn execute(&self, ctx: &mut Context) -> Executed {
+        use Expr::{
+            Abort, Assignment, Container, FunctionCall, IfStatement, Literal, Noop, Op, Query,
+            Return, Unary, Variable,
+        };
+
+        match self {
+            Literal(v) => v.execute(ctx),
+            Container(v) => v.execute(ctx),
+            IfStatement(v) => v.execute(ctx),
+            Op(v) => v.execute(ctx),
+            Assignment(v) => v.execute(ctx),
+            Query(v) => v.execute(ctx),
+            FunctionCall(v) => v.execute(ctx),
+            Variable(v) => v.execute(ctx),
+            Noop(v) => v.execute(ctx),
+            Unary(v) => v.execute(ctx),
+            Abort(v) => v.execute(ctx),
+            Return(v) => v.execute(ctx),
         }
     }
 

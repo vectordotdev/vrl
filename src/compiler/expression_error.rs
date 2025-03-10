@@ -4,6 +4,7 @@ use crate::diagnostic::{Diagnostic, DiagnosticMessage, Label, Note, Severity, Sp
 use crate::value::Value;
 
 pub type Resolved = Result<Value, ExpressionError>;
+pub type Executed = Result<(), ExpressionError>;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ExpressionError {

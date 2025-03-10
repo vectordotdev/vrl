@@ -1,12 +1,13 @@
 use std::fmt;
 
 use crate::compiler::{
-    expression::Resolved,
+    expression::{Executed, Resolved},
     state::{TypeInfo, TypeState},
     Context, Expression, Span, TypeDef,
 };
 use crate::diagnostic::{DiagnosticMessage, Label, Note};
 use crate::parser::ast::Node;
+use crate::value::Value;
 
 use super::{Expr, ExpressionError};
 
@@ -43,6 +44,14 @@ impl Expression for Return {
         Err(ExpressionError::Return {
             span: self.span,
             value: self.expr.resolve(ctx)?,
+        })
+    }
+
+    fn execute(&self, ctx: &mut Context) -> Executed {
+        self.expr.resolve(ctx)?;
+        Err(ExpressionError::Return {
+            span: self.span,
+            value: Value::Null,
         })
     }
 

@@ -8,7 +8,7 @@ use ordered_float::NotNan;
 use regex::Regex;
 
 use crate::compiler::{
-    expression::Resolved,
+    expression::{Executed, Resolved},
     state::{TypeInfo, TypeState},
     Context, Expression, Span, TypeDef,
 };
@@ -49,6 +49,10 @@ impl Literal {
 impl Expression for Literal {
     fn resolve(&self, _: &mut Context) -> Resolved {
         Ok(self.to_value())
+    }
+
+    fn execute(&self, _: &mut Context) -> Executed {
+        Ok(())
     }
 
     fn resolve_constant(&self, _state: &TypeState) -> Option<Value> {

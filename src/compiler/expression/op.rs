@@ -2,7 +2,7 @@ use std::fmt;
 
 use crate::compiler::state::{TypeInfo, TypeState};
 use crate::compiler::{
-    expression::{self, Expr, Resolved},
+    expression::{self, Executed, Expr, Resolved},
     parser::{ast, Node},
     value::VrlValueArithmetic,
     Context, Expression, TypeDef,
@@ -136,6 +136,12 @@ impl Expression for Op {
             And | Or | Err => unreachable!(),
         }
         .map_err(Into::into)
+    }
+
+    fn execute(&self, ctx: &mut Context) -> Executed {
+        self.lhs.execute(ctx)?;
+        self.rhs.execute(ctx)?;
+        Ok(())
     }
 
     #[allow(clippy::too_many_lines)]

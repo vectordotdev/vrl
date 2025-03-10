@@ -16,6 +16,7 @@ pub use crate::value::{
 #[cfg(any(test, feature = "test"))]
 pub use crate::{func_args, test_function, test_type_def};
 
+pub use super::Executed;
 pub use super::Resolved;
 pub use super::{
     expression,
