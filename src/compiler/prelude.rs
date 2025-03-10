@@ -6,13 +6,15 @@ pub use ordered_float::NotNan;
 
 // macros
 pub use crate::diagnostic::{DiagnosticMessage, Note, Span};
+pub use crate::expr;
 pub use crate::value::{
     kind::{Collection, Field, Index},
     value,
     value::IterItem,
     KeyString, Kind, ObjectMap, Value, ValueRegex,
 };
-pub use crate::{expr, func_args, test_function, test_type_def};
+#[cfg(any(test, feature = "test"))]
+pub use crate::{func_args, test_function, test_type_def};
 
 pub use super::Resolved;
 pub use super::{
