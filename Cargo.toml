@@ -113,6 +113,7 @@ stdlib = [
   "dep:uaparser",
   "dep:url",
   "dep:utf8-width",
+  "dep:getrandom",
   "dep:uuid",
   "dep:woothee",
   "dep:zstd",
@@ -145,7 +146,6 @@ digest = { version = "0.10", optional = true }
 dyn-clone = { version = "1", default-features = false, optional = true }
 exitcode = { version = "1", optional = true }
 flate2 = { version = "1", default-features = false, features = ["default"], optional = true }
-getrandom = { version = "0.3", default-features = false, features = ["wasm_js"], optional = true }
 hex = { version = "0.4", optional = true }
 hmac = { version = "0.12", optional = true }
 iana-time-zone = { version = "0.1", optional = true }
@@ -228,10 +228,12 @@ grok = { version = "2", optional = true }
 onig = { version = "6", default-features = false, optional = true }
 tokio = { version = "1.44", optional = true, features = ["io-util", "macros", "net", "time", "sync", "rt", "rt-multi-thread"] }
 uuid = { version = "1", features = ["v4", "v7"], optional = true }
+getrandom = { version = "0.3", default-features = false, optional = true }
 
 # Dependencies used for WASM
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 uuid = { version = "1", features = ["v4", "v7", "js"], optional = true }
+getrandom = { version = "0.3", default-features = false, features = ["wasm_js"], optional = true }
 
 [dev-dependencies]
 anyhow = "1"
