@@ -40,5 +40,4 @@ ignore = [
   "RUSTSEC-2021-0139",
   # paste is Unmaintained
   "RUSTSEC-2024-0436"
-
 ]
