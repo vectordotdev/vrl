@@ -3,14 +3,14 @@
 
 use std::ops::{Add, Mul, Rem};
 
+use super::ValueError;
 use crate::compiler::{
     value::{Kind, VrlValueConvert},
     ExpressionError,
 };
 use crate::value::{ObjectMap, Value};
 use bytes::{BufMut, Bytes, BytesMut};
-
-use super::ValueError;
+use ordered_float::NotNan;
 
 #[allow(clippy::missing_errors_doc)]
 pub trait VrlValueArithmetic: Sized {
@@ -92,8 +92,11 @@ impl VrlValueArithmetic for Value {
                 i64::wrapping_mul(lhv, rhv_i64).into()
             }
             Value::Float(lhv) => {
-                let rhs = rhs.try_into_f64().map_err(|_| err())?;
-                lhv.mul(rhs).into()
+                let rhs_f64 = rhs.try_into_f64().map_err(|_| err())?;
+                match NotNan::new(lhv.mul(rhs_f64)) {
+                    Ok(value) => value.into(),
+                    Err(_) => return Err(ValueError::Mul(self.kind(), rhs.kind())),
+                }
             }
             Value::Bytes(lhv) if rhs.is_integer() => {
                 Bytes::from(lhv.repeat(as_usize(rhs.try_integer()?))).into()
@@ -134,10 +137,14 @@ impl VrlValueArithmetic for Value {
                 i64::wrapping_add(lhs, rhv_i64).into()
             }
             (Value::Float(lhs), rhs) => {
-                let rhs = rhs
+                let rhs_f64 = rhs
                     .try_into_f64()
                     .map_err(|_| ValueError::Add(Kind::float(), rhs.kind()))?;
-                lhs.add(rhs).into()
+
+                match NotNan::new(lhs.add(rhs_f64)) {
+                    Ok(value) => value.into(),
+                    Err(_) => return Err(ValueError::Add(Kind::float(), rhs.kind())),
+                }
             }
             (lhs @ Value::Bytes(_), Value::Null) => lhs,
             (Value::Bytes(lhs), Value::Bytes(rhs)) => {
@@ -232,7 +239,10 @@ impl VrlValueArithmetic for Value {
             }
             Value::Float(left) => {
                 let right = rhs.try_into_f64().map_err(|_| err())?;
-                left.rem(right).into()
+                match NotNan::new(left.rem(right)) {
+                    Ok(value) => value.into(),
+                    Err(_) => return Err(ValueError::Rem(self.kind(), rhs.kind())),
+                }
             }
             _ => return Err(err()),
         };
