@@ -27,7 +27,6 @@ bitflags,https://github.com/bitflags/bitflags,MIT OR Apache-2.0,The Rust Project
 block-buffer,https://github.com/RustCrypto/utils,MIT OR Apache-2.0,RustCrypto Developers
 block-padding,https://github.com/RustCrypto/utils,MIT OR Apache-2.0,RustCrypto Developers
 bumpalo,https://github.com/fitzgen/bumpalo,MIT OR Apache-2.0,Nick Fitzgerald <fitzgen@gmail.com>
-byteorder,https://github.com/BurntSushi/byteorder,Unlicense OR MIT,Andrew Gallant <jamslam@gmail.com>
 bytes,https://github.com/tokio-rs/bytes,MIT,"Carl Lerche <me@carllerche.com>, Sean McArthur <sean@seanmonstar.com>"
 cbc,https://github.com/RustCrypto/block-modes,MIT OR Apache-2.0,RustCrypto Developers
 cesu8,https://github.com/emk/cesu8-rs,Apache-2.0 OR MIT,Eric Kidd <git@randomhacks.net>
@@ -153,9 +152,7 @@ nu-ansi-term,https://github.com/nushell/nu-ansi-term,MIT,"ogham@bsago.me, Ryan S
 num-conv,https://github.com/jhpratt/num-conv,MIT OR Apache-2.0,Jacob Pratt <jacob@jhpratt.dev>
 num-traits,https://github.com/rust-num/num-traits,MIT OR Apache-2.0,The Rust Project Developers
 num_enum,https://github.com/illicitonion/num_enum,BSD-3-Clause OR MIT OR Apache-2.0,"Daniel Wagner-Hall <dawagner@gmail.com>, Daniel Henry-Mantilla <daniel.henry.mantilla@gmail.com>, Vincent Esche <regexident@gmail.com>"
-objc-sys,https://github.com/madsmtm/objc2,MIT,Mads Marquart <mads@marquart.dk>
-objc2,https://github.com/madsmtm/objc2,MIT,"Steven Sheldon, Mads Marquart <mads@marquart.dk>"
-objc2-encode,https://github.com/madsmtm/objc2,MIT,Mads Marquart <mads@marquart.dk>
+objc2,https://github.com/madsmtm/objc2,MIT,Mads Marquart <mads@marquart.dk>
 objc2-foundation,https://github.com/madsmtm/objc2,MIT,The objc2-foundation Authors
 object,https://github.com/gimli-rs/object,Apache-2.0 OR MIT,The object Authors
 octseq,https://github.com/NLnetLabs/octets/,BSD-3-Clause,NLnet Labs <rust-team@nlnetlabs.nl>
@@ -278,7 +275,7 @@ write16,https://github.com/hsivonen/write16,Apache-2.0 OR MIT,The write16 Author
 writeable,https://github.com/unicode-org/icu4x,Unicode-3.0,The ICU4X Project Developers
 yoke,https://github.com/unicode-org/icu4x,Unicode-3.0,Manish Goregaokar <manishsmail@gmail.com>
 yoke-derive,https://github.com/unicode-org/icu4x,Unicode-3.0,Manish Goregaokar <manishsmail@gmail.com>
-zerocopy,https://github.com/google/zerocopy,BSD-2-Clause OR Apache-2.0 OR MIT,Joshua Liebow-Feeser <joshlf@google.com>
+zerocopy,https://github.com/google/zerocopy,BSD-2-Clause OR Apache-2.0 OR MIT,"Joshua Liebow-Feeser <joshlf@google.com>, Jack Wrenn <jswrenn@amazon.com>"
 zerofrom,https://github.com/unicode-org/icu4x,Unicode-3.0,Manish Goregaokar <manishsmail@gmail.com>
 zerofrom-derive,https://github.com/unicode-org/icu4x,Unicode-3.0,Manish Goregaokar <manishsmail@gmail.com>
 zeroize,https://github.com/RustCrypto/utils/tree/master/zeroize,Apache-2.0 OR MIT,The RustCrypto Project Developers
