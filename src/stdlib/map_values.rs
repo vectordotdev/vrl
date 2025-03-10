@@ -106,7 +106,7 @@ impl Function for MapValues {
 struct MapValuesFn {
     value: Box<dyn Expression>,
     recursive: Option<Box<dyn Expression>>,
-    closure: FunctionClosure,
+    closure: Closure,
 }
 
 impl FunctionExpression for MapValuesFn {
@@ -117,7 +117,7 @@ impl FunctionExpression for MapValuesFn {
         };
 
         let value = self.value.resolve(ctx)?;
-        let FunctionClosure {
+        let Closure {
             variables,
             block,
             block_type_def: _,

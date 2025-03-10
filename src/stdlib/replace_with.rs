@@ -225,7 +225,7 @@ struct ReplaceWithFn {
     value: Box<dyn Expression>,
     pattern: Box<dyn Expression>,
     count: Box<dyn Expression>,
-    closure: FunctionClosure,
+    closure: Closure,
 }
 
 impl FunctionExpression for ReplaceWithFn {
@@ -243,7 +243,7 @@ impl FunctionExpression for ReplaceWithFn {
             }
         }
         let count = self.count.resolve(ctx)?;
-        let FunctionClosure {
+        let Closure {
             variables, block, ..
         } = &self.closure;
 

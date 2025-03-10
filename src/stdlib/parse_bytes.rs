@@ -1,19 +1,18 @@
 use crate::compiler::prelude::*;
 use crate::value;
 use core::convert::AsRef;
-use once_cell::sync::Lazy;
 use parse_size::Config;
 use rust_decimal::{prelude::FromPrimitive, prelude::ToPrimitive, Decimal};
 use std::collections::HashMap;
+use std::sync::LazyLock;
 
-fn parse_bytes(bytes: Value, unit: Value, base: &Bytes) -> Resolved {
+fn parse_bytes(bytes: &Value, unit: Value, base: &Bytes) -> Resolved {
     let (units, parse_config) = match base.as_ref() {
         b"2" => (&*BIN_UNITS, Config::new().with_binary()),
         b"10" => (&*DEC_UNITS, Config::new().with_decimal()),
         _ => unreachable!("enum invariant"),
     };
-    let bytes = bytes.try_bytes()?;
-    let value = String::from_utf8_lossy(&bytes);
+    let value = bytes.try_bytes_utf8_lossy()?;
     let value: &str = value.as_ref();
     let conversion_factor = {
         let bytes = unit.try_bytes()?;
@@ -36,7 +35,7 @@ fn parse_bytes(bytes: Value, unit: Value, base: &Bytes) -> Resolved {
 
 // The largest unit is EB, which is smaller than i64::MAX, so we can safely use Decimal
 // power of 2 units
-static BIN_UNITS: Lazy<HashMap<String, Decimal>> = Lazy::new(|| {
+static BIN_UNITS: LazyLock<HashMap<String, Decimal>> = LazyLock::new(|| {
     vec![
         ("B", Decimal::new(1, 0)),
         ("KiB", Decimal::new(1_024, 0)),
@@ -58,7 +57,7 @@ static BIN_UNITS: Lazy<HashMap<String, Decimal>> = Lazy::new(|| {
     .collect()
 });
 // power of 10 units
-static DEC_UNITS: Lazy<HashMap<String, Decimal>> = Lazy::new(|| {
+static DEC_UNITS: LazyLock<HashMap<String, Decimal>> = LazyLock::new(|| {
     vec![
         ("B", Decimal::new(1, 0)),
         ("kB", Decimal::new(1_000, 0)),
@@ -155,7 +154,7 @@ impl FunctionExpression for ParseBytesFn {
         let bytes = self.value.resolve(ctx)?;
         let unit = self.unit.resolve(ctx)?;
 
-        parse_bytes(bytes, unit, &self.base)
+        parse_bytes(&bytes, unit, &self.base)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

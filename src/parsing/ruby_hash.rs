@@ -12,7 +12,7 @@ use nom::{
 };
 use std::num::ParseIntError;
 
-pub(crate) fn parse_ruby_hash(input: &str) -> ExpressionResult<Value> {
+pub fn parse_ruby_hash(input: &str) -> ExpressionResult<Value> {
     let result = parse_hash(input)
         .map_err(|err| match err {
             nom::Err::Error(err) | nom::Err::Failure(err) => {

@@ -1,10 +1,6 @@
-use crate::compiler::TargetValue;
-use std::borrow::Cow::{self, Borrowed, Owned};
-use std::collections::BTreeMap;
-use std::rc::Rc;
-
 use crate::compiler::runtime::Runtime;
 use crate::compiler::state::{RuntimeState, TypeState};
+use crate::compiler::TargetValue;
 use crate::compiler::TimeZone;
 use crate::compiler::{compile_with_state, CompileConfig, Function, Program, Target, VrlRuntime};
 use crate::diagnostic::Formatter;
@@ -12,7 +8,6 @@ use crate::owned_metadata_path;
 use crate::value::Secrets;
 use crate::value::Value;
 use indoc::indoc;
-use once_cell::sync::Lazy;
 use prettytable::{format, Cell, Row, Table};
 use regex::Regex;
 use rustyline::{
@@ -24,9 +19,13 @@ use rustyline::{
     validate::{self, ValidationResult, Validator},
     Context, Editor, Helper,
 };
+use std::borrow::Cow::{self, Borrowed, Owned};
+use std::collections::BTreeMap;
+use std::rc::Rc;
+use std::sync::LazyLock;
 
 // Create a list of all possible error values for potential docs lookup
-static ERRORS: Lazy<Vec<String>> = Lazy::new(|| {
+static ERRORS: LazyLock<Vec<String>> = LazyLock::new(|| {
     [
         100, 101, 102, 103, 104, 105, 106, 107, 108, 110, 203, 204, 205, 206, 207, 208, 209, 300,
         301, 302, 303, 304, 305, 306, 307, 308, 309, 310, 311, 312, 313, 314, 400, 401, 402, 403,
@@ -79,7 +78,7 @@ pub(crate) fn run(
             Ok(line) if line == "exit" || line == "quit" => break,
             Ok("help") => print_help_text(),
             Ok(line) if line == "help functions" || line == "help funcs" || line == "help fs" => {
-                print_function_list()
+                print_function_list();
             }
             Ok("help docs") => open_url(DOCS_URL),
             // Capture "help error <code>"

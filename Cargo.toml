@@ -1,6 +1,6 @@
 [package]
 name = "vrl"
-version = "0.21.0"
+version = "0.22.0"
 authors = ["Vector Contributors <vector@datadoghq.com>"]
 edition = "2021"
 license = "MPL-2.0"
@@ -25,10 +25,10 @@ members = [
 default = ["compiler", "value", "diagnostic", "path", "parser", "stdlib", "datadog", "core"]
 
 # Main features (on by default)
-compiler = ["diagnostic", "path", "parser", "value", "dep:paste", "dep:chrono", "dep:serde", "dep:regex", "dep:bytes", "dep:ordered-float", "dep:chrono-tz", "dep:snafu", "dep:thiserror", "dep:dyn-clone", "dep:indoc", "dep:thiserror", "dep:lalrpop-util"]
-value = ["path", "dep:bytes", "dep:regex", "dep:ordered-float", "dep:chrono", "dep:serde_json"]
+compiler = ["diagnostic", "path", "parser", "value", "dep:chrono", "dep:serde", "dep:regex", "dep:bytes", "dep:ordered-float", "dep:chrono-tz", "dep:snafu", "dep:thiserror", "dep:dyn-clone", "dep:indoc", "dep:thiserror", "dep:lalrpop-util"]
+value = ["path", "dep:bytes", "dep:regex", "dep:ordered-float", "dep:chrono", "dep:serde_json", "dep:simdutf8"]
 diagnostic = ["dep:codespan-reporting", "dep:termcolor"]
-path = ["value", "dep:once_cell", "dep:serde", "dep:snafu", "dep:regex"]
+path = ["value", "dep:serde", "dep:snafu", "dep:regex"]
 parser = ["path", "diagnostic", "value", "dep:thiserror", "dep:ordered-float", "dep:lalrpop-util"]
 parsing = ["value", "compiler", "dep:url", "dep:nom", "dep:regex", "dep:roxmltree", "dep:rust_decimal"]
 core = ["value", "dep:snafu", "dep:nom"]
@@ -38,7 +38,7 @@ string_path = []
 datadog = ["datadog_filter", "datadog_grok", "datadog_search"]
 datadog_filter = ["path", "datadog_search", "dep:regex", "dep:dyn-clone"]
 datadog_grok = ["value", "parsing", "dep:nom", "dep:peeking_take_while", "dep:serde_json", "dep:onig", "dep:lalrpop-util", "dep:thiserror", "dep:chrono", "dep:chrono-tz", "dep:percent-encoding", "dep:fancy-regex"]
-datadog_search = ["dep:pest", "dep:pest_derive", "dep:itertools", "dep:once_cell", "dep:regex", "dep:serde"]
+datadog_search = ["dep:pest", "dep:pest_derive", "dep:itertools", "dep:regex", "dep:serde"]
 
 # Features that aren't used as often (default off)
 cli = ["stdlib", "dep:serde_json", "dep:thiserror", "dep:clap", "dep:exitcode", "dep:webbrowser", "dep:rustyline", "dep:prettytable-rs"]
@@ -69,7 +69,7 @@ stdlib = [
   "dep:charset",
   "dep:convert_case",
   "dep:ciborium",
-  "dep:cidr-utils",
+  "dep:cidr",
   "dep:community-id",
   "dep:crc",
   "dep:crypto_secretbox",
@@ -91,7 +91,6 @@ stdlib = [
   "dep:md-5",
   "dep:nom",
   "dep:ofb",
-  "dep:once_cell",
   "dep:parse-size",
   "dep:percent-encoding",
   "dep:prost",
@@ -117,6 +116,7 @@ stdlib = [
   "dep:uuid",
   "dep:woothee",
   "dep:zstd",
+  "dep:encoding_rs"
 ]
 
 [dependencies]
@@ -130,15 +130,15 @@ base62 = { version = "2.2.1", optional = true }
 base64 = { version = "0.22", optional = true }
 bytes = { version = "1", default-features = false, optional = true }
 charset = { version = "0.1", optional = true }
-encoding_rs = { version = "0.8.35", optional = false }
+encoding_rs = { version = "0.8.35", optional = true }
 chrono = { version = "0.4", default-features = false, features = ["clock", "serde", "wasmbind"], optional = true }
 chrono-tz = { version = "0.10", default-features = false, optional = true }
 ciborium = { version = "0.2.2", default-features = false, optional = true }
-cidr-utils = { version = "0.6", optional = true }
+cidr = { version = "0.3", optional = true }
 csv = { version = "1", optional = true }
 clap = { version = "4", features = ["derive"], optional = true }
 codespan-reporting = { version = "0.11", optional = true }
-convert_case = { version = "0.6.0", optional = true }
+convert_case = { version = "0.7.1", optional = true }
 crc = { version = "3.2.1", optional = true }
 data-encoding = { version = "2", optional = true }
 digest = { version = "0.10", optional = true }
@@ -156,10 +156,8 @@ itertools = { version = "0.14", default-features = false, features = ["use_std"]
 lalrpop-util = { version = "0.22", optional = true }
 mlua = { version = "0.10", default-features = false, features = ["lua54", "send", "vendored"], optional = true }
 nom = { version = "7", default-features = false, features = ["std"], optional = true }
-once_cell = { version = "1", default-features = false, features = ["std"], optional = true }
 ordered-float = { version = "4", default-features = false, optional = true }
 md-5 = { version = "0.10", optional = true }
-paste = { version = "1", default-features = false, optional = true }
 parse-size = { version = "1.1.0",  optional = true }
 peeking_take_while = { version = "1", default-features = false, optional = true }
 percent-encoding = { version = "2", optional = true }
@@ -178,10 +176,11 @@ rand = { version = "0.8", optional = true }
 regex = { version = "1", default-features = false, optional = true, features = ["std", "perf", "unicode"] }
 roxmltree = { version = "0.20", optional = true }
 rustyline = { version = "15", default-features = false, optional = true }
-rust_decimal = { version = "1", optional = true }
+rust_decimal = { version = "1", optional = true, default-features = false }
 seahash = { version = "4", optional = true }
 serde = { version = "1", features = ["derive"], optional = true }
 serde_json = { version = "1", default-features = false, optional = true, features = ["std", "raw_value"] }
+simdutf8 = { version = "0.1.5", optional = true }
 fancy-regex = { version = "0.14.0", default-features = false, optional = true }
 sha-1 = { version = "0.10", optional = true }
 sha-2 = { package = "sha2", version = "0.10", optional = true }
@@ -217,6 +216,7 @@ ofb = { version = "0.6", optional = true }
 # Protobuf support.
 prost = { version = "0.13", default-features = false, optional = true, features = ["std"] }
 prost-reflect = { version = "0.14", default-features = false, optional = true }
+unicode-segmentation = "1.12.0"
 
 # Dependencies used for non-WASM
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
@@ -239,7 +239,6 @@ chrono-tz = "0.10"
 serde_json = "1"
 indoc = "2"
 tracing-test = { version = "0.2", default-features = false }
-toml = { version = "0.8", default-features = false }
 mlua = { version = "0.10", default-features = false, features = ["lua54", "send", "vendored"] }
 quickcheck = { version = "1" }
 regex = { version = "1", default-features = false, features = ["std", "perf", "unicode"] }
@@ -248,7 +247,7 @@ proptest = { version = "1" }
 proptest-derive = { version = "0.5" }
 
 [build-dependencies]
-lalrpop = { version = "0.20", default-features = false }
+lalrpop = { version = "0.22", default-features = false }
 
 [[bench]]
 name = "kind"

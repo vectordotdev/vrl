@@ -1,5 +1,3 @@
-#![allow(deprecated)]
-
 use chrono::{DateTime, Datelike, TimeZone, Utc};
 use criterion::{criterion_group, criterion_main, Criterion};
 use regex::Regex;
@@ -145,6 +143,7 @@ criterion_group!(
               sha1,
               sha2,
               sha3,
+              shannon_entropy,
               sieve,
               slice,
               split,
@@ -745,6 +744,11 @@ bench_function! {
 
     ipv4 {
         args: func_args![cidr: "192.168.0.0/16", value: "192.168.10.32"],
+        want: Ok(true),
+    }
+
+    ipv4_array {
+        args: func_args![cidr: value!(["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"]), value: "192.168.10.32"],
         want: Ok(true),
     }
 
@@ -2529,6 +2533,25 @@ bench_function! {
     default {
         args: func_args![value: "foo"],
         want: Ok("4bca2b137edc580fe50a88983ef860ebaca36c857b1f492839d6d7392452a63c82cbebc68e3b70a2a1480b4bb5d437a7cba6ecf9d89f9ff3ccd14cd6146ea7e7")
+    }
+}
+
+bench_function! {
+    shannon_entropy => vrl::stdlib::ShannonEntropy;
+
+    default {
+        args: func_args![value: value!("Supercalifragilisticexpialidocious")],
+        want: Ok(value!(3.736_987_930_635_821)),
+    }
+
+    codepoint_segmentation {
+        args: func_args![value: value!("Supercalifragilisticexpialidocious"), segmentation: value!("codepoint")],
+        want: Ok(value!(3.736_987_930_635_821)),
+    }
+
+    grapheme_segmentation {
+        args: func_args![value: value!("test123%456.فوائد.net."), segmentation: value!("grapheme")],
+        want: Ok(value!(3.936_260_027_531_526_3)),
     }
 }
 

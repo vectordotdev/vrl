@@ -1,3 +1,4 @@
+#![allow(clippy::module_name_repetitions)]
 use std::convert::AsRef;
 
 use crate::path::OwnedTargetPath;
@@ -30,17 +31,28 @@ pub trait Target: std::fmt::Debug + SecretTarget {
     ///   ```txt
     ///   .foo[2][-1]
     ///   ```
+    ///
+    /// # Errors
+    ///
+    /// Error indicating insertion failure.
     fn target_insert(&mut self, path: &OwnedTargetPath, value: Value) -> Result<(), String>;
 
     /// Get a value for a given path, or `None` if no value is found.
     ///
     /// See [`Target::target_insert`] for more details.
+    ///
+    /// # Errors
+    /// Error indicating retrieval failure.
     fn target_get(&self, path: &OwnedTargetPath) -> Result<Option<&Value>, String>;
 
     /// Get a mutable reference to the value for a given path, or `None` if no
     /// value is found.
     ///
     /// See [`Target::target_insert`] for more details.
+    ///
+    /// # Errors
+    ///
+    /// Error indicating retrieval failure.
     fn target_get_mut(&mut self, path: &OwnedTargetPath) -> Result<Option<&mut Value>, String>;
 
     /// Remove the given path from the object.
@@ -49,6 +61,10 @@ pub trait Target: std::fmt::Debug + SecretTarget {
     ///
     /// If `compact` is true, after deletion, if an empty object or array is
     /// left behind, it should be removed as well, cascading up to the root.
+    ///
+    /// # Errors
+    ///
+    /// Error indicating removal failure.
     fn target_remove(
         &mut self,
         path: &OwnedTargetPath,
@@ -56,11 +72,28 @@ pub trait Target: std::fmt::Debug + SecretTarget {
     ) -> Result<Option<Value>, String>;
 }
 
+/// The Secret trait defines methods for managing secret data associated with a [`Target`] struct.
 pub trait SecretTarget {
+    /// Retrieves the value associated with the given key.
+    ///
+    /// # Parameters
+    /// - `key`: A string slice representing the key.
+    ///
+    /// # Returns
+    /// - `Option<&str>`: An optional reference to the value if found; `None` otherwise.
     fn get_secret(&self, key: &str) -> Option<&str>;
 
+    /// Inserts a new key-value pair into the secrets.
+    ///
+    /// # Parameters
+    /// - `key`: A string slice representing the key.
+    /// - `value`: A string slice representing the value.
     fn insert_secret(&mut self, key: &str, value: &str);
 
+    /// Removes the key-value pair associated with the given key.
+    ///
+    /// # Parameters
+    /// - `key`: A string slice representing the key.
     fn remove_secret(&mut self, key: &str);
 }
 
@@ -277,7 +310,7 @@ mod tests {
     use crate::value;
 
     #[test]
-    fn target_get() {
+    fn get() {
         let cases = vec![
             (value!(true), owned_value_path!(), Ok(Some(value!(true)))),
             (value!(true), owned_value_path!("foo"), Ok(None)),
@@ -323,7 +356,7 @@ mod tests {
 
     #[test]
     #[allow(clippy::too_many_lines)]
-    fn target_insert() {
+    fn insert() {
         let cases = vec![
             (
                 value!({foo: "bar"}),
@@ -432,7 +465,7 @@ mod tests {
     }
 
     #[test]
-    fn target_remove() {
+    fn remove() {
         let cases = vec![
             (
                 value!({foo: "bar"}),

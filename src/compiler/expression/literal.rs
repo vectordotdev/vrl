@@ -166,12 +166,14 @@ impl From<u32> for Literal {
 
 impl From<u64> for Literal {
     fn from(v: u64) -> Self {
+        #[allow(clippy::cast_possible_wrap)]
         Literal::Integer(v as i64)
     }
 }
 
 impl From<usize> for Literal {
     fn from(v: usize) -> Self {
+        #[allow(clippy::cast_possible_wrap)]
         Literal::Integer(v as i64)
     }
 }

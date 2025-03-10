@@ -88,13 +88,13 @@ impl Function for ForEach {
 #[derive(Debug, Clone)]
 struct ForEachFn {
     value: Box<dyn Expression>,
-    closure: FunctionClosure,
+    closure: Closure,
 }
 
 impl FunctionExpression for ForEachFn {
     fn resolve(&self, ctx: &mut Context) -> ExpressionResult<Value> {
         let value = self.value.resolve(ctx)?;
-        let FunctionClosure {
+        let Closure {
             variables,
             block,
             block_type_def: _,

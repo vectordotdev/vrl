@@ -10,14 +10,12 @@ use crate::stdlib::json_utils::json_type_def::json_type_def;
 
 fn parse_json(value: Value, lossy: Option<Value>) -> Resolved {
     let lossy = lossy.map(Value::try_boolean).transpose()?.unwrap_or(true);
-    let bytes = if lossy {
-        value.try_bytes_utf8_lossy()?.into_owned().into()
+    Ok(if lossy {
+        serde_json::from_str(&value.try_bytes_utf8_lossy()?)
     } else {
-        value.try_bytes()?
-    };
-    let value = serde_json::from_slice::<'_, Value>(&bytes)
-        .map_err(|e| format!("unable to parse json: {e}"))?;
-    Ok(value)
+        serde_json::from_slice(&value.try_bytes()?)
+    }
+    .map_err(|e| format!("unable to parse json: {e}"))?)
 }
 
 // parse_json_with_depth method recursively traverses the value and returns raw JSON-formatted bytes

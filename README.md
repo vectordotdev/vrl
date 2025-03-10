@@ -12,23 +12,23 @@ created for use in [Vector], it was designed to be generic and re-usable in many
 
 VRL is broken up into multiple components, which can be enabled as needed.
 
-| Feature        | Default | Description                                                                                      |
-|:---------      |:--------|:----------                                                                                       |
-| compiler       | yes     | The contains the core functionality of VRL. Compiling and running VRL programs.                  |
-| parser         | yes     | Creates an abstract syntax tree (AST) from VRL source code.                                      |
-| value          | yes     | Contains the primary data type used in VRL.                                                      |
-| diagnostic     | yes     | Logic related to errors and displaying info about them.                                          |
-| path           | yes     | Contains the parser, datatypes, and functions related to VRL paths.                              |
-| stdlib         | yes     | All of the VRL functions from the standard library.                                              |
-| core           | yes     | Various data structures and utility methods (these may be renamed / moved in the future).        |
-| datadog_filter | yes     | Implements the Datadog log search query filter syntax.                                           |
-| datadog_grok   | yes     | Implements the Datadog grok parser. (used with `parse_grok` and `parse_groks` in the stdlib).    |
-| datadog_search | yes     | Implements the Datadog log search syntax.                                                        |
-| cli            | no      | Contains functionality to create a CLI for VRL.                                                  |
-| test_framework | no      | Contains the test framework for testing VRL functions. Useful for testing custom functions.      |
-| lua            | no      | Makes the `Value` type compatible with the `mlua` crate.                                         |
-| arbitrary      | no      | Implements `Arbitrary` (from the `quickcheck` crate) for the `Value` type                        |
-
+| Feature        | Default | Description                                                                                                   |
+|:---------------|:--------|:--------------------------------------------------------------------------------------------------------------|
+| compiler       | yes     | The contains the core functionality of VRL. Compiling and running VRL programs.                               |
+| parser         | yes     | Creates an abstract syntax tree (AST) from VRL source code.                                                   |
+| value          | yes     | Contains the primary data type used in VRL.                                                                   |
+| diagnostic     | yes     | Logic related to errors and displaying info about them.                                                       |
+| path           | yes     | Contains the parser, datatypes, and functions related to VRL paths.                                           |
+| stdlib         | yes     | All of the VRL functions from the standard library.                                                           |
+| core           | yes     | Various data structures and utility methods (these may be renamed / moved in the future).                     |
+| datadog_filter | yes     | Implements the Datadog log search query filter syntax.                                                        |
+| datadog_grok   | yes     | Implements the Datadog grok parser. (used with `parse_grok` and `parse_groks` in the stdlib).                 |
+| datadog_search | yes     | Implements the Datadog log search syntax.                                                                     |
+| cli            | no      | Contains functionality to create a CLI for VRL.                                                               |
+| test_framework | no      | Contains the test framework for testing VRL functions. Useful for testing custom functions.                   |
+| lua            | no      | Makes the `Value` type compatible with the `mlua` crate.                                                      |
+| arbitrary      | no      | Implements `Arbitrary` (from the `quickcheck` crate) for the `Value` type                                     |
+| test           | no      | Enables testing utils and additional tests, including those with external dependencies such as network calls. |
 
 ## Webassembly
 

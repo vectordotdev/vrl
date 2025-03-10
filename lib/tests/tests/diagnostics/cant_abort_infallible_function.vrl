@@ -1,10 +1,11 @@
+# DIAGNOSTICS
 # result:
 #
-# error[E620]: can't abort infallible function
+# warning[E620]: can't abort infallible function
 #   ┌─ :2:1
 #   │
 # 2 │ now!()
-#   │ ^^^- remove this abort-instruction
+#   │ ^^^- remove this abort (!) instruction
 #   │ │
 #   │ this function can't fail
 #   │

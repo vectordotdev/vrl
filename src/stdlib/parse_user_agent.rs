@@ -1,16 +1,15 @@
 use crate::compiler::prelude::*;
-use once_cell::sync::Lazy;
 use std::{
-    borrow::{Borrow, Cow},
+    borrow::Cow,
     collections::BTreeMap,
     fmt,
     str::FromStr,
-    sync::Arc,
+    sync::{Arc, LazyLock},
 };
 use uaparser::UserAgentParser as UAParser;
 use woothee::parser::Parser as WootheeParser;
 
-static UA_PARSER: Lazy<UAParser> = Lazy::new(|| {
+static UA_PARSER: LazyLock<UAParser> = LazyLock::new(|| {
     let regexes = include_bytes!("./../../data/user_agent_regexes.yaml");
     UAParser::from_bytes(regexes).expect("Regex file is not valid.")
 });
@@ -519,9 +518,10 @@ impl Parser for UAParser {
     fn parse_user_agent(&self, user_agent: &str) -> UserAgent {
         #[inline]
         fn unknown_to_none(s: Option<Cow<'_, str>>) -> Option<String> {
-            match s?.borrow() {
+            let cow = s?;
+            match cow.as_ref() {
                 "" | "Other" => None,
-                v => Some(v.to_owned()),
+                _ => Some(cow.into_owned()),
             }
         }
 

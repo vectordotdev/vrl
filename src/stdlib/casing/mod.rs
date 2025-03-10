@@ -34,7 +34,7 @@ pub(crate) fn into_case(s: &str) -> Result<Case, Box<dyn DiagnosticMessage>> {
     match s {
         "camelCase" => Ok(Case::Camel),
         "PascalCase" => Ok(Case::Pascal),
-        "SREAMING_SNAKE" => Ok(Case::ScreamingSnake),
+        "SREAMING_SNAKE" => Ok(Case::Constant),
         "snake_case" => Ok(Case::Snake),
         "kebab-case" => Ok(Case::Kebab),
         _ => Err(Box::new(ExpressionError::from(format!(

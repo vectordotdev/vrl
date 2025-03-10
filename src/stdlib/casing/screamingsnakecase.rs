@@ -69,7 +69,7 @@ struct ScreamingSnakecaseFn {
 impl FunctionExpression for ScreamingSnakecaseFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let value = self.value.resolve(ctx)?;
-        super::convert_case(&value, Case::ScreamingSnake, self.original_case)
+        super::convert_case(&value, Case::Constant, self.original_case)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

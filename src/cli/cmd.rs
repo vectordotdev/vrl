@@ -151,7 +151,7 @@ fn run(opts: &Opts, stdlib_functions: Vec<Box<dyn Function>>) -> Result<(), Erro
         #[allow(clippy::print_stderr)]
         if opts.print_warnings {
             let warnings = Formatter::new(&source, warnings).colored().to_string();
-            eprintln!("{warnings}")
+            eprintln!("{warnings}");
         }
 
         for mut object in objects {

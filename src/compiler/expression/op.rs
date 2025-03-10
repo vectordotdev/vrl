@@ -18,6 +18,21 @@ pub struct Op {
 }
 
 impl Op {
+    /// Creates a new `Op` expression.
+    ///
+    /// # Arguments
+    /// * `lhs` - The left-hand side expression.
+    /// * `opcode` - The operator to apply.
+    /// * `rhs` - The right-hand side expression.
+    /// * `state` - The current type state.
+    ///
+    /// # Returns
+    /// A `Result` containing the new `Op` expression or an error.
+    ///
+    /// # Errors
+    /// - `ChainedComparison`: If the left-hand side expression is already a comparison operation.
+    /// - `UnnecessaryCoalesce`: If the left-hand side expression is infallible and the operator is `Err`.
+    /// - `MergeNonObjects`: If the operator is `Merge` and either operand is not an object.
     pub fn new(
         lhs: Node<Expr>,
         opcode: Node<ast::Opcode>,
@@ -123,6 +138,7 @@ impl Expression for Op {
         .map_err(Into::into)
     }
 
+    #[allow(clippy::too_many_lines)]
     fn type_info(&self, state: &TypeState) -> TypeInfo {
         use crate::value::Kind as K;
         use ast::Opcode::{Add, And, Div, Eq, Err, Ge, Gt, Le, Lt, Merge, Mul, Ne, Or, Sub};
@@ -432,6 +448,7 @@ mod tests {
 
     use super::*;
 
+    #[allow(clippy::needless_pass_by_value)]
     fn op(
         opcode: ast::Opcode,
         lhs: impl TryInto<Literal> + fmt::Debug + Clone,
