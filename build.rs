@@ -31,9 +31,15 @@ fn read_grok_patterns() {
         "#[allow(clippy::needless_raw_string_hashes)]\nstatic PATTERNS: &[(&str, &str)] = &[\n"
             .to_string();
 
-    fs::read_dir(Path::new("src/datadog/grok/patterns"))
+    let mut files: Vec<_> = fs::read_dir(Path::new("src/datadog/grok/patterns"))
         .expect("can't read 'patterns' dir")
-        .filter_map(|path| File::open(path.expect("can't read 'patterns' dir").path()).ok())
+        .map(|res| res.map(|e| e.path()))
+        .collect::<Result<Vec<_>, std::io::Error>>()
+        .expect("cant't read 'patterns' dir");
+    files.sort();
+    files
+        .into_iter()
+        .filter_map(|path| File::open(path).ok())
         .flat_map(|f| BufReader::new(f).lines().map_while(Result::ok))
         .filter(|line| !line.starts_with('#') && !line.trim().is_empty())
         .for_each(|line| {
