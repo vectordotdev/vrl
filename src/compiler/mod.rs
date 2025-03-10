@@ -3,7 +3,6 @@
 use std::fmt::Debug;
 use std::{fmt::Display, str::FromStr};
 
-pub use paste::paste;
 use serde::{Deserialize, Serialize};
 
 use crate::compiler::unused_expression_checker::check_for_unused_results;
@@ -35,7 +34,10 @@ mod deprecation_warning;
 mod expression_error;
 mod program;
 mod target;
+#[cfg(any(test, feature = "test"))]
 mod test_util;
+#[cfg(test)]
+pub use paste::paste;
 
 pub mod codes;
 pub mod conversion;
