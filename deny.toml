@@ -34,8 +34,10 @@ license-files = [
 
 [advisories]
 ignore = [
-    # ansi_term is Unmaintained
-    # Only used when test_framework feature is enabled for tests
-    # TODO: We should swap this out for a maintained library
-    "RUSTSEC-2021-0139"
+  # ansi_term is Unmaintained
+  # Only used when test_framework feature is enabled for tests
+  # TODO: We should swap this out for a maintained library
+  "RUSTSEC-2021-0139",
+  # paste is Unmaintained
+  "RUSTSEC-2024-0436"
 ]

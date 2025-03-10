@@ -7,7 +7,23 @@ CHANGELOG="CHANGELOG.md"
 CHANGELOG_DIR="changelog.d"
 CHANGELOG_CFG="changelog.toml"
 
+NO_PROMPT=false
+
+# Parse arguments
+for arg in "$@"; do
+  case $arg in
+    --no-prompt)
+      NO_PROMPT=true
+      shift
+      ;;
+  esac
+done
+
 ask_continue() {
+  if [ "$NO_PROMPT" = true ]; then
+    return
+  fi
+
   while true; do
     local choice
     read -r choice
@@ -19,7 +35,7 @@ ask_continue() {
   done
 }
 
-cd $(dirname "$0")/..
+cd "$(dirname "$0")"/..
 VRL_ROOT=$(pwd)
 
 VRL_VERSION=$(awk '/^version = "[0-9]+.[0-9]+.[0-9]+"/{print $3}' "${VRL_ROOT}"/Cargo.toml | tr -d '"')

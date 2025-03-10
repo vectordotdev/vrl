@@ -25,7 +25,7 @@ members = [
 default = ["compiler", "value", "diagnostic", "path", "parser", "stdlib", "datadog", "core"]
 
 # Main features (on by default)
-compiler = ["diagnostic", "path", "parser", "value", "dep:paste", "dep:chrono", "dep:serde", "dep:regex", "dep:bytes", "dep:ordered-float", "dep:chrono-tz", "dep:snafu", "dep:thiserror", "dep:dyn-clone", "dep:indoc", "dep:thiserror", "dep:lalrpop-util"]
+compiler = ["diagnostic", "path", "parser", "value", "dep:chrono", "dep:serde", "dep:regex", "dep:bytes", "dep:ordered-float", "dep:chrono-tz", "dep:snafu", "dep:thiserror", "dep:dyn-clone", "dep:indoc", "dep:thiserror", "dep:lalrpop-util"]
 value = ["path", "dep:bytes", "dep:regex", "dep:ordered-float", "dep:chrono", "dep:serde_json", "dep:simdutf8"]
 diagnostic = ["dep:codespan-reporting", "dep:termcolor"]
 path = ["value", "dep:serde", "dep:snafu", "dep:regex"]
@@ -69,7 +69,7 @@ stdlib = [
   "dep:charset",
   "dep:convert_case",
   "dep:ciborium",
-  "dep:cidr-utils",
+  "dep:cidr",
   "dep:community-id",
   "dep:crc",
   "dep:crypto_secretbox",
@@ -116,6 +116,7 @@ stdlib = [
   "dep:uuid",
   "dep:woothee",
   "dep:zstd",
+  "dep:encoding_rs"
 ]
 
 [dependencies]
@@ -129,11 +130,11 @@ base62 = { version = "2.2.1", optional = true }
 base64 = { version = "0.22", optional = true }
 bytes = { version = "1", default-features = false, optional = true }
 charset = { version = "0.1", optional = true }
-encoding_rs = { version = "0.8.35", optional = false }
+encoding_rs = { version = "0.8.35", optional = true }
 chrono = { version = "0.4", default-features = false, features = ["clock", "serde", "wasmbind"], optional = true }
 chrono-tz = { version = "0.10", default-features = false, optional = true }
 ciborium = { version = "0.2.2", default-features = false, optional = true }
-cidr-utils = { version = "0.6", optional = true }
+cidr = { version = "0.3", optional = true }
 csv = { version = "1", optional = true }
 clap = { version = "4", features = ["derive"], optional = true }
 codespan-reporting = { version = "0.11", optional = true }
@@ -158,7 +159,6 @@ mlua = { version = "0.10", default-features = false, features = ["lua54", "send"
 nom = { version = "7", default-features = false, features = ["std"], optional = true }
 ordered-float = { version = "4", default-features = false, optional = true }
 md-5 = { version = "0.10", optional = true }
-paste = { version = "1", default-features = false, optional = true }
 parse-size = { version = "1.1.0",  optional = true }
 peeking_take_while = { version = "1", default-features = false, optional = true }
 percent-encoding = { version = "2", optional = true }
@@ -226,7 +226,7 @@ domain = { version = "0.10.3", optional = true, features = ["resolv-sync", "serd
 hostname = { version = "0.4", optional = true }
 grok = { version = "2", optional = true }
 onig = { version = "6", default-features = false, optional = true }
-tokio = { version = "1.43", optional = true, features = ["io-util", "macros", "net", "time", "sync", "rt", "rt-multi-thread"] }
+tokio = { version = "1.44", optional = true, features = ["io-util", "macros", "net", "time", "sync", "rt", "rt-multi-thread"] }
 uuid = { version = "1", features = ["v4", "v7"], optional = true }
 
 # Dependencies used for WASM
@@ -240,7 +240,6 @@ chrono-tz = "0.10"
 serde_json = "1"
 indoc = "2"
 tracing-test = { version = "0.2", default-features = false }
-toml = { version = "0.8", default-features = false }
 mlua = { version = "0.10", default-features = false, features = ["lua54", "send", "vendored"] }
 quickcheck = { version = "1" }
 regex = { version = "1", default-features = false, features = ["std", "perf", "unicode"] }
