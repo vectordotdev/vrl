@@ -34,9 +34,9 @@ mod deprecation_warning;
 mod expression_error;
 mod program;
 mod target;
-mod utils;
 #[cfg(any(test, feature = "test"))]
 mod test_util;
+mod utils;
 #[cfg(any(test, feature = "test"))]
 pub use paste::paste;
 
