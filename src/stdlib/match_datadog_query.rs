@@ -166,6 +166,7 @@ impl Filter<Value> for VrlFilter {
         &self,
         field: Field,
         to_match: &str,
+        _is_phrase: bool,
     ) -> Result<Box<dyn Matcher<Value>>, PathParseError> {
         let buf = lookup_field(&field)?;
 
