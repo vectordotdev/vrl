@@ -129,15 +129,23 @@ where
 
             Ok(all(matchers?))
         }
-        QueryNode::AttributeTerm { attr, value }
-        | QueryNode::QuotedAttribute {
+        QueryNode::AttributeTerm { attr, value } => {
+            let matchers: Result<Vec<_>, _> = filter
+                .build_fields(attr)
+                .into_iter()
+                .map(|field| filter.equals(field, value, false))
+                .collect();
+
+            Ok(any(matchers?))
+        }
+        QueryNode::QuotedAttribute {
             attr,
             phrase: value,
         } => {
             let matchers: Result<Vec<_>, _> = filter
                 .build_fields(attr)
                 .into_iter()
-                .map(|field| filter.equals(field, value))
+                .map(|field| filter.equals(field, value, true))
                 .collect();
 
             Ok(any(matchers?))
