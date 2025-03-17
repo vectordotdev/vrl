@@ -162,11 +162,33 @@ impl Filter<Value> for VrlFilter {
         })
     }
 
+    fn phrase(
+        &self,
+        field: Field,
+        phrase: &str,
+    ) -> Result<Box<dyn Matcher<Value>>, PathParseError> {
+        let buf = lookup_field(&field)?;
+        match field {
+            // Default fields are compared by word boundary.
+            Field::Default(_) => {
+                let re = word_regex(phrase);
+                Ok(resolve_value(
+                    buf,
+                    Run::boxed(move |value| match value {
+                        Value::Bytes(val) => re.is_match(&String::from_utf8_lossy(val)),
+                        _ => false,
+                    }),
+                ))
+            }
+            // Everything else is matched by string equality.
+            _ => self.equals(field, phrase),
+        }
+    }
+
     fn equals(
         &self,
         field: Field,
         to_match: &str,
-        _is_phrase: bool,
     ) -> Result<Box<dyn Matcher<Value>>, PathParseError> {
         let buf = lookup_field(&field)?;
 

@@ -133,7 +133,7 @@ where
             let matchers: Result<Vec<_>, _> = filter
                 .build_fields(attr)
                 .into_iter()
-                .map(|field| filter.equals(field, value, false))
+                .map(|field| filter.equals(field, value))
                 .collect();
 
             Ok(any(matchers?))
@@ -145,7 +145,7 @@ where
             let matchers: Result<Vec<_>, _> = filter
                 .build_fields(attr)
                 .into_iter()
-                .map(|field| filter.equals(field, value, true))
+                .map(|field| filter.phrase(field, value))
                 .collect();
 
             Ok(any(matchers?))

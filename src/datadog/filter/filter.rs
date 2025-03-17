@@ -22,12 +22,14 @@ pub trait Filter<V: Debug + Send + Sync + Clone + 'static>: DynClone {
     /// # Errors
     ///
     /// Will return `Err` if the query contains an invalid path.
-    fn equals(
-        &self,
-        field: Field,
-        to_match: &str,
-        is_phrase: bool,
-    ) -> Result<Box<dyn Matcher<V>>, PathParseError>;
+    fn equals(&self, field: Field, to_match: &str) -> Result<Box<dyn Matcher<V>>, PathParseError>;
+
+    /// Determine whether a field value equals `phrase`.
+    ///
+    /// # Errors
+    ///
+    /// Will return `Err` if the query contains an invalid path.
+    fn phrase(&self, field: Field, phrase: &str) -> Result<Box<dyn Matcher<V>>, PathParseError>;
 
     /// Determine whether a value starts with a prefix.
     ///
