@@ -9,7 +9,7 @@ body:
       value: |
         Thank you for opening a feature request! 🚀
 
-        For general questions about Vector usage, please see https://discussions.vector.dev.
+        For general questions about VRL usage, please see https://github.com/vectordotdev/vrl/discussions
 
   - type: textarea
     attributes:
@@ -40,15 +40,13 @@ body:
     attributes:
       label: Attempted Solutions
       description: |
-        If you've already tried to solve the problem within Vector's existing
+        If you've already tried to solve the problem within VRL's existing
         features and found a limitation that prevented you from succeeding, please
         describe it below in as much detail as possible.
 
-        Ideally, this would include real configuration snippets that you tried
-        and what results you got in each case.
+        Ideally, this would include real code snippets that you tried and what results you got in each case.
 
-        Please remove any sensitive information such as passwords before sharing
-        configuration snippets and command lines.
+        Please remove any sensitive information such as passwords before sharing code snippets and command lines.
 
   - type: textarea
     id: proposal
@@ -56,15 +54,15 @@ body:
       label: Proposal
       description: |
         If you have an idea for a way to address the problem via a change to
-        Vector features, please describe it below.
+        VRL features, please describe it below.
 
         In this section, it's helpful to include specific examples of how what
-        you are suggesting might look in configuration files, or on the command line,
+        you are suggesting might look in VRL code, or on the command line,
         since that allows us to understand the full picture of what you are proposing.
 
         If you're not sure of some details, don't worry! When we evaluate the
         feature request we may suggest modifications as necessary to work within the
-        design constraints of Vector.
+        design constraints of VRL.
 
   - type: textarea
     id: references

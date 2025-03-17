@@ -41,9 +41,11 @@ body:
   - type: input
     id: version
     attributes:
-      label: VRL Version
+      label: VRL and/or Vector Version
       description: |
         What VRL version is affected by this bug?
+
+        If you encountered this while running a Vector configuration, please paste the output of running `vector --version`.
     validations:
       required: true
 
@@ -63,7 +65,7 @@ body:
       label: Example
       description: |
         Please share a VRL playground program. You can do this by clicking the `Share Program` button in
-        https://playground.vrl.dev/ and share the link.
+        https://playground.vrl.dev/ and share the URL.
   - type: textarea
     id: context
     attributes:
