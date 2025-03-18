@@ -57,8 +57,8 @@ impl FromLua for Value {
     }
 }
 
-impl<'lua> FromLua<'lua> for ObjectMap {
-    fn from_lua(value: mlua::Value<'lua>, lua: &'lua Lua) -> mlua::Result<Self> {
+impl FromLua for ObjectMap {
+    fn from_lua(value: mlua::Value, lua: &Lua) -> mlua::Result<Self> {
         Ok(Self(Arc::new(BTreeMap::from_lua(value, lua)?)))
     }
 }
@@ -166,7 +166,7 @@ mod test {
             ),
             (
                 "{1, '2', 0.57721566}",
-                Value::Array(vec![1_i64.into(), "2".into(), 0.577_215_66.into()]),
+                Value::Array(vec![1_i64.into(), "2".into(), 0.577_215_66.into()].into()),
             ),
             (
                 "os.date('!*t', 1584297428)",
@@ -264,7 +264,7 @@ mod test {
                 ",
             ),
             (
-                Value::Array(vec![1_i64.into(), "2".into(), 0.577_215_66.into()]),
+                Value::Array(vec![1_i64.into(), "2".into(), 0.577_215_66.into()].into()),
                 "
                 function (value)
                     return value[1] == 1 and
