@@ -1,7 +1,8 @@
 use super::util::ConstOrExpr;
 use crate::compiler::prelude::*;
+use crate::value::ObjectArray;
 
-fn make_object_1(values: Vec<Value>) -> Resolved {
+fn make_object_1(values: ObjectArray) -> Resolved {
     values
         .into_iter()
         .filter_map(|kv| make_key_value(kv).transpose())
@@ -9,7 +10,7 @@ fn make_object_1(values: Vec<Value>) -> Resolved {
         .map(Value::Object)
 }
 
-fn make_object_2(keys: Vec<Value>, values: Vec<Value>) -> Resolved {
+fn make_object_2(keys: ObjectArray, values: ObjectArray) -> Resolved {
     keys.into_iter()
         .zip(values)
         .filter_map(|(key, value)| {

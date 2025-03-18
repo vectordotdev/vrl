@@ -6,7 +6,7 @@ fn zip2(value0: Value, value1: Value) -> Resolved {
         .try_array()?
         .into_iter()
         .zip(value1.try_array()?)
-        .map(|(v0, v1)| Value::Array(vec![v0, v1]))
+        .map(|(v0, v1)| Value::Array(vec![v0, v1].into()))
         .collect())
 }
 
@@ -15,7 +15,7 @@ fn zip_all(value: Value) -> Resolved {
         value
             .try_array()?
             .into_iter()
-            .map(|value| value.try_array().map(Vec::into_iter))
+            .map(|value| value.try_array().map(|v| v.into_iter()))
             .collect::<Result<_, _>>()?,
     )
     .collect::<Vec<_>>()
