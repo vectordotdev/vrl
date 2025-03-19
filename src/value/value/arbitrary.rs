@@ -1,9 +1,10 @@
+use super::Value;
+use crate::value::{ObjectArray, ObjectMap};
 use bytes::Bytes;
 use chrono::{DateTime, Utc};
 use ordered_float::NotNan;
 use quickcheck::{Arbitrary, Gen};
-
-use super::Value;
+use std::collections::BTreeMap;
 
 const MAX_ARRAY_SIZE: usize = 4;
 const MAX_MAP_SIZE: usize = 4;
@@ -16,6 +17,18 @@ fn datetime(g: &mut Gen) -> DateTime<Utc> {
     let secs = i64::arbitrary(g) % 32_000;
     let nanoseconds = u32::arbitrary(g) % 32_000;
     DateTime::<Utc>::from_timestamp(secs, nanoseconds).expect("invalid timestamp")
+}
+
+impl Arbitrary for ObjectMap {
+    fn arbitrary(g: &mut Gen) -> Self {
+        Self::from(BTreeMap::arbitrary(g))
+    }
+}
+
+impl Arbitrary for ObjectArray {
+    fn arbitrary(g: &mut Gen) -> Self {
+        Self::from(Vec::arbitrary(g))
+    }
 }
 
 impl Arbitrary for Value {
