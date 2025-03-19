@@ -1,5 +1,5 @@
 use crate::compiler::prelude::*;
-use rand::{rng, Rng};
+use rand::{thread_rng, Rng};
 use std::ops::Range;
 
 const INVALID_RANGE_ERR: &str = "max must be greater than min";
@@ -7,7 +7,7 @@ const INVALID_RANGE_ERR: &str = "max must be greater than min";
 fn random_int(min: Value, max: Value) -> Resolved {
     let range = get_range(min, max)?;
 
-    let i: i64 = rng().random_range(range);
+    let i: i64 = thread_rng().gen_range(range);
 
     Ok(Value::Integer(i))
 }
