@@ -12,12 +12,23 @@ use crate::{
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Array {
+    resolved: Option<Value>,
     inner: Vec<Expr>,
 }
 
 impl Array {
     pub(crate) fn new(inner: Vec<Expr>) -> Self {
-        Self { inner }
+        Self { resolved: None, inner }
+    }
+    pub(crate) fn new_maybe_resolved(inner: Vec<Expr>, type_state: &TypeState) -> Self {
+        let mut array = Self {
+            resolved: None,
+            inner
+        };
+
+        array.resolved = array.resolve_constant(type_state);
+
+        array
     }
 }
 
@@ -31,11 +42,15 @@ impl Deref for Array {
 
 impl Expression for Array {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        self.inner
-            .iter()
-            .map(|expr| expr.resolve(ctx))
-            .collect::<Result<ObjectArray, _>>()
-            .map(Value::Array)
+        if let Some(resolved) = &self.resolved {
+            Ok(resolved.clone())
+        } else {
+            self.inner
+                .iter()
+                .map(|expr| expr.resolve(ctx))
+                .collect::<Result<ObjectArray, _>>()
+                .map(Value::Array)
+        }
     }
 
     fn resolve_constant(&self, state: &TypeState) -> Option<Value> {
@@ -99,7 +114,7 @@ impl fmt::Display for Array {
 
 impl From<Vec<Expr>> for Array {
     fn from(inner: Vec<Expr>) -> Self {
-        Self { inner }
+        Self::new(inner)
     }
 }
 
