@@ -36,7 +36,7 @@ fn fuzz(src: &str) {
     if let Ok(result) = vrl::compiler::compile_with_external(src, &fns, &external, config) {
         let mut target = TargetValue {
             value: value!({}),
-            metadata: Value::Object(BTreeMap::new()),
+            metadata: Value::object(),
             secrets: Secrets::default(),
         };
 

@@ -84,7 +84,7 @@ impl Opts {
         }?;
 
         match input.as_str() {
-            "" => Ok(vec![Value::Object(ObjectMap::new())]),
+            "" => Ok(vec![Value::object()]),
             _ => input
                 .lines()
                 .map(|line| Ok(serde_to_vrl(serde_json::from_str(line)?)))
@@ -155,7 +155,7 @@ fn run(opts: &Opts, stdlib_functions: Vec<Box<dyn Function>>) -> Result<(), Erro
         }
 
         for mut object in objects {
-            let mut metadata = Value::Object(ObjectMap::new());
+            let mut metadata = Value::object();
             let mut secrets = Secrets::new();
             let mut target = TargetValueRef {
                 value: &mut object,
@@ -198,7 +198,7 @@ fn repl(
         .into_iter()
         .map(|value| TargetValue {
             value,
-            metadata: Value::Object(ObjectMap::new()),
+            metadata: Value::object(),
             secrets: Secrets::new(),
         })
         .collect();
@@ -246,5 +246,5 @@ fn read<R: Read>(mut reader: R) -> Result<String, Error> {
 }
 
 fn default_objects() -> Vec<Value> {
-    vec![Value::Object(ObjectMap::new())]
+    vec![Value::object()]
 }

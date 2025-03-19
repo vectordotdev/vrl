@@ -101,7 +101,7 @@ pub(crate) fn run(
                         if index == objects.len() {
                             objects.push(TargetValue {
                                 value: Value::Null,
-                                metadata: Value::Object(ObjectMap::new()),
+                                metadata: Value::object(),
                                 secrets: Secrets::new(),
                             });
                         }

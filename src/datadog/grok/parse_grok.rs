@@ -3,7 +3,7 @@ use super::{
     parse_grok_rules::{GrokField, GrokRule},
 };
 use crate::path::parse_value_path;
-use crate::value::{ObjectMap, Value};
+use crate::value::Value;
 use tracing::error;
 
 /// Errors which cause the Datadog grok algorithm to stop processing and not return a parsed result.
@@ -57,7 +57,7 @@ pub fn parse_grok(
 /// Internal Errors:
 /// - FailedToApplyFilter - matches the rule, but there was a runtime error while applying on of the filters
 fn apply_grok_rule(source: &str, grok_rule: &GrokRule) -> Result<ParsedGrokObject, FatalError> {
-    let mut parsed = Value::Object(ObjectMap::new());
+    let mut parsed = Value::object();
     let mut internal_errors = vec![];
 
     match grok_rule.pattern.match_against(source) {
@@ -137,7 +137,7 @@ fn apply_grok_rule(source: &str, grok_rule: &GrokRule) -> Result<ParsedGrokObjec
 fn parse_keys_as_path(value: Value) -> Value {
     match value {
         Value::Object(map) => {
-            let mut result = Value::Object(ObjectMap::new());
+            let mut result = Value::object();
             for (k, v) in map.into_iter() {
                 let path = parse_value_path(&k)
                     .unwrap_or_else(|_| crate::owned_value_path!(&k.to_string()));
