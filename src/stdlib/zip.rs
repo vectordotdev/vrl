@@ -15,7 +15,7 @@ fn zip_all(value: Value) -> Resolved {
         value
             .try_array()?
             .into_iter()
-            .map(|value| value.try_array().map(|v| v.into_iter()))
+            .map(|value| value.try_array().map(IntoIterator::into_iter))
             .collect::<Result<_, _>>()?,
     )
     .collect::<Vec<_>>()

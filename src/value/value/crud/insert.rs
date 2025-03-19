@@ -12,7 +12,6 @@ pub fn insert<'a, T: ValueCollection>(
     match path_iter.next() {
         Some(BorrowedSegment::Field(field)) => {
             if let Some(Value::Object(map)) = value.get_mut_value(key.borrow()) {
-                let map = map;
                 insert(map, field.to_string().into(), path_iter, insert_value)
             } else {
                 let mut map = ObjectMap::new();

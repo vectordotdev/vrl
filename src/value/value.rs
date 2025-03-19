@@ -40,6 +40,7 @@ pub type StdError = Box<dyn std::error::Error + Send + Sync + 'static>;
 pub struct ObjectMap(pub Arc<BTreeMap<KeyString, Value>>);
 
 impl ObjectMap {
+    #[must_use]
     pub fn new() -> Self {
         ObjectMap(Arc::new(BTreeMap::new()))
     }
@@ -93,7 +94,7 @@ impl Deref for ObjectMap {
     type Target = BTreeMap<KeyString, Value>;
 
     fn deref(&self) -> &Self::Target {
-        self.0.deref()
+        &self.0
     }
 }
 
@@ -107,9 +108,11 @@ impl DerefMut for ObjectMap {
 pub struct ObjectArray(pub Arc<Vec<Value>>);
 
 impl ObjectArray {
+    #[must_use]
     pub fn new() -> Self {
         ObjectArray(Arc::new(Vec::new()))
     }
+    #[must_use]
     pub fn into_vec(self) -> Vec<Value> {
         Arc::unwrap_or_clone(self.0)
     }
@@ -119,7 +122,7 @@ impl Deref for ObjectArray {
     type Target = Vec<Value>;
 
     fn deref(&self) -> &Self::Target {
-        self.0.deref()
+        &self.0
     }
 }
 
@@ -194,9 +197,11 @@ pub enum Value {
 }
 
 impl Value {
+    #[must_use]
     pub fn object() -> Self {
         Self::Object(ObjectMap::new())
     }
+    #[must_use]
     pub fn array() -> Self {
         Self::Array(ObjectArray::new())
     }
