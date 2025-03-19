@@ -168,10 +168,10 @@ fn postprocess_value(value: &mut Value) {
 #[cfg(test)]
 mod tests {
     use crate::btreemap;
-    use std::collections::BTreeMap;
     use crate::value::Value;
     use chrono::{Datelike, NaiveDate, Timelike, Utc};
     use ordered_float::NotNan;
+    use std::collections::BTreeMap;
     use tracing_test::traced_test;
 
     use super::super::parse_grok_rules::parse_grok_rules;
@@ -1342,21 +1342,27 @@ mod tests {
             (
                 "%{data::json}",
                 r#"{"root": {"object": {"empty": {}}, "string": "abc" }}"#,
-                Ok(Value::Object(btreemap!(
-                    "root" => btreemap! (
-                        "string" => "abc"
+                Ok(Value::Object(
+                    btreemap!(
+                        "root" => btreemap! (
+                            "string" => "abc"
+                        )
                     )
-                ).into())),
+                    .into(),
+                )),
             ),
             (
                 "%{data:field:json}",
                 r#"{"root": {"object": {"empty": {}}, "string": "abc" }}"#,
-                Ok(Value::Object(btreemap!(
-                    "field" => btreemap!(
-                        "root" => btreemap! (
-                            "string" => "abc"
-                        )
-                )).into())),
+                Ok(Value::Object(
+                    btreemap!(
+                        "field" => btreemap!(
+                            "root" => btreemap! (
+                                "string" => "abc"
+                            )
+                    ))
+                    .into(),
+                )),
             ),
             (
                 r#"%{notSpace:network.destination.ip:nullIf("-")}"#,
@@ -1370,11 +1376,14 @@ mod tests {
         test_full_grok(vec![(
             "%{data::json}",
             r#"{"a.b": "c"}"#,
-            Ok(Value::Object(btreemap!(
-                "a" => btreemap! (
-                    "b" => "c"
+            Ok(Value::Object(
+                btreemap!(
+                    "a" => btreemap! (
+                        "b" => "c"
+                    )
                 )
-            ).into())),
+                .into(),
+            )),
         )]);
     }
 }

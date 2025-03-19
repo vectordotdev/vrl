@@ -266,9 +266,9 @@ impl From<IterData> for Value {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::{BTreeMap, HashMap};
-    use crate::value::ObjectMap;
     use super::*;
+    use crate::value::ObjectMap;
+    use std::collections::{BTreeMap, HashMap};
 
     #[test]
     #[allow(clippy::too_many_lines)]

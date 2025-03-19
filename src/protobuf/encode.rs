@@ -229,12 +229,15 @@ mod tests {
     fn test_encode_integers() {
         let message = encode_message(
             &test_message_descriptor("Integers"),
-            Value::Object(BTreeMap::from([
-                ("i32".into(), Value::Integer(-1234)),
-                ("i64".into(), Value::Integer(-9876)),
-                ("u32".into(), Value::Integer(1234)),
-                ("u64".into(), Value::Integer(9876)),
-            ]).into()),
+            Value::Object(
+                BTreeMap::from([
+                    ("i32".into(), Value::Integer(-1234)),
+                    ("i64".into(), Value::Integer(-9876)),
+                    ("u32".into(), Value::Integer(1234)),
+                    ("u64".into(), Value::Integer(9876)),
+                ])
+                .into(),
+            ),
         )
         .unwrap();
         assert_eq!(Some(-1234), mfield!(message, "i32").as_i32());
@@ -265,10 +268,13 @@ mod tests {
     fn test_encode_floats() {
         let message = encode_message(
             &test_message_descriptor("Floats"),
-            Value::Object(BTreeMap::from([
-                ("d".into(), Value::Float(NotNan::new(11.0).unwrap())),
-                ("f".into(), Value::Float(NotNan::new(2.0).unwrap())),
-            ]).into()),
+            Value::Object(
+                BTreeMap::from([
+                    ("d".into(), Value::Float(NotNan::new(11.0).unwrap())),
+                    ("f".into(), Value::Float(NotNan::new(2.0).unwrap())),
+                ])
+                .into(),
+            ),
         )
         .unwrap();
         assert_eq!(Some(11.0), mfield!(message, "d").as_f64());
@@ -294,10 +300,13 @@ mod tests {
         let bytes = Bytes::from(vec![0, 1, 2, 3]);
         let message = encode_message(
             &test_message_descriptor("Bytes"),
-            Value::Object(BTreeMap::from([
-                ("text".into(), Value::Bytes(Bytes::from("vector"))),
-                ("binary".into(), Value::Bytes(bytes.clone())),
-            ]).into()),
+            Value::Object(
+                BTreeMap::from([
+                    ("text".into(), Value::Bytes(Bytes::from("vector"))),
+                    ("binary".into(), Value::Bytes(bytes.clone())),
+                ])
+                .into(),
+            ),
         )
         .unwrap();
         assert_eq!(Some("vector"), mfield!(message, "text").as_str());
@@ -308,25 +317,37 @@ mod tests {
     fn test_encode_map() {
         let message = encode_message(
             &test_message_descriptor("Map"),
-            Value::Object(BTreeMap::from([
-                (
-                    "names".into(),
-                    Value::Object(BTreeMap::from([
-                        ("forty-four".into(), Value::Integer(44)),
-                        ("one".into(), Value::Integer(1)),
-                    ]).into()),
-                ),
-                (
-                    "people".into(),
-                    Value::Object(BTreeMap::from([(
-                        "mark".into(),
-                        Value::Object(BTreeMap::from([
-                            ("nickname".into(), Value::Bytes(Bytes::from("jeff"))),
-                            ("age".into(), Value::Integer(22)),
-                        ]).into()),
-                    )]).into()),
-                ),
-            ]).into()),
+            Value::Object(
+                BTreeMap::from([
+                    (
+                        "names".into(),
+                        Value::Object(
+                            BTreeMap::from([
+                                ("forty-four".into(), Value::Integer(44)),
+                                ("one".into(), Value::Integer(1)),
+                            ])
+                            .into(),
+                        ),
+                    ),
+                    (
+                        "people".into(),
+                        Value::Object(
+                            BTreeMap::from([(
+                                "mark".into(),
+                                Value::Object(
+                                    BTreeMap::from([
+                                        ("nickname".into(), Value::Bytes(Bytes::from("jeff"))),
+                                        ("age".into(), Value::Integer(22)),
+                                    ])
+                                    .into(),
+                                ),
+                            )])
+                            .into(),
+                        ),
+                    ),
+                ])
+                .into(),
+            ),
         )
         .unwrap();
         // the simpler string->primitive map
@@ -365,11 +386,14 @@ mod tests {
     fn test_encode_enum() {
         let message = encode_message(
             &test_message_descriptor("Enum"),
-            Value::Object(BTreeMap::from([
-                ("breakfast".into(), Value::Bytes(Bytes::from("tomato"))),
-                ("dinner".into(), Value::Bytes(Bytes::from("OLIVE"))),
-                ("lunch".into(), Value::Integer(0)),
-            ]).into()),
+            Value::Object(
+                BTreeMap::from([
+                    ("breakfast".into(), Value::Bytes(Bytes::from("tomato"))),
+                    ("dinner".into(), Value::Bytes(Bytes::from("OLIVE"))),
+                    ("lunch".into(), Value::Integer(0)),
+                ])
+                .into(),
+            ),
         )
         .unwrap();
         assert_eq!(Some(2), mfield!(message, "breakfast").as_enum_number());
@@ -381,12 +405,15 @@ mod tests {
     fn test_encode_timestamp() {
         let message = encode_message(
             &test_message_descriptor("Timestamp"),
-            Value::Object(BTreeMap::from([(
-                "morning".into(),
-                Value::Timestamp(
-                    DateTime::from_timestamp(8675, 309).expect("could not compute timestamp"),
-                ),
-            )]).into()),
+            Value::Object(
+                BTreeMap::from([(
+                    "morning".into(),
+                    Value::Timestamp(
+                        DateTime::from_timestamp(8675, 309).expect("could not compute timestamp"),
+                    ),
+                )])
+                .into(),
+            ),
         )
         .unwrap();
         let timestamp = mfield!(message, "morning").as_message().unwrap().clone();
@@ -400,11 +427,7 @@ mod tests {
             &test_message_descriptor("RepeatedPrimitive"),
             Value::from([(
                 "numbers".into(),
-                Value::Array(vec![
-                    Value::Integer(8),
-                    Value::Integer(6),
-                    Value::Integer(4),
-                ].into()),
+                Value::Array(vec![Value::Integer(8), Value::Integer(6), Value::Integer(4)].into()),
             )]),
         )
         .unwrap();
@@ -419,20 +442,34 @@ mod tests {
     fn test_encode_repeated_message() {
         let message = encode_message(
             &test_message_descriptor("RepeatedMessage"),
-            Value::Object(BTreeMap::from([(
-                "messages".into(),
-                Value::Array(vec![
-                    Value::Object(BTreeMap::from([(
-                        "text".into(),
-                        Value::Bytes(Bytes::from("vector")),
-                    )]).into()),
-                    Value::Object(BTreeMap::from([("index".into(), Value::Integer(4444))]).into()),
-                    Value::Object(BTreeMap::from([
-                        ("text".into(), Value::Bytes(Bytes::from("protobuf"))),
-                        ("index".into(), Value::Integer(1)),
-                    ]).into()),
-                ].into()),
-            )]).into()),
+            Value::Object(
+                BTreeMap::from([(
+                    "messages".into(),
+                    Value::Array(
+                        vec![
+                            Value::Object(
+                                BTreeMap::from([(
+                                    "text".into(),
+                                    Value::Bytes(Bytes::from("vector")),
+                                )])
+                                .into(),
+                            ),
+                            Value::Object(
+                                BTreeMap::from([("index".into(), Value::Integer(4444))]).into(),
+                            ),
+                            Value::Object(
+                                BTreeMap::from([
+                                    ("text".into(), Value::Bytes(Bytes::from("protobuf"))),
+                                    ("index".into(), Value::Integer(1)),
+                                ])
+                                .into(),
+                            ),
+                        ]
+                        .into(),
+                    ),
+                )])
+                .into(),
+            ),
         )
         .unwrap();
         let list = mfield!(message, "messages").as_list().unwrap().to_vec();

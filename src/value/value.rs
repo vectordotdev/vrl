@@ -5,14 +5,14 @@ pub use super::value::regex::ValueRegex;
 #[allow(clippy::module_name_repetitions)]
 pub use iter::{IterItem, ValueIter};
 
+use ::serde::{Deserialize, Serialize};
 use bytes::{Bytes, BytesMut};
 use chrono::{DateTime, SecondsFormat, Utc};
 use ordered_float::NotNan;
 use std::borrow::Cow;
-use std::{cmp::Ordering, collections::BTreeMap};
 use std::ops::{Deref, DerefMut};
 use std::sync::Arc;
-use ::serde::{Deserialize, Serialize};
+use std::{cmp::Ordering, collections::BTreeMap};
 
 use super::KeyString;
 use crate::path::ValuePath;
@@ -73,7 +73,7 @@ impl<'a> IntoIterator for &'a ObjectMap {
 }
 
 impl FromIterator<(KeyString, Value)> for ObjectMap {
-    fn from_iter<T: IntoIterator<Item=(KeyString, Value)>>(iter: T) -> Self {
+    fn from_iter<T: IntoIterator<Item = (KeyString, Value)>>(iter: T) -> Self {
         Self(Arc::new(BTreeMap::from_iter(iter)))
     }
 }
@@ -151,7 +151,7 @@ impl<'a> IntoIterator for &'a ObjectArray {
 }
 
 impl FromIterator<Value> for ObjectArray {
-    fn from_iter<T: IntoIterator<Item=Value>>(iter: T) -> Self {
+    fn from_iter<T: IntoIterator<Item = Value>>(iter: T) -> Self {
         Self(Arc::new(Vec::from_iter(iter)))
     }
 }
@@ -161,7 +161,6 @@ impl From<Vec<Value>> for ObjectArray {
         Self(Arc::new(value))
     }
 }
-
 
 /// The main value type used in Vector events, and VRL.
 #[derive(Eq, PartialEq, Hash, Debug, Clone)]

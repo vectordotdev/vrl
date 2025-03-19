@@ -5,6 +5,7 @@ use crate::compiler::TimeZone;
 use crate::compiler::{compile_with_state, CompileConfig, Function, Program, Target, VrlRuntime};
 use crate::diagnostic::Formatter;
 use crate::owned_metadata_path;
+use crate::prelude::ObjectMap;
 use crate::value::Secrets;
 use crate::value::Value;
 use indoc::indoc;
@@ -22,7 +23,6 @@ use rustyline::{
 use std::borrow::Cow::{self, Borrowed, Owned};
 use std::rc::Rc;
 use std::sync::LazyLock;
-use crate::prelude::ObjectMap;
 
 // Create a list of all possible error values for potential docs lookup
 static ERRORS: LazyLock<Vec<String>> = LazyLock::new(|| {

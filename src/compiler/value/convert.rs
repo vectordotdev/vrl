@@ -6,7 +6,7 @@ use chrono::{DateTime, Utc};
 
 use crate::compiler::{
     expression::{Container, Expr, Variant},
-    value::{Kind, ObjectMap, ObjectArray, ValueError},
+    value::{Kind, ObjectArray, ObjectMap, ValueError},
     Expression,
 };
 

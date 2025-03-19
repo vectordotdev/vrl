@@ -13,11 +13,11 @@ pub mod value;
 mod btreemap;
 mod keystring;
 
-pub use kind::Kind;
 pub use self::keystring::KeyString;
 pub use self::secrets::Secrets;
 #[allow(clippy::module_name_repetitions)]
 pub use self::value::{ObjectArray, ObjectMap, Value, ValueRegex};
+pub use kind::Kind;
 
 /// A macro to easily generate Values
 #[macro_export]

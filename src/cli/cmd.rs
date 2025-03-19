@@ -16,8 +16,8 @@ use crate::compiler::{
 };
 use crate::diagnostic::Formatter;
 use crate::owned_metadata_path;
-use crate::value::{ObjectMap, Secrets};
 use crate::value::Value;
+use crate::value::{ObjectMap, Secrets};
 use clap::Parser;
 
 use super::repl;

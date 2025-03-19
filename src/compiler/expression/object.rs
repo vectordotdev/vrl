@@ -21,7 +21,7 @@ impl Object {
     pub fn new(inner: BTreeMap<KeyString, Expr>) -> Self {
         Self {
             resolved: None,
-            inner
+            inner,
         }
     }
 
@@ -29,7 +29,7 @@ impl Object {
     pub fn new_maybe_resolved(inner: BTreeMap<KeyString, Expr>, type_state: &TypeState) -> Self {
         let mut object = Self {
             resolved: None,
-            inner
+            inner,
         };
 
         object.resolved = object.resolve_constant(type_state);
@@ -57,7 +57,6 @@ impl Expression for Object {
                 .collect::<Result<BTreeMap<_, _>, _>>()
                 .map(|v| Value::Object(v.into()))
         }
-
     }
 
     fn resolve_constant(&self, state: &TypeState) -> Option<Value> {

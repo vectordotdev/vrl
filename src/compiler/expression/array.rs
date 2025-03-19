@@ -18,12 +18,15 @@ pub struct Array {
 
 impl Array {
     pub(crate) fn new(inner: Vec<Expr>) -> Self {
-        Self { resolved: None, inner }
+        Self {
+            resolved: None,
+            inner,
+        }
     }
     pub(crate) fn new_maybe_resolved(inner: Vec<Expr>, type_state: &TypeState) -> Self {
         let mut array = Self {
             resolved: None,
-            inner
+            inner,
         };
 
         array.resolved = array.resolve_constant(type_state);

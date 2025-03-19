@@ -2,13 +2,13 @@ use std::borrow::Cow;
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
+use crate::prelude::value::ObjectArray;
 use crate::value::value::regex::ValueRegex;
 use crate::value::value::simdutf_bytes_utf8_lossy;
 use bytes::Bytes;
 use chrono::{DateTime, Utc};
 use ordered_float::NotNan;
 use regex::Regex;
-use crate::prelude::value::ObjectArray;
 
 use super::super::{KeyString, Kind, ObjectMap, Value};
 

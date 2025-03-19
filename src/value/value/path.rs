@@ -62,11 +62,14 @@ mod at_path_tests {
         let baz_value = Value::Array(vec![Value::Null, value.clone()].into());
         let foo_value = Value::Object(ObjectMap::from([("baz".into(), baz_value)]));
 
-        let object = Value::Array(vec![
-            Value::Null,
-            Value::Null,
-            Value::Object(ObjectMap::from([("foo".into(), foo_value)])),
-        ].into());
+        let object = Value::Array(
+            vec![
+                Value::Null,
+                Value::Null,
+                Value::Object(ObjectMap::from([("foo".into(), foo_value)])),
+            ]
+            .into(),
+        );
 
         assert_eq!(value.at_path(&path), object);
     }

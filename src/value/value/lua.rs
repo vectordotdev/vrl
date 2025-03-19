@@ -1,8 +1,8 @@
-use std::collections::BTreeMap;
-use std::sync::Arc;
 use mlua::prelude::LuaResult;
 use mlua::{FromLua, IntoLua, Lua, Value as LuaValue};
 use ordered_float::NotNan;
+use std::collections::BTreeMap;
+use std::sync::Arc;
 
 use crate::value::{KeyString, Value};
 
@@ -45,7 +45,8 @@ impl FromLua for Value {
                 } else if table_is_timestamp(&t)? {
                     table_to_timestamp(t).map(Self::Timestamp)
                 } else {
-                    <_>::from_lua(LuaValue::Table(t), lua).map(|v: BTreeMap<KeyString, Self>| Self::Object(v.into()))
+                    <_>::from_lua(LuaValue::Table(t), lua)
+                        .map(|v: BTreeMap<KeyString, Self>| Self::Object(v.into()))
                 }
             }
             other => Err(mlua::Error::FromLuaConversionError {
@@ -63,9 +64,9 @@ impl FromLua for ObjectMap {
     }
 }
 
+use crate::prelude::ObjectMap;
 use chrono::{DateTime, Datelike, TimeZone, Timelike, Utc};
 use mlua::prelude::*;
-use crate::prelude::ObjectMap;
 
 /// Convert a `DateTime<Utc>` to a `LuaTable`.
 ///
