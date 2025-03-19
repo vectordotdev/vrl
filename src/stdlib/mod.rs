@@ -8,7 +8,8 @@ mod string_utils;
 mod util;
 mod wasm_unsupported_function;
 
-cfg_if::cfg_if! {
+use cfg_if::cfg_if;
+cfg_if! {
     if #[cfg(feature = "stdlib")] {
         mod abs;
         mod append;
@@ -33,7 +34,6 @@ cfg_if::cfg_if! {
         mod decode_snappy;
         mod decode_zlib;
         mod decode_zstd;
-        mod decrypt;
         mod del;
         mod dns_lookup;
         mod downcase;
@@ -50,7 +50,6 @@ cfg_if::cfg_if! {
         mod encode_snappy;
         mod encode_zlib;
         mod encode_zstd;
-        mod encrypt;
         mod ends_with;
         mod exists;
         mod filter;
@@ -182,7 +181,6 @@ cfg_if::cfg_if! {
         mod to_syslog_level;
         mod to_syslog_severity;
         mod to_unix_timestamp;
-        mod community_id;
         mod truncate;
         mod unflatten;
         mod type_def;
@@ -218,7 +216,6 @@ cfg_if::cfg_if! {
         pub use decode_snappy::DecodeSnappy;
         pub use decode_zlib::DecodeZlib;
         pub use decode_zstd::DecodeZstd;
-        pub use decrypt::Decrypt;
         pub use del::Del;
         pub use dns_lookup::DnsLookup;
         pub use downcase::Downcase;
@@ -240,7 +237,6 @@ cfg_if::cfg_if! {
         pub use encode_snappy::EncodeSnappy;
         pub use encode_zlib::EncodeZlib;
         pub use encode_zstd::EncodeZstd;
-        pub use encrypt::Encrypt;
         pub use ends_with::EndsWith;
         pub use exists::Exists;
         pub use filter::Filter;
@@ -253,7 +249,6 @@ cfg_if::cfg_if! {
         pub use format_number::FormatNumber;
         pub use format_timestamp::FormatTimestamp;
         pub use from_unix_timestamp::FromUnixTimestamp;
-        pub use self::community_id::CommunityID;
         pub use get::Get;
         pub use get_env_var::GetEnvVar;
         pub use get_hostname::GetHostname;
@@ -388,11 +383,29 @@ cfg_if::cfg_if! {
     }
 }
 
+cfg_if! {
+    if #[cfg(feature = "crypto_stdlib")] {
+        mod encrypt;
+        mod decrypt;
+        mod community_id;
+        pub use encrypt::Encrypt;
+        pub use decrypt::Decrypt;
+        pub use self::community_id::CommunityID;
+    }
+}
+
+#[cfg(feature = "crypto_stdlib")]
+#[must_use]
+fn crypto_functions() -> Vec<Box<dyn Function>> {
+    vec![Box::new(Decrypt), Box::new(Encrypt), Box::new(CommunityID)]
+}
+
 #[cfg(feature = "stdlib")]
 #[must_use]
 #[allow(clippy::too_many_lines)]
 pub fn all() -> Vec<Box<dyn Function>> {
-    vec![
+    #[allow(unused_mut)]
+    let mut all: Vec<Box<dyn Function>> = vec![
         Box::new(Abs),
         Box::new(Append),
         Box::new(Array),
@@ -416,7 +429,6 @@ pub fn all() -> Vec<Box<dyn Function>> {
         Box::new(DecodeSnappy),
         Box::new(DecodeZlib),
         Box::new(DecodeZstd),
-        Box::new(Decrypt),
         Box::new(Del),
         Box::new(DnsLookup),
         Box::new(Downcase),
@@ -433,7 +445,6 @@ pub fn all() -> Vec<Box<dyn Function>> {
         Box::new(EncodeSnappy),
         Box::new(EncodeZlib),
         Box::new(EncodeZstd),
-        Box::new(Encrypt),
         Box::new(EndsWith),
         Box::new(Exists),
         Box::new(Filter),
@@ -568,7 +579,6 @@ pub fn all() -> Vec<Box<dyn Function>> {
         Box::new(ToSyslogLevel),
         Box::new(ToSyslogSeverity),
         Box::new(ToUnixTimestamp),
-        Box::new(CommunityID),
         Box::new(Truncate),
         Box::new(TypeDef),
         Box::new(Unflatten),
@@ -580,5 +590,9 @@ pub fn all() -> Vec<Box<dyn Function>> {
         Box::new(UuidV7),
         Box::new(Values),
         Box::new(Zip),
-    ]
+    ];
+
+    #[cfg(feature = "crypto_stdlib")]
+    all.extend(crypto_functions());
+    all
 }

@@ -24,7 +24,7 @@ members = [
 clap = { version = "4", features = ["derive"] }
 
 [features]
-default = ["compiler", "value", "diagnostic", "path", "parser", "stdlib", "datadog", "core"]
+default = ["compiler", "value", "diagnostic", "path", "parser", "stdlib", "crypto_stdlib", "datadog", "core"]
 
 # Main features (on by default)
 compiler = ["diagnostic", "path", "parser", "value", "dep:chrono", "dep:serde", "dep:regex", "dep:bytes", "dep:ordered-float", "dep:chrono-tz", "dep:snafu", "dep:thiserror", "dep:dyn-clone", "dep:indoc", "dep:thiserror", "dep:lalrpop-util"]
@@ -60,21 +60,14 @@ stdlib = [
   "core",
   "datadog",
   "parsing",
-  "dep:aes",
-  "dep:aes-siv",
   "dep:base16",
   "dep:base62",
   "dep:base64",
-  "dep:cbc",
-  "dep:cfb-mode",
-  "dep:chacha20poly1305",
   "dep:charset",
   "dep:convert_case",
   "dep:ciborium",
   "dep:cidr",
-  "dep:community-id",
   "dep:crc",
-  "dep:crypto_secretbox",
   "dep:csv",
   "dep:ctr",
   "dep:data-encoding",
@@ -120,6 +113,18 @@ stdlib = [
   "dep:woothee",
   "dep:zstd",
   "dep:encoding_rs"
+]
+
+# These dependencies depend on older `rand` and `getrandom` versions and this creates problems in Vector
+# with `lib/vector-vrl/web-playground/Cargo.toml`. Once these deps update their dependencies we can move them back to `stdlib`.
+crypto_stdlib = [
+  "dep:aes",
+  "dep:aes-siv",
+  "dep:crypto_secretbox",
+  "dep:cbc",
+  "dep:cfb-mode",
+  "dep:chacha20poly1305",
+  "dep:community-id"
 ]
 
 [dependencies]
