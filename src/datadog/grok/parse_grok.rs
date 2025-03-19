@@ -407,7 +407,7 @@ mod tests {
                     "json" =>  Value::Array(vec! [
                         Value::from(btreemap! { "json_field1" => Value::Bytes("value2".into()) }),
                         Value::from(btreemap! { "json_field2" => Value::Bytes("value3".into()) }),
-                    ]),
+                    ].into()),
                 }
             })),
         )]);
@@ -531,7 +531,7 @@ mod tests {
             parsed,
             Value::from(btreemap! {
                 "nested" => btreemap! {
-                   "field" =>  Value::Array(vec![1.into(), "INFO".into(), "message".into()]),
+                   "field" =>  Value::Array(vec![1.into(), "INFO".into(), "message".into()].into()),
                 },
             })
         );
@@ -751,62 +751,62 @@ mod tests {
             (
                 "%{data:field:array}",
                 "[1,2]",
-                Ok(Value::Array(vec!["1".into(), "2".into()])),
+                Ok(Value::Array(vec!["1".into(), "2".into()].into())),
             ),
             (
                 r#"%{data:field:array("\\t")}"#,
                 "[1\t2]",
-                Ok(Value::Array(vec!["1".into(), "2".into()])),
+                Ok(Value::Array(vec!["1".into(), "2".into()].into())),
             ),
             (
                 r#"%{data:field:array("[]","\\n")}"#,
                 "[1\n2]",
-                Ok(Value::Array(vec!["1".into(), "2".into()])),
+                Ok(Value::Array(vec!["1".into(), "2".into()].into())),
             ),
             (
                 r#"%{data:field:array("","-")}"#,
                 "1-2",
-                Ok(Value::Array(vec!["1".into(), "2".into()])),
+                Ok(Value::Array(vec!["1".into(), "2".into()].into())),
             ),
             (
                 "%{data:field:array(integer)}",
                 "[1,2]",
-                Ok(Value::Array(vec![1.into(), 2.into()])),
+                Ok(Value::Array(vec![1.into(), 2.into()].into())),
             ),
             (
                 r#"%{data:field:array(";", integer)}"#,
                 "[1;2]",
-                Ok(Value::Array(vec![1.into(), 2.into()])),
+                Ok(Value::Array(vec![1.into(), 2.into()].into())),
             ),
             (
                 r#"%{data:field:array("{}",";", integer)}"#,
                 "{1;2}",
-                Ok(Value::Array(vec![1.into(), 2.into()])),
+                Ok(Value::Array(vec![1.into(), 2.into()].into())),
             ),
             (
                 "%{data:field:array(number)}",
                 "[1,2]",
-                Ok(Value::Array(vec![1.into(), 2.into()])),
+                Ok(Value::Array(vec![1.into(), 2.into()].into())),
             ),
             (
                 "%{data:field:array(integer)}",
                 "[1,2]",
-                Ok(Value::Array(vec![1.into(), 2.into()])),
+                Ok(Value::Array(vec![1.into(), 2.into()].into())),
             ),
             (
                 "%{data:field:array(scale(10))}",
                 "[1,2.1]",
-                Ok(Value::Array(vec![10.into(), 21.into()])),
+                Ok(Value::Array(vec![10.into(), 21.into()].into())),
             ),
             (
                 r#"%{data:field:array(";", scale(10))}"#,
                 "[1;2.1]",
-                Ok(Value::Array(vec![10.into(), 21.into()])),
+                Ok(Value::Array(vec![10.into(), 21.into()].into())),
             ),
             (
                 r#"%{data:field:array("{}",";", scale(10))}"#,
                 "{1;2.1}",
-                Ok(Value::Array(vec![10.into(), 21.into()])),
+                Ok(Value::Array(vec![10.into(), 21.into()].into())),
             ),
         ]);
 
@@ -1137,7 +1137,7 @@ mod tests {
         assert_eq!(
             parsed,
             Value::from(btreemap! {
-                 "field" =>  Value::Array(vec![1.into(), 2.into()]),
+                 "field" =>  Value::Array(vec![1.into(), 2.into()].into()),
             })
         );
     }
@@ -1242,7 +1242,7 @@ mod tests {
                 "(?-s)%{data:field} (?s)%{data:field}",
                 "abc d\ne",
                 Ok(Value::from(btreemap! {
-                    "field" => Value::Array(vec!["abc".into(), "d\ne".into()]),
+                    "field" => Value::Array(vec!["abc".into(), "d\ne".into()].into()),
                 })),
             ),
         ]);

@@ -36,7 +36,7 @@ mod test {
 
     #[test]
     fn array_remove_from_middle() {
-        let mut value = Value::Array(vec![Value::Null, Value::Integer(3)]);
+        let mut value = Value::Array(vec![Value::Null, Value::Integer(3)].into());
         assert_eq!(value.remove("[0]", false), Some(Value::Null));
         assert_eq!(value.remove("[0]", false), Some(Value::Integer(3)));
         assert_eq!(value.remove("[0]", false), None);

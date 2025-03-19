@@ -247,12 +247,12 @@ mod tests {
     fn test_encode_integers_from_bytes() {
         let message = encode_message(
             &test_message_descriptor("Integers"),
-            Value::Object(BTreeMap::from([
+            Value::from([
                 ("i32".into(), Value::Bytes(Bytes::from("-1234"))),
                 ("i64".into(), Value::Bytes(Bytes::from("-9876"))),
                 ("u32".into(), Value::Bytes(Bytes::from("1234"))),
                 ("u64".into(), Value::Bytes(Bytes::from("9876"))),
-            ])),
+            ]),
         )
         .unwrap();
         assert_eq!(Some(-1234), mfield!(message, "i32").as_i32());
@@ -279,10 +279,10 @@ mod tests {
     fn test_encode_bytes_as_float() {
         let message = encode_message(
             &test_message_descriptor("Floats"),
-            Value::Object(BTreeMap::from([
+            Value::from([
                 ("d".into(), Value::Bytes(Bytes::from("11.0"))),
                 ("f".into(), Value::Bytes(Bytes::from("2.0"))),
-            ])),
+            ]),
         )
         .unwrap();
         assert_eq!(Some(11.0), mfield!(message, "d").as_f64());
@@ -398,14 +398,14 @@ mod tests {
     fn test_encode_repeated_primitive() {
         let message = encode_message(
             &test_message_descriptor("RepeatedPrimitive"),
-            Value::Object(BTreeMap::from([(
+            Value::from([(
                 "numbers".into(),
                 Value::Array(vec![
                     Value::Integer(8),
                     Value::Integer(6),
                     Value::Integer(4),
-                ]),
-            )]).into()),
+                ].into()),
+            )]),
         )
         .unwrap();
         let list = mfield!(message, "numbers").as_list().unwrap().to_vec();
@@ -431,7 +431,7 @@ mod tests {
                         ("text".into(), Value::Bytes(Bytes::from("protobuf"))),
                         ("index".into(), Value::Integer(1)),
                     ]).into()),
-                ]),
+                ].into()),
             )]).into()),
         )
         .unwrap();

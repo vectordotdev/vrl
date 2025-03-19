@@ -298,14 +298,14 @@ mod test {
             ),
             (
                 vec![1.into(), 2.into()],
-                vec![1.into(), Value::Array(vec![]), 2.into()],
+                vec![1.into(), Value::array(), 2.into()],
                 CompactOptions::default(),
             ),
             (
-                vec![1.into(), Value::Array(vec![3.into()]), 2.into()],
+                vec![1.into(), Value::Array(vec![3.into()].into()), 2.into()],
                 vec![
                     1.into(),
-                    Value::Array(vec![Value::Null, 3.into(), Value::Null]),
+                    Value::Array(vec![Value::Null, 3.into(), Value::Null].into()),
                     2.into(),
                 ],
                 CompactOptions::default(),
@@ -314,7 +314,7 @@ mod test {
                 vec![1.into(), 2.into()],
                 vec![
                     1.into(),
-                    Value::Array(vec![Value::Null, Value::Null]),
+                    Value::Array(vec![Value::Null, Value::Null].into()),
                     2.into(),
                 ],
                 CompactOptions::default(),
@@ -341,7 +341,7 @@ mod test {
         ];
 
         for (expected, original, options) in cases {
-            assert_eq!(expected, compact_array(original, &options));
+            assert_eq!(expected, compact_array(original.into(), &options).into_vec());
         }
     }
 
@@ -371,7 +371,7 @@ mod test {
                 }.into(),
                 btreemap! {
                     "key1" => Value::from(1),
-                    "key2" => Value::Array(vec![]),
+                    "key2" => Value::array(),
                     "key3" => Value::from(2),
                 }.into(),
                 CompactOptions::default(),
@@ -439,12 +439,12 @@ mod test {
             (
                 btreemap! {
                     "key1" => Value::from(1),
-                    "key2" => Value::Array(vec![2.into()]),
+                    "key2" => Value::Array(vec![2.into()].into()),
                     "key3" => Value::from(2),
                 }.into(),
                 btreemap! {
                     "key1" => Value::from(1),
-                    "key2" => Value::Array(vec![Value::Null, 2.into(), Value::Null]),
+                    "key2" => Value::Array(vec![Value::Null, 2.into(), Value::Null].into()),
                     "key3" => Value::from(2),
                 }.into(),
                 CompactOptions::default(),
@@ -467,7 +467,7 @@ mod test {
 
         with_array {
             args: func_args![value: vec![Value::Null, Value::from(1), Value::from(""),]],
-            want: Ok(Value::Array(vec![Value::from(1)])),
+            want: Ok(Value::Array(vec![Value::from(1)].into())),
             tdef: TypeDef::array(Collection::any()),
         }
 

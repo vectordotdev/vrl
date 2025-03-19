@@ -210,7 +210,7 @@ mod tests {
                 "a".into(),
                 r#"""#.into(),
                 "quote".into(),
-            ])),
+            ].into())),
             parse_key_value(
                 &before,
                 &Value::from("="),

@@ -363,6 +363,12 @@ impl From<BTreeMap<KeyString, Value>> for Value {
     }
 }
 
+impl<const N: usize> From<[(KeyString, Value); N]> for Value {
+    fn from(value: [(KeyString, Value); N]) -> Self {
+        Self::Object(ObjectMap::from(value))
+    }
+}
+
 impl FromIterator<Self> for Value {
     fn from_iter<I: IntoIterator<Item = Self>>(iter: I) -> Self {
         Self::Array(ObjectArray::from_iter(iter))

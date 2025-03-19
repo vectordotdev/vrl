@@ -107,6 +107,9 @@ impl DerefMut for ObjectMap {
 pub struct ObjectArray(pub Arc<Vec<Value>>);
 
 impl ObjectArray {
+    pub fn new() -> Self {
+        ObjectArray(Arc::new(Vec::new()))
+    }
     pub fn into_vec(self) -> Vec<Value> {
         Arc::unwrap_or_clone(self.0)
     }
@@ -193,6 +196,9 @@ pub enum Value {
 impl Value {
     pub fn object() -> Self {
         Self::Object(ObjectMap::new())
+    }
+    pub fn array() -> Self {
+        Self::Array(ObjectArray::new())
     }
     /// Returns a string description of the value type
     pub const fn kind_str(&self) -> &str {

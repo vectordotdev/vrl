@@ -49,7 +49,7 @@ mod at_path_tests {
         let path = parse_value_path("[2]").unwrap();
         let value = Value::Integer(12);
 
-        let object = Value::Array(vec![Value::Null, Value::Null, Value::Integer(12)]);
+        let object = Value::Array(vec![Value::Null, Value::Null, Value::Integer(12)].into());
 
         assert_eq!(value.at_path(&path), object);
     }
@@ -59,14 +59,14 @@ mod at_path_tests {
         let path = parse_value_path("[2].foo.baz[1]").unwrap();
         let value = Value::Object([("bar".into(), vec![12].into())].into()); //value!({ "bar": [12] });
 
-        let baz_value = Value::Array(vec![Value::Null, value.clone()]);
+        let baz_value = Value::Array(vec![Value::Null, value.clone()].into());
         let foo_value = Value::Object(ObjectMap::from([("baz".into(), baz_value)]));
 
         let object = Value::Array(vec![
             Value::Null,
             Value::Null,
             Value::Object(ObjectMap::from([("foo".into(), foo_value)])),
-        ]);
+        ].into());
 
         assert_eq!(value.at_path(&path), object);
     }
