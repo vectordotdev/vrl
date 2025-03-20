@@ -5,10 +5,13 @@ pub use super::value::regex::ValueRegex;
 #[allow(clippy::module_name_repetitions)]
 pub use iter::{IterItem, ValueIter};
 
+use ::serde::{Deserialize, Serialize};
 use bytes::{Bytes, BytesMut};
 use chrono::{DateTime, SecondsFormat, Utc};
 use ordered_float::NotNan;
 use std::borrow::Cow;
+use std::ops::{Deref, DerefMut};
+use std::sync::Arc;
 use std::{cmp::Ordering, collections::BTreeMap};
 
 use super::KeyString;
@@ -31,7 +34,133 @@ mod serde;
 pub type StdError = Box<dyn std::error::Error + Send + Sync + 'static>;
 
 /// The storage mapping for the `Object` variant.
-pub type ObjectMap = BTreeMap<KeyString, Value>;
+// pub type ObjectMap = BTreeMap<KeyString, Value>;
+
+#[derive(Eq, PartialEq, Hash, Debug, Clone, Default, Serialize, Deserialize)]
+pub struct ObjectMap(pub Arc<BTreeMap<KeyString, Value>>);
+
+impl ObjectMap {
+    #[must_use]
+    pub fn new() -> Self {
+        ObjectMap(Arc::new(BTreeMap::new()))
+    }
+
+    pub fn into_values(self) -> impl Iterator<Item = Value> {
+        Arc::unwrap_or_clone(self.0).into_values()
+    }
+
+    pub fn into_keys(self) -> impl Iterator<Item = KeyString> {
+        Arc::unwrap_or_clone(self.0).into_keys()
+    }
+}
+
+impl IntoIterator for ObjectMap {
+    type Item = (KeyString, Value);
+    type IntoIter = std::collections::btree_map::IntoIter<KeyString, Value>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        Arc::unwrap_or_clone(self.0).into_iter()
+    }
+}
+
+impl<'a> IntoIterator for &'a ObjectMap {
+    type Item = (&'a KeyString, &'a Value);
+    type IntoIter = std::collections::btree_map::Iter<'a, KeyString, Value>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.iter()
+    }
+}
+
+impl FromIterator<(KeyString, Value)> for ObjectMap {
+    fn from_iter<T: IntoIterator<Item = (KeyString, Value)>>(iter: T) -> Self {
+        Self(Arc::new(BTreeMap::from_iter(iter)))
+    }
+}
+
+impl From<BTreeMap<KeyString, Value>> for ObjectMap {
+    fn from(value: BTreeMap<KeyString, Value>) -> Self {
+        Self(Arc::new(value))
+    }
+}
+
+impl<const N: usize> From<[(KeyString, Value); N]> for ObjectMap {
+    fn from(value: [(KeyString, Value); N]) -> Self {
+        Self(Arc::new(BTreeMap::from(value)))
+    }
+}
+
+impl Deref for ObjectMap {
+    type Target = BTreeMap<KeyString, Value>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for ObjectMap {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut *Arc::make_mut(&mut self.0)
+    }
+}
+
+#[derive(Eq, PartialEq, Hash, Debug, Clone, Default, Serialize, Deserialize)]
+pub struct ObjectArray(pub Arc<Vec<Value>>);
+
+impl ObjectArray {
+    #[must_use]
+    pub fn new() -> Self {
+        ObjectArray(Arc::new(Vec::new()))
+    }
+    #[must_use]
+    pub fn into_vec(self) -> Vec<Value> {
+        Arc::unwrap_or_clone(self.0)
+    }
+}
+
+impl Deref for ObjectArray {
+    type Target = Vec<Value>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for ObjectArray {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut *Arc::make_mut(&mut self.0)
+    }
+}
+
+impl IntoIterator for ObjectArray {
+    type Item = Value;
+    type IntoIter = std::vec::IntoIter<Value>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        Arc::unwrap_or_clone(self.0).into_iter()
+    }
+}
+
+impl<'a> IntoIterator for &'a ObjectArray {
+    type Item = &'a Value;
+    type IntoIter = std::slice::Iter<'a, Value>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.iter()
+    }
+}
+
+impl FromIterator<Value> for ObjectArray {
+    fn from_iter<T: IntoIterator<Item = Value>>(iter: T) -> Self {
+        Self(Arc::new(Vec::from_iter(iter)))
+    }
+}
+
+impl From<Vec<Value>> for ObjectArray {
+    fn from(value: Vec<Value>) -> Self {
+        Self(Arc::new(value))
+    }
+}
 
 /// The main value type used in Vector events, and VRL.
 #[derive(Eq, PartialEq, Hash, Debug, Clone)]
@@ -60,13 +189,21 @@ pub enum Value {
     Object(ObjectMap),
 
     /// Array.
-    Array(Vec<Value>),
+    Array(ObjectArray),
 
     /// Null.
     Null,
 }
 
 impl Value {
+    #[must_use]
+    pub fn object() -> Self {
+        Self::Object(ObjectMap::new())
+    }
+    #[must_use]
+    pub fn array() -> Self {
+        Self::Array(ObjectArray::new())
+    }
     /// Returns a string description of the value type
     pub const fn kind_str(&self) -> &str {
         match self {

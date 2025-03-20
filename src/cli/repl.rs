@@ -5,6 +5,7 @@ use crate::compiler::TimeZone;
 use crate::compiler::{compile_with_state, CompileConfig, Function, Program, Target, VrlRuntime};
 use crate::diagnostic::Formatter;
 use crate::owned_metadata_path;
+use crate::prelude::ObjectMap;
 use crate::value::Secrets;
 use crate::value::Value;
 use indoc::indoc;
@@ -20,7 +21,6 @@ use rustyline::{
     Context, Editor, Helper,
 };
 use std::borrow::Cow::{self, Borrowed, Owned};
-use std::collections::BTreeMap;
 use std::rc::Rc;
 use std::sync::LazyLock;
 
@@ -101,7 +101,7 @@ pub(crate) fn run(
                         if index == objects.len() {
                             objects.push(TargetValue {
                                 value: Value::Null,
-                                metadata: Value::Object(BTreeMap::new()),
+                                metadata: Value::object(),
                                 secrets: Secrets::new(),
                             });
                         }
@@ -297,7 +297,7 @@ impl Validator for Repl {
         let mut rt = Runtime::new(RuntimeState::default());
         let mut target = TargetValue {
             value: Value::Null,
-            metadata: Value::Object(BTreeMap::new()),
+            metadata: Value::object(),
             secrets: Secrets::new(),
         };
 
