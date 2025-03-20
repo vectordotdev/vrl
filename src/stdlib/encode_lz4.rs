@@ -2,11 +2,9 @@ use crate::compiler::prelude::*;
 use lz4_flex::block::compress_prepend_size;
 use nom::AsBytes;
 
-
 fn encode_lz4(value: Value) -> Resolved {
     let value = value.try_bytes()?;
     let encoded = compress_prepend_size(value.as_bytes());
-    println!("{}", Value::Bytes(encoded.clone().into()));
     Ok(Value::Bytes(encoded.into()))
 }
 
@@ -22,8 +20,7 @@ impl Function for EncodeLz4 {
     fn examples(&self) -> &'static [Example] {
         &[Example {
             title: "demo string",
-            source: r#"encode_base64(encode_lz4
-        !("The quick brown fox jumps over 13 lazy dogs."))"#,
+            source: r#"encode_base64(encode_lz4!("The quick brown fox jumps over 13 lazy dogs."))"#,
             result: Ok("LAAAAPAdVGhlIHF1aWNrIGJyb3duIGZveCBqdW1wcyBvdmVyIDEzIGxhenkgZG9ncy4="),
         }]
     }

@@ -2,14 +2,13 @@ use crate::compiler::prelude::*;
 use lz4_flex::block::decompress_size_prepended;
 use nom::AsBytes;
 
-
 fn decode_lz4(value: Value) -> Resolved {
     let value = value.try_bytes()?;
     let result = decompress_size_prepended(value.as_bytes());
 
     match result {
         Ok(buf) => Ok(Value::Bytes(buf.into())),
-        Err(_) => Err("unable to decode value with lz4 decoder".into())
+        Err(_) => Err("unable to decode value with lz4 decoder".into()),
     }
 }
 
@@ -25,7 +24,7 @@ impl Function for DecodeLz4 {
         &[Example {
             title: "demo string",
             source: r#"decode_lz4!(decode_base64!("LAAAAPAdVGhlIHF1aWNrIGJyb3duIGZveCBqdW1wcyBvdmVyIDEzIGxhenkgZG9ncy4="))"#,
-            result: Ok("The quick brown fox jumps over 13 lazy dogs.")
+            result: Ok("The quick brown fox jumps over 13 lazy dogs."),
         }]
     }
 
