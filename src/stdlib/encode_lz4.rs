@@ -13,8 +13,7 @@ pub struct EncodeLz4;
 
 impl Function for EncodeLz4 {
     fn identifier(&self) -> &'static str {
-        "encode_lz4
-    "
+        "encode_lz4"
     }
 
     fn examples(&self) -> &'static [Example] {
@@ -80,9 +79,7 @@ mod test {
     }
 
     test_function![
-        encode_lz4
-     => EncodeLz4
-    ;
+        encode_lz4 => EncodeLz4;
 
         success {
             args: func_args![value: value!("The quick brown fox jumps over 13 lazy dogs.")],
