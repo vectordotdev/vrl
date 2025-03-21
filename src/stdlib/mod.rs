@@ -27,6 +27,7 @@ cfg_if::cfg_if! {
         mod decode_base64;
         mod decode_charset;
         mod decode_gzip;
+        mod decode_lz4;
         mod decode_mime_q;
         mod decode_percent;
         mod decode_punycode;
@@ -41,6 +42,7 @@ cfg_if::cfg_if! {
         mod encode_base64;
         mod encode_charset;
         mod encode_gzip;
+        mod encode_lz4;
         mod encode_json;
         mod encode_key_value;
         mod encode_logfmt;
@@ -212,6 +214,7 @@ cfg_if::cfg_if! {
         pub use decode_base64::DecodeBase64;
         pub use decode_charset::DecodeCharset;
         pub use decode_gzip::DecodeGzip;
+        pub use decode_lz4::DecodeLz4;
         pub use decode_mime_q::DecodeMimeQ;
         pub use decode_percent::DecodePercent;
         pub use decode_punycode::DecodePunycode;
@@ -231,6 +234,7 @@ cfg_if::cfg_if! {
         pub use encode_base64::EncodeBase64;
         pub use encode_charset::EncodeCharset;
         pub use encode_gzip::EncodeGzip;
+        pub use encode_lz4::EncodeLz4;
         pub use encode_json::EncodeJson;
         pub use encode_key_value::EncodeKeyValue;
         pub use encode_logfmt::EncodeLogfmt;
@@ -410,6 +414,7 @@ pub fn all() -> Vec<Box<dyn Function>> {
         Box::new(DecodeBase64),
         Box::new(DecodeCharset),
         Box::new(DecodeGzip),
+        Box::new(DecodeLz4),
         Box::new(DecodePercent),
         Box::new(DecodePunycode),
         Box::new(DecodeMimeQ),
@@ -424,6 +429,7 @@ pub fn all() -> Vec<Box<dyn Function>> {
         Box::new(EncodeBase64),
         Box::new(EncodeCharset),
         Box::new(EncodeGzip),
+        Box::new(EncodeLz4),
         Box::new(EncodeJson),
         Box::new(EncodeKeyValue),
         Box::new(EncodeLogfmt),
