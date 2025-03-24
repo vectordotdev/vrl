@@ -1,0 +1,80 @@
+name: Bug
+description: 🐛 Let us know about an unexpected error, a crash, or an incorrect behavior.
+type: 'Bug'
+labels:
+  - 'type: bug'
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for opening a bug report! 🐛
+
+  - type: textarea
+    attributes:
+      label: A note for the community
+      value: |
+        <!-- Please keep this note for the community -->
+        * Please vote on this issue by adding a 👍 [reaction](https://blog.github.com/2016-03-10-add-reactions-to-pull-requests-issues-and-comments/) to the original issue to help the community and maintainers prioritize this request
+        * If you are interested in working on this issue or have submitted a pull request, please leave a comment.
+        <!-- Thank you for keeping this note for the community -->
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: >
+        Please provide a clear and concise description of what the bug is,
+        including what currently happens and what you expected to happen.
+    validations:
+      required: true
+
+  - type: textarea
+    id: config
+    attributes:
+      label: VRL Program
+      description: |
+        Paste the relevant parts of your VRL program.
+
+        !! If your program contains sensitive information please redact it. !!
+      render: text
+
+  - type: input
+    id: version
+    attributes:
+      label: VRL and/or Vector Version
+      description: |
+        What VRL version is affected by this bug?
+
+        If you encountered this while running a Vector configuration, please paste the output of running `vector --version`.
+    validations:
+      required: true
+
+  - type: textarea
+    id: debug
+    attributes:
+      label: Debug Output
+      description: |
+        Please share VRL diagnostics here.
+
+        !! Debug output may contain sensitive information. Please review it before posting publicly. !!
+      render: text
+
+  - type: textarea
+    id: data
+    attributes:
+      label: Example
+      description: |
+        Please share a VRL playground program. You can do this by clicking the `Share Program` button in
+        https://playground.vrl.dev/ and share the URL.
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      description: |
+        Is there anything atypical about your situation that we should know? Are you running a custom version?
+  - type: textarea
+    id: references
+    attributes:
+      label: References
+      description: |
+        Are there any existing and related GitHub issues or Pull Requests that should be linked here?

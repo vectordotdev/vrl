@@ -36,8 +36,6 @@ mod program;
 mod target;
 #[cfg(any(test, feature = "test"))]
 mod test_util;
-#[cfg(test)]
-pub use paste::paste;
 
 pub mod codes;
 pub mod conversion;
