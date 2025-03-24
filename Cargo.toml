@@ -139,7 +139,7 @@ ciborium = { version = "0.2.2", default-features = false, optional = true }
 cidr = { version = "0.3", optional = true }
 csv = { version = "1", optional = true }
 clap.workspace = true
-codespan-reporting = { version = "0.11", optional = true }
+codespan-reporting = { version = "0.12", optional = true }
 convert_case = { version = "0.7.1", optional = true }
 crc = { version = "3.2.1", optional = true }
 data-encoding = { version = "2", optional = true }
