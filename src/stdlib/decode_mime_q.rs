@@ -103,7 +103,7 @@ fn decode_mime_q(bytes: &Value) -> Resolved {
     .map_err(|e| match e {
         nom::Err::Error(e) | nom::Err::Failure(e) => {
             // Create a descriptive error message if possible.
-            nom::error::convert_error(input, e)
+            nom_language::error::convert_error(input, e)
         }
         nom::Err::Incomplete(_) => e.to_string(),
     })?;
@@ -192,7 +192,7 @@ impl EncodedWord<'_> {
 
 #[cfg(test)]
 mod test {
-    use nom::error::VerboseError;
+    use nom_language::error::VerboseError;
 
     use crate::value;
 
