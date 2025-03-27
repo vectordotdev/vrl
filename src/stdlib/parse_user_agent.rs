@@ -6,12 +6,11 @@ use std::{
     str::FromStr,
     sync::{Arc, LazyLock},
 };
-use uaparser::UserAgentParser as UAParser;
 use woothee::parser::Parser as WootheeParser;
 
-static UA_PARSER: LazyLock<UAParser> = LazyLock::new(|| {
-    let regexes = include_bytes!("./../../data/user_agent_regexes.yaml");
-    UAParser::from_bytes(regexes).expect("Regex file is not valid.")
+static UA_EXTRACTOR: LazyLock<ua_parser::Extractor> = LazyLock::new(|| {
+    let regexes = include!(concat!(env!("OUT_DIR"), "/user_agent_regexes.rs"));
+    ua_parser::Extractor::try_from(regexes).expect("Regex file is not valid.")
 });
 
 #[derive(Clone, Copy, Debug)]
@@ -107,7 +106,7 @@ impl Function for ParseUserAgent {
             }
             Mode::Reliable => {
                 let fast = WootheeParser::new();
-                let slow = &UA_PARSER;
+                let slow = &UA_EXTRACTOR;
 
                 Arc::new(move |s: &str| {
                     let ua = fast.parse_user_agent(s);
@@ -122,7 +121,7 @@ impl Function for ParseUserAgent {
             }
             Mode::Enriched => {
                 let fast = WootheeParser::new();
-                let slow = &UA_PARSER;
+                let slow = &UA_EXTRACTOR;
 
                 Arc::new(move |s: &str| {
                     slow.parse_user_agent(s)
@@ -514,41 +513,48 @@ impl Parser for WootheeParser {
     }
 }
 
-impl Parser for UAParser {
+impl Parser for ua_parser::Extractor<'_> {
     fn parse_user_agent(&self, user_agent: &str) -> UserAgent {
-        #[inline]
-        fn unknown_to_none(s: Option<Cow<'_, str>>) -> Option<String> {
-            let cow = s?;
-            match cow.as_ref() {
-                "" | "Other" => None,
-                _ => Some(cow.into_owned()),
-            }
-        }
+        let browser = self
+            .ua
+            .extract(user_agent)
+            .map(|ua| Browser {
+                family: Some(ua.family.into_owned()),
+                major: ua.major.map(Into::into),
+                minor: ua.minor.map(Into::into),
+                patch: ua.patch.map(Into::into),
+                ..Default::default()
+            })
+            .unwrap_or_default();
 
-        let ua = <UAParser as uaparser::Parser>::parse(self, user_agent);
+        let os = self
+            .os
+            .extract(user_agent)
+            .map(|os| Os {
+                family: Some(os.os.into_owned()),
+                major: os.major.map(Cow::into_owned),
+                minor: os.minor.map(Cow::into_owned),
+                patch: os.patch.map(Cow::into_owned),
+                patch_minor: os.patch_minor.map(Cow::into_owned),
+                ..Default::default()
+            })
+            .unwrap_or_default();
+
+        let device = self
+            .dev
+            .extract(user_agent)
+            .map(|dev| Device {
+                family: Some(dev.device.into_owned()),
+                brand: dev.brand.map(Cow::into_owned),
+                model: dev.model.map(Cow::into_owned),
+                ..Default::default()
+            })
+            .unwrap_or_default();
 
         UserAgent {
-            browser: Browser {
-                family: unknown_to_none(Some(ua.user_agent.family)),
-                major: unknown_to_none(ua.user_agent.major),
-                minor: unknown_to_none(ua.user_agent.minor),
-                patch: unknown_to_none(ua.user_agent.patch),
-                ..Default::default()
-            },
-            os: Os {
-                family: unknown_to_none(Some(ua.os.family)),
-                major: unknown_to_none(ua.os.major),
-                minor: unknown_to_none(ua.os.minor),
-                patch: unknown_to_none(ua.os.patch),
-                patch_minor: unknown_to_none(ua.os.patch_minor),
-                ..Default::default()
-            },
-            device: Device {
-                family: unknown_to_none(Some(ua.device.family)),
-                brand: unknown_to_none(ua.device.brand),
-                model: unknown_to_none(ua.device.model),
-                ..Default::default()
-            },
+            browser,
+            os,
+            device,
         }
     }
 }
