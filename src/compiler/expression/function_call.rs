@@ -309,17 +309,41 @@ impl<'a> Builder<'a> {
                         //
                         // We set "bar" (index 0) to return bytes, and "baz" (index 1) to return an
                         // integer.
+                        //
+                        // If one of the arguments is dependant on a closure, the parameters initial
+                        // type is assigned here and it's recomputed from the compiled closure.
                         for (index, input_var) in input.variables.clone().into_iter().enumerate() {
                             let call_ident = &variables[index];
                             let type_def = target.type_info(state).result;
 
-                            let (type_def, value) = match input_var.kind {
+                            let mut var_kind = input_var.kind;
+                            if let VariableKind::Closure(vk) = var_kind {
+                                var_kind = vk.into();
+                            }
+
+                            let (type_def, value) = match var_kind {
+                                // A closure variable kind is not possible here but we need to
+                                // satisfy all variants with a match arm.
+                                VariableKind::Closure(_) => {
+                                    panic!("got unexpected variable kind")
+                                }
+
+                                // The variable kind is expected to be equal to the kind of a
+                                // specified parameter of the closure.
+                                VariableKind::Parameter(keyword) => {
+                                    let expr = list
+                                        .arguments
+                                        .get(keyword)
+                                        .expect("parameter should exist");
+                                    (expr.type_info(state).result, expr.resolve_constant(state))
+                                }
+
                                 // The variable kind is expected to be exactly
                                 // the kind provided by the closure definition.
                                 VariableKind::Exact(kind) => (kind.into(), None),
 
                                 // The variable kind is expected to be equal to
-                                // the ind of the target of the closure.
+                                // the kind of the target of the closure.
                                 VariableKind::Target => (
                                     target.type_info(state).result,
                                     target.resolve_constant(state),
@@ -505,7 +529,36 @@ impl<'a> Builder<'a> {
             // TODO: This assumes the closure will run exactly once, which is incorrect.
             // see: https://github.com/vectordotdev/vector/issues/13782
 
-            let block = closure_block.expect("closure must contain block");
+            let (block_span, (block, mut block_type_def)) =
+                closure_block.expect("closure must contain block").take();
+
+            let mut closure_dependent_variables = input
+                .variables
+                .iter()
+                .enumerate()
+                .filter_map(|(index, input_var)| match input_var.kind {
+                    VariableKind::Closure(_) => Some(&variables[index]),
+                    _ => None,
+                })
+                .peekable();
+
+            // If any of the arugments are dependant on the closure, union the initial type with the
+            // returned type of the closure and then recompute the closures type.
+            if closure_dependent_variables.peek().is_some() {
+                let block_kind = block_type_def
+                    .kind()
+                    .union(block_type_def.returns().clone());
+
+                closure_dependent_variables.for_each(|ident| {
+                    let details = state
+                        .local
+                        .variable_mut(ident)
+                        .expect("state must contain a closure dependant argument");
+                    details.type_def = details.type_def.kind().union(block_kind.clone()).into();
+                });
+
+                block_type_def = block.apply_type_info(state);
+            }
 
             // At this point, we've compiled the block, so we can remove the
             // closure variables from the compiler's local environment.
@@ -517,8 +570,6 @@ impl<'a> Builder<'a> {
                         state.local.remove_variable(ident);
                     }
                 });
-
-            let (block_span, (block, block_type_def)) = block.take();
 
             let closure_fallible = block_type_def.is_fallible();
 
