@@ -1,5 +1,5 @@
 use super::Value;
-use crate::value::{ObjectArray, ObjectMap};
+use crate::value::{Array, ObjectMap};
 use bytes::Bytes;
 use chrono::{DateTime, Utc};
 use ordered_float::NotNan;
@@ -25,7 +25,7 @@ impl Arbitrary for ObjectMap {
     }
 }
 
-impl Arbitrary for ObjectArray {
+impl Arbitrary for Array {
     fn arbitrary(g: &mut Gen) -> Self {
         Self::from(Vec::arbitrary(g))
     }

@@ -1,4 +1,3 @@
-use std::collections::BTreeMap;
 use vrl::{
     compiler::{state::RuntimeState, Context, TargetValue, TimeZone},
     value,

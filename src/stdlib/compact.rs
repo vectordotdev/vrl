@@ -1,6 +1,6 @@
 use super::util;
 use crate::compiler::prelude::*;
-use crate::value::value::ObjectArray;
+use crate::value::value::Array;
 
 fn compact(
     recursive: Option<Value>,
@@ -265,7 +265,7 @@ fn compact_object(object: ObjectMap, options: &CompactOptions) -> ObjectMap {
         .collect()
 }
 
-fn compact_array(array: ObjectArray, options: &CompactOptions) -> ObjectArray {
+fn compact_array(array: Array, options: &CompactOptions) -> Array {
     array
         .into_iter()
         .filter_map(|value| {

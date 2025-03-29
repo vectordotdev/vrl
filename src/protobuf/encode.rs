@@ -498,19 +498,19 @@ mod tests {
     fn test_encode_value_as_string() {
         let mut message = encode_message(
             &test_message_descriptor("Bytes"),
-            Value::Object(BTreeMap::from([("text".into(), Value::Boolean(true))])),
+            Value::Object(ObjectMap::from([("text".into(), Value::Boolean(true))])),
         )
         .unwrap();
         assert_eq!(Some("true"), mfield!(message, "text").as_str());
         message = encode_message(
             &test_message_descriptor("Bytes"),
-            Value::Object(BTreeMap::from([("text".into(), Value::Integer(123))])),
+            Value::Object(ObjectMap::from([("text".into(), Value::Integer(123))])),
         )
         .unwrap();
         assert_eq!(Some("123"), mfield!(message, "text").as_str());
         message = encode_message(
             &test_message_descriptor("Bytes"),
-            Value::Object(BTreeMap::from([(
+            Value::Object(ObjectMap::from([(
                 "text".into(),
                 Value::Float(NotNan::new(45.67).unwrap()),
             )])),
@@ -519,7 +519,7 @@ mod tests {
         assert_eq!(Some("45.67"), mfield!(message, "text").as_str());
         message = encode_message(
             &test_message_descriptor("Bytes"),
-            Value::Object(BTreeMap::from([(
+            Value::Object(ObjectMap::from([(
                 "text".into(),
                 Value::Timestamp(
                     DateTime::from_timestamp(8675, 309).expect("could not compute timestamp"),

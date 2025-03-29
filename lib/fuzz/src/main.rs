@@ -1,8 +1,6 @@
 #[macro_use]
 extern crate afl;
 
-use std::collections::BTreeMap;
-
 use vrl::compiler::state::RuntimeState;
 use vrl::compiler::{CompileConfig, TargetValue};
 use vrl::prelude::state::ExternalEnv;

@@ -33,16 +33,16 @@ mod serde;
 /// A boxed `std::error::Error`.
 pub type StdError = Box<dyn std::error::Error + Send + Sync + 'static>;
 
+
 /// The storage mapping for the `Object` variant.
-// pub type ObjectMap = BTreeMap<KeyString, Value>;
-
 #[derive(Eq, PartialEq, Hash, Debug, Clone, Default, Serialize, Deserialize)]
-pub struct ObjectMap(pub Arc<BTreeMap<KeyString, Value>>);
+pub struct Object(pub Arc<BTreeMap<KeyString, Value>>);
+pub type ObjectMap = Object;
 
-impl ObjectMap {
+impl Object {
     #[must_use]
     pub fn new() -> Self {
-        ObjectMap(Arc::new(BTreeMap::new()))
+        Object(Arc::new(BTreeMap::new()))
     }
 
     pub fn into_values(self) -> impl Iterator<Item = Value> {
@@ -54,7 +54,7 @@ impl ObjectMap {
     }
 }
 
-impl IntoIterator for ObjectMap {
+impl IntoIterator for Object {
     type Item = (KeyString, Value);
     type IntoIter = std::collections::btree_map::IntoIter<KeyString, Value>;
 
@@ -63,7 +63,7 @@ impl IntoIterator for ObjectMap {
     }
 }
 
-impl<'a> IntoIterator for &'a ObjectMap {
+impl<'a> IntoIterator for &'a Object {
     type Item = (&'a KeyString, &'a Value);
     type IntoIter = std::collections::btree_map::Iter<'a, KeyString, Value>;
 
@@ -72,25 +72,25 @@ impl<'a> IntoIterator for &'a ObjectMap {
     }
 }
 
-impl FromIterator<(KeyString, Value)> for ObjectMap {
+impl FromIterator<(KeyString, Value)> for Object {
     fn from_iter<T: IntoIterator<Item = (KeyString, Value)>>(iter: T) -> Self {
         Self(Arc::new(BTreeMap::from_iter(iter)))
     }
 }
 
-impl From<BTreeMap<KeyString, Value>> for ObjectMap {
+impl From<BTreeMap<KeyString, Value>> for Object {
     fn from(value: BTreeMap<KeyString, Value>) -> Self {
         Self(Arc::new(value))
     }
 }
 
-impl<const N: usize> From<[(KeyString, Value); N]> for ObjectMap {
+impl<const N: usize> From<[(KeyString, Value); N]> for Object {
     fn from(value: [(KeyString, Value); N]) -> Self {
         Self(Arc::new(BTreeMap::from(value)))
     }
 }
 
-impl Deref for ObjectMap {
+impl Deref for Object {
     type Target = BTreeMap<KeyString, Value>;
 
     fn deref(&self) -> &Self::Target {
@@ -98,19 +98,19 @@ impl Deref for ObjectMap {
     }
 }
 
-impl DerefMut for ObjectMap {
+impl DerefMut for Object {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut *Arc::make_mut(&mut self.0)
     }
 }
 
 #[derive(Eq, PartialEq, Hash, Debug, Clone, Default, Serialize, Deserialize)]
-pub struct ObjectArray(pub Arc<Vec<Value>>);
+pub struct Array(pub Arc<Vec<Value>>);
 
-impl ObjectArray {
+impl Array {
     #[must_use]
     pub fn new() -> Self {
-        ObjectArray(Arc::new(Vec::new()))
+        Array(Arc::new(Vec::new()))
     }
     #[must_use]
     pub fn into_vec(self) -> Vec<Value> {
@@ -118,7 +118,7 @@ impl ObjectArray {
     }
 }
 
-impl Deref for ObjectArray {
+impl Deref for Array {
     type Target = Vec<Value>;
 
     fn deref(&self) -> &Self::Target {
@@ -126,13 +126,13 @@ impl Deref for ObjectArray {
     }
 }
 
-impl DerefMut for ObjectArray {
+impl DerefMut for Array {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut *Arc::make_mut(&mut self.0)
     }
 }
 
-impl IntoIterator for ObjectArray {
+impl IntoIterator for Array {
     type Item = Value;
     type IntoIter = std::vec::IntoIter<Value>;
 
@@ -141,7 +141,7 @@ impl IntoIterator for ObjectArray {
     }
 }
 
-impl<'a> IntoIterator for &'a ObjectArray {
+impl<'a> IntoIterator for &'a Array {
     type Item = &'a Value;
     type IntoIter = std::slice::Iter<'a, Value>;
 
@@ -150,13 +150,13 @@ impl<'a> IntoIterator for &'a ObjectArray {
     }
 }
 
-impl FromIterator<Value> for ObjectArray {
+impl FromIterator<Value> for Array {
     fn from_iter<T: IntoIterator<Item = Value>>(iter: T) -> Self {
         Self(Arc::new(Vec::from_iter(iter)))
     }
 }
 
-impl From<Vec<Value>> for ObjectArray {
+impl From<Vec<Value>> for Array {
     fn from(value: Vec<Value>) -> Self {
         Self(Arc::new(value))
     }
@@ -186,10 +186,10 @@ pub enum Value {
     Timestamp(DateTime<Utc>),
 
     /// Object.
-    Object(ObjectMap),
+    Object(Object),
 
     /// Array.
-    Array(ObjectArray),
+    Array(Array),
 
     /// Null.
     Null,
@@ -202,7 +202,7 @@ impl Value {
     }
     #[must_use]
     pub fn array() -> Self {
-        Self::Array(ObjectArray::new())
+        Self::Array(Array::new())
     }
     /// Returns a string description of the value type
     pub const fn kind_str(&self) -> &str {

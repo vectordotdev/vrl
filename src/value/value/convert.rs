@@ -2,7 +2,7 @@ use std::borrow::Cow;
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
-use crate::prelude::value::ObjectArray;
+use crate::prelude::value::Array;
 use crate::value::value::regex::ValueRegex;
 use crate::value::value::simdutf_bytes_utf8_lossy;
 use bytes::Bytes;
@@ -351,8 +351,8 @@ impl From<ObjectMap> for Value {
         Self::Object(value)
     }
 }
-impl From<ObjectArray> for Value {
-    fn from(value: ObjectArray) -> Self {
+impl From<Array> for Value {
+    fn from(value: Array) -> Self {
         Self::Array(value)
     }
 }
@@ -371,7 +371,7 @@ impl<const N: usize> From<[(KeyString, Value); N]> for Value {
 
 impl FromIterator<Self> for Value {
     fn from_iter<I: IntoIterator<Item = Self>>(iter: I) -> Self {
-        Self::Array(ObjectArray::from_iter(iter))
+        Self::Array(Array::from_iter(iter))
     }
 }
 

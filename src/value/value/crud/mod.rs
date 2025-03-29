@@ -1,4 +1,4 @@
-use crate::value::value::ObjectArray;
+use crate::value::value::Array;
 use crate::value::{KeyString, ObjectMap, Value};
 use std::borrow::Borrow;
 
@@ -79,7 +79,7 @@ impl ValueCollection for ObjectMap {
     }
 }
 
-impl ValueCollection for ObjectArray {
+impl ValueCollection for Array {
     type Key = isize;
     type BorrowedKey = isize;
 
