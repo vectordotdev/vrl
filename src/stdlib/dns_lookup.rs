@@ -763,7 +763,7 @@ impl Function for DnsLookup {
 #[cfg(test)]
 #[cfg(not(target_arch = "wasm32"))]
 mod tests {
-    use std::collections::{BTreeMap, HashSet};
+    use std::collections::HashSet;
 
     use super::*;
     use crate::value;
@@ -906,7 +906,7 @@ mod tests {
 
     fn prepare_dns_lookup(dns_lookup_fn: &DnsLookupFn) -> Resolved {
         let tz = TimeZone::default();
-        let mut object: Value = Value::Object(BTreeMap::new());
+        let mut object: Value = Value::object();
         let mut runtime_state = state::RuntimeState::default();
         let mut ctx = Context::new(&mut object, &mut runtime_state, &tz);
         dns_lookup_fn.resolve(&mut ctx)

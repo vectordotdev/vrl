@@ -50,7 +50,7 @@ fn unnest_root(root: &Value, path: &OwnedValuePath) -> Resolved {
         })
         .collect::<Vec<_>>();
 
-    Ok(Value::Array(events))
+    Ok(Value::Array(events.into()))
 }
 
 #[derive(Clone, Copy, Debug)]
