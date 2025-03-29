@@ -1,6 +1,6 @@
 use std::{collections::BTreeMap, fmt, ops::Deref};
 
-use crate::value::{KeyString, Value};
+use crate::value::{KeyString, ObjectMap, Value};
 use crate::{
     compiler::{
         expression::{Expr, Resolved},
@@ -12,29 +12,13 @@ use crate::{
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Object {
-    resolved: Option<Value>,
     inner: BTreeMap<KeyString, Expr>,
 }
 
 impl Object {
     #[must_use]
     pub fn new(inner: BTreeMap<KeyString, Expr>) -> Self {
-        Self {
-            resolved: None,
-            inner,
-        }
-    }
-
-    #[must_use]
-    pub fn new_maybe_resolved(inner: BTreeMap<KeyString, Expr>, type_state: &TypeState) -> Self {
-        let mut object = Self {
-            resolved: None,
-            inner,
-        };
-
-        object.resolved = object.resolve_constant(type_state);
-
-        object
+        Self { inner }
     }
 }
 
@@ -48,15 +32,11 @@ impl Deref for Object {
 
 impl Expression for Object {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        if let Some(resolved) = &self.resolved {
-            Ok(resolved.clone())
-        } else {
-            self.inner
-                .iter()
-                .map(|(key, expr)| expr.resolve(ctx).map(|v| (key.clone(), v)))
-                .collect::<Result<BTreeMap<_, _>, _>>()
-                .map(|v| Value::Object(v.into()))
-        }
+        self.inner
+            .iter()
+            .map(|(key, expr)| expr.resolve(ctx).map(|v| (key.clone(), v)))
+            .collect::<Result<ObjectMap, _>>()
+            .map(|v| Value::Object(v.into()))
     }
 
     fn resolve_constant(&self, state: &TypeState) -> Option<Value> {

@@ -326,7 +326,7 @@ impl<'a> Compiler<'a> {
     fn compile_array(&mut self, node: Node<ast::Array>, state: &mut TypeState) -> Option<Array> {
         let exprs = self.compile_exprs(node.into_inner().into_iter(), state)?;
 
-        Some(Array::new_maybe_resolved(exprs, state))
+        Some(Array::new(exprs))
     }
 
     fn compile_object(&mut self, node: Node<ast::Object>, state: &mut TypeState) -> Option<Object> {
@@ -338,12 +338,11 @@ impl<'a> Compiler<'a> {
 
         let exprs = exprs.into_iter().collect::<Option<Vec<_>>>()?;
 
-        Some(Object::new_maybe_resolved(
+        Some(Object::new(
             keys.into_iter()
                 .zip(exprs)
                 .map(|(key, value)| (key.into(), value))
                 .collect(),
-            state,
         ))
     }
 
