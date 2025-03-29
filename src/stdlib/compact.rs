@@ -384,16 +384,15 @@ mod test {
                 CompactOptions::default(),
             ),
             (
-                BTreeMap::from([
+                ObjectMap::from([
                     (KeyString::from("key1"), Value::from(1)),
                     (
                         KeyString::from("key2"),
                         Value::Object(ObjectMap::from([(KeyString::from("key2"), Value::from(3))])),
                     ),
                     (KeyString::from("key3"), Value::from(2)),
-                ])
-                .into(),
-                BTreeMap::from([
+                ]),
+                ObjectMap::from([
                     (KeyString::from("key1"), Value::from(1)),
                     (
                         KeyString::from("key2"),
@@ -404,49 +403,44 @@ mod test {
                         ])),
                     ),
                     (KeyString::from("key3"), Value::from(2)),
-                ])
-                .into(),
+                ]),
                 CompactOptions::default(),
             ),
             (
-                BTreeMap::from([
+                ObjectMap::from([
                     (KeyString::from("key1"), Value::from(1)),
                     (
                         KeyString::from("key2"),
                         Value::Object(ObjectMap::from([(KeyString::from("key1"), Value::Null)])),
                     ),
                     (KeyString::from("key3"), Value::from(2)),
-                ])
-                .into(),
-                BTreeMap::from([
+                ]),
+                ObjectMap::from([
                     (KeyString::from("key1"), Value::from(1)),
                     (
                         KeyString::from("key2"),
                         Value::Object(ObjectMap::from([(KeyString::from("key1"), Value::Null)])),
                     ),
                     (KeyString::from("key3"), Value::from(2)),
-                ])
-                .into(),
+                ]),
                 CompactOptions {
                     recursive: false,
                     ..CompactOptions::default()
                 },
             ),
             (
-                BTreeMap::from([
+                ObjectMap::from([
                     (KeyString::from("key1"), Value::from(1)),
                     (KeyString::from("key3"), Value::from(2)),
-                ])
-                .into(),
-                BTreeMap::from([
+                ]),
+                ObjectMap::from([
                     (KeyString::from("key1"), Value::from(1)),
                     (
                         KeyString::from("key2"),
                         Value::Object(ObjectMap::from([(KeyString::from("key1"), Value::Null)])),
                     ),
                     (KeyString::from("key3"), Value::from(2)),
-                ])
-                .into(),
+                ]),
                 CompactOptions::default(),
             ),
             (

@@ -230,13 +230,12 @@ mod tests {
         let message = encode_message(
             &test_message_descriptor("Integers"),
             Value::Object(
-                BTreeMap::from([
+                ObjectMap::from([
                     ("i32".into(), Value::Integer(-1234)),
                     ("i64".into(), Value::Integer(-9876)),
                     ("u32".into(), Value::Integer(1234)),
                     ("u64".into(), Value::Integer(9876)),
-                ])
-                .into(),
+                ]),
             ),
         )
         .unwrap();
@@ -269,11 +268,10 @@ mod tests {
         let message = encode_message(
             &test_message_descriptor("Floats"),
             Value::Object(
-                BTreeMap::from([
+                ObjectMap::from([
                     ("d".into(), Value::Float(NotNan::new(11.0).unwrap())),
                     ("f".into(), Value::Float(NotNan::new(2.0).unwrap())),
-                ])
-                .into(),
+                ]),
             ),
         )
         .unwrap();
@@ -301,11 +299,10 @@ mod tests {
         let message = encode_message(
             &test_message_descriptor("Bytes"),
             Value::Object(
-                BTreeMap::from([
+                ObjectMap::from([
                     ("text".into(), Value::Bytes(Bytes::from("vector"))),
                     ("binary".into(), Value::Bytes(bytes.clone())),
-                ])
-                .into(),
+                ]),
             ),
         )
         .unwrap();
@@ -318,21 +315,20 @@ mod tests {
         let message = encode_message(
             &test_message_descriptor("Map"),
             Value::Object(
-                BTreeMap::from([
+                ObjectMap::from([
                     (
                         "names".into(),
                         Value::Object(
-                            BTreeMap::from([
+                            ObjectMap::from([
                                 ("forty-four".into(), Value::Integer(44)),
                                 ("one".into(), Value::Integer(1)),
-                            ])
-                            .into(),
+                            ]),
                         ),
                     ),
                     (
                         "people".into(),
                         Value::Object(
-                            BTreeMap::from([(
+                            ObjectMap::from([(
                                 "mark".into(),
                                 Value::Object(
                                     BTreeMap::from([
@@ -341,12 +337,10 @@ mod tests {
                                     ])
                                     .into(),
                                 ),
-                            )])
-                            .into(),
+                            )]),
                         ),
                     ),
-                ])
-                .into(),
+                ]),
             ),
         )
         .unwrap();
