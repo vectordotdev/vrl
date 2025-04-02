@@ -112,7 +112,7 @@ stdlib = [
   "dep:strip-ansi-escapes",
   "dep:syslog_loose",
   "dep:tokio",
-  "dep:uaparser",
+  "dep:ua-parser",
   "dep:url",
   "dep:utf8-width",
   "dep:uuid",
@@ -193,7 +193,7 @@ syslog_loose = { version = "0.21", optional = true }
 termcolor = { version = "1", optional = true }
 thiserror = { version = "2", optional = true }
 tracing = { version = "0.1", default-features = false }
-uaparser = { version = "0.6", default-features = false, optional = true }
+ua-parser = { version = "0.2", optional = true }
 utf8-width = { version = "0.1", optional = true }
 url = { version = "2", optional = true }
 snafu = { version = "0.8", optional = true }
@@ -251,6 +251,8 @@ proptest-derive = { version = "0.5" }
 
 [build-dependencies]
 lalrpop = { version = "0.22", default-features = false }
+serde_yaml = "0.9.34"
+ua-parser = { version = "0.2" }
 
 [[bench]]
 name = "kind"
