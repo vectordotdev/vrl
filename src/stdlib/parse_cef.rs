@@ -5,11 +5,12 @@ use nom::{
     bytes::complete::{escaped_transform, tag, take_till1, take_until},
     character::complete::{char, one_of, satisfy},
     combinator::{map, opt, peek, success, value},
-    error::{ErrorKind, ParseError, VerboseError},
+    error::{ErrorKind, ParseError},
     multi::{count, many1},
     sequence::{delimited, pair, preceded},
     IResult,
 };
+use nom_language::error::VerboseError;
 use std::collections::{BTreeMap, HashMap};
 
 fn build_map() -> HashMap<&'static str, (usize, CustomField)> {
@@ -207,7 +208,7 @@ fn parse(input: &str) -> ExpressionResult<impl Iterator<Item = (String, String)>
         pair(parse_header, parse_extension)(input).map_err(|e| match e {
             nom::Err::Error(e) | nom::Err::Failure(e) => {
                 // Create a descriptive error message if possible.
-                nom::error::convert_error(input, e)
+                nom_language::error::convert_error(input, e)
             }
             nom::Err::Incomplete(_) => e.to_string(),
         })?;
