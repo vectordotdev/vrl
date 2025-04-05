@@ -2,18 +2,19 @@
 
 /// Helper trait to strip BOM from UTF-8
 pub trait StripBomUTF8 {
-    fn strip_bom(self: Self) -> Self;
+    #[must_use]
+    fn strip_bom(self) -> Self;
 }
 
 // \u{feff} and [0xef, 0xbb, 0xbf] are the same
 impl StripBomUTF8 for &str {
-    fn strip_bom(self: Self) -> Self {
+    fn strip_bom(self) -> Self {
         self.trim_start_matches("\u{feff}")
     }
 }
 
 impl StripBomUTF8 for &[u8] {
-    fn strip_bom(self: Self) -> Self {
+    fn strip_bom(self) -> Self {
         self.strip_prefix(&[0xef, 0xbb, 0xbf]).unwrap_or(self)
     }
 }

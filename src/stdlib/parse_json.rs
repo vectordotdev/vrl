@@ -12,9 +12,9 @@ use crate::stdlib::json_utils::json_type_def::json_type_def;
 fn parse_json(value: Value, lossy: Option<Value>) -> Resolved {
     let lossy = lossy.map(Value::try_boolean).transpose()?.unwrap_or(true);
     Ok(if lossy {
-        serde_json::from_str(&value.try_bytes_utf8_lossy()?.strip_bom())
+        serde_json::from_str(value.try_bytes_utf8_lossy()?.strip_bom())
     } else {
-        serde_json::from_slice(&value.try_bytes()?.strip_bom())
+        serde_json::from_slice(value.try_bytes()?.strip_bom())
     }
     .map_err(|e| format!("unable to parse json: {e}"))?)
 }
