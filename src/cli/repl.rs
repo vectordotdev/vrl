@@ -20,7 +20,6 @@ use rustyline::{
     Context, Editor, Helper,
 };
 use std::borrow::Cow::{self, Borrowed, Owned};
-use std::collections::BTreeMap;
 use std::rc::Rc;
 use std::sync::LazyLock;
 
@@ -101,7 +100,7 @@ pub(crate) fn run(
                         if index == objects.len() {
                             objects.push(TargetValue {
                                 value: Value::Null,
-                                metadata: Value::Object(BTreeMap::new()),
+                                metadata: Value::object(),
                                 secrets: Secrets::new(),
                             });
                         }
@@ -297,7 +296,7 @@ impl Validator for Repl {
         let mut rt = Runtime::new(RuntimeState::default());
         let mut target = TargetValue {
             value: Value::Null,
-            metadata: Value::Object(BTreeMap::new()),
+            metadata: Value::object(),
             secrets: Secrets::new(),
         };
 

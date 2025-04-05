@@ -72,7 +72,7 @@ fn parse_aws_cloudwatch_log_subscription_message(bytes: Value) -> Resolved {
                             (KeyString::from("message"), Value::from(event.message)),
                         ]))
                     })
-                    .collect::<Vec<Value>>(),
+                    .collect(),
             ),
         ),
     ]));

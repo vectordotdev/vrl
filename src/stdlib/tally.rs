@@ -96,7 +96,7 @@ mod tests {
             args: func_args![
                 value: value!(["foo", [1,2,3], "123abc", 1, true, [1,2,3], "foo", true, 1]),
             ],
-            want: Err("all values must be strings, found: Array([Integer(1), Integer(2), Integer(3)])"),
+            want: Err("all values must be strings, found: Array(Array([Integer(1), Integer(2), Integer(3)]))"),
             tdef: TypeDef::object(Collection::from_unknown(Kind::integer())).fallible(),
         }
     ];

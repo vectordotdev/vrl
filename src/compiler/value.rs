@@ -3,7 +3,7 @@ mod convert;
 mod error;
 pub mod kind;
 
-pub use crate::value::value::{IterItem, ObjectMap};
+pub use crate::value::value::{IterItem, Array, ObjectMap};
 #[allow(clippy::module_name_repetitions)]
 pub use error::ValueError;
 pub use kind::{Collection, Field, Index, Kind};

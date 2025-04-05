@@ -170,7 +170,7 @@ impl<'de> Deserialize<'de> for Value {
                     vec.push(value);
                 }
 
-                Ok(Value::Array(vec))
+                Ok(Value::Array(vec.into()))
             }
 
             fn visit_map<V>(self, mut visitor: V) -> Result<Value, V::Error>
@@ -182,7 +182,7 @@ impl<'de> Deserialize<'de> for Value {
                     map.insert(key, value);
                 }
 
-                Ok(Value::Object(map))
+                Ok(map.into())
             }
         }
 
