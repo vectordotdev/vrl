@@ -5,7 +5,7 @@ use serde_json::{
     Error, Map,
 };
 
-use crate::compiler::bom::StripBomUTF8;
+use crate::compiler::bom::StripBomFromUTF8;
 use crate::compiler::prelude::*;
 use crate::stdlib::json_utils::json_type_def::json_type_def;
 
