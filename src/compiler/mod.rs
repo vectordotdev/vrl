@@ -37,7 +37,6 @@ mod target;
 #[cfg(any(test, feature = "test"))]
 mod test_util;
 
-pub mod bom;
 pub mod codes;
 pub mod conversion;
 pub mod expression;
