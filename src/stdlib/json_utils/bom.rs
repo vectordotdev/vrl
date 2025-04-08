@@ -31,7 +31,7 @@ mod test {
         let raw = &[BOM_MARKER_BYTES, &[0x7b, 0x7d]].concat(); // BOM{}
         let raw: &str = std::str::from_utf8(raw).unwrap();
         assert_eq!(raw.len(), 5);
-        assert_eq!(raw, "\u{feff}{}");
+        assert_eq!(raw, format!("{BOM_MARKER}{{}}"));
 
         let stripped = raw.strip_bom();
         assert_eq!(stripped.len(), 2);
@@ -40,8 +40,8 @@ mod test {
 
     #[test]
     fn test_strip_bom_str_with_utf8_escape() {
-        let raw = format!("{}{{}}", BOM_MARKER); // BOM{}
-                                                 // Should be the exact same as the test from raw bytes
+        let raw = format!("{BOM_MARKER}{{}}"); // BOM{}
+                                               // Should be the exact same as the test from raw bytes
         let raw: &str = raw.as_str();
         assert_eq!(raw.len(), 5);
 
