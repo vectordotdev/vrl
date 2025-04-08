@@ -5,7 +5,7 @@ updates:
     allow:
       - dependency-type: "all"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
       time: "04:00" # UTC
     labels:
       - "domain: deps"
@@ -27,7 +27,7 @@ updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
     labels:
       - "domain: ci"
       - "no-changelog"
