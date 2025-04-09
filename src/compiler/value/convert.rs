@@ -6,7 +6,7 @@ use chrono::{DateTime, Utc};
 
 use crate::compiler::{
     expression::{Container, Expr, Variant},
-    value::{Kind, ObjectMap, ValueError},
+    value::{Kind, Array, ObjectMap, ValueError},
     Expression,
 };
 
@@ -32,7 +32,7 @@ pub trait VrlValueConvert: Sized {
     fn try_boolean(self) -> Result<bool, ValueError>;
     fn try_regex(self) -> Result<ValueRegex, ValueError>;
     fn try_null(self) -> Result<(), ValueError>;
-    fn try_array(self) -> Result<Vec<Value>, ValueError>;
+    fn try_array(self) -> Result<Array, ValueError>;
     fn try_object(self) -> Result<ObjectMap, ValueError>;
     fn try_timestamp(self) -> Result<DateTime<Utc>, ValueError>;
 
@@ -133,7 +133,7 @@ impl VrlValueConvert for Value {
         }
     }
 
-    fn try_array(self) -> Result<Vec<Value>, ValueError> {
+    fn try_array(self) -> Result<Array, ValueError> {
         match self {
             Value::Array(v) => Ok(v),
             _ => Err(ValueError::Expected {
