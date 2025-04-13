@@ -64,7 +64,7 @@ stdlib = [
   "dep:aes-siv",
   "dep:base16",
   "dep:base62",
-  "dep:base64",
+  "dep:base64-simd",
   "dep:cbc",
   "dep:cfb-mode",
   "dep:chacha20poly1305",
@@ -77,7 +77,6 @@ stdlib = [
   "dep:crypto_secretbox",
   "dep:csv",
   "dep:ctr",
-  "dep:data-encoding",
   "dep:digest",
   "dep:domain",
   "dep:dns-lookup",
@@ -129,7 +128,7 @@ ansi_term = { version = "0.12", optional = true }
 arbitrary = { version = "1", optional = true, features = ["derive"] }
 base16 = { version = "0.2", optional = true }
 base62 = { version = "2.2.1", optional = true }
-base64 = { version = "0.22", optional = true }
+base64-simd = { version = "0.8", optional = true }
 bytes = { version = "1", default-features = false, optional = true }
 charset = { version = "0.1", optional = true }
 encoding_rs = { version = "0.8.35", optional = true }
@@ -142,7 +141,6 @@ clap.workspace = true
 codespan-reporting = { version = "0.12", optional = true }
 convert_case = { version = "0.7.1", optional = true }
 crc = { version = "3.2.1", optional = true }
-data-encoding = { version = "2", optional = true }
 digest = { version = "0.10", optional = true }
 dyn-clone = { version = "1", default-features = false, optional = true }
 exitcode = { version = "1", optional = true }
