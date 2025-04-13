@@ -1,5 +1,4 @@
 use crate::compiler::prelude::*;
-use base64::engine::Engine;
 use std::{
     borrow::Cow,
     convert::{TryFrom, TryInto},
@@ -460,7 +459,7 @@ impl Encoder {
     fn encode(self, data: &[u8]) -> String {
         use Encoder::{Base16, Base64};
         match self {
-            Base64 => base64::engine::general_purpose::STANDARD.encode(data),
+            Base64 => base64_simd::STANDARD.encode_to_string(data),
             Base16 => base16::encode_lower(data),
         }
     }
