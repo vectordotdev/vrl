@@ -120,6 +120,12 @@ mod test {
             tdef: TypeDef::bytes().fallible(),
         }
 
+        with_defaults_invalid_value {
+            args: func_args![value: value!("helloworld")],
+            want: Err("unable to decode value to base64"),
+            tdef: TypeDef::bytes().fallible(),
+        }
+
         empty_string_standard_charset {
             args: func_args![value: value!(""), charset: value!("standard")],
             want: Ok(value!("")),
