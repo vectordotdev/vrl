@@ -140,6 +140,30 @@ mod test {
             tdef: TypeDef::bytes().infallible(),
         }
 
+        with_padding_standard_charset_unicode {
+            args: func_args![value: value!("some=string/řčža"), padding: value!(true), charset: value!("standard")],
+            want: Ok(value!("c29tZT1zdHJpbmcvxZnEjcW+YQ==")),
+            tdef: TypeDef::bytes().infallible(),
+        }
+
+        no_padding_standard_charset_unicode {
+            args: func_args![value: value!("some=string/řčža"), padding: value!(false), charset: value!("standard")],
+            want: Ok(value!("c29tZT1zdHJpbmcvxZnEjcW+YQ")),
+            tdef: TypeDef::bytes().infallible(),
+        }
+
+        with_padding_urlsafe_charset_unicode {
+            args: func_args![value: value!("some=string/řčža"), padding: value!(true), charset: value!("url_safe")],
+            want: Ok(value!("c29tZT1zdHJpbmcvxZnEjcW-YQ==")),
+            tdef: TypeDef::bytes().infallible(),
+        }
+
+        no_padding_urlsafe_charset_unicode {
+            args: func_args![value: value!("some=string/řčža"), padding: value!(false), charset: value!("url_safe")],
+            want: Ok(value!("c29tZT1zdHJpbmcvxZnEjcW-YQ")),
+            tdef: TypeDef::bytes().infallible(),
+        }
+
         empty_string_standard_charset {
             args: func_args![value: value!(""), charset: value!("standard")],
             want: Ok(value!("")),
