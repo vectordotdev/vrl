@@ -1,3 +1,4 @@
+use crate::value::value::Array;
 use crate::value::{KeyString, ObjectMap, Value};
 use std::borrow::Borrow;
 
@@ -75,6 +76,31 @@ impl ValueCollection for ObjectMap {
 
     fn is_empty_collection(&self) -> bool {
         self.is_empty()
+    }
+}
+
+impl ValueCollection for Array {
+    type Key = isize;
+    type BorrowedKey = isize;
+
+    fn get_value(&self, key: &isize) -> Option<&Value> {
+        ValueCollection::get_value(&**self, key)
+    }
+
+    fn get_mut_value(&mut self, key: &isize) -> Option<&mut Value> {
+        ValueCollection::get_mut_value(&mut **self, key)
+    }
+
+    fn insert_value(&mut self, key: isize, value: Value) -> Option<Value> {
+        ValueCollection::insert_value(&mut **self, key, value)
+    }
+
+    fn remove_value(&mut self, key: &isize) -> Option<Value> {
+        ValueCollection::remove_value(&mut **self, key)
+    }
+
+    fn is_empty_collection(&self) -> bool {
+        ValueCollection::is_empty_collection(&**self)
     }
 }
 

@@ -185,8 +185,6 @@ impl FunctionExpression for ShannonEntropyFn {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::BTreeMap;
-
     use super::*;
     use crate::{stdlib::util::round_to_precision, value};
 
@@ -287,7 +285,7 @@ mod tests {
 
     fn prepare_function(function: &ShannonEntropyFn) -> Resolved {
         let tz = TimeZone::default();
-        let mut object: Value = Value::Object(BTreeMap::new());
+        let mut object: Value = Value::object();
         let mut runtime_state = state::RuntimeState::default();
         let mut ctx = Context::new(&mut object, &mut runtime_state, &tz);
         function.resolve(&mut ctx)
