@@ -22,8 +22,7 @@ fn parse_timestamp(
                 .transpose()?
                 .unwrap_or(*ctx.timezone());
 
-            Conversion::parse(format!("timestamp|{format}"), timezone)
-                .map_err(|e| e.to_string())?
+            Conversion::timestamp(&format, timezone)
                 .convert(v)
                 .map_err(|e| e.to_string().into())
         }
@@ -212,7 +211,7 @@ mod tests {
             tdef: TypeDef::timestamp().fallible(),
             tz: TimeZone::default(),
         }
-        
+
         err_value_null {
             args: func_args![
                 value: value!(null),
