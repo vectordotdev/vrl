@@ -28,7 +28,7 @@ fn parse_timestamp(
                 .map_err(|e| e.to_string().into())
         }
         Value::Timestamp(_) => Ok(value),
-        _ => Err("unable to convert value to timestamp".into()),
+        _ => Err(format!("unable to convert {} value to timestamp", value.kind_str()).into()),
     }
 }
 
@@ -160,7 +160,7 @@ mod tests {
         parse_text_with_tz {
             args: func_args![
                 value: "16/10/2019:12:00:00",
-                format:"%d/%m/%Y:%H:%M:%S"
+                format: "%d/%m/%Y:%H:%M:%S"
             ],
             want: Ok(value!(
                 DateTime::parse_from_rfc2822("Wed, 16 Oct 2019 10:00:00 +0000")
@@ -175,7 +175,7 @@ mod tests {
         parse_text_with_timezone_args_no_dst {
             args: func_args![
                 value: "31/12/2019:12:00:00",
-                format:"%d/%m/%Y:%H:%M:%S",
+                format: "%d/%m/%Y:%H:%M:%S",
                 timezone: "Europe/Paris"
             ],
             want: Ok(value!(
@@ -190,7 +190,7 @@ mod tests {
         parse_text_with_favor_timezone_args_than_tz_no_dst {
             args: func_args![
                 value: "31/12/2019:12:00:00",
-                format:"%d/%m/%Y:%H:%M:%S",
+                format: "%d/%m/%Y:%H:%M:%S",
                 timezone: "Europe/Paris"
             ],
             want: Ok(value!(
@@ -205,10 +205,20 @@ mod tests {
         err_timezone_args {
             args: func_args![
                 value: "16/10/2019:12:00:00",
-                format:"%d/%m/%Y:%H:%M:%S",
+                format: "%d/%m/%Y:%H:%M:%S",
                 timezone: "Europe/Pariss"
             ],
             want: Err("unable to parse timezone: Europe/Pariss"),
+            tdef: TypeDef::timestamp().fallible(),
+            tz: TimeZone::default(),
+        }
+        
+        err_value_null {
+            args: func_args![
+                value: value!(null),
+                format: "%d/%m/%Y:%H:%M:%S",
+            ],
+            want: Err("unable to convert null value to timestamp"),
             tdef: TypeDef::timestamp().fallible(),
             tz: TimeZone::default(),
         }
