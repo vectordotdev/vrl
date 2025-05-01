@@ -1,8 +1,5 @@
 use crate::compiler::prelude::*;
-use base64::Engine as _;
-use std::str::FromStr;
-
-use super::util::Base64Charset;
+use crate::stdlib::util::Base64Charset;
 
 fn encode_base64(value: Value, padding: Option<Value>, charset: Option<Value>) -> Resolved {
     let value = value.try_bytes()?;
@@ -10,20 +7,23 @@ fn encode_base64(value: Value, padding: Option<Value>, charset: Option<Value>) -
         .map(VrlValueConvert::try_boolean)
         .transpose()?
         .unwrap_or(true);
+
     let charset = charset
         .map(VrlValueConvert::try_bytes)
         .transpose()?
-        .map(|c| Base64Charset::from_str(&String::from_utf8_lossy(&c)))
+        .as_deref()
+        .map(Base64Charset::from_slice)
         .transpose()?
         .unwrap_or_default();
 
-    let engine = base64::engine::GeneralPurpose::new(
-        &base64::alphabet::Alphabet::from(charset),
-        base64::engine::general_purpose::GeneralPurposeConfig::default()
-            .with_encode_padding(padding),
-    );
+    let encoder = match (padding, charset) {
+        (true, Base64Charset::Standard) => base64_simd::STANDARD,
+        (false, Base64Charset::Standard) => base64_simd::STANDARD_NO_PAD,
+        (true, Base64Charset::UrlSafe) => base64_simd::URL_SAFE,
+        (false, Base64Charset::UrlSafe) => base64_simd::URL_SAFE_NO_PAD,
+    };
 
-    Ok(engine.encode(value).into())
+    Ok(encoder.encode_to_string(value).into())
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -137,6 +137,30 @@ mod test {
         no_padding_urlsafe_charset {
             args: func_args![value: value!("some+=string/value"), padding: value!(false), charset: value!("url_safe")],
             want: Ok(value!("c29tZSs9c3RyaW5nL3ZhbHVl")),
+            tdef: TypeDef::bytes().infallible(),
+        }
+
+        with_padding_standard_charset_unicode {
+            args: func_args![value: value!("some=string/řčža"), padding: value!(true), charset: value!("standard")],
+            want: Ok(value!("c29tZT1zdHJpbmcvxZnEjcW+YQ==")),
+            tdef: TypeDef::bytes().infallible(),
+        }
+
+        no_padding_standard_charset_unicode {
+            args: func_args![value: value!("some=string/řčža"), padding: value!(false), charset: value!("standard")],
+            want: Ok(value!("c29tZT1zdHJpbmcvxZnEjcW+YQ")),
+            tdef: TypeDef::bytes().infallible(),
+        }
+
+        with_padding_urlsafe_charset_unicode {
+            args: func_args![value: value!("some=string/řčža"), padding: value!(true), charset: value!("url_safe")],
+            want: Ok(value!("c29tZT1zdHJpbmcvxZnEjcW-YQ==")),
+            tdef: TypeDef::bytes().infallible(),
+        }
+
+        no_padding_urlsafe_charset_unicode {
+            args: func_args![value: value!("some=string/řčža"), padding: value!(false), charset: value!("url_safe")],
+            want: Ok(value!("c29tZT1zdHJpbmcvxZnEjcW-YQ")),
             tdef: TypeDef::bytes().infallible(),
         }
 
