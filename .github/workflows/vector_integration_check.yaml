@@ -15,11 +15,8 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
 
-      - uses: bufbuild/buf-action@v1
-        with:
-          lint: false
-          breaking: false
-          format: false
+      - name: Install protoc
+        uses: arduino/setup-protoc@v3
 
       - name: Clone Vector repo and update VRL dependency
         run: |
