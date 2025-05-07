@@ -6,7 +6,7 @@ on:
 
 jobs:
   check-vector:
-    if: github.actor == 'dependabot[bot]'
+    if: github.actor == 'pront'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout VRL (main branch)
