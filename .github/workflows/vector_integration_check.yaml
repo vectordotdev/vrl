@@ -9,11 +9,12 @@ jobs:
     if: github.actor == 'pront'
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout VRL (main branch)
+      - name: Checkout VRL
         uses: actions/checkout@v4
+        with:
+          path: vrl
 
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
 
       - name: Clone Vector repo and update VRL dependency
         run: |
