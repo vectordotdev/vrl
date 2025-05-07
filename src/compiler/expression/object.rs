@@ -1,6 +1,6 @@
 use std::{collections::BTreeMap, fmt, ops::Deref};
 
-use crate::value::{KeyString, Value};
+use crate::value::{KeyString, ObjectMap, Value};
 use crate::{
     compiler::{
         expression::{Expr, Resolved},
@@ -35,8 +35,8 @@ impl Expression for Object {
         self.inner
             .iter()
             .map(|(key, expr)| expr.resolve(ctx).map(|v| (key.clone(), v)))
-            .collect::<Result<BTreeMap<_, _>, _>>()
-            .map(Value::Object)
+            .collect::<Result<ObjectMap, _>>()
+            .map(|v| Value::Object(v.into()))
     }
 
     fn resolve_constant(&self, state: &TypeState) -> Option<Value> {
@@ -44,7 +44,7 @@ impl Expression for Object {
             .iter()
             .map(|(key, expr)| expr.resolve_constant(state).map(|v| (key.clone(), v)))
             .collect::<Option<BTreeMap<_, _>>>()
-            .map(Value::Object)
+            .map(|v| Value::Object(v.into()))
     }
 
     fn type_info(&self, state: &TypeState) -> TypeInfo {
@@ -99,6 +99,6 @@ impl fmt::Display for Object {
 
 impl From<BTreeMap<KeyString, Expr>> for Object {
     fn from(inner: BTreeMap<KeyString, Expr>) -> Self {
-        Self { inner }
+        Self::new(inner)
     }
 }

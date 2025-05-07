@@ -319,7 +319,7 @@ mod test {
                 patterns: Value::Array(vec![
                     "%{common_prefix} %{_status} %{_message}".into(),
                     "%{common_prefix} %{_message}".into(),
-                    ]),
+                    ].into()),
                 aliases: value!({
                     "common_prefix": "%{_timestamp} %{_loglevel}",
                     "_timestamp": "%{TIMESTAMP_ISO8601:timestamp}",
@@ -343,7 +343,7 @@ mod test {
                 patterns: Value::Array(vec![
                     "%{common_prefix} %{_status} %{_message}".into(),
                     "%{common_prefix} %{_message}".into(),
-                    ]),
+                    ].into()),
                 aliases: value!({
                     "common_prefix": "%{_timestamp} %{_loglevel}",
                     "_timestamp": "%{TIMESTAMP_ISO8601:timestamp}",
@@ -351,7 +351,7 @@ mod test {
                     "_status": "%{POSINT:status}",
                     "_message": "%{GREEDYDATA:message}"
                 }),
-                alias_sources: Value::Array(vec![]),
+                alias_sources: Value::array(),
             ],
             want: Ok(Value::from(btreemap! {
                 "timestamp" => "2020-10-02T23:22:12.223222Z",
@@ -368,7 +368,7 @@ mod test {
                 patterns: Value::Array(vec![
                     "%{common_prefix} %{_status} %{_message}".into(),
                     "%{common_prefix} %{_message}".into(),
-                    ]),
+                    ].into()),
                 aliases: value!({
                     "common_prefix": "%{_timestamp} %{_loglevel}",
                     "_timestamp": "%{TIMESTAMP_ISO8601:timestamp}",
@@ -391,7 +391,7 @@ mod test {
                 patterns: Value::Array(vec![
                     "%{access_common}".into(),
                     r#"%{access_common} (%{number:duration:scale(1000000000)} )?"%{_referer}" "%{_user_agent}"( "%{_x_forwarded_for}")?.*"#.into(),
-                    ]),
+                    ].into()),
                 aliases: value!({
                     "access_common": r#"%{_client_ip} %{_ident} %{_auth} \[%{_date_access}\] "(?>%{_method} |)%{_url}(?> %{_version}|)" %{_status_code} (?>%{_bytes_written}|-)"#,
                     "_auth": r#"%{notSpace:http.auth:nullIf("-")}"#,
@@ -427,7 +427,7 @@ mod test {
                         "ip" => "127.0.0.1"
                     }
                 }
-            })),
+            }.into())),
             tdef: TypeDef::object(Collection::any()).fallible(),
         }
     ];

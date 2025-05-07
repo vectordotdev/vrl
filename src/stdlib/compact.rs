@@ -1,5 +1,6 @@
 use super::util;
 use crate::compiler::prelude::*;
+use crate::value::value::Array;
 
 fn compact(
     recursive: Option<Value>,
@@ -264,7 +265,7 @@ fn compact_object(object: ObjectMap, options: &CompactOptions) -> ObjectMap {
         .collect()
 }
 
-fn compact_array(array: Vec<Value>, options: &CompactOptions) -> Vec<Value> {
+fn compact_array(array: Array, options: &CompactOptions) -> Array {
     array
         .into_iter()
         .filter_map(|value| {
@@ -282,6 +283,7 @@ fn compact_array(array: Vec<Value>, options: &CompactOptions) -> Vec<Value> {
 mod test {
     use super::*;
     use crate::btreemap;
+    use std::collections::BTreeMap;
 
     #[test]
     fn test_compacted_array() {
@@ -296,14 +298,14 @@ mod test {
             ),
             (
                 vec![1.into(), 2.into()],
-                vec![1.into(), Value::Array(vec![]), 2.into()],
+                vec![1.into(), Value::array(), 2.into()],
                 CompactOptions::default(),
             ),
             (
-                vec![1.into(), Value::Array(vec![3.into()]), 2.into()],
+                vec![1.into(), Value::Array(vec![3.into()].into()), 2.into()],
                 vec![
                     1.into(),
-                    Value::Array(vec![Value::Null, 3.into(), Value::Null]),
+                    Value::Array(vec![Value::Null, 3.into(), Value::Null].into()),
                     2.into(),
                 ],
                 CompactOptions::default(),
@@ -312,7 +314,7 @@ mod test {
                 vec![1.into(), 2.into()],
                 vec![
                     1.into(),
-                    Value::Array(vec![Value::Null, Value::Null]),
+                    Value::Array(vec![Value::Null, Value::Null].into()),
                     2.into(),
                 ],
                 CompactOptions::default(),
@@ -339,24 +341,29 @@ mod test {
         ];
 
         for (expected, original, options) in cases {
-            assert_eq!(expected, compact_array(original, &options));
+            assert_eq!(
+                expected,
+                compact_array(original.into(), &options).into_vec()
+            );
         }
     }
 
     #[test]
     #[allow(clippy::too_many_lines)]
     fn test_compacted_map() {
-        let cases = vec![
+        let cases: Vec<(ObjectMap, ObjectMap, CompactOptions)> = vec![
             (
                 btreemap! {
                     "key1" => "",
                     "key3" => "",
-                }, // expected
+                }
+                .into(), // expected
                 btreemap! {
                     "key1" => "",
                     "key2" => Value::Null,
                     "key3" => "",
-                }, // original
+                }
+                .into(), // original
                 CompactOptions {
                     string: false,
                     ..CompactOptions::default()
@@ -366,12 +373,14 @@ mod test {
                 btreemap! {
                     "key1" => Value::from(1),
                     "key3" => Value::from(2),
-                },
+                }
+                .into(),
                 btreemap! {
                     "key1" => Value::from(1),
-                    "key2" => Value::Array(vec![]),
+                    "key2" => Value::array(),
                     "key3" => Value::from(2),
-                },
+                }
+                .into(),
                 CompactOptions::default(),
             ),
             (
@@ -437,14 +446,16 @@ mod test {
             (
                 btreemap! {
                     "key1" => Value::from(1),
-                    "key2" => Value::Array(vec![2.into()]),
+                    "key2" => Value::Array(vec![2.into()].into()),
                     "key3" => Value::from(2),
-                },
+                }
+                .into(),
                 btreemap! {
                     "key1" => Value::from(1),
-                    "key2" => Value::Array(vec![Value::Null, 2.into(), Value::Null]),
+                    "key2" => Value::Array(vec![Value::Null, 2.into(), Value::Null].into()),
                     "key3" => Value::from(2),
-                },
+                }
+                .into(),
                 CompactOptions::default(),
             ),
         ];
@@ -465,7 +476,7 @@ mod test {
 
         with_array {
             args: func_args![value: vec![Value::Null, Value::from(1), Value::from(""),]],
-            want: Ok(Value::Array(vec![Value::from(1)])),
+            want: Ok(Value::Array(vec![Value::from(1)].into())),
             tdef: TypeDef::array(Collection::any()),
         }
 
@@ -478,7 +489,7 @@ mod test {
                 },
                 nullish: true
             ],
-            want: Ok(Value::Object(ObjectMap::from([(KeyString::from("key2"), Value::from(1))]))),
+            want: Ok(Value::Object(BTreeMap::from_iter([(KeyString::from("key2"), Value::from(1))]).into())),
             tdef: TypeDef::object(Collection::any()),
         }
     ];

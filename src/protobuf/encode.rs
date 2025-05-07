@@ -229,12 +229,14 @@ mod tests {
     fn test_encode_integers() {
         let message = encode_message(
             &test_message_descriptor("Integers"),
-            Value::Object(BTreeMap::from([
-                ("i32".into(), Value::Integer(-1234)),
-                ("i64".into(), Value::Integer(-9876)),
-                ("u32".into(), Value::Integer(1234)),
-                ("u64".into(), Value::Integer(9876)),
-            ])),
+            Value::Object(
+                ObjectMap::from([
+                    ("i32".into(), Value::Integer(-1234)),
+                    ("i64".into(), Value::Integer(-9876)),
+                    ("u32".into(), Value::Integer(1234)),
+                    ("u64".into(), Value::Integer(9876)),
+                ]),
+            ),
         )
         .unwrap();
         assert_eq!(Some(-1234), mfield!(message, "i32").as_i32());
@@ -247,12 +249,12 @@ mod tests {
     fn test_encode_integers_from_bytes() {
         let message = encode_message(
             &test_message_descriptor("Integers"),
-            Value::Object(BTreeMap::from([
+            Value::from([
                 ("i32".into(), Value::Bytes(Bytes::from("-1234"))),
                 ("i64".into(), Value::Bytes(Bytes::from("-9876"))),
                 ("u32".into(), Value::Bytes(Bytes::from("1234"))),
                 ("u64".into(), Value::Bytes(Bytes::from("9876"))),
-            ])),
+            ]),
         )
         .unwrap();
         assert_eq!(Some(-1234), mfield!(message, "i32").as_i32());
@@ -265,10 +267,12 @@ mod tests {
     fn test_encode_floats() {
         let message = encode_message(
             &test_message_descriptor("Floats"),
-            Value::Object(BTreeMap::from([
-                ("d".into(), Value::Float(NotNan::new(11.0).unwrap())),
-                ("f".into(), Value::Float(NotNan::new(2.0).unwrap())),
-            ])),
+            Value::Object(
+                ObjectMap::from([
+                    ("d".into(), Value::Float(NotNan::new(11.0).unwrap())),
+                    ("f".into(), Value::Float(NotNan::new(2.0).unwrap())),
+                ]),
+            ),
         )
         .unwrap();
         assert_eq!(Some(11.0), mfield!(message, "d").as_f64());
@@ -279,10 +283,10 @@ mod tests {
     fn test_encode_bytes_as_float() {
         let message = encode_message(
             &test_message_descriptor("Floats"),
-            Value::Object(BTreeMap::from([
+            Value::from([
                 ("d".into(), Value::Bytes(Bytes::from("11.0"))),
                 ("f".into(), Value::Bytes(Bytes::from("2.0"))),
-            ])),
+            ]),
         )
         .unwrap();
         assert_eq!(Some(11.0), mfield!(message, "d").as_f64());
@@ -294,10 +298,12 @@ mod tests {
         let bytes = Bytes::from(vec![0, 1, 2, 3]);
         let message = encode_message(
             &test_message_descriptor("Bytes"),
-            Value::Object(BTreeMap::from([
-                ("text".into(), Value::Bytes(Bytes::from("vector"))),
-                ("binary".into(), Value::Bytes(bytes.clone())),
-            ])),
+            Value::Object(
+                ObjectMap::from([
+                    ("text".into(), Value::Bytes(Bytes::from("vector"))),
+                    ("binary".into(), Value::Bytes(bytes.clone())),
+                ]),
+            ),
         )
         .unwrap();
         assert_eq!(Some("vector"), mfield!(message, "text").as_str());
@@ -308,25 +314,34 @@ mod tests {
     fn test_encode_map() {
         let message = encode_message(
             &test_message_descriptor("Map"),
-            Value::Object(BTreeMap::from([
-                (
-                    "names".into(),
-                    Value::Object(BTreeMap::from([
-                        ("forty-four".into(), Value::Integer(44)),
-                        ("one".into(), Value::Integer(1)),
-                    ])),
-                ),
-                (
-                    "people".into(),
-                    Value::Object(BTreeMap::from([(
-                        "mark".into(),
-                        Value::Object(BTreeMap::from([
-                            ("nickname".into(), Value::Bytes(Bytes::from("jeff"))),
-                            ("age".into(), Value::Integer(22)),
-                        ])),
-                    )])),
-                ),
-            ])),
+            Value::Object(
+                ObjectMap::from([
+                    (
+                        "names".into(),
+                        Value::Object(
+                            ObjectMap::from([
+                                ("forty-four".into(), Value::Integer(44)),
+                                ("one".into(), Value::Integer(1)),
+                            ]),
+                        ),
+                    ),
+                    (
+                        "people".into(),
+                        Value::Object(
+                            ObjectMap::from([(
+                                "mark".into(),
+                                Value::Object(
+                                    BTreeMap::from([
+                                        ("nickname".into(), Value::Bytes(Bytes::from("jeff"))),
+                                        ("age".into(), Value::Integer(22)),
+                                    ])
+                                    .into(),
+                                ),
+                            )]),
+                        ),
+                    ),
+                ]),
+            ),
         )
         .unwrap();
         // the simpler string->primitive map
@@ -365,11 +380,14 @@ mod tests {
     fn test_encode_enum() {
         let message = encode_message(
             &test_message_descriptor("Enum"),
-            Value::Object(BTreeMap::from([
-                ("breakfast".into(), Value::Bytes(Bytes::from("tomato"))),
-                ("dinner".into(), Value::Bytes(Bytes::from("OLIVE"))),
-                ("lunch".into(), Value::Integer(0)),
-            ])),
+            Value::Object(
+                BTreeMap::from([
+                    ("breakfast".into(), Value::Bytes(Bytes::from("tomato"))),
+                    ("dinner".into(), Value::Bytes(Bytes::from("OLIVE"))),
+                    ("lunch".into(), Value::Integer(0)),
+                ])
+                .into(),
+            ),
         )
         .unwrap();
         assert_eq!(Some(2), mfield!(message, "breakfast").as_enum_number());
@@ -381,12 +399,15 @@ mod tests {
     fn test_encode_timestamp() {
         let message = encode_message(
             &test_message_descriptor("Timestamp"),
-            Value::Object(BTreeMap::from([(
-                "morning".into(),
-                Value::Timestamp(
-                    DateTime::from_timestamp(8675, 309).expect("could not compute timestamp"),
-                ),
-            )])),
+            Value::Object(
+                BTreeMap::from([(
+                    "morning".into(),
+                    Value::Timestamp(
+                        DateTime::from_timestamp(8675, 309).expect("could not compute timestamp"),
+                    ),
+                )])
+                .into(),
+            ),
         )
         .unwrap();
         let timestamp = mfield!(message, "morning").as_message().unwrap().clone();
@@ -398,14 +419,10 @@ mod tests {
     fn test_encode_repeated_primitive() {
         let message = encode_message(
             &test_message_descriptor("RepeatedPrimitive"),
-            Value::Object(BTreeMap::from([(
+            Value::from([(
                 "numbers".into(),
-                Value::Array(vec![
-                    Value::Integer(8),
-                    Value::Integer(6),
-                    Value::Integer(4),
-                ]),
-            )])),
+                Value::Array(vec![Value::Integer(8), Value::Integer(6), Value::Integer(4)].into()),
+            )]),
         )
         .unwrap();
         let list = mfield!(message, "numbers").as_list().unwrap().to_vec();
@@ -419,20 +436,34 @@ mod tests {
     fn test_encode_repeated_message() {
         let message = encode_message(
             &test_message_descriptor("RepeatedMessage"),
-            Value::Object(BTreeMap::from([(
-                "messages".into(),
-                Value::Array(vec![
-                    Value::Object(BTreeMap::from([(
-                        "text".into(),
-                        Value::Bytes(Bytes::from("vector")),
-                    )])),
-                    Value::Object(BTreeMap::from([("index".into(), Value::Integer(4444))])),
-                    Value::Object(BTreeMap::from([
-                        ("text".into(), Value::Bytes(Bytes::from("protobuf"))),
-                        ("index".into(), Value::Integer(1)),
-                    ])),
-                ]),
-            )])),
+            Value::Object(
+                BTreeMap::from([(
+                    "messages".into(),
+                    Value::Array(
+                        vec![
+                            Value::Object(
+                                BTreeMap::from([(
+                                    "text".into(),
+                                    Value::Bytes(Bytes::from("vector")),
+                                )])
+                                .into(),
+                            ),
+                            Value::Object(
+                                BTreeMap::from([("index".into(), Value::Integer(4444))]).into(),
+                            ),
+                            Value::Object(
+                                BTreeMap::from([
+                                    ("text".into(), Value::Bytes(Bytes::from("protobuf"))),
+                                    ("index".into(), Value::Integer(1)),
+                                ])
+                                .into(),
+                            ),
+                        ]
+                        .into(),
+                    ),
+                )])
+                .into(),
+            ),
         )
         .unwrap();
         let list = mfield!(message, "messages").as_list().unwrap().to_vec();
@@ -461,19 +492,19 @@ mod tests {
     fn test_encode_value_as_string() {
         let mut message = encode_message(
             &test_message_descriptor("Bytes"),
-            Value::Object(BTreeMap::from([("text".into(), Value::Boolean(true))])),
+            Value::Object(ObjectMap::from([("text".into(), Value::Boolean(true))])),
         )
         .unwrap();
         assert_eq!(Some("true"), mfield!(message, "text").as_str());
         message = encode_message(
             &test_message_descriptor("Bytes"),
-            Value::Object(BTreeMap::from([("text".into(), Value::Integer(123))])),
+            Value::Object(ObjectMap::from([("text".into(), Value::Integer(123))])),
         )
         .unwrap();
         assert_eq!(Some("123"), mfield!(message, "text").as_str());
         message = encode_message(
             &test_message_descriptor("Bytes"),
-            Value::Object(BTreeMap::from([(
+            Value::Object(ObjectMap::from([(
                 "text".into(),
                 Value::Float(NotNan::new(45.67).unwrap()),
             )])),
@@ -482,7 +513,7 @@ mod tests {
         assert_eq!(Some("45.67"), mfield!(message, "text").as_str());
         message = encode_message(
             &test_message_descriptor("Bytes"),
-            Value::Object(BTreeMap::from([(
+            Value::Object(ObjectMap::from([(
                 "text".into(),
                 Value::Timestamp(
                     DateTime::from_timestamp(8675, 309).expect("could not compute timestamp"),

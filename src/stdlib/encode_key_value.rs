@@ -204,13 +204,16 @@ mod tests {
         let before: Value = r#"key="this has a \" quote""#.into();
 
         let after = encode_key_value(
-            Some(Value::Array(vec![
-                "key".into(),
-                "has".into(),
-                "a".into(),
-                r#"""#.into(),
-                "quote".into(),
-            ])),
+            Some(Value::Array(
+                vec![
+                    "key".into(),
+                    "has".into(),
+                    "a".into(),
+                    r#"""#.into(),
+                    "quote".into(),
+                ]
+                .into(),
+            )),
             parse_key_value(
                 &before,
                 &Value::from("="),

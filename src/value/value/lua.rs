@@ -1,8 +1,10 @@
 use mlua::prelude::LuaResult;
 use mlua::{FromLua, IntoLua, Lua, Value as LuaValue};
 use ordered_float::NotNan;
+use std::collections::BTreeMap;
+use std::sync::Arc;
 
-use crate::value::Value;
+use crate::value::{KeyString, Value};
 
 impl IntoLua for Value {
     #![allow(clippy::wrong_self_convention)] // this trait is defined by mlua
@@ -39,11 +41,12 @@ impl FromLua for Value {
             LuaValue::Boolean(b) => Ok(Self::Boolean(b)),
             LuaValue::Table(t) => {
                 if t.len()? > 0 {
-                    <_>::from_lua(LuaValue::Table(t), lua).map(Self::Array)
+                    <_>::from_lua(LuaValue::Table(t), lua).map(|v: Vec<Self>| Self::Array(v.into()))
                 } else if table_is_timestamp(&t)? {
                     table_to_timestamp(t).map(Self::Timestamp)
                 } else {
-                    <_>::from_lua(LuaValue::Table(t), lua).map(Self::Object)
+                    <_>::from_lua(LuaValue::Table(t), lua)
+                        .map(|v: BTreeMap<KeyString, Self>| Self::Object(v.into()))
                 }
             }
             other => Err(mlua::Error::FromLuaConversionError {
@@ -55,6 +58,13 @@ impl FromLua for Value {
     }
 }
 
+impl FromLua for ObjectMap {
+    fn from_lua(value: mlua::Value, lua: &Lua) -> mlua::Result<Self> {
+        Ok(Self(Arc::new(BTreeMap::from_lua(value, lua)?)))
+    }
+}
+
+use crate::prelude::ObjectMap;
 use chrono::{DateTime, Datelike, TimeZone, Timelike, Utc};
 use mlua::prelude::*;
 
@@ -157,7 +167,7 @@ mod test {
             ),
             (
                 "{1, '2', 0.57721566}",
-                Value::Array(vec![1_i64.into(), "2".into(), 0.577_215_66.into()]),
+                Value::Array(vec![1_i64.into(), "2".into(), 0.577_215_66.into()].into()),
             ),
             (
                 "os.date('!*t', 1584297428)",
@@ -255,7 +265,7 @@ mod test {
                 ",
             ),
             (
-                Value::Array(vec![1_i64.into(), "2".into(), 0.577_215_66.into()]),
+                Value::Array(vec![1_i64.into(), "2".into(), 0.577_215_66.into()].into()),
                 "
                 function (value)
                     return value[1] == 1 and

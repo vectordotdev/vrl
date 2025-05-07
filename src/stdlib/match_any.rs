@@ -107,7 +107,7 @@ mod tests {
                                  Value::Regex(Regex::new("foo").unwrap().into()),
                                  Value::Regex(Regex::new("bar").unwrap().into()),
                                  Value::Regex(Regex::new("baz").unwrap().into()),
-                             ])],
+                             ].into())],
             want: Ok(value!(true)),
             tdef: TypeDef::boolean().infallible(),
         }
@@ -117,7 +117,7 @@ mod tests {
                              patterns: Value::Array(vec![
                                  Value::Regex(Regex::new("baz|quux").unwrap().into()),
                                  Value::Regex(Regex::new("foobar").unwrap().into()),
-                             ])],
+                             ].into())],
             want: Ok(value!(false)),
             tdef: TypeDef::boolean().infallible(),
         }

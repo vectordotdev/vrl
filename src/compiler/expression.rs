@@ -2,6 +2,7 @@ use std::fmt;
 
 use dyn_clone::{clone_trait_object, DynClone};
 
+use crate::value::Value;
 pub use abort::Abort;
 pub use array::Array;
 pub use assignment::Assignment;
@@ -23,8 +24,6 @@ pub use query::{Query, Target};
 pub use r#return::Return;
 pub use unary::Unary;
 pub use variable::Variable;
-
-use crate::value::Value;
 
 use super::state::{TypeInfo, TypeState};
 #[allow(clippy::module_name_repetitions)]

@@ -37,7 +37,7 @@ impl Value {
     pub fn into_iter<'a>(self, recursive: bool) -> ValueIter<'a> {
         let data = match self {
             Self::Object(object) => IterData::Object(object.into_iter().collect()),
-            Self::Array(array) => IterData::Array(array),
+            Self::Array(array) => IterData::Array(array.into_vec()),
             value => IterData::Value(value),
         };
 
@@ -124,7 +124,7 @@ impl<'a> Iterator for ValueIter<'a> {
                 Value::Object(object) => {
                     Some(IterData::Object(object.clone().into_iter().collect()))
                 }
-                Value::Array(array) => Some(IterData::Array(array.clone())),
+                Value::Array(array) => Some(IterData::Array(array.clone().into_vec())),
 
                 // It's possible the [`Value`] we're trying to iterate over is
                 // a non-collection type. This happens if the caller changed the
@@ -259,16 +259,16 @@ impl From<IterData> for Value {
         match iter {
             IterData::Value(value) => value,
             IterData::Object(object) => Self::Object(object.into_iter().collect()),
-            IterData::Array(array) => Self::Array(array),
+            IterData::Array(array) => Self::Array(array.into()),
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use std::collections::{BTreeMap, HashMap};
-
     use super::*;
+    use crate::value::ObjectMap;
+    use std::collections::HashMap;
 
     #[test]
     #[allow(clippy::too_many_lines)]
@@ -314,7 +314,7 @@ mod tests {
             (
                 "object non-recursive",
                 TestCase {
-                    value: Value::Object(BTreeMap::from([("foo".into(), true.into())])),
+                    value: Value::Object(ObjectMap::from([("foo".into(), true.into())])),
                     recursive: false,
                     items: vec![true.into()],
                 },
@@ -322,15 +322,15 @@ mod tests {
             (
                 "object recursive",
                 TestCase {
-                    value: BTreeMap::from([(
+                    value: ObjectMap::from([(
                         "foo".into(),
-                        BTreeMap::from([("foo".into(), true.into()), ("bar".into(), "baz".into())])
+                        ObjectMap::from([("foo".into(), true.into()), ("bar".into(), "baz".into())])
                             .into(),
                     )])
                     .into(),
                     recursive: true,
                     items: vec![
-                        BTreeMap::from([("foo".into(), true.into()), ("bar".into(), "baz".into())])
+                        ObjectMap::from([("foo".into(), true.into()), ("bar".into(), "baz".into())])
                             .into(),
                         "baz".into(),
                         true.into(),
@@ -340,10 +340,10 @@ mod tests {
             (
                 "object multi-recursive",
                 TestCase {
-                    value: BTreeMap::from([
+                    value: ObjectMap::from([
                         (
                             "foo".into(),
-                            BTreeMap::from([("bar".into(), Value::Null)]).into(),
+                            ObjectMap::from([("bar".into(), Value::Null)]).into(),
                         ),
                         ("baz".into(), true.into()),
                     ])
@@ -351,7 +351,7 @@ mod tests {
                     recursive: true,
                     items: vec![
                         true.into(),
-                        BTreeMap::from([("bar".into(), Value::Null)]).into(),
+                        ObjectMap::from([("bar".into(), Value::Null)]).into(),
                         Value::Null,
                     ],
                 },
@@ -372,7 +372,7 @@ mod tests {
 
     #[test]
     fn test_mutations() {
-        let data: Value = BTreeMap::from([("foo".into(), vec![true].into())]).into();
+        let data: Value = ObjectMap::from([("foo".into(), vec![true].into())]).into();
 
         // Empty vec before recursing means recursion doesn't find any elements.
         let mut iter = data.clone().into_iter(true);
@@ -439,7 +439,7 @@ mod tests {
                 IterItem::Value(value) => values.push(value.clone()),
                 IterItem::KeyValue(_key, value) => match value {
                     value @ Value::Array(..) => {
-                        *value = BTreeMap::from([("bar".into(), true.into())]).into();
+                        *value = ObjectMap::from([("bar".into(), true.into())]).into();
                         changed = true;
                     }
                     value => values.push(value.clone()),

@@ -1,8 +1,7 @@
 use super::ValueCollection;
 use crate::path::BorrowedSegment;
-use crate::value::Value;
+use crate::value::{ObjectMap, Value};
 use std::borrow::Borrow;
-use std::collections::BTreeMap;
 
 pub fn insert<'a, T: ValueCollection>(
     value: &mut T,
@@ -15,7 +14,7 @@ pub fn insert<'a, T: ValueCollection>(
             if let Some(Value::Object(map)) = value.get_mut_value(key.borrow()) {
                 insert(map, field.to_string().into(), path_iter, insert_value)
             } else {
-                let mut map = BTreeMap::new();
+                let mut map = ObjectMap::new();
                 let prev_value =
                     insert(&mut map, field.to_string().into(), path_iter, insert_value);
                 value.insert_value(key, Value::Object(map));
@@ -33,7 +32,7 @@ pub fn insert<'a, T: ValueCollection>(
                 };
                 let mut array = Vec::with_capacity(capacity);
                 let prev_value = insert(&mut array, index, path_iter, insert_value);
-                value.insert_value(key, Value::Array(array));
+                value.insert_value(key, Value::Array(array.into()));
                 prev_value
             }
         }

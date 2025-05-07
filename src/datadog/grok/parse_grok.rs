@@ -3,8 +3,7 @@ use super::{
     parse_grok_rules::{GrokField, GrokRule},
 };
 use crate::path::parse_value_path;
-use crate::value::{ObjectMap, Value};
-use std::collections::BTreeMap;
+use crate::value::Value;
 use tracing::error;
 
 /// Errors which cause the Datadog grok algorithm to stop processing and not return a parsed result.
@@ -58,7 +57,7 @@ pub fn parse_grok(
 /// Internal Errors:
 /// - FailedToApplyFilter - matches the rule, but there was a runtime error while applying on of the filters
 fn apply_grok_rule(source: &str, grok_rule: &GrokRule) -> Result<ParsedGrokObject, FatalError> {
-    let mut parsed = Value::Object(BTreeMap::new());
+    let mut parsed = Value::object();
     let mut internal_errors = vec![];
 
     match grok_rule.pattern.match_against(source) {
@@ -104,7 +103,7 @@ fn apply_grok_rule(source: &str, grok_rule: &GrokRule) -> Result<ParsedGrokObjec
                                     parsed.insert(field, values);
                                 }
                                 Some(v) => {
-                                    parsed.insert(field, Value::Array(vec![v, value]));
+                                    parsed.insert(field, Value::Array(vec![v, value].into()));
                                 }
                                 None => {
                                     parsed.insert(field, value);
@@ -138,7 +137,7 @@ fn apply_grok_rule(source: &str, grok_rule: &GrokRule) -> Result<ParsedGrokObjec
 fn parse_keys_as_path(value: Value) -> Value {
     match value {
         Value::Object(map) => {
-            let mut result = Value::Object(ObjectMap::new());
+            let mut result = Value::object();
             for (k, v) in map.into_iter() {
                 let path = parse_value_path(&k)
                     .unwrap_or_else(|_| crate::owned_value_path!(&k.to_string()));
@@ -172,6 +171,7 @@ mod tests {
     use crate::value::Value;
     use chrono::{Datelike, NaiveDate, Timelike, Utc};
     use ordered_float::NotNan;
+    use std::collections::BTreeMap;
     use tracing_test::traced_test;
 
     use super::super::parse_grok_rules::parse_grok_rules;
@@ -407,7 +407,7 @@ mod tests {
                     "json" =>  Value::Array(vec! [
                         Value::from(btreemap! { "json_field1" => Value::Bytes("value2".into()) }),
                         Value::from(btreemap! { "json_field2" => Value::Bytes("value3".into()) }),
-                    ]),
+                    ].into()),
                 }
             })),
         )]);
@@ -531,7 +531,7 @@ mod tests {
             parsed,
             Value::from(btreemap! {
                 "nested" => btreemap! {
-                   "field" =>  Value::Array(vec![1.into(), "INFO".into(), "message".into()]),
+                   "field" =>  Value::Array(vec![1.into(), "INFO".into(), "message".into()].into()),
                 },
             })
         );
@@ -751,62 +751,62 @@ mod tests {
             (
                 "%{data:field:array}",
                 "[1,2]",
-                Ok(Value::Array(vec!["1".into(), "2".into()])),
+                Ok(Value::Array(vec!["1".into(), "2".into()].into())),
             ),
             (
                 r#"%{data:field:array("\\t")}"#,
                 "[1\t2]",
-                Ok(Value::Array(vec!["1".into(), "2".into()])),
+                Ok(Value::Array(vec!["1".into(), "2".into()].into())),
             ),
             (
                 r#"%{data:field:array("[]","\\n")}"#,
                 "[1\n2]",
-                Ok(Value::Array(vec!["1".into(), "2".into()])),
+                Ok(Value::Array(vec!["1".into(), "2".into()].into())),
             ),
             (
                 r#"%{data:field:array("","-")}"#,
                 "1-2",
-                Ok(Value::Array(vec!["1".into(), "2".into()])),
+                Ok(Value::Array(vec!["1".into(), "2".into()].into())),
             ),
             (
                 "%{data:field:array(integer)}",
                 "[1,2]",
-                Ok(Value::Array(vec![1.into(), 2.into()])),
+                Ok(Value::Array(vec![1.into(), 2.into()].into())),
             ),
             (
                 r#"%{data:field:array(";", integer)}"#,
                 "[1;2]",
-                Ok(Value::Array(vec![1.into(), 2.into()])),
+                Ok(Value::Array(vec![1.into(), 2.into()].into())),
             ),
             (
                 r#"%{data:field:array("{}",";", integer)}"#,
                 "{1;2}",
-                Ok(Value::Array(vec![1.into(), 2.into()])),
+                Ok(Value::Array(vec![1.into(), 2.into()].into())),
             ),
             (
                 "%{data:field:array(number)}",
                 "[1,2]",
-                Ok(Value::Array(vec![1.into(), 2.into()])),
+                Ok(Value::Array(vec![1.into(), 2.into()].into())),
             ),
             (
                 "%{data:field:array(integer)}",
                 "[1,2]",
-                Ok(Value::Array(vec![1.into(), 2.into()])),
+                Ok(Value::Array(vec![1.into(), 2.into()].into())),
             ),
             (
                 "%{data:field:array(scale(10))}",
                 "[1,2.1]",
-                Ok(Value::Array(vec![10.into(), 21.into()])),
+                Ok(Value::Array(vec![10.into(), 21.into()].into())),
             ),
             (
                 r#"%{data:field:array(";", scale(10))}"#,
                 "[1;2.1]",
-                Ok(Value::Array(vec![10.into(), 21.into()])),
+                Ok(Value::Array(vec![10.into(), 21.into()].into())),
             ),
             (
                 r#"%{data:field:array("{}",";", scale(10))}"#,
                 "{1;2.1}",
-                Ok(Value::Array(vec![10.into(), 21.into()])),
+                Ok(Value::Array(vec![10.into(), 21.into()].into())),
             ),
         ]);
 
@@ -816,7 +816,7 @@ mod tests {
                 "%{data:field:array}",
                 "abc",
                 Ok(ParsedGrokObject {
-                    parsed: Value::from(BTreeMap::new()),
+                    parsed: Value::object(),
                     internal_errors: vec![InternalError::FailedToApplyFilter(
                         "Array(..)".to_owned(),
                         "\"abc\"".to_owned(),
@@ -828,7 +828,7 @@ mod tests {
                 "%{data:field:array(scale(10))}",
                 "[a,b]",
                 Ok(ParsedGrokObject {
-                    parsed: Value::from(BTreeMap::new()),
+                    parsed: Value::object(),
                     internal_errors: vec![InternalError::FailedToApplyFilter(
                         "Scale(..)".to_owned(),
                         "\"a\"".to_owned(),
@@ -1137,7 +1137,7 @@ mod tests {
         assert_eq!(
             parsed,
             Value::from(btreemap! {
-                 "field" =>  Value::Array(vec![1.into(), 2.into()]),
+                 "field" =>  Value::Array(vec![1.into(), 2.into()].into()),
             })
         );
     }
@@ -1242,7 +1242,7 @@ mod tests {
                 "(?-s)%{data:field} (?s)%{data:field}",
                 "abc d\ne",
                 Ok(Value::from(btreemap! {
-                    "field" => Value::Array(vec!["abc".into(), "d\ne".into()]),
+                    "field" => Value::Array(vec!["abc".into(), "d\ne".into()].into()),
                 })),
             ),
         ]);
@@ -1342,26 +1342,32 @@ mod tests {
             (
                 "%{data::json}",
                 r#"{"root": {"object": {"empty": {}}, "string": "abc" }}"#,
-                Ok(Value::Object(btreemap!(
-                    "root" => btreemap! (
-                        "string" => "abc"
+                Ok(Value::Object(
+                    btreemap!(
+                        "root" => btreemap! (
+                            "string" => "abc"
+                        )
                     )
-                ))),
+                    .into(),
+                )),
             ),
             (
                 "%{data:field:json}",
                 r#"{"root": {"object": {"empty": {}}, "string": "abc" }}"#,
-                Ok(Value::Object(btreemap!(
-                    "field" => btreemap!(
-                        "root" => btreemap! (
-                            "string" => "abc"
-                        )
-                )))),
+                Ok(Value::Object(
+                    btreemap!(
+                        "field" => btreemap!(
+                            "root" => btreemap! (
+                                "string" => "abc"
+                            )
+                    ))
+                    .into(),
+                )),
             ),
             (
                 r#"%{notSpace:network.destination.ip:nullIf("-")}"#,
                 "-",
-                Ok(Value::Object(btreemap!())),
+                Ok(Value::object()),
             ),
         ]);
     }
@@ -1370,11 +1376,14 @@ mod tests {
         test_full_grok(vec![(
             "%{data::json}",
             r#"{"a.b": "c"}"#,
-            Ok(Value::Object(btreemap!(
-                "a" => btreemap! (
-                    "b" => "c"
+            Ok(Value::Object(
+                btreemap!(
+                    "a" => btreemap! (
+                        "b" => "c"
+                    )
                 )
-            ))),
+                .into(),
+            )),
         )]);
     }
 }
