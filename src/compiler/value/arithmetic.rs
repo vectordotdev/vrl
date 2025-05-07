@@ -1,17 +1,18 @@
 #![deny(clippy::arithmetic_side_effects)]
+#![allow(clippy::cast_precision_loss, clippy::module_name_repetitions)]
 
-use std::ops::{Add, Mul, Rem, Sub};
-
-use bytes::{BufMut, Bytes, BytesMut};
+use std::ops::{Add, Mul, Rem};
 
 use crate::compiler::{
     value::{Kind, VrlValueConvert},
     ExpressionError,
 };
 use crate::value::{ObjectMap, Value};
+use bytes::{BufMut, Bytes, BytesMut};
 
 use super::ValueError;
 
+#[allow(clippy::missing_errors_doc)]
 pub trait VrlValueArithmetic: Sized {
     /// Similar to [`std::ops::Mul`], but fallible (e.g. `TryMul`).
     fn try_mul(self, rhs: Self) -> Result<Self, ValueError>;
@@ -60,6 +61,15 @@ pub trait VrlValueArithmetic: Sized {
     fn eq_lossy(&self, rhs: &Self) -> bool;
 }
 
+fn safe_sub(lhv: f64, rhv: f64) -> Option<Value> {
+    let result = lhv - rhv;
+    if result.is_nan() {
+        None
+    } else {
+        Some(Value::from_f64_or_zero(result))
+    }
+}
+
 impl VrlValueArithmetic for Value {
     /// Similar to [`std::ops::Mul`], but fallible (e.g. `TryMul`).
     fn try_mul(self, rhs: Self) -> Result<Self, ValueError> {
@@ -67,6 +77,7 @@ impl VrlValueArithmetic for Value {
 
         // When multiplying a string by an integer, if the number is negative we set it to zero to
         // return an empty string.
+        #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
         let as_usize = |num| if num < 0 { 0 } else { num as usize };
 
         let value = match self {
@@ -77,8 +88,8 @@ impl VrlValueArithmetic for Value {
                 Value::from_f64_or_zero(lhv as f64 * rhs.try_float()?)
             }
             Value::Integer(lhv) => {
-                let rhv = rhs.try_into_i64().map_err(|_| err())?;
-                i64::wrapping_mul(lhv, rhv).into()
+                let rhv_i64 = rhs.try_into_i64().map_err(|_| err())?;
+                i64::wrapping_mul(lhv, rhv_i64).into()
             }
             Value::Float(lhv) => {
                 let rhs = rhs.try_into_f64().map_err(|_| err())?;
@@ -97,15 +108,15 @@ impl VrlValueArithmetic for Value {
     fn try_div(self, rhs: Self) -> Result<Self, ValueError> {
         let err = || ValueError::Div(self.kind(), rhs.kind());
 
-        let rhv = rhs.try_into_f64().map_err(|_| err())?;
+        let rhv_f64 = rhs.try_into_f64().map_err(|_| err())?;
 
-        if rhv == 0.0 {
+        if rhv_f64 == 0.0 {
             return Err(ValueError::DivideByZero);
         }
 
         let value = match self {
-            Value::Integer(lhv) => Value::from_f64_or_zero(lhv as f64 / rhv),
-            Value::Float(lhv) => Value::from_f64_or_zero(lhv.into_inner() / rhv),
+            Value::Integer(lhv) => Value::from_f64_or_zero(lhv as f64 / rhv_f64),
+            Value::Float(lhv) => Value::from_f64_or_zero(lhv.into_inner() / rhv_f64),
             _ => return Err(err()),
         };
 
@@ -117,10 +128,10 @@ impl VrlValueArithmetic for Value {
         let value = match (self, rhs) {
             (Value::Integer(lhs), Value::Float(rhs)) => Value::from_f64_or_zero(lhs as f64 + *rhs),
             (Value::Integer(lhs), rhs) => {
-                let rhv = rhs
+                let rhv_i64 = rhs
                     .try_into_i64()
                     .map_err(|_| ValueError::Add(Kind::integer(), rhs.kind()))?;
-                i64::wrapping_add(lhs, rhv).into()
+                i64::wrapping_add(lhs, rhv_i64).into()
             }
             (Value::Float(lhs), rhs) => {
                 let rhs = rhs
@@ -152,12 +163,12 @@ impl VrlValueArithmetic for Value {
                 Value::from_f64_or_zero(lhv as f64 - rhs.try_float()?)
             }
             Value::Integer(lhv) => {
-                let rhv = rhs.try_into_i64().map_err(|_| err())?;
-                i64::wrapping_sub(lhv, rhv).into()
+                let rhv_i64 = rhs.try_into_i64().map_err(|_| err())?;
+                i64::wrapping_sub(lhv, rhv_i64).into()
             }
-            Value::Float(lhv) => {
-                let rhv = rhs.try_into_f64().map_err(|_| err())?;
-                lhv.sub(rhv).into()
+            Value::Float(lhs) => {
+                let rhs = rhs.try_into_f64().map_err(|_| err())?;
+                safe_sub(*lhs, rhs).ok_or_else(err)?
             }
             _ => return Err(err()),
         };
@@ -177,8 +188,7 @@ impl VrlValueArithmetic for Value {
         let err = ValueError::Or;
 
         match self {
-            Value::Null => rhs().map_err(err),
-            Value::Boolean(false) => rhs().map_err(err),
+            Value::Null | Value::Boolean(false) => rhs().map_err(err),
             value => Ok(value),
         }
     }
@@ -191,9 +201,9 @@ impl VrlValueArithmetic for Value {
 
         let value = match self {
             Value::Null => false.into(),
-            Value::Boolean(lhv) => match rhs {
+            Value::Boolean(left) => match rhs {
                 Value::Null => false.into(),
-                Value::Boolean(rhv) => (lhv && rhv).into(),
+                Value::Boolean(right) => (left && right).into(),
                 _ => return Err(err()),
             },
             _ => return Err(err()),
@@ -206,9 +216,9 @@ impl VrlValueArithmetic for Value {
     fn try_rem(self, rhs: Self) -> Result<Self, ValueError> {
         let err = || ValueError::Rem(self.kind(), rhs.kind());
 
-        let rhv = rhs.try_into_f64().map_err(|_| err())?;
+        let rhv_f64 = rhs.try_into_f64().map_err(|_| err())?;
 
-        if rhv == 0.0 {
+        if rhv_f64 == 0.0 {
             return Err(ValueError::DivideByZero);
         }
 
@@ -216,13 +226,13 @@ impl VrlValueArithmetic for Value {
             Value::Integer(lhv) if rhs.is_float() => {
                 Value::from_f64_or_zero(lhv as f64 % rhs.try_float()?)
             }
-            Value::Integer(lhv) => {
-                let rhv = rhs.try_into_i64().map_err(|_| err())?;
-                i64::wrapping_rem(lhv, rhv).into()
+            Value::Integer(left) => {
+                let right = rhs.try_into_i64().map_err(|_| err())?;
+                i64::wrapping_rem(left, right).into()
             }
-            Value::Float(lhv) => {
-                let rhv = rhs.try_into_f64().map_err(|_| err())?;
-                lhv.rem(rhv).into()
+            Value::Float(left) => {
+                let right = rhs.try_into_f64().map_err(|_| err())?;
+                left.rem(right).into()
             }
             _ => return Err(err()),
         };
@@ -302,9 +312,9 @@ impl VrlValueArithmetic for Value {
         let err = || ValueError::Merge(self.kind(), rhs.kind());
 
         let value = match (&self, &rhs) {
-            (Value::Object(lhv), Value::Object(rhv)) => lhv
+            (Value::Object(lhv), Value::Object(right)) => lhv
                 .iter()
-                .chain(rhv.iter())
+                .chain(right.iter())
                 .map(|(k, v)| (k.clone(), v.clone()))
                 .collect::<ObjectMap>()
                 .into(),

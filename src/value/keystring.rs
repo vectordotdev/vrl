@@ -114,14 +114,14 @@ mod lua {
 
     use super::KeyString;
 
-    impl<'a> FromLua<'a> for KeyString {
-        fn from_lua(value: LuaValue<'a>, lua: &'a Lua) -> LuaResult<Self> {
+    impl FromLua for KeyString {
+        fn from_lua(value: LuaValue, lua: &Lua) -> LuaResult<Self> {
             String::from_lua(value, lua).map(Self::from)
         }
     }
 
-    impl<'a> IntoLua<'a> for KeyString {
-        fn into_lua(self, lua: &'a Lua) -> LuaResult<LuaValue<'_>> {
+    impl IntoLua for KeyString {
+        fn into_lua(self, lua: &Lua) -> LuaResult<LuaValue> {
             self.0.into_lua(lua)
         }
     }

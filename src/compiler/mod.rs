@@ -1,37 +1,8 @@
-#![deny(
-// warnings,
-clippy::all,
-clippy::pedantic,
-unreachable_pub,
-unused_allocation,
-unused_extern_crates,
-unused_assignments,
-unused_comparisons
-)]
-#![allow(
-clippy::cast_possible_truncation, // allowed in initial deny commit
-clippy::cast_possible_wrap, // allowed in initial deny commit
-clippy::cast_precision_loss, // allowed in initial deny commit
-clippy::cast_sign_loss, // allowed in initial deny commit
-clippy::if_not_else, // allowed in initial deny commit
-clippy::match_bool, // allowed in initial deny commit
-clippy::match_same_arms, // allowed in initial deny commit
-clippy::match_wild_err_arm, // allowed in initial deny commit
-clippy::missing_errors_doc, // allowed in initial deny commit
-clippy::missing_panics_doc, // allowed in initial deny commit
-clippy::module_name_repetitions, // allowed in initial deny commit
-clippy::needless_pass_by_value, // allowed in initial deny commit
-clippy::return_self_not_must_use, // allowed in initial deny commit
-clippy::semicolon_if_nothing_returned,  // allowed in initial deny commit
-clippy::similar_names, // allowed in initial deny commit
-clippy::too_many_lines, // allowed in initial deny commit
-let_underscore_drop, // allowed in initial deny commit
-)]
+#![deny(warnings, clippy::pedantic)]
 
 use std::fmt::Debug;
 use std::{fmt::Display, str::FromStr};
 
-pub use paste::paste;
 use serde::{Deserialize, Serialize};
 
 use crate::compiler::unused_expression_checker::check_for_unused_results;
@@ -46,8 +17,8 @@ pub use state::{TypeInfo, TypeState};
 pub use target::{SecretTarget, Target, TargetValue, TargetValueRef};
 pub use type_def::TypeDef;
 
-use crate::diagnostic::DiagnosticList;
 pub(crate) use crate::diagnostic::Span;
+use crate::diagnostic::{DiagnosticList, DiagnosticMessage};
 use crate::parser::parse;
 
 pub use self::compile_config::CompileConfig;
@@ -63,6 +34,7 @@ mod deprecation_warning;
 mod expression_error;
 mod program;
 mod target;
+#[cfg(any(test, feature = "test"))]
 mod test_util;
 
 pub mod codes;
@@ -76,9 +48,26 @@ pub mod type_def;
 pub mod unused_expression_checker;
 pub mod value;
 
+pub type DiagnosticMessages = Vec<Box<dyn DiagnosticMessage>>;
 pub type Result<T = CompilationResult> = std::result::Result<T, DiagnosticList>;
 
-/// Compile a given source into the final [`Program`].
+/// Compiles the given source code into the final [`Program`].
+///
+/// This function initializes an external environment and default compilation
+/// configuration before invoking the compilation process.
+///
+/// # Arguments
+///
+/// * `source` - The source code to be compiled.
+/// * `fns` - A list of function definitions available during compilation.
+///
+/// # Returns
+///
+/// A `Result` containing the compiled program or a diagnostic error.
+///
+/// # Errors
+///
+/// On compilation error, a list of diagnostics is returned.
 pub fn compile(source: &str, fns: &[Box<dyn Function>]) -> Result {
     let external = state::ExternalEnv::default();
     let config = CompileConfig::default();
@@ -86,6 +75,25 @@ pub fn compile(source: &str, fns: &[Box<dyn Function>]) -> Result {
     compile_with_external(source, fns, &external, config)
 }
 
+/// Compiles the given source code with a specified external environment and configuration.
+///
+/// This function allows for customization of the compilation environment by providing
+/// an external state and a compilation configuration.
+///
+/// # Arguments
+///
+/// * `source` - The source code to be compiled.
+/// * `fns` - A list of function definitions available during compilation.
+/// * `external` - An external environment providing additional context for compilation.
+/// * `config` - The compilation configuration settings.
+///
+/// # Returns
+///
+/// A `Result` containing the compiled program or a diagnostic errors.
+///
+/// # Errors
+///
+/// On compilation error, a list of diagnostics is returned.
 pub fn compile_with_external(
     source: &str,
     fns: &[Box<dyn Function>],
@@ -100,6 +108,25 @@ pub fn compile_with_external(
     compile_with_state(source, fns, &state, config)
 }
 
+/// Compiles the given source code with a specified compilation state and configuration.
+///
+/// This function performs parsing, compilation, and optional unused expression
+/// checking before returning the compilation result.
+///
+/// # Arguments
+///
+/// * `source` - The source code to be compiled.
+/// * `fns` - A list of function definitions available during compilation.
+/// * `state` - The compilation state containing local and external environments.
+/// * `config` - The compilation configuration settings.
+///
+/// # Returns
+///
+/// A `Result` containing the compiled program or a diagnostic errors.
+///
+/// # Errors
+///
+/// On compilation error, a list of diagnostics is returned.
 pub fn compile_with_state(
     source: &str,
     fns: &[Box<dyn Function>],

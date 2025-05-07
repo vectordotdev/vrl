@@ -1,9 +1,11 @@
 use crate::compiler::prelude::*;
 
-fn split(value: Value, limit: Value, pattern: Value) -> Resolved {
+fn split(value: &Value, limit: Value, pattern: Value) -> Resolved {
     let string = value.try_bytes_utf8_lossy()?;
     let limit = match limit.try_integer()? {
         x if x < 0 => 0,
+        // TODO consider removal options
+        #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
         x => x as usize,
     };
     match pattern {
@@ -107,7 +109,7 @@ impl FunctionExpression for SplitFn {
         let limit = self.limit.resolve(ctx)?;
         let pattern = self.pattern.resolve(ctx)?;
 
-        split(value, limit, pattern)
+        split(&value, limit, pattern)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

@@ -1,19 +1,20 @@
 use crate::compiler::prelude::*;
 use crate::protobuf::get_message_descriptor;
 use crate::protobuf::parse_proto;
-use once_cell::sync::Lazy;
+use crate::stdlib::json_utils::json_type_def::json_type_def;
 use prost_reflect::MessageDescriptor;
 use std::env;
 use std::ffi::OsString;
 use std::path::Path;
 use std::path::PathBuf;
+use std::sync::LazyLock;
 
 #[derive(Clone, Copy, Debug)]
 pub struct ParseProto;
 
 // This needs to be static because parse_proto needs to read a file
 // and the file path needs to be a literal.
-static EXAMPLE_PARSE_PROTO_EXPR: Lazy<&str> = Lazy::new(|| {
+static EXAMPLE_PARSE_PROTO_EXPR: LazyLock<&str> = LazyLock::new(|| {
     let path = PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap())
         .join("tests/data/protobuf/test_protobuf.desc")
         .display()
@@ -27,7 +28,7 @@ static EXAMPLE_PARSE_PROTO_EXPR: Lazy<&str> = Lazy::new(|| {
     )
 });
 
-static EXAMPLES: Lazy<Vec<Example>> = Lazy::new(|| {
+static EXAMPLES: LazyLock<Vec<Example>> = LazyLock::new(|| {
     vec![Example {
         title: "message",
         source: &EXAMPLE_PARSE_PROTO_EXPR,
@@ -112,29 +113,8 @@ impl FunctionExpression for ParseProtoFn {
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {
-        type_def()
+        json_type_def()
     }
-}
-
-fn inner_kind() -> Kind {
-    Kind::null()
-        | Kind::bytes()
-        | Kind::integer()
-        | Kind::float()
-        | Kind::boolean()
-        | Kind::array(Collection::any())
-        | Kind::object(Collection::any())
-}
-
-fn type_def() -> TypeDef {
-    TypeDef::bytes()
-        .fallible()
-        .or_boolean()
-        .or_integer()
-        .or_float()
-        .add_null()
-        .or_array(Collection::from_unknown(inner_kind()))
-        .or_object(Collection::from_unknown(inner_kind()))
 }
 
 #[cfg(test)]
@@ -159,7 +139,7 @@ mod tests {
                 desc_file: test_data_dir().join("test_protobuf.desc").to_str().unwrap().to_owned(),
                 message_type: "test_protobuf.Person"],
             want: Ok(value!({ name: "someone", phones: [{number: "123456"}] })),
-            tdef: type_def(),
+            tdef: json_type_def(),
         }
 
         parses_proto3 {
@@ -167,7 +147,7 @@ mod tests {
                 desc_file: test_data_dir().join("test_protobuf3.desc").to_str().unwrap().to_owned(),
                 message_type: "test_protobuf3.Person"],
             want: Ok(value!({ data: {data_phone: "HOME"}, name: "someone", phones: [{number: "1234", type: "MOBILE"}] })),
-            tdef: type_def(),
+            tdef: json_type_def(),
         }
     ];
 }

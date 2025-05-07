@@ -11,6 +11,7 @@ fn set(path: Value, mut value: Value, data: Value) -> Resolved {
                     Value::Bytes(path) => {
                         OwnedSegment::Field(String::from_utf8_lossy(&path).into())
                     }
+                    #[allow(clippy::cast_possible_truncation)] //TODO evaluate removal options
                     Value::Integer(index) => OwnedSegment::Index(index as isize),
                     value => {
                         return Err(format!(
@@ -155,11 +156,11 @@ impl FunctionExpression for SetFn {
         let mut td = TypeDef::from(Kind::never()).fallible();
 
         if value_td.is_array() {
-            td = td.or_array(Collection::any())
+            td = td.or_array(Collection::any());
         };
 
         if value_td.is_object() {
-            td = td.or_object(Collection::any())
+            td = td.or_object(Collection::any());
         };
 
         td

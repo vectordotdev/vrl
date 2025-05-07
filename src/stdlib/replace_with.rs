@@ -9,13 +9,15 @@ fn replace_with<T>(
     pattern: &Regex,
     count: Value,
     ctx: &mut Context,
-    runner: closure::Runner<T>,
+    runner: &closure::Runner<T>,
 ) -> Resolved
 where
     T: Fn(&mut Context) -> Result<Value, ExpressionError>,
 {
     let haystack = value.try_bytes_utf8_lossy()?;
     let count = match count.try_integer()? {
+        // TODO consider removal options
+        #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
         i if i > 0 => i as usize,
         i if i < 0 => 0,
         // this is when i == 0
@@ -26,7 +28,7 @@ where
         captures,
         &haystack,
         count,
-        pattern.capture_names(),
+        &pattern.capture_names(),
         ctx,
         runner,
     )
@@ -36,9 +38,9 @@ fn make_replacement<T>(
     caps: CaptureMatches,
     haystack: &str,
     count: usize,
-    capture_names: CaptureNames,
+    capture_names: &CaptureNames,
     ctx: &mut Context,
-    runner: closure::Runner<T>,
+    runner: &closure::Runner<T>,
 ) -> Resolved
 where
     T: Fn(&mut Context) -> Result<Value, ExpressionError>,
@@ -223,7 +225,7 @@ struct ReplaceWithFn {
     value: Box<dyn Expression>,
     pattern: Box<dyn Expression>,
     count: Box<dyn Expression>,
-    closure: FunctionClosure,
+    closure: Closure,
 }
 
 impl FunctionExpression for ReplaceWithFn {
@@ -241,13 +243,13 @@ impl FunctionExpression for ReplaceWithFn {
             }
         }
         let count = self.count.resolve(ctx)?;
-        let FunctionClosure {
+        let Closure {
             variables, block, ..
         } = &self.closure;
 
         let runner = closure::Runner::new(variables, |ctx| block.resolve(ctx));
 
-        replace_with(value, pattern, count, ctx, runner)
+        replace_with(value, pattern, count, ctx, &runner)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

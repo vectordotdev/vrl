@@ -1,15 +1,15 @@
 use crate::compiler::prelude::*;
 use base64::engine::Engine;
-use once_cell::sync::Lazy;
 use std::{
     borrow::Cow,
     convert::{TryFrom, TryInto},
+    sync::LazyLock,
 };
 
 // https://www.oreilly.com/library/view/regular-expressions-cookbook/9781449327453/ch04s12.html
 // (converted to non-lookaround version given `regex` does not support lookarounds)
 // See also: https://www.ssa.gov/history/ssn/geocard.html
-static US_SOCIAL_SECURITY_NUMBER: Lazy<regex::Regex> = Lazy::new(|| {
+static US_SOCIAL_SECURITY_NUMBER: LazyLock<regex::Regex> = LazyLock::new(|| {
     regex::Regex::new(
         "(?x)                                                               # Ignore whitespace and comments in the regex expression.
     (?:00[1-9]|0[1-9][0-9]|[1-578][0-9]{2}|6[0-57-9][0-9]|66[0-57-9])-    # Area number: 001-899 except 666
@@ -321,12 +321,12 @@ impl Redactor {
                 dst.push_str(s);
             }
             Redactor::Hash { encoder, hasher } => {
-                dst.push_str(&hasher(*encoder, original.as_bytes()))
+                dst.push_str(&hasher(*encoder, original.as_bytes()));
             }
         }
     }
 
-    fn from_object(obj: ObjectMap) -> std::result::Result<Self, &'static str> {
+    fn from_object(obj: &ObjectMap) -> std::result::Result<Self, &'static str> {
         let r#type = match obj.get("type").ok_or(
             "redactor specified as objects must have type
         parameter",
@@ -420,7 +420,7 @@ impl TryFrom<Value> for Redactor {
 
     fn try_from(value: Value) -> std::result::Result<Self, Self::Error> {
         match value {
-            Value::Object(object) => Redactor::from_object(object),
+            Value::Object(object) => Redactor::from_object(&object),
             Value::Bytes(bytes) => match bytes.as_ref() {
                 b"full" => Ok(Redactor::Full),
                 b"sha2" => Ok(Redactor::Hash {

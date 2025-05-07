@@ -1,6 +1,6 @@
 [package]
 name = "vrl"
-version = "0.18.0"
+version = "0.23.0"
 authors = ["Vector Contributors <vector@datadoghq.com>"]
 edition = "2021"
 license = "MPL-2.0"
@@ -15,6 +15,8 @@ rust-version = "1.79"                                    # msrv
 [workspace]
 members = [".", "lib/cli", "lib/tests", "lib/fuzz"]
 
+[workspace.dependencies]
+clap = { version = "4", features = ["derive"] }
 
 [features]
 default = [
@@ -126,8 +128,9 @@ lua = ["dep:mlua"]
 proptest = ["dep:proptest", "dep:proptest-derive"]
 float_roundtrip = ["dep:serde_json", "serde_json/float_roundtrip"]
 
-# Internal testing utilities (used for benches)
+# Testing Utilities. Enables additional tests, including those with external dependencies such as network calls.
 test = ["string_path"]
+
 
 # All stdlib functions
 stdlib = [
@@ -199,7 +202,7 @@ cfg-if = "1"
 ansi_term = { version = "0.12", optional = true }
 arbitrary = { version = "1", optional = true, features = ["derive"] }
 base16 = { version = "0.2", optional = true }
-base62 = { version = "2.0.2", optional = true }
+base62 = { version = "2.2.1", optional = true }
 base64 = { version = "0.22", optional = true }
 bytes = { version = "1", default-features = false, optional = true }
 charset = { version = "0.1", optional = true }
@@ -209,7 +212,8 @@ chrono = { version = "0.4", default-features = false, features = [
     "wasmbind",
 ], optional = true }
 chrono-tz = { version = "0.10", default-features = false, optional = true }
-cidr-utils = { version = "0.6", optional = true }
+ciborium = { version = "0.2.2", default-features = false, optional = true }
+cidr = { version = "0.3", optional = true }
 csv = { version = "1", optional = true }
 clap = { version = "4", features = ["derive"], optional = true }
 codespan-reporting = { version = "0.11", optional = true }
@@ -247,7 +251,7 @@ once_cell = { version = "1", default-features = false, features = [
 ], optional = true }
 ordered-float = { version = "4", default-features = false, optional = true }
 md-5 = { version = "0.10", optional = true }
-paste = { version = "1", default-features = false, optional = true }
+parse-size = { version = "1.1.0",  optional = true }
 peeking_take_while = { version = "1", default-features = false, optional = true }
 percent-encoding = { version = "2", optional = true }
 pest = { version = "2", default-features = false, optional = true, features = [
@@ -272,8 +276,8 @@ regex = { version = "1", default-features = false, optional = true, features = [
     "unicode",
 ] }
 roxmltree = { version = "0.20", optional = true }
-rustyline = { version = "14", default-features = false, optional = true }
-rust_decimal = { version = "1", optional = true }
+rustyline = { version = "15", default-features = false, optional = true }
+rust_decimal = { version = "1", optional = true, default-features = false }
 seahash = { version = "4", optional = true }
 serde = { version = "1", features = ["derive"], optional = true }
 serde_json = { version = "1", default-features = false, optional = true, features = [
@@ -290,7 +294,7 @@ syslog_loose = { git = "https://github.com/itkovian/syslog-loose", rev = "7acfd3
 termcolor = { version = "1", optional = true }
 thiserror = { version = "1", optional = true }
 tracing = { version = "0.1", default-features = false }
-uaparser = { version = "0.6", default-features = false, optional = true }
+ua-parser = { version = "0.2", optional = true }
 utf8-width = { version = "0.1", optional = true }
 url = { version = "2", optional = true }
 snafu = { version = "0.8", optional = true }
@@ -304,6 +308,7 @@ zstd = { version = "0.13", default-features = false, features = [
 
 # Cryptography
 aes = { version = "0.8", optional = true }
+aes-siv = { version = "0.7.0", optional = true }
 chacha20poly1305 = { version = "0.10", optional = true }
 crypto_secretbox = { version = "0.1", features = ["salsa20"], optional = true }
 
@@ -365,10 +370,12 @@ regex = { version = "1", default-features = false, features = [
 ] }
 paste = { version = "1", default-features = false }
 proptest = { version = "1" }
-proptest-derive = { version = "0.4" }
+proptest-derive = { version = "0.5" }
 
 [build-dependencies]
-lalrpop = { version = "0.20", default-features = false }
+lalrpop = { version = "0.22", default-features = false }
+serde_yaml = "0.9.34"
+ua-parser = { version = "0.2" }
 
 [[bench]]
 name = "kind"

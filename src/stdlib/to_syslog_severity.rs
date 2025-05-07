@@ -1,6 +1,6 @@
 use crate::compiler::prelude::*;
 
-fn to_syslog_severity(level: Value) -> Resolved {
+fn to_syslog_severity(level: &Value) -> Resolved {
     let level = level.try_bytes_utf8_lossy()?;
     // Severity levels: https://en.wikipedia.org/wiki/Syslog#Severity_level
     let severity = match &level[..] {
@@ -70,7 +70,7 @@ struct ToSyslogSeverityFn {
 impl FunctionExpression for ToSyslogSeverityFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let level = self.value.resolve(ctx)?;
-        to_syslog_severity(level)
+        to_syslog_severity(&level)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

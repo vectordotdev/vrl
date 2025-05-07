@@ -1,36 +1,9 @@
-#![deny(
-    warnings,
-    clippy::all,
-    clippy::pedantic,
-    unreachable_pub,
-    unused_allocation,
-    unused_extern_crates,
-    unused_assignments,
-    unused_comparisons
-)]
-#![allow(
-    deprecated,
-    clippy::cast_possible_truncation, // allowed in initial deny commit
-    clippy::cast_precision_loss, // allowed in initial deny commit
-    clippy::cast_sign_loss, // allowed in initial deny commit
-    clippy::default_trait_access, // allowed in initial deny commit
-    clippy::doc_markdown, // allowed in initial deny commit
-    clippy::inefficient_to_string, // allowed in initial deny commit
-    clippy::match_bool, // allowed in initial deny commit
-    clippy::match_same_arms, // allowed in initial deny commit
-    clippy::needless_pass_by_value, // allowed in initial deny commit
-    clippy::semicolon_if_nothing_returned,  // allowed in initial deny commit
-    clippy::similar_names, // allowed in initial deny commit
-    clippy::single_match_else, // allowed in initial deny commit
-    clippy::struct_excessive_bools,  // allowed in initial deny commit
-    clippy::too_many_lines, // allowed in initial deny commit
-    clippy::trivially_copy_pass_by_ref, // allowed in initial deny commit
-)]
-
+#![deny(warnings, clippy::pedantic)]
 pub use wasm_unsupported_function::WasmUnsupportedFunction;
 
 use crate::compiler::Function;
 
+mod json_utils;
 mod string_utils;
 mod util;
 mod wasm_unsupported_function;
@@ -49,9 +22,12 @@ cfg_if::cfg_if! {
         mod compact;
         mod contains;
         mod contains_all;
+        mod crc;
         mod decode_base16;
         mod decode_base64;
+        mod decode_charset;
         mod decode_gzip;
+        mod decode_lz4;
         mod decode_mime_q;
         mod decode_percent;
         mod decode_punycode;
@@ -64,7 +40,9 @@ cfg_if::cfg_if! {
         mod downcase;
         mod encode_base16;
         mod encode_base64;
+        mod encode_charset;
         mod encode_gzip;
+        mod encode_lz4;
         mod encode_json;
         mod encode_key_value;
         mod encode_logfmt;
@@ -132,11 +110,14 @@ cfg_if::cfg_if! {
         mod mod_func;
         mod now;
         mod object;
+        mod object_from_array;
         mod parse_apache_log;
         mod parse_aws_alb_log;
         mod parse_aws_cloudwatch_log_subscription_message;
         mod parse_aws_vpc_flow_log;
+        mod parse_bytes;
         mod parse_cef;
+        mod parse_cbor;
         mod parse_common_log;
         mod parse_csv;
         mod parse_duration;
@@ -180,6 +161,7 @@ cfg_if::cfg_if! {
         mod sha1;
         mod sha2;
         mod sha3;
+        mod shannon_entropy;
         mod sieve;
         mod slice;
         mod split;
@@ -197,6 +179,7 @@ cfg_if::cfg_if! {
         mod to_int;
         mod to_regex;
         mod to_string;
+        mod to_syslog_facility_code;
         mod to_syslog_facility;
         mod to_syslog_level;
         mod to_syslog_severity;
@@ -212,6 +195,7 @@ cfg_if::cfg_if! {
         mod uuid_v4;
         mod uuid_v7;
         mod values;
+        mod zip;
 
         // -----------------------------------------------------------------------------
 
@@ -228,7 +212,9 @@ cfg_if::cfg_if! {
         pub use contains_all::ContainsAll;
         pub use decode_base16::DecodeBase16;
         pub use decode_base64::DecodeBase64;
+        pub use decode_charset::DecodeCharset;
         pub use decode_gzip::DecodeGzip;
+        pub use decode_lz4::DecodeLz4;
         pub use decode_mime_q::DecodeMimeQ;
         pub use decode_percent::DecodePercent;
         pub use decode_punycode::DecodePunycode;
@@ -246,7 +232,9 @@ cfg_if::cfg_if! {
         pub use casing::kebabcase::Kebabcase;
         pub use encode_base16::EncodeBase16;
         pub use encode_base64::EncodeBase64;
+        pub use encode_charset::EncodeCharset;
         pub use encode_gzip::EncodeGzip;
+        pub use encode_lz4::EncodeLz4;
         pub use encode_json::EncodeJson;
         pub use encode_key_value::EncodeKeyValue;
         pub use encode_logfmt::EncodeLogfmt;
@@ -312,10 +300,13 @@ cfg_if::cfg_if! {
         pub use mod_func::Mod;
         pub use now::Now;
         pub use object::Object;
+        pub use object_from_array::ObjectFromArray;
         pub use parse_apache_log::ParseApacheLog;
         pub use parse_aws_alb_log::ParseAwsAlbLog;
         pub use parse_aws_cloudwatch_log_subscription_message::ParseAwsCloudWatchLogSubscriptionMessage;
         pub use parse_aws_vpc_flow_log::ParseAwsVpcFlowLog;
+        pub use parse_bytes::ParseBytes;
+        pub use parse_cbor::ParseCbor;
         pub use parse_cef::ParseCef;
         pub use parse_common_log::ParseCommonLog;
         pub use parse_csv::ParseCsv;
@@ -359,6 +350,7 @@ cfg_if::cfg_if! {
         pub use set::Set;
         pub use sha2::Sha2;
         pub use sha3::Sha3;
+        pub use shannon_entropy::ShannonEntropy;
         pub use sieve::Sieve;
         pub use slice::Slice;
         pub use split::Split;
@@ -376,6 +368,7 @@ cfg_if::cfg_if! {
         pub use to_int::ToInt;
         pub use to_regex::ToRegex;
         pub use to_string::ToString;
+        pub use to_syslog_facility_code::ToSyslogFacilityCode;
         pub use to_syslog_facility::ToSyslogFacility;
         pub use to_syslog_level::ToSyslogLevel;
         pub use to_syslog_severity::ToSyslogSeverity;
@@ -390,15 +383,18 @@ cfg_if::cfg_if! {
         pub use uuid_v4::UuidV4;
         pub use uuid_v7::UuidV7;
         pub use values::Values;
+        pub use zip::Zip;
         pub use self::array::Array;
         pub use self::md5::Md5;
         pub use self::seahash::Seahash;
         pub use self::sha1::Sha1;
+        pub use self::crc::Crc;
     }
 }
 
 #[cfg(feature = "stdlib")]
 #[must_use]
+#[allow(clippy::too_many_lines)]
 pub fn all() -> Vec<Box<dyn Function>> {
     vec![
         Box::new(Abs),
@@ -413,9 +409,12 @@ pub fn all() -> Vec<Box<dyn Function>> {
         Box::new(Compact),
         Box::new(Contains),
         Box::new(ContainsAll),
+        Box::new(Crc),
         Box::new(DecodeBase16),
         Box::new(DecodeBase64),
+        Box::new(DecodeCharset),
         Box::new(DecodeGzip),
+        Box::new(DecodeLz4),
         Box::new(DecodePercent),
         Box::new(DecodePunycode),
         Box::new(DecodeMimeQ),
@@ -428,7 +427,9 @@ pub fn all() -> Vec<Box<dyn Function>> {
         Box::new(Downcase),
         Box::new(EncodeBase16),
         Box::new(EncodeBase64),
+        Box::new(EncodeCharset),
         Box::new(EncodeGzip),
+        Box::new(EncodeLz4),
         Box::new(EncodeJson),
         Box::new(EncodeKeyValue),
         Box::new(EncodeLogfmt),
@@ -496,10 +497,13 @@ pub fn all() -> Vec<Box<dyn Function>> {
         Box::new(Mod),
         Box::new(Now),
         Box::new(Object),
+        Box::new(ObjectFromArray),
         Box::new(ParseApacheLog),
         Box::new(ParseAwsAlbLog),
         Box::new(ParseAwsCloudWatchLogSubscriptionMessage),
         Box::new(ParseAwsVpcFlowLog),
+        Box::new(ParseBytes),
+        Box::new(ParseCbor),
         Box::new(ParseCef),
         Box::new(ParseCommonLog),
         Box::new(ParseCsv),
@@ -545,6 +549,7 @@ pub fn all() -> Vec<Box<dyn Function>> {
         Box::new(Sha1),
         Box::new(Sha2),
         Box::new(Sha3),
+        Box::new(ShannonEntropy),
         Box::new(Sieve),
         Box::new(ScreamingSnakecase),
         Box::new(Snakecase),
@@ -564,6 +569,7 @@ pub fn all() -> Vec<Box<dyn Function>> {
         Box::new(ToInt),
         Box::new(ToRegex),
         Box::new(ToString),
+        Box::new(ToSyslogFacilityCode),
         Box::new(ToSyslogFacility),
         Box::new(ToSyslogLevel),
         Box::new(ToSyslogSeverity),
@@ -579,5 +585,6 @@ pub fn all() -> Vec<Box<dyn Function>> {
         Box::new(UuidV4),
         Box::new(UuidV7),
         Box::new(Values),
+        Box::new(Zip),
     ]
 }

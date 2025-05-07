@@ -2,7 +2,7 @@ use super::log_util;
 use crate::compiler::prelude::*;
 use std::collections::BTreeMap;
 
-fn parse_common_log(bytes: Value, timestamp_format: Option<Value>, ctx: &Context) -> Resolved {
+fn parse_common_log(bytes: &Value, timestamp_format: Option<Value>, ctx: &Context) -> Resolved {
     let message = bytes.try_bytes_utf8_lossy()?;
     let timestamp_format = match timestamp_format {
         None => "%d/%b/%Y:%T %z".to_owned(),
@@ -13,7 +13,7 @@ fn parse_common_log(bytes: Value, timestamp_format: Option<Value>, ctx: &Context
         &log_util::REGEX_APACHE_COMMON_LOG,
         &message,
         &timestamp_format,
-        ctx.timezone(),
+        *ctx.timezone(),
         "common",
     )
     .map_err(Into::into)
@@ -95,7 +95,7 @@ impl FunctionExpression for ParseCommonLogFn {
             .map(|expr| expr.resolve(ctx))
             .transpose()?;
 
-        parse_common_log(bytes, timestamp_format, ctx)
+        parse_common_log(&bytes, timestamp_format, ctx)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

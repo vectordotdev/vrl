@@ -3,6 +3,8 @@ use std::ops::Range;
 use crate::compiler::prelude::*;
 
 #[allow(clippy::cast_possible_wrap)]
+#[allow(clippy::cast_sign_loss)]
+#[allow(clippy::cast_possible_truncation)] //TODO evaluate removal options
 fn slice(start: i64, end: Option<i64>, value: Value) -> Resolved {
     let range = |len: i64| -> ExpressionResult<Range<usize>> {
         let start = match start {
@@ -126,7 +128,7 @@ impl FunctionExpression for SliceFn {
 
         match self.value.type_def(state) {
             v if v.is_bytes() => td.union(v),
-            v if v.is_array() => td.union(v).collect_subtypes(),
+            v if v.is_array() => td.union(v),
             _ => td.or_bytes().or_array(Collection::any()),
         }
     }
@@ -135,6 +137,7 @@ impl FunctionExpression for SliceFn {
 #[cfg(test)]
 mod tests {
     use crate::value;
+    use std::collections::BTreeMap;
 
     use super::*;
 
@@ -230,7 +233,11 @@ mod tests {
                              start: 0
             ],
             want: Ok(vec![0, 1, 2]),
-            tdef: TypeDef::array(Collection::from_unknown(Kind::integer())).fallible(),
+            tdef: TypeDef::array(Collection::from_parts(BTreeMap::from([
+                (Index::from(0), Kind::integer()),
+                (Index::from(1), Kind::integer()),
+                (Index::from(2), Kind::integer()),
+            ]), Kind::undefined())).fallible(),
         }
 
         array_1 {
@@ -238,7 +245,11 @@ mod tests {
                              start: 1
             ],
             want: Ok(vec![1, 2]),
-            tdef: TypeDef::array(Collection::from_unknown(Kind::integer())).fallible(),
+            tdef: TypeDef::array(Collection::from_parts(BTreeMap::from([
+                (Index::from(0), Kind::integer()),
+                (Index::from(1), Kind::integer()),
+                (Index::from(2), Kind::integer()),
+            ]), Kind::undefined())).fallible(),
         }
 
         array_minus_2 {
@@ -246,7 +257,11 @@ mod tests {
                              start: -2
             ],
             want: Ok(vec![1, 2]),
-            tdef: TypeDef::array(Collection::from_unknown(Kind::integer())).fallible(),
+            tdef: TypeDef::array(Collection::from_parts(BTreeMap::from([
+                (Index::from(0), Kind::integer()),
+                (Index::from(1), Kind::integer()),
+                (Index::from(2), Kind::integer()),
+            ]), Kind::undefined())).fallible(),
         }
 
         array_mixed_types {
@@ -254,7 +269,11 @@ mod tests {
                              start: 1
             ],
             want: Ok(value!(["ook", true])),
-            tdef: TypeDef::array(Collection::from_unknown(Kind::integer().or_bytes().or_boolean())).fallible(),
+                       tdef: TypeDef::array(Collection::from_parts(BTreeMap::from([
+                (Index::from(0), Kind::integer()),
+                (Index::from(1), Kind::bytes()),
+                (Index::from(2), Kind::boolean()),
+            ]), Kind::undefined())).fallible(),
         }
 
         error_after_end {

@@ -9,19 +9,20 @@ use std::{
 
 /// Wraps a `Regex` and provides several trait implementations, such as `PartialOrd`
 #[derive(Debug, Clone)]
-pub struct ValueRegex(Arc<regex::Regex>);
+#[allow(clippy::module_name_repetitions)]
+pub struct ValueRegex(Arc<Regex>);
 
 impl ValueRegex {
     /// Create a new `ValueRegex` from the inner `Regex` that is wraps
     #[must_use]
-    pub const fn new(regex: Arc<regex::Regex>) -> Self {
+    pub const fn new(regex: Arc<Regex>) -> Self {
         Self(regex)
     }
 
     /// Returns a `Bytes` of the string representation of the regex
     #[must_use]
     pub fn as_bytes(&self) -> Bytes {
-        bytes::Bytes::copy_from_slice(self.as_bytes_slice())
+        Bytes::copy_from_slice(self.as_bytes_slice())
     }
 
     /// Returns a byte array of the string representation of the regex
@@ -33,7 +34,7 @@ impl ValueRegex {
     /// Returns the inner Regex value
     #[allow(clippy::missing_const_for_fn)] // false positive
     #[must_use]
-    pub fn into_inner(self) -> Arc<regex::Regex> {
+    pub fn into_inner(self) -> Arc<Regex> {
         self.0
     }
 }
@@ -53,15 +54,15 @@ impl Hash for ValueRegex {
 }
 
 impl Deref for ValueRegex {
-    type Target = regex::Regex;
+    type Target = Regex;
 
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 
-impl From<Arc<regex::Regex>> for ValueRegex {
-    fn from(regex: Arc<regex::Regex>) -> Self {
+impl From<Arc<Regex>> for ValueRegex {
+    fn from(regex: Arc<Regex>) -> Self {
         Self(regex)
     }
 }

@@ -1,6 +1,6 @@
 use crate::compiler::prelude::*;
 
-fn downcase(value: Value) -> Resolved {
+fn downcase(value: &Value) -> Resolved {
     Ok(value.try_bytes_utf8_lossy()?.to_lowercase().into())
 }
 
@@ -48,7 +48,7 @@ struct DowncaseFn {
 impl FunctionExpression for DowncaseFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let value = self.value.resolve(ctx)?;
-        downcase(value)
+        downcase(&value)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

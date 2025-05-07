@@ -1,6 +1,6 @@
 use crate::compiler::prelude::*;
 
-fn parse_int(value: Value, base: Option<Value>) -> Resolved {
+fn parse_int(value: &Value, base: Option<Value>) -> Resolved {
     let string = value.try_bytes_utf8_lossy()?;
     let (base, index) = match base {
         Some(base) => {
@@ -12,6 +12,8 @@ fn parse_int(value: Value, base: Option<Value>) -> Resolved {
                 )
                 .into());
             }
+            // TODO consider removal options
+            #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
             (base as u32, 0)
         }
         None => match string.chars().next() {
@@ -102,7 +104,7 @@ impl FunctionExpression for ParseIntFn {
             .map(|expr| expr.resolve(ctx))
             .transpose()?;
 
-        parse_int(value, base)
+        parse_int(&value, base)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

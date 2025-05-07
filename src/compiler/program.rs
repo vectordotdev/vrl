@@ -41,6 +41,8 @@ impl Program {
     }
 }
 
+// This type is re-exposed so renaming it is a breaking change.
+#[allow(clippy::module_name_repetitions)]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ProgramInfo {
     /// Returns whether the compiled program can fail at runtime.

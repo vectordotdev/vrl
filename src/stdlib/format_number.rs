@@ -41,18 +41,20 @@ fn format_number(
     match scale {
         Some(0) => parts.truncate(1),
         Some(i) => {
+            // TODO consider removal options
+            #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
             let i = i as usize;
 
             if parts.len() == 1 {
-                parts.push(String::new())
+                parts.push(String::new());
             }
 
             if i > parts[1].len() {
                 for _ in 0..i - parts[1].len() {
-                    parts[1].push('0')
+                    parts[1].push('0');
                 }
             } else {
-                parts[1].truncate(i)
+                parts[1].truncate(i);
             }
         }
         None => {}

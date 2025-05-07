@@ -4,7 +4,7 @@ fn map_values<T>(
     value: Value,
     recursive: bool,
     ctx: &mut Context,
-    runner: closure::Runner<T>,
+    runner: &closure::Runner<T>,
 ) -> Resolved
 where
     T: Fn(&mut Context) -> Resolved,
@@ -13,9 +13,9 @@ where
 
     for item in iter.by_ref() {
         let value = match item {
-            IterItem::KeyValue(_, value) => value,
-            IterItem::IndexValue(_, value) => value,
-            IterItem::Value(value) => value,
+            IterItem::KeyValue(_, value)
+            | IterItem::IndexValue(_, value)
+            | IterItem::Value(value) => value,
         };
 
         runner.map_value(ctx, value)?;
@@ -106,7 +106,7 @@ impl Function for MapValues {
 struct MapValuesFn {
     value: Box<dyn Expression>,
     recursive: Option<Box<dyn Expression>>,
-    closure: FunctionClosure,
+    closure: Closure,
 }
 
 impl FunctionExpression for MapValuesFn {
@@ -117,14 +117,14 @@ impl FunctionExpression for MapValuesFn {
         };
 
         let value = self.value.resolve(ctx)?;
-        let FunctionClosure {
+        let Closure {
             variables,
             block,
             block_type_def: _,
         } = &self.closure;
         let runner = closure::Runner::new(variables, |ctx| block.resolve(ctx));
 
-        map_values(value, recursive, ctx, runner)
+        map_values(value, recursive, ctx, &runner)
     }
 
     fn type_def(&self, ctx: &state::TypeState) -> TypeDef {
@@ -139,13 +139,13 @@ impl FunctionExpression for MapValuesFn {
 fn recursive_type_def(from: &mut Kind, to: Kind, root: bool) {
     if let Some(object) = from.as_object_mut() {
         for v in object.known_mut().values_mut() {
-            recursive_type_def(v, to.clone(), false)
+            recursive_type_def(v, to.clone(), false);
         }
     }
 
     if let Some(array) = from.as_array_mut() {
         for v in array.known_mut().values_mut() {
-            recursive_type_def(v, to.clone(), false)
+            recursive_type_def(v, to.clone(), false);
         }
     }
 

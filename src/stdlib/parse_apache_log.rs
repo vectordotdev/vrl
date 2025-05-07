@@ -4,7 +4,7 @@ use crate::value;
 use std::collections::BTreeMap;
 
 fn parse_apache_log(
-    bytes: Value,
+    bytes: &Value,
     timestamp_format: Option<Value>,
     format: &Bytes,
     ctx: &Context,
@@ -25,7 +25,7 @@ fn parse_apache_log(
         regexes,
         &message,
         &timestamp_format,
-        ctx.timezone(),
+        *ctx.timezone(),
         std::str::from_utf8(format.as_ref()).unwrap(),
     )
     .map_err(Into::into)
@@ -128,7 +128,7 @@ impl FunctionExpression for ParseApacheLogFn {
             .map(|expr| expr.resolve(ctx))
             .transpose()?;
 
-        parse_apache_log(bytes, timestamp_format, &self.format, ctx)
+        parse_apache_log(&bytes, timestamp_format, &self.format, ctx)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {
@@ -351,9 +351,9 @@ mod tests {
             tz: TimeZone::default(),
         }
 
-        log_line_valid_with_local_timestamp_format {
+       log_line_valid_with_local_timestamp_format {
             args: func_args![value: format!("[{}] - - - -",
-                                            Utc.ymd(2000, 10, 10).and_hms(20,55,36)
+                                            Utc.with_ymd_and_hms(2000, 10, 10, 20, 55, 36).unwrap()
                                               .with_timezone(&Local)
                                               .format("%a %b %d %H:%M:%S %Y")
                                             ),
@@ -366,6 +366,7 @@ mod tests {
             tdef: TypeDef::object(kind_error()).fallible(),
             tz: TimeZone::default(),
         }
+
 
         log_line_valid_with_timezone {
             args: func_args![

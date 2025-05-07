@@ -11,6 +11,7 @@ fn remove(path: Value, compact: Value, mut value: Value) -> Resolved {
                     Value::Bytes(field) => {
                         OwnedSegment::Field(String::from_utf8_lossy(&field).into())
                     }
+                    #[allow(clippy::cast_possible_truncation)] //TODO evaluate removal options
                     Value::Integer(index) => OwnedSegment::Index(index as isize),
                     value => {
                         return Err(format!(
@@ -21,7 +22,7 @@ fn remove(path: Value, compact: Value, mut value: Value) -> Resolved {
                     }
                 };
 
-                lookup.segments.push(segment)
+                lookup.segments.push(segment);
             }
 
             lookup
@@ -181,11 +182,11 @@ impl FunctionExpression for RemoveFn {
         let mut td = TypeDef::from(Kind::never()).fallible();
 
         if value_td.is_array() {
-            td = td.or_array(Collection::any())
+            td = td.or_array(Collection::any());
         };
 
         if value_td.is_object() {
-            td = td.or_object(Collection::any())
+            td = td.or_object(Collection::any());
         };
 
         td

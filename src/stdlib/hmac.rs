@@ -15,7 +15,7 @@ macro_rules! hmac {
     }};
 }
 
-fn hmac(value: Value, key: Value, algorithm: Value) -> Resolved {
+fn hmac(value: Value, key: Value, algorithm: &Value) -> Resolved {
     let value = value.try_bytes()?;
     let key = key.try_bytes()?;
     let algorithm = algorithm.try_bytes_utf8_lossy()?.as_ref().to_uppercase();
@@ -110,7 +110,7 @@ impl FunctionExpression for HmacFn {
             None => value!("SHA-256"),
         };
 
-        hmac(value, key, algorithm)
+        hmac(value, key, &algorithm)
     }
 
     fn type_def(&self, state: &state::TypeState) -> TypeDef {
@@ -125,7 +125,7 @@ impl FunctionExpression for HmacFn {
                 }
             }
         } else {
-            valid_static_algo = true
+            valid_static_algo = true;
         }
 
         if valid_static_algo {

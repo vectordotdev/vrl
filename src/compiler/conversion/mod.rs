@@ -121,18 +121,22 @@ impl Conversion {
             (Some("float"), None) => Ok(Self::Float),
             (Some("bool" | "boolean"), None) => Ok(Self::Boolean),
             (Some("timestamp"), None) => Ok(Self::Timestamp(tz)),
-            (Some("timestamp"), Some(fmt)) => {
-                // DateTime<Utc> can only convert timestamps without
-                // time zones, and DateTime<FixedOffset> can only
-                // convert with tone zones, so this has to distinguish
-                // between the two types of formats.
-                if format_has_zone(fmt) {
-                    Ok(Self::TimestampTzFmt(fmt.into()))
-                } else {
-                    Ok(Self::TimestampFmt(fmt.into(), tz))
-                }
-            }
+            (Some("timestamp"), Some(fmt)) => Ok(Self::timestamp(fmt, tz)),
             _ => Err(ConversionError::UnknownConversion { name: s.into() }),
+        }
+    }
+
+    /// Convert the string into timestamp
+    #[must_use]
+    pub fn timestamp(fmt: &str, tz: TimeZone) -> Self {
+        // DateTime<Utc> can only convert timestamps without
+        // time zones, and DateTime<FixedOffset> can only
+        // convert with tone zones, so this has to distinguish
+        // between the two types of formats.
+        if format_has_zone(fmt) {
+            Self::TimestampTzFmt(fmt.into())
+        } else {
+            Self::TimestampFmt(fmt.into(), tz)
         }
     }
 
@@ -189,10 +193,10 @@ impl Conversion {
 /// following set of source strings are allowed:
 ///
 ///  * `"true"`, `"t"`, `"yes"`, `"y"` (all case-insensitive), and
-///  non-zero integers all convert to `true`.
+///    non-zero integers all convert to `true`.
 ///
 ///  * `"false"`, `"f"`, `"no"`, `"n"` (all case-insensitive), and `"0"`
-///  all convert to `false`.
+///    all convert to `false`.
 ///
 /// # Errors
 ///

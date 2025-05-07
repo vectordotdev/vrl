@@ -11,7 +11,7 @@ impl<'a> Chars<'a> {
     }
 }
 
-impl<'a> Iterator for Chars<'a> {
+impl Iterator for Chars<'_> {
     type Item = std::result::Result<char, u8>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -25,20 +25,18 @@ impl<'a> Iterator for Chars<'a> {
             Some(Ok(self.bytes[self.pos - 1] as char))
         } else {
             let c = std::str::from_utf8(&self.bytes[self.pos..self.pos + width]);
-            match c {
-                Ok(chr) => {
-                    self.pos += width;
-                    Some(Ok(chr.chars().next().unwrap()))
-                }
-                Err(_) => {
-                    self.pos += 1;
-                    Some(Err(self.bytes[self.pos]))
-                }
+            if let Ok(chr) = c {
+                self.pos += width;
+                Some(Ok(chr.chars().next().unwrap()))
+            } else {
+                self.pos += 1;
+                Some(Err(self.bytes[self.pos]))
             }
         }
     }
 }
 
+#[derive(Clone, Copy)]
 enum Case {
     Sensitive,
     Insensitive,
@@ -51,20 +49,18 @@ fn starts_with(bytes: &Bytes, starts: &Bytes, case: Case) -> bool {
 
     match case {
         Case::Sensitive => starts[..] == bytes[0..starts.len()],
-        Case::Insensitive => {
-            return Chars::new(starts)
-                .zip(Chars::new(bytes))
-                .all(|(a, b)| match (a, b) {
-                    (Ok(a), Ok(b)) => {
-                        if a.is_ascii() && b.is_ascii() {
-                            a.to_ascii_lowercase() == b.to_ascii_lowercase()
-                        } else {
-                            a.to_lowercase().zip(b.to_lowercase()).all(|(a, b)| a == b)
-                        }
+        Case::Insensitive => Chars::new(starts)
+            .zip(Chars::new(bytes))
+            .all(|(a, b)| match (a, b) {
+                (Ok(a), Ok(b)) => {
+                    if a.is_ascii() && b.is_ascii() {
+                        a.eq_ignore_ascii_case(&b)
+                    } else {
+                        a.to_lowercase().zip(b.to_lowercase()).all(|(a, b)| a == b)
                     }
-                    _ => false,
-                });
-        }
+                }
+                _ => false,
+            }),
     }
 }
 

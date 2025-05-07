@@ -1,15 +1,14 @@
-use std::fmt::{self, Debug, Display, Formatter, Write};
-use std::str::FromStr;
-
-use once_cell::sync::Lazy;
 #[cfg(any(test, feature = "proptest"))]
 use proptest::prelude::*;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
+use std::fmt::{self, Debug, Display, Formatter, Write};
+use std::str::FromStr;
 
 use super::PathPrefix;
 use super::{parse_target_path, parse_value_path, BorrowedSegment, PathParseError, ValuePath};
 use crate::value::KeyString;
+use std::sync::LazyLock;
 
 /// A lookup path.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
@@ -301,7 +300,7 @@ fn serialize_field(string: &mut String, field: &str, separator: Option<&str>) {
     // Reserve enough to fit the field, a `.` and two `"` characters. This
     // should suffice for the majority of cases when no escape sequence is used.
     let separator_len = separator.map_or(0, |x| x.len());
-    string.reserve(field.as_bytes().len() + 2 + separator_len);
+    string.reserve(field.len() + 2 + separator_len);
     if let Some(separator) = separator {
         string.push_str(separator);
     }
@@ -410,8 +409,8 @@ impl<'a> TryFrom<BorrowedSegment<'a>> for OwnedSegment {
     }
 }
 
-static VALID_FIELD: Lazy<Regex> =
-    Lazy::new(|| Regex::new("^[0-9]*[a-zA-Z_@][0-9a-zA-Z_@]*$").unwrap());
+static VALID_FIELD: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new("^[0-9]*[a-zA-Z_@][0-9a-zA-Z_@]*$").unwrap());
 
 fn format_field(f: &mut Formatter<'_>, field: &str) -> fmt::Result {
     // This can eventually just parse the field and see if it's valid, but the

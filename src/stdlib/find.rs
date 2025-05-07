@@ -2,6 +2,8 @@ use crate::compiler::prelude::*;
 
 #[allow(clippy::cast_possible_wrap)]
 fn find(value: Value, pattern: Value, from: Option<Value>) -> Resolved {
+    // TODO consider removal options
+    #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
     let from = match from {
         Some(value) => value.try_integer()?,
         None => 0,
@@ -74,17 +76,17 @@ struct FindFn {
 }
 
 impl FindFn {
-    fn find_regex_in_str(value: &str, regex: ValueRegex, offset: usize) -> Option<usize> {
+    fn find_regex_in_str(value: &str, regex: &ValueRegex, offset: usize) -> Option<usize> {
         regex.find_at(value, offset).map(|found| found.start())
     }
 
-    fn find_bytes_in_bytes(value: Bytes, pattern: Bytes, offset: usize) -> Option<usize> {
+    fn find_bytes_in_bytes(value: &Bytes, pattern: &Bytes, offset: usize) -> Option<usize> {
         if pattern.len() > value.len() {
             return None;
         }
         for from in offset..=(value.len() - pattern.len()) {
             let to = from + pattern.len();
-            if value[from..to] == pattern {
+            if value[from..to] == *pattern {
                 return Some(from);
             }
         }
@@ -93,10 +95,14 @@ impl FindFn {
 
     fn find(value: Value, pattern: Value, offset: usize) -> ExpressionResult<Option<usize>> {
         match pattern {
-            Value::Bytes(bytes) => Ok(Self::find_bytes_in_bytes(value.try_bytes()?, bytes, offset)),
+            Value::Bytes(bytes) => Ok(Self::find_bytes_in_bytes(
+                &value.try_bytes()?,
+                &bytes,
+                offset,
+            )),
             Value::Regex(regex) => Ok(Self::find_regex_in_str(
                 &value.try_bytes_utf8_lossy()?,
-                regex,
+                &regex,
                 offset,
             )),
             other => Err(ValueError::Expected {

@@ -1,10 +1,5 @@
-// #![deny(warnings)]
+#![deny(warnings)]
 #![warn(clippy::all)]
-#![warn(unused_allocation)]
-#![warn(unused_extern_crates)]
-#![warn(unused_assignments)]
-#![warn(unused_comparisons)]
-#![allow(clippy::module_name_repetitions)]
 
 #[cfg(feature = "compiler")]
 pub mod compiler;

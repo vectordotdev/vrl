@@ -4,7 +4,7 @@ fn map_keys<T>(
     value: Value,
     recursive: bool,
     ctx: &mut Context,
-    runner: closure::Runner<T>,
+    runner: &closure::Runner<T>,
 ) -> Resolved
 where
     T: Fn(&mut Context) -> Resolved,
@@ -107,7 +107,7 @@ impl Function for MapKeys {
 struct MapKeysFn {
     value: Box<dyn Expression>,
     recursive: Option<Box<dyn Expression>>,
-    closure: FunctionClosure,
+    closure: Closure,
 }
 
 impl FunctionExpression for MapKeysFn {
@@ -118,14 +118,14 @@ impl FunctionExpression for MapKeysFn {
         };
 
         let value = self.value.resolve(ctx)?;
-        let FunctionClosure {
+        let Closure {
             variables,
             block,
             block_type_def: _,
         } = &self.closure;
         let runner = closure::Runner::new(variables, |ctx| block.resolve(ctx));
 
-        map_keys(value, recursive, ctx, runner)
+        map_keys(value, recursive, ctx, &runner)
     }
 
     fn type_def(&self, ctx: &state::TypeState) -> TypeDef {

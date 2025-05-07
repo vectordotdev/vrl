@@ -21,7 +21,7 @@ use ordered_float::NotNan;
 use super::super::{
     ast::{Function, FunctionArgument},
     grok_filter::GrokFilter,
-    parse_grok::Error as GrokRuntimeError,
+    parse_grok::InternalError,
     parse_grok_rules::Error as GrokStaticError,
 };
 
@@ -166,7 +166,7 @@ pub fn regex_from_config(
 }
 
 impl KeyValueFilter {
-    pub fn apply_filter(&self, value: &Value) -> Result<Value, GrokRuntimeError> {
+    pub fn apply_filter(&self, value: &Value) -> Result<Value, InternalError> {
         match value {
             Value::Bytes(bytes) => {
                 let mut result = Value::Object(BTreeMap::default());
@@ -176,7 +176,7 @@ impl KeyValueFilter {
                 });
                 Ok(result)
             }
-            _ => Err(GrokRuntimeError::FailedToApplyFilter(
+            _ => Err(InternalError::FailedToApplyFilter(
                 self.to_string(),
                 value.to_string(),
             )),
@@ -188,7 +188,7 @@ impl KeyValueFilter {
         if !key.contains(' ') {
             let value = extract_capture(&c, 2);
             // trim trailing comma for value
-            let value = value.trim_end_matches(|c| c == ',');
+            let value = value.trim_end_matches(',');
 
             if let Ok((_, value)) = parse_value(value, &self.quotes) {
                 if !(value.is_null()
@@ -281,7 +281,7 @@ fn parse_number(input: &str) -> SResult<Value> {
         // can be safely converted to Integer without precision loss
         if ((v as i64) as f64 - v).abs() == 0.0 {
             // Check if it is a valid octal number(start with 0) - keep parsed as a decimal though.
-            if input.starts_with('0') && input.contains(|c| c == '8' || c == '9') {
+            if input.starts_with('0') && input.contains(['8', '9']) {
                 Err(nom::Err::Error((input, nom::error::ErrorKind::OctDigit)))
             } else {
                 Ok(Value::Integer(v as i64))

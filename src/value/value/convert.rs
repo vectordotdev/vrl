@@ -1,12 +1,12 @@
 use std::borrow::Cow;
 use std::sync::Arc;
 
+use crate::value::value::regex::ValueRegex;
+use crate::value::value::simdutf_bytes_utf8_lossy;
 use bytes::Bytes;
 use chrono::{DateTime, Utc};
 use ordered_float::NotNan;
 use regex::Regex;
-
-use crate::value::value::regex::ValueRegex;
 
 use super::super::{KeyString, Kind, ObjectMap, Value};
 
@@ -131,7 +131,7 @@ impl Value {
     /// Returns self as `Cow<str>`, only if self is `Value::Bytes`
     pub fn as_str(&self) -> Option<Cow<'_, str>> {
         self.as_bytes()
-            .map(|bytes| String::from_utf8_lossy(bytes.as_ref()))
+            .map(|bytes| simdutf_bytes_utf8_lossy(bytes.as_ref()))
     }
 
     /// Converts the Value into a byte representation regardless of its original type.
@@ -396,35 +396,35 @@ impl From<i64> for Value {
 
 impl From<i32> for Value {
     fn from(value: i32) -> Self {
-        Self::Integer(value as i64)
+        Self::Integer(i64::from(value))
     }
 }
 
 impl From<i16> for Value {
     fn from(value: i16) -> Self {
-        Self::Integer(value as i64)
+        Self::Integer(i64::from(value))
     }
 }
 
 impl From<i8> for Value {
     fn from(value: i8) -> Self {
-        Self::Integer(value as i64)
+        Self::Integer(i64::from(value))
     }
 }
 
 impl From<u16> for Value {
     fn from(value: u16) -> Self {
-        Self::Integer(value as i64)
+        Self::Integer(i64::from(value))
     }
 }
 impl From<u8> for Value {
     fn from(value: u8) -> Self {
-        Self::Integer(value as i64)
+        Self::Integer(i64::from(value))
     }
 }
 impl From<u32> for Value {
     fn from(value: u32) -> Self {
-        Self::Integer(value as i64)
+        Self::Integer(i64::from(value))
     }
 }
 impl From<isize> for Value {

@@ -1,9 +1,7 @@
 use crate::compiler::prelude::*;
-use once_cell::sync::Lazy;
-use regex::Regex;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
-fn ip_subnet(value: Value, mask: Value) -> Resolved {
+fn ip_subnet(value: &Value, mask: &Value) -> Resolved {
     let value: IpAddr = value
         .try_bytes_utf8_lossy()?
         .parse()
@@ -35,8 +33,6 @@ fn ip_subnet(value: Value, mask: Value) -> Resolved {
     };
     Ok(mask_ips(value, mask)?.to_string().into())
 }
-
-static RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"/(?P<subnet>\d*)").unwrap());
 
 #[derive(Clone, Copy, Debug)]
 pub struct IpSubnet;
@@ -93,7 +89,7 @@ impl FunctionExpression for IpSubnetFn {
         let value = self.value.resolve(ctx)?;
         let mask = self.subnet.resolve(ctx)?;
 
-        ip_subnet(value, mask)
+        ip_subnet(&value, &mask)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {
@@ -103,12 +99,9 @@ impl FunctionExpression for IpSubnetFn {
 
 /// Parses a subnet in the form "/8" returns the number.
 fn parse_subnet(subnet: &str) -> ExpressionResult<u32> {
-    let subnet = RE
-        .captures(subnet)
-        .ok_or_else(|| format!("{subnet} is not a valid subnet"))?;
-
-    let subnet = subnet["subnet"].parse().expect("digits ensured by regex");
-
+    let subnet = subnet[1..]
+        .parse()
+        .map_err(|_| format!("{subnet} is not a valid subnet"))?;
     Ok(subnet)
 }
 
@@ -127,7 +120,7 @@ fn mask_ips(ip: IpAddr, mask: IpAddr) -> ExpressionResult<IpAddr> {
                 .zip(addr.segments().iter())
                 .zip(mask.segments().iter())
             {
-                *masked = addr & mask
+                *masked = addr & mask;
             }
 
             Ok(IpAddr::from(masked))

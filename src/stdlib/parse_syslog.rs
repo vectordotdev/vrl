@@ -168,7 +168,7 @@ fn message_to_value(message: Message<&str>) -> Value {
     for element in message.structured_data {
         let mut sdata = BTreeMap::new();
         for (name, value) in element.params() {
-            sdata.insert(name.to_string().into(), value.into());
+            sdata.insert((*name).into(), value.into());
         }
         result.insert(element.id.to_string().into(), sdata.into());
     }
@@ -193,7 +193,7 @@ fn inner_kind() -> BTreeMap<Field, Kind> {
 #[cfg(test)]
 mod tests {
     use crate::btreemap;
-    use chrono::TimeZone;
+    use chrono::{TimeZone, Timelike};
 
     use super::*;
 
@@ -205,7 +205,7 @@ mod tests {
             want: Ok(btreemap! {
                 "severity" => "notice",
                 "facility" => "user",
-                "timestamp" => chrono::Utc.ymd(2020, 3, 13).and_hms_milli(20, 45, 38, 119),
+                "timestamp" => Utc.with_ymd_and_hms(2020, 3, 13, 20, 45, 38).unwrap().with_nanosecond(119_000_000).unwrap(),
                 "hostname" => "dynamicwireless.name",
                 "appname" => "non",
                 "procid" => 2426,
@@ -233,7 +233,7 @@ mod tests {
                     "facility" => "local0",
                     "severity" => "notice",
                     "message" => "Proxy sticky-servers started.",
-                    "timestamp" => chrono::Utc.ymd(Utc::now().year(), 6, 13).and_hms_milli(16, 33, 35, 0),
+                    "timestamp" => Utc.with_ymd_and_hms(Utc::now().year(), 6, 13, 16, 33, 35).unwrap(),
                     "appname" => "haproxy",
                     "procid" => 73411,
             }),
@@ -244,7 +244,7 @@ mod tests {
             args: func_args![value: "Jun 13 16:33:35 haproxy[73411]: I am missing a pri."],
             want: Ok(btreemap! {
                 "message" => "I am missing a pri.",
-                "timestamp" => chrono::Utc.ymd(Utc::now().year(), 6, 13).and_hms_milli(16, 33, 35, 0),
+                "timestamp" => Utc.with_ymd_and_hms(Utc::now().year(), 6, 13, 16, 33, 35).unwrap(),
                 "appname" => "haproxy",
                 "procid" => 73411,
             }),
@@ -261,7 +261,7 @@ mod tests {
                 "message" => "qwerty",
                 "procid" => 8449,
                 "severity" => "notice",
-                "timestamp" => chrono::Utc.ymd(2019, 2, 13).and_hms_milli(19, 48, 34, 0),
+                "timestamp" => Utc.with_ymd_and_hms(2019, 2, 13, 19, 48, 34).unwrap(),
                 "version" => 1,
                 "empty" => btreemap! {},
             }),
@@ -278,7 +278,7 @@ mod tests {
                 "message" => "qwerty",
                 "procid" => 8449,
                 "severity" => "notice",
-                "timestamp" => chrono::Utc.ymd(2019, 2, 13).and_hms_milli(19, 48, 34, 0),
+                "timestamp" => Utc.with_ymd_and_hms(2019, 2, 13, 19, 48, 34).unwrap(),
                 "version" => 1,
                 "non_empty" => btreemap! {
                     "x" => "1",
@@ -298,7 +298,7 @@ mod tests {
                 "message" => "qwerty",
                 "procid" => 8449,
                 "severity" => "notice",
-                "timestamp" => chrono::Utc.ymd(2019, 2, 13).and_hms_milli(19, 48, 34, 0),
+                "timestamp" => Utc.with_ymd_and_hms(2019, 2, 13, 19, 48, 34).unwrap(),
                 "version" => 1,
                 "empty" => btreemap! {},
                 "non_empty" => btreemap! {
@@ -315,7 +315,7 @@ mod tests {
                 "facility" => "local0",
                 "hostname" => "master",
                 "severity" => "err",
-                "timestamp" => chrono::Utc.ymd(chrono::Utc::now().year(), 6, 8).and_hms_milli(11, 54, 8, 0),
+                "timestamp" => Utc.with_ymd_and_hms(Utc::now().year(), 6, 8, 11, 54, 8).unwrap(),
                 "message" => "[Tue Jun 08 11:54:08.929301 2021] [php7:emerg] [pid 1374899] [client 95.223.77.60:41888] rest of message",
             }),
             tdef: TypeDef::object(inner_kind()).fallible(),
@@ -333,7 +333,7 @@ mod tests {
                 "message" => "An application event log entry...",
                 "msgid" => "ID47",
                 "severity" => "notice",
-                "timestamp" => chrono::Utc.ymd(2003, 10, 11).and_hms_milli(22,14,15,3),
+                "timestamp" => Utc.with_ymd_and_hms(2003, 10, 11, 22, 14, 15).unwrap().with_nanosecond(3_000_000).unwrap(),
                 "version" => 1
             }),
             tdef: TypeDef::object(inner_kind()).fallible(),
@@ -351,7 +351,7 @@ mod tests {
                 "message" => "An application event log entry...",
                 "msgid" => "ID47",
                 "severity" => "notice",
-                "timestamp" => chrono::Utc.ymd(2003, 10, 11).and_hms_milli(22,14,15,3),
+                "timestamp" => Utc.with_ymd_and_hms(2003, 10, 11, 22, 14, 15).unwrap().with_nanosecond(3_000_000).unwrap(),
                 "version" => 1
             }),
             tdef: TypeDef::object(inner_kind()).fallible(),
@@ -369,7 +369,7 @@ mod tests {
                 "message" => "An application event log entry...",
                 "msgid" => "ID47",
                 "severity" => "notice",
-                "timestamp" => chrono::Utc.ymd(2003,10,11).and_hms_milli(22,14,15,3),
+                "timestamp" => Utc.with_ymd_and_hms(2003, 10, 11, 22, 14, 15).unwrap().with_nanosecond(3_000_000).unwrap(),
                 "version" => 1
             }),
             tdef: TypeDef::object(inner_kind()).fallible(),

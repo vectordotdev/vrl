@@ -1,14 +1,3 @@
-/// Create a boxed [`Expression`][crate::Expression] trait object from a given `Value`.
-///
-/// Supports the same format as the [`value`] macro.
-#[macro_export]
-macro_rules! expr {
-    ($($v:tt)*) => {{
-        let value = $crate::value!($($v)*);
-        $crate::compiler::value::VrlValueConvert::into_expression(value)
-    }};
-}
-
 #[macro_export]
 macro_rules! test_type_def {
     ($($name:ident { expr: $expr:expr, want: $def:expr, })+) => {
@@ -85,7 +74,7 @@ macro_rules! test_function {
     };
 
     ($name:tt => $func:path; before_each => $before:block $($case:ident { args: $args:expr, want: $(Ok($ok:expr))? $(Err($err:expr))?, tdef: $tdef:expr, tz: $tz:expr,  $(,)* })+) => {
-        $crate::compiler::paste!{$(
+        paste::paste!{$(
             #[test]
             fn [<$name _ $case:snake:lower>]() {
                 $before

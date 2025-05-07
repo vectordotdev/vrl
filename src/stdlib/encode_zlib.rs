@@ -11,6 +11,8 @@ fn encode_zlib(value: Value, compression_level: Option<Value>) -> Resolved {
     let compression_level = match compression_level {
         None => flate2::Compression::default(),
         Some(value) => {
+            // TODO consider removal options
+            #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
             let level = value.try_integer()? as u32;
             if level > MAX_COMPRESSION_LEVEL {
                 return Err(format!("compression level must be <= {MAX_COMPRESSION_LEVEL}").into());
@@ -114,19 +116,15 @@ impl FunctionExpression for EncodeZlibFn {
 
 #[cfg(test)]
 mod test {
-    use base64::Engine;
-
     use crate::value;
 
     use super::*;
 
-    fn decode_base64(text: &str) -> Vec<u8> {
-        let engine = base64::engine::GeneralPurpose::new(
-            &base64::alphabet::STANDARD,
-            base64::engine::general_purpose::GeneralPurposeConfig::new(),
-        );
-
-        engine.decode(text).expect("Cannot decode from Base64")
+    fn encode(text: &str, level: flate2::Compression) -> Vec<u8> {
+        let mut encoder = ZlibEncoder::new(text.as_bytes(), level);
+        let mut output = vec![];
+        encoder.read_to_end(&mut output).unwrap();
+        output
     }
 
     test_function![
@@ -134,13 +132,13 @@ mod test {
 
         with_defaults {
             args: func_args![value: value!("you_have_successfully_decoded_me.congratulations.you_are_breathtaking.")],
-            want: Ok(value!(decode_base64("eJwNy4ENwCAIBMCNXIlQ/KqplUSgCdvXAS41qPMHshCB2R1zJlWIVlR6UURX2+wx2YcuK3kAb9C1wd6dn7Fa+QH9gRxr").as_bytes())),
+            want: Ok(value!(encode("you_have_successfully_decoded_me.congratulations.you_are_breathtaking.", flate2::Compression::default()).as_bytes())),
             tdef: TypeDef::bytes().infallible(),
         }
 
         with_custom_compression_level {
             args: func_args![value: value!("you_have_successfully_decoded_me.congratulations.you_are_breathtaking."), compression_level: 9],
-            want: Ok(value!(decode_base64("eNoNy4ENwCAIBMCNXIlQ/KqplUSgCdvXAS41qPMHshCB2R1zJlWIVlR6UURX2+wx2YcuK3kAb9C1wd6dn7Fa+QH9gRxr").as_bytes())),
+            want: Ok(value!(encode("you_have_successfully_decoded_me.congratulations.you_are_breathtaking.", flate2::Compression::new(9)).as_bytes())),
             tdef: TypeDef::bytes().infallible(),
         }
 

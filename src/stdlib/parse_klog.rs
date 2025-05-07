@@ -1,8 +1,8 @@
 use crate::compiler::prelude::*;
-use chrono::{offset::TimeZone, Datelike, Utc};
-use once_cell::sync::Lazy;
+use chrono::{Datelike, NaiveDateTime, Utc};
 use regex::Regex;
 use std::collections::BTreeMap;
+use std::sync::LazyLock;
 
 fn parse_klog(bytes: Value) -> Resolved {
     let bytes = bytes.try_bytes()?;
@@ -25,13 +25,14 @@ fn parse_klog(bytes: Value) -> Resolved {
     if let Some(timestamp) = captures.name("timestamp").map(|capture| capture.as_str()) {
         let month = captures.name("month").map(|capture| capture.as_str());
         let year = resolve_year(month);
-        log.insert(
-            "timestamp".into(),
-            Value::Timestamp(
-                Utc.datetime_from_str(&format!("{year}{timestamp}"), "%Y%m%d %H:%M:%S%.f")
-                    .map_err(|error| format!("failed parsing timestamp {timestamp}: {error}"))?,
-            ),
-        );
+
+        match NaiveDateTime::parse_from_str(&format!("{year}{timestamp}"), "%Y%m%d %H:%M:%S%.f") {
+            Ok(naive_dt) => {
+                let utc_dt = naive_dt.and_utc();
+                log.insert("timestamp".into(), Value::Timestamp(utc_dt));
+            }
+            Err(e) => return Err(format!("failed parsing timestamp {timestamp}: {e}").into()),
+        }
     }
     if let Some(id) = captures.name("id").map(|capture| capture.as_str()) {
         log.insert(
@@ -54,7 +55,7 @@ fn parse_klog(bytes: Value) -> Resolved {
     Ok(log.into())
 }
 
-static REGEX_KLOG: Lazy<Regex> = Lazy::new(|| {
+static REGEX_KLOG: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(
         r"(?x)                                                        # Ignore whitespace and comments in the regex expression.
         ^\s*                                                           # Start with any number of whitespaces.
@@ -88,7 +89,7 @@ impl Function for ParseKlog {
                     "level": "info",
                     "line": 70,
                     "message": "hello from klog",
-                    "timestamp": "2024-05-05T17:59:40.692994Z"
+                    "timestamp": "2025-05-05T17:59:40.692994Z"
                 }"#}),
         }]
     }

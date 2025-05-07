@@ -155,6 +155,7 @@ struct CompactFn {
 }
 
 #[derive(Debug)]
+#[allow(clippy::struct_excessive_bools)] // TODO replace with bitflags
 struct CompactOptions {
     recursive: bool,
     null: bool,
@@ -290,13 +291,13 @@ mod test {
                 vec!["".into(), Value::Null, "".into()], // original
                 CompactOptions {
                     string: false,
-                    ..Default::default()
+                    ..CompactOptions::default()
                 },
             ),
             (
                 vec![1.into(), 2.into()],
                 vec![1.into(), Value::Array(vec![]), 2.into()],
-                Default::default(),
+                CompactOptions::default(),
             ),
             (
                 vec![1.into(), Value::Array(vec![3.into()]), 2.into()],
@@ -305,7 +306,7 @@ mod test {
                     Value::Array(vec![Value::Null, 3.into(), Value::Null]),
                     2.into(),
                 ],
-                Default::default(),
+                CompactOptions::default(),
             ),
             (
                 vec![1.into(), 2.into()],
@@ -314,7 +315,7 @@ mod test {
                     Value::Array(vec![Value::Null, Value::Null]),
                     2.into(),
                 ],
-                Default::default(),
+                CompactOptions::default(),
             ),
             (
                 vec![
@@ -333,16 +334,17 @@ mod test {
                     ])),
                     2.into(),
                 ],
-                Default::default(),
+                CompactOptions::default(),
             ),
         ];
 
         for (expected, original, options) in cases {
-            assert_eq!(expected, compact_array(original, &options))
+            assert_eq!(expected, compact_array(original, &options));
         }
     }
 
     #[test]
+    #[allow(clippy::too_many_lines)]
     fn test_compacted_map() {
         let cases = vec![
             (
@@ -357,7 +359,7 @@ mod test {
                 }, // original
                 CompactOptions {
                     string: false,
-                    ..Default::default()
+                    ..CompactOptions::default()
                 },
             ),
             (
@@ -370,7 +372,7 @@ mod test {
                     "key2" => Value::Array(vec![]),
                     "key3" => Value::from(2),
                 },
-                Default::default(),
+                CompactOptions::default(),
             ),
             (
                 ObjectMap::from([
@@ -393,7 +395,7 @@ mod test {
                     ),
                     (KeyString::from("key3"), Value::from(2)),
                 ]),
-                Default::default(),
+                CompactOptions::default(),
             ),
             (
                 ObjectMap::from([
@@ -414,7 +416,7 @@ mod test {
                 ]),
                 CompactOptions {
                     recursive: false,
-                    ..Default::default()
+                    ..CompactOptions::default()
                 },
             ),
             (
@@ -430,7 +432,7 @@ mod test {
                     ),
                     (KeyString::from("key3"), Value::from(2)),
                 ]),
-                Default::default(),
+                CompactOptions::default(),
             ),
             (
                 btreemap! {
@@ -443,12 +445,12 @@ mod test {
                     "key2" => Value::Array(vec![Value::Null, 2.into(), Value::Null]),
                     "key3" => Value::from(2),
                 },
-                Default::default(),
+                CompactOptions::default(),
             ),
         ];
 
         for (expected, original, options) in cases {
-            assert_eq!(expected, compact_object(original, &options))
+            assert_eq!(expected, compact_object(original, &options));
         }
     }
 

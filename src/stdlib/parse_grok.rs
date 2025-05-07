@@ -8,7 +8,7 @@ mod non_wasm {
     pub(super) use std::sync::Arc;
     use std::{collections::BTreeMap, fmt};
 
-    fn parse_grok(value: Value, pattern: Arc<grok::Pattern>) -> Resolved {
+    fn parse_grok(value: &Value, pattern: &Arc<grok::Pattern>) -> Resolved {
         let bytes = value.try_bytes_utf8_lossy()?;
         match pattern.match_against(&bytes) {
             Some(matches) => {
@@ -69,7 +69,7 @@ mod non_wasm {
             let value = self.value.resolve(ctx)?;
             let pattern = self.pattern.clone();
 
-            parse_grok(value, pattern)
+            parse_grok(&value, &pattern)
         }
 
         fn type_def(&self, _: &TypeState) -> TypeDef {

@@ -2,7 +2,7 @@ use crate::compiler::prelude::*;
 use crate::value;
 use percent_encoding::{utf8_percent_encode, AsciiSet};
 
-fn encode_percent(value: Value, ascii_set: &Bytes) -> Resolved {
+fn encode_percent(value: &Value, ascii_set: &Bytes) -> Resolved {
     let string = value.try_bytes_utf8_lossy()?;
     let ascii_set = match ascii_set.as_ref() {
         b"NON_ALPHANUMERIC" => percent_encoding::NON_ALPHANUMERIC,
@@ -20,7 +20,7 @@ fn encode_percent(value: Value, ascii_set: &Bytes) -> Resolved {
     Ok(utf8_percent_encode(&string, ascii_set).to_string().into())
 }
 
-/// https://url.spec.whatwg.org/#fragment-percent-encode-set
+/// <https://url.spec.whatwg.org/#fragment-percent-encode-set>
 const FRAGMENT: &AsciiSet = &percent_encoding::CONTROLS
     .add(b' ')
     .add(b'"')
@@ -28,7 +28,7 @@ const FRAGMENT: &AsciiSet = &percent_encoding::CONTROLS
     .add(b'>')
     .add(b'`');
 
-/// https://url.spec.whatwg.org/#query-percent-encode-set
+/// <https://url.spec.whatwg.org/#query-percent-encode-set>
 const QUERY: &AsciiSet = &percent_encoding::CONTROLS
     .add(b' ')
     .add(b'"')
@@ -36,13 +36,13 @@ const QUERY: &AsciiSet = &percent_encoding::CONTROLS
     .add(b'<')
     .add(b'>');
 
-/// https://url.spec.whatwg.org/#special-percent-encode-set
+/// <https://url.spec.whatwg.org/#special-percent-encode-set>
 const SPECIAL: &AsciiSet = &QUERY.add(b'\'');
 
-/// https://url.spec.whatwg.org/#path-percent-encode-set
+/// <https://url.spec.whatwg.org/#path-percent-encode-set>
 const PATH: &AsciiSet = &QUERY.add(b'?').add(b'`').add(b'{').add(b'}');
 
-/// https://url.spec.whatwg.org/#userinfo-percent-encode-set
+/// <https://url.spec.whatwg.org/#userinfo-percent-encode-set>
 const USERINFO: &AsciiSet = &PATH
     .add(b'/')
     .add(b':')
@@ -55,10 +55,10 @@ const USERINFO: &AsciiSet = &PATH
     .add(b'^')
     .add(b'|');
 
-/// https://url.spec.whatwg.org/#component-percent-encode-set
+/// <https://url.spec.whatwg.org/#component-percent-encode-set>
 const COMPONENT: &AsciiSet = &USERINFO.add(b'$').add(b'%').add(b'&').add(b'+').add(b',');
 
-/// https://url.spec.whatwg.org/#application-x-www-form-urlencoded-percent-encode-set
+/// <https://url.spec.whatwg.org/#application-x-www-form-urlencoded-percent-encode-set>
 const WWW_FORM_URLENCODED: &AsciiSet =
     &COMPONENT.add(b'!').add(b'\'').add(b'(').add(b')').add(b'~');
 
@@ -140,7 +140,7 @@ struct EncodePercentFn {
 impl FunctionExpression for EncodePercentFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let value = self.value.resolve(ctx)?;
-        encode_percent(value, &self.ascii_set)
+        encode_percent(&value, &self.ascii_set)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

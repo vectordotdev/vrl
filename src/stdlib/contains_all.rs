@@ -1,7 +1,7 @@
 use crate::compiler::prelude::*;
 use crate::stdlib::string_utils::convert_to_string;
 
-fn contains_all(value: Value, substrings: Value, case_sensitive: Option<Value>) -> Resolved {
+fn contains_all(value: &Value, substrings: Value, case_sensitive: Option<Value>) -> Resolved {
     let case_sensitive = match case_sensitive {
         Some(v) => v.try_boolean()?,
         None => true,
@@ -11,8 +11,8 @@ fn contains_all(value: Value, substrings: Value, case_sensitive: Option<Value>) 
     let substring_values = substrings.try_array()?;
 
     for substring_value in substring_values {
-        let substring = convert_to_string(substring_value, !case_sensitive)?;
-        if !value_string.contains(&substring) {
+        let substring = convert_to_string(&substring_value, !case_sensitive)?;
+        if !value_string.contains(substring.as_ref()) {
             return Ok(false.into());
         }
     }
@@ -97,7 +97,7 @@ impl FunctionExpression for ContainsAllFn {
             .as_ref()
             .map(|expr| expr.resolve(ctx))
             .transpose()?;
-        contains_all(value, substrings, case_sensitive)
+        contains_all(&value, substrings, case_sensitive)
     }
 
     fn type_def(&self, state: &TypeState) -> TypeDef {

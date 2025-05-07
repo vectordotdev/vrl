@@ -70,7 +70,7 @@ impl FunctionExpression for DecodeMimeQFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let value = self.value.resolve(ctx)?;
 
-        decode_mime_q(value)
+        decode_mime_q(&value)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {
@@ -78,7 +78,7 @@ impl FunctionExpression for DecodeMimeQFn {
     }
 }
 
-fn decode_mime_q(bytes: Value) -> Resolved {
+fn decode_mime_q(bytes: &Value) -> Resolved {
     // Parse
     let input = bytes.try_bytes_utf8_lossy()?;
     let input: &str = &input;
@@ -154,7 +154,7 @@ struct EncodedWord<'a> {
     input: &'a str,
 }
 
-impl<'a> EncodedWord<'a> {
+impl EncodedWord<'_> {
     fn decode_word(&self) -> Result<String, ExpressionError> {
         // Modified version from https://github.com/staktrace/mailparse/blob/a83d961fe53fd6504d75ee951a0e91dfea03c830/src/header.rs#L39
 

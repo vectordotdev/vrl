@@ -1,17 +1,59 @@
 use crate::compiler::prelude::*;
-use cidr_utils::cidr::IpCidr;
+use cidr::IpCidr;
 use std::net::IpAddr;
 use std::str::FromStr;
 
-fn ip_cidr_contains(value: Value, cidr: Value) -> Resolved {
+fn str_to_cidr(v: &str) -> Result<IpCidr, String> {
+    IpCidr::from_str(v).map_err(|err| format!("unable to parse CIDR: {err}"))
+}
+
+fn value_to_cidr(value: &Value) -> Result<IpCidr, function::Error> {
+    let str = &value.as_str().ok_or(function::Error::InvalidArgument {
+        keyword: "ip_cidr_contains",
+        value: value.clone(),
+        error: r#""cidr" must be string"#,
+    })?;
+
+    str_to_cidr(str).map_err(|_| function::Error::InvalidArgument {
+        keyword: "ip_cidr_contains",
+        value: value.clone(),
+        error: r#""cidr" must be valid cidr"#,
+    })
+}
+
+fn ip_cidr_contains(value: &Value, cidr: &Value) -> Resolved {
     let bytes = value.try_bytes_utf8_lossy()?;
     let ip_addr =
         IpAddr::from_str(&bytes).map_err(|err| format!("unable to parse IP address: {err}"))?;
-    let cidr = {
-        let cidr = cidr.try_bytes_utf8_lossy()?;
-        IpCidr::from_str(&cidr).map_err(|err| format!("unable to parse CIDR: {err}"))?
-    };
-    Ok(cidr.contains(&ip_addr).into())
+
+    match cidr {
+        Value::Bytes(v) => {
+            let cidr = str_to_cidr(&String::from_utf8_lossy(v))?;
+            Ok(cidr.contains(&ip_addr).into())
+        }
+        Value::Array(vec) => {
+            for v in vec {
+                let cidr = str_to_cidr(&v.try_bytes_utf8_lossy()?)?;
+                if cidr.contains(&ip_addr) {
+                    return Ok(true.into());
+                }
+            }
+            Ok(false.into())
+        }
+        value => Err(ValueError::Expected {
+            got: value.kind(),
+            expected: Kind::bytes() | Kind::array(Collection::any()),
+        }
+        .into()),
+    }
+}
+
+fn ip_cidr_contains_constant(value: &Value, cidr_vec: &[IpCidr]) -> Resolved {
+    let bytes = value.try_bytes_utf8_lossy()?;
+    let ip_addr =
+        IpAddr::from_str(&bytes).map_err(|err| format!("unable to parse IP address: {err}"))?;
+
+    Ok(cidr_vec.iter().any(|cidr| cidr.contains(&ip_addr)).into())
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -26,7 +68,7 @@ impl Function for IpCidrContains {
         &[
             Parameter {
                 keyword: "cidr",
-                kind: kind::BYTES,
+                kind: kind::BYTES | kind::ARRAY,
                 required: true,
             },
             Parameter {
@@ -50,13 +92,6 @@ impl Function for IpCidrContains {
                 result: Ok("false"),
             },
             Example {
-                title: "invalid cidr",
-                source: r#"ip_cidr_contains!("INVALID", "192.168.10.32")"#,
-                result: Err(
-                    r#"function call error for "ip_cidr_contains" at (0:45): unable to parse CIDR: couldn't parse address in network: invalid IP address syntax"#,
-                ),
-            },
-            Example {
                 title: "invalid address",
                 source: r#"ip_cidr_contains!("192.168.0.0/24", "INVALID")"#,
                 result: Err(
@@ -68,11 +103,34 @@ impl Function for IpCidrContains {
 
     fn compile(
         &self,
-        _state: &state::TypeState,
+        state: &state::TypeState,
         _ctx: &mut FunctionCompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
         let cidr = arguments.required("cidr");
+
+        let cidr = match cidr.resolve_constant(state) {
+            None => IpCidrType::Expression(cidr),
+            Some(value) => IpCidrType::Constant(match value {
+                Value::Bytes(_) => vec![value_to_cidr(&value)?],
+                Value::Array(vec) => {
+                    let mut output = Vec::with_capacity(vec.len());
+                    for value in vec {
+                        output.push(value_to_cidr(&value)?);
+                    }
+                    output
+                }
+                _ => {
+                    return Err(function::Error::InvalidArgument {
+                        keyword: "ip_cidr_contains",
+                        value,
+                        error: r#""cidr" must be string or array of strings"#,
+                    }
+                    .into())
+                }
+            }),
+        };
+
         let value = arguments.required("value");
 
         Ok(IpCidrContainsFn { cidr, value }.as_expr())
@@ -80,17 +138,28 @@ impl Function for IpCidrContains {
 }
 
 #[derive(Debug, Clone)]
+enum IpCidrType {
+    Constant(Vec<IpCidr>),
+    Expression(Box<dyn Expression>),
+}
+
+#[derive(Debug, Clone)]
 struct IpCidrContainsFn {
-    cidr: Box<dyn Expression>,
+    cidr: IpCidrType,
     value: Box<dyn Expression>,
 }
 
 impl FunctionExpression for IpCidrContainsFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let value = self.value.resolve(ctx)?;
-        let cidr = self.cidr.resolve(ctx)?;
 
-        ip_cidr_contains(value, cidr)
+        match &self.cidr {
+            IpCidrType::Constant(cidr_vec) => ip_cidr_contains_constant(&value, cidr_vec),
+            IpCidrType::Expression(exp) => {
+                let cidr = exp.resolve(ctx)?;
+                ip_cidr_contains(&value, &cidr)
+            }
+        }
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {
@@ -122,6 +191,22 @@ mod tests {
             tdef: TypeDef::boolean().fallible(),
         }
 
+        ipv4_yes_array {
+            args: func_args![value: "192.168.10.32",
+                             cidr: vec!["10.0.0.0/8", "192.168.0.0/16"],
+            ],
+            want: Ok(value!(true)),
+            tdef: TypeDef::boolean().fallible(),
+        }
+
+        ipv4_no_array {
+            args: func_args![value: "192.168.10.32",
+                             cidr: vec!["10.0.0.0/8", "192.168.0.0/24"],
+            ],
+            want: Ok(value!(false)),
+            tdef: TypeDef::boolean().fallible(),
+        }
+
         ipv6_yes {
             args: func_args![value: "2001:4f8:3:ba:2e0:81ff:fe22:d1f1",
                              cidr: "2001:4f8:3:ba::/64",
@@ -133,6 +218,22 @@ mod tests {
         ipv6_no {
             args: func_args![value: "2001:4f8:3:ba:2e0:81ff:fe22:d1f1",
                              cidr: "2001:4f8:4:ba::/64",
+            ],
+            want: Ok(value!(false)),
+            tdef: TypeDef::boolean().fallible(),
+        }
+
+        ipv6_yes_array {
+            args: func_args![value: "2001:4f8:3:ba:2e0:81ff:fe22:d1f1",
+                             cidr: vec!["fc00::/7", "2001:4f8:3:ba::/64"],
+            ],
+            want: Ok(value!(true)),
+            tdef: TypeDef::boolean().fallible(),
+        }
+
+        ipv6_no_array {
+            args: func_args![value: "2001:4f8:3:ba:2e0:81ff:fe22:d1f1",
+                             cidr: vec!["fc00::/7", "2001:4f8:4:ba::/64"],
             ],
             want: Ok(value!(false)),
             tdef: TypeDef::boolean().fallible(),

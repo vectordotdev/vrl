@@ -93,24 +93,29 @@ mod implementation {
     use crate::compiler::prelude::*;
     use crate::value;
 
-    pub(super) fn log(rate_limit_secs: Value, level: &Bytes, value: Value, span: Span) -> Resolved {
+    pub(super) fn log(
+        rate_limit_secs: Value,
+        level: &Bytes,
+        value: &Value,
+        span: Span,
+    ) -> Resolved {
         let rate_limit_secs = rate_limit_secs.try_integer()?;
         let res = value.to_string_lossy();
         match level.as_ref() {
             b"trace" => {
-                trace!(message = %res, internal_log_rate_secs = rate_limit_secs, vrl_position = span.start())
+                trace!(message = %res, internal_log_rate_secs = rate_limit_secs, vrl_position = span.start());
             }
             b"debug" => {
-                debug!(message = %res, internal_log_rate_secs = rate_limit_secs, vrl_position = span.start())
+                debug!(message = %res, internal_log_rate_secs = rate_limit_secs, vrl_position = span.start());
             }
             b"warn" => {
-                warn!(message = %res, internal_log_rate_secs = rate_limit_secs, vrl_position = span.start())
+                warn!(message = %res, internal_log_rate_secs = rate_limit_secs, vrl_position = span.start());
             }
             b"error" => {
-                error!(message = %res, internal_log_rate_secs = rate_limit_secs, vrl_position = span.start())
+                error!(message = %res, internal_log_rate_secs = rate_limit_secs, vrl_position = span.start());
             }
             _ => {
-                info!(message = %res, internal_log_rate_secs = rate_limit_secs, vrl_position = span.start())
+                info!(message = %res, internal_log_rate_secs = rate_limit_secs, vrl_position = span.start());
             }
         }
         Ok(Value::Null)
@@ -134,7 +139,7 @@ mod implementation {
 
             let span = self.span;
 
-            log(rate_limit_secs, &self.level, value, span)
+            log(rate_limit_secs, &self.level, &value, span)
         }
 
         fn type_def(&self, _: &state::TypeState) -> TypeDef {
@@ -169,8 +174,8 @@ mod tests {
         implementation::log(
             value!(1),
             &Bytes::from("warn"),
-            value!("simple test message"),
-            Default::default(),
+            &value!("simple test message"),
+            Span::default(),
         )
         .unwrap();
 

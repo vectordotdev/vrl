@@ -7,7 +7,10 @@ fn to_unix_timestamp(value: Value, unit: Unit) -> Resolved {
         Unit::Seconds => ts.timestamp(),
         Unit::Milliseconds => ts.timestamp_millis(),
         Unit::Microseconds => ts.timestamp_micros(),
-        Unit::Nanoseconds => ts.timestamp_nanos(),
+        Unit::Nanoseconds => match ts.timestamp_nanos_opt() {
+            None => return Err(ValueError::OutOfRange(Kind::timestamp()).into()),
+            Some(nanos) => nanos,
+        },
     };
     Ok(time.into())
 }
@@ -148,7 +151,7 @@ impl FunctionExpression for ToUnixTimestampFn {
 
 #[cfg(test)]
 mod test {
-    use chrono::TimeZone;
+    use chrono::{TimeZone, Utc};
 
     use super::*;
 
@@ -156,7 +159,7 @@ mod test {
         to_unix_timestamp => ToUnixTimestamp;
 
         seconds {
-            args: func_args![value: chrono::Utc.ymd(2021, 1, 1).and_hms_milli(0, 0, 0, 0),
+            args: func_args![value: Utc.with_ymd_and_hms(2021, 1, 1, 0, 0, 0).unwrap(),
                              unit: "seconds"
             ],
             want: Ok(1_609_459_200_i64),
@@ -164,7 +167,7 @@ mod test {
         }
 
         milliseconds {
-            args: func_args![value: chrono::Utc.ymd(2021, 1, 1).and_hms_milli(0, 0, 0, 0),
+            args: func_args![value: Utc.with_ymd_and_hms(2021, 1, 1, 0, 0, 0).unwrap(),
                              unit: "milliseconds"
             ],
             want: Ok(1_609_459_200_000_i64),
@@ -172,7 +175,7 @@ mod test {
         }
 
         microseconds {
-            args: func_args![value: chrono::Utc.ymd(2021, 1, 1).and_hms_milli(0, 0, 0, 0),
+            args: func_args![value: Utc.with_ymd_and_hms(2021, 1, 1, 0, 0, 0).unwrap(),
                              unit: "microseconds"
             ],
             want: Ok(1_609_459_200_000_000_i64),
@@ -180,10 +183,17 @@ mod test {
         }
 
         nanoseconds {
-             args: func_args![value: chrono::Utc.ymd(2021, 1, 1).and_hms_milli(0, 0, 0, 0),
+             args: func_args![value: Utc.with_ymd_and_hms(2021, 1, 1, 0, 0, 0).unwrap(),
                               unit: "nanoseconds"
              ],
              want: Ok(1_609_459_200_000_000_000_i64),
+             tdef: TypeDef::integer().infallible(),
+         }
+         out_of_range {
+             args: func_args![value: Utc.with_ymd_and_hms(0, 1, 1, 0, 0, 0).unwrap(),
+                              unit: "nanoseconds"
+             ],
+             want: Err("can't convert out of range timestamp"),
              tdef: TypeDef::integer().infallible(),
          }
     ];

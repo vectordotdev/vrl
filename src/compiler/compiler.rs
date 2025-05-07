@@ -8,9 +8,9 @@ use crate::compiler::{
     },
     parser::ast::RootExpr,
     program::ProgramInfo,
-    CompileConfig, DeprecationWarning, Function, Program, TypeDef,
+    CompileConfig, Function, Program, TypeDef,
 };
-use crate::diagnostic::{DiagnosticList, DiagnosticMessage, Note};
+use crate::diagnostic::{DiagnosticList, DiagnosticMessage};
 use crate::parser::ast::{self, Node, QueryTarget};
 use crate::path::PathPrefix;
 use crate::path::{OwnedTargetPath, OwnedValuePath};
@@ -19,7 +19,7 @@ use crate::value::Value;
 
 use super::state::TypeState;
 
-pub(crate) type Diagnostics = Vec<Box<dyn DiagnosticMessage>>;
+pub(crate) type DiagnosticsMessages = Vec<Box<dyn DiagnosticMessage>>;
 
 pub struct CompilationResult {
     pub program: Program,
@@ -33,7 +33,7 @@ pub struct CompilationResult {
 /// state after the compiled expression executes. This logic lives in `Expression::type_info`.
 pub struct Compiler<'a> {
     fns: &'a [Box<dyn Function>],
-    diagnostics: Diagnostics,
+    diagnostics: DiagnosticsMessages,
     fallible: bool,
     abortable: bool,
     external_queries: Vec<OwnedTargetPath>,
@@ -84,6 +84,19 @@ impl CompilerError {
 }
 
 impl<'a> Compiler<'a> {
+    /// Compiles a given source into the final [`Program`].
+    ///
+    /// # Arguments
+    ///
+    /// * `source` - A string slice that holds the source code to be compiled.
+    /// * `fns` - A slice of boxed functions to be used during compilation.
+    ///
+    /// # Returns
+    ///
+    /// A `Result` containing the `CompilationResult` if successful, or a `DiagnosticList` if there are errors.
+    ///
+    /// # Errors
+    /// Any compilation error.
     pub fn compile(
         fns: &'a [Box<dyn Function>],
         ast: crate::parser::Program,
@@ -156,7 +169,6 @@ impl<'a> Compiler<'a> {
         let original_state = state.clone();
 
         let span = node.span();
-
         let expr = match node.into_inner() {
             Literal(node) => self.compile_literal(node, state),
             Container(node) => self.compile_container(node, state).map(Into::into),
@@ -164,7 +176,19 @@ impl<'a> Compiler<'a> {
             Op(node) => self.compile_op(node, state).map(Into::into),
             Assignment(node) => self.compile_assignment(node, state).map(Into::into),
             Query(node) => self.compile_query(node, state).map(Into::into),
-            FunctionCall(node) => self.compile_function_call(node, state).map(Into::into),
+            FunctionCall(node) => self
+                .compile_function_call(node, state)
+                .map(|function_call| {
+                    let v = function_call
+                        .warnings
+                        .iter()
+                        .cloned()
+                        .map(|w| Box::new(w) as Box<dyn DiagnosticMessage>)
+                        .collect::<Vec<_>>();
+
+                    self.diagnostics.extend(v);
+                    function_call.into()
+                }),
             Variable(node) => self.compile_variable(node, state).map(Into::into),
             Unary(node) => self.compile_unary(node, state).map(Into::into),
             Abort(node) => self.compile_abort(node, state).map(Into::into),
@@ -481,7 +505,7 @@ impl<'a> Compiler<'a> {
                             .compile_expr(*expr, state)
                             .map(|expr| Box::new(Node::new(span, expr)))
                             .or_else(|| {
-                                self.skip_missing_assignment_target(target.clone().into_inner());
+                                self.skip_missing_assignment_target(&target.clone().into_inner());
                                 None
                             })?;
 
@@ -502,8 +526,8 @@ impl<'a> Compiler<'a> {
                             .compile_expr(*expr, state)
                             .map(|expr| Box::new(Node::new(span, expr)))
                             .or_else(|| {
-                                self.skip_missing_assignment_target(ok.clone().into_inner());
-                                self.skip_missing_assignment_target(err.clone().into_inner());
+                                self.skip_missing_assignment_target(&ok.clone().into_inner());
+                                self.skip_missing_assignment_target(&err.clone().into_inner());
                                 None
                             })?;
 
@@ -621,17 +645,11 @@ impl<'a> Compiler<'a> {
     }
 
     #[allow(clippy::unused_self)]
-    pub(crate) fn check_function_deprecations(&mut self, func: &FunctionCall, args: &ArgumentList) {
-        if func.ident == "truncate" && args.optional("ellipsis").is_some() {
-            self.diagnostics.push(Box::new(
-                DeprecationWarning::new("the `ellipsis` argument", "0.7.0")
-                    .with_span(func.span)
-                    .with_notes(Note::solution(
-                        "the `truncate` function now supports a `suffix` argument.",
-                        vec!["The `suffix` argument can be used for appending arbitrary strings."],
-                    )),
-            ));
-        }
+    pub(crate) fn check_function_deprecations(
+        &mut self,
+        _func: &FunctionCall,
+        _args: &ArgumentList,
+    ) {
     }
 
     fn compile_function_call(
@@ -832,7 +850,7 @@ impl<'a> Compiler<'a> {
         self.diagnostics.push(Box::new(error));
     }
 
-    fn skip_missing_assignment_target(&mut self, target: ast::AssignmentTarget) {
+    fn skip_missing_assignment_target(&mut self, target: &ast::AssignmentTarget) {
         let query = match &target {
             ast::AssignmentTarget::Noop => return,
             ast::AssignmentTarget::Query(ast::Query { target, path }) => {

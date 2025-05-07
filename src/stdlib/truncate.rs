@@ -1,10 +1,11 @@
 use crate::compiler::prelude::*;
 
-fn truncate(value: Value, limit: Value, ellipsis: Value, suffix: Value) -> Resolved {
+fn truncate(value: &Value, limit: Value, suffix: &Value) -> Resolved {
     let mut value = value.try_bytes_utf8_lossy()?.into_owned();
     let limit = limit.try_integer()?;
+    // TODO consider removal options
+    #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
     let limit = if limit < 0 { 0 } else { limit as usize };
-    let ellipsis = ellipsis.try_boolean()?;
     let suffix = suffix.try_bytes_utf8_lossy()?.to_string();
     let pos = if let Some((pos, chr)) = value.char_indices().take(limit).last() {
         // char_indices gives us the starting position of the character at limit,
@@ -16,9 +17,7 @@ fn truncate(value: Value, limit: Value, ellipsis: Value, suffix: Value) -> Resol
     };
     if value.len() > pos {
         value.truncate(pos);
-        if ellipsis {
-            value.push_str("...");
-        } else if !suffix.is_empty() {
+        if !suffix.is_empty() {
             value.push_str(&suffix);
         }
     }
@@ -44,11 +43,6 @@ impl Function for Truncate {
                 keyword: "limit",
                 kind: kind::INTEGER,
                 required: true,
-            },
-            Parameter {
-                keyword: "ellipsis",
-                kind: kind::BOOLEAN,
-                required: false,
             },
             Parameter {
                 keyword: "suffix",
@@ -80,19 +74,17 @@ impl Function for Truncate {
 
     fn compile(
         &self,
-        _state: &state::TypeState,
+        _state: &TypeState,
         _ctx: &mut FunctionCompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
         let limit = arguments.required("limit");
-        let ellipsis = arguments.optional("ellipsis").unwrap_or(expr!(false));
         let suffix = arguments.optional("suffix").unwrap_or(expr!(""));
 
         Ok(TruncateFn {
             value,
             limit,
-            ellipsis,
             suffix,
         }
         .as_expr())
@@ -103,7 +95,6 @@ impl Function for Truncate {
 struct TruncateFn {
     value: Box<dyn Expression>,
     limit: Box<dyn Expression>,
-    ellipsis: Box<dyn Expression>,
     suffix: Box<dyn Expression>,
 }
 
@@ -111,10 +102,9 @@ impl FunctionExpression for TruncateFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let value = self.value.resolve(ctx)?;
         let limit = self.limit.resolve(ctx)?;
-        let ellipsis = self.ellipsis.resolve(ctx)?;
         let suffix = self.suffix.resolve(ctx)?;
 
-        truncate(value, limit, ellipsis, suffix)
+        truncate(&value, limit, &suffix)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {
@@ -140,7 +130,7 @@ mod tests {
         ellipsis {
             args: func_args![value: "Super",
                              limit: 0,
-                             ellipsis: true
+                             suffix: "..."
             ],
             want: Ok("..."),
             tdef: TypeDef::bytes().infallible(),
@@ -157,7 +147,7 @@ mod tests {
         exact {
             args: func_args![value: "Super",
                              limit: 5,
-                             ellipsis: true
+                             suffix: "."
             ],
             want: Ok("Super"),
             tdef: TypeDef::bytes().infallible(),
@@ -174,7 +164,7 @@ mod tests {
         big_ellipsis {
             args: func_args![value: "Supercalifragilisticexpialidocious",
                              limit: 5,
-                             ellipsis: true,
+                             suffix: "..."
             ],
             want: Ok("Super..."),
             tdef: TypeDef::bytes().infallible(),
@@ -183,7 +173,7 @@ mod tests {
         unicode {
             args: func_args![value: "♔♕♖♗♘♙♚♛♜♝♞♟",
                              limit: 6,
-                             ellipsis: true
+                             suffix: "..."
             ],
             want: Ok("♔♕♖♗♘♙..."),
             tdef: TypeDef::bytes().infallible(),

@@ -1,6 +1,6 @@
 use crate::compiler::prelude::*;
 
-fn assert_eq(left: Value, right: Value, message: Option<Value>) -> Resolved {
+fn assert_eq(left: &Value, right: &Value, message: Option<Value>) -> Resolved {
     if left == right {
         Ok(true.into())
     } else if let Some(message) = message {
@@ -99,7 +99,7 @@ impl FunctionExpression for AssertEqFn {
         let right = self.right.resolve(ctx)?;
         let message = self.message.as_ref().map(|m| m.resolve(ctx)).transpose()?;
 
-        assert_eq(left, right, message)
+        assert_eq(&left, &right, message)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

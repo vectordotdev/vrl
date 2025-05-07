@@ -1,7 +1,7 @@
 use crate::compiler::prelude::*;
 use std::net::Ipv4Addr;
 
-fn is_ipv4(value: Value) -> Resolved {
+fn is_ipv4(value: &Value) -> Resolved {
     let value_str = value.try_bytes_utf8_lossy()?;
     Ok(value_str.parse::<Ipv4Addr>().is_ok().into())
 }
@@ -61,7 +61,7 @@ struct IsIpv4Fn {
 
 impl FunctionExpression for IsIpv4Fn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        self.value.resolve(ctx).and_then(is_ipv4)
+        self.value.resolve(ctx).and_then(|v| is_ipv4(&v))
     }
 
     fn type_def(&self, _: &TypeState) -> TypeDef {

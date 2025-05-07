@@ -18,10 +18,10 @@ use std::{
     str::{Chars, FromStr},
 };
 
-pub(crate) fn parse_key_value(
-    bytes: Value,
-    key_value_delimiter: Value,
-    field_delimiter: Value,
+pub fn parse_key_value(
+    bytes: &Value,
+    key_value_delimiter: &Value,
+    field_delimiter: &Value,
     standalone_key: Value,
     whitespace: Whitespace,
 ) -> Resolved {
@@ -239,9 +239,9 @@ impl FunctionExpression for ParseKeyValueFn {
         let whitespace = self.whitespace;
 
         parse_key_value(
-            bytes,
-            key_value_delimiter,
-            field_delimiter,
+            &bytes,
+            &key_value_delimiter,
+            &field_delimiter,
             standalone_key,
             whitespace,
         )
@@ -364,7 +364,7 @@ fn escape_str(s: &str) -> Cow<'_, str> {
         let mut chars = s.chars().peekable();
 
         while let Some(c) = chars.next() {
-            out.push(escape_char(c, &mut chars))
+            out.push(escape_char(c, &mut chars));
         }
         Cow::Owned(out)
     } else {
@@ -387,10 +387,9 @@ fn escape_char(c: char, rest: &mut Peekable<Chars>) -> char {
                 let _ = rest.next();
                 '\"'
             }
-            // ignore escape sequences not added by encode_key_value and return the backslash untouched
-            Some(_) => c,
-            // trailing escape char is a little odd... Might need to error here!
-            None => c,
+            // Some(_): ignore escape sequences not added by encode_key_value and return the backslash untouched
+            // None: // trailing escape char is a little odd... Might need to error here!
+            Some(_) | None => c,
         }
     } else {
         c

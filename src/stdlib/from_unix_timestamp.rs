@@ -180,7 +180,7 @@ mod tests {
             unit: Unit::default(),
         };
         let string = f.resolve(&mut ctx).err().unwrap().message();
-        assert_eq!(string, "unable to coerce 9999999999999 into timestamp")
+        assert_eq!(string, "unable to coerce 9999999999999 into timestamp");
     }
 
     test_function![
@@ -188,31 +188,31 @@ mod tests {
 
         integer {
              args: func_args![value: 1_431_648_000],
-             want: Ok(chrono::Utc.ymd(2015, 5, 15).and_hms_opt(0, 0, 0).expect("invalid timestamp")),
+             want: Ok(Utc.with_ymd_and_hms(2015, 5, 15, 0, 0, 0).unwrap()),
              tdef: TypeDef::timestamp().fallible(),
         }
 
         integer_seconds {
             args: func_args![value: 1_609_459_200_i64, unit: "seconds"],
-            want: Ok(chrono::Utc.ymd(2021, 1, 1).and_hms_milli(0,0,0,0)),
+            want: Ok(Utc.with_ymd_and_hms(2021, 1, 1, 0, 0, 0).unwrap()),
             tdef: TypeDef::timestamp().fallible(),
         }
 
         integer_milliseconds {
             args: func_args![value: 1_609_459_200_000_i64, unit: "milliseconds"],
-            want: Ok(chrono::Utc.ymd(2021, 1, 1).and_hms_milli(0,0,0,0)),
+            want: Ok(Utc.with_ymd_and_hms(2021, 1, 1, 0, 0, 0).unwrap()),
             tdef: TypeDef::timestamp().fallible(),
         }
 
         integer_microseconds {
             args: func_args![value: 1_609_459_200_000_000_i64, unit: "microseconds"],
-            want: Ok(chrono::Utc.ymd(2021, 1, 1).and_hms_milli(0,0,0,0)),
+            want: Ok(Utc.with_ymd_and_hms(2021, 1, 1, 0, 0, 0).unwrap()),
             tdef: TypeDef::timestamp().fallible(),
         }
 
         integer_nanoseconds {
             args: func_args![value: 1_609_459_200_000_000_000_i64, unit: "nanoseconds"],
-            want: Ok(chrono::Utc.ymd(2021, 1, 1).and_hms_milli(0,0,0,0)),
+            want: Ok(Utc.with_ymd_and_hms(2021, 1, 1, 0, 0, 0).unwrap()),
             tdef: TypeDef::timestamp().fallible(),
         }
 
@@ -229,7 +229,7 @@ mod tests {
         }
 
         timestamp_type_invalid {
-            args: func_args![value: chrono::Utc.ymd(2021, 1, 1).and_hms_milli(0,0,0,0)],
+            args: func_args![value: Utc.with_ymd_and_hms(2021, 1, 1, 0, 0, 0).unwrap()],
             want: Err("unable to coerce timestamp into timestamp"),
             tdef: TypeDef::timestamp().fallible(),
         }

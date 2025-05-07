@@ -144,7 +144,7 @@ impl<'input> Lexer<'input> {
     where
         F: FnMut(char) -> bool,
     {
-        self.peek().map_or(false, |(_, ch)| test(ch))
+        self.peek().is_some_and(|(_, ch)| test(ch))
     }
 
     fn slice(&self, start: usize, end: usize) -> &'input str {
@@ -299,7 +299,7 @@ pub struct Exponent<'input> {
 }
 
 #[allow(dead_code)] // used by generated lalrpop parser
-impl<'input> FloatingPointLiteral<'input> {
+impl FloatingPointLiteral<'_> {
     pub fn parse(&self) -> f64 {
         let mut fp = String::new();
         fp.push_str(self.integral.unwrap_or_default());
