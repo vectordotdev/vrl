@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-import "google/protobuf/timestamp.proto";
+package test.v1;
 
-package test;
+import "google/protobuf/timestamp.proto";
 
 message Integers {
   int32 i32 = 1;
@@ -29,14 +29,13 @@ message Map {
 
   map<string, int32> names = 1;
   map<string, Person> people = 2;
-
 }
 
 message Enum {
   enum Fruit {
-    APPLE = 0;
-    OLIVE = 1;
-    TOMATO = 2;
+    FRUIT_APPLE_UNSPECIFIED = 0;
+    FRUIT_OLIVE = 1;
+    FRUIT_TOMATO = 2;
   }
   Fruit breakfast = 1;
   Fruit lunch = 2;

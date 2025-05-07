@@ -16,13 +16,13 @@ pub struct ParseProto;
 // and the file path needs to be a literal.
 static EXAMPLE_PARSE_PROTO_EXPR: LazyLock<&str> = LazyLock::new(|| {
     let path = PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap())
-        .join("tests/data/protobuf/test_protobuf.desc")
+        .join("../../tests/data/protobuf/test_protobuf/v1/test_protobuf.desc")
         .display()
         .to_string();
 
     Box::leak(
         format!(
-            r#"parse_proto!(decode_base64!("Cgdzb21lb25lIggKBjEyMzQ1Ng=="), "{path}", "test_protobuf.Person")"#
+            r#"parse_proto!(decode_base64!("Cgdzb21lb25lIggKBjEyMzQ1Ng=="), "{path}", "test_protobuf.v1.Person")"#
         )
         .into_boxed_str(),
     )
@@ -135,18 +135,18 @@ mod tests {
         parse_proto => ParseProto;
 
         parses {
-            args: func_args![ value: read_pb_file("person_someone.pb"),
-                desc_file: test_data_dir().join("test_protobuf.desc").to_str().unwrap().to_owned(),
-                message_type: "test_protobuf.Person"],
-            want: Ok(value!({ name: "someone", phones: [{number: "123456"}] })),
+            args: func_args![ value: read_pb_file("test_protobuf/v1/input/person_someone.pb"),
+                desc_file: test_data_dir().join("test_protobuf/v1/test_protobuf.desc").to_str().unwrap().to_owned(),
+                message_type: "test_protobuf.v1.Person"],
+            want: Ok(value!({ name: "Someone", phones: [{number: "123-456"}] })),
             tdef: json_type_def(),
         }
 
         parses_proto3 {
-            args: func_args![ value: read_pb_file("person_someone3.pb"),
-                desc_file: test_data_dir().join("test_protobuf3.desc").to_str().unwrap().to_owned(),
-                message_type: "test_protobuf3.Person"],
-            want: Ok(value!({ data: {data_phone: "HOME"}, name: "someone", phones: [{number: "1234", type: "MOBILE"}] })),
+            args: func_args![ value: read_pb_file("test_protobuf3/v1/input/person_someone.pb"),
+                desc_file: test_data_dir().join("test_protobuf3/v1/test_protobuf3.desc").to_str().unwrap().to_owned(),
+                message_type: "test_protobuf3.v1.Person"],
+            want: Ok(value!({ name: "Someone", phones: [{number: "123-456", type: "PHONE_TYPE_MOBILE"}] })),
             tdef: json_type_def(),
         }
     ];
