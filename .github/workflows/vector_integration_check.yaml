@@ -18,6 +18,18 @@ jobs:
       - name: Install protoc
         uses: arduino/setup-protoc@v3
 
+      - name: Install system packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends \
+            build-essential \
+            cmake \
+            libclang-dev \
+            libsasl2-dev \
+            libssl-dev \
+            llvm \
+            pkg-config
+
       - name: Clone Vector repo and update VRL dependency
         run: |
           git clone https://github.com/vectordotdev/vector.git
