@@ -1250,8 +1250,9 @@ impl DiagnosticMessage for FunctionCallError {
 
 #[cfg(test)]
 mod tests {
-    use crate::compiler::{value::kind, FunctionExpression};
-
+    use crate::compiler::{value::kind, Compiler, FunctionExpression};
+    use crate::parser::parse;
+    use crate::stdlib::ForEach;
     use super::*;
 
     #[derive(Clone, Debug)]
@@ -1436,5 +1437,25 @@ mod tests {
         ];
 
         assert_eq!(Ok(expected), params);
+    }
+
+    #[test]
+    fn closure_type_state() {
+        let program = parse(r#"
+            v = ""
+
+            for_each({}) -> |key, value| {
+                v = 0
+            }
+        "#).unwrap();
+
+        let fns = vec![Box::new(ForEach) as Box<dyn Function>];
+        let mut compiler = Compiler::new(&fns, CompileConfig::default());
+
+        let mut state = TypeState::default();
+        compiler.compile_root_exprs(program, &mut state);
+        let var = state.local.variable(&Ident::new("v")).unwrap();
+
+        assert_eq!(var.type_def.kind(), &Kind::bytes().or_integer());
     }
 }
