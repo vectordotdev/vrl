@@ -1,6 +1,13 @@
 #![allow(clippy::missing_errors_doc)]
 pub mod closure;
 
+use super::{
+    expression::{container::Variant, Block, Container, Expr, Expression},
+    state::TypeState,
+    value::{kind, Kind},
+    CompileConfig, Span, TypeDef,
+};
+use crate::compiler::type_def::Details;
 use crate::diagnostic::{DiagnosticMessage, Label, Note};
 use crate::parser::ast::Ident;
 use crate::path::OwnedTargetPath;
@@ -8,13 +15,6 @@ use crate::value::{kind::Collection, KeyString, Value};
 use std::{
     collections::{BTreeMap, HashMap},
     fmt,
-};
-
-use super::{
-    expression::{container::Variant, Block, Container, Expr, Expression},
-    state::TypeState,
-    value::{kind, Kind},
-    CompileConfig, Span, TypeDef,
 };
 
 pub type Compiled = Result<Box<dyn Expression>, Box<dyn DiagnosticMessage>>;
@@ -448,15 +448,22 @@ mod test_impls {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Closure {
     pub variables: Vec<Ident>,
+    pub variables_types: Vec<Details>,
     pub block: Block,
     pub block_type_def: TypeDef,
 }
 
 impl Closure {
     #[must_use]
-    pub fn new<T: Into<Ident>>(variables: Vec<T>, block: Block, block_type_def: TypeDef) -> Self {
+    pub fn new(
+        variables: Vec<Ident>,
+        variables_types: Vec<Details>,
+        block: Block,
+        block_type_def: TypeDef,
+    ) -> Self {
         Self {
-            variables: variables.into_iter().map(Into::into).collect(),
+            variables,
+            variables_types,
             block,
             block_type_def,
         }

@@ -507,16 +507,21 @@ impl<'a> Builder<'a> {
 
             let block = closure_block.expect("closure must contain block");
 
+            let mut variables_types = vec![];
             // At this point, we've compiled the block, so we can remove the
             // closure variables from the compiler's local environment.
-            variables
-                .iter()
-                .for_each(|ident| match locals.remove_variable(ident) {
-                    Some(details) => state.local.insert_variable(ident.clone(), details),
-                    None => {
-                        state.local.remove_variable(ident);
-                    }
-                });
+            for ident in &variables {
+                let variable_details = state
+                    .local
+                    .remove_variable(ident)
+                    .expect("Closure variable must be present");
+                variables_types.push(variable_details);
+
+                // If outer scope has this variable, restore its state
+                if let Some(details) = locals.remove_variable(ident) {
+                    state.local.insert_variable(ident.clone(), details);
+                }
+            }
 
             let (block_span, (block, block_type_def)) = block.take();
 
@@ -537,7 +542,7 @@ impl<'a> Builder<'a> {
                 });
             }
 
-            let fnclosure = Closure::new(variables, block, block_type_def);
+            let fnclosure = Closure::new(variables, variables_types, block, block_type_def);
             self.list.set_closure(fnclosure.clone());
 
             // closure = Some(fnclosure);
@@ -699,6 +704,27 @@ impl Expression for FunctionCall {
         }
 
         let mut expr_result = self.expr.apply_type_info(&mut state);
+
+        // Closure can change state of locals in our `state`, so we need to update it.
+        if let Some(closure) = &self.closure {
+            // To get correct `type_info()` from closure we need to add closure arguments into current state
+            let mut closure_state = state.clone();
+            for (ident, details) in closure
+                .variables
+                .iter()
+                .cloned()
+                .zip(closure.variables_types.iter().cloned())
+            {
+                closure_state.local.insert_variable(ident, details);
+            }
+            let mut closure_info = closure.block.type_info(&closure_state);
+            // No interaction with closure arguments can't affect parent state, so remove them before merge
+            for ident in &closure.variables {
+                closure_info.state.local.remove_variable(ident);
+            }
+
+            state = state.merge(closure_info.state);
+        }
 
         // If one of the arguments only partially matches the function type
         // definition, then we mark the entire function as fallible.

@@ -538,7 +538,7 @@ impl From<TypeDef> for Kind {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub(crate) struct Details {
+pub struct Details {
     pub(crate) type_def: TypeDef,
     pub(crate) value: Option<Value>,
 }
