@@ -10,8 +10,12 @@ pub(crate) fn parse_syslog(value: Value, variant: Variant, ctx: &Context) -> Res
         TimeZone::Local => None,
         TimeZone::Named(tz) => Some(*tz),
     };
-    let parsed =
-        syslog_loose::parse_message_with_year_exact_tz(&message, resolve_year, timezone, variant)?;
+    let parsed = syslog_loose::parse_message_with_year_exact_tz(
+        &message,
+        resolve_year,
+        timezone,
+        variant
+    )?;
     Ok(message_to_value(parsed))
 }
 
@@ -24,18 +28,16 @@ impl Function for ParseSyslog {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::BYTES,
-                required: true,
-            },
-            Parameter {
-                keyword: "variant",
-                kind: kind::BYTES,
-                required: false,
-            },
-        ]
+        &[Parameter {
+            keyword: "value",
+            kind: kind::BYTES,
+            required: true,
+        },
+        Parameter {
+            keyword: "variant",
+            kind: kind::BYTES,
+            required: false,
+        }]
     }
 
     fn examples(&self) -> &'static [Example] {
