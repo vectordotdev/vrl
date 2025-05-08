@@ -6,11 +6,12 @@ use nom::{
     bytes::complete::{escaped, tag, take, take_until},
     character::complete::{char, satisfy, space0},
     combinator::{eof, map, opt, peek, rest, verify},
-    error::{ContextError, ParseError, VerboseError},
+    error::{ContextError, ParseError},
     multi::{many0, many1, many_m_n, separated_list1},
     sequence::{delimited, preceded, terminated, tuple},
     IResult,
 };
+use nom_language::error::VerboseError;
 use std::{
     borrow::Cow,
     collections::{btree_map::Entry, BTreeMap},
@@ -269,7 +270,7 @@ fn parse<'a>(
     .map_err(|e| match e {
         nom::Err::Error(e) | nom::Err::Failure(e) => {
             // Create a descriptive error message if possible.
-            nom::error::convert_error(input, e)
+            nom_language::error::convert_error(input, e)
         }
         nom::Err::Incomplete(_) => e.to_string(),
     })?;
