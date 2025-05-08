@@ -1,0 +1,46 @@
+name: Vector Integration Check
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  check-vector:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout VRL
+        uses: actions/checkout@v4
+        with:
+          path: vrl
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Install protoc
+        uses: arduino/setup-protoc@v3
+
+      - name: Install system packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends \
+            build-essential \
+            cmake \
+            libclang-dev \
+            libsasl2-dev \
+            libssl-dev \
+            llvm \
+            pkg-config
+
+      - name: Clone Vector repo and update VRL dependency
+        run: |
+          git clone https://github.com/vectordotdev/vector.git
+          cd vector
+          git switch master
+          VRL_BRANCH=$(cd ../vrl && git rev-parse --abbrev-ref HEAD)
+          sed -i.bak "s|\(vrl = {[^}]*branch = \)\"[^\"]*\"|\1\"${{ github.head_ref }}\"|" Cargo.toml
+          cargo update -p vrl
+
+      - name: Cargo Check Vector
+        run: |
+          cd vector
+          cargo update -p vrl
+          cargo check --workspace

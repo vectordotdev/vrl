@@ -122,9 +122,9 @@ mod tests {
 
     #[test]
     fn test_parse_files() {
-        let path = test_data_dir().join("test_protobuf.desc");
-        let descriptor = get_message_descriptor(&path, "test_protobuf.Person").unwrap();
-        let encoded_value = value!(read_pb_file("person_someone.pb"));
+        let path = test_data_dir().join("test_protobuf/v1/test_protobuf.desc");
+        let descriptor = get_message_descriptor(&path, "test_protobuf.v1.Person").unwrap();
+        let encoded_value = value!(read_pb_file("test_protobuf/v1/input/person_someone.pb"));
         let parsed_value = parse_proto(&descriptor, encoded_value);
         assert!(
             parsed_value.is_ok(),
@@ -132,15 +132,15 @@ mod tests {
             parsed_value.unwrap_err()
         );
         let parsed_value = parsed_value.unwrap();
-        let value = value!({ name: "someone", phones: [{number: "123456"}] });
+        let value = value!({ name: "Someone", phones: [{number: "123-456"}] });
         assert_eq!(value, parsed_value)
     }
 
     #[test]
     fn test_parse_proto3() {
-        let path = test_data_dir().join("test_protobuf3.desc");
-        let descriptor = get_message_descriptor(&path, "test_protobuf3.Person").unwrap();
-        let encoded_value = value!(read_pb_file("person_someone3.pb"));
+        let path = test_data_dir().join("test_protobuf3/v1/test_protobuf3.desc");
+        let descriptor = get_message_descriptor(&path, "test_protobuf3.v1.Person").unwrap();
+        let encoded_value = value!(read_pb_file("test_protobuf3/v1/input/person_someone.pb"));
         let parsed_value = parse_proto(&descriptor, encoded_value);
         assert!(
             parsed_value.is_ok(),
@@ -148,7 +148,8 @@ mod tests {
             parsed_value.unwrap_err()
         );
         let parsed_value = parsed_value.unwrap();
-        let value = value!({ data: {data_phone: "HOME"}, name: "someone", phones: [{number: "1234", type: "MOBILE"}] });
+        let value = value!({ name: "Someone",
+                                    phones: [{number: "123-456", type: "PHONE_TYPE_MOBILE"}] });
         assert_eq!(value, parsed_value)
     }
 }

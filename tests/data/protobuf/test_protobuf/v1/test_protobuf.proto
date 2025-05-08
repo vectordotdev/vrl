@@ -1,6 +1,6 @@
 syntax = "proto2";
 
-package test_protobuf;
+package test_protobuf.v1;
 
 message Person {
   optional string name = 1;
@@ -8,14 +8,15 @@ message Person {
   optional string email = 3;
 
   enum PhoneType {
-    MOBILE = 0;
-    HOME = 1;
-    WORK = 2;
+    PHONE_TYPE_UNSPECIFIED = 0;
+    PHONE_TYPE_MOBILE = 1;
+    PHONE_TYPE_HOME = 2;
+    PHONE_TYPE_WORK = 3;
   }
 
   message PhoneNumber {
     optional string number = 1;
-    optional PhoneType type = 2 [default = HOME];
+    optional PhoneType type = 2 [default = PHONE_TYPE_HOME];
   }
 
   repeated PhoneNumber phones = 4;
