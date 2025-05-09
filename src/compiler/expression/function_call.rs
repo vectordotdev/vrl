@@ -1250,10 +1250,10 @@ impl DiagnosticMessage for FunctionCallError {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use crate::compiler::{value::kind, Compiler, FunctionExpression};
     use crate::parser::parse;
     use crate::stdlib::ForEach;
-    use super::*;
 
     #[derive(Clone, Debug)]
     struct Fn;
@@ -1441,13 +1441,16 @@ mod tests {
 
     #[test]
     fn closure_type_state() {
-        let program = parse(r#"
+        let program = parse(
+            r#"
             v = ""
 
             for_each({}) -> |key, value| {
                 v = 0
             }
-        "#).unwrap();
+        "#,
+        )
+        .unwrap();
 
         let fns = vec![Box::new(ForEach) as Box<dyn Function>];
         let mut compiler = Compiler::new(&fns, CompileConfig::default());

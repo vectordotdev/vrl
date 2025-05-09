@@ -48,7 +48,7 @@ pub struct ProgramInfo {
     /// Returns whether the compiled program can fail at runtime.
     ///
     /// A program can only fail at runtime if the fallible-function-call
-    /// (`foo!()`) is used within the source.
+    /// (`foo!()`) is used within the source.vrl
     pub fallible: bool,
 
     /// Returns whether the compiled program can be aborted at runtime.
