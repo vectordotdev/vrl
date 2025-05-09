@@ -501,16 +501,14 @@ impl<'a> Builder<'a> {
         state: &mut TypeState,
     ) -> Result<(Option<Closure>, bool), FunctionCallError> {
         // Check if we have a closure we need to compile.
-        if let Some((variables, input)) = self.closure.clone() {
+        if let Some((variables, input)) = &self.closure {
             // TODO: This assumes the closure will run exactly once, which is incorrect.
             // see: https://github.com/vectordotdev/vector/issues/13782
-
-            let block = closure_block.expect("closure must contain block");
 
             let mut variables_types = vec![];
             // At this point, we've compiled the block, so we can remove the
             // closure variables from the compiler's local environment.
-            for ident in &variables {
+            for ident in variables {
                 let variable_details = state
                     .local
                     .remove_variable(ident)
@@ -523,13 +521,18 @@ impl<'a> Builder<'a> {
                 }
             }
 
-            let (block_span, (block, block_type_def)) = block.take();
+            let (block_span, (block, block_type_def)) = closure_block
+                .ok_or(FunctionCallError::MissingClosure {
+                    call_span: Span::default(), // TODO can we provide a better span?
+                    example: None,
+                })?
+                .take();
 
             let closure_fallible = block_type_def.is_fallible();
 
             // Check the type definition of the resulting block.This needs to match
             // whatever is configured by the closure input type.
-            let expected_kind = input.output.into_kind();
+            let expected_kind = input.clone().output.into_kind();
             let found_kind = block_type_def
                 .kind()
                 .union(block_type_def.returns().clone());
@@ -542,7 +545,7 @@ impl<'a> Builder<'a> {
                 });
             }
 
-            let fnclosure = Closure::new(variables, variables_types, block, block_type_def);
+            let fnclosure = Closure::new(variables.clone(), variables_types, block, block_type_def);
             self.list.set_closure(fnclosure.clone());
 
             // closure = Some(fnclosure);
