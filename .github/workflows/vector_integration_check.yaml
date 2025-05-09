@@ -35,9 +35,15 @@ jobs:
           git clone https://github.com/vectordotdev/vector.git
           cd vector
           git switch master
+
           VRL_GITHUB_REPO="${{ github.event.pull_request.head.repo.full_name }}"
           VRL_GITHUB_BRANCH="${{ github.head_ref }}"
-          sed -i.bak "s|git = \".*\"|git = \"https://github.com/${VRL_GITHUB_REPO}.git\"|; s|branch = \".*\"|branch = \"${VRL_GITHUB_BRANCH}\"|" Cargo.toml
+
+          REPLACEMENT_LINE="vrl = { git = \"https://github.com/${VRL_GITHUB_REPO}.git\", branch = \"${VRL_GITHUB_BRANCH}\" }"
+          sed -i.bak -e "/^vrl = {/c\\
+          $REPLACEMENT_LINE
+          " Cargo.toml
+
           cargo update -p vrl
 
       - name: Cargo Check Vector
