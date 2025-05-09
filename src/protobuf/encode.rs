@@ -221,8 +221,8 @@ mod tests {
     }
 
     fn test_message_descriptor(message_type: &str) -> MessageDescriptor {
-        let path = test_data_dir().join("test.desc");
-        get_message_descriptor(&path, &format!("test.{message_type}")).unwrap()
+        let path = test_data_dir().join("test/v1/test.desc");
+        get_message_descriptor(&path, &format!("test.v1.{message_type}")).unwrap()
     }
 
     #[test]
@@ -366,8 +366,11 @@ mod tests {
         let message = encode_message(
             &test_message_descriptor("Enum"),
             Value::Object(BTreeMap::from([
-                ("breakfast".into(), Value::Bytes(Bytes::from("tomato"))),
-                ("dinner".into(), Value::Bytes(Bytes::from("OLIVE"))),
+                (
+                    "breakfast".into(),
+                    Value::Bytes(Bytes::from("fruit_tomato")),
+                ),
+                ("dinner".into(), Value::Bytes(Bytes::from("FRUIT_OLIVE"))),
                 ("lunch".into(), Value::Integer(0)),
             ])),
         )
@@ -502,10 +505,10 @@ mod tests {
 
     #[test]
     fn test_parse_files() {
-        let value = value!({ name: "someone", phones: [{number: "123456"}] });
-        let path = test_data_dir().join("test_protobuf.desc");
-        let descriptor = get_message_descriptor(&path, "test_protobuf.Person").unwrap();
-        let expected_value = value!(read_pb_file("person_someone.pb"));
+        let value = value!({ name: "Someone", phones: [{number: "123-456"}] });
+        let path = test_data_dir().join("test_protobuf/v1/test_protobuf.desc");
+        let descriptor = get_message_descriptor(&path, "test_protobuf.v1.Person").unwrap();
+        let expected_value = value!(read_pb_file("test_protobuf/v1/input/person_someone.pb"));
         let encoded_value = encode_proto(&descriptor, value.clone());
         assert!(
             encoded_value.is_ok(),
@@ -528,10 +531,11 @@ mod tests {
 
     #[test]
     fn test_parse_proto3() {
-        let value = value!({ data: {data_phone: "HOME"}, name: "someone", phones: [{number: "1234", type: "MOBILE"}] });
-        let path = test_data_dir().join("test_protobuf3.desc");
-        let descriptor = get_message_descriptor(&path, "test_protobuf3.Person").unwrap();
-        let expected_value = value!(read_pb_file("person_someone3.pb"));
+        let value =
+            value!({name: "Someone",phones: [{number: "123-456", type: "PHONE_TYPE_MOBILE"}]});
+        let path = test_data_dir().join("test_protobuf3/v1/test_protobuf3.desc");
+        let descriptor = get_message_descriptor(&path, "test_protobuf3.v1.Person").unwrap();
+        let expected_value = value!(read_pb_file("test_protobuf3/v1/input/person_someone.pb"));
         let encoded_value = encode_proto(&descriptor, value.clone());
         assert!(
             encoded_value.is_ok(),
@@ -539,7 +543,7 @@ mod tests {
             encoded_value.unwrap_err()
         ); // Check if the Result is Ok
         let encoded_value = encoded_value.unwrap();
-        assert_eq!(expected_value.as_bytes(), encoded_value.as_bytes());
+        assert_eq!(encoded_value.as_bytes(), expected_value.as_bytes());
 
         // Also test parse_proto.
         let parsed_value = parse_proto(&descriptor, encoded_value);
