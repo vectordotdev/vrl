@@ -1466,13 +1466,16 @@ mod tests {
 
     #[test]
     fn closure_type_state() {
-        let program = parse(r#"
+        let program = parse(
+            r#"
             v = ""
 
             for_each({}) -> |key, value| {
                 v = 0
             }
-        "#).unwrap();
+        "#,
+        )
+        .unwrap();
 
         let fns = vec![Box::new(ForEach) as Box<dyn Function>];
         let mut compiler = Compiler::new(&fns, CompileConfig::default());
