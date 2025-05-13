@@ -159,7 +159,7 @@ impl EncodedWord<'_> {
 
         // Decode
         let decoded = match self.encoding {
-            "B" | "b" => base64_simd::STANDARD_NO_PAD
+            "B" | "b" => base64_simd::STANDARD
                 .decode_to_vec(self.input.as_bytes())
                 .map_err(|_| "Unable to decode base64 value")?,
             "Q" | "q" => {

@@ -16,9 +16,12 @@ fn decode_base64(charset: Option<Value>, value: Value) -> Resolved {
         Base64Charset::UrlSafe => base64_simd::URL_SAFE_NO_PAD,
     };
 
+    // Find the start of padding char '='
+    let pos = value.iter().position(|c| *c == b'=').unwrap_or(value.len());
+
     let decoded_vec = decoder
-        .decode_to_vec(value)
-        .map_err(|_| "unable to decode value to base64")?;
+        .decode_to_vec(&value[0..pos])
+        .map_err(|_| "unable to decode value from base64")?;
 
     Ok(Value::Bytes(Bytes::from(decoded_vec)))
 }
@@ -122,7 +125,7 @@ mod test {
 
         with_defaults_invalid_value {
             args: func_args![value: value!("helloworld")],
-            want: Err("unable to decode value to base64"),
+            want: Err("unable to decode value from base64"),
             tdef: TypeDef::bytes().fallible(),
         }
 
@@ -135,6 +138,19 @@ mod test {
         empty_string_urlsafe_charset {
             args: func_args![value: value!(""), charset: value!("url_safe")],
             want: Ok(value!("")),
+            tdef: TypeDef::bytes().fallible(),
+        }
+
+        // decode_base64 function should be able to decode base64 string with or without padding
+        padding_not_included {
+            args: func_args![value: value!("c29tZSs9c3RyaW5nL3ZhbHVlXw")],
+            want: Ok(value!("some+=string/value_")),
+            tdef: TypeDef::bytes().fallible(),
+        }
+
+        padding_included {
+            args: func_args![value: value!("c29tZSs9c3RyaW5nL3ZhbHVlXw==")],
+            want: Ok(value!("some+=string/value_")),
             tdef: TypeDef::bytes().fallible(),
         }
 
