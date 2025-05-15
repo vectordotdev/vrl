@@ -36,13 +36,24 @@ jobs:
           cd vector
           git switch master
 
+          # Set new git repo and branch
           VRL_GITHUB_REPO="${{ github.event.pull_request.head.repo.full_name }}"
           VRL_GITHUB_BRANCH="${{ github.head_ref }}"
+          NEW_REPO="https://github.com/${VRL_GITHUB_REPO}.git"
+          NEW_BRANCH="${VRL_GITHUB_BRANCH}"
 
-          REPLACEMENT_LINE="vrl = { git = \"https://github.com/${VRL_GITHUB_REPO}.git\", branch = \"${VRL_GITHUB_BRANCH}\" }"
-          sed -i.bak -e "/^vrl = {/c\\
-          $REPLACEMENT_LINE
-          " Cargo.toml
+          # Extract existing features (if any)
+          FEATURES=$(sed -nE 's/.*vrl = \{[^}]*features = (\[[^]]*\]).*/\1/p' Cargo.toml)
+
+          # Compose the new dependency line
+          if [[ -n "$FEATURES" ]]; then
+            NEW_VRL_DEP_LINE="vrl = { git = \"$NEW_REPO\", branch = \"$NEW_BRANCH\", features = $FEATURES }"
+          else
+            NEW_VRL_DEP_LINE="vrl = { git = \"$NEW_REPO\", branch = \"$NEW_BRANCH\" }"
+          fi
+
+          # Replace the old vrl line
+          sed -i.bak -E "s|vrl = \{[^}]*\}|$NEW_VRL_DEP_LINE|" Cargo.toml
 
           cargo update -p vrl
 
