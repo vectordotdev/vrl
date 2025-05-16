@@ -16,8 +16,13 @@ fn decode_base64(charset: Option<Value>, value: Value) -> Resolved {
         Base64Charset::UrlSafe => base64_simd::URL_SAFE_NO_PAD,
     };
 
-    // Find the start of padding char '='
-    let pos = value.iter().position(|c| *c == b'=').unwrap_or(value.len());
+    // Find the position of padding char '='
+    let pos = value
+        .iter()
+        .rev()
+        .position(|c| *c != b'=')
+        .map(|p| value.len() - p)
+        .unwrap_or(value.len());
 
     let decoded_vec = decoder
         .decode_to_vec(&value[0..pos])
