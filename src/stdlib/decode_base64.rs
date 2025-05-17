@@ -21,8 +21,7 @@ fn decode_base64(charset: Option<Value>, value: Value) -> Resolved {
         .iter()
         .rev()
         .position(|c| *c != b'=')
-        .map(|p| value.len() - p)
-        .unwrap_or(value.len());
+        .map_or(value.len(), |p| value.len() - p);
 
     let decoded_vec = decoder
         .decode_to_vec(&value[0..pos])
