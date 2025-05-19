@@ -71,16 +71,12 @@ mod tests {
     use super::*;
     use crate::value;
 
-    use base64::Engine;
     use nom::AsBytes;
 
     fn decode_base64(text: &str) -> Vec<u8> {
-        let engine = base64::engine::GeneralPurpose::new(
-            &base64::alphabet::STANDARD,
-            base64::engine::general_purpose::GeneralPurposeConfig::new(),
-        );
-
-        engine.decode(text).expect("Cannot decode from Base64")
+        base64_simd::STANDARD
+            .decode_to_vec(text)
+            .expect("Cannot decode from Base64")
     }
 
     test_function![
