@@ -4,6 +4,26 @@
 
 <!-- changelog start -->
 
+## [0.24.0 (2025-05-19)]
+
+### Enhancements
+
+- The `encode_gzip`, `decode_gzip`, `encode_zlib` and `decode_zlib` methods now uses the [zlib-rs](https://github.com/trifectatechfoundation/zlib-rs) backend
+  which is much faster than the previous backend `miniz_oxide`.
+
+  authors: JakubOnderka (https://github.com/vectordotdev/vrl/pull/1301)
+- The `decode_base64`, `encode_base64` and `decode_mime_q` functions now use the SIMD backend
+  which is faster than the previous backend.
+
+  authors: JakubOnderka (https://github.com/vectordotdev/vrl/pull/1379)
+
+### Fixes
+
+- Add BOM stripping logic to the parse_json function.
+
+  authors: thomasqueirozb (https://github.com/vectordotdev/vrl/pull/1370)
+
+
 ## [0.23.0 (2025-04-03)]
 
 
