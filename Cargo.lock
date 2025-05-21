@@ -2935,7 +2935,7 @@ dependencies = [
 [[package]]
 name = "syslog_loose"
 version = "0.21.0"
-source = "git+https://github.com/itkovian/syslog-loose?rev=e221a9c647ee6822d39a423ef85caf30114e3923#e221a9c647ee6822d39a423ef85caf30114e3923"
+source = "git+https://github.com/itkovian/syslog-loose?rev=72bb2608ff942112d688626143b9bf8187a2f24f#72bb2608ff942112d688626143b9bf8187a2f24f"
 dependencies = [
  "chrono",
  "nom",

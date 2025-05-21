@@ -189,7 +189,7 @@ sha-2 = { package = "sha2", version = "0.10", optional = true }
 sha-3 = { package = "sha3", version = "0.10", optional = true }
 strip-ansi-escapes = { version = "0.2", optional = true }
 snap = { version = "1", optional = true }
-syslog_loose = { git = "https://github.com/itkovian/syslog-loose", rev = "e221a9c647ee6822d39a423ef85caf30114e3923", optional = true }
+syslog_loose = { git = "https://github.com/itkovian/syslog-loose", rev = "72bb2608ff942112d688626143b9bf8187a2f24f", optional = true }
 termcolor = { version = "1", optional = true }
 thiserror = { version = "2", optional = true }
 tracing = { version = "0.1", default-features = false }
