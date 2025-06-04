@@ -1,6 +1,6 @@
 use std::{
     collections::BTreeMap,
-    fmt,
+    fmt::{self, Write},
     hash::{Hash, Hasher},
     iter::IntoIterator,
     ops::Deref,
@@ -318,7 +318,7 @@ impl AsRef<str> for Ident {
 
 impl fmt::Display for Ident {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.0.fmt(f)
+        write!(f, "{}", &self.0)
     }
 }
 
@@ -357,9 +357,9 @@ impl fmt::Display for Literal {
         match self {
             String(v) => write!(f, r#""{v}""#),
             RawString(v) => write!(f, "s'{v}'"),
-            Integer(v) => v.fmt(f),
-            Float(v) => v.fmt(f),
-            Boolean(v) => v.fmt(f),
+            Integer(v) => write!(f, "{v}"),
+            Float(v) => write!(f, "{:?}", v.as_ref()),
+            Boolean(v) => write!(f, "{v}"),
             Regex(v) => write!(f, "r'{v}'"),
             Timestamp(v) => write!(f, "t'{v}'"),
             Null => f.write_str("null"),
@@ -389,9 +389,11 @@ impl fmt::Display for Container {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use Container::{Array, Block, Group, Object};
 
+        let width = f.width().unwrap_or_default() + 4;
+
         match self {
             Group(v) => v.fmt(f),
-            Block(v) => v.fmt(f),
+            Block(v) => f.write_fmt(format_args!("{:width$}", v)),
             Array(v) => v.fmt(f),
             Object(v) => v.fmt(f),
         }
@@ -442,14 +444,19 @@ impl fmt::Display for Block {
 
         let mut iter = self.0.iter().peekable();
         while let Some(expr) = iter.next() {
-            f.write_str("\t")?;
+            (0..f.width().unwrap_or_default()).try_for_each(|_| f.write_char(' '))?;
             expr.fmt(f)?;
             if iter.peek().is_some() {
                 f.write_str("\n")?;
             }
         }
 
-        f.write_str("\n}")
+        f.write_str("\n")?;
+        f.write_fmt(format_args!(
+            "{:>width$}",
+            "}",
+            width = f.width().unwrap_or(4) - 3
+        ))
     }
 }
 
@@ -622,12 +629,14 @@ impl fmt::Display for IfStatement {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str("if ")?;
         self.predicate.fmt(f)?;
+
+        let width = f.width().unwrap_or_default() + 4;
         f.write_str(" ")?;
-        self.if_node.fmt(f)?;
+        f.write_fmt(format_args!("{:width$}", self.if_node,))?;
 
         if let Some(alt) = &self.else_node {
-            f.write_str(" else")?;
-            alt.fmt(f)?;
+            f.write_str(" else ")?;
+            f.write_fmt(format_args!("{:width$}", alt))?;
         }
 
         Ok(())
@@ -693,7 +702,13 @@ pub struct Op(pub Box<Node<Expr>>, pub Node<Opcode>, pub Box<Node<Expr>>);
 
 impl fmt::Display for Op {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{} {} {}", self.0, self.1, self.2)
+        f.write_fmt(format_args!(
+            "{:width$} {:width$} {:width$}",
+            self.0,
+            self.1,
+            self.2,
+            width = f.width().unwrap_or_default()
+        ))
     }
 }
 
@@ -724,7 +739,7 @@ pub enum Opcode {
 
 impl fmt::Display for Opcode {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.as_str().fmt(f)
+        write!(f, "{}", self.as_str())
     }
 }
 
@@ -848,9 +863,12 @@ impl fmt::Display for Assignment {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use Assignment::{Infallible, Single};
 
+        let width = f.width().unwrap_or_default();
         match self {
-            Single { target, op, expr } => write!(f, "{target} {op} {expr}"),
-            Infallible { ok, err, op, expr } => write!(f, "{ok}, {err} {op} {expr}"),
+            Single { target, op, expr } => f.write_fmt(format_args!("{target} {op} {expr:width$}")),
+            Infallible { ok, err, op, expr } => {
+                f.write_fmt(format_args!("{ok}, {err} {op} {expr:width$}"))
+            }
         }
     }
 }
@@ -951,7 +969,14 @@ pub struct Query {
 
 impl fmt::Display for Query {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}{}", self.target, self.path)
+        let target = format!("{}", self.target);
+        let path = format!("{}", self.path);
+
+        if target == "." && path.starts_with(".") {
+            write!(f, "{path}")
+        } else {
+            write!(f, "{target}{path}")
+        }
     }
 }
 
@@ -1020,6 +1045,9 @@ pub struct FunctionCall {
 impl fmt::Display for FunctionCall {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.ident.fmt(f)?;
+        if self.abort_on_error {
+            f.write_str("!")?;
+        }
         f.write_str("(")?;
 
         let mut iter = self.arguments.iter().peekable();
@@ -1034,7 +1062,6 @@ impl fmt::Display for FunctionCall {
         f.write_str(")")?;
 
         if let Some(closure) = &self.closure {
-            f.write_str(" ")?;
             closure.fmt(f)?;
         }
 
@@ -1110,7 +1137,7 @@ pub struct FunctionClosure {
 
 impl fmt::Display for FunctionClosure {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str("-> |")?;
+        f.write_str(" -> |")?;
 
         let mut iter = self.variables.iter().peekable();
         while let Some(var) = iter.next() {
@@ -1121,18 +1148,10 @@ impl fmt::Display for FunctionClosure {
             }
         }
 
-        f.write_str("| {\n")?;
+        f.write_str("| ")?;
 
-        let mut iter = self.block.0.iter().peekable();
-        while let Some(expr) = iter.next() {
-            f.write_str("\t")?;
-            expr.fmt(f)?;
-            if iter.peek().is_some() {
-                f.write_str("\n")?;
-            }
-        }
-
-        f.write_str("\n}")
+        let width = f.width().unwrap_or_default() + 4;
+        f.write_fmt(format_args!("{:width$}", self.block))
     }
 }
 
@@ -1194,7 +1213,8 @@ impl Not {
 
 impl fmt::Display for Not {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "!{}", self.1)
+        let width = f.width().unwrap_or_default();
+        write!(f, "!{:width$}", self.1)
     }
 }
 
@@ -1219,7 +1239,7 @@ impl fmt::Display for Abort {
             &self
                 .message
                 .as_ref()
-                .map_or_else(|| "abort".to_owned(), |m| format!("abort: {m}")),
+                .map_or_else(|| "abort".to_owned(), |m| format!("abort {m}")),
         )
     }
 }
