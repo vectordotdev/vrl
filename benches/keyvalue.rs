@@ -1,9 +1,10 @@
+use std::hint::black_box;
 use std::time::Duration;
 
 use bytes::Bytes;
 use criterion::{
-    black_box, criterion_group, criterion_main, measurement::WallTime, BatchSize, BenchmarkGroup,
-    Criterion, SamplingMode,
+    criterion_group, criterion_main, measurement::WallTime, BatchSize, BenchmarkGroup, Criterion,
+    SamplingMode,
 };
 use vrl::datadog_grok::filters::keyvalue::{self, KeyValueFilter};
 use vrl::value::Value;
