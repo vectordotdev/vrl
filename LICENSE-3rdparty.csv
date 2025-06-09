@@ -5,6 +5,7 @@ aead,https://github.com/RustCrypto/traits,MIT OR Apache-2.0,RustCrypto Developer
 aes,https://github.com/RustCrypto/block-ciphers,MIT OR Apache-2.0,RustCrypto Developers
 aes-siv,https://github.com/RustCrypto/AEADs,Apache-2.0 OR MIT,RustCrypto Developers
 aho-corasick,https://github.com/BurntSushi/aho-corasick,Unlicense OR MIT,Andrew Gallant <jamslam@gmail.com>
+allocator-api2,https://github.com/zakarumych/allocator-api2,MIT OR Apache-2.0,Zakarum <zaq.dev@icloud.com>
 android-tzdata,https://github.com/RumovZ/android-tzdata,MIT OR Apache-2.0,RumovZ
 android_system_properties,https://github.com/nical/android_system_properties,MIT OR Apache-2.0,Nicolas Silva <nical@fastmail.com>
 ansi_term,https://github.com/ogham/rust-ansi-term,MIT,"ogham@bsago.me, Ryan Scheel (Havvy) <ryan.havvy@gmail.com>, Josh Triplett <josh@joshtriplett.org>"
