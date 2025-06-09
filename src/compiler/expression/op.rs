@@ -115,7 +115,7 @@ impl Expression for Op {
                 };
             }
             _ => (),
-        };
+        }
 
         let lhs = self.lhs.resolve(ctx)?;
         let rhs = self.rhs.resolve(ctx)?;

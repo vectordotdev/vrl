@@ -364,26 +364,24 @@ impl Target {
                 state.local.insert_variable(ident.clone(), details);
             }
 
-            Self::External(target_path) => {
-                match target_path.prefix {
-                    PathPrefix::Event => {
-                        state.external.update_target(Details {
-                            type_def: state
-                                .external
-                                .target()
-                                .type_def
-                                .clone()
-                                .with_type_inserted(&target_path.path, new_type_def),
-                            value,
-                        });
-                    }
-                    PathPrefix::Metadata => {
-                        let mut kind = state.external.metadata_kind().clone();
-                        kind.insert(&target_path.path, new_type_def.kind().clone());
-                        state.external.update_metadata(kind);
-                    }
-                };
-            }
+            Self::External(target_path) => match target_path.prefix {
+                PathPrefix::Event => {
+                    state.external.update_target(Details {
+                        type_def: state
+                            .external
+                            .target()
+                            .type_def
+                            .clone()
+                            .with_type_inserted(&target_path.path, new_type_def),
+                        value,
+                    });
+                }
+                PathPrefix::Metadata => {
+                    let mut kind = state.external.metadata_kind().clone();
+                    kind.insert(&target_path.path, new_type_def.kind().clone());
+                    state.external.update_metadata(kind);
+                }
+            },
         }
     }
 
@@ -397,7 +395,7 @@ impl Target {
                 // without any path appended and return early.
                 if path.is_root() {
                     return ctx.state_mut().insert_variable(ident.clone(), value);
-                };
+                }
 
                 // Update existing variable using the provided path, or create a
                 // new value in the store.
@@ -723,7 +721,7 @@ impl DiagnosticMessage for Error {
                             self.expr_span,
                         ));
                     }
-                };
+                }
 
                 labels.extend(vec![
                     Label::context(

@@ -251,7 +251,7 @@ impl<'input> Lexer<'input> {
                     return Some(Ok((start, LQuery, start + 1)));
                 }
                 Ok(false) => {}
-            };
+            }
 
             // Check if we need to emit a `RQuery` token.
             //
@@ -698,7 +698,7 @@ impl<'input> Lexer<'input> {
             Token::LBracket => self.open_brackets += 1,
             Token::LBrace => self.open_braces += 1,
             _ => {}
-        };
+        }
 
         self.token(start, token)
     }
@@ -709,7 +709,7 @@ impl<'input> Lexer<'input> {
             Token::RBracket => self.open_brackets = self.open_brackets.saturating_sub(1),
             Token::RBrace => self.open_braces = self.open_braces.saturating_sub(1),
             _ => {}
-        };
+        }
 
         self.token(start, token)
     }
@@ -971,7 +971,7 @@ impl<'input> Lexer<'input> {
                             if c == end_delim {
                                 skip_delim -= 1;
                             }
-                        };
+                        }
                     }
                 }
                 '.' | '%' if last_char.is_none() => valid = true,
@@ -1047,7 +1047,7 @@ impl<'input> Lexer<'input> {
                     return Ok((start, token, end));
                 }
                 _ => break,
-            };
+            }
         }
 
         Err(Error::StringLiteral { start })

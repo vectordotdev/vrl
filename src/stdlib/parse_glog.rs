@@ -29,7 +29,7 @@ fn parse_glog(bytes: Value) -> Resolved {
                 log.insert("timestamp".into(), Value::Timestamp(utc_dt));
             }
             Err(e) => return Err(format!("failed parsing timestamp {timestamp}: {e}").into()),
-        };
+        }
     }
     if let Some(id) = captures.name("id").map(|capture| capture.as_str()) {
         log.insert(

@@ -238,35 +238,35 @@ impl Kind {
     pub fn is_superset(&self, other: &Self) -> Result<(), OwnedValuePath> {
         if let (None, Some(())) = (self.bytes, other.bytes) {
             return Err(OwnedValuePath::root());
-        };
+        }
 
         if let (None, Some(())) = (self.integer, other.integer) {
             return Err(OwnedValuePath::root());
-        };
+        }
 
         if let (None, Some(())) = (self.float, other.float) {
             return Err(OwnedValuePath::root());
-        };
+        }
 
         if let (None, Some(())) = (self.boolean, other.boolean) {
             return Err(OwnedValuePath::root());
-        };
+        }
 
         if let (None, Some(())) = (self.timestamp, other.timestamp) {
             return Err(OwnedValuePath::root());
-        };
+        }
 
         if let (None, Some(())) = (self.regex, other.regex) {
             return Err(OwnedValuePath::root());
-        };
+        }
 
         if let (None, Some(())) = (self.null, other.null) {
             return Err(OwnedValuePath::root());
-        };
+        }
 
         if let (None, Some(())) = (self.undefined, other.undefined) {
             return Err(OwnedValuePath::root());
-        };
+        }
 
         match (self.array.as_ref(), other.array.as_ref()) {
             (None, Some(_)) => return Err(OwnedValuePath::root()),
@@ -274,13 +274,13 @@ impl Kind {
                 lhs.is_superset(rhs)?;
             }
             _ => {}
-        };
+        }
 
         match (self.object.as_ref(), other.object.as_ref()) {
             (None, Some(_)) => return Err(OwnedValuePath::root()),
             (Some(lhs), Some(rhs)) => lhs.is_superset(rhs)?,
             _ => {}
-        };
+        }
 
         Ok(())
     }

@@ -27,7 +27,7 @@ impl Kind {
             (None, rhs @ Some(_)) => self.object = rhs,
             (Some(lhs), Some(rhs)) => lhs.merge(rhs, overwrite),
             _ => {}
-        };
+        }
     }
 
     /// Returns the union of self and other.
