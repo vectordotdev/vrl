@@ -382,7 +382,7 @@ impl Target {
                         kind.insert(&target_path.path, new_type_def.kind().clone());
                         state.external.update_metadata(kind);
                     }
-                };
+                }
             }
         }
     }
@@ -397,7 +397,7 @@ impl Target {
                 // without any path appended and return early.
                 if path.is_root() {
                     return ctx.state_mut().insert_variable(ident.clone(), value);
-                };
+                }
 
                 // Update existing variable using the provided path, or create a
                 // new value in the store.
@@ -723,7 +723,7 @@ impl DiagnosticMessage for Error {
                             self.expr_span,
                         ));
                     }
-                };
+                }
 
                 labels.extend(vec![
                     Label::context(

@@ -183,7 +183,7 @@ impl Kind {
                         .insert_recursive(iter, kind);
                 }
                 BorrowedSegment::Invalid => { /* An invalid path does nothing. */ }
-            };
+            }
         } else {
             *self = kind;
         }

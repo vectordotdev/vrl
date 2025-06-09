@@ -249,39 +249,39 @@ impl Infinite {
     pub(super) const fn is_superset(&self, other: &Self) -> bool {
         if let (None, Some(())) = (self.bytes, other.bytes) {
             return false;
-        };
+        }
 
         if let (None, Some(())) = (self.integer, other.integer) {
             return false;
-        };
+        }
 
         if let (None, Some(())) = (self.float, other.float) {
             return false;
-        };
+        }
 
         if let (None, Some(())) = (self.boolean, other.boolean) {
             return false;
-        };
+        }
 
         if let (None, Some(())) = (self.timestamp, other.timestamp) {
             return false;
-        };
+        }
 
         if let (None, Some(())) = (self.regex, other.regex) {
             return false;
-        };
+        }
 
         if let (None, Some(())) = (self.null, other.null) {
             return false;
-        };
+        }
 
         if let (None, Some(())) = (self.array, other.array) {
             return false;
-        };
+        }
 
         if let (None, Some(())) = (self.object, other.object) {
             return false;
-        };
+        }
 
         true
     }

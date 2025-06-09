@@ -59,7 +59,7 @@ pub fn to_string<V: Serialize>(
                 encode_field(&mut output, field, &value.to_string(), key_value_delimiter);
                 output.push_str(field_delimiter);
             }
-        };
+        }
     }
 
     for (key, value) in &input {
@@ -73,7 +73,7 @@ pub fn to_string<V: Serialize>(
                 encode_field(&mut output, key, &value.to_string(), key_value_delimiter);
                 output.push_str(field_delimiter);
             }
-        };
+        }
     }
 
     if output.ends_with(field_delimiter) {

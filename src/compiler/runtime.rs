@@ -112,7 +112,7 @@ impl Runtime {
                     format!("error querying target object: {err}").into(),
                 ))
             }
-        };
+        }
 
         let mut ctx = Context::new(target, &mut self.state, timezone);
 
