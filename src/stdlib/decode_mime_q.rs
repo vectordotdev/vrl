@@ -172,7 +172,7 @@ impl EncodedWord<'_> {
                     quoted_printable::decode(trimmed, quoted_printable::ParseMode::Robust);
                 if let Ok(ref mut d) = result {
                     if to_decode.len() != trimmed.len() {
-                        d.extend_from_slice(to_decode[trimmed.len()..].as_bytes());
+                        d.extend_from_slice(&to_decode.as_bytes()[trimmed.len()..]);
                     }
                 }
                 result.map_err(|_| "Unable to decode quoted_printable value")?
