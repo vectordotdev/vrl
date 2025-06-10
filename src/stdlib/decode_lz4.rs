@@ -1,14 +1,29 @@
 use crate::compiler::prelude::*;
 use lz4_flex::block::decompress_size_prepended;
+use lz4_flex::frame::FrameDecoder;
 use nom::AsBytes;
 
 fn decode_lz4(value: Value) -> Resolved {
-    let value = value.try_bytes()?;
-    let result = decompress_size_prepended(value.as_bytes());
+    const FRAME_MAGIC_LE: [u8; 4] = [0x04, 0x22, 0x4D, 0x18];
 
-    match result {
-        Ok(buf) => Ok(Value::Bytes(buf.into())),
-        Err(_) => Err("unable to decode value with lz4 decoder".into()),
+    let value = value.try_bytes()?;
+
+    // evaluate if value is lz4 frame encoded by checking the magic number.
+    if value.starts_with(&FRAME_MAGIC_LE) {
+        let mut buf = Vec::new();
+        let mut decoder = FrameDecoder::new(std::io::Cursor::new(value));
+        let result = std::io::copy(&mut decoder, &mut buf);
+        match result {
+            Ok(_) => Ok(Value::Bytes(buf.into())),
+            Err(_) => Err("unable to decode value with lz4 decoder".into()),
+        }
+    } else {
+        // value is not lz4 frame encoded, use block decompressor.
+        let result = decompress_size_prepended(value.as_bytes());
+        match result {
+            Ok(buf) => Ok(Value::Bytes(buf.into())),
+            Err(_) => Err("unable to decode value with lz4 decoder".into()),
+        }
     }
 }
 
@@ -82,8 +97,14 @@ mod tests {
     test_function![
         decode_lz4 => DecodeLz4;
 
-        right_lz4 {
+        right_lz4_block {
             args: func_args![value: value!(decode_base64("LAAAAPAdVGhlIHF1aWNrIGJyb3duIGZveCBqdW1wcyBvdmVyIDEzIGxhenkgZG9ncy4=").as_bytes())],
+            want: Ok(value!(b"The quick brown fox jumps over 13 lazy dogs.")),
+            tdef: TypeDef::bytes().fallible(),
+        }
+
+        right_lz4_frame {
+            args: func_args![value: value!(decode_base64("BCJNGGBAgiwAAIBUaGUgcXVpY2sgYnJvd24gZm94IGp1bXBzIG92ZXIgMTMgbGF6eSBkb2dzLgAAAAA=").as_bytes())],
             want: Ok(value!(b"The quick brown fox jumps over 13 lazy dogs.")),
             tdef: TypeDef::bytes().fallible(),
         }
