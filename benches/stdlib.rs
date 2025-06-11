@@ -56,7 +56,6 @@ criterion_group!(
               get_env_var,
               get_hostname,
               get_timezone_name,
-              http_request,
               includes,
               int,
               ip_aton,
@@ -682,18 +681,6 @@ bench_function! {
     get {
         args: func_args![],
         want: Ok(vrl::stdlib::get_name_for_timezone(&vrl::compiler::TimeZone::Named(chrono_tz::Tz::UTC))),
-    }
-}
-
-bench_function! {
-    http_request => vrl::stdlib::HttpRequest;
-
-    http_request {
-        args: func_args![
-            url: value!("https://httpbin.org/bearer"),
-            headers: value!({"accept": "application/json", "Authorization": "Bearer my_token"})
-        ],
-        want: Ok(r#"{"authenticated": true, "token": "my_token"}"#),
     }
 }
 

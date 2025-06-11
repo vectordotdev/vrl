@@ -15,7 +15,7 @@ use reqwest_middleware::{
 };
 use reqwest_retry::{policies::ExponentialBackoff, RetryTransientMiddleware};
 use std::sync::LazyLock;
-use tokio::runtime::{Handle, Runtime};
+use tokio::runtime::Handle;
 use tokio::task;
 use tokio::time::Duration;
 
@@ -159,14 +159,7 @@ impl FunctionExpression for HttpRequestFn {
         // without blocking Tokio's async worker threads.
         // This temporarily moves execution to a blocking-compatible thread.
         task::block_in_place(|| {
-            if let Ok(handle) = Handle::try_current() {
-                // Use the existing Tokio runtime
-                handle.block_on(async { http_request(&url, &method, headers).await })
-            } else {
-                // Create a new Tokio runtime as a fallback
-                let runtime = Runtime::new().expect("Failed to create Tokio runtime");
-                runtime.block_on(async { http_request(&url, &method, headers).await })
-            }
+            Handle::current().block_on(async { http_request(&url, &method, headers).await })
         })
     }
 
