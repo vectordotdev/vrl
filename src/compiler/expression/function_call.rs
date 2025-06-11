@@ -239,7 +239,7 @@ impl<'a> Builder<'a> {
                         // This means the closure can't act on the input
                         // definition, so we continue on to the next. If no
                         // input definitions are valid, the closure is invalid.
-                        None => continue,
+                        None => (),
 
                         // We've found the function argument over which the
                         // closure is going to resolve. We need to ensure the
@@ -261,7 +261,7 @@ impl<'a> Builder<'a> {
                             matched = Some((input, expr));
                             break;
                         }
-                    };
+                    }
                 }
 
                 // None of the inputs matched the value type, this is a user error.

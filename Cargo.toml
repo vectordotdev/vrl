@@ -1,6 +1,6 @@
 [package]
 name = "vrl"
-version = "0.22.0"
+version = "0.24.0"
 authors = ["Vector Contributors <vector@datadoghq.com>"]
 edition = "2021"
 license = "MPL-2.0"
@@ -10,7 +10,7 @@ repository = "https://github.com/vectordotdev/vrl"
 readme = "README.md"
 keywords = ["vector", "datadog", "compiler"]
 categories = ["compilers"]
-rust-version = "1.81" # msrv
+rust-version = "1.82" # msrv
 
 [workspace]
 members = [
@@ -64,7 +64,7 @@ stdlib = [
   "dep:aes-siv",
   "dep:base16",
   "dep:base62",
-  "dep:base64",
+  "dep:base64-simd",
   "dep:cbc",
   "dep:cfb-mode",
   "dep:chacha20poly1305",
@@ -77,7 +77,6 @@ stdlib = [
   "dep:crypto_secretbox",
   "dep:csv",
   "dep:ctr",
-  "dep:data-encoding",
   "dep:digest",
   "dep:domain",
   "dep:dns-lookup",
@@ -112,7 +111,7 @@ stdlib = [
   "dep:strip-ansi-escapes",
   "dep:syslog_loose",
   "dep:tokio",
-  "dep:uaparser",
+  "dep:ua-parser",
   "dep:url",
   "dep:utf8-width",
   "dep:uuid",
@@ -129,7 +128,7 @@ ansi_term = { version = "0.12", optional = true }
 arbitrary = { version = "1", optional = true, features = ["derive"] }
 base16 = { version = "0.2", optional = true }
 base62 = { version = "2.2.1", optional = true }
-base64 = { version = "0.22", optional = true }
+base64-simd = { version = "0.8", optional = true }
 bytes = { version = "1", default-features = false, optional = true }
 charset = { version = "0.1", optional = true }
 encoding_rs = { version = "0.8.35", optional = true }
@@ -141,12 +140,11 @@ csv = { version = "1", optional = true }
 clap.workspace = true
 codespan-reporting = { version = "0.12", optional = true }
 convert_case = { version = "0.7.1", optional = true }
-crc = { version = "3.2.1", optional = true }
-data-encoding = { version = "2", optional = true }
+crc = { version = "3.3.0", optional = true }
 digest = { version = "0.10", optional = true }
 dyn-clone = { version = "1", default-features = false, optional = true }
 exitcode = { version = "1", optional = true }
-flate2 = { version = "1", default-features = false, features = ["default"], optional = true }
+flate2 = { version = "1.1.2", default-features = false, features = ["zlib-rs"], optional = true }
 hex = { version = "0.4", optional = true }
 hmac = { version = "0.12", optional = true }
 iana-time-zone = { version = "0.1", optional = true }
@@ -177,7 +175,7 @@ publicsuffix = { version = "2", optional = true }
 rand = { version = "0.8", optional = true }
 regex = { version = "1", default-features = false, optional = true, features = ["std", "perf", "unicode"] }
 roxmltree = { version = "0.20", optional = true }
-rustyline = { version = "15", default-features = false, optional = true }
+rustyline = { version = "16", default-features = false, optional = true }
 rust_decimal = { version = "1", optional = true, default-features = false }
 seahash = { version = "4", optional = true }
 serde = { version = "1", features = ["derive"], optional = true }
@@ -193,7 +191,7 @@ syslog_loose = { version = "0.21", optional = true }
 termcolor = { version = "1", optional = true }
 thiserror = { version = "2", optional = true }
 tracing = { version = "0.1", default-features = false }
-uaparser = { version = "0.6", default-features = false, optional = true }
+ua-parser = { version = "0.2", optional = true }
 utf8-width = { version = "0.1", optional = true }
 url = { version = "2", optional = true }
 snafu = { version = "0.8", optional = true }
@@ -219,6 +217,7 @@ ofb = { version = "0.6", optional = true }
 prost = { version = "0.13", default-features = false, optional = true, features = ["std"] }
 prost-reflect = { version = "0.14", default-features = false, optional = true }
 unicode-segmentation = "1.12.0"
+lz4_flex = "0.11.3"
 
 # HTTP support
 reqwest = { version = "0.12.4" }
@@ -228,11 +227,11 @@ reqwest-retry = "0.7.0"
 # Dependencies used for non-WASM
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 dns-lookup = { version = "2", optional = true }
-domain = { version = "0.10.3", optional = true, features = ["resolv-sync", "serde"] }
+domain = { version = "0.11.0", optional = true, features = ["resolv-sync", "serde"] }
 hostname = { version = "0.4", optional = true }
-grok = { version = "2", optional = true }
+grok = { version = "2.1", optional = true }
 onig = { version = "6", default-features = false, optional = true }
-tokio = { version = "1.44", optional = true, features = ["io-util", "macros", "net", "time", "sync", "rt", "rt-multi-thread"] }
+tokio = { version = "1.45", optional = true, features = ["io-util", "macros", "net", "time", "sync", "rt", "rt-multi-thread"] }
 uuid = { version = "1", features = ["v4", "v7"], optional = true }
 
 # Dependencies used for WASM
@@ -241,7 +240,7 @@ uuid = { version = "1", features = ["v4", "v7", "js"], optional = true }
 
 [dev-dependencies]
 anyhow = "1"
-criterion = "0.5"
+criterion = "0.6"
 chrono-tz = "0.10"
 serde_json = "1"
 indoc = "2"
@@ -255,6 +254,8 @@ proptest-derive = { version = "0.5" }
 
 [build-dependencies]
 lalrpop = { version = "0.22", default-features = false }
+serde_yaml = "0.9.34"
+ua-parser = { version = "0.2" }
 
 [[bench]]
 name = "kind"

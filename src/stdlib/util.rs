@@ -81,38 +81,18 @@ pub(crate) fn is_nullish(value: &Value) -> bool {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Base64Charset {
+    #[default]
     Standard,
     UrlSafe,
 }
 
-impl Default for Base64Charset {
-    fn default() -> Self {
-        Self::Standard
-    }
-}
-
-impl From<Base64Charset> for base64::alphabet::Alphabet {
-    fn from(charset: Base64Charset) -> base64::alphabet::Alphabet {
-        use Base64Charset::{Standard, UrlSafe};
-
-        match charset {
-            Standard => base64::alphabet::STANDARD,
-            UrlSafe => base64::alphabet::URL_SAFE,
-        }
-    }
-}
-
-impl std::str::FromStr for Base64Charset {
-    type Err = &'static str;
-
-    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
-        use Base64Charset::{Standard, UrlSafe};
-
-        match s {
-            "standard" => Ok(Standard),
-            "url_safe" => Ok(UrlSafe),
+impl Base64Charset {
+    pub(super) fn from_slice(bytes: &[u8]) -> Result<Self, &'static str> {
+        match bytes {
+            b"standard" => Ok(Self::Standard),
+            b"url_safe" => Ok(Self::UrlSafe),
             _ => Err("unknown charset"),
         }
     }

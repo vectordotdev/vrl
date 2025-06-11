@@ -6,10 +6,14 @@ where
 {
     for item in value.into_iter(false) {
         match item {
-            IterItem::KeyValue(key, value) => runner.run_key_value(ctx, key, value)?,
-            IterItem::IndexValue(index, value) => runner.run_index_value(ctx, index, value)?,
-            IterItem::Value(_) => continue,
-        };
+            IterItem::KeyValue(key, value) => {
+                runner.run_key_value(ctx, key, value)?;
+            }
+            IterItem::IndexValue(index, value) => {
+                runner.run_index_value(ctx, index, value)?;
+            }
+            IterItem::Value(_) => {}
+        }
     }
 
     Ok(Value::Null)

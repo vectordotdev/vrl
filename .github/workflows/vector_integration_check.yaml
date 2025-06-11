@@ -1,0 +1,64 @@
+name: Vector Integration Check
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  check-vector:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout VRL
+        uses: actions/checkout@v4
+        with:
+          path: vrl
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Install protoc
+        uses: arduino/setup-protoc@v3
+
+      - name: Install system packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends \
+            build-essential \
+            cmake \
+            libclang-dev \
+            libsasl2-dev \
+            libssl-dev \
+            llvm \
+            pkg-config
+
+      - name: Clone Vector repo and update VRL dependency
+        run: |
+          git clone https://github.com/vectordotdev/vector.git
+          cd vector
+          git switch master
+
+          # Set new git repo and branch
+          VRL_GITHUB_REPO="${{ github.event.pull_request.head.repo.full_name }}"
+          VRL_GITHUB_BRANCH="${{ github.head_ref }}"
+          NEW_REPO="https://github.com/${VRL_GITHUB_REPO}.git"
+          NEW_BRANCH="${VRL_GITHUB_BRANCH}"
+
+          # Extract existing features (if any)
+          FEATURES=$(sed -nE 's/.*vrl = \{[^}]*features = (\[[^]]*\]).*/\1/p' Cargo.toml)
+
+          # Compose the new dependency line
+          if [[ -n "$FEATURES" ]]; then
+            NEW_VRL_DEP_LINE="vrl = { git = \"$NEW_REPO\", branch = \"$NEW_BRANCH\", features = $FEATURES }"
+          else
+            NEW_VRL_DEP_LINE="vrl = { git = \"$NEW_REPO\", branch = \"$NEW_BRANCH\" }"
+          fi
+
+          # Replace the old vrl line
+          sed -i.bak -E "s|vrl = \{[^}]*\}|$NEW_VRL_DEP_LINE|" Cargo.toml
+
+          cargo update -p vrl
+
+      - name: Cargo Check Vector
+        run: |
+          cd vector
+          cargo update -p vrl
+          cargo check --workspace

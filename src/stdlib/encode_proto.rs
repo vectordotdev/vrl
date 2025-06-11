@@ -15,13 +15,13 @@ pub struct EncodeProto;
 // and the file path needs to be a literal.
 static EXAMPLE_ENCODE_PROTO_EXPR: LazyLock<&str> = LazyLock::new(|| {
     let path = PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap())
-        .join("tests/data/protobuf/test_protobuf.desc")
+        .join("../../tests/data/protobuf/test_protobuf/v1/test_protobuf.desc")
         .display()
         .to_string();
 
     Box::leak(
         format!(
-            r#"encode_base64(encode_proto!({{ "name": "someone", "phones": [{{"number": "123456"}}]}}, "{path}", "test_protobuf.Person"))"#
+            r#"encode_base64(encode_proto!({{ "name": "someone", "phones": [{{"number": "123456"}}]}}, "{path}", "test_protobuf.v1.Person"))"#
         )
         .into_boxed_str(),
     )
@@ -134,18 +134,19 @@ mod tests {
         encode_proto => EncodeProto;
 
         encodes {
-            args: func_args![ value: value!({ name: "someone", phones: [{number: "123456"}] }),
-                desc_file: test_data_dir().join("test_protobuf.desc").to_str().unwrap().to_owned(),
-                message_type: "test_protobuf.Person"],
-            want: Ok(value!(read_pb_file("person_someone.pb"))),
+            args: func_args![ value: value!({ name: "Someone", phones: [{number: "123-456"}] }),
+                desc_file: test_data_dir().join("test_protobuf/v1/test_protobuf.desc").to_str().unwrap().to_owned(),
+                message_type: "test_protobuf.v1.Person"],
+            want: Ok(value!(read_pb_file("test_protobuf/v1/input/person_someone.pb"))),
             tdef: TypeDef::bytes().fallible(),
         }
 
         encodes_proto3 {
-            args: func_args![ value: value!({ data: {data_phone: "HOME"}, name: "someone", phones: [{number: "1234", type: "MOBILE"}] }),
-                desc_file: test_data_dir().join("test_protobuf3.desc").to_str().unwrap().to_owned(),
-                message_type: "test_protobuf3.Person"],
-            want: Ok(value!(read_pb_file("person_someone3.pb"))),
+            args: func_args![
+                value: value!({ name: "Someone", phones: [{number: "123-456", type: "PHONE_TYPE_MOBILE"}] }),
+                desc_file: test_data_dir().join("test_protobuf3/v1/test_protobuf3.desc").to_str().unwrap().to_owned(),
+                message_type: "test_protobuf3.v1.Person"],
+            want: Ok(value!(read_pb_file("test_protobuf3/v1/input/person_someone.pb"))),
             tdef: TypeDef::bytes().fallible(),
         }
     ];

@@ -162,7 +162,7 @@ impl<'a> Iterator for ValueIter<'a> {
             };
 
             *value = (*self.recursive_iter.take().unwrap()).into();
-        };
+        }
 
         // If we got here, we are either done with recursively iterating the
         // active value, or we haven't started recursively iterating yet (which

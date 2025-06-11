@@ -18,7 +18,7 @@ use std::{
     str::{Chars, FromStr},
 };
 
-pub(crate) fn parse_key_value(
+pub fn parse_key_value(
     bytes: &Value,
     key_value_delimiter: &Value,
     field_delimiter: &Value,

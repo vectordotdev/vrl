@@ -1,5 +1,4 @@
 use charset::Charset;
-use data_encoding::BASE64_MIME;
 use nom::{
     branch::alt,
     bytes::complete::{tag, take_until, take_until1},
@@ -160,8 +159,8 @@ impl EncodedWord<'_> {
 
         // Decode
         let decoded = match self.encoding {
-            "B" | "b" => BASE64_MIME
-                .decode(self.input.as_bytes())
+            "B" | "b" => base64_simd::STANDARD
+                .decode_to_vec(self.input.as_bytes())
                 .map_err(|_| "Unable to decode base64 value")?,
             "Q" | "q" => {
                 // The quoted_printable module does a trim_end on the input, so if
@@ -173,7 +172,7 @@ impl EncodedWord<'_> {
                     quoted_printable::decode(trimmed, quoted_printable::ParseMode::Robust);
                 if let Ok(ref mut d) = result {
                     if to_decode.len() != trimmed.len() {
-                        d.extend_from_slice(to_decode[trimmed.len()..].as_bytes());
+                        d.extend_from_slice(&to_decode.as_bytes()[trimmed.len()..]);
                     }
                 }
                 result.map_err(|_| "Unable to decode quoted_printable value")?

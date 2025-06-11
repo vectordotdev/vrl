@@ -6,14 +6,15 @@ use serde_json::{
 };
 
 use crate::compiler::prelude::*;
+use crate::stdlib::json_utils::bom::StripBomFromUTF8;
 use crate::stdlib::json_utils::json_type_def::json_type_def;
 
 fn parse_json(value: Value, lossy: Option<Value>) -> Resolved {
     let lossy = lossy.map(Value::try_boolean).transpose()?.unwrap_or(true);
     Ok(if lossy {
-        serde_json::from_str(&value.try_bytes_utf8_lossy()?)
+        serde_json::from_str(value.try_bytes_utf8_lossy()?.strip_bom())
     } else {
-        serde_json::from_slice(&value.try_bytes()?)
+        serde_json::from_slice(value.try_bytes()?.strip_bom())
     }
     .map_err(|e| format!("unable to parse json: {e}"))?)
 }
@@ -343,6 +344,19 @@ mod tests {
         invalid_utf8_json_lossy_arg_false {
             args: func_args![ value: Bytes::from_static(&[0x22,0xf5,0x22]), lossy: false],
             want: Err("unable to parse json: invalid unicode code point at line 1 column 3"),
+            tdef: json_type_def(),
+        }
+
+        json_bom {
+            // 0xef,0xbb,0xbf are the UTF-8 BOM markers and 0x7b,0x7d are just {}
+            args: func_args![ value: Bytes::from_static(&[0xef,0xbb,0xbf,0x7b,0x7d]), lossy: false],
+            want: Ok(value!({})),
+            tdef: json_type_def(),
+        }
+
+        json_bom_lossy {
+            args: func_args![ value: Bytes::from_static(&[0xef,0xbb,0xbf,0x7b,0x7d]), lossy: true],
+            want: Ok(value!({})),
             tdef: json_type_def(),
         }
     ];

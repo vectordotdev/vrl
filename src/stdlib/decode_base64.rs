@@ -1,29 +1,33 @@
 use crate::compiler::prelude::*;
-use base64::Engine as _;
-use std::str::FromStr;
-
-use super::util::Base64Charset;
+use crate::stdlib::util::Base64Charset;
 
 fn decode_base64(charset: Option<Value>, value: Value) -> Resolved {
+    let value = value.try_bytes()?;
     let charset = charset
         .map(Value::try_bytes)
         .transpose()?
-        .map(|c| Base64Charset::from_str(&String::from_utf8_lossy(&c)))
+        .as_deref()
+        .map(Base64Charset::from_slice)
         .transpose()?
         .unwrap_or_default();
-    let alphabet = match charset {
-        Base64Charset::Standard => base64::alphabet::STANDARD,
-        Base64Charset::UrlSafe => base64::alphabet::URL_SAFE,
-    };
-    let value = value.try_bytes()?;
-    let config = base64::engine::general_purpose::GeneralPurposeConfig::new()
-        .with_decode_padding_mode(base64::engine::DecodePaddingMode::Indifferent);
-    let engine = base64::engine::GeneralPurpose::new(&alphabet, config);
 
-    match engine.decode(value) {
-        Ok(s) => Ok(Value::from(Bytes::from(s))),
-        Err(_) => Err("unable to decode value to base64".into()),
-    }
+    let decoder = match charset {
+        Base64Charset::Standard => base64_simd::STANDARD_NO_PAD,
+        Base64Charset::UrlSafe => base64_simd::URL_SAFE_NO_PAD,
+    };
+
+    // Find the position of padding char '='
+    let pos = value
+        .iter()
+        .rev()
+        .position(|c| *c != b'=')
+        .map_or(value.len(), |p| value.len() - p);
+
+    let decoded_vec = decoder
+        .decode_to_vec(&value[0..pos])
+        .map_err(|_| "unable to decode value from base64")?;
+
+    Ok(Value::Bytes(Bytes::from(decoded_vec)))
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -117,6 +121,18 @@ mod test {
             tdef: TypeDef::bytes().fallible(),
         }
 
+        with_invalid_charset {
+            args: func_args![value: value!("c29tZSs9c3RyaW5nL3ZhbHVl"), charset: value!("invalid")],
+            want: Err("unknown charset"),
+            tdef: TypeDef::bytes().fallible(),
+        }
+
+        with_defaults_invalid_value {
+            args: func_args![value: value!("helloworld")],
+            want: Err("unable to decode value from base64"),
+            tdef: TypeDef::bytes().fallible(),
+        }
+
         empty_string_standard_charset {
             args: func_args![value: value!(""), charset: value!("standard")],
             want: Ok(value!("")),
@@ -126,6 +142,19 @@ mod test {
         empty_string_urlsafe_charset {
             args: func_args![value: value!(""), charset: value!("url_safe")],
             want: Ok(value!("")),
+            tdef: TypeDef::bytes().fallible(),
+        }
+
+        // decode_base64 function should be able to decode base64 string with or without padding
+        padding_not_included {
+            args: func_args![value: value!("c29tZSs9c3RyaW5nL3ZhbHVlXw")],
+            want: Ok(value!("some+=string/value_")),
+            tdef: TypeDef::bytes().fallible(),
+        }
+
+        padding_included {
+            args: func_args![value: value!("c29tZSs9c3RyaW5nL3ZhbHVlXw==")],
+            want: Ok(value!("some+=string/value_")),
             tdef: TypeDef::bytes().fallible(),
         }
 

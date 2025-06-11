@@ -78,7 +78,7 @@ impl<'a> Iterator for JitValuePathIter<'a> {
                         | JitState::Index { .. }
                         | JitState::NegativeIndex { .. }
                         | JitState::Quote { .. }
-                        | JitState::EscapedQuote { .. }
+                        | JitState::EscapedQuote
                         | JitState::Dot => Some(BorrowedSegment::Invalid),
 
                         JitState::Continue | JitState::EventRoot | JitState::End => None,
