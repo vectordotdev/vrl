@@ -4,7 +4,7 @@ use nom::AsBytes;
 use std::collections::BTreeMap;
 use syslog_loose::{IncompleteDate, Message, ProcId, Protocol, Variant};
 
-pub(crate) fn parse_syslog(value: Value, variant: Variant, ctx: &Context) -> Resolved {
+pub(crate) fn parse_syslog(value: &Value, variant: Variant, ctx: &Context) -> Resolved {
     let message = value.try_bytes_utf8_lossy()?;
     let timezone = match ctx.timezone() {
         TimeZone::Local => None,
@@ -98,7 +98,7 @@ impl FunctionExpression for ParseSyslogFn {
             _ => panic!("No such variant for syslog RFC"),
         };
 
-        parse_syslog(value, variant, ctx)
+        parse_syslog(&value, variant, ctx)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

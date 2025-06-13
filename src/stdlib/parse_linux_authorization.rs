@@ -42,7 +42,7 @@ impl Function for ParseLinuxAuthorization {
 
         // The parse_linux_authorization function is just an alias for parse_syslog
         Ok(ParseSyslogFn {
-            value: value,
+            value,
             variant: "either".into(),
         }
         .as_expr())
