@@ -2885,7 +2885,6 @@ dependencies = [
  "retry-policies",
  "thiserror 1.0.69",
  "tokio",
- "tracing",
  "wasm-timer",
 ]
 
