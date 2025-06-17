@@ -33,6 +33,7 @@ static CLIENT: LazyLock<ClientWithMiddleware> = LazyLock::new(|| {
         .build()
 });
 
+#[cfg(not(target_arch = "wasm32"))]
 async fn http_request(url: &Value, method: &Value, headers: Value) -> Resolved {
     let url = url.try_bytes_utf8_lossy()?;
     let method = method.try_bytes_utf8_lossy()?.to_uppercase();
