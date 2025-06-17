@@ -260,10 +260,13 @@ fn parse_header_value(input: &str) -> IResult<&str, String, VerboseError<&str>> 
         opt(char('|')),
         alt((
             map(peek(char('|')), |_| String::new()),
-            escaped_transform(
-                take_till1(|c: char| c == '\\' || c == '|'),
-                '\\',
-                satisfy(|c| c == '\\' || c == '|'),
+            map(
+                escaped_transform(
+                    take_till1(|c: char| c == '\\' || c == '|'),
+                    '\\',
+                    satisfy(|c| c == '\\' || c == '|'),
+                ),
+                |value: String| value.trim().to_string(),
             ),
         )),
     )(input)
