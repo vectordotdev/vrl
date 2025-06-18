@@ -32,8 +32,8 @@ value = ["path", "dep:bytes", "dep:regex", "dep:ordered-float", "dep:chrono", "d
 diagnostic = ["dep:codespan-reporting", "dep:termcolor"]
 path = ["value", "dep:serde", "dep:snafu", "dep:regex"]
 parser = ["path", "diagnostic", "value", "dep:thiserror", "dep:ordered-float", "dep:lalrpop-util"]
-parsing = ["value", "compiler", "dep:url", "dep:nom", "dep:regex", "dep:roxmltree", "dep:rust_decimal"]
-core = ["value", "dep:snafu", "dep:nom"]
+parsing = ["value", "compiler", "dep:url", "dep:nom", "dep:nom-language", "dep:regex", "dep:roxmltree", "dep:rust_decimal"]
+core = ["value", "dep:snafu", "dep:nom", "dep:nom-language"]
 string_path = []
 
 # Datadog related features (on by default)
@@ -155,7 +155,8 @@ indoc = { version = "2", optional = true }
 itertools = { version = "0.14", default-features = false, features = ["use_std"], optional = true }
 lalrpop-util = { version = "0.22", optional = true }
 mlua = { version = "0.10", default-features = false, features = ["lua54", "send", "vendored"], optional = true }
-nom = { version = "7", default-features = false, features = ["std"], optional = true }
+nom = { version = "8", default-features = false, features = ["std"], optional = true }
+nom-language = { version = "0.1.0", default-features = false, optional = true }
 ordered-float = { version = "4", default-features = false, optional = true }
 md-5 = { version = "0.10", optional = true }
 parse-size = { version = "1.1.0",  optional = true }

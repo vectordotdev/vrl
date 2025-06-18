@@ -7,8 +7,8 @@ use nom::{
     error::{context, ContextError, FromExternalError, ParseError},
     multi::{many1, separated_list0},
     number::complete::double,
-    sequence::{preceded, separated_pair, terminated, tuple},
-    AsChar, IResult, InputTakeAtPosition,
+    sequence::{preceded, separated_pair, terminated},
+    AsChar, IResult, Input,
 };
 use std::num::ParseIntError;
 
@@ -17,7 +17,7 @@ pub fn parse_ruby_hash(input: &str) -> ExpressionResult<Value> {
         .map_err(|err| match err {
             nom::Err::Error(err) | nom::Err::Failure(err) => {
                 // Create a descriptive error message if possible.
-                nom::error::convert_error(input, err)
+                nom_language::error::convert_error(input, err)
             }
             nom::Err::Incomplete(_) => err.to_string(),
         })
@@ -49,14 +49,14 @@ fn parse_inner_str<'a, E: ParseError<&'a str>>(
     move |input| {
         map(
             opt(escaped(
-                recognize(many1(tuple((
+                recognize(many1((
                     take_while1(|c: char| c != '\\' && c != delimiter),
                     // Consume \something
-                    opt(tuple((
+                    opt(((
                         satisfy(|c| c == '\\'),
                         satisfy(|c| c != '\\' && c != delimiter),
                     ))),
-                )))),
+                ))),
                 '\\',
                 satisfy(|c| c == '\\' || c == delimiter),
             )),
@@ -100,10 +100,10 @@ fn parse_bytes<'a, E: HashParseError<&'a str>>(input: &'a str) -> IResult<&'a st
 
 fn parse_symbol_key<T, E: ParseError<T>>(input: T) -> IResult<T, T, E>
 where
-    T: InputTakeAtPosition,
-    <T as InputTakeAtPosition>::Item: AsChar,
+    T: Input,
+    <T as Input>::Item: AsChar,
 {
-    take_while1(move |item: <T as InputTakeAtPosition>::Item| {
+    take_while1(move |item: <T as Input>::Item| {
         let c = item.as_char();
         c.is_alphanum() || c == '_'
     })(input)
