@@ -84,6 +84,9 @@ mod non_wasm {
             let method = self.method.resolve(ctx)?;
             let headers = self.headers.resolve(ctx)?;
 
+            // block_in_place runs the HTTP request synchronously
+            // without blocking Tokio's async worker threads.
+            // This temporarily moves execution to a blocking-compatible thread.
             task::block_in_place(|| {
                 Handle::current().block_on(async { http_request(&url, &method, headers).await })
             })
