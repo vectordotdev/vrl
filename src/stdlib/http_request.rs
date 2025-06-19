@@ -9,7 +9,10 @@ use crate::compiler::prelude::*;
 
 #[cfg(not(target_arch = "wasm32"))]
 mod non_wasm {
-    use super::*;
+    use super::{
+        Context, Expression, FunctionExpression, Resolved, TypeDef, TypeState, Value,
+        VrlValueConvert,
+    };
     use reqwest_middleware::{
         reqwest::{
             header::{HeaderMap, HeaderName, HeaderValue},
