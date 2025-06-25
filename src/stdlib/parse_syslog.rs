@@ -1,9 +1,10 @@
 use crate::compiler::prelude::*;
 use chrono::{DateTime, Datelike, Utc};
+use nom::AsBytes;
 use std::collections::BTreeMap;
 use syslog_loose::{IncompleteDate, Message, ProcId, Protocol, Variant};
 
-pub(crate) fn parse_syslog(value: &Value, ctx: &Context) -> Resolved {
+pub(crate) fn parse_syslog(value: &Value, variant: Variant, ctx: &Context) -> Resolved {
     let message = value.try_bytes_utf8_lossy()?;
     let timezone = match ctx.timezone() {
         TimeZone::Local => None,
@@ -13,7 +14,7 @@ pub(crate) fn parse_syslog(value: &Value, ctx: &Context) -> Resolved {
         &message,
         resolve_year,
         timezone,
-        Variant::Either,
+        variant
     )?;
     Ok(message_to_value(parsed))
 }
@@ -31,6 +32,11 @@ impl Function for ParseSyslog {
             keyword: "value",
             kind: kind::BYTES,
             required: true,
+        },
+        Parameter {
+            keyword: "variant",
+            kind: kind::BYTES,
+            required: false,
         }]
     }
 
@@ -59,26 +65,40 @@ impl Function for ParseSyslog {
 
     fn compile(
         &self,
-        _state: &state::TypeState,
+        state: &state::TypeState,
         _ctx: &mut FunctionCompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
-        let value = arguments.required("value");
+        let variants = vec!["either".into(), "rfc3164".into(), "rfc5424".into()];
 
-        Ok(ParseSyslogFn { value }.as_expr())
+        let value = arguments.required("value");
+        let variant = arguments
+            .optional_enum("variant", &variants, state)?
+            .unwrap_or_else(|| "either".into())
+            .try_bytes()
+            .expect("syslog variant is not bytes");
+
+        Ok(ParseSyslogFn { value, variant }.as_expr())
     }
 }
 
 #[derive(Debug, Clone)]
 pub(crate) struct ParseSyslogFn {
     pub(crate) value: Box<dyn Expression>,
+    pub(crate) variant: Bytes,
 }
 
 impl FunctionExpression for ParseSyslogFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let value = self.value.resolve(ctx)?;
+        let variant = match self.variant.as_bytes() {
+            b"rfc3164" => Variant::RFC3164,
+            b"rfc5424" => Variant::RFC5424,
+            b"either" => Variant::Either,
+            _ => panic!("No such variant for syslog RFC"),
+        };
 
-        parse_syslog(&value, ctx)
+        parse_syslog(&value, variant, ctx)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {
@@ -353,6 +373,18 @@ mod tests {
                 "severity" => "notice",
                 "timestamp" => Utc.with_ymd_and_hms(2003, 10, 11, 22, 14, 15).unwrap().with_nanosecond(3_000_000).unwrap(),
                 "version" => 1
+            }),
+            tdef: TypeDef::object(inner_kind()).fallible(),
+        }
+
+        force_rfc_3164 {
+            args: func_args![value: "2024-09-19T15:39:45.469+02:00 node1234 slurmstepd[548422]: [65684352.batch] done with job", variant: "rfc3164"],
+            want: Ok(btreemap!{
+                "appname" => "slurmstepd",
+                "hostname" => "node1234",
+                "message" => "[65684352.batch] done with job",
+                "procid" => 548422,
+                "timestamp" => chrono::Utc.ymd(2024, 09, 19).and_hms_milli(13,39,45,469),
             }),
             tdef: TypeDef::object(inner_kind()).fallible(),
         }
