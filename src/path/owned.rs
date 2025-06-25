@@ -80,23 +80,21 @@ impl OwnedValuePath {
     ///
     /// eg, .tags.nork.noog will never be an accepted path so we don't need to spend the time
     /// collecting it.
-    pub fn to_alternative_components(&self, limit: usize) -> Vec<Vec<&str>> {
-        let mut components = vec![vec![]];
+    pub fn to_alternative_components(&self, limit: usize) -> Option<Vec<&str>> {
+        let mut components = vec![];
         for segment in self.segments.iter().take(limit) {
             match segment {
                 OwnedSegment::Field(field) => {
-                    for component in &mut components {
-                        component.push(field.as_str());
-                    }
+                    components.push(field.as_str());
                 }
 
                 OwnedSegment::Index(_) => {
-                    return Vec::new();
+                    return None;
                 }
             }
         }
 
-        components
+        Some(components)
     }
 
     pub fn push(&mut self, segment: OwnedSegment) {
@@ -448,6 +446,37 @@ impl<'a> Iterator for OwnedSegmentSliceIter<'a> {
 mod test {
     use super::*;
     use crate::path::parse_value_path;
+
+    #[test]
+    fn to_alternative_components() -> Result<(), PathParseError> {
+        let limit = 3;
+
+        let path = parse_value_path(".")?;
+        assert_eq!(Some(vec![]), path.to_alternative_components(limit));
+
+        let path = parse_value_path(".first.second")?;
+        assert_eq!(
+            Some(vec!["first", "second"]),
+            path.to_alternative_components(limit)
+        );
+
+        let path = parse_value_path("a.b[1].c.d")?;
+        assert_eq!(None, path.to_alternative_components(limit));
+
+        let path = parse_value_path("a.b.c[1].d")?; // Has index after 3rd
+        assert_eq!(
+            Some(vec!["a", "b", "c"]),
+            path.to_alternative_components(limit)
+        );
+
+        let path = parse_value_path("a.b.c.d.e.f.g.h")?;
+        assert_eq!(
+            Some(vec!["a", "b", "c"]),
+            path.to_alternative_components(limit)
+        );
+
+        Ok(())
+    }
 
     #[test]
     fn owned_path_serialize() {
