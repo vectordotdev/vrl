@@ -4,6 +4,15 @@
 
 <!-- changelog start -->
 
+## [0.25.0 (2025-06-26)]
+
+### Enhancements
+
+- Add support for decompressing lz4 frame compressed data.
+
+  authors: jimmystewpot (https://github.com/vectordotdev/vrl/pull/1367)
+
+
 ## [0.24.0 (2025-05-19)]
 
 ### Enhancements
