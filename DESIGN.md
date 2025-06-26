@@ -94,7 +94,7 @@ VRL is designed for safe, predictable, in-process data transformations.
 VRL is designed around the idea that every operation should behave in a consistent, in-memory fashion—any call that reaches outside into the
 network or filesystem breaks that guarantee of predictability. While some stdlib functions perform remote requests, those calls can
 introduce variable delays that your pipeline cannot anticipate or control. In essence, network‐dependent
-operations live outside VRL’s performance envelope: use them at your own risk. f you must rely on external data, we recommend introducing a
+operations live outside VRL’s performance envelope: use them at your own risk. If you must rely on external data, we recommend introducing a
 caching layer in front of any network-dependent function.
 
 ## Rejected features
