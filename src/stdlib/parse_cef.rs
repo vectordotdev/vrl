@@ -319,7 +319,7 @@ fn take_till1_input<'a, F: Fn(&'a str) -> bool, Error: ParseError<&'a str>>(
 
 fn parse_key(input: &str) -> IResult<&str, &str, VerboseError<&str>> {
     delimited(
-        many1(alt((char(' '), char('|')))),  // Changed from single char to many1
+        many1(alt((char(' '), char('|')))),
         take_till1(|c| c == ' ' || c == '=' || c == '\\'),
         char('='),
     )(input)
