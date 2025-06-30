@@ -501,30 +501,38 @@ impl<'a> Builder<'a> {
         state: &mut TypeState,
     ) -> Result<(Option<Closure>, bool), FunctionCallError> {
         // Check if we have a closure we need to compile.
-        if let Some((variables, input)) = self.closure.clone() {
+        if let Some((variables, input)) = &self.closure {
             // TODO: This assumes the closure will run exactly once, which is incorrect.
             // see: https://github.com/vectordotdev/vector/issues/13782
 
-            let block = closure_block.expect("closure must contain block");
-
+            let mut variables_types = vec![];
             // At this point, we've compiled the block, so we can remove the
             // closure variables from the compiler's local environment.
-            variables
-                .iter()
-                .for_each(|ident| match locals.remove_variable(ident) {
-                    Some(details) => state.local.insert_variable(ident.clone(), details),
-                    None => {
-                        state.local.remove_variable(ident);
-                    }
-                });
+            for ident in variables {
+                let variable_details = state
+                    .local
+                    .remove_variable(ident)
+                    .expect("Closure variable must be present");
+                variables_types.push(variable_details);
 
-            let (block_span, (block, block_type_def)) = block.take();
+                // If outer scope has this variable, restore its state
+                if let Some(details) = locals.remove_variable(ident) {
+                    state.local.insert_variable(ident.clone(), details);
+                }
+            }
+
+            let (block_span, (block, block_type_def)) = closure_block
+                .ok_or(FunctionCallError::MissingClosure {
+                    call_span: Span::default(), // TODO can we provide a better span?
+                    example: None,
+                })?
+                .take();
 
             let closure_fallible = block_type_def.is_fallible();
 
             // Check the type definition of the resulting block.This needs to match
             // whatever is configured by the closure input type.
-            let expected_kind = input.output.into_kind();
+            let expected_kind = input.clone().output.into_kind();
             let found_kind = block_type_def
                 .kind()
                 .union(block_type_def.returns().clone());
@@ -537,7 +545,7 @@ impl<'a> Builder<'a> {
                 });
             }
 
-            let fnclosure = Closure::new(variables, block, block_type_def);
+            let fnclosure = Closure::new(variables.clone(), variables_types, block, block_type_def);
             self.list.set_closure(fnclosure.clone());
 
             // closure = Some(fnclosure);
@@ -699,6 +707,27 @@ impl Expression for FunctionCall {
         }
 
         let mut expr_result = self.expr.apply_type_info(&mut state);
+
+        // Closure can change state of locals in our `state`, so we need to update it.
+        if let Some(closure) = &self.closure {
+            // To get correct `type_info()` from closure we need to add closure arguments into current state
+            let mut closure_state = state.clone();
+            for (ident, details) in closure
+                .variables
+                .iter()
+                .cloned()
+                .zip(closure.variables_types.iter().cloned())
+            {
+                closure_state.local.insert_variable(ident, details);
+            }
+            let mut closure_info = closure.block.type_info(&closure_state);
+            // No interaction with closure arguments can't affect parent state, so remove them before merge
+            for ident in &closure.variables {
+                closure_info.state.local.remove_variable(ident);
+            }
+
+            state = state.merge(closure_info.state);
+        }
 
         // If one of the arguments only partially matches the function type
         // definition, then we mark the entire function as fallible.
@@ -1224,9 +1253,10 @@ impl DiagnosticMessage for FunctionCallError {
 
 #[cfg(test)]
 mod tests {
-    use crate::compiler::{value::kind, FunctionExpression};
-
     use super::*;
+    use crate::compiler::{value::kind, Compiler, FunctionExpression};
+    use crate::parser::parse;
+    use crate::stdlib::ForEach;
 
     #[derive(Clone, Debug)]
     struct Fn;
@@ -1410,5 +1440,28 @@ mod tests {
         ];
 
         assert_eq!(Ok(expected), params);
+    }
+
+    #[test]
+    fn closure_type_state() {
+        let program = parse(
+            r#"
+            v = ""
+
+            for_each({}) -> |key, value| {
+                v = 0
+            }
+        "#,
+        )
+        .unwrap();
+
+        let fns = vec![Box::new(ForEach) as Box<dyn Function>];
+        let mut compiler = Compiler::new(&fns, CompileConfig::default());
+
+        let mut state = TypeState::default();
+        compiler.compile_root_exprs(program, &mut state);
+        let var = state.local.variable(&Ident::new("v")).unwrap();
+
+        assert_eq!(var.type_def.kind(), &Kind::bytes().or_integer());
     }
 }
