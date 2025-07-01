@@ -33,7 +33,7 @@ bytes,https://github.com/tokio-rs/bytes,MIT,"Carl Lerche <me@carllerche.com>, Se
 cbc,https://github.com/RustCrypto/block-modes,MIT OR Apache-2.0,RustCrypto Developers
 cesu8,https://github.com/emk/cesu8-rs,Apache-2.0 OR MIT,Eric Kidd <git@randomhacks.net>
 cfb-mode,https://github.com/RustCrypto/block-modes,MIT OR Apache-2.0,RustCrypto Developers
-cfg-if,https://github.com/alexcrichton/cfg-if,MIT OR Apache-2.0,Alex Crichton <alex@alexcrichton.com>
+cfg-if,https://github.com/rust-lang/cfg-if,MIT OR Apache-2.0,Alex Crichton <alex@alexcrichton.com>
 chacha20,https://github.com/RustCrypto/stream-ciphers,Apache-2.0 OR MIT,RustCrypto Developers
 chacha20poly1305,https://github.com/RustCrypto/AEADs/tree/master/chacha20poly1305,Apache-2.0 OR MIT,RustCrypto Developers
 charset,https://github.com/hsivonen/charset,Apache-2.0 OR MIT,Henri Sivonen <hsivonen@hsivonen.fi>
@@ -103,7 +103,6 @@ heck,https://github.com/withoutboats/heck,MIT OR Apache-2.0,Without Boats <woboa
 hermit-abi,https://github.com/hermit-os/hermit-rs,MIT OR Apache-2.0,Stefan Lankes
 hex,https://github.com/KokaKiwi/rust-hex,MIT OR Apache-2.0,KokaKiwi <kokakiwi@kokakiwi.net>
 hmac,https://github.com/RustCrypto/MACs,MIT OR Apache-2.0,RustCrypto Developers
-home,https://github.com/rust-lang/cargo,MIT OR Apache-2.0,Brian Anderson <andersrb@gmail.com>
 hostname,https://github.com/svartalf/hostname,MIT,The hostname Authors
 iana-time-zone,https://github.com/strawlab/iana-time-zone,MIT OR Apache-2.0,"Andrew Straw <strawman@astraw.com>, René Kijewski <rene.kijewski@fu-berlin.de>, Ryan Lopopolo <rjl@hyperbo.la>"
 iana-time-zone-haiku,https://github.com/strawlab/iana-time-zone,MIT OR Apache-2.0,René Kijewski <crates.io@k6i.de>
@@ -165,7 +164,6 @@ ordered-float,https://github.com/reem/rust-ordered-float,MIT,"Jonathan Reem <jon
 outref,https://github.com/Nugine/outref,MIT,The outref Authors
 overload,https://github.com/danaugrs/overload,MIT,Daniel Salvadori <danaugrs@gmail.com>
 owo-colors,https://github.com/owo-colors/owo-colors,MIT,jam1garner <8260240+jam1garner@users.noreply.github.com>
-pad,https://github.com/ogham/rust-pad,MIT,Ben S <ogham@bsago.me>
 parking,https://github.com/smol-rs/parking,Apache-2.0 OR MIT,"Stjepan Glavina <stjepang@gmail.com>, The Rust Project Developers"
 parking_lot,https://github.com/Amanieu/parking_lot,MIT OR Apache-2.0,Amanieu d'Antras <amanieu@gmail.com>
 parse-size,https://github.com/kennytm/parse-size,MIT,kennytm <kennytm@gmail.com>
@@ -225,7 +223,6 @@ snafu,https://github.com/shepmaster/snafu,MIT OR Apache-2.0,Jake Goulding <jake.
 snap,https://github.com/BurntSushi/rust-snappy,BSD-3-Clause,Andrew Gallant <jamslam@gmail.com>
 socket2,https://github.com/rust-lang/socket2,MIT OR Apache-2.0,"Alex Crichton <alex@alexcrichton.com>, Thomas de Zeeuw <thomasdezeeuw@gmail.com>"
 stable_deref_trait,https://github.com/storyyeller/stable_deref_trait,MIT OR Apache-2.0,Robert Grosse <n210241048576@gmail.com>
-static_assertions,https://github.com/nvzqz/static-assertions-rs,MIT OR Apache-2.0,Nikolai Vazquez
 strip-ansi-escapes,https://github.com/luser/strip-ansi-escapes,Apache-2.0 OR MIT,Ted Mielczarek <ted@mielczarek.org>
 strsim,https://github.com/rapidfuzz/strsim-rs,MIT,"Danny Guo <danny@dannyguo.com>, maxbachmann <oss@maxbachmann.de>"
 subtle,https://github.com/dalek-cryptography/subtle,BSD-3-Clause,"Isis Lovecruft <isis@patternsinthevoid.net>, Henry de Valence <hdevalence@hdevalence.ca>"
