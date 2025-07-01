@@ -319,7 +319,7 @@ fn take_till1_input<'a, F: Fn(&'a str) -> bool, Error: ParseError<&'a str>>(
 
 fn parse_key(input: &str) -> IResult<&str, &str, VerboseError<&str>> {
     delimited(
-        alt((char(' '), char('|'))),
+        many1(alt((char(' '), char('|')))),
         take_till1(|c| c == ' ' || c == '=' || c == '\\'),
         char('='),
     )(input)
@@ -541,7 +541,7 @@ mod test {
         assert_eq!(
             Ok(vec![
                 ("dst".to_string(), "2.1.2.2".into()),
-                ("msg".to_string(), "Detected a threat. No action needed  ".into()),
+                ("msg".to_string(), "Detected a threat. No action needed".into()),
                 ("spt".to_string(),"1232".into()),
                 ("cefVersion".to_string(), "1".into()),
                 ("deviceVendor".to_string(), "Security".into()),
@@ -571,6 +571,32 @@ mod test {
                 ("severity".to_string(), "10".into()),
             ]),
             parse("CEF:1|Security|threatmanager|1.0|100|worm successfully stopped|10|dst=2.1.2.2 msg=Detected a threat. No action needed   ")
+                .map(Iterator::collect)
+        );
+    }
+
+    #[test]
+    fn test_extension_space_after_separator() {
+        assert_eq!(
+            Ok(vec![
+                ("src".to_string(), "192.168.1.100".into()),
+                ("dst".to_string(), "10.0.0.5".into()),
+                ("spt".to_string(), "12345".into()),
+                ("dpt".to_string(), "80".into()),
+                ("proto".to_string(), "TCP".into()),
+                ("msg".to_string(), "Blocked unauthorized access attempt".into()),
+                ("act".to_string(), "blocked".into()),
+                ("outcome".to_string(), "failure".into()),
+                ("rt".to_string(), "2025-06-29T23:35:00Z".into()),
+                ("cefVersion".to_string(), "0".into()),
+                ("deviceVendor".to_string(), "SecurityVendor".into()),
+                ("deviceProduct".to_string(), "SecurityProduct".into()),
+                ("deviceVersion".to_string(), "1.0".into()),
+                ("deviceEventClassId".to_string(), "100".into()),
+                ("name".to_string(), "Unauthorized Access Attempt".into()),
+                ("severity".to_string(), "10".into()),
+            ]),
+            parse("CEF:0|SecurityVendor|SecurityProduct|1.0|100|Unauthorized Access Attempt|10| src=192.168.1.100 dst=10.0.0.5 spt=12345 dpt=80 proto=TCP msg=Blocked unauthorized access attempt act=blocked outcome=failure rt=2025-06-29T23:35:00Z")
                 .map(Iterator::collect)
         );
     }
