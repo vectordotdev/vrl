@@ -8,7 +8,7 @@ use nom::{
     combinator::map,
     multi::separated_list0,
     sequence::{preceded, terminated},
-    IResult,
+    IResult, Parser,
 };
 
 use super::super::{
@@ -115,7 +115,7 @@ fn parse_array<'a>(
     move |input| {
         if brackets.0.is_empty() {
             // no enclosed brackets
-            separated_list0(tag(delimiter), parse_value_no_brackets(delimiter))(input)
+            separated_list0(tag(delimiter), parse_value_no_brackets(delimiter)).parse(input)
         } else {
             preceded(
                 tag(brackets.0),
@@ -123,7 +123,8 @@ fn parse_array<'a>(
                     separated_list0(tag(delimiter), parse_value(delimiter, brackets.1)),
                     tag(brackets.1),
                 ),
-            )(input)
+            )
+            .parse(input)
         }
     }
 }
@@ -133,7 +134,8 @@ fn parse_value_no_brackets<'a>(delimiter: &'a str) -> impl Fn(&'a str) -> SResul
         map(
             alt((take_until(delimiter), take(input.len()))),
             |value: &str| Value::Bytes(Bytes::copy_from_slice(value.as_bytes())),
-        )(input)
+        )
+        .parse(input)
     }
 }
 
@@ -145,7 +147,8 @@ fn parse_value<'a>(
         map(
             alt((take_until(delimiter), take_until(close_bracket))),
             |value: &str| Value::Bytes(Bytes::copy_from_slice(value.as_bytes())),
-        )(input)
+        )
+        .parse(input)
     }
 }
 
