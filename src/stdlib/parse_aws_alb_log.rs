@@ -1,6 +1,6 @@
 use crate::compiler::prelude::*;
 use nom::{
-    branch::{alt, Choice},
+    branch::alt,
     bytes::complete::{tag, take_while1},
     character::complete::char,
     combinator::map_res,
@@ -306,11 +306,7 @@ fn until_quote(input: &str) -> SResult<String> {
 
 fn take_maybe_quoted_list<'a>(
     cond: impl Fn(char) -> bool + Clone,
-) -> Choice<(
-    impl Parser<&'a str, Error = (), Output = Vec<&'a str>>,
-    impl Parser<&'a str, Error = (), Output = Vec<&'a str>>,
-    impl Parser<&'a str, Error = (), Output = Vec<&'a str>>,
-)> {
+) -> impl Parser<&'a str, Error = (), Output = Vec<&'a str>> {
     alt((
         map_res(tag(r#" "-""#), |_| {
             Ok::<_, std::convert::Infallible>(vec![])
