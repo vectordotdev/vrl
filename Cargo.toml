@@ -187,7 +187,7 @@ sha-2 = { package = "sha2", version = "0.10", optional = true }
 sha-3 = { package = "sha3", version = "0.10", optional = true }
 strip-ansi-escapes = { version = "0.2", optional = true }
 snap = { version = "1", optional = true }
-syslog_loose = { version = "0.21", optional = true }
+syslog_loose = { version = "0.22", optional = true }
 termcolor = { version = "1", optional = true }
 thiserror = { version = "2", optional = true }
 tracing = { version = "0.1", default-features = false }
@@ -217,7 +217,7 @@ ofb = { version = "0.6", optional = true }
 prost = { version = "0.13", default-features = false, optional = true, features = ["std"] }
 prost-reflect = { version = "0.14", default-features = false, optional = true }
 unicode-segmentation = "1.12.0"
-lz4_flex = "0.11.3"
+lz4_flex = "0.11.5"
 nom-language = { version = "0.1.0", default-features = false }
 
 # Dependencies used for non-WASM
