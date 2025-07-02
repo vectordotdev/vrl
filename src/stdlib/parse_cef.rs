@@ -5,11 +5,12 @@ use nom::{
     bytes::complete::{escaped_transform, tag, take_till1, take_until},
     character::complete::{char, one_of, satisfy},
     combinator::{map, opt, peek, success, value},
-    error::{ErrorKind, ParseError, VerboseError},
+    error::{ErrorKind, ParseError},
     multi::{count, many1},
     sequence::{delimited, pair, preceded},
-    IResult,
+    IResult, Parser,
 };
+use nom_language::error::VerboseError;
 use std::collections::{BTreeMap, HashMap};
 
 fn build_map() -> HashMap<&'static str, (usize, CustomField)> {
@@ -203,11 +204,12 @@ enum CustomField {
 }
 
 fn parse(input: &str) -> ExpressionResult<impl Iterator<Item = (String, String)> + '_> {
-    let (rest, (header, mut extension)) =
-        pair(parse_header, parse_extension)(input).map_err(|e| match e {
+    let (rest, (header, mut extension)) = pair(parse_header, parse_extension)
+        .parse(input)
+        .map_err(|e| match e {
             nom::Err::Error(e) | nom::Err::Failure(e) => {
                 // Create a descriptive error message if possible.
-                nom::error::convert_error(input, e)
+                nom_language::error::convert_error(input, e)
             }
             nom::Err::Incomplete(_) => e.to_string(),
         })?;
@@ -252,7 +254,8 @@ fn parse_header(input: &str) -> IResult<&str, Vec<String>, VerboseError<&str>> {
     preceded(
         pair(take_until("CEF:"), tag("CEF:")),
         count(parse_header_value, 7),
-    )(input)
+    )
+    .parse(input)
 }
 
 fn parse_header_value(input: &str) -> IResult<&str, String, VerboseError<&str>> {
@@ -269,22 +272,23 @@ fn parse_header_value(input: &str) -> IResult<&str, String, VerboseError<&str>> 
                 |value: String| value.trim().to_string(),
             ),
         )),
-    )(input)
+    )
+    .parse(input)
 }
 
 fn parse_extension(input: &str) -> IResult<&str, Vec<(&str, String)>, VerboseError<&str>> {
-    alt((many1(parse_key_value), map(tag("|"), |_| vec![])))(input)
+    alt((many1(parse_key_value), map(tag("|"), |_| vec![]))).parse(input)
 }
 
 fn parse_key_value(input: &str) -> IResult<&str, (&str, String), VerboseError<&str>> {
-    pair(parse_key, parse_value)(input)
+    pair(parse_key, parse_value).parse(input)
 }
 
 fn parse_value(input: &str) -> IResult<&str, String, VerboseError<&str>> {
     alt((
         map(peek(parse_key), |_| String::new()),
         escaped_transform(
-            take_till1_input(|input| alt((tag("\\"), tag("="), parse_key))(input).is_ok()),
+            take_till1_input(|input| alt((tag("\\"), tag("="), parse_key)).parse(input).is_ok()),
             '\\',
             alt((
                 value('=', char('=')),
@@ -293,7 +297,8 @@ fn parse_value(input: &str) -> IResult<&str, String, VerboseError<&str>> {
                 success('\\'),
             )),
         ),
-    ))(input)
+    ))
+    .parse(input)
 }
 
 /// As take `take_till1` but can have condition on input instead of `Input::Item`.
@@ -322,7 +327,8 @@ fn parse_key(input: &str) -> IResult<&str, &str, VerboseError<&str>> {
         many1(alt((char(' '), char('|')))),
         take_till1(|c| c == ' ' || c == '=' || c == '\\'),
         char('='),
-    )(input)
+    )
+    .parse(input)
 }
 
 fn type_def() -> TypeDef {

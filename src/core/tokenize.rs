@@ -6,6 +6,7 @@ use nom::{
     error::ErrorKind,
     multi::many0,
     sequence::{delimited, terminated},
+    Parser,
 };
 
 /// Parses the specified `input` and returns a vector of tokens.
@@ -33,7 +34,8 @@ pub fn parse(input: &str) -> Vec<&str> {
     let remainder = verify(rest, |s: &str| !s.is_empty());
     let field = alt((bracket, string, simple, remainder));
 
-    all_consuming(many0(terminated(field, space0)))(input)
+    all_consuming(many0(terminated(field, space0)))
+        .parse(input)
         .expect("parser should always succeed")
         .1
 }

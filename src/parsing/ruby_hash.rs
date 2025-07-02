@@ -4,11 +4,11 @@ use nom::{
     bytes::complete::{escaped, tag, take_while, take_while1},
     character::complete::{char, digit1, satisfy},
     combinator::{cut, map, opt, recognize, value},
-    error::{context, ContextError, FromExternalError, ParseError},
+    error::{context, Context, ContextError, FromExternalError, ParseError},
     multi::{many1, separated_list0},
     number::complete::double,
-    sequence::{preceded, separated_pair, terminated, tuple},
-    AsChar, IResult, InputTakeAtPosition,
+    sequence::{preceded, separated_pair, terminated},
+    AsChar, IResult, Input, Parser,
 };
 use std::num::ParseIntError;
 
@@ -17,7 +17,7 @@ pub fn parse_ruby_hash(input: &str) -> ExpressionResult<Value> {
         .map_err(|err| match err {
             nom::Err::Error(err) | nom::Err::Failure(err) => {
                 // Create a descriptive error message if possible.
-                nom::error::convert_error(input, err)
+                nom_language::error::convert_error(input, err)
             }
             nom::Err::Incomplete(_) => err.to_string(),
         })
@@ -49,26 +49,27 @@ fn parse_inner_str<'a, E: ParseError<&'a str>>(
     move |input| {
         map(
             opt(escaped(
-                recognize(many1(tuple((
+                recognize(many1((
                     take_while1(|c: char| c != '\\' && c != delimiter),
                     // Consume \something
-                    opt(tuple((
+                    opt((
                         satisfy(|c| c == '\\'),
                         satisfy(|c| c != '\\' && c != delimiter),
-                    ))),
-                )))),
+                    )),
+                ))),
                 '\\',
                 satisfy(|c| c == '\\' || c == delimiter),
             )),
             |inner| inner.unwrap_or(""),
-        )(input)
+        )
+        .parse(input)
     }
 }
 
 /// Parses text with a given delimiter.
 fn parse_str<'a, E: ParseError<&'a str> + ContextError<&'a str>>(
     delimiter: char,
-) -> impl FnMut(&'a str) -> IResult<&'a str, &'a str, E> {
+) -> Context<impl Parser<&'a str, Output = &'a str, Error = E>> {
     context(
         "string",
         preceded(
@@ -82,11 +83,11 @@ fn parse_boolean<'a, E: ParseError<&'a str>>(input: &'a str) -> IResult<&'a str,
     let parse_true = value(true, tag("true"));
     let parse_false = value(false, tag("false"));
 
-    alt((parse_true, parse_false))(input)
+    alt((parse_true, parse_false)).parse(input)
 }
 
 fn parse_nil<'a, E: ParseError<&'a str>>(input: &'a str) -> IResult<&'a str, Value, E> {
-    value(Value::Null, tag("nil"))(input)
+    value(Value::Null, tag("nil")).parse(input)
 }
 
 fn parse_bytes<'a, E: HashParseError<&'a str>>(input: &'a str) -> IResult<&'a str, Bytes, E> {
@@ -95,15 +96,16 @@ fn parse_bytes<'a, E: HashParseError<&'a str>>(input: &'a str) -> IResult<&'a st
         map(alt((parse_str('"'), parse_str('\''))), |value| {
             Bytes::copy_from_slice(value.as_bytes())
         }),
-    )(input)
+    )
+    .parse(input)
 }
 
 fn parse_symbol_key<T, E: ParseError<T>>(input: T) -> IResult<T, T, E>
 where
-    T: InputTakeAtPosition,
-    <T as InputTakeAtPosition>::Item: AsChar,
+    T: Input,
+    <T as Input>::Item: AsChar,
 {
-    take_while1(move |item: <T as InputTakeAtPosition>::Item| {
+    take_while1(move |item: <T as Input>::Item| {
         let c = item.as_char();
         c.is_alphanum() || c == '_'
     })(input)
@@ -118,7 +120,8 @@ fn parse_colon_key<'a, E: ParseError<&'a str> + ContextError<&'a str>>(
             alt((parse_str('"'), parse_str('\''), parse_symbol_key)),
         ),
         KeyString::from,
-    )(input)
+    )
+    .parse(input)
 }
 
 // This parse_key function allows some cases that shouldn't be produced by ruby.
@@ -136,7 +139,8 @@ fn parse_key<'a, E: HashParseError<&'a str>>(input: &'a str) -> IResult<&'a str,
             KeyString::from,
         ),
         parse_colon_key,
-    ))(input)
+    ))
+    .parse(input)
 }
 
 fn parse_array<'a, E: HashParseError<&'a str>>(input: &'a str) -> IResult<&'a str, Value, E> {
@@ -152,7 +156,8 @@ fn parse_array<'a, E: HashParseError<&'a str>>(input: &'a str) -> IResult<&'a st
             ),
             Value::Array,
         ),
-    )(input)
+    )
+    .parse(input)
 }
 
 fn parse_key_value<'a, E: HashParseError<&'a str>>(
@@ -162,7 +167,8 @@ fn parse_key_value<'a, E: HashParseError<&'a str>>(
         preceded(sp, parse_key),
         cut(preceded(sp, alt((tag(":"), tag("=>"))))),
         parse_value,
-    )(input)
+    )
+    .parse(input)
 }
 
 fn parse_hash<'a, E: HashParseError<&'a str>>(input: &'a str) -> IResult<&'a str, Value, E> {
@@ -181,7 +187,8 @@ fn parse_hash<'a, E: HashParseError<&'a str>>(input: &'a str) -> IResult<&'a str
             ),
             Value::Object,
         ),
-    )(input)
+    )
+    .parse(input)
 }
 
 fn parse_value<'a, E: HashParseError<&'a str>>(input: &'a str) -> IResult<&'a str, Value, E> {
@@ -196,7 +203,8 @@ fn parse_value<'a, E: HashParseError<&'a str>>(input: &'a str) -> IResult<&'a st
             map(double, |value| Value::Float(NotNan::new(value).unwrap())),
             map(parse_boolean, Value::Boolean),
         )),
-    )(input)
+    )
+    .parse(input)
 }
 
 #[cfg(test)]
