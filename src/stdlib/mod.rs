@@ -69,6 +69,7 @@ cfg_if::cfg_if! {
         mod get_env_var;
         mod get_hostname;
         mod get_timezone_name;
+        mod haversine;
         mod hmac;
         mod includes;
         mod integer;
@@ -263,6 +264,7 @@ cfg_if::cfg_if! {
         pub use get_hostname::GetHostname;
         pub use get_timezone_name::GetTimezoneName;
         pub use get_timezone_name::get_name_for_timezone;
+        pub use haversine::Haversine;
         pub use includes::Includes;
         pub use integer::Integer;
         pub use ip_aton::IpAton;
