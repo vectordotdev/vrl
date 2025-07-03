@@ -236,7 +236,8 @@ fn parse_quoted(quotes: &(char, char)) -> impl Fn(&str) -> SResult<&str> + '_ {
                 inner.unwrap_or("")
             }),
             char(quotes.1),
-        )(input)
+        )
+        .parse(input)
     }
 }
 
@@ -267,13 +268,15 @@ fn parse_value<'a>(input: &'a str, quotes: &'a [(char, char)]) -> SResult<'a, Va
         parse_number,
         quoted(quotes).and_then(parse_string),
         parse_string,
-    ))(input)
+    ))
+    .parse(input)
 }
 
 fn parse_string(input: &str) -> SResult<Value> {
     map(rest, |s: &str| {
         Value::Bytes(Bytes::copy_from_slice(s.trim().as_bytes()))
-    })(input)
+    })
+    .parse(input)
 }
 
 fn parse_number(input: &str) -> SResult<Value> {
@@ -282,14 +285,18 @@ fn parse_number(input: &str) -> SResult<Value> {
         if ((v as i64) as f64 - v).abs() == 0.0 {
             // Check if it is a valid octal number(start with 0) - keep parsed as a decimal though.
             if input.starts_with('0') && input.contains(['8', '9']) {
-                Err(nom::Err::Error((input, nom::error::ErrorKind::OctDigit)))
+                Err(nom::Err::<&str, (&str, nom::error::ErrorKind)>::Error((
+                    input,
+                    nom::error::ErrorKind::OctDigit,
+                )))
             } else {
                 Ok(Value::Integer(v as i64))
             }
         } else {
             Ok(Value::Float(NotNan::new(v).expect("not a float")))
         }
-    })(input)
+    })
+    .parse(input)
     .map_err(|e| match e {
         // double might return Failure(an unrecoverable error) - make it recoverable
         nom::Err::Failure(_) => nom::Err::Error((input, nom::error::ErrorKind::Float)),
@@ -298,14 +305,14 @@ fn parse_number(input: &str) -> SResult<Value> {
 }
 
 fn parse_null(input: &str) -> SResult<Value> {
-    value(Value::Null, tag("null"))(input)
+    value(Value::Null, tag("null")).parse(input)
 }
 
 fn parse_boolean(input: &str) -> SResult<Value> {
     let parse_true = value(Value::Boolean(true), tag("true"));
     let parse_false = value(Value::Boolean(false), tag("false"));
 
-    alt((parse_true, parse_false))(input)
+    alt((parse_true, parse_false)).parse(input)
 }
 
 /// Removes quotes from the key if needed.

@@ -6,7 +6,7 @@ use nom::{
     error::{ContextError, ParseError},
     multi::fold_many1,
     sequence::{delimited, pair, separated_pair},
-    IResult,
+    IResult, Parser,
 };
 
 use crate::compiler::prelude::*;
@@ -98,11 +98,12 @@ fn decode_mime_q(bytes: &Value) -> Resolved {
             map_opt(parse_internal_q, |word| word.decode_word().map(Ok).ok()),
             success(Ok(String::new())),
         )),
-    ))(input)
+    ))
+    .parse(input)
     .map_err(|e| match e {
         nom::Err::Error(e) | nom::Err::Failure(e) => {
             // Create a descriptive error message if possible.
-            nom::error::convert_error(input, e)
+            nom_language::error::convert_error(input, e)
         }
         nom::Err::Incomplete(_) => e.to_string(),
     })?;
@@ -122,7 +123,8 @@ fn parse_delimited_q<'a, E: ParseError<&'a str> + ContextError<&'a str>>(
     pair(
         take_until("=?"),
         delimited(tag("=?"), parse_internal_q, tag("?=")),
-    )(input)
+    )
+    .parse(input)
 }
 
 /// Parses inside of encoded word into (charset, encoding, encoded text)
@@ -144,7 +146,8 @@ fn parse_internal_q<'a, E: ParseError<&'a str> + ContextError<&'a str>>(
             encoding,
             input,
         },
-    )(input)
+    )
+    .parse(input)
 }
 
 struct EncodedWord<'a> {
@@ -191,7 +194,7 @@ impl EncodedWord<'_> {
 
 #[cfg(test)]
 mod test {
-    use nom::error::VerboseError;
+    use nom_language::error::VerboseError;
 
     use crate::value;
 
