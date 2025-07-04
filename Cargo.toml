@@ -220,6 +220,9 @@ unicode-segmentation = "1.12.0"
 lz4_flex = "0.11.5"
 nom-language = { version = "0.1.0", default-features = false }
 
+# Dependencies for JSON Schema validation
+jsonschema = { version = "0.30", default-features = false }
+
 # Dependencies used for non-WASM
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 dns-lookup = { version = "2", optional = true }
