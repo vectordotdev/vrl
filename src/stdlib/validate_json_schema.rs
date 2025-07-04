@@ -33,7 +33,7 @@ static EXAMPLE_JSON_SCHEMA_EXPR: LazyLock<&str> = LazyLock::new(|| {
 
 static EXAMPLES: LazyLock<Vec<Example>> = LazyLock::new(|| {
     vec![Example {
-        title: "invalid email",
+        title: "payload contains invalid email format",
         source: &EXAMPLE_JSON_SCHEMA_EXPR,
         result: Ok("false"),
     }]
