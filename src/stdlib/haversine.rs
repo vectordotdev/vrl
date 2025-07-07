@@ -9,7 +9,13 @@ const EARTH_R_IN_M: f64 = 6_371_008.8;
 const EARTH_R_IN_KM: f64 = EARTH_R_IN_M / 1000.0;
 const EARTH_R_IN_MILES: f64 = EARTH_R_IN_KM * 0.621_371_2;
 
-fn haversine(lat1: Value, lon1: Value, lat2: Value, lon2: Value, measurement: &Bytes) -> Resolved {
+fn haversine_distance(
+    latitude1: Value,
+    longitude1: Value,
+    latitude2: Value,
+    longitude2: Value,
+    measurement_unit: &Bytes,
+) -> Resolved {
     let lat1 = lat1.try_float()?.to_radians();
     let lon1 = lon1.try_float()?.to_radians();
     let lat2 = lat2.try_float()?.to_radians();
