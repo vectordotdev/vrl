@@ -4,7 +4,7 @@ use crate::value;
 
 use std::collections::HashMap;
 use std::env;
-use std::ffi::OsString;
+
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, LazyLock, RwLock};
 
@@ -12,7 +12,7 @@ use jsonschema;
 
 // Global cache for compiled schema validators, this allows us to reuse the compiled
 // schema across multiple calls to the function, which is important for performance.
-static SCHEMA_CACHE: LazyLock<RwLock<HashMap<String, Arc<jsonschema::Validator>>>> =
+static SCHEMA_CACHE: LazyLock<RwLock<HashMap<PathBuf, Arc<jsonschema::Validator>>>> =
     LazyLock::new(|| RwLock::new(HashMap::new()));
 
 // This needs to be static because validate_json_schema needs to read a file
@@ -63,16 +63,14 @@ impl Function for ValidateJsonSchema {
             .try_bytes_utf8_lossy()
             .expect("schema definition file must be a string");
 
-        let os_string: OsString = schema_file_str.into_owned().into();
-        let path_buf = PathBuf::from(os_string);
-        let path = Path::new(&path_buf);
+        let path = Path::new(schema_file_str.as_ref());
         let schema_definition = get_json_schema_definition(path).expect("JSON schema not found");
 
         Ok(ValidateJsonSchemaFn {
             value,
             schema_definition,
             ignore_unknown_formats,
-            schema_path: path.to_string_lossy().to_string(), // Add cache key
+            schema_path: PathBuf::from(path), // Add cache key
         }
         .as_expr())
     }
@@ -107,7 +105,7 @@ struct ValidateJsonSchemaFn {
     value: Box<dyn Expression>,
     schema_definition: serde_json::Value,
     ignore_unknown_formats: Box<dyn Expression>,
-    schema_path: String, // Path to the schema file, used for caching
+    schema_path: PathBuf, // Path to the schema file, used for caching
 }
 
 impl FunctionExpression for ValidateJsonSchemaFn {
@@ -159,7 +157,7 @@ fn get_json_schema_definition(path: &Path) -> Result<serde_json::Value, String> 
 
 fn get_or_compile_schema(
     schema_definition: &serde_json::Value,
-    schema_path: &str,
+    schema_path: &Path,
     ignore_unknown_formats: bool,
 ) -> Result<Arc<jsonschema::Validator>, String> {
     // Try read lock first
@@ -186,8 +184,8 @@ fn get_or_compile_schema(
         .map_err(|e| format!("Failed to compile schema: {e}"))?;
 
     let compiled_schema = Arc::new(compiled_schema);
-    cache.insert(schema_path.to_string(), compiled_schema.clone());
-    Ok(compiled_schema.clone())
+    cache.insert(schema_path.to_path_buf(), compiled_schema.clone());
+    Ok(compiled_schema)
 }
 
 #[cfg(test)]
@@ -204,7 +202,7 @@ mod tests {
         valid_with_email_format_json {
             args: func_args![
                 value: value!("{\"productUser\":\"email@domain.com\"}"),
-                schema_definition: test_data_dir().join("validate_json_schema/schema_with_format_email.json").to_str().unwrap().to_owned(),
+                schema_definition: test_data_dir().join("validate_json_schema/schema_with_email_format.json").to_str().unwrap().to_owned(),
                 ignore_unknown_formats: false],
             want: Ok(value!(true)),
             tdef: TypeDef::boolean().fallible(),
@@ -222,19 +220,29 @@ mod tests {
         invalid_email_json {
             args: func_args![
                 value: value!("{\"productUser\":\"invalid-email\"}"),
-                schema_definition: test_data_dir().join("validate_json_schema/schema_with_format_email.json").to_str().unwrap().to_owned(),
+                schema_definition: test_data_dir().join("validate_json_schema/schema_with_email_format.json").to_str().unwrap().to_owned(),
                 ignore_unknown_formats: false],
             want: Ok(value!(false)),
+            tdef: TypeDef::boolean().fallible(),
+        }
+
+        custom_format_ignored_json {
+            args: func_args![
+                value: value!("{\"productUser\":\"just-a-string\"}"),
+                schema_definition: test_data_dir().join("validate_json_schema/schema_with_custom_format.json").to_str().unwrap().to_owned(),
+                ignore_unknown_formats: true],
+            want: Ok(value!(true)),
             tdef: TypeDef::boolean().fallible(),
         }
 
         invalid_empty_json {
             args: func_args![
                 value: value!(""),
-                schema_definition: test_data_dir().join("validate_json_schema/schema_with_format_email.json").to_str().unwrap().to_owned(),
+                schema_definition: test_data_dir().join("validate_json_schema/schema_with_email_format.json").to_str().unwrap().to_owned(),
                 ignore_unknown_formats: false],
             want: Ok(value!(false)),
             tdef: TypeDef::boolean().fallible(),
         }
+
     ];
 }
