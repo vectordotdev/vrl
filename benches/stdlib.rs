@@ -689,7 +689,7 @@ bench_function! {
     haversine => vrl::stdlib::Haversine;
 
     kilometers {
-        args: func_args![lat1: value!(0.0), lon1: value!(0.0), lat2: value!(10.0), lon2: value!(10.0)],
+        args: func_args![latitude1: value!(0.0), longitude1: value!(0.0), latitude2: value!(10.0), longitude2: value!(10.0)],
         want: Ok(value!({ "distance": 1_568.522_723_3, "bearing": 44.561 })),
     }
 }
