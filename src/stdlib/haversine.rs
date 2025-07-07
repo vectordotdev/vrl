@@ -108,37 +108,6 @@ impl Function for Haversine {
     }
 
     fn compile(
-    &self,
-    state: &state::TypeState,
-    _ctx: &mut FunctionCompileContext,
-    arguments: ArgumentList,
-) -> Compiled {
-    let latitude1 = arguments.required("latitude1");
-    let longitude1 = arguments.required("longitude1");
-    let latitude2 = arguments.required("latitude2");
-    let longitude2 = arguments.required("longitude2");
-
-    let measurement_unit = match arguments
-        .optional_enum("measurement", &measurement_systems(), state)?
-        .unwrap_or_else(|| value!("kilometers"))
-        .try_bytes()
-        .ok()
-        .as_deref()
-    {
-        Some(b"kilometers") => MeasurementUnit::Kilometers,
-        Some(b"miles") => MeasurementUnit::Miles,
-        _ => return Err("invalid measurement unit".into()),
-    };
-
-    Ok(HaversineFn {
-        latitude1,
-        longitude1,
-        latitude2,
-        longitude2,
-        measurement_unit,
-    }
-    .as_expr())
-}
         &self,
         state: &state::TypeState,
         _ctx: &mut FunctionCompileContext,
@@ -148,22 +117,25 @@ impl Function for Haversine {
         let longitude1 = arguments.required("longitude1");
         let latitude2 = arguments.required("latitude2");
         let longitude2 = arguments.required("longitude2");
-        let measurement = arguments
+
+        let measurement_unit = match arguments
             .optional_enum("measurement", &measurement_systems(), state)?
             .unwrap_or_else(|| value!("kilometers"))
             .try_bytes()
-            .expect("measurement not bytes");
+            .ok()
+            .as_deref()
+        {
+            Some(b"kilometers") => MeasurementUnit::Kilometers,
+            Some(b"miles") => MeasurementUnit::Miles,
+            _ => return Err(Box::new(ExpressionError::from("invalid measurement unit"))),
+        };
 
         Ok(HaversineFn {
             latitude1,
             longitude1,
             latitude2,
             longitude2,
-            measurement_unit: match measurement.as_ref() {
-                b"kilometers" => MeasurementUnit::Kilometers,
-                b"miles" => MeasurementUnit::Miles,
-                _ => unreachable!("enum invariant"),
-            },
+            measurement_unit,
         }
         .as_expr())
     }
