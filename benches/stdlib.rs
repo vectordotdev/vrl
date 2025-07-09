@@ -56,6 +56,7 @@ criterion_group!(
               get_env_var,
               get_hostname,
               get_timezone_name,
+              haversine,
               includes,
               int,
               ip_aton,
@@ -681,6 +682,15 @@ bench_function! {
     get {
         args: func_args![],
         want: Ok(vrl::stdlib::get_name_for_timezone(&vrl::compiler::TimeZone::Named(chrono_tz::Tz::UTC))),
+    }
+}
+
+bench_function! {
+    haversine => vrl::stdlib::Haversine;
+
+    kilometers {
+        args: func_args![latitude1: value!(0.0), longitude1: value!(0.0), latitude2: value!(10.0), longitude2: value!(10.0)],
+        want: Ok(value!({ "distance": 1_568.522_723_3, "bearing": 44.561 })),
     }
 }
 
