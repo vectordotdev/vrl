@@ -78,7 +78,7 @@ impl Function for ValidateJsonSchema {
             .try_bytes_utf8_lossy()
             .expect("schema definition file must be a string");
 
-        let path = Path::new(schema_file_str.as_ref());
+        let path = std::path::Path::new(schema_file_str.as_ref());
         let schema_definition =
             non_wasm::get_json_schema_definition(path).expect("JSON schema not found");
 
