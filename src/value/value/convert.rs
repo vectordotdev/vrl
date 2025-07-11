@@ -1,5 +1,5 @@
-use std::borrow::Cow;
 use std::sync::Arc;
+use std::{borrow::Cow, num::NonZero};
 
 use crate::value::value::regex::ValueRegex;
 use crate::value::value::simdutf_bytes_utf8_lossy;
@@ -425,6 +425,11 @@ impl From<u8> for Value {
 impl From<u32> for Value {
     fn from(value: u32) -> Self {
         Self::Integer(i64::from(value))
+    }
+}
+impl From<NonZero<u32>> for Value {
+    fn from(value: NonZero<u32>) -> Self {
+        Self::Integer(i64::from(u32::from(value)))
     }
 }
 impl From<isize> for Value {
