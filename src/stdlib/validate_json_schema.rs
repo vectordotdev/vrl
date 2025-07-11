@@ -1,16 +1,7 @@
 use crate::compiler::prelude::*;
-use std::collections::HashMap;
 use std::env;
-
-use std::path::{Path, PathBuf};
-use std::sync::{Arc, LazyLock, RwLock};
-
-use jsonschema;
-
-// Global cache for compiled schema validators, this allows us to reuse the compiled
-// schema across multiple calls to the function, which is important for performance.
-static SCHEMA_CACHE: LazyLock<RwLock<HashMap<PathBuf, Arc<jsonschema::Validator>>>> =
-    LazyLock::new(|| RwLock::new(HashMap::new()));
+use std::path::PathBuf;
+use std::sync::LazyLock;
 
 // This needs to be static because validate_json_schema needs to read a file
 // and the file path needs to be a literal.
@@ -36,7 +27,6 @@ static EXAMPLES: LazyLock<Vec<Example>> = LazyLock::new(|| {
     }]
 });
 
-#[allow(clippy::wildcard_imports)]
 #[cfg(not(target_arch = "wasm32"))]
 use non_wasm::ValidateJsonSchemaFn;
 #[derive(Clone, Copy, Debug)]
@@ -115,13 +105,19 @@ impl Function for ValidateJsonSchema {
 #[cfg(not(target_arch = "wasm32"))]
 mod non_wasm {
     use super::{
-        jsonschema, state, Context, Expression, FunctionExpression, Resolved, TypeDef,
-        VrlValueConvert, SCHEMA_CACHE,
+        state, Context, Expression, FunctionExpression, Resolved, TypeDef, VrlValueConvert,
     };
     use crate::stdlib::json_utils::bom::StripBomFromUTF8;
     use crate::value;
+    use jsonschema;
+    use std::collections::HashMap;
     use std::path::{Path, PathBuf};
-    use std::sync::Arc;
+    use std::sync::{Arc, LazyLock, RwLock};
+
+    // Global cache for compiled schema validators, this allows us to reuse the compiled
+    // schema across multiple calls to the function, which is important for performance.
+    static SCHEMA_CACHE: LazyLock<RwLock<HashMap<PathBuf, Arc<jsonschema::Validator>>>> =
+        LazyLock::new(|| RwLock::new(HashMap::new()));
 
     #[derive(Debug, Clone)]
     pub(super) struct ValidateJsonSchemaFn {
