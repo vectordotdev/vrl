@@ -432,6 +432,7 @@ impl From<NonZero<u32>> for Value {
         Self::Integer(i64::from(u32::from(value)))
     }
 }
+
 impl From<isize> for Value {
     fn from(value: isize) -> Self {
         Self::Integer(value as i64)
