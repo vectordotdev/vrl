@@ -2,6 +2,8 @@ use chrono::{DateTime, Datelike, TimeZone, Utc};
 use criterion::{criterion_group, criterion_main, Criterion};
 use regex::Regex;
 
+use std::env;
+use std::path::PathBuf;
 use vrl::compiler::prelude::*;
 use vrl::{bench_function, btreemap, func_args, value};
 
@@ -176,6 +178,7 @@ criterion_group!(
               //uuidv4,
               upcase,
               values,
+              validate_json_schema,
               zip,
 );
 criterion_main!(benches);
@@ -2997,6 +3000,19 @@ bench_function! {
     literal {
         args: func_args![value: value!({"key1": "val1", "key2": "val2"})],
         want: Ok(value!(["val1", "val2"])),
+    }
+}
+
+bench_function! {
+    validate_json_schema => vrl::stdlib::ValidateJsonSchema;
+
+    literal {
+        args: func_args![
+            value: value!("{\"fruits\":[\"apple\",\"orange\",\"pear\"],\"vegetables\":[{\"veggieName\":\"potato\",\"veggieLike\":true},{\"veggieName\":\"broccoli\",\"veggieLike\":false}]}"),
+            schema_definition: PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap()).join("tests/data/jsonschema/validate_json_schema/schema_arrays_of_things.json").to_str().unwrap().to_owned(),
+            ignore_unknown_formats: false,
+        ],
+        want: Ok(value!(true)),
     }
 }
 
