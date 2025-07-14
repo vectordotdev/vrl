@@ -460,6 +460,7 @@ pub fn all() -> Vec<Box<dyn Function>> {
         Box::new(GetEnvVar),
         Box::new(GetHostname),
         Box::new(GetTimezoneName),
+        Box::new(Haversine),
         Box::new(Hmac),
         Box::new(Includes),
         Box::new(Integer),

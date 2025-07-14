@@ -119,7 +119,7 @@ impl Function for Haversine {
         let longitude2 = arguments.required("longitude2");
 
         let measurement_unit = match arguments
-            .optional_enum("measurement", &measurement_systems(), state)?
+            .optional_enum("measurement_unit", &measurement_systems(), state)?
             .unwrap_or_else(|| value!("kilometers"))
             .try_bytes()
             .ok()
@@ -144,7 +144,7 @@ impl Function for Haversine {
         &[
             Example {
                 title: "haversine",
-                source: "haversine(0, 0, 10, 10)",
+                source: "haversine(0.0, 0.0, 10.0, 10.0)",
                 result: Ok(indoc!(
                     r#"{
                         "distance": 1568.5227233,
@@ -154,10 +154,10 @@ impl Function for Haversine {
             },
             Example {
                 title: "haversine in miles",
-                source: r#"haversine(0, 0, 10, 10, "miles")"#,
+                source: r#"haversine(0.0, 0.0, 10.0, 10.0, measurement_unit: "miles")"#,
                 result: Ok(indoc!(
                     r#"{
-                        "distance": 974.6348468
+                        "distance": 974.6348468,
                         "bearing": 44.561
                     }"#
                 )),
@@ -218,7 +218,7 @@ mod tests {
         }
 
         basic_miles {
-            args: func_args![latitude1: value!(0.0), longitude1: value!(0.0), latitude2: value!(10.0), longitude2: value!(10.0), measurement: value!("miles")],
+            args: func_args![latitude1: value!(0.0), longitude1: value!(0.0), latitude2: value!(10.0), longitude2: value!(10.0), measurement_unit: value!("miles")],
             want: Ok(value!({ "distance": 974.634_846_8, "bearing": 44.561 })),
             tdef: TypeDef::object(inner_kind()).infallible(),
         }
