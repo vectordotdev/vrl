@@ -33,3 +33,8 @@ updates:
       - "no-changelog"
     commit-message:
       prefix: "chore(ci)"
+
+  - package-ecosystem: pip
+    directory: /release
+    schedule:
+      interval: daily
