@@ -18,7 +18,7 @@ impl Function for DecodeLz4 {
         &[
             Example {
                 title: "LZ4 block with prepended size",
-                source: r#"decode_lz4!(decode_base64!("LAAAAPAdVGhlIHF1aWNrIGJyb3duIGZveCBqdW1wcyBvdmVyIDEzIGxhenkgZG9ncy4="), use_prepended_size: true)"#,
+                source: r#"decode_lz4!(decode_base64!("LAAAAPAdVGhlIHF1aWNrIGJyb3duIGZveCBqdW1wcyBvdmVyIDEzIGxhenkgZG9ncy4="), prepended_size: true)"#,
                 result: Ok("The quick brown fox jumps over 13 lazy dogs."),
             },
             Example {
@@ -197,7 +197,7 @@ mod tests {
 
     wrong_lz4_block_false_prepended_size {
         args: func_args![value: value!(decode_base64("LAAAAPAdVGhlIHF1aWNrIGJyb3duIGZveCBqdW1wcyBvdmVyIDEzIGxhenkgZG9ncy4=").as_bytes()), use_prepended_size: value!(false)],
-        want: Err("unable to decode value with lz4 block decoder: provided output is too small for the decompressed data, actual 0, expected 2"),
+        want: Err("unable to decode value with lz4 block decoder: the offset to copy is not contained in the decompressed buffer"),
         tdef: TypeDef::bytes().fallible(),
     }];
 }
