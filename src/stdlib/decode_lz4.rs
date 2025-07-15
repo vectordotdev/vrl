@@ -4,6 +4,7 @@ use lz4_flex::frame::FrameDecoder;
 use std::io;
 
 const LZ4_FRAME_MAGIC: [u8; 4] = [0x04, 0x22, 0x4D, 0x18];
+const LZ4_DEFAULT_BUFFER_SIZE: usize = 1_000_000; // Default buffer size for decompression 1MB
 
 #[derive(Clone, Copy, Debug)]
 pub struct DecodeLz4;
@@ -35,7 +36,7 @@ impl Function for DecodeLz4 {
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
-        let buf_size = arguments.optional("buf_size").unwrap_or_else(|| expr!(0));
+        let buf_size = arguments.optional("buf_size").unwrap_or_else(|| expr!(LZ4_DEFAULT_BUFFER_SIZE));
         let prepended_size = arguments
             .optional("use_prepended_size")
             .unwrap_or_else(|| expr!(false));
