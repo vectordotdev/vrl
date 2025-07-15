@@ -6,7 +6,7 @@ fn encode_lz4(value: Value, prepend_size: bool) -> Resolved {
     let value = value.try_bytes()?;
     if prepend_size {
         let encoded = compress_prepend_size(value.as_bytes());
-        return Ok(Value::Bytes(encoded.into()))
+        return Ok(Value::Bytes(encoded.into()));
     }
     let encoded = compress(value.as_bytes());
     Ok(Value::Bytes(encoded.into()))
@@ -39,7 +39,11 @@ impl Function for EncodeLz4 {
             .optional("prepend_size")
             .unwrap_or_else(|| expr!(true));
 
-        Ok(EncodeLz4Fn { value, prepend_size }.as_expr())
+        Ok(EncodeLz4Fn {
+            value,
+            prepend_size,
+        }
+        .as_expr())
     }
 
     fn parameters(&self) -> &'static [Parameter] {
