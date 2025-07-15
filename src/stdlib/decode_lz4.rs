@@ -36,7 +36,9 @@ impl Function for DecodeLz4 {
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
-        let buf_size = arguments.optional("buf_size").unwrap_or_else(|| expr!(LZ4_DEFAULT_BUFFER_SIZE));
+        let buf_size = arguments
+            .optional("buf_size")
+            .unwrap_or_else(|| expr!(LZ4_DEFAULT_BUFFER_SIZE));
         let prepended_size = arguments
             .optional("use_prepended_size")
             .unwrap_or_else(|| expr!(false));
