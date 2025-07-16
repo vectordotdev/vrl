@@ -3,7 +3,7 @@ use std::{convert::TryFrom, fmt, string::ToString};
 use crate::compiler::prelude::Bytes;
 use crate::parsing::query_string::parse_query_string;
 use crate::parsing::ruby_hash::parse_ruby_hash;
-use crate::parsing::xml::{parse_xml, ParseOptions};
+use crate::parsing::xml::{ParseOptions, parse_xml};
 use crate::value::Value;
 use ordered_float::NotNan;
 use percent_encoding::percent_decode;
@@ -11,7 +11,7 @@ use percent_encoding::percent_decode;
 use super::{
     ast::{Function, FunctionArgument},
     filters::{array, keyvalue, keyvalue::KeyValueFilter},
-    matchers::date::{apply_date_filter, DateFilter},
+    matchers::date::{DateFilter, apply_date_filter},
     parse_grok::InternalError,
     parse_grok_rules::Error as GrokStaticError,
 };

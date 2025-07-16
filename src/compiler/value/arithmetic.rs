@@ -4,8 +4,8 @@
 use std::ops::{Add, Mul, Rem};
 
 use crate::compiler::{
-    value::{Kind, VrlValueConvert},
     ExpressionError,
+    value::{Kind, VrlValueConvert},
 };
 use crate::value::{ObjectMap, Value};
 use bytes::{BufMut, Bytes, BytesMut};
@@ -32,7 +32,7 @@ pub trait VrlValueArithmetic: Sized {
     /// returned. The rhs is a closure that can return an error, and thus this
     /// method can return an error as well.
     fn try_or(self, rhs: impl FnMut() -> Result<Self, ExpressionError>)
-        -> Result<Self, ValueError>;
+    -> Result<Self, ValueError>;
 
     /// Try to "AND" (`&&`) two values types.
     ///

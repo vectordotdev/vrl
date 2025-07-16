@@ -1,4 +1,5 @@
 use nom::{
+    Parser,
     branch::alt,
     bytes::complete::{escaped, is_not, tag},
     character::complete::{one_of, space0},
@@ -6,7 +7,6 @@ use nom::{
     error::ErrorKind,
     multi::many0,
     sequence::{delimited, terminated},
-    Parser,
 };
 
 /// Parses the specified `input` and returns a vector of tokens.

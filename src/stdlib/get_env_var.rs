@@ -68,7 +68,8 @@ mod tests {
         get_env_var => GetEnvVar;
 
         before_each => {
-            std::env::set_var("VAR2", "var");
+            // TODO: Audit that the environment access only happens in single-threaded code.
+            unsafe { std::env::set_var("VAR2", "var") };
         }
 
         doesnt_exist {

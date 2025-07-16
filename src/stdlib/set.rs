@@ -18,7 +18,7 @@ fn set(path: Value, mut value: Value, data: Value) -> Resolved {
                             "path segment must be either string or integer, not {}",
                             value.kind()
                         )
-                        .into())
+                        .into());
                     }
                 };
 
@@ -32,7 +32,7 @@ fn set(path: Value, mut value: Value, data: Value) -> Resolved {
                 got: value.kind(),
                 expected: Kind::array(Collection::any()) | Kind::bytes(),
             }
-            .into())
+            .into());
         }
     };
     value.insert(&path, data);

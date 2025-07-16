@@ -1,12 +1,12 @@
 use charset::Charset;
 use nom::{
+    IResult, Parser,
     branch::alt,
     bytes::complete::{tag, take_until, take_until1},
     combinator::{map, map_opt, opt, success},
     error::{ContextError, ParseError},
     multi::fold_many1,
     sequence::{delimited, pair, separated_pair},
-    IResult, Parser,
 };
 
 use crate::compiler::prelude::*;

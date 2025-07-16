@@ -1,6 +1,6 @@
 use crate::compiler::prelude::*;
 use regex::Regex;
-use rust_decimal::{prelude::ToPrimitive, Decimal};
+use rust_decimal::{Decimal, prelude::ToPrimitive};
 use std::{collections::HashMap, str::FromStr, sync::LazyLock};
 
 fn parse_duration(bytes: &Value, unit: &Value) -> Resolved {

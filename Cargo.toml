@@ -2,7 +2,7 @@
 name = "vrl"
 version = "0.25.0"
 authors = ["Vector Contributors <vector@datadoghq.com>"]
-edition = "2021"
+edition = "2024"
 license = "MPL-2.0"
 description = "Vector Remap Language"
 homepage = "https://vrl.dev/"
@@ -10,7 +10,7 @@ repository = "https://github.com/vectordotdev/vrl"
 readme = "README.md"
 keywords = ["vector", "datadog", "compiler"]
 categories = ["compilers"]
-rust-version = "1.82" # msrv
+rust-version = "1.85" # msrv
 
 [workspace]
 members = [

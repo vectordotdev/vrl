@@ -302,7 +302,7 @@ mod tests {
     #![allow(clippy::print_stdout)] // tests
 
     use crate::{
-        compiler::{parser::Ident, state::LocalEnv, type_def::Details, TypeDef},
+        compiler::{TypeDef, parser::Ident, state::LocalEnv, type_def::Details},
         owned_value_path,
     };
 

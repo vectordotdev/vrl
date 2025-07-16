@@ -1,7 +1,7 @@
 #![allow(clippy::print_stdout)] // tests
 #![allow(clippy::print_stderr)] // tests
 
-use std::path::{PathBuf, MAIN_SEPARATOR};
+use std::path::{MAIN_SEPARATOR, PathBuf};
 use std::{collections::BTreeMap, env, str::FromStr, time::Instant};
 
 use ansi_term::Colour;
@@ -10,12 +10,11 @@ use chrono::{DateTime, SecondsFormat, Utc};
 pub use test::Test;
 
 use crate::compiler::{
-    compile_with_external,
+    CompilationResult, CompileConfig, Function, Program, SecretTarget, TargetValueRef, TimeZone,
+    VrlRuntime, compile_with_external,
     runtime::{Runtime, Terminate},
     state::{ExternalEnv, RuntimeState},
     value::VrlValueConvert,
-    CompilationResult, CompileConfig, Function, Program, SecretTarget, TargetValueRef, TimeZone,
-    VrlRuntime,
 };
 use crate::diagnostic::{DiagnosticList, Formatter};
 use crate::value::Secrets;
@@ -124,10 +123,11 @@ pub fn run_tests<T>(
         let (result, compile_duration) = measure_time(|| {
             compile_with_external(&test.source, functions, &ExternalEnv::default(), config)
         });
-        let compile_timing_fmt = cfg
-            .timings
-            .then(|| format!("comp: {:>9.3?}", compile_duration))
-            .unwrap_or_default();
+        let compile_timing_fmt = if cfg.timings {
+            format!("comp: {compile_duration:>9.3?}")
+        } else {
+            String::new()
+        };
 
         let failed = match result {
             Ok(CompilationResult {
@@ -148,10 +148,11 @@ pub fn run_tests<T>(
 
                     let timings = {
                         let timings_color = if run_end.as_millis() > 10 { 1 } else { 245 };
-                        let timings_fmt = cfg
-                            .timings
-                            .then(|| format!(" ({}, run: {:>9.3?})", compile_timing_fmt, run_end))
-                            .unwrap_or_default();
+                        let timings_fmt = if cfg.timings {
+                            format!(" ({compile_timing_fmt}, run: {run_end:>9.3?})")
+                        } else {
+                            String::new()
+                        };
                         Colour::Fixed(timings_color).paint(timings_fmt).to_string()
                     };
 
@@ -218,7 +219,7 @@ fn process_result(
                 want[2..want.len() - 1].into()
             } else {
                 serde_json::from_str::<'_, serde_json::Value>(want.trim()).unwrap_or_else(|err| {
-                    eprintln!("{}", err);
+                    eprintln!("{err}");
                     want.into()
                 })
             };
@@ -233,7 +234,7 @@ fn process_result(
                     let got = serde_json::to_string_pretty(&got_value).unwrap();
 
                     let diff = prettydiff::diff_lines(&want, &got);
-                    println!("  {}", diff);
+                    println!("  {diff}");
                 }
 
                 failed = true;
@@ -241,7 +242,7 @@ fn process_result(
             println!();
 
             if config.verbose {
-                println!("{:#}", got_value);
+                println!("{got_value:#}");
             }
 
             if failed && config.fail_early {
@@ -259,7 +260,7 @@ fn process_result(
             } else if matches!(err, Terminate::Abort { .. }) {
                 let want =
                     serde_json::from_str::<'_, serde_json::Value>(&want).unwrap_or_else(|err| {
-                        eprintln!("{}", err);
+                        eprintln!("{err}");
                         want.into()
                     });
 
@@ -273,7 +274,7 @@ fn process_result(
                         let want = serde_json::to_string_pretty(&want).unwrap();
                         let got = serde_json::to_string_pretty(&got).unwrap();
                         let diff = prettydiff::diff_lines(&want, &got);
-                        println!("{}", diff);
+                        println!("{diff}");
                     }
 
                     failed = true;
@@ -283,14 +284,14 @@ fn process_result(
 
                 if !config.no_diff {
                     let diff = prettydiff::diff_lines(&want, &got);
-                    println!("{}", diff);
+                    println!("{diff}");
                 }
 
                 failed = true;
             }
 
             if config.verbose {
-                println!("{:#}", err);
+                println!("{err:#}");
             }
 
             if failed && config.fail_early {
@@ -314,10 +315,11 @@ fn process_compilation_diagnostics(
     let want = sanitize_lines(test.result.clone());
     if (test.result_approx && compare_partial_diagnostic(&got, &want)) || got == want {
         let timings = {
-            let timings_fmt = cfg
-                .timings
-                .then(|| format!(" ({})", compile_timing_fmt))
-                .unwrap_or_default();
+            let timings_fmt = if cfg.timings {
+                format!(" ({compile_timing_fmt})")
+            } else {
+                String::new()
+            };
             Colour::Fixed(245).paint(timings_fmt).to_string()
         };
         println!("{}{timings}", Colour::Green.bold().paint("OK"));
@@ -326,7 +328,7 @@ fn process_compilation_diagnostics(
 
         if !cfg.no_diff {
             let diff = prettydiff::diff_lines(&want, &got);
-            println!("{}", diff);
+            println!("{diff}");
         }
 
         failed = true;
@@ -334,7 +336,7 @@ fn process_compilation_diagnostics(
 
     if cfg.verbose {
         formatter.enable_colors(true);
-        println!("{:#}", formatter);
+        println!("{formatter:#}");
     }
 
     if failed && cfg.fail_early {

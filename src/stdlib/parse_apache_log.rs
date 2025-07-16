@@ -188,9 +188,9 @@ fn kind_error() -> BTreeMap<Field, Kind> {
 #[cfg(test)]
 mod tests {
     use crate::compiler::TimeZone;
-    use chrono::prelude::*;
     use chrono::DateTime;
     use chrono::TimeZone as ChronoTimezone;
+    use chrono::prelude::*;
 
     use super::*;
     use crate::btreemap;

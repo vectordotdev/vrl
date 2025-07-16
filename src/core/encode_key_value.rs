@@ -475,7 +475,7 @@ impl SerializeMap for KeyedKeyValueSerializer<'_> {
     type Ok = ();
     type Error = EncodingError;
     fn serialize_key<T: Serialize + ?Sized>(&mut self, key: &T) -> Result<(), Self::Error> {
-        use serde_json::{to_value, Value};
+        use serde_json::{Value, to_value};
         match to_value(key) {
             Ok(Value::String(key)) => {
                 self.key = Some(key);
@@ -498,7 +498,7 @@ impl SerializeMap for KeyedKeyValueSerializer<'_> {
 #[cfg(test)]
 mod tests {
     use serde::Serialize;
-    use serde_json::{json, Value};
+    use serde_json::{Value, json};
 
     use super::*;
     use crate::btreemap;
@@ -674,31 +674,31 @@ mod tests {
     #[test]
     fn nested_fields() {
         assert_eq!(
-                &to_string::<Value>(
-                    &btreemap! {
-                        "log" => json!({
-                            "file": {
-                                "path": "encode_key_value.rs"
-                            },
-                        }),
-                        "agent" => json!({
-                            "name": "vector",
-                            "id": 1234
-                        }),
-                        "network" => json!({
-                            "ip": [127, 0, 0, 1],
-                            "proto": "tcp"
-                        }),
-                        "event" => "log"
-                    },
-                    &[],
-                    "=",
-                    " ",
-                    true
-                ).unwrap()
-                ,
-                "agent.id=1234 agent.name=vector event=log log.file.path=encode_key_value.rs network.ip.0=127 network.ip.1=0 network.ip.2=0 network.ip.3=1 network.proto=tcp"
-            );
+            &to_string::<Value>(
+                &btreemap! {
+                    "log" => json!({
+                        "file": {
+                            "path": "encode_key_value.rs"
+                        },
+                    }),
+                    "agent" => json!({
+                        "name": "vector",
+                        "id": 1234
+                    }),
+                    "network" => json!({
+                        "ip": [127, 0, 0, 1],
+                        "proto": "tcp"
+                    }),
+                    "event" => "log"
+                },
+                &[],
+                "=",
+                " ",
+                true
+            )
+            .unwrap(),
+            "agent.id=1234 agent.name=vector event=log log.file.path=encode_key_value.rs network.ip.0=127 network.ip.1=0 network.ip.2=0 network.ip.3=1 network.proto=tcp"
+        );
     }
 
     #[test]
@@ -754,18 +754,20 @@ mod tests {
         #[derive(Serialize)]
         struct IntegerMap(BTreeMap<i32, String>);
 
-        assert!(&to_string::<IntegerMap>(
-            &btreemap! {
-                "inner_map" => IntegerMap(btreemap!{
-                    0 => "Hello",
-                    1 => "World"
-                })
-            },
-            &[],
-            "=",
-            " ",
-            true
-        )
-        .is_err());
+        assert!(
+            &to_string::<IntegerMap>(
+                &btreemap! {
+                    "inner_map" => IntegerMap(btreemap!{
+                        0 => "Hello",
+                        1 => "World"
+                    })
+                },
+                &[],
+                "=",
+                " ",
+                true
+            )
+            .is_err()
+        );
     }
 }

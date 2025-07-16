@@ -25,8 +25,7 @@ pub fn proto_to_value(
                 let kind = field_descriptor.kind();
                 let enum_desc = kind.as_enum().ok_or_else(|| {
                     format!(
-                        "Internal error while parsing protobuf enum. Field descriptor: {:?}",
-                        field_descriptor
+                        "Internal error while parsing protobuf enum. Field descriptor: {field_descriptor:?}"
                     )
                 })?;
                 Value::from(
@@ -64,8 +63,7 @@ pub fn proto_to_value(
                 let kind = field_descriptor.kind();
                 let message_desc = kind.as_message().ok_or_else(|| {
                     format!(
-                        "Internal error while parsing protobuf field descriptor: {:?}",
-                        field_descriptor
+                        "Internal error while parsing protobuf field descriptor: {field_descriptor:?}"
                     )
                 })?;
                 Value::from(
@@ -75,8 +73,7 @@ pub fn proto_to_value(
                                 kv.0.as_str()
                                     .ok_or_else(|| {
                                         format!(
-                                            "Internal error while parsing protobuf map. Field descriptor: {:?}",
-                                            field_descriptor
+                                            "Internal error while parsing protobuf map. Field descriptor: {field_descriptor:?}"
                                         )
                                     })?
                                     .into(),
@@ -97,7 +94,7 @@ pub(crate) fn parse_proto(descriptor: &MessageDescriptor, value: Value) -> Resol
     let bytes = value.try_bytes()?;
 
     let dynamic_message = DynamicMessage::decode(descriptor.clone(), bytes)
-        .map_err(|error| format!("Error parsing protobuf: {:?}", error))?;
+        .map_err(|error| format!("Error parsing protobuf: {error:?}"))?;
     Ok(proto_to_value(
         &prost_reflect::Value::Message(dynamic_message),
         None,

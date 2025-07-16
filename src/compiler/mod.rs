@@ -1,4 +1,6 @@
 #![deny(warnings, clippy::pedantic)]
+#![allow(clippy::large_enum_variant)]
+#![allow(clippy::result_large_err)]
 
 use std::fmt::Debug;
 use std::{fmt::Display, str::FromStr};

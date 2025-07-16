@@ -1,4 +1,4 @@
-use lalrpop_util::{lalrpop_mod, ParseError};
+use lalrpop_util::{ParseError, lalrpop_mod};
 
 use super::{ast::GrokPattern, lexer::Lexer};
 
@@ -17,7 +17,7 @@ pub fn parse_grok_pattern(input: &str) -> Result<GrokPattern, String> {
         .parse(input, lexer)
         .map_err(|e| match e {
             ParseError::User { error } => error.to_string(),
-            _ => format!("invalid grok pattern: {}", input),
+            _ => format!("invalid grok pattern: {input}"),
         })
 }
 
@@ -33,7 +33,7 @@ mod tests {
     fn parse_grok_filter() {
         let input = r#"%{date:e-http.status.abc[".\""]:integer("a. df",.123,1.23e-32, true, null, 123e-5)}"#;
         let parsed = parse_grok_pattern(input).unwrap_or_else(|error| {
-            panic!("Problem parsing grok: {:?}", error);
+            panic!("Problem parsing grok: {error:?}");
         });
         assert_eq!(parsed.match_fn.name, "date");
         let destination = parsed.destination.unwrap();
@@ -64,7 +64,7 @@ mod tests {
     fn empty_field() {
         let input = "%{data:}";
         let parsed = parse_grok_pattern(input).unwrap_or_else(|error| {
-            panic!("Problem parsing grok: {:?}", error);
+            panic!("Problem parsing grok: {error:?}");
         });
         assert_eq!(parsed.destination, None);
     }
@@ -73,7 +73,7 @@ mod tests {
     fn escaped_quotes() {
         let input = r#"%{data:field:filter("escaped \"quotes\"")}"#;
         let parsed = parse_grok_pattern(input).unwrap_or_else(|error| {
-            panic!("Problem parsing grok: {:?}", error);
+            panic!("Problem parsing grok: {error:?}");
         });
         assert_eq!(
             parsed.destination,
@@ -91,7 +91,7 @@ mod tests {
     fn empty_field_with_filter() {
         let input = "%{data::json}";
         let parsed = parse_grok_pattern(input).unwrap_or_else(|error| {
-            panic!("Problem parsing grok: {:?}", error);
+            panic!("Problem parsing grok: {error:?}");
         });
         assert_eq!(
             parsed.destination,
@@ -118,7 +118,7 @@ mod tests {
     fn escaped_new_line() {
         let input = r#"%{data::array("\\n")}"#;
         let parsed = parse_grok_pattern(input).unwrap_or_else(|error| {
-            panic!("Problem parsing grok: {:?}", error);
+            panic!("Problem parsing grok: {error:?}");
         });
         assert_eq!(
             parsed.destination,
@@ -136,7 +136,7 @@ mod tests {
     fn parses_string_with_escaped_quote_followed_by_multibyte_character() {
         let input = r#"%{regex("[^\\\"“]*"):traefik.backend_url}"#;
         parse_grok_pattern(input).unwrap_or_else(|error| {
-            panic!("Problem parsing grok: {:?}", error);
+            panic!("Problem parsing grok: {error:?}");
         });
     }
 }

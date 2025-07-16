@@ -1,9 +1,9 @@
 use std::fmt;
 
 use crate::compiler::{
+    Context, Expression,
     expression::{Not, Resolved},
     state::{TypeInfo, TypeState},
-    Context, Expression,
 };
 
 #[derive(Debug, Clone, PartialEq)]

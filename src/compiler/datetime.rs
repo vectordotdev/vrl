@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-use chrono::format::{parse, Parsed, StrftimeItems};
+use chrono::format::{Parsed, StrftimeItems, parse};
 use chrono::{DateTime, FixedOffset, Local, Offset, ParseError, TimeZone as _, Utc};
 use chrono_tz::Tz;
 use serde::{Deserialize, Serialize};

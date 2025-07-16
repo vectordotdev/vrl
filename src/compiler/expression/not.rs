@@ -2,10 +2,10 @@ use std::fmt;
 
 use crate::compiler::state::{TypeInfo, TypeState};
 use crate::compiler::{
+    Context, Expression, Span, TypeDef,
     expression::{Expr, Resolved},
     parser::Node,
     value::{Kind, VrlValueConvert},
-    Context, Expression, Span, TypeDef,
 };
 use crate::diagnostic::{DiagnosticMessage, Label, Note, Urls};
 

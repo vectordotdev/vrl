@@ -172,7 +172,7 @@ mod tests {
 
     use crate::{
         btreemap,
-        stdlib::parse_key_value::{parse_key_value, Whitespace},
+        stdlib::parse_key_value::{Whitespace, parse_key_value},
         value,
     };
 

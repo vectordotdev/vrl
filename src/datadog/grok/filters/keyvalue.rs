@@ -6,14 +6,13 @@ use bytes::Bytes;
 use fancy_regex::{Captures, Regex};
 use nom::combinator::eof;
 use nom::{
-    self,
+    self, IResult, Parser,
     branch::alt,
     bytes::complete::{tag, take_while1},
     character::complete::char,
     combinator::{map, map_res, opt, rest, value},
     number::complete::double,
     sequence::{delimited, terminated},
-    IResult, Parser,
 };
 use onig::EncodedChars;
 use ordered_float::NotNan;
@@ -56,13 +55,13 @@ impl std::fmt::Display for KeyValueFilter {
 impl KeyValueFilter {
     fn from_args<'a>(mut args: impl Iterator<Item = &'a FunctionArgument>) -> Option<Self> {
         let key_value_delimiter = match args.next() {
-            Some(FunctionArgument::Arg(Value::Bytes(ref bytes))) => &String::from_utf8_lossy(bytes),
+            Some(FunctionArgument::Arg(Value::Bytes(bytes))) => &String::from_utf8_lossy(bytes),
             Some(_) => return None,
             None => DEFAULT_KEYVALUE_DELIMITER,
         };
 
         let value_re = match args.next() {
-            Some(FunctionArgument::Arg(Value::Bytes(ref bytes))) => {
+            Some(FunctionArgument::Arg(Value::Bytes(bytes))) => {
                 [DEFAULT_VALUE_RE, &String::from_utf8_lossy(bytes)].concat()
             }
             Some(_) => return None,
@@ -87,7 +86,7 @@ impl KeyValueFilter {
 
 fn parse_quotes(arg: Option<&FunctionArgument>) -> Option<Vec<(char, char)>> {
     match arg {
-        Some(FunctionArgument::Arg(Value::Bytes(ref bytes))) => {
+        Some(FunctionArgument::Arg(Value::Bytes(bytes))) => {
             let pair = String::from_utf8_lossy(bytes);
             match pair {
                 pair if pair.len() == 2 => {
@@ -108,7 +107,7 @@ fn parse_quotes(arg: Option<&FunctionArgument>) -> Option<Vec<(char, char)>> {
 
 fn parse_field_delimiters(arg: Option<&FunctionArgument>) -> Option<(String, String)> {
     match arg {
-        Some(FunctionArgument::Arg(Value::Bytes(ref bytes))) => {
+        Some(FunctionArgument::Arg(Value::Bytes(bytes))) => {
             let delimiter_str = String::from_utf8_lossy(bytes);
             let mut chars = delimiter_str.chars();
             match (chars.next(), chars.next(), chars.as_str()) {
@@ -197,7 +196,7 @@ impl KeyValueFilter {
                 {
                     let path = crate::path!(key);
                     match result.get_mut(path) {
-                        Some(Value::Array(ref mut values)) => values.push(value),
+                        Some(Value::Array(values)) => values.push(value),
                         Some(prev) => {
                             // Replace existing non-array values with an array containing that value
                             // followed by the new one. We can't just put that old value into the

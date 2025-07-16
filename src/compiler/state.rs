@@ -1,8 +1,8 @@
 use crate::path::PathPrefix;
 use crate::value::{Kind, Value};
-use std::collections::{hash_map::Entry, HashMap};
+use std::collections::{HashMap, hash_map::Entry};
 
-use super::{parser::ast::Ident, type_def::Details, value::Collection, TypeDef};
+use super::{TypeDef, parser::ast::Ident, type_def::Details, value::Collection};
 
 #[derive(Debug, Clone)]
 pub struct TypeInfo {

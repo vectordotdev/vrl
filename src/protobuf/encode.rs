@@ -21,17 +21,16 @@ fn convert_value_raw(
         )),
         (Value::Bytes(b), Kind::Enum(descriptor)) => {
             let string = simdutf_bytes_utf8_lossy(&b);
-            if let Some(d) = descriptor
+            match descriptor
                 .values()
                 .find(|v| v.name().eq_ignore_ascii_case(&string))
             {
-                Ok(prost_reflect::Value::EnumNumber(d.number()))
-            } else {
-                Err(format!(
+                Some(d) => Ok(prost_reflect::Value::EnumNumber(d.number())),
+                None => Err(format!(
                     "Enum `{}` has no value that matches string '{}'",
                     descriptor.full_name(),
                     string
-                ))
+                )),
             }
         }
         (Value::Float(f), Kind::Double) => Ok(prost_reflect::Value::F64(f.into_inner())),
@@ -40,14 +39,14 @@ fn convert_value_raw(
             let string = simdutf_bytes_utf8_lossy(&b);
             let val = string
                 .parse::<f64>()
-                .map_err(|e| format!("Cannot parse `{}` as double: {}", string, e))?;
+                .map_err(|e| format!("Cannot parse `{string}` as double: {e}"))?;
             Ok(prost_reflect::Value::F64(val))
         }
         (Value::Bytes(b), Kind::Float) => {
             let string = simdutf_bytes_utf8_lossy(&b);
             let val = string
                 .parse::<f32>()
-                .map_err(|e| format!("Cannot parse `{}` as float: {}", string, e))?;
+                .map_err(|e| format!("Cannot parse `{string}` as float: {e}"))?;
             Ok(prost_reflect::Value::F32(val))
         }
         (Value::Integer(i), Kind::Int32) => Ok(prost_reflect::Value::I32(i as i32)),
@@ -65,28 +64,28 @@ fn convert_value_raw(
             let string = simdutf_bytes_utf8_lossy(&b);
             let number: i32 = string
                 .parse()
-                .map_err(|e| format!("Can't convert '{}' to i32: {}", string, e))?;
+                .map_err(|e| format!("Can't convert '{string}' to i32: {e}"))?;
             Ok(prost_reflect::Value::I32(number))
         }
         (Value::Bytes(b), Kind::Int64 | Kind::Sfixed64 | Kind::Sint64) => {
             let string = simdutf_bytes_utf8_lossy(&b);
             let number: i64 = string
                 .parse()
-                .map_err(|e| format!("Can't convert '{}' to i64: {}", string, e))?;
+                .map_err(|e| format!("Can't convert '{string}' to i64: {e}"))?;
             Ok(prost_reflect::Value::I64(number))
         }
         (Value::Bytes(b), Kind::Uint32 | Kind::Fixed32) => {
             let string = simdutf_bytes_utf8_lossy(&b);
             let number: u32 = string
                 .parse()
-                .map_err(|e| format!("Can't convert '{}' to u32: {}", string, e))?;
+                .map_err(|e| format!("Can't convert '{string}' to u32: {e}"))?;
             Ok(prost_reflect::Value::U32(number))
         }
         (Value::Bytes(b), Kind::Uint64 | Kind::Fixed64) => {
             let string = simdutf_bytes_utf8_lossy(&b);
             let number: u64 = string
                 .parse()
-                .map_err(|e| format!("Can't convert '{}' to u64: {}", string, e))?;
+                .map_err(|e| format!("Can't convert '{string}' to u64: {e}"))?;
             Ok(prost_reflect::Value::U64(number))
         }
         (Value::Object(o), Kind::Message(message_descriptor)) => {
@@ -121,10 +120,10 @@ fn convert_value_raw(
             let mut message = DynamicMessage::new(descriptor.clone());
             message
                 .try_set_field_by_name("seconds", prost_reflect::Value::I64(t.timestamp()))
-                .map_err(|e| format!("Error setting 'seconds' field: {}", e))?;
+                .map_err(|e| format!("Error setting 'seconds' field: {e}"))?;
             message
                 .try_set_field_by_name("nanos", prost_reflect::Value::I32(t.nanosecond() as i32))
-                .map_err(|e| format!("Error setting 'nanos' field: {}", e))?;
+                .map_err(|e| format!("Error setting 'nanos' field: {e}"))?;
             Ok(prost_reflect::Value::Message(message))
         }
         (Value::Boolean(b), Kind::String) => Ok(prost_reflect::Value::String(b.to_string())),
@@ -192,7 +191,7 @@ pub(crate) fn encode_proto(descriptor: &MessageDescriptor, value: Value) -> Reso
     let mut buf = Vec::new();
     message
         .encode(&mut buf)
-        .map_err(|e| format!("Error encoding protobuf message: {}", e))?;
+        .map_err(|e| format!("Error encoding protobuf message: {e}"))?;
     Ok(Value::Bytes(Bytes::from(buf)))
 }
 
@@ -215,7 +214,7 @@ mod tests {
     }
 
     macro_rules! mfield {
-        ($m:expr, $f:expr) => {
+        ($m:expr_2021, $f:expr_2021) => {
             $m.get_field_by_name($f).unwrap().into_owned()
         };
     }

@@ -10,6 +10,6 @@ mod grammar;
 mod node;
 mod parser;
 
-pub use field::{normalize_fields, Field};
+pub use field::{Field, normalize_fields};
 pub use node::{BooleanType, Comparison, ComparisonValue, QueryNode};
 pub use parser::Error as ParseError;

@@ -110,7 +110,7 @@ pub enum PathParseError {
 /// Example: `path!("foo", 4, "bar")` is the pre-parsed path of `foo[4].bar`
 #[macro_export]
 macro_rules! path {
-    ($($segment:expr),*) => { $crate::path::BorrowedValuePath {
+    ($($segment:expr_2021),*) => { $crate::path::BorrowedValuePath {
         segments: &[$($crate::path::BorrowedSegment::from($segment),)*],
     }};
 }
@@ -119,7 +119,7 @@ macro_rules! path {
 /// This path points at an event (as opposed to metadata).
 #[macro_export]
 macro_rules! event_path {
-    ($($segment:expr),*) => { $crate::path::BorrowedTargetPath {
+    ($($segment:expr_2021),*) => { $crate::path::BorrowedTargetPath {
         prefix: $crate::path::PathPrefix::Event,
         path: $crate::path!($($segment),*),
     }};
@@ -129,7 +129,7 @@ macro_rules! event_path {
 /// This path points at metadata (as opposed to the event).
 #[macro_export]
 macro_rules! metadata_path {
-    ($($segment:expr),*) => { $crate::path::BorrowedTargetPath {
+    ($($segment:expr_2021),*) => { $crate::path::BorrowedTargetPath {
         prefix: $crate::path::PathPrefix::Metadata,
         path: $crate::path!($($segment),*),
     }};
@@ -143,7 +143,7 @@ macro_rules! metadata_path {
 /// Example: `owned_value_path!("foo", 4, "bar")` is the pre-parsed path of `foo[4].bar`
 #[macro_export]
 macro_rules! owned_value_path {
-    ($($segment:expr),*) => {{
+    ($($segment:expr_2021),*) => {{
         $crate::path::OwnedValuePath::from(vec![$($crate::path::OwnedSegment::from($segment),)*])
     }};
 }
@@ -336,10 +336,10 @@ impl fmt::Display for PathPrefix {
 
 #[cfg(test)]
 mod test {
-    use crate::path::parse_target_path;
     use crate::path::PathPrefix;
     use crate::path::TargetPath;
     use crate::path::ValuePath;
+    use crate::path::parse_target_path;
 
     #[test]
     fn test_parse_target_path() {

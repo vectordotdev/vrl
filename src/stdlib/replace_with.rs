@@ -203,16 +203,16 @@ impl Function for ReplaceWith {
             inputs: vec![Input {
                 parameter_keyword: "value",
                 kind: Kind::bytes(),
-                variables: vec![
-                    Variable {
-                        kind: VariableKind::Exact(Kind::object(match_type)),
-                    },
-                ],
+                variables: vec![Variable {
+                    kind: VariableKind::Exact(Kind::object(match_type)),
+                }],
                 output: Output::Kind(Kind::bytes()),
                 example: Example {
                     title: "replace with hash",
                     source: r#"replace_with("received email from a@example.com", pattern: r'\w+@\w+\.\w+') -> |match| { sha2(match.string) }"#,
-                    result: Ok("received email from 896bdca840c9304a5d0bdbeacc4ef359e3093f80c9777c9967e31ba0ff99ed58"),
+                    result: Ok(
+                        "received email from 896bdca840c9304a5d0bdbeacc4ef359e3093f80c9777c9967e31ba0ff99ed58",
+                    ),
                 },
             }],
             is_iterator: false,

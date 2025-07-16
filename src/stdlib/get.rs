@@ -18,7 +18,7 @@ fn get(value: &Value, value_path: Value) -> Resolved {
                             "path segment must be either string or integer, not {}",
                             value.kind()
                         )
-                        .into())
+                        .into());
                     }
                 };
                 path.push(segment);
@@ -31,7 +31,7 @@ fn get(value: &Value, value_path: Value) -> Resolved {
                 got: value.kind(),
                 expected: Kind::array(Collection::any()),
             }
-            .into())
+            .into());
         }
     };
     Ok(value.get(&path).cloned().unwrap_or(Value::Null))

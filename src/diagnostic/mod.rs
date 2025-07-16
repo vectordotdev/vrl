@@ -21,7 +21,7 @@ pub use formatter::Formatter;
 pub use label::Label;
 pub use note::Note;
 pub use severity::Severity;
-pub use span::{span, Span};
+pub use span::{Span, span};
 
 #[allow(clippy::module_inception)]
 mod diagnostic;

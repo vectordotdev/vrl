@@ -1,14 +1,14 @@
 use std::collections::BTreeMap;
 
 use crate::compiler::{
+    Context, ExpressionError,
     state::RuntimeState,
     value::{Kind, VrlValueConvert},
-    Context, ExpressionError,
 };
 use crate::parser::ast::Ident;
 use crate::value::{
-    kind::{Collection, Field, Index},
     KeyString, Value,
+    kind::{Collection, Field, Index},
 };
 
 use super::Example;

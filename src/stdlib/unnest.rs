@@ -113,7 +113,7 @@ struct UnnestFn {
 impl UnnestFn {
     #[cfg(test)]
     fn new(path: &str) -> Self {
-        use crate::path::{parse_value_path, PathPrefix};
+        use crate::path::{PathPrefix, parse_value_path};
 
         Self {
             path: expression::Query::new(

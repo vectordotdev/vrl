@@ -13,7 +13,7 @@ use crate::path::{OwnedTargetPath, OwnedValuePath, PathPrefix};
 use arbitrary::Arbitrary;
 use ordered_float::NotNan;
 
-use super::{template_string::TemplateString, Error};
+use super::{Error, template_string::TemplateString};
 
 // -----------------------------------------------------------------------------
 // node

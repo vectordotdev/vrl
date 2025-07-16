@@ -41,7 +41,7 @@ mod test {
     #[test]
     fn test_strip_bom_str_with_utf8_escape() {
         let raw = format!("{BOM_MARKER}{{}}"); // BOM{}
-                                               // Should be the exact same as the test from raw bytes
+        // Should be the exact same as the test from raw bytes
         let raw: &str = raw.as_str();
         assert_eq!(raw.len(), 5);
 

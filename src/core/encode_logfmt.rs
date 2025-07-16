@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use crate::value::{KeyString, Value};
 use serde::Serialize;
 
-use super::encode_key_value::{to_string as encode_key_value, EncodingError};
+use super::encode_key_value::{EncodingError, to_string as encode_key_value};
 
 /// Serialize the input value map into a logfmt string.
 ///

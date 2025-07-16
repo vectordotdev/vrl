@@ -493,15 +493,12 @@ mod tests {
     #[test]
     fn fails_on_too_many_match_retries() {
         let pattern = std::fs::read_to_string(format!(
-            "{}/pattern/excessive-match-retries.txt",
-            FIXTURE_ROOT
+            "{FIXTURE_ROOT}/pattern/excessive-match-retries.txt"
         ))
         .expect("Failed to read pattern file");
-        let value = std::fs::read_to_string(format!(
-            "{}/value/excessive-match-retries.txt",
-            FIXTURE_ROOT
-        ))
-        .expect("Failed to read value file");
+        let value =
+            std::fs::read_to_string(format!("{FIXTURE_ROOT}/value/excessive-match-retries.txt"))
+                .expect("Failed to read value file");
 
         let rules = parse_grok_rules(
             // patterns

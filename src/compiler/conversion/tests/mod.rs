@@ -2,8 +2,8 @@ use bytes::Bytes;
 use chrono::{DateTime, Utc};
 use ordered_float::NotNan;
 
-use crate::compiler::conversion::{parse_bool, Conversion, Error};
 use crate::compiler::TimeZone;
+use crate::compiler::conversion::{Conversion, Error, parse_bool};
 
 #[cfg(unix)] // see https://github.com/vectordotdev/vector/issues/1201
 mod unix;

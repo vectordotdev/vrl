@@ -9,7 +9,7 @@
 # │ │
 # │ invalid argument "psl"
 # │ error: Unable to parse psl file
-# │ received: "\"lib/tests/tests/functions/parse_groks_alias_source.json\""
+# │ received: "lib/tests/tests/functions/parse_groks_alias_source.json"
 # │
 # = learn more about error code 403 at https://errors.vrl.dev/403
 # = see language documentation at https://vrl.dev

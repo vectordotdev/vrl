@@ -1,10 +1,10 @@
 use crate::compiler::{
+    Context, Expression,
     expression::{Container, Resolved, Variable},
     parser::ast::Ident,
     state::ExternalEnv,
     state::{TypeInfo, TypeState},
     type_def::Details,
-    Context, Expression,
 };
 use crate::path::{OwnedTargetPath, OwnedValuePath, PathPrefix};
 use crate::value::Value;

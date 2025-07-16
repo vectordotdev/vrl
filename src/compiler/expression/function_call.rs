@@ -4,16 +4,16 @@ use super::Block;
 use crate::compiler::expression::function_call::Warning::AbortInfallible;
 use crate::compiler::state::{TypeInfo, TypeState};
 use crate::compiler::{
-    expression::{levenstein, ExpressionError, FunctionArgument},
+    CompileConfig, Context, Expression, Function, Resolved, Span, TypeDef,
+    expression::{ExpressionError, FunctionArgument, levenstein},
     function::{
-        closure::{self, VariableKind},
         ArgumentList, Closure, Example, FunctionCompileContext, Parameter,
+        closure::{self, VariableKind},
     },
     parser::{Ident, Node},
     state::LocalEnv,
     type_def::Details,
     value::Kind,
-    CompileConfig, Context, Expression, Function, Resolved, Span, TypeDef,
 };
 use crate::diagnostic::{DiagnosticMessage, Label, Note, Severity, Urls};
 use crate::prelude::Note::SeeErrorDocs;
@@ -1055,9 +1055,7 @@ impl DiagnosticMessage for FunctionCallError {
                 position,
             } => {
                 vec![Label::primary(
-                    format!(
-                        r#"required argument missing: "{keyword}" (position {position})"#
-                    ),
+                    format!(r#"required argument missing: "{keyword}" (position {position})"#),
                     call_span,
                 )]
             }
@@ -1101,21 +1099,46 @@ impl DiagnosticMessage for FunctionCallError {
                     expr_span,
                 ),
             ],
-            UnexpectedClosure { call_span, closure_span } => vec![
+            UnexpectedClosure {
+                call_span,
+                closure_span,
+            } => vec![
                 Label::primary("unexpected closure", closure_span),
                 Label::context("this function does not accept a closure", call_span),
             ],
-            MissingClosure { call_span, .. } => vec![Label::primary("this function expects a closure", call_span)],
-            ClosureArityMismatch { ident_span, closure_arguments_span, expected, supplied } => vec![
-                Label::primary(format!("this function requires a closure with {expected} argument(s)"), ident_span),
-                Label::context(format!("but {supplied} argument(s) are supplied"), closure_arguments_span),
+            MissingClosure { call_span, .. } => {
+                vec![Label::primary("this function expects a closure", call_span)]
+            }
+            ClosureArityMismatch {
+                ident_span,
+                closure_arguments_span,
+                expected,
+                supplied,
+            } => vec![
+                Label::primary(
+                    format!("this function requires a closure with {expected} argument(s)"),
+                    ident_span,
+                ),
+                Label::context(
+                    format!("but {supplied} argument(s) are supplied"),
+                    closure_arguments_span,
+                ),
             ],
             ClosureParameterTypeMismatch {
                 call_span,
                 found_kind,
             } => vec![
-                Label::primary("the closure tied to this function call expects a different input value", call_span),
-                Label::context(format!("expression has an inferred type of {found_kind} where an array or object was expected"), call_span)],
+                Label::primary(
+                    "the closure tied to this function call expects a different input value",
+                    call_span,
+                ),
+                Label::context(
+                    format!(
+                        "expression has an inferred type of {found_kind} where an array or object was expected"
+                    ),
+                    call_span,
+                ),
+            ],
             ReturnTypeMismatch {
                 block_span,
                 found_kind,
@@ -1123,7 +1146,8 @@ impl DiagnosticMessage for FunctionCallError {
             } => vec![
                 Label::primary("block returns invalid value type", block_span),
                 Label::context(format!("expected: {expected_kind}"), block_span),
-                Label::context(format!("received: {found_kind}"), block_span)],
+                Label::context(format!("received: {found_kind}"), block_span),
+            ],
         }
     }
 
@@ -1224,7 +1248,7 @@ impl DiagnosticMessage for FunctionCallError {
 
 #[cfg(test)]
 mod tests {
-    use crate::compiler::{value::kind, FunctionExpression};
+    use crate::compiler::{FunctionExpression, value::kind};
 
     use super::*;
 

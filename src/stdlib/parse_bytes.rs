@@ -2,7 +2,7 @@ use crate::compiler::prelude::*;
 use crate::value;
 use core::convert::AsRef;
 use parse_size::Config;
-use rust_decimal::{prelude::FromPrimitive, prelude::ToPrimitive, Decimal};
+use rust_decimal::{Decimal, prelude::FromPrimitive, prelude::ToPrimitive};
 use std::collections::HashMap;
 use std::sync::LazyLock;
 

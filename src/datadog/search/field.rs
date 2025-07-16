@@ -50,10 +50,10 @@ pub enum Field {
 impl Field {
     pub fn as_str(&self) -> &str {
         match self {
-            Self::Default(ref s) => s,
-            Self::Reserved(ref s) => s,
-            Self::Attribute(ref s) => s,
-            Self::Tag(ref s) => s,
+            Self::Default(s) => s,
+            Self::Reserved(s) => s,
+            Self::Attribute(s) => s,
+            Self::Tag(s) => s,
         }
     }
 }

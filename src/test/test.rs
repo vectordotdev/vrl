@@ -1,8 +1,8 @@
 use std::{collections::BTreeMap, fs, path::Path};
 
 use crate::compiler::function::Example;
-use crate::path::parse_value_path;
 use crate::path::OwnedTargetPath;
+use crate::path::parse_value_path;
 use crate::test::{example_vrl_path, test_prefix};
 use crate::value::Value;
 
@@ -119,7 +119,7 @@ impl Test {
             Value::Object(BTreeMap::default())
         } else {
             serde_json::from_str::<'_, Value>(&object).unwrap_or_else(|err| {
-                error = Some(format!("unable to parse object as JSON: {}", err));
+                error = Some(format!("unable to parse object as JSON: {err}"));
                 Value::Null
             })
         };

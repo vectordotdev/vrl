@@ -3,9 +3,9 @@ use std::{collections::BTreeMap, fmt, ops::Deref};
 use crate::value::{KeyString, Value};
 use crate::{
     compiler::{
+        Context, Expression, TypeDef,
         expression::{Expr, Resolved},
         state::{TypeInfo, TypeState},
-        Context, Expression, TypeDef,
     },
     value::Kind,
 };

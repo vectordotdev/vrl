@@ -176,53 +176,53 @@ impl QueryVisitor {
                         (EXISTS_FIELD, Rule::TERM) => {
                             return QueryNode::AttributeExists {
                                 attr: Self::visit_term(value_contents),
-                            }
+                            };
                         }
                         (EXISTS_FIELD, Rule::PHRASE) => {
                             return QueryNode::AttributeExists {
                                 attr: Self::visit_phrase(value_contents),
-                            }
+                            };
                         }
                         (MISSING_FIELD, Rule::TERM) => {
                             return QueryNode::AttributeMissing {
                                 attr: Self::visit_term(value_contents),
-                            }
+                            };
                         }
                         (MISSING_FIELD, Rule::PHRASE) => {
                             return QueryNode::AttributeMissing {
                                 attr: Self::visit_phrase(value_contents),
-                            }
+                            };
                         }
                         (DEFAULT_FIELD, Rule::STAR) => return QueryNode::MatchAllDocs,
                         (f, Rule::STAR) => {
                             return QueryNode::AttributeWildcard {
                                 attr: unescape(f),
                                 wildcard: String::from("*"),
-                            }
+                            };
                         }
                         (f, Rule::TERM) => {
                             return QueryNode::AttributeTerm {
                                 attr: unescape(f),
                                 value: Self::visit_term(value_contents),
-                            }
+                            };
                         }
                         (f, Rule::PHRASE) => {
                             return QueryNode::QuotedAttribute {
                                 attr: unescape(f),
                                 phrase: Self::visit_phrase(value_contents),
-                            }
+                            };
                         }
                         (f, Rule::TERM_PREFIX) => {
                             return QueryNode::AttributePrefix {
                                 attr: unescape(f),
                                 prefix: Self::visit_prefix(value_contents),
-                            }
+                            };
                         }
                         (f, Rule::TERM_GLOB) => {
                             return QueryNode::AttributeWildcard {
                                 attr: unescape(f),
                                 wildcard: Self::visit_wildcard(value_contents),
-                            }
+                            };
                         }
                         (f, Rule::range) => {
                             let range_values = value_contents.into_inner();
