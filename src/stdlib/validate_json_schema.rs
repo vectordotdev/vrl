@@ -168,9 +168,9 @@ mod non_wasm {
     // it will not fetch remote references, so the schema must be self-contained.
     pub(super) fn get_json_schema_definition(path: &Path) -> Result<serde_json::Value, String> {
         let b = std::fs::read(path)
-            .map_err(|e| format!("Failed to open schema definition file '{path}': {e}", ))?;
+            .map_err(|e| format!("Failed to open schema definition file '{}': {e}", path.display()))?;
         let schema: serde_json::Value = serde_json::from_slice(&b)
-            .map_err(|e| format!("Failed to parse schema definition file '{path}': {e}"))?;
+            .map_err(|e| format!("Failed to parse schema definition file '{}': {e}", path.display()))?;
         Ok(schema)
     }
 

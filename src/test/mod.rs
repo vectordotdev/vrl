@@ -1,7 +1,7 @@
 #![allow(clippy::print_stdout)] // tests
 #![allow(clippy::print_stderr)] // tests
 
-use std::path::{MAIN_SEPARATOR, PathBuf};
+use std::path::{PathBuf, MAIN_SEPARATOR};
 use std::{collections::BTreeMap, env, str::FromStr, time::Instant};
 
 use ansi_term::Colour;
@@ -10,11 +10,11 @@ use chrono::{DateTime, SecondsFormat, Utc};
 pub use test::Test;
 
 use crate::compiler::{
-    CompilationResult, CompileConfig, Function, Program, SecretTarget, TargetValueRef, TimeZone,
-    VrlRuntime, compile_with_external,
-    runtime::{Runtime, Terminate},
-    state::{ExternalEnv, RuntimeState},
-    value::VrlValueConvert,
+    compile_with_external, runtime::{Runtime, Terminate}, state::{ExternalEnv, RuntimeState}, value::VrlValueConvert, CompilationResult, CompileConfig, Function,
+    Program, SecretTarget,
+    TargetValueRef,
+    TimeZone,
+    VrlRuntime,
 };
 use crate::diagnostic::{DiagnosticList, Formatter};
 use crate::value::Secrets;
@@ -123,10 +123,11 @@ pub fn run_tests<T>(
         let (result, compile_duration) = measure_time(|| {
             compile_with_external(&test.source, functions, &ExternalEnv::default(), config)
         });
-        let compile_timing_fmt = cfg
-            .timings
-            .then(|| format!("comp: {compile_duration:>9.3?}"))
-            .unwrap_or_default();
+        let compile_timing_fmt = if cfg.timings {
+            format!("comp: {compile_duration:>9.3?}")
+        } else {
+            String::new()
+        };
 
         let failed = match result {
             Ok(CompilationResult {
@@ -147,10 +148,11 @@ pub fn run_tests<T>(
 
                     let timings = {
                         let timings_color = if run_end.as_millis() > 10 { 1 } else { 245 };
-                        let timings_fmt = cfg
-                            .timings
-                            .then(|| format!(" ({compile_timing_fmt}, run: {run_end:>9.3?})"))
-                            .unwrap_or_default();
+                        let timings_fmt = if cfg.timings {
+                            format!(" ({compile_timing_fmt}, run: {run_end:>9.3?})")
+                        } else {
+                            String::new()
+                        };
                         Colour::Fixed(timings_color).paint(timings_fmt).to_string()
                     };
 
@@ -313,10 +315,11 @@ fn process_compilation_diagnostics(
     let want = sanitize_lines(test.result.clone());
     if (test.result_approx && compare_partial_diagnostic(&got, &want)) || got == want {
         let timings = {
-            let timings_fmt = cfg
-                .timings
-                .then(|| format!(" ({compile_timing_fmt})"))
-                .unwrap_or_default();
+            let timings_fmt = if cfg.timings {
+                format!(" ({compile_timing_fmt})")
+            } else {
+                String::new()
+            };
             Colour::Fixed(245).paint(timings_fmt).to_string()
         };
         println!("{}{timings}", Colour::Green.bold().paint("OK"));
