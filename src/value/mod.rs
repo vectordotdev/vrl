@@ -48,7 +48,7 @@ macro_rules! value {
         $crate::value::Value::Null
     });
 
-    ($k:expr) => ({
+    ($k:expr_2021) => ({
         $crate::value::Value::from($k)
     });
 }

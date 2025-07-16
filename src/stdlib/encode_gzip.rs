@@ -100,11 +100,11 @@ impl FunctionExpression for EncodeGzipFn {
 
     fn type_def(&self, state: &state::TypeState) -> TypeDef {
         let is_compression_level_valid_constant = if let Some(level) = &self.compression_level {
-            if let Some(Value::Integer(level)) = level.resolve_constant(state) {
+            match level.resolve_constant(state) { Some(Value::Integer(level)) => {
                 level <= i64::from(MAX_COMPRESSION_LEVEL)
-            } else {
+            } _ => {
                 false
-            }
+            }}
         } else {
             true
         };

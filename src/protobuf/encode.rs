@@ -21,18 +21,18 @@ fn convert_value_raw(
         )),
         (Value::Bytes(b), Kind::Enum(descriptor)) => {
             let string = simdutf_bytes_utf8_lossy(&b);
-            if let Some(d) = descriptor
+            match descriptor
                 .values()
                 .find(|v| v.name().eq_ignore_ascii_case(&string))
-            {
+            { Some(d) => {
                 Ok(prost_reflect::Value::EnumNumber(d.number()))
-            } else {
+            } _ => {
                 Err(format!(
                     "Enum `{}` has no value that matches string '{}'",
                     descriptor.full_name(),
                     string
                 ))
-            }
+            }}
         }
         (Value::Float(f), Kind::Double) => Ok(prost_reflect::Value::F64(f.into_inner())),
         (Value::Float(f), Kind::Float) => Ok(prost_reflect::Value::F32(f.into_inner() as f32)),
@@ -215,7 +215,7 @@ mod tests {
     }
 
     macro_rules! mfield {
-        ($m:expr, $f:expr) => {
+        ($m:expr_2021, $f:expr_2021) => {
             $m.get_field_by_name($f).unwrap().into_owned()
         };
     }

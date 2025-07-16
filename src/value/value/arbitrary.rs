@@ -39,18 +39,18 @@ impl Arbitrary for Value {
             3 => Self::Boolean(bool::arbitrary(g)),
             4 => Self::Timestamp(datetime(g)),
             5 => {
-                let mut gen = Gen::new(MAX_MAP_SIZE);
+                let mut r#gen = Gen::new(MAX_MAP_SIZE);
                 Self::Object(
                     // `Arbitrary` is not directly implemented for `KeyString` so have to convert.
-                    Vec::<(String, Self)>::arbitrary(&mut gen)
+                    Vec::<(String, Self)>::arbitrary(&mut r#gen)
                         .into_iter()
                         .map(|(k, v)| (k.into(), v))
                         .collect(),
                 )
             }
             6 => {
-                let mut gen = Gen::new(MAX_ARRAY_SIZE);
-                Self::Array(Vec::arbitrary(&mut gen))
+                let mut r#gen = Gen::new(MAX_ARRAY_SIZE);
+                Self::Array(Vec::arbitrary(&mut r#gen))
             }
             7 => Self::Null,
             _ => unreachable!(),

@@ -222,7 +222,7 @@ impl QueryNode {
             QueryNode::AttributeWildcard { attr, wildcard } => {
                 Self::is_default_attr(attr) + wildcard
             }
-            QueryNode::NegatedNode { ref node } => {
+            QueryNode::NegatedNode { node } => {
                 if matches!(
                     **node,
                     QueryNode::NegatedNode { .. } | QueryNode::Boolean { .. }

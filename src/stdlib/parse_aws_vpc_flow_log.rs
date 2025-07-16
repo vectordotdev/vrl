@@ -172,7 +172,7 @@ fn parse_i64(key: &str, value: &str) -> ParseResult<i64> {
 }
 
 macro_rules! create_match {
-    ($log:expr, $key:expr, $value:expr, $($name:expr => $transform:expr),+) => {
+    ($log:expr_2021, $key:expr_2021, $value:expr_2021, $($name:expr_2021 => $transform:expr_2021),+) => {
         match $key {
             $($name => {
                 let value = match $value {

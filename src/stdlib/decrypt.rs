@@ -19,7 +19,7 @@ type Aes192Cbc = cbc::Decryptor<aes::Aes192>;
 type Aes256Cbc = cbc::Decryptor<aes::Aes256>;
 
 macro_rules! decrypt {
-    ($algorithm:ty, $ciphertext:expr, $key:expr, $iv:expr) => {{
+    ($algorithm:ty, $ciphertext:expr_2021, $key:expr_2021, $iv:expr_2021) => {{
         let mut buffer = vec![0; $ciphertext.len()];
         <$algorithm>::new(
             &GenericArray::from(get_key_bytes($key)?),
@@ -32,7 +32,7 @@ macro_rules! decrypt {
 }
 
 macro_rules! decrypt_padded {
-    ($algorithm:ty, $padding:ty, $ciphertext:expr, $key:expr, $iv:expr) => {{
+    ($algorithm:ty, $padding:ty, $ciphertext:expr_2021, $key:expr_2021, $iv:expr_2021) => {{
         <$algorithm>::new(
             &GenericArray::from(get_key_bytes($key)?),
             &GenericArray::from(get_iv_bytes($iv)?),
@@ -43,7 +43,7 @@ macro_rules! decrypt_padded {
 }
 
 macro_rules! decrypt_keystream {
-    ($algorithm:ty, $ciphertext:expr, $key:expr, $iv:expr) => {{
+    ($algorithm:ty, $ciphertext:expr_2021, $key:expr_2021, $iv:expr_2021) => {{
         let mut buffer = vec![0; $ciphertext.len()];
         <$algorithm>::new(
             &GenericArray::from(get_key_bytes($key)?),
@@ -56,7 +56,7 @@ macro_rules! decrypt_keystream {
 }
 
 macro_rules! decrypt_stream {
-    ($algorithm:ty, $plaintext:expr, $key:expr, $iv:expr) => {{
+    ($algorithm:ty, $plaintext:expr_2021, $key:expr_2021, $iv:expr_2021) => {{
         <$algorithm>::new(&GenericArray::from(get_key_bytes($key)?))
             .decrypt(&GenericArray::from(get_iv_bytes($iv)?), $plaintext.as_ref())
             .expect("key/iv sizes were already checked")

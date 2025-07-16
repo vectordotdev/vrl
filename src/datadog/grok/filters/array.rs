@@ -26,7 +26,7 @@ pub fn filter_from_function(f: &Function) -> Result<GrokFilter, GrokStaticError>
     let mut brackets = None;
     if args_len == 1 {
         match &args.unwrap()[0] {
-            FunctionArgument::Arg(Value::Bytes(ref bytes)) => {
+            FunctionArgument::Arg(Value::Bytes(bytes)) => {
                 delimiter = Some(String::from_utf8_lossy(bytes).to_string());
             }
             FunctionArgument::Function(f) => value_filter = Some(GrokFilter::try_from(f)?),
@@ -35,14 +35,14 @@ pub fn filter_from_function(f: &Function) -> Result<GrokFilter, GrokStaticError>
     } else if args_len == 2 {
         match (&args.unwrap()[0], &args.unwrap()[1]) {
             (
-                FunctionArgument::Arg(Value::Bytes(ref brackets_b)),
-                FunctionArgument::Arg(Value::Bytes(ref delimiter_b)),
+                FunctionArgument::Arg(Value::Bytes(brackets_b)),
+                FunctionArgument::Arg(Value::Bytes(delimiter_b)),
             ) => {
                 brackets = Some(String::from_utf8_lossy(brackets_b).to_string());
                 delimiter = Some(String::from_utf8_lossy(delimiter_b).to_string());
             }
             (
-                FunctionArgument::Arg(Value::Bytes(ref delimiter_b)),
+                FunctionArgument::Arg(Value::Bytes(delimiter_b)),
                 FunctionArgument::Function(f),
             ) => {
                 delimiter = Some(String::from_utf8_lossy(delimiter_b).to_string());
@@ -53,8 +53,8 @@ pub fn filter_from_function(f: &Function) -> Result<GrokFilter, GrokStaticError>
     } else if args_len == 3 {
         match (&args.unwrap()[0], &args.unwrap()[1], &args.unwrap()[2]) {
             (
-                FunctionArgument::Arg(Value::Bytes(ref brackets_b)),
-                FunctionArgument::Arg(Value::Bytes(ref delimiter_b)),
+                FunctionArgument::Arg(Value::Bytes(brackets_b)),
+                FunctionArgument::Arg(Value::Bytes(delimiter_b)),
                 FunctionArgument::Function(f),
             ) => {
                 brackets = Some(String::from_utf8_lossy(brackets_b).to_string());
