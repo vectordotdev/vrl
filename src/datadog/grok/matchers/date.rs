@@ -80,7 +80,7 @@ pub fn convert_time_format(format: &str) -> Result<String, String> {
                         time_format.push_str("%:z");
                     }
                 }
-                _ => return Err(format!("invalid date format '{}'", format)),
+                _ => return Err(format!("invalid date format '{format}'")),
             }
         } else if c == '\''
         // quoted literal
@@ -129,9 +129,9 @@ fn parse_offset(tz: &str) -> Result<FixedOffset, String> {
     }
     let offset_format = if tz.contains(':') { "%:z" } else { "%z" };
     // apparently the easiest way to parse tz offset is parsing the complete datetime
-    let date_str = format!("2020-04-12 22:10:57 {}", tz);
+    let date_str = format!("2020-04-12 22:10:57 {tz}");
     let datetime =
-        DateTime::parse_from_str(&date_str, &format!("%Y-%m-%d %H:%M:%S {}", offset_format))
+        DateTime::parse_from_str(&date_str, &format!("%Y-%m-%d %H:%M:%S {offset_format}"))
             .map_err(|e| e.to_string())?;
     Ok(datetime.timezone())
 }
@@ -169,7 +169,7 @@ pub fn time_format_to_regex(format: &str, with_captures: bool) -> Result<RegexRe
                         if with_captures {
                             // add the non-capturing group for the fraction of a second so we can convert value to a dot-leading format later
                             regex.push_str(
-                                format!("(?P<{}>{})", FRACTION_CHAR_GROUP, fraction_char).as_str(),
+                                format!("(?P<{FRACTION_CHAR_GROUP}>{fraction_char})").as_str(),
                             );
                             with_fraction_second = true;
                         } else {
@@ -226,7 +226,7 @@ pub fn time_format_to_regex(format: &str, with_captures: bool) -> Result<RegexRe
                     }
                     with_tz = true;
                 }
-                _ => return Err(format!("invalid date format '{}'", format)),
+                _ => return Err(format!("invalid date format '{format}'")),
             }
         } else if c == '\'' {
             // quoted literal
@@ -373,12 +373,12 @@ pub fn adjust_strp_format_and_value(strp_format: &str, original_value: &str) -> 
 
     // day is missing
     if !strp_format.contains('d') {
-        adjusted_format = format!("%-m %-d {}", adjusted_format);
+        adjusted_format = format!("%-m %-d {adjusted_format}");
         adjusted_value = format!("{} {} {}", now.month(), now.day(), adjusted_value);
     }
     // year is missing
     if !strp_format.contains('y') && !strp_format.contains('Y') {
-        adjusted_format = format!("%Y {}", adjusted_format);
+        adjusted_format = format!("%Y {adjusted_format}");
         adjusted_value = format!("{} {}", now.year(), adjusted_value);
     }
 

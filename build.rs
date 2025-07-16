@@ -71,9 +71,9 @@ fn convert_user_agent_regexes() {
 
     fn write_item(output: &mut Vec<u8>, name: &'static str, value: Option<Cow<str>>) {
         if let Some(value) = value {
-            output.extend(format!("    {}: Some(r#\"{}\"#.into()),\n", name, value).bytes());
+            output.extend(format!("    {name}: Some(r#\"{value}\"#.into()),\n").bytes());
         } else {
-            output.extend(format!("    {}: None,\n", name).bytes());
+            output.extend(format!("    {name}: None,\n").bytes());
         }
     }
 
