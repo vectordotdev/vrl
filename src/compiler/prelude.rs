@@ -8,23 +8,22 @@ pub use ordered_float::NotNan;
 pub use crate::diagnostic::{DiagnosticMessage, Note, Span};
 pub use crate::expr;
 pub use crate::value::{
+    KeyString, Kind, ObjectMap, Value, ValueRegex,
     kind::{Collection, Field, Index},
     value,
     value::IterItem,
-    KeyString, Kind, ObjectMap, Value, ValueRegex,
 };
 #[cfg(any(test, feature = "test"))]
 pub use crate::{func_args, test_function, test_type_def};
 
 pub use super::Resolved;
 pub use super::{
-    expression,
-    function::{self, closure, ArgumentList, Closure, Compiled, Example, FunctionCompileContext},
+    Context, Expression, ExpressionError, Function, FunctionExpression, Parameter, TimeZone,
+    TypeDef, expression,
+    function::{self, ArgumentList, Closure, Compiled, Example, FunctionCompileContext, closure},
     state::{self, TypeInfo, TypeState},
     type_def,
-    value::{kind, ValueError, VrlValueArithmetic, VrlValueConvert},
-    Context, Expression, ExpressionError, Function, FunctionExpression, Parameter, TimeZone,
-    TypeDef,
+    value::{ValueError, VrlValueArithmetic, VrlValueConvert, kind},
 };
 
 pub type ExpressionResult<T> = Result<T, ExpressionError>;

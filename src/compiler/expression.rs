@@ -1,6 +1,6 @@
 use std::fmt;
 
-use dyn_clone::{clone_trait_object, DynClone};
+use dyn_clone::{DynClone, clone_trait_object};
 
 pub use abort::Abort;
 pub use array::Array;
@@ -26,10 +26,10 @@ pub use variable::Variable;
 
 use crate::value::Value;
 
-use super::state::{TypeInfo, TypeState};
 #[allow(clippy::module_name_repetitions)]
 pub use super::ExpressionError;
 pub use super::Resolved;
+use super::state::{TypeInfo, TypeState};
 use super::{Context, TypeDef};
 
 mod abort;
@@ -126,11 +126,11 @@ pub enum Expr {
 
 impl Expr {
     pub fn as_str(&self) -> &str {
-        use container::Variant::{Array, Block, Group, Object};
         use Expr::{
             Abort, Assignment, Container, FunctionCall, IfStatement, Literal, Noop, Op, Query,
             Return, Unary, Variable,
         };
+        use container::Variant::{Array, Block, Group, Object};
 
         match self {
             Literal(..) => "literal",

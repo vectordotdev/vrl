@@ -1,9 +1,9 @@
 use std::fmt;
 
 use crate::compiler::{
+    Context, Expression, Span, TypeDef,
     expression::Resolved,
     state::{TypeInfo, TypeState},
-    Context, Expression, Span, TypeDef,
 };
 use crate::diagnostic::{DiagnosticMessage, Label, Note};
 use crate::parser::ast::Node;

@@ -136,7 +136,7 @@ pub(crate) struct DelFn {
 impl DelFn {
     #[cfg(test)]
     fn new(path: &str) -> Self {
-        use crate::path::{parse_value_path, PathPrefix};
+        use crate::path::{PathPrefix, parse_value_path};
 
         Self {
             query: expression::Query::new(

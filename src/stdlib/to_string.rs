@@ -1,8 +1,8 @@
 use crate::compiler::prelude::*;
 
 fn to_string(value: Value) -> Resolved {
-    use chrono::SecondsFormat;
     use Value::{Boolean, Bytes, Float, Integer, Null, Timestamp};
+    use chrono::SecondsFormat;
     let value = match value {
         v @ Bytes(_) => v,
         Integer(v) => v.to_string().into(),

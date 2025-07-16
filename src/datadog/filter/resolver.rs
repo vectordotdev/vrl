@@ -1,4 +1,4 @@
-use super::{normalize_fields, Field};
+use super::{Field, normalize_fields};
 
 /// A `Resolver` is type that can build and return an `IntoIterator` of Datadog Search
 /// Syntax `Field`s. These are intended to be passed along to `Filter` methods as pre-parsed

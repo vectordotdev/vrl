@@ -1,7 +1,7 @@
 use crate::path::OwnedSegment;
-use crate::value::kind::collection::{CollectionKey, CollectionRemove};
-use crate::value::kind::Collection;
 use crate::value::KeyString;
+use crate::value::kind::Collection;
+use crate::value::kind::collection::{CollectionKey, CollectionRemove};
 
 /// A `field` type that can be used in `Collection<Field>`
 #[derive(Debug, Clone, Eq, PartialEq, PartialOrd, Ord, Hash)]

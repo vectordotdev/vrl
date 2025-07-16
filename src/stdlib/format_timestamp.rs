@@ -1,8 +1,8 @@
-use crate::compiler::prelude::*;
 use crate::compiler::TimeZone;
+use crate::compiler::prelude::*;
 use chrono::{
-    format::{strftime::StrftimeItems, Item},
     DateTime, Utc,
+    format::{Item, strftime::StrftimeItems},
 };
 
 fn format_timestamp_with_tz(ts: Value, format: &Value, timezone: Option<Value>) -> Resolved {

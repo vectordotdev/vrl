@@ -1,12 +1,11 @@
 use crate::compiler::prelude::*;
 use crate::datadog_filter::{
-    build_matcher,
+    Filter, Matcher, Resolver, Run, build_matcher,
     regex::{wildcard_regex, word_regex},
-    Filter, Matcher, Resolver, Run,
 };
 use crate::datadog_search_syntax::{Comparison, ComparisonValue, Field, ParseError, QueryNode};
 use crate::owned_value_path;
-use crate::path::{parse_value_path, OwnedValuePath, PathParseError};
+use crate::path::{OwnedValuePath, PathParseError, parse_value_path};
 use crate::prelude::function::Error::InvalidArgument;
 use std::borrow::Cow;
 

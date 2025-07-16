@@ -8,7 +8,7 @@
 
 include!(concat!(env!("OUT_DIR"), "/patterns.rs"));
 
-use std::collections::{btree_map, BTreeMap};
+use std::collections::{BTreeMap, btree_map};
 use std::panic;
 use std::sync::Arc;
 
@@ -173,7 +173,7 @@ impl Grok {
                     None => {
                         return Err(Error::GenericCompilationFailure(
                             "Could not find pattern in matches".into(),
-                        ))
+                        ));
                     }
                 };
 
@@ -182,7 +182,7 @@ impl Grok {
                     None => {
                         return Err(Error::GenericCompilationFailure(
                             "Could not find name in matches".into(),
-                        ))
+                        ));
                     }
                 };
 

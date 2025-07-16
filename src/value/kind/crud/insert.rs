@@ -1,8 +1,8 @@
 //! All types related to inserting one [`Kind`] into another.
 
 use crate::path::{BorrowedSegment, ValuePath};
-use crate::value::kind::Collection;
 use crate::value::Kind;
+use crate::value::kind::Collection;
 
 impl Kind {
     /// Insert the `Kind` at the given `path` within `self`.
@@ -195,7 +195,7 @@ mod tests {
     use std::collections::BTreeMap;
 
     use crate::owned_value_path;
-    use crate::path::{parse_value_path, OwnedValuePath};
+    use crate::path::{OwnedValuePath, parse_value_path};
     use crate::value::kind::Collection;
 
     use super::*;

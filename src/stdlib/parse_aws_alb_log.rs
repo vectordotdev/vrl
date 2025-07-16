@@ -1,11 +1,11 @@
 use crate::compiler::prelude::*;
 use nom::{
+    IResult, Parser,
     branch::alt,
     bytes::complete::{tag, take_while1},
     character::complete::char,
     combinator::map_res,
     sequence::{delimited, preceded},
-    IResult, Parser,
 };
 use std::collections::BTreeMap;
 
@@ -142,7 +142,7 @@ fn parse_log(mut input: &str) -> ExpressionResult<Value> {
                     value
                 }
                 Err(error) => {
-                    return Err(format!("failed to get field `{}`: {}", $name, error).into())
+                    return Err(format!("failed to get field `{}`: {}", $name, error).into());
                 }
             }
         }};

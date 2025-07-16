@@ -6,7 +6,7 @@ use std::fmt::{self, Debug, Display, Formatter, Write};
 use std::str::FromStr;
 
 use super::PathPrefix;
-use super::{parse_target_path, parse_value_path, BorrowedSegment, PathParseError, ValuePath};
+use super::{BorrowedSegment, PathParseError, ValuePath, parse_target_path, parse_value_path};
 use crate::value::KeyString;
 use std::sync::LazyLock;
 

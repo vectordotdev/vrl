@@ -1,14 +1,14 @@
 use crate::compiler::prelude::*;
 use nom::{
+    AsChar, IResult, Input, Parser,
     branch::alt,
     bytes::complete::{escaped, tag, take_while, take_while1},
     character::complete::{char, digit1, satisfy},
     combinator::{cut, map, opt, recognize, value},
-    error::{context, Context, ContextError, FromExternalError, ParseError},
+    error::{Context, ContextError, FromExternalError, ParseError, context},
     multi::{many1, separated_list0},
     number::complete::double,
     sequence::{preceded, separated_pair, terminated},
-    AsChar, IResult, Input, Parser,
 };
 use std::num::ParseIntError;
 

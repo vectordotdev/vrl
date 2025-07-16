@@ -2,9 +2,9 @@
 
 use crate::path::OwnedSegment;
 use crate::path::OwnedValuePath;
+use crate::value::Kind;
 use crate::value::kind::collection::{CollectionRemove, EmptyState};
 use crate::value::kind::{Collection, Field};
-use crate::value::Kind;
 
 impl Kind {
     /// Removes the `Kind` at the given `path` within `self`.
@@ -182,11 +182,7 @@ impl CompactOptions {
 
     /// If the value is true, the `should_compact` option is set to false.
     fn disable_should_compact(self, value: bool) -> Self {
-        if value {
-            Self::Never
-        } else {
-            self
-        }
+        if value { Self::Never } else { self }
     }
 }
 

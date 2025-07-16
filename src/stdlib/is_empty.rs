@@ -12,7 +12,7 @@ fn is_empty(value: Value) -> Resolved {
                     | Kind::object(Collection::any())
                     | Kind::bytes(),
             }
-            .into())
+            .into());
         }
     };
 

@@ -4,17 +4,17 @@ pub mod closure;
 use crate::diagnostic::{DiagnosticMessage, Label, Note};
 use crate::parser::ast::Ident;
 use crate::path::OwnedTargetPath;
-use crate::value::{kind::Collection, KeyString, Value};
+use crate::value::{KeyString, Value, kind::Collection};
 use std::{
     collections::{BTreeMap, HashMap},
     fmt,
 };
 
 use super::{
-    expression::{container::Variant, Block, Container, Expr, Expression},
-    state::TypeState,
-    value::{kind, Kind},
     CompileConfig, Span, TypeDef,
+    expression::{Block, Container, Expr, Expression, container::Variant},
+    state::TypeState,
+    value::{Kind, kind},
 };
 
 pub type Compiled = Result<Box<dyn Expression>, Box<dyn DiagnosticMessage>>;

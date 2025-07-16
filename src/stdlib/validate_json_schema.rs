@@ -105,7 +105,7 @@ impl Function for ValidateJsonSchema {
 #[cfg(not(target_arch = "wasm32"))]
 mod non_wasm {
     use super::{
-        state, Context, Expression, FunctionExpression, Resolved, TypeDef, VrlValueConvert,
+        Context, Expression, FunctionExpression, Resolved, TypeDef, VrlValueConvert, state,
     };
     use crate::stdlib::json_utils::bom::StripBomFromUTF8;
     use crate::value;

@@ -1,6 +1,6 @@
 use std::{borrow::Cow, collections::BTreeMap, fmt};
 
-use crate::value::value::{simdutf_bytes_utf8_lossy, timestamp_to_string, StdError, Value};
+use crate::value::value::{StdError, Value, simdutf_bytes_utf8_lossy, timestamp_to_string};
 use bytes::Bytes;
 use ordered_float::NotNan;
 use serde::de::Error as SerdeError;

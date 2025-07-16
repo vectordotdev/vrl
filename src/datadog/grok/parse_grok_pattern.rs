@@ -1,4 +1,4 @@
-use lalrpop_util::{lalrpop_mod, ParseError};
+use lalrpop_util::{ParseError, lalrpop_mod};
 
 use super::{ast::GrokPattern, lexer::Lexer};
 

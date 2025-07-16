@@ -1,20 +1,19 @@
 use crate::compiler::prelude::*;
 use crate::value;
 use nom::{
-    self,
+    self, IResult, Parser,
     branch::alt,
     bytes::complete::{escaped, tag, take, take_until},
     character::complete::{char, satisfy, space0},
     combinator::{eof, map, opt, peek, rest, verify},
     error::{ContextError, ParseError},
-    multi::{many0, many1, many_m_n, separated_list1},
+    multi::{many_m_n, many0, many1, separated_list1},
     sequence::{delimited, preceded, terminated},
-    IResult, Parser,
 };
 use nom_language::error::VerboseError;
 use std::{
     borrow::Cow,
-    collections::{btree_map::Entry, BTreeMap},
+    collections::{BTreeMap, btree_map::Entry},
     iter::Peekable,
     str::{Chars, FromStr},
 };

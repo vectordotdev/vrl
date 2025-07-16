@@ -3,7 +3,7 @@ pub mod cmd;
 mod repl;
 
 use crate::compiler::runtime::Terminate;
-pub use cmd::{cmd, Opts};
+pub use cmd::{Opts, cmd};
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {

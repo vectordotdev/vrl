@@ -1,12 +1,12 @@
 use crate::compiler::prelude::*;
 use aes::cipher::{
-    block_padding::{AnsiX923, Iso10126, Iso7816, Pkcs7},
-    generic_array::GenericArray,
     AsyncStreamCipher, BlockEncryptMut, KeyIvInit, StreamCipher,
+    block_padding::{AnsiX923, Iso7816, Iso10126, Pkcs7},
+    generic_array::GenericArray,
 };
 use aes_siv::{Aes128SivAead, Aes256SivAead};
 use cfb_mode::Encryptor as Cfb;
-use chacha20poly1305::{aead::Aead, ChaCha20Poly1305, KeyInit, XChaCha20Poly1305};
+use chacha20poly1305::{ChaCha20Poly1305, KeyInit, XChaCha20Poly1305, aead::Aead};
 use crypto_secretbox::XSalsa20Poly1305;
 use ctr::{Ctr64BE, Ctr64LE};
 use ofb::Ofb;

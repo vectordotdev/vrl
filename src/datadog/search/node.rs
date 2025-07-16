@@ -2,7 +2,7 @@ use regex::Regex;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::sync::LazyLock;
 
-use super::grammar::{unescape, DEFAULT_FIELD};
+use super::grammar::{DEFAULT_FIELD, unescape};
 
 /// This enum represents value comparisons that Queries might perform
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

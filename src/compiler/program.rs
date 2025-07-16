@@ -1,7 +1,7 @@
 use crate::path::OwnedTargetPath;
 
 use super::state::{TypeInfo, TypeState};
-use super::{expression::Block, Context, Expression, Resolved};
+use super::{Context, Expression, Resolved, expression::Block};
 
 #[derive(Debug, Clone)]
 pub struct Program {

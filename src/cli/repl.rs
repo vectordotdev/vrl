@@ -1,23 +1,23 @@
-use crate::compiler::runtime::Runtime;
-use crate::compiler::state::{RuntimeState, TypeState};
 use crate::compiler::TargetValue;
 use crate::compiler::TimeZone;
-use crate::compiler::{compile_with_state, CompileConfig, Function, Program, Target, VrlRuntime};
+use crate::compiler::runtime::Runtime;
+use crate::compiler::state::{RuntimeState, TypeState};
+use crate::compiler::{CompileConfig, Function, Program, Target, VrlRuntime, compile_with_state};
 use crate::diagnostic::Formatter;
 use crate::owned_metadata_path;
 use crate::value::Secrets;
 use crate::value::Value;
 use indoc::indoc;
-use prettytable::{format, Cell, Row, Table};
+use prettytable::{Cell, Row, Table, format};
 use regex::Regex;
 use rustyline::{
+    Context, Editor, Helper,
     completion::Completer,
     error::ReadlineError,
     highlight::{CmdKind, Highlighter, MatchingBracketHighlighter},
     hint::{Hinter, HistoryHinter},
     history::MemHistory,
     validate::{self, ValidationResult, Validator},
-    Context, Editor, Helper,
 };
 use std::borrow::Cow::{self, Borrowed, Owned};
 use std::collections::BTreeMap;

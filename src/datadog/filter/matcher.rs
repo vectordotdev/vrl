@@ -2,7 +2,7 @@ use std::{fmt, marker::PhantomData};
 
 use super::{BooleanType, Filter, QueryNode, Resolver};
 use crate::path::PathParseError;
-use dyn_clone::{clone_trait_object, DynClone};
+use dyn_clone::{DynClone, clone_trait_object};
 
 /// A `Matcher` is a type that contains a "run" method which returns true/false if value `V`
 /// matches a filter.

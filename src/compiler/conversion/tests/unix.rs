@@ -4,7 +4,7 @@ use chrono_tz::{Australia, Tz};
 use ordered_float::NotNan;
 
 use crate::compiler::{
-    conversion::{parse_timestamp, tests::StubValue, Conversion, Error},
+    conversion::{Conversion, Error, parse_timestamp, tests::StubValue},
     datetime::TimeZone,
 };
 

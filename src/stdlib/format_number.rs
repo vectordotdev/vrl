@@ -1,5 +1,5 @@
 use crate::compiler::prelude::*;
-use rust_decimal::{prelude::FromPrimitive, Decimal};
+use rust_decimal::{Decimal, prelude::FromPrimitive};
 
 fn format_number(
     value: Value,
@@ -15,7 +15,7 @@ fn format_number(
                 got: value.kind(),
                 expected: Kind::integer() | Kind::float(),
             }
-            .into())
+            .into());
         }
     };
     let scale = match scale {

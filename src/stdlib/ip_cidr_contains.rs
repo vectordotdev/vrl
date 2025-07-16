@@ -126,7 +126,7 @@ impl Function for IpCidrContains {
                         value,
                         error: r#""cidr" must be string or array of strings"#,
                     }
-                    .into())
+                    .into());
                 }
             }),
         };

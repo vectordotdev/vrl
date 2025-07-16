@@ -51,12 +51,16 @@ impl Function for Sha3 {
             Example {
                 title: "default variant",
                 source: r#"sha3("foobar")"#,
-                result: Ok("ff32a30c3af5012ea395827a3e99a13073c3a8d8410a708568ff7e6eb85968fccfebaea039bc21411e9d43fdb9a851b529b9960ffea8679199781b8f45ca85e2"),
+                result: Ok(
+                    "ff32a30c3af5012ea395827a3e99a13073c3a8d8410a708568ff7e6eb85968fccfebaea039bc21411e9d43fdb9a851b529b9960ffea8679199781b8f45ca85e2",
+                ),
             },
             Example {
                 title: "custom variant",
                 source: r#"sha3("foobar", "SHA3-384")"#,
-                result: Ok("0fa8abfbdaf924ad307b74dd2ed183b9a4a398891a2f6bac8fd2db7041b77f068580f9c6c66f699b496c2da1cbcc7ed8"),
+                result: Ok(
+                    "0fa8abfbdaf924ad307b74dd2ed183b9a4a398891a2f6bac8fd2db7041b77f068580f9c6c66f699b496c2da1cbcc7ed8",
+                ),
             },
         ]
     }

@@ -3,12 +3,12 @@ use std::convert::TryFrom;
 use crate::value::Value;
 use bytes::Bytes;
 use nom::{
+    IResult, Parser,
     branch::alt,
     bytes::complete::{tag, take, take_until},
     combinator::map,
     multi::separated_list0,
     sequence::{preceded, terminated},
-    IResult, Parser,
 };
 
 use super::super::{

@@ -1,8 +1,8 @@
 use std::{collections::BTreeMap, fs, path::Path};
 
 use crate::compiler::function::Example;
-use crate::path::parse_value_path;
 use crate::path::OwnedTargetPath;
+use crate::path::parse_value_path;
 use crate::test::{example_vrl_path, test_prefix};
 use crate::value::Value;
 

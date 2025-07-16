@@ -3,8 +3,8 @@ use std::time::Duration;
 
 use bytes::Bytes;
 use criterion::{
-    criterion_group, criterion_main, measurement::WallTime, BatchSize, BenchmarkGroup, Criterion,
-    SamplingMode,
+    BatchSize, BenchmarkGroup, Criterion, SamplingMode, criterion_group, criterion_main,
+    measurement::WallTime,
 };
 use vrl::datadog_grok::filters::keyvalue::{self, KeyValueFilter};
 use vrl::value::Value;

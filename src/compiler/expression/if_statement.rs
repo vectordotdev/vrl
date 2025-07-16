@@ -4,9 +4,9 @@ use crate::value::Value;
 
 use crate::compiler::state::{TypeInfo, TypeState};
 use crate::compiler::{
+    Context, Expression,
     expression::{Block, Predicate, Resolved},
     value::VrlValueConvert,
-    Context, Expression,
 };
 
 #[derive(Debug, Clone, PartialEq)]

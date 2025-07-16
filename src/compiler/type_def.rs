@@ -27,8 +27,8 @@ use std::ops::{Deref, DerefMut};
 
 use crate::path::ValuePath;
 use crate::value::{
-    kind::{merge, Collection, Field, Index},
     Kind, Value,
+    kind::{Collection, Field, Index, merge},
 };
 
 #[derive(Debug, Clone, Eq, PartialEq)]

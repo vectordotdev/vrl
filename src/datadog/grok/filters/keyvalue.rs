@@ -6,14 +6,13 @@ use bytes::Bytes;
 use fancy_regex::{Captures, Regex};
 use nom::combinator::eof;
 use nom::{
-    self,
+    self, IResult, Parser,
     branch::alt,
     bytes::complete::{tag, take_while1},
     character::complete::char,
     combinator::{map, map_res, opt, rest, value},
     number::complete::double,
     sequence::{delimited, terminated},
-    IResult, Parser,
 };
 use onig::EncodedChars;
 use ordered_float::NotNan;

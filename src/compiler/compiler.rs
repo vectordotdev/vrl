@@ -1,20 +1,20 @@
-use crate::compiler::expression::function_call::FunctionCallError;
 use crate::compiler::expression::ExpressionError;
+use crate::compiler::expression::function_call::FunctionCallError;
 use crate::compiler::{
+    CompileConfig, Function, Program, TypeDef,
     expression::{
-        assignment, function_call, literal, predicate, query, Abort, Array, Assignment, Block,
-        Container, Expr, Expression, FunctionArgument, FunctionCall, Group, IfStatement, Literal,
-        Noop, Not, Object, Op, Predicate, Query, Return, Target, Unary, Variable,
+        Abort, Array, Assignment, Block, Container, Expr, Expression, FunctionArgument,
+        FunctionCall, Group, IfStatement, Literal, Noop, Not, Object, Op, Predicate, Query, Return,
+        Target, Unary, Variable, assignment, function_call, literal, predicate, query,
     },
     parser::ast::RootExpr,
     program::ProgramInfo,
-    CompileConfig, Function, Program, TypeDef,
 };
 use crate::diagnostic::{DiagnosticList, DiagnosticMessage};
 use crate::parser::ast::{self, Node, QueryTarget};
 use crate::path::PathPrefix;
 use crate::path::{OwnedTargetPath, OwnedValuePath};
-use crate::prelude::{expression, ArgumentList};
+use crate::prelude::{ArgumentList, expression};
 use crate::value::Value;
 
 use super::state::TypeState;

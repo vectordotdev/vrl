@@ -336,10 +336,10 @@ impl fmt::Display for PathPrefix {
 
 #[cfg(test)]
 mod test {
-    use crate::path::parse_target_path;
     use crate::path::PathPrefix;
     use crate::path::TargetPath;
     use crate::path::ValuePath;
+    use crate::path::parse_target_path;
 
     #[test]
     fn test_parse_target_path() {

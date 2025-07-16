@@ -10,4 +10,4 @@ pub use filter::*;
 pub use matcher::*;
 pub use resolver::*;
 
-use super::search::{normalize_fields, BooleanType, Field, QueryNode};
+use super::search::{BooleanType, Field, QueryNode, normalize_fields};

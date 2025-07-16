@@ -3,7 +3,7 @@ use std::str::FromStr;
 use pest::Parser;
 
 use super::{
-    grammar::{EventPlatformQuery, QueryVisitor, DEFAULT_FIELD},
+    grammar::{DEFAULT_FIELD, EventPlatformQuery, QueryVisitor},
     node::QueryNode,
 };
 

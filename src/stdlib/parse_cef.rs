@@ -1,6 +1,6 @@
 use crate::compiler::prelude::*;
 use nom::{
-    self,
+    self, IResult, Parser,
     branch::alt,
     bytes::complete::{escaped_transform, tag, take_till1, take_until},
     character::complete::{char, one_of, satisfy},
@@ -8,7 +8,6 @@ use nom::{
     error::{ErrorKind, ParseError},
     multi::{count, many1},
     sequence::{delimited, pair, preceded},
-    IResult, Parser,
 };
 use nom_language::error::VerboseError;
 use std::collections::{BTreeMap, HashMap};

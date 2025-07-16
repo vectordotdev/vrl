@@ -1,6 +1,6 @@
 use super::TimeZone;
 
-use super::{state::RuntimeState, Target};
+use super::{Target, state::RuntimeState};
 
 pub struct Context<'a> {
     target: &'a mut dyn Target,

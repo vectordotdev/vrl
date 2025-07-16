@@ -1,13 +1,13 @@
 use std::borrow::Cow;
 
-use crate::value::{kind::Collection, Value, ValueRegex};
+use crate::value::{Value, ValueRegex, kind::Collection};
 use bytes::Bytes;
 use chrono::{DateTime, Utc};
 
 use crate::compiler::{
+    Expression,
     expression::{Container, Expr, Variant},
     value::{Kind, ObjectMap, ValueError},
-    Expression,
 };
 
 /// Create a boxed [`Expression`][crate::Expression] trait object from a given `Value`.

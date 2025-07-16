@@ -1,7 +1,7 @@
 #![allow(clippy::print_stdout)] // tests
 #![allow(clippy::print_stderr)] // tests
 
-use std::path::{PathBuf, MAIN_SEPARATOR};
+use std::path::{MAIN_SEPARATOR, PathBuf};
 use std::{collections::BTreeMap, env, str::FromStr, time::Instant};
 
 use ansi_term::Colour;
@@ -10,12 +10,11 @@ use chrono::{DateTime, SecondsFormat, Utc};
 pub use test::Test;
 
 use crate::compiler::{
-    compile_with_external,
+    CompilationResult, CompileConfig, Function, Program, SecretTarget, TargetValueRef, TimeZone,
+    VrlRuntime, compile_with_external,
     runtime::{Runtime, Terminate},
     state::{ExternalEnv, RuntimeState},
     value::VrlValueConvert,
-    CompilationResult, CompileConfig, Function, Program, SecretTarget, TargetValueRef, TimeZone,
-    VrlRuntime,
 };
 use crate::diagnostic::{DiagnosticList, Formatter};
 use crate::value::Secrets;
