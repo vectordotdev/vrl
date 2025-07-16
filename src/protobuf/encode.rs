@@ -26,7 +26,7 @@ fn convert_value_raw(
                 .find(|v| v.name().eq_ignore_ascii_case(&string))
             {
                 Some(d) => Ok(prost_reflect::Value::EnumNumber(d.number())),
-                _ => Err(format!(
+                None => Err(format!(
                     "Enum `{}` has no value that matches string '{}'",
                     descriptor.full_name(),
                     string
