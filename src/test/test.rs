@@ -119,7 +119,7 @@ impl Test {
             Value::Object(BTreeMap::default())
         } else {
             serde_json::from_str::<'_, Value>(&object).unwrap_or_else(|err| {
-                error = Some(format!("unable to parse object as JSON: {}", err));
+                error = Some(format!("unable to parse object as JSON: {err}"));
                 Value::Null
             })
         };

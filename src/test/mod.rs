@@ -125,7 +125,7 @@ pub fn run_tests<T>(
         });
         let compile_timing_fmt = cfg
             .timings
-            .then(|| format!("comp: {:>9.3?}", compile_duration))
+            .then(|| format!("comp: {compile_duration:>9.3?}"))
             .unwrap_or_default();
 
         let failed = match result {
@@ -149,7 +149,7 @@ pub fn run_tests<T>(
                         let timings_color = if run_end.as_millis() > 10 { 1 } else { 245 };
                         let timings_fmt = cfg
                             .timings
-                            .then(|| format!(" ({}, run: {:>9.3?})", compile_timing_fmt, run_end))
+                            .then(|| format!(" ({compile_timing_fmt}, run: {run_end:>9.3?})"))
                             .unwrap_or_default();
                         Colour::Fixed(timings_color).paint(timings_fmt).to_string()
                     };
@@ -217,7 +217,7 @@ fn process_result(
                 want[2..want.len() - 1].into()
             } else {
                 serde_json::from_str::<'_, serde_json::Value>(want.trim()).unwrap_or_else(|err| {
-                    eprintln!("{}", err);
+                    eprintln!("{err}");
                     want.into()
                 })
             };
@@ -232,7 +232,7 @@ fn process_result(
                     let got = serde_json::to_string_pretty(&got_value).unwrap();
 
                     let diff = prettydiff::diff_lines(&want, &got);
-                    println!("  {}", diff);
+                    println!("  {diff}");
                 }
 
                 failed = true;
@@ -240,7 +240,7 @@ fn process_result(
             println!();
 
             if config.verbose {
-                println!("{:#}", got_value);
+                println!("{got_value:#}");
             }
 
             if failed && config.fail_early {
@@ -258,7 +258,7 @@ fn process_result(
             } else if matches!(err, Terminate::Abort { .. }) {
                 let want =
                     serde_json::from_str::<'_, serde_json::Value>(&want).unwrap_or_else(|err| {
-                        eprintln!("{}", err);
+                        eprintln!("{err}");
                         want.into()
                     });
 
@@ -272,7 +272,7 @@ fn process_result(
                         let want = serde_json::to_string_pretty(&want).unwrap();
                         let got = serde_json::to_string_pretty(&got).unwrap();
                         let diff = prettydiff::diff_lines(&want, &got);
-                        println!("{}", diff);
+                        println!("{diff}");
                     }
 
                     failed = true;
@@ -282,14 +282,14 @@ fn process_result(
 
                 if !config.no_diff {
                     let diff = prettydiff::diff_lines(&want, &got);
-                    println!("{}", diff);
+                    println!("{diff}");
                 }
 
                 failed = true;
             }
 
             if config.verbose {
-                println!("{:#}", err);
+                println!("{err:#}");
             }
 
             if failed && config.fail_early {
@@ -315,7 +315,7 @@ fn process_compilation_diagnostics(
         let timings = {
             let timings_fmt = cfg
                 .timings
-                .then(|| format!(" ({})", compile_timing_fmt))
+                .then(|| format!(" ({compile_timing_fmt})"))
                 .unwrap_or_default();
             Colour::Fixed(245).paint(timings_fmt).to_string()
         };
@@ -325,7 +325,7 @@ fn process_compilation_diagnostics(
 
         if !cfg.no_diff {
             let diff = prettydiff::diff_lines(&want, &got);
-            println!("{}", diff);
+            println!("{diff}");
         }
 
         failed = true;
@@ -333,7 +333,7 @@ fn process_compilation_diagnostics(
 
     if cfg.verbose {
         formatter.enable_colors(true);
-        println!("{:#}", formatter);
+        println!("{formatter:#}");
     }
 
     if failed && cfg.fail_early {
