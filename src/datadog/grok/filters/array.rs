@@ -41,10 +41,7 @@ pub fn filter_from_function(f: &Function) -> Result<GrokFilter, GrokStaticError>
                 brackets = Some(String::from_utf8_lossy(brackets_b).to_string());
                 delimiter = Some(String::from_utf8_lossy(delimiter_b).to_string());
             }
-            (
-                FunctionArgument::Arg(Value::Bytes(delimiter_b)),
-                FunctionArgument::Function(f),
-            ) => {
+            (FunctionArgument::Arg(Value::Bytes(delimiter_b)), FunctionArgument::Function(f)) => {
                 delimiter = Some(String::from_utf8_lossy(delimiter_b).to_string());
                 value_filter = Some(GrokFilter::try_from(f)?);
             }

@@ -1,5 +1,5 @@
 use chrono::{DateTime, Datelike, TimeZone, Utc};
-use criterion::{Criterion, criterion_group, criterion_main};
+use criterion::{criterion_group, criterion_main, Criterion};
 use regex::Regex;
 
 use std::env;

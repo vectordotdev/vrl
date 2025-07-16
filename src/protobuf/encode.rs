@@ -24,15 +24,14 @@ fn convert_value_raw(
             match descriptor
                 .values()
                 .find(|v| v.name().eq_ignore_ascii_case(&string))
-            { Some(d) => {
-                Ok(prost_reflect::Value::EnumNumber(d.number()))
-            } _ => {
-                Err(format!(
+            {
+                Some(d) => Ok(prost_reflect::Value::EnumNumber(d.number())),
+                _ => Err(format!(
                     "Enum `{}` has no value that matches string '{}'",
                     descriptor.full_name(),
                     string
-                ))
-            }}
+                )),
+            }
         }
         (Value::Float(f), Kind::Double) => Ok(prost_reflect::Value::F64(f.into_inner())),
         (Value::Float(f), Kind::Float) => Ok(prost_reflect::Value::F32(f.into_inner() as f32)),
