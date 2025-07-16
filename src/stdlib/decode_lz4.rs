@@ -40,7 +40,7 @@ impl Function for DecodeLz4 {
             .optional("buf_size")
             .unwrap_or_else(|| expr!(LZ4_DEFAULT_BUFFER_SIZE));
         let prepended_size = arguments
-            .optional("use_prepended_size")
+            .optional("prepended_size")
             .unwrap_or_else(|| expr!(false));
 
         Ok(DecodeLz4Fn {
@@ -65,7 +65,7 @@ impl Function for DecodeLz4 {
             },
             Parameter {
                 keyword: "prepended_size",
-                kind: kind::INTEGER,
+                kind: kind::BOOLEAN,
                 required: false,
             },
         ]
@@ -160,8 +160,8 @@ mod tests {
     decode_lz4 => DecodeLz4;
 
     right_lz4_block {
-        args: func_args![value: value!(decode_base64("LAAAAPAdVGhlIHF1aWNrIGJyb3duIGZveCBqdW1wcyBvdmVyIDEzIGxhenkgZG9ncy4=").as_bytes()), use_prepended_size: value!(true)],
-        want: Ok(value!(b"The quick brown fox jumps over 13 lazy dogs.")),
+        args: func_args![value: value!(decode_base64("LAAAAPAdVGhlIHF1aWNrIGJyb3duIGZveCBqdW1wcyBvdmVyIDk5IGxhenkgZG9ncy4=").as_bytes()), prepended_size: value!(true)],
+        want: Ok(value!(b"The quick brown fox jumps over 99 lazy dogs.")),
         tdef: TypeDef::bytes().fallible(),
     }
 
@@ -172,31 +172,31 @@ mod tests {
     }
 
     right_lz4_block_no_prepend_size_with_buffer_size {
-        args: func_args![value: value!(decode_base64("8B1UaGUgcXVpY2sgYnJvd24gZm94IGp1bXBzIG92ZXIgMTMgbGF6eSBkb2dzLg==").as_bytes()), buf_size: value!(KB_256), use_prepended_size: value!(false)],
+        args: func_args![value: value!(decode_base64("8B1UaGUgcXVpY2sgYnJvd24gZm94IGp1bXBzIG92ZXIgMTMgbGF6eSBkb2dzLg==").as_bytes()), buf_size: value!(KB_256), prepended_size: value!(false)],
         want: Ok(value!(b"The quick brown fox jumps over 13 lazy dogs.")),
         tdef: TypeDef::bytes().fallible(),
     }
 
     right_lz4_frame_grow_buffer_size_from_zero {
-        args: func_args![value: value!(decode_base64("BCJNGGBAgiwAAIBUaGUgcXVpY2sgYnJvd24gZm94IGp1bXBzIG92ZXIgMTMgbGF6eSBkb2dzLgAAAAA=").as_bytes()), buf_size: value!(0), use_prepended_size: value!(false)],
+        args: func_args![value: value!(decode_base64("BCJNGGBAgiwAAIBUaGUgcXVpY2sgYnJvd24gZm94IGp1bXBzIG92ZXIgMTMgbGF6eSBkb2dzLgAAAAA=").as_bytes()), buf_size: value!(0), prepended_size: value!(false)],
         want: Ok(value!(b"The quick brown fox jumps over 13 lazy dogs.")),
         tdef: TypeDef::bytes().fallible(),
     }
 
     wrong_lz4_block_grow_buffer_size_from_zero_no_prepended_size {
-        args: func_args![value: value!(decode_base64("LAAAAPAdVGhlIHF1aWNrIGJyb3duIGZveCBqdW1wcyBvdmVyIDEzIGxhenkgZG9ncy4=").as_bytes()), buf_size: value!(0), use_prepended_size: value!(false)],
+        args: func_args![value: value!(decode_base64("LAAAAPAdVGhlIHF1aWNrIGJyb3duIGZveCBqdW1wcyBvdmVyIDEzIGxhenkgZG9ncy4=").as_bytes()), buf_size: value!(0), prepended_size: value!(false)],
         want: Err("unable to decode value with lz4 block decoder: provided output is too small for the decompressed data, actual 0, expected 2"),
         tdef: TypeDef::bytes().fallible(),
     }
 
     wrong_lz4 {
-        args: func_args![value: value!("xxxxxxxxx"), buf_size: value!(10), use_prepended_size: value!(false)],
+        args: func_args![value: value!("xxxxxxxxx"), buf_size: value!(10), prepended_size: value!(false)],
         want: Err("unable to decode value with lz4 block decoder: expected another byte, found none"),
         tdef: TypeDef::bytes().fallible(),
     }
 
     wrong_lz4_block_false_prepended_size {
-        args: func_args![value: value!(decode_base64("LAAAAPAdVGhlIHF1aWNrIGJyb3duIGZveCBqdW1wcyBvdmVyIDEzIGxhenkgZG9ncy4=").as_bytes()), use_prepended_size: value!(false)],
+        args: func_args![value: value!(decode_base64("LAAAAPAdVGhlIHF1aWNrIGJyb3duIGZveCBqdW1wcyBvdmVyIDEzIGxhenkgZG9ncy4=").as_bytes()), prepended_size: value!(false)],
         want: Err("unable to decode value with lz4 block decoder: the offset to copy is not contained in the decompressed buffer"),
         tdef: TypeDef::bytes().fallible(),
     }];
