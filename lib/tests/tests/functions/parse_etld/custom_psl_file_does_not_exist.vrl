@@ -9,7 +9,7 @@
 # │ │
 # │ invalid argument "psl"
 # │ error: Unable to read psl file
-# │ received: "\"lib/tests/tests/functions/definitelydoesnot.exist\""
+# │ received: "lib/tests/tests/functions/definitelydoesnot.exist"
 # │
 # = learn more about error code 403 at https://errors.vrl.dev/403
 # = see language documentation at https://vrl.dev
