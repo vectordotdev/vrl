@@ -72,8 +72,6 @@ mod tests {
     use nom::AsBytes;
 
     fn get_encoded_bytes(text: &str) -> Vec<u8> {
-        
-
         zstd::encode_all(text.as_bytes(), 0).expect("Cannot encode bytes with Zstd encoder")
     }
 
