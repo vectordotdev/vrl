@@ -1,10 +1,14 @@
 use crate::compiler::prelude::*;
-use lz4_flex::block::compress_prepend_size;
+use lz4_flex::block::{compress, compress_prepend_size};
 use nom::AsBytes;
 
-fn encode_lz4(value: Value) -> Resolved {
+fn encode_lz4(value: Value, prepend_size: bool) -> Resolved {
     let value = value.try_bytes()?;
-    let encoded = compress_prepend_size(value.as_bytes());
+    if prepend_size {
+        let encoded = compress_prepend_size(value.as_bytes());
+        return Ok(Value::Bytes(encoded.into()));
+    }
+    let encoded = compress(value.as_bytes());
     Ok(Value::Bytes(encoded.into()))
 }
 
@@ -19,7 +23,7 @@ impl Function for EncodeLz4 {
     fn examples(&self) -> &'static [Example] {
         &[Example {
             title: "demo string",
-            source: r#"encode_base64(encode_lz4!("The quick brown fox jumps over 13 lazy dogs."))"#,
+            source: r#"encode_base64(encode_lz4!("The quick brown fox jumps over 13 lazy dogs.", true))"#,
             result: Ok("LAAAAPAdVGhlIHF1aWNrIGJyb3duIGZveCBqdW1wcyBvdmVyIDEzIGxhenkgZG9ncy4="),
         }]
     }
@@ -31,29 +35,45 @@ impl Function for EncodeLz4 {
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
+        let prepend_size = arguments
+            .optional("prepend_size")
+            .unwrap_or_else(|| expr!(true));
 
-        Ok(EncodeLz4Fn { value }.as_expr())
+        Ok(EncodeLz4Fn {
+            value,
+            prepend_size,
+        }
+        .as_expr())
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[Parameter {
-            keyword: "value",
-            kind: kind::BYTES,
-            required: true,
-        }]
+        &[
+            Parameter {
+                keyword: "value",
+                kind: kind::BYTES,
+                required: true,
+            },
+            Parameter {
+                keyword: "prepend_size",
+                kind: kind::BOOLEAN,
+                required: false,
+            },
+        ]
     }
 }
 
 #[derive(Clone, Debug)]
 struct EncodeLz4Fn {
     value: Box<dyn Expression>,
+    prepend_size: Box<dyn Expression>,
 }
 
 impl FunctionExpression for EncodeLz4Fn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let value = self.value.resolve(ctx)?;
+        let prepend_size = self.prepend_size.resolve(ctx)?.try_boolean()?;
 
-        encode_lz4(value)
+        encode_lz4(value, prepend_size)
     }
 
     fn type_def(&self, _state: &state::TypeState) -> TypeDef {
@@ -78,7 +98,7 @@ mod test {
         encode_lz4 => EncodeLz4;
 
         success {
-            args: func_args![value: value!("The quick brown fox jumps over 13 lazy dogs.")],
+            args: func_args![value: value!("The quick brown fox jumps over 13 lazy dogs."), prepend_size: value!(true)],
             want: Ok(value!(decode_base64("LAAAAPAdVGhlIHF1aWNrIGJyb3duIGZveCBqdW1wcyBvdmVyIDEzIGxhenkgZG9ncy4=").as_bytes())),
             tdef: TypeDef::bytes().fallible(),
         }
