@@ -172,7 +172,7 @@ quoted_printable = { version = "0.5", optional = true }
 psl = { version = "2", optional = true }
 psl-types = { version = "2", optional = true }
 publicsuffix = { version = "2", optional = true }
-rand = { version = "0.8", optional = true }
+rand = { version = "0.9", optional = true }
 regex = { version = "1", default-features = false, optional = true, features = ["std", "perf", "unicode"] }
 roxmltree = { version = "0.20", optional = true }
 rustyline = { version = "16", default-features = false, optional = true }
