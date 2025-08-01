@@ -181,7 +181,7 @@ seahash = { version = "4", optional = true }
 serde = { version = "1", features = ["derive"], optional = true }
 serde_json = { version = "1", default-features = false, optional = true, features = ["std", "raw_value"] }
 simdutf8 = { version = "0.1.5", optional = true }
-fancy-regex = { version = "0.14.0", default-features = false, optional = true }
+fancy-regex = { version = "0.15.0", default-features = false, optional = true }
 sha-1 = { version = "0.10", optional = true }
 sha-2 = { package = "sha2", version = "0.10", optional = true }
 sha-3 = { package = "sha3", version = "0.10", optional = true }
