@@ -229,7 +229,7 @@ grok = { version = "2.1", optional = true }
 onig = { version = "6", default-features = false, optional = true }
 tokio = { version = "1.45", optional = true, features = ["io-util", "macros", "net", "time", "sync", "rt", "rt-multi-thread"] }
 uuid = { version = "1", features = ["v4", "v7"], optional = true }
-jsonschema = { version = "0.30", default-features = false }
+jsonschema = { version = "0.32", default-features = false }
 
 # Dependencies used for WASM
 [target.'cfg(target_arch = "wasm32")'.dependencies]

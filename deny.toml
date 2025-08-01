@@ -40,5 +40,7 @@ ignore = [
   # TODO: We should swap this out for a maintained library
   "RUSTSEC-2021-0139",
   # paste is Unmaintained
-  "RUSTSEC-2024-0436"
+  "RUSTSEC-2024-0436",
+  # `derivative` is unmaintained
+  "RUSTSEC-2024-0388",
 ]
