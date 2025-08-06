@@ -90,16 +90,11 @@ where
     Run::boxed(move |value| matchers.iter().all(|func| func.run(value)))
 }
 
-/// Build a filter by parsing a Datadog Search Syntax `QueryNode`, and invoking the appropriate
-/// method on a `Filter` + `Resolver` implementation to determine the matching logic. Each method
-/// returns a `Matcher<V>` which is intended to be invoked at runtime. `F` should implement both
-/// `Fielder` + `Filter` in order to applying any required caching which may affect the operation
-/// of a filter method. This function is intended to be used at boot-time and NOT in a hot path!
+/// Wrapper around `QueryNode::build_matcher` for backwards compatibility.
 ///
 /// # Errors
 ///
-/// Will return `Err` if the query contains an invalid path.
-#[allow(clippy::module_name_repetitions)] // Renaming is a breaking change.
+/// Same as `QueryNode::build_matcher`.
 pub fn build_matcher<V, F>(
     node: &QueryNode,
     filter: &F,
@@ -108,104 +103,124 @@ where
     V: fmt::Debug + Send + Sync + Clone + 'static,
     F: Filter<V> + Resolver,
 {
-    match node {
-        QueryNode::MatchNoDocs => Ok(Box::new(false)),
-        QueryNode::MatchAllDocs => Ok(Box::new(true)),
-        QueryNode::AttributeExists { attr } => {
-            let matchers: Result<Vec<_>, _> = filter
-                .build_fields(attr)
-                .into_iter()
-                .map(|field| filter.exists(field))
-                .collect();
+    node.build_matcher(filter)
+}
 
-            Ok(any(matchers?))
-        }
-        QueryNode::AttributeMissing { attr } => {
-            let matchers: Result<Vec<_>, _> = filter
-                .build_fields(attr)
-                .into_iter()
-                .map(|field| filter.exists(field).map(|matcher| not(matcher)))
-                .collect();
+impl QueryNode {
+    /// Build a filter by parsing a Datadog Search Syntax `QueryNode`, and invoking the appropriate
+    /// method on a `Filter` + `Resolver` implementation to determine the matching logic. Each method
+    /// returns a `Matcher<V>` which is intended to be invoked at runtime. `F` should implement both
+    /// `Fielder` + `Filter` in order to applying any required caching which may affect the operation
+    /// of a filter method. This function is intended to be used at boot-time and NOT in a hot path!
+    ///
+    /// # Errors
+    ///
+    /// Will return `Err` if the query contains an invalid path.
+    #[allow(clippy::module_name_repetitions)] // Renaming is a breaking change.
+    pub fn build_matcher<V, F>(&self, filter: &F) -> Result<Box<dyn Matcher<V>>, PathParseError>
+    where
+        V: fmt::Debug + Send + Sync + Clone + 'static,
+        F: Filter<V> + Resolver,
+    {
+        match self {
+            Self::MatchNoDocs => Ok(Box::new(false)),
+            Self::MatchAllDocs => Ok(Box::new(true)),
+            Self::AttributeExists { attr } => {
+                let matchers: Result<Vec<_>, _> = filter
+                    .build_fields(attr)
+                    .into_iter()
+                    .map(|field| filter.exists(field))
+                    .collect();
 
-            Ok(all(matchers?))
-        }
-        QueryNode::AttributeTerm { attr, value }
-        | QueryNode::QuotedAttribute {
-            attr,
-            phrase: value,
-        } => {
-            let matchers: Result<Vec<_>, _> = filter
-                .build_fields(attr)
-                .into_iter()
-                .map(|field| filter.equals(field, value))
-                .collect();
+                Ok(any(matchers?))
+            }
+            Self::AttributeMissing { attr } => {
+                let matchers: Result<Vec<_>, _> = filter
+                    .build_fields(attr)
+                    .into_iter()
+                    .map(|field| filter.exists(field).map(|matcher| not(matcher)))
+                    .collect();
 
-            Ok(any(matchers?))
-        }
-        QueryNode::AttributePrefix { attr, prefix } => {
-            let matchers: Result<Vec<_>, _> = filter
-                .build_fields(attr)
-                .into_iter()
-                .map(|field| filter.prefix(field, prefix))
-                .collect();
+                Ok(all(matchers?))
+            }
+            Self::AttributeTerm { attr, value }
+            | Self::QuotedAttribute {
+                attr,
+                phrase: value,
+            } => {
+                let matchers: Result<Vec<_>, _> = filter
+                    .build_fields(attr)
+                    .into_iter()
+                    .map(|field| filter.equals(field, value))
+                    .collect();
 
-            Ok(any(matchers?))
-        }
-        QueryNode::AttributeWildcard { attr, wildcard } => {
-            let matchers: Result<Vec<_>, _> = filter
-                .build_fields(attr)
-                .into_iter()
-                .map(|field| filter.wildcard(field, wildcard))
-                .collect();
+                Ok(any(matchers?))
+            }
+            Self::AttributePrefix { attr, prefix } => {
+                let matchers: Result<Vec<_>, _> = filter
+                    .build_fields(attr)
+                    .into_iter()
+                    .map(|field| filter.prefix(field, prefix))
+                    .collect();
 
-            Ok(any(matchers?))
-        }
-        QueryNode::AttributeComparison {
-            attr,
-            comparator,
-            value,
-        } => {
-            let matchers: Result<Vec<_>, _> = filter
-                .build_fields(attr)
-                .into_iter()
-                .map(|field| filter.compare(field, *comparator, value.clone()))
-                .collect();
+                Ok(any(matchers?))
+            }
+            Self::AttributeWildcard { attr, wildcard } => {
+                let matchers: Result<Vec<_>, _> = filter
+                    .build_fields(attr)
+                    .into_iter()
+                    .map(|field| filter.wildcard(field, wildcard))
+                    .collect();
 
-            Ok(any(matchers?))
-        }
-        QueryNode::AttributeRange {
-            attr,
-            lower,
-            lower_inclusive,
-            upper,
-            upper_inclusive,
-        } => {
-            let matchers: Result<Vec<_>, _> = filter
-                .build_fields(attr)
-                .into_iter()
-                .map(|field| {
-                    filter.range(
-                        field,
-                        lower.clone(),
-                        *lower_inclusive,
-                        upper.clone(),
-                        *upper_inclusive,
-                    )
-                })
-                .collect();
+                Ok(any(matchers?))
+            }
+            Self::AttributeComparison {
+                attr,
+                comparator,
+                value,
+            } => {
+                let matchers: Result<Vec<_>, _> = filter
+                    .build_fields(attr)
+                    .into_iter()
+                    .map(|field| filter.compare(field, *comparator, value.clone()))
+                    .collect();
 
-            Ok(any(matchers?))
-        }
-        QueryNode::NegatedNode { node } => Ok(not(build_matcher(node, filter)?)),
-        QueryNode::Boolean { oper, nodes } => {
-            let funcs: Result<Vec<_>, _> = nodes
-                .iter()
-                .map(|node| build_matcher(node, filter))
-                .collect();
+                Ok(any(matchers?))
+            }
+            Self::AttributeRange {
+                attr,
+                lower,
+                lower_inclusive,
+                upper,
+                upper_inclusive,
+            } => {
+                let matchers: Result<Vec<_>, _> = filter
+                    .build_fields(attr)
+                    .into_iter()
+                    .map(|field| {
+                        filter.range(
+                            field,
+                            lower.clone(),
+                            *lower_inclusive,
+                            upper.clone(),
+                            *upper_inclusive,
+                        )
+                    })
+                    .collect();
 
-            match oper {
-                BooleanType::And => Ok(all(funcs?)),
-                BooleanType::Or => Ok(any(funcs?)),
+                Ok(any(matchers?))
+            }
+            Self::NegatedNode { node } => Ok(not(node.build_matcher(filter)?)),
+            Self::Boolean { oper, nodes } => {
+                let funcs: Result<Vec<_>, _> = nodes
+                    .iter()
+                    .map(|node| node.build_matcher(filter))
+                    .collect();
+
+                match oper {
+                    BooleanType::And => Ok(all(funcs?)),
+                    BooleanType::Or => Ok(any(funcs?)),
+                }
             }
         }
     }
