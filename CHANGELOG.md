@@ -4,6 +4,73 @@
 
 <!-- changelog start -->
 
+## [0.26.0 (2025-08-07)]
+
+### Breaking Changes & Upgrade Guide
+
+- The `parse_cef` now trims unnecessary whitespace around escaped values in both headers and extension fields, improving accuracy and reliability when dealing with messy input strings.
+
+  Scenario: `parse_cef` with whitespace post cef fields
+
+  Previous Behavior: Runtime Error
+
+  If an input with space added to parse_cef was provided, it would result in a runtime error due to the inability to parse the line successfully.
+  Input: `CEF:1|Security|threatmanager|1.0|100|worm successfully stopped|10| dst=2.1.2.2 msg=Detected a threat. No action needed spt=1232`
+  Output:
+  ```
+  error[E000]: function call error for "parse_cef" at (0:20): Could not parse whole line successfully
+    ┌─ :1:1
+    │.message = "CEF:1|Security|threatmanager|1.0|100|worm successfully stopped|10| dst=2.1.2.2 msg=Detected a threat. No action needed spt=1232"
+  1 │ parse_cef!(.message)
+    │ ^^^^^^^^^^^^^^^^^^^^ Could not parse whole line successfully
+    │
+    = see language documentation at https://vrl.dev
+    = try your code in the VRL REPL, learn more at https://vrl.dev/examples
+  ```
+
+  New Behavior: parses data correctly
+
+  ```
+  {
+      "cefVersion": "1",
+      "deviceEventClassId": "100",
+      "deviceProduct": "threatmanager",
+      "deviceVendor": "Security",
+      "deviceVersion": "1.0",
+      "dst": "2.1.2.2",
+      "msg": "Detected a threat. No action needed",
+      "name": "worm successfully stopped",
+      "severity": "10",
+      "spt": "1232"
+  }
+  ```
+
+  Scenario: `parse_cef` with whitespace in cef fields
+  Input: `CEF:1|Security|threatmanager|1.0|100|worm successfully stopped|10| dst=2.1.2.2 msg=Detected a threat. No action needed  spt=1232`
+
+  Previous Behavior: "msg": "Detected a threat. No action needed   "
+  New Behavior: "msg": "Detected a threat. No action needed"
+
+  authors: yjagdale (https://github.com/vectordotdev/vrl/pull/1430)
+- The `parse_syslog` function now treats RFC 3164 structured data items with no parameters (e.g., `[exampleSDID@32473]`) as part of the main
+  message, rather than parsing them as structured data. Items with parameters (e.g., `[exampleSDID@32473 field="value"]`) continue to be
+  parsed as structured data. (https://github.com/vectordotdev/vrl/pull/1435)
+- `encode_lz4`  no longer prepends the uncompressed size by default, improving compatibility with standard LZ4 tools. A new `prepend_size` flag restores the old behavior if needed. Also, `decode_lz4` now also accepts `prepend_size` and a `buf_size` option (default: 1MB). 
+
+  Existing users of `encode_lz4` and `decode_lz4` will need to update their functions to include the argument `prepend_size: true` to maintain existing compatibility.
+
+  authors: jlambatl (https://github.com/vectordotdev/vrl/pull/1447)
+
+### New Features
+
+- Added `haversine` function for calculating [haversine](https://en.wikipedia.org/wiki/Haversine_formula) distance and bearing.
+
+  authors: esensar Quad9DNS (https://github.com/vectordotdev/vrl/pull/1442)
+- Add `validate_json_schema` function for validating JSON payloads against JSON schema files. A optional configuration parameter `ignore_unknown_formats` is provided to change how custom formats are handled by the validator. Unknown formats can be silently ignored by setting this to `true` and validation continues without failing due to those fields.
+
+  authors: jlambatl (https://github.com/vectordotdev/vrl/pull/1443)
+
+
 ## [0.25.0 (2025-06-26)]
 
 ### Enhancements
