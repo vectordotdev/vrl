@@ -116,6 +116,7 @@ stdlib = [
   "dep:utf8-width",
   "dep:uuid",
   "dep:woothee",
+  "dep:xxhash-rust",
   "dep:zstd",
   "dep:encoding_rs"
 ]
@@ -197,6 +198,11 @@ url = { version = "2", optional = true }
 snafu = { version = "0.8", optional = true }
 webbrowser = { version = "1.0", default-features = false, optional = true }
 woothee = { version = "0.13", optional = true }
+xxhash-rust = { version = "0.8", optional = true, features = [
+  "xxh3",
+  "xxh32",
+  "xxh64",
+] }
 community-id = { version = "0.2", optional = true }
 
 zstd = { version = "0.13", default-features = false, features = ["wasm"], optional = true }

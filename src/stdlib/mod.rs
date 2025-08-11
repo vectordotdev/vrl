@@ -197,6 +197,7 @@ cfg_if::cfg_if! {
         mod uuid_v7;
         mod values;
         mod validate_json_schema;
+        mod xxhash;
         mod zip;
 
         // -----------------------------------------------------------------------------
@@ -392,6 +393,7 @@ cfg_if::cfg_if! {
         pub use self::md5::Md5;
         pub use self::seahash::Seahash;
         pub use self::sha1::Sha1;
+        pub use self::xxhash::Xxhash;
         pub use self::crc::Crc;
     }
 }
@@ -591,6 +593,7 @@ pub fn all() -> Vec<Box<dyn Function>> {
         Box::new(UuidV7),
         Box::new(Values),
         Box::new(ValidateJsonSchema),
+        Box::new(Xxhash),
         Box::new(Zip),
     ]
 }
