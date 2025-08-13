@@ -69,24 +69,21 @@ impl Function for ValidateJsonSchema {
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
-        let schema_file = arguments.required_literal("schema_definition", state)?;
+        let schema_definition = arguments.required_literal("schema_definition", state)?;
         let ignore_unknown_formats = arguments
             .optional("ignore_unknown_formats")
             .unwrap_or(expr!(false));
 
-        let schema_file_str = schema_file
+        let schema_file_str = schema_definition
             .try_bytes_utf8_lossy()
             .expect("schema definition file must be a string");
 
-        let path = std::path::Path::new(schema_file_str.as_ref());
-        let schema_definition =
-            non_wasm::get_json_schema_definition(path).expect("JSON schema not found");
+        let schema_file_path = std::path::Path::new(schema_file_str.as_ref());
 
         Ok(ValidateJsonSchemaFn {
             value,
-            schema_definition,
+            schema_path: PathBuf::from(schema_file_path),
             ignore_unknown_formats,
-            schema_path: PathBuf::from(path), // Add cache key
         }
         .as_expr())
     }
@@ -104,9 +101,7 @@ impl Function for ValidateJsonSchema {
 
 #[cfg(not(target_arch = "wasm32"))]
 mod non_wasm {
-    use super::{
-        Context, Expression, FunctionExpression, Resolved, TypeDef, VrlValueConvert, state,
-    };
+    use super::{Context, Expression, FunctionExpression, Resolved, TypeDef, VrlValueConvert, state};
     use crate::stdlib::json_utils::bom::StripBomFromUTF8;
     use crate::value;
     use jsonschema;
@@ -123,9 +118,8 @@ mod non_wasm {
     #[derive(Debug, Clone)]
     pub(super) struct ValidateJsonSchemaFn {
         pub(super) value: Box<dyn Expression>,
-        pub(super) schema_definition: serde_json::Value,
+        pub(super) schema_path: PathBuf, // Path to the schema file, also used as cache key
         pub(super) ignore_unknown_formats: Box<dyn Expression>,
-        pub(super) schema_path: PathBuf, // Path to the schema file, used for caching
     }
 
     impl FunctionExpression for ValidateJsonSchemaFn {
@@ -148,8 +142,12 @@ mod non_wasm {
             } else {
                 serde_json::from_slice(stripped_bytes).map_err(|e| format!("Invalid JSON: {e}"))?
             };
+
+            let schema_definition =
+                get_json_schema_definition(self.schema_path.as_path()).map_err(|e| format!("JSON schema not found: {e}"))?;
+
             let schema_validator = get_or_compile_schema(
-                &self.schema_definition,
+                &schema_definition,
                 &self.schema_path,
                 ignore_unknown_formats,
             )?;
