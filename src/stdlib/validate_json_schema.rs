@@ -143,11 +143,7 @@ mod non_wasm {
                 serde_json::from_slice(stripped_bytes).map_err(|e| format!("Invalid JSON: {e}"))?
             };
 
-            let schema_definition =
-                get_json_schema_definition(self.schema_path.as_path()).map_err(|e| format!("JSON schema not found: {e}"))?;
-
             let schema_validator = get_or_compile_schema(
-                &schema_definition,
                 &self.schema_path,
                 ignore_unknown_formats,
             )?;
@@ -191,7 +187,6 @@ mod non_wasm {
     }
 
     pub(super) fn get_or_compile_schema(
-        schema_definition: &serde_json::Value,
         schema_path: &Path,
         ignore_unknown_formats: bool,
     ) -> Result<Arc<jsonschema::Validator>, String> {
@@ -211,11 +206,14 @@ mod non_wasm {
             return Ok(schema.clone());
         }
 
+        let schema_definition =
+            get_json_schema_definition(schema_path).map_err(|e| format!("JSON schema not found: {e}"))?;
+
         // Compile schema
         let compiled_schema = jsonschema::options()
             .should_validate_formats(true)
             .should_ignore_unknown_formats(ignore_unknown_formats)
-            .build(schema_definition)
+            .build(&schema_definition)
             .map_err(|e| format!("Failed to compile schema: {e}"))?;
 
         let compiled_schema = Arc::new(compiled_schema);
