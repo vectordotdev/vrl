@@ -1,15 +1,15 @@
 use crate::compiler::prelude::*;
 use nom::{
-    self,
+    self, IResult, Parser,
     branch::alt,
     bytes::complete::{escaped_transform, tag, take_till1, take_until},
     character::complete::{char, one_of, satisfy},
     combinator::{map, opt, peek, success, value},
-    error::{ErrorKind, ParseError, VerboseError},
+    error::{ErrorKind, ParseError},
     multi::{count, many1},
     sequence::{delimited, pair, preceded},
-    IResult,
 };
+use nom_language::error::VerboseError;
 use std::collections::{BTreeMap, HashMap};
 
 fn build_map() -> HashMap<&'static str, (usize, CustomField)> {
@@ -203,11 +203,12 @@ enum CustomField {
 }
 
 fn parse(input: &str) -> ExpressionResult<impl Iterator<Item = (String, String)> + '_> {
-    let (rest, (header, mut extension)) =
-        pair(parse_header, parse_extension)(input).map_err(|e| match e {
+    let (rest, (header, mut extension)) = pair(parse_header, parse_extension)
+        .parse(input)
+        .map_err(|e| match e {
             nom::Err::Error(e) | nom::Err::Failure(e) => {
                 // Create a descriptive error message if possible.
-                nom::error::convert_error(input, e)
+                nom_language::error::convert_error(input, e)
             }
             nom::Err::Incomplete(_) => e.to_string(),
         })?;
@@ -252,7 +253,8 @@ fn parse_header(input: &str) -> IResult<&str, Vec<String>, VerboseError<&str>> {
     preceded(
         pair(take_until("CEF:"), tag("CEF:")),
         count(parse_header_value, 7),
-    )(input)
+    )
+    .parse(input)
 }
 
 fn parse_header_value(input: &str) -> IResult<&str, String, VerboseError<&str>> {
@@ -260,28 +262,32 @@ fn parse_header_value(input: &str) -> IResult<&str, String, VerboseError<&str>> 
         opt(char('|')),
         alt((
             map(peek(char('|')), |_| String::new()),
-            escaped_transform(
-                take_till1(|c: char| c == '\\' || c == '|'),
-                '\\',
-                satisfy(|c| c == '\\' || c == '|'),
+            map(
+                escaped_transform(
+                    take_till1(|c: char| c == '\\' || c == '|'),
+                    '\\',
+                    satisfy(|c| c == '\\' || c == '|'),
+                ),
+                |value: String| value.trim().to_string(),
             ),
         )),
-    )(input)
+    )
+    .parse(input)
 }
 
 fn parse_extension(input: &str) -> IResult<&str, Vec<(&str, String)>, VerboseError<&str>> {
-    alt((many1(parse_key_value), map(tag("|"), |_| vec![])))(input)
+    alt((many1(parse_key_value), map(tag("|"), |_| vec![]))).parse(input)
 }
 
 fn parse_key_value(input: &str) -> IResult<&str, (&str, String), VerboseError<&str>> {
-    pair(parse_key, parse_value)(input)
+    pair(parse_key, parse_value).parse(input)
 }
 
 fn parse_value(input: &str) -> IResult<&str, String, VerboseError<&str>> {
     alt((
         map(peek(parse_key), |_| String::new()),
         escaped_transform(
-            take_till1_input(|input| alt((tag("\\"), tag("="), parse_key))(input).is_ok()),
+            take_till1_input(|input| alt((tag("\\"), tag("="), parse_key)).parse(input).is_ok()),
             '\\',
             alt((
                 value('=', char('=')),
@@ -290,7 +296,8 @@ fn parse_value(input: &str) -> IResult<&str, String, VerboseError<&str>> {
                 success('\\'),
             )),
         ),
-    ))(input)
+    ))
+    .parse(input)
 }
 
 /// As take `take_till1` but can have condition on input instead of `Input::Item`.
@@ -316,10 +323,11 @@ fn take_till1_input<'a, F: Fn(&'a str) -> bool, Error: ParseError<&'a str>>(
 
 fn parse_key(input: &str) -> IResult<&str, &str, VerboseError<&str>> {
     delimited(
-        alt((char(' '), char('|'))),
+        many1(alt((char(' '), char('|')))),
         take_till1(|c| c == ' ' || c == '=' || c == '\\'),
         char('='),
-    )(input)
+    )
+    .parse(input)
 }
 
 fn type_def() -> TypeDef {
@@ -538,7 +546,7 @@ mod test {
         assert_eq!(
             Ok(vec![
                 ("dst".to_string(), "2.1.2.2".into()),
-                ("msg".to_string(), "Detected a threat. No action needed  ".into()),
+                ("msg".to_string(), "Detected a threat. No action needed".into()),
                 ("spt".to_string(),"1232".into()),
                 ("cefVersion".to_string(), "1".into()),
                 ("deviceVendor".to_string(), "Security".into()),
@@ -568,6 +576,32 @@ mod test {
                 ("severity".to_string(), "10".into()),
             ]),
             parse("CEF:1|Security|threatmanager|1.0|100|worm successfully stopped|10|dst=2.1.2.2 msg=Detected a threat. No action needed   ")
+                .map(Iterator::collect)
+        );
+    }
+
+    #[test]
+    fn test_extension_space_after_separator() {
+        assert_eq!(
+            Ok(vec![
+                ("src".to_string(), "192.168.1.100".into()),
+                ("dst".to_string(), "10.0.0.5".into()),
+                ("spt".to_string(), "12345".into()),
+                ("dpt".to_string(), "80".into()),
+                ("proto".to_string(), "TCP".into()),
+                ("msg".to_string(), "Blocked unauthorized access attempt".into()),
+                ("act".to_string(), "blocked".into()),
+                ("outcome".to_string(), "failure".into()),
+                ("rt".to_string(), "2025-06-29T23:35:00Z".into()),
+                ("cefVersion".to_string(), "0".into()),
+                ("deviceVendor".to_string(), "SecurityVendor".into()),
+                ("deviceProduct".to_string(), "SecurityProduct".into()),
+                ("deviceVersion".to_string(), "1.0".into()),
+                ("deviceEventClassId".to_string(), "100".into()),
+                ("name".to_string(), "Unauthorized Access Attempt".into()),
+                ("severity".to_string(), "10".into()),
+            ]),
+            parse("CEF:0|SecurityVendor|SecurityProduct|1.0|100|Unauthorized Access Attempt|10| src=192.168.1.100 dst=10.0.0.5 spt=12345 dpt=80 proto=TCP msg=Blocked unauthorized access attempt act=blocked outcome=failure rt=2025-06-29T23:35:00Z")
                 .map(Iterator::collect)
         );
     }

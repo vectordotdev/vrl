@@ -3,7 +3,7 @@ use std::str::FromStr;
 use pest::Parser;
 
 use super::{
-    grammar::{EventPlatformQuery, QueryVisitor, DEFAULT_FIELD},
+    grammar::{DEFAULT_FIELD, EventPlatformQuery, QueryVisitor},
     node::QueryNode,
 };
 
@@ -64,9 +64,7 @@ mod tests {
                 matches!(res,
                 QueryNode::AttributeTerm { ref attr, ref value }
                 if attr == DEFAULT_FIELD && value == "foo"),
-                "Unable to properly parse '{:?}' - got {:?}",
-                query,
-                res
+                "Unable to properly parse '{query:?}' - got {res:?}"
             );
         }
     }
@@ -80,9 +78,7 @@ mod tests {
                 matches!(res,
                 QueryNode::QuotedAttribute { ref attr, ref phrase }
                 if attr == DEFAULT_FIELD && phrase == "foo bar"),
-                "Unable to properly parse '{:?}' - got {:?}",
-                query,
-                res
+                "Unable to properly parse '{query:?}' - got {res:?}"
             );
         }
     }
@@ -96,9 +92,7 @@ mod tests {
                 matches!(res,
                 QueryNode::AttributeTerm { ref attr, ref value }
                 if attr == "foo" && value == "bar"),
-                "Unable to properly parse '{:?}' - got {:?}",
-                query,
-                res
+                "Unable to properly parse '{query:?}' - got {res:?}"
             );
         }
     }
@@ -112,9 +106,7 @@ mod tests {
                 matches!(res,
                 QueryNode::AttributeTerm { ref attr, ref value }
                 if attr == "foo" && value == "10"),
-                "Unable to properly parse '{:?}' - got {:?}",
-                query,
-                res
+                "Unable to properly parse '{query:?}' - got {res:?}"
             );
         }
     }
@@ -128,9 +120,7 @@ mod tests {
                 matches!(res,
                 QueryNode::AttributeTerm { ref attr, ref value }
                 if attr == "foo" && value == "bar:baz"),
-                "Unable to properly parse '{:?}' - got {:?}",
-                query,
-                res
+                "Unable to properly parse '{query:?}' - got {res:?}"
             );
         }
     }
@@ -144,9 +134,7 @@ mod tests {
                 matches!(res,
                 QueryNode::AttributeComparison { ref attr, value: ComparisonValue::Float(ref compvalue), comparator: Comparison::Lt }
                 if attr == "foo" && (*compvalue - 4.12345E-4).abs() < 0.001),
-                "Unable to properly parse '{:?}' - got {:?}",
-                query,
-                res
+                "Unable to properly parse '{query:?}' - got {res:?}"
             );
         }
     }
@@ -160,9 +148,7 @@ mod tests {
                 matches!(res,
                 QueryNode::AttributeTerm { ref attr, ref value }
                 if attr == DEFAULT_FIELD && value == "foo bar"),
-                "Unable to properly parse '{:?}' - got {:?}",
-                query,
-                res
+                "Unable to properly parse '{query:?}' - got {res:?}"
             );
         }
     }
@@ -182,12 +168,10 @@ mod tests {
                         && matches!(nodes[1], QueryNode::AttributeTerm { ref attr, ref value } if attr == "_default_" && value == "baz")
                         && matches!(nodes[2], QueryNode::AttributeTerm { ref attr, ref value } if attr == "_default_" && value == "qux")
                         && matches!(nodes[3], QueryNode::AttributeTerm { ref attr, ref value } if attr == "_default_" && value == "quux quuz"),
-                    "Unable to properly parse '{:?}' - got {:?}",
-                    query,
-                    res
+                    "Unable to properly parse '{query:?}' - got {res:?}"
                 );
             } else {
-                panic!("Unable to properly parse '{:?}' - got {:?}", query, res)
+                panic!("Unable to properly parse '{query:?}' - got {res:?}")
             }
         }
     }
@@ -208,7 +192,7 @@ mod tests {
                     }
                 }
             }
-            panic!("Unable to properly parse '{:?}' - got {:?}", query, res)
+            panic!("Unable to properly parse '{query:?}' - got {res:?}")
         }
     }
 
@@ -221,9 +205,7 @@ mod tests {
                 matches!(res,
                 QueryNode::QuotedAttribute { ref attr, ref phrase }
                 if attr == "foo" && phrase == "bar baz"),
-                "Unable to properly parse '{:?}' - got {:?}",
-                query,
-                res
+                "Unable to properly parse '{query:?}' - got {res:?}"
             );
         }
     }
@@ -237,9 +219,7 @@ mod tests {
                 matches!(res,
                 QueryNode::AttributePrefix { ref attr, ref prefix }
                 if attr == "foo" && prefix == "ba"), // We strip the trailing * from the prefix for escaping
-                "Unable to properly parse '{:?}' - got {:?}",
-                query,
-                res
+                "Unable to properly parse '{query:?}' - got {res:?}"
             );
         }
     }
@@ -253,9 +233,7 @@ mod tests {
                 matches!(res,
                 QueryNode::AttributeWildcard { ref attr, ref wildcard }
                 if attr == "foo" && wildcard == "b*r"),
-                "Unable to properly parse '{:?}' - got {:?}",
-                query,
-                res
+                "Unable to properly parse '{query:?}' - got {res:?}"
             );
         }
     }
@@ -269,9 +247,7 @@ mod tests {
                 matches!(res,
                 QueryNode::AttributeWildcard { ref attr, ref wildcard }
                 if attr == "foo" && wildcard == "ba?"),
-                "Unable to properly parse '{:?}' - got {:?}",
-                query,
-                res
+                "Unable to properly parse '{query:?}' - got {res:?}"
             );
         }
     }
@@ -285,9 +261,7 @@ mod tests {
                 matches!(res,
                 QueryNode::AttributeWildcard { ref attr, ref wildcard }
                 if attr == "foo" && wildcard == "*ar"),
-                "Unable to properly parse '{:?}' - got {:?}",
-                query,
-                res
+                "Unable to properly parse '{query:?}' - got {res:?}"
             );
         }
     }
@@ -304,9 +278,7 @@ mod tests {
                     value: ComparisonValue::String(ref cval),
                     comparator: Comparison::Gte
                 } if attr == "foo" && cval == "bar"),
-                "Unable to properly parse '{:?}' - got {:?}'",
-                query,
-                res
+                "Unable to properly parse '{query:?}' - got {res:?}'"
             );
         }
     }
@@ -325,9 +297,7 @@ mod tests {
                     upper: ComparisonValue::Integer(ref ustr),
                     upper_inclusive: true
                 } if attr == "foo" && *lstr == 10 && *ustr == 20),
-                "Unable to properly parse '{:?}' - got {:?}'",
-                query,
-                res
+                "Unable to properly parse '{query:?}' - got {res:?}'"
             );
         }
     }
@@ -346,9 +316,7 @@ mod tests {
                     upper: ComparisonValue::String(ref ustr),
                     upper_inclusive: false
                 } if attr == "foo" && lstr == "bar" && ustr == "baz"),
-                "Unable to properly parse '{:?}' - got {:?}'",
-                query,
-                res
+                "Unable to properly parse '{query:?}' - got {res:?}'"
             );
         }
     }
@@ -367,9 +335,7 @@ mod tests {
                     upper: ComparisonValue::Unbounded,
                     upper_inclusive: true
                 } if attr == "foo"),
-                "Unable to properly parse '{:?}' - got {:?}'",
-                query,
-                res
+                "Unable to properly parse '{query:?}' - got {res:?}'"
             );
         }
     }
@@ -388,9 +354,7 @@ mod tests {
                     upper: ComparisonValue::String(ref ustr),
                     upper_inclusive: true
                 } if attr == "foo" && lstr == "ba*" && ustr == "b*z"),
-                "Unable to properly parse '{:?}' - got {:?}'",
-                query,
-                res
+                "Unable to properly parse '{query:?}' - got {res:?}'"
             );
         }
     }
@@ -404,9 +368,7 @@ mod tests {
                 matches!(res,
                 QueryNode::AttributeExists { ref attr }
                 if attr == "foo"),
-                "Unable to properly parse '{:?}' - got {:?}",
-                query,
-                res
+                "Unable to properly parse '{query:?}' - got {res:?}"
             );
         }
     }
@@ -420,9 +382,7 @@ mod tests {
                 matches!(res,
                 QueryNode::AttributeExists { ref attr }
                 if attr == "foo bar"),
-                "Unable to properly parse '{:?}' - got {:?}",
-                query,
-                res
+                "Unable to properly parse '{query:?}' - got {res:?}"
             );
         }
     }
@@ -436,9 +396,7 @@ mod tests {
                 matches!(res,
                 QueryNode::AttributeWildcard { ref attr, ref wildcard }
                 if attr == "foo" && wildcard == "*"),
-                "Unable to properly parse '{:?}' - got {:?}",
-                query,
-                res
+                "Unable to properly parse '{query:?}' - got {res:?}"
             );
         }
     }
@@ -452,9 +410,7 @@ mod tests {
                 matches!(res,
                 QueryNode::AttributeMissing { ref attr }
                 if attr == "foo"),
-                "Unable to properly parse '{:?}' - got {:?}",
-                query,
-                res
+                "Unable to properly parse '{query:?}' - got {res:?}"
             );
         }
     }
@@ -468,9 +424,7 @@ mod tests {
                 matches!(res,
                 QueryNode::AttributeMissing { ref attr }
                 if attr == "foo bar"),
-                "Unable to properly parse '{:?}' - got {:?}",
-                query,
-                res
+                "Unable to properly parse '{query:?}' - got {res:?}"
             );
         }
     }
@@ -482,9 +436,7 @@ mod tests {
             let res = parse(query);
             assert!(
                 matches!(res, QueryNode::MatchAllDocs),
-                "Failed to parse '{:?}' as MatchAllDocs, got {:?}",
-                query,
-                res
+                "Failed to parse '{query:?}' as MatchAllDocs, got {res:?}"
             );
         }
     }
@@ -498,9 +450,7 @@ mod tests {
                 matches!(res,
                 QueryNode::AttributeWildcard { ref attr, ref wildcard }
                 if attr == "_all" && wildcard == "*"),
-                "Unable to properly parse '{:?}' - got {:?}",
-                query,
-                res
+                "Unable to properly parse '{query:?}' - got {res:?}"
             );
         }
     }
@@ -518,9 +468,7 @@ mod tests {
             let res = parse(query);
             assert!(
                 matches!(res, QueryNode::MatchNoDocs),
-                "Failed to parse '{:?}' as MatchNoDocs, got {:?}",
-                query,
-                res
+                "Failed to parse '{query:?}' as MatchNoDocs, got {res:?}"
             );
         }
     }
@@ -539,12 +487,10 @@ mod tests {
                     matches!(nodes[0], QueryNode::AttributeTerm { ref attr, ref value } if attr == "foo" && value == "bar")
                         && matches!(nodes[1], QueryNode::AttributeTerm { ref attr, ref value } if attr == "baz" && value == "qux")
                         && matches!(nodes[2], QueryNode::AttributeTerm { ref attr, ref value } if attr == "quux" && value == "quuz"),
-                    "Unable to properly parse '{:?}' - got {:?}",
-                    query,
-                    res
+                    "Unable to properly parse '{query:?}' - got {res:?}"
                 );
             } else {
-                panic!("Unable to properly parse '{:?}' - got {:?}", query, res)
+                panic!("Unable to properly parse '{query:?}' - got {res:?}")
             }
         }
     }
@@ -568,12 +514,10 @@ mod tests {
                     matches!(nodes[0], QueryNode::NegatedNode { ref node } if matches!(**node, QueryNode::AttributeTerm {ref attr, ref value } if attr == "foo" && value == "bar"))
                         && matches!(nodes[1], QueryNode::AttributeTerm { ref attr, ref value } if attr == "baz" && value == "qux")
                         && matches!(nodes[2], QueryNode::NegatedNode { ref node } if matches!(**node, QueryNode::AttributeTerm {ref attr, ref value } if attr == "quux" && value == "quuz")),
-                    "Unable to properly parse '{:?}' - got {:?}",
-                    query,
-                    res
+                    "Unable to properly parse '{query:?}' - got {res:?}"
                 );
             } else {
-                panic!("Unable to properly parse '{:?}' - got {:?}", query, res)
+                panic!("Unable to properly parse '{query:?}' - got {res:?}")
             }
         }
     }
@@ -594,12 +538,10 @@ mod tests {
                 assert!(
                     matches!(nodes[0], QueryNode::AttributeTerm { ref attr, ref value } if attr == "baz" && value == "qux")
                         && matches!(nodes[1], QueryNode::AttributeTerm { ref attr, ref value } if attr == "quux" && value == "quuz"),
-                    "Unable to properly parse '{:?}' - got {:?}",
-                    query,
-                    res
+                    "Unable to properly parse '{query:?}' - got {res:?}"
                 );
             } else {
-                panic!("Unable to properly parse '{:?}' - got {:?}", query, res)
+                panic!("Unable to properly parse '{query:?}' - got {res:?}")
             }
         }
     }
@@ -619,12 +561,10 @@ mod tests {
             {
                 assert!(
                     matches!(nodes[0], QueryNode::AttributeTerm { ref attr, ref value } if attr == "quux" && value == "quuz"),
-                    "Unable to properly parse '{:?}' - got {:?}",
-                    query,
-                    res
+                    "Unable to properly parse '{query:?}' - got {res:?}"
                 );
             } else {
-                panic!("Unable to properly parse '{:?}' - got {:?}", query, res)
+                panic!("Unable to properly parse '{query:?}' - got {res:?}")
             }
         }
     }
@@ -645,12 +585,10 @@ mod tests {
                             matches!(nodes[0], QueryNode::AttributeTerm { ref attr, ref value } if attr == "baz" && value == "qux") &&
                             matches!(nodes[1], QueryNode::AttributeTerm { ref attr, ref value } if attr == "quux" && value == "quuz")
                         ),
-                    "Unable to properly parse '{:?}' - got {:?}",
-                    query,
-                    res
+                    "Unable to properly parse '{query:?}' - got {res:?}"
                 );
             } else {
-                panic!("Unable to properly parse '{:?}' - got {:?}", query, res)
+                panic!("Unable to properly parse '{query:?}' - got {res:?}")
             }
         }
     }

@@ -163,8 +163,8 @@ impl FunctionExpression for FromUnixTimestampFn {
 #[allow(overflowing_literals)]
 mod tests {
     use super::*;
-    use crate::compiler::expression::Literal;
     use crate::compiler::TimeZone;
+    use crate::compiler::expression::Literal;
     use crate::value;
     use regex::Regex;
     use std::collections::BTreeMap;

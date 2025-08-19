@@ -1,5 +1,5 @@
 use crate::compiler::prelude::*;
-use crate::parsing::xml::{parse_xml, ParseOptions};
+use crate::parsing::xml::{ParseOptions, parse_xml};
 
 #[derive(Clone, Copy, Debug)]
 pub struct ParseXml;

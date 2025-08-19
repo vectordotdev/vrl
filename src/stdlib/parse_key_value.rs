@@ -1,19 +1,19 @@
 use crate::compiler::prelude::*;
 use crate::value;
 use nom::{
-    self,
+    self, IResult, Parser,
     branch::alt,
     bytes::complete::{escaped, tag, take, take_until},
     character::complete::{char, satisfy, space0},
     combinator::{eof, map, opt, peek, rest, verify},
-    error::{ContextError, ParseError, VerboseError},
-    multi::{many0, many1, many_m_n, separated_list1},
-    sequence::{delimited, preceded, terminated, tuple},
-    IResult,
+    error::{ContextError, ParseError},
+    multi::{many_m_n, many0, many1, separated_list1},
+    sequence::{delimited, preceded, terminated},
 };
+use nom_language::error::VerboseError;
 use std::{
     borrow::Cow,
-    collections::{btree_map::Entry, BTreeMap},
+    collections::{BTreeMap, btree_map::Entry},
     iter::Peekable,
     str::{Chars, FromStr},
 };
@@ -269,7 +269,7 @@ fn parse<'a>(
     .map_err(|e| match e {
         nom::Err::Error(e) | nom::Err::Failure(e) => {
             // Create a descriptive error message if possible.
-            nom::error::convert_error(input, e)
+            nom_language::error::convert_error(input, e)
         }
         nom::Err::Incomplete(_) => e.to_string(),
     })?;
@@ -297,7 +297,8 @@ fn parse_line<'a>(
             whitespace,
             standalone_key,
         ),
-    )(input)
+    )
+    .parse(input)
 }
 
 /// Parses the `field_delimiter` between the key/value pairs.
@@ -308,9 +309,9 @@ fn parse_field_delimiter<'a, E: ParseError<&'a str> + ContextError<&'a str>>(
 ) -> impl Fn(&'a str) -> IResult<&'a str, &'a str, E> {
     move |input| {
         if field_delimiter == " " {
-            map(many1(tag(field_delimiter)), |_| " ")(input)
+            map(many1(tag(field_delimiter)), |_| " ").parse(input)
         } else {
-            preceded(many0(tag(" ")), tag(field_delimiter))(input)
+            preceded(many0(tag(" ")), tag(field_delimiter)).parse(input)
         }
     }
 }
@@ -327,15 +328,16 @@ fn parse_key_value_<'a, E: ParseError<&'a str> + ContextError<&'a str>>(
     move |input| {
         map(
             |input| match whitespace {
-                Whitespace::Strict => tuple((
+                Whitespace::Strict => (
                     preceded(
                         space0,
                         parse_key(key_value_delimiter, field_delimiter, standalone_key),
                     ),
                     many_m_n(usize::from(!standalone_key), 1, tag(key_value_delimiter)),
                     parse_value(field_delimiter),
-                ))(input),
-                Whitespace::Lenient => tuple((
+                )
+                    .parse(input),
+                Whitespace::Lenient => (
                     preceded(
                         space0,
                         parse_key(key_value_delimiter, field_delimiter, standalone_key),
@@ -346,7 +348,8 @@ fn parse_key_value_<'a, E: ParseError<&'a str> + ContextError<&'a str>>(
                         delimited(space0, tag(key_value_delimiter), space0),
                     ),
                     parse_value(field_delimiter),
-                ))(input),
+                )
+                    .parse(input),
             },
             |(field, sep, value): (Cow<'_, str>, Vec<&str>, Value)| {
                 (
@@ -354,7 +357,8 @@ fn parse_key_value_<'a, E: ParseError<&'a str> + ContextError<&'a str>>(
                     if sep.len() == 1 { value } else { value!(true) },
                 )
             },
-        )(input)
+        )
+        .parse(input)
     }
 }
 
@@ -428,7 +432,8 @@ fn parse_delimited<'a, E: ParseError<&'a str> + ContextError<&'a str>>(
                 parse_field_delimiter(field_terminator),
                 preceded(space0, eof),
             ))),
-        )(input)
+        )
+        .parse(input)
     }
 }
 
@@ -440,7 +445,8 @@ fn parse_undelimited<'a, E: ParseError<&'a str> + ContextError<&'a str>>(
     move |input| {
         map(alt((take_until(field_delimiter), rest)), |s: &'_ str| {
             Cow::Borrowed(s.trim())
-        })(input)
+        })
+        .parse(input)
     }
 }
 
@@ -462,7 +468,8 @@ fn parse_value<'a, E: ParseError<&'a str> + ContextError<&'a str>>(
                 parse_undelimited(field_delimiter),
             )),
             Into::into,
-        )(input)
+        )
+        .parse(input)
     }
 }
 
@@ -490,7 +497,8 @@ fn parse_key<'a, E: ParseError<&'a str> + ContextError<&'a str>>(
                     parse_undelimited(field_delimiter),
                 )),
                 |key: &str| !key.is_empty(),
-            )(input)
+            )
+            .parse(input)
         })
     } else {
         Box::new(move |input| {
@@ -501,7 +509,8 @@ fn parse_key<'a, E: ParseError<&'a str> + ContextError<&'a str>>(
                     parse_undelimited(key_value_delimiter),
                 )),
                 |key: &str| !key.is_empty(),
-            )(input)
+            )
+            .parse(input)
         })
     }
 }

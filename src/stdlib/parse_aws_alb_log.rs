@@ -1,11 +1,11 @@
 use crate::compiler::prelude::*;
 use nom::{
+    IResult, Parser,
     branch::alt,
     bytes::complete::{tag, take_while1},
     character::complete::char,
     combinator::map_res,
     sequence::{delimited, preceded},
-    IResult,
 };
 use std::collections::BTreeMap;
 
@@ -134,42 +134,48 @@ fn parse_log(mut input: &str) -> ExpressionResult<Value> {
     let mut log = BTreeMap::<KeyString, Value>::new();
 
     macro_rules! get_value {
-        ($name:expr, $parser:expr) => {{
-            let result: IResult<&str, _, (&str, nom::error::ErrorKind)> = $parser(input);
+        ($name:expr_2021, $parser:expr_2021, $err:ty) => {{
+            let result: IResult<_, _, $err> = $parser.parse(input);
             match result {
                 Ok((rest, value)) => {
                     input = rest;
                     value
                 }
                 Err(error) => {
-                    return Err(format!("failed to get field `{}`: {}", $name, error).into())
+                    return Err(format!("failed to get field `{}`: {}", $name, error).into());
                 }
             }
         }};
+        ($name:expr_2021, $parser:expr_2021) => {
+            get_value!($name, $parser, (&str, nom::error::ErrorKind))
+        };
     }
     macro_rules! field_raw {
-        ($name:expr, $parser:expr) => {
+        ($name:expr_2021, $parser:expr_2021, $err:ty) => {
             log.insert(
                 $name.into(),
-                match get_value!($name, $parser).into() {
+                match get_value!($name, $parser, $err).into() {
                     Value::Bytes(bytes) if bytes == "-" => Value::Null,
                     value => value,
                 },
             )
         };
+        ($name:expr_2021, $parser:expr_2021) => {
+            field_raw!($name, $parser, (&str, nom::error::ErrorKind))
+        };
     }
     macro_rules! field {
-        ($name:expr, $($pattern:pat_param)|+) => {
+        ($name:expr_2021, $($pattern:pat_param)|+) => {
             field_raw!($name, preceded(char(' '), take_while1(|c| matches!(c, $($pattern)|+))))
         };
     }
     macro_rules! field_parse {
-        ($name:expr, $($pattern:pat_param)|+, $type:ty) => {
+        ($name:expr_2021, $($pattern:pat_param)|+, $type:ty) => {
             field_raw!($name, map_res(preceded(char(' '), take_while1(|c| matches!(c, $($pattern)|+))), |s: &str| s.parse::<$type>()))
         };
     }
     macro_rules! field_tid {
-        ($name:expr) => {
+        ($name:expr_2021) => {
             log.insert(
                 $name.into(),
                 match get_value!($name, take_tid_or_nothing) {
@@ -226,6 +232,7 @@ fn parse_log(mut input: &str) -> ExpressionResult<Value> {
         }
         None => return Err("failed to get field `request_url`".into()),
     };
+
     field_raw!("user_agent", take_quoted1);
     field_raw!("ssl_cipher", take_anything);
     field_raw!("ssl_protocol", take_anything);
@@ -243,11 +250,13 @@ fn parse_log(mut input: &str) -> ExpressionResult<Value> {
     field_raw!("error_reason", take_quoted1);
     field_raw!(
         "target_port_list",
-        take_maybe_quoted_list(|c| matches!(c, '0'..='9' | 'a'..='f' | '.' | ':' | '-'))
+        take_maybe_quoted_list(|c| matches!(c, '0'..='9' | 'a'..='f' | '.' | ':' | '-')),
+        ()
     );
     field_raw!(
         "target_status_code_list",
-        take_maybe_quoted_list(|c| c.is_ascii_digit())
+        take_maybe_quoted_list(|c| c.is_ascii_digit()),
+        ()
     );
     field_raw!("classification", take_quoted1);
     field_raw!("classification_reason", take_quoted1);
@@ -263,11 +272,11 @@ fn parse_log(mut input: &str) -> ExpressionResult<Value> {
 type SResult<'a, O> = IResult<&'a str, O, (&'a str, nom::error::ErrorKind)>;
 
 fn take_anything(input: &str) -> SResult<&str> {
-    preceded(char(' '), take_while1(|c| c != ' '))(input)
+    preceded(char(' '), take_while1(|c| c != ' ')).parse(input)
 }
 
 fn take_quoted1(input: &str) -> SResult<String> {
-    delimited(tag(" \""), until_quote, char('"'))(input)
+    delimited(tag(" \""), until_quote, char('"')).parse(input)
 }
 
 fn take_tid_or_nothing(input: &str) -> SResult<Option<&str>> {
@@ -297,7 +306,7 @@ fn until_quote(input: &str) -> SResult<String> {
 
 fn take_maybe_quoted_list<'a>(
     cond: impl Fn(char) -> bool + Clone,
-) -> impl FnOnce(&'a str) -> SResult<'a, Vec<&'a str>> {
+) -> impl Parser<&'a str, Error = (), Output = Vec<&'a str>> {
     alt((
         map_res(tag(r#" "-""#), |_| {
             Ok::<_, std::convert::Infallible>(vec![])

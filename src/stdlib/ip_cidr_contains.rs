@@ -7,6 +7,7 @@ fn str_to_cidr(v: &str) -> Result<IpCidr, String> {
     IpCidr::from_str(v).map_err(|err| format!("unable to parse CIDR: {err}"))
 }
 
+#[allow(clippy::result_large_err)]
 fn value_to_cidr(value: &Value) -> Result<IpCidr, function::Error> {
     let str = &value.as_str().ok_or(function::Error::InvalidArgument {
         keyword: "ip_cidr_contains",
@@ -126,7 +127,7 @@ impl Function for IpCidrContains {
                         value,
                         error: r#""cidr" must be string or array of strings"#,
                     }
-                    .into())
+                    .into());
                 }
             }),
         };

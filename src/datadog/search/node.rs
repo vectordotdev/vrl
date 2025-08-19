@@ -2,7 +2,7 @@ use regex::Regex;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::sync::LazyLock;
 
-use super::grammar::{unescape, DEFAULT_FIELD};
+use super::grammar::{DEFAULT_FIELD, unescape};
 
 /// This enum represents value comparisons that Queries might perform
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -43,9 +43,9 @@ pub enum ComparisonValue {
 impl std::fmt::Display for ComparisonValue {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::String(s) => write!(f, "{}", s),
-            Self::Integer(num) => write!(f, "{}", num),
-            Self::Float(num) => write!(f, "{}", num),
+            Self::String(s) => write!(f, "{s}"),
+            Self::Integer(num) => write!(f, "{num}"),
+            Self::Float(num) => write!(f, "{num}"),
             Self::Unbounded => write!(f, "*"),
         }
     }
@@ -182,8 +182,8 @@ impl QueryNode {
         match self {
             QueryNode::MatchAllDocs => String::from("*:*"),
             QueryNode::MatchNoDocs => String::from("-*:*"),
-            QueryNode::AttributeExists { attr } => format!("_exists_:{}", attr),
-            QueryNode::AttributeMissing { attr } => format!("_missing_:{}", attr),
+            QueryNode::AttributeExists { attr } => format!("_exists_:{attr}"),
+            QueryNode::AttributeMissing { attr } => format!("_missing_:{attr}"),
             QueryNode::AttributeRange {
                 attr,
                 lower,
@@ -222,7 +222,7 @@ impl QueryNode {
             QueryNode::AttributeWildcard { attr, wildcard } => {
                 Self::is_default_attr(attr) + wildcard
             }
-            QueryNode::NegatedNode { ref node } => {
+            QueryNode::NegatedNode { node } => {
                 if matches!(
                     **node,
                     QueryNode::NegatedNode { .. } | QueryNode::Boolean { .. }
@@ -340,7 +340,7 @@ impl QueryNode {
         if attr == DEFAULT_FIELD {
             String::new()
         } else {
-            format!("{}:", attr)
+            format!("{attr}:")
         }
     }
 }

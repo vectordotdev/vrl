@@ -4,9 +4,9 @@ macro_rules! btreemap {
     () => (::std::collections::BTreeMap::new());
 
     // trailing comma case
-    ($($key:expr => $value:expr,)+) => (btreemap!($($key => $value),+));
+    ($($key:expr_2021 => $value:expr_2021,)+) => (btreemap!($($key => $value),+));
 
-    ($($key:expr => $value:expr),*) => {
+    ($($key:expr_2021 => $value:expr_2021),*) => {
         ::std::collections::BTreeMap::from([
             $(
                 ($key.into(), $value.into()),

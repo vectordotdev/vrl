@@ -10,7 +10,7 @@ use rust_decimal::prelude::Zero;
 use std::sync::LazyLock;
 use std::{
     borrow::Cow,
-    collections::{btree_map::Entry, BTreeMap},
+    collections::{BTreeMap, btree_map::Entry},
 };
 
 /// A lazily initialized regular expression that matches excess whitespace between XML/HTML tags.

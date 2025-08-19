@@ -9,7 +9,7 @@ use chrono::{DateTime, LocalResult, ParseError as ChronoParseError, TimeZone as 
 use ordered_float::NotNan;
 use snafu::{ResultExt, Snafu};
 
-use super::datetime::{datetime_to_utc, TimeZone};
+use super::datetime::{TimeZone, datetime_to_utc};
 
 #[cfg(test)]
 mod tests;

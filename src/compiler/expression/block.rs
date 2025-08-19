@@ -2,8 +2,8 @@ use std::fmt;
 
 use crate::compiler::state::{TypeInfo, TypeState};
 use crate::compiler::{
-    expression::{Expr, Resolved},
     Context, Expression, TypeDef,
+    expression::{Expr, Resolved},
 };
 use crate::value::Kind;
 

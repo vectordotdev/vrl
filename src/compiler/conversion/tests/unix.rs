@@ -4,7 +4,7 @@ use chrono_tz::{Australia, Tz};
 use ordered_float::NotNan;
 
 use crate::compiler::{
-    conversion::{parse_timestamp, tests::StubValue, Conversion, Error},
+    conversion::{Conversion, Error, parse_timestamp, tests::StubValue},
     datetime::TimeZone,
 };
 
@@ -29,7 +29,8 @@ fn parse_timestamp_auto() {
 
 #[test]
 fn parse_timestamp_auto_tz_env() {
-    std::env::set_var("TZ", TIMEZONE_NAME);
+    // TODO: Audit that the environment access only happens in single-threaded code.
+    unsafe { std::env::set_var("TZ", TIMEZONE_NAME) };
     let good = Ok(dateref());
     let tz = TimeZone::Local;
     assert_eq!(parse_timestamp(tz, "2001-02-03 14:05:06"), good);
@@ -62,7 +63,8 @@ fn convert<T>(fmt: &str, value: &'static str) -> Result<T, Error>
 where
     T: From<Bytes> + From<i64> + From<NotNan<f64>> + From<bool> + From<DateTime<Utc>>,
 {
-    std::env::set_var("TZ", TIMEZONE_NAME);
+    // TODO: Audit that the environment access only happens in single-threaded code.
+    unsafe { std::env::set_var("TZ", TIMEZONE_NAME) };
     Conversion::parse(fmt, TimeZone::Local)
         .unwrap_or_else(|_| panic!("Invalid conversion {fmt:?}"))
         .convert(value.into())

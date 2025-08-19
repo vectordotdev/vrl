@@ -102,13 +102,13 @@ impl Function for ParseEtld {
                 std::fs::read_to_string(path)
                     .map_err(|_| function::Error::InvalidArgument {
                         keyword: "psl",
-                        value: format!("{path:?}").into(),
+                        value: format!("{}", path.display()).into(),
                         error: "Unable to read psl file",
                     })?
                     .parse()
                     .map_err(|_| function::Error::InvalidArgument {
                         keyword: "psl",
-                        value: format!("{path:?}").into(),
+                        value: format!("{}", path.display()).into(),
                         error: "Unable to parse psl file",
                     })?,
             );

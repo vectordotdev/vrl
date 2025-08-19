@@ -3,16 +3,16 @@ use std::{convert::TryFrom, fmt};
 use crate::compiler::expression::function_call::FunctionCallError::InvalidArgumentKind;
 use crate::compiler::expression::function_call::InvalidArgumentErrorContext;
 use crate::compiler::{
+    CompileConfig, Context, Expression, Span, TypeDef,
     compiler::CompilerError,
-    expression::{assignment::ErrorVariant::InvalidParentPathSegment, Expr, Resolved},
+    expression::{Expr, Resolved, assignment::ErrorVariant::InvalidParentPathSegment},
     parser::{
-        ast::{self, Ident},
         Node,
+        ast::{self, Ident},
     },
     state::{TypeInfo, TypeState},
     type_def::Details,
     value::kind::DefaultValue,
-    CompileConfig, Context, Expression, Span, TypeDef,
 };
 use crate::diagnostic::{DiagnosticMessage, Label, Note};
 use crate::path::{OwnedSegment, OwnedTargetPath};
@@ -696,8 +696,10 @@ impl DiagnosticMessage for Error {
                 expression,
                 context,
             }) => {
-                let mut labels = vec![
-                    Label::primary("this expression is fallible because at least one argument's type cannot be verified to be valid", self.expr_span)];
+                let mut labels = vec![Label::primary(
+                    "this expression is fallible because at least one argument's type cannot be verified to be valid",
+                    self.expr_span,
+                )];
                 if let Some(context) = context {
                     let helper = "update the expression to be infallible by adding a `!`";
                     if context.arguments_fmt.is_empty() {
@@ -818,7 +820,7 @@ impl DiagnosticMessage for Error {
 #[cfg(test)]
 mod test {
     use crate::compiler::state::{ExternalEnv, LocalEnv};
-    use crate::compiler::{compile_with_state, CompileConfig, TypeState};
+    use crate::compiler::{CompileConfig, TypeState, compile_with_state};
     use crate::value::Kind;
 
     #[test]

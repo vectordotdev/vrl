@@ -18,9 +18,9 @@ mod non_wasm {
     use domain::base::iana::Class;
     use domain::base::{Name, RecordSection, Rtype};
     use domain::rdata::AllRecordData;
-    use domain::resolv::stub::conf::{ResolvConf, ResolvOptions, ServerConf, Transport};
-    use domain::resolv::stub::Answer;
     use domain::resolv::StubResolver;
+    use domain::resolv::stub::Answer;
+    use domain::resolv::stub::conf::{ResolvConf, ResolvOptions, ServerConf, Transport};
     use tokio::runtime::Handle;
 
     use crate::compiler::prelude::*;

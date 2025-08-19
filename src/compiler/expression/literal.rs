@@ -8,9 +8,9 @@ use ordered_float::NotNan;
 use regex::Regex;
 
 use crate::compiler::{
+    Context, Expression, Span, TypeDef,
     expression::Resolved,
     state::{TypeInfo, TypeState},
-    Context, Expression, Span, TypeDef,
 };
 
 #[derive(Debug, Clone, PartialEq)]

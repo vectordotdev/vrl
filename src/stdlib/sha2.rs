@@ -60,7 +60,9 @@ impl Function for Sha2 {
             Example {
                 title: "custom variant",
                 source: r#"sha2("foobar", "SHA-384")"#,
-                result: Ok("3c9c30d9f665e74d515c842960d4a451c83a0125fd3de7392d7b37231af10c72ea58aedfcdf89a5765bf902af93ecf06"),
+                result: Ok(
+                    "3c9c30d9f665e74d515c842960d4a451c83a0125fd3de7392d7b37231af10c72ea58aedfcdf89a5765bf902af93ecf06",
+                ),
             },
         ]
     }

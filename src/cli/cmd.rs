@@ -7,12 +7,12 @@ use std::{
     path::PathBuf,
 };
 
+use crate::compiler::TimeZone;
 use crate::compiler::runtime::Runtime;
 use crate::compiler::state::RuntimeState;
-use crate::compiler::TimeZone;
 use crate::compiler::{
-    compile_with_state, CompilationResult, CompileConfig, Function, Program, Target, TypeState,
-    VrlRuntime,
+    CompilationResult, CompileConfig, Function, Program, Target, TypeState, VrlRuntime,
+    compile_with_state,
 };
 use crate::diagnostic::Formatter;
 use crate::owned_metadata_path;
@@ -20,8 +20,8 @@ use crate::value::Secrets;
 use crate::value::Value;
 use clap::Parser;
 
-use super::repl;
 use super::Error;
+use super::repl;
 
 #[derive(Parser, Debug)]
 #[command(name = "VRL", about = "Vector Remap Language CLI")]

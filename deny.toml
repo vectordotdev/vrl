@@ -9,6 +9,7 @@ allow = [
   "CC0-1.0",
   "ISC",
   "MIT",
+  "MIT-0",
   "OpenSSL",
   "Unicode-3.0",
   "Unicode-DFS-2016",
@@ -43,4 +44,6 @@ ignore = [
   "RUSTSEC-2024-0436",
   # instant is unmaintained, used by reqwest-retry
   "RUSTSEC-2024-0384",
+  # `derivative` is unmaintained
+  "RUSTSEC-2024-0388",
 ]

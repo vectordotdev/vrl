@@ -5,7 +5,7 @@ use crate::value::Value;
 
 use super::ExpressionError;
 use super::TimeZone;
-use super::{state, Context, Program, Target};
+use super::{Context, Program, Target, state};
 
 #[allow(clippy::module_name_repetitions)]
 pub type RuntimeResult = Result<Value, Terminate>;
@@ -105,12 +105,12 @@ impl Runtime {
             Ok(None) => {
                 return Err(Terminate::Error(
                     "expected target object, got nothing".to_owned().into(),
-                ))
+                ));
             }
             Err(err) => {
                 return Err(Terminate::Error(
                     format!("error querying target object: {err}").into(),
-                ))
+                ));
             }
         }
 

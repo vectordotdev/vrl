@@ -1,5 +1,5 @@
-use std::borrow::Cow;
 use std::sync::Arc;
+use std::{borrow::Cow, num::NonZero};
 
 use crate::value::value::regex::ValueRegex;
 use crate::value::value::simdutf_bytes_utf8_lossy;
@@ -42,7 +42,7 @@ impl Value {
     /// This function will panic if self is anything other than `Value::Timestamp`.
     pub fn as_timestamp_unwrap(&self) -> &DateTime<Utc> {
         match self {
-            Self::Timestamp(ref timestamp) => timestamp,
+            Self::Timestamp(timestamp) => timestamp,
             _ => panic!("Tried to call `Value::as_timestamp_unwrap` on a non-timestamp value."),
         }
     }
@@ -54,7 +54,7 @@ impl Value {
     /// This function will panic if self is anything other than `Value::Object`.
     pub fn as_object_mut_unwrap(&mut self) -> &mut ObjectMap {
         match self {
-            Self::Object(ref mut m) => m,
+            Self::Object(m) => m,
             _ => panic!("Tried to call `Value::as_map` on a non-map value."),
         }
     }
@@ -66,7 +66,7 @@ impl Value {
     /// This function will panic if self is anything other than `Value::Array`.
     pub fn as_array_unwrap(&self) -> &[Self] {
         match self {
-            Self::Array(ref a) => a,
+            Self::Array(a) => a,
             _ => panic!("Tried to call `Value::as_array` on a non-array value."),
         }
     }
@@ -78,7 +78,7 @@ impl Value {
     /// This function will panic if self is anything other than `Value::Array`.
     pub fn as_array_mut_unwrap(&mut self) -> &mut Vec<Self> {
         match self {
-            Self::Array(ref mut a) => a,
+            Self::Array(a) => a,
             _ => panic!("Tried to call `Value::as_array` on a non-array value."),
         }
     }
@@ -427,6 +427,12 @@ impl From<u32> for Value {
         Self::Integer(i64::from(value))
     }
 }
+impl From<NonZero<u32>> for Value {
+    fn from(value: NonZero<u32>) -> Self {
+        Self::Integer(i64::from(u32::from(value)))
+    }
+}
+
 impl From<isize> for Value {
     fn from(value: isize) -> Self {
         Self::Integer(value as i64)

@@ -213,14 +213,14 @@ impl Function for ParseGroks {
             let path = Path::new(&src);
             let file = File::open(path).map_err(|_| function::Error::InvalidArgument {
                 keyword: "alias_sources",
-                value: format!("{path:?}").into(),
+                value: format!("{}", path.display()).into(),
                 error: "Unable to open alias source file",
             })?;
             let reader = BufReader::new(file);
             let mut src_aliases =
                 serde_json::from_reader(reader).map_err(|_| function::Error::InvalidArgument {
                     keyword: "alias_sources",
-                    value: format!("{path:?}").into(),
+                    value: format!("{}", path.display()).into(),
                     error: "Unable to read alias source",
                 })?;
 

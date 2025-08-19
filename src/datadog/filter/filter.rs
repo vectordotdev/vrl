@@ -3,7 +3,7 @@ use std::fmt::Debug;
 use super::{Matcher, Run};
 use crate::datadog::search::{Comparison, ComparisonValue, Field};
 use crate::path::PathParseError;
-use dyn_clone::{clone_trait_object, DynClone};
+use dyn_clone::{DynClone, clone_trait_object};
 
 /// A `Filter` is a generic type that contains methods that are invoked by the `build_filter`
 /// function. Each method returns a heap-allocated `Matcher<V>` (typically a closure) containing
@@ -36,7 +36,7 @@ pub trait Filter<V: Debug + Send + Sync + Clone + 'static>: DynClone {
     ///
     /// Will return `Err` if the query contains an invalid path.
     fn wildcard(&self, field: Field, wildcard: &str)
-        -> Result<Box<dyn Matcher<V>>, PathParseError>;
+    -> Result<Box<dyn Matcher<V>>, PathParseError>;
 
     /// Compare a field value against `comparison_value`, using one of the `comparator` operators.
     ///

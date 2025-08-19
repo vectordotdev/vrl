@@ -9,7 +9,6 @@
     unused_comparisons
 )]
 #![allow(
-    clippy::match_on_vec_items, // allowed in initial deny commit
     clippy::missing_errors_doc, // allowed in initial deny commit
     clippy::semicolon_if_nothing_returned, // allowed in initial deny commit
     clippy::too_many_lines, // allowed in initial deny commit

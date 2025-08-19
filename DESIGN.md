@@ -87,6 +87,18 @@ than you'd make if you were to design the feature for your personal needs.
 
 ## Language Limits
 
+VRL is designed for safe, predictable, in-process data transformations.
+
+## Performance Warning
+
+VRL is designed around the idea that every operation should behave in a consistent, in-memory fashion. Any call that reaches outside into
+the network or filesystem breaks that guarantee of predictability. While some stdlib functions perform remote requests, those calls can
+introduce variable delays that your pipeline cannot anticipate or control. In essence, network‐dependent
+operations live outside VRL’s performance envelope: use them at your own risk. If you must rely on external data, we recommend introducing a
+caching layer in front of any network-dependent function.
+
+## Rejected features
+
 There are a number of features that we've so far rejected to implement in the
 language. This might change in the future, but there should be a good reason to
 do so.
@@ -110,14 +122,6 @@ do so.
   to some extremely large use-cases, in most cases, allowing people to read
   a program from top to bottom without having to jump around is more clear in
   the context within which VRL is used.
-
-* network calls (see [#4517][] and [#8717][])
-
-  In order to avoid performance foot guns, we want to ensure each function is as
-  performant as it can be, and there's no way to use functions in such a way
-  that performance of a VRL program tanks. We might introduce network calls at
-  some point, if we find a good caching solution to solve most of our concerns,
-  but so far we've avoided any network calls inside our stdlib.
 
 * assignable closures (see [#9001])
 

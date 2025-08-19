@@ -4,10 +4,10 @@ use std::fmt;
 
 use crate::compiler::state::{TypeInfo, TypeState};
 use crate::compiler::{
-    expression::{levenstein, Resolved},
+    Context, Expression, Span, TypeDef,
+    expression::{Resolved, levenstein},
     parser::ast::Ident,
     state::LocalEnv,
-    Context, Expression, Span, TypeDef,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]

@@ -22,8 +22,8 @@ pub const SCALAR: u16 = BYTES | INTEGER | FLOAT | BOOLEAN | TIMESTAMP | REGEX | 
 pub const CONTAINER: u16 = OBJECT | ARRAY;
 
 pub use crate::value::{
-    kind::{get, insert, merge, remove, Collection, Field, Index},
     Kind,
+    kind::{Collection, Field, Index, get, insert, merge, remove},
 };
 
 pub trait DefaultValue {

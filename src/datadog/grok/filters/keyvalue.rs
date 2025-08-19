@@ -6,14 +6,13 @@ use bytes::Bytes;
 use fancy_regex::{Captures, Regex};
 use nom::combinator::eof;
 use nom::{
-    self,
+    self, IResult, Parser,
     branch::alt,
     bytes::complete::{tag, take_while1},
     character::complete::char,
     combinator::{map, map_res, opt, rest, value},
     number::complete::double,
     sequence::{delimited, terminated},
-    IResult, Parser,
 };
 use onig::EncodedChars;
 use ordered_float::NotNan;
@@ -56,13 +55,13 @@ impl std::fmt::Display for KeyValueFilter {
 impl KeyValueFilter {
     fn from_args<'a>(mut args: impl Iterator<Item = &'a FunctionArgument>) -> Option<Self> {
         let key_value_delimiter = match args.next() {
-            Some(FunctionArgument::Arg(Value::Bytes(ref bytes))) => &String::from_utf8_lossy(bytes),
+            Some(FunctionArgument::Arg(Value::Bytes(bytes))) => &String::from_utf8_lossy(bytes),
             Some(_) => return None,
             None => DEFAULT_KEYVALUE_DELIMITER,
         };
 
         let value_re = match args.next() {
-            Some(FunctionArgument::Arg(Value::Bytes(ref bytes))) => {
+            Some(FunctionArgument::Arg(Value::Bytes(bytes))) => {
                 [DEFAULT_VALUE_RE, &String::from_utf8_lossy(bytes)].concat()
             }
             Some(_) => return None,
@@ -87,7 +86,7 @@ impl KeyValueFilter {
 
 fn parse_quotes(arg: Option<&FunctionArgument>) -> Option<Vec<(char, char)>> {
     match arg {
-        Some(FunctionArgument::Arg(Value::Bytes(ref bytes))) => {
+        Some(FunctionArgument::Arg(Value::Bytes(bytes))) => {
             let pair = String::from_utf8_lossy(bytes);
             match pair {
                 pair if pair.len() == 2 => {
@@ -108,7 +107,7 @@ fn parse_quotes(arg: Option<&FunctionArgument>) -> Option<Vec<(char, char)>> {
 
 fn parse_field_delimiters(arg: Option<&FunctionArgument>) -> Option<(String, String)> {
     match arg {
-        Some(FunctionArgument::Arg(Value::Bytes(ref bytes))) => {
+        Some(FunctionArgument::Arg(Value::Bytes(bytes))) => {
             let delimiter_str = String::from_utf8_lossy(bytes);
             let mut chars = delimiter_str.chars();
             match (chars.next(), chars.next(), chars.as_str()) {
@@ -197,7 +196,7 @@ impl KeyValueFilter {
                 {
                     let path = crate::path!(key);
                     match result.get_mut(path) {
-                        Some(Value::Array(ref mut values)) => values.push(value),
+                        Some(Value::Array(values)) => values.push(value),
                         Some(prev) => {
                             // Replace existing non-array values with an array containing that value
                             // followed by the new one. We can't just put that old value into the
@@ -236,7 +235,8 @@ fn parse_quoted(quotes: &(char, char)) -> impl Fn(&str) -> SResult<&str> + '_ {
                 inner.unwrap_or("")
             }),
             char(quotes.1),
-        )(input)
+        )
+        .parse(input)
     }
 }
 
@@ -267,13 +267,15 @@ fn parse_value<'a>(input: &'a str, quotes: &'a [(char, char)]) -> SResult<'a, Va
         parse_number,
         quoted(quotes).and_then(parse_string),
         parse_string,
-    ))(input)
+    ))
+    .parse(input)
 }
 
 fn parse_string(input: &str) -> SResult<Value> {
     map(rest, |s: &str| {
         Value::Bytes(Bytes::copy_from_slice(s.trim().as_bytes()))
-    })(input)
+    })
+    .parse(input)
 }
 
 fn parse_number(input: &str) -> SResult<Value> {
@@ -282,14 +284,18 @@ fn parse_number(input: &str) -> SResult<Value> {
         if ((v as i64) as f64 - v).abs() == 0.0 {
             // Check if it is a valid octal number(start with 0) - keep parsed as a decimal though.
             if input.starts_with('0') && input.contains(['8', '9']) {
-                Err(nom::Err::Error((input, nom::error::ErrorKind::OctDigit)))
+                Err(nom::Err::<&str, (&str, nom::error::ErrorKind)>::Error((
+                    input,
+                    nom::error::ErrorKind::OctDigit,
+                )))
             } else {
                 Ok(Value::Integer(v as i64))
             }
         } else {
             Ok(Value::Float(NotNan::new(v).expect("not a float")))
         }
-    })(input)
+    })
+    .parse(input)
     .map_err(|e| match e {
         // double might return Failure(an unrecoverable error) - make it recoverable
         nom::Err::Failure(_) => nom::Err::Error((input, nom::error::ErrorKind::Float)),
@@ -298,14 +304,14 @@ fn parse_number(input: &str) -> SResult<Value> {
 }
 
 fn parse_null(input: &str) -> SResult<Value> {
-    value(Value::Null, tag("null"))(input)
+    value(Value::Null, tag("null")).parse(input)
 }
 
 fn parse_boolean(input: &str) -> SResult<Value> {
     let parse_true = value(Value::Boolean(true), tag("true"));
     let parse_false = value(Value::Boolean(false), tag("false"));
 
-    alt((parse_true, parse_false))(input)
+    alt((parse_true, parse_false)).parse(input)
 }
 
 /// Removes quotes from the key if needed.

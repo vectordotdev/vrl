@@ -85,7 +85,9 @@ enum Error {
 impl From<Error> for ExpressionError {
     fn from(error: Error) -> Self {
         Self::Error {
-            message: format!("Error while converting InfluxDB line protocol metric to Vector's metric model: {error}"),
+            message: format!(
+                "Error while converting InfluxDB line protocol metric to Vector's metric model: {error}"
+            ),
             labels: vec![],
             notes: vec![],
         }

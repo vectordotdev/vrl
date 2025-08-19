@@ -11,5 +11,5 @@ name = "fuzz"
 path = "src/main.rs"
 
 [dependencies]
-afl = "0.15.19"
+afl = "0.15.20"
 vrl = { path = "../../" }

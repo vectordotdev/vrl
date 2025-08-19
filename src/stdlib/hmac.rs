@@ -1,11 +1,11 @@
 use crate::compiler::prelude::*;
 use crate::value;
 use hmac::{Hmac as HmacHasher, Mac};
-use sha1::Sha1;
 use sha_2::{Sha224, Sha256, Sha384, Sha512};
+use sha1::Sha1;
 
 macro_rules! hmac {
-    ($algorithm:ty, $key:expr, $val:expr) => {{
+    ($algorithm:ty, $key:expr_2021, $val:expr_2021) => {{
         let mut mac =
             <HmacHasher<$algorithm>>::new_from_slice($key.as_ref()).expect("key is bytes");
         mac.update($val.as_ref());

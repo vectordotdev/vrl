@@ -1,7 +1,7 @@
 use crate::compiler::prelude::*;
 use bytes::Bytes;
 use chrono::{DateTime, Utc};
-use uuid::{timestamp::Timestamp, NoContext};
+use uuid::{NoContext, timestamp::Timestamp};
 
 #[allow(clippy::cast_sign_loss)] // TODO consider removal options
 fn uuid_v7(timestamp: Option<Value>) -> Resolved {
