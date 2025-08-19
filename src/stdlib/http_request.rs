@@ -14,13 +14,13 @@ mod non_wasm {
         VrlValueConvert,
     };
     use reqwest_middleware::{
-        reqwest::{
-            header::{HeaderMap, HeaderName, HeaderValue},
-            Client, Method,
-        },
         ClientBuilder, ClientWithMiddleware,
+        reqwest::{
+            Client, Method,
+            header::{HeaderMap, HeaderName, HeaderValue},
+        },
     };
-    use reqwest_retry::{policies::ExponentialBackoff, RetryTransientMiddleware};
+    use reqwest_retry::{RetryTransientMiddleware, policies::ExponentialBackoff};
     use std::sync::LazyLock;
     use tokio::runtime::Handle;
     use tokio::task;
