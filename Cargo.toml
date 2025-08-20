@@ -226,6 +226,11 @@ unicode-segmentation = "1.12.0"
 lz4_flex = "0.11.5"
 nom-language = { version = "0.1.0", default-features = false }
 
+# HTTP support.
+reqwest = { version = "0.12", default-features = false, features = ["http2", "rustls-tls-native-roots"] }
+reqwest-middleware = { version = "0.4", default-features = false }
+reqwest-retry = { version = "0.7", default-features = false }
+
 # Dependencies used for non-WASM
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 dns-lookup = { version = "2", optional = true }

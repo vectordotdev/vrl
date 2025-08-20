@@ -43,6 +43,7 @@ Unsupported functions:
 - `log`
 - `get_hostname`
 - `reverse_dns`
+- `http_request`
 
 
 

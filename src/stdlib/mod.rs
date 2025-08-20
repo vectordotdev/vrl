@@ -71,6 +71,7 @@ cfg_if::cfg_if! {
         mod get_timezone_name;
         mod haversine;
         mod hmac;
+        mod http_request;
         mod includes;
         mod integer;
         mod ip_aton;
@@ -266,6 +267,7 @@ cfg_if::cfg_if! {
         pub use get_hostname::GetHostname;
         pub use get_timezone_name::GetTimezoneName;
         pub use get_timezone_name::get_name_for_timezone;
+        pub use http_request::HttpRequest;
         pub use haversine::Haversine;
         pub use includes::Includes;
         pub use integer::Integer;
@@ -463,6 +465,7 @@ pub fn all() -> Vec<Box<dyn Function>> {
         Box::new(GetHostname),
         Box::new(GetTimezoneName),
         Box::new(Haversine),
+        Box::new(HttpRequest),
         Box::new(Hmac),
         Box::new(Includes),
         Box::new(Integer),
