@@ -176,8 +176,7 @@ mod non_wasm {
                 Ok(value!(true))
             } else {
                 Err(ExpressionError::from(format!(
-                    "JSON schema validation failed: {}",
-                    validation_errors
+                    "JSON schema validation failed: {validation_errors}"
                 )))
             }
         }
