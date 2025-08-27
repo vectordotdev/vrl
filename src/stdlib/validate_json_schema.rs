@@ -23,7 +23,7 @@ static EXAMPLES: LazyLock<Vec<Example>> = LazyLock::new(|| {
     vec![Example {
         title: "payload contains invalid email format",
         source: &EXAMPLE_JSON_SCHEMA_EXPR,
-        result: Err(r#"function call error for "validate_json_schema" at (0:188): JSON schema validation failed: "invalidEmail" is not a "email" at /productUser"#),
+        result: Ok("false"),
     }]
 });
 
@@ -108,7 +108,6 @@ mod non_wasm {
     use std::collections::HashMap;
     use std::path::{Path, PathBuf};
     use std::sync::{Arc, LazyLock, RwLock};
-    use crate::prelude::ExpressionError;
 
     // Global cache for compiled schema validators, this allows us to reuse the compiled
     // schema across multiple calls to the function, which is important for performance.
@@ -133,7 +132,7 @@ mod non_wasm {
 
             // Quick empty check
             if bytes.is_empty() {
-                return Err(ExpressionError::from("Empty JSON value")); // Empty JSON is typically invalid
+                return Ok(value!(false)); // Empty JSON is typically invalid
             }
 
             // Fast path: check if it's valid JSON first (cheaper than full parsing)
@@ -148,16 +147,7 @@ mod non_wasm {
                 ignore_unknown_formats,
             )?;
 
-            let validation_errors = schema_validator.iter_errors(&json_value)
-                .map(|e| format!("{} at {}", e, if e.instance_path.as_str().is_empty() { "/" } else { e.instance_path.as_str() }))
-                .collect::<Vec<String>>()
-                .join(", ");
-
-            if validation_errors.is_empty() {
-                Ok(value!(true))
-            } else {
-                Err(ExpressionError::from(format!("JSON schema validation failed: {}", validation_errors)))
-            }
+            Ok(value!(schema_validator.is_valid(&json_value)))
         }
 
         fn type_def(&self, _: &state::TypeState) -> TypeDef {
@@ -257,7 +247,7 @@ mod tests {
                 value: value!("{\"productUser\":\"invalid-email\"}"),
                 schema_definition: test_data_dir().join("validate_json_schema/schema_with_email_format.json").to_str().unwrap().to_owned(),
                 ignore_unknown_formats: false],
-            want: Err("JSON schema validation failed: \"invalid-email\" is not a \"email\" at /productUser"),
+            want: Ok(value!(false)),
             tdef: TypeDef::boolean().fallible(),
         }
 
@@ -275,7 +265,7 @@ mod tests {
                 value: value!(""),
                 schema_definition: test_data_dir().join("validate_json_schema/schema_with_email_format.json").to_str().unwrap().to_owned(),
                 ignore_unknown_formats: false],
-            want: Err("Empty JSON value"),
+            want: Ok(value!(false)),
             tdef: TypeDef::boolean().fallible(),
         }
 
