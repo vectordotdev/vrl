@@ -101,7 +101,9 @@ impl Function for ValidateJsonSchema {
 
 #[cfg(not(target_arch = "wasm32"))]
 mod non_wasm {
-    use super::{Context, Expression, FunctionExpression, Resolved, TypeDef, VrlValueConvert, state};
+    use super::{
+        Context, Expression, FunctionExpression, Resolved, TypeDef, VrlValueConvert, state,
+    };
     use crate::stdlib::json_utils::bom::StripBomFromUTF8;
     use crate::value;
     use jsonschema;
@@ -142,10 +144,8 @@ mod non_wasm {
                 serde_json::from_slice(stripped_bytes).map_err(|e| format!("Invalid JSON: {e}"))?
             };
 
-            let schema_validator = get_or_compile_schema(
-                &self.schema_path,
-                ignore_unknown_formats,
-            )?;
+            let schema_validator =
+                get_or_compile_schema(&self.schema_path, ignore_unknown_formats)?;
 
             Ok(value!(schema_validator.is_valid(&json_value)))
         }
@@ -196,8 +196,8 @@ mod non_wasm {
             return Ok(schema.clone());
         }
 
-        let schema_definition =
-            get_json_schema_definition(schema_path).map_err(|e| format!("JSON schema not found: {e}"))?;
+        let schema_definition = get_json_schema_definition(schema_path)
+            .map_err(|e| format!("JSON schema not found: {e}"))?;
 
         // Compile schema
         let compiled_schema = jsonschema::options()
