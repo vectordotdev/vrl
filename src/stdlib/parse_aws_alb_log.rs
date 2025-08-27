@@ -9,9 +9,13 @@ use nom::{
 };
 use std::collections::BTreeMap;
 
-fn parse_aws_alb_log(bytes: Value) -> Resolved {
+fn parse_aws_alb_log(bytes: Value, strict_mode: Option<Value>) -> Resolved {
     let bytes = bytes.try_bytes()?;
-    parse_log(&String::from_utf8_lossy(&bytes))
+    let strict_mode = strict_mode
+        .map(Value::try_boolean)
+        .transpose()?
+        .unwrap_or(true);
+    parse_log(&String::from_utf8_lossy(&bytes), strict_mode)
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -23,13 +27,22 @@ impl Function for ParseAwsAlbLog {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[Example {
-            title: "valid",
-            source: r#"parse_aws_alb_log!(s'http 2018-11-30T22:23:00.186641Z app/my-loadbalancer/50dc6c495c0c9188 192.168.131.39:2817 - 0.000 0.001 0.000 200 200 34 366 "GET http://www.example.com:80/ HTTP/1.1" "curl/7.46.0" - - arn:aws:elasticloadbalancing:us-east-2:123456789012:targetgroup/my-targets/73e2d6bc24d8a067 "Root=1-58337364-23a8c76965a2ef7629b185e3" "-" "-" 0 2018-11-30T22:22:48.364000Z "forward" "-" "-" "-" "-" "-" "-" TID_dc57cebed65b444ebc8177bb698fe166')"#,
-            result: Ok(
-                r#"{ "actions_executed": "forward", "chosen_cert_arn": null, "classification": null, "classification_reason": null, "client_host": "192.168.131.39:2817", "domain_name": null, "elb": "app/my-loadbalancer/50dc6c495c0c9188", "elb_status_code": "200", "error_reason": null, "matched_rule_priority": "0", "received_bytes": 34, "redirect_url": null, "request_creation_time": "2018-11-30T22:22:48.364000Z", "request_method": "GET", "request_processing_time": 0.0, "request_protocol": "HTTP/1.1", "request_url": "http://www.example.com:80/", "response_processing_time": 0.0, "sent_bytes": 366, "ssl_cipher": null, "ssl_protocol": null, "target_group_arn": "arn:aws:elasticloadbalancing:us-east-2:123456789012:targetgroup/my-targets/73e2d6bc24d8a067", "target_host": null, "target_port_list": [], "target_processing_time": 0.001, "target_status_code": "200", "target_status_code_list": [], "timestamp": "2018-11-30T22:23:00.186641Z", "trace_id": "Root=1-58337364-23a8c76965a2ef7629b185e3", "type": "http", "user_agent": "curl/7.46.0", "traceability_id": "TID_dc57cebed65b444ebc8177bb698fe166" }"#,
-            ),
-        }]
+        &[
+            Example {
+                title: "valid",
+                source: r#"parse_aws_alb_log!(s'http 2025-01-01T00:00:00.000000Z a/b 1.1.1.1:1 - 0.000 0.000 0.000 200 200 1 2 "GET http://a/ HTTP/1.1" "u" - - arn:a "Root=1-1-1" "-" "-" 0 2025-01-01T00:00:00.000000Z "f" "-" "-" "-" "-" "-" "-" TID_x')"#,
+                result: Ok(
+                    r#"{ "actions_executed": "f", "chosen_cert_arn": null, "classification": null, "classification_reason": null, "client_host": "1.1.1.1:1", "domain_name": null, "elb": "a/b", "elb_status_code": "200", "error_reason": null, "matched_rule_priority": "0", "received_bytes": 1, "redirect_url": null, "request_creation_time": "2025-01-01T00:00:00.000000Z", "request_method": "GET", "request_processing_time": 0.0, "request_protocol": "HTTP/1.1", "request_url": "http://a/", "response_processing_time": 0.0, "sent_bytes": 2, "ssl_cipher": null, "ssl_protocol": null, "target_group_arn": "arn:a", "target_host": null, "target_port_list": [], "target_processing_time": 0.0, "target_status_code": "200", "target_status_code_list": [], "timestamp": "2025-01-01T00:00:00.000000Z", "trace_id": "Root=1-1-1", "type": "http", "user_agent": "u", "traceability_id": "TID_x" }"#,
+                ),
+            },
+            Example {
+                title: "ignores trailing fields when strict_mode is false",
+                source: r#"parse_aws_alb_log!(s'http 2025-01-01T00:00:00.000000Z a/b 1.1.1.1:1 - 0.000 0.000 0.000 200 200 1 2 "GET http://a/ HTTP/1.1" "u" - - arn:a "Root=1-1-1" "-" "-" 0 2025-01-01T00:00:00.000000Z "f" "-" "-" "-" "-" "-" "-" TID_x "-" "-" "-"', strict_mode: false)"#,
+                result: Ok(
+                    r#"{ "actions_executed": "f", "chosen_cert_arn": null, "classification": null, "classification_reason": null, "client_host": "1.1.1.1:1", "domain_name": null, "elb": "a/b", "elb_status_code": "200", "error_reason": null, "matched_rule_priority": "0", "received_bytes": 1, "redirect_url": null, "request_creation_time": "2025-01-01T00:00:00.000000Z", "request_method": "GET", "request_processing_time": 0.0, "request_protocol": "HTTP/1.1", "request_url": "http://a/", "response_processing_time": 0.0, "sent_bytes": 2, "ssl_cipher": null, "ssl_protocol": null, "target_group_arn": "arn:a", "target_host": null, "target_port_list": [], "target_processing_time": 0.0, "target_status_code": "200", "target_status_code_list": [], "timestamp": "2025-01-01T00:00:00.000000Z", "trace_id": "Root=1-1-1", "type": "http", "user_agent": "u", "traceability_id": "TID_x" }"#,
+                ),
+            },
+        ]
     }
 
     fn compile(
@@ -39,34 +52,48 @@ impl Function for ParseAwsAlbLog {
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
+        let strict_mode = arguments.optional("strict_mode");
 
-        Ok(ParseAwsAlbLogFn::new(value).as_expr())
+        Ok(ParseAwsAlbLogFn::new(value, strict_mode).as_expr())
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[Parameter {
-            keyword: "value",
-            kind: kind::BYTES,
-            required: true,
-        }]
+        &[
+            Parameter {
+                keyword: "value",
+                kind: kind::BYTES,
+                required: true,
+            },
+            Parameter {
+                keyword: "strict_mode",
+                kind: kind::BOOLEAN,
+                required: false,
+            },
+        ]
     }
 }
 
 #[derive(Debug, Clone)]
 struct ParseAwsAlbLogFn {
     value: Box<dyn Expression>,
+    strict_mode: Option<Box<dyn Expression>>,
 }
 
 impl ParseAwsAlbLogFn {
-    fn new(value: Box<dyn Expression>) -> Self {
-        Self { value }
+    fn new(value: Box<dyn Expression>, strict_mode: Option<Box<dyn Expression>>) -> Self {
+        Self { value, strict_mode }
     }
 }
 
 impl FunctionExpression for ParseAwsAlbLogFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let bytes = self.value.resolve(ctx)?;
-        parse_aws_alb_log(bytes)
+        let strict_mode = self
+            .strict_mode
+            .as_ref()
+            .map(|expr| expr.resolve(ctx))
+            .transpose()?;
+        parse_aws_alb_log(bytes, strict_mode)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {
@@ -130,7 +157,7 @@ fn inner_kind() -> BTreeMap<Field, Kind> {
 }
 
 #[allow(clippy::too_many_lines)]
-fn parse_log(mut input: &str) -> ExpressionResult<Value> {
+fn parse_log(mut input: &str, strict_mode: bool) -> ExpressionResult<Value> {
     let mut log = BTreeMap::<KeyString, Value>::new();
 
     macro_rules! get_value {
@@ -264,8 +291,11 @@ fn parse_log(mut input: &str) -> ExpressionResult<Value> {
 
     if input.is_empty() {
         Ok(log.into())
-    } else {
+    } else if strict_mode {
         Err(format!(r#"Log should be fully consumed: "{input}""#).into())
+    } else {
+        // Ignore any trailing, unknown fields when not in strict mode
+        Ok(log.into())
     }
 }
 
@@ -772,7 +802,44 @@ mod tests {
                              classification: null,
                              classification_reason: null,
                              traceability_id: null})),
-            tdef: TypeDef::object(inner_kind()).fallible(),
-        }
+                tdef: TypeDef::object(inner_kind()).fallible(),
+            }
+            thirteen {
+                args: func_args![value: r#"http 2018-07-02T22:23:00.186641Z app/my-loadbalancer/50dc6c495c0c9188 192.168.131.39:2817 10.0.0.1:80 0.000 0.001 0.000 200 200 34 366 "GET http://www.example.com:80/ HTTP/1.1" "curl/7.46.0" - - arn:aws:elasticloadbalancing:us-east-2:123456789012:targetgroup/my-targets/73e2d6bc24d8a067 "Root=1-58337262-36d228ad5d99923122bbe354" "-" "-" 0 2018-07-02T22:22:48.364000Z "forward" "-" "-" 10.0.0.1:80 200 "-" "-" TID_dc57cebed65b444ebc8177bb698fe166 "-" "-" "-""#, strict_mode: false],
+                want: Ok(value!({actions_executed: "forward",
+                                 chosen_cert_arn: null,
+                                 classification: null,
+                                 classification_reason: null,
+                                 client_host: "192.168.131.39:2817",
+                                 domain_name: null,
+                                 elb: "app/my-loadbalancer/50dc6c495c0c9188",
+                                 elb_status_code: "200",
+                                 error_reason: null,
+                                 matched_rule_priority: "0",
+                                 received_bytes: 34,
+                                 redirect_url: null,
+                                 request_creation_time: "2018-07-02T22:22:48.364000Z",
+                                 request_method: "GET",
+                                 request_processing_time: 0.0,
+                                 request_protocol: "HTTP/1.1",
+                                 request_url: "http://www.example.com:80/",
+                                 response_processing_time: 0.0,
+                                 sent_bytes: 366,
+                                 ssl_cipher: null,
+                                 ssl_protocol: null,
+                                 target_group_arn: "arn:aws:elasticloadbalancing:us-east-2:123456789012:targetgroup/my-targets/73e2d6bc24d8a067",
+                                 target_host: "10.0.0.1:80",
+                                 target_port_list: ["10.0.0.1:80"],
+                                 target_processing_time: 0.001,
+                                 target_status_code: "200",
+                                 target_status_code_list: ["200"],
+                                 timestamp: "2018-07-02T22:23:00.186641Z",
+                                 trace_id: "Root=1-58337262-36d228ad5d99923122bbe354",
+                                 type: "http",
+                                 user_agent: "curl/7.46.0",
+                                 traceability_id: "TID_dc57cebed65b444ebc8177bb698fe166"
+                })),
+                tdef: TypeDef::object(inner_kind()).fallible(),
+            }
     ];
 }

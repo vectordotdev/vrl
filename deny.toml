@@ -20,9 +20,9 @@ allow = [
 private = { ignore = true }
 
 exceptions = [
-    # MPL-2.0 are added case-by-case to make sure we are in compliance. To be in
-    # compliance we cannot be modifying the source files.
-    { allow = ["MPL-2.0"], name = "vrl", version = "*" },
+  # MPL-2.0 are added case-by-case to make sure we are in compliance. To be in
+  # compliance we cannot be modifying the source files.
+  { allow = ["MPL-2.0"], name = "vrl", version = "*" },
 ]
 
 [[licenses.clarify]]
@@ -41,6 +41,8 @@ ignore = [
   "RUSTSEC-2021-0139",
   # paste is Unmaintained
   "RUSTSEC-2024-0436",
+  # instant is unmaintained, used by reqwest-retry
+  "RUSTSEC-2024-0384",
   # `derivative` is unmaintained
   "RUSTSEC-2024-0388",
 ]
