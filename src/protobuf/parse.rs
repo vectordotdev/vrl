@@ -2,10 +2,16 @@ use crate::compiler::prelude::*;
 use prost_reflect::ReflectMessage;
 use prost_reflect::{DynamicMessage, MessageDescriptor};
 
+#[derive(Default, Debug, Clone, Eq, PartialEq)]
+pub struct Options {
+    pub use_json_names: bool,
+}
+
 pub fn proto_to_value(
     prost_reflect_value: &prost_reflect::Value,
     field_descriptor: Option<&prost_reflect::FieldDescriptor>,
-) -> std::result::Result<Value, String> {
+    options: &Options,
+) -> Result<Value, String> {
     let vrl_value = match prost_reflect_value {
         prost_reflect::Value::Bool(v) => Value::from(*v),
         prost_reflect::Value::I32(v) => Value::from(*v),
@@ -45,8 +51,13 @@ pub fn proto_to_value(
             for field_desc in v.descriptor().fields() {
                 if v.has_field(&field_desc) {
                     let field_value = v.get_field(&field_desc);
-                    let out = proto_to_value(field_value.as_ref(), Some(&field_desc))?;
-                    obj_map.insert(field_desc.name().into(), out);
+                    let out = proto_to_value(field_value.as_ref(), Some(&field_desc), options)?;
+                    let field_key = if options.use_json_names {
+                        field_desc.json_name()
+                    } else {
+                        field_desc.name()
+                    };
+                    obj_map.insert(field_key.into(), out);
                 }
             }
             Value::from(obj_map)
@@ -54,7 +65,7 @@ pub fn proto_to_value(
         prost_reflect::Value::List(v) => {
             let vec = v
                 .iter()
-                .map(|o| proto_to_value(o, field_descriptor))
+                .map(|o| proto_to_value(o, field_descriptor, options))
                 .collect::<Result<Vec<_>, String>>()?;
             Value::from(vec)
         }
@@ -77,7 +88,7 @@ pub fn proto_to_value(
                                         )
                                     })?
                                     .into(),
-                                proto_to_value(kv.1, Some(&message_desc.map_entry_value_field()))?,
+                                proto_to_value(kv.1, Some(&message_desc.map_entry_value_field()), options)?,
                             ))
                         })
                         .collect::<std::result::Result<ObjectMap, String>>()?,
@@ -98,6 +109,7 @@ pub(crate) fn parse_proto(descriptor: &MessageDescriptor, value: Value) -> Resol
     Ok(proto_to_value(
         &prost_reflect::Value::Message(dynamic_message),
         None,
+        &Options::default(),
     )?)
 }
 
