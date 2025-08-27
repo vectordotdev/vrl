@@ -23,7 +23,9 @@ static EXAMPLES: LazyLock<Vec<Example>> = LazyLock::new(|| {
     vec![Example {
         title: "payload contains invalid email format",
         source: &EXAMPLE_JSON_SCHEMA_EXPR,
-        result: Err(r#"function call error for "validate_json_schema" at (0:188): JSON schema validation failed: "invalidEmail" is not a "email" at /productUser"#),
+        result: Err(
+            r#"function call error for "validate_json_schema" at (0:188): JSON schema validation failed: "invalidEmail" is not a "email" at /productUser"#,
+        ),
     }]
 });
 
@@ -107,13 +109,13 @@ mod non_wasm {
     use super::{
         Context, Expression, FunctionExpression, Resolved, TypeDef, VrlValueConvert, state,
     };
+    use crate::prelude::ExpressionError;
     use crate::stdlib::json_utils::bom::StripBomFromUTF8;
     use crate::value;
     use jsonschema;
     use std::collections::HashMap;
     use std::path::{Path, PathBuf};
     use std::sync::{Arc, LazyLock, RwLock};
-    use crate::prelude::ExpressionError;
 
     // Global cache for compiled schema validators, this allows us to reuse the compiled
     // schema across multiple calls to the function, which is important for performance.
@@ -154,15 +156,29 @@ mod non_wasm {
                 ignore_unknown_formats,
             )?;
 
-            let validation_errors = schema_validator.iter_errors(&json_value)
-                .map(|e| format!("{} at {}", e, if e.instance_path.as_str().is_empty() { "/" } else { e.instance_path.as_str() }))
+            let validation_errors = schema_validator
+                .iter_errors(&json_value)
+                .map(|e| {
+                    format!(
+                        "{} at {}",
+                        e,
+                        if e.instance_path.as_str().is_empty() {
+                            "/"
+                        } else {
+                            e.instance_path.as_str()
+                        }
+                    )
+                })
                 .collect::<Vec<String>>()
                 .join(", ");
 
             if validation_errors.is_empty() {
                 Ok(value!(true))
             } else {
-                Err(ExpressionError::from(format!("JSON schema validation failed: {}", validation_errors)))
+                Err(ExpressionError::from(format!(
+                    "JSON schema validation failed: {}",
+                    validation_errors
+                )))
             }
         }
 
