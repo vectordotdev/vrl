@@ -1,6 +1,6 @@
 use crate::compiler::prelude::*;
-use crate::protobuf::encode_proto;
-use crate::protobuf::get_message_descriptor;
+use crate::protobuf::descriptor::get_message_descriptor;
+use crate::protobuf::encode::encode_proto;
 use prost_reflect::MessageDescriptor;
 use std::env;
 use std::ffi::OsString;
