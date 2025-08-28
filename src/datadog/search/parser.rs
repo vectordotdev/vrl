@@ -186,9 +186,11 @@ mod tests {
                     ref attr,
                     ref value,
                 } = **node
-                    && attr == "foo" && value == "bar" {
-                        continue;
-                    }
+                && attr == "foo"
+                && value == "bar"
+            {
+                continue;
+            }
             panic!("Unable to properly parse '{query:?}' - got {res:?}")
         }
     }

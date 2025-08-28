@@ -53,34 +53,37 @@ impl Op {
 
         if matches!(opcode, Eq | Ne | Lt | Le | Gt | Ge)
             && let Expr::Op(op) = &lhs
-                && matches!(op.opcode, Eq | Ne | Lt | Le | Gt | Ge) {
-                    return Err(Error::ChainedComparison { span: op_span });
-                }
+            && matches!(op.opcode, Eq | Ne | Lt | Le | Gt | Ge)
+        {
+            return Err(Error::ChainedComparison { span: op_span });
+        }
 
         if let ast::Opcode::Err = opcode
-            && lhs_type_def.is_infallible() {
-                return Err(Error::UnnecessaryCoalesce {
-                    lhs_span,
-                    rhs_span,
-                    op_span,
-                });
-            }
+            && lhs_type_def.is_infallible()
+        {
+            return Err(Error::UnnecessaryCoalesce {
+                lhs_span,
+                rhs_span,
+                op_span,
+            });
+        }
 
         if let ast::Opcode::Merge = opcode
-            && !(lhs_type_def.is_object() && rhs_type_def.is_object()) {
-                return Err(Error::MergeNonObjects {
-                    lhs_span: if lhs_type_def.is_object() {
-                        None
-                    } else {
-                        Some(lhs_span)
-                    },
-                    rhs_span: if rhs_type_def.is_object() {
-                        None
-                    } else {
-                        Some(rhs_span)
-                    },
-                });
-            }
+            && !(lhs_type_def.is_object() && rhs_type_def.is_object())
+        {
+            return Err(Error::MergeNonObjects {
+                lhs_span: if lhs_type_def.is_object() {
+                    None
+                } else {
+                    Some(lhs_span)
+                },
+                rhs_span: if rhs_type_def.is_object() {
+                    None
+                } else {
+                    Some(rhs_span)
+                },
+            });
+        }
 
         Ok(Op {
             lhs: Box::new(lhs),

@@ -368,6 +368,7 @@ impl Function for DnsLookup {
         &[]
     }
 
+    #[allow(clippy::too_many_lines)]
     #[cfg(feature = "test")]
     fn examples(&self) -> &'static [Example] {
         &[

@@ -290,7 +290,7 @@ fn str_replace(haystack: &str, pattern: &str, redactor: &Redactor) -> String {
 }
 
 /// The recipe for redacting the matched filters.
-#[derive(Debug, Default, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, Eq)]
 enum Redactor {
     #[default]
     Full,
@@ -405,7 +405,7 @@ impl regex::Replacer for &Redactor {
         self.replace_str(&caps[0], dst);
     }
 
-    fn no_expansion(&mut self) -> Option<Cow<str>> {
+    fn no_expansion(&mut self) -> Option<Cow<'_, str>> {
         match self {
             Redactor::Full => Some(REDACTED.into()),
             Redactor::Text(s) => Some(s.into()),

@@ -131,9 +131,10 @@ impl ValueCollection for Vec<Value> {
 
     fn remove_value(&mut self, key: &isize) -> Option<Value> {
         if let Some(index) = array_index(self, *key)
-            && index < self.len() {
-                return Some(self.remove(index));
-            }
+            && index < self.len()
+        {
+            return Some(self.remove(index));
+        }
         None
     }
 
