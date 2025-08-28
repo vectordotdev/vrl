@@ -138,62 +138,55 @@ impl Function for CommunityID {
         let dst_port = arguments.optional("destination_port");
         let seed = arguments.optional("seed");
 
-        if let Some(protocol) = protocol.resolve_constant(state) {
-            if let Some(protocol_literal) = protocol.as_integer() {
-                if u8::try_from(protocol_literal).is_err() {
-                    return Err(function::Error::InvalidArgument {
-                        keyword: "protocol",
-                        value: protocol,
-                        error: r#""protocol" must be between 0 and 255"#,
-                    }
-                    .into());
-                }
+        if let Some(protocol) = protocol.resolve_constant(state)
+            && let Some(protocol_literal) = protocol.as_integer()
+            && u8::try_from(protocol_literal).is_err()
+        {
+            return Err(function::Error::InvalidArgument {
+                keyword: "protocol",
+                value: protocol,
+                error: r#""protocol" must be between 0 and 255"#,
             }
+            .into());
         }
 
-        if let Some(src_port) = &src_port {
-            if let Some(src_port) = src_port.resolve_constant(state) {
-                if let Some(src_port_literal) = src_port.as_integer() {
-                    if u16::try_from(src_port_literal).is_err() {
-                        return Err(function::Error::InvalidArgument {
-                            keyword: "source_port",
-                            value: src_port,
-                            error: r#""source_port" must be between 0 and 65535"#,
-                        }
-                        .into());
-                    }
-                }
+        if let Some(src_port) = &src_port
+            && let Some(src_port) = src_port.resolve_constant(state)
+            && let Some(src_port_literal) = src_port.as_integer()
+            && u16::try_from(src_port_literal).is_err()
+        {
+            return Err(function::Error::InvalidArgument {
+                keyword: "source_port",
+                value: src_port,
+                error: r#""source_port" must be between 0 and 65535"#,
             }
+            .into());
         }
 
-        if let Some(dst_port) = &dst_port {
-            if let Some(dst_port) = dst_port.resolve_constant(state) {
-                if let Some(dst_port_literal) = dst_port.as_integer() {
-                    if u16::try_from(dst_port_literal).is_err() {
-                        return Err(function::Error::InvalidArgument {
-                            keyword: "destination_port",
-                            value: dst_port,
-                            error: r#""destination_port" must be between 0 and 65535"#,
-                        }
-                        .into());
-                    }
-                }
+        if let Some(dst_port) = &dst_port
+            && let Some(dst_port) = dst_port.resolve_constant(state)
+            && let Some(dst_port_literal) = dst_port.as_integer()
+            && u16::try_from(dst_port_literal).is_err()
+        {
+            return Err(function::Error::InvalidArgument {
+                keyword: "destination_port",
+                value: dst_port,
+                error: r#""destination_port" must be between 0 and 65535"#,
             }
+            .into());
         }
 
-        if let Some(seed) = &seed {
-            if let Some(seed) = seed.resolve_constant(state) {
-                if let Some(seed_literal) = seed.as_integer() {
-                    if u16::try_from(seed_literal).is_err() {
-                        return Err(function::Error::InvalidArgument {
-                            keyword: "seed",
-                            value: seed,
-                            error: r#""seed" must be between 0 and 65535"#,
-                        }
-                        .into());
-                    }
-                }
+        if let Some(seed) = &seed
+            && let Some(seed) = seed.resolve_constant(state)
+            && let Some(seed_literal) = seed.as_integer()
+            && u16::try_from(seed_literal).is_err()
+        {
+            return Err(function::Error::InvalidArgument {
+                keyword: "seed",
+                value: seed,
+                error: r#""seed" must be between 0 and 65535"#,
             }
+            .into());
         }
 
         Ok(CommunityIDFn {

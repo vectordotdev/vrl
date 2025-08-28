@@ -51,11 +51,11 @@ impl Collection<Index> {
         }
 
         let negative_index = (-index) as usize;
-        if let Some(largest_known_index) = self.largest_known_index() {
-            if largest_known_index >= negative_index - 1 {
-                // The exact index to remove is known.
-                return Some(((largest_known_index as isize) + 1 + index) as usize);
-            }
+        if let Some(largest_known_index) = self.largest_known_index()
+            && largest_known_index >= negative_index - 1
+        {
+            // The exact index to remove is known.
+            return Some(((largest_known_index as isize) + 1 + index) as usize);
         }
         // Removing a non-existing index
         None

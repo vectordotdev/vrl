@@ -445,7 +445,7 @@ fn lookup_field(field: &Field) -> Result<OwnedValuePath, PathParseError> {
 /// Returns a string value from a VRL `Value`. This differs from the regular `Display`
 /// implementation by treating Bytes values as special-- returning the UTF8 representation
 /// instead of the raw control characters.
-fn string_value(value: &Value) -> Cow<str> {
+fn string_value(value: &Value) -> Cow<'_, str> {
     match value {
         Value::Bytes(val) => String::from_utf8_lossy(val),
         _ => Cow::from(value.to_string()),

@@ -181,16 +181,15 @@ mod tests {
         let cases = ["-foo:bar", "- foo:bar", "NOT foo:bar"];
         for query in cases.iter() {
             let res = parse(query);
-            if let QueryNode::NegatedNode { ref node } = res {
-                if let QueryNode::AttributeTerm {
+            if let QueryNode::NegatedNode { ref node } = res
+                && let QueryNode::AttributeTerm {
                     ref attr,
                     ref value,
                 } = **node
-                {
-                    if attr == "foo" && value == "bar" {
-                        continue;
-                    }
-                }
+                && attr == "foo"
+                && value == "bar"
+            {
+                continue;
             }
             panic!("Unable to properly parse '{query:?}' - got {res:?}")
         }

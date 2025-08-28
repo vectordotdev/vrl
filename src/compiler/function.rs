@@ -409,7 +409,7 @@ fn required<T>(argument: Option<T>) -> T {
 
 #[cfg(any(test, feature = "test"))]
 mod test_impls {
-    use super::*;
+    use super::{ArgumentList, HashMap, Span, Value};
     use crate::compiler::expression::FunctionArgument;
     use crate::compiler::parser::Node;
 

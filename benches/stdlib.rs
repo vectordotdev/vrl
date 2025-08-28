@@ -1096,7 +1096,7 @@ bench_function! {
     is_timestamp => vrl::stdlib::IsTimestamp;
 
     string {
-        args: func_args![value: Utc.ymd(2021, 1, 1).and_hms_milli(0, 0, 0, 0)],
+        args: func_args![value: Utc.with_ymd_and_hms(2021, 1, 1, 0, 0, 0).unwrap()],
         want: Ok(true),
     }
 
@@ -2140,7 +2140,7 @@ bench_function! {
         want: Ok(value!({
             "severity": "info",
             "facility": "local7",
-            "timestamp": (Utc.ymd(2020, 12, 28).and_hms_milli(16, 49, 7, 0)),
+            "timestamp": (Utc.with_ymd_and_hms(2020, 12, 28, 16, 49, 7).unwrap()),
             "hostname": "plertrood-thinkpad-x220",
             "appname": "nginx",
             "message": r#"127.0.0.1 - - [28/Dec/2019:16:49:07 +0000] "GET / HTTP/1.1" 304 0 "-" "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:71.0) Gecko/20100101 Firefox/71.0""#,
@@ -2148,11 +2148,11 @@ bench_function! {
     }
 
     rfc5424 {
-        args: func_args![value: r#"<13>1 2020-03-13T20:45:38.119Z dynamicwireless.name non 2426 ID931 [exampleSDID@32473 iut="3" eventSource= "Application" eventID="1011"] Try to override the THX port, maybe it will reboot the neural interface!"#],
+        args: func_args![value: r#"<13>1 2020-03-13T20:45:38.0Z dynamicwireless.name non 2426 ID931 [exampleSDID@32473 iut="3" eventSource= "Application" eventID="1011"] Try to override the THX port, maybe it will reboot the neural interface!"#],
         want: Ok(value!({
             "severity": "notice",
             "facility": "user",
-            "timestamp": (Utc.ymd(2020, 3, 13).and_hms_milli(20, 45, 38, 119)),
+            "timestamp": (Utc.with_ymd_and_hms(2020, 3, 13, 20, 45, 38).unwrap()),
             "hostname": "dynamicwireless.name",
             "appname": "non",
             "procid": 2426,
@@ -2711,9 +2711,9 @@ bench_function! {
     }
 
     tag_timestamp {
-        args: func_args![value: Utc.ymd(2021, 1, 1).and_hms_milli(0, 0, 0, 0)],
+        args: func_args![value: Utc.with_ymd_and_hms(2021, 1, 1, 0, 0, 0).unwrap()],
         want: Ok(btreemap! {
-            "timestamp" => Utc.ymd(2021, 1, 1).and_hms_milli(0, 0, 0, 0)
+            "timestamp" => Utc.with_ymd_and_hms(2021, 1, 1, 0, 0, 0).unwrap()
         }),
     }
 
@@ -2757,8 +2757,8 @@ bench_function! {
     timestamp => vrl::stdlib::Timestamp;
 
     timestamp {
-        args: func_args![value: Utc.ymd(2021, 1, 1).and_hms_milli(0, 0, 0, 0)],
-        want: Ok(value!(Utc.ymd(2021, 1, 1).and_hms_milli(0, 0, 0, 0))),
+        args: func_args![value: Utc.with_ymd_and_hms(2021, 1, 1, 0, 0, 0).unwrap()],
+        want: Ok(value!(Utc.with_ymd_and_hms(2021, 1, 1, 0, 0, 0).unwrap())),
     }
 }
 
@@ -2907,7 +2907,7 @@ bench_function! {
     to_unix_timestamp => vrl::stdlib::ToUnixTimestamp;
 
     default {
-        args: func_args![value: Utc.ymd(2021, 1, 1).and_hms_milli(0, 0, 0, 0)],
+        args: func_args![value: Utc.with_ymd_and_hms(2021, 1, 1, 0, 0, 0).unwrap()],
         want: Ok(1609459200),
     }
 }

@@ -197,8 +197,7 @@ impl Function for HttpRequest {
     }
 }
 
-#[cfg(test)]
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(all(feature = "test", test, not(target_arch = "wasm32")))]
 mod tests {
     use super::*;
     use crate::value;

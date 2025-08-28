@@ -198,8 +198,8 @@ pub(crate) fn encode_proto(descriptor: &MessageDescriptor, value: Value) -> Reso
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::protobuf::get_message_descriptor;
-    use crate::protobuf::parse_proto;
+    use crate::protobuf::descriptor::get_message_descriptor;
+    use crate::protobuf::parse::parse_proto;
     use crate::value;
     use bytes::Bytes;
     use chrono::DateTime;

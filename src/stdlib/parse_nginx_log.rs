@@ -128,10 +128,10 @@ fn time_format_for_format(format: &[u8]) -> String {
 }
 
 fn rename_referrer(mut value: Value) -> Value {
-    if let Some(obj) = value.as_object_mut() {
-        if let Some(referer) = obj.remove("referrer") {
-            obj.insert("referer".into(), referer);
-        }
+    if let Some(obj) = value.as_object_mut()
+        && let Some(referer) = obj.remove("referrer")
+    {
+        obj.insert("referer".into(), referer);
     }
     value
 }
