@@ -289,8 +289,9 @@ fn str_replace(haystack: &str, pattern: &str, redactor: &Redactor) -> String {
     result
 }
 
+#[allow(unpredictable_function_pointer_comparisons)]
 /// The recipe for redacting the matched filters.
-#[derive(Debug, Default, Clone, Eq)]
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
 enum Redactor {
     #[default]
     Full,
