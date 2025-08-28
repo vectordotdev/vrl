@@ -1,6 +1,6 @@
 mod descriptor;
 mod encode;
-mod parse;
+pub mod parse;
 
 pub use descriptor::get_message_descriptor;
 pub use descriptor::get_message_descriptor_from_bytes;
@@ -8,5 +8,6 @@ pub use descriptor::get_message_descriptor_from_bytes;
 pub use encode::encode_message;
 pub(crate) use encode::encode_proto;
 
+pub use parse::Options;
 pub(crate) use parse::parse_proto;
 pub use parse::proto_to_value;

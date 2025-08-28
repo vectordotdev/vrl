@@ -30,6 +30,11 @@ generate-pb:
 	       test_protobuf3/v1/test_protobuf3.proto \
 	       < test_protobuf3/v1/input/person_someone.txt > test_protobuf3/v1/input/person_someone.pb
 
+	protoc --proto_path=. \
+	       --encode=test_protobuf3.v1.Person \
+	       test_protobuf3/v1/test_protobuf3.proto \
+	       < test_protobuf3/v1/input/person_with_job.txt > test_protobuf3/v1/input/person_with_job.pb
+
 # Clean generated files
 clean:
 	rm -f test/**/*.desc test_protobuf/**/*.desc test_protobuf3/**/*.desc
