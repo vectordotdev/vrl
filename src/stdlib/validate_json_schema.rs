@@ -12,10 +12,8 @@ static EXAMPLE_JSON_SCHEMA_EXPR: LazyLock<&str> = LazyLock::new(|| {
         .to_string();
 
     Box::leak(
-        format!(
-            r#"validate_json_schema!(s'{{ "productUser": "foo@bar.com" }}', "{path}", false)"#
-        )
-        .into_boxed_str(),
+        format!(r#"validate_json_schema!(s'{{ "productUser": "foo@bar.com" }}', "{path}", false)"#)
+            .into_boxed_str(),
     )
 });
 
