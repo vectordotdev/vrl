@@ -330,7 +330,7 @@ impl QueryVisitor {
         unescape(&quoted_string[1..quoted_string.len() - 1])
     }
 
-    fn visit_field(token: Pair<Rule>) -> &str {
+    fn visit_field(token: Pair<'_, Rule>) -> &str {
         let inner = token.into_inner().next().unwrap();
         if let Rule::TERM = inner.as_rule() {
             return inner.as_str();

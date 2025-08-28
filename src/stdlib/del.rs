@@ -114,13 +114,13 @@ impl Function for Del {
         let query = arguments.required_query("target")?;
         let compact = arguments.optional("compact");
 
-        if let Some(target_path) = query.external_path() {
-            if ctx.is_read_only_path(&target_path) {
-                return Err(function::Error::ReadOnlyMutation {
-                    context: format!("{query} is read-only, and cannot be deleted"),
-                }
-                .into());
+        if let Some(target_path) = query.external_path()
+            && ctx.is_read_only_path(&target_path)
+        {
+            return Err(function::Error::ReadOnlyMutation {
+                context: format!("{query} is read-only, and cannot be deleted"),
             }
+            .into());
         }
 
         Ok(Box::new(DelFn { query, compact }))

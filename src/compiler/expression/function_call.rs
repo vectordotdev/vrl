@@ -451,30 +451,29 @@ impl<'a> Builder<'a> {
         let mut invalid_argument_error = None;
         if let Some((parameter, argument)) =
             self.arguments_with_unknown_type_validity.first().cloned()
+            && !self.abort_on_error
         {
-            if !self.abort_on_error {
-                invalid_argument_error = Some(FunctionCallError::InvalidArgumentKind(
-                    InvalidArgumentErrorContext {
-                        function_ident: self.function.identifier(),
-                        abort_on_error: self.abort_on_error,
-                        arguments_fmt: self
-                            .arguments
-                            .iter()
-                            .map(|arg| arg.inner().to_string())
-                            .collect::<Vec<_>>(),
-                        parameter,
-                        got: argument
-                            .expr()
-                            .type_info(state_before_function_args)
-                            .result
-                            .into(),
-                        argument: argument.clone().into_inner(),
-                        argument_span: argument
-                            .keyword_span()
-                            .unwrap_or_else(|| argument.expr_span()),
-                    },
-                ));
-            }
+            invalid_argument_error = Some(FunctionCallError::InvalidArgumentKind(
+                InvalidArgumentErrorContext {
+                    function_ident: self.function.identifier(),
+                    abort_on_error: self.abort_on_error,
+                    arguments_fmt: self
+                        .arguments
+                        .iter()
+                        .map(|arg| arg.inner().to_string())
+                        .collect::<Vec<_>>(),
+                    parameter,
+                    got: argument
+                        .expr()
+                        .type_info(state_before_function_args)
+                        .result
+                        .into(),
+                    argument: argument.clone().into_inner(),
+                    argument_span: argument
+                        .keyword_span()
+                        .unwrap_or_else(|| argument.expr_span()),
+                },
+            ));
         }
 
         Ok(CallCompilationResult {
@@ -509,14 +508,14 @@ impl<'a> Builder<'a> {
 
             // At this point, we've compiled the block, so we can remove the
             // closure variables from the compiler's local environment.
-            variables
-                .iter()
-                .for_each(|ident| match locals.remove_variable(ident) {
+            for ident in &variables {
+                match locals.remove_variable(ident) {
                     Some(details) => state.local.insert_variable(ident.clone(), details),
                     None => {
                         state.local.remove_variable(ident);
                     }
-                });
+                }
+            }
 
             let (block_span, (block, block_type_def)) = block.take();
 

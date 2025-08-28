@@ -261,6 +261,6 @@ fn process_text<'a>(text: &'a str, config: &ParseXmlConfig<'a>) -> Value {
 }
 
 #[inline]
-fn trim_xml(xml: &str) -> Cow<str> {
+fn trim_xml(xml: &str) -> Cow<'_, str> {
     XML_RE.replace_all(xml, "><")
 }

@@ -189,25 +189,24 @@ impl KeyValueFilter {
             // trim trailing comma for value
             let value = value.trim_end_matches(',');
 
-            if let Ok((_, value)) = parse_value(value, &self.quotes) {
-                if !(value.is_null()
+            if let Ok((_, value)) = parse_value(value, &self.quotes)
+                && !(value.is_null()
                     || matches!(&value, Value::Bytes(b) if b.is_empty())
                     || key.is_empty())
-                {
-                    let path = crate::path!(key);
-                    match result.get_mut(path) {
-                        Some(Value::Array(values)) => values.push(value),
-                        Some(prev) => {
-                            // Replace existing non-array values with an array containing that value
-                            // followed by the new one. We can't just put that old value into the
-                            // array directly because we only have a `mut` reference to it, hence
-                            // the need `replace` it first.
-                            let old_value = std::mem::replace(prev, Value::Null);
-                            *prev = Value::Array(vec![old_value, value]);
-                        }
-                        None => {
-                            result.insert(path, value);
-                        }
+            {
+                let path = crate::path!(key);
+                match result.get_mut(path) {
+                    Some(Value::Array(values)) => values.push(value),
+                    Some(prev) => {
+                        // Replace existing non-array values with an array containing that value
+                        // followed by the new one. We can't just put that old value into the
+                        // array directly because we only have a `mut` reference to it, hence
+                        // the need `replace` it first.
+                        let old_value = std::mem::replace(prev, Value::Null);
+                        *prev = Value::Array(vec![old_value, value]);
+                    }
+                    None => {
+                        result.insert(path, value);
                     }
                 }
             }
@@ -227,7 +226,7 @@ type SResult<'a, O> = IResult<&'a str, O, (&'a str, nom::error::ErrorKind)>;
 
 /// Parses quoted strings.
 #[inline]
-fn parse_quoted(quotes: &(char, char)) -> impl Fn(&str) -> SResult<&str> + '_ {
+fn parse_quoted(quotes: &(char, char)) -> impl Fn(&str) -> SResult<'_, &str> + '_ {
     move |input| {
         delimited(
             char(quotes.0),
@@ -241,7 +240,7 @@ fn parse_quoted(quotes: &(char, char)) -> impl Fn(&str) -> SResult<&str> + '_ {
 }
 
 #[inline]
-fn quoted(quotes: &[(char, char)]) -> impl Fn(&str) -> SResult<&str> + '_ {
+fn quoted(quotes: &[(char, char)]) -> impl Fn(&str) -> SResult<'_, &str> + '_ {
     move |input| {
         let mut last_err = None;
         for quotes in quotes {
@@ -271,14 +270,14 @@ fn parse_value<'a>(input: &'a str, quotes: &'a [(char, char)]) -> SResult<'a, Va
     .parse(input)
 }
 
-fn parse_string(input: &str) -> SResult<Value> {
+fn parse_string(input: &str) -> SResult<'_, Value> {
     map(rest, |s: &str| {
         Value::Bytes(Bytes::copy_from_slice(s.trim().as_bytes()))
     })
     .parse(input)
 }
 
-fn parse_number(input: &str) -> SResult<Value> {
+fn parse_number(input: &str) -> SResult<'_, Value> {
     map_res(terminated(double, eof), |v| {
         // can be safely converted to Integer without precision loss
         if ((v as i64) as f64 - v).abs() == 0.0 {
@@ -303,11 +302,11 @@ fn parse_number(input: &str) -> SResult<Value> {
     })
 }
 
-fn parse_null(input: &str) -> SResult<Value> {
+fn parse_null(input: &str) -> SResult<'_, Value> {
     value(Value::Null, tag("null")).parse(input)
 }
 
-fn parse_boolean(input: &str) -> SResult<Value> {
+fn parse_boolean(input: &str) -> SResult<'_, Value> {
     let parse_true = value(Value::Boolean(true), tag("true"));
     let parse_false = value(Value::Boolean(false), tag("false"));
 

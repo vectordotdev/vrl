@@ -387,12 +387,11 @@ pub fn adjust_strp_format_and_value(strp_format: &str, original_value: &str) -> 
 
 /// Replace fraction of a second char with a dot - we always use %.f in strptime format
 fn replace_sec_fraction_with_dot(filter: &DateFilter, value: &mut String) {
-    if filter.with_fraction_second {
-        if let Some(caps) = filter.regex.captures(value) {
-            if let Some(m) = caps.name(FRACTION_CHAR_GROUP) {
-                value.replace_range(m.start()..m.end(), ".");
-            }
-        }
+    if filter.with_fraction_second
+        && let Some(caps) = filter.regex.captures(value)
+        && let Some(m) = caps.name(FRACTION_CHAR_GROUP)
+    {
+        value.replace_range(m.start()..m.end(), ".");
     }
 }
 
