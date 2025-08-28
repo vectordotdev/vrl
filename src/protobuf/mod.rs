@@ -1,6 +1,6 @@
 mod descriptor;
 mod encode;
-mod parse;
+pub mod parse;
 
 pub use descriptor::get_message_descriptor;
 pub use descriptor::get_message_descriptor_from_bytes;

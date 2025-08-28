@@ -117,7 +117,7 @@ pub(crate) fn parse_proto(descriptor: &MessageDescriptor, value: Value) -> Resol
 mod tests {
     use super::*;
     use crate::protobuf::get_message_descriptor;
-    use crate::value;
+    use crate::{owned_value_path, value};
     use std::path::PathBuf;
     use std::{env, fs};
 
@@ -160,5 +160,29 @@ mod tests {
         let value = value!({ name: "Someone",
                                     phones: [{number: "123-456", type: "PHONE_TYPE_MOBILE"}] });
         assert_eq!(value, parsed_value)
+    }
+
+    #[test]
+    fn test_proto_to_value_with_json_names() {
+        let path = test_data_dir().join("test_protobuf3/v1/test_protobuf3.desc");
+        let descriptor = get_message_descriptor(&path, "test_protobuf3.v1.Person").unwrap();
+        let encoded_value = value!(read_pb_file("test_protobuf3/v1/input/person_with_job.pb"));
+        let raw_bytes = encoded_value.try_bytes().unwrap();
+        let dynamic_message = DynamicMessage::decode(descriptor.clone(), raw_bytes)
+            .map_err(|error| format!("Error parsing protobuf: {error:?}"))
+            .unwrap();
+        let prost_value = prost_reflect::Value::Message(dynamic_message);
+        let vrl_value = proto_to_value(
+            &prost_value,
+            None,
+            &Options {
+                use_json_names: true,
+            },
+        )
+        .unwrap();
+        assert_eq!(
+            vrl_value.get(&owned_value_path!("jobDescription")),
+            Some(&Value::from("some job"))
+        );
     }
 }
