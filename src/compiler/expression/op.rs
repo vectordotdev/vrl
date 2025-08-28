@@ -51,26 +51,23 @@ impl Op {
 
         let (rhs_span, rhs) = rhs.take();
 
-        if matches!(opcode, Eq | Ne | Lt | Le | Gt | Ge) {
-            if let Expr::Op(op) = &lhs {
-                if matches!(op.opcode, Eq | Ne | Lt | Le | Gt | Ge) {
+        if matches!(opcode, Eq | Ne | Lt | Le | Gt | Ge)
+            && let Expr::Op(op) = &lhs
+                && matches!(op.opcode, Eq | Ne | Lt | Le | Gt | Ge) {
                     return Err(Error::ChainedComparison { span: op_span });
                 }
-            }
-        }
 
-        if let ast::Opcode::Err = opcode {
-            if lhs_type_def.is_infallible() {
+        if let ast::Opcode::Err = opcode
+            && lhs_type_def.is_infallible() {
                 return Err(Error::UnnecessaryCoalesce {
                     lhs_span,
                     rhs_span,
                     op_span,
                 });
             }
-        }
 
-        if let ast::Opcode::Merge = opcode {
-            if !(lhs_type_def.is_object() && rhs_type_def.is_object()) {
+        if let ast::Opcode::Merge = opcode
+            && !(lhs_type_def.is_object() && rhs_type_def.is_object()) {
                 return Err(Error::MergeNonObjects {
                     lhs_span: if lhs_type_def.is_object() {
                         None
@@ -84,7 +81,6 @@ impl Op {
                     },
                 });
             }
-        }
 
         Ok(Op {
             lhs: Box::new(lhs),

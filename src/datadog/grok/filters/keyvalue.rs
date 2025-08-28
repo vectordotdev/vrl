@@ -189,8 +189,8 @@ impl KeyValueFilter {
             // trim trailing comma for value
             let value = value.trim_end_matches(',');
 
-            if let Ok((_, value)) = parse_value(value, &self.quotes) {
-                if !(value.is_null()
+            if let Ok((_, value)) = parse_value(value, &self.quotes)
+                && !(value.is_null()
                     || matches!(&value, Value::Bytes(b) if b.is_empty())
                     || key.is_empty())
                 {
@@ -210,7 +210,6 @@ impl KeyValueFilter {
                         }
                     }
                 }
-            }
         }
     }
 }

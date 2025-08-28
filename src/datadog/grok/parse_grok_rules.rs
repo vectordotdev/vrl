@@ -383,8 +383,8 @@ fn resolves_match_function(
                             Error::InvalidFunctionArguments(match_fn.name.clone())
                         })?;
                         let mut target_tz = None;
-                        if args.len() == 2 {
-                            if let ast::FunctionArgument::Arg(Value::Bytes(b)) = &args[1] {
+                        if args.len() == 2
+                            && let ast::FunctionArgument::Arg(Value::Bytes(b)) = &args[1] {
                                 let tz = String::from_utf8_lossy(b);
                                 date::parse_timezone(&tz).map_err(|error| {
                                     error!(message = "Invalid(unrecognized) timezone", %error);
@@ -392,7 +392,6 @@ fn resolves_match_function(
                                 })?;
                                 target_tz = Some(tz.to_string());
                             }
-                        }
                         let filter = GrokFilter::Date(DateFilter {
                             original_format: format.to_string(),
                             strp_format,

@@ -68,8 +68,8 @@ impl Function for Chunks {
 
         // chunk_size is converted to a usize, so if a user-supplied Value::Integer (i64) is
         // larger than the platform's usize::MAX, it could fail to convert.
-        if let Some(literal) = chunk_size.resolve_constant(state) {
-            if let Some(integer) = literal.as_integer() {
+        if let Some(literal) = chunk_size.resolve_constant(state)
+            && let Some(integer) = literal.as_integer() {
                 if integer < 1 {
                     return Err(function::Error::InvalidArgument {
                         keyword: "chunk_size",
@@ -88,7 +88,6 @@ impl Function for Chunks {
                     .into());
                 }
             }
-        }
 
         Ok(ChunksFn { value, chunk_size }.as_expr())
     }
