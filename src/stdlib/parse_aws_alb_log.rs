@@ -301,15 +301,15 @@ fn parse_log(mut input: &str, strict_mode: bool) -> ExpressionResult<Value> {
 
 type SResult<'a, O> = IResult<&'a str, O, (&'a str, nom::error::ErrorKind)>;
 
-fn take_anything(input: &str) -> SResult<&str> {
+fn take_anything(input: &str) -> SResult<'_, &str> {
     preceded(char(' '), take_while1(|c| c != ' ')).parse(input)
 }
 
-fn take_quoted1(input: &str) -> SResult<String> {
+fn take_quoted1(input: &str) -> SResult<'_, String> {
     delimited(tag(" \""), until_quote, char('"')).parse(input)
 }
 
-fn take_tid_or_nothing(input: &str) -> SResult<Option<&str>> {
+fn take_tid_or_nothing(input: &str) -> SResult<'_, Option<&str>> {
     if input.starts_with(" TID_") {
         let (rest, value) = take_anything(input)?;
         Ok((rest, Some(value)))
@@ -318,7 +318,7 @@ fn take_tid_or_nothing(input: &str) -> SResult<Option<&str>> {
     }
 }
 
-fn until_quote(input: &str) -> SResult<String> {
+fn until_quote(input: &str) -> SResult<'_, String> {
     let mut ret = String::new();
     let mut skip_delimiter = false;
     for (i, ch) in input.char_indices() {

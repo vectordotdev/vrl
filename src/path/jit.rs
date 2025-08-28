@@ -18,7 +18,7 @@ pub struct JitValuePath<'a> {
 }
 
 impl JitValuePath<'_> {
-    pub fn new(path: &str) -> JitValuePath {
+    pub fn new(path: &str) -> JitValuePath<'_> {
         JitValuePath { path }
     }
 }

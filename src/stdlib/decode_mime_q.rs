@@ -173,10 +173,10 @@ impl EncodedWord<'_> {
                 let trimmed = to_decode.trim_end();
                 let mut result =
                     quoted_printable::decode(trimmed, quoted_printable::ParseMode::Robust);
-                if let Ok(ref mut d) = result {
-                    if to_decode.len() != trimmed.len() {
-                        d.extend_from_slice(&to_decode.as_bytes()[trimmed.len()..]);
-                    }
+                if let Ok(ref mut d) = result
+                    && to_decode.len() != trimmed.len()
+                {
+                    d.extend_from_slice(&to_decode.as_bytes()[trimmed.len()..]);
                 }
                 result.map_err(|_| "Unable to decode quoted_printable value")?
             }
