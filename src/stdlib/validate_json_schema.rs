@@ -13,7 +13,7 @@ static EXAMPLE_JSON_SCHEMA_EXPR: LazyLock<&str> = LazyLock::new(|| {
 
     Box::leak(
         format!(
-            r#"validate_json_schema!(s'{{ "productUser": "invalidEmail" }}', "{path}", false)"#
+            r#"validate_json_schema!(s'{{ "productUser": "foo@bar.com" }}', "{path}", false)"#
         )
         .into_boxed_str(),
     )
@@ -21,11 +21,9 @@ static EXAMPLE_JSON_SCHEMA_EXPR: LazyLock<&str> = LazyLock::new(|| {
 
 static EXAMPLES: LazyLock<Vec<Example>> = LazyLock::new(|| {
     vec![Example {
-        title: "payload contains invalid email format",
+        title: "valid payload",
         source: &EXAMPLE_JSON_SCHEMA_EXPR,
-        result: Err(
-            r#"function call error for "validate_json_schema" at (0:188): JSON schema validation failed: "invalidEmail" is not a "email" at /productUser"#,
-        ),
+        result: Ok("true"),
     }]
 });
 
