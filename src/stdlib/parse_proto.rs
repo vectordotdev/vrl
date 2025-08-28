@@ -1,6 +1,6 @@
 use crate::compiler::prelude::*;
-use crate::protobuf::get_message_descriptor;
-use crate::protobuf::parse_proto;
+use crate::protobuf::descriptor::get_message_descriptor;
+use crate::protobuf::parse::parse_proto;
 use crate::stdlib::json_utils::json_type_def::json_type_def;
 use prost_reflect::MessageDescriptor;
 use std::env;

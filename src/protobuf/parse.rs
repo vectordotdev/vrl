@@ -116,7 +116,7 @@ pub(crate) fn parse_proto(descriptor: &MessageDescriptor, value: Value) -> Resol
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::protobuf::get_message_descriptor;
+    use crate::protobuf::descriptor::get_message_descriptor;
     use crate::{owned_value_path, value};
     use std::path::PathBuf;
     use std::{env, fs};
