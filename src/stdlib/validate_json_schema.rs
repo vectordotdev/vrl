@@ -69,24 +69,21 @@ impl Function for ValidateJsonSchema {
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
-        let schema_file = arguments.required_literal("schema_definition", state)?;
+        let schema_definition = arguments.required_literal("schema_definition", state)?;
         let ignore_unknown_formats = arguments
             .optional("ignore_unknown_formats")
             .unwrap_or(expr!(false));
 
-        let schema_file_str = schema_file
+        let schema_file_str = schema_definition
             .try_bytes_utf8_lossy()
             .expect("schema definition file must be a string");
 
-        let path = std::path::Path::new(schema_file_str.as_ref());
-        let schema_definition =
-            non_wasm::get_json_schema_definition(path).expect("JSON schema not found");
+        let schema_file_path = std::path::Path::new(schema_file_str.as_ref());
 
         Ok(ValidateJsonSchemaFn {
             value,
-            schema_definition,
+            schema_path: PathBuf::from(schema_file_path),
             ignore_unknown_formats,
-            schema_path: PathBuf::from(path), // Add cache key
         }
         .as_expr())
     }
@@ -122,9 +119,8 @@ mod non_wasm {
     #[derive(Debug, Clone)]
     pub(super) struct ValidateJsonSchemaFn {
         pub(super) value: Box<dyn Expression>,
-        pub(super) schema_definition: serde_json::Value,
+        pub(super) schema_path: PathBuf, // Path to the schema file, also used as cache key
         pub(super) ignore_unknown_formats: Box<dyn Expression>,
-        pub(super) schema_path: PathBuf, // Path to the schema file, used for caching
     }
 
     impl FunctionExpression for ValidateJsonSchemaFn {
@@ -147,11 +143,9 @@ mod non_wasm {
             } else {
                 serde_json::from_slice(stripped_bytes).map_err(|e| format!("Invalid JSON: {e}"))?
             };
-            let schema_validator = get_or_compile_schema(
-                &self.schema_definition,
-                &self.schema_path,
-                ignore_unknown_formats,
-            )?;
+
+            let schema_validator =
+                get_or_compile_schema(&self.schema_path, ignore_unknown_formats)?;
 
             Ok(value!(schema_validator.is_valid(&json_value)))
         }
@@ -183,7 +177,6 @@ mod non_wasm {
     }
 
     pub(super) fn get_or_compile_schema(
-        schema_definition: &serde_json::Value,
         schema_path: &Path,
         ignore_unknown_formats: bool,
     ) -> Result<Arc<jsonschema::Validator>, String> {
@@ -203,11 +196,14 @@ mod non_wasm {
             return Ok(schema.clone());
         }
 
+        let schema_definition = get_json_schema_definition(schema_path)
+            .map_err(|e| format!("JSON schema not found: {e}"))?;
+
         // Compile schema
         let compiled_schema = jsonschema::options()
             .should_validate_formats(true)
             .should_ignore_unknown_formats(ignore_unknown_formats)
-            .build(schema_definition)
+            .build(&schema_definition)
             .map_err(|e| format!("Failed to compile schema: {e}"))?;
 
         let compiled_schema = Arc::new(compiled_schema);
