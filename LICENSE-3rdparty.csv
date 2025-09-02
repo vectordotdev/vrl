@@ -231,9 +231,7 @@ redox_syscall,https://gitlab.redox-os.org/redox-os/syscall,MIT,Jeremy Soller <ja
 redox_users,https://gitlab.redox-os.org/redox-os/users,MIT,"Jose Narvaez <goyox86@gmail.com>, Wesley Hershberger <mggmugginsmc@gmail.com>"
 ref-cast,https://github.com/dtolnay/ref-cast,MIT OR Apache-2.0,David Tolnay <dtolnay@gmail.com>
 regex,https://github.com/rust-lang/regex,MIT OR Apache-2.0,"The Rust Project Developers, Andrew Gallant <jamslam@gmail.com>"
-regex-automata,https://github.com/rust-lang/regex/tree/master/regex-automata,MIT OR Apache-2.0,"The Rust Project Developers, Andrew Gallant <jamslam@gmail.com>"
 regex-filtered,https://github.com/ua-parser/uap-rust,BSD-3-Clause,The regex-filtered Authors
-regex-syntax,https://github.com/rust-lang/regex/tree/master/regex-syntax,MIT OR Apache-2.0,"The Rust Project Developers, Andrew Gallant <jamslam@gmail.com>"
 reqwest,https://github.com/seanmonstar/reqwest,MIT OR Apache-2.0,Sean McArthur <sean@seanmonstar.com>
 reqwest-middleware,https://github.com/TrueLayer/reqwest-middleware,MIT OR Apache-2.0,Rodrigo Gryzinski <rodrigo.gryzinski@truelayer.com>
 retry-policies,https://github.com/TrueLayer/retry-policies,MIT OR Apache-2.0,Luca Palmieri <lpalmieri@truelayer.com>
