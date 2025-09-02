@@ -139,7 +139,7 @@ impl Function for ParseGrok {
             .expect("grok pattern not bytes")
             .into_owned();
 
-        let mut grok = grok::Grok::with_default_patterns();
+        let grok = grok::Grok::with_default_patterns();
         let pattern =
             Arc::new(grok.compile(&pattern, true).map_err(|e| {
                 Box::new(Error::InvalidGrokPattern(e)) as Box<dyn DiagnosticMessage>
