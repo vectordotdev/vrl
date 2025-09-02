@@ -2965,9 +2965,9 @@ dependencies = [
 
 [[package]]
 name = "referencing"
-version = "0.32.0"
+version = "0.32.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e0c7a0ce4e6f443ac9fb6774a8e4c317f9122dcada54e9ca91e12cdbbae1cd1d"
+checksum = "7a3d769362109497b240e66462606bc28af68116436c8669bac17069533b908e"
 dependencies = [
  "ahash",
  "fluent-uri",
