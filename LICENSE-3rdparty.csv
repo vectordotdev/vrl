@@ -196,7 +196,6 @@ opaque-debug,https://github.com/RustCrypto/utils,MIT OR Apache-2.0,RustCrypto De
 openssl-probe,https://github.com/alexcrichton/openssl-probe,MIT OR Apache-2.0,Alex Crichton <alex@alexcrichton.com>
 ordered-float,https://github.com/reem/rust-ordered-float,MIT,"Jonathan Reem <jonathan.reem@gmail.com>, Matt Brubeck <mbrubeck@limpet.net>"
 outref,https://github.com/Nugine/outref,MIT,The outref Authors
-overload,https://github.com/danaugrs/overload,MIT,Daniel Salvadori <danaugrs@gmail.com>
 owo-colors,https://github.com/owo-colors/owo-colors,MIT,jam1garner <8260240+jam1garner@users.noreply.github.com>
 parking,https://github.com/smol-rs/parking,Apache-2.0 OR MIT,"Stjepan Glavina <stjepang@gmail.com>, The Rust Project Developers"
 parking_lot,https://github.com/Amanieu/parking_lot,Apache-2.0 OR MIT,Amanieu d'Antras <amanieu@gmail.com>
@@ -232,10 +231,8 @@ redox_syscall,https://gitlab.redox-os.org/redox-os/syscall,MIT,Jeremy Soller <ja
 redox_users,https://gitlab.redox-os.org/redox-os/users,MIT,"Jose Narvaez <goyox86@gmail.com>, Wesley Hershberger <mggmugginsmc@gmail.com>"
 ref-cast,https://github.com/dtolnay/ref-cast,MIT OR Apache-2.0,David Tolnay <dtolnay@gmail.com>
 regex,https://github.com/rust-lang/regex,MIT OR Apache-2.0,"The Rust Project Developers, Andrew Gallant <jamslam@gmail.com>"
-regex-automata,https://github.com/BurntSushi/regex-automata,Unlicense OR MIT,Andrew Gallant <jamslam@gmail.com>
 regex-automata,https://github.com/rust-lang/regex/tree/master/regex-automata,MIT OR Apache-2.0,"The Rust Project Developers, Andrew Gallant <jamslam@gmail.com>"
 regex-filtered,https://github.com/ua-parser/uap-rust,BSD-3-Clause,The regex-filtered Authors
-regex-syntax,https://github.com/rust-lang/regex,MIT OR Apache-2.0,The Rust Project Developers
 regex-syntax,https://github.com/rust-lang/regex/tree/master/regex-syntax,MIT OR Apache-2.0,"The Rust Project Developers, Andrew Gallant <jamslam@gmail.com>"
 reqwest,https://github.com/seanmonstar/reqwest,MIT OR Apache-2.0,Sean McArthur <sean@seanmonstar.com>
 reqwest-middleware,https://github.com/TrueLayer/reqwest-middleware,MIT OR Apache-2.0,Rodrigo Gryzinski <rodrigo.gryzinski@truelayer.com>
