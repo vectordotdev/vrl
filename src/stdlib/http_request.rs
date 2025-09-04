@@ -156,7 +156,7 @@ impl Function for HttpRequest {
             Parameter {
                 keyword: "headers",
                 kind: kind::OBJECT,
-                required: true,
+                required: false,
             },
         ]
     }
