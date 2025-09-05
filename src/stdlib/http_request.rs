@@ -95,7 +95,8 @@ mod non_wasm {
             // without blocking Tokio's async worker threads.
             // This temporarily moves execution to a blocking-compatible thread.
             task::block_in_place(|| {
-                Handle::current().block_on(async { http_request(&url, &method, headers, &body).await })
+                Handle::current()
+                    .block_on(async { http_request(&url, &method, headers, &body).await })
             })
         }
 
@@ -146,7 +147,7 @@ impl Function for HttpRequest {
                 title: "HTTP POST request with body",
                 source: r#"http_request("https://httpbin.org/post", method: "post", body: "{\"data\":{\"hello\":\"world\"}}")"#,
                 result: Ok(r#"{"data":"{\"data\":{\"hello\":\"world\"}}"}"#),
-            }
+            },
         ]
     }
 
@@ -171,7 +172,7 @@ impl Function for HttpRequest {
                 keyword: "body",
                 kind: kind::BYTES,
                 required: false,
-            }
+            },
         ]
     }
 
