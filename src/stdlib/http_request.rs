@@ -40,10 +40,11 @@ mod non_wasm {
             .build()
     });
 
-    async fn http_request(url: &Value, method: &Value, headers: Value) -> Resolved {
+    async fn http_request(url: &Value, method: &Value, headers: Value, body: &Value) -> Resolved {
         let url = url.try_bytes_utf8_lossy()?;
         let method = method.try_bytes_utf8_lossy()?.to_uppercase();
         let headers = headers.try_object()?;
+        let body = body.try_bytes_utf8_lossy()?;
 
         let method = Method::try_from(method.to_uppercase().as_str())
             .map_err(|_| format!("Unsupported HTTP method: {method}"))?;
@@ -63,6 +64,7 @@ mod non_wasm {
         let response = CLIENT
             .request(method, url.as_ref())
             .headers(header_map)
+            .body(body.as_bytes().to_owned())
             .send()
             .await
             .map_err(|e| format!("HTTP request failed: {e}"))?;
@@ -79,6 +81,7 @@ mod non_wasm {
         pub(super) url: Box<dyn Expression>,
         pub(super) method: Box<dyn Expression>,
         pub(super) headers: Box<dyn Expression>,
+        pub(super) body: Box<dyn Expression>,
     }
 
     impl FunctionExpression for HttpRequestFn {
@@ -86,12 +89,14 @@ mod non_wasm {
             let url = self.url.resolve(ctx)?;
             let method = self.method.resolve(ctx)?;
             let headers = self.headers.resolve(ctx)?;
+            let body = self.body.resolve(ctx)?;
 
             // block_in_place runs the HTTP request synchronously
             // without blocking Tokio's async worker threads.
             // This temporarily moves execution to a blocking-compatible thread.
             task::block_in_place(|| {
-                Handle::current().block_on(async { http_request(&url, &method, headers).await })
+                Handle::current()
+                    .block_on(async { http_request(&url, &method, headers, &body).await })
             })
         }
 
@@ -138,6 +143,11 @@ impl Function for HttpRequest {
                 source: r#"http_request("https://httpbin.org/put", method: "put")"#,
                 result: Ok(r#"{"args":{},"data": "","url": "https://httpbin.org/put"}"#),
             },
+            Example {
+                title: "HTTP POST request with body",
+                source: r#"http_request("https://httpbin.org/post", method: "post", body: "{\"data\":{\"hello\":\"world\"}}")"#,
+                result: Ok(r#"{"data":"{\"data\":{\"hello\":\"world\"}}"}"#),
+            },
         ]
     }
 
@@ -158,6 +168,11 @@ impl Function for HttpRequest {
                 kind: kind::OBJECT,
                 required: true,
             },
+            Parameter {
+                keyword: "body",
+                kind: kind::BYTES,
+                required: false,
+            },
         ]
     }
 
@@ -171,11 +186,13 @@ impl Function for HttpRequest {
         let url = arguments.required("url");
         let method = arguments.optional("method").unwrap_or_else(|| expr!("get"));
         let headers = arguments.optional("headers").unwrap_or_else(|| expr!({}));
+        let body = arguments.optional("body").unwrap_or_else(|| expr!(""));
 
         Ok(HttpRequestFn {
             url,
             method,
             headers,
+            body,
         }
         .as_expr())
     }
