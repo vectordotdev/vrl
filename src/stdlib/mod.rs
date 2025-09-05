@@ -147,6 +147,7 @@ cfg_if::cfg_if! {
         mod parse_url;
         mod parse_user_agent;
         mod parse_xml;
+        mod pop;
         mod push;
         mod random_bool;
         mod random_bytes;
@@ -341,6 +342,7 @@ cfg_if::cfg_if! {
         pub use parse_url::ParseUrl;
         pub use parse_user_agent::ParseUserAgent;
         pub use parse_xml::ParseXml;
+        pub use pop::Pop;
         pub use push::Push;
         pub use r#match::Match;
         pub use random_bool::RandomBool;
@@ -543,6 +545,7 @@ pub fn all() -> Vec<Box<dyn Function>> {
         Box::new(ParseUserAgent),
         Box::new(ParseXml),
         Box::new(Pascalcase),
+        Box::new(Pop),
         Box::new(Push),
         Box::new(RandomBool),
         Box::new(RandomBytes),
