@@ -59,13 +59,22 @@ pub enum ValueError {
 
     #[error("can't convert out of range {0}")]
     OutOfRange(Kind),
+
+    #[error("can't apply a bitwise AND to types {0} and {1}")]
+    BitwiseAnd(Kind, Kind),
+
+    #[error("can't apply a bitwise OR to types {0} and {1}")]
+    BitwiseOr(Kind, Kind),
+
+    #[error("can't apply a bitwise NOT to type {0}")]
+    BitwiseNot(Kind),
 }
 
 impl DiagnosticMessage for ValueError {
     fn code(&self) -> usize {
         use ValueError::{
-            Add, And, Coerce, Div, DivideByZero, Expected, Ge, Gt, Le, Lt, Merge, Mul, NanFloat,
-            Or, Rem, Sub,
+            Add, And, BitwiseAnd, BitwiseNot, BitwiseOr, Coerce, Div, DivideByZero, Expected, Ge,
+            Gt, Le, Lt, Merge, Mul, NanFloat, Or, Rem, Sub,
         };
 
         match self {
@@ -86,6 +95,9 @@ impl DiagnosticMessage for ValueError {
             Le(..) => 314,
             Merge(..) => 315,
             OutOfRange(..) => 316,
+            BitwiseAnd(..) => 317,
+            BitwiseOr(..) => 318,
+            BitwiseNot(..) => 319,
         }
     }
 }

@@ -3,7 +3,7 @@ use crate::compiler::expression::function_call::FunctionCallError;
 use crate::compiler::{
     CompileConfig, Function, Program, TypeDef,
     expression::{
-        Abort, Array, Assignment, Block, Container, Expr, Expression, FunctionArgument,
+        Abort, Array, Assignment, BitwiseNot, Block, Container, Expr, Expression, FunctionArgument,
         FunctionCall, Group, IfStatement, Literal, Noop, Not, Object, Op, Predicate, Query, Return,
         Target, Unary, Variable, assignment, function_call, literal, predicate, query,
     },
@@ -801,10 +801,11 @@ impl<'a> Compiler<'a> {
     }
 
     fn compile_unary(&mut self, node: Node<ast::Unary>, state: &mut TypeState) -> Option<Unary> {
-        use ast::Unary::Not;
+        use ast::Unary::{BitwiseNot, Not};
 
         let variant = match node.into_inner() {
             Not(node) => self.compile_not(node, state)?.into(),
+            BitwiseNot(node) => self.compile_bitwise_not(node, state)?.into(),
         };
 
         Some(Unary::new(variant))
@@ -816,6 +817,20 @@ impl<'a> Compiler<'a> {
         let node = Node::new(expr.span(), self.compile_expr(*expr, state)?);
 
         Not::new(node, not.span(), state)
+            .map_err(|err| self.diagnostics.push(Box::new(err)))
+            .ok()
+    }
+
+    fn compile_bitwise_not(
+        &mut self,
+        node: Node<ast::BitwiseNot>,
+        state: &mut TypeState,
+    ) -> Option<BitwiseNot> {
+        let (not, expr) = node.into_inner().take();
+
+        let node = Node::new(expr.span(), self.compile_expr(*expr, state)?);
+
+        BitwiseNot::new(node, not.span(), state)
             .map_err(|err| self.diagnostics.push(Box::new(err)))
             .ok()
     }

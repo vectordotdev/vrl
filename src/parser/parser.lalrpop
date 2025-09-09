@@ -57,6 +57,7 @@ extern {
         "!" => Token::Bang,
         "->" => Token::Arrow,
         "%" => Token::Percent,
+        "~" => Token::Tilde,
 
         "+" => Token::Operator("+"),
         "*" => Token::Operator("*"),
@@ -73,6 +74,9 @@ extern {
         "&&" => Token::Operator("&&"),
         "||" => Token::Operator("||"),
         "??" => Token::Operator("??"),
+
+        "&" => Token::Operator("&"),
+        "^" => Token::Operator("^"),
 
         "[" => Token::LBracket,
         "{" => Token::LBrace,
@@ -277,10 +281,16 @@ ErrorCoalesce: Expr = {
 };
 
 Logical: Expr = {
-    Op<Logical, "||", Equal>,
-    Op<Logical, "&&", Equal>,
-    Equal,
+    Op<Logical, "||", BitwiseAndOr>,
+    Op<Logical, "&&", BitwiseAndOr>,
+    BitwiseAndOr,
 };
+
+BitwiseAndOr: Expr = {
+    Op<BitwiseAndOr, "&", Equal>,
+    Op<BitwiseAndOr, "^", Equal>,
+    Equal
+}
 
 Equal: Expr = {
     Op<Equal, "!=", Compare>,
@@ -319,8 +329,17 @@ Not: Expr = {
         let not = Unary::Not(Node::new(span, Not(bang.map(|_| ()), expr)));
         Expr::Unary(Node::new(span, not))
     },
-    Term,
+    BitwiseNot,
 };
+
+BitwiseNot: Expr = {
+    <tilde: Sp<"~">> <expr: Box<Sp<BitwiseNot>>> => {
+        let span = span(tilde.span().start(), expr.span().end());
+        let bitwise_not = Unary::BitwiseNot(Node::new(span, BitwiseNot(tilde.map(|_| ()), expr)));
+        Expr::Unary(Node::new(span, bitwise_not))
+    },
+    Term
+}
 
 #[inline]
 Term: Expr = {
