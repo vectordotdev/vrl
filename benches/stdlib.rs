@@ -44,6 +44,8 @@ criterion_group!(
               encode_percent,
               encode_punycode,
               encrypt,
+              encrypt_ip,
+              decrypt_ip,
               ends_with,
               // TODO: Cannot pass a Path to bench_function
               //exists
@@ -3084,5 +3086,33 @@ bench_function! {
             array_1: value!(["one", 2, null, true]),
         ],
         want: Ok(value!([["one","one"], ["two",2], ["three",null], ["four",true]])),
+    }
+}
+
+bench_function! {
+    encrypt_ip => vrl::stdlib::EncryptIp;
+
+    aes128_ipv4 {
+        args: func_args![ip: value!("192.168.1.1"), key: value!("sixteen byte key"), mode: value!("aes128")],
+        want: Ok(value!("72b9:a747:f2e9:72af:76ca:5866:6dcf:c3b0")),
+    }
+
+    pfx_ipv6 {
+        args: func_args![ip: value!("2001:db8::1"), key: value!("thirty-two bytes key for ipv6pfx"), mode: value!("pfx")],
+        want: Ok(value!("88bd:d2bf:8865:8c4d:84b:44f6:6077:72c9")),
+    }
+}
+
+bench_function! {
+    decrypt_ip => vrl::stdlib::DecryptIp;
+
+    aes128_ipv4 {
+        args: func_args![ip: value!("72b9:a747:f2e9:72af:76ca:5866:6dcf:c3b0"), key: value!("sixteen byte key"), mode: value!("aes128")],
+        want: Ok(value!("192.168.1.1")),
+    }
+
+    pfx_ipv6 {
+        args: func_args![ip: value!("88bd:d2bf:8865:8c4d:84b:44f6:6077:72c9"), key: value!("thirty-two bytes key for ipv6pfx"), mode: value!("pfx")],
+        want: Ok(value!("2001:db8::1")),
     }
 }

@@ -1686,6 +1686,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "ipcrypt-rs"
+version = "0.9.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fe95179878e295cbf807bad4b81465f83c6a8b93e608c83a1e92bbe01c6c55da"
+dependencies = [
+ "aes",
+ "rand 0.9.2",
+]
+
+[[package]]
 name = "ipnet"
 version = "2.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4213,6 +4223,7 @@ dependencies = [
  "indexmap",
  "indoc",
  "influxdb-line-protocol",
+ "ipcrypt-rs",
  "itertools 0.14.0",
  "jsonschema",
  "lalrpop",
