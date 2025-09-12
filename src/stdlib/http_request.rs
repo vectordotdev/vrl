@@ -234,6 +234,7 @@ mod tests {
             url: expr!("https://httpbin.org/get"),
             method: expr!("get"),
             headers: expr!({}),
+            body: expr!(""),
         };
 
         let result = execute_http_request(&func).expect("HTTP request failed");
@@ -254,6 +255,7 @@ mod tests {
             url: expr!("not-a-valid-url"),
             method: expr!("get"),
             headers: expr!({}),
+            body: expr!(""),
         };
 
         let result = execute_http_request(&func);
@@ -268,6 +270,7 @@ mod tests {
             url: expr!("https://httpbin.org/get"),
             method: expr!("get"),
             headers: expr!({"Invalid Header With Spaces": "value"}),
+            body: expr!(""),
         };
 
         let result = execute_http_request(&func);
