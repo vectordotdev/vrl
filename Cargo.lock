@@ -1687,12 +1687,11 @@ dependencies = [
 
 [[package]]
 name = "ipcrypt-rs"
-version = "0.9.2"
+version = "0.9.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fe95179878e295cbf807bad4b81465f83c6a8b93e608c83a1e92bbe01c6c55da"
+checksum = "96e4f67dbfc0f75d7b65953ecf0be3fd84ee0cb1ae72a00a4aa9a2f5518a2c80"
 dependencies = [
  "aes",
- "rand 0.9.2",
 ]
 
 [[package]]

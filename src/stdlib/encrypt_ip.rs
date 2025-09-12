@@ -13,7 +13,7 @@ fn encrypt_ip(ip: &Value, key: Value, mode: &Value) -> Resolved {
 
     let ip_ver_label = match ip_addr {
         IpAddr::V4(_) => "IPv4",
-        IpAddr::V6(_) => "IPv6"
+        IpAddr::V6(_) => "IPv6",
     };
 
     let encrypted_ip = match mode_str.as_ref() {
@@ -29,7 +29,6 @@ fn encrypt_ip(ip: &Value, key: Value, mode: &Value) -> Resolved {
             return Err(format!("Invalid mode '{other}'. Must be 'aes128' or 'pfx'").into());
         }
     };
-
 
     Ok(encrypted_ip.to_string().into())
 }

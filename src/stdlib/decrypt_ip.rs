@@ -13,7 +13,7 @@ fn decrypt_ip(ip: &Value, key: Value, mode: &Value) -> Resolved {
 
     let ip_ver_label = match ip_addr {
         IpAddr::V4(_) => "IPv4",
-        IpAddr::V6(_) => "IPv6"
+        IpAddr::V6(_) => "IPv6",
     };
 
     let decrypted_ip = match mode_str.as_ref() {
