@@ -1,62 +1,43 @@
 use crate::compiler::prelude::*;
+use crate::stdlib::ip_utils::to_key;
 use ipcrypt_rs::{Ipcrypt, IpcryptPfx};
 use std::net::IpAddr;
 
-fn decrypt_ip(ip: &Value, key: &Value, mode: &Value) -> Resolved {
+fn decrypt_ip(ip: &Value, key: Value, mode: &Value) -> Resolved {
     let ip_str = ip.try_bytes_utf8_lossy()?;
     let ip_addr: IpAddr = ip_str
         .parse()
         .map_err(|err| format!("unable to parse IP address: {err}"))?;
 
-    let key_bytes = key.clone().try_bytes()?;
     let mode_str = mode.try_bytes_utf8_lossy()?;
+
+    let ip_ver_label = match ip_addr {
+        IpAddr::V4(_) => "IPv4",
+        IpAddr::V6(_) => "IPv6"
+    };
 
     let decrypted_ip = match mode_str.as_ref() {
         "aes128" => match ip_addr {
             IpAddr::V4(ipv4) => {
-                if key_bytes.len() != 16 {
-                    return Err("AES128 mode requires a 16-byte key for IPv4".into());
-                }
-                let key_array: [u8; 16] = key_bytes
-                    .as_ref()
-                    .try_into()
-                    .map_err(|_| "Invalid key size for AES128 mode")?;
-                let ipcrypt = Ipcrypt::new(key_array);
+                let key = to_key::<16>(key, "aes128", ip_ver_label)?;
+                let ipcrypt = Ipcrypt::new(key);
                 ipcrypt.decrypt_ipaddr(IpAddr::V4(ipv4))
             }
             IpAddr::V6(ipv6) => {
-                if key_bytes.len() != 16 {
-                    return Err("AES128 mode requires a 16-byte key for IPv6".into());
-                }
-                let key_array: [u8; 16] = key_bytes
-                    .as_ref()
-                    .try_into()
-                    .map_err(|_| "Invalid key size for AES128 mode")?;
-                let ipcrypt = Ipcrypt::new(key_array);
+                let key = to_key::<16>(key, "aes128", ip_ver_label)?;
+                let ipcrypt = Ipcrypt::new(key);
                 ipcrypt.decrypt_ipaddr(IpAddr::V6(ipv6))
             }
         },
         "pfx" => match ip_addr {
             IpAddr::V4(ipv4) => {
-                if key_bytes.len() != 32 {
-                    return Err("PFX mode requires a 32-byte key".into());
-                }
-                let key_array: [u8; 32] = key_bytes
-                    .as_ref()
-                    .try_into()
-                    .map_err(|_| "Invalid key size for PFX mode")?;
-                let ipcrypt_pfx = IpcryptPfx::new(key_array);
+                let key = to_key::<32>(key, "pfx", ip_ver_label)?;
+                let ipcrypt_pfx = IpcryptPfx::new(key);
                 ipcrypt_pfx.decrypt_ipaddr(IpAddr::V4(ipv4))
             }
             IpAddr::V6(ipv6) => {
-                if key_bytes.len() != 32 {
-                    return Err("PFX mode requires a 32-byte key".into());
-                }
-                let key_array: [u8; 32] = key_bytes
-                    .as_ref()
-                    .try_into()
-                    .map_err(|_| "Invalid key size for PFX mode")?;
-                let ipcrypt_pfx = IpcryptPfx::new(key_array);
+                let key = to_key::<32>(key, "pfx", ip_ver_label)?;
+                let ipcrypt_pfx = IpcryptPfx::new(key);
                 ipcrypt_pfx.decrypt_ipaddr(IpAddr::V6(ipv6))
             }
         },
@@ -113,7 +94,7 @@ impl Function for DecryptIp {
 
     fn compile(
         &self,
-        _state: &state::TypeState,
+        _state: &TypeState,
         _ctx: &mut FunctionCompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
@@ -137,10 +118,10 @@ impl FunctionExpression for DecryptIpFn {
         let ip = self.ip.resolve(ctx)?;
         let key = self.key.resolve(ctx)?;
         let mode = self.mode.resolve(ctx)?;
-        decrypt_ip(&ip, &key, &mode)
+        decrypt_ip(&ip, key, &mode)
     }
 
-    fn type_def(&self, _: &state::TypeState) -> TypeDef {
+    fn type_def(&self, _: &TypeState) -> TypeDef {
         TypeDef::bytes().fallible()
     }
 }
@@ -199,7 +180,7 @@ mod tests {
                 key: value!(b"short"),
                 mode: "aes128"
             ],
-            want: Err("AES128 mode requires a 16-byte key for IPv4"),
+            want: Err("aes128 mode requires a 16-byte key for IPv4"),
             tdef: TypeDef::bytes().fallible(),
         }
 
@@ -209,7 +190,7 @@ mod tests {
                 key: value!(b"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10"),
                 mode: "pfx"
             ],
-            want: Err("PFX mode requires a 32-byte key"),
+            want: Err("pfx mode requires a 32-byte key for IPv4"),
             tdef: TypeDef::bytes().fallible(),
         }
     ];

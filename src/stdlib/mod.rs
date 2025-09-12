@@ -7,6 +7,7 @@ mod json_utils;
 mod string_utils;
 mod util;
 mod wasm_unsupported_function;
+mod ip_utils;
 
 cfg_if::cfg_if! {
     if #[cfg(feature = "stdlib")] {
