@@ -720,6 +720,8 @@ pub enum Opcode {
     Le,
     Lt,
     Merge,
+    BitwiseAnd,
+    BitwiseOr,
 }
 
 impl fmt::Display for Opcode {
@@ -731,7 +733,9 @@ impl fmt::Display for Opcode {
 impl Opcode {
     #[must_use]
     pub fn as_str(self) -> &'static str {
-        use Opcode::{Add, And, Div, Eq, Err, Ge, Gt, Le, Lt, Merge, Mul, Ne, Or, Sub};
+        use Opcode::{
+            Add, And, BitwiseAnd, BitwiseOr, Div, Eq, Err, Ge, Gt, Le, Lt, Merge, Mul, Ne, Or, Sub,
+        };
 
         match self {
             Mul => "*",
@@ -752,6 +756,9 @@ impl Opcode {
             Gt => ">",
             Le => "<=",
             Lt => "<",
+
+            BitwiseAnd => "&",
+            BitwiseOr => "^",
         }
     }
 }
@@ -760,7 +767,9 @@ impl FromStr for Opcode {
     type Err = ();
 
     fn from_str(s: &str) -> Result<Self, ()> {
-        use Opcode::{Add, And, Div, Eq, Err, Ge, Gt, Le, Lt, Merge, Mul, Ne, Or, Sub};
+        use Opcode::{
+            Add, And, BitwiseAnd, BitwiseOr, Div, Eq, Err, Ge, Gt, Le, Lt, Merge, Mul, Ne, Or, Sub,
+        };
 
         let op = match s {
             "*" => Mul,
@@ -781,6 +790,9 @@ impl FromStr for Opcode {
             "<=" => Le,
             "<" => Lt,
             "|" => Merge,
+
+            "&" => BitwiseAnd,
+            "^" => BitwiseOr,
 
             _ => return std::result::Result::Err(()),
         };
@@ -1149,24 +1161,27 @@ impl fmt::Debug for FunctionClosure {
 #[derive(Clone, PartialEq)]
 pub enum Unary {
     Not(Node<Not>),
+    BitwiseNot(Node<BitwiseNot>),
 }
 
 impl fmt::Display for Unary {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        use Unary::Not;
+        use Unary::{BitwiseNot, Not};
 
         match self {
             Not(v) => v.fmt(f),
+            BitwiseNot(v) => v.fmt(f),
         }
     }
 }
 
 impl fmt::Debug for Unary {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        use Unary::Not;
+        use Unary::{BitwiseNot, Not};
 
         let value = match self {
             Not(v) => format!("{v:?}"),
+            BitwiseNot(v) => format!("{v:?}"),
         };
 
         write!(f, "Unary({value})")
@@ -1201,6 +1216,37 @@ impl fmt::Display for Not {
 impl fmt::Debug for Not {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "Not({:?})", self.1)
+    }
+}
+
+// -----------------------------------------------------------------------------
+// bitwise not
+// -----------------------------------------------------------------------------
+
+#[derive(Clone, PartialEq)]
+pub struct BitwiseNot(pub(crate) Node<()>, pub(crate) Box<Node<Expr>>);
+
+impl BitwiseNot {
+    #[must_use]
+    pub fn take(self) -> (Node<()>, Box<Node<Expr>>) {
+        (self.0, self.1)
+    }
+
+    #[must_use]
+    pub fn new(span: Span, expr: Node<Expr>) -> Self {
+        Self(Node::new(span, ()), Box::new(expr))
+    }
+}
+
+impl fmt::Display for BitwiseNot {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "~{}", self.1)
+    }
+}
+
+impl fmt::Debug for BitwiseNot {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Bitwise Not({:?})", self.1)
     }
 }
 
