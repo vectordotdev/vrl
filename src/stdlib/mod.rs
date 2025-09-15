@@ -3,6 +3,7 @@ pub use wasm_unsupported_function::WasmUnsupportedFunction;
 
 use crate::compiler::Function;
 
+mod ip_utils;
 mod json_utils;
 mod string_utils;
 mod util;
@@ -35,6 +36,7 @@ cfg_if::cfg_if! {
         mod decode_zlib;
         mod decode_zstd;
         mod decrypt;
+        mod decrypt_ip;
         mod del;
         mod dns_lookup;
         mod downcase;
@@ -53,6 +55,7 @@ cfg_if::cfg_if! {
         mod encode_zlib;
         mod encode_zstd;
         mod encrypt;
+        mod encrypt_ip;
         mod ends_with;
         mod exists;
         mod filter;
@@ -227,6 +230,7 @@ cfg_if::cfg_if! {
         pub use decode_zlib::DecodeZlib;
         pub use decode_zstd::DecodeZstd;
         pub use decrypt::Decrypt;
+        pub use decrypt_ip::DecryptIp;
         pub use del::Del;
         pub use dns_lookup::DnsLookup;
         pub use downcase::Downcase;
@@ -250,6 +254,7 @@ cfg_if::cfg_if! {
         pub use encode_zlib::EncodeZlib;
         pub use encode_zstd::EncodeZstd;
         pub use encrypt::Encrypt;
+        pub use encrypt_ip::EncryptIp;
         pub use ends_with::EndsWith;
         pub use exists::Exists;
         pub use filter::Filter;
@@ -432,6 +437,7 @@ pub fn all() -> Vec<Box<dyn Function>> {
         Box::new(DecodeZlib),
         Box::new(DecodeZstd),
         Box::new(Decrypt),
+        Box::new(DecryptIp),
         Box::new(Del),
         Box::new(DnsLookup),
         Box::new(Downcase),
@@ -450,6 +456,7 @@ pub fn all() -> Vec<Box<dyn Function>> {
         Box::new(EncodeZlib),
         Box::new(EncodeZstd),
         Box::new(Encrypt),
+        Box::new(EncryptIp),
         Box::new(EndsWith),
         Box::new(Exists),
         Box::new(Filter),

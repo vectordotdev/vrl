@@ -89,6 +89,7 @@ stdlib = [
   "dep:idna",
   "dep:indexmap",
   "dep:influxdb-line-protocol",
+  "dep:ipcrypt-rs",
   "dep:md-5",
   "dep:nom",
   "dep:ofb",
@@ -212,6 +213,7 @@ aes = { version = "0.8", optional = true }
 aes-siv = { version = "0.7.0", optional = true }
 chacha20poly1305 = { version = "0.10", optional = true }
 crypto_secretbox = { version = "0.1", features = ["salsa20"], optional = true }
+ipcrypt-rs = { version = "0.9.4", optional = true, default-features = false }
 
 # Cryptography - Block Modes
 ctr = { version = "0.9", optional = true }
