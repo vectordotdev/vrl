@@ -94,11 +94,10 @@ mod non_wasm {
             // block_in_place runs the HTTP request synchronously
             // without blocking Tokio's async worker threads.
             // This temporarily moves execution to a blocking-compatible thread.
-            task::block_in_place(|| match Handle::try_current() {
-                Ok(handle) => {
+            task::block_in_place(|| {
+                if let Ok(handle) = Handle::try_current() {
                     handle.block_on(async { http_request(&url, &method, headers, &body).await })
-                }
-                Err(_) => {
+                } else {
                     let runtime = runtime::Builder::new_current_thread()
                         .enable_all()
                         .build()
