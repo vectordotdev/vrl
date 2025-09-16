@@ -23,8 +23,8 @@ mod non_wasm {
     use reqwest_retry::{RetryTransientMiddleware, policies::ExponentialBackoff};
     use std::sync::LazyLock;
     use tokio::runtime::Handle;
-    use tokio::task;
     use tokio::time::Duration;
+    use tokio::{runtime, task};
 
     static CLIENT: LazyLock<ClientWithMiddleware> = LazyLock::new(|| {
         let retry_policy = ExponentialBackoff::builder().build_with_max_retries(3);
@@ -95,8 +95,16 @@ mod non_wasm {
             // without blocking Tokio's async worker threads.
             // This temporarily moves execution to a blocking-compatible thread.
             task::block_in_place(|| {
-                Handle::current()
-                    .block_on(async { http_request(&url, &method, headers, &body).await })
+                if let Ok(handle) = Handle::try_current() {
+                    handle.block_on(async { http_request(&url, &method, headers, &body).await })
+                } else {
+                    let runtime = runtime::Builder::new_current_thread()
+                        .enable_all()
+                        .build()
+                        .expect("tokio runtime creation failed");
+                    runtime
+                        .block_on(async move { http_request(&url, &method, headers, &body).await })
+                }
             })
         }
 
