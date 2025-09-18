@@ -4,6 +4,89 @@
 
 <!-- changelog start -->
 
+## [0.27.0 (2025-09-18)]
+
+### Breaking Changes & Upgrade Guide
+
+- The `validate_json_schema` functionality has been enhanced to collect and return validation error(s) in the error message return value, in addition to the existing primary Boolean `true / false` return value.
+
+  Using JSON schema `test-schema.json` below:
+  ```json
+  {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "test": {
+        "type": "boolean"
+      },
+      "id": {
+        "type": "integer"
+      }
+    },
+    "required": ["test"],
+    "additionalProperties": false
+  }
+  ```
+
+  Before:
+  ```
+  $ invalid_object = { "id": "123" }
+  { "id": "123" }
+
+  $ valid, err = validate_json_schema(encode_json(invalid_object), "test-schema.json")
+  false
+
+  $ valid
+  false
+
+  $ err
+  null
+  ```
+
+  After:
+  ```
+  $ invalid_object = { "id": "123" }
+  { "id": "123" }
+
+  $ valid, err = validate_json_schema(encode_json(invalid_object), "test-schema.json")
+  "function call error for \"validate_json_schema\" at (13:82): JSON schema validation failed: \"123\" is not of type \"integer\" at /id, \"test\" is a required property at /"
+
+  $ valid
+  false
+
+  $ err
+  "function call error for \"validate_json_schema\" at (13:82): JSON schema validation failed: \"123\" is not of type \"integer\" at /id, \"test\" is a required property at /"
+  ``` (https://github.com/vectordotdev/vrl/pull/1483)
+
+### New Features
+
+- Added a new `xxhash` function implementing `xxh32/xxh64/xxh3_64/xxh3_128` hashing algorithms.
+
+  authors: stigglor (https://github.com/vectordotdev/vrl/pull/1473)
+- Added an optional `strict_mode` parameter to `parse_aws_alb_log`. When set to `false`, the parser ignores any newly added/trailing fields in AWS ALB logs instead of failing. Defaults to `true` to preserve current behavior.
+
+  authors: anas-aso (https://github.com/vectordotdev/vrl/pull/1482)
+- Added a new array function `pop` that removes the last item from an array.
+
+  authors: jlambatl (https://github.com/vectordotdev/vrl/pull/1501)
+- Added two new cryptographic functions `encrypt_ip` and `decrypt_ip` for IP address encryption
+
+  These functions use the IPCrypt specification and support both IPv4 and IPv6 addresses with two encryption modes: `aes128` (IPCrypt deterministic, 16-byte key) and `pfx` (IPCryptPfx, 32-byte key). Both algorithms are format-preserving (output is a valid IP address) and deterministic. (https://github.com/vectordotdev/vrl/pull/1506)
+
+### Enhancements
+
+- Added an optional `body` parameter to `http_request`. Best used when sending a POST or PUT request.
+
+  This does not perform automatic setting of `Content-Type` or `Content-Length` header(s). The caller should add these headers using the `headers` map parameter. (https://github.com/vectordotdev/vrl/pull/1502)
+
+### Fixes
+
+- The `validate_json_schema` function no longer panics if the JSON schema file cannot be accessed or is invalid. (https://github.com/vectordotdev/vrl/pull/1476)
+- Fixed the `http_request` function's ability to run from the VRL CLI, no longer panics.
+
+  authors: sbalmos (https://github.com/vectordotdev/vrl/pull/1510)
+
+
 ## [0.26.0 (2025-08-07)]
 
 ### Breaking Changes & Upgrade Guide
