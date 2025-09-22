@@ -10,7 +10,7 @@ fn find(value: Value, pattern: Value, from: Option<Value>) -> Resolved {
     } as usize;
 
     Ok(FindFn::find(value, pattern, from)?
-        .map_or(Value::Integer(-1), |value| Value::Integer(value as i64)))
+        .map_or(Value::Null, |value| Value::Integer(value as i64)))
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -163,7 +163,7 @@ mod tests {
 
         str_too_long {
             args: func_args![value: "foo", pattern: "foobar"],
-            want: Ok(value!(-1)),
+            want: Ok(value!(null)),
             tdef: TypeDef::integer().infallible(),
         }
 
