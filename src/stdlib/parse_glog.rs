@@ -58,7 +58,7 @@ static REGEX_GLOG: LazyLock<Regex> = LazyLock::new(|| {
         ^\s*                                                        # Start with any number of whitespaces.
         (?P<level>\w)                                               # Match one word character (expecting `I`,`W`,`E` or `F`).
         (?P<timestamp>\d{4}\d{2}\d{2}\s\d{2}:\d{2}:\d{2}\.\d{6})    # Match YYYYMMDD hh:mm:ss.ffffff.
-        \s                                                          # Match one whitespace.
+        \s+                                                         # Match one or more whitespace.
         (?P<id>\d+)                                                 # Match at least one digit.
         \s                                                          # Match one whitespace.
         (?P<file>.+):(?P<line>\d+)                                  # Match any character (greedily), ended by `:` and at least one digit.
@@ -168,6 +168,19 @@ mod tests {
                 "level" => "info",
                 "timestamp" => Value::Timestamp(DateTime::parse_from_rfc3339("2021-01-31T14:48:54.411655Z").unwrap().into()),
                 "id" => 15520,
+                "file" => "main.c++",
+                "line" => 9,
+                "message" => "Hello world!",
+            }),
+            tdef: TypeDef::object(inner_kind()).fallible(),
+        }
+
+        log_line_padded_threadid {
+            args: func_args![value: "I20210131 14:48:54.411655    20 main.c++:9] Hello world!"],
+            want: Ok(btreemap! {
+                "level" => "info",
+                "timestamp" => Value::Timestamp(DateTime::parse_from_rfc3339("2021-01-31T14:48:54.411655Z").unwrap().into()),
+                "id" => 20,
                 "file" => "main.c++",
                 "line" => 9,
                 "message" => "Hello world!",
