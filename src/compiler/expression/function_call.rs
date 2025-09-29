@@ -582,7 +582,7 @@ impl FunctionCall {
     #[allow(dead_code)]
     fn resolve_arguments(
         &self,
-        function: &dyn Function,
+        function: &(dyn Function),
     ) -> Result<Vec<(&'static str, Option<FunctionArgument>)>, String> {
         let params = function.parameters().to_vec();
         let mut result = params
