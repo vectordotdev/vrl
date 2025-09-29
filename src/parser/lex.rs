@@ -817,7 +817,7 @@ impl<'input> Lexer<'input> {
                         valid = true
                     }
 
-                    if last_char.map(is_ident_continue) == Some(true) {
+                    if last_char.is_some_and(is_ident_continue) {
                         valid = true
                     }
                 }
@@ -979,7 +979,7 @@ impl<'input> Lexer<'input> {
                 '.' if last_char == Some('}') => valid = true,
                 '.' if last_char == Some(']') => valid = true,
                 '.' if last_char == Some('"') => valid = true,
-                '.' if last_char.map(is_ident_continue) == Some(true) => {
+                '.' if last_char.is_some_and(is_ident_continue) => {
                     // we need to make sure we're not dealing with a float here
                     let digits = self.input[..pos]
                         .chars()
