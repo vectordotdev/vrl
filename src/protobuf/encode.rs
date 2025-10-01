@@ -606,6 +606,23 @@ mod tests {
     }
 
     #[test]
+    fn test_encode_with_default_options() {
+        let value = value!({
+            name: "Someone",
+            job_description: "Software Engineer"
+        });
+        let descriptor = test_protobuf3_descriptor();
+
+        let message = encode_message(&descriptor, value, &Options::default()).unwrap();
+
+        assert_eq!(Some("Someone"), mfield!(message, "name").as_str());
+        assert_eq!(
+            Some("Software Engineer"),
+            mfield!(message, "job_description").as_str()
+        );
+    }
+
+    #[test]
     fn test_encode_with_json_names() {
         let value = value!({
             name: "Someone",
@@ -622,16 +639,10 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(
-            Some("Someone"),
-            message.get_field_by_name("name").unwrap().as_str()
-        );
+        assert_eq!(Some("Someone"), mfield!(message, "name").as_str());
         assert_eq!(
             Some("Software Engineer"),
-            message
-                .get_field_by_name("job_description")
-                .unwrap()
-                .as_str()
+            mfield!(message, "job_description").as_str()
         );
     }
 }
