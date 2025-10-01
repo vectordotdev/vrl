@@ -4,13 +4,7 @@ use std::path::Path;
 fn basename(value: &Value) -> Resolved {
     let path_str_cow = value.try_bytes_utf8_lossy()?;
     let path_str = path_str_cow.as_ref();
-
-    // strip the trailing slash if it exists
-    let path = if path_str.len() > 1 && path_str.ends_with('/') {
-        Path::new(&path_str[..path_str.len() - 1])
-    } else {
-        Path::new(path_str)
-    };
+    let path = Path::new(path_str);
 
     let basename = path.file_name().and_then(|s| s.to_str()).map(Value::from);
     Ok(basename.into())
