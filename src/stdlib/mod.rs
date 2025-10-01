@@ -16,6 +16,7 @@ cfg_if::cfg_if! {
         mod array;
         mod assert;
         mod assert_eq;
+        mod basename;
         mod boolean;
         mod ceil;
         mod casing;
@@ -212,6 +213,7 @@ cfg_if::cfg_if! {
         pub use append::Append;
         pub use assert::Assert;
         pub use assert_eq::AssertEq;
+        pub use basename::BaseName;
         pub use boolean::Boolean;
         pub use ceil::Ceil;
         pub use chunks::Chunks;
