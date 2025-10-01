@@ -5,12 +5,18 @@ use prost::Message;
 use prost_reflect::{DynamicMessage, FieldDescriptor, Kind, MapKey, MessageDescriptor};
 use std::collections::HashMap;
 
+#[derive(Default, Debug, Clone, Eq, PartialEq)]
+pub struct Options {
+    pub use_json_names: bool,
+}
+
 /// Convert a single raw `Value` into a protobuf `Value`.
 ///
 /// Unlike `convert_value`, this ignores any field metadata such as cardinality.
 fn convert_value_raw(
     value: Value,
-    kind: &prost_reflect::Kind,
+    kind: &Kind,
+    options: &Options,
 ) -> Result<prost_reflect::Value, String> {
     let kind_str = value.kind_str().to_owned();
     match (value, kind) {
@@ -95,7 +101,7 @@ fn convert_value_raw(
                     .ok_or("Internal error with proto map processing")?;
                 let mut map: HashMap<MapKey, prost_reflect::Value> = HashMap::new();
                 for (key, val) in o.into_iter() {
-                    match convert_value(&value_field, val) {
+                    match convert_value(&value_field, val, options) {
                         Ok(prost_val) => {
                             map.insert(MapKey::String(key.into()), prost_val);
                         }
@@ -108,6 +114,7 @@ fn convert_value_raw(
                 Ok(prost_reflect::Value::Message(encode_message(
                     message_descriptor,
                     Value::Object(o),
+                    options,
                 )?))
             }
         }
@@ -140,44 +147,69 @@ fn convert_value_raw(
 fn convert_value(
     field_descriptor: &FieldDescriptor,
     value: Value,
+    options: &Options,
 ) -> Result<prost_reflect::Value, String> {
     if let Value::Array(a) = value {
         if field_descriptor.cardinality() == prost_reflect::Cardinality::Repeated {
             let repeated: Result<Vec<prost_reflect::Value>, String> = a
                 .into_iter()
-                .map(|v| convert_value_raw(v, &field_descriptor.kind()))
+                .map(|v| convert_value_raw(v, &field_descriptor.kind(), options))
                 .collect();
             Ok(prost_reflect::Value::List(repeated?))
         } else {
             Err("Cannot encode array into a non-repeated protobuf field".into())
         }
     } else {
-        convert_value_raw(value, &field_descriptor.kind())
+        convert_value_raw(value, &field_descriptor.kind(), options)
     }
 }
 
-/// Convert a `Value` into a protobuf message.
+/// Converts a VRL [`Value`] into a protobuf [`DynamicMessage`].
 ///
-/// This function can only operate on `Value::Object`s,
-/// since they are the only field-based Value
-/// and protobuf messages are defined as a collection of fields and values.
+/// # Arguments
+///
+/// * `message_descriptor` - The protobuf message schema descriptor
+/// * `value` - The VRL value to encode
+/// * `options` - Encoding options (e.g., whether to use JSON field names)
+///
+/// # Returns
+///
+/// Returns `Ok(`[`DynamicMessage`]`)` on success, or `Err(String)` with a descriptive error message.
+///
+/// # Errors
+///
+/// * Returns an error if `value` is not a [`Value::Object`]
+/// * Returns an error if field type conversion fails (e.g., trying to encode a string as an integer)
+/// * Returns an error if setting a field on the message fails
+///
+/// # Behavior
+///
+/// * Only [`Value::Object`] is supported, since protobuf messages are collections of named fields
+/// * Fields present in the object with `null` values are explicitly cleared
+/// * Fields not present in the object retain their default protobuf values
+/// * Type conversion follows the mappings defined in [`convert_value_raw`].
 pub fn encode_message(
     message_descriptor: &MessageDescriptor,
     value: Value,
+    options: &Options,
 ) -> Result<DynamicMessage, String> {
     let mut message = DynamicMessage::new(message_descriptor.clone());
     if let Value::Object(map) = value {
         for field in message_descriptor.fields() {
-            match map.get(field.name()) {
+            let field_name = if options.use_json_names {
+                field.json_name()
+            } else {
+                field.name()
+            };
+            match map.get(field_name) {
                 None | Some(Value::Null) => message.clear_field(&field),
                 Some(value) => message
                     .try_set_field(
                         &field,
-                        convert_value(&field, value.clone()).map_err(|e| {
-                            format!("Error converting {} field: {}", field.name(), e)
-                        })?,
+                        convert_value(&field, value.clone(), options)
+                            .map_err(|e| format!("Error converting {field_name} field: {e}"))?,
                     )
-                    .map_err(|e| format!("Error setting {} field: {}", field.name(), e))?,
+                    .map_err(|e| format!("Error setting {field_name} field: {e}"))?,
             }
         }
         Ok(message)
@@ -187,7 +219,7 @@ pub fn encode_message(
 }
 
 pub(crate) fn encode_proto(descriptor: &MessageDescriptor, value: Value) -> Resolved {
-    let message = encode_message(descriptor, value)?;
+    let message = encode_message(descriptor, value, &Options::default())?;
     let mut buf = Vec::new();
     message
         .encode(&mut buf)
@@ -224,6 +256,11 @@ mod tests {
         get_message_descriptor(&path, &format!("test.v1.{message_type}")).unwrap()
     }
 
+    fn test_protobuf3_descriptor() -> MessageDescriptor {
+        let path = test_data_dir().join("test_protobuf3/v1/test_protobuf3.desc");
+        get_message_descriptor(&path, "test_protobuf3.v1.Person").unwrap()
+    }
+
     #[test]
     fn test_encode_integers() {
         let message = encode_message(
@@ -234,6 +271,7 @@ mod tests {
                 ("u32".into(), Value::Integer(1234)),
                 ("u64".into(), Value::Integer(9876)),
             ])),
+            &Options::default(),
         )
         .unwrap();
         assert_eq!(Some(-1234), mfield!(message, "i32").as_i32());
@@ -252,6 +290,7 @@ mod tests {
                 ("u32".into(), Value::Bytes(Bytes::from("1234"))),
                 ("u64".into(), Value::Bytes(Bytes::from("9876"))),
             ])),
+            &Options::default(),
         )
         .unwrap();
         assert_eq!(Some(-1234), mfield!(message, "i32").as_i32());
@@ -268,6 +307,7 @@ mod tests {
                 ("d".into(), Value::Float(NotNan::new(11.0).unwrap())),
                 ("f".into(), Value::Float(NotNan::new(2.0).unwrap())),
             ])),
+            &Options::default(),
         )
         .unwrap();
         assert_eq!(Some(11.0), mfield!(message, "d").as_f64());
@@ -282,6 +322,7 @@ mod tests {
                 ("d".into(), Value::Bytes(Bytes::from("11.0"))),
                 ("f".into(), Value::Bytes(Bytes::from("2.0"))),
             ])),
+            &Options::default(),
         )
         .unwrap();
         assert_eq!(Some(11.0), mfield!(message, "d").as_f64());
@@ -297,6 +338,7 @@ mod tests {
                 ("text".into(), Value::Bytes(Bytes::from("vector"))),
                 ("binary".into(), Value::Bytes(bytes.clone())),
             ])),
+            &Options::default(),
         )
         .unwrap();
         assert_eq!(Some("vector"), mfield!(message, "text").as_str());
@@ -326,6 +368,7 @@ mod tests {
                     )])),
                 ),
             ])),
+            &Options::default(),
         )
         .unwrap();
         // the simpler string->primitive map
@@ -372,6 +415,7 @@ mod tests {
                 ("dinner".into(), Value::Bytes(Bytes::from("FRUIT_OLIVE"))),
                 ("lunch".into(), Value::Integer(0)),
             ])),
+            &Options::default(),
         )
         .unwrap();
         assert_eq!(Some(2), mfield!(message, "breakfast").as_enum_number());
@@ -389,6 +433,7 @@ mod tests {
                     DateTime::from_timestamp(8675, 309).expect("could not compute timestamp"),
                 ),
             )])),
+            &Options::default(),
         )
         .unwrap();
         let timestamp = mfield!(message, "morning").as_message().unwrap().clone();
@@ -408,6 +453,7 @@ mod tests {
                     Value::Integer(4),
                 ]),
             )])),
+            &Options::default(),
         )
         .unwrap();
         let list = mfield!(message, "numbers").as_list().unwrap().to_vec();
@@ -435,6 +481,7 @@ mod tests {
                     ])),
                 ]),
             )])),
+            &Options::default(),
         )
         .unwrap();
         let list = mfield!(message, "messages").as_list().unwrap().to_vec();
@@ -464,12 +511,14 @@ mod tests {
         let mut message = encode_message(
             &test_message_descriptor("Bytes"),
             Value::Object(BTreeMap::from([("text".into(), Value::Boolean(true))])),
+            &Options::default(),
         )
         .unwrap();
         assert_eq!(Some("true"), mfield!(message, "text").as_str());
         message = encode_message(
             &test_message_descriptor("Bytes"),
             Value::Object(BTreeMap::from([("text".into(), Value::Integer(123))])),
+            &Options::default(),
         )
         .unwrap();
         assert_eq!(Some("123"), mfield!(message, "text").as_str());
@@ -479,6 +528,7 @@ mod tests {
                 "text".into(),
                 Value::Float(NotNan::new(45.67).unwrap()),
             )])),
+            &Options::default(),
         )
         .unwrap();
         assert_eq!(Some("45.67"), mfield!(message, "text").as_str());
@@ -490,6 +540,7 @@ mod tests {
                     DateTime::from_timestamp(8675, 309).expect("could not compute timestamp"),
                 ),
             )])),
+            &Options::default(),
         )
         .unwrap();
         assert_eq!(
@@ -532,8 +583,7 @@ mod tests {
     fn test_parse_proto3() {
         let value =
             value!({name: "Someone",phones: [{number: "123-456", type: "PHONE_TYPE_MOBILE"}]});
-        let path = test_data_dir().join("test_protobuf3/v1/test_protobuf3.desc");
-        let descriptor = get_message_descriptor(&path, "test_protobuf3.v1.Person").unwrap();
+        let descriptor = test_protobuf3_descriptor();
         let expected_value = value!(read_pb_file("test_protobuf3/v1/input/person_someone.pb"));
         let encoded_value = encode_proto(&descriptor, value.clone());
         assert!(
@@ -553,5 +603,46 @@ mod tests {
         );
         let parsed_value = parsed_value.unwrap();
         assert_eq!(value, parsed_value)
+    }
+
+    #[test]
+    fn test_encode_with_default_options() {
+        let value = value!({
+            name: "Someone",
+            job_description: "Software Engineer"
+        });
+        let descriptor = test_protobuf3_descriptor();
+
+        let message = encode_message(&descriptor, value, &Options::default()).unwrap();
+
+        assert_eq!(Some("Someone"), mfield!(message, "name").as_str());
+        assert_eq!(
+            Some("Software Engineer"),
+            mfield!(message, "job_description").as_str()
+        );
+    }
+
+    #[test]
+    fn test_encode_with_json_names() {
+        let value = value!({
+            name: "Someone",
+            jobDescription: "Software Engineer"
+        });
+        let descriptor = test_protobuf3_descriptor();
+
+        let message = encode_message(
+            &descriptor,
+            value,
+            &Options {
+                use_json_names: true,
+            },
+        )
+        .unwrap();
+
+        assert_eq!(Some("Someone"), mfield!(message, "name").as_str());
+        assert_eq!(
+            Some("Software Engineer"),
+            mfield!(message, "job_description").as_str()
+        );
     }
 }
