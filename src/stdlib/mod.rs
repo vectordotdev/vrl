@@ -173,6 +173,7 @@ cfg_if::cfg_if! {
         mod sieve;
         mod slice;
         mod split;
+        mod split_path;
         mod starts_with;
         mod string;
         mod strip_ansi_escape_codes;
@@ -371,6 +372,7 @@ cfg_if::cfg_if! {
         pub use sieve::Sieve;
         pub use slice::Slice;
         pub use split::Split;
+        pub use split_path::SplitPath;
         pub use starts_with::StartsWith;
         pub use string::String;
         pub use strip_ansi_escape_codes::StripAnsiEscapeCodes;
