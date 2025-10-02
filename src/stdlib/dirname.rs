@@ -1,32 +1,22 @@
 use crate::compiler::prelude::*;
 use std::path::Path;
 
-fn dirname(value: &Value) -> Resolved {
-    let path_str_cow = value.try_bytes_utf8_lossy()?;
-    let path_str = path_str_cow.as_ref();
+fn dirname(path_str: &str) -> &str {
+    if path_str == "/" {
+        return "/";
+    }
 
-    // Handle special cases first
-    let dirname_result = if path_str == "/" {
-        "/"
-    } else if path_str.is_empty() || path_str == "." || path_str == ".." {
-        "."
-    } else {
-        let path = Path::new(path_str);
-        match path.parent() {
-            Some(parent) => {
-                let parent_str = parent.to_str().unwrap_or(".");
-                // Path::parent() returns Some("") for relative paths with one component
-                if parent_str.is_empty() {
-                    "."
-                } else {
-                    parent_str
-                }
+    let path = Path::new(path_str);
+    match path.parent() {
+        Some(parent) => {
+            if parent.as_os_str().is_empty() {
+                "."
+            } else {
+                parent.to_str().unwrap_or(".")
             }
-            None => ".",
         }
-    };
-
-    Ok(Value::from(dirname_result))
+        None => ".",
+    }
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -95,7 +85,9 @@ struct DirNameFn {
 impl FunctionExpression for DirNameFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let value = self.value.resolve(ctx)?;
-        dirname(&value)
+        let path_str_cow = value.try_bytes_utf8_lossy()?;
+        let path_str = path_str_cow.as_ref();
+        Ok(Value::from(dirname(path_str)))
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {
@@ -151,6 +143,12 @@ mod tests {
 
         hidden_file {
             args: func_args![value: ".file"],
+            want: Ok("."),
+            tdef: tdef(),
+        }
+
+        empty_string {
+            args: func_args![value: ""],
             want: Ok("."),
             tdef: tdef(),
         }
