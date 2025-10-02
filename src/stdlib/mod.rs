@@ -39,6 +39,7 @@ cfg_if::cfg_if! {
         mod decrypt;
         mod decrypt_ip;
         mod del;
+        mod dirname;
         mod dns_lookup;
         mod downcase;
         mod encode_base16;
@@ -234,6 +235,7 @@ cfg_if::cfg_if! {
         pub use decrypt::Decrypt;
         pub use decrypt_ip::DecryptIp;
         pub use del::Del;
+        pub use dirname::DirName;
         pub use dns_lookup::DnsLookup;
         pub use downcase::Downcase;
         pub use casing::camelcase::Camelcase;
