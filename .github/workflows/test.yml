@@ -27,7 +27,7 @@ jobs:
   clippy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: Swatinem/rust-cache@v2
       - name: "clippy"
         run: ./scripts/clippy.sh
@@ -35,7 +35,7 @@ jobs:
   fmt:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: Swatinem/rust-cache@v2
       - name: "Format check"
         run: ./scripts/format_check.sh
@@ -47,7 +47,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: Swatinem/rust-cache@v2
       - name: "Tests"
         run: ./scripts/tests.sh
@@ -59,7 +59,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: Swatinem/rust-cache@v2
       - name: "VRL tests"
         run: ./scripts/vrl_tests.sh
@@ -67,7 +67,7 @@ jobs:
   check-features:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: Swatinem/rust-cache@v2
       - name: "Check that all features can compile"
         run: ./scripts/check_features.sh
@@ -75,7 +75,7 @@ jobs:
   check-licenses:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: Swatinem/rust-cache@v2
       - name: "Check that the 3rd-party license file is up to date"
         run: ./scripts/check_licenses.sh
@@ -83,7 +83,7 @@ jobs:
   check-msrv:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: Swatinem/rust-cache@v2
       - name: "Check that the MSRV is up to date"
         run: ./scripts/check_msrv.sh
@@ -91,7 +91,7 @@ jobs:
   check-deny:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: Swatinem/rust-cache@v2
       - name: "Check that the 3rd-party license file is up to date"
         run: ./scripts/check_deny.sh
@@ -99,7 +99,7 @@ jobs:
   wasm32-unknown-unknown:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: Swatinem/rust-cache@v2
       - name: "Check wasm32-unknown-unknown target"
         run: ./scripts/check_wasm32.sh
