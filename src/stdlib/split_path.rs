@@ -1,14 +1,14 @@
 use crate::compiler::prelude::*;
 use std::path::Path;
 
-fn split_path(path_str: &str) -> Resolved {
+fn split_path(path_str: &str) -> Value {
     let path = Path::new(path_str);
 
     let split_path: Vec<_> = path
         .components()
         .map(|comp| comp.as_os_str().to_string_lossy().into_owned())
         .collect();
-    Ok(split_path.into())
+    split_path.into()
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -43,12 +43,12 @@ impl Function for SplitPath {
             Example {
                 title: "Split path with trailing slash",
                 source: r#"split_path!("/home/user/")"#,
-                result: Ok(r#"["home", "user"]"#),
+                result: Ok(r#"["/", "home", "user"]"#),
             },
             Example {
                 title: "Split path from file path",
                 source: r#"split_path!("/home/user")"#,
-                result: Ok(r#"["home", "user"]"#),
+                result: Ok(r#"["/", "home", "user"]"#),
             },
             Example {
                 title: "Split path from root",
@@ -58,7 +58,7 @@ impl Function for SplitPath {
             Example {
                 title: "Empty path returns empty array",
                 source: r#"split_path!("")"#,
-                result: Ok(r#"[]"#),
+                result: Ok("[]"),
             },
         ]
     }
@@ -72,9 +72,8 @@ struct SplitPathFn {
 impl FunctionExpression for SplitPathFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let value = self.value.resolve(ctx)?;
-        let path_str_cow = value.try_bytes_utf8_lossy()?;
-        let path_str = path_str_cow.as_ref();
-        split_path(path_str)
+        let path_str = value.try_bytes_utf8_lossy()?;
+        Ok(split_path(&path_str))
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {
