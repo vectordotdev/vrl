@@ -10,13 +10,13 @@ use crate::compiler::prelude::*;
 #[cfg(not(target_arch = "wasm32"))]
 mod non_wasm {
     use super::{
-        Context, Expression, FunctionExpression, Resolved, TypeDef, TypeState, Value,
-        VrlValueConvert,
+        Context, Expression, ExpressionError, FunctionExpression, Resolved, TypeDef, TypeState,
+        Value, VrlValueConvert,
     };
     use reqwest_middleware::{
         ClientBuilder, ClientWithMiddleware,
         reqwest::{
-            Client, Method,
+            Client, Method, Proxy,
             header::{HeaderMap, HeaderName, HeaderValue},
         },
     };
@@ -26,21 +26,37 @@ mod non_wasm {
     use tokio::time::Duration;
     use tokio::{runtime, task};
 
-    static CLIENT: LazyLock<ClientWithMiddleware> = LazyLock::new(|| {
+    static STD_CLIENT: LazyLock<ClientWithMiddleware> = LazyLock::new(|| build_client(None));
+
+    fn build_client(proxies: Option<Vec<Proxy>>) -> ClientWithMiddleware {
         let retry_policy = ExponentialBackoff::builder().build_with_max_retries(3);
 
-        let client = Client::builder()
+        let mut client_builder = Client::builder()
             .connect_timeout(Duration::from_secs(5))
-            .timeout(Duration::from_secs(10))
+            .timeout(Duration::from_secs(10));
+
+        if let Some(proxies) = proxies {
+            for proxy in proxies {
+                client_builder = client_builder.proxy(proxy);
+            }
+        }
+
+        let client = client_builder
             .build()
             .expect("Failed to create HTTP client");
 
         ClientBuilder::new(client)
             .with(RetryTransientMiddleware::new_with_policy(retry_policy))
             .build()
-    });
+    }
 
-    async fn http_request(url: &Value, method: &Value, headers: Value, body: &Value) -> Resolved {
+    async fn http_request(
+        client: &ClientWithMiddleware,
+        url: &Value,
+        method: &Value,
+        headers: Value,
+        body: &Value,
+    ) -> Resolved {
         let url = url.try_bytes_utf8_lossy()?;
         let method = method.try_bytes_utf8_lossy()?.to_uppercase();
         let headers = headers.try_object()?;
@@ -61,7 +77,7 @@ mod non_wasm {
             header_map.insert(key, val);
         }
 
-        let response = CLIENT
+        let response = client
             .request(method, url.as_ref())
             .headers(header_map)
             .body(body.as_bytes().to_owned())
@@ -73,7 +89,36 @@ mod non_wasm {
             .text()
             .await
             .map_err(|e| format!("Failed to read response body: {e}"))?;
+
         Ok(body.into())
+    }
+
+    #[allow(clippy::similar_names)]
+    fn make_proxies(
+        http_proxy: Option<Value>,
+        https_proxy: Option<Value>,
+    ) -> Result<Option<Vec<Proxy>>, ExpressionError> {
+        let mut proxies = Vec::new();
+
+        if let Some(http_proxy) = http_proxy {
+            proxies.push(
+                Proxy::http(http_proxy.try_bytes_utf8_lossy()?.into_owned())
+                    .map_err(|e| format!("Invalid proxy: {e}"))?,
+            );
+        }
+
+        if let Some(https_proxy) = https_proxy {
+            proxies.push(
+                Proxy::https(https_proxy.try_bytes_utf8_lossy()?.into_owned())
+                    .map_err(|e| format!("Invalid proxy: {e}"))?,
+            );
+        }
+
+        if proxies.is_empty() {
+            Ok(None)
+        } else {
+            Ok(Some(proxies))
+        }
     }
 
     #[derive(Debug, Clone)]
@@ -82,28 +127,51 @@ mod non_wasm {
         pub(super) method: Box<dyn Expression>,
         pub(super) headers: Box<dyn Expression>,
         pub(super) body: Box<dyn Expression>,
+        pub(super) http_proxy: Option<Box<dyn Expression>>,
+        pub(super) https_proxy: Option<Box<dyn Expression>>,
     }
 
     impl FunctionExpression for HttpRequestFn {
+        #[allow(clippy::similar_names)]
         fn resolve(&self, ctx: &mut Context) -> Resolved {
             let url = self.url.resolve(ctx)?;
             let method = self.method.resolve(ctx)?;
             let headers = self.headers.resolve(ctx)?;
             let body = self.body.resolve(ctx)?;
+            let http_proxy = self
+                .http_proxy
+                .as_ref()
+                .map(|http_proxy| http_proxy.resolve(ctx))
+                .transpose()?;
+            let https_proxy = self
+                .https_proxy
+                .as_ref()
+                .map(|https_proxy| https_proxy.resolve(ctx))
+                .transpose()?;
+
+            let client = if let Some(proxies) = make_proxies(http_proxy, https_proxy)? {
+                &build_client(Some(proxies))
+            } else {
+                &STD_CLIENT
+            };
 
             // block_in_place runs the HTTP request synchronously
             // without blocking Tokio's async worker threads.
             // This temporarily moves execution to a blocking-compatible thread.
             task::block_in_place(|| {
                 if let Ok(handle) = Handle::try_current() {
-                    handle.block_on(async { http_request(&url, &method, headers, &body).await })
+                    handle.block_on(async {
+                        http_request(client, &url, &method, headers, &body).await
+                    })
                 } else {
                     let runtime = runtime::Builder::new_current_thread()
                         .enable_all()
                         .build()
                         .expect("tokio runtime creation failed");
-                    runtime
-                        .block_on(async move { http_request(&url, &method, headers, &body).await })
+
+                    runtime.block_on(async move {
+                        http_request(client, &url, &method, headers, &body).await
+                    })
                 }
             })
         }
@@ -181,10 +249,21 @@ impl Function for HttpRequest {
                 kind: kind::BYTES,
                 required: false,
             },
+            Parameter {
+                keyword: "http_proxy",
+                kind: kind::BYTES,
+                required: false,
+            },
+            Parameter {
+                keyword: "https_proxy",
+                kind: kind::BYTES,
+                required: false,
+            },
         ]
     }
 
     #[cfg(not(target_arch = "wasm32"))]
+    #[allow(clippy::similar_names)]
     fn compile(
         &self,
         _state: &state::TypeState,
@@ -195,12 +274,16 @@ impl Function for HttpRequest {
         let method = arguments.optional("method").unwrap_or_else(|| expr!("get"));
         let headers = arguments.optional("headers").unwrap_or_else(|| expr!({}));
         let body = arguments.optional("body").unwrap_or_else(|| expr!(""));
+        let http_proxy = arguments.optional("http_proxy");
+        let https_proxy = arguments.optional("https_proxy");
 
         Ok(HttpRequestFn {
             url,
             method,
             headers,
             body,
+            http_proxy,
+            https_proxy,
         }
         .as_expr())
     }
@@ -243,6 +326,8 @@ mod tests {
             method: expr!("get"),
             headers: expr!({}),
             body: expr!(""),
+            http_proxy: None,
+            https_proxy: None,
         };
 
         let result = execute_http_request(&func).expect("HTTP request failed");
@@ -264,6 +349,8 @@ mod tests {
             method: expr!("get"),
             headers: expr!({}),
             body: expr!(""),
+            http_proxy: None,
+            https_proxy: None,
         };
 
         let result = execute_http_request(&func);
@@ -279,11 +366,30 @@ mod tests {
             method: expr!("get"),
             headers: expr!({"Invalid Header With Spaces": "value"}),
             body: expr!(""),
+            http_proxy: None,
+            https_proxy: None,
         };
 
         let result = execute_http_request(&func);
         assert!(result.is_err());
         let error = result.unwrap_err();
         assert!(error.to_string().contains("Invalid header key"));
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn test_invalid_proxy() {
+        let func = HttpRequestFn {
+            url: expr!("https://httpbin.org/get"),
+            method: expr!("get"),
+            headers: expr!({}),
+            body: expr!(""),
+            http_proxy: None,
+            https_proxy: Some(expr!("not^a&valid*url")),
+        };
+
+        let result = execute_http_request(&func);
+        assert!(result.is_err());
+        let error = result.unwrap_err();
+        assert!(error.to_string().contains("Invalid proxy"));
     }
 }
