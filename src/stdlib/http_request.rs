@@ -62,7 +62,7 @@ mod non_wasm {
         let headers = headers.try_object()?;
         let body = body.try_bytes_utf8_lossy()?;
 
-        let method = Method::try_from(method.to_uppercase().as_str())
+        let method = Method::try_from(method.as_str())
             .map_err(|_| format!("Unsupported HTTP method: {method}"))?;
         let mut header_map = HeaderMap::new();
 
@@ -102,14 +102,14 @@ mod non_wasm {
 
         if let Some(http_proxy) = http_proxy {
             proxies.push(
-                Proxy::http(http_proxy.try_bytes_utf8_lossy()?.into_owned())
+                Proxy::http(http_proxy.try_bytes_utf8_lossy()?.as_ref())
                     .map_err(|e| format!("Invalid proxy: {e}"))?,
             );
         }
 
         if let Some(https_proxy) = https_proxy {
             proxies.push(
-                Proxy::https(https_proxy.try_bytes_utf8_lossy()?.into_owned())
+                Proxy::https(https_proxy.try_bytes_utf8_lossy()?.as_ref())
                     .map_err(|e| format!("Invalid proxy: {e}"))?,
             );
         }
@@ -121,14 +121,120 @@ mod non_wasm {
         }
     }
 
+    // Used to avoid clones
+    enum RefOrOwnedClient<'c> {
+        Owned(ClientWithMiddleware),
+        Ref(&'c ClientWithMiddleware),
+    }
+
+    impl AsRef<ClientWithMiddleware> for RefOrOwnedClient<'_> {
+        fn as_ref(&self) -> &ClientWithMiddleware {
+            match self {
+                Self::Owned(client) => client,
+                Self::Ref(client) => client,
+            }
+        }
+    }
+
+    #[derive(Debug, Clone)]
+    pub(super) enum ClientOrProxies {
+        Client(ClientWithMiddleware),
+        Proxies {
+            http_proxy: Option<Box<dyn Expression>>,
+            https_proxy: Option<Box<dyn Expression>>,
+        },
+    }
+
+    impl ClientOrProxies {
+        #[allow(clippy::similar_names)]
+        pub(super) fn new(
+            state: &TypeState,
+            http_proxy: Option<Box<dyn Expression>>,
+            https_proxy: Option<Box<dyn Expression>>,
+        ) -> Result<Self, ExpressionError> {
+            let const_http_proxy = http_proxy
+                .as_ref()
+                .map(|http_proxy| http_proxy.resolve_constant(state));
+            let const_https_proxy = https_proxy
+                .as_ref()
+                .map(|https_proxy| https_proxy.resolve_constant(state));
+
+            match (const_http_proxy, const_https_proxy) {
+                // No proxies specified
+                (None, None) => Ok(Self::no_proxies()),
+                // Only http proxy specified and could resolve as constant
+                (Some(Some(http)), None) => {
+                    Ok(Self::Client(build_client(make_proxies(Some(http), None)?)))
+                }
+                // Only https proxy specified and could resolve as constant
+                (None, Some(Some(https))) => {
+                    Ok(Self::Client(build_client(make_proxies(None, Some(https))?)))
+                }
+                // Both proxies specified and could resolve as constants
+                (Some(Some(http)), Some(Some(https))) => Ok(Self::Client(build_client(
+                    make_proxies(Some(http), Some(https))?,
+                ))),
+                // Couldn't evaluate as constants
+                _ => Ok(Self::new_proxies_no_const_resolve(http_proxy, https_proxy)),
+            }
+        }
+
+        pub fn no_proxies() -> Self {
+            Self::Proxies {
+                http_proxy: None,
+                https_proxy: None,
+            }
+        }
+
+        #[allow(clippy::similar_names)]
+        pub fn new_proxies_no_const_resolve(
+            http_proxy: Option<Box<dyn Expression>>,
+            https_proxy: Option<Box<dyn Expression>>,
+        ) -> Self {
+            Self::Proxies {
+                http_proxy,
+                https_proxy,
+            }
+        }
+
+        #[allow(clippy::similar_names)]
+        fn get_client<'c>(
+            &'c self,
+            ctx: &mut Context,
+        ) -> Result<RefOrOwnedClient<'c>, ExpressionError> {
+            match self {
+                Self::Client(client) => Ok(RefOrOwnedClient::Ref(client)),
+                Self::Proxies {
+                    http_proxy,
+                    https_proxy,
+                } => {
+                    let http_proxy = http_proxy
+                        .as_ref()
+                        .map(|http_proxy| http_proxy.resolve(ctx))
+                        .transpose()?;
+
+                    let https_proxy = https_proxy
+                        .as_ref()
+                        .map(|https_proxy| https_proxy.resolve(ctx))
+                        .transpose()?;
+
+                    if let Some(proxies) = make_proxies(http_proxy, https_proxy)? {
+                        Ok(RefOrOwnedClient::Owned(build_client(Some(proxies))))
+                    } else {
+                        Ok(RefOrOwnedClient::Ref(&STD_CLIENT))
+                    }
+                }
+            }
+        }
+    }
+
     #[derive(Debug, Clone)]
     pub(super) struct HttpRequestFn {
         pub(super) url: Box<dyn Expression>,
         pub(super) method: Box<dyn Expression>,
         pub(super) headers: Box<dyn Expression>,
         pub(super) body: Box<dyn Expression>,
-        pub(super) http_proxy: Option<Box<dyn Expression>>,
-        pub(super) https_proxy: Option<Box<dyn Expression>>,
+        pub(super) client_or_proxies: ClientOrProxies,
     }
 
     impl FunctionExpression for HttpRequestFn {
@@ -138,22 +244,8 @@ mod non_wasm {
             let method = self.method.resolve(ctx)?;
             let headers = self.headers.resolve(ctx)?;
             let body = self.body.resolve(ctx)?;
-            let http_proxy = self
-                .http_proxy
-                .as_ref()
-                .map(|http_proxy| http_proxy.resolve(ctx))
-                .transpose()?;
-            let https_proxy = self
-                .https_proxy
-                .as_ref()
-                .map(|https_proxy| https_proxy.resolve(ctx))
-                .transpose()?;
-
-            let client = if let Some(proxies) = make_proxies(http_proxy, https_proxy)? {
-                &build_client(Some(proxies))
-            } else {
-                &STD_CLIENT
-            };
+            let client = self.client_or_proxies.get_client(ctx)?;
+            let client_ref = client.as_ref();
 
             // block_in_place runs the HTTP request synchronously
             // without blocking Tokio's async worker threads.
@@ -161,7 +253,7 @@ mod non_wasm {
             task::block_in_place(|| {
                 if let Ok(handle) = Handle::try_current() {
                     handle.block_on(async {
-                        http_request(client, &url, &method, headers, &body).await
+                        http_request(client_ref, &url, &method, headers, &body).await
                     })
                 } else {
                     let runtime = runtime::Builder::new_current_thread()
@@ -170,7 +262,7 @@ mod non_wasm {
                         .expect("tokio runtime creation failed");
 
                     runtime.block_on(async move {
-                        http_request(client, &url, &method, headers, &body).await
+                        http_request(client_ref, &url, &method, headers, &body).await
                     })
                 }
             })
@@ -266,7 +358,7 @@ impl Function for HttpRequest {
     #[allow(clippy::similar_names)]
     fn compile(
         &self,
-        _state: &state::TypeState,
+        state: &state::TypeState,
         _ctx: &mut FunctionCompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
@@ -277,13 +369,18 @@ impl Function for HttpRequest {
         let http_proxy = arguments.optional("http_proxy");
         let https_proxy = arguments.optional("https_proxy");
 
+        // Result::map_err wouldn't properly convert the error for ? sugar
+        let client_or_proxies = match ClientOrProxies::new(state, http_proxy, https_proxy) {
+            Ok(ok) => ok,
+            Err(err) => return Err(Box::new(err)),
+        };
+
         Ok(HttpRequestFn {
             url,
             method,
             headers,
             body,
-            http_proxy,
-            https_proxy,
+            client_or_proxies,
         }
         .as_expr())
     }
@@ -326,8 +423,7 @@ mod tests {
             method: expr!("get"),
             headers: expr!({}),
             body: expr!(""),
-            http_proxy: None,
-            https_proxy: None,
+            client_or_proxies: ClientOrProxies::no_proxies(),
         };
 
         let result = execute_http_request(&func).expect("HTTP request failed");
@@ -349,8 +445,7 @@ mod tests {
             method: expr!("get"),
             headers: expr!({}),
             body: expr!(""),
-            http_proxy: None,
-            https_proxy: None,
+            client_or_proxies: ClientOrProxies::no_proxies(),
         };
 
         let result = execute_http_request(&func);
@@ -366,8 +461,7 @@ mod tests {
             method: expr!("get"),
             headers: expr!({"Invalid Header With Spaces": "value"}),
             body: expr!(""),
-            http_proxy: None,
-            https_proxy: None,
+            client_or_proxies: ClientOrProxies::no_proxies(),
         };
 
         let result = execute_http_request(&func);
@@ -383,8 +477,10 @@ mod tests {
             method: expr!("get"),
             headers: expr!({}),
             body: expr!(""),
-            http_proxy: None,
-            https_proxy: Some(expr!("not^a&valid*url")),
+            client_or_proxies: ClientOrProxies::new_proxies_no_const_resolve(
+                None,
+                Some(expr!("not^a&valid*url")),
+            ),
         };
 
         let result = execute_http_request(&func);
