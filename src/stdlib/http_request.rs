@@ -369,11 +369,8 @@ impl Function for HttpRequest {
         let http_proxy = arguments.optional("http_proxy");
         let https_proxy = arguments.optional("https_proxy");
 
-        // Result::map_err wouldn't properly convert the error for ? sugar
-        let client_or_proxies = match ClientOrProxies::new(state, http_proxy, https_proxy) {
-            Ok(ok) => ok,
-            Err(err) => return Err(Box::new(err)),
-        };
+        let client_or_proxies = ClientOrProxies::new(state, http_proxy, https_proxy)
+            .map_err(|err| Box::new(err) as Box<dyn DiagnosticMessage>)?;
 
         Ok(HttpRequestFn {
             url,
