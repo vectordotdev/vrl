@@ -522,21 +522,26 @@ mod tests {
     }
 
     #[test]
-    fn parses_boolean_nodes_with_explicit_operators() {
+    fn parses_boolean_nodes_with_or_not() {
         let cases = [
-            "foo:bar OR baz:qux AND quux:quuz",
-            "foo:bar || baz:qux && quux:quuz",
+            "foo:bar OR -baz:qux quux:quuz",
+            "foo:bar OR NOT baz:qux quux:quuz",
+            "foo:bar OR -baz:qux AND quux:quuz",
+            "foo:bar OR NOT baz:qux AND quux:quuz",
         ];
         for query in cases.iter() {
             let res = parse(query);
             if let QueryNode::Boolean {
-                oper: BooleanType::And,
+                oper: BooleanType::Or,
                 ref nodes,
             } = res
             {
                 assert!(
-                    matches!(nodes[0], QueryNode::AttributeTerm { ref attr, ref value } if attr == "baz" && value == "qux")
-                        && matches!(nodes[1], QueryNode::AttributeTerm { ref attr, ref value } if attr == "quux" && value == "quuz"),
+                    matches!(nodes[0], QueryNode::AttributeTerm {ref attr, ref value } if attr == "foo" && value == "bar")
+                        && matches!(nodes[1], QueryNode::Boolean { oper: BooleanType::And, ref nodes } if
+                            matches!(nodes[0], QueryNode::NegatedNode { ref node } if matches!(**node, QueryNode::AttributeTerm {ref attr, ref value } if attr == "baz" && value == "qux") &&
+                            matches!(nodes[1], QueryNode::AttributeTerm { ref attr, ref value } if attr == "quux" && value == "quuz")),
+                        ),
                     "Unable to properly parse '{query:?}' - got {res:?}"
                 );
             } else {
@@ -546,20 +551,26 @@ mod tests {
     }
 
     #[test]
-    fn parses_boolean_nodes_with_implicit_and_explicit_operators() {
+    fn parses_boolean_nodes_with_implicit_or_explicit_operators() {
         let cases = [
             "foo:bar OR baz:qux quux:quuz",
             "foo:bar || baz:qux quux:quuz",
+            "foo:bar OR baz:qux AND quux:quuz",
+            "foo:bar || baz:qux && quux:quuz",
         ];
         for query in cases.iter() {
             let res = parse(query);
             if let QueryNode::Boolean {
-                oper: BooleanType::And,
+                oper: BooleanType::Or,
                 ref nodes,
             } = res
             {
                 assert!(
-                    matches!(nodes[0], QueryNode::AttributeTerm { ref attr, ref value } if attr == "quux" && value == "quuz"),
+                    matches!(nodes[0], QueryNode::AttributeTerm {ref attr, ref value } if attr == "foo" && value == "bar")
+                        && matches!(nodes[1], QueryNode::Boolean { oper: BooleanType::And, ref nodes } if
+                            matches!(nodes[0], QueryNode::AttributeTerm { ref attr, ref value } if attr == "baz" && value == "qux") &&
+                            matches!(nodes[1], QueryNode::AttributeTerm { ref attr, ref value } if attr == "quux" && value == "quuz")
+                        ),
                     "Unable to properly parse '{query:?}' - got {res:?}"
                 );
             } else {
@@ -589,6 +600,88 @@ mod tests {
             } else {
                 panic!("Unable to properly parse '{query:?}' - got {res:?}")
             }
+        }
+    }
+
+    #[test]
+    fn parses_nested_boolean_query_node_with_or() {
+        let cases = ["(foo:bar OR baz:qux) quux:quuz"];
+        for query in cases.iter() {
+            let res = parse(query);
+            if let QueryNode::Boolean {
+                oper: BooleanType::And,
+                ref nodes,
+            } = res
+            {
+                assert!(
+                    matches!(nodes[0], QueryNode::Boolean { oper: BooleanType::Or, ref nodes } if
+                        matches!(nodes[0], QueryNode::AttributeTerm { ref attr, ref value } if attr == "foo" && value == "bar") &&
+                        matches!(nodes[1], QueryNode::AttributeTerm { ref attr, ref value } if attr == "baz" && value == "qux")
+                    ) && matches!(nodes[1], QueryNode::AttributeTerm {ref attr, ref value } if attr == "quux" && value == "quuz"),
+                    "Unable to properly parse '{query:?}' - got {res:?}"
+                );
+            } else {
+                panic!("Unable to properly parse '{query:?}' - got {res:?}")
+            }
+        }
+    }
+
+    #[test]
+    fn parses_negated_parenthesized_default_multiterm_query() {
+        let cases = ["NOT (foo bar)", "-(foo bar)"];
+        for query in cases.iter() {
+            let res = parse(query);
+            if let QueryNode::NegatedNode { ref node } = res
+                && let QueryNode::AttributeTerm {
+                    ref attr,
+                    ref value,
+                } = **node
+                && attr == DEFAULT_FIELD
+                && value == "foo bar"
+            {
+                continue;
+            }
+            panic!("Unable to properly parse '{query:?}' - got {res:?}")
+        }
+    }
+
+    #[test]
+    fn parses_multiterm_with_leading_not_without_parens() {
+        let cases = ["NOT foo bar", "- foo bar"]; // NOT only applies to the first term
+        for query in cases.iter() {
+            let res = parse(query);
+            if let QueryNode::Boolean {
+                oper: BooleanType::And,
+                ref nodes,
+            } = res
+            {
+                assert!(
+                    matches!(nodes[0], QueryNode::NegatedNode { ref node } if matches!(**node, QueryNode::AttributeTerm { ref attr, ref value } if attr == DEFAULT_FIELD && value == "foo"))
+                        && matches!(nodes[1], QueryNode::AttributeTerm { ref attr, ref value } if attr == DEFAULT_FIELD && value == "bar"),
+                    "Unable to properly parse '{query:?}' - got {res:?}"
+                );
+            } else {
+                panic!("Unable to properly parse '{query:?}' - got {res:?}")
+            }
+        }
+    }
+
+    #[test]
+    fn parses_negated_parenthesized_fielded_multiterm_query() {
+        let cases = ["NOT foo:(bar baz)", "-foo:(bar baz)"];
+        for query in cases.iter() {
+            let res = parse(query);
+            if let QueryNode::NegatedNode { ref node } = res
+                && let QueryNode::AttributeTerm {
+                    ref attr,
+                    ref value,
+                } = **node
+                && attr == "foo"
+                && value == "bar baz"
+            {
+                continue;
+            }
+            panic!("Unable to properly parse '{query:?}' - got {res:?}")
         }
     }
 }

@@ -94,45 +94,6 @@ pub enum BooleanType {
     Or,
 }
 
-/// Builder structure to create Boolean QueryNodes.  Not strictly necessary,
-/// however they're a bit more ergonomic to manipulate than reaching into
-/// enums all the time.
-pub struct BooleanBuilder {
-    /// The type of Boolean operation this node will represent.
-    oper: BooleanType,
-    /// A list of QueryNodes involved in this boolean operation.
-    nodes: Vec<QueryNode>,
-}
-
-impl BooleanBuilder {
-    /// Create a BooleanBuilder to produce an AND-type Boolean QueryNode.
-    pub fn and() -> Self {
-        Self {
-            oper: BooleanType::And,
-            nodes: vec![],
-        }
-    }
-
-    /// Create a BooleanBuilder to produce an OR-type Boolean QueryNode.
-    pub fn or() -> Self {
-        Self {
-            oper: BooleanType::Or,
-            nodes: vec![],
-        }
-    }
-
-    /// Add a QueryNode to this boolean conjunction.
-    pub fn add_node(&mut self, node: QueryNode) {
-        self.nodes.push(node);
-    }
-
-    /// Consume this builder and output the finished QueryNode.
-    pub fn build(self) -> QueryNode {
-        let Self { oper, nodes } = self;
-        QueryNode::Boolean { oper, nodes }
-    }
-}
-
 /// QueryNodes represent specific search criteria to be enforced.
 #[derive(Clone, Debug, PartialEq)]
 pub enum QueryNode {
@@ -366,20 +327,6 @@ impl Serialize for QueryNode {
     {
         serializer.serialize_str(self.to_lucene().as_str())
     }
-}
-
-/// Enum representing Lucene's concept of whether a node should occur.
-#[derive(Debug)]
-pub enum LuceneOccur {
-    Must,
-    Should,
-    MustNot,
-}
-
-#[derive(Debug)]
-pub struct LuceneClause {
-    pub occur: LuceneOccur,
-    pub node: QueryNode,
 }
 
 static ESCAPE_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new("^\"(.+)\"$").unwrap());
