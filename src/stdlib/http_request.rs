@@ -14,13 +14,13 @@ mod non_wasm {
         Value, VrlValueConvert,
     };
     use reqwest_middleware::{
+        ClientBuilder, ClientWithMiddleware,
         reqwest::{
-            header::{HeaderMap, HeaderName, HeaderValue}, Client, Method,
-            Proxy,
-        }, ClientBuilder,
-        ClientWithMiddleware,
+            Client, Method, Proxy,
+            header::{HeaderMap, HeaderName, HeaderValue},
+        },
     };
-    use reqwest_retry::{policies::ExponentialBackoff, RetryTransientMiddleware};
+    use reqwest_retry::{RetryTransientMiddleware, policies::ExponentialBackoff};
     use std::sync::LazyLock;
     use tokio::runtime::Handle;
     use tokio::time::Duration;
@@ -120,7 +120,6 @@ mod non_wasm {
             Ok(Some(proxies))
         }
     }
-
 
     #[derive(Debug, Clone)]
     pub(super) enum ClientOrProxies {
