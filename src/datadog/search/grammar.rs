@@ -21,19 +21,6 @@ const MISSING_FIELD: &str = "_missing_";
 /// via a Visitor pattern and walking our way through the syntax tree.
 pub struct QueryVisitor;
 
-/// Group a list of nodes into a single node, using the given conjunction.
-/// If the group has only one node, return it as-is.
-fn group_nodes(mut node_group: Vec<QueryNode>, conjunction: BooleanType) -> QueryNode {
-    if node_group.len() == 1 {
-        return node_group.pop().unwrap();
-    }
-
-    QueryNode::Boolean {
-        oper: conjunction,
-        nodes: node_group,
-    }
-}
-
 impl QueryVisitor {
     pub fn visit_queryroot(token: Pair<Rule>, default_field: &str) -> QueryNode {
         let contents = token.into_inner().next().unwrap();
@@ -66,7 +53,7 @@ impl QueryVisitor {
                         Rule::AND => (),
                         Rule::OR => {
                             // close the current and_group and create a new one
-                            and_groups.push(group_nodes(and_group, BooleanType::And));
+                            and_groups.push(QueryNode::new_boolean(BooleanType::And, and_group));
                             and_group = Vec::new();
                         }
                         _ => unreachable!(),
@@ -99,8 +86,8 @@ impl QueryVisitor {
             }
         }
 
-        and_groups.push(group_nodes(and_group, BooleanType::And));
-        let query_node = group_nodes(and_groups, BooleanType::Or);
+        and_groups.push(QueryNode::new_boolean(BooleanType::And, and_group));
+        let query_node = QueryNode::new_boolean(BooleanType::Or, and_groups);
 
         if let QueryNode::NegatedNode { node } = query_node {
             // if the node is a negated MatchAllDocs, return MatchNoDocs

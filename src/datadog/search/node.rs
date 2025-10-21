@@ -304,6 +304,19 @@ impl QueryNode {
             format!("{attr}:")
         }
     }
+
+    /// Group a list of nodes into a single node, using the given conjunction.
+    /// If the group has only one node, return a clone of that node.
+    pub fn new_boolean(conjunction: BooleanType, nodes: Vec<QueryNode>) -> QueryNode {
+        if nodes.len() == 1 {
+            return nodes.first().unwrap().clone();
+        }
+
+        QueryNode::Boolean {
+            oper: conjunction,
+            nodes,
+        }
+    }
 }
 
 impl<'de> Deserialize<'de> for QueryNode {
