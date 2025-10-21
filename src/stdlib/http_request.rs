@@ -14,13 +14,13 @@ mod non_wasm {
         Value, VrlValueConvert,
     };
     use reqwest_middleware::{
-        ClientBuilder, ClientWithMiddleware,
         reqwest::{
-            Client, Method, Proxy,
-            header::{HeaderMap, HeaderName, HeaderValue},
-        },
+            header::{HeaderMap, HeaderName, HeaderValue}, Client, Method,
+            Proxy,
+        }, ClientBuilder,
+        ClientWithMiddleware,
     };
-    use reqwest_retry::{RetryTransientMiddleware, policies::ExponentialBackoff};
+    use reqwest_retry::{policies::ExponentialBackoff, RetryTransientMiddleware};
     use std::sync::LazyLock;
     use tokio::runtime::Handle;
     use tokio::time::Duration;
@@ -121,20 +121,6 @@ mod non_wasm {
         }
     }
 
-    // Used to avoid clones
-    enum RefOrOwnedClient<'c> {
-        Owned(ClientWithMiddleware),
-        Ref(&'c ClientWithMiddleware),
-    }
-
-    impl AsRef<ClientWithMiddleware> for RefOrOwnedClient<'_> {
-        fn as_ref(&self) -> &ClientWithMiddleware {
-            match self {
-                Self::Owned(client) => client,
-                Self::Ref(client) => client,
-            }
-        }
-    }
 
     #[derive(Debug, Clone)]
     pub(super) enum ClientOrProxies {
@@ -198,12 +184,9 @@ mod non_wasm {
         }
 
         #[allow(clippy::similar_names)]
-        fn get_client<'c>(
-            &'c self,
-            ctx: &mut Context,
-        ) -> Result<RefOrOwnedClient<'c>, ExpressionError> {
+        fn get_client(&self, ctx: &mut Context) -> Result<ClientWithMiddleware, ExpressionError> {
             match self {
-                Self::Client(client) => Ok(RefOrOwnedClient::Ref(client)),
+                Self::Client(client) => Ok(client.clone()),
                 Self::Proxies {
                     http_proxy,
                     https_proxy,
@@ -219,9 +202,9 @@ mod non_wasm {
                         .transpose()?;
 
                     if let Some(proxies) = make_proxies(http_proxy, https_proxy)? {
-                        Ok(RefOrOwnedClient::Owned(build_client(Some(proxies))))
+                        Ok(build_client(Some(proxies)))
                     } else {
-                        Ok(RefOrOwnedClient::Ref(&STD_CLIENT))
+                        Ok(STD_CLIENT.clone())
                     }
                 }
             }
@@ -245,7 +228,6 @@ mod non_wasm {
             let headers = self.headers.resolve(ctx)?;
             let body = self.body.resolve(ctx)?;
             let client = self.client_or_proxies.get_client(ctx)?;
-            let client_ref = client.as_ref();
 
             // block_in_place runs the HTTP request synchronously
             // without blocking Tokio's async worker threads.
@@ -253,7 +235,7 @@ mod non_wasm {
             task::block_in_place(|| {
                 if let Ok(handle) = Handle::try_current() {
                     handle.block_on(async {
-                        http_request(client_ref, &url, &method, headers, &body).await
+                        http_request(&client, &url, &method, headers, &body).await
                     })
                 } else {
                     let runtime = runtime::Builder::new_current_thread()
@@ -262,7 +244,7 @@ mod non_wasm {
                         .expect("tokio runtime creation failed");
 
                     runtime.block_on(async move {
-                        http_request(client_ref, &url, &method, headers, &body).await
+                        http_request(&client, &url, &method, headers, &body).await
                     })
                 }
             })
