@@ -54,6 +54,12 @@ pub trait VrlValueArithmetic: Sized {
     /// Similar to [`std::cmp::Ord`], but fallible (e.g. `TryOrd`).
     fn try_le(self, rhs: Self) -> Result<Self, ValueError>;
 
+    fn try_bitwise_and(self, rhs: Self) -> Result<Self, ValueError>;
+
+    fn try_bitwise_or(self, rhs: Self) -> Result<Self, ValueError>;
+
+    fn try_bitwise_not(self) -> Result<Self, ValueError>;
+
     fn try_merge(self, rhs: Self) -> Result<Self, ValueError>;
 
     /// Similar to [`std::cmp::Eq`], but does a lossless comparison for integers
@@ -342,5 +348,38 @@ impl VrlValueArithmetic for Value {
 
             _ => self == rhs,
         }
+    }
+
+    fn try_bitwise_and(self, rhs: Self) -> Result<Self, ValueError> {
+        let err = || ValueError::BitwiseAnd(self.kind(), rhs.kind());
+
+        let value = match (&self, &rhs) {
+            (Value::Integer(lhv), Value::Integer(rhs)) => (lhv & rhs).into(),
+            _ => return Err(err()),
+        };
+
+        Ok(value)
+    }
+
+    fn try_bitwise_or(self, rhs: Self) -> Result<Self, ValueError> {
+        let err = || ValueError::BitwiseOr(self.kind(), rhs.kind());
+
+        let value = match (&self, &rhs) {
+            (Value::Integer(lhv), Value::Integer(rhs)) => (lhv | rhs).into(),
+            _ => return Err(err()),
+        };
+
+        Ok(value)
+    }
+
+    fn try_bitwise_not(self) -> Result<Self, ValueError> {
+        let err = || ValueError::BitwiseNot(self.kind());
+
+        let value = match &self {
+            Value::Integer(lhv) => (!lhv).into(),
+            _ => return Err(err()),
+        };
+
+        Ok(value)
     }
 }
