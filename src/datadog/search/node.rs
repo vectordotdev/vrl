@@ -309,7 +309,7 @@ impl QueryNode {
     /// If the group has only one node, return a clone of that node.
     pub fn new_boolean(conjunction: BooleanType, nodes: Vec<QueryNode>) -> QueryNode {
         if nodes.len() == 1 {
-            return nodes.first().unwrap().clone();
+            return nodes.into_iter().next().expect("Known to have length 1");
         }
 
         QueryNode::Boolean {
