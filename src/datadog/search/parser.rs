@@ -158,21 +158,15 @@ mod tests {
         let cases = ["foo bar baz AND qux quux quuz"];
         for query in cases.iter() {
             let res = parse(query);
-            if let QueryNode::Boolean {
-                oper: BooleanType::And,
-                ref nodes,
-            } = res
-            {
-                assert!(
+            assert!(
+                matches!(res, QueryNode::Boolean { oper: BooleanType::And, ref nodes } if
                     matches!(nodes[0], QueryNode::AttributeTerm { ref attr, ref value } if attr == "_default_" && value == "foo bar")
                         && matches!(nodes[1], QueryNode::AttributeTerm { ref attr, ref value } if attr == "_default_" && value == "baz")
                         && matches!(nodes[2], QueryNode::AttributeTerm { ref attr, ref value } if attr == "_default_" && value == "qux")
-                        && matches!(nodes[3], QueryNode::AttributeTerm { ref attr, ref value } if attr == "_default_" && value == "quux quuz"),
-                    "Unable to properly parse '{query:?}' - got {res:?}"
-                );
-            } else {
-                panic!("Unable to properly parse '{query:?}' - got {res:?}")
-            }
+                        && matches!(nodes[3], QueryNode::AttributeTerm { ref attr, ref value } if attr == "_default_" && value == "quux quuz")
+                ),
+                "Unable to properly parse '{query:?}' - got {res:?}"
+            );
         }
     }
 
@@ -477,20 +471,14 @@ mod tests {
         let cases = ["foo:bar baz:qux quux:quuz"];
         for query in cases.iter() {
             let res = parse(query);
-            if let QueryNode::Boolean {
-                oper: BooleanType::And,
-                ref nodes,
-            } = res
-            {
-                assert!(
+            assert!(
+                matches!(res, QueryNode::Boolean { oper: BooleanType::And, ref nodes } if
                     matches!(nodes[0], QueryNode::AttributeTerm { ref attr, ref value } if attr == "foo" && value == "bar")
                         && matches!(nodes[1], QueryNode::AttributeTerm { ref attr, ref value } if attr == "baz" && value == "qux")
-                        && matches!(nodes[2], QueryNode::AttributeTerm { ref attr, ref value } if attr == "quux" && value == "quuz"),
-                    "Unable to properly parse '{query:?}' - got {res:?}"
-                );
-            } else {
-                panic!("Unable to properly parse '{query:?}' - got {res:?}")
-            }
+                        && matches!(nodes[2], QueryNode::AttributeTerm { ref attr, ref value } if attr == "quux" && value == "quuz")
+                ),
+                "Unable to properly parse '{query:?}' - got {res:?}"
+            );
         }
     }
 
@@ -504,20 +492,14 @@ mod tests {
         ];
         for query in cases.iter() {
             let res = parse(query);
-            if let QueryNode::Boolean {
-                oper: BooleanType::And,
-                ref nodes,
-            } = res
-            {
-                assert!(
+            assert!(
+                matches!(res, QueryNode::Boolean { oper: BooleanType::And, ref nodes } if
                     matches!(nodes[0], QueryNode::NegatedNode { ref node } if matches!(**node, QueryNode::AttributeTerm {ref attr, ref value } if attr == "foo" && value == "bar"))
                         && matches!(nodes[1], QueryNode::AttributeTerm { ref attr, ref value } if attr == "baz" && value == "qux")
-                        && matches!(nodes[2], QueryNode::NegatedNode { ref node } if matches!(**node, QueryNode::AttributeTerm {ref attr, ref value } if attr == "quux" && value == "quuz")),
-                    "Unable to properly parse '{query:?}' - got {res:?}"
-                );
-            } else {
-                panic!("Unable to properly parse '{query:?}' - got {res:?}")
-            }
+                        && matches!(nodes[2], QueryNode::NegatedNode { ref node } if matches!(**node, QueryNode::AttributeTerm {ref attr, ref value } if attr == "quux" && value == "quuz"))
+                ),
+                "Unable to properly parse '{query:?}' - got {res:?}"
+            );
         }
     }
 
@@ -531,22 +513,16 @@ mod tests {
         ];
         for query in cases.iter() {
             let res = parse(query);
-            if let QueryNode::Boolean {
-                oper: BooleanType::Or,
-                ref nodes,
-            } = res
-            {
-                assert!(
+            assert!(
+                matches!(res, QueryNode::Boolean { oper: BooleanType::Or, ref nodes } if
                     matches!(nodes[0], QueryNode::AttributeTerm {ref attr, ref value } if attr == "foo" && value == "bar")
                         && matches!(nodes[1], QueryNode::Boolean { oper: BooleanType::And, ref nodes } if
                             matches!(nodes[0], QueryNode::NegatedNode { ref node } if matches!(**node, QueryNode::AttributeTerm {ref attr, ref value } if attr == "baz" && value == "qux") &&
-                            matches!(nodes[1], QueryNode::AttributeTerm { ref attr, ref value } if attr == "quux" && value == "quuz")),
-                        ),
-                    "Unable to properly parse '{query:?}' - got {res:?}"
-                );
-            } else {
-                panic!("Unable to properly parse '{query:?}' - got {res:?}")
-            }
+                            matches!(nodes[1], QueryNode::AttributeTerm { ref attr, ref value } if attr == "quux" && value == "quuz"))
+                        )
+                ),
+                "Unable to properly parse '{query:?}' - got {res:?}"
+            );
         }
     }
 
@@ -560,22 +536,16 @@ mod tests {
         ];
         for query in cases.iter() {
             let res = parse(query);
-            if let QueryNode::Boolean {
-                oper: BooleanType::Or,
-                ref nodes,
-            } = res
-            {
-                assert!(
+            assert!(
+                matches!(res, QueryNode::Boolean { oper: BooleanType::Or, ref nodes } if
                     matches!(nodes[0], QueryNode::AttributeTerm {ref attr, ref value } if attr == "foo" && value == "bar")
                         && matches!(nodes[1], QueryNode::Boolean { oper: BooleanType::And, ref nodes } if
                             matches!(nodes[0], QueryNode::AttributeTerm { ref attr, ref value } if attr == "baz" && value == "qux") &&
                             matches!(nodes[1], QueryNode::AttributeTerm { ref attr, ref value } if attr == "quux" && value == "quuz")
-                        ),
-                    "Unable to properly parse '{query:?}' - got {res:?}"
-                );
-            } else {
-                panic!("Unable to properly parse '{query:?}' - got {res:?}")
-            }
+                        )
+                ),
+                "Unable to properly parse '{query:?}' - got {res:?}"
+            );
         }
     }
 
@@ -584,22 +554,16 @@ mod tests {
         let cases = ["foo:bar (baz:qux quux:quuz)"];
         for query in cases.iter() {
             let res = parse(query);
-            if let QueryNode::Boolean {
-                oper: BooleanType::And,
-                ref nodes,
-            } = res
-            {
-                assert!(
+            assert!(
+                matches!(res, QueryNode::Boolean { oper: BooleanType::And, ref nodes } if
                     matches!(nodes[0], QueryNode::AttributeTerm {ref attr, ref value } if attr == "foo" && value == "bar")
                         && matches!(nodes[1], QueryNode::Boolean { oper: BooleanType::And, ref nodes } if
                             matches!(nodes[0], QueryNode::AttributeTerm { ref attr, ref value } if attr == "baz" && value == "qux") &&
                             matches!(nodes[1], QueryNode::AttributeTerm { ref attr, ref value } if attr == "quux" && value == "quuz")
-                        ),
-                    "Unable to properly parse '{query:?}' - got {res:?}"
-                );
-            } else {
-                panic!("Unable to properly parse '{query:?}' - got {res:?}")
-            }
+                        )
+                ),
+                "Unable to properly parse '{query:?}' - got {res:?}"
+            );
         }
     }
 
@@ -608,21 +572,15 @@ mod tests {
         let cases = ["(foo:bar OR baz:qux) quux:quuz"];
         for query in cases.iter() {
             let res = parse(query);
-            if let QueryNode::Boolean {
-                oper: BooleanType::And,
-                ref nodes,
-            } = res
-            {
-                assert!(
+
+            assert!(
+                matches!(res, QueryNode::Boolean { oper: BooleanType::And, ref nodes } if
                     matches!(nodes[0], QueryNode::Boolean { oper: BooleanType::Or, ref nodes } if
                         matches!(nodes[0], QueryNode::AttributeTerm { ref attr, ref value } if attr == "foo" && value == "bar") &&
                         matches!(nodes[1], QueryNode::AttributeTerm { ref attr, ref value } if attr == "baz" && value == "qux")
-                    ) && matches!(nodes[1], QueryNode::AttributeTerm {ref attr, ref value } if attr == "quux" && value == "quuz"),
-                    "Unable to properly parse '{query:?}' - got {res:?}"
-                );
-            } else {
-                panic!("Unable to properly parse '{query:?}' - got {res:?}")
-            }
+                    ) && matches!(nodes[1], QueryNode::AttributeTerm {ref attr, ref value } if attr == "quux" && value == "quuz")),
+                "Unable to properly parse '{query:?}' - got {res:?}"
+            );
         }
     }
 
@@ -650,19 +608,13 @@ mod tests {
         let cases = ["NOT foo bar", "- foo bar"]; // NOT only applies to the first term
         for query in cases.iter() {
             let res = parse(query);
-            if let QueryNode::Boolean {
-                oper: BooleanType::And,
-                ref nodes,
-            } = res
-            {
-                assert!(
+
+            assert!(
+                matches!(res, QueryNode::Boolean { oper: BooleanType::And, ref nodes } if
                     matches!(nodes[0], QueryNode::NegatedNode { ref node } if matches!(**node, QueryNode::AttributeTerm { ref attr, ref value } if attr == DEFAULT_FIELD && value == "foo"))
-                        && matches!(nodes[1], QueryNode::AttributeTerm { ref attr, ref value } if attr == DEFAULT_FIELD && value == "bar"),
-                    "Unable to properly parse '{query:?}' - got {res:?}"
-                );
-            } else {
-                panic!("Unable to properly parse '{query:?}' - got {res:?}")
-            }
+                        && matches!(nodes[1], QueryNode::AttributeTerm { ref attr, ref value } if attr == DEFAULT_FIELD && value == "bar")),
+                "Unable to properly parse '{query:?}' - got {res:?}"
+            );
         }
     }
 
