@@ -65,6 +65,7 @@ fn convert_value_raw(
         (Value::Integer(i), Kind::Uint64) => Ok(prost_reflect::Value::U64(i as u64)),
         (Value::Integer(i), Kind::Fixed32) => Ok(prost_reflect::Value::U32(i as u32)),
         (Value::Integer(i), Kind::Fixed64) => Ok(prost_reflect::Value::U64(i as u64)),
+        (Value::Integer(i), Kind::Double) => Ok(prost_reflect::Value::F64(i as f64)),
         (Value::Integer(i), Kind::Enum(_)) => Ok(prost_reflect::Value::EnumNumber(i as i32)),
         (Value::Bytes(b), Kind::Int32 | Kind::Sfixed32 | Kind::Sint32) => {
             let string = simdutf_bytes_utf8_lossy(&b);
@@ -327,6 +328,17 @@ mod tests {
         .unwrap();
         assert_eq!(Some(11.0), mfield!(message, "d").as_f64());
         assert_eq!(Some(2.0), mfield!(message, "f").as_f32());
+    }
+
+    #[test]
+    fn test_encode_integer_as_double() {
+        let message = encode_message(
+            &test_message_descriptor("Floats"),
+            Value::Object(BTreeMap::from([("d".into(), Value::Integer(42))])),
+            &Options::default(),
+        )
+        .unwrap();
+        assert_eq!(Some(42.0), mfield!(message, "d").as_f64());
     }
 
     #[test]
