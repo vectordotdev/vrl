@@ -43,7 +43,7 @@ datadog_grok = ["value", "parsing", "dep:nom", "dep:peeking_take_while", "dep:se
 datadog_search = ["dep:pest", "dep:pest_derive", "dep:itertools", "dep:regex", "dep:serde"]
 
 # Features that aren't used as often (default off)
-cli = ["stdlib", "dep:serde_json", "dep:thiserror", "dep:exitcode", "dep:webbrowser", "dep:rustyline", "dep:prettytable-rs"]
+cli = ["stdlib", "dep:clap", "dep:serde_json", "dep:thiserror", "dep:exitcode", "dep:webbrowser", "dep:rustyline", "dep:prettytable-rs"]
 test_framework = ["compiler", "dep:prettydiff", "dep:serde_json", "dep:ansi_term"]
 arbitrary = ["dep:quickcheck", "dep:arbitrary"]
 lua = ["dep:mlua"]
@@ -139,7 +139,7 @@ chrono-tz = { version = "0.10", default-features = false, optional = true }
 ciborium = { version = "0.2.2", default-features = false, optional = true }
 cidr = { version = "0.3", optional = true }
 csv = { version = "1", optional = true }
-clap.workspace = true
+clap = { workspace = true, optional = true }
 codespan-reporting = { version = "0.12", optional = true }
 convert_case = { version = "0.7.1", optional = true }
 crc = { version = "3.3.0", optional = true }
