@@ -72,7 +72,7 @@ def overwrite_version(version, dry_run=False):
         sys.exit(1)
 
     commit_message = f"chore(deps): change version from {current_version} with {version}"
-    print(commit_message)
+    print(f"Updating version in Cargo.toml: {current_version} -> {version}")
 
     if dry_run:
         print("Dry-run mode: Skipping version file write and commit.")
@@ -140,7 +140,7 @@ def generate_changelog(dry_run=False):
                    cwd=REPO_ROOT_DIR)
 
 def create_branch(branch_name, dry_run=False):
-    print(f"Would create branch: {branch_name}")
+    print(f"Creating branch: {branch_name}")
     if dry_run:
         print("Dry-run mode: Skipping branch creation.")
         return
