@@ -14,13 +14,13 @@
 
 ### New Features
 
-- add `basename` function to get the last component of a path
+- Introduced the `basename` function to get the last component of a path.
 
   author: titaneric (https://github.com/vectordotdev/vrl/pull/1531)
-- add `dirname` function to get the directory component of a path
+- Introduced the `dirname` function to get the directory component of a path.
 
   author: titaneric (https://github.com/vectordotdev/vrl/pull/1532)
-- add `split_path` function to split a path into its components
+- Introduced the `split_path` function to split a path into its components.
 
   author: titaneric (https://github.com/vectordotdev/vrl/pull/1533)
 
@@ -33,7 +33,7 @@
 
 ### Fixes
 
-- fix `parse_glog` to accept space-padded thread-id (https://github.com/vectordotdev/vrl/pull/1515)
+- Fixed `parse_glog` to accept space-padded thread-id. (https://github.com/vectordotdev/vrl/pull/1515)
 
 
 ## [0.27.0 (2025-09-18)]
