@@ -7,7 +7,7 @@ from inspect import getsourcefile
 from os.path import abspath
 
 import semver
-import tomllib
+import tomlkit
 
 from utils.validate_version import assert_version_is_not_published
 
@@ -18,76 +18,57 @@ SCRIPTS_DIR = os.path.join(REPO_ROOT_DIR, "scripts")
 SCRIPT_FILENAME = os.path.basename(getsourcefile(lambda: 0))
 
 def get_current_version():
-    """Read the current version from Cargo.toml using proper TOML parsing"""
+    """Read the current version from Cargo.toml using tomlkit"""
     toml_path = os.path.join(REPO_ROOT_DIR, "Cargo.toml")
 
     try:
-        with open(toml_path, "rb") as file:
-            cargo_toml = tomllib.load(file)
+        with open(toml_path, "r") as file:
+            doc = tomlkit.parse(file.read())
 
-        if "package" in cargo_toml and "version" in cargo_toml["package"]:
-            return cargo_toml["package"]["version"]
-        elif "version" in cargo_toml:
-            # Fallback for older format
-            return cargo_toml["version"]
+        if "package" in doc and "version" in doc["package"]:
+            return doc["package"]["version"]
         else:
             print("Error: The `version` field is not present in Cargo.toml [package] section.")
             sys.exit(1)
     except FileNotFoundError:
         print(f"Error: Cargo.toml not found at {toml_path}")
         sys.exit(1)
-    except tomllib.TOMLDecodeError as e:
+    except Exception as e:
         print(f"Error: Failed to parse Cargo.toml: {e}")
         sys.exit(1)
 
 def overwrite_version(version, dry_run=False):
     """
-    Update version in Cargo.toml.
-    Uses string manipulation to preserve formatting and comments.
+    Update version in Cargo.toml using tomlkit.
+    Preserves formatting, comments, and structure.
     """
     toml_path = os.path.join(REPO_ROOT_DIR, "Cargo.toml")
 
     try:
         with open(toml_path, "r") as file:
-            lines = file.readlines()
+            content = file.read()
+            doc = tomlkit.parse(content)
     except FileNotFoundError:
         print(f"Error: Cargo.toml not found at {toml_path}")
         sys.exit(1)
+    except Exception as e:
+        print(f"Error: Failed to parse Cargo.toml: {e}")
+        sys.exit(1)
 
-    # Find and update version in [package] section
-    current_version = None
-    in_package_section = False
-    version_updated = False
+    # Check if [package] section exists
+    if "package" not in doc:
+        print("Error: [package] section not found in Cargo.toml")
+        sys.exit(1)
 
-    for i, line in enumerate(lines):
-        stripped = line.strip()
+    # Check if version field exists
+    if "version" not in doc["package"]:
+        print("Error: version field not found in [package] section")
+        sys.exit(1)
 
-        # Track if we're in the [package] section
-        if stripped.startswith("[package]"):
-            in_package_section = True
-            continue
-        elif stripped.startswith("[") and stripped.endswith("]"):
-            # Entered a different section
-            in_package_section = False
+    current_version = doc["package"]["version"]
 
-        # Look for version line in [package] section
-        if in_package_section and stripped.startswith("version"):
-            # Extract current version using proper parsing
-            if "=" in line:
-                current_version = line.split("=", 1)[1].strip().strip('"').strip("'")
-
-                if current_version == version:
-                    print(f"Already at version {version}.")
-                    sys.exit(1)
-
-                # Preserve the original line format (spacing, quotes style)
-                indent = line[:len(line) - len(line.lstrip())]
-                lines[i] = f'{indent}version = "{version}"\n'
-                version_updated = True
-                break
-
-    if not version_updated:
-        print("Error: Could not find version field in [package] section of Cargo.toml.")
+    if current_version == version:
+        print(f"Already at version {version}.")
         sys.exit(1)
 
     commit_message = f"chore(deps): change version from {current_version} with {version}"
@@ -97,8 +78,12 @@ def overwrite_version(version, dry_run=False):
         print("Dry-run mode: Skipping version file write and commit.")
         return
 
+    # Update version in the document
+    doc["package"]["version"] = version
+
+    # Write back to file (preserves formatting and comments)
     with open(toml_path, "w") as file:
-        file.writelines(lines)
+        file.write(tomlkit.dumps(doc))
 
     # Update VRL version in Cargo.lock
     subprocess.run(["cargo", "update", "-p", "vrl"], check=True, cwd=REPO_ROOT_DIR)
