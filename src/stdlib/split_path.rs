@@ -42,22 +42,22 @@ impl Function for SplitPath {
         &[
             Example {
                 title: "Split path with trailing slash",
-                source: r#"split_path!("/home/user/")"#,
+                source: r#"split_path("/home/user/")"#,
                 result: Ok(r#"["/", "home", "user"]"#),
             },
             Example {
                 title: "Split path from file path",
-                source: r#"split_path!("/home/user")"#,
+                source: r#"split_path("/home/user")"#,
                 result: Ok(r#"["/", "home", "user"]"#),
             },
             Example {
                 title: "Split path from root",
-                source: r#"split_path!("/")"#,
+                source: r#"split_path("/")"#,
                 result: Ok(r#"["/"]"#),
             },
             Example {
                 title: "Empty path returns empty array",
-                source: r#"split_path!("")"#,
+                source: r#"split_path("")"#,
                 result: Ok("[]"),
             },
         ]
