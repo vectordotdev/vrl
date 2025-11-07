@@ -394,7 +394,7 @@ fn print_result(total_count: usize, failed_count: usize, warnings_count: usize, 
             println!(
                 "  {} - {}",
                 Colour::Yellow.paint(format!("{}/{}", test.category, test.name)),
-                Colour::Fixed(240).paint(format!("{}:{}", test.source_file, test.source_line))
+                format!("{}:{}", test.source_file, test.source_line)
             );
         }
     }
