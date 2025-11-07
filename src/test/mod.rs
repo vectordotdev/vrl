@@ -363,7 +363,12 @@ fn process_compilation_diagnostics(
     failed
 }
 
-fn print_result(total_count: usize, failed_count: usize, warnings_count: usize, failed_tests: Vec<FailedTest>) {
+fn print_result(
+    total_count: usize,
+    failed_count: usize,
+    warnings_count: usize,
+    failed_tests: Vec<FailedTest>,
+) {
     let code = i32::from(failed_count > 0);
 
     println!("\n");
