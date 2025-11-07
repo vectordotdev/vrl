@@ -489,12 +489,12 @@ impl Function for Crc {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "default CRC_32_ISO_HDLC",
                 source: r#"crc("foobar")"#,
                 result: Ok(r#""2666930069""#),
             },
-            Example {
+            example! {
                 title: "CRC_8_MAXIM_DOW",
                 source: r#"crc("foobar", algorithm: "CRC_8_MAXIM_DOW")"#,
                 result: Ok(r#""53""#),

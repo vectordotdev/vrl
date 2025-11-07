@@ -103,12 +103,12 @@ impl Function for Compact {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "object",
                 source: r#"compact({ "a": {}, "b": null, "c": [null], "d": "", "e": "-", "f": true })"#,
                 result: Ok(r#"{ "e": "-", "f": true }"#),
             },
-            Example {
+            example! {
                 title: "nullish",
                 source: r#"compact(["-", "   ", "\n", null, true], nullish: true)"#,
                 result: Ok("[true]"),

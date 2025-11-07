@@ -18,7 +18,7 @@ static EXAMPLE_JSON_SCHEMA_EXPR: LazyLock<&str> = LazyLock::new(|| {
 });
 
 static EXAMPLES: LazyLock<Vec<Example>> = LazyLock::new(|| {
-    vec![Example {
+    vec![example! {
         title: "valid payload",
         source: &EXAMPLE_JSON_SCHEMA_EXPR,
         result: Ok("true"),

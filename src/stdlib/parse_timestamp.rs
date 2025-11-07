@@ -41,12 +41,12 @@ impl Function for ParseTimestamp {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "valid",
                 source: r#"parse_timestamp!("11-Feb-2021 16:00 +00:00", format: "%v %R %z")"#,
                 result: Ok("t'2021-02-11T16:00:00Z'"),
             },
-            Example {
+            example! {
                 title: "valid with timezone",
                 source: r#"parse_timestamp!("16/10/2019 12:00:00", format: "%d/%m/%Y %H:%M:%S", timezone: "Europe/Paris")"#,
                 result: Ok("t'2019-10-16T10:00:00Z'"),

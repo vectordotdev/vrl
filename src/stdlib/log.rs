@@ -30,12 +30,12 @@ impl Function for Log {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "default log level (info)",
                 source: r#"log("foo")"#,
                 result: Ok("null"),
             },
-            Example {
+            example! {
                 title: "custom level",
                 source: r#"log("foo", "error")"#,
                 result: Ok("null"),

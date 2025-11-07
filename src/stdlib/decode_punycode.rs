@@ -41,17 +41,17 @@ impl Function for DecodePunycode {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "punycode string",
                 source: r#"decode_punycode!("www.xn--caf-dma.com")"#,
                 result: Ok("www.café.com"),
             },
-            Example {
+            example! {
                 title: "ascii string",
                 source: r#"decode_punycode!("www.cafe.com")"#,
                 result: Ok("www.cafe.com"),
             },
-            Example {
+            example! {
                 title: "ignore validation",
                 source: r#"decode_punycode!("xn--8hbb.xn--fiba.xn--8hbf.xn--eib.", validate: false)"#,
                 result: Ok("١٠.٦٦.٣٠.٥."),

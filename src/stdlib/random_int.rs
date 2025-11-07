@@ -47,7 +47,7 @@ impl Function for RandomInt {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[Example {
+        &[example! {
             title: "generate a random int from 0 to 10",
             source: "
 				i = random_int(0, 10)

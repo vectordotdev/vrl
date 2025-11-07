@@ -33,17 +33,17 @@ impl Function for Length {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "array",
                 source: "length([0, 1])",
                 result: Ok("2"),
             },
-            Example {
+            example! {
                 title: "object",
                 source: r#"length({ "foo": "bar"})"#,
                 result: Ok("1"),
             },
-            Example {
+            example! {
                 title: "string",
                 source: r#"length("foobar")"#,
                 result: Ok("6"),

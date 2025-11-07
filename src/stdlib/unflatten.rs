@@ -125,26 +125,26 @@ impl Function for Unflatten {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "simple",
                 source: r#"unflatten({ "foo.bar.baz": true, "foo.bar.qux": false, "foo.quux": 42 })"#,
                 result: Ok(r#"{ "foo": { "bar": { "baz": true, "qux": false }, "quux": 42 } }"#),
             },
-            Example {
+            example! {
                 title: "inner flattened recursive",
                 source: r#"unflatten({ "flattened.parent": { "foo.bar": true, "foo.baz": false } })"#,
                 result: Ok(
                     r#"{ "flattened": { "parent": { "foo": { "bar": true, "baz": false } } } }"#,
                 ),
             },
-            Example {
+            example! {
                 title: "inner flattened not recursive",
                 source: r#"unflatten({ "flattened.parent": { "foo.bar": true, "foo.baz": false } }, recursive: false)"#,
                 result: Ok(
                     r#"{ "flattened": { "parent": { "foo.bar": true, "foo.baz": false } } }"#,
                 ),
             },
-            Example {
+            example! {
                 title: "with custom separator",
                 source: r#"unflatten({ "foo_bar": true }, "_")"#,
                 result: Ok(r#"{"foo": { "bar": true }}"#),

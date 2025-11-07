@@ -84,21 +84,21 @@ impl Function for ParseNginxLog {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "parse nginx combined log",
                 source: r#"encode_json(parse_nginx_log!(s'172.17.0.1 - - [31/Mar/2021:12:04:07 +0000] "GET / HTTP/1.1" 200 612 "-" "curl/7.75.0" "-"', "combined"))"#,
                 result: Ok(
                     r#"s'{"agent":"curl/7.75.0","client":"172.17.0.1","referer":"-","request":"GET / HTTP/1.1","size":612,"status":200,"timestamp":"2021-03-31T12:04:07Z"}'"#,
                 ),
             },
-            Example {
+            example! {
                 title: "parse nginx main log",
                 source: r#"encode_json(parse_nginx_log!(s'172.24.0.1 - alice [03/Jan/2025:16:42:58 +0000] "GET / HTTP/1.1" 200 615 "http://domain.tld/path" "curl/8.11.1" "1.2.3.4, 10.10.1.1"', "main"))"#,
                 result: Ok(
                     r#"s'{"body_bytes_size":615,"http_referer":"http://domain.tld/path","http_user_agent":"curl/8.11.1","http_x_forwarded_for":"1.2.3.4, 10.10.1.1","remote_addr":"172.24.0.1","remote_user":"alice","request":"GET / HTTP/1.1","status":200,"timestamp":"2025-01-03T16:42:58Z"}'"#,
                 ),
             },
-            Example {
+            example! {
                 title: "parse nginx error log",
                 source: r#"encode_json(parse_nginx_log!(s'2021/04/01 13:02:31 [error] 31#31: *1 open() "/usr/share/nginx/html/not-found" failed (2: No such file or directory), client: 172.17.0.1, server: localhost, request: "POST /not-found HTTP/1.1", host: "localhost:8081"', "error"))"#,
                 result: Ok(

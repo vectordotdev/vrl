@@ -372,7 +372,7 @@ impl Function for DnsLookup {
     #[cfg(feature = "test")]
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "Basic lookup",
                 source: r#"
                     res = dns_lookup!("dns.google")
@@ -442,7 +442,7 @@ impl Function for DnsLookup {
                   }"#
                 )),
             },
-            Example {
+            example! {
                 title: "Custom class and qtype",
                 source: r#"
                     res = dns_lookup!("dns.google", class: "IN", qtype: "A")
@@ -512,7 +512,7 @@ impl Function for DnsLookup {
                   }"#
                 )),
             },
-            Example {
+            example! {
                 title: "Custom options",
                 source: r#"
                     res = dns_lookup!("dns.google", options: {"timeout": 30, "attempts": 5})
@@ -581,7 +581,7 @@ impl Function for DnsLookup {
                   }"#
                 )),
             },
-            Example {
+            example! {
                 title: "Custom server",
                 source: r#"
                     res = dns_lookup!("dns.google", options: {"servers": ["dns.quad9.net"]})

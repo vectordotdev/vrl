@@ -57,12 +57,12 @@ impl Function for Filter {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "filter object",
                 source: r#"filter({ "a": 1, "b": 2 }) -> |key, _value| { key == "a" }"#,
                 result: Ok(r#"{ "a": 1 }"#),
             },
-            Example {
+            example! {
                 title: "filter array",
                 source: "filter([1, 2]) -> |_index, value| { value < 2 }",
                 result: Ok("[1]"),
@@ -98,7 +98,7 @@ impl Function for Filter {
                     },
                 ],
                 output: Output::Kind(Kind::boolean()),
-                example: Example {
+                example: example! {
                     title: "filter array",
                     source: "filter([1, 2]) -> |index, _value| { index == 0 }",
                     result: Ok("[1]"),

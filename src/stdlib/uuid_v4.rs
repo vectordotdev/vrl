@@ -16,7 +16,7 @@ impl Function for UuidV4 {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[Example {
+        &[example! {
             title: "generate UUID v4",
             source: r#"uuid_v4() != """#,
             result: Ok("true"),

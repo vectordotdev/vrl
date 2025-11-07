@@ -52,12 +52,12 @@ impl Function for Sha2 {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "default variant",
                 source: r#"sha2("foobar")"#,
                 result: Ok("d014c752bc2be868e16330f47e0c316a5967bcbc9c286a457761d7055b9214ce"),
             },
-            Example {
+            example! {
                 title: "custom variant",
                 source: r#"sha2("foobar", "SHA-384")"#,
                 result: Ok(

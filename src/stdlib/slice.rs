@@ -72,17 +72,17 @@ impl Function for Slice {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "string start",
                 source: r#"slice!("foobar", 3)"#,
                 result: Ok("bar"),
             },
-            Example {
+            example! {
                 title: "string start..end",
                 source: r#"slice!("foobar", 2, 4)"#,
                 result: Ok("ob"),
             },
-            Example {
+            example! {
                 title: "array start",
                 source: "slice!([0, 1, 2], 1)",
                 result: Ok("[1, 2]"),

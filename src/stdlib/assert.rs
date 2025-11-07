@@ -44,17 +44,17 @@ impl Function for Assert {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "success",
                 source: "assert!(true)",
                 result: Ok("true"),
             },
-            Example {
+            example! {
                 title: "failure",
                 source: "assert!(true == false)",
                 result: Err(r#"function call error for "assert" at (0:22): assertion failed"#),
             },
-            Example {
+            example! {
                 title: "custom message",
                 source: "assert!(false, s'custom error')",
                 result: Err(r#"function call error for "assert" at (0:31): custom error"#),

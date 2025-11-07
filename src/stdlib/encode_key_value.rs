@@ -100,17 +100,17 @@ impl Function for EncodeKeyValue {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "encode object",
                 source: r#"encode_key_value({"lvl": "info", "msg": "This is a message", "log_id": 12345})"#,
                 result: Ok(r#"s'log_id=12345 lvl=info msg="This is a message"'"#),
             },
-            Example {
+            example! {
                 title: "encode object with fields ordering",
                 source: r#"encode_key_value!({"msg": "This is a message", "lvl": "info", "log_id": 12345}, ["lvl", "msg"])"#,
                 result: Ok(r#"s'lvl=info msg="This is a message" log_id=12345'"#),
             },
-            Example {
+            example! {
                 title: "custom delimiters",
                 source: r#"encode_key_value({"start": "ool", "end": "kul", "stop1": "yyc", "stop2" : "gdx"}, key_value_delimiter: ":", field_delimiter: ",")"#,
                 result: Ok("s'end:kul,start:ool,stop1:yyc,stop2:gdx'"),

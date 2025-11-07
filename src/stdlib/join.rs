@@ -52,7 +52,7 @@ impl Function for Join {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[Example {
+        &[example! {
             title: "join",
             source: r#"join!(["a","b","c"], ",")"#,
             result: Ok("a,b,c"),

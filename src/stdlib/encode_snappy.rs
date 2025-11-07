@@ -21,7 +21,7 @@ impl Function for EncodeSnappy {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[Example {
+        &[example! {
             title: "demo string",
             source: r#"encode_base64(encode_snappy!("The quick brown fox jumps over 13 lazy dogs."))"#,
             result: Ok("LKxUaGUgcXVpY2sgYnJvd24gZm94IGp1bXBzIG92ZXIgMTMgbGF6eSBkb2dzLg=="),

@@ -19,17 +19,17 @@ impl Function for IsBoolean {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "string",
                 source: r#"is_boolean("foobar")"#,
                 result: Ok("false"),
             },
-            Example {
+            example! {
                 title: "boolean",
                 source: "is_boolean(false)",
                 result: Ok("true"),
             },
-            Example {
+            example! {
                 title: "null",
                 source: "is_boolean(null)",
                 result: Ok("false"),

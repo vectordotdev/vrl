@@ -37,7 +37,7 @@ impl Function for DecodePercent {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[Example {
+        &[example! {
             title: "percent decode string",
             source: r#"decode_percent("foo%20bar%3F")"#,
             result: Ok("foo bar?"),

@@ -21,7 +21,7 @@ impl Function for EncodeLz4 {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[Example {
+        &[example! {
             title: "demo string",
             source: r#"encode_base64(encode_lz4!("The quick brown fox jumps over 13 lazy dogs.", true))"#,
             result: Ok("LAAAAPAdVGhlIHF1aWNrIGJyb3duIGZveCBqdW1wcyBvdmVyIDEzIGxhenkgZG9ncy4="),

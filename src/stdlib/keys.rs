@@ -24,12 +24,12 @@ impl Function for Keys {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "get keys",
                 source: r#"keys({"key1": "val1", "key2": "val2"})"#,
                 result: Ok(r#"["key1", "key2"]"#),
             },
-            Example {
+            example! {
                 title: "get keys from a nested object",
                 source: r#"keys({"key1": "val1", "key2": {"nestedkey1": "val3", "nestedkey2": "val4"}})"#,
                 result: Ok(r#"["key1", "key2"]"#),

@@ -38,12 +38,12 @@ impl Function for Match {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "match",
                 source: r#"match("foobar", r'foo')"#,
                 result: Ok("true"),
             },
-            Example {
+            example! {
                 title: "mismatch",
                 source: r#"match("bazqux", r'foo')"#,
                 result: Ok("false"),

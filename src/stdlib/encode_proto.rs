@@ -28,7 +28,7 @@ static EXAMPLE_ENCODE_PROTO_EXPR: LazyLock<&str> = LazyLock::new(|| {
 });
 
 static EXAMPLES: LazyLock<Vec<Example>> = LazyLock::new(|| {
-    vec![Example {
+    vec![example! {
         title: "message",
         source: &EXAMPLE_ENCODE_PROTO_EXPR,
         result: Ok("Cgdzb21lb25lIggKBjEyMzQ1Ng=="),

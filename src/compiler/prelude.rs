@@ -6,6 +6,7 @@ pub use ordered_float::NotNan;
 
 // macros
 pub use crate::diagnostic::{DiagnosticMessage, Note, Span};
+pub use crate::example;
 pub use crate::expr;
 pub use crate::value::{
     KeyString, Kind, ObjectMap, Value, ValueRegex,

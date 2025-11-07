@@ -35,12 +35,12 @@ impl Function for IpNtop {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "Convert IPv4 address from bytes after decoding from Base64",
                 source: r#"ip_ntop!(decode_base64!("wKgAAQ=="))"#,
                 result: Ok("192.168.0.1"),
             },
-            Example {
+            example! {
                 title: "Convert IPv6 address from bytes after decoding from Base64",
                 source: r#"ip_ntop!(decode_base64!("IAENuIWjAAAAAIouA3BzNA=="))"#,
                 result: Ok("2001:db8:85a3::8a2e:370:7334"),

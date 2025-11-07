@@ -36,63 +36,63 @@ impl Function for ToInt {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "integer",
                 source: "to_int(5)",
                 result: Ok("5"),
             },
-            Example {
+            example! {
                 title: "float",
                 source: "to_int(5.6)",
                 result: Ok("5"),
             },
-            Example {
+            example! {
                 title: "true",
                 source: "to_int(true)",
                 result: Ok("1"),
             },
-            Example {
+            example! {
                 title: "false",
                 source: "to_int(false)",
                 result: Ok("0"),
             },
-            Example {
+            example! {
                 title: "null",
                 source: "to_int(null)",
                 result: Ok("0"),
             },
-            Example {
+            example! {
                 title: "timestamp",
                 source: "to_int(t'2020-01-01T00:00:00Z')",
                 result: Ok("1577836800"),
             },
-            Example {
+            example! {
                 title: "valid string",
                 source: "to_int!(s'5')",
                 result: Ok("5"),
             },
-            Example {
+            example! {
                 title: "invalid string",
                 source: "to_int!(s'foobar')",
                 result: Err(
                     r#"function call error for "to_int" at (0:18): Invalid integer "foobar": invalid digit found in string"#,
                 ),
             },
-            Example {
+            example! {
                 title: "array",
                 source: "to_int!([])",
                 result: Err(
                     r#"function call error for "to_int" at (0:11): unable to coerce array into integer"#,
                 ),
             },
-            Example {
+            example! {
                 title: "object",
                 source: "to_int!({})",
                 result: Err(
                     r#"function call error for "to_int" at (0:11): unable to coerce object into integer"#,
                 ),
             },
-            Example {
+            example! {
                 title: "regex",
                 source: "to_int!(r'foo')",
                 result: Err(

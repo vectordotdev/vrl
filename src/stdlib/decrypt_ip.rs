@@ -79,12 +79,12 @@ impl Function for DecryptIp {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "Decrypt IPv4 with AES128 mode",
                 source: r#"decrypt_ip!("72b9:a747:f2e9:72af:76ca:5866:6dcf:c3b0", "sixteen byte key", "aes128")"#,
                 result: Ok("192.168.1.1"),
             },
-            Example {
+            example! {
                 title: "Decrypt IPv6 with PFX mode",
                 source: r#"decrypt_ip!("88bd:d2bf:8865:8c4d:84b:44f6:6077:72c9", "thirty-two bytes key for ipv6pfx", "pfx")"#,
                 result: Ok("2001:db8::1"),

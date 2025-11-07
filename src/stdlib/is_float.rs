@@ -19,17 +19,17 @@ impl Function for IsFloat {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "float",
                 source: "is_float(0.577)",
                 result: Ok("true"),
             },
-            Example {
+            example! {
                 title: "boolean",
                 source: "is_float(true)",
                 result: Ok("false"),
             },
-            Example {
+            example! {
                 title: "null",
                 source: "is_float(null)",
                 result: Ok("false"),

@@ -142,7 +142,7 @@ impl Function for Decrypt {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[Example {
+        &[example! {
             title: "decrypt AES-256-CFB",
             source: r#"decrypt!(decode_base64!("c/dIOA=="), "AES-256-CFB", key: "01234567890123456789012345678912", iv: "0123456789012345")"#,
             result: Ok("data"),

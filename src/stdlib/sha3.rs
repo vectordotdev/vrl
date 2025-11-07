@@ -48,14 +48,14 @@ impl Function for Sha3 {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "default variant",
                 source: r#"sha3("foobar")"#,
                 result: Ok(
                     "ff32a30c3af5012ea395827a3e99a13073c3a8d8410a708568ff7e6eb85968fccfebaea039bc21411e9d43fdb9a851b529b9960ffea8679199781b8f45ca85e2",
                 ),
             },
-            Example {
+            example! {
                 title: "custom variant",
                 source: r#"sha3("foobar", "SHA3-384")"#,
                 result: Ok(

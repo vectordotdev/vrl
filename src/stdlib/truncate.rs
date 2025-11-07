@@ -54,17 +54,17 @@ impl Function for Truncate {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "truncate",
                 source: r#"truncate("foobar", 3)"#,
                 result: Ok("foo"),
             },
-            Example {
+            example! {
                 title: "ellipsis",
                 source: r#"truncate("foobarzoo", 3, suffix: "...")"#,
                 result: Ok("foo..."),
             },
-            Example {
+            example! {
                 title: "custom suffix",
                 source: r#"truncate("foo bar zoo", 4, suffix: "[TRUNCATED]")"#,
                 result: Ok("foo [TRUNCATED]"),

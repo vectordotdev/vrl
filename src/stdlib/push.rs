@@ -31,12 +31,12 @@ impl Function for Push {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "push item",
                 source: r#"push(["foo"], "bar")"#,
                 result: Ok(r#"["foo", "bar"]"#),
             },
-            Example {
+            example! {
                 title: "empty array",
                 source: r#"push([], "bar")"#,
                 result: Ok(r#"["bar"]"#),

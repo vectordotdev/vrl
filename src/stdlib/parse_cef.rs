@@ -68,42 +68,42 @@ impl Function for ParseCef {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "only header",
                 source: r#"parse_cef!("CEF:1|Security|threatmanager|1.0|100|worm successfully stopped|10|")"#,
                 result: Ok(
                     r#"{"cefVersion":"1","deviceVendor":"Security","deviceProduct":"threatmanager","deviceVersion":"1.0","deviceEventClassId":"100","name":"worm successfully stopped","severity":"10"}"#,
                 ),
             },
-            Example {
+            example! {
                 title: "header and extension",
                 source: r#"parse_cef!("CEF:0|CyberArk|PTA|12.6|1|\"Suspected credentials theft\"|8|suser=mike2@prod1.domain.com shost=prod1.domain.com src=1.1.1.1")"#,
                 result: Ok(
                     r#"{"cefVersion":"0","deviceVendor":"CyberArk","deviceProduct":"PTA","deviceVersion":"12.6","deviceEventClassId":"1","name":"Suspected credentials theft","severity":"8","suser":"mike2@prod1.domain.com","shost":"prod1.domain.com","src":"1.1.1.1"}"#,
                 ),
             },
-            Example {
+            example! {
                 title: "empty value",
                 source: r#"parse_cef!("CEF:0|CyberArk|PTA|12.6|1|Suspected credentials theft||suser=mike2@prod1.domain.com shost= src=1.1.1.1")"#,
                 result: Ok(
                     r#"{"cefVersion":"0","deviceVendor":"CyberArk","deviceProduct":"PTA","deviceVersion":"12.6","deviceEventClassId":"1","name":"Suspected credentials theft","severity":"","suser":"mike2@prod1.domain.com","shost":"","src":"1.1.1.1"}"#,
                 ),
             },
-            Example {
+            example! {
                 title: "with syslog prefix",
                 source: r#"parse_cef!("Sep 29 08:26:10 host CEF:1|Security|threatmanager|1.0|100|worm successfully stopped|10|")"#,
                 result: Ok(
                     r#"{"cefVersion":"1","deviceVendor":"Security","deviceProduct":"threatmanager","deviceVersion":"1.0","deviceEventClassId":"100","name":"worm successfully stopped","severity":"10"}"#,
                 ),
             },
-            Example {
+            example! {
                 title: "escapes",
                 source: r"parse_cef!(s'CEF:0|security|threatmanager|1.0|100|Detected a \| in message. No action needed.|10|src=10.0.0.1 msg=Detected a threat.\n No action needed act=blocked a \= dst=1.1.1.1')",
                 result: Ok(
                     r#"{"cefVersion":"0","deviceVendor":"security","deviceProduct":"threatmanager","deviceVersion":"1.0","deviceEventClassId":"100","name":"Detected a | in message. No action needed.","severity":"10","src":"10.0.0.1","msg":"Detected a threat.\n No action needed","act":"blocked a =", "dst":"1.1.1.1"}"#,
                 ),
             },
-            Example {
+            example! {
                 title: "translate custom fields",
                 source: r#"parse_cef!("CEF:0|CyberArk|PTA|12.6|1|\"Suspected credentials theft\"|8|suser=mike2@prod1.domain.com shost=prod1.domain.com c6a1=2345:0425:2CA1:0000:0000:0567:5673:23b5 c6a1Label=Device IPv6 Address", translate_custom_fields: true)"#,
                 result: Ok(

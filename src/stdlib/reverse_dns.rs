@@ -55,7 +55,7 @@ impl Function for ReverseDns {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[Example {
+        &[example! {
             title: "Example",
             source: r#"reverse_dns!("127.0.0.1")"#,
             result: Ok("localhost"),

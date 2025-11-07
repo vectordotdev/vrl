@@ -25,12 +25,12 @@ impl Function for Integer {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "valid",
                 source: "int(42)",
                 result: Ok("42"),
             },
-            Example {
+            example! {
                 title: "invalid",
                 source: "int!(true)",
                 result: Err(

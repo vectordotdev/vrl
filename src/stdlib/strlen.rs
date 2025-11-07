@@ -23,7 +23,7 @@ impl Function for Strlen {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[Example {
+        &[example! {
             title: "Characters",
             source: r#"strlen("ñandú")"#,
             result: Ok("5"),

@@ -41,7 +41,7 @@ impl Function for EncodeZlib {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[Example {
+        &[example! {
             title: "demo string",
             source: r#"encode_base64(encode_zlib("encode_me"))"#,
             result: Ok("eJxLzUvOT0mNz00FABI5A6A="),

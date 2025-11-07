@@ -40,22 +40,22 @@ impl Function for SplitPath {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "Split path with trailing slash",
                 source: r#"split_path("/home/user/")"#,
                 result: Ok(r#"["/", "home", "user"]"#),
             },
-            Example {
+            example! {
                 title: "Split path from file path",
                 source: r#"split_path("/home/user")"#,
                 result: Ok(r#"["/", "home", "user"]"#),
             },
-            Example {
+            example! {
                 title: "Split path from root",
                 source: r#"split_path("/")"#,
                 result: Ok(r#"["/"]"#),
             },
-            Example {
+            example! {
                 title: "Empty path returns empty array",
                 source: r#"split_path("")"#,
                 result: Ok("[]"),

@@ -49,17 +49,17 @@ impl Function for Flatten {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "object",
                 source: r#"flatten({ "foo": { "bar": true }})"#,
                 result: Ok(r#"{ "foo.bar": true }"#),
             },
-            Example {
+            example! {
                 title: "object",
                 source: r#"flatten({ "foo": { "bar": true }}, "_")"#,
                 result: Ok(r#"{ "foo_bar": true }"#),
             },
-            Example {
+            example! {
                 title: "array",
                 source: "flatten([[true]])",
                 result: Ok("[true]"),

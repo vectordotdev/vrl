@@ -32,7 +32,7 @@ impl Function for UuidFromFriendlyId {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[Example {
+        &[example! {
             title: "Decode UUID from 128-bit Friendly ID",
             source: r#"uuid_from_friendly_id!("3s87yEvnmkiPBMHsj8bwwc")"#,
             result: Ok("7f41deed-d5e2-8b5e-7a13-ab4ff93cfad2"),

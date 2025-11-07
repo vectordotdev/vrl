@@ -31,12 +31,12 @@ impl Function for Includes {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "includes",
                 source: "includes([1, true], true)",
                 result: Ok("true"),
             },
-            Example {
+            example! {
                 title: "no includes",
                 source: r#"includes(["foo", "bar"], "baz")"#,
                 result: Ok("false"),

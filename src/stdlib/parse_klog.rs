@@ -80,7 +80,7 @@ impl Function for ParseKlog {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[Example {
+        &[example! {
             title: "valid",
             source: r#"parse_klog!("I0505 17:59:40.692994   28133 klog.go:70] hello from klog")"#,
             result: Ok(indoc! { r#"{

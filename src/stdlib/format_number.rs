@@ -136,7 +136,7 @@ impl Function for FormatNumber {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[Example {
+        &[example! {
             title: "format number",
             source: r#"format_number(4672.4, decimal_separator: ",", grouping_separator: "_")"#,
             result: Ok("4_672,4"),

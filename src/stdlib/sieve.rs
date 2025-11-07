@@ -67,7 +67,7 @@ impl Function for Sieve {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[Example {
+        &[example! {
             title: "sieve simple",
             source: r#"sieve("vector.dev", permitted_characters: r'[a-z]')"#,
             result: Ok("vectordev"),

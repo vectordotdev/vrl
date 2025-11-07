@@ -23,17 +23,17 @@ impl Function for ParseFloat {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "integer",
                 source: r#"parse_float!("-42")"#,
                 result: Ok("-42.0"),
             },
-            Example {
+            example! {
                 title: "float",
                 source: r#"parse_float!("42.38")"#,
                 result: Ok("42.38"),
             },
-            Example {
+            example! {
                 title: "scientific notation",
                 source: r#"parse_float!("2.5e3")"#,
                 result: Ok("2500.0"),

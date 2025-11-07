@@ -60,18 +60,18 @@ impl Function for FormatInt {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "format decimal integer",
                 source: "format_int!(42)",
                 // extra "s are needed to avoid being read as an integer by tests
                 result: Ok("\"42\""),
             },
-            Example {
+            example! {
                 title: "format hexadecimal integer",
                 source: "format_int!(42, 16)",
                 result: Ok("2a"),
             },
-            Example {
+            example! {
                 title: "format negative hexadecimal integer",
                 source: "format_int!(-42, 16)",
                 result: Ok("-2a"),

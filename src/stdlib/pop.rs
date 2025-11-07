@@ -23,7 +23,7 @@ impl Function for Pop {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[Example {
+        &[example! {
             title: "pop array",
             source: "pop(value: [0, 1])",
             result: Ok("[0]"),

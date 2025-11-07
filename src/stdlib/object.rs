@@ -25,12 +25,12 @@ impl Function for Object {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "valid",
                 source: r#"object({"foo": "bar"})"#,
                 result: Ok(r#"{"foo": "bar"}"#),
             },
-            Example {
+            example! {
                 title: "invalid",
                 source: "object!(true)",
                 result: Err(

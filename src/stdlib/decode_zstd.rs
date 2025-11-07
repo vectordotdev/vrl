@@ -20,7 +20,7 @@ impl Function for DecodeZstd {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[Example {
+        &[example! {
             title: "demo string",
             source: r#"decode_zstd!(decode_base64!("KLUv/QBY/QEAYsQOFKClbQBedqXsb96EWDax/f/F/z+gNU4ZTInaUeAj82KqPFjUzKqhcfDqAIsLvAsnY1bI/N2mHzDixRQA"))"#,
             result: Ok("you_have_successfully_decoded_me.congratulations.you_are_breathtaking."),

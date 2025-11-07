@@ -18,12 +18,12 @@ impl Function for Exists {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "existing field",
                 source: r#"exists({ "foo": "bar"}.foo)"#,
                 result: Ok("true"),
             },
-            Example {
+            example! {
                 title: "non-existing field",
                 source: r#"exists({ "foo": "bar"}.baz)"#,
                 result: Ok("false"),

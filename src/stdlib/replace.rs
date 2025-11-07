@@ -74,22 +74,22 @@ impl Function for Replace {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "replace all",
                 source: r#"replace("foobar", "o", "i")"#,
                 result: Ok("fiibar"),
             },
-            Example {
+            example! {
                 title: "replace count",
                 source: r#"replace("foobar", "o", "i", count: 1)"#,
                 result: Ok("fiobar"),
             },
-            Example {
+            example! {
                 title: "replace regex",
                 source: r#"replace("foobar", r'o|a', "i")"#,
                 result: Ok("fiibir"),
             },
-            Example {
+            example! {
                 title: "replace with capture group",
                 source: r#"replace("foo123bar", r'foo(?P<num>\d+)bar', "$num")"#,
                 result: Ok(r#""123""#),

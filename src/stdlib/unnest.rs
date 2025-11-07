@@ -71,7 +71,7 @@ impl Function for Unnest {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "external target",
                 source: indoc! {r#"
                     . = {"hostname": "localhost", "events": [{"message": "hello"}, {"message": "world"}]}
@@ -81,7 +81,7 @@ impl Function for Unnest {
                     r#"[{"hostname": "localhost", "events": {"message": "hello"}}, {"hostname": "localhost", "events": {"message": "world"}}]"#,
                 ),
             },
-            Example {
+            example! {
                 title: "variable target",
                 source: indoc! {r#"
                     foo = {"hostname": "localhost", "events": [{"message": "hello"}, {"message": "world"}]}

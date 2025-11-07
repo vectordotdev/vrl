@@ -25,12 +25,12 @@ impl Function for Float {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "valid",
                 source: "float(3.1415)",
                 result: Ok("3.1415"),
             },
-            Example {
+            example! {
                 title: "invalid",
                 source: "float!(true)",
                 result: Err(

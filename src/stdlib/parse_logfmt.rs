@@ -19,12 +19,12 @@ impl Function for ParseLogFmt {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "simple log",
                 source: r#"parse_logfmt!("zork=zook zonk=nork")"#,
                 result: Ok(r#"{"zork": "zook", "zonk": "nork"}"#),
             },
-            Example {
+            example! {
                 title: "standalone key",
                 source: r#"parse_logfmt!("zork=zook plonk zonk=nork")"#,
                 result: Ok(r#"{"plonk": true, "zork": "zook", "zonk": "nork"}"#),

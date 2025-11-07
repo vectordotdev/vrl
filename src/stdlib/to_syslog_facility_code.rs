@@ -51,12 +51,12 @@ impl Function for ToSyslogFacilityCode {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "valid",
                 source: "to_syslog_facility_code!(s'kern')",
                 result: Ok("0"),
             },
-            Example {
+            example! {
                 title: "invalid",
                 source: "to_syslog_facility_code!(s'foobar')",
                 result: Err(

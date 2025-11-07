@@ -10,7 +10,7 @@ impl Function for Now {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[Example {
+        &[example! {
             title: "now",
             source: r#"now() != """#,
             result: Ok("true"),

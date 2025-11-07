@@ -29,7 +29,7 @@ impl Function for Mod {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[Example {
+        &[example! {
             title: "mod",
             source: "mod(5, 3)",
             result: Ok("2"),

@@ -52,7 +52,7 @@ impl Function for Kebabcase {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[Example {
+        &[example! {
             title: "kebabcase",
             source: r#"kebabcase("input_string")"#,
             result: Ok("input-string"),

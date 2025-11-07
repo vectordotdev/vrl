@@ -142,44 +142,44 @@ impl Function for ParseJson {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "object",
                 source: r#"parse_json!(s'{ "field": "value" }')"#,
                 result: Ok(r#"{ "field": "value" }"#),
             },
-            Example {
+            example! {
                 title: "array",
                 source: r#"parse_json!("[true, 0]")"#,
                 result: Ok("[true, 0]"),
             },
-            Example {
+            example! {
                 title: "string",
                 source: r#"parse_json!(s'"hello"')"#,
                 result: Ok("hello"),
             },
-            Example {
+            example! {
                 title: "integer",
                 source: r#"parse_json!("42")"#,
                 result: Ok("42"),
             },
-            Example {
+            example! {
                 title: "float",
                 source: r#"parse_json!("42.13")"#,
                 result: Ok("42.13"),
             },
-            Example {
+            example! {
                 title: "boolean",
                 source: r#"parse_json!("false")"#,
                 result: Ok("false"),
             },
-            Example {
+            example! {
                 title: "invalid value",
                 source: r#"parse_json!("{ INVALID }")"#,
                 result: Err(
                     r#"function call error for "parse_json" at (0:26): unable to parse json: key must be a string at line 1 column 3"#,
                 ),
             },
-            Example {
+            example! {
                 title: "max_depth",
                 source: r#"parse_json!(s'{"first_level":{"second_level":"finish"}}', max_depth: 1)"#,
                 result: Ok(r#"{"first_level":"{\"second_level\":\"finish\"}"}"#),

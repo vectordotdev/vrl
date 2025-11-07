@@ -19,17 +19,17 @@ impl Function for IsArray {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "array",
                 source: "is_array([1, 2, 3])",
                 result: Ok("true"),
             },
-            Example {
+            example! {
                 title: "boolean",
                 source: "is_array(true)",
                 result: Ok("false"),
             },
-            Example {
+            example! {
                 title: "null",
                 source: "is_array(null)",
                 result: Ok("false"),

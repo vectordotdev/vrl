@@ -19,17 +19,17 @@ impl Function for IsNull {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "array",
                 source: "is_null([1, 2, 3])",
                 result: Ok("false"),
             },
-            Example {
+            example! {
                 title: "string",
                 source: r#"is_null("foobar")"#,
                 result: Ok("false"),
             },
-            Example {
+            example! {
                 title: "null",
                 source: "is_null(null)",
                 result: Ok("true"),
