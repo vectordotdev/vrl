@@ -31,7 +31,7 @@ impl Function for RandomBytes {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[Example {
+        &[example! {
             title: "get 16 random bytes",
             source: "length(random_bytes(16))",
             result: Ok("16"),

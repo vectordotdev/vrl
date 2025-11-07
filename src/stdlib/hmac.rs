@@ -62,12 +62,12 @@ impl Function for Hmac {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "default SHA-256",
                 source: r#"encode_base64(hmac("Hello there", "super-secret-key"))"#,
                 result: Ok("eLGE8YMviv85NPXgISRUZxstBNSU47JQdcXkUWcClmI="),
             },
-            Example {
+            example! {
                 title: "SHA1",
                 source: r#"encode_base64(hmac("Hello there", "super-secret-key", algorithm: "SHA1"))"#,
                 result: Ok("MiyBIHO8Set9+6crALiwkS0yFPE="),

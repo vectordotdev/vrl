@@ -55,12 +55,12 @@ impl Function for Contains {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "case sensitive",
                 source: r#"contains("banana", "AnA")"#,
                 result: Ok("false"),
             },
-            Example {
+            example! {
                 title: "case insensitive",
                 source: r#"contains("banana", "AnA", case_sensitive: false)"#,
                 result: Ok("true"),

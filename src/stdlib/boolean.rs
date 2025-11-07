@@ -25,12 +25,12 @@ impl Function for Boolean {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "valid",
                 source: "bool(false)",
                 result: Ok("false"),
             },
-            Example {
+            example! {
                 title: "invalid",
                 source: "bool!(42)",
                 result: Err(

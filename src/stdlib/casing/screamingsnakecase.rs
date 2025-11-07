@@ -52,7 +52,7 @@ impl Function for ScreamingSnakecase {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[Example {
+        &[example! {
             title: "screamingsnakecase",
             source: r#"screamingsnakecase("input_string")"#,
             result: Ok("INPUT_STRING"),

@@ -33,7 +33,7 @@ impl Function for Tally {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[Example {
+        &[example! {
             title: "tally",
             source: r#"tally!(["foo", "bar", "foo", "baz"])"#,
             result: Ok(r#"{"foo": 2, "bar": 1, "baz": 1}"#),

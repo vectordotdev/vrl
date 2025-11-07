@@ -24,7 +24,7 @@ impl Function for GetEnvVar {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[Example {
+        &[example! {
             title: "home",
             source: r#"get_env_var!("HOME") != """#,
             result: Ok("true"),

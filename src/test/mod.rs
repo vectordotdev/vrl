@@ -42,6 +42,14 @@ pub struct TestConfig {
     pub timezone: TimeZone,
 }
 
+#[derive(Clone)]
+struct FailedTest {
+    name: String,
+    category: String,
+    source_file: String,
+    source_line: u32,
+}
+
 pub fn test_dir() -> PathBuf {
     PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap())
 }
@@ -89,6 +97,7 @@ pub fn run_tests<T>(
     let mut failed_count = 0;
     let mut warnings_count = 0;
     let mut category = "".to_owned();
+    let mut failed_tests: Vec<FailedTest> = Vec::new();
 
     for mut test in tests {
         if category != test.category {
@@ -172,10 +181,16 @@ pub fn run_tests<T>(
         };
         if failed {
             failed_count += 1;
+            failed_tests.push(FailedTest {
+                name: test.name.clone(),
+                category: test.category.clone(),
+                source_file: test.source_file.clone(),
+                source_line: test.source_line,
+            });
         }
     }
 
-    print_result(total_count, failed_count, warnings_count);
+    print_result(total_count, failed_count, warnings_count, failed_tests);
 }
 
 fn sanitize_lines(input: String) -> String {
@@ -348,7 +363,7 @@ fn process_compilation_diagnostics(
     failed
 }
 
-fn print_result(total_count: usize, failed_count: usize, warnings_count: usize) {
+fn print_result(total_count: usize, failed_count: usize, warnings_count: usize, failed_tests: Vec<FailedTest>) {
     let code = i32::from(failed_count > 0);
 
     println!("\n");
@@ -372,6 +387,17 @@ fn print_result(total_count: usize, failed_count: usize, warnings_count: usize) 
         "  Number warnings: {}",
         Colour::Yellow.bold().paint(warnings_count.to_string())
     );
+
+    if !failed_tests.is_empty() {
+        println!("\n{}", Colour::Red.bold().paint("Failed tests:"));
+        for test in failed_tests {
+            println!(
+                "  {} - {}",
+                Colour::Yellow.paint(format!("{}/{}", test.category, test.name)),
+                Colour::Fixed(240).paint(format!("{}:{}", test.source_file, test.source_line))
+            );
+        }
+    }
 
     std::process::exit(code)
 }

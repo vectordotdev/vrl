@@ -70,42 +70,42 @@ impl Function for Remove {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "remove existing field",
                 source: r#"remove!(value: {"foo": "bar"}, path: ["foo"])"#,
                 result: Ok("{}"),
             },
-            Example {
+            example! {
                 title: "remove unknown field",
                 source: r#"remove!(value: {"foo": "bar"}, path: ["baz"])"#,
                 result: Ok(r#"{ "foo": "bar" }"#),
             },
-            Example {
+            example! {
                 title: "nested path",
                 source: r#"remove!(value: {"foo": { "bar": true }}, path: ["foo", "bar"])"#,
                 result: Ok(r#"{ "foo": {} }"#),
             },
-            Example {
+            example! {
                 title: "compact object",
                 source: r#"remove!(value: {"foo": { "bar": true }}, path: ["foo", "bar"], compact: true)"#,
                 result: Ok("{}"),
             },
-            Example {
+            example! {
                 title: "indexing",
                 source: "remove!(value: [92, 42], path: [0])",
                 result: Ok("[42]"),
             },
-            Example {
+            example! {
                 title: "nested indexing",
                 source: r#"remove!(value: {"foo": { "bar": [92, 42] }}, path: ["foo", "bar", 1])"#,
                 result: Ok(r#"{ "foo": { "bar": [92] } }"#),
             },
-            Example {
+            example! {
                 title: "compact array",
                 source: r#"remove!(value: {"foo": [42], "bar": true }, path: ["foo", 0], compact: true)"#,
                 result: Ok(r#"{ "bar": true }"#),
             },
-            Example {
+            example! {
                 title: "external target",
                 source: indoc! {r#"
                     . = { "foo": true }
@@ -113,7 +113,7 @@ impl Function for Remove {
                 "#},
                 result: Ok("{}"),
             },
-            Example {
+            example! {
                 title: "variable",
                 source: indoc! {r#"
                     var = { "foo": true }
@@ -121,17 +121,17 @@ impl Function for Remove {
                 "#},
                 result: Ok("{}"),
             },
-            Example {
+            example! {
                 title: "missing index",
                 source: r#"remove!(value: {"foo": { "bar": [92, 42] }}, path: ["foo", "bar", 1, -1])"#,
                 result: Ok(r#"{ "foo": { "bar": [92, 42] } }"#),
             },
-            Example {
+            example! {
                 title: "invalid indexing",
                 source: r#"remove!(value: [42], path: ["foo"])"#,
                 result: Ok("[42]"),
             },
-            Example {
+            example! {
                 title: "invalid segment type",
                 source: r#"remove!(value: {"foo": { "bar": [92, 42] }}, path: ["foo", true])"#,
                 result: Err(

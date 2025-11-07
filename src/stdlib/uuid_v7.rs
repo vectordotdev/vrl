@@ -44,12 +44,12 @@ impl Function for UuidV7 {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "valid with implicit now()",
                 source: r#"uuid_v7() != """#,
                 result: Ok("true"),
             },
-            Example {
+            example! {
                 title: "valid with explicit now()",
                 source: r#"uuid_v7(now()) != """#,
                 result: Ok("true"),

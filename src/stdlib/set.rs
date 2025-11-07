@@ -69,27 +69,27 @@ impl Function for Set {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "set existing field",
                 source: r#"set!(value: {"foo": "bar"}, path: ["foo"], data: "baz")"#,
                 result: Ok(r#"{ "foo": "baz" }"#),
             },
-            Example {
+            example! {
                 title: "nested fields",
                 source: r#"set!(value: {}, path: ["foo", "bar"], data: "baz")"#,
                 result: Ok(r#"{ "foo": { "bar" : "baz" } }"#),
             },
-            Example {
+            example! {
                 title: "indexing",
                 source: r#"set!(value: [{ "foo": "bar" }], path: [0, "foo", "bar"], data: "baz")"#,
                 result: Ok(r#"[{ "foo": { "bar": "baz" } }]"#),
             },
-            Example {
+            example! {
                 title: "nested indexing",
                 source: r#"set!(value: {"foo": { "bar": [] }}, path: ["foo", "bar", 1], data: "baz")"#,
                 result: Ok(r#"{ "foo": { "bar": [null, "baz"] } }"#),
             },
-            Example {
+            example! {
                 title: "external target",
                 source: indoc! {r#"
                     . = { "foo": true }
@@ -97,7 +97,7 @@ impl Function for Set {
                 "#},
                 result: Ok(r#"{ "foo": true, "bar": "baz" }"#),
             },
-            Example {
+            example! {
                 title: "variable",
                 source: indoc! {r#"
                     var = { "foo": true }
@@ -105,12 +105,12 @@ impl Function for Set {
                 "#},
                 result: Ok(r#"{ "foo": true, "bar": "baz" }"#),
             },
-            Example {
+            example! {
                 title: "invalid indexing",
                 source: r#"set!(value: [], path: ["foo"], data: "baz")"#,
                 result: Ok(r#"{ "foo": "baz" }"#),
             },
-            Example {
+            example! {
                 title: "invalid segment type",
                 source: r#"set!({"foo": { "bar": [92, 42] }}, ["foo", true], "baz")"#,
                 result: Err(

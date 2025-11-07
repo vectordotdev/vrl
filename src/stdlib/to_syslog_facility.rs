@@ -51,12 +51,12 @@ impl Function for ToSyslogFacility {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "valid",
                 source: "to_syslog_facility!(0)",
                 result: Ok("kern"),
             },
-            Example {
+            example! {
                 title: "invalid",
                 source: "to_syslog_facility!(500)",
                 result: Err(

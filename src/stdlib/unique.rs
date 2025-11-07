@@ -16,7 +16,7 @@ impl Function for Unique {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[Example {
+        &[example! {
             title: "unique",
             source: r#"unique(["foo", "bar", "foo", "baz"])"#,
             result: Ok(r#"["foo", "bar", "baz"]"#),

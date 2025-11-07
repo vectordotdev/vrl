@@ -29,12 +29,12 @@ impl Function for MatchArray {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "match",
                 source: r#"match_array(["foobar", "bazqux"], r'foo')"#,
                 result: Ok("true"),
             },
-            Example {
+            example! {
                 title: "mismatch",
                 source: r#"match_array(["bazqux", "xyz"], r'foo')"#,
                 result: Ok("false"),

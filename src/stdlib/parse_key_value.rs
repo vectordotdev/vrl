@@ -106,29 +106,29 @@ impl Function for ParseKeyValue {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "simple key value",
                 source: r#"parse_key_value!("zork=zook zonk=nork")"#,
                 result: Ok(r#"{"zork": "zook", "zonk": "nork"}"#),
             },
-            Example {
+            example! {
                 title: "custom delimiters",
                 source: r#"parse_key_value!(s'zork: zoog, nonk: "nink nork"', key_value_delimiter: ":", field_delimiter: ",")"#,
                 result: Ok(r#"{"zork": "zoog", "nonk": "nink nork"}"#),
             },
-            Example {
+            example! {
                 title: "strict whitespace",
                 source: r#"parse_key_value!(s'app=my-app ip=1.2.3.4 user= msg=hello-world', whitespace: "strict")"#,
                 result: Ok(
                     r#"{"app": "my-app", "ip": "1.2.3.4", "user": "", "msg": "hello-world"}"#,
                 ),
             },
-            Example {
+            example! {
                 title: "standalone key",
                 source: r#"parse_key_value!(s'foo=bar foobar', whitespace: "strict")"#,
                 result: Ok(r#"{"foo": "bar", "foobar": true}"#),
             },
-            Example {
+            example! {
                 title: "duplicate keys",
                 source: r#"parse_key_value!(s'foo=bar foo=nor', whitespace: "strict")"#,
                 result: Ok(r#"{"foo": ["bar", "nor"]}"#),

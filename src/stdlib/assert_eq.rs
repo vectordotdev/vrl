@@ -47,19 +47,19 @@ impl Function for AssertEq {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "success",
                 source: "assert_eq!(true, true)",
                 result: Ok("true"),
             },
-            Example {
+            example! {
                 title: "failure",
                 source: "assert_eq!(true, false)",
                 result: Err(
                     r#"function call error for "assert_eq" at (0:23): assertion failed: true == false"#,
                 ),
             },
-            Example {
+            example! {
                 title: "custom message",
                 source: "assert_eq!(true, false, s'custom error')",
                 result: Err(r#"function call error for "assert_eq" at (0:40): custom error"#),

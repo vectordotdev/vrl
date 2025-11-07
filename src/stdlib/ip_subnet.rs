@@ -58,7 +58,7 @@ impl Function for IpSubnet {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[Example {
+        &[example! {
             title: "subnet",
             source: r#"ip_subnet!("192.168.0.1", "/1")"#,
             result: Ok("128.0.0.0"),

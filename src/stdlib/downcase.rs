@@ -32,7 +32,7 @@ impl Function for Downcase {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[Example {
+        &[example! {
             title: "downcase",
             source: r#"downcase("FOO 2 BAR")"#,
             result: Ok("foo 2 bar"),

@@ -25,22 +25,22 @@ impl Function for ToUnixTimestamp {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "default (seconds)",
                 source: "to_unix_timestamp(t'2000-01-01T00:00:00Z')",
                 result: Ok("946684800"),
             },
-            Example {
+            example! {
                 title: "milliseconds",
                 source: r#"to_unix_timestamp(t'2010-01-01T00:00:00Z', unit: "milliseconds")"#,
                 result: Ok("1262304000000"),
             },
-            Example {
+            example! {
                 title: "microseconds",
                 source: r#"to_unix_timestamp(t'2010-01-01T00:00:00Z', unit: "microseconds")"#,
                 result: Ok("1262304000000000"),
             },
-            Example {
+            example! {
                 title: "nanoseconds",
                 source: r#"to_unix_timestamp(t'2020-01-01T00:00:00Z', unit: "nanoseconds")"#,
                 result: Ok("1577836800000000000"),

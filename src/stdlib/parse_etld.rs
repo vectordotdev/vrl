@@ -34,7 +34,7 @@ impl Function for ParseEtld {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "parse etld",
                 source: r#"parse_etld!("vector.dev")"#,
                 result: Ok(indoc! {r#"
@@ -45,7 +45,7 @@ impl Function for ParseEtld {
                 }
             "#}),
             },
-            Example {
+            example! {
                 title: "parse etld with plus parts",
                 source: r#"parse_etld!("vector.dev", plus_parts: 1)"#,
                 result: Ok(indoc! {r#"
@@ -56,7 +56,7 @@ impl Function for ParseEtld {
                 }
             "#}),
             },
-            Example {
+            example! {
                 title: "parse etld with unknown suffix",
                 source: r#"parse_etld!("vecor.unknowndev")"#,
                 result: Ok(indoc! {r#"

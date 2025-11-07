@@ -18,17 +18,17 @@ impl Function for StripWhitespace {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "start whitespace",
                 source: r#"strip_whitespace("  foobar")"#,
                 result: Ok("foobar"),
             },
-            Example {
+            example! {
                 title: "end whitespace",
                 source: r#"strip_whitespace("foo bar  ")"#,
                 result: Ok("foo bar"),
             },
-            Example {
+            example! {
                 title: "newlines",
                 source: r#"strip_whitespace("\n\nfoo bar\n  ")"#,
                 result: Ok("foo bar"),

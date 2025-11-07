@@ -55,17 +55,17 @@ impl Function for EndsWith {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "case sensitive",
                 source: r#"ends_with("foobar", "R")"#,
                 result: Ok("false"),
             },
-            Example {
+            example! {
                 title: "case insensitive",
                 source: r#"ends_with("foobar", "R", false)"#,
                 result: Ok("true"),
             },
-            Example {
+            example! {
                 title: "mismatch",
                 source: r#"ends_with("foobar", "foo")"#,
                 result: Ok("false"),

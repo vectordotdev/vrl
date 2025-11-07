@@ -275,24 +275,24 @@ impl Function for HttpRequest {
     #[cfg(feature = "test")]
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "Basic HTTP request",
                 source: r#"http_request("https://httpbin.org/get")"#,
                 result: Ok(
                     r#"{"args":{},"headers":{"Accept":"*/*","Host":"httpbin.org"},"url":"https://httpbin.org/get"}"#,
                 ),
             },
-            Example {
+            example! {
                 title: "HTTP request with bearer token",
                 source: r#"http_request("https://httpbin.org/bearer", headers: {"Authorization": "Bearer my_token"})"#,
                 result: Ok(r#"{"authenticated":true,"token":"my_token"}"#),
             },
-            Example {
+            example! {
                 title: "HTTP PUT request",
                 source: r#"http_request("https://httpbin.org/put", method: "put")"#,
                 result: Ok(r#"{"args":{},"data": "","url": "https://httpbin.org/put"}"#),
             },
-            Example {
+            example! {
                 title: "HTTP POST request with body",
                 source: r#"http_request("https://httpbin.org/post", method: "post", body: "{\"data\":{\"hello\":\"world\"}}")"#,
                 result: Ok(r#"{"data":"{\"data\":{\"hello\":\"world\"}}"}"#),

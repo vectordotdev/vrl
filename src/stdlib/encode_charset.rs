@@ -14,17 +14,17 @@ impl Function for EncodeCharset {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "Encode charset to euc-kr",
                 source: r#"encode_base64(encode_charset!("안녕하세요", "euc-kr"))"#,
                 result: Ok("vsiz58fPvLy/5A=="),
             },
-            Example {
+            example! {
                 title: "Encode charset to euc-jp",
                 source: r#"encode_base64(encode_charset!("こんにちは", "euc-jp"))"#,
                 result: Ok(r"pLOk86TLpMGkzw=="),
             },
-            Example {
+            example! {
                 title: "Encode charset to gb2312",
                 source: r#"encode_base64(encode_charset!("你好", "gb2312"))"#,
                 result: Ok(r"xOO6ww=="),
