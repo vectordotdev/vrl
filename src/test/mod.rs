@@ -397,9 +397,10 @@ fn print_result(
         println!("\n{}", Colour::Red.bold().paint("Failed tests:"));
         for test in failed_tests {
             println!(
-                "  {} - {}",
+                "  {} - {}:{}",
                 Colour::Yellow.paint(format!("{}/{}", test.category, test.name)),
-                format!("{}:{}", test.source_file, test.source_line)
+                test.source_file,
+                test.source_line
             );
         }
     }
