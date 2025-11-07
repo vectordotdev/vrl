@@ -9,7 +9,7 @@
 ### Fixes
 
 - Fixed an issue where `split_path`, `basename`, `dirname` had not been added to VRL's standard
-  library and, therefore, appeared to be missing and were inaccessible in the `0.28` release.
+  library and, therefore, appeared to be missing and were inaccessible in the `0.28.0` release.
 
   authors: thomasqueirozb (https://github.com/vectordotdev/vrl/pull/1553)
 
