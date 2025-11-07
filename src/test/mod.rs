@@ -159,10 +159,8 @@ pub fn run_tests<T>(
                     process_result(result, &mut test, cfg, timings)
                 } else {
                     println!("{} (diagnostics)", Colour::Red.bold().paint("FAILED"));
-                    if cfg.verbose {
-                        let formatter = Formatter::new(&test.source, warnings);
-                        println!("{formatter}");
-                    }
+                    let formatter = Formatter::new(&test.source, warnings);
+                    println!("{formatter}");
                     // mark as failure, did not expect any warnings
                     true
                 }
@@ -331,10 +329,15 @@ fn process_compilation_diagnostics(
             println!("{diff}");
         }
 
+        // Always print diagnostics when test fails
+        formatter.enable_colors(true);
+        println!("{formatter:#}");
+
         failed = true;
     }
 
-    if cfg.verbose {
+    if cfg.verbose && !failed {
+        // In verbose mode, print diagnostics even for passing tests
         formatter.enable_colors(true);
         println!("{formatter:#}");
     }
