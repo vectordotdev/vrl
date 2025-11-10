@@ -230,9 +230,8 @@ pub(crate) struct Lexer<'input> {
 impl<'input> Lexer<'input> {
     fn next_token(&mut self) -> Option<SpannedResult<'input, usize>> {
         use Token::{
-            Ampersand, Arrow, Bang, Colon, Comma, Dot, Escape, InvalidToken, LBrace, LBracket,
-            LParen, LQuery, Newline, Percent, RBrace, RBracket, RParen, RQuery, SemiColon,
-            Underscore,
+            Arrow, Bang, Colon, Comma, Dot, Escape, InvalidToken, LBrace, LBracket, LParen, LQuery,
+            Newline, Percent, RBrace, RBracket, RParen, RQuery, SemiColon, Tilde, Underscore,
         };
 
         loop {
@@ -280,11 +279,9 @@ impl<'input> Lexer<'input> {
                     ')' => Some(Ok(self.close(start, RParen))),
                     '.' => Some(Ok(self.token(start, Dot))),
                     '%' => Some(Ok(self.token(start, Percent))),
-                    '&' if !matches!(self.peek(), Some((_, '&'))) => {
-                        Some(Ok(self.token(start, Ampersand)))
-                    }
                     ':' => Some(Ok(self.token(start, Colon))),
                     ',' => Some(Ok(self.token(start, Comma))),
+                    '~' => Some(Ok(self.token(start, Tilde))),
 
                     '_' if !self.test_peek(is_ident_continue) => {
                         Some(Ok(self.token(start, Underscore)))
@@ -379,8 +376,8 @@ pub enum Token<S> {
     Underscore,
     Escape,
     Arrow,
-    Ampersand,
     Percent,
+    Tilde,
 
     Equals,
     MergeEquals,
@@ -424,12 +421,11 @@ pub enum Token<S> {
 impl<S> Token<S> {
     pub(crate) fn map<R>(self, f: impl Fn(S) -> R) -> Token<R> {
         use self::Token::{
-            Abort, Ampersand, Arrow, Bang, Colon, Comma, Dot, Else, Equals, Escape, False,
-            FloatLiteral, FunctionCall, Identifier, If, IntegerLiteral, InvalidToken, LBrace,
-            LBracket, LParen, LQuery, MergeEquals, Newline, Null, Operator, PathField, Percent,
-            Question, RBrace, RBracket, RParen, RQuery, RawStringLiteral, RegexLiteral,
-            ReservedIdentifier, Return, SemiColon, StringLiteral, TimestampLiteral, True,
-            Underscore,
+            Abort, Arrow, Bang, Colon, Comma, Dot, Else, Equals, Escape, False, FloatLiteral,
+            FunctionCall, Identifier, If, IntegerLiteral, InvalidToken, LBrace, LBracket, LParen,
+            LQuery, MergeEquals, Newline, Null, Operator, PathField, Percent, Question, RBrace,
+            RBracket, RParen, RQuery, RawStringLiteral, RegexLiteral, ReservedIdentifier, Return,
+            SemiColon, StringLiteral, Tilde, TimestampLiteral, True, Underscore,
         };
 
         match self {
@@ -475,8 +471,8 @@ impl<S> Token<S> {
             Underscore => Underscore,
             Escape => Escape,
             Arrow => Arrow,
-            Ampersand => Ampersand,
             Percent => Percent,
+            Tilde => Tilde,
 
             Equals => Equals,
             MergeEquals => MergeEquals,
@@ -495,12 +491,11 @@ where
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         use self::Token::{
-            Abort, Ampersand, Arrow, Bang, Colon, Comma, Dot, Else, Equals, Escape, False,
-            FloatLiteral, FunctionCall, Identifier, If, IntegerLiteral, InvalidToken, LBrace,
-            LBracket, LParen, LQuery, MergeEquals, Newline, Null, Operator, PathField, Percent,
-            Question, RBrace, RBracket, RParen, RQuery, RawStringLiteral, RegexLiteral,
-            ReservedIdentifier, Return, SemiColon, StringLiteral, TimestampLiteral, True,
-            Underscore,
+            Abort, Arrow, Bang, Colon, Comma, Dot, Else, Equals, Escape, False, FloatLiteral,
+            FunctionCall, Identifier, If, IntegerLiteral, InvalidToken, LBrace, LBracket, LParen,
+            LQuery, MergeEquals, Newline, Null, Operator, PathField, Percent, Question, RBrace,
+            RBracket, RParen, RQuery, RawStringLiteral, RegexLiteral, ReservedIdentifier, Return,
+            SemiColon, StringLiteral, Tilde, TimestampLiteral, True, Underscore,
         };
 
         let s = match *self {
@@ -540,8 +535,8 @@ where
             Underscore => "Underscore",
             Escape => "Escape",
             Arrow => "Arrow",
-            Ampersand => "Ampersand",
             Percent => "Percent",
+            Tilde => "Tilde",
 
             Equals => "Equals",
             MergeEquals => "MergeEquals",
@@ -1262,7 +1257,7 @@ fn is_digit(ch: char) -> bool {
 pub(crate) fn is_operator(ch: char) -> bool {
     matches!(
         ch,
-        '!' | '&' | '*' | '+' | '-' | '/' | '<' | '=' | '>' | '?' | '|'
+        '!' | '&' | '*' | '+' | '-' | '/' | '<' | '=' | '>' | '?' | '|' | '^'
     )
 }
 
@@ -1310,7 +1305,7 @@ mod test {
     use super::super::lex::Token::{
         Arrow, Bang, Colon, Comma, Dot, Else, Equals, FloatLiteral, FunctionCall, Identifier, If,
         IntegerLiteral, LBrace, LBracket, LParen, LQuery, Newline, Operator, PathField, Percent,
-        RBrace, RBracket, RParen, RQuery, RawStringLiteral, RegexLiteral, StringLiteral,
+        RBrace, RBracket, RParen, RQuery, RawStringLiteral, RegexLiteral, StringLiteral, Tilde,
         TimestampLiteral, True,
     };
     use super::*;
@@ -2200,5 +2195,29 @@ mod test {
                 ("                    ~", RBrace),
             ],
         );
+    }
+
+    #[test]
+    fn bitwise_operators() {
+        test(
+            data("~~~~~(a & b ^ c & ~d)"),
+            vec![
+                ("~", Tilde),
+                (" ~", Tilde),
+                ("  ~", Tilde),
+                ("   ~", Tilde),
+                ("    ~", Tilde),
+                ("     ~", LParen),
+                ("      ~", Identifier("a")),
+                ("        ~", Operator("&")),
+                ("          ~", Identifier("b")),
+                ("            ~", Operator("^")),
+                ("              ~", Identifier("c")),
+                ("                ~", Operator("&")),
+                ("                  ~", Tilde),
+                ("                   ~", Identifier("d")),
+                ("                    ~", RParen),
+            ],
+        )
     }
 }
