@@ -27,7 +27,6 @@ defined, ensuring documentation stays synchronized with implementation and elimi
 
 - Extract function metadata from VRL `Function` trait implementations
 - Parse structured documentation comments/annotations
-- Generate intermediate JSON format for all VRL stdlib functions
 
 2. **VRL stdlib function documentation**
 
@@ -44,20 +43,14 @@ defined, ensuring documentation stays synchronized with implementation and elimi
 - Category classification
 - Additional metadata (notices, deprecation, etc.)
 
-4. **JSON output and distribution**
+4. **Vector's documentation of VRL (Vector repository responsibility)**
 
-- VRL generates `vrl-stdlib-doc.json` and commits it to the repository
-- JSON is the canonical output format from VRL
-- Published as part of VRL releases for downstream consumers
+- Vector aggregates functions from `vrl::stdlib::all()` from the current VRL version
+- Vector also aggregates its own internal functions
+- Documentation is automatically generated
+- Website shows documentation
 
-5. **Vector's CUE transformation (Vector repository responsibility)**
-
-- Vector consumes `vrl-stdlib-doc.json` from VRL releases
-- Vector implements JSON→CUE transformation for its website needs
-- Maintains existing CUE structure and formatting conventions
-- Generates files in `website/cue/reference/remap/functions/`
-
-6. **Testing integration**
+5. **Testing integration**
 
 - Ensure examples in documentation are validated by VRL test suite
 - Prevent documentation examples from diverging from actual behavior
@@ -66,6 +59,9 @@ defined, ensuring documentation stays synchronized with implementation and elimi
 
 1. **Website rendering changes** - This RFC focuses on generating JSON; website rendering remains unchanged
 2. **Vector-specific functions** - Focus is VRL stdlib only (see Future work for Vector adoption)
+3. **Automatic VRL function discorery and/or AST parsing** - This is a nice project but currently
+   all VRL functions are present in the `vrl::stdlib::all()` vector. This RFC focuses on
+   documentation and not (code generation for) automatic function discovery
 
 ## Pain points
 
@@ -100,105 +96,88 @@ Similar documentation generation systems:
 ### Architecture overview
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                     VRL Function Source Code                    │
-│         (src/stdlib/ in VRL repository)                         │
-│                                                                 │
-│  - Function trait implementations                               │
-│  - Structured documentation attributes/comments                 │
-│  - Examples integrated with tests                               │
-└────────────────────────┬────────────────────────────────────────┘
-                         │
-                         │ (1) Parse & Extract
-                         │
-                         ▼
-┌────────────────────────────────────────────────────────────────┐
-│              Documentation Extraction Tool                     │
-│             (Rust binary using syn/proc_macro)                 │
-│                                                                │
-│  - Parse Rust AST to find Function implementations             │
-│  - Extract metadata from trait methods                         │
-│  - Parse documentation attributes                              │
-│  - Validate completeness                                       │
-└────────────────────────┬───────────────────────────────────────┘
-                         │
-                         │ (2) Generate
-                         │
-                         ▼
-┌─────────────────────────────────────────────────────────────────┐
-│           JSON Documentation Output                             │
-│         (vrl-stdlib-doc.json)                                   │
-│                                                                 │
-│  {                                                              │
-│    "functions": [                                               │
-│      {                                                          │
-│        "name": "get_secret",                                    │
-│        "category": "System",                                    │
-│        "description": "...",                                    │
-│        "parameters": [...],                                     │
-│        "examples": [...],                                       │
-│        "return_type": [...]                                     │
-│      }                                                          │
-│    ]                                                            │
-│  }                                                              │
-│                                                                 │
-│  - Committed to VRL repository                                  │
-│  - Published with VRL releases                                  │
-│  - Canonical documentation format                               │
-└────────────────────────┬────────────────────────────────────────┘
-                         │
-                         │ (3) Consume (Vector repository)
-                         │
-                         ▼
-┌─────────────────────────────────────────────────────────────────┐
-│        Vector's CUE Transformation                              │
-│     (Vector fetches JSON and generates CUE)                     │
-│                                                                 │
-│  - Fetches vrl-stdlib-doc.json from VRL releases                │
-│  - Transforms JSON to CUE format                                │
-│  - Generates website/cue/reference/remap/functions/*.cue        │
-│  - Maintains existing CUE structure                             │
-└─────────────────────────────────────────────────────────────────┘
+         ┌───────────────────────────────────────────────────┐
+         │            VRL Function Source Code               │
+         │         (src/stdlib/ in VRL repository)           │
+         │                                                   │
+         │  - Function trait implementations                 │
+         │  - Structured documentation attributes/comments   │
+         │  - Examples integrated with tests                 │
+         └────────────────────────┬──────────────────────────┘
+                                  │
+                                  │ Consume (Vector repository)
+                                  │
+                                  │
+                                  ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                   Vector's CUE Transformation                       │
+│                      (Vector generates CUE)                         │
+│                                                                     │
+│  - Uses vrl's stdlib functions and internal VRL functions           │
+│  - Transform function information and make available in the website │
+└─────────────────────────────────────────────────────────────────────┘
 ```
-
-TODO
 
 ### Technical approach
 
-TODO
+1. Expand the `Function` trait. Currently it contains `identifier`, `summary`, `usage`, `examples`. It is
+   missing `internal_failure_reasons`, `description`, `return` and `category`. Note that `usage` and
+   `description` should be equivalent.
+
+2. Once the `Function` trait is updated, port all documentation currently present in Vector cue functions
+   [here](https://github.com/vectordotdev/vector/blob/master/website/cue/reference/remap/functions/)
+   into VRL's source code. Once the PR is merged, update VRL inside of Vector and do the same for
+   Vector-specific VRL functions.
+
+3. Create a vdev command (in Vector's repo) to generate documentation based solely on the methods
+   provided by the `Function` trait.
+
+4. Provide documentation to the website. There are couple of options here:
+  1. [Rejected] Directly convert documentation into json and insert it into `data/docs.json`
+    - Cons
+      * no documentation present in any cue files in the Vector repo, making it harder to
+      notice if the website needs to be updated.
+      * Docs team and maintainers will probably not see any VRL documentation changes (during
+        releases).
+      * (minor) Less visibility into VRL documentation when checking out old source code
+    - Pros
+      * VRL source code is the sole source of truth and updating docs is simply running website
+      deploy commands and one additional `vdev` command.
+      * No binary documentation files or duplicated information in repos anywhere.
+  2. [Rejected] Convert documentation into cue files and keep the regular flow.
+    - Cons
+      * VRL source code is not the sole source of truth.
+      * VRL documentation has to be updated in two repos.
+      * Need to generate cue files when updating VRL.
+      * We'd be generating cue in a very hacky manner and we want to move away from cue wherever
+        possible
+    - Pros:
+      * More visibility into documentation changes. This makes it easier to notice if the website needs
+      to be updated since CI checks will catch differences in generated files.
+  3. Convert documentation into pretty printed JSON file.
+    - Cons
+      * VRL source code is not the sole source of truth.
+      * VRL documentation has to be updated in two repos.
+      * Need to generate json files when updating VRL.
+    - Pros:
+      * More visibility into documentation changes. This makes it easier to notice if the website needs
+      to be updated since CI checks will catch differences in generated files.
 
 ## Future work
 
-**Adoption by other projects:**
-
-- Apply same generation process to Vector-specific functions in `lib/vector-vrl/functions/`
-- VRL playground integration with live examples
-
-**Format evolution:**
-
-- **Publish formal JSON Schema**: Define versioned JSON Schema for `vrl-stdlib-doc.json` for validation and tooling support
-- **Eliminate CUE transformation in Vector**: Long-term, migrate Vector's website to consume JSON directly, removing the JSON→CUE transformation entirely
-
 **Additional capabilities:**
 
-- Additional output formats (Markdown, HTML, OpenAPI-style) for other use cases
+- Generate additional output formats (Markdown, HTML, OpenAPI-style) for other use cases
 - IDE integration via LSP
 - Localization/i18n support
-- Documentation versioning across releases
 
 ## Success metrics
 
 1. **Documentation coverage**: 100% of VRL stdlib functions have auto-generated documentation
-2. **Documentation freshness**: JSON is always auto-generated from code (enforced by CI)
-3. **Example accuracy**: 100% of examples pass when executed as tests
-4. **Developer efficiency**: Time to document new function reduced by 50%+
+2. **Documentation freshness**: CI enforced documentation generation
 5. **CI reliability**: Documentation checks catch drift in 100% of cases
-
-## Alternatives Considered
-
-### Alternative 1:
-
-TODO more alternatives
+3. **Example accuracy**: 100% of examples pass when executed as tests
+4. **Developer efficiency**: New VRL functions only need 1 PR
 
 ## References
 
