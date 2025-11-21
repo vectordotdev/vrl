@@ -133,7 +133,7 @@ Similar documentation generation systems:
    provided by the `Function` trait.
 
 4. Provide documentation to the website. There are couple of options here:
-  1. [Rejected] Directly convert documentation into json and insert it into `data/docs.json`
+  * [Rejected] Directly convert documentation into json and insert it into `data/docs.json`
     - Cons
       * no documentation present in any cue files in the Vector repo, making it harder to
       notice if the website needs to be updated.
@@ -144,7 +144,7 @@ Similar documentation generation systems:
       * VRL source code is the sole source of truth and updating docs is simply running website
       deploy commands and one additional `vdev` command.
       * No binary documentation files or duplicated information in repos anywhere.
-  2. [Rejected] Convert documentation into cue files and keep the regular flow.
+  * [Rejected] Convert documentation into cue files and keep the regular flow.
     - Cons
       * VRL source code is not the sole source of truth.
       * VRL documentation has to be updated in two repos.
@@ -154,7 +154,7 @@ Similar documentation generation systems:
     - Pros:
       * More visibility into documentation changes. This makes it easier to notice if the website needs
       to be updated since CI checks will catch differences in generated files.
-  3. Convert documentation into pretty printed JSON file.
+  * Convert documentation into pretty printed JSON file.
     - Cons
       * VRL source code is not the sole source of truth.
       * VRL documentation has to be updated in two repos.
