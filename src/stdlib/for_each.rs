@@ -37,12 +37,12 @@ impl Function for ForEach {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "iterate object",
                 source: r#"count = 0; for_each({ "a": 1, "b": 2 }) -> |_key, value| { count = count + value }; count"#,
                 result: Ok("3"),
             },
-            Example {
+            example! {
                 title: "iterate array",
                 source: "count = 0; for_each([1,2,3]) -> |index, value| { count = count + index + value }; count",
                 result: Ok("9"),
@@ -78,7 +78,7 @@ impl Function for ForEach {
                     },
                 ],
                 output: Output::Kind(Kind::any()),
-                example: Example {
+                example: example! {
                     title: "iterate array",
                     source: "for_each([1, 2]) -> |index, value| { .foo = to_int!(.foo) + index + value }",
                     result: Ok("null"),

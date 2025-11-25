@@ -57,7 +57,7 @@ impl Function for Ceil {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[Example {
+        &[example! {
             title: "ceil",
             source: "ceil(5.2)",
             result: Ok("6.0"),

@@ -63,12 +63,12 @@ impl Function for EncryptIp {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "Encrypt IPv4 with AES128 mode",
                 source: r#"encrypt_ip!("192.168.1.1", "sixteen byte key", "aes128")"#,
                 result: Ok("72b9:a747:f2e9:72af:76ca:5866:6dcf:c3b0"),
             },
-            Example {
+            example! {
                 title: "Encrypt IPv6 with PFX mode",
                 source: r#"encrypt_ip!("2001:db8::1", "thirty-two bytes key for ipv6pfx", "pfx")"#,
                 result: Ok("88bd:d2bf:8865:8c4d:84b:44f6:6077:72c9"),

@@ -120,17 +120,17 @@ impl Function for ShannonEntropy {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "shannon_entropy simple",
                 source: r#"floor(shannon_entropy("vector.dev"), precision: 4)"#,
                 result: Ok("2.9219"),
             },
-            Example {
+            example! {
                 title: "shannon_entropy UTF-8 wrong segmentation",
                 source: r#"floor(shannon_entropy("test123%456.فوائد.net."), precision: 4)"#,
                 result: Ok("4.0784"),
             },
-            Example {
+            example! {
                 title: "shannon_entropy UTF-8 grapheme segmentation",
                 source: r#"shannon_entropy("👨‍👩‍👧‍👦", segmentation: "grapheme")"#,
                 result: Ok("0.0"),

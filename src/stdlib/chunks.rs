@@ -44,12 +44,12 @@ impl Function for Chunks {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "chunks by byte",
                 source: r#"chunks("abcdefgh", 4)"#,
                 result: Ok(r#"["abcd", "efgh"]"#),
             },
-            Example {
+            example! {
                 title: "chunk sizes do not respect unicode code point boundaries",
                 source: r#"chunks("ab你好", 4)"#,
                 result: Ok(r#"["ab�","�好"]"#),

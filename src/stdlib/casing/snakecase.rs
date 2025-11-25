@@ -85,17 +85,17 @@ impl Function for Snakecase {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "snakecase",
                 source: r#"snakecase("InputString")"#,
                 result: Ok("input_string"),
             },
-            Example {
+            example! {
                 title: "snakecase with original case",
                 source: r#"snakecase("camelCaseInput", original_case: "camelCase")"#,
                 result: Ok("camel_case_input"),
             },
-            Example {
+            example! {
                 title: "snakecase with excluded boundaries",
                 source: r#"snakecase("s3BucketDetails", excluded_boundaries: ["digit_lower", "lower_digit", "upper_digit"])"#,
                 result: Ok("s3_bucket_details"),

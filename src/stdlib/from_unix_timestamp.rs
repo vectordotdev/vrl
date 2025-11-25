@@ -51,22 +51,22 @@ impl Function for FromUnixTimestamp {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "integer as seconds",
                 source: "from_unix_timestamp!(5)",
                 result: Ok("t'1970-01-01T00:00:05Z'"),
             },
-            Example {
+            example! {
                 title: "integer as milliseconds",
                 source: r#"from_unix_timestamp!(5000, unit: "milliseconds")"#,
                 result: Ok("t'1970-01-01T00:00:05Z'"),
             },
-            Example {
+            example! {
                 title: "integer as microseconds",
                 source: r#"from_unix_timestamp!(5000, unit: "microseconds")"#,
                 result: Ok("t'1970-01-01T00:00:00.005Z'"),
             },
-            Example {
+            example! {
                 title: "integer as nanoseconds",
                 source: r#"from_unix_timestamp!(5000, unit: "nanoseconds")"#,
                 result: Ok("t'1970-01-01T00:00:00.000005Z'"),

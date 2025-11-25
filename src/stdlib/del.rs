@@ -56,17 +56,17 @@ impl Function for Del {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "returns deleted field",
                 source: r#"del({"foo": "bar"}.foo)"#,
                 result: Ok("bar"),
             },
-            Example {
+            example! {
                 title: "returns null for unknown field",
                 source: r#"del({"foo": "bar"}.baz)"#,
                 result: Ok("null"),
             },
-            Example {
+            example! {
                 title: "external target",
                 source: indoc! {r#"
                     . = { "foo": true, "bar": 10 }
@@ -75,7 +75,7 @@ impl Function for Del {
                 "#},
                 result: Ok(r#"{ "bar": 10 }"#),
             },
-            Example {
+            example! {
                 title: "variable",
                 source: indoc! {r#"
                     var = { "foo": true, "bar": 10 }
@@ -84,7 +84,7 @@ impl Function for Del {
                 "#},
                 result: Ok(r#"{ "bar": 10 }"#),
             },
-            Example {
+            example! {
                 title: "delete object field",
                 source: indoc! {r#"
                     var = { "foo": {"nested": true}, "bar": 10 }
@@ -93,7 +93,7 @@ impl Function for Del {
                 "#},
                 result: Ok(r#"{ "foo": {}, "bar": 10 }"#),
             },
-            Example {
+            example! {
                 title: "compact object field",
                 source: indoc! {r#"
                     var = { "foo": {"nested": true}, "bar": 10 }

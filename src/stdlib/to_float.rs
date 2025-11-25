@@ -47,63 +47,63 @@ impl Function for ToFloat {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "integer",
                 source: "to_float(5)",
                 result: Ok("5.0"),
             },
-            Example {
+            example! {
                 title: "float",
                 source: "to_float(5.6)",
                 result: Ok("5.6"),
             },
-            Example {
+            example! {
                 title: "true",
                 source: "to_float(true)",
                 result: Ok("1.0"),
             },
-            Example {
+            example! {
                 title: "false",
                 source: "to_float(false)",
                 result: Ok("0.0"),
             },
-            Example {
+            example! {
                 title: "null",
                 source: "to_float(null)",
                 result: Ok("0.0"),
             },
-            Example {
+            example! {
                 title: "valid string",
                 source: "to_float!(s'5.6')",
                 result: Ok("5.6"),
             },
-            Example {
+            example! {
                 title: "invalid string",
                 source: "to_float!(s'foobar')",
                 result: Err(
                     r#"function call error for "to_float" at (0:20): Invalid floating point number "foobar": invalid float literal"#,
                 ),
             },
-            Example {
+            example! {
                 title: "timestamp",
                 source: "to_float(t'2020-01-01T00:00:00.100Z')",
                 result: Ok("1577836800.1"),
             },
-            Example {
+            example! {
                 title: "array",
                 source: "to_float!([])",
                 result: Err(
                     r#"function call error for "to_float" at (0:13): unable to coerce array into float"#,
                 ),
             },
-            Example {
+            example! {
                 title: "object",
                 source: "to_float!({})",
                 result: Err(
                     r#"function call error for "to_float" at (0:13): unable to coerce object into float"#,
                 ),
             },
-            Example {
+            example! {
                 title: "regex",
                 source: "to_float!(r'foo')",
                 result: Err(

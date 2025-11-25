@@ -26,7 +26,7 @@ impl Function for GetTimezoneName {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[Example {
+        &[example! {
             title: "Get the VRL timezone name, or for 'local' the local timezone name or offset (e.g., -05:00)",
             source: r#"get_timezone_name!() != """#,
             result: Ok("true"),

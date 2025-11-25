@@ -33,56 +33,56 @@ impl Function for ToString {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "string",
                 source: "to_string(s'foo')",
                 result: Ok("foo"),
             },
-            Example {
+            example! {
                 title: "integer",
                 source: "to_string(5)",
                 result: Ok("s'5'"),
             },
-            Example {
+            example! {
                 title: "float",
                 source: "to_string(5.6)",
                 result: Ok("s'5.6'"),
             },
-            Example {
+            example! {
                 title: "true",
                 source: "to_string(true)",
                 result: Ok("s'true'"),
             },
-            Example {
+            example! {
                 title: "false",
                 source: "to_string(false)",
                 result: Ok("s'false'"),
             },
-            Example {
+            example! {
                 title: "null",
                 source: "to_string(null)",
                 result: Ok(""),
             },
-            Example {
+            example! {
                 title: "timestamp",
                 source: "to_string(t'2020-01-01T00:00:00Z')",
                 result: Ok("2020-01-01T00:00:00Z"),
             },
-            Example {
+            example! {
                 title: "array",
                 source: "to_string!([])",
                 result: Err(
                     r#"function call error for "to_string" at (0:14): unable to coerce array into string"#,
                 ),
             },
-            Example {
+            example! {
                 title: "object",
                 source: "to_string!({})",
                 result: Err(
                     r#"function call error for "to_string" at (0:14): unable to coerce object into string"#,
                 ),
             },
-            Example {
+            example! {
                 title: "regex",
                 source: "to_string!(r'foo')",
                 result: Err(

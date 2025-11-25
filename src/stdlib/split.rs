@@ -59,17 +59,17 @@ impl Function for Split {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "split string",
                 source: r#"split("foobar", "b")"#,
                 result: Ok(r#"["foo", "ar"]"#),
             },
-            Example {
+            example! {
                 title: "split once",
                 source: r#"split("foobarbaz", "ba", 2)"#,
                 result: Ok(r#"["foo", "rbaz"]"#),
             },
-            Example {
+            example! {
                 title: "split regex",
                 source: r#"split("barbaz", r'ba')"#,
                 result: Ok(r#"["", "r", "z"]"#),

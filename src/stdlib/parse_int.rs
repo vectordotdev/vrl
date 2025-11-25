@@ -58,17 +58,17 @@ impl Function for ParseInt {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "integer",
                 source: r#"parse_int!("-42")"#,
                 result: Ok("-42"),
             },
-            Example {
+            example! {
                 title: "hexadecimal",
                 source: r#"parse_int!("0x2a")"#,
                 result: Ok("42"),
             },
-            Example {
+            example! {
                 title: "hexadecimal explicit",
                 source: r#"parse_int!("2a", base: 16)"#,
                 result: Ok("42"),

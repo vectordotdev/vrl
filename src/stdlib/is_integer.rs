@@ -19,17 +19,17 @@ impl Function for IsInteger {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "string",
                 source: r#"is_integer("foobar")"#,
                 result: Ok("false"),
             },
-            Example {
+            example! {
                 title: "integer",
                 source: "is_integer(1515)",
                 result: Ok("true"),
             },
-            Example {
+            example! {
                 title: "null",
                 source: "is_integer(null)",
                 result: Ok("false"),

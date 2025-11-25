@@ -62,32 +62,32 @@ impl Function for Get {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "returns existing field",
                 source: r#"get!(value: {"foo": "bar"}, path: ["foo"])"#,
                 result: Ok(r#""bar""#),
             },
-            Example {
+            example! {
                 title: "returns null for unknown field",
                 source: r#"get!(value: {"foo": "bar"}, path: ["baz"])"#,
                 result: Ok("null"),
             },
-            Example {
+            example! {
                 title: "nested path",
                 source: r#"get!(value: {"foo": { "bar": true }}, path: ["foo", "bar"])"#,
                 result: Ok("true"),
             },
-            Example {
+            example! {
                 title: "indexing",
                 source: "get!(value: [92, 42], path: [0])",
                 result: Ok("92"),
             },
-            Example {
+            example! {
                 title: "nested indexing",
                 source: r#"get!(value: {"foo": { "bar": [92, 42] }}, path: ["foo", "bar", 1])"#,
                 result: Ok("42"),
             },
-            Example {
+            example! {
                 title: "external target",
                 source: indoc! {r#"
                     . = { "foo": true }
@@ -95,7 +95,7 @@ impl Function for Get {
                 "#},
                 result: Ok("true"),
             },
-            Example {
+            example! {
                 title: "variable",
                 source: indoc! {r#"
                     var = { "foo": true }
@@ -103,17 +103,17 @@ impl Function for Get {
                 "#},
                 result: Ok("true"),
             },
-            Example {
+            example! {
                 title: "missing index",
                 source: r#"get!(value: {"foo": { "bar": [92, 42] }}, path: ["foo", "bar", 1, -1])"#,
                 result: Ok("null"),
             },
-            Example {
+            example! {
                 title: "invalid indexing",
                 source: r#"get!(value: [42], path: ["foo"])"#,
                 result: Ok("null"),
             },
-            Example {
+            example! {
                 title: "invalid segment type",
                 source: r#"get!(value: {"foo": { "bar": [92, 42] }}, path: ["foo", true])"#,
                 result: Err(

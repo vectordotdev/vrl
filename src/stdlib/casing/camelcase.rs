@@ -52,7 +52,7 @@ impl Function for Camelcase {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[Example {
+        &[example! {
             title: "camelcase",
             source: r#"camelcase("input_string")"#,
             result: Ok("inputString"),

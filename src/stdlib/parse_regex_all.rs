@@ -63,7 +63,7 @@ impl Function for ParseRegexAll {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "Simple match",
                 source: r#"parse_regex_all!("apples and carrots, peaches and peas", r'(?P<fruit>[\w\.]+) and (?P<veg>[\w]+)')"#,
                 result: Ok(indoc! { r#"[
@@ -72,7 +72,7 @@ impl Function for ParseRegexAll {
                {"fruit": "peaches",
                 "veg": "peas"}]"# }),
             },
-            Example {
+            example! {
                 title: "Numeric groups",
                 source: r#"parse_regex_all!("apples and carrots, peaches and peas", r'(?P<fruit>[\w\.]+) and (?P<veg>[\w]+)', numeric_groups: true)"#,
                 result: Ok(indoc! { r#"[
@@ -87,7 +87,7 @@ impl Function for ParseRegexAll {
                 "1": "peaches",
                 "2": "peas"}]"# }),
             },
-            Example {
+            example! {
                 title: "match with variables",
                 source: r#"
                 variable = r'(?P<fruit>[\w\.]+) and (?P<veg>[\w]+)';

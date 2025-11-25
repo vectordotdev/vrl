@@ -205,7 +205,7 @@ impl Function for Encrypt {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[Example {
+        &[example! {
             title: "encrypt AES-256-CFB",
             source: r#"encode_base64(encrypt!("data", "AES-256-CFB", key: "01234567890123456789012345678912", iv: "0123456789012345"))"#,
             result: Ok("c/dIOA=="),

@@ -66,7 +66,7 @@ impl Function for DecodeBase64 {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[Example {
+        &[example! {
             title: "demo string",
             source: r#"decode_base64!("c29tZSBzdHJpbmcgdmFsdWU=")"#,
             result: Ok("some string value"),

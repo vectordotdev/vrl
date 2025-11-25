@@ -63,17 +63,17 @@ impl Function for ObjectFromArray {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "create an object from an array of keys/value pairs",
                 source: r#"object_from_array([["a", 1], ["b"], ["c", true, 3, 4]])"#,
                 result: Ok(r#"{"a": 1, "b": null, "c": true}"#),
             },
-            Example {
+            example! {
                 title: "create an object from a separate arrays of keys and values",
                 source: r#"object_from_array(keys: ["a", "b", "c"], values: [1, null, true])"#,
                 result: Ok(r#"{"a": 1, "b": null, "c": true}"#),
             },
-            Example {
+            example! {
                 title: "create an object with skipped keys",
                 source: r#"object_from_array([["a", 1], [null, 2], ["b", 3]])"#,
                 result: Ok(r#"{"a": 1, "b": 3}"#),

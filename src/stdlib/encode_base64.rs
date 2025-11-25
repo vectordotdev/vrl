@@ -73,7 +73,7 @@ impl Function for EncodeBase64 {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[Example {
+        &[example! {
             title: "demo string",
             source: r#"encode_base64("some string value", padding: false, charset: "url_safe")"#,
             result: Ok("c29tZSBzdHJpbmcgdmFsdWU"),

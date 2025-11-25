@@ -39,22 +39,22 @@ impl Function for BaseName {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "Extract basename from file path",
                 source: r#"basename!("/usr/local/bin/vrl")"#,
                 result: Ok("\"vrl\""),
             },
-            Example {
+            example! {
                 title: "Extract basename from file path with extension",
                 source: r#"basename!("/home/user/file.txt")"#,
                 result: Ok("\"file.txt\""),
             },
-            Example {
+            example! {
                 title: "Extract basename from directory path",
                 source: r#"basename!("/home/user/")"#,
                 result: Ok("\"user\""),
             },
-            Example {
+            example! {
                 title: "Root directory has no basename",
                 source: r#"basename!("/")"#,
                 result: Ok("null"),

@@ -48,27 +48,27 @@ impl Function for DirName {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "Extract dirname from file path",
                 source: r#"dirname!("/usr/local/bin/vrl")"#,
                 result: Ok("\"/usr/local/bin\""),
             },
-            Example {
+            example! {
                 title: "Extract dirname from file path with extension",
                 source: r#"dirname!("/home/user/file.txt")"#,
                 result: Ok("\"/home/user\""),
             },
-            Example {
+            example! {
                 title: "Extract dirname from directory path",
                 source: r#"dirname!("/home/user/")"#,
                 result: Ok("\"/home\""),
             },
-            Example {
+            example! {
                 title: "Root directory dirname is itself",
                 source: r#"dirname!("/")"#,
                 result: Ok("\"/\""),
             },
-            Example {
+            example! {
                 title: "Relative files have current directory as dirname",
                 source: r#"dirname!("file.txt")"#,
                 result: Ok("\".\""),

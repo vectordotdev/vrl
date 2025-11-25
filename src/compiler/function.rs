@@ -78,6 +78,26 @@ pub struct Example {
     pub title: &'static str,
     pub source: &'static str,
     pub result: Result<&'static str, &'static str>,
+    pub file: &'static str,
+    pub line: u32,
+}
+
+/// Macro to create an Example with automatic source location tracking
+#[macro_export]
+macro_rules! example {
+    (
+        title: $title:expr,
+        source: $source:expr,
+        result: $result:expr $(,)?
+    ) => {
+        $crate::compiler::function::Example {
+            title: $title,
+            source: $source,
+            result: $result,
+            file: file!(),
+            line: line!(),
+        }
+    };
 }
 
 // This type is re-exposed so renaming it is a breaking change.

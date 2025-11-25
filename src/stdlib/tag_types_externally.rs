@@ -11,12 +11,12 @@ impl Function for TagTypesExternally {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "scalar",
                 source: "tag_types_externally(123)",
                 result: Ok(r#"{ "integer": 123 }"#),
             },
-            Example {
+            example! {
                 title: "object",
                 source: indoc! {r#"
                     tag_types_externally({
@@ -30,12 +30,12 @@ impl Function for TagTypesExternally {
                     r#"{ "message": { "string": "Hello world" }, "request": { "duration_ms": { "float": 67.9 } } }"#,
                 ),
             },
-            Example {
+            example! {
                 title: "array",
                 source: r#"tag_types_externally(["foo", "bar"])"#,
                 result: Ok(r#"[{ "string": "foo" }, { "string": "bar" }]"#),
             },
-            Example {
+            example! {
                 title: "null",
                 source: "tag_types_externally(null)",
                 result: Ok("null"),

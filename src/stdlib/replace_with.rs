@@ -131,32 +131,32 @@ impl Function for ReplaceWith {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "double replacement",
                 source: r#"replace_with("foobar", r'o|a') -> |m| { m.string + m.string }"#,
                 result: Ok("foooobaar"),
             },
-            Example {
+            example! {
                 title: "replace count",
                 source: r#"replace_with("foobar", r'o|a', count: 1) -> |m| { m.string + m.string }"#,
                 result: Ok("fooobar"),
             },
-            Example {
+            example! {
                 title: "replace with capture group",
                 source: r#"replace_with("foo123bar", r'foo(\d+)bar') -> |m| { x = m.captures[0]; "x={{x}}" }"#,
                 result: Ok("x=123"),
             },
-            Example {
+            example! {
                 title: "process capture group",
                 source: r#"replace_with(s'Got message: {"msg": "b"}', r'message: (\{.*\})') -> |m| { to_string!(parse_json!(m.captures[0]).msg) }"#,
                 result: Ok("Got b"),
             },
-            Example {
+            example! {
                 title: "Optional capture group",
                 source: r#"replace_with("foobar", r'bar( of gold)?') -> |m| { if m.captures[1] == null { "baz" } else { "rich" } }"#,
                 result: Ok("foobaz"),
             },
-            Example {
+            example! {
                 title: "Named capture group",
                 source: r#"replace_with("foo123bar", r'foo(?P<num>\d+)bar') -> |m| { x = to_int!(m.num); to_string(x+ 1) }"#, //to_string(to_int!(m.named.num) + 1) }"#,
                 result: Ok("\"124\""),
@@ -207,7 +207,7 @@ impl Function for ReplaceWith {
                     kind: VariableKind::Exact(Kind::object(match_type)),
                 }],
                 output: Output::Kind(Kind::bytes()),
-                example: Example {
+                example: example! {
                     title: "replace with hash",
                     source: r#"replace_with("received email from a@example.com", pattern: r'\w+@\w+\.\w+') -> |match| { sha2(match.string) }"#,
                     result: Ok(
