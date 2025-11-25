@@ -163,6 +163,9 @@ Similar documentation generation systems:
       * More visibility into documentation changes. This makes it easier to notice if the website needs
       to be updated since CI checks will catch differences in generated files.
 
+5. Add an extra step to `make generate-component-docs` to also automatically generate VRL examples
+   and have CI fail if there are any unexpected changes to VRL generated documentation.
+
 ## Future work
 
 **Additional capabilities:**
