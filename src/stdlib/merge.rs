@@ -14,7 +14,7 @@ impl Function for Merge {
             Parameter {
                 keyword: "to",
                 kind: kind::OBJECT,
-                required: false,
+                required: true,
             },
             Parameter {
                 keyword: "from",
