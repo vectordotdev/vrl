@@ -57,11 +57,23 @@ impl Function for Ceil {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[example! {
-            title: "ceil",
-            source: "ceil(5.2)",
-            result: Ok("6.0"),
-        }]
+        &[
+            example! {
+                title: "Round a number up (without precision)",
+                source: "ceil(4.345)",
+                result: Ok("5.0"),
+            },
+            example! {
+                title: "Round a number up (with precision)",
+                source: "ceil(4.345, precision: 2)",
+                result: Ok("4.35"),
+            },
+            example! {
+                title: "Round an integer up (noop)",
+                source: "ceil(5)",
+                result: Ok("5"),
+            },
+        ]
     }
 }
 
