@@ -50,19 +50,19 @@ impl Function for Flatten {
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "object",
-                source: r#"flatten({ "foo": { "bar": true }})"#,
-                result: Ok(r#"{ "foo.bar": true }"#),
+                title: "Flatten array",
+                source: "flatten([1, [2, 3, 4], [5, [6, 7], 8], 9])",
+                result: Ok("[1, 2, 3, 4, 5, 6, 7, 8, 9]"),
             },
             example! {
-                title: "object",
+                title: "Flatten object",
+                source: r#"flatten({ "parent1": { "child1": 1, "child2": 2 }, "parent2": { "child3": 3 } })"#,
+                result: Ok(r#"{ "parent1.child1": 1, "parent1.child2": 2, "parent2.child3": 3 }"#),
+            },
+            example! {
+                title: "Flatten object with custom separator",
                 source: r#"flatten({ "foo": { "bar": true }}, "_")"#,
                 result: Ok(r#"{ "foo_bar": true }"#),
-            },
-            example! {
-                title: "array",
-                source: "flatten([[true]])",
-                result: Ok("[true]"),
             },
         ]
     }
