@@ -113,12 +113,12 @@ impl Function for EncodeKeyValue {
             example! {
                 title: "Encode with default delimiters (nested fields)",
                 source: r#"encode_key_value({"agent": {"name": "foo"}, "log": {"file": {"path": "my.log"}}, "event": "log"})"#,
-                result: Ok(r#"agent.name=foo event=log log.file.path=my.log"#),
+                result: Ok(r"agent.name=foo event=log log.file.path=my.log"),
             },
             example! {
                 title: "Encode with default delimiters (nested fields ordering)",
                 source: r#"encode_key_value!({"agent": {"name": "foo"}, "log": {"file": {"path": "my.log"}}, "event": "log"}, ["event", "log.file.path", "agent.name"])"#,
-                result: Ok(r#"event=log log.file.path=my.log agent.name=foo"#),
+                result: Ok(r"event=log log.file.path=my.log agent.name=foo"),
             },
             example! {
                 title: "Encode with custom delimiters (no ordering)",

@@ -63,8 +63,8 @@ impl Function for Zip {
             },
             example! {
                 title: "Merge three arrays",
-                source: r#"zip([[1, 2], [3, 4], [5, 6]])"#,
-                result: Ok(r#"[[1, 3, 5], [2, 4, 6]]"#),
+                source: r"zip([[1, 2], [3, 4], [5, 6]])",
+                result: Ok(r"[[1, 3, 5], [2, 4, 6]]"),
             },
             example! {
                 title: "Merge an array of three arrays into an array of 3-tuples",

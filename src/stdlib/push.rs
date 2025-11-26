@@ -33,8 +33,8 @@ impl Function for Push {
         &[
             example! {
                 title: "Push an item onto an array",
-                source: r#"push([1, 2], 3)"#,
-                result: Ok(r#"[1, 2, 3]"#),
+                source: r"push([1, 2], 3)",
+                result: Ok(r"[1, 2, 3]"),
             },
             example! {
                 title: "Empty array",

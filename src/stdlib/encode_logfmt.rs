@@ -65,12 +65,12 @@ impl Function for EncodeLogfmt {
             example! {
                 title: "Encode to logfmt (nested fields)",
                 source: r#"encode_logfmt({"agent": {"name": "foo"}, "log": {"file": {"path": "my.log"}}, "event": "log"})"#,
-                result: Ok(r#"agent.name=foo event=log log.file.path=my.log"#),
+                result: Ok(r"agent.name=foo event=log log.file.path=my.log"),
             },
             example! {
                 title: "Encode to logfmt (nested fields ordering)",
                 source: r#"encode_logfmt!({"agent": {"name": "foo"}, "log": {"file": {"path": "my.log"}}, "event": "log"}, ["event", "log.file.path", "agent.name"])"#,
-                result: Ok(r#"event=log log.file.path=my.log agent.name=foo"#),
+                result: Ok(r"event=log log.file.path=my.log agent.name=foo"),
             },
         ]
     }
