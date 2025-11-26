@@ -30,11 +30,6 @@ impl Function for IsBoolean {
                 result: Ok("false"),
             },
             example! {
-                title: "String",
-                source: r#"is_boolean("foobar")"#,
-                result: Ok("false"),
-            },
-            example! {
                 title: "Null",
                 source: "is_boolean(null)",
                 result: Ok("false"),
