@@ -42,7 +42,7 @@ impl Function for DecodeMimeQ {
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "Single",
+                title: "Decode single encoded-word",
                 source: r#"decode_mime_q!("=?utf-8?b?SGVsbG8sIFdvcmxkIQ==?=")"#,
                 result: Ok("Hello, World!"),
             },
