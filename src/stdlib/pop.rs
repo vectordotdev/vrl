@@ -24,9 +24,9 @@ impl Function for Pop {
 
     fn examples(&self) -> &'static [Example] {
         &[example! {
-            title: "pop array",
-            source: "pop(value: [0, 1])",
-            result: Ok("[0]"),
+            title: "Pop an item from an array",
+            source: "pop([1, 2, 3])",
+            result: Ok("[1, 2]"),
         }]
     }
 
