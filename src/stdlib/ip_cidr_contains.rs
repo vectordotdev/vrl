@@ -83,17 +83,27 @@ impl Function for IpCidrContains {
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "in range",
-                source: r#"ip_cidr_contains!("192.168.0.0/16", "192.168.0.1")"#,
+                title: "IPv4 contains CIDR",
+                source: r#"ip_cidr_contains!("192.168.0.0/16", "192.168.10.32")"#,
                 result: Ok("true"),
             },
             example! {
-                title: "not in range",
+                title: "IPv4 is private",
+                source: r#"ip_cidr_contains!(["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"], "192.168.10.32")"#,
+                result: Ok("true"),
+            },
+            example! {
+                title: "IPv6 contains CIDR",
+                source: r#"ip_cidr_contains!("2001:4f8:4:ba::/64", "2001:4f8:4:ba:2e0:81ff:fe22:d1f1")"#,
+                result: Ok("true"),
+            },
+            example! {
+                title: "Not in range",
                 source: r#"ip_cidr_contains!("192.168.0.0/24", "192.168.10.32")"#,
                 result: Ok("false"),
             },
             example! {
-                title: "invalid address",
+                title: "Invalid address",
                 source: r#"ip_cidr_contains!("192.168.0.0/24", "INVALID")"#,
                 result: Err(
                     r#"function call error for "ip_cidr_contains" at (0:46): unable to parse IP address: invalid IP address syntax"#,
