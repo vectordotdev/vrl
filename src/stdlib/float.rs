@@ -29,7 +29,7 @@ impl Function for Float {
                 title: "Declare a float type",
                 source: indoc! {r#"
                     . = { "value": 42.0 }
-                    float!(.value)
+                    float(.value)
                 "#},
                 result: Ok("42.0"),
             },
