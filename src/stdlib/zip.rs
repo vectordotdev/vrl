@@ -57,12 +57,22 @@ impl Function for Zip {
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "merge an array of three arrays into an array of 3-tuples",
+                title: "Merge two arrays",
+                source: "zip([1, 2, 3], [4, 5, 6, 7])",
+                result: Ok("[[1, 4], [2, 5], [3, 6]]"),
+            },
+            example! {
+                title: "Merge three arrays",
+                source: r#"zip([[1, 2], [3, 4], [5, 6]])"#,
+                result: Ok(r#"[[1, 3, 5], [2, 4, 6]]"#),
+            },
+            example! {
+                title: "Merge an array of three arrays into an array of 3-tuples",
                 source: r#"zip([["a", "b", "c"], [1, null, true], [4, 5, 6]])"#,
                 result: Ok(r#"[["a", 1, 4], ["b", null, 5], ["c", true, 6]]"#),
             },
             example! {
-                title: "merge two array parameters",
+                title: "Merge two array parameters",
                 source: "zip([1, 2, 3, 4], [5, 6, 7])",
                 result: Ok("[[1, 5], [2, 6], [3, 7]]"),
             },
