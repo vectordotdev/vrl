@@ -46,19 +46,33 @@ impl Function for MapKeys {
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "map object keys",
-                source: r#"map_keys({ "a": 1, "b": 2 }) -> |key| { upcase(key) }"#,
-                result: Ok(r#"{ "A": 1, "B": 2 }"#),
+                title: "Upcase keys",
+                source: indoc! {r#"
+                    . = {
+                        "foo": "foo",
+                        "bar": "bar",
+                        "baz": {"nested key": "val"}
+                    }
+                    map_keys(.) -> |key| { upcase(key) }
+                "#},
+                result: Ok(r#"{ "FOO": "foo", "BAR": "bar", "BAZ": {"nested key": "val"} }"#),
             },
             example! {
-                title: "recursively map object keys",
+                title: "De-dot keys",
+                source: indoc! {r#"
+                    . = {
+                        "labels": {
+                            "app.kubernetes.io/name": "mysql"
+                        }
+                    }
+                    map_keys(., recursive: true) -> |key| { replace(key, ".", "_") }
+                "#},
+                result: Ok(r#"{ "labels": { "app_kubernetes_io/name": "mysql" } }"#),
+            },
+            example! {
+                title: "Recursively map object keys",
                 source: r#"map_keys({ "a": 1, "b": [{ "c": 2 }, { "d": 3 }], "e": { "f": 4 } }, recursive: true) -> |key| { upcase(key) }"#,
                 result: Ok(r#"{ "A": 1, "B": [{ "C": 2 }, { "D": 3 }], "E": { "F": 4 } }"#),
-            },
-            example! {
-                title: "map nested object keys",
-                source: r#"map_keys({ "a": 1, "b": { "c": 2, "d": 3, "e": { "f": 4 } } }.b) -> |key| { upcase(key) }"#,
-                result: Ok(r#"{ "C": 2, "D": 3, "E": { "f": 4 } }"#),
             },
         ]
     }
