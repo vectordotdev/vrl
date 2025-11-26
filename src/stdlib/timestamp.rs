@@ -26,12 +26,12 @@ impl Function for Timestamp {
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "valid",
-                source: "to_string(timestamp(t'2021-02-11 21:42:01Z'))",
-                result: Ok(r#""2021-02-11T21:42:01Z""#),
+                title: "Declare a timestamp type",
+                source: "timestamp(t'2020-10-10T16:00:00Z')",
+                result: Ok("t'2020-10-10T16:00:00Z'"),
             },
             example! {
-                title: "invalid",
+                title: "Invalid type",
                 source: "timestamp!(true)",
                 result: Err(
                     r#"function call error for "timestamp" at (0:16): expected timestamp, got boolean"#,
