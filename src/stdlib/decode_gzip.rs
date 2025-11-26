@@ -23,7 +23,7 @@ impl Function for DecodeGzip {
 
     fn examples(&self) -> &'static [Example] {
         &[example! {
-            title: "demo string",
+            title: "Decode Gzip data",
             source: r#"decode_gzip!(decode_base64!("H4sIAB8BymMAAyvISU0sTlVISU3OT0lVyE0FAJsZ870QAAAA"))"#,
             result: Ok("please decode me"),
         }]
