@@ -104,14 +104,29 @@ impl Function for Compact {
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "object",
+                title: "Compact an object with default parameters",
+                source: r#"compact({"field1": 1, "field2": "", "field3": [], "field4": null})"#,
+                result: Ok(r#"{ "field1": 1 }"#),
+            },
+            example! {
+                title: "Compact an array with default parameters",
+                source: r#"compact(["foo", "bar", "", null, [], "buzz"])"#,
+                result: Ok(r#"["foo","bar","buzz"]"#),
+            },
+            example! {
+                title: "Compact an array using nullish",
+                source: r#"compact(["-", "   ", "\n", null, true], nullish: true)"#,
+                result: Ok("[true]"),
+            },
+            example! {
+                title: "Compact a more complex object with default parameters",
                 source: r#"compact({ "a": {}, "b": null, "c": [null], "d": "", "e": "-", "f": true })"#,
                 result: Ok(r#"{ "e": "-", "f": true }"#),
             },
             example! {
-                title: "nullish",
-                source: r#"compact(["-", "   ", "\n", null, true], nullish: true)"#,
-                result: Ok("[true]"),
+                title: "Compact a more complex object using null: false",
+                source: r#"compact({ "a": {}, "b": null, "c": [null], "d": "", "e": "-", "f": true }, null: false)"#,
+                result: Ok(r#"{ "b": null, "c": [null], "e": "-", "f": true }"#),
             },
         ]
     }

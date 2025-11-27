@@ -66,11 +66,18 @@ impl Function for DecodeBase64 {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[example! {
-            title: "demo string",
-            source: r#"decode_base64!("c29tZSBzdHJpbmcgdmFsdWU=")"#,
-            result: Ok("some string value"),
-        }]
+        &[
+            example! {
+                title: "Decode Base64 data (default)",
+                source: r#"decode_base64!("eW91IGhhdmUgc3VjY2Vzc2Z1bGx5IGRlY29kZWQgbWU=")"#,
+                result: Ok("you have successfully decoded me"),
+            },
+            example! {
+                title: "Decode Base64 data (URL safe)",
+                source: r#"decode_base64!("eW91IGNhbid0IG1ha2UgeW91ciBoZWFydCBmZWVsIHNvbWV0aGluZyBpdCB3b24ndA==", charset: "url_safe")"#,
+                result: Ok("you can't make your heart feel something it won't"),
+            },
+        ]
     }
 }
 

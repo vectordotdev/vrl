@@ -22,7 +22,7 @@ impl Function for DecodeLz4 {
                 result: Ok("The quick brown fox jumps over 13 lazy dogs."),
             },
             example! {
-                title: "LZ4 frame format",
+                title: "Decode Lz4 data without prepended size.",
                 source: r#"decode_lz4!(decode_base64!("BCJNGGBAgiwAAIBUaGUgcXVpY2sgYnJvd24gZm94IGp1bXBzIG92ZXIgMTMgbGF6eSBkb2dzLgAAAAA="))"#,
                 result: Ok("The quick brown fox jumps over 13 lazy dogs."),
             },
