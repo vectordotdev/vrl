@@ -1,7 +1,7 @@
 use crate::compiler::prelude::*;
 use bytes::Bytes;
 
-#[cfg_attr(feature = "test", allow(dead_code))]
+#[cfg_attr(feature = "__mock_return_values_for_tests", allow(dead_code))]
 fn uuid_v4() -> Value {
     let mut buf = [0; 36];
     let uuid = uuid::Uuid::new_v4().hyphenated().encode_lower(&mut buf);
@@ -16,7 +16,7 @@ impl Function for UuidV4 {
         "uuid_v4"
     }
 
-    #[cfg(not(feature = "test"))]
+    #[cfg(not(feature = "__mock_return_values_for_tests"))]
     fn examples(&self) -> &'static [Example] {
         &[example! {
             title: "Create a UUIDv4",
@@ -25,7 +25,7 @@ impl Function for UuidV4 {
         }]
     }
 
-    #[cfg(feature = "test")]
+    #[cfg(feature = "__mock_return_values_for_tests")]
     fn examples(&self) -> &'static [Example] {
         &[example! {
             title: "Create a UUIDv4",
@@ -48,12 +48,12 @@ impl Function for UuidV4 {
 struct UuidV4Fn;
 
 impl FunctionExpression for UuidV4Fn {
-    #[cfg(not(feature = "test"))]
+    #[cfg(not(feature = "__mock_return_values_for_tests"))]
     fn resolve(&self, _: &mut Context) -> Resolved {
         Ok(uuid_v4())
     }
 
-    #[cfg(feature = "test")]
+    #[cfg(feature = "__mock_return_values_for_tests")]
     fn resolve(&self, _: &mut Context) -> Resolved {
         Ok("1d262f4f-199b-458d-879f-05fd0a5f0683".into())
     }

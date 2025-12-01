@@ -9,7 +9,7 @@ impl Function for Now {
         "now"
     }
 
-    #[cfg(not(feature = "test"))]
+    #[cfg(not(feature = "__mock_return_values_for_tests"))]
     fn examples(&self) -> &'static [Example] {
         &[example! {
             title: "now",
@@ -18,7 +18,7 @@ impl Function for Now {
         }]
     }
 
-    #[cfg(feature = "test")]
+    #[cfg(feature = "__mock_return_values_for_tests")]
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
@@ -48,12 +48,12 @@ impl Function for Now {
 struct NowFn;
 
 impl FunctionExpression for NowFn {
-    #[cfg(not(feature = "test"))]
+    #[cfg(not(feature = "__mock_return_values_for_tests"))]
     fn resolve(&self, _: &mut Context) -> Resolved {
         Ok(Utc::now().into())
     }
 
-    #[cfg(feature = "test")]
+    #[cfg(feature = "__mock_return_values_for_tests")]
     fn resolve(&self, _: &mut Context) -> Resolved {
         use chrono::{NaiveDate, TimeZone};
 

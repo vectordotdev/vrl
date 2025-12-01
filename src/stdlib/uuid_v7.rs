@@ -42,7 +42,7 @@ impl Function for UuidV7 {
         }]
     }
 
-    #[cfg(not(feature = "test"))]
+    #[cfg(not(feature = "__mock_return_values_for_tests"))]
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
@@ -63,7 +63,7 @@ impl Function for UuidV7 {
         ]
     }
 
-    #[cfg(feature = "test")]
+    #[cfg(feature = "__mock_return_values_for_tests")]
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
@@ -93,7 +93,7 @@ impl Function for UuidV7 {
         let timestamp = arguments.optional("timestamp");
 
         // Use mocked now() implementation if timestamp is missing
-        #[cfg(feature = "test")]
+        #[cfg(feature = "__mock_return_values_for_tests")]
         let timestamp =
             timestamp.or_else(|| super::Now {}.compile(_state, _ctx, Default::default()).ok());
 
@@ -107,7 +107,7 @@ struct UuidV7Fn {
 }
 
 impl FunctionExpression for UuidV7Fn {
-    #[cfg(not(feature = "test"))]
+    #[cfg(not(feature = "__mock_return_values_for_tests"))]
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let timestamp = self
             .timestamp
@@ -118,7 +118,7 @@ impl FunctionExpression for UuidV7Fn {
         uuid_v7(timestamp)
     }
 
-    #[cfg(feature = "test")]
+    #[cfg(feature = "__mock_return_values_for_tests")]
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let timestamp = self
             .timestamp
