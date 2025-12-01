@@ -6,7 +6,7 @@ edition = "2021"
 publish = false
 
 [dependencies]
-vrl = { path = "../../", features = ["test_framework"] }
+vrl = { path = "../../", features = ["test_framework", "test", "__mock_return_values_for_tests"] }
 chrono-tz = "0.10"
 clap.workspace = true
 glob = "0.3"
