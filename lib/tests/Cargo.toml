@@ -6,7 +6,7 @@ edition = "2021"
 publish = false
 
 [dependencies]
-vrl = { path = "../../", features = ["test_framework", "test", "__mock_return_values_for_tests"] }
+vrl = { path = "../../", features = ["test_framework"] }
 chrono-tz = "0.10"
 clap.workspace = true
 glob = "0.3"
@@ -17,3 +17,4 @@ tikv-jemallocator = { version = "0.6.0" }
 
 [features]
 default = []
+vrl_mock = ["vrl/__mock_return_values_for_tests"]
