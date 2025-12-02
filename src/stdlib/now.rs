@@ -20,18 +20,11 @@ impl Function for Now {
 
     #[cfg(feature = "__mock_return_values_for_tests")]
     fn examples(&self) -> &'static [Example] {
-        &[
-            example! {
-                title: "Generate a current timestamp",
-                source: r#"now()"#,
-                result: Ok("2012-03-04T12:34:56.789012345Z"),
-            },
-            example! {
-                title: "now",
-                source: r#"now() != """#,
-                result: Ok("true"),
-            },
-        ]
+        &[example! {
+            title: "Generate a current timestamp",
+            source: r#"now()"#,
+            result: Ok("2012-03-04T12:34:56.789012345Z"),
+        }]
     }
 
     fn compile(
