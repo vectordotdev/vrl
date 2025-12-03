@@ -52,9 +52,9 @@ impl Function for ToSyslogFacility {
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "valid",
-                source: "to_syslog_facility!(0)",
-                result: Ok("kern"),
+                title: "Coerce to a Syslog facility",
+                source: "to_syslog_facility!(4)",
+                result: Ok("auth"),
             },
             example! {
                 title: "invalid",
