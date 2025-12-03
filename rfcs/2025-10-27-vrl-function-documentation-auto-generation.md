@@ -2,13 +2,24 @@
 
 ## Context
 
-VRL function documentation has always been manually maintained in separate CUE files. The separation of VRL into its own repository has made
-the maintenance burden even **worse**: contributors adding VRL functions must now create PRs in **two repositories** - one for the function implementation (VRL
-repo) and another for the documentation (Vector repo). This convoluted process leads to documentation
-drift/undocumented functions, and incorrect examples (examples are not tested in the Vector repo, but are in VRL).
+The purpose of this RFC is to propose significant improvements to VRL function documentation.
 
-This RFC proposes an automated system for generating VRL function documentation directly from the Rust source code where functions are
-defined, ensuring documentation stays synchronized with implementation and eliminating the need for cross-repository documentation PRs.
+Today contributing a new VRL function requires creating PRs in two separate repositories:
+1. VRL repository - Function implementation.
+2. Vector repository - Adds documentation in a _manually_ created/maintained CUE file.
+
+This split workflow creates several problems:
+- Documentation becomes outdated or incorrect.
+- Examples in the manually-maintained CUE files are tested, leading to broken examples.
+- Functions can ship without documentation if the Vector PR is never created/merged.
+- Contributors/maintainer burden of dealing with multiple PRs.
+
+Once this RFC is implemented, the workflow of adding and documenting a new VRL function should look like this:
+1. PR is opened in the VRL repository.
+  * Function documentation lives alongside/within it's definition.
+  * All examples are tested and validated before merging.
+2. VRL function documentation definitions are automatically updated in the Vector repo once VRL is
+   bumped.
 
 ## Goals
 
