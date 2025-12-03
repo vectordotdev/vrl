@@ -17,3 +17,4 @@ tikv-jemallocator = { version = "0.6.0" }
 
 [features]
 default = []
+vrl_mock = ["vrl/__mock_return_values_for_tests"]

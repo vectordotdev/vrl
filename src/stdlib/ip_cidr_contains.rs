@@ -82,17 +82,17 @@ impl Function for IpCidrContains {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "in range",
                 source: r#"ip_cidr_contains!("192.168.0.0/16", "192.168.0.1")"#,
                 result: Ok("true"),
             },
-            Example {
+            example! {
                 title: "not in range",
                 source: r#"ip_cidr_contains!("192.168.0.0/24", "192.168.10.32")"#,
                 result: Ok("false"),
             },
-            Example {
+            example! {
                 title: "invalid address",
                 source: r#"ip_cidr_contains!("192.168.0.0/24", "INVALID")"#,
                 result: Err(

@@ -106,7 +106,7 @@ impl Function for ParseGrok {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[Example {
+        &[example! {
             title: "parse grok pattern",
             source: indoc! {r#"
                 value = "2020-10-02T23:22:12.223222Z info Hello world"

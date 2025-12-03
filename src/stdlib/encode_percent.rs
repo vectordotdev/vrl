@@ -117,12 +117,12 @@ impl Function for EncodePercent {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "percent encode string",
                 source: r#"encode_percent("foo bar?")"#,
                 result: Ok("s'foo%20bar%3F'"),
             },
-            Example {
+            example! {
                 title: "percent encode for query",
                 source: r#"encode_percent("foo@bar?")"#,
                 result: Ok("s'foo%40bar%3F'"),

@@ -64,12 +64,12 @@ impl Function for FormatTimestamp {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "format timestamp",
                 source: r#"format_timestamp!(t'2021-02-10T23:32:00+00:00', format: "%d %B %Y %H:%M")"#,
                 result: Ok("10 February 2021 23:32"),
             },
-            Example {
+            example! {
                 title: "format timestamp with tz",
                 source: r#"format_timestamp!(t'2021-02-10T23:32:00+00:00', format: "%d %B %Y %H:%M", timezone: "Europe/Berlin")"#,
                 result: Ok("11 February 2021 00:32"),

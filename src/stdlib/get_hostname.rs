@@ -37,7 +37,7 @@ impl Function for GetHostname {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[Example {
+        &[example! {
             title: "valid",
             source: r#"get_hostname!() != """#,
             result: Ok("true"),

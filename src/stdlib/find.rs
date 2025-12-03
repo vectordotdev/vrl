@@ -42,7 +42,7 @@ impl Function for Find {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[Example {
+        &[example! {
             title: "string",
             source: r#"find("foobar", "bar")"#,
             result: Ok("3"),

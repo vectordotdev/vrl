@@ -25,7 +25,7 @@ impl Function for EncodeZstd {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[Example {
+        &[example! {
             title: "demo string",
             source: r#"encode_base64(encode_zstd("encode_me"))"#,
             result: Ok("KLUv/QBYSQAAZW5jb2RlX21l"),

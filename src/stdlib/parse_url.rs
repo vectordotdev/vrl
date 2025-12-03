@@ -27,7 +27,7 @@ impl Function for ParseUrl {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "parse url",
                 source: r#"parse_url!("https://vector.dev")"#,
                 result: Ok(indoc! {r#"
@@ -43,7 +43,7 @@ impl Function for ParseUrl {
                 }
             "#}),
             },
-            Example {
+            example! {
                 title: "parse url with default ports",
                 source: r#"parse_url!("https://vector.dev", default_known_ports: true)"#,
                 result: Ok(indoc! {r#"

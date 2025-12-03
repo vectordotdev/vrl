@@ -25,12 +25,12 @@ impl Function for String {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "valid",
                 source: r#"string("foobar")"#,
                 result: Ok("foobar"),
             },
-            Example {
+            example! {
                 title: "invalid",
                 source: "string!(true)",
                 result: Err(

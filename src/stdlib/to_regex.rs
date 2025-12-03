@@ -26,7 +26,7 @@ impl Function for ToRegex {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[Example {
+        &[example! {
             title: "regex",
             source: "to_regex(s'^foobar$') ?? r''",
             result: Ok("r'^foobar$'"),

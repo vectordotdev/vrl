@@ -103,7 +103,7 @@ impl Function for ParseGroks {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[Example {
+        &[example! {
             title: "parse grok pattern",
             source: indoc! {r#"
                 parse_groks!(

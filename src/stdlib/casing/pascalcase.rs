@@ -52,7 +52,7 @@ impl Function for Pascalcase {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[Example {
+        &[example! {
             title: "pascalcase",
             source: r#"pascalcase("input_string")"#,
             result: Ok("InputString"),

@@ -37,22 +37,22 @@ impl Function for IsEmpty {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "empty string",
                 source: r#"is_empty("")"#,
                 result: Ok("true"),
             },
-            Example {
+            example! {
                 title: "empty array",
                 source: "is_empty([])",
                 result: Ok("true"),
             },
-            Example {
+            example! {
                 title: "empty object",
                 source: "is_empty({})",
                 result: Ok("true"),
             },
-            Example {
+            example! {
                 title: "non-empty array",
                 source: "is_empty([1,2,3])",
                 result: Ok("false"),

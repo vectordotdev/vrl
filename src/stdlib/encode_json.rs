@@ -52,12 +52,12 @@ impl Function for EncodeJson {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "encode object",
                 source: r#"encode_json({"field": "value", "another": [1,2,3]})"#,
                 result: Ok(r#"s'{"another":[1,2,3],"field":"value"}'"#),
             },
-            Example {
+            example! {
                 title: "encode object as a pretty-printed JSON",
                 source: r#"encode_json({"field": "value", "another": [1,2,3]}, true)"#,
                 result: Ok(

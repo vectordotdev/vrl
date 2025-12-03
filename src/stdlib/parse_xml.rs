@@ -10,7 +10,7 @@ impl Function for ParseXml {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[Example {
+        &[example! {
             title: "parse XML",
             source: indoc! {r#"
 				value = s'<book category="CHILDREN"><title lang="en">Harry Potter</title><author>J K. Rowling</author><year>2005</year></book>';

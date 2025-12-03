@@ -28,14 +28,14 @@ impl Function for ParseAwsAlbLog {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "valid",
                 source: r#"parse_aws_alb_log!(s'http 2025-01-01T00:00:00.000000Z a/b 1.1.1.1:1 - 0.000 0.000 0.000 200 200 1 2 "GET http://a/ HTTP/1.1" "u" - - arn:a "Root=1-1-1" "-" "-" 0 2025-01-01T00:00:00.000000Z "f" "-" "-" "-" "-" "-" "-" TID_x')"#,
                 result: Ok(
                     r#"{ "actions_executed": "f", "chosen_cert_arn": null, "classification": null, "classification_reason": null, "client_host": "1.1.1.1:1", "domain_name": null, "elb": "a/b", "elb_status_code": "200", "error_reason": null, "matched_rule_priority": "0", "received_bytes": 1, "redirect_url": null, "request_creation_time": "2025-01-01T00:00:00.000000Z", "request_method": "GET", "request_processing_time": 0.0, "request_protocol": "HTTP/1.1", "request_url": "http://a/", "response_processing_time": 0.0, "sent_bytes": 2, "ssl_cipher": null, "ssl_protocol": null, "target_group_arn": "arn:a", "target_host": null, "target_port_list": [], "target_processing_time": 0.0, "target_status_code": "200", "target_status_code_list": [], "timestamp": "2025-01-01T00:00:00.000000Z", "trace_id": "Root=1-1-1", "type": "http", "user_agent": "u", "traceability_id": "TID_x" }"#,
                 ),
             },
-            Example {
+            example! {
                 title: "ignores trailing fields when strict_mode is false",
                 source: r#"parse_aws_alb_log!(s'http 2025-01-01T00:00:00.000000Z a/b 1.1.1.1:1 - 0.000 0.000 0.000 200 200 1 2 "GET http://a/ HTTP/1.1" "u" - - arn:a "Root=1-1-1" "-" "-" 0 2025-01-01T00:00:00.000000Z "f" "-" "-" "-" "-" "-" "-" TID_x "-" "-" "-"', strict_mode: false)"#,
                 result: Ok(

@@ -10,7 +10,7 @@ impl Function for ParseQueryString {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[Example {
+        &[example! {
             title: "parse query string",
             source: r#"parse_query_string("foo=1&bar=2")"#,
             result: Ok(r#"

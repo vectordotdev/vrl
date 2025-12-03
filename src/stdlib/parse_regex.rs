@@ -62,7 +62,7 @@ impl Function for ParseRegex {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "simple match",
                 source: r#"parse_regex!("8.7.6.5 - zorp", r'^(?P<host>[\w\.]+) - (?P<user>[\w]+)')"#,
                 result: Ok(indoc! { r#"{
@@ -70,7 +70,7 @@ impl Function for ParseRegex {
                 "user": "zorp"
             }"# }),
             },
-            Example {
+            example! {
                 title: "numeric groups",
                 source: r#"parse_regex!("8.7.6.5 - zorp", r'^(?P<host>[\w\.]+) - (?P<user>[\w]+)', numeric_groups: true)"#,
                 result: Ok(indoc! { r#"{
@@ -81,7 +81,7 @@ impl Function for ParseRegex {
                 "user": "zorp"
             }"# }),
             },
-            Example {
+            example! {
                 title: "match with variable",
                 source: r#"
                 variable = r'^(?P<host>[\w\.]+) - (?P<user>[\w]+)';

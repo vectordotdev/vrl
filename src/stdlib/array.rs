@@ -25,12 +25,12 @@ impl Function for Array {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "valid",
                 source: "array([1,2,3])",
                 result: Ok("[1,2,3]"),
             },
-            Example {
+            example! {
                 title: "invalid",
                 source: "array!(true)",
                 result: Err(

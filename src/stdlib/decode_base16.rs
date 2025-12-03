@@ -37,7 +37,7 @@ impl Function for DecodeBase16 {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[Example {
+        &[example! {
             title: "demo string",
             source: r#"decode_base16!("736F6D6520737472696E672076616C7565")"#,
             result: Ok("some string value"),

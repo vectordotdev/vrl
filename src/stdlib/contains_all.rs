@@ -67,12 +67,12 @@ impl Function for ContainsAll {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "contains_all true",
                 source: r#"contains_all("The Needle In The Haystack", ["Needle", "Haystack"])"#,
                 result: Ok("true"),
             },
-            Example {
+            example! {
                 title: "contains_all false",
                 source: r#"contains_all("the NEEDLE in the haystack", ["needle", "haystack"])"#,
                 result: Ok("false"),

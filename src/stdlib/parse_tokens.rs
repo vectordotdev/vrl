@@ -23,7 +23,7 @@ impl Function for ParseTokens {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[Example {
+        &[example! {
             title: "valid",
             source: r#"parse_tokens(s'A sentence "with \"a\" sentence inside" and [some brackets]')"#,
             result: Ok(

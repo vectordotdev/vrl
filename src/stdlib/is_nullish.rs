@@ -22,7 +22,7 @@ impl Function for IsNullish {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[Example {
+        &[example! {
             title: "null",
             source: "is_nullish(null)",
             result: Ok("true"),

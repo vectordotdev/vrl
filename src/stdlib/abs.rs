@@ -40,7 +40,7 @@ impl Function for Abs {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[Example {
+        &[example! {
             title: "abs",
             source: "abs(-42)",
             result: Ok("42"),

@@ -22,7 +22,7 @@ impl Function for DecodeZlib {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[Example {
+        &[example! {
             title: "demo string",
             source: r#"decode_zlib!(decode_base64!("eJxLzUvOT0mNz00FABI5A6A="))"#,
             result: Ok("encode_me"),

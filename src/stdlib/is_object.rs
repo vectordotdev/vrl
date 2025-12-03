@@ -19,17 +19,17 @@ impl Function for IsObject {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "string",
                 source: r#"is_object("foobar")"#,
                 result: Ok("false"),
             },
-            Example {
+            example! {
                 title: "boolean",
                 source: "is_object(true)",
                 result: Ok("false"),
             },
-            Example {
+            example! {
                 title: "object",
                 source: r#"is_object({"foo": "bar"})"#,
                 result: Ok("true"),

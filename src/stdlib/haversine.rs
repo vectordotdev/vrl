@@ -142,7 +142,7 @@ impl Function for Haversine {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "haversine",
                 source: "haversine(0.0, 0.0, 10.0, 10.0)",
                 result: Ok(indoc!(
@@ -152,7 +152,7 @@ impl Function for Haversine {
                     }"#
                 )),
             },
-            Example {
+            example! {
                 title: "haversine in miles",
                 source: r#"haversine(0.0, 0.0, 10.0, 10.0, measurement_unit: "miles")"#,
                 result: Ok(indoc!(

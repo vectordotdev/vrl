@@ -14,7 +14,7 @@ impl Function for Merge {
             Parameter {
                 keyword: "to",
                 kind: kind::OBJECT,
-                required: false,
+                required: true,
             },
             Parameter {
                 keyword: "from",
@@ -30,7 +30,7 @@ impl Function for Merge {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[Example {
+        &[example! {
             title: "merge objects",
             source: r#"merge({ "a": 1, "b": 2 }, { "b": 3, "c": 4 })"#,
             result: Ok(r#"{ "a": 1, "b": 3, "c": 4 }"#),
