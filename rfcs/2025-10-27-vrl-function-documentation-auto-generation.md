@@ -18,7 +18,7 @@ Once this RFC is implemented, the workflow of adding and documenting a new VRL f
 1. PR is opened in the VRL repository.
   * Function documentation lives alongside/within it's definition.
   * All examples are tested and validated before merging.
-2. VRL function documentation definitions are automatically updated in the Vector repo once VRL is
+2. VRL function documentation is automatically updated in the Vector repo once VRL is
    bumped.
 
 ## Goals
