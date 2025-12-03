@@ -28,30 +28,18 @@ defined, ensuring documentation stays synchronized with implementation and elimi
 
 ## Proposal
 
-### Architecture overview
+### Proposed brief architecture overview
 
-```
-         ┌───────────────────────────────────────────────────┐
-         │            VRL Function Source Code               │
-         │         (src/stdlib/ in VRL repository)           │
-         │                                                   │
-         │  - Function trait implementations                 │
-         │  - Structured documentation attributes/comments   │
-         │  - Examples integrated with tests                 │
-         └────────────────────────┬──────────────────────────┘
-                                  │
-                                  │ Consume (Vector repository)
-                                  │
-                                  │
-                                  ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                   Vector's CUE Transformation                       │
-│                      (Vector generates CUE)                         │
-│                                                                     │
-│  - Uses vrl's stdlib functions and internal VRL functions           │
-│  - Transform function information and make available in the website │
-└─────────────────────────────────────────────────────────────────────┘
-```
+1. VRL functions source code (src/stdlib in the VRL repository)
+- Functions implement the `Function` trait.
+- Functions are documented using required methods in the `Function` trait.
+- All functions' examples are tested.
+
+2. Vector Repo (consumes VRL)
+- Aggregates VRL functions and internal VRL functions.
+- Grabs all function information using the `Function` trait.
+- Does necessary transforms/validations and generates output.
+- Output is visible on the website.
 
 ### Technical approach
 
