@@ -5,24 +5,77 @@ use std::sync::LazyLock;
 
 // This needs to be static because validate_json_schema needs to read a file
 // and the file path needs to be a literal.
-static EXAMPLE_JSON_SCHEMA_EXPR: LazyLock<&str> = LazyLock::new(|| {
+static EXAMPLE_JSON_SCHEMA_VALID_EMAIL: LazyLock<&str> = LazyLock::new(|| {
     let path = PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap())
         .join("../../tests/data/jsonschema/validate_json_schema/schema_with_email_format.json")
         .display()
         .to_string();
 
     Box::leak(
-        format!(r#"validate_json_schema!(s'{{ "productUser": "foo@bar.com" }}', "{path}", false)"#)
+        format!(r#"validate_json_schema!(s'{{ "productUser": "valid@email.com" }}', "{path}", false)"#)
+            .into_boxed_str(),
+    )
+});
+
+static EXAMPLE_JSON_SCHEMA_INVALID_EMAIL: LazyLock<&str> = LazyLock::new(|| {
+    let path = PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap())
+        .join("../../tests/data/jsonschema/validate_json_schema/schema_with_email_format.json")
+        .display()
+        .to_string();
+
+    Box::leak(
+        format!(r#"validate_json_schema!(s'{{ "productUser": "invalidEmail" }}', "{path}", false)"#)
+            .into_boxed_str(),
+    )
+});
+
+static EXAMPLE_JSON_SCHEMA_CUSTOM_FORMAT_FALSE: LazyLock<&str> = LazyLock::new(|| {
+    let path = PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap())
+        .join("../../tests/data/jsonschema/validate_json_schema/schema_with_custom_format.json")
+        .display()
+        .to_string();
+
+    Box::leak(
+        format!(r#"validate_json_schema!(s'{{ "productUser": "a-custom-formatted-string" }}', "{path}", false)"#)
+            .into_boxed_str(),
+    )
+});
+
+static EXAMPLE_JSON_SCHEMA_CUSTOM_FORMAT_TRUE: LazyLock<&str> = LazyLock::new(|| {
+    let path = PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap())
+        .join("../../tests/data/jsonschema/validate_json_schema/schema_with_custom_format.json")
+        .display()
+        .to_string();
+
+    Box::leak(
+        format!(r#"validate_json_schema!(s'{{ "productUser": "a-custom-formatted-string" }}', "{path}", true)"#)
             .into_boxed_str(),
     )
 });
 
 static EXAMPLES: LazyLock<Vec<Example>> = LazyLock::new(|| {
-    vec![example! {
-        title: "valid payload",
-        source: &EXAMPLE_JSON_SCHEMA_EXPR,
-        result: Ok("true"),
-    }]
+    vec![
+        example! {
+            title: "Payload contains a valid email",
+            source: &EXAMPLE_JSON_SCHEMA_VALID_EMAIL,
+            result: Ok("true"),
+        },
+        example! {
+            title: "Payload contains an invalid email",
+            source: &EXAMPLE_JSON_SCHEMA_INVALID_EMAIL,
+            result: Err(r#"function call error for "validate_json_schema" at (0:190): JSON schema validation failed: "invalidEmail" is not a "email" at /productUser"#),
+        },
+        example! {
+            title: "Payload contains a custom format declaration",
+            source: &EXAMPLE_JSON_SCHEMA_CUSTOM_FORMAT_FALSE,
+            result: Err(r#"function call error for "validate_json_schema" at (0:204): Failed to compile schema: Unknown format: 'my-custom-format'. Adjust configuration to ignore unrecognized formats"#),
+        },
+        example! {
+            title: "Payload contains a custom format declaration, with ignore_unknown_formats set to true",
+            source: &EXAMPLE_JSON_SCHEMA_CUSTOM_FORMAT_TRUE,
+            result: Ok("true"),
+        },
+    ]
 });
 
 #[cfg(not(target_arch = "wasm32"))]
