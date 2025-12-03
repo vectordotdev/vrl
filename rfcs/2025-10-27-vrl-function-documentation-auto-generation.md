@@ -2,7 +2,9 @@
 
 ## Context
 
-The purpose of this RFC is to propose significant improvements to VRL function documentation.
+VRL function documentation lives in two repos today, must be updated by hand, and easily goes stale.
+This RFC proposes moving all VRL function documentation into function definition source code, so
+Vector can generate documentation automatically and all examples are validated in CI.
 
 Today contributing a new VRL function requires creating PRs in two separate repositories:
 1. VRL repository - Function implementation.
@@ -10,21 +12,20 @@ Today contributing a new VRL function requires creating PRs in two separate repo
 
 This split workflow creates several problems:
 - Documentation becomes outdated or incorrect.
-- Examples in the manually-maintained CUE files are not tested, leading to broken examples.
-- Functions can ship without documentation if the Vector PR is never created/merged.
-- Contributors/maintainer burden of dealing with multiple PRs.
+- Examples in CUE files are not tested, leading to broken examples.
+- Functions can ship without documentation if the Vector PR is missed.
+- Contributors must open two PRs for one change.
 
 Once this RFC is implemented, the workflow of adding and documenting a new VRL function should look like this:
 1. PR is opened in the VRL repository.
   * Function documentation lives alongside/within it's definition.
   * All examples are tested and validated before merging.
-2. VRL function documentation is automatically updated in the Vector repo once VRL is
-   bumped.
+2. VRL function documentation is automatically updated in the Vector repo once VRL is bumped.
 
 ## Goals
 
-1. All 200+ VRL functions should maintain documentation quality at parity with or exceeding current manually-maintained CUE files
-2. 100% of VRL functions have the necessary attributes to automatically generate documentation
+1. All 200+ VRL functions should maintain documentation quality at parity with or exceeding current manually-maintained CUE files.
+2. All functions provide the fields needed for automatic documentation.
 3. Vector automatically generates documentation for all VRL functions without relying on **any**
    non-Rust source code files.
 4. Validate 100% of examples through CI-enforced testing
@@ -38,6 +39,9 @@ Once this RFC is implemented, the workflow of adding and documenting a new VRL f
    documentation and not (code generation for) automatic function discovery
 
 ## Proposal
+
+We will move all VRL function docs into the `Function` trait, port existing docs into VRL,
+and add a `vdev` command that generates website-ready docs from VRL functions alone.
 
 ### Proposed brief architecture overview
 
@@ -58,7 +62,7 @@ Once this RFC is implemented, the workflow of adding and documenting a new VRL f
    missing `internal_failure_reasons`, `description`, `return` and `category`. Note that `usage` and
    `description` should be equivalent.
 
-2. Once the `Function` trait is updated, port all documentation currently present in Vector cue functions
+2. Once the `Function` trait is updated, port all documentation currently present in Vector CUE functions
    [here](https://github.com/vectordotdev/vector/blob/master/website/cue/reference/remap/functions/)
    into VRL's source code. Once the PR is merged, update VRL inside of Vector and do the same for
    Vector-specific VRL functions.
@@ -71,33 +75,30 @@ Once this RFC is implemented, the workflow of adding and documenting a new VRL f
 4. Provide documentation to the website. There are a couple of options here:
   * [Rejected] Directly convert documentation into json and insert it into `data/docs.json`
     - Cons
-      * No documentation present in any cue files in the Vector repo, making it harder to
+      * No documentation present in any CUE files in the Vector repo, making it harder to
       notice if the website needs to be updated.
       * Docs team and maintainers will probably not see any VRL documentation changes (during
         releases).
       * (minor) Less visibility into VRL documentation when checking out old source code
     - Pros
-      * VRL source code is the sole source of truth and updating docs is simply running website
+      * VRL source code is the single source of documentation and updating docs is simply running website
       deploy commands and one additional `vdev` command.
       * No binary documentation files or duplicated information in repos anywhere.
-  * [Rejected] Convert documentation into cue files and keep the regular flow.
+  * [Rejected] Convert documentation into CUE files and keep the regular flow.
     - Cons
-      * VRL source code is not the sole source of truth.
+      * VRL source code is not the single source of documentation.
       * VRL documentation has to be updated in two repos.
-      * Need to generate cue files when updating VRL.
-      * We'd be generating cue in a very hacky manner and we want to move away from cue wherever
-        possible
+      * Need to generate CUE files when updating VRL.
+      * We'd be generating CUE in a very hacky manner and we want to reduce our use of CUE.
     - Pros:
       * More visibility into documentation changes. This makes it easier to notice if the website needs
       to be updated since CI checks will catch differences in generated files.
-  * Convert documentation into pretty printed JSON file.
+  * **[Chosen]** Convert documentation into pretty printed JSON file.
     - Cons
-      * VRL source code is not the sole source of truth.
+      * VRL source code is not the single source of documentation.
       * VRL documentation has to be updated in two repos.
       * Need to generate json files when updating VRL.
     - Pros:
-      * While VRL source code is not the sole source of truth, the docs can and will be generated
-        from VRL directly.
       * More visibility into documentation changes. This makes it easier to notice if the website needs
       to be updated since CI checks will catch differences in generated files.
 
@@ -108,8 +109,8 @@ Once this RFC is implemented, the workflow of adding and documenting a new VRL f
 ## Future work
 
 - Make it so Vector-specific functions also have their examples tested with the same rigor as VRL
-  examples. This could turn out to be a hard problem since some of them need Vector to be running
-  and configured properly.
+  examples. Vector-only functions usually require a running Vector instance, so testing their
+  examples will require a new test harness.
 
 ## References
 
