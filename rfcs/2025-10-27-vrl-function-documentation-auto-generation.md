@@ -10,7 +10,7 @@ Today contributing a new VRL function requires creating PRs in two separate repo
 
 This split workflow creates several problems:
 - Documentation becomes outdated or incorrect.
-- Examples in the manually-maintained CUE files are tested, leading to broken examples.
+- Examples in the manually-maintained CUE files are not tested, leading to broken examples.
 - Functions can ship without documentation if the Vector PR is never created/merged.
 - Contributors/maintainer burden of dealing with multiple PRs.
 
