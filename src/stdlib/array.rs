@@ -26,12 +26,20 @@ impl Function for Array {
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "valid",
+                title: "Declare an array type",
+                source: indoc! {r#"
+                    .value = [1, 2, 3]
+                    array(.value)
+                "#},
+                result: Ok("[1,2,3]"),
+            },
+            example! {
+                title: "Valid array literal",
                 source: "array([1,2,3])",
                 result: Ok("[1,2,3]"),
             },
             example! {
-                title: "invalid",
+                title: "Invalid type",
                 source: "array!(true)",
                 result: Err(
                     r#"function call error for "array" at (0:12): expected array, got boolean"#,
