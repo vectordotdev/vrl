@@ -152,10 +152,10 @@ mod non_wasm {
                     format!(
                         "{} at {}",
                         e,
-                        if e.instance_path.as_str().is_empty() {
+                        if e.instance_path().as_str().is_empty() {
                             "/"
                         } else {
-                            e.instance_path.as_str()
+                            e.instance_path().as_str()
                         }
                     )
                 })
