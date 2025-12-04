@@ -19,9 +19,12 @@ impl Function for ParseLinuxAuthorization {
 
     fn examples(&self) -> &'static [Example] {
         &[example! {
-            title: "\
-            parse authorization event",
-            source: "parse_linux_authorization!(s'Mar 23 01:49:58 localhost sshd[1111]: Accepted publickey for eng from 10.1.1.1 port 8888 ssh2: RSA SHA256:foobar')",
+            title: "Parse Linux authorization event",
+            source: indoc! {r#"
+                parse_linux_authorization!(
+                    s'Mar 23 01:49:58 localhost sshd[1111]: Accepted publickey for eng from 10.1.1.1 port 8888 ssh2: RSA SHA256:foobar'
+                )
+            "#},
             result: Ok(indoc! {r#"{
                 "appname": "sshd",
                 "hostname": "localhost",
