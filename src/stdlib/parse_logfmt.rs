@@ -20,12 +20,28 @@ impl Function for ParseLogFmt {
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "simple log",
+                title: "Parse simple logfmt log",
                 source: r#"parse_logfmt!("zork=zook zonk=nork")"#,
                 result: Ok(r#"{"zork": "zook", "zonk": "nork"}"#),
             },
             example! {
-                title: "standalone key",
+                title: "Parse logfmt log",
+                source: indoc! {r#"
+                    parse_logfmt!(
+                        "@timestamp=\"Sun Jan 10 16:47:39 EST 2021\" level=info msg=\"Stopping all fetchers\" tag#production=stopping_fetchers id=ConsumerFetcherManager-1382721708341 module=kafka.consumer.ConsumerFetcherManager"
+                    )
+                "#},
+                result: Ok(indoc! {r#"{
+                    "@timestamp": "Sun Jan 10 16:47:39 EST 2021",
+                    "level": "info",
+                    "msg": "Stopping all fetchers",
+                    "tag#production": "stopping_fetchers",
+                    "id": "ConsumerFetcherManager-1382721708341",
+                    "module": "kafka.consumer.ConsumerFetcherManager"
+                }"#}),
+            },
+            example! {
+                title: "Parse logfmt log with standalone key",
                 source: r#"parse_logfmt!("zork=zook plonk zonk=nork")"#,
                 result: Ok(r#"{"plonk": true, "zork": "zook", "zonk": "nork"}"#),
             },
