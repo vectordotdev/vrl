@@ -35,34 +35,45 @@ impl Function for ParseEtld {
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "parse etld",
-                source: r#"parse_etld!("vector.dev")"#,
+                title: "Parse eTLD",
+                source: r#"parse_etld!("sub.sussex.ac.uk")"#,
                 result: Ok(indoc! {r#"
                 {
-                    "etld": "dev",
-                    "etld_plus": "dev",
+                    "etld": "ac.uk",
+                    "etld_plus": "ac.uk",
                     "known_suffix": true
                 }
             "#}),
             },
             example! {
-                title: "parse etld with plus parts",
-                source: r#"parse_etld!("vector.dev", plus_parts: 1)"#,
+                title: "Parse eTLD+1",
+                source: r#"parse_etld!("sub.sussex.ac.uk", plus_parts: 1)"#,
                 result: Ok(indoc! {r#"
                 {
-                    "etld": "dev",
-                    "etld_plus": "vector.dev",
+                    "etld": "ac.uk",
+                    "etld_plus": "sussex.ac.uk",
                     "known_suffix": true
                 }
             "#}),
             },
             example! {
-                title: "parse etld with unknown suffix",
-                source: r#"parse_etld!("vecor.unknowndev")"#,
+                title: "Parse eTLD with unknown suffix",
+                source: r#"parse_etld!("vector.acmecorp")"#,
                 result: Ok(indoc! {r#"
                 {
-                    "etld": "unknowndev",
-                    "etld_plus": "unknowndev",
+                    "etld": "acmecorp",
+                    "etld_plus": "acmecorp",
+                    "known_suffix": false
+                }
+            "#}),
+            },
+            example! {
+                title: "Parse eTLD with custom PSL",
+                source: r#"parse_etld!("vector.acmecorp", psl: "lib/tests/tests/functions/custom_public_suffix_list.dat")"#,
+                result: Ok(indoc! {r#"
+                {
+                    "etld": "acmecorp",
+                    "etld_plus": "acmecorp",
                     "known_suffix": false
                 }
             "#}),

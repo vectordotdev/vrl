@@ -143,44 +143,44 @@ impl Function for ParseJson {
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "object",
-                source: r#"parse_json!(s'{ "field": "value" }')"#,
-                result: Ok(r#"{ "field": "value" }"#),
+                title: "Parse JSON",
+                source: r#"parse_json!(s'{"key": "val"}')"#,
+                result: Ok(r#"{ "key": "val" }"#),
             },
             example! {
-                title: "array",
+                title: "Parse JSON array",
                 source: r#"parse_json!("[true, 0]")"#,
                 result: Ok("[true, 0]"),
             },
             example! {
-                title: "string",
+                title: "Parse JSON string",
                 source: r#"parse_json!(s'"hello"')"#,
                 result: Ok("hello"),
             },
             example! {
-                title: "integer",
+                title: "Parse JSON integer",
                 source: r#"parse_json!("42")"#,
                 result: Ok("42"),
             },
             example! {
-                title: "float",
+                title: "Parse JSON float",
                 source: r#"parse_json!("42.13")"#,
                 result: Ok("42.13"),
             },
             example! {
-                title: "boolean",
+                title: "Parse JSON boolean",
                 source: r#"parse_json!("false")"#,
                 result: Ok("false"),
             },
             example! {
-                title: "invalid value",
+                title: "Invalid JSON value",
                 source: r#"parse_json!("{ INVALID }")"#,
                 result: Err(
                     r#"function call error for "parse_json" at (0:26): unable to parse json: key must be a string at line 1 column 3"#,
                 ),
             },
             example! {
-                title: "max_depth",
+                title: "Parse JSON with max_depth",
                 source: r#"parse_json!(s'{"first_level":{"second_level":"finish"}}', max_depth: 1)"#,
                 result: Ok(r#"{"first_level":"{\"second_level\":\"finish\"}"}"#),
             },

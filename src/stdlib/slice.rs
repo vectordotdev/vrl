@@ -73,17 +73,22 @@ impl Function for Slice {
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "string start",
+                title: "Slice a string (positive index)",
+                source: r#"slice!("Supercalifragilisticexpialidocious", start: 5, end: 13)"#,
+                result: Ok("califrag"),
+            },
+            example! {
+                title: "Slice a string (negative index)",
+                source: r#"slice!("Supercalifragilisticexpialidocious", start: 5, end: -14)"#,
+                result: Ok("califragilistic"),
+            },
+            example! {
+                title: "String start",
                 source: r#"slice!("foobar", 3)"#,
                 result: Ok("bar"),
             },
             example! {
-                title: "string start..end",
-                source: r#"slice!("foobar", 2, 4)"#,
-                result: Ok("ob"),
-            },
-            example! {
-                title: "array start",
+                title: "Array start",
                 source: "slice!([0, 1, 2], 1)",
                 result: Ok("[1, 2]"),
             },

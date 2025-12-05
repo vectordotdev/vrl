@@ -89,7 +89,7 @@ impl Function for ParseAwsCloudWatchLogSubscriptionMessage {
 
     fn examples(&self) -> &'static [Example] {
         &[example! {
-            title: "valid",
+            title: "Parse AWS Cloudwatch Log subscription message",
             source: indoc! {r#"
                 parse_aws_cloudwatch_log_subscription_message!(s'{
                     "messageType": "DATA_MESSAGE",

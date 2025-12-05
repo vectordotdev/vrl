@@ -30,7 +30,7 @@ impl Function for ParseCbor {
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "object",
+                title: "Parse CBOR",
                 source: r#"parse_cbor!(decode_base64!("oWVmaWVsZGV2YWx1ZQ=="))"#,
                 result: Ok(r#"{ "field": "value" }"#),
             },

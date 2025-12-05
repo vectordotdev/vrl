@@ -32,8 +32,8 @@ impl Function for MatchDatadogQuery {
                 result: Ok("false"),
             },
             example! {
-                title: "Facet wildcard",
-                source: r#"match_datadog_query({"name": "vector"}, "@name:vec*")"#,
+                title: "Attribute wildcard",
+                source: r#"match_datadog_query({"name": "foobar"}, "@name:foo*")"#,
                 result: Ok("true"),
             },
             example! {

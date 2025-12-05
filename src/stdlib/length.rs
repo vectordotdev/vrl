@@ -34,19 +34,24 @@ impl Function for Length {
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "array",
-                source: "length([0, 1])",
+                title: "Length (object)",
+                source: r#"length({ "portland": "Trail Blazers", "seattle": "Supersonics" })"#,
                 result: Ok("2"),
             },
             example! {
-                title: "object",
-                source: r#"length({ "foo": "bar"})"#,
-                result: Ok("1"),
+                title: "Length (nested object)",
+                source: r#"length({ "home": { "city": "Portland", "state": "Oregon" }, "name": "Trail Blazers", "mascot": { "name": "Blaze the Trail Cat" } })"#,
+                result: Ok("3"),
             },
             example! {
-                title: "string",
-                source: r#"length("foobar")"#,
-                result: Ok("6"),
+                title: "Length (array)",
+                source: r#"length(["Trail Blazers", "Supersonics", "Grizzlies"])"#,
+                result: Ok("3"),
+            },
+            example! {
+                title: "Length (string)",
+                source: r#"length("The Planet of the Apes Musical")"#,
+                result: Ok("30"),
             },
         ]
     }
