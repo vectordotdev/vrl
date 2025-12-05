@@ -27,10 +27,10 @@ impl Function for Array {
         &[
             example! {
                 title: "Declare an array type",
-                source: indoc! {r#"
+                source: indoc! {"
                     .value = [1, 2, 3]
                     array(.value)
-                "#},
+                "},
                 result: Ok("[1,2,3]"),
             },
             example! {
