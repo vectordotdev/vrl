@@ -67,12 +67,24 @@ static EXAMPLES: LazyLock<Vec<Example>> = LazyLock::new(|| {
         example! {
             title: "Payload contains an invalid email",
             source: &EXAMPLE_JSON_SCHEMA_INVALID_EMAIL,
-            result: Err(r#"function call error for "validate_json_schema" at (0:190): JSON schema validation failed: "invalidEmail" is not a "email" at /productUser"#),
+            result: Err(Box::leak(
+                format!(
+                    r#"function call error for "validate_json_schema" at (0:{}): JSON schema validation failed: "invalidEmail" is not a "email" at /productUser"#,
+                    EXAMPLE_JSON_SCHEMA_INVALID_EMAIL.len()
+                )
+                .into_boxed_str(),
+            )),
         },
         example! {
             title: "Payload contains a custom format declaration",
             source: &EXAMPLE_JSON_SCHEMA_CUSTOM_FORMAT_FALSE,
-            result: Err(r#"function call error for "validate_json_schema" at (0:204): Failed to compile schema: Unknown format: 'my-custom-format'. Adjust configuration to ignore unrecognized formats"#),
+            result: Err(Box::leak(
+                format!(
+                    r#"function call error for "validate_json_schema" at (0:{}): Failed to compile schema: Unknown format: 'my-custom-format'. Adjust configuration to ignore unrecognized formats"#,
+                    EXAMPLE_JSON_SCHEMA_CUSTOM_FORMAT_FALSE.len()
+                )
+                .into_boxed_str(),
+            )),
         },
         example! {
             title: "Payload contains a custom format declaration, with ignore_unknown_formats set to true",
