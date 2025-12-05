@@ -3,9 +3,9 @@ use itertools::Itertools;
 use pest::iterators::Pair;
 use pest_derive::Parser;
 
-use super::node::{
-    BooleanBuilder, Comparison, ComparisonValue, LuceneClause, LuceneOccur, QueryNode, Range,
-};
+use crate::datadog_search_syntax::BooleanType;
+
+use super::node::{Comparison, ComparisonValue, QueryNode, Range};
 
 #[derive(Debug, Parser)]
 #[grammar = "src/datadog/search/grammar.pest"]
@@ -33,32 +33,28 @@ impl QueryVisitor {
 
     fn visit_query(token: Pair<Rule>, default_field: &str) -> QueryNode {
         let contents = token.into_inner();
-        let mut clauses: Vec<LuceneClause> = Vec::new();
-        let mut modifier: Option<LuceneOccur> = None;
+        let mut is_not: bool = false;
+
+        //  AND takes precedence over OR.
+        // We will combine each consecutive clause in an AND group,
+        // and create a new and_group every time we encounter an OR.
+        // Finally, we will combine all the and_groups with OR.
+
+        let mut and_groups: Vec<QueryNode> = Vec::new();
+
+        let mut and_group: Vec<QueryNode> = Vec::new();
+
         for node in contents {
-            let clause: Option<LuceneClause> = match node.as_rule() {
+            let query_node: Option<QueryNode> = match node.as_rule() {
                 Rule::multiterm => Some(Self::visit_multiterm(node, default_field)),
                 Rule::conjunction => {
                     let inner = node.into_inner().next().unwrap();
                     match inner.as_rule() {
-                        Rule::AND => {
-                            // If our conjunction is AND and the previous clause was
-                            // just a SHOULD, we make the previous clause a MUST and
-                            // our new clause will also be a MUST
-                            let lastitem = clauses.last_mut().unwrap();
-                            if let LuceneOccur::Should = lastitem.occur {
-                                lastitem.occur = LuceneOccur::Must;
-                            };
-                        }
+                        Rule::AND => (),
                         Rule::OR => {
-                            // If our conjunction is OR and the previous clause was
-                            // a MUST, we make the previous clause a SHOULD and our
-                            // new clause will also be a SHOULD
-                            let lastitem = clauses.last_mut().unwrap();
-                            if let LuceneOccur::Must = lastitem.occur {
-                                lastitem.occur = LuceneOccur::Should;
-                            };
-                            modifier.get_or_insert(LuceneOccur::Should);
+                            // close the current and_group and create a new one
+                            and_groups.push(QueryNode::new_boolean(BooleanType::And, and_group));
+                            and_group = Vec::new();
                         }
                         _ => unreachable!(),
                     };
@@ -69,77 +65,42 @@ impl QueryVisitor {
                     match inner.as_rule() {
                         Rule::PLUS => (),
                         Rule::NOT => {
-                            modifier = Some(LuceneOccur::MustNot);
+                            is_not = true;
                         }
                         _ => unreachable!(),
                     };
                     None
                 }
-                Rule::clause => {
-                    let query_node = Self::visit_clause(node, default_field);
-                    Some(LuceneClause {
-                        occur: modifier.take().unwrap_or(LuceneOccur::Must),
-                        node: query_node,
-                    })
-                }
+                Rule::clause => Some(Self::visit_clause(node, default_field)),
                 _ => unreachable!(),
             };
             // If we found a clause to add to our list, add it
-            if let Some(c) = clause {
-                clauses.push(c);
-            }
-        }
-        if clauses.len() == 1 {
-            let single = clauses.pop().unwrap();
-            match single {
-                LuceneClause {
-                    occur: LuceneOccur::MustNot,
-                    node: QueryNode::MatchAllDocs,
-                } => QueryNode::MatchNoDocs,
-                // I hate Boxing!  Every allocation is a personal failing :(
-                LuceneClause {
-                    occur: LuceneOccur::MustNot,
-                    node,
-                } => QueryNode::NegatedNode {
-                    node: Box::new(node),
-                },
-                LuceneClause { occur: _, node } => node,
-            }
-        } else {
-            let mut and_builder = BooleanBuilder::and();
-            let mut or_builder = BooleanBuilder::or();
-            let (mut has_must, mut has_must_not, mut has_should) = (false, false, false);
-            for c in clauses {
-                let LuceneClause { node, occur } = c;
-                match occur {
-                    LuceneOccur::Must => {
-                        and_builder.add_node(node);
-                        has_must = true;
-                    }
-                    LuceneOccur::MustNot => {
-                        and_builder.add_node(QueryNode::NegatedNode {
-                            node: Box::new(node),
-                        });
-                        has_must_not = true;
-                    }
-                    LuceneOccur::Should => {
-                        or_builder.add_node(node);
-                        has_should = true;
-                    }
+            if let Some(mut n) = query_node {
+                if is_not {
+                    is_not = false;
+
+                    n = QueryNode::NegatedNode { node: Box::new(n) }
                 }
-            }
-            if has_must || !has_should {
-                and_builder.build()
-            } else if !has_must_not {
-                or_builder.build()
-            } else {
-                and_builder.add_node(or_builder.build());
-                and_builder.build()
+
+                and_group.push(n);
             }
         }
+
+        and_groups.push(QueryNode::new_boolean(BooleanType::And, and_group));
+        let query_node = QueryNode::new_boolean(BooleanType::Or, and_groups);
+
+        if let QueryNode::NegatedNode { node } = query_node {
+            // if the node is a negated MatchAllDocs, return MatchNoDocs
+            if let QueryNode::MatchAllDocs = *node {
+                return QueryNode::MatchNoDocs;
+            }
+            return QueryNode::NegatedNode { node };
+        }
+
+        query_node
     }
 
-    fn visit_multiterm(token: Pair<Rule>, default_field: &str) -> LuceneClause {
+    fn visit_multiterm(token: Pair<Rule>, default_field: &str) -> QueryNode {
         let contents = token.into_inner();
         let mut terms: Vec<String> = Vec::new();
         for node in contents {
@@ -149,12 +110,9 @@ impl QueryVisitor {
                 _ => unreachable!(),
             }
         }
-        LuceneClause {
-            occur: LuceneOccur::Must,
-            node: QueryNode::AttributeTerm {
-                attr: String::from(default_field),
-                value: terms.join(" "),
-            },
+        QueryNode::AttributeTerm {
+            attr: String::from(default_field),
+            value: terms.join(" "),
         }
     }
 
