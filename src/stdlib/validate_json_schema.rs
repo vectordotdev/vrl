@@ -12,8 +12,10 @@ static EXAMPLE_JSON_SCHEMA_VALID_EMAIL: LazyLock<&str> = LazyLock::new(|| {
         .to_string();
 
     Box::leak(
-        format!(r#"validate_json_schema!(s'{{ "productUser": "valid@email.com" }}', "{path}", false)"#)
-            .into_boxed_str(),
+        format!(
+            r#"validate_json_schema!(s'{{ "productUser": "valid@email.com" }}', "{path}", false)"#
+        )
+        .into_boxed_str(),
     )
 });
 
@@ -24,8 +26,10 @@ static EXAMPLE_JSON_SCHEMA_INVALID_EMAIL: LazyLock<&str> = LazyLock::new(|| {
         .to_string();
 
     Box::leak(
-        format!(r#"validate_json_schema!(s'{{ "productUser": "invalidEmail" }}', "{path}", false)"#)
-            .into_boxed_str(),
+        format!(
+            r#"validate_json_schema!(s'{{ "productUser": "invalidEmail" }}', "{path}", false)"#
+        )
+        .into_boxed_str(),
     )
 });
 
