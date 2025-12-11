@@ -15,7 +15,7 @@
 
 ### Fixes
 
-- fix handling of OR conjunctions in the datadog search query parser (https://github.com/vectordotdev/vrl/pull/1542)
+- Fixed handling of OR conjunctions in the datadog search query parser (https://github.com/vectordotdev/vrl/pull/1542)
 - Fixed a bug where VRL would crash if `merge` were called without a `to` argument.
 
   authors: thomasqueirozb (https://github.com/vectordotdev/vrl/pull/1563)
@@ -200,7 +200,7 @@
 - The `parse_syslog` function now treats RFC 3164 structured data items with no parameters (e.g., `[exampleSDID@32473]`) as part of the main
   message, rather than parsing them as structured data. Items with parameters (e.g., `[exampleSDID@32473 field="value"]`) continue to be
   parsed as structured data. (https://github.com/vectordotdev/vrl/pull/1435)
-- `encode_lz4`  no longer prepends the uncompressed size by default, improving compatibility with standard LZ4 tools. A new `prepend_size` flag restores the old behavior if needed. Also, `decode_lz4` now also accepts `prepend_size` and a `buf_size` option (default: 1MB). 
+- `encode_lz4`  no longer prepends the uncompressed size by default, improving compatibility with standard LZ4 tools. A new `prepend_size` flag restores the old behavior if needed. Also, `decode_lz4` now also accepts `prepend_size` and a `buf_size` option (default: 1MB).
 
   Existing users of `encode_lz4` and `decode_lz4` will need to update their functions to include the argument `prepend_size: true` to maintain existing compatibility.
 
