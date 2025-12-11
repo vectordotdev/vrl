@@ -4,6 +4,26 @@
 
 <!-- changelog start -->
 
+## [0.29.0 (2025-12-11)]
+
+### Breaking Changes & Upgrade Guide
+
+- Added required `line` and `file` fields to `vrl::compiler::function::Example`. Also added the
+  `example!` macro to automatically populate those fields.
+
+  authors: thomasqueirozb (https://github.com/vectordotdev/vrl/pull/1557)
+
+### Fixes
+
+- fix handling of OR conjunctions in the datadog search query parser (https://github.com/vectordotdev/vrl/pull/1542)
+- Fixed a bug where VRL would crash if `merge` were called without a `to` argument.
+
+  authors: thomasqueirozb (https://github.com/vectordotdev/vrl/pull/1563)
+- Fixed a bug where a stack overflow would happen in validate_json_schema if the schema had an empty $ref.
+
+  authors: jlambatl (https://github.com/vectordotdev/vrl/pull/1577)
+
+
 ## [0.28.1 (2025-11-07)]
 
 ### Fixes
