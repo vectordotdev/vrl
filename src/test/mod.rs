@@ -322,7 +322,7 @@ fn process_compilation_diagnostics(
     let want = test.result.clone();
     let want = want.trim();
 
-    if (test.result_approx && compare_partial_diagnostic(&got, &want)) || got == want {
+    if (test.result_approx && compare_partial_diagnostic(got, want)) || got == want {
         let timings = {
             let timings_fmt = if cfg.timings {
                 format!(" ({compile_timing_fmt})")
@@ -336,7 +336,7 @@ fn process_compilation_diagnostics(
         println!("{} (compilation)", Colour::Red.bold().paint("FAILED"));
 
         if !cfg.no_diff {
-            let diff = prettydiff::diff_lines(&want, &got);
+            let diff = prettydiff::diff_lines(want, got);
             println!("{diff}");
         }
 
