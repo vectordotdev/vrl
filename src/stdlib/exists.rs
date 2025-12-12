@@ -19,12 +19,23 @@ impl Function for Exists {
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "existing field",
-                source: r#"exists({ "foo": "bar"}.foo)"#,
+                title: "Exists (field)",
+                source: indoc! {r#"
+                    . = { "field": 1 }
+                    exists(.field)
+                "#},
                 result: Ok("true"),
             },
             example! {
-                title: "non-existing field",
+                title: "Exists (array element)",
+                source: indoc! {r#"
+                    . = { "array": [1, 2, 3] }
+                    exists(.array[2])
+                "#},
+                result: Ok("true"),
+            },
+            example! {
+                title: "Does not exist (field)",
                 source: r#"exists({ "foo": "bar"}.baz)"#,
                 result: Ok("false"),
             },

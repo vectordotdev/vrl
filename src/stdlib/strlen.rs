@@ -24,7 +24,7 @@ impl Function for Strlen {
 
     fn examples(&self) -> &'static [Example] {
         &[example! {
-            title: "Characters",
+            title: "Count Unicode scalar values",
             source: r#"strlen("ñandú")"#,
             result: Ok("5"),
         }]

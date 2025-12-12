@@ -48,34 +48,34 @@ impl Function for Redact {
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "regex",
+                title: "Replace text using a regex",
                 source: r#"redact("my id is 123456", filters: [r'\d+'])"#,
                 result: Ok("my id is [REDACTED]"),
             },
             example! {
-                title: "us_social_security_number",
+                title: "Replace us social security numbers in any field",
                 source: r#"redact({ "name": "John Doe", "ssn": "123-12-1234"}, filters: ["us_social_security_number"])"#,
                 result: Ok(r#"{ "name": "John Doe", "ssn": "[REDACTED]" }"#),
             },
             example! {
-                title: "text redactor",
+                title: "Replace with custom text",
                 source: r#"redact("my id is 123456", filters: [r'\d+'], redactor: {"type": "text", "replacement": "***"})"#,
                 result: Ok("my id is ***"),
             },
             example! {
-                title: "sha2",
+                title: "Replace with SHA-2 hash",
                 source: r#"redact("my id is 123456", filters: [r'\d+'], redactor: "sha2")"#,
                 result: Ok("my id is GEtTedW1p6tC094dDKH+3B8P+xSnZz69AmpjaXRd63I="),
             },
             example! {
-                title: "sha3",
+                title: "Replace with SHA-3 hash",
                 source: r#"redact("my id is 123456", filters: [r'\d+'], redactor: "sha3")"#,
                 result: Ok(
                     "my id is ZNCdmTDI7PeeUTFnpYjLdUObdizo+bIupZdl8yqnTKGdLx6X3JIqPUlUWUoFBikX+yTR+OcvLtAqWO11NPlNJw==",
                 ),
             },
             example! {
-                title: "sha256 hex",
+                title: "Replace with SHA-256 hash using hex encoding",
                 source: r#"redact("my id is 123456", filters: [r'\d+'], redactor: {"type": "sha2", "variant": "SHA-256", "encoding": "base16"})"#,
                 result: Ok(
                     "my id is 8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",

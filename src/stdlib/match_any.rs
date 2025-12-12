@@ -32,12 +32,12 @@ impl Function for MatchAny {
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "match",
-                source: r#"match_any("foo bar baz", patterns: [r'foo', r'123'])"#,
+                title: "Regex match on a string",
+                source: r#"match_any("I'm a little teapot", [r'frying pan', r'teapot'])"#,
                 result: Ok("true"),
             },
             example! {
-                title: "no_match",
+                title: "No match",
                 source: r#"match_any("My name is John Doe", patterns: [r'\d+', r'Jane'])"#,
                 result: Ok("false"),
             },

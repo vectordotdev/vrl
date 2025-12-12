@@ -40,11 +40,23 @@ impl Function for Abs {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[example! {
-            title: "abs",
-            source: "abs(-42)",
-            result: Ok("42"),
-        }]
+        &[
+            example! {
+                title: "Computes the absolute value of an integer",
+                source: "abs(-42)",
+                result: Ok("42"),
+            },
+            example! {
+                title: "Computes the absolute value of a float",
+                source: "abs(-42.2)",
+                result: Ok("42.2"),
+            },
+            example! {
+                title: "Computes the absolute value of a positive integer",
+                source: "abs(10)",
+                result: Ok("10"),
+            },
+        ]
     }
 }
 

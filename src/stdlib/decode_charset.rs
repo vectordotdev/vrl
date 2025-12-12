@@ -15,17 +15,17 @@ impl Function for DecodeCharset {
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "Decode charset from euc-kr",
+                title: "Decode EUC-KR string",
                 source: r#"decode_charset!(decode_base64!("vsiz58fPvLy/5A=="), "euc-kr")"#,
                 result: Ok("안녕하세요"),
             },
             example! {
-                title: "Decode charset from euc-jp",
+                title: "Decode EUC-JP string",
                 source: r#"decode_charset!(decode_base64!("pLOk86TLpMGkzw=="), "euc-jp")"#,
                 result: Ok("こんにちは"),
             },
             example! {
-                title: "Decode charset from gb2312",
+                title: "Decode GB2312 string",
                 source: r#"decode_charset!(decode_base64!("xOO6ww=="), "gb2312")"#,
                 result: Ok("你好"),
             },

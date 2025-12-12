@@ -36,9 +36,9 @@ impl Function for ToSyslogLevel {
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "valid",
-                source: "to_syslog_level!(0)",
-                result: Ok("emerg"),
+                title: "Coerce to a Syslog level",
+                source: "to_syslog_level!(5)",
+                result: Ok("notice"),
             },
             example! {
                 title: "invalid",

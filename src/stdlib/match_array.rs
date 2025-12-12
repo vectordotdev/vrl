@@ -30,13 +30,23 @@ impl Function for MatchArray {
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "match",
+                title: "Match at least one element",
                 source: r#"match_array(["foobar", "bazqux"], r'foo')"#,
                 result: Ok("true"),
             },
             example! {
-                title: "mismatch",
+                title: "Match all elements",
+                source: r#"match_array(["foo", "foobar", "barfoo"], r'foo', all: true)"#,
+                result: Ok("true"),
+            },
+            example! {
+                title: "No matches",
                 source: r#"match_array(["bazqux", "xyz"], r'foo')"#,
+                result: Ok("false"),
+            },
+            example! {
+                title: "Not all elements match",
+                source: r#"match_array(["foo", "foobar", "baz"], r'foo', all: true)"#,
                 result: Ok("false"),
             },
         ]

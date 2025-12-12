@@ -52,11 +52,18 @@ impl Function for Join {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[example! {
-            title: "join",
-            source: r#"join!(["a","b","c"], ",")"#,
-            result: Ok("a,b,c"),
-        }]
+        &[
+            example! {
+                title: "Join array (no separator)",
+                source: r#"join!(["bring", "us", "together"])"#,
+                result: Ok("bringustogether"),
+            },
+            example! {
+                title: "Join array (comma separator)",
+                source: r#"join!(["sources", "transforms", "sinks"], separator: ", ")"#,
+                result: Ok("sources, transforms, sinks"),
+            },
+        ]
     }
 }
 
