@@ -171,7 +171,9 @@ impl fmt::Debug for ParseUserAgentFn {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Default)]
 pub(crate) enum Mode {
+    #[default]
     Fast,
     Reliable,
     Enriched,
@@ -258,11 +260,6 @@ impl Mode {
     }
 }
 
-impl Default for Mode {
-    fn default() -> Self {
-        Self::Fast
-    }
-}
 
 impl FromStr for Mode {
     type Err = &'static str;
