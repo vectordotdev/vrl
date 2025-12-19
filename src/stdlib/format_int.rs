@@ -100,7 +100,7 @@ impl FunctionExpression for FormatIntFn {
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {
-        TypeDef::integer().fallible()
+        TypeDef::bytes().fallible()
     }
 }
 
