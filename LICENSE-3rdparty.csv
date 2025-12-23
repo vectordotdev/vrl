@@ -125,7 +125,7 @@ heck,https://github.com/withoutboats/heck,MIT OR Apache-2.0,Without Boats <woboa
 hermit-abi,https://github.com/hermit-os/hermit-rs,MIT OR Apache-2.0,Stefan Lankes
 hex,https://github.com/KokaKiwi/rust-hex,MIT OR Apache-2.0,KokaKiwi <kokakiwi@kokakiwi.net>
 hmac,https://github.com/RustCrypto/MACs,MIT OR Apache-2.0,RustCrypto Developers
-hostname,https://github.com/svartalf/hostname,MIT,The hostname Authors
+hostname,https://github.com/djc/hostname,MIT,The hostname Authors
 http,https://github.com/hyperium/http,MIT OR Apache-2.0,"Alex Crichton <alex@alexcrichton.com>, Carl Lerche <me@carllerche.com>, Sean McArthur <sean@seanmonstar.com>"
 http-body,https://github.com/hyperium/http-body,MIT,"Carl Lerche <me@carllerche.com>, Lucio Franco <luciofranco14@gmail.com>, Sean McArthur <sean@seanmonstar.com>"
 http-body-util,https://github.com/hyperium/http-body,MIT,"Carl Lerche <me@carllerche.com>, Lucio Franco <luciofranco14@gmail.com>, Sean McArthur <sean@seanmonstar.com>"
@@ -287,6 +287,7 @@ sha-1,https://github.com/RustCrypto/hashes,MIT OR Apache-2.0,RustCrypto Develope
 sha1,https://github.com/RustCrypto/hashes,MIT OR Apache-2.0,RustCrypto Developers
 sha2,https://github.com/RustCrypto/hashes,MIT OR Apache-2.0,RustCrypto Developers
 sha3,https://github.com/RustCrypto/hashes,MIT OR Apache-2.0,RustCrypto Developers
+simd-adler32,https://github.com/mcountryman/simd-adler32,MIT,Marvin Countryman <me@maar.vin>
 simdutf8,https://github.com/rusticstuff/simdutf8,MIT OR Apache-2.0,Hans Kratz <hans@appfour.com>
 siphasher,https://github.com/jedisct1/rust-siphash,MIT OR Apache-2.0,Frank Denis <github@pureftpd.org>
 slab,https://github.com/tokio-rs/slab,MIT,Carl Lerche <me@carllerche.com>
