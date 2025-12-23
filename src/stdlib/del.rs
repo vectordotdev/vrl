@@ -57,17 +57,29 @@ impl Function for Del {
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "returns deleted field",
-                source: r#"del({"foo": "bar"}.foo)"#,
+                title: "Delete a field",
+                source: indoc! {r#"
+                    . = { "foo": "bar" }
+                    del(.foo)
+                "#},
                 result: Ok("bar"),
             },
             example! {
-                title: "returns null for unknown field",
+                title: "Rename a field",
+                source: indoc! {r#"
+                    . = { "old": "foo" }
+                    .new = del(.old)
+                    .
+                "#},
+                result: Ok(r#"{ "new": "foo" }"#),
+            },
+            example! {
+                title: "Returns null for unknown field",
                 source: r#"del({"foo": "bar"}.baz)"#,
                 result: Ok("null"),
             },
             example! {
-                title: "external target",
+                title: "External target",
                 source: indoc! {r#"
                     . = { "foo": true, "bar": 10 }
                     del(.foo)
@@ -76,7 +88,7 @@ impl Function for Del {
                 result: Ok(r#"{ "bar": 10 }"#),
             },
             example! {
-                title: "variable",
+                title: "Delete field from variable",
                 source: indoc! {r#"
                     var = { "foo": true, "bar": 10 }
                     del(var.foo)
@@ -85,7 +97,7 @@ impl Function for Del {
                 result: Ok(r#"{ "bar": 10 }"#),
             },
             example! {
-                title: "delete object field",
+                title: "Delete object field",
                 source: indoc! {r#"
                     var = { "foo": {"nested": true}, "bar": 10 }
                     del(var.foo.nested, false)
@@ -94,7 +106,7 @@ impl Function for Del {
                 result: Ok(r#"{ "foo": {}, "bar": 10 }"#),
             },
             example! {
-                title: "compact object field",
+                title: "Compact object field",
                 source: indoc! {r#"
                     var = { "foo": {"nested": true}, "bar": 10 }
                     del(var.foo.nested, true)

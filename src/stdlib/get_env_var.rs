@@ -23,11 +23,21 @@ impl Function for GetEnvVar {
         }]
     }
 
+    #[cfg(not(feature = "__mock_return_values_for_tests"))]
     fn examples(&self) -> &'static [Example] {
         &[example! {
-            title: "home",
+            title: "Get an environment variable",
             source: r#"get_env_var!("HOME") != """#,
             result: Ok("true"),
+        }]
+    }
+
+    #[cfg(feature = "__mock_return_values_for_tests")]
+    fn examples(&self) -> &'static [Example] {
+        &[example! {
+            title: "Get an environment variable",
+            source: r#"get_env_var!("HOME")"#,
+            result: Ok("/root"),
         }]
     }
 
@@ -49,9 +59,21 @@ struct GetEnvVarFn {
 }
 
 impl FunctionExpression for GetEnvVarFn {
+    #[cfg(not(feature = "__mock_return_values_for_tests"))]
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let value = self.name.resolve(ctx)?;
         get_env_var(&value)
+    }
+
+    #[cfg(feature = "__mock_return_values_for_tests")]
+    fn resolve(&self, ctx: &mut Context) -> Resolved {
+        let value = self.name.resolve(ctx)?;
+        let name = value.try_bytes_utf8_lossy()?;
+        if name.as_ref() == "HOME" {
+            Ok("/root".into())
+        } else {
+            get_env_var(&value)
+        }
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

@@ -132,34 +132,51 @@ impl Function for ReplaceWith {
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "double replacement",
-                source: r#"replace_with("foobar", r'o|a') -> |m| { m.string + m.string }"#,
-                result: Ok("foooobaar"),
+                title: "Capitalize words",
+                source: indoc! {r#"
+                    replace_with("apples and bananas", r'\b(\w)(\w*)') -> |match| {
+                        upcase!(match.captures[0]) + string!(match.captures[1])
+                    }
+                "#},
+                result: Ok("Apples And Bananas"),
             },
             example! {
-                title: "replace count",
-                source: r#"replace_with("foobar", r'o|a', count: 1) -> |m| { m.string + m.string }"#,
-                result: Ok("fooobar"),
+                title: "Replace with hash",
+                source: indoc! {r#"
+                    replace_with("email from test@example.com", r'\w+@example.com') -> |match| {
+                        sha2(match.string, variant: "SHA-512/224")
+                    }
+                "#},
+                result: Ok("email from adf6e1bc4415d24912bd93072ad34ef825a7b6eb3bf53f68def1fc17"),
             },
             example! {
-                title: "replace with capture group",
-                source: r#"replace_with("foo123bar", r'foo(\d+)bar') -> |m| { x = m.captures[0]; "x={{x}}" }"#,
-                result: Ok("x=123"),
+                title: "Replace first instance",
+                source: indoc! {r#"
+                    replace_with("Apples and Apples", r'(?i)apples|cones', count: 1) -> |match| {
+                        "Pine" + downcase(match.string)
+                    }
+                "#},
+                result: Ok("Pineapples and Apples"),
             },
             example! {
-                title: "process capture group",
+                title: "Named capture group",
+                source: indoc! {r#"
+                    replace_with("level=error A message", r'level=(?P<level>\w+)') -> |match| {
+                        lvl = upcase!(match.level)
+                        "[{{lvl}}]"
+                    }
+                "#},
+                result: Ok("[ERROR] A message"),
+            },
+            example! {
+                title: "Replace with processed capture group",
                 source: r#"replace_with(s'Got message: {"msg": "b"}', r'message: (\{.*\})') -> |m| { to_string!(parse_json!(m.captures[0]).msg) }"#,
                 result: Ok("Got b"),
             },
             example! {
-                title: "Optional capture group",
-                source: r#"replace_with("foobar", r'bar( of gold)?') -> |m| { if m.captures[1] == null { "baz" } else { "rich" } }"#,
-                result: Ok("foobaz"),
-            },
-            example! {
-                title: "Named capture group",
-                source: r#"replace_with("foo123bar", r'foo(?P<num>\d+)bar') -> |m| { x = to_int!(m.num); to_string(x+ 1) }"#, //to_string(to_int!(m.named.num) + 1) }"#,
-                result: Ok("\"124\""),
+                title: "Replace with optional capture group",
+                source: r#"replace_with("bar of chocolate and bar of gold", r'bar( of gold)?') -> |m| { if m.captures[0] == null { "pile" } else { "money" } }"#,
+                result: Ok("pile of chocolate and money"),
             },
         ]
     }

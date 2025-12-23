@@ -36,110 +36,105 @@ impl Function for ToBool {
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "integer (0)",
-                source: "to_bool(0)",
-                result: Ok("false"),
-            },
-            example! {
-                title: "integer (other)",
-                source: "to_bool(2)",
+                title: "Coerce to a Boolean (string)",
+                source: "to_bool!(\"yes\")",
                 result: Ok("true"),
             },
             example! {
-                title: "float (0)",
+                title: "Coerce to a Boolean (float)",
                 source: "to_bool(0.0)",
                 result: Ok("false"),
             },
             example! {
-                title: "float (other)",
-                source: "to_bool(5.6)",
-                result: Ok("true"),
-            },
-            example! {
-                title: "true",
-                source: "to_bool(true)",
-                result: Ok("true"),
-            },
-            example! {
-                title: "false",
-                source: "to_bool(false)",
+                title: "Coerce to a Boolean (int)",
+                source: "to_bool(0)",
                 result: Ok("false"),
             },
             example! {
-                title: "null",
+                title: "Coerce to a Boolean (null)",
                 source: "to_bool(null)",
                 result: Ok("false"),
             },
             example! {
-                title: "true string",
+                title: "Coerce to a Boolean (Boolean)",
+                source: "to_bool(true)",
+                result: Ok("true"),
+            },
+            example! {
+                title: "Integer (other)",
+                source: "to_bool(2)",
+                result: Ok("true"),
+            },
+            example! {
+                title: "Float (other)",
+                source: "to_bool(5.6)",
+                result: Ok("true"),
+            },
+            example! {
+                title: "False",
+                source: "to_bool(false)",
+                result: Ok("false"),
+            },
+            example! {
+                title: "True string",
                 source: "to_bool!(s'true')",
                 result: Ok("true"),
             },
             example! {
-                title: "yes string",
-                source: "to_bool!(s'yes')",
-                result: Ok("true"),
-            },
-            example! {
-                title: "y string",
+                title: "Y string",
                 source: "to_bool!(s'y')",
                 result: Ok("true"),
             },
             example! {
-                title: "non-zero integer string",
+                title: "Non-zero integer string",
                 source: "to_bool!(s'1')",
                 result: Ok("true"),
             },
             example! {
-                title: "false string",
+                title: "False string",
                 source: "to_bool!(s'false')",
                 result: Ok("false"),
             },
             example! {
-                title: "no string",
+                title: "No string",
                 source: "to_bool!(s'no')",
                 result: Ok("false"),
             },
             example! {
-                title: "n string",
+                title: "N string",
                 source: "to_bool!(s'n')",
                 result: Ok("false"),
             },
             example! {
-                title: "zero integer string",
-                source: "to_bool!(s'0')",
-                result: Ok("false"),
-            },
-            example! {
-                title: "invalid string",
+                title: "Invalid string",
                 source: "to_bool!(s'foobar')",
                 result: Err(
                     r#"function call error for "to_bool" at (0:19): Invalid boolean value "foobar""#,
                 ),
             },
             example! {
-                title: "timestamp",
+                title: "Timestamp",
                 source: "to_bool!(t'2020-01-01T00:00:00Z')",
                 result: Err(
                     r#"function call error for "to_bool" at (0:33): unable to coerce timestamp into boolean"#,
                 ),
             },
             example! {
-                title: "array",
+                title: "Array",
                 source: "to_bool!([])",
                 result: Err(
                     r#"function call error for "to_bool" at (0:12): unable to coerce array into boolean"#,
                 ),
             },
             example! {
-                title: "object",
+                title: "Object",
                 source: "to_bool!({})",
                 result: Err(
                     r#"function call error for "to_bool" at (0:12): unable to coerce object into boolean"#,
                 ),
             },
             example! {
-                title: "regex",
+                title: "Regex",
                 source: "to_bool!(r'foo')",
                 result: Err(
                     r#"function call error for "to_bool" at (0:16): unable to coerce regex into boolean"#,

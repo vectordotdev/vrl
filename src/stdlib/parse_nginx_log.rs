@@ -85,25 +85,93 @@ impl Function for ParseNginxLog {
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "parse nginx combined log",
-                source: r#"encode_json(parse_nginx_log!(s'172.17.0.1 - - [31/Mar/2021:12:04:07 +0000] "GET / HTTP/1.1" 200 612 "-" "curl/7.75.0" "-"', "combined"))"#,
-                result: Ok(
-                    r#"s'{"agent":"curl/7.75.0","client":"172.17.0.1","referer":"-","request":"GET / HTTP/1.1","size":612,"status":200,"timestamp":"2021-03-31T12:04:07Z"}'"#,
-                ),
+                title: "Parse via Nginx log format (combined)",
+                source: indoc! {r#"
+                    parse_nginx_log!(
+                        s'172.17.0.1 - alice [01/Apr/2021:12:02:31 +0000] "POST /not-found HTTP/1.1" 404 153 "http://localhost/somewhere" "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.119 Safari/537.36" "2.75"',
+                        "combined",
+                    )
+                "#},
+                result: Ok(indoc! {r#"{
+                    "agent": "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.119 Safari/537.36",
+                    "client": "172.17.0.1",
+                    "compression": "2.75",
+                    "referer": "http://localhost/somewhere",
+                    "request": "POST /not-found HTTP/1.1",
+                    "size": 153,
+                    "status": 404,
+                    "timestamp": "2021-04-01T12:02:31Z",
+                    "user": "alice"
+                }"#}),
             },
             example! {
-                title: "parse nginx main log",
-                source: r#"encode_json(parse_nginx_log!(s'172.24.0.1 - alice [03/Jan/2025:16:42:58 +0000] "GET / HTTP/1.1" 200 615 "http://domain.tld/path" "curl/8.11.1" "1.2.3.4, 10.10.1.1"', "main"))"#,
-                result: Ok(
-                    r#"s'{"body_bytes_size":615,"http_referer":"http://domain.tld/path","http_user_agent":"curl/8.11.1","http_x_forwarded_for":"1.2.3.4, 10.10.1.1","remote_addr":"172.24.0.1","remote_user":"alice","request":"GET / HTTP/1.1","status":200,"timestamp":"2025-01-03T16:42:58Z"}'"#,
-                ),
+                title: "Parse via Nginx log format (error)",
+                source: indoc! {r#"
+                    parse_nginx_log!(
+                        s'2021/04/01 13:02:31 [error] 31#31: *1 open() "/usr/share/nginx/html/not-found" failed (2: No such file or directory), client: 172.17.0.1, server: localhost, request: "POST /not-found HTTP/1.1", host: "localhost:8081"',
+                        "error"
+                    )
+                "#},
+                result: Ok(indoc! {r#"{
+                    "cid": 1,
+                    "client": "172.17.0.1",
+                    "host": "localhost:8081",
+                    "message": "open() \"/usr/share/nginx/html/not-found\" failed (2: No such file or directory)",
+                    "pid": 31,
+                    "request": "POST /not-found HTTP/1.1",
+                    "server": "localhost",
+                    "severity": "error",
+                    "tid": 31,
+                    "timestamp": "2021-04-01T13:02:31Z"
+                }"#}),
             },
             example! {
-                title: "parse nginx error log",
-                source: r#"encode_json(parse_nginx_log!(s'2021/04/01 13:02:31 [error] 31#31: *1 open() "/usr/share/nginx/html/not-found" failed (2: No such file or directory), client: 172.17.0.1, server: localhost, request: "POST /not-found HTTP/1.1", host: "localhost:8081"', "error"))"#,
-                result: Ok(
-                    r#"s'{"cid":1,"client":"172.17.0.1","host":"localhost:8081","message":"open() \"/usr/share/nginx/html/not-found\" failed (2: No such file or directory)","pid":31,"request":"POST /not-found HTTP/1.1","server":"localhost","severity":"error","tid":31,"timestamp":"2021-04-01T13:02:31Z"}'"#,
-                ),
+                title: "Parse via Nginx log format (ingress_upstreaminfo)",
+                source: indoc! {r#"
+                    parse_nginx_log!(
+                        s'0.0.0.0 - bob [18/Mar/2023:15:00:00 +0000] "GET /some/path HTTP/2.0" 200 12312 "https://10.0.0.1/some/referer" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36" 462 0.050 [some-upstream-service-9000] [some-other-upstream-5000] 10.0.50.80:9000 19437 0.049 200 752178adb17130b291aefd8c386279e7',
+                        "ingress_upstreaminfo"
+                    )
+                "#},
+                result: Ok(indoc! {r#"{
+                    "body_bytes_size": 12312,
+                    "http_referer": "https://10.0.0.1/some/referer",
+                    "http_user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36",
+                    "proxy_alternative_upstream_name": "some-other-upstream-5000",
+                    "proxy_upstream_name": "some-upstream-service-9000",
+                    "remote_addr": "0.0.0.0",
+                    "remote_user": "bob",
+                    "req_id": "752178adb17130b291aefd8c386279e7",
+                    "request": "GET /some/path HTTP/2.0",
+                    "request_length": 462,
+                    "request_time": 0.05,
+                    "status": 200,
+                    "timestamp": "2023-03-18T15:00:00Z",
+                    "upstream_addr": "10.0.50.80:9000",
+                    "upstream_response_length": 19437,
+                    "upstream_response_time": 0.049,
+                    "upstream_status": 200
+                }"#}),
+            },
+            example! {
+                title: "Parse via Nginx log format (main)",
+                source: indoc! {r#"
+                    parse_nginx_log!(
+                        s'172.24.0.3 - alice [31/Dec/2024:17:32:06 +0000] "GET / HTTP/1.1" 200 615 "https://domain.tld/path" "curl/8.11.1" "1.2.3.4, 10.10.1.1"',
+                        "main"
+                    )
+                "#},
+                result: Ok(indoc! {r#"{
+                    "body_bytes_size": 615,
+                    "http_referer": "https://domain.tld/path",
+                    "http_user_agent": "curl/8.11.1",
+                    "http_x_forwarded_for": "1.2.3.4, 10.10.1.1",
+                    "remote_addr": "172.24.0.3",
+                    "remote_user": "alice",
+                    "request": "GET / HTTP/1.1",
+                    "status": 200,
+                    "timestamp": "2024-12-31T17:32:06Z"
+                }"#}),
             },
         ]
     }

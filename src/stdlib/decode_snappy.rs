@@ -22,7 +22,7 @@ impl Function for DecodeSnappy {
 
     fn examples(&self) -> &'static [Example] {
         &[example! {
-            title: "demo string",
+            title: "Decode Snappy data",
             source: r#"decode_snappy!(decode_base64!("LKxUaGUgcXVpY2sgYnJvd24gZm94IGp1bXBzIG92ZXIgMTMgbGF6eSBkb2dzLg=="))"#,
             result: Ok("The quick brown fox jumps over 13 lazy dogs."),
         }]

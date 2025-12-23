@@ -10,16 +10,35 @@ impl Function for ParseQueryString {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[example! {
-            title: "parse query string",
-            source: r#"parse_query_string("foo=1&bar=2")"#,
-            result: Ok(r#"
+        &[
+            example! {
+                title: "Parse simple query string",
+                source: r#"parse_query_string("foo=1&bar=2")"#,
+                result: Ok(r#"
                 {
                     "foo": "1",
                     "bar": "2"
                 }
             "#),
-        }]
+            },
+            example! {
+                title: "Parse query string",
+                source: r#"parse_query_string("foo=%2B1&bar=2&bar=3&xyz")"#,
+                result: Ok(indoc! {r#"{
+                    "bar": [
+                        "2",
+                        "3"
+                    ],
+                    "foo": "+1",
+                    "xyz": ""
+                }"#}),
+            },
+            example! {
+                title: "Parse Ruby on Rails' query string",
+                source: r#"parse_query_string("?foo%5b%5d=1&foo%5b%5d=2")"#,
+                result: Ok(r#"{"foo[]": ["1", "2"]}"#),
+            },
+        ]
     }
 
     fn compile(

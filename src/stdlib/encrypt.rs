@@ -205,11 +205,18 @@ impl Function for Encrypt {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[example! {
-            title: "encrypt AES-256-CFB",
-            source: r#"encode_base64(encrypt!("data", "AES-256-CFB", key: "01234567890123456789012345678912", iv: "0123456789012345"))"#,
+        &[
+            example! {
+                    title: "Encrypt value using AES-256-CFB",
+                    source: r#"encode_base64(encrypt!("data", "AES-256-CFB", key: "01234567890123456789012345678912", iv: "0123456789012345"))"#,
             result: Ok("c/dIOA=="),
-        }]
+                },
+            example! {
+                title: "Encrypt value using AES-128-CBC-PKCS7",
+                source: r#"encode_base64(encrypt!("super secret message", "AES-128-CBC-PKCS7", key: "16_byte_keyxxxxx", iv: "1234567890123456"))"#,
+                result: Ok("GBw8Mu00v0Kc38+/PvsVtGgWuUJ+ZNLgF8Opy8ohIYE="),
+            },
+        ]
     }
 
     fn compile(
