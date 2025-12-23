@@ -166,7 +166,6 @@ pub enum VrlRuntime {
     Ast,
 }
 
-
 impl FromStr for VrlRuntime {
     type Err = &'static str;
 

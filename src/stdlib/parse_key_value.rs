@@ -233,8 +233,7 @@ impl Function for ParseKeyValue {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[derive(Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub(crate) enum Whitespace {
     Strict,
     #[default]
@@ -260,7 +259,6 @@ impl Whitespace {
         }
     }
 }
-
 
 impl FromStr for Whitespace {
     type Err = &'static str;
