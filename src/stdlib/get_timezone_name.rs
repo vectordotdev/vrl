@@ -13,6 +13,7 @@ pub fn get_name_for_timezone(tz: &TimeZone) -> Cow<'_, str> {
 }
 
 #[allow(clippy::unnecessary_wraps)]
+#[cfg_attr(feature = "__mock_return_values_for_tests", allow(dead_code))]
 fn get_timezone_name(ctx: &mut Context) -> Resolved {
     Ok(get_name_for_timezone(ctx.timezone()).into())
 }
@@ -25,11 +26,21 @@ impl Function for GetTimezoneName {
         "get_timezone_name"
     }
 
+    #[cfg(not(feature = "__mock_return_values_for_tests"))]
     fn examples(&self) -> &'static [Example] {
         &[example! {
-            title: "Get the VRL timezone name, or for 'local' the local timezone name or offset (e.g., -05:00)",
+            title: "Get the IANA name of Vector's timezone",
             source: r#"get_timezone_name!() != """#,
             result: Ok("true"),
+        }]
+    }
+
+    #[cfg(feature = "__mock_return_values_for_tests")]
+    fn examples(&self) -> &'static [Example] {
+        &[example! {
+            title: "Get the IANA name of Vector's timezone",
+            source: r#"get_timezone_name!()"#,
+            result: Ok("UTC"),
         }]
     }
 
@@ -47,8 +58,14 @@ impl Function for GetTimezoneName {
 struct GetTimezoneNameFn;
 
 impl FunctionExpression for GetTimezoneNameFn {
+    #[cfg(not(feature = "__mock_return_values_for_tests"))]
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         get_timezone_name(ctx)
+    }
+
+    #[cfg(feature = "__mock_return_values_for_tests")]
+    fn resolve(&self, _ctx: &mut Context) -> Resolved {
+        Ok("UTC".into())
     }
 
     fn type_def(&self, _: &TypeState) -> TypeDef {

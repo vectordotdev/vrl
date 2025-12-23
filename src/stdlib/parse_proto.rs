@@ -30,7 +30,7 @@ static EXAMPLE_PARSE_PROTO_EXPR: LazyLock<&str> = LazyLock::new(|| {
 
 static EXAMPLES: LazyLock<Vec<Example>> = LazyLock::new(|| {
     vec![example! {
-        title: "message",
+        title: "Parse proto",
         source: &EXAMPLE_PARSE_PROTO_EXPR,
         result: Ok(r#"{ "name": "someone", "phones": [{"number": "123456"}] }"#),
     }]

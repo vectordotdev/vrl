@@ -14,9 +14,9 @@ impl Function for Upcase {
 
     fn examples(&self) -> &'static [Example] {
         &[example! {
-            title: "upcase",
-            source: r#"upcase("foo 2 bar")"#,
-            result: Ok("FOO 2 BAR"),
+            title: "Upcase a string",
+            source: r#"upcase("Hello, World!")"#,
+            result: Ok("HELLO, WORLD!"),
         }]
     }
 
