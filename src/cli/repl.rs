@@ -134,7 +134,7 @@ pub(crate) fn run(
 
                 let string = match result {
                     Ok(v) => v.to_string(),
-                    Err(v) => v.to_string(),
+                    Err(v) => v.clone(),
                 };
 
                 #[allow(clippy::print_stdout)]
