@@ -145,7 +145,7 @@ impl From<Diagnostic> for diagnostic::Diagnostic<()> {
         diagnostic::Diagnostic {
             severity: diag.severity.into(),
             code: Some(format!("E{:03}", diag.code)),
-            message: diag.message.to_string(),
+            message: diag.message.clone(),
             labels: diag.labels.iter().cloned().map(Into::into).collect(),
             notes: notes.iter().map(ToString::to_string).collect(),
         }

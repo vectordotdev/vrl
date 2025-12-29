@@ -233,9 +233,10 @@ impl Function for ParseKeyValue {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub(crate) enum Whitespace {
     Strict,
+    #[default]
     Lenient,
 }
 
@@ -256,12 +257,6 @@ impl Whitespace {
             Strict => "strict",
             Lenient => "lenient",
         }
-    }
-}
-
-impl Default for Whitespace {
-    fn default() -> Self {
-        Self::Lenient
     }
 }
 

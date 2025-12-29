@@ -44,7 +44,7 @@ mod tests {
         let filter = destination.filter_fn.unwrap();
         assert_eq!(filter.name, "integer");
         let args = filter.args.unwrap();
-        let expected_args = vec![
+        let expected_args = [
             "a. df".into(),
             0.123.into(),
             1.23e-32_f64.into(),
