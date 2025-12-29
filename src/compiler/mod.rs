@@ -155,9 +155,8 @@ pub fn compile_with_state(
 }
 
 /// Available VRL runtimes.
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Default, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
-#[derive(Default)]
 pub enum VrlRuntime {
     /// Tree-walking runtime.
     ///
