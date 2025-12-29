@@ -301,13 +301,13 @@ mod tests {
                 });
             let parsed = parse_grok(k, &rules);
 
-            if v.is_ok() {
+            if let Ok(v) = v {
                 assert_eq!(
                     parsed
                         .unwrap_or_else(|_| panic!("{filter} does not match {k}"))
                         .parsed,
                     Value::from(btreemap! {
-                        "field" =>  v.unwrap().parsed,
+                        "field" =>  v.parsed,
                     }),
                     "failed to parse {k} with filter {filter}"
                 );
