@@ -1,5 +1,32 @@
 use super::parse_syslog::ParseSyslogFn;
 use crate::compiler::prelude::*;
+use chrono::{Datelike, Utc};
+use std::sync::LazyLock;
+
+static EXAMPLES: LazyLock<Vec<Example>> = LazyLock::new(|| {
+    let result = Box::leak(
+        format!(
+            indoc! {r#"{{
+                "appname": "sshd",
+                "hostname": "localhost",
+                "message": "Accepted publickey for eng from 10.1.1.1 port 8888 ssh2: RSA SHA256:foobar",
+                "procid": 1111,
+                "timestamp": "{year}-03-23T01:49:58Z"
+            }}"#},
+            year = Utc::now().year()
+        )
+        .into_boxed_str(),
+    );
+    vec![example! {
+        title: "Parse Linux authorization event",
+        source: indoc! {"
+            parse_linux_authorization!(
+                s'Mar 23 01:49:58 localhost sshd[1111]: Accepted publickey for eng from 10.1.1.1 port 8888 ssh2: RSA SHA256:foobar'
+            )
+        "},
+        result: Ok(result),
+    }]
+});
 
 #[derive(Clone, Copy, Debug)]
 pub struct ParseLinuxAuthorization;
@@ -18,21 +45,7 @@ impl Function for ParseLinuxAuthorization {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[example! {
-            title: "Parse Linux authorization event",
-            source: indoc! {"
-                parse_linux_authorization!(
-                    s'Mar 23 01:49:58 localhost sshd[1111]: Accepted publickey for eng from 10.1.1.1 port 8888 ssh2: RSA SHA256:foobar'
-                )
-            "},
-            result: Ok(indoc! {r#"{
-                "appname": "sshd",
-                "hostname": "localhost",
-                "message": "Accepted publickey for eng from 10.1.1.1 port 8888 ssh2: RSA SHA256:foobar",
-                "procid": 1111,
-                "timestamp": "2025-03-23T01:49:58Z"
-            }"#}),
-        }]
+        EXAMPLES.as_slice()
     }
 
     fn compile(
