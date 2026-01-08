@@ -23,10 +23,10 @@ impl Function for Md5 {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[Example {
-            title: "md5",
-            source: r#"md5("foobar")"#,
-            result: Ok("3858f62230ac3c915f300c664312c63f"),
+        &[example! {
+            title: "Create md5 hash",
+            source: r#"md5("foo")"#,
+            result: Ok("acbd18db4cc2f85cedef654fccc4a4d8"),
         }]
     }
 

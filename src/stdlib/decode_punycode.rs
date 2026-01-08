@@ -41,18 +41,18 @@ impl Function for DecodePunycode {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
-                title: "punycode string",
+            example! {
+                title: "Decode a punycode encoded internationalized domain name",
                 source: r#"decode_punycode!("www.xn--caf-dma.com")"#,
                 result: Ok("www.café.com"),
             },
-            Example {
-                title: "ascii string",
+            example! {
+                title: "Decode an ASCII only string",
                 source: r#"decode_punycode!("www.cafe.com")"#,
                 result: Ok("www.cafe.com"),
             },
-            Example {
-                title: "ignore validation",
+            example! {
+                title: "Ignore validation",
                 source: r#"decode_punycode!("xn--8hbb.xn--fiba.xn--8hbf.xn--eib.", validate: false)"#,
                 result: Ok("١٠.٦٦.٣٠.٥."),
             },

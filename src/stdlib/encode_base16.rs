@@ -33,8 +33,8 @@ impl Function for EncodeBase16 {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[Example {
-            title: "demo string",
+        &[example! {
+            title: "Encode to Base16",
             source: r#"encode_base16("some string value")"#,
             result: Ok("736f6d6520737472696e672076616c7565"),
         }]

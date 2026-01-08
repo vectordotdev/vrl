@@ -44,20 +44,25 @@ impl Function for Round {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
-                title: "round up",
+            example! {
+                title: "Round a number (without precision)",
+                source: "round(4.345)",
+                result: Ok("4.0"),
+            },
+            example! {
+                title: "Round a number (with precision)",
+                source: "round(4.345, precision: 2)",
+                result: Ok("4.35"),
+            },
+            example! {
+                title: "Round up",
                 source: "round(5.5)",
                 result: Ok("6.0"),
             },
-            Example {
-                title: "round down",
+            example! {
+                title: "Round down",
                 source: "round(5.45)",
                 result: Ok("5.0"),
-            },
-            Example {
-                title: "precision",
-                source: "round(5.45, 1)",
-                result: Ok("5.5"),
             },
         ]
     }

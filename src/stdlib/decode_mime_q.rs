@@ -41,17 +41,17 @@ impl Function for DecodeMimeQ {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
-                title: "Single",
+            example! {
+                title: "Decode single encoded-word",
                 source: r#"decode_mime_q!("=?utf-8?b?SGVsbG8sIFdvcmxkIQ==?=")"#,
                 result: Ok("Hello, World!"),
             },
-            Example {
+            example! {
                 title: "Embedded",
                 source: r#"decode_mime_q!("From: =?utf-8?b?SGVsbG8sIFdvcmxkIQ==?= <=?utf-8?q?hello=5Fworld=40example=2ecom?=>")"#,
                 result: Ok("From: Hello, World! <hello_world@example.com>"),
             },
-            Example {
+            example! {
                 title: "Without charset",
                 source: r#"decode_mime_q!("?b?SGVsbG8sIFdvcmxkIQ==")"#,
                 result: Ok("Hello, World!"),

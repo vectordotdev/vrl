@@ -64,28 +64,28 @@ impl Function for Xxhash {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
-                title: "calculate xxhash hash (XXH32 default)",
+            example! {
+                title: "Calculate a hash using the default (XXH32) algorithm",
                 source: r#"xxhash("foo")"#,
                 result: Ok("3792637401"),
             },
-            Example {
-                title: "calculate xxhash hash (XXH32)",
+            example! {
+                title: "Calculate a hash using the XXH32 algorithm",
                 source: r#"xxhash("foo", "XXH32")"#,
                 result: Ok("3792637401"),
             },
-            Example {
-                title: "calculate xxhash hash (XXH64)",
+            example! {
+                title: "Calculate a hash using the XXH64 algorithm",
                 source: r#"xxhash("foo", "XXH64")"#,
                 result: Ok("3728699739546630719"),
             },
-            Example {
-                title: "calculate XXH3-64 hash",
+            example! {
+                title: "Calculate a hash using the XXH3-64 algorithm",
                 source: r#"xxhash("foo", "XXH3-64")"#,
                 result: Ok("-6093828362558603894"),
             },
-            Example {
-                title: "calculate XXH3-128 hash",
+            example! {
+                title: "Calculate a hash using the XXH3-128 algorithm",
                 source: r#"xxhash("foo", "XXH3-128")"#,
                 result: Ok(r#""161745101148472925293886522910304009610""#),
             },

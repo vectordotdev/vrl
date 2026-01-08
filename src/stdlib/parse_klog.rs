@@ -71,6 +71,28 @@ static REGEX_KLOG: LazyLock<Regex> = LazyLock::new(|| {
     ").expect("failed compiling regex for klog")
 });
 
+static EXAMPLES: LazyLock<Vec<Example>> = LazyLock::new(|| {
+    let result = Box::leak(
+        format!(
+            indoc! { r#"{{
+                "file": "klog.go",
+                "id": 28133,
+                "level": "info",
+                "line": 70,
+                "message": "hello from klog",
+                "timestamp": "{year}-05-05T17:59:40.692994Z"
+            }}"#},
+            year = Utc::now().year()
+        )
+        .into_boxed_str(),
+    );
+    vec![example! {
+        title: "Parse using klog",
+        source: r#"parse_klog!("I0505 17:59:40.692994   28133 klog.go:70] hello from klog")"#,
+        result: Ok(result),
+    }]
+});
+
 #[derive(Clone, Copy, Debug)]
 pub struct ParseKlog;
 
@@ -80,18 +102,7 @@ impl Function for ParseKlog {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[Example {
-            title: "valid",
-            source: r#"parse_klog!("I0505 17:59:40.692994   28133 klog.go:70] hello from klog")"#,
-            result: Ok(indoc! { r#"{
-                    "file": "klog.go",
-                    "id": 28133,
-                    "level": "info",
-                    "line": 70,
-                    "message": "hello from klog",
-                    "timestamp": "2025-05-05T17:59:40.692994Z"
-                }"#}),
-        }]
+        EXAMPLES.as_slice()
     }
 
     fn compile(

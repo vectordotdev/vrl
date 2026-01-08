@@ -58,11 +58,18 @@ impl Function for Floor {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[Example {
-            title: "floor",
-            source: "floor(9.8)",
-            result: Ok("9.0"),
-        }]
+        &[
+            example! {
+                title: "Round a number down (without precision)",
+                source: "floor(9.8)",
+                result: Ok("9.0"),
+            },
+            example! {
+                title: "Round a number down (with precision)",
+                source: "floor(4.345, precision: 2)",
+                result: Ok("4.34"),
+            },
+        ]
     }
 }
 

@@ -38,14 +38,14 @@ impl Function for Match {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
-                title: "match",
-                source: r#"match("foobar", r'foo')"#,
+            example! {
+                title: "Regex match on a string",
+                source: r#"match("I'm a little teapot", r'teapot')"#,
                 result: Ok("true"),
             },
-            Example {
-                title: "mismatch",
-                source: r#"match("bazqux", r'foo')"#,
+            example! {
+                title: "String does not match the regular expression",
+                source: r#"match("I'm a little teapot", r'.*balloon')"#,
                 result: Ok("false"),
             },
         ]

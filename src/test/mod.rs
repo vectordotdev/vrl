@@ -42,6 +42,14 @@ pub struct TestConfig {
     pub timezone: TimeZone,
 }
 
+#[derive(Clone)]
+struct FailedTest {
+    name: String,
+    category: String,
+    source_file: String,
+    source_line: u32,
+}
+
 pub fn test_dir() -> PathBuf {
     PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap())
 }
@@ -89,6 +97,7 @@ pub fn run_tests<T>(
     let mut failed_count = 0;
     let mut warnings_count = 0;
     let mut category = "".to_owned();
+    let mut failed_tests: Vec<FailedTest> = Vec::new();
 
     for mut test in tests {
         if category != test.category {
@@ -159,10 +168,8 @@ pub fn run_tests<T>(
                     process_result(result, &mut test, cfg, timings)
                 } else {
                     println!("{} (diagnostics)", Colour::Red.bold().paint("FAILED"));
-                    if cfg.verbose {
-                        let formatter = Formatter::new(&test.source, warnings);
-                        println!("{formatter}");
-                    }
+                    let formatter = Formatter::new(&test.source, warnings);
+                    println!("{formatter}");
                     // mark as failure, did not expect any warnings
                     true
                 }
@@ -174,19 +181,16 @@ pub fn run_tests<T>(
         };
         if failed {
             failed_count += 1;
+            failed_tests.push(FailedTest {
+                name: test.name.clone(),
+                category: test.category.clone(),
+                source_file: test.source_file.clone(),
+                source_line: test.source_line,
+            });
         }
     }
 
-    print_result(total_count, failed_count, warnings_count);
-}
-
-fn sanitize_lines(input: String) -> String {
-    input
-        .lines()
-        .filter(|line| !line.is_empty())
-        .map(|line| line.trim())
-        .collect::<Vec<&str>>()
-        .join("\n")
+    print_result(total_count, failed_count, warnings_count, failed_tests);
 }
 
 fn process_result(
@@ -311,9 +315,14 @@ fn process_compilation_diagnostics(
     let mut failed = false;
 
     let mut formatter = Formatter::new(&test.source, diagnostics);
-    let got = sanitize_lines(formatter.to_string());
-    let want = sanitize_lines(test.result.clone());
-    if (test.result_approx && compare_partial_diagnostic(&got, &want)) || got == want {
+
+    let got = formatter.to_string();
+    let got = got.trim();
+
+    let want = test.result.clone();
+    let want = want.trim();
+
+    if (test.result_approx && compare_partial_diagnostic(got, want)) || got == want {
         let timings = {
             let timings_fmt = if cfg.timings {
                 format!(" ({compile_timing_fmt})")
@@ -327,14 +336,19 @@ fn process_compilation_diagnostics(
         println!("{} (compilation)", Colour::Red.bold().paint("FAILED"));
 
         if !cfg.no_diff {
-            let diff = prettydiff::diff_lines(&want, &got);
+            let diff = prettydiff::diff_lines(want, got);
             println!("{diff}");
         }
+
+        // Always print diagnostics when test fails
+        formatter.enable_colors(true);
+        println!("{formatter:#}");
 
         failed = true;
     }
 
-    if cfg.verbose {
+    if cfg.verbose && !failed {
+        // In verbose mode, print diagnostics even for passing tests
         formatter.enable_colors(true);
         println!("{formatter:#}");
     }
@@ -345,7 +359,12 @@ fn process_compilation_diagnostics(
     failed
 }
 
-fn print_result(total_count: usize, failed_count: usize, warnings_count: usize) {
+fn print_result(
+    total_count: usize,
+    failed_count: usize,
+    warnings_count: usize,
+    failed_tests: Vec<FailedTest>,
+) {
     let code = i32::from(failed_count > 0);
 
     println!("\n");
@@ -369,6 +388,18 @@ fn print_result(total_count: usize, failed_count: usize, warnings_count: usize) 
         "  Number warnings: {}",
         Colour::Yellow.bold().paint(warnings_count.to_string())
     );
+
+    if !failed_tests.is_empty() {
+        println!("\n{}", Colour::Red.bold().paint("Failed tests:"));
+        for test in failed_tests {
+            println!(
+                "  {} - {}:{}",
+                Colour::Yellow.paint(format!("{}/{}", test.category, test.name)),
+                test.source_file,
+                test.source_line
+            );
+        }
+    }
 
     std::process::exit(code)
 }

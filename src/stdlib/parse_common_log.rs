@@ -59,24 +59,44 @@ impl Function for ParseCommonLog {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[Example {
-            title: "parse common log",
-            source: r#"parse_common_log!(s'127.0.0.1 bob frank [10/Oct/2000:13:55:36 -0700] "GET /apache_pb.gif HTTP/1.0" 200 2326')"#,
-            result: Ok(indoc! {
-                r#"{
-                    "host":"127.0.0.1",
-                    "identity":"bob",
-                    "message":"GET /apache_pb.gif HTTP/1.0",
-                    "method":"GET",
-                    "path":"/apache_pb.gif",
-                    "protocol":"HTTP/1.0",
-                    "size":2326,
-                    "status":200,
-                    "timestamp":"2000-10-10T20:55:36Z",
-                    "user":"frank"
-                }"#
-            }),
-        }]
+        &[
+            example! {
+                title: "Parse using Common Log Format (with default timestamp format)",
+                source: r#"parse_common_log!(s'127.0.0.1 bob frank [10/Oct/2000:13:55:36 -0700] "GET /apache_pb.gif HTTP/1.0" 200 2326')"#,
+                result: Ok(indoc! {
+                    r#"{
+                        "host":"127.0.0.1",
+                        "identity":"bob",
+                        "message":"GET /apache_pb.gif HTTP/1.0",
+                        "method":"GET",
+                        "path":"/apache_pb.gif",
+                        "protocol":"HTTP/1.0",
+                        "size":2326,
+                        "status":200,
+                        "timestamp":"2000-10-10T20:55:36Z",
+                        "user":"frank"
+                    }"#
+                }),
+            },
+            example! {
+                title: "Parse using Common Log Format (with custom timestamp format)",
+                source: r#"parse_common_log!(s'127.0.0.1 bob frank [2000-10-10T20:55:36Z] "GET /apache_pb.gif HTTP/1.0" 200 2326', "%+")"#,
+                result: Ok(indoc! {
+                    r#"{
+                        "host":"127.0.0.1",
+                        "identity":"bob",
+                        "message":"GET /apache_pb.gif HTTP/1.0",
+                        "method":"GET",
+                        "path":"/apache_pb.gif",
+                        "protocol":"HTTP/1.0",
+                        "size":2326,
+                        "status":200,
+                        "timestamp":"2000-10-10T20:55:36Z",
+                        "user":"frank"
+                    }"#
+                }),
+            },
+        ]
     }
 }
 

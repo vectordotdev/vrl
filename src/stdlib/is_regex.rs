@@ -19,18 +19,18 @@ impl Function for IsRegex {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
-                title: "string",
-                source: r#"is_regex("foobar")"#,
-                result: Ok("false"),
-            },
-            Example {
-                title: "regex",
-                source: r"is_regex(r'\d+')",
+            example! {
+                title: "Valid regex",
+                source: r"is_regex(r'pattern')",
                 result: Ok("true"),
             },
-            Example {
-                title: "null",
+            example! {
+                title: "Non-matching type",
+                source: r#"is_regex("a string")"#,
+                result: Ok("false"),
+            },
+            example! {
+                title: "Null value",
                 source: "is_regex(null)",
                 result: Ok("false"),
             },

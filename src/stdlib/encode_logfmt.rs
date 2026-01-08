@@ -52,15 +52,25 @@ impl Function for EncodeLogfmt {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
-                title: "encode object",
-                source: r#"encode_logfmt({"lvl": "info", "msg": "This is a message", "log_id": 12345})"#,
-                result: Ok(r#"s'log_id=12345 lvl=info msg="This is a message"'"#),
+            example! {
+                title: "Encode to logfmt (no ordering)",
+                source: r#"encode_logfmt({"ts": "2021-06-05T17:20:00Z", "msg": "This is a message", "lvl": "info"})"#,
+                result: Ok(r#"lvl=info msg="This is a message" ts=2021-06-05T17:20:00Z"#),
             },
-            Example {
-                title: "encode object with fields ordering",
-                source: r#"encode_logfmt!({"msg": "This is a message", "lvl": "info", "log_id": 12345}, ["lvl", "msg"])"#,
-                result: Ok(r#"s'lvl=info msg="This is a message" log_id=12345'"#),
+            example! {
+                title: "Encode to logfmt (fields ordering)",
+                source: r#"encode_logfmt!({"ts": "2021-06-05T17:20:00Z", "msg": "This is a message", "lvl": "info", "log_id": 12345}, ["ts", "lvl", "msg"])"#,
+                result: Ok(r#"ts=2021-06-05T17:20:00Z lvl=info msg="This is a message" log_id=12345"#),
+            },
+            example! {
+                title: "Encode to logfmt (nested fields)",
+                source: r#"encode_logfmt({"agent": {"name": "foo"}, "log": {"file": {"path": "my.log"}}, "event": "log"})"#,
+                result: Ok(r"agent.name=foo event=log log.file.path=my.log"),
+            },
+            example! {
+                title: "Encode to logfmt (nested fields ordering)",
+                source: r#"encode_logfmt!({"agent": {"name": "foo"}, "log": {"file": {"path": "my.log"}}, "event": "log"}, ["event", "log.file.path", "agent.name"])"#,
+                result: Ok(r"event=log log.file.path=my.log agent.name=foo"),
             },
         ]
     }

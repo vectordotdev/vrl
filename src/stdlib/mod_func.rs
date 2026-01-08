@@ -29,10 +29,10 @@ impl Function for Mod {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[Example {
-            title: "mod",
-            source: "mod(5, 3)",
-            result: Ok("2"),
+        &[example! {
+            title: "Calculate the remainder of two integers",
+            source: "mod(5, 2)",
+            result: Ok("1"),
         }]
     }
 

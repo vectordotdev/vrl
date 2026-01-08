@@ -52,11 +52,23 @@ impl Function for Kebabcase {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[Example {
-            title: "kebabcase",
-            source: r#"kebabcase("input_string")"#,
-            result: Ok("input-string"),
-        }]
+        &[
+            example! {
+                title: "kebab-case a string without specifying original case",
+                source: r#"kebabcase("InputString")"#,
+                result: Ok("input-string"),
+            },
+            example! {
+                title: "kebab-case a snake_case string",
+                source: r#"kebabcase("foo_bar_baz", "snake_case")"#,
+                result: Ok("foo-bar-baz"),
+            },
+            example! {
+                title: "kebab-case specifying the wrong original case (noop)",
+                source: r#"kebabcase("foo_bar_baz", "PascalCase")"#,
+                result: Ok("foo_bar_baz"),
+            },
+        ]
     }
 }
 

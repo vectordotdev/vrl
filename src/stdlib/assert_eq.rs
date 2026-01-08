@@ -47,22 +47,22 @@ impl Function for AssertEq {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
-                title: "success",
-                source: "assert_eq!(true, true)",
+            example! {
+                title: "Successful assertion",
+                source: "assert_eq!(1, 1)",
                 result: Ok("true"),
             },
-            Example {
-                title: "failure",
-                source: "assert_eq!(true, false)",
+            example! {
+                title: "Unsuccessful assertion",
+                source: "assert_eq!(127, [1, 2, 3])",
                 result: Err(
-                    r#"function call error for "assert_eq" at (0:23): assertion failed: true == false"#,
+                    r#"function call error for "assert_eq" at (0:26): assertion failed: 127 == [1, 2, 3]"#,
                 ),
             },
-            Example {
-                title: "custom message",
-                source: "assert_eq!(true, false, s'custom error')",
-                result: Err(r#"function call error for "assert_eq" at (0:40): custom error"#),
+            example! {
+                title: "Unsuccessful assertion with custom log message",
+                source: r#"assert_eq!(1, 0, message: "Unequal integers")"#,
+                result: Err(r#"function call error for "assert_eq" at (0:45): Unequal integers"#),
             },
         ]
     }

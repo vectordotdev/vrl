@@ -19,18 +19,23 @@ impl Function for IsFloat {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
-                title: "float",
+            example! {
+                title: "Valid float",
                 source: "is_float(0.577)",
                 result: Ok("true"),
             },
-            Example {
-                title: "boolean",
+            example! {
+                title: "Non-matching type",
+                source: r#"is_float("a string")"#,
+                result: Ok("false"),
+            },
+            example! {
+                title: "Boolean",
                 source: "is_float(true)",
                 result: Ok("false"),
             },
-            Example {
-                title: "null",
+            example! {
+                title: "Null",
                 source: "is_float(null)",
                 result: Ok("false"),
             },

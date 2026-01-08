@@ -489,15 +489,15 @@ impl Function for Crc {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
-                title: "default CRC_32_ISO_HDLC",
-                source: r#"crc("foobar")"#,
-                result: Ok(r#""2666930069""#),
+            example! {
+                title: "Create CRC checksum using the default algorithm",
+                source: r#"crc("foo")"#,
+                result: Ok(r#""2356372769""#),
             },
-            Example {
-                title: "CRC_8_MAXIM_DOW",
-                source: r#"crc("foobar", algorithm: "CRC_8_MAXIM_DOW")"#,
-                result: Ok(r#""53""#),
+            example! {
+                title: "Create CRC checksum using the CRC_32_CKSUM algorithm",
+                source: r#"crc("foo", algorithm: "CRC_32_CKSUM")"#,
+                result: Ok(r#""4271552933""#),
             },
         ]
     }

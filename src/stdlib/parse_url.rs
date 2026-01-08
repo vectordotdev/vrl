@@ -27,29 +27,31 @@ impl Function for ParseUrl {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
-                title: "parse url",
-                source: r#"parse_url!("https://vector.dev")"#,
+            example! {
+                title: "Parse URL",
+                source: r#"parse_url!("ftp://foo:bar@example.com:4343/foobar?hello=world#123")"#,
                 result: Ok(indoc! {r#"
                 {
-                    "fragment": null,
-                    "host": "vector.dev",
-                    "password": "",
-                    "path": "/",
-                    "port": null,
-                    "query": {},
-                    "scheme": "https",
-                    "username": ""
+                    "fragment": "123",
+                    "host": "example.com",
+                    "password": "bar",
+                    "path": "/foobar",
+                    "port": 4343,
+                    "query": {
+                        "hello": "world"
+                    },
+                    "scheme": "ftp",
+                    "username": "foo"
                 }
             "#}),
             },
-            Example {
-                title: "parse url with default ports",
-                source: r#"parse_url!("https://vector.dev", default_known_ports: true)"#,
+            example! {
+                title: "Parse URL with default port",
+                source: r#"parse_url!("https://example.com", default_known_ports: true)"#,
                 result: Ok(indoc! {r#"
                 {
                     "fragment": null,
-                    "host": "vector.dev",
+                    "host": "example.com",
                     "password": "",
                     "path": "/",
                     "port": 443,

@@ -19,18 +19,23 @@ impl Function for IsString {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
-                title: "string",
-                source: r#"is_string("foobar")"#,
+            example! {
+                title: "Valid string",
+                source: r#"is_string("a string")"#,
                 result: Ok("true"),
             },
-            Example {
-                title: "boolean",
+            example! {
+                title: "Non-matching type",
+                source: "is_string([1, 2, 3])",
+                result: Ok("false"),
+            },
+            example! {
+                title: "Boolean",
                 source: "is_string(true)",
                 result: Ok("false"),
             },
-            Example {
-                title: "null",
+            example! {
+                title: "Null",
                 source: "is_string(null)",
                 result: Ok("false"),
             },

@@ -37,13 +37,26 @@ impl Function for ForEach {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
-                title: "iterate object",
+            example! {
+                title: "Tally elements",
+                source: indoc! {r#"
+                    .tags = ["foo", "bar", "foo", "baz"]
+                    tally = {}
+                    for_each(array(.tags)) -> |_index, value| {
+                        count = int(get!(tally, [value])) ?? 0
+                        tally = set!(tally, [value], count + 1)
+                    }
+                    tally
+                "#},
+                result: Ok(r#"{"bar": 1, "baz": 1, "foo": 2}"#),
+            },
+            example! {
+                title: "Iterate over an object",
                 source: r#"count = 0; for_each({ "a": 1, "b": 2 }) -> |_key, value| { count = count + value }; count"#,
                 result: Ok("3"),
             },
-            Example {
-                title: "iterate array",
+            example! {
+                title: "Iterate over an array",
                 source: "count = 0; for_each([1,2,3]) -> |index, value| { count = count + index + value }; count",
                 result: Ok("9"),
             },
@@ -78,7 +91,7 @@ impl Function for ForEach {
                     },
                 ],
                 output: Output::Kind(Kind::any()),
-                example: Example {
+                example: example! {
                     title: "iterate array",
                     source: "for_each([1, 2]) -> |index, value| { .foo = to_int!(.foo) + index + value }",
                     result: Ok("null"),

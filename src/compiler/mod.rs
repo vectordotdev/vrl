@@ -155,19 +155,14 @@ pub fn compile_with_state(
 }
 
 /// Available VRL runtimes.
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Default, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum VrlRuntime {
     /// Tree-walking runtime.
     ///
     /// This is the only, and default, runtime.
+    #[default]
     Ast,
-}
-
-impl Default for VrlRuntime {
-    fn default() -> Self {
-        Self::Ast
-    }
 }
 
 impl FromStr for VrlRuntime {

@@ -67,15 +67,20 @@ impl Function for ContainsAll {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
-                title: "contains_all true",
-                source: r#"contains_all("The Needle In The Haystack", ["Needle", "Haystack"])"#,
+            example! {
+                title: "String contains all with default parameters (case sensitive)",
+                source: r#"contains_all("The NEEDLE in the Haystack", ["NEEDLE", "Haystack"])"#,
                 result: Ok("true"),
             },
-            Example {
-                title: "contains_all false",
-                source: r#"contains_all("the NEEDLE in the haystack", ["needle", "haystack"])"#,
+            example! {
+                title: "String doesn't contain all with default parameters (case sensitive)",
+                source: r#"contains_all("The NEEDLE in the Haystack", ["needle", "Haystack"])"#,
                 result: Ok("false"),
+            },
+            example! {
+                title: "String contains all (case insensitive)",
+                source: r#"contains_all("The NEEDLE in the HaYsTaCk", ["nEeDlE", "haystack"], case_sensitive: false)"#,
+                result: Ok("true"),
             },
         ]
     }

@@ -25,13 +25,21 @@ impl Function for Float {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
-                title: "valid",
+            example! {
+                title: "Declare a float type",
+                source: indoc! {r#"
+                    . = { "value": 42.0 }
+                    float(.value)
+                "#},
+                result: Ok("42.0"),
+            },
+            example! {
+                title: "Declare a float type (literal)",
                 source: "float(3.1415)",
                 result: Ok("3.1415"),
             },
-            Example {
-                title: "invalid",
+            example! {
+                title: "Invalid float type",
                 source: "float!(true)",
                 result: Err(
                     r#"function call error for "float" at (0:12): expected float, got boolean"#,

@@ -57,13 +57,23 @@ impl Function for Filter {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
-                title: "filter object",
+            example! {
+                title: "Filter elements",
+                source: indoc! {r#"
+                    . = { "tags": ["foo", "bar", "foo", "baz"] }
+                    filter(array(.tags)) -> |_index, value| {
+                        value != "foo"
+                    }
+                "#},
+                result: Ok(r#"["bar", "baz"]"#),
+            },
+            example! {
+                title: "Filter object",
                 source: r#"filter({ "a": 1, "b": 2 }) -> |key, _value| { key == "a" }"#,
                 result: Ok(r#"{ "a": 1 }"#),
             },
-            Example {
-                title: "filter array",
+            example! {
+                title: "Filter array",
                 source: "filter([1, 2]) -> |_index, value| { value < 2 }",
                 result: Ok("[1]"),
             },
@@ -98,7 +108,7 @@ impl Function for Filter {
                     },
                 ],
                 output: Output::Kind(Kind::boolean()),
-                example: Example {
+                example: example! {
                     title: "filter array",
                     source: "filter([1, 2]) -> |index, _value| { index == 0 }",
                     result: Ok("[1]"),

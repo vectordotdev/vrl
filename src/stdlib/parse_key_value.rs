@@ -106,32 +106,90 @@ impl Function for ParseKeyValue {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
-                title: "simple key value",
+            example! {
+                title: "Parse simple key value pairs",
                 source: r#"parse_key_value!("zork=zook zonk=nork")"#,
                 result: Ok(r#"{"zork": "zook", "zonk": "nork"}"#),
             },
-            Example {
-                title: "custom delimiters",
-                source: r#"parse_key_value!(s'zork: zoog, nonk: "nink nork"', key_value_delimiter: ":", field_delimiter: ",")"#,
-                result: Ok(r#"{"zork": "zoog", "nonk": "nink nork"}"#),
+            example! {
+                title: "Parse logfmt log",
+                source: indoc! {r#"
+                    parse_key_value!(
+                        "@timestamp=\"Sun Jan 10 16:47:39 EST 2021\" level=info msg=\"Stopping all fetchers\" tag#production=stopping_fetchers id=ConsumerFetcherManager-1382721708341 module=kafka.consumer.ConsumerFetcherManager"
+                    )
+                "#},
+                result: Ok(indoc! {r#"{
+                    "@timestamp": "Sun Jan 10 16:47:39 EST 2021",
+                    "level": "info",
+                    "msg": "Stopping all fetchers",
+                    "tag#production": "stopping_fetchers",
+                    "id": "ConsumerFetcherManager-1382721708341",
+                    "module": "kafka.consumer.ConsumerFetcherManager"
+                }"#}),
             },
-            Example {
-                title: "strict whitespace",
+            example! {
+                title: "Parse comma delimited log",
+                source: indoc! {r#"
+                    parse_key_value!(
+                        "path:\"/cart_link\", host:store.app.com, fwd: \"102.30.171.16\", dyno: web.1, connect:0ms, service:87ms, status:304, bytes:632, protocol:https",
+                        field_delimiter: ",",
+                        key_value_delimiter: ":"
+                    )
+                "#},
+                result: Ok(indoc! {r#"{
+                    "path": "/cart_link",
+                    "host": "store.app.com",
+                    "fwd": "102.30.171.16",
+                    "dyno": "web.1",
+                    "connect": "0ms",
+                    "service": "87ms",
+                    "status": "304",
+                    "bytes": "632",
+                    "protocol": "https"
+                }"#}),
+            },
+            example! {
+                title: "Parse comma delimited log with standalone keys",
+                source: indoc! {r#"
+                    parse_key_value!(
+                        "env:prod,service:backend,region:eu-east1,beta",
+                        field_delimiter: ",",
+                        key_value_delimiter: ":",
+                    )
+                "#},
+                result: Ok(indoc! {r#"{
+                    "env": "prod",
+                    "service": "backend",
+                    "region": "eu-east1",
+                    "beta": true
+                }"#}),
+            },
+            example! {
+                title: "Parse duplicate keys",
+                source: indoc! {r#"
+                    parse_key_value!(
+                        "at=info,method=GET,path=\"/index\",status=200,tags=dev,tags=dummy",
+                        field_delimiter: ",",
+                        key_value_delimiter: "=",
+                    )
+                "#},
+                result: Ok(indoc! {r#"{
+                    "at": "info",
+                    "method": "GET",
+                    "path": "/index",
+                    "status": "200",
+                    "tags": [
+                        "dev",
+                        "dummy"
+                    ]
+                }"#}),
+            },
+            example! {
+                title: "Parse with strict whitespace",
                 source: r#"parse_key_value!(s'app=my-app ip=1.2.3.4 user= msg=hello-world', whitespace: "strict")"#,
                 result: Ok(
                     r#"{"app": "my-app", "ip": "1.2.3.4", "user": "", "msg": "hello-world"}"#,
                 ),
-            },
-            Example {
-                title: "standalone key",
-                source: r#"parse_key_value!(s'foo=bar foobar', whitespace: "strict")"#,
-                result: Ok(r#"{"foo": "bar", "foobar": true}"#),
-            },
-            Example {
-                title: "duplicate keys",
-                source: r#"parse_key_value!(s'foo=bar foo=nor', whitespace: "strict")"#,
-                result: Ok(r#"{"foo": ["bar", "nor"]}"#),
             },
         ]
     }
@@ -175,9 +233,10 @@ impl Function for ParseKeyValue {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub(crate) enum Whitespace {
     Strict,
+    #[default]
     Lenient,
 }
 
@@ -198,12 +257,6 @@ impl Whitespace {
             Strict => "strict",
             Lenient => "lenient",
         }
-    }
-}
-
-impl Default for Whitespace {
-    fn default() -> Self {
-        Self::Lenient
     }
 }
 

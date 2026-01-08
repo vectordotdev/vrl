@@ -49,13 +49,19 @@ impl Function for MapValues {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
-                title: "map object values",
-                source: r#"map_values({ "a": 1, "b": 2 }) -> |value| { value + 1 }"#,
-                result: Ok(r#"{ "a": 2, "b": 3 }"#),
+            example! {
+                title: "Upcase values",
+                source: indoc! {r#"
+                    . = {
+                        "foo": "foo",
+                        "bar": "bar"
+                    }
+                    map_values(.) -> |value| { upcase(value) }
+                "#},
+                result: Ok(r#"{ "foo": "FOO", "bar": "BAR" }"#),
             },
-            Example {
-                title: "recursively map object values",
+            example! {
+                title: "Recursively map object values",
                 source: r#"map_values({ "a": 1, "b": [{ "c": 2 }, { "d": 3 }], "e": { "f": 4 } }, recursive: true) -> |value| { if is_integer(value) { int!(value) + 1 } else { value } }"#,
                 result: Ok(r#"{ "a": 2, "b": [{ "c": 3 }, { "d": 4 }], "e": { "f": 5 } }"#),
             },
@@ -91,7 +97,7 @@ impl Function for MapValues {
                     kind: VariableKind::TargetInnerValue,
                 }],
                 output: Output::Kind(Kind::any()),
-                example: Example {
+                example: example! {
                     title: "map object values",
                     source: r#"map_values({ "one" : "one", "two": "two" }) -> |value| { upcase(value) }"#,
                     result: Ok(r#"{ "one": "ONE", "two": "TWO" }"#),

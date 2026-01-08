@@ -1,6 +1,6 @@
 [package]
 name = "vrl"
-version = "0.27.0"
+version = "0.29.0"
 authors = ["Vector Contributors <vector@datadoghq.com>"]
 edition = "2024"
 license = "MPL-2.0"
@@ -43,7 +43,7 @@ datadog_grok = ["value", "parsing", "dep:nom", "dep:peeking_take_while", "dep:se
 datadog_search = ["dep:pest", "dep:pest_derive", "dep:itertools", "dep:regex", "dep:serde"]
 
 # Features that aren't used as often (default off)
-cli = ["stdlib", "dep:serde_json", "dep:thiserror", "dep:exitcode", "dep:webbrowser", "dep:rustyline", "dep:prettytable-rs"]
+cli = ["stdlib", "dep:clap", "dep:serde_json", "dep:thiserror", "dep:exitcode", "dep:webbrowser", "dep:rustyline", "dep:prettytable-rs"]
 test_framework = ["compiler", "dep:prettydiff", "dep:serde_json", "dep:ansi_term"]
 arbitrary = ["dep:quickcheck", "dep:arbitrary"]
 lua = ["dep:mlua"]
@@ -52,6 +52,8 @@ float_roundtrip = ["dep:serde_json", "serde_json/float_roundtrip"]
 
 # Testing Utilities. Enables additional tests, including those with external dependencies such as network calls.
 test = ["string_path"]
+
+__mock_return_values_for_tests = []
 
 
 # All stdlib functions
@@ -139,7 +141,7 @@ chrono-tz = { version = "0.10", default-features = false, optional = true }
 ciborium = { version = "0.2.2", default-features = false, optional = true }
 cidr = { version = "0.3", optional = true }
 csv = { version = "1", optional = true }
-clap.workspace = true
+clap = { workspace = true, optional = true }
 codespan-reporting = { version = "0.12", optional = true }
 convert_case = { version = "0.7.1", optional = true }
 crc = { version = "3.3.0", optional = true }
@@ -176,14 +178,14 @@ psl-types = { version = "2", optional = true }
 publicsuffix = { version = "2", optional = true }
 rand = { version = "0.8", optional = true }
 regex = { version = "1", default-features = false, optional = true, features = ["std", "perf", "unicode"] }
-roxmltree = { version = "0.20", optional = true }
-rustyline = { version = "16", default-features = false, optional = true }
+roxmltree = { version = "0.21", optional = true }
+rustyline = { version = "17", default-features = false, optional = true }
 rust_decimal = { version = "1", optional = true, default-features = false }
 seahash = { version = "4", optional = true }
 serde = { version = "1", features = ["derive"], optional = true }
 serde_json = { version = "1", default-features = false, optional = true, features = ["std", "raw_value"] }
 simdutf8 = { version = "0.1.5", optional = true }
-fancy-regex = { version = "0.15.0", default-features = false, optional = true }
+fancy-regex = { version = "0.16", default-features = false, optional = true }
 sha-1 = { version = "0.10", optional = true }
 sha-2 = { package = "sha2", version = "0.10", optional = true }
 sha-3 = { package = "sha3", version = "0.10", optional = true }
@@ -242,7 +244,7 @@ grok = { version = "2.4", optional = true }
 onig = { version = "6", default-features = false, optional = true }
 tokio = { version = "1.45", optional = true, features = ["io-util", "macros", "net", "time", "sync", "rt", "rt-multi-thread"] }
 uuid = { version = "1", features = ["v4", "v7"], optional = true }
-jsonschema = { version = "0.32", default-features = false }
+jsonschema = { version = "0.38.1", default-features = false }
 
 # Dependencies used for WASM
 [target.'cfg(target_arch = "wasm32")'.dependencies]
@@ -250,7 +252,7 @@ uuid = { version = "1", features = ["v4", "v7", "js"], optional = true }
 
 [dev-dependencies]
 anyhow = "1"
-criterion = "0.7"
+criterion = "0.8"
 chrono-tz = "0.10"
 serde_json = "1"
 indoc = "2"

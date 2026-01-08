@@ -45,20 +45,34 @@ impl Function for MapKeys {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
-                title: "map object keys",
-                source: r#"map_keys({ "a": 1, "b": 2 }) -> |key| { upcase(key) }"#,
-                result: Ok(r#"{ "A": 1, "B": 2 }"#),
+            example! {
+                title: "Upcase keys",
+                source: indoc! {r#"
+                    . = {
+                        "foo": "foo",
+                        "bar": "bar",
+                        "baz": {"nested key": "val"}
+                    }
+                    map_keys(.) -> |key| { upcase(key) }
+                "#},
+                result: Ok(r#"{ "FOO": "foo", "BAR": "bar", "BAZ": {"nested key": "val"} }"#),
             },
-            Example {
-                title: "recursively map object keys",
+            example! {
+                title: "De-dot keys",
+                source: indoc! {r#"
+                    . = {
+                        "labels": {
+                            "app.kubernetes.io/name": "mysql"
+                        }
+                    }
+                    map_keys(., recursive: true) -> |key| { replace(key, ".", "_") }
+                "#},
+                result: Ok(r#"{ "labels": { "app_kubernetes_io/name": "mysql" } }"#),
+            },
+            example! {
+                title: "Recursively map object keys",
                 source: r#"map_keys({ "a": 1, "b": [{ "c": 2 }, { "d": 3 }], "e": { "f": 4 } }, recursive: true) -> |key| { upcase(key) }"#,
                 result: Ok(r#"{ "A": 1, "B": [{ "C": 2 }, { "D": 3 }], "E": { "F": 4 } }"#),
-            },
-            Example {
-                title: "map nested object keys",
-                source: r#"map_keys({ "a": 1, "b": { "c": 2, "d": 3, "e": { "f": 4 } } }.b) -> |key| { upcase(key) }"#,
-                result: Ok(r#"{ "C": 2, "D": 3, "E": { "f": 4 } }"#),
             },
         ]
     }
@@ -92,7 +106,7 @@ impl Function for MapKeys {
                     kind: VariableKind::Exact(Kind::bytes()),
                 }],
                 output: Output::Kind(Kind::bytes()),
-                example: Example {
+                example: example! {
                     title: "map object keys",
                     source: r#"map_keys({ "one" : 1, "two": 2 }) -> |key| { upcase(key) }"#,
                     result: Ok(r#"{ "ONE": 1, "TWO": 2 }"#),

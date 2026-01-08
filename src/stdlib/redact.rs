@@ -47,35 +47,35 @@ impl Function for Redact {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
-                title: "regex",
+            example! {
+                title: "Replace text using a regex",
                 source: r#"redact("my id is 123456", filters: [r'\d+'])"#,
                 result: Ok("my id is [REDACTED]"),
             },
-            Example {
-                title: "us_social_security_number",
+            example! {
+                title: "Replace us social security numbers in any field",
                 source: r#"redact({ "name": "John Doe", "ssn": "123-12-1234"}, filters: ["us_social_security_number"])"#,
                 result: Ok(r#"{ "name": "John Doe", "ssn": "[REDACTED]" }"#),
             },
-            Example {
-                title: "text redactor",
+            example! {
+                title: "Replace with custom text",
                 source: r#"redact("my id is 123456", filters: [r'\d+'], redactor: {"type": "text", "replacement": "***"})"#,
                 result: Ok("my id is ***"),
             },
-            Example {
-                title: "sha2",
+            example! {
+                title: "Replace with SHA-2 hash",
                 source: r#"redact("my id is 123456", filters: [r'\d+'], redactor: "sha2")"#,
                 result: Ok("my id is GEtTedW1p6tC094dDKH+3B8P+xSnZz69AmpjaXRd63I="),
             },
-            Example {
-                title: "sha3",
+            example! {
+                title: "Replace with SHA-3 hash",
                 source: r#"redact("my id is 123456", filters: [r'\d+'], redactor: "sha3")"#,
                 result: Ok(
                     "my id is ZNCdmTDI7PeeUTFnpYjLdUObdizo+bIupZdl8yqnTKGdLx6X3JIqPUlUWUoFBikX+yTR+OcvLtAqWO11NPlNJw==",
                 ),
             },
-            Example {
-                title: "sha256 hex",
+            example! {
+                title: "Replace with SHA-256 hash using hex encoding",
                 source: r#"redact("my id is 123456", filters: [r'\d+'], redactor: {"type": "sha2", "variant": "SHA-256", "encoding": "base16"})"#,
                 result: Ok(
                     "my id is 8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",

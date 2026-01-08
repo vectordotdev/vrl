@@ -25,17 +25,25 @@ impl Function for Boolean {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
-                title: "valid",
+            example! {
+                title: "Valid Boolean",
                 source: "bool(false)",
                 result: Ok("false"),
             },
-            Example {
-                title: "invalid",
+            example! {
+                title: "Invalid Boolean",
                 source: "bool!(42)",
                 result: Err(
                     r#"function call error for "bool" at (0:9): expected boolean, got integer"#,
                 ),
+            },
+            example! {
+                title: "Valid Boolean from path",
+                source: indoc! {r#"
+                    . = { "value": true }
+                    bool(.value)
+                "#},
+                result: Ok("true"),
             },
         ]
     }

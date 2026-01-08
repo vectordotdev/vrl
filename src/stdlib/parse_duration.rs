@@ -73,11 +73,18 @@ impl Function for ParseDuration {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[Example {
-            title: "milliseconds",
-            source: r#"parse_duration!("1005ms", unit: "s")"#,
-            result: Ok("1.005"),
-        }]
+        &[
+            example! {
+                title: "Parse duration (milliseconds)",
+                source: r#"parse_duration!("1005ms", unit: "s")"#,
+                result: Ok("1.005"),
+            },
+            example! {
+                title: "Parse multiple durations (seconds & milliseconds)",
+                source: r#"parse_duration!("1s 1ms", unit: "ms")"#,
+                result: Ok("1001.0"),
+            },
+        ]
     }
 
     fn compile(

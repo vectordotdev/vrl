@@ -4,6 +4,68 @@
 
 <!-- changelog start -->
 
+## [0.29.0 (2025-12-11)]
+
+### Breaking Changes & Upgrade Guide
+
+- Added required `line` and `file` fields to `vrl::compiler::function::Example`. Also added the
+  `example!` macro to automatically populate those fields.
+
+  authors: thomasqueirozb (https://github.com/vectordotdev/vrl/pull/1557)
+
+### Fixes
+
+- Fixed handling of OR conjunctions in the datadog search query parser (https://github.com/vectordotdev/vrl/pull/1542)
+- Fixed a bug where VRL would crash if `merge` were called without a `to` argument.
+
+  authors: thomasqueirozb (https://github.com/vectordotdev/vrl/pull/1563)
+- Fixed a bug where a stack overflow would happen in validate_json_schema if the schema had an empty $ref.
+
+  authors: jlambatl (https://github.com/vectordotdev/vrl/pull/1577)
+
+
+## [0.28.1 (2025-11-07)]
+
+### Fixes
+
+- Fixed an issue where `split_path`, `basename`, `dirname` had not been added to VRL's standard
+  library and, therefore, appeared to be missing and were inaccessible in the `0.28.0` release.
+
+  authors: thomasqueirozb (https://github.com/vectordotdev/vrl/pull/1553)
+
+
+## [0.28.0 (2025-11-03)]
+
+### Breaking Changes & Upgrade Guide
+
+- The return value of the `find` function has been changed to `null` instead of `-1` if there is no match.
+
+  authors: titaneric (https://github.com/vectordotdev/vrl/pull/1514)
+
+### New Features
+
+- Introduced the `basename` function to get the last component of a path.
+
+  author: titaneric (https://github.com/vectordotdev/vrl/pull/1531)
+- Introduced the `dirname` function to get the directory component of a path.
+
+  author: titaneric (https://github.com/vectordotdev/vrl/pull/1532)
+- Introduced the `split_path` function to split a path into its components.
+
+  author: titaneric (https://github.com/vectordotdev/vrl/pull/1533)
+
+### Enhancements
+
+- Added optional `http_proxy` and `https_proxy` parameters to `http_request` for setting the proxies used for a request. (https://github.com/vectordotdev/vrl/pull/1534)
+- Added support for encoding a VRL `Integer` into a protobuf `double` when using `encode_proto`
+
+  authors: thomasqueirozb (https://github.com/vectordotdev/vrl/pull/1545)
+
+### Fixes
+
+- Fixed `parse_glog` to accept space-padded thread-id. (https://github.com/vectordotdev/vrl/pull/1515)
+
+
 ## [0.27.0 (2025-09-18)]
 
 ### Breaking Changes & Upgrade Guide
@@ -138,7 +200,7 @@
 - The `parse_syslog` function now treats RFC 3164 structured data items with no parameters (e.g., `[exampleSDID@32473]`) as part of the main
   message, rather than parsing them as structured data. Items with parameters (e.g., `[exampleSDID@32473 field="value"]`) continue to be
   parsed as structured data. (https://github.com/vectordotdev/vrl/pull/1435)
-- `encode_lz4`  no longer prepends the uncompressed size by default, improving compatibility with standard LZ4 tools. A new `prepend_size` flag restores the old behavior if needed. Also, `decode_lz4` now also accepts `prepend_size` and a `buf_size` option (default: 1MB). 
+- `encode_lz4`  no longer prepends the uncompressed size by default, improving compatibility with standard LZ4 tools. A new `prepend_size` flag restores the old behavior if needed. Also, `decode_lz4` now also accepts `prepend_size` and a `buf_size` option (default: 1MB).
 
   Existing users of `encode_lz4` and `decode_lz4` will need to update their functions to include the argument `prepend_size: true` to maintain existing compatibility.
 

@@ -41,23 +41,23 @@ impl Function for EncodePunycode {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
-                title: "IDN string",
+            example! {
+                title: "Encode an internationalized domain name",
                 source: r#"encode_punycode!("www.café.com")"#,
                 result: Ok("www.xn--caf-dma.com"),
             },
-            Example {
-                title: "mixed case string",
+            example! {
+                title: "Encode an internationalized domain name with mixed case",
                 source: r#"encode_punycode!("www.CAFé.com")"#,
                 result: Ok("www.xn--caf-dma.com"),
             },
-            Example {
-                title: "ascii string",
+            example! {
+                title: "Encode an ASCII only string",
                 source: r#"encode_punycode!("www.cafe.com")"#,
                 result: Ok("www.cafe.com"),
             },
-            Example {
-                title: "ignore validation",
+            example! {
+                title: "Ignore validation",
                 source: r#"encode_punycode!("xn--8hbb.xn--fiba.xn--8hbf.xn--eib.", validate: false)"#,
                 result: Ok("xn--8hbb.xn--fiba.xn--8hbf.xn--eib."),
             },

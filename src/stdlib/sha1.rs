@@ -23,10 +23,10 @@ impl Function for Sha1 {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[Example {
-            title: "sha1",
-            source: r#"sha1("foobar")"#,
-            result: Ok("8843d7f92416211de9ebb963ff4ce28125932878"),
+        &[example! {
+            title: "Calculate sha1 hash",
+            source: r#"sha1("foo")"#,
+            result: Ok("0beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33"),
         }]
     }
 

@@ -25,13 +25,21 @@ impl Function for Integer {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
-                title: "valid",
+            example! {
+                title: "Declare an integer type",
+                source: indoc! {r#"
+                    . = { "value": 42 }
+                    int(.value)
+                "#},
+                result: Ok("42"),
+            },
+            example! {
+                title: "Declare an integer type (literal)",
                 source: "int(42)",
                 result: Ok("42"),
             },
-            Example {
-                title: "invalid",
+            example! {
+                title: "Invalid integer type",
                 source: "int!(true)",
                 result: Err(
                     r#"function call error for "int" at (0:10): expected integer, got boolean"#,

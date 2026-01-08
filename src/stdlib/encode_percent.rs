@@ -117,15 +117,20 @@ impl Function for EncodePercent {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
-                title: "percent encode string",
+            example! {
+                title: "Percent encode all non-alphanumeric characters (default)",
                 source: r#"encode_percent("foo bar?")"#,
-                result: Ok("s'foo%20bar%3F'"),
+                result: Ok("foo%20bar%3F"),
             },
-            Example {
-                title: "percent encode for query",
+            example! {
+                title: "Percent encode only control characters",
+                source: r#"encode_percent("foo \tbar", ascii_set: "CONTROLS")"#,
+                result: Ok("foo %09bar"),
+            },
+            example! {
+                title: "Percent encode special characters",
                 source: r#"encode_percent("foo@bar?")"#,
-                result: Ok("s'foo%40bar%3F'"),
+                result: Ok("foo%40bar%3F"),
             },
         ]
     }

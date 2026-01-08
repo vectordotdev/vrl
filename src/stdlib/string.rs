@@ -25,13 +25,16 @@ impl Function for String {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
-                title: "valid",
-                source: r#"string("foobar")"#,
-                result: Ok("foobar"),
+            example! {
+                title: "Declare a string type",
+                source: indoc! {r#"
+                    . = { "message": "{\"field\": \"value\"}" }
+                    string(.message)
+                "#},
+                result: Ok(r#""{\"field\": \"value\"}""#),
             },
-            Example {
-                title: "invalid",
+            example! {
+                title: "Invalid type",
                 source: "string!(true)",
                 result: Err(
                     r#"function call error for "string" at (0:13): expected string, got boolean"#,

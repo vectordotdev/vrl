@@ -19,20 +19,20 @@ impl Function for IsTimestamp {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
-                title: "string",
-                source: r#"is_timestamp("foobar")"#,
-                result: Ok("false"),
-            },
-            Example {
-                title: "boolean",
-                source: "is_timestamp(true)",
-                result: Ok("false"),
-            },
-            Example {
-                title: "null",
+            example! {
+                title: "Valid timestamp",
                 source: "is_timestamp(t'2021-03-26T16:00:00Z')",
                 result: Ok("true"),
+            },
+            example! {
+                title: "Non-matching type",
+                source: r#"is_timestamp("a string")"#,
+                result: Ok("false"),
+            },
+            example! {
+                title: "Boolean value",
+                source: "is_timestamp(true)",
+                result: Ok("false"),
             },
         ]
     }

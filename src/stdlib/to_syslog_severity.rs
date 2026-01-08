@@ -35,12 +35,12 @@ impl Function for ToSyslogSeverity {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
-                title: "valid",
-                source: "to_syslog_severity!(s'crit')",
-                result: Ok("2"),
+            example! {
+                title: "Coerce to Syslog severity",
+                source: r#"to_syslog_severity!("alert")"#,
+                result: Ok("1"),
             },
-            Example {
+            example! {
                 title: "invalid",
                 source: "to_syslog_severity!(s'foobar')",
                 result: Err(

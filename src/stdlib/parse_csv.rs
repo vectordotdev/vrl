@@ -39,11 +39,18 @@ impl Function for ParseCsv {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[Example {
-            title: "parse a single CSV formatted row",
-            source: r#"parse_csv!(s'foo,bar,"foo "", bar"')"#,
-            result: Ok(r#"["foo", "bar", "foo \", bar"]"#),
-        }]
+        &[
+            example! {
+                title: "Parse a single CSV formatted row",
+                source: r#"parse_csv!(s'foo,bar,"foo "", bar"')"#,
+                result: Ok(r#"["foo", "bar", "foo \", bar"]"#),
+            },
+            example! {
+                title: "Parse a single CSV formatted row with custom delimiter",
+                source: r#"parse_csv!("foo bar", delimiter: " ")"#,
+                result: Ok(r#"["foo", "bar"]"#),
+            },
+        ]
     }
 
     fn compile(

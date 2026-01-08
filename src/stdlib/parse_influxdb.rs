@@ -143,8 +143,8 @@ impl Function for ParseInfluxDB {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[Example {
-            title: "parse influxdb line protocol",
+        &[example! {
+            title: "Parse InfluxDB line protocol",
             source: r#"parse_influxdb!("cpu,host=A,region=us-west usage_system=64i,usage_user=10u,temperature=50.5,on=true,sleep=false 1590488773254420000")"#,
             result: Ok(indoc! {r#"
                 [

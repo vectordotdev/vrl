@@ -22,11 +22,28 @@ impl Function for IsNullish {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[Example {
-            title: "null",
-            source: "is_nullish(null)",
-            result: Ok("true"),
-        }]
+        &[
+            example! {
+                title: "Null detection (blank string)",
+                source: r#"is_nullish("")"#,
+                result: Ok("true"),
+            },
+            example! {
+                title: "Null detection (dash string)",
+                source: r#"is_nullish("-")"#,
+                result: Ok("true"),
+            },
+            example! {
+                title: "Null detection (whitespace)",
+                source: "is_nullish(\"\n  \n\")",
+                result: Ok("true"),
+            },
+            example! {
+                title: "Null",
+                source: "is_nullish(null)",
+                result: Ok("true"),
+            },
+        ]
     }
 
     fn compile(

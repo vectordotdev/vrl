@@ -37,11 +37,18 @@ impl Function for DecodeBase16 {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[Example {
-            title: "demo string",
-            source: r#"decode_base16!("736F6D6520737472696E672076616C7565")"#,
-            result: Ok("some string value"),
-        }]
+        &[
+            example! {
+                title: "Decode Base16 data",
+                source: r#"decode_base16!("736F6D6520737472696E672076616C7565")"#,
+                result: Ok("some string value"),
+            },
+            example! {
+                title: "Decode longer Base16 data",
+                source: r#"decode_base16!("796f752068617665207375636365737366756c6c79206465636f646564206d65")"#,
+                result: Ok("you have successfully decoded me"),
+            },
+        ]
     }
 }
 

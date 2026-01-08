@@ -16,13 +16,13 @@ impl Function for DecodeLz4 {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "LZ4 block with prepended size",
                 source: r#"decode_lz4!(decode_base64!("LAAAAPAdVGhlIHF1aWNrIGJyb3duIGZveCBqdW1wcyBvdmVyIDEzIGxhenkgZG9ncy4="), prepended_size: true)"#,
                 result: Ok("The quick brown fox jumps over 13 lazy dogs."),
             },
-            Example {
-                title: "LZ4 frame format",
+            example! {
+                title: "Decode Lz4 data without prepended size.",
                 source: r#"decode_lz4!(decode_base64!("BCJNGGBAgiwAAIBUaGUgcXVpY2sgYnJvd24gZm94IGp1bXBzIG92ZXIgMTMgbGF6eSBkb2dzLgAAAAA="))"#,
                 result: Ok("The quick brown fox jumps over 13 lazy dogs."),
             },

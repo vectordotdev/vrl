@@ -32,8 +32,8 @@ impl Function for Ipv6ToIpV4 {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[Example {
-            title: "valid IPv6",
+        &[example! {
+            title: "IPv6 to IPv4",
             source: r#"ipv6_to_ipv4!("::ffff:192.168.0.1")"#,
             result: Ok("192.168.0.1"),
         }]

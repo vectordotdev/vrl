@@ -136,11 +136,18 @@ impl Function for FormatNumber {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[Example {
-            title: "format number",
-            source: r#"format_number(4672.4, decimal_separator: ",", grouping_separator: "_")"#,
-            result: Ok("4_672,4"),
-        }]
+        &[
+            example! {
+                title: "Format a number (3 decimals)",
+                source: r#"format_number(1234567.89, 3, decimal_separator: ".", grouping_separator: ",")"#,
+                result: Ok("1,234,567.890"),
+            },
+            example! {
+                title: "Format a number with European-style separators",
+                source: r#"format_number(4672.4, decimal_separator: ",", grouping_separator: "_")"#,
+                result: Ok("4_672,4"),
+            },
+        ]
     }
 }
 

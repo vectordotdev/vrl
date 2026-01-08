@@ -62,15 +62,31 @@ impl Function for Hmac {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
-                title: "default SHA-256",
+            example! {
+                title: "Calculate message HMAC (defaults: SHA-256), encoding to a base64 string",
                 source: r#"encode_base64(hmac("Hello there", "super-secret-key"))"#,
                 result: Ok("eLGE8YMviv85NPXgISRUZxstBNSU47JQdcXkUWcClmI="),
             },
-            Example {
-                title: "SHA1",
+            example! {
+                title: "Calculate message HMAC using SHA-224, encoding to a hex-encoded string",
+                source: r#"encode_base16(hmac("Hello there", "super-secret-key", algorithm: "SHA-224"))"#,
+                result: Ok("42fccbc2b7d22a143b92f265a8046187558a94d11ddbb30622207e90"),
+            },
+            example! {
+                title: "Calculate message HMAC using SHA1, encoding to a base64 string",
                 source: r#"encode_base64(hmac("Hello there", "super-secret-key", algorithm: "SHA1"))"#,
                 result: Ok("MiyBIHO8Set9+6crALiwkS0yFPE="),
+            },
+            example! {
+                title: "Calculate message HMAC using a variable hash algorithm",
+                source: r#"
+.hash_algo = "SHA-256"
+hmac_bytes, err = hmac("Hello there", "super-secret-key", algorithm: .hash_algo)
+if err == null {
+	.hmac = encode_base16(hmac_bytes)
+}
+"#,
+                result: Ok("78b184f1832f8aff3934f5e0212454671b2d04d494e3b25075c5e45167029662"),
             },
         ]
     }

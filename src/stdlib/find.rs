@@ -42,11 +42,33 @@ impl Function for Find {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[Example {
-            title: "string",
-            source: r#"find("foobar", "bar")"#,
-            result: Ok("3"),
-        }]
+        &[
+            example! {
+                title: "Match text",
+                source: r#"find("foobar", "bar")"#,
+                result: Ok("3"),
+            },
+            example! {
+                title: "Match text at start",
+                source: r#"find("foobar", "foo")"#,
+                result: Ok("0"),
+            },
+            example! {
+                title: "Match regex",
+                source: r#"find("foobar", r'b.r')"#,
+                result: Ok("3"),
+            },
+            example! {
+                title: "No matches",
+                source: r#"find("foobar", "baz")"#,
+                result: Ok("null"),
+            },
+            example! {
+                title: "With an offset",
+                source: r#"find("foobarfoobarfoo", "bar", 4)"#,
+                result: Ok("9"),
+            },
+        ]
     }
 
     fn compile(

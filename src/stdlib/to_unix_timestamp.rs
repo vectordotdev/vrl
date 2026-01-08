@@ -25,25 +25,25 @@ impl Function for ToUnixTimestamp {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
-                title: "default (seconds)",
-                source: "to_unix_timestamp(t'2000-01-01T00:00:00Z')",
-                result: Ok("946684800"),
+            example! {
+                title: "Convert to a Unix timestamp (seconds)",
+                source: "to_unix_timestamp(t'2021-01-01T00:00:00+00:00')",
+                result: Ok("1609459200"),
             },
-            Example {
-                title: "milliseconds",
-                source: r#"to_unix_timestamp(t'2010-01-01T00:00:00Z', unit: "milliseconds")"#,
-                result: Ok("1262304000000"),
+            example! {
+                title: "Convert to a Unix timestamp (milliseconds)",
+                source: r#"to_unix_timestamp(t'2021-01-01T00:00:00Z', unit: "milliseconds")"#,
+                result: Ok("1609459200000"),
             },
-            Example {
-                title: "microseconds",
-                source: r#"to_unix_timestamp(t'2010-01-01T00:00:00Z', unit: "microseconds")"#,
-                result: Ok("1262304000000000"),
+            example! {
+                title: "Convert to a Unix timestamp (microseconds)",
+                source: r#"to_unix_timestamp(t'2021-01-01T00:00:00Z', unit: "microseconds")"#,
+                result: Ok("1609459200000000"),
             },
-            Example {
-                title: "nanoseconds",
-                source: r#"to_unix_timestamp(t'2020-01-01T00:00:00Z', unit: "nanoseconds")"#,
-                result: Ok("1577836800000000000"),
+            example! {
+                title: "Convert to a Unix timestamp (nanoseconds)",
+                source: r#"to_unix_timestamp(t'2021-01-01T00:00:00Z', unit: "nanoseconds")"#,
+                result: Ok("1609459200000000000"),
             },
         ]
     }

@@ -19,18 +19,23 @@ impl Function for IsArray {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
-                title: "array",
+            example! {
+                title: "Valid array",
                 source: "is_array([1, 2, 3])",
                 result: Ok("true"),
             },
-            Example {
-                title: "boolean",
+            example! {
+                title: "Non-matching type",
+                source: r#"is_array("a string")"#,
+                result: Ok("false"),
+            },
+            example! {
+                title: "Boolean",
                 source: "is_array(true)",
                 result: Ok("false"),
             },
-            Example {
-                title: "null",
+            example! {
+                title: "Null",
                 source: "is_array(null)",
                 result: Ok("false"),
             },

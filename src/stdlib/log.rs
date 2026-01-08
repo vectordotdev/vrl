@@ -30,14 +30,20 @@ impl Function for Log {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
-                title: "default log level (info)",
-                source: r#"log("foo")"#,
+            example! {
+                title: "Log a message",
+                source: r#"log("Hello, World!", level: "info", rate_limit_secs: 60)"#,
                 result: Ok("null"),
             },
-            Example {
-                title: "custom level",
-                source: r#"log("foo", "error")"#,
+            example! {
+                title: "Log an error",
+                source: indoc! {r#"
+                    . = { "field": "not an integer" }
+                    _, err = to_int(.field)
+                    if err != null {
+                        log(err, level: "error")
+                    }
+                "#},
                 result: Ok("null"),
             },
         ]

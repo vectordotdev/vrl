@@ -52,11 +52,23 @@ impl Function for Pascalcase {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[Example {
-            title: "pascalcase",
-            source: r#"pascalcase("input_string")"#,
-            result: Ok("InputString"),
-        }]
+        &[
+            example! {
+                title: "PascalCase a string without specifying original case",
+                source: r#"pascalcase("input-string")"#,
+                result: Ok("InputString"),
+            },
+            example! {
+                title: "PascalCase a snake_case string",
+                source: r#"pascalcase("foo_bar_baz", "snake_case")"#,
+                result: Ok("FooBarBaz"),
+            },
+            example! {
+                title: "PascalCase specifying the wrong original case (only capitalizes)",
+                source: r#"pascalcase("foo_bar_baz", "kebab-case")"#,
+                result: Ok("Foo_bar_baz"),
+            },
+        ]
     }
 }
 

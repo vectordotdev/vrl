@@ -24,19 +24,19 @@ impl Function for IsIpv4 {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
-                title: "random string",
-                source: r#"is_ipv4("foobar")"#,
-                result: Ok("false"),
-            },
-            Example {
-                title: "IPv4 address",
-                source: r#"is_ipv4("1.1.1.1")"#,
+            example! {
+                title: "Valid IPv4 address",
+                source: r#"is_ipv4("10.0.102.37")"#,
                 result: Ok("true"),
             },
-            Example {
-                title: "IPv6 address",
+            example! {
+                title: "Valid IPv6 address",
                 source: r#"is_ipv4("2001:0db8:85a3:0000:0000:8a2e:0370:7334")"#,
+                result: Ok("false"),
+            },
+            example! {
+                title: "Arbitrary string",
+                source: r#"is_ipv4("foobar")"#,
                 result: Ok("false"),
             },
         ]

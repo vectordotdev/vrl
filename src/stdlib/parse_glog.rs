@@ -78,8 +78,8 @@ impl Function for ParseGlog {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[Example {
-            title: "valid",
+        &[example! {
+            title: "Parse using glog",
             source: r#"parse_glog!("I20210131 14:48:54.411655 15520 main.c++:9] Hello world!")"#,
             result: Ok(indoc! { r#"{
                 "file": "main.c++",

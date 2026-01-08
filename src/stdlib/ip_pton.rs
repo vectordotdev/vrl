@@ -34,12 +34,12 @@ impl Function for IpPton {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
+            example! {
                 title: "Convert IPv4 address to bytes and encode to Base64",
                 source: r#"encode_base64(ip_pton!("192.168.0.1"))"#,
                 result: Ok("wKgAAQ=="),
             },
-            Example {
+            example! {
                 title: "Convert IPv6 address to bytes and encode to Base64",
                 source: r#"encode_base64(ip_pton!("2001:db8:85a3::8a2e:370:7334"))"#,
                 result: Ok("IAENuIWjAAAAAIouA3BzNA=="),

@@ -62,59 +62,64 @@ impl Function for Get {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
-                title: "returns existing field",
+            example! {
+                title: "Single-segment top-level field",
                 source: r#"get!(value: {"foo": "bar"}, path: ["foo"])"#,
                 result: Ok(r#""bar""#),
             },
-            Example {
-                title: "returns null for unknown field",
+            example! {
+                title: "Returns null for unknown field",
                 source: r#"get!(value: {"foo": "bar"}, path: ["baz"])"#,
                 result: Ok("null"),
             },
-            Example {
-                title: "nested path",
+            example! {
+                title: "Multi-segment nested field",
                 source: r#"get!(value: {"foo": { "bar": true }}, path: ["foo", "bar"])"#,
                 result: Ok("true"),
             },
-            Example {
-                title: "indexing",
+            example! {
+                title: "Array indexing",
                 source: "get!(value: [92, 42], path: [0])",
                 result: Ok("92"),
             },
-            Example {
-                title: "nested indexing",
+            example! {
+                title: "Array indexing (negative)",
+                source: r#"get!(value: ["foo", "bar", "baz"], path: [-2])"#,
+                result: Ok(r#""bar""#),
+            },
+            example! {
+                title: "Nested indexing",
                 source: r#"get!(value: {"foo": { "bar": [92, 42] }}, path: ["foo", "bar", 1])"#,
                 result: Ok("42"),
             },
-            Example {
-                title: "external target",
+            example! {
+                title: "External target",
                 source: indoc! {r#"
                     . = { "foo": true }
                     get!(value: ., path: ["foo"])
                 "#},
                 result: Ok("true"),
             },
-            Example {
-                title: "variable",
+            example! {
+                title: "Variable",
                 source: indoc! {r#"
                     var = { "foo": true }
                     get!(value: var, path: ["foo"])
                 "#},
                 result: Ok("true"),
             },
-            Example {
-                title: "missing index",
+            example! {
+                title: "Missing index",
                 source: r#"get!(value: {"foo": { "bar": [92, 42] }}, path: ["foo", "bar", 1, -1])"#,
                 result: Ok("null"),
             },
-            Example {
-                title: "invalid indexing",
+            example! {
+                title: "Invalid indexing",
                 source: r#"get!(value: [42], path: ["foo"])"#,
                 result: Ok("null"),
             },
-            Example {
-                title: "invalid segment type",
+            example! {
+                title: "Invalid segment type",
                 source: r#"get!(value: {"foo": { "bar": [92, 42] }}, path: ["foo", true])"#,
                 result: Err(
                     r#"function call error for "get" at (0:62): path segment must be either string or integer, not boolean"#,

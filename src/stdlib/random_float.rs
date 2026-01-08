@@ -52,8 +52,8 @@ impl Function for RandomFloat {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[Example {
-            title: "generate a random float from 0.0 to 10.0",
+        &[example! {
+            title: "Random float from 0.0 to 10.0, not including 10.0",
             source: "
 				f = random_float(0.0, 10.0)
 				f >= 0 && f < 10

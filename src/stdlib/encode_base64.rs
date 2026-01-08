@@ -73,11 +73,28 @@ impl Function for EncodeBase64 {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[Example {
-            title: "demo string",
-            source: r#"encode_base64("some string value", padding: false, charset: "url_safe")"#,
-            result: Ok("c29tZSBzdHJpbmcgdmFsdWU"),
-        }]
+        &[
+            example! {
+                title: "Encode to Base64 (default)",
+                source: r#"encode_base64("please encode me")"#,
+                result: Ok("cGxlYXNlIGVuY29kZSBtZQ=="),
+            },
+            example! {
+                title: "Encode to Base64 (without padding)",
+                source: r#"encode_base64("please encode me, no padding though", padding: false)"#,
+                result: Ok("cGxlYXNlIGVuY29kZSBtZSwgbm8gcGFkZGluZyB0aG91Z2g"),
+            },
+            example! {
+                title: "Encode to Base64 (URL safe)",
+                source: r#"encode_base64("please encode me, but safe for URLs", charset: "url_safe")"#,
+                result: Ok("cGxlYXNlIGVuY29kZSBtZSwgYnV0IHNhZmUgZm9yIFVSTHM="),
+            },
+            example! {
+                title: "Encode to Base64 (without padding and URL safe)",
+                source: r#"encode_base64("some string value", padding: false, charset: "url_safe")"#,
+                result: Ok("c29tZSBzdHJpbmcgdmFsdWU"),
+            },
+        ]
     }
 }
 

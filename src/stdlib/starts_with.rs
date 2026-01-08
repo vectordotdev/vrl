@@ -94,19 +94,19 @@ impl Function for StartsWith {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
-                title: "case sensitive",
-                source: r#"starts_with("foobar", "F")"#,
-                result: Ok("false"),
-            },
-            Example {
-                title: "case insensitive",
-                source: r#"starts_with("foobar", "F", false)"#,
+            example! {
+                title: "String starts with (case sensitive)",
+                source: r#"starts_with("The Needle In The Haystack", "The Needle")"#,
                 result: Ok("true"),
             },
-            Example {
-                title: "mismatch",
-                source: r#"starts_with("foobar", "bar")"#,
+            example! {
+                title: "String starts with (case insensitive)",
+                source: r#"starts_with("The Needle In The Haystack", "the needle", case_sensitive: false)"#,
+                result: Ok("true"),
+            },
+            example! {
+                title: "String starts with (case sensitive failure)",
+                source: r#"starts_with("foobar", "F")"#,
                 result: Ok("false"),
             },
         ]

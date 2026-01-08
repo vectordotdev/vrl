@@ -29,32 +29,32 @@ impl Function for ParseCbor {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
-                title: "object",
+            example! {
+                title: "Parse CBOR",
                 source: r#"parse_cbor!(decode_base64!("oWVmaWVsZGV2YWx1ZQ=="))"#,
                 result: Ok(r#"{ "field": "value" }"#),
             },
-            Example {
+            example! {
                 title: "array",
                 source: r#"parse_cbor!(decode_base64!("gvUA"))"#,
                 result: Ok("[true, 0]"),
             },
-            Example {
+            example! {
                 title: "string",
                 source: r#"parse_cbor!(decode_base64!("ZWhlbGxv"))"#,
                 result: Ok("hello"),
             },
-            Example {
+            example! {
                 title: "integer",
                 source: r#"parse_cbor!(decode_base64!("GCo="))"#,
                 result: Ok("42"),
             },
-            Example {
+            example! {
                 title: "float",
                 source: r#"parse_cbor!(decode_base64!("+0BFEKPXCj1x"))"#,
                 result: Ok("42.13"),
             },
-            Example {
+            example! {
                 title: "boolean",
                 source: r#"parse_cbor!(decode_base64!("9A=="))"#,
                 result: Ok("false"),

@@ -16,6 +16,7 @@ cfg_if::cfg_if! {
         mod array;
         mod assert;
         mod assert_eq;
+        mod basename;
         mod boolean;
         mod ceil;
         mod casing;
@@ -38,6 +39,7 @@ cfg_if::cfg_if! {
         mod decrypt;
         mod decrypt_ip;
         mod del;
+        mod dirname;
         mod dns_lookup;
         mod downcase;
         mod encode_base16;
@@ -171,6 +173,7 @@ cfg_if::cfg_if! {
         mod sieve;
         mod slice;
         mod split;
+        mod split_path;
         mod starts_with;
         mod string;
         mod strip_ansi_escape_codes;
@@ -207,406 +210,233 @@ cfg_if::cfg_if! {
 
         // -----------------------------------------------------------------------------
 
-        pub use self::hmac::Hmac;
-        pub use abs::Abs;
-        pub use append::Append;
-        pub use assert::Assert;
-        pub use assert_eq::AssertEq;
-        pub use boolean::Boolean;
-        pub use ceil::Ceil;
-        pub use chunks::Chunks;
-        pub use compact::Compact;
-        pub use contains::Contains;
-        pub use contains_all::ContainsAll;
-        pub use decode_base16::DecodeBase16;
-        pub use decode_base64::DecodeBase64;
-        pub use decode_charset::DecodeCharset;
-        pub use decode_gzip::DecodeGzip;
-        pub use decode_lz4::DecodeLz4;
-        pub use decode_mime_q::DecodeMimeQ;
-        pub use decode_percent::DecodePercent;
-        pub use decode_punycode::DecodePunycode;
-        pub use decode_snappy::DecodeSnappy;
-        pub use decode_zlib::DecodeZlib;
-        pub use decode_zstd::DecodeZstd;
-        pub use decrypt::Decrypt;
-        pub use decrypt_ip::DecryptIp;
-        pub use del::Del;
-        pub use dns_lookup::DnsLookup;
-        pub use downcase::Downcase;
-        pub use casing::camelcase::Camelcase;
-        pub use casing::pascalcase::Pascalcase;
-        pub use casing::snakecase::Snakecase;
-        pub use casing::screamingsnakecase::ScreamingSnakecase;
-        pub use casing::kebabcase::Kebabcase;
-        pub use encode_base16::EncodeBase16;
-        pub use encode_base64::EncodeBase64;
-        pub use encode_charset::EncodeCharset;
-        pub use encode_gzip::EncodeGzip;
-        pub use encode_lz4::EncodeLz4;
-        pub use encode_json::EncodeJson;
-        pub use encode_key_value::EncodeKeyValue;
-        pub use encode_logfmt::EncodeLogfmt;
-        pub use encode_percent::EncodePercent;
-        pub use encode_proto::EncodeProto;
-        pub use encode_punycode::EncodePunycode;
-        pub use encode_snappy::EncodeSnappy;
-        pub use encode_zlib::EncodeZlib;
-        pub use encode_zstd::EncodeZstd;
-        pub use encrypt::Encrypt;
-        pub use encrypt_ip::EncryptIp;
-        pub use ends_with::EndsWith;
-        pub use exists::Exists;
-        pub use filter::Filter;
-        pub use find::Find;
-        pub use flatten::Flatten;
-        pub use float::Float;
-        pub use floor::Floor;
-        pub use for_each::ForEach;
-        pub use format_int::FormatInt;
-        pub use format_number::FormatNumber;
-        pub use format_timestamp::FormatTimestamp;
-        pub use from_unix_timestamp::FromUnixTimestamp;
-        pub use self::community_id::CommunityID;
-        pub use get::Get;
-        pub use get_env_var::GetEnvVar;
-        pub use get_hostname::GetHostname;
-        pub use get_timezone_name::GetTimezoneName;
-        pub use get_timezone_name::get_name_for_timezone;
-        pub use http_request::HttpRequest;
-        pub use haversine::Haversine;
-        pub use includes::Includes;
-        pub use integer::Integer;
-        pub use ip_aton::IpAton;
-        pub use ip_cidr_contains::IpCidrContains;
-        pub use ip_ntoa::IpNtoa;
-        pub use ip_ntop::IpNtop;
-        pub use ip_pton::IpPton;
-        pub use ip_subnet::IpSubnet;
-        pub use ip_to_ipv6::IpToIpv6;
-        pub use ipv6_to_ipv4::Ipv6ToIpV4;
-        pub use is_array::IsArray;
-        pub use is_boolean::IsBoolean;
-        pub use is_empty::IsEmpty;
-        pub use is_float::IsFloat;
-        pub use is_integer::IsInteger;
-        pub use is_ipv4::IsIpv4;
-        pub use is_ipv6::IsIpv6;
-        pub use is_json::IsJson;
-        pub use is_null::IsNull;
-        pub use is_nullish::IsNullish;
-        pub use is_object::IsObject;
-        pub use is_regex::IsRegex;
-        pub use is_string::IsString;
-        pub use is_timestamp::IsTimestamp;
-        pub use join::Join;
-        pub use keys::Keys;
-        pub use length::Length;
-        pub use log::Log;
-        pub use map_keys::MapKeys;
-        pub use map_values::MapValues;
-        pub use match_any::MatchAny;
-        pub use match_array::MatchArray;
-        pub use match_datadog_query::MatchDatadogQuery;
-        pub use merge::Merge;
-        pub use mod_func::Mod;
-        pub use now::Now;
-        pub use object::Object;
-        pub use object_from_array::ObjectFromArray;
-        pub use parse_apache_log::ParseApacheLog;
-        pub use parse_aws_alb_log::ParseAwsAlbLog;
-        pub use parse_aws_cloudwatch_log_subscription_message::ParseAwsCloudWatchLogSubscriptionMessage;
-        pub use parse_aws_vpc_flow_log::ParseAwsVpcFlowLog;
-        pub use parse_bytes::ParseBytes;
-        pub use parse_cbor::ParseCbor;
-        pub use parse_cef::ParseCef;
-        pub use parse_common_log::ParseCommonLog;
-        pub use parse_csv::ParseCsv;
-        pub use parse_duration::ParseDuration;
-        pub use parse_float::ParseFloat;
-        pub use parse_etld::ParseEtld;
-        pub use parse_glog::ParseGlog;
-        pub use parse_grok::ParseGrok;
-        pub use parse_groks::ParseGroks;
-        pub use parse_influxdb::ParseInfluxDB;
-        pub use parse_int::ParseInt;
-        pub use parse_json::ParseJson;
-        pub use parse_key_value::ParseKeyValue;
-        pub use parse_klog::ParseKlog;
-        pub use parse_linux_authorization::ParseLinuxAuthorization;
-        pub use parse_logfmt::ParseLogFmt;
-        pub use parse_nginx_log::ParseNginxLog;
-        pub use parse_proto::ParseProto;
-        pub use parse_query_string::ParseQueryString;
-        pub use parse_regex::ParseRegex;
-        pub use parse_regex_all::ParseRegexAll;
-        pub use parse_ruby_hash::ParseRubyHash;
-        pub use parse_syslog::ParseSyslog;
-        pub use parse_timestamp::ParseTimestamp;
-        pub use parse_tokens::ParseTokens;
-        pub use parse_url::ParseUrl;
-        pub use parse_user_agent::ParseUserAgent;
-        pub use parse_xml::ParseXml;
-        pub use pop::Pop;
-        pub use push::Push;
-        pub use r#match::Match;
-        pub use random_bool::RandomBool;
-        pub use random_bytes::RandomBytes;
-        pub use random_float::RandomFloat;
-        pub use random_int::RandomInt;
-        pub use redact::Redact;
-        pub use remove::Remove;
-        pub use replace::Replace;
-        pub use replace_with::ReplaceWith;
-        pub use reverse_dns::ReverseDns;
-        pub use round::Round;
-        pub use set::Set;
-        pub use sha2::Sha2;
-        pub use sha3::Sha3;
-        pub use shannon_entropy::ShannonEntropy;
-        pub use sieve::Sieve;
-        pub use slice::Slice;
-        pub use split::Split;
-        pub use starts_with::StartsWith;
-        pub use string::String;
-        pub use strip_ansi_escape_codes::StripAnsiEscapeCodes;
-        pub use strip_whitespace::StripWhitespace;
-        pub use strlen::Strlen;
-        pub use tag_types_externally::TagTypesExternally;
-        pub use tally::Tally;
-        pub use tally_value::TallyValue;
-        pub use timestamp::Timestamp;
-        pub use to_bool::ToBool;
-        pub use to_float::ToFloat;
-        pub use to_int::ToInt;
-        pub use to_regex::ToRegex;
-        pub use to_string::ToString;
-        pub use to_syslog_facility_code::ToSyslogFacilityCode;
-        pub use to_syslog_facility::ToSyslogFacility;
-        pub use to_syslog_level::ToSyslogLevel;
-        pub use to_syslog_severity::ToSyslogSeverity;
-        pub use to_unix_timestamp::ToUnixTimestamp;
-        pub use truncate::Truncate;
-        pub use type_def::TypeDef;
-        pub use unflatten::Unflatten;
-        pub use unique::Unique;
-        pub use unnest::Unnest;
-        pub use upcase::Upcase;
-        pub use uuid_from_friendly_id::UuidFromFriendlyId;
-        pub use uuid_v4::UuidV4;
-        pub use uuid_v7::UuidV7;
-        pub use values::Values;
-        pub use validate_json_schema::ValidateJsonSchema;
-        pub use zip::Zip;
-        pub use self::array::Array;
-        pub use self::md5::Md5;
-        pub use self::seahash::Seahash;
-        pub use self::sha1::Sha1;
-        pub use self::xxhash::Xxhash;
-        pub use self::crc::Crc;
-    }
-}
+        // Macro to keep pub use and all() function in sync
+        macro_rules! stdlib_functions {
+            (
+                $(
+                    $path:path
+                ),* $(,)?
+            ) => {
+                // Generate pub use statements
+                $(
+                    pub use $path;
+                )*
 
-#[cfg(feature = "stdlib")]
-#[must_use]
-#[allow(clippy::too_many_lines)]
-pub fn all() -> Vec<Box<dyn Function>> {
-    vec![
-        Box::new(Abs),
-        Box::new(Append),
-        Box::new(Array),
-        Box::new(Assert),
-        Box::new(AssertEq),
-        Box::new(Boolean),
-        Box::new(Camelcase),
-        Box::new(Ceil),
-        Box::new(Chunks),
-        Box::new(Compact),
-        Box::new(Contains),
-        Box::new(ContainsAll),
-        Box::new(Crc),
-        Box::new(DecodeBase16),
-        Box::new(DecodeBase64),
-        Box::new(DecodeCharset),
-        Box::new(DecodeGzip),
-        Box::new(DecodeLz4),
-        Box::new(DecodePercent),
-        Box::new(DecodePunycode),
-        Box::new(DecodeMimeQ),
-        Box::new(DecodeSnappy),
-        Box::new(DecodeZlib),
-        Box::new(DecodeZstd),
-        Box::new(Decrypt),
-        Box::new(DecryptIp),
-        Box::new(Del),
-        Box::new(DnsLookup),
-        Box::new(Downcase),
-        Box::new(EncodeBase16),
-        Box::new(EncodeBase64),
-        Box::new(EncodeCharset),
-        Box::new(EncodeGzip),
-        Box::new(EncodeLz4),
-        Box::new(EncodeJson),
-        Box::new(EncodeKeyValue),
-        Box::new(EncodeLogfmt),
-        Box::new(EncodePercent),
-        Box::new(EncodeProto),
-        Box::new(EncodePunycode),
-        Box::new(EncodeSnappy),
-        Box::new(EncodeZlib),
-        Box::new(EncodeZstd),
-        Box::new(Encrypt),
-        Box::new(EncryptIp),
-        Box::new(EndsWith),
-        Box::new(Exists),
-        Box::new(Filter),
-        Box::new(Find),
-        Box::new(Flatten),
-        Box::new(Float),
-        Box::new(Floor),
-        Box::new(ForEach),
-        Box::new(FormatInt),
-        Box::new(FormatNumber),
-        Box::new(FormatTimestamp),
-        Box::new(FromUnixTimestamp),
-        Box::new(Get),
-        Box::new(GetEnvVar),
-        Box::new(GetHostname),
-        Box::new(GetTimezoneName),
-        Box::new(Haversine),
-        Box::new(HttpRequest),
-        Box::new(Hmac),
-        Box::new(Includes),
-        Box::new(Integer),
-        Box::new(IpAton),
-        Box::new(IpCidrContains),
-        Box::new(IpNtoa),
-        Box::new(IpNtop),
-        Box::new(IpPton),
-        Box::new(IpSubnet),
-        Box::new(IpToIpv6),
-        Box::new(Ipv6ToIpV4),
-        Box::new(IsArray),
-        Box::new(IsBoolean),
-        Box::new(IsEmpty),
-        Box::new(IsFloat),
-        Box::new(IsInteger),
-        Box::new(IsIpv4),
-        Box::new(IsIpv6),
-        Box::new(IsJson),
-        Box::new(IsNull),
-        Box::new(IsNullish),
-        Box::new(IsObject),
-        Box::new(IsRegex),
-        Box::new(IsString),
-        Box::new(IsTimestamp),
-        Box::new(Join),
-        Box::new(Kebabcase),
-        Box::new(Keys),
-        Box::new(Length),
-        Box::new(Log),
-        Box::new(MapKeys),
-        Box::new(MapValues),
-        Box::new(Match),
-        Box::new(MatchAny),
-        Box::new(MatchArray),
-        Box::new(MatchDatadogQuery),
-        Box::new(Md5),
-        Box::new(Merge),
-        Box::new(Mod),
-        Box::new(Now),
-        Box::new(Object),
-        Box::new(ObjectFromArray),
-        Box::new(ParseApacheLog),
-        Box::new(ParseAwsAlbLog),
-        Box::new(ParseAwsCloudWatchLogSubscriptionMessage),
-        Box::new(ParseAwsVpcFlowLog),
-        Box::new(ParseBytes),
-        Box::new(ParseCbor),
-        Box::new(ParseCef),
-        Box::new(ParseCommonLog),
-        Box::new(ParseCsv),
-        Box::new(ParseDuration),
-        Box::new(ParseFloat),
-        Box::new(ParseEtld),
-        Box::new(ParseGlog),
-        Box::new(ParseGrok),
-        Box::new(ParseGroks),
-        Box::new(ParseInfluxDB),
-        Box::new(ParseInt),
-        Box::new(ParseJson),
-        Box::new(ParseKeyValue),
-        Box::new(ParseKlog),
-        Box::new(ParseLinuxAuthorization),
-        Box::new(ParseLogFmt),
-        Box::new(ParseNginxLog),
-        Box::new(ParseProto),
-        Box::new(ParseQueryString),
-        Box::new(ParseRegex),
-        Box::new(ParseRegexAll),
-        Box::new(ParseRubyHash),
-        Box::new(ParseSyslog),
-        Box::new(ParseTimestamp),
-        Box::new(ParseTokens),
-        Box::new(ParseUrl),
-        Box::new(ParseUserAgent),
-        Box::new(ParseXml),
-        Box::new(Pascalcase),
-        Box::new(Pop),
-        Box::new(Push),
-        Box::new(RandomBool),
-        Box::new(RandomBytes),
-        Box::new(RandomFloat),
-        Box::new(RandomInt),
-        Box::new(Redact),
-        Box::new(Remove),
-        Box::new(Replace),
-        Box::new(ReplaceWith),
-        Box::new(ReverseDns),
-        Box::new(Round),
-        Box::new(Seahash),
-        Box::new(Set),
-        Box::new(Sha1),
-        Box::new(Sha2),
-        Box::new(Sha3),
-        Box::new(ShannonEntropy),
-        Box::new(Sieve),
-        Box::new(ScreamingSnakecase),
-        Box::new(Snakecase),
-        Box::new(Slice),
-        Box::new(Split),
-        Box::new(StartsWith),
-        Box::new(String),
-        Box::new(StripAnsiEscapeCodes),
-        Box::new(StripWhitespace),
-        Box::new(Strlen),
-        Box::new(Tally),
-        Box::new(TallyValue),
-        Box::new(TagTypesExternally),
-        Box::new(Timestamp),
-        Box::new(ToBool),
-        Box::new(ToFloat),
-        Box::new(ToInt),
-        Box::new(ToRegex),
-        Box::new(ToString),
-        Box::new(ToSyslogFacilityCode),
-        Box::new(ToSyslogFacility),
-        Box::new(ToSyslogLevel),
-        Box::new(ToSyslogSeverity),
-        Box::new(ToUnixTimestamp),
-        Box::new(CommunityID),
-        Box::new(Truncate),
-        Box::new(TypeDef),
-        Box::new(Unflatten),
-        Box::new(Unique),
-        Box::new(Unnest),
-        Box::new(Upcase),
-        Box::new(UuidFromFriendlyId),
-        Box::new(UuidV4),
-        Box::new(UuidV7),
-        Box::new(Values),
-        Box::new(ValidateJsonSchema),
-        Box::new(Xxhash),
-        Box::new(Zip),
-    ]
+                // Generate the all() function
+                #[must_use]
+                #[allow(clippy::too_many_lines)]
+                pub fn all() -> Vec<Box<dyn Function>> {
+                    vec![
+                        $(
+                            Box::new($path),
+                        )*
+                    ]
+                }
+            };
+        }
+
+        stdlib_functions! {
+            self::hmac::Hmac,
+            abs::Abs,
+            append::Append,
+            assert::Assert,
+            assert_eq::AssertEq,
+            basename::BaseName,
+            boolean::Boolean,
+            ceil::Ceil,
+            chunks::Chunks,
+            compact::Compact,
+            contains::Contains,
+            contains_all::ContainsAll,
+            decode_base16::DecodeBase16,
+            decode_base64::DecodeBase64,
+            decode_charset::DecodeCharset,
+            decode_gzip::DecodeGzip,
+            decode_lz4::DecodeLz4,
+            decode_mime_q::DecodeMimeQ,
+            decode_percent::DecodePercent,
+            decode_punycode::DecodePunycode,
+            decode_snappy::DecodeSnappy,
+            decode_zlib::DecodeZlib,
+            decode_zstd::DecodeZstd,
+            decrypt::Decrypt,
+            decrypt_ip::DecryptIp,
+            del::Del,
+            dirname::DirName,
+            dns_lookup::DnsLookup,
+            downcase::Downcase,
+            casing::camelcase::Camelcase,
+            casing::pascalcase::Pascalcase,
+            casing::snakecase::Snakecase,
+            casing::screamingsnakecase::ScreamingSnakecase,
+            casing::kebabcase::Kebabcase,
+            encode_base16::EncodeBase16,
+            encode_base64::EncodeBase64,
+            encode_charset::EncodeCharset,
+            encode_gzip::EncodeGzip,
+            encode_lz4::EncodeLz4,
+            encode_json::EncodeJson,
+            encode_key_value::EncodeKeyValue,
+            encode_logfmt::EncodeLogfmt,
+            encode_percent::EncodePercent,
+            encode_proto::EncodeProto,
+            encode_punycode::EncodePunycode,
+            encode_snappy::EncodeSnappy,
+            encode_zlib::EncodeZlib,
+            encode_zstd::EncodeZstd,
+            encrypt::Encrypt,
+            encrypt_ip::EncryptIp,
+            ends_with::EndsWith,
+            exists::Exists,
+            filter::Filter,
+            find::Find,
+            flatten::Flatten,
+            float::Float,
+            floor::Floor,
+            for_each::ForEach,
+            format_int::FormatInt,
+            format_number::FormatNumber,
+            format_timestamp::FormatTimestamp,
+            from_unix_timestamp::FromUnixTimestamp,
+            self::community_id::CommunityID,
+            get::Get,
+            get_env_var::GetEnvVar,
+            get_hostname::GetHostname,
+            get_timezone_name::GetTimezoneName,
+            http_request::HttpRequest,
+            haversine::Haversine,
+            includes::Includes,
+            integer::Integer,
+            ip_aton::IpAton,
+            ip_cidr_contains::IpCidrContains,
+            ip_ntoa::IpNtoa,
+            ip_ntop::IpNtop,
+            ip_pton::IpPton,
+            ip_subnet::IpSubnet,
+            ip_to_ipv6::IpToIpv6,
+            ipv6_to_ipv4::Ipv6ToIpV4,
+            is_array::IsArray,
+            is_boolean::IsBoolean,
+            is_empty::IsEmpty,
+            is_float::IsFloat,
+            is_integer::IsInteger,
+            is_ipv4::IsIpv4,
+            is_ipv6::IsIpv6,
+            is_json::IsJson,
+            is_null::IsNull,
+            is_nullish::IsNullish,
+            is_object::IsObject,
+            is_regex::IsRegex,
+            is_string::IsString,
+            is_timestamp::IsTimestamp,
+            join::Join,
+            keys::Keys,
+            length::Length,
+            log::Log,
+            map_keys::MapKeys,
+            map_values::MapValues,
+            match_any::MatchAny,
+            match_array::MatchArray,
+            match_datadog_query::MatchDatadogQuery,
+            merge::Merge,
+            mod_func::Mod,
+            now::Now,
+            object::Object,
+            object_from_array::ObjectFromArray,
+            parse_apache_log::ParseApacheLog,
+            parse_aws_alb_log::ParseAwsAlbLog,
+            parse_aws_cloudwatch_log_subscription_message::ParseAwsCloudWatchLogSubscriptionMessage,
+            parse_aws_vpc_flow_log::ParseAwsVpcFlowLog,
+            parse_bytes::ParseBytes,
+            parse_cbor::ParseCbor,
+            parse_cef::ParseCef,
+            parse_common_log::ParseCommonLog,
+            parse_csv::ParseCsv,
+            parse_duration::ParseDuration,
+            parse_float::ParseFloat,
+            parse_etld::ParseEtld,
+            parse_glog::ParseGlog,
+            parse_grok::ParseGrok,
+            parse_groks::ParseGroks,
+            parse_influxdb::ParseInfluxDB,
+            parse_int::ParseInt,
+            parse_json::ParseJson,
+            parse_key_value::ParseKeyValue,
+            parse_klog::ParseKlog,
+            parse_linux_authorization::ParseLinuxAuthorization,
+            parse_logfmt::ParseLogFmt,
+            parse_nginx_log::ParseNginxLog,
+            parse_proto::ParseProto,
+            parse_query_string::ParseQueryString,
+            parse_regex::ParseRegex,
+            parse_regex_all::ParseRegexAll,
+            parse_ruby_hash::ParseRubyHash,
+            parse_syslog::ParseSyslog,
+            parse_timestamp::ParseTimestamp,
+            parse_tokens::ParseTokens,
+            parse_url::ParseUrl,
+            parse_user_agent::ParseUserAgent,
+            parse_xml::ParseXml,
+            pop::Pop,
+            push::Push,
+            r#match::Match,
+            random_bool::RandomBool,
+            random_bytes::RandomBytes,
+            random_float::RandomFloat,
+            random_int::RandomInt,
+            redact::Redact,
+            remove::Remove,
+            replace::Replace,
+            replace_with::ReplaceWith,
+            reverse_dns::ReverseDns,
+            round::Round,
+            set::Set,
+            sha2::Sha2,
+            sha3::Sha3,
+            shannon_entropy::ShannonEntropy,
+            sieve::Sieve,
+            slice::Slice,
+            split::Split,
+            split_path::SplitPath,
+            starts_with::StartsWith,
+            string::String,
+            strip_ansi_escape_codes::StripAnsiEscapeCodes,
+            strip_whitespace::StripWhitespace,
+            strlen::Strlen,
+            tag_types_externally::TagTypesExternally,
+            tally::Tally,
+            tally_value::TallyValue,
+            timestamp::Timestamp,
+            to_bool::ToBool,
+            to_float::ToFloat,
+            to_int::ToInt,
+            to_regex::ToRegex,
+            to_string::ToString,
+            to_syslog_facility_code::ToSyslogFacilityCode,
+            to_syslog_facility::ToSyslogFacility,
+            to_syslog_level::ToSyslogLevel,
+            to_syslog_severity::ToSyslogSeverity,
+            to_unix_timestamp::ToUnixTimestamp,
+            truncate::Truncate,
+            type_def::TypeDef,
+            unflatten::Unflatten,
+            unique::Unique,
+            unnest::Unnest,
+            upcase::Upcase,
+            uuid_from_friendly_id::UuidFromFriendlyId,
+            uuid_v4::UuidV4,
+            uuid_v7::UuidV7,
+            values::Values,
+            validate_json_schema::ValidateJsonSchema,
+            zip::Zip,
+            self::array::Array,
+            self::md5::Md5,
+            self::seahash::Seahash,
+            self::sha1::Sha1,
+            self::xxhash::Xxhash,
+            self::crc::Crc,
+        }
+
+        pub use get_timezone_name::get_name_for_timezone;
+    }
 }

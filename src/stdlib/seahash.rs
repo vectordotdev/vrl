@@ -16,13 +16,13 @@ impl Function for Seahash {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
-                title: "seahash",
+            example! {
+                title: "Calculate seahash",
                 source: r#"seahash("foobar")"#,
                 result: Ok("5348458858952426560"),
             },
-            Example {
-                title: "seahash above i64.MAX",
+            example! {
+                title: "Calculate negative seahash",
                 source: r#"seahash("bar")"#,
                 result: Ok("-2796170501982571315"),
             },

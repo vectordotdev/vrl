@@ -1,8 +1,8 @@
 #!/bin/bash
 
-if ! cargo install --list | grep -q "dd-rust-license-tool v1.0.1"; then
+if ! cargo install --list | grep -q "dd-rust-license-tool v1.0.4"; then
     echo "Install the 3rd-party license tool"
-    cargo install dd-rust-license-tool --version 1.0.1 --force --locked
+    cargo install dd-rust-license-tool --version 1.0.4 --force --locked
 fi
 
 echo "Check that the 3rd-party license file is up to date"

@@ -27,8 +27,8 @@ impl Function for IpNtoa {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[Example {
-            title: "Example",
+        &[example! {
+            title: "Integer to IPv4",
             source: "ip_ntoa!(16909060)",
             result: Ok("1.2.3.4"),
         }]

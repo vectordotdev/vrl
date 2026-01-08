@@ -26,8 +26,8 @@ impl Function for IpAton {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[Example {
-            title: "Example",
+        &[example! {
+            title: "IPv4 to integer",
             source: r#"ip_aton!("1.2.3.4")"#,
             result: Ok("16909060"),
         }]

@@ -70,69 +70,69 @@ impl Function for Remove {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
-                title: "remove existing field",
-                source: r#"remove!(value: {"foo": "bar"}, path: ["foo"])"#,
+            example! {
+                title: "Single-segment top-level field",
+                source: r#"remove!(value: { "foo": "bar" }, path: ["foo"])"#,
                 result: Ok("{}"),
             },
-            Example {
-                title: "remove unknown field",
+            example! {
+                title: "Remove unknown field",
                 source: r#"remove!(value: {"foo": "bar"}, path: ["baz"])"#,
                 result: Ok(r#"{ "foo": "bar" }"#),
             },
-            Example {
-                title: "nested path",
-                source: r#"remove!(value: {"foo": { "bar": true }}, path: ["foo", "bar"])"#,
+            example! {
+                title: "Multi-segment nested field",
+                source: r#"remove!(value: { "foo": { "bar": "baz" } }, path: ["foo", "bar"])"#,
                 result: Ok(r#"{ "foo": {} }"#),
             },
-            Example {
-                title: "compact object",
+            example! {
+                title: "Array indexing",
+                source: r#"remove!(value: ["foo", "bar", "baz"], path: [-2])"#,
+                result: Ok(r#"["foo", "baz"]"#),
+            },
+            example! {
+                title: "Compaction",
+                source: r#"remove!(value: { "foo": { "bar": [42], "baz": true } }, path: ["foo", "bar", 0], compact: true)"#,
+                result: Ok(r#"{ "foo": { "baz": true } }"#),
+            },
+            example! {
+                title: "Compact object",
                 source: r#"remove!(value: {"foo": { "bar": true }}, path: ["foo", "bar"], compact: true)"#,
                 result: Ok("{}"),
             },
-            Example {
-                title: "indexing",
-                source: "remove!(value: [92, 42], path: [0])",
-                result: Ok("[42]"),
-            },
-            Example {
-                title: "nested indexing",
-                source: r#"remove!(value: {"foo": { "bar": [92, 42] }}, path: ["foo", "bar", 1])"#,
-                result: Ok(r#"{ "foo": { "bar": [92] } }"#),
-            },
-            Example {
-                title: "compact array",
+            example! {
+                title: "Compact array",
                 source: r#"remove!(value: {"foo": [42], "bar": true }, path: ["foo", 0], compact: true)"#,
                 result: Ok(r#"{ "bar": true }"#),
             },
-            Example {
-                title: "external target",
+            example! {
+                title: "External target",
                 source: indoc! {r#"
                     . = { "foo": true }
                     remove!(value: ., path: ["foo"])
                 "#},
                 result: Ok("{}"),
             },
-            Example {
-                title: "variable",
+            example! {
+                title: "Variable",
                 source: indoc! {r#"
                     var = { "foo": true }
                     remove!(value: var, path: ["foo"])
                 "#},
                 result: Ok("{}"),
             },
-            Example {
-                title: "missing index",
+            example! {
+                title: "Missing index",
                 source: r#"remove!(value: {"foo": { "bar": [92, 42] }}, path: ["foo", "bar", 1, -1])"#,
                 result: Ok(r#"{ "foo": { "bar": [92, 42] } }"#),
             },
-            Example {
-                title: "invalid indexing",
+            example! {
+                title: "Invalid indexing",
                 source: r#"remove!(value: [42], path: ["foo"])"#,
                 result: Ok("[42]"),
             },
-            Example {
-                title: "invalid segment type",
+            example! {
+                title: "Invalid segment type",
                 source: r#"remove!(value: {"foo": { "bar": [92, 42] }}, path: ["foo", true])"#,
                 result: Err(
                     r#"function call error for "remove" at (0:65): path segment must be either string or integer, not boolean"#,

@@ -52,11 +52,23 @@ impl Function for Camelcase {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[Example {
-            title: "camelcase",
-            source: r#"camelcase("input_string")"#,
-            result: Ok("inputString"),
-        }]
+        &[
+            example! {
+                title: "camelCase a string without specifying original case",
+                source: r#"camelcase("input-string")"#,
+                result: Ok("inputString"),
+            },
+            example! {
+                title: "camelcase a snake_case string",
+                source: r#"camelcase("foo_bar_baz", "snake_case")"#,
+                result: Ok("fooBarBaz"),
+            },
+            example! {
+                title: "camelcase specifying the wrong original case (noop)",
+                source: r#"camelcase("foo_bar_baz", "kebab-case")"#,
+                result: Ok("foo_bar_baz"),
+            },
+        ]
     }
 }
 

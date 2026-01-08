@@ -79,15 +79,30 @@ impl Function for DecryptIp {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
-                title: "Decrypt IPv4 with AES128 mode",
+            example! {
+                title: "Decrypt IPv4 address with AES128",
                 source: r#"decrypt_ip!("72b9:a747:f2e9:72af:76ca:5866:6dcf:c3b0", "sixteen byte key", "aes128")"#,
                 result: Ok("192.168.1.1"),
             },
-            Example {
-                title: "Decrypt IPv6 with PFX mode",
+            example! {
+                title: "Decrypt IPv6 address with AES128",
+                source: r#"decrypt_ip!("c0e6:eb35:6887:f554:4c65:8ace:17ca:6c6a", "sixteen byte key", "aes128")"#,
+                result: Ok("2001:db8::1"),
+            },
+            example! {
+                title: "Decrypt IPv4 address with prefix-preserving mode",
+                source: r#"decrypt_ip!("33.245.248.61", "thirty-two bytes key for pfx use", "pfx")"#,
+                result: Ok("192.168.1.1"),
+            },
+            example! {
+                title: "Decrypt IPv6 address with prefix-preserving mode",
                 source: r#"decrypt_ip!("88bd:d2bf:8865:8c4d:84b:44f6:6077:72c9", "thirty-two bytes key for ipv6pfx", "pfx")"#,
                 result: Ok("2001:db8::1"),
+            },
+            example! {
+                title: "Round-trip encryption and decryption",
+                source: r#"decrypt_ip!(encrypt_ip!("192.168.1.100", "sixteen byte key", "aes128"), "sixteen byte key", "aes128")"#,
+                result: Ok("192.168.1.100"),
             },
         ]
     }

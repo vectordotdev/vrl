@@ -64,13 +64,23 @@ impl Function for FormatTimestamp {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
-                title: "format timestamp",
+            example! {
+                title: "Format a timestamp (ISO8601/RFC 3339)",
+                source: r#"format_timestamp!(t'2020-10-21T16:00:00Z', format: "%+")"#,
+                result: Ok("2020-10-21T16:00:00+00:00"),
+            },
+            example! {
+                title: "Format a timestamp (custom)",
+                source: r#"format_timestamp!(t'2020-10-21T16:00:00Z', format: "%v %R")"#,
+                result: Ok("21-Oct-2020 16:00"),
+            },
+            example! {
+                title: "Format a timestamp with custom format string",
                 source: r#"format_timestamp!(t'2021-02-10T23:32:00+00:00', format: "%d %B %Y %H:%M")"#,
                 result: Ok("10 February 2021 23:32"),
             },
-            Example {
-                title: "format timestamp with tz",
+            example! {
+                title: "Format a timestamp with timezone conversion",
                 source: r#"format_timestamp!(t'2021-02-10T23:32:00+00:00', format: "%d %B %Y %H:%M", timezone: "Europe/Berlin")"#,
                 result: Ok("11 February 2021 00:32"),
             },

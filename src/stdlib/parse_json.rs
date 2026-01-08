@@ -142,45 +142,45 @@ impl Function for ParseJson {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
-                title: "object",
-                source: r#"parse_json!(s'{ "field": "value" }')"#,
-                result: Ok(r#"{ "field": "value" }"#),
+            example! {
+                title: "Parse JSON",
+                source: r#"parse_json!(s'{"key": "val"}')"#,
+                result: Ok(r#"{ "key": "val" }"#),
             },
-            Example {
-                title: "array",
+            example! {
+                title: "Parse JSON array",
                 source: r#"parse_json!("[true, 0]")"#,
                 result: Ok("[true, 0]"),
             },
-            Example {
-                title: "string",
+            example! {
+                title: "Parse JSON string",
                 source: r#"parse_json!(s'"hello"')"#,
                 result: Ok("hello"),
             },
-            Example {
-                title: "integer",
+            example! {
+                title: "Parse JSON integer",
                 source: r#"parse_json!("42")"#,
                 result: Ok("42"),
             },
-            Example {
-                title: "float",
+            example! {
+                title: "Parse JSON float",
                 source: r#"parse_json!("42.13")"#,
                 result: Ok("42.13"),
             },
-            Example {
-                title: "boolean",
+            example! {
+                title: "Parse JSON boolean",
                 source: r#"parse_json!("false")"#,
                 result: Ok("false"),
             },
-            Example {
-                title: "invalid value",
+            example! {
+                title: "Invalid JSON value",
                 source: r#"parse_json!("{ INVALID }")"#,
                 result: Err(
                     r#"function call error for "parse_json" at (0:26): unable to parse json: key must be a string at line 1 column 3"#,
                 ),
             },
-            Example {
-                title: "max_depth",
+            example! {
+                title: "Parse JSON with max_depth",
                 source: r#"parse_json!(s'{"first_level":{"second_level":"finish"}}', max_depth: 1)"#,
                 result: Ok(r#"{"first_level":"{\"second_level\":\"finish\"}"}"#),
             },

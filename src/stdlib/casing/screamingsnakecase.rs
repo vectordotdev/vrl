@@ -52,11 +52,23 @@ impl Function for ScreamingSnakecase {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[Example {
-            title: "screamingsnakecase",
-            source: r#"screamingsnakecase("input_string")"#,
-            result: Ok("INPUT_STRING"),
-        }]
+        &[
+            example! {
+                title: "SCREAMING_SNAKE_CASE a string without specifying original case",
+                source: r#"screamingsnakecase("input-string")"#,
+                result: Ok("INPUT_STRING"),
+            },
+            example! {
+                title: "SCREAMING_SNAKE_CASE a snake_case string",
+                source: r#"screamingsnakecase("foo_bar_baz", "snake_case")"#,
+                result: Ok("FOO_BAR_BAZ"),
+            },
+            example! {
+                title: "SCREAMING_SNAKE_CASE specifying the wrong original case (capitalizes but doesn't include `_` properly)",
+                source: r#"screamingsnakecase("FooBarBaz", "kebab-case")"#,
+                result: Ok("FOOBARBAZ"),
+            },
+        ]
     }
 }
 

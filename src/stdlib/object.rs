@@ -25,13 +25,16 @@ impl Function for Object {
 
     fn examples(&self) -> &'static [Example] {
         &[
-            Example {
-                title: "valid",
-                source: r#"object({"foo": "bar"})"#,
-                result: Ok(r#"{"foo": "bar"}"#),
+            example! {
+                title: "Declare an object type",
+                source: indoc! {r#"
+                    . = { "value": { "field1": "value1", "field2": "value2" } }
+                    object(.value)
+                "#},
+                result: Ok(r#"{ "field1": "value1", "field2": "value2" }"#),
             },
-            Example {
-                title: "invalid",
+            example! {
+                title: "Invalid type",
                 source: "object!(true)",
                 result: Err(
                     r#"function call error for "object" at (0:13): expected object, got boolean"#,

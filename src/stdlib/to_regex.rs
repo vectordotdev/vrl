@@ -26,10 +26,10 @@ impl Function for ToRegex {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[Example {
-            title: "regex",
-            source: "to_regex(s'^foobar$') ?? r''",
-            result: Ok("r'^foobar$'"),
+        &[example! {
+            title: "Coerce to a regex",
+            source: r#"to_regex!("^foo$")"#,
+            result: Ok("r'^foo$'"),
         }]
     }
 
