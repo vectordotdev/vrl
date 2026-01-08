@@ -3,6 +3,7 @@ use std::borrow::Cow;
 use crate::value::{Value, ValueRegex, kind::Collection};
 use bytes::Bytes;
 use chrono::{DateTime, Utc};
+use ordered_float::NotNan;
 
 use crate::compiler::{
     Expression,
@@ -38,6 +39,8 @@ pub trait VrlValueConvert: Sized {
 
     fn try_into_i64(&self) -> Result<i64, ValueError>;
     fn try_into_f64(&self) -> Result<f64, ValueError>;
+
+    fn try_into_notnan_f64(&self) -> Result<NotNan<f64>, ValueError>;
 
     fn try_bytes_utf8_lossy(&self) -> Result<Cow<'_, str>, ValueError>;
 }
@@ -82,6 +85,17 @@ impl VrlValueConvert for Value {
             #[allow(clippy::cast_precision_loss)]
             Value::Integer(v) => Ok(*v as f64),
             Value::Float(v) => Ok(v.into_inner()),
+            _ => Err(ValueError::Coerce(self.kind(), Kind::float())),
+        }
+    }
+
+    fn try_into_notnan_f64(&self) -> Result<NotNan<f64>, ValueError> {
+        match self {
+            #[allow(clippy::cast_precision_loss)]
+            Value::Integer(v) => {
+                Ok(NotNan::new(*v as f64).expect("i64 as f64 should never be NaN"))
+            }
+            Value::Float(v) => Ok(*v),
             _ => Err(ValueError::Coerce(self.kind(), Kind::float())),
         }
     }
