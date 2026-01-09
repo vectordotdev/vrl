@@ -13,6 +13,7 @@ mod non_wasm {
         Context, Expression, ExpressionError, FunctionExpression, Resolved, TypeDef, TypeState,
         Value, VrlValueConvert,
     };
+    use crate::value::value::ObjectMap;
     use reqwest_middleware::{
         ClientBuilder, ClientWithMiddleware,
         reqwest::{
@@ -50,6 +51,36 @@ mod non_wasm {
             .build()
     }
 
+    /// Redacts sensitive header values to prevent them from appearing in error messages.
+    /// Headers like Authorization, Cookie, and API keys are replaced with ***.
+    fn redact_sensitive_headers(headers: &ObjectMap) -> ObjectMap {
+        const SENSITIVE_HEADERS: &[&str] = &[
+            "authorization",
+            "cookie",
+            "set-cookie",
+            "x-api-key",
+            "api-key",
+            "x-auth-token",
+            "proxy-authorization",
+        ];
+
+        headers
+            .iter()
+            .map(|(key, value)| {
+                let key_lower = key.as_ref().to_lowercase();
+                if SENSITIVE_HEADERS.contains(&key_lower.as_str())
+                    || key_lower.contains("token")
+                    || key_lower.contains("secret")
+                    || key_lower.contains("password")
+                {
+                    (key.clone(), Value::from("***"))
+                } else {
+                    (key.clone(), value.clone())
+                }
+            })
+            .collect()
+    }
+
     async fn http_request(
         client: &ClientWithMiddleware,
         url: &Value,
@@ -62,6 +93,8 @@ mod non_wasm {
         let headers = headers.try_object()?;
         let body = body.try_bytes_utf8_lossy()?;
 
+        let redacted_headers = redact_sensitive_headers(&headers);
+
         let method = Method::try_from(method.as_str())
             .map_err(|_| format!("Unsupported HTTP method: {method}"))?;
         let mut header_map = HeaderMap::new();
@@ -71,19 +104,39 @@ mod non_wasm {
                 .parse::<HeaderName>()
                 .map_err(|_| format!("Invalid header key: {key}"))?;
             let val = value
-                .try_bytes_utf8_lossy()?
+                .try_bytes_utf8_lossy()
+                .map_err(|e| {
+                    format!(
+                        "Invalid header value for key '{key}': {} (headers: {})",
+                        e,
+                        Value::Object(redacted_headers.clone())
+                    )
+                })?
                 .parse::<HeaderValue>()
-                .map_err(|_| format!("Invalid header value: {value}"))?;
+                .map_err(|_| {
+                    format!(
+                        "Invalid header value for key '{key}' (headers: {})",
+                        Value::Object(redacted_headers.clone())
+                    )
+                })?;
             header_map.insert(key, val);
         }
 
         let response = client
-            .request(method, url.as_ref())
+            .request(method.clone(), url.as_ref())
             .headers(header_map)
             .body(body.as_bytes().to_owned())
             .send()
             .await
-            .map_err(|e| format!("HTTP request failed: {e}"))?;
+            .map_err(|e| {
+                format!(
+                    "HTTP request failed: {} (url: {}, method: {}, headers: {})",
+                    e,
+                    url,
+                    method,
+                    Value::Object(redacted_headers.clone())
+                )
+            })?;
 
         let body = response
             .text()
@@ -465,5 +518,52 @@ mod tests {
         assert!(result.is_err());
         let error = result.unwrap_err();
         assert!(error.to_string().contains("Invalid proxy"));
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn test_sensitive_headers_redacted() {
+        let func = HttpRequestFn {
+            url: expr!("not-a-valid-url"),
+            method: expr!("get"),
+            headers: expr!({
+                "Authorization": "Bearer super_secret_12345",
+                "X-Api-Key": "key-67890",
+                "Content-Type": "application/json",
+                "Cookie": "session=abcdef",
+                "X-Custom-Token": "another-secret",
+                "User-Agent": "VRL/0.28"
+            }),
+            body: expr!(""),
+            client_or_proxies: ClientOrProxies::no_proxies(),
+        };
+
+        let result = execute_http_request(&func);
+        assert!(result.is_err());
+        let error = result.unwrap_err().to_string();
+
+        // Verify that sensitive values are redacted
+        assert!(
+            !error.contains("super_secret_12345"),
+            "Authorization token should be redacted"
+        );
+        assert!(!error.contains("key-67890"), "API key should be redacted");
+        assert!(!error.contains("abcdef"), "Cookie should be redacted");
+        assert!(
+            !error.contains("another-secret"),
+            "Custom token should be redacted"
+        );
+
+        // Verify that redacted placeholder appears
+        assert!(error.contains("***"), "Should contain *** placeholder");
+
+        // Verify that non-sensitive headers are still visible
+        assert!(
+            error.contains("application/json"),
+            "Non-sensitive headers should not be redacted"
+        );
+        assert!(
+            error.contains("VRL/0.28"),
+            "User-Agent should not be redacted"
+        );
     }
 }
