@@ -184,6 +184,7 @@ rust_decimal = { version = "1", optional = true, default-features = false }
 seahash = { version = "4", optional = true }
 serde = { version = "1", features = ["derive"], optional = true }
 serde_json = { version = "1", default-features = false, optional = true, features = ["std", "raw_value"] }
+serde_yaml = { version = "0.9.34" }
 simdutf8 = { version = "0.1.5", optional = true }
 fancy-regex = { version = "0.17", default-features = false, optional = true }
 sha-1 = { version = "0.10", optional = true }
