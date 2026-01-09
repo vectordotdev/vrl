@@ -152,6 +152,7 @@ cfg_if::cfg_if! {
         mod parse_url;
         mod parse_user_agent;
         mod parse_xml;
+        mod parse_yaml;
         mod pop;
         mod push;
         mod random_bool;
@@ -377,6 +378,7 @@ cfg_if::cfg_if! {
             parse_url::ParseUrl,
             parse_user_agent::ParseUserAgent,
             parse_xml::ParseXml,
+            parse_yaml::ParseYaml,
             pop::Pop,
             push::Push,
             r#match::Match,
