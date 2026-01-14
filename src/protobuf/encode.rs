@@ -13,7 +13,7 @@ pub struct Options {
 /// Convert a single raw `Value` into a protobuf `Value`.
 ///
 /// Unlike `convert_value`, this ignores any field metadata such as cardinality.
-pub fn convert_value_raw(
+fn convert_value_raw(
     value: Value,
     kind: &Kind,
     options: &Options,
