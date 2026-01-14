@@ -27,6 +27,10 @@ impl Function for ParseCommonLog {
         "parse_common_log"
     }
 
+    fn usage(&self) -> &'static str {
+        "Parses the `value` using the [Common Log Format](https://httpd.apache.org/docs/current/logs.html#common) (CLF)."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

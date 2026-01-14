@@ -9,6 +9,15 @@ impl Function for TagTypesExternally {
         "tag_types_externally"
     }
 
+    fn usage(&self) -> &'static str {
+        indoc! {"
+            Adds type information to all (nested) scalar values in the provided `value`.
+
+            The type information is added externally, meaning that `value` has the form of `\"type\": value` after this
+            transformation.
+        "}
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[
             example! {

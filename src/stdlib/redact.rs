@@ -25,6 +25,17 @@ impl Function for Redact {
         "redact"
     }
 
+    fn usage(&self) -> &'static str {
+        indoc! {"
+            Redact sensitive data in `value` such as:
+
+            - [US social security card numbers](https://www.ssa.gov/history/ssn/geocard.html)
+            - Other forms of personally identifiable information with custom patterns
+
+            This can help achieve compliance by ensuring sensitive data does not leave your network.
+        "}
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

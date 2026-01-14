@@ -21,6 +21,10 @@ impl Function for ParseAwsVpcFlowLog {
         "parse_aws_vpc_flow_log"
     }
 
+    fn usage(&self) -> &'static str {
+        "Parses `value` in the [VPC Flow Logs format](https://docs.aws.amazon.com/vpc/latest/userguide/flow-logs.html)."
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[
             example! {

@@ -14,6 +14,10 @@ impl Function for Sha1 {
         "sha1"
     }
 
+    fn usage(&self) -> &'static str {
+        "Calculates a [SHA-1](https://en.wikipedia.org/wiki/SHA-1) hash of the `value`."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

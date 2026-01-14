@@ -22,6 +22,16 @@ impl Function for ParseTokens {
         "parse_tokens"
     }
 
+    fn usage(&self) -> &'static str {
+        indoc! {r#"
+            Parses the `value` in token format. A token is considered to be one of the following:
+
+            * A word surrounded by whitespace.
+            * Text delimited by double quotes: `".."`. Quotes can be included in the token if they are escaped by a backslash (`\`).
+            * Text delimited by square brackets: `[..]`. Closing square brackets can be included in the token if they are escaped by a backslash (`\`).
+        "#}
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[example! {
             title: "Parse tokens",

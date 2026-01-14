@@ -14,6 +14,16 @@ impl Function for IsIpv4 {
         "is_ipv4"
     }
 
+    fn usage(&self) -> &'static str {
+        indoc! {"
+            Check if the string is a valid IPv4 address or not.
+
+            An [IPv4-mapped](https://datatracker.ietf.org/doc/html/rfc6890) or
+            [IPv4-compatible](https://datatracker.ietf.org/doc/html/rfc6890) IPv6 address is not considered
+            valid for the purpose of this function.
+        "}
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

@@ -77,6 +77,10 @@ impl Function for ParseGroks {
         "parse_groks"
     }
 
+    fn usage(&self) -> &'static str {
+        "Parses the `value` using multiple [`grok`](https://github.com/daschl/grok/tree/master/patterns) patterns. All patterns [listed here](https://github.com/daschl/grok/tree/master/patterns) are supported."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

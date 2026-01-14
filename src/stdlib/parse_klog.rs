@@ -101,6 +101,10 @@ impl Function for ParseKlog {
         "parse_klog"
     }
 
+    fn usage(&self) -> &'static str {
+        "Parses the `value` using the [klog](https://github.com/kubernetes/klog) format used by Kubernetes components."
+    }
+
     fn examples(&self) -> &'static [Example] {
         EXAMPLES.as_slice()
     }

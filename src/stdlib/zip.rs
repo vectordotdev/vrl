@@ -39,6 +39,18 @@ impl Function for Zip {
         "zip"
     }
 
+    fn usage(&self) -> &'static str {
+        indoc! {"
+            Iterate over several arrays in parallel, producing a new array containing arrays of items from each source.
+            The resulting array will be as long as the shortest input array, with all the remaining elements dropped.
+            This function is modeled from the `zip` function [in Python](https://docs.python.org/3/library/functions.html#zip),
+            but similar methods can be found in [Ruby](https://docs.ruby-lang.org/en/master/Array.html#method-i-zip)
+            and [Rust](https://doc.rust-lang.org/stable/std/iter/trait.Iterator.html#method.zip).
+
+            If a single parameter is given, it must contain an array of all the input arrays.
+        "}
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

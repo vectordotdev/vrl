@@ -12,6 +12,10 @@ impl Function for ParseEtld {
         "parse_etld"
     }
 
+    fn usage(&self) -> &'static str {
+        "Parses the [eTLD](https://developer.mozilla.org/en-US/docs/Glossary/eTLD) from `value` representing domain name."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

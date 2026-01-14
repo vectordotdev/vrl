@@ -36,6 +36,10 @@ impl Function for ParseLinuxAuthorization {
         "parse_linux_authorization"
     }
 
+    fn usage(&self) -> &'static str {
+        "Parses Linux authorization logs usually found under either `/var/log/auth.log` (for Debian-based systems) or `/var/log/secure` (for RedHat-based systems) according to [Syslog](https://en.wikipedia.org/wiki/Syslog) format."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

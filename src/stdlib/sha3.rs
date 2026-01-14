@@ -31,6 +31,10 @@ impl Function for Sha3 {
         "sha3"
     }
 
+    fn usage(&self) -> &'static str {
+        "Calculates a [SHA-3](https://en.wikipedia.org/wiki/SHA-3) hash of the `value`."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {
