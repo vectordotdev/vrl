@@ -17,6 +17,10 @@ impl Function for ToRegex {
         "to_regex"
     }
 
+    fn usage(&self) -> &'static str {
+        "Coerces the `value` into a regex."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

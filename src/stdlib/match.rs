@@ -21,6 +21,10 @@ impl Function for Match {
         "match"
     }
 
+    fn usage(&self) -> &'static str {
+        "Determines whether the `value` matches the `pattern`."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

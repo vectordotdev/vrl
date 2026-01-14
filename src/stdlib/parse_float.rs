@@ -13,6 +13,10 @@ impl Function for ParseFloat {
         "parse_float"
     }
 
+    fn usage(&self) -> &'static str {
+        "Parses the string `value` representing a floating point number in base 10 to a float."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

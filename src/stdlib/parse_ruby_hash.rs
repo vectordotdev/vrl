@@ -13,6 +13,10 @@ impl Function for ParseRubyHash {
         "parse_ruby_hash"
     }
 
+    fn usage(&self) -> &'static str {
+        "Parses the `value` as ruby hash."
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[example! {
             title: "Parse ruby hash",

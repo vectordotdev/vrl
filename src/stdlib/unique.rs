@@ -15,6 +15,14 @@ impl Function for Unique {
         "unique"
     }
 
+    fn usage(&self) -> &'static str {
+        indoc! {"
+            Returns the unique values for an array.
+
+            The first occurrence of each element is kept.
+        "}
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[example! {
             title: "Unique",

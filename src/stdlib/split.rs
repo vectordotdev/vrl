@@ -37,6 +37,10 @@ impl Function for Split {
         "split"
     }
 
+    fn usage(&self) -> &'static str {
+        "Splits the `value` string using `pattern`."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

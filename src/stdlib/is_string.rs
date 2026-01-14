@@ -9,6 +9,10 @@ impl Function for IsString {
         "is_string"
     }
 
+    fn usage(&self) -> &'static str {
+        "Check if `value`'s type is a string."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

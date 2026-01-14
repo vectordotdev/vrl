@@ -9,6 +9,10 @@ impl Function for IsArray {
         "is_array"
     }
 
+    fn usage(&self) -> &'static str {
+        "Check if the `value`'s type is an array."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

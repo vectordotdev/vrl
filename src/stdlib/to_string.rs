@@ -23,6 +23,10 @@ impl Function for ToString {
         "to_string"
     }
 
+    fn usage(&self) -> &'static str {
+        "Coerces the `value` into a string."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

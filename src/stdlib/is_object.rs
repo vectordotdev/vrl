@@ -9,6 +9,10 @@ impl Function for IsObject {
         "is_object"
     }
 
+    fn usage(&self) -> &'static str {
+        "Check if `value`'s type is an object."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

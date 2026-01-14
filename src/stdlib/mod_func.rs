@@ -13,6 +13,10 @@ impl Function for Mod {
         "mod"
     }
 
+    fn usage(&self) -> &'static str {
+        "Calculates the remainder of `value` divided by `modulus`."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

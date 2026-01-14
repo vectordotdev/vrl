@@ -48,6 +48,19 @@ impl Function for Remove {
         "remove"
     }
 
+    fn usage(&self) -> &'static str {
+        indoc! {"
+            Dynamically remove the value for a given path.
+
+            If you know the path you want to remove, use
+            the `del` function and static paths such as `del(.foo.bar[1])`
+            to remove the value at that path. The `del` function returns the
+            deleted value, and is more performant than `remove`.
+            However, if you do not know the path names, use the dynamic
+            `remove` function to remove the value at the provided path.
+        "}
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

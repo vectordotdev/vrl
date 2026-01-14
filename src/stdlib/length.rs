@@ -23,6 +23,17 @@ impl Function for Length {
         "length"
     }
 
+    fn usage(&self) -> &'static str {
+        indoc! {"
+            Returns the length of the `value`.
+
+            * If `value` is an array, returns the number of elements.
+            * If `value` is an object, returns the number of top-level keys.
+            * If `value` is a string, returns the number of bytes in the string. If
+              you want the number of characters, see `strlen`.
+        "}
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

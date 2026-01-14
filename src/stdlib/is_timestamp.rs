@@ -9,6 +9,10 @@ impl Function for IsTimestamp {
         "is_timestamp"
     }
 
+    fn usage(&self) -> &'static str {
+        "Check if `value`'s type is a timestamp."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

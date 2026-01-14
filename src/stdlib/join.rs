@@ -24,6 +24,10 @@ impl Function for Join {
         "join"
     }
 
+    fn usage(&self) -> &'static str {
+        "Joins each string in the `value` array into a single string, with items optionally separated from one another by a `separator`."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {
