@@ -32,6 +32,10 @@ impl Function for Tally {
         "tally"
     }
 
+    fn usage(&self) -> &'static str {
+        "Counts the occurrences of each string value in the provided array and returns an object with the counts."
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[example! {
             title: "tally",
