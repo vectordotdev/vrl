@@ -104,6 +104,14 @@ jobs:
       - name: "Check that docs generate without issues"
         run: cargo doc --no-deps --workspace
 
+  check-lockfile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: Swatinem/rust-cache@v2
+      - name: "Check that Cargo.lock is in sync with Cargo.toml"
+        run: cargo update --workspace --locked
+
   wasm32-unknown-unknown:
     runs-on: ubuntu-latest
     steps:
