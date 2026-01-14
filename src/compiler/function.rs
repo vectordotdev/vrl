@@ -73,6 +73,8 @@ pub trait Function: Send + Sync + fmt::Debug {
 
 // -----------------------------------------------------------------------------
 
+/// This struct should only be constructed using the `example!` macro to guarantee backwards
+/// compatibility.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct Example {
     pub title: &'static str,
@@ -82,8 +84,10 @@ pub struct Example {
     pub line: u32,
 }
 
-/// Macro to create an Example with automatic source location tracking
+/// Macro to create an `Example` with automatic source location tracking
 /// Accepts fields in any order: title, source, result
+/// Optional fields added to `Example` shouldn't be required to be added for the macro to work,
+/// mainting backwards compatibility
 #[macro_export]
 macro_rules! example {
     // Entry point - delegate to internal parser with empty state
