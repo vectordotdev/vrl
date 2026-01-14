@@ -29,7 +29,7 @@ impl Function for GetTimezoneName {
     fn usage(&self) -> &'static str {
         indoc! {r#"
             Returns the name of the timezone in the Vector configuration (see
-            [global configuration options](https://vector.dev/docs/reference/configuration/global-options)).
+            [global configuration options](/docs/reference/configuration/global-options)).
             If the configuration is set to `local`, then it attempts to
             determine the name of the timezone from the host OS. If this
             is not possible, then it returns the fixed offset of the
