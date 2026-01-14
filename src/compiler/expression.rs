@@ -168,7 +168,7 @@ impl Expr {
     /// # Returns
     ///
     /// Returns a [`Result`] containing the resolved [`Value`] if the expression
-    /// evaluates to a constant. Otherwise, returns an [`Error`] indicating
+    /// evaluates to a constant. Otherwise, returns an [`Error`](`super::function::Error`) indicating
     /// an unexpected expression.
     ///
     /// # Errors

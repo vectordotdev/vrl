@@ -10,9 +10,9 @@ use crate::compiler::{
     value::{Kind, ObjectMap, ValueError},
 };
 
-/// Create a boxed [`Expression`][crate::Expression] trait object from a given `Value`.
+/// Create a boxed [`Expression`] trait object from a given `Value`.
 ///
-/// Supports the same format as the [`value`] macro.
+/// Supports the same format as the [`value`](`crate::value::value`) macro.
 #[macro_export]
 macro_rules! expr {
     ($($v:tt)*) => {{

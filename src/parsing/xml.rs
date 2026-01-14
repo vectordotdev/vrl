@@ -70,7 +70,7 @@ pub struct ParseOptions {
 /// according to the given parsing options.
 ///
 /// # Parameters
-/// - `value`: A [`vrl::value::Value`] containing the XML string to be parsed.
+/// - `value`: A [`vrl::value::Value`](`crate::value::Value`) containing the XML string to be parsed.
 /// - `options`: A `ParseOptions` struct that defines parsing behaviors, including:
 ///   - `trim`: Whether to remove excess whitespace between XML elements (default: `true`).
 ///   - `include_attr`: Whether to include XML attributes in the output (default: `true`).

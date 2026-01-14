@@ -33,13 +33,13 @@ impl<'a> Context<'a> {
         self.target
     }
 
-    /// Get a reference to the [`runtime state`](Runtime).
+    /// Get a reference to the [`runtime state`](RuntimeState).
     #[must_use]
     pub fn state(&self) -> &RuntimeState {
         self.state
     }
 
-    /// Get a mutable reference to the [`runtime state`](Runtime).
+    /// Get a mutable reference to the [`runtime state`](RuntimeState).
     pub fn state_mut(&mut self) -> &mut RuntimeState {
         self.state
     }
