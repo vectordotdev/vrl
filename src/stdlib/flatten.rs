@@ -32,6 +32,10 @@ impl Function for Flatten {
         "flatten"
     }
 
+    fn usage(&self) -> &'static str {
+        "Flattens the `value` into a single-level representation."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

@@ -9,6 +9,10 @@ impl Function for IsInteger {
         "is_integer"
     }
 
+    fn usage(&self) -> &'static str {
+        "Check if the value`'s type is an integer."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

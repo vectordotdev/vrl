@@ -9,6 +9,10 @@ impl Function for IsFloat {
         "is_float"
     }
 
+    fn usage(&self) -> &'static str {
+        "Check if the `value`'s type is a float."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

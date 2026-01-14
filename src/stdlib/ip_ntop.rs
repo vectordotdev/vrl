@@ -25,6 +25,14 @@ impl Function for IpNtop {
         "ip_ntop"
     }
 
+    fn usage(&self) -> &'static str {
+        indoc! {"
+            Converts IPv4 and IPv6 addresses from binary to text form.
+
+            This behavior mimics [inet_ntop](https://linux.die.net/man/3/inet_ntop).
+        "}
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

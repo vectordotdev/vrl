@@ -21,6 +21,10 @@ impl Function for DecodeZlib {
         "decode_zlib"
     }
 
+    fn usage(&self) -> &'static str {
+        "Decodes the `value` (a [Zlib](https://www.zlib.net) string) into its original string."
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[example! {
             title: "Decode Zlib data",

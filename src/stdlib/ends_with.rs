@@ -15,6 +15,10 @@ impl Function for EndsWith {
         "ends_with"
     }
 
+    fn usage(&self) -> &'static str {
+        "Determines whether the `value` string ends with the specified `substring`."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

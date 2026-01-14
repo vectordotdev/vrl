@@ -24,6 +24,17 @@ impl Function for IpPton {
         "ip_pton"
     }
 
+    fn usage(&self) -> &'static str {
+        indoc! {"
+            Converts IPv4 and IPv6 addresses from text to binary form.
+
+            * The binary form of IPv4 addresses is 4 bytes (32 bits) long.
+            * The binary form of IPv6 addresses is 16 bytes (128 bits) long.
+
+            This behavior mimics [inet_pton](https://linux.die.net/man/3/inet_pton).
+        "}
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

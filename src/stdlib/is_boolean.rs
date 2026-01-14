@@ -9,6 +9,10 @@ impl Function for IsBoolean {
         "is_boolean"
     }
 
+    fn usage(&self) -> &'static str {
+        "Check if the `value`'s type is a boolean."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

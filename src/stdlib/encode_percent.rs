@@ -84,6 +84,10 @@ impl Function for EncodePercent {
         "encode_percent"
     }
 
+    fn usage(&self) -> &'static str {
+        "Encodes a `value` with [percent encoding](https://url.spec.whatwg.org/#percent-encoded-bytes) to safely be used in URLs."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

@@ -14,6 +14,10 @@ impl Function for Includes {
         "includes"
     }
 
+    fn usage(&self) -> &'static str {
+        "Determines whether the `value` array includes the specified `item`."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

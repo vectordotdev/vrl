@@ -472,6 +472,14 @@ impl Function for Crc {
         "crc"
     }
 
+    fn usage(&self) -> &'static str {
+        indoc! {
+            "Calculates a CRC of the `value`.The CRC `algorithm` used can be optionally specified.
+
+            This function is infallible if either the default `algorithm` value or a recognized-valid compile-time `algorithm` string literal is used. Otherwise, it is fallible."
+        }
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

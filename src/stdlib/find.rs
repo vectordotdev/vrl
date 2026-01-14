@@ -21,6 +21,10 @@ impl Function for Find {
         "find"
     }
 
+    fn usage(&self) -> &'static str {
+        "Determines from left to right the start position of the first found element in `value` that matches `pattern`. Returns `-1` if not found."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

@@ -20,6 +20,10 @@ impl Function for IpToIpv6 {
         "ip_to_ipv6"
     }
 
+    fn usage(&self) -> &'static str {
+        "Converts the `ip` to an IPv6 address."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

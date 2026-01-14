@@ -40,6 +40,10 @@ impl Function for EncodeZlib {
         "encode_zlib"
     }
 
+    fn usage(&self) -> &'static str {
+        "Encodes the `value` to [Zlib](https://www.zlib.net)."
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[example! {
             title: "Encode to Zlib",

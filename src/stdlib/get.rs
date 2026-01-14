@@ -45,6 +45,17 @@ impl Function for Get {
         "get"
     }
 
+    fn usage(&self) -> &'static str {
+        indoc! {"
+            Dynamically get the value of a given path.
+
+            If you know the path you want to look up, use
+            static paths such as `.foo.bar[1]` to get the value of that
+            path. However, if you do not know the path names,
+            use the dynamic `get` function to get the requested value.
+        "}
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

@@ -90,6 +90,10 @@ impl Function for FormatNumber {
         "format_number"
     }
 
+    fn usage(&self) -> &'static str {
+        "Formats the `value` into a string representation of the number."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

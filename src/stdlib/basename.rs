@@ -18,6 +18,10 @@ impl Function for BaseName {
         "basename"
     }
 
+    fn usage(&self) -> &'static str {
+        "Returns the filename component of the given `path`. This is similar to the Unix `basename` command. If the path ends in a directory separator, the function returns the name of the directory."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

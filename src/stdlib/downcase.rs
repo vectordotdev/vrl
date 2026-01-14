@@ -12,6 +12,10 @@ impl Function for Downcase {
         "downcase"
     }
 
+    fn usage(&self) -> &'static str {
+        "Downcases the `value` string, where downcase is defined according to the Unicode Derived Core Property Lowercase."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

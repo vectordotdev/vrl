@@ -19,6 +19,10 @@ impl Function for DecodeZstd {
         "decode_zstd"
     }
 
+    fn usage(&self) -> &'static str {
+        "Decodes the `value` (a [Zstandard](https://facebook.github.io/zstd) string) into its original string."
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[example! {
             title: "Decode Zstd data",

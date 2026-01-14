@@ -30,6 +30,10 @@ impl Function for Floor {
         "floor"
     }
 
+    fn usage(&self) -> &'static str {
+        "Rounds the `value` down to the specified `precision`."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

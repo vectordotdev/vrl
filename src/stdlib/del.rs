@@ -39,6 +39,14 @@ impl Function for Del {
         "del"
     }
 
+    fn usage(&self) -> &'static str {
+        indoc! {"
+            Removes the field specified by the static `path` from the target.
+
+            For dynamic path deletion, see the `remove` function.
+        "}
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

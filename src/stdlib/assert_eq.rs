@@ -25,6 +25,10 @@ impl Function for AssertEq {
         "assert_eq"
     }
 
+    fn usage(&self) -> &'static str {
+        "Asserts that two expressions, `left` and `right`, have the same value. The program is aborted with `message` if they do not have the same value."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

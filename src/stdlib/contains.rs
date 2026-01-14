@@ -15,6 +15,10 @@ impl Function for Contains {
         "contains"
     }
 
+    fn usage(&self) -> &'static str {
+        "Determines whether the `value` string contains the specified `substring`."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {
