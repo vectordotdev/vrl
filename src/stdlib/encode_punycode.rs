@@ -10,6 +10,10 @@ impl Function for EncodePunycode {
         "encode_punycode"
     }
 
+    fn usage(&self) -> &'static str {
+        "Encodes a `value` to [punycode](https://en.wikipedia.org/wiki/Punycode). Useful for internationalized domain names ([IDN](https://en.wikipedia.org/wiki/Internationalized_domain_name)). This function assumes that the value passed is meant to be used in IDN context and that it is either a domain name or a part of it."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

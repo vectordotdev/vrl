@@ -9,6 +9,10 @@ impl Function for ParseXml {
         "parse_xml"
     }
 
+    fn usage(&self) -> &'static str {
+        "Parses the `value` as XML."
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[example! {
             title: "Parse XML",

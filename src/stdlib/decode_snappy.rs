@@ -20,6 +20,10 @@ impl Function for DecodeSnappy {
         "decode_snappy"
     }
 
+    fn usage(&self) -> &'static str {
+        "Decodes the `value` (a Snappy string) into its original string."
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[example! {
             title: "Decode Snappy data",

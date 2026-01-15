@@ -26,6 +26,18 @@ impl Function for GetTimezoneName {
         "get_timezone_name"
     }
 
+    fn usage(&self) -> &'static str {
+        indoc! {r#"
+            Returns the name of the timezone in the Vector configuration (see
+            [global configuration options](/docs/reference/configuration/global-options)).
+            If the configuration is set to `local`, then it attempts to
+            determine the name of the timezone from the host OS. If this
+            is not possible, then it returns the fixed offset of the
+            local timezone for the current time in the format `"[+-]HH:MM"`,
+            for example, `"+02:00"`.
+        "#}
+    }
+
     #[cfg(not(feature = "__mock_return_values_for_tests"))]
     fn examples(&self) -> &'static [Example] {
         &[example! {

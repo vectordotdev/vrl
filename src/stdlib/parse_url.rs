@@ -10,6 +10,10 @@ impl Function for ParseUrl {
         "parse_url"
     }
 
+    fn usage(&self) -> &'static str {
+        "Parses the `value` in [URL](https://en.wikipedia.org/wiki/URL) format."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

@@ -26,6 +26,10 @@ impl Function for ParseSyslog {
         "parse_syslog"
     }
 
+    fn usage(&self) -> &'static str {
+        "Parses the `value` in [Syslog](https://en.wikipedia.org/wiki/Syslog) format."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

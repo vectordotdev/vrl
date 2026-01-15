@@ -40,6 +40,20 @@ impl Function for Hmac {
         "hmac"
     }
 
+    fn usage(&self) -> &'static str {
+        indoc! {"
+            Calculates a [HMAC](https://en.wikipedia.org/wiki/HMAC) of the `value` using the given `key`.
+            The hashing `algorithm` used can be optionally specified.
+
+            For most use cases, the resulting bytestream should be encoded into a hex or base64
+            string using either [encode_base16](/docs/reference/vrl/functions/#encode_base16) or
+            [encode_base64](/docs/reference/vrl/functions/#encode_base64).
+
+            This function is infallible if either the default `algorithm` value or a recognized-valid compile-time
+            `algorithm` string literal is used. Otherwise, it is fallible.
+        "}
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

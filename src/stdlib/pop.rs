@@ -14,6 +14,10 @@ impl Function for Pop {
         "pop"
     }
 
+    fn usage(&self) -> &'static str {
+        "Removes the last item from the `value` array."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

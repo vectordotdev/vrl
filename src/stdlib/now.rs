@@ -9,6 +9,10 @@ impl Function for Now {
         "now"
     }
 
+    fn usage(&self) -> &'static str {
+        "Returns the current timestamp in the UTC timezone with nanosecond precision."
+    }
+
     #[cfg(not(feature = "__mock_return_values_for_tests"))]
     fn examples(&self) -> &'static [Example] {
         &[example! {

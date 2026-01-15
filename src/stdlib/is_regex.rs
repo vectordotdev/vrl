@@ -9,6 +9,10 @@ impl Function for IsRegex {
         "is_regex"
     }
 
+    fn usage(&self) -> &'static str {
+        "Check if `value`'s type is a regex."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

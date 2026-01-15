@@ -21,6 +21,14 @@ impl Function for ParseRegexAll {
         "parse_regex_all"
     }
 
+    fn usage(&self) -> &'static str {
+        indoc! {"
+            Parses the `value` using the provided [Regex](https://en.wikipedia.org/wiki/Regular_expression) `pattern`.
+
+            This function differs from the `parse_regex` function in that it returns _all_ matches, not just the first.
+        "}
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

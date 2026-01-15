@@ -65,6 +65,10 @@ impl Function for CommunityID {
         "community_id"
     }
 
+    fn usage(&self) -> &'static str {
+        "Generates an ID based on the [Community ID Spec](https://github.com/corelight/community-id-spec)."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

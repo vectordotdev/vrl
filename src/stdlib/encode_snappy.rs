@@ -20,6 +20,10 @@ impl Function for EncodeSnappy {
         "encode_snappy"
     }
 
+    fn usage(&self) -> &'static str {
+        "Encodes the `value` to Snappy."
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[example! {
             title: "Encode to Snappy",

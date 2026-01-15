@@ -15,6 +15,10 @@ impl Function for String {
         "string"
     }
 
+    fn usage(&self) -> &'static str {
+        "Returns `value` if it is a string, otherwise returns an error. This enables the type checker to guarantee that the returned value is a string and can be used in any function that expects a string."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

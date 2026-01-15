@@ -15,6 +15,10 @@ impl Function for Array {
         "array"
     }
 
+    fn usage(&self) -> &'static str {
+        "Returns `value` if it is an array, otherwise returns an error. This enables the type checker to guarantee that the returned value is an array and can be used in any function that expects an array."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

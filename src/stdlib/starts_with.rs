@@ -72,6 +72,10 @@ impl Function for StartsWith {
         "starts_with"
     }
 
+    fn usage(&self) -> &'static str {
+        "Determines whether `value` begins with `substring`."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

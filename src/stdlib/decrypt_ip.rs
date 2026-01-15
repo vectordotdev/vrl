@@ -57,6 +57,17 @@ impl Function for DecryptIp {
         "decrypt_ip"
     }
 
+    fn usage(&self) -> &'static str {
+        indoc! {"
+            Decrypts an IP address that was previously encrypted, restoring the original IP address.
+
+            Supported Modes:
+
+            * AES128 - Decrypts an IP address that was scrambled using AES-128 encryption. Can transform between IPv4 and IPv6.
+            * PFX (Prefix-preserving) - Decrypts an IP address that was encrypted with prefix-preserving mode, where network hierarchy was maintained.
+        "}
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

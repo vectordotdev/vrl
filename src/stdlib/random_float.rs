@@ -36,6 +36,10 @@ impl Function for RandomFloat {
         "random_float"
     }
 
+    fn usage(&self) -> &'static str {
+        "Returns a random float between [min, max)."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

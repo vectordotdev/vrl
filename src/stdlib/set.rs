@@ -47,6 +47,18 @@ impl Function for Set {
         "set"
     }
 
+    fn usage(&self) -> &'static str {
+        indoc! {"
+            Dynamically insert data into the path of a given object or array.
+
+            If you know the path you want to assign a value to,
+            use static path assignments such as `.foo.bar[1] = true` for
+            improved performance and readability. However, if you do not
+            know the path names, use the dynamic `set` function to
+            insert the data into the object or array.
+        "}
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

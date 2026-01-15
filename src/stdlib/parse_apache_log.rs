@@ -43,6 +43,13 @@ impl Function for ParseApacheLog {
         "parse_apache_log"
     }
 
+    fn usage(&self) -> &'static str {
+        indoc! {"
+            Parses Apache access and error log lines. Lines can be in [`common`](https://httpd.apache.org/docs/current/logs.html#common),
+            [`combined`](https://httpd.apache.org/docs/current/logs.html#combined), or the default [`error`](https://httpd.apache.org/docs/current/logs.html#errorlog) format.
+        "}
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

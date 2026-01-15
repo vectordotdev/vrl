@@ -12,6 +12,10 @@ impl Function for Upcase {
         "upcase"
     }
 
+    fn usage(&self) -> &'static str {
+        "Upcases `value`, where upcase is defined according to the Unicode Derived Core Property Uppercase."
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[example! {
             title: "Upcase a string",

@@ -134,6 +134,10 @@ impl Function for ParseInfluxDB {
         "parse an InfluxDB line protocol string into a list of vector-compatible metrics"
     }
 
+    fn usage(&self) -> &'static str {
+        "Parses the `value` as an [InfluxDB line protocol](https://docs.influxdata.com/influxdb/cloud/reference/syntax/line-protocol/) string, producing a list of Vector-compatible metrics."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

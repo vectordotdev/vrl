@@ -61,6 +61,17 @@ impl Function for Unnest {
         "unnest"
     }
 
+    fn usage(&self) -> &'static str {
+        indoc! {"
+            Unnest an array field from an object to create an array of objects using that field; keeping all other fields.
+
+            Assigning the array result of this to `.` results in multiple events being emitted from `remap`. See the
+            [`remap` transform docs](/docs/reference/configuration/transforms/remap/#emitting-multiple-log-events) for more details.
+
+            This is also referred to as `explode` in some languages.
+        "}
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "path",

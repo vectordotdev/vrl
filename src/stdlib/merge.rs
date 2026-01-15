@@ -9,6 +9,10 @@ impl Function for Merge {
         "merge"
     }
 
+    fn usage(&self) -> &'static str {
+        "Merges the `from` object into the `to` object."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

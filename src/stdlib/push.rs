@@ -14,6 +14,10 @@ impl Function for Push {
         "push"
     }
 
+    fn usage(&self) -> &'static str {
+        "Adds the `item` to the end of the `value` array."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

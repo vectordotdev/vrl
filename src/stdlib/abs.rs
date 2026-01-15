@@ -20,6 +20,10 @@ impl Function for Abs {
         "abs"
     }
 
+    fn usage(&self) -> &'static str {
+        "Computes the absolute value of `value`."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

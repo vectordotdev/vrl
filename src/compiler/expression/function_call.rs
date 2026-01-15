@@ -1272,6 +1272,10 @@ mod tests {
             "test"
         }
 
+        fn usage(&self) -> &'static str {
+            "Test function"
+        }
+
         fn examples(&self) -> &'static [crate::compiler::function::Example] {
             &[]
         }

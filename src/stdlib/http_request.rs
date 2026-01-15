@@ -267,6 +267,10 @@ impl Function for HttpRequest {
         "http_request"
     }
 
+    fn usage(&self) -> &'static str {
+        "Makes an HTTP request to the specified URL. This function performs synchronous blocking operations and is not recommended for frequent or performance-critical workflows due to potential network-related delays."
+    }
+
     #[cfg(not(feature = "test"))]
     fn examples(&self) -> &'static [Example] {
         &[]

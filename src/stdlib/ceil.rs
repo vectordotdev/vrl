@@ -29,6 +29,10 @@ impl Function for Ceil {
         "ceil"
     }
 
+    fn usage(&self) -> &'static str {
+        "Rounds the `value` up to the specified `precision`."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

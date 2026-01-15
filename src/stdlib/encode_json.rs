@@ -23,6 +23,10 @@ impl Function for EncodeJson {
         "encode_json"
     }
 
+    fn usage(&self) -> &'static str {
+        "Encodes the `value` to JSON."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

@@ -27,6 +27,10 @@ impl Function for Round {
         "round"
     }
 
+    fn usage(&self) -> &'static str {
+        "Rounds the `value` to the specified `precision`."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

@@ -14,6 +14,10 @@ impl Function for Values {
         "values"
     }
 
+    fn usage(&self) -> &'static str {
+        "Returns the values from the object passed into the function."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

@@ -27,6 +27,10 @@ impl Function for ContainsAll {
         "contains_all"
     }
 
+    fn usage(&self) -> &'static str {
+        "Determines whether the `value` string contains all the specified `substrings`."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

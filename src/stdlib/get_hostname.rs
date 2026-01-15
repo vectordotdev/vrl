@@ -17,6 +17,10 @@ impl Function for GetHostname {
         "get_hostname"
     }
 
+    fn usage(&self) -> &'static str {
+        "Returns the local system's hostname."
+    }
+
     #[cfg(not(target_arch = "wasm32"))]
     fn compile(
         &self,

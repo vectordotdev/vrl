@@ -35,6 +35,10 @@ impl Function for Sha2 {
         "sha2"
     }
 
+    fn usage(&self) -> &'static str {
+        "Calculates a [SHA-2](https://en.wikipedia.org/wiki/SHA-2) hash of the `value`."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

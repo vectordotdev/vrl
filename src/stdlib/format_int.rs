@@ -31,6 +31,10 @@ impl Function for FormatInt {
         "format_int"
     }
 
+    fn usage(&self) -> &'static str {
+        "Formats the integer `value` into a string representation using the given base/radix."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

@@ -24,6 +24,10 @@ impl Function for EncodeZstd {
         "encode_zstd"
     }
 
+    fn usage(&self) -> &'static str {
+        "Encodes the `value` to [Zstandard](https://facebook.github.io/zstd)."
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[example! {
             title: "Encode to Zstd",

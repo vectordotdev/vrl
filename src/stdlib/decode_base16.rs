@@ -17,6 +17,10 @@ impl Function for DecodeBase16 {
         "decode_base16"
     }
 
+    fn usage(&self) -> &'static str {
+        "Decodes the `value` (a [Base16](https://en.wikipedia.org/wiki/Hexadecimal) string) into its original string."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

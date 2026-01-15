@@ -15,6 +15,10 @@ impl Function for GetEnvVar {
         "get_env_var"
     }
 
+    fn usage(&self) -> &'static str {
+        "Returns the value of the environment variable specified by `name`."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "name",

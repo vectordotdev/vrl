@@ -14,6 +14,10 @@ impl Function for Keys {
         "keys"
     }
 
+    fn usage(&self) -> &'static str {
+        "Returns the keys from the object passed into the function."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

@@ -37,6 +37,10 @@ impl Function for ToFloat {
         "to_float"
     }
 
+    fn usage(&self) -> &'static str {
+        "Coerces the `value` into a float."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

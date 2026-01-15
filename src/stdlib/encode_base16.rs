@@ -13,6 +13,10 @@ impl Function for EncodeBase16 {
         "encode_base16"
     }
 
+    fn usage(&self) -> &'static str {
+        "Encodes the `value` to [Base16](https://en.wikipedia.org/wiki/Hexadecimal))."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

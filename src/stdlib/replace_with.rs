@@ -109,6 +109,26 @@ impl Function for ReplaceWith {
         "replace_with"
     }
 
+    fn usage(&self) -> &'static str {
+        indoc! {"
+            Replaces all matching instances of `pattern` using a closure.
+
+            The `pattern` argument accepts a regular expression that can use capture groups.
+
+            The function uses the function closure syntax to compute the replacement values.
+
+            The closure takes a single parameter, which is an array, where the first item is always
+            present and contains the entire string that matched `pattern`. The items from index one on
+            contain the capture groups of the corresponding index. If a capture group is optional, the
+            value may be null if it didn't match.
+
+            The value returned by the closure must be a string and will replace the section of
+            the input that was matched.
+
+            This returns a new string with the replacements, the original string is not mutated.
+        "}
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

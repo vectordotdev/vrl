@@ -41,6 +41,15 @@ impl Function for Sieve {
         "sieve"
     }
 
+    fn usage(&self) -> &'static str {
+        indoc! {"
+            Keeps only matches of `pattern` in `value`.
+
+            This can be used to define patterns that are allowed in the string and
+            remove everything else.
+        "}
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

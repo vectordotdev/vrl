@@ -103,6 +103,10 @@ impl Function for ShannonEntropy {
         "shannon_entropy"
     }
 
+    fn usage(&self) -> &'static str {
+        "Generates [Shannon entropy](https://en.wikipedia.org/wiki/Entropy_(information_theory)) from given string. It can generate it based on string bytes, codepoints, or graphemes."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

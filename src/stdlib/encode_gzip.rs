@@ -39,6 +39,10 @@ impl Function for EncodeGzip {
         "encode_gzip"
     }
 
+    fn usage(&self) -> &'static str {
+        "Encodes the `value` to [Gzip](https://www.gzip.org/)."
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[example! {
             title: "Encode to Gzip",

@@ -23,6 +23,14 @@ impl Function for ToUnixTimestamp {
         "to_unix_timestamp"
     }
 
+    fn usage(&self) -> &'static str {
+        indoc! {"
+            Converts the `value` timestamp into a [Unix timestamp](https://en.wikipedia.org/wiki/Unix_time).
+
+            Returns the number of seconds since the Unix epoch by default. To return the number in milliseconds or nanoseconds, set the `unit` argument to `milliseconds` or `nanoseconds`.
+        "}
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[
             example! {

@@ -24,6 +24,10 @@ impl Function for FormatTimestamp {
         "format_timestamp"
     }
 
+    fn usage(&self) -> &'static str {
+        "Formats `value` into a string representation of the timestamp."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

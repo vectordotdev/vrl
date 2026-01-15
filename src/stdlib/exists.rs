@@ -8,6 +8,16 @@ impl Function for Exists {
         "exists"
     }
 
+    fn usage(&self) -> &'static str {
+        indoc! {"
+            Checks whether the `path` exists for the target.
+
+            This function distinguishes between a missing path
+            and a path with a `null` value. A regular path lookup,
+            such as `.foo`, cannot distinguish between the two cases
+            since it always returns `null` if the path doesn't exist.
+        "}
+    }
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "field",

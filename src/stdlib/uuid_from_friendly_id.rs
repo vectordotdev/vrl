@@ -23,6 +23,10 @@ impl Function for UuidFromFriendlyId {
         "uuid_from_friendly_id"
     }
 
+    fn usage(&self) -> &'static str {
+        "Convert a Friendly ID (base62 encoding a 128-bit word) to a UUID."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

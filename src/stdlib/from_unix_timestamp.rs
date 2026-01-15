@@ -34,6 +34,14 @@ impl Function for FromUnixTimestamp {
         "from_unix_timestamp"
     }
 
+    fn usage(&self) -> &'static str {
+        indoc! {"
+            Converts the `value` integer from a [Unix timestamp](https://en.wikipedia.org/wiki/Unix_time) to a VRL `timestamp`.
+
+            Converts from the number of seconds since the Unix epoch by default. To convert from milliseconds or nanoseconds, set the `unit` argument to `milliseconds` or `nanoseconds`.
+        "}
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

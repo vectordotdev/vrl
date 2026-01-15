@@ -47,6 +47,21 @@ impl Function for Replace {
         "replace"
     }
 
+    fn usage(&self) -> &'static str {
+        indoc! {"
+            Replaces all matching instances of `pattern` in `value`.
+
+            The `pattern` argument accepts regular expression capture groups.
+
+            **Note when using capture groups**:
+            - You will need to escape the `$` by using `$$` to avoid Vector interpreting it as an
+              [environment variable when loading configuration](/docs/reference/environment_variables/#escaping)
+            - If you want a literal `$` in the replacement pattern, you will also need to escape this
+              with `$$`. When combined with environment variable interpolation in config files this
+              means you will need to use `$$$$` to have a literal `$` in the replacement pattern.
+        "}
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

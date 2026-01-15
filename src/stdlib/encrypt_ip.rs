@@ -41,6 +41,17 @@ impl Function for EncryptIp {
         "encrypt_ip"
     }
 
+    fn usage(&self) -> &'static str {
+        indoc! {"
+            Encrypts an IP address, transforming it into a different valid IP address.
+
+            Supported Modes:
+
+            * AES128 - Scrambles the entire IP address using AES-128 encryption. Can transform between IPv4 and IPv6.
+            * PFX (Prefix-preserving) - Maintains network hierarchy by ensuring that IP addresses within the same network are encrypted to addresses that also share a common network. This preserves prefix relationships while providing confidentiality.
+        "}
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

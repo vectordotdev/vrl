@@ -9,6 +9,16 @@ impl Function for ParseLogFmt {
         "parse_logfmt"
     }
 
+    fn usage(&self) -> &'static str {
+        indoc! {r#"
+            Parses the `value` in [logfmt](https://brandur.org/logfmt).
+
+            * Keys and values can be wrapped using the `"` character.
+            * `"` characters can be escaped by the `\` character.
+            * As per this [logfmt specification](https://pkg.go.dev/github.com/kr/logfmt#section-documentation), the `parse_logfmt` function accepts standalone keys and assigns them a Boolean value of `true`.
+        "#}
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

@@ -17,6 +17,15 @@ impl Function for IpAton {
         "ip_aton"
     }
 
+    fn usage(&self) -> &'static str {
+        indoc! {"
+            Converts IPv4 address in numbers-and-dots notation into network-order
+            bytes represented as an integer.
+
+            This behavior mimics [inet_aton](https://linux.die.net/man/3/inet_aton).
+        "}
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

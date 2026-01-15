@@ -26,6 +26,10 @@ impl Function for ToInt {
         "to_int"
     }
 
+    fn usage(&self) -> &'static str {
+        "Coerces the `value` into an integer."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

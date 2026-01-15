@@ -9,6 +9,10 @@ impl Function for IsNull {
         "is_null"
     }
 
+    fn usage(&self) -> &'static str {
+        "Check if `value`'s type is `null`. For a more relaxed function, see [`is_nullish`](/docs/reference/vrl/functions#is_nullish)."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",
