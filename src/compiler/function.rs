@@ -87,7 +87,7 @@ pub struct Example {
 /// Macro to create an `Example` with automatic source location tracking
 /// Accepts fields in any order: title, source, result
 /// Optional fields added to `Example` shouldn't be required to be added for the macro to work,
-/// mainting backwards compatibility
+/// maintaining backwards compatibility
 #[macro_export]
 macro_rules! example {
     // Entry point - delegate to internal parser with empty state
