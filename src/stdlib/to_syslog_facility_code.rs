@@ -42,7 +42,7 @@ impl Function for ToSyslogFacilityCode {
     }
 
     fn usage(&self) -> &'static str {
-        r#"Converts the `value`, a Syslog [facility keyword](https://en.wikipedia.org/wiki/Syslog#Facility), into a Syslog integer facility code (`0` to `23`)."#
+        "Converts the `value`, a Syslog [facility keyword](https://en.wikipedia.org/wiki/Syslog#Facility), into a Syslog integer facility code (`0` to `23`)."
     }
 
     fn parameters(&self) -> &'static [Parameter] {

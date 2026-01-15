@@ -26,7 +26,7 @@ impl Function for ToSyslogSeverity {
     }
 
     fn usage(&self) -> &'static str {
-        r#"Converts the `value`, a Syslog [log level keyword](https://en.wikipedia.org/wiki/Syslog#Severity_level), into a Syslog integer severity level (`0` to `7`)."#
+        "Converts the `value`, a Syslog [log level keyword](https://en.wikipedia.org/wiki/Syslog#Severity_level), into a Syslog integer severity level (`0` to `7`)."
     }
 
     fn parameters(&self) -> &'static [Parameter] {
