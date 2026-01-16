@@ -208,7 +208,7 @@ fn process_result(
             let got_value = vrl_value_to_json_value(got);
             let mut failed = false;
 
-            let want = test.result.clone();
+            let want = replace_current_year_placeholder(test.result.clone());
             let want_value = if want.starts_with("r'") && want.ends_with('\'') {
                 match regex::Regex::new(&want[2..want.len() - 1].replace("\\'", "'")) {
                     Ok(regex) => regex.to_string().into(),
@@ -257,7 +257,7 @@ fn process_result(
         Err(err) => {
             let mut failed = false;
             let got = err.to_string().trim().to_owned();
-            let want = test.result.clone().trim().to_owned();
+            let want = replace_current_year_placeholder(test.result.clone().trim().to_owned());
 
             if (test.result_approx && compare_partial_diagnostic(&got, &want)) || got == want {
                 println!("{}{}", Colour::Green.bold().paint("OK"), timings);
@@ -319,7 +319,7 @@ fn process_compilation_diagnostics(
     let got = formatter.to_string();
     let got = got.trim();
 
-    let want = test.result.clone();
+    let want = replace_current_year_placeholder(test.result.clone());
     let want = want.trim();
 
     if (test.result_approx && compare_partial_diagnostic(got, want)) || got == want {
@@ -402,6 +402,11 @@ fn print_result(
     }
 
     std::process::exit(code)
+}
+
+fn replace_current_year_placeholder(input: String) -> String {
+    let current_year = Utc::now().format("%Y").to_string();
+    input.replace("{CURRENT_YEAR}", &current_year)
 }
 
 fn compare_partial_diagnostic(got: &str, want: &str) -> bool {
