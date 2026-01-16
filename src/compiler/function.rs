@@ -87,7 +87,55 @@ pub struct Example {
 /// Macro to create an `Example` with automatic source location tracking
 /// Accepts fields in any order: title, source, result
 /// Optional fields added to `Example` shouldn't be required to be added for the macro to work,
-/// mainting backwards compatibility
+/// maintaining backwards compatibility
+///
+/// # Examples
+///
+/// Valid usage:
+/// ```
+/// use vrl::example;
+///
+/// let ex = example! {
+///     title: "test",
+///     source: "code",
+///     result: Ok("output"),
+/// };
+/// ```
+///
+/// Missing required field should fail:
+/// ```compile_fail
+/// use vrl::example;
+///
+/// let ex = example! {
+///     title: "test",
+///     source: "code",
+///     // missing result field
+/// };
+/// ```
+///
+/// Duplicate field should fail:
+/// ```compile_fail
+/// use vrl::example;
+///
+/// let ex = example! {
+///     title: "test",
+///     source: "code",
+///     result: Ok("output"),
+///     title: "duplicate",
+/// };
+/// ```
+///
+/// Unknown field should fail:
+/// ```compile_fail
+/// use vrl::example;
+///
+/// let ex = example! {
+///     title: "test",
+///     source: "code",
+///     result: Ok("output"),
+///     unknown_field: "value",
+/// };
+/// ```
 #[macro_export]
 macro_rules! example {
     // Entry point - delegate to internal parser with empty state
@@ -95,6 +143,21 @@ macro_rules! example {
         $($field:ident: $value:expr),+ $(,)?
     ) => {
         $crate::example!(@internal [] [] [] [$($field: $value,)*])
+    };
+
+    // Error: duplicate title field
+    (@internal [$title:expr] [$($source:tt)*] [$($result:tt)*] [title: $t:expr, $($rest:tt)*]) => {
+        compile_error!("duplicate 'title' field in example! macro")
+    };
+
+    // Error: duplicate source field
+    (@internal [$($title:tt)*] [$source:expr] [$($result:tt)*] [source: $s:expr, $($rest:tt)*]) => {
+        compile_error!("duplicate 'source' field in example! macro")
+    };
+
+    // Error: duplicate result field
+    (@internal [$($title:tt)*] [$($source:tt)*] [$result:expr] [result: $r:expr, $($rest:tt)*]) => {
+        compile_error!("duplicate 'result' field in example! macro")
     };
 
     // Parse title field
@@ -713,5 +776,28 @@ mod tests {
         assert_eq!(ex3.title, "test3");
         assert_eq!(ex3.source, "code3");
         assert_eq!(ex3.result, Err("error3"));
+    }
+
+    #[test]
+    fn test_example_macro_trailing_commas() {
+        // Test with trailing comma
+        let ex_with_comma = example! {
+            title: "test",
+            source: "code",
+            result: Ok("ok"),
+        };
+        assert_eq!(ex_with_comma.title, "test");
+        assert_eq!(ex_with_comma.source, "code");
+        assert_eq!(ex_with_comma.result, Ok("ok"));
+
+        // Test without trailing comma
+        let ex_no_comma = example! {
+            title: "test",
+            source: "code",
+            result: Ok("ok")
+        };
+        assert_eq!(ex_no_comma.title, "test");
+        assert_eq!(ex_no_comma.source, "code");
+        assert_eq!(ex_no_comma.result, Ok("ok"));
     }
 }

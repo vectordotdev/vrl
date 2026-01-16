@@ -1,0 +1,16 @@
+error: no rules expected `]`
+ --> tests/compiler/function/example/missing_result.rs:4:15
+  |
+4 |       let _ex = example! {
+  |  _______________^
+5 | |         title: "test",
+6 | |         source: "code",
+7 | |     };
+  | |_____^ no rules expected this token in macro call
+  |
+note: while trying to match `title`
+ --> src/compiler/function.rs
+  |
+  |     (@internal [$title:expr] [$($source:tt)*] [$($result:tt)*] [title: $t:expr, $($rest:tt)*]) => {
+  |                                                                 ^^^^^
+  = note: this error originates in the macro `$crate::example` which comes from the expansion of the macro `example` (in Nightly builds, run with -Z macro-backtrace for more info)

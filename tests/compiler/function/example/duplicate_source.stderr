@@ -1,0 +1,13 @@
+error: duplicate 'source' field in example! macro
+ --> tests/compiler/function/example/duplicate_source.rs:4:15
+  |
+4 |       let _ex = example! {
+  |  _______________^
+5 | |         title: "test",
+6 | |         source: "code",
+7 | |         result: Ok("output"),
+8 | |         source: "duplicate",
+9 | |     };
+  | |_____^
+  |
+  = note: this error originates in the macro `$crate::example` which comes from the expansion of the macro `example` (in Nightly builds, run with -Z macro-backtrace for more info)
