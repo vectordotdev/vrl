@@ -263,7 +263,7 @@ regex = { version = "1", default-features = false, features = ["std", "perf", "u
 paste = { version = "1", default-features = false }
 proptest = { version = "1" }
 proptest-derive = { version = "0.6" }
-trybuild = "1"
+trybuild = "1.0.114"
 
 [build-dependencies]
 lalrpop = { version = "0.22", default-features = false }
