@@ -70,6 +70,7 @@ impl Function for ParseXml {
                 keyword: "trim",
                 kind: kind::BOOLEAN,
                 required: false,
+            description: "Remove excess whitespace between XML elements.",
             },
             Parameter {
                 keyword: "include_attr",

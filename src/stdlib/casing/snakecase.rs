@@ -35,6 +35,19 @@ impl Function for Snakecase {
                 keyword: "excluded_boundaries",
                 kind: kind::ARRAY,
                 required: false,
+                description: indoc! {"
+                    Case boundaries to exclude during conversion.
+
+                    Valid values include:
+                    - lower_upper
+                    - upper_lower
+                    - upper_upper
+                    - acronym
+                    - lower_digit
+                    - upper_digit
+                    - digit_lower
+                    - digit_upper
+                "},
             },
         ]
     }
