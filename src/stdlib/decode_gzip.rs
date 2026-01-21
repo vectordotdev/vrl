@@ -49,6 +49,7 @@ impl Function for DecodeGzip {
             keyword: "value",
             kind: kind::BYTES,
             required: true,
+            description: "The [Gzip](https://www.gzip.org/) data to decode.",
         }]
     }
 }

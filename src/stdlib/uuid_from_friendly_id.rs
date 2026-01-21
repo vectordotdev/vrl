@@ -32,6 +32,7 @@ impl Function for UuidFromFriendlyId {
             keyword: "value",
             kind: kind::BYTES,
             required: true,
+            description: "A string that is a Friendly ID",
         }]
     }
 

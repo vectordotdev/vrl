@@ -23,6 +23,7 @@ impl Function for Md5 {
             keyword: "value",
             kind: kind::ANY,
             required: true,
+            description: "The string to calculate the hash for.",
         }]
     }
 

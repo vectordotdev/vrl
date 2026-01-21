@@ -40,6 +40,7 @@ impl Function for IpPton {
             keyword: "value",
             kind: kind::BYTES,
             required: true,
+            description: "The IP address (v4 or v6) to convert to binary form.",
         }]
     }
 

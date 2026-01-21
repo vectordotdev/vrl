@@ -75,6 +75,7 @@ impl Function for IpCidrContains {
                 keyword: "cidr",
                 kind: kind::BYTES | kind::ARRAY,
                 required: true,
+            description: "The CIDR mask (v4 or v6).",
             },
             Parameter {
                 keyword: "value",

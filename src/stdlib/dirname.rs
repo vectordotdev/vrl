@@ -36,6 +36,7 @@ impl Function for DirName {
             keyword: "value",
             kind: kind::BYTES,
             required: true,
+            description: "The path from which to extract the directory name.",
         }]
     }
 

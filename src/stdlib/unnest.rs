@@ -77,6 +77,7 @@ impl Function for Unnest {
             keyword: "path",
             kind: kind::ARRAY,
             required: true,
+            description: "The path of the field to unnest.",
         }]
     }
 

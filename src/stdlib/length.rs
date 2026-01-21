@@ -39,6 +39,7 @@ impl Function for Length {
             keyword: "value",
             kind: kind::ARRAY | kind::OBJECT | kind::BYTES,
             required: true,
+            description: "The array or object.",
         }]
     }
 

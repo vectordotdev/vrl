@@ -36,6 +36,7 @@ impl Function for IsEmpty {
             keyword: "value",
             kind: kind::OBJECT | kind::ARRAY | kind::BYTES,
             required: true,
+            description: "The value to check.",
         }]
     }
 

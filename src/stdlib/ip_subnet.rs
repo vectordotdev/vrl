@@ -59,6 +59,8 @@ impl Function for IpSubnet {
                 keyword: "subnet",
                 kind: kind::BYTES,
                 required: true,
+            description: "The subnet to extract from the IP address. This can be either a prefix length like `/8` or a net mask
+like `255.255.0.0`. The net mask can be either an IPv4 or IPv6 address.",
             },
         ]
     }

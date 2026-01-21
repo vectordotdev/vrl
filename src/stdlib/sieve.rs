@@ -56,6 +56,7 @@ impl Function for Sieve {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+            description: "The original string.",
             },
             Parameter {
                 keyword: "permitted_characters",
@@ -66,11 +67,13 @@ impl Function for Sieve {
                 keyword: "replace_single",
                 kind: kind::BYTES,
                 required: false,
+            description: "The string to use to replace single rejected characters.",
             },
             Parameter {
                 keyword: "replace_repeated",
                 kind: kind::BYTES,
                 required: false,
+            description: "The string to use to replace multiple sequential instances of rejected characters.",
             },
         ]
     }
