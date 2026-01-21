@@ -53,6 +53,7 @@ impl Function for Del {
                 keyword: "target",
                 kind: kind::ANY,
                 required: true,
+                description: "The path of the field to delete",
             },
             Parameter {
                 keyword: "compact",

@@ -62,6 +62,7 @@ impl Function for Sieve {
                 keyword: "permitted_characters",
                 kind: kind::REGEX,
                 required: true,
+            description: "Keep all matches of this pattern.",
             },
             Parameter {
                 keyword: "replace_single",

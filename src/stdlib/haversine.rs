@@ -111,6 +111,7 @@ impl Function for Haversine {
                 keyword: "measurement_unit",
                 kind: kind::BYTES,
                 required: false,
+            description: "Measurement system to use for resulting distance.",
             },
         ]
     }

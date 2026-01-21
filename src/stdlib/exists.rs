@@ -23,6 +23,7 @@ impl Function for Exists {
             keyword: "field",
             kind: kind::ANY,
             required: true,
+            description: "The path of the field to check.",
         }]
     }
 

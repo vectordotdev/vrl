@@ -54,6 +54,7 @@ impl Function for IpSubnet {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+            description: "The IP address (v4 or v6).",
             },
             Parameter {
                 keyword: "subnet",
