@@ -22,13 +22,14 @@ impl Function for ParseEtld {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
-            description: "The domain string.",
+                description: "The domain string.",
             },
             Parameter {
                 keyword: "plus_parts",
                 kind: kind::INTEGER,
                 required: false,
-            description: "Can be provided to get additional parts of the domain name. When 1 is passed,
+                description:
+                    "Can be provided to get additional parts of the domain name. When 1 is passed,
 eTLD+1 will be returned, which represents a domain registrable by a single
 organization. Higher numbers will return subdomains.",
             },
@@ -36,7 +37,7 @@ organization. Higher numbers will return subdomains.",
                 keyword: "psl",
                 kind: kind::BYTES,
                 required: false,
-            description: "Can be provided to use a different public suffix list.
+                description: "Can be provided to use a different public suffix list.
 
 By default, https://publicsuffix.org/list/public_suffix_list.dat is used.",
             },

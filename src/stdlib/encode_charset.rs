@@ -51,13 +51,13 @@ impl Function for EncodeCharset {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
-            description: "The UTF8 string to encode.",
+                description: "The UTF8 string to encode.",
             },
             Parameter {
                 keyword: "to_charset",
                 kind: kind::BYTES,
                 required: true,
-            description: "The [character set](https://encoding.spec.whatwg.org/#names-and-labels) to use when encoding the data.",
+                description: "The [character set](https://encoding.spec.whatwg.org/#names-and-labels) to use when encoding the data.",
             },
         ]
     }

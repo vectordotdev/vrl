@@ -56,25 +56,25 @@ impl Function for Sieve {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
-            description: "The original string.",
+                description: "The original string.",
             },
             Parameter {
                 keyword: "permitted_characters",
                 kind: kind::REGEX,
                 required: true,
-            description: "Keep all matches of this pattern.",
+                description: "Keep all matches of this pattern.",
             },
             Parameter {
                 keyword: "replace_single",
                 kind: kind::BYTES,
                 required: false,
-            description: "The string to use to replace single rejected characters.",
+                description: "The string to use to replace single rejected characters.",
             },
             Parameter {
                 keyword: "replace_repeated",
                 kind: kind::BYTES,
                 required: false,
-            description: "The string to use to replace multiple sequential instances of rejected characters.",
+                description: "The string to use to replace multiple sequential instances of rejected characters.",
             },
         ]
     }

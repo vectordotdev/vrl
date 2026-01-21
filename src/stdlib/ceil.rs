@@ -39,13 +39,13 @@ impl Function for Ceil {
                 keyword: "value",
                 kind: kind::FLOAT | kind::INTEGER,
                 required: true,
-            description: "The number to round up.",
+                description: "The number to round up.",
             },
             Parameter {
                 keyword: "precision",
                 kind: kind::INTEGER,
                 required: false,
-            description: "The number of decimal places to round to.",
+                description: "The number of decimal places to round to.",
             },
         ]
     }

@@ -146,19 +146,19 @@ impl Function for ParseBytes {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
-            description: "The string of the duration with either binary or SI unit.",
+                description: "The string of the duration with either binary or SI unit.",
             },
             Parameter {
                 keyword: "unit",
                 kind: kind::BYTES,
                 required: true,
-            description: "The output units for the byte.",
+                description: "The output units for the byte.",
             },
             Parameter {
                 keyword: "base",
                 kind: kind::BYTES,
                 required: false,
-            description: "The base for the byte, either 2 or 10.",
+                description: "The base for the byte, either 2 or 10.",
             },
         ]
     }

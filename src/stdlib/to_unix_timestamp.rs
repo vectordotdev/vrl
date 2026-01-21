@@ -62,13 +62,13 @@ impl Function for ToUnixTimestamp {
                 keyword: "value",
                 kind: kind::TIMESTAMP,
                 required: true,
-            description: "The timestamp to convert into a Unix timestamp.",
+                description: "The timestamp to convert into a Unix timestamp.",
             },
             Parameter {
                 keyword: "unit",
                 kind: kind::BYTES,
                 required: false,
-            description: "The time unit.",
+                description: "The time unit.",
             },
         ]
     }

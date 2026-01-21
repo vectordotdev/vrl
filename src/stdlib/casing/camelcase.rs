@@ -21,13 +21,13 @@ impl Function for Camelcase {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
-            description: "The string to convert to camelCase.",
+                description: "The string to convert to camelCase.",
             },
             Parameter {
                 keyword: "original_case",
                 kind: kind::BYTES,
                 required: false,
-            description: "Optional hint on the original case type. Must be one of: kebab-case, camelCase, PascalCase, SCREAMING_SNAKE, snake_case",
+                description: "Optional hint on the original case type. Must be one of: kebab-case, camelCase, PascalCase, SCREAMING_SNAKE, snake_case",
             },
         ]
     }

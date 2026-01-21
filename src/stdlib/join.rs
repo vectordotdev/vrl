@@ -34,13 +34,13 @@ impl Function for Join {
                 keyword: "value",
                 kind: kind::ARRAY,
                 required: true,
-            description: "The array of strings to join together.",
+                description: "The array of strings to join together.",
             },
             Parameter {
                 keyword: "separator",
                 kind: kind::BYTES,
                 required: false,
-            description: "The string separating each original element when joined.",
+                description: "The string separating each original element when joined.",
             },
         ]
     }

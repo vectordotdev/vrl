@@ -25,13 +25,13 @@ impl Function for Append {
                 keyword: "value",
                 kind: kind::ARRAY,
                 required: true,
-            description: "The initial array.",
+                description: "The initial array.",
             },
             Parameter {
                 keyword: "items",
                 kind: kind::ARRAY,
                 required: true,
-            description: "The items to append.",
+                description: "The items to append.",
             },
         ]
     }

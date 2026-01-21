@@ -61,13 +61,13 @@ impl Function for ParseCef {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
-            description: "The string to parse.",
+                description: "The string to parse.",
             },
             Parameter {
                 keyword: "translate_custom_fields",
                 kind: kind::BOOLEAN,
                 required: false,
-            description: "Toggles translation of custom field pairs to `key:value`.",
+                description: "Toggles translation of custom field pairs to `key:value`.",
             },
         ]
     }

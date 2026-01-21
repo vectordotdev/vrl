@@ -24,13 +24,13 @@ impl Function for Includes {
                 keyword: "value",
                 kind: kind::ARRAY,
                 required: true,
-            description: "The array.",
+                description: "The array.",
             },
             Parameter {
                 keyword: "item",
                 kind: kind::ANY,
                 required: true,
-            description: "The item to check.",
+                description: "The item to check.",
             },
         ]
     }

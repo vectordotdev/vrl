@@ -23,13 +23,13 @@ impl Function for Mod {
                 keyword: "value",
                 kind: kind::INTEGER | kind::FLOAT,
                 required: true,
-            description: "The value the `modulus` is applied to.",
+                description: "The value the `modulus` is applied to.",
             },
             Parameter {
                 keyword: "modulus",
                 kind: kind::INTEGER | kind::FLOAT,
                 required: true,
-            description: "The `modulus` value.",
+                description: "The `modulus` value.",
             },
         ]
     }
