@@ -2,6 +2,8 @@ use super::util::round_to_precision;
 use crate::compiler::prelude::*;
 use std::sync::LazyLock;
 
+static DEFAULT_PRECISION: LazyLock<Value> = LazyLock::new(|| Value::Integer(0));
+
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
         Parameter {
@@ -16,16 +18,14 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             kind: kind::INTEGER,
             required: false,
             description: "The number of decimal places to round to.",
-            default: Some(&Value::Integer(0)),
+            default: Some(&DEFAULT_PRECISION),
         },
     ]
 });
 
-fn ceil(value: Value, precision: Option<Value>) -> Resolved {
-    let precision = match precision {
-        Some(expr) => expr.try_integer()?,
-        None => 0,
-    };
+fn ceil(value: Value, precision: Value) -> Resolved {
+    let precision = precision.try_integer()?;
+
     match value {
         Value::Float(f) => Ok(Value::from_f64_or_zero(round_to_precision(
             *f,
@@ -102,7 +102,8 @@ impl FunctionExpression for CeilFn {
             .precision
             .as_ref()
             .map(|expr| expr.resolve(ctx))
-            .transpose()?;
+            .transpose()?
+            .unwrap_or_else(|| DEFAULT_PRECISION.clone());
         let value = self.value.resolve(ctx)?;
 
         ceil(value, precision)
