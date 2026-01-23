@@ -24,6 +24,7 @@ impl Function for Pop {
             kind: kind::ARRAY,
             required: true,
             description: "The target array.",
+            default: None,
         }]
     }
 

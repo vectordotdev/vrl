@@ -1,8 +1,28 @@
 use std::collections::btree_map;
 
 use crate::compiler::prelude::*;
+use std::sync::LazyLock;
 
-static DEFAULT_SEPARATOR: &str = ".";
+static DEFAULT_SEPARATOR: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from(".")));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::OBJECT | kind::ARRAY,
+            required: true,
+            description: "The array or object to flatten.",
+            default: None,
+        },
+        Parameter {
+            keyword: "separator",
+            kind: kind::BYTES,
+            required: false,
+            description: "The separator to join nested keys",
+            default: Some(&DEFAULT_SEPARATOR),
+        },
+    ]
+});
 
 fn flatten(value: Value, separator: &Value) -> Resolved {
     let separator = separator.try_bytes_utf8_lossy()?;
@@ -37,20 +57,7 @@ impl Function for Flatten {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::OBJECT | kind::ARRAY,
-                required: true,
-                description: "The array or object to flatten.",
-            },
-            Parameter {
-                keyword: "separator",
-                kind: kind::BYTES,
-                required: false,
-                description: "The separator to join nested keys",
-            },
-        ]
+        PARAMETERS.as_slice()
     }
 
     fn examples(&self) -> &'static [Example] {
@@ -81,7 +88,7 @@ impl Function for Flatten {
     ) -> Compiled {
         let separator = arguments
             .optional("separator")
-            .unwrap_or_else(|| expr!(DEFAULT_SEPARATOR));
+            .unwrap_or_else(|| DEFAULT_SEPARATOR.clone().into_expression());
         let value = arguments.required("value");
         Ok(FlattenFn { value, separator }.as_expr())
     }

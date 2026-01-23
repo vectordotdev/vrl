@@ -1,5 +1,35 @@
 use crate::compiler::prelude::*;
 use crate::stdlib::util::Base64Charset;
+use std::sync::LazyLock;
+
+static DEFAULT_PADDING: LazyLock<Value> = LazyLock::new(|| Value::Boolean(true));
+static DEFAULT_CHARSET: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from("standard")));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::BYTES,
+            required: true,
+            description: "The string to encode.",
+            default: None,
+        },
+        Parameter {
+            keyword: "padding",
+            kind: kind::BOOLEAN,
+            required: false,
+            description: "Whether the Base64 output is [padded](https://en.wikipedia.org/wiki/Base64#Output_padding).",
+            default: Some(&DEFAULT_PADDING),
+        },
+        Parameter {
+            keyword: "charset",
+            kind: kind::BYTES,
+            required: false,
+            description: "The character set to use when encoding the data.",
+            default: Some(&DEFAULT_CHARSET),
+        },
+    ]
+});
 
 fn encode_base64(value: Value, padding: Option<Value>, charset: Option<Value>) -> Resolved {
     let value = value.try_bytes()?;
@@ -39,26 +69,7 @@ impl Function for EncodeBase64 {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::BYTES,
-                required: true,
-                description: "The string to encode.",
-            },
-            Parameter {
-                keyword: "padding",
-                kind: kind::BOOLEAN,
-                required: false,
-                description: "Whether the Base64 output is [padded](https://en.wikipedia.org/wiki/Base64#Output_padding).",
-            },
-            Parameter {
-                keyword: "charset",
-                kind: kind::BYTES,
-                required: false,
-                description: "The character set to use when encoding the data.",
-            },
-        ]
+        PARAMETERS.as_slice()
     }
 
     fn compile(

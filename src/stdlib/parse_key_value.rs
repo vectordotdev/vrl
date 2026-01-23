@@ -16,7 +16,54 @@ use std::{
     collections::{BTreeMap, btree_map::Entry},
     iter::Peekable,
     str::{Chars, FromStr},
+    sync::LazyLock,
 };
+
+static DEFAULT_KEY_VALUE_DELIMITER: LazyLock<Value> =
+    LazyLock::new(|| Value::Bytes(Bytes::from("=")));
+static DEFAULT_FIELD_DELIMITER: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from(" ")));
+static DEFAULT_WHITESPACE: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from("lenient")));
+static DEFAULT_ACCEPT_STANDALONE_KEY: LazyLock<Value> = LazyLock::new(|| Value::Boolean(true));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::BYTES,
+            required: true,
+            description: "The string to parse.",
+            default: None,
+        },
+        Parameter {
+            keyword: "key_value_delimiter",
+            kind: kind::ANY,
+            required: false,
+            description: "The string that separates the key from the value.",
+            default: Some(&DEFAULT_KEY_VALUE_DELIMITER),
+        },
+        Parameter {
+            keyword: "field_delimiter",
+            kind: kind::ANY,
+            required: false,
+            description: "The string that separates each key-value pair.",
+            default: Some(&DEFAULT_FIELD_DELIMITER),
+        },
+        Parameter {
+            keyword: "whitespace",
+            kind: kind::BYTES,
+            required: false,
+            description: "Defines the acceptance of unnecessary whitespace surrounding the configured `key_value_delimiter`.",
+            default: Some(&DEFAULT_WHITESPACE),
+        },
+        Parameter {
+            keyword: "accept_standalone_key",
+            kind: kind::BOOLEAN,
+            required: false,
+            description: "Whether a standalone key should be accepted, the resulting object associates such keys with the boolean value `true`.",
+            default: Some(&DEFAULT_ACCEPT_STANDALONE_KEY),
+        },
+    ]
+});
 
 pub fn parse_key_value(
     bytes: &Value,
@@ -84,38 +131,7 @@ impl Function for ParseKeyValue {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::BYTES,
-                required: true,
-                description: "The string to parse.",
-            },
-            Parameter {
-                keyword: "key_value_delimiter",
-                kind: kind::ANY,
-                required: false,
-                description: "The string that separates the key from the value.",
-            },
-            Parameter {
-                keyword: "field_delimiter",
-                kind: kind::ANY,
-                required: false,
-                description: "The string that separates each key-value pair.",
-            },
-            Parameter {
-                keyword: "whitespace",
-                kind: kind::BYTES,
-                required: false,
-                description: "Defines the acceptance of unnecessary whitespace surrounding the configured `key_value_delimiter`.",
-            },
-            Parameter {
-                keyword: "accept_standalone_key",
-                kind: kind::BOOLEAN,
-                required: false,
-                description: "Whether a standalone key should be accepted, the resulting object associates such keys with the boolean value `true`.",
-            },
-        ]
+        PARAMETERS.as_slice()
     }
 
     fn examples(&self) -> &'static [Example] {

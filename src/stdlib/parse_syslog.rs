@@ -36,6 +36,7 @@ impl Function for ParseSyslog {
             kind: kind::BYTES,
             required: true,
             description: "The text containing the Syslog message to parse.",
+            default: None,
         }]
     }
 

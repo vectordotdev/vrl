@@ -75,18 +75,21 @@ impl Function for DecryptIp {
                 kind: kind::BYTES,
                 required: true,
                 description: "The encrypted IP address to decrypt (v4 or v6).",
+                default: None,
             },
             Parameter {
                 keyword: "key",
                 kind: kind::BYTES,
                 required: true,
                 description: "The decryption key in raw bytes (not encoded). Must be the same key that was used for encryption. For AES128 mode, the key must be exactly 16 bytes. For PFX mode, the key must be exactly 32 bytes.",
+                default: None,
             },
             Parameter {
                 keyword: "mode",
                 kind: kind::BYTES,
                 required: true,
                 description: "The decryption mode to use. Must match the mode used for encryption: either `aes128` or `pfx`.",
+                default: None,
             },
         ]
     }

@@ -1,6 +1,10 @@
 use crate::compiler::prelude::*;
 use crate::value;
 use crc::Crc as CrcInstance;
+use std::sync::LazyLock;
+
+static DEFAULT_ALGORITHM: LazyLock<Value> =
+    LazyLock::new(|| Value::Bytes(Bytes::from("CRC_32_ISO_HDLC")));
 
 const VALID_ALGORITHMS: &[&str] = &[
     "CRC_3_GSM",
@@ -118,6 +122,26 @@ const VALID_ALGORITHMS: &[&str] = &[
 ];
 
 #[allow(clippy::too_many_lines)]
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::BYTES,
+            required: true,
+            description: "The string to calculate the checksum for.",
+            default: None,
+        },
+        Parameter {
+            keyword: "algorithm",
+            kind: kind::BYTES,
+            required: false,
+            description: "The CRC algorithm to use.",
+            default: Some(&DEFAULT_ALGORITHM),
+        },
+    ]
+});
+
 fn crc(value: Value, algorithm: &str) -> Resolved {
     let value = value.try_bytes()?;
 
@@ -481,20 +505,7 @@ impl Function for Crc {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::BYTES,
-                required: true,
-                description: "The string to calculate the checksum for.",
-            },
-            Parameter {
-                keyword: "algorithm",
-                kind: kind::BYTES,
-                required: false,
-                description: "The CRC algorithm to use.",
-            },
-        ]
+        PARAMETERS.as_slice()
     }
 
     fn examples(&self) -> &'static [Example] {

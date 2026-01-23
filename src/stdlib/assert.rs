@@ -38,6 +38,7 @@ impl Function for Assert {
                 kind: kind::BOOLEAN,
                 required: true,
                 description: "The condition to check.",
+                default: None,
             },
             Parameter {
                 keyword: "message",
@@ -47,6 +48,7 @@ impl Function for Assert {
                     "An optional custom error message. If the equality assertion fails, `message` is
 appended to the default message prefix. See the [examples](#assert-examples) below
 for a fully formed log message sample.",
+                default: None,
             },
         ]
     }

@@ -1,4 +1,29 @@
 use crate::compiler::prelude::*;
+use std::sync::LazyLock;
+
+static DEFAULT_COMPACT: LazyLock<Value> = LazyLock::new(|| Value::Boolean(false));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "target",
+            kind: kind::ANY,
+            required: true,
+            description: "The path of the field to delete",
+            default: None,
+        },
+        Parameter {
+            keyword: "compact",
+            kind: kind::BOOLEAN,
+            required: false,
+            description:
+                "After deletion, if `compact` is `true` and there is an empty object or array left,
+the empty object or array is also removed, cascading up to the root. This only
+applies to the path being deleted, and any parent paths.",
+            default: Some(&DEFAULT_COMPACT),
+        },
+    ]
+});
 
 #[inline]
 fn del(query: &expression::Query, compact: bool, ctx: &mut Context) -> Resolved {
@@ -48,22 +73,7 @@ impl Function for Del {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "target",
-                kind: kind::ANY,
-                required: true,
-                description: "The path of the field to delete",
-            },
-            Parameter {
-                keyword: "compact",
-                kind: kind::BOOLEAN,
-                required: false,
-                description: "After deletion, if `compact` is `true` and there is an empty object or array left,
-the empty object or array is also removed, cascading up to the root. This only
-applies to the path being deleted, and any parent paths.",
-            },
-        ]
+        PARAMETERS.as_slice()
     }
 
     fn examples(&self) -> &'static [Example] {

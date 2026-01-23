@@ -113,12 +113,14 @@ impl Function for ParseDuration {
                 kind: kind::BYTES,
                 required: true,
                 description: "The string of the duration.",
+                default: None,
             },
             Parameter {
                 keyword: "unit",
                 kind: kind::BYTES,
                 required: true,
                 description: "The output units for the duration.",
+                default: None,
             },
         ]
     }

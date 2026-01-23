@@ -1,8 +1,31 @@
 use std::collections::VecDeque;
 
 use crate::compiler::prelude::*;
+use std::sync::LazyLock;
 
 #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)] // TODO consider removal options
+
+static DEFAULT_BASE: LazyLock<Value> = LazyLock::new(|| Value::Integer(10));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::INTEGER,
+            required: true,
+            description: "The number to format.",
+            default: None,
+        },
+        Parameter {
+            keyword: "base",
+            kind: kind::INTEGER,
+            required: false,
+            description: "The base to format the number in. Must be between 2 and 36 (inclusive).",
+            default: Some(&DEFAULT_BASE),
+        },
+    ]
+});
+
 fn format_int(value: Value, base: Option<Value>) -> Resolved {
     let value = value.try_integer()?;
     let base = match base {
@@ -36,20 +59,7 @@ impl Function for FormatInt {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::INTEGER,
-                required: true,
-                description: "The number to format.",
-            },
-            Parameter {
-                keyword: "base",
-                kind: kind::INTEGER,
-                required: false,
-                description: "The base to format the number in. Must be between 2 and 36 (inclusive).",
-            },
-        ]
+        PARAMETERS.as_slice()
     }
 
     fn compile(

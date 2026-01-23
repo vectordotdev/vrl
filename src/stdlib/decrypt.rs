@@ -164,18 +164,21 @@ impl Function for Decrypt {
                 kind: kind::BYTES,
                 required: true,
                 description: "The string in raw bytes (not encoded) to decrypt.",
+            default: None,
             },
             Parameter {
                 keyword: "algorithm",
                 kind: kind::BYTES,
                 required: true,
                 description: "The algorithm to use.",
+            default: None,
             },
             Parameter {
                 keyword: "key",
                 kind: kind::BYTES,
                 required: true,
                 description: "The key in raw bytes (not encoded) for decryption. The length must match the algorithm requested.",
+            default: None,
             },
             Parameter {
                 keyword: "iv",
@@ -184,6 +187,7 @@ impl Function for Decrypt {
                 description: "The IV in raw bytes (not encoded) for decryption. The length must match the algorithm requested.
 A new IV should be generated for every message. You can use `random_bytes` to generate a cryptographically secure random value.
 The value should match the one used during encryption.",
+            default: None,
             },
         ]
     }

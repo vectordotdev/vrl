@@ -1,5 +1,27 @@
 use crate::compiler::prelude::*;
 use csv::ReaderBuilder;
+use std::sync::LazyLock;
+
+static DEFAULT_DELIMITER: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from(",")));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::BYTES,
+            required: true,
+            description: "The string to parse.",
+            default: None,
+        },
+        Parameter {
+            keyword: "delimiter",
+            kind: kind::BYTES,
+            required: false,
+            description: "The field delimiter to use when parsing. Must be a single-byte utf8 character.",
+            default: Some(&DEFAULT_DELIMITER),
+        },
+    ]
+});
 
 fn parse_csv(csv_string: Value, delimiter: Value) -> Resolved {
     let csv_string = csv_string.try_bytes()?;
@@ -69,20 +91,7 @@ impl Function for ParseCsv {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::BYTES,
-                required: true,
-                description: "The string to parse.",
-            },
-            Parameter {
-                keyword: "delimiter",
-                kind: kind::BYTES,
-                required: false,
-                description: "The field delimiter to use when parsing. Must be a single-byte utf8 character.",
-            },
-        ]
+        PARAMETERS.as_slice()
     }
 }
 

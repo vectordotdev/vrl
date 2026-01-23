@@ -1,6 +1,31 @@
 use crate::compiler::prelude::*;
 use std::collections::BTreeMap;
+use std::sync::LazyLock;
 use url::Url;
+
+static DEFAULT_DEFAULT_KNOWN_PORTS: LazyLock<Value> = LazyLock::new(|| Value::Boolean(false));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::BYTES,
+            required: true,
+            description: "The text of the URL.",
+            default: None,
+        },
+        Parameter {
+            keyword: "default_known_ports",
+            kind: kind::BOOLEAN,
+            required: false,
+            description: "If true and the port number is not specified in the input URL
+string (or matches the default port for the scheme), it is
+populated from well-known ports for the following schemes:
+`http`, `https`, `ws`, `wss`, and `ftp`.",
+            default: Some(&DEFAULT_DEFAULT_KNOWN_PORTS),
+        },
+    ]
+});
 
 #[derive(Clone, Copy, Debug)]
 pub struct ParseUrl;
@@ -15,23 +40,7 @@ impl Function for ParseUrl {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::BYTES,
-                required: true,
-                description: "The text of the URL.",
-            },
-            Parameter {
-                keyword: "default_known_ports",
-                kind: kind::BOOLEAN,
-                required: false,
-                description: "If true and the port number is not specified in the input URL
-string (or matches the default port for the scheme), it is
-populated from well-known ports for the following schemes:
-`http`, `https`, `ws`, `wss`, and `ftp`.",
-            },
-        ]
+        PARAMETERS.as_slice()
     }
 
     fn examples(&self) -> &'static [Example] {

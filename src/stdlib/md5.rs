@@ -24,6 +24,7 @@ impl Function for Md5 {
             kind: kind::ANY,
             required: true,
             description: "The string to calculate the hash for.",
+            default: None,
         }]
     }
 

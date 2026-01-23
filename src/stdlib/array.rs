@@ -25,6 +25,7 @@ impl Function for Array {
             kind: kind::ANY,
             required: true,
             description: "The value to check if it is an array.",
+            default: None,
         }]
     }
 

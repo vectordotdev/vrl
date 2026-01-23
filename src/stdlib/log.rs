@@ -1,4 +1,35 @@
 use crate::compiler::prelude::*;
+use std::sync::LazyLock;
+
+static DEFAULT_LEVEL: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from("info")));
+static DEFAULT_RATE_LIMIT_SECS: LazyLock<Value> = LazyLock::new(|| Value::Integer(1));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+Parameter {
+                keyword: "value",
+                kind: kind::ANY,
+                required: true,
+                description: "The value to log.",
+            default: None,
+            },
+            Parameter {
+                keyword: "level",
+                kind: kind::BYTES,
+                required: false,
+                description: "The log level.",
+            default: Some(&DEFAULT_LEVEL),
+            },
+            Parameter {
+                keyword: "rate_limit_secs",
+                kind: kind::INTEGER,
+                required: false,
+                description: "Specifies that the log message is output no more than once per the given number of seconds.
+Use a value of `0` to turn rate limiting off.",
+            default: Some(&DEFAULT_RATE_LIMIT_SECS),
+            },
+    ]
+});
 
 #[derive(Clone, Copy, Debug)]
 pub struct Log;
@@ -13,27 +44,7 @@ impl Function for Log {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::ANY,
-                required: true,
-                description: "The value to log.",
-            },
-            Parameter {
-                keyword: "level",
-                kind: kind::BYTES,
-                required: false,
-                description: "The log level.",
-            },
-            Parameter {
-                keyword: "rate_limit_secs",
-                kind: kind::INTEGER,
-                required: false,
-                description: "Specifies that the log message is output no more than once per the given number of seconds.
-Use a value of `0` to turn rate limiting off.",
-            },
-        ]
+        PARAMETERS.as_slice()
     }
 
     fn examples(&self) -> &'static [Example] {

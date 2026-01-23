@@ -1,5 +1,44 @@
 use crate::compiler::prelude::*;
 use rust_decimal::{Decimal, prelude::FromPrimitive};
+use std::sync::LazyLock;
+
+static DEFAULT_DECIMAL_SEPARATOR: LazyLock<Value> =
+    LazyLock::new(|| Value::Bytes(Bytes::from(".")));
+static DEFAULT_GROUPING_SEPARATOR: LazyLock<Value> =
+    LazyLock::new(|| Value::Bytes(Bytes::from(",")));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::INTEGER | kind::FLOAT,
+            required: true,
+            description: "The number to format as a string.",
+            default: None,
+        },
+        Parameter {
+            keyword: "scale",
+            kind: kind::INTEGER,
+            required: false,
+            description: "The number of decimal places to display.",
+            default: None,
+        },
+        Parameter {
+            keyword: "decimal_separator",
+            kind: kind::BYTES,
+            required: false,
+            description: "The character to use between the whole and decimal parts of the number.",
+            default: Some(&DEFAULT_DECIMAL_SEPARATOR),
+        },
+        Parameter {
+            keyword: "grouping_separator",
+            kind: kind::BYTES,
+            required: false,
+            description: "The character to use between each thousands part of the number.",
+            default: Some(&DEFAULT_GROUPING_SEPARATOR),
+        },
+    ]
+});
 
 fn format_number(
     value: Value,
@@ -95,32 +134,7 @@ impl Function for FormatNumber {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::INTEGER | kind::FLOAT,
-                required: true,
-                description: "The number to format as a string.",
-            },
-            Parameter {
-                keyword: "scale",
-                kind: kind::INTEGER,
-                required: false,
-                description: "The number of decimal places to display.",
-            },
-            Parameter {
-                keyword: "decimal_separator",
-                kind: kind::BYTES,
-                required: false,
-                description: "The character to use between the whole and decimal parts of the number.",
-            },
-            Parameter {
-                keyword: "grouping_separator",
-                kind: kind::BYTES,
-                required: false,
-                description: "The character to use between each thousands part of the number.",
-            },
-        ]
+        PARAMETERS.as_slice()
     }
 
     fn compile(

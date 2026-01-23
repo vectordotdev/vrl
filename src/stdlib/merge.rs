@@ -1,5 +1,34 @@
 use crate::compiler::prelude::*;
 use std::collections::BTreeMap;
+use std::sync::LazyLock;
+
+static DEFAULT_DEEP: LazyLock<Value> = LazyLock::new(|| Value::Boolean(false));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "to",
+            kind: kind::OBJECT,
+            required: true,
+            description: "The object to merge into.",
+            default: None,
+        },
+        Parameter {
+            keyword: "from",
+            kind: kind::OBJECT,
+            required: true,
+            description: "The object to merge from.",
+            default: None,
+        },
+        Parameter {
+            keyword: "deep",
+            kind: kind::BOOLEAN,
+            required: false,
+            description: "A deep merge is performed if `true`, otherwise only top-level fields are merged.",
+            default: Some(&DEFAULT_DEEP),
+        },
+    ]
+});
 
 #[derive(Clone, Copy, Debug)]
 pub struct Merge;
@@ -14,26 +43,7 @@ impl Function for Merge {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "to",
-                kind: kind::OBJECT,
-                required: true,
-                description: "The object to merge into.",
-            },
-            Parameter {
-                keyword: "from",
-                kind: kind::OBJECT,
-                required: true,
-                description: "The object to merge from.",
-            },
-            Parameter {
-                keyword: "deep",
-                kind: kind::BOOLEAN,
-                required: false,
-                description: "A deep merge is performed if `true`, otherwise only top-level fields are merged.",
-            },
-        ]
+        PARAMETERS.as_slice()
     }
 
     fn examples(&self) -> &'static [Example] {

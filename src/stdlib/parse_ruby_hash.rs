@@ -50,6 +50,7 @@ impl Function for ParseRubyHash {
             kind: kind::BYTES,
             required: true,
             description: "The string representation of the ruby hash to parse.",
+            default: None,
         }]
     }
 }

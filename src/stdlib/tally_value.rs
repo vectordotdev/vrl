@@ -44,12 +44,14 @@ impl Function for TallyValue {
                 kind: kind::ARRAY,
                 required: true,
                 description: "The array to search through.",
+                default: None,
             },
             Parameter {
                 keyword: "value",
                 kind: kind::ANY,
                 required: true,
                 description: "The value to count occurrences of in the array.",
+                default: None,
             },
         ]
     }

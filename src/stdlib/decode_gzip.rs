@@ -50,6 +50,7 @@ impl Function for DecodeGzip {
             kind: kind::BYTES,
             required: true,
             description: "The [Gzip](https://www.gzip.org/) data to decode.",
+            default: None,
         }]
     }
 }

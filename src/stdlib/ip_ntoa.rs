@@ -33,6 +33,7 @@ impl Function for IpNtoa {
             kind: kind::INTEGER,
             required: true,
             description: "The integer representation of an IPv4 address.",
+            default: None,
         }]
     }
 

@@ -25,12 +25,14 @@ impl Function for MatchAny {
                 kind: kind::BYTES,
                 required: true,
                 description: "The value to match.",
+                default: None,
             },
             Parameter {
                 keyword: "patterns",
                 kind: kind::ARRAY,
                 required: true,
                 description: "The array of regular expression patterns to match against.",
+                default: None,
             },
         ]
     }

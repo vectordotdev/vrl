@@ -52,6 +52,7 @@ impl Function for ParseInt {
                 kind: kind::BYTES,
                 required: true,
                 description: "The string to parse.",
+                default: None,
             },
             Parameter {
                 keyword: "base",
@@ -62,6 +63,7 @@ impl Function for ParseInt {
 If unspecified, the string prefix is used to
 determine the base: \"0b\", 8 for \"0\" or \"0o\", 16 for \"0x\",
 and 10 otherwise.",
+                default: None,
             },
         ]
     }

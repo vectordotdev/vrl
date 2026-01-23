@@ -8,6 +8,39 @@ use serde_json::{
 use crate::compiler::prelude::*;
 use crate::stdlib::json_utils::bom::StripBomFromUTF8;
 use crate::stdlib::json_utils::json_type_def::json_type_def;
+use std::sync::LazyLock;
+
+static DEFAULT_LOSSY: LazyLock<Value> = LazyLock::new(|| Value::Boolean(true));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::BYTES,
+            required: true,
+            description: "The string representation of the JSON to parse.",
+            default: None,
+        },
+        Parameter {
+            keyword: "max_depth",
+            kind: kind::INTEGER,
+            required: false,
+            description: "Number of layers to parse for nested JSON-formatted documents.
+The value must be in the range of 1 to 128.",
+            default: None,
+        },
+        Parameter {
+            keyword: "lossy",
+            kind: kind::BOOLEAN,
+            required: false,
+            description:
+                "Whether to parse the JSON in a lossy manner. Replaces invalid UTF-8 characters
+with the Unicode character `�` (U+FFFD) if set to true, otherwise returns an error
+if there are any invalid UTF-8 characters present.",
+            default: Some(&DEFAULT_LOSSY),
+        },
+    ]
+});
 
 fn parse_json(value: Value, lossy: Option<Value>) -> Resolved {
     let lossy = lossy.map(Value::try_boolean).transpose()?.unwrap_or(true);
@@ -121,30 +154,7 @@ impl Function for ParseJson {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::BYTES,
-                required: true,
-                description: "The string representation of the JSON to parse.",
-            },
-            Parameter {
-                keyword: "max_depth",
-                kind: kind::INTEGER,
-                required: false,
-                description: "Number of layers to parse for nested JSON-formatted documents.
-The value must be in the range of 1 to 128.",
-            },
-            Parameter {
-                keyword: "lossy",
-                kind: kind::BOOLEAN,
-                required: false,
-                description:
-                    "Whether to parse the JSON in a lossy manner. Replaces invalid UTF-8 characters
-with the Unicode character `�` (U+FFFD) if set to true, otherwise returns an error
-if there are any invalid UTF-8 characters present.",
-            },
-        ]
+        PARAMETERS.as_slice()
     }
 
     fn examples(&self) -> &'static [Example] {

@@ -34,12 +34,14 @@ impl Function for EncodeJson {
                 kind: kind::ANY,
                 required: true,
                 description: "The value to convert to a JSON string.",
+                default: None,
             },
             Parameter {
                 keyword: "pretty",
                 kind: kind::BOOLEAN,
                 required: false,
                 description: "Whether to pretty print the JSON string or not.",
+                default: None,
             },
         ]
     }

@@ -13,6 +13,27 @@ static UA_EXTRACTOR: LazyLock<ua_parser::Extractor> = LazyLock::new(|| {
     ua_parser::Extractor::try_from(regexes).expect("Regex file is not valid.")
 });
 
+static DEFAULT_MODE: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from("fast")));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::BYTES,
+            required: true,
+            description: "The string to parse.",
+            default: None,
+        },
+        Parameter {
+            keyword: "mode",
+            kind: kind::BYTES,
+            required: false,
+            description: "Determines performance and reliability characteristics.",
+            default: Some(&DEFAULT_MODE),
+        },
+    ]
+});
+
 #[derive(Clone, Copy, Debug)]
 pub struct ParseUserAgent;
 
@@ -35,20 +56,7 @@ impl Function for ParseUserAgent {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::BYTES,
-                required: true,
-                description: "The string to parse.",
-            },
-            Parameter {
-                keyword: "mode",
-                kind: kind::BYTES,
-                required: false,
-                description: "Determines performance and reliability characteristics.",
-            },
-        ]
+        PARAMETERS.as_slice()
     }
 
     fn examples(&self) -> &'static [Example] {

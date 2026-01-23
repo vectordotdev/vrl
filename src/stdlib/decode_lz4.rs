@@ -2,9 +2,39 @@ use crate::compiler::prelude::*;
 use lz4_flex::block::{decompress, decompress_size_prepended};
 use lz4_flex::frame::FrameDecoder;
 use std::io;
+use std::sync::LazyLock;
+
+static DEFAULT_BUF_SIZE: LazyLock<Value> = LazyLock::new(|| Value::Integer(1048576));
+static DEFAULT_PREPENDED_SIZE: LazyLock<Value> = LazyLock::new(|| Value::Boolean(false));
 
 const LZ4_FRAME_MAGIC: [u8; 4] = [0x04, 0x22, 0x4D, 0x18];
 const LZ4_DEFAULT_BUFFER_SIZE: usize = 1_000_000; // Default buffer size for decompression 1MB
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::BYTES,
+            required: true,
+            description: "The lz4 block data to decode.",
+            default: None,
+        },
+        Parameter {
+            keyword: "buf_size",
+            kind: kind::INTEGER,
+            required: false,
+            description: "The size of the buffer to decode into, this must be equal to or larger than the uncompressed size.",
+            default: Some(&DEFAULT_BUF_SIZE),
+        },
+        Parameter {
+            keyword: "prepended_size",
+            kind: kind::BOOLEAN,
+            required: false,
+            description: "Some implementations of lz4 require the original uncompressed size to be prepended to the compressed data.",
+            default: Some(&DEFAULT_PREPENDED_SIZE),
+        },
+    ]
+});
 
 #[derive(Clone, Copy, Debug)]
 pub struct DecodeLz4;
@@ -58,26 +88,7 @@ impl Function for DecodeLz4 {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::BYTES,
-                required: true,
-                description: "The lz4 block data to decode.",
-            },
-            Parameter {
-                keyword: "buf_size",
-                kind: kind::INTEGER,
-                required: false,
-                description: "The size of the buffer to decode into, this must be equal to or larger than the uncompressed size.",
-            },
-            Parameter {
-                keyword: "prepended_size",
-                kind: kind::BOOLEAN,
-                required: false,
-                description: "Some implementations of lz4 require the original uncompressed size to be prepended to the compressed data.",
-            },
-        ]
+        PARAMETERS.as_slice()
     }
 }
 

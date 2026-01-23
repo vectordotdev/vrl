@@ -1,5 +1,27 @@
 use crate::compiler::prelude::*;
 use crate::stdlib::util::Base64Charset;
+use std::sync::LazyLock;
+
+static DEFAULT_CHARSET: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from("standard")));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::BYTES,
+            required: true,
+            description: "The [Base64](https://en.wikipedia.org/wiki/Base64) data to decode.",
+            default: None,
+        },
+        Parameter {
+            keyword: "charset",
+            kind: kind::BYTES,
+            required: false,
+            description: "The character set to use when decoding the data.",
+            default: Some(&DEFAULT_CHARSET),
+        },
+    ]
+});
 
 fn decode_base64(charset: Option<Value>, value: Value) -> Resolved {
     let value = value.try_bytes()?;
@@ -43,20 +65,7 @@ impl Function for DecodeBase64 {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::BYTES,
-                required: true,
-                description: "The [Base64](https://en.wikipedia.org/wiki/Base64) data to decode.",
-            },
-            Parameter {
-                keyword: "charset",
-                kind: kind::BYTES,
-                required: false,
-                description: "The character set to use when decoding the data.",
-            },
-        ]
+        PARAMETERS.as_slice()
     }
 
     fn compile(

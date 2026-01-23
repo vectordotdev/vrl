@@ -1,5 +1,67 @@
 use super::util;
 use crate::compiler::prelude::*;
+use std::sync::LazyLock;
+
+static DEFAULT_RECURSIVE: LazyLock<Value> = LazyLock::new(|| Value::Boolean(true));
+static DEFAULT_NULL: LazyLock<Value> = LazyLock::new(|| Value::Boolean(true));
+static DEFAULT_STRING: LazyLock<Value> = LazyLock::new(|| Value::Boolean(true));
+static DEFAULT_OBJECT: LazyLock<Value> = LazyLock::new(|| Value::Boolean(true));
+static DEFAULT_ARRAY: LazyLock<Value> = LazyLock::new(|| Value::Boolean(true));
+static DEFAULT_NULLISH: LazyLock<Value> = LazyLock::new(|| Value::Boolean(false));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::OBJECT | kind::ARRAY,
+            required: true,
+            description: "The object or array to compact.",
+            default: None,
+        },
+        Parameter {
+            keyword: "recursive",
+            kind: kind::BOOLEAN,
+            required: false,
+            description: "Whether the compaction be recursive.",
+            default: Some(&DEFAULT_RECURSIVE),
+        },
+        Parameter {
+            keyword: "null",
+            kind: kind::BOOLEAN,
+            required: false,
+            description: "Whether null should be treated as an empty value.",
+            default: Some(&DEFAULT_NULL),
+        },
+        Parameter {
+            keyword: "string",
+            kind: kind::BOOLEAN,
+            required: false,
+            description: "Whether an empty string should be treated as an empty value.",
+            default: Some(&DEFAULT_STRING),
+        },
+        Parameter {
+            keyword: "object",
+            kind: kind::BOOLEAN,
+            required: false,
+            description: "Whether an empty object should be treated as an empty value.",
+            default: Some(&DEFAULT_OBJECT),
+        },
+        Parameter {
+            keyword: "array",
+            kind: kind::BOOLEAN,
+            required: false,
+            description: "Whether an empty array should be treated as an empty value.",
+            default: Some(&DEFAULT_ARRAY),
+        },
+        Parameter {
+            keyword: "nullish",
+            kind: kind::BOOLEAN,
+            required: false,
+            description: "Tests whether the value is \"nullish\" as defined by the [`is_nullish`](#is_nullish) function.",
+            default: Some(&DEFAULT_NULLISH),
+        },
+    ]
+});
 
 fn compact(
     recursive: Option<Value>,
@@ -66,50 +128,7 @@ impl Function for Compact {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::OBJECT | kind::ARRAY,
-                required: true,
-                description: "The object or array to compact.",
-            },
-            Parameter {
-                keyword: "recursive",
-                kind: kind::BOOLEAN,
-                required: false,
-                description: "Whether the compaction be recursive.",
-            },
-            Parameter {
-                keyword: "null",
-                kind: kind::BOOLEAN,
-                required: false,
-                description: "Whether null should be treated as an empty value.",
-            },
-            Parameter {
-                keyword: "string",
-                kind: kind::BOOLEAN,
-                required: false,
-                description: "Whether an empty string should be treated as an empty value.",
-            },
-            Parameter {
-                keyword: "object",
-                kind: kind::BOOLEAN,
-                required: false,
-                description: "Whether an empty object should be treated as an empty value.",
-            },
-            Parameter {
-                keyword: "array",
-                kind: kind::BOOLEAN,
-                required: false,
-                description: "Whether an empty array should be treated as an empty value.",
-            },
-            Parameter {
-                keyword: "nullish",
-                kind: kind::BOOLEAN,
-                required: false,
-                description: "Tests whether the value is \"nullish\" as defined by the [`is_nullish`](#is_nullish) function.",
-            },
-        ]
+        PARAMETERS.as_slice()
     }
 
     fn examples(&self) -> &'static [Example] {

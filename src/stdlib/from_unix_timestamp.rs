@@ -1,6 +1,28 @@
 use crate::compiler::prelude::*;
 use chrono::{TimeZone as _, Utc};
 use std::str::FromStr;
+use std::sync::LazyLock;
+
+static DEFAULT_UNIT: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from("seconds")));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::INTEGER,
+            required: true,
+            description: "The Unix timestamp to convert.",
+            default: None,
+        },
+        Parameter {
+            keyword: "unit",
+            kind: kind::BYTES,
+            required: false,
+            description: "The time unit.",
+            default: Some(&DEFAULT_UNIT),
+        },
+    ]
+});
 
 fn from_unix_timestamp(value: Value, unit: Unit) -> Resolved {
     use Value::Integer;
@@ -43,20 +65,7 @@ impl Function for FromUnixTimestamp {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::INTEGER,
-                required: true,
-                description: "The Unix timestamp to convert.",
-            },
-            Parameter {
-                keyword: "unit",
-                kind: kind::BYTES,
-                required: false,
-                description: "The time unit.",
-            },
-        ]
+        PARAMETERS.as_slice()
     }
 
     fn examples(&self) -> &'static [Example] {

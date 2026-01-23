@@ -1,10 +1,33 @@
 use crate::compiler::prelude::*;
 use crate::value;
+use std::sync::LazyLock;
 use xxhash_rust::{xxh3, xxh32, xxh64};
+
+static DEFAULT_VARIANT: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from("XXH32")));
 
 const VALID_VARIANTS: &[&str] = &["XXH32", "XXH64", "XXH3-64", "XXH3-128"];
 
 #[allow(clippy::cast_possible_wrap)]
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::BYTES,
+            required: true,
+            description: "The string to calculate the hash for.",
+            default: None,
+        },
+        Parameter {
+            keyword: "variant",
+            kind: kind::BYTES,
+            required: false,
+            description: "The xxHash hashing algorithm to use.",
+            default: Some(&DEFAULT_VARIANT),
+        },
+    ]
+});
+
 fn xxhash(value: Value, variant: &Value) -> Resolved {
     let bytes = value.try_bytes()?;
     let variant = variant.try_bytes_utf8_lossy()?.as_ref().to_uppercase();
@@ -48,20 +71,7 @@ impl Function for Xxhash {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::BYTES,
-                required: true,
-                description: "The string to calculate the hash for.",
-            },
-            Parameter {
-                keyword: "variant",
-                kind: kind::BYTES,
-                required: false,
-                description: "The xxHash hashing algorithm to use.",
-            },
-        ]
+        PARAMETERS.as_slice()
     }
 
     fn examples(&self) -> &'static [Example] {

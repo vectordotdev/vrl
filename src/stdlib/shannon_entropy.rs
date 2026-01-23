@@ -3,12 +3,41 @@ use std::{collections::HashMap, str::FromStr};
 use unicode_segmentation::UnicodeSegmentation;
 
 use crate::compiler::prelude::*;
+use std::sync::LazyLock;
 
 // Casting to f64 in this function is only done to enable proper division (when calculating probability)
 // Since numbers being casted represent lenghts of input strings and number of character occurences,
 // we can assume that there will never really be precision loss here, because that would mean that
 // the string is at least 2^52 bytes in size (4.5 PB)
 #[allow(clippy::cast_precision_loss)]
+
+static DEFAULT_SEGMENTATION: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from("byte")));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::BYTES,
+            required: true,
+            description: "The input string.",
+            default: None,
+        },
+        Parameter {
+            keyword: "segmentation",
+            kind: kind::BYTES,
+            required: false,
+            description:
+                "Defines how to split the string to calculate entropy, based on occurrences of
+segments.
+
+Byte segmentation is the fastest, but it might give undesired results when handling
+UTF-8 strings, while grapheme segmentation is the slowest, but most correct in these
+cases.",
+            default: Some(&DEFAULT_SEGMENTATION),
+        },
+    ]
+});
+
 fn shannon_entropy(value: &Value, segmentation: &Segmentation) -> Resolved {
     let (occurence_counts, total_length): (Vec<usize>, usize) = match segmentation {
         Segmentation::Byte => {
@@ -108,26 +137,7 @@ impl Function for ShannonEntropy {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::BYTES,
-                required: true,
-                description: "The input string.",
-            },
-            Parameter {
-                keyword: "segmentation",
-                kind: kind::BYTES,
-                required: false,
-                description:
-                    "Defines how to split the string to calculate entropy, based on occurrences of
-segments.
-
-Byte segmentation is the fastest, but it might give undesired results when handling
-UTF-8 strings, while grapheme segmentation is the slowest, but most correct in these
-cases.",
-            },
-        ]
+        PARAMETERS.as_slice()
     }
 
     fn examples(&self) -> &'static [Example] {

@@ -61,6 +61,7 @@ impl Function for Tally {
             kind: kind::ARRAY,
             required: true,
             description: "The array of strings to count occurrences for.",
+            default: None,
         }]
     }
 }

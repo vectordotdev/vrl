@@ -27,6 +27,7 @@ impl Function for DecodeBase16 {
             kind: kind::BYTES,
             required: true,
             description: "The [Base16](https://en.wikipedia.org/wiki/Hexadecimal) data to decode.",
+            default: None,
         }]
     }
 

@@ -57,6 +57,7 @@ impl Function for EncodeProto {
                 kind: kind::ANY,
                 required: true,
                 description: "The object to convert to a protocol buffer payload.",
+                default: None,
             },
             Parameter {
                 keyword: "desc_file",
@@ -66,6 +67,7 @@ impl Function for EncodeProto {
                     "The path to the protobuf descriptor set file. Must be a literal string.
 
 This file is the output of protoc -o <path> ...",
+                default: None,
             },
             Parameter {
                 keyword: "message_type",
@@ -74,6 +76,7 @@ This file is the output of protoc -o <path> ...",
                 description: "The name of the message type to use for serializing.
 
 Must be a literal string.",
+                default: None,
             },
         ]
     }

@@ -30,6 +30,7 @@ impl Function for Upcase {
             kind: kind::BYTES,
             required: true,
             description: "The string to convert to uppercase.",
+            default: None,
         }]
     }
 

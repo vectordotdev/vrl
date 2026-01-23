@@ -21,12 +21,14 @@ impl Function for EncodeLogfmt {
                 kind: kind::OBJECT,
                 required: true,
                 description: "The value to convert to a logfmt string.",
+                default: None,
             },
             Parameter {
                 keyword: "fields_ordering",
                 kind: kind::ARRAY,
                 required: false,
                 description: "The ordering of fields to preserve. Any fields not in this list are listed unordered, after all ordered fields.",
+                default: None,
             },
         ]
     }

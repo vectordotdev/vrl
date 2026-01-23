@@ -48,6 +48,7 @@ impl Function for Unique {
             kind: kind::ARRAY,
             required: true,
             description: "The array to return unique elements from.",
+            default: None,
         }]
     }
 }

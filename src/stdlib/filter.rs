@@ -73,6 +73,7 @@ impl Function for Filter {
             kind: kind::OBJECT | kind::ARRAY,
             required: true,
             description: "The array or object to filter.",
+            default: None,
         }]
     }
 

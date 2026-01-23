@@ -49,6 +49,7 @@ impl Function for EncodeSnappy {
             kind: kind::BYTES,
             required: true,
             description: "The string to encode.",
+            default: None,
         }]
     }
 }

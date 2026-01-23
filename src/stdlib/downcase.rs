@@ -22,6 +22,7 @@ impl Function for Downcase {
             kind: kind::BYTES,
             required: true,
             description: "The string to convert to lowercase.",
+            default: None,
         }]
     }
 
