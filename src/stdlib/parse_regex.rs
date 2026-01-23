@@ -34,19 +34,19 @@ impl Function for ParseRegex {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
-            description: "The string to search.",
+                description: "The string to search.",
             },
             Parameter {
                 keyword: "pattern",
                 kind: kind::REGEX,
                 required: true,
-            description: "The regular expression pattern to search against.",
+                description: "The regular expression pattern to search against.",
             },
             Parameter {
                 keyword: "numeric_groups",
                 kind: kind::BOOLEAN,
                 required: false,
-            description: "If true, the index of each group in the regular expression is also captured. Index `0`
+                description: "If true, the index of each group in the regular expression is also captured. Index `0`
 contains the whole match.",
             },
         ]

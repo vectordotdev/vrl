@@ -56,19 +56,19 @@ impl Function for ParseApacheLog {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
-            description: "The string to parse.",
+                description: "The string to parse.",
             },
             Parameter {
                 keyword: "format",
                 kind: kind::BYTES,
                 required: true,
-            description: "The format to use for parsing the log.",
+                description: "The format to use for parsing the log.",
             },
             Parameter {
                 keyword: "timestamp_format",
                 kind: kind::BYTES,
                 required: false,
-            description: "The [date/time format](https://docs.rs/chrono/latest/chrono/format/strftime/index.html) to use for
+                description: "The [date/time format](https://docs.rs/chrono/latest/chrono/format/strftime/index.html) to use for
 encoding the timestamp. The time is parsed in local time if the timestamp does not specify a timezone.",
             },
         ]
