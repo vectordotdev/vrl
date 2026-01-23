@@ -42,7 +42,7 @@ impl Function for Redact {
                 keyword: "value",
                 kind: kind::BYTES | kind::OBJECT | kind::ARRAY,
                 required: true,
-            description: "The value to redact sensitive data from.
+                description: "The value to redact sensitive data from.
 
 The function's behavior depends on `value`'s type:
 
@@ -59,7 +59,7 @@ Redacted text is replaced with `[REDACTED]`.",
                 keyword: "filters",
                 kind: kind::ARRAY,
                 required: true,
-            description: "List of filters applied to `value`.
+                description: "List of filters applied to `value`.
 
 Each filter can be specified in the following ways:
 
@@ -82,7 +82,7 @@ to avoid runtime errors. You cannot use variables or other dynamic expressions w
                 keyword: "redactor",
                 kind: kind::OBJECT | kind::BYTES,
                 required: false,
-            description: "Specifies what to replace the redacted strings with.
+                description: "Specifies what to replace the redacted strings with.
 
 It is given as an object with a \"type\" key specifying the type of redactor to use
 and additional keys depending on the type. The following types are supported:
