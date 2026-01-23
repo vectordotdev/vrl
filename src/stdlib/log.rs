@@ -86,7 +86,7 @@ impl Function for Log {
         let value = arguments.required("value");
         let level = arguments
             .optional_enum("level", &levels, state)?
-            .unwrap_or_else(|| "info".into())
+            .unwrap_or_else(|| DEFAULT_LEVEL.clone())
             .try_bytes()
             .expect("log level not bytes");
         let rate_limit_secs = arguments.optional("rate_limit_secs");
@@ -115,8 +115,8 @@ impl Function for Log {
 mod implementation {
     use tracing::{debug, error, info, trace, warn};
 
+    use super::DEFAULT_RATE_LIMIT_SECS;
     use crate::compiler::prelude::*;
-    use crate::value;
 
     pub(super) fn log(
         rate_limit_secs: Value,
@@ -159,7 +159,7 @@ mod implementation {
             let value = self.value.resolve(ctx)?;
             let rate_limit_secs = match &self.rate_limit_secs {
                 Some(expr) => expr.resolve(ctx)?,
-                None => value!(1),
+                None => DEFAULT_RATE_LIMIT_SECS.clone(),
             };
 
             let span = self.span;
