@@ -5,6 +5,7 @@ use dyn_clone::{DynClone, clone_trait_object};
 pub use abort::Abort;
 pub use array::Array;
 pub use assignment::Assignment;
+pub use bitwise_not::BitwiseNot;
 pub use block::Block;
 pub use container::{Container, Variant};
 #[allow(clippy::module_name_repetitions)]
@@ -34,6 +35,7 @@ use super::{Context, TypeDef};
 
 mod abort;
 mod array;
+mod bitwise_not;
 mod block;
 mod function_argument;
 mod group;
