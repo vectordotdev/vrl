@@ -164,6 +164,16 @@ pub struct Parameter {
 
     /// A description of what this parameter does.
     pub description: &'static str,
+
+    /// The default value for this parameter, if any.
+    ///
+    /// Notes on creating a `Option<&'static Value>`:
+    ///
+    /// * If the inner [`Value`] is copiable, such as [`Value::Integer`], you likely won't have issues.
+    /// * If the value can contain owned data, such as [`Value::Bytes`], use [`LazyLock`](std::sync::LazyLock)
+    ///   to create static [`Value`] instances. If you are already in a [`LazyLock`](std::sync::LazyLock) block,
+    ///   you'll have to create another [`LazyLock`](std::sync::LazyLock) in order to make both static.
+    pub default: Option<&'static Value>,
 }
 
 impl Parameter {
@@ -654,6 +664,7 @@ mod tests {
                 kind: parameter_kind,
                 required: false,
                 description: "",
+                default: None,
             };
 
             assert_eq!(parameter.kind(), kind, "{title}");
