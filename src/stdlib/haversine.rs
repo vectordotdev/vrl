@@ -1,4 +1,5 @@
 use std::collections::BTreeMap;
+use std::sync::LazyLock;
 
 use crate::compiler::prelude::*;
 use crate::value;
@@ -8,6 +9,8 @@ use super::util::round_to_precision;
 const EARTH_RADIUS_IN_METERS: f64 = 6_371_008.8;
 const EARTH_RADIUS_IN_KILOMETERS: f64 = EARTH_RADIUS_IN_METERS / 1000.0;
 const EARTH_RADIUS_IN_MILES: f64 = EARTH_RADIUS_IN_KILOMETERS * 0.621_371_2;
+
+static DEFAULT_MEASUREMENT_UNIT: LazyLock<Value> = LazyLock::new(|| value!("kilometers"));
 
 fn haversine_distance(
     latitude1: Value,
@@ -134,7 +137,7 @@ impl Function for Haversine {
 
         let measurement_unit = match arguments
             .optional_enum("measurement_unit", &measurement_systems(), state)?
-            .unwrap_or_else(|| value!("kilometers"))
+            .unwrap_or_else(|| DEFAULT_MEASUREMENT_UNIT.clone())
             .try_bytes()
             .ok()
             .as_deref()
