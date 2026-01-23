@@ -74,11 +74,13 @@ impl Function for ParseCsv {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "The string to parse.",
             },
             Parameter {
                 keyword: "delimiter",
                 kind: kind::BYTES,
                 required: false,
+                description: "The field delimiter to use when parsing. Must be a single-byte utf8 character.",
             },
         ]
     }

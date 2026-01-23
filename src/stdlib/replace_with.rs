@@ -135,16 +135,19 @@ impl Function for ReplaceWith {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "The original string.",
             },
             Parameter {
                 keyword: "pattern",
                 kind: kind::REGEX,
                 required: true,
+                description: "Replace all matches of this pattern. Must be a regular expression.",
             },
             Parameter {
                 keyword: "count",
                 kind: kind::INTEGER,
                 required: false,
+                description: "The maximum number of replacements to perform. `-1` means replace all matches.",
             },
         ]
     }

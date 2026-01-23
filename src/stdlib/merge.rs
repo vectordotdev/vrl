@@ -19,16 +19,19 @@ impl Function for Merge {
                 keyword: "to",
                 kind: kind::OBJECT,
                 required: true,
+                description: "The object to merge into.",
             },
             Parameter {
                 keyword: "from",
                 kind: kind::OBJECT,
                 required: true,
+                description: "The object to merge from.",
             },
             Parameter {
                 keyword: "deep",
                 kind: kind::BOOLEAN,
                 required: false,
+                description: "A deep merge is performed if `true`, otherwise only top-level fields are merged.",
             },
         ]
     }

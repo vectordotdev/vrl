@@ -58,16 +58,19 @@ impl Function for EncryptIp {
                 keyword: "ip",
                 kind: kind::BYTES,
                 required: true,
+                description: "The IP address to encrypt (v4 or v6).",
             },
             Parameter {
                 keyword: "key",
                 kind: kind::BYTES,
                 required: true,
+                description: "The encryption key in raw bytes (not encoded). For AES128 mode, the key must be exactly 16 bytes. For PFX mode, the key must be exactly 32 bytes.",
             },
             Parameter {
                 keyword: "mode",
                 kind: kind::BYTES,
                 required: true,
+                description: "The encryption mode to use. Must be either `aes128` or `pfx`.",
             },
         ]
     }

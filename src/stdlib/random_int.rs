@@ -41,11 +41,13 @@ impl Function for RandomInt {
                 keyword: "min",
                 kind: kind::INTEGER,
                 required: true,
+                description: "Minimum value (inclusive).",
             },
             Parameter {
                 keyword: "max",
                 kind: kind::INTEGER,
                 required: true,
+                description: "Maximum value (exclusive).",
             },
         ]
     }

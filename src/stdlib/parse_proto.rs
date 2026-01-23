@@ -57,16 +57,24 @@ impl Function for ParseProto {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "The protocol buffer payload to parse.",
             },
             Parameter {
                 keyword: "desc_file",
                 kind: kind::BYTES,
                 required: true,
+                description:
+                    "The path to the protobuf descriptor set file. Must be a literal string.
+
+This file is the output of protoc -o <path> ...",
             },
             Parameter {
                 keyword: "message_type",
                 kind: kind::BYTES,
                 required: true,
+                description: "The name of the message type to use for serializing.
+
+Must be a literal string.",
             },
         ]
     }

@@ -118,11 +118,13 @@ impl Function for ParseAwsVpcFlowLog {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "VPC Flow Log.",
             },
             Parameter {
                 keyword: "format",
                 kind: kind::BYTES,
                 required: false,
+                description: "VPC Flow Log format.",
             },
         ]
     }

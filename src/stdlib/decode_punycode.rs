@@ -20,11 +20,13 @@ impl Function for DecodePunycode {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "The string to decode.",
             },
             Parameter {
                 keyword: "validate",
                 kind: kind::BOOLEAN,
                 required: false,
+                description: "If enabled, checks if the input string is a valid domain name.",
             },
         ]
     }

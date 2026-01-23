@@ -126,16 +126,23 @@ impl Function for ParseJson {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "The string representation of the JSON to parse.",
             },
             Parameter {
                 keyword: "max_depth",
                 kind: kind::INTEGER,
                 required: false,
+                description: "Number of layers to parse for nested JSON-formatted documents.
+The value must be in the range of 1 to 128.",
             },
             Parameter {
                 keyword: "lossy",
                 kind: kind::BOOLEAN,
                 required: false,
+                description:
+                    "Whether to parse the JSON in a lossy manner. Replaces invalid UTF-8 characters
+with the Unicode character `�` (U+FFFD) if set to true, otherwise returns an error
+if there are any invalid UTF-8 characters present.",
             },
         ]
     }

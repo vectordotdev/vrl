@@ -37,11 +37,13 @@ impl Function for Chunks {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "The array of bytes to split.",
             },
             Parameter {
                 keyword: "chunk_size",
                 kind: kind::INTEGER,
                 required: true,
+                description: "The desired length of each chunk in bytes. This may be constrained by the host platform architecture.",
             },
         ]
     }

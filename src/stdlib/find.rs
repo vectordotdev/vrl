@@ -31,16 +31,19 @@ impl Function for Find {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "The string to find the pattern in.",
             },
             Parameter {
                 keyword: "pattern",
                 kind: kind::BYTES | kind::REGEX,
                 required: true,
+                description: "The regular expression or string pattern to match against.",
             },
             Parameter {
                 keyword: "from",
                 kind: kind::INTEGER,
                 required: false,
+                description: "Offset to start searching.",
             },
         ]
     }

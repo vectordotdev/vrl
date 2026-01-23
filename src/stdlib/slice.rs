@@ -66,16 +66,19 @@ impl Function for Slice {
                 keyword: "value",
                 kind: kind::BYTES | kind::ARRAY,
                 required: true,
+                description: "The string or array to slice.",
             },
             Parameter {
                 keyword: "start",
                 kind: kind::INTEGER,
                 required: true,
+                description: "The inclusive start position. A zero-based index that can be negative.",
             },
             Parameter {
                 keyword: "end",
                 kind: kind::INTEGER,
                 required: false,
+                description: "The exclusive end position. A zero-based index that can be negative.",
             },
         ]
     }

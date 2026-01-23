@@ -89,26 +89,31 @@ impl Function for ParseKeyValue {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "The string to parse.",
             },
             Parameter {
                 keyword: "key_value_delimiter",
                 kind: kind::ANY,
                 required: false,
+                description: "The string that separates the key from the value.",
             },
             Parameter {
                 keyword: "field_delimiter",
                 kind: kind::ANY,
                 required: false,
+                description: "The string that separates each key-value pair.",
             },
             Parameter {
                 keyword: "whitespace",
                 kind: kind::BYTES,
                 required: false,
+                description: "Defines the acceptance of unnecessary whitespace surrounding the configured `key_value_delimiter`.",
             },
             Parameter {
                 keyword: "accept_standalone_key",
                 kind: kind::BOOLEAN,
                 required: false,
+                description: "Whether a standalone key should be accepted, the resulting object associates such keys with the boolean value `true`.",
             },
         ]
     }

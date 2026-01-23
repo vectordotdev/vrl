@@ -37,11 +37,14 @@ impl Function for ParseCommonLog {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "The string to parse.",
             },
             Parameter {
                 keyword: "timestamp_format",
                 kind: kind::BYTES,
                 required: false,
+                description: "The [date/time format](https://docs.rs/chrono/latest/chrono/format/strftime/index.html) to use for
+encoding the timestamp.",
             },
         ]
     }

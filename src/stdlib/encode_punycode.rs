@@ -20,11 +20,13 @@ impl Function for EncodePunycode {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "The string to encode.",
             },
             Parameter {
                 keyword: "validate",
                 kind: kind::BOOLEAN,
                 required: false,
+                description: "Whether to validate the input string to check if it is a valid domain name.",
             },
         ]
     }

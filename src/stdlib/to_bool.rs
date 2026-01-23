@@ -33,6 +33,7 @@ impl Function for ToBool {
             keyword: "value",
             kind: kind::ANY,
             required: true,
+            description: "The value to convert to a Boolean.",
         }]
     }
 

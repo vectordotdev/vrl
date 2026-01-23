@@ -486,11 +486,13 @@ impl Function for Crc {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "The string to calculate the checksum for.",
             },
             Parameter {
                 keyword: "algorithm",
                 kind: kind::BYTES,
                 required: false,
+                description: "The CRC algorithm to use.",
             },
         ]
     }

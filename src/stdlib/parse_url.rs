@@ -20,11 +20,16 @@ impl Function for ParseUrl {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "The text of the URL.",
             },
             Parameter {
                 keyword: "default_known_ports",
                 kind: kind::BOOLEAN,
                 required: false,
+                description: "If true and the port number is not specified in the input URL
+string (or matches the default port for the scheme), it is
+populated from well-known ports for the following schemes:
+`http`, `https`, `ws`, `wss`, and `ftp`.",
             },
         ]
     }

@@ -113,16 +113,19 @@ impl Function for Unflatten {
                 keyword: "value",
                 kind: kind::OBJECT,
                 required: true,
+                description: "The array or object to unflatten.",
             },
             Parameter {
                 keyword: "separator",
                 kind: kind::BYTES,
                 required: false,
+                description: "The separator to split flattened keys.",
             },
             Parameter {
                 keyword: "recursive",
                 kind: kind::BOOLEAN,
                 required: false,
+                description: "Whether to recursively unflatten the object values.",
             },
         ]
     }

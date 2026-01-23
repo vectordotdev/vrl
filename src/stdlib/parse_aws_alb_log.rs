@@ -67,11 +67,13 @@ impl Function for ParseAwsAlbLog {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "Access log of the Application Load Balancer.",
             },
             Parameter {
                 keyword: "strict_mode",
                 kind: kind::BOOLEAN,
                 required: false,
+                description: "When set to `false`, the parser ignores any newly added or trailing fields in AWS ALB logs instead of failing. Defaults to `true` to preserve strict parsing behavior.",
             },
         ]
     }

@@ -35,16 +35,20 @@ impl Function for ParseRegexAll {
                 keyword: "value",
                 kind: kind::ANY,
                 required: true,
+                description: "The string to search.",
             },
             Parameter {
                 keyword: "pattern",
                 kind: kind::REGEX,
                 required: true,
+                description: "The regular expression pattern to search against.",
             },
             Parameter {
                 keyword: "numeric_groups",
                 kind: kind::BOOLEAN,
                 required: false,
+                description: "If `true`, the index of each group in the regular expression is also captured. Index `0`
+contains the whole match.",
             },
         ]
     }

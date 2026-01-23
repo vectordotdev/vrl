@@ -44,16 +44,19 @@ impl Function for EncodeBase64 {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "The string to encode.",
             },
             Parameter {
                 keyword: "padding",
                 kind: kind::BOOLEAN,
                 required: false,
+                description: "Whether the Base64 output is [padded](https://en.wikipedia.org/wiki/Base64#Output_padding).",
             },
             Parameter {
                 keyword: "charset",
                 kind: kind::BYTES,
                 required: false,
+                description: "The character set to use when encoding the data.",
             },
         ]
     }

@@ -74,11 +74,13 @@ impl Function for EncodeZlib {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "The string to encode.",
             },
             Parameter {
                 keyword: "compression_level",
                 kind: kind::INTEGER,
                 required: false,
+                description: "The default compression level.",
             },
         ]
     }

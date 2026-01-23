@@ -226,21 +226,26 @@ impl Function for Encrypt {
                 keyword: "plaintext",
                 kind: kind::BYTES,
                 required: true,
+                description: "The string to encrypt.",
             },
             Parameter {
                 keyword: "algorithm",
                 kind: kind::BYTES,
                 required: true,
+                description: "The algorithm to use.",
             },
             Parameter {
                 keyword: "key",
                 kind: kind::BYTES,
                 required: true,
+                description: "The key in raw bytes (not encoded) for encryption. The length must match the algorithm requested.",
             },
             Parameter {
                 keyword: "iv",
                 kind: kind::BYTES,
                 required: true,
+                description: "The IV in raw bytes (not encoded) for encryption. The length must match the algorithm requested.
+A new IV should be generated for every message. You can use `random_bytes` to generate a cryptographically secure random value.",
             },
         ]
     }

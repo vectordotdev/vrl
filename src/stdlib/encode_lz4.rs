@@ -60,11 +60,13 @@ impl Function for EncodeLz4 {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "The string to encode.",
             },
             Parameter {
                 keyword: "prepend_size",
                 kind: kind::BOOLEAN,
                 required: false,
+                description: "Whether to prepend the original size to the compressed data.",
             },
         ]
     }

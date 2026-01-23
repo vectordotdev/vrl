@@ -64,46 +64,55 @@ impl Function for ParseXml {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "The string representation of the XML document to parse.",
             },
             Parameter {
                 keyword: "trim",
                 kind: kind::BOOLEAN,
                 required: false,
+                description: "Remove excess whitespace between XML elements.",
             },
             Parameter {
                 keyword: "include_attr",
                 kind: kind::BOOLEAN,
                 required: false,
+                description: "Include XML tag attributes in the returned object.",
             },
             Parameter {
                 keyword: "attr_prefix",
                 kind: kind::BYTES,
                 required: false,
+                description: "String prefix to use for XML tag attribute keys.",
             },
             Parameter {
                 keyword: "text_key",
                 kind: kind::BYTES,
                 required: false,
+                description: "Key name to use for expanded text nodes.",
             },
             Parameter {
                 keyword: "always_use_text_key",
                 kind: kind::BOOLEAN,
                 required: false,
+                description: "Always return text nodes as `{\"<text_key>\": \"value\"}.`",
             },
             Parameter {
                 keyword: "parse_bool",
                 kind: kind::BOOLEAN,
                 required: false,
+                description: "Parse \"true\" and \"false\" as boolean.",
             },
             Parameter {
                 keyword: "parse_null",
                 kind: kind::BOOLEAN,
                 required: false,
+                description: "Parse \"null\" as null.",
             },
             Parameter {
                 keyword: "parse_number",
                 kind: kind::BOOLEAN,
                 required: false,
+                description: "Parse numbers as integers/floats.",
             },
         ]
     }

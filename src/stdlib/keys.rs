@@ -23,6 +23,7 @@ impl Function for Keys {
             keyword: "value",
             kind: kind::OBJECT,
             required: true,
+            description: "The object to extract keys from.",
         }]
     }
 

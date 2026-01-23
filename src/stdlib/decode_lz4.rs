@@ -63,16 +63,19 @@ impl Function for DecodeLz4 {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "The lz4 block data to decode.",
             },
             Parameter {
                 keyword: "buf_size",
                 kind: kind::INTEGER,
                 required: false,
+                description: "The size of the buffer to decode into, this must be equal to or larger than the uncompressed size.",
             },
             Parameter {
                 keyword: "prepended_size",
                 kind: kind::BOOLEAN,
                 required: false,
+                description: "Some implementations of lz4 require the original uncompressed size to be prepended to the compressed data.",
             },
         ]
     }

@@ -112,6 +112,7 @@ impl Function for ParseGlog {
             keyword: "value",
             kind: kind::BYTES,
             required: true,
+            description: "The string to parse.",
         }]
     }
 }

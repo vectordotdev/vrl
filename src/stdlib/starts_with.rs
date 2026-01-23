@@ -82,16 +82,19 @@ impl Function for StartsWith {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "The string to search.",
             },
             Parameter {
                 keyword: "substring",
                 kind: kind::BYTES,
                 required: true,
+                description: "The substring that the `value` must start with.",
             },
             Parameter {
                 keyword: "case_sensitive",
                 kind: kind::BOOLEAN,
                 required: false,
+                description: "Whether the match should be case sensitive.",
             },
         ]
     }

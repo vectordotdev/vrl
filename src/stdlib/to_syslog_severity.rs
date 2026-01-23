@@ -34,6 +34,7 @@ impl Function for ToSyslogSeverity {
             keyword: "value",
             kind: kind::BYTES,
             required: true,
+            description: "The Syslog level keyword to convert.",
         }]
     }
 

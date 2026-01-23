@@ -100,11 +100,13 @@ impl Function for ParseGrok {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "The string to parse.",
             },
             Parameter {
                 keyword: "pattern",
                 kind: kind::BYTES,
                 required: true,
+                description: "The [Grok pattern](https://github.com/daschl/grok/tree/master/patterns).",
             },
         ]
     }

@@ -51,11 +51,13 @@ impl Function for DecodeCharset {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "The non-UTF8 string to decode.",
             },
             Parameter {
                 keyword: "from_charset",
                 kind: kind::BYTES,
                 required: true,
+                description: "The [character set](https://encoding.spec.whatwg.org/#names-and-labels) to use when decoding the data.",
             },
         ]
     }

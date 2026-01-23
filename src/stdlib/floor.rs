@@ -40,11 +40,13 @@ impl Function for Floor {
                 keyword: "value",
                 kind: kind::ANY,
                 required: true,
+                description: "The number to round down.",
             },
             Parameter {
                 keyword: "precision",
                 kind: kind::ANY,
                 required: false,
+                description: "The number of decimal places to round to.",
             },
         ]
     }

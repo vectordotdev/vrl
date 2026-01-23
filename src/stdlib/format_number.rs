@@ -100,21 +100,25 @@ impl Function for FormatNumber {
                 keyword: "value",
                 kind: kind::INTEGER | kind::FLOAT,
                 required: true,
+                description: "The number to format as a string.",
             },
             Parameter {
                 keyword: "scale",
                 kind: kind::INTEGER,
                 required: false,
+                description: "The number of decimal places to display.",
             },
             Parameter {
                 keyword: "decimal_separator",
                 kind: kind::BYTES,
                 required: false,
+                description: "The character to use between the whole and decimal parts of the number.",
             },
             Parameter {
                 keyword: "grouping_separator",
                 kind: kind::BYTES,
                 required: false,
+                description: "The character to use between each thousands part of the number.",
             },
         ]
     }

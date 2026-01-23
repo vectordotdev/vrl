@@ -47,16 +47,19 @@ impl Function for Split {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "The string to split.",
             },
             Parameter {
                 keyword: "pattern",
                 kind: kind::BYTES | kind::REGEX,
                 required: true,
+                description: "The string is split whenever this pattern is matched.",
             },
             Parameter {
                 keyword: "limit",
                 kind: kind::INTEGER,
                 required: false,
+                description: "The maximum number of substrings to return.",
             },
         ]
     }

@@ -27,6 +27,7 @@ fn benchmark_kind_display(c: &mut Criterion) {
             keyword: "",
             kind: param.basis,
             required: false,
+            description: "",
         };
 
         let kind = parameter.kind();
