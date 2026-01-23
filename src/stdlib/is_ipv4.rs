@@ -30,6 +30,7 @@ impl Function for IsIpv4 {
             kind: kind::BYTES,
             required: true,
             description: "The IP address to check",
+            default: None,
         }]
     }
 

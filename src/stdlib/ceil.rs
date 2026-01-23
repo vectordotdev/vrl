@@ -1,5 +1,25 @@
 use super::util::round_to_precision;
 use crate::compiler::prelude::*;
+use std::sync::LazyLock;
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::FLOAT | kind::INTEGER,
+            required: true,
+            description: "The number to round up.",
+            default: None,
+        },
+        Parameter {
+            keyword: "precision",
+            kind: kind::INTEGER,
+            required: false,
+            description: "The number of decimal places to round to.",
+            default: Some(&Value::Integer(0)),
+        },
+    ]
+});
 
 fn ceil(value: Value, precision: Option<Value>) -> Resolved {
     let precision = match precision {
@@ -34,20 +54,7 @@ impl Function for Ceil {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::FLOAT | kind::INTEGER,
-                required: true,
-                description: "The number to round up.",
-            },
-            Parameter {
-                keyword: "precision",
-                kind: kind::INTEGER,
-                required: false,
-                description: "The number of decimal places to round to.",
-            },
-        ]
+        PARAMETERS.as_slice()
     }
 
     fn compile(

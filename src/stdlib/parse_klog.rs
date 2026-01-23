@@ -126,6 +126,7 @@ impl Function for ParseKlog {
             kind: kind::BYTES,
             required: true,
             description: "The string to parse.",
+            default: None,
         }]
     }
 }

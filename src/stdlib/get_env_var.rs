@@ -25,6 +25,7 @@ impl Function for GetEnvVar {
             kind: kind::BYTES,
             required: true,
             description: "The name of the environment variable.",
+            default: None,
         }]
     }
 

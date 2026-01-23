@@ -25,6 +25,7 @@ impl Function for StripAnsiEscapeCodes {
             kind: kind::BYTES,
             required: true,
             description: "The string to strip.",
+            default: None,
         }]
     }
 

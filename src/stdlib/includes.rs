@@ -25,12 +25,14 @@ impl Function for Includes {
                 kind: kind::ARRAY,
                 required: true,
                 description: "The array.",
+                default: None,
             },
             Parameter {
                 keyword: "item",
                 kind: kind::ANY,
                 required: true,
                 description: "The item to check.",
+                default: None,
             },
         ]
     }

@@ -1,4 +1,26 @@
 use crate::compiler::prelude::*;
+use std::sync::LazyLock;
+
+static DEFAULT_RECURSIVE: LazyLock<Value> = LazyLock::new(|| Value::Boolean(false));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::OBJECT | kind::ARRAY,
+            required: true,
+            description: "The object or array to iterate.",
+            default: None,
+        },
+        Parameter {
+            keyword: "recursive",
+            kind: kind::BOOLEAN,
+            required: false,
+            description: "Whether to recursively iterate the collection.",
+            default: Some(&DEFAULT_RECURSIVE),
+        },
+    ]
+});
 
 fn map_values<T>(
     value: Value,
@@ -61,20 +83,7 @@ impl Function for MapValues {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::OBJECT | kind::ARRAY,
-                required: true,
-                description: "The object or array to iterate.",
-            },
-            Parameter {
-                keyword: "recursive",
-                kind: kind::BOOLEAN,
-                required: false,
-                description: "Whether to recursively iterate the collection.",
-            },
-        ]
+        PARAMETERS.as_slice()
     }
 
     fn examples(&self) -> &'static [Example] {

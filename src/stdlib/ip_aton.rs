@@ -32,6 +32,7 @@ impl Function for IpAton {
             kind: kind::BYTES,
             required: true,
             description: "The IP address to convert to binary.",
+            default: None,
         }]
     }
 

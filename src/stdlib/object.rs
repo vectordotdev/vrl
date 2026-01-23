@@ -25,6 +25,7 @@ impl Function for Object {
             kind: kind::ANY,
             required: true,
             description: "The value to check if it is an object.",
+            default: None,
         }]
     }
 

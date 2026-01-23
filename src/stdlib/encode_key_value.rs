@@ -1,6 +1,7 @@
 use crate::compiler::prelude::*;
 use crate::core::encode_key_value;
 use crate::value::KeyString;
+use std::sync::LazyLock;
 
 /// Also used by `encode_logfmt`.
 pub(crate) fn encode_key_value(
@@ -29,6 +30,51 @@ pub(crate) fn encode_key_value(
     .into())
 }
 
+static DEFAULT_KEY_VALUE_DELIMITER: LazyLock<Value> =
+    LazyLock::new(|| Value::Bytes(Bytes::from("=")));
+static DEFAULT_FIELD_DELIMITER: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from(" ")));
+static DEFAULT_FLATTEN_BOOLEAN: LazyLock<Value> = LazyLock::new(|| Value::Boolean(false));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::OBJECT,
+            required: true,
+            description: "The value to convert to a string.",
+            default: None,
+        },
+        Parameter {
+            keyword: "fields_ordering",
+            kind: kind::ARRAY,
+            required: false,
+            description: "The ordering of fields to preserve. Any fields not in this list are listed unordered, after all ordered fields.",
+            default: None,
+        },
+        Parameter {
+            keyword: "key_value_delimiter",
+            kind: kind::BYTES,
+            required: false,
+            description: "The string that separates the key from the value.",
+            default: Some(&DEFAULT_KEY_VALUE_DELIMITER),
+        },
+        Parameter {
+            keyword: "field_delimiter",
+            kind: kind::BYTES,
+            required: false,
+            description: "The string that separates each key-value pair.",
+            default: Some(&DEFAULT_FIELD_DELIMITER),
+        },
+        Parameter {
+            keyword: "flatten_boolean",
+            kind: kind::BOOLEAN,
+            required: false,
+            description: "Whether to encode key-value with a boolean value as a standalone key if `true` and nothing if `false`.",
+            default: Some(&DEFAULT_FLATTEN_BOOLEAN),
+        },
+    ]
+});
+
 #[derive(Clone, Copy, Debug)]
 pub struct EncodeKeyValue;
 
@@ -42,38 +88,7 @@ impl Function for EncodeKeyValue {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::OBJECT,
-                required: true,
-                description: "The value to convert to a string.",
-            },
-            Parameter {
-                keyword: "fields_ordering",
-                kind: kind::ARRAY,
-                required: false,
-                description: "The ordering of fields to preserve. Any fields not in this list are listed unordered, after all ordered fields.",
-            },
-            Parameter {
-                keyword: "key_value_delimiter",
-                kind: kind::BYTES,
-                required: false,
-                description: "The string that separates the key from the value.",
-            },
-            Parameter {
-                keyword: "field_delimiter",
-                kind: kind::BYTES,
-                required: false,
-                description: "The string that separates each key-value pair.",
-            },
-            Parameter {
-                keyword: "flatten_boolean",
-                kind: kind::BOOLEAN,
-                required: false,
-                description: "Whether to encode key-value with a boolean value as a standalone key if `true` and nothing if `false`.",
-            },
-        ]
+        PARAMETERS.as_slice()
     }
 
     fn compile(

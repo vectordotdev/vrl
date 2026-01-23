@@ -2,6 +2,36 @@ use crate::compiler::prelude::*;
 use regex::Regex;
 
 use super::util;
+use std::sync::LazyLock;
+
+static DEFAULT_NUMERIC_GROUPS: LazyLock<Value> = LazyLock::new(|| Value::Boolean(false));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+Parameter {
+                keyword: "value",
+                kind: kind::BYTES,
+                required: true,
+                description: "The string to search.",
+            default: None,
+            },
+            Parameter {
+                keyword: "pattern",
+                kind: kind::REGEX,
+                required: true,
+                description: "The regular expression pattern to search against.",
+            default: None,
+            },
+            Parameter {
+                keyword: "numeric_groups",
+                kind: kind::BOOLEAN,
+                required: false,
+                description: "If true, the index of each group in the regular expression is also captured. Index `0`
+contains the whole match.",
+            default: Some(&DEFAULT_NUMERIC_GROUPS),
+            },
+    ]
+});
 
 fn parse_regex(value: &Value, numeric_groups: bool, pattern: &Regex) -> Resolved {
     let value = value.try_bytes_utf8_lossy()?;
@@ -29,27 +59,7 @@ impl Function for ParseRegex {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::BYTES,
-                required: true,
-                description: "The string to search.",
-            },
-            Parameter {
-                keyword: "pattern",
-                kind: kind::REGEX,
-                required: true,
-                description: "The regular expression pattern to search against.",
-            },
-            Parameter {
-                keyword: "numeric_groups",
-                kind: kind::BOOLEAN,
-                required: false,
-                description: "If true, the index of each group in the regular expression is also captured. Index `0`
-contains the whole match.",
-            },
-        ]
+        PARAMETERS.as_slice()
     }
 
     fn compile(

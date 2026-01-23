@@ -1,4 +1,41 @@
 use crate::compiler::prelude::*;
+use std::sync::LazyLock;
+
+static DEFAULT_REPLACE_SINGLE: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from("")));
+static DEFAULT_REPLACE_REPEATED: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from("")));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::BYTES,
+            required: true,
+            description: "The original string.",
+            default: None,
+        },
+        Parameter {
+            keyword: "permitted_characters",
+            kind: kind::REGEX,
+            required: true,
+            description: "Keep all matches of this pattern.",
+            default: None,
+        },
+        Parameter {
+            keyword: "replace_single",
+            kind: kind::BYTES,
+            required: false,
+            description: "The string to use to replace single rejected characters.",
+            default: Some(&DEFAULT_REPLACE_SINGLE),
+        },
+        Parameter {
+            keyword: "replace_repeated",
+            kind: kind::BYTES,
+            required: false,
+            description: "The string to use to replace multiple sequential instances of rejected characters.",
+            default: Some(&DEFAULT_REPLACE_REPEATED),
+        },
+    ]
+});
 
 fn sieve(
     value: &Value,
@@ -51,32 +88,7 @@ impl Function for Sieve {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::BYTES,
-                required: true,
-                description: "The original string.",
-            },
-            Parameter {
-                keyword: "permitted_characters",
-                kind: kind::REGEX,
-                required: true,
-                description: "Keep all matches of this pattern.",
-            },
-            Parameter {
-                keyword: "replace_single",
-                kind: kind::BYTES,
-                required: false,
-                description: "The string to use to replace single rejected characters.",
-            },
-            Parameter {
-                keyword: "replace_repeated",
-                kind: kind::BYTES,
-                required: false,
-                description: "The string to use to replace multiple sequential instances of rejected characters.",
-            },
-        ]
+        PARAMETERS.as_slice()
     }
 
     fn examples(&self) -> &'static [Example] {

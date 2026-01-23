@@ -24,6 +24,7 @@ impl Function for Sha1 {
             kind: kind::BYTES,
             required: true,
             description: "The string to calculate the hash for.",
+            default: None,
         }]
     }
 

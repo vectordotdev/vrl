@@ -1,6 +1,28 @@
 use crate::compiler::prelude::*;
 use crate::value;
 use sha_3::{Digest, Sha3_224, Sha3_256, Sha3_384, Sha3_512};
+use std::sync::LazyLock;
+
+static DEFAULT_VARIANT: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from("SHA3-512")));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::BYTES,
+            required: true,
+            description: "The string to calculate the hash for.",
+            default: None,
+        },
+        Parameter {
+            keyword: "variant",
+            kind: kind::BYTES,
+            required: false,
+            description: "The variant of the algorithm to use.",
+            default: Some(&DEFAULT_VARIANT),
+        },
+    ]
+});
 
 fn sha3(value: Value, variant: &Bytes) -> Resolved {
     let value = value.try_bytes()?;
@@ -36,20 +58,7 @@ impl Function for Sha3 {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::BYTES,
-                required: true,
-                description: "The string to calculate the hash for.",
-            },
-            Parameter {
-                keyword: "variant",
-                kind: kind::BYTES,
-                required: false,
-                description: "The variant of the algorithm to use.",
-            },
-        ]
+        PARAMETERS.as_slice()
     }
 
     fn examples(&self) -> &'static [Example] {

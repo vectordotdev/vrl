@@ -8,6 +8,28 @@ use nom::{
     sequence::{delimited, preceded},
 };
 use std::collections::BTreeMap;
+use std::sync::LazyLock;
+
+static DEFAULT_STRICT_MODE: LazyLock<Value> = LazyLock::new(|| Value::Boolean(true));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::BYTES,
+            required: true,
+            description: "Access log of the Application Load Balancer.",
+            default: None,
+        },
+        Parameter {
+            keyword: "strict_mode",
+            kind: kind::BOOLEAN,
+            required: false,
+            description: "When set to `false`, the parser ignores any newly added or trailing fields in AWS ALB logs instead of failing. Defaults to `true` to preserve strict parsing behavior.",
+            default: Some(&DEFAULT_STRICT_MODE),
+        },
+    ]
+});
 
 fn parse_aws_alb_log(bytes: Value, strict_mode: Option<Value>) -> Resolved {
     let bytes = bytes.try_bytes()?;
@@ -62,20 +84,7 @@ impl Function for ParseAwsAlbLog {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::BYTES,
-                required: true,
-                description: "Access log of the Application Load Balancer.",
-            },
-            Parameter {
-                keyword: "strict_mode",
-                kind: kind::BOOLEAN,
-                required: false,
-                description: "When set to `false`, the parser ignores any newly added or trailing fields in AWS ALB logs instead of failing. Defaults to `true` to preserve strict parsing behavior.",
-            },
-        ]
+        PARAMETERS.as_slice()
     }
 }
 

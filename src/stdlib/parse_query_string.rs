@@ -61,6 +61,7 @@ impl Function for ParseQueryString {
             kind: kind::BYTES,
             required: true,
             description: "The string to parse.",
+            default: None,
         }]
     }
 }

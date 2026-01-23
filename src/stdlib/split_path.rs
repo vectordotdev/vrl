@@ -29,6 +29,7 @@ impl Function for SplitPath {
             kind: kind::BYTES,
             required: true,
             description: "The path to split into components.",
+            default: None,
         }]
     }
 

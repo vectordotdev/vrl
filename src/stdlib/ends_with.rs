@@ -1,5 +1,34 @@
 use crate::compiler::prelude::*;
 use crate::stdlib::string_utils::convert_to_string;
+use std::sync::LazyLock;
+
+static DEFAULT_CASE_SENSITIVE: LazyLock<Value> = LazyLock::new(|| Value::Boolean(true));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::BYTES,
+            required: true,
+            description: "The string to search.",
+            default: None,
+        },
+        Parameter {
+            keyword: "substring",
+            kind: kind::BYTES,
+            required: true,
+            description: "The substring with which `value` must end.",
+            default: None,
+        },
+        Parameter {
+            keyword: "case_sensitive",
+            kind: kind::BOOLEAN,
+            required: false,
+            description: "Whether the match should be case sensitive.",
+            default: Some(&DEFAULT_CASE_SENSITIVE),
+        },
+    ]
+});
 
 fn ends_with(value: &Value, substring: &Value, case_sensitive: bool) -> Resolved {
     let value = convert_to_string(value, !case_sensitive)?;
@@ -20,26 +49,7 @@ impl Function for EndsWith {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::BYTES,
-                required: true,
-                description: "The string to search.",
-            },
-            Parameter {
-                keyword: "substring",
-                kind: kind::BYTES,
-                required: true,
-                description: "The substring with which `value` must end.",
-            },
-            Parameter {
-                keyword: "case_sensitive",
-                kind: kind::BOOLEAN,
-                required: false,
-                description: "Whether the match should be case sensitive.",
-            },
-        ]
+        PARAMETERS.as_slice()
     }
 
     fn compile(

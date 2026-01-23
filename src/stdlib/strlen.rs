@@ -30,6 +30,7 @@ impl Function for Strlen {
             kind: kind::BYTES,
             required: true,
             description: "The string.",
+            default: None,
         }]
     }
 

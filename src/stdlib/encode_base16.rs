@@ -23,6 +23,7 @@ impl Function for EncodeBase16 {
             kind: kind::BYTES,
             required: true,
             description: "The string to encode.",
+            default: None,
         }]
     }
 

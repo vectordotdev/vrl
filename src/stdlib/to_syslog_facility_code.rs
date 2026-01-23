@@ -51,6 +51,7 @@ impl Function for ToSyslogFacilityCode {
             kind: kind::BYTES,
             required: true,
             description: "The Syslog facility keyword to convert.",
+            default: None,
         }]
     }
 

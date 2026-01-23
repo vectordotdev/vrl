@@ -24,12 +24,14 @@ impl Function for Mod {
                 kind: kind::INTEGER | kind::FLOAT,
                 required: true,
                 description: "The value the `modulus` is applied to.",
+                default: None,
             },
             Parameter {
                 keyword: "modulus",
                 kind: kind::INTEGER | kind::FLOAT,
                 required: true,
                 description: "The `modulus` value.",
+                default: None,
             },
         ]
     }

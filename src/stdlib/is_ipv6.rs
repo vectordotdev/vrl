@@ -24,6 +24,7 @@ impl Function for IsIpv6 {
             kind: kind::BYTES,
             required: true,
             description: "The IP address to check",
+            default: None,
         }]
     }
 

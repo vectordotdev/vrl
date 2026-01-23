@@ -6,6 +6,34 @@ use rust_decimal::{Decimal, prelude::FromPrimitive, prelude::ToPrimitive};
 use std::collections::HashMap;
 use std::sync::LazyLock;
 
+static DEFAULT_BASE: LazyLock<Value> = LazyLock::new(|| Value::Integer(2));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::BYTES,
+            required: true,
+            description: "The string of the duration with either binary or SI unit.",
+            default: None,
+        },
+        Parameter {
+            keyword: "unit",
+            kind: kind::BYTES,
+            required: true,
+            description: "The output units for the byte.",
+            default: None,
+        },
+        Parameter {
+            keyword: "base",
+            kind: kind::BYTES,
+            required: false,
+            description: "The base for the byte, either 2 or 10.",
+            default: Some(&DEFAULT_BASE),
+        },
+    ]
+});
+
 fn parse_bytes(bytes: &Value, unit: Value, base: &Bytes) -> Resolved {
     let (units, parse_config) = match base.as_ref() {
         b"2" => (&*BIN_UNITS, Config::new().with_binary()),
@@ -141,26 +169,7 @@ impl Function for ParseBytes {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::BYTES,
-                required: true,
-                description: "The string of the duration with either binary or SI unit.",
-            },
-            Parameter {
-                keyword: "unit",
-                kind: kind::BYTES,
-                required: true,
-                description: "The output units for the byte.",
-            },
-            Parameter {
-                keyword: "base",
-                kind: kind::BYTES,
-                required: false,
-                description: "The base for the byte, either 2 or 10.",
-            },
-        ]
+        PARAMETERS.as_slice()
     }
 }
 

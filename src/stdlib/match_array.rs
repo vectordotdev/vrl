@@ -1,4 +1,33 @@
 use crate::compiler::prelude::*;
+use std::sync::LazyLock;
+
+static DEFAULT_ALL: LazyLock<Value> = LazyLock::new(|| Value::Boolean(false));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::ARRAY,
+            required: true,
+            description: "The array.",
+            default: None,
+        },
+        Parameter {
+            keyword: "pattern",
+            kind: kind::REGEX,
+            required: true,
+            description: "The regular expression pattern to match against.",
+            default: None,
+        },
+        Parameter {
+            keyword: "all",
+            kind: kind::BOOLEAN,
+            required: false,
+            description: "Whether to match on all elements of `value`.",
+            default: Some(&DEFAULT_ALL),
+        },
+    ]
+});
 
 fn match_array(list: Value, pattern: Value, all: Option<Value>) -> Resolved {
     let pattern = pattern.try_regex()?;
@@ -75,26 +104,7 @@ impl Function for MatchArray {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::ARRAY,
-                required: true,
-                description: "The array.",
-            },
-            Parameter {
-                keyword: "pattern",
-                kind: kind::REGEX,
-                required: true,
-                description: "The regular expression pattern to match against.",
-            },
-            Parameter {
-                keyword: "all",
-                kind: kind::BOOLEAN,
-                required: false,
-                description: "Whether to match on all elements of `value`.",
-            },
-        ]
+        PARAMETERS.as_slice()
     }
 }
 

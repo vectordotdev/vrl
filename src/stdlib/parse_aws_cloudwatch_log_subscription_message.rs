@@ -144,6 +144,7 @@ impl Function for ParseAwsCloudWatchLogSubscriptionMessage {
             kind: kind::BYTES,
             required: true,
             description: "The string representation of the message to parse.",
+            default: None,
         }]
     }
 }

@@ -59,6 +59,7 @@ impl Function for ParseTokens {
             kind: kind::BYTES,
             required: true,
             description: "The string to tokenize.",
+            default: None,
         }]
     }
 }

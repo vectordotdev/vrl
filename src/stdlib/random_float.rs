@@ -47,12 +47,14 @@ impl Function for RandomFloat {
                 kind: kind::FLOAT,
                 required: true,
                 description: "Minimum value (inclusive).",
+                default: None,
             },
             Parameter {
                 keyword: "max",
                 kind: kind::FLOAT,
                 required: true,
                 description: "Maximum value (exclusive).",
+                default: None,
             },
         ]
     }

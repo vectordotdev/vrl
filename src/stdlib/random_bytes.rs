@@ -32,6 +32,7 @@ impl Function for RandomBytes {
             kind: kind::INTEGER,
             required: true,
             description: "The number of bytes to generate. Must not be larger than 64k.",
+            default: None,
         }]
     }
 

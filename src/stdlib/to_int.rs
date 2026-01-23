@@ -36,6 +36,7 @@ impl Function for ToInt {
             kind: kind::ANY,
             required: true,
             description: "The value to convert to an integer.",
+            default: None,
         }]
     }
 

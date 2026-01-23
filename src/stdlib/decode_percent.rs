@@ -27,6 +27,7 @@ impl Function for DecodePercent {
             kind: kind::BYTES,
             required: true,
             description: "The string to decode.",
+            default: None,
         }]
     }
 

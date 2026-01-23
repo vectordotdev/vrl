@@ -78,6 +78,7 @@ impl Function for ParseCbor {
             kind: kind::BYTES,
             required: true,
             description: "The CBOR payload to parse.",
+            default: None,
         }]
     }
 }

@@ -1,6 +1,43 @@
 use crate::compiler::prelude::*;
+use std::sync::LazyLock;
 
 #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)] // TODO consider removal options
+
+static DEFAULT_COUNT: LazyLock<Value> = LazyLock::new(|| Value::Integer(-1));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::BYTES,
+            required: true,
+            description: "The original string.",
+            default: None,
+        },
+        Parameter {
+            keyword: "pattern",
+            kind: kind::BYTES | kind::REGEX,
+            required: true,
+            description: "Replace all matches of this pattern. Can be a static string or a regular expression.",
+            default: None,
+        },
+        Parameter {
+            keyword: "with",
+            kind: kind::BYTES,
+            required: true,
+            description: "The string that the matches are replaced with.",
+            default: None,
+        },
+        Parameter {
+            keyword: "count",
+            kind: kind::INTEGER,
+            required: false,
+            description: "The maximum number of replacements to perform. `-1` means replace all matches.",
+            default: Some(&DEFAULT_COUNT),
+        },
+    ]
+});
+
 fn replace(value: &Value, with_value: &Value, count: Value, pattern: Value) -> Resolved {
     let value = value.try_bytes_utf8_lossy()?;
     let with = with_value.try_bytes_utf8_lossy()?;
@@ -63,32 +100,7 @@ impl Function for Replace {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::BYTES,
-                required: true,
-                description: "The original string.",
-            },
-            Parameter {
-                keyword: "pattern",
-                kind: kind::BYTES | kind::REGEX,
-                required: true,
-                description: "Replace all matches of this pattern. Can be a static string or a regular expression.",
-            },
-            Parameter {
-                keyword: "with",
-                kind: kind::BYTES,
-                required: true,
-                description: "The string that the matches are replaced with.",
-            },
-            Parameter {
-                keyword: "count",
-                kind: kind::INTEGER,
-                required: false,
-                description: "The maximum number of replacements to perform. `-1` means replace all matches.",
-            },
-        ]
+        PARAMETERS.as_slice()
     }
 
     fn examples(&self) -> &'static [Example] {

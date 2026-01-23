@@ -119,18 +119,21 @@ impl Function for ValidateJsonSchema {
                 kind: kind::BYTES,
                 required: true,
                 description: "The value to check if it conforms to the JSON schema definition.",
+                default: None,
             },
             Parameter {
                 keyword: "schema_definition",
                 kind: kind::BYTES,
                 required: true,
                 description: "The location (path) of the JSON Schema definition.",
+                default: None,
             },
             Parameter {
                 keyword: "ignore_unknown_formats",
                 kind: kind::BOOLEAN,
                 required: false,
                 description: "Unknown formats can be silently ignored by setting this to `true` and validation continues without failing due to those fields.",
+                default: None,
             },
         ]
     }

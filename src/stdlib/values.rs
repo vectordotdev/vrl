@@ -24,6 +24,7 @@ impl Function for Values {
             kind: kind::OBJECT,
             required: true,
             description: "The object to extract values from.",
+            default: None,
         }]
     }
 

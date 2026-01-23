@@ -62,12 +62,14 @@ impl Function for IsJson {
                 kind: kind::BYTES,
                 required: true,
                 description: "The value to check if it is a valid JSON document.",
+                default: None,
             },
             Parameter {
                 keyword: "variant",
                 kind: kind::BYTES,
                 required: false,
                 description: "The variant of the JSON type to explicitly check for.",
+                default: None,
             },
         ]
     }

@@ -1,6 +1,29 @@
 use crate::compiler::prelude::*;
 
 use super::util::round_to_precision;
+use std::sync::LazyLock;
+
+static DEFAULT_PRECISION: LazyLock<&Value> =
+    LazyLock::new(|| Box::leak(Box::new(Value::Integer(0))));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::INTEGER | kind::FLOAT,
+            required: true,
+            description: "The number to round.",
+            default: None,
+        },
+        Parameter {
+            keyword: "precision",
+            kind: kind::INTEGER,
+            required: false,
+            description: "The number of decimal places to round to.",
+            default: Some(&DEFAULT_PRECISION),
+        },
+    ]
+});
 
 fn round(precision: Value, value: Value) -> Resolved {
     let precision = precision.try_integer()?;
@@ -32,20 +55,7 @@ impl Function for Round {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::INTEGER | kind::FLOAT,
-                required: true,
-                description: "The number to round.",
-            },
-            Parameter {
-                keyword: "precision",
-                kind: kind::INTEGER,
-                required: false,
-                description: "The number of decimal places to round to.",
-            },
-        ]
+        PARAMETERS.as_slice()
     }
 
     fn examples(&self) -> &'static [Example] {

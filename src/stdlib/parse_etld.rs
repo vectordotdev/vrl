@@ -2,7 +2,42 @@ use psl::Psl;
 use publicsuffix::List;
 
 use crate::compiler::prelude::*;
+use std::sync::LazyLock;
 use std::{collections::BTreeMap, path::Path};
+
+static DEFAULT_PLUS_PARTS: LazyLock<Value> = LazyLock::new(|| Value::Boolean(false));
+static DEFAULT_PSL: LazyLock<Value> = LazyLock::new(|| Value::Boolean(false));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::BYTES,
+            required: true,
+            description: "The domain string.",
+            default: None,
+        },
+        Parameter {
+            keyword: "plus_parts",
+            kind: kind::INTEGER,
+            required: false,
+            description:
+                "Can be provided to get additional parts of the domain name. When 1 is passed,
+eTLD+1 will be returned, which represents a domain registrable by a single
+organization. Higher numbers will return subdomains.",
+            default: Some(&DEFAULT_PLUS_PARTS),
+        },
+        Parameter {
+            keyword: "psl",
+            kind: kind::BYTES,
+            required: false,
+            description: "Can be provided to use a different public suffix list.
+
+By default, https://publicsuffix.org/list/public_suffix_list.dat is used.",
+            default: Some(&DEFAULT_PSL),
+        },
+    ]
+});
 
 #[derive(Clone, Copy, Debug)]
 pub struct ParseEtld;
@@ -17,31 +52,7 @@ impl Function for ParseEtld {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::BYTES,
-                required: true,
-                description: "The domain string.",
-            },
-            Parameter {
-                keyword: "plus_parts",
-                kind: kind::INTEGER,
-                required: false,
-                description:
-                    "Can be provided to get additional parts of the domain name. When 1 is passed,
-eTLD+1 will be returned, which represents a domain registrable by a single
-organization. Higher numbers will return subdomains.",
-            },
-            Parameter {
-                keyword: "psl",
-                kind: kind::BYTES,
-                required: false,
-                description: "Can be provided to use a different public suffix list.
-
-By default, https://publicsuffix.org/list/public_suffix_list.dat is used.",
-            },
-        ]
+        PARAMETERS.as_slice()
     }
 
     fn examples(&self) -> &'static [Example] {

@@ -25,12 +25,14 @@ impl Function for Push {
                 kind: kind::ARRAY,
                 required: true,
                 description: "The target array.",
+                default: None,
             },
             Parameter {
                 keyword: "item",
                 kind: kind::ANY,
                 required: true,
                 description: "The item to push.",
+                default: None,
             },
         ]
     }

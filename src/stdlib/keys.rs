@@ -24,6 +24,7 @@ impl Function for Keys {
             kind: kind::OBJECT,
             required: true,
             description: "The object to extract keys from.",
+            default: None,
         }]
     }
 

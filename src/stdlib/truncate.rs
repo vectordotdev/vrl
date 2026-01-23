@@ -43,12 +43,14 @@ impl Function for Truncate {
                 kind: kind::BYTES,
                 required: true,
                 description: "The string to truncate.",
+                default: None,
             },
             Parameter {
                 keyword: "limit",
                 kind: kind::INTEGER,
                 required: true,
                 description: "The number of characters to truncate the string after.",
+                default: None,
             },
             Parameter {
                 keyword: "suffix",
@@ -56,6 +58,7 @@ impl Function for Truncate {
                 required: false,
                 description: "A custom suffix (`...`) is appended to truncated strings.
 If `ellipsis` is set to `true`, this parameter is ignored for backwards compatibility.",
+                default: None,
             },
         ]
     }

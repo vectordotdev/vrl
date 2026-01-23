@@ -1,8 +1,36 @@
 use itertools::Itertools;
 
 use crate::compiler::prelude::*;
+use std::sync::LazyLock;
 
-static DEFAULT_SEPARATOR: &str = ".";
+static DEFAULT_SEPARATOR: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from(".")));
+static DEFAULT_RECURSIVE: LazyLock<Value> = LazyLock::new(|| Value::Boolean(true));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::OBJECT,
+            required: true,
+            description: "The array or object to unflatten.",
+            default: None,
+        },
+        Parameter {
+            keyword: "separator",
+            kind: kind::BYTES,
+            required: false,
+            description: "The separator to split flattened keys.",
+            default: Some(&DEFAULT_SEPARATOR),
+        },
+        Parameter {
+            keyword: "recursive",
+            kind: kind::BOOLEAN,
+            required: false,
+            description: "Whether to recursively unflatten the object values.",
+            default: Some(&DEFAULT_RECURSIVE),
+        },
+    ]
+});
 
 fn unflatten(value: Value, separator: &Value, recursive: Value) -> Resolved {
     let separator = separator.try_bytes_utf8_lossy()?.into_owned();
@@ -108,26 +136,7 @@ impl Function for Unflatten {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::OBJECT,
-                required: true,
-                description: "The array or object to unflatten.",
-            },
-            Parameter {
-                keyword: "separator",
-                kind: kind::BYTES,
-                required: false,
-                description: "The separator to split flattened keys.",
-            },
-            Parameter {
-                keyword: "recursive",
-                kind: kind::BOOLEAN,
-                required: false,
-                description: "Whether to recursively unflatten the object values.",
-            },
-        ]
+        PARAMETERS.as_slice()
     }
 
     fn examples(&self) -> &'static [Example] {
@@ -173,7 +182,7 @@ impl Function for Unflatten {
         let value = arguments.required("value");
         let separator = arguments
             .optional("separator")
-            .unwrap_or_else(|| expr!(DEFAULT_SEPARATOR));
+            .unwrap_or_else(|| DEFAULT_SEPARATOR.clone().into_expression());
         let recursive = arguments
             .optional("recursive")
             .unwrap_or_else(|| expr!(true));

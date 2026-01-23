@@ -1,5 +1,27 @@
 use crate::compiler::prelude::*;
 use nom::AsBytes;
+use std::sync::LazyLock;
+
+static DEFAULT_COMPRESSION_LEVEL: LazyLock<Value> = LazyLock::new(|| Value::Integer(3));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::BYTES,
+            required: true,
+            description: "The string to encode.",
+            default: None,
+        },
+        Parameter {
+            keyword: "compression_level",
+            kind: kind::INTEGER,
+            required: false,
+            description: "The default compression level.",
+            default: Some(&DEFAULT_COMPRESSION_LEVEL),
+        },
+    ]
+});
 
 fn encode_zstd(value: Value, compression_level: Option<Value>) -> Resolved {
     let compression_level = match compression_level {
@@ -53,20 +75,7 @@ impl Function for EncodeZstd {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::BYTES,
-                required: true,
-                description: "The string to encode.",
-            },
-            Parameter {
-                keyword: "compression_level",
-                kind: kind::INTEGER,
-                required: false,
-                description: "The default compression level.",
-            },
-        ]
+        PARAMETERS.as_slice()
     }
 }
 

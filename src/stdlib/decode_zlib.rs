@@ -50,6 +50,7 @@ impl Function for DecodeZlib {
             kind: kind::BYTES,
             required: true,
             description: "The [Zlib](https://www.zlib.net) data to decode.",
+            default: None,
         }]
     }
 }
