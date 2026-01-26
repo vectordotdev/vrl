@@ -70,9 +70,7 @@ impl Function for ParseRegex {
     ) -> Compiled {
         let value = arguments.required("value");
         let pattern = arguments.required_regex("pattern", state)?;
-        let numeric_groups = arguments
-            .optional("numeric_groups")
-            .unwrap_or_else(|| expr!(false));
+        let numeric_groups = arguments.optional("numeric_groups");
 
         Ok(ParseRegexFn {
             value,
@@ -134,13 +132,18 @@ impl Function for ParseRegex {
 pub(crate) struct ParseRegexFn {
     value: Box<dyn Expression>,
     pattern: Regex,
-    numeric_groups: Box<dyn Expression>,
+    numeric_groups: Option<Box<dyn Expression>>,
 }
 
 impl FunctionExpression for ParseRegexFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let value = self.value.resolve(ctx)?;
-        let numeric_groups = self.numeric_groups.resolve(ctx)?;
+        let numeric_groups = self
+            .numeric_groups
+            .as_ref()
+            .map(|expr| expr.resolve(ctx))
+            .transpose()?
+            .unwrap_or_else(|| DEFAULT_NUMERIC_GROUPS.clone());
         let pattern = &self.pattern;
 
         parse_regex(&value, numeric_groups.try_boolean()?, pattern)

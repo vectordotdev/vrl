@@ -5,7 +5,7 @@ use crate::compiler::prelude::*;
 use std::sync::LazyLock;
 use std::{collections::BTreeMap, path::Path};
 
-static DEFAULT_PLUS_PARTS: LazyLock<Value> = LazyLock::new(|| Value::Boolean(false));
+static DEFAULT_PLUS_PARTS: LazyLock<Value> = LazyLock::new(|| Value::Integer(0));
 static DEFAULT_PSL: LazyLock<Value> = LazyLock::new(|| Value::Boolean(false));
 
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
@@ -111,7 +111,7 @@ impl Function for ParseEtld {
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
-        let plus_parts = arguments.optional("plus_parts").unwrap_or_else(|| expr!(0));
+        let plus_parts = arguments.optional("plus_parts");
 
         let psl_expr = arguments.optional_expr("psl");
         let mut psl: Option<List> = None;
@@ -160,7 +160,7 @@ impl Function for ParseEtld {
 #[derive(Debug, Clone)]
 struct ParseEtldFn {
     value: Box<dyn Expression>,
-    plus_parts: Box<dyn Expression>,
+    plus_parts: Option<Box<dyn Expression>>,
     psl: Option<List>,
 }
 
@@ -169,7 +169,13 @@ impl FunctionExpression for ParseEtldFn {
         let value = self.value.resolve(ctx)?;
         let string = value.try_bytes_utf8_lossy()?;
 
-        let plus_parts = match self.plus_parts.resolve(ctx)?.try_integer()? {
+        let plus_parts_value = self
+            .plus_parts
+            .as_ref()
+            .map(|expr| expr.resolve(ctx))
+            .transpose()?
+            .unwrap_or_else(|| DEFAULT_PLUS_PARTS.clone());
+        let plus_parts = match plus_parts_value.try_integer()? {
             x if x < 0 => 0,
             // TODO consider removal options
             #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]

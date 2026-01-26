@@ -6,8 +6,9 @@ use std::collections::BTreeMap;
 use super::log_util;
 use std::sync::LazyLock;
 
+static DEFAULT_TIMESTAMP_FORMAT_STR: &str = "%d/%b/%Y:%T %z";
 static DEFAULT_TIMESTAMP_FORMAT: LazyLock<Value> =
-    LazyLock::new(|| Value::Bytes(Bytes::from("%d/%b/%Y:%T %z")));
+    LazyLock::new(|| Value::Bytes(Bytes::from(DEFAULT_TIMESTAMP_FORMAT_STR)));
 
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
@@ -210,7 +211,7 @@ fn regex_for_format(format: &[u8]) -> &Regex {
 
 fn time_format_for_format(format: &[u8]) -> String {
     match format {
-        b"combined" | b"ingress_upstreaminfo" | b"main" => "%d/%b/%Y:%T %z".to_owned(),
+        b"combined" | b"ingress_upstreaminfo" | b"main" => DEFAULT_TIMESTAMP_FORMAT_STR.to_owned(),
         b"error" => "%Y/%m/%d %H:%M:%S".to_owned(),
         _ => unreachable!(),
     }

@@ -232,25 +232,18 @@ impl Function for ParseKeyValue {
     ) -> Compiled {
         let value = arguments.required("value");
 
-        let key_value_delimiter = arguments
-            .optional("key_value_delimiter")
-            .unwrap_or_else(|| expr!("="));
+        let key_value_delimiter = arguments.optional("key_value_delimiter");
 
-        let field_delimiter = arguments
-            .optional("field_delimiter")
-            .unwrap_or_else(|| expr!(" "));
+        let field_delimiter = arguments.optional("field_delimiter");
 
         let whitespace = arguments
             .optional_enum("whitespace", &Whitespace::all_value(), state)?
-            .map(|s| {
-                Whitespace::from_str(&s.try_bytes_utf8_lossy().expect("whitespace not bytes"))
-                    .expect("validated enum")
-            })
-            .unwrap_or_default();
+            .unwrap_or_else(|| DEFAULT_WHITESPACE.clone())
+            .try_bytes_utf8_lossy()
+            .map(|s| Whitespace::from_str(&s).expect("validated enum"))
+            .expect("whitespace not bytes");
 
-        let standalone_key = arguments
-            .optional("accept_standalone_key")
-            .unwrap_or_else(|| expr!(true));
+        let standalone_key = arguments.optional("accept_standalone_key");
 
         Ok(ParseKeyValueFn {
             value,
@@ -307,18 +300,33 @@ impl FromStr for Whitespace {
 #[derive(Clone, Debug)]
 pub(crate) struct ParseKeyValueFn {
     pub(crate) value: Box<dyn Expression>,
-    pub(crate) key_value_delimiter: Box<dyn Expression>,
-    pub(crate) field_delimiter: Box<dyn Expression>,
+    pub(crate) key_value_delimiter: Option<Box<dyn Expression>>,
+    pub(crate) field_delimiter: Option<Box<dyn Expression>>,
     pub(crate) whitespace: Whitespace,
-    pub(crate) standalone_key: Box<dyn Expression>,
+    pub(crate) standalone_key: Option<Box<dyn Expression>>,
 }
 
 impl FunctionExpression for ParseKeyValueFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let bytes = self.value.resolve(ctx)?;
-        let key_value_delimiter = self.key_value_delimiter.resolve(ctx)?;
-        let field_delimiter = self.field_delimiter.resolve(ctx)?;
-        let standalone_key = self.standalone_key.resolve(ctx)?;
+        let key_value_delimiter = self
+            .key_value_delimiter
+            .as_ref()
+            .map(|expr| expr.resolve(ctx))
+            .transpose()?
+            .unwrap_or_else(|| DEFAULT_KEY_VALUE_DELIMITER.clone());
+        let field_delimiter = self
+            .field_delimiter
+            .as_ref()
+            .map(|expr| expr.resolve(ctx))
+            .transpose()?
+            .unwrap_or_else(|| DEFAULT_FIELD_DELIMITER.clone());
+        let standalone_key = self
+            .standalone_key
+            .as_ref()
+            .map(|expr| expr.resolve(ctx))
+            .transpose()?
+            .unwrap_or_else(|| DEFAULT_ACCEPT_STANDALONE_KEY.clone());
         let whitespace = self.whitespace;
 
         parse_key_value(

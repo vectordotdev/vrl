@@ -177,11 +177,10 @@ impl Function for ShannonEntropy {
                 &["byte".into(), "codepoint".into(), "grapheme".into()],
                 state,
             )?
-            .map(|s| {
-                Segmentation::from_str(&s.try_bytes_utf8_lossy().expect("segmentation not bytes"))
-                    .expect("validated enum")
-            })
-            .unwrap_or_default();
+            .unwrap_or_else(|| DEFAULT_SEGMENTATION.clone())
+            .try_bytes_utf8_lossy()
+            .map(|s| Segmentation::from_str(&s).expect("validated enum"))
+            .expect("segmentation not bytes");
 
         Ok(ShannonEntropyFn {
             value,

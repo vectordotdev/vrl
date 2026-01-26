@@ -70,10 +70,10 @@ impl Function for ParseLogFmt {
 
         // The parse_logfmt function is just an alias for `parse_key_value` with the following
         // parameters for the delimiters.
-        let key_value_delimiter = expr!("=");
-        let field_delimiter = expr!(" ");
+        let key_value_delimiter = Some(expr!("="));
+        let field_delimiter = Some(expr!(" "));
         let whitespace = Whitespace::Lenient;
-        let standalone_key = expr!(true);
+        let standalone_key = Some(expr!(true));
 
         Ok(ParseKeyValueFn {
             value,

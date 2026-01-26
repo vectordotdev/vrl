@@ -89,9 +89,7 @@ impl Function for ParseUrl {
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
-        let default_known_ports = arguments
-            .optional("default_known_ports")
-            .unwrap_or_else(|| expr!(false));
+        let default_known_ports = arguments.optional("default_known_ports");
 
         Ok(ParseUrlFn {
             value,
@@ -104,7 +102,7 @@ impl Function for ParseUrl {
 #[derive(Debug, Clone)]
 struct ParseUrlFn {
     value: Box<dyn Expression>,
-    default_known_ports: Box<dyn Expression>,
+    default_known_ports: Option<Box<dyn Expression>>,
 }
 
 impl FunctionExpression for ParseUrlFn {
@@ -112,7 +110,13 @@ impl FunctionExpression for ParseUrlFn {
         let value = self.value.resolve(ctx)?;
         let string = value.try_bytes_utf8_lossy()?;
 
-        let default_known_ports = self.default_known_ports.resolve(ctx)?.try_boolean()?;
+        let default_known_ports = self
+            .default_known_ports
+            .as_ref()
+            .map(|expr| expr.resolve(ctx))
+            .transpose()?
+            .unwrap_or_else(|| DEFAULT_DEFAULT_KNOWN_PORTS.clone())
+            .try_boolean()?;
 
         Url::parse(&string)
             .map_err(|e| format!("unable to parse url: {e}").into())
