@@ -221,40 +221,22 @@ impl FunctionExpression for CompactFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let recursive = self
             .recursive
-            .as_ref()
-            .map(|expr| expr.resolve(ctx))
-            .transpose()?
-            .unwrap_or_else(|| DEFAULT_RECURSIVE.clone());
+            .map_resolve_with_default(ctx, || DEFAULT_RECURSIVE.clone())?;
         let null = self
             .null
-            .as_ref()
-            .map(|expr| expr.resolve(ctx))
-            .transpose()?
-            .unwrap_or_else(|| DEFAULT_NULL.clone());
+            .map_resolve_with_default(ctx, || DEFAULT_NULL.clone())?;
         let string = self
             .string
-            .as_ref()
-            .map(|expr| expr.resolve(ctx))
-            .transpose()?
-            .unwrap_or_else(|| DEFAULT_STRING.clone());
+            .map_resolve_with_default(ctx, || DEFAULT_STRING.clone())?;
         let object = self
             .object
-            .as_ref()
-            .map(|expr| expr.resolve(ctx))
-            .transpose()?
-            .unwrap_or_else(|| DEFAULT_OBJECT.clone());
+            .map_resolve_with_default(ctx, || DEFAULT_OBJECT.clone())?;
         let array = self
             .array
-            .as_ref()
-            .map(|expr| expr.resolve(ctx))
-            .transpose()?
-            .unwrap_or_else(|| DEFAULT_ARRAY.clone());
+            .map_resolve_with_default(ctx, || DEFAULT_ARRAY.clone())?;
         let nullish = self
             .nullish
-            .as_ref()
-            .map(|expr| expr.resolve(ctx))
-            .transpose()?
-            .unwrap_or_else(|| DEFAULT_NULLISH.clone());
+            .map_resolve_with_default(ctx, || DEFAULT_NULLISH.clone())?;
         let value = self.value.resolve(ctx)?;
 
         compact(recursive, null, string, object, array, nullish, value)

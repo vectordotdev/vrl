@@ -159,10 +159,7 @@ impl FunctionExpression for StartsWithFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let case_sensitive = self
             .case_sensitive
-            .as_ref()
-            .map(|expr| expr.resolve(ctx))
-            .transpose()?
-            .unwrap_or_else(|| DEFAULT_CASE_SENSITIVE.clone())
+            .map_resolve_with_default(ctx, || DEFAULT_CASE_SENSITIVE.clone())?
             .try_boolean()?;
         let case_sensitive = if case_sensitive {
             Case::Sensitive

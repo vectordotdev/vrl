@@ -140,10 +140,7 @@ impl FunctionExpression for ParseRegexFn {
         let value = self.value.resolve(ctx)?;
         let numeric_groups = self
             .numeric_groups
-            .as_ref()
-            .map(|expr| expr.resolve(ctx))
-            .transpose()?
-            .unwrap_or_else(|| DEFAULT_NUMERIC_GROUPS.clone());
+            .map_resolve_with_default(ctx, || DEFAULT_NUMERIC_GROUPS.clone())?;
         let pattern = &self.pattern;
 
         parse_regex(&value, numeric_groups.try_boolean()?, pattern)

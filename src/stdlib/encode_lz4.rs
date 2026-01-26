@@ -90,10 +90,7 @@ impl FunctionExpression for EncodeLz4Fn {
         let value = self.value.resolve(ctx)?;
         let prepend_size = self
             .prepend_size
-            .as_ref()
-            .map(|expr| expr.resolve(ctx))
-            .transpose()?
-            .unwrap_or_else(|| DEFAULT_PREPEND_SIZE.clone())
+            .map_resolve_with_default(ctx, || DEFAULT_PREPEND_SIZE.clone())?
             .try_boolean()?;
 
         encode_lz4(value, prepend_size)

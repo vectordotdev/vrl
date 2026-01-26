@@ -112,10 +112,7 @@ impl FunctionExpression for ParseUrlFn {
 
         let default_known_ports = self
             .default_known_ports
-            .as_ref()
-            .map(|expr| expr.resolve(ctx))
-            .transpose()?
-            .unwrap_or_else(|| DEFAULT_DEFAULT_KNOWN_PORTS.clone())
+            .map_resolve_with_default(ctx, || DEFAULT_DEFAULT_KNOWN_PORTS.clone())?
             .try_boolean()?;
 
         Url::parse(&string)

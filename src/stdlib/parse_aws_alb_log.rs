@@ -102,10 +102,7 @@ impl FunctionExpression for ParseAwsAlbLogFn {
         let bytes = self.value.resolve(ctx)?;
         let strict_mode = self
             .strict_mode
-            .as_ref()
-            .map(|expr| expr.resolve(ctx))
-            .transpose()?
-            .unwrap_or_else(|| DEFAULT_STRICT_MODE.clone());
+            .map_resolve_with_default(ctx, || DEFAULT_STRICT_MODE.clone())?;
         parse_aws_alb_log(bytes, strict_mode)
     }
 

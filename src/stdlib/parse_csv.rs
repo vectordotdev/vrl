@@ -106,10 +106,7 @@ impl FunctionExpression for ParseCsvFn {
         let csv_string = self.value.resolve(ctx)?;
         let delimiter = self
             .delimiter
-            .as_ref()
-            .map(|expr| expr.resolve(ctx))
-            .transpose()?
-            .unwrap_or_else(|| DEFAULT_DELIMITER.clone());
+            .map_resolve_with_default(ctx, || DEFAULT_DELIMITER.clone())?;
 
         parse_csv(csv_string, delimiter)
     }

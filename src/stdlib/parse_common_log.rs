@@ -125,10 +125,7 @@ impl FunctionExpression for ParseCommonLogFn {
         let bytes = self.value.resolve(ctx)?;
         let timestamp_format = self
             .timestamp_format
-            .as_ref()
-            .map(|expr| expr.resolve(ctx))
-            .transpose()?
-            .unwrap_or_else(|| DEFAULT_TIMESTAMP_FORMAT.clone());
+            .map_resolve_with_default(ctx, || DEFAULT_TIMESTAMP_FORMAT.clone())?;
 
         parse_common_log(&bytes, &timestamp_format, ctx)
     }

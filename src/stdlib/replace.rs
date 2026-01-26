@@ -167,10 +167,7 @@ impl FunctionExpression for ReplaceFn {
         let with_value = self.with.resolve(ctx)?;
         let count = self
             .count
-            .as_ref()
-            .map(|expr| expr.resolve(ctx))
-            .transpose()?
-            .unwrap_or_else(|| DEFAULT_COUNT.clone());
+            .map_resolve_with_default(ctx, || DEFAULT_COUNT.clone())?;
         let pattern = self.pattern.resolve(ctx)?;
 
         replace(&value, &with_value, count, pattern)

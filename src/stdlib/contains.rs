@@ -100,10 +100,7 @@ impl FunctionExpression for ContainsFn {
         let substring = self.substring.resolve(ctx)?;
         let case_sensitive = self
             .case_sensitive
-            .as_ref()
-            .map(|expr| expr.resolve(ctx))
-            .transpose()?
-            .unwrap_or_else(|| DEFAULT_CASE_SENSITIVE.clone());
+            .map_resolve_with_default(ctx, || DEFAULT_CASE_SENSITIVE.clone())?;
 
         contains(&value, &substring, case_sensitive)
     }

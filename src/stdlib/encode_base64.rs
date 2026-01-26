@@ -118,16 +118,10 @@ impl FunctionExpression for EncodeBase64Fn {
         let value = self.value.resolve(ctx)?;
         let padding = self
             .padding
-            .as_ref()
-            .map(|expr| expr.resolve(ctx))
-            .transpose()?
-            .unwrap_or_else(|| DEFAULT_PADDING.clone());
+            .map_resolve_with_default(ctx, || DEFAULT_PADDING.clone())?;
         let charset = self
             .charset
-            .as_ref()
-            .map(|expr| expr.resolve(ctx))
-            .transpose()?
-            .unwrap_or_else(|| DEFAULT_CHARSET.clone());
+            .map_resolve_with_default(ctx, || DEFAULT_CHARSET.clone())?;
 
         encode_base64(value, padding, charset)
     }

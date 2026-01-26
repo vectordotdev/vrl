@@ -149,10 +149,7 @@ impl FunctionExpression for HmacFn {
         let key = self.key.resolve(ctx)?;
         let algorithm = self
             .algorithm
-            .as_ref()
-            .map(|expr| expr.resolve(ctx))
-            .transpose()?
-            .unwrap_or_else(|| DEFAULT_ALGORITHM.clone());
+            .map_resolve_with_default(ctx, || DEFAULT_ALGORITHM.clone())?;
 
         hmac(value, key, &algorithm)
     }

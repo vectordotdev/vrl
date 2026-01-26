@@ -545,10 +545,7 @@ impl FunctionExpression for CrcFn {
         let value = self.value.resolve(ctx)?;
         let algorithm = self
             .algorithm
-            .as_ref()
-            .map(|expr| expr.resolve(ctx))
-            .transpose()?
-            .unwrap_or_else(|| DEFAULT_ALGORITHM.clone());
+            .map_resolve_with_default(ctx, || DEFAULT_ALGORITHM.clone())?;
 
         let algorithm = algorithm.try_bytes_utf8_lossy()?.as_ref().to_uppercase();
         crc(value, &algorithm)

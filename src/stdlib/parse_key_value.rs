@@ -311,22 +311,13 @@ impl FunctionExpression for ParseKeyValueFn {
         let bytes = self.value.resolve(ctx)?;
         let key_value_delimiter = self
             .key_value_delimiter
-            .as_ref()
-            .map(|expr| expr.resolve(ctx))
-            .transpose()?
-            .unwrap_or_else(|| DEFAULT_KEY_VALUE_DELIMITER.clone());
+            .map_resolve_with_default(ctx, || DEFAULT_KEY_VALUE_DELIMITER.clone())?;
         let field_delimiter = self
             .field_delimiter
-            .as_ref()
-            .map(|expr| expr.resolve(ctx))
-            .transpose()?
-            .unwrap_or_else(|| DEFAULT_FIELD_DELIMITER.clone());
+            .map_resolve_with_default(ctx, || DEFAULT_FIELD_DELIMITER.clone())?;
         let standalone_key = self
             .standalone_key
-            .as_ref()
-            .map(|expr| expr.resolve(ctx))
-            .transpose()?
-            .unwrap_or_else(|| DEFAULT_ACCEPT_STANDALONE_KEY.clone());
+            .map_resolve_with_default(ctx, || DEFAULT_ACCEPT_STANDALONE_KEY.clone())?;
         let whitespace = self.whitespace;
 
         parse_key_value(

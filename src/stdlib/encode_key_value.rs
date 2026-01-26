@@ -181,22 +181,13 @@ impl FunctionExpression for EncodeKeyValueFn {
             .transpose()?;
         let key_value_delimiter = self
             .key_value_delimiter
-            .as_ref()
-            .map(|expr| expr.resolve(ctx))
-            .transpose()?
-            .unwrap_or_else(|| DEFAULT_KEY_VALUE_DELIMITER.clone());
+            .map_resolve_with_default(ctx, || DEFAULT_KEY_VALUE_DELIMITER.clone())?;
         let field_delimiter = self
             .field_delimiter
-            .as_ref()
-            .map(|expr| expr.resolve(ctx))
-            .transpose()?
-            .unwrap_or_else(|| DEFAULT_FIELD_DELIMITER.clone());
+            .map_resolve_with_default(ctx, || DEFAULT_FIELD_DELIMITER.clone())?;
         let flatten_boolean = self
             .flatten_boolean
-            .as_ref()
-            .map(|expr| expr.resolve(ctx))
-            .transpose()?
-            .unwrap_or_else(|| DEFAULT_FLATTEN_BOOLEAN.clone());
+            .map_resolve_with_default(ctx, || DEFAULT_FLATTEN_BOOLEAN.clone())?;
 
         encode_key_value(
             fields,

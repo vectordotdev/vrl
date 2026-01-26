@@ -103,10 +103,7 @@ impl FunctionExpression for FlattenFn {
         let value = self.value.resolve(ctx)?;
         let separator = self
             .separator
-            .as_ref()
-            .map(|expr| expr.resolve(ctx))
-            .transpose()?
-            .unwrap_or_else(|| DEFAULT_SEPARATOR.clone());
+            .map_resolve_with_default(ctx, || DEFAULT_SEPARATOR.clone())?;
 
         flatten(value, &separator)
     }

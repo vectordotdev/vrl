@@ -19,8 +19,8 @@ pub use crate::{func_args, test_function, test_type_def};
 
 pub use super::Resolved;
 pub use super::{
-    Context, Expression, ExpressionError, Function, FunctionExpression, Parameter, TimeZone,
-    TypeDef, expression,
+    Context, Expression, ExpressionError, ExpressionExt, Function, FunctionExpression, Parameter,
+    TimeZone, TypeDef, expression,
     function::{self, ArgumentList, Closure, Compiled, Example, FunctionCompileContext, closure},
     state::{self, TypeInfo, TypeState},
     type_def,

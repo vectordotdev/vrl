@@ -191,10 +191,7 @@ impl FunctionExpression for FormatNumberFn {
             .transpose()?;
         let decimal_separator = self
             .decimal_separator
-            .as_ref()
-            .map(|expr| expr.resolve(ctx))
-            .transpose()?
-            .unwrap_or_else(|| DEFAULT_DECIMAL_SEPARATOR.clone());
+            .map_resolve_with_default(ctx, || DEFAULT_DECIMAL_SEPARATOR.clone())?;
 
         format_number(value, scale, grouping_separator, decimal_separator)
     }
