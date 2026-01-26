@@ -119,12 +119,8 @@ impl Function for Sieve {
     ) -> Compiled {
         let value = arguments.required("value");
         let permitted_characters = arguments.required("permitted_characters");
-        let replace_single = arguments
-            .optional("replace_single")
-            .unwrap_or_else(|| expr!(""));
-        let replace_repeated = arguments
-            .optional("replace_repeated")
-            .unwrap_or_else(|| expr!(""));
+        let replace_single = arguments.optional("replace_single");
+        let replace_repeated = arguments.optional("replace_repeated");
 
         Ok(SieveFn {
             value,
@@ -140,16 +136,26 @@ impl Function for Sieve {
 struct SieveFn {
     value: Box<dyn Expression>,
     permitted_characters: Box<dyn Expression>,
-    replace_single: Box<dyn Expression>,
-    replace_repeated: Box<dyn Expression>,
+    replace_single: Option<Box<dyn Expression>>,
+    replace_repeated: Option<Box<dyn Expression>>,
 }
 
 impl FunctionExpression for SieveFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let value = self.value.resolve(ctx)?;
         let permitted_characters = self.permitted_characters.resolve(ctx)?;
-        let replace_single = self.replace_single.resolve(ctx)?;
-        let replace_repeated = self.replace_repeated.resolve(ctx)?;
+        let replace_single = self
+            .replace_single
+            .as_ref()
+            .map(|expr| expr.resolve(ctx))
+            .transpose()?
+            .unwrap_or_else(|| DEFAULT_REPLACE_SINGLE.clone());
+        let replace_repeated = self
+            .replace_repeated
+            .as_ref()
+            .map(|expr| expr.resolve(ctx))
+            .transpose()?
+            .unwrap_or_else(|| DEFAULT_REPLACE_REPEATED.clone());
 
         sieve(
             &value,

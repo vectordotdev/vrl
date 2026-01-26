@@ -86,9 +86,7 @@ impl Function for Flatten {
         _ctx: &mut FunctionCompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
-        let separator = arguments
-            .optional("separator")
-            .unwrap_or_else(|| DEFAULT_SEPARATOR.clone().into_expression());
+        let separator = arguments.optional("separator");
         let value = arguments.required("value");
         Ok(FlattenFn { value, separator }.as_expr())
     }
@@ -97,13 +95,18 @@ impl Function for Flatten {
 #[derive(Debug, Clone)]
 struct FlattenFn {
     value: Box<dyn Expression>,
-    separator: Box<dyn Expression>,
+    separator: Option<Box<dyn Expression>>,
 }
 
 impl FunctionExpression for FlattenFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let value = self.value.resolve(ctx)?;
-        let separator = self.separator.resolve(ctx)?;
+        let separator = self
+            .separator
+            .as_ref()
+            .map(|expr| expr.resolve(ctx))
+            .transpose()?
+            .unwrap_or_else(|| DEFAULT_SEPARATOR.clone());
 
         flatten(value, &separator)
     }

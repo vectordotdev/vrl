@@ -180,12 +180,8 @@ impl Function for Unflatten {
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
-        let separator = arguments
-            .optional("separator")
-            .unwrap_or_else(|| DEFAULT_SEPARATOR.clone().into_expression());
-        let recursive = arguments
-            .optional("recursive")
-            .unwrap_or_else(|| expr!(true));
+        let separator = arguments.optional("separator");
+        let recursive = arguments.optional("recursive");
 
         Ok(UnflattenFn {
             value,
@@ -199,15 +195,25 @@ impl Function for Unflatten {
 #[derive(Debug, Clone)]
 struct UnflattenFn {
     value: Box<dyn Expression>,
-    separator: Box<dyn Expression>,
-    recursive: Box<dyn Expression>,
+    separator: Option<Box<dyn Expression>>,
+    recursive: Option<Box<dyn Expression>>,
 }
 
 impl FunctionExpression for UnflattenFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let value = self.value.resolve(ctx)?;
-        let separator = self.separator.resolve(ctx)?;
-        let recursive = self.recursive.resolve(ctx)?;
+        let separator = self
+            .separator
+            .as_ref()
+            .map(|expr| expr.resolve(ctx))
+            .transpose()?
+            .unwrap_or_else(|| DEFAULT_SEPARATOR.clone());
+        let recursive = self
+            .recursive
+            .as_ref()
+            .map(|expr| expr.resolve(ctx))
+            .transpose()?
+            .unwrap_or_else(|| DEFAULT_RECURSIVE.clone());
 
         unflatten(value, &separator, recursive)
     }

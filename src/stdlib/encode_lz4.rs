@@ -3,7 +3,7 @@ use lz4_flex::block::{compress, compress_prepend_size};
 use nom::AsBytes;
 use std::sync::LazyLock;
 
-static DEFAULT_PREPEND_SIZE: LazyLock<Value> = LazyLock::new(|| Value::Boolean(false));
+static DEFAULT_PREPEND_SIZE: LazyLock<Value> = LazyLock::new(|| Value::Boolean(true));
 
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
@@ -65,9 +65,7 @@ impl Function for EncodeLz4 {
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
-        let prepend_size = arguments
-            .optional("prepend_size")
-            .unwrap_or_else(|| expr!(true));
+        let prepend_size = arguments.optional("prepend_size");
 
         Ok(EncodeLz4Fn {
             value,
@@ -84,13 +82,19 @@ impl Function for EncodeLz4 {
 #[derive(Clone, Debug)]
 struct EncodeLz4Fn {
     value: Box<dyn Expression>,
-    prepend_size: Box<dyn Expression>,
+    prepend_size: Option<Box<dyn Expression>>,
 }
 
 impl FunctionExpression for EncodeLz4Fn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let value = self.value.resolve(ctx)?;
-        let prepend_size = self.prepend_size.resolve(ctx)?.try_boolean()?;
+        let prepend_size = self
+            .prepend_size
+            .as_ref()
+            .map(|expr| expr.resolve(ctx))
+            .transpose()?
+            .unwrap_or_else(|| DEFAULT_PREPEND_SIZE.clone())
+            .try_boolean()?;
 
         encode_lz4(value, prepend_size)
     }

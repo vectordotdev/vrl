@@ -137,7 +137,7 @@ impl Function for StartsWith {
     ) -> Compiled {
         let value = arguments.required("value");
         let substring = arguments.required("substring");
-        let case_sensitive = arguments.optional("case_sensitive").unwrap_or(expr!(true));
+        let case_sensitive = arguments.optional("case_sensitive");
 
         Ok(StartsWithFn {
             value,
@@ -152,12 +152,19 @@ impl Function for StartsWith {
 struct StartsWithFn {
     value: Box<dyn Expression>,
     substring: Box<dyn Expression>,
-    case_sensitive: Box<dyn Expression>,
+    case_sensitive: Option<Box<dyn Expression>>,
 }
 
 impl FunctionExpression for StartsWithFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let case_sensitive = if self.case_sensitive.resolve(ctx)?.try_boolean()? {
+        let case_sensitive = self
+            .case_sensitive
+            .as_ref()
+            .map(|expr| expr.resolve(ctx))
+            .transpose()?
+            .unwrap_or_else(|| DEFAULT_CASE_SENSITIVE.clone())
+            .try_boolean()?;
+        let case_sensitive = if case_sensitive {
             Case::Sensitive
         } else {
             Case::Insensitive

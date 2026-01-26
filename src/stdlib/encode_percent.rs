@@ -124,7 +124,7 @@ impl Function for EncodePercent {
         let value = arguments.required("value");
         let ascii_set = arguments
             .optional_enum("ascii_set", &ascii_sets(), state)?
-            .unwrap_or_else(|| value!("NON_ALPHANUMERIC"))
+            .unwrap_or_else(|| DEFAULT_ASCII_SET.clone())
             .try_bytes()
             .expect("ascii_set not bytes");
 

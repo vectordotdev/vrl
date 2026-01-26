@@ -23,12 +23,9 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     ]
 });
 
-fn encode_zstd(value: Value, compression_level: Option<Value>) -> Resolved {
-    let compression_level = match compression_level {
-        None => 0,
-        #[allow(clippy::cast_possible_truncation)] //TODO evaluate removal options
-        Some(value) => value.try_integer()? as i32,
-    };
+fn encode_zstd(value: Value, compression_level: Value) -> Resolved {
+    #[allow(clippy::cast_possible_truncation)] //TODO evaluate removal options
+    let compression_level = compression_level.try_integer()? as i32;
 
     let value = value.try_bytes()?;
     // Zstd encoding will not fail in the case of using `encode_all` function
@@ -93,7 +90,8 @@ impl FunctionExpression for EncodeZstdFn {
             .compression_level
             .as_ref()
             .map(|expr| expr.resolve(ctx))
-            .transpose()?;
+            .transpose()?
+            .unwrap_or_else(|| DEFAULT_COMPRESSION_LEVEL.clone());
 
         encode_zstd(value, compression_level)
     }

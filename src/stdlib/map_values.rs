@@ -156,10 +156,13 @@ struct MapValuesFn {
 
 impl FunctionExpression for MapValuesFn {
     fn resolve(&self, ctx: &mut Context) -> ExpressionResult<Value> {
-        let recursive = match &self.recursive {
-            None => false,
-            Some(expr) => expr.resolve(ctx)?.try_boolean()?,
-        };
+        let recursive = self
+            .recursive
+            .as_ref()
+            .map(|expr| expr.resolve(ctx))
+            .transpose()?
+            .unwrap_or_else(|| DEFAULT_RECURSIVE.clone())
+            .try_boolean()?;
 
         let value = self.value.resolve(ctx)?;
         let Closure {

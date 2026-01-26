@@ -1,5 +1,4 @@
 use crate::compiler::prelude::*;
-use crate::value;
 use crc::Crc as CrcInstance;
 use std::sync::LazyLock;
 
@@ -545,10 +544,12 @@ struct CrcFn {
 impl FunctionExpression for CrcFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let value = self.value.resolve(ctx)?;
-        let algorithm = match &self.algorithm {
-            Some(algorithm) => algorithm.resolve(ctx)?,
-            None => value!("CRC_32_ISO_HDLC"),
-        };
+        let algorithm = self
+            .algorithm
+            .as_ref()
+            .map(|expr| expr.resolve(ctx))
+            .transpose()?
+            .unwrap_or_else(|| DEFAULT_ALGORITHM.clone());
 
         let algorithm = algorithm.try_bytes_utf8_lossy()?.as_ref().to_uppercase();
         crc(value, &algorithm)
@@ -575,6 +576,7 @@ impl FunctionExpression for CrcFn {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::value;
 
     test_function![
         crc => Crc;

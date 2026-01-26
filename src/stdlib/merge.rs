@@ -106,7 +106,7 @@ impl Function for Merge {
     ) -> Compiled {
         let to = arguments.required("to");
         let from = arguments.required("from");
-        let deep = arguments.optional("deep").unwrap_or_else(|| expr!(false));
+        let deep = arguments.optional("deep");
 
         Ok(MergeFn { to, from, deep }.as_expr())
     }
@@ -116,14 +116,20 @@ impl Function for Merge {
 pub(crate) struct MergeFn {
     to: Box<dyn Expression>,
     from: Box<dyn Expression>,
-    deep: Box<dyn Expression>,
+    deep: Option<Box<dyn Expression>>,
 }
 
 impl FunctionExpression for MergeFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let mut to_value = self.to.resolve(ctx)?.try_object()?;
         let from_value = self.from.resolve(ctx)?.try_object()?;
-        let deep = self.deep.resolve(ctx)?.try_boolean()?;
+        let deep = self
+            .deep
+            .as_ref()
+            .map(|expr| expr.resolve(ctx))
+            .transpose()?
+            .unwrap_or_else(|| DEFAULT_DEEP.clone())
+            .try_boolean()?;
 
         merge_maps(&mut to_value, &from_value, deep);
 

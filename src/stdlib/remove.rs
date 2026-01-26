@@ -176,7 +176,7 @@ impl Function for Remove {
     ) -> Compiled {
         let value = arguments.required("value");
         let path = arguments.required("path");
-        let compact = arguments.optional("compact").unwrap_or(expr!(false));
+        let compact = arguments.optional("compact");
 
         Ok(RemoveFn {
             value,
@@ -191,13 +191,18 @@ impl Function for Remove {
 pub(crate) struct RemoveFn {
     value: Box<dyn Expression>,
     path: Box<dyn Expression>,
-    compact: Box<dyn Expression>,
+    compact: Option<Box<dyn Expression>>,
 }
 
 impl FunctionExpression for RemoveFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let path = self.path.resolve(ctx)?;
-        let compact = self.compact.resolve(ctx)?;
+        let compact = self
+            .compact
+            .as_ref()
+            .map(|expr| expr.resolve(ctx))
+            .transpose()?
+            .unwrap_or_else(|| DEFAULT_COMPACT.clone());
         let value = self.value.resolve(ctx)?;
 
         remove(path, compact, value)
