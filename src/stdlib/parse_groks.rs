@@ -70,7 +70,8 @@ use std::sync::LazyLock;
 #[cfg(not(target_arch = "wasm32"))]
 use std::{fs::File, io::BufReader, path::Path};
 
-static DEFAULT_ALIASES: LazyLock<Value> = LazyLock::new(|| Value::Boolean(true));
+static DEFAULT_ALIASES: LazyLock<Value> =
+    LazyLock::new(|| Value::Object(std::collections::BTreeMap::new()));
 
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
