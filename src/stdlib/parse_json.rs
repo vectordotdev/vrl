@@ -42,8 +42,8 @@ if there are any invalid UTF-8 characters present.",
     ]
 });
 
-fn parse_json(value: Value, lossy: Option<Value>) -> Resolved {
-    let lossy = lossy.map(Value::try_boolean).transpose()?.unwrap_or(true);
+fn parse_json(value: Value, lossy: Value) -> Resolved {
+    let lossy = lossy.try_boolean()?;
     Ok(if lossy {
         serde_json::from_str(value.try_bytes_utf8_lossy()?.strip_bom())
     } else {
@@ -54,9 +54,9 @@ fn parse_json(value: Value, lossy: Option<Value>) -> Resolved {
 
 // parse_json_with_depth method recursively traverses the value and returns raw JSON-formatted bytes
 // after reaching provided depth.
-fn parse_json_with_depth(value: Value, max_depth: Value, lossy: Option<Value>) -> Resolved {
+fn parse_json_with_depth(value: Value, max_depth: Value, lossy: Value) -> Resolved {
     let parsed_depth = validate_depth(max_depth)?;
-    let lossy = lossy.map(Value::try_boolean).transpose()?.unwrap_or(true);
+    let lossy = lossy.try_boolean()?;
     let bytes = if lossy {
         value.try_bytes_utf8_lossy()?.into_owned().into()
     } else {
@@ -239,7 +239,8 @@ impl FunctionExpression for ParseJsonFn {
             .lossy
             .as_ref()
             .map(|expr| expr.resolve(ctx))
-            .transpose()?;
+            .transpose()?
+            .unwrap_or_else(|| DEFAULT_LOSSY.clone());
         parse_json(value, lossy)
     }
 
@@ -263,7 +264,8 @@ impl FunctionExpression for ParseJsonMaxDepthFn {
             .lossy
             .as_ref()
             .map(|expr| expr.resolve(ctx))
-            .transpose()?;
+            .transpose()?
+            .unwrap_or_else(|| DEFAULT_LOSSY.clone());
         parse_json_with_depth(value, max_depth, lossy)
     }
 

@@ -24,11 +24,9 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     ]
 });
 
-fn floor(precision: Option<Value>, value: Value) -> Resolved {
-    let precision = match precision {
-        Some(value) => value.try_integer()?,
-        None => 0,
-    };
+fn floor(precision: Value, value: Value) -> Resolved {
+    let precision = precision.try_integer()?;
+
     match value {
         Value::Float(f) => Ok(Value::from_f64_or_zero(round_to_precision(
             *f,
@@ -100,7 +98,8 @@ impl FunctionExpression for FloorFn {
             .precision
             .as_ref()
             .map(|expr| expr.resolve(ctx))
-            .transpose()?;
+            .transpose()?
+            .unwrap_or_else(|| DEFAULT_PRECISION.clone());
         let value = self.value.resolve(ctx)?;
 
         floor(precision, value)

@@ -157,10 +157,12 @@ mod implementation {
     impl FunctionExpression for LogFn {
         fn resolve(&self, ctx: &mut Context) -> Resolved {
             let value = self.value.resolve(ctx)?;
-            let rate_limit_secs = match &self.rate_limit_secs {
-                Some(expr) => expr.resolve(ctx)?,
-                None => DEFAULT_RATE_LIMIT_SECS.clone(),
-            };
+            let rate_limit_secs = self
+                .rate_limit_secs
+                .as_ref()
+                .map(|expr| expr.resolve(ctx))
+                .transpose()?
+                .unwrap_or_else(|| DEFAULT_RATE_LIMIT_SECS.clone());
 
             let span = self.span;
 

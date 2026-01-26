@@ -29,18 +29,14 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     ]
 });
 
-fn encode_zlib(value: Value, compression_level: Option<Value>) -> Resolved {
-    let compression_level = match compression_level {
-        None => flate2::Compression::default(),
-        Some(value) => {
-            // TODO consider removal options
-            #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
-            let level = value.try_integer()? as u32;
-            if level > MAX_COMPRESSION_LEVEL {
-                return Err(format!("compression level must be <= {MAX_COMPRESSION_LEVEL}").into());
-            }
-            flate2::Compression::new(level)
-        }
+fn encode_zlib(value: Value, compression_level: Value) -> Resolved {
+    // TODO consider removal options
+    #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
+    let level = compression_level.try_integer()? as u32;
+    let compression_level = if level > MAX_COMPRESSION_LEVEL {
+        return Err(format!("compression level must be <= {MAX_COMPRESSION_LEVEL}").into());
+    } else {
+        flate2::Compression::new(level)
     };
 
     let value = value.try_bytes()?;
@@ -109,7 +105,8 @@ impl FunctionExpression for EncodeZlibFn {
             .compression_level
             .as_ref()
             .map(|expr| expr.resolve(ctx))
-            .transpose()?;
+            .transpose()?
+            .unwrap_or_else(|| DEFAULT_COMPRESSION_LEVEL.clone());
 
         encode_zlib(value, compression_level)
     }

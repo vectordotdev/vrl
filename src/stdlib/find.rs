@@ -31,13 +31,10 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     ]
 });
 
-fn find(value: Value, pattern: Value, from: Option<Value>) -> Resolved {
+fn find(value: Value, pattern: Value, from: Value) -> Resolved {
     // TODO consider removal options
     #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
-    let from = match from {
-        Some(value) => value.try_integer()?,
-        None => 0,
-    } as usize;
+    let from = from.try_integer()? as usize;
 
     Ok(FindFn::find(value, pattern, from)?
         .map_or(Value::Null, |value| Value::Integer(value as i64)))
@@ -162,7 +159,8 @@ impl FunctionExpression for FindFn {
             .from
             .as_ref()
             .map(|expr| expr.resolve(ctx))
-            .transpose()?;
+            .transpose()?
+            .unwrap_or_else(|| DEFAULT_FROM.clone());
 
         find(value, pattern, from)
     }

@@ -31,20 +31,10 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     ]
 });
 
-fn encode_base64(value: Value, padding: Option<Value>, charset: Option<Value>) -> Resolved {
+fn encode_base64(value: Value, padding: Value, charset: Value) -> Resolved {
     let value = value.try_bytes()?;
-    let padding = padding
-        .map(VrlValueConvert::try_boolean)
-        .transpose()?
-        .unwrap_or(true);
-
-    let charset = charset
-        .map(VrlValueConvert::try_bytes)
-        .transpose()?
-        .as_deref()
-        .map(Base64Charset::from_slice)
-        .transpose()?
-        .unwrap_or_default();
+    let padding = padding.try_boolean()?;
+    let charset = Base64Charset::from_slice(&charset.try_bytes()?)?;
 
     let encoder = match (padding, charset) {
         (true, Base64Charset::Standard) => base64_simd::STANDARD,
@@ -126,8 +116,18 @@ struct EncodeBase64Fn {
 impl FunctionExpression for EncodeBase64Fn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let value = self.value.resolve(ctx)?;
-        let padding = self.padding.as_ref().map(|p| p.resolve(ctx)).transpose()?;
-        let charset = self.charset.as_ref().map(|c| c.resolve(ctx)).transpose()?;
+        let padding = self
+            .padding
+            .as_ref()
+            .map(|expr| expr.resolve(ctx))
+            .transpose()?
+            .unwrap_or_else(|| DEFAULT_PADDING.clone());
+        let charset = self
+            .charset
+            .as_ref()
+            .map(|expr| expr.resolve(ctx))
+            .transpose()?
+            .unwrap_or_else(|| DEFAULT_CHARSET.clone());
 
         encode_base64(value, padding, charset)
     }

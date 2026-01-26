@@ -100,17 +100,9 @@ impl Function for EncodeKeyValue {
         let value = arguments.required("value");
         let fields = arguments.optional("fields_ordering");
 
-        let key_value_delimiter = arguments
-            .optional("key_value_delimiter")
-            .unwrap_or_else(|| expr!("="));
-
-        let field_delimiter = arguments
-            .optional("field_delimiter")
-            .unwrap_or_else(|| expr!(" "));
-
-        let flatten_boolean = arguments
-            .optional("flatten_boolean")
-            .unwrap_or_else(|| expr!(false));
+        let key_value_delimiter = arguments.optional("key_value_delimiter");
+        let field_delimiter = arguments.optional("field_delimiter");
+        let flatten_boolean = arguments.optional("flatten_boolean");
 
         Ok(EncodeKeyValueFn {
             value,
@@ -162,9 +154,9 @@ impl Function for EncodeKeyValue {
 pub(crate) struct EncodeKeyValueFn {
     pub(crate) value: Box<dyn Expression>,
     pub(crate) fields: Option<Box<dyn Expression>>,
-    pub(crate) key_value_delimiter: Box<dyn Expression>,
-    pub(crate) field_delimiter: Box<dyn Expression>,
-    pub(crate) flatten_boolean: Box<dyn Expression>,
+    pub(crate) key_value_delimiter: Option<Box<dyn Expression>>,
+    pub(crate) field_delimiter: Option<Box<dyn Expression>>,
+    pub(crate) flatten_boolean: Option<Box<dyn Expression>>,
 }
 
 fn resolve_fields(fields: Value) -> ExpressionResult<Vec<KeyString>> {
@@ -187,9 +179,24 @@ impl FunctionExpression for EncodeKeyValueFn {
             .as_ref()
             .map(|expr| expr.resolve(ctx))
             .transpose()?;
-        let key_value_delimiter = self.key_value_delimiter.resolve(ctx)?;
-        let field_delimiter = self.field_delimiter.resolve(ctx)?;
-        let flatten_boolean = self.flatten_boolean.resolve(ctx)?;
+        let key_value_delimiter = self
+            .key_value_delimiter
+            .as_ref()
+            .map(|expr| expr.resolve(ctx))
+            .transpose()?
+            .unwrap_or_else(|| DEFAULT_KEY_VALUE_DELIMITER.clone());
+        let field_delimiter = self
+            .field_delimiter
+            .as_ref()
+            .map(|expr| expr.resolve(ctx))
+            .transpose()?
+            .unwrap_or_else(|| DEFAULT_FIELD_DELIMITER.clone());
+        let flatten_boolean = self
+            .flatten_boolean
+            .as_ref()
+            .map(|expr| expr.resolve(ctx))
+            .transpose()?
+            .unwrap_or_else(|| DEFAULT_FLATTEN_BOOLEAN.clone());
 
         encode_key_value(
             fields,

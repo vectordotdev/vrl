@@ -142,7 +142,7 @@ impl Function for Replace {
         let value = arguments.required("value");
         let pattern = arguments.required("pattern");
         let with = arguments.required("with");
-        let count = arguments.optional("count").unwrap_or(expr!(-1));
+        let count = arguments.optional("count");
 
         Ok(ReplaceFn {
             value,
@@ -159,14 +159,19 @@ struct ReplaceFn {
     value: Box<dyn Expression>,
     pattern: Box<dyn Expression>,
     with: Box<dyn Expression>,
-    count: Box<dyn Expression>,
+    count: Option<Box<dyn Expression>>,
 }
 
 impl FunctionExpression for ReplaceFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let value = self.value.resolve(ctx)?;
         let with_value = self.with.resolve(ctx)?;
-        let count = self.count.resolve(ctx)?;
+        let count = self
+            .count
+            .as_ref()
+            .map(|expr| expr.resolve(ctx))
+            .transpose()?
+            .unwrap_or_else(|| DEFAULT_COUNT.clone());
         let pattern = self.pattern.resolve(ctx)?;
 
         replace(&value, &with_value, count, pattern)

@@ -4,11 +4,10 @@ use lz4_flex::frame::FrameDecoder;
 use std::io;
 use std::sync::LazyLock;
 
-static DEFAULT_BUF_SIZE: LazyLock<Value> = LazyLock::new(|| Value::Integer(1048576));
+static DEFAULT_BUF_SIZE: LazyLock<Value> = LazyLock::new(|| Value::Integer(1_000_000));
 static DEFAULT_PREPENDED_SIZE: LazyLock<Value> = LazyLock::new(|| Value::Boolean(false));
 
 const LZ4_FRAME_MAGIC: [u8; 4] = [0x04, 0x22, 0x4D, 0x18];
-const LZ4_DEFAULT_BUFFER_SIZE: usize = 1_000_000; // Default buffer size for decompression 1MB
 
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
@@ -72,12 +71,8 @@ impl Function for DecodeLz4 {
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
-        let buf_size = arguments
-            .optional("buf_size")
-            .unwrap_or_else(|| expr!(LZ4_DEFAULT_BUFFER_SIZE));
-        let prepended_size = arguments
-            .optional("prepended_size")
-            .unwrap_or_else(|| expr!(false));
+        let buf_size = arguments.optional("buf_size");
+        let prepended_size = arguments.optional("prepended_size");
 
         Ok(DecodeLz4Fn {
             value,
@@ -95,15 +90,27 @@ impl Function for DecodeLz4 {
 #[derive(Clone, Debug)]
 struct DecodeLz4Fn {
     value: Box<dyn Expression>,
-    buf_size: Box<dyn Expression>,
-    prepended_size: Box<dyn Expression>,
+    buf_size: Option<Box<dyn Expression>>,
+    prepended_size: Option<Box<dyn Expression>>,
 }
 
 impl FunctionExpression for DecodeLz4Fn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let value = self.value.resolve(ctx)?;
-        let buf_size = self.buf_size.resolve(ctx)?.try_integer()?;
-        let prepended_size = self.prepended_size.resolve(ctx)?.try_boolean()?;
+        let buf_size = self
+            .buf_size
+            .as_ref()
+            .map(|expr| expr.resolve(ctx))
+            .transpose()?
+            .unwrap_or_else(|| DEFAULT_BUF_SIZE.clone())
+            .try_integer()?;
+        let prepended_size = self
+            .prepended_size
+            .as_ref()
+            .map(|expr| expr.resolve(ctx))
+            .transpose()?
+            .unwrap_or_else(|| DEFAULT_PREPENDED_SIZE.clone())
+            .try_boolean()?;
 
         let buffer_size: usize;
         if let Ok(sz) = u32::try_from(buf_size) {

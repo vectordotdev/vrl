@@ -26,12 +26,9 @@ encoding the timestamp.",
     ]
 });
 
-fn parse_common_log(bytes: &Value, timestamp_format: Option<Value>, ctx: &Context) -> Resolved {
+fn parse_common_log(bytes: &Value, timestamp_format: Value, ctx: &Context) -> Resolved {
     let message = bytes.try_bytes_utf8_lossy()?;
-    let timestamp_format = match timestamp_format {
-        None => "%d/%b/%Y:%T %z".to_owned(),
-        Some(timestamp_format) => timestamp_format.try_bytes_utf8_lossy()?.to_string(),
-    };
+    let timestamp_format = timestamp_format.try_bytes_utf8_lossy()?.to_string();
 
     log_util::parse_message(
         &log_util::REGEX_APACHE_COMMON_LOG,
@@ -130,7 +127,8 @@ impl FunctionExpression for ParseCommonLogFn {
             .timestamp_format
             .as_ref()
             .map(|expr| expr.resolve(ctx))
-            .transpose()?;
+            .transpose()?
+            .unwrap_or_else(|| DEFAULT_TIMESTAMP_FORMAT.clone());
 
         parse_common_log(&bytes, timestamp_format, ctx)
     }

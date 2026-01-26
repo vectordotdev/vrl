@@ -198,10 +198,13 @@ impl Expression for DelFn {
     //
     // see tracking issue: https://github.com/vectordotdev/vector/issues/5887
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let compact = match &self.compact {
-            Some(compact) => compact.resolve(ctx)?.try_boolean()?,
-            None => false,
-        };
+        let compact = self
+            .compact
+            .as_ref()
+            .map(|expr| expr.resolve(ctx))
+            .transpose()?
+            .unwrap_or_else(|| DEFAULT_COMPACT.clone())
+            .try_boolean()?;
         del(&self.query, compact, ctx)
     }
 

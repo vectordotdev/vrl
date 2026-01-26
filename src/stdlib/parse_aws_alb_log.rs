@@ -31,12 +31,9 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     ]
 });
 
-fn parse_aws_alb_log(bytes: Value, strict_mode: Option<Value>) -> Resolved {
+fn parse_aws_alb_log(bytes: Value, strict_mode: Value) -> Resolved {
     let bytes = bytes.try_bytes()?;
-    let strict_mode = strict_mode
-        .map(Value::try_boolean)
-        .transpose()?
-        .unwrap_or(true);
+    let strict_mode = strict_mode.try_boolean()?;
     parse_log(&String::from_utf8_lossy(&bytes), strict_mode)
 }
 
@@ -107,7 +104,8 @@ impl FunctionExpression for ParseAwsAlbLogFn {
             .strict_mode
             .as_ref()
             .map(|expr| expr.resolve(ctx))
-            .transpose()?;
+            .transpose()?
+            .unwrap_or_else(|| DEFAULT_STRICT_MODE.clone());
         parse_aws_alb_log(bytes, strict_mode)
     }
 

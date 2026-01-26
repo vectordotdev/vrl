@@ -94,7 +94,7 @@ impl Function for Sha3 {
         let value = arguments.required("value");
         let variant = arguments
             .optional_enum("variant", &variants(), state)?
-            .unwrap_or_else(|| value!("SHA3-512"))
+            .unwrap_or_else(|| DEFAULT_VARIANT.clone())
             .try_bytes()
             .expect("variant not bytes");
 

@@ -1,5 +1,4 @@
 use crate::compiler::prelude::*;
-use crate::value;
 use std::sync::LazyLock;
 use xxhash_rust::{xxh3, xxh32, xxh64};
 
@@ -126,10 +125,12 @@ struct XxhashFn {
 impl FunctionExpression for XxhashFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let value = self.value.resolve(ctx)?;
-        let variant = match &self.variant {
-            Some(variant) => variant.resolve(ctx)?,
-            _ => value!("XXH32"),
-        };
+        let variant = self
+            .variant
+            .as_ref()
+            .map(|expr| expr.resolve(ctx))
+            .transpose()?
+            .unwrap_or_else(|| DEFAULT_VARIANT.clone());
 
         xxhash(value, &variant)
     }

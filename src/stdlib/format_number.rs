@@ -4,8 +4,6 @@ use std::sync::LazyLock;
 
 static DEFAULT_DECIMAL_SEPARATOR: LazyLock<Value> =
     LazyLock::new(|| Value::Bytes(Bytes::from(".")));
-static DEFAULT_GROUPING_SEPARATOR: LazyLock<Value> =
-    LazyLock::new(|| Value::Bytes(Bytes::from(",")));
 
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
@@ -35,7 +33,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             kind: kind::BYTES,
             required: false,
             description: "The character to use between each thousands part of the number.",
-            default: Some(&DEFAULT_GROUPING_SEPARATOR),
+            default: None,
         },
     ]
 });
@@ -44,7 +42,7 @@ fn format_number(
     value: Value,
     scale: Option<Value>,
     grouping_separator: Option<Value>,
-    decimal_separator: Option<Value>,
+    decimal_separator: Value,
 ) -> Resolved {
     let value: Decimal = match value {
         Value::Integer(v) => v.into(),
@@ -65,10 +63,7 @@ fn format_number(
         Some(expr) => Some(expr.try_bytes()?),
         None => None,
     };
-    let decimal_separator = match decimal_separator {
-        Some(expr) => expr.try_bytes()?,
-        None => ".".into(),
-    };
+    let decimal_separator = decimal_separator.try_bytes()?;
     // Split integral and fractional part of float.
     let mut parts = value
         .to_string()
@@ -198,7 +193,8 @@ impl FunctionExpression for FormatNumberFn {
             .decimal_separator
             .as_ref()
             .map(|expr| expr.resolve(ctx))
-            .transpose()?;
+            .transpose()?
+            .unwrap_or_else(|| DEFAULT_DECIMAL_SEPARATOR.clone());
 
         format_number(value, scale, grouping_separator, decimal_separator)
     }

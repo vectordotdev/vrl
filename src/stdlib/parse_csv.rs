@@ -86,7 +86,7 @@ impl Function for ParseCsv {
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
-        let delimiter = arguments.optional("delimiter").unwrap_or(expr!(","));
+        let delimiter = arguments.optional("delimiter");
         Ok(ParseCsvFn { value, delimiter }.as_expr())
     }
 
@@ -98,13 +98,18 @@ impl Function for ParseCsv {
 #[derive(Debug, Clone)]
 struct ParseCsvFn {
     value: Box<dyn Expression>,
-    delimiter: Box<dyn Expression>,
+    delimiter: Option<Box<dyn Expression>>,
 }
 
 impl FunctionExpression for ParseCsvFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let csv_string = self.value.resolve(ctx)?;
-        let delimiter = self.delimiter.resolve(ctx)?;
+        let delimiter = self
+            .delimiter
+            .as_ref()
+            .map(|expr| expr.resolve(ctx))
+            .transpose()?
+            .unwrap_or_else(|| DEFAULT_DELIMITER.clone());
 
         parse_csv(csv_string, delimiter)
     }

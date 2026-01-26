@@ -47,9 +47,7 @@ impl Function for DecodePunycode {
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
-        let validate = arguments
-            .optional("validate")
-            .unwrap_or_else(|| expr!(true));
+        let validate = arguments.optional("validate");
 
         Ok(DecodePunycodeFn { value, validate }.as_expr())
     }
@@ -78,7 +76,7 @@ impl Function for DecodePunycode {
 #[derive(Clone, Debug)]
 struct DecodePunycodeFn {
     value: Box<dyn Expression>,
-    validate: Box<dyn Expression>,
+    validate: Option<Box<dyn Expression>>,
 }
 
 impl FunctionExpression for DecodePunycodeFn {
@@ -90,7 +88,13 @@ impl FunctionExpression for DecodePunycodeFn {
             return Ok(string.into());
         }
 
-        let validate = self.validate.resolve(ctx)?.try_boolean()?;
+        let validate = self
+            .validate
+            .as_ref()
+            .map(|expr| expr.resolve(ctx))
+            .transpose()?
+            .unwrap_or_else(|| DEFAULT_VALIDATE.clone())
+            .try_boolean()?;
 
         if validate {
             let (decoded, result) = idna::domain_to_unicode(&string);

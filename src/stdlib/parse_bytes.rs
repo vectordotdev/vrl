@@ -6,7 +6,7 @@ use rust_decimal::{Decimal, prelude::FromPrimitive, prelude::ToPrimitive};
 use std::collections::HashMap;
 use std::sync::LazyLock;
 
-static DEFAULT_BASE: LazyLock<Value> = LazyLock::new(|| Value::Integer(2));
+static DEFAULT_BASE: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from("2")));
 
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
@@ -161,7 +161,7 @@ impl Function for ParseBytes {
         let unit = arguments.required("unit");
         let base = arguments
             .optional_enum("base", &base_sets(), state)?
-            .unwrap_or_else(|| value!("2"))
+            .unwrap_or_else(|| DEFAULT_BASE.clone())
             .try_bytes()
             .expect("base not bytes");
 

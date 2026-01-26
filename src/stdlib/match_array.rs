@@ -29,13 +29,10 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     ]
 });
 
-fn match_array(list: Value, pattern: Value, all: Option<Value>) -> Resolved {
+fn match_array(list: Value, pattern: Value, all: Value) -> Resolved {
     let pattern = pattern.try_regex()?;
     let list = list.try_array()?;
-    let all = match all {
-        Some(value) => value.try_boolean()?,
-        None => false,
-    };
+    let all = all.try_boolean()?;
     let matcher = |i: &Value| match i.try_bytes_utf8_lossy() {
         Ok(v) => pattern.is_match(&v),
         _ => false,
@@ -123,7 +120,8 @@ impl FunctionExpression for MatchArrayFn {
             .all
             .as_ref()
             .map(|expr| expr.resolve(ctx))
-            .transpose()?;
+            .transpose()?
+            .unwrap_or_else(|| DEFAULT_ALL.clone());
 
         match_array(list, pattern, all)
     }

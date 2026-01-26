@@ -47,9 +47,7 @@ impl Function for EncodePunycode {
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
-        let validate = arguments
-            .optional("validate")
-            .unwrap_or_else(|| expr!(true));
+        let validate = arguments.optional("validate");
 
         Ok(EncodePunycodeFn { value, validate }.as_expr())
     }
@@ -83,7 +81,7 @@ impl Function for EncodePunycode {
 #[derive(Clone, Debug)]
 struct EncodePunycodeFn {
     value: Box<dyn Expression>,
-    validate: Box<dyn Expression>,
+    validate: Option<Box<dyn Expression>>,
 }
 
 impl FunctionExpression for EncodePunycodeFn {
@@ -91,7 +89,13 @@ impl FunctionExpression for EncodePunycodeFn {
         let value = self.value.resolve(ctx)?;
         let string = value.try_bytes_utf8_lossy()?;
 
-        let validate = self.validate.resolve(ctx)?.try_boolean()?;
+        let validate = self
+            .validate
+            .as_ref()
+            .map(|expr| expr.resolve(ctx))
+            .transpose()?
+            .unwrap_or_else(|| DEFAULT_VALIDATE.clone())
+            .try_boolean()?;
 
         if validate {
             let encoded = idna::domain_to_ascii(&string)

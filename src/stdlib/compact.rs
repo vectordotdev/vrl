@@ -64,44 +64,21 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
 });
 
 fn compact(
-    recursive: Option<Value>,
-    null: Option<Value>,
-    string: Option<Value>,
-    object: Option<Value>,
-    array: Option<Value>,
-    nullish: Option<Value>,
+    recursive: Value,
+    null: Value,
+    string: Value,
+    object: Value,
+    array: Value,
+    nullish: Value,
     value: Value,
 ) -> Resolved {
     let options = CompactOptions {
-        recursive: match recursive {
-            Some(expr) => expr.try_boolean()?,
-            None => true,
-        },
-
-        null: match null {
-            Some(expr) => expr.try_boolean()?,
-            None => true,
-        },
-
-        string: match string {
-            Some(expr) => expr.try_boolean()?,
-            None => true,
-        },
-
-        object: match object {
-            Some(expr) => expr.try_boolean()?,
-            None => true,
-        },
-
-        array: match array {
-            Some(expr) => expr.try_boolean()?,
-            None => true,
-        },
-
-        nullish: match nullish {
-            Some(expr) => expr.try_boolean()?,
-            None => false,
-        },
+        recursive: recursive.try_boolean()?,
+        null: null.try_boolean()?,
+        string: string.try_boolean()?,
+        object: object.try_boolean()?,
+        array: array.try_boolean()?,
+        nullish: nullish.try_boolean()?,
     };
 
     match value {
@@ -246,32 +223,38 @@ impl FunctionExpression for CompactFn {
             .recursive
             .as_ref()
             .map(|expr| expr.resolve(ctx))
-            .transpose()?;
+            .transpose()?
+            .unwrap_or_else(|| DEFAULT_RECURSIVE.clone());
         let null = self
             .null
             .as_ref()
             .map(|expr| expr.resolve(ctx))
-            .transpose()?;
+            .transpose()?
+            .unwrap_or_else(|| DEFAULT_NULL.clone());
         let string = self
             .string
             .as_ref()
             .map(|expr| expr.resolve(ctx))
-            .transpose()?;
+            .transpose()?
+            .unwrap_or_else(|| DEFAULT_STRING.clone());
         let object = self
             .object
             .as_ref()
             .map(|expr| expr.resolve(ctx))
-            .transpose()?;
+            .transpose()?
+            .unwrap_or_else(|| DEFAULT_OBJECT.clone());
         let array = self
             .array
             .as_ref()
             .map(|expr| expr.resolve(ctx))
-            .transpose()?;
+            .transpose()?
+            .unwrap_or_else(|| DEFAULT_ARRAY.clone());
         let nullish = self
             .nullish
             .as_ref()
             .map(|expr| expr.resolve(ctx))
-            .transpose()?;
+            .transpose()?
+            .unwrap_or_else(|| DEFAULT_NULLISH.clone());
         let value = self.value.resolve(ctx)?;
 
         compact(recursive, null, string, object, array, nullish, value)

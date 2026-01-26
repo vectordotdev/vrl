@@ -101,13 +101,14 @@ impl Function for FromUnixTimestamp {
     ) -> Compiled {
         let value = arguments.required("value");
 
-        let unit = arguments
-            .optional_enum("unit", Unit::all_value().as_slice(), state)?
-            .map(|s| {
-                Unit::from_str(&s.try_bytes_utf8_lossy().expect("unit not bytes"))
-                    .expect("validated enum")
-            })
-            .unwrap_or_default();
+        let unit = Unit::from_str(
+            &arguments
+                .optional_enum("unit", Unit::all_value().as_slice(), state)?
+                .unwrap_or_else(|| DEFAULT_UNIT.clone())
+                .try_bytes_utf8_lossy()
+                .expect("unit not bytes"),
+        )
+        .expect("validated enum");
 
         Ok(FromUnixTimestampFn { value, unit }.as_expr())
     }
