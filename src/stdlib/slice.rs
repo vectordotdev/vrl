@@ -3,10 +3,6 @@ use std::ops::Range;
 use crate::compiler::prelude::*;
 use std::sync::LazyLock;
 
-#[allow(clippy::cast_possible_wrap)]
-#[allow(clippy::cast_sign_loss)]
-#[allow(clippy::cast_possible_truncation)] //TODO evaluate removal options
-
 static DEFAULT_END: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from("String length")));
 
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
@@ -35,6 +31,9 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     ]
 });
 
+#[allow(clippy::cast_possible_wrap)]
+#[allow(clippy::cast_sign_loss)]
+#[allow(clippy::cast_possible_truncation)] //TODO evaluate removal options
 fn slice(start: i64, end: Option<i64>, value: Value) -> Resolved {
     let range = |len: i64| -> ExpressionResult<Range<usize>> {
         let start = match start {

@@ -3,8 +3,6 @@ use std::collections::VecDeque;
 use crate::compiler::prelude::*;
 use std::sync::LazyLock;
 
-#[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)] // TODO consider removal options
-
 static DEFAULT_BASE: LazyLock<Value> = LazyLock::new(|| Value::Integer(10));
 
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
@@ -26,6 +24,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     ]
 });
 
+#[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)] // TODO consider removal options
 fn format_int(value: Value, base: Value) -> Resolved {
     let value = value.try_integer()?;
     let base = base.try_integer()?;
