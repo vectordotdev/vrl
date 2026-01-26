@@ -6,8 +6,6 @@ static DEFAULT_VARIANT: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::f
 
 const VALID_VARIANTS: &[&str] = &["XXH32", "XXH64", "XXH3-64", "XXH3-128"];
 
-#[allow(clippy::cast_possible_wrap)]
-
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
         Parameter {
@@ -27,6 +25,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     ]
 });
 
+#[allow(clippy::cast_possible_wrap)]
 fn xxhash(value: Value, variant: &Value) -> Resolved {
     let bytes = value.try_bytes()?;
     let variant = variant.try_bytes_utf8_lossy()?.as_ref().to_uppercase();

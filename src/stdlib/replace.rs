@@ -1,8 +1,6 @@
 use crate::compiler::prelude::*;
 use std::sync::LazyLock;
 
-#[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)] // TODO consider removal options
-
 static DEFAULT_COUNT: LazyLock<Value> = LazyLock::new(|| Value::Integer(-1));
 
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
@@ -38,6 +36,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     ]
 });
 
+#[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)] // TODO consider removal options
 fn replace(value: &Value, with_value: &Value, count: Value, pattern: Value) -> Resolved {
     let value = value.try_bytes_utf8_lossy()?;
     let with = with_value.try_bytes_utf8_lossy()?;

@@ -120,8 +120,6 @@ const VALID_ALGORITHMS: &[&str] = &[
     "CRC_82_DARC",
 ];
 
-#[allow(clippy::too_many_lines)]
-
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
         Parameter {
@@ -141,6 +139,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     ]
 });
 
+#[allow(clippy::too_many_lines)]
 fn crc(value: Value, algorithm: &str) -> Resolved {
     let value = value.try_bytes()?;
 

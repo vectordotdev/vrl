@@ -1,8 +1,6 @@
 use crate::compiler::prelude::*;
 use std::sync::LazyLock;
 
-#[allow(clippy::cast_possible_wrap)]
-
 static DEFAULT_FROM: LazyLock<Value> = LazyLock::new(|| Value::Integer(0));
 
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
@@ -31,6 +29,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     ]
 });
 
+#[allow(clippy::cast_possible_wrap)]
 fn find(value: Value, pattern: Value, from: Value) -> Resolved {
     // TODO consider removal options
     #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
