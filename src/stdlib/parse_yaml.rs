@@ -1,14 +1,9 @@
-//use serde_yaml::{
-//    //Error,
-//    //value::{Value as YamlValue},
-//};
-
 use crate::compiler::prelude::*;
 use crate::stdlib::json_utils::bom::StripBomFromUTF8;
 use crate::stdlib::json_utils::json_type_def::json_type_def;
 
 fn parse_yaml(value: Value) -> Resolved {
-    Ok(serde_yaml::from_slice(value.try_bytes()?.strip_bom())
+    Ok(serde_yaml_ng::from_slice(value.try_bytes()?.strip_bom())
         .map_err(|e| format!("unable to parse yaml: {e}"))?)
 }
 
