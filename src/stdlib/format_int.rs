@@ -97,10 +97,7 @@ impl FunctionExpression for FormatIntFn {
         let value = self.value.resolve(ctx)?;
         let base = self
             .base
-            .as_ref()
-            .map(|expr| expr.resolve(ctx))
-            .transpose()?
-            .unwrap_or_else(|| DEFAULT_BASE.clone());
+            .map_resolve_with_default(ctx, || DEFAULT_BASE.clone())?;
 
         format_int(value, base)
     }

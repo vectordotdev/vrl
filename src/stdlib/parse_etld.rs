@@ -171,10 +171,7 @@ impl FunctionExpression for ParseEtldFn {
 
         let plus_parts_value = self
             .plus_parts
-            .as_ref()
-            .map(|expr| expr.resolve(ctx))
-            .transpose()?
-            .unwrap_or_else(|| DEFAULT_PLUS_PARTS.clone());
+            .map_resolve_with_default(ctx, || DEFAULT_PLUS_PARTS.clone())?;
         let plus_parts = match plus_parts_value.try_integer()? {
             x if x < 0 => 0,
             // TODO consider removal options

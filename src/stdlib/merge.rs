@@ -125,10 +125,7 @@ impl FunctionExpression for MergeFn {
         let from_value = self.from.resolve(ctx)?.try_object()?;
         let deep = self
             .deep
-            .as_ref()
-            .map(|expr| expr.resolve(ctx))
-            .transpose()?
-            .unwrap_or_else(|| DEFAULT_DEEP.clone())
+            .map_resolve_with_default(ctx, || DEFAULT_DEEP.clone())?
             .try_boolean()?;
 
         merge_maps(&mut to_value, &from_value, deep);

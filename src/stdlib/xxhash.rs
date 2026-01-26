@@ -126,10 +126,7 @@ impl FunctionExpression for XxhashFn {
         let value = self.value.resolve(ctx)?;
         let variant = self
             .variant
-            .as_ref()
-            .map(|expr| expr.resolve(ctx))
-            .transpose()?
-            .unwrap_or_else(|| DEFAULT_VARIANT.clone());
+            .map_resolve_with_default(ctx, || DEFAULT_VARIANT.clone())?;
 
         xxhash(value, &variant)
     }

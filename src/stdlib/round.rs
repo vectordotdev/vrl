@@ -105,10 +105,7 @@ impl FunctionExpression for RoundFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let precision = self
             .precision
-            .as_ref()
-            .map(|expr| expr.resolve(ctx))
-            .transpose()?
-            .unwrap_or_else(|| DEFAULT_PRECISION.clone());
+            .map_resolve_with_default(ctx, || DEFAULT_PRECISION.clone())?;
         let value = self.value.resolve(ctx)?;
 
         round(precision, value)

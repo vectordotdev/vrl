@@ -156,10 +156,7 @@ impl FunctionExpression for FindFn {
         let pattern = self.pattern.resolve(ctx)?;
         let from = self
             .from
-            .as_ref()
-            .map(|expr| expr.resolve(ctx))
-            .transpose()?
-            .unwrap_or_else(|| DEFAULT_FROM.clone());
+            .map_resolve_with_default(ctx, || DEFAULT_FROM.clone())?;
 
         find(value, pattern, from)
     }

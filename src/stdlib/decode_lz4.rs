@@ -99,17 +99,11 @@ impl FunctionExpression for DecodeLz4Fn {
         let value = self.value.resolve(ctx)?;
         let buf_size = self
             .buf_size
-            .as_ref()
-            .map(|expr| expr.resolve(ctx))
-            .transpose()?
-            .unwrap_or_else(|| DEFAULT_BUF_SIZE.clone())
+            .map_resolve_with_default(ctx, || DEFAULT_BUF_SIZE.clone())?
             .try_integer()?;
         let prepended_size = self
             .prepended_size
-            .as_ref()
-            .map(|expr| expr.resolve(ctx))
-            .transpose()?
-            .unwrap_or_else(|| DEFAULT_PREPENDED_SIZE.clone())
+            .map_resolve_with_default(ctx, || DEFAULT_PREPENDED_SIZE.clone())?
             .try_boolean()?;
 
         let buffer_size: usize;

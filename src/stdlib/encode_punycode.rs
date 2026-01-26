@@ -91,10 +91,7 @@ impl FunctionExpression for EncodePunycodeFn {
 
         let validate = self
             .validate
-            .as_ref()
-            .map(|expr| expr.resolve(ctx))
-            .transpose()?
-            .unwrap_or_else(|| DEFAULT_VALIDATE.clone())
+            .map_resolve_with_default(ctx, || DEFAULT_VALIDATE.clone())?
             .try_boolean()?;
 
         if validate {

@@ -103,10 +103,7 @@ impl FunctionExpression for EncodeZlibFn {
 
         let compression_level = self
             .compression_level
-            .as_ref()
-            .map(|expr| expr.resolve(ctx))
-            .transpose()?
-            .unwrap_or_else(|| DEFAULT_COMPRESSION_LEVEL.clone());
+            .map_resolve_with_default(ctx, || DEFAULT_COMPRESSION_LEVEL.clone())?;
 
         encode_zlib(value, compression_level)
     }

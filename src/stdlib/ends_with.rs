@@ -103,10 +103,7 @@ impl FunctionExpression for EndsWithFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let case_sensitive = self
             .case_sensitive
-            .as_ref()
-            .map(|expr| expr.resolve(ctx))
-            .transpose()?
-            .unwrap_or_else(|| DEFAULT_CASE_SENSITIVE.clone());
+            .map_resolve_with_default(ctx, || DEFAULT_CASE_SENSITIVE.clone())?;
         let substring = self.substring.resolve(ctx)?;
         let value = self.value.resolve(ctx)?;
 

@@ -237,10 +237,7 @@ impl FunctionExpression for ParseJsonFn {
         let value = self.value.resolve(ctx)?;
         let lossy = self
             .lossy
-            .as_ref()
-            .map(|expr| expr.resolve(ctx))
-            .transpose()?
-            .unwrap_or_else(|| DEFAULT_LOSSY.clone());
+            .map_resolve_with_default(ctx, || DEFAULT_LOSSY.clone())?;
         parse_json(value, lossy)
     }
 
@@ -262,10 +259,7 @@ impl FunctionExpression for ParseJsonMaxDepthFn {
         let max_depth = self.max_depth.resolve(ctx)?;
         let lossy = self
             .lossy
-            .as_ref()
-            .map(|expr| expr.resolve(ctx))
-            .transpose()?
-            .unwrap_or_else(|| DEFAULT_LOSSY.clone());
+            .map_resolve_with_default(ctx, || DEFAULT_LOSSY.clone())?;
         parse_json_with_depth(value, max_depth, lossy)
     }
 

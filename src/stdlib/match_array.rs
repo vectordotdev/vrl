@@ -118,10 +118,7 @@ impl FunctionExpression for MatchArrayFn {
         let pattern = self.pattern.resolve(ctx)?;
         let all = self
             .all
-            .as_ref()
-            .map(|expr| expr.resolve(ctx))
-            .transpose()?
-            .unwrap_or_else(|| DEFAULT_ALL.clone());
+            .map_resolve_with_default(ctx, || DEFAULT_ALL.clone())?;
 
         match_array(list, pattern, all)
     }

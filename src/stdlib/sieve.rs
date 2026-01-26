@@ -146,16 +146,10 @@ impl FunctionExpression for SieveFn {
         let permitted_characters = self.permitted_characters.resolve(ctx)?;
         let replace_single = self
             .replace_single
-            .as_ref()
-            .map(|expr| expr.resolve(ctx))
-            .transpose()?
-            .unwrap_or_else(|| DEFAULT_REPLACE_SINGLE.clone());
+            .map_resolve_with_default(ctx, || DEFAULT_REPLACE_SINGLE.clone())?;
         let replace_repeated = self
             .replace_repeated
-            .as_ref()
-            .map(|expr| expr.resolve(ctx))
-            .transpose()?
-            .unwrap_or_else(|| DEFAULT_REPLACE_REPEATED.clone());
+            .map_resolve_with_default(ctx, || DEFAULT_REPLACE_REPEATED.clone())?;
 
         sieve(
             &value,

@@ -101,10 +101,7 @@ impl FunctionExpression for DecodeBase64Fn {
         let value = self.value.resolve(ctx)?;
         let charset = self
             .charset
-            .as_ref()
-            .map(|expr| expr.resolve(ctx))
-            .transpose()?
-            .unwrap_or_else(|| DEFAULT_CHARSET.clone());
+            .map_resolve_with_default(ctx, || DEFAULT_CHARSET.clone())?;
 
         decode_base64(charset, value)
     }

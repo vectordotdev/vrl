@@ -294,10 +294,7 @@ impl FunctionExpression for ReplaceWithFn {
         }
         let count = self
             .count
-            .as_ref()
-            .map(|expr| expr.resolve(ctx))
-            .transpose()?
-            .unwrap_or_else(|| DEFAULT_COUNT.clone());
+            .map_resolve_with_default(ctx, || DEFAULT_COUNT.clone())?;
         let Closure {
             variables, block, ..
         } = &self.closure;

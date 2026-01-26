@@ -199,10 +199,7 @@ impl FunctionExpression for RemoveFn {
         let path = self.path.resolve(ctx)?;
         let compact = self
             .compact
-            .as_ref()
-            .map(|expr| expr.resolve(ctx))
-            .transpose()?
-            .unwrap_or_else(|| DEFAULT_COMPACT.clone());
+            .map_resolve_with_default(ctx, || DEFAULT_COMPACT.clone())?;
         let value = self.value.resolve(ctx)?;
 
         remove(path, compact, value)

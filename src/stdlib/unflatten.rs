@@ -204,16 +204,10 @@ impl FunctionExpression for UnflattenFn {
         let value = self.value.resolve(ctx)?;
         let separator = self
             .separator
-            .as_ref()
-            .map(|expr| expr.resolve(ctx))
-            .transpose()?
-            .unwrap_or_else(|| DEFAULT_SEPARATOR.clone());
+            .map_resolve_with_default(ctx, || DEFAULT_SEPARATOR.clone())?;
         let recursive = self
             .recursive
-            .as_ref()
-            .map(|expr| expr.resolve(ctx))
-            .transpose()?
-            .unwrap_or_else(|| DEFAULT_RECURSIVE.clone());
+            .map_resolve_with_default(ctx, || DEFAULT_RECURSIVE.clone())?;
 
         unflatten(value, &separator, recursive)
     }

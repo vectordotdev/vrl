@@ -159,10 +159,7 @@ mod implementation {
             let value = self.value.resolve(ctx)?;
             let rate_limit_secs = self
                 .rate_limit_secs
-                .as_ref()
-                .map(|expr| expr.resolve(ctx))
-                .transpose()?
-                .unwrap_or_else(|| DEFAULT_RATE_LIMIT_SECS.clone());
+                .map_resolve_with_default(ctx, || DEFAULT_RATE_LIMIT_SECS.clone())?;
 
             let span = self.span;
 
