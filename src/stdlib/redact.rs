@@ -54,7 +54,7 @@ For arrays and objects, the function recurses into any nested arrays or objects.
 skipped.
 
 Redacted text is replaced with `[REDACTED]`.",
-            default: None,
+                default: None,
             },
             Parameter {
                 keyword: "filters",
@@ -78,7 +78,7 @@ See examples for more details.
 
 This parameter must be a static expression so that the argument can be validated at compile-time
 to avoid runtime errors. You cannot use variables or other dynamic expressions with it.",
-            default: None,
+                default: None,
             },
             Parameter {
                 keyword: "redactor",
