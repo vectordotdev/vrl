@@ -39,9 +39,37 @@ impl Function for ParseYaml {
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "Parse YAML",
+                title: "Parse simple YAML",
                 source: r"parse_yaml!(s'key: val')",
                 result: Ok(r#"{ "key": "val" }"#),
+            },
+            example! {
+                title: "Parse YAML",
+                source: r#"parse_yaml!(s'
+                    object:
+                        string: value
+                        number: 42
+                        boolean: false
+                        array:
+                        - hello
+                        - world
+                        json_array: ["hello", "world"]
+                ')"#,
+                result: Ok(r#"{
+                    "object": {
+                        "string": "value",
+                        "number": 42,
+                        "boolean": false,
+                        "array": [
+                            "hello",
+                            "world"
+                        ],
+                        "json_array": [
+                            "hello",
+                            "world"
+                        ]
+                    }
+                }"#),
             },
             example! {
                 title: "Parse YAML string",
@@ -130,13 +158,13 @@ mod tests {
                 object:
                     string: value
                     number: 42
-                    json_array: ["hello", "world"]
                     boolean: false
                     array:
                     - hello
                     - world
+                    json_array: ["hello", "world"]
             "# ],
-            want: Ok(value!({ object: {string: "value", number: 42, json_array: ["hello", "world"], boolean: false, array: ["hello", "world"]} })),
+            want: Ok(value!({ object: {string: "value", number: 42, boolean: false, array: ["hello", "world"], json_array: ["hello", "world"]} })),
             tdef: json_type_def(),
         }
 
