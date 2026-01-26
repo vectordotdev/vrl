@@ -1,14 +1,10 @@
 use crate::compiler::prelude::*;
-use crate::parsing::xml::{ParseOptions, parse_xml};
+use crate::parsing::xml::{
+    ParseOptions, parse_xml, DEFAULT_ALWAYS_USE_TEXT_KEY, DEFAULT_ATTR_PREFIX,
+    DEFAULT_INCLUDE_ATTR, DEFAULT_PARSE_BOOL, DEFAULT_PARSE_NULL, DEFAULT_PARSE_NUMBER,
+    DEFAULT_TEXT_KEY,
+};
 use std::sync::LazyLock;
-
-static DEFAULT_INCLUDE_ATTR: LazyLock<Value> = LazyLock::new(|| Value::Boolean(true));
-static DEFAULT_ATTR_PREFIX: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from("@")));
-static DEFAULT_TEXT_KEY: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from("text")));
-static DEFAULT_ALWAYS_USE_TEXT_KEY: LazyLock<Value> = LazyLock::new(|| Value::Boolean(false));
-static DEFAULT_PARSE_BOOL: LazyLock<Value> = LazyLock::new(|| Value::Boolean(true));
-static DEFAULT_PARSE_NULL: LazyLock<Value> = LazyLock::new(|| Value::Boolean(true));
-static DEFAULT_PARSE_NUMBER: LazyLock<Value> = LazyLock::new(|| Value::Boolean(true));
 
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
