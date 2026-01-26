@@ -36,7 +36,7 @@ encoding the timestamp. The time is parsed in local time if the timestamp does n
 
 fn parse_apache_log(
     bytes: &Value,
-    timestamp_format: Value,
+    timestamp_format: &Value,
     format: &Bytes,
     ctx: &Context,
 ) -> Resolved {
@@ -197,7 +197,7 @@ impl FunctionExpression for ParseApacheLogFn {
             .transpose()?
             .unwrap_or_else(|| DEFAULT_TIMESTAMP_FORMAT.clone());
 
-        parse_apache_log(&bytes, timestamp_format, &self.format, ctx)
+        parse_apache_log(&bytes, &timestamp_format, &self.format, ctx)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {
