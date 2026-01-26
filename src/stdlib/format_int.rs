@@ -29,10 +29,7 @@ fn format_int(value: Value, base: Value) -> Resolved {
     let value = value.try_integer()?;
     let base = base.try_integer()?;
     if !(2..=36).contains(&base) {
-        return Err(format!(
-            "invalid base {base}: must be be between 2 and 36 (inclusive)"
-        )
-        .into());
+        return Err(format!("invalid base {base}: must be be between 2 and 36 (inclusive)").into());
     }
 
     let converted = format_radix(value, base as u32);
