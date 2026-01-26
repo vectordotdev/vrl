@@ -41,9 +41,9 @@ impl Function for EncodeLogfmt {
     ) -> Compiled {
         // The encode_logfmt function is just an alias for `encode_key_value` with the following
         // parameters for the delimiters.
-        let key_value_delimiter = expr!("=");
-        let field_delimiter = expr!(" ");
-        let flatten_boolean = expr!(true);
+        let key_value_delimiter = Some(expr!("="));
+        let field_delimiter = Some(expr!(" "));
+        let flatten_boolean = Some(expr!(true));
 
         let value = arguments.required("value");
         let fields = arguments.optional("fields_ordering");
