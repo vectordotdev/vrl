@@ -26,7 +26,7 @@ encoding the timestamp.",
     ]
 });
 
-fn parse_common_log(bytes: &Value, timestamp_format: Value, ctx: &Context) -> Resolved {
+fn parse_common_log(bytes: &Value, timestamp_format: &Value, ctx: &Context) -> Resolved {
     let message = bytes.try_bytes_utf8_lossy()?;
     let timestamp_format = timestamp_format.try_bytes_utf8_lossy()?.to_string();
 
@@ -130,7 +130,7 @@ impl FunctionExpression for ParseCommonLogFn {
             .transpose()?
             .unwrap_or_else(|| DEFAULT_TIMESTAMP_FORMAT.clone());
 
-        parse_common_log(&bytes, timestamp_format, ctx)
+        parse_common_log(&bytes, &timestamp_format, ctx)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {
