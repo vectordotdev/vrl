@@ -2,6 +2,36 @@ use crate::compiler::prelude::*;
 use regex::Regex;
 
 use super::util;
+use std::sync::LazyLock;
+
+static DEFAULT_NUMERIC_GROUPS: LazyLock<Value> = LazyLock::new(|| Value::Boolean(false));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::BYTES,
+            required: true,
+            description: "The string to search.",
+            default: None,
+        },
+        Parameter {
+            keyword: "pattern",
+            kind: kind::REGEX,
+            required: true,
+            description: "The regular expression pattern to search against.",
+            default: None,
+        },
+        Parameter {
+            keyword: "numeric_groups",
+            kind: kind::BOOLEAN,
+            required: false,
+            description: "If true, the index of each group in the regular expression is also captured. Index `0`
+contains the whole match.",
+            default: Some(&DEFAULT_NUMERIC_GROUPS),
+        },
+    ]
+});
 
 fn parse_regex(value: &Value, numeric_groups: bool, pattern: &Regex) -> Resolved {
     let value = value.try_bytes_utf8_lossy()?;
@@ -29,23 +59,7 @@ impl Function for ParseRegex {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::BYTES,
-                required: true,
-            },
-            Parameter {
-                keyword: "pattern",
-                kind: kind::REGEX,
-                required: true,
-            },
-            Parameter {
-                keyword: "numeric_groups",
-                kind: kind::BOOLEAN,
-                required: false,
-            },
-        ]
+        PARAMETERS.as_slice()
     }
 
     fn compile(
@@ -56,9 +70,7 @@ impl Function for ParseRegex {
     ) -> Compiled {
         let value = arguments.required("value");
         let pattern = arguments.required_regex("pattern", state)?;
-        let numeric_groups = arguments
-            .optional("numeric_groups")
-            .unwrap_or_else(|| expr!(false));
+        let numeric_groups = arguments.optional("numeric_groups");
 
         Ok(ParseRegexFn {
             value,
@@ -120,13 +132,15 @@ impl Function for ParseRegex {
 pub(crate) struct ParseRegexFn {
     value: Box<dyn Expression>,
     pattern: Regex,
-    numeric_groups: Box<dyn Expression>,
+    numeric_groups: Option<Box<dyn Expression>>,
 }
 
 impl FunctionExpression for ParseRegexFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let value = self.value.resolve(ctx)?;
-        let numeric_groups = self.numeric_groups.resolve(ctx)?;
+        let numeric_groups = self
+            .numeric_groups
+            .map_resolve_with_default(ctx, || DEFAULT_NUMERIC_GROUPS.clone())?;
         let pattern = &self.pattern;
 
         parse_regex(&value, numeric_groups.try_boolean()?, pattern)

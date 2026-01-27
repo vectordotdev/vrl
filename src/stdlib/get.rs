@@ -62,11 +62,15 @@ impl Function for Get {
                 keyword: "value",
                 kind: kind::OBJECT | kind::ARRAY,
                 required: true,
+                description: "The object or array to query.",
+                default: None,
             },
             Parameter {
                 keyword: "path",
                 kind: kind::ARRAY,
                 required: true,
+                description: "An array of path segments to look for the value.",
+                default: None,
             },
         ]
     }

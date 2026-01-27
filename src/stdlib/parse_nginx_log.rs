@@ -4,6 +4,40 @@ use regex::Regex;
 use std::collections::BTreeMap;
 
 use super::log_util;
+use std::sync::LazyLock;
+
+static DEFAULT_TIMESTAMP_FORMAT_STR: &str = "%d/%b/%Y:%T %z";
+static DEFAULT_TIMESTAMP_FORMAT: LazyLock<Value> =
+    LazyLock::new(|| Value::Bytes(Bytes::from(DEFAULT_TIMESTAMP_FORMAT_STR)));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::BYTES,
+            required: true,
+            description: "The string to parse.",
+            default: None,
+        },
+        Parameter {
+            keyword: "format",
+            kind: kind::BYTES,
+            required: true,
+            description: "The format to use for parsing the log.",
+            default: None,
+        },
+        Parameter {
+            keyword: "timestamp_format",
+            kind: kind::BYTES,
+            required: false,
+            description: "
+The [date/time format](https://docs.rs/chrono/latest/chrono/format/strftime/index.html#specifiers) to use for encoding the timestamp. The time is parsed
+in local time if the timestamp doesn't specify a timezone. The default format is `%d/%b/%Y:%T %z` for
+combined logs and `%Y/%m/%d %H:%M:%S` for error logs.",
+            default: Some(&DEFAULT_TIMESTAMP_FORMAT),
+        },
+    ]
+});
 
 fn parse_nginx_log(
     bytes: &Value,
@@ -45,23 +79,7 @@ impl Function for ParseNginxLog {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::BYTES,
-                required: true,
-            },
-            Parameter {
-                keyword: "format",
-                kind: kind::BYTES,
-                required: true,
-            },
-            Parameter {
-                keyword: "timestamp_format",
-                kind: kind::BYTES,
-                required: false,
-            },
-        ]
+        PARAMETERS.as_slice()
     }
 
     fn compile(
@@ -193,7 +211,7 @@ fn regex_for_format(format: &[u8]) -> &Regex {
 
 fn time_format_for_format(format: &[u8]) -> String {
     match format {
-        b"combined" | b"ingress_upstreaminfo" | b"main" => "%d/%b/%Y:%T %z".to_owned(),
+        b"combined" | b"ingress_upstreaminfo" | b"main" => DEFAULT_TIMESTAMP_FORMAT_STR.to_owned(),
         b"error" => "%Y/%m/%d %H:%M:%S".to_owned(),
         _ => unreachable!(),
     }

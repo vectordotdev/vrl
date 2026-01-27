@@ -65,16 +65,22 @@ impl Function for Set {
                 keyword: "value",
                 kind: kind::OBJECT | kind::ARRAY,
                 required: true,
+                description: "The object or array to insert data into.",
+                default: None,
             },
             Parameter {
                 keyword: "path",
                 kind: kind::ARRAY,
                 required: true,
+                description: "An array of path segments to insert the value into.",
+                default: None,
             },
             Parameter {
                 keyword: "data",
                 kind: kind::ANY,
                 required: true,
+                description: "The data to be inserted.",
+                default: None,
             },
         ]
     }

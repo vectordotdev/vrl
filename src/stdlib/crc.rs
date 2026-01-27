@@ -1,6 +1,9 @@
 use crate::compiler::prelude::*;
-use crate::value;
 use crc::Crc as CrcInstance;
+use std::sync::LazyLock;
+
+static DEFAULT_ALGORITHM: LazyLock<Value> =
+    LazyLock::new(|| Value::Bytes(Bytes::from("CRC_32_ISO_HDLC")));
 
 const VALID_ALGORITHMS: &[&str] = &[
     "CRC_3_GSM",
@@ -116,6 +119,25 @@ const VALID_ALGORITHMS: &[&str] = &[
     "CRC_64_XZ",
     "CRC_82_DARC",
 ];
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::BYTES,
+            required: true,
+            description: "The string to calculate the checksum for.",
+            default: None,
+        },
+        Parameter {
+            keyword: "algorithm",
+            kind: kind::BYTES,
+            required: false,
+            description: "The CRC algorithm to use.",
+            default: Some(&DEFAULT_ALGORITHM),
+        },
+    ]
+});
 
 #[allow(clippy::too_many_lines)]
 fn crc(value: Value, algorithm: &str) -> Resolved {
@@ -481,18 +503,7 @@ impl Function for Crc {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::BYTES,
-                required: true,
-            },
-            Parameter {
-                keyword: "algorithm",
-                kind: kind::BYTES,
-                required: false,
-            },
-        ]
+        PARAMETERS.as_slice()
     }
 
     fn examples(&self) -> &'static [Example] {
@@ -532,10 +543,9 @@ struct CrcFn {
 impl FunctionExpression for CrcFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let value = self.value.resolve(ctx)?;
-        let algorithm = match &self.algorithm {
-            Some(algorithm) => algorithm.resolve(ctx)?,
-            None => value!("CRC_32_ISO_HDLC"),
-        };
+        let algorithm = self
+            .algorithm
+            .map_resolve_with_default(ctx, || DEFAULT_ALGORITHM.clone())?;
 
         let algorithm = algorithm.try_bytes_utf8_lossy()?.as_ref().to_uppercase();
         crc(value, &algorithm)
@@ -562,6 +572,7 @@ impl FunctionExpression for CrcFn {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::value;
 
     test_function![
         crc => Crc;

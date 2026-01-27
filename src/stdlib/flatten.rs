@@ -1,8 +1,28 @@
 use std::collections::btree_map;
 
 use crate::compiler::prelude::*;
+use std::sync::LazyLock;
 
-static DEFAULT_SEPARATOR: &str = ".";
+static DEFAULT_SEPARATOR: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from(".")));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::OBJECT | kind::ARRAY,
+            required: true,
+            description: "The array or object to flatten.",
+            default: None,
+        },
+        Parameter {
+            keyword: "separator",
+            kind: kind::BYTES,
+            required: false,
+            description: "The separator to join nested keys",
+            default: Some(&DEFAULT_SEPARATOR),
+        },
+    ]
+});
 
 fn flatten(value: Value, separator: &Value) -> Resolved {
     let separator = separator.try_bytes_utf8_lossy()?;
@@ -37,18 +57,7 @@ impl Function for Flatten {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::OBJECT | kind::ARRAY,
-                required: true,
-            },
-            Parameter {
-                keyword: "separator",
-                kind: kind::BYTES,
-                required: false,
-            },
-        ]
+        PARAMETERS.as_slice()
     }
 
     fn examples(&self) -> &'static [Example] {
@@ -77,9 +86,7 @@ impl Function for Flatten {
         _ctx: &mut FunctionCompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
-        let separator = arguments
-            .optional("separator")
-            .unwrap_or_else(|| expr!(DEFAULT_SEPARATOR));
+        let separator = arguments.optional("separator");
         let value = arguments.required("value");
         Ok(FlattenFn { value, separator }.as_expr())
     }
@@ -88,13 +95,15 @@ impl Function for Flatten {
 #[derive(Debug, Clone)]
 struct FlattenFn {
     value: Box<dyn Expression>,
-    separator: Box<dyn Expression>,
+    separator: Option<Box<dyn Expression>>,
 }
 
 impl FunctionExpression for FlattenFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let value = self.value.resolve(ctx)?;
-        let separator = self.separator.resolve(ctx)?;
+        let separator = self
+            .separator
+            .map_resolve_with_default(ctx, || DEFAULT_SEPARATOR.clone())?;
 
         flatten(value, &separator)
     }

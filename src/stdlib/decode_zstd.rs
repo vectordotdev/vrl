@@ -47,6 +47,8 @@ impl Function for DecodeZstd {
             keyword: "value",
             kind: kind::BYTES,
             required: true,
+            description: "The [Zstandard](https://facebook.github.io/zstd) data to decode.",
+            default: None,
         }]
     }
 }

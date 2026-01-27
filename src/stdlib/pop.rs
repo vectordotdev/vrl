@@ -23,6 +23,8 @@ impl Function for Pop {
             keyword: "value",
             kind: kind::ARRAY,
             required: true,
+            description: "The target array.",
+            default: None,
         }]
     }
 

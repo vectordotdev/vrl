@@ -22,6 +22,8 @@ impl Function for ParseFloat {
             keyword: "value",
             kind: kind::BYTES,
             required: true,
+            description: "The string to parse.",
+            default: None,
         }]
     }
 

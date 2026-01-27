@@ -22,6 +22,8 @@ impl Function for IsNullish {
             keyword: "value",
             kind: kind::ANY,
             required: true,
+            description: "The value to check for nullishness, for example, a useless value.",
+            default: None,
         }]
     }
 

@@ -1,6 +1,28 @@
 use crate::compiler::prelude::*;
 use lz4_flex::block::{compress, compress_prepend_size};
 use nom::AsBytes;
+use std::sync::LazyLock;
+
+static DEFAULT_PREPEND_SIZE: LazyLock<Value> = LazyLock::new(|| Value::Boolean(true));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::BYTES,
+            required: true,
+            description: "The string to encode.",
+            default: None,
+        },
+        Parameter {
+            keyword: "prepend_size",
+            kind: kind::BOOLEAN,
+            required: false,
+            description: "Whether to prepend the original size to the compressed data.",
+            default: Some(&DEFAULT_PREPEND_SIZE),
+        },
+    ]
+});
 
 fn encode_lz4(value: Value, prepend_size: bool) -> Resolved {
     let value = value.try_bytes()?;
@@ -43,9 +65,7 @@ impl Function for EncodeLz4 {
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
-        let prepend_size = arguments
-            .optional("prepend_size")
-            .unwrap_or_else(|| expr!(true));
+        let prepend_size = arguments.optional("prepend_size");
 
         Ok(EncodeLz4Fn {
             value,
@@ -55,31 +75,23 @@ impl Function for EncodeLz4 {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::BYTES,
-                required: true,
-            },
-            Parameter {
-                keyword: "prepend_size",
-                kind: kind::BOOLEAN,
-                required: false,
-            },
-        ]
+        PARAMETERS.as_slice()
     }
 }
 
 #[derive(Clone, Debug)]
 struct EncodeLz4Fn {
     value: Box<dyn Expression>,
-    prepend_size: Box<dyn Expression>,
+    prepend_size: Option<Box<dyn Expression>>,
 }
 
 impl FunctionExpression for EncodeLz4Fn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let value = self.value.resolve(ctx)?;
-        let prepend_size = self.prepend_size.resolve(ctx)?.try_boolean()?;
+        let prepend_size = self
+            .prepend_size
+            .map_resolve_with_default(ctx, || DEFAULT_PREPEND_SIZE.clone())?
+            .try_boolean()?;
 
         encode_lz4(value, prepend_size)
     }

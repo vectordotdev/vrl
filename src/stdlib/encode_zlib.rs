@@ -4,21 +4,39 @@ use flate2::read::ZlibEncoder;
 use nom::AsBytes;
 
 use crate::compiler::prelude::*;
+use std::sync::LazyLock;
+
+static DEFAULT_COMPRESSION_LEVEL: LazyLock<Value> = LazyLock::new(|| Value::Integer(6));
 
 const MAX_COMPRESSION_LEVEL: u32 = 10;
 
-fn encode_zlib(value: Value, compression_level: Option<Value>) -> Resolved {
-    let compression_level = match compression_level {
-        None => flate2::Compression::default(),
-        Some(value) => {
-            // TODO consider removal options
-            #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
-            let level = value.try_integer()? as u32;
-            if level > MAX_COMPRESSION_LEVEL {
-                return Err(format!("compression level must be <= {MAX_COMPRESSION_LEVEL}").into());
-            }
-            flate2::Compression::new(level)
-        }
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::BYTES,
+            required: true,
+            description: "The string to encode.",
+            default: None,
+        },
+        Parameter {
+            keyword: "compression_level",
+            kind: kind::INTEGER,
+            required: false,
+            description: "The default compression level.",
+            default: Some(&DEFAULT_COMPRESSION_LEVEL),
+        },
+    ]
+});
+
+fn encode_zlib(value: Value, compression_level: Value) -> Resolved {
+    // TODO consider removal options
+    #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
+    let level = compression_level.try_integer()? as u32;
+    let compression_level = if level > MAX_COMPRESSION_LEVEL {
+        return Err(format!("compression level must be <= {MAX_COMPRESSION_LEVEL}").into());
+    } else {
+        flate2::Compression::new(level)
     };
 
     let value = value.try_bytes()?;
@@ -69,18 +87,7 @@ impl Function for EncodeZlib {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::BYTES,
-                required: true,
-            },
-            Parameter {
-                keyword: "compression_level",
-                kind: kind::INTEGER,
-                required: false,
-            },
-        ]
+        PARAMETERS.as_slice()
     }
 }
 
@@ -96,9 +103,7 @@ impl FunctionExpression for EncodeZlibFn {
 
         let compression_level = self
             .compression_level
-            .as_ref()
-            .map(|expr| expr.resolve(ctx))
-            .transpose()?;
+            .map_resolve_with_default(ctx, || DEFAULT_COMPRESSION_LEVEL.clone())?;
 
         encode_zlib(value, compression_level)
     }

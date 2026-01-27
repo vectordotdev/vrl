@@ -1,6 +1,28 @@
 use crate::compiler::prelude::*;
 
 use super::util::round_to_precision;
+use std::sync::LazyLock;
+
+static DEFAULT_PRECISION: LazyLock<Value> = LazyLock::new(|| Value::Integer(0));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::INTEGER | kind::FLOAT,
+            required: true,
+            description: "The number to round.",
+            default: None,
+        },
+        Parameter {
+            keyword: "precision",
+            kind: kind::INTEGER,
+            required: false,
+            description: "The number of decimal places to round to.",
+            default: Some(&DEFAULT_PRECISION),
+        },
+    ]
+});
 
 fn round(precision: Value, value: Value) -> Resolved {
     let precision = precision.try_integer()?;
@@ -32,18 +54,7 @@ impl Function for Round {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::INTEGER | kind::FLOAT,
-                required: true,
-            },
-            Parameter {
-                keyword: "precision",
-                kind: kind::INTEGER,
-                required: false,
-            },
-        ]
+        PARAMETERS.as_slice()
     }
 
     fn examples(&self) -> &'static [Example] {
@@ -78,7 +89,7 @@ impl Function for Round {
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
-        let precision = arguments.optional("precision").unwrap_or(expr!(0));
+        let precision = arguments.optional("precision");
 
         Ok(RoundFn { value, precision }.as_expr())
     }
@@ -87,12 +98,14 @@ impl Function for Round {
 #[derive(Debug, Clone)]
 struct RoundFn {
     value: Box<dyn Expression>,
-    precision: Box<dyn Expression>,
+    precision: Option<Box<dyn Expression>>,
 }
 
 impl FunctionExpression for RoundFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let precision = self.precision.resolve(ctx)?;
+        let precision = self
+            .precision
+            .map_resolve_with_default(ctx, || DEFAULT_PRECISION.clone())?;
         let value = self.value.resolve(ctx)?;
 
         round(precision, value)

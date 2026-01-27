@@ -77,6 +77,8 @@ impl Function for ParseCbor {
             keyword: "value",
             kind: kind::BYTES,
             required: true,
+            description: "The CBOR payload to parse.",
+            default: None,
         }]
     }
 }

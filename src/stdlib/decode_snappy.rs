@@ -48,6 +48,8 @@ impl Function for DecodeSnappy {
             keyword: "value",
             kind: kind::BYTES,
             required: true,
+            description: "The Snappy data to decode.",
+            default: None,
         }]
     }
 }

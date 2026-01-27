@@ -1,6 +1,29 @@
 use crate::compiler::prelude::*;
 use crate::value;
 use percent_encoding::{AsciiSet, utf8_percent_encode};
+use std::sync::LazyLock;
+
+static DEFAULT_ASCII_SET: LazyLock<Value> =
+    LazyLock::new(|| Value::Bytes(Bytes::from("NON_ALPHANUMERIC")));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::BYTES,
+            required: true,
+            description: "The string to encode.",
+            default: None,
+        },
+        Parameter {
+            keyword: "ascii_set",
+            kind: kind::BYTES,
+            required: false,
+            description: "The ASCII set to use when encoding the data.",
+            default: Some(&DEFAULT_ASCII_SET),
+        },
+    ]
+});
 
 fn encode_percent(value: &Value, ascii_set: &Bytes) -> Resolved {
     let string = value.try_bytes_utf8_lossy()?;
@@ -89,18 +112,7 @@ impl Function for EncodePercent {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::BYTES,
-                required: true,
-            },
-            Parameter {
-                keyword: "ascii_set",
-                kind: kind::BYTES,
-                required: false,
-            },
-        ]
+        PARAMETERS.as_slice()
     }
 
     fn compile(
@@ -112,7 +124,7 @@ impl Function for EncodePercent {
         let value = arguments.required("value");
         let ascii_set = arguments
             .optional_enum("ascii_set", &ascii_sets(), state)?
-            .unwrap_or_else(|| value!("NON_ALPHANUMERIC"))
+            .unwrap_or_else(|| DEFAULT_ASCII_SET.clone())
             .try_bytes()
             .expect("ascii_set not bytes");
 

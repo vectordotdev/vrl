@@ -51,6 +51,8 @@ impl Function for ForEach {
             keyword: "value",
             kind: kind::OBJECT | kind::ARRAY,
             required: true,
+            description: "The array or object to iterate.",
+            default: None,
         }]
     }
 

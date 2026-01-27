@@ -1,11 +1,31 @@
 use super::util::round_to_precision;
 use crate::compiler::prelude::*;
+use std::sync::LazyLock;
 
-fn ceil(value: Value, precision: Option<Value>) -> Resolved {
-    let precision = match precision {
-        Some(expr) => expr.try_integer()?,
-        None => 0,
-    };
+static DEFAULT_PRECISION: LazyLock<Value> = LazyLock::new(|| Value::Integer(0));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::FLOAT | kind::INTEGER,
+            required: true,
+            description: "The number to round up.",
+            default: None,
+        },
+        Parameter {
+            keyword: "precision",
+            kind: kind::INTEGER,
+            required: false,
+            description: "The number of decimal places to round to.",
+            default: Some(&DEFAULT_PRECISION),
+        },
+    ]
+});
+
+fn ceil(value: Value, precision: Value) -> Resolved {
+    let precision = precision.try_integer()?;
+
     match value {
         Value::Float(f) => Ok(Value::from_f64_or_zero(round_to_precision(
             *f,
@@ -34,18 +54,7 @@ impl Function for Ceil {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::FLOAT | kind::INTEGER,
-                required: true,
-            },
-            Parameter {
-                keyword: "precision",
-                kind: kind::INTEGER,
-                required: false,
-            },
-        ]
+        PARAMETERS.as_slice()
     }
 
     fn compile(
@@ -91,9 +100,7 @@ impl FunctionExpression for CeilFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let precision = self
             .precision
-            .as_ref()
-            .map(|expr| expr.resolve(ctx))
-            .transpose()?;
+            .map_resolve_with_default(ctx, || DEFAULT_PRECISION.clone())?;
         let value = self.value.resolve(ctx)?;
 
         ceil(value, precision)

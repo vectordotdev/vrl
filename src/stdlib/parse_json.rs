@@ -8,9 +8,42 @@ use serde_json::{
 use crate::compiler::prelude::*;
 use crate::stdlib::json_utils::bom::StripBomFromUTF8;
 use crate::stdlib::json_utils::json_type_def::json_type_def;
+use std::sync::LazyLock;
 
-fn parse_json(value: Value, lossy: Option<Value>) -> Resolved {
-    let lossy = lossy.map(Value::try_boolean).transpose()?.unwrap_or(true);
+static DEFAULT_LOSSY: LazyLock<Value> = LazyLock::new(|| Value::Boolean(true));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::BYTES,
+            required: true,
+            description: "The string representation of the JSON to parse.",
+            default: None,
+        },
+        Parameter {
+            keyword: "max_depth",
+            kind: kind::INTEGER,
+            required: false,
+            description: "Number of layers to parse for nested JSON-formatted documents.
+The value must be in the range of 1 to 128.",
+            default: None,
+        },
+        Parameter {
+            keyword: "lossy",
+            kind: kind::BOOLEAN,
+            required: false,
+            description:
+                "Whether to parse the JSON in a lossy manner. Replaces invalid UTF-8 characters
+with the Unicode character `�` (U+FFFD) if set to true, otherwise returns an error
+if there are any invalid UTF-8 characters present.",
+            default: Some(&DEFAULT_LOSSY),
+        },
+    ]
+});
+
+fn parse_json(value: Value, lossy: Value) -> Resolved {
+    let lossy = lossy.try_boolean()?;
     Ok(if lossy {
         serde_json::from_str(value.try_bytes_utf8_lossy()?.strip_bom())
     } else {
@@ -21,9 +54,9 @@ fn parse_json(value: Value, lossy: Option<Value>) -> Resolved {
 
 // parse_json_with_depth method recursively traverses the value and returns raw JSON-formatted bytes
 // after reaching provided depth.
-fn parse_json_with_depth(value: Value, max_depth: Value, lossy: Option<Value>) -> Resolved {
+fn parse_json_with_depth(value: Value, max_depth: Value, lossy: Value) -> Resolved {
     let parsed_depth = validate_depth(max_depth)?;
-    let lossy = lossy.map(Value::try_boolean).transpose()?.unwrap_or(true);
+    let lossy = lossy.try_boolean()?;
     let bytes = if lossy {
         value.try_bytes_utf8_lossy()?.into_owned().into()
     } else {
@@ -121,23 +154,7 @@ impl Function for ParseJson {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::BYTES,
-                required: true,
-            },
-            Parameter {
-                keyword: "max_depth",
-                kind: kind::INTEGER,
-                required: false,
-            },
-            Parameter {
-                keyword: "lossy",
-                kind: kind::BOOLEAN,
-                required: false,
-            },
-        ]
+        PARAMETERS.as_slice()
     }
 
     fn examples(&self) -> &'static [Example] {
@@ -220,9 +237,7 @@ impl FunctionExpression for ParseJsonFn {
         let value = self.value.resolve(ctx)?;
         let lossy = self
             .lossy
-            .as_ref()
-            .map(|expr| expr.resolve(ctx))
-            .transpose()?;
+            .map_resolve_with_default(ctx, || DEFAULT_LOSSY.clone())?;
         parse_json(value, lossy)
     }
 
@@ -244,9 +259,7 @@ impl FunctionExpression for ParseJsonMaxDepthFn {
         let max_depth = self.max_depth.resolve(ctx)?;
         let lossy = self
             .lossy
-            .as_ref()
-            .map(|expr| expr.resolve(ctx))
-            .transpose()?;
+            .map_resolve_with_default(ctx, || DEFAULT_LOSSY.clone())?;
         parse_json_with_depth(value, max_depth, lossy)
     }
 

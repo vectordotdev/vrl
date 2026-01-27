@@ -1,5 +1,35 @@
 use crate::compiler::prelude::*;
 use crate::path::{OwnedSegment, OwnedValuePath};
+use std::sync::LazyLock;
+
+static DEFAULT_COMPACT: LazyLock<Value> = LazyLock::new(|| Value::Boolean(false));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::OBJECT | kind::ARRAY,
+            required: true,
+            description: "The object or array to remove data from.",
+            default: None,
+        },
+        Parameter {
+            keyword: "path",
+            kind: kind::ARRAY,
+            required: true,
+            description: "An array of path segments to remove the value from.",
+            default: None,
+        },
+        Parameter {
+            keyword: "compact",
+            kind: kind::BOOLEAN,
+            required: false,
+            description: "After deletion, if `compact` is `true`, any empty objects or
+arrays left are also removed.",
+            default: Some(&DEFAULT_COMPACT),
+        },
+    ]
+});
 
 fn remove(path: Value, compact: Value, mut value: Value) -> Resolved {
     let path = match path {
@@ -62,23 +92,7 @@ impl Function for Remove {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::OBJECT | kind::ARRAY,
-                required: true,
-            },
-            Parameter {
-                keyword: "path",
-                kind: kind::ARRAY,
-                required: true,
-            },
-            Parameter {
-                keyword: "compact",
-                kind: kind::BOOLEAN,
-                required: false,
-            },
-        ]
+        PARAMETERS.as_slice()
     }
 
     fn examples(&self) -> &'static [Example] {
@@ -162,7 +176,7 @@ impl Function for Remove {
     ) -> Compiled {
         let value = arguments.required("value");
         let path = arguments.required("path");
-        let compact = arguments.optional("compact").unwrap_or(expr!(false));
+        let compact = arguments.optional("compact");
 
         Ok(RemoveFn {
             value,
@@ -177,13 +191,15 @@ impl Function for Remove {
 pub(crate) struct RemoveFn {
     value: Box<dyn Expression>,
     path: Box<dyn Expression>,
-    compact: Box<dyn Expression>,
+    compact: Option<Box<dyn Expression>>,
 }
 
 impl FunctionExpression for RemoveFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let path = self.path.resolve(ctx)?;
-        let compact = self.compact.resolve(ctx)?;
+        let compact = self
+            .compact
+            .map_resolve_with_default(ctx, || DEFAULT_COMPACT.clone())?;
         let value = self.value.resolve(ctx)?;
 
         remove(path, compact, value)

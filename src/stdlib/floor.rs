@@ -1,12 +1,32 @@
 use crate::compiler::prelude::*;
 
 use super::util::round_to_precision;
+use std::sync::LazyLock;
 
-fn floor(precision: Option<Value>, value: Value) -> Resolved {
-    let precision = match precision {
-        Some(value) => value.try_integer()?,
-        None => 0,
-    };
+static DEFAULT_PRECISION: LazyLock<Value> = LazyLock::new(|| Value::Integer(0));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::ANY,
+            required: true,
+            description: "The number to round down.",
+            default: None,
+        },
+        Parameter {
+            keyword: "precision",
+            kind: kind::ANY,
+            required: false,
+            description: "The number of decimal places to round to.",
+            default: Some(&DEFAULT_PRECISION),
+        },
+    ]
+});
+
+fn floor(precision: Value, value: Value) -> Resolved {
+    let precision = precision.try_integer()?;
+
     match value {
         Value::Float(f) => Ok(Value::from_f64_or_zero(round_to_precision(
             *f,
@@ -35,18 +55,7 @@ impl Function for Floor {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::ANY,
-                required: true,
-            },
-            Parameter {
-                keyword: "precision",
-                kind: kind::ANY,
-                required: false,
-            },
-        ]
+        PARAMETERS.as_slice()
     }
 
     fn compile(
@@ -87,9 +96,7 @@ impl FunctionExpression for FloorFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let precision = self
             .precision
-            .as_ref()
-            .map(|expr| expr.resolve(ctx))
-            .transpose()?;
+            .map_resolve_with_default(ctx, || DEFAULT_PRECISION.clone())?;
         let value = self.value.resolve(ctx)?;
 
         floor(precision, value)

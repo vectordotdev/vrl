@@ -2,18 +2,46 @@ use super::log_util;
 use crate::compiler::prelude::*;
 use crate::value;
 use std::collections::BTreeMap;
+use std::sync::LazyLock;
+
+static DEFAULT_TIMESTAMP_FORMAT: LazyLock<Value> =
+    LazyLock::new(|| Value::Bytes(Bytes::from("%d/%b/%Y:%T %z")));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::BYTES,
+            required: true,
+            description: "The string to parse.",
+            default: None,
+        },
+        Parameter {
+            keyword: "format",
+            kind: kind::BYTES,
+            required: true,
+            description: "The format to use for parsing the log.",
+            default: None,
+        },
+        Parameter {
+            keyword: "timestamp_format",
+            kind: kind::BYTES,
+            required: false,
+            description: "The [date/time format](https://docs.rs/chrono/latest/chrono/format/strftime/index.html) to use for
+encoding the timestamp. The time is parsed in local time if the timestamp does not specify a timezone.",
+            default: Some(&DEFAULT_TIMESTAMP_FORMAT),
+        },
+    ]
+});
 
 fn parse_apache_log(
     bytes: &Value,
-    timestamp_format: Option<Value>,
+    timestamp_format: &Value,
     format: &Bytes,
     ctx: &Context,
 ) -> Resolved {
     let message = bytes.try_bytes_utf8_lossy()?;
-    let timestamp_format = match timestamp_format {
-        None => "%d/%b/%Y:%T %z".to_owned(),
-        Some(timestamp_format) => timestamp_format.try_bytes_utf8_lossy()?.to_string(),
-    };
+    let timestamp_format = timestamp_format.try_bytes_utf8_lossy()?.to_string();
     let regexes = match format.as_ref() {
         b"common" => &*log_util::REGEX_APACHE_COMMON_LOG,
         b"combined" => &*log_util::REGEX_APACHE_COMBINED_LOG,
@@ -51,23 +79,7 @@ impl Function for ParseApacheLog {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::BYTES,
-                required: true,
-            },
-            Parameter {
-                keyword: "format",
-                kind: kind::BYTES,
-                required: true,
-            },
-            Parameter {
-                keyword: "timestamp_format",
-                kind: kind::BYTES,
-                required: false,
-            },
-        ]
+        PARAMETERS.as_slice()
     }
 
     fn compile(
@@ -180,11 +192,9 @@ impl FunctionExpression for ParseApacheLogFn {
         let bytes = self.value.resolve(ctx)?;
         let timestamp_format = self
             .timestamp_format
-            .as_ref()
-            .map(|expr| expr.resolve(ctx))
-            .transpose()?;
+            .map_resolve_with_default(ctx, || DEFAULT_TIMESTAMP_FORMAT.clone())?;
 
-        parse_apache_log(&bytes, timestamp_format, &self.format, ctx)
+        parse_apache_log(&bytes, &timestamp_format, &self.format, ctx)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

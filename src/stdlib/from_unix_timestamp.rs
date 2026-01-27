@@ -1,6 +1,28 @@
 use crate::compiler::prelude::*;
 use chrono::{TimeZone as _, Utc};
 use std::str::FromStr;
+use std::sync::LazyLock;
+
+static DEFAULT_UNIT: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from("seconds")));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::INTEGER,
+            required: true,
+            description: "The Unix timestamp to convert.",
+            default: None,
+        },
+        Parameter {
+            keyword: "unit",
+            kind: kind::BYTES,
+            required: false,
+            description: "The time unit.",
+            default: Some(&DEFAULT_UNIT),
+        },
+    ]
+});
 
 fn from_unix_timestamp(value: Value, unit: Unit) -> Resolved {
     use Value::Integer;
@@ -43,18 +65,7 @@ impl Function for FromUnixTimestamp {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::INTEGER,
-                required: true,
-            },
-            Parameter {
-                keyword: "unit",
-                kind: kind::BYTES,
-                required: false,
-            },
-        ]
+        PARAMETERS.as_slice()
     }
 
     fn examples(&self) -> &'static [Example] {
@@ -90,13 +101,14 @@ impl Function for FromUnixTimestamp {
     ) -> Compiled {
         let value = arguments.required("value");
 
-        let unit = arguments
-            .optional_enum("unit", Unit::all_value().as_slice(), state)?
-            .map(|s| {
-                Unit::from_str(&s.try_bytes_utf8_lossy().expect("unit not bytes"))
-                    .expect("validated enum")
-            })
-            .unwrap_or_default();
+        let unit = Unit::from_str(
+            &arguments
+                .optional_enum("unit", Unit::all_value().as_slice(), state)?
+                .unwrap_or_else(|| DEFAULT_UNIT.clone())
+                .try_bytes_utf8_lossy()
+                .expect("unit not bytes"),
+        )
+        .expect("validated enum");
 
         Ok(FromUnixTimestampFn { value, unit }.as_expr())
     }

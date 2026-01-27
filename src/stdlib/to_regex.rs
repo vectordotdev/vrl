@@ -26,6 +26,8 @@ impl Function for ToRegex {
             keyword: "value",
             kind: kind::BYTES,
             required: true,
+            description: "The value to convert to a regex.",
+            default: None,
         }]
     }
 

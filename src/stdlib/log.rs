@@ -1,4 +1,35 @@
 use crate::compiler::prelude::*;
+use std::sync::LazyLock;
+
+static DEFAULT_LEVEL: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from("info")));
+static DEFAULT_RATE_LIMIT_SECS: LazyLock<Value> = LazyLock::new(|| Value::Integer(1));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::ANY,
+            required: true,
+            description: "The value to log.",
+            default: None,
+        },
+        Parameter {
+            keyword: "level",
+            kind: kind::BYTES,
+            required: false,
+            description: "The log level.",
+            default: Some(&DEFAULT_LEVEL),
+        },
+        Parameter {
+            keyword: "rate_limit_secs",
+            kind: kind::INTEGER,
+            required: false,
+            description: "Specifies that the log message is output no more than once per the given number of seconds.
+Use a value of `0` to turn rate limiting off.",
+            default: Some(&DEFAULT_RATE_LIMIT_SECS),
+        },
+    ]
+});
 
 #[derive(Clone, Copy, Debug)]
 pub struct Log;
@@ -13,23 +44,7 @@ impl Function for Log {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::ANY,
-                required: true,
-            },
-            Parameter {
-                keyword: "level",
-                kind: kind::BYTES,
-                required: false,
-            },
-            Parameter {
-                keyword: "rate_limit_secs",
-                kind: kind::INTEGER,
-                required: false,
-            },
-        ]
+        PARAMETERS.as_slice()
     }
 
     fn examples(&self) -> &'static [Example] {
@@ -71,7 +86,7 @@ impl Function for Log {
         let value = arguments.required("value");
         let level = arguments
             .optional_enum("level", &levels, state)?
-            .unwrap_or_else(|| "info".into())
+            .unwrap_or_else(|| DEFAULT_LEVEL.clone())
             .try_bytes()
             .expect("log level not bytes");
         let rate_limit_secs = arguments.optional("rate_limit_secs");
@@ -100,8 +115,8 @@ impl Function for Log {
 mod implementation {
     use tracing::{debug, error, info, trace, warn};
 
+    use super::DEFAULT_RATE_LIMIT_SECS;
     use crate::compiler::prelude::*;
-    use crate::value;
 
     pub(super) fn log(
         rate_limit_secs: Value,
@@ -142,10 +157,9 @@ mod implementation {
     impl FunctionExpression for LogFn {
         fn resolve(&self, ctx: &mut Context) -> Resolved {
             let value = self.value.resolve(ctx)?;
-            let rate_limit_secs = match &self.rate_limit_secs {
-                Some(expr) => expr.resolve(ctx)?,
-                None => value!(1),
-            };
+            let rate_limit_secs = self
+                .rate_limit_secs
+                .map_resolve_with_default(ctx, || DEFAULT_RATE_LIMIT_SECS.clone())?;
 
             let span = self.span;
 

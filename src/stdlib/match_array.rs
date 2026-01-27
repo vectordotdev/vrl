@@ -1,12 +1,38 @@
 use crate::compiler::prelude::*;
+use std::sync::LazyLock;
 
-fn match_array(list: Value, pattern: Value, all: Option<Value>) -> Resolved {
+static DEFAULT_ALL: LazyLock<Value> = LazyLock::new(|| Value::Boolean(false));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::ARRAY,
+            required: true,
+            description: "The array.",
+            default: None,
+        },
+        Parameter {
+            keyword: "pattern",
+            kind: kind::REGEX,
+            required: true,
+            description: "The regular expression pattern to match against.",
+            default: None,
+        },
+        Parameter {
+            keyword: "all",
+            kind: kind::BOOLEAN,
+            required: false,
+            description: "Whether to match on all elements of `value`.",
+            default: Some(&DEFAULT_ALL),
+        },
+    ]
+});
+
+fn match_array(list: Value, pattern: Value, all: Value) -> Resolved {
     let pattern = pattern.try_regex()?;
     let list = list.try_array()?;
-    let all = match all {
-        Some(value) => value.try_boolean()?,
-        None => false,
-    };
+    let all = all.try_boolean()?;
     let matcher = |i: &Value| match i.try_bytes_utf8_lossy() {
         Ok(v) => pattern.is_match(&v),
         _ => false,
@@ -75,23 +101,7 @@ impl Function for MatchArray {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::ARRAY,
-                required: true,
-            },
-            Parameter {
-                keyword: "pattern",
-                kind: kind::REGEX,
-                required: true,
-            },
-            Parameter {
-                keyword: "all",
-                kind: kind::BOOLEAN,
-                required: false,
-            },
-        ]
+        PARAMETERS.as_slice()
     }
 }
 
@@ -108,9 +118,7 @@ impl FunctionExpression for MatchArrayFn {
         let pattern = self.pattern.resolve(ctx)?;
         let all = self
             .all
-            .as_ref()
-            .map(|expr| expr.resolve(ctx))
-            .transpose()?;
+            .map_resolve_with_default(ctx, || DEFAULT_ALL.clone())?;
 
         match_array(list, pattern, all)
     }

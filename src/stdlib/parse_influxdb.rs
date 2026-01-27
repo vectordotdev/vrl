@@ -143,6 +143,8 @@ impl Function for ParseInfluxDB {
             keyword: "value",
             kind: kind::BYTES,
             required: true,
+            description: "The string representation of the InfluxDB line protocol to parse.",
+            default: None,
         }]
     }
 

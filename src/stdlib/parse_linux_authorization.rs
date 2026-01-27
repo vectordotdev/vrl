@@ -45,6 +45,8 @@ impl Function for ParseLinuxAuthorization {
             keyword: "value",
             kind: kind::BYTES,
             required: true,
+            description: "The text containing the message to parse.",
+            default: None,
         }]
     }
 

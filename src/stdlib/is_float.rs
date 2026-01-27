@@ -18,6 +18,8 @@ impl Function for IsFloat {
             keyword: "value",
             kind: kind::ANY,
             required: true,
+            description: "The value to check if it is a float.",
+            default: None,
         }]
     }
 

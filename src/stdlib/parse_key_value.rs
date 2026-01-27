@@ -16,7 +16,54 @@ use std::{
     collections::{BTreeMap, btree_map::Entry},
     iter::Peekable,
     str::{Chars, FromStr},
+    sync::LazyLock,
 };
+
+static DEFAULT_KEY_VALUE_DELIMITER: LazyLock<Value> =
+    LazyLock::new(|| Value::Bytes(Bytes::from("=")));
+static DEFAULT_FIELD_DELIMITER: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from(" ")));
+static DEFAULT_WHITESPACE: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from("lenient")));
+static DEFAULT_ACCEPT_STANDALONE_KEY: LazyLock<Value> = LazyLock::new(|| Value::Boolean(true));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::BYTES,
+            required: true,
+            description: "The string to parse.",
+            default: None,
+        },
+        Parameter {
+            keyword: "key_value_delimiter",
+            kind: kind::ANY,
+            required: false,
+            description: "The string that separates the key from the value.",
+            default: Some(&DEFAULT_KEY_VALUE_DELIMITER),
+        },
+        Parameter {
+            keyword: "field_delimiter",
+            kind: kind::ANY,
+            required: false,
+            description: "The string that separates each key-value pair.",
+            default: Some(&DEFAULT_FIELD_DELIMITER),
+        },
+        Parameter {
+            keyword: "whitespace",
+            kind: kind::BYTES,
+            required: false,
+            description: "Defines the acceptance of unnecessary whitespace surrounding the configured `key_value_delimiter`.",
+            default: Some(&DEFAULT_WHITESPACE),
+        },
+        Parameter {
+            keyword: "accept_standalone_key",
+            kind: kind::BOOLEAN,
+            required: false,
+            description: "Whether a standalone key should be accepted, the resulting object associates such keys with the boolean value `true`.",
+            default: Some(&DEFAULT_ACCEPT_STANDALONE_KEY),
+        },
+    ]
+});
 
 pub fn parse_key_value(
     bytes: &Value,
@@ -84,33 +131,7 @@ impl Function for ParseKeyValue {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::BYTES,
-                required: true,
-            },
-            Parameter {
-                keyword: "key_value_delimiter",
-                kind: kind::ANY,
-                required: false,
-            },
-            Parameter {
-                keyword: "field_delimiter",
-                kind: kind::ANY,
-                required: false,
-            },
-            Parameter {
-                keyword: "whitespace",
-                kind: kind::BYTES,
-                required: false,
-            },
-            Parameter {
-                keyword: "accept_standalone_key",
-                kind: kind::BOOLEAN,
-                required: false,
-            },
-        ]
+        PARAMETERS.as_slice()
     }
 
     fn examples(&self) -> &'static [Example] {
@@ -211,25 +232,18 @@ impl Function for ParseKeyValue {
     ) -> Compiled {
         let value = arguments.required("value");
 
-        let key_value_delimiter = arguments
-            .optional("key_value_delimiter")
-            .unwrap_or_else(|| expr!("="));
+        let key_value_delimiter = arguments.optional("key_value_delimiter");
 
-        let field_delimiter = arguments
-            .optional("field_delimiter")
-            .unwrap_or_else(|| expr!(" "));
+        let field_delimiter = arguments.optional("field_delimiter");
 
         let whitespace = arguments
             .optional_enum("whitespace", &Whitespace::all_value(), state)?
-            .map(|s| {
-                Whitespace::from_str(&s.try_bytes_utf8_lossy().expect("whitespace not bytes"))
-                    .expect("validated enum")
-            })
-            .unwrap_or_default();
+            .unwrap_or_else(|| DEFAULT_WHITESPACE.clone())
+            .try_bytes_utf8_lossy()
+            .map(|s| Whitespace::from_str(&s).expect("validated enum"))
+            .expect("whitespace not bytes");
 
-        let standalone_key = arguments
-            .optional("accept_standalone_key")
-            .unwrap_or_else(|| expr!(true));
+        let standalone_key = arguments.optional("accept_standalone_key");
 
         Ok(ParseKeyValueFn {
             value,
@@ -286,18 +300,24 @@ impl FromStr for Whitespace {
 #[derive(Clone, Debug)]
 pub(crate) struct ParseKeyValueFn {
     pub(crate) value: Box<dyn Expression>,
-    pub(crate) key_value_delimiter: Box<dyn Expression>,
-    pub(crate) field_delimiter: Box<dyn Expression>,
+    pub(crate) key_value_delimiter: Option<Box<dyn Expression>>,
+    pub(crate) field_delimiter: Option<Box<dyn Expression>>,
     pub(crate) whitespace: Whitespace,
-    pub(crate) standalone_key: Box<dyn Expression>,
+    pub(crate) standalone_key: Option<Box<dyn Expression>>,
 }
 
 impl FunctionExpression for ParseKeyValueFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let bytes = self.value.resolve(ctx)?;
-        let key_value_delimiter = self.key_value_delimiter.resolve(ctx)?;
-        let field_delimiter = self.field_delimiter.resolve(ctx)?;
-        let standalone_key = self.standalone_key.resolve(ctx)?;
+        let key_value_delimiter = self
+            .key_value_delimiter
+            .map_resolve_with_default(ctx, || DEFAULT_KEY_VALUE_DELIMITER.clone())?;
+        let field_delimiter = self
+            .field_delimiter
+            .map_resolve_with_default(ctx, || DEFAULT_FIELD_DELIMITER.clone())?;
+        let standalone_key = self
+            .standalone_key
+            .map_resolve_with_default(ctx, || DEFAULT_ACCEPT_STANDALONE_KEY.clone())?;
         let whitespace = self.whitespace;
 
         parse_key_value(

@@ -17,6 +17,8 @@ impl Function for StripWhitespace {
             keyword: "value",
             kind: kind::BYTES,
             required: true,
+            description: "The string to trim.",
+            default: None,
         }]
     }
 

@@ -1,5 +1,27 @@
 use crate::compiler::prelude::*;
 use csv::ReaderBuilder;
+use std::sync::LazyLock;
+
+static DEFAULT_DELIMITER: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from(",")));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::BYTES,
+            required: true,
+            description: "The string to parse.",
+            default: None,
+        },
+        Parameter {
+            keyword: "delimiter",
+            kind: kind::BYTES,
+            required: false,
+            description: "The field delimiter to use when parsing. Must be a single-byte utf8 character.",
+            default: Some(&DEFAULT_DELIMITER),
+        },
+    ]
+});
 
 fn parse_csv(csv_string: Value, delimiter: Value) -> Resolved {
     let csv_string = csv_string.try_bytes()?;
@@ -64,36 +86,27 @@ impl Function for ParseCsv {
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
-        let delimiter = arguments.optional("delimiter").unwrap_or(expr!(","));
+        let delimiter = arguments.optional("delimiter");
         Ok(ParseCsvFn { value, delimiter }.as_expr())
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::BYTES,
-                required: true,
-            },
-            Parameter {
-                keyword: "delimiter",
-                kind: kind::BYTES,
-                required: false,
-            },
-        ]
+        PARAMETERS.as_slice()
     }
 }
 
 #[derive(Debug, Clone)]
 struct ParseCsvFn {
     value: Box<dyn Expression>,
-    delimiter: Box<dyn Expression>,
+    delimiter: Option<Box<dyn Expression>>,
 }
 
 impl FunctionExpression for ParseCsvFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let csv_string = self.value.resolve(ctx)?;
-        let delimiter = self.delimiter.resolve(ctx)?;
+        let delimiter = self
+            .delimiter
+            .map_resolve_with_default(ctx, || DEFAULT_DELIMITER.clone())?;
 
         parse_csv(csv_string, delimiter)
     }

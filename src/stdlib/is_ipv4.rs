@@ -29,6 +29,8 @@ impl Function for IsIpv4 {
             keyword: "value",
             kind: kind::BYTES,
             required: true,
+            description: "The IP address to check",
+            default: None,
         }]
     }
 

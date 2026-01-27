@@ -1,6 +1,35 @@
 use std::ops::Range;
 
 use crate::compiler::prelude::*;
+use std::sync::LazyLock;
+
+static DEFAULT_END: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from("String length")));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::BYTES | kind::ARRAY,
+            required: true,
+            description: "The string or array to slice.",
+            default: None,
+        },
+        Parameter {
+            keyword: "start",
+            kind: kind::INTEGER,
+            required: true,
+            description: "The inclusive start position. A zero-based index that can be negative.",
+            default: None,
+        },
+        Parameter {
+            keyword: "end",
+            kind: kind::INTEGER,
+            required: false,
+            description: "The exclusive end position. A zero-based index that can be negative.",
+            default: Some(&DEFAULT_END),
+        },
+    ]
+});
 
 #[allow(clippy::cast_possible_wrap)]
 #[allow(clippy::cast_sign_loss)]
@@ -61,23 +90,7 @@ impl Function for Slice {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::BYTES | kind::ARRAY,
-                required: true,
-            },
-            Parameter {
-                keyword: "start",
-                kind: kind::INTEGER,
-                required: true,
-            },
-            Parameter {
-                keyword: "end",
-                kind: kind::INTEGER,
-                required: false,
-            },
-        ]
+        PARAMETERS.as_slice()
     }
 
     fn examples(&self) -> &'static [Example] {

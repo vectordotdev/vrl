@@ -1,6 +1,31 @@
 use crate::compiler::prelude::*;
 use std::collections::BTreeMap;
+use std::sync::LazyLock;
 use url::Url;
+
+static DEFAULT_DEFAULT_KNOWN_PORTS: LazyLock<Value> = LazyLock::new(|| Value::Boolean(false));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::BYTES,
+            required: true,
+            description: "The text of the URL.",
+            default: None,
+        },
+        Parameter {
+            keyword: "default_known_ports",
+            kind: kind::BOOLEAN,
+            required: false,
+            description: "If true and the port number is not specified in the input URL
+string (or matches the default port for the scheme), it is
+populated from well-known ports for the following schemes:
+`http`, `https`, `ws`, `wss`, and `ftp`.",
+            default: Some(&DEFAULT_DEFAULT_KNOWN_PORTS),
+        },
+    ]
+});
 
 #[derive(Clone, Copy, Debug)]
 pub struct ParseUrl;
@@ -15,18 +40,7 @@ impl Function for ParseUrl {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::BYTES,
-                required: true,
-            },
-            Parameter {
-                keyword: "default_known_ports",
-                kind: kind::BOOLEAN,
-                required: false,
-            },
-        ]
+        PARAMETERS.as_slice()
     }
 
     fn examples(&self) -> &'static [Example] {
@@ -75,9 +89,7 @@ impl Function for ParseUrl {
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
-        let default_known_ports = arguments
-            .optional("default_known_ports")
-            .unwrap_or_else(|| expr!(false));
+        let default_known_ports = arguments.optional("default_known_ports");
 
         Ok(ParseUrlFn {
             value,
@@ -90,7 +102,7 @@ impl Function for ParseUrl {
 #[derive(Debug, Clone)]
 struct ParseUrlFn {
     value: Box<dyn Expression>,
-    default_known_ports: Box<dyn Expression>,
+    default_known_ports: Option<Box<dyn Expression>>,
 }
 
 impl FunctionExpression for ParseUrlFn {
@@ -98,7 +110,10 @@ impl FunctionExpression for ParseUrlFn {
         let value = self.value.resolve(ctx)?;
         let string = value.try_bytes_utf8_lossy()?;
 
-        let default_known_ports = self.default_known_ports.resolve(ctx)?.try_boolean()?;
+        let default_known_ports = self
+            .default_known_ports
+            .map_resolve_with_default(ctx, || DEFAULT_DEFAULT_KNOWN_PORTS.clone())?
+            .try_boolean()?;
 
         Url::parse(&string)
             .map_err(|e| format!("unable to parse url: {e}").into())

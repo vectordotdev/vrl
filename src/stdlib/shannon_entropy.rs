@@ -3,6 +3,34 @@ use std::{collections::HashMap, str::FromStr};
 use unicode_segmentation::UnicodeSegmentation;
 
 use crate::compiler::prelude::*;
+use std::sync::LazyLock;
+
+static DEFAULT_SEGMENTATION: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from("byte")));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::BYTES,
+            required: true,
+            description: "The input string.",
+            default: None,
+        },
+        Parameter {
+            keyword: "segmentation",
+            kind: kind::BYTES,
+            required: false,
+            description:
+                "Defines how to split the string to calculate entropy, based on occurrences of
+segments.
+
+Byte segmentation is the fastest, but it might give undesired results when handling
+UTF-8 strings, while grapheme segmentation is the slowest, but most correct in these
+cases.",
+            default: Some(&DEFAULT_SEGMENTATION),
+        },
+    ]
+});
 
 // Casting to f64 in this function is only done to enable proper division (when calculating probability)
 // Since numbers being casted represent lenghts of input strings and number of character occurences,
@@ -108,18 +136,7 @@ impl Function for ShannonEntropy {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::BYTES,
-                required: true,
-            },
-            Parameter {
-                keyword: "segmentation",
-                kind: kind::BYTES,
-                required: false,
-            },
-        ]
+        PARAMETERS.as_slice()
     }
 
     fn examples(&self) -> &'static [Example] {
@@ -160,11 +177,10 @@ impl Function for ShannonEntropy {
                 &["byte".into(), "codepoint".into(), "grapheme".into()],
                 state,
             )?
-            .map(|s| {
-                Segmentation::from_str(&s.try_bytes_utf8_lossy().expect("segmentation not bytes"))
-                    .expect("validated enum")
-            })
-            .unwrap_or_default();
+            .unwrap_or_else(|| DEFAULT_SEGMENTATION.clone())
+            .try_bytes_utf8_lossy()
+            .map(|s| Segmentation::from_str(&s).expect("validated enum"))
+            .expect("segmentation not bytes");
 
         Ok(ShannonEntropyFn {
             value,

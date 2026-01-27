@@ -29,6 +29,8 @@ impl Function for DecodeMimeQ {
             keyword: "value",
             kind: kind::BYTES,
             required: true,
+            description: "The string with [encoded-words](https://datatracker.ietf.org/doc/html/rfc2047#section-2) to decode.",
+            default: None,
         }]
     }
 

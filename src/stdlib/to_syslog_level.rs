@@ -34,6 +34,8 @@ impl Function for ToSyslogLevel {
             keyword: "value",
             kind: kind::INTEGER,
             required: true,
+            description: "The severity level.",
+            default: None,
         }]
     }
 

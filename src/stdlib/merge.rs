@@ -1,5 +1,34 @@
 use crate::compiler::prelude::*;
 use std::collections::BTreeMap;
+use std::sync::LazyLock;
+
+static DEFAULT_DEEP: LazyLock<Value> = LazyLock::new(|| Value::Boolean(false));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "to",
+            kind: kind::OBJECT,
+            required: true,
+            description: "The object to merge into.",
+            default: None,
+        },
+        Parameter {
+            keyword: "from",
+            kind: kind::OBJECT,
+            required: true,
+            description: "The object to merge from.",
+            default: None,
+        },
+        Parameter {
+            keyword: "deep",
+            kind: kind::BOOLEAN,
+            required: false,
+            description: "A deep merge is performed if `true`, otherwise only top-level fields are merged.",
+            default: Some(&DEFAULT_DEEP),
+        },
+    ]
+});
 
 #[derive(Clone, Copy, Debug)]
 pub struct Merge;
@@ -14,23 +43,7 @@ impl Function for Merge {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "to",
-                kind: kind::OBJECT,
-                required: true,
-            },
-            Parameter {
-                keyword: "from",
-                kind: kind::OBJECT,
-                required: true,
-            },
-            Parameter {
-                keyword: "deep",
-                kind: kind::BOOLEAN,
-                required: false,
-            },
-        ]
+        PARAMETERS.as_slice()
     }
 
     fn examples(&self) -> &'static [Example] {
@@ -93,7 +106,7 @@ impl Function for Merge {
     ) -> Compiled {
         let to = arguments.required("to");
         let from = arguments.required("from");
-        let deep = arguments.optional("deep").unwrap_or_else(|| expr!(false));
+        let deep = arguments.optional("deep");
 
         Ok(MergeFn { to, from, deep }.as_expr())
     }
@@ -103,14 +116,17 @@ impl Function for Merge {
 pub(crate) struct MergeFn {
     to: Box<dyn Expression>,
     from: Box<dyn Expression>,
-    deep: Box<dyn Expression>,
+    deep: Option<Box<dyn Expression>>,
 }
 
 impl FunctionExpression for MergeFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let mut to_value = self.to.resolve(ctx)?.try_object()?;
         let from_value = self.from.resolve(ctx)?.try_object()?;
-        let deep = self.deep.resolve(ctx)?.try_boolean()?;
+        let deep = self
+            .deep
+            .map_resolve_with_default(ctx, || DEFAULT_DEEP.clone())?
+            .try_boolean()?;
 
         merge_maps(&mut to_value, &from_value, deep);
 

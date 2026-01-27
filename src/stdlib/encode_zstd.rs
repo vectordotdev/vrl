@@ -1,12 +1,31 @@
 use crate::compiler::prelude::*;
 use nom::AsBytes;
+use std::sync::LazyLock;
 
-fn encode_zstd(value: Value, compression_level: Option<Value>) -> Resolved {
-    let compression_level = match compression_level {
-        None => 0,
-        #[allow(clippy::cast_possible_truncation)] //TODO evaluate removal options
-        Some(value) => value.try_integer()? as i32,
-    };
+static DEFAULT_COMPRESSION_LEVEL: LazyLock<Value> = LazyLock::new(|| Value::Integer(3));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::BYTES,
+            required: true,
+            description: "The string to encode.",
+            default: None,
+        },
+        Parameter {
+            keyword: "compression_level",
+            kind: kind::INTEGER,
+            required: false,
+            description: "The default compression level.",
+            default: Some(&DEFAULT_COMPRESSION_LEVEL),
+        },
+    ]
+});
+
+fn encode_zstd(value: Value, compression_level: Value) -> Resolved {
+    #[allow(clippy::cast_possible_truncation)] //TODO evaluate removal options
+    let compression_level = compression_level.try_integer()? as i32;
 
     let value = value.try_bytes()?;
     // Zstd encoding will not fail in the case of using `encode_all` function
@@ -53,18 +72,7 @@ impl Function for EncodeZstd {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::BYTES,
-                required: true,
-            },
-            Parameter {
-                keyword: "compression_level",
-                kind: kind::INTEGER,
-                required: false,
-            },
-        ]
+        PARAMETERS.as_slice()
     }
 }
 
@@ -80,9 +88,7 @@ impl FunctionExpression for EncodeZstdFn {
 
         let compression_level = self
             .compression_level
-            .as_ref()
-            .map(|expr| expr.resolve(ctx))
-            .transpose()?;
+            .map_resolve_with_default(ctx, || DEFAULT_COMPRESSION_LEVEL.clone())?;
 
         encode_zstd(value, compression_level)
     }

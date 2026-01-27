@@ -3,6 +3,35 @@ use std::collections::BTreeMap;
 use regex::{CaptureMatches, CaptureNames, Captures, Regex};
 
 use crate::compiler::prelude::*;
+use std::sync::LazyLock;
+
+static DEFAULT_COUNT: LazyLock<Value> = LazyLock::new(|| Value::Integer(-1));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::BYTES,
+            required: true,
+            description: "The original string.",
+            default: None,
+        },
+        Parameter {
+            keyword: "pattern",
+            kind: kind::REGEX,
+            required: true,
+            description: "Replace all matches of this pattern. Must be a regular expression.",
+            default: None,
+        },
+        Parameter {
+            keyword: "count",
+            kind: kind::INTEGER,
+            required: false,
+            description: "The maximum number of replacements to perform. `-1` means replace all matches.",
+            default: Some(&DEFAULT_COUNT),
+        },
+    ]
+});
 
 fn replace_with<T>(
     value: Value,
@@ -130,23 +159,7 @@ impl Function for ReplaceWith {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::BYTES,
-                required: true,
-            },
-            Parameter {
-                keyword: "pattern",
-                kind: kind::REGEX,
-                required: true,
-            },
-            Parameter {
-                keyword: "count",
-                kind: kind::INTEGER,
-                required: false,
-            },
-        ]
+        PARAMETERS.as_slice()
     }
 
     fn examples(&self) -> &'static [Example] {
@@ -209,7 +222,7 @@ impl Function for ReplaceWith {
     ) -> Compiled {
         let value = arguments.required("value");
         let pattern = arguments.required("pattern");
-        let count = arguments.optional("count").unwrap_or(expr!(-1));
+        let count = arguments.optional("count");
 
         let closure = arguments.required_closure()?;
 
@@ -261,7 +274,7 @@ impl Function for ReplaceWith {
 struct ReplaceWithFn {
     value: Box<dyn Expression>,
     pattern: Box<dyn Expression>,
-    count: Box<dyn Expression>,
+    count: Option<Box<dyn Expression>>,
     closure: Closure,
 }
 
@@ -279,7 +292,9 @@ impl FunctionExpression for ReplaceWithFn {
                 ));
             }
         }
-        let count = self.count.resolve(ctx)?;
+        let count = self
+            .count
+            .map_resolve_with_default(ctx, || DEFAULT_COUNT.clone())?;
         let Closure {
             variables, block, ..
         } = &self.closure;

@@ -1,4 +1,26 @@
 use crate::compiler::prelude::*;
+use std::sync::LazyLock;
+
+static DEFAULT_RECURSIVE: LazyLock<Value> = LazyLock::new(|| Value::Boolean(false));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::OBJECT | kind::ARRAY,
+            required: true,
+            description: "The object or array to iterate.",
+            default: None,
+        },
+        Parameter {
+            keyword: "recursive",
+            kind: kind::BOOLEAN,
+            required: false,
+            description: "Whether to recursively iterate the collection.",
+            default: Some(&DEFAULT_RECURSIVE),
+        },
+    ]
+});
 
 fn map_values<T>(
     value: Value,
@@ -61,18 +83,7 @@ impl Function for MapValues {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::OBJECT | kind::ARRAY,
-                required: true,
-            },
-            Parameter {
-                keyword: "recursive",
-                kind: kind::BOOLEAN,
-                required: false,
-            },
-        ]
+        PARAMETERS.as_slice()
     }
 
     fn examples(&self) -> &'static [Example] {
@@ -145,10 +156,10 @@ struct MapValuesFn {
 
 impl FunctionExpression for MapValuesFn {
     fn resolve(&self, ctx: &mut Context) -> ExpressionResult<Value> {
-        let recursive = match &self.recursive {
-            None => false,
-            Some(expr) => expr.resolve(ctx)?.try_boolean()?,
-        };
+        let recursive = self
+            .recursive
+            .map_resolve_with_default(ctx, || DEFAULT_RECURSIVE.clone())?
+            .try_boolean()?;
 
         let value = self.value.resolve(ctx)?;
         let Closure {

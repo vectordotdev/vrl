@@ -23,6 +23,8 @@ impl Function for Values {
             keyword: "value",
             kind: kind::OBJECT,
             required: true,
+            description: "The object to extract values from.",
+            default: None,
         }]
     }
 

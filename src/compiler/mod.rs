@@ -11,7 +11,7 @@ use crate::compiler::unused_expression_checker::check_for_unused_results;
 pub use compiler::{CompilationResult, Compiler};
 pub use context::Context;
 pub use datetime::TimeZone;
-pub use expression::{Expression, FunctionExpression};
+pub use expression::{Expression, ExpressionExt, FunctionExpression};
 pub use expression_error::{ExpressionError, Resolved};
 pub use function::{Function, Parameter};
 pub use program::{Program, ProgramInfo};

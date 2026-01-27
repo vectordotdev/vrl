@@ -1,7 +1,37 @@
 use crate::compiler::prelude::*;
 use crate::stdlib::string_utils::convert_to_string;
+use std::sync::LazyLock;
 
-fn contains(value: &Value, substring: &Value, case_sensitive: bool) -> Resolved {
+static DEFAULT_CASE_SENSITIVE: LazyLock<Value> = LazyLock::new(|| Value::Boolean(true));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::BYTES,
+            required: true,
+            description: "The text to search.",
+            default: None,
+        },
+        Parameter {
+            keyword: "substring",
+            kind: kind::BYTES,
+            required: true,
+            description: "The substring to search for in `value`.",
+            default: None,
+        },
+        Parameter {
+            keyword: "case_sensitive",
+            kind: kind::BOOLEAN,
+            required: false,
+            description: "Whether the match should be case sensitive.",
+            default: Some(&DEFAULT_CASE_SENSITIVE),
+        },
+    ]
+});
+
+fn contains(value: &Value, substring: &Value, case_sensitive: Value) -> Resolved {
+    let case_sensitive = case_sensitive.try_boolean()?;
     let value = convert_to_string(value, !case_sensitive)?;
     let substring = convert_to_string(substring, !case_sensitive)?;
     Ok(value.contains(substring.as_ref()).into())
@@ -20,23 +50,7 @@ impl Function for Contains {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::BYTES,
-                required: true,
-            },
-            Parameter {
-                keyword: "substring",
-                kind: kind::BYTES,
-                required: true,
-            },
-            Parameter {
-                keyword: "case_sensitive",
-                kind: kind::BOOLEAN,
-                required: false,
-            },
-        ]
+        PARAMETERS.as_slice()
     }
 
     fn compile(
@@ -47,7 +61,7 @@ impl Function for Contains {
     ) -> Compiled {
         let value = arguments.required("value");
         let substring = arguments.required("substring");
-        let case_sensitive = arguments.optional("case_sensitive").unwrap_or(expr!(true));
+        let case_sensitive = arguments.optional("case_sensitive");
 
         Ok(ContainsFn {
             value,
@@ -77,14 +91,16 @@ impl Function for Contains {
 struct ContainsFn {
     value: Box<dyn Expression>,
     substring: Box<dyn Expression>,
-    case_sensitive: Box<dyn Expression>,
+    case_sensitive: Option<Box<dyn Expression>>,
 }
 
 impl FunctionExpression for ContainsFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let value = self.value.resolve(ctx)?;
         let substring = self.substring.resolve(ctx)?;
-        let case_sensitive = self.case_sensitive.resolve(ctx)?.try_boolean()?;
+        let case_sensitive = self
+            .case_sensitive
+            .map_resolve_with_default(ctx, || DEFAULT_CASE_SENSITIVE.clone())?;
 
         contains(&value, &substring, case_sensitive)
     }

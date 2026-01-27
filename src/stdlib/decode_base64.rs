@@ -1,15 +1,31 @@
 use crate::compiler::prelude::*;
 use crate::stdlib::util::Base64Charset;
+use std::sync::LazyLock;
 
-fn decode_base64(charset: Option<Value>, value: Value) -> Resolved {
+static DEFAULT_CHARSET: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from("standard")));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::BYTES,
+            required: true,
+            description: "The [Base64](https://en.wikipedia.org/wiki/Base64) data to decode.",
+            default: None,
+        },
+        Parameter {
+            keyword: "charset",
+            kind: kind::BYTES,
+            required: false,
+            description: "The character set to use when decoding the data.",
+            default: Some(&DEFAULT_CHARSET),
+        },
+    ]
+});
+
+fn decode_base64(charset: Value, value: Value) -> Resolved {
     let value = value.try_bytes()?;
-    let charset = charset
-        .map(Value::try_bytes)
-        .transpose()?
-        .as_deref()
-        .map(Base64Charset::from_slice)
-        .transpose()?
-        .unwrap_or_default();
+    let charset = Base64Charset::from_slice(&charset.try_bytes()?)?;
 
     let decoder = match charset {
         Base64Charset::Standard => base64_simd::STANDARD_NO_PAD,
@@ -43,18 +59,7 @@ impl Function for DecodeBase64 {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::BYTES,
-                required: true,
-            },
-            Parameter {
-                keyword: "charset",
-                kind: kind::BYTES,
-                required: false,
-            },
-        ]
+        PARAMETERS.as_slice()
     }
 
     fn compile(
@@ -94,7 +99,9 @@ struct DecodeBase64Fn {
 impl FunctionExpression for DecodeBase64Fn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let value = self.value.resolve(ctx)?;
-        let charset = self.charset.as_ref().map(|c| c.resolve(ctx)).transpose()?;
+        let charset = self
+            .charset
+            .map_resolve_with_default(ctx, || DEFAULT_CHARSET.clone())?;
 
         decode_base64(charset, value)
     }

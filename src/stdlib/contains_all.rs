@@ -37,16 +37,22 @@ impl Function for ContainsAll {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "The text to search.",
+                default: None,
             },
             Parameter {
                 keyword: "substrings",
                 kind: kind::ARRAY,
                 required: true,
+                description: "An array of substrings to search for in `value`.",
+                default: None,
             },
             Parameter {
                 keyword: "case_sensitive",
                 kind: kind::BOOLEAN,
                 required: false,
+                description: "Whether the match should be case sensitive.",
+                default: None,
             },
         ]
     }

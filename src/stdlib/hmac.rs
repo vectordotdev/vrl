@@ -1,8 +1,8 @@
 use crate::compiler::prelude::*;
-use crate::value;
 use hmac::{Hmac as HmacHasher, Mac};
 use sha_2::{Sha224, Sha256, Sha384, Sha512};
 use sha1::Sha1;
+use std::sync::LazyLock;
 
 macro_rules! hmac {
     ($algorithm:ty, $key:expr_2021, $val:expr_2021) => {{
@@ -14,6 +14,34 @@ macro_rules! hmac {
         code_bytes.to_vec()
     }};
 }
+
+static DEFAULT_ALGORITHM: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from("SHA-256")));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::BYTES,
+            required: true,
+            description: "The string to calculate the HMAC for.",
+            default: None,
+        },
+        Parameter {
+            keyword: "key",
+            kind: kind::BYTES,
+            required: true,
+            description: "The string to use as the cryptographic key.",
+            default: None,
+        },
+        Parameter {
+            keyword: "algorithm",
+            kind: kind::BYTES,
+            required: false,
+            description: "The hashing algorithm to use.",
+            default: Some(&DEFAULT_ALGORITHM),
+        },
+    ]
+});
 
 fn hmac(value: Value, key: Value, algorithm: &Value) -> Resolved {
     let value = value.try_bytes()?;
@@ -55,23 +83,7 @@ impl Function for Hmac {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::BYTES,
-                required: true,
-            },
-            Parameter {
-                keyword: "key",
-                kind: kind::BYTES,
-                required: true,
-            },
-            Parameter {
-                keyword: "algorithm",
-                kind: kind::BYTES,
-                required: false,
-            },
-        ]
+        PARAMETERS.as_slice()
     }
 
     fn examples(&self) -> &'static [Example] {
@@ -135,10 +147,9 @@ impl FunctionExpression for HmacFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let value = self.value.resolve(ctx)?;
         let key = self.key.resolve(ctx)?;
-        let algorithm = match &self.algorithm {
-            Some(algorithm) => algorithm.resolve(ctx)?,
-            None => value!("SHA-256"),
-        };
+        let algorithm = self
+            .algorithm
+            .map_resolve_with_default(ctx, || DEFAULT_ALGORITHM.clone())?;
 
         hmac(value, key, &algorithm)
     }
@@ -169,6 +180,7 @@ impl FunctionExpression for HmacFn {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::value;
 
     test_function![
         hmac => Hmac;

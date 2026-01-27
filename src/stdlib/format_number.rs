@@ -1,11 +1,48 @@
 use crate::compiler::prelude::*;
 use rust_decimal::{Decimal, prelude::FromPrimitive};
+use std::sync::LazyLock;
+
+static DEFAULT_DECIMAL_SEPARATOR: LazyLock<Value> =
+    LazyLock::new(|| Value::Bytes(Bytes::from(".")));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::INTEGER | kind::FLOAT,
+            required: true,
+            description: "The number to format as a string.",
+            default: None,
+        },
+        Parameter {
+            keyword: "scale",
+            kind: kind::INTEGER,
+            required: false,
+            description: "The number of decimal places to display.",
+            default: None,
+        },
+        Parameter {
+            keyword: "decimal_separator",
+            kind: kind::BYTES,
+            required: false,
+            description: "The character to use between the whole and decimal parts of the number.",
+            default: Some(&DEFAULT_DECIMAL_SEPARATOR),
+        },
+        Parameter {
+            keyword: "grouping_separator",
+            kind: kind::BYTES,
+            required: false,
+            description: "The character to use between each thousands part of the number.",
+            default: None,
+        },
+    ]
+});
 
 fn format_number(
     value: Value,
     scale: Option<Value>,
     grouping_separator: Option<Value>,
-    decimal_separator: Option<Value>,
+    decimal_separator: Value,
 ) -> Resolved {
     let value: Decimal = match value {
         Value::Integer(v) => v.into(),
@@ -26,10 +63,7 @@ fn format_number(
         Some(expr) => Some(expr.try_bytes()?),
         None => None,
     };
-    let decimal_separator = match decimal_separator {
-        Some(expr) => expr.try_bytes()?,
-        None => ".".into(),
-    };
+    let decimal_separator = decimal_separator.try_bytes()?;
     // Split integral and fractional part of float.
     let mut parts = value
         .to_string()
@@ -95,28 +129,7 @@ impl Function for FormatNumber {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::INTEGER | kind::FLOAT,
-                required: true,
-            },
-            Parameter {
-                keyword: "scale",
-                kind: kind::INTEGER,
-                required: false,
-            },
-            Parameter {
-                keyword: "decimal_separator",
-                kind: kind::BYTES,
-                required: false,
-            },
-            Parameter {
-                keyword: "grouping_separator",
-                kind: kind::BYTES,
-                required: false,
-            },
-        ]
+        PARAMETERS.as_slice()
     }
 
     fn compile(
@@ -178,9 +191,7 @@ impl FunctionExpression for FormatNumberFn {
             .transpose()?;
         let decimal_separator = self
             .decimal_separator
-            .as_ref()
-            .map(|expr| expr.resolve(ctx))
-            .transpose()?;
+            .map_resolve_with_default(ctx, || DEFAULT_DECIMAL_SEPARATOR.clone())?;
 
         format_number(value, scale, grouping_separator, decimal_separator)
     }

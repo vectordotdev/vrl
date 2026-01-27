@@ -8,13 +8,32 @@ use nom::{
     sequence::{delimited, preceded},
 };
 use std::collections::BTreeMap;
+use std::sync::LazyLock;
 
-fn parse_aws_alb_log(bytes: Value, strict_mode: Option<Value>) -> Resolved {
+static DEFAULT_STRICT_MODE: LazyLock<Value> = LazyLock::new(|| Value::Boolean(true));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::BYTES,
+            required: true,
+            description: "Access log of the Application Load Balancer.",
+            default: None,
+        },
+        Parameter {
+            keyword: "strict_mode",
+            kind: kind::BOOLEAN,
+            required: false,
+            description: "When set to `false`, the parser ignores any newly added or trailing fields in AWS ALB logs instead of failing. Defaults to `true` to preserve strict parsing behavior.",
+            default: Some(&DEFAULT_STRICT_MODE),
+        },
+    ]
+});
+
+fn parse_aws_alb_log(bytes: Value, strict_mode: Value) -> Resolved {
     let bytes = bytes.try_bytes()?;
-    let strict_mode = strict_mode
-        .map(Value::try_boolean)
-        .transpose()?
-        .unwrap_or(true);
+    let strict_mode = strict_mode.try_boolean()?;
     parse_log(&String::from_utf8_lossy(&bytes), strict_mode)
 }
 
@@ -62,18 +81,7 @@ impl Function for ParseAwsAlbLog {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::BYTES,
-                required: true,
-            },
-            Parameter {
-                keyword: "strict_mode",
-                kind: kind::BOOLEAN,
-                required: false,
-            },
-        ]
+        PARAMETERS.as_slice()
     }
 }
 
@@ -94,9 +102,7 @@ impl FunctionExpression for ParseAwsAlbLogFn {
         let bytes = self.value.resolve(ctx)?;
         let strict_mode = self
             .strict_mode
-            .as_ref()
-            .map(|expr| expr.resolve(ctx))
-            .transpose()?;
+            .map_resolve_with_default(ctx, || DEFAULT_STRICT_MODE.clone())?;
         parse_aws_alb_log(bytes, strict_mode)
     }
 

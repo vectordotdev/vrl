@@ -31,11 +31,15 @@ impl Function for Match {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "The value to match.",
+                default: None,
             },
             Parameter {
                 keyword: "pattern",
                 kind: kind::REGEX,
                 required: true,
+                description: "The regular expression pattern to match against.",
+                default: None,
             },
         ]
     }

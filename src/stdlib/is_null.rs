@@ -18,6 +18,8 @@ impl Function for IsNull {
             keyword: "value",
             kind: kind::ANY,
             required: true,
+            description: "The value to check if it is `null`.",
+            default: None,
         }]
     }
 

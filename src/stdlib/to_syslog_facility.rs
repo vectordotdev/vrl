@@ -50,6 +50,8 @@ impl Function for ToSyslogFacility {
             keyword: "value",
             kind: kind::INTEGER,
             required: true,
+            description: "The facility code.",
+            default: None,
         }]
     }
 

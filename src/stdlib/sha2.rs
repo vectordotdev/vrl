@@ -1,6 +1,29 @@
 use crate::compiler::prelude::*;
 use crate::value;
 use sha_2::{Digest, Sha224, Sha256, Sha384, Sha512, Sha512_224, Sha512_256};
+use std::sync::LazyLock;
+
+static DEFAULT_VARIANT: LazyLock<Value> =
+    LazyLock::new(|| Value::Bytes(Bytes::from("SHA-512/256")));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::BYTES,
+            required: true,
+            description: "The string to calculate the hash for.",
+            default: None,
+        },
+        Parameter {
+            keyword: "variant",
+            kind: kind::BYTES,
+            required: false,
+            description: "The variant of the algorithm to use.",
+            default: Some(&DEFAULT_VARIANT),
+        },
+    ]
+});
 
 fn sha2(value: Value, variant: &Bytes) -> Resolved {
     let value = value.try_bytes()?;
@@ -40,18 +63,7 @@ impl Function for Sha2 {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::BYTES,
-                required: true,
-            },
-            Parameter {
-                keyword: "variant",
-                kind: kind::BYTES,
-                required: false,
-            },
-        ]
+        PARAMETERS.as_slice()
     }
 
     fn examples(&self) -> &'static [Example] {
@@ -85,7 +97,7 @@ impl Function for Sha2 {
         let value = arguments.required("value");
         let variant = arguments
             .optional_enum("variant", &variants(), state)?
-            .unwrap_or_else(|| value!("SHA-512/256"))
+            .unwrap_or_else(|| DEFAULT_VARIANT.clone())
             .try_bytes()
             .expect("variant not bytes");
 

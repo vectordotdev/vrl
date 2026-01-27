@@ -35,6 +35,8 @@ impl Function for Ipv6ToIpV4 {
             keyword: "value",
             kind: kind::BYTES,
             required: true,
+            description: "The IPv4-mapped IPv6 address to convert.",
+            default: None,
         }]
     }
 

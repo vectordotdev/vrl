@@ -1,25 +1,38 @@
 use std::collections::VecDeque;
 
 use crate::compiler::prelude::*;
+use std::sync::LazyLock;
+
+static DEFAULT_BASE: LazyLock<Value> = LazyLock::new(|| Value::Integer(10));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::INTEGER,
+            required: true,
+            description: "The number to format.",
+            default: None,
+        },
+        Parameter {
+            keyword: "base",
+            kind: kind::INTEGER,
+            required: false,
+            description: "The base to format the number in. Must be between 2 and 36 (inclusive).",
+            default: Some(&DEFAULT_BASE),
+        },
+    ]
+});
 
 #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)] // TODO consider removal options
-fn format_int(value: Value, base: Option<Value>) -> Resolved {
+fn format_int(value: Value, base: Value) -> Resolved {
     let value = value.try_integer()?;
-    let base = match base {
-        Some(base) => {
-            let value = base.try_integer()?;
-            if !(2..=36).contains(&value) {
-                return Err(format!(
-                    "invalid base {value}: must be be between 2 and 36 (inclusive)"
-                )
-                .into());
-            }
+    let base = base.try_integer()?;
+    if !(2..=36).contains(&base) {
+        return Err(format!("invalid base {base}: must be be between 2 and 36 (inclusive)").into());
+    }
 
-            value as u32
-        }
-        None => 10u32,
-    };
-    let converted = format_radix(value, base);
+    let converted = format_radix(value, base as u32);
     Ok(converted.into())
 }
 
@@ -36,18 +49,7 @@ impl Function for FormatInt {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::INTEGER,
-                required: true,
-            },
-            Parameter {
-                keyword: "base",
-                kind: kind::INTEGER,
-                required: false,
-            },
-        ]
+        PARAMETERS.as_slice()
     }
 
     fn compile(
@@ -93,12 +95,9 @@ struct FormatIntFn {
 impl FunctionExpression for FormatIntFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let value = self.value.resolve(ctx)?;
-
         let base = self
             .base
-            .as_ref()
-            .map(|expr| expr.resolve(ctx))
-            .transpose()?;
+            .map_resolve_with_default(ctx, || DEFAULT_BASE.clone())?;
 
         format_int(value, base)
     }
