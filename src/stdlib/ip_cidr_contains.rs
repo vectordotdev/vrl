@@ -4,7 +4,40 @@ use std::net::IpAddr;
 use std::str::FromStr;
 
 fn str_to_cidr(v: &str) -> Result<IpCidr, String> {
-    IpCidr::from_str(v).map_err(|err| format!("unable to parse CIDR: {err}"))
+    IpCidr::from_str(v)
+        .map(normalize_cidr)
+        .map_err(|err| format!("unable to parse CIDR: {err}"))
+}
+
+/// Normalizes an [`IpAddr`] to handle IPv4-mapped IPv6 addresses.
+///
+/// If the address is an IPv6 address that maps an IPv4 address (e.g. `::ffff:192.168.1.1`),
+/// it is converted to its native [`IpAddr::V4`] representation.
+fn normalize_ip(ip: IpAddr) -> IpAddr {
+    match ip {
+        IpAddr::V6(v6) => v6.to_ipv4_mapped().map_or(IpAddr::V6(v6), IpAddr::V4),
+        ip @ IpAddr::V4(_) => ip,
+    }
+}
+
+/// Normalizes an [`IpCidr`] to handle IPv4-mapped IPv6 CIDR blocks.
+///
+/// If the CIDR is an IPv6 block with a prefix length of 96 or greater that maps an
+/// IPv4 range (e.g. `::ffff:192.168.1.0/120`), it is converted to the equivalent
+/// [`IpCidr::V4`] representation (e.g. `192.168.1.0/24`).
+fn normalize_cidr(cidr: IpCidr) -> IpCidr {
+    match cidr {
+        IpCidr::V6(v6) if v6.network_length() >= 96 => {
+            if let Some(v4_addr) = v6.first_address().to_ipv4_mapped() {
+                let v4_prefix = v6.network_length() - 96;
+                if let Ok(v4_cidr) = cidr::Ipv4Cidr::new(v4_addr, v4_prefix) {
+                    return IpCidr::V4(v4_cidr);
+                }
+            }
+            IpCidr::V6(v6)
+        }
+        cidr => cidr,
+    }
 }
 
 #[allow(clippy::result_large_err)]
@@ -26,6 +59,7 @@ fn ip_cidr_contains(value: &Value, cidr: &Value) -> Resolved {
     let bytes = value.try_bytes_utf8_lossy()?;
     let ip_addr =
         IpAddr::from_str(&bytes).map_err(|err| format!("unable to parse IP address: {err}"))?;
+    let ip_addr = normalize_ip(ip_addr);
 
     match cidr {
         Value::Bytes(v) => {
@@ -53,6 +87,7 @@ fn ip_cidr_contains_constant(value: &Value, cidr_vec: &[IpCidr]) -> Resolved {
     let bytes = value.try_bytes_utf8_lossy()?;
     let ip_addr =
         IpAddr::from_str(&bytes).map_err(|err| format!("unable to parse IP address: {err}"))?;
+    let ip_addr = normalize_ip(ip_addr);
 
     Ok(cidr_vec.iter().any(|cidr| cidr.contains(&ip_addr)).into())
 }
@@ -251,6 +286,38 @@ mod tests {
                              cidr: vec!["fc00::/7", "2001:4f8:4:ba::/64"],
             ],
             want: Ok(value!(false)),
+            tdef: TypeDef::boolean().fallible(),
+        }
+
+        ipv4_mapped_ipv6 {
+            args: func_args![value: "::ffff:192.168.1.1",
+                             cidr: "192.168.1.0/24",
+            ],
+            want: Ok(value!(true)),
+            tdef: TypeDef::boolean().fallible(),
+        }
+
+        ipv6_mapped_cidr_contains_ipv4 {
+            args: func_args![value: "192.168.1.1",
+                             cidr: "::ffff:192.168.1.0/120",
+            ],
+            want: Ok(value!(true)),
+            tdef: TypeDef::boolean().fallible(),
+        }
+
+        ipv6_mapped_cidr_contains_ipv6_mapped {
+            args: func_args![value: "::ffff:192.168.1.1",
+                             cidr: "::ffff:192.168.1.0/120",
+            ],
+            want: Ok(value!(true)),
+            tdef: TypeDef::boolean().fallible(),
+        }
+
+        mixed_families_array {
+            args: func_args![value: "::ffff:192.168.1.1",
+                             cidr: vec!["10.0.0.0/8", "2001:db8::/32", "192.168.1.0/24"],
+            ],
+            want: Ok(value!(true)),
             tdef: TypeDef::boolean().fallible(),
         }
     ];
