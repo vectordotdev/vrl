@@ -33,6 +33,13 @@ pub trait Function: Send + Sync + fmt::Debug {
     /// A more elaborate multi-paragraph description on how to use the function.
     fn usage(&self) -> &'static str;
 
+    /// Human-readable internal failure reasons for the function.
+    ///
+    /// This returns an empty slice by default, indicating no internal failure
+    /// reasons are documented for a function.
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &[]
+    }
     /// One or more examples demonstrating usage of the function in VRL source
     /// code.
     fn examples(&self) -> &'static [Example];
