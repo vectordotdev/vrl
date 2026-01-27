@@ -71,6 +71,8 @@ pub trait Function: Send + Sync + fmt::Debug {
 
 // -----------------------------------------------------------------------------
 
+/// This struct should only be constructed using the `example!` macro to guarantee backwards
+/// compatibility.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct Example {
     pub title: &'static str,
@@ -80,14 +82,36 @@ pub struct Example {
     pub line: u32,
 }
 
-/// Macro to create an Example with automatic source location tracking
+/// Macro to create an `Example` with automatic source location tracking
+/// Accepts fields in any order: title, source, result
+/// Optional fields added to `Example` shouldn't be required to be added for the macro to work,
+/// mainting backwards compatibility
 #[macro_export]
 macro_rules! example {
+    // Entry point - delegate to internal parser with empty state
     (
-        title: $title:expr,
-        source: $source:expr,
-        result: $result:expr $(,)?
+        $($field:ident: $value:expr),+ $(,)?
     ) => {
+        $crate::example!(@internal [] [] [] [$($field: $value,)*])
+    };
+
+    // Parse title field
+    (@internal [$($title:tt)*] [$($source:tt)*] [$($result:tt)*] [title: $t:expr, $($rest:tt)*]) => {
+        $crate::example!(@internal [$t] [$($source)*] [$($result)*] [$($rest)*])
+    };
+
+    // Parse source field
+    (@internal [$($title:tt)*] [$($source:tt)*] [$($result:tt)*] [source: $s:expr, $($rest:tt)*]) => {
+        $crate::example!(@internal [$($title)*] [$s] [$($result)*] [$($rest)*])
+    };
+
+    // Parse result field
+    (@internal [$($title:tt)*] [$($source:tt)*] [$($result:tt)*] [result: $r:expr, $($rest:tt)*]) => {
+        $crate::example!(@internal [$($title)*] [$($source)*] [$r] [$($rest)*])
+    };
+
+    // Base case - construct the Example with all fields collected
+    (@internal [$title:expr] [$source:expr] [$result:expr] []) => {
         $crate::compiler::function::Example {
             title: $title,
             source: $source,
@@ -654,5 +678,38 @@ mod tests {
 
             assert_eq!(parameter.kind(), kind, "{title}");
         }
+    }
+
+    #[test]
+    fn test_example_macro_out_of_order() {
+        // Test original order
+        let ex1 = example! {
+            title: "test1",
+            source: "code1",
+            result: Ok("result1"),
+        };
+        assert_eq!(ex1.title, "test1");
+        assert_eq!(ex1.source, "code1");
+        assert_eq!(ex1.result, Ok("result1"));
+
+        // Test reversed order
+        let ex2 = example! {
+            result: Ok("result2"),
+            source: "code2",
+            title: "test2",
+        };
+        assert_eq!(ex2.title, "test2");
+        assert_eq!(ex2.source, "code2");
+        assert_eq!(ex2.result, Ok("result2"));
+
+        // Test mixed order
+        let ex3 = example! {
+            source: "code3",
+            title: "test3",
+            result: Err("error3"),
+        };
+        assert_eq!(ex3.title, "test3");
+        assert_eq!(ex3.source, "code3");
+        assert_eq!(ex3.result, Err("error3"));
     }
 }
