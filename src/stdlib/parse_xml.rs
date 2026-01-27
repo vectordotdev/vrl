@@ -86,6 +86,10 @@ impl Function for ParseXml {
         "Parses the `value` as XML."
     }
 
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["`value` is not a valid XML document."]
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[example! {
             title: "Parse XML",

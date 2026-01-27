@@ -41,6 +41,10 @@ impl Function for ToFloat {
         "Coerces the `value` into a float."
     }
 
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["`value` is not a supported float representation."]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

@@ -79,6 +79,10 @@ impl Function for ParseDuration {
         "Parses the `value` into a human-readable duration format specified by `unit`."
     }
 
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["`value` is not a properly formatted duration."]
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[
             example! {

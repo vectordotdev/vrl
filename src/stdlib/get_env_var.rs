@@ -19,6 +19,13 @@ impl Function for GetEnvVar {
         "Returns the value of the environment variable specified by `name`."
     }
 
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &[
+            "Environment variable `name` does not exist.",
+            "The value of environment variable `name` is not valid Unicode",
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "name",

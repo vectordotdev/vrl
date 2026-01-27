@@ -39,6 +39,10 @@ impl Function for ParseUrl {
         "Parses the `value` in [URL](https://en.wikipedia.org/wiki/URL) format."
     }
 
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["`value` is not a properly formatted URL."]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         PARAMETERS.as_slice()
     }

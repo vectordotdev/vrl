@@ -19,6 +19,10 @@ impl Function for Object {
         "Returns `value` if it is an object, otherwise returns an error. This enables the type checker to guarantee that the returned value is an object and can be used in any function that expects an object."
     }
 
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["`value` is not an object."]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

@@ -21,6 +21,10 @@ impl Function for DecodeBase16 {
         "Decodes the `value` (a [Base16](https://en.wikipedia.org/wiki/Hexadecimal) string) into its original string."
     }
 
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["`value` isn't a valid encoded Base16 string."]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

@@ -56,6 +56,13 @@ impl Function for ObjectFromArray {
         "}
     }
 
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &[
+            "`values` and `keys` must be arrays.",
+            "If `keys` is not present, `values` must contain only arrays.",
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

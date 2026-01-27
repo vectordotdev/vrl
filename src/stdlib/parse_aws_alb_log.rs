@@ -49,6 +49,10 @@ impl Function for ParseAwsAlbLog {
         "Parses `value` in the [Elastic Load Balancer Access format](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-access-logs.html#access-log-entry-examples)."
     }
 
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["`value` is not a properly formatted AWS ALB log."]
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[
             example! {

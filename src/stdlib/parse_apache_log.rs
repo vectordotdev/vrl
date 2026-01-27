@@ -78,6 +78,14 @@ impl Function for ParseApacheLog {
         "}
     }
 
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &[
+            "`value` does not match the specified format.",
+            "`timestamp_format` is not a valid format string.",
+            "The timestamp in `value` fails to parse using the provided `timestamp_format`.",
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         PARAMETERS.as_slice()
     }

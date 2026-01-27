@@ -56,6 +56,10 @@ impl Function for Get {
         "}
     }
 
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["The `path` segment must be a string or an integer."]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

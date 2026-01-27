@@ -19,6 +19,10 @@ impl Function for ParseLogFmt {
         "#}
     }
 
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["`value` is not a properly formatted key-value string"]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

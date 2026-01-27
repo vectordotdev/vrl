@@ -88,6 +88,10 @@ impl Function for EncodeKeyValue {
         "Encodes the `value` into key-value format with customizable delimiters. Default delimiters match the [logfmt](https://brandur.org/logfmt) format."
     }
 
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["`fields_ordering` contains a non-string element."]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         PARAMETERS.as_slice()
     }

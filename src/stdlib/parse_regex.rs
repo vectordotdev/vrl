@@ -58,6 +58,10 @@ impl Function for ParseRegex {
         "}
     }
 
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["`value` fails to parse using the provided `pattern`."]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         PARAMETERS.as_slice()
     }

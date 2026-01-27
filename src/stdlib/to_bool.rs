@@ -28,6 +28,10 @@ impl Function for ToBool {
         "Coerces the `value` into a boolean."
     }
 
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["`value` is not a supported boolean representation."]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

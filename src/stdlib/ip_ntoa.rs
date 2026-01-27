@@ -27,6 +27,10 @@ impl Function for IpNtoa {
         "}
     }
 
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["`value` cannot fit in an unsigned 32-bit integer."]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

@@ -25,6 +25,10 @@ impl Function for ParseAwsVpcFlowLog {
         "Parses `value` in the [VPC Flow Logs format](https://docs.aws.amazon.com/vpc/latest/userguide/flow-logs.html)."
     }
 
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["`value` is not a properly formatted AWS VPC Flow log."]
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[
             example! {

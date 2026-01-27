@@ -130,6 +130,10 @@ impl Function for ParseKeyValue {
         "#}
     }
 
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["`value` is not a properly formatted key-value string."]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         PARAMETERS.as_slice()
     }

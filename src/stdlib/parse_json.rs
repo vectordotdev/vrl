@@ -153,6 +153,10 @@ impl Function for ParseJson {
         "}
     }
 
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["`value` is not a valid JSON-formatted payload."]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         PARAMETERS.as_slice()
     }

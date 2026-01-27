@@ -91,6 +91,10 @@ impl Function for ParseAwsCloudWatchLogSubscriptionMessage {
         "Parses AWS CloudWatch Logs events (configured through AWS Cloudwatch subscriptions) from the `aws_kinesis_firehose` source."
     }
 
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["`value` is not a properly formatted AWS CloudWatch Log subscription message."]
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[example! {
             title: "Parse AWS Cloudwatch Log subscription message",

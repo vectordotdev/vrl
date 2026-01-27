@@ -21,6 +21,10 @@ impl Function for ToRegex {
         "Coerces the `value` into a regex."
     }
 
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["`value` is not a string."]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

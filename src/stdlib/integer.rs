@@ -19,6 +19,10 @@ impl Function for Integer {
         "Returns `value` if it is an integer, otherwise returns an error. This enables the type checker to guarantee that the returned value is an integer and can be used in any function that expects an integer."
     }
 
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["`value` is not an integer."]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

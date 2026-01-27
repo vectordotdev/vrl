@@ -48,6 +48,13 @@ impl Function for IpSubnet {
         "}
     }
 
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &[
+            "`ip` is not a valid IP address.",
+            "`subnet` is not a valid subnet.",
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

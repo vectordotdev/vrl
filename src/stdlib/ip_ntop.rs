@@ -33,6 +33,10 @@ impl Function for IpNtop {
         "}
     }
 
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["`value` must be of length 4 or 16 bytes."]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

@@ -31,6 +31,13 @@ impl Function for Chunks {
         "Chunks `value` into slices of length `chunk_size` bytes."
     }
 
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &[
+            "`chunk_size` must be at least 1 byte.",
+            "`chunk_size` is too large.",
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

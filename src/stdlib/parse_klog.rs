@@ -105,6 +105,10 @@ impl Function for ParseKlog {
         "Parses the `value` using the [klog](https://github.com/kubernetes/klog) format used by Kubernetes components."
     }
 
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["`value` does not match the `klog` format."]
+    }
+
     fn examples(&self) -> &'static [Example] {
         EXAMPLES.as_slice()
     }

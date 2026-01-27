@@ -64,6 +64,13 @@ impl Function for ParseCsv {
         "Parses a single CSV formatted row. Only the first row is parsed in case of multiline input value."
     }
 
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &[
+            "The delimiter must be a single-byte UTF-8 character.",
+            "`value` is not a valid CSV string.",
+        ]
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[
             example! {

@@ -138,6 +138,14 @@ impl Function for ParseInfluxDB {
         "Parses the `value` as an [InfluxDB line protocol](https://docs.influxdata.com/influxdb/cloud/reference/syntax/line-protocol/) string, producing a list of Vector-compatible metrics."
     }
 
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &[
+            "`value` is not a valid InfluxDB line protocol string.",
+            "field set contains a field value of type `string`.",
+            "field set contains a `NaN` field value.",
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

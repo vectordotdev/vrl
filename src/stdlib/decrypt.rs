@@ -157,6 +157,14 @@ impl Function for Decrypt {
         "}
     }
 
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &[
+            "`algorithm` is not a supported algorithm.",
+            "`key` length does not match the key size required for the algorithm specified.",
+            "`iv` length does not match the `iv` size required for the algorithm specified.",
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

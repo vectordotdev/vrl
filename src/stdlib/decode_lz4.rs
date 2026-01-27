@@ -49,6 +49,15 @@ impl Function for DecodeLz4 {
         `prepended_size` is useful for some implementations of lz4 that require the original size to be known before decoding."
     }
 
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &[
+            "`value` unable to decode value with lz4 frame decoder.",
+            "`value` unable to decode value with lz4 block decoder.",
+            "`value` unable to decode because the output is too large for the buffer.",
+            "`value` unable to decode because the prepended size is not a valid integer.",
+        ]
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[
             example! {

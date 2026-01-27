@@ -17,6 +17,10 @@ impl Function for ParseFloat {
         "Parses the string `value` representing a floating point number in base 10 to a float."
     }
 
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["`value` is not a string."]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

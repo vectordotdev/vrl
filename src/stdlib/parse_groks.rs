@@ -119,6 +119,15 @@ impl Function for ParseGroks {
         "Parses the `value` using multiple [`grok`](https://github.com/daschl/grok/tree/master/patterns) patterns. All patterns [listed here](https://github.com/daschl/grok/tree/master/patterns) are supported."
     }
 
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &[
+            "`value` fails to parse using the provided `pattern`.",
+            "`patterns` is not an array.",
+            "`aliases` is not an object.",
+            "`alias_sources` is not a string or doesn't point to a valid file.",
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         PARAMETERS.as_slice()
     }

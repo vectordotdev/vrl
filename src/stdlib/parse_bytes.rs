@@ -118,6 +118,10 @@ impl Function for ParseBytes {
         "Parses the `value` into a human-readable bytes format specified by `unit` and `base`."
     }
 
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["`value` is not a properly formatted bytes."]
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[
             example! {

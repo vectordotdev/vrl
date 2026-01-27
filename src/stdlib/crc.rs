@@ -502,6 +502,13 @@ impl Function for Crc {
         }
     }
 
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &[
+            "`value` is not a string.",
+            "`algorithm` is not a supported algorithm.",
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         PARAMETERS.as_slice()
     }

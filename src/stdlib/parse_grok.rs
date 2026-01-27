@@ -94,6 +94,10 @@ impl Function for ParseGrok {
         "Parses the `value` using the [`grok`](https://github.com/daschl/grok/tree/master/patterns) format. All patterns [listed here](https://github.com/daschl/grok/tree/master/patterns) are supported."
     }
 
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["`value` fails to parse using the provided `pattern`."]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

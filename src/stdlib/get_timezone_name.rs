@@ -38,6 +38,10 @@ impl Function for GetTimezoneName {
         "#}
     }
 
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["Retrieval of local timezone information failed."]
+    }
+
     #[cfg(not(feature = "__mock_return_values_for_tests"))]
     fn examples(&self) -> &'static [Example] {
         &[example! {

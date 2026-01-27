@@ -52,6 +52,14 @@ impl Function for EncryptIp {
         "}
     }
 
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &[
+            "`ip` is not a valid IP address.",
+            "`mode` is not a supported mode (must be `aes128` or `pfx`).",
+            "`key` length does not match the requirements for the specified mode (16 bytes for `aes128`, 32 bytes for `pfx`).",
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

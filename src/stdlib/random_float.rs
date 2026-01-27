@@ -40,6 +40,10 @@ impl Function for RandomFloat {
         "Returns a random float between [min, max)."
     }
 
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["`max` is not greater than `min`."]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

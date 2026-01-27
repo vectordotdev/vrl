@@ -51,6 +51,14 @@ impl Function for ParseProto {
         "}
     }
 
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &[
+            "`value` is not a valid proto payload.",
+            "`desc_file` file does not exist.",
+            "`message_type` message type does not exist in the descriptor file.",
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

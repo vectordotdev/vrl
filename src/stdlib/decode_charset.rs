@@ -45,6 +45,12 @@ impl Function for DecodeCharset {
         "}
     }
 
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &[
+            "`from_charset` isn't a valid [character set](https://encoding.spec.whatwg.org/#names-and-labels).",
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

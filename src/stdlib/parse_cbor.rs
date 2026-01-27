@@ -27,6 +27,10 @@ impl Function for ParseCbor {
         "}
     }
 
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["`value` is not a valid CBOR-formatted payload."]
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[
             example! {

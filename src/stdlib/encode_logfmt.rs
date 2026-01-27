@@ -34,6 +34,10 @@ impl Function for EncodeLogfmt {
         "Encodes the `value` to [logfmt](https://brandur.org/logfmt)."
     }
 
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["`fields_ordering` contains a non-string element."]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         PARAMETERS.as_slice()
     }

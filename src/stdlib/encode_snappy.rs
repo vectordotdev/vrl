@@ -24,6 +24,10 @@ impl Function for EncodeSnappy {
         "Encodes the `value` to Snappy."
     }
 
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["`value` cannot be encoded into a Snappy string."]
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[example! {
             title: "Encode to Snappy",

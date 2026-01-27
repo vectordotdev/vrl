@@ -58,6 +58,10 @@ impl Function for DecodeBase64 {
         "Decodes the `value` (a [Base64](https://en.wikipedia.org/wiki/Base64) string) into its original string."
     }
 
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["`value` isn't a valid encoded Base64 string."]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         PARAMETERS.as_slice()
     }

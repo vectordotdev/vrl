@@ -30,6 +30,13 @@ impl Function for ToInt {
         "Coerces the `value` into an integer."
     }
 
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &[
+            "`value` is a string but the text is not an integer.",
+            "`value` is not a string, int, or timestamp.",
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

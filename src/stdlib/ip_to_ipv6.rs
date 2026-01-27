@@ -24,6 +24,10 @@ impl Function for IpToIpv6 {
         "Converts the `ip` to an IPv6 address."
     }
 
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["`ip` is not a valid IP address."]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

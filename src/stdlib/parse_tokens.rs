@@ -32,6 +32,10 @@ impl Function for ParseTokens {
         "#}
     }
 
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["`value` is not a properly formatted tokenized string."]
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[example! {
             title: "Parse tokens",

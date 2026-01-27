@@ -52,6 +52,14 @@ impl Function for ParseCommonLog {
         "Parses the `value` using the [Common Log Format](https://httpd.apache.org/docs/current/logs.html#common) (CLF)."
     }
 
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &[
+            "`value` does not match the Common Log Format.",
+            "`timestamp_format` is not a valid format string.",
+            "The timestamp in `value` fails to parse using the provided `timestamp_format`.",
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         PARAMETERS.as_slice()
     }

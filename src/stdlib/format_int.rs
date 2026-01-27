@@ -48,6 +48,10 @@ impl Function for FormatInt {
         "Formats the integer `value` into a string representation using the given base/radix."
     }
 
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["The base is not between 2 and 36."]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         PARAMETERS.as_slice()
     }

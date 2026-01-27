@@ -19,6 +19,10 @@ impl Function for Timestamp {
         "Returns `value` if it is a timestamp, otherwise returns an error. This enables the type checker to guarantee that the returned value is a timestamp and can be used in any function that expects a timestamp."
     }
 
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["`value` is not a timestamp."]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

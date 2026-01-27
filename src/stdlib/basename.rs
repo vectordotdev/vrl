@@ -22,6 +22,10 @@ impl Function for BaseName {
         "Returns the filename component of the given `path`. This is similar to the Unix `basename` command. If the path ends in a directory separator, the function returns the name of the directory."
     }
 
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["`value` is not a valid string."]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

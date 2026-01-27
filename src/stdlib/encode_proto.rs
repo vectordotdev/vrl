@@ -50,6 +50,13 @@ impl Function for EncodeProto {
         "}
     }
 
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &[
+            "`desc_file` file does not exist.",
+            "`message_type` message type does not exist in the descriptor file.",
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

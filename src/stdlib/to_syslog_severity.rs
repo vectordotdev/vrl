@@ -29,6 +29,10 @@ impl Function for ToSyslogSeverity {
         "Converts the `value`, a Syslog [log level keyword](https://en.wikipedia.org/wiki/Syslog#Severity_level), into a Syslog integer severity level (`0` to `7`)."
     }
 
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["`value` is not a valid Syslog level keyword."]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

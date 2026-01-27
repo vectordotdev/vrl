@@ -17,6 +17,14 @@ impl Function for Mod {
         "Calculates the remainder of `value` divided by `modulus`."
     }
 
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &[
+            "`value` is not an integer or float.",
+            "`modulus` is not an integer or float.",
+            "`modulus` is equal to 0.",
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

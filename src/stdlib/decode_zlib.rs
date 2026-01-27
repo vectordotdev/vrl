@@ -25,6 +25,10 @@ impl Function for DecodeZlib {
         "Decodes the `value` (a [Zlib](https://www.zlib.net) string) into its original string."
     }
 
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["`value` isn't a valid encoded Zlib string."]
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[example! {
             title: "Decode Zlib data",

@@ -69,6 +69,13 @@ impl Function for IpCidrContains {
         "Determines whether the `ip` is contained in the block referenced by the `cidr`."
     }
 
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &[
+            "`cidr` is not a valid CIDR.",
+            "`ip` is not a valid IP address.",
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

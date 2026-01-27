@@ -81,6 +81,10 @@ impl Function for ParseGlog {
         "Parses the `value` using the [glog (Google Logging Library)](https://github.com/google/glog) format."
     }
 
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["`value` does not match the `glog` format."]
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[example! {
             title: "Parse using glog",

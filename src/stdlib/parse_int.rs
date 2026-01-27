@@ -45,6 +45,13 @@ impl Function for ParseInt {
         "Parses the string `value` representing a number in an optional base/radix to an integer."
     }
 
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &[
+            "The base is not between 2 and 36.",
+            "The number cannot be parsed in the base.",
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

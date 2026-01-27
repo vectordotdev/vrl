@@ -30,6 +30,13 @@ impl Function for Ipv6ToIpV4 {
         "}
     }
 
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &[
+            "`ip` is not a valid IP address.",
+            "`ip` is an IPv6 address that is not compatible with IPv4.",
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

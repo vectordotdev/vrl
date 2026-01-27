@@ -17,6 +17,10 @@ impl Function for ParseRubyHash {
         "Parses the `value` as ruby hash."
     }
 
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["`value` is not a valid ruby hash formatted payload."]
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[example! {
             title: "Parse ruby hash",

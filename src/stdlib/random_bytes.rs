@@ -26,6 +26,13 @@ impl Function for RandomBytes {
         "A cryptographically secure random number generator. Returns a string value containing the number of random bytes requested."
     }
 
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &[
+            "`length` is negative.",
+            "`length` is larger than the maximum value (64k).",
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "length",

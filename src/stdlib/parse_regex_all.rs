@@ -59,6 +59,10 @@ impl Function for ParseRegexAll {
         "}
     }
 
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["`value` is not a string.", "`pattern` is not a regex."]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         PARAMETERS.as_slice()
     }

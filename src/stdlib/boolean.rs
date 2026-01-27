@@ -19,6 +19,10 @@ impl Function for Boolean {
         "The value to check if it is a Boolean."
     }
 
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["`value` is not a Boolean."]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",
