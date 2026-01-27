@@ -45,12 +45,15 @@ pub fn parse(input: impl AsRef<str>) -> Result<Program, Error> {
 
     parser::ProgramParser::new()
         .parse(input.as_ref(), lexer)
-        .map_err(|source| Error::ParseError {
-            span: Span::new(0, input.as_ref().len()),
-            source: source
-                .map_token(|t| t.map(ToOwned::to_owned))
-                .map_error(|err| err.to_string()),
-            dropped_tokens: vec![],
+        .map_err(|source| match source {
+            lalrpop_util::ParseError::User { error } => error,
+            source => Error::ParseError {
+                span: Span::new(0, input.as_ref().len()),
+                source: source
+                    .map_token(|t| t.map(ToOwned::to_owned))
+                    .map_error(|err| err.to_string()),
+                dropped_tokens: vec![],
+            },
         })
 }
 
