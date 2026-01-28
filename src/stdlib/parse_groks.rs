@@ -211,7 +211,21 @@ impl Function for ParseGroks {
 
         let alias_sources = arguments
             .optional_array("alias_sources")?
-            .unwrap_or_default()
+            .unwrap_or_default();
+
+        // With disable_system_functions feature enabled, alias_sources is not allowed
+        // to be used because it uses file operations.
+        #[cfg(feature = "disable_system_functions")]
+        if !alias_sources.is_empty() {
+            return Err(function::Error::InvalidArgument {
+                keyword: "alias_sources",
+                value: "alias_sources".into(),
+                error: "alias_sources is disabled when disable_system_functions feature is enabled",
+            }
+            .into());
+        }
+
+        let alias_sources = alias_sources
             .into_iter()
             .map(|expr| {
                 let path = expr
@@ -454,4 +468,36 @@ mod test {
             tdef: TypeDef::object(Collection::any()).fallible(),
         }
     ];
+
+    // Test that alias_sources errors when disable_system_functions IS enabled
+    #[cfg(feature = "disable_system_functions")]
+    #[test]
+    fn alias_sources_errors_with_disable_flag() {
+        use crate::compiler::{CompileConfig, TypeState, compile_with_state};
+        use crate::diagnostic::Formatter;
+
+        let src = r#"
+            parse_groks!(
+                "username=foo",
+                patterns: ["%{PATTERN_A}"],
+                alias_sources: ["tests/data/grok/aliases.json"]
+            )
+        "#;
+
+        let fns = crate::stdlib::all();
+        let state = TypeState::default();
+        let config = CompileConfig::default();
+        let result = compile_with_state(src, &fns, &state, config);
+        assert!(
+            result.is_err(),
+            "Expected compilation to fail when alias_sources is used with disable_system_functions"
+        );
+
+        let diagnostics = result.err().unwrap();
+        let err = Formatter::new(src, diagnostics).to_string();
+        assert!(
+            err.contains("alias_sources is disabled"),
+            "Expected error about alias_sources being disabled, got: {err}"
+        );
+    }
 }
