@@ -25,7 +25,10 @@ fn parse_duration(bytes: &Value, unit: &Value) -> Resolved {
         let unit = UNITS
             .get(&captures["unit"])
             .ok_or(format!("unknown duration unit: '{}'", &captures["unit"]))?;
-        let number = value_decimal * unit / conversion_factor;
+        let number = value_decimal
+            .checked_mul(*unit)
+            .and_then(|v| v.checked_div(*conversion_factor))
+            .ok_or(format!("unable to convert duration: '{value}'"))?;
         let number = number
             .to_f64()
             .ok_or(format!("unable to format duration: '{number}'"))?;
@@ -304,6 +307,12 @@ mod tests {
             args: func_args![value: "1",
                              unit: "ns"],
             want: Err("unable to parse duration: '1'"),
+            tdef: TypeDef::float().fallible(),
+        }
+        error_overflow {
+            args: func_args![value: "1234567890123456789012345d",
+                             unit: "s"],
+            want: Err("unable to convert duration: '1234567890123456789012345d'"),
             tdef: TypeDef::float().fallible(),
         }
 
