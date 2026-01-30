@@ -51,6 +51,7 @@ const RESERVED_TERMS: &[&str] = &[
 ];
 
 pub(crate) fn run(
+    quiet: bool,
     mut objects: Vec<TargetValue>,
     timezone: TimeZone,
     vrl_runtime: VrlRuntime,
@@ -68,7 +69,7 @@ pub(crate) fn run(
     rl.set_helper(Some(Repl::new(stdlib_functions.clone())));
 
     #[allow(clippy::print_stdout)]
-    {
+    if !quiet {
         println!("{BANNER_TEXT}");
     }
 
