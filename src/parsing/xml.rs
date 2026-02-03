@@ -31,6 +31,7 @@ pub static XML_RE: LazyLock<Regex> = LazyLock::new(|| {
         .expect("trim regex failed")
 });
 
+pub static DEFAULT_TRIM: LazyLock<Value> = LazyLock::new(|| Value::Boolean(true));
 pub static DEFAULT_INCLUDE_ATTR: LazyLock<Value> = LazyLock::new(|| Value::Boolean(true));
 pub static DEFAULT_ATTR_PREFIX: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from("@")));
 pub static DEFAULT_TEXT_KEY: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from("text")));
@@ -97,10 +98,10 @@ pub struct ParseOptions {
 /// - Returns an error if the input is not valid XML or if any step in processing fails.
 pub fn parse_xml(value: Value, options: ParseOptions) -> Resolved {
     let string = value.try_bytes_utf8_lossy()?;
-    let trim = match options.trim {
-        Some(value) => value.try_boolean()?,
-        None => true,
-    };
+    let trim = options
+        .trim
+        .unwrap_or_else(|| DEFAULT_TRIM.clone())
+        .try_boolean()?;
     let include_attr = options
         .include_attr
         .unwrap_or_else(|| DEFAULT_INCLUDE_ATTR.clone())

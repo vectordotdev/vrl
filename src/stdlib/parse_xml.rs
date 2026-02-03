@@ -1,7 +1,8 @@
 use crate::compiler::prelude::*;
 use crate::parsing::xml::{
     DEFAULT_ALWAYS_USE_TEXT_KEY, DEFAULT_ATTR_PREFIX, DEFAULT_INCLUDE_ATTR, DEFAULT_PARSE_BOOL,
-    DEFAULT_PARSE_NULL, DEFAULT_PARSE_NUMBER, DEFAULT_TEXT_KEY, ParseOptions, parse_xml,
+    DEFAULT_PARSE_NULL, DEFAULT_PARSE_NUMBER, DEFAULT_TEXT_KEY, DEFAULT_TRIM, ParseOptions,
+    parse_xml,
 };
 use std::sync::LazyLock;
 
@@ -19,7 +20,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             kind: kind::BOOLEAN,
             required: false,
             description: "Remove excess whitespace between XML elements.",
-            default: None,
+            default: Some(&DEFAULT_TRIM),
         },
         Parameter {
             keyword: "include_attr",
