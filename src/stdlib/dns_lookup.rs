@@ -63,20 +63,9 @@ mod non_wasm {
     #[derive(Debug, Clone)]
     pub(super) struct DnsLookupFn {
         pub(super) value: Box<dyn Expression>,
-        pub(super) qtype: Box<dyn Expression>,
-        pub(super) class: Box<dyn Expression>,
-        pub(super) options: Box<dyn Expression>,
-    }
-
-    impl Default for DnsLookupFn {
-        fn default() -> Self {
-            Self {
-                value: expr!(""),
-                qtype: expr!("A"),
-                class: expr!("IN"),
-                options: expr!({}),
-            }
-        }
+        pub(super) qtype: Option<Box<dyn Expression>>,
+        pub(super) class: Option<Box<dyn Expression>>,
+        pub(super) options: Option<Box<dyn Expression>>,
     }
 
     fn build_options(options: &ObjectMap) -> Result<ResolvConf, ExpressionError> {
@@ -250,9 +239,15 @@ mod non_wasm {
     impl FunctionExpression for DnsLookupFn {
         fn resolve(&self, ctx: &mut Context) -> Resolved {
             let value = self.value.resolve(ctx)?;
-            let qtype = self.qtype.resolve(ctx)?;
-            let class = self.class.resolve(ctx)?;
-            let options = self.options.resolve(ctx)?;
+            let qtype = self
+                .qtype
+                .map_resolve_with_default(ctx, || super::DEFAULT_QTYPE.clone())?;
+            let class = self
+                .class
+                .map_resolve_with_default(ctx, || super::DEFAULT_CLASS.clone())?;
+            let options = self
+                .options
+                .map_resolve_with_default(ctx, || super::DEFAULT_OPTIONS.clone())?;
             dns_lookup(&value, &qtype, &class, options)
         }
 
@@ -330,6 +325,46 @@ mod non_wasm {
 #[cfg(not(target_arch = "wasm32"))]
 use non_wasm::*;
 
+use std::sync::LazyLock;
+
+static DEFAULT_QTYPE: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from("A")));
+static DEFAULT_CLASS: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from("IN")));
+static DEFAULT_OPTIONS: LazyLock<Value> =
+    LazyLock::new(|| Value::Object(std::collections::BTreeMap::new()));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::BYTES,
+            required: true,
+            description: "The domain name to query.",
+            default: None,
+        },
+        Parameter {
+            keyword: "qtype",
+            kind: kind::BYTES,
+            required: false,
+            description: "The DNS record type to query (e.g., A, AAAA, MX, TXT). Defaults to A.",
+            default: Some(&DEFAULT_QTYPE),
+        },
+        Parameter {
+            keyword: "class",
+            kind: kind::BYTES,
+            required: false,
+            description: "The DNS query class. Defaults to IN (Internet).",
+            default: Some(&DEFAULT_CLASS),
+        },
+        Parameter {
+            keyword: "options",
+            kind: kind::OBJECT,
+            required: false,
+            description: "DNS resolver options. Supported fields: servers (array of nameserver addresses), timeout (seconds), attempts (number of retry attempts), ndots, aa_only, tcp, recurse, rotate.",
+            default: Some(&DEFAULT_OPTIONS),
+        },
+    ]
+});
+
 #[derive(Clone, Copy, Debug)]
 pub struct DnsLookup;
 
@@ -343,36 +378,7 @@ impl Function for DnsLookup {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::BYTES,
-                required: true,
-                description: "The domain name to query.",
-                default: None,
-            },
-            Parameter {
-                keyword: "qtype",
-                kind: kind::BYTES,
-                required: false,
-                description: "The DNS record type to query (e.g., A, AAAA, MX, TXT). Defaults to A.",
-                default: None,
-            },
-            Parameter {
-                keyword: "class",
-                kind: kind::BYTES,
-                required: false,
-                description: "The DNS query class. Defaults to IN (Internet).",
-                default: None,
-            },
-            Parameter {
-                keyword: "options",
-                kind: kind::OBJECT,
-                required: false,
-                description: "DNS resolver options. Supported fields: servers (array of nameserver addresses), timeout (seconds), attempts (number of retry attempts), ndots, aa_only, tcp, recurse, rotate.",
-                default: None,
-            },
-        ]
+        PARAMETERS.as_slice()
     }
 
     #[cfg(not(feature = "test"))]
@@ -673,9 +679,9 @@ impl Function for DnsLookup {
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
-        let qtype = arguments.optional("qtype").unwrap_or_else(|| expr!("A"));
-        let class = arguments.optional("class").unwrap_or_else(|| expr!("IN"));
-        let options = arguments.optional("options").unwrap_or_else(|| expr!({}));
+        let qtype = arguments.optional("qtype");
+        let class = arguments.optional("class");
+        let options = arguments.optional("options");
 
         Ok(DnsLookupFn {
             value,
@@ -704,6 +710,17 @@ mod tests {
 
     use super::*;
     use crate::value;
+
+    impl Default for DnsLookupFn {
+        fn default() -> Self {
+            Self {
+                value: expr!(""),
+                qtype: None,
+                class: None,
+                options: None,
+            }
+        }
+    }
 
     #[test]
     fn test_invalid_name() {
@@ -753,7 +770,7 @@ mod tests {
     fn test_custom_type() {
         let result = execute_dns_lookup(&DnsLookupFn {
             value: expr!("google.com"),
-            qtype: expr!("mx"),
+            qtype: Some(expr!("mx")),
             ..Default::default()
         });
 
@@ -808,7 +825,7 @@ mod tests {
     fn unknown_options_ignored() {
         let result = execute_dns_lookup(&DnsLookupFn {
             value: expr!("dns.google"),
-            options: expr!({"test": "test"}),
+            options: Some(expr!({"test": "test"})),
             ..Default::default()
         });
 
@@ -819,7 +836,7 @@ mod tests {
     fn invalid_option_type() {
         let result = execute_dns_lookup_with_expected_error(&DnsLookupFn {
             value: expr!("dns.google"),
-            options: expr!({"tcp": "yes"}),
+            options: Some(expr!({"tcp": "yes"})),
             ..Default::default()
         });
 
@@ -831,7 +848,7 @@ mod tests {
         let attempts_val = -5;
         let result = execute_dns_lookup_with_expected_error(&DnsLookupFn {
             value: expr!("dns.google"),
-            options: expr!({"attempts": attempts_val}),
+            options: Some(expr!({"attempts": attempts_val})),
             ..Default::default()
         });
 
