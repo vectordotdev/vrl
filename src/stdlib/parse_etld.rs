@@ -6,7 +6,6 @@ use std::sync::LazyLock;
 use std::{collections::BTreeMap, path::Path};
 
 static DEFAULT_PLUS_PARTS: LazyLock<Value> = LazyLock::new(|| Value::Integer(0));
-static DEFAULT_PSL: LazyLock<Value> = LazyLock::new(|| Value::Boolean(false));
 
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
@@ -34,7 +33,7 @@ organization. Higher numbers will return subdomains.",
             description: "Can be provided to use a different public suffix list.
 
 By default, https://publicsuffix.org/list/public_suffix_list.dat is used.",
-            default: Some(&DEFAULT_PSL),
+            default: None,
         },
     ]
 });
