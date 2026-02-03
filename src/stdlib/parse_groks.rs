@@ -72,6 +72,7 @@ use std::{fs::File, io::BufReader, path::Path};
 
 static DEFAULT_ALIASES: LazyLock<Value> =
     LazyLock::new(|| Value::Object(std::collections::BTreeMap::new()));
+static DEFAULT_ALIAS_SOURCES: LazyLock<Value> = LazyLock::new(|| Value::Array(vec![]));
 
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
@@ -101,7 +102,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             kind: kind::ARRAY,
             required: false,
             description: "Path to the file containing aliases in a JSON format.",
-            default: None,
+            default: Some(&DEFAULT_ALIAS_SOURCES),
         },
     ]
 });
