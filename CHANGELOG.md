@@ -4,6 +4,22 @@
 
 <!-- changelog start -->
 
+## [0.30.0 (2026-01-22)]
+
+### Breaking Changes & Upgrade Guide
+
+- The `usage()` method on the `Function` trait is now required. Custom VRL functions must implement this
+  method to return a `&'static str` describing the function's purpose.
+
+  authors: thomasqueirozb (https://github.com/vectordotdev/vrl/pull/1608)
+
+### Fixes
+
+- Corrected the type definition for `format_int` function to return bytes instead of integer.
+
+  authors: thomasqueirozb (https://github.com/vectordotdev/vrl/pull/1586)
+
+
 ## [0.29.0 (2025-12-11)]
 
 ### Breaking Changes & Upgrade Guide

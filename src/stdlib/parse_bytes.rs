@@ -26,7 +26,9 @@ fn parse_bytes(bytes: &Value, unit: Value, base: &Bytes) -> Resolved {
         .parse_size(value)
         .map_err(|e| format!("unable to parse bytes: '{e}'"))?;
     let value = Decimal::from_u64(value).ok_or(format!("unable to parse number: {value}"))?;
-    let number = value / conversion_factor;
+    let number = value
+        .checked_div(*conversion_factor)
+        .ok_or("division by >1 divisor overflowed")?; // This should never ever happen
     let number = number
         .to_f64()
         .ok_or(format!("unable to parse number: '{number}'"))?;
