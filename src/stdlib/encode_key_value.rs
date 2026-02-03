@@ -30,6 +30,7 @@ pub(crate) fn encode_key_value(
     .into())
 }
 
+pub(super) static DEFAULT_FIELDS_ORDERING: LazyLock<Value> = LazyLock::new(|| Value::Array(vec![]));
 static DEFAULT_KEY_VALUE_DELIMITER: LazyLock<Value> =
     LazyLock::new(|| Value::Bytes(Bytes::from("=")));
 static DEFAULT_FIELD_DELIMITER: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from(" ")));
@@ -49,7 +50,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             kind: kind::ARRAY,
             required: false,
             description: "The ordering of fields to preserve. Any fields not in this list are listed unordered, after all ordered fields.",
-            default: None,
+            default: Some(&DEFAULT_FIELDS_ORDERING),
         },
         Parameter {
             keyword: "key_value_delimiter",
@@ -176,9 +177,7 @@ impl FunctionExpression for EncodeKeyValueFn {
         let value = self.value.resolve(ctx)?;
         let fields = self
             .fields
-            .as_ref()
-            .map(|expr| expr.resolve(ctx))
-            .transpose()?;
+            .map_resolve_with_default(ctx, || DEFAULT_FIELDS_ORDERING.clone())?;
         let key_value_delimiter = self
             .key_value_delimiter
             .map_resolve_with_default(ctx, || DEFAULT_KEY_VALUE_DELIMITER.clone())?;
@@ -190,7 +189,7 @@ impl FunctionExpression for EncodeKeyValueFn {
             .map_resolve_with_default(ctx, || DEFAULT_FLATTEN_BOOLEAN.clone())?;
 
         encode_key_value(
-            fields,
+            Some(fields),
             value,
             &key_value_delimiter,
             &field_delimiter,
