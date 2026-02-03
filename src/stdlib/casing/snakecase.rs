@@ -14,7 +14,7 @@ impl Function for Snakecase {
     }
 
     fn usage(&self) -> &'static str {
-        "Takes the `value` string, and turns it into snake-case. Optionally, you can pass in the existing case of the function, or else we will try to figure out the case automatically."
+        "Takes the `value` string, and turns it into snake_case. Optionally, you can pass in the existing case of the function, or else we will try to figure out the case automatically."
     }
 
     fn parameters(&self) -> &'static [Parameter] {
@@ -23,7 +23,7 @@ impl Function for Snakecase {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
-                description: "The string to convert to snake-case.",
+                description: "The string to convert to snake_case.",
             },
             Parameter {
                 keyword: "original_case",
