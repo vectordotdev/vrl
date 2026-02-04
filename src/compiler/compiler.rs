@@ -211,8 +211,11 @@ impl<'a> Compiler<'a> {
     }
 
     fn compile_literal(&mut self, node: Node<ast::Literal>, state: &mut TypeState) -> Option<Expr> {
-        use ast::Literal::{Boolean, Float, Integer, Null, RawString, Regex, String, Timestamp};
+        use ast::Literal::{
+            Boolean, Decimal, Float, Integer, Null, RawString, Regex, String, Timestamp,
+        };
         use bytes::Bytes;
+        use rust_decimal::Decimal as RustDecimal;
 
         let (span, lit) = node.take();
 
@@ -231,6 +234,10 @@ impl<'a> Compiler<'a> {
             RawString(v) => Ok(Literal::String(Bytes::from(v))),
             Integer(v) => Ok(Literal::Integer(v)),
             Float(v) => Ok(Literal::Float(v)),
+            Decimal(v) => v
+                .parse::<RustDecimal>()
+                .map(Literal::from)
+                .map_err(|err| literal::Error::from((span, err))),
             Boolean(v) => Ok(Literal::Boolean(v)),
             Regex(v) => regex::Regex::new(&v)
                 .map_err(|err| literal::Error::from((span, err)))

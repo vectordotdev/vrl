@@ -12,6 +12,7 @@ impl Kind {
             bytes: Some(()),
             integer: Some(()),
             float: Some(()),
+            decimal: Some(()),
             boolean: Some(()),
             timestamp: Some(()),
             regex: Some(()),
@@ -32,6 +33,7 @@ impl Kind {
             bytes: Some(()),
             integer: Some(()),
             float: Some(()),
+            decimal: Some(()),
             boolean: Some(()),
             timestamp: None,
             regex: None,
@@ -49,6 +51,7 @@ impl Kind {
             bytes: Some(()),
             integer: None,
             float: None,
+            decimal: None,
             boolean: None,
             timestamp: None,
             regex: None,
@@ -66,6 +69,7 @@ impl Kind {
             bytes: None,
             integer: Some(()),
             float: None,
+            decimal: None,
             boolean: None,
             timestamp: None,
             regex: None,
@@ -83,6 +87,25 @@ impl Kind {
             bytes: None,
             integer: None,
             float: Some(()),
+            decimal: None,
+            boolean: None,
+            timestamp: None,
+            regex: None,
+            null: None,
+            undefined: None,
+            array: None,
+            object: None,
+        }
+    }
+
+    /// The "decimal" type state (128-bit, up to 28-29 significant digits).
+    #[must_use]
+    pub const fn decimal() -> Self {
+        Self {
+            bytes: None,
+            integer: None,
+            float: None,
+            decimal: Some(()),
             boolean: None,
             timestamp: None,
             regex: None,
@@ -100,6 +123,7 @@ impl Kind {
             bytes: None,
             integer: None,
             float: None,
+            decimal: None,
             boolean: Some(()),
             timestamp: None,
             regex: None,
@@ -117,6 +141,7 @@ impl Kind {
             bytes: None,
             integer: None,
             float: None,
+            decimal: None,
             boolean: None,
             timestamp: Some(()),
             regex: None,
@@ -134,6 +159,7 @@ impl Kind {
             bytes: None,
             integer: None,
             float: None,
+            decimal: None,
             boolean: None,
             timestamp: None,
             regex: Some(()),
@@ -151,6 +177,7 @@ impl Kind {
             bytes: None,
             integer: None,
             float: None,
+            decimal: None,
             boolean: None,
             timestamp: None,
             regex: None,
@@ -168,6 +195,7 @@ impl Kind {
             bytes: None,
             integer: None,
             float: None,
+            decimal: None,
             boolean: None,
             timestamp: None,
             regex: None,
@@ -185,6 +213,7 @@ impl Kind {
             bytes: None,
             integer: None,
             float: None,
+            decimal: None,
             boolean: None,
             timestamp: None,
             regex: None,
@@ -202,6 +231,7 @@ impl Kind {
             bytes: None,
             integer: None,
             float: None,
+            decimal: None,
             boolean: None,
             timestamp: None,
             regex: None,
@@ -219,6 +249,7 @@ impl Kind {
             bytes: None,
             integer: None,
             float: None,
+            decimal: None,
             boolean: None,
             timestamp: None,
             regex: None,
@@ -256,6 +287,13 @@ impl Kind {
     #[must_use]
     pub const fn or_float(mut self) -> Self {
         self.float = Some(());
+        self
+    }
+
+    /// Add the `decimal` state to the type.
+    #[must_use]
+    pub const fn or_decimal(mut self) -> Self {
+        self.decimal = Some(());
         self
     }
 
@@ -332,6 +370,13 @@ impl Kind {
         self.float.replace(()).is_none()
     }
 
+    /// Add the `decimal` state to the type.
+    ///
+    /// If the type already included this state, the function returns `false`.
+    pub fn add_decimal(&mut self) -> bool {
+        self.decimal.replace(()).is_none()
+    }
+
     /// Add the `boolean` state to the type.
     ///
     /// If the type already included this state, the function returns `false`.
@@ -403,6 +448,13 @@ impl Kind {
     /// If the type previously included this state, true is returned.
     pub fn remove_float(&mut self) -> bool {
         self.float.take().is_some()
+    }
+
+    /// Remove the `decimal` state from the type.
+    ///
+    /// If the type previously included this state, true is returned.
+    pub fn remove_decimal(&mut self) -> bool {
+        self.decimal.take().is_some()
     }
 
     /// Remove the `boolean` state from the type.

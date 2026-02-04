@@ -23,8 +23,8 @@ impl Function for Mod {
 
     fn internal_failure_reasons(&self) -> &'static [&'static str] {
         &[
-            "`value` is not an integer or float.",
-            "`modulus` is not an integer or float.",
+            "`value` is not an integer, float, or decimal.",
+            "`modulus` is not an integer, float, or decimal.",
             "`modulus` is equal to 0.",
         ]
     }
@@ -37,12 +37,12 @@ impl Function for Mod {
         const PARAMETERS: &[Parameter] = &[
             Parameter::required(
                 "value",
-                kind::INTEGER | kind::FLOAT,
+                kind::INTEGER | kind::FLOAT | kind::DECIMAL,
                 "The value the `modulus` is applied to.",
             ),
             Parameter::required(
                 "modulus",
-                kind::INTEGER | kind::FLOAT,
+                kind::INTEGER | kind::FLOAT | kind::DECIMAL,
                 "The `modulus` value.",
             ),
         ];
@@ -50,11 +50,18 @@ impl Function for Mod {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[example! {
-            title: "Calculate the remainder of two integers",
-            source: "mod(5, 2)",
-            result: Ok("1"),
-        }]
+        &[
+            example! {
+                title: "Calculate the remainder of two integers",
+                source: "mod(5, 2)",
+                result: Ok("1"),
+            },
+            example! {
+                title: "Calculate the remainder of two decimals",
+                source: "mod(d'5.5', d'2')",
+                result: Ok("d'1.5'"),
+            },
+        ]
     }
 
     fn compile(
@@ -85,16 +92,34 @@ impl FunctionExpression for ModFn {
     }
 
     fn type_def(&self, state: &state::TypeState) -> TypeDef {
-        // Division is infallible if the rhs is a literal normal float or a literal non-zero integer.
+        let value_def = self.value.type_def(state);
+        let modulus_def = self.modulus.type_def(state);
+
+        // Decimal % Float or Float % Decimal -> compile-time error
+        if (value_def.is_decimal() && modulus_def.is_float())
+            || (value_def.is_float() && modulus_def.is_decimal())
+        {
+            return value_def
+                .fallible()
+                .union(modulus_def.fallible())
+                .with_kind(Kind::never());
+        }
+
+        // Division is infallible if the rhs is a literal normal float, a literal non-zero integer,
+        // or a literal non-zero decimal.
         match self.modulus.resolve_constant(state) {
-            Some(value) if value.is_float() || value.is_integer() => match value {
-                Value::Float(v) if v.is_normal() => TypeDef::float().infallible(),
-                Value::Float(_) => TypeDef::float().fallible(),
-                Value::Integer(v) if v != 0 => TypeDef::integer().infallible(),
-                Value::Integer(_) => TypeDef::integer().fallible(),
-                _ => TypeDef::float().or_integer().fallible(),
-            },
-            _ => TypeDef::float().or_integer().fallible(),
+            Some(value) if value.is_float() || value.is_integer() || value.is_decimal() => {
+                match value {
+                    Value::Float(v) if v.is_normal() => TypeDef::float().infallible(),
+                    Value::Float(_) => TypeDef::float().fallible(),
+                    Value::Integer(v) if v != 0 => TypeDef::integer().infallible(),
+                    Value::Integer(_) => TypeDef::integer().fallible(),
+                    Value::Decimal(v) if !v.is_zero() => TypeDef::decimal().infallible(),
+                    Value::Decimal(_) => TypeDef::decimal().fallible(),
+                    _ => TypeDef::float().or_integer().or_decimal().fallible(),
+                }
+            }
+            _ => TypeDef::float().or_integer().or_decimal().fallible(),
         }
     }
 }
@@ -103,6 +128,7 @@ impl FunctionExpression for ModFn {
 mod tests {
     use super::*;
     use crate::value;
+    use rust_decimal::dec;
 
     test_function![
         r#mod => Mod;
@@ -119,10 +145,16 @@ mod tests {
             tdef: TypeDef::float().infallible(),
         }
 
+        decimal_mod {
+            args: func_args![value: Value::Decimal(dec!(5.5)), modulus: Value::Decimal(dec!(2))],
+            want: Ok(Value::Decimal(dec!(1.5))),
+            tdef: TypeDef::decimal().infallible(),
+        }
+
         fallible_mod {
             args: func_args![value: 5.0, modulus: {}],
             want: Err("can't calculate remainder of type float and null"),
-            tdef: TypeDef::float().or_integer().fallible(),
+            tdef: TypeDef::float().or_integer().or_decimal().fallible(),
         }
     ];
 }

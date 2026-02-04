@@ -1,0 +1,4 @@
+# result: total: 99.95
+price = to_string(d'99.95')
+
+"total: {{ price }}"

@@ -3,6 +3,7 @@ use std::borrow::Cow;
 use crate::value::{Value, ValueRegex, kind::Collection};
 use bytes::Bytes;
 use chrono::{DateTime, Utc};
+use rust_decimal::Decimal;
 
 use crate::compiler::{
     Expression,
@@ -28,6 +29,7 @@ pub trait VrlValueConvert: Sized {
 
     fn try_integer(self) -> Result<i64, ValueError>;
     fn try_float(self) -> Result<f64, ValueError>;
+    fn try_decimal(self) -> Result<Decimal, ValueError>;
     fn try_bytes(self) -> Result<Bytes, ValueError>;
     fn try_boolean(self) -> Result<bool, ValueError>;
     fn try_regex(self) -> Result<ValueRegex, ValueError>;
@@ -38,6 +40,7 @@ pub trait VrlValueConvert: Sized {
 
     fn try_into_i64(&self) -> Result<i64, ValueError>;
     fn try_into_f64(&self) -> Result<f64, ValueError>;
+    fn try_into_decimal(&self) -> Result<Decimal, ValueError>;
 
     fn try_bytes_utf8_lossy(&self) -> Result<Cow<'_, str>, ValueError>;
 }
@@ -83,6 +86,24 @@ impl VrlValueConvert for Value {
             Value::Integer(v) => Ok(*v as f64),
             Value::Float(v) => Ok(v.into_inner()),
             _ => Err(ValueError::Coerce(self.kind(), Kind::float())),
+        }
+    }
+
+    fn try_decimal(self) -> Result<Decimal, ValueError> {
+        match self {
+            Value::Decimal(v) => Ok(v),
+            _ => Err(ValueError::Expected {
+                got: self.kind(),
+                expected: Kind::decimal(),
+            }),
+        }
+    }
+
+    fn try_into_decimal(&self) -> Result<Decimal, ValueError> {
+        match self {
+            Value::Decimal(v) => Ok(*v),
+            Value::Integer(v) => Ok(Decimal::from(*v)),
+            _ => Err(ValueError::Coerce(self.kind(), Kind::decimal())),
         }
     }
 

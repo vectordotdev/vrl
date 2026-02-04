@@ -177,6 +177,7 @@ pub(super) struct Infinite {
     bytes: Option<()>,
     integer: Option<()>,
     float: Option<()>,
+    decimal: Option<()>,
     boolean: Option<()>,
     timestamp: Option<()>,
     regex: Option<()>,
@@ -191,6 +192,7 @@ impl Infinite {
             bytes: Some(()),
             integer: Some(()),
             float: Some(()),
+            decimal: Some(()),
             boolean: Some(()),
             timestamp: Some(()),
             regex: Some(()),
@@ -205,6 +207,7 @@ impl Infinite {
             bytes: Some(()),
             integer: Some(()),
             float: Some(()),
+            decimal: Some(()),
             boolean: Some(()),
             timestamp: None,
             regex: None,
@@ -219,6 +222,7 @@ impl Infinite {
         self.bytes.is_some()
             && self.integer.is_some()
             && self.float.is_some()
+            && self.decimal.is_some()
             && self.boolean.is_some()
             && self.timestamp.is_some()
             && self.regex.is_some()
@@ -233,6 +237,7 @@ impl Infinite {
         self.bytes.is_some()
             && self.integer.is_some()
             && self.float.is_some()
+            && self.decimal.is_some()
             && self.boolean.is_some()
             && self.timestamp.is_none()
             && self.regex.is_none()
@@ -255,6 +260,10 @@ impl Infinite {
         }
 
         if let (None, Some(())) = (self.float, other.float) {
+            return false;
+        }
+
+        if let (None, Some(())) = (self.decimal, other.decimal) {
             return false;
         }
 
@@ -290,6 +299,7 @@ impl Infinite {
         self.bytes = self.bytes.or(other.bytes);
         self.integer = self.integer.or(other.integer);
         self.float = self.float.or(other.float);
+        self.decimal = self.decimal.or(other.decimal);
         self.boolean = self.boolean.or(other.boolean);
         self.timestamp = self.timestamp.or(other.timestamp);
         self.regex = self.regex.or(other.regex);
@@ -313,6 +323,10 @@ impl From<Infinite> for Kind {
 
         if infinite.float.is_some() {
             kind.add_float();
+        }
+
+        if infinite.decimal.is_some() {
+            kind.add_decimal();
         }
 
         if infinite.boolean.is_some() {
