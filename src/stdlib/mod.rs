@@ -40,7 +40,7 @@ cfg_if::cfg_if! {
         mod decrypt_ip;
         mod del;
         mod dirname;
-        #[cfg(not(feature = "disable_system_functions"))]
+        #[cfg(not(feature = "disable_network_functions"))]
         mod dns_lookup;
         mod downcase;
         mod encode_base16;
@@ -81,7 +81,7 @@ cfg_if::cfg_if! {
         mod get_timezone_name;
         mod haversine;
         mod hmac;
-        #[cfg(not(feature = "disable_system_functions"))]
+        #[cfg(not(feature = "disable_network_functions"))]
         mod http_request;
         mod includes;
         mod integer;
@@ -170,7 +170,7 @@ cfg_if::cfg_if! {
         mod remove;
         mod replace;
         mod replace_with;
-        #[cfg(not(feature = "disable_system_functions"))]
+        #[cfg(not(feature = "disable_network_functions"))]
         mod reverse_dns;
         mod round;
         mod seahash;
@@ -276,7 +276,7 @@ cfg_if::cfg_if! {
             decrypt_ip::DecryptIp,
             del::Del,
             dirname::DirName,
-            #[cfg(not(feature = "disable_system_functions"))]
+            #[cfg(not(feature = "disable_network_functions"))]
             dns_lookup::DnsLookup,
             downcase::Downcase,
             casing::camelcase::Camelcase,
@@ -321,7 +321,7 @@ cfg_if::cfg_if! {
             get_hostname::GetHostname,
             #[cfg(not(feature = "disable_system_functions"))]
             get_timezone_name::GetTimezoneName,
-            #[cfg(not(feature = "disable_system_functions"))]
+            #[cfg(not(feature = "disable_network_functions"))]
             http_request::HttpRequest,
             haversine::Haversine,
             includes::Includes,
@@ -409,7 +409,7 @@ cfg_if::cfg_if! {
             remove::Remove,
             replace::Replace,
             replace_with::ReplaceWith,
-            #[cfg(not(feature = "disable_system_functions"))]
+            #[cfg(not(feature = "disable_network_functions"))]
             reverse_dns::ReverseDns,
             round::Round,
             set::Set,
