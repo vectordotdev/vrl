@@ -213,14 +213,14 @@ impl Function for ParseGroks {
             .optional_array("alias_sources")?
             .unwrap_or_default();
 
-        // With disable_system_functions feature enabled, alias_sources is not allowed
+        // With enable_system_functions feature disabled, alias_sources is not allowed
         // to be used because it uses file operations.
-        #[cfg(feature = "disable_system_functions")]
+        #[cfg(not(feature = "enable_system_functions"))]
         if !alias_sources.is_empty() {
             return Err(function::Error::InvalidArgument {
                 keyword: "alias_sources",
                 value: "alias_sources".into(),
-                error: "alias_sources is disabled when disable_system_functions feature is enabled",
+                error: "alias_sources is disabled when enable_system_functions feature is disabled",
             }
             .into());
         }
@@ -469,10 +469,10 @@ mod test {
         }
     ];
 
-    // Test that alias_sources errors when disable_system_functions IS enabled
-    #[cfg(feature = "disable_system_functions")]
+    // Test that alias_sources errors when enable_system_functions is NOT enabled
+    #[cfg(not(feature = "enable_system_functions"))]
     #[test]
-    fn alias_sources_errors_with_disable_flag() {
+    fn alias_sources_errors_without_enable_flag() {
         use crate::compiler::{CompileConfig, TypeState, compile_with_state};
         use crate::diagnostic::Formatter;
 
@@ -490,7 +490,7 @@ mod test {
         let result = compile_with_state(src, &fns, &state, config);
         assert!(
             result.is_err(),
-            "Expected compilation to fail when alias_sources is used with disable_system_functions"
+            "Expected compilation to fail when alias_sources is used without enable_system_functions"
         );
 
         let diagnostics = result.err().unwrap();

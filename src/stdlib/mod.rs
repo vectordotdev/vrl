@@ -40,7 +40,7 @@ cfg_if::cfg_if! {
         mod decrypt_ip;
         mod del;
         mod dirname;
-        #[cfg(not(feature = "disable_network_functions"))]
+        #[cfg(feature = "enable_network_functions")]
         mod dns_lookup;
         mod downcase;
         mod encode_base16;
@@ -52,7 +52,7 @@ cfg_if::cfg_if! {
         mod encode_key_value;
         mod encode_logfmt;
         mod encode_percent;
-        #[cfg(not(feature = "disable_system_functions"))]
+        #[cfg(feature = "enable_system_functions")]
         mod encode_proto;
         mod encode_punycode;
         mod encode_snappy;
@@ -73,15 +73,15 @@ cfg_if::cfg_if! {
         mod format_timestamp;
         mod from_unix_timestamp;
         mod get;
-        #[cfg(not(any(feature = "disable_env_functions", feature = "disable_system_functions")))]
+        #[cfg(feature = "enable_env_functions")]
         mod get_env_var;
-        #[cfg(not(feature = "disable_system_functions"))]
+        #[cfg(feature = "enable_system_functions")]
         mod get_hostname;
-        #[cfg(not(feature = "disable_system_functions"))]
+        #[cfg(feature = "enable_system_functions")]
         mod get_timezone_name;
         mod haversine;
         mod hmac;
-        #[cfg(not(feature = "disable_network_functions"))]
+        #[cfg(feature = "enable_network_functions")]
         mod http_request;
         mod includes;
         mod integer;
@@ -134,7 +134,7 @@ cfg_if::cfg_if! {
         mod parse_common_log;
         mod parse_csv;
         mod parse_duration;
-        #[cfg(not(feature = "disable_system_functions"))]
+        #[cfg(feature = "enable_system_functions")]
         mod parse_etld;
         mod parse_float;
         mod parse_glog;
@@ -148,7 +148,7 @@ cfg_if::cfg_if! {
         mod parse_linux_authorization;
         mod parse_logfmt;
         mod parse_nginx_log;
-        #[cfg(not(feature = "disable_system_functions"))]
+        #[cfg(feature = "enable_system_functions")]
         mod parse_proto;
         mod parse_query_string;
         mod parse_regex;
@@ -170,7 +170,7 @@ cfg_if::cfg_if! {
         mod remove;
         mod replace;
         mod replace_with;
-        #[cfg(not(feature = "disable_network_functions"))]
+        #[cfg(feature = "enable_network_functions")]
         mod reverse_dns;
         mod round;
         mod seahash;
@@ -213,7 +213,7 @@ cfg_if::cfg_if! {
         mod uuid_v4;
         mod uuid_v7;
         mod values;
-        #[cfg(not(feature = "disable_system_functions"))]
+        #[cfg(feature = "enable_system_functions")]
         mod validate_json_schema;
         mod xxhash;
         mod zip;
@@ -276,7 +276,7 @@ cfg_if::cfg_if! {
             decrypt_ip::DecryptIp,
             del::Del,
             dirname::DirName,
-            #[cfg(not(feature = "disable_network_functions"))]
+            #[cfg(feature = "enable_network_functions")]
             dns_lookup::DnsLookup,
             downcase::Downcase,
             casing::camelcase::Camelcase,
@@ -293,7 +293,7 @@ cfg_if::cfg_if! {
             encode_key_value::EncodeKeyValue,
             encode_logfmt::EncodeLogfmt,
             encode_percent::EncodePercent,
-            #[cfg(not(feature = "disable_system_functions"))]
+            #[cfg(feature = "enable_system_functions")]
             encode_proto::EncodeProto,
             encode_punycode::EncodePunycode,
             encode_snappy::EncodeSnappy,
@@ -315,13 +315,13 @@ cfg_if::cfg_if! {
             from_unix_timestamp::FromUnixTimestamp,
             self::community_id::CommunityID,
             get::Get,
-            #[cfg(not(any(feature = "disable_env_functions", feature = "disable_system_functions")))]
+            #[cfg(feature = "enable_env_functions")]
             get_env_var::GetEnvVar,
-            #[cfg(not(feature = "disable_system_functions"))]
+            #[cfg(feature = "enable_system_functions")]
             get_hostname::GetHostname,
-            #[cfg(not(feature = "disable_system_functions"))]
+            #[cfg(feature = "enable_system_functions")]
             get_timezone_name::GetTimezoneName,
-            #[cfg(not(feature = "disable_network_functions"))]
+            #[cfg(feature = "enable_network_functions")]
             http_request::HttpRequest,
             haversine::Haversine,
             includes::Includes,
@@ -373,7 +373,7 @@ cfg_if::cfg_if! {
             parse_csv::ParseCsv,
             parse_duration::ParseDuration,
             parse_float::ParseFloat,
-            #[cfg(not(feature = "disable_system_functions"))]
+            #[cfg(feature = "enable_system_functions")]
             parse_etld::ParseEtld,
             parse_glog::ParseGlog,
             parse_grok::ParseGrok,
@@ -386,7 +386,7 @@ cfg_if::cfg_if! {
             parse_linux_authorization::ParseLinuxAuthorization,
             parse_logfmt::ParseLogFmt,
             parse_nginx_log::ParseNginxLog,
-            #[cfg(not(feature = "disable_system_functions"))]
+            #[cfg(feature = "enable_system_functions")]
             parse_proto::ParseProto,
             parse_query_string::ParseQueryString,
             parse_regex::ParseRegex,
@@ -409,7 +409,7 @@ cfg_if::cfg_if! {
             remove::Remove,
             replace::Replace,
             replace_with::ReplaceWith,
-            #[cfg(not(feature = "disable_network_functions"))]
+            #[cfg(feature = "enable_network_functions")]
             reverse_dns::ReverseDns,
             round::Round,
             set::Set,
@@ -449,7 +449,7 @@ cfg_if::cfg_if! {
             uuid_v4::UuidV4,
             uuid_v7::UuidV7,
             values::Values,
-            #[cfg(not(feature = "disable_system_functions"))]
+            #[cfg(feature = "enable_system_functions")]
             validate_json_schema::ValidateJsonSchema,
             zip::Zip,
             self::array::Array,
@@ -460,7 +460,7 @@ cfg_if::cfg_if! {
             self::crc::Crc,
         }
 
-        #[cfg(not(feature = "disable_system_functions"))]
+        #[cfg(feature = "enable_system_functions")]
         pub use get_timezone_name::get_name_for_timezone;
     }
 }

@@ -25,7 +25,7 @@ pub mod core;
 #[cfg(feature = "stdlib")]
 pub mod stdlib;
 
-#[cfg(all(feature = "stdlib", not(feature = "disable_system_functions")))]
+#[cfg(all(feature = "stdlib", feature = "enable_system_functions"))]
 pub mod protobuf;
 
 #[cfg(feature = "cli")]
