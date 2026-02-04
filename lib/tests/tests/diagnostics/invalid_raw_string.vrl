@@ -1,11 +1,11 @@
 # result:
 #
 # error[E208]: invalid literal
-# ┌─ :2:1
-# │
+#   ┌─ :2:1
+#   │
 # 2 │ s'foobar
-# │ ^ invalid literal
-# │
+#   │ ^ invalid literal
+#   │
 #   = see language documentation at https://vrl.dev
 #   = try your code in the VRL REPL, learn more at https://vrl.dev/examples
 

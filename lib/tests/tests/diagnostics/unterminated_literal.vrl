@@ -1,11 +1,10 @@
 # result:
 #
 # error[E208]: invalid literal
-#   ┌─ :1:1
+#   ┌─ :2:29
 #   │
-# 1 │ ╭
-# 2 │ │ . = parse_regex!(.message, r'(?P<syslog_pri><\d+>)(?P<syslog_seqnum>\d+)(?:\W+)(?P<syslog_host>\w+-\w+-\w+)(?:\W+)(?P<syslog_datetime>.*?)(?:\W+)(?P<message_type>\.*?)(?:\W+)(?P<syslog_message>.*))
-# │ ╰^ invalid literal
+# 2 │ . = parse_regex!(.message, r'(?P<syslog_pri><\d+>)(?P<syslog_seqnum>\d+)(?:\W+)(?P<syslog_host>\w+-\w+-\w+)(?:\W+)(?P<syslog_datetime>.*?)(?:\W+)(?P<message_type>\.*?)(?:\W+)(?P<syslog_message>.*))
+#   │                             ^ invalid literal
 #   │
 #   = see language documentation at https://vrl.dev
 #   = try your code in the VRL REPL, learn more at https://vrl.dev/examples
