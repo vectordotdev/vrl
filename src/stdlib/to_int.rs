@@ -35,6 +35,7 @@ impl Function for ToInt {
             keyword: "value",
             kind: kind::ANY,
             required: true,
+            description: "The value to convert to an integer.",
         }]
     }
 

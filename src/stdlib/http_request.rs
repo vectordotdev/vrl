@@ -310,31 +310,37 @@ impl Function for HttpRequest {
                 keyword: "url",
                 kind: kind::BYTES,
                 required: true,
+                description: "The URL to make the HTTP request to.",
             },
             Parameter {
                 keyword: "method",
                 kind: kind::BYTES,
                 required: false,
+                description: "The HTTP method to use (e.g., GET, POST, PUT, DELETE). Defaults to GET.",
             },
             Parameter {
                 keyword: "headers",
                 kind: kind::OBJECT,
                 required: false,
+                description: "An object containing HTTP headers to send with the request.",
             },
             Parameter {
                 keyword: "body",
                 kind: kind::BYTES,
                 required: false,
+                description: "The request body content to send.",
             },
             Parameter {
                 keyword: "http_proxy",
                 kind: kind::BYTES,
                 required: false,
+                description: "HTTP proxy URL to use for the request.",
             },
             Parameter {
                 keyword: "https_proxy",
                 kind: kind::BYTES,
                 required: false,
+                description: "HTTPS proxy URL to use for the request.",
             },
         ]
     }

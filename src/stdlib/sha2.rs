@@ -45,11 +45,13 @@ impl Function for Sha2 {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "The string to calculate the hash for.",
             },
             Parameter {
                 keyword: "variant",
                 kind: kind::BYTES,
                 required: false,
+                description: "The variant of the algorithm to use.",
             },
         ]
     }

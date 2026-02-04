@@ -66,11 +66,13 @@ impl Function for MapValues {
                 keyword: "value",
                 kind: kind::OBJECT | kind::ARRAY,
                 required: true,
+                description: "The object or array to iterate.",
             },
             Parameter {
                 keyword: "recursive",
                 kind: kind::BOOLEAN,
                 required: false,
+                description: "Whether to recursively iterate the collection.",
             },
         ]
     }

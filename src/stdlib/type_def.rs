@@ -35,6 +35,7 @@ impl Function for TypeDef {
             keyword: "value",
             kind: kind::ANY,
             required: true,
+            description: "The expression to get the type definition for.",
         }]
     }
 

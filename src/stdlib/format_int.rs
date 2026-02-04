@@ -41,11 +41,13 @@ impl Function for FormatInt {
                 keyword: "value",
                 kind: kind::INTEGER,
                 required: true,
+                description: "The number to format.",
             },
             Parameter {
                 keyword: "base",
                 kind: kind::INTEGER,
                 required: false,
+                description: "The base to format the number in. Must be between 2 and 36 (inclusive).",
             },
         ]
     }

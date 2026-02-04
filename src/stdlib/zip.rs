@@ -57,11 +57,13 @@ impl Function for Zip {
                 keyword: "array_0",
                 kind: kind::ARRAY,
                 required: true,
+                description: "The first array of elements, or the array of input arrays if no other parameter is present.",
             },
             Parameter {
                 keyword: "array_1",
                 kind: kind::ARRAY,
                 required: false,
+                description: "The second array of elements. If not present, the first parameter contains all the arrays.",
             },
         ]
     }

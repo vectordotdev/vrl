@@ -24,6 +24,7 @@ impl Function for Boolean {
             keyword: "value",
             kind: kind::ANY,
             required: true,
+            description: "The value to check if it is a Boolean.",
         }]
     }
 

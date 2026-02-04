@@ -27,6 +27,7 @@ impl Function for BaseName {
             keyword: "value",
             kind: kind::BYTES,
             required: true,
+            description: "The path from which to extract the basename.",
         }]
     }
 

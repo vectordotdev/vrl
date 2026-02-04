@@ -62,11 +62,13 @@ impl Function for ObjectFromArray {
                 keyword: "values",
                 kind: kind::ARRAY,
                 required: true,
+                description: "The first array of elements, or the array of input arrays if no other parameter is present.",
             },
             Parameter {
                 keyword: "keys",
                 kind: kind::ARRAY,
                 required: false,
+                description: "The second array of elements. If not present, the first parameter must contain all the arrays.",
             },
         ]
     }

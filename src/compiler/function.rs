@@ -161,6 +161,9 @@ pub struct Parameter {
     /// If it isn't, the function can be called without errors, even if the
     /// argument matching this parameter is missing.
     pub required: bool,
+
+    /// A description of what this parameter does.
+    pub description: &'static str,
 }
 
 impl Parameter {
@@ -650,6 +653,7 @@ mod tests {
                 keyword: "",
                 kind: parameter_kind,
                 required: false,
+                description: "",
             };
 
             assert_eq!(parameter.kind(), kind, "{title}");

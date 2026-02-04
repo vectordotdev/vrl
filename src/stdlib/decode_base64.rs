@@ -48,11 +48,13 @@ impl Function for DecodeBase64 {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "The [Base64](https://en.wikipedia.org/wiki/Base64) data to decode.",
             },
             Parameter {
                 keyword: "charset",
                 kind: kind::BYTES,
                 required: false,
+                description: "The character set to use when decoding the data.",
             },
         ]
     }

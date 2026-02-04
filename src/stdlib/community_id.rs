@@ -75,31 +75,37 @@ impl Function for CommunityID {
                 keyword: "source_ip",
                 kind: kind::BYTES,
                 required: true,
+                description: "The source IP address.",
             },
             Parameter {
                 keyword: "destination_ip",
                 kind: kind::BYTES,
                 required: true,
+                description: "The destination IP address.",
             },
             Parameter {
                 keyword: "protocol",
                 kind: kind::INTEGER,
                 required: true,
+                description: "The protocol number.",
             },
             Parameter {
                 keyword: "source_port",
                 kind: kind::INTEGER,
                 required: false,
+                description: "The source port or ICMP type.",
             },
             Parameter {
                 keyword: "destination_port",
                 kind: kind::INTEGER,
                 required: false,
+                description: "The destination port or ICMP code.",
             },
             Parameter {
                 keyword: "seed",
                 kind: kind::INTEGER,
                 required: false,
+                description: "The custom seed number.",
             },
         ]
     }

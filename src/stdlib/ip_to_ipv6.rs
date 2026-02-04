@@ -29,6 +29,7 @@ impl Function for IpToIpv6 {
             keyword: "value",
             kind: kind::BYTES,
             required: true,
+            description: "The IP address to convert to IPv6.",
         }]
     }
 

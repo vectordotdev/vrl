@@ -55,6 +55,7 @@ impl Function for ReverseDns {
             keyword: "value",
             kind: kind::BYTES,
             required: true,
+            description: "The IP address (IPv4 or IPv6) to perform the reverse DNS lookup on.",
         }]
     }
 

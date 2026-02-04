@@ -25,16 +25,19 @@ impl Function for EndsWith {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "The string to search.",
             },
             Parameter {
                 keyword: "substring",
                 kind: kind::BYTES,
                 required: true,
+                description: "The substring with which `value` must end.",
             },
             Parameter {
                 keyword: "case_sensitive",
                 kind: kind::BOOLEAN,
                 required: false,
+                description: "Whether the match should be case sensitive.",
             },
         ]
     }

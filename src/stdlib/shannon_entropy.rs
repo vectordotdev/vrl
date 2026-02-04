@@ -113,11 +113,19 @@ impl Function for ShannonEntropy {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "The input string.",
             },
             Parameter {
                 keyword: "segmentation",
                 kind: kind::BYTES,
                 required: false,
+                description:
+                    "Defines how to split the string to calculate entropy, based on occurrences of
+segments.
+
+Byte segmentation is the fastest, but it might give undesired results when handling
+UTF-8 strings, while grapheme segmentation is the slowest, but most correct in these
+cases.",
             },
         ]
     }

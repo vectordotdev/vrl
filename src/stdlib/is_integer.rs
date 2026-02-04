@@ -18,6 +18,7 @@ impl Function for IsInteger {
             keyword: "value",
             kind: kind::ANY,
             required: true,
+            description: "The value to check if it is an integer.",
         }]
     }
 

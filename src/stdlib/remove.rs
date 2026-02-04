@@ -67,16 +67,20 @@ impl Function for Remove {
                 keyword: "value",
                 kind: kind::OBJECT | kind::ARRAY,
                 required: true,
+                description: "The object or array to remove data from.",
             },
             Parameter {
                 keyword: "path",
                 kind: kind::ARRAY,
                 required: true,
+                description: "An array of path segments to remove the value from.",
             },
             Parameter {
                 keyword: "compact",
                 kind: kind::BOOLEAN,
                 required: false,
+                description: "After deletion, if `compact` is `true`, any empty objects or
+arrays left are also removed.",
             },
         ]
     }

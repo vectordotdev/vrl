@@ -1286,16 +1286,19 @@ mod tests {
                     keyword: "one",
                     kind: kind::INTEGER,
                     required: false,
+                    description: "one",
                 },
                 Parameter {
                     keyword: "two",
                     kind: kind::INTEGER,
                     required: false,
+                    description: "two",
                 },
                 Parameter {
                     keyword: "three",
                     kind: kind::INTEGER,
                     required: false,
+                    description: "three",
                 },
             ]
         }

@@ -68,6 +68,7 @@ impl Function for TagTypesExternally {
             keyword: "value",
             kind: kind::ANY,
             required: true,
+            description: "The value to tag with types.",
         }]
     }
 }

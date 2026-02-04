@@ -60,16 +60,19 @@ impl Function for Hmac {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "The string to calculate the HMAC for.",
             },
             Parameter {
                 keyword: "key",
                 kind: kind::BYTES,
                 required: true,
+                description: "The string to use as the cryptographic key.",
             },
             Parameter {
                 keyword: "algorithm",
                 kind: kind::BYTES,
                 required: false,
+                description: "The hashing algorithm to use.",
             },
         ]
     }

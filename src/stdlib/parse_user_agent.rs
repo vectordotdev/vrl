@@ -40,11 +40,13 @@ impl Function for ParseUserAgent {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "The string to parse.",
             },
             Parameter {
                 keyword: "mode",
                 kind: kind::BYTES,
                 required: false,
+                description: "Determines performance and reliability characteristics.",
             },
         ]
     }

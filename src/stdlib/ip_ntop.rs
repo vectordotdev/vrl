@@ -38,6 +38,9 @@ impl Function for IpNtop {
             keyword: "value",
             kind: kind::BYTES,
             required: true,
+            description: "The binary data to convert from.
+For IPv4 addresses, it must be 4 bytes (32 bits) long.
+For IPv6 addresses, it must be 16 bytes (128 bits) long.",
         }]
     }
 

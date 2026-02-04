@@ -46,6 +46,7 @@ impl Function for ToFloat {
             keyword: "value",
             kind: kind::ANY,
             required: true,
+            description: "The value to convert to a float. Must be convertible to a float, otherwise an error is raised.",
         }]
     }
 

@@ -53,11 +53,15 @@ impl Function for Del {
                 keyword: "target",
                 kind: kind::ANY,
                 required: true,
+                description: "The path of the field to delete",
             },
             Parameter {
                 keyword: "compact",
                 kind: kind::BOOLEAN,
                 required: false,
+                description: "After deletion, if `compact` is `true` and there is an empty object or array left,
+the empty object or array is also removed, cascading up to the root. This only
+applies to the path being deleted, and any parent paths.",
             },
         ]
     }

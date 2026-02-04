@@ -25,16 +25,19 @@ impl Function for Contains {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "The text to search.",
             },
             Parameter {
                 keyword: "substring",
                 kind: kind::BYTES,
                 required: true,
+                description: "The substring to search for in `value`.",
             },
             Parameter {
                 keyword: "case_sensitive",
                 kind: kind::BOOLEAN,
                 required: false,
+                description: "Whether the match should be case sensitive.",
             },
         ]
     }

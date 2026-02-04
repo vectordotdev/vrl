@@ -87,21 +87,25 @@ impl Function for ParseGroks {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "The string to parse.",
             },
             Parameter {
                 keyword: "patterns",
                 kind: kind::ARRAY,
                 required: true,
+                description: "The [Grok patterns](https://github.com/daschl/grok/tree/master/patterns), which are tried in order until the first match.",
             },
             Parameter {
                 keyword: "aliases",
                 kind: kind::OBJECT,
                 required: false,
+                description: "The shared set of grok aliases that can be referenced in the patterns to simplify them.",
             },
             Parameter {
                 keyword: "alias_sources",
                 kind: kind::ARRAY,
                 required: false,
+                description: "Path to the file containing aliases in a JSON format.",
             },
         ]
     }

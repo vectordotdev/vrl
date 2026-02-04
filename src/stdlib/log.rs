@@ -18,16 +18,20 @@ impl Function for Log {
                 keyword: "value",
                 kind: kind::ANY,
                 required: true,
+                description: "The value to log.",
             },
             Parameter {
                 keyword: "level",
                 kind: kind::BYTES,
                 required: false,
+                description: "The log level.",
             },
             Parameter {
                 keyword: "rate_limit_secs",
                 kind: kind::INTEGER,
                 required: false,
+                description: "Specifies that the log message is output no more than once per the given number of seconds.
+Use a value of `0` to turn rate limiting off.",
             },
         ]
     }

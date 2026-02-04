@@ -94,11 +94,13 @@ impl Function for EncodePercent {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "The string to encode.",
             },
             Parameter {
                 keyword: "ascii_set",
                 kind: kind::BYTES,
                 required: false,
+                description: "The ASCII set to use when encoding the data.",
             },
         ]
     }

@@ -82,16 +82,20 @@ impl Function for ParseTimestamp {
                 keyword: "value",
                 kind: kind::BYTES | kind::TIMESTAMP,
                 required: true,
+                description: "The text of the timestamp.",
             },
             Parameter {
                 keyword: "format",
                 kind: kind::BYTES,
                 required: true,
+                description: "The [strptime](https://docs.rs/chrono/latest/chrono/format/strftime/index.html#specifiers) format.",
             },
             Parameter {
                 keyword: "timezone",
                 kind: kind::BYTES,
                 required: false,
+                description: "The [TZ database](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones) format. By default, this function parses the timestamp by global [`timezone` option](/docs/reference/configuration//global-options#timezone).
+This argument overwrites the setting and is useful for parsing timestamps without a specified timezone, such as `16/10/2019 12:00:00`.",
             },
         ]
     }

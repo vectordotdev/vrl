@@ -43,6 +43,7 @@ impl Function for UuidV7 {
             keyword: "timestamp",
             kind: kind::TIMESTAMP,
             required: false,
+            description: "The timestamp used to generate the UUIDv7.",
         }]
     }
 

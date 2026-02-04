@@ -23,6 +23,7 @@ impl Function for IsIpv6 {
             keyword: "value",
             kind: kind::BYTES,
             required: true,
+            description: "The IP address to check",
         }]
     }
 

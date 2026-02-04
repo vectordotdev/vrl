@@ -60,6 +60,7 @@ impl Function for Tally {
             keyword: "value",
             kind: kind::ARRAY,
             required: true,
+            description: "The array of strings to count occurrences for.",
         }]
     }
 }

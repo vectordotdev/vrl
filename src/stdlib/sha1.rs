@@ -23,6 +23,7 @@ impl Function for Sha1 {
             keyword: "value",
             kind: kind::BYTES,
             required: true,
+            description: "The string to calculate the hash for.",
         }]
     }
 

@@ -29,6 +29,7 @@ impl Function for Abs {
             keyword: "value",
             kind: kind::FLOAT | kind::INTEGER,
             required: true,
+            description: "The number to calculate the absolute value.",
         }]
     }
 

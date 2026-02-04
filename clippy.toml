@@ -1,5 +1,22 @@
 cognitive-complexity-threshold = 75
 
+# https://github.com/vectordotdev/vrl/issues/1620
+# Disallow for non-std types (for now)
+arithmetic-side-effects-allowed = [
+  "std::string::String",
+  "str",
+  "isize",
+  "i64",
+  "i32",
+  "i16",
+  "i8",
+  "usize",
+  "u64",
+  "u32",
+  "u16",
+  "u8",
+]
+
 # for `disallowed_method`:
 # https://rust-lang.github.io/rust-clippy/master/index.html#disallowed_method
 disallowed-methods = [

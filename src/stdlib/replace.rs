@@ -68,21 +68,25 @@ impl Function for Replace {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "The original string.",
             },
             Parameter {
                 keyword: "pattern",
                 kind: kind::BYTES | kind::REGEX,
                 required: true,
+                description: "Replace all matches of this pattern. Can be a static string or a regular expression.",
             },
             Parameter {
                 keyword: "with",
                 kind: kind::BYTES,
                 required: true,
+                description: "The string that the matches are replaced with.",
             },
             Parameter {
                 keyword: "count",
                 kind: kind::INTEGER,
                 required: false,
+                description: "The maximum number of replacements to perform. `-1` means replace all matches.",
             },
         ]
     }

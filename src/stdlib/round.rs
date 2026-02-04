@@ -37,11 +37,13 @@ impl Function for Round {
                 keyword: "value",
                 kind: kind::INTEGER | kind::FLOAT,
                 required: true,
+                description: "The number to round.",
             },
             Parameter {
                 keyword: "precision",
                 kind: kind::INTEGER,
                 required: false,
+                description: "The number of decimal places to round to.",
             },
         ]
     }

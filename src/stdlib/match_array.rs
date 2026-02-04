@@ -80,16 +80,19 @@ impl Function for MatchArray {
                 keyword: "value",
                 kind: kind::ARRAY,
                 required: true,
+                description: "The array.",
             },
             Parameter {
                 keyword: "pattern",
                 kind: kind::REGEX,
                 required: true,
+                description: "The regular expression pattern to match against.",
             },
             Parameter {
                 keyword: "all",
                 kind: kind::BOOLEAN,
                 required: false,
+                description: "Whether to match on all elements of `value`.",
             },
         ]
     }

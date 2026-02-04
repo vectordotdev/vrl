@@ -42,11 +42,13 @@ impl Function for Flatten {
                 keyword: "value",
                 kind: kind::OBJECT | kind::ARRAY,
                 required: true,
+                description: "The array or object to flatten.",
             },
             Parameter {
                 keyword: "separator",
                 kind: kind::BYTES,
                 required: false,
+                description: "The separator to join nested keys",
             },
         ]
     }

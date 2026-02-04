@@ -87,11 +87,13 @@ impl Function for MatchDatadogQuery {
                 keyword: "value",
                 kind: kind::OBJECT,
                 required: true,
+                description: "The object.",
             },
             Parameter {
                 keyword: "query",
                 kind: kind::BYTES,
                 required: true,
+                description: "The Datadog Search Syntax query.",
             },
         ]
     }

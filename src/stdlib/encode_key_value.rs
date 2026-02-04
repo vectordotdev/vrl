@@ -47,26 +47,31 @@ impl Function for EncodeKeyValue {
                 keyword: "value",
                 kind: kind::OBJECT,
                 required: true,
+                description: "The value to convert to a string.",
             },
             Parameter {
                 keyword: "fields_ordering",
                 kind: kind::ARRAY,
                 required: false,
+                description: "The ordering of fields to preserve. Any fields not in this list are listed unordered, after all ordered fields.",
             },
             Parameter {
                 keyword: "key_value_delimiter",
                 kind: kind::BYTES,
                 required: false,
+                description: "The string that separates the key from the value.",
             },
             Parameter {
                 keyword: "field_delimiter",
                 kind: kind::BYTES,
                 required: false,
+                description: "The string that separates each key-value pair.",
             },
             Parameter {
                 keyword: "flatten_boolean",
                 kind: kind::BOOLEAN,
                 required: false,
+                description: "Whether to encode key-value with a boolean value as a standalone key if `true` and nothing if `false`.",
             },
         ]
     }

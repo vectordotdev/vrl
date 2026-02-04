@@ -53,11 +53,13 @@ impl Function for Xxhash {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "The string to calculate the hash for.",
             },
             Parameter {
                 keyword: "variant",
                 kind: kind::BYTES,
                 required: false,
+                description: "The xxHash hashing algorithm to use.",
             },
         ]
     }

@@ -87,26 +87,31 @@ impl Function for Haversine {
                 keyword: "latitude1",
                 kind: kind::FLOAT,
                 required: true,
+                description: "Latitude of the first point.",
             },
             Parameter {
                 keyword: "longitude1",
                 kind: kind::FLOAT,
                 required: true,
+                description: "Longitude of the first point.",
             },
             Parameter {
                 keyword: "latitude2",
                 kind: kind::FLOAT,
                 required: true,
+                description: "Latitude of the second point.",
             },
             Parameter {
                 keyword: "longitude2",
                 kind: kind::FLOAT,
                 required: true,
+                description: "Longitude of the second point.",
             },
             Parameter {
                 keyword: "measurement_unit",
                 kind: kind::BYTES,
                 required: false,
+                description: "Measurement system to use for resulting distance.",
             },
         ]
     }

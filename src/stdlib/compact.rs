@@ -71,36 +71,43 @@ impl Function for Compact {
                 keyword: "value",
                 kind: kind::OBJECT | kind::ARRAY,
                 required: true,
+                description: "The object or array to compact.",
             },
             Parameter {
                 keyword: "recursive",
                 kind: kind::BOOLEAN,
                 required: false,
+                description: "Whether the compaction be recursive.",
             },
             Parameter {
                 keyword: "null",
                 kind: kind::BOOLEAN,
                 required: false,
+                description: "Whether null should be treated as an empty value.",
             },
             Parameter {
                 keyword: "string",
                 kind: kind::BOOLEAN,
                 required: false,
+                description: "Whether an empty string should be treated as an empty value.",
             },
             Parameter {
                 keyword: "object",
                 kind: kind::BOOLEAN,
                 required: false,
+                description: "Whether an empty object should be treated as an empty value.",
             },
             Parameter {
                 keyword: "array",
                 kind: kind::BOOLEAN,
                 required: false,
+                description: "Whether an empty array should be treated as an empty value.",
             },
             Parameter {
                 keyword: "nullish",
                 kind: kind::BOOLEAN,
                 required: false,
+                description: "Tests whether the value is \"nullish\" as defined by the [`is_nullish`](#is_nullish) function.",
             },
         ]
     }

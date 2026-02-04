@@ -50,16 +50,22 @@ impl Function for ParseNginxLog {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "The string to parse.",
             },
             Parameter {
                 keyword: "format",
                 kind: kind::BYTES,
                 required: true,
+                description: "The format to use for parsing the log.",
             },
             Parameter {
                 keyword: "timestamp_format",
                 kind: kind::BYTES,
                 required: false,
+                description: "
+The [date/time format](https://docs.rs/chrono/latest/chrono/format/strftime/index.html#specifiers) to use for encoding the timestamp. The time is parsed
+in local time if the timestamp doesn't specify a timezone. The default format is `%d/%b/%Y:%T %z` for
+combined logs and `%Y/%m/%d %H:%M:%S` for error logs.",
             },
         ]
     }

@@ -48,11 +48,13 @@ impl Function for FromUnixTimestamp {
                 keyword: "value",
                 kind: kind::INTEGER,
                 required: true,
+                description: "The Unix timestamp to convert.",
             },
             Parameter {
                 keyword: "unit",
                 kind: kind::BYTES,
                 required: false,
+                description: "The time unit.",
             },
         ]
     }

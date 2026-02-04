@@ -32,6 +32,7 @@ impl Function for ToString {
             keyword: "value",
             kind: kind::ANY,
             required: true,
+            description: "The value to convert to a string.",
         }]
     }
 

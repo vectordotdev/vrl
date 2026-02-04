@@ -47,6 +47,7 @@ impl Function for Unique {
             keyword: "value",
             kind: kind::ARRAY,
             required: true,
+            description: "The array to return unique elements from.",
         }]
     }
 }

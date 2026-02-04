@@ -70,11 +70,13 @@ impl Function for MapKeys {
                 keyword: "value",
                 kind: kind::OBJECT,
                 required: true,
+                description: "The object to iterate.",
             },
             Parameter {
                 keyword: "recursive",
                 kind: kind::BOOLEAN,
                 required: false,
+                description: "Whether to recursively iterate the collection.",
             },
         ]
     }
