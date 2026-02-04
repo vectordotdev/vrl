@@ -72,22 +72,29 @@ impl Function for StartsWith {
         "starts_with"
     }
 
+    fn usage(&self) -> &'static str {
+        "Determines whether `value` begins with `substring`."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "The string to search.",
             },
             Parameter {
                 keyword: "substring",
                 kind: kind::BYTES,
                 required: true,
+                description: "The substring that the `value` must start with.",
             },
             Parameter {
                 keyword: "case_sensitive",
                 kind: kind::BOOLEAN,
                 required: false,
+                description: "Whether the match should be case sensitive.",
             },
         ]
     }
@@ -95,18 +102,18 @@ impl Function for StartsWith {
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "case sensitive",
-                source: r#"starts_with("foobar", "F")"#,
-                result: Ok("false"),
-            },
-            example! {
-                title: "case insensitive",
-                source: r#"starts_with("foobar", "F", false)"#,
+                title: "String starts with (case sensitive)",
+                source: r#"starts_with("The Needle In The Haystack", "The Needle")"#,
                 result: Ok("true"),
             },
             example! {
-                title: "mismatch",
-                source: r#"starts_with("foobar", "bar")"#,
+                title: "String starts with (case insensitive)",
+                source: r#"starts_with("The Needle In The Haystack", "the needle", case_sensitive: false)"#,
+                result: Ok("true"),
+            },
+            example! {
+                title: "String starts with (case sensitive failure)",
+                source: r#"starts_with("foobar", "F")"#,
                 result: Ok("false"),
             },
         ]

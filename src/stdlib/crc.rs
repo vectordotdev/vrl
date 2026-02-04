@@ -472,17 +472,27 @@ impl Function for Crc {
         "crc"
     }
 
+    fn usage(&self) -> &'static str {
+        indoc! {
+            "Calculates a CRC of the `value`.The CRC `algorithm` used can be optionally specified.
+
+            This function is infallible if either the default `algorithm` value or a recognized-valid compile-time `algorithm` string literal is used. Otherwise, it is fallible."
+        }
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "The string to calculate the checksum for.",
             },
             Parameter {
                 keyword: "algorithm",
                 kind: kind::BYTES,
                 required: false,
+                description: "The CRC algorithm to use.",
             },
         ]
     }
@@ -490,14 +500,14 @@ impl Function for Crc {
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "default CRC_32_ISO_HDLC",
-                source: r#"crc("foobar")"#,
-                result: Ok(r#""2666930069""#),
+                title: "Create CRC checksum using the default algorithm",
+                source: r#"crc("foo")"#,
+                result: Ok(r#""2356372769""#),
             },
             example! {
-                title: "CRC_8_MAXIM_DOW",
-                source: r#"crc("foobar", algorithm: "CRC_8_MAXIM_DOW")"#,
-                result: Ok(r#""53""#),
+                title: "Create CRC checksum using the CRC_32_CKSUM algorithm",
+                source: r#"crc("foo", algorithm: "CRC_32_CKSUM")"#,
+                result: Ok(r#""4271552933""#),
             },
         ]
     }

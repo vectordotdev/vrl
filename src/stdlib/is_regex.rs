@@ -9,28 +9,33 @@ impl Function for IsRegex {
         "is_regex"
     }
 
+    fn usage(&self) -> &'static str {
+        "Check if `value`'s type is a regex."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",
             kind: kind::ANY,
             required: true,
+            description: "The value to check if it is a regex.",
         }]
     }
 
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "string",
-                source: r#"is_regex("foobar")"#,
-                result: Ok("false"),
-            },
-            example! {
-                title: "regex",
-                source: r"is_regex(r'\d+')",
+                title: "Valid regex",
+                source: r"is_regex(r'pattern')",
                 result: Ok("true"),
             },
             example! {
-                title: "null",
+                title: "Non-matching type",
+                source: r#"is_regex("a string")"#,
+                result: Ok("false"),
+            },
+            example! {
+                title: "Null value",
                 source: "is_regex(null)",
                 result: Ok("false"),
             },

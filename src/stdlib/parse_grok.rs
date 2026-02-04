@@ -90,24 +90,30 @@ impl Function for ParseGrok {
         "parse_grok"
     }
 
+    fn usage(&self) -> &'static str {
+        "Parses the `value` using the [`grok`](https://github.com/daschl/grok/tree/master/patterns) format. All patterns [listed here](https://github.com/daschl/grok/tree/master/patterns) are supported."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "The string to parse.",
             },
             Parameter {
                 keyword: "pattern",
                 kind: kind::BYTES,
                 required: true,
+                description: "The [Grok pattern](https://github.com/daschl/grok/tree/master/patterns).",
             },
         ]
     }
 
     fn examples(&self) -> &'static [Example] {
         &[example! {
-            title: "parse grok pattern",
+            title: "Parse using Grok",
             source: indoc! {r#"
                 value = "2020-10-02T23:22:12.223222Z info Hello world"
                 pattern = "%{TIMESTAMP_ISO8601:timestamp} %{LOGLEVEL:level} %{GREEDYDATA:message}"

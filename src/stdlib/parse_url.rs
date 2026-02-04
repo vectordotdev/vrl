@@ -10,17 +10,26 @@ impl Function for ParseUrl {
         "parse_url"
     }
 
+    fn usage(&self) -> &'static str {
+        "Parses the `value` in [URL](https://en.wikipedia.org/wiki/URL) format."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "The text of the URL.",
             },
             Parameter {
                 keyword: "default_known_ports",
                 kind: kind::BOOLEAN,
                 required: false,
+                description: "If true and the port number is not specified in the input URL
+string (or matches the default port for the scheme), it is
+populated from well-known ports for the following schemes:
+`http`, `https`, `ws`, `wss`, and `ftp`.",
             },
         ]
     }
@@ -28,28 +37,30 @@ impl Function for ParseUrl {
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "parse url",
-                source: r#"parse_url!("https://vector.dev")"#,
+                title: "Parse URL",
+                source: r#"parse_url!("ftp://foo:bar@example.com:4343/foobar?hello=world#123")"#,
                 result: Ok(indoc! {r#"
                 {
-                    "fragment": null,
-                    "host": "vector.dev",
-                    "password": "",
-                    "path": "/",
-                    "port": null,
-                    "query": {},
-                    "scheme": "https",
-                    "username": ""
+                    "fragment": "123",
+                    "host": "example.com",
+                    "password": "bar",
+                    "path": "/foobar",
+                    "port": 4343,
+                    "query": {
+                        "hello": "world"
+                    },
+                    "scheme": "ftp",
+                    "username": "foo"
                 }
             "#}),
             },
             example! {
-                title: "parse url with default ports",
-                source: r#"parse_url!("https://vector.dev", default_known_ports: true)"#,
+                title: "Parse URL with default port",
+                source: r#"parse_url!("https://example.com", default_known_ports: true)"#,
                 result: Ok(indoc! {r#"
                 {
                     "fragment": null,
-                    "host": "vector.dev",
+                    "host": "example.com",
                     "password": "",
                     "path": "/",
                     "port": 443,

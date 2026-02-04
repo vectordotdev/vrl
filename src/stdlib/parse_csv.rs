@@ -38,12 +38,23 @@ impl Function for ParseCsv {
         "parse_csv"
     }
 
+    fn usage(&self) -> &'static str {
+        "Parses a single CSV formatted row. Only the first row is parsed in case of multiline input value."
+    }
+
     fn examples(&self) -> &'static [Example] {
-        &[example! {
-            title: "parse a single CSV formatted row",
-            source: r#"parse_csv!(s'foo,bar,"foo "", bar"')"#,
-            result: Ok(r#"["foo", "bar", "foo \", bar"]"#),
-        }]
+        &[
+            example! {
+                title: "Parse a single CSV formatted row",
+                source: r#"parse_csv!(s'foo,bar,"foo "", bar"')"#,
+                result: Ok(r#"["foo", "bar", "foo \", bar"]"#),
+            },
+            example! {
+                title: "Parse a single CSV formatted row with custom delimiter",
+                source: r#"parse_csv!("foo bar", delimiter: " ")"#,
+                result: Ok(r#"["foo", "bar"]"#),
+            },
+        ]
     }
 
     fn compile(
@@ -63,11 +74,13 @@ impl Function for ParseCsv {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "The string to parse.",
             },
             Parameter {
                 keyword: "delimiter",
                 kind: kind::BYTES,
                 required: false,
+                description: "The field delimiter to use when parsing. Must be a single-byte utf8 character.",
             },
         ]
     }

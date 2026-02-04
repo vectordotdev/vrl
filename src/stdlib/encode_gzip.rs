@@ -39,11 +39,15 @@ impl Function for EncodeGzip {
         "encode_gzip"
     }
 
+    fn usage(&self) -> &'static str {
+        "Encodes the `value` to [Gzip](https://www.gzip.org/)."
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[example! {
-            title: "demo string",
-            source: r#"encode_base64(encode_gzip("encode_me"))"#,
-            result: Ok("H4sIAAAAAAAA/0vNS85PSY3PTQUAN7ZBnAkAAAA="),
+            title: "Encode to Gzip",
+            source: r#"encode_base64(encode_gzip("please encode me"))"#,
+            result: Ok("H4sIAAAAAAAA/yvISU0sTlVIzUvOT0lVyE0FAI4R4vcQAAAA"),
         }]
     }
 
@@ -69,11 +73,13 @@ impl Function for EncodeGzip {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "The string to encode.",
             },
             Parameter {
                 keyword: "compression_level",
                 kind: kind::INTEGER,
                 required: false,
+                description: "The default compression level.",
             },
         ]
     }

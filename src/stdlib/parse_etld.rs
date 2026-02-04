@@ -12,22 +12,34 @@ impl Function for ParseEtld {
         "parse_etld"
     }
 
+    fn usage(&self) -> &'static str {
+        "Parses the [eTLD](https://developer.mozilla.org/en-US/docs/Glossary/eTLD) from `value` representing domain name."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "The domain string.",
             },
             Parameter {
                 keyword: "plus_parts",
                 kind: kind::INTEGER,
                 required: false,
+                description:
+                    "Can be provided to get additional parts of the domain name. When 1 is passed,
+eTLD+1 will be returned, which represents a domain registrable by a single
+organization. Higher numbers will return subdomains.",
             },
             Parameter {
                 keyword: "psl",
                 kind: kind::BYTES,
                 required: false,
+                description: "Can be provided to use a different public suffix list.
+
+By default, https://publicsuffix.org/list/public_suffix_list.dat is used.",
             },
         ]
     }
@@ -35,34 +47,45 @@ impl Function for ParseEtld {
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "parse etld",
-                source: r#"parse_etld!("vector.dev")"#,
+                title: "Parse eTLD",
+                source: r#"parse_etld!("sub.sussex.ac.uk")"#,
                 result: Ok(indoc! {r#"
                 {
-                    "etld": "dev",
-                    "etld_plus": "dev",
+                    "etld": "ac.uk",
+                    "etld_plus": "ac.uk",
                     "known_suffix": true
                 }
             "#}),
             },
             example! {
-                title: "parse etld with plus parts",
-                source: r#"parse_etld!("vector.dev", plus_parts: 1)"#,
+                title: "Parse eTLD+1",
+                source: r#"parse_etld!("sub.sussex.ac.uk", plus_parts: 1)"#,
                 result: Ok(indoc! {r#"
                 {
-                    "etld": "dev",
-                    "etld_plus": "vector.dev",
+                    "etld": "ac.uk",
+                    "etld_plus": "sussex.ac.uk",
                     "known_suffix": true
                 }
             "#}),
             },
             example! {
-                title: "parse etld with unknown suffix",
-                source: r#"parse_etld!("vecor.unknowndev")"#,
+                title: "Parse eTLD with unknown suffix",
+                source: r#"parse_etld!("vector.acmecorp")"#,
                 result: Ok(indoc! {r#"
                 {
-                    "etld": "unknowndev",
-                    "etld_plus": "unknowndev",
+                    "etld": "acmecorp",
+                    "etld_plus": "acmecorp",
+                    "known_suffix": false
+                }
+            "#}),
+            },
+            example! {
+                title: "Parse eTLD with custom PSL",
+                source: r#"parse_etld!("vector.acmecorp", psl: "lib/tests/tests/functions/custom_public_suffix_list.dat")"#,
+                result: Ok(indoc! {r#"
+                {
+                    "etld": "acmecorp",
+                    "etld_plus": "acmecorp",
                     "known_suffix": false
                 }
             "#}),

@@ -31,17 +31,23 @@ impl Function for Sha3 {
         "sha3"
     }
 
+    fn usage(&self) -> &'static str {
+        "Calculates a [SHA-3](https://en.wikipedia.org/wiki/SHA-3) hash of the `value`."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "The string to calculate the hash for.",
             },
             Parameter {
                 keyword: "variant",
                 kind: kind::BYTES,
                 required: false,
+                description: "The variant of the algorithm to use.",
             },
         ]
     }
@@ -49,14 +55,19 @@ impl Function for Sha3 {
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "default variant",
+                title: "Calculate sha3 hash using default variant",
                 source: r#"sha3("foobar")"#,
                 result: Ok(
                     "ff32a30c3af5012ea395827a3e99a13073c3a8d8410a708568ff7e6eb85968fccfebaea039bc21411e9d43fdb9a851b529b9960ffea8679199781b8f45ca85e2",
                 ),
             },
             example! {
-                title: "custom variant",
+                title: "Calculate sha3 hash with SHA3-224",
+                source: r#"sha3("foo", variant: "SHA3-224")"#,
+                result: Ok("f4f6779e153c391bbd29c95e72b0708e39d9166c7cea51d1f10ef58a"),
+            },
+            example! {
+                title: "Calculate sha3 hash with SHA3-384",
                 source: r#"sha3("foobar", "SHA3-384")"#,
                 result: Ok(
                     "0fa8abfbdaf924ad307b74dd2ed183b9a4a398891a2f6bac8fd2db7041b77f068580f9c6c66f699b496c2da1cbcc7ed8",

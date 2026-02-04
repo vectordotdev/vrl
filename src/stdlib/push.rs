@@ -14,17 +14,23 @@ impl Function for Push {
         "push"
     }
 
+    fn usage(&self) -> &'static str {
+        "Adds the `item` to the end of the `value` array."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {
                 keyword: "value",
                 kind: kind::ARRAY,
                 required: true,
+                description: "The target array.",
             },
             Parameter {
                 keyword: "item",
                 kind: kind::ANY,
                 required: true,
+                description: "The item to push.",
             },
         ]
     }
@@ -32,12 +38,12 @@ impl Function for Push {
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "push item",
-                source: r#"push(["foo"], "bar")"#,
-                result: Ok(r#"["foo", "bar"]"#),
+                title: "Push an item onto an array",
+                source: r"push([1, 2], 3)",
+                result: Ok(r"[1, 2, 3]"),
             },
             example! {
-                title: "empty array",
+                title: "Empty array",
                 source: r#"push([], "bar")"#,
                 result: Ok(r#"["bar"]"#),
             },

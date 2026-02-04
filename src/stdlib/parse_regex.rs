@@ -20,22 +20,34 @@ impl Function for ParseRegex {
         "parse_regex"
     }
 
+    fn usage(&self) -> &'static str {
+        indoc! {"
+            Parses the `value` using the provided [Regex](https://en.wikipedia.org/wiki/Regular_expression) `pattern`.
+
+            This function differs from the `parse_regex_all` function in that it returns only the first match.
+        "}
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "The string to search.",
             },
             Parameter {
                 keyword: "pattern",
                 kind: kind::REGEX,
                 required: true,
+                description: "The regular expression pattern to search against.",
             },
             Parameter {
                 keyword: "numeric_groups",
                 kind: kind::BOOLEAN,
                 required: false,
+                description: "If true, the index of each group in the regular expression is also captured. Index `0`
+contains the whole match.",
             },
         ]
     }
@@ -63,7 +75,20 @@ impl Function for ParseRegex {
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "simple match",
+                title: "Parse using Regex (with capture groups)",
+                source: r#"parse_regex!("first group and second group.", r'(?P<number>.*?) group')"#,
+                result: Ok(r#"{"number": "first"}"#),
+            },
+            example! {
+                title: "Parse using Regex (without capture groups)",
+                source: r#"parse_regex!("first group and second group.", r'(\w+) group', numeric_groups: true)"#,
+                result: Ok(indoc! { r#"{
+                "0": "first group",
+                "1": "first"
+            }"# }),
+            },
+            example! {
+                title: "Parse using Regex with simple match",
                 source: r#"parse_regex!("8.7.6.5 - zorp", r'^(?P<host>[\w\.]+) - (?P<user>[\w]+)')"#,
                 result: Ok(indoc! { r#"{
                 "host": "8.7.6.5",
@@ -71,7 +96,7 @@ impl Function for ParseRegex {
             }"# }),
             },
             example! {
-                title: "numeric groups",
+                title: "Parse using Regex with all numeric groups",
                 source: r#"parse_regex!("8.7.6.5 - zorp", r'^(?P<host>[\w\.]+) - (?P<user>[\w]+)', numeric_groups: true)"#,
                 result: Ok(indoc! { r#"{
                 "0": "8.7.6.5 - zorp",
@@ -82,7 +107,7 @@ impl Function for ParseRegex {
             }"# }),
             },
             example! {
-                title: "match with variable",
+                title: "Parse using Regex with variable",
                 source: r#"
                 variable = r'^(?P<host>[\w\.]+) - (?P<user>[\w]+)';
                 parse_regex!("8.7.6.5 - zorp", variable)"#,

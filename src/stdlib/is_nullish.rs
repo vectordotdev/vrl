@@ -13,20 +13,42 @@ impl Function for IsNullish {
         "is_nullish"
     }
 
+    fn usage(&self) -> &'static str {
+        r#"Determines whether `value` is nullish. Returns `true` if the specified `value` is `null`, an empty string, a string containing only whitespace, or the string `"-"`. Returns `false` otherwise."#
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",
             kind: kind::ANY,
             required: true,
+            description: "The value to check for nullishness, for example, a useless value.",
         }]
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[example! {
-            title: "null",
-            source: "is_nullish(null)",
-            result: Ok("true"),
-        }]
+        &[
+            example! {
+                title: "Null detection (blank string)",
+                source: r#"is_nullish("")"#,
+                result: Ok("true"),
+            },
+            example! {
+                title: "Null detection (dash string)",
+                source: r#"is_nullish("-")"#,
+                result: Ok("true"),
+            },
+            example! {
+                title: "Null detection (whitespace)",
+                source: "is_nullish(\"\n  \n\")",
+                result: Ok("true"),
+            },
+            example! {
+                title: "Null",
+                source: "is_nullish(null)",
+                result: Ok("true"),
+            },
+        ]
     }
 
     fn compile(

@@ -87,9 +87,13 @@ impl Function for ParseAwsCloudWatchLogSubscriptionMessage {
         "parse_aws_cloudwatch_log_subscription_message"
     }
 
+    fn usage(&self) -> &'static str {
+        "Parses AWS CloudWatch Logs events (configured through AWS Cloudwatch subscriptions) from the `aws_kinesis_firehose` source."
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[example! {
-            title: "valid",
+            title: "Parse AWS Cloudwatch Log subscription message",
             source: indoc! {r#"
                 parse_aws_cloudwatch_log_subscription_message!(s'{
                     "messageType": "DATA_MESSAGE",
@@ -139,6 +143,7 @@ impl Function for ParseAwsCloudWatchLogSubscriptionMessage {
             keyword: "value",
             kind: kind::BYTES,
             required: true,
+            description: "The string representation of the message to parse.",
         }]
     }
 }

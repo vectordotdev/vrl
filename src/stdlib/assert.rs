@@ -27,17 +27,26 @@ impl Function for Assert {
         "assert"
     }
 
+    fn usage(&self) -> &'static str {
+        "Asserts the `condition`, which must be a Boolean expression. The program is aborted with `message` if the condition evaluates to `false`."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {
                 keyword: "condition",
                 kind: kind::BOOLEAN,
                 required: true,
+                description: "The condition to check.",
             },
             Parameter {
                 keyword: "message",
                 kind: kind::BYTES,
                 required: false,
+                description:
+                    "An optional custom error message. If the equality assertion fails, `message` is
+appended to the default message prefix. See the [examples](#assert-examples) below
+for a fully formed log message sample.",
             },
         ]
     }
@@ -45,19 +54,19 @@ impl Function for Assert {
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "success",
-                source: "assert!(true)",
+                title: "Assertion (true) - with message",
+                source: r#"assert!("foo" == "foo", message: "\"foo\" must be \"foo\"!")"#,
                 result: Ok("true"),
             },
             example! {
-                title: "failure",
-                source: "assert!(true == false)",
-                result: Err(r#"function call error for "assert" at (0:22): assertion failed"#),
+                title: "Assertion (false) - with message",
+                source: r#"assert!("foo" == "bar", message: "\"foo\" must be \"foo\"!")"#,
+                result: Err(r#"function call error for "assert" at (0:60): "foo" must be "foo"!"#),
             },
             example! {
-                title: "custom message",
-                source: "assert!(false, s'custom error')",
-                result: Err(r#"function call error for "assert" at (0:31): custom error"#),
+                title: "Assertion (false) - simple",
+                source: "assert!(false)",
+                result: Err(r#"function call error for "assert" at (0:14): assertion failed"#),
             },
         ]
     }

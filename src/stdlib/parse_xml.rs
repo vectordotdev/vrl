@@ -9,13 +9,17 @@ impl Function for ParseXml {
         "parse_xml"
     }
 
+    fn usage(&self) -> &'static str {
+        "Parses the `value` as XML."
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[example! {
-            title: "parse XML",
+            title: "Parse XML",
             source: indoc! {r#"
-				value = s'<book category="CHILDREN"><title lang="en">Harry Potter</title><author>J K. Rowling</author><year>2005</year></book>';
+                value = s'<book category="CHILDREN"><title lang="en">Harry Potter</title><author>J K. Rowling</author><year>2005</year></book>';
 
-				parse_xml!(value, text_key: "value", parse_number: false)
+                parse_xml!(value, text_key: "value", parse_number: false)
             "#},
             result: Ok(
                 r#"{ "book": { "@category": "CHILDREN", "author": "J K. Rowling", "title": { "@lang": "en", "value": "Harry Potter" }, "year": "2005" } }"#,
@@ -60,46 +64,55 @@ impl Function for ParseXml {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "The string representation of the XML document to parse.",
             },
             Parameter {
                 keyword: "trim",
                 kind: kind::BOOLEAN,
                 required: false,
+                description: "Remove excess whitespace between XML elements.",
             },
             Parameter {
                 keyword: "include_attr",
                 kind: kind::BOOLEAN,
                 required: false,
+                description: "Include XML tag attributes in the returned object.",
             },
             Parameter {
                 keyword: "attr_prefix",
                 kind: kind::BYTES,
                 required: false,
+                description: "String prefix to use for XML tag attribute keys.",
             },
             Parameter {
                 keyword: "text_key",
                 kind: kind::BYTES,
                 required: false,
+                description: "Key name to use for expanded text nodes.",
             },
             Parameter {
                 keyword: "always_use_text_key",
                 kind: kind::BOOLEAN,
                 required: false,
+                description: "Always return text nodes as `{\"<text_key>\": \"value\"}.`",
             },
             Parameter {
                 keyword: "parse_bool",
                 kind: kind::BOOLEAN,
                 required: false,
+                description: "Parse \"true\" and \"false\" as boolean.",
             },
             Parameter {
                 keyword: "parse_null",
                 kind: kind::BOOLEAN,
                 required: false,
+                description: "Parse \"null\" as null.",
             },
             Parameter {
                 keyword: "parse_number",
                 kind: kind::BOOLEAN,
                 required: false,
+                description: "Parse numbers as integers/floats.",
             },
         ]
     }

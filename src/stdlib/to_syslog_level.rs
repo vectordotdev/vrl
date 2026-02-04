@@ -25,20 +25,25 @@ impl Function for ToSyslogLevel {
         "to_syslog_level"
     }
 
+    fn usage(&self) -> &'static str {
+        r#"Converts the `value`, a Syslog [severity level](https://en.wikipedia.org/wiki/Syslog#Severity_level), into its corresponding keyword, i.e. 0 into `"emerg"`, 1 into `"alert"`, etc."#
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",
             kind: kind::INTEGER,
             required: true,
+            description: "The severity level.",
         }]
     }
 
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "valid",
-                source: "to_syslog_level!(0)",
-                result: Ok("emerg"),
+                title: "Coerce to a Syslog level",
+                source: "to_syslog_level!(5)",
+                result: Ok("notice"),
             },
             example! {
                 title: "invalid",

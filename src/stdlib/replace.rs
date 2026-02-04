@@ -47,27 +47,46 @@ impl Function for Replace {
         "replace"
     }
 
+    fn usage(&self) -> &'static str {
+        indoc! {"
+            Replaces all matching instances of `pattern` in `value`.
+
+            The `pattern` argument accepts regular expression capture groups.
+
+            **Note when using capture groups**:
+            - You will need to escape the `$` by using `$$` to avoid Vector interpreting it as an
+              [environment variable when loading configuration](/docs/reference/environment_variables/#escaping)
+            - If you want a literal `$` in the replacement pattern, you will also need to escape this
+              with `$$`. When combined with environment variable interpolation in config files this
+              means you will need to use `$$$$` to have a literal `$` in the replacement pattern.
+        "}
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "The original string.",
             },
             Parameter {
                 keyword: "pattern",
                 kind: kind::BYTES | kind::REGEX,
                 required: true,
+                description: "Replace all matches of this pattern. Can be a static string or a regular expression.",
             },
             Parameter {
                 keyword: "with",
                 kind: kind::BYTES,
                 required: true,
+                description: "The string that the matches are replaced with.",
             },
             Parameter {
                 keyword: "count",
                 kind: kind::INTEGER,
                 required: false,
+                description: "The maximum number of replacements to perform. `-1` means replace all matches.",
             },
         ]
     }
@@ -75,24 +94,29 @@ impl Function for Replace {
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "replace all",
-                source: r#"replace("foobar", "o", "i")"#,
-                result: Ok("fiibar"),
+                title: "Replace literal text",
+                source: r#"replace("Apples and Bananas", "and", "not")"#,
+                result: Ok("Apples not Bananas"),
             },
             example! {
-                title: "replace count",
-                source: r#"replace("foobar", "o", "i", count: 1)"#,
-                result: Ok("fiobar"),
+                title: "Replace using regular expression",
+                source: r#"replace("Apples and Bananas", r'(?i)bananas', "Pineapples")"#,
+                result: Ok("Apples and Pineapples"),
             },
             example! {
-                title: "replace regex",
-                source: r#"replace("foobar", r'o|a', "i")"#,
-                result: Ok("fiibir"),
+                title: "Replace first instance",
+                source: r#"replace("Bananas and Bananas", "Bananas", "Pineapples", count: 1)"#,
+                result: Ok("Pineapples and Bananas"),
             },
             example! {
-                title: "replace with capture group",
+                title: "Replace with capture groups",
                 source: r#"replace("foo123bar", r'foo(?P<num>\d+)bar', "$num")"#,
                 result: Ok(r#""123""#),
+            },
+            example! {
+                title: "Replace all",
+                source: r#"replace("foobar", "o", "i")"#,
+                result: Ok("fiibar"),
             },
         ]
     }

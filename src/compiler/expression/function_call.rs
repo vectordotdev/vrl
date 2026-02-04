@@ -1272,6 +1272,10 @@ mod tests {
             "test"
         }
 
+        fn usage(&self) -> &'static str {
+            "Test function"
+        }
+
         fn examples(&self) -> &'static [crate::compiler::function::Example] {
             &[]
         }
@@ -1282,16 +1286,19 @@ mod tests {
                     keyword: "one",
                     kind: kind::INTEGER,
                     required: false,
+                    description: "one",
                 },
                 Parameter {
                     keyword: "two",
                     kind: kind::INTEGER,
                     required: false,
+                    description: "two",
                 },
                 Parameter {
                     keyword: "three",
                     kind: kind::INTEGER,
                     required: false,
+                    description: "three",
                 },
             ]
         }

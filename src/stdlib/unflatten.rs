@@ -103,22 +103,29 @@ impl Function for Unflatten {
         "unflatten"
     }
 
+    fn usage(&self) -> &'static str {
+        "Unflattens the `value` into a nested representation."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {
                 keyword: "value",
                 kind: kind::OBJECT,
                 required: true,
+                description: "The array or object to unflatten.",
             },
             Parameter {
                 keyword: "separator",
                 kind: kind::BYTES,
                 required: false,
+                description: "The separator to split flattened keys.",
             },
             Parameter {
                 keyword: "recursive",
                 kind: kind::BOOLEAN,
                 required: false,
+                description: "Whether to recursively unflatten the object values.",
             },
         ]
     }
@@ -126,26 +133,31 @@ impl Function for Unflatten {
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "simple",
+                title: "Unflatten",
                 source: r#"unflatten({ "foo.bar.baz": true, "foo.bar.qux": false, "foo.quux": 42 })"#,
                 result: Ok(r#"{ "foo": { "bar": { "baz": true, "qux": false }, "quux": 42 } }"#),
             },
             example! {
-                title: "inner flattened recursive",
+                title: "Unflatten recursively",
                 source: r#"unflatten({ "flattened.parent": { "foo.bar": true, "foo.baz": false } })"#,
                 result: Ok(
                     r#"{ "flattened": { "parent": { "foo": { "bar": true, "baz": false } } } }"#,
                 ),
             },
             example! {
-                title: "inner flattened not recursive",
+                title: "Unflatten non-recursively",
                 source: r#"unflatten({ "flattened.parent": { "foo.bar": true, "foo.baz": false } }, recursive: false)"#,
                 result: Ok(
                     r#"{ "flattened": { "parent": { "foo.bar": true, "foo.baz": false } } }"#,
                 ),
             },
             example! {
-                title: "with custom separator",
+                title: "Ignore inconsistent keys values",
+                source: r#"unflatten({ "a": 3, "a.b": 2, "a.c": 4 })"#,
+                result: Ok(r#"{ "a": { "b": 2, "c": 4 } }"#),
+            },
+            example! {
+                title: "Unflatten with custom separator",
                 source: r#"unflatten({ "foo_bar": true }, "_")"#,
                 result: Ok(r#"{"foo": { "bar": true }}"#),
             },

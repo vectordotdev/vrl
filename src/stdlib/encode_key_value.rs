@@ -37,32 +37,41 @@ impl Function for EncodeKeyValue {
         "encode_key_value"
     }
 
+    fn usage(&self) -> &'static str {
+        "Encodes the `value` into key-value format with customizable delimiters. Default delimiters match the [logfmt](https://brandur.org/logfmt) format."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {
                 keyword: "value",
                 kind: kind::OBJECT,
                 required: true,
+                description: "The value to convert to a string.",
             },
             Parameter {
                 keyword: "fields_ordering",
                 kind: kind::ARRAY,
                 required: false,
+                description: "The ordering of fields to preserve. Any fields not in this list are listed unordered, after all ordered fields.",
             },
             Parameter {
                 keyword: "key_value_delimiter",
                 kind: kind::BYTES,
                 required: false,
+                description: "The string that separates the key from the value.",
             },
             Parameter {
                 keyword: "field_delimiter",
                 kind: kind::BYTES,
                 required: false,
+                description: "The string that separates each key-value pair.",
             },
             Parameter {
                 keyword: "flatten_boolean",
                 kind: kind::BOOLEAN,
                 required: false,
+                description: "Whether to encode key-value with a boolean value as a standalone key if `true` and nothing if `false`.",
             },
         ]
     }
@@ -101,19 +110,34 @@ impl Function for EncodeKeyValue {
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "encode object",
-                source: r#"encode_key_value({"lvl": "info", "msg": "This is a message", "log_id": 12345})"#,
-                result: Ok(r#"s'log_id=12345 lvl=info msg="This is a message"'"#),
+                title: "Encode with default delimiters (no ordering)",
+                source: r#"encode_key_value({"ts": "2021-06-05T17:20:00Z", "msg": "This is a message", "lvl": "info"})"#,
+                result: Ok(r#"lvl=info msg="This is a message" ts=2021-06-05T17:20:00Z"#),
             },
             example! {
-                title: "encode object with fields ordering",
-                source: r#"encode_key_value!({"msg": "This is a message", "lvl": "info", "log_id": 12345}, ["lvl", "msg"])"#,
-                result: Ok(r#"s'lvl=info msg="This is a message" log_id=12345'"#),
+                title: "Encode with default delimiters (fields ordering)",
+                source: r#"encode_key_value!({"ts": "2021-06-05T17:20:00Z", "msg": "This is a message", "lvl": "info", "log_id": 12345}, ["ts", "lvl", "msg"])"#,
+                result: Ok(r#"ts=2021-06-05T17:20:00Z lvl=info msg="This is a message" log_id=12345"#),
             },
             example! {
-                title: "custom delimiters",
-                source: r#"encode_key_value({"start": "ool", "end": "kul", "stop1": "yyc", "stop2" : "gdx"}, key_value_delimiter: ":", field_delimiter: ",")"#,
-                result: Ok("s'end:kul,start:ool,stop1:yyc,stop2:gdx'"),
+                title: "Encode with default delimiters (nested fields)",
+                source: r#"encode_key_value({"agent": {"name": "foo"}, "log": {"file": {"path": "my.log"}}, "event": "log"})"#,
+                result: Ok(r"agent.name=foo event=log log.file.path=my.log"),
+            },
+            example! {
+                title: "Encode with default delimiters (nested fields ordering)",
+                source: r#"encode_key_value!({"agent": {"name": "foo"}, "log": {"file": {"path": "my.log"}}, "event": "log"}, ["event", "log.file.path", "agent.name"])"#,
+                result: Ok(r"event=log log.file.path=my.log agent.name=foo"),
+            },
+            example! {
+                title: "Encode with custom delimiters (no ordering)",
+                source: r#"encode_key_value({"ts": "2021-06-05T17:20:00Z", "msg": "This is a message", "lvl": "info"}, field_delimiter: ",", key_value_delimiter: ":")"#,
+                result: Ok(r#"lvl:info,msg:"This is a message",ts:2021-06-05T17:20:00Z"#),
+            },
+            example! {
+                title: "Encode with custom delimiters and flatten boolean",
+                source: r#"encode_key_value({"ts": "2021-06-05T17:20:00Z", "msg": "This is a message", "lvl": "info", "beta": true, "dropped": false}, field_delimiter: ",", key_value_delimiter: ":", flatten_boolean: true)"#,
+                result: Ok(r#"beta,lvl:info,msg:"This is a message",ts:2021-06-05T17:20:00Z"#),
             },
         ]
     }

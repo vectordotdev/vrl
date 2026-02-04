@@ -38,17 +38,23 @@ impl Function for DecodeBase64 {
         "decode_base64"
     }
 
+    fn usage(&self) -> &'static str {
+        "Decodes the `value` (a [Base64](https://en.wikipedia.org/wiki/Base64) string) into its original string."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "The [Base64](https://en.wikipedia.org/wiki/Base64) data to decode.",
             },
             Parameter {
                 keyword: "charset",
                 kind: kind::BYTES,
                 required: false,
+                description: "The character set to use when decoding the data.",
             },
         ]
     }
@@ -66,11 +72,18 @@ impl Function for DecodeBase64 {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[example! {
-            title: "demo string",
-            source: r#"decode_base64!("c29tZSBzdHJpbmcgdmFsdWU=")"#,
-            result: Ok("some string value"),
-        }]
+        &[
+            example! {
+                title: "Decode Base64 data (default)",
+                source: r#"decode_base64!("eW91IGhhdmUgc3VjY2Vzc2Z1bGx5IGRlY29kZWQgbWU=")"#,
+                result: Ok("you have successfully decoded me"),
+            },
+            example! {
+                title: "Decode Base64 data (URL safe)",
+                source: r#"decode_base64!("eW91IGNhbid0IG1ha2UgeW91ciBoZWFydCBmZWVsIHNvbWV0aGluZyBpdCB3b24ndA==", charset: "url_safe")"#,
+                result: Ok("you can't make your heart feel something it won't"),
+            },
+        ]
     }
 }
 

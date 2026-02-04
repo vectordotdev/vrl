@@ -25,11 +25,22 @@ impl Function for IpNtop {
         "ip_ntop"
     }
 
+    fn usage(&self) -> &'static str {
+        indoc! {"
+            Converts IPv4 and IPv6 addresses from binary to text form.
+
+            This behavior mimics [inet_ntop](https://linux.die.net/man/3/inet_ntop).
+        "}
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",
             kind: kind::BYTES,
             required: true,
+            description: "The binary data to convert from.
+For IPv4 addresses, it must be 4 bytes (32 bits) long.
+For IPv6 addresses, it must be 16 bytes (128 bits) long.",
         }]
     }
 

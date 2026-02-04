@@ -36,24 +36,30 @@ impl Function for RandomFloat {
         "random_float"
     }
 
+    fn usage(&self) -> &'static str {
+        "Returns a random float between [min, max)."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {
                 keyword: "min",
                 kind: kind::FLOAT,
                 required: true,
+                description: "Minimum value (inclusive).",
             },
             Parameter {
                 keyword: "max",
                 kind: kind::FLOAT,
                 required: true,
+                description: "Maximum value (exclusive).",
             },
         ]
     }
 
     fn examples(&self) -> &'static [Example] {
         &[example! {
-            title: "generate a random float from 0.0 to 10.0",
+            title: "Random float from 0.0 to 10.0, not including 10.0",
             source: "
 				f = random_float(0.0, 10.0)
 				f >= 0 && f < 10

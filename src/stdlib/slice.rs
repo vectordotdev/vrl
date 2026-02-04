@@ -50,22 +50,35 @@ impl Function for Slice {
         "slice"
     }
 
+    fn usage(&self) -> &'static str {
+        indoc! {"
+            Returns a slice of `value` between the `start` and `end` positions.
+
+            If the `start` and `end` parameters are negative, they refer to positions counting from the right of the
+            string or array. If `end` refers to a position that is greater than the length of the string or array,
+            a slice up to the end of the string or array is returned.
+        "}
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {
                 keyword: "value",
                 kind: kind::BYTES | kind::ARRAY,
                 required: true,
+                description: "The string or array to slice.",
             },
             Parameter {
                 keyword: "start",
                 kind: kind::INTEGER,
                 required: true,
+                description: "The inclusive start position. A zero-based index that can be negative.",
             },
             Parameter {
                 keyword: "end",
                 kind: kind::INTEGER,
                 required: false,
+                description: "The exclusive end position. A zero-based index that can be negative.",
             },
         ]
     }
@@ -73,17 +86,22 @@ impl Function for Slice {
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "string start",
+                title: "Slice a string (positive index)",
+                source: r#"slice!("Supercalifragilisticexpialidocious", start: 5, end: 13)"#,
+                result: Ok("califrag"),
+            },
+            example! {
+                title: "Slice a string (negative index)",
+                source: r#"slice!("Supercalifragilisticexpialidocious", start: 5, end: -14)"#,
+                result: Ok("califragilistic"),
+            },
+            example! {
+                title: "String start",
                 source: r#"slice!("foobar", 3)"#,
                 result: Ok("bar"),
             },
             example! {
-                title: "string start..end",
-                source: r#"slice!("foobar", 2, 4)"#,
-                result: Ok("ob"),
-            },
-            example! {
-                title: "array start",
+                title: "Array start",
                 source: "slice!([0, 1, 2], 1)",
                 result: Ok("[1, 2]"),
             },

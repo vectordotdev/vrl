@@ -9,15 +9,24 @@ impl Function for TagTypesExternally {
         "tag_types_externally"
     }
 
+    fn usage(&self) -> &'static str {
+        indoc! {"
+            Adds type information to all (nested) scalar values in the provided `value`.
+
+            The type information is added externally, meaning that `value` has the form of `\"type\": value` after this
+            transformation.
+        "}
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "scalar",
+                title: "Tag types externally (scalar)",
                 source: "tag_types_externally(123)",
                 result: Ok(r#"{ "integer": 123 }"#),
             },
             example! {
-                title: "object",
+                title: "Tag types externally (object)",
                 source: indoc! {r#"
                     tag_types_externally({
                         "message": "Hello world",
@@ -31,12 +40,12 @@ impl Function for TagTypesExternally {
                 ),
             },
             example! {
-                title: "array",
+                title: "Tag types externally (array)",
                 source: r#"tag_types_externally(["foo", "bar"])"#,
                 result: Ok(r#"[{ "string": "foo" }, { "string": "bar" }]"#),
             },
             example! {
-                title: "null",
+                title: "Tag types externally (null)",
                 source: "tag_types_externally(null)",
                 result: Ok("null"),
             },
@@ -59,6 +68,7 @@ impl Function for TagTypesExternally {
             keyword: "value",
             kind: kind::ANY,
             required: true,
+            description: "The value to tag with types.",
         }]
     }
 }

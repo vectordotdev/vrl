@@ -15,23 +15,31 @@ impl Function for String {
         "string"
     }
 
+    fn usage(&self) -> &'static str {
+        "Returns `value` if it is a string, otherwise returns an error. This enables the type checker to guarantee that the returned value is a string and can be used in any function that expects a string."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",
             kind: kind::ANY,
             required: true,
+            description: "The value to check if it is a string.",
         }]
     }
 
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "valid",
-                source: r#"string("foobar")"#,
-                result: Ok("foobar"),
+                title: "Declare a string type",
+                source: indoc! {r#"
+                    . = { "message": "{\"field\": \"value\"}" }
+                    string(.message)
+                "#},
+                result: Ok(r#""{\"field\": \"value\"}""#),
             },
             example! {
-                title: "invalid",
+                title: "Invalid type",
                 source: "string!(true)",
                 result: Err(
                     r#"function call error for "string" at (0:13): expected string, got boolean"#,

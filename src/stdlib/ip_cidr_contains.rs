@@ -65,17 +65,23 @@ impl Function for IpCidrContains {
         "ip_cidr_contains"
     }
 
+    fn usage(&self) -> &'static str {
+        "Determines whether the `ip` is contained in the block referenced by the `cidr`."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {
                 keyword: "cidr",
                 kind: kind::BYTES | kind::ARRAY,
                 required: true,
+                description: "The CIDR mask (v4 or v6).",
             },
             Parameter {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "The IP address (v4 or v6).",
             },
         ]
     }
@@ -83,17 +89,27 @@ impl Function for IpCidrContains {
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "in range",
-                source: r#"ip_cidr_contains!("192.168.0.0/16", "192.168.0.1")"#,
+                title: "IPv4 contains CIDR",
+                source: r#"ip_cidr_contains!("192.168.0.0/16", "192.168.10.32")"#,
                 result: Ok("true"),
             },
             example! {
-                title: "not in range",
+                title: "IPv4 is private",
+                source: r#"ip_cidr_contains!(["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"], "192.168.10.32")"#,
+                result: Ok("true"),
+            },
+            example! {
+                title: "IPv6 contains CIDR",
+                source: r#"ip_cidr_contains!("2001:4f8:4:ba::/64", "2001:4f8:4:ba:2e0:81ff:fe22:d1f1")"#,
+                result: Ok("true"),
+            },
+            example! {
+                title: "Not in range",
                 source: r#"ip_cidr_contains!("192.168.0.0/24", "192.168.10.32")"#,
                 result: Ok("false"),
             },
             example! {
-                title: "invalid address",
+                title: "Invalid address",
                 source: r#"ip_cidr_contains!("192.168.0.0/24", "INVALID")"#,
                 result: Err(
                     r#"function call error for "ip_cidr_contains" at (0:46): unable to parse IP address: invalid IP address syntax"#,

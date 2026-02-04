@@ -25,20 +25,25 @@ impl Function for ToSyslogSeverity {
         "to_syslog_severity"
     }
 
+    fn usage(&self) -> &'static str {
+        "Converts the `value`, a Syslog [log level keyword](https://en.wikipedia.org/wiki/Syslog#Severity_level), into a Syslog integer severity level (`0` to `7`)."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",
             kind: kind::BYTES,
             required: true,
+            description: "The Syslog level keyword to convert.",
         }]
     }
 
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "valid",
-                source: "to_syslog_severity!(s'crit')",
-                result: Ok("2"),
+                title: "Coerce to Syslog severity",
+                source: r#"to_syslog_severity!("alert")"#,
+                result: Ok("1"),
             },
             example! {
                 title: "invalid",

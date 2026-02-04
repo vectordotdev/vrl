@@ -193,15 +193,6 @@ pub fn run_tests<T>(
     print_result(total_count, failed_count, warnings_count, failed_tests);
 }
 
-fn sanitize_lines(input: String) -> String {
-    input
-        .lines()
-        .filter(|line| !line.is_empty())
-        .map(|line| line.trim())
-        .collect::<Vec<&str>>()
-        .join("\n")
-}
-
 fn process_result(
     result: Result<Value, Terminate>,
     test: &mut Test,
@@ -324,9 +315,14 @@ fn process_compilation_diagnostics(
     let mut failed = false;
 
     let mut formatter = Formatter::new(&test.source, diagnostics);
-    let got = sanitize_lines(formatter.to_string());
-    let want = sanitize_lines(test.result.clone());
-    if (test.result_approx && compare_partial_diagnostic(&got, &want)) || got == want {
+
+    let got = formatter.to_string();
+    let got = got.trim();
+
+    let want = test.result.clone();
+    let want = want.trim();
+
+    if (test.result_approx && compare_partial_diagnostic(got, want)) || got == want {
         let timings = {
             let timings_fmt = if cfg.timings {
                 format!(" ({compile_timing_fmt})")
@@ -340,7 +336,7 @@ fn process_compilation_diagnostics(
         println!("{} (compilation)", Colour::Red.bold().paint("FAILED"));
 
         if !cfg.no_diff {
-            let diff = prettydiff::diff_lines(&want, &got);
+            let diff = prettydiff::diff_lines(want, got);
             println!("{diff}");
         }
 

@@ -61,42 +61,53 @@ impl Function for Compact {
         "compact"
     }
 
+    fn usage(&self) -> &'static str {
+        "Compacts the `value` by removing empty values, where empty values are defined using the available parameters."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {
                 keyword: "value",
                 kind: kind::OBJECT | kind::ARRAY,
                 required: true,
+                description: "The object or array to compact.",
             },
             Parameter {
                 keyword: "recursive",
                 kind: kind::BOOLEAN,
                 required: false,
+                description: "Whether the compaction be recursive.",
             },
             Parameter {
                 keyword: "null",
                 kind: kind::BOOLEAN,
                 required: false,
+                description: "Whether null should be treated as an empty value.",
             },
             Parameter {
                 keyword: "string",
                 kind: kind::BOOLEAN,
                 required: false,
+                description: "Whether an empty string should be treated as an empty value.",
             },
             Parameter {
                 keyword: "object",
                 kind: kind::BOOLEAN,
                 required: false,
+                description: "Whether an empty object should be treated as an empty value.",
             },
             Parameter {
                 keyword: "array",
                 kind: kind::BOOLEAN,
                 required: false,
+                description: "Whether an empty array should be treated as an empty value.",
             },
             Parameter {
                 keyword: "nullish",
                 kind: kind::BOOLEAN,
                 required: false,
+                description: "Tests whether the value is \"nullish\" as defined by the [`is_nullish`](#is_nullish) function.",
             },
         ]
     }
@@ -104,14 +115,29 @@ impl Function for Compact {
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "object",
+                title: "Compact an object with default parameters",
+                source: r#"compact({"field1": 1, "field2": "", "field3": [], "field4": null})"#,
+                result: Ok(r#"{ "field1": 1 }"#),
+            },
+            example! {
+                title: "Compact an array with default parameters",
+                source: r#"compact(["foo", "bar", "", null, [], "buzz"])"#,
+                result: Ok(r#"["foo","bar","buzz"]"#),
+            },
+            example! {
+                title: "Compact an array using nullish",
+                source: r#"compact(["-", "   ", "\n", null, true], nullish: true)"#,
+                result: Ok("[true]"),
+            },
+            example! {
+                title: "Compact a more complex object with default parameters",
                 source: r#"compact({ "a": {}, "b": null, "c": [null], "d": "", "e": "-", "f": true })"#,
                 result: Ok(r#"{ "e": "-", "f": true }"#),
             },
             example! {
-                title: "nullish",
-                source: r#"compact(["-", "   ", "\n", null, true], nullish: true)"#,
-                result: Ok("[true]"),
+                title: "Compact a more complex object using null: false",
+                source: r#"compact({ "a": {}, "b": null, "c": [null], "d": "", "e": "-", "f": true }, null: false)"#,
+                result: Ok(r#"{ "b": null, "c": [null], "e": "-", "f": true }"#),
             },
         ]
     }

@@ -41,37 +41,62 @@ impl Function for Sieve {
         "sieve"
     }
 
+    fn usage(&self) -> &'static str {
+        indoc! {"
+            Keeps only matches of `pattern` in `value`.
+
+            This can be used to define patterns that are allowed in the string and
+            remove everything else.
+        "}
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "The original string.",
             },
             Parameter {
                 keyword: "permitted_characters",
                 kind: kind::REGEX,
                 required: true,
+                description: "Keep all matches of this pattern.",
             },
             Parameter {
                 keyword: "replace_single",
                 kind: kind::BYTES,
                 required: false,
+                description: "The string to use to replace single rejected characters.",
             },
             Parameter {
                 keyword: "replace_repeated",
                 kind: kind::BYTES,
                 required: false,
+                description: "The string to use to replace multiple sequential instances of rejected characters.",
             },
         ]
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[example! {
-            title: "sieve simple",
-            source: r#"sieve("vector.dev", permitted_characters: r'[a-z]')"#,
-            result: Ok("vectordev"),
-        }]
+        &[
+            example! {
+                title: "Keep only lowercase letters",
+                source: r#"sieve("vector.dev/lowerUPPER", permitted_characters: r'[a-z]')"#,
+                result: Ok("vectordevlower"),
+            },
+            example! {
+                title: "Sieve with regex",
+                source: r#"sieve("test123%456.فوائد.net.", r'[a-z0-9.]')"#,
+                result: Ok("test123456..net."),
+            },
+            example! {
+                title: "Custom replacements",
+                source: r#"sieve("test123%456.فوائد.net.", r'[a-z.0-9]', replace_single: "X", replace_repeated: "<REMOVED>")"#,
+                result: Ok("test123X456.<REMOVED>.net."),
+            },
+        ]
     }
 
     fn compile(

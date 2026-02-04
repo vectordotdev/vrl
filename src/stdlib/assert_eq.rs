@@ -25,22 +25,32 @@ impl Function for AssertEq {
         "assert_eq"
     }
 
+    fn usage(&self) -> &'static str {
+        "Asserts that two expressions, `left` and `right`, have the same value. The program is aborted with `message` if they do not have the same value."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {
                 keyword: "left",
                 kind: kind::ANY,
                 required: true,
+                description: "The value to check for equality against `right`.",
             },
             Parameter {
                 keyword: "right",
                 kind: kind::ANY,
                 required: true,
+                description: "The value to check for equality against `left`.",
             },
             Parameter {
                 keyword: "message",
                 kind: kind::BYTES,
                 required: false,
+                description:
+                    "An optional custom error message. If the equality assertion fails, `message` is
+appended to the default message prefix. See the [examples](#assert_eq-examples)
+below for a fully formed log message sample.",
             },
         ]
     }
@@ -48,21 +58,21 @@ impl Function for AssertEq {
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "success",
-                source: "assert_eq!(true, true)",
+                title: "Successful assertion",
+                source: "assert_eq!(1, 1)",
                 result: Ok("true"),
             },
             example! {
-                title: "failure",
-                source: "assert_eq!(true, false)",
+                title: "Unsuccessful assertion",
+                source: "assert_eq!(127, [1, 2, 3])",
                 result: Err(
-                    r#"function call error for "assert_eq" at (0:23): assertion failed: true == false"#,
+                    r#"function call error for "assert_eq" at (0:26): assertion failed: 127 == [1, 2, 3]"#,
                 ),
             },
             example! {
-                title: "custom message",
-                source: "assert_eq!(true, false, s'custom error')",
-                result: Err(r#"function call error for "assert_eq" at (0:40): custom error"#),
+                title: "Unsuccessful assertion with custom log message",
+                source: r#"assert_eq!(1, 0, message: "Unequal integers")"#,
+                result: Err(r#"function call error for "assert_eq" at (0:45): Unequal integers"#),
             },
         ]
     }

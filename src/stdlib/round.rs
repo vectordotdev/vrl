@@ -27,17 +27,23 @@ impl Function for Round {
         "round"
     }
 
+    fn usage(&self) -> &'static str {
+        "Rounds the `value` to the specified `precision`."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {
                 keyword: "value",
                 kind: kind::INTEGER | kind::FLOAT,
                 required: true,
+                description: "The number to round.",
             },
             Parameter {
                 keyword: "precision",
                 kind: kind::INTEGER,
                 required: false,
+                description: "The number of decimal places to round to.",
             },
         ]
     }
@@ -45,19 +51,24 @@ impl Function for Round {
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "round up",
+                title: "Round a number (without precision)",
+                source: "round(4.345)",
+                result: Ok("4.0"),
+            },
+            example! {
+                title: "Round a number (with precision)",
+                source: "round(4.345, precision: 2)",
+                result: Ok("4.35"),
+            },
+            example! {
+                title: "Round up",
                 source: "round(5.5)",
                 result: Ok("6.0"),
             },
             example! {
-                title: "round down",
+                title: "Round down",
                 source: "round(5.45)",
                 result: Ok("5.0"),
-            },
-            example! {
-                title: "precision",
-                source: "round(5.45, 1)",
-                result: Ok("5.5"),
             },
         ]
     }

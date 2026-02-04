@@ -27,11 +27,16 @@ impl Function for DirName {
         "dirname"
     }
 
+    fn usage(&self) -> &'static str {
+        "Returns the directory component of the given `path`. This is similar to the Unix `dirname` command. The directory component is the path with the final component removed."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",
             kind: kind::BYTES,
             required: true,
+            description: "The path from which to extract the directory name.",
         }]
     }
 

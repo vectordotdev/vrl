@@ -24,22 +24,29 @@ impl Function for FormatTimestamp {
         "format_timestamp"
     }
 
+    fn usage(&self) -> &'static str {
+        "Formats `value` into a string representation of the timestamp."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {
                 keyword: "value",
                 kind: kind::TIMESTAMP,
                 required: true,
+                description: "The timestamp to format as text.",
             },
             Parameter {
                 keyword: "format",
                 kind: kind::BYTES,
                 required: true,
+                description: "The format string as described by the [Chrono library](https://docs.rs/chrono/latest/chrono/format/strftime/index.html#specifiers).",
             },
             Parameter {
                 keyword: "timezone",
                 kind: kind::BYTES,
                 required: false,
+                description: "The timezone to use when formatting the timestamp. The parameter uses the TZ identifier or `local`.",
             },
         ]
     }
@@ -65,12 +72,22 @@ impl Function for FormatTimestamp {
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "format timestamp",
+                title: "Format a timestamp (ISO8601/RFC 3339)",
+                source: r#"format_timestamp!(t'2020-10-21T16:00:00Z', format: "%+")"#,
+                result: Ok("2020-10-21T16:00:00+00:00"),
+            },
+            example! {
+                title: "Format a timestamp (custom)",
+                source: r#"format_timestamp!(t'2020-10-21T16:00:00Z', format: "%v %R")"#,
+                result: Ok("21-Oct-2020 16:00"),
+            },
+            example! {
+                title: "Format a timestamp with custom format string",
                 source: r#"format_timestamp!(t'2021-02-10T23:32:00+00:00', format: "%d %B %Y %H:%M")"#,
                 result: Ok("10 February 2021 23:32"),
             },
             example! {
-                title: "format timestamp with tz",
+                title: "Format a timestamp with timezone conversion",
                 source: r#"format_timestamp!(t'2021-02-10T23:32:00+00:00', format: "%d %B %Y %H:%M", timezone: "Europe/Berlin")"#,
                 result: Ok("11 February 2021 00:32"),
             },

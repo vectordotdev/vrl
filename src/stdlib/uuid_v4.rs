@@ -16,6 +16,10 @@ impl Function for UuidV4 {
         "uuid_v4"
     }
 
+    fn usage(&self) -> &'static str {
+        "Generates a random [UUIDv4](https://en.wikipedia.org/wiki/Universally_unique_identifier#Version_4_(random)) string."
+    }
+
     #[cfg(not(feature = "__mock_return_values_for_tests"))]
     fn examples(&self) -> &'static [Example] {
         &[example! {

@@ -45,17 +45,30 @@ impl Function for Get {
         "get"
     }
 
+    fn usage(&self) -> &'static str {
+        indoc! {"
+            Dynamically get the value of a given path.
+
+            If you know the path you want to look up, use
+            static paths such as `.foo.bar[1]` to get the value of that
+            path. However, if you do not know the path names,
+            use the dynamic `get` function to get the requested value.
+        "}
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {
                 keyword: "value",
                 kind: kind::OBJECT | kind::ARRAY,
                 required: true,
+                description: "The object or array to query.",
             },
             Parameter {
                 keyword: "path",
                 kind: kind::ARRAY,
                 required: true,
+                description: "An array of path segments to look for the value.",
             },
         ]
     }
@@ -63,32 +76,37 @@ impl Function for Get {
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "returns existing field",
+                title: "Single-segment top-level field",
                 source: r#"get!(value: {"foo": "bar"}, path: ["foo"])"#,
                 result: Ok(r#""bar""#),
             },
             example! {
-                title: "returns null for unknown field",
+                title: "Returns null for unknown field",
                 source: r#"get!(value: {"foo": "bar"}, path: ["baz"])"#,
                 result: Ok("null"),
             },
             example! {
-                title: "nested path",
+                title: "Multi-segment nested field",
                 source: r#"get!(value: {"foo": { "bar": true }}, path: ["foo", "bar"])"#,
                 result: Ok("true"),
             },
             example! {
-                title: "indexing",
+                title: "Array indexing",
                 source: "get!(value: [92, 42], path: [0])",
                 result: Ok("92"),
             },
             example! {
-                title: "nested indexing",
+                title: "Array indexing (negative)",
+                source: r#"get!(value: ["foo", "bar", "baz"], path: [-2])"#,
+                result: Ok(r#""bar""#),
+            },
+            example! {
+                title: "Nested indexing",
                 source: r#"get!(value: {"foo": { "bar": [92, 42] }}, path: ["foo", "bar", 1])"#,
                 result: Ok("42"),
             },
             example! {
-                title: "external target",
+                title: "External target",
                 source: indoc! {r#"
                     . = { "foo": true }
                     get!(value: ., path: ["foo"])
@@ -96,7 +114,7 @@ impl Function for Get {
                 result: Ok("true"),
             },
             example! {
-                title: "variable",
+                title: "Variable",
                 source: indoc! {r#"
                     var = { "foo": true }
                     get!(value: var, path: ["foo"])
@@ -104,17 +122,17 @@ impl Function for Get {
                 result: Ok("true"),
             },
             example! {
-                title: "missing index",
+                title: "Missing index",
                 source: r#"get!(value: {"foo": { "bar": [92, 42] }}, path: ["foo", "bar", 1, -1])"#,
                 result: Ok("null"),
             },
             example! {
-                title: "invalid indexing",
+                title: "Invalid indexing",
                 source: r#"get!(value: [42], path: ["foo"])"#,
                 result: Ok("null"),
             },
             example! {
-                title: "invalid segment type",
+                title: "Invalid segment type",
                 source: r#"get!(value: {"foo": { "bar": [92, 42] }}, path: ["foo", true])"#,
                 result: Err(
                     r#"function call error for "get" at (0:62): path segment must be either string or integer, not boolean"#,

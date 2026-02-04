@@ -40,22 +40,39 @@ impl Function for Hmac {
         "hmac"
     }
 
+    fn usage(&self) -> &'static str {
+        indoc! {"
+            Calculates a [HMAC](https://en.wikipedia.org/wiki/HMAC) of the `value` using the given `key`.
+            The hashing `algorithm` used can be optionally specified.
+
+            For most use cases, the resulting bytestream should be encoded into a hex or base64
+            string using either [encode_base16](/docs/reference/vrl/functions/#encode_base16) or
+            [encode_base64](/docs/reference/vrl/functions/#encode_base64).
+
+            This function is infallible if either the default `algorithm` value or a recognized-valid compile-time
+            `algorithm` string literal is used. Otherwise, it is fallible.
+        "}
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "The string to calculate the HMAC for.",
             },
             Parameter {
                 keyword: "key",
                 kind: kind::BYTES,
                 required: true,
+                description: "The string to use as the cryptographic key.",
             },
             Parameter {
                 keyword: "algorithm",
                 kind: kind::BYTES,
                 required: false,
+                description: "The hashing algorithm to use.",
             },
         ]
     }
@@ -63,14 +80,30 @@ impl Function for Hmac {
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "default SHA-256",
+                title: "Calculate message HMAC (defaults: SHA-256), encoding to a base64 string",
                 source: r#"encode_base64(hmac("Hello there", "super-secret-key"))"#,
                 result: Ok("eLGE8YMviv85NPXgISRUZxstBNSU47JQdcXkUWcClmI="),
             },
             example! {
-                title: "SHA1",
+                title: "Calculate message HMAC using SHA-224, encoding to a hex-encoded string",
+                source: r#"encode_base16(hmac("Hello there", "super-secret-key", algorithm: "SHA-224"))"#,
+                result: Ok("42fccbc2b7d22a143b92f265a8046187558a94d11ddbb30622207e90"),
+            },
+            example! {
+                title: "Calculate message HMAC using SHA1, encoding to a base64 string",
                 source: r#"encode_base64(hmac("Hello there", "super-secret-key", algorithm: "SHA1"))"#,
                 result: Ok("MiyBIHO8Set9+6crALiwkS0yFPE="),
+            },
+            example! {
+                title: "Calculate message HMAC using a variable hash algorithm",
+                source: r#"
+.hash_algo = "SHA-256"
+hmac_bytes, err = hmac("Hello there", "super-secret-key", algorithm: .hash_algo)
+if err == null {
+	.hmac = encode_base16(hmac_bytes)
+}
+"#,
+                result: Ok("78b184f1832f8aff3934f5e0212454671b2d04d494e3b25075c5e45167029662"),
             },
         ]
     }

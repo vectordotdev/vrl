@@ -4,6 +4,42 @@
 
 <!-- changelog start -->
 
+## [0.30.0 (2026-01-22)]
+
+### Breaking Changes & Upgrade Guide
+
+- The `usage()` method on the `Function` trait is now required. Custom VRL functions must implement this
+  method to return a `&'static str` describing the function's purpose.
+
+  authors: thomasqueirozb (https://github.com/vectordotdev/vrl/pull/1608)
+
+### Fixes
+
+- Corrected the type definition for `format_int` function to return bytes instead of integer.
+
+  authors: thomasqueirozb (https://github.com/vectordotdev/vrl/pull/1586)
+
+
+## [0.29.0 (2025-12-11)]
+
+### Breaking Changes & Upgrade Guide
+
+- Added required `line` and `file` fields to `vrl::compiler::function::Example`. Also added the
+  `example!` macro to automatically populate those fields.
+
+  authors: thomasqueirozb (https://github.com/vectordotdev/vrl/pull/1557)
+
+### Fixes
+
+- Fixed handling of OR conjunctions in the datadog search query parser (https://github.com/vectordotdev/vrl/pull/1542)
+- Fixed a bug where VRL would crash if `merge` were called without a `to` argument.
+
+  authors: thomasqueirozb (https://github.com/vectordotdev/vrl/pull/1563)
+- Fixed a bug where a stack overflow would happen in validate_json_schema if the schema had an empty $ref.
+
+  authors: jlambatl (https://github.com/vectordotdev/vrl/pull/1577)
+
+
 ## [0.28.1 (2025-11-07)]
 
 ### Fixes
@@ -180,7 +216,7 @@
 - The `parse_syslog` function now treats RFC 3164 structured data items with no parameters (e.g., `[exampleSDID@32473]`) as part of the main
   message, rather than parsing them as structured data. Items with parameters (e.g., `[exampleSDID@32473 field="value"]`) continue to be
   parsed as structured data. (https://github.com/vectordotdev/vrl/pull/1435)
-- `encode_lz4`  no longer prepends the uncompressed size by default, improving compatibility with standard LZ4 tools. A new `prepend_size` flag restores the old behavior if needed. Also, `decode_lz4` now also accepts `prepend_size` and a `buf_size` option (default: 1MB). 
+- `encode_lz4`  no longer prepends the uncompressed size by default, improving compatibility with standard LZ4 tools. A new `prepend_size` flag restores the old behavior if needed. Also, `decode_lz4` now also accepts `prepend_size` and a `buf_size` option (default: 1MB).
 
   Existing users of `encode_lz4` and `decode_lz4` will need to update their functions to include the argument `prepend_size: true` to maintain existing compatibility.
 

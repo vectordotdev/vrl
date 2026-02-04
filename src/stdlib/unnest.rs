@@ -61,34 +61,46 @@ impl Function for Unnest {
         "unnest"
     }
 
+    fn usage(&self) -> &'static str {
+        indoc! {"
+            Unnest an array field from an object to create an array of objects using that field; keeping all other fields.
+
+            Assigning the array result of this to `.` results in multiple events being emitted from `remap`. See the
+            [`remap` transform docs](/docs/reference/configuration/transforms/remap/#emitting-multiple-log-events) for more details.
+
+            This is also referred to as `explode` in some languages.
+        "}
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "path",
             kind: kind::ARRAY,
             required: true,
+            description: "The path of the field to unnest.",
         }]
     }
 
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "external target",
+                title: "Unnest an array field",
                 source: indoc! {r#"
-                    . = {"hostname": "localhost", "events": [{"message": "hello"}, {"message": "world"}]}
-                    . = unnest(.events)
+                    . = {"hostname": "localhost", "messages": ["message 1", "message 2"]}
+                    . = unnest(.messages)
                 "#},
                 result: Ok(
-                    r#"[{"hostname": "localhost", "events": {"message": "hello"}}, {"hostname": "localhost", "events": {"message": "world"}}]"#,
+                    r#"[{"hostname": "localhost", "messages": "message 1"}, {"hostname": "localhost", "messages": "message 2"}]"#,
                 ),
             },
             example! {
-                title: "variable target",
+                title: "Unnest a nested array field",
                 source: indoc! {r#"
-                    foo = {"hostname": "localhost", "events": [{"message": "hello"}, {"message": "world"}]}
-                    foo = unnest(foo.events)
+                    . = {"hostname": "localhost", "event": {"messages": ["message 1", "message 2"]}}
+                    . = unnest(.event.messages)
                 "#},
                 result: Ok(
-                    r#"[{"hostname": "localhost", "events": {"message": "hello"}}, {"hostname": "localhost", "events": {"message": "world"}}]"#,
+                    r#"[{"hostname": "localhost", "event": {"messages": "message 1"}}, {"hostname": "localhost", "event": {"messages": "message 2"}}]"#,
                 ),
             },
         ]

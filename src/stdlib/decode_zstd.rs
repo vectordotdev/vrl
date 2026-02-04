@@ -19,9 +19,13 @@ impl Function for DecodeZstd {
         "decode_zstd"
     }
 
+    fn usage(&self) -> &'static str {
+        "Decodes the `value` (a [Zstandard](https://facebook.github.io/zstd) string) into its original string."
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[example! {
-            title: "demo string",
+            title: "Decode Zstd data",
             source: r#"decode_zstd!(decode_base64!("KLUv/QBY/QEAYsQOFKClbQBedqXsb96EWDax/f/F/z+gNU4ZTInaUeAj82KqPFjUzKqhcfDqAIsLvAsnY1bI/N2mHzDixRQA"))"#,
             result: Ok("you_have_successfully_decoded_me.congratulations.you_are_breathtaking."),
         }]
@@ -43,6 +47,7 @@ impl Function for DecodeZstd {
             keyword: "value",
             kind: kind::BYTES,
             required: true,
+            description: "The [Zstandard](https://facebook.github.io/zstd) data to decode.",
         }]
     }
 }

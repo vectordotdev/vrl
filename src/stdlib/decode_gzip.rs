@@ -21,9 +21,13 @@ impl Function for DecodeGzip {
         "decode_gzip"
     }
 
+    fn usage(&self) -> &'static str {
+        "Decodes the `value` (a [Gzip](https://www.gzip.org/) string) into its original string."
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[example! {
-            title: "demo string",
+            title: "Decode Gzip data",
             source: r#"decode_gzip!(decode_base64!("H4sIAB8BymMAAyvISU0sTlVISU3OT0lVyE0FAJsZ870QAAAA"))"#,
             result: Ok("please decode me"),
         }]
@@ -45,6 +49,7 @@ impl Function for DecodeGzip {
             keyword: "value",
             kind: kind::BYTES,
             required: true,
+            description: "The [Gzip](https://www.gzip.org/) data to decode.",
         }]
     }
 }

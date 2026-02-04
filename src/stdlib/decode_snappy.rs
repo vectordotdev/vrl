@@ -20,9 +20,13 @@ impl Function for DecodeSnappy {
         "decode_snappy"
     }
 
+    fn usage(&self) -> &'static str {
+        "Decodes the `value` (a Snappy string) into its original string."
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[example! {
-            title: "demo string",
+            title: "Decode Snappy data",
             source: r#"decode_snappy!(decode_base64!("LKxUaGUgcXVpY2sgYnJvd24gZm94IGp1bXBzIG92ZXIgMTMgbGF6eSBkb2dzLg=="))"#,
             result: Ok("The quick brown fox jumps over 13 lazy dogs."),
         }]
@@ -44,6 +48,7 @@ impl Function for DecodeSnappy {
             keyword: "value",
             kind: kind::BYTES,
             required: true,
+            description: "The Snappy data to decode.",
         }]
     }
 }

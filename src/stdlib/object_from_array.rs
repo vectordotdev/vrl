@@ -46,17 +46,29 @@ impl Function for ObjectFromArray {
         "object_from_array"
     }
 
+    fn usage(&self) -> &'static str {
+        indoc! {"
+            Iterate over either one array of arrays or a pair of arrays and create an object out of all the key-value pairs contained in them.
+            With one array of arrays, any entries with no value use `null` instead.
+            Any keys that are `null` skip the  corresponding value.
+
+            If a single parameter is given, it must contain an array of all the input arrays.
+        "}
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {
                 keyword: "values",
                 kind: kind::ARRAY,
                 required: true,
+                description: "The first array of elements, or the array of input arrays if no other parameter is present.",
             },
             Parameter {
                 keyword: "keys",
                 kind: kind::ARRAY,
                 required: false,
+                description: "The second array of elements. If not present, the first parameter must contain all the arrays.",
             },
         ]
     }
@@ -64,19 +76,19 @@ impl Function for ObjectFromArray {
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "create an object from an array of keys/value pairs",
-                source: r#"object_from_array([["a", 1], ["b"], ["c", true, 3, 4]])"#,
-                result: Ok(r#"{"a": 1, "b": null, "c": true}"#),
+                title: "Create an object from one array",
+                source: r#"object_from_array([["one", 1], [null, 2], ["two", 3]])"#,
+                result: Ok(r#"{ "one": 1, "two": 3 }"#),
             },
             example! {
-                title: "create an object from a separate arrays of keys and values",
-                source: r#"object_from_array(keys: ["a", "b", "c"], values: [1, null, true])"#,
-                result: Ok(r#"{"a": 1, "b": null, "c": true}"#),
+                title: "Create an object from separate key and value arrays",
+                source: r#"object_from_array([1, 2, 3], keys: ["one", null, "two"])"#,
+                result: Ok(r#"{ "one": 1, "two": 3 }"#),
             },
             example! {
-                title: "create an object with skipped keys",
-                source: r#"object_from_array([["a", 1], [null, 2], ["b", 3]])"#,
-                result: Ok(r#"{"a": 1, "b": 3}"#),
+                title: "Create an object from a separate arrays of keys and values",
+                source: r#"object_from_array(values: [1, null, true], keys: ["a", "b", "c"])"#,
+                result: Ok(r#"{"a": 1, "b": null, "c": true}"#),
             },
         ]
     }

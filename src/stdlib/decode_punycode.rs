@@ -10,17 +10,23 @@ impl Function for DecodePunycode {
         "decode_punycode"
     }
 
+    fn usage(&self) -> &'static str {
+        "Decodes a [punycode](https://en.wikipedia.org/wiki/Punycode) encoded `value`, such as an internationalized domain name ([IDN](https://en.wikipedia.org/wiki/Internationalized_domain_name)). This function assumes that the value passed is meant to be used in IDN context and that it is either a domain name or a part of it."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "The string to decode.",
             },
             Parameter {
                 keyword: "validate",
                 kind: kind::BOOLEAN,
                 required: false,
+                description: "If enabled, checks if the input string is a valid domain name.",
             },
         ]
     }
@@ -42,17 +48,17 @@ impl Function for DecodePunycode {
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "punycode string",
+                title: "Decode a punycode encoded internationalized domain name",
                 source: r#"decode_punycode!("www.xn--caf-dma.com")"#,
                 result: Ok("www.café.com"),
             },
             example! {
-                title: "ascii string",
+                title: "Decode an ASCII only string",
                 source: r#"decode_punycode!("www.cafe.com")"#,
                 result: Ok("www.cafe.com"),
             },
             example! {
-                title: "ignore validation",
+                title: "Ignore validation",
                 source: r#"decode_punycode!("xn--8hbb.xn--fiba.xn--8hbf.xn--eib.", validate: false)"#,
                 result: Ok("١٠.٦٦.٣٠.٥."),
             },

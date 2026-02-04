@@ -22,11 +22,16 @@ impl Function for RandomBytes {
         "random_bytes"
     }
 
+    fn usage(&self) -> &'static str {
+        "A cryptographically secure random number generator. Returns a string value containing the number of random bytes requested."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "length",
             kind: kind::INTEGER,
             required: true,
+            description: "The number of bytes to generate. Must not be larger than 64k.",
         }]
     }
 

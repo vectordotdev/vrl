@@ -23,30 +23,47 @@ impl Function for Length {
         "length"
     }
 
+    fn usage(&self) -> &'static str {
+        indoc! {"
+            Returns the length of the `value`.
+
+            * If `value` is an array, returns the number of elements.
+            * If `value` is an object, returns the number of top-level keys.
+            * If `value` is a string, returns the number of bytes in the string. If
+              you want the number of characters, see `strlen`.
+        "}
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",
             kind: kind::ARRAY | kind::OBJECT | kind::BYTES,
             required: true,
+            description: "The array or object.",
         }]
     }
 
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "array",
-                source: "length([0, 1])",
+                title: "Length (object)",
+                source: r#"length({ "portland": "Trail Blazers", "seattle": "Supersonics" })"#,
                 result: Ok("2"),
             },
             example! {
-                title: "object",
-                source: r#"length({ "foo": "bar"})"#,
-                result: Ok("1"),
+                title: "Length (nested object)",
+                source: r#"length({ "home": { "city": "Portland", "state": "Oregon" }, "name": "Trail Blazers", "mascot": { "name": "Blaze the Trail Cat" } })"#,
+                result: Ok("3"),
             },
             example! {
-                title: "string",
-                source: r#"length("foobar")"#,
-                result: Ok("6"),
+                title: "Length (array)",
+                source: r#"length(["Trail Blazers", "Supersonics", "Grizzlies"])"#,
+                result: Ok("3"),
+            },
+            example! {
+                title: "Length (string)",
+                source: r#"length("The Planet of the Apes Musical")"#,
+                result: Ok("30"),
             },
         ]
     }

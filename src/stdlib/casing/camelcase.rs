@@ -11,17 +11,23 @@ impl Function for Camelcase {
         "camelcase"
     }
 
+    fn usage(&self) -> &'static str {
+        "Takes the `value` string, and turns it into camelCase. Optionally, you can pass in the existing case of the function, or else an attempt is made to determine the case automatically."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "The string to convert to camelCase.",
             },
             Parameter {
                 keyword: "original_case",
                 kind: kind::BYTES,
                 required: false,
+                description: "Optional hint on the original case type. Must be one of: kebab-case, camelCase, PascalCase, SCREAMING_SNAKE, snake_case",
             },
         ]
     }
@@ -52,11 +58,23 @@ impl Function for Camelcase {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[example! {
-            title: "camelcase",
-            source: r#"camelcase("input_string")"#,
-            result: Ok("inputString"),
-        }]
+        &[
+            example! {
+                title: "camelCase a string without specifying original case",
+                source: r#"camelcase("input-string")"#,
+                result: Ok("inputString"),
+            },
+            example! {
+                title: "camelcase a snake_case string",
+                source: r#"camelcase("foo_bar_baz", "snake_case")"#,
+                result: Ok("fooBarBaz"),
+            },
+            example! {
+                title: "camelcase specifying the wrong original case (noop)",
+                source: r#"camelcase("foo_bar_baz", "kebab-case")"#,
+                result: Ok("foo_bar_baz"),
+            },
+        ]
     }
 }
 

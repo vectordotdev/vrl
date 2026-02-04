@@ -34,11 +34,16 @@ impl Function for UuidV7 {
         "uuid_v7"
     }
 
+    fn usage(&self) -> &'static str {
+        "Generates a random [UUIDv7](https://datatracker.ietf.org/doc/html/draft-peabody-dispatch-new-uuid-format-04#name-uuid-version-7) string."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "timestamp",
             kind: kind::TIMESTAMP,
             required: false,
+            description: "The timestamp used to generate the UUIDv7.",
         }]
     }
 

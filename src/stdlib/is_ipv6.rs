@@ -14,30 +14,35 @@ impl Function for IsIpv6 {
         "is_ipv6"
     }
 
+    fn usage(&self) -> &'static str {
+        "Check if the string is a valid IPv6 address or not."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",
             kind: kind::BYTES,
             required: true,
+            description: "The IP address to check",
         }]
     }
 
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "random string",
-                source: r#"is_ipv6("foobar")"#,
-                result: Ok("false"),
-            },
-            example! {
-                title: "IPv4 address",
-                source: r#"is_ipv6("1.1.1.1")"#,
-                result: Ok("false"),
-            },
-            example! {
-                title: "IPv6 address",
+                title: "Valid IPv6 address",
                 source: r#"is_ipv6("2001:0db8:85a3:0000:0000:8a2e:0370:7334")"#,
                 result: Ok("true"),
+            },
+            example! {
+                title: "Valid IPv4 address",
+                source: r#"is_ipv6("10.0.102.37")"#,
+                result: Ok("false"),
+            },
+            example! {
+                title: "Arbitrary string",
+                source: r#"is_ipv6("foobar")"#,
+                result: Ok("false"),
             },
         ]
     }

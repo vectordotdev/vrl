@@ -31,9 +31,7 @@ pub trait Function: Send + Sync + fmt::Debug {
     }
 
     /// A more elaborate multi-paragraph description on how to use the function.
-    fn usage(&self) -> &'static str {
-        "TODO"
-    }
+    fn usage(&self) -> &'static str;
 
     /// One or more examples demonstrating usage of the function in VRL source
     /// code.
@@ -163,6 +161,9 @@ pub struct Parameter {
     /// If it isn't, the function can be called without errors, even if the
     /// argument matching this parameter is missing.
     pub required: bool,
+
+    /// A description of what this parameter does.
+    pub description: &'static str,
 }
 
 impl Parameter {
@@ -652,6 +653,7 @@ mod tests {
                 keyword: "",
                 kind: parameter_kind,
                 required: false,
+                description: "",
             };
 
             assert_eq!(parameter.kind(), kind, "{title}");

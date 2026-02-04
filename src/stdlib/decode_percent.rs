@@ -17,11 +17,16 @@ impl Function for DecodePercent {
         "decode_percent"
     }
 
+    fn usage(&self) -> &'static str {
+        "Decodes a [percent-encoded](https://url.spec.whatwg.org/#percent-encoded-bytes) `value` like a URL."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",
             kind: kind::BYTES,
             required: true,
+            description: "The string to decode.",
         }]
     }
 
@@ -38,7 +43,7 @@ impl Function for DecodePercent {
 
     fn examples(&self) -> &'static [Example] {
         &[example! {
-            title: "percent decode string",
+            title: "Percent decode a value",
             source: r#"decode_percent("foo%20bar%3F")"#,
             result: Ok("foo bar?"),
         }]

@@ -13,26 +13,32 @@ impl Function for Mod {
         "mod"
     }
 
+    fn usage(&self) -> &'static str {
+        "Calculates the remainder of `value` divided by `modulus`."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {
                 keyword: "value",
                 kind: kind::INTEGER | kind::FLOAT,
                 required: true,
+                description: "The value the `modulus` is applied to.",
             },
             Parameter {
                 keyword: "modulus",
                 kind: kind::INTEGER | kind::FLOAT,
                 required: true,
+                description: "The `modulus` value.",
             },
         ]
     }
 
     fn examples(&self) -> &'static [Example] {
         &[example! {
-            title: "mod",
-            source: "mod(5, 3)",
-            result: Ok("2"),
+            title: "Calculate the remainder of two integers",
+            source: "mod(5, 2)",
+            result: Ok("1"),
         }]
     }
 

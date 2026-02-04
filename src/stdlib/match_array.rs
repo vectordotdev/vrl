@@ -27,16 +27,30 @@ impl Function for MatchArray {
         "match_array"
     }
 
+    fn usage(&self) -> &'static str {
+        "Determines whether the elements in the `value` array matches the `pattern`. By default, it checks that at least one element matches, but can be set to determine if all the elements match."
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "match",
+                title: "Match at least one element",
                 source: r#"match_array(["foobar", "bazqux"], r'foo')"#,
                 result: Ok("true"),
             },
             example! {
-                title: "mismatch",
+                title: "Match all elements",
+                source: r#"match_array(["foo", "foobar", "barfoo"], r'foo', all: true)"#,
+                result: Ok("true"),
+            },
+            example! {
+                title: "No matches",
                 source: r#"match_array(["bazqux", "xyz"], r'foo')"#,
+                result: Ok("false"),
+            },
+            example! {
+                title: "Not all elements match",
+                source: r#"match_array(["foo", "foobar", "baz"], r'foo', all: true)"#,
                 result: Ok("false"),
             },
         ]
@@ -66,16 +80,19 @@ impl Function for MatchArray {
                 keyword: "value",
                 kind: kind::ARRAY,
                 required: true,
+                description: "The array.",
             },
             Parameter {
                 keyword: "pattern",
                 kind: kind::REGEX,
                 required: true,
+                description: "The regular expression pattern to match against.",
             },
             Parameter {
                 keyword: "all",
                 kind: kind::BOOLEAN,
                 required: false,
+                description: "Whether to match on all elements of `value`.",
             },
         ]
     }
