@@ -22,9 +22,19 @@ impl Function for ParseTokens {
         "parse_tokens"
     }
 
+    fn usage(&self) -> &'static str {
+        indoc! {r#"
+            Parses the `value` in token format. A token is considered to be one of the following:
+
+            * A word surrounded by whitespace.
+            * Text delimited by double quotes: `".."`. Quotes can be included in the token if they are escaped by a backslash (`\`).
+            * Text delimited by square brackets: `[..]`. Closing square brackets can be included in the token if they are escaped by a backslash (`\`).
+        "#}
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[example! {
-            title: "valid",
+            title: "Parse tokens",
             source: r#"parse_tokens(s'A sentence "with \"a\" sentence inside" and [some brackets]')"#,
             result: Ok(
                 r#"["A", "sentence", "with \\\"a\\\" sentence inside", "and", "some brackets"]"#,
@@ -48,6 +58,7 @@ impl Function for ParseTokens {
             keyword: "value",
             kind: kind::BYTES,
             required: true,
+            description: "The string to tokenize.",
         }]
     }
 }

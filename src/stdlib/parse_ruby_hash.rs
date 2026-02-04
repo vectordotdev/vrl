@@ -13,9 +13,13 @@ impl Function for ParseRubyHash {
         "parse_ruby_hash"
     }
 
+    fn usage(&self) -> &'static str {
+        "Parses the `value` as ruby hash."
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[example! {
-            title: "parse ruby hash",
+            title: "Parse ruby hash",
             source: r#"parse_ruby_hash!(s'{ "test" => "value", "testNum" => 0.2, "testObj" => { "testBool" => true, "testNull" => nil } }')"#,
             result: Ok(r#"
                 {
@@ -45,6 +49,7 @@ impl Function for ParseRubyHash {
             keyword: "value",
             kind: kind::BYTES,
             required: true,
+            description: "The string representation of the ruby hash to parse.",
         }]
     }
 }

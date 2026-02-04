@@ -26,7 +26,9 @@ fn parse_bytes(bytes: &Value, unit: Value, base: &Bytes) -> Resolved {
         .parse_size(value)
         .map_err(|e| format!("unable to parse bytes: '{e}'"))?;
     let value = Decimal::from_u64(value).ok_or(format!("unable to parse number: {value}"))?;
-    let number = value / conversion_factor;
+    let number = value
+        .checked_div(*conversion_factor)
+        .ok_or("division by >1 divisor overflowed")?; // This should never ever happen
     let number = number
         .to_f64()
         .ok_or(format!("unable to parse number: '{number}'"))?;
@@ -84,20 +86,39 @@ impl Function for ParseBytes {
         "parse_bytes"
     }
 
+    fn usage(&self) -> &'static str {
+        "Parses the `value` into a human-readable bytes format specified by `unit` and `base`."
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "kilobytes in default binary units",
+                title: "Parse bytes (kilobytes)",
+                source: r#"parse_bytes!("1024KiB", unit: "MiB")"#,
+                result: Ok("1.0"),
+            },
+            example! {
+                title: "Parse kilobytes in default binary units",
                 source: r#"parse_bytes!("1KiB", unit: "B")"#,
                 result: Ok("1024.0"),
             },
             example! {
-                title: "gigabytes in decimal units",
+                title: "Parse bytes in SI unit (terabytes)",
+                source: r#"parse_bytes!("4TB", unit: "MB", base: "10")"#,
+                result: Ok("4000000.0"),
+            },
+            example! {
+                title: "Parse gigabytes in decimal units",
                 source: r#"parse_bytes!("1GB", unit: "B", base: "10")"#,
                 result: Ok("1000000000.0"),
             },
             example! {
-                title: "gigabytes in ambiguous decimal units",
+                title: "Parse bytes in ambiguous unit (gigabytes)",
+                source: r#"parse_bytes!("1GB", unit: "B", base: "2")"#,
+                result: Ok("1073741824.0"),
+            },
+            example! {
+                title: "Parse gigabytes in ambiguous decimal units",
                 source: r#"parse_bytes!("1GB", unit: "MB", base: "2")"#,
                 result: Ok("1024.0"),
             },
@@ -127,16 +148,19 @@ impl Function for ParseBytes {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "The string of the duration with either binary or SI unit.",
             },
             Parameter {
                 keyword: "unit",
                 kind: kind::BYTES,
                 required: true,
+                description: "The output units for the byte.",
             },
             Parameter {
                 keyword: "base",
                 kind: kind::BYTES,
                 required: false,
+                description: "The base for the byte, either 2 or 10.",
             },
         ]
     }

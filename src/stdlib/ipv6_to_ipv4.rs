@@ -23,17 +23,25 @@ impl Function for Ipv6ToIpV4 {
         "ipv6_to_ipv4"
     }
 
+    fn usage(&self) -> &'static str {
+        indoc! {"
+            Converts the `ip` to an IPv4 address. `ip` is returned unchanged if it's already an IPv4 address. If `ip` is
+            currently an IPv6 address then it needs to be IPv4 compatible, otherwise an error is thrown.
+        "}
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",
             kind: kind::BYTES,
             required: true,
+            description: "The IPv4-mapped IPv6 address to convert.",
         }]
     }
 
     fn examples(&self) -> &'static [Example] {
         &[example! {
-            title: "valid IPv6",
+            title: "IPv6 to IPv4",
             source: r#"ipv6_to_ipv4!("::ffff:192.168.0.1")"#,
             result: Ok("192.168.0.1"),
         }]

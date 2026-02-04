@@ -15,22 +15,29 @@ impl Function for Contains {
         "contains"
     }
 
+    fn usage(&self) -> &'static str {
+        "Determines whether the `value` string contains the specified `substring`."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "The text to search.",
             },
             Parameter {
                 keyword: "substring",
                 kind: kind::BYTES,
                 required: true,
+                description: "The substring to search for in `value`.",
             },
             Parameter {
                 keyword: "case_sensitive",
                 kind: kind::BOOLEAN,
                 required: false,
+                description: "Whether the match should be case sensitive.",
             },
         ]
     }
@@ -56,12 +63,12 @@ impl Function for Contains {
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "case sensitive",
+                title: "String contains with default parameters (case sensitive)",
                 source: r#"contains("banana", "AnA")"#,
                 result: Ok("false"),
             },
             example! {
-                title: "case insensitive",
+                title: "String contains (case insensitive)",
                 source: r#"contains("banana", "AnA", case_sensitive: false)"#,
                 result: Ok("true"),
             },

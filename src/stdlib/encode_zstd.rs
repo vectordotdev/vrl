@@ -24,11 +24,15 @@ impl Function for EncodeZstd {
         "encode_zstd"
     }
 
+    fn usage(&self) -> &'static str {
+        "Encodes the `value` to [Zstandard](https://facebook.github.io/zstd)."
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[example! {
-            title: "demo string",
-            source: r#"encode_base64(encode_zstd("encode_me"))"#,
-            result: Ok("KLUv/QBYSQAAZW5jb2RlX21l"),
+            title: "Encode to Zstd",
+            source: r#"encode_base64(encode_zstd("please encode me"))"#,
+            result: Ok("KLUv/QBYgQAAcGxlYXNlIGVuY29kZSBtZQ=="),
         }]
     }
 
@@ -54,11 +58,13 @@ impl Function for EncodeZstd {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "The string to encode.",
             },
             Parameter {
                 keyword: "compression_level",
                 kind: kind::INTEGER,
                 required: false,
+                description: "The default compression level.",
             },
         ]
     }

@@ -27,23 +27,56 @@ impl Function for ForEach {
         "for_each"
     }
 
+    fn usage(&self) -> &'static str {
+        indoc! {"
+            Iterate over a collection.
+
+            This function currently *does not* support recursive iteration.
+
+            The function uses the \"function closure syntax\" to allow reading
+            the key/value or index/value combination for each item in the
+            collection.
+
+            The same scoping rules apply to closure blocks as they do for
+            regular blocks. This means that any variable defined in parent scopes
+            is accessible, and mutations to those variables are preserved,
+            but any new variables instantiated in the closure block are
+            unavailable outside of the block.
+
+            See the examples below to learn about the closure syntax.
+        "}
+    }
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",
             kind: kind::OBJECT | kind::ARRAY,
             required: true,
+            description: "The array or object to iterate.",
         }]
     }
 
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "iterate object",
+                title: "Tally elements",
+                source: indoc! {r#"
+                    .tags = ["foo", "bar", "foo", "baz"]
+                    tally = {}
+                    for_each(array(.tags)) -> |_index, value| {
+                        count = int(get!(tally, [value])) ?? 0
+                        tally = set!(tally, [value], count + 1)
+                    }
+                    tally
+                "#},
+                result: Ok(r#"{"bar": 1, "baz": 1, "foo": 2}"#),
+            },
+            example! {
+                title: "Iterate over an object",
                 source: r#"count = 0; for_each({ "a": 1, "b": 2 }) -> |_key, value| { count = count + value }; count"#,
                 result: Ok("3"),
             },
             example! {
-                title: "iterate array",
+                title: "Iterate over an array",
                 source: "count = 0; for_each([1,2,3]) -> |index, value| { count = count + index + value }; count",
                 result: Ok("9"),
             },

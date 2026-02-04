@@ -15,17 +15,17 @@ impl Function for EncodeCharset {
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "Encode charset to euc-kr",
+                title: "Encode UTF8 string to EUC-KR",
                 source: r#"encode_base64(encode_charset!("안녕하세요", "euc-kr"))"#,
                 result: Ok("vsiz58fPvLy/5A=="),
             },
             example! {
-                title: "Encode charset to euc-jp",
+                title: "Encode UTF8 string to EUC-JP",
                 source: r#"encode_base64(encode_charset!("こんにちは", "euc-jp"))"#,
                 result: Ok(r"pLOk86TLpMGkzw=="),
             },
             example! {
-                title: "Encode charset to gb2312",
+                title: "Encode UTF8 string to GB2312",
                 source: r#"encode_base64(encode_charset!("你好", "gb2312"))"#,
                 result: Ok(r"xOO6ww=="),
             },
@@ -51,11 +51,13 @@ impl Function for EncodeCharset {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "The UTF8 string to encode.",
             },
             Parameter {
                 keyword: "to_charset",
                 kind: kind::BYTES,
                 required: true,
+                description: "The [character set](https://encoding.spec.whatwg.org/#names-and-labels) to use when encoding the data.",
             },
         ]
     }

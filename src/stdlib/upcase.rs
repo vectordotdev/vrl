@@ -12,11 +12,15 @@ impl Function for Upcase {
         "upcase"
     }
 
+    fn usage(&self) -> &'static str {
+        "Upcases `value`, where upcase is defined according to the Unicode Derived Core Property Uppercase."
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[example! {
-            title: "upcase",
-            source: r#"upcase("foo 2 bar")"#,
-            result: Ok("FOO 2 BAR"),
+            title: "Upcase a string",
+            source: r#"upcase("Hello, World!")"#,
+            result: Ok("HELLO, WORLD!"),
         }]
     }
 
@@ -25,6 +29,7 @@ impl Function for Upcase {
             keyword: "value",
             kind: kind::BYTES,
             required: true,
+            description: "The string to convert to uppercase.",
         }]
     }
 

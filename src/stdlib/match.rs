@@ -21,17 +21,23 @@ impl Function for Match {
         "match"
     }
 
+    fn usage(&self) -> &'static str {
+        "Determines whether the `value` matches the `pattern`."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "The value to match.",
             },
             Parameter {
                 keyword: "pattern",
                 kind: kind::REGEX,
                 required: true,
+                description: "The regular expression pattern to match against.",
             },
         ]
     }
@@ -39,13 +45,13 @@ impl Function for Match {
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "match",
-                source: r#"match("foobar", r'foo')"#,
+                title: "Regex match on a string",
+                source: r#"match("I'm a little teapot", r'teapot')"#,
                 result: Ok("true"),
             },
             example! {
-                title: "mismatch",
-                source: r#"match("bazqux", r'foo')"#,
+                title: "String does not match the regular expression",
+                source: r#"match("I'm a little teapot", r'.*balloon')"#,
                 result: Ok("false"),
             },
         ]

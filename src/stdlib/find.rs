@@ -21,32 +21,61 @@ impl Function for Find {
         "find"
     }
 
+    fn usage(&self) -> &'static str {
+        "Determines from left to right the start position of the first found element in `value` that matches `pattern`. Returns `-1` if not found."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "The string to find the pattern in.",
             },
             Parameter {
                 keyword: "pattern",
                 kind: kind::BYTES | kind::REGEX,
                 required: true,
+                description: "The regular expression or string pattern to match against.",
             },
             Parameter {
                 keyword: "from",
                 kind: kind::INTEGER,
                 required: false,
+                description: "Offset to start searching.",
             },
         ]
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[example! {
-            title: "string",
-            source: r#"find("foobar", "bar")"#,
-            result: Ok("3"),
-        }]
+        &[
+            example! {
+                title: "Match text",
+                source: r#"find("foobar", "bar")"#,
+                result: Ok("3"),
+            },
+            example! {
+                title: "Match text at start",
+                source: r#"find("foobar", "foo")"#,
+                result: Ok("0"),
+            },
+            example! {
+                title: "Match regex",
+                source: r#"find("foobar", r'b.r')"#,
+                result: Ok("3"),
+            },
+            example! {
+                title: "No matches",
+                source: r#"find("foobar", "baz")"#,
+                result: Ok("null"),
+            },
+            example! {
+                title: "With an offset",
+                source: r#"find("foobarfoobarfoo", "bar", 4)"#,
+                result: Ok("9"),
+            },
+        ]
     }
 
     fn compile(

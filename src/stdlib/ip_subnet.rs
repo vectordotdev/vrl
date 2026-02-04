@@ -42,27 +42,48 @@ impl Function for IpSubnet {
         "ip_subnet"
     }
 
+    fn usage(&self) -> &'static str {
+        indoc! {"
+            Extracts the subnet address from the `ip` using the supplied `subnet`.
+        "}
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "The IP address (v4 or v6).",
             },
             Parameter {
                 keyword: "subnet",
                 kind: kind::BYTES,
                 required: true,
+                description: "The subnet to extract from the IP address. This can be either a prefix length like `/8` or a net mask
+like `255.255.0.0`. The net mask can be either an IPv4 or IPv6 address.",
             },
         ]
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[example! {
-            title: "subnet",
-            source: r#"ip_subnet!("192.168.0.1", "/1")"#,
-            result: Ok("128.0.0.0"),
-        }]
+        &[
+            example! {
+                title: "IPv4 subnet",
+                source: r#"ip_subnet!("192.168.10.32", "255.255.255.0")"#,
+                result: Ok("192.168.10.0"),
+            },
+            example! {
+                title: "IPv6 subnet",
+                source: r#"ip_subnet!("2404:6800:4003:c02::64", "/32")"#,
+                result: Ok("2404:6800::"),
+            },
+            example! {
+                title: "Subnet /1",
+                source: r#"ip_subnet!("192.168.0.1", "/1")"#,
+                result: Ok("128.0.0.0"),
+            },
+        ]
     }
 
     fn compile(

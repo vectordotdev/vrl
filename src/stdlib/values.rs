@@ -14,23 +14,28 @@ impl Function for Values {
         "values"
     }
 
+    fn usage(&self) -> &'static str {
+        "Returns the values from the object passed into the function."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",
             kind: kind::OBJECT,
             required: true,
+            description: "The object to extract values from.",
         }]
     }
 
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "get values",
+                title: "Get values from the object",
                 source: r#"values({"key1": "val1", "key2": "val2"})"#,
                 result: Ok(r#"["val1", "val2"]"#),
             },
             example! {
-                title: "get values from a nested object",
+                title: "Get values from a nested object",
                 source: r#"values({"key1": "val1", "key2": {"nestedkey1": "val3", "nestedkey2": "val4"}})"#,
                 result: Ok(r#"["val1", { "nestedkey1": "val3", "nestedkey2": "val4" }]"#),
             },

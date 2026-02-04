@@ -102,7 +102,7 @@ impl quickcheck::Arbitrary for KeyString {
     }
 
     fn shrink(&self) -> Box<dyn Iterator<Item = Self>> {
-        let s = self.0.to_string();
+        let s = self.0.clone();
         Box::new(s.shrink().map(Into::into))
     }
 }

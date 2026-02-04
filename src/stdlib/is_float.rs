@@ -9,28 +9,38 @@ impl Function for IsFloat {
         "is_float"
     }
 
+    fn usage(&self) -> &'static str {
+        "Check if the `value`'s type is a float."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",
             kind: kind::ANY,
             required: true,
+            description: "The value to check if it is a float.",
         }]
     }
 
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "float",
+                title: "Valid float",
                 source: "is_float(0.577)",
                 result: Ok("true"),
             },
             example! {
-                title: "boolean",
+                title: "Non-matching type",
+                source: r#"is_float("a string")"#,
+                result: Ok("false"),
+            },
+            example! {
+                title: "Boolean",
                 source: "is_float(true)",
                 result: Ok("false"),
             },
             example! {
-                title: "null",
+                title: "Null",
                 source: "is_float(null)",
                 result: Ok("false"),
             },

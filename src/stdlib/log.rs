@@ -8,22 +8,30 @@ impl Function for Log {
         "log"
     }
 
+    fn usage(&self) -> &'static str {
+        "Logs the `value` to [stdout](https://en.wikipedia.org/wiki/Standard_streams#Standard_output_(stdout)) at the specified `level`."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {
                 keyword: "value",
                 kind: kind::ANY,
                 required: true,
+                description: "The value to log.",
             },
             Parameter {
                 keyword: "level",
                 kind: kind::BYTES,
                 required: false,
+                description: "The log level.",
             },
             Parameter {
                 keyword: "rate_limit_secs",
                 kind: kind::INTEGER,
                 required: false,
+                description: "Specifies that the log message is output no more than once per the given number of seconds.
+Use a value of `0` to turn rate limiting off.",
             },
         ]
     }
@@ -31,13 +39,19 @@ impl Function for Log {
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "default log level (info)",
-                source: r#"log("foo")"#,
+                title: "Log a message",
+                source: r#"log("Hello, World!", level: "info", rate_limit_secs: 60)"#,
                 result: Ok("null"),
             },
             example! {
-                title: "custom level",
-                source: r#"log("foo", "error")"#,
+                title: "Log an error",
+                source: indoc! {r#"
+                    . = { "field": "not an integer" }
+                    _, err = to_int(.field)
+                    if err != null {
+                        log(err, level: "error")
+                    }
+                "#},
                 result: Ok("null"),
             },
         ]

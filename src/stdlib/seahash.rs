@@ -14,15 +14,22 @@ impl Function for Seahash {
         "seahash"
     }
 
+    fn usage(&self) -> &'static str {
+        indoc! {"
+            Calculates a [Seahash](https://docs.rs/seahash/latest/seahash/) hash of the `value`.
+            **Note**: Due to limitations in the underlying VRL data types, this function converts the unsigned 64-bit integer SeaHash result to a signed 64-bit integer. Results higher than the signed 64-bit integer maximum value wrap around to negative values.
+        "}
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "seahash",
+                title: "Calculate seahash",
                 source: r#"seahash("foobar")"#,
                 result: Ok("5348458858952426560"),
             },
             example! {
-                title: "seahash above i64.MAX",
+                title: "Calculate negative seahash",
                 source: r#"seahash("bar")"#,
                 result: Ok("-2796170501982571315"),
             },
@@ -45,6 +52,7 @@ impl Function for Seahash {
             keyword: "value",
             kind: kind::ANY,
             required: true,
+            description: "The string to calculate the hash for.",
         }]
     }
 }

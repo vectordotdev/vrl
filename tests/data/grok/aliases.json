@@ -1,0 +1,4 @@
+{
+  "PATTERN_A": "%{PATTERN_B}",
+  "PATTERN_B": "username=%{USERNAME:username}"
+}

@@ -34,17 +34,27 @@ impl Function for FromUnixTimestamp {
         "from_unix_timestamp"
     }
 
+    fn usage(&self) -> &'static str {
+        indoc! {"
+            Converts the `value` integer from a [Unix timestamp](https://en.wikipedia.org/wiki/Unix_time) to a VRL `timestamp`.
+
+            Converts from the number of seconds since the Unix epoch by default. To convert from milliseconds or nanoseconds, set the `unit` argument to `milliseconds` or `nanoseconds`.
+        "}
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {
                 keyword: "value",
                 kind: kind::INTEGER,
                 required: true,
+                description: "The Unix timestamp to convert.",
             },
             Parameter {
                 keyword: "unit",
                 kind: kind::BYTES,
                 required: false,
+                description: "The time unit.",
             },
         ]
     }
@@ -52,22 +62,22 @@ impl Function for FromUnixTimestamp {
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "integer as seconds",
+                title: "Convert from a Unix timestamp (seconds)",
                 source: "from_unix_timestamp!(5)",
                 result: Ok("t'1970-01-01T00:00:05Z'"),
             },
             example! {
-                title: "integer as milliseconds",
+                title: "Convert from a Unix timestamp (milliseconds)",
                 source: r#"from_unix_timestamp!(5000, unit: "milliseconds")"#,
                 result: Ok("t'1970-01-01T00:00:05Z'"),
             },
             example! {
-                title: "integer as microseconds",
+                title: "Convert from a Unix timestamp (microseconds)",
                 source: r#"from_unix_timestamp!(5000, unit: "microseconds")"#,
                 result: Ok("t'1970-01-01T00:00:00.005Z'"),
             },
             example! {
-                title: "integer as nanoseconds",
+                title: "Convert from a Unix timestamp (nanoseconds)",
                 source: r#"from_unix_timestamp!(5000, unit: "nanoseconds")"#,
                 result: Ok("t'1970-01-01T00:00:00.000005Z'"),
             },

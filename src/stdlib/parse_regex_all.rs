@@ -21,22 +21,34 @@ impl Function for ParseRegexAll {
         "parse_regex_all"
     }
 
+    fn usage(&self) -> &'static str {
+        indoc! {"
+            Parses the `value` using the provided [Regex](https://en.wikipedia.org/wiki/Regular_expression) `pattern`.
+
+            This function differs from the `parse_regex` function in that it returns _all_ matches, not just the first.
+        "}
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {
                 keyword: "value",
                 kind: kind::ANY,
                 required: true,
+                description: "The string to search.",
             },
             Parameter {
                 keyword: "pattern",
                 kind: kind::REGEX,
                 required: true,
+                description: "The regular expression pattern to search against.",
             },
             Parameter {
                 keyword: "numeric_groups",
                 kind: kind::BOOLEAN,
                 required: false,
+                description: "If `true`, the index of each group in the regular expression is also captured. Index `0`
+contains the whole match.",
             },
         ]
     }
@@ -64,7 +76,18 @@ impl Function for ParseRegexAll {
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "Simple match",
+                title: "Parse using Regex (all matches)",
+                source: r#"parse_regex_all!("first group and second group.", r'(?P<number>\w+) group', numeric_groups: true)"#,
+                result: Ok(indoc! { r#"[
+               {"number": "first",
+                "0": "first group",
+                "1": "first"},
+               {"number": "second",
+                "0": "second group",
+                "1": "second"}]"# }),
+            },
+            example! {
+                title: "Parse using Regex (simple match)",
                 source: r#"parse_regex_all!("apples and carrots, peaches and peas", r'(?P<fruit>[\w\.]+) and (?P<veg>[\w]+)')"#,
                 result: Ok(indoc! { r#"[
                {"fruit": "apples",
@@ -73,7 +96,7 @@ impl Function for ParseRegexAll {
                 "veg": "peas"}]"# }),
             },
             example! {
-                title: "Numeric groups",
+                title: "Parse using Regex (all numeric groups)",
                 source: r#"parse_regex_all!("apples and carrots, peaches and peas", r'(?P<fruit>[\w\.]+) and (?P<veg>[\w]+)', numeric_groups: true)"#,
                 result: Ok(indoc! { r#"[
                {"fruit": "apples",
@@ -88,7 +111,7 @@ impl Function for ParseRegexAll {
                 "2": "peas"}]"# }),
             },
             example! {
-                title: "match with variables",
+                title: "Parse using Regex with variables",
                 source: r#"
                 variable = r'(?P<fruit>[\w\.]+) and (?P<veg>[\w]+)';
                 parse_regex_all!("apples and carrots, peaches and peas", variable)"#,

@@ -9,23 +9,50 @@ impl Function for ParseLogFmt {
         "parse_logfmt"
     }
 
+    fn usage(&self) -> &'static str {
+        indoc! {r#"
+            Parses the `value` in [logfmt](https://brandur.org/logfmt).
+
+            * Keys and values can be wrapped using the `"` character.
+            * `"` characters can be escaped by the `\` character.
+            * As per this [logfmt specification](https://pkg.go.dev/github.com/kr/logfmt#section-documentation), the `parse_logfmt` function accepts standalone keys and assigns them a Boolean value of `true`.
+        "#}
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",
             kind: kind::BYTES,
             required: true,
+            description: "The string to parse.",
         }]
     }
 
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "simple log",
+                title: "Parse simple logfmt log",
                 source: r#"parse_logfmt!("zork=zook zonk=nork")"#,
                 result: Ok(r#"{"zork": "zook", "zonk": "nork"}"#),
             },
             example! {
-                title: "standalone key",
+                title: "Parse logfmt log",
+                source: indoc! {r#"
+                    parse_logfmt!(
+                        "@timestamp=\"Sun Jan 10 16:47:39 EST 2021\" level=info msg=\"Stopping all fetchers\" tag#production=stopping_fetchers id=ConsumerFetcherManager-1382721708341 module=kafka.consumer.ConsumerFetcherManager"
+                    )
+                "#},
+                result: Ok(indoc! {r#"{
+                    "@timestamp": "Sun Jan 10 16:47:39 EST 2021",
+                    "level": "info",
+                    "msg": "Stopping all fetchers",
+                    "tag#production": "stopping_fetchers",
+                    "id": "ConsumerFetcherManager-1382721708341",
+                    "module": "kafka.consumer.ConsumerFetcherManager"
+                }"#}),
+            },
+            example! {
+                title: "Parse logfmt log with standalone key",
                 source: r#"parse_logfmt!("zork=zook plonk zonk=nork")"#,
                 result: Ok(r#"{"plonk": true, "zork": "zook", "zonk": "nork"}"#),
             },

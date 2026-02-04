@@ -188,7 +188,7 @@ fn convert_value(
 /// * Only [`Value::Object`] is supported, since protobuf messages are collections of named fields
 /// * Fields present in the object with `null` values are explicitly cleared
 /// * Fields not present in the object retain their default protobuf values
-/// * Type conversion follows the mappings defined in [`convert_value_raw`].
+/// * Type conversion follows the mappings defined in `convert_value_raw`.
 pub fn encode_message(
     message_descriptor: &MessageDescriptor,
     value: Value,

@@ -20,11 +20,16 @@ impl Function for DecodeMimeQ {
         "decode_mime_q"
     }
 
+    fn usage(&self) -> &'static str {
+        "Replaces q-encoded or base64-encoded [encoded-word](https://datatracker.ietf.org/doc/html/rfc2047#section-2)) substrings in the `value` with their original string."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",
             kind: kind::BYTES,
             required: true,
+            description: "The string with [encoded-words](https://datatracker.ietf.org/doc/html/rfc2047#section-2) to decode.",
         }]
     }
 
@@ -42,7 +47,7 @@ impl Function for DecodeMimeQ {
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "Single",
+                title: "Decode single encoded-word",
                 source: r#"decode_mime_q!("=?utf-8?b?SGVsbG8sIFdvcmxkIQ==?=")"#,
                 result: Ok("Hello, World!"),
             },

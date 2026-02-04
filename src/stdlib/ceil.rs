@@ -29,17 +29,23 @@ impl Function for Ceil {
         "ceil"
     }
 
+    fn usage(&self) -> &'static str {
+        "Rounds the `value` up to the specified `precision`."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {
                 keyword: "value",
                 kind: kind::FLOAT | kind::INTEGER,
                 required: true,
+                description: "The number to round up.",
             },
             Parameter {
                 keyword: "precision",
                 kind: kind::INTEGER,
                 required: false,
+                description: "The number of decimal places to round to.",
             },
         ]
     }
@@ -57,11 +63,23 @@ impl Function for Ceil {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[example! {
-            title: "ceil",
-            source: "ceil(5.2)",
-            result: Ok("6.0"),
-        }]
+        &[
+            example! {
+                title: "Round a number up (without precision)",
+                source: "ceil(4.345)",
+                result: Ok("5.0"),
+            },
+            example! {
+                title: "Round a number up (with precision)",
+                source: "ceil(4.345, precision: 2)",
+                result: Ok("4.35"),
+            },
+            example! {
+                title: "Round an integer up (noop)",
+                source: "ceil(5)",
+                result: Ok("5"),
+            },
+        ]
     }
 }
 

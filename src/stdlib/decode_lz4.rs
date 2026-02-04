@@ -14,6 +14,12 @@ impl Function for DecodeLz4 {
         "decode_lz4"
     }
 
+    fn usage(&self) -> &'static str {
+        "Decodes the `value` (an lz4 string) into its original string. `buf_size` is the size of the buffer to decode into, this must be equal to or larger than the uncompressed size.
+        If `prepended_size` is set to `true`, it expects the original uncompressed size to be prepended to the compressed data.
+        `prepended_size` is useful for some implementations of lz4 that require the original size to be known before decoding."
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
@@ -22,7 +28,7 @@ impl Function for DecodeLz4 {
                 result: Ok("The quick brown fox jumps over 13 lazy dogs."),
             },
             example! {
-                title: "LZ4 frame format",
+                title: "Decode Lz4 data without prepended size.",
                 source: r#"decode_lz4!(decode_base64!("BCJNGGBAgiwAAIBUaGUgcXVpY2sgYnJvd24gZm94IGp1bXBzIG92ZXIgMTMgbGF6eSBkb2dzLgAAAAA="))"#,
                 result: Ok("The quick brown fox jumps over 13 lazy dogs."),
             },
@@ -57,16 +63,19 @@ impl Function for DecodeLz4 {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "The lz4 block data to decode.",
             },
             Parameter {
                 keyword: "buf_size",
                 kind: kind::INTEGER,
                 required: false,
+                description: "The size of the buffer to decode into, this must be equal to or larger than the uncompressed size.",
             },
             Parameter {
                 keyword: "prepended_size",
                 kind: kind::BOOLEAN,
                 required: false,
+                description: "Some implementations of lz4 require the original uncompressed size to be prepended to the compressed data.",
             },
         ]
     }

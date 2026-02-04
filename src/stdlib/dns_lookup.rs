@@ -338,27 +338,35 @@ impl Function for DnsLookup {
         "dns_lookup"
     }
 
+    fn usage(&self) -> &'static str {
+        "Performs a DNS lookup on the provided domain name. This function performs network calls and blocks on each request until a response is received. It is not recommended for frequent or performance-critical workflows."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "The domain name to query.",
             },
             Parameter {
                 keyword: "qtype",
                 kind: kind::BYTES,
                 required: false,
+                description: "The DNS record type to query (e.g., A, AAAA, MX, TXT). Defaults to A.",
             },
             Parameter {
                 keyword: "class",
                 kind: kind::BYTES,
                 required: false,
+                description: "The DNS query class. Defaults to IN (Internet).",
             },
             Parameter {
                 keyword: "options",
                 kind: kind::OBJECT,
                 required: false,
+                description: "DNS resolver options. Supported fields: servers (array of nameserver addresses), timeout (seconds), attempts (number of retry attempts), ndots, aa_only, tcp, recurse, rotate.",
             },
         ]
     }

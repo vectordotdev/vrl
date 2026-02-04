@@ -35,17 +35,23 @@ impl Function for Sha2 {
         "sha2"
     }
 
+    fn usage(&self) -> &'static str {
+        "Calculates a [SHA-2](https://en.wikipedia.org/wiki/SHA-2) hash of the `value`."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "The string to calculate the hash for.",
             },
             Parameter {
                 keyword: "variant",
                 kind: kind::BYTES,
                 required: false,
+                description: "The variant of the algorithm to use.",
             },
         ]
     }
@@ -53,12 +59,17 @@ impl Function for Sha2 {
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "default variant",
+                title: "Calculate sha2 hash using default variant",
                 source: r#"sha2("foobar")"#,
                 result: Ok("d014c752bc2be868e16330f47e0c316a5967bcbc9c286a457761d7055b9214ce"),
             },
             example! {
-                title: "custom variant",
+                title: "Calculate sha2 hash with SHA-512/224",
+                source: r#"sha2("foo", variant: "SHA-512/224")"#,
+                result: Ok("d68f258d37d670cfc1ec1001a0394784233f88f056994f9a7e5e99be"),
+            },
+            example! {
+                title: "Calculate sha2 hash with SHA-384",
                 source: r#"sha2("foobar", "SHA-384")"#,
                 result: Ok(
                     "3c9c30d9f665e74d515c842960d4a451c83a0125fd3de7392d7b37231af10c72ea58aedfcdf89a5765bf902af93ecf06",

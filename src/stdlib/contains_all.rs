@@ -27,22 +27,29 @@ impl Function for ContainsAll {
         "contains_all"
     }
 
+    fn usage(&self) -> &'static str {
+        "Determines whether the `value` string contains all the specified `substrings`."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "The text to search.",
             },
             Parameter {
                 keyword: "substrings",
                 kind: kind::ARRAY,
                 required: true,
+                description: "An array of substrings to search for in `value`.",
             },
             Parameter {
                 keyword: "case_sensitive",
                 kind: kind::BOOLEAN,
                 required: false,
+                description: "Whether the match should be case sensitive.",
             },
         ]
     }
@@ -68,14 +75,19 @@ impl Function for ContainsAll {
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "contains_all true",
-                source: r#"contains_all("The Needle In The Haystack", ["Needle", "Haystack"])"#,
+                title: "String contains all with default parameters (case sensitive)",
+                source: r#"contains_all("The NEEDLE in the Haystack", ["NEEDLE", "Haystack"])"#,
                 result: Ok("true"),
             },
             example! {
-                title: "contains_all false",
-                source: r#"contains_all("the NEEDLE in the haystack", ["needle", "haystack"])"#,
+                title: "String doesn't contain all with default parameters (case sensitive)",
+                source: r#"contains_all("The NEEDLE in the Haystack", ["needle", "Haystack"])"#,
                 result: Ok("false"),
+            },
+            example! {
+                title: "String contains all (case insensitive)",
+                source: r#"contains_all("The NEEDLE in the HaYsTaCk", ["nEeDlE", "haystack"], case_sensitive: false)"#,
+                result: Ok("true"),
             },
         ]
     }

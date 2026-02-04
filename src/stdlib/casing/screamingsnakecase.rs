@@ -11,17 +11,23 @@ impl Function for ScreamingSnakecase {
         "screamingsnakecase"
     }
 
+    fn usage(&self) -> &'static str {
+        "Takes the `value` string, and turns it into SCREAMING_SNAKE case. Optionally, you can pass in the existing case of the function, or else we will try to figure out the case automatically."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "The string to convert to SCREAMING_SNAKE case.",
             },
             Parameter {
                 keyword: "original_case",
                 kind: kind::BYTES,
                 required: false,
+                description: "Optional hint on the original case type. Must be one of: kebab-case, camelCase, PascalCase, SCREAMING_SNAKE, snake_case",
             },
         ]
     }
@@ -52,11 +58,23 @@ impl Function for ScreamingSnakecase {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[example! {
-            title: "screamingsnakecase",
-            source: r#"screamingsnakecase("input_string")"#,
-            result: Ok("INPUT_STRING"),
-        }]
+        &[
+            example! {
+                title: "SCREAMING_SNAKE_CASE a string without specifying original case",
+                source: r#"screamingsnakecase("input-string")"#,
+                result: Ok("INPUT_STRING"),
+            },
+            example! {
+                title: "SCREAMING_SNAKE_CASE a snake_case string",
+                source: r#"screamingsnakecase("foo_bar_baz", "snake_case")"#,
+                result: Ok("FOO_BAR_BAZ"),
+            },
+            example! {
+                title: "SCREAMING_SNAKE_CASE specifying the wrong original case (capitalizes but doesn't include `_` properly)",
+                source: r#"screamingsnakecase("FooBarBaz", "kebab-case")"#,
+                result: Ok("FOOBARBAZ"),
+            },
+        ]
     }
 }
 

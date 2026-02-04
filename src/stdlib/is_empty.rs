@@ -27,33 +27,48 @@ impl Function for IsEmpty {
         "is_empty"
     }
 
+    fn usage(&self) -> &'static str {
+        "Check if the object, array, or string has a length of `0`."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",
             kind: kind::OBJECT | kind::ARRAY | kind::BYTES,
             required: true,
+            description: "The value to check.",
         }]
     }
 
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "empty string",
-                source: r#"is_empty("")"#,
-                result: Ok("true"),
-            },
-            example! {
-                title: "empty array",
+                title: "Empty array",
                 source: "is_empty([])",
                 result: Ok("true"),
             },
             example! {
-                title: "empty object",
+                title: "Non-empty string",
+                source: r#"is_empty("a string")"#,
+                result: Ok("false"),
+            },
+            example! {
+                title: "Non-empty object",
+                source: r#"is_empty({"foo": "bar"})"#,
+                result: Ok("false"),
+            },
+            example! {
+                title: "Empty string",
+                source: r#"is_empty("")"#,
+                result: Ok("true"),
+            },
+            example! {
+                title: "Empty object",
                 source: "is_empty({})",
                 result: Ok("true"),
             },
             example! {
-                title: "non-empty array",
+                title: "Non-empty array",
                 source: "is_empty([1,2,3])",
                 result: Ok("false"),
             },

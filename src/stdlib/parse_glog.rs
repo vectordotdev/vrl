@@ -77,9 +77,13 @@ impl Function for ParseGlog {
         "parse_glog"
     }
 
+    fn usage(&self) -> &'static str {
+        "Parses the `value` using the [glog (Google Logging Library)](https://github.com/google/glog) format."
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[example! {
-            title: "valid",
+            title: "Parse using glog",
             source: r#"parse_glog!("I20210131 14:48:54.411655 15520 main.c++:9] Hello world!")"#,
             result: Ok(indoc! { r#"{
                 "file": "main.c++",
@@ -108,6 +112,7 @@ impl Function for ParseGlog {
             keyword: "value",
             kind: kind::BYTES,
             required: true,
+            description: "The string to parse.",
         }]
     }
 }

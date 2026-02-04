@@ -29,7 +29,7 @@ static EXAMPLE_ENCODE_PROTO_EXPR: LazyLock<&str> = LazyLock::new(|| {
 
 static EXAMPLES: LazyLock<Vec<Example>> = LazyLock::new(|| {
     vec![example! {
-        title: "message",
+        title: "Encode to proto",
         source: &EXAMPLE_ENCODE_PROTO_EXPR,
         result: Ok("Cgdzb21lb25lIggKBjEyMzQ1Ng=="),
     }]
@@ -56,16 +56,24 @@ impl Function for EncodeProto {
                 keyword: "value",
                 kind: kind::ANY,
                 required: true,
+                description: "The object to convert to a protocol buffer payload.",
             },
             Parameter {
                 keyword: "desc_file",
                 kind: kind::BYTES,
                 required: true,
+                description:
+                    "The path to the protobuf descriptor set file. Must be a literal string.
+
+This file is the output of protoc -o <path> ...",
             },
             Parameter {
                 keyword: "message_type",
                 kind: kind::BYTES,
                 required: true,
+                description: "The name of the message type to use for serializing.
+
+Must be a literal string.",
             },
         ]
     }

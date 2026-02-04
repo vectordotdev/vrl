@@ -15,26 +15,32 @@ impl Function for Append {
         "append"
     }
 
+    fn usage(&self) -> &'static str {
+        "Appends each item in the `items` array to the end of the `value` array."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {
                 keyword: "value",
                 kind: kind::ARRAY,
                 required: true,
+                description: "The initial array.",
             },
             Parameter {
                 keyword: "items",
                 kind: kind::ARRAY,
                 required: true,
+                description: "The items to append.",
             },
         ]
     }
 
     fn examples(&self) -> &'static [Example] {
         &[example! {
-            title: "append array",
-            source: "append([0, 1], [2, 3])",
-            result: Ok("[0, 1, 2, 3]"),
+            title: "Append to an array",
+            source: "append([1, 2], [3, 4])",
+            result: Ok("[1, 2, 3, 4]"),
         }]
     }
 

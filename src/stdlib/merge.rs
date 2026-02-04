@@ -9,32 +9,83 @@ impl Function for Merge {
         "merge"
     }
 
+    fn usage(&self) -> &'static str {
+        "Merges the `from` object into the `to` object."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {
                 keyword: "to",
                 kind: kind::OBJECT,
                 required: true,
+                description: "The object to merge into.",
             },
             Parameter {
                 keyword: "from",
                 kind: kind::OBJECT,
                 required: true,
+                description: "The object to merge from.",
             },
             Parameter {
                 keyword: "deep",
                 kind: kind::BOOLEAN,
                 required: false,
+                description: "A deep merge is performed if `true`, otherwise only top-level fields are merged.",
             },
         ]
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[example! {
-            title: "merge objects",
-            source: r#"merge({ "a": 1, "b": 2 }, { "b": 3, "c": 4 })"#,
-            result: Ok(r#"{ "a": 1, "b": 3, "c": 4 }"#),
-        }]
+        &[
+            example! {
+                title: "Object merge (shallow)",
+                source: indoc! {r#"
+                    merge(
+                        {
+                            "parent1": {
+                                "child1": 1,
+                                "child2": 2
+                            },
+                            "parent2": {
+                                "child3": 3
+                            }
+                        },
+                        {
+                            "parent1": {
+                                "child2": 4,
+                                "child5": 5
+                            }
+                        }
+                    )
+                "#},
+                result: Ok(r#"{ "parent1": { "child2": 4, "child5": 5 }, "parent2": { "child3": 3 } }"#),
+            },
+            example! {
+                title: "Object merge (deep)",
+                source: indoc! {r#"
+                    merge(
+                        {
+                            "parent1": {
+                                "child1": 1,
+                                "child2": 2
+                            },
+                            "parent2": {
+                                "child3": 3
+                            }
+                        },
+                        {
+                            "parent1": {
+                                "child2": 4,
+                                "child5": 5
+                            }
+                        },
+                        deep: true
+                    )
+                "#},
+                result: Ok(r#"{ "parent1": { "child1": 1, "child2": 4, "child5": 5 }, "parent2": { "child3": 3 } }"#),
+            },
+        ]
     }
 
     fn compile(

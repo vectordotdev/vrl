@@ -34,22 +34,29 @@ impl Function for EncodeBase64 {
         "encode_base64"
     }
 
+    fn usage(&self) -> &'static str {
+        "Encodes the `value` to [Base64](https://en.wikipedia.org/wiki/Base64)."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "The string to encode.",
             },
             Parameter {
                 keyword: "padding",
                 kind: kind::BOOLEAN,
                 required: false,
+                description: "Whether the Base64 output is [padded](https://en.wikipedia.org/wiki/Base64#Output_padding).",
             },
             Parameter {
                 keyword: "charset",
                 kind: kind::BYTES,
                 required: false,
+                description: "The character set to use when encoding the data.",
             },
         ]
     }
@@ -73,11 +80,28 @@ impl Function for EncodeBase64 {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[example! {
-            title: "demo string",
-            source: r#"encode_base64("some string value", padding: false, charset: "url_safe")"#,
-            result: Ok("c29tZSBzdHJpbmcgdmFsdWU"),
-        }]
+        &[
+            example! {
+                title: "Encode to Base64 (default)",
+                source: r#"encode_base64("please encode me")"#,
+                result: Ok("cGxlYXNlIGVuY29kZSBtZQ=="),
+            },
+            example! {
+                title: "Encode to Base64 (without padding)",
+                source: r#"encode_base64("please encode me, no padding though", padding: false)"#,
+                result: Ok("cGxlYXNlIGVuY29kZSBtZSwgbm8gcGFkZGluZyB0aG91Z2g"),
+            },
+            example! {
+                title: "Encode to Base64 (URL safe)",
+                source: r#"encode_base64("please encode me, but safe for URLs", charset: "url_safe")"#,
+                result: Ok("cGxlYXNlIGVuY29kZSBtZSwgYnV0IHNhZmUgZm9yIFVSTHM="),
+            },
+            example! {
+                title: "Encode to Base64 (without padding and URL safe)",
+                source: r#"encode_base64("some string value", padding: false, charset: "url_safe")"#,
+                result: Ok("c29tZSBzdHJpbmcgdmFsdWU"),
+            },
+        ]
     }
 }
 

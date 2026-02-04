@@ -39,6 +39,10 @@ pub struct Opts {
     #[arg(short, long = "program", conflicts_with("PROGRAM"))]
     program_file: Option<PathBuf>,
 
+    // Don't print banner and other help messages on startup
+    #[arg(short = 'q', long)]
+    quiet: bool,
+
     /// Print the (modified) event object instead of the result of the final expression. Setting
     /// this flag is equivalent to using `.` as the final expression.
     #[arg(short = 'o', long)]
@@ -123,7 +127,7 @@ fn run(opts: &Opts, stdlib_functions: Vec<Box<dyn Function>>) -> Result<(), Erro
             default_objects()
         };
 
-        repl(repl_objects, tz, opts.runtime, stdlib_functions)
+        repl(opts.quiet, repl_objects, tz, opts.runtime, stdlib_functions)
     } else {
         let objects = opts.read_into_objects()?;
         let source = opts.read_program()?;
@@ -187,6 +191,7 @@ fn run(opts: &Opts, stdlib_functions: Vec<Box<dyn Function>>) -> Result<(), Erro
 
 #[allow(clippy::unnecessary_wraps)]
 fn repl(
+    quiet: bool,
     objects: Vec<Value>,
     timezone: TimeZone,
     vrl_runtime: VrlRuntime,
@@ -203,7 +208,7 @@ fn repl(
         })
         .collect();
 
-    repl::run(objects, timezone, vrl_runtime, stdlib_functions).map_err(Into::into)
+    repl::run(quiet, objects, timezone, vrl_runtime, stdlib_functions).map_err(Into::into)
 }
 
 fn execute(

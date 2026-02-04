@@ -15,23 +15,31 @@ impl Function for Object {
         "object"
     }
 
+    fn usage(&self) -> &'static str {
+        "Returns `value` if it is an object, otherwise returns an error. This enables the type checker to guarantee that the returned value is an object and can be used in any function that expects an object."
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",
             kind: kind::ANY,
             required: true,
+            description: "The value to check if it is an object.",
         }]
     }
 
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "valid",
-                source: r#"object({"foo": "bar"})"#,
-                result: Ok(r#"{"foo": "bar"}"#),
+                title: "Declare an object type",
+                source: indoc! {r#"
+                    . = { "value": { "field1": "value1", "field2": "value2" } }
+                    object(.value)
+                "#},
+                result: Ok(r#"{ "field1": "value1", "field2": "value2" }"#),
             },
             example! {
-                title: "invalid",
+                title: "Invalid type",
                 source: "object!(true)",
                 result: Err(
                     r#"function call error for "object" at (0:13): expected object, got boolean"#,
