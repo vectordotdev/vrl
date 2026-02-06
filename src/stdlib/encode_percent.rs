@@ -111,6 +111,10 @@ impl Function for EncodePercent {
         "Encodes a `value` with [percent encoding](https://url.spec.whatwg.org/#percent-encoded-bytes) to safely be used in URLs."
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::BYTES
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         PARAMETERS.as_slice()
     }

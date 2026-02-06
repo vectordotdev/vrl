@@ -18,6 +18,10 @@ impl Function for Exists {
             since it always returns `null` if the path doesn't exist.
         "}
     }
+
+    fn return_kind(&self) -> u16 {
+        kind::BOOLEAN
+    }
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "field",

@@ -18,6 +18,16 @@ impl Function for Values {
         "Returns the values from the object passed into the function."
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::ARRAY
+    }
+
+    fn return_rules(&self) -> &'static [&'static str] {
+        &[
+            "Returns an array of all the values.",
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

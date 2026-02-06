@@ -60,6 +60,10 @@ impl Function for Get {
         &["The `path` segment must be a string or an integer."]
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::ANY
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

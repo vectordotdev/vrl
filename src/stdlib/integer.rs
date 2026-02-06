@@ -23,6 +23,17 @@ impl Function for Integer {
         &["`value` is not an integer."]
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::INTEGER
+    }
+
+    fn return_rules(&self) -> &'static [&'static str] {
+        &[
+            "Returns the `value` if it's an integer.",
+            "Raises an error if not an integer.",
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

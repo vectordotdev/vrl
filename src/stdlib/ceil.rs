@@ -53,6 +53,16 @@ impl Function for Ceil {
         "Rounds the `value` up to the specified `precision`."
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::INTEGER | kind::FLOAT
+    }
+
+    fn return_rules(&self) -> &'static [&'static str] {
+        &[
+            "Returns an integer if `precision` is `0` (this is the default). Returns a float otherwise.",
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         PARAMETERS.as_slice()
     }

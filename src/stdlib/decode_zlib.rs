@@ -29,6 +29,10 @@ impl Function for DecodeZlib {
         &["`value` isn't a valid encoded Zlib string."]
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::BYTES
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[example! {
             title: "Decode Zlib data",

@@ -50,6 +50,10 @@ impl Function for ParseTimestamp {
         ]
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::TIMESTAMP
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[
             example! {

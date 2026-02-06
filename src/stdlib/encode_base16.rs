@@ -17,6 +17,10 @@ impl Function for EncodeBase16 {
         "Encodes the `value` to [Base16](https://en.wikipedia.org/wiki/Hexadecimal))."
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::BYTES
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

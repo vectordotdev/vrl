@@ -27,6 +27,10 @@ impl Function for SplitPath {
         &["`value` is not a valid string."]
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::ARRAY
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

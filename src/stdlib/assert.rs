@@ -35,6 +35,10 @@ impl Function for Assert {
         &["`condition` evaluates to `false`."]
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::BOOLEAN
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

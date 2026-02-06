@@ -57,6 +57,10 @@ impl Function for Sha3 {
         "Calculates a [SHA-3](https://en.wikipedia.org/wiki/SHA-3) hash of the `value`."
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::BYTES
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         PARAMETERS.as_slice()
     }

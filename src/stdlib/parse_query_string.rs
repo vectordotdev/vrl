@@ -13,6 +13,10 @@ impl Function for ParseQueryString {
         "Parses the `value` as a query string."
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::OBJECT
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[
             example! {

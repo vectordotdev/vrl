@@ -42,6 +42,18 @@ impl Function for Merge {
         "Merges the `from` object into the `to` object."
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::OBJECT
+    }
+
+    fn return_rules(&self) -> &'static [&'static str] {
+        &[
+            "The field from the `from` object is chosen if a key exists in both objects.",
+            "Objects are merged recursively if `deep` is specified, a key exists in both objects, and both of those
+fields are also objects.",
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         PARAMETERS.as_slice()
     }

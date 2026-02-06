@@ -42,6 +42,10 @@ impl Function for GetTimezoneName {
         &["Retrieval of local timezone information failed."]
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::BYTES
+    }
+
     #[cfg(not(feature = "__mock_return_values_for_tests"))]
     fn examples(&self) -> &'static [Example] {
         &[example! {

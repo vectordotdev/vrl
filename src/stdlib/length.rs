@@ -34,6 +34,18 @@ impl Function for Length {
         "}
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::INTEGER
+    }
+
+    fn return_rules(&self) -> &'static [&'static str] {
+        &[
+            "If `value` is an array, returns the number of elements.",
+            "If `value` is an object, returns the number of top-level keys.",
+            "If `value` is a string, returns the number of bytes in the string.",
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

@@ -64,6 +64,10 @@ impl Function for FromUnixTimestamp {
         "}
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::TIMESTAMP
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         PARAMETERS.as_slice()
     }

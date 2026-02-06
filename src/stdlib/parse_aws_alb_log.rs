@@ -53,6 +53,10 @@ impl Function for ParseAwsAlbLog {
         &["`value` is not a properly formatted AWS ALB log."]
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::OBJECT
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[
             example! {

@@ -90,6 +90,10 @@ impl Function for ParseXml {
         &["`value` is not a valid XML document."]
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::OBJECT
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[example! {
             title: "Parse XML",

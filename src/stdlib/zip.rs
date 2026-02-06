@@ -55,6 +55,16 @@ impl Function for Zip {
         &["`array_0` and `array_1` must be arrays."]
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::ARRAY
+    }
+
+    fn return_rules(&self) -> &'static [&'static str] {
+        &[
+            "`zip` is considered fallible if any of the parameters is not an array, or if only the first parameter is present and it is not an array of arrays.",
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

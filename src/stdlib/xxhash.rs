@@ -68,6 +68,10 @@ impl Function for Xxhash {
         "xxhash"
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::INTEGER | kind::BYTES
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         PARAMETERS.as_slice()
     }

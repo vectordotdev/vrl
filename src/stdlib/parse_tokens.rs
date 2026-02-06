@@ -36,6 +36,10 @@ impl Function for ParseTokens {
         &["`value` is not a properly formatted tokenized string."]
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::ARRAY
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[example! {
             title: "Parse tokens",

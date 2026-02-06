@@ -52,6 +52,10 @@ impl Function for ParseInt {
         ]
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::INTEGER
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

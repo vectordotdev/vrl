@@ -25,6 +25,10 @@ impl Function for Match {
         "Determines whether the `value` matches the `pattern`."
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::BOOLEAN
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

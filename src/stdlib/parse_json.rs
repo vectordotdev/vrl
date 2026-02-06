@@ -157,6 +157,10 @@ impl Function for ParseJson {
         &["`value` is not a valid JSON-formatted payload."]
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::BOOLEAN | kind::INTEGER | kind::FLOAT | kind::BYTES | kind::OBJECT | kind::ARRAY | kind::NULL
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         PARAMETERS.as_slice()
     }

@@ -122,6 +122,10 @@ impl Function for ParseBytes {
         &["`value` is not a properly formatted bytes."]
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::FLOAT
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[
             example! {

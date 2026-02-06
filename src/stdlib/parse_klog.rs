@@ -109,6 +109,10 @@ impl Function for ParseKlog {
         &["`value` does not match the `klog` format."]
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::OBJECT
+    }
+
     fn examples(&self) -> &'static [Example] {
         EXAMPLES.as_slice()
     }

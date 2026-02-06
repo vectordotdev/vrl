@@ -38,6 +38,16 @@ impl Function for Chunks {
         ]
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::ARRAY
+    }
+
+    fn return_rules(&self) -> &'static [&'static str] {
+        &[
+            "`chunks` is considered fallible if the supplied `chunk_size` is an expression, and infallible if it's a literal integer.",
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

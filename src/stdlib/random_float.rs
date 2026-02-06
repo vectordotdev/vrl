@@ -44,6 +44,10 @@ impl Function for RandomFloat {
         &["`max` is not greater than `min`."]
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::FLOAT
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

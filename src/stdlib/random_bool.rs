@@ -20,6 +20,10 @@ impl Function for RandomBool {
         "Returns a random boolean."
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::BOOLEAN
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[]
     }

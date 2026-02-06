@@ -31,6 +31,10 @@ impl Function for ContainsAll {
         "Determines whether the `value` string contains all the specified `substrings`."
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::BOOLEAN
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

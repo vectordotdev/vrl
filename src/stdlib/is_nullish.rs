@@ -17,6 +17,19 @@ impl Function for IsNullish {
         r#"Determines whether `value` is nullish. Returns `true` if the specified `value` is `null`, an empty string, a string containing only whitespace, or the string `"-"`. Returns `false` otherwise."#
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::BOOLEAN
+    }
+
+    fn return_rules(&self) -> &'static [&'static str] {
+        &[
+            "Returns `true` if `value` is `null`.",
+            "Returns `true` if `value` is `\"-\"`.",
+            "Returns `true` if `value` is whitespace as defined by [Unicode `White_Space` property](https://en.wikipedia.org/wiki/Unicode_character_property#Whitespace).",
+            "Returns `false` if `value` is anything else.",
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

@@ -18,6 +18,10 @@ impl Function for Includes {
         "Determines whether the `value` array includes the specified `item`."
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::BOOLEAN
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

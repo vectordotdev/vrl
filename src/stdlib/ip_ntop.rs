@@ -37,6 +37,10 @@ impl Function for IpNtop {
         &["`value` must be of length 4 or 16 bytes."]
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::BYTES
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

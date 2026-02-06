@@ -54,6 +54,10 @@ impl Function for ParseEtld {
         &["unable to determine eTLD for `value`"]
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::OBJECT
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         PARAMETERS.as_slice()
     }

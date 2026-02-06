@@ -57,6 +57,10 @@ impl Function for MatchArray {
         "Determines whether the elements in the `value` array matches the `pattern`. By default, it checks that at least one element matches, but can be set to determine if all the elements match."
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::BOOLEAN
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[
             example! {

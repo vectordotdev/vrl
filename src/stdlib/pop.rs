@@ -18,6 +18,16 @@ impl Function for Pop {
         "Removes the last item from the `value` array."
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::ARRAY
+    }
+
+    fn return_rules(&self) -> &'static [&'static str] {
+        &[
+            "The original `value` is not modified.",
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

@@ -58,6 +58,10 @@ impl Function for EncodeBase64 {
         "Encodes the `value` to [Base64](https://en.wikipedia.org/wiki/Base64)."
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::BYTES
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         PARAMETERS.as_slice()
     }

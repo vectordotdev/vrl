@@ -46,6 +46,10 @@ impl Function for ForEach {
             See the examples below to learn about the closure syntax.
         "}
     }
+
+    fn return_kind(&self) -> u16 {
+        kind::NULL
+    }
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

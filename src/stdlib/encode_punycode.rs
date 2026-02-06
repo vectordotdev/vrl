@@ -40,6 +40,10 @@ impl Function for EncodePunycode {
         &["`value` can not be encoded to `punycode`"]
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::BYTES
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         PARAMETERS.as_slice()
     }

@@ -146,6 +146,10 @@ impl Function for ParseInfluxDB {
         ]
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::ARRAY
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

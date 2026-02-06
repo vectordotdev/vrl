@@ -104,6 +104,16 @@ impl Function for Compact {
         "Compacts the `value` by removing empty values, where empty values are defined using the available parameters."
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::ARRAY | kind::OBJECT
+    }
+
+    fn return_rules(&self) -> &'static [&'static str] {
+        &[
+            "The return type matches the `value` type.",
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         PARAMETERS.as_slice()
     }

@@ -19,6 +19,10 @@ impl Function for StripAnsiEscapeCodes {
         "Strips [ANSI escape codes](https://en.wikipedia.org/wiki/ANSI_escape_code) from `value`."
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::BYTES
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

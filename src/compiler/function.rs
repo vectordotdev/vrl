@@ -40,6 +40,18 @@ pub trait Function: Send + Sync + fmt::Debug {
     fn internal_failure_reasons(&self) -> &'static [&'static str] {
         &[]
     }
+
+    /// The return type kind(s) this function can return.
+    fn return_kind(&self) -> u16;
+
+    /// Human-readable rules describing the return value of the function.
+    ///
+    /// This returns an empty slice by default, indicating no return rules
+    /// are documented for this function.
+    fn return_rules(&self) -> &'static [&'static str] {
+        &[]
+    }
+
     /// One or more examples demonstrating usage of the function in VRL source
     /// code.
     fn examples(&self) -> &'static [Example];

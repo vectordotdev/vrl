@@ -95,6 +95,10 @@ impl Function for ParseAwsCloudWatchLogSubscriptionMessage {
         &["`value` is not a properly formatted AWS CloudWatch Log subscription message."]
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::OBJECT
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[example! {
             title: "Parse AWS Cloudwatch Log subscription message",

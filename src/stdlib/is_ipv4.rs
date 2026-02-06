@@ -24,6 +24,17 @@ impl Function for IsIpv4 {
         "}
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::BOOLEAN
+    }
+
+    fn return_rules(&self) -> &'static [&'static str] {
+        &[
+            "Returns `true` if `value` is a valid IPv4 address.",
+            "Returns `false` if `value` is anything else.",
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

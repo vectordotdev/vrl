@@ -117,6 +117,17 @@ impl Function for ValidateJsonSchema {
         ]
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::BOOLEAN
+    }
+
+    fn return_rules(&self) -> &'static [&'static str] {
+        &[
+            "Returns `true` if `value` conforms to the JSON Schema definition.",
+            "Returns `false` if `value` does not conform to the JSON Schema definition.",
+        ]
+    }
+
     fn examples(&self) -> &'static [Example] {
         EXAMPLES.as_slice()
     }

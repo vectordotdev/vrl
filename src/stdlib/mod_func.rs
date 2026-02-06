@@ -25,6 +25,10 @@ impl Function for Mod {
         ]
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::INTEGER | kind::FLOAT
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

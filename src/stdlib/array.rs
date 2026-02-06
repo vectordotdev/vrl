@@ -23,6 +23,17 @@ impl Function for Array {
         &["`value` is not an array."]
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::ARRAY
+    }
+
+    fn return_rules(&self) -> &'static [&'static str] {
+        &[
+            "Returns the `value` if it's an array.",
+            "Raises an error if not an array.",
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

@@ -25,6 +25,16 @@ impl Function for ToRegex {
         &["`value` is not a string."]
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::REGEX
+    }
+
+    fn return_rules(&self) -> &'static [&'static str] {
+        &[
+            "If `value` is a string that contains a valid regex, returns the regex constructed with this string.",
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

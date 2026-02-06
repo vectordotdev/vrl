@@ -39,6 +39,10 @@ impl Function for IpPton {
         &["`value` is not a valid IP (v4 or v6) address in text form."]
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::BYTES
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

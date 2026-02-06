@@ -23,6 +23,10 @@ impl Function for ParseLogFmt {
         &["`value` is not a properly formatted key-value string"]
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::OBJECT
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

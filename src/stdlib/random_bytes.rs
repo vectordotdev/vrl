@@ -33,6 +33,10 @@ impl Function for RandomBytes {
         ]
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::BYTES
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "length",

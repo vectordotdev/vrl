@@ -61,6 +61,10 @@ impl Function for EncodeGzip {
         "Encodes the `value` to [Gzip](https://www.gzip.org/)."
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::BYTES
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[example! {
             title: "Encode to Gzip",

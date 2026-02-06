@@ -83,6 +83,10 @@ impl Function for ParseDuration {
         &["`value` is not a properly formatted duration."]
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::FLOAT
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[
             example! {

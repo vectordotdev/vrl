@@ -24,6 +24,10 @@ impl Function for Strlen {
         "}
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::INTEGER
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

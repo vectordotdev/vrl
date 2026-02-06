@@ -76,6 +76,10 @@ impl Function for IpCidrContains {
         ]
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::BOOLEAN
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

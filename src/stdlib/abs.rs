@@ -24,6 +24,16 @@ impl Function for Abs {
         "Computes the absolute value of `value`."
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::INTEGER | kind::FLOAT
+    }
+
+    fn return_rules(&self) -> &'static [&'static str] {
+        &[
+            "Returns the absolute value.",
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

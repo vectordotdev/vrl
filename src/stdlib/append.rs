@@ -19,6 +19,10 @@ impl Function for Append {
         "Appends each item in the `items` array to the end of the `value` array."
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::ARRAY
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

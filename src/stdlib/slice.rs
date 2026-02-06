@@ -89,6 +89,10 @@ impl Function for Slice {
         "}
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::ARRAY | kind::BYTES
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         PARAMETERS.as_slice()
     }

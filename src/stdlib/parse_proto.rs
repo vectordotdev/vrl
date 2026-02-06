@@ -59,6 +59,10 @@ impl Function for ParseProto {
         ]
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::OBJECT
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

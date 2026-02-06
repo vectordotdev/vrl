@@ -62,6 +62,10 @@ impl Function for DecodeBase64 {
         &["`value` isn't a valid encoded Base64 string."]
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::BYTES
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         PARAMETERS.as_slice()
     }

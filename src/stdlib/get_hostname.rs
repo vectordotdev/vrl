@@ -25,6 +25,10 @@ impl Function for GetHostname {
         &["Internal hostname resolution failed."]
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::BYTES
+    }
+
     #[cfg(not(target_arch = "wasm32"))]
     fn compile(
         &self,

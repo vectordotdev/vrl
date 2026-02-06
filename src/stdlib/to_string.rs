@@ -31,6 +31,19 @@ impl Function for ToString {
         &["`value` is not an integer, float, boolean, string, timestamp, or null."]
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::BYTES
+    }
+
+    fn return_rules(&self) -> &'static [&'static str] {
+        &[
+            "If `value` is an integer or float, returns the string representation.",
+            "If `value` is a boolean, returns `\"true\"` or `\"false\"`.",
+            "If `value` is a timestamp, returns an [RFC 3339](\\(urls.rfc3339)) representation.",
+            "If `value` is a null, returns `\"\"`.",
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

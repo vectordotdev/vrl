@@ -23,6 +23,17 @@ impl Function for String {
         &["`value` is not a string."]
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::BYTES
+    }
+
+    fn return_rules(&self) -> &'static [&'static str] {
+        &[
+            "Returns the `value` if it's a string.",
+            "Raises an error if not a string.",
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

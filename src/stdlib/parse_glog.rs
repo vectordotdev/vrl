@@ -85,6 +85,10 @@ impl Function for ParseGlog {
         &["`value` does not match the `glog` format."]
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::OBJECT
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[example! {
             title: "Parse using glog",

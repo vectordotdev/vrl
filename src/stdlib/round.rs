@@ -53,6 +53,16 @@ impl Function for Round {
         "Rounds the `value` to the specified `precision`."
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::INTEGER | kind::FLOAT
+    }
+
+    fn return_rules(&self) -> &'static [&'static str] {
+        &[
+            "If `precision` is `0`, then an integer is returned, otherwise a float is returned.",
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         PARAMETERS.as_slice()
     }

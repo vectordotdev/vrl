@@ -13,6 +13,17 @@ impl Function for IsNull {
         "Check if `value`'s type is `null`. For a more relaxed function, see [`is_nullish`](/docs/reference/vrl/functions#is_nullish)."
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::BOOLEAN
+    }
+
+    fn return_rules(&self) -> &'static [&'static str] {
+        &[
+            "Returns `true` if `value` is null.",
+            "Returns `false` if `value` is anything else.",
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

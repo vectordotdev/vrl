@@ -43,6 +43,10 @@ impl Function for Log {
         "Logs the `value` to [stdout](https://en.wikipedia.org/wiki/Standard_streams#Standard_output_(stdout)) at the specified `level`."
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::NULL
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         PARAMETERS.as_slice()
     }

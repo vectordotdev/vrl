@@ -21,6 +21,10 @@ impl Function for ParseRubyHash {
         &["`value` is not a valid ruby hash formatted payload."]
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::OBJECT
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[example! {
             title: "Parse ruby hash",

@@ -44,6 +44,10 @@ impl Function for ParseLinuxAuthorization {
         &["`value` is not a properly formatted Syslog message."]
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::OBJECT
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

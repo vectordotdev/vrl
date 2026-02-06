@@ -21,6 +21,10 @@ impl Function for ParseFloat {
         &["`value` is not a string."]
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::FLOAT
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

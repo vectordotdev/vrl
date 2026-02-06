@@ -29,6 +29,10 @@ impl Function for ParseAwsVpcFlowLog {
         &["`value` is not a properly formatted AWS VPC Flow log."]
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::OBJECT
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[
             example! {

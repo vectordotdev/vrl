@@ -18,6 +18,10 @@ impl Function for Md5 {
         "Calculates an md5 hash of the `value`."
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::BYTES
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

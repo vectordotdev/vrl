@@ -49,6 +49,10 @@ impl Function for ToSyslogFacilityCode {
         &["`value` is not a valid Syslog facility keyword."]
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::INTEGER
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

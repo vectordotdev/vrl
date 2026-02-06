@@ -31,6 +31,10 @@ impl Function for IpNtoa {
         &["`value` cannot fit in an unsigned 32-bit integer."]
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::BYTES
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

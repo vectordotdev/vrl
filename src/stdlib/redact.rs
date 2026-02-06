@@ -36,6 +36,10 @@ impl Function for Redact {
         "}
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::BYTES | kind::OBJECT | kind::ARRAY
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

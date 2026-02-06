@@ -25,6 +25,10 @@ impl Function for DecodeBase16 {
         &["`value` isn't a valid encoded Base16 string."]
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::BYTES
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

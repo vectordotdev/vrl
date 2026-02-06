@@ -18,6 +18,16 @@ impl Function for Push {
         "Adds the `item` to the end of the `value` array."
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::ARRAY
+    }
+
+    fn return_rules(&self) -> &'static [&'static str] {
+        &[
+            "Returns a new array. The `value` is _not_ modified in place.",
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

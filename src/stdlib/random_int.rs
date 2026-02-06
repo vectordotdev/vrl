@@ -39,6 +39,10 @@ impl Function for RandomInt {
         &["`max` is not greater than `min`."]
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::INTEGER
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

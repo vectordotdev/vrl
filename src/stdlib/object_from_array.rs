@@ -63,6 +63,16 @@ impl Function for ObjectFromArray {
         ]
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::OBJECT
+    }
+
+    fn return_rules(&self) -> &'static [&'static str] {
+        &[
+            "`object_from_array` is considered fallible in the following cases: if any of the parameters is not an array; if only the `value` parameter is present and it is not an array of arrays; or if any of the keys are not either a string or `null`.",
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

@@ -49,6 +49,10 @@ impl Function for EndsWith {
         "Determines whether the `value` string ends with the specified `substring`."
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::BOOLEAN
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         PARAMETERS.as_slice()
     }

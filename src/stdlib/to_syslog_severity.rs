@@ -33,6 +33,16 @@ impl Function for ToSyslogSeverity {
         &["`value` is not a valid Syslog level keyword."]
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::INTEGER
+    }
+
+    fn return_rules(&self) -> &'static [&'static str] {
+        &[
+            "The now-deprecated keywords `panic`, `error`, and `warn` are converted to `0`, `3`, and `4` respectively.",
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

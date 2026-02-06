@@ -47,6 +47,10 @@ impl Function for EncodeZstd {
         "Encodes the `value` to [Zstandard](https://facebook.github.io/zstd)."
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::BYTES
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[example! {
             title: "Encode to Zstd",

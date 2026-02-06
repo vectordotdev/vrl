@@ -62,6 +62,10 @@ impl Function for EncodeZlib {
         "Encodes the `value` to [Zlib](https://www.zlib.net)."
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::BYTES
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[example! {
             title: "Encode to Zlib",

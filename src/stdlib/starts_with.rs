@@ -105,6 +105,10 @@ impl Function for StartsWith {
         "Determines whether `value` begins with `substring`."
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::BOOLEAN
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         PARAMETERS.as_slice()
     }

@@ -30,6 +30,10 @@ impl Function for IpAton {
         &["`value` is not a valid IPv4 address."]
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::INTEGER
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

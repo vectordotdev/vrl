@@ -69,6 +69,10 @@ impl Function for CommunityID {
         "Generates an ID based on the [Community ID Spec](https://github.com/corelight/community-id-spec)."
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::BYTES
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

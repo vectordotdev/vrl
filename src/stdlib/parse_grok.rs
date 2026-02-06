@@ -98,6 +98,10 @@ impl Function for ParseGrok {
         &["`value` fails to parse using the provided `pattern`."]
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::OBJECT
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

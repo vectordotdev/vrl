@@ -23,6 +23,17 @@ impl Function for Object {
         &["`value` is not an object."]
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::OBJECT
+    }
+
+    fn return_rules(&self) -> &'static [&'static str] {
+        &[
+            "Returns the `value` if it's an object.",
+            "Raises an error if not an object.",
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

@@ -29,6 +29,10 @@ impl Function for AssertEq {
         "Asserts that two expressions, `left` and `right`, have the same value. The program is aborted with `message` if they do not have the same value."
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::BOOLEAN
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

@@ -28,6 +28,10 @@ impl Function for EncodeSnappy {
         &["`value` cannot be encoded into a Snappy string."]
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::BYTES
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[example! {
             title: "Encode to Snappy",

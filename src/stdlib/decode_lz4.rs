@@ -58,6 +58,10 @@ impl Function for DecodeLz4 {
         ]
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::BYTES
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[
             example! {

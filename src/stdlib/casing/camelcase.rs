@@ -15,6 +15,10 @@ impl Function for Camelcase {
         "Takes the `value` string, and turns it into camelCase. Optionally, you can pass in the existing case of the function, or else an attempt is made to determine the case automatically."
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::BYTES
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

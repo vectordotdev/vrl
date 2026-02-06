@@ -31,6 +31,10 @@ impl Function for ParseCbor {
         &["`value` is not a valid CBOR-formatted payload."]
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::BOOLEAN | kind::INTEGER | kind::FLOAT | kind::BYTES | kind::OBJECT | kind::ARRAY | kind::NULL
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[
             example! {

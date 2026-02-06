@@ -135,6 +135,10 @@ impl Function for Unflatten {
         "Unflattens the `value` into a nested representation."
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::OBJECT
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         PARAMETERS.as_slice()
     }

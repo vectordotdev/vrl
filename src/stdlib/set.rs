@@ -63,6 +63,10 @@ impl Function for Set {
         &["The `path` segment must be a string or an integer."]
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::OBJECT | kind::ARRAY
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

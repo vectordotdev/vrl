@@ -16,6 +16,10 @@ impl Function for Upcase {
         "Upcases `value`, where upcase is defined according to the Unicode Derived Core Property Uppercase."
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::BYTES
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[example! {
             title: "Upcase a string",

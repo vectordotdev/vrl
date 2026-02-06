@@ -128,6 +128,10 @@ impl Function for FormatNumber {
         "Formats the `value` into a string representation of the number."
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::BYTES
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         PARAMETERS.as_slice()
     }

@@ -23,6 +23,17 @@ impl Function for Float {
         &["`value` is not a float."]
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::FLOAT
+    }
+
+    fn return_rules(&self) -> &'static [&'static str] {
+        &[
+            "Returns the `value` if it's a float.",
+            "Raises an error if not a float.",
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

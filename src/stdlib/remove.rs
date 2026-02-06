@@ -95,6 +95,10 @@ impl Function for Remove {
         &["The `path` segment must be a string or an integer."]
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::OBJECT | kind::ARRAY
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         PARAMETERS.as_slice()
     }

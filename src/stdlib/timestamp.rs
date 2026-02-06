@@ -23,6 +23,17 @@ impl Function for Timestamp {
         &["`value` is not a timestamp."]
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::TIMESTAMP
+    }
+
+    fn return_rules(&self) -> &'static [&'static str] {
+        &[
+            "Returns the `value` if it's a timestamp.",
+            "Raises an error if not a timestamp.",
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

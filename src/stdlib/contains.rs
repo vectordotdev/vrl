@@ -49,6 +49,10 @@ impl Function for Contains {
         "Determines whether the `value` string contains the specified `substring`."
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::BOOLEAN
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         PARAMETERS.as_slice()
     }

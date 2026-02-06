@@ -29,6 +29,10 @@ impl Function for DecodeGzip {
         &["`value` isn't a valid encoded Gzip string."]
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::BYTES
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[example! {
             title: "Decode Gzip data",

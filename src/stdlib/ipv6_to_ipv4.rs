@@ -37,6 +37,17 @@ impl Function for Ipv6ToIpV4 {
         ]
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::BYTES
+    }
+
+    fn return_rules(&self) -> &'static [&'static str] {
+        &[
+            "The `ip` is returned unchanged if it's already an IPv4 address. If it's an IPv6 address it must be IPv4
+compatible, otherwise an error is thrown.",
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

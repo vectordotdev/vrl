@@ -72,6 +72,16 @@ impl Function for Del {
         "}
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::ANY
+    }
+
+    fn return_rules(&self) -> &'static [&'static str] {
+        &[
+            "Returns the value of the field being deleted. Returns `null` if the field doesn't exist.",
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         PARAMETERS.as_slice()
     }

@@ -20,6 +20,10 @@ impl Function for UuidV4 {
         "Generates a random [UUIDv4](https://en.wikipedia.org/wiki/Universally_unique_identifier#Version_4_(random)) string."
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::BYTES
+    }
+
     #[cfg(not(feature = "__mock_return_values_for_tests"))]
     fn examples(&self) -> &'static [Example] {
         &[example! {

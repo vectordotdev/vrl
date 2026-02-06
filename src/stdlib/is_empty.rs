@@ -31,6 +31,17 @@ impl Function for IsEmpty {
         "Check if the object, array, or string has a length of `0`."
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::BOOLEAN
+    }
+
+    fn return_rules(&self) -> &'static [&'static str] {
+        &[
+            "Returns `true` if `value` is empty.",
+            "Returns `false` if `value` is non-empty.",
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

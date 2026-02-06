@@ -67,6 +67,10 @@ impl Function for Filter {
         "}
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::ARRAY | kind::OBJECT
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

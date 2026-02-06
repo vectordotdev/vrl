@@ -23,6 +23,10 @@ impl Function for Unique {
         "}
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::ARRAY
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[example! {
             title: "Unique",

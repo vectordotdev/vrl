@@ -21,6 +21,10 @@ impl Function for Seahash {
         "}
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::INTEGER
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[
             example! {

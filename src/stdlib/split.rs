@@ -41,6 +41,16 @@ impl Function for Split {
         "Splits the `value` string using `pattern`."
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::ARRAY
+    }
+
+    fn return_rules(&self) -> &'static [&'static str] {
+        &[
+            "If `limit` is specified, the remainder of the string is returned unsplit after `limit` has been reached.",
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

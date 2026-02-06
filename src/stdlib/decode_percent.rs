@@ -21,6 +21,10 @@ impl Function for DecodePercent {
         "Decodes a [percent-encoded](https://url.spec.whatwg.org/#percent-encoded-bytes) `value` like a URL."
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::BYTES
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

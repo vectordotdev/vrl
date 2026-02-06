@@ -35,6 +35,10 @@ impl Function for DirName {
         &["`value` is not a valid string."]
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::BYTES
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

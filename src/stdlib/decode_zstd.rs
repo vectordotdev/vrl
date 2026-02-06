@@ -27,6 +27,10 @@ impl Function for DecodeZstd {
         &["`value` isn't a valid encoded Zstd string."]
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::BYTES
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[example! {
             title: "Decode Zstd data",

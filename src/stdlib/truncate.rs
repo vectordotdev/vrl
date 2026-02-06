@@ -36,6 +36,17 @@ impl Function for Truncate {
         "Truncates the `value` string up to the `limit` number of characters."
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::BYTES
+    }
+
+    fn return_rules(&self) -> &'static [&'static str] {
+        &[
+            "The string is returned unchanged its length is less than `limit`.",
+            "If `ellipsis` is `true`, then an ellipsis (`...`) is appended to the string (beyond the specified `limit`).",
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

@@ -62,6 +62,17 @@ impl Function for ParseRegex {
         &["`value` fails to parse using the provided `pattern`."]
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::OBJECT
+    }
+
+    fn return_rules(&self) -> &'static [&'static str] {
+        &[
+            "Matches return all capture groups corresponding to the leftmost matches in the text.",
+            "Raises an error if no match is found.",
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         PARAMETERS.as_slice()
     }

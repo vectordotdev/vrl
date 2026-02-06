@@ -18,6 +18,10 @@ impl Function for TagTypesExternally {
         "}
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::OBJECT | kind::ARRAY | kind::NULL
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[
             example! {

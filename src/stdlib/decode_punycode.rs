@@ -40,6 +40,10 @@ impl Function for DecodePunycode {
         &["`value` is not valid `punycode`"]
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::BYTES
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         PARAMETERS.as_slice()
     }

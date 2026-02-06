@@ -37,6 +37,21 @@ impl Function for ToInt {
         ]
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::INTEGER
+    }
+
+    fn return_rules(&self) -> &'static [&'static str] {
+        &[
+            "If `value` is an integer, it will be returned as-is.",
+            "If `value` is a float, it will be truncated to its integer portion.",
+            "If `value` is a string, it must be the string representation of an integer or else an error is raised.",
+            "If `value` is a boolean, `0` is returned for `false` and `1` is returned for `true`.",
+            "If `value` is a timestamp, a [Unix timestamp](https://en.wikipedia.org/wiki/Unix_time) (in seconds) is returned.",
+            "If `value` is null, `0` is returned.",
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

@@ -38,6 +38,10 @@ impl Function for EncodeLogfmt {
         &["`fields_ordering` contains a non-string element."]
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::BYTES
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         PARAMETERS.as_slice()
     }
