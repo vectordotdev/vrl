@@ -61,9 +61,7 @@ impl Function for Flatten {
     }
 
     fn return_rules(&self) -> &'static [&'static str] {
-        &[
-            "The return type matches the `value` type.",
-        ]
+        &["The return type matches the `value` type."]
     }
 
     fn parameters(&self) -> &'static [Parameter] {

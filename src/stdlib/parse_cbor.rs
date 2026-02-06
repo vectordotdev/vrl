@@ -32,7 +32,13 @@ impl Function for ParseCbor {
     }
 
     fn return_kind(&self) -> u16 {
-        kind::BOOLEAN | kind::INTEGER | kind::FLOAT | kind::BYTES | kind::OBJECT | kind::ARRAY | kind::NULL
+        kind::BOOLEAN
+            | kind::INTEGER
+            | kind::FLOAT
+            | kind::BYTES
+            | kind::OBJECT
+            | kind::ARRAY
+            | kind::NULL
     }
 
     fn examples(&self) -> &'static [Example] {

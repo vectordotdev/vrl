@@ -23,9 +23,7 @@ impl Function for Values {
     }
 
     fn return_rules(&self) -> &'static [&'static str] {
-        &[
-            "Returns an array of all the values.",
-        ]
+        &["Returns an array of all the values."]
     }
 
     fn parameters(&self) -> &'static [Parameter] {

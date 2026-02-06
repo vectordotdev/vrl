@@ -29,9 +29,7 @@ impl Function for Abs {
     }
 
     fn return_rules(&self) -> &'static [&'static str] {
-        &[
-            "Returns the absolute value.",
-        ]
+        &["Returns the absolute value."]
     }
 
     fn parameters(&self) -> &'static [Parameter] {

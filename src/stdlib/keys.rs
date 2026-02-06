@@ -23,9 +23,7 @@ impl Function for Keys {
     }
 
     fn return_rules(&self) -> &'static [&'static str] {
-        &[
-            "Returns an array of all the keys",
-        ]
+        &["Returns an array of all the keys"]
     }
 
     fn parameters(&self) -> &'static [Parameter] {

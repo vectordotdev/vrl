@@ -23,9 +23,7 @@ impl Function for Push {
     }
 
     fn return_rules(&self) -> &'static [&'static str] {
-        &[
-            "Returns a new array. The `value` is _not_ modified in place.",
-        ]
+        &["Returns a new array. The `value` is _not_ modified in place."]
     }
 
     fn parameters(&self) -> &'static [Parameter] {

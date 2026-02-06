@@ -23,9 +23,7 @@ impl Function for Pop {
     }
 
     fn return_rules(&self) -> &'static [&'static str] {
-        &[
-            "The original `value` is not modified.",
-        ]
+        &["The original `value` is not modified."]
     }
 
     fn parameters(&self) -> &'static [Parameter] {
