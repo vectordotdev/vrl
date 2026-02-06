@@ -17,6 +17,10 @@ impl Function for TallyValue {
         "Counts the number of times a specific value appears in the provided array."
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::INTEGER
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[example! {
             title: "count matching values",

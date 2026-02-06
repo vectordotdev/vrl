@@ -36,6 +36,10 @@ impl Function for Tally {
         "Counts the occurrences of each string value in the provided array and returns an object with the counts."
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::OBJECT
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[example! {
             title: "tally",

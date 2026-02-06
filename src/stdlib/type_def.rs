@@ -30,6 +30,10 @@ impl Function for TypeDef {
         "}
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::ANY
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

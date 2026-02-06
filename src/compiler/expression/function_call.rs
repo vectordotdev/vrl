@@ -1276,6 +1276,10 @@ mod tests {
             "Test function"
         }
 
+        fn return_kind(&self) -> u16 {
+            kind::NULL
+        }
+
         fn examples(&self) -> &'static [crate::compiler::function::Example] {
             &[]
         }

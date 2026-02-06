@@ -377,6 +377,10 @@ impl Function for DnsLookup {
         "Performs a DNS lookup on the provided domain name. This function performs network calls and blocks on each request until a response is received. It is not recommended for frequent or performance-critical workflows."
     }
 
+    fn return_kind(&self) -> u16 {
+        kind::OBJECT
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         PARAMETERS.as_slice()
     }
