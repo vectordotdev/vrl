@@ -25,6 +25,12 @@ impl Function for ParseRubyHash {
         kind::OBJECT
     }
 
+    fn notices(&self) -> &'static [&'static str] {
+        &[
+            "Only ruby types are returned. If you need to convert a `string` into a `timestamp`, consider the\n[`parse_timestamp`](#parse_timestamp) function.",
+        ]
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[example! {
             title: "Parse ruby hash",

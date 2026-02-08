@@ -150,6 +150,14 @@ impl Function for ParseInfluxDB {
         kind::ARRAY
     }
 
+    fn notices(&self) -> &'static [&'static str] {
+        &[
+            "This function will return a log event with the shape of a Vector-compatible metric, but not a metric event itself.\nYou will likely want to pipe the output of this function through a `log_to_metric` transform with the option `all_metrics`\nset to `true` to convert the metric-shaped log events to metric events so _real_ metrics are produced.",
+            "The only metric type that is produced is a `gauge`. Each metric name is prefixed with the `measurement` field, followed\nby an underscore (`_`), and then the `field key` field.",
+            "`string` is the only type that is not supported as a field value,\ndue to limitations of Vector's metric model.",
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

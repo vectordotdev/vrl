@@ -41,6 +41,12 @@ impl Function for IpNtop {
         kind::BYTES
     }
 
+    fn notices(&self) -> &'static [&'static str] {
+        &[
+            "The binary data for this function is not easily printable.\nHowever, the results from functions such as `decode_base64` or\n`decode_percent` can still be used correctly.",
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

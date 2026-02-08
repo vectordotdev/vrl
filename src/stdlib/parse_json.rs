@@ -167,6 +167,12 @@ impl Function for ParseJson {
             | kind::NULL
     }
 
+    fn notices(&self) -> &'static [&'static str] {
+        &[
+            "Only JSON types are returned. If you need to convert a `string` into a `timestamp`, consider the\n[`parse_timestamp`](#parse_timestamp) function.",
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         PARAMETERS.as_slice()
     }

@@ -35,6 +35,12 @@ impl Function for ToRegex {
         ]
     }
 
+    fn notices(&self) -> &'static [&'static str] {
+        &[
+            "Compiling a regular expression is an expensive operation and can limit Vector throughput. Don't use this function unless you are absolutely sure there is no other way!",
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

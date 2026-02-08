@@ -138,6 +138,12 @@ impl Function for ParseKeyValue {
         kind::OBJECT
     }
 
+    fn notices(&self) -> &'static [&'static str] {
+        &[
+            "All values are returned as strings or as an array of strings for duplicate keys. We recommend manually coercing values to desired types as you see fit.",
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         PARAMETERS.as_slice()
     }

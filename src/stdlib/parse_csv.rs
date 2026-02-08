@@ -75,6 +75,12 @@ impl Function for ParseCsv {
         kind::ARRAY
     }
 
+    fn notices(&self) -> &'static [&'static str] {
+        &[
+            "All values are returned as strings. We recommend manually coercing values to desired types as you see fit.",
+        ]
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[
             example! {

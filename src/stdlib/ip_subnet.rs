@@ -59,6 +59,12 @@ impl Function for IpSubnet {
         kind::BYTES
     }
 
+    fn notices(&self) -> &'static [&'static str] {
+        &[
+            "Works with both IPv4 and IPv6 addresses. The IP version for the mask must be the same as the supplied\naddress.",
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

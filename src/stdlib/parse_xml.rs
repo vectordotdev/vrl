@@ -94,6 +94,12 @@ impl Function for ParseXml {
         kind::OBJECT
     }
 
+    fn notices(&self) -> &'static [&'static str] {
+        &[
+            "Valid XML must contain exactly one root node. Always returns an object.",
+        ]
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[example! {
             title: "Parse XML",

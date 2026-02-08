@@ -90,6 +90,12 @@ impl Function for ParseApacheLog {
         kind::OBJECT
     }
 
+    fn notices(&self) -> &'static [&'static str] {
+        &[
+            "Missing information in the log message may be indicated by `-`. These fields are omitted in the result.",
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         PARAMETERS.as_slice()
     }

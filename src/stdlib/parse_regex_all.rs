@@ -74,6 +74,13 @@ impl Function for ParseRegexAll {
         ]
     }
 
+    fn notices(&self) -> &'static [&'static str] {
+        &[
+            "VRL aims to provide purpose-specific [parsing functions](/docs/reference/vrl/functions/#parse-functions) for common log formats.\nBefore reaching for the `parse_regex` function, see if a VRL [`parse_*` function](/docs/reference/vrl/functions/#parse-functions)\nalready exists for your format. If not, we recommend [opening an issue](https://github.com/vectordotdev/vector/issues/new?labels=type%3A+new+feature) to request\nsupport for the desired format.",
+            "All values are returned as strings. We recommend manually coercing values to desired types as you see fit.",
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         PARAMETERS.as_slice()
     }

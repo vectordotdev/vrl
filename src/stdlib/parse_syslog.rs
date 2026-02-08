@@ -38,6 +38,13 @@ impl Function for ParseSyslog {
         kind::OBJECT
     }
 
+    fn notices(&self) -> &'static [&'static str] {
+        &[
+            "The function makes a best effort to parse the various Syslog formats that exists out in the wild. This includes\n[RFC 6587](https://tools.ietf.org/html/rfc6587), [RFC 5424](https://tools.ietf.org/html/rfc5424), [RFC 3164](https://tools.ietf.org/html/rfc3164), and other\ncommon variations (such as the Nginx Syslog style).",
+            "All values are returned as strings. We recommend manually coercing values to desired types as you see fit.",
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",

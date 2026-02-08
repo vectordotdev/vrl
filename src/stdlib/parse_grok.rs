@@ -102,6 +102,12 @@ impl Function for ParseGrok {
         kind::OBJECT
     }
 
+    fn notices(&self) -> &'static [&'static str] {
+        &[
+            "We recommend using community-maintained Grok patterns when possible, as they're more likely to be properly\nvetted and improved over time than bespoke patterns.",
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

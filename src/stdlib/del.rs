@@ -82,6 +82,12 @@ impl Function for Del {
         ]
     }
 
+    fn notices(&self) -> &'static [&'static str] {
+        &[
+            "The `del` function _modifies the current event in place_ and returns the value of the deleted field.",
+        ]
+    }
+
     fn pure(&self) -> bool {
         false
     }

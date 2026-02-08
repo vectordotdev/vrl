@@ -64,6 +64,12 @@ impl Function for EncryptIp {
         kind::BYTES
     }
 
+    fn notices(&self) -> &'static [&'static str] {
+        &[
+            "The `aes128` mode implements the `ipcrypt-deterministic` algorithm from the IPCrypt specification, while the `pfx` mode implements the `ipcrypt-pfx` algorithm. Both modes provide deterministic encryption where the same input IP address encrypted with the same key will always produce the same encrypted output.",
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

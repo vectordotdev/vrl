@@ -39,6 +39,12 @@ impl Function for Assert {
         kind::BOOLEAN
     }
 
+    fn notices(&self) -> &'static [&'static str] {
+        &[
+            "The `assert` function should be used in a standalone fashion and only when you want to abort the program. You\nshould avoid it in logical expressions and other situations in which you want the program to continue if the\ncondition evaluates to `false`.",
+        ]
+    }
+
     fn pure(&self) -> bool {
         false
     }

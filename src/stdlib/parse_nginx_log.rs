@@ -90,6 +90,13 @@ impl Function for ParseNginxLog {
         kind::OBJECT
     }
 
+    fn notices(&self) -> &'static [&'static str] {
+        &[
+            "Missing information in the log message may be indicated by `-`. These fields are omitted in the result.",
+            "In case of `ingress_upstreaminfo` format the following fields may be safely omitted in the log message: `remote_addr`, `remote_user`, `http_referer`, `http_user_agent`, `proxy_alternative_upstream_name`, `upstream_addr`, `upstream_response_length`, `upstream_response_time`, `upstream_status`.",
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         PARAMETERS.as_slice()
     }
