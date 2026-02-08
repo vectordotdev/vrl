@@ -33,6 +33,10 @@ impl Function for AssertEq {
         kind::BOOLEAN
     }
 
+    fn pure(&self) -> bool {
+        false
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {

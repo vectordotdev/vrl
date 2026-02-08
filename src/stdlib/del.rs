@@ -82,6 +82,10 @@ impl Function for Del {
         ]
     }
 
+    fn pure(&self) -> bool {
+        false
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         PARAMETERS.as_slice()
     }

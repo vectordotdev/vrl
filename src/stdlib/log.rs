@@ -47,6 +47,10 @@ impl Function for Log {
         kind::NULL
     }
 
+    fn pure(&self) -> bool {
+        false
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         PARAMETERS.as_slice()
     }

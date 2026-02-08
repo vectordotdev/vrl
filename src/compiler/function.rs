@@ -52,6 +52,12 @@ pub trait Function: Send + Sync + fmt::Debug {
         &[]
     }
 
+    /// Whether a function is pure or not. When a function is pure, it is
+    /// idempotent and has no side-effects. Otherwise, it is impure.
+    fn pure(&self) -> bool {
+        true
+    }
+
     /// One or more examples demonstrating usage of the function in VRL source
     /// code.
     fn examples(&self) -> &'static [Example];

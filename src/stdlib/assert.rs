@@ -39,6 +39,10 @@ impl Function for Assert {
         kind::BOOLEAN
     }
 
+    fn pure(&self) -> bool {
+        false
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {
