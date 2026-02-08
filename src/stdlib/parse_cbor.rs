@@ -42,9 +42,7 @@ impl Function for ParseCbor {
     }
 
     fn notices(&self) -> &'static [&'static str] {
-        &[
-            "Only CBOR types are returned.",
-        ]
+        &["Only CBOR types are returned."]
     }
 
     fn examples(&self) -> &'static [Example] {

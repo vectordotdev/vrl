@@ -43,9 +43,7 @@ impl Function for EncodeLogfmt {
     }
 
     fn notices(&self) -> &'static [&'static str] {
-        &[
-            "If `fields_ordering` is specified then the function is fallible else it is infallible.",
-        ]
+        &["If `fields_ordering` is specified then the function is fallible else it is infallible."]
     }
 
     fn parameters(&self) -> &'static [Parameter] {
