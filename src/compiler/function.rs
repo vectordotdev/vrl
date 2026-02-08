@@ -52,6 +52,14 @@ pub trait Function: Send + Sync + fmt::Debug {
         &[]
     }
 
+    /// Important notices about the function's behavior or usage.
+    ///
+    /// This returns an empty slice by default, indicating no notices
+    /// are documented for this function.
+    fn notices(&self) -> &'static [&'static str] {
+        &[]
+    }
+
     /// Whether a function is pure or not. When a function is pure, it is
     /// idempotent and has no side-effects. Otherwise, it is impure.
     fn pure(&self) -> bool {
