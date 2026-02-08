@@ -60,9 +60,10 @@ impl Function for IpSubnet {
     }
 
     fn notices(&self) -> &'static [&'static str] {
-        &[
-            "Works with both IPv4 and IPv6 addresses. The IP version for the mask must be the same as the supplied\naddress.",
-        ]
+        &[indoc! {"
+            Works with both IPv4 and IPv6 addresses. The IP version for the mask must be the same as
+            the supplied address.
+        "}]
     }
 
     fn parameters(&self) -> &'static [Parameter] {

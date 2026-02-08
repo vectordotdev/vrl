@@ -64,7 +64,7 @@ impl Function for ParseProto {
     }
 
     fn notices(&self) -> &'static [&'static str] {
-        &["	Only proto messages are parsed and returned."]
+        &["Only proto messages are parsed and returned."]
     }
 
     fn parameters(&self) -> &'static [Parameter] {

@@ -129,9 +129,13 @@ impl Function for ValidateJsonSchema {
     }
 
     fn notices(&self) -> &'static [&'static str] {
-        &[
-            "This function uses a compiled schema cache. The first time it is called with a specific `schema_definition`, it will compile the schema and cache it for subsequent calls. This improves performance when validating multiple values against the same schema.\nThe cache implementation is fairly naive and does not support refreshing the schema if it changes. If you update the schema definition file, you must restart Vector to clear the cache.",
-        ]
+        &[indoc! {"
+            This function uses a compiled schema cache. The first time it is called with a specific
+            `schema_definition`, it will compile the schema and cache it for subsequent calls. This
+            improves performance when validating multiple values against the same schema. The cache
+            implementation is fairly naive and does not support refreshing the schema if it changes.
+            If you update the schema definition file, you must restart Vector to clear the cache.
+        "}]
     }
 
     fn examples(&self) -> &'static [Example] {

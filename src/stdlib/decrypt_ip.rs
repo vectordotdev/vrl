@@ -81,9 +81,12 @@ impl Function for DecryptIp {
     }
 
     fn notices(&self) -> &'static [&'static str] {
-        &[
-            "The `aes128` mode implements the `ipcrypt-deterministic` algorithm from the IPCrypt specification, while the `pfx` mode implements the `ipcrypt-pfx` algorithm. This function reverses the encryption performed by `encrypt_ip` - the same key and algorithm that were used for encryption must be used for decryption.",
-        ]
+        &[indoc! {"
+            The `aes128` mode implements the `ipcrypt-deterministic` algorithm from the IPCrypt
+            specification, while the `pfx` mode implements the `ipcrypt-pfx` algorithm. This
+            function reverses the encryption performed by `encrypt_ip` - the same key and algorithm
+            that were used for encryption must be used for decryption.
+        "}]
     }
 
     fn parameters(&self) -> &'static [Parameter] {

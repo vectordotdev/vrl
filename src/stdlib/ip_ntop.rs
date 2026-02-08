@@ -42,9 +42,10 @@ impl Function for IpNtop {
     }
 
     fn notices(&self) -> &'static [&'static str] {
-        &[
-            "The binary data for this function is not easily printable.\nHowever, the results from functions such as `decode_base64` or\n`decode_percent` can still be used correctly.",
-        ]
+        &[indoc! {"
+            The binary data for this function is not easily printable. However, the results from
+            functions such as `decode_base64` or `decode_percent` can still be used correctly.
+        "}]
     }
 
     fn parameters(&self) -> &'static [Parameter] {

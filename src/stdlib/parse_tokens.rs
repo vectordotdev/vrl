@@ -41,9 +41,10 @@ impl Function for ParseTokens {
     }
 
     fn notices(&self) -> &'static [&'static str] {
-        &[
-            "All token values are returned as strings. We recommend manually coercing values to desired types as you see fit.",
-        ]
+        &[indoc! {"
+            All token values are returned as strings. We recommend manually coercing values to
+            desired types as you see fit.
+        "}]
     }
 
     fn examples(&self) -> &'static [Example] {

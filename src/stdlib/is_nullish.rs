@@ -31,9 +31,10 @@ impl Function for IsNullish {
     }
 
     fn notices(&self) -> &'static [&'static str] {
-        &[
-            "This function behaves inconsistently: it returns `false` for empty arrays (`[]`) and objects (`{}`),\nbut `true` for empty strings (`\"\"`) and `null`.",
-        ]
+        &[indoc! {r#"
+            This function behaves inconsistently: it returns `false` for empty arrays (`[]`) and
+            objects (`{}`), but `true` for empty strings (`""`) and `null`.
+        "#}]
     }
 
     fn parameters(&self) -> &'static [Parameter] {

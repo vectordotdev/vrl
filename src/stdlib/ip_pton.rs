@@ -44,9 +44,10 @@ impl Function for IpPton {
     }
 
     fn notices(&self) -> &'static [&'static str] {
-        &[
-            "The binary data from this function is not easily printable.\nHowever, functions such as `encode_base64` or `encode_percent` can\nstill process it correctly.",
-        ]
+        &[indoc! {"
+            The binary data from this function is not easily printable. However, functions such as
+            `encode_base64` or `encode_percent` can still process it correctly.
+        "}]
     }
 
     fn parameters(&self) -> &'static [Parameter] {

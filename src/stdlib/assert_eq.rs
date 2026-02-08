@@ -34,9 +34,11 @@ impl Function for AssertEq {
     }
 
     fn notices(&self) -> &'static [&'static str] {
-        &[
-            "The `assert_eq` function should be used in a standalone fashion and only when you want to\nabort the program. You should avoid it in logical expressions and other situations in which\nyou want the program to continue if the condition evaluates to `false`.",
-        ]
+        &[indoc! {"
+            The `assert_eq` function should be used in a standalone fashion and only when you want
+            to abort the program. You should avoid it in logical expressions and other situations in
+            which you want the program to continue if the condition evaluates to `false`.
+        "}]
     }
 
     fn pure(&self) -> bool {

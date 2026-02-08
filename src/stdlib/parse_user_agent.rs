@@ -61,7 +61,10 @@ impl Function for ParseUserAgent {
 
     fn notices(&self) -> &'static [&'static str] {
         &[
-            "All values are returned as strings or as null. We recommend manually coercing values to desired types as you see fit.",
+            indoc! {"
+                All values are returned as strings or as null. We recommend manually coercing values
+                to desired types as you see fit.
+            "},
             "Different modes return different schema.",
             "Field which were not parsed out are set as `null`.",
         ]
