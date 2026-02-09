@@ -1247,7 +1247,7 @@ impl DiagnosticMessage for FunctionCallError {
 
 #[cfg(test)]
 mod tests {
-    use crate::compiler::{FunctionExpression, value::kind};
+    use crate::compiler::{Category, FunctionExpression, value::kind};
 
     use super::*;
 
@@ -1274,6 +1274,10 @@ mod tests {
 
         fn usage(&self) -> &'static str {
             "Test function"
+        }
+
+        fn category(&self) -> &'static str {
+            Category::Debug.as_ref()
         }
 
         fn return_kind(&self) -> u16 {
