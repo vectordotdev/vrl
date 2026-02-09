@@ -33,6 +33,11 @@ pub trait Function: Send + Sync + fmt::Debug {
     /// A more elaborate multi-paragraph description on how to use the function.
     fn usage(&self) -> &'static str;
 
+    /// The category this function belongs to.
+    ///
+    /// This categorizes functions for documentation and tooling purposes.
+    fn category(&self) -> &'static str;
+
     /// Human-readable internal failure reasons for the function.
     ///
     /// This returns an empty slice by default, indicating no internal failure
