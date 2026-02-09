@@ -1,5 +1,6 @@
 use crate::compiler::prelude::*;
 use prost_reflect::ReflectMessage;
+#[cfg(any(feature = "enable_system_functions", test))]
 use prost_reflect::{DynamicMessage, MessageDescriptor};
 
 #[derive(Default, Debug, Clone, Eq, PartialEq)]
@@ -101,6 +102,7 @@ pub fn proto_to_value(
     Ok(vrl_value)
 }
 
+#[cfg(feature = "enable_system_functions")]
 pub(crate) fn parse_proto(descriptor: &MessageDescriptor, value: Value) -> Resolved {
     let bytes = value.try_bytes()?;
 
