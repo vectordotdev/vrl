@@ -49,6 +49,10 @@ impl Function for Contains {
         "Determines whether the `value` string contains the specified `substring`."
     }
 
+    fn category(&self) -> &'static str {
+        Category::String.as_ref()
+    }
+
     fn return_kind(&self) -> u16 {
         kind::BOOLEAN
     }

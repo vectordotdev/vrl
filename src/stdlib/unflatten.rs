@@ -135,6 +135,10 @@ impl Function for Unflatten {
         "Unflattens the `value` into a nested representation."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Enumerate.as_ref()
+    }
+
     fn return_kind(&self) -> u16 {
         kind::OBJECT
     }

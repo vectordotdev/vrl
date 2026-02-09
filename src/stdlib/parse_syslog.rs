@@ -30,6 +30,10 @@ impl Function for ParseSyslog {
         "Parses the `value` in [Syslog](https://en.wikipedia.org/wiki/Syslog) format."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Parse.as_ref()
+    }
+
     fn internal_failure_reasons(&self) -> &'static [&'static str] {
         &["`value` is not a properly formatted Syslog message."]
     }

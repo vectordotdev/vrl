@@ -49,6 +49,10 @@ impl Function for DecodeLz4 {
         `prepended_size` is useful for some implementations of lz4 that require the original size to be known before decoding."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Codec.as_ref()
+    }
+
     fn internal_failure_reasons(&self) -> &'static [&'static str] {
         &[
             "`value` unable to decode value with lz4 frame decoder.",

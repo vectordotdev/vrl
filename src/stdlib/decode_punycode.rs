@@ -36,6 +36,10 @@ impl Function for DecodePunycode {
         "Decodes a [punycode](https://en.wikipedia.org/wiki/Punycode) encoded `value`, such as an internationalized domain name ([IDN](https://en.wikipedia.org/wiki/Internationalized_domain_name)). This function assumes that the value passed is meant to be used in IDN context and that it is either a domain name or a part of it."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Codec.as_ref()
+    }
+
     fn internal_failure_reasons(&self) -> &'static [&'static str] {
         &["`value` is not valid `punycode`"]
     }

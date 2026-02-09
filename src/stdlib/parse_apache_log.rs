@@ -78,6 +78,10 @@ impl Function for ParseApacheLog {
         "}
     }
 
+    fn category(&self) -> &'static str {
+        Category::Parse.as_ref()
+    }
+
     fn internal_failure_reasons(&self) -> &'static [&'static str] {
         &[
             "`value` does not match the specified format.",

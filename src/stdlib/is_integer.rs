@@ -13,6 +13,10 @@ impl Function for IsInteger {
         "Check if the value`'s type is an integer."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Type.as_ref()
+    }
+
     fn return_kind(&self) -> u16 {
         kind::BOOLEAN
     }

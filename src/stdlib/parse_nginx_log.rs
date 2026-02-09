@@ -78,6 +78,10 @@ impl Function for ParseNginxLog {
         "Parses Nginx access and error log lines. Lines can be in [`combined`](https://nginx.org/en/docs/http/ngx_http_log_module.html), [`ingress_upstreaminfo`](https://kubernetes.github.io/ingress-nginx/user-guide/nginx-configuration/log-format/), [`main`](https://hg.nginx.org/pkg-oss/file/tip/debian/debian/nginx.conf) or [`error`](https://github.com/nginx/nginx/blob/branches/stable-1.18/src/core/ngx_log.c#L102) format."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Parse.as_ref()
+    }
+
     fn internal_failure_reasons(&self) -> &'static [&'static str] {
         &[
             "`value` does not match the specified format.",

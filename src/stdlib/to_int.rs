@@ -30,6 +30,10 @@ impl Function for ToInt {
         "Coerces the `value` into an integer."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Coerce.as_ref()
+    }
+
     fn internal_failure_reasons(&self) -> &'static [&'static str] {
         &[
             "`value` is a string but the text is not an integer.",

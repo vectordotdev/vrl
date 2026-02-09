@@ -35,6 +35,10 @@ impl Function for IpPton {
         "}
     }
 
+    fn category(&self) -> &'static str {
+        Category::Ip.as_ref()
+    }
+
     fn internal_failure_reasons(&self) -> &'static [&'static str] {
         &["`value` is not a valid IP (v4 or v6) address in text form."]
     }

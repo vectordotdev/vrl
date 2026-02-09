@@ -27,6 +27,10 @@ impl Function for IpNtoa {
         "}
     }
 
+    fn category(&self) -> &'static str {
+        Category::Ip.as_ref()
+    }
+
     fn internal_failure_reasons(&self) -> &'static [&'static str] {
         &["`value` cannot fit in an unsigned 32-bit integer."]
     }

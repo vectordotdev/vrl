@@ -18,6 +18,10 @@ impl Function for Pop {
         "Removes the last item from the `value` array."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Array.as_ref()
+    }
+
     fn return_kind(&self) -> u16 {
         kind::ARRAY
     }

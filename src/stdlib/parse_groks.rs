@@ -119,6 +119,10 @@ impl Function for ParseGroks {
         "Parses the `value` using multiple [`grok`](https://github.com/daschl/grok/tree/master/patterns) patterns. All patterns [listed here](https://github.com/daschl/grok/tree/master/patterns) are supported."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Parse.as_ref()
+    }
+
     fn internal_failure_reasons(&self) -> &'static [&'static str] {
         &[
             "`value` fails to parse using the provided `pattern`.",

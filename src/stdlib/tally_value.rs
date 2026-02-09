@@ -17,6 +17,10 @@ impl Function for TallyValue {
         "Counts the number of times a specific value appears in the provided array."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Enumerate.as_ref()
+    }
+
     fn return_kind(&self) -> u16 {
         kind::INTEGER
     }

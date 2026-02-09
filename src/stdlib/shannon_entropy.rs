@@ -135,6 +135,10 @@ impl Function for ShannonEntropy {
         "Generates [Shannon entropy](https://en.wikipedia.org/wiki/Entropy_(information_theory)) from given string. It can generate it based on string bytes, codepoints, or graphemes."
     }
 
+    fn category(&self) -> &'static str {
+        Category::String.as_ref()
+    }
+
     fn return_kind(&self) -> u16 {
         kind::FLOAT
     }

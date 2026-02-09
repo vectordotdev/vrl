@@ -57,6 +57,10 @@ impl Function for MatchArray {
         "Determines whether the elements in the `value` array matches the `pattern`. By default, it checks that at least one element matches, but can be set to determine if all the elements match."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Enumerate.as_ref()
+    }
+
     fn return_kind(&self) -> u16 {
         kind::BOOLEAN
     }

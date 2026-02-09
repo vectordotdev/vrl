@@ -47,6 +47,10 @@ impl Function for EncodeZstd {
         "Encodes the `value` to [Zstandard](https://facebook.github.io/zstd)."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Codec.as_ref()
+    }
+
     fn return_kind(&self) -> u16 {
         kind::BYTES
     }

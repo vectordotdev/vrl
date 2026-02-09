@@ -41,6 +41,10 @@ impl Function for ToFloat {
         "Coerces the `value` into a float."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Coerce.as_ref()
+    }
+
     fn internal_failure_reasons(&self) -> &'static [&'static str] {
         &["`value` is not a supported float representation."]
     }

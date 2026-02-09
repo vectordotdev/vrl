@@ -61,6 +61,10 @@ impl Function for EncodeGzip {
         "Encodes the `value` to [Gzip](https://www.gzip.org/)."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Codec.as_ref()
+    }
+
     fn return_kind(&self) -> u16 {
         kind::BYTES
     }

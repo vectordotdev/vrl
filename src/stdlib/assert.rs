@@ -31,6 +31,10 @@ impl Function for Assert {
         "Asserts the `condition`, which must be a Boolean expression. The program is aborted with `message` if the condition evaluates to `false`."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Debug.as_ref()
+    }
+
     fn internal_failure_reasons(&self) -> &'static [&'static str] {
         &["`condition` evaluates to `false`."]
     }

@@ -27,6 +27,10 @@ impl Function for UuidFromFriendlyId {
         "Convert a Friendly ID (base62 encoding a 128-bit word) to a UUID."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Random.as_ref()
+    }
+
     fn internal_failure_reasons(&self) -> &'static [&'static str] {
         &[
             "`value` is a string but the text uses characters outside of class [0-9A-Za-z].",

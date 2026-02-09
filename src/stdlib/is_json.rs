@@ -55,6 +55,10 @@ impl Function for IsJson {
         "Check if the string is a valid JSON document."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Type.as_ref()
+    }
+
     fn return_kind(&self) -> u16 {
         kind::BOOLEAN
     }

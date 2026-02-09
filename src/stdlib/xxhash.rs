@@ -68,6 +68,10 @@ impl Function for Xxhash {
         "xxhash"
     }
 
+    fn category(&self) -> &'static str {
+        Category::Checksum.as_ref()
+    }
+
     fn return_kind(&self) -> u16 {
         kind::INTEGER | kind::BYTES
     }

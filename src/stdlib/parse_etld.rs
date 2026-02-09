@@ -50,6 +50,10 @@ impl Function for ParseEtld {
         "Parses the [eTLD](https://developer.mozilla.org/en-US/docs/Glossary/eTLD) from `value` representing domain name."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Parse.as_ref()
+    }
+
     fn internal_failure_reasons(&self) -> &'static [&'static str] {
         &["unable to determine eTLD for `value`"]
     }

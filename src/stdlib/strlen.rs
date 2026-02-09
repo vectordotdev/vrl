@@ -24,6 +24,10 @@ impl Function for Strlen {
         "}
     }
 
+    fn category(&self) -> &'static str {
+        Category::Enumerate.as_ref()
+    }
+
     fn return_kind(&self) -> u16 {
         kind::INTEGER
     }

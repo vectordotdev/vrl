@@ -18,6 +18,10 @@ impl Function for Keys {
         "Returns the keys from the object passed into the function."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Enumerate.as_ref()
+    }
+
     fn return_kind(&self) -> u16 {
         kind::ARRAY
     }

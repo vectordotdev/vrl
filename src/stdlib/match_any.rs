@@ -18,6 +18,10 @@ impl Function for MatchAny {
         "Determines whether `value` matches any of the given `patterns`. All patterns are checked in a single pass over the target string, giving this function a potential performance advantage over the multiple calls in the `match` function."
     }
 
+    fn category(&self) -> &'static str {
+        Category::String.as_ref()
+    }
+
     fn return_kind(&self) -> u16 {
         kind::BOOLEAN
     }

@@ -26,6 +26,10 @@ impl Function for RandomBytes {
         "A cryptographically secure random number generator. Returns a string value containing the number of random bytes requested."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Random.as_ref()
+    }
+
     fn internal_failure_reasons(&self) -> &'static [&'static str] {
         &[
             "`length` is negative.",

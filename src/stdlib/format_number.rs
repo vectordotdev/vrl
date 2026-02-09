@@ -128,6 +128,10 @@ impl Function for FormatNumber {
         "Formats the `value` into a string representation of the number."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Number.as_ref()
+    }
+
     fn return_kind(&self) -> u16 {
         kind::BYTES
     }

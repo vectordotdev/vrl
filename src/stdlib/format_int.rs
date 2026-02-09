@@ -48,6 +48,10 @@ impl Function for FormatInt {
         "Formats the integer `value` into a string representation using the given base/radix."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Number.as_ref()
+    }
+
     fn internal_failure_reasons(&self) -> &'static [&'static str] {
         &["The base is not between 2 and 36."]
     }

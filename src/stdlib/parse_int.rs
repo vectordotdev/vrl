@@ -45,6 +45,10 @@ impl Function for ParseInt {
         "Parses the string `value` representing a number in an optional base/radix to an integer."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Parse.as_ref()
+    }
+
     fn internal_failure_reasons(&self) -> &'static [&'static str] {
         &[
             "The base is not between 2 and 36.",

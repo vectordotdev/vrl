@@ -77,6 +77,10 @@ impl Function for ParseCef {
         "Parses the `value` in CEF (Common Event Format) format. Ignores everything up to CEF header. Empty values are returned as empty strings. Surrounding quotes are removed from values."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Parse.as_ref()
+    }
+
     fn internal_failure_reasons(&self) -> &'static [&'static str] {
         &["`value` is not a properly formatted CEF string."]
     }

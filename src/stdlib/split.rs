@@ -41,6 +41,10 @@ impl Function for Split {
         "Splits the `value` string using `pattern`."
     }
 
+    fn category(&self) -> &'static str {
+        Category::String.as_ref()
+    }
+
     fn return_kind(&self) -> u16 {
         kind::ARRAY
     }

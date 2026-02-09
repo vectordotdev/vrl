@@ -89,6 +89,10 @@ impl Function for Slice {
         "}
     }
 
+    fn category(&self) -> &'static str {
+        Category::String.as_ref()
+    }
+
     fn return_kind(&self) -> u16 {
         kind::ARRAY | kind::BYTES
     }

@@ -31,6 +31,10 @@ impl Function for ContainsAll {
         "Determines whether the `value` string contains all the specified `substrings`."
     }
 
+    fn category(&self) -> &'static str {
+        Category::String.as_ref()
+    }
+
     fn return_kind(&self) -> u16 {
         kind::BOOLEAN
     }

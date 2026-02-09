@@ -23,6 +23,10 @@ impl Function for MatchDatadogQuery {
         "Matches an object against a [Datadog Search Syntax](https://docs.datadoghq.com/logs/explorer/search_syntax/) query."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Object.as_ref()
+    }
+
     fn return_kind(&self) -> u16 {
         kind::BOOLEAN
     }

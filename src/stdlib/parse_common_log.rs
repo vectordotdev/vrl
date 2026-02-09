@@ -52,6 +52,10 @@ impl Function for ParseCommonLog {
         "Parses the `value` using the [Common Log Format](https://httpd.apache.org/docs/current/logs.html#common) (CLF)."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Parse.as_ref()
+    }
+
     fn internal_failure_reasons(&self) -> &'static [&'static str] {
         &[
             "`value` does not match the Common Log Format.",

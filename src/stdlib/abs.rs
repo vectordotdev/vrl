@@ -24,6 +24,10 @@ impl Function for Abs {
         "Computes the absolute value of `value`."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Number.as_ref()
+    }
+
     fn return_kind(&self) -> u16 {
         kind::INTEGER | kind::FLOAT
     }

@@ -45,6 +45,10 @@ impl Function for ToSyslogFacilityCode {
         "Converts the `value`, a Syslog [facility keyword](https://en.wikipedia.org/wiki/Syslog#Facility), into a Syslog integer facility code (`0` to `23`)."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Convert.as_ref()
+    }
+
     fn internal_failure_reasons(&self) -> &'static [&'static str] {
         &["`value` is not a valid Syslog facility keyword."]
     }

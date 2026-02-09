@@ -53,6 +53,10 @@ impl Function for ToUnixTimestamp {
         "}
     }
 
+    fn category(&self) -> &'static str {
+        Category::Convert.as_ref()
+    }
+
     fn internal_failure_reasons(&self) -> &'static [&'static str] {
         &[
             "`value` cannot be represented in nanoseconds. Result is too large or too small for a 64 bit integer.",

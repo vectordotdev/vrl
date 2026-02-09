@@ -23,6 +23,10 @@ impl Function for Unique {
         "}
     }
 
+    fn category(&self) -> &'static str {
+        Category::Enumerate.as_ref()
+    }
+
     fn return_kind(&self) -> u16 {
         kind::ARRAY
     }

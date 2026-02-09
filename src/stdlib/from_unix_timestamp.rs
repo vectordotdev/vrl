@@ -64,6 +64,10 @@ impl Function for FromUnixTimestamp {
         "}
     }
 
+    fn category(&self) -> &'static str {
+        Category::Convert.as_ref()
+    }
+
     fn return_kind(&self) -> u16 {
         kind::TIMESTAMP
     }

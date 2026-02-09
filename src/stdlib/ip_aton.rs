@@ -26,6 +26,10 @@ impl Function for IpAton {
         "}
     }
 
+    fn category(&self) -> &'static str {
+        Category::Ip.as_ref()
+    }
+
     fn internal_failure_reasons(&self) -> &'static [&'static str] {
         &["`value` is not a valid IPv4 address."]
     }

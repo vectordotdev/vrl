@@ -50,6 +50,10 @@ impl Function for EncodeProto {
         "}
     }
 
+    fn category(&self) -> &'static str {
+        Category::Codec.as_ref()
+    }
+
     fn internal_failure_reasons(&self) -> &'static [&'static str] {
         &[
             "`desc_file` file does not exist.",

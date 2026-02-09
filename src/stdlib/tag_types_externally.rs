@@ -18,6 +18,10 @@ impl Function for TagTypesExternally {
         "}
     }
 
+    fn category(&self) -> &'static str {
+        Category::Type.as_ref()
+    }
+
     fn return_kind(&self) -> u16 {
         kind::OBJECT | kind::ARRAY | kind::NULL
     }

@@ -104,6 +104,10 @@ impl Function for Compact {
         "Compacts the `value` by removing empty values, where empty values are defined using the available parameters."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Enumerate.as_ref()
+    }
+
     fn return_kind(&self) -> u16 {
         kind::ARRAY | kind::OBJECT
     }

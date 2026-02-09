@@ -31,6 +31,10 @@ impl Function for Chunks {
         "Chunks `value` into slices of length `chunk_size` bytes."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Array.as_ref()
+    }
+
     fn internal_failure_reasons(&self) -> &'static [&'static str] {
         &[
             "`chunk_size` must be at least 1 byte.",

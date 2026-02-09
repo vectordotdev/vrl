@@ -13,6 +13,10 @@ impl Function for IsTimestamp {
         "Check if `value`'s type is a timestamp."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Type.as_ref()
+    }
+
     fn return_kind(&self) -> u16 {
         kind::BOOLEAN
     }

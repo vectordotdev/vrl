@@ -331,6 +331,10 @@ impl Function for HttpRequest {
         "Makes an HTTP request to the specified URL. This function performs synchronous blocking operations and is not recommended for frequent or performance-critical workflows due to potential network-related delays."
     }
 
+    fn category(&self) -> &'static str {
+        Category::System.as_ref()
+    }
+
     fn return_kind(&self) -> u16 {
         kind::BYTES
     }

@@ -82,6 +82,10 @@ impl Function for Hmac {
         "}
     }
 
+    fn category(&self) -> &'static str {
+        Category::Cryptography.as_ref()
+    }
+
     fn return_kind(&self) -> u16 {
         kind::BYTES
     }

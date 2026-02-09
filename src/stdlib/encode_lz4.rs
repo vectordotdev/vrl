@@ -50,6 +50,10 @@ impl Function for EncodeLz4 {
         "}
     }
 
+    fn category(&self) -> &'static str {
+        Category::Codec.as_ref()
+    }
+
     fn return_kind(&self) -> u16 {
         kind::BYTES
     }

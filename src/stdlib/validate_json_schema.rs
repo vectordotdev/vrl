@@ -108,6 +108,10 @@ impl Function for ValidateJsonSchema {
         "Check if `value` conforms to a JSON Schema definition. This function validates a JSON payload against a JSON Schema definition. It can be used to ensure that the data structure and types in `value` match the expectations defined in `schema_definition`."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Type.as_ref()
+    }
+
     fn internal_failure_reasons(&self) -> &'static [&'static str] {
         &[
             "`value` is not a valid JSON Schema payload.",

@@ -54,6 +54,10 @@ impl Function for Floor {
         "Rounds the `value` down to the specified `precision`."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Number.as_ref()
+    }
+
     fn return_kind(&self) -> u16 {
         kind::INTEGER | kind::FLOAT
     }

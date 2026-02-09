@@ -57,6 +57,10 @@ impl Function for Sha3 {
         "Calculates a [SHA-3](https://en.wikipedia.org/wiki/SHA-3) hash of the `value`."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Cryptography.as_ref()
+    }
+
     fn return_kind(&self) -> u16 {
         kind::BYTES
     }

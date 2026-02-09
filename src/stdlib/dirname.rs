@@ -31,6 +31,10 @@ impl Function for DirName {
         "Returns the directory component of the given `path`. This is similar to the Unix `dirname` command. The directory component is the path with the final component removed."
     }
 
+    fn category(&self) -> &'static str {
+        Category::String.as_ref()
+    }
+
     fn internal_failure_reasons(&self) -> &'static [&'static str] {
         &["`value` is not a valid string."]
     }

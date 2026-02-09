@@ -43,6 +43,10 @@ impl Function for ParseTimestamp {
         "Parses the `value` in [strptime](https://docs.rs/chrono/latest/chrono/format/strftime/index.html#specifiers) `format`."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Parse.as_ref()
+    }
+
     fn internal_failure_reasons(&self) -> &'static [&'static str] {
         &[
             "`value` fails to parse using the provided `format`.",

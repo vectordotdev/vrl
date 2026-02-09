@@ -51,6 +51,10 @@ impl Function for Zip {
         "}
     }
 
+    fn category(&self) -> &'static str {
+        Category::Array.as_ref()
+    }
+
     fn internal_failure_reasons(&self) -> &'static [&'static str] {
         &["`array_0` and `array_1` must be arrays."]
     }

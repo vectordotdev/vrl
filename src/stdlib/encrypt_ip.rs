@@ -52,6 +52,10 @@ impl Function for EncryptIp {
         "}
     }
 
+    fn category(&self) -> &'static str {
+        Category::Ip.as_ref()
+    }
+
     fn internal_failure_reasons(&self) -> &'static [&'static str] {
         &[
             "`ip` is not a valid IP address.",

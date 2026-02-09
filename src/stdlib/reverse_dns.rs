@@ -50,6 +50,10 @@ impl Function for ReverseDns {
         "Performs a reverse DNS lookup on the provided IP address to retrieve the associated hostname."
     }
 
+    fn category(&self) -> &'static str {
+        Category::System.as_ref()
+    }
+
     fn return_kind(&self) -> u16 {
         kind::BYTES
     }

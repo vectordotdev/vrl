@@ -58,6 +58,10 @@ impl Function for EncodeBase64 {
         "Encodes the `value` to [Base64](https://en.wikipedia.org/wiki/Base64)."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Codec.as_ref()
+    }
+
     fn return_kind(&self) -> u16 {
         kind::BYTES
     }

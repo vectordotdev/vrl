@@ -33,6 +33,10 @@ impl Function for IpNtop {
         "}
     }
 
+    fn category(&self) -> &'static str {
+        Category::Ip.as_ref()
+    }
+
     fn internal_failure_reasons(&self) -> &'static [&'static str] {
         &["`value` must be of length 4 or 16 bytes."]
     }

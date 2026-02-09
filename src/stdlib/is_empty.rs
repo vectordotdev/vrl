@@ -31,6 +31,10 @@ impl Function for IsEmpty {
         "Check if the object, array, or string has a length of `0`."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Type.as_ref()
+    }
+
     fn return_kind(&self) -> u16 {
         kind::BOOLEAN
     }

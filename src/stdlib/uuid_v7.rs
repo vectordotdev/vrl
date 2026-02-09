@@ -51,6 +51,10 @@ impl Function for UuidV7 {
         "Generates a random [UUIDv7](https://datatracker.ietf.org/doc/html/draft-peabody-dispatch-new-uuid-format-04#name-uuid-version-7) string."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Random.as_ref()
+    }
+
     fn return_kind(&self) -> u16 {
         kind::BYTES
     }

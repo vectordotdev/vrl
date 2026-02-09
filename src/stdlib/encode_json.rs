@@ -49,6 +49,10 @@ impl Function for EncodeJson {
         "Encodes the `value` to JSON."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Codec.as_ref()
+    }
+
     fn return_kind(&self) -> u16 {
         kind::BYTES
     }

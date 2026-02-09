@@ -28,6 +28,10 @@ impl Function for Join {
         "Joins each string in the `value` array into a single string, with items optionally separated from one another by a `separator`."
     }
 
+    fn category(&self) -> &'static str {
+        Category::String.as_ref()
+    }
+
     fn return_kind(&self) -> u16 {
         kind::BYTES
     }

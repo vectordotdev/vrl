@@ -58,6 +58,10 @@ impl Function for ParseRegex {
         "}
     }
 
+    fn category(&self) -> &'static str {
+        Category::Parse.as_ref()
+    }
+
     fn internal_failure_reasons(&self) -> &'static [&'static str] {
         &["`value` fails to parse using the provided `pattern`."]
     }

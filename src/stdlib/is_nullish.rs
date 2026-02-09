@@ -17,6 +17,10 @@ impl Function for IsNullish {
         r#"Determines whether `value` is nullish. Returns `true` if the specified `value` is `null`, an empty string, a string containing only whitespace, or the string `"-"`. Returns `false` otherwise."#
     }
 
+    fn category(&self) -> &'static str {
+        Category::Type.as_ref()
+    }
+
     fn return_kind(&self) -> u16 {
         kind::BOOLEAN
     }

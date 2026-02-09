@@ -157,6 +157,10 @@ impl Function for Decrypt {
         "}
     }
 
+    fn category(&self) -> &'static str {
+        Category::Cryptography.as_ref()
+    }
+
     fn internal_failure_reasons(&self) -> &'static [&'static str] {
         &[
             "`algorithm` is not a supported algorithm.",

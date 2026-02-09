@@ -21,6 +21,10 @@ impl Function for DecodePercent {
         "Decodes a [percent-encoded](https://url.spec.whatwg.org/#percent-encoded-bytes) `value` like a URL."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Codec.as_ref()
+    }
+
     fn return_kind(&self) -> u16 {
         kind::BYTES
     }

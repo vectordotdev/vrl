@@ -13,6 +13,10 @@ impl Function for Now {
         "Returns the current timestamp in the UTC timezone with nanosecond precision."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Timestamp.as_ref()
+    }
+
     fn return_kind(&self) -> u16 {
         kind::TIMESTAMP
     }

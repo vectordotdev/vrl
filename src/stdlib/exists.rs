@@ -19,6 +19,10 @@ impl Function for Exists {
         "}
     }
 
+    fn category(&self) -> &'static str {
+        Category::Path.as_ref()
+    }
+
     fn return_kind(&self) -> u16 {
         kind::BOOLEAN
     }

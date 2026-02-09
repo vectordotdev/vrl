@@ -45,6 +45,10 @@ impl Function for EncodeCharset {
         "}
     }
 
+    fn category(&self) -> &'static str {
+        Category::Codec.as_ref()
+    }
+
     fn internal_failure_reasons(&self) -> &'static [&'static str] {
         &[
             "`to_charset` isn't a valid [character set](https://encoding.spec.whatwg.org/#names-and-labels).",

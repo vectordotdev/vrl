@@ -35,6 +35,10 @@ impl Function for RandomInt {
         "Returns a random integer between [min, max)."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Random.as_ref()
+    }
+
     fn internal_failure_reasons(&self) -> &'static [&'static str] {
         &["`max` is not greater than `min`."]
     }

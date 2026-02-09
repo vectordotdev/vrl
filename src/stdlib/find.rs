@@ -51,6 +51,10 @@ impl Function for Find {
         "Determines from left to right the start position of the first found element in `value` that matches `pattern`. Returns `-1` if not found."
     }
 
+    fn category(&self) -> &'static str {
+        Category::String.as_ref()
+    }
+
     fn return_kind(&self) -> u16 {
         kind::INTEGER
     }

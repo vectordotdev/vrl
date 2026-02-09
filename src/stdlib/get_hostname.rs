@@ -21,6 +21,10 @@ impl Function for GetHostname {
         "Returns the local system's hostname."
     }
 
+    fn category(&self) -> &'static str {
+        Category::System.as_ref()
+    }
+
     fn internal_failure_reasons(&self) -> &'static [&'static str] {
         &["Internal hostname resolution failed."]
     }

@@ -28,6 +28,10 @@ impl Function for FormatTimestamp {
         "Formats `value` into a string representation of the timestamp."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Timestamp.as_ref()
+    }
+
     fn return_kind(&self) -> u16 {
         kind::BYTES
     }

@@ -27,6 +27,10 @@ impl Function for ToString {
         "Coerces the `value` into a string."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Coerce.as_ref()
+    }
+
     fn internal_failure_reasons(&self) -> &'static [&'static str] {
         &["`value` is not an integer, float, boolean, string, timestamp, or null."]
     }

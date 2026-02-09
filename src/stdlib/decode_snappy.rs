@@ -24,6 +24,10 @@ impl Function for DecodeSnappy {
         "Decodes the `value` (a Snappy string) into its original string."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Codec.as_ref()
+    }
+
     fn internal_failure_reasons(&self) -> &'static [&'static str] {
         &["`value` isn't a valid encoded Snappy string."]
     }

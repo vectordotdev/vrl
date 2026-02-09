@@ -18,6 +18,10 @@ impl Function for Md5 {
         "Calculates an md5 hash of the `value`."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Cryptography.as_ref()
+    }
+
     fn return_kind(&self) -> u16 {
         kind::BYTES
     }

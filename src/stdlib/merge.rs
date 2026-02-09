@@ -42,6 +42,10 @@ impl Function for Merge {
         "Merges the `from` object into the `to` object."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Object.as_ref()
+    }
+
     fn return_kind(&self) -> u16 {
         kind::OBJECT
     }

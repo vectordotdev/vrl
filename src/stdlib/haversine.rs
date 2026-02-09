@@ -84,6 +84,10 @@ impl Function for Haversine {
         "Calculates [haversine](https://en.wikipedia.org/wiki/Haversine_formula) distance and bearing between two points."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Map.as_ref()
+    }
+
     fn return_kind(&self) -> u16 {
         kind::OBJECT
     }

@@ -36,6 +36,10 @@ impl Function for EncodePunycode {
         "Encodes a `value` to [punycode](https://en.wikipedia.org/wiki/Punycode). Useful for internationalized domain names ([IDN](https://en.wikipedia.org/wiki/Internationalized_domain_name)). This function assumes that the value passed is meant to be used in IDN context and that it is either a domain name or a part of it."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Codec.as_ref()
+    }
+
     fn internal_failure_reasons(&self) -> &'static [&'static str] {
         &["`value` can not be encoded to `punycode`"]
     }

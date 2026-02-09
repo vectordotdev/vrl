@@ -17,6 +17,10 @@ impl Function for ParseFloat {
         "Parses the string `value` representing a floating point number in base 10 to a float."
     }
 
+    fn category(&self) -> &'static str {
+        Category::String.as_ref()
+    }
+
     fn internal_failure_reasons(&self) -> &'static [&'static str] {
         &["`value` is not a string."]
     }

@@ -23,6 +23,10 @@ impl Function for DecodeZstd {
         "Decodes the `value` (a [Zstandard](https://facebook.github.io/zstd) string) into its original string."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Codec.as_ref()
+    }
+
     fn internal_failure_reasons(&self) -> &'static [&'static str] {
         &["`value` isn't a valid encoded Zstd string."]
     }

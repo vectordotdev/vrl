@@ -20,6 +20,10 @@ impl Function for RandomBool {
         "Returns a random boolean."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Random.as_ref()
+    }
+
     fn return_kind(&self) -> u16 {
         kind::BOOLEAN
     }

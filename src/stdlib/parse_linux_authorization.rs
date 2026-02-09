@@ -40,6 +40,10 @@ impl Function for ParseLinuxAuthorization {
         "Parses Linux authorization logs usually found under either `/var/log/auth.log` (for Debian-based systems) or `/var/log/secure` (for RedHat-based systems) according to [Syslog](https://en.wikipedia.org/wiki/Syslog) format."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Parse.as_ref()
+    }
+
     fn internal_failure_reasons(&self) -> &'static [&'static str] {
         &["`value` is not a properly formatted Syslog message."]
     }

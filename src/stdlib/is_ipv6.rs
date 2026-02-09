@@ -18,6 +18,10 @@ impl Function for IsIpv6 {
         "Check if the string is a valid IPv6 address or not."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Ip.as_ref()
+    }
+
     fn return_kind(&self) -> u16 {
         kind::BOOLEAN
     }

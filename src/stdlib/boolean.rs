@@ -19,6 +19,10 @@ impl Function for Boolean {
         "The value to check if it is a Boolean."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Type.as_ref()
+    }
+
     fn internal_failure_reasons(&self) -> &'static [&'static str] {
         &["`value` is not a Boolean."]
     }

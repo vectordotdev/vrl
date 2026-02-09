@@ -82,6 +82,10 @@ impl Function for MapValues {
         "}
     }
 
+    fn category(&self) -> &'static str {
+        Category::Enumerate.as_ref()
+    }
+
     fn return_kind(&self) -> u16 {
         kind::ARRAY | kind::OBJECT
     }
