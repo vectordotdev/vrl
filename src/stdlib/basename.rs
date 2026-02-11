@@ -92,12 +92,13 @@ impl FunctionExpression for BaseNameFn {
         TypeDef::bytes().or_null().fallible()
     }
 }
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     fn tdef() -> TypeDef {
-        BaseNameFn { value: expr!("") }.type_def(&Default::default())
+        BaseNameFn { value: expr!("") }.type_def(&state::TypeState::default())
     }
 
     test_function![
