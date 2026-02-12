@@ -20,13 +20,13 @@ pub enum Category {
     Convert,
     /// Debugging functions
     Debug,
-    /// Enumeration and iteration functions (e.g., `map`, `filter`)
+    /// Enumeration and iteration functions
     Enumerate,
-    /// Path manipulation functions (e.g., `basename`, `dirname`)
+    /// Path manipulation functions
     Path,
-    /// Cryptographic functions (e.g., `sha256`, `hmac`)
+    /// Cryptographic functions
     Cryptography,
-    /// IP address functions (e.g., `ip_cidr_contains`, `ip_to_ipv6`)
+    /// IP address functions
     #[serde(rename = "IP")]
     #[strum(serialize = "IP")]
     Ip,
