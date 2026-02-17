@@ -1,5 +1,6 @@
 use convert_case::{Boundary, Case, Casing};
 
+use crate::compiler::function::EnumVariant;
 use crate::prelude::*;
 use crate::value;
 
@@ -12,6 +13,36 @@ cfg_if::cfg_if! {
         pub(crate) mod kebabcase;
     }
 }
+
+pub(crate) static ORIGINAL_CASE: Parameter = Parameter {
+    keyword: "original_case",
+    kind: kind::BYTES,
+    required: false,
+    description: "Optional hint on the original case type. Must be one of: kebab-case, camelCase, PascalCase, SCREAMING_SNAKE, snake_case",
+    default: None,
+    enum_variants: Some(&[
+        EnumVariant {
+            value: "kebab-case",
+            description: "kebab-case",
+        },
+        EnumVariant {
+            value: "camelCase",
+            description: "camelCase",
+        },
+        EnumVariant {
+            value: "PascalCase",
+            description: "PascalCase",
+        },
+        EnumVariant {
+            value: "SCREAMING_SNAKE",
+            description: "SCREAMING_SNAKE",
+        },
+        EnumVariant {
+            value: "snake_case",
+            description: "snake_case",
+        },
+    ]),
+};
 
 pub(crate) fn variants() -> Vec<Value> {
     vec![
