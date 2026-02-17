@@ -1,13 +1,16 @@
 extern crate lalrpop;
 
 use std::{
-    borrow::Cow,
     env,
     fmt::Write as fmt_write,
     fs::{self, File},
     io::{BufRead, BufReader},
     path::Path,
 };
+
+#[cfg(feature = "stdlib")]
+use std::borrow::Cow;
+#[cfg(feature = "stdlib")]
 use ua_parser::device::Flag;
 
 fn main() {
