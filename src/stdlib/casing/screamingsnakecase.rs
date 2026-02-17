@@ -3,18 +3,6 @@ use crate::compiler::prelude::*;
 use crate::stdlib::casing::{ORIGINAL_CASE, into_case};
 use convert_case::Case;
 
-static PARAMETERS: &[Parameter] = &[
-    Parameter {
-        keyword: "value",
-        kind: kind::BYTES,
-        required: true,
-        description: "The string to convert to SCREAMING_SNAKE case.",
-        default: None,
-        enum_variants: None,
-    },
-    ORIGINAL_CASE,
-];
-
 #[derive(Clone, Copy, Debug)]
 pub struct ScreamingSnakecase;
 
@@ -36,6 +24,18 @@ impl Function for ScreamingSnakecase {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
+        const PARAMETERS: &[Parameter] = &[
+            Parameter {
+                keyword: "value",
+                kind: kind::BYTES,
+                required: true,
+                description: "The string to convert to SCREAMING_SNAKE case.",
+                default: None,
+                enum_variants: None,
+            },
+            ORIGINAL_CASE,
+        ];
+
         PARAMETERS
     }
 

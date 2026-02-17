@@ -6,55 +6,6 @@ use convert_case::Case;
 
 use super::into_boundary;
 
-static PARAMETERS: &[Parameter] = &[
-    Parameter {
-        keyword: "value",
-        kind: kind::BYTES,
-        required: true,
-        description: "The string to convert to snake_case.",
-        default: None,
-        enum_variants: None,
-    },
-    ORIGINAL_CASE,
-    Parameter {
-        keyword: "excluded_boundaries",
-        kind: kind::ARRAY,
-        required: false,
-        description: "Case boundaries to exclude during conversion.",
-        default: None,
-        enum_variants: Some(&[
-            EnumVariant {
-                value: "lower_upper",
-                description: "Lowercase to uppercase transitions (e.g., 'camelCase' → 'camel' + 'case')",
-            },
-            EnumVariant {
-                value: "upper_lower",
-                description: "Uppercase to lowercase transitions (e.g., 'CamelCase' → 'Camel' + 'Case')",
-            },
-            EnumVariant {
-                value: "acronym",
-                description: "Acronyms from words (e.g., 'XMLHttpRequest' → 'xmlhttp' + 'request')",
-            },
-            EnumVariant {
-                value: "lower_digit",
-                description: "Lowercase to digit transitions (e.g., 'foo2bar' → 'foo2_bar')",
-            },
-            EnumVariant {
-                value: "upper_digit",
-                description: "Uppercase to digit transitions (e.g., 'versionV2' → 'version_v2')",
-            },
-            EnumVariant {
-                value: "digit_lower",
-                description: "Digit to lowercase transitions (e.g., 'Foo123barBaz' → 'foo' + '123bar' + 'baz')",
-            },
-            EnumVariant {
-                value: "digit_upper",
-                description: "Digit to uppercase transitions (e.g., 'Version123Test' → 'version' + '123test')",
-            },
-        ]),
-    },
-];
-
 #[derive(Clone, Copy, Debug)]
 pub struct Snakecase;
 
@@ -76,6 +27,54 @@ impl Function for Snakecase {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
+        const PARAMETERS: &[Parameter] = &[
+            Parameter {
+                keyword: "value",
+                kind: kind::BYTES,
+                required: true,
+                description: "The string to convert to snake_case.",
+                default: None,
+                enum_variants: None,
+            },
+            ORIGINAL_CASE,
+            Parameter {
+                keyword: "excluded_boundaries",
+                kind: kind::ARRAY,
+                required: false,
+                description: "Case boundaries to exclude during conversion.",
+                default: None,
+                enum_variants: Some(&[
+                    EnumVariant {
+                        value: "lower_upper",
+                        description: "Lowercase to uppercase transitions (e.g., 'camelCase' → 'camel' + 'case')",
+                    },
+                    EnumVariant {
+                        value: "upper_lower",
+                        description: "Uppercase to lowercase transitions (e.g., 'CamelCase' → 'Camel' + 'Case')",
+                    },
+                    EnumVariant {
+                        value: "acronym",
+                        description: "Acronyms from words (e.g., 'XMLHttpRequest' → 'xmlhttp' + 'request')",
+                    },
+                    EnumVariant {
+                        value: "lower_digit",
+                        description: "Lowercase to digit transitions (e.g., 'foo2bar' → 'foo2_bar')",
+                    },
+                    EnumVariant {
+                        value: "upper_digit",
+                        description: "Uppercase to digit transitions (e.g., 'versionV2' → 'version_v2')",
+                    },
+                    EnumVariant {
+                        value: "digit_lower",
+                        description: "Digit to lowercase transitions (e.g., 'Foo123barBaz' → 'foo' + '123bar' + 'baz')",
+                    },
+                    EnumVariant {
+                        value: "digit_upper",
+                        description: "Digit to uppercase transitions (e.g., 'Version123Test' → 'version' + '123test')",
+                    },
+                ]),
+            },
+        ];
         PARAMETERS
     }
 
