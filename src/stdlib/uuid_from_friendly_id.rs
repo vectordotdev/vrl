@@ -23,17 +23,38 @@ impl Function for UuidFromFriendlyId {
         "uuid_from_friendly_id"
     }
 
+    fn usage(&self) -> &'static str {
+        "Convert a Friendly ID (base62 encoding a 128-bit word) to a UUID."
+    }
+
+    fn category(&self) -> &'static str {
+        Category::Random.as_ref()
+    }
+
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &[
+            "`value` is a string but the text uses characters outside of class [0-9A-Za-z].",
+            "`value` is a base62 encoding of an integer, but the integer is greater than or equal to 2^128.",
+        ]
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::BYTES
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",
             kind: kind::BYTES,
             required: true,
+            description: "A string that is a Friendly ID",
+            default: None,
         }]
     }
 
     fn examples(&self) -> &'static [Example] {
         &[example! {
-            title: "Decode UUID from 128-bit Friendly ID",
+            title: "Convert a Friendly ID to a UUID",
             source: r#"uuid_from_friendly_id!("3s87yEvnmkiPBMHsj8bwwc")"#,
             result: Ok("7f41deed-d5e2-8b5e-7a13-ab4ff93cfad2"),
         }]

@@ -1,6 +1,7 @@
 use crate::compiler::prelude::*;
 
 #[cfg(not(target_arch = "wasm32"))]
+#[cfg_attr(feature = "__mock_return_values_for_tests", allow(dead_code))]
 fn get_hostname() -> Resolved {
     Ok(hostname::get()
         .map_err(|error| format!("failed to get hostname: {error}"))?
@@ -14,6 +15,22 @@ pub struct GetHostname;
 impl Function for GetHostname {
     fn identifier(&self) -> &'static str {
         "get_hostname"
+    }
+
+    fn usage(&self) -> &'static str {
+        "Returns the local system's hostname."
+    }
+
+    fn category(&self) -> &'static str {
+        Category::System.as_ref()
+    }
+
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["Internal hostname resolution failed."]
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::BYTES
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -36,11 +53,21 @@ impl Function for GetHostname {
         Ok(super::WasmUnsupportedFunction::new(ctx.span(), TypeDef::bytes().fallible()).as_expr())
     }
 
+    #[cfg(not(feature = "__mock_return_values_for_tests"))]
     fn examples(&self) -> &'static [Example] {
         &[example! {
-            title: "valid",
+            title: "Get hostname",
             source: r#"get_hostname!() != """#,
             result: Ok("true"),
+        }]
+    }
+
+    #[cfg(feature = "__mock_return_values_for_tests")]
+    fn examples(&self) -> &'static [Example] {
+        &[example! {
+            title: "Get hostname",
+            source: r#"get_hostname!()"#,
+            result: Ok("my-hostname"),
         }]
     }
 }
@@ -51,8 +78,14 @@ struct GetHostnameFn;
 
 #[cfg(not(target_arch = "wasm32"))]
 impl FunctionExpression for GetHostnameFn {
+    #[cfg(not(feature = "__mock_return_values_for_tests"))]
     fn resolve(&self, _: &mut Context) -> Resolved {
         get_hostname()
+    }
+
+    #[cfg(feature = "__mock_return_values_for_tests")]
+    fn resolve(&self, _: &mut Context) -> Resolved {
+        Ok("my-hostname".into())
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

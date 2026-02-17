@@ -51,17 +51,40 @@ impl Function for IsJson {
         "is_json"
     }
 
+    fn usage(&self) -> &'static str {
+        "Check if the string is a valid JSON document."
+    }
+
+    fn category(&self) -> &'static str {
+        Category::Type.as_ref()
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::BOOLEAN
+    }
+
+    fn return_rules(&self) -> &'static [&'static str] {
+        &[
+            "Returns `true` if `value` is a valid JSON document.",
+            "Returns `false` if `value` is not JSON-formatted.",
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "The value to check if it is a valid JSON document.",
+                default: None,
             },
             Parameter {
                 keyword: "variant",
                 kind: kind::BYTES,
                 required: false,
+                description: "The variant of the JSON type to explicitly check for.",
+                default: None,
             },
         ]
     }
@@ -69,23 +92,28 @@ impl Function for IsJson {
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "object",
+                title: "Valid JSON object",
                 source: r#"is_json("{}")"#,
                 result: Ok("true"),
             },
             example! {
-                title: "string",
-                source: r#"is_json(s'"test"')"#,
-                result: Ok("true"),
-            },
-            example! {
-                title: "invalid",
-                source: r#"is_json("}{")"#,
+                title: "Non-valid value",
+                source: r#"is_json("{")"#,
                 result: Ok("false"),
             },
             example! {
-                title: "exact_variant",
+                title: "Exact variant",
                 source: r#"is_json("{}", variant: "object")"#,
+                result: Ok("true"),
+            },
+            example! {
+                title: "Non-valid exact variant",
+                source: r#"is_json("{}", variant: "array")"#,
+                result: Ok("false"),
+            },
+            example! {
+                title: "Valid JSON string",
+                source: r#"is_json(s'"test"')"#,
                 result: Ok("true"),
             },
         ]

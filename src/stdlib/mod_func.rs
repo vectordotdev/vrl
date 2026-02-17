@@ -13,26 +13,50 @@ impl Function for Mod {
         "mod"
     }
 
+    fn usage(&self) -> &'static str {
+        "Calculates the remainder of `value` divided by `modulus`."
+    }
+
+    fn category(&self) -> &'static str {
+        Category::Number.as_ref()
+    }
+
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &[
+            "`value` is not an integer or float.",
+            "`modulus` is not an integer or float.",
+            "`modulus` is equal to 0.",
+        ]
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::INTEGER | kind::FLOAT
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {
                 keyword: "value",
                 kind: kind::INTEGER | kind::FLOAT,
                 required: true,
+                description: "The value the `modulus` is applied to.",
+                default: None,
             },
             Parameter {
                 keyword: "modulus",
                 kind: kind::INTEGER | kind::FLOAT,
                 required: true,
+                description: "The `modulus` value.",
+                default: None,
             },
         ]
     }
 
     fn examples(&self) -> &'static [Example] {
         &[example! {
-            title: "mod",
-            source: "mod(5, 3)",
-            result: Ok("2"),
+            title: "Calculate the remainder of two integers",
+            source: "mod(5, 2)",
+            result: Ok("1"),
         }]
     }
 

@@ -16,13 +16,25 @@ impl Function for RandomBool {
         "random_bool"
     }
 
+    fn usage(&self) -> &'static str {
+        "Returns a random boolean."
+    }
+
+    fn category(&self) -> &'static str {
+        Category::Random.as_ref()
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::BOOLEAN
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[]
     }
 
     fn examples(&self) -> &'static [Example] {
         &[example! {
-            title: "generate a random boolean",
+            title: "Random boolean",
             source: "is_boolean(random_bool())",
             result: Ok("true"),
         }]

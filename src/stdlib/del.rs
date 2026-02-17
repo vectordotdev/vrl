@@ -1,4 +1,29 @@
 use crate::compiler::prelude::*;
+use std::sync::LazyLock;
+
+static DEFAULT_COMPACT: LazyLock<Value> = LazyLock::new(|| Value::Boolean(false));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "target",
+            kind: kind::ANY,
+            required: true,
+            description: "The path of the field to delete",
+            default: None,
+        },
+        Parameter {
+            keyword: "compact",
+            kind: kind::BOOLEAN,
+            required: false,
+            description:
+                "After deletion, if `compact` is `true` and there is an empty object or array left,
+the empty object or array is also removed, cascading up to the root. This only
+applies to the path being deleted, and any parent paths.",
+            default: Some(&DEFAULT_COMPACT),
+        },
+    ]
+});
 
 #[inline]
 fn del(query: &expression::Query, compact: bool, ctx: &mut Context) -> Resolved {
@@ -39,35 +64,68 @@ impl Function for Del {
         "del"
     }
 
-    fn parameters(&self) -> &'static [Parameter] {
+    fn usage(&self) -> &'static str {
+        indoc! {"
+            Removes the field specified by the static `path` from the target.
+
+            For dynamic path deletion, see the `remove` function.
+        "}
+    }
+
+    fn category(&self) -> &'static str {
+        Category::Path.as_ref()
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::ANY
+    }
+
+    fn return_rules(&self) -> &'static [&'static str] {
         &[
-            Parameter {
-                keyword: "target",
-                kind: kind::ANY,
-                required: true,
-            },
-            Parameter {
-                keyword: "compact",
-                kind: kind::BOOLEAN,
-                required: false,
-            },
+            "Returns the value of the field being deleted. Returns `null` if the field doesn't exist.",
         ]
+    }
+
+    fn notices(&self) -> &'static [&'static str] {
+        &[
+            "The `del` function _modifies the current event in place_ and returns the value of the deleted field.",
+        ]
+    }
+
+    fn pure(&self) -> bool {
+        false
+    }
+
+    fn parameters(&self) -> &'static [Parameter] {
+        PARAMETERS.as_slice()
     }
 
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "returns deleted field",
-                source: r#"del({"foo": "bar"}.foo)"#,
+                title: "Delete a field",
+                source: indoc! {r#"
+                    . = { "foo": "bar" }
+                    del(.foo)
+                "#},
                 result: Ok("bar"),
             },
             example! {
-                title: "returns null for unknown field",
+                title: "Rename a field",
+                source: indoc! {r#"
+                    . = { "old": "foo" }
+                    .new = del(.old)
+                    .
+                "#},
+                result: Ok(r#"{ "new": "foo" }"#),
+            },
+            example! {
+                title: "Returns null for unknown field",
                 source: r#"del({"foo": "bar"}.baz)"#,
                 result: Ok("null"),
             },
             example! {
-                title: "external target",
+                title: "External target",
                 source: indoc! {r#"
                     . = { "foo": true, "bar": 10 }
                     del(.foo)
@@ -76,7 +134,7 @@ impl Function for Del {
                 result: Ok(r#"{ "bar": 10 }"#),
             },
             example! {
-                title: "variable",
+                title: "Delete field from variable",
                 source: indoc! {r#"
                     var = { "foo": true, "bar": 10 }
                     del(var.foo)
@@ -85,7 +143,7 @@ impl Function for Del {
                 result: Ok(r#"{ "bar": 10 }"#),
             },
             example! {
-                title: "delete object field",
+                title: "Delete object field",
                 source: indoc! {r#"
                     var = { "foo": {"nested": true}, "bar": 10 }
                     del(var.foo.nested, false)
@@ -94,7 +152,7 @@ impl Function for Del {
                 result: Ok(r#"{ "foo": {}, "bar": 10 }"#),
             },
             example! {
-                title: "compact object field",
+                title: "Compact object field",
                 source: indoc! {r#"
                     var = { "foo": {"nested": true}, "bar": 10 }
                     del(var.foo.nested, true)
@@ -164,10 +222,10 @@ impl Expression for DelFn {
     //
     // see tracking issue: https://github.com/vectordotdev/vector/issues/5887
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let compact = match &self.compact {
-            Some(compact) => compact.resolve(ctx)?.try_boolean()?,
-            None => false,
-        };
+        let compact = self
+            .compact
+            .map_resolve_with_default(ctx, || DEFAULT_COMPACT.clone())?
+            .try_boolean()?;
         del(&self.query, compact, ctx)
     }
 

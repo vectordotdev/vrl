@@ -14,23 +14,41 @@ impl Function for Keys {
         "keys"
     }
 
+    fn usage(&self) -> &'static str {
+        "Returns the keys from the object passed into the function."
+    }
+
+    fn category(&self) -> &'static str {
+        Category::Enumerate.as_ref()
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::ARRAY
+    }
+
+    fn return_rules(&self) -> &'static [&'static str] {
+        &["Returns an array of all the keys"]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",
             kind: kind::OBJECT,
             required: true,
+            description: "The object to extract keys from.",
+            default: None,
         }]
     }
 
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "get keys",
+                title: "Get keys from the object",
                 source: r#"keys({"key1": "val1", "key2": "val2"})"#,
                 result: Ok(r#"["key1", "key2"]"#),
             },
             example! {
-                title: "get keys from a nested object",
+                title: "Get keys from a nested object",
                 source: r#"keys({"key1": "val1", "key2": {"nestedkey1": "val3", "nestedkey2": "val4"}})"#,
                 result: Ok(r#"["key1", "key2"]"#),
             },

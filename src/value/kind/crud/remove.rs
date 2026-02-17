@@ -197,7 +197,6 @@ impl From<EmptyState> for CompactOptions {
 }
 
 #[cfg(test)]
-#[allow(clippy::manual_assert)]
 mod test {
     use super::*;
     use crate::owned_value_path;
@@ -758,24 +757,22 @@ mod test {
         ] {
             let mut actual = kind;
             let actual_return_value = actual.remove(&path, compact);
-
-            if actual != want {
-                panic!(
-                    "Test failed: {:#?}.\nExpected = {:#?}\nActual =   {:#?}",
-                    title,
-                    want.debug_info(),
-                    actual.debug_info()
-                );
-            }
-
-            if actual_return_value != return_value {
-                panic!(
-                    "Test failed - return value: {:#?}.\nExpected = {:#?}\nActual =   {:#?}",
-                    title,
-                    return_value.debug_info(),
-                    actual_return_value.debug_info()
-                );
-            }
+            assert_eq!(
+                actual,
+                want,
+                "Test failed - return value: {:#?}.\nExpected = {:#?}\nActual =   {:#?}",
+                title,
+                actual.debug_info(),
+                want.debug_info()
+            );
+            assert_eq!(
+                return_value,
+                actual_return_value,
+                "Test failed - return value: {:#?}.\nExpected = {:#?}\nActual =   {:#?}",
+                title,
+                return_value.debug_info(),
+                actual_return_value.debug_info()
+            );
         }
     }
 }

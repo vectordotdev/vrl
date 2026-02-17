@@ -1,3 +1,4 @@
 requests
 semver
 tomlkit
+towncrier

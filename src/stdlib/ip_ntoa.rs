@@ -18,17 +18,40 @@ impl Function for IpNtoa {
         "ip_ntoa"
     }
 
+    fn usage(&self) -> &'static str {
+        indoc! {"
+            Converts numeric representation of IPv4 address in network-order bytes
+            to numbers-and-dots notation.
+
+            This behavior mimics [inet_ntoa](https://linux.die.net/man/3/inet_ntoa).
+        "}
+    }
+
+    fn category(&self) -> &'static str {
+        Category::Ip.as_ref()
+    }
+
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["`value` cannot fit in an unsigned 32-bit integer."]
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::BYTES
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",
             kind: kind::INTEGER,
             required: true,
+            description: "The integer representation of an IPv4 address.",
+            default: None,
         }]
     }
 
     fn examples(&self) -> &'static [Example] {
         &[example! {
-            title: "Example",
+            title: "Integer to IPv4",
             source: "ip_ntoa!(16909060)",
             result: Ok("1.2.3.4"),
         }]

@@ -9,30 +9,51 @@ impl Function for IsTimestamp {
         "is_timestamp"
     }
 
+    fn usage(&self) -> &'static str {
+        "Check if `value`'s type is a timestamp."
+    }
+
+    fn category(&self) -> &'static str {
+        Category::Type.as_ref()
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::BOOLEAN
+    }
+
+    fn return_rules(&self) -> &'static [&'static str] {
+        &[
+            "Returns `true` if `value` is a timestamp.",
+            "Returns `false` if `value` is anything else.",
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",
             kind: kind::ANY,
             required: true,
+            description: "The value to check if it is a timestamp.",
+            default: None,
         }]
     }
 
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "string",
-                source: r#"is_timestamp("foobar")"#,
-                result: Ok("false"),
-            },
-            example! {
-                title: "boolean",
-                source: "is_timestamp(true)",
-                result: Ok("false"),
-            },
-            example! {
-                title: "null",
+                title: "Valid timestamp",
                 source: "is_timestamp(t'2021-03-26T16:00:00Z')",
                 result: Ok("true"),
+            },
+            example! {
+                title: "Non-matching type",
+                source: r#"is_timestamp("a string")"#,
+                result: Ok("false"),
+            },
+            example! {
+                title: "Boolean value",
+                source: "is_timestamp(true)",
+                result: Ok("false"),
             },
         ]
     }

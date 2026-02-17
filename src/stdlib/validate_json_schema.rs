@@ -5,24 +5,93 @@ use std::sync::LazyLock;
 
 // This needs to be static because validate_json_schema needs to read a file
 // and the file path needs to be a literal.
-static EXAMPLE_JSON_SCHEMA_EXPR: LazyLock<&str> = LazyLock::new(|| {
+static EXAMPLE_JSON_SCHEMA_VALID_EMAIL: LazyLock<&str> = LazyLock::new(|| {
     let path = PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap())
         .join("../../tests/data/jsonschema/validate_json_schema/schema_with_email_format.json")
         .display()
         .to_string();
 
     Box::leak(
-        format!(r#"validate_json_schema!(s'{{ "productUser": "foo@bar.com" }}', "{path}", false)"#)
+        format!(
+            r#"validate_json_schema!(s'{{ "productUser": "valid@email.com" }}', "{path}", false)"#
+        )
+        .into_boxed_str(),
+    )
+});
+
+static EXAMPLE_JSON_SCHEMA_INVALID_EMAIL: LazyLock<&str> = LazyLock::new(|| {
+    let path = PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap())
+        .join("../../tests/data/jsonschema/validate_json_schema/schema_with_email_format.json")
+        .display()
+        .to_string();
+
+    Box::leak(
+        format!(
+            r#"validate_json_schema!(s'{{ "productUser": "invalidEmail" }}', "{path}", false)"#
+        )
+        .into_boxed_str(),
+    )
+});
+
+static EXAMPLE_JSON_SCHEMA_CUSTOM_FORMAT_FALSE: LazyLock<&str> = LazyLock::new(|| {
+    let path = PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap())
+        .join("../../tests/data/jsonschema/validate_json_schema/schema_with_custom_format.json")
+        .display()
+        .to_string();
+
+    Box::leak(
+        format!(r#"validate_json_schema!(s'{{ "productUser": "a-custom-formatted-string" }}', "{path}", false)"#)
+            .into_boxed_str(),
+    )
+});
+
+static EXAMPLE_JSON_SCHEMA_CUSTOM_FORMAT_TRUE: LazyLock<&str> = LazyLock::new(|| {
+    let path = PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap())
+        .join("../../tests/data/jsonschema/validate_json_schema/schema_with_custom_format.json")
+        .display()
+        .to_string();
+
+    Box::leak(
+        format!(r#"validate_json_schema!(s'{{ "productUser": "a-custom-formatted-string" }}', "{path}", true)"#)
             .into_boxed_str(),
     )
 });
 
 static EXAMPLES: LazyLock<Vec<Example>> = LazyLock::new(|| {
-    vec![example! {
-        title: "valid payload",
-        source: &EXAMPLE_JSON_SCHEMA_EXPR,
-        result: Ok("true"),
-    }]
+    vec![
+        example! {
+            title: "Payload contains a valid email",
+            source: &EXAMPLE_JSON_SCHEMA_VALID_EMAIL,
+            result: Ok("true"),
+        },
+        example! {
+            title: "Payload contains an invalid email",
+            source: &EXAMPLE_JSON_SCHEMA_INVALID_EMAIL,
+            result: Err(Box::leak(
+                format!(
+                    r#"function call error for "validate_json_schema" at (0:{}): JSON schema validation failed: "invalidEmail" is not a "email" at /productUser"#,
+                    EXAMPLE_JSON_SCHEMA_INVALID_EMAIL.len()
+                )
+                .into_boxed_str(),
+            )),
+        },
+        example! {
+            title: "Payload contains a custom format declaration",
+            source: &EXAMPLE_JSON_SCHEMA_CUSTOM_FORMAT_FALSE,
+            result: Err(Box::leak(
+                format!(
+                    r#"function call error for "validate_json_schema" at (0:{}): Failed to compile schema: Unknown format: 'my-custom-format'. Adjust configuration to ignore unrecognized formats"#,
+                    EXAMPLE_JSON_SCHEMA_CUSTOM_FORMAT_FALSE.len()
+                )
+                .into_boxed_str(),
+            )),
+        },
+        example! {
+            title: "Payload contains a custom format declaration, with ignore_unknown_formats set to true",
+            source: &EXAMPLE_JSON_SCHEMA_CUSTOM_FORMAT_TRUE,
+            result: Ok("true"),
+        },
+    ]
 });
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -35,6 +104,44 @@ impl Function for ValidateJsonSchema {
         "validate_json_schema"
     }
 
+    fn usage(&self) -> &'static str {
+        "Check if `value` conforms to a JSON Schema definition. This function validates a JSON payload against a JSON Schema definition. It can be used to ensure that the data structure and types in `value` match the expectations defined in `schema_definition`."
+    }
+
+    fn category(&self) -> &'static str {
+        Category::Type.as_ref()
+    }
+
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &[
+            "`value` is not a valid JSON Schema payload.",
+            "`value` contains custom format declarations and `ignore_unknown_formats` has not been set to `true`.",
+            "`schema_definition` is not a valid JSON Schema definition.",
+            "`schema_definition` file does not exist.",
+        ]
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::BOOLEAN
+    }
+
+    fn return_rules(&self) -> &'static [&'static str] {
+        &[
+            "Returns `true` if `value` conforms to the JSON Schema definition.",
+            "Returns `false` if `value` does not conform to the JSON Schema definition.",
+        ]
+    }
+
+    fn notices(&self) -> &'static [&'static str] {
+        &[indoc! {"
+            This function uses a compiled schema cache. The first time it is called with a specific
+            `schema_definition`, it will compile the schema and cache it for subsequent calls. This
+            improves performance when validating multiple values against the same schema. The cache
+            implementation is fairly naive and does not support refreshing the schema if it changes.
+            If you update the schema definition file, you must restart Vector to clear the cache.
+        "}]
+    }
+
     fn examples(&self) -> &'static [Example] {
         EXAMPLES.as_slice()
     }
@@ -45,16 +152,22 @@ impl Function for ValidateJsonSchema {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "The value to check if it conforms to the JSON schema definition.",
+                default: None,
             },
             Parameter {
                 keyword: "schema_definition",
                 kind: kind::BYTES,
                 required: true,
+                description: "The location (path) of the JSON Schema definition.",
+                default: None,
             },
             Parameter {
                 keyword: "ignore_unknown_formats",
                 kind: kind::BOOLEAN,
                 required: false,
+                description: "Unknown formats can be silently ignored by setting this to `true` and validation continues without failing due to those fields.",
+                default: None,
             },
         ]
     }
@@ -152,10 +265,10 @@ mod non_wasm {
                     format!(
                         "{} at {}",
                         e,
-                        if e.instance_path.as_str().is_empty() {
+                        if e.instance_path().as_str().is_empty() {
                             "/"
                         } else {
-                            e.instance_path.as_str()
+                            e.instance_path().as_str()
                         }
                     )
                 })

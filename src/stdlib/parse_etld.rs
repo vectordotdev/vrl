@@ -2,7 +2,41 @@ use psl::Psl;
 use publicsuffix::List;
 
 use crate::compiler::prelude::*;
+use std::sync::LazyLock;
 use std::{collections::BTreeMap, path::Path};
+
+static DEFAULT_PLUS_PARTS: LazyLock<Value> = LazyLock::new(|| Value::Integer(0));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::BYTES,
+            required: true,
+            description: "The domain string.",
+            default: None,
+        },
+        Parameter {
+            keyword: "plus_parts",
+            kind: kind::INTEGER,
+            required: false,
+            description:
+                "Can be provided to get additional parts of the domain name. When 1 is passed,
+eTLD+1 will be returned, which represents a domain registrable by a single
+organization. Higher numbers will return subdomains.",
+            default: Some(&DEFAULT_PLUS_PARTS),
+        },
+        Parameter {
+            keyword: "psl",
+            kind: kind::BYTES,
+            required: false,
+            description: "Can be provided to use a different public suffix list.
+
+By default, https://publicsuffix.org/list/public_suffix_list.dat is used.",
+            default: None,
+        },
+    ]
+});
 
 #[derive(Clone, Copy, Debug)]
 pub struct ParseEtld;
@@ -12,57 +46,68 @@ impl Function for ParseEtld {
         "parse_etld"
     }
 
+    fn usage(&self) -> &'static str {
+        "Parses the [eTLD](https://developer.mozilla.org/en-US/docs/Glossary/eTLD) from `value` representing domain name."
+    }
+
+    fn category(&self) -> &'static str {
+        Category::Parse.as_ref()
+    }
+
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["unable to determine eTLD for `value`"]
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::OBJECT
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::BYTES,
-                required: true,
-            },
-            Parameter {
-                keyword: "plus_parts",
-                kind: kind::INTEGER,
-                required: false,
-            },
-            Parameter {
-                keyword: "psl",
-                kind: kind::BYTES,
-                required: false,
-            },
-        ]
+        PARAMETERS.as_slice()
     }
 
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "parse etld",
-                source: r#"parse_etld!("vector.dev")"#,
+                title: "Parse eTLD",
+                source: r#"parse_etld!("sub.sussex.ac.uk")"#,
                 result: Ok(indoc! {r#"
                 {
-                    "etld": "dev",
-                    "etld_plus": "dev",
+                    "etld": "ac.uk",
+                    "etld_plus": "ac.uk",
                     "known_suffix": true
                 }
             "#}),
             },
             example! {
-                title: "parse etld with plus parts",
-                source: r#"parse_etld!("vector.dev", plus_parts: 1)"#,
+                title: "Parse eTLD+1",
+                source: r#"parse_etld!("sub.sussex.ac.uk", plus_parts: 1)"#,
                 result: Ok(indoc! {r#"
                 {
-                    "etld": "dev",
-                    "etld_plus": "vector.dev",
+                    "etld": "ac.uk",
+                    "etld_plus": "sussex.ac.uk",
                     "known_suffix": true
                 }
             "#}),
             },
             example! {
-                title: "parse etld with unknown suffix",
-                source: r#"parse_etld!("vecor.unknowndev")"#,
+                title: "Parse eTLD with unknown suffix",
+                source: r#"parse_etld!("vector.acmecorp")"#,
                 result: Ok(indoc! {r#"
                 {
-                    "etld": "unknowndev",
-                    "etld_plus": "unknowndev",
+                    "etld": "acmecorp",
+                    "etld_plus": "acmecorp",
+                    "known_suffix": false
+                }
+            "#}),
+            },
+            example! {
+                title: "Parse eTLD with custom PSL",
+                source: r#"parse_etld!("vector.acmecorp", psl: "lib/tests/tests/functions/custom_public_suffix_list.dat")"#,
+                result: Ok(indoc! {r#"
+                {
+                    "etld": "acmecorp",
+                    "etld_plus": "acmecorp",
                     "known_suffix": false
                 }
             "#}),
@@ -77,7 +122,7 @@ impl Function for ParseEtld {
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
-        let plus_parts = arguments.optional("plus_parts").unwrap_or_else(|| expr!(0));
+        let plus_parts = arguments.optional("plus_parts");
 
         let psl_expr = arguments.optional_expr("psl");
         let mut psl: Option<List> = None;
@@ -126,7 +171,7 @@ impl Function for ParseEtld {
 #[derive(Debug, Clone)]
 struct ParseEtldFn {
     value: Box<dyn Expression>,
-    plus_parts: Box<dyn Expression>,
+    plus_parts: Option<Box<dyn Expression>>,
     psl: Option<List>,
 }
 
@@ -135,7 +180,10 @@ impl FunctionExpression for ParseEtldFn {
         let value = self.value.resolve(ctx)?;
         let string = value.try_bytes_utf8_lossy()?;
 
-        let plus_parts = match self.plus_parts.resolve(ctx)?.try_integer()? {
+        let plus_parts_value = self
+            .plus_parts
+            .map_resolve_with_default(ctx, || DEFAULT_PLUS_PARTS.clone())?;
+        let plus_parts = match plus_parts_value.try_integer()? {
             x if x < 0 => 0,
             // TODO consider removal options
             #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]

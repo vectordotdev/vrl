@@ -26,74 +26,106 @@ impl Function for ToInt {
         "to_int"
     }
 
+    fn usage(&self) -> &'static str {
+        "Coerces the `value` into an integer."
+    }
+
+    fn category(&self) -> &'static str {
+        Category::Coerce.as_ref()
+    }
+
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &[
+            "`value` is a string but the text is not an integer.",
+            "`value` is not a string, int, or timestamp.",
+        ]
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::INTEGER
+    }
+
+    fn return_rules(&self) -> &'static [&'static str] {
+        &[
+            "If `value` is an integer, it will be returned as-is.",
+            "If `value` is a float, it will be truncated to its integer portion.",
+            "If `value` is a string, it must be the string representation of an integer or else an error is raised.",
+            "If `value` is a boolean, `0` is returned for `false` and `1` is returned for `true`.",
+            "If `value` is a timestamp, a [Unix timestamp](https://en.wikipedia.org/wiki/Unix_time) (in seconds) is returned.",
+            "If `value` is null, `0` is returned.",
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",
             kind: kind::ANY,
             required: true,
+            description: "The value to convert to an integer.",
+            default: None,
         }]
     }
 
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "integer",
+                title: "Coerce to an int (string)",
+                source: "to_int!(\"2\")",
+                result: Ok("2"),
+            },
+            example! {
+                title: "Coerce to an int (timestamp)",
+                source: "to_int(t'2020-12-30T22:20:53.824727Z')",
+                result: Ok("1609366853"),
+            },
+            example! {
+                title: "Integer",
                 source: "to_int(5)",
                 result: Ok("5"),
             },
             example! {
-                title: "float",
+                title: "Float",
                 source: "to_int(5.6)",
                 result: Ok("5"),
             },
             example! {
-                title: "true",
+                title: "True",
                 source: "to_int(true)",
                 result: Ok("1"),
             },
             example! {
-                title: "false",
+                title: "False",
                 source: "to_int(false)",
                 result: Ok("0"),
             },
             example! {
-                title: "null",
+                title: "Null",
                 source: "to_int(null)",
                 result: Ok("0"),
             },
             example! {
-                title: "timestamp",
-                source: "to_int(t'2020-01-01T00:00:00Z')",
-                result: Ok("1577836800"),
-            },
-            example! {
-                title: "valid string",
-                source: "to_int!(s'5')",
-                result: Ok("5"),
-            },
-            example! {
-                title: "invalid string",
+                title: "Invalid string",
                 source: "to_int!(s'foobar')",
                 result: Err(
                     r#"function call error for "to_int" at (0:18): Invalid integer "foobar": invalid digit found in string"#,
                 ),
             },
             example! {
-                title: "array",
+                title: "Array",
                 source: "to_int!([])",
                 result: Err(
                     r#"function call error for "to_int" at (0:11): unable to coerce array into integer"#,
                 ),
             },
             example! {
-                title: "object",
+                title: "Object",
                 source: "to_int!({})",
                 result: Err(
                     r#"function call error for "to_int" at (0:11): unable to coerce object into integer"#,
                 ),
             },
             example! {
-                title: "regex",
+                title: "Regex",
                 source: "to_int!(r'foo')",
                 result: Err(
                     r#"function call error for "to_int" at (0:15): unable to coerce regex into integer"#,

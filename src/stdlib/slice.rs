@@ -1,6 +1,35 @@
 use std::ops::Range;
 
 use crate::compiler::prelude::*;
+use std::sync::LazyLock;
+
+static DEFAULT_END: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from("String length")));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::BYTES | kind::ARRAY,
+            required: true,
+            description: "The string or array to slice.",
+            default: None,
+        },
+        Parameter {
+            keyword: "start",
+            kind: kind::INTEGER,
+            required: true,
+            description: "The inclusive start position. A zero-based index that can be negative.",
+            default: None,
+        },
+        Parameter {
+            keyword: "end",
+            kind: kind::INTEGER,
+            required: false,
+            description: "The exclusive end position. A zero-based index that can be negative.",
+            default: Some(&DEFAULT_END),
+        },
+    ]
+});
 
 #[allow(clippy::cast_possible_wrap)]
 #[allow(clippy::cast_sign_loss)]
@@ -50,40 +79,47 @@ impl Function for Slice {
         "slice"
     }
 
+    fn usage(&self) -> &'static str {
+        indoc! {"
+            Returns a slice of `value` between the `start` and `end` positions.
+
+            If the `start` and `end` parameters are negative, they refer to positions counting from the right of the
+            string or array. If `end` refers to a position that is greater than the length of the string or array,
+            a slice up to the end of the string or array is returned.
+        "}
+    }
+
+    fn category(&self) -> &'static str {
+        Category::String.as_ref()
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::ARRAY | kind::BYTES
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::BYTES | kind::ARRAY,
-                required: true,
-            },
-            Parameter {
-                keyword: "start",
-                kind: kind::INTEGER,
-                required: true,
-            },
-            Parameter {
-                keyword: "end",
-                kind: kind::INTEGER,
-                required: false,
-            },
-        ]
+        PARAMETERS.as_slice()
     }
 
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "string start",
+                title: "Slice a string (positive index)",
+                source: r#"slice!("Supercalifragilisticexpialidocious", start: 5, end: 13)"#,
+                result: Ok("califrag"),
+            },
+            example! {
+                title: "Slice a string (negative index)",
+                source: r#"slice!("Supercalifragilisticexpialidocious", start: 5, end: -14)"#,
+                result: Ok("califragilistic"),
+            },
+            example! {
+                title: "String start",
                 source: r#"slice!("foobar", 3)"#,
                 result: Ok("bar"),
             },
             example! {
-                title: "string start..end",
-                source: r#"slice!("foobar", 2, 4)"#,
-                result: Ok("ob"),
-            },
-            example! {
-                title: "array start",
+                title: "Array start",
                 source: "slice!([0, 1, 2], 1)",
                 result: Ok("[1, 2]"),
             },

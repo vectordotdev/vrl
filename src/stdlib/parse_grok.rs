@@ -90,24 +90,51 @@ impl Function for ParseGrok {
         "parse_grok"
     }
 
+    fn usage(&self) -> &'static str {
+        "Parses the `value` using the [`grok`](https://github.com/daschl/grok/tree/master/patterns) format. All patterns [listed here](https://github.com/daschl/grok/tree/master/patterns) are supported."
+    }
+
+    fn category(&self) -> &'static str {
+        Category::Parse.as_ref()
+    }
+
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["`value` fails to parse using the provided `pattern`."]
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::OBJECT
+    }
+
+    fn notices(&self) -> &'static [&'static str] {
+        &[indoc! {"
+            We recommend using community-maintained Grok patterns when possible, as they're more
+            likely to be properly vetted and improved over time than bespoke patterns.
+        "}]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "The string to parse.",
+                default: None,
             },
             Parameter {
                 keyword: "pattern",
                 kind: kind::BYTES,
                 required: true,
+                description: "The [Grok pattern](https://github.com/daschl/grok/tree/master/patterns).",
+                default: None,
             },
         ]
     }
 
     fn examples(&self) -> &'static [Example] {
         &[example! {
-            title: "parse grok pattern",
+            title: "Parse using Grok",
             source: indoc! {r#"
                 value = "2020-10-02T23:22:12.223222Z info Hello world"
                 pattern = "%{TIMESTAMP_ISO8601:timestamp} %{LOGLEVEL:level} %{GREEDYDATA:message}"

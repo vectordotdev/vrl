@@ -39,17 +39,36 @@ impl Function for ParseTimestamp {
         "parse_timestamp"
     }
 
+    fn usage(&self) -> &'static str {
+        "Parses the `value` in [strptime](https://docs.rs/chrono/latest/chrono/format/strftime/index.html#specifiers) `format`."
+    }
+
+    fn category(&self) -> &'static str {
+        Category::Parse.as_ref()
+    }
+
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &[
+            "`value` fails to parse using the provided `format`.",
+            "`value` fails to parse using the provided `timezone`.",
+        ]
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::TIMESTAMP
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "valid",
-                source: r#"parse_timestamp!("11-Feb-2021 16:00 +00:00", format: "%v %R %z")"#,
-                result: Ok("t'2021-02-11T16:00:00Z'"),
+                title: "Parse timestamp",
+                source: r#"parse_timestamp!("10-Oct-2020 16:00+00:00", format: "%v %R %:z")"#,
+                result: Ok("t'2020-10-10T16:00:00Z'"),
             },
             example! {
-                title: "valid with timezone",
-                source: r#"parse_timestamp!("16/10/2019 12:00:00", format: "%d/%m/%Y %H:%M:%S", timezone: "Europe/Paris")"#,
-                result: Ok("t'2019-10-16T10:00:00Z'"),
+                title: "Parse timestamp with timezone",
+                source: r#"parse_timestamp!("16/10/2019 12:00:00", format: "%d/%m/%Y %H:%M:%S", timezone: "Asia/Taipei")"#,
+                result: Ok("t'2019-10-16T04:00:00Z'"),
             },
         ]
     }
@@ -78,16 +97,23 @@ impl Function for ParseTimestamp {
                 keyword: "value",
                 kind: kind::BYTES | kind::TIMESTAMP,
                 required: true,
+                description: "The text of the timestamp.",
+                default: None,
             },
             Parameter {
                 keyword: "format",
                 kind: kind::BYTES,
                 required: true,
+                description: "The [strptime](https://docs.rs/chrono/latest/chrono/format/strftime/index.html#specifiers) format.",
+                default: None,
             },
             Parameter {
                 keyword: "timezone",
                 kind: kind::BYTES,
                 required: false,
+                description: "The [TZ database](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones) format. By default, this function parses the timestamp by global [`timezone` option](/docs/reference/configuration//global-options#timezone).
+This argument overwrites the setting and is useful for parsing timestamps without a specified timezone, such as `16/10/2019 12:00:00`.",
+                default: None,
             },
         ]
     }

@@ -1,8 +1,29 @@
 use crate::compiler::prelude::*;
-use crate::value;
+use std::sync::LazyLock;
 use xxhash_rust::{xxh3, xxh32, xxh64};
 
+static DEFAULT_VARIANT: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from("XXH32")));
+
 const VALID_VARIANTS: &[&str] = &["XXH32", "XXH64", "XXH3-64", "XXH3-128"];
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::BYTES,
+            required: true,
+            description: "The string to calculate the hash for.",
+            default: None,
+        },
+        Parameter {
+            keyword: "variant",
+            kind: kind::BYTES,
+            required: false,
+            description: "The xxHash hashing algorithm to use.",
+            default: Some(&DEFAULT_VARIANT),
+        },
+    ]
+});
 
 #[allow(clippy::cast_possible_wrap)]
 fn xxhash(value: Value, variant: &Value) -> Resolved {
@@ -47,45 +68,42 @@ impl Function for Xxhash {
         "xxhash"
     }
 
+    fn category(&self) -> &'static str {
+        Category::Checksum.as_ref()
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::INTEGER | kind::BYTES
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::BYTES,
-                required: true,
-            },
-            Parameter {
-                keyword: "variant",
-                kind: kind::BYTES,
-                required: false,
-            },
-        ]
+        PARAMETERS.as_slice()
     }
 
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "calculate xxhash hash (XXH32 default)",
+                title: "Calculate a hash using the default (XXH32) algorithm",
                 source: r#"xxhash("foo")"#,
                 result: Ok("3792637401"),
             },
             example! {
-                title: "calculate xxhash hash (XXH32)",
+                title: "Calculate a hash using the XXH32 algorithm",
                 source: r#"xxhash("foo", "XXH32")"#,
                 result: Ok("3792637401"),
             },
             example! {
-                title: "calculate xxhash hash (XXH64)",
+                title: "Calculate a hash using the XXH64 algorithm",
                 source: r#"xxhash("foo", "XXH64")"#,
                 result: Ok("3728699739546630719"),
             },
             example! {
-                title: "calculate XXH3-64 hash",
+                title: "Calculate a hash using the XXH3-64 algorithm",
                 source: r#"xxhash("foo", "XXH3-64")"#,
                 result: Ok("-6093828362558603894"),
             },
             example! {
-                title: "calculate XXH3-128 hash",
+                title: "Calculate a hash using the XXH3-128 algorithm",
                 source: r#"xxhash("foo", "XXH3-128")"#,
                 result: Ok(r#""161745101148472925293886522910304009610""#),
             },
@@ -114,10 +132,9 @@ struct XxhashFn {
 impl FunctionExpression for XxhashFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let value = self.value.resolve(ctx)?;
-        let variant = match &self.variant {
-            Some(variant) => variant.resolve(ctx)?,
-            _ => value!("XXH32"),
-        };
+        let variant = self
+            .variant
+            .map_resolve_with_default(ctx, || DEFAULT_VARIANT.clone())?;
 
         xxhash(value, &variant)
     }

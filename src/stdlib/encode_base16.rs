@@ -13,11 +13,25 @@ impl Function for EncodeBase16 {
         "encode_base16"
     }
 
+    fn usage(&self) -> &'static str {
+        "Encodes the `value` to [Base16](https://en.wikipedia.org/wiki/Hexadecimal))."
+    }
+
+    fn category(&self) -> &'static str {
+        Category::Codec.as_ref()
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::BYTES
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",
             kind: kind::BYTES,
             required: true,
+            description: "The string to encode.",
+            default: None,
         }]
     }
 
@@ -34,7 +48,7 @@ impl Function for EncodeBase16 {
 
     fn examples(&self) -> &'static [Example] {
         &[example! {
-            title: "demo string",
+            title: "Encode to Base16",
             source: r#"encode_base16("some string value")"#,
             result: Ok("736f6d6520737472696e672076616c7565"),
         }]

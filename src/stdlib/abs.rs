@@ -20,11 +20,29 @@ impl Function for Abs {
         "abs"
     }
 
+    fn usage(&self) -> &'static str {
+        "Computes the absolute value of `value`."
+    }
+
+    fn category(&self) -> &'static str {
+        Category::Number.as_ref()
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::INTEGER | kind::FLOAT
+    }
+
+    fn return_rules(&self) -> &'static [&'static str] {
+        &["Returns the absolute value."]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",
             kind: kind::FLOAT | kind::INTEGER,
             required: true,
+            description: "The number to calculate the absolute value.",
+            default: None,
         }]
     }
 
@@ -40,11 +58,23 @@ impl Function for Abs {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[example! {
-            title: "abs",
-            source: "abs(-42)",
-            result: Ok("42"),
-        }]
+        &[
+            example! {
+                title: "Computes the absolute value of an integer",
+                source: "abs(-42)",
+                result: Ok("42"),
+            },
+            example! {
+                title: "Computes the absolute value of a float",
+                source: "abs(-42.2)",
+                result: Ok("42.2"),
+            },
+            example! {
+                title: "Computes the absolute value of a positive integer",
+                source: "abs(10)",
+                result: Ok("10"),
+            },
+        ]
     }
 }
 

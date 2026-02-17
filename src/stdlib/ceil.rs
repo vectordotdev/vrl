@@ -1,11 +1,31 @@
 use super::util::round_to_precision;
 use crate::compiler::prelude::*;
+use std::sync::LazyLock;
 
-fn ceil(value: Value, precision: Option<Value>) -> Resolved {
-    let precision = match precision {
-        Some(expr) => expr.try_integer()?,
-        None => 0,
-    };
+static DEFAULT_PRECISION: LazyLock<Value> = LazyLock::new(|| Value::Integer(0));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::FLOAT | kind::INTEGER,
+            required: true,
+            description: "The number to round up.",
+            default: None,
+        },
+        Parameter {
+            keyword: "precision",
+            kind: kind::INTEGER,
+            required: false,
+            description: "The number of decimal places to round to.",
+            default: Some(&DEFAULT_PRECISION),
+        },
+    ]
+});
+
+fn ceil(value: Value, precision: Value) -> Resolved {
+    let precision = precision.try_integer()?;
+
     match value {
         Value::Float(f) => Ok(Value::from_f64_or_zero(round_to_precision(
             *f,
@@ -29,19 +49,26 @@ impl Function for Ceil {
         "ceil"
     }
 
-    fn parameters(&self) -> &'static [Parameter] {
+    fn usage(&self) -> &'static str {
+        "Rounds the `value` up to the specified `precision`."
+    }
+
+    fn category(&self) -> &'static str {
+        Category::Number.as_ref()
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::INTEGER | kind::FLOAT
+    }
+
+    fn return_rules(&self) -> &'static [&'static str] {
         &[
-            Parameter {
-                keyword: "value",
-                kind: kind::FLOAT | kind::INTEGER,
-                required: true,
-            },
-            Parameter {
-                keyword: "precision",
-                kind: kind::INTEGER,
-                required: false,
-            },
+            "Returns an integer if `precision` is `0` (this is the default). Returns a float otherwise.",
         ]
+    }
+
+    fn parameters(&self) -> &'static [Parameter] {
+        PARAMETERS.as_slice()
     }
 
     fn compile(
@@ -57,11 +84,23 @@ impl Function for Ceil {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[example! {
-            title: "ceil",
-            source: "ceil(5.2)",
-            result: Ok("6.0"),
-        }]
+        &[
+            example! {
+                title: "Round a number up (without precision)",
+                source: "ceil(4.345)",
+                result: Ok("5.0"),
+            },
+            example! {
+                title: "Round a number up (with precision)",
+                source: "ceil(4.345, precision: 2)",
+                result: Ok("4.35"),
+            },
+            example! {
+                title: "Round an integer up (noop)",
+                source: "ceil(5)",
+                result: Ok("5"),
+            },
+        ]
     }
 }
 
@@ -75,9 +114,7 @@ impl FunctionExpression for CeilFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let precision = self
             .precision
-            .as_ref()
-            .map(|expr| expr.resolve(ctx))
-            .transpose()?;
+            .map_resolve_with_default(ctx, || DEFAULT_PRECISION.clone())?;
         let value = self.value.resolve(ctx)?;
 
         ceil(value, precision)

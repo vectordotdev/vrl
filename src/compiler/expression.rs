@@ -168,7 +168,7 @@ impl Expr {
     /// # Returns
     ///
     /// Returns a [`Result`] containing the resolved [`Value`] if the expression
-    /// evaluates to a constant. Otherwise, returns an [`Error`] indicating
+    /// evaluates to a constant. Otherwise, returns an [`Error`](`super::function::Error`) indicating
     /// an unexpected expression.
     ///
     /// # Errors
@@ -426,5 +426,27 @@ impl From<Value> for Expr {
             Regex(v) => Literal::from(v).into(),
             Null => Literal::from(()).into(),
         }
+    }
+}
+
+// Helper trait
+#[allow(clippy::missing_errors_doc)]
+pub trait ExpressionExt {
+    fn map_resolve(&self, ctx: &mut Context) -> Result<Option<Value>, ExpressionError>;
+    fn map_resolve_with_default<F>(&self, ctx: &mut Context, default_fn: F) -> Resolved
+    where
+        F: FnOnce() -> Value;
+}
+
+impl ExpressionExt for Option<Box<dyn Expression>> {
+    fn map_resolve(&self, ctx: &mut Context) -> Result<Option<Value>, ExpressionError> {
+        self.as_ref().map(|expr| expr.resolve(ctx)).transpose()
+    }
+
+    fn map_resolve_with_default<F>(&self, ctx: &mut Context, default_fn: F) -> Resolved
+    where
+        F: FnOnce() -> Value,
+    {
+        Ok(self.map_resolve(ctx)?.unwrap_or_else(default_fn))
     }
 }

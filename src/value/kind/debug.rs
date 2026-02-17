@@ -39,7 +39,7 @@ fn insert_kind(tree: &mut ObjectMap, kind: &Kind, show_unknown: bool) {
             if show_unknown {
                 insert_unknown(
                     tree,
-                    fields.unknown_kind(),
+                    &fields.unknown_kind(),
                     fields.is_unknown_exact(),
                     "object",
                 );
@@ -57,7 +57,7 @@ fn insert_kind(tree: &mut ObjectMap, kind: &Kind, show_unknown: bool) {
             if show_unknown {
                 insert_unknown(
                     tree,
-                    indices.unknown_kind(),
+                    &indices.unknown_kind(),
                     indices.is_unknown_exact(),
                     "array",
                 );
@@ -66,14 +66,12 @@ fn insert_kind(tree: &mut ObjectMap, kind: &Kind, show_unknown: bool) {
     }
 }
 
-// Clippy complains with "needless_borrow" if you try to fix this.
-#[allow(clippy::needless_pass_by_value)]
-fn insert_unknown(tree: &mut ObjectMap, unknown: Kind, unknown_exact: bool, prefix: &str) {
+fn insert_unknown(tree: &mut ObjectMap, unknown: &Kind, unknown_exact: bool, prefix: &str) {
     if unknown.is_undefined() {
         return;
     }
     let mut unknown_tree = ObjectMap::new();
-    insert_kind(&mut unknown_tree, &unknown, unknown_exact);
+    insert_kind(&mut unknown_tree, unknown, unknown_exact);
     if unknown.is_exact() {
         tree.insert(
             format!("{prefix}_unknown_exact").into(),

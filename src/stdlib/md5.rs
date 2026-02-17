@@ -14,19 +14,33 @@ impl Function for Md5 {
         "md5"
     }
 
+    fn usage(&self) -> &'static str {
+        "Calculates an md5 hash of the `value`."
+    }
+
+    fn category(&self) -> &'static str {
+        Category::Cryptography.as_ref()
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::BYTES
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",
             kind: kind::ANY,
             required: true,
+            description: "The string to calculate the hash for.",
+            default: None,
         }]
     }
 
     fn examples(&self) -> &'static [Example] {
         &[example! {
-            title: "md5",
-            source: r#"md5("foobar")"#,
-            result: Ok("3858f62230ac3c915f300c664312c63f"),
+            title: "Create md5 hash",
+            source: r#"md5("foo")"#,
+            result: Ok("acbd18db4cc2f85cedef654fccc4a4d8"),
         }]
     }
 

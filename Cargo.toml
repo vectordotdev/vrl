@@ -1,6 +1,6 @@
 [package]
 name = "vrl"
-version = "0.28.1"
+version = "0.30.0"
 authors = ["Vector Contributors <vector@datadoghq.com>"]
 edition = "2024"
 license = "MPL-2.0"
@@ -24,7 +24,7 @@ members = [
 clap = { version = "4", features = ["derive"] }
 
 [features]
-default = ["compiler", "value", "diagnostic", "path", "parser", "stdlib", "datadog", "core"]
+default = ["compiler", "value", "diagnostic", "path", "parser", "stdlib", "datadog", "core", "enable_env_functions", "enable_system_functions", "enable_network_functions"]
 
 # Main features (on by default)
 compiler = ["diagnostic", "path", "parser", "value", "dep:chrono", "dep:serde", "dep:regex", "dep:bytes", "dep:ordered-float", "dep:chrono-tz", "dep:snafu", "dep:thiserror", "dep:dyn-clone", "dep:indoc", "dep:thiserror", "dep:lalrpop-util"]
@@ -49,9 +49,14 @@ arbitrary = ["dep:quickcheck", "dep:arbitrary"]
 lua = ["dep:mlua"]
 proptest = ["dep:proptest", "dep:proptest-derive"]
 float_roundtrip = ["dep:serde_json", "serde_json/float_roundtrip"]
+enable_env_functions = []
+enable_system_functions = []
+enable_network_functions = []
 
 # Testing Utilities. Enables additional tests, including those with external dependencies such as network calls.
 test = ["string_path"]
+
+__mock_return_values_for_tests = []
 
 
 # All stdlib functions
@@ -110,6 +115,8 @@ stdlib = [
   "dep:sha-3",
   "dep:snap",
   "dep:strip-ansi-escapes",
+  "dep:strum",
+  "dep:strum_macros",
   "dep:syslog_loose",
   "dep:tokio",
   "dep:ua-parser",
@@ -176,14 +183,14 @@ psl-types = { version = "2", optional = true }
 publicsuffix = { version = "2", optional = true }
 rand = { version = "0.8", optional = true }
 regex = { version = "1", default-features = false, optional = true, features = ["std", "perf", "unicode"] }
-roxmltree = { version = "0.20", optional = true }
-rustyline = { version = "16", default-features = false, optional = true }
+roxmltree = { version = "0.21", optional = true }
+rustyline = { version = "17", default-features = false, optional = true }
 rust_decimal = { version = "1", optional = true, default-features = false }
 seahash = { version = "4", optional = true }
 serde = { version = "1", features = ["derive"], optional = true }
 serde_json = { version = "1", default-features = false, optional = true, features = ["std", "raw_value"] }
 simdutf8 = { version = "0.1.5", optional = true }
-fancy-regex = { version = "0.15.0", default-features = false, optional = true }
+fancy-regex = { version = "0.17", default-features = false, optional = true }
 sha-1 = { version = "0.10", optional = true }
 sha-2 = { package = "sha2", version = "0.10", optional = true }
 sha-3 = { package = "sha3", version = "0.10", optional = true }
@@ -197,6 +204,8 @@ ua-parser = { version = "0.2", optional = true }
 utf8-width = { version = "0.1", optional = true }
 url = { version = "2", optional = true }
 snafu = { version = "0.8", optional = true }
+strum = { version = "0.26", optional = true }
+strum_macros = { version = "0.26", optional = true }
 webbrowser = { version = "1.0", default-features = false, optional = true }
 woothee = { version = "0.13", optional = true }
 xxhash-rust = { version = "0.8", optional = true, features = [
@@ -235,14 +244,14 @@ reqwest-retry = { version = "0.7", default-features = false }
 
 # Dependencies used for non-WASM
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-dns-lookup = { version = "2", optional = true }
+dns-lookup = { version = "3", optional = true }
 domain = { version = "0.11.0", optional = true, features = ["resolv-sync", "serde"] }
 hostname = { version = "0.4", optional = true }
 grok = { version = "2.4", optional = true }
 onig = { version = "6", default-features = false, optional = true }
 tokio = { version = "1.45", optional = true, features = ["io-util", "macros", "net", "time", "sync", "rt", "rt-multi-thread"] }
 uuid = { version = "1", features = ["v4", "v7"], optional = true }
-jsonschema = { version = "0.32", default-features = false }
+jsonschema = { version = "0.38.1", default-features = false }
 
 # Dependencies used for WASM
 [target.'cfg(target_arch = "wasm32")'.dependencies]
@@ -250,7 +259,7 @@ uuid = { version = "1", features = ["v4", "v7", "js"], optional = true }
 
 [dev-dependencies]
 anyhow = "1"
-criterion = "0.7"
+criterion = "0.8"
 chrono-tz = "0.10"
 serde_json = "1"
 indoc = "2"

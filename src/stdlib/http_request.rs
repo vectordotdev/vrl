@@ -10,8 +10,8 @@ use crate::compiler::prelude::*;
 #[cfg(not(target_arch = "wasm32"))]
 mod non_wasm {
     use super::{
-        Context, Expression, ExpressionError, FunctionExpression, Resolved, TypeDef, TypeState,
-        Value, VrlValueConvert,
+        Context, Expression, ExpressionError, ExpressionExt, FunctionExpression, Resolved, TypeDef,
+        TypeState, Value, VrlValueConvert,
     };
     use reqwest_middleware::{
         ClientBuilder, ClientWithMiddleware,
@@ -213,9 +213,9 @@ mod non_wasm {
     #[derive(Debug, Clone)]
     pub(super) struct HttpRequestFn {
         pub(super) url: Box<dyn Expression>,
-        pub(super) method: Box<dyn Expression>,
-        pub(super) headers: Box<dyn Expression>,
-        pub(super) body: Box<dyn Expression>,
+        pub(super) method: Option<Box<dyn Expression>>,
+        pub(super) headers: Option<Box<dyn Expression>>,
+        pub(super) body: Option<Box<dyn Expression>>,
         pub(super) client_or_proxies: ClientOrProxies,
     }
 
@@ -223,9 +223,15 @@ mod non_wasm {
         #[allow(clippy::similar_names)]
         fn resolve(&self, ctx: &mut Context) -> Resolved {
             let url = self.url.resolve(ctx)?;
-            let method = self.method.resolve(ctx)?;
-            let headers = self.headers.resolve(ctx)?;
-            let body = self.body.resolve(ctx)?;
+            let method = self
+                .method
+                .map_resolve_with_default(ctx, || super::DEFAULT_METHOD.clone())?;
+            let headers = self
+                .headers
+                .map_resolve_with_default(ctx, || super::DEFAULT_HEADERS.clone())?;
+            let body = self
+                .body
+                .map_resolve_with_default(ctx, || super::DEFAULT_BODY.clone())?;
             let client = self.client_or_proxies.get_client(ctx)?;
 
             // block_in_place runs the HTTP request synchronously
@@ -259,12 +265,78 @@ mod non_wasm {
 #[cfg(not(target_arch = "wasm32"))]
 use non_wasm::*;
 
+use std::sync::LazyLock;
+
+static DEFAULT_METHOD: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from("get")));
+static DEFAULT_HEADERS: LazyLock<Value> =
+    LazyLock::new(|| Value::Object(std::collections::BTreeMap::new()));
+static DEFAULT_BODY: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from("")));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "url",
+            kind: kind::BYTES,
+            required: true,
+            description: "The URL to make the HTTP request to.",
+            default: None,
+        },
+        Parameter {
+            keyword: "method",
+            kind: kind::BYTES,
+            required: false,
+            description: "The HTTP method to use (e.g., GET, POST, PUT, DELETE). Defaults to GET.",
+            default: Some(&DEFAULT_METHOD),
+        },
+        Parameter {
+            keyword: "headers",
+            kind: kind::OBJECT,
+            required: false,
+            description: "An object containing HTTP headers to send with the request.",
+            default: Some(&DEFAULT_HEADERS),
+        },
+        Parameter {
+            keyword: "body",
+            kind: kind::BYTES,
+            required: false,
+            description: "The request body content to send.",
+            default: Some(&DEFAULT_BODY),
+        },
+        Parameter {
+            keyword: "http_proxy",
+            kind: kind::BYTES,
+            required: false,
+            description: "HTTP proxy URL to use for the request.",
+            default: None,
+        },
+        Parameter {
+            keyword: "https_proxy",
+            kind: kind::BYTES,
+            required: false,
+            description: "HTTPS proxy URL to use for the request.",
+            default: None,
+        },
+    ]
+});
+
 #[derive(Clone, Copy, Debug)]
 pub struct HttpRequest;
 
 impl Function for HttpRequest {
     fn identifier(&self) -> &'static str {
         "http_request"
+    }
+
+    fn usage(&self) -> &'static str {
+        "Makes an HTTP request to the specified URL. This function performs synchronous blocking operations and is not recommended for frequent or performance-critical workflows due to potential network-related delays."
+    }
+
+    fn category(&self) -> &'static str {
+        Category::System.as_ref()
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::BYTES
     }
 
     #[cfg(not(feature = "test"))]
@@ -301,38 +373,7 @@ impl Function for HttpRequest {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "url",
-                kind: kind::BYTES,
-                required: true,
-            },
-            Parameter {
-                keyword: "method",
-                kind: kind::BYTES,
-                required: false,
-            },
-            Parameter {
-                keyword: "headers",
-                kind: kind::OBJECT,
-                required: false,
-            },
-            Parameter {
-                keyword: "body",
-                kind: kind::BYTES,
-                required: false,
-            },
-            Parameter {
-                keyword: "http_proxy",
-                kind: kind::BYTES,
-                required: false,
-            },
-            Parameter {
-                keyword: "https_proxy",
-                kind: kind::BYTES,
-                required: false,
-            },
-        ]
+        PARAMETERS.as_slice()
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -344,9 +385,9 @@ impl Function for HttpRequest {
         arguments: ArgumentList,
     ) -> Compiled {
         let url = arguments.required("url");
-        let method = arguments.optional("method").unwrap_or_else(|| expr!("get"));
-        let headers = arguments.optional("headers").unwrap_or_else(|| expr!({}));
-        let body = arguments.optional("body").unwrap_or_else(|| expr!(""));
+        let method = arguments.optional("method");
+        let headers = arguments.optional("headers");
+        let body = arguments.optional("body");
         let http_proxy = arguments.optional("http_proxy");
         let https_proxy = arguments.optional("https_proxy");
 

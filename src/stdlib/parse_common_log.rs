@@ -1,13 +1,34 @@
 use super::log_util;
 use crate::compiler::prelude::*;
 use std::collections::BTreeMap;
+use std::sync::LazyLock;
 
-fn parse_common_log(bytes: &Value, timestamp_format: Option<Value>, ctx: &Context) -> Resolved {
+static DEFAULT_TIMESTAMP_FORMAT: LazyLock<Value> =
+    LazyLock::new(|| Value::Bytes(Bytes::from("%d/%b/%Y:%T %z")));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::BYTES,
+            required: true,
+            description: "The string to parse.",
+            default: None,
+        },
+        Parameter {
+            keyword: "timestamp_format",
+            kind: kind::BYTES,
+            required: false,
+            description: "The [date/time format](https://docs.rs/chrono/latest/chrono/format/strftime/index.html) to use for
+encoding the timestamp.",
+            default: Some(&DEFAULT_TIMESTAMP_FORMAT),
+        },
+    ]
+});
+
+fn parse_common_log(bytes: &Value, timestamp_format: &Value, ctx: &Context) -> Resolved {
     let message = bytes.try_bytes_utf8_lossy()?;
-    let timestamp_format = match timestamp_format {
-        None => "%d/%b/%Y:%T %z".to_owned(),
-        Some(timestamp_format) => timestamp_format.try_bytes_utf8_lossy()?.to_string(),
-    };
+    let timestamp_format = timestamp_format.try_bytes_utf8_lossy()?.to_string();
 
     log_util::parse_message(
         &log_util::REGEX_APACHE_COMMON_LOG,
@@ -27,19 +48,34 @@ impl Function for ParseCommonLog {
         "parse_common_log"
     }
 
-    fn parameters(&self) -> &'static [Parameter] {
+    fn usage(&self) -> &'static str {
+        "Parses the `value` using the [Common Log Format](https://httpd.apache.org/docs/current/logs.html#common) (CLF)."
+    }
+
+    fn category(&self) -> &'static str {
+        Category::Parse.as_ref()
+    }
+
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
         &[
-            Parameter {
-                keyword: "value",
-                kind: kind::BYTES,
-                required: true,
-            },
-            Parameter {
-                keyword: "timestamp_format",
-                kind: kind::BYTES,
-                required: false,
-            },
+            "`value` does not match the Common Log Format.",
+            "`timestamp_format` is not a valid format string.",
+            "The timestamp in `value` fails to parse using the provided `timestamp_format`.",
         ]
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::OBJECT
+    }
+
+    fn notices(&self) -> &'static [&'static str] {
+        &[
+            "Missing information in the log message may be indicated by `-`. These fields are omitted in the result.",
+        ]
+    }
+
+    fn parameters(&self) -> &'static [Parameter] {
+        PARAMETERS.as_slice()
     }
 
     fn compile(
@@ -59,24 +95,44 @@ impl Function for ParseCommonLog {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[example! {
-            title: "parse common log",
-            source: r#"parse_common_log!(s'127.0.0.1 bob frank [10/Oct/2000:13:55:36 -0700] "GET /apache_pb.gif HTTP/1.0" 200 2326')"#,
-            result: Ok(indoc! {
-                r#"{
-                    "host":"127.0.0.1",
-                    "identity":"bob",
-                    "message":"GET /apache_pb.gif HTTP/1.0",
-                    "method":"GET",
-                    "path":"/apache_pb.gif",
-                    "protocol":"HTTP/1.0",
-                    "size":2326,
-                    "status":200,
-                    "timestamp":"2000-10-10T20:55:36Z",
-                    "user":"frank"
-                }"#
-            }),
-        }]
+        &[
+            example! {
+                title: "Parse using Common Log Format (with default timestamp format)",
+                source: r#"parse_common_log!(s'127.0.0.1 bob frank [10/Oct/2000:13:55:36 -0700] "GET /apache_pb.gif HTTP/1.0" 200 2326')"#,
+                result: Ok(indoc! {
+                    r#"{
+                        "host":"127.0.0.1",
+                        "identity":"bob",
+                        "message":"GET /apache_pb.gif HTTP/1.0",
+                        "method":"GET",
+                        "path":"/apache_pb.gif",
+                        "protocol":"HTTP/1.0",
+                        "size":2326,
+                        "status":200,
+                        "timestamp":"2000-10-10T20:55:36Z",
+                        "user":"frank"
+                    }"#
+                }),
+            },
+            example! {
+                title: "Parse using Common Log Format (with custom timestamp format)",
+                source: r#"parse_common_log!(s'127.0.0.1 bob frank [2000-10-10T20:55:36Z] "GET /apache_pb.gif HTTP/1.0" 200 2326', "%+")"#,
+                result: Ok(indoc! {
+                    r#"{
+                        "host":"127.0.0.1",
+                        "identity":"bob",
+                        "message":"GET /apache_pb.gif HTTP/1.0",
+                        "method":"GET",
+                        "path":"/apache_pb.gif",
+                        "protocol":"HTTP/1.0",
+                        "size":2326,
+                        "status":200,
+                        "timestamp":"2000-10-10T20:55:36Z",
+                        "user":"frank"
+                    }"#
+                }),
+            },
+        ]
     }
 }
 
@@ -91,11 +147,9 @@ impl FunctionExpression for ParseCommonLogFn {
         let bytes = self.value.resolve(ctx)?;
         let timestamp_format = self
             .timestamp_format
-            .as_ref()
-            .map(|expr| expr.resolve(ctx))
-            .transpose()?;
+            .map_resolve_with_default(ctx, || DEFAULT_TIMESTAMP_FORMAT.clone())?;
 
-        parse_common_log(&bytes, timestamp_format, ctx)
+        parse_common_log(&bytes, &timestamp_format, ctx)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

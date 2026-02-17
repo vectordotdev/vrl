@@ -13,6 +13,27 @@ static UA_EXTRACTOR: LazyLock<ua_parser::Extractor> = LazyLock::new(|| {
     ua_parser::Extractor::try_from(regexes).expect("Regex file is not valid.")
 });
 
+static DEFAULT_MODE: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from("fast")));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::BYTES,
+            required: true,
+            description: "The string to parse.",
+            default: None,
+        },
+        Parameter {
+            keyword: "mode",
+            kind: kind::BYTES,
+            required: false,
+            description: "Determines performance and reliability characteristics.",
+            default: Some(&DEFAULT_MODE),
+        },
+    ]
+});
+
 #[derive(Clone, Copy, Debug)]
 pub struct ParseUserAgent;
 
@@ -34,49 +55,50 @@ impl Function for ParseUserAgent {
         "}
     }
 
-    fn parameters(&self) -> &'static [Parameter] {
+    fn category(&self) -> &'static str {
+        Category::Parse.as_ref()
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::OBJECT
+    }
+
+    fn notices(&self) -> &'static [&'static str] {
         &[
-            Parameter {
-                keyword: "value",
-                kind: kind::BYTES,
-                required: true,
-            },
-            Parameter {
-                keyword: "mode",
-                kind: kind::BYTES,
-                required: false,
-            },
+            indoc! {"
+                All values are returned as strings or as null. We recommend manually coercing values
+                to desired types as you see fit.
+            "},
+            "Different modes return different schema.",
+            "Field which were not parsed out are set as `null`.",
         ]
+    }
+
+    fn parameters(&self) -> &'static [Parameter] {
+        PARAMETERS.as_slice()
     }
 
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "fast mode",
+                title: "Fast mode",
                 source: r#"parse_user_agent("Mozilla Firefox 1.0.1 Mozilla/5.0 (X11; U; Linux i686; de-DE; rv:1.7.6) Gecko/20050223 Firefox/1.0.1")"#,
                 result: Ok(
                     r#"{ "browser": { "family": "Firefox", "version": "1.0.1" }, "device": { "category": "pc" }, "os": { "family": "Linux", "version": null } }"#,
                 ),
             },
             example! {
-                title: "reliable mode",
+                title: "Reliable mode",
                 source: r#"parse_user_agent("Mozilla/4.0 (compatible; MSIE 7.66; Windows NT 5.1; SV1; .NET CLR 1.1.4322)", mode: "reliable")"#,
                 result: Ok(
                     r#"{ "browser": { "family": "Internet Explorer", "version": "7.66" }, "device": { "category": "pc" }, "os": { "family": "Windows XP", "version": "NT 5.1" } }"#,
                 ),
             },
             example! {
-                title: "enriched mode",
+                title: "Enriched mode",
                 source: r#"parse_user_agent("Opera/9.80 (J2ME/MIDP; Opera Mini/4.3.24214; iPhone; CPU iPhone OS 4_2_1 like Mac OS X; AppleWebKit/24.783; U; en) Presto/2.5.25 Version/10.54", mode: "enriched")"#,
                 result: Ok(
                     r#"{ "browser": { "family": "Opera Mini", "major": "4", "minor": "3", "patch": "24214", "version": "10.54" }, "device": { "brand": "Apple", "category": "smartphone", "family": "iPhone", "model": "iPhone" }, "os": { "family": "iOS", "major": "4", "minor": "2", "patch": "1", "patch_minor": null, "version": "4.2.1" } }"#,
-                ),
-            },
-            example! {
-                title: "device",
-                source: r#"parse_user_agent("Mozilla/5.0 (Linux; Android 4.4.4; HP Slate 17 Build/KTU84P) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/33.0.0.0 Safari/537.36ESPN APP", mode: "enriched")"#,
-                result: Ok(
-                    r#"{ "browser": { "family": "ESPN", "major": null, "minor": null, "patch": null, "version": "33.0.0.0" }, "device": { "brand": "HP", "category": "smartphone", "family": "HP Slate 17", "model": "Slate 17" }, "os": { "family": "Android", "major": "4", "minor": "4", "patch": "4", "patch_minor": null, "version": "4.4.4" } }"#,
                 ),
             },
         ]
@@ -92,11 +114,10 @@ impl Function for ParseUserAgent {
 
         let mode = arguments
             .optional_enum("mode", &Mode::all_value(), state)?
-            .map(|s| {
-                Mode::from_str(&s.try_bytes_utf8_lossy().expect("mode not bytes"))
-                    .expect("validated enum")
-            })
-            .unwrap_or_default();
+            .unwrap_or_else(|| DEFAULT_MODE.clone())
+            .try_bytes_utf8_lossy()
+            .map(|s| Mode::from_str(&s).expect("validated enum"))
+            .expect("mode not bytes");
 
         let parser = match mode {
             Mode::Fast => {
@@ -170,8 +191,9 @@ impl fmt::Debug for ParseUserAgentFn {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub(crate) enum Mode {
+    #[default]
     Fast,
     Reliable,
     Enriched,
@@ -255,12 +277,6 @@ impl Mode {
                 ),
             ])),
         }
-    }
-}
-
-impl Default for Mode {
-    fn default() -> Self {
-        Self::Fast
     }
 }
 

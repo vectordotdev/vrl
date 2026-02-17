@@ -15,17 +15,17 @@ impl Function for DecodeCharset {
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "Decode charset from euc-kr",
+                title: "Decode EUC-KR string",
                 source: r#"decode_charset!(decode_base64!("vsiz58fPvLy/5A=="), "euc-kr")"#,
                 result: Ok("안녕하세요"),
             },
             example! {
-                title: "Decode charset from euc-jp",
+                title: "Decode EUC-JP string",
                 source: r#"decode_charset!(decode_base64!("pLOk86TLpMGkzw=="), "euc-jp")"#,
                 result: Ok("こんにちは"),
             },
             example! {
-                title: "Decode charset from gb2312",
+                title: "Decode GB2312 string",
                 source: r#"decode_charset!(decode_base64!("xOO6ww=="), "gb2312")"#,
                 result: Ok("你好"),
             },
@@ -45,17 +45,35 @@ impl Function for DecodeCharset {
         "}
     }
 
+    fn category(&self) -> &'static str {
+        Category::Codec.as_ref()
+    }
+
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &[
+            "`from_charset` isn't a valid [character set](https://encoding.spec.whatwg.org/#names-and-labels).",
+        ]
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::BYTES
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "The non-UTF8 string to decode.",
+                default: None,
             },
             Parameter {
                 keyword: "from_charset",
                 kind: kind::BYTES,
                 required: true,
+                description: "The [character set](https://encoding.spec.whatwg.org/#names-and-labels) to use when decoding the data.",
+                default: None,
             },
         ]
     }

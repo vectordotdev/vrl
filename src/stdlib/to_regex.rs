@@ -17,19 +17,51 @@ impl Function for ToRegex {
         "to_regex"
     }
 
+    fn usage(&self) -> &'static str {
+        "Coerces the `value` into a regex."
+    }
+
+    fn category(&self) -> &'static str {
+        Category::Coerce.as_ref()
+    }
+
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["`value` is not a string."]
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::REGEX
+    }
+
+    fn return_rules(&self) -> &'static [&'static str] {
+        &[
+            "If `value` is a string that contains a valid regex, returns the regex constructed with this string.",
+        ]
+    }
+
+    fn notices(&self) -> &'static [&'static str] {
+        &[indoc! {"
+            Compiling a regular expression is an expensive operation and can limit Vector's
+            throughput. Don't use this function unless you are absolutely sure there is no other
+            way!
+        "}]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",
             kind: kind::BYTES,
             required: true,
+            description: "The value to convert to a regex.",
+            default: None,
         }]
     }
 
     fn examples(&self) -> &'static [Example] {
         &[example! {
-            title: "regex",
-            source: "to_regex(s'^foobar$') ?? r''",
-            result: Ok("r'^foobar$'"),
+            title: "Coerce to a regex",
+            source: r#"to_regex!("^foo$")"#,
+            result: Ok("r'^foo$'"),
         }]
     }
 

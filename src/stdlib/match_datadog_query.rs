@@ -19,6 +19,18 @@ impl Function for MatchDatadogQuery {
         "match_datadog_query"
     }
 
+    fn usage(&self) -> &'static str {
+        "Matches an object against a [Datadog Search Syntax](https://docs.datadoghq.com/logs/explorer/search_syntax/) query."
+    }
+
+    fn category(&self) -> &'static str {
+        Category::Object.as_ref()
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::BOOLEAN
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
@@ -32,8 +44,8 @@ impl Function for MatchDatadogQuery {
                 result: Ok("false"),
             },
             example! {
-                title: "Facet wildcard",
-                source: r#"match_datadog_query({"name": "vector"}, "@name:vec*")"#,
+                title: "Attribute wildcard",
+                source: r#"match_datadog_query({"name": "foobar"}, "@name:foo*")"#,
                 result: Ok("true"),
             },
             example! {
@@ -83,11 +95,15 @@ impl Function for MatchDatadogQuery {
                 keyword: "value",
                 kind: kind::OBJECT,
                 required: true,
+                description: "The object.",
+                default: None,
             },
             Parameter {
                 keyword: "query",
                 kind: kind::BYTES,
                 required: true,
+                description: "The Datadog Search Syntax query.",
+                default: None,
             },
         ]
     }

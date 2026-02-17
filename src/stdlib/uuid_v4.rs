@@ -1,6 +1,7 @@
 use crate::compiler::prelude::*;
 use bytes::Bytes;
 
+#[cfg_attr(feature = "__mock_return_values_for_tests", allow(dead_code))]
 fn uuid_v4() -> Value {
     let mut buf = [0; 36];
     let uuid = uuid::Uuid::new_v4().hyphenated().encode_lower(&mut buf);
@@ -15,11 +16,33 @@ impl Function for UuidV4 {
         "uuid_v4"
     }
 
+    fn usage(&self) -> &'static str {
+        "Generates a random [UUIDv4](https://en.wikipedia.org/wiki/Universally_unique_identifier#Version_4_(random)) string."
+    }
+
+    fn category(&self) -> &'static str {
+        Category::Random.as_ref()
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::BYTES
+    }
+
+    #[cfg(not(feature = "__mock_return_values_for_tests"))]
     fn examples(&self) -> &'static [Example] {
         &[example! {
-            title: "generate UUID v4",
+            title: "Create a UUIDv4",
             source: r#"uuid_v4() != """#,
             result: Ok("true"),
+        }]
+    }
+
+    #[cfg(feature = "__mock_return_values_for_tests")]
+    fn examples(&self) -> &'static [Example] {
+        &[example! {
+            title: "Create a UUIDv4",
+            source: r#"uuid_v4()"#,
+            result: Ok("1d262f4f-199b-458d-879f-05fd0a5f0683"),
         }]
     }
 
@@ -37,8 +60,14 @@ impl Function for UuidV4 {
 struct UuidV4Fn;
 
 impl FunctionExpression for UuidV4Fn {
+    #[cfg(not(feature = "__mock_return_values_for_tests"))]
     fn resolve(&self, _: &mut Context) -> Resolved {
         Ok(uuid_v4())
+    }
+
+    #[cfg(feature = "__mock_return_values_for_tests")]
+    fn resolve(&self, _: &mut Context) -> Resolved {
+        Ok("1d262f4f-199b-458d-879f-05fd0a5f0683".into())
     }
 
     fn type_def(&self, _: &TypeState) -> TypeDef {

@@ -14,17 +14,37 @@ impl Function for Strlen {
         "strlen"
     }
 
+    fn usage(&self) -> &'static str {
+        indoc! {"
+            Returns the number of UTF-8 characters in `value`. This differs from
+            `length` which counts the number of bytes of a string.
+
+            **Note**: This is the count of [Unicode scalar values](https://www.unicode.org/glossary/#unicode_scalar_value)
+            which can sometimes differ from [Unicode code points](https://www.unicode.org/glossary/#code_point).
+        "}
+    }
+
+    fn category(&self) -> &'static str {
+        Category::Enumerate.as_ref()
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::INTEGER
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",
             kind: kind::BYTES,
             required: true,
+            description: "The string.",
+            default: None,
         }]
     }
 
     fn examples(&self) -> &'static [Example] {
         &[example! {
-            title: "Characters",
+            title: "Count Unicode scalar values",
             source: r#"strlen("ñandú")"#,
             result: Ok("5"),
         }]

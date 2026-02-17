@@ -71,6 +71,28 @@ static REGEX_KLOG: LazyLock<Regex> = LazyLock::new(|| {
     ").expect("failed compiling regex for klog")
 });
 
+static EXAMPLES: LazyLock<Vec<Example>> = LazyLock::new(|| {
+    let result = Box::leak(
+        format!(
+            indoc! { r#"{{
+                "file": "klog.go",
+                "id": 28133,
+                "level": "info",
+                "line": 70,
+                "message": "hello from klog",
+                "timestamp": "{year}-05-05T17:59:40.692994Z"
+            }}"#},
+            year = Utc::now().year()
+        )
+        .into_boxed_str(),
+    );
+    vec![example! {
+        title: "Parse using klog",
+        source: r#"parse_klog!("I0505 17:59:40.692994   28133 klog.go:70] hello from klog")"#,
+        result: Ok(result),
+    }]
+});
+
 #[derive(Clone, Copy, Debug)]
 pub struct ParseKlog;
 
@@ -79,19 +101,32 @@ impl Function for ParseKlog {
         "parse_klog"
     }
 
+    fn usage(&self) -> &'static str {
+        "Parses the `value` using the [klog](https://github.com/kubernetes/klog) format used by Kubernetes components."
+    }
+
+    fn category(&self) -> &'static str {
+        Category::Parse.as_ref()
+    }
+
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["`value` does not match the `klog` format."]
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::OBJECT
+    }
+
+    fn notices(&self) -> &'static [&'static str] {
+        &[indoc! {"
+            This function resolves the year for messages. If the current month is January and the
+            provided month is December, it sets the year to the previous year. Otherwise, it sets
+            the year to the current year.
+        "}]
+    }
+
     fn examples(&self) -> &'static [Example] {
-        &[example! {
-            title: "valid",
-            source: r#"parse_klog!("I0505 17:59:40.692994   28133 klog.go:70] hello from klog")"#,
-            result: Ok(indoc! { r#"{
-                    "file": "klog.go",
-                    "id": 28133,
-                    "level": "info",
-                    "line": 70,
-                    "message": "hello from klog",
-                    "timestamp": "2025-05-05T17:59:40.692994Z"
-                }"#}),
-        }]
+        EXAMPLES.as_slice()
     }
 
     fn compile(
@@ -110,6 +145,8 @@ impl Function for ParseKlog {
             keyword: "value",
             kind: kind::BYTES,
             required: true,
+            description: "The string to parse.",
+            default: None,
         }]
     }
 }

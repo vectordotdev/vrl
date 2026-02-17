@@ -2,18 +2,46 @@ use super::log_util;
 use crate::compiler::prelude::*;
 use crate::value;
 use std::collections::BTreeMap;
+use std::sync::LazyLock;
+
+static DEFAULT_TIMESTAMP_FORMAT: LazyLock<Value> =
+    LazyLock::new(|| Value::Bytes(Bytes::from("%d/%b/%Y:%T %z")));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::BYTES,
+            required: true,
+            description: "The string to parse.",
+            default: None,
+        },
+        Parameter {
+            keyword: "format",
+            kind: kind::BYTES,
+            required: true,
+            description: "The format to use for parsing the log.",
+            default: None,
+        },
+        Parameter {
+            keyword: "timestamp_format",
+            kind: kind::BYTES,
+            required: false,
+            description: "The [date/time format](https://docs.rs/chrono/latest/chrono/format/strftime/index.html) to use for
+encoding the timestamp. The time is parsed in local time if the timestamp does not specify a timezone.",
+            default: Some(&DEFAULT_TIMESTAMP_FORMAT),
+        },
+    ]
+});
 
 fn parse_apache_log(
     bytes: &Value,
-    timestamp_format: Option<Value>,
+    timestamp_format: &Value,
     format: &Bytes,
     ctx: &Context,
 ) -> Resolved {
     let message = bytes.try_bytes_utf8_lossy()?;
-    let timestamp_format = match timestamp_format {
-        None => "%d/%b/%Y:%T %z".to_owned(),
-        Some(timestamp_format) => timestamp_format.try_bytes_utf8_lossy()?.to_string(),
-    };
+    let timestamp_format = timestamp_format.try_bytes_utf8_lossy()?.to_string();
     let regexes = match format.as_ref() {
         b"common" => &*log_util::REGEX_APACHE_COMMON_LOG,
         b"combined" => &*log_util::REGEX_APACHE_COMBINED_LOG,
@@ -43,24 +71,37 @@ impl Function for ParseApacheLog {
         "parse_apache_log"
     }
 
-    fn parameters(&self) -> &'static [Parameter] {
+    fn usage(&self) -> &'static str {
+        indoc! {"
+            Parses Apache access and error log lines. Lines can be in [`common`](https://httpd.apache.org/docs/current/logs.html#common),
+            [`combined`](https://httpd.apache.org/docs/current/logs.html#combined), or the default [`error`](https://httpd.apache.org/docs/current/logs.html#errorlog) format.
+        "}
+    }
+
+    fn category(&self) -> &'static str {
+        Category::Parse.as_ref()
+    }
+
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
         &[
-            Parameter {
-                keyword: "value",
-                kind: kind::BYTES,
-                required: true,
-            },
-            Parameter {
-                keyword: "format",
-                kind: kind::BYTES,
-                required: true,
-            },
-            Parameter {
-                keyword: "timestamp_format",
-                kind: kind::BYTES,
-                required: false,
-            },
+            "`value` does not match the specified format.",
+            "`timestamp_format` is not a valid format string.",
+            "The timestamp in `value` fails to parse using the provided `timestamp_format`.",
         ]
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::OBJECT
+    }
+
+    fn notices(&self) -> &'static [&'static str] {
+        &[
+            "Missing information in the log message may be indicated by `-`. These fields are omitted in the result.",
+        ]
+    }
+
+    fn parameters(&self) -> &'static [Parameter] {
+        PARAMETERS.as_slice()
     }
 
     fn compile(
@@ -88,25 +129,74 @@ impl Function for ParseApacheLog {
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "parse apache common log",
-                source: r#"encode_json(parse_apache_log!(s'127.0.0.1 bob frank [10/Oct/2000:13:55:36 -0700] "GET /apache_pb.gif HTTP/1.0" 200 2326', "common"))"#,
-                result: Ok(
-                    r#"s'{"host":"127.0.0.1","identity":"bob","message":"GET /apache_pb.gif HTTP/1.0","method":"GET","path":"/apache_pb.gif","protocol":"HTTP/1.0","size":2326,"status":200,"timestamp":"2000-10-10T20:55:36Z","user":"frank"}'"#,
-                ),
+                title: "Parse using Apache log format (common)",
+                source: r#"parse_apache_log!(s'127.0.0.1 bob frank [10/Oct/2000:13:55:36 -0700] "GET /apache_pb.gif HTTP/1.0" 200 2326', format: "common")"#,
+                result: Ok(indoc!{
+                    r#"
+                        {
+                          "host": "127.0.0.1",
+                          "identity": "bob",
+                          "message": "GET /apache_pb.gif HTTP/1.0",
+                          "method": "GET",
+                          "path": "/apache_pb.gif",
+                          "protocol": "HTTP/1.0",
+                          "size": 2326,
+                          "status": 200,
+                          "timestamp": "2000-10-10T20:55:36Z",
+                          "user": "frank"
+                        }
+                    "#,
+                }),
             },
             example! {
-                title: "parse apache combined log",
-                source: r#"encode_json(parse_apache_log!(s'127.0.0.1 bob frank [10/Oct/2000:13:55:36 -0700] "GET /apache_pb.gif HTTP/1.0" 200 2326 "http://www.seniorinfomediaries.com/vertical/channels/front-end/bandwidth" "Mozilla/5.0 (X11; Linux i686; rv:5.0) Gecko/1945-10-12 Firefox/37.0"', "combined"))"#,
-                result: Ok(
-                    r#"s'{"agent":"Mozilla/5.0 (X11; Linux i686; rv:5.0) Gecko/1945-10-12 Firefox/37.0","host":"127.0.0.1","identity":"bob","message":"GET /apache_pb.gif HTTP/1.0","method":"GET","path":"/apache_pb.gif","protocol":"HTTP/1.0","referrer":"http://www.seniorinfomediaries.com/vertical/channels/front-end/bandwidth","size":2326,"status":200,"timestamp":"2000-10-10T20:55:36Z","user":"frank"}'"#,
-                ),
+                title: "Parse using Apache log format (combined)",
+                source: indoc! {r#"
+                    parse_apache_log!(
+                        s'127.0.0.1 bob frank [10/Oct/2000:13:55:36 -0700] "GET /apache_pb.gif HTTP/1.0" 200 2326 "http://www.seniorinfomediaries.com/vertical/channels/front-end/bandwidth" "Mozilla/5.0 (X11; Linux i686; rv:5.0) Gecko/1945-10-12 Firefox/37.0"',
+                        "combined",
+                    )
+                "#},
+                result: Ok(indoc!{
+                    r#"
+                        {
+                          "agent": "Mozilla/5.0 (X11; Linux i686; rv:5.0) Gecko/1945-10-12 Firefox/37.0",
+                          "host": "127.0.0.1",
+                          "identity": "bob",
+                          "message": "GET /apache_pb.gif HTTP/1.0",
+                          "method": "GET",
+                          "path": "/apache_pb.gif",
+                          "protocol": "HTTP/1.0",
+                          "referrer": "http://www.seniorinfomediaries.com/vertical/channels/front-end/bandwidth",
+                          "size": 2326,
+                          "status": 200,
+                          "timestamp": "2000-10-10T20:55:36Z",
+                          "user": "frank"
+                        }
+                    "#,
+                }),
             },
             example! {
-                title: "parse apache error log",
-                source: r#"encode_json(parse_apache_log!(s'[01/Mar/2021:12:00:19 +0000] [ab:alert] [pid 4803:tid 3814] [client 147.159.108.175:24259] I will bypass the haptic COM bandwidth, that should matrix the CSS driver!', "error"))"#,
-                result: Ok(
-                    r#"s'{"client":"147.159.108.175","message":"I will bypass the haptic COM bandwidth, that should matrix the CSS driver!","module":"ab","pid":4803,"port":24259,"severity":"alert","thread":"3814","timestamp":"2021-03-01T12:00:19Z"}'"#,
-                ),
+                title: "Parse using Apache log format (error)",
+                source: indoc! {r#"
+                    parse_apache_log!(
+                        s'[01/Mar/2021:12:00:19 +0000] [ab:alert] [pid 4803:tid 3814] [client 147.159.108.175:24259] I will bypass the haptic COM bandwidth, that should matrix the CSS driver!',
+                        "error"
+                    )
+                "#},
+                result: Ok(indoc!{
+                    r#"
+                        {
+                          "client": "147.159.108.175",
+                          "message": "I will bypass the haptic COM bandwidth, that should matrix the CSS driver!",
+                          "module": "ab",
+                          "pid": 4803,
+                          "port": 24259,
+                          "severity": "alert",
+                          "thread": "3814",
+                          "timestamp": "2021-03-01T12:00:19Z"
+                        }
+                    "#,
+                }),
             },
         ]
     }
@@ -124,11 +214,9 @@ impl FunctionExpression for ParseApacheLogFn {
         let bytes = self.value.resolve(ctx)?;
         let timestamp_format = self
             .timestamp_format
-            .as_ref()
-            .map(|expr| expr.resolve(ctx))
-            .transpose()?;
+            .map_resolve_with_default(ctx, || DEFAULT_TIMESTAMP_FORMAT.clone())?;
 
-        parse_apache_log(&bytes, timestamp_format, &self.format, ctx)
+        parse_apache_log(&bytes, &timestamp_format, &self.format, ctx)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

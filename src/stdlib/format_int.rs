@@ -1,25 +1,38 @@
 use std::collections::VecDeque;
 
 use crate::compiler::prelude::*;
+use std::sync::LazyLock;
+
+static DEFAULT_BASE: LazyLock<Value> = LazyLock::new(|| Value::Integer(10));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::INTEGER,
+            required: true,
+            description: "The number to format.",
+            default: None,
+        },
+        Parameter {
+            keyword: "base",
+            kind: kind::INTEGER,
+            required: false,
+            description: "The base to format the number in. Must be between 2 and 36 (inclusive).",
+            default: Some(&DEFAULT_BASE),
+        },
+    ]
+});
 
 #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)] // TODO consider removal options
-fn format_int(value: Value, base: Option<Value>) -> Resolved {
+fn format_int(value: Value, base: Value) -> Resolved {
     let value = value.try_integer()?;
-    let base = match base {
-        Some(base) => {
-            let value = base.try_integer()?;
-            if !(2..=36).contains(&value) {
-                return Err(format!(
-                    "invalid base {value}: must be be between 2 and 36 (inclusive)"
-                )
-                .into());
-            }
+    let base = base.try_integer()?;
+    if !(2..=36).contains(&base) {
+        return Err(format!("invalid base {base}: must be be between 2 and 36 (inclusive)").into());
+    }
 
-            value as u32
-        }
-        None => 10u32,
-    };
-    let converted = format_radix(value, base);
+    let converted = format_radix(value, base as u32);
     Ok(converted.into())
 }
 
@@ -31,19 +44,24 @@ impl Function for FormatInt {
         "format_int"
     }
 
+    fn usage(&self) -> &'static str {
+        "Formats the integer `value` into a string representation using the given base/radix."
+    }
+
+    fn category(&self) -> &'static str {
+        Category::Number.as_ref()
+    }
+
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["The base is not between 2 and 36."]
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::BYTES
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::INTEGER,
-                required: true,
-            },
-            Parameter {
-                keyword: "base",
-                kind: kind::INTEGER,
-                required: false,
-            },
-        ]
+        PARAMETERS.as_slice()
     }
 
     fn compile(
@@ -61,20 +79,20 @@ impl Function for FormatInt {
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "format decimal integer",
-                source: "format_int!(42)",
-                // extra "s are needed to avoid being read as an integer by tests
-                result: Ok("\"42\""),
-            },
-            example! {
-                title: "format hexadecimal integer",
+                title: "Format as a hexadecimal integer",
                 source: "format_int!(42, 16)",
                 result: Ok("2a"),
             },
             example! {
-                title: "format negative hexadecimal integer",
+                title: "Format as a negative hexadecimal integer",
                 source: "format_int!(-42, 16)",
                 result: Ok("-2a"),
+            },
+            example! {
+                title: "Format as a decimal integer (default base)",
+                source: "format_int!(42)",
+                // extra "s are needed to avoid being read as an integer by tests
+                result: Ok("\"42\""),
             },
         ]
     }
@@ -89,18 +107,15 @@ struct FormatIntFn {
 impl FunctionExpression for FormatIntFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let value = self.value.resolve(ctx)?;
-
         let base = self
             .base
-            .as_ref()
-            .map(|expr| expr.resolve(ctx))
-            .transpose()?;
+            .map_resolve_with_default(ctx, || DEFAULT_BASE.clone())?;
 
         format_int(value, base)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {
-        TypeDef::integer().fallible()
+        TypeDef::bytes().fallible()
     }
 }
 
@@ -144,19 +159,19 @@ mod tests {
         decimal {
             args: func_args![value: 42],
             want: Ok(value!("42")),
-            tdef: TypeDef::integer().fallible(),
+            tdef: TypeDef::bytes().fallible(),
         }
 
         hexidecimal {
             args: func_args![value: 42, base: 16],
             want: Ok(value!("2a")),
-            tdef: TypeDef::integer().fallible(),
+            tdef: TypeDef::bytes().fallible(),
         }
 
         negative_hexidecimal {
             args: func_args![value: -42, base: 16],
             want: Ok(value!("-2a")),
-            tdef: TypeDef::integer().fallible(),
+            tdef: TypeDef::bytes().fallible(),
         }
     ];
 }

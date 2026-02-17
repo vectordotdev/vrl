@@ -20,9 +20,25 @@ impl Function for EncodeSnappy {
         "encode_snappy"
     }
 
+    fn usage(&self) -> &'static str {
+        "Encodes the `value` to Snappy."
+    }
+
+    fn category(&self) -> &'static str {
+        Category::Codec.as_ref()
+    }
+
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["`value` cannot be encoded into a Snappy string."]
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::BYTES
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[example! {
-            title: "demo string",
+            title: "Encode to Snappy",
             source: r#"encode_base64(encode_snappy!("The quick brown fox jumps over 13 lazy dogs."))"#,
             result: Ok("LKxUaGUgcXVpY2sgYnJvd24gZm94IGp1bXBzIG92ZXIgMTMgbGF6eSBkb2dzLg=="),
         }]
@@ -44,6 +60,8 @@ impl Function for EncodeSnappy {
             keyword: "value",
             kind: kind::BYTES,
             required: true,
+            description: "The string to encode.",
+            default: None,
         }]
     }
 }

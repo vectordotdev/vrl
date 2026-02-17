@@ -1,6 +1,7 @@
 use crate::compiler::prelude::*;
 use crate::value::value::simdutf_bytes_utf8_lossy;
 use chrono::Timelike;
+#[cfg(feature = "enable_system_functions")]
 use prost::Message;
 use prost_reflect::{DynamicMessage, FieldDescriptor, Kind, MapKey, MessageDescriptor};
 use std::collections::HashMap;
@@ -188,7 +189,7 @@ fn convert_value(
 /// * Only [`Value::Object`] is supported, since protobuf messages are collections of named fields
 /// * Fields present in the object with `null` values are explicitly cleared
 /// * Fields not present in the object retain their default protobuf values
-/// * Type conversion follows the mappings defined in [`convert_value_raw`].
+/// * Type conversion follows the mappings defined in `convert_value_raw`.
 pub fn encode_message(
     message_descriptor: &MessageDescriptor,
     value: Value,
@@ -219,6 +220,7 @@ pub fn encode_message(
     }
 }
 
+#[cfg(feature = "enable_system_functions")]
 pub(crate) fn encode_proto(descriptor: &MessageDescriptor, value: Value) -> Resolved {
     let message = encode_message(descriptor, value, &Options::default())?;
     let mut buf = Vec::new();

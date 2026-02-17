@@ -9,28 +9,49 @@ impl Function for IsInteger {
         "is_integer"
     }
 
+    fn usage(&self) -> &'static str {
+        "Check if the value`'s type is an integer."
+    }
+
+    fn category(&self) -> &'static str {
+        Category::Type.as_ref()
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::BOOLEAN
+    }
+
+    fn return_rules(&self) -> &'static [&'static str] {
+        &[
+            "Returns `true` if `value` is an integer.",
+            "Returns `false` if `value` is anything else.",
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",
             kind: kind::ANY,
             required: true,
+            description: "The value to check if it is an integer.",
+            default: None,
         }]
     }
 
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "string",
-                source: r#"is_integer("foobar")"#,
-                result: Ok("false"),
-            },
-            example! {
-                title: "integer",
-                source: "is_integer(1515)",
+                title: "Valid integer",
+                source: "is_integer(1)",
                 result: Ok("true"),
             },
             example! {
-                title: "null",
+                title: "Non-matching type",
+                source: r#"is_integer("a string")"#,
+                result: Ok("false"),
+            },
+            example! {
+                title: "Null",
                 source: "is_integer(null)",
                 result: Ok("false"),
             },

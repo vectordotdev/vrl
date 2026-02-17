@@ -1,15 +1,10 @@
 # result:
 #
-# error[E202]: syntax error
-#   ┌─ :1:1
+# error[E209]: invalid escape character: \x
+#   ┌─ :2:6
 #   │
-# 1 │ ╭
-# 2 │ │ "foo\xbar"
-# 3 │ │ "foo\\bar"
-# 4 │ │ "foo\/bar"
-# 5 │ │ "foo\bar"
-# 6 │ │
-#   │ ╰^ unexpected error: invalid escape character: \x
+# 2 │ "foo\xbar"
+#   │      ^ invalid escape character: x
 #   │
 #   = see language documentation at https://vrl.dev
 #   = try your code in the VRL REPL, learn more at https://vrl.dev/examples

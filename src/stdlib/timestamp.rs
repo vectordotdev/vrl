@@ -15,23 +15,48 @@ impl Function for Timestamp {
         "timestamp"
     }
 
+    fn usage(&self) -> &'static str {
+        "Returns `value` if it is a timestamp, otherwise returns an error. This enables the type checker to guarantee that the returned value is a timestamp and can be used in any function that expects a timestamp."
+    }
+
+    fn category(&self) -> &'static str {
+        Category::Type.as_ref()
+    }
+
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["`value` is not a timestamp."]
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::TIMESTAMP
+    }
+
+    fn return_rules(&self) -> &'static [&'static str] {
+        &[
+            "Returns the `value` if it's a timestamp.",
+            "Raises an error if not a timestamp.",
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",
             kind: kind::ANY,
             required: true,
+            description: "The value to check if it is a timestamp.",
+            default: None,
         }]
     }
 
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "valid",
-                source: "to_string(timestamp(t'2021-02-11 21:42:01Z'))",
-                result: Ok(r#""2021-02-11T21:42:01Z""#),
+                title: "Declare a timestamp type",
+                source: "timestamp(t'2020-10-10T16:00:00Z')",
+                result: Ok("t'2020-10-10T16:00:00Z'"),
             },
             example! {
-                title: "invalid",
+                title: "Invalid type",
                 source: "timestamp!(true)",
                 result: Err(
                     r#"function call error for "timestamp" at (0:16): expected timestamp, got boolean"#,

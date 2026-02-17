@@ -15,9 +15,25 @@ impl Function for Unique {
         "unique"
     }
 
+    fn usage(&self) -> &'static str {
+        indoc! {"
+            Returns the unique values for an array.
+
+            The first occurrence of each element is kept.
+        "}
+    }
+
+    fn category(&self) -> &'static str {
+        Category::Enumerate.as_ref()
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::ARRAY
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[example! {
-            title: "unique",
+            title: "Unique",
             source: r#"unique(["foo", "bar", "foo", "baz"])"#,
             result: Ok(r#"["foo", "bar", "baz"]"#),
         }]
@@ -39,6 +55,8 @@ impl Function for Unique {
             keyword: "value",
             kind: kind::ARRAY,
             required: true,
+            description: "The array to return unique elements from.",
+            default: None,
         }]
     }
 }

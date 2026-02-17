@@ -17,17 +17,40 @@ impl Function for IpAton {
         "ip_aton"
     }
 
+    fn usage(&self) -> &'static str {
+        indoc! {"
+            Converts IPv4 address in numbers-and-dots notation into network-order
+            bytes represented as an integer.
+
+            This behavior mimics [inet_aton](https://linux.die.net/man/3/inet_aton).
+        "}
+    }
+
+    fn category(&self) -> &'static str {
+        Category::Ip.as_ref()
+    }
+
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["`value` is not a valid IPv4 address."]
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::INTEGER
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",
             kind: kind::BYTES,
             required: true,
+            description: "The IP address to convert to binary.",
+            default: None,
         }]
     }
 
     fn examples(&self) -> &'static [Example] {
         &[example! {
-            title: "Example",
+            title: "IPv4 to integer",
             source: r#"ip_aton!("1.2.3.4")"#,
             result: Ok("16909060"),
         }]

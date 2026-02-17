@@ -134,17 +134,60 @@ impl Function for ParseInfluxDB {
         "parse an InfluxDB line protocol string into a list of vector-compatible metrics"
     }
 
+    fn usage(&self) -> &'static str {
+        "Parses the `value` as an [InfluxDB line protocol](https://docs.influxdata.com/influxdb/cloud/reference/syntax/line-protocol/) string, producing a list of Vector-compatible metrics."
+    }
+
+    fn category(&self) -> &'static str {
+        Category::Parse.as_ref()
+    }
+
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &[
+            "`value` is not a valid InfluxDB line protocol string.",
+            "field set contains a field value of type `string`.",
+            "field set contains a `NaN` field value.",
+        ]
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::ARRAY
+    }
+
+    fn notices(&self) -> &'static [&'static str] {
+        &[
+            indoc! {"
+                This function will return a log event with the shape of a Vector-compatible metric,
+                but not a metric event itself. You will likely want to pipe the output of this
+                function through a `log_to_metric` transform with the option `all_metrics` set to
+                `true` to convert the metric-shaped log events to metric events so _real_ metrics
+                are produced.
+            "},
+            indoc! {"
+                The only metric type that is produced is a `gauge`. Each metric name is prefixed
+                with the `measurement` field, followed by an underscore (`_`), and then the
+                `field key` field.
+            "},
+            indoc! {"
+                `string` is the only type that is not supported as a field value, due to limitations
+                of Vector's metric model.
+            "},
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",
             kind: kind::BYTES,
             required: true,
+            description: "The string representation of the InfluxDB line protocol to parse.",
+            default: None,
         }]
     }
 
     fn examples(&self) -> &'static [Example] {
         &[example! {
-            title: "parse influxdb line protocol",
+            title: "Parse InfluxDB line protocol",
             source: r#"parse_influxdb!("cpu,host=A,region=us-west usage_system=64i,usage_user=10u,temperature=50.5,on=true,sleep=false 1590488773254420000")"#,
             result: Ok(indoc! {r#"
                 [

@@ -1,5 +1,34 @@
 use crate::compiler::prelude::*;
 use std::collections::BTreeMap;
+use std::sync::LazyLock;
+
+static DEFAULT_DEEP: LazyLock<Value> = LazyLock::new(|| Value::Boolean(false));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "to",
+            kind: kind::OBJECT,
+            required: true,
+            description: "The object to merge into.",
+            default: None,
+        },
+        Parameter {
+            keyword: "from",
+            kind: kind::OBJECT,
+            required: true,
+            description: "The object to merge from.",
+            default: None,
+        },
+        Parameter {
+            keyword: "deep",
+            kind: kind::BOOLEAN,
+            required: false,
+            description: "A deep merge is performed if `true`, otherwise only top-level fields are merged.",
+            default: Some(&DEFAULT_DEEP),
+        },
+    ]
+});
 
 #[derive(Clone, Copy, Debug)]
 pub struct Merge;
@@ -9,32 +38,80 @@ impl Function for Merge {
         "merge"
     }
 
-    fn parameters(&self) -> &'static [Parameter] {
+    fn usage(&self) -> &'static str {
+        "Merges the `from` object into the `to` object."
+    }
+
+    fn category(&self) -> &'static str {
+        Category::Object.as_ref()
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::OBJECT
+    }
+
+    fn return_rules(&self) -> &'static [&'static str] {
         &[
-            Parameter {
-                keyword: "to",
-                kind: kind::OBJECT,
-                required: true,
-            },
-            Parameter {
-                keyword: "from",
-                kind: kind::OBJECT,
-                required: true,
-            },
-            Parameter {
-                keyword: "deep",
-                kind: kind::BOOLEAN,
-                required: false,
-            },
+            "The field from the `from` object is chosen if a key exists in both objects.",
+            "Objects are merged recursively if `deep` is specified, a key exists in both objects, and both of those
+fields are also objects.",
         ]
     }
 
+    fn parameters(&self) -> &'static [Parameter] {
+        PARAMETERS.as_slice()
+    }
+
     fn examples(&self) -> &'static [Example] {
-        &[example! {
-            title: "merge objects",
-            source: r#"merge({ "a": 1, "b": 2 }, { "b": 3, "c": 4 })"#,
-            result: Ok(r#"{ "a": 1, "b": 3, "c": 4 }"#),
-        }]
+        &[
+            example! {
+                title: "Object merge (shallow)",
+                source: indoc! {r#"
+                    merge(
+                        {
+                            "parent1": {
+                                "child1": 1,
+                                "child2": 2
+                            },
+                            "parent2": {
+                                "child3": 3
+                            }
+                        },
+                        {
+                            "parent1": {
+                                "child2": 4,
+                                "child5": 5
+                            }
+                        }
+                    )
+                "#},
+                result: Ok(r#"{ "parent1": { "child2": 4, "child5": 5 }, "parent2": { "child3": 3 } }"#),
+            },
+            example! {
+                title: "Object merge (deep)",
+                source: indoc! {r#"
+                    merge(
+                        {
+                            "parent1": {
+                                "child1": 1,
+                                "child2": 2
+                            },
+                            "parent2": {
+                                "child3": 3
+                            }
+                        },
+                        {
+                            "parent1": {
+                                "child2": 4,
+                                "child5": 5
+                            }
+                        },
+                        deep: true
+                    )
+                "#},
+                result: Ok(r#"{ "parent1": { "child1": 1, "child2": 4, "child5": 5 }, "parent2": { "child3": 3 } }"#),
+            },
+        ]
     }
 
     fn compile(
@@ -45,7 +122,7 @@ impl Function for Merge {
     ) -> Compiled {
         let to = arguments.required("to");
         let from = arguments.required("from");
-        let deep = arguments.optional("deep").unwrap_or_else(|| expr!(false));
+        let deep = arguments.optional("deep");
 
         Ok(MergeFn { to, from, deep }.as_expr())
     }
@@ -55,14 +132,17 @@ impl Function for Merge {
 pub(crate) struct MergeFn {
     to: Box<dyn Expression>,
     from: Box<dyn Expression>,
-    deep: Box<dyn Expression>,
+    deep: Option<Box<dyn Expression>>,
 }
 
 impl FunctionExpression for MergeFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let mut to_value = self.to.resolve(ctx)?.try_object()?;
         let from_value = self.from.resolve(ctx)?.try_object()?;
-        let deep = self.deep.resolve(ctx)?.try_boolean()?;
+        let deep = self
+            .deep
+            .map_resolve_with_default(ctx, || DEFAULT_DEEP.clone())?
+            .try_boolean()?;
 
         merge_maps(&mut to_value, &from_value, deep);
 

@@ -31,6 +31,15 @@ pub static XML_RE: LazyLock<Regex> = LazyLock::new(|| {
         .expect("trim regex failed")
 });
 
+pub static DEFAULT_TRIM: LazyLock<Value> = LazyLock::new(|| Value::Boolean(true));
+pub static DEFAULT_INCLUDE_ATTR: LazyLock<Value> = LazyLock::new(|| Value::Boolean(true));
+pub static DEFAULT_ATTR_PREFIX: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from("@")));
+pub static DEFAULT_TEXT_KEY: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from("text")));
+pub static DEFAULT_ALWAYS_USE_TEXT_KEY: LazyLock<Value> = LazyLock::new(|| Value::Boolean(false));
+pub static DEFAULT_PARSE_BOOL: LazyLock<Value> = LazyLock::new(|| Value::Boolean(true));
+pub static DEFAULT_PARSE_NULL: LazyLock<Value> = LazyLock::new(|| Value::Boolean(true));
+pub static DEFAULT_PARSE_NUMBER: LazyLock<Value> = LazyLock::new(|| Value::Boolean(true));
+
 /// Configuration to determine which XML options will be used when
 /// parsing a roxmltree `Node`.
 #[derive(Debug, Clone)]
@@ -70,7 +79,7 @@ pub struct ParseOptions {
 /// according to the given parsing options.
 ///
 /// # Parameters
-/// - `value`: A [`vrl::value::Value`] containing the XML string to be parsed.
+/// - `value`: A [`vrl::value::Value`](`crate::value::Value`) containing the XML string to be parsed.
 /// - `options`: A `ParseOptions` struct that defines parsing behaviors, including:
 ///   - `trim`: Whether to remove excess whitespace between XML elements (default: `true`).
 ///   - `include_attr`: Whether to include XML attributes in the output (default: `true`).
@@ -89,38 +98,44 @@ pub struct ParseOptions {
 /// - Returns an error if the input is not valid XML or if any step in processing fails.
 pub fn parse_xml(value: Value, options: ParseOptions) -> Resolved {
     let string = value.try_bytes_utf8_lossy()?;
-    let trim = match options.trim {
-        Some(value) => value.try_boolean()?,
-        None => true,
-    };
-    let include_attr = match options.include_attr {
-        Some(value) => value.try_boolean()?,
-        None => true,
-    };
-    let attr_prefix = match options.attr_prefix {
-        Some(value) => Cow::from(value.try_bytes_utf8_lossy()?.into_owned()),
-        None => Cow::from("@"),
-    };
-    let text_key = match options.text_key {
-        Some(value) => Cow::from(value.try_bytes_utf8_lossy()?.into_owned()),
-        None => Cow::from("text"),
-    };
-    let always_use_text_key = match options.always_use_text_key {
-        Some(value) => value.try_boolean()?,
-        None => false,
-    };
-    let parse_bool = match options.parse_bool {
-        Some(value) => value.try_boolean()?,
-        None => true,
-    };
-    let parse_null = match options.parse_null {
-        Some(value) => value.try_boolean()?,
-        None => true,
-    };
-    let parse_number = match options.parse_number {
-        Some(value) => value.try_boolean()?,
-        None => true,
-    };
+    let trim = options
+        .trim
+        .unwrap_or_else(|| DEFAULT_TRIM.clone())
+        .try_boolean()?;
+    let include_attr = options
+        .include_attr
+        .unwrap_or_else(|| DEFAULT_INCLUDE_ATTR.clone())
+        .try_boolean()?;
+    let attr_prefix = Cow::from(
+        options
+            .attr_prefix
+            .unwrap_or_else(|| DEFAULT_ATTR_PREFIX.clone())
+            .try_bytes_utf8_lossy()?
+            .into_owned(),
+    );
+    let text_key = Cow::from(
+        options
+            .text_key
+            .unwrap_or_else(|| DEFAULT_TEXT_KEY.clone())
+            .try_bytes_utf8_lossy()?
+            .into_owned(),
+    );
+    let always_use_text_key = options
+        .always_use_text_key
+        .unwrap_or_else(|| DEFAULT_ALWAYS_USE_TEXT_KEY.clone())
+        .try_boolean()?;
+    let parse_bool = options
+        .parse_bool
+        .unwrap_or_else(|| DEFAULT_PARSE_BOOL.clone())
+        .try_boolean()?;
+    let parse_null = options
+        .parse_null
+        .unwrap_or_else(|| DEFAULT_PARSE_NULL.clone())
+        .try_boolean()?;
+    let parse_number = options
+        .parse_number
+        .unwrap_or_else(|| DEFAULT_PARSE_NUMBER.clone())
+        .try_boolean()?;
     let config = ParseXmlConfig {
         include_attr,
         attr_prefix,

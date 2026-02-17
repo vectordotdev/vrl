@@ -39,17 +39,51 @@ impl Function for Zip {
         "zip"
     }
 
+    fn usage(&self) -> &'static str {
+        indoc! {"
+            Iterate over several arrays in parallel, producing a new array containing arrays of items from each source.
+            The resulting array will be as long as the shortest input array, with all the remaining elements dropped.
+            This function is modeled from the `zip` function [in Python](https://docs.python.org/3/library/functions.html#zip),
+            but similar methods can be found in [Ruby](https://docs.ruby-lang.org/en/master/Array.html#method-i-zip)
+            and [Rust](https://doc.rust-lang.org/stable/std/iter/trait.Iterator.html#method.zip).
+
+            If a single parameter is given, it must contain an array of all the input arrays.
+        "}
+    }
+
+    fn category(&self) -> &'static str {
+        Category::Array.as_ref()
+    }
+
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["`array_0` and `array_1` must be arrays."]
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::ARRAY
+    }
+
+    fn return_rules(&self) -> &'static [&'static str] {
+        &[
+            "`zip` is considered fallible if any of the parameters is not an array, or if only the first parameter is present and it is not an array of arrays.",
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {
                 keyword: "array_0",
                 kind: kind::ARRAY,
                 required: true,
+                description: "The first array of elements, or the array of input arrays if no other parameter is present.",
+                default: None,
             },
             Parameter {
                 keyword: "array_1",
                 kind: kind::ARRAY,
                 required: false,
+                description: "The second array of elements. If not present, the first parameter contains all the arrays.",
+                default: None,
             },
         ]
     }
@@ -57,12 +91,22 @@ impl Function for Zip {
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "merge an array of three arrays into an array of 3-tuples",
+                title: "Merge two arrays",
+                source: "zip([1, 2, 3], [4, 5, 6, 7])",
+                result: Ok("[[1, 4], [2, 5], [3, 6]]"),
+            },
+            example! {
+                title: "Merge three arrays",
+                source: r"zip([[1, 2], [3, 4], [5, 6]])",
+                result: Ok(r"[[1, 3, 5], [2, 4, 6]]"),
+            },
+            example! {
+                title: "Merge an array of three arrays into an array of 3-tuples",
                 source: r#"zip([["a", "b", "c"], [1, null, true], [4, 5, 6]])"#,
                 result: Ok(r#"[["a", 1, 4], ["b", null, 5], ["c", true, 6]]"#),
             },
             example! {
-                title: "merge two array parameters",
+                title: "Merge two array parameters",
                 source: "zip([1, 2, 3, 4], [5, 6, 7])",
                 result: Ok("[[1, 5], [2, 6], [3, 7]]"),
             },

@@ -15,27 +15,60 @@ impl Function for Boolean {
         "bool"
     }
 
+    fn usage(&self) -> &'static str {
+        "The value to check if it is a Boolean."
+    }
+
+    fn category(&self) -> &'static str {
+        Category::Type.as_ref()
+    }
+
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["`value` is not a Boolean."]
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::BOOLEAN
+    }
+
+    fn return_rules(&self) -> &'static [&'static str] {
+        &[
+            "Returns `value` if it's a Boolean.",
+            "Raises an error if not a Boolean.",
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",
             kind: kind::ANY,
             required: true,
+            description: "The value to check if it is a Boolean.",
+            default: None,
         }]
     }
 
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "valid",
+                title: "Valid Boolean",
                 source: "bool(false)",
                 result: Ok("false"),
             },
             example! {
-                title: "invalid",
+                title: "Invalid Boolean",
                 source: "bool!(42)",
                 result: Err(
                     r#"function call error for "bool" at (0:9): expected boolean, got integer"#,
                 ),
+            },
+            example! {
+                title: "Valid Boolean from path",
+                source: indoc! {r#"
+                    . = { "value": true }
+                    bool(.value)
+                "#},
+                result: Ok("true"),
             },
         ]
     }

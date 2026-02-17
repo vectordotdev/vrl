@@ -32,7 +32,6 @@ impl ValueRegex {
     }
 
     /// Returns the inner Regex value
-    #[allow(clippy::missing_const_for_fn)] // false positive
     #[must_use]
     pub fn into_inner(self) -> Arc<Regex> {
         self.0

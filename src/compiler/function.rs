@@ -31,8 +31,44 @@ pub trait Function: Send + Sync + fmt::Debug {
     }
 
     /// A more elaborate multi-paragraph description on how to use the function.
-    fn usage(&self) -> &'static str {
-        "TODO"
+    fn usage(&self) -> &'static str;
+
+    /// The category this function belongs to.
+    ///
+    /// This categorizes functions for documentation and tooling purposes.
+    fn category(&self) -> &'static str;
+
+    /// Human-readable internal failure reasons for the function.
+    ///
+    /// This returns an empty slice by default, indicating no internal failure
+    /// reasons are documented for a function.
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &[]
+    }
+
+    /// The return type kind(s) this function can return.
+    fn return_kind(&self) -> u16;
+
+    /// Human-readable rules describing the return value of the function.
+    ///
+    /// This returns an empty slice by default, indicating no return rules
+    /// are documented for this function.
+    fn return_rules(&self) -> &'static [&'static str] {
+        &[]
+    }
+
+    /// Important notices about the function's behavior or usage.
+    ///
+    /// This returns an empty slice by default, indicating no notices
+    /// are documented for this function.
+    fn notices(&self) -> &'static [&'static str] {
+        &[]
+    }
+
+    /// Whether a function is pure or not. When a function is pure, it is
+    /// idempotent and has no side-effects. Otherwise, it is impure.
+    fn pure(&self) -> bool {
+        true
     }
 
     /// One or more examples demonstrating usage of the function in VRL source
@@ -163,6 +199,19 @@ pub struct Parameter {
     /// If it isn't, the function can be called without errors, even if the
     /// argument matching this parameter is missing.
     pub required: bool,
+
+    /// A description of what this parameter does.
+    pub description: &'static str,
+
+    /// The default value for this parameter, if any.
+    ///
+    /// Notes on creating a `Option<&'static Value>`:
+    ///
+    /// * If the inner [`Value`] is copiable, such as [`Value::Integer`], you likely won't have issues.
+    /// * If the value can contain owned data, such as [`Value::Bytes`], use [`LazyLock`](std::sync::LazyLock)
+    ///   to create static [`Value`] instances. If you are already in a [`LazyLock`](std::sync::LazyLock) block,
+    ///   you'll have to create another [`LazyLock`](std::sync::LazyLock) in order to make both static.
+    pub default: Option<&'static Value>,
 }
 
 impl Parameter {
@@ -652,6 +701,8 @@ mod tests {
                 keyword: "",
                 kind: parameter_kind,
                 required: false,
+                description: "",
+                default: None,
             };
 
             assert_eq!(parameter.kind(), kind, "{title}");

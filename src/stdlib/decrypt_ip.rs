@@ -57,22 +57,64 @@ impl Function for DecryptIp {
         "decrypt_ip"
     }
 
+    fn usage(&self) -> &'static str {
+        indoc! {"
+            Decrypts an IP address that was previously encrypted, restoring the original IP address.
+
+            Supported Modes:
+
+            * AES128 - Decrypts an IP address that was scrambled using AES-128 encryption. Can transform between IPv4 and IPv6.
+            * PFX (Prefix-preserving) - Decrypts an IP address that was encrypted with prefix-preserving mode, where network hierarchy was maintained.
+        "}
+    }
+
+    fn category(&self) -> &'static str {
+        Category::Ip.as_ref()
+    }
+
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &[
+            "`ip` is not a valid IP address.",
+            "`mode` is not a supported mode (must be `aes128` or `pfx`).",
+            "`key` length does not match the requirements for the specified mode (16 bytes for `aes128`, 32 bytes for `pfx`).",
+        ]
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::BYTES
+    }
+
+    fn notices(&self) -> &'static [&'static str] {
+        &[indoc! {"
+            The `aes128` mode implements the `ipcrypt-deterministic` algorithm from the IPCrypt
+            specification, while the `pfx` mode implements the `ipcrypt-pfx` algorithm. This
+            function reverses the encryption performed by `encrypt_ip` - the same key and algorithm
+            that were used for encryption must be used for decryption.
+        "}]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {
                 keyword: "ip",
                 kind: kind::BYTES,
                 required: true,
+                description: "The encrypted IP address to decrypt (v4 or v6).",
+                default: None,
             },
             Parameter {
                 keyword: "key",
                 kind: kind::BYTES,
                 required: true,
+                description: "The decryption key in raw bytes (not encoded). Must be the same key that was used for encryption. For AES128 mode, the key must be exactly 16 bytes. For PFX mode, the key must be exactly 32 bytes.",
+                default: None,
             },
             Parameter {
                 keyword: "mode",
                 kind: kind::BYTES,
                 required: true,
+                description: "The decryption mode to use. Must match the mode used for encryption: either `aes128` or `pfx`.",
+                default: None,
             },
         ]
     }
@@ -80,14 +122,29 @@ impl Function for DecryptIp {
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "Decrypt IPv4 with AES128 mode",
+                title: "Decrypt IPv4 address with AES128",
                 source: r#"decrypt_ip!("72b9:a747:f2e9:72af:76ca:5866:6dcf:c3b0", "sixteen byte key", "aes128")"#,
                 result: Ok("192.168.1.1"),
             },
             example! {
-                title: "Decrypt IPv6 with PFX mode",
+                title: "Decrypt IPv6 address with AES128",
+                source: r#"decrypt_ip!("c0e6:eb35:6887:f554:4c65:8ace:17ca:6c6a", "sixteen byte key", "aes128")"#,
+                result: Ok("2001:db8::1"),
+            },
+            example! {
+                title: "Decrypt IPv4 address with prefix-preserving mode",
+                source: r#"decrypt_ip!("33.245.248.61", "thirty-two bytes key for pfx use", "pfx")"#,
+                result: Ok("192.168.1.1"),
+            },
+            example! {
+                title: "Decrypt IPv6 address with prefix-preserving mode",
                 source: r#"decrypt_ip!("88bd:d2bf:8865:8c4d:84b:44f6:6077:72c9", "thirty-two bytes key for ipv6pfx", "pfx")"#,
                 result: Ok("2001:db8::1"),
+            },
+            example! {
+                title: "Round-trip encryption and decryption",
+                source: r#"decrypt_ip!(encrypt_ip!("192.168.1.100", "sixteen byte key", "aes128"), "sixteen byte key", "aes128")"#,
+                result: Ok("192.168.1.100"),
             },
         ]
     }

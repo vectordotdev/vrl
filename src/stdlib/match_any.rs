@@ -14,17 +14,33 @@ impl Function for MatchAny {
         "match_any"
     }
 
+    fn usage(&self) -> &'static str {
+        "Determines whether `value` matches any of the given `patterns`. All patterns are checked in a single pass over the target string, giving this function a potential performance advantage over the multiple calls in the `match` function."
+    }
+
+    fn category(&self) -> &'static str {
+        Category::String.as_ref()
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::BOOLEAN
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "The value to match.",
+                default: None,
             },
             Parameter {
                 keyword: "patterns",
                 kind: kind::ARRAY,
                 required: true,
+                description: "The array of regular expression patterns to match against.",
+                default: None,
             },
         ]
     }
@@ -32,12 +48,12 @@ impl Function for MatchAny {
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "match",
-                source: r#"match_any("foo bar baz", patterns: [r'foo', r'123'])"#,
+                title: "Regex match on a string",
+                source: r#"match_any("I'm a little teapot", [r'frying pan', r'teapot'])"#,
                 result: Ok("true"),
             },
             example! {
-                title: "no_match",
+                title: "No match",
                 source: r#"match_any("My name is John Doe", patterns: [r'\d+', r'Jane'])"#,
                 result: Ok("false"),
             },

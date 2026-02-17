@@ -1,5 +1,35 @@
 use crate::compiler::prelude::*;
 use crate::path::{OwnedSegment, OwnedValuePath};
+use std::sync::LazyLock;
+
+static DEFAULT_COMPACT: LazyLock<Value> = LazyLock::new(|| Value::Boolean(false));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::OBJECT | kind::ARRAY,
+            required: true,
+            description: "The object or array to remove data from.",
+            default: None,
+        },
+        Parameter {
+            keyword: "path",
+            kind: kind::ARRAY,
+            required: true,
+            description: "An array of path segments to remove the value from.",
+            default: None,
+        },
+        Parameter {
+            keyword: "compact",
+            kind: kind::BOOLEAN,
+            required: false,
+            description: "After deletion, if `compact` is `true`, any empty objects or
+arrays left are also removed.",
+            default: Some(&DEFAULT_COMPACT),
+        },
+    ]
+});
 
 fn remove(path: Value, compact: Value, mut value: Value) -> Resolved {
     let path = match path {
@@ -48,65 +78,74 @@ impl Function for Remove {
         "remove"
     }
 
+    fn usage(&self) -> &'static str {
+        indoc! {"
+            Dynamically remove the value for a given path.
+
+            If you know the path you want to remove, use
+            the `del` function and static paths such as `del(.foo.bar[1])`
+            to remove the value at that path. The `del` function returns the
+            deleted value, and is more performant than `remove`.
+            However, if you do not know the path names, use the dynamic
+            `remove` function to remove the value at the provided path.
+        "}
+    }
+
+    fn category(&self) -> &'static str {
+        Category::Path.as_ref()
+    }
+
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["The `path` segment must be a string or an integer."]
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::OBJECT | kind::ARRAY
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::OBJECT | kind::ARRAY,
-                required: true,
-            },
-            Parameter {
-                keyword: "path",
-                kind: kind::ARRAY,
-                required: true,
-            },
-            Parameter {
-                keyword: "compact",
-                kind: kind::BOOLEAN,
-                required: false,
-            },
-        ]
+        PARAMETERS.as_slice()
     }
 
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "remove existing field",
-                source: r#"remove!(value: {"foo": "bar"}, path: ["foo"])"#,
+                title: "Single-segment top-level field",
+                source: r#"remove!(value: { "foo": "bar" }, path: ["foo"])"#,
                 result: Ok("{}"),
             },
             example! {
-                title: "remove unknown field",
+                title: "Remove unknown field",
                 source: r#"remove!(value: {"foo": "bar"}, path: ["baz"])"#,
                 result: Ok(r#"{ "foo": "bar" }"#),
             },
             example! {
-                title: "nested path",
-                source: r#"remove!(value: {"foo": { "bar": true }}, path: ["foo", "bar"])"#,
+                title: "Multi-segment nested field",
+                source: r#"remove!(value: { "foo": { "bar": "baz" } }, path: ["foo", "bar"])"#,
                 result: Ok(r#"{ "foo": {} }"#),
             },
             example! {
-                title: "compact object",
+                title: "Array indexing",
+                source: r#"remove!(value: ["foo", "bar", "baz"], path: [-2])"#,
+                result: Ok(r#"["foo", "baz"]"#),
+            },
+            example! {
+                title: "Compaction",
+                source: r#"remove!(value: { "foo": { "bar": [42], "baz": true } }, path: ["foo", "bar", 0], compact: true)"#,
+                result: Ok(r#"{ "foo": { "baz": true } }"#),
+            },
+            example! {
+                title: "Compact object",
                 source: r#"remove!(value: {"foo": { "bar": true }}, path: ["foo", "bar"], compact: true)"#,
                 result: Ok("{}"),
             },
             example! {
-                title: "indexing",
-                source: "remove!(value: [92, 42], path: [0])",
-                result: Ok("[42]"),
-            },
-            example! {
-                title: "nested indexing",
-                source: r#"remove!(value: {"foo": { "bar": [92, 42] }}, path: ["foo", "bar", 1])"#,
-                result: Ok(r#"{ "foo": { "bar": [92] } }"#),
-            },
-            example! {
-                title: "compact array",
+                title: "Compact array",
                 source: r#"remove!(value: {"foo": [42], "bar": true }, path: ["foo", 0], compact: true)"#,
                 result: Ok(r#"{ "bar": true }"#),
             },
             example! {
-                title: "external target",
+                title: "External target",
                 source: indoc! {r#"
                     . = { "foo": true }
                     remove!(value: ., path: ["foo"])
@@ -114,7 +153,7 @@ impl Function for Remove {
                 result: Ok("{}"),
             },
             example! {
-                title: "variable",
+                title: "Variable",
                 source: indoc! {r#"
                     var = { "foo": true }
                     remove!(value: var, path: ["foo"])
@@ -122,17 +161,17 @@ impl Function for Remove {
                 result: Ok("{}"),
             },
             example! {
-                title: "missing index",
+                title: "Missing index",
                 source: r#"remove!(value: {"foo": { "bar": [92, 42] }}, path: ["foo", "bar", 1, -1])"#,
                 result: Ok(r#"{ "foo": { "bar": [92, 42] } }"#),
             },
             example! {
-                title: "invalid indexing",
+                title: "Invalid indexing",
                 source: r#"remove!(value: [42], path: ["foo"])"#,
                 result: Ok("[42]"),
             },
             example! {
-                title: "invalid segment type",
+                title: "Invalid segment type",
                 source: r#"remove!(value: {"foo": { "bar": [92, 42] }}, path: ["foo", true])"#,
                 result: Err(
                     r#"function call error for "remove" at (0:65): path segment must be either string or integer, not boolean"#,
@@ -149,7 +188,7 @@ impl Function for Remove {
     ) -> Compiled {
         let value = arguments.required("value");
         let path = arguments.required("path");
-        let compact = arguments.optional("compact").unwrap_or(expr!(false));
+        let compact = arguments.optional("compact");
 
         Ok(RemoveFn {
             value,
@@ -164,13 +203,15 @@ impl Function for Remove {
 pub(crate) struct RemoveFn {
     value: Box<dyn Expression>,
     path: Box<dyn Expression>,
-    compact: Box<dyn Expression>,
+    compact: Option<Box<dyn Expression>>,
 }
 
 impl FunctionExpression for RemoveFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let path = self.path.resolve(ctx)?;
-        let compact = self.compact.resolve(ctx)?;
+        let compact = self
+            .compact
+            .map_resolve_with_default(ctx, || DEFAULT_COMPACT.clone())?;
         let value = self.value.resolve(ctx)?;
 
         remove(path, compact, value)

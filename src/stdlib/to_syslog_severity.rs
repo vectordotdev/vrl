@@ -25,20 +25,44 @@ impl Function for ToSyslogSeverity {
         "to_syslog_severity"
     }
 
+    fn usage(&self) -> &'static str {
+        "Converts the `value`, a Syslog [log level keyword](https://en.wikipedia.org/wiki/Syslog#Severity_level), into a Syslog integer severity level (`0` to `7`)."
+    }
+
+    fn category(&self) -> &'static str {
+        Category::Convert.as_ref()
+    }
+
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["`value` is not a valid Syslog level keyword."]
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::INTEGER
+    }
+
+    fn return_rules(&self) -> &'static [&'static str] {
+        &[
+            "The now-deprecated keywords `panic`, `error`, and `warn` are converted to `0`, `3`, and `4` respectively.",
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",
             kind: kind::BYTES,
             required: true,
+            description: "The Syslog level keyword to convert.",
+            default: None,
         }]
     }
 
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "valid",
-                source: "to_syslog_severity!(s'crit')",
-                result: Ok("2"),
+                title: "Coerce to Syslog severity",
+                source: r#"to_syslog_severity!("alert")"#,
+                result: Ok("1"),
             },
             example! {
                 title: "invalid",

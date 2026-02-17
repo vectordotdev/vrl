@@ -1,6 +1,28 @@
 use crate::compiler::prelude::*;
 use lz4_flex::block::{compress, compress_prepend_size};
 use nom::AsBytes;
+use std::sync::LazyLock;
+
+static DEFAULT_PREPEND_SIZE: LazyLock<Value> = LazyLock::new(|| Value::Boolean(true));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::BYTES,
+            required: true,
+            description: "The string to encode.",
+            default: None,
+        },
+        Parameter {
+            keyword: "prepend_size",
+            kind: kind::BOOLEAN,
+            required: false,
+            description: "Whether to prepend the original size to the compressed data.",
+            default: Some(&DEFAULT_PREPEND_SIZE),
+        },
+    ]
+});
 
 fn encode_lz4(value: Value, prepend_size: bool) -> Resolved {
     let value = value.try_bytes()?;
@@ -20,9 +42,25 @@ impl Function for EncodeLz4 {
         "encode_lz4"
     }
 
+    fn usage(&self) -> &'static str {
+        indoc! {"
+            Decodes the `value` (an lz4 string) into its original string. `buf_size` is the size of the buffer to decode into, this must be equal to or larger than the uncompressed size.
+            If `prepended_size` is set to `true`, it expects the original uncompressed size to be prepended to the compressed data.
+            `prepended_size` is useful for some implementations of lz4 that require the original size to be known before decoding.
+        "}
+    }
+
+    fn category(&self) -> &'static str {
+        Category::Codec.as_ref()
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::BYTES
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[example! {
-            title: "demo string",
+            title: "Encode to Lz4",
             source: r#"encode_base64(encode_lz4!("The quick brown fox jumps over 13 lazy dogs.", true))"#,
             result: Ok("LAAAAPAdVGhlIHF1aWNrIGJyb3duIGZveCBqdW1wcyBvdmVyIDEzIGxhenkgZG9ncy4="),
         }]
@@ -35,9 +73,7 @@ impl Function for EncodeLz4 {
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
-        let prepend_size = arguments
-            .optional("prepend_size")
-            .unwrap_or_else(|| expr!(true));
+        let prepend_size = arguments.optional("prepend_size");
 
         Ok(EncodeLz4Fn {
             value,
@@ -47,31 +83,23 @@ impl Function for EncodeLz4 {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::BYTES,
-                required: true,
-            },
-            Parameter {
-                keyword: "prepend_size",
-                kind: kind::BOOLEAN,
-                required: false,
-            },
-        ]
+        PARAMETERS.as_slice()
     }
 }
 
 #[derive(Clone, Debug)]
 struct EncodeLz4Fn {
     value: Box<dyn Expression>,
-    prepend_size: Box<dyn Expression>,
+    prepend_size: Option<Box<dyn Expression>>,
 }
 
 impl FunctionExpression for EncodeLz4Fn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let value = self.value.resolve(ctx)?;
-        let prepend_size = self.prepend_size.resolve(ctx)?.try_boolean()?;
+        let prepend_size = self
+            .prepend_size
+            .map_resolve_with_default(ctx, || DEFAULT_PREPEND_SIZE.clone())?
+            .try_boolean()?;
 
         encode_lz4(value, prepend_size)
     }

@@ -13,28 +13,46 @@ impl Function for ParseFloat {
         "parse_float"
     }
 
+    fn usage(&self) -> &'static str {
+        "Parses the string `value` representing a floating point number in base 10 to a float."
+    }
+
+    fn category(&self) -> &'static str {
+        Category::String.as_ref()
+    }
+
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["`value` is not a string."]
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::FLOAT
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",
             kind: kind::BYTES,
             required: true,
+            description: "The string to parse.",
+            default: None,
         }]
     }
 
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "integer",
+                title: "Parse negative integer",
                 source: r#"parse_float!("-42")"#,
                 result: Ok("-42.0"),
             },
             example! {
-                title: "float",
+                title: "Parse float",
                 source: r#"parse_float!("42.38")"#,
                 result: Ok("42.38"),
             },
             example! {
-                title: "scientific notation",
+                title: "Scientific notation",
                 source: r#"parse_float!("2.5e3")"#,
                 result: Ok("2500.0"),
             },

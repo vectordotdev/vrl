@@ -18,11 +18,29 @@ impl Function for BaseName {
         "basename"
     }
 
+    fn usage(&self) -> &'static str {
+        "Returns the filename component of the given `path`. This is similar to the Unix `basename` command. If the path ends in a directory separator, the function returns the name of the directory."
+    }
+
+    fn category(&self) -> &'static str {
+        Category::String.as_ref()
+    }
+
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["`value` is not a valid string."]
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::BYTES | kind::NULL
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",
             kind: kind::BYTES,
             required: true,
+            description: "The path from which to extract the basename.",
+            default: None,
         }]
     }
 
@@ -75,15 +93,16 @@ impl FunctionExpression for BaseNameFn {
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {
-        TypeDef::bytes().fallible()
+        TypeDef::bytes().or_null().fallible()
     }
 }
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     fn tdef() -> TypeDef {
-        TypeDef::bytes().fallible()
+        BaseNameFn { value: expr!("") }.type_def(&state::TypeState::default())
     }
 
     test_function![

@@ -1,4 +1,41 @@
 use crate::compiler::prelude::*;
+use std::sync::LazyLock;
+
+static DEFAULT_REPLACE_SINGLE: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from("")));
+static DEFAULT_REPLACE_REPEATED: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from("")));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::BYTES,
+            required: true,
+            description: "The original string.",
+            default: None,
+        },
+        Parameter {
+            keyword: "permitted_characters",
+            kind: kind::REGEX,
+            required: true,
+            description: "Keep all matches of this pattern.",
+            default: None,
+        },
+        Parameter {
+            keyword: "replace_single",
+            kind: kind::BYTES,
+            required: false,
+            description: "The string to use to replace single rejected characters.",
+            default: Some(&DEFAULT_REPLACE_SINGLE),
+        },
+        Parameter {
+            keyword: "replace_repeated",
+            kind: kind::BYTES,
+            required: false,
+            description: "The string to use to replace multiple sequential instances of rejected characters.",
+            default: Some(&DEFAULT_REPLACE_REPEATED),
+        },
+    ]
+});
 
 fn sieve(
     value: &Value,
@@ -41,37 +78,45 @@ impl Function for Sieve {
         "sieve"
     }
 
+    fn usage(&self) -> &'static str {
+        indoc! {"
+            Keeps only matches of `pattern` in `value`.
+
+            This can be used to define patterns that are allowed in the string and
+            remove everything else.
+        "}
+    }
+
+    fn category(&self) -> &'static str {
+        Category::String.as_ref()
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::BYTES
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::BYTES,
-                required: true,
-            },
-            Parameter {
-                keyword: "permitted_characters",
-                kind: kind::REGEX,
-                required: true,
-            },
-            Parameter {
-                keyword: "replace_single",
-                kind: kind::BYTES,
-                required: false,
-            },
-            Parameter {
-                keyword: "replace_repeated",
-                kind: kind::BYTES,
-                required: false,
-            },
-        ]
+        PARAMETERS.as_slice()
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[example! {
-            title: "sieve simple",
-            source: r#"sieve("vector.dev", permitted_characters: r'[a-z]')"#,
-            result: Ok("vectordev"),
-        }]
+        &[
+            example! {
+                title: "Keep only lowercase letters",
+                source: r#"sieve("vector.dev/lowerUPPER", permitted_characters: r'[a-z]')"#,
+                result: Ok("vectordevlower"),
+            },
+            example! {
+                title: "Sieve with regex",
+                source: r#"sieve("test123%456.فوائد.net.", r'[a-z0-9.]')"#,
+                result: Ok("test123456..net."),
+            },
+            example! {
+                title: "Custom replacements",
+                source: r#"sieve("test123%456.فوائد.net.", r'[a-z.0-9]', replace_single: "X", replace_repeated: "<REMOVED>")"#,
+                result: Ok("test123X456.<REMOVED>.net."),
+            },
+        ]
     }
 
     fn compile(
@@ -82,12 +127,8 @@ impl Function for Sieve {
     ) -> Compiled {
         let value = arguments.required("value");
         let permitted_characters = arguments.required("permitted_characters");
-        let replace_single = arguments
-            .optional("replace_single")
-            .unwrap_or_else(|| expr!(""));
-        let replace_repeated = arguments
-            .optional("replace_repeated")
-            .unwrap_or_else(|| expr!(""));
+        let replace_single = arguments.optional("replace_single");
+        let replace_repeated = arguments.optional("replace_repeated");
 
         Ok(SieveFn {
             value,
@@ -103,16 +144,20 @@ impl Function for Sieve {
 struct SieveFn {
     value: Box<dyn Expression>,
     permitted_characters: Box<dyn Expression>,
-    replace_single: Box<dyn Expression>,
-    replace_repeated: Box<dyn Expression>,
+    replace_single: Option<Box<dyn Expression>>,
+    replace_repeated: Option<Box<dyn Expression>>,
 }
 
 impl FunctionExpression for SieveFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let value = self.value.resolve(ctx)?;
         let permitted_characters = self.permitted_characters.resolve(ctx)?;
-        let replace_single = self.replace_single.resolve(ctx)?;
-        let replace_repeated = self.replace_repeated.resolve(ctx)?;
+        let replace_single = self
+            .replace_single
+            .map_resolve_with_default(ctx, || DEFAULT_REPLACE_SINGLE.clone())?;
+        let replace_repeated = self
+            .replace_repeated
+            .map_resolve_with_default(ctx, || DEFAULT_REPLACE_REPEATED.clone())?;
 
         sieve(
             &value,

@@ -1,4 +1,33 @@
 use crate::compiler::prelude::*;
+use std::sync::LazyLock;
+
+static DEFAULT_CASE_SENSITIVE: LazyLock<Value> = LazyLock::new(|| Value::Boolean(true));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::BYTES,
+            required: true,
+            description: "The string to search.",
+            default: None,
+        },
+        Parameter {
+            keyword: "substring",
+            kind: kind::BYTES,
+            required: true,
+            description: "The substring that the `value` must start with.",
+            default: None,
+        },
+        Parameter {
+            keyword: "case_sensitive",
+            kind: kind::BOOLEAN,
+            required: false,
+            description: "Whether the match should be case sensitive.",
+            default: Some(&DEFAULT_CASE_SENSITIVE),
+        },
+    ]
+});
 
 struct Chars<'a> {
     bytes: &'a Bytes,
@@ -72,41 +101,37 @@ impl Function for StartsWith {
         "starts_with"
     }
 
+    fn usage(&self) -> &'static str {
+        "Determines whether `value` begins with `substring`."
+    }
+
+    fn category(&self) -> &'static str {
+        Category::String.as_ref()
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::BOOLEAN
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::BYTES,
-                required: true,
-            },
-            Parameter {
-                keyword: "substring",
-                kind: kind::BYTES,
-                required: true,
-            },
-            Parameter {
-                keyword: "case_sensitive",
-                kind: kind::BOOLEAN,
-                required: false,
-            },
-        ]
+        PARAMETERS.as_slice()
     }
 
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "case sensitive",
-                source: r#"starts_with("foobar", "F")"#,
-                result: Ok("false"),
-            },
-            example! {
-                title: "case insensitive",
-                source: r#"starts_with("foobar", "F", false)"#,
+                title: "String starts with (case sensitive)",
+                source: r#"starts_with("The Needle In The Haystack", "The Needle")"#,
                 result: Ok("true"),
             },
             example! {
-                title: "mismatch",
-                source: r#"starts_with("foobar", "bar")"#,
+                title: "String starts with (case insensitive)",
+                source: r#"starts_with("The Needle In The Haystack", "the needle", case_sensitive: false)"#,
+                result: Ok("true"),
+            },
+            example! {
+                title: "String starts with (case sensitive failure)",
+                source: r#"starts_with("foobar", "F")"#,
                 result: Ok("false"),
             },
         ]
@@ -120,7 +145,7 @@ impl Function for StartsWith {
     ) -> Compiled {
         let value = arguments.required("value");
         let substring = arguments.required("substring");
-        let case_sensitive = arguments.optional("case_sensitive").unwrap_or(expr!(true));
+        let case_sensitive = arguments.optional("case_sensitive");
 
         Ok(StartsWithFn {
             value,
@@ -135,12 +160,16 @@ impl Function for StartsWith {
 struct StartsWithFn {
     value: Box<dyn Expression>,
     substring: Box<dyn Expression>,
-    case_sensitive: Box<dyn Expression>,
+    case_sensitive: Option<Box<dyn Expression>>,
 }
 
 impl FunctionExpression for StartsWithFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let case_sensitive = if self.case_sensitive.resolve(ctx)?.try_boolean()? {
+        let case_sensitive = self
+            .case_sensitive
+            .map_resolve_with_default(ctx, || DEFAULT_CASE_SENSITIVE.clone())?
+            .try_boolean()?;
+        let case_sensitive = if case_sensitive {
             Case::Sensitive
         } else {
             Case::Insensitive

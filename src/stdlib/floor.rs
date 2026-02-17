@@ -1,12 +1,32 @@
 use crate::compiler::prelude::*;
 
 use super::util::round_to_precision;
+use std::sync::LazyLock;
 
-fn floor(precision: Option<Value>, value: Value) -> Resolved {
-    let precision = match precision {
-        Some(value) => value.try_integer()?,
-        None => 0,
-    };
+static DEFAULT_PRECISION: LazyLock<Value> = LazyLock::new(|| Value::Integer(0));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::ANY,
+            required: true,
+            description: "The number to round down.",
+            default: None,
+        },
+        Parameter {
+            keyword: "precision",
+            kind: kind::ANY,
+            required: false,
+            description: "The number of decimal places to round to.",
+            default: Some(&DEFAULT_PRECISION),
+        },
+    ]
+});
+
+fn floor(precision: Value, value: Value) -> Resolved {
+    let precision = precision.try_integer()?;
+
     match value {
         Value::Float(f) => Ok(Value::from_f64_or_zero(round_to_precision(
             *f,
@@ -30,19 +50,26 @@ impl Function for Floor {
         "floor"
     }
 
-    fn parameters(&self) -> &'static [Parameter] {
+    fn usage(&self) -> &'static str {
+        "Rounds the `value` down to the specified `precision`."
+    }
+
+    fn category(&self) -> &'static str {
+        Category::Number.as_ref()
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::INTEGER | kind::FLOAT
+    }
+
+    fn return_rules(&self) -> &'static [&'static str] {
         &[
-            Parameter {
-                keyword: "value",
-                kind: kind::ANY,
-                required: true,
-            },
-            Parameter {
-                keyword: "precision",
-                kind: kind::ANY,
-                required: false,
-            },
+            "Returns an integer if `precision` is `0` (this is the default). Returns a float otherwise.",
         ]
+    }
+
+    fn parameters(&self) -> &'static [Parameter] {
+        PARAMETERS.as_slice()
     }
 
     fn compile(
@@ -58,11 +85,18 @@ impl Function for Floor {
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[example! {
-            title: "floor",
-            source: "floor(9.8)",
-            result: Ok("9.0"),
-        }]
+        &[
+            example! {
+                title: "Round a number down (without precision)",
+                source: "floor(9.8)",
+                result: Ok("9.0"),
+            },
+            example! {
+                title: "Round a number down (with precision)",
+                source: "floor(4.345, precision: 2)",
+                result: Ok("4.34"),
+            },
+        ]
     }
 }
 
@@ -76,9 +110,7 @@ impl FunctionExpression for FloorFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let precision = self
             .precision
-            .as_ref()
-            .map(|expr| expr.resolve(ctx))
-            .transpose()?;
+            .map_resolve_with_default(ctx, || DEFAULT_PRECISION.clone())?;
         let value = self.value.resolve(ctx)?;
 
         floor(precision, value)

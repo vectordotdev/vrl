@@ -14,19 +14,37 @@ impl Function for Pop {
         "pop"
     }
 
+    fn usage(&self) -> &'static str {
+        "Removes the last item from the `value` array."
+    }
+
+    fn category(&self) -> &'static str {
+        Category::Array.as_ref()
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::ARRAY
+    }
+
+    fn return_rules(&self) -> &'static [&'static str] {
+        &["The original `value` is not modified."]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",
             kind: kind::ARRAY,
             required: true,
+            description: "The target array.",
+            default: None,
         }]
     }
 
     fn examples(&self) -> &'static [Example] {
         &[example! {
-            title: "pop array",
-            source: "pop(value: [0, 1])",
-            result: Ok("[0]"),
+            title: "Pop an item from an array",
+            source: "pop([1, 2, 3])",
+            result: Ok("[1, 2]"),
         }]
     }
 

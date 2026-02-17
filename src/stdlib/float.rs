@@ -15,23 +15,56 @@ impl Function for Float {
         "float"
     }
 
+    fn usage(&self) -> &'static str {
+        "Returns `value` if it is a float, otherwise returns an error. This enables the type checker to guarantee that the returned value is a float and can be used in any function that expects a float."
+    }
+
+    fn category(&self) -> &'static str {
+        Category::Type.as_ref()
+    }
+
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["`value` is not a float."]
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::FLOAT
+    }
+
+    fn return_rules(&self) -> &'static [&'static str] {
+        &[
+            "Returns the `value` if it's a float.",
+            "Raises an error if not a float.",
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",
             kind: kind::ANY,
             required: true,
+            description: "The value to check if it is a float.",
+            default: None,
         }]
     }
 
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "valid",
+                title: "Declare a float type",
+                source: indoc! {r#"
+                    . = { "value": 42.0 }
+                    float(.value)
+                "#},
+                result: Ok("42.0"),
+            },
+            example! {
+                title: "Declare a float type (literal)",
                 source: "float(3.1415)",
                 result: Ok("3.1415"),
             },
             example! {
-                title: "invalid",
+                title: "Invalid float type",
                 source: "float!(true)",
                 result: Err(
                     r#"function call error for "float" at (0:12): expected float, got boolean"#,

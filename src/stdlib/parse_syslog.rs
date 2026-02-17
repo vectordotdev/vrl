@@ -26,17 +26,48 @@ impl Function for ParseSyslog {
         "parse_syslog"
     }
 
+    fn usage(&self) -> &'static str {
+        "Parses the `value` in [Syslog](https://en.wikipedia.org/wiki/Syslog) format."
+    }
+
+    fn category(&self) -> &'static str {
+        Category::Parse.as_ref()
+    }
+
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["`value` is not a properly formatted Syslog message."]
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::OBJECT
+    }
+
+    fn notices(&self) -> &'static [&'static str] {
+        &[
+            indoc! {"
+                The function makes a best effort to parse the various Syslog formats that exists out
+                in the wild. This includes [RFC 6587](https://tools.ietf.org/html/rfc6587),
+                [RFC 5424](https://tools.ietf.org/html/rfc5424),
+                [RFC 3164](https://tools.ietf.org/html/rfc3164), and other common variations (such
+                as the Nginx Syslog style).
+            "},
+            "All values are returned as strings. We recommend manually coercing values to desired types as you see fit.",
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",
             kind: kind::BYTES,
             required: true,
+            description: "The text containing the Syslog message to parse.",
+            default: None,
         }]
     }
 
     fn examples(&self) -> &'static [Example] {
         &[example! {
-            title: "parse syslog",
+            title: "Parse Syslog log (5424)",
             source: r#"parse_syslog!(s'<13>1 2020-03-13T20:45:38.119Z dynamicwireless.name non 2426 ID931 [exampleSDID@32473 iut="3" eventSource= "Application" eventID="1011"] Try to override the THX port, maybe it will reboot the neural interface!')"#,
             result: Ok(indoc! {r#"{
                 "appname": "non",

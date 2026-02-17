@@ -8,23 +8,54 @@ impl Function for Exists {
         "exists"
     }
 
+    fn usage(&self) -> &'static str {
+        indoc! {"
+            Checks whether the `path` exists for the target.
+
+            This function distinguishes between a missing path
+            and a path with a `null` value. A regular path lookup,
+            such as `.foo`, cannot distinguish between the two cases
+            since it always returns `null` if the path doesn't exist.
+        "}
+    }
+
+    fn category(&self) -> &'static str {
+        Category::Path.as_ref()
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::BOOLEAN
+    }
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "field",
             kind: kind::ANY,
             required: true,
+            description: "The path of the field to check.",
+            default: None,
         }]
     }
 
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "existing field",
-                source: r#"exists({ "foo": "bar"}.foo)"#,
+                title: "Exists (field)",
+                source: indoc! {r#"
+                    . = { "field": 1 }
+                    exists(.field)
+                "#},
                 result: Ok("true"),
             },
             example! {
-                title: "non-existing field",
+                title: "Exists (array element)",
+                source: indoc! {r#"
+                    . = { "array": [1, 2, 3] }
+                    exists(.array[2])
+                "#},
+                result: Ok("true"),
+            },
+            example! {
+                title: "Does not exist (field)",
                 source: r#"exists({ "foo": "bar"}.baz)"#,
                 result: Ok("false"),
             },

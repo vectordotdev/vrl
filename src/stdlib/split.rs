@@ -37,22 +37,46 @@ impl Function for Split {
         "split"
     }
 
+    fn usage(&self) -> &'static str {
+        "Splits the `value` string using `pattern`."
+    }
+
+    fn category(&self) -> &'static str {
+        Category::String.as_ref()
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::ARRAY
+    }
+
+    fn return_rules(&self) -> &'static [&'static str] {
+        &[
+            "If `limit` is specified, the remainder of the string is returned unsplit after `limit` has been reached.",
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "The string to split.",
+                default: None,
             },
             Parameter {
                 keyword: "pattern",
                 kind: kind::BYTES | kind::REGEX,
                 required: true,
+                description: "The string is split whenever this pattern is matched.",
+                default: None,
             },
             Parameter {
                 keyword: "limit",
                 kind: kind::INTEGER,
                 required: false,
+                description: "The maximum number of substrings to return.",
+                default: None,
             },
         ]
     }
@@ -60,17 +84,22 @@ impl Function for Split {
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "split string",
+                title: "Split a string (no limit)",
+                source: r#"split("apples and pears and bananas", " and ")"#,
+                result: Ok(r#"["apples", "pears", "bananas"]"#),
+            },
+            example! {
+                title: "Split a string (with a limit)",
+                source: r#"split("apples and pears and bananas", " and ", limit: 2)"#,
+                result: Ok(r#"["apples", "pears and bananas"]"#),
+            },
+            example! {
+                title: "Split string",
                 source: r#"split("foobar", "b")"#,
                 result: Ok(r#"["foo", "ar"]"#),
             },
             example! {
-                title: "split once",
-                source: r#"split("foobarbaz", "ba", 2)"#,
-                result: Ok(r#"["foo", "rbaz"]"#),
-            },
-            example! {
-                title: "split regex",
+                title: "Split regex",
                 source: r#"split("barbaz", r'ba')"#,
                 result: Ok(r#"["", "r", "z"]"#),
             },

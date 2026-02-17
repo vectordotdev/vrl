@@ -1,6 +1,28 @@
 use crate::compiler::prelude::*;
 use chrono::{TimeZone as _, Utc};
 use std::str::FromStr;
+use std::sync::LazyLock;
+
+static DEFAULT_UNIT: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from("seconds")));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::INTEGER,
+            required: true,
+            description: "The Unix timestamp to convert.",
+            default: None,
+        },
+        Parameter {
+            keyword: "unit",
+            kind: kind::BYTES,
+            required: false,
+            description: "The time unit.",
+            default: Some(&DEFAULT_UNIT),
+        },
+    ]
+});
 
 fn from_unix_timestamp(value: Value, unit: Unit) -> Resolved {
     use Value::Integer;
@@ -34,40 +56,45 @@ impl Function for FromUnixTimestamp {
         "from_unix_timestamp"
     }
 
+    fn usage(&self) -> &'static str {
+        indoc! {"
+            Converts the `value` integer from a [Unix timestamp](https://en.wikipedia.org/wiki/Unix_time) to a VRL `timestamp`.
+
+            Converts from the number of seconds since the Unix epoch by default. To convert from milliseconds or nanoseconds, set the `unit` argument to `milliseconds` or `nanoseconds`.
+        "}
+    }
+
+    fn category(&self) -> &'static str {
+        Category::Convert.as_ref()
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::TIMESTAMP
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::INTEGER,
-                required: true,
-            },
-            Parameter {
-                keyword: "unit",
-                kind: kind::BYTES,
-                required: false,
-            },
-        ]
+        PARAMETERS.as_slice()
     }
 
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "integer as seconds",
+                title: "Convert from a Unix timestamp (seconds)",
                 source: "from_unix_timestamp!(5)",
                 result: Ok("t'1970-01-01T00:00:05Z'"),
             },
             example! {
-                title: "integer as milliseconds",
+                title: "Convert from a Unix timestamp (milliseconds)",
                 source: r#"from_unix_timestamp!(5000, unit: "milliseconds")"#,
                 result: Ok("t'1970-01-01T00:00:05Z'"),
             },
             example! {
-                title: "integer as microseconds",
+                title: "Convert from a Unix timestamp (microseconds)",
                 source: r#"from_unix_timestamp!(5000, unit: "microseconds")"#,
                 result: Ok("t'1970-01-01T00:00:00.005Z'"),
             },
             example! {
-                title: "integer as nanoseconds",
+                title: "Convert from a Unix timestamp (nanoseconds)",
                 source: r#"from_unix_timestamp!(5000, unit: "nanoseconds")"#,
                 result: Ok("t'1970-01-01T00:00:00.000005Z'"),
             },
@@ -82,13 +109,14 @@ impl Function for FromUnixTimestamp {
     ) -> Compiled {
         let value = arguments.required("value");
 
-        let unit = arguments
-            .optional_enum("unit", Unit::all_value().as_slice(), state)?
-            .map(|s| {
-                Unit::from_str(&s.try_bytes_utf8_lossy().expect("unit not bytes"))
-                    .expect("validated enum")
-            })
-            .unwrap_or_default();
+        let unit = Unit::from_str(
+            &arguments
+                .optional_enum("unit", Unit::all_value().as_slice(), state)?
+                .unwrap_or_else(|| DEFAULT_UNIT.clone())
+                .try_bytes_utf8_lossy()
+                .expect("unit not bytes"),
+        )
+        .expect("validated enum");
 
         Ok(FromUnixTimestampFn { value, unit }.as_expr())
     }

@@ -65,37 +65,61 @@ impl Function for CommunityID {
         "community_id"
     }
 
+    fn usage(&self) -> &'static str {
+        "Generates an ID based on the [Community ID Spec](https://github.com/corelight/community-id-spec)."
+    }
+
+    fn category(&self) -> &'static str {
+        Category::String.as_ref()
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::BYTES
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {
                 keyword: "source_ip",
                 kind: kind::BYTES,
                 required: true,
+                description: "The source IP address.",
+                default: None,
             },
             Parameter {
                 keyword: "destination_ip",
                 kind: kind::BYTES,
                 required: true,
+                description: "The destination IP address.",
+                default: None,
             },
             Parameter {
                 keyword: "protocol",
                 kind: kind::INTEGER,
                 required: true,
+                description: "The protocol number.",
+                default: None,
             },
             Parameter {
                 keyword: "source_port",
                 kind: kind::INTEGER,
                 required: false,
+                description: "The source port or ICMP type.",
+                default: None,
             },
             Parameter {
                 keyword: "destination_port",
                 kind: kind::INTEGER,
                 required: false,
+                description: "The destination port or ICMP code.",
+                default: None,
             },
             Parameter {
                 keyword: "seed",
                 kind: kind::INTEGER,
                 required: false,
+                description: "The custom seed number.",
+                default: None,
             },
         ]
     }
@@ -103,22 +127,22 @@ impl Function for CommunityID {
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "TCP",
+                title: "Generate Community ID for TCP",
                 source: r#"community_id!(source_ip: "1.2.3.4", destination_ip: "5.6.7.8", source_port: 1122, destination_port: 3344, protocol: 6)"#,
                 result: Ok("1:wCb3OG7yAFWelaUydu0D+125CLM="),
             },
             example! {
-                title: "UDP",
+                title: "Generate Community ID for UDP",
                 source: r#"community_id!(source_ip: "1.2.3.4", destination_ip: "5.6.7.8", source_port: 1122, destination_port: 3344, protocol: 17)"#,
                 result: Ok("1:0Mu9InQx6z4ZiCZM/7HXi2WMhOg="),
             },
             example! {
-                title: "ICMP",
+                title: "Generate Community ID for ICMP",
                 source: r#"community_id!(source_ip: "1.2.3.4", destination_ip: "5.6.7.8", source_port: 8, destination_port: 0, protocol: 1)"#,
                 result: Ok("1:crodRHL2FEsHjbv3UkRrfbs4bZ0="),
             },
             example! {
-                title: "RSVP",
+                title: "Generate Community ID for RSVP",
                 source: r#"community_id!(source_ip: "1.2.3.4", destination_ip: "5.6.7.8", protocol: 46)"#,
                 result: Ok("1:ikv3kmf89luf73WPz1jOs49S768="),
             },
