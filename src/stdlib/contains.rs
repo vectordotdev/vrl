@@ -12,14 +12,8 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             kind::BYTES,
             "The substring to search for in `value`.",
         ),
-        Parameter {
-            keyword: "case_sensitive",
-            kind: kind::BOOLEAN,
-            required: false,
-            description: "Whether the match should be case sensitive.",
-            default: Some(&DEFAULT_CASE_SENSITIVE),
-            enum_variants: None,
-        },
+        Parameter::optional("case_sensitive", kind::BOOLEAN, "Whether the match should be case sensitive.")
+            .default(&DEFAULT_CASE_SENSITIVE),
     ]
 });
 

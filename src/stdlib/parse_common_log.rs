@@ -9,15 +9,9 @@ static DEFAULT_TIMESTAMP_FORMAT: LazyLock<Value> =
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
         Parameter::required("value", kind::BYTES, "The string to parse."),
-        Parameter {
-            keyword: "timestamp_format",
-            kind: kind::BYTES,
-            required: false,
-            description: "The [date/time format](https://docs.rs/chrono/latest/chrono/format/strftime/index.html) to use for
-encoding the timestamp.",
-            default: Some(&DEFAULT_TIMESTAMP_FORMAT),
-        enum_variants: None,
-        },
+        Parameter::optional("timestamp_format", kind::BYTES, "The [date/time format](https://docs.rs/chrono/latest/chrono/format/strftime/index.html) to use for
+encoding the timestamp.")
+            .default(&DEFAULT_TIMESTAMP_FORMAT),
     ]
 });
 

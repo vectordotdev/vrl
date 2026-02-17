@@ -39,38 +39,14 @@ static DEFAULT_FLATTEN_BOOLEAN: LazyLock<Value> = LazyLock::new(|| Value::Boolea
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
         Parameter::required("value", kind::OBJECT, "The value to convert to a string."),
-        Parameter {
-            keyword: "fields_ordering",
-            kind: kind::ARRAY,
-            required: false,
-            description: "The ordering of fields to preserve. Any fields not in this list are listed unordered, after all ordered fields.",
-            default: Some(&DEFAULT_FIELDS_ORDERING),
-            enum_variants: None,
-        },
-        Parameter {
-            keyword: "key_value_delimiter",
-            kind: kind::BYTES,
-            required: false,
-            description: "The string that separates the key from the value.",
-            default: Some(&DEFAULT_KEY_VALUE_DELIMITER),
-            enum_variants: None,
-        },
-        Parameter {
-            keyword: "field_delimiter",
-            kind: kind::BYTES,
-            required: false,
-            description: "The string that separates each key-value pair.",
-            default: Some(&DEFAULT_FIELD_DELIMITER),
-            enum_variants: None,
-        },
-        Parameter {
-            keyword: "flatten_boolean",
-            kind: kind::BOOLEAN,
-            required: false,
-            description: "Whether to encode key-value with a boolean value as a standalone key if `true` and nothing if `false`.",
-            default: Some(&DEFAULT_FLATTEN_BOOLEAN),
-            enum_variants: None,
-        },
+        Parameter::optional("fields_ordering", kind::ARRAY, "The ordering of fields to preserve. Any fields not in this list are listed unordered, after all ordered fields.")
+            .default(&DEFAULT_FIELDS_ORDERING),
+        Parameter::optional("key_value_delimiter", kind::BYTES, "The string that separates the key from the value.")
+            .default(&DEFAULT_KEY_VALUE_DELIMITER),
+        Parameter::optional("field_delimiter", kind::BYTES, "The string that separates each key-value pair.")
+            .default(&DEFAULT_FIELD_DELIMITER),
+        Parameter::optional("flatten_boolean", kind::BOOLEAN, "Whether to encode key-value with a boolean value as a standalone key if `true` and nothing if `false`.")
+            .default(&DEFAULT_FLATTEN_BOOLEAN),
     ]
 });
 

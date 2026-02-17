@@ -250,6 +250,20 @@ impl Parameter {
         }
     }
 
+    /// Set the default value for this parameter.
+    #[must_use]
+    pub const fn default(mut self, value: &'static Value) -> Self {
+        self.default = Some(value);
+        self
+    }
+
+    /// Set the enum variants for this parameter.
+    #[must_use]
+    pub const fn enum_variants(mut self, variants: &'static [EnumVariant]) -> Self {
+        self.enum_variants = Some(variants);
+        self
+    }
+
     #[allow(arithmetic_overflow)]
     #[must_use]
     pub fn kind(&self) -> Kind {

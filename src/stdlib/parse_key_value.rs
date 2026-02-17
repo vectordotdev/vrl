@@ -40,38 +40,15 @@ static WHITESPACE_ENUM: &[EnumVariant] = &[
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
         Parameter::required("value", kind::BYTES, "The string to parse."),
-        Parameter {
-            keyword: "key_value_delimiter",
-            kind: kind::ANY,
-            required: false,
-            description: "The string that separates the key from the value.",
-            default: Some(&DEFAULT_KEY_VALUE_DELIMITER),
-            enum_variants: None,
-        },
-        Parameter {
-            keyword: "field_delimiter",
-            kind: kind::ANY,
-            required: false,
-            description: "The string that separates each key-value pair.",
-            default: Some(&DEFAULT_FIELD_DELIMITER),
-            enum_variants: None,
-        },
-        Parameter {
-            keyword: "whitespace",
-            kind: kind::BYTES,
-            required: false,
-            description: "Defines the acceptance of unnecessary whitespace surrounding the configured `key_value_delimiter`.",
-            default: Some(&DEFAULT_WHITESPACE),
-            enum_variants: Some(WHITESPACE_ENUM),
-        },
-        Parameter {
-            keyword: "accept_standalone_key",
-            kind: kind::BOOLEAN,
-            required: false,
-            description: "Whether a standalone key should be accepted, the resulting object associates such keys with the boolean value `true`.",
-            default: Some(&DEFAULT_ACCEPT_STANDALONE_KEY),
-            enum_variants: None,
-        },
+        Parameter::optional("key_value_delimiter", kind::ANY, "The string that separates the key from the value.")
+            .default(&DEFAULT_KEY_VALUE_DELIMITER),
+        Parameter::optional("field_delimiter", kind::ANY, "The string that separates each key-value pair.")
+            .default(&DEFAULT_FIELD_DELIMITER),
+        Parameter::optional("whitespace", kind::BYTES, "Defines the acceptance of unnecessary whitespace surrounding the configured `key_value_delimiter`.")
+            .default(&DEFAULT_WHITESPACE)
+            .enum_variants(WHITESPACE_ENUM),
+        Parameter::optional("accept_standalone_key", kind::BOOLEAN, "Whether a standalone key should be accepted, the resulting object associates such keys with the boolean value `true`.")
+            .default(&DEFAULT_ACCEPT_STANDALONE_KEY),
     ]
 });
 

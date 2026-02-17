@@ -7,14 +7,8 @@ use uuid::{NoContext, timestamp::Timestamp};
 static DEFAULT_TIMESTAMP: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from("`now()`")));
 
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
-    vec![Parameter {
-        keyword: "timestamp",
-        kind: kind::TIMESTAMP,
-        required: false,
-        description: "The timestamp used to generate the UUIDv7.",
-        default: Some(&DEFAULT_TIMESTAMP),
-        enum_variants: None,
-    }]
+    vec![Parameter::optional("timestamp", kind::TIMESTAMP, "The timestamp used to generate the UUIDv7.")
+            .default(&DEFAULT_TIMESTAMP)]
 });
 
 #[allow(clippy::cast_sign_loss)] // TODO consider removal options

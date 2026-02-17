@@ -10,14 +10,8 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             kind::OBJECT,
             "The value to convert to a logfmt string.",
         ),
-        Parameter {
-            keyword: "fields_ordering",
-            kind: kind::ARRAY,
-            required: false,
-            description: "The ordering of fields to preserve. Any fields not in this list are listed unordered, after all ordered fields.",
-            default: Some(&DEFAULT_FIELDS_ORDERING),
-            enum_variants: None,
-        },
+        Parameter::optional("fields_ordering", kind::ARRAY, "The ordering of fields to preserve. Any fields not in this list are listed unordered, after all ordered fields.")
+            .default(&DEFAULT_FIELDS_ORDERING),
     ]
 });
 

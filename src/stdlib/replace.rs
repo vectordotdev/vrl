@@ -16,14 +16,8 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             kind::BYTES,
             "The string that the matches are replaced with.",
         ),
-        Parameter {
-            keyword: "count",
-            kind: kind::INTEGER,
-            required: false,
-            description: "The maximum number of replacements to perform. `-1` means replace all matches.",
-            default: Some(&DEFAULT_COUNT),
-            enum_variants: None,
-        },
+        Parameter::optional("count", kind::INTEGER, "The maximum number of replacements to perform. `-1` means replace all matches.")
+            .default(&DEFAULT_COUNT),
     ]
 });
 

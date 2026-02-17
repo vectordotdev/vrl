@@ -18,14 +18,8 @@ static DEFAULT_TRANSLATE_CUSTOM_FIELDS: LazyLock<Value> = LazyLock::new(|| Value
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
         Parameter::required("value", kind::BYTES, "The string to parse."),
-        Parameter {
-            keyword: "translate_custom_fields",
-            kind: kind::BOOLEAN,
-            required: false,
-            description: "Toggles translation of custom field pairs to `key:value`.",
-            default: Some(&DEFAULT_TRANSLATE_CUSTOM_FIELDS),
-            enum_variants: None,
-        },
+        Parameter::optional("translate_custom_fields", kind::BOOLEAN, "Toggles translation of custom field pairs to `key:value`.")
+            .default(&DEFAULT_TRANSLATE_CUSTOM_FIELDS),
     ]
 });
 

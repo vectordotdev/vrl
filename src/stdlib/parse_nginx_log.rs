@@ -33,25 +33,13 @@ static FORMAT_ENUM: &[EnumVariant] = &[
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
         Parameter::required("value", kind::BYTES, "The string to parse."),
-        Parameter {
-            keyword: "format",
-            kind: kind::BYTES,
-            required: true,
-            description: "The format to use for parsing the log.",
-            default: None,
-            enum_variants: Some(FORMAT_ENUM),
-        },
-        Parameter {
-            keyword: "timestamp_format",
-            kind: kind::BYTES,
-            required: false,
-            description: "
+        Parameter::required("format", kind::BYTES, "The format to use for parsing the log.")
+            .enum_variants(FORMAT_ENUM),
+        Parameter::optional("timestamp_format", kind::BYTES, "
 The [date/time format](https://docs.rs/chrono/latest/chrono/format/strftime/index.html#specifiers) to use for encoding the timestamp. The time is parsed
 in local time if the timestamp doesn't specify a timezone. The default format is `%d/%b/%Y:%T %z` for
-combined logs and `%Y/%m/%d %H:%M:%S` for error logs.",
-            default: Some(&DEFAULT_TIMESTAMP_FORMAT),
-            enum_variants: None,
-        },
+combined logs and `%Y/%m/%d %H:%M:%S` for error logs.")
+            .default(&DEFAULT_TIMESTAMP_FORMAT),
     ]
 });
 

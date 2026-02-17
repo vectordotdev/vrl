@@ -579,14 +579,9 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             kind::BYTES,
             "The string to calculate the checksum for.",
         ),
-        Parameter {
-            keyword: "algorithm",
-            kind: kind::BYTES,
-            required: false,
-            description: "The CRC algorithm to use.",
-            default: Some(&DEFAULT_ALGORITHM),
-            enum_variants: Some(ALGORITHM_ENUM),
-        },
+        Parameter::optional("algorithm", kind::BYTES, "The CRC algorithm to use.")
+            .default(&DEFAULT_ALGORITHM)
+            .enum_variants(ALGORITHM_ENUM),
     ]
 });
 

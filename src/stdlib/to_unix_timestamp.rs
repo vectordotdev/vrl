@@ -27,14 +27,9 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             kind::TIMESTAMP,
             "The timestamp to convert into a Unix timestamp.",
         ),
-        Parameter {
-            keyword: "unit",
-            kind: kind::BYTES,
-            required: false,
-            description: "The time unit.",
-            default: Some(&DEFAULT_UNIT),
-            enum_variants: Some(UNIT_ENUM),
-        },
+        Parameter::optional("unit", kind::BYTES, "The time unit.")
+            .default(&DEFAULT_UNIT)
+            .enum_variants(UNIT_ENUM),
     ]
 });
 

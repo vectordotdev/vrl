@@ -17,14 +17,8 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             kind::INTEGER,
             "The number of decimal places to display.",
         ),
-        Parameter {
-            keyword: "decimal_separator",
-            kind: kind::BYTES,
-            required: false,
-            description: "The character to use between the whole and decimal parts of the number.",
-            default: Some(&DEFAULT_DECIMAL_SEPARATOR),
-            enum_variants: None,
-        },
+        Parameter::optional("decimal_separator", kind::BYTES, "The character to use between the whole and decimal parts of the number.")
+            .default(&DEFAULT_DECIMAL_SEPARATOR),
         Parameter::optional(
             "grouping_separator",
             kind::BYTES,

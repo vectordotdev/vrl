@@ -11,14 +11,8 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             kind::REGEX,
             "The regular expression pattern to match against.",
         ),
-        Parameter {
-            keyword: "all",
-            kind: kind::BOOLEAN,
-            required: false,
-            description: "Whether to match on all elements of `value`.",
-            default: Some(&DEFAULT_ALL),
-            enum_variants: None,
-        },
+        Parameter::optional("all", kind::BOOLEAN, "Whether to match on all elements of `value`.")
+            .default(&DEFAULT_ALL),
     ]
 });
 

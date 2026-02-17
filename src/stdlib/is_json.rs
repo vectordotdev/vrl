@@ -35,14 +35,8 @@ static PARAMETERS: &[Parameter] = &[
         kind::BYTES,
         "The value to check if it is a valid JSON document.",
     ),
-    Parameter {
-        keyword: "variant",
-        kind: kind::BYTES,
-        required: false,
-        description: "The variant of the JSON type to explicitly check for.",
-        default: None,
-        enum_variants: Some(VARIANT_ENUM),
-    },
+    Parameter::optional("variant", kind::BYTES, "The variant of the JSON type to explicitly check for.")
+            .enum_variants(VARIANT_ENUM),
 ];
 
 fn is_json(value: Value) -> Resolved {

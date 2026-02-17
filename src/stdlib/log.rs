@@ -31,23 +31,12 @@ static LEVEL_ENUM: &[EnumVariant] = &[
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
         Parameter::required("value", kind::ANY, "The value to log."),
-        Parameter {
-            keyword: "level",
-            kind: kind::BYTES,
-            required: false,
-            description: "The log level.",
-            default: Some(&DEFAULT_LEVEL),
-            enum_variants: Some(LEVEL_ENUM),
-        },
-        Parameter {
-            keyword: "rate_limit_secs",
-            kind: kind::INTEGER,
-            required: false,
-            description: "Specifies that the log message is output no more than once per the given number of seconds.
-Use a value of `0` to turn rate limiting off.",
-            default: Some(&DEFAULT_RATE_LIMIT_SECS),
-        enum_variants: None,
-        },
+        Parameter::optional("level", kind::BYTES, "The log level.")
+            .default(&DEFAULT_LEVEL)
+            .enum_variants(LEVEL_ENUM),
+        Parameter::optional("rate_limit_secs", kind::INTEGER, "Specifies that the log message is output no more than once per the given number of seconds.
+Use a value of `0` to turn rate limiting off.")
+            .default(&DEFAULT_RATE_LIMIT_SECS),
     ]
 });
 

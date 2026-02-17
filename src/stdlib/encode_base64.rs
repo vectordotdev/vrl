@@ -9,14 +9,8 @@ static DEFAULT_CHARSET: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::f
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
         Parameter::required("value", kind::BYTES, "The string to encode."),
-        Parameter {
-            keyword: "padding",
-            kind: kind::BOOLEAN,
-            required: false,
-            description: "Whether the Base64 output is [padded](https://en.wikipedia.org/wiki/Base64#Output_padding).",
-            default: Some(&DEFAULT_PADDING),
-            enum_variants: None,
-        },
+        Parameter::optional("padding", kind::BOOLEAN, "Whether the Base64 output is [padded](https://en.wikipedia.org/wiki/Base64#Output_padding).")
+            .default(&DEFAULT_PADDING),
         Parameter {
             keyword: "charset",
             kind: kind::BYTES,

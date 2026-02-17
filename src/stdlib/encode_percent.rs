@@ -49,14 +49,9 @@ static ASCII_SET_ENUM: &[EnumVariant] = &[
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
         Parameter::required("value", kind::BYTES, "The string to encode."),
-        Parameter {
-            keyword: "ascii_set",
-            kind: kind::BYTES,
-            required: false,
-            description: "The ASCII set to use when encoding the data.",
-            default: Some(&DEFAULT_ASCII_SET),
-            enum_variants: Some(ASCII_SET_ENUM),
-        },
+        Parameter::optional("ascii_set", kind::BYTES, "The ASCII set to use when encoding the data.")
+            .default(&DEFAULT_ASCII_SET)
+            .enum_variants(ASCII_SET_ENUM),
     ]
 });
 

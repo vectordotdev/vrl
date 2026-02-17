@@ -13,14 +13,8 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             kind::BYTES,
             "The string to calculate the hash for.",
         ),
-        Parameter {
-            keyword: "variant",
-            kind: kind::BYTES,
-            required: false,
-            description: "The xxHash hashing algorithm to use.",
-            default: Some(&DEFAULT_VARIANT),
-            enum_variants: None,
-        },
+        Parameter::optional("variant", kind::BYTES, "The xxHash hashing algorithm to use.")
+            .default(&DEFAULT_VARIANT),
     ]
 });
 

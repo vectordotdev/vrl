@@ -11,14 +11,8 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             kind::BYTES | kind::REGEX,
             "The regular expression or string pattern to match against.",
         ),
-        Parameter {
-            keyword: "from",
-            kind: kind::INTEGER,
-            required: false,
-            description: "Offset to start searching.",
-            default: Some(&DEFAULT_FROM),
-            enum_variants: None,
-        },
+        Parameter::optional("from", kind::INTEGER, "Offset to start searching.")
+            .default(&DEFAULT_FROM),
     ]
 });
 

@@ -17,14 +17,8 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             kind::INTEGER,
             "The inclusive start position. A zero-based index that can be negative.",
         ),
-        Parameter {
-            keyword: "end",
-            kind: kind::INTEGER,
-            required: false,
-            description: "The exclusive end position. A zero-based index that can be negative.",
-            default: Some(&DEFAULT_END),
-            enum_variants: None,
-        },
+        Parameter::optional("end", kind::INTEGER, "The exclusive end position. A zero-based index that can be negative.")
+            .default(&DEFAULT_END),
     ]
 });
 

@@ -8,14 +8,8 @@ const PUNYCODE_PREFIX: &str = "xn--";
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
         Parameter::required("value", kind::BYTES, "The string to decode."),
-        Parameter {
-            keyword: "validate",
-            kind: kind::BOOLEAN,
-            required: false,
-            description: "If enabled, checks if the input string is a valid domain name.",
-            default: Some(&DEFAULT_VALIDATE),
-            enum_variants: None,
-        },
+        Parameter::optional("validate", kind::BOOLEAN, "If enabled, checks if the input string is a valid domain name.")
+            .default(&DEFAULT_VALIDATE),
     ]
 });
 

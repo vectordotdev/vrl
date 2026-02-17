@@ -71,22 +71,10 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             kind::BYTES,
             "The string of the duration with either binary or SI unit.",
         ),
-        Parameter {
-            keyword: "unit",
-            kind: kind::BYTES,
-            required: true,
-            description: "The output units for the byte.",
-            default: None,
-            enum_variants: Some(UNIT_ENUM),
-        },
-        Parameter {
-            keyword: "base",
-            kind: kind::BYTES,
-            required: false,
-            description: "The base for the byte, either 2 or 10.",
-            default: Some(&DEFAULT_BASE),
-            enum_variants: None,
-        },
+        Parameter::required("unit", kind::BYTES, "The output units for the byte.")
+            .enum_variants(UNIT_ENUM),
+        Parameter::optional("base", kind::BYTES, "The base for the byte, either 2 or 10.")
+            .default(&DEFAULT_BASE),
     ]
 });
 

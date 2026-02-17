@@ -10,14 +10,8 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             kind::OBJECT | kind::ARRAY,
             "The object or array to iterate.",
         ),
-        Parameter {
-            keyword: "recursive",
-            kind: kind::BOOLEAN,
-            required: false,
-            description: "Whether to recursively iterate the collection.",
-            default: Some(&DEFAULT_RECURSIVE),
-            enum_variants: None,
-        },
+        Parameter::optional("recursive", kind::BOOLEAN, "Whether to recursively iterate the collection.")
+            .default(&DEFAULT_RECURSIVE),
     ]
 });
 

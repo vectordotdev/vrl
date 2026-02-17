@@ -1289,11 +1289,13 @@ mod tests {
         }
 
         fn parameters(&self) -> &'static [Parameter] {
-            &[
+            const PARAMETERS: &[Parameter] = &[
                 Parameter::optional("one", kind::INTEGER, "one"),
                 Parameter::optional("two", kind::INTEGER, "two"),
                 Parameter::optional("three", kind::INTEGER, "three"),
-            ]
+            ];
+
+            PARAMETERS
         }
 
         fn compile(

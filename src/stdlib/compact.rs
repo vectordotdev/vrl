@@ -16,54 +16,18 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             kind::OBJECT | kind::ARRAY,
             "The object or array to compact.",
         ),
-        Parameter {
-            keyword: "recursive",
-            kind: kind::BOOLEAN,
-            required: false,
-            description: "Whether the compaction be recursive.",
-            default: Some(&DEFAULT_RECURSIVE),
-            enum_variants: None,
-        },
-        Parameter {
-            keyword: "null",
-            kind: kind::BOOLEAN,
-            required: false,
-            description: "Whether null should be treated as an empty value.",
-            default: Some(&DEFAULT_NULL),
-            enum_variants: None,
-        },
-        Parameter {
-            keyword: "string",
-            kind: kind::BOOLEAN,
-            required: false,
-            description: "Whether an empty string should be treated as an empty value.",
-            default: Some(&DEFAULT_STRING),
-            enum_variants: None,
-        },
-        Parameter {
-            keyword: "object",
-            kind: kind::BOOLEAN,
-            required: false,
-            description: "Whether an empty object should be treated as an empty value.",
-            default: Some(&DEFAULT_OBJECT),
-            enum_variants: None,
-        },
-        Parameter {
-            keyword: "array",
-            kind: kind::BOOLEAN,
-            required: false,
-            description: "Whether an empty array should be treated as an empty value.",
-            default: Some(&DEFAULT_ARRAY),
-            enum_variants: None,
-        },
-        Parameter {
-            keyword: "nullish",
-            kind: kind::BOOLEAN,
-            required: false,
-            description: "Tests whether the value is \"nullish\" as defined by the [`is_nullish`](#is_nullish) function.",
-            default: Some(&DEFAULT_NULLISH),
-            enum_variants: None,
-        },
+        Parameter::optional("recursive", kind::BOOLEAN, "Whether the compaction be recursive.")
+            .default(&DEFAULT_RECURSIVE),
+        Parameter::optional("null", kind::BOOLEAN, "Whether null should be treated as an empty value.")
+            .default(&DEFAULT_NULL),
+        Parameter::optional("string", kind::BOOLEAN, "Whether an empty string should be treated as an empty value.")
+            .default(&DEFAULT_STRING),
+        Parameter::optional("object", kind::BOOLEAN, "Whether an empty object should be treated as an empty value.")
+            .default(&DEFAULT_OBJECT),
+        Parameter::optional("array", kind::BOOLEAN, "Whether an empty array should be treated as an empty value.")
+            .default(&DEFAULT_ARRAY),
+        Parameter::optional("nullish", kind::BOOLEAN, "Tests whether the value is \"nullish\" as defined by the [`is_nullish`](#is_nullish) function.")
+            .default(&DEFAULT_NULLISH),
     ]
 });
 
