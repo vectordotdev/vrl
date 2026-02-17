@@ -29,6 +29,7 @@ fn benchmark_kind_display(c: &mut Criterion) {
             required: false,
             description: "",
             default: None,
+            enum_variants: None,
         };
 
         let kind = parameter.kind();

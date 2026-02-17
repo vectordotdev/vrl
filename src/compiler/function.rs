@@ -712,7 +712,7 @@ mod tests {
                 required: false,
                 description: "",
                 default: None,
-                r#enum: None,
+                enum_variants: None,
             };
 
             assert_eq!(parameter.kind(), kind, "{title}");
