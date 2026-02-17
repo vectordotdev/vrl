@@ -28,7 +28,11 @@ impl Function for StripAnsiEscapeCodes {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        const PARAMETERS: &[Parameter] = &[Parameter::required("value", kind::BYTES, "The string to strip.")];
+        const PARAMETERS: &[Parameter] = &[Parameter::required(
+            "value",
+            kind::BYTES,
+            "The string to strip.",
+        )];
         PARAMETERS
     }
 

@@ -42,7 +42,11 @@ impl Function for IsNullish {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        const PARAMETERS: &[Parameter] = &[Parameter::required("value", kind::ANY, "The value to check for nullishness, for example, a useless value.")];
+        const PARAMETERS: &[Parameter] = &[Parameter::required(
+            "value",
+            kind::ANY,
+            "The value to check for nullishness, for example, a useless value.",
+        )];
         PARAMETERS
     }
 

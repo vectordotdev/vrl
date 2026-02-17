@@ -39,7 +39,11 @@ impl Function for Boolean {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        const PARAMETERS: &[Parameter] = &[Parameter::required("value", kind::ANY, "The value to check if it is a Boolean.")];
+        const PARAMETERS: &[Parameter] = &[Parameter::required(
+            "value",
+            kind::ANY,
+            "The value to check if it is a Boolean.",
+        )];
         PARAMETERS
     }
 

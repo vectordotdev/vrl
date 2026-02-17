@@ -56,7 +56,11 @@ impl Function for DecodeSnappy {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        const PARAMETERS: &[Parameter] = &[Parameter::required("value", kind::BYTES, "The Snappy data to decode.")];
+        const PARAMETERS: &[Parameter] = &[Parameter::required(
+            "value",
+            kind::BYTES,
+            "The Snappy data to decode.",
+        )];
         PARAMETERS
     }
 }

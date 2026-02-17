@@ -18,7 +18,11 @@ static CHARSET_ENUM: &[EnumVariant] = &[
 
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
-        Parameter::required("value", kind::BYTES, "The [Base64](https://en.wikipedia.org/wiki/Base64) data to decode."),
+        Parameter::required(
+            "value",
+            kind::BYTES,
+            "The [Base64](https://en.wikipedia.org/wiki/Base64) data to decode.",
+        ),
         Parameter {
             keyword: "charset",
             kind: kind::BYTES,

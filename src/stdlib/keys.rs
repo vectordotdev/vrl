@@ -31,7 +31,11 @@ impl Function for Keys {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        const PARAMETERS: &[Parameter] = &[Parameter::required("value", kind::OBJECT, "The object to extract keys from.")];
+        const PARAMETERS: &[Parameter] = &[Parameter::required(
+            "value",
+            kind::OBJECT,
+            "The object to extract keys from.",
+        )];
         PARAMETERS
     }
 

@@ -6,8 +6,16 @@ static DEFAULT_COMPACT: LazyLock<Value> = LazyLock::new(|| Value::Boolean(false)
 
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
-        Parameter::required("value", kind::OBJECT | kind::ARRAY, "The object or array to remove data from."),
-        Parameter::required("path", kind::ARRAY, "An array of path segments to remove the value from."),
+        Parameter::required(
+            "value",
+            kind::OBJECT | kind::ARRAY,
+            "The object or array to remove data from.",
+        ),
+        Parameter::required(
+            "path",
+            kind::ARRAY,
+            "An array of path segments to remove the value from.",
+        ),
         Parameter {
             keyword: "compact",
             kind: kind::BOOLEAN,

@@ -8,7 +8,11 @@ const VALID_VARIANTS: &[&str] = &["XXH32", "XXH64", "XXH3-64", "XXH3-128"];
 
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
-        Parameter::required("value", kind::BYTES, "The string to calculate the hash for."),
+        Parameter::required(
+            "value",
+            kind::BYTES,
+            "The string to calculate the hash for.",
+        ),
         Parameter {
             keyword: "variant",
             kind: kind::BYTES,

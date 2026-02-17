@@ -30,7 +30,11 @@ static VARIANT_ENUM: &[EnumVariant] = &[
 ];
 
 static PARAMETERS: &[Parameter] = &[
-    Parameter::required("value", kind::BYTES, "The value to check if it is a valid JSON document."),
+    Parameter::required(
+        "value",
+        kind::BYTES,
+        "The value to check if it is a valid JSON document.",
+    ),
     Parameter {
         keyword: "variant",
         kind: kind::BYTES,

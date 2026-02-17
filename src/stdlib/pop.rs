@@ -31,7 +31,11 @@ impl Function for Pop {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        const PARAMETERS: &[Parameter] = &[Parameter::required("value", kind::ARRAY, "The target array.")];
+        const PARAMETERS: &[Parameter] = &[Parameter::required(
+            "value",
+            kind::ARRAY,
+            "The target array.",
+        )];
         PARAMETERS
     }
 

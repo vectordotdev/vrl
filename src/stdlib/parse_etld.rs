@@ -21,9 +21,13 @@ organization. Higher numbers will return subdomains.",
             default: Some(&DEFAULT_PLUS_PARTS),
             enum_variants: None,
         },
-        Parameter::optional("psl", kind::BYTES, "Can be provided to use a different public suffix list.
+        Parameter::optional(
+            "psl",
+            kind::BYTES,
+            "Can be provided to use a different public suffix list.
 
-By default, https://publicsuffix.org/list/public_suffix_list.dat is used."),
+By default, https://publicsuffix.org/list/public_suffix_list.dat is used.",
+        ),
     ]
 });
 

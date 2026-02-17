@@ -55,7 +55,11 @@ impl Function for ForEach {
         kind::NULL
     }
     fn parameters(&self) -> &'static [Parameter] {
-        const PARAMETERS: &[Parameter] = &[Parameter::required("value", kind::OBJECT | kind::ARRAY, "The array or object to iterate.")];
+        const PARAMETERS: &[Parameter] = &[Parameter::required(
+            "value",
+            kind::OBJECT | kind::ARRAY,
+            "The array or object to iterate.",
+        )];
         PARAMETERS
     }
 

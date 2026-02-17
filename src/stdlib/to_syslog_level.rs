@@ -44,7 +44,11 @@ impl Function for ToSyslogLevel {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        const PARAMETERS: &[Parameter] = &[Parameter::required("value", kind::INTEGER, "The severity level.")];
+        const PARAMETERS: &[Parameter] = &[Parameter::required(
+            "value",
+            kind::INTEGER,
+            "The severity level.",
+        )];
         PARAMETERS
     }
 

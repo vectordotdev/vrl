@@ -6,7 +6,11 @@ static DEFAULT_ALL: LazyLock<Value> = LazyLock::new(|| Value::Boolean(false));
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
         Parameter::required("value", kind::ARRAY, "The array."),
-        Parameter::required("pattern", kind::REGEX, "The regular expression pattern to match against."),
+        Parameter::required(
+            "pattern",
+            kind::REGEX,
+            "The regular expression pattern to match against.",
+        ),
         Parameter {
             keyword: "all",
             kind: kind::BOOLEAN,

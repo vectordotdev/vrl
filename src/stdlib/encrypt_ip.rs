@@ -80,8 +80,16 @@ impl Function for EncryptIp {
     fn parameters(&self) -> &'static [Parameter] {
         const PARAMETERS: &[Parameter] = &[
             Parameter::required("ip", kind::BYTES, "The IP address to encrypt (v4 or v6)."),
-            Parameter::required("key", kind::BYTES, "The encryption key in raw bytes (not encoded). For AES128 mode, the key must be exactly 16 bytes. For PFX mode, the key must be exactly 32 bytes."),
-            Parameter::required("mode", kind::BYTES, "The encryption mode to use. Must be either `aes128` or `pfx`."),
+            Parameter::required(
+                "key",
+                kind::BYTES,
+                "The encryption key in raw bytes (not encoded). For AES128 mode, the key must be exactly 16 bytes. For PFX mode, the key must be exactly 32 bytes.",
+            ),
+            Parameter::required(
+                "mode",
+                kind::BYTES,
+                "The encryption mode to use. Must be either `aes128` or `pfx`.",
+            ),
         ];
         PARAMETERS
     }

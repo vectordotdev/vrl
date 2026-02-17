@@ -299,8 +299,16 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             default: Some(&DEFAULT_BODY),
             enum_variants: None,
         },
-        Parameter::optional("http_proxy", kind::BYTES, "HTTP proxy URL to use for the request."),
-        Parameter::optional("https_proxy", kind::BYTES, "HTTPS proxy URL to use for the request."),
+        Parameter::optional(
+            "http_proxy",
+            kind::BYTES,
+            "HTTP proxy URL to use for the request.",
+        ),
+        Parameter::optional(
+            "https_proxy",
+            kind::BYTES,
+            "HTTPS proxy URL to use for the request.",
+        ),
     ]
 });
 

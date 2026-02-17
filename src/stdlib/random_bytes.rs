@@ -42,7 +42,11 @@ impl Function for RandomBytes {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        const PARAMETERS: &[Parameter] = &[Parameter::required("length", kind::INTEGER, "The number of bytes to generate. Must not be larger than 64k.")];
+        const PARAMETERS: &[Parameter] = &[Parameter::required(
+            "length",
+            kind::INTEGER,
+            "The number of bytes to generate. Must not be larger than 64k.",
+        )];
         PARAMETERS
     }
 

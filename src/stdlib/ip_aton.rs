@@ -39,7 +39,11 @@ impl Function for IpAton {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        const PARAMETERS: &[Parameter] = &[Parameter::required("value", kind::BYTES, "The IP address to convert to binary.")];
+        const PARAMETERS: &[Parameter] = &[Parameter::required(
+            "value",
+            kind::BYTES,
+            "The IP address to convert to binary.",
+        )];
         PARAMETERS
     }
 

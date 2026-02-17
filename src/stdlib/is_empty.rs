@@ -47,7 +47,11 @@ impl Function for IsEmpty {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        const PARAMETERS: &[Parameter] = &[Parameter::required("value", kind::OBJECT | kind::ARRAY | kind::BYTES, "The value to check.")];
+        const PARAMETERS: &[Parameter] = &[Parameter::required(
+            "value",
+            kind::OBJECT | kind::ARRAY | kind::BYTES,
+            "The value to check.",
+        )];
         PARAMETERS
     }
 

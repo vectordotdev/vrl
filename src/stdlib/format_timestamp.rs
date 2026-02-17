@@ -39,8 +39,16 @@ impl Function for FormatTimestamp {
     fn parameters(&self) -> &'static [Parameter] {
         const PARAMETERS: &[Parameter] = &[
             Parameter::required("value", kind::TIMESTAMP, "The timestamp to format as text."),
-            Parameter::required("format", kind::BYTES, "The format string as described by the [Chrono library](https://docs.rs/chrono/latest/chrono/format/strftime/index.html#specifiers)."),
-            Parameter::optional("timezone", kind::BYTES, "The timezone to use when formatting the timestamp. The parameter uses the TZ identifier or `local`."),
+            Parameter::required(
+                "format",
+                kind::BYTES,
+                "The format string as described by the [Chrono library](https://docs.rs/chrono/latest/chrono/format/strftime/index.html#specifiers).",
+            ),
+            Parameter::optional(
+                "timezone",
+                kind::BYTES,
+                "The timezone to use when formatting the timestamp. The parameter uses the TZ identifier or `local`.",
+            ),
         ];
         PARAMETERS
     }

@@ -61,7 +61,11 @@ impl Function for ParseLinuxAuthorization {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        const PARAMETERS: &[Parameter] = &[Parameter::required("value", kind::BYTES, "The text containing the message to parse.")];
+        const PARAMETERS: &[Parameter] = &[Parameter::required(
+            "value",
+            kind::BYTES,
+            "The text containing the message to parse.",
+        )];
         PARAMETERS
     }
 

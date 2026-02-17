@@ -8,7 +8,11 @@ use std::sync::LazyLock;
 
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
-        Parameter::required("value", kind::BYTES, "The string representation of the XML document to parse."),
+        Parameter::required(
+            "value",
+            kind::BYTES,
+            "The string representation of the XML document to parse.",
+        ),
         Parameter {
             keyword: "trim",
             kind: kind::BOOLEAN,

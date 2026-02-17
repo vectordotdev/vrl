@@ -36,7 +36,11 @@ impl Function for Match {
     fn parameters(&self) -> &'static [Parameter] {
         const PARAMETERS: &[Parameter] = &[
             Parameter::required("value", kind::BYTES, "The value to match."),
-            Parameter::required("pattern", kind::REGEX, "The regular expression pattern to match against."),
+            Parameter::required(
+                "pattern",
+                kind::REGEX,
+                "The regular expression pattern to match against.",
+            ),
         ];
         PARAMETERS
     }

@@ -39,7 +39,11 @@ impl Function for Timestamp {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        const PARAMETERS: &[Parameter] = &[Parameter::required("value", kind::ANY, "The value to check if it is a timestamp.")];
+        const PARAMETERS: &[Parameter] = &[Parameter::required(
+            "value",
+            kind::ANY,
+            "The value to check if it is a timestamp.",
+        )];
         PARAMETERS
     }
 

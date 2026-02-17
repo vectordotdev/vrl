@@ -6,7 +6,11 @@ static DEFAULT_FROM: LazyLock<Value> = LazyLock::new(|| Value::Integer(0));
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
         Parameter::required("value", kind::BYTES, "The string to find the pattern in."),
-        Parameter::required("pattern", kind::BYTES | kind::REGEX, "The regular expression or string pattern to match against."),
+        Parameter::required(
+            "pattern",
+            kind::BYTES | kind::REGEX,
+            "The regular expression or string pattern to match against.",
+        ),
         Parameter {
             keyword: "from",
             kind: kind::INTEGER,

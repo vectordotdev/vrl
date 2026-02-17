@@ -62,7 +62,11 @@ impl Function for DecodeCharset {
     fn parameters(&self) -> &'static [Parameter] {
         const PARAMETERS: &[Parameter] = &[
             Parameter::required("value", kind::BYTES, "The non-UTF8 string to decode."),
-            Parameter::required("from_charset", kind::BYTES, "The [character set](https://encoding.spec.whatwg.org/#names-and-labels) to use when decoding the data."),
+            Parameter::required(
+                "from_charset",
+                kind::BYTES,
+                "The [character set](https://encoding.spec.whatwg.org/#names-and-labels) to use when decoding the data.",
+            ),
         ];
         PARAMETERS
     }

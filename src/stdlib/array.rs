@@ -39,7 +39,11 @@ impl Function for Array {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        const PARAMETERS: &[Parameter] = &[Parameter::required("value", kind::ANY, "The value to check if it is an array.")];
+        const PARAMETERS: &[Parameter] = &[Parameter::required(
+            "value",
+            kind::ANY,
+            "The value to check if it is an array.",
+        )];
         PARAMETERS
     }
 

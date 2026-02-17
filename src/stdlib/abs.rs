@@ -37,7 +37,11 @@ impl Function for Abs {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        const PARAMETERS: &[Parameter] = &[Parameter::required("value", kind::FLOAT | kind::INTEGER, "The number to calculate the absolute value.")];
+        const PARAMETERS: &[Parameter] = &[Parameter::required(
+            "value",
+            kind::FLOAT | kind::INTEGER,
+            "The number to calculate the absolute value.",
+        )];
         PARAMETERS
     }
 

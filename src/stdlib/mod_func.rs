@@ -35,8 +35,16 @@ impl Function for Mod {
 
     fn parameters(&self) -> &'static [Parameter] {
         const PARAMETERS: &[Parameter] = &[
-            Parameter::required("value", kind::INTEGER | kind::FLOAT, "The value the `modulus` is applied to."),
-            Parameter::required("modulus", kind::INTEGER | kind::FLOAT, "The `modulus` value."),
+            Parameter::required(
+                "value",
+                kind::INTEGER | kind::FLOAT,
+                "The value the `modulus` is applied to.",
+            ),
+            Parameter::required(
+                "modulus",
+                kind::INTEGER | kind::FLOAT,
+                "The `modulus` value.",
+            ),
         ];
         PARAMETERS
     }

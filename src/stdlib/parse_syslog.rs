@@ -56,7 +56,11 @@ impl Function for ParseSyslog {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        const PARAMETERS: &[Parameter] = &[Parameter::required("value", kind::BYTES, "The text containing the Syslog message to parse.")];
+        const PARAMETERS: &[Parameter] = &[Parameter::required(
+            "value",
+            kind::BYTES,
+            "The text containing the Syslog message to parse.",
+        )];
         PARAMETERS
     }
 

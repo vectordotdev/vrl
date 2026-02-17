@@ -35,7 +35,11 @@ impl Function for GetEnvVar {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        const PARAMETERS: &[Parameter] = &[Parameter::required("name", kind::BYTES, "The name of the environment variable.")];
+        const PARAMETERS: &[Parameter] = &[Parameter::required(
+            "name",
+            kind::BYTES,
+            "The name of the environment variable.",
+        )];
         PARAMETERS
     }
 

@@ -49,7 +49,11 @@ impl Function for ToString {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        const PARAMETERS: &[Parameter] = &[Parameter::required("value", kind::ANY, "The value to convert to a string.")];
+        const PARAMETERS: &[Parameter] = &[Parameter::required(
+            "value",
+            kind::ANY,
+            "The value to convert to a string.",
+        )];
         PARAMETERS
     }
 

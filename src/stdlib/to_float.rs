@@ -64,7 +64,11 @@ impl Function for ToFloat {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        const PARAMETERS: &[Parameter] = &[Parameter::required("value", kind::ANY, "The value to convert to a float. Must be convertible to a float, otherwise an error is raised.")];
+        const PARAMETERS: &[Parameter] = &[Parameter::required(
+            "value",
+            kind::ANY,
+            "The value to convert to a float. Must be convertible to a float, otherwise an error is raised.",
+        )];
         PARAMETERS
     }
 

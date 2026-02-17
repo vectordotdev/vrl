@@ -148,9 +148,21 @@ impl Function for ValidateJsonSchema {
 
     fn parameters(&self) -> &'static [Parameter] {
         const PARAMETERS: &[Parameter] = &[
-            Parameter::required("value", kind::BYTES, "The value to check if it conforms to the JSON schema definition."),
-            Parameter::required("schema_definition", kind::BYTES, "The location (path) of the JSON Schema definition."),
-            Parameter::optional("ignore_unknown_formats", kind::BOOLEAN, "Unknown formats can be silently ignored by setting this to `true` and validation continues without failing due to those fields."),
+            Parameter::required(
+                "value",
+                kind::BYTES,
+                "The value to check if it conforms to the JSON schema definition.",
+            ),
+            Parameter::required(
+                "schema_definition",
+                kind::BYTES,
+                "The location (path) of the JSON Schema definition.",
+            ),
+            Parameter::optional(
+                "ignore_unknown_formats",
+                kind::BOOLEAN,
+                "Unknown formats can be silently ignored by setting this to `true` and validation continues without failing due to those fields.",
+            ),
         ];
         PARAMETERS
     }

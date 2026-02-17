@@ -52,7 +52,11 @@ impl Function for ToBool {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        const PARAMETERS: &[Parameter] = &[Parameter::required("value", kind::ANY, "The value to convert to a Boolean.")];
+        const PARAMETERS: &[Parameter] = &[Parameter::required(
+            "value",
+            kind::ANY,
+            "The value to convert to a Boolean.",
+        )];
         PARAMETERS
     }
 

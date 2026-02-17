@@ -44,7 +44,11 @@ impl Function for IpToIpv6 {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        const PARAMETERS: &[Parameter] = &[Parameter::required("value", kind::BYTES, "The IP address to convert to IPv6.")];
+        const PARAMETERS: &[Parameter] = &[Parameter::required(
+            "value",
+            kind::BYTES,
+            "The IP address to convert to IPv6.",
+        )];
         PARAMETERS
     }
 

@@ -7,7 +7,11 @@ static DEFAULT_REPLACE_REPEATED: LazyLock<Value> = LazyLock::new(|| Value::Bytes
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
         Parameter::required("value", kind::BYTES, "The original string."),
-        Parameter::required("permitted_characters", kind::REGEX, "Keep all matches of this pattern."),
+        Parameter::required(
+            "permitted_characters",
+            kind::REGEX,
+            "Keep all matches of this pattern.",
+        ),
         Parameter {
             keyword: "replace_single",
             kind: kind::BYTES,

@@ -57,7 +57,11 @@ impl Function for ToInt {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        const PARAMETERS: &[Parameter] = &[Parameter::required("value", kind::ANY, "The value to convert to an integer.")];
+        const PARAMETERS: &[Parameter] = &[Parameter::required(
+            "value",
+            kind::ANY,
+            "The value to convert to an integer.",
+        )];
         PARAMETERS
     }
 

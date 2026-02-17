@@ -73,7 +73,11 @@ impl Function for ParseTokens {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        const PARAMETERS: &[Parameter] = &[Parameter::required("value", kind::BYTES, "The string to tokenize.")];
+        const PARAMETERS: &[Parameter] = &[Parameter::required(
+            "value",
+            kind::BYTES,
+            "The string to tokenize.",
+        )];
         PARAMETERS
     }
 }

@@ -29,7 +29,11 @@ impl Function for IsInteger {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        const PARAMETERS: &[Parameter] = &[Parameter::required("value", kind::ANY, "The value to check if it is an integer.")];
+        const PARAMETERS: &[Parameter] = &[Parameter::required(
+            "value",
+            kind::ANY,
+            "The value to check if it is an integer.",
+        )];
         PARAMETERS
     }
 

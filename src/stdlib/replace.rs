@@ -6,8 +6,16 @@ static DEFAULT_COUNT: LazyLock<Value> = LazyLock::new(|| Value::Integer(-1));
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
         Parameter::required("value", kind::BYTES, "The original string."),
-        Parameter::required("pattern", kind::BYTES | kind::REGEX, "Replace all matches of this pattern. Can be a static string or a regular expression."),
-        Parameter::required("with", kind::BYTES, "The string that the matches are replaced with."),
+        Parameter::required(
+            "pattern",
+            kind::BYTES | kind::REGEX,
+            "Replace all matches of this pattern. Can be a static string or a regular expression.",
+        ),
+        Parameter::required(
+            "with",
+            kind::BYTES,
+            "The string that the matches are replaced with.",
+        ),
         Parameter {
             keyword: "count",
             kind: kind::INTEGER,

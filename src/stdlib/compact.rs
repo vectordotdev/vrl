@@ -11,7 +11,11 @@ static DEFAULT_NULLISH: LazyLock<Value> = LazyLock::new(|| Value::Boolean(false)
 
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
-        Parameter::required("value", kind::OBJECT | kind::ARRAY, "The object or array to compact."),
+        Parameter::required(
+            "value",
+            kind::OBJECT | kind::ARRAY,
+            "The object or array to compact.",
+        ),
         Parameter {
             keyword: "recursive",
             kind: kind::BOOLEAN,
