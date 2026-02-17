@@ -12,8 +12,12 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             kind::BYTES,
             "The substring with which `value` must end.",
         ),
-        Parameter::optional("case_sensitive", kind::BOOLEAN, "Whether the match should be case sensitive.")
-            .default(&DEFAULT_CASE_SENSITIVE),
+        Parameter::optional(
+            "case_sensitive",
+            kind::BOOLEAN,
+            "Whether the match should be case sensitive.",
+        )
+        .default(&DEFAULT_CASE_SENSITIVE),
     ]
 });
 

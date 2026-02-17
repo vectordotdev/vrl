@@ -25,10 +25,14 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             "Number of layers to parse for nested JSON-formatted documents.
 The value must be in the range of 1 to 128.",
         ),
-        Parameter::optional("lossy", kind::BOOLEAN, "Whether to parse the JSON in a lossy manner. Replaces invalid UTF-8 characters
+        Parameter::optional(
+            "lossy",
+            kind::BOOLEAN,
+            "Whether to parse the JSON in a lossy manner. Replaces invalid UTF-8 characters
 with the Unicode character `�` (U+FFFD) if set to true, otherwise returns an error
-if there are any invalid UTF-8 characters present.")
-            .default(&DEFAULT_LOSSY),
+if there are any invalid UTF-8 characters present.",
+        )
+        .default(&DEFAULT_LOSSY),
     ]
 });
 

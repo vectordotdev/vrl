@@ -10,10 +10,14 @@ static DEFAULT_PLUS_PARTS: LazyLock<Value> = LazyLock::new(|| Value::Integer(0))
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
         Parameter::required("value", kind::BYTES, "The domain string."),
-        Parameter::optional("plus_parts", kind::INTEGER, "Can be provided to get additional parts of the domain name. When 1 is passed,
+        Parameter::optional(
+            "plus_parts",
+            kind::INTEGER,
+            "Can be provided to get additional parts of the domain name. When 1 is passed,
 eTLD+1 will be returned, which represents a domain registrable by a single
-organization. Higher numbers will return subdomains.")
-            .default(&DEFAULT_PLUS_PARTS),
+organization. Higher numbers will return subdomains.",
+        )
+        .default(&DEFAULT_PLUS_PARTS),
         Parameter::optional(
             "psl",
             kind::BYTES,

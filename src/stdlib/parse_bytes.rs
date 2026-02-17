@@ -73,8 +73,12 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
         ),
         Parameter::required("unit", kind::BYTES, "The output units for the byte.")
             .enum_variants(UNIT_ENUM),
-        Parameter::optional("base", kind::BYTES, "The base for the byte, either 2 or 10.")
-            .default(&DEFAULT_BASE),
+        Parameter::optional(
+            "base",
+            kind::BYTES,
+            "The base for the byte, either 2 or 10.",
+        )
+        .default(&DEFAULT_BASE),
     ]
 });
 

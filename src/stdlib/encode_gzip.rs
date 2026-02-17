@@ -13,8 +13,12 @@ const MAX_COMPRESSION_LEVEL: u32 = 10;
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
         Parameter::required("value", kind::BYTES, "The string to encode."),
-        Parameter::optional("compression_level", kind::INTEGER, "The default compression level.")
-            .default(&DEFAULT_COMPRESSION_LEVEL),
+        Parameter::optional(
+            "compression_level",
+            kind::INTEGER,
+            "The default compression level.",
+        )
+        .default(&DEFAULT_COMPRESSION_LEVEL),
     ]
 });
 

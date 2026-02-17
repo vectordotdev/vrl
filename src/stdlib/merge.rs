@@ -8,8 +8,12 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
         Parameter::required("to", kind::OBJECT, "The object to merge into."),
         Parameter::required("from", kind::OBJECT, "The object to merge from."),
-        Parameter::optional("deep", kind::BOOLEAN, "A deep merge is performed if `true`, otherwise only top-level fields are merged.")
-            .default(&DEFAULT_DEEP),
+        Parameter::optional(
+            "deep",
+            kind::BOOLEAN,
+            "A deep merge is performed if `true`, otherwise only top-level fields are merged.",
+        )
+        .default(&DEFAULT_DEEP),
     ]
 });
 

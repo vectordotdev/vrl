@@ -275,10 +275,18 @@ static DEFAULT_BODY: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
         Parameter::required("url", kind::BYTES, "The URL to make the HTTP request to."),
-        Parameter::optional("method", kind::BYTES, "The HTTP method to use (e.g., GET, POST, PUT, DELETE). Defaults to GET.")
-            .default(&DEFAULT_METHOD),
-        Parameter::optional("headers", kind::OBJECT, "An object containing HTTP headers to send with the request.")
-            .default(&DEFAULT_HEADERS),
+        Parameter::optional(
+            "method",
+            kind::BYTES,
+            "The HTTP method to use (e.g., GET, POST, PUT, DELETE). Defaults to GET.",
+        )
+        .default(&DEFAULT_METHOD),
+        Parameter::optional(
+            "headers",
+            kind::OBJECT,
+            "An object containing HTTP headers to send with the request.",
+        )
+        .default(&DEFAULT_HEADERS),
         Parameter::optional("body", kind::BYTES, "The request body content to send.")
             .default(&DEFAULT_BODY),
         Parameter::optional(

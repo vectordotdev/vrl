@@ -11,8 +11,12 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             kind::FLOAT | kind::INTEGER,
             "The number to round up.",
         ),
-        Parameter::optional("precision", kind::INTEGER, "The number of decimal places to round to.")
-            .default(&DEFAULT_PRECISION),
+        Parameter::optional(
+            "precision",
+            kind::INTEGER,
+            "The number of decimal places to round to.",
+        )
+        .default(&DEFAULT_PRECISION),
     ]
 });
 

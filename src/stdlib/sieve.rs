@@ -12,10 +12,18 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             kind::REGEX,
             "Keep all matches of this pattern.",
         ),
-        Parameter::optional("replace_single", kind::BYTES, "The string to use to replace single rejected characters.")
-            .default(&DEFAULT_REPLACE_SINGLE),
-        Parameter::optional("replace_repeated", kind::BYTES, "The string to use to replace multiple sequential instances of rejected characters.")
-            .default(&DEFAULT_REPLACE_REPEATED),
+        Parameter::optional(
+            "replace_single",
+            kind::BYTES,
+            "The string to use to replace single rejected characters.",
+        )
+        .default(&DEFAULT_REPLACE_SINGLE),
+        Parameter::optional(
+            "replace_repeated",
+            kind::BYTES,
+            "The string to use to replace multiple sequential instances of rejected characters.",
+        )
+        .default(&DEFAULT_REPLACE_REPEATED),
     ]
 });
 

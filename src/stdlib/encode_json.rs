@@ -6,8 +6,12 @@ static DEFAULT_PRETTY: LazyLock<Value> = LazyLock::new(|| Value::Boolean(false))
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
         Parameter::required("value", kind::ANY, "The value to convert to a JSON string."),
-        Parameter::optional("pretty", kind::BOOLEAN, "Whether to pretty print the JSON string or not.")
-            .default(&DEFAULT_PRETTY),
+        Parameter::optional(
+            "pretty",
+            kind::BOOLEAN,
+            "Whether to pretty print the JSON string or not.",
+        )
+        .default(&DEFAULT_PRETTY),
     ]
 });
 

@@ -13,14 +13,30 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             kind::BYTES,
             "The string representation of the XML document to parse.",
         ),
-        Parameter::optional("trim", kind::BOOLEAN, "Remove excess whitespace between XML elements.")
-            .default(&DEFAULT_TRIM),
-        Parameter::optional("include_attr", kind::BOOLEAN, "Include XML tag attributes in the returned object.")
-            .default(&DEFAULT_INCLUDE_ATTR),
-        Parameter::optional("attr_prefix", kind::BYTES, "String prefix to use for XML tag attribute keys.")
-            .default(&DEFAULT_ATTR_PREFIX),
-        Parameter::optional("text_key", kind::BYTES, "Key name to use for expanded text nodes.")
-            .default(&DEFAULT_TEXT_KEY),
+        Parameter::optional(
+            "trim",
+            kind::BOOLEAN,
+            "Remove excess whitespace between XML elements.",
+        )
+        .default(&DEFAULT_TRIM),
+        Parameter::optional(
+            "include_attr",
+            kind::BOOLEAN,
+            "Include XML tag attributes in the returned object.",
+        )
+        .default(&DEFAULT_INCLUDE_ATTR),
+        Parameter::optional(
+            "attr_prefix",
+            kind::BYTES,
+            "String prefix to use for XML tag attribute keys.",
+        )
+        .default(&DEFAULT_ATTR_PREFIX),
+        Parameter::optional(
+            "text_key",
+            kind::BYTES,
+            "Key name to use for expanded text nodes.",
+        )
+        .default(&DEFAULT_TEXT_KEY),
         Parameter {
             keyword: "always_use_text_key",
             kind: kind::BOOLEAN,
@@ -29,12 +45,20 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             default: Some(&DEFAULT_ALWAYS_USE_TEXT_KEY),
             enum_variants: None,
         },
-        Parameter::optional("parse_bool", kind::BOOLEAN, "Parse \"true\" and \"false\" as boolean.")
-            .default(&DEFAULT_PARSE_BOOL),
+        Parameter::optional(
+            "parse_bool",
+            kind::BOOLEAN,
+            "Parse \"true\" and \"false\" as boolean.",
+        )
+        .default(&DEFAULT_PARSE_BOOL),
         Parameter::optional("parse_null", kind::BOOLEAN, "Parse \"null\" as null.")
             .default(&DEFAULT_PARSE_NULL),
-        Parameter::optional("parse_number", kind::BOOLEAN, "Parse numbers as integers/floats.")
-            .default(&DEFAULT_PARSE_NUMBER),
+        Parameter::optional(
+            "parse_number",
+            kind::BOOLEAN,
+            "Parse numbers as integers/floats.",
+        )
+        .default(&DEFAULT_PARSE_NUMBER),
     ]
 });
 

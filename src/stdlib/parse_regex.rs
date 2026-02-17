@@ -9,10 +9,18 @@ static DEFAULT_NUMERIC_GROUPS: LazyLock<Value> = LazyLock::new(|| Value::Boolean
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
         Parameter::required("value", kind::BYTES, "The string to search."),
-        Parameter::required("pattern", kind::REGEX, "The regular expression pattern to search against."),
-        Parameter::optional("numeric_groups", kind::BOOLEAN, "If true, the index of each group in the regular expression is also captured. Index `0`
-contains the whole match.")
-            .default(&DEFAULT_NUMERIC_GROUPS),
+        Parameter::required(
+            "pattern",
+            kind::REGEX,
+            "The regular expression pattern to search against.",
+        ),
+        Parameter::optional(
+            "numeric_groups",
+            kind::BOOLEAN,
+            "If true, the index of each group in the regular expression is also captured. Index `0`
+contains the whole match.",
+        )
+        .default(&DEFAULT_NUMERIC_GROUPS),
     ]
 });
 

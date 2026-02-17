@@ -8,8 +8,12 @@ static DEFAULT_PRECISION: LazyLock<Value> = LazyLock::new(|| Value::Integer(0));
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
         Parameter::required("value", kind::ANY, "The number to round down."),
-        Parameter::optional("precision", kind::ANY, "The number of decimal places to round to.")
-            .default(&DEFAULT_PRECISION),
+        Parameter::optional(
+            "precision",
+            kind::ANY,
+            "The number of decimal places to round to.",
+        )
+        .default(&DEFAULT_PRECISION),
     ]
 });
 

@@ -23,9 +23,13 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             kind::BYTES,
             "The [Base64](https://en.wikipedia.org/wiki/Base64) data to decode.",
         ),
-        Parameter::optional("charset", kind::BYTES, "The character set to use when decoding the data.")
-            .default(&DEFAULT_CHARSET)
-            .enum_variants(CHARSET_ENUM),
+        Parameter::optional(
+            "charset",
+            kind::BYTES,
+            "The character set to use when decoding the data.",
+        )
+        .default(&DEFAULT_CHARSET)
+        .enum_variants(CHARSET_ENUM),
     ]
 });
 

@@ -26,14 +26,18 @@ static SEGMENTATION_ENUM: &[EnumVariant] = &[
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
         Parameter::required("value", kind::BYTES, "The input string."),
-        Parameter::optional("segmentation", kind::BYTES, "Defines how to split the string to calculate entropy, based on occurrences of
+        Parameter::optional(
+            "segmentation",
+            kind::BYTES,
+            "Defines how to split the string to calculate entropy, based on occurrences of
 segments.
 
 Byte segmentation is the fastest, but it might give undesired results when handling
 UTF-8 strings, while grapheme segmentation is the slowest, but most correct in these
-cases.")
-            .default(&DEFAULT_SEGMENTATION)
-            .enum_variants(SEGMENTATION_ENUM),
+cases.",
+        )
+        .default(&DEFAULT_SEGMENTATION)
+        .enum_variants(SEGMENTATION_ENUM),
     ]
 });
 

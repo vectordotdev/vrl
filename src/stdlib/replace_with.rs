@@ -15,8 +15,12 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             kind::REGEX,
             "Replace all matches of this pattern. Must be a regular expression.",
         ),
-        Parameter::optional("count", kind::INTEGER, "The maximum number of replacements to perform. `-1` means replace all matches.")
-            .default(&DEFAULT_COUNT),
+        Parameter::optional(
+            "count",
+            kind::INTEGER,
+            "The maximum number of replacements to perform. `-1` means replace all matches.",
+        )
+        .default(&DEFAULT_COUNT),
     ]
 });
 

@@ -9,10 +9,18 @@ static DEFAULT_RECURSIVE: LazyLock<Value> = LazyLock::new(|| Value::Boolean(true
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
         Parameter::required("value", kind::OBJECT, "The array or object to unflatten."),
-        Parameter::optional("separator", kind::BYTES, "The separator to split flattened keys.")
-            .default(&DEFAULT_SEPARATOR),
-        Parameter::optional("recursive", kind::BOOLEAN, "Whether to recursively unflatten the object values.")
-            .default(&DEFAULT_RECURSIVE),
+        Parameter::optional(
+            "separator",
+            kind::BYTES,
+            "The separator to split flattened keys.",
+        )
+        .default(&DEFAULT_SEPARATOR),
+        Parameter::optional(
+            "recursive",
+            kind::BOOLEAN,
+            "Whether to recursively unflatten the object values.",
+        )
+        .default(&DEFAULT_RECURSIVE),
     ]
 });
 
