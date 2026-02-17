@@ -64,7 +64,6 @@ core-foundation-sys,https://github.com/servo/core-foundation-rs,MIT OR Apache-2.
 cpufeatures,https://github.com/RustCrypto/utils,MIT OR Apache-2.0,RustCrypto Developers
 crc,https://github.com/mrhooray/crc-rs,MIT OR Apache-2.0,"Rui Hu <code@mrhooray.com>, Akhil Velagapudi <4@4khil.com>"
 crc-catalog,https://github.com/akhilles/crc-catalog,MIT OR Apache-2.0,Akhil Velagapudi <akhilvelagapudi@gmail.com>
-crc32fast,https://github.com/srijs/rust-crc32fast,MIT OR Apache-2.0,"Sam Rijs <srijs@airpost.net>, Alex Crichton <alex@alexcrichton.com>"
 crossbeam-channel,https://github.com/crossbeam-rs/crossbeam,MIT OR Apache-2.0,The crossbeam-channel Authors
 crossbeam-epoch,https://github.com/crossbeam-rs/crossbeam,MIT OR Apache-2.0,The crossbeam-epoch Authors
 crossbeam-utils,https://github.com/crossbeam-rs/crossbeam,MIT OR Apache-2.0,The crossbeam-utils Authors
@@ -163,7 +162,6 @@ lalrpop-util,https://github.com/lalrpop/lalrpop,Apache-2.0 OR MIT,Niko Matsakis 
 lazy_static,https://github.com/rust-lang-nursery/lazy-static.rs,MIT OR Apache-2.0,Marvin Löbel <loebel.marvin@gmail.com>
 libc,https://github.com/rust-lang/libc,MIT OR Apache-2.0,The Rust Project Developers
 libredox,https://gitlab.redox-os.org/redox-os/libredox,MIT,4lDO2 <4lDO2@protonmail.com>
-libz-rs-sys,https://github.com/trifectatechfoundation/zlib-rs,Zlib,The libz-rs-sys Authors
 litemap,https://github.com/unicode-org/icu4x,Unicode-3.0,The ICU4X Project Developers
 lock_api,https://github.com/Amanieu/parking_lot,MIT OR Apache-2.0,Amanieu d'Antras <amanieu@gmail.com>
 log,https://github.com/rust-lang/log,MIT OR Apache-2.0,The Rust Project Developers
@@ -201,7 +199,7 @@ once_cell_polyfill,https://github.com/polyfill-rs/once_cell_polyfill,MIT OR Apac
 onig,https://github.com/iwillspeak/rust-onig,MIT,"Will Speak <will@willspeak.me>, Ivan Ivashchenko <defuz@me.com>"
 onig_sys,https://github.com/iwillspeak/rust-onig,MIT,"Will Speak <will@willspeak.me>, Ivan Ivashchenko <defuz@me.com>"
 opaque-debug,https://github.com/RustCrypto/utils,MIT OR Apache-2.0,RustCrypto Developers
-openssl-probe,https://github.com/alexcrichton/openssl-probe,MIT OR Apache-2.0,Alex Crichton <alex@alexcrichton.com>
+openssl-probe,https://github.com/rustls/openssl-probe,MIT OR Apache-2.0,Alex Crichton <alex@alexcrichton.com>
 ordered-float,https://github.com/reem/rust-ordered-float,MIT,"Jonathan Reem <jonathan.reem@gmail.com>, Matt Brubeck <mbrubeck@limpet.net>"
 outref,https://github.com/Nugine/outref,MIT,The outref Authors
 owo-colors,https://github.com/owo-colors/owo-colors,MIT,jam1garner <8260240+jam1garner@users.noreply.github.com>
@@ -395,6 +393,7 @@ zerotrie,https://github.com/unicode-org/icu4x,Unicode-3.0,The ICU4X Project Deve
 zerovec,https://github.com/unicode-org/icu4x,Unicode-3.0,The ICU4X Project Developers
 zerovec-derive,https://github.com/unicode-org/icu4x,Unicode-3.0,Manish Goregaokar <manishsmail@gmail.com>
 zlib-rs,https://github.com/trifectatechfoundation/zlib-rs,Zlib,The zlib-rs Authors
+zmij,https://github.com/dtolnay/zmij,MIT,David Tolnay <dtolnay@gmail.com>
 zstd,https://github.com/gyscos/zstd-rs,MIT,Alexandre Bury <alexandre.bury@gmail.com>
 zstd-safe,https://github.com/gyscos/zstd-rs,MIT OR Apache-2.0,Alexandre Bury <alexandre.bury@gmail.com>
 zstd-sys,https://github.com/gyscos/zstd-rs,MIT OR Apache-2.0,Alexandre Bury <alexandre.bury@gmail.com>
