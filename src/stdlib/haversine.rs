@@ -99,23 +99,21 @@ impl Function for Haversine {
             Parameter::required("longitude1", kind::FLOAT, "Longitude of the first point."),
             Parameter::required("latitude2", kind::FLOAT, "Latitude of the second point."),
             Parameter::required("longitude2", kind::FLOAT, "Longitude of the second point."),
-            Parameter {
-                keyword: "measurement_unit",
-                kind: kind::BYTES,
-                required: false,
-                description: "Measurement system to use for resulting distance.",
-                default: None,
-                enum_variants: Some(&[
-                    EnumVariant {
-                        value: "kilometers",
-                        description: "Use kilometers for the resulting distance.",
-                    },
-                    EnumVariant {
-                        value: "miles",
-                        description: "Use miles for the resulting distance.",
-                    },
-                ]),
-            },
+            Parameter::optional(
+                "measurement_unit",
+                kind::BYTES,
+                "Measurement system to use for resulting distance.",
+            )
+            .enum_variants(&[
+                EnumVariant {
+                    value: "kilometers",
+                    description: "Use kilometers for the resulting distance.",
+                },
+                EnumVariant {
+                    value: "miles",
+                    description: "Use miles for the resulting distance.",
+                },
+            ]),
         ];
         PARAMETERS
     }

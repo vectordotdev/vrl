@@ -84,11 +84,8 @@ See examples for more details.
 This parameter must be a static expression so that the argument can be validated at compile-time
 to avoid runtime errors. You cannot use variables or other dynamic expressions with it.",
             ),
-            Parameter {
-                keyword: "redactor",
-                kind: kind::OBJECT | kind::BYTES,
-                required: false,
-                description: "Specifies what to replace the redacted strings with.
+            // TODO: Should default to Full
+            Parameter::optional("redactor", kind::OBJECT | kind::BYTES, "Specifies what to replace the redacted strings with.
 
 It is given as an object with a \"type\" key specifying the type of redactor to use
 and additional keys depending on the type. The following types are supported:
@@ -113,10 +110,7 @@ As a convenience you can use a string as a shorthand for common redactor pattern
 - `\"sha3\"` is equivalent to `{\"type\": \"sha3\", \"variant\": \"SHA3-512\", \"encoding\": \"base64\"}`
 
 This parameter must be a static expression so that the argument can be validated at compile-time
-to avoid runtime errors. You cannot use variables or other dynamic expressions with it.",
-                default: None, // TODO: Should be Full
-                enum_variants: None,
-            },
+to avoid runtime errors. You cannot use variables or other dynamic expressions with it."),
         ];
         PARAMETERS
     }

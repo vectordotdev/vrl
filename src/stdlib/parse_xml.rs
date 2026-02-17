@@ -37,14 +37,12 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             "Key name to use for expanded text nodes.",
         )
         .default(&DEFAULT_TEXT_KEY),
-        Parameter {
-            keyword: "always_use_text_key",
-            kind: kind::BOOLEAN,
-            required: false,
-            description: "Always return text nodes as `{\"<text_key>\": \"value\"}.`",
-            default: Some(&DEFAULT_ALWAYS_USE_TEXT_KEY),
-            enum_variants: None,
-        },
+        Parameter::optional(
+            "always_use_text_key",
+            kind::BOOLEAN,
+            "Always return text nodes as `{\"<text_key>\": \"value\"}.`",
+        )
+        .default(&DEFAULT_ALWAYS_USE_TEXT_KEY),
         Parameter::optional(
             "parse_bool",
             kind::BOOLEAN,

@@ -30,13 +30,8 @@ impl Function for Snakecase {
         const PARAMETERS: &[Parameter] = &[
             Parameter::required("value", kind::BYTES, "The string to convert to snake_case."),
             ORIGINAL_CASE,
-            Parameter {
-                keyword: "excluded_boundaries",
-                kind: kind::ARRAY,
-                required: false,
-                description: "Case boundaries to exclude during conversion.",
-                default: None,
-                enum_variants: Some(&[
+            Parameter::optional("excluded_boundaries", kind::ARRAY, "Case boundaries to exclude during conversion.")
+                .enum_variants(&[
                     EnumVariant {
                         value: "lower_upper",
                         description: "Lowercase to uppercase transitions (e.g., 'camelCase' → 'camel' + 'case')",
@@ -66,7 +61,6 @@ impl Function for Snakecase {
                         description: "Digit to uppercase transitions (e.g., 'Version123Test' → 'version' + '123test')",
                     },
                 ]),
-            },
         ];
         PARAMETERS
     }

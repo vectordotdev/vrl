@@ -11,13 +11,9 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
         Parameter::required("value", kind::BYTES, "The string to encode."),
         Parameter::optional("padding", kind::BOOLEAN, "Whether the Base64 output is [padded](https://en.wikipedia.org/wiki/Base64#Output_padding).")
             .default(&DEFAULT_PADDING),
-        Parameter {
-            keyword: "charset",
-            kind: kind::BYTES,
-            required: false,
-            description: "The character set to use when encoding the data.",
-            default: Some(&DEFAULT_CHARSET),
-            enum_variants: Some(&[
+        Parameter::optional("charset", kind::BYTES, "The character set to use when encoding the data.")
+            .default(&DEFAULT_CHARSET)
+            .enum_variants(&[
                 EnumVariant {
                     value: "standard",
                     description: "[Standard](https://tools.ietf.org/html/rfc4648#section-4) Base64 format.",
@@ -27,7 +23,6 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
                     description: "Modified Base64 for [URL variants](https://en.wikipedia.org/wiki/Base64#URL_applications).",
                 },
             ]),
-        },
     ]
 });
 
