@@ -31,6 +31,7 @@ impl Function for ScreamingSnakecase {
                 required: true,
                 description: "The string to convert to SCREAMING_SNAKE case.",
                 default: None,
+                enum_variants: None,
             },
             Parameter {
                 keyword: "original_case",
@@ -38,6 +39,7 @@ impl Function for ScreamingSnakecase {
                 required: false,
                 description: "Optional hint on the original case type. Must be one of: kebab-case, camelCase, PascalCase, SCREAMING_SNAKE, snake_case",
                 default: None,
+                enum_variants: None,
             },
         ]
     }

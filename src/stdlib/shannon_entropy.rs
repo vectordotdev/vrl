@@ -2,10 +2,26 @@ use std::{collections::HashMap, str::FromStr};
 
 use unicode_segmentation::UnicodeSegmentation;
 
+use crate::compiler::function::EnumVariant;
 use crate::compiler::prelude::*;
 use std::sync::LazyLock;
 
 static DEFAULT_SEGMENTATION: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from("byte")));
+
+static SEGMENTATION_ENUM: &[EnumVariant] = &[
+    EnumVariant {
+        value: "byte",
+        description: "Considers individual bytes when calculating entropy",
+    },
+    EnumVariant {
+        value: "codepoint",
+        description: "Considers codepoints when calculating entropy",
+    },
+    EnumVariant {
+        value: "grapheme",
+        description: "Considers graphemes when calculating entropy",
+    },
+];
 
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
@@ -15,6 +31,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: true,
             description: "The input string.",
             default: None,
+            enum_variants: None,
         },
         Parameter {
             keyword: "segmentation",
@@ -28,6 +45,7 @@ Byte segmentation is the fastest, but it might give undesired results when handl
 UTF-8 strings, while grapheme segmentation is the slowest, but most correct in these
 cases.",
             default: Some(&DEFAULT_SEGMENTATION),
+            enum_variants: Some(SEGMENTATION_ENUM),
         },
     ]
 });

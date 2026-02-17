@@ -14,6 +14,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: true,
             description: "The string representation of the XML document to parse.",
             default: None,
+            enum_variants: None,
         },
         Parameter {
             keyword: "trim",
@@ -21,6 +22,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: false,
             description: "Remove excess whitespace between XML elements.",
             default: Some(&DEFAULT_TRIM),
+            enum_variants: None,
         },
         Parameter {
             keyword: "include_attr",
@@ -28,6 +30,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: false,
             description: "Include XML tag attributes in the returned object.",
             default: Some(&DEFAULT_INCLUDE_ATTR),
+            enum_variants: None,
         },
         Parameter {
             keyword: "attr_prefix",
@@ -35,6 +38,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: false,
             description: "String prefix to use for XML tag attribute keys.",
             default: Some(&DEFAULT_ATTR_PREFIX),
+            enum_variants: None,
         },
         Parameter {
             keyword: "text_key",
@@ -42,6 +46,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: false,
             description: "Key name to use for expanded text nodes.",
             default: Some(&DEFAULT_TEXT_KEY),
+            enum_variants: None,
         },
         Parameter {
             keyword: "always_use_text_key",
@@ -49,6 +54,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: false,
             description: "Always return text nodes as `{\"<text_key>\": \"value\"}.`",
             default: Some(&DEFAULT_ALWAYS_USE_TEXT_KEY),
+            enum_variants: None,
         },
         Parameter {
             keyword: "parse_bool",
@@ -56,6 +62,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: false,
             description: "Parse \"true\" and \"false\" as boolean.",
             default: Some(&DEFAULT_PARSE_BOOL),
+            enum_variants: None,
         },
         Parameter {
             keyword: "parse_null",
@@ -63,6 +70,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: false,
             description: "Parse \"null\" as null.",
             default: Some(&DEFAULT_PARSE_NULL),
+            enum_variants: None,
         },
         Parameter {
             keyword: "parse_number",
@@ -70,6 +78,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: false,
             description: "Parse numbers as integers/floats.",
             default: Some(&DEFAULT_PARSE_NUMBER),
+            enum_variants: None,
         },
     ]
 });

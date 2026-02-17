@@ -13,6 +13,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: true,
             description: "The string to encode.",
             default: None,
+            enum_variants: None,
         },
         Parameter {
             keyword: "prepend_size",
@@ -20,6 +21,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: false,
             description: "Whether to prepend the original size to the compressed data.",
             default: Some(&DEFAULT_PREPEND_SIZE),
+            enum_variants: None,
         },
     ]
 });

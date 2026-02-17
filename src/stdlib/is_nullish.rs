@@ -48,6 +48,7 @@ impl Function for IsNullish {
             required: true,
             description: "The value to check for nullishness, for example, a useless value.",
             default: None,
+            enum_variants: None,
         }]
     }
 

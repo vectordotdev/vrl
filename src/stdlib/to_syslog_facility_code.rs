@@ -64,6 +64,7 @@ impl Function for ToSyslogFacilityCode {
             required: true,
             description: "The Syslog facility keyword to convert.",
             default: None,
+            enum_variants: None,
         }]
     }
 

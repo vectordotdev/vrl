@@ -27,6 +27,7 @@ impl Function for StripWhitespace {
             required: true,
             description: "The string to trim.",
             default: None,
+            enum_variants: None,
         }]
     }
 

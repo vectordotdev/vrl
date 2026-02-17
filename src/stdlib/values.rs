@@ -37,6 +37,7 @@ impl Function for Values {
             required: true,
             description: "The object to extract values from.",
             default: None,
+            enum_variants: None,
         }]
     }
 

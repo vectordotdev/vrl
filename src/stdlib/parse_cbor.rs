@@ -101,6 +101,7 @@ impl Function for ParseCbor {
             required: true,
             description: "The CBOR payload to parse.",
             default: None,
+            enum_variants: None,
         }]
     }
 }

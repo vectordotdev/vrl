@@ -12,6 +12,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: true,
             description: "The object to merge into.",
             default: None,
+            enum_variants: None,
         },
         Parameter {
             keyword: "from",
@@ -19,6 +20,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: true,
             description: "The object to merge from.",
             default: None,
+            enum_variants: None,
         },
         Parameter {
             keyword: "deep",
@@ -26,6 +28,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: false,
             description: "A deep merge is performed if `true`, otherwise only top-level fields are merged.",
             default: Some(&DEFAULT_DEEP),
+            enum_variants: None,
         },
     ]
 });

@@ -85,6 +85,7 @@ impl Function for ObjectFromArray {
                 required: true,
                 description: "The first array of elements, or the array of input arrays if no other parameter is present.",
                 default: None,
+                enum_variants: None,
             },
             Parameter {
                 keyword: "keys",
@@ -92,6 +93,7 @@ impl Function for ObjectFromArray {
                 required: false,
                 description: "The second array of elements. If not present, the first parameter must contain all the arrays.",
                 default: None,
+                enum_variants: None,
             },
         ]
     }

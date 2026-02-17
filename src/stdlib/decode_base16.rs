@@ -40,6 +40,7 @@ impl Function for DecodeBase16 {
             required: true,
             description: "The [Base16](https://en.wikipedia.org/wiki/Hexadecimal) data to decode.",
             default: None,
+            enum_variants: None,
         }]
     }
 

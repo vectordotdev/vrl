@@ -61,6 +61,7 @@ impl Function for DecodeZstd {
             required: true,
             description: "The [Zstandard](https://facebook.github.io/zstd) data to decode.",
             default: None,
+            enum_variants: None,
         }]
     }
 }

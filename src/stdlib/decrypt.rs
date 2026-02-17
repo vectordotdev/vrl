@@ -181,6 +181,7 @@ impl Function for Decrypt {
                 required: true,
                 description: "The string in raw bytes (not encoded) to decrypt.",
                 default: None,
+            enum_variants: None,
             },
             Parameter {
                 keyword: "algorithm",
@@ -188,6 +189,7 @@ impl Function for Decrypt {
                 required: true,
                 description: "The algorithm to use.",
                 default: None,
+            enum_variants: None,
             },
             Parameter {
                 keyword: "key",
@@ -195,6 +197,7 @@ impl Function for Decrypt {
                 required: true,
                 description: "The key in raw bytes (not encoded) for decryption. The length must match the algorithm requested.",
                 default: None,
+            enum_variants: None,
             },
             Parameter {
                 keyword: "iv",
@@ -204,6 +207,7 @@ impl Function for Decrypt {
 A new IV should be generated for every message. You can use `random_bytes` to generate a cryptographically secure random value.
 The value should match the one used during encryption.",
                 default: None,
+            enum_variants: None,
             },
         ]
     }

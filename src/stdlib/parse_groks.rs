@@ -82,6 +82,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: true,
             description: "The string to parse.",
             default: None,
+            enum_variants: None,
         },
         Parameter {
             keyword: "patterns",
@@ -89,6 +90,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: true,
             description: "The [Grok patterns](https://github.com/daschl/grok/tree/master/patterns), which are tried in order until the first match.",
             default: None,
+            enum_variants: None,
         },
         Parameter {
             keyword: "aliases",
@@ -96,6 +98,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: false,
             description: "The shared set of grok aliases that can be referenced in the patterns to simplify them.",
             default: Some(&DEFAULT_ALIASES),
+            enum_variants: None,
         },
         Parameter {
             keyword: "alias_sources",
@@ -103,6 +106,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: false,
             description: "Path to the file containing aliases in a JSON format.",
             default: Some(&DEFAULT_ALIAS_SOURCES),
+            enum_variants: None,
         },
     ]
 });

@@ -44,6 +44,7 @@ impl Function for Join {
                 required: true,
                 description: "The array of strings to join together.",
                 default: None,
+                enum_variants: None,
             },
             Parameter {
                 keyword: "separator",
@@ -51,6 +52,7 @@ impl Function for Join {
                 required: false,
                 description: "The string separating each original element when joined.",
                 default: None,
+                enum_variants: None,
             },
         ]
     }

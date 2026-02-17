@@ -45,6 +45,7 @@ impl Function for Float {
             required: true,
             description: "The value to check if it is a float.",
             default: None,
+            enum_variants: None,
         }]
     }
 

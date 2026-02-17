@@ -37,6 +37,7 @@ impl Function for Keys {
             required: true,
             description: "The object to extract keys from.",
             default: None,
+            enum_variants: None,
         }]
     }
 

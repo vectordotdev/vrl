@@ -1296,6 +1296,7 @@ mod tests {
                     required: false,
                     description: "one",
                     default: None,
+                    enum_variants: None,
                 },
                 Parameter {
                     keyword: "two",
@@ -1303,6 +1304,7 @@ mod tests {
                     required: false,
                     description: "two",
                     default: None,
+                    enum_variants: None,
                 },
                 Parameter {
                     keyword: "three",
@@ -1310,6 +1312,7 @@ mod tests {
                     required: false,
                     description: "three",
                     default: None,
+                    enum_variants: None,
                 },
             ]
         }

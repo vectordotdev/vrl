@@ -55,6 +55,7 @@ impl Function for ToString {
             required: true,
             description: "The value to convert to a string.",
             default: None,
+            enum_variants: None,
         }]
     }
 

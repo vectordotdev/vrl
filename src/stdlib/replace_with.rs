@@ -15,6 +15,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: true,
             description: "The original string.",
             default: None,
+            enum_variants: None,
         },
         Parameter {
             keyword: "pattern",
@@ -22,6 +23,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: true,
             description: "Replace all matches of this pattern. Must be a regular expression.",
             default: None,
+            enum_variants: None,
         },
         Parameter {
             keyword: "count",
@@ -29,6 +31,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: false,
             description: "The maximum number of replacements to perform. `-1` means replace all matches.",
             default: Some(&DEFAULT_COUNT),
+            enum_variants: None,
         },
     ]
 });

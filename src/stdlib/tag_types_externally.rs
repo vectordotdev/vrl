@@ -78,6 +78,7 @@ impl Function for TagTypesExternally {
             required: true,
             description: "The value to tag with types.",
             default: None,
+            enum_variants: None,
         }]
     }
 }

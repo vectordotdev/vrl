@@ -31,6 +31,7 @@ impl Function for Downcase {
             required: true,
             description: "The string to convert to lowercase.",
             default: None,
+            enum_variants: None,
         }]
     }
 

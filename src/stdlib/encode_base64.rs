@@ -1,3 +1,4 @@
+use crate::compiler::function::EnumVariant;
 use crate::compiler::prelude::*;
 use crate::stdlib::util::Base64Charset;
 use std::sync::LazyLock;
@@ -13,6 +14,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: true,
             description: "The string to encode.",
             default: None,
+            enum_variants: None,
         },
         Parameter {
             keyword: "padding",
@@ -20,6 +22,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: false,
             description: "Whether the Base64 output is [padded](https://en.wikipedia.org/wiki/Base64#Output_padding).",
             default: Some(&DEFAULT_PADDING),
+            enum_variants: None,
         },
         Parameter {
             keyword: "charset",
@@ -27,6 +30,16 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: false,
             description: "The character set to use when encoding the data.",
             default: Some(&DEFAULT_CHARSET),
+            enum_variants: Some(&[
+                EnumVariant {
+                    value: "standard",
+                    description: "[Standard](https://tools.ietf.org/html/rfc4648#section-4) Base64 format.",
+                },
+                EnumVariant {
+                    value: "url_safe",
+                    description: "Modified Base64 for [URL variants](https://en.wikipedia.org/wiki/Base64#URL_applications).",
+                },
+            ]),
         },
     ]
 });

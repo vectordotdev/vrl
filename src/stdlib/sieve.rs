@@ -12,6 +12,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: true,
             description: "The original string.",
             default: None,
+            enum_variants: None,
         },
         Parameter {
             keyword: "permitted_characters",
@@ -19,6 +20,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: true,
             description: "Keep all matches of this pattern.",
             default: None,
+            enum_variants: None,
         },
         Parameter {
             keyword: "replace_single",
@@ -26,6 +28,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: false,
             description: "The string to use to replace single rejected characters.",
             default: Some(&DEFAULT_REPLACE_SINGLE),
+            enum_variants: None,
         },
         Parameter {
             keyword: "replace_repeated",
@@ -33,6 +36,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: false,
             description: "The string to use to replace multiple sequential instances of rejected characters.",
             default: Some(&DEFAULT_REPLACE_REPEATED),
+            enum_variants: None,
         },
     ]
 });

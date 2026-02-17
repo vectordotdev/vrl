@@ -67,6 +67,7 @@ impl Function for EncodeCharset {
                 required: true,
                 description: "The UTF8 string to encode.",
                 default: None,
+                enum_variants: None,
             },
             Parameter {
                 keyword: "to_charset",
@@ -74,6 +75,7 @@ impl Function for EncodeCharset {
                 required: true,
                 description: "The [character set](https://encoding.spec.whatwg.org/#names-and-labels) to use when encoding the data.",
                 default: None,
+                enum_variants: None,
             },
         ]
     }

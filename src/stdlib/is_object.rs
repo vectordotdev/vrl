@@ -35,6 +35,7 @@ impl Function for IsObject {
             required: true,
             description: "The value to check if it is an object.",
             default: None,
+            enum_variants: None,
         }]
     }
 

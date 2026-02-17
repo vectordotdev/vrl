@@ -13,6 +13,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
         required: false,
         description: "The timestamp used to generate the UUIDv7.",
         default: Some(&DEFAULT_TIMESTAMP),
+        enum_variants: None,
     }]
 });
 

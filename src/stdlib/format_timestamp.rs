@@ -44,6 +44,7 @@ impl Function for FormatTimestamp {
                 required: true,
                 description: "The timestamp to format as text.",
                 default: None,
+                enum_variants: None,
             },
             Parameter {
                 keyword: "format",
@@ -51,6 +52,7 @@ impl Function for FormatTimestamp {
                 required: true,
                 description: "The format string as described by the [Chrono library](https://docs.rs/chrono/latest/chrono/format/strftime/index.html#specifiers).",
                 default: None,
+                enum_variants: None,
             },
             Parameter {
                 keyword: "timezone",
@@ -58,6 +60,7 @@ impl Function for FormatTimestamp {
                 required: false,
                 description: "The timezone to use when formatting the timestamp. The parameter uses the TZ identifier or `local`.",
                 default: None,
+                enum_variants: None,
             },
         ]
     }

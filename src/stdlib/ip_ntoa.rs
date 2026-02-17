@@ -46,6 +46,7 @@ impl Function for IpNtoa {
             required: true,
             description: "The integer representation of an IPv4 address.",
             default: None,
+            enum_variants: None,
         }]
     }
 

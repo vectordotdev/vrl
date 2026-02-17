@@ -41,6 +41,7 @@ impl Function for Mod {
                 required: true,
                 description: "The value the `modulus` is applied to.",
                 default: None,
+                enum_variants: None,
             },
             Parameter {
                 keyword: "modulus",
@@ -48,6 +49,7 @@ impl Function for Mod {
                 required: true,
                 description: "The `modulus` value.",
                 default: None,
+                enum_variants: None,
             },
         ]
     }

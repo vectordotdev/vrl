@@ -1,5 +1,52 @@
+use crate::compiler::function::EnumVariant;
 use crate::compiler::prelude::*;
 use crate::value;
+
+static VARIANT_ENUM: &[EnumVariant] = &[
+    EnumVariant {
+        value: "object",
+        description: "JSON object - {}",
+    },
+    EnumVariant {
+        value: "array",
+        description: "JSON array - []",
+    },
+    EnumVariant {
+        value: "string",
+        description: "JSON-formatted string values wrapped with quote marks",
+    },
+    EnumVariant {
+        value: "number",
+        description: "Integer or float numbers",
+    },
+    EnumVariant {
+        value: "bool",
+        description: "True or false",
+    },
+    EnumVariant {
+        value: "null",
+        description: "Exact null value",
+    },
+];
+
+static PARAMETERS: &[Parameter] = &[
+    Parameter {
+        keyword: "value",
+        kind: kind::BYTES,
+        required: true,
+        description: "The value to check if it is a valid JSON document.",
+        default: None,
+        enum_variants: None,
+    },
+    Parameter {
+        keyword: "variant",
+        kind: kind::BYTES,
+        required: false,
+        description: "The variant of the JSON type to explicitly check for.",
+        default: None,
+        enum_variants: Some(VARIANT_ENUM),
+    },
+];
 
 fn is_json(value: Value) -> Resolved {
     let bytes = value.try_bytes()?;
@@ -71,22 +118,7 @@ impl Function for IsJson {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::BYTES,
-                required: true,
-                description: "The value to check if it is a valid JSON document.",
-                default: None,
-            },
-            Parameter {
-                keyword: "variant",
-                kind: kind::BYTES,
-                required: false,
-                description: "The variant of the JSON type to explicitly check for.",
-                default: None,
-            },
-        ]
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {

@@ -39,6 +39,7 @@ impl Function for Upcase {
             required: true,
             description: "The string to convert to uppercase.",
             default: None,
+            enum_variants: None,
         }]
     }
 

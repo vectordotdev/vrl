@@ -78,6 +78,7 @@ impl Function for IpSubnet {
                 required: true,
                 description: "The IP address (v4 or v6).",
                 default: None,
+            enum_variants: None,
             },
             Parameter {
                 keyword: "subnet",
@@ -86,6 +87,7 @@ impl Function for IpSubnet {
                 description: "The subnet to extract from the IP address. This can be either a prefix length like `/8` or a net mask
 like `255.255.0.0`. The net mask can be either an IPv4 or IPv6 address.",
                 default: None,
+            enum_variants: None,
             },
         ]
     }

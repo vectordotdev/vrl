@@ -85,6 +85,7 @@ impl Function for CommunityID {
                 required: true,
                 description: "The source IP address.",
                 default: None,
+                enum_variants: None,
             },
             Parameter {
                 keyword: "destination_ip",
@@ -92,6 +93,7 @@ impl Function for CommunityID {
                 required: true,
                 description: "The destination IP address.",
                 default: None,
+                enum_variants: None,
             },
             Parameter {
                 keyword: "protocol",
@@ -99,6 +101,7 @@ impl Function for CommunityID {
                 required: true,
                 description: "The protocol number.",
                 default: None,
+                enum_variants: None,
             },
             Parameter {
                 keyword: "source_port",
@@ -106,6 +109,7 @@ impl Function for CommunityID {
                 required: false,
                 description: "The source port or ICMP type.",
                 default: None,
+                enum_variants: None,
             },
             Parameter {
                 keyword: "destination_port",
@@ -113,6 +117,7 @@ impl Function for CommunityID {
                 required: false,
                 description: "The destination port or ICMP code.",
                 default: None,
+                enum_variants: None,
             },
             Parameter {
                 keyword: "seed",
@@ -120,6 +125,7 @@ impl Function for CommunityID {
                 required: false,
                 description: "The custom seed number.",
                 default: None,
+                enum_variants: None,
             },
         ]
     }

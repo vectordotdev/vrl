@@ -79,6 +79,7 @@ impl Function for ParseProto {
                 required: true,
                 description: "The protocol buffer payload to parse.",
                 default: None,
+                enum_variants: None,
             },
             Parameter {
                 keyword: "desc_file",
@@ -89,6 +90,7 @@ impl Function for ParseProto {
 
 This file is the output of protoc -o <path> ...",
                 default: None,
+                enum_variants: None,
             },
             Parameter {
                 keyword: "message_type",
@@ -98,6 +100,7 @@ This file is the output of protoc -o <path> ...",
 
 Must be a literal string.",
                 default: None,
+                enum_variants: None,
             },
         ]
     }

@@ -66,6 +66,7 @@ impl Function for ToSyslogFacility {
             required: true,
             description: "The facility code.",
             default: None,
+            enum_variants: None,
         }]
     }
 

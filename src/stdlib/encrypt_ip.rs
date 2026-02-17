@@ -85,6 +85,7 @@ impl Function for EncryptIp {
                 required: true,
                 description: "The IP address to encrypt (v4 or v6).",
                 default: None,
+                enum_variants: None,
             },
             Parameter {
                 keyword: "key",
@@ -92,6 +93,7 @@ impl Function for EncryptIp {
                 required: true,
                 description: "The encryption key in raw bytes (not encoded). For AES128 mode, the key must be exactly 16 bytes. For PFX mode, the key must be exactly 32 bytes.",
                 default: None,
+                enum_variants: None,
             },
             Parameter {
                 keyword: "mode",
@@ -99,6 +101,7 @@ impl Function for EncryptIp {
                 required: true,
                 description: "The encryption mode to use. Must be either `aes128` or `pfx`.",
                 default: None,
+                enum_variants: None,
             },
         ]
     }

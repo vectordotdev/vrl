@@ -181,6 +181,12 @@ impl FunctionCompileContext {
 // -----------------------------------------------------------------------------
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct EnumVariant {
+    pub value: &'static str,
+    pub description: &'static str,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct Parameter {
     /// The keyword of the parameter.
     ///
@@ -212,6 +218,9 @@ pub struct Parameter {
     ///   to create static [`Value`] instances. If you are already in a [`LazyLock`](std::sync::LazyLock) block,
     ///   you'll have to create another [`LazyLock`](std::sync::LazyLock) in order to make both static.
     pub default: Option<&'static Value>,
+
+    /// Enum variants for this parameter, if the parameter accepts a limited set of values.
+    pub enum_variants: Option<&'static [EnumVariant]>,
 }
 
 impl Parameter {
@@ -703,6 +712,7 @@ mod tests {
                 required: false,
                 description: "",
                 default: None,
+                r#enum: None,
             };
 
             assert_eq!(parameter.kind(), kind, "{title}");

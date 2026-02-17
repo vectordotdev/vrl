@@ -76,6 +76,7 @@ impl Function for Get {
                 required: true,
                 description: "The object or array to query.",
                 default: None,
+                enum_variants: None,
             },
             Parameter {
                 keyword: "path",
@@ -83,6 +84,7 @@ impl Function for Get {
                 required: true,
                 description: "An array of path segments to look for the value.",
                 default: None,
+                enum_variants: None,
             },
         ]
     }

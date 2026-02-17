@@ -13,6 +13,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: true,
             description: "The number to format.",
             default: None,
+            enum_variants: None,
         },
         Parameter {
             keyword: "base",
@@ -20,6 +21,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: false,
             description: "The base to format the number in. Must be between 2 and 36 (inclusive).",
             default: Some(&DEFAULT_BASE),
+            enum_variants: None,
         },
     ]
 });

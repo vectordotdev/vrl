@@ -53,6 +53,7 @@ impl Function for TallyValue {
                 required: true,
                 description: "The array to search through.",
                 default: None,
+                enum_variants: None,
             },
             Parameter {
                 keyword: "value",
@@ -60,6 +61,7 @@ impl Function for TallyValue {
                 required: true,
                 description: "The value to count occurrences of in the array.",
                 default: None,
+                enum_variants: None,
             },
         ]
     }

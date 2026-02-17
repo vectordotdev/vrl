@@ -33,6 +33,7 @@ impl Function for Snakecase {
                 required: true,
                 description: "The string to convert to snake_case.",
                 default: None,
+                enum_variants: None,
             },
             Parameter {
                 keyword: "original_case",
@@ -40,6 +41,7 @@ impl Function for Snakecase {
                 required: false,
                 description: "Optional hint on the original case type. Must be one of: kebab-case, camelCase, PascalCase, SCREAMING_SNAKE, snake_case",
                 default: None,
+                enum_variants: None,
             },
             Parameter {
                 keyword: "excluded_boundaries",
@@ -59,6 +61,7 @@ impl Function for Snakecase {
                     - digit_upper
                 "},
                 default: None,
+                enum_variants: None,
             },
         ]
     }

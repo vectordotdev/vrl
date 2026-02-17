@@ -55,6 +55,7 @@ impl Function for RandomInt {
                 required: true,
                 description: "Minimum value (inclusive).",
                 default: None,
+                enum_variants: None,
             },
             Parameter {
                 keyword: "max",
@@ -62,6 +63,7 @@ impl Function for RandomInt {
                 required: true,
                 description: "Maximum value (exclusive).",
                 default: None,
+                enum_variants: None,
             },
         ]
     }

@@ -1,3 +1,4 @@
+use crate::compiler::function::EnumVariant;
 use crate::compiler::prelude::*;
 use hmac::{Hmac as HmacHasher, Mac};
 use sha_2::{Sha224, Sha256, Sha384, Sha512};
@@ -17,6 +18,29 @@ macro_rules! hmac {
 
 static DEFAULT_ALGORITHM: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from("SHA-256")));
 
+static ALGORITHM_ENUM: &[EnumVariant] = &[
+    EnumVariant {
+        value: "SHA1",
+        description: "SHA1 algorithm",
+    },
+    EnumVariant {
+        value: "SHA-224",
+        description: "SHA-224 algorithm",
+    },
+    EnumVariant {
+        value: "SHA-256",
+        description: "SHA-256 algorithm",
+    },
+    EnumVariant {
+        value: "SHA-384",
+        description: "SHA-384 algorithm",
+    },
+    EnumVariant {
+        value: "SHA-512",
+        description: "SHA-512 algorithm",
+    },
+];
+
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
         Parameter {
@@ -25,6 +49,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: true,
             description: "The string to calculate the HMAC for.",
             default: None,
+            enum_variants: None,
         },
         Parameter {
             keyword: "key",
@@ -32,6 +57,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: true,
             description: "The string to use as the cryptographic key.",
             default: None,
+            enum_variants: None,
         },
         Parameter {
             keyword: "algorithm",
@@ -39,6 +65,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: false,
             description: "The hashing algorithm to use.",
             default: Some(&DEFAULT_ALGORITHM),
+            enum_variants: Some(ALGORITHM_ENUM),
         },
     ]
 });

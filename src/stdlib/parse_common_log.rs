@@ -14,6 +14,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: true,
             description: "The string to parse.",
             default: None,
+        enum_variants: None,
         },
         Parameter {
             keyword: "timestamp_format",
@@ -22,6 +23,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             description: "The [date/time format](https://docs.rs/chrono/latest/chrono/format/strftime/index.html) to use for
 encoding the timestamp.",
             default: Some(&DEFAULT_TIMESTAMP_FORMAT),
+        enum_variants: None,
         },
     ]
 });

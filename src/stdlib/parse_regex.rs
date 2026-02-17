@@ -14,6 +14,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: true,
             description: "The string to search.",
             default: None,
+        enum_variants: None,
         },
         Parameter {
             keyword: "pattern",
@@ -21,6 +22,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: true,
             description: "The regular expression pattern to search against.",
             default: None,
+        enum_variants: None,
         },
         Parameter {
             keyword: "numeric_groups",
@@ -29,6 +31,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             description: "If true, the index of each group in the regular expression is also captured. Index `0`
 contains the whole match.",
             default: Some(&DEFAULT_NUMERIC_GROUPS),
+        enum_variants: None,
         },
     ]
 });

@@ -67,6 +67,7 @@ impl Function for DecodeCharset {
                 required: true,
                 description: "The non-UTF8 string to decode.",
                 default: None,
+                enum_variants: None,
             },
             Parameter {
                 keyword: "from_charset",
@@ -74,6 +75,7 @@ impl Function for DecodeCharset {
                 required: true,
                 description: "The [character set](https://encoding.spec.whatwg.org/#names-and-labels) to use when decoding the data.",
                 default: None,
+                enum_variants: None,
             },
         ]
     }

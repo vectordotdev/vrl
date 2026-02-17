@@ -1,3 +1,4 @@
+use crate::compiler::function::EnumVariant;
 use crate::compiler::prelude::*;
 use crc::Crc as CrcInstance;
 use std::sync::LazyLock;
@@ -120,6 +121,457 @@ const VALID_ALGORITHMS: &[&str] = &[
     "CRC_82_DARC",
 ];
 
+static ALGORITHM_ENUM: &[EnumVariant] = &[
+    EnumVariant {
+        value: "CRC_3_GSM",
+        description: "3-bit CRC used in GSM telecommunications for error detection",
+    },
+    EnumVariant {
+        value: "CRC_3_ROHC",
+        description: "3-bit CRC used in Robust Header Compression (ROHC) protocol",
+    },
+    EnumVariant {
+        value: "CRC_4_G_704",
+        description: "4-bit CRC specified in ITU-T G.704 for synchronous communication systems",
+    },
+    EnumVariant {
+        value: "CRC_4_INTERLAKEN",
+        description: "4-bit CRC used in Interlaken high-speed serial communication protocol",
+    },
+    EnumVariant {
+        value: "CRC_5_EPC_C1G2",
+        description: "5-bit CRC used in EPC Gen 2 RFID (Radio-Frequency Identification) standard",
+    },
+    EnumVariant {
+        value: "CRC_5_G_704",
+        description: "5-bit CRC variant in ITU-T G.704 telecommunication standard",
+    },
+    EnumVariant {
+        value: "CRC_5_USB",
+        description: "5-bit CRC used in USB communication for detecting transmission errors",
+    },
+    EnumVariant {
+        value: "CRC_6_CDMA2000_A",
+        description: "6-bit CRC variant used in CDMA2000 network protocols",
+    },
+    EnumVariant {
+        value: "CRC_6_CDMA2000_B",
+        description: "Alternative 6-bit CRC variant for CDMA2000 network protocols",
+    },
+    EnumVariant {
+        value: "CRC_6_DARC",
+        description: "6-bit CRC used in DARC (Digital Audio Radio Channel) communication",
+    },
+    EnumVariant {
+        value: "CRC_6_GSM",
+        description: "6-bit CRC variant used in GSM telecommunications",
+    },
+    EnumVariant {
+        value: "CRC_6_G_704",
+        description: "6-bit CRC specified in ITU-T G.704 for synchronous communication",
+    },
+    EnumVariant {
+        value: "CRC_7_MMC",
+        description: "7-bit CRC used in MultiMediaCard (MMC) storage systems for error detection",
+    },
+    EnumVariant {
+        value: "CRC_7_ROHC",
+        description: "7-bit CRC used in Robust Header Compression (ROHC) protocol",
+    },
+    EnumVariant {
+        value: "CRC_7_UMTS",
+        description: "7-bit CRC used in UMTS (Universal Mobile Telecommunications System)",
+    },
+    EnumVariant {
+        value: "CRC_8_AUTOSAR",
+        description: "8-bit CRC used in AUTOSAR (Automotive Open System Architecture) standard",
+    },
+    EnumVariant {
+        value: "CRC_8_BLUETOOTH",
+        description: "8-bit CRC polynomial used in Bluetooth communication protocols",
+    },
+    EnumVariant {
+        value: "CRC_8_CDMA2000",
+        description: "8-bit CRC used in CDMA2000 cellular communication standard",
+    },
+    EnumVariant {
+        value: "CRC_8_DARC",
+        description: "8-bit CRC used in DARC (Digital Audio Radio Channel) communication",
+    },
+    EnumVariant {
+        value: "CRC_8_DVB_S2",
+        description: "8-bit CRC used in DVB-S2 (Digital Video Broadcasting Satellite Second Generation)",
+    },
+    EnumVariant {
+        value: "CRC_8_GSM_A",
+        description: "8-bit CRC variant A used in GSM telecommunications",
+    },
+    EnumVariant {
+        value: "CRC_8_GSM_B",
+        description: "8-bit CRC variant B used in GSM telecommunications",
+    },
+    EnumVariant {
+        value: "CRC_8_HITAG",
+        description: "8-bit CRC used in Hitag RFID and transponder systems",
+    },
+    EnumVariant {
+        value: "CRC_8_I_432_1",
+        description: "8-bit CRC specified in IEEE 1432.1 standard",
+    },
+    EnumVariant {
+        value: "CRC_8_I_CODE",
+        description: "8-bit CRC used in I-CODE RFID systems",
+    },
+    EnumVariant {
+        value: "CRC_8_LTE",
+        description: "8-bit CRC used in LTE (Long-Term Evolution) cellular networks",
+    },
+    EnumVariant {
+        value: "CRC_8_MAXIM_DOW",
+        description: "8-bit CRC used by Maxim/Dallas Semiconductor for 1-Wire and iButton devices",
+    },
+    EnumVariant {
+        value: "CRC_8_MIFARE_MAD",
+        description: "8-bit CRC used in MIFARE MAD (Multiple Application Directory) protocol",
+    },
+    EnumVariant {
+        value: "CRC_8_NRSC_5",
+        description: "8-bit CRC used in NRSC-5 digital radio broadcasting standard",
+    },
+    EnumVariant {
+        value: "CRC_8_OPENSAFETY",
+        description: "8-bit CRC used in OpenSAFETY industrial communication protocol",
+    },
+    EnumVariant {
+        value: "CRC_8_ROHC",
+        description: "8-bit CRC used in Robust Header Compression (ROHC) protocol",
+    },
+    EnumVariant {
+        value: "CRC_8_SAE_J1850",
+        description: "8-bit CRC used in SAE J1850 automotive communication protocol",
+    },
+    EnumVariant {
+        value: "CRC_8_SMBUS",
+        description: "8-bit CRC used in System Management Bus (SMBus) communication",
+    },
+    EnumVariant {
+        value: "CRC_8_TECH_3250",
+        description: "8-bit CRC used in SMPTE (Society of Motion Picture and Television Engineers) standard",
+    },
+    EnumVariant {
+        value: "CRC_8_WCDMA",
+        description: "8-bit CRC used in WCDMA (Wideband Code Division Multiple Access) networks",
+    },
+    EnumVariant {
+        value: "CRC_10_ATM",
+        description: "10-bit CRC used in ATM (Asynchronous Transfer Mode) cell headers",
+    },
+    EnumVariant {
+        value: "CRC_10_CDMA2000",
+        description: "10-bit CRC used in CDMA2000 cellular communication standard",
+    },
+    EnumVariant {
+        value: "CRC_10_GSM",
+        description: "10-bit CRC variant used in GSM telecommunications",
+    },
+    EnumVariant {
+        value: "CRC_11_FLEXRAY",
+        description: "11-bit CRC used in FlexRay automotive communication protocol",
+    },
+    EnumVariant {
+        value: "CRC_11_UMTS",
+        description: "11-bit CRC used in UMTS (Universal Mobile Telecommunications System)",
+    },
+    EnumVariant {
+        value: "CRC_12_CDMA2000",
+        description: "12-bit CRC used in CDMA2000 cellular communication standard",
+    },
+    EnumVariant {
+        value: "CRC_12_DECT",
+        description: "12-bit CRC used in DECT (Digital Enhanced Cordless Telecommunications) standards",
+    },
+    EnumVariant {
+        value: "CRC_12_GSM",
+        description: "12-bit CRC variant used in GSM telecommunications",
+    },
+    EnumVariant {
+        value: "CRC_12_UMTS",
+        description: "12-bit CRC used in UMTS (Universal Mobile Telecommunications System)",
+    },
+    EnumVariant {
+        value: "CRC_13_BBC",
+        description: "13-bit CRC used in BBC (British Broadcasting Corporation) digital transmission",
+    },
+    EnumVariant {
+        value: "CRC_14_DARC",
+        description: "14-bit CRC used in DARC (Digital Audio Radio Channel) communication",
+    },
+    EnumVariant {
+        value: "CRC_14_GSM",
+        description: "14-bit CRC variant used in GSM telecommunications",
+    },
+    EnumVariant {
+        value: "CRC_15_CAN",
+        description: "15-bit CRC used in CAN (Controller Area Network) automotive communication",
+    },
+    EnumVariant {
+        value: "CRC_15_MPT1327",
+        description: "15-bit CRC used in MPT 1327 radio trunking system",
+    },
+    EnumVariant {
+        value: "CRC_16_ARC",
+        description: "16-bit CRC used in ARC (Adaptive Routing Code) communication",
+    },
+    EnumVariant {
+        value: "CRC_16_CDMA2000",
+        description: "16-bit CRC used in CDMA2000 cellular communication standard",
+    },
+    EnumVariant {
+        value: "CRC_16_CMS",
+        description: "16-bit CRC used in Content Management Systems for data integrity",
+    },
+    EnumVariant {
+        value: "CRC_16_DDS_110",
+        description: "16-bit CRC used in DDS (Digital Data Storage) standard",
+    },
+    EnumVariant {
+        value: "CRC_16_DECT_R",
+        description: "16-bit CRC variant R used in DECT communication",
+    },
+    EnumVariant {
+        value: "CRC_16_DECT_X",
+        description: "16-bit CRC variant X used in DECT communication",
+    },
+    EnumVariant {
+        value: "CRC_16_DNP",
+        description: "16-bit CRC used in DNP3 (Distributed Network Protocol) for utilities",
+    },
+    EnumVariant {
+        value: "CRC_16_EN_13757",
+        description: "16-bit CRC specified in EN 13757 for meter communication",
+    },
+    EnumVariant {
+        value: "CRC_16_GENIBUS",
+        description: "16-bit CRC used in GENIBUS communication protocol",
+    },
+    EnumVariant {
+        value: "CRC_16_GSM",
+        description: "16-bit CRC variant used in GSM telecommunications",
+    },
+    EnumVariant {
+        value: "CRC_16_IBM_3740",
+        description: "16-bit CRC used in IBM 3740 data integrity checks",
+    },
+    EnumVariant {
+        value: "CRC_16_IBM_SDLC",
+        description: "16-bit CRC used in IBM SDLC (Synchronous Data Link Control)",
+    },
+    EnumVariant {
+        value: "CRC_16_ISO_IEC_14443_3_A",
+        description: "16-bit CRC used in ISO/IEC 14443-3 Type A contactless smart cards",
+    },
+    EnumVariant {
+        value: "CRC_16_KERMIT",
+        description: "16-bit CRC used in Kermit file transfer protocol",
+    },
+    EnumVariant {
+        value: "CRC_16_LJ1200",
+        description: "16-bit CRC used in LJ1200 communication system",
+    },
+    EnumVariant {
+        value: "CRC_16_M17",
+        description: "16-bit CRC used in M17 digital radio communication",
+    },
+    EnumVariant {
+        value: "CRC_16_MAXIM_DOW",
+        description: "16-bit CRC used by Maxim/Dallas Semiconductor for data integrity",
+    },
+    EnumVariant {
+        value: "CRC_16_MCRF4XX",
+        description: "16-bit CRC used in MCRF4XX RFID systems",
+    },
+    EnumVariant {
+        value: "CRC_16_MODBUS",
+        description: "16-bit CRC used in Modbus communication protocol for error detection",
+    },
+    EnumVariant {
+        value: "CRC_16_NRSC_5",
+        description: "16-bit CRC used in NRSC-5 digital radio broadcasting standard",
+    },
+    EnumVariant {
+        value: "CRC_16_OPENSAFETY_A",
+        description: "16-bit CRC variant A in OpenSAFETY industrial communication",
+    },
+    EnumVariant {
+        value: "CRC_16_OPENSAFETY_B",
+        description: "16-bit CRC variant B in OpenSAFETY industrial communication",
+    },
+    EnumVariant {
+        value: "CRC_16_PROFIBUS",
+        description: "16-bit CRC used in PROFIBUS industrial communication protocol",
+    },
+    EnumVariant {
+        value: "CRC_16_RIELLO",
+        description: "16-bit CRC used in Riello UPS communication",
+    },
+    EnumVariant {
+        value: "CRC_16_SPI_FUJITSU",
+        description: "16-bit CRC used in Fujitsu SPI (Serial Peripheral Interface) communication",
+    },
+    EnumVariant {
+        value: "CRC_16_T10_DIF",
+        description: "16-bit CRC used in T10 DIF (Data Integrity Field) standard",
+    },
+    EnumVariant {
+        value: "CRC_16_TELEDISK",
+        description: "16-bit CRC used in Teledisk disk image format",
+    },
+    EnumVariant {
+        value: "CRC_16_TMS37157",
+        description: "16-bit CRC used in TMS37157 microcontroller communication",
+    },
+    EnumVariant {
+        value: "CRC_16_UMTS",
+        description: "16-bit CRC used in UMTS (Universal Mobile Telecommunications System)",
+    },
+    EnumVariant {
+        value: "CRC_16_USB",
+        description: "16-bit CRC used in USB communication for error detection",
+    },
+    EnumVariant {
+        value: "CRC_16_XMODEM",
+        description: "16-bit CRC used in XMODEM file transfer protocol",
+    },
+    EnumVariant {
+        value: "CRC_17_CAN_FD",
+        description: "17-bit CRC used in CAN FD (Flexible Data-Rate) automotive communication protocol",
+    },
+    EnumVariant {
+        value: "CRC_21_CAN_FD",
+        description: "21-bit CRC variant used in CAN FD (Flexible Data-Rate) automotive communication",
+    },
+    EnumVariant {
+        value: "CRC_24_BLE",
+        description: "24-bit CRC used in Bluetooth Low Energy (BLE) packet error checking",
+    },
+    EnumVariant {
+        value: "CRC_24_FLEXRAY_A",
+        description: "24-bit CRC variant A used in FlexRay automotive communication protocol",
+    },
+    EnumVariant {
+        value: "CRC_24_FLEXRAY_B",
+        description: "24-bit CRC variant B used in FlexRay automotive communication protocol",
+    },
+    EnumVariant {
+        value: "CRC_24_INTERLAKEN",
+        description: "24-bit CRC used in Interlaken high-speed serial communication protocol",
+    },
+    EnumVariant {
+        value: "CRC_24_LTE_A",
+        description: "24-bit CRC variant A used in LTE (Long-Term Evolution) cellular networks",
+    },
+    EnumVariant {
+        value: "CRC_24_LTE_B",
+        description: "24-bit CRC variant B used in LTE (Long-Term Evolution) cellular networks",
+    },
+    EnumVariant {
+        value: "CRC_24_OPENPGP",
+        description: "24-bit CRC used in OpenPGP (Pretty Good Privacy) for data integrity",
+    },
+    EnumVariant {
+        value: "CRC_24_OS_9",
+        description: "24-bit CRC used in OS-9 operating system for error detection",
+    },
+    EnumVariant {
+        value: "CRC_30_CDMA",
+        description: "30-bit CRC used in CDMA (Code Division Multiple Access) communication standard",
+    },
+    EnumVariant {
+        value: "CRC_31_PHILIPS",
+        description: "31-bit CRC used in Philips communication protocols",
+    },
+    EnumVariant {
+        value: "CRC_32_AIXM",
+        description: "32-bit CRC used in Aeronautical Information Exchange Model (AIXM)",
+    },
+    EnumVariant {
+        value: "CRC_32_AUTOSAR",
+        description: "32-bit CRC used in AUTOSAR (Automotive Open System Architecture) standard",
+    },
+    EnumVariant {
+        value: "CRC_32_BASE91_D",
+        description: "32-bit CRC variant used in Base91 data encoding",
+    },
+    EnumVariant {
+        value: "CRC_32_BZIP2",
+        description: "32-bit CRC used in bzip2 compression algorithm",
+    },
+    EnumVariant {
+        value: "CRC_32_CD_ROM_EDC",
+        description: "32-bit CRC used for Error Detection Code in CD-ROM systems",
+    },
+    EnumVariant {
+        value: "CRC_32_CKSUM",
+        description: "32-bit CRC used in UNIX cksum command for file integrity",
+    },
+    EnumVariant {
+        value: "CRC_32_ISCSI",
+        description: "32-bit CRC used in iSCSI (Internet Small Computer Systems Interface)",
+    },
+    EnumVariant {
+        value: "CRC_32_ISO_HDLC",
+        description: "32-bit CRC used in ISO HDLC (High-Level Data Link Control)",
+    },
+    EnumVariant {
+        value: "CRC_32_JAMCRC",
+        description: "32-bit CRC variant used in JAM error detection",
+    },
+    EnumVariant {
+        value: "CRC_32_MEF",
+        description: "32-bit CRC used in Metro Ethernet Forum (MEF) standards",
+    },
+    EnumVariant {
+        value: "CRC_32_MPEG_2",
+        description: "32-bit CRC used in MPEG-2 transport streams for error detection",
+    },
+    EnumVariant {
+        value: "CRC_32_XFER",
+        description: "32-bit CRC used in data transfer protocols",
+    },
+    EnumVariant {
+        value: "CRC_40_GSM",
+        description: "40-bit CRC variant used in GSM telecommunications",
+    },
+    EnumVariant {
+        value: "CRC_64_ECMA_182",
+        description: "64-bit CRC specified in ECMA-182 standard",
+    },
+    EnumVariant {
+        value: "CRC_64_GO_ISO",
+        description: "64-bit CRC used in Go programming language and ISO standards",
+    },
+    EnumVariant {
+        value: "CRC_64_MS",
+        description: "64-bit CRC variant used in Microsoft systems",
+    },
+    EnumVariant {
+        value: "CRC_64_REDIS",
+        description: "64-bit CRC used in Redis key-value data store",
+    },
+    EnumVariant {
+        value: "CRC_64_WE",
+        description: "64-bit CRC variant for wide-area error detection",
+    },
+    EnumVariant {
+        value: "CRC_64_XZ",
+        description: "64-bit CRC used in the XZ compression format for integrity verification",
+    },
+    EnumVariant {
+        value: "CRC_82_DARC",
+        description: "82-bit CRC used in DARC (Digital Audio Radio Channel) communication",
+    },
+];
+
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
         Parameter {
@@ -128,6 +580,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: true,
             description: "The string to calculate the checksum for.",
             default: None,
+            enum_variants: None,
         },
         Parameter {
             keyword: "algorithm",
@@ -135,6 +588,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: false,
             description: "The CRC algorithm to use.",
             default: Some(&DEFAULT_ALGORITHM),
+            enum_variants: Some(ALGORITHM_ENUM),
         },
     ]
 });

@@ -53,6 +53,7 @@ impl Function for IsEmpty {
             required: true,
             description: "The value to check.",
             default: None,
+            enum_variants: None,
         }]
     }
 

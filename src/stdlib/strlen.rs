@@ -39,6 +39,7 @@ impl Function for Strlen {
             required: true,
             description: "The string.",
             default: None,
+            enum_variants: None,
         }]
     }
 

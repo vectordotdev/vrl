@@ -73,6 +73,7 @@ impl Function for EncodeProto {
                 required: true,
                 description: "The object to convert to a protocol buffer payload.",
                 default: None,
+                enum_variants: None,
             },
             Parameter {
                 keyword: "desc_file",
@@ -83,6 +84,7 @@ impl Function for EncodeProto {
 
 This file is the output of protoc -o <path> ...",
                 default: None,
+                enum_variants: None,
             },
             Parameter {
                 keyword: "message_type",
@@ -92,6 +94,7 @@ This file is the output of protoc -o <path> ...",
 
 Must be a literal string.",
                 default: None,
+                enum_variants: None,
             },
         ]
     }

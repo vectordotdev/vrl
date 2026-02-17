@@ -50,6 +50,7 @@ impl Function for ToSyslogLevel {
             required: true,
             description: "The severity level.",
             default: None,
+            enum_variants: None,
         }]
     }
 

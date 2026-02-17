@@ -121,6 +121,7 @@ impl Function for ParseGrok {
                 required: true,
                 description: "The string to parse.",
                 default: None,
+                enum_variants: None,
             },
             Parameter {
                 keyword: "pattern",
@@ -128,6 +129,7 @@ impl Function for ParseGrok {
                 required: true,
                 description: "The [Grok pattern](https://github.com/daschl/grok/tree/master/patterns).",
                 default: None,
+                enum_variants: None,
             },
         ]
     }

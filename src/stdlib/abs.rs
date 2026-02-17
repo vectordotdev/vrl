@@ -43,6 +43,7 @@ impl Function for Abs {
             required: true,
             description: "The number to calculate the absolute value.",
             default: None,
+            enum_variants: None,
         }]
     }
 

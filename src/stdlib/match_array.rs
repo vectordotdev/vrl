@@ -11,6 +11,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: true,
             description: "The array.",
             default: None,
+            enum_variants: None,
         },
         Parameter {
             keyword: "pattern",
@@ -18,6 +19,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: true,
             description: "The regular expression pattern to match against.",
             default: None,
+            enum_variants: None,
         },
         Parameter {
             keyword: "all",
@@ -25,6 +27,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: false,
             description: "Whether to match on all elements of `value`.",
             default: Some(&DEFAULT_ALL),
+            enum_variants: None,
         },
     ]
 });

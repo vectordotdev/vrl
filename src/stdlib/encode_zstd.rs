@@ -12,6 +12,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: true,
             description: "The string to encode.",
             default: None,
+            enum_variants: None,
         },
         Parameter {
             keyword: "compression_level",
@@ -19,6 +20,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: false,
             description: "The default compression level.",
             default: Some(&DEFAULT_COMPRESSION_LEVEL),
+            enum_variants: None,
         },
     ]
 });

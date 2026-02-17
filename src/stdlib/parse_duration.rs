@@ -1,7 +1,70 @@
+use crate::compiler::function::EnumVariant;
 use crate::compiler::prelude::*;
 use regex::Regex;
 use rust_decimal::{Decimal, prelude::ToPrimitive};
 use std::{collections::HashMap, str::FromStr, sync::LazyLock};
+
+static UNIT_ENUM: &[EnumVariant] = &[
+    EnumVariant {
+        value: "ns",
+        description: "Nanoseconds (1 billion nanoseconds in a second)",
+    },
+    EnumVariant {
+        value: "us",
+        description: "Microseconds (1 million microseconds in a second)",
+    },
+    EnumVariant {
+        value: "µs",
+        description: "Microseconds (1 million microseconds in a second)",
+    },
+    EnumVariant {
+        value: "ms",
+        description: "Milliseconds (1 thousand microseconds in a second)",
+    },
+    EnumVariant {
+        value: "cs",
+        description: "Centiseconds (100 centiseconds in a second)",
+    },
+    EnumVariant {
+        value: "ds",
+        description: "Deciseconds (10 deciseconds in a second)",
+    },
+    EnumVariant {
+        value: "s",
+        description: "Seconds",
+    },
+    EnumVariant {
+        value: "m",
+        description: "Minutes (60 seconds in a minute)",
+    },
+    EnumVariant {
+        value: "h",
+        description: "Hours (60 minutes in an hour)",
+    },
+    EnumVariant {
+        value: "d",
+        description: "Days (24 hours in a day)",
+    },
+];
+
+static PARAMETERS: &[Parameter] = &[
+    Parameter {
+        keyword: "value",
+        kind: kind::BYTES,
+        required: true,
+        description: "The string of the duration.",
+        default: None,
+        enum_variants: None,
+    },
+    Parameter {
+        keyword: "unit",
+        kind: kind::BYTES,
+        required: true,
+        description: "The output units for the duration.",
+        default: None,
+        enum_variants: Some(UNIT_ENUM),
+    },
+];
 
 fn parse_duration(bytes: &Value, unit: &Value) -> Resolved {
     let value = bytes.try_bytes_utf8_lossy()?;
@@ -119,22 +182,7 @@ impl Function for ParseDuration {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::BYTES,
-                required: true,
-                description: "The string of the duration.",
-                default: None,
-            },
-            Parameter {
-                keyword: "unit",
-                kind: kind::BYTES,
-                required: true,
-                description: "The output units for the duration.",
-                default: None,
-            },
-        ]
+        PARAMETERS
     }
 }
 

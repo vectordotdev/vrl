@@ -59,6 +59,7 @@ compatible, otherwise an error is thrown.",
             required: true,
             description: "The IPv4-mapped IPv6 address to convert.",
             default: None,
+            enum_variants: None,
         }]
     }
 

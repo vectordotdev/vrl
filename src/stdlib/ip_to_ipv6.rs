@@ -50,6 +50,7 @@ impl Function for IpToIpv6 {
             required: true,
             description: "The IP address to convert to IPv6.",
             default: None,
+            enum_variants: None,
         }]
     }
 

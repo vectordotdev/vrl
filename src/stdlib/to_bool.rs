@@ -58,6 +58,7 @@ impl Function for ToBool {
             required: true,
             description: "The value to convert to a Boolean.",
             default: None,
+            enum_variants: None,
         }]
     }
 

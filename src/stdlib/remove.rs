@@ -12,6 +12,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: true,
             description: "The object or array to remove data from.",
             default: None,
+            enum_variants: None,
         },
         Parameter {
             keyword: "path",
@@ -19,6 +20,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: true,
             description: "An array of path segments to remove the value from.",
             default: None,
+            enum_variants: None,
         },
         Parameter {
             keyword: "compact",
@@ -27,6 +29,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             description: "After deletion, if `compact` is `true`, any empty objects or
 arrays left are also removed.",
             default: Some(&DEFAULT_COMPACT),
+            enum_variants: None,
         },
     ]
 });

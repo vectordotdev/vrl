@@ -70,6 +70,7 @@ impl Function for Tally {
             required: true,
             description: "The array of strings to count occurrences for.",
             default: None,
+            enum_variants: None,
         }]
     }
 }

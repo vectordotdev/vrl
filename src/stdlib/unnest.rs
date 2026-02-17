@@ -97,6 +97,7 @@ impl Function for Unnest {
             required: true,
             description: "The path of the field to unnest.",
             default: None,
+            enum_variants: None,
         }]
     }
 

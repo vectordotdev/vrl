@@ -35,6 +35,7 @@ impl Function for Append {
                 required: true,
                 description: "The initial array.",
                 default: None,
+                enum_variants: None,
             },
             Parameter {
                 keyword: "items",
@@ -42,6 +43,7 @@ impl Function for Append {
                 required: true,
                 description: "The items to append.",
                 default: None,
+                enum_variants: None,
             },
         ]
     }

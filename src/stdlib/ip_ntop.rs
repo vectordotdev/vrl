@@ -61,6 +61,7 @@ impl Function for IpNtop {
 For IPv4 addresses, it must be 4 bytes (32 bits) long.
 For IPv6 addresses, it must be 16 bytes (128 bits) long.",
             default: None,
+            enum_variants: None,
         }]
     }
 

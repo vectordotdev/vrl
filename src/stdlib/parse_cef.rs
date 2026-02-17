@@ -23,6 +23,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: true,
             description: "The string to parse.",
             default: None,
+            enum_variants: None,
         },
         Parameter {
             keyword: "translate_custom_fields",
@@ -30,6 +31,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: false,
             description: "Toggles translation of custom field pairs to `key:value`.",
             default: Some(&DEFAULT_TRANSLATE_CUSTOM_FIELDS),
+            enum_variants: None,
         },
     ]
 });

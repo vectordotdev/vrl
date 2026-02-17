@@ -97,6 +97,7 @@ impl Function for MatchDatadogQuery {
                 required: true,
                 description: "The object.",
                 default: None,
+                enum_variants: None,
             },
             Parameter {
                 keyword: "query",
@@ -104,6 +105,7 @@ impl Function for MatchDatadogQuery {
                 required: true,
                 description: "The Datadog Search Syntax query.",
                 default: None,
+                enum_variants: None,
             },
         ]
     }

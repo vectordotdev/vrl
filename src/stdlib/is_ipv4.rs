@@ -46,6 +46,7 @@ impl Function for IsIpv4 {
             required: true,
             description: "The IP address to check",
             default: None,
+            enum_variants: None,
         }]
     }
 

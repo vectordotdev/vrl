@@ -92,6 +92,7 @@ impl Function for IpCidrContains {
                 required: true,
                 description: "The CIDR mask (v4 or v6).",
                 default: None,
+                enum_variants: None,
             },
             Parameter {
                 keyword: "value",
@@ -99,6 +100,7 @@ impl Function for IpCidrContains {
                 required: true,
                 description: "The IP address (v4 or v6).",
                 default: None,
+                enum_variants: None,
             },
         ]
     }

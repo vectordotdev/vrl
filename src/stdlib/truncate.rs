@@ -59,6 +59,7 @@ impl Function for Truncate {
                 required: true,
                 description: "The string to truncate.",
                 default: None,
+                enum_variants: None,
             },
             Parameter {
                 keyword: "limit",
@@ -66,6 +67,7 @@ impl Function for Truncate {
                 required: true,
                 description: "The number of characters to truncate the string after.",
                 default: None,
+                enum_variants: None,
             },
             Parameter {
                 keyword: "suffix",
@@ -74,6 +76,7 @@ impl Function for Truncate {
                 description: "A custom suffix (`...`) is appended to truncated strings.
 If `ellipsis` is set to `true`, this parameter is ignored for backwards compatibility.",
                 default: None,
+                enum_variants: None,
             },
         ]
     }

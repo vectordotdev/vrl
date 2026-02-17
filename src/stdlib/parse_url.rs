@@ -13,6 +13,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: true,
             description: "The text of the URL.",
             default: None,
+            enum_variants: None,
         },
         Parameter {
             keyword: "default_known_ports",
@@ -23,6 +24,7 @@ string (or matches the default port for the scheme), it is
 populated from well-known ports for the following schemes:
 `http`, `https`, `ws`, `wss`, and `ftp`.",
             default: Some(&DEFAULT_DEFAULT_KNOWN_PORTS),
+            enum_variants: None,
         },
     ]
 });

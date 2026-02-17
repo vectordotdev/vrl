@@ -33,6 +33,7 @@ impl Function for Exists {
             required: true,
             description: "The path of the field to check.",
             default: None,
+            enum_variants: None,
         }]
     }
 

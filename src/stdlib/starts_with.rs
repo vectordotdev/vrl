@@ -11,6 +11,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: true,
             description: "The string to search.",
             default: None,
+            enum_variants: None,
         },
         Parameter {
             keyword: "substring",
@@ -18,6 +19,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: true,
             description: "The substring that the `value` must start with.",
             default: None,
+            enum_variants: None,
         },
         Parameter {
             keyword: "case_sensitive",
@@ -25,6 +27,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: false,
             description: "Whether the match should be case sensitive.",
             default: Some(&DEFAULT_CASE_SENSITIVE),
+            enum_variants: None,
         },
     ]
 });

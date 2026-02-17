@@ -1,3 +1,4 @@
+use crate::compiler::function::EnumVariant;
 use crate::compiler::prelude::*;
 use std::{
     borrow::Cow,
@@ -15,6 +16,29 @@ static UA_EXTRACTOR: LazyLock<ua_parser::Extractor> = LazyLock::new(|| {
 
 static DEFAULT_MODE: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from("fast")));
 
+static MODE_ENUM: &[EnumVariant] = &[
+    EnumVariant {
+        value: "fast",
+        description: "Fastest mode but most unreliable. Uses parser from project [Woothee](https://github.com/woothee/woothee).",
+    },
+    EnumVariant {
+        value: "reliable",
+        description: indoc! {"
+            Provides greater reliability than `fast` and retains it's speed in common cases.
+            Parses with [Woothee](https://github.com/woothee/woothee) parser and with parser from
+            [uap project](https://github.com/ua-parser/uap-core) if there are some missing fields
+            that the first parser wasn't able to parse out but the second one maybe can.
+        "},
+    },
+    EnumVariant {
+        value: "enriched",
+        description: indoc! {"
+            Parses with both parser from [Woothee](https://github.com/woothee/woothee) and parser from
+            [uap project](https://github.com/ua-parser/uap-core) and combines results. Result has the full schema.
+        "},
+    },
+];
+
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
         Parameter {
@@ -23,6 +47,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: true,
             description: "The string to parse.",
             default: None,
+            enum_variants: None,
         },
         Parameter {
             keyword: "mode",
@@ -30,6 +55,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: false,
             description: "Determines performance and reliability characteristics.",
             default: Some(&DEFAULT_MODE),
+            enum_variants: Some(MODE_ENUM),
         },
     ]
 });

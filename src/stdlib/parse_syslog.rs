@@ -62,6 +62,7 @@ impl Function for ParseSyslog {
             required: true,
             description: "The text containing the Syslog message to parse.",
             default: None,
+            enum_variants: None,
         }]
     }
 

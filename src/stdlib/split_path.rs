@@ -42,6 +42,7 @@ impl Function for SplitPath {
             required: true,
             description: "The path to split into components.",
             default: None,
+            enum_variants: None,
         }]
     }
 

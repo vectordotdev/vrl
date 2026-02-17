@@ -20,6 +20,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: true,
             description: "The string representation of the JSON to parse.",
             default: None,
+            enum_variants: None,
         },
         Parameter {
             keyword: "max_depth",
@@ -28,6 +29,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             description: "Number of layers to parse for nested JSON-formatted documents.
 The value must be in the range of 1 to 128.",
             default: None,
+            enum_variants: None,
         },
         Parameter {
             keyword: "lossy",
@@ -38,6 +40,7 @@ The value must be in the range of 1 to 128.",
 with the Unicode character `�` (U+FFFD) if set to true, otherwise returns an error
 if there are any invalid UTF-8 characters present.",
             default: Some(&DEFAULT_LOSSY),
+            enum_variants: None,
         },
     ]
 });

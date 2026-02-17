@@ -1,4 +1,5 @@
 use super::log_util;
+use crate::compiler::function::EnumVariant;
 use crate::compiler::prelude::*;
 use crate::value;
 use std::collections::BTreeMap;
@@ -6,6 +7,21 @@ use std::sync::LazyLock;
 
 static DEFAULT_TIMESTAMP_FORMAT: LazyLock<Value> =
     LazyLock::new(|| Value::Bytes(Bytes::from("%d/%b/%Y:%T %z")));
+
+static FORMAT_ENUM: &[EnumVariant] = &[
+    EnumVariant {
+        value: "common",
+        description: "Common format",
+    },
+    EnumVariant {
+        value: "combined",
+        description: "Apache combined format",
+    },
+    EnumVariant {
+        value: "error",
+        description: "Default Apache error format",
+    },
+];
 
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
@@ -15,6 +31,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: true,
             description: "The string to parse.",
             default: None,
+        enum_variants: None,
         },
         Parameter {
             keyword: "format",
@@ -22,6 +39,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: true,
             description: "The format to use for parsing the log.",
             default: None,
+            enum_variants: Some(FORMAT_ENUM),
         },
         Parameter {
             keyword: "timestamp_format",
@@ -30,6 +48,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             description: "The [date/time format](https://docs.rs/chrono/latest/chrono/format/strftime/index.html) to use for
 encoding the timestamp. The time is parsed in local time if the timestamp does not specify a timezone.",
             default: Some(&DEFAULT_TIMESTAMP_FORMAT),
+        enum_variants: None,
         },
     ]
 });

@@ -1,3 +1,4 @@
+use crate::compiler::function::EnumVariant;
 use crate::compiler::prelude::*;
 use crate::value;
 use percent_encoding::{AsciiSet, utf8_percent_encode};
@@ -5,6 +6,45 @@ use std::sync::LazyLock;
 
 static DEFAULT_ASCII_SET: LazyLock<Value> =
     LazyLock::new(|| Value::Bytes(Bytes::from("NON_ALPHANUMERIC")));
+
+static ASCII_SET_ENUM: &[EnumVariant] = &[
+    EnumVariant {
+        value: "NON_ALPHANUMERIC",
+        description: "Encode any non-alphanumeric characters. This is the safest option.",
+    },
+    EnumVariant {
+        value: "CONTROLS",
+        description: "Encode only [control characters](https://infra.spec.whatwg.org/#c0-control).",
+    },
+    EnumVariant {
+        value: "FRAGMENT",
+        description: "Encode only [fragment characters](https://url.spec.whatwg.org/#fragment-percent-encode-set)",
+    },
+    EnumVariant {
+        value: "QUERY",
+        description: "Encode only [query characters](https://url.spec.whatwg.org/#query-percent-encode-set)",
+    },
+    EnumVariant {
+        value: "SPECIAL",
+        description: "Encode only [special characters](https://url.spec.whatwg.org/#special-percent-encode-set)",
+    },
+    EnumVariant {
+        value: "PATH",
+        description: "Encode only [path characters](https://url.spec.whatwg.org/#path-percent-encode-set)",
+    },
+    EnumVariant {
+        value: "USERINFO",
+        description: "Encode only [userinfo characters](https://url.spec.whatwg.org/#userinfo-percent-encode-set)",
+    },
+    EnumVariant {
+        value: "COMPONENT",
+        description: "Encode only [component characters](https://url.spec.whatwg.org/#component-percent-encode-set)",
+    },
+    EnumVariant {
+        value: "WWW_FORM_URLENCODED",
+        description: "Encode only [`application/x-www-form-urlencoded`](https://url.spec.whatwg.org/#application-x-www-form-urlencoded-percent-encode-set)",
+    },
+];
 
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
@@ -14,6 +54,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: true,
             description: "The string to encode.",
             default: None,
+            enum_variants: None,
         },
         Parameter {
             keyword: "ascii_set",
@@ -21,6 +62,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: false,
             description: "The ASCII set to use when encoding the data.",
             default: Some(&DEFAULT_ASCII_SET),
+            enum_variants: Some(ASCII_SET_ENUM),
         },
     ]
 });

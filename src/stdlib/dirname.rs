@@ -50,6 +50,7 @@ impl Function for DirName {
             required: true,
             description: "The path from which to extract the directory name.",
             default: None,
+            enum_variants: None,
         }]
     }
 

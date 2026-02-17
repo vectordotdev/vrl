@@ -45,6 +45,7 @@ impl Function for Array {
             required: true,
             description: "The value to check if it is an array.",
             default: None,
+            enum_variants: None,
         }]
     }
 

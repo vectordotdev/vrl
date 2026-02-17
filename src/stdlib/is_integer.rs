@@ -35,6 +35,7 @@ impl Function for IsInteger {
             required: true,
             description: "The value to check if it is an integer.",
             default: None,
+            enum_variants: None,
         }]
     }
 

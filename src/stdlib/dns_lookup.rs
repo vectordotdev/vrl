@@ -340,6 +340,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: true,
             description: "The domain name to query.",
             default: None,
+            enum_variants: None,
         },
         Parameter {
             keyword: "qtype",
@@ -347,6 +348,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: false,
             description: "The DNS record type to query (e.g., A, AAAA, MX, TXT). Defaults to A.",
             default: Some(&DEFAULT_QTYPE),
+            enum_variants: None,
         },
         Parameter {
             keyword: "class",
@@ -354,6 +356,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: false,
             description: "The DNS query class. Defaults to IN (Internet).",
             default: Some(&DEFAULT_CLASS),
+            enum_variants: None,
         },
         Parameter {
             keyword: "options",
@@ -361,6 +364,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: false,
             description: "DNS resolver options. Supported fields: servers (array of nameserver addresses), timeout (seconds), attempts (number of retry attempts), ndots, aa_only, tcp, recurse, rotate.",
             default: Some(&DEFAULT_OPTIONS),
+            enum_variants: None,
         },
     ]
 });

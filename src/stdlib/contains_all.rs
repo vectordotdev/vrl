@@ -47,6 +47,7 @@ impl Function for ContainsAll {
                 required: true,
                 description: "The text to search.",
                 default: None,
+                enum_variants: None,
             },
             Parameter {
                 keyword: "substrings",
@@ -54,6 +55,7 @@ impl Function for ContainsAll {
                 required: true,
                 description: "An array of substrings to search for in `value`.",
                 default: None,
+                enum_variants: None,
             },
             Parameter {
                 keyword: "case_sensitive",
@@ -61,6 +63,7 @@ impl Function for ContainsAll {
                 required: false,
                 description: "Whether the match should be case sensitive.",
                 default: None,
+                enum_variants: None,
             },
         ]
     }

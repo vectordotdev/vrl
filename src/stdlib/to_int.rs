@@ -63,6 +63,7 @@ impl Function for ToInt {
             required: true,
             description: "The value to convert to an integer.",
             default: None,
+            enum_variants: None,
         }]
     }
 

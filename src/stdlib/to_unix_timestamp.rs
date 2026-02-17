@@ -1,8 +1,24 @@
+use crate::compiler::function::EnumVariant;
 use crate::compiler::prelude::*;
 use std::str::FromStr;
 use std::sync::LazyLock;
 
 static DEFAULT_UNIT: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from("seconds")));
+
+static UNIT_ENUM: &[EnumVariant] = &[
+    EnumVariant {
+        value: "seconds",
+        description: "Express Unix time in seconds",
+    },
+    EnumVariant {
+        value: "milliseconds",
+        description: "Express Unix time in milliseconds",
+    },
+    EnumVariant {
+        value: "nanoseconds",
+        description: "Express Unix time in nanoseconds",
+    },
+];
 
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
@@ -12,6 +28,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: true,
             description: "The timestamp to convert into a Unix timestamp.",
             default: None,
+            enum_variants: None,
         },
         Parameter {
             keyword: "unit",
@@ -19,6 +36,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: false,
             description: "The time unit.",
             default: Some(&DEFAULT_UNIT),
+            enum_variants: Some(UNIT_ENUM),
         },
     ]
 });

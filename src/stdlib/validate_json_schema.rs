@@ -154,6 +154,7 @@ impl Function for ValidateJsonSchema {
                 required: true,
                 description: "The value to check if it conforms to the JSON schema definition.",
                 default: None,
+                enum_variants: None,
             },
             Parameter {
                 keyword: "schema_definition",
@@ -161,6 +162,7 @@ impl Function for ValidateJsonSchema {
                 required: true,
                 description: "The location (path) of the JSON Schema definition.",
                 default: None,
+                enum_variants: None,
             },
             Parameter {
                 keyword: "ignore_unknown_formats",
@@ -168,6 +170,7 @@ impl Function for ValidateJsonSchema {
                 required: false,
                 description: "Unknown formats can be silently ignored by setting this to `true` and validation continues without failing due to those fields.",
                 default: None,
+                enum_variants: None,
             },
         ]
     }

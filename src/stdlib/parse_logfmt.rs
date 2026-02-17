@@ -38,6 +38,7 @@ impl Function for ParseLogFmt {
             required: true,
             description: "The string to parse.",
             default: None,
+            enum_variants: None,
         }]
     }
 

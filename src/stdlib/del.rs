@@ -11,6 +11,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: true,
             description: "The path of the field to delete",
             default: None,
+            enum_variants: None,
         },
         Parameter {
             keyword: "compact",
@@ -21,6 +22,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
 the empty object or array is also removed, cascading up to the root. This only
 applies to the path being deleted, and any parent paths.",
             default: Some(&DEFAULT_COMPACT),
+            enum_variants: None,
         },
     ]
 });

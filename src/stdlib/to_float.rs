@@ -70,6 +70,7 @@ impl Function for ToFloat {
             required: true,
             description: "The value to convert to a float. Must be convertible to a float, otherwise an error is raised.",
             default: None,
+            enum_variants: None,
         }]
     }
 

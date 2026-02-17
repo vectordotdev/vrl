@@ -17,6 +17,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: true,
             description: "The object or array to compact.",
             default: None,
+            enum_variants: None,
         },
         Parameter {
             keyword: "recursive",
@@ -24,6 +25,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: false,
             description: "Whether the compaction be recursive.",
             default: Some(&DEFAULT_RECURSIVE),
+            enum_variants: None,
         },
         Parameter {
             keyword: "null",
@@ -31,6 +33,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: false,
             description: "Whether null should be treated as an empty value.",
             default: Some(&DEFAULT_NULL),
+            enum_variants: None,
         },
         Parameter {
             keyword: "string",
@@ -38,6 +41,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: false,
             description: "Whether an empty string should be treated as an empty value.",
             default: Some(&DEFAULT_STRING),
+            enum_variants: None,
         },
         Parameter {
             keyword: "object",
@@ -45,6 +49,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: false,
             description: "Whether an empty object should be treated as an empty value.",
             default: Some(&DEFAULT_OBJECT),
+            enum_variants: None,
         },
         Parameter {
             keyword: "array",
@@ -52,6 +57,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: false,
             description: "Whether an empty array should be treated as an empty value.",
             default: Some(&DEFAULT_ARRAY),
+            enum_variants: None,
         },
         Parameter {
             keyword: "nullish",
@@ -59,6 +65,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: false,
             description: "Tests whether the value is \"nullish\" as defined by the [`is_nullish`](#is_nullish) function.",
             default: Some(&DEFAULT_NULLISH),
+            enum_variants: None,
         },
     ]
 });

@@ -57,6 +57,7 @@ impl Function for Length {
             required: true,
             description: "The array or object.",
             default: None,
+            enum_variants: None,
         }]
     }
 

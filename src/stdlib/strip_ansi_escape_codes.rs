@@ -34,6 +34,7 @@ impl Function for StripAnsiEscapeCodes {
             required: true,
             description: "The string to strip.",
             default: None,
+            enum_variants: None,
         }]
     }
 

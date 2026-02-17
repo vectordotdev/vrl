@@ -63,6 +63,7 @@ impl Function for DecodeZlib {
             required: true,
             description: "The [Zlib](https://www.zlib.net) data to decode.",
             default: None,
+            enum_variants: None,
         }]
     }
 }

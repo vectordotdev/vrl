@@ -45,6 +45,7 @@ impl Function for Timestamp {
             required: true,
             description: "The value to check if it is a timestamp.",
             default: None,
+            enum_variants: None,
         }]
     }
 

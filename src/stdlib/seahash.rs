@@ -62,6 +62,7 @@ impl Function for Seahash {
             required: true,
             description: "The string to calculate the hash for.",
             default: None,
+            enum_variants: None,
         }]
     }
 }

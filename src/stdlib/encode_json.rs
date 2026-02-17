@@ -11,6 +11,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: true,
             description: "The value to convert to a JSON string.",
             default: None,
+            enum_variants: None,
         },
         Parameter {
             keyword: "pretty",
@@ -18,6 +19,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: false,
             description: "Whether to pretty print the JSON string or not.",
             default: Some(&DEFAULT_PRETTY),
+            enum_variants: None,
         },
     ]
 });

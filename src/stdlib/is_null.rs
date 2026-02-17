@@ -35,6 +35,7 @@ impl Function for IsNull {
             required: true,
             description: "The value to check if it is `null`.",
             default: None,
+            enum_variants: None,
         }]
     }
 

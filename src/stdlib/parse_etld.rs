@@ -15,6 +15,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: true,
             description: "The domain string.",
             default: None,
+            enum_variants: None,
         },
         Parameter {
             keyword: "plus_parts",
@@ -25,6 +26,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
 eTLD+1 will be returned, which represents a domain registrable by a single
 organization. Higher numbers will return subdomains.",
             default: Some(&DEFAULT_PLUS_PARTS),
+            enum_variants: None,
         },
         Parameter {
             keyword: "psl",
@@ -34,6 +36,7 @@ organization. Higher numbers will return subdomains.",
 
 By default, https://publicsuffix.org/list/public_suffix_list.dat is used.",
             default: None,
+            enum_variants: None,
         },
     ]
 });

@@ -62,6 +62,7 @@ impl Function for EncodeSnappy {
             required: true,
             description: "The string to encode.",
             default: None,
+            enum_variants: None,
         }]
     }
 }

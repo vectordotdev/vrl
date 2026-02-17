@@ -54,6 +54,7 @@ impl Function for ToRegex {
             required: true,
             description: "The value to convert to a regex.",
             default: None,
+            enum_variants: None,
         }]
     }
 

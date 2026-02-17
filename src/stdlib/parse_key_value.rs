@@ -1,3 +1,4 @@
+use crate::compiler::function::EnumVariant;
 use crate::compiler::prelude::*;
 use crate::value;
 use nom::{
@@ -25,6 +26,17 @@ static DEFAULT_FIELD_DELIMITER: LazyLock<Value> = LazyLock::new(|| Value::Bytes(
 static DEFAULT_WHITESPACE: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from("lenient")));
 static DEFAULT_ACCEPT_STANDALONE_KEY: LazyLock<Value> = LazyLock::new(|| Value::Boolean(true));
 
+static WHITESPACE_ENUM: &[EnumVariant] = &[
+    EnumVariant {
+        value: "lenient",
+        description: "Ignore whitespace.",
+    },
+    EnumVariant {
+        value: "strict",
+        description: "Parse whitespace as normal character.",
+    },
+];
+
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
         Parameter {
@@ -33,6 +45,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: true,
             description: "The string to parse.",
             default: None,
+            enum_variants: None,
         },
         Parameter {
             keyword: "key_value_delimiter",
@@ -40,6 +53,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: false,
             description: "The string that separates the key from the value.",
             default: Some(&DEFAULT_KEY_VALUE_DELIMITER),
+            enum_variants: None,
         },
         Parameter {
             keyword: "field_delimiter",
@@ -47,6 +61,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: false,
             description: "The string that separates each key-value pair.",
             default: Some(&DEFAULT_FIELD_DELIMITER),
+            enum_variants: None,
         },
         Parameter {
             keyword: "whitespace",
@@ -54,6 +69,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: false,
             description: "Defines the acceptance of unnecessary whitespace surrounding the configured `key_value_delimiter`.",
             default: Some(&DEFAULT_WHITESPACE),
+            enum_variants: Some(WHITESPACE_ENUM),
         },
         Parameter {
             keyword: "accept_standalone_key",
@@ -61,6 +77,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: false,
             description: "Whether a standalone key should be accepted, the resulting object associates such keys with the boolean value `true`.",
             default: Some(&DEFAULT_ACCEPT_STANDALONE_KEY),
+            enum_variants: None,
         },
     ]
 });

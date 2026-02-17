@@ -41,6 +41,7 @@ impl Function for Match {
                 required: true,
                 description: "The value to match.",
                 default: None,
+                enum_variants: None,
             },
             Parameter {
                 keyword: "pattern",
@@ -48,6 +49,7 @@ impl Function for Match {
                 required: true,
                 description: "The regular expression pattern to match against.",
                 default: None,
+                enum_variants: None,
             },
         ]
     }

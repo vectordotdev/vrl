@@ -79,6 +79,7 @@ impl Function for ParseTokens {
             required: true,
             description: "The string to tokenize.",
             default: None,
+            enum_variants: None,
         }]
     }
 }

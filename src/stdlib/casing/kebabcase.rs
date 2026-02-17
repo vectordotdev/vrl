@@ -31,6 +31,7 @@ impl Function for Kebabcase {
                 required: true,
                 description: "The string to convert to kebab-case.",
                 default: None,
+                enum_variants: None,
             },
             Parameter {
                 keyword: "original_case",
@@ -38,6 +39,7 @@ impl Function for Kebabcase {
                 required: false,
                 description: "Optional hint on the original case type. Must be one of: kebab-case, camelCase, PascalCase, SCREAMING_SNAKE, snake_case",
                 default: None,
+                enum_variants: None,
             },
         ]
     }

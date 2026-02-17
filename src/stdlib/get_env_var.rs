@@ -41,6 +41,7 @@ impl Function for GetEnvVar {
             required: true,
             description: "The name of the environment variable.",
             default: None,
+            enum_variants: None,
         }]
     }
 

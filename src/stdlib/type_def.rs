@@ -45,6 +45,7 @@ impl Function for TypeDef {
             required: true,
             description: "The expression to get the type definition for.",
             default: None,
+            enum_variants: None,
         }]
     }
 

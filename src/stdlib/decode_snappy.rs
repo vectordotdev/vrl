@@ -62,6 +62,7 @@ impl Function for DecodeSnappy {
             required: true,
             description: "The Snappy data to decode.",
             default: None,
+            enum_variants: None,
         }]
     }
 }

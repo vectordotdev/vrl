@@ -157,6 +157,7 @@ impl Function for ParseAwsCloudWatchLogSubscriptionMessage {
             required: true,
             description: "The string representation of the message to parse.",
             default: None,
+            enum_variants: None,
         }]
     }
 }

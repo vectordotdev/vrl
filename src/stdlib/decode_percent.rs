@@ -36,6 +36,7 @@ impl Function for DecodePercent {
             required: true,
             description: "The string to decode.",
             default: None,
+            enum_variants: None,
         }]
     }
 

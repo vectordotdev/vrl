@@ -132,6 +132,7 @@ impl Function for ParseAwsVpcFlowLog {
                 required: true,
                 description: "VPC Flow Log.",
                 default: None,
+                enum_variants: None,
             },
             Parameter {
                 keyword: "format",
@@ -139,6 +140,7 @@ impl Function for ParseAwsVpcFlowLog {
                 required: false,
                 description: "VPC Flow Log format.",
                 default: None,
+                enum_variants: None,
             },
         ]
     }

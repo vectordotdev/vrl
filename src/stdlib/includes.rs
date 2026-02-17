@@ -34,6 +34,7 @@ impl Function for Includes {
                 required: true,
                 description: "The array.",
                 default: None,
+                enum_variants: None,
             },
             Parameter {
                 keyword: "item",
@@ -41,6 +42,7 @@ impl Function for Includes {
                 required: true,
                 description: "The item to check.",
                 default: None,
+                enum_variants: None,
             },
         ]
     }

@@ -57,6 +57,7 @@ impl Function for AssertEq {
                 required: true,
                 description: "The value to check for equality against `right`.",
                 default: None,
+                enum_variants: None,
             },
             Parameter {
                 keyword: "right",
@@ -64,6 +65,7 @@ impl Function for AssertEq {
                 required: true,
                 description: "The value to check for equality against `left`.",
                 default: None,
+                enum_variants: None,
             },
             Parameter {
                 keyword: "message",
@@ -74,6 +76,7 @@ impl Function for AssertEq {
 appended to the default message prefix. See the [examples](#assert_eq-examples)
 below for a fully formed log message sample.",
                 default: None,
+                enum_variants: None,
             },
         ]
     }

@@ -37,6 +37,7 @@ impl Function for Pop {
             required: true,
             description: "The target array.",
             default: None,
+            enum_variants: None,
         }]
     }
 

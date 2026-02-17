@@ -11,6 +11,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: true,
             description: "The object or array to iterate.",
             default: None,
+            enum_variants: None,
         },
         Parameter {
             keyword: "recursive",
@@ -18,6 +19,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: false,
             description: "Whether to recursively iterate the collection.",
             default: Some(&DEFAULT_RECURSIVE),
+            enum_variants: None,
         },
     ]
 });

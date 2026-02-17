@@ -13,6 +13,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: true,
             description: "The string or array to slice.",
             default: None,
+            enum_variants: None,
         },
         Parameter {
             keyword: "start",
@@ -20,6 +21,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: true,
             description: "The inclusive start position. A zero-based index that can be negative.",
             default: None,
+            enum_variants: None,
         },
         Parameter {
             keyword: "end",
@@ -27,6 +29,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: false,
             description: "The exclusive end position. A zero-based index that can be negative.",
             default: Some(&DEFAULT_END),
+            enum_variants: None,
         },
     ]
 });

@@ -38,6 +38,7 @@ impl Function for Push {
                 required: true,
                 description: "The target array.",
                 default: None,
+                enum_variants: None,
             },
             Parameter {
                 keyword: "item",
@@ -45,6 +46,7 @@ impl Function for Push {
                 required: true,
                 description: "The item to push.",
                 default: None,
+                enum_variants: None,
             },
         ]
     }

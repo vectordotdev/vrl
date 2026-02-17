@@ -67,6 +67,7 @@ impl Function for ParseLinuxAuthorization {
             required: true,
             description: "The text containing the message to parse.",
             default: None,
+            enum_variants: None,
         }]
     }
 

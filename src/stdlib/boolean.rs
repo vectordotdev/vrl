@@ -45,6 +45,7 @@ impl Function for Boolean {
             required: true,
             description: "The value to check if it is a Boolean.",
             default: None,
+            enum_variants: None,
         }]
     }
 

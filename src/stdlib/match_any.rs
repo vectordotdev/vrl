@@ -34,6 +34,7 @@ impl Function for MatchAny {
                 required: true,
                 description: "The value to match.",
                 default: None,
+                enum_variants: None,
             },
             Parameter {
                 keyword: "patterns",
@@ -41,6 +42,7 @@ impl Function for MatchAny {
                 required: true,
                 description: "The array of regular expression patterns to match against.",
                 default: None,
+                enum_variants: None,
             },
         ]
     }

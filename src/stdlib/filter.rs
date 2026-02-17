@@ -82,6 +82,7 @@ impl Function for Filter {
             required: true,
             description: "The array or object to filter.",
             default: None,
+            enum_variants: None,
         }]
     }
 

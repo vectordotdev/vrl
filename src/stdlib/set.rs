@@ -79,6 +79,7 @@ impl Function for Set {
                 required: true,
                 description: "The object or array to insert data into.",
                 default: None,
+                enum_variants: None,
             },
             Parameter {
                 keyword: "path",
@@ -86,6 +87,7 @@ impl Function for Set {
                 required: true,
                 description: "An array of path segments to insert the value into.",
                 default: None,
+                enum_variants: None,
             },
             Parameter {
                 keyword: "data",
@@ -93,6 +95,7 @@ impl Function for Set {
                 required: true,
                 description: "The data to be inserted.",
                 default: None,
+                enum_variants: None,
             },
         ]
     }

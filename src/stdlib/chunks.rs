@@ -60,6 +60,7 @@ impl Function for Chunks {
                 required: true,
                 description: "The array of bytes to split.",
                 default: None,
+                enum_variants: None,
             },
             Parameter {
                 keyword: "chunk_size",
@@ -67,6 +68,7 @@ impl Function for Chunks {
                 required: true,
                 description: "The desired length of each chunk in bytes. This may be constrained by the host platform architecture.",
                 default: None,
+                enum_variants: None,
             },
         ]
     }

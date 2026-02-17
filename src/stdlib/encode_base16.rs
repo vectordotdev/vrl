@@ -32,6 +32,7 @@ impl Function for EncodeBase16 {
             required: true,
             description: "The string to encode.",
             default: None,
+            enum_variants: None,
         }]
     }
 

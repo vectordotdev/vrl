@@ -63,6 +63,7 @@ impl Function for DecodeGzip {
             required: true,
             description: "The [Gzip](https://www.gzip.org/) data to decode.",
             default: None,
+            enum_variants: None,
         }]
     }
 }

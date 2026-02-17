@@ -61,6 +61,7 @@ impl Function for IpPton {
             required: true,
             description: "The IP address (v4 or v6) to convert to binary form.",
             default: None,
+            enum_variants: None,
         }]
     }
 

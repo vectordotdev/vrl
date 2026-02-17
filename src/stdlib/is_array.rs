@@ -35,6 +35,7 @@ impl Function for IsArray {
             required: true,
             description: "The value to check if it is an array.",
             default: None,
+            enum_variants: None,
         }]
     }
 

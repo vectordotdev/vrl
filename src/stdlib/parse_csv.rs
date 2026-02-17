@@ -12,6 +12,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: true,
             description: "The string to parse.",
             default: None,
+            enum_variants: None,
         },
         Parameter {
             keyword: "delimiter",
@@ -19,6 +20,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: false,
             description: "The field delimiter to use when parsing. Must be a single-byte utf8 character.",
             default: Some(&DEFAULT_DELIMITER),
+            enum_variants: None,
         },
     ]
 });

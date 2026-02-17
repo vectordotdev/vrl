@@ -182,6 +182,7 @@ impl Function for ParseInfluxDB {
             required: true,
             description: "The string representation of the InfluxDB line protocol to parse.",
             default: None,
+            enum_variants: None,
         }]
     }
 

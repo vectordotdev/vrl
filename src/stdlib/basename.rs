@@ -41,6 +41,7 @@ impl Function for BaseName {
             required: true,
             description: "The path from which to extract the basename.",
             default: None,
+            enum_variants: None,
         }]
     }
 

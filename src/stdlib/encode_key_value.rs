@@ -44,6 +44,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: true,
             description: "The value to convert to a string.",
             default: None,
+            enum_variants: None,
         },
         Parameter {
             keyword: "fields_ordering",
@@ -51,6 +52,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: false,
             description: "The ordering of fields to preserve. Any fields not in this list are listed unordered, after all ordered fields.",
             default: Some(&DEFAULT_FIELDS_ORDERING),
+            enum_variants: None,
         },
         Parameter {
             keyword: "key_value_delimiter",
@@ -58,6 +60,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: false,
             description: "The string that separates the key from the value.",
             default: Some(&DEFAULT_KEY_VALUE_DELIMITER),
+            enum_variants: None,
         },
         Parameter {
             keyword: "field_delimiter",
@@ -65,6 +68,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: false,
             description: "The string that separates each key-value pair.",
             default: Some(&DEFAULT_FIELD_DELIMITER),
+            enum_variants: None,
         },
         Parameter {
             keyword: "flatten_boolean",
@@ -72,6 +76,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: false,
             description: "Whether to encode key-value with a boolean value as a standalone key if `true` and nothing if `false`.",
             default: Some(&DEFAULT_FLATTEN_BOOLEAN),
+            enum_variants: None,
         },
     ]
 });

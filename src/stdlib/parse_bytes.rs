@@ -1,3 +1,4 @@
+use crate::compiler::function::EnumVariant;
 use crate::compiler::prelude::*;
 use crate::value;
 use core::convert::AsRef;
@@ -8,6 +9,61 @@ use std::sync::LazyLock;
 
 static DEFAULT_BASE: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from("2")));
 
+static UNIT_ENUM: &[EnumVariant] = &[
+    EnumVariant {
+        value: "B",
+        description: "Bytes",
+    },
+    EnumVariant {
+        value: "kiB",
+        description: "Kilobytes (1024 bytes)",
+    },
+    EnumVariant {
+        value: "MiB",
+        description: "Megabytes (1024 ** 2 bytes)",
+    },
+    EnumVariant {
+        value: "GiB",
+        description: "Gigabytes (1024 ** 3 bytes)",
+    },
+    EnumVariant {
+        value: "TiB",
+        description: "Terabytes (1024 gigabytes)",
+    },
+    EnumVariant {
+        value: "PiB",
+        description: "Petabytes (1024 ** 2 gigabytes)",
+    },
+    EnumVariant {
+        value: "EiB",
+        description: "Exabytes (1024 ** 3 gigabytes)",
+    },
+    EnumVariant {
+        value: "kB",
+        description: "Kilobytes (1 thousand bytes in SI)",
+    },
+    EnumVariant {
+        value: "MB",
+        description: "Megabytes (1 million bytes in SI)",
+    },
+    EnumVariant {
+        value: "GB",
+        description: "Gigabytes (1 billion bytes in SI)",
+    },
+    EnumVariant {
+        value: "TB",
+        description: "Terabytes (1 thousand gigabytes in SI)",
+    },
+    EnumVariant {
+        value: "PB",
+        description: "Petabytes (1 million gigabytes in SI)",
+    },
+    EnumVariant {
+        value: "EB",
+        description: "Exabytes (1 billion gigabytes in SI)",
+    },
+];
+
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
         Parameter {
@@ -16,6 +72,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: true,
             description: "The string of the duration with either binary or SI unit.",
             default: None,
+            enum_variants: None,
         },
         Parameter {
             keyword: "unit",
@@ -23,6 +80,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: true,
             description: "The output units for the byte.",
             default: None,
+            enum_variants: Some(UNIT_ENUM),
         },
         Parameter {
             keyword: "base",
@@ -30,6 +88,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: false,
             description: "The base for the byte, either 2 or 10.",
             default: Some(&DEFAULT_BASE),
+            enum_variants: None,
         },
     ]
 });

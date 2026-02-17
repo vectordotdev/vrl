@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
 use std::sync::LazyLock;
 
+use crate::compiler::function::EnumVariant;
 use crate::compiler::prelude::*;
 use crate::value;
 
@@ -100,6 +101,7 @@ impl Function for Haversine {
                 required: true,
                 description: "Latitude of the first point.",
                 default: None,
+                enum_variants: None,
             },
             Parameter {
                 keyword: "longitude1",
@@ -107,6 +109,7 @@ impl Function for Haversine {
                 required: true,
                 description: "Longitude of the first point.",
                 default: None,
+                enum_variants: None,
             },
             Parameter {
                 keyword: "latitude2",
@@ -114,6 +117,7 @@ impl Function for Haversine {
                 required: true,
                 description: "Latitude of the second point.",
                 default: None,
+                enum_variants: None,
             },
             Parameter {
                 keyword: "longitude2",
@@ -121,6 +125,7 @@ impl Function for Haversine {
                 required: true,
                 description: "Longitude of the second point.",
                 default: None,
+                enum_variants: None,
             },
             Parameter {
                 keyword: "measurement_unit",
@@ -128,6 +133,16 @@ impl Function for Haversine {
                 required: false,
                 description: "Measurement system to use for resulting distance.",
                 default: None,
+                enum_variants: Some(&[
+                    EnumVariant {
+                        value: "kilometers",
+                        description: "Use kilometers for the resulting distance.",
+                    },
+                    EnumVariant {
+                        value: "miles",
+                        description: "Use miles for the resulting distance.",
+                    },
+                ]),
             },
         ]
     }

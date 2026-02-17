@@ -57,6 +57,7 @@ impl Function for Unique {
             required: true,
             description: "The array to return unique elements from.",
             default: None,
+            enum_variants: None,
         }]
     }
 }

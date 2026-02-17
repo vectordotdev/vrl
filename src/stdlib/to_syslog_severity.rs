@@ -54,6 +54,7 @@ impl Function for ToSyslogSeverity {
             required: true,
             description: "The Syslog level keyword to convert.",
             default: None,
+            enum_variants: None,
         }]
     }
 

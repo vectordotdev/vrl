@@ -45,6 +45,7 @@ impl Function for IpAton {
             required: true,
             description: "The IP address to convert to binary.",
             default: None,
+            enum_variants: None,
         }]
     }
 

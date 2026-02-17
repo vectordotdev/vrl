@@ -13,6 +13,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: true,
             description: "The string to encode.",
             default: None,
+            enum_variants: None,
         },
         Parameter {
             keyword: "validate",
@@ -20,6 +21,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: false,
             description: "Whether to validate the input string to check if it is a valid domain name.",
             default: Some(&DEFAULT_VALIDATE),
+            enum_variants: None,
         },
     ]
 });

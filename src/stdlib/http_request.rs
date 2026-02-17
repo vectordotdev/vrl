@@ -280,6 +280,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: true,
             description: "The URL to make the HTTP request to.",
             default: None,
+            enum_variants: None,
         },
         Parameter {
             keyword: "method",
@@ -287,6 +288,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: false,
             description: "The HTTP method to use (e.g., GET, POST, PUT, DELETE). Defaults to GET.",
             default: Some(&DEFAULT_METHOD),
+            enum_variants: None,
         },
         Parameter {
             keyword: "headers",
@@ -294,6 +296,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: false,
             description: "An object containing HTTP headers to send with the request.",
             default: Some(&DEFAULT_HEADERS),
+            enum_variants: None,
         },
         Parameter {
             keyword: "body",
@@ -301,6 +304,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: false,
             description: "The request body content to send.",
             default: Some(&DEFAULT_BODY),
+            enum_variants: None,
         },
         Parameter {
             keyword: "http_proxy",
@@ -308,6 +312,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: false,
             description: "HTTP proxy URL to use for the request.",
             default: None,
+            enum_variants: None,
         },
         Parameter {
             keyword: "https_proxy",
@@ -315,6 +320,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: false,
             description: "HTTPS proxy URL to use for the request.",
             default: None,
+            enum_variants: None,
         },
     ]
 });

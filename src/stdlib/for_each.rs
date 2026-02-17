@@ -61,6 +61,7 @@ impl Function for ForEach {
             required: true,
             description: "The array or object to iterate.",
             default: None,
+            enum_variants: None,
         }]
     }
 

@@ -11,6 +11,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: true,
             description: "The string to find the pattern in.",
             default: None,
+            enum_variants: None,
         },
         Parameter {
             keyword: "pattern",
@@ -18,6 +19,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: true,
             description: "The regular expression or string pattern to match against.",
             default: None,
+            enum_variants: None,
         },
         Parameter {
             keyword: "from",
@@ -25,6 +27,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: false,
             description: "Offset to start searching.",
             default: Some(&DEFAULT_FROM),
+            enum_variants: None,
         },
     ]
 });

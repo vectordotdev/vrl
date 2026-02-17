@@ -65,6 +65,7 @@ impl Function for ReverseDns {
             required: true,
             description: "The IP address (IPv4 or IPv6) to perform the reverse DNS lookup on.",
             default: None,
+            enum_variants: None,
         }]
     }
 

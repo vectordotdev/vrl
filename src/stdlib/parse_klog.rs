@@ -147,6 +147,7 @@ impl Function for ParseKlog {
             required: true,
             description: "The string to parse.",
             default: None,
+            enum_variants: None,
         }]
     }
 }

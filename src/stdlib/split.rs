@@ -63,6 +63,7 @@ impl Function for Split {
                 required: true,
                 description: "The string to split.",
                 default: None,
+                enum_variants: None,
             },
             Parameter {
                 keyword: "pattern",
@@ -70,6 +71,7 @@ impl Function for Split {
                 required: true,
                 description: "The string is split whenever this pattern is matched.",
                 default: None,
+                enum_variants: None,
             },
             Parameter {
                 keyword: "limit",
@@ -77,6 +79,7 @@ impl Function for Split {
                 required: false,
                 description: "The maximum number of substrings to return.",
                 default: None,
+                enum_variants: None,
             },
         ]
     }

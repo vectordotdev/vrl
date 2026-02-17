@@ -13,6 +13,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: true,
             description: "The number to round down.",
             default: None,
+            enum_variants: None,
         },
         Parameter {
             keyword: "precision",
@@ -20,6 +21,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: false,
             description: "The number of decimal places to round to.",
             default: Some(&DEFAULT_PRECISION),
+            enum_variants: None,
         },
     ]
 });

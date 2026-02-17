@@ -49,6 +49,7 @@ impl Function for UuidFromFriendlyId {
             required: true,
             description: "A string that is a Friendly ID",
             default: None,
+            enum_variants: None,
         }]
     }
 

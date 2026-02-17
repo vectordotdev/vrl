@@ -63,6 +63,7 @@ impl Function for Assert {
                 required: true,
                 description: "The condition to check.",
                 default: None,
+                enum_variants: None,
             },
             Parameter {
                 keyword: "message",
@@ -73,6 +74,7 @@ impl Function for Assert {
 appended to the default message prefix. See the [examples](#assert-examples) below
 for a fully formed log message sample.",
                 default: None,
+                enum_variants: None,
             },
         ]
     }

@@ -35,6 +35,7 @@ impl Function for IsRegex {
             required: true,
             description: "The value to check if it is a regex.",
             default: None,
+            enum_variants: None,
         }]
     }
 

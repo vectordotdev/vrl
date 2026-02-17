@@ -70,6 +70,7 @@ impl Function for ParseRubyHash {
             required: true,
             description: "The string representation of the ruby hash to parse.",
             default: None,
+            enum_variants: None,
         }]
     }
 }

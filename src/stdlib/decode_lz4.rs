@@ -17,6 +17,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: true,
             description: "The lz4 block data to decode.",
             default: None,
+            enum_variants: None,
         },
         Parameter {
             keyword: "buf_size",
@@ -24,6 +25,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: false,
             description: "The size of the buffer to decode into, this must be equal to or larger than the uncompressed size.",
             default: Some(&DEFAULT_BUF_SIZE),
+            enum_variants: None,
         },
         Parameter {
             keyword: "prepended_size",
@@ -31,6 +33,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             required: false,
             description: "Some implementations of lz4 require the original uncompressed size to be prepended to the compressed data.",
             default: Some(&DEFAULT_PREPENDED_SIZE),
+            enum_variants: None,
         },
     ]
 });

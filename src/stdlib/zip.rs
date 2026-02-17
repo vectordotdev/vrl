@@ -77,6 +77,7 @@ impl Function for Zip {
                 required: true,
                 description: "The first array of elements, or the array of input arrays if no other parameter is present.",
                 default: None,
+                enum_variants: None,
             },
             Parameter {
                 keyword: "array_1",
@@ -84,6 +85,7 @@ impl Function for Zip {
                 required: false,
                 description: "The second array of elements. If not present, the first parameter contains all the arrays.",
                 default: None,
+                enum_variants: None,
             },
         ]
     }
