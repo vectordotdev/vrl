@@ -7,22 +7,8 @@ static DEFAULT_DECIMAL_SEPARATOR: LazyLock<Value> =
 
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
-        Parameter {
-            keyword: "value",
-            kind: kind::INTEGER | kind::FLOAT,
-            required: true,
-            description: "The number to format as a string.",
-            default: None,
-            enum_variants: None,
-        },
-        Parameter {
-            keyword: "scale",
-            kind: kind::INTEGER,
-            required: false,
-            description: "The number of decimal places to display.",
-            default: None,
-            enum_variants: None,
-        },
+        Parameter::required("value", kind::INTEGER | kind::FLOAT, "The number to format as a string."),
+        Parameter::optional("scale", kind::INTEGER, "The number of decimal places to display."),
         Parameter {
             keyword: "decimal_separator",
             kind: kind::BYTES,
@@ -31,14 +17,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             default: Some(&DEFAULT_DECIMAL_SEPARATOR),
             enum_variants: None,
         },
-        Parameter {
-            keyword: "grouping_separator",
-            kind: kind::BYTES,
-            required: false,
-            description: "The character to use between each thousands part of the number.",
-            default: None,
-            enum_variants: None,
-        },
+        Parameter::optional("grouping_separator", kind::BYTES, "The character to use between each thousands part of the number."),
     ]
 });
 

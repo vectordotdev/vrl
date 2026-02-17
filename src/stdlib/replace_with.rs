@@ -9,22 +9,8 @@ static DEFAULT_COUNT: LazyLock<Value> = LazyLock::new(|| Value::Integer(-1));
 
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
-        Parameter {
-            keyword: "value",
-            kind: kind::BYTES,
-            required: true,
-            description: "The original string.",
-            default: None,
-            enum_variants: None,
-        },
-        Parameter {
-            keyword: "pattern",
-            kind: kind::REGEX,
-            required: true,
-            description: "Replace all matches of this pattern. Must be a regular expression.",
-            default: None,
-            enum_variants: None,
-        },
+        Parameter::required("value", kind::BYTES, "The original string."),
+        Parameter::required("pattern", kind::REGEX, "Replace all matches of this pattern. Must be a regular expression."),
         Parameter {
             keyword: "count",
             kind: kind::INTEGER,

@@ -73,30 +73,9 @@ impl Function for Set {
 
     fn parameters(&self) -> &'static [Parameter] {
         &[
-            Parameter {
-                keyword: "value",
-                kind: kind::OBJECT | kind::ARRAY,
-                required: true,
-                description: "The object or array to insert data into.",
-                default: None,
-                enum_variants: None,
-            },
-            Parameter {
-                keyword: "path",
-                kind: kind::ARRAY,
-                required: true,
-                description: "An array of path segments to insert the value into.",
-                default: None,
-                enum_variants: None,
-            },
-            Parameter {
-                keyword: "data",
-                kind: kind::ANY,
-                required: true,
-                description: "The data to be inserted.",
-                default: None,
-                enum_variants: None,
-            },
+            Parameter::required("value", kind::OBJECT | kind::ARRAY, "The object or array to insert data into."),
+            Parameter::required("path", kind::ARRAY, "An array of path segments to insert the value into."),
+            Parameter::required("data", kind::ANY, "The data to be inserted."),
         ]
     }
 

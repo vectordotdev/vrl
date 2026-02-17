@@ -39,14 +39,7 @@ impl Function for IpAton {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[Parameter {
-            keyword: "value",
-            kind: kind::BYTES,
-            required: true,
-            description: "The IP address to convert to binary.",
-            default: None,
-            enum_variants: None,
-        }]
+        &[Parameter::required("value", kind::BYTES, "The IP address to convert to binary.")]
     }
 
     fn examples(&self) -> &'static [Example] {

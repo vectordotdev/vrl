@@ -54,22 +54,8 @@ impl Function for RandomFloat {
 
     fn parameters(&self) -> &'static [Parameter] {
         &[
-            Parameter {
-                keyword: "min",
-                kind: kind::FLOAT,
-                required: true,
-                description: "Minimum value (inclusive).",
-                default: None,
-                enum_variants: None,
-            },
-            Parameter {
-                keyword: "max",
-                kind: kind::FLOAT,
-                required: true,
-                description: "Maximum value (exclusive).",
-                default: None,
-                enum_variants: None,
-            },
+            Parameter::required("min", kind::FLOAT, "Minimum value (inclusive)."),
+            Parameter::required("max", kind::FLOAT, "Maximum value (exclusive)."),
         ]
     }
 

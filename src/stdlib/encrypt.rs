@@ -238,39 +238,11 @@ impl Function for Encrypt {
 
     fn parameters(&self) -> &'static [Parameter] {
         &[
-            Parameter {
-                keyword: "plaintext",
-                kind: kind::BYTES,
-                required: true,
-                description: "The string to encrypt.",
-                default: None,
-            enum_variants: None,
-            },
-            Parameter {
-                keyword: "algorithm",
-                kind: kind::BYTES,
-                required: true,
-                description: "The algorithm to use.",
-                default: None,
-            enum_variants: None,
-            },
-            Parameter {
-                keyword: "key",
-                kind: kind::BYTES,
-                required: true,
-                description: "The key in raw bytes (not encoded) for encryption. The length must match the algorithm requested.",
-                default: None,
-            enum_variants: None,
-            },
-            Parameter {
-                keyword: "iv",
-                kind: kind::BYTES,
-                required: true,
-                description: "The IV in raw bytes (not encoded) for encryption. The length must match the algorithm requested.
-A new IV should be generated for every message. You can use `random_bytes` to generate a cryptographically secure random value.",
-                default: None,
-            enum_variants: None,
-            },
+            Parameter::required("plaintext", kind::BYTES, "The string to encrypt."),
+            Parameter::required("algorithm", kind::BYTES, "The algorithm to use."),
+            Parameter::required("key", kind::BYTES, "The key in raw bytes (not encoded) for encryption. The length must match the algorithm requested."),
+            Parameter::required("iv", kind::BYTES, "The IV in raw bytes (not encoded) for encryption. The length must match the algorithm requested.
+A new IV should be generated for every message. You can use `random_bytes` to generate a cryptographically secure random value."),
         ]
     }
 

@@ -48,14 +48,7 @@ static UNIT_ENUM: &[EnumVariant] = &[
 ];
 
 static PARAMETERS: &[Parameter] = &[
-    Parameter {
-        keyword: "value",
-        kind: kind::BYTES,
-        required: true,
-        description: "The string of the duration.",
-        default: None,
-        enum_variants: None,
-    },
+    Parameter::required("value", kind::BYTES, "The string of the duration."),
     Parameter {
         keyword: "unit",
         kind: kind::BYTES,

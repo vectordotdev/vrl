@@ -39,14 +39,7 @@ impl Function for Object {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[Parameter {
-            keyword: "value",
-            kind: kind::ANY,
-            required: true,
-            description: "The value to check if it is an object.",
-            default: None,
-            enum_variants: None,
-        }]
+        &[Parameter::required("value", kind::ANY, "The value to check if it is an object.")]
     }
 
     fn examples(&self) -> &'static [Example] {

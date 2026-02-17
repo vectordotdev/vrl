@@ -25,14 +25,7 @@ impl Function for ScreamingSnakecase {
 
     fn parameters(&self) -> &'static [Parameter] {
         const PARAMETERS: &[Parameter] = &[
-            Parameter {
-                keyword: "value",
-                kind: kind::BYTES,
-                required: true,
-                description: "The string to convert to SCREAMING_SNAKE case.",
-                default: None,
-                enum_variants: None,
-            },
+            Parameter::required("value", kind::BYTES, "The string to convert to SCREAMING_SNAKE case."),
             ORIGINAL_CASE,
         ];
 

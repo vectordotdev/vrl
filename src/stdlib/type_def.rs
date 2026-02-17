@@ -39,14 +39,7 @@ impl Function for TypeDef {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[Parameter {
-            keyword: "value",
-            kind: kind::ANY,
-            required: true,
-            description: "The expression to get the type definition for.",
-            default: None,
-            enum_variants: None,
-        }]
+        &[Parameter::required("value", kind::ANY, "The expression to get the type definition for.")]
     }
 
     fn examples(&self) -> &'static [Example] {

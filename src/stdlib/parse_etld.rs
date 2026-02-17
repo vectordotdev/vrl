@@ -9,14 +9,7 @@ static DEFAULT_PLUS_PARTS: LazyLock<Value> = LazyLock::new(|| Value::Integer(0))
 
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
-        Parameter {
-            keyword: "value",
-            kind: kind::BYTES,
-            required: true,
-            description: "The domain string.",
-            default: None,
-            enum_variants: None,
-        },
+        Parameter::required("value", kind::BYTES, "The domain string."),
         Parameter {
             keyword: "plus_parts",
             kind: kind::INTEGER,
@@ -28,16 +21,9 @@ organization. Higher numbers will return subdomains.",
             default: Some(&DEFAULT_PLUS_PARTS),
             enum_variants: None,
         },
-        Parameter {
-            keyword: "psl",
-            kind: kind::BYTES,
-            required: false,
-            description: "Can be provided to use a different public suffix list.
+        Parameter::optional("psl", kind::BYTES, "Can be provided to use a different public suffix list.
 
-By default, https://publicsuffix.org/list/public_suffix_list.dat is used.",
-            default: None,
-            enum_variants: None,
-        },
+By default, https://publicsuffix.org/list/public_suffix_list.dat is used."),
     ]
 });
 

@@ -55,14 +55,7 @@ impl Function for ForEach {
         kind::NULL
     }
     fn parameters(&self) -> &'static [Parameter] {
-        &[Parameter {
-            keyword: "value",
-            kind: kind::OBJECT | kind::ARRAY,
-            required: true,
-            description: "The array or object to iterate.",
-            default: None,
-            enum_variants: None,
-        }]
+        &[Parameter::required("value", kind::OBJECT | kind::ARRAY, "The array or object to iterate.")]
     }
 
     fn examples(&self) -> &'static [Example] {

@@ -38,22 +38,8 @@ impl Function for Join {
 
     fn parameters(&self) -> &'static [Parameter] {
         &[
-            Parameter {
-                keyword: "value",
-                kind: kind::ARRAY,
-                required: true,
-                description: "The array of strings to join together.",
-                default: None,
-                enum_variants: None,
-            },
-            Parameter {
-                keyword: "separator",
-                kind: kind::BYTES,
-                required: false,
-                description: "The string separating each original element when joined.",
-                default: None,
-                enum_variants: None,
-            },
+            Parameter::required("value", kind::ARRAY, "The array of strings to join together."),
+            Parameter::optional("separator", kind::BYTES, "The string separating each original element when joined."),
         ]
     }
 

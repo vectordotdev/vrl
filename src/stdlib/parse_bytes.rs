@@ -66,14 +66,7 @@ static UNIT_ENUM: &[EnumVariant] = &[
 
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
-        Parameter {
-            keyword: "value",
-            kind: kind::BYTES,
-            required: true,
-            description: "The string of the duration with either binary or SI unit.",
-            default: None,
-            enum_variants: None,
-        },
+        Parameter::required("value", kind::BYTES, "The string of the duration with either binary or SI unit."),
         Parameter {
             keyword: "unit",
             kind: kind::BYTES,

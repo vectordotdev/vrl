@@ -25,14 +25,7 @@ static SEGMENTATION_ENUM: &[EnumVariant] = &[
 
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
-        Parameter {
-            keyword: "value",
-            kind: kind::BYTES,
-            required: true,
-            description: "The input string.",
-            default: None,
-            enum_variants: None,
-        },
+        Parameter::required("value", kind::BYTES, "The input string."),
         Parameter {
             keyword: "segmentation",
             kind: kind::BYTES,

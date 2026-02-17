@@ -38,30 +38,9 @@ impl Function for FormatTimestamp {
 
     fn parameters(&self) -> &'static [Parameter] {
         &[
-            Parameter {
-                keyword: "value",
-                kind: kind::TIMESTAMP,
-                required: true,
-                description: "The timestamp to format as text.",
-                default: None,
-                enum_variants: None,
-            },
-            Parameter {
-                keyword: "format",
-                kind: kind::BYTES,
-                required: true,
-                description: "The format string as described by the [Chrono library](https://docs.rs/chrono/latest/chrono/format/strftime/index.html#specifiers).",
-                default: None,
-                enum_variants: None,
-            },
-            Parameter {
-                keyword: "timezone",
-                kind: kind::BYTES,
-                required: false,
-                description: "The timezone to use when formatting the timestamp. The parameter uses the TZ identifier or `local`.",
-                default: None,
-                enum_variants: None,
-            },
+            Parameter::required("value", kind::TIMESTAMP, "The timestamp to format as text."),
+            Parameter::required("format", kind::BYTES, "The format string as described by the [Chrono library](https://docs.rs/chrono/latest/chrono/format/strftime/index.html#specifiers)."),
+            Parameter::optional("timezone", kind::BYTES, "The timezone to use when formatting the timestamp. The parameter uses the TZ identifier or `local`."),
         ]
     }
 

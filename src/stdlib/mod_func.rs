@@ -35,22 +35,8 @@ impl Function for Mod {
 
     fn parameters(&self) -> &'static [Parameter] {
         &[
-            Parameter {
-                keyword: "value",
-                kind: kind::INTEGER | kind::FLOAT,
-                required: true,
-                description: "The value the `modulus` is applied to.",
-                default: None,
-                enum_variants: None,
-            },
-            Parameter {
-                keyword: "modulus",
-                kind: kind::INTEGER | kind::FLOAT,
-                required: true,
-                description: "The `modulus` value.",
-                default: None,
-                enum_variants: None,
-            },
+            Parameter::required("value", kind::INTEGER | kind::FLOAT, "The value the `modulus` is applied to."),
+            Parameter::required("modulus", kind::INTEGER | kind::FLOAT, "The `modulus` value."),
         ]
     }
 

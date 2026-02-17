@@ -14,14 +14,7 @@ static DEFAULT_STRICT_MODE: LazyLock<Value> = LazyLock::new(|| Value::Boolean(tr
 
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
-        Parameter {
-            keyword: "value",
-            kind: kind::BYTES,
-            required: true,
-            description: "Access log of the Application Load Balancer.",
-            default: None,
-            enum_variants: None,
-        },
+        Parameter::required("value", kind::BYTES, "Access log of the Application Load Balancer."),
         Parameter {
             keyword: "strict_mode",
             kind: kind::BOOLEAN,

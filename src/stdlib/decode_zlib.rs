@@ -57,14 +57,7 @@ impl Function for DecodeZlib {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[Parameter {
-            keyword: "value",
-            kind: kind::BYTES,
-            required: true,
-            description: "The [Zlib](https://www.zlib.net) data to decode.",
-            default: None,
-            enum_variants: None,
-        }]
+        &[Parameter::required("value", kind::BYTES, "The [Zlib](https://www.zlib.net) data to decode.")]
     }
 }
 

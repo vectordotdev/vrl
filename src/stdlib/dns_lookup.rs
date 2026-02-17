@@ -334,14 +334,7 @@ static DEFAULT_OPTIONS: LazyLock<Value> =
 
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
-        Parameter {
-            keyword: "value",
-            kind: kind::BYTES,
-            required: true,
-            description: "The domain name to query.",
-            default: None,
-            enum_variants: None,
-        },
+        Parameter::required("value", kind::BYTES, "The domain name to query."),
         Parameter {
             keyword: "qtype",
             kind: kind::BYTES,

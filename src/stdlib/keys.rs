@@ -31,14 +31,7 @@ impl Function for Keys {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[Parameter {
-            keyword: "value",
-            kind: kind::OBJECT,
-            required: true,
-            description: "The object to extract keys from.",
-            default: None,
-            enum_variants: None,
-        }]
+        &[Parameter::required("value", kind::OBJECT, "The object to extract keys from.")]
     }
 
     fn examples(&self) -> &'static [Example] {

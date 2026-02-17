@@ -73,14 +73,7 @@ impl Function for ParseTokens {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[Parameter {
-            keyword: "value",
-            kind: kind::BYTES,
-            required: true,
-            description: "The string to tokenize.",
-            default: None,
-            enum_variants: None,
-        }]
+        &[Parameter::required("value", kind::BYTES, "The string to tokenize.")]
     }
 }
 

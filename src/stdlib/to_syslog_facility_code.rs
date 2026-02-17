@@ -58,14 +58,7 @@ impl Function for ToSyslogFacilityCode {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[Parameter {
-            keyword: "value",
-            kind: kind::BYTES,
-            required: true,
-            description: "The Syslog facility keyword to convert.",
-            default: None,
-            enum_variants: None,
-        }]
+        &[Parameter::required("value", kind::BYTES, "The Syslog facility keyword to convert.")]
     }
 
     fn examples(&self) -> &'static [Example] {

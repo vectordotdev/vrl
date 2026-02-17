@@ -7,14 +7,7 @@ const PUNYCODE_PREFIX: &str = "xn--";
 
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
-        Parameter {
-            keyword: "value",
-            kind: kind::BYTES,
-            required: true,
-            description: "The string to encode.",
-            default: None,
-            enum_variants: None,
-        },
+        Parameter::required("value", kind::BYTES, "The string to encode."),
         Parameter {
             keyword: "validate",
             kind: kind::BOOLEAN,

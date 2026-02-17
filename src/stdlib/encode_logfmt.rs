@@ -5,14 +5,7 @@ use super::encode_key_value::{DEFAULT_FIELDS_ORDERING, EncodeKeyValueFn};
 
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
-        Parameter {
-            keyword: "value",
-            kind: kind::OBJECT,
-            required: true,
-            description: "The value to convert to a logfmt string.",
-            default: None,
-            enum_variants: None,
-        },
+        Parameter::required("value", kind::OBJECT, "The value to convert to a logfmt string."),
         Parameter {
             keyword: "fields_ordering",
             kind: kind::ARRAY,

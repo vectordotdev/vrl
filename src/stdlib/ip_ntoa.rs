@@ -40,14 +40,7 @@ impl Function for IpNtoa {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[Parameter {
-            keyword: "value",
-            kind: kind::INTEGER,
-            required: true,
-            description: "The integer representation of an IPv4 address.",
-            default: None,
-            enum_variants: None,
-        }]
+        &[Parameter::required("value", kind::INTEGER, "The integer representation of an IPv4 address.")]
     }
 
     fn examples(&self) -> &'static [Example] {

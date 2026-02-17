@@ -34,14 +34,7 @@ impl Function for IsIpv6 {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[Parameter {
-            keyword: "value",
-            kind: kind::BYTES,
-            required: true,
-            description: "The IP address to check",
-            default: None,
-            enum_variants: None,
-        }]
+        &[Parameter::required("value", kind::BYTES, "The IP address to check")]
     }
 
     fn examples(&self) -> &'static [Example] {

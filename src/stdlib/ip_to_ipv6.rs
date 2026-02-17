@@ -44,14 +44,7 @@ impl Function for IpToIpv6 {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[Parameter {
-            keyword: "value",
-            kind: kind::BYTES,
-            required: true,
-            description: "The IP address to convert to IPv6.",
-            default: None,
-            enum_variants: None,
-        }]
+        &[Parameter::required("value", kind::BYTES, "The IP address to convert to IPv6.")]
     }
 
     fn examples(&self) -> &'static [Example] {

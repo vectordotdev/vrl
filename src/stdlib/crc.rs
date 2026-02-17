@@ -574,14 +574,7 @@ static ALGORITHM_ENUM: &[EnumVariant] = &[
 
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
-        Parameter {
-            keyword: "value",
-            kind: kind::BYTES,
-            required: true,
-            description: "The string to calculate the checksum for.",
-            default: None,
-            enum_variants: None,
-        },
+        Parameter::required("value", kind::BYTES, "The string to calculate the checksum for."),
         Parameter {
             keyword: "algorithm",
             kind: kind::BYTES,

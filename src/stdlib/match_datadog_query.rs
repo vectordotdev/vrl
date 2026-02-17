@@ -91,22 +91,8 @@ impl Function for MatchDatadogQuery {
 
     fn parameters(&self) -> &'static [Parameter] {
         &[
-            Parameter {
-                keyword: "value",
-                kind: kind::OBJECT,
-                required: true,
-                description: "The object.",
-                default: None,
-                enum_variants: None,
-            },
-            Parameter {
-                keyword: "query",
-                kind: kind::BYTES,
-                required: true,
-                description: "The Datadog Search Syntax query.",
-                default: None,
-                enum_variants: None,
-            },
+            Parameter::required("value", kind::OBJECT, "The object."),
+            Parameter::required("query", kind::BYTES, "The Datadog Search Syntax query."),
         ]
     }
 }

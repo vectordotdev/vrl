@@ -6,22 +6,8 @@ static DEFAULT_DEEP: LazyLock<Value> = LazyLock::new(|| Value::Boolean(false));
 
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
-        Parameter {
-            keyword: "to",
-            kind: kind::OBJECT,
-            required: true,
-            description: "The object to merge into.",
-            default: None,
-            enum_variants: None,
-        },
-        Parameter {
-            keyword: "from",
-            kind: kind::OBJECT,
-            required: true,
-            description: "The object to merge from.",
-            default: None,
-            enum_variants: None,
-        },
+        Parameter::required("to", kind::OBJECT, "The object to merge into."),
+        Parameter::required("from", kind::OBJECT, "The object to merge from."),
         Parameter {
             keyword: "deep",
             kind: kind::BOOLEAN,

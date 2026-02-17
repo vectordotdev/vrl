@@ -28,14 +28,7 @@ impl Function for Snakecase {
 
     fn parameters(&self) -> &'static [Parameter] {
         const PARAMETERS: &[Parameter] = &[
-            Parameter {
-                keyword: "value",
-                kind: kind::BYTES,
-                required: true,
-                description: "The string to convert to snake_case.",
-                default: None,
-                enum_variants: None,
-            },
+            Parameter::required("value", kind::BYTES, "The string to convert to snake_case."),
             ORIGINAL_CASE,
             Parameter {
                 keyword: "excluded_boundaries",

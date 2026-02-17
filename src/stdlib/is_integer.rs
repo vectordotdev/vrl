@@ -29,14 +29,7 @@ impl Function for IsInteger {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[Parameter {
-            keyword: "value",
-            kind: kind::ANY,
-            required: true,
-            description: "The value to check if it is an integer.",
-            default: None,
-            enum_variants: None,
-        }]
+        &[Parameter::required("value", kind::ANY, "The value to check if it is an integer.")]
     }
 
     fn examples(&self) -> &'static [Example] {

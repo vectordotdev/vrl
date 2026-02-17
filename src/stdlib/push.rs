@@ -32,22 +32,8 @@ impl Function for Push {
 
     fn parameters(&self) -> &'static [Parameter] {
         &[
-            Parameter {
-                keyword: "value",
-                kind: kind::ARRAY,
-                required: true,
-                description: "The target array.",
-                default: None,
-                enum_variants: None,
-            },
-            Parameter {
-                keyword: "item",
-                kind: kind::ANY,
-                required: true,
-                description: "The item to push.",
-                default: None,
-                enum_variants: None,
-            },
+            Parameter::required("value", kind::ARRAY, "The target array."),
+            Parameter::required("item", kind::ANY, "The item to push."),
         ]
     }
 

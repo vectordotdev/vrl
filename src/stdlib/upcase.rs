@@ -33,14 +33,7 @@ impl Function for Upcase {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[Parameter {
-            keyword: "value",
-            kind: kind::BYTES,
-            required: true,
-            description: "The string to convert to uppercase.",
-            default: None,
-            enum_variants: None,
-        }]
+        &[Parameter::required("value", kind::BYTES, "The string to convert to uppercase.")]
     }
 
     fn compile(

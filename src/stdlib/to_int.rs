@@ -57,14 +57,7 @@ impl Function for ToInt {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[Parameter {
-            keyword: "value",
-            kind: kind::ANY,
-            required: true,
-            description: "The value to convert to an integer.",
-            default: None,
-            enum_variants: None,
-        }]
+        &[Parameter::required("value", kind::ANY, "The value to convert to an integer.")]
     }
 
     fn examples(&self) -> &'static [Example] {

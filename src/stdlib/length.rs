@@ -51,14 +51,7 @@ impl Function for Length {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[Parameter {
-            keyword: "value",
-            kind: kind::ARRAY | kind::OBJECT | kind::BYTES,
-            required: true,
-            description: "The array or object.",
-            default: None,
-            enum_variants: None,
-        }]
+        &[Parameter::required("value", kind::ARRAY | kind::OBJECT | kind::BYTES, "The array or object.")]
     }
 
     fn examples(&self) -> &'static [Example] {

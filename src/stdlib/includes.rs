@@ -28,22 +28,8 @@ impl Function for Includes {
 
     fn parameters(&self) -> &'static [Parameter] {
         &[
-            Parameter {
-                keyword: "value",
-                kind: kind::ARRAY,
-                required: true,
-                description: "The array.",
-                default: None,
-                enum_variants: None,
-            },
-            Parameter {
-                keyword: "item",
-                kind: kind::ANY,
-                required: true,
-                description: "The item to check.",
-                default: None,
-                enum_variants: None,
-            },
+            Parameter::required("value", kind::ARRAY, "The array."),
+            Parameter::required("item", kind::ANY, "The item to check."),
         ]
     }
 

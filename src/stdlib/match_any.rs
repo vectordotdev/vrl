@@ -28,22 +28,8 @@ impl Function for MatchAny {
 
     fn parameters(&self) -> &'static [Parameter] {
         &[
-            Parameter {
-                keyword: "value",
-                kind: kind::BYTES,
-                required: true,
-                description: "The value to match.",
-                default: None,
-                enum_variants: None,
-            },
-            Parameter {
-                keyword: "patterns",
-                kind: kind::ARRAY,
-                required: true,
-                description: "The array of regular expression patterns to match against.",
-                default: None,
-                enum_variants: None,
-            },
+            Parameter::required("value", kind::BYTES, "The value to match."),
+            Parameter::required("patterns", kind::ARRAY, "The array of regular expression patterns to match against."),
         ]
     }
 

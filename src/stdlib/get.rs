@@ -70,22 +70,8 @@ impl Function for Get {
 
     fn parameters(&self) -> &'static [Parameter] {
         &[
-            Parameter {
-                keyword: "value",
-                kind: kind::OBJECT | kind::ARRAY,
-                required: true,
-                description: "The object or array to query.",
-                default: None,
-                enum_variants: None,
-            },
-            Parameter {
-                keyword: "path",
-                kind: kind::ARRAY,
-                required: true,
-                description: "An array of path segments to look for the value.",
-                default: None,
-                enum_variants: None,
-            },
+            Parameter::required("value", kind::OBJECT | kind::ARRAY, "The object or array to query."),
+            Parameter::required("path", kind::ARRAY, "An array of path segments to look for the value."),
         ]
     }
 

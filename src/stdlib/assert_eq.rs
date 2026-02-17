@@ -51,33 +51,11 @@ impl Function for AssertEq {
 
     fn parameters(&self) -> &'static [Parameter] {
         &[
-            Parameter {
-                keyword: "left",
-                kind: kind::ANY,
-                required: true,
-                description: "The value to check for equality against `right`.",
-                default: None,
-                enum_variants: None,
-            },
-            Parameter {
-                keyword: "right",
-                kind: kind::ANY,
-                required: true,
-                description: "The value to check for equality against `left`.",
-                default: None,
-                enum_variants: None,
-            },
-            Parameter {
-                keyword: "message",
-                kind: kind::BYTES,
-                required: false,
-                description:
-                    "An optional custom error message. If the equality assertion fails, `message` is
+            Parameter::required("left", kind::ANY, "The value to check for equality against `right`."),
+            Parameter::required("right", kind::ANY, "The value to check for equality against `left`."),
+            Parameter::optional("message", kind::BYTES, "An optional custom error message. If the equality assertion fails, `message` is
 appended to the default message prefix. See the [examples](#assert_eq-examples)
-below for a fully formed log message sample.",
-                default: None,
-                enum_variants: None,
-            },
+below for a fully formed log message sample."),
         ]
     }
 

@@ -30,14 +30,7 @@ static LEVEL_ENUM: &[EnumVariant] = &[
 
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
-        Parameter {
-            keyword: "value",
-            kind: kind::ANY,
-            required: true,
-            description: "The value to log.",
-            default: None,
-        enum_variants: None,
-        },
+        Parameter::required("value", kind::ANY, "The value to log."),
         Parameter {
             keyword: "level",
             kind: kind::BYTES,

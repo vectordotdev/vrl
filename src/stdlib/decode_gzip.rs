@@ -57,14 +57,7 @@ impl Function for DecodeGzip {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[Parameter {
-            keyword: "value",
-            kind: kind::BYTES,
-            required: true,
-            description: "The [Gzip](https://www.gzip.org/) data to decode.",
-            default: None,
-            enum_variants: None,
-        }]
+        &[Parameter::required("value", kind::BYTES, "The [Gzip](https://www.gzip.org/) data to decode.")]
     }
 }
 

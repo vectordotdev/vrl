@@ -274,14 +274,7 @@ static DEFAULT_BODY: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from
 
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
-        Parameter {
-            keyword: "url",
-            kind: kind::BYTES,
-            required: true,
-            description: "The URL to make the HTTP request to.",
-            default: None,
-            enum_variants: None,
-        },
+        Parameter::required("url", kind::BYTES, "The URL to make the HTTP request to."),
         Parameter {
             keyword: "method",
             kind: kind::BYTES,
@@ -306,22 +299,8 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             default: Some(&DEFAULT_BODY),
             enum_variants: None,
         },
-        Parameter {
-            keyword: "http_proxy",
-            kind: kind::BYTES,
-            required: false,
-            description: "HTTP proxy URL to use for the request.",
-            default: None,
-            enum_variants: None,
-        },
-        Parameter {
-            keyword: "https_proxy",
-            kind: kind::BYTES,
-            required: false,
-            description: "HTTPS proxy URL to use for the request.",
-            default: None,
-            enum_variants: None,
-        },
+        Parameter::optional("http_proxy", kind::BYTES, "HTTP proxy URL to use for the request."),
+        Parameter::optional("https_proxy", kind::BYTES, "HTTPS proxy URL to use for the request."),
     ]
 });
 

@@ -57,25 +57,10 @@ impl Function for Assert {
 
     fn parameters(&self) -> &'static [Parameter] {
         &[
-            Parameter {
-                keyword: "condition",
-                kind: kind::BOOLEAN,
-                required: true,
-                description: "The condition to check.",
-                default: None,
-                enum_variants: None,
-            },
-            Parameter {
-                keyword: "message",
-                kind: kind::BYTES,
-                required: false,
-                description:
-                    "An optional custom error message. If the equality assertion fails, `message` is
+            Parameter::required("condition", kind::BOOLEAN, "The condition to check."),
+            Parameter::optional("message", kind::BYTES, "An optional custom error message. If the equality assertion fails, `message` is
 appended to the default message prefix. See the [examples](#assert-examples) below
-for a fully formed log message sample.",
-                default: None,
-                enum_variants: None,
-            },
+for a fully formed log message sample."),
         ]
     }
 

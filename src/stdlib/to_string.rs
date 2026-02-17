@@ -49,14 +49,7 @@ impl Function for ToString {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[Parameter {
-            keyword: "value",
-            kind: kind::ANY,
-            required: true,
-            description: "The value to convert to a string.",
-            default: None,
-            enum_variants: None,
-        }]
+        &[Parameter::required("value", kind::ANY, "The value to convert to a string.")]
     }
 
     fn examples(&self) -> &'static [Example] {

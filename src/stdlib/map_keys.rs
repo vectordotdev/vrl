@@ -5,14 +5,7 @@ static DEFAULT_RECURSIVE: LazyLock<Value> = LazyLock::new(|| Value::Boolean(fals
 
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
-        Parameter {
-            keyword: "value",
-            kind: kind::OBJECT,
-            required: true,
-            description: "The object to iterate.",
-            default: None,
-            enum_variants: None,
-        },
+        Parameter::required("value", kind::OBJECT, "The object to iterate."),
         Parameter {
             keyword: "recursive",
             kind: kind::BOOLEAN,

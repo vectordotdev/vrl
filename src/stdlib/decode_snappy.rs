@@ -56,14 +56,7 @@ impl Function for DecodeSnappy {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[Parameter {
-            keyword: "value",
-            kind: kind::BYTES,
-            required: true,
-            description: "The Snappy data to decode.",
-            default: None,
-            enum_variants: None,
-        }]
+        &[Parameter::required("value", kind::BYTES, "The Snappy data to decode.")]
     }
 }
 

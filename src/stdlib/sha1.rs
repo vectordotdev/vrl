@@ -27,14 +27,7 @@ impl Function for Sha1 {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[Parameter {
-            keyword: "value",
-            kind: kind::BYTES,
-            required: true,
-            description: "The string to calculate the hash for.",
-            default: None,
-            enum_variants: None,
-        }]
+        &[Parameter::required("value", kind::BYTES, "The string to calculate the hash for.")]
     }
 
     fn examples(&self) -> &'static [Example] {

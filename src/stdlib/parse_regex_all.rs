@@ -9,22 +9,8 @@ static DEFAULT_NUMERIC_GROUPS: LazyLock<Value> = LazyLock::new(|| Value::Boolean
 
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
-        Parameter {
-            keyword: "value",
-            kind: kind::ANY,
-            required: true,
-            description: "The string to search.",
-            default: None,
-        enum_variants: None,
-        },
-        Parameter {
-            keyword: "pattern",
-            kind: kind::REGEX,
-            required: true,
-            description: "The regular expression pattern to search against.",
-            default: None,
-        enum_variants: None,
-        },
+        Parameter::required("value", kind::ANY, "The string to search."),
+        Parameter::required("pattern", kind::REGEX, "The regular expression pattern to search against."),
         Parameter {
             keyword: "numeric_groups",
             kind: kind::BOOLEAN,

@@ -5,14 +5,7 @@ static DEFAULT_COMPACT: LazyLock<Value> = LazyLock::new(|| Value::Boolean(false)
 
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
-        Parameter {
-            keyword: "target",
-            kind: kind::ANY,
-            required: true,
-            description: "The path of the field to delete",
-            default: None,
-            enum_variants: None,
-        },
+        Parameter::required("target", kind::ANY, "The path of the field to delete"),
         Parameter {
             keyword: "compact",
             kind: kind::BOOLEAN,

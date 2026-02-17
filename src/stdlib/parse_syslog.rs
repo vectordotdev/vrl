@@ -56,14 +56,7 @@ impl Function for ParseSyslog {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[Parameter {
-            keyword: "value",
-            kind: kind::BYTES,
-            required: true,
-            description: "The text containing the Syslog message to parse.",
-            default: None,
-            enum_variants: None,
-        }]
+        &[Parameter::required("value", kind::BYTES, "The text containing the Syslog message to parse.")]
     }
 
     fn examples(&self) -> &'static [Example] {

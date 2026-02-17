@@ -47,14 +47,7 @@ impl Function for IsEmpty {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[Parameter {
-            keyword: "value",
-            kind: kind::OBJECT | kind::ARRAY | kind::BYTES,
-            required: true,
-            description: "The value to check.",
-            default: None,
-            enum_variants: None,
-        }]
+        &[Parameter::required("value", kind::OBJECT | kind::ARRAY | kind::BYTES, "The value to check.")]
     }
 
     fn examples(&self) -> &'static [Example] {

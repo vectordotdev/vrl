@@ -79,22 +79,8 @@ impl Function for ObjectFromArray {
 
     fn parameters(&self) -> &'static [Parameter] {
         &[
-            Parameter {
-                keyword: "values",
-                kind: kind::ARRAY,
-                required: true,
-                description: "The first array of elements, or the array of input arrays if no other parameter is present.",
-                default: None,
-                enum_variants: None,
-            },
-            Parameter {
-                keyword: "keys",
-                kind: kind::ARRAY,
-                required: false,
-                description: "The second array of elements. If not present, the first parameter must contain all the arrays.",
-                default: None,
-                enum_variants: None,
-            },
+            Parameter::required("values", kind::ARRAY, "The first array of elements, or the array of input arrays if no other parameter is present."),
+            Parameter::optional("keys", kind::ARRAY, "The second array of elements. If not present, the first parameter must contain all the arrays."),
         ]
     }
 

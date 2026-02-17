@@ -7,14 +7,7 @@ static DEFAULT_DEFAULT_KNOWN_PORTS: LazyLock<Value> = LazyLock::new(|| Value::Bo
 
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
-        Parameter {
-            keyword: "value",
-            kind: kind::BYTES,
-            required: true,
-            description: "The text of the URL.",
-            default: None,
-            enum_variants: None,
-        },
+        Parameter::required("value", kind::BYTES, "The text of the URL."),
         Parameter {
             keyword: "default_known_ports",
             kind: kind::BOOLEAN,

@@ -151,14 +151,7 @@ impl Function for ParseAwsCloudWatchLogSubscriptionMessage {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[Parameter {
-            keyword: "value",
-            kind: kind::BYTES,
-            required: true,
-            description: "The string representation of the message to parse.",
-            default: None,
-            enum_variants: None,
-        }]
+        &[Parameter::required("value", kind::BYTES, "The string representation of the message to parse.")]
     }
 }
 

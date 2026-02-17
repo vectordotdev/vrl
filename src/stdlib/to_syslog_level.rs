@@ -44,14 +44,7 @@ impl Function for ToSyslogLevel {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[Parameter {
-            keyword: "value",
-            kind: kind::INTEGER,
-            required: true,
-            description: "The severity level.",
-            default: None,
-            enum_variants: None,
-        }]
+        &[Parameter::required("value", kind::INTEGER, "The severity level.")]
     }
 
     fn examples(&self) -> &'static [Example] {

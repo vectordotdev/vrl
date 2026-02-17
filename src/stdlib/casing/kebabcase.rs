@@ -25,14 +25,11 @@ impl Function for Kebabcase {
 
     fn parameters(&self) -> &'static [Parameter] {
         const PARAMETERS: &[Parameter] = &[
-            Parameter {
-                keyword: "value",
-                kind: kind::BYTES,
-                required: true,
-                description: "The string to convert to kebab-case.",
-                default: None,
-                enum_variants: None,
-            },
+            Parameter::required(
+                "value",
+                kind::BYTES,
+                "The string to convert to kebab-case.",
+            ),
             ORIGINAL_CASE,
         ];
         PARAMETERS

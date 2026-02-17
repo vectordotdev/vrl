@@ -60,14 +60,7 @@ impl Function for ToSyslogFacility {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[Parameter {
-            keyword: "value",
-            kind: kind::INTEGER,
-            required: true,
-            description: "The facility code.",
-            default: None,
-            enum_variants: None,
-        }]
+        &[Parameter::required("value", kind::INTEGER, "The facility code.")]
     }
 
     fn examples(&self) -> &'static [Example] {

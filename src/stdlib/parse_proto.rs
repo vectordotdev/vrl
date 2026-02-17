@@ -73,35 +73,13 @@ impl Function for ParseProto {
 
     fn parameters(&self) -> &'static [Parameter] {
         &[
-            Parameter {
-                keyword: "value",
-                kind: kind::BYTES,
-                required: true,
-                description: "The protocol buffer payload to parse.",
-                default: None,
-                enum_variants: None,
-            },
-            Parameter {
-                keyword: "desc_file",
-                kind: kind::BYTES,
-                required: true,
-                description:
-                    "The path to the protobuf descriptor set file. Must be a literal string.
+            Parameter::required("value", kind::BYTES, "The protocol buffer payload to parse."),
+            Parameter::required("desc_file", kind::BYTES, "The path to the protobuf descriptor set file. Must be a literal string.
 
-This file is the output of protoc -o <path> ...",
-                default: None,
-                enum_variants: None,
-            },
-            Parameter {
-                keyword: "message_type",
-                kind: kind::BYTES,
-                required: true,
-                description: "The name of the message type to use for serializing.
+This file is the output of protoc -o <path> ..."),
+            Parameter::required("message_type", kind::BYTES, "The name of the message type to use for serializing.
 
-Must be a literal string.",
-                default: None,
-                enum_variants: None,
-            },
+Must be a literal string."),
         ]
     }
 

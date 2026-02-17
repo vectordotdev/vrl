@@ -31,14 +31,7 @@ impl Function for Pop {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[Parameter {
-            keyword: "value",
-            kind: kind::ARRAY,
-            required: true,
-            description: "The target array.",
-            default: None,
-            enum_variants: None,
-        }]
+        &[Parameter::required("value", kind::ARRAY, "The target array.")]
     }
 
     fn examples(&self) -> &'static [Example] {

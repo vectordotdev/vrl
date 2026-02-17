@@ -7,22 +7,8 @@ static DEFAULT_END: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from(
 
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
-        Parameter {
-            keyword: "value",
-            kind: kind::BYTES | kind::ARRAY,
-            required: true,
-            description: "The string or array to slice.",
-            default: None,
-            enum_variants: None,
-        },
-        Parameter {
-            keyword: "start",
-            kind: kind::INTEGER,
-            required: true,
-            description: "The inclusive start position. A zero-based index that can be negative.",
-            default: None,
-            enum_variants: None,
-        },
+        Parameter::required("value", kind::BYTES | kind::ARRAY, "The string or array to slice."),
+        Parameter::required("start", kind::INTEGER, "The inclusive start position. A zero-based index that can be negative."),
         Parameter {
             keyword: "end",
             kind: kind::INTEGER,

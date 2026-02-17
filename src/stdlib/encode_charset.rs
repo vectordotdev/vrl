@@ -61,22 +61,8 @@ impl Function for EncodeCharset {
 
     fn parameters(&self) -> &'static [Parameter] {
         &[
-            Parameter {
-                keyword: "value",
-                kind: kind::BYTES,
-                required: true,
-                description: "The UTF8 string to encode.",
-                default: None,
-                enum_variants: None,
-            },
-            Parameter {
-                keyword: "to_charset",
-                kind: kind::BYTES,
-                required: true,
-                description: "The [character set](https://encoding.spec.whatwg.org/#names-and-labels) to use when encoding the data.",
-                default: None,
-                enum_variants: None,
-            },
+            Parameter::required("value", kind::BYTES, "The UTF8 string to encode."),
+            Parameter::required("to_charset", kind::BYTES, "The [character set](https://encoding.spec.whatwg.org/#names-and-labels) to use when encoding the data."),
         ]
     }
 
