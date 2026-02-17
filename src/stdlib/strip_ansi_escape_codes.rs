@@ -19,11 +19,21 @@ impl Function for StripAnsiEscapeCodes {
         "Strips [ANSI escape codes](https://en.wikipedia.org/wiki/ANSI_escape_code) from `value`."
     }
 
+    fn category(&self) -> &'static str {
+        Category::String.as_ref()
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::BYTES
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",
             kind: kind::BYTES,
             required: true,
+            description: "The string to strip.",
+            default: None,
         }]
     }
 

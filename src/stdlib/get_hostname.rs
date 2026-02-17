@@ -21,6 +21,18 @@ impl Function for GetHostname {
         "Returns the local system's hostname."
     }
 
+    fn category(&self) -> &'static str {
+        Category::System.as_ref()
+    }
+
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["Internal hostname resolution failed."]
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::BYTES
+    }
+
     #[cfg(not(target_arch = "wasm32"))]
     fn compile(
         &self,

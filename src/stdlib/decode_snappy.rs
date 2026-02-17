@@ -24,6 +24,18 @@ impl Function for DecodeSnappy {
         "Decodes the `value` (a Snappy string) into its original string."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Codec.as_ref()
+    }
+
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["`value` isn't a valid encoded Snappy string."]
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::BYTES
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[example! {
             title: "Decode Snappy data",
@@ -48,6 +60,8 @@ impl Function for DecodeSnappy {
             keyword: "value",
             kind: kind::BYTES,
             required: true,
+            description: "The Snappy data to decode.",
+            default: None,
         }]
     }
 }

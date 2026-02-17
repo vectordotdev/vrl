@@ -11,6 +11,28 @@ use nom::{
 };
 use nom_language::error::VerboseError;
 use std::collections::{BTreeMap, HashMap};
+use std::sync::LazyLock;
+
+static DEFAULT_TRANSLATE_CUSTOM_FIELDS: LazyLock<Value> = LazyLock::new(|| Value::Boolean(false));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::BYTES,
+            required: true,
+            description: "The string to parse.",
+            default: None,
+        },
+        Parameter {
+            keyword: "translate_custom_fields",
+            kind: kind::BOOLEAN,
+            required: false,
+            description: "Toggles translation of custom field pairs to `key:value`.",
+            default: Some(&DEFAULT_TRANSLATE_CUSTOM_FIELDS),
+        },
+    ]
+});
 
 fn build_map() -> HashMap<&'static str, (usize, CustomField)> {
     [
@@ -55,19 +77,27 @@ impl Function for ParseCef {
         "Parses the `value` in CEF (Common Event Format) format. Ignores everything up to CEF header. Empty values are returned as empty strings. Surrounding quotes are removed from values."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Parse.as_ref()
+    }
+
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["`value` is not a properly formatted CEF string."]
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::OBJECT
+    }
+
+    fn notices(&self) -> &'static [&'static str] {
+        &[indoc! {"
+            All values are returned as strings. We recommend manually coercing values to desired
+            types as you see fit.
+        "}]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::BYTES,
-                required: true,
-            },
-            Parameter {
-                keyword: "translate_custom_fields",
-                kind: kind::BOOLEAN,
-                required: false,
-            },
-        ]
+        PARAMETERS.as_slice()
     }
 
     fn examples(&self) -> &'static [Example] {
@@ -160,11 +190,10 @@ impl FunctionExpression for ParseCefFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let bytes = self.value.resolve(ctx)?;
         let bytes = bytes.try_bytes_utf8_lossy()?;
-        let translate_custom_fields = if let Some(field) = self.translate_custom_fields.as_ref() {
-            field.resolve(ctx)?.try_boolean()?
-        } else {
-            false
-        };
+        let translate_custom_fields = self
+            .translate_custom_fields
+            .map_resolve_with_default(ctx, || DEFAULT_TRANSLATE_CUSTOM_FIELDS.clone())?
+            .try_boolean()?;
 
         let result = parse(&bytes)?;
 

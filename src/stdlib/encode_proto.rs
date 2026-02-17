@@ -50,22 +50,48 @@ impl Function for EncodeProto {
         "}
     }
 
+    fn category(&self) -> &'static str {
+        Category::Codec.as_ref()
+    }
+
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &[
+            "`desc_file` file does not exist.",
+            "`message_type` message type does not exist in the descriptor file.",
+        ]
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::BYTES
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {
                 keyword: "value",
                 kind: kind::ANY,
                 required: true,
+                description: "The object to convert to a protocol buffer payload.",
+                default: None,
             },
             Parameter {
                 keyword: "desc_file",
                 kind: kind::BYTES,
                 required: true,
+                description:
+                    "The path to the protobuf descriptor set file. Must be a literal string.
+
+This file is the output of protoc -o <path> ...",
+                default: None,
             },
             Parameter {
                 keyword: "message_type",
                 kind: kind::BYTES,
                 required: true,
+                description: "The name of the message type to use for serializing.
+
+Must be a literal string.",
+                default: None,
             },
         ]
     }

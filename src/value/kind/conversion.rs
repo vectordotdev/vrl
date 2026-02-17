@@ -21,7 +21,6 @@ impl Kind {
     ///
     /// This returns `None` if the type is not known to be an object.
     #[must_use]
-    #[allow(clippy::missing_const_for_fn /* false positive */)]
     pub fn into_object(self) -> Option<Collection<Field>> {
         self.object
     }
@@ -46,7 +45,6 @@ impl Kind {
     ///
     /// This returns `None` if the type is not known to be an array.
     #[must_use]
-    #[allow(clippy::missing_const_for_fn /* false positive */)]
     pub fn into_array(self) -> Option<Collection<Index>> {
         self.array
     }

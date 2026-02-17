@@ -46,11 +46,21 @@ impl Function for ForEach {
             See the examples below to learn about the closure syntax.
         "}
     }
+
+    fn category(&self) -> &'static str {
+        Category::Enumerate.as_ref()
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::NULL
+    }
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",
             kind: kind::OBJECT | kind::ARRAY,
             required: true,
+            description: "The array or object to iterate.",
+            default: None,
         }]
     }
 

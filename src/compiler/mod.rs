@@ -8,10 +8,12 @@ use std::{fmt::Display, str::FromStr};
 use serde::{Deserialize, Serialize};
 
 use crate::compiler::unused_expression_checker::check_for_unused_results;
+#[cfg(feature = "stdlib")]
+pub use category::Category;
 pub use compiler::{CompilationResult, Compiler};
 pub use context::Context;
 pub use datetime::TimeZone;
-pub use expression::{Expression, FunctionExpression};
+pub use expression::{Expression, ExpressionExt, FunctionExpression};
 pub use expression_error::{ExpressionError, Resolved};
 pub use function::{Function, Parameter};
 pub use program::{Program, ProgramInfo};
@@ -39,6 +41,8 @@ mod target;
 #[cfg(any(test, feature = "test"))]
 mod test_util;
 
+#[cfg(feature = "stdlib")]
+pub mod category;
 pub mod codes;
 pub mod conversion;
 pub mod expression;

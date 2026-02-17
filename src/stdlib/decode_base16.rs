@@ -21,11 +21,25 @@ impl Function for DecodeBase16 {
         "Decodes the `value` (a [Base16](https://en.wikipedia.org/wiki/Hexadecimal) string) into its original string."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Codec.as_ref()
+    }
+
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["`value` isn't a valid encoded Base16 string."]
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::BYTES
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",
             kind: kind::BYTES,
             required: true,
+            description: "The [Base16](https://en.wikipedia.org/wiki/Hexadecimal) data to decode.",
+            default: None,
         }]
     }
 

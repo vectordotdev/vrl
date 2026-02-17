@@ -26,11 +26,28 @@ impl Function for RandomBytes {
         "A cryptographically secure random number generator. Returns a string value containing the number of random bytes requested."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Random.as_ref()
+    }
+
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &[
+            "`length` is negative.",
+            "`length` is larger than the maximum value (64k).",
+        ]
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::BYTES
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "length",
             kind: kind::INTEGER,
             required: true,
+            description: "The number of bytes to generate. Must not be larger than 64k.",
+            default: None,
         }]
     }
 

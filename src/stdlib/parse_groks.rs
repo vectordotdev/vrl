@@ -66,8 +66,46 @@ mod non_wasm {
 #[allow(clippy::wildcard_imports)]
 #[cfg(not(target_arch = "wasm32"))]
 use non_wasm::*;
+use std::sync::LazyLock;
 #[cfg(not(target_arch = "wasm32"))]
 use std::{fs::File, io::BufReader, path::Path};
+
+static DEFAULT_ALIASES: LazyLock<Value> =
+    LazyLock::new(|| Value::Object(std::collections::BTreeMap::new()));
+static DEFAULT_ALIAS_SOURCES: LazyLock<Value> = LazyLock::new(|| Value::Array(vec![]));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::BYTES,
+            required: true,
+            description: "The string to parse.",
+            default: None,
+        },
+        Parameter {
+            keyword: "patterns",
+            kind: kind::ARRAY,
+            required: true,
+            description: "The [Grok patterns](https://github.com/daschl/grok/tree/master/patterns), which are tried in order until the first match.",
+            default: None,
+        },
+        Parameter {
+            keyword: "aliases",
+            kind: kind::OBJECT,
+            required: false,
+            description: "The shared set of grok aliases that can be referenced in the patterns to simplify them.",
+            default: Some(&DEFAULT_ALIASES),
+        },
+        Parameter {
+            keyword: "alias_sources",
+            kind: kind::ARRAY,
+            required: false,
+            description: "Path to the file containing aliases in a JSON format.",
+            default: Some(&DEFAULT_ALIAS_SOURCES),
+        },
+    ]
+});
 
 #[derive(Clone, Copy, Debug)]
 pub struct ParseGroks;
@@ -81,29 +119,32 @@ impl Function for ParseGroks {
         "Parses the `value` using multiple [`grok`](https://github.com/daschl/grok/tree/master/patterns) patterns. All patterns [listed here](https://github.com/daschl/grok/tree/master/patterns) are supported."
     }
 
-    fn parameters(&self) -> &'static [Parameter] {
+    fn category(&self) -> &'static str {
+        Category::Parse.as_ref()
+    }
+
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
         &[
-            Parameter {
-                keyword: "value",
-                kind: kind::BYTES,
-                required: true,
-            },
-            Parameter {
-                keyword: "patterns",
-                kind: kind::ARRAY,
-                required: true,
-            },
-            Parameter {
-                keyword: "aliases",
-                kind: kind::OBJECT,
-                required: false,
-            },
-            Parameter {
-                keyword: "alias_sources",
-                kind: kind::ARRAY,
-                required: false,
-            },
+            "`value` fails to parse using the provided `pattern`.",
+            "`patterns` is not an array.",
+            "`aliases` is not an object.",
+            "`alias_sources` is not a string or doesn't point to a valid file.",
         ]
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::OBJECT
+    }
+
+    fn notices(&self) -> &'static [&'static str] {
+        &[indoc! {"
+            We recommend using community-maintained Grok patterns when possible, as they're more
+            likely to be properly vetted and improved over time than bespoke patterns.
+        "}]
+    }
+
+    fn parameters(&self) -> &'static [Parameter] {
+        PARAMETERS.as_slice()
     }
 
     fn examples(&self) -> &'static [Example] {
@@ -211,7 +252,21 @@ impl Function for ParseGroks {
 
         let alias_sources = arguments
             .optional_array("alias_sources")?
-            .unwrap_or_default()
+            .unwrap_or_default();
+
+        // With enable_system_functions feature disabled, alias_sources is not allowed
+        // to be used because it uses file operations.
+        #[cfg(not(feature = "enable_system_functions"))]
+        if !alias_sources.is_empty() {
+            return Err(function::Error::InvalidArgument {
+                keyword: "alias_sources",
+                value: "alias_sources".into(),
+                error: "alias_sources is disabled when enable_system_functions feature is disabled",
+            }
+            .into());
+        }
+
+        let alias_sources = alias_sources
             .into_iter()
             .map(|expr| {
                 let path = expr
@@ -454,4 +509,36 @@ mod test {
             tdef: TypeDef::object(Collection::any()).fallible(),
         }
     ];
+
+    // Test that alias_sources errors when enable_system_functions is NOT enabled
+    #[cfg(not(feature = "enable_system_functions"))]
+    #[test]
+    fn alias_sources_errors_without_enable_flag() {
+        use crate::compiler::{CompileConfig, TypeState, compile_with_state};
+        use crate::diagnostic::Formatter;
+
+        let src = r#"
+            parse_groks!(
+                "username=foo",
+                patterns: ["%{PATTERN_A}"],
+                alias_sources: ["tests/data/grok/aliases.json"]
+            )
+        "#;
+
+        let fns = crate::stdlib::all();
+        let state = TypeState::default();
+        let config = CompileConfig::default();
+        let result = compile_with_state(src, &fns, &state, config);
+        assert!(
+            result.is_err(),
+            "Expected compilation to fail when alias_sources is used without enable_system_functions"
+        );
+
+        let diagnostics = result.err().unwrap();
+        let err = Formatter::new(src, diagnostics).to_string();
+        assert!(
+            err.contains("alias_sources is disabled"),
+            "Expected error about alias_sources being disabled, got: {err}"
+        );
+    }
 }

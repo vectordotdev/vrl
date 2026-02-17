@@ -4,6 +4,40 @@ use regex::Regex;
 use std::collections::BTreeMap;
 
 use super::log_util;
+use std::sync::LazyLock;
+
+static DEFAULT_TIMESTAMP_FORMAT_STR: &str = "%d/%b/%Y:%T %z";
+static DEFAULT_TIMESTAMP_FORMAT: LazyLock<Value> =
+    LazyLock::new(|| Value::Bytes(Bytes::from(DEFAULT_TIMESTAMP_FORMAT_STR)));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::BYTES,
+            required: true,
+            description: "The string to parse.",
+            default: None,
+        },
+        Parameter {
+            keyword: "format",
+            kind: kind::BYTES,
+            required: true,
+            description: "The format to use for parsing the log.",
+            default: None,
+        },
+        Parameter {
+            keyword: "timestamp_format",
+            kind: kind::BYTES,
+            required: false,
+            description: "
+The [date/time format](https://docs.rs/chrono/latest/chrono/format/strftime/index.html#specifiers) to use for encoding the timestamp. The time is parsed
+in local time if the timestamp doesn't specify a timezone. The default format is `%d/%b/%Y:%T %z` for
+combined logs and `%Y/%m/%d %H:%M:%S` for error logs.",
+            default: Some(&DEFAULT_TIMESTAMP_FORMAT),
+        },
+    ]
+});
 
 fn parse_nginx_log(
     bytes: &Value,
@@ -44,24 +78,39 @@ impl Function for ParseNginxLog {
         "Parses Nginx access and error log lines. Lines can be in [`combined`](https://nginx.org/en/docs/http/ngx_http_log_module.html), [`ingress_upstreaminfo`](https://kubernetes.github.io/ingress-nginx/user-guide/nginx-configuration/log-format/), [`main`](https://hg.nginx.org/pkg-oss/file/tip/debian/debian/nginx.conf) or [`error`](https://github.com/nginx/nginx/blob/branches/stable-1.18/src/core/ngx_log.c#L102) format."
     }
 
-    fn parameters(&self) -> &'static [Parameter] {
+    fn category(&self) -> &'static str {
+        Category::Parse.as_ref()
+    }
+
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
         &[
-            Parameter {
-                keyword: "value",
-                kind: kind::BYTES,
-                required: true,
-            },
-            Parameter {
-                keyword: "format",
-                kind: kind::BYTES,
-                required: true,
-            },
-            Parameter {
-                keyword: "timestamp_format",
-                kind: kind::BYTES,
-                required: false,
-            },
+            "`value` does not match the specified format.",
+            "`timestamp_format` is not a valid format string.",
+            "The timestamp in `value` fails to parse using the provided `timestamp_format`.",
         ]
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::OBJECT
+    }
+
+    fn notices(&self) -> &'static [&'static str] {
+        &[
+            indoc! {"
+                Missing information in the log message may be indicated by `-`. These fields are
+                omitted in the result.
+            "},
+            indoc! {"
+                In case of `ingress_upstreaminfo` format the following fields may be safely omitted
+                in the log message: `remote_addr`, `remote_user`, `http_referer`, `http_user_agent`,
+                `proxy_alternative_upstream_name`, `upstream_addr`, `upstream_response_length`,
+                `upstream_response_time`, `upstream_status`.
+            "},
+        ]
+    }
+
+    fn parameters(&self) -> &'static [Parameter] {
+        PARAMETERS.as_slice()
     }
 
     fn compile(
@@ -193,7 +242,7 @@ fn regex_for_format(format: &[u8]) -> &Regex {
 
 fn time_format_for_format(format: &[u8]) -> String {
     match format {
-        b"combined" | b"ingress_upstreaminfo" | b"main" => "%d/%b/%Y:%T %z".to_owned(),
+        b"combined" | b"ingress_upstreaminfo" | b"main" => DEFAULT_TIMESTAMP_FORMAT_STR.to_owned(),
         b"error" => "%Y/%m/%d %H:%M:%S".to_owned(),
         _ => unreachable!(),
     }

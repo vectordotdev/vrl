@@ -15,17 +15,29 @@ impl Function for Pascalcase {
         "Takes the `value` string, and turns it into PascalCase. Optionally, you can pass in the existing case of the function, or else we will try to figure out the case automatically."
     }
 
+    fn category(&self) -> &'static str {
+        Category::String.as_ref()
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::BYTES
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "The string to convert to PascalCase.",
+                default: None,
             },
             Parameter {
                 keyword: "original_case",
                 kind: kind::BYTES,
                 required: false,
+                description: "Optional hint on the original case type. Must be one of: kebab-case, camelCase, PascalCase, SCREAMING_SNAKE, snake_case",
+                default: None,
             },
         ]
     }

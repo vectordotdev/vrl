@@ -35,11 +35,32 @@ impl Function for IpPton {
         "}
     }
 
+    fn category(&self) -> &'static str {
+        Category::Ip.as_ref()
+    }
+
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["`value` is not a valid IP (v4 or v6) address in text form."]
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::BYTES
+    }
+
+    fn notices(&self) -> &'static [&'static str] {
+        &[indoc! {"
+            The binary data from this function is not easily printable. However, functions such as
+            `encode_base64` or `encode_percent` can still process it correctly.
+        "}]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",
             kind: kind::BYTES,
             required: true,
+            description: "The IP address (v4 or v6) to convert to binary form.",
+            default: None,
         }]
     }
 

@@ -23,6 +23,14 @@ impl Function for MatchDatadogQuery {
         "Matches an object against a [Datadog Search Syntax](https://docs.datadoghq.com/logs/explorer/search_syntax/) query."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Object.as_ref()
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::BOOLEAN
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
@@ -87,11 +95,15 @@ impl Function for MatchDatadogQuery {
                 keyword: "value",
                 kind: kind::OBJECT,
                 required: true,
+                description: "The object.",
+                default: None,
             },
             Parameter {
                 keyword: "query",
                 kind: kind::BYTES,
                 required: true,
+                description: "The Datadog Search Syntax query.",
+                default: None,
             },
         ]
     }

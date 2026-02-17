@@ -108,6 +108,40 @@ impl Function for ValidateJsonSchema {
         "Check if `value` conforms to a JSON Schema definition. This function validates a JSON payload against a JSON Schema definition. It can be used to ensure that the data structure and types in `value` match the expectations defined in `schema_definition`."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Type.as_ref()
+    }
+
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &[
+            "`value` is not a valid JSON Schema payload.",
+            "`value` contains custom format declarations and `ignore_unknown_formats` has not been set to `true`.",
+            "`schema_definition` is not a valid JSON Schema definition.",
+            "`schema_definition` file does not exist.",
+        ]
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::BOOLEAN
+    }
+
+    fn return_rules(&self) -> &'static [&'static str] {
+        &[
+            "Returns `true` if `value` conforms to the JSON Schema definition.",
+            "Returns `false` if `value` does not conform to the JSON Schema definition.",
+        ]
+    }
+
+    fn notices(&self) -> &'static [&'static str] {
+        &[indoc! {"
+            This function uses a compiled schema cache. The first time it is called with a specific
+            `schema_definition`, it will compile the schema and cache it for subsequent calls. This
+            improves performance when validating multiple values against the same schema. The cache
+            implementation is fairly naive and does not support refreshing the schema if it changes.
+            If you update the schema definition file, you must restart Vector to clear the cache.
+        "}]
+    }
+
     fn examples(&self) -> &'static [Example] {
         EXAMPLES.as_slice()
     }
@@ -118,16 +152,22 @@ impl Function for ValidateJsonSchema {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "The value to check if it conforms to the JSON schema definition.",
+                default: None,
             },
             Parameter {
                 keyword: "schema_definition",
                 kind: kind::BYTES,
                 required: true,
+                description: "The location (path) of the JSON Schema definition.",
+                default: None,
             },
             Parameter {
                 keyword: "ignore_unknown_formats",
                 kind: kind::BOOLEAN,
                 required: false,
+                description: "Unknown formats can be silently ignored by setting this to `true` and validation continues without failing due to those fields.",
+                default: None,
             },
         ]
     }

@@ -14,7 +14,15 @@ impl Function for Snakecase {
     }
 
     fn usage(&self) -> &'static str {
-        "Takes the `value` string, and turns it into snake-case. Optionally, you can pass in the existing case of the function, or else we will try to figure out the case automatically."
+        "Takes the `value` string, and turns it into snake_case. Optionally, you can pass in the existing case of the function, or else we will try to figure out the case automatically."
+    }
+
+    fn category(&self) -> &'static str {
+        Category::String.as_ref()
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::BYTES
     }
 
     fn parameters(&self) -> &'static [Parameter] {
@@ -23,16 +31,34 @@ impl Function for Snakecase {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "The string to convert to snake_case.",
+                default: None,
             },
             Parameter {
                 keyword: "original_case",
                 kind: kind::BYTES,
                 required: false,
+                description: "Optional hint on the original case type. Must be one of: kebab-case, camelCase, PascalCase, SCREAMING_SNAKE, snake_case",
+                default: None,
             },
             Parameter {
                 keyword: "excluded_boundaries",
                 kind: kind::ARRAY,
                 required: false,
+                description: indoc! {"
+                    Case boundaries to exclude during conversion.
+
+                    Valid values include:
+                    - lower_upper
+                    - upper_lower
+                    - upper_upper
+                    - acronym
+                    - lower_digit
+                    - upper_digit
+                    - digit_lower
+                    - digit_upper
+                "},
+                default: None,
             },
         ]
     }

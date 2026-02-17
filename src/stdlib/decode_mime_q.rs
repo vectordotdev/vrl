@@ -24,11 +24,27 @@ impl Function for DecodeMimeQ {
         "Replaces q-encoded or base64-encoded [encoded-word](https://datatracker.ietf.org/doc/html/rfc2047#section-2)) substrings in the `value` with their original string."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Codec.as_ref()
+    }
+
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &[
+            "`value` has invalid encoded [encoded-word](https://datatracker.ietf.org/doc/html/rfc2047#section-2) string.",
+        ]
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::BYTES
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",
             kind: kind::BYTES,
             required: true,
+            description: "The string with [encoded-words](https://datatracker.ietf.org/doc/html/rfc2047#section-2) to decode.",
+            default: None,
         }]
     }
 

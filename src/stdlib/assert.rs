@@ -31,17 +31,48 @@ impl Function for Assert {
         "Asserts the `condition`, which must be a Boolean expression. The program is aborted with `message` if the condition evaluates to `false`."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Debug.as_ref()
+    }
+
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["`condition` evaluates to `false`."]
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::BOOLEAN
+    }
+
+    fn notices(&self) -> &'static [&'static str] {
+        &[indoc! {"
+            The `assert` function should be used in a standalone fashion and only when you want
+            to abort the program. You should avoid it in logical expressions and other situations
+            in which you want the program to continue if the condition evaluates to `false`.
+        "}]
+    }
+
+    fn pure(&self) -> bool {
+        false
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {
                 keyword: "condition",
                 kind: kind::BOOLEAN,
                 required: true,
+                description: "The condition to check.",
+                default: None,
             },
             Parameter {
                 keyword: "message",
                 kind: kind::BYTES,
                 required: false,
+                description:
+                    "An optional custom error message. If the equality assertion fails, `message` is
+appended to the default message prefix. See the [examples](#assert-examples) below
+for a fully formed log message sample.",
+                default: None,
             },
         ]
     }

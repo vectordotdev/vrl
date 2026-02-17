@@ -1,4 +1,26 @@
 use crate::compiler::prelude::*;
+use std::sync::LazyLock;
+
+static DEFAULT_PRETTY: LazyLock<Value> = LazyLock::new(|| Value::Boolean(false));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::ANY,
+            required: true,
+            description: "The value to convert to a JSON string.",
+            default: None,
+        },
+        Parameter {
+            keyword: "pretty",
+            kind: kind::BOOLEAN,
+            required: false,
+            description: "Whether to pretty print the JSON string or not.",
+            default: Some(&DEFAULT_PRETTY),
+        },
+    ]
+});
 
 fn encode_json(value: &Value, pretty: bool) -> Value {
     // With `vrl::Value` it should not be possible to get `Err`.
@@ -27,19 +49,16 @@ impl Function for EncodeJson {
         "Encodes the `value` to JSON."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Codec.as_ref()
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::BYTES
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::ANY,
-                required: true,
-            },
-            Parameter {
-                keyword: "pretty",
-                kind: kind::BOOLEAN,
-                required: false,
-            },
-        ]
+        PARAMETERS.as_slice()
     }
 
     fn compile(
@@ -81,10 +100,10 @@ struct EncodeJsonFn {
 impl FunctionExpression for EncodeJsonFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let value = self.value.resolve(ctx)?;
-        let pretty = match &self.pretty {
-            Some(pretty) => pretty.resolve(ctx)?.try_boolean()?,
-            None => false,
-        };
+        let pretty = self
+            .pretty
+            .map_resolve_with_default(ctx, || DEFAULT_PRETTY.clone())?
+            .try_boolean()?;
         Ok(encode_json(&value, pretty))
     }
 

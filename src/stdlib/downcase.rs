@@ -16,11 +16,21 @@ impl Function for Downcase {
         "Downcases the `value` string, where downcase is defined according to the Unicode Derived Core Property Lowercase."
     }
 
+    fn category(&self) -> &'static str {
+        Category::String.as_ref()
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::BYTES
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",
             kind: kind::BYTES,
             required: true,
+            description: "The string to convert to lowercase.",
+            default: None,
         }]
     }
 

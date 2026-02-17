@@ -29,22 +29,51 @@ impl Function for AssertEq {
         "Asserts that two expressions, `left` and `right`, have the same value. The program is aborted with `message` if they do not have the same value."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Debug.as_ref()
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::BOOLEAN
+    }
+
+    fn notices(&self) -> &'static [&'static str] {
+        &[indoc! {"
+            The `assert_eq` function should be used in a standalone fashion and only when you want
+            to abort the program. You should avoid it in logical expressions and other situations in
+            which you want the program to continue if the condition evaluates to `false`.
+        "}]
+    }
+
+    fn pure(&self) -> bool {
+        false
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {
                 keyword: "left",
                 kind: kind::ANY,
                 required: true,
+                description: "The value to check for equality against `right`.",
+                default: None,
             },
             Parameter {
                 keyword: "right",
                 kind: kind::ANY,
                 required: true,
+                description: "The value to check for equality against `left`.",
+                default: None,
             },
             Parameter {
                 keyword: "message",
                 kind: kind::BYTES,
                 required: false,
+                description:
+                    "An optional custom error message. If the equality assertion fails, `message` is
+appended to the default message prefix. See the [examples](#assert_eq-examples)
+below for a fully formed log message sample.",
+                default: None,
             },
         ]
     }

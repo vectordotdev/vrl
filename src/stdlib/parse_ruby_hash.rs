@@ -17,6 +17,25 @@ impl Function for ParseRubyHash {
         "Parses the `value` as ruby hash."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Parse.as_ref()
+    }
+
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["`value` is not a valid ruby hash formatted payload."]
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::OBJECT
+    }
+
+    fn notices(&self) -> &'static [&'static str] {
+        &[indoc! {"
+            Only ruby types are returned. If you need to convert a `string` into a `timestamp`,
+            consider the [`parse_timestamp`](#parse_timestamp) function.
+        "}]
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[example! {
             title: "Parse ruby hash",
@@ -49,6 +68,8 @@ impl Function for ParseRubyHash {
             keyword: "value",
             kind: kind::BYTES,
             required: true,
+            description: "The string representation of the ruby hash to parse.",
+            default: None,
         }]
     }
 }

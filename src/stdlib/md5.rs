@@ -18,11 +18,21 @@ impl Function for Md5 {
         "Calculates an md5 hash of the `value`."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Cryptography.as_ref()
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::BYTES
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",
             kind: kind::ANY,
             required: true,
+            description: "The string to calculate the hash for.",
+            default: None,
         }]
     }
 

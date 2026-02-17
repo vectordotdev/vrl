@@ -23,6 +23,14 @@ impl Function for Unique {
         "}
     }
 
+    fn category(&self) -> &'static str {
+        Category::Enumerate.as_ref()
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::ARRAY
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[example! {
             title: "Unique",
@@ -47,6 +55,8 @@ impl Function for Unique {
             keyword: "value",
             kind: kind::ARRAY,
             required: true,
+            description: "The array to return unique elements from.",
+            default: None,
         }]
     }
 }

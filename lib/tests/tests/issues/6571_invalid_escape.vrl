@@ -1,12 +1,10 @@
 # issue: https://github.com/vectordotdev/vector/issues/6571
 # object: "foo\/bar"
-# result: error[E202]: syntax error
-#   ┌─ :1:1
+# result: error[E209]: invalid escape character: \/
+#   ┌─ :2:15
 #   │
-# 1 │ ╭
-# 2 │ │ .field = "foo\/bar"
-# 3 │ │
-#   │ ╰^ unexpected error: invalid escape character: \/
+# 2 │ .field = "foo\/bar"
+#   │               ^ invalid escape character: /
 #   │
 #   = see language documentation at https://vrl.dev
 #   = try your code in the VRL REPL, learn more at https://vrl.dev/examples

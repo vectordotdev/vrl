@@ -18,11 +18,25 @@ impl Function for Keys {
         "Returns the keys from the object passed into the function."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Enumerate.as_ref()
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::ARRAY
+    }
+
+    fn return_rules(&self) -> &'static [&'static str] {
+        &["Returns an array of all the keys"]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",
             kind: kind::OBJECT,
             required: true,
+            description: "The object to extract keys from.",
+            default: None,
         }]
     }
 

@@ -45,17 +45,35 @@ impl Function for DecodeCharset {
         "}
     }
 
+    fn category(&self) -> &'static str {
+        Category::Codec.as_ref()
+    }
+
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &[
+            "`from_charset` isn't a valid [character set](https://encoding.spec.whatwg.org/#names-and-labels).",
+        ]
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::BYTES
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "The non-UTF8 string to decode.",
+                default: None,
             },
             Parameter {
                 keyword: "from_charset",
                 kind: kind::BYTES,
                 required: true,
+                description: "The [character set](https://encoding.spec.whatwg.org/#names-and-labels) to use when decoding the data.",
+                default: None,
             },
         ]
     }

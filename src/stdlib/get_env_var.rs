@@ -19,11 +19,28 @@ impl Function for GetEnvVar {
         "Returns the value of the environment variable specified by `name`."
     }
 
+    fn category(&self) -> &'static str {
+        Category::System.as_ref()
+    }
+
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &[
+            "Environment variable `name` does not exist.",
+            "The value of environment variable `name` is not valid Unicode",
+        ]
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::BYTES
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "name",
             kind: kind::BYTES,
             required: true,
+            description: "The name of the environment variable.",
+            default: None,
         }]
     }
 

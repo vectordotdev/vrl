@@ -23,6 +23,18 @@ impl Function for DecodeZstd {
         "Decodes the `value` (a [Zstandard](https://facebook.github.io/zstd) string) into its original string."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Codec.as_ref()
+    }
+
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["`value` isn't a valid encoded Zstd string."]
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::BYTES
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[example! {
             title: "Decode Zstd data",
@@ -47,6 +59,8 @@ impl Function for DecodeZstd {
             keyword: "value",
             kind: kind::BYTES,
             required: true,
+            description: "The [Zstandard](https://facebook.github.io/zstd) data to decode.",
+            default: None,
         }]
     }
 }

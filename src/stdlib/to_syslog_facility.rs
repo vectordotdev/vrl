@@ -45,11 +45,27 @@ impl Function for ToSyslogFacility {
         r#"Converts the `value`, a Syslog [facility code](https://en.wikipedia.org/wiki/Syslog#Facility), into its corresponding Syslog keyword. For example, `0` into `"kern"`, `1` into `"user"`, etc."#
     }
 
+    fn category(&self) -> &'static str {
+        Category::Convert.as_ref()
+    }
+
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &[
+            "`value` is not a valid Syslog [facility code](https://en.wikipedia.org/wiki/Syslog#Facility).",
+        ]
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::BYTES
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",
             kind: kind::INTEGER,
             required: true,
+            description: "The facility code.",
+            default: None,
         }]
     }
 

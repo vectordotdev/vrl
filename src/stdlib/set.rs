@@ -59,22 +59,40 @@ impl Function for Set {
         "}
     }
 
+    fn category(&self) -> &'static str {
+        Category::Path.as_ref()
+    }
+
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["The `path` segment must be a string or an integer."]
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::OBJECT | kind::ARRAY
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {
                 keyword: "value",
                 kind: kind::OBJECT | kind::ARRAY,
                 required: true,
+                description: "The object or array to insert data into.",
+                default: None,
             },
             Parameter {
                 keyword: "path",
                 kind: kind::ARRAY,
                 required: true,
+                description: "An array of path segments to insert the value into.",
+                default: None,
             },
             Parameter {
                 keyword: "data",
                 kind: kind::ANY,
                 required: true,
+                description: "The data to be inserted.",
+                default: None,
             },
         ]
     }

@@ -51,17 +51,39 @@ impl Function for Zip {
         "}
     }
 
+    fn category(&self) -> &'static str {
+        Category::Array.as_ref()
+    }
+
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["`array_0` and `array_1` must be arrays."]
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::ARRAY
+    }
+
+    fn return_rules(&self) -> &'static [&'static str] {
+        &[
+            "`zip` is considered fallible if any of the parameters is not an array, or if only the first parameter is present and it is not an array of arrays.",
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {
                 keyword: "array_0",
                 kind: kind::ARRAY,
                 required: true,
+                description: "The first array of elements, or the array of input arrays if no other parameter is present.",
+                default: None,
             },
             Parameter {
                 keyword: "array_1",
                 kind: kind::ARRAY,
                 required: false,
+                description: "The second array of elements. If not present, the first parameter contains all the arrays.",
+                default: None,
             },
         ]
     }

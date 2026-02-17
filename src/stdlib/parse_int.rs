@@ -45,17 +45,40 @@ impl Function for ParseInt {
         "Parses the string `value` representing a number in an optional base/radix to an integer."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Parse.as_ref()
+    }
+
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &[
+            "The base is not between 2 and 36.",
+            "The number cannot be parsed in the base.",
+        ]
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::INTEGER
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "The string to parse.",
+                default: None,
             },
             Parameter {
                 keyword: "base",
                 kind: kind::INTEGER,
                 required: false,
+                description: "The base the number is in. Must be between 2 and 36 (inclusive).
+
+If unspecified, the string prefix is used to
+determine the base: \"0b\", 8 for \"0\" or \"0o\", 16 for \"0x\",
+and 10 otherwise.",
+                default: None,
             },
         ]
     }

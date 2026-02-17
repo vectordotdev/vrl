@@ -1,6 +1,28 @@
 use crate::compiler::prelude::*;
+use std::sync::LazyLock;
+
+static DEFAULT_VALIDATE: LazyLock<Value> = LazyLock::new(|| Value::Boolean(true));
 
 const PUNYCODE_PREFIX: &str = "xn--";
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::BYTES,
+            required: true,
+            description: "The string to encode.",
+            default: None,
+        },
+        Parameter {
+            keyword: "validate",
+            kind: kind::BOOLEAN,
+            required: false,
+            description: "Whether to validate the input string to check if it is a valid domain name.",
+            default: Some(&DEFAULT_VALIDATE),
+        },
+    ]
+});
 
 #[derive(Clone, Copy, Debug)]
 pub struct EncodePunycode;
@@ -14,19 +36,20 @@ impl Function for EncodePunycode {
         "Encodes a `value` to [punycode](https://en.wikipedia.org/wiki/Punycode). Useful for internationalized domain names ([IDN](https://en.wikipedia.org/wiki/Internationalized_domain_name)). This function assumes that the value passed is meant to be used in IDN context and that it is either a domain name or a part of it."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Codec.as_ref()
+    }
+
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["`value` can not be encoded to `punycode`"]
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::BYTES
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::BYTES,
-                required: true,
-            },
-            Parameter {
-                keyword: "validate",
-                kind: kind::BOOLEAN,
-                required: false,
-            },
-        ]
+        PARAMETERS.as_slice()
     }
 
     fn compile(
@@ -36,9 +59,7 @@ impl Function for EncodePunycode {
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
-        let validate = arguments
-            .optional("validate")
-            .unwrap_or_else(|| expr!(true));
+        let validate = arguments.optional("validate");
 
         Ok(EncodePunycodeFn { value, validate }.as_expr())
     }
@@ -72,7 +93,7 @@ impl Function for EncodePunycode {
 #[derive(Clone, Debug)]
 struct EncodePunycodeFn {
     value: Box<dyn Expression>,
-    validate: Box<dyn Expression>,
+    validate: Option<Box<dyn Expression>>,
 }
 
 impl FunctionExpression for EncodePunycodeFn {
@@ -80,7 +101,10 @@ impl FunctionExpression for EncodePunycodeFn {
         let value = self.value.resolve(ctx)?;
         let string = value.try_bytes_utf8_lossy()?;
 
-        let validate = self.validate.resolve(ctx)?.try_boolean()?;
+        let validate = self
+            .validate
+            .map_resolve_with_default(ctx, || DEFAULT_VALIDATE.clone())?
+            .try_boolean()?;
 
         if validate {
             let encoded = idna::domain_to_ascii(&string)

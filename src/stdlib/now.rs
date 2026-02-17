@@ -13,6 +13,14 @@ impl Function for Now {
         "Returns the current timestamp in the UTC timezone with nanosecond precision."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Timestamp.as_ref()
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::TIMESTAMP
+    }
+
     #[cfg(not(feature = "__mock_return_values_for_tests"))]
     fn examples(&self) -> &'static [Example] {
         &[example! {

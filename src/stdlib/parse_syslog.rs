@@ -30,11 +30,38 @@ impl Function for ParseSyslog {
         "Parses the `value` in [Syslog](https://en.wikipedia.org/wiki/Syslog) format."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Parse.as_ref()
+    }
+
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["`value` is not a properly formatted Syslog message."]
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::OBJECT
+    }
+
+    fn notices(&self) -> &'static [&'static str] {
+        &[
+            indoc! {"
+                The function makes a best effort to parse the various Syslog formats that exists out
+                in the wild. This includes [RFC 6587](https://tools.ietf.org/html/rfc6587),
+                [RFC 5424](https://tools.ietf.org/html/rfc5424),
+                [RFC 3164](https://tools.ietf.org/html/rfc3164), and other common variations (such
+                as the Nginx Syslog style).
+            "},
+            "All values are returned as strings. We recommend manually coercing values to desired types as you see fit.",
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",
             kind: kind::BYTES,
             required: true,
+            description: "The text containing the Syslog message to parse.",
+            default: None,
         }]
     }
 

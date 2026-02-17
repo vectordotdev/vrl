@@ -56,17 +56,42 @@ impl Function for ObjectFromArray {
         "}
     }
 
+    fn category(&self) -> &'static str {
+        Category::Object.as_ref()
+    }
+
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &[
+            "`values` and `keys` must be arrays.",
+            "If `keys` is not present, `values` must contain only arrays.",
+        ]
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::OBJECT
+    }
+
+    fn return_rules(&self) -> &'static [&'static str] {
+        &[
+            "`object_from_array` is considered fallible in the following cases: if any of the parameters is not an array; if only the `value` parameter is present and it is not an array of arrays; or if any of the keys are not either a string or `null`.",
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {
                 keyword: "values",
                 kind: kind::ARRAY,
                 required: true,
+                description: "The first array of elements, or the array of input arrays if no other parameter is present.",
+                default: None,
             },
             Parameter {
                 keyword: "keys",
                 kind: kind::ARRAY,
                 required: false,
+                description: "The second array of elements. If not present, the first parameter must contain all the arrays.",
+                default: None,
             },
         ]
     }

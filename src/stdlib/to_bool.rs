@@ -28,11 +28,36 @@ impl Function for ToBool {
         "Coerces the `value` into a boolean."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Coerce.as_ref()
+    }
+
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["`value` is not a supported boolean representation."]
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::BOOLEAN
+    }
+
+    fn return_rules(&self) -> &'static [&'static str] {
+        &[
+            "If `value` is `\"true\"`, `\"t\"`, `\"yes\"`, or `\"y\"`, `true` is returned.",
+            "If `value` is `\"false\"`, `\"f\"`, `\"no\"`, `\"n\"`, or `\"0\"`, `false` is returned.",
+            "If `value` is `0.0`, `false` is returned, otherwise `true` is returned.",
+            "If `value` is `0`, `false` is returned, otherwise `true` is returned.",
+            "If `value` is `null`, `false` is returned.",
+            "If `value` is a Boolean, it's returned unchanged.",
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",
             kind: kind::ANY,
             required: true,
+            description: "The value to convert to a Boolean.",
+            default: None,
         }]
     }
 

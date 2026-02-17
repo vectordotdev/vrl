@@ -51,22 +51,53 @@ impl Function for ParseProto {
         "}
     }
 
+    fn category(&self) -> &'static str {
+        Category::Parse.as_ref()
+    }
+
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &[
+            "`value` is not a valid proto payload.",
+            "`desc_file` file does not exist.",
+            "`message_type` message type does not exist in the descriptor file.",
+        ]
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::OBJECT
+    }
+
+    fn notices(&self) -> &'static [&'static str] {
+        &["Only proto messages are parsed and returned."]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "The protocol buffer payload to parse.",
+                default: None,
             },
             Parameter {
                 keyword: "desc_file",
                 kind: kind::BYTES,
                 required: true,
+                description:
+                    "The path to the protobuf descriptor set file. Must be a literal string.
+
+This file is the output of protoc -o <path> ...",
+                default: None,
             },
             Parameter {
                 keyword: "message_type",
                 kind: kind::BYTES,
                 required: true,
+                description: "The name of the message type to use for serializing.
+
+Must be a literal string.",
+                default: None,
             },
         ]
     }

@@ -12,11 +12,21 @@ impl Function for StripWhitespace {
         "Strips whitespace from the start and end of `value`, where whitespace is defined by the [Unicode `White_Space` property](https://en.wikipedia.org/wiki/Unicode_character_property#Whitespace)."
     }
 
+    fn category(&self) -> &'static str {
+        Category::String.as_ref()
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::BYTES
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",
             kind: kind::BYTES,
             required: true,
+            description: "The string to trim.",
+            default: None,
         }]
     }
 

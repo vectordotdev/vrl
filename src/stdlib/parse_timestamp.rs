@@ -43,6 +43,21 @@ impl Function for ParseTimestamp {
         "Parses the `value` in [strptime](https://docs.rs/chrono/latest/chrono/format/strftime/index.html#specifiers) `format`."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Parse.as_ref()
+    }
+
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &[
+            "`value` fails to parse using the provided `format`.",
+            "`value` fails to parse using the provided `timezone`.",
+        ]
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::TIMESTAMP
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
@@ -82,16 +97,23 @@ impl Function for ParseTimestamp {
                 keyword: "value",
                 kind: kind::BYTES | kind::TIMESTAMP,
                 required: true,
+                description: "The text of the timestamp.",
+                default: None,
             },
             Parameter {
                 keyword: "format",
                 kind: kind::BYTES,
                 required: true,
+                description: "The [strptime](https://docs.rs/chrono/latest/chrono/format/strftime/index.html#specifiers) format.",
+                default: None,
             },
             Parameter {
                 keyword: "timezone",
                 kind: kind::BYTES,
                 required: false,
+                description: "The [TZ database](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones) format. By default, this function parses the timestamp by global [`timezone` option](/docs/reference/configuration//global-options#timezone).
+This argument overwrites the setting and is useful for parsing timestamps without a specified timezone, such as `16/10/2019 12:00:00`.",
+                default: None,
             },
         ]
     }

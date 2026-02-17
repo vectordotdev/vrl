@@ -220,27 +220,52 @@ impl Function for Encrypt {
         "}
     }
 
+    fn category(&self) -> &'static str {
+        Category::Cryptography.as_ref()
+    }
+
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &[
+            "`algorithm` is not a supported algorithm.",
+            "`key` length does not match the key size required for the algorithm specified.",
+            "`iv` length does not match the `iv` size required for the algorithm specified.",
+        ]
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::BYTES
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {
                 keyword: "plaintext",
                 kind: kind::BYTES,
                 required: true,
+                description: "The string to encrypt.",
+                default: None,
             },
             Parameter {
                 keyword: "algorithm",
                 kind: kind::BYTES,
                 required: true,
+                description: "The algorithm to use.",
+                default: None,
             },
             Parameter {
                 keyword: "key",
                 kind: kind::BYTES,
                 required: true,
+                description: "The key in raw bytes (not encoded) for encryption. The length must match the algorithm requested.",
+                default: None,
             },
             Parameter {
                 keyword: "iv",
                 kind: kind::BYTES,
                 required: true,
+                description: "The IV in raw bytes (not encoded) for encryption. The length must match the algorithm requested.
+A new IV should be generated for every message. You can use `random_bytes` to generate a cryptographically secure random value.",
+                default: None,
             },
         ]
     }

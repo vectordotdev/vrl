@@ -245,7 +245,6 @@ impl Infinite {
     ///
     /// Meaning, if `self` is `Any`, then it's always a superset of `other`, otherwise its
     /// accumulative types need to be a superset of `other`.
-    #[allow(clippy::nursery)]
     pub(super) const fn is_superset(&self, other: &Self) -> bool {
         if let (None, Some(())) = (self.bytes, other.bytes) {
             return false;

@@ -68,22 +68,53 @@ impl Function for DecryptIp {
         "}
     }
 
+    fn category(&self) -> &'static str {
+        Category::Ip.as_ref()
+    }
+
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &[
+            "`ip` is not a valid IP address.",
+            "`mode` is not a supported mode (must be `aes128` or `pfx`).",
+            "`key` length does not match the requirements for the specified mode (16 bytes for `aes128`, 32 bytes for `pfx`).",
+        ]
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::BYTES
+    }
+
+    fn notices(&self) -> &'static [&'static str] {
+        &[indoc! {"
+            The `aes128` mode implements the `ipcrypt-deterministic` algorithm from the IPCrypt
+            specification, while the `pfx` mode implements the `ipcrypt-pfx` algorithm. This
+            function reverses the encryption performed by `encrypt_ip` - the same key and algorithm
+            that were used for encryption must be used for decryption.
+        "}]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {
                 keyword: "ip",
                 kind: kind::BYTES,
                 required: true,
+                description: "The encrypted IP address to decrypt (v4 or v6).",
+                default: None,
             },
             Parameter {
                 keyword: "key",
                 kind: kind::BYTES,
                 required: true,
+                description: "The decryption key in raw bytes (not encoded). Must be the same key that was used for encryption. For AES128 mode, the key must be exactly 16 bytes. For PFX mode, the key must be exactly 32 bytes.",
+                default: None,
             },
             Parameter {
                 keyword: "mode",
                 kind: kind::BYTES,
                 required: true,
+                description: "The decryption mode to use. Must match the mode used for encryption: either `aes128` or `pfx`.",
+                default: None,
             },
         ]
     }

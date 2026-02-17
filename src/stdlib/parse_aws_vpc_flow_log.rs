@@ -25,6 +25,18 @@ impl Function for ParseAwsVpcFlowLog {
         "Parses `value` in the [VPC Flow Logs format](https://docs.aws.amazon.com/vpc/latest/userguide/flow-logs.html)."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Parse.as_ref()
+    }
+
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["`value` is not a properly formatted AWS VPC Flow log."]
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::OBJECT
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
@@ -118,11 +130,15 @@ impl Function for ParseAwsVpcFlowLog {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "VPC Flow Log.",
+                default: None,
             },
             Parameter {
                 keyword: "format",
                 kind: kind::BYTES,
                 required: false,
+                description: "VPC Flow Log format.",
+                default: None,
             },
         ]
     }

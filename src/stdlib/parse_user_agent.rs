@@ -13,6 +13,27 @@ static UA_EXTRACTOR: LazyLock<ua_parser::Extractor> = LazyLock::new(|| {
     ua_parser::Extractor::try_from(regexes).expect("Regex file is not valid.")
 });
 
+static DEFAULT_MODE: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from("fast")));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::BYTES,
+            required: true,
+            description: "The string to parse.",
+            default: None,
+        },
+        Parameter {
+            keyword: "mode",
+            kind: kind::BYTES,
+            required: false,
+            description: "Determines performance and reliability characteristics.",
+            default: Some(&DEFAULT_MODE),
+        },
+    ]
+});
+
 #[derive(Clone, Copy, Debug)]
 pub struct ParseUserAgent;
 
@@ -34,19 +55,27 @@ impl Function for ParseUserAgent {
         "}
     }
 
-    fn parameters(&self) -> &'static [Parameter] {
+    fn category(&self) -> &'static str {
+        Category::Parse.as_ref()
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::OBJECT
+    }
+
+    fn notices(&self) -> &'static [&'static str] {
         &[
-            Parameter {
-                keyword: "value",
-                kind: kind::BYTES,
-                required: true,
-            },
-            Parameter {
-                keyword: "mode",
-                kind: kind::BYTES,
-                required: false,
-            },
+            indoc! {"
+                All values are returned as strings or as null. We recommend manually coercing values
+                to desired types as you see fit.
+            "},
+            "Different modes return different schema.",
+            "Field which were not parsed out are set as `null`.",
         ]
+    }
+
+    fn parameters(&self) -> &'static [Parameter] {
+        PARAMETERS.as_slice()
     }
 
     fn examples(&self) -> &'static [Example] {
@@ -85,11 +114,10 @@ impl Function for ParseUserAgent {
 
         let mode = arguments
             .optional_enum("mode", &Mode::all_value(), state)?
-            .map(|s| {
-                Mode::from_str(&s.try_bytes_utf8_lossy().expect("mode not bytes"))
-                    .expect("validated enum")
-            })
-            .unwrap_or_default();
+            .unwrap_or_else(|| DEFAULT_MODE.clone())
+            .try_bytes_utf8_lossy()
+            .map(|s| Mode::from_str(&s).expect("validated enum"))
+            .expect("mode not bytes");
 
         let parser = match mode {
             Mode::Fast => {

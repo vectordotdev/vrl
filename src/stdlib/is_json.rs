@@ -55,17 +55,36 @@ impl Function for IsJson {
         "Check if the string is a valid JSON document."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Type.as_ref()
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::BOOLEAN
+    }
+
+    fn return_rules(&self) -> &'static [&'static str] {
+        &[
+            "Returns `true` if `value` is a valid JSON document.",
+            "Returns `false` if `value` is not JSON-formatted.",
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "The value to check if it is a valid JSON document.",
+                default: None,
             },
             Parameter {
                 keyword: "variant",
                 kind: kind::BYTES,
                 required: false,
+                description: "The variant of the JSON type to explicitly check for.",
+                default: None,
             },
         ]
     }

@@ -19,11 +19,25 @@ impl Function for ParseLogFmt {
         "#}
     }
 
+    fn category(&self) -> &'static str {
+        Category::Parse.as_ref()
+    }
+
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["`value` is not a properly formatted key-value string"]
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::OBJECT
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",
             kind: kind::BYTES,
             required: true,
+            description: "The string to parse.",
+            default: None,
         }]
     }
 
@@ -68,10 +82,10 @@ impl Function for ParseLogFmt {
 
         // The parse_logfmt function is just an alias for `parse_key_value` with the following
         // parameters for the delimiters.
-        let key_value_delimiter = expr!("=");
-        let field_delimiter = expr!(" ");
+        let key_value_delimiter = Some(expr!("="));
+        let field_delimiter = Some(expr!(" "));
         let whitespace = Whitespace::Lenient;
-        let standalone_key = expr!(true);
+        let standalone_key = Some(expr!(true));
 
         Ok(ParseKeyValueFn {
             value,

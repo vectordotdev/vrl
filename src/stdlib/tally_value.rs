@@ -17,6 +17,14 @@ impl Function for TallyValue {
         "Counts the number of times a specific value appears in the provided array."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Enumerate.as_ref()
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::INTEGER
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[example! {
             title: "count matching values",
@@ -43,11 +51,15 @@ impl Function for TallyValue {
                 keyword: "array",
                 kind: kind::ARRAY,
                 required: true,
+                description: "The array to search through.",
+                default: None,
             },
             Parameter {
                 keyword: "value",
                 kind: kind::ANY,
                 required: true,
+                description: "The value to count occurrences of in the array.",
+                default: None,
             },
         ]
     }

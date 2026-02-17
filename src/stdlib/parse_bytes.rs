@@ -6,6 +6,34 @@ use rust_decimal::{Decimal, prelude::FromPrimitive, prelude::ToPrimitive};
 use std::collections::HashMap;
 use std::sync::LazyLock;
 
+static DEFAULT_BASE: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from("2")));
+
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter {
+            keyword: "value",
+            kind: kind::BYTES,
+            required: true,
+            description: "The string of the duration with either binary or SI unit.",
+            default: None,
+        },
+        Parameter {
+            keyword: "unit",
+            kind: kind::BYTES,
+            required: true,
+            description: "The output units for the byte.",
+            default: None,
+        },
+        Parameter {
+            keyword: "base",
+            kind: kind::BYTES,
+            required: false,
+            description: "The base for the byte, either 2 or 10.",
+            default: Some(&DEFAULT_BASE),
+        },
+    ]
+});
+
 fn parse_bytes(bytes: &Value, unit: Value, base: &Bytes) -> Resolved {
     let (units, parse_config) = match base.as_ref() {
         b"2" => (&*BIN_UNITS, Config::new().with_binary()),
@@ -26,7 +54,9 @@ fn parse_bytes(bytes: &Value, unit: Value, base: &Bytes) -> Resolved {
         .parse_size(value)
         .map_err(|e| format!("unable to parse bytes: '{e}'"))?;
     let value = Decimal::from_u64(value).ok_or(format!("unable to parse number: {value}"))?;
-    let number = value / conversion_factor;
+    let number = value
+        .checked_div(*conversion_factor)
+        .ok_or("division by >1 divisor overflowed")?; // This should never ever happen
     let number = number
         .to_f64()
         .ok_or(format!("unable to parse number: '{number}'"))?;
@@ -88,6 +118,18 @@ impl Function for ParseBytes {
         "Parses the `value` into a human-readable bytes format specified by `unit` and `base`."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Parse.as_ref()
+    }
+
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["`value` is not a properly formatted bytes."]
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::FLOAT
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
@@ -133,7 +175,7 @@ impl Function for ParseBytes {
         let unit = arguments.required("unit");
         let base = arguments
             .optional_enum("base", &base_sets(), state)?
-            .unwrap_or_else(|| value!("2"))
+            .unwrap_or_else(|| DEFAULT_BASE.clone())
             .try_bytes()
             .expect("base not bytes");
 
@@ -141,23 +183,7 @@ impl Function for ParseBytes {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::BYTES,
-                required: true,
-            },
-            Parameter {
-                keyword: "unit",
-                kind: kind::BYTES,
-                required: true,
-            },
-            Parameter {
-                keyword: "base",
-                kind: kind::BYTES,
-                required: false,
-            },
-        ]
+        PARAMETERS.as_slice()
     }
 }
 

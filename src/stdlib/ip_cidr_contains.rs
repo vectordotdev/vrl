@@ -69,17 +69,36 @@ impl Function for IpCidrContains {
         "Determines whether the `ip` is contained in the block referenced by the `cidr`."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Ip.as_ref()
+    }
+
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &[
+            "`cidr` is not a valid CIDR.",
+            "`ip` is not a valid IP address.",
+        ]
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::BOOLEAN
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {
                 keyword: "cidr",
                 kind: kind::BYTES | kind::ARRAY,
                 required: true,
+                description: "The CIDR mask (v4 or v6).",
+                default: None,
             },
             Parameter {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "The IP address (v4 or v6).",
+                default: None,
             },
         ]
     }

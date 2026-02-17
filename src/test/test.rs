@@ -126,8 +126,6 @@ impl Test {
             })
         };
 
-        // See https://github.com/rust-lang/rust-clippy/pull/12756
-        #[allow(clippy::assigning_clones)]
         {
             result = result.trim_end().to_owned();
         }

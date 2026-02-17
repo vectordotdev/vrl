@@ -25,6 +25,18 @@ impl Function for DecodeGzip {
         "Decodes the `value` (a [Gzip](https://www.gzip.org/) string) into its original string."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Codec.as_ref()
+    }
+
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["`value` isn't a valid encoded Gzip string."]
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::BYTES
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[example! {
             title: "Decode Gzip data",
@@ -49,6 +61,8 @@ impl Function for DecodeGzip {
             keyword: "value",
             kind: kind::BYTES,
             required: true,
+            description: "The [Gzip](https://www.gzip.org/) data to decode.",
+            default: None,
         }]
     }
 }

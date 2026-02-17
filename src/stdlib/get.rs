@@ -56,17 +56,33 @@ impl Function for Get {
         "}
     }
 
+    fn category(&self) -> &'static str {
+        Category::Path.as_ref()
+    }
+
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["The `path` segment must be a string or an integer."]
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::ANY
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {
                 keyword: "value",
                 kind: kind::OBJECT | kind::ARRAY,
                 required: true,
+                description: "The object or array to query.",
+                default: None,
             },
             Parameter {
                 keyword: "path",
                 kind: kind::ARRAY,
                 required: true,
+                description: "An array of path segments to look for the value.",
+                default: None,
             },
         ]
     }

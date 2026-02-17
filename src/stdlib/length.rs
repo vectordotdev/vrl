@@ -34,11 +34,29 @@ impl Function for Length {
         "}
     }
 
+    fn category(&self) -> &'static str {
+        Category::Enumerate.as_ref()
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::INTEGER
+    }
+
+    fn return_rules(&self) -> &'static [&'static str] {
+        &[
+            "If `value` is an array, returns the number of elements.",
+            "If `value` is an object, returns the number of top-level keys.",
+            "If `value` is a string, returns the number of bytes in the string.",
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",
             kind: kind::ARRAY | kind::OBJECT | kind::BYTES,
             required: true,
+            description: "The array or object.",
+            default: None,
         }]
     }
 

@@ -23,11 +23,25 @@ impl Function for SplitPath {
         "Splits the given `path` into its constituent components, returning an array of strings. Each component represents a part of the file system path hierarchy."
     }
 
+    fn category(&self) -> &'static str {
+        Category::String.as_ref()
+    }
+
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["`value` is not a valid string."]
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::ARRAY
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",
             kind: kind::BYTES,
             required: true,
+            description: "The path to split into components.",
+            default: None,
         }]
     }
 

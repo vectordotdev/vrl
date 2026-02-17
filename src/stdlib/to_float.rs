@@ -41,11 +41,35 @@ impl Function for ToFloat {
         "Coerces the `value` into a float."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Coerce.as_ref()
+    }
+
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["`value` is not a supported float representation."]
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::FLOAT
+    }
+
+    fn return_rules(&self) -> &'static [&'static str] {
+        &[
+            "If `value` is a float, it will be returned as-is.",
+            "If `value` is an integer, it will be returned as as a float.",
+            "If `value` is a string, it must be the string representation of an float or else an error is raised.",
+            "If `value` is a boolean, `0.0` is returned for `false` and `1.0` is returned for `true`.",
+            "If `value` is a timestamp, a [Unix timestamp](https://en.wikipedia.org/wiki/Unix_time) with fractional seconds is returned.",
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",
             kind: kind::ANY,
             required: true,
+            description: "The value to convert to a float. Must be convertible to a float, otherwise an error is raised.",
+            default: None,
         }]
     }
 

@@ -1,5 +1,6 @@
 #![deny(warnings)]
 #![warn(clippy::all)]
+#![warn(clippy::arithmetic_side_effects)]
 
 #[cfg(feature = "compiler")]
 pub mod compiler;

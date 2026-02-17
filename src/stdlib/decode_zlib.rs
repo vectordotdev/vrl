@@ -25,6 +25,18 @@ impl Function for DecodeZlib {
         "Decodes the `value` (a [Zlib](https://www.zlib.net) string) into its original string."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Codec.as_ref()
+    }
+
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["`value` isn't a valid encoded Zlib string."]
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::BYTES
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[example! {
             title: "Decode Zlib data",
@@ -49,6 +61,8 @@ impl Function for DecodeZlib {
             keyword: "value",
             kind: kind::BYTES,
             required: true,
+            description: "The [Zlib](https://www.zlib.net) data to decode.",
+            default: None,
         }]
     }
 }

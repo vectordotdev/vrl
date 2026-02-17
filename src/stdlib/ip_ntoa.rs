@@ -27,11 +27,25 @@ impl Function for IpNtoa {
         "}
     }
 
+    fn category(&self) -> &'static str {
+        Category::Ip.as_ref()
+    }
+
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["`value` cannot fit in an unsigned 32-bit integer."]
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::BYTES
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",
             kind: kind::INTEGER,
             required: true,
+            description: "The integer representation of an IPv4 address.",
+            default: None,
         }]
     }
 

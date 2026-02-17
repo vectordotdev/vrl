@@ -45,6 +45,50 @@ pub enum Error {
     UnexpectedParseError(String),
 }
 
+impl Error {
+    /// Offset all position fields in the error by the given amount.
+    /// This is needed when errors are returned from nested lexers that
+    /// operate on a slice of the original input.
+    fn offset_by(self, offset: usize) -> Self {
+        match self {
+            Error::ParseError {
+                span,
+                source,
+                dropped_tokens,
+            } => Error::ParseError {
+                span: Span::new(span.start() + offset, span.end() + offset),
+                source,
+                dropped_tokens,
+            },
+            Error::ReservedKeyword {
+                start,
+                keyword,
+                end,
+            } => Error::ReservedKeyword {
+                start: start + offset,
+                keyword,
+                end: end + offset,
+            },
+            Error::NumericLiteral { start, error, end } => Error::NumericLiteral {
+                start: start + offset,
+                error,
+                end: end + offset,
+            },
+            Error::StringLiteral { start } => Error::StringLiteral {
+                start: start + offset,
+            },
+            Error::Literal { start } => Error::Literal {
+                start: start + offset,
+            },
+            Error::EscapeChar { start, ch } => Error::EscapeChar {
+                start: start + offset,
+                ch,
+            },
+            Error::UnexpectedParseError(s) => Error::UnexpectedParseError(s),
+        }
+    }
+}
+
 impl DiagnosticMessage for Error {
     fn code(&self) -> usize {
         use Error::{
@@ -909,7 +953,9 @@ impl<'input> Lexer<'input> {
                                 }
                             }
                             s if s.starts_with('"') => {
-                                let r = Lexer::new(&self.input[pos + 1..]).string_literal(0)?;
+                                let r = Lexer::new(&self.input[pos + 1..])
+                                    .string_literal(0)
+                                    .map_err(|e| e.offset_by(pos + 1))?;
                                 match literal_check(r, &mut chars) {
                                     Ok(ch) => ch,
                                     Err(()) => {
@@ -923,7 +969,9 @@ impl<'input> Lexer<'input> {
                                 }
                             }
                             s if s.starts_with("s'") => {
-                                let r = Lexer::new(&self.input[pos + 1..]).raw_string_literal(0)?;
+                                let r = Lexer::new(&self.input[pos + 1..])
+                                    .raw_string_literal(0)
+                                    .map_err(|e| e.offset_by(pos + 1))?;
                                 match literal_check(r, &mut chars) {
                                     Ok(ch) => ch,
                                     Err(()) => {
@@ -935,7 +983,9 @@ impl<'input> Lexer<'input> {
                                 }
                             }
                             s if s.starts_with("r'") => {
-                                let r = Lexer::new(&self.input[pos + 1..]).regex_literal(0)?;
+                                let r = Lexer::new(&self.input[pos + 1..])
+                                    .regex_literal(0)
+                                    .map_err(|e| e.offset_by(pos + 1))?;
                                 match literal_check(r, &mut chars) {
                                     Ok(ch) => ch,
                                     Err(()) => {
@@ -947,7 +997,9 @@ impl<'input> Lexer<'input> {
                                 }
                             }
                             s if s.starts_with("t'") => {
-                                let r = Lexer::new(&self.input[pos + 1..]).timestamp_literal(0)?;
+                                let r = Lexer::new(&self.input[pos + 1..])
+                                    .timestamp_literal(0)
+                                    .map_err(|e| e.offset_by(pos + 1))?;
                                 match literal_check(r, &mut chars) {
                                     Ok(ch) => ch,
                                     Err(()) => {
@@ -1441,7 +1493,7 @@ mod test {
     #[test]
     fn unterminated_literal_errors() {
         let mut lexer = Lexer::new("a(m, r')");
-        assert_eq!(Some(Err(Error::Literal { start: 0 })), lexer.next());
+        assert_eq!(Some(Err(Error::Literal { start: 6 })), lexer.next());
     }
 
     #[test]
@@ -1452,7 +1504,7 @@ mod test {
         );
         assert_eq!(
             Some(Err(Error::EscapeChar {
-                start: 55,
+                start: 112,
                 ch: Some('[')
             })),
             lexer.next()

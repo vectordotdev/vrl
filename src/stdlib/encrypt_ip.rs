@@ -52,22 +52,53 @@ impl Function for EncryptIp {
         "}
     }
 
+    fn category(&self) -> &'static str {
+        Category::Ip.as_ref()
+    }
+
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &[
+            "`ip` is not a valid IP address.",
+            "`mode` is not a supported mode (must be `aes128` or `pfx`).",
+            "`key` length does not match the requirements for the specified mode (16 bytes for `aes128`, 32 bytes for `pfx`).",
+        ]
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::BYTES
+    }
+
+    fn notices(&self) -> &'static [&'static str] {
+        &[indoc! {"
+            The `aes128` mode implements the `ipcrypt-deterministic` algorithm from the IPCrypt
+            specification, while the `pfx` mode implements the `ipcrypt-pfx` algorithm. Both modes
+            provide deterministic encryption where the same input IP address encrypted with the
+            same key will always produce the same encrypted output.
+        "}]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {
                 keyword: "ip",
                 kind: kind::BYTES,
                 required: true,
+                description: "The IP address to encrypt (v4 or v6).",
+                default: None,
             },
             Parameter {
                 keyword: "key",
                 kind: kind::BYTES,
                 required: true,
+                description: "The encryption key in raw bytes (not encoded). For AES128 mode, the key must be exactly 16 bytes. For PFX mode, the key must be exactly 32 bytes.",
+                default: None,
             },
             Parameter {
                 keyword: "mode",
                 kind: kind::BYTES,
                 required: true,
+                description: "The encryption mode to use. Must be either `aes128` or `pfx`.",
+                default: None,
             },
         ]
     }

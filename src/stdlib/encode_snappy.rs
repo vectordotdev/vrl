@@ -24,6 +24,18 @@ impl Function for EncodeSnappy {
         "Encodes the `value` to Snappy."
     }
 
+    fn category(&self) -> &'static str {
+        Category::Codec.as_ref()
+    }
+
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["`value` cannot be encoded into a Snappy string."]
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::BYTES
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[example! {
             title: "Encode to Snappy",
@@ -48,6 +60,8 @@ impl Function for EncodeSnappy {
             keyword: "value",
             kind: kind::BYTES,
             required: true,
+            description: "The string to encode.",
+            default: None,
         }]
     }
 }

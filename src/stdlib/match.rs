@@ -25,17 +25,29 @@ impl Function for Match {
         "Determines whether the `value` matches the `pattern`."
     }
 
+    fn category(&self) -> &'static str {
+        Category::String.as_ref()
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::BOOLEAN
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[
             Parameter {
                 keyword: "value",
                 kind: kind::BYTES,
                 required: true,
+                description: "The value to match.",
+                default: None,
             },
             Parameter {
                 keyword: "pattern",
                 kind: kind::REGEX,
                 required: true,
+                description: "The regular expression pattern to match against.",
+                default: None,
             },
         ]
     }

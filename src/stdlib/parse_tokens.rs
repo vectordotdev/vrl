@@ -32,6 +32,25 @@ impl Function for ParseTokens {
         "#}
     }
 
+    fn category(&self) -> &'static str {
+        Category::Parse.as_ref()
+    }
+
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["`value` is not a properly formatted tokenized string."]
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::ARRAY
+    }
+
+    fn notices(&self) -> &'static [&'static str] {
+        &[indoc! {"
+            All token values are returned as strings. We recommend manually coercing values to
+            desired types as you see fit.
+        "}]
+    }
+
     fn examples(&self) -> &'static [Example] {
         &[example! {
             title: "Parse tokens",
@@ -58,6 +77,8 @@ impl Function for ParseTokens {
             keyword: "value",
             kind: kind::BYTES,
             required: true,
+            description: "The string to tokenize.",
+            default: None,
         }]
     }
 }

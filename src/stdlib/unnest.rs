@@ -72,11 +72,31 @@ impl Function for Unnest {
         "}
     }
 
+    fn category(&self) -> &'static str {
+        Category::Object.as_ref()
+    }
+
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &["The field path referred to is not an array."]
+    }
+
+    fn return_kind(&self) -> u16 {
+        kind::ARRAY
+    }
+
+    fn return_rules(&self) -> &'static [&'static str] {
+        &[
+            "Returns an array of objects that matches the original object, but each with the specified path replaced with a single element from the original path.",
+        ]
+    }
+
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "path",
             kind: kind::ARRAY,
             required: true,
+            description: "The path of the field to unnest.",
+            default: None,
         }]
     }
 
