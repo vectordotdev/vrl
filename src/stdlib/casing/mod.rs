@@ -27,7 +27,6 @@ pub(crate) fn boundaries() -> Vec<Value> {
     vec![
         value!("lower_upper"), // Splits "camelCase" into "camel" and "Case"
         value!("upper_lower"), // Rarely used, splits "CamelCase" at "Camel" and "Case"
-        value!("upper_upper"), // Splits "ABCdef" into "A" and "BCdef"
         value!("acronym"),     // Splits "XMLHttpRequest" into "XML" and "HttpRequest"
         value!("lower_digit"), // Splits "version2Release" into "version" and "2Release"
         value!("upper_digit"), // Splits "Version2Release" into "Version" and "2Release"

@@ -1,3 +1,4 @@
+use crate::compiler::function::EnumVariant;
 use crate::compiler::prelude::*;
 
 use crate::stdlib::casing::into_case;
@@ -47,21 +48,38 @@ impl Function for Snakecase {
                 keyword: "excluded_boundaries",
                 kind: kind::ARRAY,
                 required: false,
-                description: indoc! {"
-                    Case boundaries to exclude during conversion.
-
-                    Valid values include:
-                    - lower_upper
-                    - upper_lower
-                    - upper_upper
-                    - acronym
-                    - lower_digit
-                    - upper_digit
-                    - digit_lower
-                    - digit_upper
-                "},
+                description: "Case boundaries to exclude during conversion.",
                 default: None,
-                enum_variants: None,
+                enum_variants: Some(&[
+                    EnumVariant {
+                        value: "lower_upper",
+                        description: "Lowercase to uppercase transitions (e.g., 'camelCase' → 'camel' + 'case')",
+                    },
+                    EnumVariant {
+                        value: "upper_lower",
+                        description: "Uppercase to lowercase transitions (e.g., 'CamelCase' → 'Camel' + 'Case')",
+                    },
+                    EnumVariant {
+                        value: "acronym",
+                        description: "Acronyms from words (e.g., 'XMLHttpRequest' → 'xmlhttp' + 'request')",
+                    },
+                    EnumVariant {
+                        value: "lower_digit",
+                        description: "Lowercase to digit transitions (e.g., 'foo2bar' → 'foo2_bar')",
+                    },
+                    EnumVariant {
+                        value: "upper_digit",
+                        description: "Uppercase to digit transitions (e.g., 'versionV2' → 'version_v2')",
+                    },
+                    EnumVariant {
+                        value: "digit_lower",
+                        description: "Digit to lowercase transitions (e.g., 'Foo123barBaz' → 'foo' + '123bar' + 'baz')",
+                    },
+                    EnumVariant {
+                        value: "digit_upper",
+                        description: "Digit to uppercase transitions (e.g., 'Version123Test' → 'version' + '123test')",
+                    },
+                ]),
             },
         ]
     }
