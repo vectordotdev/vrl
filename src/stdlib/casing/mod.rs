@@ -23,23 +23,23 @@ pub(crate) static ORIGINAL_CASE: Parameter = Parameter {
     enum_variants: Some(&[
         EnumVariant {
             value: "kebab-case",
-            description: "kebab-case",
+            description: "[kebab-case](https://en.wikipedia.org/wiki/Letter_case#Kebab_case)",
         },
         EnumVariant {
             value: "camelCase",
-            description: "camelCase",
+            description: "[camelCase](https://en.wikipedia.org/wiki/Camel_case)",
         },
         EnumVariant {
             value: "PascalCase",
-            description: "PascalCase",
+            description: "[PascalCase](https://en.wikipedia.org/wiki/Camel_case)",
         },
         EnumVariant {
             value: "SCREAMING_SNAKE",
-            description: "SCREAMING_SNAKE",
+            description: "[SCREAMING_SNAKE](https://en.wikipedia.org/wiki/Snake_case)",
         },
         EnumVariant {
             value: "snake_case",
-            description: "snake_case",
+            description: "[snake_case](https://en.wikipedia.org/wiki/Snake_case)",
         },
     ]),
 };
