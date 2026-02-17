@@ -59,7 +59,8 @@ impl Function for ReverseDns {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[Parameter::required("value", kind::BYTES, "The IP address (IPv4 or IPv6) to perform the reverse DNS lookup on.")]
+        const PARAMETERS: &[Parameter] = &[Parameter::required("value", kind::BYTES, "The IP address (IPv4 or IPv6) to perform the reverse DNS lookup on.")];
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {

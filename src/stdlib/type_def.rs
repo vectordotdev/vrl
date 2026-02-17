@@ -39,7 +39,8 @@ impl Function for TypeDef {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[Parameter::required("value", kind::ANY, "The expression to get the type definition for.")]
+        const PARAMETERS: &[Parameter] = &[Parameter::required("value", kind::ANY, "The expression to get the type definition for.")];
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {

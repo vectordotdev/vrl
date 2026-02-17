@@ -29,7 +29,8 @@ impl Function for IsRegex {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[Parameter::required("value", kind::ANY, "The value to check if it is a regex.")]
+        const PARAMETERS: &[Parameter] = &[Parameter::required("value", kind::ANY, "The value to check if it is a regex.")];
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {

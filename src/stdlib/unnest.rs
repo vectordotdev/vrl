@@ -91,7 +91,8 @@ impl Function for Unnest {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[Parameter::required("path", kind::ARRAY, "The path of the field to unnest.")]
+        const PARAMETERS: &[Parameter] = &[Parameter::required("path", kind::ARRAY, "The path of the field to unnest.")];
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {

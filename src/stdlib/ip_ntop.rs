@@ -53,9 +53,10 @@ impl Function for IpNtop {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[Parameter::required("value", kind::BYTES, "The binary data to convert from.
+        const PARAMETERS: &[Parameter] = &[Parameter::required("value", kind::BYTES, "The binary data to convert from.
 For IPv4 addresses, it must be 4 bytes (32 bits) long.
-For IPv6 addresses, it must be 16 bytes (128 bits) long.")]
+For IPv6 addresses, it must be 16 bytes (128 bits) long.")];
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {

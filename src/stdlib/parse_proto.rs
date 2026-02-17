@@ -72,7 +72,7 @@ impl Function for ParseProto {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
+        const PARAMETERS: &[Parameter] = &[
             Parameter::required("value", kind::BYTES, "The protocol buffer payload to parse."),
             Parameter::required("desc_file", kind::BYTES, "The path to the protobuf descriptor set file. Must be a literal string.
 
@@ -80,7 +80,8 @@ This file is the output of protoc -o <path> ..."),
             Parameter::required("message_type", kind::BYTES, "The name of the message type to use for serializing.
 
 Must be a literal string."),
-        ]
+        ];
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {

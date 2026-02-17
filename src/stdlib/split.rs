@@ -56,11 +56,12 @@ impl Function for Split {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
+        const PARAMETERS: &[Parameter] = &[
             Parameter::required("value", kind::BYTES, "The string to split."),
             Parameter::required("pattern", kind::BYTES | kind::REGEX, "The string is split whenever this pattern is matched."),
             Parameter::optional("limit", kind::INTEGER, "The maximum number of substrings to return."),
-        ]
+        ];
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {

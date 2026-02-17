@@ -21,7 +21,8 @@ impl Function for StripWhitespace {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[Parameter::required("value", kind::BYTES, "The string to trim.")]
+        const PARAMETERS: &[Parameter] = &[Parameter::required("value", kind::BYTES, "The string to trim.")];
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {

@@ -69,10 +69,11 @@ impl Function for Get {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
+        const PARAMETERS: &[Parameter] = &[
             Parameter::required("value", kind::OBJECT | kind::ARRAY, "The object or array to query."),
             Parameter::required("path", kind::ARRAY, "An array of path segments to look for the value."),
-        ]
+        ];
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {

@@ -45,7 +45,7 @@ impl Function for Redact {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
+        const PARAMETERS: &[Parameter] = &[
             Parameter::required("value", kind::BYTES | kind::OBJECT | kind::ARRAY, "The value to redact sensitive data from.
 
 The function's behavior depends on `value`'s type:
@@ -109,7 +109,8 @@ to avoid runtime errors. You cannot use variables or other dynamic expressions w
                 default: None, // TODO: Should be Full
                 enum_variants: None,
             },
-        ]
+        ];
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {

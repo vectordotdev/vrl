@@ -29,7 +29,8 @@ impl Function for IsNull {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[Parameter::required("value", kind::ANY, "The value to check if it is `null`.")]
+        const PARAMETERS: &[Parameter] = &[Parameter::required("value", kind::ANY, "The value to check if it is `null`.")];
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {

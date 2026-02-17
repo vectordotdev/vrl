@@ -35,7 +35,8 @@ impl Function for GetEnvVar {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[Parameter::required("name", kind::BYTES, "The name of the environment variable.")]
+        const PARAMETERS: &[Parameter] = &[Parameter::required("name", kind::BYTES, "The name of the environment variable.")];
+        PARAMETERS
     }
 
     #[cfg(not(feature = "__mock_return_values_for_tests"))]

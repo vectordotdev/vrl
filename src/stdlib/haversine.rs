@@ -94,7 +94,7 @@ impl Function for Haversine {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
+        const PARAMETERS: &[Parameter] = &[
             Parameter::required("latitude1", kind::FLOAT, "Latitude of the first point."),
             Parameter::required("longitude1", kind::FLOAT, "Longitude of the first point."),
             Parameter::required("latitude2", kind::FLOAT, "Latitude of the second point."),
@@ -116,7 +116,8 @@ impl Function for Haversine {
                     },
                 ]),
             },
-        ]
+        ];
+        PARAMETERS
     }
 
     fn compile(

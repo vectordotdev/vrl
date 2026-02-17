@@ -29,7 +29,8 @@ impl Function for IsArray {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[Parameter::required("value", kind::ANY, "The value to check if it is an array.")]
+        const PARAMETERS: &[Parameter] = &[Parameter::required("value", kind::ANY, "The value to check if it is an array.")];
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {

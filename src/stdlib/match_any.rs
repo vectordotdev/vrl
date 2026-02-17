@@ -27,10 +27,11 @@ impl Function for MatchAny {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
+        const PARAMETERS: &[Parameter] = &[
             Parameter::required("value", kind::BYTES, "The value to match."),
             Parameter::required("patterns", kind::ARRAY, "The array of regular expression patterns to match against."),
-        ]
+        ];
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {

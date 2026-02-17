@@ -36,7 +36,8 @@ impl Function for SplitPath {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[Parameter::required("value", kind::BYTES, "The path to split into components.")]
+        const PARAMETERS: &[Parameter] = &[Parameter::required("value", kind::BYTES, "The path to split into components.")];
+        PARAMETERS
     }
 
     fn compile(

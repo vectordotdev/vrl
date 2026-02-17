@@ -39,7 +39,8 @@ impl Function for Float {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[Parameter::required("value", kind::ANY, "The value to check if it is a float.")]
+        const PARAMETERS: &[Parameter] = &[Parameter::required("value", kind::ANY, "The value to check if it is a float.")];
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {

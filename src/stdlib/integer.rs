@@ -39,7 +39,8 @@ impl Function for Integer {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[Parameter::required("value", kind::ANY, "The value to check if it is an integer.")]
+        const PARAMETERS: &[Parameter] = &[Parameter::required("value", kind::ANY, "The value to check if it is an integer.")];
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {

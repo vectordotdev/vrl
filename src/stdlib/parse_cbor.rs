@@ -95,7 +95,8 @@ impl Function for ParseCbor {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[Parameter::required("value", kind::BYTES, "The CBOR payload to parse.")]
+        const PARAMETERS: &[Parameter] = &[Parameter::required("value", kind::BYTES, "The CBOR payload to parse.")];
+        PARAMETERS
     }
 }
 

@@ -43,7 +43,8 @@ impl Function for UuidFromFriendlyId {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[Parameter::required("value", kind::BYTES, "A string that is a Friendly ID")]
+        const PARAMETERS: &[Parameter] = &[Parameter::required("value", kind::BYTES, "A string that is a Friendly ID")];
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {

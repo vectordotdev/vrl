@@ -85,10 +85,11 @@ impl Function for IpCidrContains {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
+        const PARAMETERS: &[Parameter] = &[
             Parameter::required("cidr", kind::BYTES | kind::ARRAY, "The CIDR mask (v4 or v6)."),
             Parameter::required("value", kind::BYTES, "The IP address (v4 or v6)."),
-        ]
+        ];
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {

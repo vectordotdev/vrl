@@ -39,7 +39,8 @@ impl Function for DecodeMimeQ {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[Parameter::required("value", kind::BYTES, "The string with [encoded-words](https://datatracker.ietf.org/doc/html/rfc2047#section-2) to decode.")]
+        const PARAMETERS: &[Parameter] = &[Parameter::required("value", kind::BYTES, "The string with [encoded-words](https://datatracker.ietf.org/doc/html/rfc2047#section-2) to decode.")];
+        PARAMETERS
     }
 
     fn compile(

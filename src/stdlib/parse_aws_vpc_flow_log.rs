@@ -125,10 +125,11 @@ impl Function for ParseAwsVpcFlowLog {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
+        const PARAMETERS: &[Parameter] = &[
             Parameter::required("value", kind::BYTES, "VPC Flow Log."),
             Parameter::optional("format", kind::BYTES, "VPC Flow Log format."),
-        ]
+        ];
+        PARAMETERS
     }
 }
 

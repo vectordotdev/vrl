@@ -39,7 +39,8 @@ impl Function for String {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[Parameter::required("value", kind::ANY, "The value to check if it is a string.")]
+        const PARAMETERS: &[Parameter] = &[Parameter::required("value", kind::ANY, "The value to check if it is a string.")];
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {

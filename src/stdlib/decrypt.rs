@@ -174,14 +174,15 @@ impl Function for Decrypt {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
+        const PARAMETERS: &[Parameter] = &[
             Parameter::required("ciphertext", kind::BYTES, "The string in raw bytes (not encoded) to decrypt."),
             Parameter::required("algorithm", kind::BYTES, "The algorithm to use."),
             Parameter::required("key", kind::BYTES, "The key in raw bytes (not encoded) for decryption. The length must match the algorithm requested."),
             Parameter::required("iv", kind::BYTES, "The IV in raw bytes (not encoded) for decryption. The length must match the algorithm requested.
 A new IV should be generated for every message. You can use `random_bytes` to generate a cryptographically secure random value.
 The value should match the one used during encryption."),
-        ]
+        ];
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {

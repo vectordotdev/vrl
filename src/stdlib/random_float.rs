@@ -53,10 +53,11 @@ impl Function for RandomFloat {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
+        const PARAMETERS: &[Parameter] = &[
             Parameter::required("min", kind::FLOAT, "Minimum value (inclusive)."),
             Parameter::required("max", kind::FLOAT, "Maximum value (exclusive)."),
-        ]
+        ];
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {

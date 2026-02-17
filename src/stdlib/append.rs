@@ -28,10 +28,11 @@ impl Function for Append {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
+        const PARAMETERS: &[Parameter] = &[
             Parameter::required("value", kind::ARRAY, "The initial array."),
             Parameter::required("items", kind::ARRAY, "The items to append."),
-        ]
+        ];
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {

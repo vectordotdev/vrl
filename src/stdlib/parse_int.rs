@@ -61,14 +61,15 @@ impl Function for ParseInt {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
+        const PARAMETERS: &[Parameter] = &[
             Parameter::required("value", kind::BYTES, "The string to parse."),
             Parameter::optional("base", kind::INTEGER, "The base the number is in. Must be between 2 and 36 (inclusive).
 
 If unspecified, the string prefix is used to
 determine the base: \"0b\", 8 for \"0\" or \"0o\", 16 for \"0x\",
 and 10 otherwise."),
-        ]
+        ];
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {

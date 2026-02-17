@@ -52,12 +52,13 @@ impl Function for Truncate {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
+        const PARAMETERS: &[Parameter] = &[
             Parameter::required("value", kind::BYTES, "The string to truncate."),
             Parameter::required("limit", kind::INTEGER, "The number of characters to truncate the string after."),
             Parameter::optional("suffix", kind::BYTES, "A custom suffix (`...`) is appended to truncated strings.
 If `ellipsis` is set to `true`, this parameter is ignored for backwards compatibility."),
-        ]
+        ];
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {

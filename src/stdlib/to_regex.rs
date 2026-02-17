@@ -48,7 +48,8 @@ impl Function for ToRegex {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[Parameter::required("value", kind::BYTES, "The value to convert to a regex.")]
+        const PARAMETERS: &[Parameter] = &[Parameter::required("value", kind::BYTES, "The value to convert to a regex.")];
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {

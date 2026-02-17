@@ -42,7 +42,8 @@ impl Function for RandomBytes {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[Parameter::required("length", kind::INTEGER, "The number of bytes to generate. Must not be larger than 64k.")]
+        const PARAMETERS: &[Parameter] = &[Parameter::required("length", kind::INTEGER, "The number of bytes to generate. Must not be larger than 64k.")];
+        PARAMETERS
     }
 
     #[cfg(not(feature = "__mock_return_values_for_tests"))]

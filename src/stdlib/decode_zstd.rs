@@ -55,7 +55,8 @@ impl Function for DecodeZstd {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[Parameter::required("value", kind::BYTES, "The [Zstandard](https://facebook.github.io/zstd) data to decode.")]
+        const PARAMETERS: &[Parameter] = &[Parameter::required("value", kind::BYTES, "The [Zstandard](https://facebook.github.io/zstd) data to decode.")];
+        PARAMETERS
     }
 }
 

@@ -90,10 +90,11 @@ impl Function for MatchDatadogQuery {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
+        const PARAMETERS: &[Parameter] = &[
             Parameter::required("value", kind::OBJECT, "The object."),
             Parameter::required("query", kind::BYTES, "The Datadog Search Syntax query."),
-        ]
+        ];
+        PARAMETERS
     }
 }
 

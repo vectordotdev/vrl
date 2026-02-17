@@ -25,7 +25,8 @@ impl Function for Downcase {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[Parameter::required("value", kind::BYTES, "The string to convert to lowercase.")]
+        const PARAMETERS: &[Parameter] = &[Parameter::required("value", kind::BYTES, "The string to convert to lowercase.")];
+        PARAMETERS
     }
 
     fn compile(

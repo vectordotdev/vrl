@@ -40,7 +40,8 @@ impl Function for IsIpv4 {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[Parameter::required("value", kind::BYTES, "The IP address to check")]
+        const PARAMETERS: &[Parameter] = &[Parameter::required("value", kind::BYTES, "The IP address to check")];
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {

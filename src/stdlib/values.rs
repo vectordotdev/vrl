@@ -31,7 +31,8 @@ impl Function for Values {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[Parameter::required("value", kind::OBJECT, "The object to extract values from.")]
+        const PARAMETERS: &[Parameter] = &[Parameter::required("value", kind::OBJECT, "The object to extract values from.")];
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {

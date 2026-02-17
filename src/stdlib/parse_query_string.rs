@@ -71,7 +71,8 @@ impl Function for ParseQueryString {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[Parameter::required("value", kind::BYTES, "The string to parse.")]
+        const PARAMETERS: &[Parameter] = &[Parameter::required("value", kind::BYTES, "The string to parse.")];
+        PARAMETERS
     }
 }
 

@@ -76,7 +76,8 @@ impl Function for Filter {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[Parameter::required("value", kind::OBJECT | kind::ARRAY, "The array or object to filter.")]
+        const PARAMETERS: &[Parameter] = &[Parameter::required("value", kind::OBJECT | kind::ARRAY, "The array or object to filter.")];
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {
