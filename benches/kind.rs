@@ -23,14 +23,7 @@ impl fmt::Display for Parameters {
 fn benchmark_kind_display(c: &mut Criterion) {
     let mut group = c.benchmark_group("vrl_compiler/value::kind::display");
     for param in &PARAMETERS {
-        let parameter = vrl::compiler::Parameter {
-            keyword: "",
-            kind: param.basis,
-            required: false,
-            description: "",
-            default: None,
-            enum_variants: None,
-        };
+        let parameter = vrl::compiler::Parameter::optional("", param.basis, "");
 
         let kind = parameter.kind();
 
