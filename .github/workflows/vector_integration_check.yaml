@@ -31,14 +31,15 @@ jobs:
             pkg-config
 
       - name: Clone Vector repo and update VRL dependency
+        env:
+          VRL_GITHUB_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          VRL_GITHUB_BRANCH: ${{ github.head_ref }}
         run: |
           git clone https://github.com/vectordotdev/vector.git
           cd vector
           git switch master
 
           # Set new git repo and branch
-          VRL_GITHUB_REPO="${{ github.event.pull_request.head.repo.full_name }}"
-          VRL_GITHUB_BRANCH="${{ github.head_ref }}"
           NEW_REPO="https://github.com/${VRL_GITHUB_REPO}.git"
           NEW_BRANCH="${VRL_GITHUB_BRANCH}"
 
