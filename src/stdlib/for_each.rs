@@ -91,13 +91,13 @@ impl Function for ForEach {
             },
             example! {
                 title: "Iterate over an array",
-                source: indoc! {r#"
+                source: indoc! {"
                     count = 0
                     for_each([1, 2, 3]) -> |index, value| {
                         count = count + index + value
                     }
                     count
-                "#},
+                "},
                 result: Ok("9"),
             },
         ]
