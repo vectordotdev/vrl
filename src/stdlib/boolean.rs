@@ -16,7 +16,11 @@ impl Function for Boolean {
     }
 
     fn usage(&self) -> &'static str {
-        "The value to check if it is a Boolean."
+        indoc! {"
+            Returns `value` if it is a Boolean, otherwise returns an error. This enables the type
+            checker to guarantee that the returned value is a Boolean and can be used in any
+            function that expects a Boolean.
+        "}
     }
 
     fn category(&self) -> &'static str {
