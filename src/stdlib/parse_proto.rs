@@ -46,9 +46,7 @@ impl Function for ParseProto {
     }
 
     fn usage(&self) -> &'static str {
-        indoc! {"
-            Parses the provided `value` as protocol buffer.
-        "}
+        "Parses the `value` as a protocol buffer payload."
     }
 
     fn category(&self) -> &'static str {

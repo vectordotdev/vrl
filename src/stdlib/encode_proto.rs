@@ -45,9 +45,7 @@ impl Function for EncodeProto {
     }
 
     fn usage(&self) -> &'static str {
-        indoc! {"
-            Parses the provided `value` as protocol buffer.
-        "}
+        "Encodes the `value` into a protocol buffer payload."
     }
 
     fn category(&self) -> &'static str {
