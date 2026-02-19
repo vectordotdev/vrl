@@ -22,9 +22,7 @@ impl Function for ParseCbor {
     }
 
     fn usage(&self) -> &'static str {
-        indoc! {"
-            Parses the provided `value` as CBOR.
-        "}
+        "Parses the `value` as [CBOR](https://cbor.io)."
     }
 
     fn category(&self) -> &'static str {
