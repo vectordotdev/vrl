@@ -139,9 +139,10 @@ impl Function for ParseRegexAll {
             },
             example! {
                 title: "Parse using Regex with variables",
-                source: r#"
-                variable = r'(?P<fruit>[\w\.]+) and (?P<veg>[\w]+)';
-                parse_regex_all!("apples and carrots, peaches and peas", variable)"#,
+                source: indoc! {r#"
+                    variable = r'(?P<fruit>[\w\.]+) and (?P<veg>[\w]+)';
+                    parse_regex_all!("apples and carrots, peaches and peas", variable)
+                "#},
                 result: Ok(indoc! { r#"[
                {"fruit": "apples",
                 "veg": "carrots"},

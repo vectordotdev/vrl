@@ -63,10 +63,10 @@ impl Function for RandomFloat {
     fn examples(&self) -> &'static [Example] {
         &[example! {
             title: "Random float from 0.0 to 10.0, not including 10.0",
-            source: "
-				f = random_float(0.0, 10.0)
-				f >= 0 && f < 10
-                ",
+            source: indoc! {"
+                f = random_float(0.0, 10.0)
+                f >= 0 && f < 10
+            "},
             result: Ok("true"),
         }]
     }

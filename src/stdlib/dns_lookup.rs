@@ -379,7 +379,7 @@ impl Function for DnsLookup {
         &[
             example! {
                 title: "Basic lookup",
-                source: r#"
+                source: indoc! {r#"
                     res = dns_lookup!("dns.google")
                     # reset non-static ttl so result is static
                     res.answers = map_values(res.answers) -> |value| {
@@ -396,7 +396,7 @@ impl Function for DnsLookup {
                         value
                     }
                     res
-                    "#,
+                "#},
                 result: Ok(indoc!(
                     r#"{
                     "additional": [
@@ -449,7 +449,7 @@ impl Function for DnsLookup {
             },
             example! {
                 title: "Custom class and qtype",
-                source: r#"
+                source: indoc! {r#"
                     res = dns_lookup!("dns.google", class: "IN", qtype: "A")
                     # reset non-static ttl so result is static
                     res.answers = map_values(res.answers) -> |value| {
@@ -466,7 +466,7 @@ impl Function for DnsLookup {
                         value
                     }
                     res
-                    "#,
+                "#},
                 result: Ok(indoc!(
                     r#"{
                     "additional": [
@@ -519,7 +519,7 @@ impl Function for DnsLookup {
             },
             example! {
                 title: "Custom options",
-                source: r#"
+                source: indoc! {r#"
                     res = dns_lookup!("dns.google", options: {"timeout": 30, "attempts": 5})
                     res.answers = map_values(res.answers) -> |value| {
                       value.ttl = 600
@@ -535,7 +535,7 @@ impl Function for DnsLookup {
                         value
                     }
                     res
-                    "#,
+                "#},
                 result: Ok(indoc!(
                     r#"{
                     "additional": [
@@ -588,7 +588,7 @@ impl Function for DnsLookup {
             },
             example! {
                 title: "Custom server",
-                source: r#"
+                source: indoc! {r#"
                     res = dns_lookup!("dns.google", options: {"servers": ["dns.quad9.net"]})
                     res.answers = map_values(res.answers) -> |value| {
                       value.ttl = 600
@@ -604,7 +604,7 @@ impl Function for DnsLookup {
                         value
                     }
                     res
-                    "#,
+                "#},
                 result: Ok(indoc!(
                     r#"{
                     "additional": [
