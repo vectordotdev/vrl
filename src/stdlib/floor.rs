@@ -7,7 +7,11 @@ static DEFAULT_PRECISION: LazyLock<Value> = LazyLock::new(|| Value::Integer(0));
 
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
-        Parameter::required("value", kind::FLOAT | kind::INTEGER, "The number to round down."),
+        Parameter::required(
+            "value",
+            kind::FLOAT | kind::INTEGER,
+            "The number to round down.",
+        ),
         Parameter::optional(
             "precision",
             kind::INTEGER,
