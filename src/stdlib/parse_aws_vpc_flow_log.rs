@@ -61,7 +61,12 @@ impl Function for ParseAwsVpcFlowLog {
             },
             example! {
                 title: "Parse AWS VPC Flow log (custom format)",
-                source: r#"parse_aws_vpc_flow_log!("- eni-1235b8ca123456789 10.0.1.5 10.0.0.220 10.0.1.5 203.0.113.5", "instance_id interface_id srcaddr dstaddr pkt_srcaddr pkt_dstaddr")"#,
+                source: indoc! {r#"
+                    parse_aws_vpc_flow_log!(
+                        "- eni-1235b8ca123456789 10.0.1.5 10.0.0.220 10.0.1.5 203.0.113.5",
+                        "instance_id interface_id srcaddr dstaddr pkt_srcaddr pkt_dstaddr"
+                    )
+                "#},
                 result: Ok(indoc! { r#"{
                     "instance_id": null,
                     "interface_id": "eni-1235b8ca123456789",
@@ -74,8 +79,10 @@ impl Function for ParseAwsVpcFlowLog {
             example! {
                 title: "Parse AWS VPC Flow log including v5 fields",
                 source: indoc! {r#"
-                    parse_aws_vpc_flow_log!("5 52.95.128.179 10.0.0.71 80 34210 6 1616729292 1616729349 IPv4 14 15044 123456789012 vpc-abcdefab012345678 subnet-aaaaaaaa012345678 i-0c50d5961bcb2d47b eni-1235b8ca123456789 ap-southeast-2 apse2-az3 - - ACCEPT 19 52.95.128.179 10.0.0.71 S3 - - ingress OK",
-                    format: "version srcaddr dstaddr srcport dstport protocol start end type packets bytes account_id vpc_id subnet_id instance_id interface_id region az_id sublocation_type sublocation_id action tcp_flags pkt_srcaddr pkt_dstaddr pkt_src_aws_service pkt_dst_aws_service traffic_path flow_direction log_status")
+                    parse_aws_vpc_flow_log!(
+                        "5 52.95.128.179 10.0.0.71 80 34210 6 1616729292 1616729349 IPv4 14 15044 123456789012 vpc-abcdefab012345678 subnet-aaaaaaaa012345678 i-0c50d5961bcb2d47b eni-1235b8ca123456789 ap-southeast-2 apse2-az3 - - ACCEPT 19 52.95.128.179 10.0.0.71 S3 - - ingress OK",
+                        format: "version srcaddr dstaddr srcport dstport protocol start end type packets bytes account_id vpc_id subnet_id instance_id interface_id region az_id sublocation_type sublocation_id action tcp_flags pkt_srcaddr pkt_dstaddr pkt_src_aws_service pkt_dst_aws_service traffic_path flow_direction log_status"
+                    )
                 "#},
                 result: Ok(indoc! { r#"{
                     "account_id": "123456789012",

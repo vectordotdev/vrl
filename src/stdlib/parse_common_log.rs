@@ -105,7 +105,12 @@ impl Function for ParseCommonLog {
             },
             example! {
                 title: "Parse using Common Log Format (with custom timestamp format)",
-                source: r#"parse_common_log!(s'127.0.0.1 bob frank [2000-10-10T20:55:36Z] "GET /apache_pb.gif HTTP/1.0" 200 2326', "%+")"#,
+                source: indoc! {r#"
+                    parse_common_log!(
+                        s'127.0.0.1 bob frank [2000-10-10T20:55:36Z] "GET /apache_pb.gif HTTP/1.0" 200 2326',
+                        "%+"
+                    )
+                "#},
                 result: Ok(indoc! {
                     r#"{
                         "host":"127.0.0.1",
