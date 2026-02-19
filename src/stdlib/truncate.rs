@@ -45,10 +45,7 @@ impl Function for Truncate {
     }
 
     fn return_rules(&self) -> &'static [&'static str] {
-        &[
-            "The string is returned unchanged its length is less than `limit`.",
-            "If `ellipsis` is `true`, then an ellipsis (`...`) is appended to the string (beyond the specified `limit`).",
-        ]
+        &["The string is returned unchanged its length is less than `limit`."]
     }
 
     fn parameters(&self) -> &'static [Parameter] {
