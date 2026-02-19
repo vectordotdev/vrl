@@ -118,7 +118,11 @@ impl Function for Replace {
             },
             example! {
                 title: "Replace with capture groups",
-                source: r#"replace("foo123bar", r'foo(?P<num>\d+)bar', "$num")"#,
+                source: indoc! {r#"
+                    # Note that in the context of Vector configuration files, an extra `$` escape character is required
+                    # (i.e. `$$num`) to avoid interpreting `num` as an environment variable.
+                    replace("foo123bar", r'foo(?P<num>\d+)bar', "$num")
+                "#},
                 result: Ok(r#""123""#),
             },
             example! {
