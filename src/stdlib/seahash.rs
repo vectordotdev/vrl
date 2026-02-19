@@ -58,7 +58,7 @@ impl Function for Seahash {
     fn parameters(&self) -> &'static [Parameter] {
         const PARAMETERS: &[Parameter] = &[Parameter::required(
             "value",
-            kind::ANY,
+            kind::BYTES,
             "The string to calculate the hash for.",
         )];
         PARAMETERS
