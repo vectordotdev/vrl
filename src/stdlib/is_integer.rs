@@ -10,7 +10,7 @@ impl Function for IsInteger {
     }
 
     fn usage(&self) -> &'static str {
-        "Check if the value`'s type is an integer."
+        "Check if the `value`'s type is an integer."
     }
 
     fn category(&self) -> &'static str {
