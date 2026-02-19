@@ -42,7 +42,12 @@ impl Function for Keys {
     fn examples(&self) -> &'static [Example] {
         &[example! {
             title: "Get keys from the object",
-            source: r#"keys({"key1": "val1", "key2": "val2"})"#,
+            source: indoc! {r#"
+                keys({
+                    "key1": "val1",
+                    "key2": "val2"
+                })
+            "#},
             result: Ok(r#"["key1", "key2"]"#),
         }]
     }
