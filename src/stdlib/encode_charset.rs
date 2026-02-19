@@ -1,8 +1,9 @@
-use crate::diagnostic::Label;
-use crate::prelude::*;
-use encoding_rs::Encoding;
-use nom::AsBytes;
-use std::str::from_utf8;
+use {
+    crate::{diagnostic::Label, prelude::*},
+    encoding_rs::Encoding,
+    nom::AsBytes,
+    std::str::from_utf8,
+};
 
 #[derive(Clone, Copy, Debug)]
 pub struct EncodeCharset;
@@ -126,8 +127,7 @@ impl FunctionExpression for DecodeCharsetFn {
 
 #[cfg(test)]
 mod test {
-    use super::*;
-    use crate::value;
+    use {super::*, crate::value};
 
     test_function![
         encode_charset => EncodeCharset;

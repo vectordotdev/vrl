@@ -9,6 +9,7 @@ mod string_utils;
 mod util;
 mod wasm_unsupported_function;
 
+// TODO: armand sort the right way the new EncodeCsv function
 cfg_if::cfg_if! {
     if #[cfg(feature = "stdlib")] {
         mod abs;
@@ -49,6 +50,7 @@ cfg_if::cfg_if! {
         mod encode_gzip;
         mod encode_lz4;
         mod encode_json;
+        mod encode_csv;
         mod encode_key_value;
         mod encode_logfmt;
         mod encode_percent;
@@ -290,6 +292,7 @@ cfg_if::cfg_if! {
             encode_gzip::EncodeGzip,
             encode_lz4::EncodeLz4,
             encode_json::EncodeJson,
+            encode_csv::EncodeCsv,
             encode_key_value::EncodeKeyValue,
             encode_logfmt::EncodeLogfmt,
             encode_percent::EncodePercent,
