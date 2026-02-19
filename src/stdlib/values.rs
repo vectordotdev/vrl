@@ -47,9 +47,9 @@ impl Function for Values {
                 result: Ok(r#"["val1", "val2"]"#),
             },
             example! {
-                title: "Get values from a nested object",
-                source: r#"values({"key1": "val1", "key2": {"nestedkey1": "val3", "nestedkey2": "val4"}})"#,
-                result: Ok(r#"["val1", { "nestedkey1": "val3", "nestedkey2": "val4" }]"#),
+                title: "Get values from a complex object",
+                source: r#"values({"key1": "val1", "key2": [1, 2, 3], "key3": {"foo": "bar"}})"#,
+                result: Ok(r#"["val1", [1, 2, 3], {"foo": "bar"}]"#),
             },
         ]
     }
