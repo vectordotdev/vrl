@@ -66,7 +66,8 @@ impl Function for ParseUserAgent {
 
     fn usage(&self) -> &'static str {
         indoc! {"
-            Parses the provided `value` as a user agent.
+            Parses the provided `value` as a user agent, which has
+            [a loosely defined format](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/User-Agent).
 
             Parses on the basis of best effort. Returned schema depends only on the configured `mode`,
             so if the function fails to parse a field it will set it to `null`.
