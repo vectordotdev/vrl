@@ -140,3 +140,53 @@ impl FunctionExpression for EncodeCsvFn {
         TypeDef::bytes().fallible()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use {super::*, crate::value};
+
+    test_function![
+        parse_csv => EncodeCsv;
+
+        valid {
+            args: func_args![value: value!(["foo", "bar", "foo \", bar"])],
+            want: Ok(value!("foo,bar,\"foo \"\", bar\"")),
+            tdef: TypeDef::bytes().fallible(),
+        }
+
+        invalid_utf8 {
+            args: func_args![value: value!(vec!["foo".into(), value!(Bytes::copy_from_slice(&b"b\xFFar"[..]))])],
+            want: Ok(value!(Bytes::copy_from_slice(&b"foo,b\xFFar"[..]))),
+            tdef: TypeDef::bytes().fallible(),
+        }
+
+        custom_delimiter {
+            args: func_args![value: value!(["foo", "bar"]), delimiter: value!(" ")],
+            want: Ok(value!("foo bar")),
+            tdef: TypeDef::bytes().fallible(),
+        }
+
+        invalid_delimiter {
+            args: func_args![value: value!(["foo", "bar"]), delimiter: value!("!!")],
+            want: Err("delimiter must be a single character"),
+            tdef: TypeDef::bytes().fallible(),
+        }
+
+        single_value {
+            args: func_args![value: value!(["foo"])],
+            want: Ok(value!("foo")),
+            tdef: TypeDef::bytes().fallible(),
+        }
+
+        // empty_string {
+        //     args: func_args![value: value!([])],
+        //     want: Ok(value!("")),
+        //     tdef: TypeDef::bytes().fallible(),
+        // }
+        // multiple_lines {
+        //     args: func_args![value: value!("first,line\nsecond,line,with,more,fields")],
+        //     want: Ok(value!(["first", "line"])),
+        //     tdef: TypeDef::bytes().fallible(),
+        // }
+    ];
+}
