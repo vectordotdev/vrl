@@ -14,25 +14,15 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     ]
 });
 
-// TODO: armand do we include a `pretty` bool parameter? like in encode_json?
 // TODO: armand we may need to include it in the benchs? I dont know what this is lol
-// TODO: armand for now, we always insert an \n at the end of the csv
+// TODO: armand how are we handling multiple lines inputs? For now, it just put the \n as a normal
+// character
+// TODO: armand empty input => giving us "\"\"" where it should be ""
 fn encode_csv(value: Value, delimiter: Value) -> Resolved {
-    // TODO: armand we need to have an array to be able to pass it to writerBuilder. However, it
-    // gives us two things to think about:
-    // - with this implementation we have a kind of "black box": we not only handle encoding to csv
-    // for csv object, but for every object that is parsed into a Vec<Value>. We need to find a way
-    // to write this in the documentation (if thif is the expected comportment).
-    // - gives us another way to fail at runtime
-    //
-    //
-    // TODO: armand i have a redundant_closure_for_method_calls
-    // but can't remove it bc the function is in a private module.
-    // https://rust-lang.github.io/rust-clippy/rust-1.92.0/index.html#redundant_closure_for_method_calls
     let value_array = value
         .try_array()?
         .into_iter()
-        .map(|array_element| array_element.try_bytes())
+        .map(VrlValueConvert::try_bytes)
         .collect::<Result<Vec<Bytes>, ValueError>>()?;
 
     // TODO: armand this code exists as well in https://github.com/armleth/vrl/blob/f62458e8d0a0bd9ce941bab61cf0ee5a49391a46/src/stdlib/parse_csv.rs#L21-L24. May need a helper function.
@@ -47,7 +37,6 @@ fn encode_csv(value: Value, delimiter: Value) -> Resolved {
         .delimiter(delimiter)
         .from_writer(vec![]);
 
-    // TODO: armand investigate what are the cases where the two following blocks can fail.
     writer
         .write_record(&value_array)
         .map_err(|err| format!("unable to encode to csv: {err}"))?;
@@ -55,6 +44,10 @@ fn encode_csv(value: Value, delimiter: Value) -> Resolved {
     let mut result = writer
         .into_inner()
         .map_err(|err| format!("unable to encode to csv: {err}"))?;
+
+    // As we handle only one-line CSVs, a line terminator is never required.
+    // Since the csv crate's WriterBuilder does not allow disabling the terminator,
+    // we must remove it manually here.
     result.pop();
 
     Ok(Value::Bytes(Bytes::from(result)))
@@ -63,7 +56,6 @@ fn encode_csv(value: Value, delimiter: Value) -> Resolved {
 #[derive(Clone, Copy, Debug)]
 pub struct EncodeCsv;
 
-// TODO: armand check if i implemented every needed method
 impl Function for EncodeCsv {
     fn identifier(&self) -> &'static str {
         "encode_csv"
@@ -77,12 +69,35 @@ impl Function for EncodeCsv {
         Category::Codec.as_ref()
     }
 
+    fn internal_failure_reasons(&self) -> &'static [&'static str] {
+        &[
+            "The delimiter must be a single-byte UTF-8 character.",
+            "`value` is not an object convertible to a CSV string.",
+            "The `csv` crate encountered an I/O error while writing or flushing the output.",
+        ]
+    }
+
     fn return_kind(&self) -> u16 {
         kind::BYTES
     }
 
     fn examples(&self) -> &'static [Example] {
-        todo!()
+        &[
+            example! {
+                title: "Encode object to a single CSV formatted row",
+                source: r#"encode_csv!(["foo","bar","foo \", bar"])"#,
+                result: Ok(
+                    r#"
+                    s'foo,bar,\"foo \"\", bar\"'
+                "#
+                )
+            },
+            example! {
+                title: "Encode object to a single CSV formatted row with custom delimiter ",
+                source: r#"encode_csv!(["foo","bar"], delimiter: " ")"#,
+                result: Ok(r#""foo bar""#)
+            },
+        ]
     }
 
     fn compile(
@@ -114,8 +129,6 @@ impl FunctionExpression for EncodeCsvFn {
             .value
             .resolve(ctx)?;
 
-        // TODO: armand there might be a way to avoid copying the default delimiter if i dont use
-        // the map_resolve_with_default helper function.
         let delimiter = self
             .delimiter
             .map_resolve_with_default(ctx, || DEFAULT_DELIMITER.clone())?;
@@ -124,7 +137,6 @@ impl FunctionExpression for EncodeCsvFn {
     }
 
     fn type_def(&self, _state: &TypeState) -> TypeDef {
-        // TODO: armand i can't think about cases where this might fail. Have to check with the doc
         TypeDef::bytes().fallible()
     }
 }
