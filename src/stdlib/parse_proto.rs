@@ -141,7 +141,7 @@ impl FunctionExpression for ParseProtoFn {
 mod tests {
     use super::*;
     use crate::value;
-    use std::fs;
+    use std::{env, fs};
 
     fn test_data_dir() -> PathBuf {
         PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap()).join("tests/data/protobuf")
