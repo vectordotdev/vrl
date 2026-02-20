@@ -17,13 +17,19 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
 // TODO: armand we may need to include it in the benchs? I dont know what this is lol
 // TODO: armand how are we handling multiple lines inputs? For now, it just put the \n as a normal
 // character
-// TODO: armand empty input => giving us "\"\"" where it should be ""
 fn encode_csv(value: Value, delimiter: Value) -> Resolved {
     let value_array = value
         .try_array()?
         .into_iter()
         .map(VrlValueConvert::try_bytes)
         .collect::<Result<Vec<Bytes>, ValueError>>()?;
+
+    // When empty array, return empty string directly.
+    // The csv crate writes an empty record as "" which is valid CSV, but we want empty arrays to
+    // produce empty strings.
+    if value_array.is_empty() {
+        return Ok(Value::Bytes(Bytes::from("")));
+    }
 
     // TODO: armand this code exists as well in https://github.com/armleth/vrl/blob/f62458e8d0a0bd9ce941bab61cf0ee5a49391a46/src/stdlib/parse_csv.rs#L21-L24. May need a helper function.
     let delimiter = delimiter.try_bytes()?;
@@ -178,11 +184,11 @@ mod tests {
             tdef: TypeDef::bytes().fallible(),
         }
 
-        // empty_string {
-        //     args: func_args![value: value!([])],
-        //     want: Ok(value!("")),
-        //     tdef: TypeDef::bytes().fallible(),
-        // }
+        empty_string {
+            args: func_args![value: value!([])],
+            want: Ok(value!("")),
+            tdef: TypeDef::bytes().fallible(),
+        }
         // multiple_lines {
         //     args: func_args![value: value!("first,line\nsecond,line,with,more,fields")],
         //     want: Ok(value!(["first", "line"])),
