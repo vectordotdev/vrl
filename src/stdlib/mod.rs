@@ -3,6 +3,7 @@ pub use wasm_unsupported_function::WasmUnsupportedFunction;
 
 use crate::compiler::Function;
 
+mod csv_utils;
 mod ip_utils;
 mod json_utils;
 mod string_utils;

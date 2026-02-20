@@ -1,11 +1,13 @@
-use chrono::{DateTime, Datelike, TimeZone, Utc};
-use criterion::{Criterion, criterion_group, criterion_main};
-use regex::Regex;
+use {
+    chrono::{DateTime, Datelike, TimeZone, Utc},
+    criterion::{Criterion, criterion_group, criterion_main},
+    regex::Regex,
+};
 
-use std::env;
-use std::path::PathBuf;
-use vrl::compiler::prelude::*;
-use vrl::{bench_function, btreemap, func_args, value};
+use {
+    std::{env, path::PathBuf},
+    vrl::{bench_function, btreemap, compiler::prelude::*, func_args, value},
+};
 
 use crate::value::Value;
 
@@ -34,18 +36,19 @@ criterion_group!(
               dns_lookup,
               // TODO: Cannot pass a Path to bench_function
               //del,
+              decrypt_ip,
               downcase,
               encode_base16,
               encode_base64,
               encode_charset,
-              encode_key_value,
+              encode_csv,
               encode_json,
+              encode_key_value,
               encode_logfmt,
               encode_percent,
               encode_punycode,
               encrypt,
               encrypt_ip,
-              decrypt_ip,
               ends_with,
               // TODO: Cannot pass a Path to bench_function
               //exists
@@ -469,6 +472,15 @@ bench_function! {
             field_delimiter: ","
         ],
         want: Ok("mow:vvo,vvo:pkc,pkc:hrb,hrb:tsn,tsn:can,can:pnh,pnh:sin,sin:syd"),
+    }
+}
+
+bench_function! {
+    encode_csv => vrl::stdlib::EncodeCsv;
+
+    map {
+            args: func_args![value: value!(["foo", "bar", "foo \", bar"])],
+            want: Ok(value!("foo,bar,\"foo \"\", bar\"")),
     }
 }
 

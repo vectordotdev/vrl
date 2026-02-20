@@ -1,6 +1,8 @@
-use crate::compiler::prelude::*;
-use csv::ReaderBuilder;
-use std::sync::LazyLock;
+use {
+    crate::{compiler::prelude::*, stdlib::csv_utils::parse_single_byte_delimiter},
+    csv::ReaderBuilder,
+    std::sync::LazyLock,
+};
 
 static DEFAULT_DELIMITER: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from(",")));
 
@@ -18,11 +20,8 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
 
 fn parse_csv(csv_string: Value, delimiter: Value) -> Resolved {
     let csv_string = csv_string.try_bytes()?;
-    let delimiter = delimiter.try_bytes()?;
-    if delimiter.len() != 1 {
-        return Err("delimiter must be a single character".into());
-    }
-    let delimiter = delimiter[0];
+    let delimiter = parse_single_byte_delimiter(delimiter)?;
+
     let reader = ReaderBuilder::new()
         .has_headers(false)
         .delimiter(delimiter)
@@ -118,7 +117,9 @@ struct ParseCsvFn {
 
 impl FunctionExpression for ParseCsvFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let csv_string = self.value.resolve(ctx)?;
+        let csv_string = self
+            .value
+            .resolve(ctx)?;
         let delimiter = self
             .delimiter
             .map_resolve_with_default(ctx, || DEFAULT_DELIMITER.clone())?;
@@ -140,8 +141,7 @@ fn inner_kind() -> Collection<Index> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::value;
+    use {super::*, crate::value};
 
     test_function![
         parse_csv => ParseCsv;

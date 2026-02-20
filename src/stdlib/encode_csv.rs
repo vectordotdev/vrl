@@ -1,4 +1,8 @@
-use {crate::compiler::prelude::*, csv::WriterBuilder, std::sync::LazyLock};
+use {
+    crate::{compiler::prelude::*, stdlib::csv_utils::parse_single_byte_delimiter},
+    csv::WriterBuilder,
+    std::sync::LazyLock,
+};
 
 static DEFAULT_DELIMITER: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from(",")));
 
@@ -14,7 +18,6 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     ]
 });
 
-// TODO: armand we may need to include it in the benchs? I dont know what this is lol
 fn encode_csv(value: Value, delimiter: Value) -> Resolved {
     let value_array = value
         .try_array()?
@@ -29,16 +32,11 @@ fn encode_csv(value: Value, delimiter: Value) -> Resolved {
         return Ok(Value::Bytes(Bytes::from("")));
     }
 
-    // TODO: armand this code exists as well in https://github.com/armleth/vrl/blob/f62458e8d0a0bd9ce941bab61cf0ee5a49391a46/src/stdlib/parse_csv.rs#L21-L24. May need a helper function.
-    let delimiter = delimiter.try_bytes()?;
-    if delimiter.len() != 1 {
-        return Err("delimiter must be a single character".into());
-    }
-    let delimiter = delimiter[0];
+    let single_byte_delimiter = parse_single_byte_delimiter(delimiter)?;
 
     let mut writer = WriterBuilder::new()
         .has_headers(false)
-        .delimiter(delimiter)
+        .delimiter(single_byte_delimiter)
         .from_writer(vec![]);
 
     writer
