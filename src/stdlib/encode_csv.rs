@@ -45,7 +45,6 @@ fn encode_csv(value: Value, delimiter: Value) -> Resolved {
     let mut writer = WriterBuilder::new()
         .has_headers(false)
         .delimiter(delimiter)
-        .terminator(csv::Terminator::Any(b'\0'))
         .from_writer(vec![]);
 
     // TODO: armand investigate what are the cases where the two following blocks can fail.
@@ -53,9 +52,10 @@ fn encode_csv(value: Value, delimiter: Value) -> Resolved {
         .write_record(&value_array)
         .map_err(|err| format!("unable to encode to csv: {err}"))?;
 
-    let result = writer
+    let mut result = writer
         .into_inner()
         .map_err(|err| format!("unable to encode to csv: {err}"))?;
+    result.pop();
 
     Ok(Value::Bytes(Bytes::from(result)))
 }
