@@ -14,8 +14,13 @@ pub struct EncodeProto;
 // This needs to be static because parse_proto needs to read a file
 // and the file path needs to be a literal.
 static EXAMPLE_ENCODE_PROTO_EXPR: LazyLock<&str> = LazyLock::new(|| {
-    let path = PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap())
-        .join("../../tests/data/protobuf/test_protobuf/v1/test_protobuf.desc")
+    let desc_path = "tests/data/protobuf/test_protobuf/v1/test_protobuf.desc";
+
+    let path = env::var_os("CARGO_MANIFEST_DIR")
+        .map_or_else(
+            || PathBuf::from(desc_path),
+            |dir| PathBuf::from(dir).join("../..").join(desc_path),
+        )
         .display()
         .to_string();
 
