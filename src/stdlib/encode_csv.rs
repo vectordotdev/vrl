@@ -90,7 +90,7 @@ impl Function for EncodeCsv {
                 source: r#"encode_csv!(["foo","bar","foo \", bar"])"#,
                 result: Ok(
                     r#"
-                        s'foo,bar,\"foo \"\", bar\"'
+                        "foo,bar,\"foo \"\", bar\""
                     "#
                 )
             },
@@ -104,7 +104,7 @@ impl Function for EncodeCsv {
                 source: r#"encode_csv!(["line", "with_linebreak", "here\n", "and", "\nhere"])"#,
                 result: Ok(
                     r#"
-                        s'line,with_linebreak,\"here\n\",and,\"\nhere\"'
+                        "line,with_linebreak,\"here\n\",and,\"\nhere\""
                     "#
                 )
             },
@@ -136,9 +136,7 @@ struct EncodeCsvFn {
 
 impl FunctionExpression for EncodeCsvFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = self
-            .value
-            .resolve(ctx)?;
+        let value = self.value.resolve(ctx)?;
 
         let delimiter = self
             .delimiter

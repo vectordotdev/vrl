@@ -278,12 +278,12 @@ cfg_if::cfg_if! {
             decrypt_ip::DecryptIp,
             del::Del,
             dirname::DirName,
-            #[cfg(feature = "enable_network_functions")]
             casing::camelcase::Camelcase,
             casing::kebabcase::Kebabcase,
             casing::pascalcase::Pascalcase,
             casing::screamingsnakecase::ScreamingSnakecase,
             casing::snakecase::Snakecase,
+            #[cfg(feature = "enable_network_functions")]
             dns_lookup::DnsLookup,
             downcase::Downcase,
             encode_base16::EncodeBase16,
