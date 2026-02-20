@@ -1,30 +1,13 @@
+use super::util::example_path_or_basename;
 use crate::compiler::prelude::*;
-use std::env;
 use std::path::PathBuf;
 use std::sync::LazyLock;
-
-/// Get actual path if exists or basename if not.
-/// Useful for displaying a nicer path in the docs (since it's going to be incorrect either way).
-fn path_or_basename(basename: &'static str) -> String {
-    let path = env::var_os("CARGO_MANIFEST_DIR").map(|dir| {
-        PathBuf::from(dir)
-            .join("../../tests/data/jsonschema/validate_json_schema/")
-            .join(basename)
-    });
-
-    if let Some(path) = path
-        && path.exists()
-    {
-        path.display().to_string()
-    } else {
-        basename.to_string()
-    }
-}
 
 // This needs to be static because validate_json_schema needs to read a file
 // and the file path needs to be a literal.
 static EXAMPLE_JSON_SCHEMA_VALID_EMAIL: LazyLock<&str> = LazyLock::new(|| {
-    let path = path_or_basename("schema_with_email_format.json");
+    let path =
+        example_path_or_basename("jsonschema/validate_json_schema/schema_with_email_format.json");
 
     Box::leak(
         format!(
@@ -35,7 +18,8 @@ static EXAMPLE_JSON_SCHEMA_VALID_EMAIL: LazyLock<&str> = LazyLock::new(|| {
 });
 
 static EXAMPLE_JSON_SCHEMA_INVALID_EMAIL: LazyLock<&str> = LazyLock::new(|| {
-    let path = path_or_basename("schema_with_email_format.json");
+    let path =
+        example_path_or_basename("jsonschema/validate_json_schema/schema_with_email_format.json");
 
     Box::leak(
         format!(
@@ -46,7 +30,8 @@ static EXAMPLE_JSON_SCHEMA_INVALID_EMAIL: LazyLock<&str> = LazyLock::new(|| {
 });
 
 static EXAMPLE_JSON_SCHEMA_CUSTOM_FORMAT_FALSE: LazyLock<&str> = LazyLock::new(|| {
-    let path = path_or_basename("schema_with_custom_format.json");
+    let path =
+        example_path_or_basename("jsonschema/validate_json_schema/schema_with_custom_format.json");
 
     Box::leak(
         format!(r#"validate_json_schema!(s'{{ "productUser": "a-custom-formatted-string" }}', "{path}", false)"#)
@@ -55,7 +40,8 @@ static EXAMPLE_JSON_SCHEMA_CUSTOM_FORMAT_FALSE: LazyLock<&str> = LazyLock::new(|
 });
 
 static EXAMPLE_JSON_SCHEMA_CUSTOM_FORMAT_TRUE: LazyLock<&str> = LazyLock::new(|| {
-    let path = path_or_basename("schema_with_custom_format.json");
+    let path =
+        example_path_or_basename("jsonschema/validate_json_schema/schema_with_custom_format.json");
 
     Box::leak(
         format!(r#"validate_json_schema!(s'{{ "productUser": "a-custom-formatted-string" }}', "{path}", true)"#)

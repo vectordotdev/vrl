@@ -1,3 +1,4 @@
+use super::util::example_path_or_basename;
 use crate::compiler::prelude::*;
 use crate::protobuf::descriptor::get_message_descriptor;
 use crate::protobuf::encode::encode_proto;
@@ -14,15 +15,7 @@ pub struct EncodeProto;
 // This needs to be static because parse_proto needs to read a file
 // and the file path needs to be a literal.
 static EXAMPLE_ENCODE_PROTO_EXPR: LazyLock<&str> = LazyLock::new(|| {
-    let desc_path = "tests/data/protobuf/test_protobuf/v1/test_protobuf.desc";
-
-    let path = env::var_os("CARGO_MANIFEST_DIR")
-        .map_or_else(
-            || PathBuf::from(desc_path),
-            |dir| PathBuf::from(dir).join("../..").join(desc_path),
-        )
-        .display()
-        .to_string();
+    let path = example_path_or_basename("protobuf/test_protobuf/v1/test_protobuf.desc");
 
     Box::leak(
         format!(
