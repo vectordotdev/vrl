@@ -66,7 +66,7 @@ impl Function for EncodeCsv {
     }
 
     fn usage(&self) -> &'static str {
-        "Encodes the `value` to CSV. Line breaks are escaped."
+        "Encodes the `value` to a single CSV formatted row."
     }
 
     fn category(&self) -> &'static str {
