@@ -16,6 +16,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
 
 // TODO: armand do we include a `pretty` bool parameter? like in encode_json?
 // TODO: armand we may need to include it in the benchs? I dont know what this is lol
+// TODO: armand for now, we always insert an \n at the end of the csv
 fn encode_csv(value: Value, delimiter: Value) -> Resolved {
     // TODO: armand we need to have an array to be able to pass it to writerBuilder. However, it
     // gives us two things to think about:
@@ -44,6 +45,7 @@ fn encode_csv(value: Value, delimiter: Value) -> Resolved {
     let mut writer = WriterBuilder::new()
         .has_headers(false)
         .delimiter(delimiter)
+        .terminator(csv::Terminator::Any())
         .from_writer(vec![]);
 
     // TODO: armand investigate what are the cases where the two following blocks can fail.
@@ -56,21 +58,6 @@ fn encode_csv(value: Value, delimiter: Value) -> Resolved {
         .map_err(|err| format!("unable to encode to csv: {err}"))?;
 
     Ok(Value::Bytes(Bytes::from(result)))
-
-    //    value_array
-    // 37 +    writer
-    // 38 +        .write_record(&value_array)
-    // 39 +        .map_err(|e| format!("unable to encode to csv: {e}"))?;
-    // 40 +
-    // 41 +    writer
-    // 42 +        .flush()
-    // 43 +        .map_err(|e| format!("unable to encode to csv: {e}"))?;
-    // 44 +
-    // 45 +    let csv_bytes = writer
-    // 46 +        .into_inner()
-    // 47 +        .map_err(|e| format!("unable to encode to csv: {e}"))?;
-    // 48 +
-    // 49 +    Ok(Value::Bytes(Bytes::from(csv_bytes)))
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -138,6 +125,6 @@ impl FunctionExpression for EncodeCsvFn {
 
     fn type_def(&self, _state: &TypeState) -> TypeDef {
         // TODO: armand i can't think about cases where this might fail. Have to check with the doc
-        TypeDef::bytes().infallible()
+        TypeDef::bytes().fallible()
     }
 }
