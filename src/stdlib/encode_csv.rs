@@ -45,7 +45,7 @@ fn encode_csv(value: Value, delimiter: Value) -> Resolved {
     let mut writer = WriterBuilder::new()
         .has_headers(false)
         .delimiter(delimiter)
-        .terminator(csv::Terminator::Any())
+        .terminator(csv::Terminator::Any(b'\0'))
         .from_writer(vec![]);
 
     // TODO: armand investigate what are the cases where the two following blocks can fail.
