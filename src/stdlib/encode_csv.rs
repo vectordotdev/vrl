@@ -15,8 +15,6 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
 });
 
 // TODO: armand we may need to include it in the benchs? I dont know what this is lol
-// TODO: armand how are we handling multiple lines inputs? For now, it just put the \n as a normal
-// character
 fn encode_csv(value: Value, delimiter: Value) -> Resolved {
     let value_array = value
         .try_array()?
@@ -68,7 +66,7 @@ impl Function for EncodeCsv {
     }
 
     fn usage(&self) -> &'static str {
-        "Encodes the `value` to CSV."
+        "Encodes the `value` to CSV. Line breaks are escaped."
     }
 
     fn category(&self) -> &'static str {
@@ -94,14 +92,23 @@ impl Function for EncodeCsv {
                 source: r#"encode_csv!(["foo","bar","foo \", bar"])"#,
                 result: Ok(
                     r#"
-                    s'foo,bar,\"foo \"\", bar\"'
-                "#
+                        s'foo,bar,\"foo \"\", bar\"'
+                    "#
                 )
             },
             example! {
-                title: "Encode object to a single CSV formatted row with custom delimiter ",
+                title: "Encode object to a single CSV formatted row with custom delimiter",
                 source: r#"encode_csv!(["foo","bar"], delimiter: " ")"#,
                 result: Ok(r#""foo bar""#)
+            },
+            example! {
+                title: "Encode object to a single CSV formatted row with linebreaks",
+                source: r#"encode_csv!(["line", "with_linebreak", "here\n", "and", "\nhere"])"#,
+                result: Ok(
+                    r#"
+                        s'line,with_linebreak,\"here\n\",and,\"\nhere\"'
+                    "#
+                )
             },
         ]
     }
@@ -189,10 +196,11 @@ mod tests {
             want: Ok(value!("")),
             tdef: TypeDef::bytes().fallible(),
         }
-        // multiple_lines {
-        //     args: func_args![value: value!("first,line\nsecond,line,with,more,fields")],
-        //     want: Ok(value!(["first", "line"])),
-        //     tdef: TypeDef::bytes().fallible(),
-        // }
+
+        multiple_lines {
+            args: func_args![value: value!(["line", "with_linebreak", "here\n", "and", "\nhere"])],
+            want: Ok(value!("line,with_linebreak,\"here\n\",and,\"\nhere\"")),
+            tdef: TypeDef::bytes().fallible(),
+        }
     ];
 }

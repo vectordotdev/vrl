@@ -9,7 +9,6 @@ mod string_utils;
 mod util;
 mod wasm_unsupported_function;
 
-// TODO: armand sort the right way the new EncodeCsv function
 cfg_if::cfg_if! {
     if #[cfg(feature = "stdlib")] {
         mod abs;
@@ -47,12 +46,12 @@ cfg_if::cfg_if! {
         mod encode_base16;
         mod encode_base64;
         mod encode_charset;
-        mod encode_gzip;
-        mod encode_lz4;
-        mod encode_json;
         mod encode_csv;
+        mod encode_gzip;
+        mod encode_json;
         mod encode_key_value;
         mod encode_logfmt;
+        mod encode_lz4;
         mod encode_percent;
         #[cfg(feature = "enable_system_functions")]
         mod encode_proto;
@@ -279,22 +278,22 @@ cfg_if::cfg_if! {
             del::Del,
             dirname::DirName,
             #[cfg(feature = "enable_network_functions")]
+            casing::camelcase::Camelcase,
+            casing::kebabcase::Kebabcase,
+            casing::pascalcase::Pascalcase,
+            casing::screamingsnakecase::ScreamingSnakecase,
+            casing::snakecase::Snakecase,
             dns_lookup::DnsLookup,
             downcase::Downcase,
-            casing::camelcase::Camelcase,
-            casing::pascalcase::Pascalcase,
-            casing::snakecase::Snakecase,
-            casing::screamingsnakecase::ScreamingSnakecase,
-            casing::kebabcase::Kebabcase,
             encode_base16::EncodeBase16,
             encode_base64::EncodeBase64,
             encode_charset::EncodeCharset,
-            encode_gzip::EncodeGzip,
-            encode_lz4::EncodeLz4,
-            encode_json::EncodeJson,
             encode_csv::EncodeCsv,
+            encode_gzip::EncodeGzip,
+            encode_json::EncodeJson,
             encode_key_value::EncodeKeyValue,
             encode_logfmt::EncodeLogfmt,
+            encode_lz4::EncodeLz4,
             encode_percent::EncodePercent,
             #[cfg(feature = "enable_system_functions")]
             encode_proto::EncodeProto,
