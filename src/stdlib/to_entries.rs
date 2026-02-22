@@ -4,19 +4,42 @@ use crate::example;
 use crate::prelude::{
     ArgumentList, Collection, Compiled, Example, Expression, FunctionCompileContext, kind,
 };
-use crate::value::{KeyString, ObjectMap};
+use crate::value::ObjectMap;
 
 #[derive(Clone, Debug, Copy)]
 pub struct ToEntries;
 
-fn build_entry((key, value): (KeyString, Value)) -> Value {
-    let entry = ObjectMap::from([("key".into(), Value::from(key)), ("value".into(), value)]);
+fn build_entry(key: Value, value: Value) -> Value {
+    let entry = ObjectMap::from([("key".into(), key), ("value".into(), value)]);
     Value::Object(entry)
 }
 
 fn to_entries(value: Value) -> Resolved {
-    let object = value.try_object()?;
-    Ok(Value::Array(object.into_iter().map(build_entry).collect()))
+    match value {
+        Value::Object(object) => Ok(Value::Array(
+            object
+                .into_iter()
+                .map(|(key, value)| build_entry(Value::from(key), value))
+                .collect(),
+        )),
+        Value::Array(array) => {
+            let entries = array
+                .into_iter()
+                .enumerate()
+                .map(|(index, value)| {
+                    let key = i64::try_from(index)
+                        .map_err(|_| ValueError::OutOfRange(Kind::integer()))?;
+                    Ok(build_entry(Value::from(key), value))
+                })
+                .collect::<Result<Vec<_>, ValueError>>()?;
+            Ok(Value::Array(entries))
+        }
+        other => Err(ValueError::Expected {
+            got: other.kind(),
+            expected: Kind::object(Collection::any()).or_array(Collection::any()),
+        }
+        .into()),
+    }
 }
 
 impl Function for ToEntries {
@@ -25,7 +48,7 @@ impl Function for ToEntries {
     }
 
     fn usage(&self) -> &'static str {
-        "Converts JSON objects into array of objects."
+        "Converts JSON objects or arrays into array of objects."
     }
 
     fn category(&self) -> &'static str {
@@ -37,15 +60,15 @@ impl Function for ToEntries {
     }
 
     fn return_rules(&self) -> &'static [&'static str] {
-        &["The return array has same inner objects count as the key counter of `value` object."]
+        &["The return array has the same length as the input collection."]
     }
 
     fn parameters(&self) -> &'static [Parameter] {
         &[Parameter {
             keyword: "value",
-            kind: kind::OBJECT,
+            kind: kind::OBJECT | kind::ARRAY,
             required: true,
-            description: "The object to manipulate.",
+            description: "The object or array to manipulate.",
             default: None,
         }]
     }
@@ -61,6 +84,11 @@ impl Function for ToEntries {
                 title: "Manipulate object",
                 source: r#"to_entries({ "foo": "bar"})"#,
                 result: Ok(r#"[{ "key": "foo", "value": "bar" }]"#),
+            },
+            example! {
+                title: "Manipulate array",
+                source: "to_entries([1, 2])",
+                result: Ok(r#"[{ "key": 0, "value": 1 }, { "key": 1, "value": 2 }]"#),
             },
         ]
     }
@@ -112,9 +140,21 @@ mod test {
             tdef: TypeDef::array(Collection::any()),
         }
 
+        array {
+            args: func_args![value: value!([1, 2])],
+            want: Ok(value!([{key: 0, value: 1}, {key: 1, value: 2}])),
+            tdef: TypeDef::array(Collection::any()),
+        }
+
+        empty_array {
+            args: func_args![value: value!([])],
+            want: Ok(value!([])),
+            tdef: TypeDef::array(Collection::any()),
+        }
+
         non_object {
             args: func_args![value: value!(true)],
-            want: Err("expected object, got boolean"),
+            want: Err("expected array or object, got boolean"),
             tdef: TypeDef::array(Collection::any()),
         }
     ];
