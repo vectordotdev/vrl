@@ -1,3 +1,4 @@
+#[cfg(feature = "enable_system_functions")]
 use std::{env, path::PathBuf};
 
 use crate::compiler::{Context, Expression, Resolved, TypeState};
@@ -133,6 +134,7 @@ impl ConstOrExpr {
 /// Get actual path as a string if exists or basename if not.
 ///
 /// `input` path is relative to `tests/data/`.
+#[cfg(feature = "enable_system_functions")]
 pub(crate) fn example_path_or_basename(input: &'static str) -> String {
     let path = env::var_os("CARGO_MANIFEST_DIR")
         .map(|dir| PathBuf::from(dir).join("../../tests/data").join(input));
