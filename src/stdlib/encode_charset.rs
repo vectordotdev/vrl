@@ -1,4 +1,5 @@
-use crate::{diagnostic::Label, prelude::*};
+use crate::diagnostic::Label;
+use crate::prelude::*;
 use encoding_rs::Encoding;
 use nom::AsBytes;
 use std::str::from_utf8;
