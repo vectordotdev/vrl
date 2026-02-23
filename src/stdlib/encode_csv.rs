@@ -134,9 +134,7 @@ struct EncodeCsvFn {
 
 impl FunctionExpression for EncodeCsvFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = self
-            .value
-            .resolve(ctx)?;
+        let value = self.value.resolve(ctx)?;
 
         let delimiter = self
             .delimiter

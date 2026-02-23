@@ -115,9 +115,7 @@ struct ParseCsvFn {
 
 impl FunctionExpression for ParseCsvFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let csv_string = self
-            .value
-            .resolve(ctx)?;
+        let csv_string = self.value.resolve(ctx)?;
         let delimiter = self
             .delimiter
             .map_resolve_with_default(ctx, || DEFAULT_DELIMITER.clone())?;
