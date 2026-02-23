@@ -1,13 +1,9 @@
-use {
-    chrono::{DateTime, Datelike, TimeZone, Utc},
-    criterion::{Criterion, criterion_group, criterion_main},
-    regex::Regex,
-};
+use chrono::{DateTime, Datelike, TimeZone, Utc};
+use criterion::{Criterion, criterion_group, criterion_main};
+use regex::Regex;
 
-use {
-    std::{env, path::PathBuf},
-    vrl::{bench_function, btreemap, compiler::prelude::*, func_args, value},
-};
+use std::{env, path::PathBuf};
+use vrl::{bench_function, btreemap, compiler::prelude::*, func_args, value};
 
 use crate::value::Value;
 

@@ -1,8 +1,6 @@
-use {
-    crate::{compiler::prelude::*, stdlib::csv_utils::parse_single_byte_delimiter},
-    csv::ReaderBuilder,
-    std::sync::LazyLock,
-};
+use crate::{compiler::prelude::*, stdlib::csv_utils::parse_single_byte_delimiter};
+use csv::ReaderBuilder;
+use std::sync::LazyLock;
 
 static DEFAULT_DELIMITER: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from(",")));
 
@@ -117,7 +115,9 @@ struct ParseCsvFn {
 
 impl FunctionExpression for ParseCsvFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let csv_string = self.value.resolve(ctx)?;
+        let csv_string = self
+            .value
+            .resolve(ctx)?;
         let delimiter = self
             .delimiter
             .map_resolve_with_default(ctx, || DEFAULT_DELIMITER.clone())?;
@@ -139,7 +139,8 @@ fn inner_kind() -> Collection<Index> {
 
 #[cfg(test)]
 mod tests {
-    use {super::*, crate::value};
+    use super::*;
+    use crate::value;
 
     test_function![
         parse_csv => ParseCsv;

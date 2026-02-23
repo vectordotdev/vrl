@@ -1,9 +1,7 @@
-use {
-    crate::{diagnostic::Label, prelude::*},
-    encoding_rs::Encoding,
-    nom::AsBytes,
-    std::str::from_utf8,
-};
+use crate::{diagnostic::Label, prelude::*};
+use encoding_rs::Encoding;
+use nom::AsBytes;
+use std::str::from_utf8;
 
 #[derive(Clone, Copy, Debug)]
 pub struct EncodeCharset;
@@ -89,7 +87,12 @@ fn encode_charset(value: &str, to_charset: &[u8]) -> Resolved {
     let encoder = Encoding::for_label(to_charset).ok_or_else(|| create_error(to_charset))?;
 
     let (output, _, _) = encoder.encode(value);
-    Ok(Value::Bytes(output.as_bytes().to_vec().into()))
+    Ok(Value::Bytes(
+        output
+            .as_bytes()
+            .to_vec()
+            .into(),
+    ))
 }
 
 fn create_error(to_charset: &[u8]) -> ExpressionError {
@@ -114,8 +117,14 @@ struct DecodeCharsetFn {
 
 impl FunctionExpression for DecodeCharsetFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = self.value.resolve(ctx)?.try_bytes()?;
-        let to_charset = self.to_charset.resolve(ctx)?.try_bytes()?;
+        let value = self
+            .value
+            .resolve(ctx)?
+            .try_bytes()?;
+        let to_charset = self
+            .to_charset
+            .resolve(ctx)?
+            .try_bytes()?;
 
         encode_charset(from_utf8(value.as_bytes()).unwrap(), to_charset.as_bytes())
     }
@@ -127,7 +136,8 @@ impl FunctionExpression for DecodeCharsetFn {
 
 #[cfg(test)]
 mod test {
-    use {super::*, crate::value};
+    use super::*;
+    use crate::value;
 
     test_function![
         encode_charset => EncodeCharset;
