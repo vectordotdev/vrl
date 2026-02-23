@@ -154,7 +154,7 @@ mod tests {
     use crate::value;
 
     test_function![
-        parse_csv => EncodeCsv;
+        encode_csv => EncodeCsv;
 
         valid {
             args: func_args![value: value!(["foo", "bar", "foo \", bar"])],
