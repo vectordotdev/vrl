@@ -59,8 +59,10 @@ impl Function for Truncate {
             Parameter::optional(
                 "suffix",
                 kind::BYTES,
-                "A custom suffix (`...`) is appended to truncated strings.
-If `ellipsis` is set to `true`, this parameter is ignored for backwards compatibility.",
+                indoc! {"
+                    A custom suffix to be appended to truncated strings. If a custom `suffix` is
+                    provided, the total length of the string will be `limit + <suffix length>`.
+                "},
             ),
         ];
         PARAMETERS
