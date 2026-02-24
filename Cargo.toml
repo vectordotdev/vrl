@@ -52,6 +52,7 @@ float_roundtrip = ["dep:serde_json", "serde_json/float_roundtrip"]
 enable_env_functions = []
 enable_system_functions = []
 enable_network_functions = []
+arbitrary_precision = ["dep:serde_json", "serde_json/arbitrary_precision"]
 
 # Testing Utilities. Enables additional tests, including those with external dependencies such as network calls.
 test = ["string_path"]
