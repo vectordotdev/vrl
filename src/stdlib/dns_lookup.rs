@@ -353,7 +353,14 @@ impl Function for DnsLookup {
     }
 
     fn usage(&self) -> &'static str {
-        "Performs a DNS lookup on the provided domain name. This function performs network calls and blocks on each request until a response is received. It is not recommended for frequent or performance-critical workflows."
+        "Performs a DNS lookup on the provided domain name."
+    }
+
+    fn notices(&self) -> &'static [&'static str] {
+        &[indoc! {"
+            This function performs network calls and blocks on each request until a response is
+            received. It is not recommended for frequent or performance-critical workflows.
+        "}]
     }
 
     fn category(&self) -> &'static str {

@@ -311,7 +311,14 @@ impl Function for HttpRequest {
     }
 
     fn usage(&self) -> &'static str {
-        "Makes an HTTP request to the specified URL. This function performs synchronous blocking operations and is not recommended for frequent or performance-critical workflows due to potential network-related delays."
+        "Makes an HTTP request to the specified URL."
+    }
+
+    fn notices(&self) -> &'static [&'static str] {
+        &[indoc! {"
+            This function performs synchronous blocking operations and is not recommended for
+            frequent or performance-critical workflows due to potential network-related delays.
+        "}]
     }
 
     fn category(&self) -> &'static str {
