@@ -141,10 +141,8 @@ impl Function for Remove {
             },
             example! {
                 title: "External target",
-                source: indoc! {r#"
-                    . = { "foo": true }
-                    remove!(value: ., path: ["foo"])
-                "#},
+                source: r#"remove!(value: ., path: ["foo"])"#,
+                input: r#"{ "foo": true }"#,
                 result: Ok("{}"),
             },
             example! {

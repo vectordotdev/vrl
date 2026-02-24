@@ -67,10 +67,8 @@ impl Function for Boolean {
             },
             example! {
                 title: "Valid Boolean from path",
-                source: indoc! {r#"
-                    . = { "value": true }
-                    bool(.value)
-                "#},
+                source: "bool!(.value)",
+                input: r#"{ "value": true }"#,
                 result: Ok("true"),
             },
         ]

@@ -147,7 +147,12 @@ impl Test {
     }
 
     pub fn from_example(func: impl ToString, example: &Example) -> Self {
-        let object = Value::Object(BTreeMap::default());
+        let object = match example.input {
+            Some(input) => {
+                serde_json::from_str::<Value>(input).expect("example input should be valid JSON")
+            }
+            None => Value::Object(BTreeMap::default()),
+        };
         let result = match example.result {
             Ok(string) => string.to_owned(),
             Err(err) => err.to_string(),

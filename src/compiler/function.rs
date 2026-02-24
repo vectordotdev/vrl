@@ -113,6 +113,7 @@ pub trait Function: Send + Sync + fmt::Debug {
 pub struct Example {
     pub title: &'static str,
     pub source: &'static str,
+    pub input: Option<&'static str>,
     pub result: Result<&'static str, &'static str>,
     pub file: &'static str,
     pub line: u32,
@@ -124,11 +125,27 @@ macro_rules! example {
     (
         title: $title:expr,
         source: $source:expr,
+        input: $input:expr,
         result: $result:expr $(,)?
     ) => {
         $crate::compiler::function::Example {
             title: $title,
             source: $source,
+            input: Some($input),
+            result: $result,
+            file: file!(),
+            line: line!(),
+        }
+    };
+    (
+        title: $title:expr,
+        source: $source:expr,
+        result: $result:expr $(,)?
+    ) => {
+        $crate::compiler::function::Example {
+            title: $title,
+            source: $source,
+            input: None,
             result: $result,
             file: file!(),
             line: line!(),
