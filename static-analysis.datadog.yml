@@ -1,0 +1,4 @@
+# Datadog Static Analyzer configuration
+ignore:
+  - target/**        # Rust build artifacts
+  - venv/**          # Python virtualenv
