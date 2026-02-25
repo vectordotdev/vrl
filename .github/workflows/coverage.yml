@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+  pull_request:  # TEMPORARY: Remove after testing
   schedule:
     - cron: '0 5 * * MON'  # Weekly on Monday at 5 AM UTC
   workflow_dispatch:  # Allow manual trigger from GitHub UI
