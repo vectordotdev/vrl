@@ -18,16 +18,28 @@ This split workflow creates several problems:
 
 Once this RFC is implemented, the workflow of adding and documenting a new VRL function should look like this:
 1. PR is opened in the VRL repository.
-  * Function documentation lives alongside/within it's definition.
+  * Function documentation lives alongside/within its definition.
   * All examples are tested and validated before merging.
-2. VRL function documentation is automatically updated in the Vector repo once VRL is bumped.
+  * The corresponding JSON file is generated and included in the PR.
+2. VRL is bumped in Vector and this commit is cherry-picked into the website.
+
+If any fixes or documentation updates need to be made before the next release, the following will
+happen:
+
+1. If this has not been done before during this release:
+  * The `website-X.Y.Z` branch in VRL will be created from the current VRL version included in the repo,
+    where `X.Y.Z` corresponds to that version.
+  * The `website` branch in Vector will update its `Cargo.toml` to use VRL `branch = "website-X.Y.Z"`
+    instead of `version = "X.Y.Z"`.
+2. Commits updating documentation will be cherry-picked into the `website-X.Y.Z` branch in VRL.
+3. In Vector's `website` branch, run `cargo update -p vrl`. Commit and push changes.
 
 ## Goals
 
 1. All 200+ VRL functions should maintain documentation quality at parity with or exceeding current manually-maintained CUE files.
 2. All functions provide the fields needed for automatic documentation.
-3. Vector automatically generates documentation for all VRL functions without relying on **any**
-   non-Rust source code files.
+3. Vector and VRL each generate JSON documentation for their own functions, with no reliance on
+   CUE files.
 4. Validate 100% of examples through CI-enforced testing
 5. Require only a single PR to add new VRL functions
 
@@ -45,16 +57,22 @@ and add a `vdev` command that generates website-ready docs from VRL functions al
 
 ### Proposed brief architecture overview
 
-1. VRL functions source code (src/stdlib in the VRL repository)
+1. VRL repository
 - Functions implement the `Function` trait.
 - Functions are documented using required methods in the `Function` trait.
 - All functions' examples are tested.
+- One JSON file per stdlib function is generated and checked into the repo.
+- CI checks ensure JSON files stay in sync with the source code.
+- JSON generation code lives in VRL so Vector can consume it for Vector-specific functions.
 
-2. Vector Repo (consumes VRL)
-- Aggregates VRL functions and internal VRL functions.
-- Grabs all function information using the `Function` trait.
-- Does necessary transforms/validations and generates output.
-- Output is visible on the website.
+2. Vector repository
+- Vector-specific VRL functions also implement the `Function` trait.
+- One JSON file per Vector-specific function is generated and checked into the repo, reusing the generation code from VRL.
+- CI checks ensure JSON files stay in sync with the source code.
+- CUE files for VRL functions are removed from the Vector repo.
+
+3. Website (located in the Vector repo)
+- Dynamically generates all functions' documentation using VRL's generation code when the website spins up, without needing to add VRL documentation in the Vector repo.
 
 ### Technical approach
 
@@ -69,10 +87,7 @@ and add a `vdev` command that generates website-ready docs from VRL functions al
   * Note that after the `Function` trait is updated VRL will not be able to be updated in the Vector
     repo until all functions are documented.
 
-3. Create a `vdev` command (in Vector's repo) to generate documentation based solely on the methods
-   provided by the `Function` trait.
-
-4. Provide documentation to the website. There are a couple of options here:
+3. Provide documentation to the website. There are a couple of options here:
   * [Rejected] Directly convert documentation into json and insert it into `data/docs.json`
     - Cons
       * No documentation present in any CUE files in the Vector repo, making it harder to
@@ -93,18 +108,27 @@ and add a `vdev` command that generates website-ready docs from VRL functions al
     - Pros:
       * More visibility into documentation changes. This makes it easier to notice if the website needs
       to be updated since CI checks will catch differences in generated files.
-  * **[Chosen]** Convert documentation into pretty printed JSON file.
+  * **[Chosen]** Generate one JSON file per function in each repo.
     - Cons
-      * VRL source code is not the single source of documentation.
-      * VRL documentation has to be updated in two repos.
-      * Need to generate json files when updating VRL.
+      * Need CI checks in both repos catch differences in generated files.
+      * The website dynamically generates all functions' documentation when it spins up. This will
+        likely make the website deployment heavier and more complex than what it is right now.
+      * Each repo is responsible for maintaining its own functions' JSON documentation.
     - Pros:
-      * More visibility into documentation changes. This makes it easier to notice if the website needs
-      to be updated since CI checks will catch differences in generated files.
+      * Docs team has visibility into documentation changes in both repos.
+      * Single source of truth per function (no duplication across repos).
+      * No CUE maintenance burden.
+      * CUE files are removed from the Vector repo so source code is the single source of truth.
 
-5. Add an extra step to `make generate-component-docs` to also automatically generate VRL function
-   documentation and have CI fail if there are any unexpected changes to VRL generated documentation,
-   making it so no PRs go in without properly updating the function documentation.
+3. Add JSON documentation genaration logic in VRL so that both repos can utilize it. The
+   documentation will be dynamically generated based solely on the methods provided by
+   the `Function` trait.
+
+4. Add CI checks in both the VRL and Vector repos to ensure JSON files stay in sync with the
+   source code, like what is done today with `check-component-docs`.
+
+5. Create a `vdev` command (in Vector's repo) to generate docs and inject them into the website.
+
 
 ## Future work
 
