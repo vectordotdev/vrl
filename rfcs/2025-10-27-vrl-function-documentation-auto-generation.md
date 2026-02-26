@@ -23,17 +23,6 @@ Once this RFC is implemented, the workflow of adding and documenting a new VRL f
   * The corresponding JSON file is generated and included in the PR.
 2. VRL is bumped in Vector and this commit is cherry-picked into the website.
 
-If any fixes or documentation updates need to be made before the next release, the following will
-happen:
-
-1. If this has not been done before during this release:
-  * The `website-X.Y.Z` branch in VRL will be created from the current VRL version included in the repo,
-    where `X.Y.Z` corresponds to that version.
-  * The `website` branch in Vector will update its `Cargo.toml` to use VRL `branch = "website-X.Y.Z"`
-    instead of `version = "X.Y.Z"`.
-2. Commits updating documentation will be cherry-picked into the `website-X.Y.Z` branch in VRL.
-3. In Vector's `website` branch, run `cargo update -p vrl`. Commit and push changes.
-
 ## Goals
 
 1. All 200+ VRL functions should maintain documentation quality at parity with or exceeding current manually-maintained CUE files.
@@ -63,7 +52,7 @@ and add a `vdev` command that generates website-ready docs from VRL functions al
 - All functions' examples are tested.
 - One JSON file per stdlib function is generated and checked into the repo.
 - CI checks ensure JSON files stay in sync with the source code.
-- JSON generation code lives in VRL so Vector can consume it for Vector-specific functions.
+- JSON generation code lives in VRL so Vector can consume it for Vector-specific functions and to facilitate reviews from the docs team.
 
 2. Vector repository
 - Vector-specific VRL functions also implement the `Function` trait.
@@ -109,16 +98,15 @@ and add a `vdev` command that generates website-ready docs from VRL functions al
       * More visibility into documentation changes. This makes it easier to notice if the website needs
       to be updated since CI checks will catch differences in generated files.
   * **[Chosen]** Generate one JSON file per function in each repo.
-    - Cons
-      * Need CI checks in both repos catch differences in generated files.
-      * The website dynamically generates all functions' documentation when it spins up. This will
-        likely make the website deployment heavier and more complex than what it is right now.
-      * Each repo is responsible for maintaining its own functions' JSON documentation.
     - Pros:
       * Docs team has visibility into documentation changes in both repos.
       * Single source of truth per function (no duplication across repos).
       * No CUE maintenance burden.
       * CUE files are removed from the Vector repo so source code is the single source of truth.
+    - Cons
+      * Need CI checks in both repos to catch differences in generated files.
+      * The website dynamically generates all functions' documentation when it spins up. This will
+        likely make the website deployment heavier and more complex than what it is right now.
 
 3. Add JSON documentation genaration logic in VRL so that both repos can utilize it. The
    documentation will be dynamically generated based solely on the methods provided by
@@ -129,6 +117,19 @@ and add a `vdev` command that generates website-ready docs from VRL functions al
 
 5. Create a `vdev` command (in Vector's repo) to generate docs and inject them into the website.
 
+
+## Updating documentation before the next release
+
+If any fixes or documentation updates need to be made before the next release, the following will
+happen:
+
+1. If this has not been done before during this release:
+  * The `website-X.Y.Z` branch in VRL will be created from the current VRL version included in the repo,
+    where `X.Y.Z` corresponds to that version.
+  * The `website` branch in Vector will update its `Cargo.toml` to use VRL `branch = "website-X.Y.Z"`
+    instead of `version = "X.Y.Z"`.
+2. Commits updating documentation will be cherry-picked into the `website-X.Y.Z` branch in VRL.
+3. In Vector's `website` branch, run `cargo update -p vrl`. Commit and push changes.
 
 ## Future work
 
