@@ -63,7 +63,7 @@ impl Function for GetTimezoneName {
     fn examples(&self) -> &'static [Example] {
         &[example! {
             title: "Get the IANA name of Vector's timezone",
-            source: r#"get_timezone_name!()"#,
+            source: r"get_timezone_name!()",
             result: Ok("UTC"),
         }]
     }

@@ -34,7 +34,7 @@ impl Function for Now {
     fn examples(&self) -> &'static [Example] {
         &[example! {
             title: "Generate a current timestamp",
-            source: r#"now()"#,
+            source: r"now()",
             result: Ok("2012-03-04T12:34:56.789012345Z"),
         }]
     }
