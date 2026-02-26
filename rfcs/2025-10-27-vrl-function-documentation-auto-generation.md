@@ -78,25 +78,25 @@ and add a `vdev` command that generates website-ready docs from VRL functions al
 
 3. Provide documentation to the website. There are a couple of options here:
   * [Rejected] Directly convert documentation into json and insert it into `data/docs.json`
+    - Pros
+      * VRL source code is the single source of documentation and updating docs is simply running website
+      deploy commands and one additional `vdev` command.
+      * No binary documentation files or duplicated information in repos anywhere.
     - Cons
       * No documentation present in any CUE files in the Vector repo, making it harder to
       notice if the website needs to be updated.
       * Docs team and maintainers will probably not see any VRL documentation changes (during
         releases).
       * (minor) Less visibility into VRL documentation when checking out old source code
-    - Pros
-      * VRL source code is the single source of documentation and updating docs is simply running website
-      deploy commands and one additional `vdev` command.
-      * No binary documentation files or duplicated information in repos anywhere.
   * [Rejected] Convert documentation into CUE files and keep the regular flow.
+    - Pros:
+      * More visibility into documentation changes. This makes it easier to notice if the website needs
+      to be updated since CI checks will catch differences in generated files.
     - Cons
       * VRL source code is not the single source of documentation.
       * VRL documentation has to be updated in two repos.
       * Need to generate CUE files when updating VRL.
       * We'd be generating CUE in a very hacky manner and we want to reduce our use of CUE.
-    - Pros:
-      * More visibility into documentation changes. This makes it easier to notice if the website needs
-      to be updated since CI checks will catch differences in generated files.
   * **[Chosen]** Generate one JSON file per function in each repo.
     - Pros:
       * Docs team has visibility into documentation changes in both repos.
