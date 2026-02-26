@@ -1,0 +1,90 @@
+name: Check Generated Docs Freshness
+
+on:
+  pull_request:
+  merge_group:
+    types: [checks_requested]
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.number || github.sha }}
+  cancel-in-progress: true
+
+env:
+  COMMIT_MESSAGE: "Update generated docs"
+
+jobs:
+  check-generated-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Regenerate docs
+        run: cargo run --bin vrl-docs -- --output docs/
+
+      - name: Check for changes
+        id: check
+        run: |
+          git add docs/
+          if git diff --cached --quiet; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Check last commit message
+        if: steps.check.outputs.changed == 'true'
+        id: last-commit
+        run: |
+          MSG=$(git log -1 --pretty=%s)
+          if [ "$MSG" = "$COMMIT_MESSAGE" ]; then
+            echo "is-auto=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "is-auto=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Commit and push
+        if: >
+          steps.check.outputs.changed == 'true'
+          && steps.last-commit.outputs.is-auto != 'true'
+          && github.event_name == 'pull_request'
+          && github.event.pull_request.head.repo.full_name == github.repository
+        id: push
+        continue-on-error: true
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git commit -m "$COMMIT_MESSAGE"
+          git push origin HEAD:refs/heads/${{ github.head_ref }}
+
+      - name: Comment on PR
+        if: >
+          steps.check.outputs.changed == 'true'
+          && steps.last-commit.outputs.is-auto != 'true'
+          && github.event_name == 'pull_request'
+          && steps.push.outcome != 'success'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: 'The `docs/` folder is out of date but I was unable to push the fix automatically.\n\nPlease run the following and commit the result:\n\n```\ncargo run --bin vrl-docs -- --output docs/\n```'
+            });
+
+      - name: Fail if docs are out of date
+        if: steps.check.outputs.changed == 'true' && steps.push.outcome != 'success'
+        run: |
+          echo "docs/ is out of date. Regenerate with: cargo run --bin vrl-docs -- --output docs/"
+          exit 1
