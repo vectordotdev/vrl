@@ -25,8 +25,8 @@
   "examples": [
     {
       "title": "Get an environment variable",
-      "source": "get_env_var!(\"HOME\") != \"\"",
-      "return": true
+      "source": "get_env_var!(\"HOME\")",
+      "return": "/root"
     }
   ],
   "pure": true

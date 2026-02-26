@@ -47,22 +47,22 @@
   "examples": [
     {
       "title": "Payload contains a valid email",
-      "source": "validate_json_schema!(s'{ \"productUser\": \"valid@email.com\" }', \"/home/runner/work/vrl/vrl/lib/docs/../../tests/data/jsonschema/validate_json_schema/schema_with_email_format.json\", false)",
+      "source": "validate_json_schema!(s'{ \"productUser\": \"valid@email.com\" }', \"schema_with_email_format.json\", false)",
       "return": true
     },
     {
       "title": "Payload contains an invalid email",
-      "source": "validate_json_schema!(s'{ \"productUser\": \"invalidEmail\" }', \"/home/runner/work/vrl/vrl/lib/docs/../../tests/data/jsonschema/validate_json_schema/schema_with_email_format.json\", false)",
-      "raises": "function call error for \"validate_json_schema\" at (0:183): JSON schema validation failed: \"invalidEmail\" is not a \"email\" at /productUser"
+      "source": "validate_json_schema!(s'{ \"productUser\": \"invalidEmail\" }', \"schema_with_email_format.json\", false)",
+      "raises": "function call error for \"validate_json_schema\" at (0:99): JSON schema validation failed: \"invalidEmail\" is not a \"email\" at /productUser"
     },
     {
       "title": "Payload contains a custom format declaration",
-      "source": "validate_json_schema!(s'{ \"productUser\": \"a-custom-formatted-string\" }', \"/home/runner/work/vrl/vrl/lib/docs/../../tests/data/jsonschema/validate_json_schema/schema_with_custom_format.json\", false)",
-      "raises": "function call error for \"validate_json_schema\" at (0:197): Failed to compile schema: Unknown format: 'my-custom-format'. Adjust configuration to ignore unrecognized formats"
+      "source": "validate_json_schema!(s'{ \"productUser\": \"a-custom-formatted-string\" }', \"schema_with_custom_format.json\", false)",
+      "raises": "function call error for \"validate_json_schema\" at (0:113): Failed to compile schema: Unknown format: 'my-custom-format'. Adjust configuration to ignore unrecognized formats"
     },
     {
       "title": "Payload contains a custom format declaration, with ignore_unknown_formats set to true",
-      "source": "validate_json_schema!(s'{ \"productUser\": \"a-custom-formatted-string\" }', \"/home/runner/work/vrl/vrl/lib/docs/../../tests/data/jsonschema/validate_json_schema/schema_with_custom_format.json\", true)",
+      "source": "validate_json_schema!(s'{ \"productUser\": \"a-custom-formatted-string\" }', \"schema_with_custom_format.json\", true)",
       "return": true
     }
   ],

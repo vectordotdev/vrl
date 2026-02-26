@@ -11,9 +11,9 @@
   },
   "examples": [
     {
-      "title": "now",
-      "source": "now() != \"\"",
-      "return": true
+      "title": "Generate a current timestamp",
+      "source": "now()",
+      "return": "2012-03-04T12:34:56.789012345Z"
     }
   ],
   "pure": true

@@ -24,6 +24,11 @@
   ],
   "examples": [
     {
+      "title": "Generate random base 64 encoded bytes",
+      "source": "encode_base64(random_bytes(16))",
+      "return": "LNu0BBgUbh7XAlXbjSOomQ=="
+    },
+    {
       "title": "Generate 16 random bytes",
       "source": "length(random_bytes(16))",
       "return": 16
