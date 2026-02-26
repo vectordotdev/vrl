@@ -1,7 +1,7 @@
 use crate::compiler::Function;
 use clap::Parser;
+use std::io;
 use std::path::PathBuf;
-use std::{io};
 
 use super::{build_functions_doc, document_functions_to_dir};
 
@@ -20,7 +20,7 @@ pub struct Opts {
 }
 
 #[must_use]
-pub fn docs(opts: &Opts, functions: Vec<Box<dyn Function>>) -> exitcode::ExitCode {
+pub fn docs(opts: &Opts, functions: &[Box<dyn Function>]) -> exitcode::ExitCode {
     match run(opts, functions) {
         Ok(()) => exitcode::OK,
         Err(err) => {
@@ -33,21 +33,21 @@ pub fn docs(opts: &Opts, functions: Vec<Box<dyn Function>>) -> exitcode::ExitCod
     }
 }
 
-fn run(opts: &Opts, functions: Vec<Box<dyn Function>>) -> Result<(), io::Error> {
+fn run(opts: &Opts, functions: &[Box<dyn Function>]) -> Result<(), io::Error> {
     if let Some(output) = &opts.output {
-        document_functions_to_dir(functions.as_slice(), output)
+        document_functions_to_dir(functions, output)
     } else {
+        let built = build_functions_doc(functions);
         #[allow(clippy::print_stdout)]
         if opts.minify {
             println!(
                 "{}",
-                serde_json::to_string(&build_functions_doc(&functions))
-                    .expect("FunctionDoc serialization should not fail")
+                serde_json::to_string(&built).expect("FunctionDoc serialization should not fail")
             );
         } else {
             println!(
                 "{}",
-                serde_json::to_string_pretty(&build_functions_doc(&functions))
+                serde_json::to_string_pretty(&built)
                     .expect("FunctionDoc serialization should not fail")
             );
         }

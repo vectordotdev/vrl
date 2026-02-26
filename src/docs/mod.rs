@@ -62,6 +62,15 @@ pub struct ExampleDoc {
     pub raises: Option<String>,
 }
 
+/// Writes function documentation files into `output_dir`
+///
+/// # Errors
+/// - Failed to create `output_dir`.
+/// - Failed to write or create file in `output_dir`.
+/// - JSON serialization error.
+///
+/// # Panics
+/// Will panic if any function's example has an input that is not valid JSON
 pub fn document_functions_to_dir(
     functions: &[Box<dyn Function>],
     output_dir: &Path,
@@ -84,6 +93,9 @@ pub fn document_functions_to_dir(
     Ok(())
 }
 
+/// # Panics
+/// Will panic if any function's example has an input that is not valid JSON
+#[must_use]
 pub fn build_functions_doc(functions: &[Box<dyn Function>]) -> Vec<FunctionDoc> {
     functions
         .iter()
@@ -91,6 +103,8 @@ pub fn build_functions_doc(functions: &[Box<dyn Function>]) -> Vec<FunctionDoc> 
         .collect()
 }
 
+/// # Panics
+/// Will panic if any function's example has an input that is not valid JSON
 pub fn build_function_doc(func: &dyn Function) -> FunctionDoc {
     let name = func.identifier().to_string();
 
