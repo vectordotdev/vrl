@@ -17,6 +17,10 @@ pub struct Opts {
     /// Whether to pretty-print or minify
     #[arg(short, long, default_value_t = false)]
     minify: bool,
+
+    /// File extension for generated files
+    #[arg(short, long, default_value = "json")]
+    extension: String,
 }
 
 #[must_use]
@@ -35,7 +39,7 @@ pub fn docs(opts: &Opts, functions: &[Box<dyn Function>]) -> exitcode::ExitCode 
 
 fn run(opts: &Opts, functions: &[Box<dyn Function>]) -> Result<(), io::Error> {
     if let Some(output) = &opts.output {
-        document_functions_to_dir(functions, output)
+        document_functions_to_dir(functions, output, &opts.extension)
     } else {
         let built = build_functions_doc(functions);
         #[allow(clippy::print_stdout)]

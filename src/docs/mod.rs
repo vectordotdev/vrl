@@ -74,12 +74,13 @@ pub struct ExampleDoc {
 pub fn document_functions_to_dir(
     functions: &[Box<dyn Function>],
     output_dir: &Path,
+    extension: &str,
 ) -> io::Result<()> {
     // Ensure output directory exists
     fs::create_dir_all(output_dir)?;
 
     for doc in build_functions_doc(functions) {
-        let filename = format!("{}.cue", doc.name);
+        let filename = format!("{}.{extension}", doc.name);
         let filepath = output_dir.join(&filename);
         let mut json = serde_json::to_string_pretty(&doc)?;
         json.push('\n');
