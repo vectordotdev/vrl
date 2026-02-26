@@ -1,10 +1,10 @@
 name: Static Analysis
 
 on:
-  pull_request:
   push:
     branches:
       - main
+      - "**"  # Run on all branches (includes PR branches)
   workflow_dispatch:  # Allow manual trigger from GitHub UI
 
 jobs:
