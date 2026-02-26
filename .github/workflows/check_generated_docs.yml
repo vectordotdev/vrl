@@ -18,6 +18,7 @@ concurrency:
 
 env:
   COMMIT_MESSAGE: "Update generated docs"
+  COMMIT_AUTHOR: "github-actions[bot]"
 
 jobs:
   check-generated-docs:
@@ -30,7 +31,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
 
       - name: Regenerate docs
-        run: cargo run --bin vrl-docs -- --output docs/
+        run: cargo run -p vrl-docs -- --output docs/
 
       - name: Check for changes
         id: check
@@ -42,12 +43,13 @@ jobs:
             echo "changed=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Check last commit message
+      - name: Check last commit
         if: steps.check.outputs.changed == 'true'
         id: last-commit
         run: |
           MSG=$(git log -1 --pretty=%s)
-          if [ "$MSG" = "$COMMIT_MESSAGE" ]; then
+          AUTHOR=$(git log -1 --pretty=%an)
+          if [ "$MSG" = "$COMMIT_MESSAGE" ] && [ "$AUTHOR" = "$COMMIT_AUTHOR" ]; then
             echo "is-auto=true" >> "$GITHUB_OUTPUT"
           else
             echo "is-auto=false" >> "$GITHUB_OUTPUT"
@@ -80,11 +82,11 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
-              body: 'The `docs/` folder is out of date but I was unable to push the fix automatically.\n\nPlease run the following and commit the result:\n\n```\ncargo run --bin vrl-docs -- --output docs/\n```'
+              body: 'The `docs/` folder is out of date but I was unable to push the fix automatically.\n\nPlease run the following and commit the result:\n\n```\ncargo run -p vrl-docs -- --output docs/\n```'
             });
 
       - name: Fail if docs are out of date
         if: steps.check.outputs.changed == 'true' && steps.push.outcome != 'success'
         run: |
-          echo "docs/ is out of date. Regenerate with: cargo run --bin vrl-docs -- --output docs/"
+          echo "docs/ is out of date. Regenerate with: cargo run -p vrl-docs -- --output docs/"
           exit 1
