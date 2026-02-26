@@ -81,10 +81,13 @@ pub fn document_functions_to_dir(
 }
 
 pub fn build_functions_doc(functions: &[Box<dyn Function>]) -> Vec<FunctionDoc> {
-    functions.iter().map(|f| build_function_doc(f)).collect()
+    functions
+        .iter()
+        .map(|f| build_function_doc(f.as_ref()))
+        .collect()
 }
 
-pub fn build_function_doc(func: &Box<dyn Function>) -> FunctionDoc {
+pub fn build_function_doc(func: &dyn Function) -> FunctionDoc {
     let name = func.identifier().to_string();
 
     let arguments: Vec<ArgumentDoc> = func
@@ -266,6 +269,7 @@ fn run(opts: &Opts, functions: Vec<Box<dyn Function>>) -> Result<(), io::Error> 
     if let Some(output) = &opts.output {
         document_functions_to_dir(functions.as_slice(), output)
     } else {
+        #[allow(clippy::print_stdout)]
         if opts.minify {
             println!(
                 "{}",
