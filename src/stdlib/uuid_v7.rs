@@ -120,8 +120,11 @@ impl Function for UuidV7 {
 
         // Use mocked now() implementation if timestamp is missing
         #[cfg(feature = "__mock_return_values_for_tests")]
-        let timestamp =
-            timestamp.or_else(|| super::Now {}.compile(state, ctx, ArgumentList::default()).ok());
+        let timestamp = timestamp.or_else(|| {
+            super::Now {}
+                .compile(state, ctx, ArgumentList::default())
+                .ok()
+        });
 
         Ok(UuidV7Fn { timestamp }.as_expr())
     }
