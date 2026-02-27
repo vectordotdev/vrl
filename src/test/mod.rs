@@ -210,24 +210,16 @@ fn process_result(
 
             if test.check_type_only {
                 let want = test.result.clone();
-                let want_value =
-                    serde_json::from_str::<'_, serde_json::Value>(want.trim()).unwrap_or_else(
-                        |err| {
-                            eprintln!("{err}");
-                            want.into()
-                        },
-                    );
+                let want_value = serde_json::from_str::<'_, serde_json::Value>(want.trim())
+                    .unwrap_or_else(|err| {
+                        eprintln!("{err}");
+                        want.into()
+                    });
 
                 if json_type_matches(&got_value, &want_value) {
-                    print!(
-                        "{timings}{}",
-                        Colour::Green.bold().paint("OK (type match)")
-                    );
+                    print!("{timings}{}", Colour::Green.bold().paint("OK (type match)"));
                 } else {
-                    print!(
-                        "{} (type mismatch)",
-                        Colour::Red.bold().paint("FAILED")
-                    );
+                    print!("{} (type mismatch)", Colour::Red.bold().paint("FAILED"));
 
                     if !config.no_diff {
                         let want = serde_json::to_string_pretty(&want_value).unwrap();
