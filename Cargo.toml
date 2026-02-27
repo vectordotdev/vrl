@@ -19,6 +19,7 @@ members = [
   "lib/tests",
   "lib/fuzz"
 ]
+default-members = ["lib/cli"]
 
 [workspace.dependencies]
 clap = { version = "4", features = ["derive"] }
