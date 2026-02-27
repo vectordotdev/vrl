@@ -31,7 +31,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
 
       - name: Regenerate docs
-        run: cargo run -p vrl-docs -- --output docs/
+        run: ./scripts/generate_docs.sh
 
       - name: Check for changes
         id: check
@@ -82,11 +82,11 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
-              body: 'The `docs/` folder is out of date but I was unable to push the fix automatically.\n\nPlease run the following and commit the result:\n\n```\ncargo run -p vrl-docs -- --output docs/\n```'
+              body: 'The `docs/` folder is out of date but I was unable to push the fix automatically.\n\nPlease run the following and commit the result:\n\n```\n./scripts/generate_docs.sh\n```'
             });
 
       - name: Fail if docs are out of date
         if: steps.check.outputs.changed == 'true' && steps.push.outcome != 'success'
         run: |
-          echo "docs/ is out of date. Regenerate with: cargo run -p vrl-docs -- --output docs/"
+          echo "docs/ is out of date. Regenerate with: ./scripts/generate_docs.sh"
           exit 1
