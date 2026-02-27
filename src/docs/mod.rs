@@ -156,6 +156,7 @@ pub fn build_function_doc(func: &dyn Function) -> FunctionDoc {
                 input,
                 file: _,
                 line: _,
+                deterministic: _,
             } = example;
 
             let (r#return, raises) = match result {
