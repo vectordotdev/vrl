@@ -30,7 +30,7 @@ impl Function for UuidV4 {
     fn examples(&self) -> &'static [Example] {
         &[example! {
             title: "Create a UUIDv4",
-            source: r#"uuid_v4()"#,
+            source: "uuid_v4()",
             result: Ok("1d262f4f-199b-458d-879f-05fd0a5f0683"),
             deterministic: false,
         }]

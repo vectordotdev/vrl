@@ -55,7 +55,7 @@ impl Function for GetHostname {
     fn examples(&self) -> &'static [Example] {
         &[example! {
             title: "Get hostname",
-            source: r#"get_hostname!()"#,
+            source: "get_hostname!()",
             result: Ok("my-hostname"),
             deterministic: false,
         }]

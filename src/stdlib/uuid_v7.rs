@@ -68,19 +68,19 @@ impl Function for UuidV7 {
         &[
             example! {
                 title: "Create a UUIDv7 with implicit `now()`",
-                source: r#"uuid_v7()"#,
+                source: "uuid_v7()",
                 result: Ok("0135ddb4-a444-794c-a7a2-088f260104c0"),
                 deterministic: false,
             },
             example! {
                 title: "Create a UUIDv7 with explicit `now()`",
-                source: r#"uuid_v7(now())"#,
+                source: "uuid_v7(now())",
                 result: Ok("0135ddb4-a444-794c-a7a2-088f260104c0"),
                 deterministic: false,
             },
             example! {
                 title: "Create a UUIDv7 with custom timestamp",
-                source: r#"uuid_v7(t'2020-12-30T22:20:53.824727Z')"#,
+                source: "uuid_v7(t'2020-12-30T22:20:53.824727Z')",
                 result: Ok("0176b5bd-5d19-794c-a7a2-088f260104c0"),
                 deterministic: false,
             },
