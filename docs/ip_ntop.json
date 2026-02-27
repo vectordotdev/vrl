@@ -34,7 +34,7 @@
     }
   ],
   "notices": [
-    "The binary data for this function is not easily printable. However, the results from\nfunctions such as `decode_base64` or `decode_percent` can still be used correctly."
+    "The binary data for this function is not easily printable.\nHowever, the results from functions such as `decode_base64` or\n`decode_percent` can still be used correctly."
   ],
   "pure": true
 }

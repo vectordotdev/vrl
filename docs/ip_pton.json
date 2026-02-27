@@ -34,7 +34,7 @@
     }
   ],
   "notices": [
-    "The binary data from this function is not easily printable. However, functions such as\n`encode_base64` or `encode_percent` can still process it correctly."
+    "The binary data from this function is not easily printable.\nHowever, functions such as `encode_base64` or `encode_percent` can\nstill process it correctly."
   ],
   "pure": true
 }

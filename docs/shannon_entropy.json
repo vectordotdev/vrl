@@ -2,7 +2,7 @@
   "anchor": "shannon_entropy",
   "name": "shannon_entropy",
   "category": "String",
-  "description": "Generates [Shannon entropy](https://en.wikipedia.org/wiki/Entropy_(information_theory)) from given string. It can generate it based on string bytes, codepoints, or graphemes.",
+  "description": "Generates [Shannon entropy](https://en.wikipedia.org/wiki/Entropy_(information_theory)) from given string. It can generate it\nbased on string bytes, codepoints, or graphemes.",
   "arguments": [
     {
       "name": "value",
@@ -47,11 +47,6 @@
       "title": "UTF-8 string with grapheme segmentation",
       "source": "floor(shannon_entropy(\"test123%456.فوائد.net.\", segmentation: \"grapheme\"), precision: 4)",
       "return": 3.9362
-    },
-    {
-      "title": "UTF-8 emoji (7 Unicode scalar values) with grapheme segmentation",
-      "source": "shannon_entropy(\"👨‍👩‍👧‍👦\", segmentation: \"grapheme\")",
-      "return": 0.0
     }
   ],
   "pure": true

@@ -2,7 +2,7 @@
   "anchor": "split_path",
   "name": "split_path",
   "category": "String",
-  "description": "Splits the given `path` into its constituent components, returning an array of strings. Each component represents a part of the file system path hierarchy.",
+  "description": "Splits the given `path` into its constituent components, returning an array of strings.\nEach component represents a part of the file system path hierarchy.",
   "arguments": [
     {
       "name": "value",

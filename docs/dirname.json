@@ -2,7 +2,7 @@
   "anchor": "dirname",
   "name": "dirname",
   "category": "String",
-  "description": "Returns the directory component of the given `path`. This is similar to the Unix `dirname` command. The directory component is the path with the final component removed.",
+  "description": "Returns the directory component of the given `path`. This is similar to the Unix `dirname` command.\nThe directory component is the path with the final component removed.",
   "arguments": [
     {
       "name": "value",

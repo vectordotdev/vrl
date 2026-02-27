@@ -32,7 +32,7 @@
   "examples": [
     {
       "title": "Random float from 0.0 to 10.0, not including 10.0",
-      "source": "f = random_float(0.0, 10.0)\nf >= 0 && f < 10\n",
+      "source": "f = random_float(0.0, 10.0)\nf >= 0 && f < 10",
       "return": true
     }
   ],

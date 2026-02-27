@@ -14,7 +14,7 @@
       ]
     },
     {
-      "name": "value",
+      "name": "ip",
       "description": "The IP address (v4 or v6).",
       "required": true,
       "type": [
@@ -46,16 +46,6 @@
       "title": "IPv6 contains CIDR",
       "source": "ip_cidr_contains!(\"2001:4f8:4:ba::/64\", \"2001:4f8:4:ba:2e0:81ff:fe22:d1f1\")",
       "return": true
-    },
-    {
-      "title": "Not in range",
-      "source": "ip_cidr_contains!(\"192.168.0.0/24\", \"192.168.10.32\")",
-      "return": false
-    },
-    {
-      "title": "Invalid address",
-      "source": "ip_cidr_contains!(\"192.168.0.0/24\", \"INVALID\")",
-      "raises": "function call error for \"ip_cidr_contains\" at (0:46): unable to parse IP address: invalid IP address syntax"
     }
   ],
   "pure": true

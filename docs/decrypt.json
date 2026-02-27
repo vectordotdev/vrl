@@ -49,13 +49,8 @@
   ],
   "examples": [
     {
-      "title": "Decrypt value using AES-256-CFB",
-      "source": "iv = \"0123456789012345\"\nkey = \"01234567890123456789012345678912\"\nciphertext = decode_base64!(\"c/dIOA==\")\ndecrypt!(ciphertext, \"AES-256-CFB\", key: key, iv: iv)\n",
-      "return": "data"
-    },
-    {
-      "title": "Decrypt value using AES-128-CBC-PKCS7",
-      "source": "iv = decode_base64!(\"fVEIRkIiczCRWNxaarsyxA==\")\nkey = \"16_byte_keyxxxxx\"\nciphertext = decode_base64!(\"5fLGcu1VHdzsPcGNDio7asLqE1P43QrVfPfmP4i4zOU=\")\ndecrypt!(ciphertext, \"AES-128-CBC-PKCS7\", key: key, iv: iv)\n",
+      "title": "Decrypt value",
+      "source": "ciphertext = decode_base64!(\"5fLGcu1VHdzsPcGNDio7asLqE1P43QrVfPfmP4i4zOU=\")\niv = decode_base64!(\"fVEIRkIiczCRWNxaarsyxA==\")\nkey = \"16_byte_keyxxxxx\"\ndecrypt!(ciphertext, \"AES-128-CBC-PKCS7\", key, iv: iv)",
       "return": "super_secret_message"
     }
   ],

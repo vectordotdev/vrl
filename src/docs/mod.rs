@@ -9,12 +9,13 @@ use crate::core::Value;
 use crate::prelude::function::EnumVariant;
 use crate::prelude::{Example, Parameter};
 use indexmap::IndexMap;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::path::Path;
 use std::{fs, io};
 use tracing::{debug, info};
 
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct FunctionDoc {
     pub anchor: String,
     pub name: String,
@@ -22,44 +23,56 @@ pub struct FunctionDoc {
     pub description: String,
     pub arguments: Vec<ArgumentDoc>,
     pub r#return: ReturnDoc,
-    #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub internal_failure_reasons: Vec<String>,
-    #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub examples: Vec<ExampleDoc>,
-    #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub notices: Vec<String>,
     pub pure: bool,
+    #[serde(default, skip_serializing)]
+    deprecated: bool,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 pub struct ArgumentDoc {
     pub name: String,
     pub description: String,
     pub required: bool,
     pub r#type: Vec<String>,
-    #[serde(skip_serializing_if = "IndexMap::is_empty")]
+    #[serde(default, skip_serializing_if = "IndexMap::is_empty")]
     pub r#enum: IndexMap<String, String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "deserialize_default_value"
+    )]
     pub default: Option<String>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 pub struct ReturnDoc {
     pub types: Vec<String>,
-    #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub rules: Vec<String>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct ExampleDoc {
     pub title: String,
     pub source: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub input: Option<serde_json::Value>,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub r#return: Option<serde_json::Value>,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none", deserialize_with = "deserialize_raises")]
     pub raises: Option<String>,
+    // docs.json-only fields: ignored during serialization
+    #[serde(default, skip_serializing)]
+    output: Option<serde_json::Value>,
+    #[serde(default, skip_serializing)]
+    skip_test: Option<bool>,
 }
 
 /// Writes function documentation files into `output_dir`
@@ -76,13 +89,26 @@ pub fn document_functions_to_dir(
     output_dir: &Path,
     extension: &str,
 ) -> io::Result<()> {
-    // Ensure output directory exists
+    write_function_docs_to_dir(build_functions_doc(functions), output_dir, extension)
+}
+
+/// Writes pre-built function docs into `output_dir`
+///
+/// # Errors
+/// - Failed to create `output_dir`.
+/// - Failed to write or create file in `output_dir`.
+/// - JSON serialization error.
+pub fn write_function_docs_to_dir(
+    docs: Vec<FunctionDoc>,
+    output_dir: &Path,
+    extension: &str,
+) -> io::Result<()> {
     fs::create_dir_all(output_dir)?;
 
-    for doc in build_functions_doc(functions) {
+    for doc in &docs {
         let filename = format!("{}.{extension}", doc.name);
         let filepath = output_dir.join(&filename);
-        let mut json = serde_json::to_string_pretty(&doc)?;
+        let mut json = serde_json::to_string_pretty(doc)?;
         json.push('\n');
 
         fs::write(&filepath, json)?;
@@ -92,6 +118,78 @@ pub fn document_functions_to_dir(
 
     info!("VRL documentation generation complete.");
     Ok(())
+}
+
+/// Reads function documentation from a docs.json file (Vector website format).
+///
+/// Expects the file to contain a top-level object with a `remap.functions` map.
+/// Applies format conversions:
+/// - Unwraps `input` from the `{"log": {...}}` wrapper
+/// - Extracts `raises` from `{"runtime": "..."}` object format
+/// - Drops `deprecated`, `output`, and `skip_test` fields
+///
+/// # Errors
+/// - Failed to read or parse the file.
+pub fn read_functions_from_file(path: &Path) -> io::Result<Vec<FunctionDoc>> {
+    let content = fs::read_to_string(path)?;
+    let docs_json: DocsJson = serde_json::from_str(&content)?;
+    let mut functions: Vec<FunctionDoc> = docs_json.remap.functions.into_values().collect();
+
+    for func in &mut functions {
+        for example in &mut func.examples {
+            // Unwrap the {"log": {...}} wrapper from input
+            example.input = example.input.take().and_then(|v| {
+                if let serde_json::Value::Object(ref obj) = v {
+                    if let Some(log_val) = obj.get("log") {
+                        return Some(log_val.clone());
+                    }
+                }
+                Some(v)
+            });
+        }
+    }
+
+    Ok(functions)
+}
+
+#[derive(Deserialize)]
+struct DocsJson {
+    remap: RemapSection,
+}
+
+#[derive(Deserialize)]
+struct RemapSection {
+    functions: IndexMap<String, FunctionDoc>,
+}
+
+/// Deserializes `default` from a string, integer, or boolean value.
+fn deserialize_default_value<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let value: Option<serde_json::Value> = Option::deserialize(deserializer)?;
+    Ok(value.map(|v| match v {
+        serde_json::Value::String(s) => s,
+        serde_json::Value::Bool(b) => b.to_string(),
+        serde_json::Value::Number(n) => n.to_string(),
+        other => other.to_string(),
+    }))
+}
+
+/// Deserializes `raises` from either a plain string or `{"runtime": "..."}` object.
+fn deserialize_raises<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let value: Option<serde_json::Value> = Option::deserialize(deserializer)?;
+    Ok(value.and_then(|v| match v {
+        serde_json::Value::String(s) => Some(s),
+        serde_json::Value::Object(ref obj) => obj
+            .get("runtime")
+            .and_then(serde_json::Value::as_str)
+            .map(String::from),
+        _ => None,
+    }))
 }
 
 /// # Panics
@@ -179,6 +277,8 @@ pub fn build_function_doc(func: &dyn Function) -> FunctionDoc {
                 input,
                 r#return,
                 raises,
+                output: None,
+                skip_test: None,
             }
         })
         .collect();
@@ -197,6 +297,7 @@ pub fn build_function_doc(func: &dyn Function) -> FunctionDoc {
         examples,
         notices: trim_slice(func.notices()),
         pure: func.pure(),
+        deprecated: false,
     }
 }
 

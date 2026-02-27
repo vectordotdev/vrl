@@ -54,13 +54,8 @@
       "return": "42fccbc2b7d22a143b92f265a8046187558a94d11ddbb30622207e90"
     },
     {
-      "title": "Calculate message HMAC using SHA1, encoding to a base64 string",
-      "source": "encode_base64(hmac(\"Hello there\", \"super-secret-key\", algorithm: \"SHA1\"))",
-      "return": "MiyBIHO8Set9+6crALiwkS0yFPE="
-    },
-    {
       "title": "Calculate message HMAC using a variable hash algorithm",
-      "source": ".hash_algo = \"SHA-256\"\nhmac_bytes, err = hmac(\"Hello there\", \"super-secret-key\", algorithm: .hash_algo)\nif err == null {\n    .hmac = encode_base16(hmac_bytes)\n}\n",
+      "source": ".hash_algo = \"SHA-256\"\nhmac_bytes, err = hmac(\"Hello there\", \"super-secret-key\", algorithm: .hash_algo)\nif err == null {\n\t.hmac = encode_base16(hmac_bytes)\n}",
       "return": "78b184f1832f8aff3934f5e0212454671b2d04d494e3b25075c5e45167029662"
     }
   ],

@@ -9,9 +9,9 @@
       "description": "The array or object.",
       "required": true,
       "type": [
-        "string",
+        "array",
         "object",
-        "array"
+        "string"
       ]
     }
   ],
@@ -28,12 +28,12 @@
   "examples": [
     {
       "title": "Length (object)",
-      "source": "length({\n    \"portland\": \"Trail Blazers\",\n    \"seattle\": \"Supersonics\"\n})\n",
+      "source": "length({\n\t\"portland\": \"Trail Blazers\",\n\t\"seattle\":  \"Supersonics\"\n})",
       "return": 2
     },
     {
       "title": "Length (nested object)",
-      "source": "length({\n    \"home\": {\n        \"city\":  \"Portland\",\n        \"state\": \"Oregon\"\n    },\n    \"name\": \"Trail Blazers\",\n    \"mascot\": {\n        \"name\": \"Blaze the Trail Cat\"\n    }\n})\n",
+      "source": "length({\n\t\"home\": {\n\t\t\"city\":  \"Portland\",\n\t\t\"state\": \"Oregon\"\n\t},\n\t\"name\": \"Trail Blazers\",\n\t\"mascot\": {\n\t\t\"name\": \"Blaze the Trail Cat\"\n\t}\n})",
       "return": 3
     },
     {

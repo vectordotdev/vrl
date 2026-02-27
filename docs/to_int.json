@@ -9,7 +9,12 @@
       "description": "The value to convert to an integer.",
       "required": true,
       "type": [
-        "any"
+        "integer",
+        "float",
+        "boolean",
+        "string",
+        "timestamp",
+        "null"
       ]
     }
   ],
@@ -40,51 +45,6 @@
       "title": "Coerce to an int (timestamp)",
       "source": "to_int(t'2020-12-30T22:20:53.824727Z')",
       "return": 1609366853
-    },
-    {
-      "title": "Integer",
-      "source": "to_int(5)",
-      "return": 5
-    },
-    {
-      "title": "Float",
-      "source": "to_int(5.6)",
-      "return": 5
-    },
-    {
-      "title": "True",
-      "source": "to_int(true)",
-      "return": 1
-    },
-    {
-      "title": "False",
-      "source": "to_int(false)",
-      "return": 0
-    },
-    {
-      "title": "Null",
-      "source": "to_int(null)",
-      "return": 0
-    },
-    {
-      "title": "Invalid string",
-      "source": "to_int!(s'foobar')",
-      "raises": "function call error for \"to_int\" at (0:18): Invalid integer \"foobar\": invalid digit found in string"
-    },
-    {
-      "title": "Array",
-      "source": "to_int!([])",
-      "raises": "function call error for \"to_int\" at (0:11): unable to coerce array into integer"
-    },
-    {
-      "title": "Object",
-      "source": "to_int!({})",
-      "raises": "function call error for \"to_int\" at (0:11): unable to coerce object into integer"
-    },
-    {
-      "title": "Regex",
-      "source": "to_int!(r'foo')",
-      "raises": "function call error for \"to_int\" at (0:15): unable to coerce regex into integer"
     }
   ],
   "pure": true

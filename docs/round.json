@@ -36,22 +36,12 @@
     {
       "title": "Round a number (without precision)",
       "source": "round(4.345)",
-      "return": 4.0
+      "return": 4
     },
     {
       "title": "Round a number (with precision)",
       "source": "round(4.345, precision: 2)",
       "return": 4.35
-    },
-    {
-      "title": "Round up",
-      "source": "round(5.5)",
-      "return": 6.0
-    },
-    {
-      "title": "Round down",
-      "source": "round(5.45)",
-      "return": 5.0
     }
   ],
   "pure": true

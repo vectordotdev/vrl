@@ -2,7 +2,7 @@
   "anchor": "kebabcase",
   "name": "kebabcase",
   "category": "String",
-  "description": "Takes the `value` string, and turns it into kebab-case. Optionally, you can pass in the existing case of the function, or else we will try to figure out the case automatically.",
+  "description": "Takes the `value` string, and turns it into kebab-case. Optionally, you can\npass in the existing case of the function, or else we will try to figure out the case automatically.",
   "arguments": [
     {
       "name": "value",
@@ -18,14 +18,7 @@
       "required": false,
       "type": [
         "string"
-      ],
-      "enum": {
-        "kebab-case": "[kebab-case](https://en.wikipedia.org/wiki/Letter_case#Kebab_case)",
-        "camelCase": "[camelCase](https://en.wikipedia.org/wiki/Camel_case)",
-        "PascalCase": "[PascalCase](https://en.wikipedia.org/wiki/Camel_case)",
-        "SCREAMING_SNAKE": "[SCREAMING_SNAKE](https://en.wikipedia.org/wiki/Snake_case)",
-        "snake_case": "[snake_case](https://en.wikipedia.org/wiki/Snake_case)"
-      }
+      ]
     }
   ],
   "return": {
@@ -35,19 +28,14 @@
   },
   "examples": [
     {
-      "title": "kebab-case a string without specifying original case",
+      "title": "kebab-case a string",
       "source": "kebabcase(\"InputString\")",
       "return": "input-string"
     },
     {
-      "title": "kebab-case a snake_case string",
-      "source": "kebabcase(\"foo_bar_baz\", \"snake_case\")",
-      "return": "foo-bar-baz"
-    },
-    {
-      "title": "kebab-case specifying the wrong original case (noop)",
-      "source": "kebabcase(\"foo_bar_baz\", \"PascalCase\")",
-      "return": "foo_bar_baz"
+      "title": "kebab-case a string",
+      "source": "kebabcase(\"InputString\", \"PascalCase\")",
+      "return": "input-string"
     }
   ],
   "pure": true

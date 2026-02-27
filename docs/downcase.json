@@ -2,7 +2,7 @@
   "anchor": "downcase",
   "name": "downcase",
   "category": "String",
-  "description": "Downcases the `value` string, where downcase is defined according to the Unicode Derived Core Property Lowercase.",
+  "description": "Downcases the `value` string, where downcase is defined according to the\nUnicode Derived Core Property Lowercase.",
   "arguments": [
     {
       "name": "value",
@@ -23,11 +23,6 @@
       "title": "Downcase a string",
       "source": "downcase(\"Hello, World!\")",
       "return": "hello, world!"
-    },
-    {
-      "title": "Downcase with number",
-      "source": "downcase(\"FOO 2 BAR\")",
-      "return": "foo 2 bar"
     }
   ],
   "pure": true

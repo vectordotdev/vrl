@@ -24,7 +24,11 @@
   "examples": [
     {
       "title": "Get keys from the object",
-      "source": "keys({\n    \"key1\": \"val1\",\n    \"key2\": \"val2\"\n})\n",
+      "source": "keys({\"key1\": \"val1\", \"key2\": \"val2\"})",
+      "input": {
+        "key1": "val1",
+        "key2": "val2"
+      },
       "return": [
         "key1",
         "key2"

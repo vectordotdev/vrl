@@ -55,23 +55,6 @@
         "apples",
         "pears and bananas"
       ]
-    },
-    {
-      "title": "Split string",
-      "source": "split(\"foobar\", \"b\")",
-      "return": [
-        "foo",
-        "ar"
-      ]
-    },
-    {
-      "title": "Split regex",
-      "source": "split(\"barbaz\", r'ba')",
-      "return": [
-        "",
-        "r",
-        "z"
-      ]
     }
   ],
   "pure": true

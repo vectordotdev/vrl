@@ -9,8 +9,8 @@
       "description": "The string or array to slice.",
       "required": true,
       "type": [
-        "string",
-        "array"
+        "array",
+        "string"
       ]
     },
     {
@@ -33,8 +33,8 @@
   ],
   "return": {
     "types": [
-      "string",
-      "array"
+      "array",
+      "string"
     ]
   },
   "examples": [
@@ -47,19 +47,6 @@
       "title": "Slice a string (negative index)",
       "source": "slice!(\"Supercalifragilisticexpialidocious\", start: 5, end: -14)",
       "return": "califragilistic"
-    },
-    {
-      "title": "String start",
-      "source": "slice!(\"foobar\", 3)",
-      "return": "bar"
-    },
-    {
-      "title": "Array start",
-      "source": "slice!([0, 1, 2], 1)",
-      "return": [
-        1,
-        2
-      ]
     }
   ],
   "pure": true

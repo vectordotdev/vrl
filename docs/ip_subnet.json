@@ -5,7 +5,7 @@
   "description": "Extracts the subnet address from the `ip` using the supplied `subnet`.",
   "arguments": [
     {
-      "name": "value",
+      "name": "ip",
       "description": "The IP address (v4 or v6).",
       "required": true,
       "type": [
@@ -40,15 +40,10 @@
       "title": "IPv6 subnet",
       "source": "ip_subnet!(\"2404:6800:4003:c02::64\", \"/32\")",
       "return": "2404:6800::"
-    },
-    {
-      "title": "Subnet /1",
-      "source": "ip_subnet!(\"192.168.0.1\", \"/1\")",
-      "return": "128.0.0.0"
     }
   ],
   "notices": [
-    "Works with both IPv4 and IPv6 addresses. The IP version for the mask must be the same as\nthe supplied address."
+    "Works with both IPv4 and IPv6 addresses. The IP version for the mask must be the same as the supplied\naddress."
   ],
   "pure": true
 }

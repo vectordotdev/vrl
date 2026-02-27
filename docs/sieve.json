@@ -13,7 +13,7 @@
       ]
     },
     {
-      "name": "permitted_characters",
+      "name": "pattern",
       "description": "Keep all matches of this pattern.",
       "required": true,
       "type": [
@@ -45,11 +45,6 @@
     ]
   },
   "examples": [
-    {
-      "title": "Keep only lowercase letters",
-      "source": "sieve(\"vector.dev/lowerUPPER\", permitted_characters: r'[a-z]')",
-      "return": "vectordevlower"
-    },
     {
       "title": "Sieve with regex",
       "source": "sieve(\"test123%456.فوائد.net.\", r'[a-z0-9.]')",

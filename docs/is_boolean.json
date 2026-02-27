@@ -32,11 +32,6 @@
       "title": "Non-matching type",
       "source": "is_boolean(\"a string\")",
       "return": false
-    },
-    {
-      "title": "Null",
-      "source": "is_boolean(null)",
-      "return": false
     }
   ],
   "pure": true

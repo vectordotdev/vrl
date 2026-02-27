@@ -24,7 +24,7 @@
   "examples": [
     {
       "title": "Parse tokens",
-      "source": "parse_tokens(s'A sentence \"with \\\"a\\\" sentence inside\" and [some brackets]')",
+      "source": "parse_tokens(\n\t\"A sentence \\\"with \\\\\\\"a\\\\\\\" sentence inside\\\" and [some brackets]\"\n)",
       "return": [
         "A",
         "sentence",
@@ -35,7 +35,7 @@
     }
   ],
   "notices": [
-    "All token values are returned as strings. We recommend manually coercing values to\ndesired types as you see fit."
+    "All token values are returned as strings. We recommend manually coercing values to desired types as you see fit."
   ],
   "pure": true
 }

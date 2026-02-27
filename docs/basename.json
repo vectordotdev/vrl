@@ -2,7 +2,7 @@
   "anchor": "basename",
   "name": "basename",
   "category": "String",
-  "description": "Returns the filename component of the given `path`. This is similar to the Unix `basename` command. If the path ends in a directory separator, the function returns the name of the directory.",
+  "description": "Returns the filename component of the given `path`. This is similar to the Unix `basename` command.\nIf the path ends in a directory separator, the function returns the name of the directory.",
   "arguments": [
     {
       "name": "value",
@@ -40,8 +40,7 @@
     },
     {
       "title": "Root directory has no basename",
-      "source": "basename!(\"/\")",
-      "return": null
+      "source": "basename!(\"/\")"
     }
   ],
   "pure": true

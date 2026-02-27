@@ -25,24 +25,13 @@
     {
       "title": "Get values from the object",
       "source": "values({\"key1\": \"val1\", \"key2\": \"val2\"})",
+      "input": {
+        "key1": "val1",
+        "key2": "val2"
+      },
       "return": [
         "val1",
         "val2"
-      ]
-    },
-    {
-      "title": "Get values from a complex object",
-      "source": "values({\"key1\": \"val1\", \"key2\": [1, 2, 3], \"key3\": {\"foo\": \"bar\"}})",
-      "return": [
-        "val1",
-        [
-          1,
-          2,
-          3
-        ],
-        {
-          "foo": "bar"
-        }
       ]
     }
   ],

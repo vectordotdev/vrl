@@ -2,7 +2,7 @@
   "anchor": "parse_influxdb",
   "name": "parse_influxdb",
   "category": "Parse",
-  "description": "Parses the `value` as an [InfluxDB line protocol](https://docs.influxdata.com/influxdb/cloud/reference/syntax/line-protocol/) string, producing a list of Vector-compatible metrics.",
+  "description": "Parses the `value` as an [InfluxDB line protocol](https://docs.influxdata.com/influxdb/cloud/reference/syntax/line-protocol/)\nstring, producing a list of Vector-compatible metrics.",
   "arguments": [
     {
       "name": "value",
@@ -37,7 +37,7 @@
           "timestamp": "2020-05-26T10:26:13.254420Z",
           "kind": "absolute",
           "gauge": {
-            "value": 64.0
+            "value": 64
           }
         },
         {
@@ -49,7 +49,7 @@
           "timestamp": "2020-05-26T10:26:13.254420Z",
           "kind": "absolute",
           "gauge": {
-            "value": 10.0
+            "value": 10
           }
         },
         {
@@ -73,7 +73,7 @@
           "timestamp": "2020-05-26T10:26:13.254420Z",
           "kind": "absolute",
           "gauge": {
-            "value": 1.0
+            "value": 1
           }
         },
         {
@@ -85,16 +85,16 @@
           "timestamp": "2020-05-26T10:26:13.254420Z",
           "kind": "absolute",
           "gauge": {
-            "value": 0.0
+            "value": 0
           }
         }
       ]
     }
   ],
   "notices": [
-    "This function will return a log event with the shape of a Vector-compatible metric,\nbut not a metric event itself. You will likely want to pipe the output of this\nfunction through a `log_to_metric` transform with the option `all_metrics` set to\n`true` to convert the metric-shaped log events to metric events so _real_ metrics\nare produced.",
-    "The only metric type that is produced is a `gauge`. Each metric name is prefixed\nwith the `measurement` field, followed by an underscore (`_`), and then the\n`field key` field.",
-    "`string` is the only type that is not supported as a field value, due to limitations\nof Vector's metric model."
+    "This function will return a log event with the shape of a Vector-compatible metric, but not a metric event itself.\nYou will likely want to pipe the output of this function through a `log_to_metric` transform with the option `all_metrics`\nset to `true` to convert the metric-shaped log events to metric events so _real_ metrics are produced.",
+    "The only metric type that is produced is a `gauge`. Each metric name is prefixed with the `measurement` field, followed\nby an underscore (`_`), and then the `field key` field.",
+    "`string` is the only type that is not supported as a field value,\ndue to limitations of Vector's metric model."
   ],
   "pure": true
 }

@@ -55,11 +55,6 @@
       "title": "Encode to Base64 (URL safe)",
       "source": "encode_base64(\"please encode me, but safe for URLs\", charset: \"url_safe\")",
       "return": "cGxlYXNlIGVuY29kZSBtZSwgYnV0IHNhZmUgZm9yIFVSTHM="
-    },
-    {
-      "title": "Encode to Base64 (without padding and URL safe)",
-      "source": "encode_base64(\"some string value\", padding: false, charset: \"url_safe\")",
-      "return": "c29tZSBzdHJpbmcgdmFsdWU"
     }
   ],
   "pure": true

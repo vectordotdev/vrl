@@ -9,7 +9,7 @@
       "description": "A string that is a Friendly ID",
       "required": true,
       "type": [
-        "string"
+        "timestamp"
       ]
     }
   ],

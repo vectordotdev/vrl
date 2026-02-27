@@ -36,17 +36,12 @@
     {
       "title": "Round a number up (without precision)",
       "source": "ceil(4.345)",
-      "return": 5.0
+      "return": 5
     },
     {
       "title": "Round a number up (with precision)",
       "source": "ceil(4.345, precision: 2)",
       "return": 4.35
-    },
-    {
-      "title": "Round an integer up (noop)",
-      "source": "ceil(5)",
-      "return": 5
     }
   ],
   "pure": true

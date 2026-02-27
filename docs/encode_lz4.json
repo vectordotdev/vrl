@@ -2,7 +2,7 @@
   "anchor": "encode_lz4",
   "name": "encode_lz4",
   "category": "Codec",
-  "description": "Encodes the `value` to [Lz4](https://lz4.github.io/lz4/). This function compresses the\ninput string into an lz4 block. If `prepend_size` is set to `true`, it prepends the\noriginal uncompressed size to the compressed data. This is useful for some\nimplementations of lz4 that require the original size to be known before decoding.",
+  "description": "Encodes the `value` to [Lz4](https://lz4.github.io/lz4/). This function compresses the input string into an lz4 block.\nIf `prepend_size` is set to `true`, it prepends the original uncompressed size to the compressed data.\nThis is useful for some implementations of lz4 that require the original size to be known before decoding.",
   "arguments": [
     {
       "name": "value",
@@ -19,7 +19,7 @@
       "type": [
         "boolean"
       ],
-      "default": "true"
+      "default": "false"
     }
   ],
   "return": {
@@ -30,7 +30,7 @@
   "examples": [
     {
       "title": "Encode to Lz4",
-      "source": "encode_base64(encode_lz4!(\"The quick brown fox jumps over 13 lazy dogs.\", true))",
+      "source": "encoded_text = encode_lz4!(\"The quick brown fox jumps over 13 lazy dogs.\")\nencode_base64(encoded_text)",
       "return": "LAAAAPAdVGhlIHF1aWNrIGJyb3duIGZveCBqdW1wcyBvdmVyIDEzIGxhenkgZG9ncy4="
     }
   ],

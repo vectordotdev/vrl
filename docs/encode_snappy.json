@@ -24,7 +24,7 @@
   "examples": [
     {
       "title": "Encode to Snappy",
-      "source": "encode_base64(encode_snappy!(\"The quick brown fox jumps over 13 lazy dogs.\"))",
+      "source": "encoded_text = encode_snappy!(\"The quick brown fox jumps over 13 lazy dogs.\")\nencode_base64(encoded_text)",
       "return": "LKxUaGUgcXVpY2sgYnJvd24gZm94IGp1bXBzIG92ZXIgMTMgbGF6eSBkb2dzLg=="
     }
   ],

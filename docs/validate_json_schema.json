@@ -9,7 +9,7 @@
       "description": "The value to check if it conforms to the JSON schema definition.",
       "required": true,
       "type": [
-        "string"
+        "any"
       ]
     },
     {
@@ -17,7 +17,7 @@
       "description": "The location (path) of the JSON Schema definition.",
       "required": true,
       "type": [
-        "string"
+        "any"
       ]
     },
     {
@@ -46,28 +46,28 @@
   ],
   "examples": [
     {
-      "title": "Payload contains a valid email",
-      "source": "validate_json_schema!(s'{ \"productUser\": \"valid@email.com\" }', \"tests/data/jsonschema/validate_json_schema/schema_with_email_format.json\", false)",
+      "title": "Payload contains a valid email.",
+      "source": "validate_json_schema!(s'{ \"productUser\": \"valid@email.com\" }', \"resources/json-schema_definition.json\", false)",
       "return": true
     },
     {
-      "title": "Payload contains an invalid email",
-      "source": "validate_json_schema!(s'{ \"productUser\": \"invalidEmail\" }', \"tests/data/jsonschema/validate_json_schema/schema_with_email_format.json\", false)",
-      "raises": "function call error for \"validate_json_schema\" at (0:142): JSON schema validation failed: \"invalidEmail\" is not a \"email\" at /productUser"
+      "title": "Payload contains an invalid email.",
+      "source": "ok, _err = validate_json_schema(s'{ \"productUser\": \"invalidEmail\" }', \"resources/json-schema_definition.json\", false)\nok",
+      "return": false
     },
     {
-      "title": "Payload contains a custom format declaration",
-      "source": "validate_json_schema!(s'{ \"productUser\": \"a-custom-formatted-string\" }', \"tests/data/jsonschema/validate_json_schema/schema_with_custom_format.json\", false)",
-      "raises": "function call error for \"validate_json_schema\" at (0:156): Failed to compile schema: Unknown format: 'my-custom-format'. Adjust configuration to ignore unrecognized formats"
+      "title": "Payload contains a custom format declaration.",
+      "source": "ok, _err = validate_json_schema(s'{ \"productUser\": \"a-custom-formatted-string\" }', \"resources/json-schema_definition.json\", false)\nok",
+      "return": false
     },
     {
-      "title": "Payload contains a custom format declaration, with ignore_unknown_formats set to true",
-      "source": "validate_json_schema!(s'{ \"productUser\": \"a-custom-formatted-string\" }', \"tests/data/jsonschema/validate_json_schema/schema_with_custom_format.json\", true)",
+      "title": "Payload contains a custom format declaration, with ignore_unknown_formats set to true.",
+      "source": "validate_json_schema!(s'{ \"productUser\": \"valid@email.com\" }', \"resources/json-schema_definition.json\", true)",
       "return": true
     }
   ],
   "notices": [
-    "This function uses a compiled schema cache. The first time it is called with a specific\n`schema_definition`, it will compile the schema and cache it for subsequent calls. This\nimproves performance when validating multiple values against the same schema. The cache\nimplementation is fairly naive and does not support refreshing the schema if it changes.\nIf you update the schema definition file, you must restart Vector to clear the cache."
+    "This function uses a compiled schema cache. The first time it is called with a specific `schema_definition`, it will compile the schema and cache it for subsequent calls. This improves performance when validating multiple values against the same schema.\nThe cache implementation is fairly naive and does not support refreshing the schema if it changes. If you update the schema definition file, you must restart Vector to clear the cache."
   ],
   "pure": true
 }

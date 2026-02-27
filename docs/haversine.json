@@ -2,7 +2,7 @@
   "anchor": "haversine",
   "name": "haversine",
   "category": "Map",
-  "description": "Calculates [haversine](https://en.wikipedia.org/wiki/Haversine_formula) distance and bearing between two points.",
+  "description": "Calculates [haversine](https://en.wikipedia.org/wiki/Haversine_formula) distance and bearing between two points.\nResults are available in kilometers or miles.",
   "arguments": [
     {
       "name": "latitude1",
@@ -37,7 +37,7 @@
       ]
     },
     {
-      "name": "measurement_unit",
+      "name": "measurement",
       "description": "Measurement system to use for resulting distance.",
       "required": false,
       "type": [
@@ -46,7 +46,8 @@
       "enum": {
         "kilometers": "Use kilometers for the resulting distance.",
         "miles": "Use miles for the resulting distance."
-      }
+      },
+      "default": "kilometers"
     }
   ],
   "return": {
@@ -65,7 +66,7 @@
     },
     {
       "title": "Haversine in miles",
-      "source": "haversine(0.0, 0.0, 10.0, 10.0, measurement_unit: \"miles\")",
+      "source": "haversine(0.0, 0.0, 10.0, 10.0, \"miles\")",
       "return": {
         "distance": 974.6348468,
         "bearing": 44.561

@@ -2,7 +2,7 @@
   "anchor": "is_null",
   "name": "is_null",
   "category": "Type",
-  "description": "Check if `value`'s type is `null`. For a more relaxed function, see [`is_nullish`](/docs/reference/vrl/functions#is_nullish).",
+  "description": "Check if `value`'s type is `null`. For a more relaxed function,\nsee [`is_nullish`](/docs/reference/vrl/functions#is_nullish).",
   "arguments": [
     {
       "name": "value",
@@ -31,11 +31,6 @@
     {
       "title": "Non-matching type",
       "source": "is_null(\"a string\")",
-      "return": false
-    },
-    {
-      "title": "Array",
-      "source": "is_null([1, 2, 3])",
       "return": false
     }
   ],

@@ -2,7 +2,7 @@
   "anchor": "parse_linux_authorization",
   "name": "parse_linux_authorization",
   "category": "Parse",
-  "description": "Parses Linux authorization logs usually found under either `/var/log/auth.log` (for Debian-based systems) or `/var/log/secure` (for RedHat-based systems) according to [Syslog](https://en.wikipedia.org/wiki/Syslog) format.",
+  "description": "Parses Linux authorization logs usually found under either `/var/log/auth.log` (for Debian-based systems) or\n`/var/log/secure` (for RedHat-based systems) according to [Syslog](https://en.wikipedia.org/wiki/Syslog) format.",
   "arguments": [
     {
       "name": "value",
@@ -24,7 +24,7 @@
   "examples": [
     {
       "title": "Parse Linux authorization event",
-      "source": "parse_linux_authorization!(\n    s'Mar 23 01:49:58 localhost sshd[1111]: Accepted publickey for eng from 10.1.1.1 port 8888 ssh2: RSA SHA256:foobar'\n)\n",
+      "source": "parse_linux_authorization!(\n\ts'Mar 23 01:49:58 localhost sshd[1111]: Accepted publickey for eng from 10.1.1.1 port 8888 ssh2: RSA SHA256:foobar'\n)",
       "return": {
         "appname": "sshd",
         "hostname": "localhost",
@@ -35,7 +35,7 @@
     }
   ],
   "notices": [
-    "The function resolves the year for messages that don't include it. If the current month\nis January, and the message is for December, it will take the previous year. Otherwise,\ntake the current year."
+    "The function resolves the year for messages that don't include it. If the current month is January, and the message is for\nDecember, it will take the previous year. Otherwise, take the current year."
   ],
   "pure": true
 }

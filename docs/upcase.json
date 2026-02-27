@@ -2,7 +2,7 @@
   "anchor": "upcase",
   "name": "upcase",
   "category": "String",
-  "description": "Upcases `value`, where upcase is defined according to the Unicode Derived Core Property Uppercase.",
+  "description": "Upcases `value`, where upcase is defined according to the Unicode Derived Core Property\nUppercase.",
   "arguments": [
     {
       "name": "value",

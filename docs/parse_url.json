@@ -35,30 +35,58 @@
       "title": "Parse URL",
       "source": "parse_url!(\"ftp://foo:bar@example.com:4343/foobar?hello=world#123\")",
       "return": {
-        "fragment": "123",
-        "host": "example.com",
+        "scheme": "ftp",
+        "username": "foo",
         "password": "bar",
-        "path": "/foobar",
+        "host": "example.com",
         "port": 4343,
+        "path": "/foobar",
         "query": {
           "hello": "world"
         },
-        "scheme": "ftp",
-        "username": "foo"
+        "fragment": "123"
       }
     },
     {
       "title": "Parse URL with default port",
       "source": "parse_url!(\"https://example.com\", default_known_ports: true)",
       "return": {
-        "fragment": null,
-        "host": "example.com",
-        "password": "",
-        "path": "/",
-        "port": 443,
-        "query": {},
         "scheme": "https",
-        "username": ""
+        "username": "",
+        "password": "",
+        "host": "example.com",
+        "port": 443,
+        "path": "/",
+        "query": {},
+        "fragment": null
+      }
+    },
+    {
+      "title": "Parse URL with internationalized domain name",
+      "source": "parse_url!(\"https://www.café.com\")",
+      "return": {
+        "scheme": "https",
+        "username": "",
+        "password": "",
+        "host": "www.xn--caf-dma.com",
+        "port": null,
+        "path": "/",
+        "query": {},
+        "fragment": null
+      }
+    },
+    {
+      "title": "Parse URL with mixed case internationalized domain name",
+      "source": "parse_url!(\"https://www.CAFé.com\")",
+      "return": {
+        "scheme": "https",
+        "username": "",
+        "password": "",
+        "host": "www.xn--caf-dma.com",
+        "port": null,
+        "path": "/",
+        "query": {},
+        "fragment": null
       }
     }
   ],

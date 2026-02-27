@@ -30,7 +30,7 @@
   "examples": [
     {
       "title": "Encode to Gzip",
-      "source": "encode_base64(encode_gzip(\"please encode me\"))",
+      "source": "encoded_text = encode_gzip(\"please encode me\")\nencode_base64(encoded_text)",
       "return": "H4sIAAAAAAAA/yvISU0sTlVIzUvOT0lVyE0FAI4R4vcQAAAA"
     }
   ],

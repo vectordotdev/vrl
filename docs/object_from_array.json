@@ -49,15 +49,6 @@
         "one": 1,
         "two": 3
       }
-    },
-    {
-      "title": "Create an object from a separate arrays of keys and values",
-      "source": "object_from_array(values: [1, null, true], keys: [\"a\", \"b\", \"c\"])",
-      "return": {
-        "a": 1,
-        "b": null,
-        "c": true
-      }
     }
   ],
   "pure": true

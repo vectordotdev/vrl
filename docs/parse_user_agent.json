@@ -2,7 +2,7 @@
   "anchor": "parse_user_agent",
   "name": "parse_user_agent",
   "category": "Parse",
-  "description": "Parses the provided `value` as a user agent, which has\n[a loosely defined format](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/User-Agent).\n\nParses on the basis of best effort. Returned schema depends only on the configured `mode`,\nso if the function fails to parse a field it will set it to `null`.",
+  "description": "Parses the `value` as a user agent string, which has [a loosely defined format](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/User-Agent)\nso this parser only provides best effort guarantee.",
   "arguments": [
     {
       "name": "value",
@@ -21,8 +21,8 @@
       ],
       "enum": {
         "fast": "Fastest mode but most unreliable. Uses parser from project [Woothee](https://github.com/woothee/woothee).",
-        "reliable": "Provides greater reliability than `fast` and retains it's speed in common cases.\nParses with [Woothee](https://github.com/woothee/woothee) parser and with parser from\n[uap project](https://github.com/ua-parser/uap-core) if there are some missing fields\nthat the first parser wasn't able to parse out but the second one maybe can.\n",
-        "enriched": "Parses with both parser from [Woothee](https://github.com/woothee/woothee) and parser from\n[uap project](https://github.com/ua-parser/uap-core) and combines results. Result has the full schema.\n"
+        "reliable": "Provides greater reliability than `fast` and retains it's speed in common cases.\nParses with [Woothee](https://github.com/woothee/woothee) parser and with parser from [uap project](https://github.com/ua-parser/uap-core) if\nthere are some missing fields that the first parser wasn't able to parse out\nbut the second one maybe can.",
+        "enriched": "Parses with both parser from [Woothee](https://github.com/woothee/woothee) and parser from [uap project](https://github.com/ua-parser/uap-core)\nand combines results. Result has the full schema."
       },
       "default": "fast"
     }
@@ -35,7 +35,7 @@
   "examples": [
     {
       "title": "Fast mode",
-      "source": "parse_user_agent(\n    \"Mozilla Firefox 1.0.1 Mozilla/5.0 (X11; U; Linux i686; de-DE; rv:1.7.6) Gecko/20050223 Firefox/1.0.1\"\n)\n",
+      "source": "parse_user_agent(\n\t\"Mozilla Firefox 1.0.1 Mozilla/5.0 (X11; U; Linux i686; de-DE; rv:1.7.6) Gecko/20050223 Firefox/1.0.1\"\n)",
       "return": {
         "browser": {
           "family": "Firefox",
@@ -52,7 +52,7 @@
     },
     {
       "title": "Reliable mode",
-      "source": "parse_user_agent(\n    \"Mozilla/4.0 (compatible; MSIE 7.66; Windows NT 5.1; SV1; .NET CLR 1.1.4322)\",\n    mode: \"reliable\")\n",
+      "source": "parse_user_agent(\n\t\"Mozilla/4.0 (compatible; MSIE 7.66; Windows NT 5.1; SV1; .NET CLR 1.1.4322)\",\n\tmode: \"reliable\"\n)",
       "return": {
         "browser": {
           "family": "Internet Explorer",
@@ -69,7 +69,7 @@
     },
     {
       "title": "Enriched mode",
-      "source": "parse_user_agent(\n    \"Opera/9.80 (J2ME/MIDP; Opera Mini/4.3.24214; iPhone; CPU iPhone OS 4_2_1 like Mac OS X; AppleWebKit/24.783; U; en) Presto/2.5.25 Version/10.54\",\n    mode: \"enriched\"\n)\n",
+      "source": "parse_user_agent(\n\t\"Opera/9.80 (J2ME/MIDP; Opera Mini/4.3.24214; iPhone; CPU iPhone OS 4_2_1 like Mac OS X; AppleWebKit/24.783; U; en) Presto/2.5.25 Version/10.54\",\n\tmode: \"enriched\"\n)",
       "return": {
         "browser": {
           "family": "Opera Mini",
@@ -96,7 +96,7 @@
     }
   ],
   "notices": [
-    "All values are returned as strings or as null. We recommend manually coercing values\nto desired types as you see fit.",
+    "All values are returned as strings or as null. We recommend manually coercing values to desired types as you see fit.",
     "Different modes return different schema.",
     "Field which were not parsed out are set as `null`."
   ],

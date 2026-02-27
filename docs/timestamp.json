@@ -2,7 +2,7 @@
   "anchor": "timestamp",
   "name": "timestamp",
   "category": "Type",
-  "description": "Returns `value` if it is a timestamp, otherwise returns an error. This enables the type checker to guarantee that the returned value is a timestamp and can be used in any function that expects a timestamp.",
+  "description": "Returns `value` if it is a timestamp, otherwise returns an error. This enables the type checker to guarantee that\nthe returned value is a timestamp and can be used in any function that expects a timestamp.",
   "arguments": [
     {
       "name": "value",
@@ -29,12 +29,10 @@
     {
       "title": "Declare a timestamp type",
       "source": "timestamp(t'2020-10-10T16:00:00Z')",
-      "return": "t'2020-10-10T16:00:00Z'"
-    },
-    {
-      "title": "Invalid type",
-      "source": "timestamp!(true)",
-      "raises": "function call error for \"timestamp\" at (0:16): expected timestamp, got boolean"
+      "input": {
+        "timestamp": "2020-10-10T16:00:00Z"
+      },
+      "return": "2020-10-10T16:00:00Z"
     }
   ],
   "pure": true

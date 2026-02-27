@@ -9,9 +9,9 @@
       "description": "The value to check.",
       "required": true,
       "type": [
-        "string",
         "object",
-        "array"
+        "array",
+        "string"
       ]
     }
   ],
@@ -38,21 +38,6 @@
     {
       "title": "Non-empty object",
       "source": "is_empty({\"foo\": \"bar\"})",
-      "return": false
-    },
-    {
-      "title": "Empty string",
-      "source": "is_empty(\"\")",
-      "return": true
-    },
-    {
-      "title": "Empty object",
-      "source": "is_empty({})",
-      "return": true
-    },
-    {
-      "title": "Non-empty array",
-      "source": "is_empty([1,2,3])",
       "return": false
     }
   ],

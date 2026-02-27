@@ -2,7 +2,7 @@
   "anchor": "join",
   "name": "join",
   "category": "String",
-  "description": "Joins each string in the `value` array into a single string, with items optionally separated from one another by a `separator`.",
+  "description": "Joins each string in the `value` array into a single string, with items optionally separated from one another\nby a `separator`.",
   "arguments": [
     {
       "name": "value",

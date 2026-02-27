@@ -66,45 +66,6 @@
           6
         ]
       ]
-    },
-    {
-      "title": "Merge an array of three arrays into an array of 3-tuples",
-      "source": "zip([[\"a\", \"b\", \"c\"], [1, null, true], [4, 5, 6]])",
-      "return": [
-        [
-          "a",
-          1,
-          4
-        ],
-        [
-          "b",
-          null,
-          5
-        ],
-        [
-          "c",
-          true,
-          6
-        ]
-      ]
-    },
-    {
-      "title": "Merge two array parameters",
-      "source": "zip([1, 2, 3, 4], [5, 6, 7])",
-      "return": [
-        [
-          1,
-          5
-        ],
-        [
-          2,
-          6
-        ],
-        [
-          3,
-          7
-        ]
-      ]
     }
   ],
   "pure": true

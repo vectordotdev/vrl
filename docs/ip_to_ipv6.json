@@ -5,7 +5,7 @@
   "description": "Converts the `ip` to an IPv6 address.",
   "arguments": [
     {
-      "name": "value",
+      "name": "ip",
       "description": "The IP address to convert to IPv6.",
       "required": true,
       "type": [

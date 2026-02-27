@@ -9,7 +9,7 @@
       "description": "The path of the field to unnest.",
       "required": true,
       "type": [
-        "array"
+        "path"
       ]
     }
   ],
@@ -27,35 +27,27 @@
   "examples": [
     {
       "title": "Unnest an array field",
-      "source": ". = {\"hostname\": \"localhost\", \"messages\": [\"message 1\", \"message 2\"]}\n. = unnest(.messages)\n",
-      "return": [
-        {
-          "hostname": "localhost",
-          "messages": "message 1"
-        },
-        {
-          "hostname": "localhost",
-          "messages": "message 2"
-        }
-      ]
+      "source": ". = unnest!(.messages)",
+      "input": {
+        "hostname": "localhost",
+        "messages": [
+          "message 1",
+          "message 2"
+        ]
+      }
     },
     {
-      "title": "Unnest a nested array field",
-      "source": ". = {\"hostname\": \"localhost\", \"event\": {\"messages\": [\"message 1\", \"message 2\"]}}\n. = unnest(.event.messages)\n",
-      "return": [
-        {
-          "hostname": "localhost",
-          "event": {
-            "messages": "message 1"
-          }
-        },
-        {
-          "hostname": "localhost",
-          "event": {
-            "messages": "message 2"
-          }
+      "title": "Unnest nested an array field",
+      "source": ". = unnest!(.event.messages)",
+      "input": {
+        "hostname": "localhost",
+        "event": {
+          "messages": [
+            "message 1",
+            "message 2"
+          ]
         }
-      ]
+      }
     }
   ],
   "pure": true

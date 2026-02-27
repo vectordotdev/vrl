@@ -36,7 +36,8 @@
       "required": false,
       "type": [
         "string"
-      ]
+      ],
+      "default": ","
     }
   ],
   "return": {
@@ -49,16 +50,6 @@
       "title": "Format a number (3 decimals)",
       "source": "format_number(1234567.89, 3, decimal_separator: \".\", grouping_separator: \",\")",
       "return": "1,234,567.890"
-    },
-    {
-      "title": "Format a number with European-style separators",
-      "source": "format_number(4672.4, decimal_separator: \",\", grouping_separator: \"_\")",
-      "return": "4_672,4"
-    },
-    {
-      "title": "Format a number with a middle dot separator",
-      "source": "format_number(4321.09, 3, decimal_separator: \"·\")",
-      "return": "4321·090"
     }
   ],
   "pure": true

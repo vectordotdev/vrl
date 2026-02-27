@@ -2,15 +2,15 @@
   "anchor": "compact",
   "name": "compact",
   "category": "Enumerate",
-  "description": "Compacts the `value` by removing empty values, where empty values are defined using the available parameters.",
+  "description": "Compacts the `value` by removing empty values, where empty values are defined using the\navailable parameters.",
   "arguments": [
     {
       "name": "value",
       "description": "The object or array to compact.",
       "required": true,
       "type": [
-        "object",
-        "array"
+        "array",
+        "object"
       ]
     },
     {
@@ -70,8 +70,8 @@
   ],
   "return": {
     "types": [
-      "object",
-      "array"
+      "array",
+      "object"
     ],
     "rules": [
       "The return type matches the `value` type."
@@ -79,15 +79,8 @@
   },
   "examples": [
     {
-      "title": "Compact an object with default parameters",
-      "source": "compact({\"field1\": 1, \"field2\": \"\", \"field3\": [], \"field4\": null})",
-      "return": {
-        "field1": 1
-      }
-    },
-    {
-      "title": "Compact an array with default parameters",
-      "source": "compact([\"foo\", \"bar\", \"\", null, [], \"buzz\"])",
+      "title": "Compact an array",
+      "source": "compact([\"foo\", \"bar\", \"\", null, [], \"buzz\"], string: true, array: true, null: true)",
       "return": [
         "foo",
         "bar",
@@ -95,30 +88,10 @@
       ]
     },
     {
-      "title": "Compact an array using nullish",
-      "source": "compact([\"-\", \"   \", \"\\n\", null, true], nullish: true)",
-      "return": [
-        true
-      ]
-    },
-    {
-      "title": "Compact a complex object with default parameters",
-      "source": "compact({ \"a\": {}, \"b\": null, \"c\": [null], \"d\": \"\", \"e\": \"-\", \"f\": true })",
+      "title": "Compact an object",
+      "source": "compact({\"field1\": 1, \"field2\": \"\", \"field3\": [], \"field4\": null}, string: true, array: true, null: true)",
       "return": {
-        "e": "-",
-        "f": true
-      }
-    },
-    {
-      "title": "Compact a complex object using null: false",
-      "source": "compact({ \"a\": {}, \"b\": null, \"c\": [null], \"d\": \"\", \"e\": \"-\", \"f\": true }, null: false)",
-      "return": {
-        "b": null,
-        "c": [
-          null
-        ],
-        "e": "-",
-        "f": true
+        "field1": 1
       }
     }
   ],

@@ -25,7 +25,7 @@
       "description": "If true, the index of each group in the regular expression is also captured. Index `0`\ncontains the whole match.",
       "required": false,
       "type": [
-        "boolean"
+        "regex"
       ],
       "default": "false"
     }
@@ -57,38 +57,11 @@
         "0": "first group",
         "1": "first"
       }
-    },
-    {
-      "title": "Parse using Regex with simple match",
-      "source": "parse_regex!(\"8.7.6.5 - zorp\", r'^(?P<host>[\\w\\.]+) - (?P<user>[\\w]+)')",
-      "return": {
-        "host": "8.7.6.5",
-        "user": "zorp"
-      }
-    },
-    {
-      "title": "Parse using Regex with all numeric groups",
-      "source": "parse_regex!(\"8.7.6.5 - zorp\", r'^(?P<host>[\\w\\.]+) - (?P<user>[\\w]+)', numeric_groups: true)",
-      "return": {
-        "0": "8.7.6.5 - zorp",
-        "1": "8.7.6.5",
-        "2": "zorp",
-        "host": "8.7.6.5",
-        "user": "zorp"
-      }
-    },
-    {
-      "title": "Parse using Regex with variables",
-      "source": "variable = r'^(?P<host>[\\w\\.]+) - (?P<user>[\\w]+)';\nparse_regex!(\"8.7.6.5 - zorp\", variable)\n",
-      "return": {
-        "host": "8.7.6.5",
-        "user": "zorp"
-      }
     }
   ],
   "notices": [
-    "VRL aims to provide purpose-specific [parsing functions](/docs/reference/vrl/functions/#parse-functions)\nfor common log formats. Before reaching for the `parse_regex` function, see if a VRL\n[`parse_*` function](/docs/reference/vrl/functions/#parse-functions) already exists\nfor your format. If not, we recommend\n[opening an issue](https://github.com/vectordotdev/vector/issues/new?labels=type%3A+new+feature)\nto request support for the desired format.",
-    "All values are returned as strings. We recommend manually coercing values to desired\ntypes as you see fit."
+    "VRL aims to provide purpose-specific [parsing functions](/docs/reference/vrl/functions/#parse-functions) for common log formats.\nBefore reaching for the `parse_regex` function, see if a VRL [`parse_*` function](/docs/reference/vrl/functions/#parse-functions)\nalready exists for your format. If not, we recommend [opening an issue](https://github.com/vectordotdev/vector/issues/new?labels=type%3A+new+feature) to request\nsupport for the desired format.",
+    "All values are returned as strings. We recommend manually coercing values to desired types as you see fit."
   ],
   "pure": true
 }

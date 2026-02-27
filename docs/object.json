@@ -2,7 +2,7 @@
   "anchor": "object",
   "name": "object",
   "category": "Type",
-  "description": "Returns `value` if it is an object, otherwise returns an error. This enables the type checker to guarantee that the returned value is an object and can be used in any function that expects an object.",
+  "description": "Returns `value` if it is an object, otherwise returns an error. This enables the type checker to guarantee that the\nreturned value is an object and can be used in any function that expects an object.",
   "arguments": [
     {
       "name": "value",
@@ -28,16 +28,17 @@
   "examples": [
     {
       "title": "Declare an object type",
-      "source": ". = { \"value\": { \"field1\": \"value1\", \"field2\": \"value2\" } }\nobject(.value)\n",
+      "source": "object!(.value)",
+      "input": {
+        "value": {
+          "field1": "value1",
+          "field2": "value2"
+        }
+      },
       "return": {
         "field1": "value1",
         "field2": "value2"
       }
-    },
-    {
-      "title": "Invalid type",
-      "source": "object!(true)",
-      "raises": "function call error for \"object\" at (0:13): expected object, got boolean"
     }
   ],
   "pure": true

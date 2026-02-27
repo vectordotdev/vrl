@@ -45,11 +45,6 @@
       "title": "String ends with (case insensitive)",
       "source": "ends_with(\"The Needle In The Haystack\", \"the haystack\", case_sensitive: false)",
       "return": true
-    },
-    {
-      "title": "String ends with (case sensitive failure)",
-      "source": "ends_with(\"foobar\", \"R\")",
-      "return": false
     }
   ],
   "pure": true

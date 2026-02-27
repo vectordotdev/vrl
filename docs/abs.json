@@ -25,19 +25,14 @@
   },
   "examples": [
     {
-      "title": "Computes the absolute value of an integer",
+      "title": "Computes the absolute value of the integer",
       "source": "abs(-42)",
       "return": 42
     },
     {
-      "title": "Computes the absolute value of a float",
+      "title": "Computes the absolute value of the float",
       "source": "abs(-42.2)",
       "return": 42.2
-    },
-    {
-      "title": "Computes the absolute value of a positive integer",
-      "source": "abs(10)",
-      "return": 10
     }
   ],
   "pure": true

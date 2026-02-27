@@ -2,7 +2,7 @@
   "anchor": "parse_json",
   "name": "parse_json",
   "category": "Parse",
-  "description": "Parses the provided `value` as JSON.\n\nOnly JSON types are returned. If you need to convert a `string` into a `timestamp`,\nconsider the `parse_timestamp` function.",
+  "description": "Parses the `value` as JSON.",
   "arguments": [
     {
       "name": "value",
@@ -32,10 +32,10 @@
   ],
   "return": {
     "types": [
-      "string",
+      "boolean",
       "integer",
       "float",
-      "boolean",
+      "string",
       "object",
       "array",
       "null"
@@ -47,54 +47,21 @@
   "examples": [
     {
       "title": "Parse JSON",
-      "source": "parse_json!(s'{\"key\": \"val\"}')",
+      "source": "parse_json!(\"{\\\"key\\\": \\\"val\\\"}\")",
       "return": {
         "key": "val"
       }
     },
     {
-      "title": "Parse JSON array",
-      "source": "parse_json!(\"[true, 0]\")",
-      "return": [
-        true,
-        0
-      ]
-    },
-    {
-      "title": "Parse JSON string",
-      "source": "parse_json!(s'\"hello\"')",
-      "return": "hello"
-    },
-    {
-      "title": "Parse JSON integer",
-      "source": "parse_json!(\"42\")",
-      "return": 42
-    },
-    {
-      "title": "Parse JSON float",
-      "source": "parse_json!(\"42.13\")",
-      "return": 42.13
-    },
-    {
-      "title": "Parse JSON boolean",
-      "source": "parse_json!(\"false\")",
-      "return": false
-    },
-    {
-      "title": "Invalid JSON value",
-      "source": "parse_json!(\"{ INVALID }\")",
-      "raises": "function call error for \"parse_json\" at (0:26): unable to parse json: key must be a string at line 1 column 3"
-    },
-    {
       "title": "Parse JSON with max_depth",
-      "source": "parse_json!(s'{\"first_level\":{\"second_level\":\"finish\"}}', max_depth: 1)",
+      "source": "parse_json!(\"{\\\"top_level\\\":{\\\"key\\\": \\\"val\\\"}}\", max_depth: 1)",
       "return": {
-        "first_level": "{\"second_level\":\"finish\"}"
+        "top_level": "{\"key\": \"val\"}"
       }
     }
   ],
   "notices": [
-    "Only JSON types are returned. If you need to convert a `string` into a `timestamp`,\nconsider the [`parse_timestamp`](#parse_timestamp) function."
+    "Only JSON types are returned. If you need to convert a `string` into a `timestamp`, consider the\n[`parse_timestamp`](#parse_timestamp) function."
   ],
   "pure": true
 }

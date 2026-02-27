@@ -9,6 +9,7 @@
       "description": "The array of bytes to split.",
       "required": true,
       "type": [
+        "array",
         "string"
       ]
     },

@@ -58,11 +58,6 @@
       "title": "Non-valid exact variant",
       "source": "is_json(\"{}\", variant: \"array\")",
       "return": false
-    },
-    {
-      "title": "Valid JSON string",
-      "source": "is_json(s'\"test\"')",
-      "return": true
     }
   ],
   "pure": true
