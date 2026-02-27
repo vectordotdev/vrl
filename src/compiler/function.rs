@@ -117,6 +117,7 @@ pub struct Example {
     pub result: Result<&'static str, &'static str>,
     pub file: &'static str,
     pub line: u32,
+    pub deterministic: bool,
 }
 
 /// Macro to create an Example with automatic source location tracking
@@ -135,6 +136,7 @@ macro_rules! example {
             result: $result,
             file: file!(),
             line: line!(),
+            deterministic: true,
         }
     };
     (
@@ -149,6 +151,23 @@ macro_rules! example {
             result: $result,
             file: file!(),
             line: line!(),
+            deterministic: true,
+        }
+    };
+    (
+        title: $title:expr,
+        source: $source:expr,
+        result: $result:expr,
+        deterministic: false $(,)?
+    ) => {
+        $crate::compiler::function::Example {
+            title: $title,
+            source: $source,
+            input: None,
+            result: $result,
+            file: file!(),
+            line: line!(),
+            deterministic: false,
         }
     };
 }

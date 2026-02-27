@@ -208,42 +208,78 @@ fn process_result(
             let got_value = vrl_value_to_json_value(got);
             let mut failed = false;
 
-            let want = test.result.clone();
-            let want_value = if want.starts_with("r'") && want.ends_with('\'') {
-                match regex::Regex::new(&want[2..want.len() - 1].replace("\\'", "'")) {
-                    Ok(regex) => regex.to_string().into(),
-                    Err(_) => want.into(),
+            if test.check_type_only {
+                let want = test.result.clone();
+                let want_value =
+                    serde_json::from_str::<'_, serde_json::Value>(want.trim()).unwrap_or_else(
+                        |err| {
+                            eprintln!("{err}");
+                            want.into()
+                        },
+                    );
+
+                if json_type_matches(&got_value, &want_value) {
+                    print!(
+                        "{timings}{}",
+                        Colour::Green.bold().paint("OK (type match)")
+                    );
+                } else {
+                    print!(
+                        "{} (type mismatch)",
+                        Colour::Red.bold().paint("FAILED")
+                    );
+
+                    if !config.no_diff {
+                        let want = serde_json::to_string_pretty(&want_value).unwrap();
+                        let got = serde_json::to_string_pretty(&got_value).unwrap();
+
+                        let diff = prettydiff::diff_lines(&want, &got);
+                        println!("  {diff}");
+                    }
+
+                    failed = true;
                 }
-            } else if want.starts_with("t'") && want.ends_with('\'') {
-                match DateTime::<Utc>::from_str(&want[2..want.len() - 1]) {
-                    Ok(dt) => dt.to_rfc3339_opts(SecondsFormat::AutoSi, true).into(),
-                    Err(_) => want.into(),
-                }
-            } else if want.starts_with("s'") && want.ends_with('\'') {
-                want[2..want.len() - 1].into()
+                println!();
             } else {
-                serde_json::from_str::<'_, serde_json::Value>(want.trim()).unwrap_or_else(|err| {
-                    eprintln!("{err}");
-                    want.into()
-                })
-            };
+                let want = test.result.clone();
+                let want_value = if want.starts_with("r'") && want.ends_with('\'') {
+                    match regex::Regex::new(&want[2..want.len() - 1].replace("\\'", "'")) {
+                        Ok(regex) => regex.to_string().into(),
+                        Err(_) => want.into(),
+                    }
+                } else if want.starts_with("t'") && want.ends_with('\'') {
+                    match DateTime::<Utc>::from_str(&want[2..want.len() - 1]) {
+                        Ok(dt) => dt.to_rfc3339_opts(SecondsFormat::AutoSi, true).into(),
+                        Err(_) => want.into(),
+                    }
+                } else if want.starts_with("s'") && want.ends_with('\'') {
+                    want[2..want.len() - 1].into()
+                } else {
+                    serde_json::from_str::<'_, serde_json::Value>(want.trim()).unwrap_or_else(
+                        |err| {
+                            eprintln!("{err}");
+                            want.into()
+                        },
+                    )
+                };
 
-            if got_value == want_value {
-                print!("{timings}{}", Colour::Green.bold().paint("OK"));
-            } else {
-                print!("{} (expectation)", Colour::Red.bold().paint("FAILED"));
+                if got_value == want_value {
+                    print!("{timings}{}", Colour::Green.bold().paint("OK"));
+                } else {
+                    print!("{} (expectation)", Colour::Red.bold().paint("FAILED"));
 
-                if !config.no_diff {
-                    let want = serde_json::to_string_pretty(&want_value).unwrap();
-                    let got = serde_json::to_string_pretty(&got_value).unwrap();
+                    if !config.no_diff {
+                        let want = serde_json::to_string_pretty(&want_value).unwrap();
+                        let got = serde_json::to_string_pretty(&got_value).unwrap();
 
-                    let diff = prettydiff::diff_lines(&want, &got);
-                    println!("  {diff}");
+                        let diff = prettydiff::diff_lines(&want, &got);
+                        println!("  {diff}");
+                    }
+
+                    failed = true;
                 }
-
-                failed = true;
+                println!();
             }
-            println!();
 
             if config.verbose {
                 println!("{got_value:#}");
@@ -431,6 +467,10 @@ fn vrl_value_to_json_value(value: Value) -> serde_json::Value {
         Value::Regex(v) => v.to_string().into(),
         Value::Null => Null,
     }
+}
+
+fn json_type_matches(got: &serde_json::Value, want: &serde_json::Value) -> bool {
+    std::mem::discriminant(got) == std::mem::discriminant(want)
 }
 
 fn run_vrl(
