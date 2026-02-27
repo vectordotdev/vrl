@@ -139,7 +139,7 @@ pub(crate) fn example_path_or_basename(input: &'static str) -> String {
     let path = env::var_os("CARGO_MANIFEST_DIR")
         .map(|dir| PathBuf::from(dir).join("../../tests/data").join(input));
 
-    if cfg!(feature = "__mock_return_values_for_tests") {
+    if cfg!(feature = "__doc_paths") {
         // For doc generation, always use the basename to avoid machine-specific paths
         PathBuf::from(input)
             .file_name()
