@@ -10,7 +10,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
         Parameter::optional(
             "delimiter",
             kind::BYTES,
-            "The field delimiter to use when encoding. Must be a single-byte utf8 character.",
+            "The field delimiter to use when encoding. Must be a single-byte UTF-8 character.",
         )
         .default(&DEFAULT_DELIMITER),
     ]
