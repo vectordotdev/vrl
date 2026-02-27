@@ -51,7 +51,7 @@ lua = ["dep:mlua"]
 proptest = ["dep:proptest", "dep:proptest-derive"]
 float_roundtrip = ["dep:serde_json", "serde_json/float_roundtrip"]
 enable_env_functions = []
-enable_system_functions = []
+enable_system_functions = ["dep:relative-path"]
 enable_network_functions = []
 
 # Testing Utilities. Enables additional tests, including those with external dependencies such as network calls.
@@ -241,7 +241,7 @@ nom-language = { version = "0.1.0", default-features = false }
 reqwest = { version = "0.12", default-features = false, features = ["http2", "rustls-tls-native-roots"] }
 reqwest-middleware = { version = "0.4", default-features = false }
 reqwest-retry = { version = "0.7", default-features = false }
-relative-path = "2.0.1"
+relative-path = { version = "2.0.1", optional = true }
 
 # Dependencies used for non-WASM
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
