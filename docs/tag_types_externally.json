@@ -30,7 +30,7 @@
     },
     {
       "title": "Tag types externally (object)",
-      "source": "tag_types_externally({\n\t\"message\": \"Hello world\",\n\t\"request\": {\n\t\t\"duration_ms\": 67.9\n\t}\n})",
+      "source": "tag_types_externally({\n    \"message\": \"Hello world\",\n    \"request\": {\n        \"duration_ms\": 67.9\n    }\n})\n",
       "return": {
         "message": {
           "string": "Hello world"
@@ -56,7 +56,8 @@
     },
     {
       "title": "Tag types externally (null)",
-      "source": "tag_types_externally(null)"
+      "source": "tag_types_externally(null)",
+      "return": null
     }
   ],
   "pure": true

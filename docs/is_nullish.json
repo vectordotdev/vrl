@@ -2,7 +2,7 @@
   "anchor": "is_nullish",
   "name": "is_nullish",
   "category": "Type",
-  "description": "Determines whether `value` is nullish. Returns `true` if the specified `value` is `null`,\nan empty string, a string containing only whitespace, or the string `\"-\"`. Returns `false` otherwise.",
+  "description": "Determines whether `value` is nullish. Returns `true` if the specified `value` is `null`, an empty string, a string containing only whitespace, or the string `\"-\"`. Returns `false` otherwise.",
   "arguments": [
     {
       "name": "value",
@@ -39,10 +39,15 @@
       "title": "Null detection (whitespace)",
       "source": "is_nullish(\"\n  \n\")",
       "return": true
+    },
+    {
+      "title": "Null",
+      "source": "is_nullish(null)",
+      "return": true
     }
   ],
   "notices": [
-    "This function behaves inconsistently: it returns `false` for empty arrays (`[]`) and objects (`{}`),\nbut `true` for empty strings (`\"\"`) and `null`."
+    "This function behaves inconsistently: it returns `false` for empty arrays (`[]`) and\nobjects (`{}`), but `true` for empty strings (`\"\"`) and `null`."
   ],
   "pure": true
 }

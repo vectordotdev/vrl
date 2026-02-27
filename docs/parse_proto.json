@@ -42,7 +42,7 @@
   "examples": [
     {
       "title": "Parse proto",
-      "source": "parse_proto!(decode_base64!(\"Cgdzb21lb25lIggKBjEyMzQ1Ng==\"), \"resources/protobuf_descriptor_set.desc\", \"test_protobuf.Person\")",
+      "source": "parse_proto!(decode_base64!(\"Cgdzb21lb25lIggKBjEyMzQ1Ng==\"), \"tests/data/protobuf/test_protobuf/v1/test_protobuf.desc\", \"test_protobuf.v1.Person\")",
       "return": {
         "name": "someone",
         "phones": [
@@ -54,7 +54,7 @@
     }
   ],
   "notices": [
-    "\tOnly proto messages are parsed and returned."
+    "Only proto messages are parsed and returned."
   ],
   "pure": true
 }

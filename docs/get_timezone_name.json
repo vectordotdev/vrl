@@ -15,8 +15,8 @@
   "examples": [
     {
       "title": "Get the IANA name of Vector's timezone",
-      "source": ".vector_timezone = get_timezone_name!()",
-      "input": {}
+      "source": "get_timezone_name!()",
+      "return": "UTC"
     }
   ],
   "pure": true

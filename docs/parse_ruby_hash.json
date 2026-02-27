@@ -36,7 +36,7 @@
     }
   ],
   "notices": [
-    "Only ruby types are returned. If you need to convert a `string` into a `timestamp`, consider the\n[`parse_timestamp`](#parse_timestamp) function."
+    "Only ruby types are returned. If you need to convert a `string` into a `timestamp`,\nconsider the [`parse_timestamp`](#parse_timestamp) function."
   ],
   "pure": true
 }

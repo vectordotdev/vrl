@@ -25,17 +25,17 @@
     {
       "title": "Parse negative integer",
       "source": "parse_float!(\"-42\")",
-      "return": -42
+      "return": -42.0
     },
     {
-      "title": "Parse negative integer",
+      "title": "Parse float",
       "source": "parse_float!(\"42.38\")",
       "return": 42.38
     },
     {
       "title": "Scientific notation",
       "source": "parse_float!(\"2.5e3\")",
-      "return": 2500
+      "return": 2500.0
     }
   ],
   "pure": true

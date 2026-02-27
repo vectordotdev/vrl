@@ -13,6 +13,15 @@
       ]
     },
     {
+      "name": "trim",
+      "description": "Remove excess whitespace between XML elements.",
+      "required": false,
+      "type": [
+        "boolean"
+      ],
+      "default": "true"
+    },
+    {
       "name": "include_attr",
       "description": "Include XML tag attributes in the returned object.",
       "required": false,
@@ -87,7 +96,7 @@
   "examples": [
     {
       "title": "Parse XML",
-      "source": "value = s'<book category=\"CHILDREN\"><title lang=\"en\">Harry Potter</title><author>J K. Rowling</author><year>2005</year></book>';\n\nparse_xml!(value, text_key: \"value\", parse_number: false)",
+      "source": "value = s'<book category=\"CHILDREN\"><title lang=\"en\">Harry Potter</title><author>J K. Rowling</author><year>2005</year></book>';\n\nparse_xml!(value, text_key: \"value\", parse_number: false)\n",
       "return": {
         "book": {
           "@category": "CHILDREN",

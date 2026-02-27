@@ -2,7 +2,7 @@
   "anchor": "parse_grok",
   "name": "parse_grok",
   "category": "Parse",
-  "description": "Parses the `value` using the [`grok`](https://github.com/daschl/grok/tree/master/patterns) format. All patterns [listed here](https://github.com/daschl/grok/tree/master/patterns)\nare supported.",
+  "description": "Parses the `value` using the [`grok`](https://github.com/daschl/grok/tree/master/patterns) format. All patterns [listed here](https://github.com/daschl/grok/tree/master/patterns) are supported.",
   "arguments": [
     {
       "name": "value",
@@ -32,7 +32,7 @@
   "examples": [
     {
       "title": "Parse using Grok",
-      "source": "parse_grok!(\n\t\"2020-10-02T23:22:12.223222Z info Hello world\",\n\t\"%{TIMESTAMP_ISO8601:timestamp} %{LOGLEVEL:level} %{GREEDYDATA:message}\"\n)",
+      "source": "value = \"2020-10-02T23:22:12.223222Z info Hello world\"\npattern = \"%{TIMESTAMP_ISO8601:timestamp} %{LOGLEVEL:level} %{GREEDYDATA:message}\"\n\nparse_grok!(value, pattern)\n",
       "return": {
         "timestamp": "2020-10-02T23:22:12.223222Z",
         "level": "info",
@@ -41,7 +41,7 @@
     }
   ],
   "notices": [
-    "We recommend using community-maintained Grok patterns when possible, as they're more likely to be properly\nvetted and improved over time than bespoke patterns."
+    "We recommend using community-maintained Grok patterns when possible, as they're more\nlikely to be properly vetted and improved over time than bespoke patterns."
   ],
   "pure": true
 }

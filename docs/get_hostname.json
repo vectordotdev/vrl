@@ -15,8 +15,8 @@
   "examples": [
     {
       "title": "Get hostname",
-      "source": ".hostname = get_hostname!()",
-      "input": {}
+      "source": "get_hostname!()",
+      "return": "my-hostname"
     }
   ],
   "pure": true

@@ -2,7 +2,7 @@
   "anchor": "to_syslog_severity",
   "name": "to_syslog_severity",
   "category": "Convert",
-  "description": "Converts the `value`, a Syslog [log level keyword](https://en.wikipedia.org/wiki/Syslog#Severity_level), into a Syslog integer\nseverity level (`0` to `7`).",
+  "description": "Converts the `value`, a Syslog [log level keyword](https://en.wikipedia.org/wiki/Syslog#Severity_level), into a Syslog integer severity level (`0` to `7`).",
   "arguments": [
     {
       "name": "value",
@@ -29,6 +29,11 @@
       "title": "Coerce to Syslog severity",
       "source": "to_syslog_severity!(\"alert\")",
       "return": 1
+    },
+    {
+      "title": "invalid",
+      "source": "to_syslog_severity!(s'foobar')",
+      "raises": "function call error for \"to_syslog_severity\" at (0:30): syslog level foobar not valid"
     }
   ],
   "pure": true

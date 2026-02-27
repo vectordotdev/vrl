@@ -42,19 +42,26 @@
   ],
   "examples": [
     {
-      "title": "single-segment top-level field",
+      "title": "Single-segment top-level field",
       "source": "remove!(value: { \"foo\": \"bar\" }, path: [\"foo\"])",
       "return": {}
     },
     {
-      "title": "multi-segment nested field",
+      "title": "Remove unknown field",
+      "source": "remove!(value: {\"foo\": \"bar\"}, path: [\"baz\"])",
+      "return": {
+        "foo": "bar"
+      }
+    },
+    {
+      "title": "Multi-segment nested field",
       "source": "remove!(value: { \"foo\": { \"bar\": \"baz\" } }, path: [\"foo\", \"bar\"])",
       "return": {
         "foo": {}
       }
     },
     {
-      "title": "array indexing",
+      "title": "Array indexing",
       "source": "remove!(value: [\"foo\", \"bar\", \"baz\"], path: [-2])",
       "return": [
         "foo",
@@ -62,13 +69,62 @@
       ]
     },
     {
-      "title": "compaction",
+      "title": "Compaction",
       "source": "remove!(value: { \"foo\": { \"bar\": [42], \"baz\": true } }, path: [\"foo\", \"bar\", 0], compact: true)",
       "return": {
         "foo": {
           "baz": true
         }
       }
+    },
+    {
+      "title": "Compact object",
+      "source": "remove!(value: {\"foo\": { \"bar\": true }}, path: [\"foo\", \"bar\"], compact: true)",
+      "return": {}
+    },
+    {
+      "title": "Compact array",
+      "source": "remove!(value: {\"foo\": [42], \"bar\": true }, path: [\"foo\", 0], compact: true)",
+      "return": {
+        "bar": true
+      }
+    },
+    {
+      "title": "External target",
+      "source": "remove!(value: ., path: [\"foo\"])",
+      "input": {
+        "foo": true
+      },
+      "return": {}
+    },
+    {
+      "title": "Variable",
+      "source": "var = { \"foo\": true }\nremove!(value: var, path: [\"foo\"])\n",
+      "return": {}
+    },
+    {
+      "title": "Missing index",
+      "source": "remove!(value: {\"foo\": { \"bar\": [92, 42] }}, path: [\"foo\", \"bar\", 1, -1])",
+      "return": {
+        "foo": {
+          "bar": [
+            92,
+            42
+          ]
+        }
+      }
+    },
+    {
+      "title": "Invalid indexing",
+      "source": "remove!(value: [42], path: [\"foo\"])",
+      "return": [
+        42
+      ]
+    },
+    {
+      "title": "Invalid segment type",
+      "source": "remove!(value: {\"foo\": { \"bar\": [92, 42] }}, path: [\"foo\", true])",
+      "raises": "function call error for \"remove\" at (0:65): path segment must be either string or integer, not boolean"
     }
   ],
   "pure": true

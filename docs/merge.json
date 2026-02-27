@@ -42,7 +42,7 @@
   "examples": [
     {
       "title": "Object merge (shallow)",
-      "source": "merge(\n\t{\n\t\t\"parent1\": {\n\t\t\t\"child1\": 1,\n\t\t\t\"child2\": 2\n\t\t},\n\t\t\"parent2\": {\n\t\t\t\"child3\": 3\n\t\t}\n\t},\n\t{\n\t\t\"parent1\": {\n\t\t\t\"child2\": 4,\n\t\t\t\"child5\": 5\n\t\t}\n\t}\n)",
+      "source": "merge(\n    {\n        \"parent1\": {\n            \"child1\": 1,\n            \"child2\": 2\n        },\n        \"parent2\": {\n            \"child3\": 3\n        }\n    },\n    {\n        \"parent1\": {\n            \"child2\": 4,\n            \"child5\": 5\n        }\n    }\n)\n",
       "return": {
         "parent1": {
           "child2": 4,
@@ -55,7 +55,7 @@
     },
     {
       "title": "Object merge (deep)",
-      "source": "merge(\n\t{\n\t\t\"parent1\": {\n\t\t\t\"child1\": 1,\n\t\t\t\"child2\": 2\n\t\t},\n\t\t\"parent2\": {\n\t\t\t\"child3\": 3\n\t\t}\n\t},\n\t{\n\t\t\"parent1\": {\n\t\t\t\"child2\": 4,\n\t\t\t\"child5\": 5\n\t\t}\n\t},\n\tdeep: true\n)",
+      "source": "merge(\n    {\n        \"parent1\": {\n            \"child1\": 1,\n            \"child2\": 2\n        },\n        \"parent2\": {\n            \"child3\": 3\n        }\n    },\n    {\n        \"parent1\": {\n            \"child2\": 4,\n            \"child5\": 5\n        }\n    },\n    deep: true\n)\n",
       "return": {
         "parent1": {
           "child1": 1,

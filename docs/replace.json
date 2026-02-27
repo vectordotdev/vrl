@@ -17,8 +17,8 @@
       "description": "Replace all matches of this pattern. Can be a static string or a regular expression.",
       "required": true,
       "type": [
-        "regex",
-        "string"
+        "string",
+        "regex"
       ]
     },
     {
@@ -61,9 +61,14 @@
       "return": "Pineapples and Bananas"
     },
     {
-      "title": "Replace with capture groups when not set in the configuration file (use `$$num` in config files)",
-      "source": "# Note that in the context of Vector configuration files, an extra `$` escape character is required\n# (i.e. `$$num`) to avoid interpreting `num` as an environment variable.\nreplace(\"foo123bar\", r'foo(?P<num>\\d+)bar', \"$num\")",
+      "title": "Replace with capture groups",
+      "source": "# Note that in the context of Vector configuration files, an extra `$` escape character is required\n# (i.e. `$$num`) to avoid interpreting `num` as an environment variable.\nreplace(\"foo123bar\", r'foo(?P<num>\\d+)bar', \"$num\")\n",
       "return": "123"
+    },
+    {
+      "title": "Replace all",
+      "source": "replace(\"foobar\", \"o\", \"i\")",
+      "return": "fiibar"
     }
   ],
   "pure": true

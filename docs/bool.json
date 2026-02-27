@@ -2,7 +2,7 @@
   "anchor": "bool",
   "name": "bool",
   "category": "Type",
-  "description": "Returns `value` if it is a Boolean, otherwise returns an error. This enables the type checker to guarantee that the\nreturned value is a Boolean and can be used in any function that expects a Boolean.",
+  "description": "Returns `value` if it is a Boolean, otherwise returns an error. This enables the type\nchecker to guarantee that the returned value is a Boolean and can be used in any\nfunction that expects a Boolean.",
   "arguments": [
     {
       "name": "value",
@@ -27,12 +27,22 @@
   ],
   "examples": [
     {
-      "title": "Declare a Boolean type",
+      "title": "Valid Boolean",
+      "source": "bool(false)",
+      "return": false
+    },
+    {
+      "title": "Invalid Boolean",
+      "source": "bool!(42)",
+      "raises": "function call error for \"bool\" at (0:9): expected boolean, got integer"
+    },
+    {
+      "title": "Valid Boolean from path",
       "source": "bool!(.value)",
       "input": {
-        "value": false
+        "value": true
       },
-      "return": false
+      "return": true
     }
   ],
   "pure": true

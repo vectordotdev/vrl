@@ -9,8 +9,8 @@
       "description": "The object or array to iterate.",
       "required": true,
       "type": [
-        "array",
-        "object"
+        "object",
+        "array"
       ]
     },
     {
@@ -25,21 +25,35 @@
   ],
   "return": {
     "types": [
-      "array",
-      "object"
+      "object",
+      "array"
     ]
   },
   "examples": [
     {
       "title": "Upcase values",
-      "source": "map_values(.) -> |value| { upcase!(value) }",
-      "input": {
-        "foo": "foo",
-        "bar": "bar"
-      },
+      "source": ". = {\n    \"foo\": \"foo\",\n    \"bar\": \"bar\"\n}\nmap_values(.) -> |value| { upcase(value) }\n",
       "return": {
         "foo": "FOO",
         "bar": "BAR"
+      }
+    },
+    {
+      "title": "Recursively map object values",
+      "source": "val = {\n    \"a\": 1,\n    \"b\": [{ \"c\": 2 }, { \"d\": 3 }],\n    \"e\": { \"f\": 4 }\n}\nmap_values(val, recursive: true) -> |value| {\n    if is_integer(value) { int!(value) + 1 } else { value }\n}\n",
+      "return": {
+        "a": 2,
+        "b": [
+          {
+            "c": 3
+          },
+          {
+            "d": 4
+          }
+        ],
+        "e": {
+          "f": 5
+        }
       }
     }
   ],

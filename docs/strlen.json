@@ -20,7 +20,7 @@
   },
   "examples": [
     {
-      "title": "strlen",
+      "title": "Count Unicode scalar values",
       "source": "strlen(\"ñandú\")",
       "return": 5
     }

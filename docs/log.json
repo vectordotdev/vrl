@@ -46,14 +46,13 @@
   "examples": [
     {
       "title": "Log a message",
-      "source": "log(\"Hello, World!\", level: \"info\", rate_limit_secs: 60)"
+      "source": "log(\"Hello, World!\", level: \"info\", rate_limit_secs: 60)",
+      "return": null
     },
     {
       "title": "Log an error",
-      "source": "_, err = to_int(.field)\nif err != null {\n\tlog(err, level: \"error\")\n}",
-      "input": {
-        "field": "not an integer"
-      }
+      "source": ". = { \"field\": \"not an integer\" }\n_, err = to_int(.field)\nif err != null {\n    log(err, level: \"error\")\n}\n",
+      "return": null
     }
   ],
   "pure": false

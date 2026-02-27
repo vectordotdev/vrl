@@ -24,8 +24,8 @@
   "examples": [
     {
       "title": "Decode Gzip data",
-      "source": "encoded_text = decode_base64!(\"H4sIAHEAymMAA6vML1XISCxLVSguTU5OLS5OK83JqVRISU3OT0lNUchNBQD7BGDaIAAAAA==\")\ndecode_gzip!(encoded_text)",
-      "return": "you have successfully decoded me"
+      "source": "decode_gzip!(decode_base64!(\"H4sIAB8BymMAAyvISU0sTlVISU3OT0lVyE0FAJsZ870QAAAA\"))",
+      "return": "please decode me"
     }
   ],
   "pure": true

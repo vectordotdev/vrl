@@ -24,8 +24,8 @@
   "examples": [
     {
       "title": "Decode Zlib data",
-      "source": "encoded_text = decode_base64!(\"eJwNy4ENwCAIBMCNXIlQ/KqplUSgCdvXAS41qPMHshCB2R1zJlWIVlR6UURX2+wx2YcuK3kAb9C1wd6dn7Fa+QH9gRxr\")\ndecode_zlib!(encoded_text)",
-      "return": "you_have_successfully_decoded_me.congratulations.you_are_breathtaking."
+      "source": "decode_zlib!(decode_base64!(\"eJxLzUvOT0mNz00FABI5A6A=\"))",
+      "return": "encode_me"
     }
   ],
   "pure": true

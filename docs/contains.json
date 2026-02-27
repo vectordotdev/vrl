@@ -37,13 +37,13 @@
   },
   "examples": [
     {
-      "title": "String contains (case sensitive)",
-      "source": "contains(\"The Needle In The Haystack\", \"Needle\")",
-      "return": true
+      "title": "String contains with default parameters (case sensitive)",
+      "source": "contains(\"banana\", \"AnA\")",
+      "return": false
     },
     {
       "title": "String contains (case insensitive)",
-      "source": "contains(\"The Needle In The Haystack\", \"needle\", case_sensitive: false)",
+      "source": "contains(\"banana\", \"AnA\", case_sensitive: false)",
       "return": true
     }
   ],

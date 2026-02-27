@@ -21,8 +21,8 @@
   "examples": [
     {
       "title": "Encode to Base16",
-      "source": "encode_base16(\"please encode me\")",
-      "return": "706c6561736520656e636f6465206d65"
+      "source": "encode_base16(\"some string value\")",
+      "return": "736f6d6520737472696e672076616c7565"
     }
   ],
   "pure": true

@@ -2,7 +2,7 @@
   "anchor": "decode_charset",
   "name": "decode_charset",
   "category": "Codec",
-  "description": "Decodes the `value` (a non-UTF8 string) to a UTF8 string using the specified [character set](https://encoding.spec.whatwg.org/#names-and-labels).",
+  "description": "Decodes the `value` (a non-UTF8 string) to a UTF8 string using the specified\n[character set](https://encoding.spec.whatwg.org/#names-and-labels).",
   "arguments": [
     {
       "name": "value",

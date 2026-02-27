@@ -39,7 +39,7 @@
   "examples": [
     {
       "title": "Unflatten",
-      "source": "unflatten({\n    \"foo.bar.baz\": true,\n    \"foo.bar.qux\": false,\n\t\"foo.quux\": 42\n})",
+      "source": "unflatten({\n    \"foo.bar.baz\": true,\n    \"foo.bar.qux\": false,\n    \"foo.quux\": 42\n})\n",
       "return": {
         "foo": {
           "bar": {
@@ -52,7 +52,7 @@
     },
     {
       "title": "Unflatten recursively",
-      "source": "unflatten({\n    \"flattened.parent\": {\n\t\t\"foo.bar\": true,\n\t\t\"foo.baz\": false\n\t}\n})",
+      "source": "unflatten({\n    \"flattened.parent\": {\n        \"foo.bar\": true,\n        \"foo.baz\": false\n    }\n})\n",
       "return": {
         "flattened": {
           "parent": {
@@ -66,7 +66,7 @@
     },
     {
       "title": "Unflatten non-recursively",
-      "source": "unflatten({\n    \"flattened.parent\": {\n\t\t\"foo.bar\": true,\n\t\t\"foo.baz\": false\n\t}\n}, recursive: false)",
+      "source": "unflatten({\n    \"flattened.parent\": {\n        \"foo.bar\": true,\n        \"foo.baz\": false\n    }\n}, recursive: false)\n",
       "return": {
         "flattened": {
           "parent": {
@@ -78,11 +78,20 @@
     },
     {
       "title": "Ignore inconsistent keys values",
-      "source": "unflatten({\n\t\"a\": 3,\n\t\"a.b\": 2,\n\t\"a.c\": 4\n})",
+      "source": "unflatten({\n    \"a\": 3,\n    \"a.b\": 2,\n    \"a.c\": 4\n})\n",
       "return": {
         "a": {
           "b": 2,
           "c": 4
+        }
+      }
+    },
+    {
+      "title": "Unflatten with custom separator",
+      "source": "unflatten({ \"foo_bar\": true }, \"_\")",
+      "return": {
+        "foo": {
+          "bar": true
         }
       }
     }

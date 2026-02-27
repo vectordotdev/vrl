@@ -2,7 +2,7 @@
   "anchor": "is_integer",
   "name": "is_integer",
   "category": "Type",
-  "description": "Check if the value`'s type is an integer.",
+  "description": "Check if the `value`'s type is an integer.",
   "arguments": [
     {
       "name": "value",
@@ -31,6 +31,11 @@
     {
       "title": "Non-matching type",
       "source": "is_integer(\"a string\")",
+      "return": false
+    },
+    {
+      "title": "Null",
+      "source": "is_integer(null)",
       "return": false
     }
   ],

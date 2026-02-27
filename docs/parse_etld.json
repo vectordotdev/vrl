@@ -19,7 +19,7 @@
       "type": [
         "integer"
       ],
-      "default": "false"
+      "default": "0"
     },
     {
       "name": "psl",
@@ -27,8 +27,7 @@
       "required": false,
       "type": [
         "string"
-      ],
-      "default": "false"
+      ]
     }
   ],
   "return": {
@@ -69,7 +68,7 @@
     },
     {
       "title": "Parse eTLD with custom PSL",
-      "source": "parse_etld!(\"vector.acmecorp\", psl: \"resources/public_suffix_list.dat\")",
+      "source": "parse_etld!(\"vector.acmecorp\", psl: \"lib/tests/tests/functions/custom_public_suffix_list.dat\")",
       "return": {
         "etld": "acmecorp",
         "etld_plus": "acmecorp",

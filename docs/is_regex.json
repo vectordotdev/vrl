@@ -32,6 +32,11 @@
       "title": "Non-matching type",
       "source": "is_regex(\"a string\")",
       "return": false
+    },
+    {
+      "title": "Null value",
+      "source": "is_regex(null)",
+      "return": false
     }
   ],
   "pure": true

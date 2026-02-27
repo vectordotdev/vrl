@@ -30,7 +30,7 @@
   "examples": [
     {
       "title": "Encode to Zlib",
-      "source": "encoded_text = encode_zlib(\"please encode me\")\nencode_base64(encoded_text)",
+      "source": "encode_base64(encode_zlib(\"please encode me\"))",
       "return": "eJwryElNLE5VSM1Lzk9JVchNBQA0RQX7"
     }
   ],

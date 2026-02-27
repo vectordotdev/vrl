@@ -32,6 +32,16 @@
       "title": "Non-matching type",
       "source": "is_string([1, 2, 3])",
       "return": false
+    },
+    {
+      "title": "Boolean",
+      "source": "is_string(true)",
+      "return": false
+    },
+    {
+      "title": "Null",
+      "source": "is_string(null)",
+      "return": false
     }
   ],
   "pure": true

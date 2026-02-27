@@ -9,8 +9,8 @@
       "description": "The array or object to iterate.",
       "required": true,
       "type": [
-        "array",
-        "object"
+        "object",
+        "array"
       ]
     }
   ],
@@ -22,20 +22,22 @@
   "examples": [
     {
       "title": "Tally elements",
-      "source": "tally = {}\nfor_each(array!(.tags)) -> |_index, value| {\n    # Get the current tally for the `value`, or\n    # set to `0`.\n    count = int(get!(tally, [value])) ?? 0\n\n    # Increment the tally for the value by `1`.\n    tally = set!(tally, [value], count + 1)\n}\n\ntally",
-      "input": {
-        "tags": [
-          "foo",
-          "bar",
-          "foo",
-          "baz"
-        ]
-      },
+      "source": ".tags = [\"foo\", \"bar\", \"foo\", \"baz\"]\ntally = {}\nfor_each(array(.tags)) -> |_index, value| {\n    count = int(get!(tally, [value])) ?? 0\n    tally = set!(tally, [value], count + 1)\n}\ntally\n",
       "return": {
-        "foo": 2,
         "bar": 1,
-        "baz": 1
+        "baz": 1,
+        "foo": 2
       }
+    },
+    {
+      "title": "Iterate over an object",
+      "source": "count = 0\nfor_each({ \"a\": 1, \"b\": 2 }) -> |_key, value| {\n    count = count + value\n}\ncount\n",
+      "return": 3
+    },
+    {
+      "title": "Iterate over an array",
+      "source": "count = 0\nfor_each([1, 2, 3]) -> |index, value| {\n    count = count + index + value\n}\ncount\n",
+      "return": 9
     }
   ],
   "pure": true

@@ -49,8 +49,13 @@
   ],
   "examples": [
     {
-      "title": "Encrypt value",
-      "source": "plaintext = \"super secret message\"\niv = \"1234567890123456\" # typically you would call random_bytes(16)\nkey = \"16_byte_keyxxxxx\"\nencrypted_message = encrypt!(plaintext, \"AES-128-CBC-PKCS7\", key, iv: iv)\nencode_base64(encrypted_message)",
+      "title": "Encrypt value using AES-256-CFB",
+      "source": "iv = \"0123456789012345\" # typically you would call random_bytes(16)\nkey = \"01234567890123456789012345678912\"\nencrypted_message = encrypt!(\"data\", \"AES-256-CFB\", key: key, iv: iv)\nencode_base64(encrypted_message)\n",
+      "return": "c/dIOA=="
+    },
+    {
+      "title": "Encrypt value using AES-128-CBC-PKCS7",
+      "source": "iv = \"1234567890123456\" # typically you would call random_bytes(16)\nkey = \"16_byte_keyxxxxx\"\nencrypted_message = encrypt!(\"super secret message\", \"AES-128-CBC-PKCS7\", key: key, iv: iv)\nencode_base64(encrypted_message)\n",
       "return": "GBw8Mu00v0Kc38+/PvsVtGgWuUJ+ZNLgF8Opy8ohIYE="
     }
   ],

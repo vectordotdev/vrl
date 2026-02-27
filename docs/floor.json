@@ -35,8 +35,8 @@
   "examples": [
     {
       "title": "Round a number down (without precision)",
-      "source": "floor(4.345)",
-      "return": 4
+      "source": "floor(9.8)",
+      "return": 9.0
     },
     {
       "title": "Round a number down (with precision)",

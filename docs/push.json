@@ -38,6 +38,13 @@
         2,
         3
       ]
+    },
+    {
+      "title": "Empty array",
+      "source": "push([], \"bar\")",
+      "return": [
+        "bar"
+      ]
     }
   ],
   "pure": true

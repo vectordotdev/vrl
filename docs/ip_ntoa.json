@@ -9,7 +9,7 @@
       "description": "The integer representation of an IPv4 address.",
       "required": true,
       "type": [
-        "string"
+        "integer"
       ]
     }
   ],

@@ -9,8 +9,8 @@
       "description": "The array or object to flatten.",
       "required": true,
       "type": [
-        "array",
-        "object"
+        "object",
+        "array"
       ]
     },
     {
@@ -25,8 +25,8 @@
   ],
   "return": {
     "types": [
-      "array",
-      "object"
+      "object",
+      "array"
     ],
     "rules": [
       "The return type matches the `value` type."
@@ -50,11 +50,18 @@
     },
     {
       "title": "Flatten object",
-      "source": "flatten({\n\t\"parent1\": {\n\t\t\"child1\": 1,\n\t\t\"child2\": 2\n\t},\n\t\"parent2\": {\n\t\t\"child3\": 3\n\t}\n})",
+      "source": "flatten({\n    \"parent1\": {\n        \"child1\": 1,\n        \"child2\": 2\n    },\n    \"parent2\": {\n        \"child3\": 3\n    }\n})\n",
       "return": {
         "parent1.child1": 1,
         "parent1.child2": 2,
         "parent2.child3": 3
+      }
+    },
+    {
+      "title": "Flatten object with custom separator",
+      "source": "flatten({ \"foo\": { \"bar\": true }}, \"_\")",
+      "return": {
+        "foo_bar": true
       }
     }
   ],

@@ -34,7 +34,7 @@
   "examples": [
     {
       "title": "Parse a single CSV formatted row",
-      "source": "parse_csv!(\"foo,bar,\\\"foo \\\"\\\", bar\\\"\")",
+      "source": "parse_csv!(s'foo,bar,\"foo \"\", bar\"')",
       "return": [
         "foo",
         "bar",
@@ -51,7 +51,7 @@
     }
   ],
   "notices": [
-    "All values are returned as strings. We recommend manually coercing values to desired types as you see fit."
+    "All values are returned as strings. We recommend manually coercing values to desired\ntypes as you see fit."
   ],
   "pure": true
 }

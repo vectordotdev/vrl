@@ -9,7 +9,8 @@
       "description": "The text of the timestamp.",
       "required": true,
       "type": [
-        "string"
+        "string",
+        "timestamp"
       ]
     },
     {
@@ -42,12 +43,12 @@
     {
       "title": "Parse timestamp",
       "source": "parse_timestamp!(\"10-Oct-2020 16:00+00:00\", format: \"%v %R %:z\")",
-      "return": "2020-10-10T16:00:00Z"
+      "return": "t'2020-10-10T16:00:00Z'"
     },
     {
       "title": "Parse timestamp with timezone",
       "source": "parse_timestamp!(\"16/10/2019 12:00:00\", format: \"%d/%m/%Y %H:%M:%S\", timezone: \"Asia/Taipei\")",
-      "return": "2019-10-16T04:00:00Z"
+      "return": "t'2019-10-16T04:00:00Z'"
     }
   ],
   "pure": true

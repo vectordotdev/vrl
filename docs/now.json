@@ -13,7 +13,7 @@
     {
       "title": "Generate a current timestamp",
       "source": "now()",
-      "return": "2021-03-04T10:51:15.928937Z"
+      "return": "2012-03-04T12:34:56.789012345Z"
     }
   ],
   "pure": true

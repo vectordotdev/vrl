@@ -32,6 +32,16 @@
       "title": "Non-matching type",
       "source": "is_float(\"a string\")",
       "return": false
+    },
+    {
+      "title": "Boolean",
+      "source": "is_float(true)",
+      "return": false
+    },
+    {
+      "title": "Null",
+      "source": "is_float(null)",
+      "return": false
     }
   ],
   "pure": true

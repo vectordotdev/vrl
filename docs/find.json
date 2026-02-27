@@ -2,7 +2,7 @@
   "anchor": "find",
   "name": "find",
   "category": "String",
-  "description": "Determines from left to right the start position of the first found element in `value`\nthat matches `pattern`. Returns `-1` if not found.",
+  "description": "Determines from left to right the start position of the first found element in `value` that matches `pattern`. Returns `-1` if not found.",
   "arguments": [
     {
       "name": "value",
@@ -17,8 +17,8 @@
       "description": "The regular expression or string pattern to match against.",
       "required": true,
       "type": [
-        "regex",
-        "string"
+        "string",
+        "regex"
       ]
     },
     {
@@ -39,6 +39,11 @@
   "examples": [
     {
       "title": "Match text",
+      "source": "find(\"foobar\", \"bar\")",
+      "return": 3
+    },
+    {
+      "title": "Match text at start",
       "source": "find(\"foobar\", \"foo\")",
       "return": 0
     },
@@ -49,7 +54,8 @@
     },
     {
       "title": "No matches",
-      "source": "find(\"foobar\", \"baz\")"
+      "source": "find(\"foobar\", \"baz\")",
+      "return": null
     },
     {
       "title": "With an offset",

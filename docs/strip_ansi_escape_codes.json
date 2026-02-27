@@ -18,12 +18,5 @@
       "string"
     ]
   },
-  "examples": [
-    {
-      "title": "Strip ANSI escape codes",
-      "source": "strip_ansi_escape_codes(\"\\e[46mfoo\\e[0m bar\")",
-      "return": "foo bar"
-    }
-  ],
   "pure": true
 }

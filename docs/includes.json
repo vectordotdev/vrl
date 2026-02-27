@@ -31,6 +31,16 @@
       "title": "Array includes",
       "source": "includes([\"apple\", \"orange\", \"banana\"], \"banana\")",
       "return": true
+    },
+    {
+      "title": "Includes boolean",
+      "source": "includes([1, true], true)",
+      "return": true
+    },
+    {
+      "title": "Doesn't include",
+      "source": "includes([\"foo\", \"bar\"], \"baz\")",
+      "return": false
     }
   ],
   "pure": true

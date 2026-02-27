@@ -9,32 +9,38 @@
       "description": "The array or object to filter.",
       "required": true,
       "type": [
-        "array",
-        "object"
+        "object",
+        "array"
       ]
     }
   ],
   "return": {
     "types": [
-      "array",
-      "object"
+      "object",
+      "array"
     ]
   },
   "examples": [
     {
       "title": "Filter elements",
-      "source": "filter(array!(.tags)) -> |_index, value| {\n    # keep any elements that aren't equal to \"foo\"\n    value != \"foo\"\n}",
-      "input": {
-        "tags": [
-          "foo",
-          "bar",
-          "foo",
-          "baz"
-        ]
-      },
+      "source": ". = { \"tags\": [\"foo\", \"bar\", \"foo\", \"baz\"] }\nfilter(array(.tags)) -> |_index, value| {\n    value != \"foo\"\n}\n",
       "return": [
         "bar",
         "baz"
+      ]
+    },
+    {
+      "title": "Filter object",
+      "source": "filter({ \"a\": 1, \"b\": 2 }) -> |key, _value| { key == \"a\" }",
+      "return": {
+        "a": 1
+      }
+    },
+    {
+      "title": "Filter array",
+      "source": "filter([1, 2]) -> |_index, value| { value < 2 }",
+      "return": [
+        1
       ]
     }
   ],

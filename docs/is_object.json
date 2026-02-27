@@ -32,6 +32,11 @@
       "title": "Non-matching type",
       "source": "is_object(\"a string\")",
       "return": false
+    },
+    {
+      "title": "Boolean",
+      "source": "is_object(true)",
+      "return": false
     }
   ],
   "pure": true

@@ -24,7 +24,7 @@
   "examples": [
     {
       "title": "Decode Snappy data",
-      "source": "encoded_text = decode_base64!(\"LKxUaGUgcXVpY2sgYnJvd24gZm94IGp1bXBzIG92ZXIgMTMgbGF6eSBkb2dzLg==\")\ndecode_snappy!(encoded_text)",
+      "source": "decode_snappy!(decode_base64!(\"LKxUaGUgcXVpY2sgYnJvd24gZm94IGp1bXBzIG92ZXIgMTMgbGF6eSBkb2dzLg==\"))",
       "return": "The quick brown fox jumps over 13 lazy dogs."
     }
   ],

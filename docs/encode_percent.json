@@ -46,8 +46,13 @@
     },
     {
       "title": "Percent encode only control characters",
-      "source": "encode_percent(\"foo \tbar\", ascii_set: \"CONTROLS\")",
+      "source": "encode_percent(\"foo \\tbar\", ascii_set: \"CONTROLS\")",
       "return": "foo %09bar"
+    },
+    {
+      "title": "Percent encode special characters",
+      "source": "encode_percent(\"foo@bar?\")",
+      "return": "foo%40bar%3F"
     }
   ],
   "pure": true

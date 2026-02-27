@@ -2,7 +2,7 @@
   "anchor": "xxhash",
   "name": "xxhash",
   "category": "Checksum",
-  "description": "Calculates a [xxHash](https://github.com/DoumanAsh/xxhash-rust) hash of the `value`.\n**Note**: Due to limitations in the underlying VRL data types, this function converts the unsigned 64-bit integer hash result to a signed 64-bit integer. Results higher than the signed 64-bit integer maximum value wrap around to negative values. For the XXH3-128 hash algorithm, values are returned as a string.",
+  "description": "Calculates a [xxHash](https://github.com/DoumanAsh/xxhash-rust) hash of the `value`.",
   "arguments": [
     {
       "name": "value",
@@ -24,8 +24,8 @@
   ],
   "return": {
     "types": [
-      "integer",
-      "string"
+      "string",
+      "integer"
     ]
   },
   "examples": [
@@ -42,18 +42,21 @@
     {
       "title": "Calculate a hash using the XXH64 algorithm",
       "source": "xxhash(\"foo\", \"XXH64\")",
-      "return": 3728699739546630700
+      "return": 3728699739546630719
     },
     {
       "title": "Calculate a hash using the XXH3-64 algorithm",
       "source": "xxhash(\"foo\", \"XXH3-64\")",
-      "return": -6093828362558604000
+      "return": -6093828362558603894
     },
     {
       "title": "Calculate a hash using the XXH3-128 algorithm",
       "source": "xxhash(\"foo\", \"XXH3-128\")",
       "return": "161745101148472925293886522910304009610"
     }
+  ],
+  "notices": [
+    "Due to limitations in the underlying VRL data types, this function converts the unsigned\n64-bit integer hash result to a signed 64-bit integer. Results higher than the signed\n64-bit integer maximum value wrap around to negative values. For the XXH3-128 hash\nalgorithm, values are returned as a string."
   ],
   "pure": true
 }

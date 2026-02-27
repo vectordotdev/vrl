@@ -30,27 +30,39 @@
   "examples": [
     {
       "title": "Upcase keys",
-      "source": "map_keys(.) -> |key| { upcase(key) }",
-      "input": {
-        "foo": "foo",
-        "bar": "bar"
-      },
+      "source": ". = {\n    \"foo\": \"foo\",\n    \"bar\": \"bar\",\n    \"baz\": {\"nested key\": \"val\"}\n}\nmap_keys(.) -> |key| { upcase(key) }\n",
       "return": {
         "FOO": "foo",
-        "BAR": "bar"
+        "BAR": "bar",
+        "BAZ": {
+          "nested key": "val"
+        }
       }
     },
     {
       "title": "De-dot keys",
-      "source": "map_keys(., recursive: true) -> |key| { replace(key, \".\", \"_\") }",
-      "input": {
-        "labels": {
-          "app.kubernetes.io/name": "mysql"
-        }
-      },
+      "source": ". = {\n    \"labels\": {\n        \"app.kubernetes.io/name\": \"mysql\"\n    }\n}\nmap_keys(., recursive: true) -> |key| { replace(key, \".\", \"_\") }\n",
       "return": {
         "labels": {
           "app_kubernetes_io/name": "mysql"
+        }
+      }
+    },
+    {
+      "title": "Recursively map object keys",
+      "source": "val = {\n    \"a\": 1,\n    \"b\": [{ \"c\": 2 }, { \"d\": 3 }],\n    \"e\": { \"f\": 4 }\n}\nmap_keys(val, recursive: true) -> |key| { upcase(key) }\n",
+      "return": {
+        "A": 1,
+        "B": [
+          {
+            "C": 2
+          },
+          {
+            "D": 3
+          }
+        ],
+        "E": {
+          "F": 4
         }
       }
     }

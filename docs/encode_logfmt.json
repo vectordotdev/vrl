@@ -18,7 +18,8 @@
       "required": false,
       "type": [
         "array"
-      ]
+      ],
+      "default": "[]"
     }
   ],
   "return": {
