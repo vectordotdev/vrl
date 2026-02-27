@@ -117,6 +117,8 @@ pub struct Example {
     pub result: Result<&'static str, &'static str>,
     pub file: &'static str,
     pub line: u32,
+    /// Whether this example produces deterministic output.
+    /// When false, tests validate output type instead of exact value.
     pub deterministic: bool,
 }
 
