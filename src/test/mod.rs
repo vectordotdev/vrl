@@ -228,16 +228,17 @@ fn process_result(
             } else if want.starts_with("s'") && want.ends_with('\'') {
                 want[2..want.len() - 1].into()
             } else {
-                serde_json::from_str::<'_, serde_json::Value>(want.trim()).unwrap_or_else(
-                    |err| {
-                        eprintln!("{err}");
-                        want.into()
-                    },
-                )
+                serde_json::from_str::<'_, serde_json::Value>(want.trim()).unwrap_or_else(|err| {
+                    eprintln!("{err}");
+                    want.into()
+                })
             };
 
             if match_mode.matches(&got_value, &want_value) {
-                print!("{timings}{}", Colour::Green.bold().paint(match_mode.ok_label()));
+                print!(
+                    "{timings}{}",
+                    Colour::Green.bold().paint(match_mode.ok_label())
+                );
             } else {
                 print!("{}", Colour::Red.bold().paint(match_mode.fail_label()));
 
