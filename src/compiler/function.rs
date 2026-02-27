@@ -158,7 +158,7 @@ macro_rules! example {
         title: $title:expr,
         source: $source:expr,
         result: $result:expr,
-        deterministic: false $(,)?
+        deterministic: $det:expr $(,)?
     ) => {
         $crate::compiler::function::Example {
             title: $title,
@@ -167,7 +167,7 @@ macro_rules! example {
             result: $result,
             file: file!(),
             line: line!(),
-            deterministic: false,
+            deterministic: $det,
         }
     };
 }
