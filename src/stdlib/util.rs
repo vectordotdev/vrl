@@ -1,5 +1,9 @@
-#[cfg(feature = "enable_system_functions")]
-use std::{env, path::PathBuf};
+cfg_if::cfg_if! {
+    if #[cfg(feature = "enable_system_functions")] {
+        use relative_path::PathExt;
+        use std::{env, path::PathBuf};
+    }
+}
 
 use crate::compiler::{Context, Expression, Resolved, TypeState};
 use crate::value::{KeyString, ObjectMap, Value};
@@ -136,25 +140,21 @@ impl ConstOrExpr {
 /// `input` path is relative to `tests/data/`.
 #[cfg(feature = "enable_system_functions")]
 pub(crate) fn example_path_or_basename(input: &'static str) -> String {
-    let path = env::var_os("CARGO_MANIFEST_DIR")
-        .map(|dir| PathBuf::from(dir).join("../../tests/data").join(input));
+    let manifest_dir =
+        env::var_os("CARGO_MANIFEST_DIR").map(|dir| PathBuf::from(dir).join("../.."));
+    let path = manifest_dir
+        .clone()
+        .map(|dir| dir.join("tests/data").join(input));
 
-    if cfg!(feature = "__doc_paths") {
-        // For doc generation, always use the basename to avoid machine-specific paths
-        PathBuf::from(input)
-            .file_name()
-            .unwrap_or_default()
-            .display()
-            .to_string()
-    } else if let Some(path) = path
+    if let Some(manifest_dir) = manifest_dir
+        && let Some(path) = path
         && path.exists()
     {
-        path.display().to_string()
+        path.relative_to(manifest_dir).unwrap().to_string()
     } else {
-        // Extract basename
-        PathBuf::from(input)
-            .file_name()
-            .unwrap_or_default()
+        // Mock repo root
+        PathBuf::from("tests/data")
+            .join(input)
             .display()
             .to_string()
     }

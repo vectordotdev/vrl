@@ -42,7 +42,7 @@
   "examples": [
     {
       "title": "Parse proto",
-      "source": "parse_proto!(decode_base64!(\"Cgdzb21lb25lIggKBjEyMzQ1Ng==\"), \"test_protobuf.desc\", \"test_protobuf.v1.Person\")",
+      "source": "parse_proto!(decode_base64!(\"Cgdzb21lb25lIggKBjEyMzQ1Ng==\"), \"tests/data/protobuf/test_protobuf/v1/test_protobuf.desc\", \"test_protobuf.v1.Person\")",
       "return": {
         "name": "someone",
         "phones": [

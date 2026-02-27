@@ -16,4 +16,3 @@ vrl = { path = "../../" }
 
 [features]
 default = []
-vrl_mock = ["vrl/__doc_paths"]
