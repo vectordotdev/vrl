@@ -7,6 +7,9 @@ use serde::de::Error as SerdeError;
 use serde::de::{MapAccess, SeqAccess, Visitor};
 use serde::{Deserialize, Serialize, Serializer};
 
+#[cfg(feature = "arbitrary_precision")]
+use nom::AsBytes;
+
 impl Value {
     /// Converts self into a `Bytes`, using JSON for Map/Array.
     ///
@@ -65,7 +68,22 @@ impl Serialize for Value {
             Self::Bytes(b) => serializer.serialize_str(simdutf_bytes_utf8_lossy(b).as_ref()),
             Self::Timestamp(ts) => serializer.serialize_str(&timestamp_to_string(ts)),
             Self::Regex(regex) => serializer.serialize_str(regex.as_str()),
-            Self::Object(m) => serializer.collect_map(m),
+            Self::Object(m) => {
+                #[cfg(feature = "arbitrary_precision")]
+                // the key name is hardcoded here because serde_json does not expose it outside 
+                // the crate, so we have to deal with any future breakage if they change
+                if m.len() == 1
+                    && let Some(Value::Bytes(bytes)) = m.get("$serde_json::private::Number")
+                    && let Ok(v) = String::from_utf8_lossy(bytes.as_bytes()).parse()
+                {
+                    serializer.serialize_f64(v)
+                } else {
+                    serializer.collect_map(m)
+                }
+
+                #[cfg(not(feature = "arbitrary_precision"))]
+                serializer.collect_map(m)
+            }
             Self::Array(a) => serializer.collect_seq(a),
             Self::Null => serializer.serialize_none(),
         }
