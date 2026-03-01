@@ -39,23 +39,20 @@ impl Function for Array {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[Parameter {
-            keyword: "value",
-            kind: kind::ANY,
-            required: true,
-            description: "The value to check if it is an array.",
-            default: None,
-        }]
+        const PARAMETERS: &[Parameter] = &[Parameter::required(
+            "value",
+            kind::ANY,
+            "The value to check if it is an array.",
+        )];
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
                 title: "Declare an array type",
-                source: indoc! {"
-                    .value = [1, 2, 3]
-                    array(.value)
-                "},
+                source: "array!(.value)",
+                input: r#"{"value": [1, 2, 3]}"#,
                 result: Ok("[1,2,3]"),
             },
             example! {

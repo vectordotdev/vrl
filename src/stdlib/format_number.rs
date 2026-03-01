@@ -7,34 +7,27 @@ static DEFAULT_DECIMAL_SEPARATOR: LazyLock<Value> =
 
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
-        Parameter {
-            keyword: "value",
-            kind: kind::INTEGER | kind::FLOAT,
-            required: true,
-            description: "The number to format as a string.",
-            default: None,
-        },
-        Parameter {
-            keyword: "scale",
-            kind: kind::INTEGER,
-            required: false,
-            description: "The number of decimal places to display.",
-            default: None,
-        },
-        Parameter {
-            keyword: "decimal_separator",
-            kind: kind::BYTES,
-            required: false,
-            description: "The character to use between the whole and decimal parts of the number.",
-            default: Some(&DEFAULT_DECIMAL_SEPARATOR),
-        },
-        Parameter {
-            keyword: "grouping_separator",
-            kind: kind::BYTES,
-            required: false,
-            description: "The character to use between each thousands part of the number.",
-            default: None,
-        },
+        Parameter::required(
+            "value",
+            kind::INTEGER | kind::FLOAT,
+            "The number to format as a string.",
+        ),
+        Parameter::optional(
+            "scale",
+            kind::INTEGER,
+            "The number of decimal places to display.",
+        ),
+        Parameter::optional(
+            "decimal_separator",
+            kind::BYTES,
+            "The character to use between the whole and decimal parts of the number.",
+        )
+        .default(&DEFAULT_DECIMAL_SEPARATOR),
+        Parameter::optional(
+            "grouping_separator",
+            kind::BYTES,
+            "The character to use between each thousands part of the number.",
+        ),
     ]
 });
 
@@ -171,6 +164,11 @@ impl Function for FormatNumber {
                 title: "Format a number with European-style separators",
                 source: r#"format_number(4672.4, decimal_separator: ",", grouping_separator: "_")"#,
                 result: Ok("4_672,4"),
+            },
+            example! {
+                title: "Format a number with a middle dot separator",
+                source: r#"format_number(4321.09, 3, decimal_separator: "·")"#,
+                result: Ok("4321·090"),
             },
         ]
     }

@@ -8,69 +8,55 @@ use std::sync::LazyLock;
 
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
-        Parameter {
-            keyword: "value",
-            kind: kind::BYTES,
-            required: true,
-            description: "The string representation of the XML document to parse.",
-            default: None,
-        },
-        Parameter {
-            keyword: "trim",
-            kind: kind::BOOLEAN,
-            required: false,
-            description: "Remove excess whitespace between XML elements.",
-            default: Some(&DEFAULT_TRIM),
-        },
-        Parameter {
-            keyword: "include_attr",
-            kind: kind::BOOLEAN,
-            required: false,
-            description: "Include XML tag attributes in the returned object.",
-            default: Some(&DEFAULT_INCLUDE_ATTR),
-        },
-        Parameter {
-            keyword: "attr_prefix",
-            kind: kind::BYTES,
-            required: false,
-            description: "String prefix to use for XML tag attribute keys.",
-            default: Some(&DEFAULT_ATTR_PREFIX),
-        },
-        Parameter {
-            keyword: "text_key",
-            kind: kind::BYTES,
-            required: false,
-            description: "Key name to use for expanded text nodes.",
-            default: Some(&DEFAULT_TEXT_KEY),
-        },
-        Parameter {
-            keyword: "always_use_text_key",
-            kind: kind::BOOLEAN,
-            required: false,
-            description: "Always return text nodes as `{\"<text_key>\": \"value\"}.`",
-            default: Some(&DEFAULT_ALWAYS_USE_TEXT_KEY),
-        },
-        Parameter {
-            keyword: "parse_bool",
-            kind: kind::BOOLEAN,
-            required: false,
-            description: "Parse \"true\" and \"false\" as boolean.",
-            default: Some(&DEFAULT_PARSE_BOOL),
-        },
-        Parameter {
-            keyword: "parse_null",
-            kind: kind::BOOLEAN,
-            required: false,
-            description: "Parse \"null\" as null.",
-            default: Some(&DEFAULT_PARSE_NULL),
-        },
-        Parameter {
-            keyword: "parse_number",
-            kind: kind::BOOLEAN,
-            required: false,
-            description: "Parse numbers as integers/floats.",
-            default: Some(&DEFAULT_PARSE_NUMBER),
-        },
+        Parameter::required(
+            "value",
+            kind::BYTES,
+            "The string representation of the XML document to parse.",
+        ),
+        Parameter::optional(
+            "trim",
+            kind::BOOLEAN,
+            "Remove excess whitespace between XML elements.",
+        )
+        .default(&DEFAULT_TRIM),
+        Parameter::optional(
+            "include_attr",
+            kind::BOOLEAN,
+            "Include XML tag attributes in the returned object.",
+        )
+        .default(&DEFAULT_INCLUDE_ATTR),
+        Parameter::optional(
+            "attr_prefix",
+            kind::BYTES,
+            "String prefix to use for XML tag attribute keys.",
+        )
+        .default(&DEFAULT_ATTR_PREFIX),
+        Parameter::optional(
+            "text_key",
+            kind::BYTES,
+            "Key name to use for expanded text nodes.",
+        )
+        .default(&DEFAULT_TEXT_KEY),
+        Parameter::optional(
+            "always_use_text_key",
+            kind::BOOLEAN,
+            "Always return text nodes as `{\"<text_key>\": \"value\"}.`",
+        )
+        .default(&DEFAULT_ALWAYS_USE_TEXT_KEY),
+        Parameter::optional(
+            "parse_bool",
+            kind::BOOLEAN,
+            "Parse \"true\" and \"false\" as boolean.",
+        )
+        .default(&DEFAULT_PARSE_BOOL),
+        Parameter::optional("parse_null", kind::BOOLEAN, "Parse \"null\" as null.")
+            .default(&DEFAULT_PARSE_NULL),
+        Parameter::optional(
+            "parse_number",
+            kind::BOOLEAN,
+            "Parse numbers as integers/floats.",
+        )
+        .default(&DEFAULT_PARSE_NUMBER),
     ]
 });
 

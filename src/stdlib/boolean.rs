@@ -16,7 +16,11 @@ impl Function for Boolean {
     }
 
     fn usage(&self) -> &'static str {
-        "The value to check if it is a Boolean."
+        indoc! {"
+            Returns `value` if it is a Boolean, otherwise returns an error. This enables the type
+            checker to guarantee that the returned value is a Boolean and can be used in any
+            function that expects a Boolean.
+        "}
     }
 
     fn category(&self) -> &'static str {
@@ -39,13 +43,12 @@ impl Function for Boolean {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[Parameter {
-            keyword: "value",
-            kind: kind::ANY,
-            required: true,
-            description: "The value to check if it is a Boolean.",
-            default: None,
-        }]
+        const PARAMETERS: &[Parameter] = &[Parameter::required(
+            "value",
+            kind::ANY,
+            "The value to check if it is a Boolean.",
+        )];
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {
@@ -64,10 +67,8 @@ impl Function for Boolean {
             },
             example! {
                 title: "Valid Boolean from path",
-                source: indoc! {r#"
-                    . = { "value": true }
-                    bool(.value)
-                "#},
+                source: "bool!(.value)",
+                input: r#"{ "value": true }"#,
                 result: Ok("true"),
             },
         ]

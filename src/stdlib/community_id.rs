@@ -78,50 +78,23 @@ impl Function for CommunityID {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "source_ip",
-                kind: kind::BYTES,
-                required: true,
-                description: "The source IP address.",
-                default: None,
-            },
-            Parameter {
-                keyword: "destination_ip",
-                kind: kind::BYTES,
-                required: true,
-                description: "The destination IP address.",
-                default: None,
-            },
-            Parameter {
-                keyword: "protocol",
-                kind: kind::INTEGER,
-                required: true,
-                description: "The protocol number.",
-                default: None,
-            },
-            Parameter {
-                keyword: "source_port",
-                kind: kind::INTEGER,
-                required: false,
-                description: "The source port or ICMP type.",
-                default: None,
-            },
-            Parameter {
-                keyword: "destination_port",
-                kind: kind::INTEGER,
-                required: false,
-                description: "The destination port or ICMP code.",
-                default: None,
-            },
-            Parameter {
-                keyword: "seed",
-                kind: kind::INTEGER,
-                required: false,
-                description: "The custom seed number.",
-                default: None,
-            },
-        ]
+        const PARAMETERS: &[Parameter] = &[
+            Parameter::required("source_ip", kind::BYTES, "The source IP address."),
+            Parameter::required("destination_ip", kind::BYTES, "The destination IP address."),
+            Parameter::required("protocol", kind::INTEGER, "The protocol number."),
+            Parameter::optional(
+                "source_port",
+                kind::INTEGER,
+                "The source port or ICMP type.",
+            ),
+            Parameter::optional(
+                "destination_port",
+                kind::INTEGER,
+                "The destination port or ICMP code.",
+            ),
+            Parameter::optional("seed", kind::INTEGER, "The custom seed number."),
+        ];
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {

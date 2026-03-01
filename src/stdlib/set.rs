@@ -72,29 +72,20 @@ impl Function for Set {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::OBJECT | kind::ARRAY,
-                required: true,
-                description: "The object or array to insert data into.",
-                default: None,
-            },
-            Parameter {
-                keyword: "path",
-                kind: kind::ARRAY,
-                required: true,
-                description: "An array of path segments to insert the value into.",
-                default: None,
-            },
-            Parameter {
-                keyword: "data",
-                kind: kind::ANY,
-                required: true,
-                description: "The data to be inserted.",
-                default: None,
-            },
-        ]
+        const PARAMETERS: &[Parameter] = &[
+            Parameter::required(
+                "value",
+                kind::OBJECT | kind::ARRAY,
+                "The object or array to insert data into.",
+            ),
+            Parameter::required(
+                "path",
+                kind::ARRAY,
+                "An array of path segments to insert the value into.",
+            ),
+            Parameter::required("data", kind::ANY, "The data to be inserted."),
+        ];
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {
@@ -126,10 +117,8 @@ impl Function for Set {
             },
             example! {
                 title: "External target",
-                source: indoc! {r#"
-                    . = { "foo": true }
-                    set!(value: ., path: ["bar"], data: "baz")
-                "#},
+                source: r#"set!(value: ., path: ["bar"], data: "baz")"#,
+                input: r#"{ "foo": true }"#,
                 result: Ok(r#"{ "foo": true, "bar": "baz" }"#),
             },
             example! {

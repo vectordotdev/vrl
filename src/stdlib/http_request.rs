@@ -274,48 +274,31 @@ static DEFAULT_BODY: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from
 
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
-        Parameter {
-            keyword: "url",
-            kind: kind::BYTES,
-            required: true,
-            description: "The URL to make the HTTP request to.",
-            default: None,
-        },
-        Parameter {
-            keyword: "method",
-            kind: kind::BYTES,
-            required: false,
-            description: "The HTTP method to use (e.g., GET, POST, PUT, DELETE). Defaults to GET.",
-            default: Some(&DEFAULT_METHOD),
-        },
-        Parameter {
-            keyword: "headers",
-            kind: kind::OBJECT,
-            required: false,
-            description: "An object containing HTTP headers to send with the request.",
-            default: Some(&DEFAULT_HEADERS),
-        },
-        Parameter {
-            keyword: "body",
-            kind: kind::BYTES,
-            required: false,
-            description: "The request body content to send.",
-            default: Some(&DEFAULT_BODY),
-        },
-        Parameter {
-            keyword: "http_proxy",
-            kind: kind::BYTES,
-            required: false,
-            description: "HTTP proxy URL to use for the request.",
-            default: None,
-        },
-        Parameter {
-            keyword: "https_proxy",
-            kind: kind::BYTES,
-            required: false,
-            description: "HTTPS proxy URL to use for the request.",
-            default: None,
-        },
+        Parameter::required("url", kind::BYTES, "The URL to make the HTTP request to."),
+        Parameter::optional(
+            "method",
+            kind::BYTES,
+            "The HTTP method to use (e.g., GET, POST, PUT, DELETE). Defaults to GET.",
+        )
+        .default(&DEFAULT_METHOD),
+        Parameter::optional(
+            "headers",
+            kind::OBJECT,
+            "An object containing HTTP headers to send with the request.",
+        )
+        .default(&DEFAULT_HEADERS),
+        Parameter::optional("body", kind::BYTES, "The request body content to send.")
+            .default(&DEFAULT_BODY),
+        Parameter::optional(
+            "http_proxy",
+            kind::BYTES,
+            "HTTP proxy URL to use for the request.",
+        ),
+        Parameter::optional(
+            "https_proxy",
+            kind::BYTES,
+            "HTTPS proxy URL to use for the request.",
+        ),
     ]
 });
 
@@ -328,7 +311,14 @@ impl Function for HttpRequest {
     }
 
     fn usage(&self) -> &'static str {
-        "Makes an HTTP request to the specified URL. This function performs synchronous blocking operations and is not recommended for frequent or performance-critical workflows due to potential network-related delays."
+        "Makes an HTTP request to the specified URL."
+    }
+
+    fn notices(&self) -> &'static [&'static str] {
+        &[indoc! {"
+            This function performs synchronous blocking operations and is not recommended for
+            frequent or performance-critical workflows due to potential network-related delays.
+        "}]
     }
 
     fn category(&self) -> &'static str {
@@ -439,9 +429,9 @@ mod tests {
     async fn test_basic_get_request() {
         let func: HttpRequestFn = HttpRequestFn {
             url: expr!("https://httpbin.org/get"),
-            method: expr!("get"),
-            headers: expr!({}),
-            body: expr!(""),
+            method: Some(expr!("get")),
+            headers: Some(expr!({})),
+            body: Some(expr!("")),
             client_or_proxies: ClientOrProxies::no_proxies(),
         };
 
@@ -461,9 +451,9 @@ mod tests {
     async fn test_malformed_url() {
         let func = HttpRequestFn {
             url: expr!("not-a-valid-url"),
-            method: expr!("get"),
-            headers: expr!({}),
-            body: expr!(""),
+            method: Some(expr!("get")),
+            headers: Some(expr!({})),
+            body: Some(expr!("")),
             client_or_proxies: ClientOrProxies::no_proxies(),
         };
 
@@ -477,9 +467,9 @@ mod tests {
     async fn test_invalid_header() {
         let func = HttpRequestFn {
             url: expr!("https://httpbin.org/get"),
-            method: expr!("get"),
-            headers: expr!({"Invalid Header With Spaces": "value"}),
-            body: expr!(""),
+            method: Some(expr!("get")),
+            headers: Some(expr!({"Invalid Header With Spaces": "value"})),
+            body: Some(expr!("")),
             client_or_proxies: ClientOrProxies::no_proxies(),
         };
 
@@ -493,9 +483,9 @@ mod tests {
     async fn test_invalid_proxy() {
         let func = HttpRequestFn {
             url: expr!("https://httpbin.org/get"),
-            method: expr!("get"),
-            headers: expr!({}),
-            body: expr!(""),
+            method: Some(expr!("get")),
+            headers: Some(expr!({})),
+            body: Some(expr!("")),
             client_or_proxies: ClientOrProxies::new_proxies_no_const_resolve(
                 None,
                 Some(expr!("not^a&valid*url")),

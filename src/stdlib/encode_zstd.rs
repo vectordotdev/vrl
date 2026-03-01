@@ -6,20 +6,13 @@ static DEFAULT_COMPRESSION_LEVEL: LazyLock<Value> = LazyLock::new(|| Value::Inte
 
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
-        Parameter {
-            keyword: "value",
-            kind: kind::BYTES,
-            required: true,
-            description: "The string to encode.",
-            default: None,
-        },
-        Parameter {
-            keyword: "compression_level",
-            kind: kind::INTEGER,
-            required: false,
-            description: "The default compression level.",
-            default: Some(&DEFAULT_COMPRESSION_LEVEL),
-        },
+        Parameter::required("value", kind::BYTES, "The string to encode."),
+        Parameter::optional(
+            "compression_level",
+            kind::INTEGER,
+            "The default compression level.",
+        )
+        .default(&DEFAULT_COMPRESSION_LEVEL),
     ]
 });
 

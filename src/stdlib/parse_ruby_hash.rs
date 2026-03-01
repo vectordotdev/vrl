@@ -64,13 +64,12 @@ impl Function for ParseRubyHash {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[Parameter {
-            keyword: "value",
-            kind: kind::BYTES,
-            required: true,
-            description: "The string representation of the ruby hash to parse.",
-            default: None,
-        }]
+        const PARAMETERS: &[Parameter] = &[Parameter::required(
+            "value",
+            kind::BYTES,
+            "The string representation of the ruby hash to parse.",
+        )];
+        PARAMETERS
     }
 }
 

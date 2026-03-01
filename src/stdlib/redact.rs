@@ -45,12 +45,11 @@ impl Function for Redact {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::BYTES | kind::OBJECT | kind::ARRAY,
-                required: true,
-                description: "The value to redact sensitive data from.
+        const PARAMETERS: &[Parameter] = &[
+            Parameter::required(
+                "value",
+                kind::BYTES | kind::OBJECT | kind::ARRAY,
+                "The value to redact sensitive data from.
 
 The function's behavior depends on `value`'s type:
 
@@ -62,13 +61,11 @@ For arrays and objects, the function recurses into any nested arrays or objects.
 skipped.
 
 Redacted text is replaced with `[REDACTED]`.",
-                default: None,
-            },
-            Parameter {
-                keyword: "filters",
-                kind: kind::ARRAY,
-                required: true,
-                description: "List of filters applied to `value`.
+            ),
+            Parameter::required(
+                "filters",
+                kind::ARRAY,
+                "List of filters applied to `value`.
 
 Each filter can be specified in the following ways:
 
@@ -86,13 +83,12 @@ See examples for more details.
 
 This parameter must be a static expression so that the argument can be validated at compile-time
 to avoid runtime errors. You cannot use variables or other dynamic expressions with it.",
-                default: None,
-            },
-            Parameter {
-                keyword: "redactor",
-                kind: kind::OBJECT | kind::BYTES,
-                required: false,
-                description: "Specifies what to replace the redacted strings with.
+            ),
+            // TODO: Should default to Full
+            Parameter::optional(
+                "redactor",
+                kind::OBJECT | kind::BYTES,
+                "Specifies what to replace the redacted strings with.
 
 It is given as an object with a \"type\" key specifying the type of redactor to use
 and additional keys depending on the type. The following types are supported:
@@ -118,9 +114,9 @@ As a convenience you can use a string as a shorthand for common redactor pattern
 
 This parameter must be a static expression so that the argument can be validated at compile-time
 to avoid runtime errors. You cannot use variables or other dynamic expressions with it.",
-                default: None, // TODO: Should be Full
-            },
-        ]
+            ),
+        ];
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {

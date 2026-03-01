@@ -334,34 +334,13 @@ static DEFAULT_OPTIONS: LazyLock<Value> =
 
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
-        Parameter {
-            keyword: "value",
-            kind: kind::BYTES,
-            required: true,
-            description: "The domain name to query.",
-            default: None,
-        },
-        Parameter {
-            keyword: "qtype",
-            kind: kind::BYTES,
-            required: false,
-            description: "The DNS record type to query (e.g., A, AAAA, MX, TXT). Defaults to A.",
-            default: Some(&DEFAULT_QTYPE),
-        },
-        Parameter {
-            keyword: "class",
-            kind: kind::BYTES,
-            required: false,
-            description: "The DNS query class. Defaults to IN (Internet).",
-            default: Some(&DEFAULT_CLASS),
-        },
-        Parameter {
-            keyword: "options",
-            kind: kind::OBJECT,
-            required: false,
-            description: "DNS resolver options. Supported fields: servers (array of nameserver addresses), timeout (seconds), attempts (number of retry attempts), ndots, aa_only, tcp, recurse, rotate.",
-            default: Some(&DEFAULT_OPTIONS),
-        },
+        Parameter::required("value", kind::BYTES, "The domain name to query."),
+        Parameter::optional("qtype", kind::BYTES, "The DNS record type to query (e.g., A, AAAA, MX, TXT). Defaults to A.")
+            .default(&DEFAULT_QTYPE),
+        Parameter::optional("class", kind::BYTES, "The DNS query class. Defaults to IN (Internet).")
+            .default(&DEFAULT_CLASS),
+        Parameter::optional("options", kind::OBJECT, "DNS resolver options. Supported fields: servers (array of nameserver addresses), timeout (seconds), attempts (number of retry attempts), ndots, aa_only, tcp, recurse, rotate.")
+            .default(&DEFAULT_OPTIONS),
     ]
 });
 
@@ -374,7 +353,14 @@ impl Function for DnsLookup {
     }
 
     fn usage(&self) -> &'static str {
-        "Performs a DNS lookup on the provided domain name. This function performs network calls and blocks on each request until a response is received. It is not recommended for frequent or performance-critical workflows."
+        "Performs a DNS lookup on the provided domain name."
+    }
+
+    fn notices(&self) -> &'static [&'static str] {
+        &[indoc! {"
+            This function performs network calls and blocks on each request until a response is
+            received. It is not recommended for frequent or performance-critical workflows.
+        "}]
     }
 
     fn category(&self) -> &'static str {
@@ -400,7 +386,7 @@ impl Function for DnsLookup {
         &[
             example! {
                 title: "Basic lookup",
-                source: r#"
+                source: indoc! {r#"
                     res = dns_lookup!("dns.google")
                     # reset non-static ttl so result is static
                     res.answers = map_values(res.answers) -> |value| {
@@ -417,7 +403,7 @@ impl Function for DnsLookup {
                         value
                     }
                     res
-                    "#,
+                "#},
                 result: Ok(indoc!(
                     r#"{
                     "additional": [
@@ -470,7 +456,7 @@ impl Function for DnsLookup {
             },
             example! {
                 title: "Custom class and qtype",
-                source: r#"
+                source: indoc! {r#"
                     res = dns_lookup!("dns.google", class: "IN", qtype: "A")
                     # reset non-static ttl so result is static
                     res.answers = map_values(res.answers) -> |value| {
@@ -487,7 +473,7 @@ impl Function for DnsLookup {
                         value
                     }
                     res
-                    "#,
+                "#},
                 result: Ok(indoc!(
                     r#"{
                     "additional": [
@@ -540,7 +526,7 @@ impl Function for DnsLookup {
             },
             example! {
                 title: "Custom options",
-                source: r#"
+                source: indoc! {r#"
                     res = dns_lookup!("dns.google", options: {"timeout": 30, "attempts": 5})
                     res.answers = map_values(res.answers) -> |value| {
                       value.ttl = 600
@@ -556,7 +542,7 @@ impl Function for DnsLookup {
                         value
                     }
                     res
-                    "#,
+                "#},
                 result: Ok(indoc!(
                     r#"{
                     "additional": [
@@ -609,7 +595,7 @@ impl Function for DnsLookup {
             },
             example! {
                 title: "Custom server",
-                source: r#"
+                source: indoc! {r#"
                     res = dns_lookup!("dns.google", options: {"servers": ["dns.quad9.net"]})
                     res.answers = map_values(res.answers) -> |value| {
                       value.ttl = 600
@@ -625,7 +611,7 @@ impl Function for DnsLookup {
                         value
                     }
                     res
-                    "#,
+                "#},
                 result: Ok(indoc!(
                     r#"{
                     "additional": [

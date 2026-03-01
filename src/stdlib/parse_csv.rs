@@ -6,20 +6,13 @@ static DEFAULT_DELIMITER: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes:
 
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
-        Parameter {
-            keyword: "value",
-            kind: kind::BYTES,
-            required: true,
-            description: "The string to parse.",
-            default: None,
-        },
-        Parameter {
-            keyword: "delimiter",
-            kind: kind::BYTES,
-            required: false,
-            description: "The field delimiter to use when parsing. Must be a single-byte utf8 character.",
-            default: Some(&DEFAULT_DELIMITER),
-        },
+        Parameter::required("value", kind::BYTES, "The string to parse."),
+        Parameter::optional(
+            "delimiter",
+            kind::BYTES,
+            "The field delimiter to use when parsing. Must be a single-byte utf8 character.",
+        )
+        .default(&DEFAULT_DELIMITER),
     ]
 });
 

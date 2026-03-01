@@ -113,9 +113,13 @@ pub trait Function: Send + Sync + fmt::Debug {
 pub struct Example {
     pub title: &'static str,
     pub source: &'static str,
+    pub input: Option<&'static str>,
     pub result: Result<&'static str, &'static str>,
     pub file: &'static str,
     pub line: u32,
+    /// Whether this example produces deterministic output.
+    /// When false, tests validate output type instead of exact value.
+    pub deterministic: bool,
 }
 
 /// Macro to create an Example with automatic source location tracking
@@ -124,14 +128,48 @@ macro_rules! example {
     (
         title: $title:expr,
         source: $source:expr,
+        input: $input:expr,
         result: $result:expr $(,)?
     ) => {
         $crate::compiler::function::Example {
             title: $title,
             source: $source,
+            input: Some($input),
             result: $result,
             file: file!(),
             line: line!(),
+            deterministic: true,
+        }
+    };
+    (
+        title: $title:expr,
+        source: $source:expr,
+        result: $result:expr $(,)?
+    ) => {
+        $crate::compiler::function::Example {
+            title: $title,
+            source: $source,
+            input: None,
+            result: $result,
+            file: file!(),
+            line: line!(),
+            deterministic: true,
+        }
+    };
+    (
+        title: $title:expr,
+        source: $source:expr,
+        result: $result:expr,
+        deterministic: $det:expr $(,)?
+    ) => {
+        $crate::compiler::function::Example {
+            title: $title,
+            source: $source,
+            input: None,
+            result: $result,
+            file: file!(),
+            line: line!(),
+            deterministic: $det,
         }
     };
 }
@@ -181,6 +219,12 @@ impl FunctionCompileContext {
 // -----------------------------------------------------------------------------
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct EnumVariant {
+    pub value: &'static str,
+    pub description: &'static str,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct Parameter {
     /// The keyword of the parameter.
     ///
@@ -212,9 +256,52 @@ pub struct Parameter {
     ///   to create static [`Value`] instances. If you are already in a [`LazyLock`](std::sync::LazyLock) block,
     ///   you'll have to create another [`LazyLock`](std::sync::LazyLock) in order to make both static.
     pub default: Option<&'static Value>,
+
+    /// Enum variants for this parameter, if the parameter accepts a limited set of values.
+    pub enum_variants: Option<&'static [EnumVariant]>,
 }
 
 impl Parameter {
+    /// Create a required parameter with default values for `default` and `enum_variants`.
+    #[must_use]
+    pub const fn required(keyword: &'static str, kind: u16, description: &'static str) -> Self {
+        Self {
+            keyword,
+            kind,
+            required: true,
+            description,
+            default: None,
+            enum_variants: None,
+        }
+    }
+
+    /// Create an optional parameter with default values for `default` and `enum_variants`.
+    #[must_use]
+    pub const fn optional(keyword: &'static str, kind: u16, description: &'static str) -> Self {
+        Self {
+            keyword,
+            kind,
+            required: false,
+            description,
+            default: None,
+            enum_variants: None,
+        }
+    }
+
+    /// Set the default value for this parameter.
+    #[must_use]
+    pub const fn default(mut self, value: &'static Value) -> Self {
+        self.default = Some(value);
+        self
+    }
+
+    /// Set the enum variants for this parameter.
+    #[must_use]
+    pub const fn enum_variants(mut self, variants: &'static [EnumVariant]) -> Self {
+        self.enum_variants = Some(variants);
+        self
+    }
+
     #[allow(arithmetic_overflow)]
     #[must_use]
     pub fn kind(&self) -> Kind {
@@ -697,13 +784,7 @@ mod tests {
                 },
             ),
         ]) {
-            let parameter = Parameter {
-                keyword: "",
-                kind: parameter_kind,
-                required: false,
-                description: "",
-                default: None,
-            };
+            let parameter = Parameter::optional("", parameter_kind, "");
 
             assert_eq!(parameter.kind(), kind, "{title}");
         }

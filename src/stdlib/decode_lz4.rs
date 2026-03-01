@@ -11,27 +11,11 @@ const LZ4_FRAME_MAGIC: [u8; 4] = [0x04, 0x22, 0x4D, 0x18];
 
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
-        Parameter {
-            keyword: "value",
-            kind: kind::BYTES,
-            required: true,
-            description: "The lz4 block data to decode.",
-            default: None,
-        },
-        Parameter {
-            keyword: "buf_size",
-            kind: kind::INTEGER,
-            required: false,
-            description: "The size of the buffer to decode into, this must be equal to or larger than the uncompressed size.",
-            default: Some(&DEFAULT_BUF_SIZE),
-        },
-        Parameter {
-            keyword: "prepended_size",
-            kind: kind::BOOLEAN,
-            required: false,
-            description: "Some implementations of lz4 require the original uncompressed size to be prepended to the compressed data.",
-            default: Some(&DEFAULT_PREPENDED_SIZE),
-        },
+        Parameter::required("value", kind::BYTES, "The lz4 block data to decode."),
+        Parameter::optional("buf_size", kind::INTEGER, "The size of the buffer to decode into, this must be equal to or larger than the uncompressed size.")
+            .default(&DEFAULT_BUF_SIZE),
+        Parameter::optional("prepended_size", kind::BOOLEAN, "Some implementations of lz4 require the original uncompressed size to be prepended to the compressed data.")
+            .default(&DEFAULT_PREPENDED_SIZE),
     ]
 });
 

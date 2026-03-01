@@ -53,13 +53,12 @@ compatible, otherwise an error is thrown.",
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[Parameter {
-            keyword: "value",
-            kind: kind::BYTES,
-            required: true,
-            description: "The IPv4-mapped IPv6 address to convert.",
-            default: None,
-        }]
+        const PARAMETERS: &[Parameter] = &[Parameter::required(
+            "value",
+            kind::BYTES,
+            "The IPv4-mapped IPv6 address to convert.",
+        )];
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {

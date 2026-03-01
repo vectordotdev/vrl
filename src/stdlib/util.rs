@@ -1,3 +1,6 @@
+#[cfg(feature = "enable_system_functions")]
+use std::{env, path::PathBuf};
+
 use crate::compiler::{Context, Expression, Resolved, TypeState};
 use crate::value::{KeyString, ObjectMap, Value};
 
@@ -121,5 +124,31 @@ impl ConstOrExpr {
             Self::Const(value) => Ok(value.clone()),
             Self::Expr(expr) => expr.resolve(ctx),
         }
+    }
+}
+
+/// Only to be used in examples since this can return an incorrect path.
+/// Useful for displaying a nicer path in the docs, since the path is going to be incorrect when
+/// docs are generated from outside this repo.
+///
+/// Get actual path as a string if exists or basename if not.
+///
+/// `input` path is relative to `tests/data/`.
+#[cfg(feature = "enable_system_functions")]
+pub(crate) fn example_path_or_basename(input: &'static str) -> String {
+    let path = env::var_os("CARGO_MANIFEST_DIR")
+        .map(|dir| PathBuf::from(dir).join("../../tests/data").join(input));
+
+    if let Some(path) = path
+        && path.exists()
+    {
+        path.display().to_string()
+    } else {
+        // Extract basename
+        PathBuf::from(input)
+            .file_name()
+            .unwrap_or_default()
+            .display()
+            .to_string()
     }
 }

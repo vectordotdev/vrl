@@ -48,31 +48,20 @@ impl Function for RandomInt {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "min",
-                kind: kind::INTEGER,
-                required: true,
-                description: "Minimum value (inclusive).",
-                default: None,
-            },
-            Parameter {
-                keyword: "max",
-                kind: kind::INTEGER,
-                required: true,
-                description: "Maximum value (exclusive).",
-                default: None,
-            },
-        ]
+        const PARAMETERS: &[Parameter] = &[
+            Parameter::required("min", kind::INTEGER, "Minimum value (inclusive)."),
+            Parameter::required("max", kind::INTEGER, "Maximum value (exclusive)."),
+        ];
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {
         &[example! {
             title: "Random integer from 0 to 10, not including 10",
-            source: "
-				i = random_int(0, 10)
-				i >= 0 && i < 10
-                ",
+            source: indoc! {"
+                i = random_int(0, 10)
+                i >= 0 && i < 10
+            "},
             result: Ok("true"),
         }]
     }

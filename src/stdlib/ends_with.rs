@@ -6,27 +6,18 @@ static DEFAULT_CASE_SENSITIVE: LazyLock<Value> = LazyLock::new(|| Value::Boolean
 
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
-        Parameter {
-            keyword: "value",
-            kind: kind::BYTES,
-            required: true,
-            description: "The string to search.",
-            default: None,
-        },
-        Parameter {
-            keyword: "substring",
-            kind: kind::BYTES,
-            required: true,
-            description: "The substring with which `value` must end.",
-            default: None,
-        },
-        Parameter {
-            keyword: "case_sensitive",
-            kind: kind::BOOLEAN,
-            required: false,
-            description: "Whether the match should be case sensitive.",
-            default: Some(&DEFAULT_CASE_SENSITIVE),
-        },
+        Parameter::required("value", kind::BYTES, "The string to search."),
+        Parameter::required(
+            "substring",
+            kind::BYTES,
+            "The substring with which `value` must end.",
+        ),
+        Parameter::optional(
+            "case_sensitive",
+            kind::BOOLEAN,
+            "Whether the match should be case sensitive.",
+        )
+        .default(&DEFAULT_CASE_SENSITIVE),
     ]
 });
 

@@ -35,30 +35,20 @@ impl Function for GetEnvVar {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[Parameter {
-            keyword: "name",
-            kind: kind::BYTES,
-            required: true,
-            description: "The name of the environment variable.",
-            default: None,
-        }]
+        const PARAMETERS: &[Parameter] = &[Parameter::required(
+            "name",
+            kind::BYTES,
+            "The name of the environment variable.",
+        )];
+        PARAMETERS
     }
 
-    #[cfg(not(feature = "__mock_return_values_for_tests"))]
-    fn examples(&self) -> &'static [Example] {
-        &[example! {
-            title: "Get an environment variable",
-            source: r#"get_env_var!("HOME") != """#,
-            result: Ok("true"),
-        }]
-    }
-
-    #[cfg(feature = "__mock_return_values_for_tests")]
     fn examples(&self) -> &'static [Example] {
         &[example! {
             title: "Get an environment variable",
             source: r#"get_env_var!("HOME")"#,
             result: Ok("/root"),
+            deterministic: false,
         }]
     }
 
@@ -80,21 +70,9 @@ struct GetEnvVarFn {
 }
 
 impl FunctionExpression for GetEnvVarFn {
-    #[cfg(not(feature = "__mock_return_values_for_tests"))]
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let value = self.name.resolve(ctx)?;
         get_env_var(&value)
-    }
-
-    #[cfg(feature = "__mock_return_values_for_tests")]
-    fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = self.name.resolve(ctx)?;
-        let name = value.try_bytes_utf8_lossy()?;
-        if name.as_ref() == "HOME" {
-            Ok("/root".into())
-        } else {
-            get_env_var(&value)
-        }
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {
