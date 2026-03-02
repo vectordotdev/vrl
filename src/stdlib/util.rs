@@ -146,16 +146,22 @@ pub(crate) fn example_path_or_basename(input: &'static str) -> String {
         .clone()
         .map(|dir| dir.join("tests/data").join(input));
 
-    if let Some(manifest_dir) = manifest_dir
-        && let Some(path) = path
-        && path.exists()
-    {
-        path.relative_to(manifest_dir).unwrap().to_string()
-    } else {
+    let not_found_default = || {
         // Mock repo root
         PathBuf::from("tests/data")
             .join(input)
             .display()
             .to_string()
+    };
+
+    if let Some(manifest_dir) = manifest_dir
+        && let Some(path) = path
+        && path.exists()
+    {
+        path.relative_to(manifest_dir)
+            .map(String::from)
+            .unwrap_or_else(|_| not_found_default())
+    } else {
+        not_found_default()
     }
 }
