@@ -79,6 +79,16 @@ pub fn document_functions_to_dir(
     // Ensure output directory exists
     fs::create_dir_all(output_dir)?;
 
+    // Remove existing files with the target extension so that renamed/deleted
+    // functions don't leave stale files behind.
+    let ext_match = std::ffi::OsStr::new(extension);
+    for entry in fs::read_dir(output_dir)? {
+        let path = entry?.path();
+        if path.extension() == Some(ext_match) {
+            fs::remove_file(&path)?;
+        }
+    }
+
     for doc in build_functions_doc(functions) {
         let filename = format!("{}.{extension}", doc.name);
         let filepath = output_dir.join(&filename);
