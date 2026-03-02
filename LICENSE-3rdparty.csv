@@ -334,7 +334,7 @@ unicode-ident,https://github.com/dtolnay/unicode-ident,(MIT OR Apache-2.0) AND U
 unicode-segmentation,https://github.com/unicode-rs/unicode-segmentation,MIT OR Apache-2.0,"kwantam <kwantam@gmail.com>, Manish Goregaokar <manishsmail@gmail.com>"
 unicode-width,https://github.com/unicode-rs/unicode-width,MIT OR Apache-2.0,"kwantam <kwantam@gmail.com>, Manish Goregaokar <manishsmail@gmail.com>"
 universal-hash,https://github.com/RustCrypto/traits,MIT OR Apache-2.0,RustCrypto Developers
-unsafe-libyaml,https://github.com/dtolnay/unsafe-libyaml,MIT,"David Tolnay <dtolnay@gmail.com>"
+unsafe-libyaml,https://github.com/dtolnay/unsafe-libyaml,MIT,David Tolnay <dtolnay@gmail.com>
 untrusted,https://github.com/briansmith/untrusted,ISC,Brian Smith <brian@briansmith.org>
 url,https://github.com/servo/rust-url,MIT OR Apache-2.0,The rust-url developers
 utf8-width,https://github.com/magiclen/utf8-width,MIT,Magic Len <len@magiclen.org>
