@@ -158,7 +158,8 @@ pub(crate) fn example_path_or_basename(input: &'static str) -> String {
         && let Some(path) = path
         && path.exists()
     {
-        path.relative_to(manifest_dir).map_or_else(|_| not_found_default(), String::from)
+        path.relative_to(manifest_dir)
+            .map_or_else(|_| not_found_default(), String::from)
     } else {
         not_found_default()
     }
