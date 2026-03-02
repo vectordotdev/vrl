@@ -3,14 +3,6 @@ use crate::stdlib::json_utils::bom::StripBomFromUTF8;
 use crate::stdlib::json_utils::json_type_def::json_type_def;
 use std::sync::LazyLock;
 
-static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
-    vec![Parameter::required(
-        "value",
-        kind::BYTES,
-        "The string representation of the YAML to parse.",
-    )]
-});
-
 fn parse_yaml(value: Value) -> Resolved {
     Ok(serde_yaml_ng::from_slice(value.try_bytes()?.strip_bom())
         .map_err(|e| format!("unable to parse yaml: {e}"))?)
@@ -63,7 +55,13 @@ impl Function for ParseYaml {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        PARAMETERS.as_slice()
+        const PARAMETERS: &[Parameter] = &[Parameter::required(
+            "value",
+            kind::BYTES,
+            "The string representation of the YAML to parse.",
+        )];
+
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {
