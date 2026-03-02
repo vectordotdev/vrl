@@ -21,6 +21,7 @@ pub struct Test {
     pub read_only_paths: Vec<(OwnedTargetPath, bool)>,
     pub source_file: String,
     pub source_line: u32,
+    pub check_type_only: bool,
 }
 
 enum CaptureMode {
@@ -143,6 +144,7 @@ impl Test {
             read_only_paths,
             source_file: path.to_string_lossy().to_string(),
             source_line: 1,
+            check_type_only: false,
         }
     }
 
@@ -171,6 +173,7 @@ impl Test {
             read_only_paths: vec![],
             source_file: example.file.to_owned(),
             source_line: example.line,
+            check_type_only: !example.deterministic,
         }
     }
 }

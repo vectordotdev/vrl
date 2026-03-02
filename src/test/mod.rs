@@ -208,6 +208,12 @@ fn process_result(
             let got_value = vrl_value_to_json_value(got);
             let mut failed = false;
 
+            let match_mode = if test.check_type_only {
+                MatchMode::TypeOnly
+            } else {
+                MatchMode::Exact
+            };
+
             let want = test.result.clone();
             let want_value = if want.starts_with("r'") && want.ends_with('\'') {
                 match regex::Regex::new(&want[2..want.len() - 1].replace("\\'", "'")) {
@@ -228,10 +234,13 @@ fn process_result(
                 })
             };
 
-            if got_value == want_value {
-                print!("{timings}{}", Colour::Green.bold().paint("OK"));
+            if match_mode.matches(&got_value, &want_value) {
+                print!(
+                    "{timings}{}",
+                    Colour::Green.bold().paint(match_mode.ok_label())
+                );
             } else {
-                print!("{} (expectation)", Colour::Red.bold().paint("FAILED"));
+                print!("{}", Colour::Red.bold().paint(match_mode.fail_label()));
 
                 if !config.no_diff {
                     let want = serde_json::to_string_pretty(&want_value).unwrap();
@@ -430,6 +439,34 @@ fn vrl_value_to_json_value(value: Value) -> serde_json::Value {
         Value::Timestamp(v) => v.to_rfc3339_opts(SecondsFormat::AutoSi, true).into(),
         Value::Regex(v) => v.to_string().into(),
         Value::Null => Null,
+    }
+}
+
+enum MatchMode {
+    Exact,
+    TypeOnly,
+}
+
+impl MatchMode {
+    fn matches(&self, got: &serde_json::Value, want: &serde_json::Value) -> bool {
+        match self {
+            MatchMode::Exact => got == want,
+            MatchMode::TypeOnly => std::mem::discriminant(got) == std::mem::discriminant(want),
+        }
+    }
+
+    fn ok_label(&self) -> &'static str {
+        match self {
+            MatchMode::Exact => "OK",
+            MatchMode::TypeOnly => "OK (type match)",
+        }
+    }
+
+    fn fail_label(&self) -> &'static str {
+        match self {
+            MatchMode::Exact => "FAILED (expectation)",
+            MatchMode::TypeOnly => "FAILED (type mismatch)",
+        }
     }
 }
 

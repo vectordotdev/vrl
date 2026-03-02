@@ -57,8 +57,6 @@ enable_network_functions = []
 # Testing Utilities. Enables additional tests, including those with external dependencies such as network calls.
 test = ["string_path"]
 
-__mock_return_values_for_tests = []
-
 
 # All stdlib functions
 stdlib = [
