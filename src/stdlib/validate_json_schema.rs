@@ -1,5 +1,6 @@
 use super::util::example_path_or_basename;
 use crate::compiler::prelude::*;
+#[cfg(not(target_arch = "wasm32"))]
 use std::path::PathBuf;
 use std::sync::LazyLock;
 
