@@ -258,6 +258,7 @@ cfg_if::cfg_if! {
         }
 
         stdlib_functions! {
+            // ===== Base stdlib functions (always included with stdlib-base) =====
             self::hmac::Hmac,
             abs::Abs,
             append::Append,
@@ -285,8 +286,6 @@ cfg_if::cfg_if! {
             decrypt_ip::DecryptIp,
             del::Del,
             dirname::DirName,
-            #[cfg(feature = "enable_network_functions")]
-            self::dns_lookup::DnsLookup,
             downcase::Downcase,
             casing::camelcase::Camelcase,
             casing::pascalcase::Pascalcase,
@@ -302,8 +301,6 @@ cfg_if::cfg_if! {
             encode_key_value::EncodeKeyValue,
             encode_logfmt::EncodeLogfmt,
             encode_percent::EncodePercent,
-            #[cfg(feature = "enable_system_functions")]
-            self::encode_proto::EncodeProto,
             encode_punycode::EncodePunycode,
             encode_snappy::EncodeSnappy,
             encode_zlib::EncodeZlib,
@@ -324,14 +321,6 @@ cfg_if::cfg_if! {
             from_unix_timestamp::FromUnixTimestamp,
             self::community_id::CommunityID,
             get::Get,
-            #[cfg(feature = "enable_env_functions")]
-            self::get_env_var::GetEnvVar,
-            #[cfg(feature = "enable_system_functions")]
-            self::get_hostname::GetHostname,
-            #[cfg(feature = "enable_system_functions")]
-            self::get_timezone_name::GetTimezoneName,
-            #[cfg(feature = "enable_network_functions")]
-            self::http_request::HttpRequest,
             haversine::Haversine,
             includes::Includes,
             integer::Integer,
@@ -382,8 +371,6 @@ cfg_if::cfg_if! {
             parse_csv::ParseCsv,
             parse_duration::ParseDuration,
             parse_float::ParseFloat,
-            #[cfg(feature = "enable_system_functions")]
-            self::parse_etld::ParseEtld,
             parse_glog::ParseGlog,
             parse_grok::ParseGrok,
             parse_groks::ParseGroks,
@@ -395,8 +382,6 @@ cfg_if::cfg_if! {
             parse_linux_authorization::ParseLinuxAuthorization,
             parse_logfmt::ParseLogFmt,
             parse_nginx_log::ParseNginxLog,
-            #[cfg(feature = "enable_system_functions")]
-            self::parse_proto::ParseProto,
             parse_query_string::ParseQueryString,
             parse_regex::ParseRegex,
             parse_regex_all::ParseRegexAll,
@@ -418,8 +403,6 @@ cfg_if::cfg_if! {
             remove::Remove,
             replace::Replace,
             replace_with::ReplaceWith,
-            #[cfg(feature = "enable_network_functions")]
-            self::reverse_dns::ReverseDns,
             round::Round,
             set::Set,
             sha2::Sha2,
@@ -458,8 +441,6 @@ cfg_if::cfg_if! {
             uuid_v4::UuidV4,
             uuid_v7::UuidV7,
             values::Values,
-            #[cfg(feature = "enable_system_functions")]
-            self::validate_json_schema::ValidateJsonSchema,
             zip::Zip,
             self::array::Array,
             self::md5::Md5,
@@ -467,9 +448,35 @@ cfg_if::cfg_if! {
             self::sha1::Sha1,
             self::xxhash::Xxhash,
             self::crc::Crc,
+
+            // Environment functions (enable_env_functions)
+            #[cfg(feature = "enable_env_functions")]
+            get_env_var::GetEnvVar,
+
+            // System functions (enable_system_functions)
+            #[cfg(feature = "enable_system_functions")]
+            encode_proto::EncodeProto,
+            #[cfg(feature = "enable_system_functions")]
+            get_hostname::GetHostname,
+            #[cfg(feature = "enable_system_functions")]
+            get_timezone_name::GetTimezoneName,
+            #[cfg(feature = "enable_system_functions")]
+            parse_etld::ParseEtld,
+            #[cfg(feature = "enable_system_functions")]
+            parse_proto::ParseProto,
+            #[cfg(feature = "enable_system_functions")]
+            validate_json_schema::ValidateJsonSchema,
+
+            // Network functions (enable_network_functions)
+            #[cfg(feature = "enable_network_functions")]
+            self::dns_lookup::DnsLookup,
+            #[cfg(feature = "enable_network_functions")]
+            http_request::HttpRequest,
+            #[cfg(feature = "enable_network_functions")]
+            reverse_dns::ReverseDns,
         }
 
         #[cfg(feature = "enable_system_functions")]
-        pub use self::get_timezone_name::get_name_for_timezone;
+        pub use get_timezone_name::get_name_for_timezone;
     }
 }
