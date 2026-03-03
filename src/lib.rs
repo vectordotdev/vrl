@@ -23,10 +23,10 @@ pub mod parser;
 #[cfg(feature = "core")]
 pub mod core;
 
-#[cfg(feature = "stdlib")]
+#[cfg(feature = "stdlib-base")]
 pub mod stdlib;
 
-#[cfg(feature = "stdlib")]
+#[cfg(feature = "stdlib-base")]
 pub mod protobuf;
 
 #[cfg(feature = "cli")]
