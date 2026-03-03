@@ -25,7 +25,7 @@ members = [
 clap = { version = "4", features = ["derive"] }
 
 [features]
-default = ["compiler", "value", "diagnostic", "path", "parser", "stdlib", "datadog", "core", "docs", "enable_env_functions", "enable_system_functions", "enable_network_functions"]
+default = ["compiler", "value", "diagnostic", "path", "parser", "stdlib", "datadog", "core", "enable_env_functions", "enable_system_functions", "enable_network_functions"]
 
 # Main features (on by default)
 compiler = ["diagnostic", "path", "parser", "value", "dep:chrono", "dep:serde", "dep:regex", "dep:bytes", "dep:ordered-float", "dep:chrono-tz", "dep:snafu", "dep:thiserror", "dep:dyn-clone", "dep:indoc", "dep:thiserror", "dep:lalrpop-util"]
