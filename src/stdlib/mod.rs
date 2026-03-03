@@ -71,8 +71,10 @@ cfg_if::cfg_if! {
         mod format_int;
         mod format_number;
         mod format_timestamp;
+        mod from_entries;
         mod from_unix_timestamp;
         mod get;
+        mod to_entries;
         #[cfg(feature = "enable_env_functions")]
         mod get_env_var;
         #[cfg(feature = "enable_system_functions")]
@@ -312,9 +314,11 @@ cfg_if::cfg_if! {
             format_int::FormatInt,
             format_number::FormatNumber,
             format_timestamp::FormatTimestamp,
+            from_entries::FromEntries,
             from_unix_timestamp::FromUnixTimestamp,
             self::community_id::CommunityID,
             get::Get,
+            to_entries::ToEntries,
             #[cfg(feature = "enable_env_functions")]
             get_env_var::GetEnvVar,
             #[cfg(feature = "enable_system_functions")]
