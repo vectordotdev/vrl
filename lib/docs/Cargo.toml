@@ -12,7 +12,7 @@ path = "src/main.rs"
 
 [dependencies]
 clap.workspace = true
-vrl = { path = "../../" }
+vrl = { path = "../../", features = ["docs"] }
 
 [features]
 default = []
