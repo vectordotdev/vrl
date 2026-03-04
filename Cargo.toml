@@ -59,8 +59,16 @@ test = ["string_path"]
 
 docs = ["stdlib", "indexmap/serde", "serde_json/preserve_order", "dep:clap", "dep:thiserror", "dep:exitcode"]
 
-# All stdlib functions
+# All stdlib functions (base + all enable_* features)
 stdlib = [
+  "stdlib-base",
+  "enable_env_functions",
+  "enable_system_functions",
+  "enable_network_functions"
+]
+
+# Base stdlib functionality (without enable_* features)
+stdlib-base = [
   "compiler",
   "core",
   "datadog",

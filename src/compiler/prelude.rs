@@ -27,7 +27,7 @@ pub use super::{
     value::{ValueError, VrlValueArithmetic, VrlValueConvert, kind},
 };
 
-#[cfg(feature = "stdlib")]
+#[cfg(feature = "stdlib-base")]
 pub use super::Category;
 
 pub type ExpressionResult<T> = Result<T, ExpressionError>;

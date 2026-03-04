@@ -5,7 +5,7 @@ use crate::prelude::*;
 use crate::value;
 
 cfg_if::cfg_if! {
-    if #[cfg(feature = "stdlib")] {
+    if #[cfg(feature = "stdlib-base")] {
         pub(crate) mod camelcase;
         pub(crate) mod pascalcase;
         pub(crate) mod snakecase;
