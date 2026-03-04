@@ -7,6 +7,9 @@ on:
       - opened
       - reopened
 
+permissions:
+  contents: read
+
 jobs:
   add-contributor-to-project:
     name: Add contributor PR to Gardener project board
