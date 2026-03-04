@@ -57,8 +57,16 @@ enable_network_functions = ["dep:reqwest", "dep:reqwest-middleware", "dep:reqwes
 test = ["string_path"]
 
 
-# All stdlib functions
+# All stdlib functions (base + all enable_* features)
 stdlib = [
+  "stdlib-base",
+  "enable_env_functions",
+  "enable_system_functions",
+  "enable_network_functions"
+]
+
+# Base stdlib functionality (without enable_* features)
+stdlib-base = [
   "compiler",
   "core",
   "datadog",
