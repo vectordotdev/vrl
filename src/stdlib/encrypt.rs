@@ -251,12 +251,22 @@ A new IV should be generated for every message. You can use `random_bytes` to ge
         &[
             example! {
                     title: "Encrypt value using AES-256-CFB",
-                    source: r#"encode_base64(encrypt!("data", "AES-256-CFB", key: "01234567890123456789012345678912", iv: "0123456789012345"))"#,
+                    source: indoc! {r#"
+                        iv = "0123456789012345" # typically you would call random_bytes(16)
+                        key = "01234567890123456789012345678912"
+                        encrypted_message = encrypt!("data", "AES-256-CFB", key: key, iv: iv)
+                        encode_base64(encrypted_message)
+                    "#},
             result: Ok("c/dIOA=="),
                 },
             example! {
                 title: "Encrypt value using AES-128-CBC-PKCS7",
-                source: r#"encode_base64(encrypt!("super secret message", "AES-128-CBC-PKCS7", key: "16_byte_keyxxxxx", iv: "1234567890123456"))"#,
+                source: indoc! {r#"
+                    iv = "1234567890123456" # typically you would call random_bytes(16)
+                    key = "16_byte_keyxxxxx"
+                    encrypted_message = encrypt!("super secret message", "AES-128-CBC-PKCS7", key: key, iv: iv)
+                    encode_base64(encrypted_message)
+                "#},
                 result: Ok("GBw8Mu00v0Kc38+/PvsVtGgWuUJ+ZNLgF8Opy8ohIYE="),
             },
         ]

@@ -80,12 +80,24 @@ impl Function for ForEach {
             },
             example! {
                 title: "Iterate over an object",
-                source: r#"count = 0; for_each({ "a": 1, "b": 2 }) -> |_key, value| { count = count + value }; count"#,
+                source: indoc! {r#"
+                    count = 0
+                    for_each({ "a": 1, "b": 2 }) -> |_key, value| {
+                        count = count + value
+                    }
+                    count
+                "#},
                 result: Ok("3"),
             },
             example! {
                 title: "Iterate over an array",
-                source: "count = 0; for_each([1,2,3]) -> |index, value| { count = count + index + value }; count",
+                source: indoc! {"
+                    count = 0
+                    for_each([1, 2, 3]) -> |index, value| {
+                        count = count + index + value
+                    }
+                    count
+                "},
                 result: Ok("9"),
             },
         ]

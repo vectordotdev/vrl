@@ -129,7 +129,7 @@ impl Function for Snakecase {
             },
             example! {
                 title: "snake_case with excluded boundaries",
-                source: r#"snakecase("s3BucketDetails", excluded_boundaries: ["digit_lower", "lower_digit", "upper_digit"])"#,
+                source: r#"snakecase("s3BucketDetails", excluded_boundaries: ["lower_digit"])"#,
                 result: Ok("s3_bucket_details"),
             },
         ]

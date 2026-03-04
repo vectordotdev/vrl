@@ -51,10 +51,8 @@ impl Function for Array {
         &[
             example! {
                 title: "Declare an array type",
-                source: indoc! {"
-                    .value = [1, 2, 3]
-                    array(.value)
-                "},
+                source: "array!(.value)",
+                input: r#"{"value": [1, 2, 3]}"#,
                 result: Ok("[1,2,3]"),
             },
             example! {

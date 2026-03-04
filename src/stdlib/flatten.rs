@@ -78,7 +78,17 @@ impl Function for Flatten {
             },
             example! {
                 title: "Flatten object",
-                source: r#"flatten({ "parent1": { "child1": 1, "child2": 2 }, "parent2": { "child3": 3 } })"#,
+                source: indoc! {r#"
+                    flatten({
+                        "parent1": {
+                            "child1": 1,
+                            "child2": 2
+                        },
+                        "parent2": {
+                            "child3": 3
+                        }
+                    })
+                "#},
                 result: Ok(r#"{ "parent1.child1": 1, "parent1.child2": 2, "parent2.child3": 3 }"#),
             },
             example! {

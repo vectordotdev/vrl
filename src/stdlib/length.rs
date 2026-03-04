@@ -63,12 +63,28 @@ impl Function for Length {
         &[
             example! {
                 title: "Length (object)",
-                source: r#"length({ "portland": "Trail Blazers", "seattle": "Supersonics" })"#,
+                source: indoc! {r#"
+                    length({
+                        "portland": "Trail Blazers",
+                        "seattle": "Supersonics"
+                    })
+                "#},
                 result: Ok("2"),
             },
             example! {
                 title: "Length (nested object)",
-                source: r#"length({ "home": { "city": "Portland", "state": "Oregon" }, "name": "Trail Blazers", "mascot": { "name": "Blaze the Trail Cat" } })"#,
+                source: indoc! {r#"
+                    length({
+                        "home": {
+                            "city":  "Portland",
+                            "state": "Oregon"
+                        },
+                        "name": "Trail Blazers",
+                        "mascot": {
+                            "name": "Blaze the Trail Cat"
+                        }
+                    })
+                "#},
                 result: Ok("3"),
             },
             example! {

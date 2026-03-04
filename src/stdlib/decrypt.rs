@@ -189,12 +189,22 @@ The value should match the one used during encryption."),
         &[
             example! {
                 title: "Decrypt value using AES-256-CFB",
-                source: r#"decrypt!(decode_base64!("c/dIOA=="), "AES-256-CFB", key: "01234567890123456789012345678912", iv: "0123456789012345")"#,
+                source: indoc! {r#"
+                    iv = "0123456789012345"
+                    key = "01234567890123456789012345678912"
+                    ciphertext = decode_base64!("c/dIOA==")
+                    decrypt!(ciphertext, "AES-256-CFB", key: key, iv: iv)
+                "#},
                 result: Ok("data"),
             },
             example! {
                 title: "Decrypt value using AES-128-CBC-PKCS7",
-                source: r#"decrypt!(decode_base64!("5fLGcu1VHdzsPcGNDio7asLqE1P43QrVfPfmP4i4zOU="), "AES-128-CBC-PKCS7", key: "16_byte_keyxxxxx", iv: decode_base64!("fVEIRkIiczCRWNxaarsyxA=="))"#,
+                source: indoc! {r#"
+                    iv = decode_base64!("fVEIRkIiczCRWNxaarsyxA==")
+                    key = "16_byte_keyxxxxx"
+                    ciphertext = decode_base64!("5fLGcu1VHdzsPcGNDio7asLqE1P43QrVfPfmP4i4zOU=")
+                    decrypt!(ciphertext, "AES-128-CBC-PKCS7", key: key, iv: iv)
+                "#},
                 result: Ok("super_secret_message"),
             },
         ]

@@ -106,12 +106,12 @@ impl Function for Compact {
                 result: Ok("[true]"),
             },
             example! {
-                title: "Compact a more complex object with default parameters",
+                title: "Compact a complex object with default parameters",
                 source: r#"compact({ "a": {}, "b": null, "c": [null], "d": "", "e": "-", "f": true })"#,
                 result: Ok(r#"{ "e": "-", "f": true }"#),
             },
             example! {
-                title: "Compact a more complex object using null: false",
+                title: "Compact a complex object using null: false",
                 source: r#"compact({ "a": {}, "b": null, "c": [null], "d": "", "e": "-", "f": true }, null: false)"#,
                 result: Ok(r#"{ "b": null, "c": [null], "e": "-", "f": true }"#),
             },

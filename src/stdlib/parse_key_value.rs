@@ -40,9 +40,9 @@ static WHITESPACE_ENUM: &[EnumVariant] = &[
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
         Parameter::required("value", kind::BYTES, "The string to parse."),
-        Parameter::optional("key_value_delimiter", kind::ANY, "The string that separates the key from the value.")
+        Parameter::optional("key_value_delimiter", kind::BYTES, "The string that separates the key from the value.")
             .default(&DEFAULT_KEY_VALUE_DELIMITER),
-        Parameter::optional("field_delimiter", kind::ANY, "The string that separates each key-value pair.")
+        Parameter::optional("field_delimiter", kind::BYTES, "The string that separates each key-value pair.")
             .default(&DEFAULT_FIELD_DELIMITER),
         Parameter::optional("whitespace", kind::BYTES, "Defines the acceptance of unnecessary whitespace surrounding the configured `key_value_delimiter`.")
             .default(&DEFAULT_WHITESPACE)
