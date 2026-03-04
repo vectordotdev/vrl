@@ -498,7 +498,7 @@ mod tests {
             headers: Some(expr!({})),
             body: Some(expr!("")),
             client_or_proxies: ClientOrProxies::no_proxies(),
-            redact_headers: expr!(true),
+            redact_headers: Some(expr!(true)),
         };
 
         let result = execute_http_request(&func).expect("HTTP request failed");
@@ -521,7 +521,7 @@ mod tests {
             headers: Some(expr!({})),
             body: Some(expr!("")),
             client_or_proxies: ClientOrProxies::no_proxies(),
-            redact_headers: expr!(true),
+            redact_headers: Some(expr!(true)),
         };
 
         let result = execute_http_request(&func);
@@ -538,7 +538,7 @@ mod tests {
             headers: Some(expr!({"Invalid Header With Spaces": "value"})),
             body: Some(expr!("")),
             client_or_proxies: ClientOrProxies::no_proxies(),
-            redact_headers: expr!(true),
+            redact_headers: Some(expr!(true)),
         };
 
         let result = execute_http_request(&func);
@@ -558,7 +558,7 @@ mod tests {
                 None,
                 Some(expr!("not^a&valid*url")),
             ),
-            redact_headers: expr!(true),
+            redact_headers: Some(expr!(true)),
         };
 
         let result = execute_http_request(&func);
@@ -582,7 +582,7 @@ mod tests {
             })),
             body: Some(expr!("")),
             client_or_proxies: ClientOrProxies::no_proxies(),
-            redact_headers: expr!(true),
+            redact_headers: Some(expr!(true)),
         };
 
         let result = execute_http_request(&func);
@@ -626,7 +626,7 @@ mod tests {
             })),
             body: Some(expr!("")),
             client_or_proxies: ClientOrProxies::no_proxies(),
-            redact_headers: expr!(false),
+            redact_headers: Some(expr!(false)),
         };
 
         let result = execute_http_request(&func);
