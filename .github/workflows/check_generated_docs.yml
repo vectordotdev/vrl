@@ -73,29 +73,8 @@ jobs:
           git commit -m "$COMMIT_MESSAGE"
           git push origin HEAD:refs/heads/${{ github.head_ref }}
 
-      - name: Save PR number for comment workflow
-        if: >
-          steps.check.outputs.changed == 'true'
-          && steps.last-commit.outputs.is-auto != 'true'
-          && github.event_name == 'pull_request'
-          && steps.push.outcome != 'success'
-        run: |
-          mkdir -p /tmp/docs-check
-          echo "${{ github.event.pull_request.number }}" > /tmp/docs-check/pr-number
-
-      - name: Upload PR metadata
-        if: >
-          steps.check.outputs.changed == 'true'
-          && steps.last-commit.outputs.is-auto != 'true'
-          && github.event_name == 'pull_request'
-          && steps.push.outcome != 'success'
-        uses: actions/upload-artifact@v4
-        with:
-          name: docs-check-pr
-          path: /tmp/docs-check/pr-number
-
       - name: Fail if docs are out of date
         if: steps.check.outputs.changed == 'true' && steps.push.outcome != 'success'
         run: |
-          echo "docs/generated/ is out of date. Regenerate with: ./scripts/generate_docs.sh"
+          echo "::error::docs/generated/ is out of date. Please run './scripts/generate_docs.sh' and commit changes."
           exit 1
