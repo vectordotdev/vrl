@@ -54,6 +54,15 @@
       "type": [
         "string"
       ]
+    },
+    {
+      "name": "redact_headers",
+      "description": "Whether to redact sensitive header values in error messages.",
+      "required": false,
+      "type": [
+        "boolean"
+      ],
+      "default": "true"
     }
   ],
   "return": {
