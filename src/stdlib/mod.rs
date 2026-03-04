@@ -3,7 +3,6 @@ pub use wasm_unsupported_function::WasmUnsupportedFunction;
 
 use crate::compiler::Function;
 
-mod ip_utils;
 mod json_utils;
 mod string_utils;
 mod util;
@@ -225,6 +224,7 @@ cfg_if::cfg_if! {
                 mod encrypt;
                 mod encrypt_ip;
                 mod hmac;
+                mod ip_utils;
                 mod seahash;
                 mod sha1;
                 mod sha2;
