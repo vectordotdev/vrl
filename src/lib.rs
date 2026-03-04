@@ -29,6 +29,9 @@ pub mod stdlib;
 #[cfg(feature = "stdlib-base")]
 pub mod protobuf;
 
+#[cfg(feature = "docs")]
+pub mod docs;
+
 #[cfg(feature = "cli")]
 pub mod cli;
 
