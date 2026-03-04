@@ -21,7 +21,7 @@ impl Function for Abs {
     }
 
     fn usage(&self) -> &'static str {
-        "Computes the absolute value of `value`."
+        "Computes the absolute value of `value`. I'm out of date now"
     }
 
     fn category(&self) -> &'static str {
