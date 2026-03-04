@@ -2,15 +2,16 @@ name: Check Generated Docs Freshness
 
 on:
   pull_request:
+    paths:
+      - "src/**"
+      - "lib/docs/**"
+      - "scripts/generate_docs.sh"
+      - ".github/workflows/check_generated_docs.yml"
   merge_group:
     types: [checks_requested]
   push:
     branches:
       - main
-
-permissions:
-  contents: write
-  pull-requests: write
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.number || github.sha }}
@@ -23,6 +24,9 @@ env:
 jobs:
   check-generated-docs:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
       - uses: actions/checkout@v6
         with:
@@ -36,7 +40,7 @@ jobs:
       - name: Check for changes
         id: check
         run: |
-          git add docs/
+          git add docs/generated/
           if git diff --cached --quiet; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
           else
@@ -78,15 +82,32 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            await github.rest.issues.createComment({
+            const marker = '<!-- generated-docs-check -->';
+            const body = marker + '\nThe `docs/generated/` folder is out of date but I was unable to push the fix automatically.\n\nPlease run the following and commit the result:\n\n```\n./scripts/generate_docs.sh\n```';
+            const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
-              body: 'The `docs/` folder is out of date but I was unable to push the fix automatically.\n\nPlease run the following and commit the result:\n\n```\n./scripts/generate_docs.sh\n```'
             });
+            const existing = comments.find(c => c.body.startsWith(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
 
       - name: Fail if docs are out of date
         if: steps.check.outputs.changed == 'true' && steps.push.outcome != 'success'
         run: |
-          echo "docs/ is out of date. Regenerate with: ./scripts/generate_docs.sh"
+          echo "docs/generated/ is out of date. Regenerate with: ./scripts/generate_docs.sh"
           exit 1
