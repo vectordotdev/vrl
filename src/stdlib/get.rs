@@ -118,10 +118,8 @@ impl Function for Get {
             },
             example! {
                 title: "External target",
-                source: indoc! {r#"
-                    . = { "foo": true }
-                    get!(value: ., path: ["foo"])
-                "#},
+                source: r#"get!(value: ., path: ["foo"])"#,
+                input: r#"{ "foo": true }"#,
                 result: Ok("true"),
             },
             example! {

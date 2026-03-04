@@ -113,9 +113,13 @@ pub trait Function: Send + Sync + fmt::Debug {
 pub struct Example {
     pub title: &'static str,
     pub source: &'static str,
+    pub input: Option<&'static str>,
     pub result: Result<&'static str, &'static str>,
     pub file: &'static str,
     pub line: u32,
+    /// Whether this example produces deterministic output.
+    /// When false, tests validate output type instead of exact value.
+    pub deterministic: bool,
 }
 
 /// Macro to create an Example with automatic source location tracking
@@ -124,14 +128,48 @@ macro_rules! example {
     (
         title: $title:expr,
         source: $source:expr,
+        input: $input:expr,
         result: $result:expr $(,)?
     ) => {
         $crate::compiler::function::Example {
             title: $title,
             source: $source,
+            input: Some($input),
             result: $result,
             file: file!(),
             line: line!(),
+            deterministic: true,
+        }
+    };
+    (
+        title: $title:expr,
+        source: $source:expr,
+        result: $result:expr $(,)?
+    ) => {
+        $crate::compiler::function::Example {
+            title: $title,
+            source: $source,
+            input: None,
+            result: $result,
+            file: file!(),
+            line: line!(),
+            deterministic: true,
+        }
+    };
+    (
+        title: $title:expr,
+        source: $source:expr,
+        result: $result:expr,
+        deterministic: $det:expr $(,)?
+    ) => {
+        $crate::compiler::function::Example {
+            title: $title,
+            source: $source,
+            input: None,
+            result: $result,
+            file: file!(),
+            line: line!(),
+            deterministic: $det,
         }
     };
 }

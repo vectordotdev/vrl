@@ -311,7 +311,14 @@ impl Function for HttpRequest {
     }
 
     fn usage(&self) -> &'static str {
-        "Makes an HTTP request to the specified URL. This function performs synchronous blocking operations and is not recommended for frequent or performance-critical workflows due to potential network-related delays."
+        "Makes an HTTP request to the specified URL."
+    }
+
+    fn notices(&self) -> &'static [&'static str] {
+        &[indoc! {"
+            This function performs synchronous blocking operations and is not recommended for
+            frequent or performance-critical workflows due to potential network-related delays.
+        "}]
     }
 
     fn category(&self) -> &'static str {
@@ -422,9 +429,9 @@ mod tests {
     async fn test_basic_get_request() {
         let func: HttpRequestFn = HttpRequestFn {
             url: expr!("https://httpbin.org/get"),
-            method: expr!("get"),
-            headers: expr!({}),
-            body: expr!(""),
+            method: Some(expr!("get")),
+            headers: Some(expr!({})),
+            body: Some(expr!("")),
             client_or_proxies: ClientOrProxies::no_proxies(),
         };
 
@@ -444,9 +451,9 @@ mod tests {
     async fn test_malformed_url() {
         let func = HttpRequestFn {
             url: expr!("not-a-valid-url"),
-            method: expr!("get"),
-            headers: expr!({}),
-            body: expr!(""),
+            method: Some(expr!("get")),
+            headers: Some(expr!({})),
+            body: Some(expr!("")),
             client_or_proxies: ClientOrProxies::no_proxies(),
         };
 
@@ -460,9 +467,9 @@ mod tests {
     async fn test_invalid_header() {
         let func = HttpRequestFn {
             url: expr!("https://httpbin.org/get"),
-            method: expr!("get"),
-            headers: expr!({"Invalid Header With Spaces": "value"}),
-            body: expr!(""),
+            method: Some(expr!("get")),
+            headers: Some(expr!({"Invalid Header With Spaces": "value"})),
+            body: Some(expr!("")),
             client_or_proxies: ClientOrProxies::no_proxies(),
         };
 
@@ -476,9 +483,9 @@ mod tests {
     async fn test_invalid_proxy() {
         let func = HttpRequestFn {
             url: expr!("https://httpbin.org/get"),
-            method: expr!("get"),
-            headers: expr!({}),
-            body: expr!(""),
+            method: Some(expr!("get")),
+            headers: Some(expr!({})),
+            body: Some(expr!("")),
             client_or_proxies: ClientOrProxies::new_proxies_no_const_resolve(
                 None,
                 Some(expr!("not^a&valid*url")),

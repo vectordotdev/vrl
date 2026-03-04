@@ -21,7 +21,7 @@ impl Function for DecodeMimeQ {
     }
 
     fn usage(&self) -> &'static str {
-        "Replaces q-encoded or base64-encoded [encoded-word](https://datatracker.ietf.org/doc/html/rfc2047#section-2)) substrings in the `value` with their original string."
+        "Replaces q-encoded or base64-encoded [encoded-word](https://datatracker.ietf.org/doc/html/rfc2047#section-2) substrings in the `value` with their original string."
     }
 
     fn category(&self) -> &'static str {

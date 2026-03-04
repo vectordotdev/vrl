@@ -165,6 +165,11 @@ impl Function for FormatNumber {
                 source: r#"format_number(4672.4, decimal_separator: ",", grouping_separator: "_")"#,
                 result: Ok("4_672,4"),
             },
+            example! {
+                title: "Format a number with a middle dot separator",
+                source: r#"format_number(4321.09, 3, decimal_separator: "·")"#,
+                result: Ok("4321·090"),
+            },
         ]
     }
 }

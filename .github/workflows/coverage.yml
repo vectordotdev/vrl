@@ -1,0 +1,40 @@
+name: Code Coverage
+
+on:
+  push:
+    branches:
+      - main
+  schedule:
+    - cron: '0 5 * * MON'  # Weekly on Monday at 5 AM UTC
+  workflow_dispatch:  # Allow manual trigger from GitHub UI
+
+env:
+  RUST_BACKTRACE: full
+  CI: true
+  CARGO_INCREMENTAL: '0'  # Disable incremental compilation for coverage
+
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: Swatinem/rust-cache@v2
+
+      - name: "Install llvm-tools-preview"
+        run: rustup component add llvm-tools-preview
+
+      - name: "Install cargo-llvm-cov"
+        run: cargo install cargo-llvm-cov
+
+      - name: "Generate code coverage"
+        run: cargo llvm-cov --all-features --workspace --lcov --output-path lcov.info
+
+      - name: "Install datadog-ci"
+        run: npm install -g @datadog/datadog-ci
+
+      - name: "Upload coverage to Datadog"
+        env:
+          DD_API_KEY: ${{ secrets.DD_API_KEY }}
+          DD_SITE: datadoghq.com
+          DD_ENV: ci
+        run: datadog-ci coverage upload lcov.info

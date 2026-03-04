@@ -1,8 +1,8 @@
+use super::util::example_path_or_basename;
 use crate::compiler::prelude::*;
 use crate::protobuf::descriptor::get_message_descriptor;
 use crate::protobuf::encode::encode_proto;
 use prost_reflect::MessageDescriptor;
-use std::env;
 use std::ffi::OsString;
 use std::path::Path;
 use std::path::PathBuf;
@@ -14,10 +14,7 @@ pub struct EncodeProto;
 // This needs to be static because parse_proto needs to read a file
 // and the file path needs to be a literal.
 static EXAMPLE_ENCODE_PROTO_EXPR: LazyLock<&str> = LazyLock::new(|| {
-    let path = PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap())
-        .join("../../tests/data/protobuf/test_protobuf/v1/test_protobuf.desc")
-        .display()
-        .to_string();
+    let path = example_path_or_basename("protobuf/test_protobuf/v1/test_protobuf.desc");
 
     Box::leak(
         format!(
@@ -45,9 +42,7 @@ impl Function for EncodeProto {
     }
 
     fn usage(&self) -> &'static str {
-        indoc! {"
-            Parses the provided `value` as protocol buffer.
-        "}
+        "Encodes the `value` into a protocol buffer payload."
     }
 
     fn category(&self) -> &'static str {
@@ -140,7 +135,7 @@ impl FunctionExpression for EncodeProtoFn {
 mod tests {
     use super::*;
     use crate::value;
-    use std::fs;
+    use std::{env, fs};
 
     fn test_data_dir() -> PathBuf {
         PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap()).join("tests/data/protobuf")

@@ -62,7 +62,7 @@ impl Function for Xxhash {
     }
 
     fn usage(&self) -> &'static str {
-        "xxhash"
+        "Calculates a [xxHash](https://github.com/DoumanAsh/xxhash-rust) hash of the `value`."
     }
 
     fn category(&self) -> &'static str {
@@ -75,6 +75,15 @@ impl Function for Xxhash {
 
     fn parameters(&self) -> &'static [Parameter] {
         PARAMETERS.as_slice()
+    }
+
+    fn notices(&self) -> &'static [&'static str] {
+        &[indoc! {"
+            Due to limitations in the underlying VRL data types, this function converts the unsigned
+            64-bit integer hash result to a signed 64-bit integer. Results higher than the signed
+            64-bit integer maximum value wrap around to negative values. For the XXH3-128 hash
+            algorithm, values are returned as a string.
+        "}]
     }
 
     fn examples(&self) -> &'static [Example] {

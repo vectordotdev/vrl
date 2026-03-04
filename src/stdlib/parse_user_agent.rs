@@ -66,7 +66,8 @@ impl Function for ParseUserAgent {
 
     fn usage(&self) -> &'static str {
         indoc! {"
-            Parses the provided `value` as a user agent.
+            Parses the provided `value` as a user agent, which has
+            [a loosely defined format](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/User-Agent).
 
             Parses on the basis of best effort. Returned schema depends only on the configured `mode`,
             so if the function fails to parse a field it will set it to `null`.
@@ -100,24 +101,83 @@ impl Function for ParseUserAgent {
         &[
             example! {
                 title: "Fast mode",
-                source: r#"parse_user_agent("Mozilla Firefox 1.0.1 Mozilla/5.0 (X11; U; Linux i686; de-DE; rv:1.7.6) Gecko/20050223 Firefox/1.0.1")"#,
-                result: Ok(
-                    r#"{ "browser": { "family": "Firefox", "version": "1.0.1" }, "device": { "category": "pc" }, "os": { "family": "Linux", "version": null } }"#,
-                ),
+                source: indoc! {r#"
+                    parse_user_agent(
+                        "Mozilla Firefox 1.0.1 Mozilla/5.0 (X11; U; Linux i686; de-DE; rv:1.7.6) Gecko/20050223 Firefox/1.0.1"
+                    )
+                "#},
+                result: Ok(indoc! {r#"
+                    {
+                        "browser": {
+                            "family": "Firefox",
+                            "version": "1.0.1"
+                        },
+                        "device": {
+                            "category": "pc"
+                        },
+                        "os": {
+                            "family": "Linux",
+                            "version": null
+                        }
+                    }
+                    "#}),
             },
             example! {
                 title: "Reliable mode",
-                source: r#"parse_user_agent("Mozilla/4.0 (compatible; MSIE 7.66; Windows NT 5.1; SV1; .NET CLR 1.1.4322)", mode: "reliable")"#,
-                result: Ok(
-                    r#"{ "browser": { "family": "Internet Explorer", "version": "7.66" }, "device": { "category": "pc" }, "os": { "family": "Windows XP", "version": "NT 5.1" } }"#,
-                ),
+                source: indoc! {r#"
+                    parse_user_agent(
+                        "Mozilla/4.0 (compatible; MSIE 7.66; Windows NT 5.1; SV1; .NET CLR 1.1.4322)",
+                        mode: "reliable")
+                "#},
+                result: Ok(indoc! {r#"
+                    {
+                        "browser": {
+                            "family": "Internet Explorer",
+                            "version": "7.66"
+                        },
+                        "device": {
+                            "category": "pc"
+                        },
+                        "os": {
+                            "family": "Windows XP",
+                            "version": "NT 5.1"
+                        }
+                    }
+                    "#}),
             },
             example! {
                 title: "Enriched mode",
-                source: r#"parse_user_agent("Opera/9.80 (J2ME/MIDP; Opera Mini/4.3.24214; iPhone; CPU iPhone OS 4_2_1 like Mac OS X; AppleWebKit/24.783; U; en) Presto/2.5.25 Version/10.54", mode: "enriched")"#,
-                result: Ok(
-                    r#"{ "browser": { "family": "Opera Mini", "major": "4", "minor": "3", "patch": "24214", "version": "10.54" }, "device": { "brand": "Apple", "category": "smartphone", "family": "iPhone", "model": "iPhone" }, "os": { "family": "iOS", "major": "4", "minor": "2", "patch": "1", "patch_minor": null, "version": "4.2.1" } }"#,
-                ),
+                source: indoc! {r#"
+                    parse_user_agent(
+                        "Opera/9.80 (J2ME/MIDP; Opera Mini/4.3.24214; iPhone; CPU iPhone OS 4_2_1 like Mac OS X; AppleWebKit/24.783; U; en) Presto/2.5.25 Version/10.54",
+                        mode: "enriched"
+                    )
+                "#},
+                result: Ok(indoc! {r#"
+                    {
+                        "browser": {
+                            "family": "Opera Mini",
+                            "major": "4",
+                            "minor": "3",
+                            "patch": "24214",
+                            "version": "10.54"
+                        },
+                        "device": {
+                            "brand": "Apple",
+                            "category": "smartphone",
+                            "family": "iPhone",
+                            "model": "iPhone"
+                        },
+                        "os": {
+                            "family": "iOS",
+                            "major": "4",
+                            "minor": "2",
+                            "patch": "1",
+                            "patch_minor": null,
+                            "version": "4.2.1"
+                        }
+                    }
+                    "#}),
             },
         ]
     }

@@ -138,7 +138,14 @@ impl Function for DecryptIp {
             },
             example! {
                 title: "Round-trip encryption and decryption",
-                source: r#"decrypt_ip!(encrypt_ip!("192.168.1.100", "sixteen byte key", "aes128"), "sixteen byte key", "aes128")"#,
+                source: indoc! {r#"
+                    original_ip = "192.168.1.100"
+                    key = "sixteen byte key"
+                    mode = "aes128"
+
+                    encrypted = encrypt_ip!(original_ip, key, mode)
+                    decrypt_ip!(encrypted, key, mode)
+                "#},
                 result: Ok("192.168.1.100"),
             },
         ]

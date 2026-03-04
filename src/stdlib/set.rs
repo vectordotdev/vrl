@@ -117,10 +117,8 @@ impl Function for Set {
             },
             example! {
                 title: "External target",
-                source: indoc! {r#"
-                    . = { "foo": true }
-                    set!(value: ., path: ["bar"], data: "baz")
-                "#},
+                source: r#"set!(value: ., path: ["bar"], data: "baz")"#,
+                input: r#"{ "foo": true }"#,
                 result: Ok(r#"{ "foo": true, "bar": "baz" }"#),
             },
             example! {

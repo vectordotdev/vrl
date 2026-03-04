@@ -110,7 +110,7 @@ impl Function for ParseGroks {
             "`value` fails to parse using the provided `pattern`.",
             "`patterns` is not an array.",
             "`aliases` is not an object.",
-            "`alias_sources` is not a string or doesn't point to a valid file.",
+            "`alias_sources` is not a string array or doesn't point to a valid file.",
         ]
     }
 

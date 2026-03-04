@@ -109,32 +109,79 @@ impl Function for EncodeKeyValue {
         &[
             example! {
                 title: "Encode with default delimiters (no ordering)",
-                source: r#"encode_key_value({"ts": "2021-06-05T17:20:00Z", "msg": "This is a message", "lvl": "info"})"#,
+                source: indoc! {r#"
+                    encode_key_value(
+                        {
+                            "ts": "2021-06-05T17:20:00Z",
+                            "msg": "This is a message",
+                            "lvl": "info"
+                        }
+                    )
+                "#},
                 result: Ok(r#"lvl=info msg="This is a message" ts=2021-06-05T17:20:00Z"#),
             },
             example! {
                 title: "Encode with default delimiters (fields ordering)",
-                source: r#"encode_key_value!({"ts": "2021-06-05T17:20:00Z", "msg": "This is a message", "lvl": "info", "log_id": 12345}, ["ts", "lvl", "msg"])"#,
+                source: indoc! {r#"
+                    encode_key_value!(
+                        {
+                            "ts": "2021-06-05T17:20:00Z",
+                            "msg": "This is a message",
+                            "lvl": "info",
+                            "log_id": 12345
+                        },
+                        ["ts", "lvl", "msg"]
+                    )
+                "#},
                 result: Ok(r#"ts=2021-06-05T17:20:00Z lvl=info msg="This is a message" log_id=12345"#),
             },
             example! {
                 title: "Encode with default delimiters (nested fields)",
-                source: r#"encode_key_value({"agent": {"name": "foo"}, "log": {"file": {"path": "my.log"}}, "event": "log"})"#,
+                source: indoc! {r#"
+                    encode_key_value(
+                        {
+                            "agent": {"name": "foo"},
+                            "log": {"file": {"path": "my.log"}},
+                            "event": "log"
+                        }
+                    )
+                "#},
                 result: Ok(r"agent.name=foo event=log log.file.path=my.log"),
             },
             example! {
                 title: "Encode with default delimiters (nested fields ordering)",
-                source: r#"encode_key_value!({"agent": {"name": "foo"}, "log": {"file": {"path": "my.log"}}, "event": "log"}, ["event", "log.file.path", "agent.name"])"#,
+                source: indoc! {r#"
+                    encode_key_value!(
+                        {
+                            "agent": {"name": "foo"},
+                            "log": {"file": {"path": "my.log"}},
+                            "event": "log"
+                        },
+                        ["event", "log.file.path", "agent.name"])
+                "#},
                 result: Ok(r"event=log log.file.path=my.log agent.name=foo"),
             },
             example! {
                 title: "Encode with custom delimiters (no ordering)",
-                source: r#"encode_key_value({"ts": "2021-06-05T17:20:00Z", "msg": "This is a message", "lvl": "info"}, field_delimiter: ",", key_value_delimiter: ":")"#,
+                source: indoc! {r#"
+                    encode_key_value(
+                        {"ts": "2021-06-05T17:20:00Z", "msg": "This is a message", "lvl": "info"},
+                        field_delimiter: ",",
+                        key_value_delimiter: ":"
+                    )
+                "#},
                 result: Ok(r#"lvl:info,msg:"This is a message",ts:2021-06-05T17:20:00Z"#),
             },
             example! {
                 title: "Encode with custom delimiters and flatten boolean",
-                source: r#"encode_key_value({"ts": "2021-06-05T17:20:00Z", "msg": "This is a message", "lvl": "info", "beta": true, "dropped": false}, field_delimiter: ",", key_value_delimiter: ":", flatten_boolean: true)"#,
+                source: indoc! {r#"
+                    encode_key_value(
+                        {"ts": "2021-06-05T17:20:00Z", "msg": "This is a message", "lvl": "info", "beta": true, "dropped": false},
+                        field_delimiter: ",",
+                        key_value_delimiter: ":",
+                        flatten_boolean: true
+                    )
+                "#},
                 result: Ok(r#"beta,lvl:info,msg:"This is a message",ts:2021-06-05T17:20:00Z"#),
             },
         ]

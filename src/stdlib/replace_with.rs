@@ -202,12 +202,20 @@ impl Function for ReplaceWith {
             },
             example! {
                 title: "Replace with processed capture group",
-                source: r#"replace_with(s'Got message: {"msg": "b"}', r'message: (\{.*\})') -> |m| { to_string!(parse_json!(m.captures[0]).msg) }"#,
+                source: indoc! {r#"
+                    replace_with(s'Got message: {"msg": "b"}', r'message: (\{.*\})') -> |m| {
+                        to_string!(parse_json!(m.captures[0]).msg)
+                    }
+                "#},
                 result: Ok("Got b"),
             },
             example! {
                 title: "Replace with optional capture group",
-                source: r#"replace_with("bar of chocolate and bar of gold", r'bar( of gold)?') -> |m| { if m.captures[0] == null { "pile" } else { "money" } }"#,
+                source: indoc! {r#"
+                    replace_with("bar of chocolate and bar of gold", r'bar( of gold)?') -> |m| {
+                        if m.captures[0] == null { "pile" } else { "money" }
+                    }
+                "#},
                 result: Ok("pile of chocolate and money"),
             },
         ]
