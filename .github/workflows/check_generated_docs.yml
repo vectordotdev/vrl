@@ -121,6 +121,7 @@ jobs:
     needs: run-check-generated-docs
     steps:
       - run: |
-          if [ "${{ needs.run-check-generated-docs.result }}" = "failure" ]; then
+          result="${{ needs.run-check-generated-docs.result }}"
+          if [ "$result" != "success" ] && [ "$result" != "skipped" ]; then
             exit 1
           fi
