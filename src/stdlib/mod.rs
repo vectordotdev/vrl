@@ -295,9 +295,6 @@ cfg_if::cfg_if! {
             casing::pascalcase::Pascalcase,
             casing::screamingsnakecase::ScreamingSnakecase,
             casing::snakecase::Snakecase,
-            #[cfg(feature = "enable_network_functions")]
-            dns_lookup::DnsLookup,
-            downcase::Downcase,
             encode_base16::EncodeBase16,
             encode_base64::EncodeBase64,
             encode_charset::EncodeCharset,
