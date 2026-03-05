@@ -15,10 +15,6 @@
 
   authors: thomasqueirozb (https://github.com/vectordotdev/vrl/pull/1617)
 
-### Enhancements
-
-- The `http_request` function now redacts sensitive header values in error messages to prevent credential leakage in logs. Headers such as `Authorization`, `Cookie`, `X-Api-Key`, and any header containing "token", "secret", or "password" will now display as `***` in error output, while non-sensitive headers remain visible for debugging purposes. (https://github.com/vectordotdev/vrl/pull/1562_http_request_redaction)
-
 ### Fixes
 
 - Fixed a bug where lexer parse errors would emit a generic span with 202 error code instead of the
