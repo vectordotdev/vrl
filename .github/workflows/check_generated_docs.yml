@@ -2,12 +2,6 @@ name: Check Generated Docs Freshness
 
 on:
   pull_request:
-    paths:
-      - "src/docs/**"
-      - "src/stdlib/**"
-      - "lib/docs/**"
-      - "scripts/generate_docs.sh"
-      - ".github/workflows/check_generated_docs.yml"
   merge_group:
     types: [checks_requested]
   push:
@@ -23,7 +17,28 @@ env:
   COMMIT_AUTHOR: "github-actions[bot]"
 
 jobs:
-  check-generated-docs:
+  changes:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      docs: ${{ steps.filter.outputs.docs }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            docs:
+              - "src/docs/**"
+              - "src/stdlib/**"
+              - "lib/docs/**"
+              - "scripts/generate_docs.sh"
+              - ".github/workflows/check_generated_docs.yml"
+
+  run-check-generated-docs:
+    needs: changes
+    if: needs.changes.outputs.docs == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -99,3 +114,14 @@ jobs:
         run: |
           echo "docs/generated/ is out of date. Regenerate with: ./scripts/generate_docs.sh"
           exit 1
+
+  check-generated-docs:
+    if: always()
+    runs-on: ubuntu-latest
+    needs: run-check-generated-docs
+    steps:
+      - run: |
+          if [[ "${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}" == "true" ]]; then
+            echo "One or more jobs failed or were cancelled"
+            exit 1
+          fi
