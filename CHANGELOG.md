@@ -4,6 +4,80 @@
 
 <!-- changelog start -->
 
+## [0.31.0 (2026-03-05)]
+
+### New Features
+
+- Added a new `parse_yaml` function. This function parses yaml according to the [YAML 1.1 spec](https://yaml.org/spec/1.1/).
+
+  authors: juchem (https://github.com/vectordotdev/vrl/pull/1602)
+- Added `--quiet` / `-q` flag to the CLI to suppress the banner text when starting the REPL.
+
+  authors: thomasqueirozb (https://github.com/vectordotdev/vrl/pull/1617)
+
+### Enhancements
+
+- The `http_request` function now redacts sensitive header values in error messages to prevent credential leakage in logs. Headers such as `Authorization`, `Cookie`, `X-Api-Key`, and any header containing "token", "secret", or "password" will now display as `***` in error output, while non-sensitive headers remain visible for debugging purposes. (https://github.com/vectordotdev/vrl/pull/1562_http_request_redaction)
+
+### Fixes
+
+- Fixed a bug where lexer parse errors would emit a generic span with 202 error code instead of the
+  proper error. Also fixed error positions from nested lexers (e.g., string literals inside function
+  arguments) to correctly point to the actual location in the source.
+
+  Before (generic E202 syntax error):
+
+  ```
+  $ string("\a")
+
+  error[E202]: syntax error
+    ┌─ :1:1
+    │
+  1 │ string("\a")
+    │ ^^^^^^^^^^^^ unexpected error: invalid escape character: \a
+    │
+    = see language documentation at https://vrl.dev
+    = try your code in the VRL REPL, learn more at https://vrl.dev/examples
+  ```
+
+  After (correct E209 invalid escape character):
+
+  ```
+  $ string("\a")
+
+  error[E209]: invalid escape character: \a
+    ┌─ :1:10
+    │
+  1 │ string("\a")
+    │          ^ invalid escape character: a
+    │
+    = see language documentation at https://vrl.dev
+    = try your code in the VRL REPL, learn more at https://vrl.dev/examples
+  ```
+
+  authors: thomasqueirozb (https://github.com/vectordotdev/vrl/pull/1579)
+- Fixed a bug where `parse_duration` panicked when large values overflowed during multiplication.
+  The function now returns an error instead.
+
+  authors: thomasqueirozb (https://github.com/vectordotdev/vrl/pull/1618)
+- Corrected the type definition of the `basename` function to indicate that it can also return `null`.
+  Previously the type definitition indicated that the function could only return bytes (or strings).
+
+  authors: thomasqueirozb (https://github.com/vectordotdev/vrl/pull/1635)
+- Fixed incorrect parameter types in several stdlib functions:
+
+  - `md5`: `value` parameter was typed as `any`, now correctly typed as `bytes`.
+  - `seahash`: `value` parameter was typed as `any`, now correctly typed as `bytes`.
+  - `floor`: `value` parameter was typed as `any`, now correctly typed as `float | integer`; `precision` parameter was typed as `any`, now correctly typed as `integer`.
+  - `parse_key_value`: `key_value_delimiter` and `field_delimiter` parameters were typed as `any`, now correctly typed as `bytes`.
+
+  Note: the function documentation already reflected the correct types.
+
+  authors: thomasqueirozb
+
+  (https://github.com/vectordotdev/vrl/pull/1650)
+
+
 ## [0.30.0 (2026-01-22)]
 
 ### Breaking Changes & Upgrade Guide
