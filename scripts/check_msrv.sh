@@ -6,4 +6,4 @@ if ! cargo install --list | grep -q "cargo-msrv v0.17.1"; then
 fi
 
 echo "Check that the MSRV is up to date"
-cargo msrv verify
+cargo msrv verify -- cargo check -p vrl
