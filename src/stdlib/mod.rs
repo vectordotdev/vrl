@@ -3,6 +3,7 @@ pub use wasm_unsupported_function::WasmUnsupportedFunction;
 
 use crate::compiler::Function;
 
+mod csv_utils;
 mod json_utils;
 mod string_utils;
 mod util;
@@ -42,6 +43,7 @@ cfg_if::cfg_if! {
         mod encode_base16;
         mod encode_base64;
         mod encode_charset;
+        mod encode_csv;
         mod encode_gzip;
         mod encode_json;
         mod encode_key_value;
@@ -292,18 +294,19 @@ cfg_if::cfg_if! {
             dirname::DirName,
             downcase::Downcase,
             casing::camelcase::Camelcase,
-            casing::pascalcase::Pascalcase,
-            casing::snakecase::Snakecase,
-            casing::screamingsnakecase::ScreamingSnakecase,
             casing::kebabcase::Kebabcase,
+            casing::pascalcase::Pascalcase,
+            casing::screamingsnakecase::ScreamingSnakecase,
+            casing::snakecase::Snakecase,
             encode_base16::EncodeBase16,
             encode_base64::EncodeBase64,
             encode_charset::EncodeCharset,
+            encode_csv::EncodeCsv,
             encode_gzip::EncodeGzip,
-            encode_lz4::EncodeLz4,
             encode_json::EncodeJson,
             encode_key_value::EncodeKeyValue,
             encode_logfmt::EncodeLogfmt,
+            encode_lz4::EncodeLz4,
             encode_percent::EncodePercent,
             encode_punycode::EncodePunycode,
             encode_snappy::EncodeSnappy,
