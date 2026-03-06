@@ -8,6 +8,9 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+
 concurrency:
   # For pull requests, cancel running workflows, for main, run all
   #
