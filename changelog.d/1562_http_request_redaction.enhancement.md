@@ -1,1 +1,0 @@
-The `http_request` function now redacts sensitive header values in error messages to prevent credential leakage in logs. Headers such as `Authorization`, `Cookie`, `X-Api-Key`, and any header containing "token", "secret", or "password" will now display as `***` in error output, while non-sensitive headers remain visible for debugging purposes.

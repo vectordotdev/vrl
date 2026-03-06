@@ -1,6 +1,6 @@
 [package]
 name = "vrl"
-version = "0.30.0"
+version = "0.31.0"
 authors = ["Vector Contributors <vector@datadoghq.com>"]
 edition = "2024"
 license = "MPL-2.0"
@@ -25,7 +25,7 @@ members = [
 clap = { version = "4", features = ["derive"] }
 
 [features]
-default = ["compiler", "value", "diagnostic", "path", "parser", "stdlib", "datadog", "core", "enable_env_functions", "enable_system_functions", "enable_network_functions"]
+default = ["compiler", "value", "diagnostic", "path", "parser", "stdlib", "datadog", "core", "enable_env_functions", "enable_system_functions", "enable_network_functions", "enable_crypto_functions"]
 
 # Main features (on by default)
 compiler = ["diagnostic", "path", "parser", "value", "dep:chrono", "dep:serde", "dep:regex", "dep:bytes", "dep:ordered-float", "dep:chrono-tz", "dep:snafu", "dep:thiserror", "dep:dyn-clone", "dep:indoc", "dep:thiserror", "dep:lalrpop-util"]
@@ -53,6 +53,27 @@ float_roundtrip = ["dep:serde_json", "serde_json/float_roundtrip"]
 enable_env_functions = []
 enable_system_functions = ["dep:relative-path"]
 enable_network_functions = ["dep:reqwest", "dep:reqwest-middleware", "dep:reqwest-retry"]
+enable_crypto_functions = [
+  "dep:aes",
+  "dep:aes-siv",
+  "dep:cbc",
+  "dep:cfb-mode",
+  "dep:chacha20poly1305",
+  "dep:crypto_secretbox",
+  "dep:ctr",
+  "dep:digest",
+  "dep:hex",
+  "dep:hmac",
+  "dep:ipcrypt-rs",
+  "dep:md-5",
+  "dep:ofb",
+  "dep:seahash",
+  "dep:sha-1",
+  "dep:sha-2",
+  "dep:sha-3",
+  "dep:xxhash-rust",
+  "dep:crc",
+]
 
 # Testing Utilities. Enables additional tests, including those with external dependencies such as network calls.
 test = ["string_path"]
@@ -62,6 +83,7 @@ docs = ["stdlib", "indexmap/serde", "serde_json/preserve_order", "dep:clap", "de
 # All stdlib functions (base + all enable_* features)
 stdlib = [
   "stdlib-base",
+  "enable_crypto_functions",
   "enable_env_functions",
   "enable_system_functions",
   "enable_network_functions"
@@ -73,39 +95,25 @@ stdlib-base = [
   "core",
   "datadog",
   "parsing",
-  "dep:aes",
-  "dep:aes-siv",
   "dep:base16",
   "dep:base62",
   "dep:base64-simd",
-  "dep:cbc",
-  "dep:cfb-mode",
-  "dep:chacha20poly1305",
   "dep:charset",
   "dep:convert_case",
   "dep:ciborium",
   "dep:cidr",
   "dep:community-id",
-  "dep:crc",
-  "dep:crypto_secretbox",
   "dep:csv",
-  "dep:ctr",
-  "dep:digest",
   "dep:domain",
   "dep:dns-lookup",
   "dep:flate2",
   "dep:grok",
-  "dep:hex",
-  "dep:hmac",
   "dep:hostname",
   "dep:iana-time-zone",
   "dep:idna",
   "dep:indexmap",
   "dep:influxdb-line-protocol",
-  "dep:ipcrypt-rs",
-  "dep:md-5",
   "dep:nom",
-  "dep:ofb",
   "dep:parse-size",
   "dep:percent-encoding",
   "dep:prost",
@@ -117,10 +125,6 @@ stdlib-base = [
   "dep:rand",
   "dep:roxmltree",
   "dep:rust_decimal",
-  "dep:seahash",
-  "dep:sha-1",
-  "dep:sha-2",
-  "dep:sha-3",
   "dep:snap",
   "dep:strip-ansi-escapes",
   "dep:strum",
@@ -132,7 +136,6 @@ stdlib-base = [
   "dep:utf8-width",
   "dep:uuid",
   "dep:woothee",
-  "dep:xxhash-rust",
   "dep:zstd",
   "dep:encoding_rs"
 ]
