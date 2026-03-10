@@ -222,6 +222,9 @@ impl AstVisitor<'_> {
                 Unary::Not(not) => {
                     self.visit_node(&not.1, state);
                 }
+                Unary::BitwiseNot(not) => {
+                    self.visit_node(&not.1, state);
+                }
             },
             Expr::Assignment(assignment) => {
                 self.visit_assignment(assignment, state);

@@ -96,7 +96,9 @@ impl Op {
 impl Expression for Op {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         use crate::value::Value::{Boolean, Null};
-        use ast::Opcode::{Add, And, Div, Eq, Err, Ge, Gt, Le, Lt, Merge, Mul, Ne, Or, Sub};
+        use ast::Opcode::{
+            Add, And, BitwiseAnd, BitwiseOr, Div, Eq, Err, Ge, Gt, Le, Lt, Merge, Mul, Ne, Or, Sub,
+        };
 
         match self.opcode {
             Err => return self.lhs.resolve(ctx).or_else(|_| self.rhs.resolve(ctx)),
@@ -132,6 +134,8 @@ impl Expression for Op {
             Lt => lhs.try_lt(rhs),
             Le => lhs.try_le(rhs),
             Merge => lhs.try_merge(rhs),
+            BitwiseAnd => lhs.try_bitwise_and(rhs),
+            BitwiseOr => lhs.try_bitwise_or(rhs),
             And | Or | Err => unreachable!(),
         }
         .map_err(Into::into)
@@ -140,7 +144,9 @@ impl Expression for Op {
     #[allow(clippy::too_many_lines)]
     fn type_info(&self, state: &TypeState) -> TypeInfo {
         use crate::value::Kind as K;
-        use ast::Opcode::{Add, And, Div, Eq, Err, Ge, Gt, Le, Lt, Merge, Mul, Ne, Or, Sub};
+        use ast::Opcode::{
+            Add, And, BitwiseAnd, BitwiseOr, Div, Eq, Err, Ge, Gt, Le, Lt, Merge, Mul, Ne, Or, Sub,
+        };
         let original_state = state.clone();
 
         let mut state = state.clone();
@@ -317,6 +323,15 @@ impl Expression for Op {
                     _ => unreachable!("Add, Sub, or Mul operation not handled"),
                 }
             }
+
+            BitwiseAnd | BitwiseOr => {
+                let rhs_def = self.rhs.apply_type_info(&mut state);
+                if lhs_def.is_integer() && rhs_def.is_integer() {
+                    lhs_def.union(rhs_def).infallible().with_kind(K::integer())
+                } else {
+                    lhs_def.union(rhs_def).fallible().with_kind(K::integer())
+                }
+            }
         };
         TypeInfo::new(state, result)
     }
@@ -439,7 +454,7 @@ mod tests {
 
     use ast::{
         Ident,
-        Opcode::{Add, And, Div, Eq, Err, Ge, Gt, Le, Lt, Mul, Ne, Or, Sub},
+        Opcode::{Add, And, BitwiseAnd, BitwiseOr, Div, Eq, Err, Ge, Gt, Le, Lt, Mul, Ne, Or, Sub},
     };
 
     use crate::compiler::expression::{Block, IfStatement, Literal, Predicate, Variable};
@@ -865,6 +880,16 @@ mod tests {
                 opcode: Or,
             },
             want: TypeDef::bytes().or_integer(),
+        }
+
+        bitwise_and_integer {
+            expr: |_| op(BitwiseAnd, 10, 15),
+            want: TypeDef::integer().infallible(),
+        }
+
+        bitwise_or_integer {
+            expr: |_| op(BitwiseOr, 10, 15),
+            want: TypeDef::integer().infallible(),
         }
     ];
 }
