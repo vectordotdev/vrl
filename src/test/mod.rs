@@ -118,11 +118,6 @@ pub fn run_tests<T>(
         let dots = if name.len() >= 60 { 0 } else { 60 - name.len() };
         print!("  {}{}", name, Color::Fixed(240).paint(".".repeat(dots)));
 
-        if test.skip {
-            println!("{}", Color::Yellow.bold().paint("SKIPPED"));
-            continue;
-        }
-
         let (mut config, config_metadata) = (compile_config_provider)();
         // Set some read-only paths that can be tested
         for (path, recursive) in &test.read_only_paths {
@@ -146,7 +141,10 @@ pub fn run_tests<T>(
             }) => {
                 warnings_count += warnings.len();
 
-                if test.check_diagnostics {
+                if test.skip {
+                    println!("{}", Color::Yellow.bold().paint("OK (compile only)"));
+                    false
+                } else if test.check_diagnostics {
                     process_compilation_diagnostics(&test, cfg, warnings, compile_timing_fmt)
                 } else if warnings.is_empty() {
                     let run_start = Instant::now();

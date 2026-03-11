@@ -409,11 +409,13 @@ impl Function for HttpRequest {
                 result: Ok(
                     r#"{"args":{},"headers":{"Accept":"*/*","Host":"httpbin.org"},"url":"https://httpbin.org/get", "origin": "***"}"#,
                 ),
+                skip: true,
             },
             example! {
                 title: "HTTP request with bearer token",
                 source: r#"parse_json!(http_request!("https://httpbin.org/bearer", headers: {"Authorization": "Bearer my_token"}))"#,
                 result: Ok(r#"{"authenticated":true,"token":"my_token"}"#),
+                skip: true,
             },
             example! {
                 title: "HTTP PUT request",
@@ -442,6 +444,7 @@ impl Function for HttpRequest {
                       "url": "https://httpbin.org/put"
                     }
                 "#}),
+                skip: true,
             },
             example! {
                 title: "HTTP POST request with body",
@@ -466,6 +469,7 @@ impl Function for HttpRequest {
                       "url": "https://httpbin.org/post"
                     }
                 "#}),
+                skip: true,
             },
         ]
     }

@@ -447,6 +447,7 @@ impl Function for DnsLookup {
                     "rcodeName": "NOERROR"
                   }"#
                 )),
+                skip: true,
             },
             example! {
                 title: "Custom class and qtype",
@@ -517,6 +518,7 @@ impl Function for DnsLookup {
                     "rcodeName": "NOERROR"
                   }"#
                 )),
+                skip: true,
             },
             example! {
                 title: "Custom options",
@@ -586,6 +588,7 @@ impl Function for DnsLookup {
                     "rcodeName": "NOERROR"
                   }"#
                 )),
+                skip: true,
             },
             example! {
                 title: "Custom server",
@@ -655,6 +658,7 @@ impl Function for DnsLookup {
                     "rcodeName": "NOERROR"
                   }"#
                 )),
+                skip: true,
             },
         ]
     }
