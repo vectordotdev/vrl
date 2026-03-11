@@ -1,0 +1,20 @@
+name: Remove Awaiting Author Label
+
+on:
+  pull_request:
+    types: [synchronize, review_requested]
+
+permissions:
+  contents: read
+
+jobs:
+  remove_label:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions-ecosystem/action-remove-labels@v1
+        with:
+          labels: "meta: awaiting author"
