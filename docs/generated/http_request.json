@@ -70,6 +70,69 @@
       "string"
     ]
   },
+  "examples": [
+    {
+      "title": "Basic HTTP request",
+      "source": ". = parse_json!(http_request!(\"https://httpbin.org/get\"))\n\n# Redact the origin ip\n.origin = redact!(.origin, filters: [r'.*'], redactor: {\"type\": \"text\", \"replacement\": \"***\"})\n# Delete any ids in headers\n.headers = filter(object!(.headers)) -> |key, _value| { !contains(key, \"id\", false) }\n.\n",
+      "return": {
+        "args": {},
+        "headers": {
+          "Accept": "*/*",
+          "Host": "httpbin.org"
+        },
+        "url": "https://httpbin.org/get",
+        "origin": "***"
+      }
+    },
+    {
+      "title": "HTTP request with bearer token",
+      "source": "parse_json!(http_request!(\"https://httpbin.org/bearer\", headers: {\"Authorization\": \"Bearer my_token\"}))",
+      "return": {
+        "authenticated": true,
+        "token": "my_token"
+      }
+    },
+    {
+      "title": "HTTP PUT request",
+      "source": ". = parse_json!(http_request!(\"https://httpbin.org/put\", method: \"put\"))\n\n# Redact the origin ip\n.origin = redact!(.origin, filters: [r'.*'], redactor: {\"type\": \"text\", \"replacement\": \"***\"})\n# Delete any ids in headers\n.headers = filter(object!(.headers)) -> |key, _value| { !contains(key, \"id\", false) }\n.\n",
+      "return": {
+        "args": {},
+        "data": "",
+        "files": {},
+        "form": {},
+        "headers": {
+          "Accept": "*/*",
+          "Content-Length": "0",
+          "Host": "httpbin.org"
+        },
+        "json": null,
+        "origin": "***",
+        "url": "https://httpbin.org/put"
+      }
+    },
+    {
+      "title": "HTTP POST request with body",
+      "source": ". = parse_json!(http_request!(\"https://httpbin.org/post\", method: \"post\", body: \"{\\\"data\\\":{\\\"hello\\\":\\\"world\\\"}}\"))\n\n# Redact the origin ip\n.origin = redact!(.origin, filters: [r'.*'], redactor: {\"type\": \"text\", \"replacement\": \"***\"})\n# Delete any ids in headers\n.headers = filter(object!(.headers)) -> |key, _value| { !contains(key, \"id\", false) }\n.\n",
+      "return": {
+        "data": "{\"data\":{\"hello\":\"world\"}}",
+        "args": {},
+        "files": {},
+        "form": {},
+        "headers": {
+          "Accept": "*/*",
+          "Content-Length": "26",
+          "Host": "httpbin.org"
+        },
+        "json": {
+          "data": {
+            "hello": "world"
+          }
+        },
+        "origin": "***",
+        "url": "https://httpbin.org/post"
+      }
+    }
+  ],
   "notices": [
     "This function performs synchronous blocking operations and is not recommended for\nfrequent or performance-critical workflows due to potential network-related delays."
   ],
