@@ -4,4 +4,4 @@ if ! cargo install --list | grep -q "cargo-hack v0.5.29"; then
 fi
 
 echo "Check that all features can compile"
-cargo hack check -p vrl --feature-powerset --depth 1
+cargo hack check --feature-powerset --depth 1
