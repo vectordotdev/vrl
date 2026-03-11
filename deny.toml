@@ -35,8 +35,6 @@ license-files = [
 
 [advisories]
 ignore = [
-  # paste is Unmaintained
-  "RUSTSEC-2024-0436",
   # instant is unmaintained, used by reqwest-retry
   "RUSTSEC-2024-0384",
   # `derivative` is unmaintained

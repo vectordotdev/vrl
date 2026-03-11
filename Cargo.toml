@@ -280,7 +280,7 @@ tracing-test = { version = "0.2", default-features = false }
 mlua = { version = "0.10", default-features = false, features = ["lua54", "send", "vendored"] }
 quickcheck = { version = "1" }
 regex = { version = "1", default-features = false, features = ["std", "perf", "unicode"] }
-paste = { version = "1", default-features = false }
+pastey = { version = "0.2", default-features = false }
 proptest = { version = "1" }
 proptest-derive = { version = "0.6" }
 
