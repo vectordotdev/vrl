@@ -8,6 +8,12 @@ cfg_if::cfg_if! {
 use crate::compiler::{Context, Expression, Resolved, TypeState};
 use crate::value::{KeyString, ObjectMap, Value};
 
+#[cfg(feature = "enable_network_functions")]
+pub(crate) const NETWORK_CALL_NOTICE: &str = indoc::indoc! {"
+    This function performs synchronous blocking operations and is not recommended for
+    frequent or performance-critical workflows due to potential network-related delays.
+"};
+
 /// Rounds the given number to the given precision.
 /// Takes a function parameter so the exact rounding function (ceil, floor or round)
 /// can be specified.

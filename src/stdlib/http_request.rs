@@ -379,10 +379,7 @@ impl Function for HttpRequest {
     }
 
     fn notices(&self) -> &'static [&'static str] {
-        &[indoc! {"
-            This function performs synchronous blocking operations and is not recommended for
-            frequent or performance-critical workflows due to potential network-related delays.
-        "}]
+        &[super::util::NETWORK_CALL_NOTICE]
     }
 
     fn category(&self) -> &'static str {

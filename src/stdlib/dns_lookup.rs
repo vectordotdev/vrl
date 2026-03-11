@@ -357,10 +357,7 @@ impl Function for DnsLookup {
     }
 
     fn notices(&self) -> &'static [&'static str] {
-        &[indoc! {"
-            This function performs network calls and blocks on each request until a response is
-            received. It is not recommended for frequent or performance-critical workflows.
-        "}]
+        &[super::util::NETWORK_CALL_NOTICE]
     }
 
     fn category(&self) -> &'static str {
