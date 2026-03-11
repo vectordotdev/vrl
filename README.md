@@ -10,20 +10,26 @@ created for use in [Vector], it was designed to be generic and re-usable in many
 VRL is maintained by
 Datadog's [Community Open Source Engineering team](https://opensource.datadoghq.com/about/#the-community-open-source-engineering-team).
 
-## Webassembly
+## WebAssembly
 
-All of the core features, and most of the standard library functions can be compiled with the `wasm32-unknown-unknown` target.
-There are a few stdlib functions that are unsupported. These will still compile, but abort at runtime.
+VRL can be compiled with the `wasm32-unknown-unknown` target:
 
-Unsupported functions:
+```sh
+cargo check --target wasm32-unknown-unknown --no-default-features --features stdlib
+```
+
+Most stdlib functions are supported. The following functions compile but abort at runtime due to platform limitations (I/O, system calls, or native dependencies):
+
+- `dns_lookup`
+- `get_hostname`
+- `http_request`
+- `log`
 - `parse_grok`
 - `parse_groks`
-- `log`
-- `get_hostname`
 - `reverse_dns`
-- `http_request`
+- `validate_json_schema`
 
-
+Note: the `datadog_grok` feature is excluded entirely when targeting wasm32.
 
 [vector]: https://vector.dev
 [vrl]: https://vrl.dev
