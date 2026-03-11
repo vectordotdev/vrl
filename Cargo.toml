@@ -27,32 +27,69 @@ clap = { version = "4", features = ["derive"] }
 [features]
 default = ["compiler", "value", "diagnostic", "path", "parser", "stdlib", "datadog", "core", "enable_env_functions", "enable_system_functions", "enable_network_functions", "enable_crypto_functions"]
 
-# Main features (on by default)
+# Contains the core functionality of VRL. Compiling and running VRL programs.
 compiler = ["diagnostic", "path", "parser", "value", "dep:chrono", "dep:serde", "dep:regex", "dep:bytes", "dep:ordered-float", "dep:chrono-tz", "dep:snafu", "dep:thiserror", "dep:dyn-clone", "dep:indoc", "dep:thiserror", "dep:lalrpop-util"]
+
+# Contains the primary data type used in VRL.
 value = ["path", "dep:bytes", "dep:regex", "dep:ordered-float", "dep:chrono", "dep:serde_json", "dep:simdutf8"]
+
+# Logic related to errors and displaying info about them.
 diagnostic = ["dep:codespan-reporting", "dep:termcolor"]
+
+# Contains the parser, datatypes, and functions related to VRL paths.
 path = ["value", "dep:serde", "dep:snafu", "dep:regex"]
+
+# Creates an abstract syntax tree (AST) from VRL source code.
 parser = ["path", "diagnostic", "value", "dep:thiserror", "dep:ordered-float", "dep:lalrpop-util"]
+
+# Text parsing primitives used by stdlib functions that handle structured formats (JSON, XML, URLs, etc.).
 parsing = ["value", "compiler", "dep:url", "dep:nom", "dep:regex", "dep:roxmltree", "dep:rust_decimal"]
+
+# Various data structures and utility methods (these may be renamed / moved in the future).
 core = ["value", "dep:snafu", "dep:nom"]
+
 string_path = []
 
-# Datadog related features (on by default)
+# Enables all Datadog-specific features (filter, grok, search).
 datadog = ["datadog_filter", "datadog_grok", "datadog_search"]
+
+# Implements the Datadog log search query filter syntax.
 datadog_filter = ["path", "datadog_search", "dep:regex", "dep:dyn-clone"]
+
+# Implements the Datadog grok parser (used with `parse_grok` and `parse_groks` in the stdlib). Not supported on wasm32.
 datadog_grok = ["value", "parsing", "dep:nom", "dep:peeking_take_while", "dep:serde_json", "dep:onig", "dep:lalrpop-util", "dep:thiserror", "dep:chrono", "dep:chrono-tz", "dep:percent-encoding", "dep:fancy-regex"]
+
+# Implements the Datadog log search syntax.
 datadog_search = ["dep:pest", "dep:pest_derive", "dep:itertools", "dep:regex", "dep:serde"]
 
-# Features that aren't used as often (default off)
+# Contains functionality to create a CLI for VRL.
 cli = ["stdlib", "dep:clap", "dep:serde_json", "dep:thiserror", "dep:exitcode", "dep:webbrowser", "dep:rustyline", "dep:prettytable-rs"]
+
+# Contains the test framework for testing VRL functions. Useful for testing custom functions.
 test_framework = ["compiler", "dep:prettydiff", "dep:serde_json", "dep:ansi_term"]
+
+# Implements `Arbitrary` (from the `quickcheck` crate) for the `Value` type.
 arbitrary = ["dep:quickcheck", "dep:arbitrary"]
+
+# Makes the `Value` type compatible with the `mlua` crate.
 lua = ["dep:mlua"]
+
+# Property-based testing support via proptest.
 proptest = ["dep:proptest", "dep:proptest-derive"]
+
+# Preserves float precision during JSON serialization/deserialization.
 float_roundtrip = ["dep:serde_json", "serde_json/float_roundtrip"]
+
+# Enables environment variable access functions (e.g. `get_env_var`).
 enable_env_functions = []
+
+# Enables system-level functions (e.g. `get_hostname`).
 enable_system_functions = ["dep:relative-path"]
+
+# Enables network I/O functions (e.g. `http_request`, `dns_lookup`, `reverse_dns`). Not supported on wasm32.
 enable_network_functions = ["dep:reqwest", "dep:reqwest-middleware", "dep:reqwest-retry"]
+
+# Enables cryptographic functions: hashing (MD5, SHA, xxHash, etc.), encryption (AES, ChaCha20, etc.), and MACs.
 enable_crypto_functions = [
   "dep:aes",
   "dep:aes-siv",
@@ -75,12 +112,13 @@ enable_crypto_functions = [
   "dep:crc",
 ]
 
-# Testing Utilities. Enables additional tests, including those with external dependencies such as network calls.
+# Enables additional tests, including those with external dependencies such as network calls.
 test = ["string_path"]
 
+# Documentation generation support.
 docs = ["stdlib", "indexmap/serde", "serde_json/preserve_order", "dep:clap", "dep:thiserror", "dep:exitcode"]
 
-# All stdlib functions (base + all enable_* features)
+# Full standard library: stdlib-base plus all enable_* features.
 stdlib = [
   "stdlib-base",
   "enable_crypto_functions",
@@ -89,7 +127,7 @@ stdlib = [
   "enable_network_functions"
 ]
 
-# Base stdlib functionality (without enable_* features)
+# Core standard library without optional capability gates (crypto, env, system, network).
 stdlib-base = [
   "compiler",
   "core",
