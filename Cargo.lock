@@ -4229,14 +4229,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "vrl-cli"
-version = "0.1.0"
-dependencies = [
- "clap",
- "vrl",
-]
-
-[[package]]
 name = "vrl-docs"
 version = "0.1.0"
 dependencies = [
