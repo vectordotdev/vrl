@@ -112,13 +112,13 @@ enable_crypto_functions = [
   "dep:crc",
 ]
 
-# Enables additional tests, including those with external dependencies such as network calls.
+# Testing Utilities. Enables additional tests, including those with external dependencies such as network calls.
 test = ["string_path"]
 
 # Documentation generation support.
 docs = ["stdlib", "indexmap/serde", "serde_json/preserve_order", "dep:clap", "dep:thiserror", "dep:exitcode"]
 
-# Full standard library: stdlib-base plus all enable_* features.
+# All stdlib functions (base + all enable_* features)
 stdlib = [
   "stdlib-base",
   "enable_crypto_functions",
@@ -127,7 +127,7 @@ stdlib = [
   "enable_network_functions"
 ]
 
-# Core standard library without optional capability gates (crypto, env, system, network).
+# Base stdlib functionality (without enable_* features)
 stdlib-base = [
   "compiler",
   "core",
