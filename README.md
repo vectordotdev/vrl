@@ -7,6 +7,14 @@
 VRL is a scripting language for processing observability data (logs, metrics, traces). Although VRL was originally
 created for use in [Vector], it was designed to be generic and re-usable in many contexts.
 
+VRL is designed around two core principles:
+
+- **Safety** — programs won't compile unless all errors from fallible functions are explicitly handled, eliminating unexpected runtime
+  failures.
+- **Performance** — programs are compiled at startup and run with near-native performance, with no garbage collection or runtime overhead.
+
+VRL is stateless and expression-oriented, each program processes a single event and every expression returns a value.
+
 VRL is maintained by
 Datadog's [Community Open Source Engineering team](https://opensource.datadoghq.com/about/#the-community-open-source-engineering-team).
 
