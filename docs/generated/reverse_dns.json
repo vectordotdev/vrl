@@ -25,5 +25,8 @@
       "return": "localhost"
     }
   ],
+  "notices": [
+    "This function performs synchronous blocking operations and is not recommended for\nfrequent or performance-critical workflows due to potential network-related delays."
+  ],
   "pure": true
 }
