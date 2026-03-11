@@ -4,8 +4,8 @@
 use std::path::{MAIN_SEPARATOR, PathBuf};
 use std::{collections::BTreeMap, env, str::FromStr, time::Instant};
 
-use nu_ansi_term::Color;
 use chrono::{DateTime, SecondsFormat, Utc};
+use nu_ansi_term::Color;
 
 pub use test::Test;
 
