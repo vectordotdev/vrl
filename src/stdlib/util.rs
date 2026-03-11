@@ -10,6 +10,7 @@ use crate::value::{KeyString, ObjectMap, Value};
 
 use indoc::indoc;
 
+#[cfg(feature = "enable_network_functions")]
 pub(crate) const NETWORK_CALL_NOTICE: &str = indoc! {"
     This function performs synchronous blocking operations and is not recommended for
     frequent or performance-critical workflows due to potential network-related delays.
