@@ -40,6 +40,7 @@ pub struct TestConfig {
     pub timings: bool,
     pub runtime: VrlRuntime,
     pub timezone: TimeZone,
+    pub run_skipped: bool,
 }
 
 #[derive(Clone)]
@@ -141,7 +142,7 @@ pub fn run_tests<T>(
             }) => {
                 warnings_count += warnings.len();
 
-                if test.skip {
+                if test.skip && !cfg.run_skipped {
                     println!("{}", Color::Yellow.bold().paint("OK (compile only)"));
                     false
                 } else if test.check_diagnostics {
@@ -197,10 +198,6 @@ fn process_result(
     config: &TestConfig,
     timings: String,
 ) -> bool {
-    if test.skip {
-        return false;
-    }
-
     match result {
         Ok(got) => {
             let got_value = vrl_value_to_json_value(got);
