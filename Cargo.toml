@@ -66,7 +66,7 @@ datadog_search = ["dep:pest", "dep:pest_derive", "dep:itertools", "dep:regex", "
 cli = ["stdlib", "dep:clap", "dep:serde_json", "dep:thiserror", "dep:exitcode", "dep:webbrowser", "dep:rustyline", "dep:prettytable-rs"]
 
 # Contains the test framework for testing VRL functions. Useful for testing custom functions.
-test_framework = ["compiler", "dep:prettydiff", "dep:serde_json", "dep:ansi_term"]
+test_framework = ["compiler", "dep:prettydiff", "dep:serde_json", "dep:nu-ansi-term"]
 
 # Implements `Arbitrary` (from the `quickcheck` crate) for the `Value` type.
 arbitrary = ["dep:quickcheck", "dep:arbitrary"]
@@ -182,7 +182,7 @@ stdlib-base = [
 cfg-if = "1"
 
 # Optional dependencies
-ansi_term = { version = "0.12", optional = true }
+nu-ansi-term = { version = "0.50", optional = true }
 arbitrary = { version = "1", optional = true, features = ["derive"] }
 base16 = { version = "0.2", optional = true }
 base62 = { version = "2.2.1", optional = true }
@@ -318,7 +318,7 @@ tracing-test = { version = "0.2", default-features = false }
 mlua = { version = "0.10", default-features = false, features = ["lua54", "send", "vendored"] }
 quickcheck = { version = "1" }
 regex = { version = "1", default-features = false, features = ["std", "perf", "unicode"] }
-paste = { version = "1", default-features = false }
+pastey = { version = "0.2", default-features = false }
 proptest = { version = "1" }
 proptest-derive = { version = "0.6" }
 
