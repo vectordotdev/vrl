@@ -168,7 +168,7 @@ impl Test {
             object,
             result,
             result_approx: false,
-            skip: false,
+            skip: example.skip,
             check_diagnostics: false,
             read_only_paths: vec![],
             source_file: example.file.to_owned(),

@@ -120,6 +120,9 @@ pub struct Example {
     /// Whether this example produces deterministic output.
     /// When false, tests validate output type instead of exact value.
     pub deterministic: bool,
+    /// When true, the example is only compiled (not executed) during tests.
+    /// Use this for examples that require external resources (network, etc.).
+    pub skip: bool,
 }
 
 /// Macro to create an Example with automatic source location tracking
@@ -139,6 +142,7 @@ macro_rules! example {
             file: file!(),
             line: line!(),
             deterministic: true,
+            skip: false,
         }
     };
     (
@@ -154,6 +158,7 @@ macro_rules! example {
             file: file!(),
             line: line!(),
             deterministic: true,
+            skip: false,
         }
     };
     (
@@ -170,6 +175,24 @@ macro_rules! example {
             file: file!(),
             line: line!(),
             deterministic: $det,
+            skip: false,
+        }
+    };
+    (
+        title: $title:expr,
+        source: $source:expr,
+        result: $result:expr,
+        skip: true $(,)?
+    ) => {
+        $crate::compiler::function::Example {
+            title: $title,
+            source: $source,
+            input: None,
+            result: $result,
+            file: file!(),
+            line: line!(),
+            deterministic: true,
+            skip: true,
         }
     };
 }

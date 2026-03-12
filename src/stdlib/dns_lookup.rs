@@ -372,13 +372,7 @@ impl Function for DnsLookup {
         PARAMETERS.as_slice()
     }
 
-    #[cfg(not(feature = "test"))]
-    fn examples(&self) -> &'static [Example] {
-        &[]
-    }
-
     #[allow(clippy::too_many_lines)]
-    #[cfg(feature = "test")]
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
@@ -450,6 +444,7 @@ impl Function for DnsLookup {
                     "rcodeName": "NOERROR"
                   }"#
                 )),
+                skip: true,
             },
             example! {
                 title: "Custom class and qtype",
@@ -520,6 +515,7 @@ impl Function for DnsLookup {
                     "rcodeName": "NOERROR"
                   }"#
                 )),
+                skip: true,
             },
             example! {
                 title: "Custom options",
@@ -589,6 +585,7 @@ impl Function for DnsLookup {
                     "rcodeName": "NOERROR"
                   }"#
                 )),
+                skip: true,
             },
             example! {
                 title: "Custom server",
@@ -658,6 +655,7 @@ impl Function for DnsLookup {
                     "rcodeName": "NOERROR"
                   }"#
                 )),
+                skip: true,
             },
         ]
     }
