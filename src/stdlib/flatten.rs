@@ -7,20 +7,17 @@ static DEFAULT_SEPARATOR: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes:
 
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
-        Parameter {
-            keyword: "value",
-            kind: kind::OBJECT | kind::ARRAY,
-            required: true,
-            description: "The array or object to flatten.",
-            default: None,
-        },
-        Parameter {
-            keyword: "separator",
-            kind: kind::BYTES,
-            required: false,
-            description: "The separator to join nested keys",
-            default: Some(&DEFAULT_SEPARATOR),
-        },
+        Parameter::required(
+            "value",
+            kind::OBJECT | kind::ARRAY,
+            "The array or object to flatten.",
+        ),
+        Parameter::optional(
+            "separator",
+            kind::BYTES,
+            "The separator to join nested keys",
+        )
+        .default(&DEFAULT_SEPARATOR),
     ]
 });
 
@@ -81,7 +78,17 @@ impl Function for Flatten {
             },
             example! {
                 title: "Flatten object",
-                source: r#"flatten({ "parent1": { "child1": 1, "child2": 2 }, "parent2": { "child3": 3 } })"#,
+                source: indoc! {r#"
+                    flatten({
+                        "parent1": {
+                            "child1": 1,
+                            "child2": 2
+                        },
+                        "parent2": {
+                            "child3": 3
+                        }
+                    })
+                "#},
                 result: Ok(r#"{ "parent1.child1": 1, "parent1.child2": 2, "parent2.child3": 3 }"#),
             },
             example! {

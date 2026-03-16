@@ -40,13 +40,12 @@ impl Function for IsIpv4 {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[Parameter {
-            keyword: "value",
-            kind: kind::BYTES,
-            required: true,
-            description: "The IP address to check",
-            default: None,
-        }]
+        const PARAMETERS: &[Parameter] = &[Parameter::required(
+            "value",
+            kind::BYTES,
+            "The IP address to check",
+        )];
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {

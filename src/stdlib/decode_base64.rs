@@ -1,25 +1,35 @@
+use crate::compiler::function::EnumVariant;
 use crate::compiler::prelude::*;
 use crate::stdlib::util::Base64Charset;
 use std::sync::LazyLock;
 
 static DEFAULT_CHARSET: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from("standard")));
 
+static CHARSET_ENUM: &[EnumVariant] = &[
+    EnumVariant {
+        value: "standard",
+        description: "[Standard](https://tools.ietf.org/html/rfc4648#section-4) Base64 format.",
+    },
+    EnumVariant {
+        value: "url_safe",
+        description: "Modified Base64 for [URL variants](https://en.wikipedia.org/wiki/Base64#URL_applications).",
+    },
+];
+
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
-        Parameter {
-            keyword: "value",
-            kind: kind::BYTES,
-            required: true,
-            description: "The [Base64](https://en.wikipedia.org/wiki/Base64) data to decode.",
-            default: None,
-        },
-        Parameter {
-            keyword: "charset",
-            kind: kind::BYTES,
-            required: false,
-            description: "The character set to use when decoding the data.",
-            default: Some(&DEFAULT_CHARSET),
-        },
+        Parameter::required(
+            "value",
+            kind::BYTES,
+            "The [Base64](https://en.wikipedia.org/wiki/Base64) data to decode.",
+        ),
+        Parameter::optional(
+            "charset",
+            kind::BYTES,
+            "The character set to use when decoding the data.",
+        )
+        .default(&DEFAULT_CHARSET)
+        .enum_variants(CHARSET_ENUM),
     ]
 });
 

@@ -1,10 +1,11 @@
 use convert_case::{Boundary, Case, Casing};
 
+use crate::compiler::function::EnumVariant;
 use crate::prelude::*;
 use crate::value;
 
 cfg_if::cfg_if! {
-    if #[cfg(feature = "stdlib")] {
+    if #[cfg(feature = "stdlib-base")] {
         pub(crate) mod camelcase;
         pub(crate) mod pascalcase;
         pub(crate) mod snakecase;
@@ -12,6 +13,34 @@ cfg_if::cfg_if! {
         pub(crate) mod kebabcase;
     }
 }
+
+pub(crate) static ORIGINAL_CASE: Parameter = Parameter::optional(
+    "original_case",
+    kind::BYTES,
+    "Optional hint on the original case type. Must be one of: kebab-case, camelCase, PascalCase, SCREAMING_SNAKE, snake_case",
+)
+.enum_variants(&[
+    EnumVariant {
+        value: "kebab-case",
+        description: "[kebab-case](https://en.wikipedia.org/wiki/Letter_case#Kebab_case)",
+    },
+    EnumVariant {
+        value: "camelCase",
+        description: "[camelCase](https://en.wikipedia.org/wiki/Camel_case)",
+    },
+    EnumVariant {
+        value: "PascalCase",
+        description: "[PascalCase](https://en.wikipedia.org/wiki/Camel_case)",
+    },
+    EnumVariant {
+        value: "SCREAMING_SNAKE",
+        description: "[SCREAMING_SNAKE](https://en.wikipedia.org/wiki/Snake_case)",
+    },
+    EnumVariant {
+        value: "snake_case",
+        description: "[snake_case](https://en.wikipedia.org/wiki/Snake_case)",
+    },
+]);
 
 pub(crate) fn variants() -> Vec<Value> {
     vec![
@@ -27,7 +56,6 @@ pub(crate) fn boundaries() -> Vec<Value> {
     vec![
         value!("lower_upper"), // Splits "camelCase" into "camel" and "Case"
         value!("upper_lower"), // Rarely used, splits "CamelCase" at "Camel" and "Case"
-        value!("upper_upper"), // Splits "ABCdef" into "A" and "BCdef"
         value!("acronym"),     // Splits "XMLHttpRequest" into "XML" and "HttpRequest"
         value!("lower_digit"), // Splits "version2Release" into "version" and "2Release"
         value!("upper_digit"), // Splits "Version2Release" into "Version" and "2Release"

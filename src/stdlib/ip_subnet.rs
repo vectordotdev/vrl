@@ -71,23 +71,12 @@ impl Function for IpSubnet {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::BYTES,
-                required: true,
-                description: "The IP address (v4 or v6).",
-                default: None,
-            },
-            Parameter {
-                keyword: "subnet",
-                kind: kind::BYTES,
-                required: true,
-                description: "The subnet to extract from the IP address. This can be either a prefix length like `/8` or a net mask
-like `255.255.0.0`. The net mask can be either an IPv4 or IPv6 address.",
-                default: None,
-            },
-        ]
+        const PARAMETERS: &[Parameter] = &[
+            Parameter::required("value", kind::BYTES, "The IP address (v4 or v6)."),
+            Parameter::required("subnet", kind::BYTES, "The subnet to extract from the IP address. This can be either a prefix length like `/8` or a net mask
+like `255.255.0.0`. The net mask can be either an IPv4 or IPv6 address."),
+        ];
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {

@@ -5,20 +5,17 @@ static DEFAULT_RECURSIVE: LazyLock<Value> = LazyLock::new(|| Value::Boolean(fals
 
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
-        Parameter {
-            keyword: "value",
-            kind: kind::OBJECT | kind::ARRAY,
-            required: true,
-            description: "The object or array to iterate.",
-            default: None,
-        },
-        Parameter {
-            keyword: "recursive",
-            kind: kind::BOOLEAN,
-            required: false,
-            description: "Whether to recursively iterate the collection.",
-            default: Some(&DEFAULT_RECURSIVE),
-        },
+        Parameter::required(
+            "value",
+            kind::OBJECT | kind::ARRAY,
+            "The object or array to iterate.",
+        ),
+        Parameter::optional(
+            "recursive",
+            kind::BOOLEAN,
+            "Whether to recursively iterate the collection.",
+        )
+        .default(&DEFAULT_RECURSIVE),
     ]
 });
 
@@ -109,7 +106,16 @@ impl Function for MapValues {
             },
             example! {
                 title: "Recursively map object values",
-                source: r#"map_values({ "a": 1, "b": [{ "c": 2 }, { "d": 3 }], "e": { "f": 4 } }, recursive: true) -> |value| { if is_integer(value) { int!(value) + 1 } else { value } }"#,
+                source: indoc! {r#"
+                    val = {
+                        "a": 1,
+                        "b": [{ "c": 2 }, { "d": 3 }],
+                        "e": { "f": 4 }
+                    }
+                    map_values(val, recursive: true) -> |value| {
+                        if is_integer(value) { int!(value) + 1 } else { value }
+                    }
+                "#},
                 result: Ok(r#"{ "a": 2, "b": [{ "c": 3 }, { "d": 4 }], "e": { "f": 5 } }"#),
             },
         ]

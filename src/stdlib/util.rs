@@ -1,5 +1,18 @@
+cfg_if::cfg_if! {
+    if #[cfg(feature = "enable_system_functions")] {
+        use relative_path::PathExt;
+        use std::{env, path::PathBuf};
+    }
+}
+
 use crate::compiler::{Context, Expression, Resolved, TypeState};
 use crate::value::{KeyString, ObjectMap, Value};
+
+#[cfg(feature = "enable_network_functions")]
+pub(crate) const NETWORK_CALL_NOTICE: &str = indoc::indoc! {"
+    This function performs synchronous blocking operations and is not recommended for
+    frequent or performance-critical workflows due to potential network-related delays.
+"};
 
 /// Rounds the given number to the given precision.
 /// Takes a function parameter so the exact rounding function (ceil, floor or round)
@@ -121,5 +134,39 @@ impl ConstOrExpr {
             Self::Const(value) => Ok(value.clone()),
             Self::Expr(expr) => expr.resolve(ctx),
         }
+    }
+}
+
+/// Only to be used in examples since this can return an incorrect path.
+/// Useful for displaying a nicer path in the docs, since the path is going to be incorrect when
+/// docs are generated from outside this repo.
+///
+/// Get actual path as a string if exists or basename if not.
+///
+/// `input` path is relative to `tests/data/`.
+#[cfg(feature = "enable_system_functions")]
+pub(crate) fn example_path_or_basename(input: &'static str) -> String {
+    let manifest_dir =
+        env::var_os("CARGO_MANIFEST_DIR").map(|dir| PathBuf::from(dir).join("../.."));
+    let path = manifest_dir
+        .clone()
+        .map(|dir| dir.join("tests/data").join(input));
+
+    let not_found_default = || {
+        // Mock repo root
+        PathBuf::from("tests/data")
+            .join(input)
+            .display()
+            .to_string()
+    };
+
+    if let Some(manifest_dir) = manifest_dir
+        && let Some(path) = path
+        && path.exists()
+    {
+        path.relative_to(manifest_dir)
+            .map_or_else(|_| not_found_default(), String::from)
+    } else {
+        not_found_default()
     }
 }

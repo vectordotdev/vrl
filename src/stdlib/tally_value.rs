@@ -46,22 +46,15 @@ impl Function for TallyValue {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "array",
-                kind: kind::ARRAY,
-                required: true,
-                description: "The array to search through.",
-                default: None,
-            },
-            Parameter {
-                keyword: "value",
-                kind: kind::ANY,
-                required: true,
-                description: "The value to count occurrences of in the array.",
-                default: None,
-            },
-        ]
+        const PARAMETERS: &[Parameter] = &[
+            Parameter::required("array", kind::ARRAY, "The array to search through."),
+            Parameter::required(
+                "value",
+                kind::ANY,
+                "The value to count occurrences of in the array.",
+            ),
+        ];
+        PARAMETERS
     }
 }
 

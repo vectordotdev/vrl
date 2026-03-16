@@ -8,28 +8,19 @@ static DEFAULT_NUMERIC_GROUPS: LazyLock<Value> = LazyLock::new(|| Value::Boolean
 
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
-        Parameter {
-            keyword: "value",
-            kind: kind::BYTES,
-            required: true,
-            description: "The string to search.",
-            default: None,
-        },
-        Parameter {
-            keyword: "pattern",
-            kind: kind::REGEX,
-            required: true,
-            description: "The regular expression pattern to search against.",
-            default: None,
-        },
-        Parameter {
-            keyword: "numeric_groups",
-            kind: kind::BOOLEAN,
-            required: false,
-            description: "If true, the index of each group in the regular expression is also captured. Index `0`
+        Parameter::required("value", kind::BYTES, "The string to search."),
+        Parameter::required(
+            "pattern",
+            kind::REGEX,
+            "The regular expression pattern to search against.",
+        ),
+        Parameter::optional(
+            "numeric_groups",
+            kind::BOOLEAN,
+            "If true, the index of each group in the regular expression is also captured. Index `0`
 contains the whole match.",
-            default: Some(&DEFAULT_NUMERIC_GROUPS),
-        },
+        )
+        .default(&DEFAULT_NUMERIC_GROUPS),
     ]
 });
 
@@ -151,10 +142,11 @@ impl Function for ParseRegex {
             }"# }),
             },
             example! {
-                title: "Parse using Regex with variable",
-                source: r#"
-                variable = r'^(?P<host>[\w\.]+) - (?P<user>[\w]+)';
-                parse_regex!("8.7.6.5 - zorp", variable)"#,
+                title: "Parse using Regex with variables",
+                source: indoc! {r#"
+                    variable = r'^(?P<host>[\w\.]+) - (?P<user>[\w]+)';
+                    parse_regex!("8.7.6.5 - zorp", variable)
+                "#},
                 result: Ok(indoc! { r#"{
                 "host": "8.7.6.5",
                 "user": "zorp"

@@ -6,7 +6,7 @@ def get_crate_versions(crate_name):
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36'}
 
-    response = requests.get(f"https://crates.io/api/v1/crates/{crate_name}", headers=headers)
+    response = requests.get(f"https://crates.io/api/v1/crates/{crate_name}", headers=headers, timeout=5)
     if response.status_code != 200:
         raise Exception(f"Error fetching crate info: {response.status_code}")
     data = response.json()

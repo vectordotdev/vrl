@@ -176,13 +176,12 @@ impl Function for ParseInfluxDB {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[Parameter {
-            keyword: "value",
-            kind: kind::BYTES,
-            required: true,
-            description: "The string representation of the InfluxDB line protocol to parse.",
-            default: None,
-        }]
+        const PARAMETERS: &[Parameter] = &[Parameter::required(
+            "value",
+            kind::BYTES,
+            "The string representation of the InfluxDB line protocol to parse.",
+        )];
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {

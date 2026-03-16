@@ -51,13 +51,12 @@ impl Function for Unique {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[Parameter {
-            keyword: "value",
-            kind: kind::ARRAY,
-            required: true,
-            description: "The array to return unique elements from.",
-            default: None,
-        }]
+        const PARAMETERS: &[Parameter] = &[Parameter::required(
+            "value",
+            kind::ARRAY,
+            "The array to return unique elements from.",
+        )];
+        PARAMETERS
     }
 }
 

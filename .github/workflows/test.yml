@@ -8,6 +8,9 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+
 concurrency:
   # For pull requests, cancel running workflows, for main, run all
   #
@@ -27,16 +30,16 @@ jobs:
   clippy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: Swatinem/rust-cache@v2
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: Swatinem/rust-cache@c676846f29d98ff6b0106d3608c7ffd4048af17b # v2.9.0
       - name: "clippy"
         run: ./scripts/clippy.sh
 
   fmt:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: Swatinem/rust-cache@v2
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: Swatinem/rust-cache@c676846f29d98ff6b0106d3608c7ffd4048af17b # v2.9.0
       - name: "Format check"
         run: ./scripts/format_check.sh
 
@@ -47,8 +50,8 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest]
     steps:
-      - uses: actions/checkout@v6
-      - uses: Swatinem/rust-cache@v2
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: Swatinem/rust-cache@c676846f29d98ff6b0106d3608c7ffd4048af17b # v2.9.0
       - name: "Tests"
         run: ./scripts/tests.sh
 
@@ -59,63 +62,63 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest]
     steps:
-      - uses: actions/checkout@v6
-      - uses: Swatinem/rust-cache@v2
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: Swatinem/rust-cache@c676846f29d98ff6b0106d3608c7ffd4048af17b # v2.9.0
       - name: "VRL tests"
         run: ./scripts/vrl_tests.sh
 
   check-features:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: Swatinem/rust-cache@v2
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: Swatinem/rust-cache@c676846f29d98ff6b0106d3608c7ffd4048af17b # v2.9.0
       - name: "Check that all features can compile"
         run: ./scripts/check_features.sh
 
   check-licenses:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: Swatinem/rust-cache@v2
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: Swatinem/rust-cache@c676846f29d98ff6b0106d3608c7ffd4048af17b # v2.9.0
       - name: "Check that the 3rd-party license file is up to date"
         run: ./scripts/check_licenses.sh
 
   check-msrv:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: Swatinem/rust-cache@v2
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: Swatinem/rust-cache@c676846f29d98ff6b0106d3608c7ffd4048af17b # v2.9.0
       - name: "Check that the MSRV is up to date"
         run: ./scripts/check_msrv.sh
 
   check-deny:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: Swatinem/rust-cache@v2
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: Swatinem/rust-cache@c676846f29d98ff6b0106d3608c7ffd4048af17b # v2.9.0
       - name: "Check that the 3rd-party license file is up to date"
         run: ./scripts/check_deny.sh
 
   check-docs:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: Swatinem/rust-cache@v2
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: Swatinem/rust-cache@c676846f29d98ff6b0106d3608c7ffd4048af17b # v2.9.0
       - name: "Check that docs generate without issues"
         run: cargo doc --no-deps --workspace
 
   check-lockfile:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: Swatinem/rust-cache@v2
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: Swatinem/rust-cache@c676846f29d98ff6b0106d3608c7ffd4048af17b # v2.9.0
       - name: "Check that Cargo.lock is in sync with Cargo.toml"
         run: cargo update --workspace --locked
 
   wasm32-unknown-unknown:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: Swatinem/rust-cache@v2
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: Swatinem/rust-cache@c676846f29d98ff6b0106d3608c7ffd4048af17b # v2.9.0
       - name: "Check wasm32-unknown-unknown target"
         run: ./scripts/check_wasm32.sh

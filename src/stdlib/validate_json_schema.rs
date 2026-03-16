@@ -1,15 +1,14 @@
+use super::util::example_path_or_basename;
 use crate::compiler::prelude::*;
-use std::env;
+#[cfg(not(target_arch = "wasm32"))]
 use std::path::PathBuf;
 use std::sync::LazyLock;
 
 // This needs to be static because validate_json_schema needs to read a file
 // and the file path needs to be a literal.
 static EXAMPLE_JSON_SCHEMA_VALID_EMAIL: LazyLock<&str> = LazyLock::new(|| {
-    let path = PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap())
-        .join("../../tests/data/jsonschema/validate_json_schema/schema_with_email_format.json")
-        .display()
-        .to_string();
+    let path =
+        example_path_or_basename("jsonschema/validate_json_schema/schema_with_email_format.json");
 
     Box::leak(
         format!(
@@ -20,10 +19,8 @@ static EXAMPLE_JSON_SCHEMA_VALID_EMAIL: LazyLock<&str> = LazyLock::new(|| {
 });
 
 static EXAMPLE_JSON_SCHEMA_INVALID_EMAIL: LazyLock<&str> = LazyLock::new(|| {
-    let path = PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap())
-        .join("../../tests/data/jsonschema/validate_json_schema/schema_with_email_format.json")
-        .display()
-        .to_string();
+    let path =
+        example_path_or_basename("jsonschema/validate_json_schema/schema_with_email_format.json");
 
     Box::leak(
         format!(
@@ -34,10 +31,8 @@ static EXAMPLE_JSON_SCHEMA_INVALID_EMAIL: LazyLock<&str> = LazyLock::new(|| {
 });
 
 static EXAMPLE_JSON_SCHEMA_CUSTOM_FORMAT_FALSE: LazyLock<&str> = LazyLock::new(|| {
-    let path = PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap())
-        .join("../../tests/data/jsonschema/validate_json_schema/schema_with_custom_format.json")
-        .display()
-        .to_string();
+    let path =
+        example_path_or_basename("jsonschema/validate_json_schema/schema_with_custom_format.json");
 
     Box::leak(
         format!(r#"validate_json_schema!(s'{{ "productUser": "a-custom-formatted-string" }}', "{path}", false)"#)
@@ -46,10 +41,8 @@ static EXAMPLE_JSON_SCHEMA_CUSTOM_FORMAT_FALSE: LazyLock<&str> = LazyLock::new(|
 });
 
 static EXAMPLE_JSON_SCHEMA_CUSTOM_FORMAT_TRUE: LazyLock<&str> = LazyLock::new(|| {
-    let path = PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap())
-        .join("../../tests/data/jsonschema/validate_json_schema/schema_with_custom_format.json")
-        .display()
-        .to_string();
+    let path =
+        example_path_or_basename("jsonschema/validate_json_schema/schema_with_custom_format.json");
 
     Box::leak(
         format!(r#"validate_json_schema!(s'{{ "productUser": "a-custom-formatted-string" }}', "{path}", true)"#)
@@ -147,29 +140,24 @@ impl Function for ValidateJsonSchema {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::BYTES,
-                required: true,
-                description: "The value to check if it conforms to the JSON schema definition.",
-                default: None,
-            },
-            Parameter {
-                keyword: "schema_definition",
-                kind: kind::BYTES,
-                required: true,
-                description: "The location (path) of the JSON Schema definition.",
-                default: None,
-            },
-            Parameter {
-                keyword: "ignore_unknown_formats",
-                kind: kind::BOOLEAN,
-                required: false,
-                description: "Unknown formats can be silently ignored by setting this to `true` and validation continues without failing due to those fields.",
-                default: None,
-            },
-        ]
+        const PARAMETERS: &[Parameter] = &[
+            Parameter::required(
+                "value",
+                kind::BYTES,
+                "The value to check if it conforms to the JSON schema definition.",
+            ),
+            Parameter::required(
+                "schema_definition",
+                kind::BYTES,
+                "The location (path) of the JSON Schema definition.",
+            ),
+            Parameter::optional(
+                "ignore_unknown_formats",
+                kind::BOOLEAN,
+                "Unknown formats can be silently ignored by setting this to `true` and validation continues without failing due to those fields.",
+            ),
+        ];
+        PARAMETERS
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -350,6 +338,7 @@ mod non_wasm {
 mod tests {
     use super::*;
     use crate::value;
+    use std::env;
 
     fn test_data_dir() -> PathBuf {
         PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap()).join("tests/data/jsonschema/")
