@@ -4,8 +4,8 @@
 use std::path::{MAIN_SEPARATOR, PathBuf};
 use std::{collections::BTreeMap, env, str::FromStr, time::Instant};
 
-use ansi_term::Colour;
 use chrono::{DateTime, SecondsFormat, Utc};
+use nu_ansi_term::Color;
 
 pub use test::Test;
 
@@ -40,6 +40,7 @@ pub struct TestConfig {
     pub timings: bool,
     pub runtime: VrlRuntime,
     pub timezone: TimeZone,
+    pub run_skipped: bool,
 }
 
 #[derive(Clone)]
@@ -102,12 +103,12 @@ pub fn run_tests<T>(
     for mut test in tests {
         if category != test.category {
             category.clone_from(&test.category);
-            println!("{}", Colour::Fixed(3).bold().paint(category.to_string()));
+            println!("{}", Color::Fixed(3).bold().paint(category.to_string()));
         }
 
         if let Some(err) = test.error {
-            println!("{}", Colour::Purple.bold().paint("INVALID"));
-            println!("{}", Colour::Red.paint(err));
+            println!("{}", Color::Purple.bold().paint("INVALID"));
+            println!("{}", Color::Red.paint(err));
             failed_count += 1;
             continue;
         }
@@ -116,12 +117,7 @@ pub fn run_tests<T>(
         name.truncate(58);
 
         let dots = if name.len() >= 60 { 0 } else { 60 - name.len() };
-        print!("  {}{}", name, Colour::Fixed(240).paint(".".repeat(dots)));
-
-        if test.skip {
-            println!("{}", Colour::Yellow.bold().paint("SKIPPED"));
-            continue;
-        }
+        print!("  {}{}", name, Color::Fixed(240).paint(".".repeat(dots)));
 
         let (mut config, config_metadata) = (compile_config_provider)();
         // Set some read-only paths that can be tested
@@ -146,7 +142,10 @@ pub fn run_tests<T>(
             }) => {
                 warnings_count += warnings.len();
 
-                if test.check_diagnostics {
+                if test.skip && !cfg.run_skipped {
+                    println!("{}", Color::Yellow.bold().paint("OK (compile only)"));
+                    false
+                } else if test.check_diagnostics {
                     process_compilation_diagnostics(&test, cfg, warnings, compile_timing_fmt)
                 } else if warnings.is_empty() {
                     let run_start = Instant::now();
@@ -162,12 +161,12 @@ pub fn run_tests<T>(
                         } else {
                             String::new()
                         };
-                        Colour::Fixed(timings_color).paint(timings_fmt).to_string()
+                        Color::Fixed(timings_color).paint(timings_fmt).to_string()
                     };
 
                     process_result(result, &mut test, cfg, timings)
                 } else {
-                    println!("{} (diagnostics)", Colour::Red.bold().paint("FAILED"));
+                    println!("{} (diagnostics)", Color::Red.bold().paint("FAILED"));
                     let formatter = Formatter::new(&test.source, warnings);
                     println!("{formatter}");
                     // mark as failure, did not expect any warnings
@@ -199,10 +198,6 @@ fn process_result(
     config: &TestConfig,
     timings: String,
 ) -> bool {
-    if test.skip {
-        return false;
-    }
-
     match result {
         Ok(got) => {
             let got_value = vrl_value_to_json_value(got);
@@ -237,10 +232,10 @@ fn process_result(
             if match_mode.matches(&got_value, &want_value) {
                 print!(
                     "{timings}{}",
-                    Colour::Green.bold().paint(match_mode.ok_label())
+                    Color::Green.bold().paint(match_mode.ok_label())
                 );
             } else {
-                print!("{}", Colour::Red.bold().paint(match_mode.fail_label()));
+                print!("{}", Color::Red.bold().paint(match_mode.fail_label()));
 
                 if !config.no_diff {
                     let want = serde_json::to_string_pretty(&want_value).unwrap();
@@ -269,7 +264,7 @@ fn process_result(
             let want = test.result.clone().trim().to_owned();
 
             if (test.result_approx && compare_partial_diagnostic(&got, &want)) || got == want {
-                println!("{}{}", Colour::Green.bold().paint("OK"), timings);
+                println!("{}{}", Color::Green.bold().paint("OK"), timings);
             } else if matches!(err, Terminate::Abort { .. }) {
                 let want =
                     serde_json::from_str::<'_, serde_json::Value>(&want).unwrap_or_else(|err| {
@@ -279,9 +274,9 @@ fn process_result(
 
                 let got = vrl_value_to_json_value(test.object.clone());
                 if got == want {
-                    println!("{}{}", Colour::Green.bold().paint("OK"), timings);
+                    println!("{}{}", Color::Green.bold().paint("OK"), timings);
                 } else {
-                    println!("{} (abort)", Colour::Red.bold().paint("FAILED"));
+                    println!("{} (abort)", Color::Red.bold().paint("FAILED"));
 
                     if !config.no_diff {
                         let want = serde_json::to_string_pretty(&want).unwrap();
@@ -293,7 +288,7 @@ fn process_result(
                     failed = true;
                 }
             } else {
-                println!("{} (runtime)", Colour::Red.bold().paint("FAILED"));
+                println!("{} (runtime)", Color::Red.bold().paint("FAILED"));
 
                 if !config.no_diff {
                     let diff = prettydiff::diff_lines(&want, &got);
@@ -338,11 +333,11 @@ fn process_compilation_diagnostics(
             } else {
                 String::new()
             };
-            Colour::Fixed(245).paint(timings_fmt).to_string()
+            Color::Fixed(245).paint(timings_fmt).to_string()
         };
-        println!("{}{timings}", Colour::Green.bold().paint("OK"));
+        println!("{}{timings}", Color::Green.bold().paint("OK"));
     } else {
-        println!("{} (compilation)", Colour::Red.bold().paint("FAILED"));
+        println!("{} (compilation)", Color::Red.bold().paint("FAILED"));
 
         if !cfg.no_diff {
             let diff = prettydiff::diff_lines(want, got);
@@ -382,28 +377,28 @@ fn print_result(
     if failed_count > 0 {
         println!(
             "Overall result: {}\n\n  Number failed: {}\n  Number passed: {}",
-            Colour::Red.bold().paint("FAILED"),
-            Colour::Red.bold().paint(failed_count.to_string()),
-            Colour::Green.bold().paint(passed_count.to_string())
+            Color::Red.bold().paint("FAILED"),
+            Color::Red.bold().paint(failed_count.to_string()),
+            Color::Green.bold().paint(passed_count.to_string())
         );
     } else {
         println!(
             "Overall result: {}\n  Number passed: {}",
-            Colour::Green.bold().paint("SUCCESS"),
-            Colour::Green.bold().paint(passed_count.to_string())
+            Color::Green.bold().paint("SUCCESS"),
+            Color::Green.bold().paint(passed_count.to_string())
         );
     }
     println!(
         "  Number warnings: {}",
-        Colour::Yellow.bold().paint(warnings_count.to_string())
+        Color::Yellow.bold().paint(warnings_count.to_string())
     );
 
     if !failed_tests.is_empty() {
-        println!("\n{}", Colour::Red.bold().paint("Failed tests:"));
+        println!("\n{}", Color::Red.bold().paint("Failed tests:"));
         for test in failed_tests {
             println!(
                 "  {} - {}:{}",
-                Colour::Yellow.paint(format!("{}/{}", test.category, test.name)),
+                Color::Yellow.paint(format!("{}/{}", test.category, test.name)),
                 test.source_file,
                 test.source_line
             );

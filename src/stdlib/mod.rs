@@ -3,7 +3,7 @@ pub use wasm_unsupported_function::WasmUnsupportedFunction;
 
 use crate::compiler::Function;
 
-mod ip_utils;
+mod csv_utils;
 mod json_utils;
 mod string_utils;
 mod util;
@@ -26,7 +26,6 @@ cfg_if::cfg_if! {
         mod compact;
         mod contains;
         mod contains_all;
-        mod crc;
         mod decode_base16;
         mod decode_base64;
         mod decode_charset;
@@ -38,14 +37,13 @@ cfg_if::cfg_if! {
         mod decode_snappy;
         mod decode_zlib;
         mod decode_zstd;
-        mod decrypt;
-        mod decrypt_ip;
         mod del;
         mod dirname;
         mod downcase;
         mod encode_base16;
         mod encode_base64;
         mod encode_charset;
+        mod encode_csv;
         mod encode_gzip;
         mod encode_json;
         mod encode_key_value;
@@ -56,8 +54,6 @@ cfg_if::cfg_if! {
         mod encode_snappy;
         mod encode_zlib;
         mod encode_zstd;
-        mod encrypt;
-        mod encrypt_ip;
         mod ends_with;
         mod exists;
         mod filter;
@@ -72,7 +68,6 @@ cfg_if::cfg_if! {
         mod from_unix_timestamp;
         mod get;
         mod haversine;
-        mod hmac;
         mod includes;
         mod integer;
         mod ip_aton;
@@ -108,7 +103,6 @@ cfg_if::cfg_if! {
         mod match_any;
         mod match_array;
         mod match_datadog_query;
-        mod md5;
         mod merge;
         mod mod_func;
         mod now;
@@ -146,6 +140,7 @@ cfg_if::cfg_if! {
         mod parse_url;
         mod parse_user_agent;
         mod parse_xml;
+        mod parse_yaml;
         mod pop;
         mod push;
         mod random_bool;
@@ -157,11 +152,7 @@ cfg_if::cfg_if! {
         mod replace;
         mod replace_with;
         mod round;
-        mod seahash;
         mod set;
-        mod sha1;
-        mod sha2;
-        mod sha3;
         mod shannon_entropy;
         mod sieve;
         mod slice;
@@ -196,7 +187,6 @@ cfg_if::cfg_if! {
         mod uuid_v4;
         mod uuid_v7;
         mod values;
-        mod xxhash;
         mod zip;
 
         // Environment functions (gated by enable_env_functions)
@@ -224,6 +214,25 @@ cfg_if::cfg_if! {
                 mod dns_lookup;
                 mod http_request;
                 mod reverse_dns;
+            }
+        }
+
+        // Cryptographic and hash functions (gated by enable_crypto_functions)
+        cfg_if::cfg_if! {
+            if #[cfg(feature = "enable_crypto_functions")] {
+                mod md5;
+                mod crc;
+                mod decrypt;
+                mod decrypt_ip;
+                mod encrypt;
+                mod encrypt_ip;
+                mod hmac;
+                mod ip_utils;
+                mod seahash;
+                mod sha1;
+                mod sha2;
+                mod sha3;
+                mod xxhash;
             }
         }
 
@@ -259,7 +268,6 @@ cfg_if::cfg_if! {
 
         stdlib_functions! {
             // ===== Base stdlib functions (always included with stdlib-base) =====
-            self::hmac::Hmac,
             abs::Abs,
             append::Append,
             assert::Assert,
@@ -282,31 +290,28 @@ cfg_if::cfg_if! {
             decode_snappy::DecodeSnappy,
             decode_zlib::DecodeZlib,
             decode_zstd::DecodeZstd,
-            decrypt::Decrypt,
-            decrypt_ip::DecryptIp,
             del::Del,
             dirname::DirName,
             downcase::Downcase,
             casing::camelcase::Camelcase,
-            casing::pascalcase::Pascalcase,
-            casing::snakecase::Snakecase,
-            casing::screamingsnakecase::ScreamingSnakecase,
             casing::kebabcase::Kebabcase,
+            casing::pascalcase::Pascalcase,
+            casing::screamingsnakecase::ScreamingSnakecase,
+            casing::snakecase::Snakecase,
             encode_base16::EncodeBase16,
             encode_base64::EncodeBase64,
             encode_charset::EncodeCharset,
+            encode_csv::EncodeCsv,
             encode_gzip::EncodeGzip,
-            encode_lz4::EncodeLz4,
             encode_json::EncodeJson,
             encode_key_value::EncodeKeyValue,
             encode_logfmt::EncodeLogfmt,
+            encode_lz4::EncodeLz4,
             encode_percent::EncodePercent,
             encode_punycode::EncodePunycode,
             encode_snappy::EncodeSnappy,
             encode_zlib::EncodeZlib,
             encode_zstd::EncodeZstd,
-            encrypt::Encrypt,
-            encrypt_ip::EncryptIp,
             ends_with::EndsWith,
             exists::Exists,
             filter::Filter,
@@ -392,6 +397,7 @@ cfg_if::cfg_if! {
             parse_url::ParseUrl,
             parse_user_agent::ParseUserAgent,
             parse_xml::ParseXml,
+            parse_yaml::ParseYaml,
             pop::Pop,
             push::Push,
             r#match::Match,
@@ -405,8 +411,6 @@ cfg_if::cfg_if! {
             replace_with::ReplaceWith,
             round::Round,
             set::Set,
-            sha2::Sha2,
-            sha3::Sha3,
             shannon_entropy::ShannonEntropy,
             sieve::Sieve,
             slice::Slice,
@@ -443,11 +447,6 @@ cfg_if::cfg_if! {
             values::Values,
             zip::Zip,
             self::array::Array,
-            self::md5::Md5,
-            self::seahash::Seahash,
-            self::sha1::Sha1,
-            self::xxhash::Xxhash,
-            self::crc::Crc,
 
             // Environment functions (enable_env_functions)
             #[cfg(feature = "enable_env_functions")]
@@ -474,6 +473,32 @@ cfg_if::cfg_if! {
             http_request::HttpRequest,
             #[cfg(feature = "enable_network_functions")]
             reverse_dns::ReverseDns,
+
+            // Cryptographic and hash functions (enable_crypto_functions)
+            #[cfg(feature = "enable_crypto_functions")]
+            decrypt::Decrypt,
+            #[cfg(feature = "enable_crypto_functions")]
+            decrypt_ip::DecryptIp,
+            #[cfg(feature = "enable_crypto_functions")]
+            encrypt::Encrypt,
+            #[cfg(feature = "enable_crypto_functions")]
+            encrypt_ip::EncryptIp,
+            #[cfg(feature = "enable_crypto_functions")]
+            self::crc::Crc,
+            #[cfg(feature = "enable_crypto_functions")]
+            self::hmac::Hmac,
+            #[cfg(feature = "enable_crypto_functions")]
+            self::md5::Md5,
+            #[cfg(feature = "enable_crypto_functions")]
+            self::seahash::Seahash,
+            #[cfg(feature = "enable_crypto_functions")]
+            self::sha1::Sha1,
+            #[cfg(feature = "enable_crypto_functions")]
+            self::xxhash::Xxhash,
+            #[cfg(feature = "enable_crypto_functions")]
+            sha2::Sha2,
+            #[cfg(feature = "enable_crypto_functions")]
+            sha3::Sha3,
         }
 
         #[cfg(feature = "enable_system_functions")]

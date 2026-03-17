@@ -36,6 +36,10 @@ pub struct Cmd {
     #[clap(short = 'z', long)]
     timezone: Option<String>,
 
+    /// When enabled, run examples marked as compile-only (skip: true).
+    #[clap(long)]
+    run_skipped: bool,
+
     /// Should we use the VM to evaluate the VRL
     #[clap(short, long = "runtime", default_value_t)]
     runtime: VrlRuntime,
@@ -77,6 +81,7 @@ fn main() {
         timings: cmd.timings,
         runtime: cmd.runtime,
         timezone: cmd.timezone(),
+        run_skipped: cmd.run_skipped,
     };
 
     run_tests(

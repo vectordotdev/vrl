@@ -379,10 +379,7 @@ impl Function for HttpRequest {
     }
 
     fn notices(&self) -> &'static [&'static str] {
-        &[indoc! {"
-            This function performs synchronous blocking operations and is not recommended for
-            frequent or performance-critical workflows due to potential network-related delays.
-        "}]
+        &[super::util::NETWORK_CALL_NOTICE]
     }
 
     fn category(&self) -> &'static str {
@@ -393,35 +390,83 @@ impl Function for HttpRequest {
         kind::BYTES
     }
 
-    #[cfg(not(feature = "test"))]
-    fn examples(&self) -> &'static [Example] {
-        &[]
-    }
-
-    #[cfg(feature = "test")]
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
                 title: "Basic HTTP request",
-                source: r#"http_request("https://httpbin.org/get")"#,
+                source: indoc! {r#"
+                    . = parse_json!(http_request!("https://httpbin.org/get"))
+
+                    # Redact the origin ip
+                    .origin = redact!(.origin, filters: [r'.*'], redactor: {"type": "text", "replacement": "***"})
+                    # Delete any ids in headers
+                    .headers = filter(object!(.headers)) -> |key, _value| { !contains(key, "id", false) }
+                    .
+                "#},
                 result: Ok(
-                    r#"{"args":{},"headers":{"Accept":"*/*","Host":"httpbin.org"},"url":"https://httpbin.org/get"}"#,
+                    r#"{"args":{},"headers":{"Accept":"*/*","Host":"httpbin.org"},"url":"https://httpbin.org/get", "origin": "***"}"#,
                 ),
+                skip: true,
             },
             example! {
                 title: "HTTP request with bearer token",
-                source: r#"http_request("https://httpbin.org/bearer", headers: {"Authorization": "Bearer my_token"})"#,
+                source: r#"parse_json!(http_request!("https://httpbin.org/bearer", headers: {"Authorization": "Bearer my_token"}))"#,
                 result: Ok(r#"{"authenticated":true,"token":"my_token"}"#),
+                skip: true,
             },
             example! {
                 title: "HTTP PUT request",
-                source: r#"http_request("https://httpbin.org/put", method: "put")"#,
-                result: Ok(r#"{"args":{},"data": "","url": "https://httpbin.org/put"}"#),
+                source: indoc! {r#"
+                    . = parse_json!(http_request!("https://httpbin.org/put", method: "put"))
+
+                    # Redact the origin ip
+                    .origin = redact!(.origin, filters: [r'.*'], redactor: {"type": "text", "replacement": "***"})
+                    # Delete any ids in headers
+                    .headers = filter(object!(.headers)) -> |key, _value| { !contains(key, "id", false) }
+                    .
+                "#},
+                result: Ok(indoc!{r#"
+                    {
+                      "args": {},
+                      "data": "",
+                      "files": {},
+                      "form": {},
+                      "headers": {
+                        "Accept": "*/*",
+                        "Content-Length": "0",
+                        "Host": "httpbin.org"
+                      },
+                      "json": null,
+                      "origin": "***",
+                      "url": "https://httpbin.org/put"
+                    }
+                "#}),
+                skip: true,
             },
             example! {
                 title: "HTTP POST request with body",
-                source: r#"http_request("https://httpbin.org/post", method: "post", body: "{\"data\":{\"hello\":\"world\"}}")"#,
-                result: Ok(r#"{"data":"{\"data\":{\"hello\":\"world\"}}"}"#),
+                source: indoc! {r#"
+                    . = parse_json!(http_request!("https://httpbin.org/post", method: "post", body: "{\"data\":{\"hello\":\"world\"}}"))
+
+                    # Redact the origin ip
+                    .origin = redact!(.origin, filters: [r'.*'], redactor: {"type": "text", "replacement": "***"})
+                    # Delete any ids in headers
+                    .headers = filter(object!(.headers)) -> |key, _value| { !contains(key, "id", false) }
+                    .
+                "#},
+                result: Ok(indoc!{r#"
+                    {
+                      "data": "{\"data\":{\"hello\":\"world\"}}",
+                      "args": {},
+                      "files": {},
+                      "form": {},
+                      "headers": { "Accept": "*/*", "Content-Length": "26", "Host": "httpbin.org" },
+                      "json": { "data": { "hello": "world" } },
+                      "origin": "***",
+                      "url": "https://httpbin.org/post"
+                    }
+                "#}),
+                skip: true,
             },
         ]
     }
@@ -477,7 +522,7 @@ impl Function for HttpRequest {
     }
 }
 
-#[cfg(all(feature = "test", test, not(target_arch = "wasm32")))]
+#[cfg(all(test, not(target_arch = "wasm32")))]
 mod tests {
     use super::*;
     use crate::value;
@@ -498,7 +543,7 @@ mod tests {
             headers: Some(expr!({})),
             body: Some(expr!("")),
             client_or_proxies: ClientOrProxies::no_proxies(),
-            redact_headers: expr!(true),
+            redact_headers: Some(expr!(true)),
         };
 
         let result = execute_http_request(&func).expect("HTTP request failed");
@@ -521,7 +566,7 @@ mod tests {
             headers: Some(expr!({})),
             body: Some(expr!("")),
             client_or_proxies: ClientOrProxies::no_proxies(),
-            redact_headers: expr!(true),
+            redact_headers: Some(expr!(true)),
         };
 
         let result = execute_http_request(&func);
@@ -538,7 +583,7 @@ mod tests {
             headers: Some(expr!({"Invalid Header With Spaces": "value"})),
             body: Some(expr!("")),
             client_or_proxies: ClientOrProxies::no_proxies(),
-            redact_headers: expr!(true),
+            redact_headers: Some(expr!(true)),
         };
 
         let result = execute_http_request(&func);
@@ -558,7 +603,7 @@ mod tests {
                 None,
                 Some(expr!("not^a&valid*url")),
             ),
-            redact_headers: expr!(true),
+            redact_headers: Some(expr!(true)),
         };
 
         let result = execute_http_request(&func);
@@ -582,7 +627,7 @@ mod tests {
             })),
             body: Some(expr!("")),
             client_or_proxies: ClientOrProxies::no_proxies(),
-            redact_headers: expr!(true),
+            redact_headers: Some(expr!(true)),
         };
 
         let result = execute_http_request(&func);
@@ -626,7 +671,7 @@ mod tests {
             })),
             body: Some(expr!("")),
             client_or_proxies: ClientOrProxies::no_proxies(),
-            redact_headers: expr!(false),
+            redact_headers: Some(expr!(false)),
         };
 
         let result = execute_http_request(&func);

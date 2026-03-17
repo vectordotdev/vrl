@@ -1,4 +1,4 @@
-use crate::compiler::prelude::*;
+use crate::{compiler::prelude::*, stdlib::csv_utils::parse_single_byte_delimiter};
 use csv::ReaderBuilder;
 use std::sync::LazyLock;
 
@@ -10,7 +10,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
         Parameter::optional(
             "delimiter",
             kind::BYTES,
-            "The field delimiter to use when parsing. Must be a single-byte utf8 character.",
+            "The field delimiter to use when parsing. Must be a single-byte UTF-8 character.",
         )
         .default(&DEFAULT_DELIMITER),
     ]
@@ -18,11 +18,8 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
 
 fn parse_csv(csv_string: Value, delimiter: Value) -> Resolved {
     let csv_string = csv_string.try_bytes()?;
-    let delimiter = delimiter.try_bytes()?;
-    if delimiter.len() != 1 {
-        return Err("delimiter must be a single character".into());
-    }
-    let delimiter = delimiter[0];
+    let delimiter = parse_single_byte_delimiter(delimiter)?;
+
     let reader = ReaderBuilder::new()
         .has_headers(false)
         .delimiter(delimiter)

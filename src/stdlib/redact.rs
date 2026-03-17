@@ -136,11 +136,13 @@ to avoid runtime errors. You cannot use variables or other dynamic expressions w
                 source: r#"redact("my id is 123456", filters: [r'\d+'], redactor: {"type": "text", "replacement": "***"})"#,
                 result: Ok("my id is ***"),
             },
+            #[cfg(feature = "enable_crypto_functions")]
             example! {
                 title: "Replace with SHA-2 hash",
                 source: r#"redact("my id is 123456", filters: [r'\d+'], redactor: "sha2")"#,
                 result: Ok("my id is GEtTedW1p6tC094dDKH+3B8P+xSnZz69AmpjaXRd63I="),
             },
+            #[cfg(feature = "enable_crypto_functions")]
             example! {
                 title: "Replace with SHA-3 hash",
                 source: r#"redact("my id is 123456", filters: [r'\d+'], redactor: "sha3")"#,
@@ -148,6 +150,7 @@ to avoid runtime errors. You cannot use variables or other dynamic expressions w
                     "my id is ZNCdmTDI7PeeUTFnpYjLdUObdizo+bIupZdl8yqnTKGdLx6X3JIqPUlUWUoFBikX+yTR+OcvLtAqWO11NPlNJw==",
                 ),
             },
+            #[cfg(feature = "enable_crypto_functions")]
             example! {
                 title: "Replace with SHA-256 hash using hex encoding",
                 source: r#"redact("my id is 123456", filters: [r'\d+'], redactor: {"type": "sha2", "variant": "SHA-256", "encoding": "base16"})"#,
@@ -376,6 +379,7 @@ enum Redactor {
     // alternatively we could have a separate variant for each hash algorithm/variant combination
     // we could also create a custom Debug implementation that does a comparison of the fn pointer
     // to function pointers we might use.
+    #[cfg(feature = "enable_crypto_functions")]
     /// Replace with a hash of the redacted content
     Hash {
         encoder: Encoder,
@@ -387,6 +391,8 @@ const REDACTED: &str = "[REDACTED]";
 
 impl Redactor {
     fn replace_str(&self, original: &str, dst: &mut String) {
+        #[cfg(not(feature = "enable_crypto_functions"))]
+        let _ = original;
         match self {
             Redactor::Full => {
                 dst.push_str(REDACTED);
@@ -394,6 +400,7 @@ impl Redactor {
             Redactor::Text(s) => {
                 dst.push_str(s);
             }
+            #[cfg(feature = "enable_crypto_functions")]
             Redactor::Hash { encoder, hasher } => {
                 dst.push_str(&hasher(*encoder, original.as_bytes()));
             }
@@ -422,6 +429,7 @@ impl Redactor {
                     _ => Err("`replacement` must be a string"),
                 }
             }
+            #[cfg(feature = "enable_crypto_functions")]
             b"sha2" => {
                 let hasher = if let Some(variant) = obj.get("variant") {
                     match variant
@@ -447,6 +455,7 @@ impl Redactor {
                     .unwrap_or(Encoder::Base64);
                 Ok(Redactor::Hash { hasher, encoder })
             }
+            #[cfg(feature = "enable_crypto_functions")]
             b"sha3" => {
                 let hasher = if let Some(variant) = obj.get("variant") {
                     match variant
@@ -484,6 +493,7 @@ impl regex::Replacer for &Redactor {
         match self {
             Redactor::Full => Some(REDACTED.into()),
             Redactor::Text(s) => Some(s.into()),
+            #[cfg(feature = "enable_crypto_functions")]
             Redactor::Hash { .. } => None,
         }
     }
@@ -497,10 +507,12 @@ impl TryFrom<Value> for Redactor {
             Value::Object(object) => Redactor::from_object(&object),
             Value::Bytes(bytes) => match bytes.as_ref() {
                 b"full" => Ok(Redactor::Full),
+                #[cfg(feature = "enable_crypto_functions")]
                 b"sha2" => Ok(Redactor::Hash {
                     hasher: encoded_hash::<sha_2::Sha512_256>,
                     encoder: Encoder::Base64,
                 }),
+                #[cfg(feature = "enable_crypto_functions")]
                 b"sha3" => Ok(Redactor::Hash {
                     hasher: encoded_hash::<sha_3::Sha3_512>,
                     encoder: Encoder::Base64,
@@ -512,12 +524,14 @@ impl TryFrom<Value> for Redactor {
     }
 }
 
+#[cfg(feature = "enable_crypto_functions")]
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 enum Encoder {
     Base64,
     Base16,
 }
 
+#[cfg(feature = "enable_crypto_functions")]
 impl TryFrom<&Value> for Encoder {
     type Error = &'static str;
 
@@ -530,6 +544,7 @@ impl TryFrom<&Value> for Encoder {
     }
 }
 
+#[cfg(feature = "enable_crypto_functions")]
 impl Encoder {
     fn encode(self, data: &[u8]) -> String {
         use Encoder::{Base16, Base64};
@@ -542,6 +557,7 @@ impl Encoder {
 
 /// Compute the hash of `data` using `T` as the digest, then encode it using `encoder`
 /// to get a String
+#[cfg(feature = "enable_crypto_functions")]
 fn encoded_hash<T: digest::Digest>(encoder: Encoder, data: &[u8]) -> String {
     encoder.encode(&T::digest(data))
 }
@@ -619,6 +635,67 @@ mod test {
             tdef: TypeDef::bytes().infallible(),
         }
 
+        invalid_redactor {
+             args: func_args![
+                 value: "hello 123456 world",
+                 filters: vec!["us_social_security_number"],
+                 redactor: "not a redactor"
+             ],
+             want: Err("invalid argument"),
+             tdef: TypeDef::bytes().infallible(),
+        }
+
+        invalid_redactor_obj {
+             args: func_args![
+                 value: "hello 123456 world",
+                 filters: vec!["us_social_security_number"],
+                 redactor: btreemap!{"type" => "wrongtype"},
+             ],
+             want: Err("invalid argument"),
+             tdef: TypeDef::bytes().infallible(),
+        }
+
+        invalid_redactor_no_type {
+             args: func_args![
+                 value: "hello 123456 world",
+                 filters: vec!["us_social_security_number"],
+                 redactor: btreemap!{"key" => "value"},
+             ],
+             want: Err("invalid argument"),
+             tdef: TypeDef::bytes().infallible(),
+        }
+
+    ];
+
+    #[cfg(not(feature = "enable_crypto_functions"))]
+    test_function![
+        redact => Redact;
+
+        sha2_rejected_without_crypto {
+            args: func_args![
+                value: "my id is 123456",
+                filters: vec![Regex::new(r"\d+").unwrap()],
+                redactor: "sha2",
+            ],
+            want: Err("sha2 redactor requires the enable_crypto_functions feature"),
+            tdef: TypeDef::bytes().infallible(),
+        }
+
+        sha3_rejected_without_crypto {
+            args: func_args![
+                value: "my id is 123456",
+                filters: vec![Regex::new(r"\d+").unwrap()],
+                redactor: "sha3",
+            ],
+            want: Err("sha3 redactor requires the enable_crypto_functions feature"),
+            tdef: TypeDef::bytes().infallible(),
+        }
+    ];
+
+    #[cfg(feature = "enable_crypto_functions")]
+    test_function![
+        redact => Redact;
+
         sha2 {
             args: func_args![
                 value: "my id is 123456",
@@ -648,36 +725,6 @@ mod test {
             ],
             want: Ok("my id is 8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92"),
             tdef: TypeDef::bytes().infallible(),
-        }
-
-        invalid_redactor {
-             args: func_args![
-                 value: "hello 123456 world",
-                 filters: vec!["us_social_security_number"],
-                 redactor: "not a redactor"
-             ],
-             want: Err("invalid argument"),
-             tdef: TypeDef::bytes().infallible(),
-        }
-
-        invalid_redactor_obj {
-             args: func_args![
-                 value: "hello 123456 world",
-                 filters: vec!["us_social_security_number"],
-                 redactor: btreemap!{"type" => "wrongtype"},
-             ],
-             want: Err("invalid argument"),
-             tdef: TypeDef::bytes().infallible(),
-        }
-
-        invalid_redactor_no_type {
-             args: func_args![
-                 value: "hello 123456 world",
-                 filters: vec!["us_social_security_number"],
-                 redactor: btreemap!{"key" => "value"},
-             ],
-             want: Err("invalid argument"),
-             tdef: TypeDef::bytes().infallible(),
         }
 
         invalid_hash_variant {
