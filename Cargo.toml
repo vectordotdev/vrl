@@ -63,7 +63,7 @@ datadog_grok = ["value", "parsing", "dep:nom", "dep:peeking_take_while", "dep:se
 datadog_search = ["dep:pest", "dep:pest_derive", "dep:itertools", "dep:regex", "dep:serde"]
 
 # Contains functionality to create a CLI for VRL.
-cli = ["stdlib", "dep:clap", "dep:serde_json", "dep:thiserror", "dep:exitcode", "dep:webbrowser", "dep:rustyline", "dep:prettytable-rs"]
+cli = ["compiler", "dep:clap", "dep:serde_json", "dep:thiserror", "dep:exitcode", "dep:webbrowser", "dep:rustyline", "dep:prettytable-rs"]
 
 # Contains the test framework for testing VRL functions. Useful for testing custom functions.
 test_framework = ["compiler", "dep:prettydiff", "dep:serde_json", "dep:nu-ansi-term"]
@@ -329,7 +329,7 @@ ua-parser = { version = "0.2" }
 [[bin]]
 name = "vrl"
 path = "src/main.rs"
-required-features = ["cli"]
+required-features = ["cli", "stdlib"]
 
 [[bench]]
 name = "kind"

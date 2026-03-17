@@ -79,13 +79,15 @@ pub(crate) fn run(
             Ok(line) if line == "exit" || line == "quit" => break,
             Ok("help") => print_help_text(),
             Ok(line) if line == "help functions" || line == "help funcs" || line == "help fs" => {
-                print_function_list();
+                print_function_list(&stdlib_functions);
             }
             Ok("help docs") => open_url(DOCS_URL),
             // Capture "help error <code>"
             Ok(line) if error_docs_regex.is_match(line) => show_error_docs(line, &error_docs_regex),
             // Capture "help docs <func_name>"
-            Ok(line) if func_docs_regex.is_match(line) => show_func_docs(line, &func_docs_regex),
+            Ok(line) if func_docs_regex.is_match(line) => {
+                show_func_docs(line, &func_docs_regex, &stdlib_functions);
+            }
             Ok(line) => {
                 rl.add_history_entry(line)?;
 
@@ -239,7 +241,8 @@ impl Hinter for Repl {
         let mut hints: Vec<String> = Vec::new();
 
         // Add all function names to the hints
-        let mut func_names = crate::stdlib::all()
+        let mut func_names = self
+            .stdlib_functions
             .iter()
             .map(|f| f.identifier().into())
             .collect::<Vec<String>>();
@@ -334,13 +337,13 @@ impl Validator for Repl {
     }
 }
 
-fn print_function_list() {
+fn print_function_list(funcs: &[Box<dyn Function>]) {
     let table_format = *format::consts::FORMAT_NO_LINESEP_WITH_TITLE;
     let num_columns = 3;
 
     let mut func_table = Table::new();
     func_table.set_format(table_format);
-    crate::stdlib::all()
+    funcs
         .chunks(num_columns)
         .map(|funcs| {
             // Because it's possible that some chunks are only partial, e.g. have only two Some(_)
@@ -380,16 +383,13 @@ fn open_url(url: &str) {
     }
 }
 
-fn show_func_docs(line: &str, pattern: &Regex) {
+fn show_func_docs(line: &str, pattern: &Regex, funcs: &[Box<dyn Function>]) {
     // Unwrap is okay in both cases here, as there's guaranteed to be two matches ("help docs" and
     // "help docs <func_name>")
     let matches = pattern.captures(line).unwrap();
     let func_name = matches.get(1).unwrap().as_str();
 
-    if crate::stdlib::all()
-        .iter()
-        .any(|f| f.identifier() == func_name)
-    {
+    if funcs.iter().any(|f| f.identifier() == func_name) {
         let func_url = format!("{DOCS_URL}/functions/#{func_name}");
         open_url(&func_url);
     } else {

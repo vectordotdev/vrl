@@ -142,15 +142,10 @@ fn run(opts: &Opts, stdlib_functions: Vec<Box<dyn Function>>) -> Result<(), Erro
             program,
             warnings,
             config: _,
-        } = compile_with_state(
-            &source,
-            &crate::stdlib::all(),
-            &state,
-            CompileConfig::default(),
-        )
-        .map_err(|diagnostics| {
-            Error::Parse(Formatter::new(&source, diagnostics).colored().to_string())
-        })?;
+        } = compile_with_state(&source, &stdlib_functions, &state, CompileConfig::default())
+            .map_err(|diagnostics| {
+                Error::Parse(Formatter::new(&source, diagnostics).colored().to_string())
+            })?;
 
         #[allow(clippy::print_stderr)]
         if opts.print_warnings {
