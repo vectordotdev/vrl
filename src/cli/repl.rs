@@ -50,139 +50,142 @@ const RESERVED_TERMS: &[&str] = &[
     "help docs",
 ];
 
-pub(crate) fn run(
+pub(crate) struct Repl {
     quiet: bool,
-    mut objects: Vec<TargetValue>,
+    objects: Vec<TargetValue>,
     timezone: TimeZone,
     vrl_runtime: VrlRuntime,
     stdlib_functions: Vec<Box<dyn Function>>,
-) -> Result<(), rustyline::error::ReadlineError> {
-    let stdlib_functions = Rc::new(stdlib_functions);
-    let mut index = 0;
-    let func_docs_regex = Regex::new(r"^help\sdocs\s(\w{1,})$").unwrap();
-    let error_docs_regex = Regex::new(r"^help\serror\s(\w{1,})$").unwrap();
-
-    let mut state = TypeState::default();
-
-    let mut rt = Runtime::new(RuntimeState::default());
-    let mut rl = Editor::<Repl, MemHistory>::new()?;
-    rl.set_helper(Some(Repl::new(stdlib_functions.clone())));
-
-    #[allow(clippy::print_stdout)]
-    if !quiet {
-        println!("{BANNER_TEXT}");
-    }
-
-    loop {
-        let readline = rl.readline("$ ");
-        match readline.as_deref() {
-            Ok(line) if line == "exit" || line == "quit" => break,
-            Ok("help") => Repl::print_help_text(),
-            Ok(line) if line == "help functions" || line == "help funcs" || line == "help fs" => {
-                Repl::print_function_list(&stdlib_functions);
-            }
-            Ok("help docs") => Repl::open_url(DOCS_URL),
-            // Capture "help error <code>"
-            Ok(line) if error_docs_regex.is_match(line) => {
-                Repl::show_error_docs(line, &error_docs_regex);
-            }
-            // Capture "help docs <func_name>"
-            Ok(line) if func_docs_regex.is_match(line) => {
-                Repl::show_func_docs(line, &func_docs_regex, &stdlib_functions);
-            }
-            Ok(line) => {
-                rl.add_history_entry(line)?;
-
-                let command = match line {
-                    "next" => {
-                        // allow adding one new object at a time
-                        if index < objects.len()
-                            && objects.last().map(|x| &x.value) != Some(&Value::Null)
-                        {
-                            index = index.saturating_add(1);
-                        }
-
-                        // add new object
-                        if index == objects.len() {
-                            objects.push(TargetValue {
-                                value: Value::Null,
-                                metadata: Value::Object(BTreeMap::new()),
-                                secrets: Secrets::new(),
-                            });
-                        }
-
-                        "."
-                    }
-                    "prev" => {
-                        index = index.saturating_sub(1);
-
-                        // remove empty last object
-                        if objects.last().map(|x| &x.value) == Some(&Value::Null) {
-                            let _last = objects.pop();
-                        }
-
-                        "."
-                    }
-                    "" => continue,
-                    _ => line,
-                };
-
-                let result = Repl::resolve(
-                    objects.get_mut(index).expect("object should exist"),
-                    &mut rt,
-                    command,
-                    &mut state,
-                    timezone,
-                    vrl_runtime,
-                    &stdlib_functions,
-                );
-
-                let string = match result {
-                    Ok(v) => v.to_string(),
-                    Err(v) => v.clone(),
-                };
-
-                #[allow(clippy::print_stdout)]
-                {
-                    println!("{string}\n");
-                }
-            }
-            Err(ReadlineError::Interrupted | ReadlineError::Eof) => break,
-            Err(err) => {
-                #[allow(clippy::print_stdout)]
-                {
-                    println!("unable to read line: {err}");
-                }
-                break;
-            }
-        }
-    }
-    Ok(())
-}
-
-struct Repl {
-    highlighter: MatchingBracketHighlighter,
-    history_hinter: HistoryHinter,
-    colored_prompt: String,
-    hints: Vec<&'static str>,
-    stdlib_functions: Rc<Vec<Box<dyn Function>>>,
 }
 
 impl Repl {
-    fn new(stdlib_functions: Rc<Vec<Box<dyn Function>>>) -> Self {
-        let hints = stdlib_functions
-            .iter()
-            .map(|f| f.identifier())
-            .chain(RESERVED_TERMS.iter().copied())
-            .collect();
-
+    pub(crate) fn new(
+        quiet: bool,
+        objects: Vec<TargetValue>,
+        timezone: TimeZone,
+        vrl_runtime: VrlRuntime,
+        stdlib_functions: Vec<Box<dyn Function>>,
+    ) -> Self {
         Self {
-            highlighter: MatchingBracketHighlighter::new(),
-            history_hinter: HistoryHinter {},
-            colored_prompt: "$ ".to_owned(),
-            hints,
+            quiet,
+            objects,
+            timezone,
+            vrl_runtime,
             stdlib_functions,
         }
+    }
+
+    pub(crate) fn run(self) -> Result<(), ReadlineError> {
+        let Self {
+            quiet,
+            mut objects,
+            timezone,
+            vrl_runtime,
+            stdlib_functions,
+        } = self;
+
+        let stdlib_functions = Rc::new(stdlib_functions);
+        let mut index = 0;
+        let func_docs_regex = Regex::new(r"^help\sdocs\s(\w{1,})$").unwrap();
+        let error_docs_regex = Regex::new(r"^help\serror\s(\w{1,})$").unwrap();
+
+        let mut state = TypeState::default();
+        let mut rt = Runtime::new(RuntimeState::default());
+        let mut rl = Editor::<ReplHelper, MemHistory>::new()?;
+        rl.set_helper(Some(ReplHelper::new(stdlib_functions.clone())));
+
+        #[allow(clippy::print_stdout)]
+        if !quiet {
+            println!("{BANNER_TEXT}");
+        }
+
+        loop {
+            let readline = rl.readline("$ ");
+            match readline.as_deref() {
+                Ok(line) if line == "exit" || line == "quit" => break,
+                Ok("help") => Self::print_help_text(),
+                Ok(line)
+                    if line == "help functions" || line == "help funcs" || line == "help fs" =>
+                {
+                    Self::print_function_list(&stdlib_functions);
+                }
+                Ok("help docs") => Self::open_url(DOCS_URL),
+                // Capture "help error <code>"
+                Ok(line) if error_docs_regex.is_match(line) => {
+                    Self::show_error_docs(line, &error_docs_regex);
+                }
+                // Capture "help docs <func_name>"
+                Ok(line) if func_docs_regex.is_match(line) => {
+                    Self::show_func_docs(line, &func_docs_regex, &stdlib_functions);
+                }
+                Ok(line) => {
+                    rl.add_history_entry(line)?;
+
+                    let command = match line {
+                        "next" => {
+                            // allow adding one new object at a time
+                            if index < objects.len()
+                                && objects.last().map(|x| &x.value) != Some(&Value::Null)
+                            {
+                                index = index.saturating_add(1);
+                            }
+
+                            // add new object
+                            if index == objects.len() {
+                                objects.push(TargetValue {
+                                    value: Value::Null,
+                                    metadata: Value::Object(BTreeMap::new()),
+                                    secrets: Secrets::new(),
+                                });
+                            }
+
+                            "."
+                        }
+                        "prev" => {
+                            index = index.saturating_sub(1);
+
+                            // remove empty last object
+                            if objects.last().map(|x| &x.value) == Some(&Value::Null) {
+                                let _last = objects.pop();
+                            }
+
+                            "."
+                        }
+                        "" => continue,
+                        _ => line,
+                    };
+
+                    let result = Self::resolve(
+                        objects.get_mut(index).expect("object should exist"),
+                        &mut rt,
+                        command,
+                        &mut state,
+                        timezone,
+                        vrl_runtime,
+                        &stdlib_functions,
+                    );
+
+                    let string = match result {
+                        Ok(v) => v.to_string(),
+                        Err(v) => v.clone(),
+                    };
+
+                    #[allow(clippy::print_stdout)]
+                    {
+                        println!("{string}\n");
+                    }
+                }
+                Err(ReadlineError::Interrupted | ReadlineError::Eof) => break,
+                Err(err) => {
+                    #[allow(clippy::print_stdout)]
+                    {
+                        println!("unable to read line: {err}");
+                    }
+                    break;
+                }
+            }
+        }
+        Ok(())
     }
 
     fn resolve(
@@ -295,12 +298,38 @@ impl Repl {
     }
 }
 
-impl Helper for Repl {}
-impl Completer for Repl {
+struct ReplHelper {
+    highlighter: MatchingBracketHighlighter,
+    history_hinter: HistoryHinter,
+    colored_prompt: String,
+    hints: Vec<&'static str>,
+    stdlib_functions: Rc<Vec<Box<dyn Function>>>,
+}
+
+impl ReplHelper {
+    fn new(stdlib_functions: Rc<Vec<Box<dyn Function>>>) -> Self {
+        let hints = stdlib_functions
+            .iter()
+            .map(|f| f.identifier())
+            .chain(RESERVED_TERMS.iter().copied())
+            .collect();
+
+        Self {
+            highlighter: MatchingBracketHighlighter::new(),
+            history_hinter: HistoryHinter {},
+            colored_prompt: "$ ".to_owned(),
+            hints,
+            stdlib_functions,
+        }
+    }
+}
+
+impl Helper for ReplHelper {}
+impl Completer for ReplHelper {
     type Candidate = String;
 }
 
-impl Hinter for Repl {
+impl Hinter for ReplHelper {
     type Hint = String;
 
     fn hint(&self, line: &str, pos: usize, ctx: &Context<'_>) -> Option<String> {
@@ -335,7 +364,7 @@ impl Hinter for Repl {
     }
 }
 
-impl Highlighter for Repl {
+impl Highlighter for ReplHelper {
     fn highlight_prompt<'b, 's: 'b, 'p: 'b>(
         &'s self,
         prompt: &'p str,
@@ -361,7 +390,7 @@ impl Highlighter for Repl {
     }
 }
 
-impl Validator for Repl {
+impl Validator for ReplHelper {
     fn validate(
         &self,
         ctx: &mut validate::ValidationContext,
