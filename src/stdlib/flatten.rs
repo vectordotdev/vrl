@@ -250,11 +250,10 @@ impl<'a> std::iter::Iterator for MapFlatten<'a> {
 
         let next = self.values.next();
         match next {
-            Some((key, value)) if value.is_object() && !self.except.contains(key) => {
-                let obj = value.as_object().unwrap();
+            Some((key, Value::Object(value))) if !self.except.contains(key) => {
                 self.inner = Some(Box::new(MapFlatten::new_from_parent(
                     self.new_key(key),
-                    obj.iter(),
+                    value.iter(),
                     self.separator,
                     self.except,
                 )));
