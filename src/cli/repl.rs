@@ -337,23 +337,12 @@ impl Hinter for ReplHelper {
             return None;
         }
 
-        let mut hints: Vec<String> = Vec::new();
-
-        // Add all function names to the hints
-        let mut func_names = self
-            .stdlib_functions
-            .iter()
-            .map(|f| f.identifier().into())
-            .collect::<Vec<String>>();
-
-        hints.append(&mut func_names);
-
         // Check history first
         if let Some(hist) = self.history_hinter.hint(line, pos, ctx) {
             return Some(hist);
         }
 
-        // Then check the other built-in hints
+        // Then check built-in hints (function names + reserved terms)
         self.hints.iter().find_map(|hint| {
             if pos > 0 && hint.starts_with(&line[..pos]) {
                 Some(String::from(&hint[pos..]))
