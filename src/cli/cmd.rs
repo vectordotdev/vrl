@@ -184,7 +184,6 @@ fn run(opts: &Opts, stdlib_functions: Vec<Box<dyn Function>>) -> Result<(), Erro
     }
 }
 
-#[allow(clippy::unnecessary_wraps)]
 fn repl(
     quiet: bool,
     objects: Vec<Value>,
