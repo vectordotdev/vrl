@@ -6,6 +6,7 @@ use crate::compiler::prelude::*;
 use std::sync::LazyLock;
 
 static DEFAULT_SEPARATOR: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from(".")));
+static DEFAULT_EXCEPT: LazyLock<Value> = LazyLock::new(|| Value::Array(vec![]));
 
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
@@ -24,7 +25,8 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             "except",
             kind::ARRAY,
             "An array of key names to exclude from flattening at any depth.",
-        ),
+        )
+        .default(&DEFAULT_EXCEPT),
     ]
 });
 
