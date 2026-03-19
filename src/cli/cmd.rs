@@ -21,7 +21,7 @@ use crate::value::Value;
 use clap::Parser;
 
 use super::Error;
-use super::repl;
+use super::repl::Repl;
 
 #[derive(Parser, Debug)]
 #[command(name = "VRL", about = "Vector Remap Language CLI")]
@@ -184,7 +184,6 @@ fn run(opts: &Opts, stdlib_functions: Vec<Box<dyn Function>>) -> Result<(), Erro
     }
 }
 
-#[allow(clippy::unnecessary_wraps)]
 fn repl(
     quiet: bool,
     objects: Vec<Value>,
@@ -203,7 +202,9 @@ fn repl(
         })
         .collect();
 
-    repl::run(quiet, objects, timezone, vrl_runtime, stdlib_functions).map_err(Into::into)
+    Repl::new(quiet, objects, timezone, vrl_runtime, stdlib_functions)
+        .run()
+        .map_err(Into::into)
 }
 
 fn execute(
