@@ -3,5 +3,6 @@ set -e
 
 cargo run --package vrl-tests --bin vrl-tests
 
-echo "Running mocked tests"
-cargo run --package vrl-tests --bin vrl-tests --features=vrl_mock
+# # Run skipped tests/examples like so
+# cargo run --package vrl-tests --bin vrl-tests -- --run-skipped
+

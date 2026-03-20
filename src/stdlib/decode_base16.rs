@@ -34,13 +34,12 @@ impl Function for DecodeBase16 {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[Parameter {
-            keyword: "value",
-            kind: kind::BYTES,
-            required: true,
-            description: "The [Base16](https://en.wikipedia.org/wiki/Hexadecimal) data to decode.",
-            default: None,
-        }]
+        const PARAMETERS: &[Parameter] = &[Parameter::required(
+            "value",
+            kind::BYTES,
+            "The [Base16](https://en.wikipedia.org/wiki/Hexadecimal) data to decode.",
+        )];
+        PARAMETERS
     }
 
     fn compile(

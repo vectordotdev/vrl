@@ -33,13 +33,9 @@ impl Function for Strlen {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[Parameter {
-            keyword: "value",
-            kind: kind::BYTES,
-            required: true,
-            description: "The string.",
-            default: None,
-        }]
+        const PARAMETERS: &[Parameter] =
+            &[Parameter::required("value", kind::BYTES, "The string.")];
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {

@@ -21,7 +21,7 @@ impl Function for DecodeMimeQ {
     }
 
     fn usage(&self) -> &'static str {
-        "Replaces q-encoded or base64-encoded [encoded-word](https://datatracker.ietf.org/doc/html/rfc2047#section-2)) substrings in the `value` with their original string."
+        "Replaces q-encoded or base64-encoded [encoded-word](https://datatracker.ietf.org/doc/html/rfc2047#section-2) substrings in the `value` with their original string."
     }
 
     fn category(&self) -> &'static str {
@@ -39,13 +39,12 @@ impl Function for DecodeMimeQ {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[Parameter {
-            keyword: "value",
-            kind: kind::BYTES,
-            required: true,
-            description: "The string with [encoded-words](https://datatracker.ietf.org/doc/html/rfc2047#section-2) to decode.",
-            default: None,
-        }]
+        const PARAMETERS: &[Parameter] = &[Parameter::required(
+            "value",
+            kind::BYTES,
+            "The string with [encoded-words](https://datatracker.ietf.org/doc/html/rfc2047#section-2) to decode.",
+        )];
+        PARAMETERS
     }
 
     fn compile(

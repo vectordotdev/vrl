@@ -7,20 +7,13 @@ static DEFAULT_BASE: LazyLock<Value> = LazyLock::new(|| Value::Integer(10));
 
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
-        Parameter {
-            keyword: "value",
-            kind: kind::INTEGER,
-            required: true,
-            description: "The number to format.",
-            default: None,
-        },
-        Parameter {
-            keyword: "base",
-            kind: kind::INTEGER,
-            required: false,
-            description: "The base to format the number in. Must be between 2 and 36 (inclusive).",
-            default: Some(&DEFAULT_BASE),
-        },
+        Parameter::required("value", kind::INTEGER, "The number to format."),
+        Parameter::optional(
+            "base",
+            kind::INTEGER,
+            "The base to format the number in. Must be between 2 and 36 (inclusive).",
+        )
+        .default(&DEFAULT_BASE),
     ]
 });
 

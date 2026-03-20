@@ -1,3 +1,4 @@
+use crate::compiler::function::EnumVariant;
 use crate::compiler::prelude::*;
 use crate::value;
 use regex::Regex;
@@ -10,32 +11,43 @@ static DEFAULT_TIMESTAMP_FORMAT_STR: &str = "%d/%b/%Y:%T %z";
 static DEFAULT_TIMESTAMP_FORMAT: LazyLock<Value> =
     LazyLock::new(|| Value::Bytes(Bytes::from(DEFAULT_TIMESTAMP_FORMAT_STR)));
 
+static FORMAT_ENUM: &[EnumVariant] = &[
+    EnumVariant {
+        value: "combined",
+        description: "Nginx combined format",
+    },
+    EnumVariant {
+        value: "error",
+        description: "Default Nginx error format",
+    },
+    EnumVariant {
+        value: "ingress_upstreaminfo",
+        description: "Provides detailed upstream information (Nginx Ingress Controller)",
+    },
+    EnumVariant {
+        value: "main",
+        description: "Nginx main format used by Docker images",
+    },
+];
+
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
-        Parameter {
-            keyword: "value",
-            kind: kind::BYTES,
-            required: true,
-            description: "The string to parse.",
-            default: None,
-        },
-        Parameter {
-            keyword: "format",
-            kind: kind::BYTES,
-            required: true,
-            description: "The format to use for parsing the log.",
-            default: None,
-        },
-        Parameter {
-            keyword: "timestamp_format",
-            kind: kind::BYTES,
-            required: false,
-            description: "
+        Parameter::required("value", kind::BYTES, "The string to parse."),
+        Parameter::required(
+            "format",
+            kind::BYTES,
+            "The format to use for parsing the log.",
+        )
+        .enum_variants(FORMAT_ENUM),
+        Parameter::optional(
+            "timestamp_format",
+            kind::BYTES,
+            "
 The [date/time format](https://docs.rs/chrono/latest/chrono/format/strftime/index.html#specifiers) to use for encoding the timestamp. The time is parsed
 in local time if the timestamp doesn't specify a timezone. The default format is `%d/%b/%Y:%T %z` for
 combined logs and `%Y/%m/%d %H:%M:%S` for error logs.",
-            default: Some(&DEFAULT_TIMESTAMP_FORMAT),
-        },
+        )
+        .default(&DEFAULT_TIMESTAMP_FORMAT),
     ]
 });
 

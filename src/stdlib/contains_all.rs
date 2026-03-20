@@ -40,29 +40,20 @@ impl Function for ContainsAll {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::BYTES,
-                required: true,
-                description: "The text to search.",
-                default: None,
-            },
-            Parameter {
-                keyword: "substrings",
-                kind: kind::ARRAY,
-                required: true,
-                description: "An array of substrings to search for in `value`.",
-                default: None,
-            },
-            Parameter {
-                keyword: "case_sensitive",
-                kind: kind::BOOLEAN,
-                required: false,
-                description: "Whether the match should be case sensitive.",
-                default: None,
-            },
-        ]
+        const PARAMETERS: &[Parameter] = &[
+            Parameter::required("value", kind::BYTES, "The text to search."),
+            Parameter::required(
+                "substrings",
+                kind::ARRAY,
+                "An array of substrings to search for in `value`.",
+            ),
+            Parameter::optional(
+                "case_sensitive",
+                kind::BOOLEAN,
+                "Whether the match should be case sensitive.",
+            ),
+        ];
+        PARAMETERS
     }
 
     fn compile(

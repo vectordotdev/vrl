@@ -44,13 +44,12 @@ impl Function for DirName {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[Parameter {
-            keyword: "value",
-            kind: kind::BYTES,
-            required: true,
-            description: "The path from which to extract the directory name.",
-            default: None,
-        }]
+        const PARAMETERS: &[Parameter] = &[Parameter::required(
+            "value",
+            kind::BYTES,
+            "The path from which to extract the directory name.",
+        )];
+        PARAMETERS
     }
 
     fn compile(

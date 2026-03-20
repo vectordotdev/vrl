@@ -1,3 +1,4 @@
+use crate::compiler::function::EnumVariant;
 use crate::compiler::prelude::*;
 use crate::value;
 use sha_2::{Digest, Sha224, Sha256, Sha384, Sha512, Sha512_224, Sha512_256};
@@ -6,22 +7,47 @@ use std::sync::LazyLock;
 static DEFAULT_VARIANT: LazyLock<Value> =
     LazyLock::new(|| Value::Bytes(Bytes::from("SHA-512/256")));
 
+static VARIANT_ENUM: &[EnumVariant] = &[
+    EnumVariant {
+        value: "SHA-224",
+        description: "SHA-224 algorithm",
+    },
+    EnumVariant {
+        value: "SHA-256",
+        description: "SHA-256 algorithm",
+    },
+    EnumVariant {
+        value: "SHA-384",
+        description: "SHA-384 algorithm",
+    },
+    EnumVariant {
+        value: "SHA-512",
+        description: "SHA-512 algorithm",
+    },
+    EnumVariant {
+        value: "SHA-512/224",
+        description: "SHA-512/224 algorithm",
+    },
+    EnumVariant {
+        value: "SHA-512/256",
+        description: "SHA-512/256 algorithm",
+    },
+];
+
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
-        Parameter {
-            keyword: "value",
-            kind: kind::BYTES,
-            required: true,
-            description: "The string to calculate the hash for.",
-            default: None,
-        },
-        Parameter {
-            keyword: "variant",
-            kind: kind::BYTES,
-            required: false,
-            description: "The variant of the algorithm to use.",
-            default: Some(&DEFAULT_VARIANT),
-        },
+        Parameter::required(
+            "value",
+            kind::BYTES,
+            "The string to calculate the hash for.",
+        ),
+        Parameter::optional(
+            "variant",
+            kind::BYTES,
+            "The variant of the algorithm to use.",
+        )
+        .default(&DEFAULT_VARIANT)
+        .enum_variants(VARIANT_ENUM),
     ]
 });
 

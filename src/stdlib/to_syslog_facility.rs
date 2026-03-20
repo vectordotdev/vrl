@@ -60,13 +60,12 @@ impl Function for ToSyslogFacility {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[Parameter {
-            keyword: "value",
-            kind: kind::INTEGER,
-            required: true,
-            description: "The facility code.",
-            default: None,
-        }]
+        const PARAMETERS: &[Parameter] = &[Parameter::required(
+            "value",
+            kind::INTEGER,
+            "The facility code.",
+        )];
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {

@@ -8,21 +8,10 @@ static DEFAULT_TIMESTAMP_FORMAT: LazyLock<Value> =
 
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
-        Parameter {
-            keyword: "value",
-            kind: kind::BYTES,
-            required: true,
-            description: "The string to parse.",
-            default: None,
-        },
-        Parameter {
-            keyword: "timestamp_format",
-            kind: kind::BYTES,
-            required: false,
-            description: "The [date/time format](https://docs.rs/chrono/latest/chrono/format/strftime/index.html) to use for
-encoding the timestamp.",
-            default: Some(&DEFAULT_TIMESTAMP_FORMAT),
-        },
+        Parameter::required("value", kind::BYTES, "The string to parse."),
+        Parameter::optional("timestamp_format", kind::BYTES, "The [date/time format](https://docs.rs/chrono/latest/chrono/format/strftime/index.html) to use for
+encoding the timestamp.")
+            .default(&DEFAULT_TIMESTAMP_FORMAT),
     ]
 });
 
@@ -116,7 +105,12 @@ impl Function for ParseCommonLog {
             },
             example! {
                 title: "Parse using Common Log Format (with custom timestamp format)",
-                source: r#"parse_common_log!(s'127.0.0.1 bob frank [2000-10-10T20:55:36Z] "GET /apache_pb.gif HTTP/1.0" 200 2326', "%+")"#,
+                source: indoc! {r#"
+                    parse_common_log!(
+                        s'127.0.0.1 bob frank [2000-10-10T20:55:36Z] "GET /apache_pb.gif HTTP/1.0" 200 2326',
+                        "%+"
+                    )
+                "#},
                 result: Ok(indoc! {
                     r#"{
                         "host":"127.0.0.1",

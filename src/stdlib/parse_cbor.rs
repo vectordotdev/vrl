@@ -22,9 +22,7 @@ impl Function for ParseCbor {
     }
 
     fn usage(&self) -> &'static str {
-        indoc! {"
-            Parses the provided `value` as CBOR.
-        "}
+        "Parses the `value` as [CBOR](https://cbor.io)."
     }
 
     fn category(&self) -> &'static str {
@@ -95,13 +93,12 @@ impl Function for ParseCbor {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[Parameter {
-            keyword: "value",
-            kind: kind::BYTES,
-            required: true,
-            description: "The CBOR payload to parse.",
-            default: None,
-        }]
+        const PARAMETERS: &[Parameter] = &[Parameter::required(
+            "value",
+            kind::BYTES,
+            "The CBOR payload to parse.",
+        )];
+        PARAMETERS
     }
 }
 

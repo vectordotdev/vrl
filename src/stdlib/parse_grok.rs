@@ -114,22 +114,15 @@ impl Function for ParseGrok {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::BYTES,
-                required: true,
-                description: "The string to parse.",
-                default: None,
-            },
-            Parameter {
-                keyword: "pattern",
-                kind: kind::BYTES,
-                required: true,
-                description: "The [Grok pattern](https://github.com/daschl/grok/tree/master/patterns).",
-                default: None,
-            },
-        ]
+        const PARAMETERS: &[Parameter] = &[
+            Parameter::required("value", kind::BYTES, "The string to parse."),
+            Parameter::required(
+                "pattern",
+                kind::BYTES,
+                "The [Grok pattern](https://github.com/daschl/grok/tree/master/patterns).",
+            ),
+        ];
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {

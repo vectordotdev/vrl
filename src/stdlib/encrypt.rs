@@ -237,49 +237,36 @@ impl Function for Encrypt {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "plaintext",
-                kind: kind::BYTES,
-                required: true,
-                description: "The string to encrypt.",
-                default: None,
-            },
-            Parameter {
-                keyword: "algorithm",
-                kind: kind::BYTES,
-                required: true,
-                description: "The algorithm to use.",
-                default: None,
-            },
-            Parameter {
-                keyword: "key",
-                kind: kind::BYTES,
-                required: true,
-                description: "The key in raw bytes (not encoded) for encryption. The length must match the algorithm requested.",
-                default: None,
-            },
-            Parameter {
-                keyword: "iv",
-                kind: kind::BYTES,
-                required: true,
-                description: "The IV in raw bytes (not encoded) for encryption. The length must match the algorithm requested.
-A new IV should be generated for every message. You can use `random_bytes` to generate a cryptographically secure random value.",
-                default: None,
-            },
-        ]
+        const PARAMETERS: &[Parameter] = &[
+            Parameter::required("plaintext", kind::BYTES, "The string to encrypt."),
+            Parameter::required("algorithm", kind::BYTES, "The algorithm to use."),
+            Parameter::required("key", kind::BYTES, "The key in raw bytes (not encoded) for encryption. The length must match the algorithm requested."),
+            Parameter::required("iv", kind::BYTES, "The IV in raw bytes (not encoded) for encryption. The length must match the algorithm requested.
+A new IV should be generated for every message. You can use `random_bytes` to generate a cryptographically secure random value."),
+        ];
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
                     title: "Encrypt value using AES-256-CFB",
-                    source: r#"encode_base64(encrypt!("data", "AES-256-CFB", key: "01234567890123456789012345678912", iv: "0123456789012345"))"#,
+                    source: indoc! {r#"
+                        iv = "0123456789012345" # typically you would call random_bytes(16)
+                        key = "01234567890123456789012345678912"
+                        encrypted_message = encrypt!("data", "AES-256-CFB", key: key, iv: iv)
+                        encode_base64(encrypted_message)
+                    "#},
             result: Ok("c/dIOA=="),
                 },
             example! {
                 title: "Encrypt value using AES-128-CBC-PKCS7",
-                source: r#"encode_base64(encrypt!("super secret message", "AES-128-CBC-PKCS7", key: "16_byte_keyxxxxx", iv: "1234567890123456"))"#,
+                source: indoc! {r#"
+                    iv = "1234567890123456" # typically you would call random_bytes(16)
+                    key = "16_byte_keyxxxxx"
+                    encrypted_message = encrypt!("super secret message", "AES-128-CBC-PKCS7", key: key, iv: iv)
+                    encode_base64(encrypted_message)
+                "#},
                 result: Ok("GBw8Mu00v0Kc38+/PvsVtGgWuUJ+ZNLgF8Opy8ohIYE="),
             },
         ]

@@ -9,27 +9,18 @@ static DEFAULT_COUNT: LazyLock<Value> = LazyLock::new(|| Value::Integer(-1));
 
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
-        Parameter {
-            keyword: "value",
-            kind: kind::BYTES,
-            required: true,
-            description: "The original string.",
-            default: None,
-        },
-        Parameter {
-            keyword: "pattern",
-            kind: kind::REGEX,
-            required: true,
-            description: "Replace all matches of this pattern. Must be a regular expression.",
-            default: None,
-        },
-        Parameter {
-            keyword: "count",
-            kind: kind::INTEGER,
-            required: false,
-            description: "The maximum number of replacements to perform. `-1` means replace all matches.",
-            default: Some(&DEFAULT_COUNT),
-        },
+        Parameter::required("value", kind::BYTES, "The original string."),
+        Parameter::required(
+            "pattern",
+            kind::REGEX,
+            "Replace all matches of this pattern. Must be a regular expression.",
+        ),
+        Parameter::optional(
+            "count",
+            kind::INTEGER,
+            "The maximum number of replacements to perform. `-1` means replace all matches.",
+        )
+        .default(&DEFAULT_COUNT),
     ]
 });
 
@@ -211,12 +202,20 @@ impl Function for ReplaceWith {
             },
             example! {
                 title: "Replace with processed capture group",
-                source: r#"replace_with(s'Got message: {"msg": "b"}', r'message: (\{.*\})') -> |m| { to_string!(parse_json!(m.captures[0]).msg) }"#,
+                source: indoc! {r#"
+                    replace_with(s'Got message: {"msg": "b"}', r'message: (\{.*\})') -> |m| {
+                        to_string!(parse_json!(m.captures[0]).msg)
+                    }
+                "#},
                 result: Ok("Got b"),
             },
             example! {
                 title: "Replace with optional capture group",
-                source: r#"replace_with("bar of chocolate and bar of gold", r'bar( of gold)?') -> |m| { if m.captures[0] == null { "pile" } else { "money" } }"#,
+                source: indoc! {r#"
+                    replace_with("bar of chocolate and bar of gold", r'bar( of gold)?') -> |m| {
+                        if m.captures[0] == null { "pile" } else { "money" }
+                    }
+                "#},
                 result: Ok("pile of chocolate and money"),
             },
         ]
