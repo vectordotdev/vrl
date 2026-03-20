@@ -23,7 +23,6 @@ jobs:
         run: ./scripts/check_features.sh
 
   merge-queue:
-    name: check-features
     if: always()
     needs:
       - check-features
