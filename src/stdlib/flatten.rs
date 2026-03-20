@@ -1,9 +1,12 @@
+use std::collections::HashSet;
 use std::collections::btree_map;
 
+use crate::compiler::expression::Expr;
 use crate::compiler::prelude::*;
 use std::sync::LazyLock;
 
 static DEFAULT_SEPARATOR: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from(".")));
+static DEFAULT_EXCEPT: LazyLock<Value> = LazyLock::new(|| Value::Array(vec![]));
 
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
@@ -18,10 +21,16 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
             "The separator to join nested keys",
         )
         .default(&DEFAULT_SEPARATOR),
+        Parameter::optional(
+            "except",
+            kind::ARRAY,
+            "An array of key names to exclude from flattening at any depth.",
+        )
+        .default(&DEFAULT_EXCEPT),
     ]
 });
 
-fn flatten(value: Value, separator: &Value) -> Resolved {
+fn flatten(value: Value, separator: &Value, except: &HashSet<KeyString>) -> Resolved {
     let separator = separator.try_bytes_utf8_lossy()?;
 
     match value {
@@ -29,7 +38,7 @@ fn flatten(value: Value, separator: &Value) -> Resolved {
             ArrayFlatten::new(arr.iter()).cloned().collect(),
         )),
         Value::Object(map) => Ok(Value::Object(
-            MapFlatten::new(map.iter(), &separator)
+            MapFlatten::new(map.iter(), &separator, except)
                 .map(|(k, v)| (k, v.clone()))
                 .collect(),
         )),
@@ -96,18 +105,56 @@ impl Function for Flatten {
                 source: r#"flatten({ "foo": { "bar": true }}, "_")"#,
                 result: Ok(r#"{ "foo_bar": true }"#),
             },
+            example! {
+                title: "Flatten object with except",
+                source: r#"flatten({ "parent": { "child": 1 }, "keep": { "nested": 2 } }, except: ["keep"])"#,
+                result: Ok(r#"{ "keep": { "nested": 2 }, "parent.child": 1 }"#),
+            },
         ]
     }
 
     fn compile(
         &self,
-        _state: &state::TypeState,
+        state: &state::TypeState,
         _ctx: &mut FunctionCompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
         let separator = arguments.optional("separator");
         let value = arguments.required("value");
-        Ok(FlattenFn { value, separator }.as_expr())
+
+        let except = arguments
+            .optional_array("except")?
+            .map(|arr| {
+                arr.into_iter()
+                    .map(|expr| into_key(state, expr).map_err(|e| e as Box<dyn DiagnosticMessage>))
+                    .collect::<Result<HashSet<KeyString>, _>>()
+            })
+            .transpose()?;
+
+        Ok(FlattenFn {
+            value,
+            separator,
+            except,
+        }
+        .as_expr())
+    }
+}
+
+fn into_key(state: &state::TypeState, expr: Expr) -> Result<KeyString, Box<function::Error>> {
+    let v = expr.resolve_constant(state).ok_or_else(|| {
+        Box::new(function::Error::ExpectedStaticExpression {
+            keyword: "except",
+            expr,
+        })
+    })?;
+
+    match v.try_bytes_utf8_lossy() {
+        Ok(s) => Ok(KeyString::from(s.into_owned())),
+        Err(_) => Err(Box::new(function::Error::InvalidArgument {
+            keyword: "except",
+            value: v,
+            error: "expected a string value",
+        })),
     }
 }
 
@@ -115,6 +162,7 @@ impl Function for Flatten {
 struct FlattenFn {
     value: Box<dyn Expression>,
     separator: Option<Box<dyn Expression>>,
+    except: Option<HashSet<KeyString>>,
 }
 
 impl FunctionExpression for FlattenFn {
@@ -123,8 +171,10 @@ impl FunctionExpression for FlattenFn {
         let separator = self
             .separator
             .map_resolve_with_default(ctx, || DEFAULT_SEPARATOR.clone())?;
+        let empty = HashSet::new();
+        let except = self.except.as_ref().unwrap_or(&empty);
 
-        flatten(value, &separator)
+        flatten(value, &separator, except)
     }
 
     fn type_def(&self, state: &state::TypeState) -> TypeDef {
@@ -144,15 +194,21 @@ struct MapFlatten<'a> {
     separator: &'a str,
     inner: Option<Box<MapFlatten<'a>>>,
     parent: Option<KeyString>,
+    except: &'a HashSet<KeyString>,
 }
 
 impl<'a> MapFlatten<'a> {
-    fn new(values: btree_map::Iter<'a, KeyString, Value>, separator: &'a str) -> Self {
+    fn new(
+        values: btree_map::Iter<'a, KeyString, Value>,
+        separator: &'a str,
+        except: &'a HashSet<KeyString>,
+    ) -> Self {
         Self {
             values,
             separator,
             inner: None,
             parent: None,
+            except,
         }
     }
 
@@ -160,12 +216,14 @@ impl<'a> MapFlatten<'a> {
         parent: KeyString,
         values: btree_map::Iter<'a, KeyString, Value>,
         separator: &'a str,
+        except: &'a HashSet<KeyString>,
     ) -> Self {
         Self {
             values,
             separator,
             inner: None,
             parent: Some(parent),
+            except,
         }
     }
 
@@ -192,11 +250,12 @@ impl<'a> std::iter::Iterator for MapFlatten<'a> {
 
         let next = self.values.next();
         match next {
-            Some((key, Value::Object(value))) => {
+            Some((key, Value::Object(value))) if !self.except.contains(key) => {
                 self.inner = Some(Box::new(MapFlatten::new_from_parent(
                     self.new_key(key),
                     value.iter(),
                     self.separator,
+                    self.except,
                 )));
                 self.next()
             }
@@ -390,6 +449,82 @@ mod test {
                 parent2: 4,
             })),
             tdef: TypeDef::object(Collection::any()),
+        }
+
+        nested_map_with_except {
+            args: func_args![
+                value: value!({parent: {child1: 1, child2: 2}, keep: {nested: 3}, key: "val"}),
+                except: value!(["keep"])
+            ],
+            want: Ok(value!({"parent.child1": 1, "parent.child2": 2, keep: {nested: 3}, key: "val"})),
+            tdef: TypeDef::object(Collection::any()),
+        }
+
+        nested_map_with_except_and_separator {
+            args: func_args![
+                value: value!({parent: {child1: 1}, keep: {nested: 2}}),
+                separator: "_",
+                except: value!(["keep"])
+            ],
+            want: Ok(value!({"parent_child1": 1, keep: {nested: 2}})),
+            tdef: TypeDef::object(Collection::any()),
+        }
+
+        nested_map_with_multiple_except {
+            args: func_args![
+                value: value!({a: {b: 1}, c: {d: 2}, e: {f: 3}}),
+                except: value!(["a", "e"])
+            ],
+            want: Ok(value!({a: {b: 1}, "c.d": 2, e: {f: 3}})),
+            tdef: TypeDef::object(Collection::any()),
+        }
+
+        except_nonexistent_key {
+            args: func_args![
+                value: value!({parent: {child: 1}}),
+                except: value!(["nonexistent"])
+            ],
+            want: Ok(value!({"parent.child": 1})),
+            tdef: TypeDef::object(Collection::any()),
+        }
+
+        except_empty_array {
+            args: func_args![
+                value: value!({parent: {child: 1}}),
+                except: value!([])
+            ],
+            want: Ok(value!({"parent.child": 1})),
+            tdef: TypeDef::object(Collection::any()),
+        }
+
+        except_non_object_key {
+            args: func_args![
+                value: value!({parent: {child: 1}, leaf: "val"}),
+                except: value!(["leaf"])
+            ],
+            want: Ok(value!({"parent.child": 1, leaf: "val"})),
+            tdef: TypeDef::object(Collection::any()),
+        }
+
+        except_any_depth {
+            args: func_args![
+                value: value!({
+                    keep: {nested: 1},
+                    parent: {keep: {deep: 2}},
+                }),
+                except: value!(["keep"])
+            ],
+            want: Ok(value!({
+                keep: {nested: 1},
+                "parent.keep": {deep: 2},
+            })),
+            tdef: TypeDef::object(Collection::any()),
+        }
+
+        array_with_except {
+            args: func_args![value: value!([1, [2, 3]]), except: value!(["key"])],
+            want: Ok(value!([1, 2, 3])),
+            tdef: TypeDef::array(Collection::any()),
         }
     ];
 }
