@@ -467,6 +467,8 @@ const BANNER_TEXT: &str = indoc! {"
 
 #[cfg(test)]
 mod tests {
+    use std::sync::atomic::{AtomicU32, Ordering};
+
     use super::*;
 
     fn is_valid(result: &ValidationResult) -> bool {
@@ -496,5 +498,69 @@ mod tests {
         // and the error shown to the user after execution.
         let result = validate_input(r#"1 + "string""#, &crate::stdlib::all());
         assert!(is_valid(&result));
+    }
+
+    #[test]
+    fn function_is_not_run_during_validation() {
+        use crate::compiler::prelude::*;
+        static RUN_COUNTER: AtomicU32 = AtomicU32::new(0u32);
+
+        #[derive(Clone, Copy, Debug)]
+        pub struct Once;
+
+        impl Function for Once {
+            fn identifier(&self) -> &'static str {
+                "once"
+            }
+
+            fn usage(&self) -> &'static str {
+                ""
+            }
+
+            fn category(&self) -> &'static str {
+                Category::Number.as_ref()
+            }
+
+            fn return_kind(&self) -> u16 {
+                kind::NULL
+            }
+
+            fn parameters(&self) -> &'static [Parameter] {
+                &[]
+            }
+
+            fn compile(
+                &self,
+                _state: &state::TypeState,
+                _ctx: &mut FunctionCompileContext,
+                _arguments: ArgumentList,
+            ) -> Compiled {
+                Ok(OnceFn {}.as_expr())
+            }
+
+            fn examples(&self) -> &'static [Example] {
+                &[]
+            }
+        }
+
+        #[derive(Clone, Debug)]
+        struct OnceFn;
+
+        impl FunctionExpression for OnceFn {
+            fn resolve(&self, _ctx: &mut Context) -> Resolved {
+                RUN_COUNTER.fetch_add(1, Ordering::SeqCst);
+                Ok(Value::Null)
+            }
+
+            fn type_def(&self, _state: &state::TypeState) -> TypeDef {
+                Kind::null().into()
+            }
+        }
+        // A type error is not a syntax error, so the line should be accepted
+        // and the error shown to the user after execution.
+        let result = validate_input("once()", &[Box::from(Once)]);
+        assert!(is_valid(&result));
+
+        assert_eq!(RUN_COUNTER.load(Ordering::SeqCst), 0);
     }
 }
