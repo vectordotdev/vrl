@@ -68,12 +68,27 @@ jobs:
         run: ./scripts/vrl_tests.sh
 
   check-features:
+    # Only run in merge queue - this job is slow and not needed for every PR.
+    # The check-features-result job below is the required status check.
+    if: ${{ github.event_name == 'merge_group' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - uses: Swatinem/rust-cache@c676846f29d98ff6b0106d3608c7ffd4048af17b # v2.9.0
       - name: "Check that all features can compile"
         run: ./scripts/check_features.sh
+
+  check-features-result:
+    name: check-features
+    if: always()
+    needs: check-features
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check result
+        run: |
+          if [[ "${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}" == "true" ]]; then
+            exit 1
+          fi
 
   check-licenses:
     runs-on: ubuntu-latest
