@@ -469,10 +469,6 @@ const BANNER_TEXT: &str = indoc! {"
 mod tests {
     use super::*;
 
-    fn stdlib_functions() -> Vec<Box<dyn Function>> {
-        crate::stdlib::all()
-    }
-
     fn is_valid(result: &ValidationResult) -> bool {
         matches!(result, ValidationResult::Valid(_))
     }
@@ -483,14 +479,14 @@ mod tests {
 
     #[test]
     fn test_validate_complete_expression() {
-        let result = validate_input(". = 42", &stdlib_functions());
+        let result = validate_input(". = 42", &crate::stdlib::all());
         assert!(is_valid(&result));
     }
 
     #[test]
     fn test_validate_incomplete_expression() {
         // An if expression without a body is incomplete
-        let result = validate_input("if true {", &stdlib_functions());
+        let result = validate_input("if true {", &crate::stdlib::all());
         assert!(is_incomplete(&result));
     }
 
@@ -498,7 +494,7 @@ mod tests {
     fn test_validate_type_error_is_valid() {
         // A type error is not a syntax error, so the line should be accepted
         // and the error shown to the user after execution.
-        let result = validate_input(r#"1 + "string""#, &stdlib_functions());
+        let result = validate_input(r#"1 + "string""#, &crate::stdlib::all());
         assert!(is_valid(&result));
     }
 }
