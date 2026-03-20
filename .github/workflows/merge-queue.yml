@@ -8,13 +8,6 @@ on:
 permissions:
   contents: read
 
-env:
-  RUST_BACKTRACE: full
-  TEST_LOG: vector=debug
-  VERBOSE: true
-  CI: true
-  PROFILE: debug
-
 jobs:
   check-features:
     if: ${{ github.event_name == 'merge_group' }}
