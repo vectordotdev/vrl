@@ -141,12 +141,12 @@ impl Function for Flatten {
 }
 
 fn into_key(state: &state::TypeState, expr: Expr) -> Result<KeyString, Box<function::Error>> {
-    let v = expr
-        .resolve_constant(state)
-        .ok_or_else(|| Box::new(function::Error::ExpectedStaticExpression {
+    let v = expr.resolve_constant(state).ok_or_else(|| {
+        Box::new(function::Error::ExpectedStaticExpression {
             keyword: "except",
             expr,
-        }))?;
+        })
+    })?;
 
     match v.try_bytes_utf8_lossy() {
         Ok(s) => Ok(KeyString::from(s.into_owned())),
