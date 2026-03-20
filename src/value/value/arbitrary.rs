@@ -55,6 +55,7 @@ impl Arbitrary for Value {
 
         match choice {
             0 => {
+                #[cfg(not(feature = "generate-fixtures"))]
                 let bytes: Vec<u8> = Vec::arbitrary(g);
                 // Under `generate-fixtures`, use valid UTF-8 so bytes values
                 // survive a JSON round-trip without encoding issues.
