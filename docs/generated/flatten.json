@@ -21,6 +21,15 @@
         "string"
       ],
       "default": "."
+    },
+    {
+      "name": "except",
+      "description": "An array of key names to exclude from flattening at any depth.",
+      "required": false,
+      "type": [
+        "array"
+      ],
+      "default": "[]"
     }
   ],
   "return": {
@@ -62,6 +71,16 @@
       "source": "flatten({ \"foo\": { \"bar\": true }}, \"_\")",
       "return": {
         "foo_bar": true
+      }
+    },
+    {
+      "title": "Flatten object with except",
+      "source": "flatten({ \"parent\": { \"child\": 1 }, \"keep\": { \"nested\": 2 } }, except: [\"keep\"])",
+      "return": {
+        "keep": {
+          "nested": 2
+        },
+        "parent.child": 1
       }
     }
   ],
