@@ -71,7 +71,10 @@ impl Arbitrary for Value {
             3 => Self::Boolean(bool::arbitrary(g)),
             4 => Self::Timestamp(datetime(g)),
             5 => {
+                #[cfg(feature = "generate-fixtures")]
                 let mut generator = Gen::from_size_and_seed(MAX_MAP_SIZE, u64::arbitrary(g));
+                #[cfg(not(feature = "generate-fixtures"))]
+                let mut generator = Gen::new(MAX_MAP_SIZE);
                 Self::Object(
                     // `Arbitrary` is not directly implemented for `KeyString` so have to convert.
                     Vec::<(String, Self)>::arbitrary(&mut generator)
@@ -81,7 +84,10 @@ impl Arbitrary for Value {
                 )
             }
             6 => {
+                #[cfg(feature = "generate-fixtures")]
                 let mut generator = Gen::from_size_and_seed(MAX_ARRAY_SIZE, u64::arbitrary(g));
+                #[cfg(not(feature = "generate-fixtures"))]
+                let mut generator = Gen::new(MAX_ARRAY_SIZE);
                 Self::Array(Vec::arbitrary(&mut generator))
             }
             7 => Self::Null,
