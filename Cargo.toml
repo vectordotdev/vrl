@@ -71,6 +71,10 @@ test_framework = ["compiler", "dep:prettydiff", "dep:serde_json", "dep:nu-ansi-t
 # Implements `Arbitrary` (from the `quickcheck` crate) for the `Value` type.
 arbitrary = ["dep:quickcheck", "dep:arbitrary"]
 
+# Activates fixture-stable Arbitrary implementations for use with the native
+# encoding fixture generator in the vector-core crate.
+generate-fixtures = ["arbitrary"]
+
 # Makes the `Value` type compatible with the `mlua` crate.
 lua = ["dep:mlua"]
 
