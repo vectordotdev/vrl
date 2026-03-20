@@ -10,7 +10,10 @@ permissions:
 
 env:
   RUST_BACKTRACE: full
+  TEST_LOG: vector=debug
+  VERBOSE: true
   CI: true
+  PROFILE: debug
 
 jobs:
   check-features:
