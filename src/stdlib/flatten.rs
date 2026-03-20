@@ -126,7 +126,7 @@ impl Function for Flatten {
             .optional_array("except")?
             .map(|arr| {
                 arr.into_iter()
-                    .map(|expr| into_key(state, expr))
+                    .map(|expr| into_key(state, expr).map_err(|e| e as Box<dyn DiagnosticMessage>))
                     .collect::<Result<HashSet<KeyString>, _>>()
             })
             .transpose()?;
@@ -140,21 +140,21 @@ impl Function for Flatten {
     }
 }
 
-fn into_key(state: &state::TypeState, expr: Expr) -> Result<KeyString, function::Error> {
+fn into_key(state: &state::TypeState, expr: Expr) -> Result<KeyString, Box<function::Error>> {
     let v = expr
         .resolve_constant(state)
-        .ok_or(function::Error::ExpectedStaticExpression {
+        .ok_or_else(|| Box::new(function::Error::ExpectedStaticExpression {
             keyword: "except",
             expr,
-        })?;
+        }))?;
 
     match v.try_bytes_utf8_lossy() {
         Ok(s) => Ok(KeyString::from(s.into_owned())),
-        Err(_) => Err(function::Error::InvalidArgument {
+        Err(_) => Err(Box::new(function::Error::InvalidArgument {
             keyword: "except",
             value: v,
             error: "expected a string value",
-        }),
+        })),
     }
 }
 
