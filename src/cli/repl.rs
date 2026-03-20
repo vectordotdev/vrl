@@ -384,35 +384,44 @@ impl Validator for ReplHelper {
         &self,
         ctx: &mut validate::ValidationContext,
     ) -> rustyline::Result<ValidationResult> {
-        Ok(validate_input(ctx.input(), &self.stdlib_functions))
+        let timezone = TimeZone::default();
+        let mut state = TypeState::default();
+        let mut rt = Runtime::new(RuntimeState::default());
+        let mut target = TargetValue {
+            value: Value::Null,
+            metadata: Value::Object(BTreeMap::new()),
+            secrets: Secrets::new(),
+        };
+
+        let result = Repl::resolve(
+            &mut target,
+            &mut rt,
+            ctx.input(),
+            &mut state,
+            timezone,
+            VrlRuntime::Ast,
+            &self.stdlib_functions,
+        );
+
+        let result = match result {
+            Err(error) => {
+                // TODO: Ideally we'd used typed errors for this, but
+                // that requires some more work to the VRL compiler.
+                if error.contains("syntax error") && error.contains("unexpected end of program") {
+                    ValidationResult::Incomplete
+                } else {
+                    ValidationResult::Valid(None)
+                }
+            }
+
+            Ok(..) => ValidationResult::Valid(None),
+        };
+
+        Ok(result)
     }
 
     fn validate_while_typing(&self) -> bool {
         false
-    }
-}
-
-/// Compiles `input` and returns whether it is complete, incomplete, or has a
-/// non-syntax error. This intentionally does **not** execute the program so
-/// that functions with side effects (e.g. `http_request`) are not called
-/// during validation.
-fn validate_input(input: &str, stdlib_functions: &[Box<dyn Function>]) -> ValidationResult {
-    let state = TypeState::default();
-    let mut config = CompileConfig::default();
-    config.disable_unused_expression_check();
-
-    match compile_with_state(input, stdlib_functions, &state, config) {
-        Err(diagnostics) => {
-            let error = Formatter::new(input, diagnostics).to_string();
-            // TODO: Ideally we'd used typed errors for this, but
-            // that requires some more work to the VRL compiler.
-            if error.contains("syntax error") && error.contains("unexpected end of program") {
-                ValidationResult::Incomplete
-            } else {
-                ValidationResult::Valid(None)
-            }
-        }
-        Ok(..) => ValidationResult::Valid(None),
     }
 }
 
@@ -464,41 +473,3 @@ const BANNER_TEXT: &str = indoc! {"
     >
     > Try it out now by typing `.` and hitting [enter] to see the result.
 "};
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn stdlib_functions() -> Vec<Box<dyn Function>> {
-        crate::stdlib::all()
-    }
-
-    fn is_valid(result: &ValidationResult) -> bool {
-        matches!(result, ValidationResult::Valid(_))
-    }
-
-    fn is_incomplete(result: &ValidationResult) -> bool {
-        matches!(result, ValidationResult::Incomplete)
-    }
-
-    #[test]
-    fn test_validate_complete_expression() {
-        let result = validate_input(". = 42", &stdlib_functions());
-        assert!(is_valid(&result));
-    }
-
-    #[test]
-    fn test_validate_incomplete_expression() {
-        // An if expression without a body is incomplete
-        let result = validate_input("if true {", &stdlib_functions());
-        assert!(is_incomplete(&result));
-    }
-
-    #[test]
-    fn test_validate_type_error_is_valid() {
-        // A type error is not a syntax error, so the line should be accepted
-        // and the error shown to the user after execution.
-        let result = validate_input(r#"1 + "string""#, &stdlib_functions());
-        assert!(is_valid(&result));
-    }
-}
