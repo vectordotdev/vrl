@@ -393,9 +393,7 @@ impl Validator for ReplHelper {
 }
 
 /// Compiles `input` and returns whether it is complete, incomplete, or has a
-/// non-syntax error. This intentionally does **not** execute the program so
-/// that functions with side effects (e.g. `http_request`) are not called
-/// during validation.
+/// non-syntax error.
 fn validate_input(input: &str, stdlib_functions: &[Box<dyn Function>]) -> ValidationResult {
     let state = TypeState::default();
     let mut config = CompileConfig::default();
