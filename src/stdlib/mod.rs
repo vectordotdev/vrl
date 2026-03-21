@@ -65,6 +65,7 @@ cfg_if::cfg_if! {
         mod format_int;
         mod format_number;
         mod format_timestamp;
+        mod from_entries;
         mod from_unix_timestamp;
         mod get;
         mod haversine;
@@ -168,6 +169,7 @@ cfg_if::cfg_if! {
         mod tally_value;
         mod timestamp;
         mod to_bool;
+        mod to_entries;
         mod to_float;
         mod to_int;
         mod to_regex;
@@ -323,6 +325,7 @@ cfg_if::cfg_if! {
             format_int::FormatInt,
             format_number::FormatNumber,
             format_timestamp::FormatTimestamp,
+            from_entries::FromEntries,
             from_unix_timestamp::FromUnixTimestamp,
             self::community_id::CommunityID,
             get::Get,
@@ -426,6 +429,7 @@ cfg_if::cfg_if! {
             tally_value::TallyValue,
             timestamp::Timestamp,
             to_bool::ToBool,
+            to_entries::ToEntries,
             to_float::ToFloat,
             to_int::ToInt,
             to_regex::ToRegex,
