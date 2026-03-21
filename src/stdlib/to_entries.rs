@@ -70,6 +70,7 @@ impl Function for ToEntries {
             required: true,
             description: "The object or array to manipulate.",
             default: None,
+            enum_variants: None,
         }]
     }
 

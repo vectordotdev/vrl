@@ -57,6 +57,7 @@ impl Function for FromEntries {
             required: true,
             description: "The array of key/value objects to convert.",
             default: None,
+            enum_variants: None,
         }]
     }
 
