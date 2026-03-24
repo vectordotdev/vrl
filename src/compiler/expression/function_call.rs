@@ -510,10 +510,10 @@ impl<'a> Builder<'a> {
             for ident in variables {
                 match locals.remove_variable(ident) {
                     Some(details) => {
-                        variables_types.push(variable_details);
+                        variables_types.push(details.clone());
 
                         state.local.insert_variable(ident.clone(), details)
-                    },
+                    }
                     None => {
                         state.local.remove_variable(ident);
                     }
@@ -1276,10 +1276,10 @@ impl DiagnosticMessage for FunctionCallError {
 
 #[cfg(test)]
 mod tests {
-    use crate::compiler::{Category, Compiler, FunctionExpression, value::kind, , FunctionExpression};
+    use super::*;
+    use crate::compiler::{Category, Compiler, FunctionExpression, value::kind};
     use crate::parser::parse;
     use crate::stdlib::ForEach;
-    use super::*;
 
     #[derive(Clone, Debug)]
     struct Fn;
