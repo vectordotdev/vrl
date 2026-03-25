@@ -384,44 +384,33 @@ impl Validator for ReplHelper {
         &self,
         ctx: &mut validate::ValidationContext,
     ) -> rustyline::Result<ValidationResult> {
-        let timezone = TimeZone::default();
-        let mut state = TypeState::default();
-        let mut rt = Runtime::new(RuntimeState::default());
-        let mut target = TargetValue {
-            value: Value::Null,
-            metadata: Value::Object(BTreeMap::new()),
-            secrets: Secrets::new(),
-        };
-
-        let result = Repl::resolve(
-            &mut target,
-            &mut rt,
-            ctx.input(),
-            &mut state,
-            timezone,
-            VrlRuntime::Ast,
-            &self.stdlib_functions,
-        );
-
-        let result = match result {
-            Err(error) => {
-                // TODO: Ideally we'd used typed errors for this, but
-                // that requires some more work to the VRL compiler.
-                if error.contains("syntax error") && error.contains("unexpected end of program") {
-                    ValidationResult::Incomplete
-                } else {
-                    ValidationResult::Valid(None)
-                }
-            }
-
-            Ok(..) => ValidationResult::Valid(None),
-        };
-
-        Ok(result)
+        Ok(validate_input(ctx.input(), &self.stdlib_functions))
     }
 
     fn validate_while_typing(&self) -> bool {
         false
+    }
+}
+
+/// Compiles `input` and returns whether it is complete, incomplete, or has a
+/// non-syntax error.
+fn validate_input(input: &str, stdlib_functions: &[Box<dyn Function>]) -> ValidationResult {
+    let state = TypeState::default();
+    let mut config = CompileConfig::default();
+    config.disable_unused_expression_check();
+
+    match compile_with_state(input, stdlib_functions, &state, config) {
+        Err(diagnostics) => {
+            let error = Formatter::new(input, diagnostics).to_string();
+            // TODO: Ideally we'd used typed errors for this, but
+            // that requires some more work to the VRL compiler.
+            if error.contains("syntax error") && error.contains("unexpected end of program") {
+                ValidationResult::Incomplete
+            } else {
+                ValidationResult::Valid(None)
+            }
+        }
+        Ok(..) => ValidationResult::Valid(None),
     }
 }
 
@@ -473,3 +462,103 @@ const BANNER_TEXT: &str = indoc! {"
     >
     > Try it out now by typing `.` and hitting [enter] to see the result.
 "};
+
+#[cfg(test)]
+mod tests {
+    use std::sync::atomic::{AtomicU32, Ordering};
+
+    use super::*;
+
+    fn is_valid(result: &ValidationResult) -> bool {
+        matches!(result, ValidationResult::Valid(_))
+    }
+
+    fn is_incomplete(result: &ValidationResult) -> bool {
+        matches!(result, ValidationResult::Incomplete)
+    }
+
+    #[test]
+    fn test_validate_complete_expression() {
+        let result = validate_input(". = 42", &crate::stdlib::all());
+        assert!(is_valid(&result));
+    }
+
+    #[test]
+    fn test_validate_incomplete_expression() {
+        // An if expression without a body is incomplete
+        let result = validate_input("if true {", &crate::stdlib::all());
+        assert!(is_incomplete(&result));
+    }
+
+    #[test]
+    fn test_validate_type_error_is_valid() {
+        // A type error is not a syntax error, so the line should be accepted
+        // and the error shown to the user after execution.
+        let result = validate_input(r#"1 + "string""#, &crate::stdlib::all());
+        assert!(is_valid(&result));
+    }
+
+    #[test]
+    fn function_is_not_run_during_validation() {
+        use crate::compiler::prelude::*;
+        static RUN_COUNTER: AtomicU32 = AtomicU32::new(0u32);
+
+        #[derive(Clone, Copy, Debug)]
+        pub struct Once;
+
+        impl Function for Once {
+            fn identifier(&self) -> &'static str {
+                "once"
+            }
+
+            fn usage(&self) -> &'static str {
+                ""
+            }
+
+            fn category(&self) -> &'static str {
+                Category::Number.as_ref()
+            }
+
+            fn return_kind(&self) -> u16 {
+                kind::NULL
+            }
+
+            fn parameters(&self) -> &'static [Parameter] {
+                &[]
+            }
+
+            fn compile(
+                &self,
+                _state: &state::TypeState,
+                _ctx: &mut FunctionCompileContext,
+                _arguments: ArgumentList,
+            ) -> Compiled {
+                Ok(OnceFn {}.as_expr())
+            }
+
+            fn examples(&self) -> &'static [Example] {
+                &[]
+            }
+        }
+
+        #[derive(Clone, Debug)]
+        struct OnceFn;
+
+        impl FunctionExpression for OnceFn {
+            fn resolve(&self, _ctx: &mut Context) -> Resolved {
+                RUN_COUNTER.fetch_add(1, Ordering::SeqCst);
+                Ok(Value::Null)
+            }
+
+            fn type_def(&self, _state: &state::TypeState) -> TypeDef {
+                Kind::null().into()
+            }
+        }
+        // A type error is not a syntax error, so the line should be accepted
+        // and the error shown to the user after execution.
+        let result = validate_input("once()", &[Box::from(Once)]);
+        assert!(is_valid(&result));
+
+        assert_eq!(RUN_COUNTER.load(Ordering::SeqCst), 0);
+    }
+}

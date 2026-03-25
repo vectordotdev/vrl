@@ -16,6 +16,9 @@ env:
   COMMIT_MESSAGE: "Update generated docs"
   COMMIT_AUTHOR: "github-actions[bot]"
 
+permissions:
+  contents: read
+
 jobs:
   changes:
     runs-on: ubuntu-latest
@@ -39,7 +42,7 @@ jobs:
   run-check-generated-docs:
     needs: changes
     if: needs.changes.outputs.docs == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
     steps:
