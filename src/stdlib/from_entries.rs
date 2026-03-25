@@ -17,8 +17,14 @@ fn from_entries(value: Value) -> Resolved {
 
     for entry in array {
         let mut entry = entry.try_object()?;
-        let key = entry.remove("key").unwrap_or(Value::Null);
-        let value = entry.remove("value").unwrap_or(Value::Null);
+        let key = entry
+            .remove("key")
+            .or_else(|| entry.remove("Key"))
+            .unwrap_or(Value::Null);
+        let value = entry
+            .remove("value")
+            .or_else(|| entry.remove("Value"))
+            .unwrap_or(Value::Null);
         let key = make_key_string(key)?;
         object.insert(key, value);
     }
@@ -119,6 +125,18 @@ mod test {
 
         array {
             args: func_args![value: value!([{key: "foo", value: "bar"}])],
+            want: Ok(value!({foo: "bar"})),
+            tdef: TypeDef::object(Collection::any()),
+        }
+
+        array_with_capitalized_aliases {
+            args: func_args![value: value!([{Key: "foo", Value: "bar"}])],
+            want: Ok(value!({foo: "bar"})),
+            tdef: TypeDef::object(Collection::any()),
+        }
+
+        array_with_mixed_aliases {
+            args: func_args![value: value!([{Key: "foo", value: "bar"}])],
             want: Ok(value!({foo: "bar"})),
             tdef: TypeDef::object(Collection::any()),
         }
