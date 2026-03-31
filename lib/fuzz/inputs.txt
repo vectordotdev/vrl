@@ -44,3 +44,6 @@ decode_zstd!(decode_base64!("KLUv/QBY/QEAYsQOFKClbQBedqXsb96EWDax/f/F/z+gNU4ZTIn
 encode_base16("please encode me")
 encode_base64("please encode me")
 encode_base64(encode_gzip("please encode me"))
+15 & 20
+15 ^ 20
+~20
