@@ -11,21 +11,26 @@ fn make_key_string(key: Value) -> ExpressionResult<KeyString> {
     }
 }
 
+fn select_key(entry: &ObjectMap) -> Value {
+    ["key", "Key", "name", "Name"]
+        .into_iter()
+        .filter_map(|alias| entry.get(alias).cloned())
+        .find(|key| !matches!(key, Value::Null | Value::Boolean(false)))
+        .unwrap_or(Value::Null)
+}
+
 fn from_entries(value: Value) -> Resolved {
     let array = value.try_array()?;
     let mut object = ObjectMap::new();
 
     for entry in array {
         let mut entry = entry.try_object()?;
-        let key = entry
-            .remove("key")
-            .or_else(|| entry.remove("Key"))
-            .unwrap_or(Value::Null);
+        let key = select_key(&entry);
+        let key = make_key_string(key)?;
         let value = entry
             .remove("value")
             .or_else(|| entry.remove("Value"))
             .unwrap_or(Value::Null);
-        let key = make_key_string(key)?;
         object.insert(key, value);
     }
 
@@ -137,6 +142,30 @@ mod test {
 
         array_with_mixed_aliases {
             args: func_args![value: value!([{Key: "foo", value: "bar"}])],
+            want: Ok(value!({foo: "bar"})),
+            tdef: TypeDef::object(Collection::any()),
+        }
+
+        array_with_name_aliases {
+            args: func_args![value: value!([{name: "foo", value: "bar"}])],
+            want: Ok(value!({foo: "bar"})),
+            tdef: TypeDef::object(Collection::any()),
+        }
+
+        array_with_capitalized_name_aliases {
+            args: func_args![value: value!([{Name: "foo", value: "bar"}])],
+            want: Ok(value!({foo: "bar"})),
+            tdef: TypeDef::object(Collection::any()),
+        }
+
+        key_falls_back_when_null {
+            args: func_args![value: value!([{key: null, Key: "foo", value: "bar"}])],
+            want: Ok(value!({foo: "bar"})),
+            tdef: TypeDef::object(Collection::any()),
+        }
+
+        key_falls_back_when_false {
+            args: func_args![value: value!([{key: false, Key: "foo", value: "bar"}])],
             want: Ok(value!({foo: "bar"})),
             tdef: TypeDef::object(Collection::any()),
         }
