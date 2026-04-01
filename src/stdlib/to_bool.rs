@@ -2,12 +2,13 @@ use crate::compiler::conversion::Conversion;
 use crate::compiler::prelude::*;
 
 fn to_bool(value: Value) -> Resolved {
-    use Value::{Boolean, Bytes, Float, Integer, Null};
+    use Value::{Boolean, Bytes, Decimal, Float, Integer, Null};
 
     match value {
         Boolean(_) => Ok(value),
         Integer(v) => Ok(Boolean(v != 0)),
         Float(v) => Ok(Boolean(v != 0.0)),
+        Decimal(v) => Ok(Boolean(!v.is_zero())),
         Null => Ok(Boolean(false)),
         Bytes(v) => Conversion::Boolean
             .convert(v)
@@ -46,6 +47,7 @@ impl Function for ToBool {
             "If `value` is `\"false\"`, `\"f\"`, `\"no\"`, `\"n\"`, or `\"0\"`, `false` is returned.",
             "If `value` is `0.0`, `false` is returned, otherwise `true` is returned.",
             "If `value` is `0`, `false` is returned, otherwise `true` is returned.",
+            "If `value` is a decimal, `false` is returned for zero, otherwise `true` is returned.",
             "If `value` is `null`, `false` is returned.",
             "If `value` is a Boolean, it's returned unchanged.",
         ]
@@ -210,6 +212,8 @@ impl FunctionExpression for ToBoolFn {
 
 #[cfg(test)]
 mod tests {
+    use rust_decimal::{Decimal, dec};
+
     use super::*;
 
     test_function![
@@ -241,6 +245,18 @@ mod tests {
 
         number_false {
             args: func_args![value: 0],
+            want: Ok(false),
+            tdef: TypeDef::boolean().infallible(),
+        }
+
+        decimal_true {
+            args: func_args![value: Value::Decimal(dec!(1.5))],
+            want: Ok(true),
+            tdef: TypeDef::boolean().infallible(),
+        }
+
+        decimal_false {
+            args: func_args![value: Value::Decimal(Decimal::ZERO)],
             want: Ok(false),
             tdef: TypeDef::boolean().infallible(),
         }

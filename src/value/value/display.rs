@@ -17,6 +17,7 @@ impl fmt::Display for Value {
             ),
             Self::Integer(val) => write!(f, "{val}"),
             Self::Float(val) => write!(f, "{val}"),
+            Self::Decimal(val) => write!(f, "{val}"),
             Self::Boolean(val) => write!(f, "{val}"),
             Self::Object(map) => {
                 let joined = map
@@ -99,6 +100,14 @@ mod test {
     fn test_display_float() {
         assert_eq!(
             Value::Float(NotNan::new(123.45).unwrap()).to_string(),
+            "123.45"
+        );
+    }
+
+    #[test]
+    fn test_display_decimal() {
+        assert_eq!(
+            Value::Decimal(rust_decimal::dec!(123.45)).to_string(),
             "123.45"
         );
     }

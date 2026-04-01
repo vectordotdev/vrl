@@ -3,7 +3,7 @@ use crate::compiler::prelude::*;
 use crate::value;
 use core::convert::AsRef;
 use parse_size::Config;
-use rust_decimal::{Decimal, prelude::FromPrimitive, prelude::ToPrimitive};
+use rust_decimal::{Decimal, dec, prelude::FromPrimitive, prelude::ToPrimitive};
 use std::collections::HashMap;
 use std::sync::LazyLock;
 
@@ -115,20 +115,20 @@ fn parse_bytes(bytes: &Value, unit: Value, base: &Bytes) -> Resolved {
 // power of 2 units
 static BIN_UNITS: LazyLock<HashMap<String, Decimal>> = LazyLock::new(|| {
     vec![
-        ("B", Decimal::new(1, 0)),
-        ("KiB", Decimal::new(1_024, 0)),
-        ("MiB", Decimal::new(1_048_576, 0)),
-        ("GiB", Decimal::new(1_073_741_824, 0)),
-        ("TiB", Decimal::new(1_099_511_627_776, 0)),
-        ("PiB", Decimal::new(1_125_899_906_842_624, 0)),
-        ("EiB", Decimal::new(1_152_921_504_606_846_976, 0)),
+        ("B", dec!(1)),
+        ("KiB", dec!(1_024)),
+        ("MiB", dec!(1_048_576)),
+        ("GiB", dec!(1_073_741_824)),
+        ("TiB", dec!(1_099_511_627_776)),
+        ("PiB", dec!(1_125_899_906_842_624)),
+        ("EiB", dec!(1_152_921_504_606_846_976)),
         // binary units also support ambiguous units
-        ("KB", Decimal::new(1_024, 0)),
-        ("MB", Decimal::new(1_048_576, 0)),
-        ("GB", Decimal::new(1_073_741_824, 0)),
-        ("TB", Decimal::new(1_099_511_627_776, 0)),
-        ("PB", Decimal::new(1_125_899_906_842_624, 0)),
-        ("EB", Decimal::new(1_152_921_504_606_846_976, 0)),
+        ("KB", dec!(1_024)),
+        ("MB", dec!(1_048_576)),
+        ("GB", dec!(1_073_741_824)),
+        ("TB", dec!(1_099_511_627_776)),
+        ("PB", dec!(1_125_899_906_842_624)),
+        ("EB", dec!(1_152_921_504_606_846_976)),
     ]
     .into_iter()
     .map(|(k, v)| (k.to_owned(), v))
@@ -137,13 +137,13 @@ static BIN_UNITS: LazyLock<HashMap<String, Decimal>> = LazyLock::new(|| {
 // power of 10 units
 static DEC_UNITS: LazyLock<HashMap<String, Decimal>> = LazyLock::new(|| {
     vec![
-        ("B", Decimal::new(1, 0)),
-        ("kB", Decimal::new(1_000, 0)),
-        ("MB", Decimal::new(1_000_000, 0)),
-        ("GB", Decimal::new(1_000_000_000, 0)),
-        ("TB", Decimal::new(1_000_000_000_000, 0)),
-        ("PB", Decimal::new(1_000_000_000_000_000, 0)),
-        ("EB", Decimal::new(1_000_000_000_000_000_000, 0)),
+        ("B", dec!(1)),
+        ("kB", dec!(1_000)),
+        ("MB", dec!(1_000_000)),
+        ("GB", dec!(1_000_000_000)),
+        ("TB", dec!(1_000_000_000_000)),
+        ("PB", dec!(1_000_000_000_000_000)),
+        ("EB", dec!(1_000_000_000_000_000_000)),
     ]
     .into_iter()
     .map(|(k, v)| (k.to_owned(), v))

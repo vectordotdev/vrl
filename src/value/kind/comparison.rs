@@ -10,6 +10,7 @@ impl Kind {
         self.contains_bytes()
             && self.contains_integer()
             && self.contains_float()
+            && self.contains_decimal()
             && self.contains_boolean()
             && self.contains_timestamp()
             && self.contains_regex()
@@ -25,6 +26,7 @@ impl Kind {
         self.contains_bytes()
             && self.contains_integer()
             && self.contains_float()
+            && self.contains_decimal()
             && self.contains_boolean()
             && !self.contains_timestamp()
             && !self.contains_regex()
@@ -44,6 +46,7 @@ impl Kind {
         !self.contains_bytes()
             && !self.contains_integer()
             && !self.contains_float()
+            && !self.contains_decimal()
             && !self.contains_boolean()
             && !self.contains_timestamp()
             && !self.contains_regex()
@@ -56,6 +59,7 @@ impl Kind {
     pub const fn is_bytes(&self) -> bool {
         self.integer.is_none()
             && self.float.is_none()
+            && self.decimal.is_none()
             && self.boolean.is_none()
             && self.timestamp.is_none()
             && self.regex.is_none()
@@ -70,6 +74,7 @@ impl Kind {
     pub const fn is_integer(&self) -> bool {
         self.bytes.is_none()
             && self.float.is_none()
+            && self.decimal.is_none()
             && self.boolean.is_none()
             && self.timestamp.is_none()
             && self.regex.is_none()
@@ -85,6 +90,7 @@ impl Kind {
         self.bytes.is_none()
             && self.integer.is_none()
             && self.float.is_none()
+            && self.decimal.is_none()
             && self.boolean.is_none()
             && self.timestamp.is_none()
             && self.regex.is_none()
@@ -99,6 +105,22 @@ impl Kind {
     pub const fn is_float(&self) -> bool {
         self.bytes.is_none()
             && self.integer.is_none()
+            && self.decimal.is_none()
+            && self.boolean.is_none()
+            && self.timestamp.is_none()
+            && self.regex.is_none()
+            && self.null.is_none()
+            && self.undefined.is_none()
+            && self.array.is_none()
+            && self.object.is_none()
+    }
+
+    /// Returns `true` if the type is `decimal`.
+    #[must_use]
+    pub const fn is_decimal(&self) -> bool {
+        self.bytes.is_none()
+            && self.integer.is_none()
+            && self.float.is_none()
             && self.boolean.is_none()
             && self.timestamp.is_none()
             && self.regex.is_none()
@@ -114,6 +136,7 @@ impl Kind {
         self.bytes.is_none()
             && self.integer.is_none()
             && self.float.is_none()
+            && self.decimal.is_none()
             && self.timestamp.is_none()
             && self.regex.is_none()
             && self.null.is_none()
@@ -128,6 +151,7 @@ impl Kind {
         self.bytes.is_none()
             && self.integer.is_none()
             && self.float.is_none()
+            && self.decimal.is_none()
             && self.boolean.is_none()
             && self.regex.is_none()
             && self.null.is_none()
@@ -142,6 +166,7 @@ impl Kind {
         self.bytes.is_none()
             && self.integer.is_none()
             && self.float.is_none()
+            && self.decimal.is_none()
             && self.boolean.is_none()
             && self.timestamp.is_none()
             && self.null.is_none()
@@ -156,6 +181,7 @@ impl Kind {
         self.bytes.is_none()
             && self.integer.is_none()
             && self.float.is_none()
+            && self.decimal.is_none()
             && self.boolean.is_none()
             && self.timestamp.is_none()
             && self.regex.is_none()
@@ -170,6 +196,7 @@ impl Kind {
         self.bytes.is_none()
             && self.integer.is_none()
             && self.float.is_none()
+            && self.decimal.is_none()
             && self.boolean.is_none()
             && self.timestamp.is_none()
             && self.regex.is_none()
@@ -184,6 +211,7 @@ impl Kind {
         self.bytes.is_none()
             && self.integer.is_none()
             && self.float.is_none()
+            && self.decimal.is_none()
             && self.boolean.is_none()
             && self.timestamp.is_none()
             && self.regex.is_none()
@@ -198,6 +226,7 @@ impl Kind {
         self.bytes.is_none()
             && self.integer.is_none()
             && self.float.is_none()
+            && self.decimal.is_none()
             && self.boolean.is_none()
             && self.timestamp.is_none()
             && self.regex.is_none()
@@ -212,6 +241,7 @@ impl Kind {
         self.is_bytes()
             || self.is_integer()
             || self.is_float()
+            || self.is_decimal()
             || self.is_boolean()
             || self.is_timestamp()
             || self.is_regex()
@@ -243,6 +273,10 @@ impl Kind {
         }
 
         if let (None, Some(())) = (self.float, other.float) {
+            return Err(OwnedValuePath::root());
+        }
+
+        if let (None, Some(())) = (self.decimal, other.decimal) {
             return Err(OwnedValuePath::root());
         }
 
@@ -305,6 +339,10 @@ impl Kind {
             return true;
         }
 
+        if self.contains_decimal() && other.contains_decimal() {
+            return true;
+        }
+
         if self.contains_boolean() && other.contains_boolean() {
             return true;
         }
@@ -355,6 +393,12 @@ impl Kind {
     #[must_use]
     pub const fn contains_float(&self) -> bool {
         self.float.is_some() || self.is_never()
+    }
+
+    /// Returns `true` if the type is _at least_ `decimal`.
+    #[must_use]
+    pub const fn contains_decimal(&self) -> bool {
+        self.decimal.is_some() || self.is_never()
     }
 
     /// Returns `true` if the type is _at least_ `boolean`.
@@ -412,6 +456,7 @@ impl Kind {
             || self.null.is_some()
             || self.boolean.is_some()
             || self.float.is_some()
+            || self.decimal.is_some()
             || self.integer.is_some()
             || self.regex.is_some()
             || self.timestamp.is_some()

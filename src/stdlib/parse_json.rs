@@ -33,6 +33,14 @@ with the Unicode character `�` (U+FFFD) if set to true, otherwise returns an e
 if there are any invalid UTF-8 characters present.",
         )
         .default(&DEFAULT_LOSSY),
+        Parameter::optional(
+            "parse_float",
+            kind::BYTES,
+            r#"Controls how JSON floating-point numbers are parsed.
+Accepted values: "float" (default) or "decimal".
+When set to "decimal", non-integer numbers are parsed as `decimal` values instead of floats,
+preserving the exact string representation from the JSON source."#,
+        ),
     ]
 });
 
@@ -44,6 +52,20 @@ fn parse_json(value: Value, lossy: Value) -> Resolved {
         serde_json::from_slice(value.try_bytes()?.strip_bom())
     }
     .map_err(|e| format!("unable to parse json: {e}"))?)
+}
+
+fn parse_json_precision(value: Value, lossy: Option<Value>) -> Resolved {
+    let lossy = lossy.map(Value::try_boolean).transpose()?.unwrap_or(true);
+    let bytes: bytes::Bytes = if lossy {
+        value.try_bytes_utf8_lossy()?.into_owned().into()
+    } else {
+        value.try_bytes()?
+    };
+
+    let raw_value = serde_json::from_slice::<&RawValue>(bytes.strip_bom())
+        .map_err(|e| format!("unable to parse json: {e}"))?;
+
+    Value::try_from(raw_value).map_err(|e| format!("unable to parse json: {e}").into())
 }
 
 // parse_json_with_depth method recursively traverses the value and returns raw JSON-formatted bytes
@@ -220,6 +242,11 @@ impl Function for ParseJson {
                 source: r#"parse_json!(s'{"first_level":{"second_level":"finish"}}', max_depth: 1)"#,
                 result: Ok(r#"{"first_level":"{\"second_level\":\"finish\"}"}"#),
             },
+            example! {
+                title: "Parse JSON with decimal floats",
+                source: r#"parse_json!(s'{"val": 0.12379999458789825}', parse_float: "decimal")"#,
+                result: Ok(r#"{ "val": d'0.12379999458789825' }"#),
+            },
         ]
     }
 
@@ -232,15 +259,22 @@ impl Function for ParseJson {
         let value = arguments.required("value");
         let max_depth = arguments.optional("max_depth");
         let lossy = arguments.optional("lossy");
+        let parse_float = arguments.optional("parse_float");
 
-        match max_depth {
-            Some(max_depth) => Ok(ParseJsonMaxDepthFn {
+        match (max_depth, parse_float) {
+            (Some(max_depth), _) => Ok(ParseJsonMaxDepthFn {
                 value,
                 max_depth,
                 lossy,
             }
             .as_expr()),
-            None => Ok(ParseJsonFn { value, lossy }.as_expr()),
+            (None, Some(parse_float)) => Ok(ParseJsonPrecisionFn {
+                value,
+                lossy,
+                parse_float,
+            }
+            .as_expr()),
+            (None, None) => Ok(ParseJsonFn { value, lossy }.as_expr()),
         }
     }
 }
@@ -258,6 +292,44 @@ impl FunctionExpression for ParseJsonFn {
             .lossy
             .map_resolve_with_default(ctx, || DEFAULT_LOSSY.clone())?;
         parse_json(value, lossy)
+    }
+
+    fn type_def(&self, _: &state::TypeState) -> TypeDef {
+        json_type_def()
+    }
+}
+
+#[derive(Debug, Clone)]
+struct ParseJsonPrecisionFn {
+    value: Box<dyn Expression>,
+    lossy: Option<Box<dyn Expression>>,
+    parse_float: Box<dyn Expression>,
+}
+
+impl FunctionExpression for ParseJsonPrecisionFn {
+    fn resolve(&self, ctx: &mut Context) -> Resolved {
+        let value = self.value.resolve(ctx)?;
+        let lossy = self
+            .lossy
+            .as_ref()
+            .map(|expr| expr.resolve(ctx))
+            .transpose()?;
+        let parse_float = self
+            .parse_float
+            .resolve(ctx)?
+            .try_bytes_utf8_lossy()?
+            .into_owned();
+        match parse_float.as_str() {
+            "decimal" => parse_json_precision(value, lossy),
+            "float" => {
+                let lossy = lossy.unwrap_or(Value::Boolean(true));
+                parse_json(value, lossy)
+            }
+            other => Err(format!(
+                r#"invalid value for "parse_float": "{other}", expected "float" or "decimal""#
+            )
+            .into()),
+        }
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {
@@ -414,4 +486,60 @@ mod tests {
             tdef: json_type_def(),
         }
     ];
+
+    mod parse_float_param {
+        use super::*;
+        use rust_decimal::Decimal;
+
+        #[test]
+        fn decimal_preserves_float_precision() {
+            let input = Value::from(r#"{"val": 0.12379999458789825}"#);
+            let result = parse_json_precision(input, None).unwrap();
+            let val = result.as_object().unwrap().get("val").unwrap();
+            assert!(val.is_decimal());
+            assert_eq!(
+                *val.as_decimal().unwrap(),
+                "0.12379999458789825".parse::<Decimal>().unwrap()
+            );
+        }
+
+        #[test]
+        fn integers_stay_integer() {
+            let input = Value::from(r#"{"n": 42}"#);
+            let result = parse_json_precision(input, None).unwrap();
+            let n = result.as_object().unwrap().get("n").unwrap();
+            assert_eq!(*n, Value::Integer(42));
+        }
+
+        #[test]
+        fn nested_structure() {
+            let input = Value::from(r#"{"a": [1, 2.5, "hello"], "b": true, "c": null}"#);
+            let result = parse_json_precision(input, None).unwrap();
+            let obj = result.as_object().unwrap();
+
+            let arr = obj.get("a").unwrap().as_array().unwrap();
+            assert_eq!(arr[0], Value::Integer(1));
+            assert!(arr[1].is_decimal());
+            assert!(arr[2].is_bytes());
+
+            assert_eq!(*obj.get("b").unwrap(), Value::Boolean(true));
+            assert_eq!(*obj.get("c").unwrap(), Value::Null);
+        }
+
+        #[test]
+        fn large_integer_becomes_decimal() {
+            let input = Value::from(r#"{"n": 9223372036854775808}"#);
+            let result = parse_json_precision(input, None).unwrap();
+            let n = result.as_object().unwrap().get("n").unwrap();
+            assert!(n.is_decimal());
+        }
+
+        #[test]
+        fn default_uses_float_parsing() {
+            let input = Value::from(r#"{"val": 0.12379999458789825}"#);
+            let result = parse_json(input, Value::Boolean(true)).unwrap();
+            let val = result.as_object().unwrap().get("val").unwrap();
+            assert!(val.is_float());
+        }
+    }
 }

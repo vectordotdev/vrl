@@ -24,6 +24,7 @@ extern {
         "raw string literal" => Token::RawStringLiteral(<RawStringLiteralToken<&'input str>>),
         "integer literal" => Token::IntegerLiteral(<i64>),
         "float literal" => Token::FloatLiteral(<NotNan<f64>>),
+        "decimal literal" => Token::DecimalLiteral(<&'input str>),
         "regex literal" => Token::RegexLiteral(<&'input str>),
         "timestamp literal" => Token::TimestampLiteral(<&'input str>),
 
@@ -521,6 +522,7 @@ pub Literal: Literal = {
     RawString => Literal::RawString(<>),
     Integer => Literal::Integer(<>),
     Float => Literal::Float(<>),
+    Decimal => Literal::Decimal(<>),
     Boolean => Literal::Boolean(<>),
     Null => Literal::Null,
     Regex => Literal::Regex(<>),
@@ -535,6 +537,7 @@ String: TemplateString = Sp<"string literal"> => {
 RawString: String = "raw string literal" => <>.unescape();
 Integer: i64 = "integer literal";
 Float: NotNan<f64> = "float literal";
+Decimal: String = "decimal literal" => <>.replace("\\'", "'");
 Boolean: bool = { "true" => true, "false" => false };
 Null: () = "null";
 Regex: String = "regex literal" => <>.replace("\\'", "'");
