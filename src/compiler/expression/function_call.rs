@@ -508,15 +508,15 @@ impl<'a> Builder<'a> {
             // At this point, we've compiled the block, so we can remove the
             // closure variables from the compiler's local environment.
             for ident in variables {
-                match locals.remove_variable(ident) {
-                    Some(details) => {
-                        variables_types.push(details.clone());
+                let variable_details = state
+                    .local
+                    .remove_variable(ident)
+                    .expect("Closure variable must be present");
+                variables_types.push(variable_details);
 
-                        state.local.insert_variable(ident.clone(), details)
-                    }
-                    None => {
-                        state.local.remove_variable(ident);
-                    }
+                // If outer scope has this variable, restore its state
+                if let Some(details) = locals.remove_variable(ident) {
+                    state.local.insert_variable(ident.clone(), details);
                 }
             }
 
@@ -711,6 +711,7 @@ impl Expression for FunctionCall {
         if let Some(closure) = &self.closure {
             // To get correct `type_info()` from closure we need to add closure arguments into current state
             let mut closure_state = state.clone();
+            dbg!(&closure.variables_types);
             for (ident, details) in closure
                 .variables
                 .iter()
@@ -720,7 +721,7 @@ impl Expression for FunctionCall {
                 closure_state.local.insert_variable(ident, details);
             }
             let mut closure_info = closure.block.type_info(&closure_state);
-            // No interaction with closure arguments can't affect parent state, so remove them before merge
+            // Interaction with closure arguments can't affect parent state, so remove them before merge
             for ident in &closure.variables {
                 closure_info.state.local.remove_variable(ident);
             }
