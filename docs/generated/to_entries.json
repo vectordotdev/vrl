@@ -1,0 +1,57 @@
+{
+  "anchor": "to_entries",
+  "name": "to_entries",
+  "category": "Object",
+  "description": "Converts JSON objects or arrays into array of objects.",
+  "arguments": [
+    {
+      "name": "value",
+      "description": "The object or array to manipulate.",
+      "required": true,
+      "type": [
+        "object",
+        "array"
+      ]
+    }
+  ],
+  "return": {
+    "types": [
+      "array"
+    ],
+    "rules": [
+      "The return array has the same length as the input collection."
+    ]
+  },
+  "examples": [
+    {
+      "title": "Manipulate empty object",
+      "source": "to_entries({})",
+      "return": []
+    },
+    {
+      "title": "Manipulate object",
+      "source": "to_entries({ \"foo\": \"bar\"})",
+      "return": [
+        {
+          "key": "foo",
+          "value": "bar"
+        }
+      ]
+    },
+    {
+      "title": "Manipulate array",
+      "source": "to_entries([1, 2])",
+      "return": [
+        {
+          "key": 0,
+          "value": 1
+        },
+        {
+          "key": 1,
+          "value": 2
+        }
+      ]
+    }
+  ],
+  "pure": true
+}
