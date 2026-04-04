@@ -84,6 +84,19 @@ impl CompilerError {
 }
 
 impl<'a> Compiler<'a> {
+    pub(crate) fn new(fns: &'a [Box<dyn Function>], config: CompileConfig) -> Self {
+        Self {
+            fns,
+            diagnostics: vec![],
+            fallible: false,
+            abortable: false,
+            external_queries: vec![],
+            external_assignments: vec![],
+            skip_missing_query_target: vec![],
+            fallible_expression_error: None,
+            config,
+        }
+    }
     /// Compiles a given source into the final [`Program`].
     ///
     /// # Arguments
@@ -106,17 +119,7 @@ impl<'a> Compiler<'a> {
         let initial_state = state.clone();
         let mut state = state.clone();
 
-        let mut compiler = Self {
-            fns,
-            diagnostics: vec![],
-            fallible: false,
-            abortable: false,
-            external_queries: vec![],
-            external_assignments: vec![],
-            skip_missing_query_target: vec![],
-            fallible_expression_error: None,
-            config,
-        };
+        let mut compiler = Compiler::new(fns, config);
         let expressions = compiler.compile_root_exprs(ast, &mut state);
 
         let (errors, warnings): (Vec<_>, Vec<_>) =
@@ -272,7 +275,7 @@ impl<'a> Compiler<'a> {
         Some(Group::new(expr))
     }
 
-    fn compile_root_exprs(
+    pub(crate) fn compile_root_exprs(
         &mut self,
         nodes: impl IntoIterator<Item = Node<ast::RootExpr>>,
         state: &mut TypeState,
