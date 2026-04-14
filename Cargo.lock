@@ -4231,6 +4231,7 @@ dependencies = [
  "exitcode",
  "fancy-regex",
  "flate2",
+ "getrandom 0.3.4",
  "grok",
  "hex",
  "hmac",
