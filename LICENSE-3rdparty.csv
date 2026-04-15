@@ -185,7 +185,6 @@ mlua-sys,https://github.com/mlua-rs/mlua,MIT,Aleksandr Orlenko <zxteam@pm.me>
 moka,https://github.com/moka-rs/moka,(MIT OR Apache-2.0) AND Apache-2.0,The moka Authors
 ndk-context,https://github.com/rust-windowing/android-ndk-rs,MIT OR Apache-2.0,The Rust Windowing contributors
 nix,https://github.com/nix-rust/nix,MIT,The nix-rust Project Developers
-nohash,https://github.com/tetcoin/nohash,Apache-2.0 OR MIT,Parity Technologies <admin@parity.io>
 nom,https://github.com/Geal/nom,MIT,contact@geoffroycouprie.com
 nom,https://github.com/rust-bakery/nom,MIT,contact@geoffroycouprie.com
 nom-language,https://github.com/rust-bakery/nom,MIT,contact@geoffroycouprie.com
