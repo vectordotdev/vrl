@@ -1,5 +1,5 @@
 use crate::compiler::prelude::*;
-use rand::{Rng, thread_rng};
+use rand::Rng;
 use std::ops::Range;
 
 const INVALID_RANGE_ERR: &str = "max must be greater than min";
@@ -12,7 +12,7 @@ fn random_float(min: Value, max: Value) -> Resolved {
         return Err("max must be greater than min".into());
     }
 
-    let f: f64 = thread_rng().gen_range(min..max);
+    let f: f64 = rand::rng().random_range(min..max);
 
     Ok(Value::Float(NotNan::new(f).expect("always a number")))
 }
