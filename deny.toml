@@ -35,6 +35,5 @@ license-files = [
 
 [advisories]
 ignore = [
-  # `derivative` is unmaintained
-  "RUSTSEC-2024-0388",
+  { id = "RUSTSEC-2026-0097", reason = "Rand is unsound with a custom logger using rand::rng() - unpatched crate (https://github.com/NLnetLabs/domain/pull/628)" },
 ]
