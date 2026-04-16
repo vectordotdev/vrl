@@ -323,7 +323,7 @@ fn parse_log(mut input: &str, strict_mode: bool) -> ExpressionResult<Value> {
     let request = get_value!("request", take_quoted1);
     let mut iter = request.splitn(2, ' ');
     log.insert(
-        "request_method".to_owned().into(),
+        "request_method".into(),
         match iter.next().unwrap().into() {
             Value::Bytes(bytes) if bytes == "-" => Value::Null,
             value => value,
@@ -333,7 +333,7 @@ fn parse_log(mut input: &str, strict_mode: bool) -> ExpressionResult<Value> {
         Some(value) => {
             let mut iter = value.rsplitn(2, ' ');
             log.insert(
-                "request_protocol".to_owned().into(),
+                "request_protocol".into(),
                 match iter.next().unwrap().into() {
                     Value::Bytes(bytes) if bytes == "-" => Value::Null,
                     value => value,

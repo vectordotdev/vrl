@@ -437,7 +437,7 @@ fn parse_key_value_<'a, E: ParseError<&'a str> + ContextError<&'a str>>(
             },
             |(field, sep, value): (Cow<'_, str>, Vec<&str>, Value)| {
                 (
-                    field.to_string().into(),
+                    field.into(),
                     if sep.len() == 1 { value } else { value!(true) },
                 )
             },

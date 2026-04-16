@@ -130,7 +130,7 @@ fn tag_type_externally(value: Value) -> Value {
     };
 
     if let Some(key) = key {
-        ObjectMap::from([(key.to_owned().into(), value)]).into()
+        ObjectMap::from([(key.into(), value)]).into()
     } else {
         value
     }

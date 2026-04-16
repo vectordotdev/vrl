@@ -199,7 +199,7 @@ fn resolve_fields(fields: Value) -> ExpressionResult<Vec<KeyString>> {
         .enumerate()
         .map(|(idx, v)| {
             v.try_bytes_utf8_lossy()
-                .map(|v| v.to_string().into())
+                .map(|v| KeyString::from(v))
                 .map_err(|e| format!("invalid field value type at index {idx}: {e}").into())
         })
         .collect()

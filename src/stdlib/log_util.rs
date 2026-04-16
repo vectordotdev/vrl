@@ -254,7 +254,7 @@ pub(crate) fn log_fields(
             name.and_then(|name| {
                 captures.name(name).map(|value| {
                     Ok((
-                        name.to_string().into(),
+                        name.into(),
                         capture_value(name, value.as_str(), timestamp_format, timezone)?,
                     ))
                 })

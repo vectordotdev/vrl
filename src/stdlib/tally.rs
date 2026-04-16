@@ -16,7 +16,7 @@ fn tally(value: Value) -> Resolved {
         .into_iter()
         .map(|(k, v)| {
             (
-                String::from_utf8_lossy(&k).into_owned().into(),
+                String::from_utf8_lossy(&k).into(),
                 Value::from(v),
             )
         })

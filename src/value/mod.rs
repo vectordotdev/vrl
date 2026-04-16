@@ -40,7 +40,7 @@ macro_rules! value {
     });
 
     ({$($($k1:literal)? $($k2:ident)?: $v:tt),+ $(,)?}) => ({
-        let map = vec![$((String::from($($k1)? $(stringify!($k2))?).into(), $crate::value!($v))),+]
+        let map = vec![$(($crate::value::KeyString::from($($k1)? $(stringify!($k2))?), $crate::value!($v))),+]
             .into_iter()
             .collect::<$crate::value::ObjectMap>();
 

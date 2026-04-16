@@ -168,8 +168,8 @@ pub fn process_node(node: Node, config: &ParseXmlConfig) -> Value {
 
         for n in node.children().filter(|n| n.is_element() || n.is_text()) {
             let name = match n.node_type() {
-                NodeType::Element => n.tag_name().name().to_string().into(),
-                NodeType::Text => config.text_key.to_string().into(),
+                NodeType::Element => n.tag_name().name().into(),
+                NodeType::Text => KeyString::from(config.text_key.as_ref()),
                 _ => unreachable!("shouldn't be other XML nodes"),
             };
 
@@ -225,7 +225,7 @@ pub fn process_node(node: Node, config: &ParseXmlConfig) -> Value {
                             let mut map = ObjectMap::new();
 
                             map.insert(
-                                node.tag_name().name().to_string().into(),
+                                node.tag_name().name().into(),
                                 process_node(node, config),
                             );
 

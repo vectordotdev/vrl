@@ -15,7 +15,7 @@ pub fn parse_query_string(bytes: &Bytes, ignore_keys_without_values: bool) -> Re
             continue;
         }
         result
-            .entry(k.into_owned().into())
+            .entry(k.into())
             .and_modify(|v| {
                 match v {
                     Value::Array(v) => {

@@ -116,7 +116,7 @@ fn apply_grok_rule(source: &str, grok_rule: &GrokRule) -> Result<ParsedGrokObjec
                     parsed
                         .as_object_mut()
                         .expect("parsed value is not an object")
-                        .insert(name.to_string().into(), value.into());
+                        .insert(name.into(), value.into());
                 }
             }
 

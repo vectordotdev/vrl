@@ -230,7 +230,7 @@ impl<'a> MapFlatten<'a> {
     /// Returns the key with the parent prepended.
     fn new_key(&self, key: &str) -> KeyString {
         match self.parent {
-            None => key.to_string().into(),
+            None => key.into(),
             Some(ref parent) => format!("{parent}{}{key}", self.separator).into(),
         }
     }
