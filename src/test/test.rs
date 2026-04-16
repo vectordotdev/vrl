@@ -1,10 +1,10 @@
-use std::{collections::BTreeMap, fs, path::Path};
+use std::{fs, path::Path};
 
 use crate::compiler::function::Example;
 use crate::path::OwnedTargetPath;
 use crate::path::parse_value_path;
 use crate::test::{example_vrl_path, test_prefix};
-use crate::value::Value;
+use crate::value::{ObjectMap, Value};
 
 #[derive(Debug)]
 pub struct Test {
@@ -119,7 +119,7 @@ impl Test {
 
         let mut error = None;
         let object = if object.is_empty() {
-            Value::Object(BTreeMap::default())
+            Value::Object(ObjectMap::default())
         } else {
             serde_json::from_str::<'_, Value>(&object).unwrap_or_else(|err| {
                 error = Some(format!("unable to parse object as JSON: {err}"));
@@ -153,7 +153,7 @@ impl Test {
             Some(input) => {
                 serde_json::from_str::<Value>(input).expect("example input should be valid JSON")
             }
-            None => Value::Object(BTreeMap::default()),
+            None => Value::Object(ObjectMap::default()),
         };
         let result = match example.result {
             Ok(string) => string.to_owned(),

@@ -130,7 +130,7 @@ fn resolve_year((month, _date, _hour, _min, _sec): IncompleteDate) -> i32 {
 
 /// Create a `Value::Map` from the fields of the given syslog message.
 fn message_to_value(message: Message<&str>) -> Value {
-    let mut result = BTreeMap::new();
+    let mut result = ObjectMap::new();
 
     result.insert("message".to_string().into(), message.msg.to_string().into());
 
@@ -178,7 +178,7 @@ fn message_to_value(message: Message<&str>) -> Value {
     }
 
     for element in message.structured_data {
-        let mut sdata = BTreeMap::new();
+        let mut sdata = ObjectMap::new();
         for (name, value) in element.params() {
             sdata.insert((*name).into(), value.into());
         }

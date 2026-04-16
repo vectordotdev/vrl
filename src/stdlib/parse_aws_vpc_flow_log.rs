@@ -243,7 +243,7 @@ macro_rules! create_match {
 }
 
 fn parse_log(input: &str, format: Option<&str>) -> ParseResult<Value> {
-    let mut log = BTreeMap::new();
+    let mut log = ObjectMap::new();
 
     let mut input = input.split(' ');
     let mut format = format

@@ -245,7 +245,7 @@ fn inner_kind() -> BTreeMap<Field, Kind> {
 
 #[allow(clippy::too_many_lines)]
 fn parse_log(mut input: &str, strict_mode: bool) -> ExpressionResult<Value> {
-    let mut log = BTreeMap::<KeyString, Value>::new();
+    let mut log = ObjectMap::new();
 
     macro_rules! get_value {
         ($name:expr_2021, $parser:expr_2021, $err:ty) => {{

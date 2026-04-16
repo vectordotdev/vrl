@@ -32,7 +32,7 @@ default = ["compiler", "value", "diagnostic", "path", "parser", "stdlib", "datad
 compiler = ["diagnostic", "path", "parser", "value", "dep:chrono", "dep:serde", "dep:regex", "dep:bytes", "dep:ordered-float", "dep:chrono-tz", "dep:snafu", "dep:thiserror", "dep:dyn-clone", "dep:indoc", "dep:thiserror", "dep:lalrpop-util"]
 
 # Contains the primary data type used in VRL.
-value = ["path", "dep:bytes", "dep:regex", "dep:ordered-float", "dep:chrono", "dep:serde_json", "dep:simdutf8"]
+value = ["path", "dep:bytes", "dep:regex", "dep:ordered-float", "dep:chrono", "dep:serde_json", "dep:simdutf8", "dep:ecow"]
 
 # Logic related to errors and displaying info about them.
 diagnostic = ["dep:codespan-reporting", "dep:termcolor"]
@@ -206,13 +206,14 @@ convert_case = { version = "0.7.1", optional = true }
 crc = { version = "3.3.0", optional = true }
 digest = { version = "0.10", optional = true }
 dyn-clone = { version = "1", default-features = false, optional = true }
+ecow = { version = "0.2", optional = true }
 exitcode = { version = "1", optional = true }
 flate2 = { version = "1.1.2", default-features = false, features = ["zlib-rs"], optional = true }
 hex = { version = "0.4", optional = true }
 hmac = { version = "0.12", optional = true }
 iana-time-zone = { version = "0.1", optional = true }
 idna = { version = "1.0", optional = true }
-indexmap = { version = "2", default-features = false, features = ["std"], optional = true }
+indexmap = { version = "2", default-features = false, features = ["std", "serde"], optional = true }
 influxdb-line-protocol = { version = "2.0.0", optional = true }
 indoc = { version = "2", optional = true }
 itertools = { version = "0.14", default-features = false, features = ["use_std"], optional = true }
@@ -348,5 +349,10 @@ harness = false
 
 [[bench]]
 name = "stdlib"
+harness = false
+required-features = ["default", "test"]
+
+[[bench]]
+name = "objectmap"
 harness = false
 required-features = ["default", "test"]

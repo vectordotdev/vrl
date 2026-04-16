@@ -1,4 +1,4 @@
-/// A macro to easily create a map containing `Value`
+/// A macro to easily create a `BTreeMap`
 #[macro_export]
 macro_rules! btreemap {
     () => (::std::collections::BTreeMap::new());
@@ -8,6 +8,23 @@ macro_rules! btreemap {
 
     ($($key:expr_2021 => $value:expr_2021),*) => {
         ::std::collections::BTreeMap::from([
+            $(
+                ($key.into(), $value.into()),
+            )*
+        ])
+    };
+}
+
+/// A macro to easily create an `ObjectMap`
+#[macro_export]
+macro_rules! objectmap {
+    () => ($crate::value::ObjectMap::new());
+
+    // trailing comma case
+    ($($key:expr_2021 => $value:expr_2021,)+) => (objectmap!($($key => $value),+));
+
+    ($($key:expr_2021 => $value:expr_2021),*) => {
+        $crate::value::ObjectMap::from([
             $(
                 ($key.into(), $value.into()),
             )*
@@ -31,5 +48,16 @@ mod tests {
         map.insert("1", "one");
         map.insert("2", "two");
         assert_eq!(btreemap! { "1" => "one", "2" => "two" }, map);
+    }
+
+    #[test]
+    fn test_objectmap() {
+        use crate::value::ObjectMap;
+
+        assert_eq!(objectmap! {}, ObjectMap::new());
+
+        let mut map = ObjectMap::new();
+        map.insert("key".into(), "value".into());
+        assert_eq!(objectmap! { "key" => "value" }, map);
     }
 }

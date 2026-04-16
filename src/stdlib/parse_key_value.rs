@@ -1,5 +1,6 @@
 use crate::compiler::function::EnumVariant;
 use crate::compiler::prelude::*;
+use crate::value::ObjectMapEntry;
 use crate::value;
 use nom::{
     self, IResult, Parser,
@@ -14,7 +15,6 @@ use nom::{
 use nom_language::error::VerboseError;
 use std::{
     borrow::Cow,
-    collections::{BTreeMap, btree_map::Entry},
     iter::Peekable,
     str::{Chars, FromStr},
 };
@@ -69,13 +69,13 @@ pub fn parse_key_value(
 
     // Construct Value::Object by grouping values with the same key into an array.
     // This logic depends on values not being arrays which is true for this parser.
-    let mut map = BTreeMap::new();
+    let mut map = ObjectMap::new();
     for (key, value) in values {
         match map.entry(key) {
-            Entry::Vacant(entry) => {
+            ObjectMapEntry::Vacant(entry) => {
                 entry.insert(value);
             }
-            Entry::Occupied(mut entry) => {
+            ObjectMapEntry::Occupied(mut entry) => {
                 if let Value::Boolean(true) = value {
                     // We are done
                 } else {

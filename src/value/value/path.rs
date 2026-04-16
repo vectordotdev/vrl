@@ -17,7 +17,7 @@ impl Value {
 
 #[cfg(test)]
 mod at_path_tests {
-    use std::collections::BTreeMap;
+    use crate::value::value::ObjectMap;
 
     use crate::path;
     use crate::path::parse_value_path;
@@ -29,10 +29,10 @@ mod at_path_tests {
         let path = parse_value_path(".foo.bar.baz").unwrap();
         let value = Value::Integer(12);
 
-        let bar_value = Value::Object(BTreeMap::from([("baz".into(), value.clone())]));
-        let foo_value = Value::Object(BTreeMap::from([("bar".into(), bar_value)]));
+        let bar_value = Value::Object(ObjectMap::from([("baz".into(), value.clone())]));
+        let foo_value = Value::Object(ObjectMap::from([("bar".into(), bar_value)]));
 
-        let object = Value::Object(BTreeMap::from([("foo".into(), foo_value)]));
+        let object = Value::Object(ObjectMap::from([("foo".into(), foo_value)]));
 
         assert_eq!(value.at_path(&path), object);
     }
@@ -62,12 +62,12 @@ mod at_path_tests {
         let value = Value::Object([("bar".into(), vec![12].into())].into()); //value!({ "bar": [12] });
 
         let baz_value = Value::Array(vec![Value::Null, value.clone()]);
-        let foo_value = Value::Object(BTreeMap::from([("baz".into(), baz_value)]));
+        let foo_value = Value::Object(ObjectMap::from([("baz".into(), baz_value)]));
 
         let object = Value::Array(vec![
             Value::Null,
             Value::Null,
-            Value::Object(BTreeMap::from([("foo".into(), foo_value)])),
+            Value::Object(ObjectMap::from([("foo".into(), foo_value)])),
         ]);
 
         assert_eq!(value.at_path(&path), object);

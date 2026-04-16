@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use crate::value::ObjectMap;
 use std::fmt::Formatter;
 
 use crate::value::Value;
@@ -168,7 +168,7 @@ impl KeyValueFilter {
     pub fn apply_filter(&self, value: &Value) -> Result<Value, InternalError> {
         match value {
             Value::Bytes(bytes) => {
-                let mut result = Value::Object(BTreeMap::default());
+                let mut result = Value::Object(ObjectMap::default());
                 let value = String::from_utf8_lossy(bytes);
                 self.re_pattern.captures_iter(value.as_ref()).for_each(|c| {
                     self.parse_key_value_capture(&mut result, c);

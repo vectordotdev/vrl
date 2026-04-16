@@ -5,6 +5,7 @@ use crate::compiler::state::{RuntimeState, TypeState};
 use crate::compiler::{CompileConfig, Function, VrlRuntime, compile_with_state};
 use crate::diagnostic::Formatter;
 use crate::owned_metadata_path;
+use crate::value::ObjectMap;
 use crate::value::Secrets;
 use crate::value::Value;
 use indoc::indoc;
@@ -20,7 +21,6 @@ use rustyline::{
     validate::{self, ValidationResult, Validator},
 };
 use std::borrow::Cow::{self, Borrowed, Owned};
-use std::collections::BTreeMap;
 use std::rc::Rc;
 use std::sync::LazyLock;
 
@@ -134,7 +134,7 @@ impl Repl {
                             if index == objects.len() {
                                 objects.push(TargetValue {
                                     value: Value::Null,
-                                    metadata: Value::Object(BTreeMap::new()),
+                                    metadata: Value::Object(ObjectMap::new()),
                                     secrets: Secrets::new(),
                                 });
                             }
