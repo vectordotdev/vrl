@@ -4,6 +4,30 @@
 
 <!-- changelog start -->
 
+## [0.32.0 (2026-04-16)]
+
+### New Features
+
+- Added a new `encode_csv` function that encodes an array of values into a CSV-formatted string. This is the inverse of the existing `parse_csv` function and supports an optional single-byte delimiter (defaults to `,`).
+
+  authors: armleth (https://github.com/vectordotdev/vrl/pull/1649)
+- Added `to_entries` and `from_entries` with jq-compatible behavior: `to_entries` supports both objects and arrays, and `from_entries` accepts `key`/`Key`/`name`/`Name` and `value`/`Value` aliases.
+
+  authors: close2code-palm (https://github.com/vectordotdev/vrl/pull/1653)
+
+### Enhancements
+
+- Added `except` parameter to `flatten` function to exclude specific keys from being flattened.
+
+  authors: benjamin-awd (https://github.com/vectordotdev/vrl/pull/1682)
+
+### Fixes
+
+- Fixed a bug where the REPL input validator was executing programs instead of only compiling them, causing functions with side effects (e.g. `http_request`) to run twice per submission.
+
+  authors: prontidis (https://github.com/vectordotdev/vrl/pull/1701)
+
+
 ## [0.31.0 (2026-03-05)]
 
 ### New Features
