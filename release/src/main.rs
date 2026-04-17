@@ -1,6 +1,7 @@
 #![allow(clippy::print_stdout, clippy::print_stderr)]
 
 use clap::{Parser, Subcommand};
+use indoc::formatdoc;
 
 mod changelog;
 mod crates_io;
@@ -15,6 +16,18 @@ use std::process::Command;
 struct Cli {
     #[command(subcommand)]
     command: Option<Commands>,
+
+    /// Version to release: "major", "minor", "patch", or an exact version like "1.2.3".
+    /// Defaults to minor bump.
+    version: Option<String>,
+
+    /// Preview without making any changes.
+    #[arg(long)]
+    dry_run: bool,
+
+    /// GitHub issue link to include in the PR body.
+    #[arg(long, short)]
+    issue: Option<String>,
 }
 
 #[derive(Subcommand)]
@@ -23,7 +36,6 @@ enum Commands {
     CheckChangelog,
 }
 
-/// Run a command, printing it first. Returns stdout as a String.
 fn run(cmd: &str, args: &[&str], cwd: &Path) -> Result<String, String> {
     let display = format!("{cmd} {}", args.join(" "));
     println!("  $ {display}");
@@ -67,13 +79,11 @@ fn pause_for_review() {
 fn release(version_arg: Option<&str>, dry_run: bool, issue: Option<&str>) -> Result<(), String> {
     let root = repo_root();
 
-    // 1. Resolve version
     let current = version::read_version(&root)?;
     let new_version = version::resolve(version_arg, &current)?;
     println!("Current version: {current}");
     println!("New version:     {new_version}");
 
-    // 2. Validate not already published
     crates_io::assert_not_published(&new_version)?;
 
     let changelog = changelog::Changelog::new(&root);
@@ -83,17 +93,14 @@ fn release(version_arg: Option<&str>, dry_run: bool, issue: Option<&str>) -> Res
             "\n[dry-run] Would create branch, bump version, generate changelog, publish, tag, and create PR."
         );
         println!("[dry-run] Generating changelog preview:\n");
-        let preview = changelog.generate_section(&new_version)?;
-        println!("{preview}");
+        println!("{}", changelog.generate_section(&new_version)?);
         return Ok(());
     }
 
-    // 3. Create branch
     let branch = format!("prepare-{new_version}-release");
     println!("\nCreating branch: {branch}");
     run("git", &["checkout", "-b", &branch], &root)?;
 
-    // 4. Bump version
     println!("Bumping version in Cargo.toml...");
     version::write_version(&root, &new_version)?;
     run("cargo", &["update", "-p", "vrl"], &root)?;
@@ -108,7 +115,6 @@ fn release(version_arg: Option<&str>, dry_run: bool, issue: Option<&str>) -> Res
         &root,
     )?;
 
-    // 5. Generate changelog
     println!("Generating changelog...");
     changelog.generate_and_apply(&new_version)?;
     run(
@@ -117,15 +123,12 @@ fn release(version_arg: Option<&str>, dry_run: bool, issue: Option<&str>) -> Res
         &root,
     )?;
 
-    // 6. Pause for review
     pause_for_review();
 
-    // 7. Publish to crates.io
     println!("Publishing to crates.io...");
     run("cargo", &["publish"], &root)?;
     println!("Published vrl v{new_version} to crates.io.");
 
-    // 8. Tag
     let tag = format!("v{new_version}");
     run(
         "git",
@@ -133,17 +136,18 @@ fn release(version_arg: Option<&str>, dry_run: bool, issue: Option<&str>) -> Res
         &root,
     )?;
 
-    // 9. Push branch + tag
     println!("Pushing...");
     run("git", &["push", "-u", "origin", &branch], &root)?;
     run("git", &["push", "origin", &tag], &root)?;
 
-    // 10. Create PR
     println!("Creating pull request...");
     let title = format!("chore(releasing): Prepare {new_version} release");
-    let mut body = format!(
-        "Release {new_version}\n\nPublished to crates.io: https://crates.io/crates/vrl/{new_version}\nTag: `{tag}`"
-    );
+    let mut body = formatdoc! {"
+        Release {new_version}
+
+        Published to crates.io: https://crates.io/crates/vrl/{new_version}
+        Tag: `{tag}`"
+    };
     if let Some(link) = issue {
         body.push_str(&format!("\n\nRelated issue: {link}"));
     }
@@ -175,37 +179,7 @@ fn main() {
 
     let result = match cli.command {
         Some(Commands::CheckChangelog) => changelog::Changelog::new(&repo_root()).check_fragments(),
-        None => {
-            // Default: run the release flow
-            // Parse release-specific args manually since they're positional on the default command
-            let args: Vec<String> = std::env::args().collect();
-            let mut version_arg: Option<String> = None;
-            let mut dry_run = false;
-            let mut issue: Option<String> = None;
-
-            let mut i = 1;
-            while i < args.len() {
-                match args[i].as_str() {
-                    "--dry-run" => dry_run = true,
-                    "--issue" | "-i" => {
-                        i += 1;
-                        issue = Some(
-                            args.get(i)
-                                .cloned()
-                                .ok_or_else(|| "expected URL after --issue".to_string())
-                                .unwrap(),
-                        );
-                    }
-                    arg if !arg.starts_with('-') => {
-                        version_arg = Some(arg.to_string());
-                    }
-                    _ => {}
-                }
-                i += 1;
-            }
-
-            release(version_arg.as_deref(), dry_run, issue.as_deref())
-        }
+        None => release(cli.version.as_deref(), cli.dry_run, cli.issue.as_deref()),
     };
 
     if let Err(e) = result {
