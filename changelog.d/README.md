@@ -3,17 +3,14 @@
 This directory contains changelog "fragments" that are collected during a release to
 generate the project's changelog.
 
-The conventions used for this changelog logic follow [towncrier](https://towncrier.readthedocs.io/en/stable/markdown.html).
-
 The changelog fragments are located in `changelog.d/`.
 
 ## Process
 
 Fragments for un-released changes are placed in the root of this directory during PRs.
 
-During a release, `scripts/generate_release_changelog.sh` is run in order to automatically
-generate the changes to the CHANGELOG.md file. As part of the script execution, the
-changelog fragment files that are being released, are removed from the repo.
+During a release, `cargo run -p release` is run which automatically generates the
+changes to the CHANGELOG.md file and removes the fragment files.
 
 ### Pull Requests
 
@@ -23,13 +20,13 @@ This is enforced during CI.
 To mark a PR as not requiring changelog notes, add the label 'no-changelog'.
 
 To run the same check that is run in CI to validate that your changelog fragments have
-the correct syntax, commit the fragment additions and then run `./scripts/check_changelog_fragments.sh`
+the correct syntax: `cargo run -p release -- check-changelog`
 
 The format for fragments is: `<pr_number>.<fragment_type>.md`
 
 ### Fragment conventions
 
-When fragments used to generate the updated changelog, the content of the fragment file is
+When fragments are used to generate the updated changelog, the content of the fragment file is
 rendered as an item in a bulleted list under the "type" of fragment.
 
 The contents of the file must be valid markdown.
@@ -44,7 +41,7 @@ Filename rules:
 #### Fragment types {#types}
 
 - breaking: A change that is incompatible with prior versions which requires users to make adjustments.
-- security: A change that is has implications for security.
+- security: A change that has implications for security.
 - deprecation: A change that is introducing a deprecation.
 - feature: A change that is introducing a new feature.
 - enhancement: A change that is enhancing existing functionality in a user perceivable way.
