@@ -28,7 +28,7 @@ fn validate_fragment_filename(filename: &str) -> Result<(&str, &str), String> {
         ));
     }
 
-    if !parts[0].chars().all(|c| c.is_ascii_digit()) {
+    if parts[0].is_empty() || !parts[0].chars().all(|c| c.is_ascii_digit()) {
         return Err(format!(
             "Invalid fragment filename '{filename}': first segment must be a PR number"
         ));
@@ -299,6 +299,12 @@ mod tests {
         for (ty, _) in FRAGMENT_TYPES {
             validate_fragment_filename(&format!("1.{ty}.md")).unwrap();
         }
+    }
+
+    #[test]
+    fn empty_pr_number() {
+        let err = validate_fragment_filename(".feature.md").unwrap_err();
+        assert!(err.contains("must be a PR number"), "{err}");
     }
 
     #[test]
