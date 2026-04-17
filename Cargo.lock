@@ -3065,6 +3065,7 @@ dependencies = [
  "clap",
  "semver",
  "serde",
+ "tempfile",
  "toml_edit",
  "ureq",
 ]

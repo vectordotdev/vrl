@@ -76,12 +76,14 @@ fn release(version_arg: Option<&str>, dry_run: bool, issue: Option<&str>) -> Res
     // 2. Validate not already published
     crates_io::assert_not_published(&new_version)?;
 
+    let changelog = changelog::Changelog::new(&root);
+
     if dry_run {
         println!(
             "\n[dry-run] Would create branch, bump version, generate changelog, publish, tag, and create PR."
         );
         println!("[dry-run] Generating changelog preview:\n");
-        let preview = changelog::generate_section(&root, &new_version)?;
+        let preview = changelog.generate_section(&new_version)?;
         println!("{preview}");
         return Ok(());
     }
@@ -108,7 +110,7 @@ fn release(version_arg: Option<&str>, dry_run: bool, issue: Option<&str>) -> Res
 
     // 5. Generate changelog
     println!("Generating changelog...");
-    changelog::generate_and_apply(&root, &new_version)?;
+    changelog.generate_and_apply(&new_version)?;
     run(
         "git",
         &["commit", "-a", "-m", "chore(releasing): generate changelog"],
@@ -172,7 +174,7 @@ fn main() {
     let cli = Cli::parse();
 
     let result = match cli.command {
-        Some(Commands::CheckChangelog) => changelog::check_fragments(&repo_root()),
+        Some(Commands::CheckChangelog) => changelog::Changelog::new(&repo_root()).check_fragments(),
         None => {
             // Default: run the release flow
             // Parse release-specific args manually since they're positional on the default command
