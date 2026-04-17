@@ -356,3 +356,8 @@ required-features = ["default", "test"]
 name = "objectmap"
 harness = false
 required-features = ["default", "test"]
+
+[[bench]]
+name = "keystring"
+harness = false
+required-features = ["default", "test"]
