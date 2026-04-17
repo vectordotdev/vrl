@@ -65,6 +65,7 @@ core-foundation-sys,https://github.com/servo/core-foundation-rs,MIT OR Apache-2.
 cpufeatures,https://github.com/RustCrypto/utils,MIT OR Apache-2.0,RustCrypto Developers
 crc,https://github.com/mrhooray/crc-rs,MIT OR Apache-2.0,"Rui Hu <code@mrhooray.com>, Akhil Velagapudi <4@4khil.com>"
 crc-catalog,https://github.com/akhilles/crc-catalog,MIT OR Apache-2.0,Akhil Velagapudi <akhilvelagapudi@gmail.com>
+crc32fast,https://github.com/srijs/rust-crc32fast,MIT OR Apache-2.0,"Sam Rijs <srijs@airpost.net>, Alex Crichton <alex@alexcrichton.com>"
 crossbeam-channel,https://github.com/crossbeam-rs/crossbeam,MIT OR Apache-2.0,The crossbeam-channel Authors
 crossbeam-epoch,https://github.com/crossbeam-rs/crossbeam,MIT OR Apache-2.0,The crossbeam-epoch Authors
 crossbeam-utils,https://github.com/crossbeam-rs/crossbeam,MIT OR Apache-2.0,The crossbeam-utils Authors
@@ -330,6 +331,7 @@ thiserror,https://github.com/dtolnay/thiserror,MIT OR Apache-2.0,David Tolnay <d
 thiserror-impl,https://github.com/dtolnay/thiserror,MIT OR Apache-2.0,David Tolnay <dtolnay@gmail.com>
 time,https://github.com/time-rs/time,MIT OR Apache-2.0,"Jacob Pratt <open-source@jhpratt.dev>, Time contributors"
 time-core,https://github.com/time-rs/time,MIT OR Apache-2.0,"Jacob Pratt <open-source@jhpratt.dev>, Time contributors"
+time-macros,https://github.com/time-rs/time,MIT OR Apache-2.0,"Jacob Pratt <open-source@jhpratt.dev>, Time contributors"
 tinystr,https://github.com/unicode-org/icu4x,Unicode-3.0,The ICU4X Project Developers
 tinyvec,https://github.com/Lokathor/tinyvec,Zlib OR Apache-2.0 OR MIT,Lokathor <zefria@gmail.com>
 tinyvec_macros,https://github.com/Soveu/tinyvec_macros,MIT OR Apache-2.0 OR Zlib,Soveu <marx.tomasz@gmail.com>
