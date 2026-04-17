@@ -121,6 +121,21 @@ impl Changelog {
         Ok(paths)
     }
 
+    /// Indent continuation lines of multiline content so they stay inside
+    /// the markdown list item (2-space indent to align with `- ` prefix).
+    fn indent_continuation(text: &str) -> String {
+        let mut lines = text.lines();
+        let mut result = lines.next().unwrap_or("").to_string();
+        for line in lines {
+            result.push('\n');
+            if !line.is_empty() {
+                result.push_str("  ");
+                result.push_str(line);
+            }
+        }
+        result
+    }
+
     fn render_section(
         grouped: &BTreeMap<String, Vec<Fragment>>,
         version: &semver::Version,
@@ -132,9 +147,10 @@ impl Changelog {
             if let Some(fragments) = grouped.get(*type_key) {
                 section.push_str(&format!("\n### {type_heading}\n\n"));
                 for fragment in fragments {
+                    let indented = Self::indent_continuation(&fragment.content);
                     section.push_str(&format!(
-                        "- {}\n\n  (https://github.com/vectordotdev/vrl/pull/{})\n",
-                        fragment.content, fragment.pr_number
+                        "- {indented}\n\n  (https://github.com/vectordotdev/vrl/pull/{})\n",
+                        fragment.pr_number
                     ));
                 }
             }
@@ -428,6 +444,36 @@ mod tests {
             - Added something cool
 
               (https://github.com/vectordotdev/vrl/pull/42)
+        "};
+        assert_eq!(section, expected);
+    }
+
+    #[test]
+    fn multiline_fragment_indents_continuation() {
+        let mut grouped = BTreeMap::new();
+        grouped.insert(
+            "breaking".to_string(),
+            vec![Fragment {
+                pr_number: "99".to_string(),
+                fragment_type: "breaking".to_string(),
+                content: "Removed the old API.\n\nMigrate by changing `foo()` to `bar()`."
+                    .to_string(),
+            }],
+        );
+
+        let section =
+            Changelog::render_section(&grouped, &semver::Version::new(2, 0, 0), "2026-04-17");
+
+        let expected = indoc! {"
+            ## [2.0.0 (2026-04-17)]
+
+            ### Breaking Changes & Upgrade Guide
+
+            - Removed the old API.
+
+              Migrate by changing `foo()` to `bar()`.
+
+              (https://github.com/vectordotdev/vrl/pull/99)
         "};
         assert_eq!(section, expected);
     }

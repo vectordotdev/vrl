@@ -84,18 +84,15 @@ fn release(version_arg: Option<&str>, dry_run: bool, issue: Option<&str>) -> Res
     println!("Current version: {current}");
     println!("New version:     {new_version}");
 
-    crates_io::assert_not_published(&new_version)?;
-
     let changelog = changelog::Changelog::new(&root);
 
     if dry_run {
-        println!(
-            "\n[dry-run] Would create branch, bump version, generate changelog, publish, tag, and create PR."
-        );
-        println!("[dry-run] Generating changelog preview:\n");
+        println!("\n[dry-run] Generating changelog preview:\n");
         println!("{}", changelog.generate_section(&new_version)?);
         return Ok(());
     }
+
+    crates_io::assert_not_published(&new_version)?;
 
     let branch = format!("prepare-{new_version}-release");
     println!("\nCreating branch: {branch}");
@@ -117,13 +114,14 @@ fn release(version_arg: Option<&str>, dry_run: bool, issue: Option<&str>) -> Res
 
     println!("Generating changelog...");
     changelog.generate_and_apply(&new_version)?;
+
+    pause_for_review();
+
     run(
         "git",
         &["commit", "-a", "-m", "chore(releasing): generate changelog"],
         &root,
     )?;
-
-    pause_for_review();
 
     println!("Publishing to crates.io...");
     run("cargo", &["publish"], &root)?;

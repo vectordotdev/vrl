@@ -59,3 +59,64 @@ pub fn resolve(arg: Option<&str>, current: &semver::Version) -> Result<semver::V
 
     Ok(v)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use indoc::indoc;
+    use std::fs;
+
+    fn v(major: u64, minor: u64, patch: u64) -> semver::Version {
+        semver::Version::new(major, minor, patch)
+    }
+
+    #[test]
+    fn default_bumps_minor() {
+        assert_eq!(resolve(None, &v(1, 2, 3)).unwrap(), v(1, 3, 0));
+    }
+
+    #[test]
+    fn explicit_minor() {
+        assert_eq!(resolve(Some("minor"), &v(1, 2, 3)).unwrap(), v(1, 3, 0));
+    }
+
+    #[test]
+    fn major_resets_minor_and_patch() {
+        assert_eq!(resolve(Some("major"), &v(1, 2, 3)).unwrap(), v(2, 0, 0));
+    }
+
+    #[test]
+    fn patch_only_bumps_patch() {
+        assert_eq!(resolve(Some("patch"), &v(1, 2, 3)).unwrap(), v(1, 2, 4));
+    }
+
+    #[test]
+    fn exact_version() {
+        assert_eq!(resolve(Some("5.0.0"), &v(1, 2, 3)).unwrap(), v(5, 0, 0));
+    }
+
+    #[test]
+    fn invalid_exact_version() {
+        let err = resolve(Some("not.a.version"), &v(1, 0, 0)).unwrap_err();
+        assert!(err.contains("Invalid version"), "{err}");
+    }
+
+    #[test]
+    fn read_and_write_version_roundtrip() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::write(
+            dir.path().join("Cargo.toml"),
+            indoc! {r#"
+                [package]
+                name = "test"
+                version = "1.2.3"
+            "#},
+        )
+        .unwrap();
+
+        assert_eq!(read_version(dir.path()).unwrap(), v(1, 2, 3));
+
+        write_version(dir.path(), &v(2, 0, 0)).unwrap();
+        assert_eq!(read_version(dir.path()).unwrap(), v(2, 0, 0));
+    }
+}
