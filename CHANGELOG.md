@@ -1,6 +1,6 @@
 # Changelog
 
- This project uses [*towncrier*](https://towncrier.readthedocs.io/) for changelog generation.
+Changelog is generated from fragments in `changelog.d/` by the `release` crate.
 
 <!-- changelog start -->
 

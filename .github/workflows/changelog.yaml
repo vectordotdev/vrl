@@ -42,7 +42,7 @@ jobs:
           # helper script needs to reference the master branch to compare against
           git fetch origin main:refs/remotes/origin/main
 
-          ./scripts/check_changelog_fragments.sh
+          cargo run -p release -- check-changelog
 
   check-changelog:
     name: Changelog

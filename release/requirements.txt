@@ -1,4 +1,0 @@
-requests==2.33.0
-semver==3.0.4
-tomlkit==0.14.0
-towncrier==25.8.0
