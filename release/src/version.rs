@@ -37,27 +37,25 @@ pub fn write_version(repo_root: &Path, version: &semver::Version) -> Result<(), 
 /// - `"major"` / `"patch"` → bump accordingly
 /// - `"1.2.3"` → parse as exact version
 pub fn resolve(arg: Option<&str>, current: &semver::Version) -> Result<semver::Version, String> {
+    let mut v = current.clone();
+    v.pre = semver::Prerelease::EMPTY;
+
     match arg {
-        Some(exact) if !matches!(exact, "major" | "minor" | "patch") => {
-            semver::Version::parse(exact).map_err(|e| format!("Invalid version '{exact}': {e}"))
+        Some("major") => {
+            v.major += 1;
+            v.minor = 0;
+            v.patch = 0;
         }
-        bump => {
-            let mut v = current.clone();
-            v.pre = semver::Prerelease::EMPTY;
-            match bump {
-                Some("major") => {
-                    v.major += 1;
-                    v.minor = 0;
-                    v.patch = 0;
-                }
-                None | Some("minor") => {
-                    v.minor += 1;
-                    v.patch = 0;
-                }
-                Some("patch") => v.patch += 1,
-                _ => unreachable!(),
-            }
-            Ok(v)
+        None | Some("minor") => {
+            v.minor += 1;
+            v.patch = 0;
+        }
+        Some("patch") => v.patch += 1,
+        Some(exact) => {
+            return semver::Version::parse(exact)
+                .map_err(|e| format!("Invalid version '{exact}': {e}"));
         }
     }
+
+    Ok(v)
 }
