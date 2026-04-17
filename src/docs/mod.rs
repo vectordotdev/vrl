@@ -243,6 +243,9 @@ fn kind_to_types(kind_bits: u16) -> Vec<String> {
     if (kind_bits & kind::REGEX) == kind::REGEX {
         types.push("regex".to_string());
     }
+    if (kind_bits & kind::DECIMAL) == kind::DECIMAL {
+        types.push("decimal".to_string());
+    }
     if (kind_bits & kind::NULL) == kind::NULL {
         types.push("null".to_string());
     }

@@ -253,6 +253,19 @@ impl TypeDef {
 
     #[inline]
     #[must_use]
+    pub fn decimal() -> Self {
+        Kind::decimal().into()
+    }
+
+    #[inline]
+    #[must_use]
+    pub fn or_decimal(mut self) -> Self {
+        self.kind.add_decimal();
+        self
+    }
+
+    #[inline]
+    #[must_use]
     pub fn boolean() -> Self {
         Kind::boolean().into()
     }

@@ -28,6 +28,7 @@ pub struct Kind {
     bytes: Option<()>,
     integer: Option<()>,
     float: Option<()>,
+    decimal: Option<()>,
     boolean: Option<()>,
     timestamp: Option<()>,
     regex: Option<()>,
@@ -63,6 +64,9 @@ impl std::fmt::Display for Kind {
         }
         if self.contains_float() {
             kinds.push("float");
+        }
+        if self.contains_decimal() {
+            kinds.push("decimal");
         }
         if self.contains_boolean() {
             kinds.push("boolean");
@@ -120,6 +124,9 @@ impl PartialEq for Kind {
         if a.float != b.float {
             return false;
         }
+        if a.decimal != b.decimal {
+            return false;
+        }
         if a.boolean != b.boolean {
             return false;
         }
@@ -167,6 +174,7 @@ impl From<&Value> for Kind {
             Value::Bytes(_) => Self::bytes(),
             Value::Integer(_) => Self::integer(),
             Value::Float(_) => Self::float(),
+            Value::Decimal(_) => Self::decimal(),
             Value::Boolean(_) => Self::boolean(),
             Value::Timestamp(_) => Self::timestamp(),
             Value::Regex(_) => Self::regex(),

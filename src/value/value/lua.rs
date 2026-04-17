@@ -14,6 +14,7 @@ impl IntoLua for Value {
                 .map(LuaValue::String),
             Self::Integer(i) => Ok(LuaValue::Integer(i)),
             Self::Float(f) => Ok(LuaValue::Number(f.into_inner())),
+            Self::Decimal(d) => lua.create_string(d.to_string()).map(LuaValue::String),
             Self::Boolean(b) => Ok(LuaValue::Boolean(b)),
             Self::Timestamp(t) => timestamp_to_table(lua, t).map(LuaValue::Table),
             Self::Object(m) => lua.create_table_from(m).map(LuaValue::Table),

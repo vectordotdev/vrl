@@ -1,5 +1,5 @@
 use crate::compiler::prelude::*;
-use rust_decimal::{Decimal, prelude::FromPrimitive};
+use rust_decimal::Decimal;
 use std::sync::LazyLock;
 
 static DEFAULT_DECIMAL_SEPARATOR: LazyLock<Value> =
@@ -9,7 +9,7 @@ static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
         Parameter::required(
             "value",
-            kind::INTEGER | kind::FLOAT,
+            kind::INTEGER | kind::FLOAT | kind::DECIMAL,
             "The number to format as a string.",
         ),
         Parameter::optional(
@@ -39,11 +39,12 @@ fn format_number(
 ) -> Resolved {
     let value: Decimal = match value {
         Value::Integer(v) => v.into(),
-        Value::Float(v) => Decimal::from_f64(*v).expect("not NaN"),
+        Value::Float(v) => v.to_string().parse::<Decimal>().expect("not NaN"),
+        Value::Decimal(v) => v,
         value => {
             return Err(ValueError::Expected {
                 got: value.kind(),
-                expected: Kind::integer() | Kind::float(),
+                expected: Kind::integer() | Kind::float() | Kind::decimal(),
             }
             .into());
         }
@@ -211,12 +212,19 @@ impl FunctionExpression for FormatNumberFn {
 mod tests {
     use super::*;
     use crate::value;
+    use rust_decimal::dec;
 
     test_function![
         format_number => FormatNumber;
 
         number {
             args: func_args![value: 1234.567],
+            want: Ok(value!("1234.567")),
+            tdef: TypeDef::bytes().infallible(),
+        }
+
+        decimal {
+            args: func_args![value: Value::Decimal(dec!(1234.567))],
             want: Ok(value!("1234.567")),
             tdef: TypeDef::bytes().infallible(),
         }
