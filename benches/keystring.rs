@@ -23,14 +23,22 @@ fn bench_keystring_micro(c: &mut Criterion) {
         });
     });
 
-    // from_long_str: From<&str> for a 22-byte string (near inline limit)
-    group.bench_function("from_long_str", |b| {
+    // from_medium_str: From<&str> for a 22-byte string
+    // Inline for CompactString (24B), spills for EcoString (15B)
+    group.bench_function("from_medium_str", |b| {
         b.iter(|| {
             black_box(KeyString::from("upstream_response_time"));
         });
     });
 
-    // from_string_short: From<String> — CompactString can take ownership
+    // from_long_str: From<&str> for a 32-byte string (spills all SSO types)
+    group.bench_function("from_long_str", |b| {
+        b.iter(|| {
+            black_box(KeyString::from("x_upstream_forwarded_for_header"));
+        });
+    });
+
+    // from_string_short: From<String>
     group.bench_function("from_string_short", |b| {
         b.iter_batched(
             || String::from("hostname"),
@@ -41,10 +49,21 @@ fn bench_keystring_micro(c: &mut Criterion) {
         );
     });
 
-    // from_string_long: From<String> — zero-copy for CompactString, copy for EcoString
-    group.bench_function("from_string_long", |b| {
+    // from_string_medium: From<String> — CompactString can take ownership, EcoString copies
+    group.bench_function("from_string_medium", |b| {
         b.iter_batched(
             || String::from("upstream_response_time"),
+            |s| {
+                black_box(KeyString::from(s));
+            },
+            BatchSize::SmallInput,
+        );
+    });
+
+    // from_string_long: From<String> for a spilled key
+    group.bench_function("from_string_long", |b| {
+        b.iter_batched(
+            || String::from("x_upstream_forwarded_for_header"),
             |s| {
                 black_box(KeyString::from(s));
             },
@@ -60,7 +79,7 @@ fn bench_keystring_micro(c: &mut Criterion) {
         });
     });
 
-    // clone_short
+    // clone_short: inline for all SSO types
     let short_key = KeyString::from("hostname");
     group.bench_function("clone_short", |b| {
         b.iter(|| {
@@ -68,8 +87,16 @@ fn bench_keystring_micro(c: &mut Criterion) {
         });
     });
 
-    // clone_long
-    let long_key = KeyString::from("upstream_response_time");
+    // clone_medium: inline for CompactString, spilled for EcoString
+    let medium_key = KeyString::from("upstream_response_time");
+    group.bench_function("clone_medium", |b| {
+        b.iter(|| {
+            black_box(medium_key.clone());
+        });
+    });
+
+    // clone_long: spilled for all SSO types — fair heap comparison
+    let long_key = KeyString::from("x_upstream_forwarded_for_header");
     group.bench_function("clone_long", |b| {
         b.iter(|| {
             black_box(long_key.clone());
