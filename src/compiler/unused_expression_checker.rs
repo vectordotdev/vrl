@@ -106,14 +106,12 @@ impl VisitorState {
             return;
         }
 
+        // Shadowing is not supported (see module docs). Only the first assignment
+        // of an identifier is tracked; subsequent re-assignments are ignored so
+        // a variable used before being shadowed is not incorrectly flagged as
+        // unused (https://github.com/vectordotdev/vrl/issues/1742).
         self.ident_to_state
             .entry(ident.clone())
-            .and_modify(|state| {
-                state.pending_usage = true;
-                if self.visiting_closure {
-                    state.used_in_closure = true;
-                }
-            })
             .or_insert(IdentState {
                 span: *span,
                 pending_usage: true,
@@ -691,6 +689,20 @@ mod test {
             x = {}
             x |= { "a" : 1}
             .
+        "#};
+        unused_test(source, &[]);
+    }
+
+    #[test]
+    fn reassignment_after_use_is_not_flagged() {
+        // Regression test for https://github.com/vectordotdev/vrl/issues/1742
+        // Previously, reassigning a variable after it was used would incorrectly
+        // report the original (used) variable as unused at its original span.
+        let source = indoc! {r#"
+            p, err = to_float(.message)
+            .p = p
+            .e = err
+            err = ""
         "#};
         unused_test(source, &[]);
     }
