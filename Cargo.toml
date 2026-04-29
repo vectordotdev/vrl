@@ -29,12 +29,13 @@ clap = { version = "4", features = ["derive"] }
 default = ["compiler", "value", "diagnostic", "path", "parser", "stdlib", "datadog", "core", "cli", "enable_env_functions", "enable_system_functions", "enable_network_functions", "enable_crypto_functions"]
 
 # Contains the core functionality of VRL. Compiling and running VRL programs.
-compiler = ["diagnostic", "path", "parser", "value", "dep:chrono", "dep:serde", "dep:regex", "dep:bytes", "dep:ordered-float", "dep:chrono-tz", "dep:snafu", "dep:thiserror", "dep:dyn-clone", "dep:indoc", "dep:thiserror", "dep:lalrpop-util"]
+compiler = ["diagnostic", "path", "parser", "value", "dep:chrono", "dep:serde", "dep:regex", "dep:bytes", "dep:ordered-float", "dep:chrono-tz", "dep:snafu", "dep:thiserror", "dep:dyn-clone", "dep:indoc", "dep:lalrpop-util", "dep:rust_decimal"]
 
 # Contains the primary data type used in VRL.
-value = ["path", "dep:bytes", "dep:regex", "dep:ordered-float", "dep:chrono", "dep:serde_json", "dep:simdutf8"]
+value = ["path", "dep:bytes", "dep:regex", "dep:ordered-float", "dep:chrono", "dep:serde_json", "dep:simdutf8", "dep:rust_decimal"]
 
 # Logic related to errors and displaying info about them.
+# Main features (on by default)
 diagnostic = ["dep:codespan-reporting", "dep:termcolor"]
 
 # Contains the parser, datatypes, and functions related to VRL paths.
@@ -240,7 +241,7 @@ regex = { version = "1", default-features = false, optional = true, features = [
 relative-path = { version = "2.0.1", optional = true }
 roxmltree = { version = "0.21", optional = true }
 rustyline = { version = "17", default-features = false, optional = true }
-rust_decimal = { version = "1", optional = true, default-features = false }
+rust_decimal = { version = "1", optional = true, default-features = false, features = ["macros"] }
 seahash = { version = "4", optional = true }
 serde = { version = "1", features = ["derive"], optional = true }
 serde_json = { version = "1", default-features = false, optional = true, features = ["std", "raw_value"] }

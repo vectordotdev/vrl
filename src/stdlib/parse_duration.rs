@@ -1,7 +1,7 @@
 use crate::compiler::function::EnumVariant;
 use crate::compiler::prelude::*;
 use regex::Regex;
-use rust_decimal::{Decimal, prelude::ToPrimitive};
+use rust_decimal::{Decimal, dec, prelude::ToPrimitive};
 use std::{collections::HashMap, str::FromStr, sync::LazyLock};
 
 static UNIT_ENUM: &[EnumVariant] = &[
@@ -100,17 +100,17 @@ static RE: LazyLock<Regex> = LazyLock::new(|| {
 
 static UNITS: LazyLock<HashMap<String, Decimal>> = LazyLock::new(|| {
     vec![
-        ("ns", Decimal::new(1, 9)),
-        ("us", Decimal::new(1, 6)),
-        ("µs", Decimal::new(1, 6)),
-        ("ms", Decimal::new(1, 3)),
-        ("cs", Decimal::new(1, 2)),
-        ("ds", Decimal::new(1, 1)),
-        ("s", Decimal::new(1, 0)),
-        ("m", Decimal::new(60, 0)),
-        ("h", Decimal::new(3_600, 0)),
-        ("d", Decimal::new(86_400, 0)),
-        ("w", Decimal::new(604_800, 0)),
+        ("ns", dec!(0.000_000_001)),
+        ("us", dec!(0.000_001)),
+        ("µs", dec!(0.000_001)),
+        ("ms", dec!(0.001)),
+        ("cs", dec!(0.01)),
+        ("ds", dec!(0.1)),
+        ("s", dec!(1)),
+        ("m", dec!(60)),
+        ("h", dec!(3_600)),
+        ("d", dec!(86_400)),
+        ("w", dec!(604_800)),
     ]
     .into_iter()
     .map(|(k, v)| (k.to_owned(), v))
