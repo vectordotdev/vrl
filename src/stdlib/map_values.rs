@@ -180,6 +180,7 @@ impl FunctionExpression for MapValuesFn {
             variables,
             block,
             block_type_def: _,
+            ..
         } = &self.closure;
         let runner = closure::Runner::new(variables, |ctx| block.resolve(ctx));
 
