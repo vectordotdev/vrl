@@ -42,7 +42,7 @@ Phase A delivers the new variant and threads UTF-8 sources to it; both variants 
 
 - **Coexist, don't replace.** `Bytes` and `String` are both first-class. Existing code keeps working.
 - **Custom `PartialEq` keeps VRL semantics.** Without it, `Value::Bytes(b"foo") != Value::String("foo")` would break hundreds of equality sites and surprise users.
-- **`try_bytes` chokepoint.** A single helper in [src/compiler/value/convert.rs](../src/compiler/value/convert.rs) is used by over 100 stdlib files to extract bytes. Updating it to accept both variants makes most stdlib functions transparently support `Value::String` inputs.
+- **`try_bytes` chokepoint, plus a direct-match audit.** A single helper in [src/compiler/value/convert.rs](../src/compiler/value/convert.rs) is used by many stdlib files to extract bytes. Updating it to accept both variants covers those callers transparently. A separate audit covers stdlib functions that destructure `Value::Bytes(_)` directly without going through the chokepoint (e.g. `string`, `length`); each such match needs a sibling `Value::String(s)` arm before VRL literals can safely route to the new variant.
 - **Refinement before disjoint.** Adding `Kind::string` as a refinement of `Kind::bytes` (Phase C) is non-breaking. Flipping to disjoint (Phase D) is breaking and should be staged separately when the team is ready.
 
 ### Phase A -- Core: introduce `Value::String`
@@ -51,7 +51,11 @@ Phase A delivers the new variant end-to-end so the codebase compiles and tests p
 
 `Value` is a public enum without `#[non_exhaustive]` (see [src/value/value.rs](../src/value/value.rs)), so adding the variant is a public-API source break: every downstream crate with an exhaustive `match` over `Value` (notably Vector) must add a `Value::String(_)` arm when it bumps the VRL dependency. Document the migration in the VRL changelog with a `match` example for Vector and any other consumers we know of. Beyond the variant addition, no other public API breaks land in Phase A: behavior on every existing `Value` value is preserved by the custom `PartialEq`/`Hash`, and the chokepoint helpers in `vrl::compiler` continue to accept the legacy variant.
 
-Most of the work is mechanical: add `Value::String(_)` arms to the exhaustive matches in [src/value/](../src/value/) and [src/compiler/](../src/compiler/), teach string-extracting helpers (`is_bytes`, `as_bytes`, `as_str`, `encode_as_bytes`, `coerce_to_bytes`, `to_string_lossy`) to accept either arm, and audit CRUD code in [src/value/value/crud/](../src/value/value/crud/) (mostly variant-agnostic). The non-obvious specifications are below.
+Most of the work is mechanical: add `Value::String(_)` arms to the exhaustive matches in [src/value/](../src/value/) and [src/compiler/](../src/compiler/); teach string-extracting helpers (`is_bytes`, `as_bytes`, `as_str`, `encode_as_bytes`, `coerce_to_bytes`, `to_string_lossy`) to accept either arm; and audit CRUD code in [src/value/value/crud/](../src/value/value/crud/) (mostly variant-agnostic).
+
+There is also a less-mechanical audit task that must land in the same PR as the literal-routing change: stdlib functions that destructure `Value::Bytes(_)` directly rather than going through `try_bytes` -- known examples include [src/stdlib/string.rs](../src/stdlib/string.rs) (`string` / `string!`) and [src/stdlib/length.rs](../src/stdlib/length.rs) (`length`), and there are likely more. Each direct `Value::Bytes(b) => ...` arm needs a sibling `Value::String(s) => ...` arm (or the match must be replaced with a call to `try_bytes` / `as_str` / similar helper). Without this audit, routing VRL literals to `Value::String` would make basic calls like `string!("x")` or `length("x")` start erroring at runtime -- the chokepoint update only covers functions that already extract bytes through `try_bytes`. An exhaustive `rg "Value::Bytes\(" src/stdlib/` is the entry point; expect the result list to drive the per-function arm additions.
+
+The non-obvious specifications are below.
 
 The new variant in [src/value/value.rs](../src/value/value.rs):
 
@@ -119,7 +123,7 @@ fn try_bytes(self) -> Result<Bytes, ValueError> {
 }
 ```
 
-This single update transparently makes stdlib functions accept the new variant on input.
+This update covers every stdlib function that already extracts bytes via `try_bytes`. Functions that match `Value::Bytes(_)` directly are handled by the per-function audit described above.
 
 Change `expression::Literal::String` in [src/compiler/expression/literal.rs](../src/compiler/expression/literal.rs) to wrap `ByteString` instead of `Bytes`, and update `compile_literal` in [src/compiler/compiler.rs](../src/compiler/compiler.rs) to construct `ByteString::from(s)` from the lexer's UTF-8-guaranteed string and template-string literals.
 
@@ -131,7 +135,7 @@ The quickcheck/proptest `Arbitrary` impl produces both variants randomly: random
 
 ### Phase B -- Migrate UTF-8 producers to `Value::String` (incremental)
 
-Inputs across the codebase already work transparently via the `try_bytes` chokepoint from Phase A, so this phase is purely about tightening output construction sites. The work is incremental: each producer (or small group) can land as its own PR, and the phase can stop at any point if priorities shift -- the variant remains correct and unmigrated producers continue to emit `Value::Bytes`.
+Inputs across the codebase already accept both variants by the time Phase B starts: Phase A's combination of the `try_bytes` chokepoint update and the direct-match audit ensures every stdlib function tolerates `Value::String` input. This phase is purely about tightening output construction sites. The work is incremental: each producer (or small group) can land as its own PR, and the phase can stop at any point if priorities shift -- the variant remains correct and unmigrated producers continue to emit `Value::Bytes`.
 
 Start with the stdlib that construct `Value::Bytes(...)` directly. Producers whose output is UTF-8 by construction migrate to emit `Value::String`:
 
@@ -281,7 +285,7 @@ In Phase D, change `Value`'s custom `PartialEq` so `Bytes(b"x") != String("x")` 
 
 One checkbox per planned PR. Later PRs depend on earlier ones in listed order.
 
-- [ ] Phase A -- Add `Value::String(ByteString)` variant. Single PR landing the new variant, custom `PartialEq`/`Hash`, conversions, display, serde, arithmetic, parser-literal routing, and the `try_bytes` chokepoint that lets stdlib functions accept the new variant transparently. Must land atomically -- intermediate states will not compile. Public-API source break: downstream crates (notably Vector) need to add a `Value::String(_)` arm to every exhaustive match over `Value` when bumping the VRL dependency; flag in the changelog.
+- [ ] Phase A -- Add `Value::String(ByteString)` variant. Single PR landing the new variant, custom `PartialEq`/`Hash`, conversions, display, serde, arithmetic, parser-literal routing, the `try_bytes` chokepoint update, and the stdlib direct-match audit (every `Value::Bytes(_)` arm in [src/stdlib/](../src/stdlib/) gains a sibling `Value::String(_)` arm or is rewritten to use `try_bytes`). Must land atomically -- intermediate states will not compile, and tests will only pass once the audit is complete. Public-API source break: downstream crates (notably Vector) need to add a `Value::String(_)` arm to every exhaustive match over `Value` when bumping the VRL dependency; flag in the changelog.
 - [ ] Phase B -- Migrate UTF-8 producers to `Value::String` (incremental). Start with stdlib output upgrades (string ops, text-producing decoders/parsers, ASCII producers like hex/base/UUID/hashes), then sweep non-stdlib producers (grok captures, protobuf string fields, ruby_hash, xml). Each producer (or small group) can land as its own PR; the phase can stop at any point without rolling back. No public-API changes.
 - [ ] Phase C -- Add `Kind::string` as a refinement of `Kind::bytes`. Single PR landing the `string` flag with `string => bytes` canonicalization invariant, the refinement-aware merge rule (refinement survives unless a string-y branch is unrefined), new predicates (`contains_string`, `is_only_string`), tightened output `TypeDef`s, and infallibility wins on `string!`. Backwards-compatible.
 - [ ] Phase D -- Flip to disjoint kinds (breaking, deferred). Resolve the three Phase D open questions, then deliver as a coordinated major-version release: redefine `is_bytes()`, add `Kind::string_like()`, audit stdlib parameters, migrate compiler infallibility checks, ship user migration guide and changelog. Likely splits internally into 2-3 PRs (type-system flip, stdlib audit, user-facing changes). Optional -- do not start until the team signs off on the breaking change.
