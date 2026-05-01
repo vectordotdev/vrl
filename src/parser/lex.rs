@@ -769,6 +769,19 @@ impl<'input> Lexer<'input> {
     /// Used to allow `else` (and `else if`) on a line following the closing
     /// `}` of an `if`-block — without this, the trailing newline terminates
     /// the `if`-expression at the parser level. See issue #129.
+    ///
+    /// "The next significant token is `else`" means: after `"else"` the input
+    /// has either ended, or has a character that is not [`is_ident_continue`].
+    /// That is the same boundary [`Lexer::identifier_or_function_call`] uses
+    /// to terminate an identifier, so this check agrees with how the keyword
+    /// would otherwise be tokenized.
+    ///
+    /// This intentionally returns true for inputs the parser will later reject
+    /// (e.g. `else %x`, `else #comment` with no block). The lexer's job is
+    /// only to disambiguate the `else` keyword from an identifier — well-
+    /// formedness of the if-statement is the parser's problem, and the
+    /// downstream error is the same one that occurs without a preceding
+    /// newline.
     fn next_significant_is_else(&self) -> bool {
         let mut chars = self.chars.clone();
         loop {
@@ -1322,10 +1335,19 @@ impl<'input> Lexer<'input> {
 // generic helpers
 // -----------------------------------------------------------------------------
 
+/// Characters allowed at the start of an identifier.
 fn is_ident_start(ch: char) -> bool {
     matches!(ch, '@' | '_' | 'a'..='z' | 'A'..='Z')
 }
 
+/// Characters allowed inside an identifier after the first character.
+///
+/// This is the canonical "is the identifier still going" predicate — it's
+/// what [`Lexer::identifier_or_function_call`] uses (via `take_while`) to
+/// decide where an identifier ends. Any other lexer logic that needs to
+/// distinguish a keyword (e.g. `else`) from a longer identifier prefixed
+/// with that keyword (e.g. `elsewhere`) should use this same predicate so
+/// the boundary stays consistent with tokenization.
 fn is_ident_continue(ch: char) -> bool {
     match ch {
         '0'..='9' => true,
