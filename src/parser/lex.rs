@@ -1322,6 +1322,61 @@ impl<'input> Lexer<'input> {
     fn escape_code(&mut self, start: usize) -> Result<(), Error> {
         match self.bump() {
             Some((_, '\n' | '\'' | '"' | '\\' | 'n' | 'r' | 't' | '{' | '}' | '0')) => Ok(()),
+            Some((_, 'u')) => {
+                let Some((_, '{')) = self.bump() else {
+                    return Err(Error::EscapeChar {
+                        start,
+                        ch: Some('u'),
+                    });
+                };
+
+                let mut digits = String::new();
+                loop {
+                    match self.peek() {
+                        Some((_, '}')) => {
+                            self.bump();
+                            break;
+                        }
+                        Some((pos, ch)) if ch.is_ascii_hexdigit() => {
+                            if digits.len() >= 6 {
+                                return Err(Error::EscapeChar {
+                                    start: pos,
+                                    ch: Some(ch),
+                                });
+                            }
+                            digits.push(ch);
+                            self.bump();
+                        }
+                        Some((pos, ch)) => {
+                            return Err(Error::EscapeChar {
+                                start: pos,
+                                ch: Some(ch),
+                            });
+                        }
+                        None => {
+                            return Err(Error::EscapeChar { start, ch: None });
+                        }
+                    }
+                }
+
+                if digits.is_empty() {
+                    return Err(Error::EscapeChar {
+                        start,
+                        ch: Some('u'),
+                    });
+                }
+
+                match u32::from_str_radix(&digits, 16)
+                    .ok()
+                    .and_then(char::from_u32)
+                {
+                    Some(_) => Ok(()),
+                    None => Err(Error::EscapeChar {
+                        start,
+                        ch: Some('u'),
+                    }),
+                }
+            }
             Some((start, ch)) => Err(Error::EscapeChar {
                 start,
                 ch: Some(ch),
@@ -1376,6 +1431,11 @@ pub(crate) fn is_operator(ch: char) -> bool {
 fn unescape_string_literal(mut s: &str) -> String {
     let mut string = String::with_capacity(s.len());
     while let Some(i) = s.bytes().position(|b| b == b'\\') {
+        if i + 1 >= s.len() {
+            string.push_str(s);
+            return string;
+        }
+
         let next = s.as_bytes()[i + 1];
         if next == b'\n' {
             // Remove the \n and any ensuing spaces or tabs
@@ -1387,23 +1447,63 @@ fn unescape_string_literal(mut s: &str) -> String {
                 .map(char::len_utf8)
                 .sum();
             s = &s[i + whitespace + 2..];
-        } else {
-            let c = match next {
-                b'\'' => '\'',
-                b'"' => '"',
-                b'\\' => '\\',
-                b'n' => '\n',
-                b'r' => '\r',
-                b't' => '\t',
-                b'0' => '\0',
-                b'{' => '{',
-                _ => unimplemented!("invalid escape"),
-            };
-
-            string.push_str(&s[..i]);
-            string.push(c);
-            s = &s[i + 2..];
+            continue;
         }
+
+        if next == b'u' && s.as_bytes().get(i + 2) == Some(&b'{') {
+            let mut end = i + 3;
+            let mut digit_count = 0;
+            let mut valid = true;
+
+            while end < s.len() {
+                let b = s.as_bytes()[end];
+                if b == b'}' {
+                    break;
+                }
+                if !(b as char).is_ascii_hexdigit() {
+                    valid = false;
+                    break;
+                }
+                digit_count += 1;
+                if digit_count > 6 {
+                    valid = false;
+                    break;
+                }
+                end += 1;
+            }
+
+            if valid && digit_count > 0 && end < s.len() && s.as_bytes()[end] == b'}' {
+                if let Ok(value) = u32::from_str_radix(&s[i + 3..end], 16) {
+                    if let Some(value) = char::from_u32(value) {
+                        string.push_str(&s[..i]);
+                        string.push(value);
+                        s = &s[end + 1..];
+                        continue;
+                    }
+                }
+            }
+        }
+
+        let (handled, c) = match next {
+            b'\'' => (true, '\''),
+            b'"' => (true, '"'),
+            b'\\' => (true, '\\'),
+            b'n' => (true, '\n'),
+            b'r' => (true, '\r'),
+            b't' => (true, '\t'),
+            b'0' => (true, '\0'),
+            b'{' => (true, '{'),
+            _ => (false, '\0'),
+        };
+
+        string.push_str(&s[..i]);
+        if handled {
+            string.push(c);
+        } else {
+            string.push('\\');
+            string.push(next as char);
+        }
+        s = &s[i + 2..];
     }
 
     string.push_str(s);
@@ -1585,6 +1685,21 @@ mod test {
             ],
         );
         assert_eq!(TemplateString(vec![StringSegment::Literal(r#""""#.to_string(), Span::new(1, 5))]), StringLiteralToken(r#"\"\""#).template(Span::new(0, 6)));
+    }
+
+    #[test]
+    fn string_literal_unicode_escape() {
+        use StringLiteralToken as S;
+        use StringLiteral as L;
+
+        test(
+            data(r#""\u{7FFF}""#),
+            vec![
+                ("~~~~~~~~~~", L(S("\\u{7FFF}"))),
+            ],
+        );
+
+        assert_eq!(StringLiteralToken(r#"\u{7FFF}"#).unescape(), "\u{7FFF}");
     }
 
     #[test]
