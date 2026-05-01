@@ -500,6 +500,12 @@ impl<'a> Compiler<'a> {
         // `output = push(output, e)`) would attach its error to the next
         // assignment with a misleading E103. Restored after Assignment::new
         // so the prior fallibility is still reported at a later boundary.
+        //
+        // TODO: this single-slot `Option<CompilerError>` design means the
+        // prior is dropped when `Assignment::new` itself fails (only the
+        // assignment error surfaces; the prior is discovered on the next
+        // compile). Lifting this needs the field to become a `Vec` (or the
+        // helpers that mutate it to return `Result<_, Vec<CompilerError>>`).
         let prior_fallibility = self.fallible_expression_error.take();
 
         let assignment = node.into_inner();
