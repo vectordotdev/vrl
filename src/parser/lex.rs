@@ -313,6 +313,7 @@ impl<'input> Lexer<'input> {
                     '"' => Some(self.string_literal(start)),
 
                     ';' => Some(Ok(self.token(start, SemiColon))),
+                    '\n' if self.next_significant_is_else() => continue,
                     '\n' => Some(Ok(self.token(start, Newline))),
                     '\\' => Some(Ok(self.token(start, Escape))),
 
@@ -760,6 +761,38 @@ impl<'input> Lexer<'input> {
 
     fn token(&mut self, start: usize, token: Token<&'input str>) -> Spanned<'input, usize> {
         (start, token, self.next_index())
+    }
+
+    /// Peek past whitespace, comments, and additional newlines to see whether
+    /// the next significant token is the `else` keyword.
+    ///
+    /// Used to allow `else` (and `else if`) on a line following the closing
+    /// `}` of an `if`-block — without this, the trailing newline terminates
+    /// the `if`-expression at the parser level. See issue #129.
+    fn next_significant_is_else(&self) -> bool {
+        let mut chars = self.chars.clone();
+        loop {
+            match chars.peek().copied() {
+                None => return false,
+                Some((_, ch)) if ch.is_whitespace() => {
+                    chars.next();
+                }
+                Some((_, '#')) => {
+                    chars.next();
+                    for (_, ch) in chars.by_ref() {
+                        if ch == '\n' {
+                            break;
+                        }
+                    }
+                }
+                Some((start, _)) => {
+                    let rest = &self.input[start..];
+                    return rest.strip_prefix("else").is_some_and(|after| {
+                        after.chars().next().is_none_or(|c| !is_ident_continue(c))
+                    });
+                }
+            }
+        }
     }
 
     fn query_end(&mut self, start: usize) -> Option<usize> {
@@ -2251,6 +2284,93 @@ mod test {
                 ("                  ~  ", Identifier("v")),
                 ("                    ~", RBrace),
             ],
+        );
+    }
+
+    fn token_kinds(input: &str) -> Vec<Tok<'_>> {
+        Lexer::new(input)
+            .map(|res| res.expect("lex error").1)
+            .collect()
+    }
+
+    #[test]
+    fn newline_before_else_is_elided() {
+        assert_eq!(
+            token_kinds("if x { 1 }\nelse { 2 }"),
+            vec![
+                If,
+                Identifier("x"),
+                LBrace,
+                IntegerLiteral(1),
+                RBrace,
+                Else,
+                LBrace,
+                IntegerLiteral(2),
+                RBrace,
+            ],
+        );
+    }
+
+    #[test]
+    fn blank_lines_before_else_are_elided() {
+        assert_eq!(
+            token_kinds("if x { 1 }\n\n\nelse { 2 }"),
+            vec![
+                If,
+                Identifier("x"),
+                LBrace,
+                IntegerLiteral(1),
+                RBrace,
+                Else,
+                LBrace,
+                IntegerLiteral(2),
+                RBrace,
+            ],
+        );
+    }
+
+    #[test]
+    fn comment_between_brace_and_else_is_handled() {
+        assert_eq!(
+            token_kinds("if x { 1 }\n# comment\nelse { 2 }"),
+            vec![
+                If,
+                Identifier("x"),
+                LBrace,
+                IntegerLiteral(1),
+                RBrace,
+                Else,
+                LBrace,
+                IntegerLiteral(2),
+                RBrace,
+            ],
+        );
+    }
+
+    #[test]
+    fn newline_kept_when_else_does_not_follow() {
+        // No `else` after the if-block; the newline must terminate the statement.
+        assert_eq!(
+            token_kinds("if x { 1 }\nfoo"),
+            vec![
+                If,
+                Identifier("x"),
+                LBrace,
+                IntegerLiteral(1),
+                RBrace,
+                Newline,
+                Identifier("foo"),
+            ],
+        );
+    }
+
+    #[test]
+    fn newline_kept_when_followed_by_else_prefixed_identifier() {
+        // `elsewhere` is an identifier, not the `else` keyword — newline stays.
+        let kinds = token_kinds("if x { 1 }\nelsewhere");
+        assert!(
+            kinds.contains(&Newline),
+            "expected a Newline token, got {kinds:?}",
         );
     }
 }
