@@ -313,6 +313,7 @@ impl<'input> Lexer<'input> {
                     '"' => Some(self.string_literal(start)),
 
                     ';' => Some(Ok(self.token(start, SemiColon))),
+                    '\n' if self.next_significant_is_else() => continue,
                     '\n' => Some(Ok(self.token(start, Newline))),
                     '\\' => Some(Ok(self.token(start, Escape))),
 
@@ -760,6 +761,51 @@ impl<'input> Lexer<'input> {
 
     fn token(&mut self, start: usize, token: Token<&'input str>) -> Spanned<'input, usize> {
         (start, token, self.next_index())
+    }
+
+    /// Peek past whitespace, comments, and additional newlines to see whether
+    /// the next significant token is the `else` keyword.
+    ///
+    /// Used to allow `else` (and `else if`) on a line following the closing
+    /// `}` of an `if`-block — without this, the trailing newline terminates
+    /// the `if`-expression at the parser level. See issue #129.
+    ///
+    /// "The next significant token is `else`" means: after `"else"` the input
+    /// has either ended, or has a character that is not [`is_ident_continue`].
+    /// That is the same boundary [`Lexer::identifier_or_function_call`] uses
+    /// to terminate an identifier, so this check agrees with how the keyword
+    /// would otherwise be tokenized.
+    ///
+    /// This intentionally returns true for inputs the parser will later reject
+    /// (e.g. `else %x`, `else #comment` with no block). The lexer's job is
+    /// only to disambiguate the `else` keyword from an identifier — well-
+    /// formedness of the if-statement is the parser's problem, and the
+    /// downstream error is the same one that occurs without a preceding
+    /// newline.
+    fn next_significant_is_else(&self) -> bool {
+        let mut chars = self.chars.clone();
+        loop {
+            match chars.peek().copied() {
+                None => return false,
+                Some((_, ch)) if ch.is_whitespace() => {
+                    chars.next();
+                }
+                Some((_, '#')) => {
+                    chars.next();
+                    for (_, ch) in chars.by_ref() {
+                        if ch == '\n' {
+                            break;
+                        }
+                    }
+                }
+                Some((start, _)) => {
+                    let rest = &self.input[start..];
+                    return rest.strip_prefix("else").is_some_and(|after| {
+                        after.chars().next().is_none_or(|c| !is_ident_continue(c))
+                    });
+                }
+            }
+        }
     }
 
     fn query_end(&mut self, start: usize) -> Option<usize> {
@@ -1289,10 +1335,19 @@ impl<'input> Lexer<'input> {
 // generic helpers
 // -----------------------------------------------------------------------------
 
+/// Characters allowed at the start of an identifier.
 fn is_ident_start(ch: char) -> bool {
     matches!(ch, '@' | '_' | 'a'..='z' | 'A'..='Z')
 }
 
+/// Characters allowed inside an identifier after the first character.
+///
+/// This is the canonical "is the identifier still going" predicate — it's
+/// what [`Lexer::identifier_or_function_call`] uses (via `take_while`) to
+/// decide where an identifier ends. Any other lexer logic that needs to
+/// distinguish a keyword (e.g. `else`) from a longer identifier prefixed
+/// with that keyword (e.g. `elsewhere`) should use this same predicate so
+/// the boundary stays consistent with tokenization.
 fn is_ident_continue(ch: char) -> bool {
     match ch {
         '0'..='9' => true,
@@ -2251,6 +2306,93 @@ mod test {
                 ("                  ~  ", Identifier("v")),
                 ("                    ~", RBrace),
             ],
+        );
+    }
+
+    fn token_kinds(input: &str) -> Vec<Tok<'_>> {
+        Lexer::new(input)
+            .map(|res| res.expect("lex error").1)
+            .collect()
+    }
+
+    #[test]
+    fn newline_before_else_is_elided() {
+        assert_eq!(
+            token_kinds("if x { 1 }\nelse { 2 }"),
+            vec![
+                If,
+                Identifier("x"),
+                LBrace,
+                IntegerLiteral(1),
+                RBrace,
+                Else,
+                LBrace,
+                IntegerLiteral(2),
+                RBrace,
+            ],
+        );
+    }
+
+    #[test]
+    fn blank_lines_before_else_are_elided() {
+        assert_eq!(
+            token_kinds("if x { 1 }\n\n\nelse { 2 }"),
+            vec![
+                If,
+                Identifier("x"),
+                LBrace,
+                IntegerLiteral(1),
+                RBrace,
+                Else,
+                LBrace,
+                IntegerLiteral(2),
+                RBrace,
+            ],
+        );
+    }
+
+    #[test]
+    fn comment_between_brace_and_else_is_handled() {
+        assert_eq!(
+            token_kinds("if x { 1 }\n# comment\nelse { 2 }"),
+            vec![
+                If,
+                Identifier("x"),
+                LBrace,
+                IntegerLiteral(1),
+                RBrace,
+                Else,
+                LBrace,
+                IntegerLiteral(2),
+                RBrace,
+            ],
+        );
+    }
+
+    #[test]
+    fn newline_kept_when_else_does_not_follow() {
+        // No `else` after the if-block; the newline must terminate the statement.
+        assert_eq!(
+            token_kinds("if x { 1 }\nfoo"),
+            vec![
+                If,
+                Identifier("x"),
+                LBrace,
+                IntegerLiteral(1),
+                RBrace,
+                Newline,
+                Identifier("foo"),
+            ],
+        );
+    }
+
+    #[test]
+    fn newline_kept_when_followed_by_else_prefixed_identifier() {
+        // `elsewhere` is an identifier, not the `else` keyword — newline stays.
+        let kinds = token_kinds("if x { 1 }\nelsewhere");
+        assert!(
+            kinds.contains(&Newline),
+            "expected a Newline token, got {kinds:?}",
         );
     }
 }
