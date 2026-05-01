@@ -925,4 +925,33 @@ mod test {
             &Kind::integer()
         );
     }
+
+    /// Regression for vectordotdev/vrl#453: a discarded fallible expression
+    /// followed by an assignment in the same block must not attach its
+    /// fallibility to the assignment as `E103: unhandled fallible assignment`.
+    /// The discarded fallibility belongs to the prior expression (E100).
+    #[test]
+    fn discarded_fallible_does_not_taint_next_assignment() {
+        let src = indoc::indoc! {r"
+            output = []
+            for_each(.) -> |key, value| {
+                e = {}
+                set(e, [key], value)
+                output = push(output, e)
+            }
+            . = output
+        "};
+        let diagnostics = crate::compiler::compile(src, &crate::stdlib::all())
+            .err()
+            .expect("should error on the discarded fallible `set`");
+        let codes: Vec<_> = diagnostics.iter().map(|d| d.code).collect();
+        assert!(
+            codes.contains(&100),
+            "expected E100 (unhandled error) on the discarded `set`, got {codes:?}",
+        );
+        assert!(
+            !codes.contains(&103),
+            "expected no E103 on the assignment, got {codes:?}",
+        );
+    }
 }
