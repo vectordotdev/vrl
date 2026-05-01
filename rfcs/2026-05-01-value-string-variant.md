@@ -49,22 +49,11 @@ Phase A delivers the new variant and threads UTF-8 sources to it; both variants 
 
 Phase A delivers the new variant end-to-end so the codebase compiles and tests pass with `Value::String` populated by the natural UTF-8 sources. No `Kind` changes; both variants map to `Kind::bytes()`.
 
-`Value` is a public enum without `#[non_exhaustive]` (see [src/value/value.rs](../src/value/value.rs)), so adding the variant produces *two* downstream impacts that consumers must both address.
+Adding a variant to `Value` (a public enum without `#[non_exhaustive]`, see [src/value/value.rs](../src/value/value.rs)) breaks downstream consumers in two ways: a compile-time error at exhaustive matches, and a silent semantic regression at non-exhaustive variant checks (`if let`, `matches!`, ad-hoc predicates). Phase A also needs an internal audit of every place in this crate that special-cases `Value::Bytes` so the new variant is handled identically. Both audits are enumerated in the [Phase A audit appendix](#phase-a-audit-appendix) at the end of this section. Behavior on every existing runtime `Value` value is preserved by the custom `PartialEq`/`Hash`, and the chokepoint helpers in `vrl::compiler` continue to accept the legacy variant unchanged.
 
-The first is a compile-time source break: every downstream crate with an exhaustive `match` over `Value` (notably Vector) must add a `Value::String(_)` arm when it bumps the VRL dependency. The Rust compiler catches these for the consumer.
+Most of the work in this crate is mechanical: add `Value::String(_)` arms to the exhaustive matches in [src/value/](../src/value/) and [src/compiler/](../src/compiler/); teach string-extracting helpers (`is_bytes`, `as_bytes`, `as_str`, `encode_as_bytes`, `coerce_to_bytes`, `to_string_lossy`) to accept either arm; and audit CRUD code in [src/value/value/crud/](../src/value/value/crud/) (mostly variant-agnostic).
 
-The second is a silent semantic break that the compiler cannot catch: any non-exhaustive variant check -- `if let Value::Bytes(b) = v`, `matches!(v, Value::Bytes(_))`, ad-hoc predicates like `fn is_string(v: &Value) -> bool { matches!(v, Value::Bytes(_)) }`, or pattern-based dispatch in deserialize/conversion code -- keeps compiling but starts excluding every value that arrived as `Value::String`. After Phase A this includes most VRL string literals, JSON string fields, parser outputs, and the rest of Phase B's migrated producers; misses are not edge cases. The RFC's stance is that every downstream consumer of `Value` must audit non-exhaustive variant checks during the dependency bump, deciding for each one whether it should accept both string-y variants (typical) or only one (rare). The recommended audit query is `rg "Value::Bytes\b"` in any consuming crate, with the per-occurrence decision being either:
-
-- replace the variant pattern with the relevant accessor on `Value` (`is_bytes()`, `as_bytes()`, `as_str()`, `try_bytes()`, etc.), all of which already accept either runtime variant, or
-- add a sibling `Value::String(_)` arm that does the same thing the `Value::Bytes(_)` arm does.
-
-The VRL changelog for the Phase A release publishes both classes of migration guidance with worked examples drawn from Vector, including the recommended `rg` query and a short Q&A on the typical fixes. Beyond the variant-addition consequences, no other public API breaks land in Phase A: behavior on every existing runtime `Value` value is preserved by the custom `PartialEq`/`Hash`, and the chokepoint helpers in `vrl::compiler` continue to accept the legacy variant unchanged.
-
-Most of the work is mechanical: add `Value::String(_)` arms to the exhaustive matches in [src/value/](../src/value/) and [src/compiler/](../src/compiler/); teach string-extracting helpers (`is_bytes`, `as_bytes`, `as_str`, `encode_as_bytes`, `coerce_to_bytes`, `to_string_lossy`) to accept either arm; and audit CRUD code in [src/value/value/crud/](../src/value/value/crud/) (mostly variant-agnostic).
-
-There is also a less-mechanical audit task that must land in the same PR as the literal-routing change: stdlib functions that destructure `Value::Bytes(_)` directly rather than going through `try_bytes` -- known examples include [src/stdlib/string.rs](../src/stdlib/string.rs) (`string` / `string!`) and [src/stdlib/length.rs](../src/stdlib/length.rs) (`length`), and there are likely more. Each direct `Value::Bytes(b) => ...` arm needs a sibling `Value::String(s) => ...` arm (or the match must be replaced with a call to `try_bytes` / `as_str` / similar helper). Without this audit, routing VRL literals to `Value::String` would make basic calls like `string!("x")` or `length("x")` start erroring at runtime -- the chokepoint update only covers functions that already extract bytes through `try_bytes`. An exhaustive `rg "Value::Bytes\(" src/stdlib/` is the entry point; expect the result list to drive the per-function arm additions.
-
-The non-obvious specifications are below.
+The non-obvious specifications follow.
 
 The new variant in [src/value/value.rs](../src/value/value.rs):
 
@@ -118,7 +107,7 @@ impl Hash for Value {
 
 `From<&Value> for Kind` maps the new variant to `Kind::bytes()` -- no new `Kind` flag in Phase A.
 
-`Value::merge` and `try_add` (string concat) follow the rule `String + String` -> `String`, any mixed pair -> `Bytes`. `try_mul` (string repeat) preserves the operand's variant. Comparisons (`try_gt`/`ge`/`lt`/`le`, `eq_lossy`) compare byte-wise across variants. The `is_bytes() && is_bytes() => infallible` invariant in [src/compiler/expression/op.rs](../src/compiler/expression/op.rs) is preserved because `is_bytes()` returns true for both variants.
+`Value::merge` and `try_add` (string concat) follow the rule `String + String` -> `String`, any mixed string-y pair (`Bytes + String` or `String + Bytes`) -> `Bytes`. `try_mul` (string repeat) preserves the operand's variant. Comparisons (`try_gt`/`ge`/`lt`/`le`, `eq_lossy`) compare byte-wise across variants. The existing `Bytes`-special-cased arms in [src/compiler/value/arithmetic.rs](../src/compiler/value/arithmetic.rs) (notably the `Bytes + Null` / `Null + Bytes` no-op concat arms) need sibling `String` arms; see the [Phase A audit appendix](#phase-a-audit-appendix). The `is_bytes() && is_bytes() => infallible` invariant in [src/compiler/expression/op.rs](../src/compiler/expression/op.rs) is preserved because `is_bytes()` returns true for both variants.
 
 Update `VrlValueConvert::try_bytes` and `try_bytes_utf8_lossy` in [src/compiler/value/convert.rs](../src/compiler/value/convert.rs) to extract `&[u8]` from either variant:
 
@@ -132,15 +121,34 @@ fn try_bytes(self) -> Result<Bytes, ValueError> {
 }
 ```
 
-This update covers every stdlib function that already extracts bytes via `try_bytes`. Functions that match `Value::Bytes(_)` directly are handled by the per-function audit described above.
+This update covers every stdlib function that already extracts bytes via `try_bytes`. Functions that match `Value::Bytes(_)` directly need separate per-function arm additions; see the [Phase A audit appendix](#phase-a-audit-appendix).
 
 Change `expression::Literal::String` in [src/compiler/expression/literal.rs](../src/compiler/expression/literal.rs) to wrap `ByteString` instead of `Bytes`, and update `compile_literal` in [src/compiler/compiler.rs](../src/compiler/compiler.rs) to construct `ByteString::from(s)` from the lexer's UTF-8-guaranteed string and template-string literals.
 
-`Value::String`'s `Display` arm shares the same escape-and-quote rendering as the existing `Bytes` arm in [src/value/value/display.rs](../src/value/value/display.rs) (escape `\\`, `"`, and `\n`; wrap in `"`). The only difference is that the `String` arm starts from a `&str` directly and skips the leading `String::from_utf8_lossy` step. Concretely, factor the escape-and-quote logic into a helper that takes `&str` and call it from both arms. Output must be byte-identical to the `Bytes` arm when the bytes are valid UTF-8, so snapshot tests that round-trip through `Display` stay stable across the variant migration.
+`Value::String`'s `Display` arm produces output byte-identical to the `Bytes` arm when the bytes are valid UTF-8, so snapshot tests round-trip cleanly across the variant migration. See the [Phase A audit appendix](#phase-a-audit-appendix) for the helper-extraction prescription that makes this hold.
 
 Serde routing honors the source format's distinction: `visit_str` / `visit_string` / `visit_borrowed_str` -> `Value::String`; `visit_bytes` / `visit_byte_buf` -> `Value::Bytes` (CBOR/MessagePack distinguish, honor the source); `serde_json::Value::String` -> `Value::String`; `Value::String` serializes via `serialize_str`.
 
 The quickcheck/proptest `Arbitrary` impl produces both variants randomly: random UTF-8 strings -> `Value::String`, random byte arrays -> `Value::Bytes`.
+
+#### Phase A audit appendix
+
+The design above implies a set of specific call-site updates beyond the mechanical exhaustive-match arms. Each item below is a known hazard surfaced during RFC review of the current source; missing one would either break tests or produce a silent semantic regression. The audit splits into items the Phase A PR must include and items each downstream consumer crate handles when bumping the VRL dependency.
+
+In the Phase A PR:
+
+1. *Stdlib direct-match audit.* Stdlib functions that destructure `Value::Bytes(_)` directly without going through `try_bytes` (known examples: [src/stdlib/string.rs](../src/stdlib/string.rs) -- `string` / `string!`, [src/stdlib/length.rs](../src/stdlib/length.rs) -- `length`) need a sibling `Value::String(s) => ...` arm or a rewrite that uses a chokepoint helper. Without this, basic calls like `string!("x")` and `length("x")` start erroring at runtime once literals route to `Value::String`. Audit query: `rg "Value::Bytes\(" src/stdlib/`.
+2. *`Display` escape helper.* The existing `Bytes` arm at [src/value/value/display.rs](../src/value/value/display.rs) escapes `\\`, `"`, and `\n` before wrapping in `"`. Factor that escape-and-quote logic into a helper taking `&str` and call it from both arms; the `String` arm's only divergence from `Bytes` is skipping the leading `String::from_utf8_lossy`. Writing the contained `&str` raw would silently fail tests like `test_display_string_with_newlines` for any value containing backslashes, quotes, or newlines.
+3. *Arithmetic special-case sweep.* [src/compiler/value/arithmetic.rs](../src/compiler/value/arithmetic.rs) has arms that special-case `Value::Bytes` non-symmetrically -- notably `(Bytes, Null) -> Bytes` and `(Null, Bytes) -> Bytes` in `try_add`, which treat null as an empty-string no-op for concat. Add sibling `String + Null` / `Null + String` arms with the same behavior. Without them, `"foo" + null` (a common idiom and present in existing tests) starts erroring at runtime. Audit query: `rg "Value::Bytes" src/compiler/value/arithmetic.rs`; review each match for whether a `Value::String` sibling is needed.
+
+For each downstream consumer crate (notably Vector), at the time of the VRL dependency bump:
+
+4. *Exhaustive `match` over `Value`.* Every exhaustive match must add a `Value::String(_)` arm. The Rust compiler catches these for the consumer.
+5. *Non-exhaustive variant checks.* `if let Value::Bytes(_) = v`, `matches!(v, Value::Bytes(_))`, ad-hoc predicates, deserialize/conversion dispatch -- the compiler does *not* catch these, but they silently start excluding values that arrived as `Value::String`, which after Phase A includes most VRL string literals, JSON string fields, parser outputs, and the rest of Phase B's migrated producers. Audit query: `rg "Value::Bytes\b"` in each consuming crate. For each occurrence, decide either:
+   - replace the variant pattern with the relevant accessor on `Value` (`is_bytes()`, `as_bytes()`, `as_str()`, `try_bytes()`, etc.), all of which already accept either runtime variant, or
+   - add a sibling `Value::String(_)` arm that does the same thing the `Value::Bytes(_)` arm does.
+
+The VRL changelog for the Phase A release ships this appendix's guidance with worked examples drawn from Vector.
 
 ### Phase B -- Migrate UTF-8 producers to `Value::String` (incremental)
 
