@@ -152,7 +152,7 @@ The VRL changelog for the Phase A release ships this appendix's guidance with wo
 
 ### Phase B -- Migrate UTF-8 producers to `Value::String` (incremental)
 
-Inputs across the codebase already accept both variants by the time Phase B starts: Phase A's combination of the `try_bytes` chokepoint update and the direct-match audit ensures every stdlib function tolerates `Value::String` input. This phase is purely about tightening output construction sites. The work is incremental: each producer (or small group) can land as its own PR, and the phase can stop at any point if priorities shift -- the variant remains correct and unmigrated producers continue to emit `Value::Bytes`.
+Inputs across the codebase already accept both variants by the time Phase B starts: Phase A's combination of the `try_bytes` chokepoint update and the direct-match audit ensures every VRL function tolerates `Value::String` input. This phase is purely about tightening output construction sites. The work is incremental: each producer (or small group) can land as its own PR, and the phase can stop at any point if priorities shift -- the variant remains correct and unmigrated producers continue to emit `Value::Bytes`.
 
 The migration is per-function. The audit triages each function that today constructs `Value::Bytes` (or constructs `Value::Bytes` values inside an aggregate output) into one of four classes:
 
@@ -162,8 +162,6 @@ The migration is per-function. The audit triages each function that today constr
 4. *Mixed / non-string output.* Functions whose return type is a union (e.g. integer or string depending on parameters), or whose output is not a string at all (integer / timestamp / object / etc.). The function's overall `TypeDef` stays as-is. If specific construction sites within the function demonstrably build UTF-8 strings, those individual sites can migrate to `Value::String`, but the function's declared output kind must not tighten -- doing so would break existing type expectations.
 
 The class boundary is "is this output's bytes guaranteed UTF-8 right now, before we change anything?" -- answered by inspecting the function's source. Use of byte-level processing (raw digest output, byte-level record readers, untransformed input passthrough) puts a function in class 3. Output constructed from `to_string()` on a number, `hex::encode`, or similarly UTF-8-by-construction calls is class 1 (or class 2 within an aggregate). Migration is opt-in per function; nothing migrates without per-function verification, and any function whose triage is uncertain stays in its current variant until verified.
-
-After the stdlib audit, sweep the remaining non-stdlib producers (grok captures in [src/datadog/grok/](../src/datadog/grok/), protobuf `string` fields in [src/protobuf/parse.rs](../src/protobuf/parse.rs), and parsed strings in [src/parsing/](../src/parsing/)). Protobuf `bytes` fields and the protobuf encode path stay on `Value::Bytes`; the encode path is already input-only and routes through `try_bytes` ([src/protobuf/encode.rs](../src/protobuf/encode.rs)), so no construction-site changes are expected there.
 
 ### Phase C -- `Kind::string` as a refinement of `Kind::bytes`
 
