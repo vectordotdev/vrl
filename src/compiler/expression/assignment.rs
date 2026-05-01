@@ -929,7 +929,8 @@ mod test {
     /// Regression for vectordotdev/vrl#453: a discarded fallible expression
     /// followed by an assignment in the same block must not attach its
     /// fallibility to the assignment as `E103: unhandled fallible assignment`.
-    /// The discarded fallibility belongs to the prior expression (E100).
+    /// The discarded fallibility belongs to the prior expression (E100), and
+    /// must point at that prior expression's span.
     #[test]
     fn discarded_fallible_does_not_taint_next_assignment() {
         let src = indoc::indoc! {r"
@@ -944,14 +945,26 @@ mod test {
         let diagnostics = crate::compiler::compile(src, &crate::stdlib::all())
             .err()
             .expect("should error on the discarded fallible `set`");
-        let codes: Vec<_> = diagnostics.iter().map(|d| d.code).collect();
-        assert!(
-            codes.contains(&100),
-            "expected E100 (unhandled error) on the discarded `set`, got {codes:?}",
+
+        let errors: Vec<_> = diagnostics.iter().filter(|d| d.is_error()).collect();
+        assert_eq!(
+            errors.len(),
+            1,
+            "expected exactly one error, got: {errors:#?}",
         );
-        assert!(
-            !codes.contains(&103),
-            "expected no E103 on the assignment, got {codes:?}",
+        let err = errors[0];
+
+        assert_eq!(err.code, 100, "expected E100 (unhandled error)");
+
+        let primary = err
+            .labels
+            .iter()
+            .find(|l| l.primary)
+            .expect("error should have a primary label");
+        let pointed_at = &src[primary.span.start()..primary.span.end()];
+        assert_eq!(
+            pointed_at, "set(e, [key], value)",
+            "E100 must point at the discarded fallible call, not the next assignment",
         );
     }
 }
