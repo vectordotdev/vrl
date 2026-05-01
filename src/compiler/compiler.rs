@@ -493,6 +493,21 @@ impl<'a> Compiler<'a> {
 
         let original_state = state.clone();
 
+        // Save and clear any carry-over fallibility from a prior expression so
+        // that `Assignment::new` only observes fallibility produced by *this*
+        // assignment's RHS. Without this, a discarded fallible expression
+        // earlier in the same block (e.g. `set(e, [k], v)` followed by
+        // `output = push(output, e)`) would attach its error to the next
+        // assignment with a misleading E103. Restored after Assignment::new
+        // so the prior fallibility is still reported at a later boundary.
+        //
+        // TODO: this single-slot `Option<CompilerError>` design means the
+        // prior is dropped when `Assignment::new` itself fails (only the
+        // assignment error surfaces; the prior is discovered on the next
+        // compile). Lifting this needs the field to become a `Vec` (or the
+        // helpers that mutate it to return `Result<_, Vec<CompilerError>>`).
+        let prior_fallibility = self.fallible_expression_error.take();
+
         let assignment = node.into_inner();
 
         let node = match assignment {
@@ -569,6 +584,15 @@ impl<'a> Compiler<'a> {
         )
         .map_err(|err| self.diagnostics.push(Box::new(err)))
         .ok()?;
+
+        // Restore the carry-over from before this assignment so that the prior
+        // fallibility is still reported at the next boundary (root expression
+        // or consumer). If this assignment's RHS itself produced a fallibility
+        // that survived (e.g. a fallible Single assignment would have errored
+        // out above), don't overwrite it.
+        if self.fallible_expression_error.is_none() {
+            self.fallible_expression_error = prior_fallibility;
+        }
 
         // Track any potential external target assignments within the program.
         //

@@ -925,4 +925,87 @@ mod test {
             &Kind::integer()
         );
     }
+
+    /// Regression for vectordotdev/vrl#453: a discarded fallible expression
+    /// followed by an assignment in the same block must not attach its
+    /// fallibility to the assignment as `E103: unhandled fallible assignment`.
+    /// The discarded fallibility belongs to the prior expression (E100), and
+    /// must point at that prior expression's span.
+    #[test]
+    fn discarded_fallible_does_not_taint_next_assignment() {
+        let src = indoc::indoc! {r"
+            output = []
+            for_each(.) -> |key, value| {
+                e = {}
+                set(e, [key], value)
+                output = push(output, e)
+            }
+            . = output
+        "};
+        let diagnostics = crate::compiler::compile(src, &crate::stdlib::all())
+            .err()
+            .expect("should error on the discarded fallible `set`");
+
+        let errors: Vec<_> = diagnostics.iter().filter(|d| d.is_error()).collect();
+        assert_eq!(
+            errors.len(),
+            1,
+            "expected exactly one error, got: {errors:#?}",
+        );
+        let err = errors[0];
+
+        assert_eq!(err.code, 100, "expected E100 (unhandled error)");
+
+        let primary = err
+            .labels
+            .iter()
+            .find(|l| l.primary)
+            .expect("error should have a primary label");
+        let pointed_at = &src[primary.span.start()..primary.span.end()];
+        assert_eq!(
+            pointed_at, "set(e, [key], value)",
+            "E100 must point at the discarded fallible call, not the next assignment",
+        );
+    }
+
+    /// Regression for vectordotdev/vrl#36: same root cause as #453 but in a
+    /// plain block (no closure). The fallibility of `push(.x, 1)` previously
+    /// landed on the *next* assignment (`.b = 2`); after the fix it must land
+    /// on the actual fallible call.
+    #[test]
+    fn discarded_fallible_in_plain_block() {
+        let src = indoc::indoc! {r"
+            {
+                .a = 1
+                push(.x, 1)
+                .b = 2
+            }
+        "};
+        let diagnostics = crate::compiler::compile(src, &crate::stdlib::all())
+            .err()
+            .expect("should error on the discarded fallible `push`");
+
+        let errors: Vec<_> = diagnostics.iter().filter(|d| d.is_error()).collect();
+        assert_eq!(
+            errors.len(),
+            1,
+            "expected exactly one error, got: {errors:#?}",
+        );
+        let err = errors[0];
+
+        let primary = err
+            .labels
+            .iter()
+            .find(|l| l.primary)
+            .expect("error should have a primary label");
+        let pointed_at = &src[primary.span.start()..primary.span.end()];
+        assert!(
+            pointed_at.contains("push") || pointed_at.contains(".x"),
+            "error must point at `push(.x, 1)` (or its argument), not the next assignment; got {pointed_at:?}",
+        );
+        assert!(
+            !pointed_at.contains(".b"),
+            "error must not point at the `.b = 2` assignment; got {pointed_at:?}",
+        );
+    }
 }
