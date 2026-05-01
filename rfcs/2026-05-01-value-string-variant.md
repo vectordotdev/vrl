@@ -127,7 +127,7 @@ This update covers every stdlib function that already extracts bytes via `try_by
 
 Change `expression::Literal::String` in [src/compiler/expression/literal.rs](../src/compiler/expression/literal.rs) to wrap `ByteString` instead of `Bytes`, and update `compile_literal` in [src/compiler/compiler.rs](../src/compiler/compiler.rs) to construct `ByteString::from(s)` from the lexer's UTF-8-guaranteed string and template-string literals.
 
-`Value::String`'s `Display` arm writes the contained `&str` directly. Output must be byte-identical to the `Bytes` arm when the bytes are valid UTF-8, so snapshot tests that round-trip through `Display` stay stable across the variant migration.
+`Value::String`'s `Display` arm shares the same escape-and-quote rendering as the existing `Bytes` arm in [src/value/value/display.rs](../src/value/value/display.rs) (escape `\\`, `"`, and `\n`; wrap in `"`). The only difference is that the `String` arm starts from a `&str` directly and skips the leading `String::from_utf8_lossy` step. Concretely, factor the escape-and-quote logic into a helper that takes `&str` and call it from both arms. Output must be byte-identical to the `Bytes` arm when the bytes are valid UTF-8, so snapshot tests that round-trip through `Display` stay stable across the variant migration.
 
 Serde routing honors the source format's distinction: `visit_str` / `visit_string` / `visit_borrowed_str` -> `Value::String`; `visit_bytes` / `visit_byte_buf` -> `Value::Bytes` (CBOR/MessagePack distinguish, honor the source); `serde_json::Value::String` -> `Value::String`; `Value::String` serializes via `serialize_str`.
 
