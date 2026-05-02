@@ -128,11 +128,125 @@ fn resolve_year((month, _date, _hour, _min, _sec): IncompleteDate) -> i32 {
     }
 }
 
+/// Index of the closing `]` for an RFC 5424 structured-data element starting with `[`,
+/// respecting quotes and escapes inside param values.
+fn find_sd_element_closing_bracket(s: &str) -> Option<usize> {
+    if !s.starts_with('[') {
+        return None;
+    }
+    let mut in_string = false;
+    let mut escape = false;
+    for (i, c) in s.char_indices().skip(1) {
+        if escape {
+            escape = false;
+            continue;
+        }
+        if in_string {
+            if c == '\\' {
+                escape = true;
+            } else if c == '"' {
+                in_string = false;
+            }
+        } else {
+            match c {
+                '"' => in_string = true,
+                ']' => return Some(i),
+                _ => {}
+            }
+        }
+    }
+    None
+}
+
+/// Parse the inside of `[...]` as SD-ID and SD-PARAMs. Returns `None` if the slice is malformed.
+fn parse_structured_data_element_inner(inner: &str) -> Option<(String, BTreeMap<String, String>)> {
+    let inner = inner.trim();
+    if inner.is_empty() {
+        return None;
+    }
+    let id_end = inner
+        .find(char::is_whitespace)
+        .unwrap_or(inner.len());
+    let id = inner.get(..id_end)?.trim();
+    if id.is_empty() {
+        return None;
+    }
+    let mut rest = inner.get(id_end..)?.trim_start();
+    let mut params = BTreeMap::new();
+    while !rest.is_empty() {
+        let eq = rest.find('=')?;
+        let name = rest.get(..eq)?.trim_end();
+        if name.is_empty() {
+            return None;
+        }
+        rest = rest.get(eq + 1..)?.trim_start();
+        if !rest.starts_with('"') {
+            return None;
+        }
+        rest = rest.get(1..)?;
+        let mut value = String::new();
+        let mut close_quote_idx = None;
+        let mut esc = false;
+        for (i, c) in rest.char_indices() {
+            if esc {
+                match c {
+                    'n' => value.push('\n'),
+                    'r' => value.push('\r'),
+                    't' => value.push('\t'),
+                    '"' | '\\' | ']' => value.push(c),
+                    _ => {
+                        value.push('\\');
+                        value.push(c);
+                    }
+                }
+                esc = false;
+            } else if c == '\\' {
+                esc = true;
+            } else if c == '"' {
+                close_quote_idx = Some(i);
+                break;
+            } else {
+                value.push(c);
+            }
+        }
+        let end = close_quote_idx?;
+        params.insert(name.to_string(), value);
+        rest = rest.get(end + 1..)?.trim_start();
+    }
+    Some((id.to_string(), params))
+}
+
+/// `syslog_loose` sometimes leaves further RFC 5424 SD elements in `msg` after the first block.
+/// Split those leading `[sd-id ...]` segments from the human-readable message tail.
+fn split_leading_rfc5424_structured_data(
+    msg: &str,
+) -> (Vec<(String, BTreeMap<String, String>)>, &str) {
+    let mut parsed = Vec::new();
+    let mut s = msg;
+    loop {
+        s = s.trim_start();
+        if !s.starts_with('[') {
+            break;
+        }
+        let Some(close) = find_sd_element_closing_bracket(s) else {
+            break;
+        };
+        let inner = &s[1..close];
+        let after = s.get(close + 1..).unwrap_or("");
+        match parse_structured_data_element_inner(inner) {
+            Some(item) => {
+                parsed.push(item);
+                s = after;
+            }
+            None => break,
+        }
+    }
+    (parsed, s.trim_start())
+}
+
 /// Create a `Value::Map` from the fields of the given syslog message.
 fn message_to_value(message: Message<&str>) -> Value {
     let mut result = BTreeMap::new();
-
-    result.insert("message".to_string().into(), message.msg.to_string().into());
 
     if let Some(host) = message.hostname {
         result.insert("hostname".to_string().into(), host.to_string().into());
@@ -184,6 +298,23 @@ fn message_to_value(message: Message<&str>) -> Value {
         }
         result.insert(element.id.to_string().into(), sdata.into());
     }
+
+    let (extra_sd, cleaned_msg) = split_leading_rfc5424_structured_data(message.msg);
+    for (id, params) in extra_sd {
+        if result.contains_key(id.as_str()) {
+            continue;
+        }
+        let mut sdata = BTreeMap::new();
+        for (name, value) in params {
+            sdata.insert(name.into(), value.into());
+        }
+        result.insert(id.into(), sdata.into());
+    }
+
+    result.insert(
+        "message".to_string().into(),
+        cleaned_msg.to_string().into(),
+    );
 
     result.into()
 }
@@ -383,6 +514,37 @@ mod tests {
                 "severity" => "notice",
                 "timestamp" => Utc.with_ymd_and_hms(2003, 10, 11, 22, 14, 15).unwrap().with_nanosecond(3_000_000).unwrap(),
                 "version" => 1
+            }),
+            tdef: TypeDef::object(inner_kind()).fallible(),
+        }
+
+        rfc5424_multiple_structure_data_groups {
+            args: func_args![value: r#"<134>1 2026-04-30T11:02:45.789-04:00 fw01 firewall 9876 TRAFFIC_ALLOW [conn@41058 src_ip="192.0.2.10" src_port="44321" protocol="tcp"] [dest@41058 dst_ip="198.51.100.25" dst_port="443" zone="internet"] [policy@41058 rule="allow_https" action="permit" log="true"] Allowed outbound HTTPS connection"#],
+            want: Ok(btreemap! {
+                "facility" => "local0",
+                "severity" => "info",
+                "timestamp" => Utc.with_ymd_and_hms(2026, 4, 30, 15, 2, 45).unwrap().with_nanosecond(789_000_000).unwrap(),
+                "hostname" => "fw01",
+                "appname" => "firewall",
+                "procid" => 9876,
+                "msgid" => "TRAFFIC_ALLOW",
+                "conn@41058" => btreemap! {
+                    "src_ip" => "192.0.2.10",
+                    "src_port" => "44321",
+                    "protocol" => "tcp",
+                },
+                "dest@41058" => btreemap! {
+                    "dst_ip" => "198.51.100.25",
+                    "dst_port" => "443",
+                    "zone" => "internet",
+                },
+                "policy@41058" => btreemap! {
+                    "rule" => "allow_https",
+                    "action" => "permit",
+                    "log" => "true",
+                },
+                "message" => "Allowed outbound HTTPS connection",
+                "version" => 1,
             }),
             tdef: TypeDef::object(inner_kind()).fallible(),
         }
