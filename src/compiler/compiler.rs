@@ -590,11 +590,19 @@ impl<'a> Compiler<'a> {
         let assignment = match assignment_result {
             Ok(a) => a,
             Err(err) => {
+                // Flush any prior pending fallibilities first so they appear
+                // before the assignment error in source order rather than
+                // trailing behind it via the root-expr drain.
+                let priors = self
+                    .fallible_expressions
+                    .drain(..pre_assignment_pending)
+                    .collect::<Vec<_>>();
+                for prior in priors {
+                    self.diagnostics.push(prior.into_diagnostic_boxed());
+                }
                 self.diagnostics.push(Box::new(err));
-                // The RHS-produced entry (if any) is now consumed by becoming
-                // a hard error. Drop just the RHS entries so prior pending
-                // errors still surface at the root boundary.
-                self.fallible_expressions.truncate(pre_assignment_pending);
+                // RHS-produced entries are consumed by the hard error.
+                self.fallible_expressions.clear();
                 return None;
             }
         };
