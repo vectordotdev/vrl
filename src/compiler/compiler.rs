@@ -592,17 +592,14 @@ impl<'a> Compiler<'a> {
             Err(err) => {
                 // Flush any prior pending fallibilities first so they appear
                 // before the assignment error in source order rather than
-                // trailing behind it via the root-expr drain.
-                let priors = self
-                    .fallible_expressions
-                    .drain(..pre_assignment_pending)
-                    .collect::<Vec<_>>();
+                // trailing behind it via the root-expr drain. RHS-produced
+                // entries are consumed by the hard error and dropped.
+                let mut priors = std::mem::take(&mut self.fallible_expressions);
+                priors.truncate(pre_assignment_pending);
                 for prior in priors {
                     self.diagnostics.push(prior.into_diagnostic_boxed());
                 }
                 self.diagnostics.push(Box::new(err));
-                // RHS-produced entries are consumed by the hard error.
-                self.fallible_expressions.clear();
                 return None;
             }
         };
