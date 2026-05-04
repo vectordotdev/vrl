@@ -1009,12 +1009,6 @@ mod test {
         );
     }
 
-    /// With the pending-fallibility stack, multiple unhandled errors in the
-    /// same root expression should all surface in a single compilation pass
-    /// — including when one of them is a fallible-RHS assignment that fails
-    /// hard (E103) while another expression earlier in the block is also
-    /// unhandled. Previously the prior was dropped and the user only
-    /// discovered it after fixing the assignment.
     #[test]
     fn multiple_unhandled_fallibilities_surface_in_one_pass() {
         let src = indoc::indoc! {r"
