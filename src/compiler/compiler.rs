@@ -88,6 +88,19 @@ impl CompilerError {
 }
 
 impl<'a> Compiler<'a> {
+    /// Run `f` and drop any pending fallibilities it pushed onto the stack
+    /// on exit, regardless of whether `f` returned `Ok`/`Some` or pushed a
+    /// hard diagnostic. Use this in helpers where the helper's *own* error
+    /// (or expression type) already accounts for the inner fallibility —
+    /// `abort`, `return`, predicate construction, function-argument
+    /// validation. Entries pushed before the call are untouched.
+    fn consuming_fallibility<R>(&mut self, f: impl FnOnce(&mut Self) -> R) -> R {
+        let snapshot = self.fallible_expressions.len();
+        let result = f(self);
+        self.fallible_expressions.truncate(snapshot);
+        result
+    }
+
     /// Compiles a given source into the final [`Program`].
     ///
     /// # Arguments
@@ -411,26 +424,24 @@ impl<'a> Compiler<'a> {
         let (span, predicate) = node.take();
         let pre_pending = self.fallible_expressions.len();
 
-        let exprs = match predicate {
-            One(node) => vec![self.compile_expr(*node, state)?],
-            Many(nodes) => self.compile_exprs(nodes, state)?,
-        };
+        self.consuming_fallibility(|c| {
+            let exprs = match predicate {
+                One(node) => vec![c.compile_expr(*node, state)?],
+                Many(nodes) => c.compile_exprs(nodes, state)?,
+            };
 
-        // The predicate's fallibility is whatever the predicate's *own*
-        // expression produced — entries from before this predicate are not
-        // its concern (and shouldn't surface as the predicate's error).
-        let predicate_fallibility = self
-            .fallible_expressions
-            .get(pre_pending)
-            .map(CompilerError::to_diagnostic);
-        let result = Predicate::new(Node::new(span, exprs), state, predicate_fallibility);
-
-        // Whether the predicate's expression was infallible, fallible-but-OK
-        // (boolean), or fallible-and-rejected, any fallibility it produced
-        // is now consumed by the predicate construction.
-        self.fallible_expressions.truncate(pre_pending);
-
-        Some(result)
+            // The predicate's own fallibility is anything pushed during its
+            // own compilation — never a stale prior entry from before it.
+            let predicate_fallibility = c
+                .fallible_expressions
+                .get(pre_pending)
+                .map(CompilerError::to_diagnostic);
+            Some(Predicate::new(
+                Node::new(span, exprs),
+                state,
+                predicate_fallibility,
+            ))
+        })
     }
 
     fn compile_op(&mut self, node: Node<ast::Op>, state: &mut TypeState) -> Option<Op> {
@@ -721,22 +732,6 @@ impl<'a> Compiler<'a> {
             self.external_queries.push(OwnedTargetPath::event_root());
         }
 
-        // Snapshot the pending stack before compiling arguments. If
-        // `Builder::new` rejects the call (e.g. a fallible argument), the
-        // argument's fallibility entries have been consumed by that error
-        // and should not double-report at the root boundary.
-        let pre_args_pending = self.fallible_expressions.len();
-
-        let arguments: Vec<_> = arguments
-            .into_iter()
-            .map(|node| {
-                Some(Node::new(
-                    node.span(),
-                    self.compile_function_argument(node, state)?,
-                ))
-            })
-            .collect::<Option<_>>()?;
-
         if abort_on_error {
             self.fallible = true;
         }
@@ -762,59 +757,68 @@ impl<'a> Compiler<'a> {
         // see: https://github.com/vectordotdev/vector/issues/13752
         let state_before_function = original_state.clone();
 
-        // First, we create a new function-call builder to validate the
-        // expression.
-        let function_info = function_call::Builder::new(
-            call_span,
-            ident,
-            abort_on_error,
-            arguments,
-            self.fns,
-            &state_before_function,
-            state,
-            closure_variables,
-        )
-        // Then, we compile the closure block, and compile the final
-        // function-call expression, including the attached closure.
-        .map_err(|err| {
-            // Builder rejected the call — any argument fallibility it
-            // observed is consumed by its error.
-            self.fallible_expressions.truncate(pre_args_pending);
-            self.diagnostics.push(Box::new(err));
-        })
-        .ok()
-        .and_then(|builder| {
-            let block = match closure_block {
-                None => None,
-                Some(block) => {
-                    let span = block.span();
-                    match self.compile_block_with_type(block, state) {
-                        Some(block_with_type) => Some(Node::new(span, block_with_type)),
-                        None => return None,
-                    }
-                }
-            };
+        // Compile arguments and run validation under a consuming scope so
+        // any inner fallibility produced during arg compilation is dropped
+        // when validation either subsumes it (E630/FallibleArgument) or
+        // accepts the call (in which case the function's own fallibility
+        // is re-pushed below via `result.error`).
+        let function_info = self
+            .consuming_fallibility(|c| {
+                let arguments: Vec<_> = arguments
+                    .into_iter()
+                    .map(|node| {
+                        Some(Node::new(
+                            node.span(),
+                            c.compile_function_argument(node, state)?,
+                        ))
+                    })
+                    .collect::<Option<_>>()?;
 
-            let arg_list = builder.get_arg_list().clone();
-
-            builder
-                .compile(
+                function_call::Builder::new(
+                    call_span,
+                    ident,
+                    abort_on_error,
+                    arguments,
+                    c.fns,
                     &state_before_function,
                     state,
-                    block,
-                    local_snapshot,
-                    &mut self.config,
+                    closure_variables,
                 )
-                .map_err(|err| self.diagnostics.push(Box::new(err)))
+                .map_err(|err| c.diagnostics.push(Box::new(err)))
                 .ok()
-                .map(|result| {
-                    if let Some(e) = result.error {
-                        self.fallible_expressions
-                            .push(CompilerError::FunctionCallError(e));
+            })
+            .and_then(|builder| {
+                let block = match closure_block {
+                    None => None,
+                    Some(block) => {
+                        let span = block.span();
+                        match self.compile_block_with_type(block, state) {
+                            Some(block_with_type) => Some(Node::new(span, block_with_type)),
+                            None => return None,
+                        }
                     }
-                    (arg_list, result.function_call)
-                })
-        });
+                };
+
+                let arg_list = builder.get_arg_list().clone();
+
+                builder
+                    .compile(
+                        &state_before_function,
+                        state,
+                        block,
+                        local_snapshot,
+                        &mut self.config,
+                    )
+                    .map_err(|err| self.diagnostics.push(Box::new(err)))
+                    .ok()
+                    .map(|result| {
+                        if let Some(e) = result.error {
+                            self.fallible_expressions
+                                .push(CompilerError::FunctionCallError(e));
+                        }
+                        (arg_list, result.function_call)
+                    })
+            });
 
         if let Some((args, function)) = &function_info {
             self.check_function_deprecations(function, args);
@@ -883,42 +887,30 @@ impl<'a> Compiler<'a> {
     fn compile_abort(&mut self, node: Node<ast::Abort>, state: &mut TypeState) -> Option<Abort> {
         self.abortable = true;
         let (span, abort) = node.take();
-        let pre_pending = self.fallible_expressions.len();
-        let message = match abort.message {
-            Some(node) => {
-                Some((*node).map_option(|expr| self.compile_expr(Node::new(span, expr), state))?)
-            }
-            None => None,
-        };
+        self.consuming_fallibility(|c| {
+            let message = match abort.message {
+                Some(node) => {
+                    Some((*node).map_option(|expr| c.compile_expr(Node::new(span, expr), state))?)
+                }
+                None => None,
+            };
 
-        let result = Abort::new(span, message, state)
-            .map_err(|err| self.diagnostics.push(Box::new(err)))
-            .ok();
-
-        // Whether `Abort::new` succeeded (and its own type encodes the message
-        // fallibility) or it errored on a fallible message (consuming it into
-        // its own error), the message's fallibility belongs to abort now.
-        self.fallible_expressions.truncate(pre_pending);
-
-        result
+            Abort::new(span, message, state)
+                .map_err(|err| c.diagnostics.push(Box::new(err)))
+                .ok()
+        })
     }
 
     fn compile_return(&mut self, node: Node<ast::Return>, state: &mut TypeState) -> Option<Return> {
         let (span, r#return) = node.take();
-        let pre_pending = self.fallible_expressions.len();
+        self.consuming_fallibility(|c| {
+            let expr = c.compile_expr(*r#return.expr, state)?;
+            let node = Node::new(span, expr);
 
-        let expr = self.compile_expr(*r#return.expr, state)?;
-        let node = Node::new(span, expr);
-
-        let result = Return::new(span, node, state)
-            .map_err(|err| self.diagnostics.push(Box::new(err)))
-            .ok();
-
-        // `return` consumes the inner expression's fallibility — either by
-        // becoming a hard error or by carrying the type forward.
-        self.fallible_expressions.truncate(pre_pending);
-
-        result
+            Return::new(span, node, state)
+                .map_err(|err| c.diagnostics.push(Box::new(err)))
+                .ok()
+        })
     }
 
     fn handle_parser_error(&mut self, error: crate::parser::Error) {
