@@ -1008,4 +1008,29 @@ mod test {
             "error must not point at the `.b = 2` assignment; got {pointed_at:?}",
         );
     }
+
+    /// With the pending-fallibility stack, multiple unhandled errors in the
+    /// same root expression should all surface in a single compilation pass
+    /// — including when one of them is a fallible-RHS assignment that fails
+    /// hard (E103) while another expression earlier in the block is also
+    /// unhandled. Previously the prior was dropped and the user only
+    /// discovered it after fixing the assignment.
+    #[test]
+    fn multiple_unhandled_fallibilities_surface_in_one_pass() {
+        let src = indoc::indoc! {r"
+            {
+                push(.x, 1)
+                .b = push(.y, 2)
+            }
+        "};
+        let diagnostics = crate::compiler::compile(src, &crate::stdlib::all())
+            .err()
+            .expect("should error");
+
+        let errors: Vec<_> = diagnostics.iter().filter(|d| d.is_error()).collect();
+        assert!(
+            errors.len() >= 2,
+            "expected both errors surfaced in one pass, got: {errors:#?}",
+        );
+    }
 }

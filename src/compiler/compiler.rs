@@ -46,15 +46,19 @@ pub struct Compiler<'a> {
     /// errors when the reason for it being undefined is another compiler error.
     skip_missing_query_target: Vec<(QueryTarget, OwnedValuePath)>,
 
-    /// Track which expression in a chain of expressions is fallible.
+    /// Stack of unhandled fallible expressions encountered while compiling
+    /// the current root expression.
     ///
-    /// It is possible for this state to switch from `None`, to `Some(T)` and
-    /// back to `None`, if the parent expression of a fallible expression
-    /// nullifies the fallibility of that expression.
-    // This should probably be kept on the call stack as the "compile_*" functions are called
-    // otherwise some expressions may remove it when they shouldn't (such as the RHS of an operation removing
-    // the error from the LHS)
-    fallible_expression_error: Option<CompilerError>,
+    /// Each entry represents a fallible expression whose error has not (yet)
+    /// been consumed by a parent (assignment, error-coalesce `??`, etc.).
+    /// Helpers track their own boundary by snapshotting `len()` on entry and
+    /// either leaving sub-expression entries pending, or truncating back to
+    /// the snapshot to consume them. At the root expression boundary any
+    /// entries still pending are flushed as diagnostics. Using a stack
+    /// instead of a single slot lets multiple unhandled errors surface in
+    /// one compilation pass — e.g. when both a discarded fallible call and
+    /// a later fallible assignment exist in the same block.
+    fallible_expressions: Vec<CompilerError>,
 
     config: CompileConfig,
 }
@@ -114,7 +118,7 @@ impl<'a> Compiler<'a> {
             external_queries: vec![],
             external_assignments: vec![],
             skip_missing_query_target: vec![],
-            fallible_expression_error: None,
+            fallible_expressions: vec![],
             config,
         };
         let expressions = compiler.compile_root_exprs(ast, &mut state);
@@ -167,6 +171,7 @@ impl<'a> Compiler<'a> {
             Unary, Variable,
         };
         let original_state = state.clone();
+        let pre_compile_pending = self.fallible_expressions.len();
 
         let span = node.span();
         let expr = match node.into_inner() {
@@ -195,16 +200,17 @@ impl<'a> Compiler<'a> {
             Return(node) => self.compile_return(node, state).map(Into::into),
         }?;
 
-        // If the previously compiled expression is fallible, _and_ we are
-        // currently not tracking any existing fallible expression in the chain
-        // of expressions, then this is the first expression within that chain
-        // that can cause the entire chain to be fallible.
-
+        // If the compiled expression is fallible and no sub-expression has
+        // already pushed an entry for it, record this expression as the
+        // outer-most fallible point in the current chain. Avoiding double
+        // counting (e.g. `a + b()` where b is fallible already pushed) means
+        // checking that the pending stack didn't grow during compilation.
         let type_def = expr.type_info(&original_state).result;
-        if type_def.is_fallible() && self.fallible_expression_error.is_none() {
-            self.fallible_expression_error = Some(CompilerError::ExpressionError(
-                expression::ExpressionError::Fallible { span },
-            ));
+        if type_def.is_fallible() && self.fallible_expressions.len() == pre_compile_pending {
+            self.fallible_expressions
+                .push(CompilerError::ExpressionError(
+                    expression::ExpressionError::Fallible { span },
+                ));
         }
 
         Some(expr)
@@ -282,13 +288,20 @@ impl<'a> Compiler<'a> {
         for root_expr in nodes {
             match root_expr.into_inner() {
                 RootExpr::Expr(node_expr) => {
-                    self.fallible_expression_error = None;
+                    self.fallible_expressions.clear();
 
-                    if let Some(expr) = self.compile_expr(node_expr, state) {
-                        if let Some(error) = self.fallible_expression_error.take() {
-                            self.diagnostics.push(error.into_diagnostic_boxed());
-                        }
+                    let compiled = self.compile_expr(node_expr, state);
 
+                    // Flush whatever fallibilities are still pending,
+                    // regardless of whether the root expression itself
+                    // compiled. Otherwise a hard error mid-compile would
+                    // discard prior unhandled fallibilities and the user
+                    // would only discover them on the next compile.
+                    for error in self.fallible_expressions.drain(..) {
+                        self.diagnostics.push(error.into_diagnostic_boxed());
+                    }
+
+                    if let Some(expr) = compiled {
                         node_exprs.push(expr);
                     }
                 }
@@ -405,8 +418,8 @@ impl<'a> Compiler<'a> {
         Some(Predicate::new(
             Node::new(span, exprs),
             state,
-            self.fallible_expression_error
-                .as_ref()
+            self.fallible_expressions
+                .last()
                 .map(CompilerError::to_diagnostic),
         ))
     }
@@ -419,17 +432,18 @@ impl<'a> Compiler<'a> {
         let op = node.into_inner();
         let ast::Op(lhs, opcode, rhs) = op;
 
+        // Snapshot the pending stack on entry so we can scope any consumes
+        // performed by this op (`??`, infallible-typed result) to entries
+        // produced by lhs/rhs and not touch entries from prior expressions.
+        let pre_op_pending = self.fallible_expressions.len();
+
         let lhs_span = lhs.span();
         let lhs = Node::new(lhs_span, self.compile_expr(*lhs, state)?);
 
-        // If we're using error-coalescing, we need to negate any tracked
-        // fallibility error state for the lhs expression.
+        // `??` consumes any fallibility produced by the lhs.
         if opcode.inner() == &Opcode::Err {
-            self.fallible_expression_error = None;
+            self.fallible_expressions.truncate(pre_op_pending);
         }
-
-        // save the error so the RHS can't delete an error from the LHS
-        let fallible_expression_error = self.fallible_expression_error.take();
 
         let rhs_span = rhs.span();
         let rhs = Node::new(rhs_span, self.compile_expr(*rhs, state)?);
@@ -440,14 +454,11 @@ impl<'a> Compiler<'a> {
 
         let type_info = op.type_info(&original_state);
 
-        // re-apply the RHS error saved from above
-        if self.fallible_expression_error.is_none() {
-            self.fallible_expression_error = fallible_expression_error;
-        }
-
+        // If the op as a whole is infallible (e.g. `?? default` or a
+        // short-circuit boolean made it so), drop fallibility produced by
+        // any of its sub-expressions.
         if type_info.result.is_infallible() {
-            // There was a short-circuit operation that is preventing a fallibility error
-            self.fallible_expression_error = None;
+            self.fallible_expressions.truncate(pre_op_pending);
         }
 
         // Both "lhs" and "rhs" are compiled above, but "rhs" isn't always executed.
@@ -493,20 +504,14 @@ impl<'a> Compiler<'a> {
 
         let original_state = state.clone();
 
-        // Save and clear any carry-over fallibility from a prior expression so
-        // that `Assignment::new` only observes fallibility produced by *this*
-        // assignment's RHS. Without this, a discarded fallible expression
-        // earlier in the same block (e.g. `set(e, [k], v)` followed by
-        // `output = push(output, e)`) would attach its error to the next
-        // assignment with a misleading E103. Restored after Assignment::new
-        // so the prior fallibility is still reported at a later boundary.
-        //
-        // TODO: this single-slot `Option<CompilerError>` design means the
-        // prior is dropped when `Assignment::new` itself fails (only the
-        // assignment error surfaces; the prior is discovered on the next
-        // compile). Lifting this needs the field to become a `Vec` (or the
-        // helpers that mutate it to return `Result<_, Vec<CompilerError>>`).
-        let prior_fallibility = self.fallible_expression_error.take();
+        // Snapshot the pending stack on entry so any fallibility produced by
+        // this assignment's RHS is scoped to entries beyond this point.
+        // Entries pending from before this assignment stay on the stack and
+        // are flushed at the next root boundary, even if `Assignment::new`
+        // itself fails — so e.g. a discarded fallible call in a block
+        // followed by a fallible-RHS assignment surfaces both errors in one
+        // pass instead of one error blocking the discovery of the other.
+        let pre_assignment_pending = self.fallible_expressions.len();
 
         let assignment = node.into_inner();
 
@@ -567,32 +572,37 @@ impl<'a> Compiler<'a> {
                     }
                 };
 
-                // If the RHS expression is marked as fallible, the "infallible"
-                // assignment nullifies this fallibility, and thus no error
-                // should be emitted.
-                self.fallible_expression_error = None;
+                // The infallible-form (`x, err = ...`) consumes any fallibility
+                // produced by the RHS. Drop only RHS-produced entries; prior
+                // pending errors stay on the stack.
+                self.fallible_expressions.truncate(pre_assignment_pending);
 
                 node
             }
         };
 
-        let assignment = Assignment::new(
-            node,
-            state,
-            self.fallible_expression_error.as_ref(),
-            &self.config,
-        )
-        .map_err(|err| self.diagnostics.push(Box::new(err)))
-        .ok()?;
+        // The fallibility relevant to `Assignment::new`'s check is whatever
+        // was produced by *this* assignment's RHS — i.e. the first entry past
+        // the snapshot. Anything before that belongs to an earlier expression.
+        let rhs_fallibility = self.fallible_expressions.get(pre_assignment_pending);
+        let assignment_result = Assignment::new(node, state, rhs_fallibility, &self.config);
 
-        // Restore the carry-over from before this assignment so that the prior
-        // fallibility is still reported at the next boundary (root expression
-        // or consumer). If this assignment's RHS itself produced a fallibility
-        // that survived (e.g. a fallible Single assignment would have errored
-        // out above), don't overwrite it.
-        if self.fallible_expression_error.is_none() {
-            self.fallible_expression_error = prior_fallibility;
-        }
+        let assignment = match assignment_result {
+            Ok(a) => a,
+            Err(err) => {
+                self.diagnostics.push(Box::new(err));
+                // The RHS-produced entry (if any) is now consumed by becoming
+                // a hard error. Drop just the RHS entries so prior pending
+                // errors still surface at the root boundary.
+                self.fallible_expressions.truncate(pre_assignment_pending);
+                return None;
+            }
+        };
+
+        // Successful assignment consumes its own RHS fallibility (it's
+        // expressed by the assignment expression itself now). Prior entries
+        // remain pending.
+        self.fallible_expressions.truncate(pre_assignment_pending);
 
         // Track any potential external target assignments within the program.
         //
@@ -774,7 +784,8 @@ impl<'a> Compiler<'a> {
                 .ok()
                 .map(|result| {
                     if let Some(e) = result.error {
-                        self.fallible_expression_error = Some(CompilerError::FunctionCallError(e));
+                        self.fallible_expressions
+                            .push(CompilerError::FunctionCallError(e));
                     }
                     (arg_list, result.function_call)
                 })
