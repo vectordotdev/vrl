@@ -31,6 +31,18 @@ pub struct CompilationResult {
 /// should contain the type state of the program immediately before the expression
 /// that is being compiled would execute. The state should be modified to reflect the
 /// state after the compiled expression executes. This logic lives in `Expression::type_info`.
+///
+/// Compile helpers also take a `pending: &mut Vec<CompilerError>` parameter — a
+/// stack of unhandled fallible expressions encountered while compiling the current
+/// root expression. Each entry is a fallible expression whose error has not yet
+/// been consumed by a parent (assignment, error-coalesce `??`, etc.). Helpers
+/// scope their effect on this stack by snapshotting `len()` on entry and either
+/// leaving sub-expression entries pending or truncating back to the snapshot to
+/// consume them. At the root expression boundary, any entries still pending are
+/// flushed as diagnostics. Threading this explicitly rather than holding it on
+/// the compiler makes the data flow visible at every call site and keeps the
+/// `Compiler` struct free of state that's specific to one root expression's
+/// compilation.
 pub struct Compiler<'a> {
     fns: &'a [Box<dyn Function>],
     diagnostics: DiagnosticsMessages,
@@ -45,20 +57,6 @@ pub struct Compiler<'a> {
     /// This list allows us to avoid printing "undefined variable" compilation
     /// errors when the reason for it being undefined is another compiler error.
     skip_missing_query_target: Vec<(QueryTarget, OwnedValuePath)>,
-
-    /// Stack of unhandled fallible expressions encountered while compiling
-    /// the current root expression.
-    ///
-    /// Each entry represents a fallible expression whose error has not (yet)
-    /// been consumed by a parent (assignment, error-coalesce `??`, etc.).
-    /// Helpers track their own boundary by snapshotting `len()` on entry and
-    /// either leaving sub-expression entries pending, or truncating back to
-    /// the snapshot to consume them. At the root expression boundary any
-    /// entries still pending are flushed as diagnostics. Using a stack
-    /// instead of a single slot lets multiple unhandled errors surface in
-    /// one compilation pass — e.g. when both a discarded fallible call and
-    /// a later fallible assignment exist in the same block.
-    fallible_expressions: Vec<CompilerError>,
 
     config: CompileConfig,
 }
@@ -87,20 +85,24 @@ impl CompilerError {
     }
 }
 
-impl<'a> Compiler<'a> {
-    /// Run `f` and drop any pending fallibilities it pushed onto the stack
-    /// on exit, regardless of whether `f` returned `Ok`/`Some` or pushed a
-    /// hard diagnostic. Use this in helpers where the helper's *own* error
-    /// (or expression type) already accounts for the inner fallibility —
-    /// `abort`, `return`, predicate construction, function-argument
-    /// validation. Entries pushed before the call are untouched.
-    fn consuming_fallibility<R>(&mut self, f: impl FnOnce(&mut Self) -> R) -> R {
-        let snapshot = self.fallible_expressions.len();
-        let result = f(self);
-        self.fallible_expressions.truncate(snapshot);
-        result
-    }
+/// Run `f` against `pending` and drop anything it pushed onto the stack on
+/// exit, regardless of whether `f` returned `Ok`/`Some` or pushed a hard
+/// diagnostic. Use this in helpers where the helper's *own* error (or
+/// expression type) already accounts for the inner fallibility — `abort`,
+/// `return`, predicate construction, function-argument validation. Entries
+/// pushed before the call are untouched.
+fn with_consumed_pending<C, R>(
+    compiler: &mut C,
+    pending: &mut Vec<CompilerError>,
+    f: impl FnOnce(&mut C, &mut Vec<CompilerError>) -> R,
+) -> R {
+    let snapshot = pending.len();
+    let result = f(compiler, pending);
+    pending.truncate(snapshot);
+    result
+}
 
+impl<'a> Compiler<'a> {
     /// Compiles a given source into the final [`Program`].
     ///
     /// # Arguments
@@ -131,7 +133,6 @@ impl<'a> Compiler<'a> {
             external_queries: vec![],
             external_assignments: vec![],
             skip_missing_query_target: vec![],
-            fallible_expressions: vec![],
             config,
         };
         let expressions = compiler.compile_root_exprs(ast, &mut state);
@@ -169,48 +170,59 @@ impl<'a> Compiler<'a> {
         &mut self,
         nodes: impl IntoIterator<Item = Node<ast::Expr>>,
         state: &mut TypeState,
+        pending: &mut Vec<CompilerError>,
     ) -> Option<Vec<Expr>> {
         let mut exprs = vec![];
         for node in nodes {
-            let expr = self.compile_expr(node, state)?;
+            let expr = self.compile_expr(node, state, pending)?;
             exprs.push(expr);
         }
         Some(exprs)
     }
 
-    fn compile_expr(&mut self, node: Node<ast::Expr>, state: &mut TypeState) -> Option<Expr> {
+    fn compile_expr(
+        &mut self,
+        node: Node<ast::Expr>,
+        state: &mut TypeState,
+        pending: &mut Vec<CompilerError>,
+    ) -> Option<Expr> {
         use ast::Expr::{
             Abort, Assignment, Container, FunctionCall, IfStatement, Literal, Op, Query, Return,
             Unary, Variable,
         };
         let original_state = state.clone();
-        let pre_compile_pending = self.fallible_expressions.len();
+        let pre_compile_pending = pending.len();
 
         let span = node.span();
         let expr = match node.into_inner() {
-            Literal(node) => self.compile_literal(node, state),
-            Container(node) => self.compile_container(node, state).map(Into::into),
-            IfStatement(node) => self.compile_if_statement(node, state).map(Into::into),
-            Op(node) => self.compile_op(node, state).map(Into::into),
-            Assignment(node) => self.compile_assignment(node, state).map(Into::into),
-            Query(node) => self.compile_query(node, state).map(Into::into),
-            FunctionCall(node) => self
-                .compile_function_call(node, state)
-                .map(|function_call| {
-                    let v = function_call
-                        .warnings
-                        .iter()
-                        .cloned()
-                        .map(|w| Box::new(w) as Box<dyn DiagnosticMessage>)
-                        .collect::<Vec<_>>();
+            Literal(node) => self.compile_literal(node, state, pending),
+            Container(node) => self.compile_container(node, state, pending).map(Into::into),
+            IfStatement(node) => self
+                .compile_if_statement(node, state, pending)
+                .map(Into::into),
+            Op(node) => self.compile_op(node, state, pending).map(Into::into),
+            Assignment(node) => self
+                .compile_assignment(node, state, pending)
+                .map(Into::into),
+            Query(node) => self.compile_query(node, state, pending).map(Into::into),
+            FunctionCall(node) => {
+                self.compile_function_call(node, state, pending)
+                    .map(|function_call| {
+                        let v = function_call
+                            .warnings
+                            .iter()
+                            .cloned()
+                            .map(|w| Box::new(w) as Box<dyn DiagnosticMessage>)
+                            .collect::<Vec<_>>();
 
-                    self.diagnostics.extend(v);
-                    function_call.into()
-                }),
+                        self.diagnostics.extend(v);
+                        function_call.into()
+                    })
+            }
             Variable(node) => self.compile_variable(node, state).map(Into::into),
-            Unary(node) => self.compile_unary(node, state).map(Into::into),
-            Abort(node) => self.compile_abort(node, state).map(Into::into),
-            Return(node) => self.compile_return(node, state).map(Into::into),
+            Unary(node) => self.compile_unary(node, state, pending).map(Into::into),
+            Abort(node) => self.compile_abort(node, state, pending).map(Into::into),
+            Return(node) => self.compile_return(node, state, pending).map(Into::into),
         }?;
 
         // If the compiled expression is fallible and no sub-expression has
@@ -219,17 +231,21 @@ impl<'a> Compiler<'a> {
         // counting (e.g. `a + b()` where b is fallible already pushed) means
         // checking that the pending stack didn't grow during compilation.
         let type_def = expr.type_info(&original_state).result;
-        if type_def.is_fallible() && self.fallible_expressions.len() == pre_compile_pending {
-            self.fallible_expressions
-                .push(CompilerError::ExpressionError(
-                    expression::ExpressionError::Fallible { span },
-                ));
+        if type_def.is_fallible() && pending.len() == pre_compile_pending {
+            pending.push(CompilerError::ExpressionError(
+                expression::ExpressionError::Fallible { span },
+            ));
         }
 
         Some(expr)
     }
 
-    fn compile_literal(&mut self, node: Node<ast::Literal>, state: &mut TypeState) -> Option<Expr> {
+    fn compile_literal(
+        &mut self,
+        node: Node<ast::Literal>,
+        state: &mut TypeState,
+        pending: &mut Vec<CompilerError>,
+    ) -> Option<Expr> {
         use ast::Literal::{Boolean, Float, Integer, Null, RawString, Regex, String, Timestamp};
         use bytes::Bytes;
 
@@ -244,6 +260,7 @@ impl<'a> Compiler<'a> {
                     return self.compile_expr(
                         Node::new(span, template.rewrite_to_concatenated_strings()),
                         state,
+                        pending,
                     );
                 }
             }
@@ -272,21 +289,27 @@ impl<'a> Compiler<'a> {
         &mut self,
         node: Node<ast::Container>,
         state: &mut TypeState,
+        pending: &mut Vec<CompilerError>,
     ) -> Option<Container> {
         use ast::Container::{Array, Block, Group, Object};
 
         let variant = match node.into_inner() {
-            Group(node) => self.compile_group(*node, state)?.into(),
-            Block(node) => self.compile_block(node, state)?.into(),
-            Array(node) => self.compile_array(node, state)?.into(),
-            Object(node) => self.compile_object(node, state)?.into(),
+            Group(node) => self.compile_group(*node, state, pending)?.into(),
+            Block(node) => self.compile_block(node, state, pending)?.into(),
+            Array(node) => self.compile_array(node, state, pending)?.into(),
+            Object(node) => self.compile_object(node, state, pending)?.into(),
         };
 
         Some(Container::new(variant))
     }
 
-    fn compile_group(&mut self, node: Node<ast::Group>, state: &mut TypeState) -> Option<Group> {
-        let expr = self.compile_expr(node.into_inner().into_inner(), state)?;
+    fn compile_group(
+        &mut self,
+        node: Node<ast::Group>,
+        state: &mut TypeState,
+        pending: &mut Vec<CompilerError>,
+    ) -> Option<Group> {
+        let expr = self.compile_expr(node.into_inner().into_inner(), state, pending)?;
 
         Some(Group::new(expr))
     }
@@ -301,16 +324,15 @@ impl<'a> Compiler<'a> {
         for root_expr in nodes {
             match root_expr.into_inner() {
                 RootExpr::Expr(node_expr) => {
-                    self.fallible_expressions.clear();
+                    // Each root expression gets a fresh pending stack. Any
+                    // unhandled fallibilities found while compiling it
+                    // surface as diagnostics at this boundary, regardless of
+                    // whether the root itself compiled (a hard error
+                    // mid-compile must not discard prior pending entries).
+                    let mut pending: Vec<CompilerError> = vec![];
+                    let compiled = self.compile_expr(node_expr, state, &mut pending);
 
-                    let compiled = self.compile_expr(node_expr, state);
-
-                    // Flush whatever fallibilities are still pending,
-                    // regardless of whether the root expression itself
-                    // compiled. Otherwise a hard error mid-compile would
-                    // discard prior unhandled fallibilities and the user
-                    // would only discover them on the next compile.
-                    for error in self.fallible_expressions.drain(..) {
+                    for error in pending {
                         self.diagnostics.push(error.into_diagnostic_boxed());
                     }
 
@@ -328,8 +350,13 @@ impl<'a> Compiler<'a> {
         node_exprs
     }
 
-    fn compile_block(&mut self, node: Node<ast::Block>, state: &mut TypeState) -> Option<Block> {
-        self.compile_block_with_type(node, state)
+    fn compile_block(
+        &mut self,
+        node: Node<ast::Block>,
+        state: &mut TypeState,
+        pending: &mut Vec<CompilerError>,
+    ) -> Option<Block> {
+        self.compile_block_with_type(node, state, pending)
             .map(|(block, _type_def)| block)
     }
 
@@ -337,9 +364,10 @@ impl<'a> Compiler<'a> {
         &mut self,
         node: Node<ast::Block>,
         state: &mut TypeState,
+        pending: &mut Vec<CompilerError>,
     ) -> Option<(Block, TypeDef)> {
         let original_state = state.clone();
-        let exprs = self.compile_exprs(node.into_inner().into_iter(), state)?;
+        let exprs = self.compile_exprs(node.into_inner().into_iter(), state, pending)?;
         let block = Block::new_scoped(exprs);
 
         // The type information from `compile_exprs` doesn't applying the "scoping" from the block.
@@ -349,17 +377,27 @@ impl<'a> Compiler<'a> {
         Some((block, result))
     }
 
-    fn compile_array(&mut self, node: Node<ast::Array>, state: &mut TypeState) -> Option<Array> {
-        let exprs = self.compile_exprs(node.into_inner().into_iter(), state)?;
+    fn compile_array(
+        &mut self,
+        node: Node<ast::Array>,
+        state: &mut TypeState,
+        pending: &mut Vec<CompilerError>,
+    ) -> Option<Array> {
+        let exprs = self.compile_exprs(node.into_inner().into_iter(), state, pending)?;
 
         Some(Array::new(exprs))
     }
 
-    fn compile_object(&mut self, node: Node<ast::Object>, state: &mut TypeState) -> Option<Object> {
+    fn compile_object(
+        &mut self,
+        node: Node<ast::Object>,
+        state: &mut TypeState,
+        pending: &mut Vec<CompilerError>,
+    ) -> Option<Object> {
         let (keys, exprs): (Vec<String>, Vec<Option<Expr>>) = node
             .into_inner()
             .into_iter()
-            .map(|(k, expr)| (k.into_inner(), self.compile_expr(expr, state)))
+            .map(|(k, expr)| (k.into_inner(), self.compile_expr(expr, state, pending)))
             .unzip();
 
         let exprs = exprs.into_iter().collect::<Option<Vec<_>>>()?;
@@ -376,6 +414,7 @@ impl<'a> Compiler<'a> {
         &mut self,
         node: Node<ast::IfStatement>,
         state: &mut TypeState,
+        pending: &mut Vec<CompilerError>,
     ) -> Option<IfStatement> {
         let ast::IfStatement {
             predicate,
@@ -386,17 +425,17 @@ impl<'a> Compiler<'a> {
         let original_state = state.clone();
 
         let predicate = self
-            .compile_predicate(predicate, state)?
+            .compile_predicate(predicate, state, pending)?
             .map_err(|err| self.diagnostics.push(Box::new(err)))
             .ok()?;
 
         let after_predicate_state = state.clone();
 
-        let if_block = self.compile_block(if_node, state)?;
+        let if_block = self.compile_block(if_node, state, pending)?;
 
         let else_block = if let Some(else_node) = else_node {
             *state = after_predicate_state;
-            Some(self.compile_block(else_node, state)?)
+            Some(self.compile_block(else_node, state, pending)?)
         } else {
             None
         };
@@ -418,24 +457,22 @@ impl<'a> Compiler<'a> {
         &mut self,
         node: Node<ast::Predicate>,
         state: &mut TypeState,
+        pending: &mut Vec<CompilerError>,
     ) -> Option<predicate::Result> {
         use ast::Predicate::{Many, One};
 
         let (span, predicate) = node.take();
-        let pre_pending = self.fallible_expressions.len();
+        let pre_pending = pending.len();
 
-        self.consuming_fallibility(|c| {
+        with_consumed_pending(self, pending, |c, pending| {
             let exprs = match predicate {
-                One(node) => vec![c.compile_expr(*node, state)?],
-                Many(nodes) => c.compile_exprs(nodes, state)?,
+                One(node) => vec![c.compile_expr(*node, state, pending)?],
+                Many(nodes) => c.compile_exprs(nodes, state, pending)?,
             };
 
             // The predicate's own fallibility is anything pushed during its
             // own compilation — never a stale prior entry from before it.
-            let predicate_fallibility = c
-                .fallible_expressions
-                .get(pre_pending)
-                .map(CompilerError::to_diagnostic);
+            let predicate_fallibility = pending.get(pre_pending).map(CompilerError::to_diagnostic);
             Some(Predicate::new(
                 Node::new(span, exprs),
                 state,
@@ -444,7 +481,12 @@ impl<'a> Compiler<'a> {
         })
     }
 
-    fn compile_op(&mut self, node: Node<ast::Op>, state: &mut TypeState) -> Option<Op> {
+    fn compile_op(
+        &mut self,
+        node: Node<ast::Op>,
+        state: &mut TypeState,
+        pending: &mut Vec<CompilerError>,
+    ) -> Option<Op> {
         use crate::parser::ast::Opcode;
 
         let original_state = state.clone();
@@ -455,18 +497,18 @@ impl<'a> Compiler<'a> {
         // Snapshot the pending stack on entry so we can scope any consumes
         // performed by this op (`??`, infallible-typed result) to entries
         // produced by lhs/rhs and not touch entries from prior expressions.
-        let pre_op_pending = self.fallible_expressions.len();
+        let pre_op_pending = pending.len();
 
         let lhs_span = lhs.span();
-        let lhs = Node::new(lhs_span, self.compile_expr(*lhs, state)?);
+        let lhs = Node::new(lhs_span, self.compile_expr(*lhs, state, pending)?);
 
         // `??` consumes any fallibility produced by the lhs.
         if opcode.inner() == &Opcode::Err {
-            self.fallible_expressions.truncate(pre_op_pending);
+            pending.truncate(pre_op_pending);
         }
 
         let rhs_span = rhs.span();
-        let rhs = Node::new(rhs_span, self.compile_expr(*rhs, state)?);
+        let rhs = Node::new(rhs_span, self.compile_expr(*rhs, state, pending)?);
 
         let op = match Op::new(lhs, opcode, rhs, state) {
             Ok(op) => op,
@@ -474,7 +516,7 @@ impl<'a> Compiler<'a> {
                 // The op itself failed (e.g. `1 ?? x` is rejected as
                 // unnecessary error coalescing). Sub-expression fallibilities
                 // are subsumed by this hard error — don't double-report.
-                self.fallible_expressions.truncate(pre_op_pending);
+                pending.truncate(pre_op_pending);
                 self.diagnostics.push(Box::new(err));
                 return None;
             }
@@ -486,7 +528,7 @@ impl<'a> Compiler<'a> {
         // short-circuit boolean made it so), drop fallibility produced by
         // any of its sub-expressions.
         if type_info.result.is_infallible() {
-            self.fallible_expressions.truncate(pre_op_pending);
+            pending.truncate(pre_op_pending);
         }
 
         // Both "lhs" and "rhs" are compiled above, but "rhs" isn't always executed.
@@ -502,6 +544,7 @@ impl<'a> Compiler<'a> {
         target: &Node<ast::AssignmentTarget>,
         expr: Box<Node<ast::Expr>>,
         state: &mut TypeState,
+        pending: &mut Vec<CompilerError>,
     ) -> Option<Box<Node<Expr>>> {
         Some(Box::new(Node::new(
             span,
@@ -515,6 +558,7 @@ impl<'a> Compiler<'a> {
                     ),
                 ),
                 state,
+                pending,
             )?),
         )))
     }
@@ -523,6 +567,7 @@ impl<'a> Compiler<'a> {
         &mut self,
         node: Node<ast::Assignment>,
         state: &mut TypeState,
+        pending: &mut Vec<CompilerError>,
     ) -> Option<Assignment> {
         use assignment::Variant;
         use ast::{
@@ -539,7 +584,7 @@ impl<'a> Compiler<'a> {
         // itself fails — so e.g. a discarded fallible call in a block
         // followed by a fallible-RHS assignment surfaces both errors in one
         // pass instead of one error blocking the discovery of the other.
-        let pre_assignment_pending = self.fallible_expressions.len();
+        let pre_assignment_pending = pending.len();
 
         let assignment = node.into_inner();
 
@@ -550,7 +595,7 @@ impl<'a> Compiler<'a> {
                 match op {
                     AssignmentOp::Assign => {
                         let expr = self
-                            .compile_expr(*expr, state)
+                            .compile_expr(*expr, state, pending)
                             .map(|expr| Box::new(Node::new(span, expr)))
                             .or_else(|| {
                                 self.skip_missing_assignment_target(&target.clone().into_inner());
@@ -560,7 +605,7 @@ impl<'a> Compiler<'a> {
                         Node::new(span, Variant::Single { target, expr })
                     }
                     AssignmentOp::Merge => {
-                        let expr = self.rewrite_to_merge(span, &target, expr, state)?;
+                        let expr = self.rewrite_to_merge(span, &target, expr, state, pending)?;
                         Node::new(span, Variant::Single { target, expr })
                     }
                 }
@@ -571,7 +616,7 @@ impl<'a> Compiler<'a> {
                 let node = match op {
                     AssignmentOp::Assign => {
                         let expr = self
-                            .compile_expr(*expr, state)
+                            .compile_expr(*expr, state, pending)
                             .map(|expr| Box::new(Node::new(span, expr)))
                             .or_else(|| {
                                 self.skip_missing_assignment_target(&ok.clone().into_inner());
@@ -588,7 +633,7 @@ impl<'a> Compiler<'a> {
                         Node::new(span, node)
                     }
                     AssignmentOp::Merge => {
-                        let expr = self.rewrite_to_merge(span, &ok, expr, state)?;
+                        let expr = self.rewrite_to_merge(span, &ok, expr, state, pending)?;
                         let node = Variant::Infallible {
                             ok,
                             err,
@@ -603,7 +648,7 @@ impl<'a> Compiler<'a> {
                 // The infallible-form (`x, err = ...`) consumes any fallibility
                 // produced by the RHS. Drop only RHS-produced entries; prior
                 // pending errors stay on the stack.
-                self.fallible_expressions.truncate(pre_assignment_pending);
+                pending.truncate(pre_assignment_pending);
 
                 node
             }
@@ -612,7 +657,7 @@ impl<'a> Compiler<'a> {
         // The fallibility relevant to `Assignment::new`'s check is whatever
         // was produced by *this* assignment's RHS — i.e. the first entry past
         // the snapshot. Anything before that belongs to an earlier expression.
-        let rhs_fallibility = self.fallible_expressions.get(pre_assignment_pending);
+        let rhs_fallibility = pending.get(pre_assignment_pending);
         let assignment_result = Assignment::new(node, state, rhs_fallibility, &self.config);
 
         let assignment = match assignment_result {
@@ -623,10 +668,8 @@ impl<'a> Compiler<'a> {
                 // still subject to outer consumer scopes (e.g. an enclosing
                 // `abort`/`return`/predicate that would suppress them) or
                 // get flushed at the root boundary if no consumer claims
-                // them. This means at root the assignment error appears
-                // before the priors in the diagnostic list — source order
-                // is sacrificed for correct cross-scope semantics.
-                self.fallible_expressions.truncate(pre_assignment_pending);
+                // them.
+                pending.truncate(pre_assignment_pending);
                 self.diagnostics.push(Box::new(err));
                 return None;
             }
@@ -635,7 +678,7 @@ impl<'a> Compiler<'a> {
         // Successful assignment consumes its own RHS fallibility (it's
         // expressed by the assignment expression itself now). Prior entries
         // remain pending.
-        self.fallible_expressions.truncate(pre_assignment_pending);
+        pending.truncate(pre_assignment_pending);
 
         // Track any potential external target assignments within the program.
         //
@@ -655,7 +698,12 @@ impl<'a> Compiler<'a> {
         Some(assignment)
     }
 
-    fn compile_query(&mut self, node: Node<ast::Query>, state: &mut TypeState) -> Option<Query> {
+    fn compile_query(
+        &mut self,
+        node: Node<ast::Query>,
+        state: &mut TypeState,
+        pending: &mut Vec<CompilerError>,
+    ) -> Option<Query> {
         let ast::Query { target, path } = node.into_inner();
 
         if self
@@ -666,7 +714,7 @@ impl<'a> Compiler<'a> {
         }
 
         let path = path.into_inner();
-        let target = self.compile_query_target(target, state)?;
+        let target = self.compile_query_target(target, state, pending)?;
 
         // Track any potential external target queries within the program.
         //
@@ -687,6 +735,7 @@ impl<'a> Compiler<'a> {
         &mut self,
         node: Node<ast::QueryTarget>,
         state: &mut TypeState,
+        pending: &mut Vec<CompilerError>,
     ) -> Option<query::Target> {
         use ast::QueryTarget::{Container, External, FunctionCall, Internal};
 
@@ -699,11 +748,12 @@ impl<'a> Compiler<'a> {
                 Target::Internal(variable)
             }
             Container(container) => {
-                let container = self.compile_container(Node::new(span, container), state)?;
+                let container =
+                    self.compile_container(Node::new(span, container), state, pending)?;
                 Target::Container(container)
             }
             FunctionCall(call) => {
-                let call = self.compile_function_call(Node::new(span, call), state)?;
+                let call = self.compile_function_call(Node::new(span, call), state, pending)?;
                 Target::FunctionCall(call)
             }
         };
@@ -723,6 +773,7 @@ impl<'a> Compiler<'a> {
         &mut self,
         node: Node<ast::FunctionCall>,
         state: &mut TypeState,
+        pending: &mut Vec<CompilerError>,
     ) -> Option<FunctionCall> {
         let call_span = node.span();
         let ast::FunctionCall {
@@ -770,63 +821,61 @@ impl<'a> Compiler<'a> {
         // when validation either subsumes it (E630/FallibleArgument) or
         // accepts the call (in which case the function's own fallibility
         // is re-pushed below via `result.error`).
-        let function_info = self
-            .consuming_fallibility(|c| {
-                let arguments: Vec<_> = arguments
-                    .into_iter()
-                    .map(|node| {
-                        Some(Node::new(
-                            node.span(),
-                            c.compile_function_argument(node, state)?,
-                        ))
-                    })
-                    .collect::<Option<_>>()?;
+        let function_info = with_consumed_pending(self, pending, |c, pending| {
+            let arguments: Vec<_> = arguments
+                .into_iter()
+                .map(|node| {
+                    Some(Node::new(
+                        node.span(),
+                        c.compile_function_argument(node, state, pending)?,
+                    ))
+                })
+                .collect::<Option<_>>()?;
 
-                function_call::Builder::new(
-                    call_span,
-                    ident,
-                    abort_on_error,
-                    arguments,
-                    c.fns,
+            function_call::Builder::new(
+                call_span,
+                ident,
+                abort_on_error,
+                arguments,
+                c.fns,
+                &state_before_function,
+                state,
+                closure_variables,
+            )
+            .map_err(|err| c.diagnostics.push(Box::new(err)))
+            .ok()
+        })
+        .and_then(|builder| {
+            let block = match closure_block {
+                None => None,
+                Some(block) => {
+                    let span = block.span();
+                    match self.compile_block_with_type(block, state, pending) {
+                        Some(block_with_type) => Some(Node::new(span, block_with_type)),
+                        None => return None,
+                    }
+                }
+            };
+
+            let arg_list = builder.get_arg_list().clone();
+
+            builder
+                .compile(
                     &state_before_function,
                     state,
-                    closure_variables,
+                    block,
+                    local_snapshot,
+                    &mut self.config,
                 )
-                .map_err(|err| c.diagnostics.push(Box::new(err)))
+                .map_err(|err| self.diagnostics.push(Box::new(err)))
                 .ok()
-            })
-            .and_then(|builder| {
-                let block = match closure_block {
-                    None => None,
-                    Some(block) => {
-                        let span = block.span();
-                        match self.compile_block_with_type(block, state) {
-                            Some(block_with_type) => Some(Node::new(span, block_with_type)),
-                            None => return None,
-                        }
+                .map(|result| {
+                    if let Some(e) = result.error {
+                        pending.push(CompilerError::FunctionCallError(e));
                     }
-                };
-
-                let arg_list = builder.get_arg_list().clone();
-
-                builder
-                    .compile(
-                        &state_before_function,
-                        state,
-                        block,
-                        local_snapshot,
-                        &mut self.config,
-                    )
-                    .map_err(|err| self.diagnostics.push(Box::new(err)))
-                    .ok()
-                    .map(|result| {
-                        if let Some(e) = result.error {
-                            self.fallible_expressions
-                                .push(CompilerError::FunctionCallError(e));
-                        }
-                        (arg_list, result.function_call)
-                    })
-            });
+                    (arg_list, result.function_call)
+                })
+        });
 
         if let Some((args, function)) = &function_info {
             self.check_function_deprecations(function, args);
@@ -841,13 +890,14 @@ impl<'a> Compiler<'a> {
         &mut self,
         node: Node<ast::FunctionArgument>,
         state: &mut TypeState,
+        pending: &mut Vec<CompilerError>,
     ) -> Option<FunctionArgument> {
         let ast::FunctionArgument {
             ident,
             expr: ast_expr,
         } = node.into_inner();
         let span = ast_expr.span();
-        let expr = self.compile_expr(ast_expr, state)?;
+        let expr = self.compile_expr(ast_expr, state, pending)?;
         let node = Node::new(span, expr);
 
         Some(FunctionArgument::new(ident, node))
@@ -872,34 +922,50 @@ impl<'a> Compiler<'a> {
             .ok()
     }
 
-    fn compile_unary(&mut self, node: Node<ast::Unary>, state: &mut TypeState) -> Option<Unary> {
+    fn compile_unary(
+        &mut self,
+        node: Node<ast::Unary>,
+        state: &mut TypeState,
+        pending: &mut Vec<CompilerError>,
+    ) -> Option<Unary> {
         use ast::Unary::Not;
 
         let variant = match node.into_inner() {
-            Not(node) => self.compile_not(node, state)?.into(),
+            Not(node) => self.compile_not(node, state, pending)?.into(),
         };
 
         Some(Unary::new(variant))
     }
 
-    fn compile_not(&mut self, node: Node<ast::Not>, state: &mut TypeState) -> Option<Not> {
+    fn compile_not(
+        &mut self,
+        node: Node<ast::Not>,
+        state: &mut TypeState,
+        pending: &mut Vec<CompilerError>,
+    ) -> Option<Not> {
         let (not, expr) = node.into_inner().take();
 
-        let node = Node::new(expr.span(), self.compile_expr(*expr, state)?);
+        let node = Node::new(expr.span(), self.compile_expr(*expr, state, pending)?);
 
         Not::new(node, not.span(), state)
             .map_err(|err| self.diagnostics.push(Box::new(err)))
             .ok()
     }
 
-    fn compile_abort(&mut self, node: Node<ast::Abort>, state: &mut TypeState) -> Option<Abort> {
+    fn compile_abort(
+        &mut self,
+        node: Node<ast::Abort>,
+        state: &mut TypeState,
+        pending: &mut Vec<CompilerError>,
+    ) -> Option<Abort> {
         self.abortable = true;
         let (span, abort) = node.take();
-        self.consuming_fallibility(|c| {
+        with_consumed_pending(self, pending, |c, pending| {
             let message = match abort.message {
-                Some(node) => {
-                    Some((*node).map_option(|expr| c.compile_expr(Node::new(span, expr), state))?)
-                }
+                Some(node) => Some(
+                    (*node)
+                        .map_option(|expr| c.compile_expr(Node::new(span, expr), state, pending))?,
+                ),
                 None => None,
             };
 
@@ -909,10 +975,15 @@ impl<'a> Compiler<'a> {
         })
     }
 
-    fn compile_return(&mut self, node: Node<ast::Return>, state: &mut TypeState) -> Option<Return> {
+    fn compile_return(
+        &mut self,
+        node: Node<ast::Return>,
+        state: &mut TypeState,
+        pending: &mut Vec<CompilerError>,
+    ) -> Option<Return> {
         let (span, r#return) = node.take();
-        self.consuming_fallibility(|c| {
-            let expr = c.compile_expr(*r#return.expr, state)?;
+        with_consumed_pending(self, pending, |c, pending| {
+            let expr = c.compile_expr(*r#return.expr, state, pending)?;
             let node = Node::new(span, expr);
 
             Return::new(span, node, state)
