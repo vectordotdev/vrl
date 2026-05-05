@@ -468,9 +468,17 @@ impl<'a> Compiler<'a> {
         let rhs_span = rhs.span();
         let rhs = Node::new(rhs_span, self.compile_expr(*rhs, state)?);
 
-        let op = Op::new(lhs, opcode, rhs, state)
-            .map_err(|err| self.diagnostics.push(Box::new(err)))
-            .ok()?;
+        let op = match Op::new(lhs, opcode, rhs, state) {
+            Ok(op) => op,
+            Err(err) => {
+                // The op itself failed (e.g. `1 ?? x` is rejected as
+                // unnecessary error coalescing). Sub-expression fallibilities
+                // are subsumed by this hard error — don't double-report.
+                self.fallible_expressions.truncate(pre_op_pending);
+                self.diagnostics.push(Box::new(err));
+                return None;
+            }
+        };
 
         let type_info = op.type_info(&original_state);
 
@@ -610,15 +618,15 @@ impl<'a> Compiler<'a> {
         let assignment = match assignment_result {
             Ok(a) => a,
             Err(err) => {
-                // Flush any prior pending fallibilities first so they appear
-                // before the assignment error in source order rather than
-                // trailing behind it via the root-expr drain. RHS-produced
-                // entries are consumed by the hard error and dropped.
-                let mut priors = std::mem::take(&mut self.fallible_expressions);
-                priors.truncate(pre_assignment_pending);
-                for prior in priors {
-                    self.diagnostics.push(prior.into_diagnostic_boxed());
-                }
+                // Drop only RHS-produced entries: the hard error subsumes
+                // them. Prior pending entries stay on the stack so they're
+                // still subject to outer consumer scopes (e.g. an enclosing
+                // `abort`/`return`/predicate that would suppress them) or
+                // get flushed at the root boundary if no consumer claims
+                // them. This means at root the assignment error appears
+                // before the priors in the diagnostic list — source order
+                // is sacrificed for correct cross-scope semantics.
+                self.fallible_expressions.truncate(pre_assignment_pending);
                 self.diagnostics.push(Box::new(err));
                 return None;
             }

@@ -1022,9 +1022,70 @@ mod test {
             .expect("should error");
 
         let errors: Vec<_> = diagnostics.iter().filter(|d| d.is_error()).collect();
+        let codes: Vec<usize> = errors.iter().map(|d| d.code).collect();
         assert!(
-            errors.len() >= 2,
-            "expected both errors surfaced in one pass, got: {errors:#?}",
+            codes.contains(&110),
+            "expected E110 from `push(.x, 1)` to surface, got {codes:?}",
+        );
+        assert!(
+            codes.contains(&103),
+            "expected E103 from the assignment to surface, got {codes:?}",
+        );
+        assert_eq!(
+            errors.len(),
+            2,
+            "expected exactly two errors, got: {errors:#?}",
+        );
+    }
+
+    /// An outer consumer (`abort`) wraps a block with an inner unhandled
+    /// fallibility. That fallibility belongs to the abort scope and must
+    /// not leak as a separate E100/E110 once abort raises its own error.
+    #[test]
+    fn priors_in_consumer_scope_do_not_leak() {
+        let src = indoc::indoc! {r"
+            abort {
+                push(.x, 1)
+                .b = push(.y, 2)
+            }
+        "};
+        let diagnostics = crate::compiler::compile(src, &crate::stdlib::all())
+            .err()
+            .expect("should error");
+
+        let codes: Vec<usize> = diagnostics
+            .iter()
+            .filter(|d| d.is_error())
+            .map(|d| d.code)
+            .collect();
+        assert!(
+            !codes.contains(&110),
+            "the `push(.x, 1)` E110 must not leak past the enclosing abort, got {codes:?}",
+        );
+    }
+
+    /// `1 ?? rhs` is rejected as an unnecessary error coalescing operation
+    /// (E651). The rhs's fallibility is subsumed by the op-level error
+    /// and must not double-report as E100 at the root drain.
+    #[test]
+    fn op_hard_error_drains_subexpression_fallibilities() {
+        let src = "1 ?? parse_json(\"{}\")";
+        let diagnostics = crate::compiler::compile(src, &crate::stdlib::all())
+            .err()
+            .expect("should error");
+
+        let codes: Vec<usize> = diagnostics
+            .iter()
+            .filter(|d| d.is_error())
+            .map(|d| d.code)
+            .collect();
+        assert!(
+            codes.contains(&651),
+            "expected E651 from the `??` operator, got {codes:?}",
+        );
+        assert!(
+            !codes.contains(&100),
+            "rhs E100 must not leak past the op-level hard error, got {codes:?}",
         );
     }
 }
