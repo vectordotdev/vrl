@@ -46,15 +46,20 @@ pub struct Compiler<'a> {
     /// errors when the reason for it being undefined is another compiler error.
     skip_missing_query_target: Vec<(QueryTarget, OwnedValuePath)>,
 
-    /// Track which expression in a chain of expressions is fallible.
+    /// Stack of unhandled fallibility errors collected while compiling the
+    /// current root expression.
     ///
-    /// It is possible for this state to switch from `None`, to `Some(T)` and
-    /// back to `None`, if the parent expression of a fallible expression
-    /// nullifies the fallibility of that expression.
-    // This should probably be kept on the call stack as the "compile_*" functions are called
-    // otherwise some expressions may remove it when they shouldn't (such as the RHS of an operation removing
-    // the error from the LHS)
-    fallible_expression_error: Option<CompilerError>,
+    /// Each entry is the error produced by a fallible expression whose
+    /// fallibility has not (yet) been consumed by a parent (assignment,
+    /// error-coalesce `??`, etc.). Helpers track their own boundary by
+    /// snapshotting `len()` on entry and either leaving sub-expression
+    /// entries pending, or truncating back to the snapshot to consume them.
+    /// At the root expression boundary any entries still pending are
+    /// flushed as diagnostics. Using a stack instead of a single slot lets
+    /// multiple unhandled errors surface in one compilation pass — e.g.
+    /// when both a discarded fallible call and a later fallible assignment
+    /// exist in the same block.
+    pending_fallibilities: Vec<CompilerError>,
 
     config: CompileConfig,
 }
@@ -84,6 +89,19 @@ impl CompilerError {
 }
 
 impl<'a> Compiler<'a> {
+    /// Run `f` and drop any pending fallibilities it pushed onto the stack
+    /// on exit, regardless of whether `f` returned `Ok`/`Some` or pushed a
+    /// hard diagnostic. Use this in helpers where the helper's *own* error
+    /// (or expression type) already accounts for the inner fallibility —
+    /// `abort`, `return`, predicate construction, function-argument
+    /// validation. Entries pushed before the call are untouched.
+    fn consuming_fallibility<R>(&mut self, f: impl FnOnce(&mut Self) -> R) -> R {
+        let snapshot = self.pending_fallibilities.len();
+        let result = f(self);
+        self.pending_fallibilities.truncate(snapshot);
+        result
+    }
+
     /// Compiles a given source into the final [`Program`].
     ///
     /// # Arguments
@@ -114,7 +132,7 @@ impl<'a> Compiler<'a> {
             external_queries: vec![],
             external_assignments: vec![],
             skip_missing_query_target: vec![],
-            fallible_expression_error: None,
+            pending_fallibilities: vec![],
             config,
         };
         let expressions = compiler.compile_root_exprs(ast, &mut state);
@@ -167,6 +185,7 @@ impl<'a> Compiler<'a> {
             Unary, Variable,
         };
         let original_state = state.clone();
+        let pre_compile_pending = self.pending_fallibilities.len();
 
         let span = node.span();
         let expr = match node.into_inner() {
@@ -195,16 +214,17 @@ impl<'a> Compiler<'a> {
             Return(node) => self.compile_return(node, state).map(Into::into),
         }?;
 
-        // If the previously compiled expression is fallible, _and_ we are
-        // currently not tracking any existing fallible expression in the chain
-        // of expressions, then this is the first expression within that chain
-        // that can cause the entire chain to be fallible.
-
+        // If the compiled expression is fallible and no sub-expression has
+        // already pushed an entry for it, record this expression as the
+        // outer-most fallible point in the current chain. Avoiding double
+        // counting (e.g. `a + b()` where b is fallible already pushed) means
+        // checking that the pending stack didn't grow during compilation.
         let type_def = expr.type_info(&original_state).result;
-        if type_def.is_fallible() && self.fallible_expression_error.is_none() {
-            self.fallible_expression_error = Some(CompilerError::ExpressionError(
-                expression::ExpressionError::Fallible { span },
-            ));
+        if type_def.is_fallible() && self.pending_fallibilities.len() == pre_compile_pending {
+            self.pending_fallibilities
+                .push(CompilerError::ExpressionError(
+                    expression::ExpressionError::Fallible { span },
+                ));
         }
 
         Some(expr)
@@ -282,13 +302,20 @@ impl<'a> Compiler<'a> {
         for root_expr in nodes {
             match root_expr.into_inner() {
                 RootExpr::Expr(node_expr) => {
-                    self.fallible_expression_error = None;
+                    self.pending_fallibilities.clear();
 
-                    if let Some(expr) = self.compile_expr(node_expr, state) {
-                        if let Some(error) = self.fallible_expression_error.take() {
-                            self.diagnostics.push(error.into_diagnostic_boxed());
-                        }
+                    let compiled = self.compile_expr(node_expr, state);
 
+                    // Flush whatever fallibilities are still pending,
+                    // regardless of whether the root expression itself
+                    // compiled. Otherwise a hard error mid-compile would
+                    // discard prior unhandled fallibilities and the user
+                    // would only discover them on the next compile.
+                    for error in self.pending_fallibilities.drain(..) {
+                        self.diagnostics.push(error.into_diagnostic_boxed());
+                    }
+
+                    if let Some(expr) = compiled {
                         node_exprs.push(expr);
                     }
                 }
@@ -396,19 +423,26 @@ impl<'a> Compiler<'a> {
         use ast::Predicate::{Many, One};
 
         let (span, predicate) = node.take();
+        let pre_pending = self.pending_fallibilities.len();
 
-        let exprs = match predicate {
-            One(node) => vec![self.compile_expr(*node, state)?],
-            Many(nodes) => self.compile_exprs(nodes, state)?,
-        };
+        self.consuming_fallibility(|c| {
+            let exprs = match predicate {
+                One(node) => vec![c.compile_expr(*node, state)?],
+                Many(nodes) => c.compile_exprs(nodes, state)?,
+            };
 
-        Some(Predicate::new(
-            Node::new(span, exprs),
-            state,
-            self.fallible_expression_error
-                .as_ref()
-                .map(CompilerError::to_diagnostic),
-        ))
+            // The predicate's own fallibility is anything pushed during its
+            // own compilation — never a stale prior entry from before it.
+            let predicate_fallibility = c
+                .pending_fallibilities
+                .get(pre_pending)
+                .map(CompilerError::to_diagnostic);
+            Some(Predicate::new(
+                Node::new(span, exprs),
+                state,
+                predicate_fallibility,
+            ))
+        })
     }
 
     fn compile_op(&mut self, node: Node<ast::Op>, state: &mut TypeState) -> Option<Op> {
@@ -419,35 +453,41 @@ impl<'a> Compiler<'a> {
         let op = node.into_inner();
         let ast::Op(lhs, opcode, rhs) = op;
 
+        // Snapshot the pending stack on entry so we can scope any consumes
+        // performed by this op (`??`, infallible-typed result) to entries
+        // produced by lhs/rhs and not touch entries from prior expressions.
+        let pre_op_pending = self.pending_fallibilities.len();
+
         let lhs_span = lhs.span();
         let lhs = Node::new(lhs_span, self.compile_expr(*lhs, state)?);
 
-        // If we're using error-coalescing, we need to negate any tracked
-        // fallibility error state for the lhs expression.
+        // `??` consumes any fallibility produced by the lhs.
         if opcode.inner() == &Opcode::Err {
-            self.fallible_expression_error = None;
+            self.pending_fallibilities.truncate(pre_op_pending);
         }
-
-        // save the error so the RHS can't delete an error from the LHS
-        let fallible_expression_error = self.fallible_expression_error.take();
 
         let rhs_span = rhs.span();
         let rhs = Node::new(rhs_span, self.compile_expr(*rhs, state)?);
 
-        let op = Op::new(lhs, opcode, rhs, state)
-            .map_err(|err| self.diagnostics.push(Box::new(err)))
-            .ok()?;
+        let op = match Op::new(lhs, opcode, rhs, state) {
+            Ok(op) => op,
+            Err(err) => {
+                // The op itself failed (e.g. `1 ?? x` is rejected as
+                // unnecessary error coalescing). Sub-expression fallibilities
+                // are subsumed by this hard error — don't double-report.
+                self.pending_fallibilities.truncate(pre_op_pending);
+                self.diagnostics.push(Box::new(err));
+                return None;
+            }
+        };
 
         let type_info = op.type_info(&original_state);
 
-        // re-apply the RHS error saved from above
-        if self.fallible_expression_error.is_none() {
-            self.fallible_expression_error = fallible_expression_error;
-        }
-
+        // If the op as a whole is infallible (e.g. `?? default` or a
+        // short-circuit boolean made it so), drop fallibility produced by
+        // any of its sub-expressions.
         if type_info.result.is_infallible() {
-            // There was a short-circuit operation that is preventing a fallibility error
-            self.fallible_expression_error = None;
+            self.pending_fallibilities.truncate(pre_op_pending);
         }
 
         // Both "lhs" and "rhs" are compiled above, but "rhs" isn't always executed.
@@ -493,20 +533,14 @@ impl<'a> Compiler<'a> {
 
         let original_state = state.clone();
 
-        // Save and clear any carry-over fallibility from a prior expression so
-        // that `Assignment::new` only observes fallibility produced by *this*
-        // assignment's RHS. Without this, a discarded fallible expression
-        // earlier in the same block (e.g. `set(e, [k], v)` followed by
-        // `output = push(output, e)`) would attach its error to the next
-        // assignment with a misleading E103. Restored after Assignment::new
-        // so the prior fallibility is still reported at a later boundary.
-        //
-        // TODO: this single-slot `Option<CompilerError>` design means the
-        // prior is dropped when `Assignment::new` itself fails (only the
-        // assignment error surfaces; the prior is discovered on the next
-        // compile). Lifting this needs the field to become a `Vec` (or the
-        // helpers that mutate it to return `Result<_, Vec<CompilerError>>`).
-        let prior_fallibility = self.fallible_expression_error.take();
+        // Snapshot the pending stack on entry so any fallibility produced by
+        // this assignment's RHS is scoped to entries beyond this point.
+        // Entries pending from before this assignment stay on the stack and
+        // are flushed at the next root boundary, even if `Assignment::new`
+        // itself fails — so e.g. a discarded fallible call in a block
+        // followed by a fallible-RHS assignment surfaces both errors in one
+        // pass instead of one error blocking the discovery of the other.
+        let pre_assignment_pending = self.pending_fallibilities.len();
 
         let assignment = node.into_inner();
 
@@ -567,32 +601,42 @@ impl<'a> Compiler<'a> {
                     }
                 };
 
-                // If the RHS expression is marked as fallible, the "infallible"
-                // assignment nullifies this fallibility, and thus no error
-                // should be emitted.
-                self.fallible_expression_error = None;
+                // The infallible-form (`x, err = ...`) consumes any fallibility
+                // produced by the RHS. Drop only RHS-produced entries; prior
+                // pending errors stay on the stack.
+                self.pending_fallibilities.truncate(pre_assignment_pending);
 
                 node
             }
         };
 
-        let assignment = Assignment::new(
-            node,
-            state,
-            self.fallible_expression_error.as_ref(),
-            &self.config,
-        )
-        .map_err(|err| self.diagnostics.push(Box::new(err)))
-        .ok()?;
+        // The fallibility relevant to `Assignment::new`'s check is whatever
+        // was produced by *this* assignment's RHS — i.e. the first entry past
+        // the snapshot. Anything before that belongs to an earlier expression.
+        let rhs_fallibility = self.pending_fallibilities.get(pre_assignment_pending);
+        let assignment_result = Assignment::new(node, state, rhs_fallibility, &self.config);
 
-        // Restore the carry-over from before this assignment so that the prior
-        // fallibility is still reported at the next boundary (root expression
-        // or consumer). If this assignment's RHS itself produced a fallibility
-        // that survived (e.g. a fallible Single assignment would have errored
-        // out above), don't overwrite it.
-        if self.fallible_expression_error.is_none() {
-            self.fallible_expression_error = prior_fallibility;
-        }
+        let assignment = match assignment_result {
+            Ok(a) => a,
+            Err(err) => {
+                // Drop only RHS-produced entries: the hard error subsumes
+                // them. Prior pending entries stay on the stack so they're
+                // still subject to outer consumer scopes (e.g. an enclosing
+                // `abort`/`return`/predicate that would suppress them) or
+                // get flushed at the root boundary if no consumer claims
+                // them. This means at root the assignment error appears
+                // before the priors in the diagnostic list — source order
+                // is sacrificed for correct cross-scope semantics.
+                self.pending_fallibilities.truncate(pre_assignment_pending);
+                self.diagnostics.push(Box::new(err));
+                return None;
+            }
+        };
+
+        // Successful assignment consumes its own RHS fallibility (it's
+        // expressed by the assignment expression itself now). Prior entries
+        // remain pending.
+        self.pending_fallibilities.truncate(pre_assignment_pending);
 
         // Track any potential external target assignments within the program.
         //
@@ -697,16 +741,6 @@ impl<'a> Compiler<'a> {
             self.external_queries.push(OwnedTargetPath::event_root());
         }
 
-        let arguments: Vec<_> = arguments
-            .into_iter()
-            .map(|node| {
-                Some(Node::new(
-                    node.span(),
-                    self.compile_function_argument(node, state)?,
-                ))
-            })
-            .collect::<Option<_>>()?;
-
         if abort_on_error {
             self.fallible = true;
         }
@@ -732,53 +766,68 @@ impl<'a> Compiler<'a> {
         // see: https://github.com/vectordotdev/vector/issues/13752
         let state_before_function = original_state.clone();
 
-        // First, we create a new function-call builder to validate the
-        // expression.
-        let function_info = function_call::Builder::new(
-            call_span,
-            ident,
-            abort_on_error,
-            arguments,
-            self.fns,
-            &state_before_function,
-            state,
-            closure_variables,
-        )
-        // Then, we compile the closure block, and compile the final
-        // function-call expression, including the attached closure.
-        .map_err(|err| self.diagnostics.push(Box::new(err)))
-        .ok()
-        .and_then(|builder| {
-            let block = match closure_block {
-                None => None,
-                Some(block) => {
-                    let span = block.span();
-                    match self.compile_block_with_type(block, state) {
-                        Some(block_with_type) => Some(Node::new(span, block_with_type)),
-                        None => return None,
-                    }
-                }
-            };
+        // Compile arguments and run validation under a consuming scope so
+        // any inner fallibility produced during arg compilation is dropped
+        // when validation either subsumes it (E630/FallibleArgument) or
+        // accepts the call (in which case the function's own fallibility
+        // is re-pushed below via `result.error`).
+        let function_info = self
+            .consuming_fallibility(|c| {
+                let arguments: Vec<_> = arguments
+                    .into_iter()
+                    .map(|node| {
+                        Some(Node::new(
+                            node.span(),
+                            c.compile_function_argument(node, state)?,
+                        ))
+                    })
+                    .collect::<Option<_>>()?;
 
-            let arg_list = builder.get_arg_list().clone();
-
-            builder
-                .compile(
+                function_call::Builder::new(
+                    call_span,
+                    ident,
+                    abort_on_error,
+                    arguments,
+                    c.fns,
                     &state_before_function,
                     state,
-                    block,
-                    local_snapshot,
-                    &mut self.config,
+                    closure_variables,
                 )
-                .map_err(|err| self.diagnostics.push(Box::new(err)))
+                .map_err(|err| c.diagnostics.push(Box::new(err)))
                 .ok()
-                .map(|result| {
-                    if let Some(e) = result.error {
-                        self.fallible_expression_error = Some(CompilerError::FunctionCallError(e));
+            })
+            .and_then(|builder| {
+                let block = match closure_block {
+                    None => None,
+                    Some(block) => {
+                        let span = block.span();
+                        match self.compile_block_with_type(block, state) {
+                            Some(block_with_type) => Some(Node::new(span, block_with_type)),
+                            None => return None,
+                        }
                     }
-                    (arg_list, result.function_call)
-                })
-        });
+                };
+
+                let arg_list = builder.get_arg_list().clone();
+
+                builder
+                    .compile(
+                        &state_before_function,
+                        state,
+                        block,
+                        local_snapshot,
+                        &mut self.config,
+                    )
+                    .map_err(|err| self.diagnostics.push(Box::new(err)))
+                    .ok()
+                    .map(|result| {
+                        if let Some(e) = result.error {
+                            self.pending_fallibilities
+                                .push(CompilerError::FunctionCallError(e));
+                        }
+                        (arg_list, result.function_call)
+                    })
+            });
 
         if let Some((args, function)) = &function_info {
             self.check_function_deprecations(function, args);
@@ -847,27 +896,30 @@ impl<'a> Compiler<'a> {
     fn compile_abort(&mut self, node: Node<ast::Abort>, state: &mut TypeState) -> Option<Abort> {
         self.abortable = true;
         let (span, abort) = node.take();
-        let message = match abort.message {
-            Some(node) => {
-                Some((*node).map_option(|expr| self.compile_expr(Node::new(span, expr), state))?)
-            }
-            None => None,
-        };
+        self.consuming_fallibility(|c| {
+            let message = match abort.message {
+                Some(node) => {
+                    Some((*node).map_option(|expr| c.compile_expr(Node::new(span, expr), state))?)
+                }
+                None => None,
+            };
 
-        Abort::new(span, message, state)
-            .map_err(|err| self.diagnostics.push(Box::new(err)))
-            .ok()
+            Abort::new(span, message, state)
+                .map_err(|err| c.diagnostics.push(Box::new(err)))
+                .ok()
+        })
     }
 
     fn compile_return(&mut self, node: Node<ast::Return>, state: &mut TypeState) -> Option<Return> {
         let (span, r#return) = node.take();
+        self.consuming_fallibility(|c| {
+            let expr = c.compile_expr(*r#return.expr, state)?;
+            let node = Node::new(span, expr);
 
-        let expr = self.compile_expr(*r#return.expr, state)?;
-        let node = Node::new(span, expr);
-
-        Return::new(span, node, state)
-            .map_err(|err| self.diagnostics.push(Box::new(err)))
-            .ok()
+            Return::new(span, node, state)
+                .map_err(|err| c.diagnostics.push(Box::new(err)))
+                .ok()
+        })
     }
 
     fn handle_parser_error(&mut self, error: crate::parser::Error) {

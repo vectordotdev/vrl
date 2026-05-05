@@ -942,29 +942,9 @@ mod test {
             }
             . = output
         "};
-        let diagnostics = crate::compiler::compile(src, &crate::stdlib::all())
-            .err()
-            .expect("should error on the discarded fallible `set`");
-
-        let errors: Vec<_> = diagnostics.iter().filter(|d| d.is_error()).collect();
         assert_eq!(
-            errors.len(),
-            1,
-            "expected exactly one error, got: {errors:#?}",
-        );
-        let err = errors[0];
-
-        assert_eq!(err.code, 100, "expected E100 (unhandled error)");
-
-        let primary = err
-            .labels
-            .iter()
-            .find(|l| l.primary)
-            .expect("error should have a primary label");
-        let pointed_at = &src[primary.span.start()..primary.span.end()];
-        assert_eq!(
-            pointed_at, "set(e, [key], value)",
-            "E100 must point at the discarded fallible call, not the next assignment",
+            error_codes_and_spans(src),
+            vec![(100, "set(e, [key], value)".to_owned())],
         );
     }
 
@@ -981,31 +961,73 @@ mod test {
                 .b = 2
             }
         "};
-        let diagnostics = crate::compiler::compile(src, &crate::stdlib::all())
+        assert_eq!(error_codes_and_spans(src), vec![(110, ".x".to_owned())]);
+    }
+
+    #[test]
+    fn multiple_unhandled_fallibilities_surface_in_one_pass() {
+        let src = indoc::indoc! {r"
+            {
+                push(.x, 1)
+                .b = push(.y, 2)
+            }
+        "};
+        assert_eq!(error_codes(src), vec![103, 110]);
+    }
+
+    /// An outer consumer (`abort`) wraps a block with an inner unhandled
+    /// fallibility. That fallibility belongs to the abort scope and must
+    /// not leak as a separate E100/E110 once abort raises its own error.
+    #[test]
+    fn priors_in_consumer_scope_do_not_leak() {
+        let src = indoc::indoc! {r"
+            abort {
+                push(.x, 1)
+                .b = push(.y, 2)
+            }
+        "};
+        assert_eq!(error_codes(src), vec![103]);
+    }
+
+    /// `1 ?? rhs` is rejected as an unnecessary error coalescing operation
+    /// (E651). The rhs's fallibility is subsumed by the op-level error
+    /// and must not double-report as E100 at the root drain.
+    #[test]
+    fn op_hard_error_drains_subexpression_fallibilities() {
+        assert_eq!(error_codes("1 ?? parse_json(\"{}\")"), vec![651]);
+    }
+
+    /// Compile `src` and return the error codes in the order they were
+    /// emitted as diagnostics. Panics if compilation succeeds.
+    fn error_codes(src: &str) -> Vec<usize> {
+        crate::compiler::compile(src, &crate::stdlib::all())
             .err()
-            .expect("should error on the discarded fallible `push`");
-
-        let errors: Vec<_> = diagnostics.iter().filter(|d| d.is_error()).collect();
-        assert_eq!(
-            errors.len(),
-            1,
-            "expected exactly one error, got: {errors:#?}",
-        );
-        let err = errors[0];
-
-        let primary = err
-            .labels
+            .expect("expected compilation to fail")
             .iter()
-            .find(|l| l.primary)
-            .expect("error should have a primary label");
-        let pointed_at = &src[primary.span.start()..primary.span.end()];
-        assert!(
-            pointed_at.contains("push") || pointed_at.contains(".x"),
-            "error must point at `push(.x, 1)` (or its argument), not the next assignment; got {pointed_at:?}",
-        );
-        assert!(
-            !pointed_at.contains(".b"),
-            "error must not point at the `.b = 2` assignment; got {pointed_at:?}",
-        );
+            .filter(|d| d.is_error())
+            .map(|d| d.code)
+            .collect()
+    }
+
+    /// Same as [`error_codes`], plus the source text covered by each error's
+    /// primary label. Used to assert that an error points at the right span.
+    fn error_codes_and_spans(src: &str) -> Vec<(usize, String)> {
+        crate::compiler::compile(src, &crate::stdlib::all())
+            .err()
+            .expect("expected compilation to fail")
+            .iter()
+            .filter(|d| d.is_error())
+            .map(|d| {
+                let primary = d
+                    .labels
+                    .iter()
+                    .find(|l| l.primary)
+                    .expect("error should have a primary label");
+                (
+                    d.code,
+                    src[primary.span.start()..primary.span.end()].to_owned(),
+                )
+            })
+            .collect()
     }
 }
