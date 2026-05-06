@@ -2,14 +2,14 @@ syntax = "proto3";
 
 package test_protobuf_maps.v1;
 
-// Test message for verifying proto_to_value handles all proto map key types
-// (bool, int32, int64, uint32, uint64, string) by converting them to string keys.
-message ConfigMap {
-  map<int64, bool> bool_by_int64 = 1;
-  map<bool, string> string_by_bool = 2;
-  map<uint32, string> string_by_uint32 = 3;
-  map<int32, string> string_by_int32 = 4;
-  map<int64, int32> int32_by_int64 = 5;
-  map<int32, int64> int64_by_int32 = 6;
-  map<uint32, uint64> uint64_by_uint32 = 7;
+// Fixture exercising every supported proto map key type. Used by
+// encode_proto/parse_proto round-trip tests to verify that non-string
+// keys are correctly converted to/from their decimal string form.
+message Maps {
+  map<bool,   string> by_bool   = 1;
+  map<int32,  string> by_int32  = 2;
+  map<int64,  string> by_int64  = 3;
+  map<uint32, string> by_uint32 = 4;
+  map<uint64, string> by_uint64 = 5;
+  map<string, string> by_string = 6;
 }

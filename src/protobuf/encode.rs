@@ -686,68 +686,23 @@ mod tests {
         );
     }
 
-    fn config_map_descriptor() -> MessageDescriptor {
-        let path = test_data_dir().join("test_protobuf_maps/v1/test_protobuf_maps.desc");
-        get_message_descriptor(&path, "test_protobuf_maps.v1.ConfigMap").unwrap()
-    }
-
     #[test]
     fn test_encode_decode_map_all_key_types() {
-        // Build a VRL value covering every proto map key type supported by the schema:
-        //   map<int64,  bool>   bool_by_int64
-        //   map<bool,   string> string_by_bool
-        //   map<uint32, string> string_by_uint32
-        //   map<int32,  string> string_by_int32
-        //   map<int64,  int32>  int32_by_int64
-        //   map<int32,  int64>  int64_by_int32
-        //   map<uint32, uint64> uint64_by_uint32
+        // Round-trip a VRL Object containing one map per supported proto key type
+        // through encode_proto -> parse_proto. Non-string keys must survive the
+        // string-to-MapKey-to-string conversion on both sides.
+        let entry = |k: &str| Value::Object(BTreeMap::from([(k.into(), Value::from("v"))]));
         let input = Value::Object(BTreeMap::from([
-            (
-                "bool_by_int64".into(),
-                Value::Object(BTreeMap::from([
-                    ("42".into(), Value::Boolean(true)),
-                    ("-1".into(), Value::Boolean(false)),
-                ])),
-            ),
-            (
-                "string_by_bool".into(),
-                Value::Object(BTreeMap::from([
-                    ("true".into(), Value::from("yes")),
-                    ("false".into(), Value::from("no")),
-                ])),
-            ),
-            (
-                "string_by_uint32".into(),
-                Value::Object(BTreeMap::from([("100".into(), Value::from("hundred"))])),
-            ),
-            (
-                "string_by_int32".into(),
-                Value::Object(BTreeMap::from([("-5".into(), Value::from("neg_five"))])),
-            ),
-            (
-                "int32_by_int64".into(),
-                Value::Object(BTreeMap::from([
-                    ("100".into(), Value::Integer(7)),
-                    ("-200".into(), Value::Integer(-3)),
-                ])),
-            ),
-            (
-                "int64_by_int32".into(),
-                Value::Object(BTreeMap::from([(
-                    "1".into(),
-                    Value::Integer(9_999_999_999),
-                )])),
-            ),
-            (
-                "uint64_by_uint32".into(),
-                Value::Object(BTreeMap::from([(
-                    "255".into(),
-                    Value::Integer(1_000_000_000_000),
-                )])),
-            ),
+            ("by_bool".into(), entry("true")),
+            ("by_int32".into(), entry("-5")),
+            ("by_int64".into(), entry("-9999999999")),
+            ("by_uint32".into(), entry("100")),
+            ("by_uint64".into(), entry("18446744073709551615")),
+            ("by_string".into(), entry("hello")),
         ]));
 
-        let descriptor = config_map_descriptor();
+        let path = test_data_dir().join("test_protobuf_maps/v1/test_protobuf_maps.desc");
+        let descriptor = get_message_descriptor(&path, "test_protobuf_maps.v1.Maps").unwrap();
         let encoded = encode_proto(&descriptor, input.clone()).expect("encode_proto failed");
         let decoded = parse_proto(&descriptor, encoded).expect("parse_proto failed");
         assert_eq!(input, decoded, "round-trip mismatch");
