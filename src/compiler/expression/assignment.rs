@@ -972,7 +972,10 @@ mod test {
                 .b = push(.y, 2)
             }
         "};
-        assert_eq!(error_codes(src), vec![103, 110]);
+        assert_eq!(
+            error_codes_and_spans(src),
+            vec![(103, "push(.y, 2)".to_owned()), (110, ".x".to_owned())],
+        );
     }
 
     /// An outer consumer (`abort`) wraps a block with an inner unhandled
@@ -986,7 +989,10 @@ mod test {
                 .b = push(.y, 2)
             }
         "};
-        assert_eq!(error_codes(src), vec![103]);
+        assert_eq!(
+            error_codes_and_spans(src),
+            vec![(103, "push(.y, 2)".to_owned())],
+        );
     }
 
     /// `1 ?? rhs` is rejected as an unnecessary error coalescing operation
@@ -994,23 +1000,14 @@ mod test {
     /// and must not double-report as E100 at the root drain.
     #[test]
     fn op_hard_error_drains_subexpression_fallibilities() {
-        assert_eq!(error_codes("1 ?? parse_json(\"{}\")"), vec![651]);
+        assert_eq!(
+            error_codes_and_spans("1 ?? parse_json(\"{}\")"),
+            vec![(651, "1".to_owned())],
+        );
     }
 
-    /// Compile `src` and return the error codes in the order they were
-    /// emitted as diagnostics. Panics if compilation succeeds.
-    fn error_codes(src: &str) -> Vec<usize> {
-        crate::compiler::compile(src, &crate::stdlib::all())
-            .err()
-            .expect("expected compilation to fail")
-            .iter()
-            .filter(|d| d.is_error())
-            .map(|d| d.code)
-            .collect()
-    }
-
-    /// Same as [`error_codes`], plus the source text covered by each error's
-    /// primary label. Used to assert that an error points at the right span.
+    /// Compile `src` and return the error code and source text covered by
+    /// each error's primary label, in emission order. Panics on success.
     fn error_codes_and_spans(src: &str) -> Vec<(usize, String)> {
         crate::compiler::compile(src, &crate::stdlib::all())
             .err()
