@@ -11,6 +11,31 @@ pub struct Options {
     pub use_json_names: bool,
 }
 
+/// Parse a string map key into a `MapKey` matching the proto key field's kind.
+///
+/// Proto map keys can be any scalar type (bool, int32, int64, uint32, uint64,
+/// string), but VRL `Object` keys are always strings, so non-string keys are
+/// parsed back from their decimal string representation. This is the inverse
+/// of the stringification done in `parse_proto`.
+fn parse_map_key(kind: &Kind, key: &str) -> Result<MapKey, String> {
+    fn parse<T: std::str::FromStr>(key: &str, ty: &str) -> Result<T, String>
+    where
+        T::Err: std::fmt::Display,
+    {
+        key.parse::<T>()
+            .map_err(|e| format!("Cannot parse map key '{key}' as {ty}: {e}"))
+    }
+    Ok(match kind {
+        Kind::String => MapKey::String(key.into()),
+        Kind::Bool => MapKey::Bool(parse(key, "bool")?),
+        Kind::Int32 | Kind::Sint32 | Kind::Sfixed32 => MapKey::I32(parse(key, "i32")?),
+        Kind::Int64 | Kind::Sint64 | Kind::Sfixed64 => MapKey::I64(parse(key, "i64")?),
+        Kind::Uint32 | Kind::Fixed32 => MapKey::U32(parse(key, "u32")?),
+        Kind::Uint64 | Kind::Fixed64 => MapKey::U64(parse(key, "u64")?),
+        k => return Err(format!("Unsupported proto map key type: {k:?}")),
+    })
+}
+
 /// Convert a single raw `Value` into a protobuf `Value`.
 ///
 /// Unlike `convert_value`, this ignores any field metadata such as cardinality.
@@ -98,14 +123,15 @@ fn convert_value_raw(
         }
         (Value::Object(o), Kind::Message(message_descriptor)) => {
             if message_descriptor.is_map_entry() {
-                let value_field = message_descriptor
-                    .get_field_by_name("value")
-                    .ok_or("Internal error with proto map processing")?;
+                let key_field = message_descriptor.map_entry_key_field();
+                let value_field = message_descriptor.map_entry_value_field();
+                let key_kind = key_field.kind();
                 let mut map: HashMap<MapKey, prost_reflect::Value> = HashMap::new();
                 for (key, val) in o.into_iter() {
+                    let map_key = parse_map_key(&key_kind, &key)?;
                     match convert_value(&value_field, val, options) {
                         Ok(prost_val) => {
-                            map.insert(MapKey::String(key.into()), prost_val);
+                            map.insert(map_key, prost_val);
                         }
                         Err(e) => return Err(e),
                     }
@@ -658,5 +684,72 @@ mod tests {
             Some("Software Engineer"),
             mfield!(message, "job_description").as_str()
         );
+    }
+
+    fn config_map_descriptor() -> MessageDescriptor {
+        let path = test_data_dir().join("test_protobuf_maps/v1/test_protobuf_maps.desc");
+        get_message_descriptor(&path, "test_protobuf_maps.v1.ConfigMap").unwrap()
+    }
+
+    #[test]
+    fn test_encode_decode_map_all_key_types() {
+        // Build a VRL value covering every proto map key type supported by the schema:
+        //   map<int64,  bool>   bool_by_int64
+        //   map<bool,   string> string_by_bool
+        //   map<uint32, string> string_by_uint32
+        //   map<int32,  string> string_by_int32
+        //   map<int64,  int32>  int32_by_int64
+        //   map<int32,  int64>  int64_by_int32
+        //   map<uint32, uint64> uint64_by_uint32
+        let input = Value::Object(BTreeMap::from([
+            (
+                "bool_by_int64".into(),
+                Value::Object(BTreeMap::from([
+                    ("42".into(), Value::Boolean(true)),
+                    ("-1".into(), Value::Boolean(false)),
+                ])),
+            ),
+            (
+                "string_by_bool".into(),
+                Value::Object(BTreeMap::from([
+                    ("true".into(), Value::from("yes")),
+                    ("false".into(), Value::from("no")),
+                ])),
+            ),
+            (
+                "string_by_uint32".into(),
+                Value::Object(BTreeMap::from([("100".into(), Value::from("hundred"))])),
+            ),
+            (
+                "string_by_int32".into(),
+                Value::Object(BTreeMap::from([("-5".into(), Value::from("neg_five"))])),
+            ),
+            (
+                "int32_by_int64".into(),
+                Value::Object(BTreeMap::from([
+                    ("100".into(), Value::Integer(7)),
+                    ("-200".into(), Value::Integer(-3)),
+                ])),
+            ),
+            (
+                "int64_by_int32".into(),
+                Value::Object(BTreeMap::from([(
+                    "1".into(),
+                    Value::Integer(9_999_999_999),
+                )])),
+            ),
+            (
+                "uint64_by_uint32".into(),
+                Value::Object(BTreeMap::from([(
+                    "255".into(),
+                    Value::Integer(1_000_000_000_000),
+                )])),
+            ),
+        ]));
+
+        let descriptor = config_map_descriptor();
+        let encoded = encode_proto(&descriptor, input.clone()).expect("encode_proto failed");
+        let decoded = parse_proto(&descriptor, encoded).expect("parse_proto failed");
+        assert_eq!(input, decoded, "round-trip mismatch");
     }
 }
