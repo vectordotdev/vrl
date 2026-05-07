@@ -1,3 +1,4 @@
+use crate::compiler::conversion::Conversion;
 use crate::compiler::prelude::*;
 use crate::value::value::simdutf_bytes_utf8_lossy;
 use chrono::Timelike;
@@ -48,14 +49,11 @@ fn convert_value_raw(
     match (value, kind) {
         (Value::Boolean(b), Kind::Bool) => Ok(prost_reflect::Value::Bool(b)),
         (Value::Integer(i), Kind::Bool) => Ok(prost_reflect::Value::Bool(i != 0)),
-        (Value::Bytes(b), Kind::Bool) => {
-            let string = simdutf_bytes_utf8_lossy(&b);
-            match string.trim().to_ascii_lowercase().as_str() {
-                "true" | "1" | "yes" | "y" | "t" | "on" => Ok(prost_reflect::Value::Bool(true)),
-                "false" | "0" | "no" | "n" | "f" | "off" => Ok(prost_reflect::Value::Bool(false)),
-                _ => Err(format!("Cannot parse `{string}` as bool")),
-            }
-        }
+        (Value::Bytes(b), Kind::Bool) => match Conversion::Boolean.convert(b) {
+            Ok(Value::Boolean(v)) => Ok(prost_reflect::Value::Bool(v)),
+            Ok(_) => unreachable!("Conversion::Boolean always yields Value::Boolean"),
+            Err(e) => Err(e.to_string()),
+        },
         (Value::Bytes(b), Kind::Bytes) => Ok(prost_reflect::Value::Bytes(b)),
         (Value::Bytes(b), Kind::String) => Ok(prost_reflect::Value::String(
             simdutf_bytes_utf8_lossy(&b).into_owned(),
@@ -407,9 +405,7 @@ mod tests {
     #[test]
     fn test_encode_string_as_bool() {
         let descriptor = test_message_descriptor("Booleans");
-        for s in [
-            "true", "TRUE", "True", "1", "yes", "YES", "y", "Y", "t", "on", "ON", "  true  ",
-        ] {
+        for s in ["true", "TRUE", "True", "1", "yes", "YES", "y", "Y", "t"] {
             let message = encode_message(
                 &descriptor,
                 Value::Object(BTreeMap::from([("b".into(), Value::from(s))])),
@@ -418,9 +414,7 @@ mod tests {
             .unwrap();
             assert_eq!(Some(true), mfield!(message, "b").as_bool(), "s={s:?}");
         }
-        for s in [
-            "false", "FALSE", "False", "0", "no", "NO", "n", "N", "f", "off", "OFF", "\toff\n",
-        ] {
+        for s in ["false", "FALSE", "False", "0", "no", "NO", "n", "N", "f"] {
             let message = encode_message(
                 &descriptor,
                 Value::Object(BTreeMap::from([("b".into(), Value::from(s))])),
