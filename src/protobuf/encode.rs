@@ -11,6 +11,31 @@ pub struct Options {
     pub use_json_names: bool,
 }
 
+/// Parse a string map key into a `MapKey` matching the proto key field's kind.
+///
+/// Proto map keys can be any scalar type (bool, int32, int64, uint32, uint64,
+/// string), but VRL `Object` keys are always strings, so non-string keys are
+/// parsed back from their decimal string representation. This is the inverse
+/// of the stringification done in `parse_proto`.
+fn parse_map_key(kind: &Kind, key: &str) -> Result<MapKey, String> {
+    fn parse<T: std::str::FromStr>(key: &str, ty: &str) -> Result<T, String>
+    where
+        T::Err: std::fmt::Display,
+    {
+        key.parse::<T>()
+            .map_err(|e| format!("Cannot parse map key '{key}' as {ty}: {e}"))
+    }
+    Ok(match kind {
+        Kind::String => MapKey::String(key.into()),
+        Kind::Bool => MapKey::Bool(parse(key, "bool")?),
+        Kind::Int32 | Kind::Sint32 | Kind::Sfixed32 => MapKey::I32(parse(key, "i32")?),
+        Kind::Int64 | Kind::Sint64 | Kind::Sfixed64 => MapKey::I64(parse(key, "i64")?),
+        Kind::Uint32 | Kind::Fixed32 => MapKey::U32(parse(key, "u32")?),
+        Kind::Uint64 | Kind::Fixed64 => MapKey::U64(parse(key, "u64")?),
+        k => return Err(format!("Unsupported proto map key type: {k:?}")),
+    })
+}
+
 /// Convert a single raw `Value` into a protobuf `Value`.
 ///
 /// Unlike `convert_value`, this ignores any field metadata such as cardinality.
@@ -98,14 +123,15 @@ fn convert_value_raw(
         }
         (Value::Object(o), Kind::Message(message_descriptor)) => {
             if message_descriptor.is_map_entry() {
-                let value_field = message_descriptor
-                    .get_field_by_name("value")
-                    .ok_or("Internal error with proto map processing")?;
+                let key_field = message_descriptor.map_entry_key_field();
+                let value_field = message_descriptor.map_entry_value_field();
+                let key_kind = key_field.kind();
                 let mut map: HashMap<MapKey, prost_reflect::Value> = HashMap::new();
                 for (key, val) in o.into_iter() {
+                    let map_key = parse_map_key(&key_kind, &key)?;
                     match convert_value(&value_field, val, options) {
                         Ok(prost_val) => {
-                            map.insert(MapKey::String(key.into()), prost_val);
+                            map.insert(map_key, prost_val);
                         }
                         Err(e) => return Err(e),
                     }
@@ -658,5 +684,27 @@ mod tests {
             Some("Software Engineer"),
             mfield!(message, "job_description").as_str()
         );
+    }
+
+    #[test]
+    fn test_encode_decode_map_all_key_types() {
+        // Round-trip a VRL Object containing one map per supported proto key type
+        // through encode_proto -> parse_proto. Non-string keys must survive the
+        // string-to-MapKey-to-string conversion on both sides.
+        let entry = |k: &str| Value::Object(BTreeMap::from([(k.into(), Value::from("v"))]));
+        let input = Value::Object(BTreeMap::from([
+            ("by_bool".into(), entry("true")),
+            ("by_int32".into(), entry("-5")),
+            ("by_int64".into(), entry("-9999999999")),
+            ("by_uint32".into(), entry("100")),
+            ("by_uint64".into(), entry("18446744073709551615")),
+            ("by_string".into(), entry("hello")),
+        ]));
+
+        let path = test_data_dir().join("test_protobuf_maps/v1/test_protobuf_maps.desc");
+        let descriptor = get_message_descriptor(&path, "test_protobuf_maps.v1.Maps").unwrap();
+        let encoded = encode_proto(&descriptor, input.clone()).expect("encode_proto failed");
+        let decoded = parse_proto(&descriptor, encoded).expect("parse_proto failed");
+        assert_eq!(input, decoded, "round-trip mismatch");
     }
 }
