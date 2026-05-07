@@ -6,9 +6,26 @@ use prost::Message;
 use prost_reflect::{DynamicMessage, FieldDescriptor, Kind, MapKey, MessageDescriptor};
 use std::collections::HashMap;
 
-#[derive(Default, Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Options {
     pub use_json_names: bool,
+    /// Allow stringifying non-string scalars (`Boolean`, `Integer`, `Float`,
+    /// `Timestamp`) when encoding into a protobuf `string` field.
+    ///
+    /// VRL accepts this by default as a convenience for callers handling loosely
+    /// typed input. The [protobuf JSON mapping](https://protobuf.dev/programming-guides/json/)
+    /// itself only accepts a JSON string for a `string` field, so set this to
+    /// `false` if you need strict, spec-compliant encoding.
+    pub allow_lossy_string_coercion: bool,
+}
+
+impl Default for Options {
+    fn default() -> Self {
+        Self {
+            use_json_names: false,
+            allow_lossy_string_coercion: true,
+        }
+    }
 }
 
 /// Parse a string map key into a `MapKey` matching the proto key field's kind.
@@ -161,10 +178,18 @@ fn convert_value_raw(
                 .map_err(|e| format!("Error setting 'nanos' field: {e}"))?;
             Ok(prost_reflect::Value::Message(message))
         }
-        (Value::Boolean(b), Kind::String) => Ok(prost_reflect::Value::String(b.to_string())),
-        (Value::Integer(i), Kind::String) => Ok(prost_reflect::Value::String(i.to_string())),
-        (Value::Float(f), Kind::String) => Ok(prost_reflect::Value::String(f.to_string())),
-        (Value::Timestamp(t), Kind::String) => Ok(prost_reflect::Value::String(t.to_string())),
+        (Value::Boolean(b), Kind::String) if options.allow_lossy_string_coercion => {
+            Ok(prost_reflect::Value::String(b.to_string()))
+        }
+        (Value::Integer(i), Kind::String) if options.allow_lossy_string_coercion => {
+            Ok(prost_reflect::Value::String(i.to_string()))
+        }
+        (Value::Float(f), Kind::String) if options.allow_lossy_string_coercion => {
+            Ok(prost_reflect::Value::String(f.to_string()))
+        }
+        (Value::Timestamp(t), Kind::String) if options.allow_lossy_string_coercion => {
+            Ok(prost_reflect::Value::String(t.to_string()))
+        }
         _ => Err(format!(
             "Cannot encode `{kind_str}` into protobuf `{kind:?}`",
         )),
@@ -247,8 +272,12 @@ pub fn encode_message(
 }
 
 #[cfg(feature = "enable_system_functions")]
-pub(crate) fn encode_proto(descriptor: &MessageDescriptor, value: Value) -> Resolved {
-    let message = encode_message(descriptor, value, &Options::default())?;
+pub(crate) fn encode_proto(
+    descriptor: &MessageDescriptor,
+    value: Value,
+    options: &Options,
+) -> Resolved {
+    let message = encode_message(descriptor, value, options)?;
     let mut buf = Vec::new();
     message
         .encode(&mut buf)
@@ -589,6 +618,34 @@ mod tests {
         );
     }
 
+    #[test]
+    fn test_strict_string_coercion_rejects_non_strings() {
+        let strict = Options {
+            allow_lossy_string_coercion: false,
+            ..Options::default()
+        };
+        let descriptor = test_message_descriptor("Bytes");
+        let cases: Vec<(&str, Value)> = vec![
+            ("bool", Value::Boolean(true)),
+            ("int", Value::Integer(123)),
+            ("float", Value::Float(NotNan::new(45.67).unwrap())),
+            (
+                "timestamp",
+                Value::Timestamp(
+                    DateTime::from_timestamp(8675, 309).expect("could not compute timestamp"),
+                ),
+            ),
+        ];
+        for (label, value) in cases {
+            let result = encode_message(
+                &descriptor,
+                Value::Object(BTreeMap::from([("text".into(), value)])),
+                &strict,
+            );
+            assert!(result.is_err(), "expected strict mode to reject {label}");
+        }
+    }
+
     fn read_pb_file(protobuf_bin_message_path: &str) -> String {
         fs::read_to_string(test_data_dir().join(protobuf_bin_message_path)).unwrap()
     }
@@ -599,7 +656,7 @@ mod tests {
         let path = test_data_dir().join("test_protobuf/v1/test_protobuf.desc");
         let descriptor = get_message_descriptor(&path, "test_protobuf.v1.Person").unwrap();
         let expected_value = value!(read_pb_file("test_protobuf/v1/input/person_someone.pb"));
-        let encoded_value = encode_proto(&descriptor, value.clone());
+        let encoded_value = encode_proto(&descriptor, value.clone(), &Options::default());
         assert!(
             encoded_value.is_ok(),
             "Failed to encode proto: {:?}",
@@ -625,7 +682,7 @@ mod tests {
             value!({name: "Someone",phones: [{number: "123-456", type: "PHONE_TYPE_MOBILE"}]});
         let descriptor = test_protobuf3_descriptor();
         let expected_value = value!(read_pb_file("test_protobuf3/v1/input/person_someone.pb"));
-        let encoded_value = encode_proto(&descriptor, value.clone());
+        let encoded_value = encode_proto(&descriptor, value.clone(), &Options::default());
         assert!(
             encoded_value.is_ok(),
             "Failed to encode proto: {:?}",
@@ -675,6 +732,7 @@ mod tests {
             value,
             &Options {
                 use_json_names: true,
+                ..Options::default()
             },
         )
         .unwrap();
@@ -703,7 +761,8 @@ mod tests {
 
         let path = test_data_dir().join("test_protobuf_maps/v1/test_protobuf_maps.desc");
         let descriptor = get_message_descriptor(&path, "test_protobuf_maps.v1.Maps").unwrap();
-        let encoded = encode_proto(&descriptor, input.clone()).expect("encode_proto failed");
+        let encoded = encode_proto(&descriptor, input.clone(), &Options::default())
+            .expect("encode_proto failed");
         let decoded = parse_proto(&descriptor, encoded).expect("parse_proto failed");
         assert_eq!(input, decoded, "round-trip mismatch");
     }
