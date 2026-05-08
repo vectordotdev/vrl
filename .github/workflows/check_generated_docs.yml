@@ -89,6 +89,7 @@ jobs:
           HEAD_REF: ${{ github.head_ref }}
           GH_TOKEN: ${{ secrets.VIC_PAT }}
         run: |
+          git config --unset-all "http.https://github.com/.extraheader"
           git config user.name "$COMMIT_AUTHOR"
           git config user.email "$COMMIT_AUTHOR@users.noreply.github.com"
           git commit -m "$COMMIT_MESSAGE"

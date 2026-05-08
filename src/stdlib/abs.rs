@@ -59,7 +59,7 @@ impl Function for Abs {
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
-                title: "qux quux quuz",
+                title: "Computes the absolute value of an integer",
                 source: "abs(-42)",
                 result: Ok("42"),
             },
