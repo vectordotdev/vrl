@@ -14,7 +14,7 @@ concurrency:
 
 env:
   COMMIT_MESSAGE: "Update generated docs"
-  COMMIT_AUTHOR: "github-actions[bot]"
+  COMMIT_AUTHOR: "vectordotdev-bot"
 
 permissions:
   contents: read
@@ -77,6 +77,18 @@ jobs:
             echo "is-auto=false" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Generate bot token
+        if: >
+          steps.check.outputs.changed == 'true'
+          && steps.last-commit.outputs.is-auto != 'true'
+          && github.event_name == 'pull_request'
+          && github.event.pull_request.head.repo.full_name == github.repository
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.VECTORDOTDEV_BOT_APP_ID }}
+          private-key: ${{ secrets.VECTORDOTDEV_BOT_PRIVATE_KEY }}
+
       - name: Commit and push
         if: >
           steps.check.outputs.changed == 'true'
@@ -87,11 +99,12 @@ jobs:
         continue-on-error: true
         env:
           HEAD_REF: ${{ github.head_ref }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "$COMMIT_AUTHOR"
+          git config user.email "$COMMIT_AUTHOR@users.noreply.github.com"
           git commit -m "$COMMIT_MESSAGE"
-          git push origin HEAD:refs/heads/$HEAD_REF
+          git push "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git" HEAD:refs/heads/$HEAD_REF
 
       - name: Save PR number for comment workflow
         if: >
