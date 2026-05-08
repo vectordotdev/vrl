@@ -25,7 +25,7 @@
   },
   "examples": [
     {
-      "title": "foo bar baz",
+      "title": "qux quux quuz",
       "source": "abs(-42)",
       "return": 42
     },
