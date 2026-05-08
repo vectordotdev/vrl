@@ -25,7 +25,7 @@
   },
   "examples": [
     {
-      "title": "Computes the absolute value of an integer",
+      "title": "foo bar baz",
       "source": "abs(-42)",
       "return": 42
     },
