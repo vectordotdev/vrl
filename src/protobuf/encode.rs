@@ -1,3 +1,4 @@
+use crate::compiler::conversion::Conversion;
 use crate::compiler::prelude::*;
 use crate::value::value::simdutf_bytes_utf8_lossy;
 use chrono::Timelike;
@@ -64,6 +65,12 @@ fn convert_value_raw(
     let kind_str = value.kind_str().to_owned();
     match (value, kind) {
         (Value::Boolean(b), Kind::Bool) => Ok(prost_reflect::Value::Bool(b)),
+        (Value::Integer(i), Kind::Bool) => Ok(prost_reflect::Value::Bool(i != 0)),
+        (Value::Bytes(b), Kind::Bool) => match Conversion::Boolean.convert(b) {
+            Ok(Value::Boolean(v)) => Ok(prost_reflect::Value::Bool(v)),
+            Ok(_) => unreachable!("Conversion::Boolean always yields Value::Boolean"),
+            Err(e) => Err(e.to_string()),
+        },
         (Value::Bytes(b), Kind::Bytes) => Ok(prost_reflect::Value::Bytes(b)),
         (Value::Bytes(b), Kind::String) => Ok(prost_reflect::Value::String(
             simdutf_bytes_utf8_lossy(&b).into_owned(),
@@ -109,6 +116,7 @@ fn convert_value_raw(
         (Value::Integer(i), Kind::Fixed32) => Ok(prost_reflect::Value::U32(i as u32)),
         (Value::Integer(i), Kind::Fixed64) => Ok(prost_reflect::Value::U64(i as u64)),
         (Value::Integer(i), Kind::Double) => Ok(prost_reflect::Value::F64(i as f64)),
+        (Value::Integer(i), Kind::Float) => Ok(prost_reflect::Value::F32(i as f32)),
         (Value::Integer(i), Kind::Enum(_)) => Ok(prost_reflect::Value::EnumNumber(i as i32)),
         (Value::Bytes(b), Kind::Int32 | Kind::Sfixed32 | Kind::Sint32) => {
             let string = simdutf_bytes_utf8_lossy(&b);
@@ -396,6 +404,63 @@ mod tests {
         )
         .unwrap();
         assert_eq!(Some(42.0), mfield!(message, "d").as_f64());
+    }
+
+    #[test]
+    fn test_encode_integer_as_float() {
+        let message = encode_message(
+            &test_message_descriptor("Floats"),
+            Value::Object(BTreeMap::from([("f".into(), Value::Integer(123))])),
+            &Options::default(),
+        )
+        .unwrap();
+        assert_eq!(Some(123.0), mfield!(message, "f").as_f32());
+    }
+
+    #[test]
+    fn test_encode_integer_as_bool() {
+        let descriptor = test_message_descriptor("Booleans");
+        for (i, expected) in [(0, false), (1, true), (42, true), (-1, true)] {
+            let message = encode_message(
+                &descriptor,
+                Value::Object(BTreeMap::from([("b".into(), Value::Integer(i))])),
+                &Options::default(),
+            )
+            .unwrap();
+            assert_eq!(Some(expected), mfield!(message, "b").as_bool(), "i={i}");
+        }
+    }
+
+    #[test]
+    fn test_encode_string_as_bool() {
+        let descriptor = test_message_descriptor("Booleans");
+        for s in ["true", "TRUE", "True", "1", "yes", "YES", "y", "Y", "t"] {
+            let message = encode_message(
+                &descriptor,
+                Value::Object(BTreeMap::from([("b".into(), Value::from(s))])),
+                &Options::default(),
+            )
+            .unwrap();
+            assert_eq!(Some(true), mfield!(message, "b").as_bool(), "s={s:?}");
+        }
+        for s in ["false", "FALSE", "False", "0", "no", "NO", "n", "N", "f"] {
+            let message = encode_message(
+                &descriptor,
+                Value::Object(BTreeMap::from([("b".into(), Value::from(s))])),
+                &Options::default(),
+            )
+            .unwrap();
+            assert_eq!(Some(false), mfield!(message, "b").as_bool(), "s={s:?}");
+        }
+        // Invalid strings propagate as an encode error.
+        for s in ["", "invalid", "maybe"] {
+            let result = encode_message(
+                &descriptor,
+                Value::Object(BTreeMap::from([("b".into(), Value::from(s))])),
+                &Options::default(),
+            );
+            assert!(result.is_err(), "expected error for s={s:?}");
+        }
     }
 
     #[test]
