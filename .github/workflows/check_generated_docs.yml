@@ -87,12 +87,19 @@ jobs:
         continue-on-error: true
         env:
           HEAD_REF: ${{ github.head_ref }}
-          GH_TOKEN: ${{ secrets.VIC_PAT }}
+          SSH_KEY: ${{ secrets.VIC_SSH_KEY }}
         run: |
+          eval "$(ssh-agent -s)"
+          echo "$SSH_KEY" | ssh-add -
+          mkdir -p ~/.ssh
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
+          git config gpg.format ssh
+          git config user.signingkey "$(ssh-add -L | head -1)"
+          git config commit.gpgsign true
           git config user.name "$COMMIT_AUTHOR"
           git config user.email "$COMMIT_AUTHOR@users.noreply.github.com"
           git commit -m "$COMMIT_MESSAGE"
-          git -c credential.helper= -c "http.https://github.com/.extraheader=" push "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git" HEAD:refs/heads/$HEAD_REF
+          git push "git@github.com:${{ github.repository }}.git" HEAD:refs/heads/$HEAD_REF
 
       - name: Save PR number for comment workflow
         if: >
