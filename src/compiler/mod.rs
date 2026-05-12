@@ -8,7 +8,7 @@ use std::{fmt::Display, str::FromStr};
 use serde::{Deserialize, Serialize};
 
 use crate::compiler::unused_expression_checker::check_for_unused_results;
-#[cfg(feature = "stdlib")]
+#[cfg(feature = "stdlib-base")]
 pub use category::Category;
 pub use compiler::{CompilationResult, Compiler};
 pub use context::Context;
@@ -41,7 +41,7 @@ mod target;
 #[cfg(any(test, feature = "test"))]
 mod test_util;
 
-#[cfg(feature = "stdlib")]
+#[cfg(feature = "stdlib-base")]
 pub mod category;
 pub mod codes;
 pub mod conversion;

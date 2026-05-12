@@ -1,0 +1,4 @@
+# object: { "a": { "b": { "c": 1 } }, "keep": { "nested": 2 }, "also_keep": { "deep": 3 }, "d": 4 }
+# result: { "a.b.c": 1, "also_keep": { "deep": 3 }, "d": 4, "keep": { "nested": 2 } }
+
+flatten(., except: ["keep", "also_keep"])

@@ -1,33 +1,42 @@
+use crate::compiler::function::EnumVariant;
 use crate::compiler::prelude::*;
 use std::sync::LazyLock;
 
 static DEFAULT_LEVEL: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from("info")));
 static DEFAULT_RATE_LIMIT_SECS: LazyLock<Value> = LazyLock::new(|| Value::Integer(1));
 
+static LEVEL_ENUM: &[EnumVariant] = &[
+    EnumVariant {
+        value: "trace",
+        description: "Log at the `trace` level.",
+    },
+    EnumVariant {
+        value: "debug",
+        description: "Log at the `debug` level.",
+    },
+    EnumVariant {
+        value: "info",
+        description: "Log at the `info` level.",
+    },
+    EnumVariant {
+        value: "warn",
+        description: "Log at the `warn` level.",
+    },
+    EnumVariant {
+        value: "error",
+        description: "Log at the `error` level.",
+    },
+];
+
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
-        Parameter {
-            keyword: "value",
-            kind: kind::ANY,
-            required: true,
-            description: "The value to log.",
-            default: None,
-        },
-        Parameter {
-            keyword: "level",
-            kind: kind::BYTES,
-            required: false,
-            description: "The log level.",
-            default: Some(&DEFAULT_LEVEL),
-        },
-        Parameter {
-            keyword: "rate_limit_secs",
-            kind: kind::INTEGER,
-            required: false,
-            description: "Specifies that the log message is output no more than once per the given number of seconds.
-Use a value of `0` to turn rate limiting off.",
-            default: Some(&DEFAULT_RATE_LIMIT_SECS),
-        },
+        Parameter::required("value", kind::ANY, "The value to log."),
+        Parameter::optional("level", kind::BYTES, "The log level.")
+            .default(&DEFAULT_LEVEL)
+            .enum_variants(LEVEL_ENUM),
+        Parameter::optional("rate_limit_secs", kind::INTEGER, "Specifies that the log message is output no more than once per the given number of seconds.
+Use a value of `0` to turn rate limiting off.")
+            .default(&DEFAULT_RATE_LIMIT_SECS),
     ]
 });
 

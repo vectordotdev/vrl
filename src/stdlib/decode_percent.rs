@@ -30,13 +30,12 @@ impl Function for DecodePercent {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[Parameter {
-            keyword: "value",
-            kind: kind::BYTES,
-            required: true,
-            description: "The string to decode.",
-            default: None,
-        }]
+        const PARAMETERS: &[Parameter] = &[Parameter::required(
+            "value",
+            kind::BYTES,
+            "The string to decode.",
+        )];
+        PARAMETERS
     }
 
     fn compile(

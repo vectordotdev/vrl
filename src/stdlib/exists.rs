@@ -27,13 +27,12 @@ impl Function for Exists {
         kind::BOOLEAN
     }
     fn parameters(&self) -> &'static [Parameter] {
-        &[Parameter {
-            keyword: "field",
-            kind: kind::ANY,
-            required: true,
-            description: "The path of the field to check.",
-            default: None,
-        }]
+        const PARAMETERS: &[Parameter] = &[Parameter::required(
+            "field",
+            kind::ANY,
+            "The path of the field to check.",
+        )];
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {

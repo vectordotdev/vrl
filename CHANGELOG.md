@@ -1,8 +1,102 @@
 # Changelog
 
- This project uses [*towncrier*](https://towncrier.readthedocs.io/) for changelog generation.
+Changelog is generated from fragments in `changelog.d/` by the `release` crate.
 
 <!-- changelog start -->
+
+## [0.32.0 (2026-04-16)]
+
+### New Features
+
+- Added a new `encode_csv` function that encodes an array of values into a CSV-formatted string. This is the inverse of the existing `parse_csv` function and supports an optional single-byte delimiter (defaults to `,`).
+
+  authors: armleth (https://github.com/vectordotdev/vrl/pull/1649)
+- Added `to_entries` and `from_entries` with jq-compatible behavior: `to_entries` supports both objects and arrays, and `from_entries` accepts `key`/`Key`/`name`/`Name` and `value`/`Value` aliases.
+
+  authors: close2code-palm (https://github.com/vectordotdev/vrl/pull/1653)
+
+### Enhancements
+
+- Added `except` parameter to `flatten` function to exclude specific keys from being flattened.
+
+  authors: benjamin-awd (https://github.com/vectordotdev/vrl/pull/1682)
+
+### Fixes
+
+- Fixed a bug where the REPL input validator was executing programs instead of only compiling them, causing functions with side effects (e.g. `http_request`) to run twice per submission.
+
+  authors: prontidis (https://github.com/vectordotdev/vrl/pull/1701)
+
+
+## [0.31.0 (2026-03-05)]
+
+### New Features
+
+- Added a new `parse_yaml` function. This function parses yaml according to the [YAML 1.1 spec](https://yaml.org/spec/1.1/).
+
+  authors: juchem (https://github.com/vectordotdev/vrl/pull/1602)
+- Added `--quiet` / `-q` flag to the CLI to suppress the banner text when starting the REPL.
+
+  authors: thomasqueirozb (https://github.com/vectordotdev/vrl/pull/1617)
+
+### Fixes
+
+- Fixed a bug where lexer parse errors would emit a generic span with 202 error code instead of the
+  proper error. Also fixed error positions from nested lexers (e.g., string literals inside function
+  arguments) to correctly point to the actual location in the source.
+
+  Before (generic E202 syntax error):
+
+  ```
+  $ string("\a")
+
+  error[E202]: syntax error
+    ┌─ :1:1
+    │
+  1 │ string("\a")
+    │ ^^^^^^^^^^^^ unexpected error: invalid escape character: \a
+    │
+    = see language documentation at https://vrl.dev
+    = try your code in the VRL REPL, learn more at https://vrl.dev/examples
+  ```
+
+  After (correct E209 invalid escape character):
+
+  ```
+  $ string("\a")
+
+  error[E209]: invalid escape character: \a
+    ┌─ :1:10
+    │
+  1 │ string("\a")
+    │          ^ invalid escape character: a
+    │
+    = see language documentation at https://vrl.dev
+    = try your code in the VRL REPL, learn more at https://vrl.dev/examples
+  ```
+
+  authors: thomasqueirozb (https://github.com/vectordotdev/vrl/pull/1579)
+- Fixed a bug where `parse_duration` panicked when large values overflowed during multiplication.
+  The function now returns an error instead.
+
+  authors: thomasqueirozb (https://github.com/vectordotdev/vrl/pull/1618)
+- Corrected the type definition of the `basename` function to indicate that it can also return `null`.
+  Previously the type definitition indicated that the function could only return bytes (or strings).
+
+  authors: thomasqueirozb (https://github.com/vectordotdev/vrl/pull/1635)
+- Fixed incorrect parameter types in several stdlib functions:
+
+  - `md5`: `value` parameter was typed as `any`, now correctly typed as `bytes`.
+  - `seahash`: `value` parameter was typed as `any`, now correctly typed as `bytes`.
+  - `floor`: `value` parameter was typed as `any`, now correctly typed as `float | integer`; `precision` parameter was typed as `any`, now correctly typed as `integer`.
+  - `parse_key_value`: `key_value_delimiter` and `field_delimiter` parameters were typed as `any`, now correctly typed as `bytes`.
+
+  Note: the function documentation already reflected the correct types.
+
+  authors: thomasqueirozb
+
+  (https://github.com/vectordotdev/vrl/pull/1650)
+
 
 ## [0.30.0 (2026-01-22)]
 

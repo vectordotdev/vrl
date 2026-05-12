@@ -39,13 +39,12 @@ impl Function for String {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[Parameter {
-            keyword: "value",
-            kind: kind::ANY,
-            required: true,
-            description: "The value to check if it is a string.",
-            default: None,
-        }]
+        const PARAMETERS: &[Parameter] = &[Parameter::required(
+            "value",
+            kind::ANY,
+            "The value to check if it is a string.",
+        )];
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {

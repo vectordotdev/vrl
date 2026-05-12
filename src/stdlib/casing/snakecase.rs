@@ -1,6 +1,7 @@
+use crate::compiler::function::EnumVariant;
 use crate::compiler::prelude::*;
 
-use crate::stdlib::casing::into_case;
+use crate::stdlib::casing::{ORIGINAL_CASE, into_case};
 use convert_case::Case;
 
 use super::into_boundary;
@@ -26,41 +27,42 @@ impl Function for Snakecase {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::BYTES,
-                required: true,
-                description: "The string to convert to snake_case.",
-                default: None,
-            },
-            Parameter {
-                keyword: "original_case",
-                kind: kind::BYTES,
-                required: false,
-                description: "Optional hint on the original case type. Must be one of: kebab-case, camelCase, PascalCase, SCREAMING_SNAKE, snake_case",
-                default: None,
-            },
-            Parameter {
-                keyword: "excluded_boundaries",
-                kind: kind::ARRAY,
-                required: false,
-                description: indoc! {"
-                    Case boundaries to exclude during conversion.
-
-                    Valid values include:
-                    - lower_upper
-                    - upper_lower
-                    - upper_upper
-                    - acronym
-                    - lower_digit
-                    - upper_digit
-                    - digit_lower
-                    - digit_upper
-                "},
-                default: None,
-            },
-        ]
+        const PARAMETERS: &[Parameter] = &[
+            Parameter::required("value", kind::BYTES, "The string to convert to snake_case."),
+            ORIGINAL_CASE,
+            Parameter::optional("excluded_boundaries", kind::ARRAY, "Case boundaries to exclude during conversion.")
+                .enum_variants(&[
+                    EnumVariant {
+                        value: "lower_upper",
+                        description: "Lowercase to uppercase transitions (e.g., 'camelCase' → 'camel' + 'case')",
+                    },
+                    EnumVariant {
+                        value: "upper_lower",
+                        description: "Uppercase to lowercase transitions (e.g., 'CamelCase' → 'Camel' + 'Case')",
+                    },
+                    EnumVariant {
+                        value: "acronym",
+                        description: "Acronyms from words (e.g., 'XMLHttpRequest' → 'xmlhttp' + 'request')",
+                    },
+                    EnumVariant {
+                        value: "lower_digit",
+                        description: "Lowercase to digit transitions (e.g., 'foo2bar' → 'foo2_bar')",
+                    },
+                    EnumVariant {
+                        value: "upper_digit",
+                        description: "Uppercase to digit transitions (e.g., 'versionV2' → 'version_v2')",
+                    },
+                    EnumVariant {
+                        value: "digit_lower",
+                        description: "Digit to lowercase transitions (e.g., 'Foo123barBaz' → 'foo' + '123bar' + 'baz')",
+                    },
+                    EnumVariant {
+                        value: "digit_upper",
+                        description: "Digit to uppercase transitions (e.g., 'Version123Test' → 'version' + '123test')",
+                    },
+                ]),
+        ];
+        PARAMETERS
     }
 
     fn compile(
@@ -127,7 +129,7 @@ impl Function for Snakecase {
             },
             example! {
                 title: "snake_case with excluded boundaries",
-                source: r#"snakecase("s3BucketDetails", excluded_boundaries: ["digit_lower", "lower_digit", "upper_digit"])"#,
+                source: r#"snakecase("s3BucketDetails", excluded_boundaries: ["lower_digit"])"#,
                 result: Ok("s3_bucket_details"),
             },
         ]

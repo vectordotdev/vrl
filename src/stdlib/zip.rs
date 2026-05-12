@@ -70,22 +70,19 @@ impl Function for Zip {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "array_0",
-                kind: kind::ARRAY,
-                required: true,
-                description: "The first array of elements, or the array of input arrays if no other parameter is present.",
-                default: None,
-            },
-            Parameter {
-                keyword: "array_1",
-                kind: kind::ARRAY,
-                required: false,
-                description: "The second array of elements. If not present, the first parameter contains all the arrays.",
-                default: None,
-            },
-        ]
+        const PARAMETERS: &[Parameter] = &[
+            Parameter::required(
+                "array_0",
+                kind::ARRAY,
+                "The first array of elements, or the array of input arrays if no other parameter is present.",
+            ),
+            Parameter::optional(
+                "array_1",
+                kind::ARRAY,
+                "The second array of elements. If not present, the first parameter contains all the arrays.",
+            ),
+        ];
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {

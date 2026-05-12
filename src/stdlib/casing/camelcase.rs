@@ -1,6 +1,6 @@
 use crate::compiler::prelude::*;
 
-use crate::stdlib::casing::into_case;
+use crate::stdlib::casing::{ORIGINAL_CASE, into_case};
 use convert_case::Case;
 
 #[derive(Clone, Copy, Debug)]
@@ -24,22 +24,12 @@ impl Function for Camelcase {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::BYTES,
-                required: true,
-                description: "The string to convert to camelCase.",
-                default: None,
-            },
-            Parameter {
-                keyword: "original_case",
-                kind: kind::BYTES,
-                required: false,
-                description: "Optional hint on the original case type. Must be one of: kebab-case, camelCase, PascalCase, SCREAMING_SNAKE, snake_case",
-                default: None,
-            },
-        ]
+        const PARAMETERS: &[Parameter] = &[
+            Parameter::required("value", kind::BYTES, "The string to convert to camelCase."),
+            ORIGINAL_CASE,
+        ];
+
+        PARAMETERS
     }
 
     fn compile(

@@ -1,3 +1,4 @@
+use crate::compiler::function::EnumVariant;
 use crate::compiler::prelude::*;
 use hmac::{Hmac as HmacHasher, Mac};
 use sha_2::{Sha224, Sha256, Sha384, Sha512};
@@ -17,29 +18,44 @@ macro_rules! hmac {
 
 static DEFAULT_ALGORITHM: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from("SHA-256")));
 
+static ALGORITHM_ENUM: &[EnumVariant] = &[
+    EnumVariant {
+        value: "SHA1",
+        description: "SHA1 algorithm",
+    },
+    EnumVariant {
+        value: "SHA-224",
+        description: "SHA-224 algorithm",
+    },
+    EnumVariant {
+        value: "SHA-256",
+        description: "SHA-256 algorithm",
+    },
+    EnumVariant {
+        value: "SHA-384",
+        description: "SHA-384 algorithm",
+    },
+    EnumVariant {
+        value: "SHA-512",
+        description: "SHA-512 algorithm",
+    },
+];
+
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
-        Parameter {
-            keyword: "value",
-            kind: kind::BYTES,
-            required: true,
-            description: "The string to calculate the HMAC for.",
-            default: None,
-        },
-        Parameter {
-            keyword: "key",
-            kind: kind::BYTES,
-            required: true,
-            description: "The string to use as the cryptographic key.",
-            default: None,
-        },
-        Parameter {
-            keyword: "algorithm",
-            kind: kind::BYTES,
-            required: false,
-            description: "The hashing algorithm to use.",
-            default: Some(&DEFAULT_ALGORITHM),
-        },
+        Parameter::required(
+            "value",
+            kind::BYTES,
+            "The string to calculate the HMAC for.",
+        ),
+        Parameter::required(
+            "key",
+            kind::BYTES,
+            "The string to use as the cryptographic key.",
+        ),
+        Parameter::optional("algorithm", kind::BYTES, "The hashing algorithm to use.")
+            .default(&DEFAULT_ALGORITHM)
+            .enum_variants(ALGORITHM_ENUM),
     ]
 });
 
@@ -113,13 +129,13 @@ impl Function for Hmac {
             },
             example! {
                 title: "Calculate message HMAC using a variable hash algorithm",
-                source: r#"
-.hash_algo = "SHA-256"
-hmac_bytes, err = hmac("Hello there", "super-secret-key", algorithm: .hash_algo)
-if err == null {
-	.hmac = encode_base16(hmac_bytes)
-}
-"#,
+                source: indoc! {r#"
+                    .hash_algo = "SHA-256"
+                    hmac_bytes, err = hmac("Hello there", "super-secret-key", algorithm: .hash_algo)
+                    if err == null {
+                        .hmac = encode_base16(hmac_bytes)
+                    }
+                "#},
                 result: Ok("78b184f1832f8aff3934f5e0212454671b2d04d494e3b25075c5e45167029662"),
             },
         ]

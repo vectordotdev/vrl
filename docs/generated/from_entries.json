@@ -1,0 +1,39 @@
+{
+  "anchor": "from_entries",
+  "name": "from_entries",
+  "category": "Object",
+  "description": "Converts array of key/value objects into an object.",
+  "arguments": [
+    {
+      "name": "value",
+      "description": "The array of key/value objects to convert.",
+      "required": true,
+      "type": [
+        "array"
+      ]
+    }
+  ],
+  "return": {
+    "types": [
+      "object"
+    ],
+    "rules": [
+      "Returns an object composed from the array entries."
+    ]
+  },
+  "examples": [
+    {
+      "title": "Manipulate empty array",
+      "source": "from_entries([])",
+      "return": {}
+    },
+    {
+      "title": "Manipulate array",
+      "source": "from_entries([{ \"key\": \"foo\", \"value\": \"bar\" }])",
+      "return": {
+        "foo": "bar"
+      }
+    }
+  ],
+  "pure": true
+}

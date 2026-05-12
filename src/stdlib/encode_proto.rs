@@ -1,12 +1,15 @@
+use super::util::example_path_or_basename;
 use crate::compiler::prelude::*;
 use crate::protobuf::descriptor::get_message_descriptor;
-use crate::protobuf::encode::encode_proto;
+use crate::protobuf::encode::{Options, encode_proto};
 use prost_reflect::MessageDescriptor;
-use std::env;
 use std::ffi::OsString;
 use std::path::Path;
 use std::path::PathBuf;
 use std::sync::LazyLock;
+
+static DEFAULT_ALLOW_LOSSY_STRING_COERCION: LazyLock<Value> =
+    LazyLock::new(|| Value::Boolean(true));
 
 #[derive(Clone, Copy, Debug)]
 pub struct EncodeProto;
@@ -14,10 +17,7 @@ pub struct EncodeProto;
 // This needs to be static because parse_proto needs to read a file
 // and the file path needs to be a literal.
 static EXAMPLE_ENCODE_PROTO_EXPR: LazyLock<&str> = LazyLock::new(|| {
-    let path = PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap())
-        .join("../../tests/data/protobuf/test_protobuf/v1/test_protobuf.desc")
-        .display()
-        .to_string();
+    let path = example_path_or_basename("protobuf/test_protobuf/v1/test_protobuf.desc");
 
     Box::leak(
         format!(
@@ -45,9 +45,7 @@ impl Function for EncodeProto {
     }
 
     fn usage(&self) -> &'static str {
-        indoc! {"
-            Parses the provided `value` as protocol buffer.
-        "}
+        "Encodes the `value` into a protocol buffer payload."
     }
 
     fn category(&self) -> &'static str {
@@ -66,34 +64,36 @@ impl Function for EncodeProto {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::ANY,
-                required: true,
-                description: "The object to convert to a protocol buffer payload.",
-                default: None,
-            },
-            Parameter {
-                keyword: "desc_file",
-                kind: kind::BYTES,
-                required: true,
-                description:
+        static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+            vec![
+                Parameter::required(
+                    "value",
+                    kind::ANY,
+                    "The object to convert to a protocol buffer payload.",
+                ),
+                Parameter::required(
+                    "desc_file",
+                    kind::BYTES,
                     "The path to the protobuf descriptor set file. Must be a literal string.
 
 This file is the output of protoc -o <path> ...",
-                default: None,
-            },
-            Parameter {
-                keyword: "message_type",
-                kind: kind::BYTES,
-                required: true,
-                description: "The name of the message type to use for serializing.
+                ),
+                Parameter::required(
+                    "message_type",
+                    kind::BYTES,
+                    "The name of the message type to use for serializing.
 
 Must be a literal string.",
-                default: None,
-            },
-        ]
+                ),
+                Parameter::optional(
+                    "allow_lossy_string_coercion",
+                    kind::BOOLEAN,
+                    "Whether to permit lossy coercion of `Boolean`, `Integer`, `Float`, and `Timestamp` values into protobuf `string` fields by stringifying the value. Defaults to `true` to preserve permissive behavior; set to `false` for strict, spec-compliant encoding (see the [protobuf JSON mapping](https://protobuf.dev/programming-guides/json/)).",
+                )
+                .default(&DEFAULT_ALLOW_LOSSY_STRING_COERCION),
+            ]
+        });
+        PARAMETERS.as_slice()
     }
 
     fn examples(&self) -> &'static [Example] {
@@ -115,13 +115,19 @@ Must be a literal string.",
         let message_type_str = message_type
             .try_bytes_utf8_lossy()
             .expect("message_type must be a string");
+        let allow_lossy_string_coercion = arguments.optional("allow_lossy_string_coercion");
         let os_string: OsString = desc_file_str.into_owned().into();
         let path_buf = PathBuf::from(os_string);
         let path = Path::new(&path_buf);
         let descriptor =
             get_message_descriptor(path, &message_type_str).expect("message type not found");
 
-        Ok(EncodeProtoFn { descriptor, value }.as_expr())
+        Ok(EncodeProtoFn {
+            descriptor,
+            value,
+            allow_lossy_string_coercion,
+        }
+        .as_expr())
     }
 }
 
@@ -129,12 +135,21 @@ Must be a literal string.",
 struct EncodeProtoFn {
     descriptor: MessageDescriptor,
     value: Box<dyn Expression>,
+    allow_lossy_string_coercion: Option<Box<dyn Expression>>,
 }
 
 impl FunctionExpression for EncodeProtoFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let value = self.value.resolve(ctx)?;
-        encode_proto(&self.descriptor, value)
+        let allow_lossy_string_coercion = self
+            .allow_lossy_string_coercion
+            .map_resolve_with_default(ctx, || DEFAULT_ALLOW_LOSSY_STRING_COERCION.clone())?
+            .try_boolean()?;
+        let options = Options {
+            allow_lossy_string_coercion,
+            ..Options::default()
+        };
+        encode_proto(&self.descriptor, value, &options)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {
@@ -146,7 +161,7 @@ impl FunctionExpression for EncodeProtoFn {
 mod tests {
     use super::*;
     use crate::value;
-    use std::fs;
+    use std::{env, fs};
 
     fn test_data_dir() -> PathBuf {
         PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap()).join("tests/data/protobuf")
@@ -173,6 +188,16 @@ mod tests {
                 desc_file: test_data_dir().join("test_protobuf3/v1/test_protobuf3.desc").to_str().unwrap().to_owned(),
                 message_type: "test_protobuf3.v1.Person"],
             want: Ok(value!(read_pb_file("test_protobuf3/v1/input/person_someone.pb"))),
+            tdef: TypeDef::bytes().fallible(),
+        }
+
+        strict_mode_rejects_int_into_string {
+            args: func_args![
+                value: value!({ text: 123 }),
+                desc_file: test_data_dir().join("test/v1/test.desc").to_str().unwrap().to_owned(),
+                message_type: "test.v1.Bytes",
+                allow_lossy_string_coercion: false],
+            want: Err("Error converting text field: Cannot encode `integer` into protobuf `string`"),
             tdef: TypeDef::bytes().fallible(),
         }
     ];

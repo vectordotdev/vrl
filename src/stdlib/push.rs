@@ -31,22 +31,11 @@ impl Function for Push {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::ARRAY,
-                required: true,
-                description: "The target array.",
-                default: None,
-            },
-            Parameter {
-                keyword: "item",
-                kind: kind::ANY,
-                required: true,
-                description: "The item to push.",
-                default: None,
-            },
-        ]
+        const PARAMETERS: &[Parameter] = &[
+            Parameter::required("value", kind::ARRAY, "The target array."),
+            Parameter::required("item", kind::ANY, "The item to push."),
+        ];
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {

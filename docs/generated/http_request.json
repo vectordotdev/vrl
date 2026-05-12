@@ -1,0 +1,140 @@
+{
+  "anchor": "http_request",
+  "name": "http_request",
+  "category": "System",
+  "description": "Makes an HTTP request to the specified URL.",
+  "arguments": [
+    {
+      "name": "url",
+      "description": "The URL to make the HTTP request to.",
+      "required": true,
+      "type": [
+        "string"
+      ]
+    },
+    {
+      "name": "method",
+      "description": "The HTTP method to use (e.g., GET, POST, PUT, DELETE). Defaults to GET.",
+      "required": false,
+      "type": [
+        "string"
+      ],
+      "default": "get"
+    },
+    {
+      "name": "headers",
+      "description": "An object containing HTTP headers to send with the request.",
+      "required": false,
+      "type": [
+        "object"
+      ],
+      "default": "{  }"
+    },
+    {
+      "name": "body",
+      "description": "The request body content to send.",
+      "required": false,
+      "type": [
+        "string"
+      ],
+      "default": ""
+    },
+    {
+      "name": "http_proxy",
+      "description": "HTTP proxy URL to use for the request.",
+      "required": false,
+      "type": [
+        "string"
+      ]
+    },
+    {
+      "name": "https_proxy",
+      "description": "HTTPS proxy URL to use for the request.",
+      "required": false,
+      "type": [
+        "string"
+      ]
+    },
+    {
+      "name": "redact_headers",
+      "description": "Whether to redact sensitive header values in error messages.",
+      "required": false,
+      "type": [
+        "boolean"
+      ],
+      "default": "true"
+    }
+  ],
+  "return": {
+    "types": [
+      "string"
+    ]
+  },
+  "examples": [
+    {
+      "title": "Basic HTTP request",
+      "source": ". = parse_json!(http_request!(\"https://httpbin.org/get\"))\n\n# Redact the origin ip\n.origin = redact!(.origin, filters: [r'.*'], redactor: {\"type\": \"text\", \"replacement\": \"***\"})\n# Delete any ids in headers\n.headers = filter(object!(.headers)) -> |key, _value| { !contains(key, \"id\", false) }\n.\n",
+      "return": {
+        "args": {},
+        "headers": {
+          "Accept": "*/*",
+          "Host": "httpbin.org"
+        },
+        "url": "https://httpbin.org/get",
+        "origin": "***"
+      }
+    },
+    {
+      "title": "HTTP request with bearer token",
+      "source": "parse_json!(http_request!(\"https://httpbin.org/bearer\", headers: {\"Authorization\": \"Bearer my_token\"}))",
+      "return": {
+        "authenticated": true,
+        "token": "my_token"
+      }
+    },
+    {
+      "title": "HTTP PUT request",
+      "source": ". = parse_json!(http_request!(\"https://httpbin.org/put\", method: \"put\"))\n\n# Redact the origin ip\n.origin = redact!(.origin, filters: [r'.*'], redactor: {\"type\": \"text\", \"replacement\": \"***\"})\n# Delete any ids in headers\n.headers = filter(object!(.headers)) -> |key, _value| { !contains(key, \"id\", false) }\n.\n",
+      "return": {
+        "args": {},
+        "data": "",
+        "files": {},
+        "form": {},
+        "headers": {
+          "Accept": "*/*",
+          "Content-Length": "0",
+          "Host": "httpbin.org"
+        },
+        "json": null,
+        "origin": "***",
+        "url": "https://httpbin.org/put"
+      }
+    },
+    {
+      "title": "HTTP POST request with body",
+      "source": ". = parse_json!(http_request!(\"https://httpbin.org/post\", method: \"post\", body: \"{\\\"data\\\":{\\\"hello\\\":\\\"world\\\"}}\"))\n\n# Redact the origin ip\n.origin = redact!(.origin, filters: [r'.*'], redactor: {\"type\": \"text\", \"replacement\": \"***\"})\n# Delete any ids in headers\n.headers = filter(object!(.headers)) -> |key, _value| { !contains(key, \"id\", false) }\n.\n",
+      "return": {
+        "data": "{\"data\":{\"hello\":\"world\"}}",
+        "args": {},
+        "files": {},
+        "form": {},
+        "headers": {
+          "Accept": "*/*",
+          "Content-Length": "26",
+          "Host": "httpbin.org"
+        },
+        "json": {
+          "data": {
+            "hello": "world"
+          }
+        },
+        "origin": "***",
+        "url": "https://httpbin.org/post"
+      }
+    }
+  ],
+  "notices": [
+    "This function performs synchronous blocking operations and is not recommended for\nfrequent or performance-critical workflows due to potential network-related delays."
+  ],
+  "pure": true
+}

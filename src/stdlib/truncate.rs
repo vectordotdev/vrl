@@ -45,37 +45,27 @@ impl Function for Truncate {
     }
 
     fn return_rules(&self) -> &'static [&'static str] {
-        &[
-            "The string is returned unchanged its length is less than `limit`.",
-            "If `ellipsis` is `true`, then an ellipsis (`...`) is appended to the string (beyond the specified `limit`).",
-        ]
+        &["The string is returned unchanged its length is less than `limit`."]
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::BYTES,
-                required: true,
-                description: "The string to truncate.",
-                default: None,
-            },
-            Parameter {
-                keyword: "limit",
-                kind: kind::INTEGER,
-                required: true,
-                description: "The number of characters to truncate the string after.",
-                default: None,
-            },
-            Parameter {
-                keyword: "suffix",
-                kind: kind::BYTES,
-                required: false,
-                description: "A custom suffix (`...`) is appended to truncated strings.
-If `ellipsis` is set to `true`, this parameter is ignored for backwards compatibility.",
-                default: None,
-            },
-        ]
+        const PARAMETERS: &[Parameter] = &[
+            Parameter::required("value", kind::BYTES, "The string to truncate."),
+            Parameter::required(
+                "limit",
+                kind::INTEGER,
+                "The number of characters to truncate the string after.",
+            ),
+            Parameter::optional(
+                "suffix",
+                kind::BYTES,
+                indoc! {"
+                    A custom suffix to be appended to truncated strings. If a custom `suffix` is
+                    provided, the total length of the string will be `limit + <suffix length>`.
+                "},
+            ),
+        ];
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {

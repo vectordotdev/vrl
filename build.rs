@@ -1,19 +1,22 @@
 extern crate lalrpop;
 
 use std::{
-    borrow::Cow,
     env,
     fmt::Write as fmt_write,
     fs::{self, File},
     io::{BufRead, BufReader},
     path::Path,
 };
+
+#[cfg(feature = "stdlib-base")]
+use std::borrow::Cow;
+#[cfg(feature = "stdlib-base")]
 use ua_parser::device::Flag;
 
 fn main() {
     read_grok_patterns();
 
-    #[cfg(feature = "stdlib")]
+    #[cfg(feature = "stdlib-base")]
     convert_user_agent_regexes();
 
     println!("cargo:rerun-if-changed=src/parser/parser.lalrpop");
@@ -63,7 +66,7 @@ fn read_grok_patterns() {
     fs::write(dest_path, output).expect("'patterns.rs' wasn't generated");
 }
 
-#[cfg(feature = "stdlib")]
+#[cfg(feature = "stdlib-base")]
 fn convert_user_agent_regexes() {
     let regexes = fs::read("data/user_agent_regexes.yaml").expect("Could not read regexes");
     let regexes: ua_parser::Regexes =

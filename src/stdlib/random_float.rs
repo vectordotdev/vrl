@@ -1,5 +1,5 @@
 use crate::compiler::prelude::*;
-use rand::{Rng, thread_rng};
+use rand::Rng;
 use std::ops::Range;
 
 const INVALID_RANGE_ERR: &str = "max must be greater than min";
@@ -12,7 +12,7 @@ fn random_float(min: Value, max: Value) -> Resolved {
         return Err("max must be greater than min".into());
     }
 
-    let f: f64 = thread_rng().gen_range(min..max);
+    let f: f64 = rand::rng().random_range(min..max);
 
     Ok(Value::Float(NotNan::new(f).expect("always a number")))
 }
@@ -53,31 +53,20 @@ impl Function for RandomFloat {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "min",
-                kind: kind::FLOAT,
-                required: true,
-                description: "Minimum value (inclusive).",
-                default: None,
-            },
-            Parameter {
-                keyword: "max",
-                kind: kind::FLOAT,
-                required: true,
-                description: "Maximum value (exclusive).",
-                default: None,
-            },
-        ]
+        const PARAMETERS: &[Parameter] = &[
+            Parameter::required("min", kind::FLOAT, "Minimum value (inclusive)."),
+            Parameter::required("max", kind::FLOAT, "Maximum value (exclusive)."),
+        ];
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {
         &[example! {
             title: "Random float from 0.0 to 10.0, not including 10.0",
-            source: "
-				f = random_float(0.0, 10.0)
-				f >= 0 && f < 10
-                ",
+            source: indoc! {"
+                f = random_float(0.0, 10.0)
+                f >= 0 && f < 10
+            "},
             result: Ok("true"),
         }]
     }

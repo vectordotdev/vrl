@@ -53,22 +53,15 @@ impl Function for Chunks {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::BYTES,
-                required: true,
-                description: "The array of bytes to split.",
-                default: None,
-            },
-            Parameter {
-                keyword: "chunk_size",
-                kind: kind::INTEGER,
-                required: true,
-                description: "The desired length of each chunk in bytes. This may be constrained by the host platform architecture.",
-                default: None,
-            },
-        ]
+        const PARAMETERS: &[Parameter] = &[
+            Parameter::required("value", kind::BYTES, "The array of bytes to split."),
+            Parameter::required(
+                "chunk_size",
+                kind::INTEGER,
+                "The desired length of each chunk in bytes. This may be constrained by the host platform architecture.",
+            ),
+        ];
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {

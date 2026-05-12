@@ -35,13 +35,12 @@ impl Function for BaseName {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[Parameter {
-            keyword: "value",
-            kind: kind::BYTES,
-            required: true,
-            description: "The path from which to extract the basename.",
-            default: None,
-        }]
+        const PARAMETERS: &[Parameter] = &[Parameter::required(
+            "value",
+            kind::BYTES,
+            "The path from which to extract the basename.",
+        )];
+        PARAMETERS
     }
 
     fn compile(

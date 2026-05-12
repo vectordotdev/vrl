@@ -1,3 +1,4 @@
+use crate::compiler::function::EnumVariant;
 use crate::compiler::prelude::*;
 use crate::stdlib::util::Base64Charset;
 use std::sync::LazyLock;
@@ -7,27 +8,21 @@ static DEFAULT_CHARSET: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::f
 
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
-        Parameter {
-            keyword: "value",
-            kind: kind::BYTES,
-            required: true,
-            description: "The string to encode.",
-            default: None,
-        },
-        Parameter {
-            keyword: "padding",
-            kind: kind::BOOLEAN,
-            required: false,
-            description: "Whether the Base64 output is [padded](https://en.wikipedia.org/wiki/Base64#Output_padding).",
-            default: Some(&DEFAULT_PADDING),
-        },
-        Parameter {
-            keyword: "charset",
-            kind: kind::BYTES,
-            required: false,
-            description: "The character set to use when encoding the data.",
-            default: Some(&DEFAULT_CHARSET),
-        },
+        Parameter::required("value", kind::BYTES, "The string to encode."),
+        Parameter::optional("padding", kind::BOOLEAN, "Whether the Base64 output is [padded](https://en.wikipedia.org/wiki/Base64#Output_padding).")
+            .default(&DEFAULT_PADDING),
+        Parameter::optional("charset", kind::BYTES, "The character set to use when encoding the data.")
+            .default(&DEFAULT_CHARSET)
+            .enum_variants(&[
+                EnumVariant {
+                    value: "standard",
+                    description: "[Standard](https://tools.ietf.org/html/rfc4648#section-4) Base64 format.",
+                },
+                EnumVariant {
+                    value: "url_safe",
+                    description: "Modified Base64 for [URL variants](https://en.wikipedia.org/wiki/Base64#URL_applications).",
+                },
+            ]),
     ]
 });
 

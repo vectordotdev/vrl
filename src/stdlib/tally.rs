@@ -64,13 +64,12 @@ impl Function for Tally {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[Parameter {
-            keyword: "value",
-            kind: kind::ARRAY,
-            required: true,
-            description: "The array of strings to count occurrences for.",
-            default: None,
-        }]
+        const PARAMETERS: &[Parameter] = &[Parameter::required(
+            "value",
+            kind::ARRAY,
+            "The array of strings to count occurrences for.",
+        )];
+        PARAMETERS
     }
 }
 

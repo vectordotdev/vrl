@@ -50,14 +50,6 @@ Providing this information upfront will facilitate a smoother review process. --
 - [ ] Our [CONTRIBUTING.md](https://github.com/vectordotdev/vrl/blob/main/CONTRIBUTING.md) is a good starting place.
 - [ ] If this PR introduces changes to [LICENSE-3rdparty.csv](https://github.com/vectordotdev/vrl/blob/main/LICENSE-3rdparty.csv), please
   run `dd-rust-license-tool write` and commit the changes. More details [here](https://crates.io/crates/dd-rust-license-tool).
-- [ ] For new VRL functions, please also create a sibling PR in Vector to document the new function.
-
-<!-- Examples for the above:
-  PR adding new VRL function: https://github.com/vectordotdev/vrl/pull/993
-  PR adding documentation: https://github.com/vectordotdev/vector/pull/21142
-  
-  We are working towards improving this workflow.
--->
 
 ## References
 

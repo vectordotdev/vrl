@@ -21,7 +21,7 @@ use crate::value::Value;
 use clap::Parser;
 
 use super::Error;
-use super::repl;
+use super::repl::Repl;
 
 #[derive(Parser, Debug)]
 #[command(name = "VRL", about = "Vector Remap Language CLI")]
@@ -142,15 +142,10 @@ fn run(opts: &Opts, stdlib_functions: Vec<Box<dyn Function>>) -> Result<(), Erro
             program,
             warnings,
             config: _,
-        } = compile_with_state(
-            &source,
-            &crate::stdlib::all(),
-            &state,
-            CompileConfig::default(),
-        )
-        .map_err(|diagnostics| {
-            Error::Parse(Formatter::new(&source, diagnostics).colored().to_string())
-        })?;
+        } = compile_with_state(&source, &stdlib_functions, &state, CompileConfig::default())
+            .map_err(|diagnostics| {
+                Error::Parse(Formatter::new(&source, diagnostics).colored().to_string())
+            })?;
 
         #[allow(clippy::print_stderr)]
         if opts.print_warnings {
@@ -189,7 +184,6 @@ fn run(opts: &Opts, stdlib_functions: Vec<Box<dyn Function>>) -> Result<(), Erro
     }
 }
 
-#[allow(clippy::unnecessary_wraps)]
 fn repl(
     quiet: bool,
     objects: Vec<Value>,
@@ -208,7 +202,9 @@ fn repl(
         })
         .collect();
 
-    repl::run(quiet, objects, timezone, vrl_runtime, stdlib_functions).map_err(Into::into)
+    Repl::new(quiet, objects, timezone, vrl_runtime, stdlib_functions)
+        .run()
+        .map_err(Into::into)
 }
 
 fn execute(

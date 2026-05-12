@@ -94,29 +94,24 @@ impl Function for DecryptIp {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "ip",
-                kind: kind::BYTES,
-                required: true,
-                description: "The encrypted IP address to decrypt (v4 or v6).",
-                default: None,
-            },
-            Parameter {
-                keyword: "key",
-                kind: kind::BYTES,
-                required: true,
-                description: "The decryption key in raw bytes (not encoded). Must be the same key that was used for encryption. For AES128 mode, the key must be exactly 16 bytes. For PFX mode, the key must be exactly 32 bytes.",
-                default: None,
-            },
-            Parameter {
-                keyword: "mode",
-                kind: kind::BYTES,
-                required: true,
-                description: "The decryption mode to use. Must match the mode used for encryption: either `aes128` or `pfx`.",
-                default: None,
-            },
-        ]
+        const PARAMETERS: &[Parameter] = &[
+            Parameter::required(
+                "ip",
+                kind::BYTES,
+                "The encrypted IP address to decrypt (v4 or v6).",
+            ),
+            Parameter::required(
+                "key",
+                kind::BYTES,
+                "The decryption key in raw bytes (not encoded). Must be the same key that was used for encryption. For AES128 mode, the key must be exactly 16 bytes. For PFX mode, the key must be exactly 32 bytes.",
+            ),
+            Parameter::required(
+                "mode",
+                kind::BYTES,
+                "The decryption mode to use. Must match the mode used for encryption: either `aes128` or `pfx`.",
+            ),
+        ];
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {
@@ -143,7 +138,14 @@ impl Function for DecryptIp {
             },
             example! {
                 title: "Round-trip encryption and decryption",
-                source: r#"decrypt_ip!(encrypt_ip!("192.168.1.100", "sixteen byte key", "aes128"), "sixteen byte key", "aes128")"#,
+                source: indoc! {r#"
+                    original_ip = "192.168.1.100"
+                    key = "sixteen byte key"
+                    mode = "aes128"
+
+                    encrypted = encrypt_ip!(original_ip, key, mode)
+                    decrypt_ip!(encrypted, key, mode)
+                "#},
                 result: Ok("192.168.1.100"),
             },
         ]

@@ -5,20 +5,13 @@ static DEFAULT_RECURSIVE: LazyLock<Value> = LazyLock::new(|| Value::Boolean(fals
 
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
-        Parameter {
-            keyword: "value",
-            kind: kind::OBJECT,
-            required: true,
-            description: "The object to iterate.",
-            default: None,
-        },
-        Parameter {
-            keyword: "recursive",
-            kind: kind::BOOLEAN,
-            required: false,
-            description: "Whether to recursively iterate the collection.",
-            default: Some(&DEFAULT_RECURSIVE),
-        },
+        Parameter::required("value", kind::OBJECT, "The object to iterate."),
+        Parameter::optional(
+            "recursive",
+            kind::BOOLEAN,
+            "Whether to recursively iterate the collection.",
+        )
+        .default(&DEFAULT_RECURSIVE),
     ]
 });
 
@@ -126,7 +119,14 @@ impl Function for MapKeys {
             },
             example! {
                 title: "Recursively map object keys",
-                source: r#"map_keys({ "a": 1, "b": [{ "c": 2 }, { "d": 3 }], "e": { "f": 4 } }, recursive: true) -> |key| { upcase(key) }"#,
+                source: indoc! {r#"
+                    val = {
+                        "a": 1,
+                        "b": [{ "c": 2 }, { "d": 3 }],
+                        "e": { "f": 4 }
+                    }
+                    map_keys(val, recursive: true) -> |key| { upcase(key) }
+                "#},
                 result: Ok(r#"{ "A": 1, "B": [{ "C": 2 }, { "D": 3 }], "E": { "F": 4 } }"#),
             },
         ]

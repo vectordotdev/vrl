@@ -27,13 +27,12 @@ impl Function for Md5 {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[Parameter {
-            keyword: "value",
-            kind: kind::ANY,
-            required: true,
-            description: "The string to calculate the hash for.",
-            default: None,
-        }]
+        const PARAMETERS: &[Parameter] = &[Parameter::required(
+            "value",
+            kind::BYTES,
+            "The string to calculate the hash for.",
+        )];
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {

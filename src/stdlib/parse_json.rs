@@ -14,31 +14,25 @@ static DEFAULT_LOSSY: LazyLock<Value> = LazyLock::new(|| Value::Boolean(true));
 
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
-        Parameter {
-            keyword: "value",
-            kind: kind::BYTES,
-            required: true,
-            description: "The string representation of the JSON to parse.",
-            default: None,
-        },
-        Parameter {
-            keyword: "max_depth",
-            kind: kind::INTEGER,
-            required: false,
-            description: "Number of layers to parse for nested JSON-formatted documents.
+        Parameter::required(
+            "value",
+            kind::BYTES,
+            "The string representation of the JSON to parse.",
+        ),
+        Parameter::optional(
+            "max_depth",
+            kind::INTEGER,
+            "Number of layers to parse for nested JSON-formatted documents.
 The value must be in the range of 1 to 128.",
-            default: None,
-        },
-        Parameter {
-            keyword: "lossy",
-            kind: kind::BOOLEAN,
-            required: false,
-            description:
-                "Whether to parse the JSON in a lossy manner. Replaces invalid UTF-8 characters
+        ),
+        Parameter::optional(
+            "lossy",
+            kind::BOOLEAN,
+            "Whether to parse the JSON in a lossy manner. Replaces invalid UTF-8 characters
 with the Unicode character `�` (U+FFFD) if set to true, otherwise returns an error
 if there are any invalid UTF-8 characters present.",
-            default: Some(&DEFAULT_LOSSY),
-        },
+        )
+        .default(&DEFAULT_LOSSY),
     ]
 });
 

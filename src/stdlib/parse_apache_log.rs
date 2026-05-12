@@ -1,4 +1,5 @@
 use super::log_util;
+use crate::compiler::function::EnumVariant;
 use crate::compiler::prelude::*;
 use crate::value;
 use std::collections::BTreeMap;
@@ -7,30 +8,29 @@ use std::sync::LazyLock;
 static DEFAULT_TIMESTAMP_FORMAT: LazyLock<Value> =
     LazyLock::new(|| Value::Bytes(Bytes::from("%d/%b/%Y:%T %z")));
 
+static FORMAT_ENUM: &[EnumVariant] = &[
+    EnumVariant {
+        value: "common",
+        description: "Common format",
+    },
+    EnumVariant {
+        value: "combined",
+        description: "Apache combined format",
+    },
+    EnumVariant {
+        value: "error",
+        description: "Default Apache error format",
+    },
+];
+
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
-        Parameter {
-            keyword: "value",
-            kind: kind::BYTES,
-            required: true,
-            description: "The string to parse.",
-            default: None,
-        },
-        Parameter {
-            keyword: "format",
-            kind: kind::BYTES,
-            required: true,
-            description: "The format to use for parsing the log.",
-            default: None,
-        },
-        Parameter {
-            keyword: "timestamp_format",
-            kind: kind::BYTES,
-            required: false,
-            description: "The [date/time format](https://docs.rs/chrono/latest/chrono/format/strftime/index.html) to use for
-encoding the timestamp. The time is parsed in local time if the timestamp does not specify a timezone.",
-            default: Some(&DEFAULT_TIMESTAMP_FORMAT),
-        },
+        Parameter::required("value", kind::BYTES, "The string to parse."),
+        Parameter::required("format", kind::BYTES, "The format to use for parsing the log.")
+            .enum_variants(FORMAT_ENUM),
+        Parameter::optional("timestamp_format", kind::BYTES, "The [date/time format](https://docs.rs/chrono/latest/chrono/format/strftime/index.html) to use for
+encoding the timestamp. The time is parsed in local time if the timestamp does not specify a timezone.")
+            .default(&DEFAULT_TIMESTAMP_FORMAT),
     ]
 });
 

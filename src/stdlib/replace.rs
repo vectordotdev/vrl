@@ -5,34 +5,23 @@ static DEFAULT_COUNT: LazyLock<Value> = LazyLock::new(|| Value::Integer(-1));
 
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
-        Parameter {
-            keyword: "value",
-            kind: kind::BYTES,
-            required: true,
-            description: "The original string.",
-            default: None,
-        },
-        Parameter {
-            keyword: "pattern",
-            kind: kind::BYTES | kind::REGEX,
-            required: true,
-            description: "Replace all matches of this pattern. Can be a static string or a regular expression.",
-            default: None,
-        },
-        Parameter {
-            keyword: "with",
-            kind: kind::BYTES,
-            required: true,
-            description: "The string that the matches are replaced with.",
-            default: None,
-        },
-        Parameter {
-            keyword: "count",
-            kind: kind::INTEGER,
-            required: false,
-            description: "The maximum number of replacements to perform. `-1` means replace all matches.",
-            default: Some(&DEFAULT_COUNT),
-        },
+        Parameter::required("value", kind::BYTES, "The original string."),
+        Parameter::required(
+            "pattern",
+            kind::BYTES | kind::REGEX,
+            "Replace all matches of this pattern. Can be a static string or a regular expression.",
+        ),
+        Parameter::required(
+            "with",
+            kind::BYTES,
+            "The string that the matches are replaced with.",
+        ),
+        Parameter::optional(
+            "count",
+            kind::INTEGER,
+            "The maximum number of replacements to perform. `-1` means replace all matches.",
+        )
+        .default(&DEFAULT_COUNT),
     ]
 });
 
@@ -129,7 +118,11 @@ impl Function for Replace {
             },
             example! {
                 title: "Replace with capture groups",
-                source: r#"replace("foo123bar", r'foo(?P<num>\d+)bar', "$num")"#,
+                source: indoc! {r#"
+                    # Note that in the context of Vector configuration files, an extra `$` escape character is required
+                    # (i.e. `$$num`) to avoid interpreting `num` as an environment variable.
+                    replace("foo123bar", r'foo(?P<num>\d+)bar', "$num")
+                "#},
                 result: Ok(r#""123""#),
             },
             example! {

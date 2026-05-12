@@ -29,13 +29,12 @@ impl Function for IsRegex {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[Parameter {
-            keyword: "value",
-            kind: kind::ANY,
-            required: true,
-            description: "The value to check if it is a regex.",
-            default: None,
-        }]
+        const PARAMETERS: &[Parameter] = &[Parameter::required(
+            "value",
+            kind::ANY,
+            "The value to check if it is a regex.",
+        )];
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {

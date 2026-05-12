@@ -8,11 +8,13 @@
 use crate::compiler::prelude::*;
 
 #[cfg(not(target_arch = "wasm32"))]
+#[allow(clippy::similar_names)]
 mod non_wasm {
     use super::{
         Context, Expression, ExpressionError, ExpressionExt, FunctionExpression, Resolved, TypeDef,
         TypeState, Value, VrlValueConvert,
     };
+    use crate::value::value::ObjectMap;
     use reqwest_middleware::{
         ClientBuilder, ClientWithMiddleware,
         reqwest::{
@@ -50,17 +52,56 @@ mod non_wasm {
             .build()
     }
 
+    /// Redacts sensitive header values to prevent them from appearing in error messages.
+    /// Headers like Authorization, Cookie, and API keys are replaced with ***.
+    fn redact_sensitive_headers(headers: &ObjectMap) -> ObjectMap {
+        const SENSITIVE_HEADERS: &[&str] = &[
+            "authorization",
+            "cookie",
+            "set-cookie",
+            "x-api-key",
+            "api-key",
+            "x-auth-token",
+            "proxy-authorization",
+        ];
+
+        headers
+            .iter()
+            .map(|(key, value)| {
+                let key_lower = key.as_ref().to_lowercase();
+                if SENSITIVE_HEADERS.contains(&key_lower.as_str())
+                    || key_lower.contains("token")
+                    || key_lower.contains("secret")
+                    || key_lower.contains("password")
+                {
+                    (key.clone(), Value::from("***"))
+                } else {
+                    (key.clone(), value.clone())
+                }
+            })
+            .collect()
+    }
+
     async fn http_request(
         client: &ClientWithMiddleware,
         url: &Value,
         method: &Value,
         headers: Value,
         body: &Value,
+        redact_headers: bool,
     ) -> Resolved {
         let url = url.try_bytes_utf8_lossy()?;
         let method = method.try_bytes_utf8_lossy()?.to_uppercase();
         let headers = headers.try_object()?;
         let body = body.try_bytes_utf8_lossy()?;
+
+        let format_headers = |headers: &ObjectMap| -> Value {
+            if redact_headers {
+                Value::Object(redact_sensitive_headers(headers))
+            } else {
+                Value::Object(headers.clone())
+            }
+        };
 
         let method = Method::try_from(method.as_str())
             .map_err(|_| format!("Unsupported HTTP method: {method}"))?;
@@ -71,19 +112,39 @@ mod non_wasm {
                 .parse::<HeaderName>()
                 .map_err(|_| format!("Invalid header key: {key}"))?;
             let val = value
-                .try_bytes_utf8_lossy()?
+                .try_bytes_utf8_lossy()
+                .map_err(|e| {
+                    format!(
+                        "Invalid header value for key '{key}': {} (headers: {})",
+                        e,
+                        format_headers(&headers)
+                    )
+                })?
                 .parse::<HeaderValue>()
-                .map_err(|_| format!("Invalid header value: {value}"))?;
+                .map_err(|_| {
+                    format!(
+                        "Invalid header value for key '{key}' (headers: {})",
+                        format_headers(&headers)
+                    )
+                })?;
             header_map.insert(key, val);
         }
 
         let response = client
-            .request(method, url.as_ref())
+            .request(method.clone(), url.as_ref())
             .headers(header_map)
             .body(body.as_bytes().to_owned())
             .send()
             .await
-            .map_err(|e| format!("HTTP request failed: {e}"))?;
+            .map_err(|e| {
+                format!(
+                    "HTTP request failed: {} (url: {}, method: {}, headers: {})",
+                    e,
+                    url,
+                    method,
+                    format_headers(&headers)
+                )
+            })?;
 
         let body = response
             .text()
@@ -93,7 +154,6 @@ mod non_wasm {
         Ok(body.into())
     }
 
-    #[allow(clippy::similar_names)]
     fn make_proxies(
         http_proxy: Option<Value>,
         https_proxy: Option<Value>,
@@ -114,11 +174,7 @@ mod non_wasm {
             );
         }
 
-        if proxies.is_empty() {
-            Ok(None)
-        } else {
-            Ok(Some(proxies))
-        }
+        Ok((!proxies.is_empty()).then_some(proxies))
     }
 
     #[derive(Debug, Clone)]
@@ -131,7 +187,6 @@ mod non_wasm {
     }
 
     impl ClientOrProxies {
-        #[allow(clippy::similar_names)]
         pub(super) fn new(
             state: &TypeState,
             http_proxy: Option<Box<dyn Expression>>,
@@ -171,7 +226,6 @@ mod non_wasm {
             }
         }
 
-        #[allow(clippy::similar_names)]
         pub fn new_proxies_no_const_resolve(
             http_proxy: Option<Box<dyn Expression>>,
             https_proxy: Option<Box<dyn Expression>>,
@@ -182,7 +236,6 @@ mod non_wasm {
             }
         }
 
-        #[allow(clippy::similar_names)]
         fn get_client(&self, ctx: &mut Context) -> Result<ClientWithMiddleware, ExpressionError> {
             match self {
                 Self::Client(client) => Ok(client.clone()),
@@ -217,10 +270,10 @@ mod non_wasm {
         pub(super) headers: Option<Box<dyn Expression>>,
         pub(super) body: Option<Box<dyn Expression>>,
         pub(super) client_or_proxies: ClientOrProxies,
+        pub(super) redact_headers: Option<Box<dyn Expression>>,
     }
 
     impl FunctionExpression for HttpRequestFn {
-        #[allow(clippy::similar_names)]
         fn resolve(&self, ctx: &mut Context) -> Resolved {
             let url = self.url.resolve(ctx)?;
             let method = self
@@ -233,6 +286,10 @@ mod non_wasm {
                 .body
                 .map_resolve_with_default(ctx, || super::DEFAULT_BODY.clone())?;
             let client = self.client_or_proxies.get_client(ctx)?;
+            let redact_headers = self
+                .redact_headers
+                .map_resolve_with_default(ctx, || super::DEFAULT_REDACT_HEADERS.clone())?
+                .try_boolean()?;
 
             // block_in_place runs the HTTP request synchronously
             // without blocking Tokio's async worker threads.
@@ -240,7 +297,7 @@ mod non_wasm {
             task::block_in_place(|| {
                 if let Ok(handle) = Handle::try_current() {
                     handle.block_on(async {
-                        http_request(&client, &url, &method, headers, &body).await
+                        http_request(&client, &url, &method, headers, &body, redact_headers).await
                     })
                 } else {
                     let runtime = runtime::Builder::new_current_thread()
@@ -249,7 +306,7 @@ mod non_wasm {
                         .expect("tokio runtime creation failed");
 
                     runtime.block_on(async move {
-                        http_request(&client, &url, &method, headers, &body).await
+                        http_request(&client, &url, &method, headers, &body, redact_headers).await
                     })
                 }
             })
@@ -271,51 +328,41 @@ static DEFAULT_METHOD: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::fr
 static DEFAULT_HEADERS: LazyLock<Value> =
     LazyLock::new(|| Value::Object(std::collections::BTreeMap::new()));
 static DEFAULT_BODY: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from("")));
+static DEFAULT_REDACT_HEADERS: LazyLock<Value> = LazyLock::new(|| Value::Boolean(true));
 
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
-        Parameter {
-            keyword: "url",
-            kind: kind::BYTES,
-            required: true,
-            description: "The URL to make the HTTP request to.",
-            default: None,
-        },
-        Parameter {
-            keyword: "method",
-            kind: kind::BYTES,
-            required: false,
-            description: "The HTTP method to use (e.g., GET, POST, PUT, DELETE). Defaults to GET.",
-            default: Some(&DEFAULT_METHOD),
-        },
-        Parameter {
-            keyword: "headers",
-            kind: kind::OBJECT,
-            required: false,
-            description: "An object containing HTTP headers to send with the request.",
-            default: Some(&DEFAULT_HEADERS),
-        },
-        Parameter {
-            keyword: "body",
-            kind: kind::BYTES,
-            required: false,
-            description: "The request body content to send.",
-            default: Some(&DEFAULT_BODY),
-        },
-        Parameter {
-            keyword: "http_proxy",
-            kind: kind::BYTES,
-            required: false,
-            description: "HTTP proxy URL to use for the request.",
-            default: None,
-        },
-        Parameter {
-            keyword: "https_proxy",
-            kind: kind::BYTES,
-            required: false,
-            description: "HTTPS proxy URL to use for the request.",
-            default: None,
-        },
+        Parameter::required("url", kind::BYTES, "The URL to make the HTTP request to."),
+        Parameter::optional(
+            "method",
+            kind::BYTES,
+            "The HTTP method to use (e.g., GET, POST, PUT, DELETE). Defaults to GET.",
+        )
+        .default(&DEFAULT_METHOD),
+        Parameter::optional(
+            "headers",
+            kind::OBJECT,
+            "An object containing HTTP headers to send with the request.",
+        )
+        .default(&DEFAULT_HEADERS),
+        Parameter::optional("body", kind::BYTES, "The request body content to send.")
+            .default(&DEFAULT_BODY),
+        Parameter::optional(
+            "http_proxy",
+            kind::BYTES,
+            "HTTP proxy URL to use for the request.",
+        ),
+        Parameter::optional(
+            "https_proxy",
+            kind::BYTES,
+            "HTTPS proxy URL to use for the request.",
+        ),
+        Parameter::optional(
+            "redact_headers",
+            kind::BOOLEAN,
+            "Whether to redact sensitive header values in error messages.",
+        )
+        .default(&DEFAULT_REDACT_HEADERS),
     ]
 });
 
@@ -328,7 +375,11 @@ impl Function for HttpRequest {
     }
 
     fn usage(&self) -> &'static str {
-        "Makes an HTTP request to the specified URL. This function performs synchronous blocking operations and is not recommended for frequent or performance-critical workflows due to potential network-related delays."
+        "Makes an HTTP request to the specified URL."
+    }
+
+    fn notices(&self) -> &'static [&'static str] {
+        &[super::util::NETWORK_CALL_NOTICE]
     }
 
     fn category(&self) -> &'static str {
@@ -339,35 +390,83 @@ impl Function for HttpRequest {
         kind::BYTES
     }
 
-    #[cfg(not(feature = "test"))]
-    fn examples(&self) -> &'static [Example] {
-        &[]
-    }
-
-    #[cfg(feature = "test")]
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
                 title: "Basic HTTP request",
-                source: r#"http_request("https://httpbin.org/get")"#,
+                source: indoc! {r#"
+                    . = parse_json!(http_request!("https://httpbin.org/get"))
+
+                    # Redact the origin ip
+                    .origin = redact!(.origin, filters: [r'.*'], redactor: {"type": "text", "replacement": "***"})
+                    # Delete any ids in headers
+                    .headers = filter(object!(.headers)) -> |key, _value| { !contains(key, "id", false) }
+                    .
+                "#},
                 result: Ok(
-                    r#"{"args":{},"headers":{"Accept":"*/*","Host":"httpbin.org"},"url":"https://httpbin.org/get"}"#,
+                    r#"{"args":{},"headers":{"Accept":"*/*","Host":"httpbin.org"},"url":"https://httpbin.org/get", "origin": "***"}"#,
                 ),
+                skip: true,
             },
             example! {
                 title: "HTTP request with bearer token",
-                source: r#"http_request("https://httpbin.org/bearer", headers: {"Authorization": "Bearer my_token"})"#,
+                source: r#"parse_json!(http_request!("https://httpbin.org/bearer", headers: {"Authorization": "Bearer my_token"}))"#,
                 result: Ok(r#"{"authenticated":true,"token":"my_token"}"#),
+                skip: true,
             },
             example! {
                 title: "HTTP PUT request",
-                source: r#"http_request("https://httpbin.org/put", method: "put")"#,
-                result: Ok(r#"{"args":{},"data": "","url": "https://httpbin.org/put"}"#),
+                source: indoc! {r#"
+                    . = parse_json!(http_request!("https://httpbin.org/put", method: "put"))
+
+                    # Redact the origin ip
+                    .origin = redact!(.origin, filters: [r'.*'], redactor: {"type": "text", "replacement": "***"})
+                    # Delete any ids in headers
+                    .headers = filter(object!(.headers)) -> |key, _value| { !contains(key, "id", false) }
+                    .
+                "#},
+                result: Ok(indoc!{r#"
+                    {
+                      "args": {},
+                      "data": "",
+                      "files": {},
+                      "form": {},
+                      "headers": {
+                        "Accept": "*/*",
+                        "Content-Length": "0",
+                        "Host": "httpbin.org"
+                      },
+                      "json": null,
+                      "origin": "***",
+                      "url": "https://httpbin.org/put"
+                    }
+                "#}),
+                skip: true,
             },
             example! {
                 title: "HTTP POST request with body",
-                source: r#"http_request("https://httpbin.org/post", method: "post", body: "{\"data\":{\"hello\":\"world\"}}")"#,
-                result: Ok(r#"{"data":"{\"data\":{\"hello\":\"world\"}}"}"#),
+                source: indoc! {r#"
+                    . = parse_json!(http_request!("https://httpbin.org/post", method: "post", body: "{\"data\":{\"hello\":\"world\"}}"))
+
+                    # Redact the origin ip
+                    .origin = redact!(.origin, filters: [r'.*'], redactor: {"type": "text", "replacement": "***"})
+                    # Delete any ids in headers
+                    .headers = filter(object!(.headers)) -> |key, _value| { !contains(key, "id", false) }
+                    .
+                "#},
+                result: Ok(indoc!{r#"
+                    {
+                      "data": "{\"data\":{\"hello\":\"world\"}}",
+                      "args": {},
+                      "files": {},
+                      "form": {},
+                      "headers": { "Accept": "*/*", "Content-Length": "26", "Host": "httpbin.org" },
+                      "json": { "data": { "hello": "world" } },
+                      "origin": "***",
+                      "url": "https://httpbin.org/post"
+                    }
+                "#}),
+                skip: true,
             },
         ]
     }
@@ -390,6 +489,7 @@ impl Function for HttpRequest {
         let body = arguments.optional("body");
         let http_proxy = arguments.optional("http_proxy");
         let https_proxy = arguments.optional("https_proxy");
+        let redact_headers = arguments.optional("redact_headers");
 
         let client_or_proxies = ClientOrProxies::new(state, http_proxy, https_proxy)
             .map_err(|err| Box::new(err) as Box<dyn DiagnosticMessage>)?;
@@ -400,6 +500,7 @@ impl Function for HttpRequest {
             headers,
             body,
             client_or_proxies,
+            redact_headers,
         }
         .as_expr())
     }
@@ -421,11 +522,10 @@ impl Function for HttpRequest {
     }
 }
 
-#[cfg(all(feature = "test", test, not(target_arch = "wasm32")))]
+#[cfg(all(test, not(target_arch = "wasm32")))]
 mod tests {
     use super::*;
     use crate::value;
-    use tokio;
 
     fn execute_http_request(http_request_fn: &HttpRequestFn) -> Resolved {
         let tz = TimeZone::default();
@@ -439,10 +539,11 @@ mod tests {
     async fn test_basic_get_request() {
         let func: HttpRequestFn = HttpRequestFn {
             url: expr!("https://httpbin.org/get"),
-            method: expr!("get"),
-            headers: expr!({}),
-            body: expr!(""),
+            method: Some(expr!("get")),
+            headers: Some(expr!({})),
+            body: Some(expr!("")),
             client_or_proxies: ClientOrProxies::no_proxies(),
+            redact_headers: Some(expr!(true)),
         };
 
         let result = execute_http_request(&func).expect("HTTP request failed");
@@ -461,10 +562,11 @@ mod tests {
     async fn test_malformed_url() {
         let func = HttpRequestFn {
             url: expr!("not-a-valid-url"),
-            method: expr!("get"),
-            headers: expr!({}),
-            body: expr!(""),
+            method: Some(expr!("get")),
+            headers: Some(expr!({})),
+            body: Some(expr!("")),
             client_or_proxies: ClientOrProxies::no_proxies(),
+            redact_headers: Some(expr!(true)),
         };
 
         let result = execute_http_request(&func);
@@ -477,10 +579,11 @@ mod tests {
     async fn test_invalid_header() {
         let func = HttpRequestFn {
             url: expr!("https://httpbin.org/get"),
-            method: expr!("get"),
-            headers: expr!({"Invalid Header With Spaces": "value"}),
-            body: expr!(""),
+            method: Some(expr!("get")),
+            headers: Some(expr!({"Invalid Header With Spaces": "value"})),
+            body: Some(expr!("")),
             client_or_proxies: ClientOrProxies::no_proxies(),
+            redact_headers: Some(expr!(true)),
         };
 
         let result = execute_http_request(&func);
@@ -493,18 +596,92 @@ mod tests {
     async fn test_invalid_proxy() {
         let func = HttpRequestFn {
             url: expr!("https://httpbin.org/get"),
-            method: expr!("get"),
-            headers: expr!({}),
-            body: expr!(""),
+            method: Some(expr!("get")),
+            headers: Some(expr!({})),
+            body: Some(expr!("")),
             client_or_proxies: ClientOrProxies::new_proxies_no_const_resolve(
                 None,
                 Some(expr!("not^a&valid*url")),
             ),
+            redact_headers: Some(expr!(true)),
         };
 
         let result = execute_http_request(&func);
         assert!(result.is_err());
         let error = result.unwrap_err();
         assert!(error.to_string().contains("Invalid proxy"));
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn test_sensitive_headers_redacted() {
+        let func = HttpRequestFn {
+            url: expr!("not-a-valid-url"),
+            method: Some(expr!("get")),
+            headers: Some(expr!({
+                "Authorization": "Bearer super_secret_12345",
+                "X-Api-Key": "key-67890",
+                "Content-Type": "application/json",
+                "Cookie": "session=abcdef",
+                "X-Custom-Token": "another-secret",
+                "User-Agent": "VRL/0.28"
+            })),
+            body: Some(expr!("")),
+            client_or_proxies: ClientOrProxies::no_proxies(),
+            redact_headers: Some(expr!(true)),
+        };
+
+        let result = execute_http_request(&func);
+        assert!(result.is_err());
+        let error = result.unwrap_err().to_string();
+
+        // Verify that sensitive values are redacted
+        assert!(
+            !error.contains("super_secret_12345"),
+            "Authorization token should be redacted"
+        );
+        assert!(!error.contains("key-67890"), "API key should be redacted");
+        assert!(!error.contains("abcdef"), "Cookie should be redacted");
+        assert!(
+            !error.contains("another-secret"),
+            "Custom token should be redacted"
+        );
+
+        // Verify that redacted placeholder appears
+        assert!(error.contains("***"), "Should contain *** placeholder");
+
+        // Verify that non-sensitive headers are still visible
+        assert!(
+            error.contains("application/json"),
+            "Non-sensitive headers should not be redacted"
+        );
+        assert!(
+            error.contains("VRL/0.28"),
+            "User-Agent should not be redacted"
+        );
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn test_redact_headers_disabled() {
+        let func = HttpRequestFn {
+            url: expr!("not-a-valid-url"),
+            method: Some(expr!("get")),
+            headers: Some(expr!({
+                "Authorization": "Bearer super_secret_12345",
+                "Content-Type": "application/json"
+            })),
+            body: Some(expr!("")),
+            client_or_proxies: ClientOrProxies::no_proxies(),
+            redact_headers: Some(expr!(false)),
+        };
+
+        let result = execute_http_request(&func);
+        assert!(result.is_err());
+        let error = result.unwrap_err().to_string();
+
+        // With redaction disabled, sensitive values should be visible
+        assert!(
+            error.contains("super_secret_12345"),
+            "Authorization token should not be redacted when redact_headers is false"
+        );
     }
 }

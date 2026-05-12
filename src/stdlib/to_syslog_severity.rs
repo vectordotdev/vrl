@@ -48,13 +48,12 @@ impl Function for ToSyslogSeverity {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[Parameter {
-            keyword: "value",
-            kind: kind::BYTES,
-            required: true,
-            description: "The Syslog level keyword to convert.",
-            default: None,
-        }]
+        const PARAMETERS: &[Parameter] = &[Parameter::required(
+            "value",
+            kind::BYTES,
+            "The Syslog level keyword to convert.",
+        )];
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {

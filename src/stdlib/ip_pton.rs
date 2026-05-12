@@ -55,13 +55,12 @@ impl Function for IpPton {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[Parameter {
-            keyword: "value",
-            kind: kind::BYTES,
-            required: true,
-            description: "The IP address (v4 or v6) to convert to binary form.",
-            default: None,
-        }]
+        const PARAMETERS: &[Parameter] = &[Parameter::required(
+            "value",
+            kind::BYTES,
+            "The IP address (v4 or v6) to convert to binary form.",
+        )];
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {

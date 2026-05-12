@@ -51,25 +51,40 @@ impl Function for Length {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[Parameter {
-            keyword: "value",
-            kind: kind::ARRAY | kind::OBJECT | kind::BYTES,
-            required: true,
-            description: "The array or object.",
-            default: None,
-        }]
+        const PARAMETERS: &[Parameter] = &[Parameter::required(
+            "value",
+            kind::ARRAY | kind::OBJECT | kind::BYTES,
+            "The array or object.",
+        )];
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
                 title: "Length (object)",
-                source: r#"length({ "portland": "Trail Blazers", "seattle": "Supersonics" })"#,
+                source: indoc! {r#"
+                    length({
+                        "portland": "Trail Blazers",
+                        "seattle": "Supersonics"
+                    })
+                "#},
                 result: Ok("2"),
             },
             example! {
                 title: "Length (nested object)",
-                source: r#"length({ "home": { "city": "Portland", "state": "Oregon" }, "name": "Trail Blazers", "mascot": { "name": "Blaze the Trail Cat" } })"#,
+                source: indoc! {r#"
+                    length({
+                        "home": {
+                            "city":  "Portland",
+                            "state": "Oregon"
+                        },
+                        "name": "Trail Blazers",
+                        "mascot": {
+                            "name": "Blaze the Trail Cat"
+                        }
+                    })
+                "#},
                 result: Ok("3"),
             },
             example! {

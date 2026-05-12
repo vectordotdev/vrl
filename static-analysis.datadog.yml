@@ -1,0 +1,10 @@
+# Datadog Static Analyzer configuration
+rulesets:
+  - python-best-practices
+  - python-security
+  - python-code-style
+  - github-actions
+
+ignore:
+  - target/**        # Rust build artifacts
+  - venv/**          # Python virtualenv

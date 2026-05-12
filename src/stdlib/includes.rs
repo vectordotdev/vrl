@@ -27,22 +27,11 @@ impl Function for Includes {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::ARRAY,
-                required: true,
-                description: "The array.",
-                default: None,
-            },
-            Parameter {
-                keyword: "item",
-                kind: kind::ANY,
-                required: true,
-                description: "The item to check.",
-                default: None,
-            },
-        ]
+        const PARAMETERS: &[Parameter] = &[
+            Parameter::required("value", kind::ARRAY, "The array."),
+            Parameter::required("item", kind::ANY, "The item to check."),
+        ];
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {

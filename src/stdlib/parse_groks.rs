@@ -76,34 +76,16 @@ static DEFAULT_ALIAS_SOURCES: LazyLock<Value> = LazyLock::new(|| Value::Array(ve
 
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
-        Parameter {
-            keyword: "value",
-            kind: kind::BYTES,
-            required: true,
-            description: "The string to parse.",
-            default: None,
-        },
-        Parameter {
-            keyword: "patterns",
-            kind: kind::ARRAY,
-            required: true,
-            description: "The [Grok patterns](https://github.com/daschl/grok/tree/master/patterns), which are tried in order until the first match.",
-            default: None,
-        },
-        Parameter {
-            keyword: "aliases",
-            kind: kind::OBJECT,
-            required: false,
-            description: "The shared set of grok aliases that can be referenced in the patterns to simplify them.",
-            default: Some(&DEFAULT_ALIASES),
-        },
-        Parameter {
-            keyword: "alias_sources",
-            kind: kind::ARRAY,
-            required: false,
-            description: "Path to the file containing aliases in a JSON format.",
-            default: Some(&DEFAULT_ALIAS_SOURCES),
-        },
+        Parameter::required("value", kind::BYTES, "The string to parse."),
+        Parameter::required(
+            "patterns",
+            kind::ARRAY,
+            "The [Grok patterns](https://github.com/daschl/grok/tree/master/patterns), which are tried in order until the first match.",
+        ),
+        Parameter::optional("aliases", kind::OBJECT, "The shared set of grok aliases that can be referenced in the patterns to simplify them.")
+            .default(&DEFAULT_ALIASES),
+        Parameter::optional("alias_sources", kind::ARRAY, "Path to the file containing aliases in a JSON format.")
+            .default(&DEFAULT_ALIAS_SOURCES),
     ]
 });
 
@@ -128,7 +110,7 @@ impl Function for ParseGroks {
             "`value` fails to parse using the provided `pattern`.",
             "`patterns` is not an array.",
             "`aliases` is not an object.",
-            "`alias_sources` is not a string or doesn't point to a valid file.",
+            "`alias_sources` is not a string array or doesn't point to a valid file.",
         ]
     }
 

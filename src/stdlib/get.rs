@@ -69,22 +69,19 @@ impl Function for Get {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[
-            Parameter {
-                keyword: "value",
-                kind: kind::OBJECT | kind::ARRAY,
-                required: true,
-                description: "The object or array to query.",
-                default: None,
-            },
-            Parameter {
-                keyword: "path",
-                kind: kind::ARRAY,
-                required: true,
-                description: "An array of path segments to look for the value.",
-                default: None,
-            },
-        ]
+        const PARAMETERS: &[Parameter] = &[
+            Parameter::required(
+                "value",
+                kind::OBJECT | kind::ARRAY,
+                "The object or array to query.",
+            ),
+            Parameter::required(
+                "path",
+                kind::ARRAY,
+                "An array of path segments to look for the value.",
+            ),
+        ];
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {
@@ -121,10 +118,8 @@ impl Function for Get {
             },
             example! {
                 title: "External target",
-                source: indoc! {r#"
-                    . = { "foo": true }
-                    get!(value: ., path: ["foo"])
-                "#},
+                source: r#"get!(value: ., path: ["foo"])"#,
+                input: r#"{ "foo": true }"#,
                 result: Ok("true"),
             },
             example! {

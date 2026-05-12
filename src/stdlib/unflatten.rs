@@ -8,27 +8,19 @@ static DEFAULT_RECURSIVE: LazyLock<Value> = LazyLock::new(|| Value::Boolean(true
 
 static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
     vec![
-        Parameter {
-            keyword: "value",
-            kind: kind::OBJECT,
-            required: true,
-            description: "The array or object to unflatten.",
-            default: None,
-        },
-        Parameter {
-            keyword: "separator",
-            kind: kind::BYTES,
-            required: false,
-            description: "The separator to split flattened keys.",
-            default: Some(&DEFAULT_SEPARATOR),
-        },
-        Parameter {
-            keyword: "recursive",
-            kind: kind::BOOLEAN,
-            required: false,
-            description: "Whether to recursively unflatten the object values.",
-            default: Some(&DEFAULT_RECURSIVE),
-        },
+        Parameter::required("value", kind::OBJECT, "The array or object to unflatten."),
+        Parameter::optional(
+            "separator",
+            kind::BYTES,
+            "The separator to split flattened keys.",
+        )
+        .default(&DEFAULT_SEPARATOR),
+        Parameter::optional(
+            "recursive",
+            kind::BOOLEAN,
+            "Whether to recursively unflatten the object values.",
+        )
+        .default(&DEFAULT_RECURSIVE),
     ]
 });
 
@@ -151,27 +143,87 @@ impl Function for Unflatten {
         &[
             example! {
                 title: "Unflatten",
-                source: r#"unflatten({ "foo.bar.baz": true, "foo.bar.qux": false, "foo.quux": 42 })"#,
-                result: Ok(r#"{ "foo": { "bar": { "baz": true, "qux": false }, "quux": 42 } }"#),
+                source: indoc! {r#"
+                    unflatten({
+                        "foo.bar.baz": true,
+                        "foo.bar.qux": false,
+                        "foo.quux": 42
+                    })
+                "#},
+                result: Ok(indoc! {r#"
+                    {
+                        "foo": {
+                            "bar": {
+                                "baz": true,
+                                "qux": false
+                            },
+                            "quux": 42
+                        }
+                    }
+                    "#}),
             },
             example! {
                 title: "Unflatten recursively",
-                source: r#"unflatten({ "flattened.parent": { "foo.bar": true, "foo.baz": false } })"#,
-                result: Ok(
-                    r#"{ "flattened": { "parent": { "foo": { "bar": true, "baz": false } } } }"#,
-                ),
+
+                source: indoc! {r#"
+                    unflatten({
+                        "flattened.parent": {
+                            "foo.bar": true,
+                            "foo.baz": false
+                        }
+                    })
+                "#},
+                result: Ok(indoc! {r#"
+                    {
+                        "flattened": {
+                            "parent": {
+                                "foo": {
+                                    "bar": true,
+                                    "baz": false
+                                }
+                            }
+                        }
+                    }
+                    "#}),
             },
             example! {
                 title: "Unflatten non-recursively",
-                source: r#"unflatten({ "flattened.parent": { "foo.bar": true, "foo.baz": false } }, recursive: false)"#,
-                result: Ok(
-                    r#"{ "flattened": { "parent": { "foo.bar": true, "foo.baz": false } } }"#,
-                ),
+                source: indoc! {r#"
+                    unflatten({
+                        "flattened.parent": {
+                            "foo.bar": true,
+                            "foo.baz": false
+                        }
+                    }, recursive: false)
+                "#},
+                result: Ok(indoc! {r#"
+                    {
+                        "flattened": {
+                            "parent": {
+                                "foo.bar": true,
+                                "foo.baz": false
+                            }
+                        }
+                    }
+                    "#}),
             },
             example! {
                 title: "Ignore inconsistent keys values",
-                source: r#"unflatten({ "a": 3, "a.b": 2, "a.c": 4 })"#,
-                result: Ok(r#"{ "a": { "b": 2, "c": 4 } }"#),
+                source: indoc! {r#"
+                    unflatten({
+                        "a": 3,
+                        "a.b": 2,
+                        "a.c": 4
+                    })
+                "#},
+                result: Ok(indoc! {r#"
+                    {
+                        "a": {
+                            "b": 2,
+                            "c": 4
+                        }
+                    }
+                    "#}),
             },
             example! {
                 title: "Unflatten with custom separator",

@@ -29,13 +29,12 @@ impl Function for IsObject {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[Parameter {
-            keyword: "value",
-            kind: kind::ANY,
-            required: true,
-            description: "The value to check if it is an object.",
-            default: None,
-        }]
+        const PARAMETERS: &[Parameter] = &[Parameter::required(
+            "value",
+            kind::ANY,
+            "The value to check if it is an object.",
+        )];
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {

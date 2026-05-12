@@ -74,7 +74,7 @@ macro_rules! test_function {
     };
 
     ($name:tt => $func:path; before_each => $before:block $($case:ident { args: $args:expr_2021, want: $(Ok($ok:expr_2021))? $(Err($err:expr_2021))?, tdef: $tdef:expr_2021, tz: $tz:expr_2021,  $(,)* })+) => {
-        paste::paste!{$(
+        pastey::paste!{$(
             #[test]
             fn [<$name _ $case:snake:lower>]() {
                 $before

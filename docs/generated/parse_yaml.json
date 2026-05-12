@@ -1,0 +1,102 @@
+{
+  "anchor": "parse_yaml",
+  "name": "parse_yaml",
+  "category": "Parse",
+  "description": "Parses the provided `value` as YAML.\n\nOnly YAML types are returned. If you need to convert a `string` into a `timestamp`,\nconsider the `parse_timestamp` function.",
+  "arguments": [
+    {
+      "name": "value",
+      "description": "The string representation of the YAML to parse.",
+      "required": true,
+      "type": [
+        "string"
+      ]
+    }
+  ],
+  "return": {
+    "types": [
+      "string",
+      "integer",
+      "float",
+      "boolean",
+      "object",
+      "array",
+      "null"
+    ]
+  },
+  "internal_failure_reasons": [
+    "`value` is not a valid YAML-formatted payload."
+  ],
+  "examples": [
+    {
+      "title": "Parse simple YAML",
+      "source": "parse_yaml!(s'key: val')",
+      "return": {
+        "key": "val"
+      }
+    },
+    {
+      "title": "Parse YAML",
+      "source": "parse_yaml!(s'\n                    object:\n                        string: value\n                        number: 42\n                        boolean: false\n                        array:\n                        - hello\n                        - world\n                        json_array: [\"hello\", \"world\"]\n                ')",
+      "return": {
+        "object": {
+          "string": "value",
+          "number": 42,
+          "boolean": false,
+          "array": [
+            "hello",
+            "world"
+          ],
+          "json_array": [
+            "hello",
+            "world"
+          ]
+        }
+      }
+    },
+    {
+      "title": "Parse YAML string",
+      "source": "parse_yaml!(s'hello')",
+      "return": "hello"
+    },
+    {
+      "title": "Parse YAML quoted string",
+      "source": "parse_yaml!(s'\"hello\"')",
+      "return": "hello"
+    },
+    {
+      "title": "Parse YAML integer",
+      "source": "parse_yaml!(\"42\")",
+      "return": 42
+    },
+    {
+      "title": "Parse YAML float",
+      "source": "parse_yaml!(\"42.13\")",
+      "return": 42.13
+    },
+    {
+      "title": "Parse YAML boolean",
+      "source": "parse_yaml!(\"false\")",
+      "return": false
+    },
+    {
+      "title": "Parse embedded JSON",
+      "source": "parse_yaml!(s'{\"key\": \"val\"}')",
+      "return": {
+        "key": "val"
+      }
+    },
+    {
+      "title": "Parse embedded JSON array",
+      "source": "parse_yaml!(\"[true, 0]\")",
+      "return": [
+        true,
+        0
+      ]
+    }
+  ],
+  "notices": [
+    "Only YAML types are returned. If you need to convert a `string` into a `timestamp`,\nconsider the [`parse_timestamp`](#parse_timestamp) function."
+  ],
+  "pure": true
+}

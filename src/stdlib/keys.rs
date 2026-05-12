@@ -31,28 +31,25 @@ impl Function for Keys {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        &[Parameter {
-            keyword: "value",
-            kind: kind::OBJECT,
-            required: true,
-            description: "The object to extract keys from.",
-            default: None,
-        }]
+        const PARAMETERS: &[Parameter] = &[Parameter::required(
+            "value",
+            kind::OBJECT,
+            "The object to extract keys from.",
+        )];
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {
-        &[
-            example! {
-                title: "Get keys from the object",
-                source: r#"keys({"key1": "val1", "key2": "val2"})"#,
-                result: Ok(r#"["key1", "key2"]"#),
-            },
-            example! {
-                title: "Get keys from a nested object",
-                source: r#"keys({"key1": "val1", "key2": {"nestedkey1": "val3", "nestedkey2": "val4"}})"#,
-                result: Ok(r#"["key1", "key2"]"#),
-            },
-        ]
+        &[example! {
+            title: "Get keys from the object",
+            source: indoc! {r#"
+                keys({
+                    "key1": "val1",
+                    "key2": "val2"
+                })
+            "#},
+            result: Ok(r#"["key1", "key2"]"#),
+        }]
     }
 
     fn compile(
