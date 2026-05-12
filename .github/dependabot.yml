@@ -24,6 +24,22 @@ updates:
         patterns:
         - "prost"
         - "prost-*"
+  - package-ecosystem: "npm"
+    directory: "/scripts/npm-tools"
+    schedule:
+      interval: "monthly"
+      time: "04:00" # UTC
+    labels:
+      - "domain: deps"
+      - "no-changelog"
+    commit-message:
+      prefix: "chore(deps)"
+    # Disable version updates; security updates bypass this limit
+    open-pull-requests-limit: 0
+    groups:
+      npm_and_yarn:
+        patterns:
+          - "*"
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
