@@ -161,9 +161,9 @@ fn parse_regex(
     numeric_groups: bool,
 ) -> Resolved {
     util::with_utf8_bytes(bytes, |s, utf8_bytes| {
-        let parsed = pattern
-            .captures(s)
-            .map(|capture| util::capture_regex_to_map(&capture, capture_names, numeric_groups, utf8_bytes));
+        let parsed = pattern.captures(s).map(|capture| {
+            util::capture_regex_to_map(&capture, capture_names, numeric_groups, utf8_bytes)
+        });
         Ok(parsed.ok_or("could not find any pattern matches")?.into())
     })
 }

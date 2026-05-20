@@ -42,7 +42,10 @@ where
         (s, bytes)
     } else {
         owned = bytes::Bytes::from(String::from_utf8_lossy(bytes).into_owned());
-        (std::str::from_utf8(&owned).expect("lossy string is valid UTF-8"), &owned)
+        (
+            std::str::from_utf8(&owned).expect("lossy string is valid UTF-8"),
+            &owned,
+        )
     };
     f(s, utf8_bytes)
 }

@@ -162,7 +162,10 @@ fn parse_regex_all(
     util::with_utf8_bytes(bytes, |s, utf8_bytes| {
         let result: Vec<Value> = pattern
             .captures_iter(s)
-            .map(|capture| util::capture_regex_to_map(&capture, capture_names, numeric_groups, utf8_bytes).into())
+            .map(|capture| {
+                util::capture_regex_to_map(&capture, capture_names, numeric_groups, utf8_bytes)
+                    .into()
+            })
             .collect();
         Ok(result.into())
     })
