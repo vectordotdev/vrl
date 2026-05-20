@@ -1352,7 +1352,12 @@ impl<'input> Lexer<'input> {
     fn unicode_escape(&mut self, start: usize) -> Result<(), Error> {
         match self.bump() {
             Some((_, '{')) => {}
-            Some((s, ch)) => return Err(Error::EscapeChar { start: s, ch: Some(ch) }),
+            Some((s, ch)) => {
+                return Err(Error::EscapeChar {
+                    start: s,
+                    ch: Some(ch),
+                });
+            }
             None => return Err(Error::EscapeChar { start, ch: None }),
         }
         let hex_start = self.next_index();
@@ -1369,15 +1374,19 @@ impl<'input> Lexer<'input> {
                     let hex = &self.input[hex_start..hex_end];
                     let codepoint = u32::from_str_radix(hex, 16)
                         .map_err(|_| Error::UnicodeEscape { start, end })?;
-                    char::from_u32(codepoint)
-                        .ok_or(Error::UnicodeEscape { start, end })?;
+                    char::from_u32(codepoint).ok_or(Error::UnicodeEscape { start, end })?;
                     return Ok(());
                 }
                 Some((_, ch)) if ch.is_ascii_hexdigit() => {
                     self.bump();
                     count += 1;
                 }
-                Some((pos, ch)) => return Err(Error::EscapeChar { start: pos, ch: Some(ch) }),
+                Some((pos, ch)) => {
+                    return Err(Error::EscapeChar {
+                        start: pos,
+                        ch: Some(ch),
+                    });
+                }
                 None => return Err(Error::EscapeChar { start, ch: None }),
             }
         }
