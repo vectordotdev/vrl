@@ -27,6 +27,26 @@ where
     fun(num * multiplier) / multiplier
 }
 
+/// Presents `bytes` as `(&str, &Bytes)` for regex matching and zero-copy slicing.
+///
+/// When `bytes` is valid UTF-8 both references point to the original buffer.
+/// Otherwise a lossy copy is allocated and both references point to that copy,
+/// keeping the regex byte offsets aligned with the buffer used for slicing.
+/// The closure receives `(s, utf8_bytes)` and its return value is forwarded.
+pub(crate) fn with_utf8_bytes<F, T>(bytes: &bytes::Bytes, f: F) -> T
+where
+    F: FnOnce(&str, &bytes::Bytes) -> T,
+{
+    let owned;
+    let (s, utf8_bytes): (&str, &bytes::Bytes) = if let Ok(s) = std::str::from_utf8(bytes) {
+        (s, bytes)
+    } else {
+        owned = bytes::Bytes::from(String::from_utf8_lossy(bytes).into_owned());
+        (std::str::from_utf8(&owned).expect("lossy string is valid UTF-8"), &owned)
+    };
+    f(s, utf8_bytes)
+}
+
 /// Fills an [`ObjectMap`] from a regex [`Captures`](regex::Captures).
 ///
 /// Named captures are inserted under their group name; numeric groups (when
@@ -37,22 +57,18 @@ where
 /// [`KeyString`]s for the regex (computed once at VRL compile time via
 /// `regex.capture_names().flatten().map(KeyString::from)`).
 ///
-/// When `original_bytes` is `Some`, each matched substring is produced as a
-/// zero-copy [`bytes::Bytes`] slice of the original input buffer rather than a
-/// heap copy.  Only pass `Some` when the input is valid UTF-8, so that the
-/// byte offsets returned by the regex are valid positions in the buffer.
+/// `bytes` must be the UTF-8 buffer the regex was run against (as produced by
+/// [`with_utf8_bytes`]).  Each matched substring is returned as a zero-copy
+/// [`bytes::Bytes`] slice of that buffer.
 pub(crate) fn capture_regex_to_map(
     capture: &regex::Captures,
     capture_names: &[KeyString],
     numeric_groups: bool,
-    original_bytes: Option<&bytes::Bytes>,
+    bytes: &bytes::Bytes,
 ) -> ObjectMap {
     let names = capture_names.iter().map(|name| {
         let value: Value = match capture.name(name.as_str()) {
-            Some(m) => match original_bytes {
-                Some(b) => b.slice(m.start()..m.end()).into(),
-                None => m.as_str().into(),
-            },
+            Some(m) => bytes.slice(m.start()..m.end()).into(),
             None => Value::Null,
         };
         (name.clone(), value)
@@ -60,11 +76,10 @@ pub(crate) fn capture_regex_to_map(
 
     if numeric_groups {
         let indexed = capture.iter().flatten().enumerate().map(|(idx, c)| {
-            let value: Value = match original_bytes {
-                Some(b) => b.slice(c.start()..c.end()).into(),
-                None => c.as_str().into(),
-            };
-            (KeyString::from(idx.to_string()), value)
+            (
+                KeyString::from(idx.to_string()),
+                bytes.slice(c.start()..c.end()).into(),
+            )
         });
         indexed.chain(names).collect()
     } else {

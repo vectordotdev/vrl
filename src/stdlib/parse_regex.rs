@@ -160,17 +160,12 @@ fn parse_regex(
     capture_names: &[KeyString],
     numeric_groups: bool,
 ) -> Resolved {
-    let parsed = if let Ok(s) = std::str::from_utf8(bytes) {
-        pattern.captures(s).map(|capture| {
-            util::capture_regex_to_map(&capture, capture_names, numeric_groups, Some(bytes))
-        })
-    } else {
-        let s = String::from_utf8_lossy(bytes);
-        pattern.captures(s.as_ref()).map(|capture| {
-            util::capture_regex_to_map(&capture, capture_names, numeric_groups, None)
-        })
-    };
-    Ok(parsed.ok_or("could not find any pattern matches")?.into())
+    util::with_utf8_bytes(bytes, |s, utf8_bytes| {
+        let parsed = pattern
+            .captures(s)
+            .map(|capture| util::capture_regex_to_map(&capture, capture_names, numeric_groups, utf8_bytes));
+        Ok(parsed.ok_or("could not find any pattern matches")?.into())
+    })
 }
 
 #[derive(Debug, Clone)]

@@ -159,24 +159,13 @@ fn parse_regex_all(
     capture_names: &[KeyString],
     numeric_groups: bool,
 ) -> Resolved {
-    let result: Vec<Value> = if let Ok(s) = std::str::from_utf8(bytes) {
-        pattern
+    util::with_utf8_bytes(bytes, |s, utf8_bytes| {
+        let result: Vec<Value> = pattern
             .captures_iter(s)
-            .map(|capture| {
-                util::capture_regex_to_map(&capture, capture_names, numeric_groups, Some(bytes))
-                    .into()
-            })
-            .collect()
-    } else {
-        let s = String::from_utf8_lossy(bytes);
-        pattern
-            .captures_iter(s.as_ref())
-            .map(|capture| {
-                util::capture_regex_to_map(&capture, capture_names, numeric_groups, None).into()
-            })
-            .collect()
-    };
-    Ok(result.into())
+            .map(|capture| util::capture_regex_to_map(&capture, capture_names, numeric_groups, utf8_bytes).into())
+            .collect();
+        Ok(result.into())
+    })
 }
 
 #[derive(Debug, Clone)]
