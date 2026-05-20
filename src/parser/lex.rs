@@ -1750,6 +1750,24 @@ mod test {
             lexer(r#""\u{D800}""#).last(),
             Some(Err(Error::StringLiteral { .. }))
         ));
+        // U+110000 is above the Unicode range (max is U+10FFFF)
+        assert!(matches!(
+            lexer(r#""\u{110000}""#).last(),
+            Some(Err(Error::StringLiteral { .. }))
+        ));
+
+        // boundary values that are valid scalar values
+        for (input, expected) in [
+            (r#""\u{D799}""#, "\u{D799}"),     // just below surrogate range
+            (r#""\u{E000}""#, "\u{E000}"),     // just above surrogate range
+            (r#""\u{10FFFF}""#, "\u{10FFFF}"), // maximum Unicode scalar value
+        ] {
+            let mut lex = lexer(input);
+            match lex.next() {
+                Some(Ok((_, StringLiteral(s), _))) => assert_eq!(expected, s.unescape()),
+                other => panic!("expected valid string for {input:?}, got {other:?}"),
+            }
+        }
     }
 
     #[test]
