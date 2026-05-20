@@ -27,27 +27,30 @@ where
     fun(num * multiplier) / multiplier
 }
 
-/// Presents `bytes` as `(&str, &Bytes)` for regex matching and zero-copy slicing.
+/// Returns `true` when zero-copy slicing is worthwhile for this capture set.
 ///
-/// When `bytes` is valid UTF-8 both references point to the original buffer.
-/// Otherwise a lossy copy is allocated and both references point to that copy,
-/// keeping the regex byte offsets aligned with the buffer used for slicing.
-/// The closure receives `(s, utf8_bytes)` and its return value is forwarded.
-pub(crate) fn with_utf8_bytes<F, T>(bytes: &bytes::Bytes, f: F) -> T
-where
-    F: FnOnce(&str, &bytes::Bytes) -> T,
-{
-    let owned;
-    let (s, utf8_bytes): (&str, &bytes::Bytes) = if let Ok(s) = std::str::from_utf8(bytes) {
-        (s, bytes)
-    } else {
-        owned = bytes::Bytes::from(String::from_utf8_lossy(bytes).into_owned());
-        (
-            std::str::from_utf8(&owned).expect("lossy string is valid UTF-8"),
-            &owned,
-        )
-    };
-    f(s, utf8_bytes)
+/// Zero-copy is used when:
+/// - The input is `< 64` bytes: the source buffer is small enough that
+///   retaining it is cheaper than the per-value [`bytes::Bytes`] overhead.
+/// - The total length of all named captures is at least half the input
+///   length: most of the retained buffer is actually used.
+///
+/// `capture_info` must contain pre-computed group indices so that
+/// [`regex::Captures::get`] (direct array access) is used instead of
+/// name-based hash lookups.
+pub(crate) fn should_zero_copy(
+    input_len: usize,
+    capture: &regex::Captures,
+    capture_info: &[(KeyString, usize)],
+) -> bool {
+    input_len < 64 || {
+        let total: usize = capture_info
+            .iter()
+            .filter_map(|(_, i)| capture.get(*i))
+            .map(|m| m.end() - m.start())
+            .sum();
+        total * 2 >= input_len
+    }
 }
 
 /// Fills an [`ObjectMap`] from a regex [`Captures`](regex::Captures).
@@ -56,51 +59,33 @@ where
 /// `numeric_groups` is `true`) are inserted under their zero-based index, with
 /// `"0"` holding the full match.
 ///
-/// `capture_names` must be the pre-computed slice of named-group
-/// [`KeyString`]s for the regex (computed once at VRL compile time via
-/// `regex.capture_names().flatten().map(KeyString::from)`).
+/// `capture_info` must be the pre-computed `(name, group_index)` slice
+/// (computed once at VRL compile time).  Group indices allow direct O(1)
+/// array access via [`regex::Captures::get`] instead of name-based hash
+/// lookups.
 ///
-/// `utf8_bytes` must be the UTF-8 buffer the regex was run against (as produced by
-/// [`with_utf8_bytes`]).  Each capture is returned as either a zero-copy
-/// [`bytes::Bytes`] slice of the source buffer or an owned copy, depending on
-/// whether retaining a reference to the full source buffer is worthwhile:
-///
-/// - Input `< 64` bytes: always zero-copy — the source is small enough that
-///   the overhead of a [`bytes::Bytes`] allocation would cost more.
-/// - Otherwise: zero-copy only when the sum of named capture lengths is at
-///   least half the input length.  Below that ratio, keeping the full source
-///   buffer alive retains too many dead bytes relative to what was extracted.
+/// When `utf8_bytes` is `Some`, each matched substring is returned as a
+/// zero-copy [`bytes::Bytes`] slice of that buffer; when `None` each is copied.
 pub(crate) fn capture_regex_to_map(
     capture: &regex::Captures,
-    capture_names: &[KeyString],
+    capture_info: &[(KeyString, usize)],
     numeric_groups: bool,
-    utf8_bytes: &bytes::Bytes,
+    utf8_bytes: Option<&bytes::Bytes>,
 ) -> ObjectMap {
-    let input_len = utf8_bytes.len();
-    let zero_copy = input_len < 64 || {
-        let total_captured: usize = capture_names
-            .iter()
-            .filter_map(|name| capture.name(name.as_str()))
-            .map(|m| m.end() - m.start())
-            .sum();
-        total_captured * 2 >= input_len
-    };
-
-    let names = capture_names.iter().map(|name| {
-        let value: Value = match capture.name(name.as_str()) {
-            Some(m) if zero_copy => utf8_bytes.slice(m.start()..m.end()).into(),
-            Some(m) => m.as_str().into(),
-            None => Value::Null,
+    let names = capture_info.iter().map(|(name, idx)| {
+        let value: Value = match (capture.get(*idx), utf8_bytes) {
+            (Some(m), Some(b)) => b.slice(m.start()..m.end()).into(),
+            (Some(m), None) => m.as_str().into(),
+            (None, _) => Value::Null,
         };
         (name.clone(), value)
     });
 
     if numeric_groups {
         let indexed = capture.iter().flatten().enumerate().map(|(idx, c)| {
-            let value: Value = if zero_copy {
-                utf8_bytes.slice(c.start()..c.end()).into()
-            } else {
-                c.as_str().into()
+            let value: Value = match utf8_bytes {
+                Some(b) => b.slice(c.start()..c.end()).into(),
+                None => c.as_str().into(),
             };
             (KeyString::from(idx.to_string()), value)
         });

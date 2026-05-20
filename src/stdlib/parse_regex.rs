@@ -26,17 +26,26 @@ contains the whole match.",
 });
 
 fn parse_regex(
-    bytes: &bytes::Bytes,
+    value: &Value,
     pattern: &Regex,
-    capture_names: &[KeyString],
+    capture_info: &[(KeyString, usize)],
     numeric_groups: bool,
 ) -> Resolved {
-    util::with_utf8_bytes(bytes, |s, utf8_bytes| {
-        let parsed = pattern.captures(s).map(|capture| {
-            util::capture_regex_to_map(&capture, capture_names, numeric_groups, utf8_bytes)
-        });
-        Ok(parsed.ok_or("could not find any pattern matches")?.into())
-    })
+    let s = value.try_bytes_utf8_lossy()?;
+    let valid_utf8 = matches!(s, std::borrow::Cow::Borrowed(_));
+    let input_len = s.len();
+    let parsed = pattern.captures(s.as_ref()).map(|capture| {
+        let bytes =
+            (valid_utf8 && util::should_zero_copy(input_len, &capture, capture_info)).then(|| {
+                if let Value::Bytes(b) = value {
+                    b.clone()
+                } else {
+                    unreachable!()
+                }
+            });
+        util::capture_regex_to_map(&capture, capture_info, numeric_groups, bytes.as_ref())
+    });
+    Ok(parsed.ok_or("could not find any pattern matches")?.into())
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -103,17 +112,17 @@ impl Function for ParseRegex {
     ) -> Compiled {
         let value = arguments.required("value");
         let pattern = arguments.required_regex("pattern", state)?;
-        let capture_names: Vec<KeyString> = pattern
+        let capture_info: Vec<(KeyString, usize)> = pattern
             .capture_names()
-            .flatten()
-            .map(KeyString::from)
+            .enumerate()
+            .filter_map(|(i, name)| name.map(|n| (KeyString::from(n), i)))
             .collect();
         let numeric_groups = arguments.optional("numeric_groups");
 
         Ok(ParseRegexFn {
             value,
             pattern,
-            capture_names,
+            capture_info,
             numeric_groups,
         }
         .as_expr())
@@ -172,7 +181,7 @@ impl Function for ParseRegex {
 pub(crate) struct ParseRegexFn {
     value: Box<dyn Expression>,
     pattern: Regex,
-    capture_names: Vec<KeyString>,
+    capture_info: Vec<(KeyString, usize)>,
     numeric_groups: Option<Box<dyn Expression>>,
 }
 
@@ -183,12 +192,7 @@ impl FunctionExpression for ParseRegexFn {
             .numeric_groups
             .map_resolve_with_default(ctx, || DEFAULT_NUMERIC_GROUPS.clone())?
             .try_boolean()?;
-        parse_regex(
-            &value.try_bytes()?,
-            &self.pattern,
-            &self.capture_names,
-            numeric_groups,
-        )
+        parse_regex(&value, &self.pattern, &self.capture_info, numeric_groups)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {
