@@ -17,6 +17,24 @@ contains the whole match.")
     ]
 });
 
+fn parse_regex_all(
+    bytes: &bytes::Bytes,
+    pattern: &Regex,
+    capture_names: &[KeyString],
+    numeric_groups: bool,
+) -> Resolved {
+    util::with_utf8_bytes(bytes, |s, utf8_bytes| {
+        let result: Vec<Value> = pattern
+            .captures_iter(s)
+            .map(|capture| {
+                util::capture_regex_to_map(&capture, capture_names, numeric_groups, utf8_bytes)
+                    .into()
+            })
+            .collect();
+        Ok(result.into())
+    })
+}
+
 #[derive(Clone, Copy, Debug)]
 pub struct ParseRegexAll;
 
@@ -151,24 +169,6 @@ impl Function for ParseRegexAll {
             },
         ]
     }
-}
-
-fn parse_regex_all(
-    bytes: &bytes::Bytes,
-    pattern: &Regex,
-    capture_names: &[KeyString],
-    numeric_groups: bool,
-) -> Resolved {
-    util::with_utf8_bytes(bytes, |s, utf8_bytes| {
-        let result: Vec<Value> = pattern
-            .captures_iter(s)
-            .map(|capture| {
-                util::capture_regex_to_map(&capture, capture_names, numeric_groups, utf8_bytes)
-                    .into()
-            })
-            .collect();
-        Ok(result.into())
-    })
 }
 
 #[derive(Debug, Clone)]
