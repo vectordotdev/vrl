@@ -61,17 +61,35 @@ where
 /// `regex.capture_names().flatten().map(KeyString::from)`).
 ///
 /// `utf8_bytes` must be the UTF-8 buffer the regex was run against (as produced by
-/// [`with_utf8_bytes`]).  Each matched substring is returned as a zero-copy
-/// [`bytes::Bytes`] slice of that buffer.
+/// [`with_utf8_bytes`]).  Each capture is returned as either a zero-copy
+/// [`bytes::Bytes`] slice of the source buffer or an owned copy, depending on
+/// whether retaining a reference to the full source buffer is worthwhile:
+///
+/// - Input `< 64` bytes: always zero-copy — the source is small enough that
+///   the overhead of a [`bytes::Bytes`] allocation would cost more.
+/// - Otherwise: zero-copy only when the sum of named capture lengths is at
+///   least half the input length.  Below that ratio, keeping the full source
+///   buffer alive retains too many dead bytes relative to what was extracted.
 pub(crate) fn capture_regex_to_map(
     capture: &regex::Captures,
     capture_names: &[KeyString],
     numeric_groups: bool,
     utf8_bytes: &bytes::Bytes,
 ) -> ObjectMap {
+    let input_len = utf8_bytes.len();
+    let zero_copy = input_len < 64 || {
+        let total_captured: usize = capture_names
+            .iter()
+            .filter_map(|name| capture.name(name.as_str()))
+            .map(|m| m.end() - m.start())
+            .sum();
+        total_captured * 2 >= input_len
+    };
+
     let names = capture_names.iter().map(|name| {
         let value: Value = match capture.name(name.as_str()) {
-            Some(m) => utf8_bytes.slice(m.start()..m.end()).into(),
+            Some(m) if zero_copy => utf8_bytes.slice(m.start()..m.end()).into(),
+            Some(m) => m.as_str().into(),
             None => Value::Null,
         };
         (name.clone(), value)
@@ -79,10 +97,12 @@ pub(crate) fn capture_regex_to_map(
 
     if numeric_groups {
         let indexed = capture.iter().flatten().enumerate().map(|(idx, c)| {
-            (
-                KeyString::from(idx.to_string()),
-                utf8_bytes.slice(c.start()..c.end()).into(),
-            )
+            let value: Value = if zero_copy {
+                utf8_bytes.slice(c.start()..c.end()).into()
+            } else {
+                c.as_str().into()
+            };
+            (KeyString::from(idx.to_string()), value)
         });
         indexed.chain(names).collect()
     } else {
