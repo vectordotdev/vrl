@@ -57,18 +57,18 @@ where
 /// [`KeyString`]s for the regex (computed once at VRL compile time via
 /// `regex.capture_names().flatten().map(KeyString::from)`).
 ///
-/// `bytes` must be the UTF-8 buffer the regex was run against (as produced by
+/// `utf8_bytes` must be the UTF-8 buffer the regex was run against (as produced by
 /// [`with_utf8_bytes`]).  Each matched substring is returned as a zero-copy
 /// [`bytes::Bytes`] slice of that buffer.
 pub(crate) fn capture_regex_to_map(
     capture: &regex::Captures,
     capture_names: &[KeyString],
     numeric_groups: bool,
-    bytes: &bytes::Bytes,
+    utf8_bytes: &bytes::Bytes,
 ) -> ObjectMap {
     let names = capture_names.iter().map(|name| {
         let value: Value = match capture.name(name.as_str()) {
-            Some(m) => bytes.slice(m.start()..m.end()).into(),
+            Some(m) => utf8_bytes.slice(m.start()..m.end()).into(),
             None => Value::Null,
         };
         (name.clone(), value)
@@ -78,7 +78,7 @@ pub(crate) fn capture_regex_to_map(
         let indexed = capture.iter().flatten().enumerate().map(|(idx, c)| {
             (
                 KeyString::from(idx.to_string()),
-                bytes.slice(c.start()..c.end()).into(),
+                utf8_bytes.slice(c.start()..c.end()).into(),
             )
         });
         indexed.chain(names).collect()
