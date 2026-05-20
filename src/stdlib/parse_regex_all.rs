@@ -1,6 +1,6 @@
-use regex::Regex;
-
 use crate::compiler::prelude::*;
+use crate::value::KeyString;
+use regex::Regex;
 
 use super::util;
 use std::sync::LazyLock;
@@ -16,15 +16,6 @@ contains the whole match.")
             .default(&DEFAULT_NUMERIC_GROUPS),
     ]
 });
-
-fn parse_regex_all(value: &Value, numeric_groups: bool, pattern: &Regex) -> Resolved {
-    let value = value.try_bytes_utf8_lossy()?;
-    Ok(pattern
-        .captures_iter(&value)
-        .map(|capture| util::capture_regex_to_map(pattern, &capture, numeric_groups).into())
-        .collect::<Vec<Value>>()
-        .into())
-}
 
 #[derive(Clone, Copy, Debug)]
 pub struct ParseRegexAll;
@@ -84,17 +75,26 @@ impl Function for ParseRegexAll {
 
     fn compile(
         &self,
-        _state: &state::TypeState,
+        state: &state::TypeState,
         _ctx: &mut FunctionCompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
         let pattern = arguments.required("pattern");
+        let capture_names = pattern.resolve_constant(state).and_then(|v| {
+            v.as_regex().map(|r| {
+                r.capture_names()
+                    .flatten()
+                    .map(KeyString::from)
+                    .collect::<Vec<_>>()
+            })
+        });
         let numeric_groups = arguments.optional("numeric_groups");
 
         Ok(ParseRegexAllFn {
             value,
             pattern,
+            capture_names,
             numeric_groups,
         }
         .as_expr())
@@ -153,10 +153,37 @@ impl Function for ParseRegexAll {
     }
 }
 
+fn parse_regex_all(
+    bytes: &bytes::Bytes,
+    pattern: &Regex,
+    capture_names: &[KeyString],
+    numeric_groups: bool,
+) -> Resolved {
+    let result: Vec<Value> = if let Ok(s) = std::str::from_utf8(bytes) {
+        pattern
+            .captures_iter(s)
+            .map(|capture| {
+                util::capture_regex_to_map(&capture, capture_names, numeric_groups, Some(bytes))
+                    .into()
+            })
+            .collect()
+    } else {
+        let s = String::from_utf8_lossy(bytes);
+        pattern
+            .captures_iter(s.as_ref())
+            .map(|capture| {
+                util::capture_regex_to_map(&capture, capture_names, numeric_groups, None).into()
+            })
+            .collect()
+    };
+    Ok(result.into())
+}
+
 #[derive(Debug, Clone)]
 pub(crate) struct ParseRegexAllFn {
     value: Box<dyn Expression>,
     pattern: Box<dyn Expression>,
+    capture_names: Option<Vec<KeyString>>,
     numeric_groups: Option<Box<dyn Expression>>,
 }
 
@@ -165,15 +192,27 @@ impl FunctionExpression for ParseRegexAllFn {
         let value = self.value.resolve(ctx)?;
         let numeric_groups = self
             .numeric_groups
-            .map_resolve_with_default(ctx, || DEFAULT_NUMERIC_GROUPS.clone())?;
+            .map_resolve_with_default(ctx, || DEFAULT_NUMERIC_GROUPS.clone())?
+            .try_boolean()?;
         let pattern = self
             .pattern
             .resolve(ctx)?
             .as_regex()
             .ok_or_else(|| ExpressionError::from("failed to resolve regex"))?
             .clone();
+        let bytes = value.try_bytes()?;
 
-        parse_regex_all(&value, numeric_groups.try_boolean()?, &pattern)
+        let capture_names: &[KeyString] = if let Some(names) = &self.capture_names {
+            names.as_slice()
+        } else {
+            &pattern
+                .capture_names()
+                .flatten()
+                .map(KeyString::from)
+                .collect::<Vec<_>>()
+        };
+
+        parse_regex_all(&bytes, &pattern, capture_names, numeric_groups)
     }
 
     fn type_def(&self, state: &state::TypeState) -> TypeDef {
@@ -197,6 +236,7 @@ impl FunctionExpression for ParseRegexAllFn {
 #[allow(clippy::trivial_regex)]
 mod tests {
     use crate::{btreemap, value};
+    use regex::Regex;
 
     use super::*;
 

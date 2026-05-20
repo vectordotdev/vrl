@@ -27,32 +27,45 @@ where
     fun(num * multiplier) / multiplier
 }
 
-/// Takes a set of captures that have resulted from matching a regular expression
-/// against some text and fills a `BTreeMap` with the result.
+/// Fills an [`ObjectMap`] from a regex [`Captures`](regex::Captures).
 ///
-/// All captures are inserted with a key as the numeric index of that capture
-/// "0" is the overall match.
-/// Any named captures are also added to the Map with the key as the name.
+/// Named captures are inserted under their group name; numeric groups (when
+/// `numeric_groups` is `true`) are inserted under their zero-based index, with
+/// `"0"` holding the full match.
 ///
+/// `capture_names` must be the pre-computed slice of named-group
+/// [`KeyString`]s for the regex (computed once at VRL compile time via
+/// `regex.capture_names().flatten().map(KeyString::from)`).
+///
+/// When `original_bytes` is `Some`, each matched substring is produced as a
+/// zero-copy [`bytes::Bytes`] slice of the original input buffer rather than a
+/// heap copy.  Only pass `Some` when the input is valid UTF-8, so that the
+/// byte offsets returned by the regex are valid positions in the buffer.
 pub(crate) fn capture_regex_to_map(
-    regex: &regex::Regex,
     capture: &regex::Captures,
+    capture_names: &[KeyString],
     numeric_groups: bool,
+    original_bytes: Option<&bytes::Bytes>,
 ) -> ObjectMap {
-    let names = regex.capture_names().flatten().map(|name| {
-        (
-            name.to_owned().into(),
-            capture.name(name).map(|s| s.as_str()).into(),
-        )
+    let names = capture_names.iter().map(|name| {
+        let value: Value = match capture.name(name.as_str()) {
+            Some(m) => match original_bytes {
+                Some(b) => b.slice(m.start()..m.end()).into(),
+                None => m.as_str().into(),
+            },
+            None => Value::Null,
+        };
+        (name.clone(), value)
     });
 
     if numeric_groups {
-        let indexed = capture
-            .iter()
-            .flatten()
-            .enumerate()
-            .map(|(idx, c)| (KeyString::from(idx.to_string()), c.as_str().into()));
-
+        let indexed = capture.iter().flatten().enumerate().map(|(idx, c)| {
+            let value: Value = match original_bytes {
+                Some(b) => b.slice(c.start()..c.end()).into(),
+                None => c.as_str().into(),
+            };
+            (KeyString::from(idx.to_string()), value)
+        });
         indexed.chain(names).collect()
     } else {
         names.collect()
