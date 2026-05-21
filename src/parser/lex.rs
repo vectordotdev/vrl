@@ -41,6 +41,9 @@ pub enum Error {
     #[error("invalid escape character: \\{}", .ch.unwrap_or_default())]
     EscapeChar { start: usize, ch: Option<char> },
 
+    #[error("invalid unicode escape sequence")]
+    UnicodeEscape { start: usize, end: usize },
+
     #[error("unexpected parse error")]
     UnexpectedParseError(String),
 }
@@ -84,6 +87,10 @@ impl Error {
                 start: start + offset,
                 ch,
             },
+            Error::UnicodeEscape { start, end } => Error::UnicodeEscape {
+                start: start + offset,
+                end: end + offset,
+            },
             Error::UnexpectedParseError(s) => Error::UnexpectedParseError(s),
         }
     }
@@ -93,7 +100,7 @@ impl DiagnosticMessage for Error {
     fn code(&self) -> usize {
         use Error::{
             EscapeChar, Literal, NumericLiteral, ParseError, ReservedKeyword, StringLiteral,
-            UnexpectedParseError,
+            UnexpectedParseError, UnicodeEscape,
         };
 
         match self {
@@ -110,13 +117,14 @@ impl DiagnosticMessage for Error {
             Literal { .. } => 208,
             EscapeChar { .. } => 209,
             UnexpectedParseError(..) => 210,
+            UnicodeEscape { .. } => 211,
         }
     }
 
     fn labels(&self) -> Vec<Label> {
         use Error::{
             EscapeChar, Literal, NumericLiteral, ParseError, ReservedKeyword, StringLiteral,
-            UnexpectedParseError,
+            UnexpectedParseError, UnicodeEscape,
         };
 
         fn update_expected(expected: Vec<String>) -> Vec<String> {
@@ -231,6 +239,11 @@ impl DiagnosticMessage for Error {
                         .unwrap_or_else(|| "none".to_string())
                 ),
                 Span::new(*start, *start + 1),
+            )],
+
+            UnicodeEscape { start, end } => vec![Label::primary(
+                "invalid unicode escape sequence",
+                Span::new(*start, *end),
             )],
 
             UnexpectedParseError(string) => vec![Label::primary(string, Span::default())],
@@ -1322,11 +1335,60 @@ impl<'input> Lexer<'input> {
     fn escape_code(&mut self, start: usize) -> Result<(), Error> {
         match self.bump() {
             Some((_, '\n' | '\'' | '"' | '\\' | 'n' | 'r' | 't' | '{' | '}' | '0')) => Ok(()),
-            Some((start, ch)) => Err(Error::EscapeChar {
-                start,
+            Some((_, 'u')) => self.unicode_escape(start),
+            Some((s, ch)) => Err(Error::EscapeChar {
+                start: s,
                 ch: Some(ch),
             }),
             None => Err(Error::EscapeChar { start, ch: None }),
+        }
+    }
+
+    /// Validates a `\u{HEX}` Unicode escape sequence after the `u` has been consumed.
+    ///
+    /// `start` is the byte position of the leading `\`. All `UnicodeEscape` errors
+    /// span from `start` to the current position so the entire `\u{...}` sequence
+    /// is highlighted in diagnostics.
+    fn unicode_escape(&mut self, start: usize) -> Result<(), Error> {
+        match self.bump() {
+            Some((_, '{')) => {}
+            Some((s, ch)) => {
+                return Err(Error::EscapeChar {
+                    start: s,
+                    ch: Some(ch),
+                });
+            }
+            None => return Err(Error::EscapeChar { start, ch: None }),
+        }
+        let hex_start = self.next_index();
+        let mut count = 0usize;
+        loop {
+            match self.peek() {
+                Some((_, '}')) => {
+                    let hex_end = self.next_index();
+                    self.bump();
+                    let end = self.next_index();
+                    if count == 0 {
+                        return Err(Error::UnicodeEscape { start, end });
+                    }
+                    let hex = &self.input[hex_start..hex_end];
+                    let codepoint = u32::from_str_radix(hex, 16)
+                        .map_err(|_| Error::UnicodeEscape { start, end })?;
+                    char::from_u32(codepoint).ok_or(Error::UnicodeEscape { start, end })?;
+                    return Ok(());
+                }
+                Some((_, ch)) if ch.is_ascii_hexdigit() => {
+                    self.bump();
+                    count += 1;
+                }
+                Some((pos, ch)) => {
+                    return Err(Error::EscapeChar {
+                        start: pos,
+                        ch: Some(ch),
+                    });
+                }
+                None => return Err(Error::EscapeChar { start, ch: None }),
+            }
         }
     }
 }
@@ -1387,6 +1449,20 @@ fn unescape_string_literal(mut s: &str) -> String {
                 .map(char::len_utf8)
                 .sum();
             s = &s[i + whitespace + 2..];
+        } else if next == b'u' {
+            // \u{HEX} Unicode escape. The lexer already validated the syntax
+            // and codepoint value in unicode_escape(), so these operations are
+            // guaranteed to succeed. from_str_radix is called a second time
+            // here because the token stores a raw string slice; there is no
+            // cheaper way to decode the value without changing the token type.
+            string.push_str(&s[..i]);
+            let rest = &s[i + 3..]; // skip past `\u{`
+            let close = rest.find('}').expect("closing } validated by lexer");
+            let hex = &rest[..close];
+            let codepoint = u32::from_str_radix(hex, 16).expect("hex validated by lexer");
+            let ch = char::from_u32(codepoint).expect("codepoint validated by lexer");
+            string.push(ch);
+            s = &rest[close + 1..];
         } else {
             let c = match next {
                 b'\'' => '\'',
@@ -1397,6 +1473,7 @@ fn unescape_string_literal(mut s: &str) -> String {
                 b't' => '\t',
                 b'0' => '\0',
                 b'{' => '{',
+                b'}' => '}',
                 _ => unimplemented!("invalid escape"),
             };
 
@@ -1620,6 +1697,93 @@ mod test {
             lexer(r#"foo "bar\"\n baz"#).last(),
             Some(Err(Error::StringLiteral { start: 4 }))
         );
+    }
+
+    #[test]
+    fn unicode_escape_basic() {
+        let mut lexer = lexer(r#""\u{41}""#);
+        match lexer.next() {
+            Some(Ok((_, StringLiteral(s), _))) => {
+                assert_eq!("A", s.unescape());
+            }
+            other => panic!("unexpected: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn unicode_escape_multibyte() {
+        let mut lexer = lexer(r#""\u{1F30E}""#);
+        match lexer.next() {
+            Some(Ok((_, StringLiteral(s), _))) => {
+                assert_eq!("\u{1F30E}", s.unescape());
+            }
+            other => panic!("unexpected: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn unicode_escape_in_string() {
+        let mut lexer = lexer(r#""hello\u{1F30E}world""#);
+        match lexer.next() {
+            Some(Ok((_, StringLiteral(s), _))) => {
+                assert_eq!("hello\u{1F30E}world", s.unescape());
+            }
+            other => panic!("unexpected: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn unicode_escape_null() {
+        let mut lexer = lexer(r#""\u{0}""#);
+        match lexer.next() {
+            Some(Ok((_, StringLiteral(s), _))) => {
+                assert_eq!("\u{0}", s.unescape());
+            }
+            other => panic!("unexpected: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn unicode_escape_invalid_codepoint() {
+        // U+D800 is a surrogate — not a valid Unicode scalar value
+        assert!(matches!(
+            lexer(r#""\u{D800}""#).last(),
+            Some(Err(Error::StringLiteral { .. }))
+        ));
+        // U+110000 is above the Unicode range (max is U+10FFFF)
+        assert!(matches!(
+            lexer(r#""\u{110000}""#).last(),
+            Some(Err(Error::StringLiteral { .. }))
+        ));
+
+        // boundary values that are valid scalar values
+        for (input, expected) in [
+            (r#""\u{D799}""#, "\u{D799}"),     // just below surrogate range
+            (r#""\u{E000}""#, "\u{E000}"),     // just above surrogate range
+            (r#""\u{10FFFF}""#, "\u{10FFFF}"), // maximum Unicode scalar value
+        ] {
+            let mut lex = lexer(input);
+            match lex.next() {
+                Some(Ok((_, StringLiteral(s), _))) => assert_eq!(expected, s.unescape()),
+                other => panic!("expected valid string for {input:?}, got {other:?}"),
+            }
+        }
+    }
+
+    #[test]
+    fn unicode_escape_empty_braces() {
+        assert!(matches!(
+            lexer(r#""\u{}""#).last(),
+            Some(Err(Error::StringLiteral { .. }))
+        ));
+    }
+
+    #[test]
+    fn unicode_escape_missing_open_brace() {
+        assert!(matches!(
+            lexer(r#""\u41""#).last(),
+            Some(Err(Error::StringLiteral { .. }))
+        ));
     }
 
     #[test]
