@@ -1,4 +1,5 @@
 use crate::compiler::prelude::*;
+use crate::value::KeyString;
 use regex::Regex;
 
 use super::util;
@@ -24,11 +25,16 @@ contains the whole match.",
     ]
 });
 
-fn parse_regex(value: &Value, numeric_groups: bool, pattern: &Regex) -> Resolved {
+fn parse_regex(
+    value: &Value,
+    pattern: &Regex,
+    capture_names: &[KeyString],
+    numeric_groups: bool,
+) -> Resolved {
     let value = value.try_bytes_utf8_lossy()?;
     let parsed = pattern
         .captures(&value)
-        .map(|capture| util::capture_regex_to_map(pattern, &capture, numeric_groups))
+        .map(|capture| util::capture_regex_to_map(&capture, capture_names, numeric_groups))
         .ok_or("could not find any pattern matches")?;
     Ok(parsed.into())
 }
@@ -97,11 +103,17 @@ impl Function for ParseRegex {
     ) -> Compiled {
         let value = arguments.required("value");
         let pattern = arguments.required_regex("pattern", state)?;
+        let capture_names: Vec<KeyString> = pattern
+            .capture_names()
+            .flatten()
+            .map(KeyString::from)
+            .collect();
         let numeric_groups = arguments.optional("numeric_groups");
 
         Ok(ParseRegexFn {
             value,
             pattern,
+            capture_names,
             numeric_groups,
         }
         .as_expr())
@@ -160,6 +172,7 @@ impl Function for ParseRegex {
 pub(crate) struct ParseRegexFn {
     value: Box<dyn Expression>,
     pattern: Regex,
+    capture_names: Vec<KeyString>,
     numeric_groups: Option<Box<dyn Expression>>,
 }
 
@@ -168,10 +181,9 @@ impl FunctionExpression for ParseRegexFn {
         let value = self.value.resolve(ctx)?;
         let numeric_groups = self
             .numeric_groups
-            .map_resolve_with_default(ctx, || DEFAULT_NUMERIC_GROUPS.clone())?;
-        let pattern = &self.pattern;
-
-        parse_regex(&value, numeric_groups.try_boolean()?, pattern)
+            .map_resolve_with_default(ctx, || DEFAULT_NUMERIC_GROUPS.clone())?
+            .try_boolean()?;
+        parse_regex(&value, &self.pattern, &self.capture_names, numeric_groups)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {
