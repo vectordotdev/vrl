@@ -27,23 +27,133 @@ where
     fun(num * multiplier) / multiplier
 }
 
-/// Takes a set of captures that have resulted from matching a regular expression
-/// against some text and fills a `BTreeMap` with the result.
+/// Returns `true` when zero-copy slicing is worthwhile for this capture set.
 ///
-/// All captures are inserted with a key as the numeric index of that capture
-/// "0" is the overall match.
-/// Any named captures are also added to the Map with the key as the name.
+/// Zero-copy is used when:
+/// - The input is `< 64` bytes: the source buffer is small enough that
+///   retaining it is cheaper than the per-value [`bytes::Bytes`] overhead.
+/// - The total length of all named captures is at least half the input
+///   length: most of the retained buffer is actually used.
 ///
-pub(crate) fn capture_regex_to_map(
-    regex: &regex::Regex,
+/// `capture_info` must contain pre-computed group indices so that
+/// [`regex::Captures::get`] (direct array access) is used instead of
+/// name-based hash lookups.
+pub(crate) fn should_zero_copy(
+    input_len: usize,
     capture: &regex::Captures,
+    capture_info: &[(KeyString, usize)],
+    numeric_groups: bool,
+) -> bool {
+    if input_len < 64 {
+        return true;
+    }
+
+    let emitted_capture_count = capture_info.len() + if numeric_groups { capture.len() } else { 0 };
+    if emitted_capture_count == 0 {
+        return false;
+    }
+
+    if !numeric_groups && capture_info.len() >= 4 {
+        if let (Some((_, first_idx)), Some((_, last_idx))) =
+            (capture_info.first(), capture_info.last())
+            && let (Some(first), Some(last)) = (capture.get(*first_idx), capture.get(*last_idx))
+            && last.end().saturating_sub(first.start()) * 2 >= input_len
+        {
+            return true;
+        }
+    }
+
+    if let Some(full_match) = capture.get(0) {
+        let full_match_len = full_match.end() - full_match.start();
+        if full_match_len
+            .saturating_mul(emitted_capture_count)
+            .saturating_mul(2)
+            < input_len
+        {
+            return false;
+        }
+    }
+
+    let mut total = 0usize;
+
+    if numeric_groups {
+        for m in capture.iter().flatten() {
+            total += m.end() - m.start();
+            if total * 2 >= input_len {
+                return true;
+            }
+        }
+    }
+
+    for (_, i) in capture_info.iter().rev() {
+        if let Some(m) = capture.get(*i) {
+            total += m.end() - m.start();
+            if total * 2 >= input_len {
+                return true;
+            }
+        }
+    }
+
+    false
+}
+
+/// Fills an [`ObjectMap`] from a regex [`Captures`](regex::Captures).
+///
+/// Named captures are inserted under their group name; numeric groups (when
+/// `numeric_groups` is `true`) are inserted under their zero-based index, with
+/// `"0"` holding the full match.
+///
+/// `capture_info` must be the pre-computed `(name, group_index)` slice
+/// (computed once at VRL compile time).  Group indices allow direct O(1)
+/// array access via [`regex::Captures::get`] instead of name-based hash
+/// lookups.
+///
+/// When `utf8_bytes` is `Some`, each matched substring is returned as a
+/// zero-copy [`bytes::Bytes`] slice of that buffer; when `None` each is copied.
+pub(crate) fn capture_regex_to_map(
+    capture: &regex::Captures,
+    capture_info: &[(KeyString, usize)],
+    numeric_groups: bool,
+    utf8_bytes: Option<&bytes::Bytes>,
+) -> ObjectMap {
+    match utf8_bytes {
+        Some(utf8_bytes) => {
+            capture_regex_to_map_zero_copy(capture, capture_info, numeric_groups, utf8_bytes)
+        }
+        None => capture_regex_to_map_copy(capture, capture_info, numeric_groups),
+    }
+}
+
+pub(crate) fn capture_regex_to_map_from_template(
+    capture: &regex::Captures,
+    capture_info_by_key: &[(KeyString, usize)],
+    template: &ObjectMap,
+    utf8_bytes: Option<&bytes::Bytes>,
+) -> ObjectMap {
+    let mut map = template.clone();
+
+    for ((_, idx), value) in capture_info_by_key.iter().zip(map.values_mut()) {
+        *value = match (capture.get(*idx), utf8_bytes) {
+            (Some(m), Some(b)) => b.slice(m.start()..m.end()).into(),
+            (Some(m), None) => m.as_str().into(),
+            (None, _) => Value::Null,
+        };
+    }
+
+    map
+}
+
+fn capture_regex_to_map_copy(
+    capture: &regex::Captures,
+    capture_info: &[(KeyString, usize)],
     numeric_groups: bool,
 ) -> ObjectMap {
-    let names = regex.capture_names().flatten().map(|name| {
-        (
-            name.to_owned().into(),
-            capture.name(name).map(|s| s.as_str()).into(),
-        )
+    let names = capture_info.iter().map(|(name, idx)| {
+        let value: Value = match capture.get(*idx) {
+            Some(m) => m.as_str().into(),
+            None => Value::Null,
+        };
+        (name.clone(), value)
     });
 
     if numeric_groups {
@@ -52,7 +162,33 @@ pub(crate) fn capture_regex_to_map(
             .flatten()
             .enumerate()
             .map(|(idx, c)| (KeyString::from(idx.to_string()), c.as_str().into()));
+        indexed.chain(names).collect()
+    } else {
+        names.collect()
+    }
+}
 
+fn capture_regex_to_map_zero_copy(
+    capture: &regex::Captures,
+    capture_info: &[(KeyString, usize)],
+    numeric_groups: bool,
+    utf8_bytes: &bytes::Bytes,
+) -> ObjectMap {
+    let names = capture_info.iter().map(|(name, idx)| {
+        let value: Value = match capture.get(*idx) {
+            Some(m) => utf8_bytes.slice(m.start()..m.end()).into(),
+            None => Value::Null,
+        };
+        (name.clone(), value)
+    });
+
+    if numeric_groups {
+        let indexed = capture.iter().flatten().enumerate().map(|(idx, c)| {
+            (
+                KeyString::from(idx.to_string()),
+                utf8_bytes.slice(c.start()..c.end()).into(),
+            )
+        });
         indexed.chain(names).collect()
     } else {
         names.collect()
