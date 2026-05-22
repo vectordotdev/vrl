@@ -42,15 +42,59 @@ pub(crate) fn should_zero_copy(
     input_len: usize,
     capture: &regex::Captures,
     capture_info: &[(KeyString, usize)],
+    numeric_groups: bool,
 ) -> bool {
-    input_len < 64 || {
-        let total: usize = capture_info
-            .iter()
-            .filter_map(|(_, i)| capture.get(*i))
-            .map(|m| m.end() - m.start())
-            .sum();
-        total * 2 >= input_len
+    if input_len < 64 {
+        return true;
     }
+
+    let emitted_capture_count = capture_info.len() + if numeric_groups { capture.len() } else { 0 };
+    if emitted_capture_count == 0 {
+        return false;
+    }
+
+    if !numeric_groups && capture_info.len() >= 4 {
+        if let (Some((_, first_idx)), Some((_, last_idx))) =
+            (capture_info.first(), capture_info.last())
+            && let (Some(first), Some(last)) = (capture.get(*first_idx), capture.get(*last_idx))
+            && last.end().saturating_sub(first.start()) * 2 >= input_len
+        {
+            return true;
+        }
+    }
+
+    if let Some(full_match) = capture.get(0) {
+        let full_match_len = full_match.end() - full_match.start();
+        if full_match_len
+            .saturating_mul(emitted_capture_count)
+            .saturating_mul(2)
+            < input_len
+        {
+            return false;
+        }
+    }
+
+    let mut total = 0usize;
+
+    if numeric_groups {
+        for m in capture.iter().flatten() {
+            total += m.end() - m.start();
+            if total * 2 >= input_len {
+                return true;
+            }
+        }
+    }
+
+    for (_, i) in capture_info.iter().rev() {
+        if let Some(m) = capture.get(*i) {
+            total += m.end() - m.start();
+            if total * 2 >= input_len {
+                return true;
+            }
+        }
+    }
+
+    false
 }
 
 /// Fills an [`ObjectMap`] from a regex [`Captures`](regex::Captures).
@@ -72,22 +116,78 @@ pub(crate) fn capture_regex_to_map(
     numeric_groups: bool,
     utf8_bytes: Option<&bytes::Bytes>,
 ) -> ObjectMap {
-    let names = capture_info.iter().map(|(name, idx)| {
-        let value: Value = match (capture.get(*idx), utf8_bytes) {
+    match utf8_bytes {
+        Some(utf8_bytes) => {
+            capture_regex_to_map_zero_copy(capture, capture_info, numeric_groups, utf8_bytes)
+        }
+        None => capture_regex_to_map_copy(capture, capture_info, numeric_groups),
+    }
+}
+
+pub(crate) fn capture_regex_to_map_from_template(
+    capture: &regex::Captures,
+    capture_info_by_key: &[(KeyString, usize)],
+    template: &ObjectMap,
+    utf8_bytes: Option<&bytes::Bytes>,
+) -> ObjectMap {
+    let mut map = template.clone();
+
+    for ((_, idx), value) in capture_info_by_key.iter().zip(map.values_mut()) {
+        *value = match (capture.get(*idx), utf8_bytes) {
             (Some(m), Some(b)) => b.slice(m.start()..m.end()).into(),
             (Some(m), None) => m.as_str().into(),
             (None, _) => Value::Null,
+        };
+    }
+
+    map
+}
+
+fn capture_regex_to_map_copy(
+    capture: &regex::Captures,
+    capture_info: &[(KeyString, usize)],
+    numeric_groups: bool,
+) -> ObjectMap {
+    let names = capture_info.iter().map(|(name, idx)| {
+        let value: Value = match capture.get(*idx) {
+            Some(m) => m.as_str().into(),
+            None => Value::Null,
+        };
+        (name.clone(), value)
+    });
+
+    if numeric_groups {
+        let indexed = capture
+            .iter()
+            .flatten()
+            .enumerate()
+            .map(|(idx, c)| (KeyString::from(idx.to_string()), c.as_str().into()));
+        indexed.chain(names).collect()
+    } else {
+        names.collect()
+    }
+}
+
+fn capture_regex_to_map_zero_copy(
+    capture: &regex::Captures,
+    capture_info: &[(KeyString, usize)],
+    numeric_groups: bool,
+    utf8_bytes: &bytes::Bytes,
+) -> ObjectMap {
+    let names = capture_info.iter().map(|(name, idx)| {
+        let value: Value = match capture.get(*idx) {
+            Some(m) => utf8_bytes.slice(m.start()..m.end()).into(),
+            None => Value::Null,
         };
         (name.clone(), value)
     });
 
     if numeric_groups {
         let indexed = capture.iter().flatten().enumerate().map(|(idx, c)| {
-            let value: Value = match utf8_bytes {
-                Some(b) => b.slice(c.start()..c.end()).into(),
-                None => c.as_str().into(),
-            };
-            (KeyString::from(idx.to_string()), value)
+            (
+                KeyString::from(idx.to_string()),
+                utf8_bytes.slice(c.start()..c.end()).into(),
+            )
         });
         indexed.chain(names).collect()
     } else {

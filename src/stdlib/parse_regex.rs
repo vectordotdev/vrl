@@ -1,5 +1,5 @@
 use crate::compiler::prelude::*;
-use crate::value::KeyString;
+use crate::value::{KeyString, ObjectMap};
 use regex::Regex;
 
 use super::util;
@@ -29,21 +29,33 @@ fn parse_regex(
     value: &Value,
     pattern: &Regex,
     capture_info: &[(KeyString, usize)],
+    capture_info_by_key: &[(KeyString, usize)],
+    capture_template: &ObjectMap,
     numeric_groups: bool,
 ) -> Resolved {
     let s = value.try_bytes_utf8_lossy()?;
     let valid_utf8 = matches!(s, std::borrow::Cow::Borrowed(_));
+    let utf8_bytes = valid_utf8.then(|| {
+        if let Value::Bytes(b) = value {
+            b
+        } else {
+            unreachable!()
+        }
+    });
     let input_len = s.len();
     let parsed = pattern.captures(s.as_ref()).map(|capture| {
-        let bytes =
-            (valid_utf8 && util::should_zero_copy(input_len, &capture, capture_info)).then(|| {
-                if let Value::Bytes(b) = value {
-                    b.clone()
-                } else {
-                    unreachable!()
-                }
-            });
-        util::capture_regex_to_map(&capture, capture_info, numeric_groups, bytes.as_ref())
+        let bytes = utf8_bytes
+            .filter(|_| util::should_zero_copy(input_len, &capture, capture_info, numeric_groups));
+        if numeric_groups {
+            util::capture_regex_to_map(&capture, capture_info, true, bytes)
+        } else {
+            util::capture_regex_to_map_from_template(
+                &capture,
+                capture_info_by_key,
+                capture_template,
+                bytes,
+            )
+        }
     });
     Ok(parsed.ok_or("could not find any pattern matches")?.into())
 }
@@ -117,12 +129,20 @@ impl Function for ParseRegex {
             .enumerate()
             .filter_map(|(i, name)| name.map(|n| (KeyString::from(n), i)))
             .collect();
+        let mut capture_info_by_key = capture_info.clone();
+        capture_info_by_key.sort_unstable_by(|(a, _), (b, _)| a.cmp(b));
+        let capture_template = capture_info_by_key
+            .iter()
+            .map(|(name, _)| (name.clone(), Value::Null))
+            .collect();
         let numeric_groups = arguments.optional("numeric_groups");
 
         Ok(ParseRegexFn {
             value,
             pattern,
             capture_info,
+            capture_info_by_key,
+            capture_template,
             numeric_groups,
         }
         .as_expr())
@@ -182,6 +202,8 @@ pub(crate) struct ParseRegexFn {
     value: Box<dyn Expression>,
     pattern: Regex,
     capture_info: Vec<(KeyString, usize)>,
+    capture_info_by_key: Vec<(KeyString, usize)>,
+    capture_template: ObjectMap,
     numeric_groups: Option<Box<dyn Expression>>,
 }
 
@@ -192,7 +214,14 @@ impl FunctionExpression for ParseRegexFn {
             .numeric_groups
             .map_resolve_with_default(ctx, || DEFAULT_NUMERIC_GROUPS.clone())?
             .try_boolean()?;
-        parse_regex(&value, &self.pattern, &self.capture_info, numeric_groups)
+        parse_regex(
+            &value,
+            &self.pattern,
+            &self.capture_info,
+            &self.capture_info_by_key,
+            &self.capture_template,
+            numeric_groups,
+        )
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

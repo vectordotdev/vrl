@@ -26,9 +26,9 @@ fn parse_regex_all(
     let s = value.try_bytes_utf8_lossy()?;
     let input_len = s.len();
     let valid_utf8 = matches!(s, std::borrow::Cow::Borrowed(_));
-    let utf8_bytes: Option<bytes::Bytes> = valid_utf8.then(|| {
+    let utf8_bytes = valid_utf8.then(|| {
         if let Value::Bytes(b) = value {
-            b.clone()
+            b
         } else {
             unreachable!()
         }
@@ -36,9 +36,9 @@ fn parse_regex_all(
     let result: Vec<Value> = pattern
         .captures_iter(s.as_ref())
         .map(|capture| {
-            let bytes = utf8_bytes
-                .as_ref()
-                .filter(|_| util::should_zero_copy(input_len, &capture, capture_info));
+            let bytes = utf8_bytes.filter(|_| {
+                util::should_zero_copy(input_len, &capture, capture_info, numeric_groups)
+            });
             util::capture_regex_to_map(&capture, capture_info, numeric_groups, bytes).into()
         })
         .collect();
@@ -202,14 +202,16 @@ impl FunctionExpression for ParseRegexAllFn {
             .as_regex()
             .ok_or_else(|| ExpressionError::from("failed to resolve regex"))?
             .clone();
+        let dynamic_capture_info;
         let capture_info: &[(KeyString, usize)] = if let Some(info) = &self.capture_info {
             info.as_slice()
         } else {
-            &pattern
+            dynamic_capture_info = pattern
                 .capture_names()
                 .enumerate()
                 .filter_map(|(i, name)| name.map(|n| (KeyString::from(n), i)))
-                .collect::<Vec<_>>()
+                .collect::<Vec<_>>();
+            dynamic_capture_info.as_slice()
         };
 
         parse_regex_all(&value, &pattern, capture_info, numeric_groups)
