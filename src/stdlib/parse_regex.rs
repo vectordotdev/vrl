@@ -1,6 +1,6 @@
+use super::util;
 use crate::compiler::prelude::*;
 use regex::Regex;
-use super::util;
 use std::sync::LazyLock;
 
 static DEFAULT_NUMERIC_GROUPS: LazyLock<Value> = LazyLock::new(|| Value::Boolean(false));
