@@ -20,13 +20,13 @@ contains the whole match.")
 fn parse_regex_all(
     value: &Value,
     pattern: &Regex,
-    capture_names: &[KeyString],
+    capture_info: &[(KeyString, usize)],
     numeric_groups: bool,
 ) -> Resolved {
     let value = value.try_bytes_utf8_lossy()?;
     Ok(pattern
         .captures_iter(&value)
-        .map(|capture| util::capture_regex_to_map(&capture, capture_names, numeric_groups).into())
+        .map(|capture| util::capture_regex_to_map(&capture, capture_info, numeric_groups).into())
         .collect::<Vec<Value>>()
         .into())
 }
@@ -95,11 +95,11 @@ impl Function for ParseRegexAll {
     ) -> Compiled {
         let value = arguments.required("value");
         let pattern = arguments.required("pattern");
-        let capture_names = pattern.resolve_constant(state).and_then(|v| {
+        let capture_info = pattern.resolve_constant(state).and_then(|v| {
             v.as_regex().map(|r| {
                 r.capture_names()
-                    .flatten()
-                    .map(KeyString::from)
+                    .enumerate()
+                    .filter_map(|(i, name)| name.map(|n| (KeyString::from(n), i)))
                     .collect::<Vec<_>>()
             })
         });
@@ -108,7 +108,7 @@ impl Function for ParseRegexAll {
         Ok(ParseRegexAllFn {
             value,
             pattern,
-            capture_names,
+            capture_info,
             numeric_groups,
         }
         .as_expr())
@@ -171,7 +171,7 @@ impl Function for ParseRegexAll {
 pub(crate) struct ParseRegexAllFn {
     value: Box<dyn Expression>,
     pattern: Box<dyn Expression>,
-    capture_names: Option<Vec<KeyString>>,
+    capture_info: Option<Vec<(KeyString, usize)>>,
     numeric_groups: Option<Box<dyn Expression>>,
 }
 
@@ -188,19 +188,19 @@ impl FunctionExpression for ParseRegexAllFn {
             .as_regex()
             .ok_or_else(|| ExpressionError::from("failed to resolve regex"))?
             .clone();
-        let dynamic_capture_names;
-        let capture_names: &[KeyString] = if let Some(names) = &self.capture_names {
-            names.as_slice()
+        let dynamic_capture_info;
+        let capture_info: &[(KeyString, usize)] = if let Some(info) = &self.capture_info {
+            info.as_slice()
         } else {
-            dynamic_capture_names = pattern
+            dynamic_capture_info = pattern
                 .capture_names()
-                .flatten()
-                .map(KeyString::from)
+                .enumerate()
+                .filter_map(|(i, name)| name.map(|n| (KeyString::from(n), i)))
                 .collect::<Vec<_>>();
-            dynamic_capture_names.as_slice()
+            dynamic_capture_info.as_slice()
         };
 
-        parse_regex_all(&value, &pattern, capture_names, numeric_groups)
+        parse_regex_all(&value, &pattern, capture_info, numeric_groups)
     }
 
     fn type_def(&self, state: &state::TypeState) -> TypeDef {

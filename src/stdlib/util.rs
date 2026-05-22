@@ -33,16 +33,17 @@ where
 /// `numeric_groups` is `true`) are inserted under their zero-based index, with
 /// `"0"` holding the full match.
 ///
-/// `capture_names` must be the pre-computed slice of named-group
-/// [`KeyString`]s for the regex (computed once at VRL compile time via
-/// `regex.capture_names().flatten().map(KeyString::from)`).
+/// `capture_info` must be the pre-computed `(name, group_index)` slice
+/// (computed once at VRL compile time).  Group indices allow direct O(1)
+/// array access via [`regex::Captures::get`] instead of name-based hash
+/// lookups.
 pub(crate) fn capture_regex_to_map(
     capture: &regex::Captures,
-    capture_names: &[KeyString],
+    capture_info: &[(KeyString, usize)],
     numeric_groups: bool,
 ) -> ObjectMap {
-    let names = capture_names.iter().map(|name| {
-        let value: Value = capture.name(name.as_str()).map(|s| s.as_str()).into();
+    let names = capture_info.iter().map(|(name, idx)| {
+        let value: Value = capture.get(*idx).map(|m| m.as_str()).into();
         (name.clone(), value)
     });
 
