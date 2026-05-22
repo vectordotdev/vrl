@@ -75,6 +75,11 @@ impl Function for ParseRegexAll {
                 All values are returned as strings. We recommend manually coercing values to desired
                 types as you see fit.
             "},
+            indoc! {"
+                When `pattern` is a dynamic expression (e.g. a variable or the result of `to_regex`),
+                the regex is compiled on every function call. For high-throughput pipelines, prefer
+                a regex literal so the pattern is compiled once at program compile time.
+            "},
         ]
     }
 
