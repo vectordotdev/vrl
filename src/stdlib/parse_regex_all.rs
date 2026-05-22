@@ -171,12 +171,14 @@ impl FunctionExpression for ParseRegexAllFn {
         let numeric_groups = self
             .numeric_groups
             .map_resolve_with_default(ctx, || DEFAULT_NUMERIC_GROUPS.clone())?;
-        let resolved = self.pattern.resolve(ctx)?;
-        let pattern = resolved
+        let pattern = self
+            .pattern
+            .resolve(ctx)?
             .as_regex()
-            .ok_or_else(|| ExpressionError::from("failed to resolve regex"))?;
+            .ok_or_else(|| ExpressionError::from("failed to resolve regex"))?
+            .clone();
 
-        parse_regex_all(&value, numeric_groups.try_boolean()?, pattern)
+        parse_regex_all(&value, numeric_groups.try_boolean()?, &pattern)
     }
 
     fn type_def(&self, state: &state::TypeState) -> TypeDef {
