@@ -2094,6 +2094,38 @@ bench_function! {
             "number": "first",
         }))
     }
+
+    // ~1 KB input with large unmatched body — only 3 short fields captured (~39 bytes),
+    // well below half the input length, so captures are copied out
+    large_input_small_captures {
+        args: func_args![
+            value: "5.86.210.12 - [19/06/2019:17:20:49 -0400] 200 {\"trace_id\":\"abc123def456789\",\"spans\":[{\"service\":\"auth-service\",\"operation\":\"validate_token\",\"duration_ms\":12,\"tags\":{\"env\":\"prod\",\"version\":\"2.14.1\",\"cluster\":\"us-east-1a\",\"host\":\"i-0abc123def\",\"error\":false,\"http.method\":\"POST\",\"http.url\":\"/api/v2/auth/validate\",\"http.status\":200,\"user.id\":\"usr_abc123def456\",\"org.id\":\"org_xyz789pqr\"}},{\"service\":\"db-service\",\"operation\":\"query_user\",\"duration_ms\":5,\"tags\":{\"db.type\":\"postgresql\",\"db.statement\":\"SELECT id, email, created_at FROM users WHERE id=$1 LIMIT 1\",\"db.rows\":1,\"db.host\":\"pg-primary.internal\"}}],\"baggage\":{\"region\":\"us-east-1\",\"env\":\"prod\",\"version\":\"2.14.1\"}}",
+            pattern: Regex::new(r#"^(?P<host>[\w\.]+) - \[(?P<timestamp>[^\]]+)\] (?P<status>\d+)"#).unwrap()
+        ],
+        want: Ok(value!({
+            "host": "5.86.210.12",
+            "timestamp": "19/06/2019:17:20:49 -0400",
+            "status": "200",
+        }))
+    }
+
+    // ~1 KB input — captures are small but the source buffer is large
+    large_input {
+        args: func_args![
+            value: "5.86.210.12 - zieme4647 5667 [19/06/2019:17:20:49 -0400] \"GET /embrace/supply-chains/dynamic/vertical/infrastructure/platform/distributed/observability/tracing/spans/service-mesh/sidecar/proxy/configuration/reload/endpoint?trace_id=abc123def456ghijklmnopqrstuvwxyz0123456789&span_id=789xyzabcdefghijklmno&parent_span_id=000aaabbbccc&sampled=true&debug=false&feature_flags=flag_a%3Dtrue%2Cflag_b%3Dfalse%2Cflag_c%3Dtrue&baggage=region%3Dus-east-1%2Cenv%3Dprod%2Cversion%3D2.14.1%2Ccluster%3Dcluster-use1-prod-42%2Chost%3Di-0abc123def456789a HTTP/1.1\" 200 20574 \"-\" \"Mozilla/5.0 (compatible; Datadog Agent/7.x; +https://docs.datadoghq.com/agent/)\" 0.042 upstream_addr=10.0.1.55:8080 upstream_status=200 request_id=req-abc123def456",
+            pattern: Regex::new(r#"^(?P<host>[\w\.]+) - (?P<user>[\w]+) (?P<bytes_in>[\d]+) \[(?P<timestamp>[^\]]+)\] "(?P<method>[\w]+) (?P<path>\S+) HTTP/[\d\.]+" (?P<status>[\d]+) (?P<bytes_out>[\d]+)"#).unwrap()
+        ],
+        want: Ok(value!({
+            "host": "5.86.210.12",
+            "user": "zieme4647",
+            "bytes_in": "5667",
+            "timestamp": "19/06/2019:17:20:49 -0400",
+            "method": "GET",
+            "path": "/embrace/supply-chains/dynamic/vertical/infrastructure/platform/distributed/observability/tracing/spans/service-mesh/sidecar/proxy/configuration/reload/endpoint?trace_id=abc123def456ghijklmnopqrstuvwxyz0123456789&span_id=789xyzabcdefghijklmno&parent_span_id=000aaabbbccc&sampled=true&debug=false&feature_flags=flag_a%3Dtrue%2Cflag_b%3Dfalse%2Cflag_c%3Dtrue&baggage=region%3Dus-east-1%2Cenv%3Dprod%2Cversion%3D2.14.1%2Ccluster%3Dcluster-use1-prod-42%2Chost%3Di-0abc123def456789a",
+            "status": "200",
+            "bytes_out": "20574",
+        }))
+    }
 }
 
 bench_function! {
