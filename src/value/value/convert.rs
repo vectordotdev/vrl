@@ -7,6 +7,7 @@ use bytes::Bytes;
 use chrono::{DateTime, Utc};
 use ordered_float::NotNan;
 use regex::Regex;
+use rust_decimal::Decimal;
 
 use super::super::{KeyString, Kind, ObjectMap, Value};
 
@@ -101,6 +102,19 @@ impl Value {
         matches!(self, Self::Float(_))
     }
 
+    /// Returns true if self is `Value::Decimal`.
+    pub fn is_decimal(&self) -> bool {
+        matches!(self, Self::Decimal(_))
+    }
+
+    /// Returns self as `&Decimal`, only if self is `Value::Decimal`.
+    pub fn as_decimal(&self) -> Option<&Decimal> {
+        match self {
+            Self::Decimal(v) => Some(v),
+            _ => None,
+        }
+    }
+
     // This replaces the more implicit "From<f64>", but keeps the same behavior.
     // Ideally https://github.com/vectordotdev/vector/issues/11177 will remove this entirely
     /// Creates a Value from an f64. If the value is Nan, it is converted to 0.0
@@ -145,6 +159,7 @@ impl Value {
             Self::Bytes(bytes) => Ok(bytes.clone()),
             Self::Integer(i) => Ok(Bytes::copy_from_slice(&i.to_le_bytes())),
             Self::Float(f) => Ok(Bytes::copy_from_slice(&f.into_inner().to_le_bytes())),
+            Self::Decimal(d) => Ok(Bytes::copy_from_slice(&d.serialize())),
             Self::Boolean(b) => Ok(if *b {
                 Bytes::copy_from_slice(&[1_u8])
             } else {
@@ -452,5 +467,11 @@ impl From<u64> for Value {
 impl From<bool> for Value {
     fn from(value: bool) -> Self {
         Self::Boolean(value)
+    }
+}
+
+impl From<Decimal> for Value {
+    fn from(value: Decimal) -> Self {
+        Self::Decimal(value)
     }
 }

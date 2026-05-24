@@ -398,13 +398,14 @@ impl From<Value> for Expr {
         use std::collections::BTreeMap;
 
         use crate::value::Value::{
-            Array, Boolean, Bytes, Float, Integer, Null, Object, Regex, Timestamp,
+            Array, Boolean, Bytes, Decimal, Float, Integer, Null, Object, Regex, Timestamp,
         };
 
         match value {
             Bytes(v) => Literal::from(v).into(),
             Integer(v) => Literal::from(v).into(),
             Float(v) => Literal::from(v).into(),
+            Decimal(v) => Literal::from(v).into(),
             Boolean(v) => Literal::from(v).into(),
             Object(v) => {
                 let object = super::expression::Object::from(

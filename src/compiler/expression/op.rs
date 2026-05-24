@@ -238,24 +238,51 @@ impl Expression for Op {
                 // ... <= ...
                 else {
                     lhs_def
-                        .fallible_unless(K::integer().or_float())
-                        .union(rhs_def.fallible_unless(K::integer().or_float()))
+                        .fallible_unless(K::integer().or_float().or_decimal())
+                        .union(rhs_def.fallible_unless(K::integer().or_float().or_decimal()))
                         .with_kind(K::boolean())
                 }
             }
 
             // ... / ...
             Div => {
-                let td = TypeDef::float();
+                let rhs_def = self.rhs.apply_type_info(&mut state);
 
-                // Division is infallible if the rhs is a literal normal float or integer.
-                match self.rhs.resolve_constant(&state) {
-                    Some(value) if lhs_def.is_float() || lhs_def.is_integer() => match value {
-                        Value::Float(v) if v.is_normal() => td.infallible(),
-                        Value::Integer(v) if v != 0 => td.infallible(),
+                // Decimal / Decimal -> Decimal
+                // Decimal / Integer -> Decimal
+                // Integer / Decimal -> Decimal
+                if (lhs_def.is_decimal() || rhs_def.is_decimal())
+                    && !lhs_def.is_float()
+                    && !rhs_def.is_float()
+                {
+                    let td = TypeDef::decimal();
+                    // Division is infallible if the rhs is a non-zero literal
+                    match self.rhs.resolve_constant(&state) {
+                        Some(Value::Integer(v)) if v != 0 => td.infallible(),
+                        Some(Value::Decimal(v)) if !v.is_zero() => td.infallible(),
                         _ => td.fallible(),
-                    },
-                    _ => td.fallible(),
+                    }
+                } else if (lhs_def.is_decimal() && rhs_def.is_float())
+                    || (lhs_def.is_float() && rhs_def.is_decimal())
+                {
+                    // Decimal / Float or Float / Decimal -> compile-time error
+                    lhs_def
+                        .fallible()
+                        .union(rhs_def.fallible())
+                        .with_kind(K::never())
+                } else {
+                    // Float involved or regular numeric division
+                    let td = TypeDef::float();
+
+                    // Division is infallible if the rhs is a literal normal float or integer.
+                    match self.rhs.resolve_constant(&state) {
+                        Some(value) if lhs_def.is_float() || lhs_def.is_integer() => match value {
+                            Value::Float(v) if v.is_normal() => td.infallible(),
+                            Value::Integer(v) if v != 0 => td.infallible(),
+                            _ => td.fallible(),
+                        },
+                        _ => td.fallible(),
+                    }
                 }
             }
 
@@ -271,6 +298,17 @@ impl Expression for Op {
                         .union(rhs_def.fallible_unless(K::bytes().or_null()))
                         .with_kind(K::bytes()),
 
+                    // Decimal + Float or Float + Decimal -> compile-time error
+                    Add | Sub | Mul
+                        if (lhs_def.is_decimal() && rhs_def.is_float())
+                            || (lhs_def.is_float() && rhs_def.is_decimal()) =>
+                    {
+                        lhs_def
+                            .fallible()
+                            .union(rhs_def.fallible())
+                            .with_kind(K::never())
+                    }
+
                     // ... + 1.0
                     // ... - 1.0
                     // ... * 1.0
@@ -283,6 +321,16 @@ impl Expression for Op {
                         .fallible_unless(K::integer().or_float())
                         .union(rhs_def.fallible_unless(K::integer().or_float()))
                         .with_kind(K::float()),
+
+                    // d'1.5' + d'2.5' -> Decimal
+                    // d'1.5' + 1 -> Decimal
+                    // 1 + d'1.5' -> Decimal
+                    // d'1.5' - d'2.5' -> Decimal
+                    // d'1.5' * d'2.5' -> Decimal
+                    Add | Sub | Mul if lhs_def.is_decimal() || rhs_def.is_decimal() => lhs_def
+                        .fallible_unless(K::integer().or_decimal())
+                        .union(rhs_def.fallible_unless(K::integer().or_decimal()))
+                        .with_kind(K::decimal()),
 
                     // 1 + 1
                     // 1 - 1
@@ -307,13 +355,13 @@ impl Expression for Op {
                     Add | Mul => lhs_def
                         .union(rhs_def)
                         .fallible()
-                        .with_kind(K::bytes().or_integer().or_float()),
+                        .with_kind(K::bytes().or_integer().or_float().or_decimal()),
 
                     // ... - ...
                     Sub => lhs_def
                         .union(rhs_def)
                         .fallible()
-                        .with_kind(K::integer().or_float()),
+                        .with_kind(K::integer().or_float().or_decimal()),
                     _ => unreachable!("Add, Sub, or Mul operation not handled"),
                 }
             }
@@ -510,7 +558,7 @@ mod tests {
 
         multiply_other {
             expr: |_| op(Mul, (), ()),
-            want: TypeDef::bytes().fallible().or_integer().or_float(),
+            want: TypeDef::bytes().fallible().or_integer().or_float().or_decimal(),
         }
 
         add_string_string {
@@ -560,7 +608,7 @@ mod tests {
 
         add_other {
             expr: |_| op(Add, (), ()),
-            want: TypeDef::bytes().or_integer().or_float().fallible(),
+            want: TypeDef::bytes().or_integer().or_float().or_decimal().fallible(),
         }
 
         subtract_integer {
@@ -580,7 +628,7 @@ mod tests {
 
         subtract_other {
             expr: |_| op(Sub, 1, ()),
-            want: TypeDef::integer().fallible().or_float(),
+            want: TypeDef::integer().fallible().or_float().or_decimal(),
         }
 
         divide_integer_literal {

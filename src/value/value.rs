@@ -8,6 +8,7 @@ pub use iter::{IterItem, ValueIter};
 use bytes::{Bytes, BytesMut};
 use chrono::{DateTime, SecondsFormat, Utc};
 use ordered_float::NotNan;
+use rust_decimal::Decimal;
 use std::borrow::Cow;
 use std::{cmp::Ordering, collections::BTreeMap};
 
@@ -50,6 +51,13 @@ pub enum Value {
     /// Float - not NaN.
     Float(NotNan<f64>),
 
+    /// Decimal - precise decimal arithmetic (up to 28-29 significant digits).
+    ///
+    /// Backed by [`rust_decimal::Decimal`], a 128-bit representation that avoids
+    /// the rounding errors inherent in binary floating-point (`f64`). Use this
+    /// variant when exact decimal values matter.
+    Decimal(Decimal),
+
     /// Boolean.
     Boolean(bool),
 
@@ -74,6 +82,7 @@ impl Value {
             Self::Timestamp(_) => "timestamp",
             Self::Integer(_) => "integer",
             Self::Float(_) => "float",
+            Self::Decimal(_) => "decimal",
             Self::Boolean(_) => "boolean",
             Self::Object(_) => "map",
             Self::Array(_) => "array",
@@ -127,6 +136,7 @@ impl Value {
             | Self::Regex(_)
             | Self::Timestamp(_)
             | Self::Float(_)
+            | Self::Decimal(_)
             | Self::Integer(_) => false,
             Self::Null => true,
             Self::Object(v) => v.is_empty(),
@@ -185,6 +195,7 @@ impl PartialOrd for Value {
             (Self::Regex(a), Self::Regex(b)) => a.partial_cmp(b),
             (Self::Integer(a), Self::Integer(b)) => a.partial_cmp(b),
             (Self::Float(a), Self::Float(b)) => a.partial_cmp(b),
+            (Self::Decimal(a), Self::Decimal(b)) => a.partial_cmp(b),
             (Self::Boolean(a), Self::Boolean(b)) => a.partial_cmp(b),
             (Self::Timestamp(a), Self::Timestamp(b)) => a.partial_cmp(b),
             (Self::Object(a), Self::Object(b)) => a.partial_cmp(b),

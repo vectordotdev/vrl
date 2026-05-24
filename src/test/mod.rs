@@ -422,6 +422,7 @@ fn vrl_value_to_json_value(value: Value) -> serde_json::Value {
         v @ Value::Bytes(_) => String(v.try_bytes_utf8_lossy().unwrap().into_owned()),
         Value::Integer(v) => v.into(),
         Value::Float(v) => v.into_inner().into(),
+        Value::Decimal(v) => String(v.to_string()),
         Value::Boolean(v) => v.into(),
         Value::Object(v) => v
             .into_iter()

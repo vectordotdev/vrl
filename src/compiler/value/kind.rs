@@ -1,9 +1,9 @@
+use crate::value;
 use crate::value::Value;
 use chrono::{TimeZone, Utc};
 use ordered_float::NotNan;
 use regex::Regex;
-
-use crate::value;
+use rust_decimal::Decimal;
 
 pub const BYTES: u16 = 1 << 1;
 pub const INTEGER: u16 = 1 << 2;
@@ -15,10 +15,20 @@ pub const TIMESTAMP: u16 = 1 << 7;
 pub const REGEX: u16 = 1 << 8;
 pub const NULL: u16 = 1 << 9;
 pub const UNDEFINED: u16 = 1 << 10;
+pub const DECIMAL: u16 = 1 << 11;
 
-pub const ANY: u16 =
-    BYTES | INTEGER | FLOAT | BOOLEAN | OBJECT | ARRAY | TIMESTAMP | REGEX | NULL | UNDEFINED;
-pub const SCALAR: u16 = BYTES | INTEGER | FLOAT | BOOLEAN | TIMESTAMP | REGEX | NULL;
+pub const ANY: u16 = BYTES
+    | INTEGER
+    | FLOAT
+    | DECIMAL
+    | BOOLEAN
+    | OBJECT
+    | ARRAY
+    | TIMESTAMP
+    | REGEX
+    | NULL
+    | UNDEFINED;
+pub const SCALAR: u16 = BYTES | INTEGER | FLOAT | DECIMAL | BOOLEAN | TIMESTAMP | REGEX | NULL;
 pub const CONTAINER: u16 = OBJECT | ARRAY;
 
 pub use crate::value::{
@@ -51,6 +61,10 @@ impl DefaultValue for Kind {
 
         if self.is_float() {
             return value!(NotNan::new(0.0).unwrap());
+        }
+
+        if self.is_decimal() {
+            return Value::Decimal(Decimal::ZERO);
         }
 
         if self.is_boolean() {

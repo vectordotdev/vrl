@@ -4,7 +4,7 @@ pub use wasm_unsupported_function::WasmUnsupportedFunction;
 use crate::compiler::Function;
 
 mod csv_utils;
-mod json_utils;
+pub mod json_utils;
 mod string_utils;
 mod util;
 mod wasm_unsupported_function;
@@ -81,6 +81,7 @@ cfg_if::cfg_if! {
         mod ipv6_to_ipv4;
         mod is_array;
         mod is_boolean;
+        mod is_decimal;
         mod is_empty;
         mod is_float;
         mod is_integer;
@@ -169,6 +170,7 @@ cfg_if::cfg_if! {
         mod tally_value;
         mod timestamp;
         mod to_bool;
+        mod to_decimal;
         mod to_entries;
         mod to_float;
         mod to_int;
@@ -342,6 +344,7 @@ cfg_if::cfg_if! {
             ipv6_to_ipv4::Ipv6ToIpV4,
             is_array::IsArray,
             is_boolean::IsBoolean,
+            is_decimal::IsDecimal,
             is_empty::IsEmpty,
             is_float::IsFloat,
             is_integer::IsInteger,
@@ -429,6 +432,7 @@ cfg_if::cfg_if! {
             tally_value::TallyValue,
             timestamp::Timestamp,
             to_bool::ToBool,
+            to_decimal::ToDecimal,
             to_entries::ToEntries,
             to_float::ToFloat,
             to_int::ToInt,

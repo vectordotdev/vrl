@@ -15,6 +15,7 @@ impl Kind {
         self.bytes = self.bytes.or(other.bytes);
         self.integer = self.integer.or(other.integer);
         self.float = self.float.or(other.float);
+        self.decimal = self.decimal.or(other.decimal);
         self.boolean = self.boolean.or(other.boolean);
         self.timestamp = self.timestamp.or(other.timestamp);
         self.regex = self.regex.or(other.regex);

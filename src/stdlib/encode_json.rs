@@ -111,6 +111,7 @@ mod tests {
 
     use chrono::{DateTime, Utc};
     use regex::Regex;
+    use rust_decimal::{Decimal, dec};
 
     test_function![
         encode_json => EncodeJson;
@@ -229,6 +230,36 @@ mod tests {
         null_pretty {
             args: func_args![value: Value::Null, pretty: true],
             want: Ok("null"),
+            tdef: TypeDef::bytes().infallible(),
+        }
+
+        decimal_whole_number {
+            args: func_args![value: Value::Decimal(dec!(42))],
+            want: Ok("42"),
+            tdef: TypeDef::bytes().infallible(),
+        }
+
+        decimal_fractional {
+            args: func_args![value: Value::Decimal(dec!(123.456))],
+            want: Ok("123.456"),
+            tdef: TypeDef::bytes().infallible(),
+        }
+
+        decimal_high_precision {
+            args: func_args![value: Value::Decimal("0.12379999458789825".parse::<Decimal>().unwrap())],
+            want: Ok("0.12379999458789825"),
+            tdef: TypeDef::bytes().infallible(),
+        }
+
+        decimal_negative {
+            args: func_args![value: Value::Decimal(dec!(-987.654))],
+            want: Ok("-987.654"),
+            tdef: TypeDef::bytes().infallible(),
+        }
+
+        decimal_large_whole_number {
+            args: func_args![value: Value::Decimal(Decimal::MAX)],
+            want: Ok("79228162514264337593543950335"),
             tdef: TypeDef::bytes().infallible(),
         }
     ];

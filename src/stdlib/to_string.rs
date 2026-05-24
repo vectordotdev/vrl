@@ -1,12 +1,13 @@
 use crate::compiler::prelude::*;
 
 fn to_string(value: Value) -> Resolved {
-    use Value::{Boolean, Bytes, Float, Integer, Null, Timestamp};
+    use Value::{Boolean, Bytes, Decimal, Float, Integer, Null, Timestamp};
     use chrono::SecondsFormat;
     let value = match value {
         v @ Bytes(_) => v,
         Integer(v) => v.to_string().into(),
         Float(v) => v.to_string().into(),
+        Decimal(v) => v.to_string().into(),
         Boolean(v) => v.to_string().into(),
         Timestamp(v) => v.to_rfc3339_opts(SecondsFormat::AutoSi, true).into(),
         Null => "".into(),
@@ -32,7 +33,7 @@ impl Function for ToString {
     }
 
     fn internal_failure_reasons(&self) -> &'static [&'static str] {
-        &["`value` is not an integer, float, boolean, string, timestamp, or null."]
+        &["`value` is not an integer, float, decimal, boolean, string, timestamp, or null."]
     }
 
     fn return_kind(&self) -> u16 {
@@ -41,7 +42,7 @@ impl Function for ToString {
 
     fn return_rules(&self) -> &'static [&'static str] {
         &[
-            "If `value` is an integer or float, returns the string representation.",
+            "If `value` is an integer, float, or decimal, returns the string representation.",
             "If `value` is a boolean, returns `\"true\"` or `\"false\"`.",
             "If `value` is a timestamp, returns an [RFC 3339](\\(urls.rfc3339)) representation.",
             "If `value` is a null, returns `\"\"`.",
@@ -152,6 +153,8 @@ impl FunctionExpression for ToStringFn {
 
 #[cfg(test)]
 mod tests {
+    use rust_decimal::dec;
+
     use super::*;
 
     test_function![
@@ -165,6 +168,12 @@ mod tests {
 
         float {
             args: func_args![value: 20.5],
+            want: Ok("20.5"),
+            tdef: TypeDef::bytes(),
+        }
+
+        decimal {
+            args: func_args![value: Value::Decimal(dec!(20.5))],
             want: Ok("20.5"),
             tdef: TypeDef::bytes(),
         }

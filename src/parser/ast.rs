@@ -344,6 +344,7 @@ pub enum Literal {
     RawString(String),
     Integer(i64),
     Float(NotNan<f64>),
+    Decimal(String),
     Boolean(bool),
     Regex(String),
     Timestamp(String),
@@ -352,13 +353,16 @@ pub enum Literal {
 
 impl fmt::Display for Literal {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        use Literal::{Boolean, Float, Integer, Null, RawString, Regex, String, Timestamp};
+        use Literal::{
+            Boolean, Decimal, Float, Integer, Null, RawString, Regex, String, Timestamp,
+        };
 
         match self {
             String(v) => write!(f, r#""{v}""#),
             RawString(v) => write!(f, "s'{v}'"),
             Integer(v) => v.fmt(f),
             Float(v) => v.fmt(f),
+            Decimal(v) => write!(f, "d'{v}'"),
             Boolean(v) => v.fmt(f),
             Regex(v) => write!(f, "r'{v}'"),
             Timestamp(v) => write!(f, "t'{v}'"),

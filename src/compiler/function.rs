@@ -344,6 +344,10 @@ impl Parameter {
             kind.add_float();
         }
 
+        if (n & kind::DECIMAL) == kind::DECIMAL {
+            kind.add_decimal();
+        }
+
         if (n & kind::BOOLEAN) == kind::BOOLEAN {
             kind.add_boolean();
         }
