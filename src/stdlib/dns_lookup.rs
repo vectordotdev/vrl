@@ -325,24 +325,21 @@ mod non_wasm {
 #[cfg(not(target_arch = "wasm32"))]
 use non_wasm::*;
 
-use std::sync::LazyLock;
 
-static DEFAULT_QTYPE: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from("A")));
-static DEFAULT_CLASS: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from("IN")));
-static DEFAULT_OPTIONS: LazyLock<Value> =
-    LazyLock::new(|| Value::Object(std::collections::BTreeMap::new()));
+static DEFAULT_QTYPE: Value = Value::Bytes(Bytes::from_static("A".as_bytes()));
+static DEFAULT_CLASS: Value = Value::Bytes(Bytes::from_static("IN".as_bytes()));
+static DEFAULT_OPTIONS: Value =
+    Value::Object(std::collections::BTreeMap::new());
 
-static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
-    vec![
-        Parameter::required("value", kind::BYTES, "The domain name to query."),
-        Parameter::optional("qtype", kind::BYTES, "The DNS record type to query (e.g., A, AAAA, MX, TXT). Defaults to A.")
-            .default(&DEFAULT_QTYPE),
-        Parameter::optional("class", kind::BYTES, "The DNS query class. Defaults to IN (Internet).")
-            .default(&DEFAULT_CLASS),
-        Parameter::optional("options", kind::OBJECT, "DNS resolver options. Supported fields: servers (array of nameserver addresses), timeout (seconds), attempts (number of retry attempts), ndots, aa_only, tcp, recurse, rotate.")
-            .default(&DEFAULT_OPTIONS),
-    ]
-});
+const PARAMETERS: &[Parameter] = &[
+    Parameter::required("value", kind::BYTES, "The domain name to query."),
+    Parameter::optional("qtype", kind::BYTES, "The DNS record type to query (e.g., A, AAAA, MX, TXT). Defaults to A.")
+        .default(&DEFAULT_QTYPE),
+    Parameter::optional("class", kind::BYTES, "The DNS query class. Defaults to IN (Internet).")
+        .default(&DEFAULT_CLASS),
+    Parameter::optional("options", kind::OBJECT, "DNS resolver options. Supported fields: servers (array of nameserver addresses), timeout (seconds), attempts (number of retry attempts), ndots, aa_only, tcp, recurse, rotate.")
+        .default(&DEFAULT_OPTIONS),
+];
 
 #[derive(Clone, Copy, Debug)]
 pub struct DnsLookup;
@@ -369,7 +366,7 @@ impl Function for DnsLookup {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        PARAMETERS.as_slice()
+        PARAMETERS
     }
 
     #[allow(clippy::too_many_lines)]
