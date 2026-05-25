@@ -54,19 +54,27 @@ combined logs and `%Y/%m/%d %H:%M:%S` for error logs.",
 fn parse_nginx_log(
     bytes: &Value,
     timestamp_format: Option<Value>,
-    format: &Bytes,
+    format: Variant,
     ctx: &Context,
 ) -> Resolved {
     let message = bytes.try_bytes_utf8_lossy()?;
     let timestamp_format = match timestamp_format {
-        None => time_format_for_format(format.as_ref()),
+        None => time_format_for_format(format),
         Some(timestamp_format) => timestamp_format.try_bytes_utf8_lossy()?.to_string(),
     };
-    let regex = regex_for_format(format.as_ref());
+    let regex = regex_for_format(&format);
     let captures = regex.captures(&message).ok_or("failed parsing log line")?;
     log_util::log_fields(regex, &captures, &timestamp_format, *ctx.timezone())
         .map(rename_referrer)
         .map_err(Into::into)
+}
+
+#[derive(Clone, Copy, Debug)]
+enum Variant {
+    Combined,
+    Error,
+    IngressUpstreamInfo,
+    Main,
 }
 
 fn variants() -> Vec<Value> {
@@ -136,6 +144,14 @@ impl Function for ParseNginxLog {
             .required_enum("format", &variants(), state)?
             .try_bytes()
             .expect("format not bytes");
+
+        let format = match format.as_ref() {
+            b"combined" => Variant::Combined,
+            b"ingress_upstreaminfo" => Variant::IngressUpstreamInfo,
+            b"main" => Variant::Main,
+            b"error" => Variant::Error,
+            _ => unreachable!(),
+        };
 
         let timestamp_format = arguments.optional("timestamp_format");
 
@@ -242,21 +258,19 @@ impl Function for ParseNginxLog {
     }
 }
 
-fn regex_for_format(format: &[u8]) -> &Regex {
+fn regex_for_format(format: &Variant) -> &Regex {
     match format {
-        b"combined" => &log_util::REGEX_NGINX_COMBINED_LOG,
-        b"ingress_upstreaminfo" => &log_util::REGEX_INGRESS_NGINX_UPSTREAMINFO_LOG,
-        b"main" => &log_util::REGEX_NGINX_MAIN_LOG,
-        b"error" => &log_util::REGEX_NGINX_ERROR_LOG,
-        _ => unreachable!(),
+        Variant::Combined => &log_util::REGEX_NGINX_COMBINED_LOG,
+        Variant::IngressUpstreamInfo => &log_util::REGEX_INGRESS_NGINX_UPSTREAMINFO_LOG,
+        Variant::Main => &log_util::REGEX_NGINX_MAIN_LOG,
+        Variant::Error => &log_util::REGEX_NGINX_ERROR_LOG,
     }
 }
 
-fn time_format_for_format(format: &[u8]) -> String {
+fn time_format_for_format(format: Variant) -> String {
     match format {
-        b"combined" | b"ingress_upstreaminfo" | b"main" => DEFAULT_TIMESTAMP_FORMAT_STR.to_owned(),
-        b"error" => "%Y/%m/%d %H:%M:%S".to_owned(),
-        _ => unreachable!(),
+        Variant::Combined | Variant::IngressUpstreamInfo | Variant::Main => DEFAULT_TIMESTAMP_FORMAT_STR.to_owned(),
+        Variant::Error => "%Y/%m/%d %H:%M:%S".to_owned(),
     }
 }
 
@@ -272,7 +286,7 @@ fn rename_referrer(mut value: Value) -> Value {
 #[derive(Debug, Clone)]
 struct ParseNginxLogFn {
     value: Box<dyn Expression>,
-    format: Bytes,
+    format: Variant,
     timestamp_format: Option<Box<dyn Expression>>,
 }
 
@@ -284,18 +298,16 @@ impl FunctionExpression for ParseNginxLogFn {
             .as_ref()
             .map(|expr| expr.resolve(ctx))
             .transpose()?;
-        let format = &self.format;
 
-        parse_nginx_log(&bytes, timestamp_format, format, ctx)
+        parse_nginx_log(&bytes, timestamp_format, self.format, ctx)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {
-        TypeDef::object(match self.format.as_ref() {
-            b"combined" => kind_combined(),
-            b"ingress_upstreaminfo" => kind_ingress_upstreaminfo(),
-            b"main" => kind_main(),
-            b"error" => kind_error(),
-            _ => unreachable!(),
+        TypeDef::object(match self.format {
+            Variant::Combined => kind_combined(),
+            Variant::IngressUpstreamInfo => kind_ingress_upstreaminfo(),
+            Variant::Main => kind_main(),
+            Variant::Error => kind_error(),
         })
         .fallible()
     }
