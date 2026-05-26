@@ -8,8 +8,35 @@ use std::path::Path;
 use std::path::PathBuf;
 use std::sync::LazyLock;
 
-static DEFAULT_ALLOW_LOSSY_STRING_COERCION: LazyLock<Value> =
-    LazyLock::new(|| Value::Boolean(true));
+static DEFAULT_ALLOW_LOSSY_STRING_COERCION: Value = Value::Boolean(true);
+
+const PARAMETERS: &[Parameter] = &[
+    Parameter::required(
+        "value",
+        kind::ANY,
+        "The object to convert to a protocol buffer payload.",
+    ),
+    Parameter::required(
+        "desc_file",
+        kind::BYTES,
+        "The path to the protobuf descriptor set file. Must be a literal string.
+
+This file is the output of protoc -o <path> ...",
+    ),
+    Parameter::required(
+        "message_type",
+        kind::BYTES,
+        "The name of the message type to use for serializing.
+
+Must be a literal string.",
+    ),
+    Parameter::optional(
+        "allow_lossy_string_coercion",
+        kind::BOOLEAN,
+        "Whether to permit lossy coercion of `Boolean`, `Integer`, `Float`, and `Timestamp` values into protobuf `string` fields by stringifying the value. Defaults to `true` to preserve permissive behavior; set to `false` for strict, spec-compliant encoding (see the [protobuf JSON mapping](https://protobuf.dev/programming-guides/json/)).",
+    )
+        .default(&DEFAULT_ALLOW_LOSSY_STRING_COERCION),
+];
 
 #[derive(Clone, Copy, Debug)]
 pub struct EncodeProto;
@@ -64,36 +91,7 @@ impl Function for EncodeProto {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
-            vec![
-                Parameter::required(
-                    "value",
-                    kind::ANY,
-                    "The object to convert to a protocol buffer payload.",
-                ),
-                Parameter::required(
-                    "desc_file",
-                    kind::BYTES,
-                    "The path to the protobuf descriptor set file. Must be a literal string.
-
-This file is the output of protoc -o <path> ...",
-                ),
-                Parameter::required(
-                    "message_type",
-                    kind::BYTES,
-                    "The name of the message type to use for serializing.
-
-Must be a literal string.",
-                ),
-                Parameter::optional(
-                    "allow_lossy_string_coercion",
-                    kind::BOOLEAN,
-                    "Whether to permit lossy coercion of `Boolean`, `Integer`, `Float`, and `Timestamp` values into protobuf `string` fields by stringifying the value. Defaults to `true` to preserve permissive behavior; set to `false` for strict, spec-compliant encoding (see the [protobuf JSON mapping](https://protobuf.dev/programming-guides/json/)).",
-                )
-                .default(&DEFAULT_ALLOW_LOSSY_STRING_COERCION),
-            ]
-        });
-        PARAMETERS.as_slice()
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {

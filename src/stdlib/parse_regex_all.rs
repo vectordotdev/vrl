@@ -3,19 +3,24 @@ use crate::value::KeyString;
 use regex::Regex;
 
 use super::util;
-use std::sync::LazyLock;
 
-static DEFAULT_NUMERIC_GROUPS: LazyLock<Value> = LazyLock::new(|| Value::Boolean(false));
+static DEFAULT_NUMERIC_GROUPS: Value = Value::Boolean(false);
 
-static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
-    vec![
-        Parameter::required("value", kind::ANY, "The string to search."),
-        Parameter::required("pattern", kind::REGEX, "The regular expression pattern to search against."),
-        Parameter::optional("numeric_groups", kind::BOOLEAN, "If `true`, the index of each group in the regular expression is also captured. Index `0`
-contains the whole match.")
-            .default(&DEFAULT_NUMERIC_GROUPS),
-    ]
-});
+const PARAMETERS: &[Parameter] = &[
+    Parameter::required("value", kind::ANY, "The string to search."),
+    Parameter::required(
+        "pattern",
+        kind::REGEX,
+        "The regular expression pattern to search against.",
+    ),
+    Parameter::optional(
+        "numeric_groups",
+        kind::BOOLEAN,
+        "If `true`, the index of each group in the regular expression is also captured. Index `0`
+contains the whole match.",
+    )
+    .default(&DEFAULT_NUMERIC_GROUPS),
+];
 
 fn parse_regex_all(
     value: &Value,
@@ -89,7 +94,7 @@ impl Function for ParseRegexAll {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        PARAMETERS.as_slice()
+        PARAMETERS
     }
 
     fn compile(
@@ -187,12 +192,10 @@ impl FunctionExpression for ParseRegexAllFn {
             .numeric_groups
             .map_resolve_with_default(ctx, || DEFAULT_NUMERIC_GROUPS.clone())?
             .try_boolean()?;
-        let pattern = self
-            .pattern
-            .resolve(ctx)?
+        let resolved = self.pattern.resolve(ctx)?;
+        let pattern = resolved
             .as_regex()
-            .ok_or_else(|| ExpressionError::from("failed to resolve regex"))?
-            .clone();
+            .ok_or_else(|| ExpressionError::from("failed to resolve regex"))?;
         let dynamic_capture_info;
         let capture_info: &[(KeyString, usize)] = if let Some(info) = &self.capture_info {
             info.as_slice()
@@ -204,8 +207,7 @@ impl FunctionExpression for ParseRegexAllFn {
                 .collect::<Vec<_>>();
             dynamic_capture_info.as_slice()
         };
-
-        parse_regex_all(&value, &pattern, capture_info, numeric_groups)
+        parse_regex_all(&value, pattern, capture_info, numeric_groups)
     }
 
     fn type_def(&self, state: &state::TypeState) -> TypeDef {

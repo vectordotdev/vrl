@@ -3,7 +3,6 @@ use crate::compiler::prelude::*;
 use hmac::{Hmac as HmacHasher, Mac};
 use sha_2::{Sha224, Sha256, Sha384, Sha512};
 use sha1::Sha1;
-use std::sync::LazyLock;
 
 macro_rules! hmac {
     ($algorithm:ty, $key:expr_2021, $val:expr_2021) => {{
@@ -16,7 +15,7 @@ macro_rules! hmac {
     }};
 }
 
-static DEFAULT_ALGORITHM: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from("SHA-256")));
+static DEFAULT_ALGORITHM: Value = Value::Bytes(Bytes::from_static("SHA-256".as_bytes()));
 
 static ALGORITHM_ENUM: &[EnumVariant] = &[
     EnumVariant {
@@ -41,23 +40,21 @@ static ALGORITHM_ENUM: &[EnumVariant] = &[
     },
 ];
 
-static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
-    vec![
-        Parameter::required(
-            "value",
-            kind::BYTES,
-            "The string to calculate the HMAC for.",
-        ),
-        Parameter::required(
-            "key",
-            kind::BYTES,
-            "The string to use as the cryptographic key.",
-        ),
-        Parameter::optional("algorithm", kind::BYTES, "The hashing algorithm to use.")
-            .default(&DEFAULT_ALGORITHM)
-            .enum_variants(ALGORITHM_ENUM),
-    ]
-});
+const PARAMETERS: &[Parameter] = &[
+    Parameter::required(
+        "value",
+        kind::BYTES,
+        "The string to calculate the HMAC for.",
+    ),
+    Parameter::required(
+        "key",
+        kind::BYTES,
+        "The string to use as the cryptographic key.",
+    ),
+    Parameter::optional("algorithm", kind::BYTES, "The hashing algorithm to use.")
+        .default(&DEFAULT_ALGORITHM)
+        .enum_variants(ALGORITHM_ENUM),
+];
 
 fn hmac(value: Value, key: Value, algorithm: &Value) -> Resolved {
     let value = value.try_bytes()?;
@@ -107,7 +104,7 @@ impl Function for Hmac {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        PARAMETERS.as_slice()
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {

@@ -4,61 +4,58 @@ use crate::parsing::xml::{
     DEFAULT_PARSE_NULL, DEFAULT_PARSE_NUMBER, DEFAULT_TEXT_KEY, DEFAULT_TRIM, ParseOptions,
     parse_xml,
 };
-use std::sync::LazyLock;
 
-static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
-    vec![
-        Parameter::required(
-            "value",
-            kind::BYTES,
-            "The string representation of the XML document to parse.",
-        ),
-        Parameter::optional(
-            "trim",
-            kind::BOOLEAN,
-            "Remove excess whitespace between XML elements.",
-        )
-        .default(&DEFAULT_TRIM),
-        Parameter::optional(
-            "include_attr",
-            kind::BOOLEAN,
-            "Include XML tag attributes in the returned object.",
-        )
-        .default(&DEFAULT_INCLUDE_ATTR),
-        Parameter::optional(
-            "attr_prefix",
-            kind::BYTES,
-            "String prefix to use for XML tag attribute keys.",
-        )
-        .default(&DEFAULT_ATTR_PREFIX),
-        Parameter::optional(
-            "text_key",
-            kind::BYTES,
-            "Key name to use for expanded text nodes.",
-        )
-        .default(&DEFAULT_TEXT_KEY),
-        Parameter::optional(
-            "always_use_text_key",
-            kind::BOOLEAN,
-            "Always return text nodes as `{\"<text_key>\": \"value\"}.`",
-        )
-        .default(&DEFAULT_ALWAYS_USE_TEXT_KEY),
-        Parameter::optional(
-            "parse_bool",
-            kind::BOOLEAN,
-            "Parse \"true\" and \"false\" as boolean.",
-        )
-        .default(&DEFAULT_PARSE_BOOL),
-        Parameter::optional("parse_null", kind::BOOLEAN, "Parse \"null\" as null.")
-            .default(&DEFAULT_PARSE_NULL),
-        Parameter::optional(
-            "parse_number",
-            kind::BOOLEAN,
-            "Parse numbers as integers/floats.",
-        )
-        .default(&DEFAULT_PARSE_NUMBER),
-    ]
-});
+const PARAMETERS: &[Parameter] = &[
+    Parameter::required(
+        "value",
+        kind::BYTES,
+        "The string representation of the XML document to parse.",
+    ),
+    Parameter::optional(
+        "trim",
+        kind::BOOLEAN,
+        "Remove excess whitespace between XML elements.",
+    )
+    .default(&DEFAULT_TRIM),
+    Parameter::optional(
+        "include_attr",
+        kind::BOOLEAN,
+        "Include XML tag attributes in the returned object.",
+    )
+    .default(&DEFAULT_INCLUDE_ATTR),
+    Parameter::optional(
+        "attr_prefix",
+        kind::BYTES,
+        "String prefix to use for XML tag attribute keys.",
+    )
+    .default(&DEFAULT_ATTR_PREFIX),
+    Parameter::optional(
+        "text_key",
+        kind::BYTES,
+        "Key name to use for expanded text nodes.",
+    )
+    .default(&DEFAULT_TEXT_KEY),
+    Parameter::optional(
+        "always_use_text_key",
+        kind::BOOLEAN,
+        "Always return text nodes as `{\"<text_key>\": \"value\"}.`",
+    )
+    .default(&DEFAULT_ALWAYS_USE_TEXT_KEY),
+    Parameter::optional(
+        "parse_bool",
+        kind::BOOLEAN,
+        "Parse \"true\" and \"false\" as boolean.",
+    )
+    .default(&DEFAULT_PARSE_BOOL),
+    Parameter::optional("parse_null", kind::BOOLEAN, "Parse \"null\" as null.")
+        .default(&DEFAULT_PARSE_NULL),
+    Parameter::optional(
+        "parse_number",
+        kind::BOOLEAN,
+        "Parse numbers as integers/floats.",
+    )
+    .default(&DEFAULT_PARSE_NUMBER),
+];
 
 #[derive(Clone, Copy, Debug)]
 pub struct ParseXml;
@@ -134,7 +131,7 @@ impl Function for ParseXml {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        PARAMETERS.as_slice()
+        PARAMETERS
     }
 }
 

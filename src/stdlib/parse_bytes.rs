@@ -7,7 +7,7 @@ use rust_decimal::{Decimal, prelude::FromPrimitive, prelude::ToPrimitive};
 use std::collections::HashMap;
 use std::sync::LazyLock;
 
-static DEFAULT_BASE: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from("2")));
+static DEFAULT_BASE: Value = Value::Bytes(Bytes::from_static("2".as_bytes()));
 
 static UNIT_ENUM: &[EnumVariant] = &[
     EnumVariant {
@@ -64,23 +64,21 @@ static UNIT_ENUM: &[EnumVariant] = &[
     },
 ];
 
-static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
-    vec![
-        Parameter::required(
-            "value",
-            kind::BYTES,
-            "The string of the duration with either binary or SI unit.",
-        ),
-        Parameter::required("unit", kind::BYTES, "The output units for the byte.")
-            .enum_variants(UNIT_ENUM),
-        Parameter::optional(
-            "base",
-            kind::BYTES,
-            "The base for the byte, either 2 or 10.",
-        )
-        .default(&DEFAULT_BASE),
-    ]
-});
+const PARAMETERS: &[Parameter] = &[
+    Parameter::required(
+        "value",
+        kind::BYTES,
+        "The string of the duration with either binary or SI unit.",
+    ),
+    Parameter::required("unit", kind::BYTES, "The output units for the byte.")
+        .enum_variants(UNIT_ENUM),
+    Parameter::optional(
+        "base",
+        kind::BYTES,
+        "The base for the byte, either 2 or 10.",
+    )
+    .default(&DEFAULT_BASE),
+];
 
 fn parse_bytes(bytes: &Value, unit: Value, base: &Bytes) -> Resolved {
     let (units, parse_config) = match base.as_ref() {
@@ -231,7 +229,7 @@ impl Function for ParseBytes {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        PARAMETERS.as_slice()
+        PARAMETERS
     }
 }
 
