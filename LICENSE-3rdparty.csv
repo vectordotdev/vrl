@@ -39,6 +39,7 @@ cesu8,https://github.com/emk/cesu8-rs,Apache-2.0 OR MIT,Eric Kidd <git@randomhac
 cfb-mode,https://github.com/RustCrypto/block-modes,MIT OR Apache-2.0,RustCrypto Developers
 cfg-if,https://github.com/rust-lang/cfg-if,MIT OR Apache-2.0,Alex Crichton <alex@alexcrichton.com>
 chacha20,https://github.com/RustCrypto/stream-ciphers,Apache-2.0 OR MIT,RustCrypto Developers
+chacha20,https://github.com/RustCrypto/stream-ciphers,MIT OR Apache-2.0,RustCrypto Developers
 chacha20poly1305,https://github.com/RustCrypto/AEADs/tree/master/chacha20poly1305,Apache-2.0 OR MIT,RustCrypto Developers
 charset,https://github.com/hsivonen/charset,Apache-2.0 OR MIT,Henri Sivonen <hsivonen@hsivonen.fi>
 chrono,https://github.com/chronotope/chrono,MIT OR Apache-2.0,The chrono Authors
@@ -155,7 +156,6 @@ influxdb-line-protocol,https://github.com/influxdata/influxdb_iox/tree/main/infl
 inout,https://github.com/RustCrypto/utils,MIT OR Apache-2.0,RustCrypto Developers
 ipcrypt-rs,https://github.com/jedisct1/rust-ipcrypt2,ISC,Frank Denis <github@pureftpd.org>
 ipnet,https://github.com/krisprice/ipnet,MIT OR Apache-2.0,Kris Price <kris@krisprice.nz>
-iri-string,https://github.com/lo48576/iri-string,MIT OR Apache-2.0,YOSHIOKA Takuma <nop_thread@nops.red>
 is-terminal,https://github.com/sunfishcode/is-terminal,MIT,"softprops <d.tangren@gmail.com>, Dan Gohman <dev@sunfishcode.online>"
 is_terminal_polyfill,https://github.com/polyfill-rs/is_terminal_polyfill,MIT OR Apache-2.0,The is_terminal_polyfill Authors
 itertools,https://github.com/rust-itertools/itertools,MIT OR Apache-2.0,bluss
@@ -208,7 +208,7 @@ ofb,https://github.com/RustCrypto/block-modes,MIT OR Apache-2.0,RustCrypto Devel
 once_cell,https://github.com/matklad/once_cell,MIT OR Apache-2.0,Aleksey Kladov <aleksey.kladov@gmail.com>
 once_cell_polyfill,https://github.com/polyfill-rs/once_cell_polyfill,MIT OR Apache-2.0,The once_cell_polyfill Authors
 onig,https://github.com/iwillspeak/rust-onig,MIT,"Will Speak <will@willspeak.me>, Ivan Ivashchenko <defuz@me.com>"
-onig_sys,https://github.com/iwillspeak/rust-onig,MIT,"Will Speak <will@willspeak.me>, Ivan Ivashchenko <defuz@me.com>"
+onig_sys,https://github.com/rust-onig/rust-onig,MIT,"Will Speak <will@willspeak.me>, Ivan Ivashchenko <defuz@me.com>"
 opaque-debug,https://github.com/RustCrypto/utils,MIT OR Apache-2.0,RustCrypto Developers
 openssl-probe,https://github.com/rustls/openssl-probe,MIT OR Apache-2.0,Alex Crichton <alex@alexcrichton.com>
 ordered-float,https://github.com/reem/rust-ordered-float,MIT,"Jonathan Reem <jonathan.reem@gmail.com>, Matt Brubeck <mbrubeck@limpet.net>"
@@ -422,7 +422,7 @@ yoke,https://github.com/unicode-org/icu4x,Unicode-3.0,Manish Goregaokar <manishs
 yoke-derive,https://github.com/unicode-org/icu4x,Unicode-3.0,Manish Goregaokar <manishsmail@gmail.com>
 zerocopy,https://github.com/google/zerocopy,BSD-2-Clause OR Apache-2.0 OR MIT,"Joshua Liebow-Feeser <joshlf@google.com>, Jack Wrenn <jswrenn@amazon.com>"
 zerocopy-derive,https://github.com/google/zerocopy,BSD-2-Clause OR Apache-2.0 OR MIT,"Joshua Liebow-Feeser <joshlf@google.com>, Jack Wrenn <jswrenn@amazon.com>"
-zerofrom,https://github.com/unicode-org/icu4x,Unicode-3.0,Manish Goregaokar <manishsmail@gmail.com>
+zerofrom,https://github.com/unicode-org/icu4x,Unicode-3.0,The ICU4X Project Developers
 zerofrom-derive,https://github.com/unicode-org/icu4x,Unicode-3.0,Manish Goregaokar <manishsmail@gmail.com>
 zeroize,https://github.com/RustCrypto/utils,Apache-2.0 OR MIT,The RustCrypto Project Developers
 zerotrie,https://github.com/unicode-org/icu4x,Unicode-3.0,The ICU4X Project Developers
