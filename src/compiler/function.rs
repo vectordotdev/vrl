@@ -480,31 +480,6 @@ impl ArgumentList {
         Ok(required(self.optional_query(keyword)?))
     }
 
-    pub fn optional_regex(
-        &self,
-        keyword: &'static str,
-        state: &TypeState,
-    ) -> Result<Option<regex::Regex>, Error> {
-        self.optional_expr(keyword)
-            .map(|expr| match expr.resolve_constant(state) {
-                Some(Value::Regex(regex)) => Ok((*regex).clone()),
-                _ => Err(Error::UnexpectedExpression {
-                    keyword,
-                    expected: "regex",
-                    expr,
-                }),
-            })
-            .transpose()
-    }
-
-    pub fn required_regex(
-        &self,
-        keyword: &'static str,
-        state: &TypeState,
-    ) -> Result<regex::Regex, Error> {
-        Ok(required(self.optional_regex(keyword, state)?))
-    }
-
     pub fn optional_object(
         &self,
         keyword: &'static str,

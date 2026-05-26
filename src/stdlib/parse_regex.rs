@@ -1,7 +1,6 @@
+use super::util;
 use crate::compiler::prelude::*;
 use regex::Regex;
-
-use super::util;
 
 static DEFAULT_NUMERIC_GROUPS: Value = Value::Boolean(false);
 
@@ -79,6 +78,11 @@ impl Function for ParseRegex {
                 All values are returned as strings. We recommend manually coercing values to desired
                 types as you see fit.
             "},
+            indoc! {"
+                When `pattern` is a dynamic expression (e.g. a variable or the result of `to_regex`),
+                the regex is compiled on every function call. For high-throughput pipelines, prefer
+                a regex literal so the pattern is compiled once at program compile time.
+            "},
         ]
     }
 
@@ -88,12 +92,12 @@ impl Function for ParseRegex {
 
     fn compile(
         &self,
-        state: &state::TypeState,
+        _state: &state::TypeState,
         _ctx: &mut FunctionCompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
-        let pattern = arguments.required_regex("pattern", state)?;
+        let pattern = arguments.required("pattern");
         let numeric_groups = arguments.optional("numeric_groups");
 
         Ok(ParseRegexFn {
@@ -156,7 +160,7 @@ impl Function for ParseRegex {
 #[derive(Debug, Clone)]
 pub(crate) struct ParseRegexFn {
     value: Box<dyn Expression>,
-    pattern: Regex,
+    pattern: Box<dyn Expression>,
     numeric_groups: Option<Box<dyn Expression>>,
 }
 
@@ -166,13 +170,22 @@ impl FunctionExpression for ParseRegexFn {
         let numeric_groups = self
             .numeric_groups
             .map_resolve_with_default(ctx, || DEFAULT_NUMERIC_GROUPS.clone())?;
-        let pattern = &self.pattern;
+        let resolved = self.pattern.resolve(ctx)?;
+        let pattern = resolved
+            .as_regex()
+            .ok_or_else(|| ExpressionError::from("failed to resolve regex"))?;
 
         parse_regex(&value, numeric_groups.try_boolean()?, pattern)
     }
 
-    fn type_def(&self, _: &state::TypeState) -> TypeDef {
-        TypeDef::object(util::regex_kind(&self.pattern)).fallible()
+    fn type_def(&self, state: &state::TypeState) -> TypeDef {
+        if let Some(value) = self.pattern.resolve_constant(state)
+            && let Some(regex) = value.as_regex()
+        {
+            return TypeDef::object(util::regex_kind(regex)).fallible();
+        }
+
+        TypeDef::object(Collection::from_unknown(Kind::bytes() | Kind::null())).fallible()
     }
 }
 
