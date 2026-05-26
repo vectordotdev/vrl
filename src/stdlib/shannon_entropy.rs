@@ -4,9 +4,8 @@ use unicode_segmentation::UnicodeSegmentation;
 
 use crate::compiler::function::EnumVariant;
 use crate::compiler::prelude::*;
-use std::sync::LazyLock;
 
-static DEFAULT_SEGMENTATION: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from("byte")));
+static DEFAULT_SEGMENTATION: Value = Value::Bytes(Bytes::from_static("byte".as_bytes()));
 
 static SEGMENTATION_ENUM: &[EnumVariant] = &[
     EnumVariant {
@@ -23,23 +22,21 @@ static SEGMENTATION_ENUM: &[EnumVariant] = &[
     },
 ];
 
-static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
-    vec![
-        Parameter::required("value", kind::BYTES, "The input string."),
-        Parameter::optional(
-            "segmentation",
-            kind::BYTES,
-            "Defines how to split the string to calculate entropy, based on occurrences of
+const PARAMETERS: &[Parameter] = &[
+    Parameter::required("value", kind::BYTES, "The input string."),
+    Parameter::optional(
+        "segmentation",
+        kind::BYTES,
+        "Defines how to split the string to calculate entropy, based on occurrences of
 segments.
 
 Byte segmentation is the fastest, but it might give undesired results when handling
 UTF-8 strings, while grapheme segmentation is the slowest, but most correct in these
 cases.",
-        )
-        .default(&DEFAULT_SEGMENTATION)
-        .enum_variants(SEGMENTATION_ENUM),
-    ]
-});
+    )
+    .default(&DEFAULT_SEGMENTATION)
+    .enum_variants(SEGMENTATION_ENUM),
+];
 
 // Casting to f64 in this function is only done to enable proper division (when calculating probability)
 // Since numbers being casted represent lenghts of input strings and number of character occurences,
@@ -153,7 +150,7 @@ impl Function for ShannonEntropy {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        PARAMETERS.as_slice()
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {

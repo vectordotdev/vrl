@@ -1,28 +1,25 @@
 use itertools::Itertools;
 
 use crate::compiler::prelude::*;
-use std::sync::LazyLock;
 
-static DEFAULT_SEPARATOR: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from(".")));
-static DEFAULT_RECURSIVE: LazyLock<Value> = LazyLock::new(|| Value::Boolean(true));
+static DEFAULT_SEPARATOR: Value = Value::Bytes(Bytes::from_static(".".as_bytes()));
+static DEFAULT_RECURSIVE: Value = Value::Boolean(true);
 
-static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
-    vec![
-        Parameter::required("value", kind::OBJECT, "The array or object to unflatten."),
-        Parameter::optional(
-            "separator",
-            kind::BYTES,
-            "The separator to split flattened keys.",
-        )
-        .default(&DEFAULT_SEPARATOR),
-        Parameter::optional(
-            "recursive",
-            kind::BOOLEAN,
-            "Whether to recursively unflatten the object values.",
-        )
-        .default(&DEFAULT_RECURSIVE),
-    ]
-});
+const PARAMETERS: &[Parameter] = &[
+    Parameter::required("value", kind::OBJECT, "The array or object to unflatten."),
+    Parameter::optional(
+        "separator",
+        kind::BYTES,
+        "The separator to split flattened keys.",
+    )
+    .default(&DEFAULT_SEPARATOR),
+    Parameter::optional(
+        "recursive",
+        kind::BOOLEAN,
+        "Whether to recursively unflatten the object values.",
+    )
+    .default(&DEFAULT_RECURSIVE),
+];
 
 fn unflatten(value: Value, separator: &Value, recursive: Value) -> Resolved {
     let separator = separator.try_bytes_utf8_lossy()?.into_owned();
@@ -136,7 +133,7 @@ impl Function for Unflatten {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        PARAMETERS.as_slice()
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {

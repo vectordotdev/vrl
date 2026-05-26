@@ -322,49 +322,44 @@ mod non_wasm {
 #[cfg(not(target_arch = "wasm32"))]
 use non_wasm::*;
 
-use std::sync::LazyLock;
+static DEFAULT_METHOD: Value = Value::Bytes(Bytes::from_static("get".as_bytes()));
+static DEFAULT_HEADERS: Value = Value::Object(std::collections::BTreeMap::new());
+static DEFAULT_BODY: Value = Value::Bytes(Bytes::from_static("".as_bytes()));
+static DEFAULT_REDACT_HEADERS: Value = Value::Boolean(true);
 
-static DEFAULT_METHOD: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from("get")));
-static DEFAULT_HEADERS: LazyLock<Value> =
-    LazyLock::new(|| Value::Object(std::collections::BTreeMap::new()));
-static DEFAULT_BODY: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from("")));
-static DEFAULT_REDACT_HEADERS: LazyLock<Value> = LazyLock::new(|| Value::Boolean(true));
-
-static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
-    vec![
-        Parameter::required("url", kind::BYTES, "The URL to make the HTTP request to."),
-        Parameter::optional(
-            "method",
-            kind::BYTES,
-            "The HTTP method to use (e.g., GET, POST, PUT, DELETE). Defaults to GET.",
-        )
-        .default(&DEFAULT_METHOD),
-        Parameter::optional(
-            "headers",
-            kind::OBJECT,
-            "An object containing HTTP headers to send with the request.",
-        )
-        .default(&DEFAULT_HEADERS),
-        Parameter::optional("body", kind::BYTES, "The request body content to send.")
-            .default(&DEFAULT_BODY),
-        Parameter::optional(
-            "http_proxy",
-            kind::BYTES,
-            "HTTP proxy URL to use for the request.",
-        ),
-        Parameter::optional(
-            "https_proxy",
-            kind::BYTES,
-            "HTTPS proxy URL to use for the request.",
-        ),
-        Parameter::optional(
-            "redact_headers",
-            kind::BOOLEAN,
-            "Whether to redact sensitive header values in error messages.",
-        )
-        .default(&DEFAULT_REDACT_HEADERS),
-    ]
-});
+const PARAMETERS: &[Parameter] = &[
+    Parameter::required("url", kind::BYTES, "The URL to make the HTTP request to."),
+    Parameter::optional(
+        "method",
+        kind::BYTES,
+        "The HTTP method to use (e.g., GET, POST, PUT, DELETE). Defaults to GET.",
+    )
+    .default(&DEFAULT_METHOD),
+    Parameter::optional(
+        "headers",
+        kind::OBJECT,
+        "An object containing HTTP headers to send with the request.",
+    )
+    .default(&DEFAULT_HEADERS),
+    Parameter::optional("body", kind::BYTES, "The request body content to send.")
+        .default(&DEFAULT_BODY),
+    Parameter::optional(
+        "http_proxy",
+        kind::BYTES,
+        "HTTP proxy URL to use for the request.",
+    ),
+    Parameter::optional(
+        "https_proxy",
+        kind::BYTES,
+        "HTTPS proxy URL to use for the request.",
+    ),
+    Parameter::optional(
+        "redact_headers",
+        kind::BOOLEAN,
+        "Whether to redact sensitive header values in error messages.",
+    )
+    .default(&DEFAULT_REDACT_HEADERS),
+];
 
 #[derive(Clone, Copy, Debug)]
 pub struct HttpRequest;
@@ -472,7 +467,7 @@ impl Function for HttpRequest {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        PARAMETERS.as_slice()
+        PARAMETERS
     }
 
     #[cfg(not(target_arch = "wasm32"))]
