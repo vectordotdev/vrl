@@ -1,19 +1,16 @@
 use crate::compiler::prelude::*;
-use std::sync::LazyLock;
 
 use super::encode_key_value::{DEFAULT_FIELDS_ORDERING, EncodeKeyValueFn};
 
-static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
-    vec![
-        Parameter::required(
-            "value",
-            kind::OBJECT,
-            "The value to convert to a logfmt string.",
-        ),
-        Parameter::optional("fields_ordering", kind::ARRAY, "The ordering of fields to preserve. Any fields not in this list are listed unordered, after all ordered fields.")
-            .default(&DEFAULT_FIELDS_ORDERING),
-    ]
-});
+const PARAMETERS: &[Parameter] = &[
+    Parameter::required(
+        "value",
+        kind::OBJECT,
+        "The value to convert to a logfmt string.",
+    ),
+    Parameter::optional("fields_ordering", kind::ARRAY, "The ordering of fields to preserve. Any fields not in this list are listed unordered, after all ordered fields.")
+        .default(&DEFAULT_FIELDS_ORDERING),
+];
 
 #[derive(Clone, Copy, Debug)]
 pub struct EncodeLogfmt;
@@ -44,7 +41,7 @@ impl Function for EncodeLogfmt {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        PARAMETERS.as_slice()
+        PARAMETERS
     }
 
     fn compile(

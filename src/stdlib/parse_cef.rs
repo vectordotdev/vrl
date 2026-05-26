@@ -11,21 +11,18 @@ use nom::{
 };
 use nom_language::error::VerboseError;
 use std::collections::{BTreeMap, HashMap};
-use std::sync::LazyLock;
 
-static DEFAULT_TRANSLATE_CUSTOM_FIELDS: LazyLock<Value> = LazyLock::new(|| Value::Boolean(false));
+static DEFAULT_TRANSLATE_CUSTOM_FIELDS: Value = Value::Boolean(false);
 
-static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
-    vec![
-        Parameter::required("value", kind::BYTES, "The string to parse."),
-        Parameter::optional(
-            "translate_custom_fields",
-            kind::BOOLEAN,
-            "Toggles translation of custom field pairs to `key:value`.",
-        )
-        .default(&DEFAULT_TRANSLATE_CUSTOM_FIELDS),
-    ]
-});
+const PARAMETERS: &[Parameter] = &[
+    Parameter::required("value", kind::BYTES, "The string to parse."),
+    Parameter::optional(
+        "translate_custom_fields",
+        kind::BOOLEAN,
+        "Toggles translation of custom field pairs to `key:value`.",
+    )
+    .default(&DEFAULT_TRANSLATE_CUSTOM_FIELDS),
+];
 
 fn build_map() -> HashMap<&'static str, (usize, CustomField)> {
     [
@@ -90,7 +87,7 @@ impl Function for ParseCef {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        PARAMETERS.as_slice()
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {
