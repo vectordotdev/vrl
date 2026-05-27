@@ -36,8 +36,8 @@ fn unnest_root(root: &Value, path: &OwnedValuePath) -> Resolved {
     let values = trimmed
         .remove(path, true)
         .ok_or(ValueError::Expected {
-            got: Kind::null(),
-            expected: Kind::array(Collection::any()),
+            got: Box::new(Kind::null()),
+            expected: Box::new(Kind::array(Collection::any())),
         })?
         .try_array()?;
 

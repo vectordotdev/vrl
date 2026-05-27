@@ -37,7 +37,7 @@ fn to_unix_timestamp(value: Value, unit: Unit) -> Resolved {
         Unit::Milliseconds => ts.timestamp_millis(),
         Unit::Microseconds => ts.timestamp_micros(),
         Unit::Nanoseconds => match ts.timestamp_nanos_opt() {
-            None => return Err(ValueError::OutOfRange(Kind::timestamp()).into()),
+            None => return Err(ValueError::OutOfRange(Box::new(Kind::timestamp())).into()),
             Some(nanos) => nanos,
         },
     };

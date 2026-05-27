@@ -73,7 +73,7 @@ fn safe_sub(lhv: f64, rhv: f64) -> Option<Value> {
 impl VrlValueArithmetic for Value {
     /// Similar to [`std::ops::Mul`], but fallible (e.g. `TryMul`).
     fn try_mul(self, rhs: Self) -> Result<Self, ValueError> {
-        let err = || ValueError::Mul(self.kind(), rhs.kind());
+        let err = || ValueError::Mul(Box::new(self.kind()), Box::new(rhs.kind()));
 
         // When multiplying a string by an integer, if the number is negative we set it to zero to
         // return an empty string.
@@ -106,7 +106,7 @@ impl VrlValueArithmetic for Value {
 
     /// Similar to [`std::ops::Div`], but fallible (e.g. `TryDiv`).
     fn try_div(self, rhs: Self) -> Result<Self, ValueError> {
-        let err = || ValueError::Div(self.kind(), rhs.kind());
+        let err = || ValueError::Div(Box::new(self.kind()), Box::new(rhs.kind()));
 
         let rhv_f64 = rhs.try_into_f64().map_err(|_| err())?;
 
@@ -130,13 +130,13 @@ impl VrlValueArithmetic for Value {
             (Value::Integer(lhs), rhs) => {
                 let rhv_i64 = rhs
                     .try_into_i64()
-                    .map_err(|_| ValueError::Add(Kind::integer(), rhs.kind()))?;
+                    .map_err(|_| ValueError::Add(Box::new(Kind::integer()), Box::new(rhs.kind())))?;
                 i64::wrapping_add(lhs, rhv_i64).into()
             }
             (Value::Float(lhs), rhs) => {
                 let rhs = rhs
                     .try_into_f64()
-                    .map_err(|_| ValueError::Add(Kind::float(), rhs.kind()))?;
+                    .map_err(|_| ValueError::Add(Box::new(Kind::float()), Box::new(rhs.kind())))?;
                 lhs.add(rhs).into()
             }
             (lhs @ Value::Bytes(_), Value::Null) => lhs,
@@ -148,7 +148,7 @@ impl VrlValueArithmetic for Value {
                 value.freeze().into()
             }
             (Value::Null, rhs @ Value::Bytes(_)) => rhs,
-            (lhs, rhs) => return Err(ValueError::Add(lhs.kind(), rhs.kind())),
+            (lhs, rhs) => return Err(ValueError::Add(Box::new(lhs.kind()), Box::new(rhs.kind()))),
         };
 
         Ok(value)
@@ -156,7 +156,7 @@ impl VrlValueArithmetic for Value {
 
     /// Similar to [`std::ops::Sub`], but fallible (e.g. `TrySub`).
     fn try_sub(self, rhs: Self) -> Result<Self, ValueError> {
-        let err = || ValueError::Sub(self.kind(), rhs.kind());
+        let err = || ValueError::Sub(Box::new(self.kind()), Box::new(rhs.kind()));
 
         let value = match self {
             Value::Integer(lhv) if rhs.is_float() => {
@@ -197,7 +197,7 @@ impl VrlValueArithmetic for Value {
     ///
     /// A lhs or rhs value of `Null` returns `false`.
     fn try_and(self, rhs: Self) -> Result<Self, ValueError> {
-        let err = || ValueError::And(self.kind(), rhs.kind());
+        let err = || ValueError::And(Box::new(self.kind()), Box::new(rhs.kind()));
 
         let value = match self {
             Value::Null => false.into(),
@@ -214,7 +214,7 @@ impl VrlValueArithmetic for Value {
 
     /// Similar to [`std::ops::Rem`], but fallible (e.g. `TryRem`).
     fn try_rem(self, rhs: Self) -> Result<Self, ValueError> {
-        let err = || ValueError::Rem(self.kind(), rhs.kind());
+        let err = || ValueError::Rem(Box::new(self.kind()), Box::new(rhs.kind()));
 
         let rhv_f64 = rhs.try_into_f64().map_err(|_| err())?;
 
@@ -242,7 +242,7 @@ impl VrlValueArithmetic for Value {
 
     /// Similar to [`std::cmp::Ord`], but fallible (e.g. `TryOrd`).
     fn try_gt(self, rhs: Self) -> Result<Self, ValueError> {
-        let err = || ValueError::Rem(self.kind(), rhs.kind());
+        let err = || ValueError::Rem(Box::new(self.kind()), Box::new(rhs.kind()));
 
         let value = match self {
             Value::Integer(lhv) if rhs.is_float() => (lhv as f64 > rhs.try_float()?).into(),
@@ -258,7 +258,7 @@ impl VrlValueArithmetic for Value {
 
     /// Similar to [`std::cmp::Ord`], but fallible (e.g. `TryOrd`).
     fn try_ge(self, rhs: Self) -> Result<Self, ValueError> {
-        let err = || ValueError::Ge(self.kind(), rhs.kind());
+        let err = || ValueError::Ge(Box::new(self.kind()), Box::new(rhs.kind()));
 
         let value = match self {
             Value::Integer(lhv) if rhs.is_float() => (lhv as f64 >= rhs.try_float()?).into(),
@@ -276,7 +276,7 @@ impl VrlValueArithmetic for Value {
 
     /// Similar to [`std::cmp::Ord`], but fallible (e.g. `TryOrd`).
     fn try_lt(self, rhs: Self) -> Result<Self, ValueError> {
-        let err = || ValueError::Ge(self.kind(), rhs.kind());
+        let err = || ValueError::Ge(Box::new(self.kind()), Box::new(rhs.kind()));
 
         let value = match self {
             Value::Integer(lhv) if rhs.is_float() => ((lhv as f64) < rhs.try_float()?).into(),
@@ -292,7 +292,7 @@ impl VrlValueArithmetic for Value {
 
     /// Similar to [`std::cmp::Ord`], but fallible (e.g. `TryOrd`).
     fn try_le(self, rhs: Self) -> Result<Self, ValueError> {
-        let err = || ValueError::Ge(self.kind(), rhs.kind());
+        let err = || ValueError::Ge(Box::new(self.kind()), Box::new(rhs.kind()));
 
         let value = match self {
             Value::Integer(lhv) if rhs.is_float() => (lhv as f64 <= rhs.try_float()?).into(),
@@ -309,7 +309,7 @@ impl VrlValueArithmetic for Value {
     }
 
     fn try_merge(self, rhs: Self) -> Result<Self, ValueError> {
-        let err = || ValueError::Merge(self.kind(), rhs.kind());
+        let err = || ValueError::Merge(Box::new(self.kind()), Box::new(rhs.kind()));
 
         let value = match (&self, &rhs) {
             (Value::Object(lhv), Value::Object(right)) => lhv

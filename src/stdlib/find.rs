@@ -133,8 +133,8 @@ impl FindFn {
                 offset,
             )),
             other => Err(ValueError::Expected {
-                got: other.kind(),
-                expected: Kind::bytes() | Kind::regex(),
+                got: Box::new(other.kind()),
+                expected: Box::new(Kind::bytes() | Kind::regex()),
             }
             .into()),
         }

@@ -54,8 +54,8 @@ fn replace(value: &Value, with_value: &Value, count: Value, pattern: Value) -> R
             Ok(replaced)
         }
         value => Err(ValueError::Expected {
-            got: value.kind(),
-            expected: Kind::regex() | Kind::bytes(),
+            got: Box::new(value.kind()),
+            expected: Box::new(Kind::regex() | Kind::bytes()),
         }
         .into()),
     }

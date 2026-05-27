@@ -24,7 +24,7 @@ fn uuid_v7(timestamp: Option<Value>) -> Resolved {
     let nanoseconds = match utc_timestamp.timestamp_nanos_opt() {
         #[allow(clippy::cast_possible_truncation)] //TODO evaluate removal options
         Some(nanos) => nanos as u32,
-        None => return Err(ValueError::OutOfRange(Kind::timestamp()).into()),
+        None => return Err(ValueError::OutOfRange(Box::new(Kind::timestamp())).into()),
     };
     let timestamp = Timestamp::from_unix(NoContext, seconds, nanoseconds);
 

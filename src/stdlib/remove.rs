@@ -51,8 +51,8 @@ fn remove(path: Value, compact: Value, mut value: Value) -> Resolved {
         }
         value => {
             return Err(ValueError::Expected {
-                got: value.kind(),
-                expected: Kind::array(Collection::any()),
+                got: Box::new(value.kind()),
+                expected: Box::new(Kind::array(Collection::any())),
             }
             .into());
         }

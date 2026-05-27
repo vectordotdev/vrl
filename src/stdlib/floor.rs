@@ -29,8 +29,8 @@ fn floor(precision: Value, value: Value) -> Resolved {
         ))),
         value @ Value::Integer(_) => Ok(value),
         value => Err(ValueError::Expected {
-            got: value.kind(),
-            expected: Kind::float() | Kind::integer(),
+            got: Box::new(value.kind()),
+            expected: Box::new(Kind::float() | Kind::integer()),
         }
         .into()),
     }

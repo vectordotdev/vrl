@@ -28,15 +28,15 @@ fn to_entries(value: Value) -> Resolved {
                 .enumerate()
                 .map(|(index, value)| {
                     let key = i64::try_from(index)
-                        .map_err(|_| ValueError::OutOfRange(Kind::integer()))?;
+                        .map_err(|_| ValueError::OutOfRange(Box::new(Kind::integer())))?;
                     Ok(build_entry(Value::from(key), value))
                 })
                 .collect::<Result<Vec<_>, ValueError>>()?;
             Ok(Value::Array(entries))
         }
         other => Err(ValueError::Expected {
-            got: other.kind(),
-            expected: Kind::object(Collection::any()).or_array(Collection::any()),
+            got: Box::new(other.kind()),
+            expected: Box::new(Kind::object(Collection::any()).or_array(Collection::any())),
         }
         .into()),
     }

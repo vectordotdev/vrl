@@ -22,8 +22,8 @@ fn split(value: &Value, limit: Value, pattern: Value) -> Resolved {
                 .into())
         }
         value => Err(ValueError::Expected {
-            got: value.kind(),
-            expected: Kind::regex() | Kind::bytes(),
+            got: Box::new(value.kind()),
+            expected: Box::new(Kind::regex() | Kind::bytes()),
         }
         .into()),
     }

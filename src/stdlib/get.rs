@@ -28,8 +28,8 @@ fn get(value: &Value, value_path: Value) -> Resolved {
         }
         value => {
             return Err(ValueError::Expected {
-                got: value.kind(),
-                expected: Kind::array(Collection::any()),
+                got: Box::new(value.kind()),
+                expected: Box::new(Kind::array(Collection::any())),
             }
             .into());
         }
