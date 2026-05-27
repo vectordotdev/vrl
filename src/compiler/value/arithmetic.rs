@@ -332,13 +332,11 @@ impl VrlValueArithmetic for Value {
         match self {
             Integer(lhv) => rhs
                 .try_into_f64()
-                .map(|rhv| *lhv as f64 == rhv)
-                .unwrap_or(false),
+                .is_ok_and(|rhv| *lhv as f64 == rhv),
 
             Float(lhv) => rhs
                 .try_into_f64()
-                .map(|rhv| lhv.into_inner() == rhv)
-                .unwrap_or(false),
+                .is_ok_and(|rhv| lhv.into_inner() == rhv),
 
             _ => self == rhs,
         }
