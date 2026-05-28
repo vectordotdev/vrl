@@ -27,23 +27,24 @@ where
     fun(num * multiplier) / multiplier
 }
 
-/// Takes a set of captures that have resulted from matching a regular expression
-/// against some text and fills a `BTreeMap` with the result.
+/// Fills an [`ObjectMap`] from a regex [`Captures`](regex::Captures).
 ///
-/// All captures are inserted with a key as the numeric index of that capture
-/// "0" is the overall match.
-/// Any named captures are also added to the Map with the key as the name.
+/// Named captures are inserted under their group name; numeric groups (when
+/// `numeric_groups` is `true`) are inserted under their zero-based index, with
+/// `"0"` holding the full match.
 ///
+/// `capture_info` must be the pre-computed `(name, group_index)` slice
+/// (computed once at VRL compile time).  Group indices allow direct O(1)
+/// array access via [`regex::Captures::get`] instead of name-based hash
+/// lookups.
 pub(crate) fn capture_regex_to_map(
-    regex: &regex::Regex,
     capture: &regex::Captures,
+    capture_info: &[(KeyString, usize)],
     numeric_groups: bool,
 ) -> ObjectMap {
-    let names = regex.capture_names().flatten().map(|name| {
-        (
-            name.to_owned().into(),
-            capture.name(name).map(|s| s.as_str()).into(),
-        )
+    let names = capture_info.iter().map(|(name, idx)| {
+        let value: Value = capture.get(*idx).map(|m| m.as_str()).into();
+        (name.clone(), value)
     });
 
     if numeric_groups {
