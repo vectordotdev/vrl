@@ -269,7 +269,9 @@ fn regex_for_format(format: &Variant) -> &Regex {
 
 fn time_format_for_format(format: Variant) -> String {
     match format {
-        Variant::Combined | Variant::IngressUpstreamInfo | Variant::Main => DEFAULT_TIMESTAMP_FORMAT_STR.to_owned(),
+        Variant::Combined | Variant::IngressUpstreamInfo | Variant::Main => {
+            DEFAULT_TIMESTAMP_FORMAT_STR.to_owned()
+        }
         Variant::Error => "%Y/%m/%d %H:%M:%S".to_owned(),
     }
 }
