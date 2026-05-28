@@ -4335,7 +4335,7 @@ dependencies = [
  "publicsuffix",
  "quickcheck",
  "quoted_printable",
- "rand 0.9.4",
+ "rand 0.10.1",
  "regex",
  "relative-path",
  "reqwest",
