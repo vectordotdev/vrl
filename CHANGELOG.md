@@ -25,7 +25,7 @@ Changelog is generated from fragments in `changelog.d/` by the `release` crate.
 
 - Fixed a bug where the REPL input validator was executing programs instead of only compiling them, causing functions with side effects (e.g. `http_request`) to run twice per submission.
 
-  authors: prontidis (https://github.com/vectordotdev/vrl/pull/1701)
+  authors: pront (https://github.com/vectordotdev/vrl/pull/1701)
 
 
 ## [0.31.0 (2026-03-05)]
