@@ -123,33 +123,18 @@ fn release(version_arg: Option<&str>, dry_run: bool, issue: Option<&str>) -> Res
         &root,
     )?;
 
-    println!("Publishing to crates.io...");
-    run("cargo", &["publish"], &root)?;
-    println!("Published vrl v{new_version} to crates.io.");
-
-    let tag = format!("v{new_version}");
-    run(
-        "git",
-        &["tag", "-a", &tag, "-m", &format!("Release {new_version}")],
-        &root,
-    )?;
-
     println!("Pushing...");
     run("git", &["push", "-u", "origin", &branch], &root)?;
-    run("git", &["push", "origin", &tag], &root)?;
 
     println!("Creating pull request...");
     let title = format!("chore(releasing): Prepare {new_version} release");
     let mut body = formatdoc! {"
-        Release {new_version}
-
-        Published to crates.io: https://crates.io/crates/vrl/{new_version}
-        Tag: `{tag}`"
+        Release {new_version}"
     };
     if let Some(link) = issue {
         body.push_str(&format!("\n\nRelated issue: {link}"));
     }
-    run(
+    let pr_url = run(
         "gh",
         &[
             "pr",
@@ -167,8 +152,46 @@ fn release(version_arg: Option<&str>, dry_run: bool, issue: Option<&str>) -> Res
         ],
         &root,
     )?;
+    let pr_url = pr_url.trim().to_string();
+    println!("PR: {pr_url}");
+
+    println!("Waiting for the PR to be merged to main...");
+    loop {
+        let state = run(
+            "gh",
+            &["pr", "view", &pr_url, "--json", "state", "--jq", ".state"],
+            &root,
+        )?;
+        if state.trim() == "MERGED" {
+            println!("PR merged.");
+            break;
+        }
+        println!("  state: {}. Checking again in 15s...", state.trim());
+        std::thread::sleep(std::time::Duration::from_secs(15));
+    }
+
+    println!("Switching to main...");
+    run("git", &["checkout", "main"], &root)?;
+    run("git", &["pull", "origin", "main"], &root)?;
+
+    let tag = format!("v{new_version}");
+    run(
+        "git",
+        &["tag", "-a", &tag, "-m", &format!("Release {new_version}")],
+        &root,
+    )?;
+
+    run("git", &["checkout", &tag], &root)?;
+
+    println!("Publishing to crates.io...");
+    run("cargo", &["publish"], &root)?;
+    println!("Published vrl v{new_version} to crates.io.");
+
+    run("git", &["push", "origin", &tag], &root)?;
 
     println!("\nRelease {new_version} complete!");
+    println!("Tag: {tag}");
+    println!("crates.io: https://crates.io/crates/vrl/{new_version}");
     Ok(())
 }
 
