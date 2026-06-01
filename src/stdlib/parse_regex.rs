@@ -103,16 +103,31 @@ impl Function for ParseRegex {
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
-        let pattern = arguments.required("pattern");
-        let capture_info = pattern.resolve_constant(state).and_then(|v| {
-            v.as_regex().map(|r| {
-                r.capture_names()
+        let pattern_expr = arguments.required("pattern");
+        let numeric_groups = arguments.optional("numeric_groups");
+
+        // When the pattern is a literal regex, clone the `Regex` out and store it
+        // by value. `regex::Regex::clone()` allocates a fresh `Pool` per clone
+        // (only the compiled state is Arc-shared), so each clone of `ParseRegexFn`
+        // — and therefore each Tokio worker that holds one — gets its own Pool
+        // with its own owner-thread fast path. Holding the pattern as a
+        // `Box<dyn Expression>` instead would resolve to the same `Arc<Regex>`
+        // across all workers, collapsing them onto a single Pool and forcing all
+        // but one through `Pool::get_slow`.
+        let (pattern, capture_info) = match pattern_expr
+            .resolve_constant(state)
+            .and_then(|v| v.as_regex().cloned())
+        {
+            Some(regex) => {
+                let info = regex
+                    .capture_names()
                     .enumerate()
                     .filter_map(|(i, name)| name.map(|n| (KeyString::from(n), i)))
-                    .collect::<Vec<_>>()
-            })
-        });
-        let numeric_groups = arguments.optional("numeric_groups");
+                    .collect::<Vec<_>>();
+                (PatternSource::Static(regex), Some(info))
+            }
+            None => (PatternSource::Dynamic(pattern_expr), None),
+        };
 
         Ok(ParseRegexFn {
             value,
@@ -173,9 +188,19 @@ impl Function for ParseRegex {
 }
 
 #[derive(Debug, Clone)]
+enum PatternSource {
+    /// Literal regex pattern, owned. `Regex::clone` allocates a fresh Pool per
+    /// clone — see comment in `ParseRegex::compile`.
+    Static(Regex),
+    /// Dynamic pattern resolved on every call. Shares one Pool across all
+    /// clones via the literal's `Arc<Regex>`.
+    Dynamic(Box<dyn Expression>),
+}
+
+#[derive(Debug, Clone)]
 pub(crate) struct ParseRegexFn {
     value: Box<dyn Expression>,
-    pattern: Box<dyn Expression>,
+    pattern: PatternSource,
     capture_info: Option<Vec<(KeyString, usize)>>,
     numeric_groups: Option<Box<dyn Expression>>,
 }
@@ -187,33 +212,34 @@ impl FunctionExpression for ParseRegexFn {
             .numeric_groups
             .map_resolve_with_default(ctx, || DEFAULT_NUMERIC_GROUPS.clone())?
             .try_boolean()?;
-        let resolved = self.pattern.resolve(ctx)?;
-        let pattern = resolved
-            .as_regex()
-            .ok_or_else(|| ExpressionError::from("failed to resolve regex"))?;
 
-        let dynamic_capture_info;
-        let capture_info: &[(KeyString, usize)] = if let Some(info) = &self.capture_info {
-            info.as_slice()
-        } else {
-            dynamic_capture_info = pattern
-                .capture_names()
-                .enumerate()
-                .filter_map(|(i, name)| name.map(|n| (KeyString::from(n), i)))
-                .collect::<Vec<_>>();
-            dynamic_capture_info.as_slice()
-        };
-        parse_regex(&value, pattern, capture_info, numeric_groups)
+        match &self.pattern {
+            PatternSource::Static(pattern) => {
+                let capture_info = self.capture_info.as_deref().unwrap_or(&[]);
+                parse_regex(&value, pattern, capture_info, numeric_groups)
+            }
+            PatternSource::Dynamic(expr) => {
+                let resolved = expr.resolve(ctx)?;
+                let pattern = resolved
+                    .as_regex()
+                    .ok_or_else(|| ExpressionError::from("failed to resolve regex"))?;
+                let dynamic_capture_info: Vec<(KeyString, usize)> = pattern
+                    .capture_names()
+                    .enumerate()
+                    .filter_map(|(i, name)| name.map(|n| (KeyString::from(n), i)))
+                    .collect();
+                parse_regex(&value, pattern, &dynamic_capture_info, numeric_groups)
+            }
+        }
     }
 
-    fn type_def(&self, state: &state::TypeState) -> TypeDef {
-        if let Some(value) = self.pattern.resolve_constant(state)
-            && let Some(regex) = value.as_regex()
-        {
-            return TypeDef::object(util::regex_kind(regex)).fallible();
+    fn type_def(&self, _: &state::TypeState) -> TypeDef {
+        match &self.pattern {
+            PatternSource::Static(regex) => TypeDef::object(util::regex_kind(regex)).fallible(),
+            PatternSource::Dynamic(_) => {
+                TypeDef::object(Collection::from_unknown(Kind::bytes() | Kind::null())).fallible()
+            }
         }
-
-        TypeDef::object(Collection::from_unknown(Kind::bytes() | Kind::null())).fallible()
     }
 }
 
