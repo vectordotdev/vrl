@@ -1,5 +1,4 @@
 use chrono::{DateTime, Datelike, TimeZone, Utc};
-use constcat::concat;
 use criterion::{Criterion, criterion_group, criterion_main};
 use regex::Regex;
 
@@ -2055,24 +2054,6 @@ bench_function! {
     }
 }
 
-const PARSE_REGEX_LARGE_INPUT_PATH: &str = concat!(
-    "/embrace/supply-chains/dynamic/vertical/infrastructure/platform/distributed/",
-    "observability/tracing/spans/service-mesh/sidecar/proxy/configuration/reload/endpoint",
-    "?trace_id=abc123def456ghijklmnopqrstuvwxyz0123456789",
-    "&span_id=789xyzabcdefghijklmno",
-    "&parent_span_id=000aaabbbccc",
-    "&sampled=true&debug=false",
-    "&feature_flags=flag_a%3Dtrue%2Cflag_b%3Dfalse%2Cflag_c%3Dtrue",
-    "&baggage=region%3Dus-east-1%2Cenv%3Dprod%2Cversion%3D2.14.1",
-    "%2Ccluster%3Dcluster-use1-prod-42%2Chost%3Di-0abc123def456789a",
-);
-const PARSE_REGEX_LARGE_INPUT: &str = concat!(
-    "5.86.210.12 - zieme4647 5667 [19/06/2019:17:20:49 -0400] \"GET ",
-    PARSE_REGEX_LARGE_INPUT_PATH,
-    " HTTP/1.1\" 200 20574 \"-\" \"Mozilla/5.0 (compatible; Datadog Agent/7.x; +https://docs.datadoghq.com/agent/)\"",
-    " 0.042 upstream_addr=10.0.1.55:8080 upstream_status=200 request_id=req-abc123def456",
-);
-
 bench_function! {
     parse_regex => vrl::stdlib::ParseRegex;
 
@@ -2111,36 +2092,6 @@ bench_function! {
         ],
         want: Ok(value!({
             "number": "first",
-        }))
-    }
-
-    // ~1 KB input, only 2 short named captures at the start
-    large_input_small_captures {
-        args: func_args![
-            value: PARSE_REGEX_LARGE_INPUT,
-            pattern: Regex::new(r#"^(?P<host>[\w\.]+) - [\w]+ [\d]+ \[(?P<timestamp>[^\]]+)\]"#).unwrap()
-        ],
-        want: Ok(value!({
-            "host": "5.86.210.12",
-            "timestamp": "19/06/2019:17:20:49 -0400",
-        }))
-    }
-
-    // ~1 KB input, captures span most of the string
-    large_input {
-        args: func_args![
-            value: PARSE_REGEX_LARGE_INPUT,
-            pattern: Regex::new(r#"^(?P<host>[\w\.]+) - (?P<user>[\w]+) (?P<bytes_in>[\d]+) \[(?P<timestamp>[^\]]+)\] "(?P<method>[\w]+) (?P<path>\S+) HTTP/[\d\.]+" (?P<status>[\d]+) (?P<bytes_out>[\d]+)"#).unwrap()
-        ],
-        want: Ok(value!({
-            "host": "5.86.210.12",
-            "user": "zieme4647",
-            "bytes_in": "5667",
-            "timestamp": "19/06/2019:17:20:49 -0400",
-            "method": "GET",
-            "path": PARSE_REGEX_LARGE_INPUT_PATH,
-            "status": "200",
-            "bytes_out": "20574",
         }))
     }
 }
