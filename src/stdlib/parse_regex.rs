@@ -1,7 +1,7 @@
-use super::util;
 use crate::compiler::prelude::*;
-use crate::value::KeyString;
 use regex::Regex;
+
+use super::util;
 
 static DEFAULT_NUMERIC_GROUPS: Value = Value::Boolean(false);
 
@@ -21,16 +21,11 @@ contains the whole match.",
     .default(&DEFAULT_NUMERIC_GROUPS),
 ];
 
-fn parse_regex(
-    value: &Value,
-    pattern: &Regex,
-    capture_info: &[(KeyString, usize)],
-    numeric_groups: bool,
-) -> Resolved {
+fn parse_regex(value: &Value, numeric_groups: bool, pattern: &Regex) -> Resolved {
     let value = value.try_bytes_utf8_lossy()?;
     let parsed = pattern
         .captures(&value)
-        .map(|capture| util::capture_regex_to_map(&capture, capture_info, numeric_groups))
+        .map(|capture| util::capture_regex_to_map(pattern, &capture, numeric_groups))
         .ok_or("could not find any pattern matches")?;
     Ok(parsed.into())
 }
@@ -84,11 +79,6 @@ impl Function for ParseRegex {
                 All values are returned as strings. We recommend manually coercing values to desired
                 types as you see fit.
             "},
-            indoc! {"
-                When `pattern` is a dynamic expression (e.g. a variable or the result of `to_regex`),
-                the regex is compiled on every function call. For high-throughput pipelines, prefer
-                a regex literal so the pattern is compiled once at program compile time.
-            "},
         ]
     }
 
@@ -103,21 +93,12 @@ impl Function for ParseRegex {
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
-        let pattern = arguments.required("pattern");
-        let capture_info = pattern.resolve_constant(state).and_then(|v| {
-            v.as_regex().map(|r| {
-                r.capture_names()
-                    .enumerate()
-                    .filter_map(|(i, name)| name.map(|n| (KeyString::from(n), i)))
-                    .collect::<Vec<_>>()
-            })
-        });
+        let pattern = arguments.required_regex("pattern", state)?;
         let numeric_groups = arguments.optional("numeric_groups");
 
         Ok(ParseRegexFn {
             value,
             pattern,
-            capture_info,
             numeric_groups,
         }
         .as_expr())
@@ -175,8 +156,7 @@ impl Function for ParseRegex {
 #[derive(Debug, Clone)]
 pub(crate) struct ParseRegexFn {
     value: Box<dyn Expression>,
-    pattern: Box<dyn Expression>,
-    capture_info: Option<Vec<(KeyString, usize)>>,
+    pattern: Regex,
     numeric_groups: Option<Box<dyn Expression>>,
 }
 
@@ -185,35 +165,14 @@ impl FunctionExpression for ParseRegexFn {
         let value = self.value.resolve(ctx)?;
         let numeric_groups = self
             .numeric_groups
-            .map_resolve_with_default(ctx, || DEFAULT_NUMERIC_GROUPS.clone())?
-            .try_boolean()?;
-        let resolved = self.pattern.resolve(ctx)?;
-        let pattern = resolved
-            .as_regex()
-            .ok_or_else(|| ExpressionError::from("failed to resolve regex"))?;
+            .map_resolve_with_default(ctx, || DEFAULT_NUMERIC_GROUPS.clone())?;
+        let pattern = &self.pattern;
 
-        let dynamic_capture_info;
-        let capture_info: &[(KeyString, usize)] = if let Some(info) = &self.capture_info {
-            info.as_slice()
-        } else {
-            dynamic_capture_info = pattern
-                .capture_names()
-                .enumerate()
-                .filter_map(|(i, name)| name.map(|n| (KeyString::from(n), i)))
-                .collect::<Vec<_>>();
-            dynamic_capture_info.as_slice()
-        };
-        parse_regex(&value, pattern, capture_info, numeric_groups)
+        parse_regex(&value, numeric_groups.try_boolean()?, pattern)
     }
 
-    fn type_def(&self, state: &state::TypeState) -> TypeDef {
-        if let Some(value) = self.pattern.resolve_constant(state)
-            && let Some(regex) = value.as_regex()
-        {
-            return TypeDef::object(util::regex_kind(regex)).fallible();
-        }
-
-        TypeDef::object(Collection::from_unknown(Kind::bytes() | Kind::null())).fallible()
+    fn type_def(&self, _: &state::TypeState) -> TypeDef {
+        TypeDef::object(util::regex_kind(&self.pattern)).fallible()
     }
 }
 
