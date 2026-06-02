@@ -8,7 +8,7 @@ description = "Vector Remap Language"
 homepage = "https://vrl.dev/"
 repository = "https://github.com/vectordotdev/vrl"
 readme = "README.md"
-keywords = ["vector", "datadog", "compiler"]
+keywords = ["vector", "dsl", "processing", "observability", "datadog"]
 categories = ["compilers"]
 rust-version = "1.90" # msrv
 
