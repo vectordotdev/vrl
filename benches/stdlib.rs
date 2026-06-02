@@ -122,6 +122,7 @@ criterion_group!(
               parse_query_string,
               parse_regex,
               parse_regex_all,
+              parse_regex_concurrent,
               parse_ruby_hash,
               parse_syslog,
               parse_timestamp,
@@ -2170,6 +2171,76 @@ bench_function! {
                     "2": "peas"
                 }]))
     }
+}
+
+/// Measures `parse_regex` throughput under concurrent execution.
+///
+/// The single-threaded `bench_function!` harness is blind to `Pool::get_slow`
+/// because one thread calls `Pool::get()`, becomes the owner, and hits the
+/// lock-free fast path on every subsequent iteration with no contention.
+/// Runtimes like Vector clone the compiled expression once per worker thread,
+/// so Pool ownership and contention are determined by how the compiled
+/// expression clones, not by how it runs single-threaded.
+///
+/// This benchmark compiles once and clones N times (matching the per-worker
+/// clone pattern), then runs all clones concurrently.  `Regex::clone()`
+/// allocates a fresh `Pool` per clone, giving each thread its own owner slot.
+/// Any implementation that shares a single `Pool` across clones (e.g. by
+/// storing an `Arc<Regex>`) will show elevated `Pool::get_slow` overhead here.
+fn parse_regex_concurrent(c: &mut Criterion) {
+    use std::time::Instant;
+
+    const THREADS: usize = 8;
+    const INPUT: &str = "5.86.210.12 - zieme4647 5667 [19/06/2019:17:20:49 -0400] \
+        \"GET /embrace/supply-chains/dynamic/vertical\" 201 20574";
+    const PATTERN: &str =
+        r#"^(?P<host>[\w\.]+) - (?P<user>[\w]+) (?P<bytes_in>[\d]+) \[(?P<timestamp>.*)\] "(?P<method>[\w]+) (?P<path>.*)" (?P<status>[\d]+) (?P<bytes_out>[\d]+)$"#;
+
+    // Compile once, then clone per thread. `Expression` implements `DynClone`
+    // (via `clone_trait_object!`), so cloning calls through to
+    // `ParseRegexFn::clone()` which in turn calls `Regex::clone()`, giving
+    // each thread an independent Pool with its own owner slot.
+    let state = vrl::compiler::state::TypeState::default();
+    let args = func_args![
+        value: INPUT,
+        pattern: Regex::new(PATTERN).unwrap()
+    ];
+    let (expression, _) = vrl::__prep_bench_or_test!(
+        vrl::stdlib::ParseRegex,
+        &state,
+        args,
+        Ok::<vrl::value::Value, String>(vrl::value::Value::Null)
+    );
+    let expression = expression.unwrap();
+    let expressions: Vec<_> = (0..THREADS).map(|_| expression.clone()).collect();
+
+    let mut group = c.benchmark_group("vrl_stdlib/functions/parse_regex_concurrent");
+    group.throughput(criterion::Throughput::Elements(THREADS as u64));
+
+    group.bench_function(format!("{THREADS}_threads"), |b| {
+        b.iter_custom(|iters| {
+            let per_thread = (iters as usize).max(1);
+            let start = Instant::now();
+            std::thread::scope(|s| {
+                for expr in &expressions {
+                    s.spawn(move || {
+                        let mut runtime_state = vrl::compiler::state::RuntimeState::default();
+                        let mut target: vrl::value::Value =
+                            std::collections::BTreeMap::default().into();
+                        let tz = vrl::compiler::TimeZone::Named(chrono_tz::Tz::UTC);
+                        let mut ctx =
+                            vrl::compiler::Context::new(&mut target, &mut runtime_state, &tz);
+                        for _ in 0..per_thread {
+                            let _ = std::hint::black_box(expr.resolve(&mut ctx));
+                        }
+                    });
+                }
+            });
+            start.elapsed()
+        });
+    });
+
+    group.finish();
 }
 
 bench_function! {
