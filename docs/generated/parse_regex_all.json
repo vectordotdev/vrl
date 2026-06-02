@@ -111,8 +111,7 @@
   ],
   "notices": [
     "VRL aims to provide purpose-specific [parsing functions](/docs/reference/vrl/functions/#parse-functions)\nfor common log formats. Before reaching for the `parse_regex` function, see if a VRL\n[`parse_*` function](/docs/reference/vrl/functions/#parse-functions) already exists\nfor your format. If not, we recommend\n[opening an issue](https://github.com/vectordotdev/vector/issues/new?labels=type%3A+new+feature)\nto request support for the desired format.",
-    "All values are returned as strings. We recommend manually coercing values to desired\ntypes as you see fit.",
-    "When `pattern` is a dynamic expression (e.g. a variable or the result of `to_regex`),\nthe regex is compiled on every function call. For high-throughput pipelines, prefer\na regex literal so the pattern is compiled once at program compile time."
+    "All values are returned as strings. We recommend manually coercing values to desired\ntypes as you see fit."
   ],
   "pure": true
 }
