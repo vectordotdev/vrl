@@ -692,9 +692,12 @@ impl Function for DnsLookup {
 #[cfg(test)]
 #[cfg(not(target_arch = "wasm32"))]
 mod tests {
-    use std::collections::{BTreeMap, HashSet};
+    use std::collections::BTreeMap;
+    #[cfg(feature = "test")]
+    use std::collections::HashSet;
 
     use super::*;
+    #[cfg(feature = "test")]
     use crate::value;
 
     impl Default for DnsLookupFn {
@@ -708,6 +711,7 @@ mod tests {
         }
     }
 
+    #[cfg(feature = "test")]
     #[test]
     fn test_invalid_name() {
         let result = execute_dns_lookup(&DnsLookupFn {
@@ -728,6 +732,7 @@ mod tests {
         );
     }
 
+    #[cfg(feature = "test")]
     #[test]
     #[cfg(target_os = "linux")]
     // MacOS resolver doesn't always handle localhost
@@ -752,6 +757,7 @@ mod tests {
         assert_eq!(answer["rData"], value!("127.0.0.1"));
     }
 
+    #[cfg(feature = "test")]
     #[test]
     fn test_custom_type() {
         let result = execute_dns_lookup(&DnsLookupFn {
@@ -773,6 +779,7 @@ mod tests {
         );
     }
 
+    #[cfg(feature = "test")]
     #[test]
     fn test_google() {
         let result = execute_dns_lookup(&DnsLookupFn {
@@ -807,6 +814,7 @@ mod tests {
         assert_eq!(answers, expected);
     }
 
+    #[cfg(feature = "test")]
     #[test]
     fn unknown_options_ignored() {
         let result = execute_dns_lookup(&DnsLookupFn {
@@ -852,6 +860,7 @@ mod tests {
         dns_lookup_fn.resolve(&mut ctx)
     }
 
+    #[cfg(feature = "test")]
     fn execute_dns_lookup(dns_lookup_fn: &DnsLookupFn) -> ObjectMap {
         prepare_dns_lookup(dns_lookup_fn)
             .map_err(|e| format!("{:#}", anyhow::anyhow!(e)))
