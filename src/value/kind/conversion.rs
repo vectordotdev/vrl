@@ -5,8 +5,8 @@ impl Kind {
     ///
     /// This returns `None` if the type is not known to be an object.
     #[must_use]
-    pub const fn as_object(&self) -> Option<&Collection<Field>> {
-        self.object.as_ref()
+    pub fn as_object(&self) -> Option<&Collection<Field>> {
+        self.object.as_deref()
     }
 
     /// Get a mutable reference to the inner object collection.
@@ -14,7 +14,7 @@ impl Kind {
     /// This returns `None` if the type is not known to be an object.
     #[must_use]
     pub fn as_object_mut(&mut self) -> Option<&mut Collection<Field>> {
-        self.object.as_mut()
+        self.object.as_deref_mut()
     }
 
     /// Take an object `Collection` type out of the `Kind`.
@@ -22,15 +22,15 @@ impl Kind {
     /// This returns `None` if the type is not known to be an object.
     #[must_use]
     pub fn into_object(self) -> Option<Collection<Field>> {
-        self.object
+        self.object.map(|object| *object)
     }
 
     /// Get the inner array collection.
     ///
     /// This returns `None` if the type is not known to be an array.
     #[must_use]
-    pub const fn as_array(&self) -> Option<&Collection<Index>> {
-        self.array.as_ref()
+    pub fn as_array(&self) -> Option<&Collection<Index>> {
+        self.array.as_deref()
     }
 
     /// Get a mutable reference to the inner array collection.
@@ -38,7 +38,7 @@ impl Kind {
     /// This returns `None` if the type is not known to be an array.
     #[must_use]
     pub fn as_array_mut(&mut self) -> Option<&mut Collection<Index>> {
-        self.array.as_mut()
+        self.array.as_deref_mut()
     }
 
     /// Take an array `Collection` type out of the `Kind`.
@@ -46,7 +46,7 @@ impl Kind {
     /// This returns `None` if the type is not known to be an array.
     #[must_use]
     pub fn into_array(self) -> Option<Collection<Index>> {
-        self.array
+        self.array.map(|array| *array)
     }
 
     /// Returns `Kind`, with non-primitive states removed.

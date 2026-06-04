@@ -42,7 +42,7 @@ impl Kind {
             match segment {
                 BorrowedSegment::Field(field) => {
                     // Field insertion converts the value to an object, so remove all other types.
-                    *self = Self::object(self.object.clone().unwrap_or_else(Collection::empty));
+                    *self = Self::object(self.as_object().cloned().unwrap_or_else(Collection::empty));
 
                     let collection = self.object.as_mut().expect("object was just inserted");
                     let unknown_kind = collection.unknown_kind();
@@ -55,7 +55,7 @@ impl Kind {
                 }
                 BorrowedSegment::Index(mut index) => {
                     // Array insertion converts the value to an array, so remove all other types.
-                    *self = Self::array(self.array.clone().unwrap_or_else(Collection::empty));
+                    *self = Self::array(self.as_array().cloned().unwrap_or_else(Collection::empty));
                     let collection = self.array.as_mut().expect("array was just inserted");
 
                     if index < 0 {
@@ -99,7 +99,7 @@ impl Kind {
                                     }
 
                                     // Add this shift count as another possible type definition.
-                                    collection.merge(shifted_collection, false);
+                                    collection.merge(*shifted_collection, false);
                                 }
                             }
 
