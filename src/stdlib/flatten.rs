@@ -141,7 +141,7 @@ fn into_key(state: &state::TypeState, expr: Expr) -> Result<KeyString, Box<funct
     let v = expr.resolve_constant(state).ok_or_else(|| {
         Box::new(function::Error::ExpectedStaticExpression {
             keyword: "except",
-            expr,
+            expr: Box::new(expr),
         })
     })?;
 
