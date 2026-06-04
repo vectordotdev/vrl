@@ -38,8 +38,8 @@ fn format_number(
         Value::Float(v) => Decimal::from_f64(*v).expect("not NaN"),
         value => {
             return Err(ValueError::Expected {
-                got: Box::new(value.kind()),
-                expected: Box::new(Kind::integer() | Kind::float()),
+                got: value.kind(),
+                expected: Kind::integer() | Kind::float(),
             }
             .into());
         }

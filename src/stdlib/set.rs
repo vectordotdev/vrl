@@ -29,8 +29,8 @@ fn set(path: Value, mut value: Value, data: Value) -> Resolved {
         }
         value => {
             return Err(ValueError::Expected {
-                got: Box::new(value.kind()),
-                expected: Box::new(Kind::array(Collection::any()) | Kind::bytes()),
+                got: value.kind(),
+                expected: Kind::array(Collection::any()) | Kind::bytes(),
             }
             .into());
         }

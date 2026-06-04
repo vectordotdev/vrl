@@ -42,8 +42,8 @@ fn ip_cidr_contains(value: &Value, cidr: &Value) -> Resolved {
             Ok(false.into())
         }
         value => Err(ValueError::Expected {
-            got: Box::new(value.kind()),
-            expected: Box::new(Kind::bytes() | Kind::array(Collection::any())),
+            got: value.kind(),
+            expected: Kind::bytes() | Kind::array(Collection::any()),
         }
         .into()),
     }

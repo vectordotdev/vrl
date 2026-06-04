@@ -28,8 +28,8 @@ fn ceil(value: Value, precision: Value) -> Resolved {
         ))),
         value @ Value::Integer(_) => Ok(value),
         value => Err(ValueError::Expected {
-            got: Box::new(value.kind()),
-            expected: Box::new(Kind::float() | Kind::integer()),
+            got: value.kind(),
+            expected: Kind::float() | Kind::integer(),
         }
         .into()),
     }

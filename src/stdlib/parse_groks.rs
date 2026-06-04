@@ -200,7 +200,7 @@ impl Function for ParseGroks {
                     .resolve_constant(state)
                     .ok_or(function::Error::ExpectedStaticExpression {
                         keyword: "patterns",
-                        expr: Box::new(expr.clone()),
+                        expr: expr.clone(),
                     })?
                     .try_bytes_utf8_lossy()
                     .map_err(|_| function::Error::InvalidArgument {
@@ -223,7 +223,7 @@ impl Function for ParseGroks {
                     .resolve_constant(state)
                     .ok_or(function::Error::ExpectedStaticExpression {
                         keyword: "aliases",
-                        expr: Box::new(expr.clone()),
+                        expr: expr.clone(),
                     })?
                     .try_bytes_utf8_lossy()
                     .map_err(|_| function::Error::InvalidArgument {
@@ -260,7 +260,7 @@ impl Function for ParseGroks {
                     .resolve_constant(state)
                     .ok_or(function::Error::ExpectedStaticExpression {
                         keyword: "alias_sources",
-                        expr: Box::new(expr.clone()),
+                        expr: expr.clone(),
                     })?
                     .try_bytes_utf8_lossy()
                     .map_err(|_| function::Error::InvalidArgument {

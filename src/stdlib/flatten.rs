@@ -40,8 +40,8 @@ fn flatten(value: Value, separator: &Value, except: &HashSet<KeyString>) -> Reso
                 .collect(),
         )),
         value => Err(ValueError::Expected {
-            got: Box::new(value.kind()),
-            expected: Box::new(Kind::array(Collection::any()) | Kind::object(Collection::any())),
+            got: value.kind(),
+            expected: Kind::array(Collection::any()) | Kind::object(Collection::any()),
         }
         .into()),
     }
@@ -141,7 +141,7 @@ fn into_key(state: &state::TypeState, expr: Expr) -> Result<KeyString, Box<funct
     let v = expr.resolve_constant(state).ok_or_else(|| {
         Box::new(function::Error::ExpectedStaticExpression {
             keyword: "except",
-            expr: Box::new(expr),
+            expr,
         })
     })?;
 

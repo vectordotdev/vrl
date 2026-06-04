@@ -10,19 +10,19 @@ pub enum ValueError {
         "expected {}, got {got}",
         .expected
     )]
-    Expected { got: Box<Kind>, expected: Box<Kind> },
+    Expected { got: Kind, expected: Kind },
 
     #[error("can't coerce {0} into {1}")]
-    Coerce(Box<Kind>, Box<Kind>),
+    Coerce(Kind, Kind),
 
     #[error("can't calculate remainder of type {0} and {1}")]
-    Rem(Box<Kind>, Box<Kind>),
+    Rem(Kind, Kind),
 
     #[error("can't multiply type {0} by {1}")]
-    Mul(Box<Kind>, Box<Kind>),
+    Mul(Kind, Kind),
 
     #[error("can't divide type {0} by {1}")]
-    Div(Box<Kind>, Box<Kind>),
+    Div(Kind, Kind),
 
     #[error("can't divide by zero")]
     DivideByZero,
@@ -31,34 +31,34 @@ pub enum ValueError {
     NanFloat,
 
     #[error("can't add type {1} to {0}")]
-    Add(Box<Kind>, Box<Kind>),
+    Add(Kind, Kind),
 
     #[error("can't subtract type {1} from {0}")]
-    Sub(Box<Kind>, Box<Kind>),
+    Sub(Kind, Kind),
 
     #[error("can't apply an OR to these types - {0}")]
     Or(#[from] ExpressionError),
 
     #[error("can't apply an AND to types {0} and {1}")]
-    And(Box<Kind>, Box<Kind>),
+    And(Kind, Kind),
 
     #[error("can't compare {0} > {1}")]
-    Gt(Box<Kind>, Box<Kind>),
+    Gt(Kind, Kind),
 
     #[error("can't compare {0} >= {1}")]
-    Ge(Box<Kind>, Box<Kind>),
+    Ge(Kind, Kind),
 
     #[error("can't compare {0} < {1}")]
-    Lt(Box<Kind>, Box<Kind>),
+    Lt(Kind, Kind),
 
     #[error("can't compare {0} <= {1}")]
-    Le(Box<Kind>, Box<Kind>),
+    Le(Kind, Kind),
 
     #[error("can't merge type {1} into {0}")]
-    Merge(Box<Kind>, Box<Kind>),
+    Merge(Kind, Kind),
 
     #[error("can't convert out of range {0}")]
-    OutOfRange(Box<Kind>),
+    OutOfRange(Kind),
 }
 
 impl DiagnosticMessage for ValueError {

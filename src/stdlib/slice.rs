@@ -56,8 +56,8 @@ fn slice(start: i64, end: Option<i64>, value: Value) -> Resolved {
             .map(|range| v.drain(range).collect::<Vec<_>>())
             .map(Value::from),
         value => Err(ValueError::Expected {
-            got: Box::new(value.kind()),
-            expected: Box::new(Kind::bytes() | Kind::array(Collection::any())),
+            got: value.kind(),
+            expected: Kind::bytes() | Kind::array(Collection::any()),
         }
         .into()),
     }

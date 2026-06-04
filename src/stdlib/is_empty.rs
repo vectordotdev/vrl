@@ -7,12 +7,10 @@ fn is_empty(value: Value) -> Resolved {
         Value::Bytes(v) => v.is_empty(),
         value => {
             return Err(ValueError::Expected {
-                got: Box::new(value.kind()),
-                expected: Box::new(
-                    Kind::array(Collection::any())
-                        | Kind::object(Collection::any())
-                        | Kind::bytes(),
-                ),
+                got: value.kind(),
+                expected: Kind::array(Collection::any())
+                    | Kind::object(Collection::any())
+                    | Kind::bytes(),
             }
             .into());
         }

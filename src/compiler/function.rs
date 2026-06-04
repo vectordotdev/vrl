@@ -413,7 +413,7 @@ impl ArgumentList {
                 _ => Err(Error::UnexpectedExpression {
                     keyword,
                     expected: "literal",
-                    expr: Box::new(expr),
+                    expr,
                 }),
             })
             .transpose()
@@ -467,7 +467,7 @@ impl ArgumentList {
                 expr => Err(Error::UnexpectedExpression {
                     keyword,
                     expected: "query",
-                    expr: Box::new(expr),
+                    expr,
                 }),
             })
             .transpose()
@@ -492,7 +492,7 @@ impl ArgumentList {
                 expr => Err(Error::UnexpectedExpression {
                     keyword,
                     expected: "object",
-                    expr: Box::new(expr),
+                    expr,
                 }),
             })
             .transpose()
@@ -514,7 +514,7 @@ impl ArgumentList {
                 expr => Err(Error::UnexpectedExpression {
                     keyword,
                     expected: "array",
-                    expr: Box::new(expr),
+                    expr,
                 }),
             })
             .transpose()
@@ -625,7 +625,7 @@ pub enum Error {
     UnexpectedExpression {
         keyword: &'static str,
         expected: &'static str,
-        expr: Box<Expr>,
+        expr: Expr,
     },
 
     #[error(r#"invalid enum variant""#)]
@@ -636,7 +636,7 @@ pub enum Error {
     },
 
     #[error("this argument must be a static expression")]
-    ExpectedStaticExpression { keyword: &'static str, expr: Box<Expr> },
+    ExpectedStaticExpression { keyword: &'static str, expr: Expr },
 
     #[error("invalid argument")]
     InvalidArgument {

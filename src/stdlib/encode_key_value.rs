@@ -460,8 +460,8 @@ mod tests {
             ],
             want: Err(format!(r"invalid field value type at index 1: {}",
                     ValueError::Expected {
-                        got: Box::new(Kind::integer()),
-                        expected: Box::new(Kind::bytes())
+                        got: Kind::integer(),
+                        expected: Kind::bytes()
                     })),
             tdef: TypeDef::bytes().fallible(),
         }

@@ -50,8 +50,8 @@ fn sieve(
             Ok(result.into())
         }
         value => Err(ValueError::Expected {
-            got: Box::new(value.kind()),
-            expected: Box::new(Kind::regex()),
+            got: value.kind(),
+            expected: Kind::regex(),
         }
         .into()),
     }
