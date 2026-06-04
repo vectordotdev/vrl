@@ -2074,6 +2074,26 @@ const PARSE_REGEX_LARGE_INPUT: &str = concat!(
     " HTTP/1.1\" 200 20574 \"-\" \"Mozilla/5.0 (compatible; Datadog Agent/7.x; +https://docs.datadoghq.com/agent/)\"",
     " 0.042 upstream_addr=10.0.1.55:8080 upstream_status=200 request_id=req-abc123def456",
 );
+const PARSE_REGEX_SINGLE_MATCH_PATTERN: &str = "(?P<number>.*?) group";
+const PARSE_REGEX_LARGE_INPUT_SMALL_CAPTURES_PATTERN: &str =
+    r#"^(?P<host>[\w\.]+) - [\w]+ [\d]+ \[(?P<timestamp>[^\]]+)\]"#;
+const PARSE_REGEX_LARGE_INPUT_PATTERN: &str = r#"^(?P<host>[\w\.]+) - (?P<user>[\w]+) (?P<bytes_in>[\d]+) \[(?P<timestamp>[^\]]+)\] "(?P<method>[\w]+) (?P<path>\S+) HTTP/[\d\.]+" (?P<status>[\d]+) (?P<bytes_out>[\d]+)"#;
+
+const LARGE_INPUT_SMALL_CAPTURES_RESULT: Value = value!({
+    "host": "5.86.210.12",
+    "timestamp": "19/06/2019:17:20:49 -0400",
+});
+
+const LARGE_INPUT_RESULT: Value = value!({
+    "host": "5.86.210.12",
+    "user": "zieme4647",
+    "bytes_in": "5667",
+    "timestamp": "19/06/2019:17:20:49 -0400",
+    "method": "GET",
+    "path": PARSE_REGEX_LARGE_INPUT_PATH,
+    "status": "200",
+    "bytes_out": "20574",
+});
 
 bench_function! {
     parse_regex => vrl::stdlib::ParseRegex;
@@ -2109,7 +2129,7 @@ bench_function! {
     single_match {
         args: func_args! [
             value: "first group and second group",
-            pattern: Regex::new("(?P<number>.*?) group").unwrap()
+            pattern: Regex::new(PARSE_REGEX_SINGLE_MATCH_PATTERN).unwrap()
         ],
         want: Ok(value!({
             "number": "first",
@@ -2120,30 +2140,18 @@ bench_function! {
     large_input_small_captures {
         args: func_args![
             value: PARSE_REGEX_LARGE_INPUT,
-            pattern: Regex::new(r#"^(?P<host>[\w\.]+) - [\w]+ [\d]+ \[(?P<timestamp>[^\]]+)\]"#).unwrap()
+            pattern: Regex::new(PARSE_REGEX_LARGE_INPUT_SMALL_CAPTURES_PATTERN).unwrap()
         ],
-        want: Ok(value!({
-            "host": "5.86.210.12",
-            "timestamp": "19/06/2019:17:20:49 -0400",
-        }))
+        want: Ok(LARGE_INPUT_SMALL_CAPTURES_RESULT)
     }
 
     // ~1 KB input, captures span most of the string
     large_input {
         args: func_args![
             value: PARSE_REGEX_LARGE_INPUT,
-            pattern: Regex::new(r#"^(?P<host>[\w\.]+) - (?P<user>[\w]+) (?P<bytes_in>[\d]+) \[(?P<timestamp>[^\]]+)\] "(?P<method>[\w]+) (?P<path>\S+) HTTP/[\d\.]+" (?P<status>[\d]+) (?P<bytes_out>[\d]+)"#).unwrap()
+            pattern: Regex::new(PARSE_REGEX_LARGE_INPUT_PATTERN).unwrap()
         ],
-        want: Ok(value!({
-            "host": "5.86.210.12",
-            "user": "zieme4647",
-            "bytes_in": "5667",
-            "timestamp": "19/06/2019:17:20:49 -0400",
-            "method": "GET",
-            "path": PARSE_REGEX_LARGE_INPUT_PATH,
-            "status": "200",
-            "bytes_out": "20574",
-        }))
+        want: Ok(LARGE_INPUT_RESULT)
     }
 }
 
@@ -2242,6 +2250,35 @@ bench_function! {
                     "1": "peaches",
                     "2": "peas"
                 }]))
+    }
+
+    all_matches {
+        args: func_args! [
+            value: "first group and second group",
+            pattern: Regex::new(PARSE_REGEX_SINGLE_MATCH_PATTERN).unwrap()
+        ],
+        want: Ok(value!([
+            { "number": "first" },
+            { "number": "second" },
+        ]))
+    }
+
+    // ~1 KB input, only 2 short named captures at the start
+    large_input_small_captures {
+        args: func_args![
+            value: PARSE_REGEX_LARGE_INPUT,
+            pattern: Regex::new(PARSE_REGEX_LARGE_INPUT_SMALL_CAPTURES_PATTERN).unwrap()
+        ],
+        want: Ok(value!([(LARGE_INPUT_SMALL_CAPTURES_RESULT)]))
+    }
+
+    // ~1 KB input, captures span most of the string
+    large_input {
+        args: func_args![
+            value: PARSE_REGEX_LARGE_INPUT,
+            pattern: Regex::new(PARSE_REGEX_LARGE_INPUT_PATTERN).unwrap()
+        ],
+        want: Ok(value!([(LARGE_INPUT_RESULT)]))
     }
 }
 
