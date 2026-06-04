@@ -2267,7 +2267,9 @@ fn parse_regex_all_concurrent(c: &mut Criterion) {
         .collect();
 
     let mut group = c.benchmark_group("vrl_stdlib/functions/parse_regex_all_concurrent");
-    group.throughput(criterion::Throughput::Elements(REGEX_CONCURRENT_THREADS as u64));
+    group.throughput(criterion::Throughput::Elements(
+        REGEX_CONCURRENT_THREADS as u64,
+    ));
 
     group.bench_function(format!("{REGEX_CONCURRENT_THREADS}_threads"), |b| {
         b.iter_custom(|iters| {
