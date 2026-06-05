@@ -93,7 +93,7 @@ impl Function for Log {
         ctx: &mut FunctionCompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
-        let levels = vec![
+        let levels: &[Value] = &[
             "trace".into(),
             "debug".into(),
             "info".into(),
@@ -103,11 +103,15 @@ impl Function for Log {
 
         let value = arguments.required("value");
         let level = arguments
-            .optional_enum("level", &levels, state)?
+            .optional_enum("level", levels, state)?
             .unwrap_or_else(|| DEFAULT_LEVEL.clone())
             .try_bytes()
             .expect("log level not bytes");
-        let rate_limit_secs = arguments.optional("rate_limit_secs");
+        let rate_limit_secs = ConstOrExpr::<i64>::default(
+            arguments.optional("rate_limit_secs"),
+            state,
+            &DEFAULT_RATE_LIMIT_SECS,
+        )?;
 
         Ok(implementation::LogFn {
             span: ctx.span(),
@@ -133,16 +137,9 @@ impl Function for Log {
 mod implementation {
     use tracing::{debug, error, info, trace, warn};
 
-    use super::DEFAULT_RATE_LIMIT_SECS;
     use crate::compiler::prelude::*;
 
-    pub(super) fn log(
-        rate_limit_secs: Value,
-        level: &Bytes,
-        value: &Value,
-        span: Span,
-    ) -> Resolved {
-        let rate_limit_secs = rate_limit_secs.try_integer()?;
+    pub(super) fn log(rate_limit_secs: i64, level: &Bytes, value: &Value, span: Span) -> Resolved {
         let res = value.to_string_lossy();
         match level.as_ref() {
             b"trace" => {
@@ -169,15 +166,13 @@ mod implementation {
         pub(super) span: Span,
         pub(super) value: Box<dyn Expression>,
         pub(super) level: Bytes,
-        pub(super) rate_limit_secs: Option<Box<dyn Expression>>,
+        pub(super) rate_limit_secs: ConstOrExpr<i64>,
     }
 
     impl FunctionExpression for LogFn {
         fn resolve(&self, ctx: &mut Context) -> Resolved {
             let value = self.value.resolve(ctx)?;
-            let rate_limit_secs = self
-                .rate_limit_secs
-                .map_resolve_with_default(ctx, || DEFAULT_RATE_LIMIT_SECS.clone())?;
+            let rate_limit_secs = self.rate_limit_secs.resolve(ctx)?;
 
             let span = self.span;
 
@@ -214,7 +209,7 @@ mod tests {
     fn output_quotes() {
         // Check that a message is logged without additional quotes
         implementation::log(
-            value!(1),
+            1,
             &Bytes::from("warn"),
             &value!("simple test message"),
             Span::default(),

@@ -154,12 +154,13 @@ impl Function for Del {
 
     fn compile(
         &self,
-        _state: &state::TypeState,
+        state: &state::TypeState,
         ctx: &mut FunctionCompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
         let query = arguments.required_query("target")?;
-        let compact = arguments.optional("compact");
+        let compact =
+            ConstOrExpr::<bool>::default(arguments.optional("compact"), state, &DEFAULT_COMPACT)?;
 
         if let Some(target_path) = query.external_path()
             && ctx.is_read_only_path(&target_path)
@@ -177,7 +178,7 @@ impl Function for Del {
 #[derive(Debug, Clone)]
 pub(crate) struct DelFn {
     query: expression::Query,
-    compact: Option<Box<dyn Expression>>,
+    compact: ConstOrExpr<bool>,
 }
 
 impl DelFn {
@@ -190,7 +191,7 @@ impl DelFn {
                 expression::Target::External(PathPrefix::Event),
                 parse_value_path(path).unwrap(),
             ),
-            compact: None,
+            compact: ConstOrExpr::Const(false),
         }
     }
 }
@@ -211,10 +212,7 @@ impl Expression for DelFn {
     //
     // see tracking issue: https://github.com/vectordotdev/vector/issues/5887
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let compact = self
-            .compact
-            .map_resolve_with_default(ctx, || DEFAULT_COMPACT.clone())?
-            .try_boolean()?;
+        let compact = self.compact.resolve(ctx)?;
         del(&self.query, compact, ctx)
     }
 
@@ -223,13 +221,7 @@ impl Expression for DelFn {
 
         let return_type = self.query.apply_type_info(&mut state).impure();
 
-        let compact: Option<bool> = self
-            .compact
-            .as_ref()
-            .and_then(|compact| compact.resolve_constant(&state))
-            .and_then(|compact| compact.as_boolean());
-
-        if let Some(compact) = compact {
+        if let ConstOrExpr::Const(compact) = self.compact {
             self.query.delete_type_def(&mut state.external, compact);
         } else {
             let mut false_result = state.external.clone();
@@ -259,7 +251,7 @@ mod tests {
 
     #[test]
     fn del() {
-        let cases = vec![
+        let cases = [
             (
                 // String field exists
                 btreemap! { "exists" => "value" },
