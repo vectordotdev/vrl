@@ -8,33 +8,30 @@ use serde_json::{
 use crate::compiler::prelude::*;
 use crate::stdlib::json_utils::bom::StripBomFromUTF8;
 use crate::stdlib::json_utils::json_type_def::json_type_def;
-use std::sync::LazyLock;
 
-static DEFAULT_LOSSY: LazyLock<Value> = LazyLock::new(|| Value::Boolean(true));
+static DEFAULT_LOSSY: Value = Value::Boolean(true);
 
-static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
-    vec![
-        Parameter::required(
-            "value",
-            kind::BYTES,
-            "The string representation of the JSON to parse.",
-        ),
-        Parameter::optional(
-            "max_depth",
-            kind::INTEGER,
-            "Number of layers to parse for nested JSON-formatted documents.
+const PARAMETERS: &[Parameter] = &[
+    Parameter::required(
+        "value",
+        kind::BYTES,
+        "The string representation of the JSON to parse.",
+    ),
+    Parameter::optional(
+        "max_depth",
+        kind::INTEGER,
+        "Number of layers to parse for nested JSON-formatted documents.
 The value must be in the range of 1 to 128.",
-        ),
-        Parameter::optional(
-            "lossy",
-            kind::BOOLEAN,
-            "Whether to parse the JSON in a lossy manner. Replaces invalid UTF-8 characters
+    ),
+    Parameter::optional(
+        "lossy",
+        kind::BOOLEAN,
+        "Whether to parse the JSON in a lossy manner. Replaces invalid UTF-8 characters
 with the Unicode character `�` (U+FFFD) if set to true, otherwise returns an error
 if there are any invalid UTF-8 characters present.",
-        )
-        .default(&DEFAULT_LOSSY),
-    ]
-});
+    )
+    .default(&DEFAULT_LOSSY),
+];
 
 fn parse_json(value: Value, lossy: Value) -> Resolved {
     let lossy = lossy.try_boolean()?;
@@ -173,7 +170,7 @@ impl Function for ParseJson {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        PARAMETERS.as_slice()
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {

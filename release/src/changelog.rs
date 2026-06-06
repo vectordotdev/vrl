@@ -17,6 +17,46 @@ struct Fragment {
     pr_number: String,
     fragment_type: String,
     content: String,
+    authors: Vec<String>,
+}
+
+/// Strip the trailing `authors: ...` line from fragment content, returning
+/// `(description, authors)`. Fails if the field is absent or empty.
+fn parse_authors(raw: &str) -> Result<(String, Vec<String>), String> {
+    let lines: Vec<&str> = raw.lines().collect();
+
+    let last_idx = lines
+        .iter()
+        .rposition(|l| !l.trim().is_empty())
+        .ok_or("Fragment content is empty")?;
+
+    let last = lines[last_idx].trim();
+    let authors_str = last.strip_prefix("authors:").ok_or_else(|| {
+        "Fragment is missing required 'authors:' field on the last line. \
+         Example: 'authors: github_username'"
+            .to_string()
+    })?;
+
+    let authors: Vec<String> = authors_str
+        .split(',')
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
+        .collect();
+
+    if authors.is_empty() {
+        return Err("'authors:' field must list at least one GitHub username".to_string());
+    }
+
+    let description = lines[..last_idx].join("\n").trim_end().to_string();
+    Ok((description, authors))
+}
+
+fn format_authors(authors: &[String]) -> String {
+    authors
+        .iter()
+        .map(|a| format!("[@{a}](https://github.com/{a})"))
+        .collect::<Vec<_>>()
+        .join(", ")
 }
 
 /// Validate a fragment filename, returning (pr_number, fragment_type).
@@ -69,15 +109,17 @@ impl Changelog {
 
         let (pr_number, fragment_type) = validate_fragment_filename(filename)?;
 
-        let content = std::fs::read_to_string(path)
-            .map_err(|e| format!("Failed to read {}: {e}", path.display()))?
-            .trim()
-            .to_string();
+        let raw = std::fs::read_to_string(path)
+            .map_err(|e| format!("Failed to read {}: {e}", path.display()))?;
+
+        let (content, authors) =
+            parse_authors(raw.trim()).map_err(|e| format!("{} (in {})", e, path.display()))?;
 
         Ok(Fragment {
             pr_number: pr_number.to_string(),
             fragment_type: fragment_type.to_string(),
             content,
+            authors,
         })
     }
 
@@ -141,16 +183,19 @@ impl Changelog {
         version: &semver::Version,
         date: &str,
     ) -> String {
-        let mut section = format!("## [{version} ({date})]\n");
+        let tag_url = format!("https://github.com/vectordotdev/vrl/releases/tag/v{version}");
+        let mut section = format!("## [{version} ({date})]({tag_url})\n");
 
         for (type_key, type_heading) in FRAGMENT_TYPES {
             if let Some(fragments) = grouped.get(*type_key) {
                 section.push_str(&format!("\n### {type_heading}\n\n"));
                 for fragment in fragments {
                     let indented = Self::indent_continuation(&fragment.content);
+                    let authors = format_authors(&fragment.authors);
+                    let pr = &fragment.pr_number;
+                    let url = format!("https://github.com/vectordotdev/vrl/pull/{pr}");
                     section.push_str(&format!(
-                        "- {indented}\n\n  (https://github.com/vectordotdev/vrl/pull/{})\n",
-                        fragment.pr_number
+                        "- {indented}\n\n  [PR #{pr}]({url}) by {authors}\n"
                     ));
                 }
             }
@@ -241,6 +286,8 @@ impl Changelog {
 
             println!("validating '{filename}'");
             validate_fragment_filename(filename)?;
+            let full_path = self.repo_root.join(path);
+            Self::parse_fragment(&full_path)?;
         }
 
         println!("changelog additions are valid.");
@@ -331,18 +378,57 @@ mod tests {
         assert!(err.contains("expected '<pr_number>.<type>.md'"), "{err}");
     }
 
+    // --- parse_authors ---
+
+    #[test]
+    fn parse_authors_single() {
+        let (desc, authors) = parse_authors("Fixed a bug.\n\nauthors: alice").unwrap();
+        assert_eq!(desc, "Fixed a bug.");
+        assert_eq!(authors, vec!["alice"]);
+    }
+
+    #[test]
+    fn parse_authors_multiple() {
+        let (desc, authors) = parse_authors("A feature.\n\nauthors: alice, bob").unwrap();
+        assert_eq!(desc, "A feature.");
+        assert_eq!(authors, vec!["alice", "bob"]);
+    }
+
+    #[test]
+    fn parse_authors_missing() {
+        let err = parse_authors("Fixed a bug.").unwrap_err();
+        assert!(err.contains("missing required 'authors:'"), "{err}");
+    }
+
+    #[test]
+    fn parse_authors_empty_value() {
+        let err = parse_authors("Fixed a bug.\n\nauthors:").unwrap_err();
+        assert!(err.contains("at least one"), "{err}");
+    }
+
     // --- parse_fragment ---
 
     #[test]
-    fn parse_reads_and_trims_content() {
+    fn parse_reads_content_and_authors() {
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("42.fix.md");
-        fs::write(&path, "\n  Fixed a bug.  \n\n").unwrap();
+        fs::write(&path, "Fixed a bug.\n\nauthors: alice\n").unwrap();
 
         let fragment = Changelog::parse_fragment(&path).unwrap();
         assert_eq!(fragment.pr_number, "42");
         assert_eq!(fragment.fragment_type, "fix");
         assert_eq!(fragment.content, "Fixed a bug.");
+        assert_eq!(fragment.authors, vec!["alice"]);
+    }
+
+    #[test]
+    fn parse_fragment_missing_authors_errors() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("42.fix.md");
+        fs::write(&path, "Fixed a bug.\n").unwrap();
+
+        let err = Changelog::parse_fragment(&path).unwrap_err();
+        assert!(err.contains("missing required 'authors:'"), "{err}");
     }
 
     // --- collect_fragments ---
@@ -350,9 +436,9 @@ mod tests {
     #[test]
     fn groups_by_type() {
         let dir = setup_test_repo(&[
-            ("10.feature.md", "Feature A"),
-            ("11.feature.md", "Feature B"),
-            ("20.fix.md", "Bug fix"),
+            ("10.feature.md", "Feature A\n\nauthors: alice"),
+            ("11.feature.md", "Feature B\n\nauthors: bob"),
+            ("20.fix.md", "Bug fix\n\nauthors: carol"),
         ]);
         let grouped = Changelog::new(dir.path()).collect_fragments().unwrap();
 
@@ -363,7 +449,7 @@ mod tests {
 
     #[test]
     fn skips_readme() {
-        let dir = setup_test_repo(&[("10.feature.md", "A feature")]);
+        let dir = setup_test_repo(&[("10.feature.md", "A feature\n\nauthors: alice")]);
         let grouped = Changelog::new(dir.path()).collect_fragments().unwrap();
 
         assert_eq!(grouped.len(), 1);
@@ -377,6 +463,78 @@ mod tests {
         assert!(err.contains("No changelog fragments found"), "{err}");
     }
 
+    // --- check_fragments ---
+
+    fn setup_git_check_repo(fragments: &[(&str, &str)]) -> tempfile::TempDir {
+        let dir = tempfile::tempdir().unwrap();
+        let repo = dir.path();
+
+        // Use a non-protected branch name so local git hooks don't block commits.
+        // The branch name doesn't matter — only refs/remotes/origin/main is used by check_fragments.
+        for cmd in [
+            vec!["init", "-b", "base"],
+            vec!["config", "user.email", "test@test.com"],
+            vec!["config", "user.name", "Test"],
+        ] {
+            std::process::Command::new("git")
+                .args(&cmd)
+                .current_dir(repo)
+                .output()
+                .unwrap();
+        }
+
+        let changelog_dir = repo.join("changelog.d");
+        fs::create_dir(&changelog_dir).unwrap();
+        fs::write(changelog_dir.join("README.md"), "# Changelog fragments").unwrap();
+
+        std::process::Command::new("git")
+            .args(["add", "-A"])
+            .current_dir(repo)
+            .output()
+            .unwrap();
+        std::process::Command::new("git")
+            .args(["commit", "-m", "initial"])
+            .current_dir(repo)
+            .output()
+            .unwrap();
+        std::process::Command::new("git")
+            .args(["update-ref", "refs/remotes/origin/main", "HEAD"])
+            .current_dir(repo)
+            .output()
+            .unwrap();
+
+        for (name, content) in fragments {
+            fs::write(changelog_dir.join(name), content).unwrap();
+        }
+
+        std::process::Command::new("git")
+            .args(["add", "-A"])
+            .current_dir(repo)
+            .output()
+            .unwrap();
+        std::process::Command::new("git")
+            .args(["commit", "-m", "add fragments"])
+            .current_dir(repo)
+            .output()
+            .unwrap();
+
+        dir
+    }
+
+    #[test]
+    fn check_fragments_valid_passes() {
+        let dir = setup_git_check_repo(&[("123.fix.md", "Fixed something.\n\nauthors: alice")]);
+        let result = Changelog::new(dir.path()).check_fragments();
+        assert!(result.is_ok(), "{result:?}");
+    }
+
+    #[test]
+    fn check_fragments_missing_authors_fails() {
+        let dir = setup_git_check_repo(&[("123.fix.md", "Fixed something.\n")]);
+        let err = Changelog::new(dir.path()).check_fragments().unwrap_err();
+        assert!(err.contains("authors"), "{err}");
+    }
+
     // --- render_section ---
 
     #[test]
@@ -388,6 +546,7 @@ mod tests {
                 pr_number: "20".to_string(),
                 fragment_type: "fix".to_string(),
                 content: "Fixed a bug".to_string(),
+                authors: vec!["alice".to_string()],
             }],
         );
         grouped.insert(
@@ -396,6 +555,7 @@ mod tests {
                 pr_number: "10".to_string(),
                 fragment_type: "breaking".to_string(),
                 content: "Removed old API".to_string(),
+                authors: vec!["bob".to_string()],
             }],
         );
 
@@ -416,6 +576,7 @@ mod tests {
                 pr_number: "1".to_string(),
                 fragment_type: "fix".to_string(),
                 content: "A fix".to_string(),
+                authors: vec!["alice".to_string()],
             }],
         );
 
@@ -436,6 +597,7 @@ mod tests {
                 pr_number: "42".to_string(),
                 fragment_type: "feature".to_string(),
                 content: "Added something cool".to_string(),
+                authors: vec!["alice".to_string()],
             }],
         );
 
@@ -443,15 +605,37 @@ mod tests {
             Changelog::render_section(&grouped, &semver::Version::new(1, 2, 0), "2026-04-16");
 
         let expected = indoc! {"
-            ## [1.2.0 (2026-04-16)]
+            ## [1.2.0 (2026-04-16)](https://github.com/vectordotdev/vrl/releases/tag/v1.2.0)
 
             ### New Features
 
             - Added something cool
 
-              (https://github.com/vectordotdev/vrl/pull/42)
+              [PR #42](https://github.com/vectordotdev/vrl/pull/42) by [@alice](https://github.com/alice)
         "};
         assert_eq!(section, expected);
+    }
+
+    #[test]
+    fn section_format_multiple_authors() {
+        let mut grouped = BTreeMap::new();
+        grouped.insert(
+            "fix".to_string(),
+            vec![Fragment {
+                pr_number: "7".to_string(),
+                fragment_type: "fix".to_string(),
+                content: "A fix".to_string(),
+                authors: vec!["alice".to_string(), "bob".to_string()],
+            }],
+        );
+
+        let section =
+            Changelog::render_section(&grouped, &semver::Version::new(0, 1, 0), "2026-01-01");
+
+        assert!(
+            section.contains("[@alice](https://github.com/alice), [@bob](https://github.com/bob)"),
+            "{section}"
+        );
     }
 
     #[test]
@@ -464,6 +648,7 @@ mod tests {
                 fragment_type: "breaking".to_string(),
                 content: "Removed the old API.\n\nMigrate by changing `foo()` to `bar()`."
                     .to_string(),
+                authors: vec!["alice".to_string()],
             }],
         );
 
@@ -471,7 +656,7 @@ mod tests {
             Changelog::render_section(&grouped, &semver::Version::new(2, 0, 0), "2026-04-17");
 
         let expected = indoc! {"
-            ## [2.0.0 (2026-04-17)]
+            ## [2.0.0 (2026-04-17)](https://github.com/vectordotdev/vrl/releases/tag/v2.0.0)
 
             ### Breaking Changes & Upgrade Guide
 
@@ -479,7 +664,7 @@ mod tests {
 
               Migrate by changing `foo()` to `bar()`.
 
-              (https://github.com/vectordotdev/vrl/pull/99)
+              [PR #99](https://github.com/vectordotdev/vrl/pull/99) by [@alice](https://github.com/alice)
         "};
         assert_eq!(section, expected);
     }
@@ -513,7 +698,10 @@ mod tests {
 
     #[test]
     fn updates_changelog_and_removes_fragments() {
-        let dir = setup_test_repo(&[("10.feature.md", "New feature"), ("20.fix.md", "Bug fix")]);
+        let dir = setup_test_repo(&[
+            ("10.feature.md", "New feature\n\nauthors: alice"),
+            ("20.fix.md", "Bug fix\n\nauthors: bob"),
+        ]);
 
         Changelog::new(dir.path())
             .generate_and_apply(&semver::Version::new(1, 0, 0))

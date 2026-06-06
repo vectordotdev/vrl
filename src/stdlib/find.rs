@@ -1,20 +1,16 @@
 use crate::compiler::prelude::*;
-use std::sync::LazyLock;
 
-static DEFAULT_FROM: LazyLock<Value> = LazyLock::new(|| Value::Integer(0));
+static DEFAULT_FROM: Value = Value::Integer(0);
 
-static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
-    vec![
-        Parameter::required("value", kind::BYTES, "The string to find the pattern in."),
-        Parameter::required(
-            "pattern",
-            kind::BYTES | kind::REGEX,
-            "The regular expression or string pattern to match against.",
-        ),
-        Parameter::optional("from", kind::INTEGER, "Offset to start searching.")
-            .default(&DEFAULT_FROM),
-    ]
-});
+const PARAMETERS: &[Parameter] = &[
+    Parameter::required("value", kind::BYTES, "The string to find the pattern in."),
+    Parameter::required(
+        "pattern",
+        kind::BYTES | kind::REGEX,
+        "The regular expression or string pattern to match against.",
+    ),
+    Parameter::optional("from", kind::INTEGER, "Offset to start searching.").default(&DEFAULT_FROM),
+];
 
 #[allow(clippy::cast_possible_wrap)]
 fn find(value: Value, pattern: Value, from: Value) -> Resolved {
@@ -47,7 +43,7 @@ impl Function for Find {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        PARAMETERS.as_slice()
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {

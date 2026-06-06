@@ -925,4 +925,106 @@ mod test {
             &Kind::integer()
         );
     }
+
+    /// Regression for vectordotdev/vrl#453: a discarded fallible expression
+    /// followed by an assignment in the same block must not attach its
+    /// fallibility to the assignment as `E103: unhandled fallible assignment`.
+    /// The discarded fallibility belongs to the prior expression (E100), and
+    /// must point at that prior expression's span.
+    #[test]
+    fn discarded_fallible_does_not_taint_next_assignment() {
+        let src = indoc::indoc! {r"
+            output = []
+            for_each(.) -> |key, value| {
+                e = {}
+                set(e, [key], value)
+                output = push(output, e)
+            }
+            . = output
+        "};
+        assert_eq!(
+            error_codes_and_spans(src),
+            vec![(100, "set(e, [key], value)".to_owned())],
+        );
+    }
+
+    /// Regression for vectordotdev/vrl#36: same root cause as #453 but in a
+    /// plain block (no closure). The fallibility of `push(.x, 1)` previously
+    /// landed on the *next* assignment (`.b = 2`); after the fix it must land
+    /// on the actual fallible call.
+    #[test]
+    fn discarded_fallible_in_plain_block() {
+        let src = indoc::indoc! {r"
+            {
+                .a = 1
+                push(.x, 1)
+                .b = 2
+            }
+        "};
+        assert_eq!(error_codes_and_spans(src), vec![(110, ".x".to_owned())]);
+    }
+
+    #[test]
+    fn multiple_unhandled_fallibilities_surface_in_one_pass() {
+        let src = indoc::indoc! {r"
+            {
+                push(.x, 1)
+                .b = push(.y, 2)
+            }
+        "};
+        assert_eq!(
+            error_codes_and_spans(src),
+            vec![(103, "push(.y, 2)".to_owned()), (110, ".x".to_owned())],
+        );
+    }
+
+    /// An outer consumer (`abort`) wraps a block with an inner unhandled
+    /// fallibility. That fallibility belongs to the abort scope and must
+    /// not leak as a separate E100/E110 once abort raises its own error.
+    #[test]
+    fn priors_in_consumer_scope_do_not_leak() {
+        let src = indoc::indoc! {r"
+            abort {
+                push(.x, 1)
+                .b = push(.y, 2)
+            }
+        "};
+        assert_eq!(
+            error_codes_and_spans(src),
+            vec![(103, "push(.y, 2)".to_owned())],
+        );
+    }
+
+    /// `1 ?? rhs` is rejected as an unnecessary error coalescing operation
+    /// (E651). The rhs's fallibility is subsumed by the op-level error
+    /// and must not double-report as E100 at the root drain.
+    #[test]
+    fn op_hard_error_drains_subexpression_fallibilities() {
+        assert_eq!(
+            error_codes_and_spans("1 ?? parse_json(\"{}\")"),
+            vec![(651, "1".to_owned())],
+        );
+    }
+
+    /// Compile `src` and return the error code and source text covered by
+    /// each error's primary label, in emission order. Panics on success.
+    fn error_codes_and_spans(src: &str) -> Vec<(usize, String)> {
+        crate::compiler::compile(src, &crate::stdlib::all())
+            .err()
+            .expect("expected compilation to fail")
+            .iter()
+            .filter(|d| d.is_error())
+            .map(|d| {
+                let primary = d
+                    .labels
+                    .iter()
+                    .find(|l| l.primary)
+                    .expect("error should have a primary label");
+                (
+                    d.code,
+                    src[primary.span.start()..primary.span.end()].to_owned(),
+                )
+            })
+            .collect()
+    }
 }

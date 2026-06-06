@@ -3,32 +3,29 @@ use std::collections::btree_map;
 
 use crate::compiler::expression::Expr;
 use crate::compiler::prelude::*;
-use std::sync::LazyLock;
 
-static DEFAULT_SEPARATOR: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from(".")));
-static DEFAULT_EXCEPT: LazyLock<Value> = LazyLock::new(|| Value::Array(vec![]));
+static DEFAULT_SEPARATOR: Value = Value::Bytes(Bytes::from_static(".".as_bytes()));
+static DEFAULT_EXCEPT: Value = Value::Array(vec![]);
 
-static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
-    vec![
-        Parameter::required(
-            "value",
-            kind::OBJECT | kind::ARRAY,
-            "The array or object to flatten.",
-        ),
-        Parameter::optional(
-            "separator",
-            kind::BYTES,
-            "The separator to join nested keys",
-        )
-        .default(&DEFAULT_SEPARATOR),
-        Parameter::optional(
-            "except",
-            kind::ARRAY,
-            "An array of key names to exclude from flattening at any depth.",
-        )
-        .default(&DEFAULT_EXCEPT),
-    ]
-});
+const PARAMETERS: &[Parameter] = &[
+    Parameter::required(
+        "value",
+        kind::OBJECT | kind::ARRAY,
+        "The array or object to flatten.",
+    ),
+    Parameter::optional(
+        "separator",
+        kind::BYTES,
+        "The separator to join nested keys",
+    )
+    .default(&DEFAULT_SEPARATOR),
+    Parameter::optional(
+        "except",
+        kind::ARRAY,
+        "An array of key names to exclude from flattening at any depth.",
+    )
+    .default(&DEFAULT_EXCEPT),
+];
 
 fn flatten(value: Value, separator: &Value, except: &HashSet<KeyString>) -> Resolved {
     let separator = separator.try_bytes_utf8_lossy()?;
@@ -75,7 +72,7 @@ impl Function for Flatten {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        PARAMETERS.as_slice()
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {

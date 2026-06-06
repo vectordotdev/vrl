@@ -3,10 +3,9 @@ use crate::compiler::function::EnumVariant;
 use crate::compiler::prelude::*;
 use crate::value;
 use std::collections::BTreeMap;
-use std::sync::LazyLock;
 
-static DEFAULT_TIMESTAMP_FORMAT: LazyLock<Value> =
-    LazyLock::new(|| Value::Bytes(Bytes::from("%d/%b/%Y:%T %z")));
+static DEFAULT_TIMESTAMP_FORMAT: Value =
+    Value::Bytes(Bytes::from_static("%d/%b/%Y:%T %z".as_bytes()));
 
 static FORMAT_ENUM: &[EnumVariant] = &[
     EnumVariant {
@@ -23,16 +22,14 @@ static FORMAT_ENUM: &[EnumVariant] = &[
     },
 ];
 
-static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
-    vec![
-        Parameter::required("value", kind::BYTES, "The string to parse."),
-        Parameter::required("format", kind::BYTES, "The format to use for parsing the log.")
-            .enum_variants(FORMAT_ENUM),
-        Parameter::optional("timestamp_format", kind::BYTES, "The [date/time format](https://docs.rs/chrono/latest/chrono/format/strftime/index.html) to use for
+const PARAMETERS: &[Parameter] = &[
+    Parameter::required("value", kind::BYTES, "The string to parse."),
+    Parameter::required("format", kind::BYTES, "The format to use for parsing the log.")
+        .enum_variants(FORMAT_ENUM),
+    Parameter::optional("timestamp_format", kind::BYTES, "The [date/time format](https://docs.rs/chrono/latest/chrono/format/strftime/index.html) to use for
 encoding the timestamp. The time is parsed in local time if the timestamp does not specify a timezone.")
-            .default(&DEFAULT_TIMESTAMP_FORMAT),
-    ]
-});
+        .default(&DEFAULT_TIMESTAMP_FORMAT),
+];
 
 fn parse_apache_log(
     bytes: &Value,
@@ -101,7 +98,7 @@ impl Function for ParseApacheLog {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        PARAMETERS.as_slice()
+        PARAMETERS
     }
 
     fn compile(

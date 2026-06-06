@@ -1,35 +1,32 @@
 use super::util;
 use crate::compiler::prelude::*;
-use std::sync::LazyLock;
 
-static DEFAULT_RECURSIVE: LazyLock<Value> = LazyLock::new(|| Value::Boolean(true));
-static DEFAULT_NULL: LazyLock<Value> = LazyLock::new(|| Value::Boolean(true));
-static DEFAULT_STRING: LazyLock<Value> = LazyLock::new(|| Value::Boolean(true));
-static DEFAULT_OBJECT: LazyLock<Value> = LazyLock::new(|| Value::Boolean(true));
-static DEFAULT_ARRAY: LazyLock<Value> = LazyLock::new(|| Value::Boolean(true));
-static DEFAULT_NULLISH: LazyLock<Value> = LazyLock::new(|| Value::Boolean(false));
+static DEFAULT_RECURSIVE: Value = Value::Boolean(true);
+static DEFAULT_NULL: Value = Value::Boolean(true);
+static DEFAULT_STRING: Value = Value::Boolean(true);
+static DEFAULT_OBJECT: Value = Value::Boolean(true);
+static DEFAULT_ARRAY: Value = Value::Boolean(true);
+static DEFAULT_NULLISH: Value = Value::Boolean(false);
 
-static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
-    vec![
-        Parameter::required(
-            "value",
-            kind::OBJECT | kind::ARRAY,
-            "The object or array to compact.",
-        ),
-        Parameter::optional("recursive", kind::BOOLEAN, "Whether the compaction be recursive.")
-            .default(&DEFAULT_RECURSIVE),
-        Parameter::optional("null", kind::BOOLEAN, "Whether null should be treated as an empty value.")
-            .default(&DEFAULT_NULL),
-        Parameter::optional("string", kind::BOOLEAN, "Whether an empty string should be treated as an empty value.")
-            .default(&DEFAULT_STRING),
-        Parameter::optional("object", kind::BOOLEAN, "Whether an empty object should be treated as an empty value.")
-            .default(&DEFAULT_OBJECT),
-        Parameter::optional("array", kind::BOOLEAN, "Whether an empty array should be treated as an empty value.")
-            .default(&DEFAULT_ARRAY),
-        Parameter::optional("nullish", kind::BOOLEAN, "Tests whether the value is \"nullish\" as defined by the [`is_nullish`](#is_nullish) function.")
-            .default(&DEFAULT_NULLISH),
-    ]
-});
+const PARAMETERS: &[Parameter] = &[
+    Parameter::required(
+        "value",
+        kind::OBJECT | kind::ARRAY,
+        "The object or array to compact.",
+    ),
+    Parameter::optional("recursive", kind::BOOLEAN, "Whether the compaction be recursive.")
+        .default(&DEFAULT_RECURSIVE),
+    Parameter::optional("null", kind::BOOLEAN, "Whether null should be treated as an empty value.")
+        .default(&DEFAULT_NULL),
+    Parameter::optional("string", kind::BOOLEAN, "Whether an empty string should be treated as an empty value.")
+        .default(&DEFAULT_STRING),
+    Parameter::optional("object", kind::BOOLEAN, "Whether an empty object should be treated as an empty value.")
+        .default(&DEFAULT_OBJECT),
+    Parameter::optional("array", kind::BOOLEAN, "Whether an empty array should be treated as an empty value.")
+        .default(&DEFAULT_ARRAY),
+    Parameter::optional("nullish", kind::BOOLEAN, "Tests whether the value is \"nullish\" as defined by the [`is_nullish`](#is_nullish) function.")
+        .default(&DEFAULT_NULLISH),
+];
 
 fn compact(
     recursive: Value,
@@ -85,7 +82,7 @@ impl Function for Compact {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        PARAMETERS.as_slice()
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {
