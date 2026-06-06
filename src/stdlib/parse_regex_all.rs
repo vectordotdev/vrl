@@ -1,6 +1,6 @@
-use crate::compiler::prelude::*;
-use crate::value::KeyString;
 use regex::Regex;
+
+use crate::compiler::prelude::*;
 
 use super::util;
 
@@ -22,16 +22,11 @@ contains the whole match.",
     .default(&DEFAULT_NUMERIC_GROUPS),
 ];
 
-fn parse_regex_all(
-    value: &Value,
-    pattern: &Regex,
-    capture_info: &[(KeyString, usize)],
-    numeric_groups: bool,
-) -> Resolved {
+fn parse_regex_all(value: &Value, numeric_groups: bool, pattern: &Regex) -> Resolved {
     let value = value.try_bytes_utf8_lossy()?;
     Ok(pattern
         .captures_iter(&value)
-        .map(|capture| util::capture_regex_to_map(&capture, capture_info, numeric_groups).into())
+        .map(|capture| util::capture_regex_to_map(pattern, &capture, numeric_groups).into())
         .collect::<Vec<Value>>()
         .into())
 }
@@ -85,11 +80,6 @@ impl Function for ParseRegexAll {
                 All values are returned as strings. We recommend manually coercing values to desired
                 types as you see fit.
             "},
-            indoc! {"
-                When `pattern` is a dynamic expression (e.g. a variable or the result of `to_regex`),
-                the regex is compiled on every function call. For high-throughput pipelines, prefer
-                a regex literal so the pattern is compiled once at program compile time.
-            "},
         ]
     }
 
@@ -99,26 +89,17 @@ impl Function for ParseRegexAll {
 
     fn compile(
         &self,
-        state: &state::TypeState,
+        _state: &state::TypeState,
         _ctx: &mut FunctionCompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
         let pattern = arguments.required("pattern");
-        let capture_info = pattern.resolve_constant(state).and_then(|v| {
-            v.as_regex().map(|r| {
-                r.capture_names()
-                    .enumerate()
-                    .filter_map(|(i, name)| name.map(|n| (KeyString::from(n), i)))
-                    .collect::<Vec<_>>()
-            })
-        });
         let numeric_groups = arguments.optional("numeric_groups");
 
         Ok(ParseRegexAllFn {
             value,
             pattern,
-            capture_info,
             numeric_groups,
         }
         .as_expr())
@@ -181,7 +162,6 @@ impl Function for ParseRegexAll {
 pub(crate) struct ParseRegexAllFn {
     value: Box<dyn Expression>,
     pattern: Box<dyn Expression>,
-    capture_info: Option<Vec<(KeyString, usize)>>,
     numeric_groups: Option<Box<dyn Expression>>,
 }
 
@@ -190,24 +170,13 @@ impl FunctionExpression for ParseRegexAllFn {
         let value = self.value.resolve(ctx)?;
         let numeric_groups = self
             .numeric_groups
-            .map_resolve_with_default(ctx, || DEFAULT_NUMERIC_GROUPS.clone())?
-            .try_boolean()?;
+            .map_resolve_with_default(ctx, || DEFAULT_NUMERIC_GROUPS.clone())?;
         let resolved = self.pattern.resolve(ctx)?;
         let pattern = resolved
             .as_regex()
             .ok_or_else(|| ExpressionError::from("failed to resolve regex"))?;
-        let dynamic_capture_info;
-        let capture_info: &[(KeyString, usize)] = if let Some(info) = &self.capture_info {
-            info.as_slice()
-        } else {
-            dynamic_capture_info = pattern
-                .capture_names()
-                .enumerate()
-                .filter_map(|(i, name)| name.map(|n| (KeyString::from(n), i)))
-                .collect::<Vec<_>>();
-            dynamic_capture_info.as_slice()
-        };
-        parse_regex_all(&value, pattern, capture_info, numeric_groups)
+
+        parse_regex_all(&value, numeric_groups.try_boolean()?, pattern)
     }
 
     fn type_def(&self, state: &state::TypeState) -> TypeDef {

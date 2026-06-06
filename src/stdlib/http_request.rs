@@ -520,6 +520,7 @@ impl Function for HttpRequest {
 #[cfg(all(test, not(target_arch = "wasm32")))]
 mod tests {
     use super::*;
+    use crate::compiler::value::VrlValueConvert;
     use crate::value;
 
     fn execute_http_request(http_request_fn: &HttpRequestFn) -> Resolved {
@@ -530,10 +531,36 @@ mod tests {
         http_request_fn.resolve(&mut ctx)
     }
 
+    async fn start_mock_server(body: String) -> u16 {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+        use tokio::net::TcpListener;
+
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let port = listener.local_addr().unwrap().port();
+
+        tokio::spawn(async move {
+            if let Ok((mut stream, _)) = listener.accept().await {
+                let mut buf = vec![0u8; 4096];
+                let _ = stream.read(&mut buf).await;
+                let response = format!(
+                    "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+                    body.len(),
+                    body
+                );
+                let _ = stream.write_all(response.as_bytes()).await;
+            }
+        });
+
+        port
+    }
+
     #[tokio::test(flavor = "multi_thread")]
     async fn test_basic_get_request() {
+        let port = start_mock_server(r#"{"args":{}}"#.to_string()).await;
+        let url = format!("http://127.0.0.1:{port}/get");
+
         let func: HttpRequestFn = HttpRequestFn {
-            url: expr!("https://httpbin.org/get"),
+            url: Value::from(url.as_str()).into_expression(),
             method: Some(expr!("get")),
             headers: Some(expr!({})),
             body: Some(expr!("")),
@@ -549,8 +576,7 @@ mod tests {
         let response: serde_json::Value =
             serde_json::from_str(body.as_ref()).expect("Failed to parse JSON");
 
-        assert!(response.get("url").is_some());
-        assert_eq!(response["url"], "https://httpbin.org/get");
+        assert!(response.get("args").is_some());
     }
 
     #[tokio::test(flavor = "multi_thread")]
@@ -573,7 +599,7 @@ mod tests {
     #[tokio::test(flavor = "multi_thread")]
     async fn test_invalid_header() {
         let func = HttpRequestFn {
-            url: expr!("https://httpbin.org/get"),
+            url: expr!("http://127.0.0.1:1/get"),
             method: Some(expr!("get")),
             headers: Some(expr!({"Invalid Header With Spaces": "value"})),
             body: Some(expr!("")),
@@ -590,7 +616,7 @@ mod tests {
     #[tokio::test(flavor = "multi_thread")]
     async fn test_invalid_proxy() {
         let func = HttpRequestFn {
-            url: expr!("https://httpbin.org/get"),
+            url: expr!("http://127.0.0.1:1/get"),
             method: Some(expr!("get")),
             headers: Some(expr!({})),
             body: Some(expr!("")),
