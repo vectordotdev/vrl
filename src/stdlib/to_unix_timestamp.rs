@@ -1,9 +1,8 @@
 use crate::compiler::function::EnumVariant;
 use crate::compiler::prelude::*;
 use std::str::FromStr;
-use std::sync::LazyLock;
 
-static DEFAULT_UNIT: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from("seconds")));
+static DEFAULT_UNIT: Value = Value::Bytes(Bytes::from_static("seconds".as_bytes()));
 
 static UNIT_ENUM: &[EnumVariant] = &[
     EnumVariant {
@@ -20,18 +19,16 @@ static UNIT_ENUM: &[EnumVariant] = &[
     },
 ];
 
-static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
-    vec![
-        Parameter::required(
-            "value",
-            kind::TIMESTAMP,
-            "The timestamp to convert into a Unix timestamp.",
-        ),
-        Parameter::optional("unit", kind::BYTES, "The time unit.")
-            .default(&DEFAULT_UNIT)
-            .enum_variants(UNIT_ENUM),
-    ]
-});
+const PARAMETERS: &[Parameter] = &[
+    Parameter::required(
+        "value",
+        kind::TIMESTAMP,
+        "The timestamp to convert into a Unix timestamp.",
+    ),
+    Parameter::optional("unit", kind::BYTES, "The time unit.")
+        .default(&DEFAULT_UNIT)
+        .enum_variants(UNIT_ENUM),
+];
 
 fn to_unix_timestamp(value: Value, unit: Unit) -> Resolved {
     let ts = value.try_timestamp()?;
@@ -103,7 +100,7 @@ impl Function for ToUnixTimestamp {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        PARAMETERS.as_slice()
+        PARAMETERS
     }
 
     fn compile(

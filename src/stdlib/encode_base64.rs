@@ -1,30 +1,27 @@
 use crate::compiler::function::EnumVariant;
 use crate::compiler::prelude::*;
 use crate::stdlib::util::Base64Charset;
-use std::sync::LazyLock;
 
-static DEFAULT_PADDING: LazyLock<Value> = LazyLock::new(|| Value::Boolean(true));
-static DEFAULT_CHARSET: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from("standard")));
+static DEFAULT_PADDING: Value = Value::Boolean(true);
+static DEFAULT_CHARSET: Value = Value::Bytes(Bytes::from_static("standard".as_bytes()));
 
-static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
-    vec![
-        Parameter::required("value", kind::BYTES, "The string to encode."),
-        Parameter::optional("padding", kind::BOOLEAN, "Whether the Base64 output is [padded](https://en.wikipedia.org/wiki/Base64#Output_padding).")
-            .default(&DEFAULT_PADDING),
-        Parameter::optional("charset", kind::BYTES, "The character set to use when encoding the data.")
-            .default(&DEFAULT_CHARSET)
-            .enum_variants(&[
-                EnumVariant {
-                    value: "standard",
-                    description: "[Standard](https://tools.ietf.org/html/rfc4648#section-4) Base64 format.",
-                },
-                EnumVariant {
-                    value: "url_safe",
-                    description: "Modified Base64 for [URL variants](https://en.wikipedia.org/wiki/Base64#URL_applications).",
-                },
-            ]),
-    ]
-});
+const PARAMETERS: &[Parameter] = &[
+    Parameter::required("value", kind::BYTES, "The string to encode."),
+    Parameter::optional("padding", kind::BOOLEAN, "Whether the Base64 output is [padded](https://en.wikipedia.org/wiki/Base64#Output_padding).")
+        .default(&DEFAULT_PADDING),
+    Parameter::optional("charset", kind::BYTES, "The character set to use when encoding the data.")
+        .default(&DEFAULT_CHARSET)
+        .enum_variants(&[
+            EnumVariant {
+                value: "standard",
+                description: "[Standard](https://tools.ietf.org/html/rfc4648#section-4) Base64 format.",
+            },
+            EnumVariant {
+                value: "url_safe",
+                description: "Modified Base64 for [URL variants](https://en.wikipedia.org/wiki/Base64#URL_applications).",
+            },
+        ]),
+];
 
 fn encode_base64(value: Value, padding: Value, charset: Value) -> Resolved {
     let value = value.try_bytes()?;
@@ -62,7 +59,7 @@ impl Function for EncodeBase64 {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        PARAMETERS.as_slice()
+        PARAMETERS
     }
 
     fn compile(

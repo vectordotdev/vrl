@@ -29,7 +29,7 @@ static VARIANT_ENUM: &[EnumVariant] = &[
     },
 ];
 
-static PARAMETERS: &[Parameter] = &[
+const PARAMETERS: &[Parameter] = &[
     Parameter::required(
         "value",
         kind::BYTES,

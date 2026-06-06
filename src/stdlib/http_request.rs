@@ -322,49 +322,44 @@ mod non_wasm {
 #[cfg(not(target_arch = "wasm32"))]
 use non_wasm::*;
 
-use std::sync::LazyLock;
+static DEFAULT_METHOD: Value = Value::Bytes(Bytes::from_static("get".as_bytes()));
+static DEFAULT_HEADERS: Value = Value::Object(std::collections::BTreeMap::new());
+static DEFAULT_BODY: Value = Value::Bytes(Bytes::from_static("".as_bytes()));
+static DEFAULT_REDACT_HEADERS: Value = Value::Boolean(true);
 
-static DEFAULT_METHOD: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from("get")));
-static DEFAULT_HEADERS: LazyLock<Value> =
-    LazyLock::new(|| Value::Object(std::collections::BTreeMap::new()));
-static DEFAULT_BODY: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from("")));
-static DEFAULT_REDACT_HEADERS: LazyLock<Value> = LazyLock::new(|| Value::Boolean(true));
-
-static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
-    vec![
-        Parameter::required("url", kind::BYTES, "The URL to make the HTTP request to."),
-        Parameter::optional(
-            "method",
-            kind::BYTES,
-            "The HTTP method to use (e.g., GET, POST, PUT, DELETE). Defaults to GET.",
-        )
-        .default(&DEFAULT_METHOD),
-        Parameter::optional(
-            "headers",
-            kind::OBJECT,
-            "An object containing HTTP headers to send with the request.",
-        )
-        .default(&DEFAULT_HEADERS),
-        Parameter::optional("body", kind::BYTES, "The request body content to send.")
-            .default(&DEFAULT_BODY),
-        Parameter::optional(
-            "http_proxy",
-            kind::BYTES,
-            "HTTP proxy URL to use for the request.",
-        ),
-        Parameter::optional(
-            "https_proxy",
-            kind::BYTES,
-            "HTTPS proxy URL to use for the request.",
-        ),
-        Parameter::optional(
-            "redact_headers",
-            kind::BOOLEAN,
-            "Whether to redact sensitive header values in error messages.",
-        )
-        .default(&DEFAULT_REDACT_HEADERS),
-    ]
-});
+const PARAMETERS: &[Parameter] = &[
+    Parameter::required("url", kind::BYTES, "The URL to make the HTTP request to."),
+    Parameter::optional(
+        "method",
+        kind::BYTES,
+        "The HTTP method to use (e.g., GET, POST, PUT, DELETE). Defaults to GET.",
+    )
+    .default(&DEFAULT_METHOD),
+    Parameter::optional(
+        "headers",
+        kind::OBJECT,
+        "An object containing HTTP headers to send with the request.",
+    )
+    .default(&DEFAULT_HEADERS),
+    Parameter::optional("body", kind::BYTES, "The request body content to send.")
+        .default(&DEFAULT_BODY),
+    Parameter::optional(
+        "http_proxy",
+        kind::BYTES,
+        "HTTP proxy URL to use for the request.",
+    ),
+    Parameter::optional(
+        "https_proxy",
+        kind::BYTES,
+        "HTTPS proxy URL to use for the request.",
+    ),
+    Parameter::optional(
+        "redact_headers",
+        kind::BOOLEAN,
+        "Whether to redact sensitive header values in error messages.",
+    )
+    .default(&DEFAULT_REDACT_HEADERS),
+];
 
 #[derive(Clone, Copy, Debug)]
 pub struct HttpRequest;
@@ -472,7 +467,7 @@ impl Function for HttpRequest {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        PARAMETERS.as_slice()
+        PARAMETERS
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -525,6 +520,7 @@ impl Function for HttpRequest {
 #[cfg(all(test, not(target_arch = "wasm32")))]
 mod tests {
     use super::*;
+    use crate::compiler::value::VrlValueConvert;
     use crate::value;
 
     fn execute_http_request(http_request_fn: &HttpRequestFn) -> Resolved {
@@ -535,10 +531,36 @@ mod tests {
         http_request_fn.resolve(&mut ctx)
     }
 
+    async fn start_mock_server(body: String) -> u16 {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+        use tokio::net::TcpListener;
+
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let port = listener.local_addr().unwrap().port();
+
+        tokio::spawn(async move {
+            if let Ok((mut stream, _)) = listener.accept().await {
+                let mut buf = vec![0u8; 4096];
+                let _ = stream.read(&mut buf).await;
+                let response = format!(
+                    "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+                    body.len(),
+                    body
+                );
+                let _ = stream.write_all(response.as_bytes()).await;
+            }
+        });
+
+        port
+    }
+
     #[tokio::test(flavor = "multi_thread")]
     async fn test_basic_get_request() {
+        let port = start_mock_server(r#"{"args":{}}"#.to_string()).await;
+        let url = format!("http://127.0.0.1:{port}/get");
+
         let func: HttpRequestFn = HttpRequestFn {
-            url: expr!("https://httpbin.org/get"),
+            url: Value::from(url.as_str()).into_expression(),
             method: Some(expr!("get")),
             headers: Some(expr!({})),
             body: Some(expr!("")),
@@ -554,8 +576,7 @@ mod tests {
         let response: serde_json::Value =
             serde_json::from_str(body.as_ref()).expect("Failed to parse JSON");
 
-        assert!(response.get("url").is_some());
-        assert_eq!(response["url"], "https://httpbin.org/get");
+        assert!(response.get("args").is_some());
     }
 
     #[tokio::test(flavor = "multi_thread")]
@@ -578,7 +599,7 @@ mod tests {
     #[tokio::test(flavor = "multi_thread")]
     async fn test_invalid_header() {
         let func = HttpRequestFn {
-            url: expr!("https://httpbin.org/get"),
+            url: expr!("http://127.0.0.1:1/get"),
             method: Some(expr!("get")),
             headers: Some(expr!({"Invalid Header With Spaces": "value"})),
             body: Some(expr!("")),
@@ -595,7 +616,7 @@ mod tests {
     #[tokio::test(flavor = "multi_thread")]
     async fn test_invalid_proxy() {
         let func = HttpRequestFn {
-            url: expr!("https://httpbin.org/get"),
+            url: expr!("http://127.0.0.1:1/get"),
             method: Some(expr!("get")),
             headers: Some(expr!({})),
             body: Some(expr!("")),

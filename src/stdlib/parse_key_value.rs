@@ -17,14 +17,12 @@ use std::{
     collections::{BTreeMap, btree_map::Entry},
     iter::Peekable,
     str::{Chars, FromStr},
-    sync::LazyLock,
 };
 
-static DEFAULT_KEY_VALUE_DELIMITER: LazyLock<Value> =
-    LazyLock::new(|| Value::Bytes(Bytes::from("=")));
-static DEFAULT_FIELD_DELIMITER: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from(" ")));
-static DEFAULT_WHITESPACE: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from("lenient")));
-static DEFAULT_ACCEPT_STANDALONE_KEY: LazyLock<Value> = LazyLock::new(|| Value::Boolean(true));
+static DEFAULT_KEY_VALUE_DELIMITER: Value = Value::Bytes(Bytes::from_static("=".as_bytes()));
+static DEFAULT_FIELD_DELIMITER: Value = Value::Bytes(Bytes::from_static(" ".as_bytes()));
+static DEFAULT_WHITESPACE: Value = Value::Bytes(Bytes::from_static("lenient".as_bytes()));
+static DEFAULT_ACCEPT_STANDALONE_KEY: Value = Value::Boolean(true);
 
 static WHITESPACE_ENUM: &[EnumVariant] = &[
     EnumVariant {
@@ -37,20 +35,18 @@ static WHITESPACE_ENUM: &[EnumVariant] = &[
     },
 ];
 
-static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
-    vec![
-        Parameter::required("value", kind::BYTES, "The string to parse."),
-        Parameter::optional("key_value_delimiter", kind::BYTES, "The string that separates the key from the value.")
-            .default(&DEFAULT_KEY_VALUE_DELIMITER),
-        Parameter::optional("field_delimiter", kind::BYTES, "The string that separates each key-value pair.")
-            .default(&DEFAULT_FIELD_DELIMITER),
-        Parameter::optional("whitespace", kind::BYTES, "Defines the acceptance of unnecessary whitespace surrounding the configured `key_value_delimiter`.")
-            .default(&DEFAULT_WHITESPACE)
-            .enum_variants(WHITESPACE_ENUM),
-        Parameter::optional("accept_standalone_key", kind::BOOLEAN, "Whether a standalone key should be accepted, the resulting object associates such keys with the boolean value `true`.")
-            .default(&DEFAULT_ACCEPT_STANDALONE_KEY),
-    ]
-});
+const PARAMETERS: &[Parameter] = &[
+    Parameter::required("value", kind::BYTES, "The string to parse."),
+    Parameter::optional("key_value_delimiter", kind::BYTES, "The string that separates the key from the value.")
+        .default(&DEFAULT_KEY_VALUE_DELIMITER),
+    Parameter::optional("field_delimiter", kind::BYTES, "The string that separates each key-value pair.")
+        .default(&DEFAULT_FIELD_DELIMITER),
+    Parameter::optional("whitespace", kind::BYTES, "Defines the acceptance of unnecessary whitespace surrounding the configured `key_value_delimiter`.")
+        .default(&DEFAULT_WHITESPACE)
+        .enum_variants(WHITESPACE_ENUM),
+    Parameter::optional("accept_standalone_key", kind::BOOLEAN, "Whether a standalone key should be accepted, the resulting object associates such keys with the boolean value `true`.")
+        .default(&DEFAULT_ACCEPT_STANDALONE_KEY),
+];
 
 pub fn parse_key_value(
     bytes: &Value,
@@ -137,7 +133,7 @@ impl Function for ParseKeyValue {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        PARAMETERS.as_slice()
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {

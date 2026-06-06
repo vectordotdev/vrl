@@ -1,10 +1,8 @@
 use crate::compiler::function::EnumVariant;
 use crate::compiler::prelude::*;
 use crc::Crc as CrcInstance;
-use std::sync::LazyLock;
 
-static DEFAULT_ALGORITHM: LazyLock<Value> =
-    LazyLock::new(|| Value::Bytes(Bytes::from("CRC_32_ISO_HDLC")));
+static DEFAULT_ALGORITHM: Value = Value::Bytes(Bytes::from_static("CRC_32_ISO_HDLC".as_bytes()));
 
 const VALID_ALGORITHMS: &[&str] = &[
     "CRC_3_GSM",
@@ -572,18 +570,16 @@ static ALGORITHM_ENUM: &[EnumVariant] = &[
     },
 ];
 
-static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
-    vec![
-        Parameter::required(
-            "value",
-            kind::BYTES,
-            "The string to calculate the checksum for.",
-        ),
-        Parameter::optional("algorithm", kind::BYTES, "The CRC algorithm to use.")
-            .default(&DEFAULT_ALGORITHM)
-            .enum_variants(ALGORITHM_ENUM),
-    ]
-});
+const PARAMETERS: &[Parameter] = &[
+    Parameter::required(
+        "value",
+        kind::BYTES,
+        "The string to calculate the checksum for.",
+    ),
+    Parameter::optional("algorithm", kind::BYTES, "The CRC algorithm to use.")
+        .default(&DEFAULT_ALGORITHM)
+        .enum_variants(ALGORITHM_ENUM),
+];
 
 #[allow(clippy::too_many_lines)]
 fn crc(value: Value, algorithm: &str) -> Resolved {
@@ -964,7 +960,7 @@ impl Function for Crc {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        PARAMETERS.as_slice()
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {
