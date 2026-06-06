@@ -260,7 +260,7 @@ ua-parser = { version = "0.2", optional = true }
 utf8-width = { version = "0.1", optional = true }
 url = { version = "2", optional = true }
 snafu = { version = "0.8", optional = true }
-strum = { version = "0.26", optional = true }
+strum = { version = "0.28", optional = true }
 strum_macros = { version = "0.26", optional = true }
 webbrowser = { version = "1.0", default-features = false, optional = true }
 woothee = { version = "0.13", optional = true }
