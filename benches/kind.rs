@@ -41,26 +41,25 @@ fn benchmark_kind_from_value_display(c: &mut Criterion) {
 
     let array_value: Value = (0_i64..10).map(Value::Integer).collect::<Vec<_>>().into();
     group.bench_function("array_10_elems", |b| {
-        b.iter(|| {
-            format!("expected boolean, got {}", array_value.kind())
-        })
+        b.iter(|| format!("expected boolean, got {}", array_value.kind()))
     });
 
     let object_value: Value = (0_i64..10)
-        .map(|i| (vrl::value::KeyString::from(format!("k{i}")), Value::Integer(i)))
+        .map(|i| {
+            (
+                vrl::value::KeyString::from(format!("k{i}")),
+                Value::Integer(i),
+            )
+        })
         .collect::<std::collections::BTreeMap<_, _>>()
         .into();
     group.bench_function("object_10_keys", |b| {
-        b.iter(|| {
-            format!("expected boolean, got {}", object_value.kind())
-        })
+        b.iter(|| format!("expected boolean, got {}", object_value.kind()))
     });
 
     let bytes_value: Value = Value::from("hello");
     group.bench_function("bytes", |b| {
-        b.iter(|| {
-            format!("expected boolean, got {}", bytes_value.kind())
-        })
+        b.iter(|| format!("expected boolean, got {}", bytes_value.kind()))
     });
 }
 
