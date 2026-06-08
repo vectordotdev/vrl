@@ -5,8 +5,12 @@ impl Kind {
     ///
     /// This returns `None` if the type is not known to be an object.
     #[must_use]
-    pub fn as_object(&self) -> Option<&Collection<Field>> {
-        self.object.as_deref()
+    pub const fn as_object(&self) -> Option<&Collection<Field>> {
+        // `as_deref` is not const yet: https://github.com/rust-lang/rust/issues/143773
+        match self.object.as_ref() {
+            Some(object) => Some(object),
+            None => None,
+        }
     }
 
     /// Get a mutable reference to the inner object collection.
@@ -29,8 +33,12 @@ impl Kind {
     ///
     /// This returns `None` if the type is not known to be an array.
     #[must_use]
-    pub fn as_array(&self) -> Option<&Collection<Index>> {
-        self.array.as_deref()
+    pub const fn as_array(&self) -> Option<&Collection<Index>> {
+        // `as_deref` is not const yet: https://github.com/rust-lang/rust/issues/143773
+        match self.array.as_ref() {
+            Some(array) => Some(array),
+            None => None,
+        }
     }
 
     /// Get a mutable reference to the inner array collection.
