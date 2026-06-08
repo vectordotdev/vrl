@@ -491,7 +491,7 @@ impl ArgumentList {
                 _ => Err(Error::UnexpectedExpression {
                     keyword,
                     expected: "regex",
-                    expr,
+                    expr: Box::new(expr),
                 }),
             })
             .transpose()
