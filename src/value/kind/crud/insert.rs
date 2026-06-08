@@ -42,7 +42,8 @@ impl Kind {
             match segment {
                 BorrowedSegment::Field(field) => {
                     // Field insertion converts the value to an object, so remove all other types.
-                    *self = Self::object(self.as_object().cloned().unwrap_or_else(Collection::empty));
+                    *self =
+                        Self::object(self.as_object().cloned().unwrap_or_else(Collection::empty));
 
                     let collection = self.object.as_mut().expect("object was just inserted");
                     let unknown_kind = collection.unknown_kind();

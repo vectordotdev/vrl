@@ -636,7 +636,10 @@ pub enum Error {
     },
 
     #[error("this argument must be a static expression")]
-    ExpectedStaticExpression { keyword: &'static str, expr: Box<Expr> },
+    ExpectedStaticExpression {
+        keyword: &'static str,
+        expr: Box<Expr>,
+    },
 
     #[error("invalid argument")]
     InvalidArgument {
