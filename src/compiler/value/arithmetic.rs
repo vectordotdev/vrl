@@ -330,15 +330,9 @@ impl VrlValueArithmetic for Value {
         use Value::{Float, Integer};
 
         match self {
-            Integer(lhv) => rhs
-                .try_into_f64()
-                .map(|rhv| *lhv as f64 == rhv)
-                .unwrap_or(false),
+            Integer(lhv) => rhs.try_into_f64().is_ok_and(|rhv| *lhv as f64 == rhv),
 
-            Float(lhv) => rhs
-                .try_into_f64()
-                .map(|rhv| lhv.into_inner() == rhv)
-                .unwrap_or(false),
+            Float(lhv) => rhs.try_into_f64().is_ok_and(|rhv| lhv.into_inner() == rhv),
 
             _ => self == rhs,
         }

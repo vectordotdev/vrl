@@ -185,7 +185,7 @@ impl Expr {
             None => Err(super::function::Error::UnexpectedExpression {
                 keyword,
                 expected: "literal",
-                expr: self.clone(),
+                expr: Box::new(self.clone()),
             }),
         }
     }

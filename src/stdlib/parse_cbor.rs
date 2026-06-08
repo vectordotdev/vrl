@@ -1,11 +1,10 @@
 use crate::compiler::prelude::*;
 use crate::stdlib::json_utils::json_type_def::json_type_def;
 use ciborium::de::from_reader;
-use zstd::zstd_safe::WriteBuf;
 
 fn parse_cbor(value: Value) -> Resolved {
     let bytes = value.try_bytes()?;
-    let value = from_reader(bytes.as_slice()).map_err(|e| format!("unable to parse cbor: {e}"))?;
+    let value = from_reader(bytes.as_ref()).map_err(|e| format!("unable to parse cbor: {e}"))?;
     Ok(value)
 }
 
