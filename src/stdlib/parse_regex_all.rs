@@ -102,14 +102,9 @@ impl Function for ParseRegexAll {
         let pattern_expr = arguments.required("pattern");
         let numeric_groups = arguments.optional("numeric_groups");
 
-        // When the pattern is a literal regex, clone the `Regex` and hold it by
-        // value. `regex::Regex::clone` allocates a fresh `Pool` per clone (only
-        // the compiled NFA/DFA is Arc-shared), so each clone of `ParseRegexAllFn`
-        // — and therefore each Tokio worker that holds one — gets its own Pool
-        // with its own owner-thread fast path. Holding the pattern as a
-        // `Box<dyn Expression>` instead would resolve to the same `Arc<Regex>`
-        // across all workers, collapsing them onto a single Pool and forcing all
-        // but one through `Pool::get_slow`.
+        // Clone literal regexes so each worker gets its own `Pool` (the compiled
+        // NFA/DFA is Arc-shared). A shared `Arc<Regex>` would collapse all workers
+        // onto one Pool, routing all but one through the slow path.
         let pattern = match pattern_expr
             .resolve_constant(state)
             .and_then(|v| v.as_regex().cloned())
