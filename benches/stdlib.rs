@@ -3,7 +3,7 @@ use constcat::concat;
 use criterion::{Criterion, criterion_group, criterion_main};
 use regex::Regex;
 
-use std::{env, path::PathBuf};
+use std::{env, path::PathBuf, sync::LazyLock};
 use vrl::{bench_function, btreemap, compiler::prelude::*, func_args, value};
 
 use crate::value::Value;
@@ -2079,20 +2079,24 @@ const PARSE_REGEX_LARGE_INPUT_SMALL_CAPTURES_PATTERN: &str =
     r#"^(?P<host>[\w\.]+) - [\w]+ [\d]+ \[(?P<timestamp>[^\]]+)\]"#;
 const PARSE_REGEX_LARGE_INPUT_PATTERN: &str = r#"^(?P<host>[\w\.]+) - (?P<user>[\w]+) (?P<bytes_in>[\d]+) \[(?P<timestamp>[^\]]+)\] "(?P<method>[\w]+) (?P<path>\S+) HTTP/[\d\.]+" (?P<status>[\d]+) (?P<bytes_out>[\d]+)"#;
 
-const LARGE_INPUT_SMALL_CAPTURES_RESULT: Value = value!({
-    "host": "5.86.210.12",
-    "timestamp": "19/06/2019:17:20:49 -0400",
+static LARGE_INPUT_SMALL_CAPTURES_RESULT: LazyLock<Value> = LazyLock::new(|| {
+    value!({
+        "host": "5.86.210.12",
+        "timestamp": "19/06/2019:17:20:49 -0400",
+    })
 });
 
-const LARGE_INPUT_RESULT: Value = value!({
-    "host": "5.86.210.12",
-    "user": "zieme4647",
-    "bytes_in": "5667",
-    "timestamp": "19/06/2019:17:20:49 -0400",
-    "method": "GET",
-    "path": PARSE_REGEX_LARGE_INPUT_PATH,
-    "status": "200",
-    "bytes_out": "20574",
+static LARGE_INPUT_RESULT: LazyLock<Value> = LazyLock::new(|| {
+    value!({
+        "host": "5.86.210.12",
+        "user": "zieme4647",
+        "bytes_in": "5667",
+        "timestamp": "19/06/2019:17:20:49 -0400",
+        "method": "GET",
+        "path": PARSE_REGEX_LARGE_INPUT_PATH,
+        "status": "200",
+        "bytes_out": "20574",
+    })
 });
 
 bench_function! {
@@ -2142,7 +2146,7 @@ bench_function! {
             value: PARSE_REGEX_LARGE_INPUT,
             pattern: Regex::new(PARSE_REGEX_LARGE_INPUT_SMALL_CAPTURES_PATTERN).unwrap()
         ],
-        want: Ok(LARGE_INPUT_SMALL_CAPTURES_RESULT)
+        want: Ok(LARGE_INPUT_SMALL_CAPTURES_RESULT.clone())
     }
 
     // ~1 KB input, captures span most of the string
@@ -2151,7 +2155,7 @@ bench_function! {
             value: PARSE_REGEX_LARGE_INPUT,
             pattern: Regex::new(PARSE_REGEX_LARGE_INPUT_PATTERN).unwrap()
         ],
-        want: Ok(LARGE_INPUT_RESULT)
+        want: Ok(LARGE_INPUT_RESULT.clone())
     }
 }
 
@@ -2269,7 +2273,7 @@ bench_function! {
             value: PARSE_REGEX_LARGE_INPUT,
             pattern: Regex::new(PARSE_REGEX_LARGE_INPUT_SMALL_CAPTURES_PATTERN).unwrap()
         ],
-        want: Ok(value!([(LARGE_INPUT_SMALL_CAPTURES_RESULT)]))
+        want: Ok(value!([(LARGE_INPUT_SMALL_CAPTURES_RESULT.clone())]))
     }
 
     // ~1 KB input, captures span most of the string
@@ -2278,7 +2282,7 @@ bench_function! {
             value: PARSE_REGEX_LARGE_INPUT,
             pattern: Regex::new(PARSE_REGEX_LARGE_INPUT_PATTERN).unwrap()
         ],
-        want: Ok(value!([(LARGE_INPUT_RESULT)]))
+        want: Ok(value!([(LARGE_INPUT_RESULT.clone())]))
     }
 }
 
