@@ -32,8 +32,3 @@ expression = "MIT AND ISC AND OpenSSL"
 license-files = [
     { path = "LICENSE", hash = 0xbd0eed23 }
 ]
-
-[advisories]
-ignore = [
-  { id = "RUSTSEC-2026-0097", reason = "Rand is unsound with a custom logger using rand::rng() - unpatched crate (https://github.com/NLnetLabs/domain/pull/628)" },
-]
