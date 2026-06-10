@@ -7,6 +7,12 @@ cfg_if::cfg_if! {
 
 use crate::value::{KeyString, ObjectMap, Value};
 
+pub(crate) const DYNAMIC_REGEX_NOTICE: &str = indoc::indoc! {"
+    When `pattern` is a dynamic expression (e.g. a variable or the result of `to_regex`),
+    the regex is compiled on every function call. For high-throughput pipelines, prefer
+    a regex literal so the pattern is compiled once at program compile time.
+"};
+
 #[cfg(feature = "enable_network_functions")]
 pub(crate) const NETWORK_CALL_NOTICE: &str = indoc::indoc! {"
     This function performs synchronous blocking operations and is not recommended for
