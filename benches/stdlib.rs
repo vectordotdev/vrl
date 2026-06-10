@@ -3,11 +3,11 @@ use constcat::concat;
 use criterion::{Criterion, criterion_group, criterion_main};
 use regex::Regex;
 
+use crate::value::Value;
 use std::{env, path::PathBuf, sync::LazyLock};
 use vrl::{
     bench_function, bench_query_function, btreemap, compiler::prelude::*, func_args, query, value,
 };
-use crate::value::Value;
 
 criterion_group!(
     name = benches;
