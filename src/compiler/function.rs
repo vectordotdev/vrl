@@ -589,7 +589,7 @@ fn required<T>(argument: Option<T>) -> T {
 #[cfg(any(test, feature = "test"))]
 mod test_impls {
     use super::{ArgumentList, HashMap, Span, Value};
-    use crate::compiler::expression::FunctionArgument;
+    use crate::compiler::expression::{Expr, FunctionArgument};
     use crate::compiler::parser::Node;
 
     impl From<HashMap<&'static str, Value>> for ArgumentList {
@@ -599,6 +599,15 @@ mod test_impls {
                     .into_iter()
                     .map(|(k, v)| (k, v.into()))
                     .collect::<HashMap<_, _>>(),
+                closure: None,
+            }
+        }
+    }
+
+    impl From<HashMap<&'static str, Expr>> for ArgumentList {
+        fn from(map: HashMap<&'static str, Expr>) -> Self {
+            Self {
+                arguments: map,
                 closure: None,
             }
         }
