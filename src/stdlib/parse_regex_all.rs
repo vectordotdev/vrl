@@ -80,6 +80,11 @@ impl Function for ParseRegexAll {
                 All values are returned as strings. We recommend manually coercing values to desired
                 types as you see fit.
             "},
+            indoc! {"
+                When `pattern` is a dynamic expression (e.g. a variable or the result of `to_regex`),
+                the regex is compiled on every function call. For high-throughput pipelines, prefer
+                a regex literal so the pattern is compiled once at program compile time.
+            "},
         ]
     }
 
@@ -89,13 +94,24 @@ impl Function for ParseRegexAll {
 
     fn compile(
         &self,
-        _state: &state::TypeState,
+        state: &state::TypeState,
         _ctx: &mut FunctionCompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
-        let pattern = arguments.required("pattern");
+        let pattern_expr = arguments.required("pattern");
         let numeric_groups = arguments.optional("numeric_groups");
+
+        // Clone literal regexes so each worker gets its own `Pool` (the compiled
+        // NFA/DFA is Arc-shared). A shared `Arc<Regex>` would collapse all workers
+        // onto one Pool, routing all but one through the slow path.
+        let pattern = match pattern_expr
+            .resolve_constant(state)
+            .and_then(|v| v.as_regex().cloned())
+        {
+            Some(regex) => PatternSource::Constant(regex),
+            None => PatternSource::Expression(pattern_expr),
+        };
 
         Ok(ParseRegexAllFn {
             value,
@@ -159,9 +175,18 @@ impl Function for ParseRegexAll {
 }
 
 #[derive(Debug, Clone)]
+enum PatternSource {
+    /// Literal regex pattern held by value. `Regex::clone` allocates a fresh
+    /// Pool per clone — see comment in `ParseRegexAll::compile`.
+    Constant(Regex),
+    /// Pattern resolved from an expression on every call.
+    Expression(Box<dyn Expression>),
+}
+
+#[derive(Debug, Clone)]
 pub(crate) struct ParseRegexAllFn {
     value: Box<dyn Expression>,
-    pattern: Box<dyn Expression>,
+    pattern: PatternSource,
     numeric_groups: Option<Box<dyn Expression>>,
 }
 
@@ -170,29 +195,32 @@ impl FunctionExpression for ParseRegexAllFn {
         let value = self.value.resolve(ctx)?;
         let numeric_groups = self
             .numeric_groups
-            .map_resolve_with_default(ctx, || DEFAULT_NUMERIC_GROUPS.clone())?;
-        let resolved = self.pattern.resolve(ctx)?;
-        let pattern = resolved
-            .as_regex()
-            .ok_or_else(|| ExpressionError::from("failed to resolve regex"))?;
+            .map_resolve_with_default(ctx, || DEFAULT_NUMERIC_GROUPS.clone())?
+            .try_boolean()?;
 
-        parse_regex_all(&value, numeric_groups.try_boolean()?, pattern)
+        match &self.pattern {
+            PatternSource::Constant(pattern) => parse_regex_all(&value, numeric_groups, pattern),
+            PatternSource::Expression(expr) => {
+                let resolved = expr.resolve(ctx)?;
+                let pattern = resolved
+                    .as_regex()
+                    .ok_or_else(|| ExpressionError::from("failed to resolve regex"))?;
+                parse_regex_all(&value, numeric_groups, pattern)
+            }
+        }
     }
 
-    fn type_def(&self, state: &state::TypeState) -> TypeDef {
-        if let Some(value) = self.pattern.resolve_constant(state)
-            && let Some(regex) = value.as_regex()
-        {
-            return TypeDef::array(Collection::from_unknown(
+    fn type_def(&self, _: &state::TypeState) -> TypeDef {
+        match &self.pattern {
+            PatternSource::Constant(regex) => TypeDef::array(Collection::from_unknown(
                 Kind::object(util::regex_kind(regex)).or_null(),
             ))
-            .fallible();
+            .fallible(),
+            PatternSource::Expression(_) => TypeDef::array(Collection::from_unknown(
+                Kind::object(Collection::from_unknown(Kind::bytes() | Kind::null())).or_null(),
+            ))
+            .fallible(),
         }
-
-        TypeDef::array(Collection::from_unknown(
-            Kind::object(Collection::from_unknown(Kind::bytes() | Kind::null())).or_null(),
-        ))
-        .fallible()
     }
 }
 

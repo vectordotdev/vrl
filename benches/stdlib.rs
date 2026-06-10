@@ -3,12 +3,11 @@ use constcat::concat;
 use criterion::{Criterion, criterion_group, criterion_main};
 use regex::Regex;
 
-use std::{env, path::PathBuf};
+use crate::value::Value;
+use std::{env, path::PathBuf, sync::LazyLock};
 use vrl::{
     bench_function, bench_query_function, btreemap, compiler::prelude::*, func_args, query, value,
 };
-
-use crate::value::Value;
 
 criterion_group!(
     name = benches;
@@ -123,6 +122,8 @@ criterion_group!(
               parse_query_string,
               parse_regex,
               parse_regex_all,
+              parse_regex_concurrent,
+              parse_regex_all_concurrent,
               parse_ruby_hash,
               parse_syslog,
               parse_timestamp,
@@ -2073,6 +2074,30 @@ const PARSE_REGEX_LARGE_INPUT: &str = concat!(
     " HTTP/1.1\" 200 20574 \"-\" \"Mozilla/5.0 (compatible; Datadog Agent/7.x; +https://docs.datadoghq.com/agent/)\"",
     " 0.042 upstream_addr=10.0.1.55:8080 upstream_status=200 request_id=req-abc123def456",
 );
+const PARSE_REGEX_SINGLE_MATCH_PATTERN: &str = "(?P<number>.*?) group";
+const PARSE_REGEX_LARGE_INPUT_SMALL_CAPTURES_PATTERN: &str =
+    r#"^(?P<host>[\w\.]+) - [\w]+ [\d]+ \[(?P<timestamp>[^\]]+)\]"#;
+const PARSE_REGEX_LARGE_INPUT_PATTERN: &str = r#"^(?P<host>[\w\.]+) - (?P<user>[\w]+) (?P<bytes_in>[\d]+) \[(?P<timestamp>[^\]]+)\] "(?P<method>[\w]+) (?P<path>\S+) HTTP/[\d\.]+" (?P<status>[\d]+) (?P<bytes_out>[\d]+)"#;
+
+static LARGE_INPUT_SMALL_CAPTURES_RESULT: LazyLock<Value> = LazyLock::new(|| {
+    value!({
+        "host": "5.86.210.12",
+        "timestamp": "19/06/2019:17:20:49 -0400",
+    })
+});
+
+static LARGE_INPUT_RESULT: LazyLock<Value> = LazyLock::new(|| {
+    value!({
+        "host": "5.86.210.12",
+        "user": "zieme4647",
+        "bytes_in": "5667",
+        "timestamp": "19/06/2019:17:20:49 -0400",
+        "method": "GET",
+        "path": PARSE_REGEX_LARGE_INPUT_PATH,
+        "status": "200",
+        "bytes_out": "20574",
+    })
+});
 
 bench_function! {
     parse_regex => vrl::stdlib::ParseRegex;
@@ -2108,7 +2133,7 @@ bench_function! {
     single_match {
         args: func_args! [
             value: "first group and second group",
-            pattern: Regex::new("(?P<number>.*?) group").unwrap()
+            pattern: Regex::new(PARSE_REGEX_SINGLE_MATCH_PATTERN).unwrap()
         ],
         want: Ok(value!({
             "number": "first",
@@ -2119,31 +2144,90 @@ bench_function! {
     large_input_small_captures {
         args: func_args![
             value: PARSE_REGEX_LARGE_INPUT,
-            pattern: Regex::new(r#"^(?P<host>[\w\.]+) - [\w]+ [\d]+ \[(?P<timestamp>[^\]]+)\]"#).unwrap()
+            pattern: Regex::new(PARSE_REGEX_LARGE_INPUT_SMALL_CAPTURES_PATTERN).unwrap()
         ],
-        want: Ok(value!({
-            "host": "5.86.210.12",
-            "timestamp": "19/06/2019:17:20:49 -0400",
-        }))
+        want: Ok(LARGE_INPUT_SMALL_CAPTURES_RESULT.clone())
     }
 
     // ~1 KB input, captures span most of the string
     large_input {
         args: func_args![
             value: PARSE_REGEX_LARGE_INPUT,
-            pattern: Regex::new(r#"^(?P<host>[\w\.]+) - (?P<user>[\w]+) (?P<bytes_in>[\d]+) \[(?P<timestamp>[^\]]+)\] "(?P<method>[\w]+) (?P<path>\S+) HTTP/[\d\.]+" (?P<status>[\d]+) (?P<bytes_out>[\d]+)"#).unwrap()
+            pattern: Regex::new(PARSE_REGEX_LARGE_INPUT_PATTERN).unwrap()
         ],
-        want: Ok(value!({
-            "host": "5.86.210.12",
-            "user": "zieme4647",
-            "bytes_in": "5667",
-            "timestamp": "19/06/2019:17:20:49 -0400",
-            "method": "GET",
-            "path": PARSE_REGEX_LARGE_INPUT_PATH,
-            "status": "200",
-            "bytes_out": "20574",
-        }))
+        want: Ok(LARGE_INPUT_RESULT.clone())
     }
+}
+
+// Shared inputs for the concurrent regex benchmarks so the two functions are
+// directly comparable.
+const REGEX_CONCURRENT_THREADS: usize = 8;
+const REGEX_CONCURRENT_INPUT: &str = "5.86.210.12 - zieme4647 5667 [19/06/2019:17:20:49 -0400] \
+    \"GET /embrace/supply-chains/dynamic/vertical\" 201 20574";
+const REGEX_CONCURRENT_PATTERN: &str = r#"^(?P<host>[\w\.]+) - (?P<user>[\w]+) (?P<bytes_in>[\d]+) \[(?P<timestamp>.*)\] "(?P<method>[\w]+) (?P<path>.*)" (?P<status>[\d]+) (?P<bytes_out>[\d]+)$"#;
+
+/// Measures `parse_regex` throughput under concurrent execution.
+///
+/// The single-threaded `bench_function!` harness is blind to `Pool::get_slow`
+/// because one thread calls `Pool::get()`, becomes the owner, and hits the
+/// lock-free fast path on every subsequent iteration with no contention.
+/// Runtimes like Vector clone the compiled expression once per worker thread,
+/// so Pool ownership and contention are determined by how the compiled
+/// expression clones, not by how it runs single-threaded.
+///
+/// This benchmark compiles once and clones N times (matching the per-worker
+/// clone pattern), then runs all clones concurrently. `Regex::clone()` allocates
+/// a fresh `Pool` per clone, giving each thread its own owner slot. Any
+/// implementation that shares a single `Pool` across clones (e.g. by storing an
+/// `Arc<Regex>`) will show elevated `Pool::get_slow` overhead here.
+fn parse_regex_concurrent(c: &mut Criterion) {
+    use std::time::Instant;
+
+    let state = vrl::compiler::state::TypeState::default();
+    let args = func_args![
+        value: REGEX_CONCURRENT_INPUT,
+        pattern: Regex::new(REGEX_CONCURRENT_PATTERN).unwrap()
+    ];
+    let (expression, _) = vrl::__prep_bench_or_test!(
+        vrl::stdlib::ParseRegex,
+        &state,
+        args,
+        Ok::<vrl::value::Value, String>(vrl::value::Value::Null)
+    );
+    let expression = expression.unwrap();
+    let expressions: Vec<_> = (0..REGEX_CONCURRENT_THREADS)
+        .map(|_| expression.clone())
+        .collect();
+
+    let mut group = c.benchmark_group("vrl_stdlib/functions/parse_regex_concurrent");
+    group.throughput(criterion::Throughput::Elements(
+        REGEX_CONCURRENT_THREADS as u64,
+    ));
+
+    group.bench_function(format!("{REGEX_CONCURRENT_THREADS}_threads"), |b| {
+        b.iter_custom(|iters| {
+            let per_thread = (iters as usize).max(1);
+            let start = Instant::now();
+            std::thread::scope(|s| {
+                for expr in &expressions {
+                    s.spawn(move || {
+                        let mut runtime_state = vrl::compiler::state::RuntimeState::default();
+                        let mut target: vrl::value::Value =
+                            std::collections::BTreeMap::default().into();
+                        let tz = vrl::compiler::TimeZone::Named(chrono_tz::Tz::UTC);
+                        let mut ctx =
+                            vrl::compiler::Context::new(&mut target, &mut runtime_state, &tz);
+                        for _ in 0..per_thread {
+                            let _ = std::hint::black_box(expr.resolve(&mut ctx));
+                        }
+                    });
+                }
+            });
+            start.elapsed()
+        });
+    });
+
+    group.finish();
 }
 
 bench_function! {
@@ -2171,6 +2255,87 @@ bench_function! {
                     "2": "peas"
                 }]))
     }
+
+    all_matches {
+        args: func_args! [
+            value: "first group and second group",
+            pattern: Regex::new(PARSE_REGEX_SINGLE_MATCH_PATTERN).unwrap()
+        ],
+        want: Ok(value!([
+            { "number": "first" },
+            { "number": "second" },
+        ]))
+    }
+
+    // ~1 KB input, only 2 short named captures at the start
+    large_input_small_captures {
+        args: func_args![
+            value: PARSE_REGEX_LARGE_INPUT,
+            pattern: Regex::new(PARSE_REGEX_LARGE_INPUT_SMALL_CAPTURES_PATTERN).unwrap()
+        ],
+        want: Ok(value!([(LARGE_INPUT_SMALL_CAPTURES_RESULT.clone())]))
+    }
+
+    // ~1 KB input, captures span most of the string
+    large_input {
+        args: func_args![
+            value: PARSE_REGEX_LARGE_INPUT,
+            pattern: Regex::new(PARSE_REGEX_LARGE_INPUT_PATTERN).unwrap()
+        ],
+        want: Ok(value!([(LARGE_INPUT_RESULT.clone())]))
+    }
+}
+
+/// Mirrors `parse_regex_concurrent` for `parse_regex_all`. Uses the same input
+/// and pattern so the two benchmarks are directly comparable.
+fn parse_regex_all_concurrent(c: &mut Criterion) {
+    use std::time::Instant;
+
+    let state = vrl::compiler::state::TypeState::default();
+    let args = func_args![
+        value: REGEX_CONCURRENT_INPUT,
+        pattern: Regex::new(REGEX_CONCURRENT_PATTERN).unwrap()
+    ];
+    let (expression, _) = vrl::__prep_bench_or_test!(
+        vrl::stdlib::ParseRegexAll,
+        &state,
+        args,
+        Ok::<vrl::value::Value, String>(vrl::value::Value::Null)
+    );
+    let expression = expression.unwrap();
+    let expressions: Vec<_> = (0..REGEX_CONCURRENT_THREADS)
+        .map(|_| expression.clone())
+        .collect();
+
+    let mut group = c.benchmark_group("vrl_stdlib/functions/parse_regex_all_concurrent");
+    group.throughput(criterion::Throughput::Elements(
+        REGEX_CONCURRENT_THREADS as u64,
+    ));
+
+    group.bench_function(format!("{REGEX_CONCURRENT_THREADS}_threads"), |b| {
+        b.iter_custom(|iters| {
+            let per_thread = (iters as usize).max(1);
+            let start = Instant::now();
+            std::thread::scope(|s| {
+                for expr in &expressions {
+                    s.spawn(move || {
+                        let mut runtime_state = vrl::compiler::state::RuntimeState::default();
+                        let mut target: vrl::value::Value =
+                            std::collections::BTreeMap::default().into();
+                        let tz = vrl::compiler::TimeZone::Named(chrono_tz::Tz::UTC);
+                        let mut ctx =
+                            vrl::compiler::Context::new(&mut target, &mut runtime_state, &tz);
+                        for _ in 0..per_thread {
+                            let _ = std::hint::black_box(expr.resolve(&mut ctx));
+                        }
+                    });
+                }
+            });
+            start.elapsed()
+        });
+    });
+
+    group.finish();
 }
 
 bench_function! {
