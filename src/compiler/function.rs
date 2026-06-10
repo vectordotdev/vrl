@@ -379,9 +379,6 @@ impl Parameter {
 // -----------------------------------------------------------------------------
 
 /// A value that is either a compile-time constant or a runtime expression.
-///
-/// When `T = regex::Regex`, cloning a `Const` variant allocates a fresh `Pool` per clone so
-/// each worker thread gets its own pool (the underlying NFA/DFA is `Arc`-shared).
 #[derive(Debug, Clone)]
 pub enum ConstOrExpr<T = Value> {
     /// Value resolved at compile time.
@@ -512,6 +509,9 @@ impl ArgumentList {
         Ok(required(self.optional_query(keyword)?))
     }
 
+    /// Cloning a `Const` variant allocates a fresh `Pool` per clone so each worker thread gets its
+    /// own pool (the underlying NFA/DFA is `Arc`-shared). A shared `Arc<Regex>` would collapse all
+    /// workers onto one pool, routing all but one through the slow path.
     pub fn optional_regex(
         &self,
         keyword: &'static str,
