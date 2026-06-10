@@ -19,14 +19,24 @@ macro_rules! test_type_def {
 }
 
 #[macro_export]
+macro_rules! query {
+    ($query:expr_2021) => {
+        $crate::compiler::expression::Expr::Query($crate::compiler::expression::Query::new(
+            $crate::compiler::expression::Target::External($crate::path::PathPrefix::Event),
+            $crate::path::parse_value_path($query).expect("invalid path"),
+        ))
+    };
+}
+
+#[macro_export]
 macro_rules! func_args {
     () => (
-        ::std::collections::HashMap::<&'static str, $crate::value::Value>::default()
+        ::std::collections::HashMap::<&'static str, $crate::compiler::expression::Expr>::default()
     );
     ($($k:tt: $v:expr_2021),+ $(,)?) => {
-        vec![$((stringify!($k), $v.into())),+]
+        [$((stringify!($k), $crate::value::Value::from($v).into())),+]
             .into_iter()
-            .collect::<::std::collections::HashMap<&'static str, $crate::value::Value>>()
+            .collect::<::std::collections::HashMap<&'static str, $crate::compiler::expression::Expr>>()
     };
 }
 
@@ -52,6 +62,37 @@ macro_rules! bench_function {
                         debug_assert_eq!(got, want);
                         got
                     })
+                });
+            )+
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! bench_query_function {
+    ($name:tt => $func:path; $($case:ident { args: $args:expr_2021, event: $event:expr_2021, want: $(Ok($ok:expr_2021))? $(Err($err:expr_2021))? $(,)* })+) => {
+        fn $name(c: &mut criterion::Criterion) {
+            let mut group = c.benchmark_group(&format!("vrl_stdlib/functions/{}", stringify!($name)));
+            group.throughput(criterion::Throughput::Elements(1));
+            $(
+                group.bench_function(&stringify!($case).to_string(), |b| {
+                    let mut state = $crate::compiler::state::TypeState::default();
+
+                    let (expression, want) = $crate::__prep_bench_or_test!($func, &state, $args, $(Ok($crate::value::Value::from($ok)))? $(Err($err.to_owned()))?);
+                    let expression = expression.unwrap();
+                    let tz = $crate::compiler::TimeZone::Named(chrono_tz::Tz::UTC);
+                    let event: $crate::value::Value = $event.into();
+
+                    b.iter_batched(|| {
+                        let mut runtime_state = $crate::compiler::state::RuntimeState::default();
+                        let mut target = event.clone();
+                        (runtime_state, target)
+                    }, |(mut runtime_state, mut target)| {
+                        let mut ctx = $crate::compiler::Context::new(&mut target, &mut runtime_state, &tz);
+                        let got = expression.resolve(&mut ctx).map_err(|e| e.to_string());
+                        debug_assert_eq!(got, want);
+                        got
+                    }, criterion::BatchSize::PerIteration)
                 });
             )+
         }

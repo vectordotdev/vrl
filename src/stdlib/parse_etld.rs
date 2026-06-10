@@ -119,7 +119,7 @@ impl Function for ParseEtld {
                 .resolve_constant(state)
                 .ok_or(function::Error::ExpectedStaticExpression {
                     keyword: "psl",
-                    expr: psl_expr.clone(),
+                    expr: Box::new(psl_expr.clone()),
                 })?
                 .try_bytes_utf8_lossy()
                 .map_err(|_| function::Error::InvalidArgument {

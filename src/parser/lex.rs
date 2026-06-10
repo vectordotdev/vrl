@@ -235,8 +235,7 @@ impl DiagnosticMessage for Error {
             EscapeChar { start, ch } => vec![Label::primary(
                 format!(
                     "invalid escape character: {}",
-                    ch.map(|ch| ch.to_string())
-                        .unwrap_or_else(|| "none".to_string())
+                    ch.map_or_else(|| "none".to_string(), |ch| ch.to_string())
                 ),
                 Span::new(*start, *start + 1),
             )],
@@ -1513,7 +1512,7 @@ mod test {
         let mut lexer = lexer(input);
         let mut count = 0;
         let length = expected.len();
-        for (token, (expected_span, expected_tok)) in lexer.by_ref().zip(expected.into_iter()) {
+        for (token, (expected_span, expected_tok)) in lexer.by_ref().zip(expected) {
             count += 1;
             println!("{token:?}");
             let start = expected_span.find('~').unwrap_or_default();

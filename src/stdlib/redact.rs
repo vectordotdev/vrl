@@ -176,7 +176,7 @@ to avoid runtime errors. You cannot use variables or other dynamic expressions w
                 expr.resolve_constant(state)
                     .ok_or(function::Error::ExpectedStaticExpression {
                         keyword: "filters",
-                        expr,
+                        expr: Box::new(expr),
                     })
             })
             .map(|value| {

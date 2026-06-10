@@ -413,7 +413,7 @@ impl ArgumentList {
                 _ => Err(Error::UnexpectedExpression {
                     keyword,
                     expected: "literal",
-                    expr,
+                    expr: Box::new(expr),
                 }),
             })
             .transpose()
@@ -467,7 +467,7 @@ impl ArgumentList {
                 expr => Err(Error::UnexpectedExpression {
                     keyword,
                     expected: "query",
-                    expr,
+                    expr: Box::new(expr),
                 }),
             })
             .transpose()
@@ -491,7 +491,7 @@ impl ArgumentList {
                 _ => Err(Error::UnexpectedExpression {
                     keyword,
                     expected: "regex",
-                    expr,
+                    expr: Box::new(expr),
                 }),
             })
             .transpose()
@@ -517,7 +517,7 @@ impl ArgumentList {
                 expr => Err(Error::UnexpectedExpression {
                     keyword,
                     expected: "object",
-                    expr,
+                    expr: Box::new(expr),
                 }),
             })
             .transpose()
@@ -539,7 +539,7 @@ impl ArgumentList {
                 expr => Err(Error::UnexpectedExpression {
                     keyword,
                     expected: "array",
-                    expr,
+                    expr: Box::new(expr),
                 }),
             })
             .transpose()
@@ -589,7 +589,7 @@ fn required<T>(argument: Option<T>) -> T {
 #[cfg(any(test, feature = "test"))]
 mod test_impls {
     use super::{ArgumentList, HashMap, Span, Value};
-    use crate::compiler::expression::FunctionArgument;
+    use crate::compiler::expression::{Expr, FunctionArgument};
     use crate::compiler::parser::Node;
 
     impl From<HashMap<&'static str, Value>> for ArgumentList {
@@ -599,6 +599,15 @@ mod test_impls {
                     .into_iter()
                     .map(|(k, v)| (k, v.into()))
                     .collect::<HashMap<_, _>>(),
+                closure: None,
+            }
+        }
+    }
+
+    impl From<HashMap<&'static str, Expr>> for ArgumentList {
+        fn from(map: HashMap<&'static str, Expr>) -> Self {
+            Self {
+                arguments: map,
                 closure: None,
             }
         }
@@ -650,7 +659,7 @@ pub enum Error {
     UnexpectedExpression {
         keyword: &'static str,
         expected: &'static str,
-        expr: Expr,
+        expr: Box<Expr>,
     },
 
     #[error(r#"invalid enum variant""#)]
@@ -661,7 +670,10 @@ pub enum Error {
     },
 
     #[error("this argument must be a static expression")]
-    ExpectedStaticExpression { keyword: &'static str, expr: Expr },
+    ExpectedStaticExpression {
+        keyword: &'static str,
+        expr: Box<Expr>,
+    },
 
     #[error("invalid argument")]
     InvalidArgument {

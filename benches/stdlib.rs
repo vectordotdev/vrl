@@ -4,8 +4,9 @@ use criterion::{Criterion, criterion_group, criterion_main};
 use regex::Regex;
 
 use std::{env, path::PathBuf, sync::LazyLock};
-use vrl::{bench_function, btreemap, compiler::prelude::*, func_args, value};
-
+use vrl::{
+    bench_function, bench_query_function, btreemap, compiler::prelude::*, func_args, query, value,
+};
 use crate::value::Value;
 
 criterion_group!(
@@ -31,8 +32,7 @@ criterion_group!(
               decode_punycode,
               decrypt,
               dns_lookup,
-              // TODO: Cannot pass a Path to bench_function
-              //del,
+              del,
               decrypt_ip,
               downcase,
               encode_base16,
@@ -3337,5 +3337,29 @@ bench_function! {
     pfx_ipv6 {
         args: func_args![ip: value!("88bd:d2bf:8865:8c4d:84b:44f6:6077:72c9"), key: value!("thirty-two bytes key for ipv6pfx"), mode: value!("pfx")],
         want: Ok(value!("2001:db8::1")),
+    }
+}
+
+bench_query_function! {
+    del => vrl::stdlib::Del;
+
+    default {
+        args: {
+            let mut hashmap = func_args![];
+            hashmap.insert("target", query!(".test"));
+            hashmap
+        },
+        event: btreemap! { "test" => true },
+        want: Ok(value!(true)),
+    }
+
+    compact {
+        args: {
+            let mut hashmap = func_args![compact: true];
+            hashmap.insert("target", query!(".test.test"));
+            hashmap
+        },
+        event: btreemap! { "test" => btreemap! { "test" => true } },
+        want: Ok(value!(true)),
     }
 }
