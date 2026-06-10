@@ -22,11 +22,16 @@ contains the whole match.",
     .default(&DEFAULT_NUMERIC_GROUPS),
 ];
 
-fn parse_regex_all(value: &Value, numeric_groups: bool, pattern: &Regex) -> Resolved {
+fn parse_regex_all(
+    value: &Value,
+    pattern: &Regex,
+    capture_info: &[(crate::value::KeyString, usize)],
+    numeric_groups: bool,
+) -> Resolved {
     let value = value.try_bytes_utf8_lossy()?;
     Ok(pattern
         .captures_iter(&value)
-        .map(|capture| util::capture_regex_to_map(pattern, &capture, numeric_groups).into())
+        .map(|capture| util::capture_regex_to_map(&capture, capture_info, numeric_groups).into())
         .collect::<Vec<Value>>()
         .into())
 }
@@ -96,11 +101,16 @@ impl Function for ParseRegexAll {
     ) -> Compiled {
         let value = arguments.required("value");
         let pattern = arguments.required_regex("pattern", state);
+        let capture_info = match &pattern {
+            ConstOrExpr::Const(r) => Some(util::build_capture_info(r)),
+            ConstOrExpr::Expr(_) => None,
+        };
         let numeric_groups = arguments.optional("numeric_groups");
 
         Ok(ParseRegexAllFn {
             value,
             pattern,
+            capture_info,
             numeric_groups,
         }
         .as_expr())
@@ -163,6 +173,7 @@ impl Function for ParseRegexAll {
 pub(crate) struct ParseRegexAllFn {
     value: Box<dyn Expression>,
     pattern: ConstOrExpr<Regex>,
+    capture_info: Option<Vec<(crate::value::KeyString, usize)>>,
     numeric_groups: Option<Box<dyn Expression>>,
 }
 
@@ -175,13 +186,20 @@ impl FunctionExpression for ParseRegexAllFn {
             .try_boolean()?;
 
         match &self.pattern {
-            ConstOrExpr::Const(pattern) => parse_regex_all(&value, numeric_groups, pattern),
+            ConstOrExpr::Const(pattern) => {
+                let capture_info = self
+                    .capture_info
+                    .as_deref()
+                    .expect("capture_info always set for Const pattern");
+                parse_regex_all(&value, pattern, capture_info, numeric_groups)
+            }
             ConstOrExpr::Expr(expr) => {
                 let resolved = expr.resolve(ctx)?;
                 let pattern = resolved
                     .as_regex()
                     .ok_or_else(|| ExpressionError::from("failed to resolve regex"))?;
-                parse_regex_all(&value, numeric_groups, pattern)
+                let dynamic_capture_info = util::build_capture_info(pattern);
+                parse_regex_all(&value, pattern, &dynamic_capture_info, numeric_groups)
             }
         }
     }
