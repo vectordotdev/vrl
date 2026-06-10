@@ -11,7 +11,7 @@ use std::{
 };
 
 use super::{
-    CompileConfig, Span, TypeDef,
+    CompileConfig, Context, Resolved, Span, TypeDef,
     expression::{Block, Container, Expr, Expression, container::Variant},
     state::TypeState,
     value::{Kind, kind},
@@ -378,6 +378,35 @@ impl Parameter {
 
 // -----------------------------------------------------------------------------
 
+/// A value that is either a compile-time constant or a runtime expression.
+#[derive(Debug, Clone)]
+pub enum ConstOrExpr<T = Value> {
+    /// Value resolved at compile time.
+    Const(T),
+    /// Expression resolved at runtime on every call.
+    Expr(Box<dyn Expression>),
+}
+
+impl ConstOrExpr<Value> {
+    pub fn new(expr: Box<dyn Expression>, state: &TypeState) -> Self {
+        match expr.resolve_constant(state) {
+            Some(cnst) => Self::Const(cnst),
+            None => Self::Expr(expr),
+        }
+    }
+
+    pub fn optional(expr: Option<Box<dyn Expression>>, state: &TypeState) -> Option<Self> {
+        expr.map(|expr| Self::new(expr, state))
+    }
+
+    pub fn resolve(&self, ctx: &mut Context) -> Resolved {
+        match self {
+            Self::Const(value) => Ok(value.clone()),
+            Self::Expr(expr) => expr.resolve(ctx),
+        }
+    }
+}
+
 #[derive(Debug, Default, Clone)]
 pub struct ArgumentList {
     pub(crate) arguments: HashMap<&'static str, Expr>,
@@ -480,29 +509,31 @@ impl ArgumentList {
         Ok(required(self.optional_query(keyword)?))
     }
 
+    /// Cloning a `Const` variant allocates a fresh `Pool` per clone so each worker thread gets its
+    /// own pool (the underlying NFA/DFA is `Arc`-shared). A shared `Arc<Regex>` would collapse all
+    /// workers onto one pool, routing all but one through the slow path.
     pub fn optional_regex(
         &self,
         keyword: &'static str,
         state: &TypeState,
-    ) -> Result<Option<regex::Regex>, Error> {
-        self.optional_expr(keyword)
-            .map(|expr| match expr.resolve_constant(state) {
-                Some(Value::Regex(regex)) => Ok((*regex).clone()),
-                _ => Err(Error::UnexpectedExpression {
-                    keyword,
-                    expected: "regex",
-                    expr: Box::new(expr),
-                }),
-            })
-            .transpose()
+    ) -> Option<ConstOrExpr<regex::Regex>> {
+        self.optional_expr(keyword).map(|expr| {
+            match expr
+                .resolve_constant(state)
+                .and_then(|v| v.as_regex().cloned())
+            {
+                Some(regex) => ConstOrExpr::Const(regex),
+                None => ConstOrExpr::Expr(Box::new(expr)),
+            }
+        })
     }
 
     pub fn required_regex(
         &self,
         keyword: &'static str,
         state: &TypeState,
-    ) -> Result<regex::Regex, Error> {
-        Ok(required(self.optional_regex(keyword, state)?))
+    ) -> ConstOrExpr<regex::Regex> {
+        required(self.optional_regex(keyword, state))
     }
 
     pub fn optional_object(
