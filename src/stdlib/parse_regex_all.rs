@@ -99,19 +99,8 @@ impl Function for ParseRegexAll {
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
-        let pattern_expr = arguments.required("pattern");
+        let pattern = arguments.required_regex("pattern", state);
         let numeric_groups = arguments.optional("numeric_groups");
-
-        // Clone literal regexes so each worker gets its own `Pool` (the compiled
-        // NFA/DFA is Arc-shared). A shared `Arc<Regex>` would collapse all workers
-        // onto one Pool, routing all but one through the slow path.
-        let pattern = match pattern_expr
-            .resolve_constant(state)
-            .and_then(|v| v.as_regex().cloned())
-        {
-            Some(regex) => PatternSource::Constant(regex),
-            None => PatternSource::Expression(pattern_expr),
-        };
 
         Ok(ParseRegexAllFn {
             value,
@@ -175,18 +164,9 @@ impl Function for ParseRegexAll {
 }
 
 #[derive(Debug, Clone)]
-enum PatternSource {
-    /// Literal regex pattern held by value. `Regex::clone` allocates a fresh
-    /// Pool per clone — see comment in `ParseRegexAll::compile`.
-    Constant(Regex),
-    /// Pattern resolved from an expression on every call.
-    Expression(Box<dyn Expression>),
-}
-
-#[derive(Debug, Clone)]
 pub(crate) struct ParseRegexAllFn {
     value: Box<dyn Expression>,
-    pattern: PatternSource,
+    pattern: ConstOrExpr<Regex>,
     numeric_groups: Option<Box<dyn Expression>>,
 }
 
@@ -199,8 +179,8 @@ impl FunctionExpression for ParseRegexAllFn {
             .try_boolean()?;
 
         match &self.pattern {
-            PatternSource::Constant(pattern) => parse_regex_all(&value, numeric_groups, pattern),
-            PatternSource::Expression(expr) => {
+            ConstOrExpr::Const(pattern) => parse_regex_all(&value, numeric_groups, pattern),
+            ConstOrExpr::Expr(expr) => {
                 let resolved = expr.resolve(ctx)?;
                 let pattern = resolved
                     .as_regex()
@@ -212,11 +192,11 @@ impl FunctionExpression for ParseRegexAllFn {
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {
         match &self.pattern {
-            PatternSource::Constant(regex) => TypeDef::array(Collection::from_unknown(
+            ConstOrExpr::Const(regex) => TypeDef::array(Collection::from_unknown(
                 Kind::object(util::regex_kind(regex)).or_null(),
             ))
             .fallible(),
-            PatternSource::Expression(_) => TypeDef::array(Collection::from_unknown(
+            ConstOrExpr::Expr(_) => TypeDef::array(Collection::from_unknown(
                 Kind::object(Collection::from_unknown(Kind::bytes() | Kind::null())).or_null(),
             ))
             .fallible(),

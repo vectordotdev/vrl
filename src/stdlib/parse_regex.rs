@@ -79,6 +79,11 @@ impl Function for ParseRegex {
                 All values are returned as strings. We recommend manually coercing values to desired
                 types as you see fit.
             "},
+            indoc! {"
+                When `pattern` is a dynamic expression (e.g. a variable or the result of `to_regex`),
+                the regex is compiled on every function call. For high-throughput pipelines, prefer
+                a regex literal so the pattern is compiled once at program compile time.
+            "},
         ]
     }
 
@@ -93,7 +98,7 @@ impl Function for ParseRegex {
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
-        let pattern = arguments.required_regex("pattern", state)?;
+        let pattern = arguments.required_regex("pattern", state);
         let numeric_groups = arguments.optional("numeric_groups");
 
         Ok(ParseRegexFn {
@@ -156,7 +161,7 @@ impl Function for ParseRegex {
 #[derive(Debug, Clone)]
 pub(crate) struct ParseRegexFn {
     value: Box<dyn Expression>,
-    pattern: Regex,
+    pattern: ConstOrExpr<Regex>,
     numeric_groups: Option<Box<dyn Expression>>,
 }
 
@@ -165,14 +170,28 @@ impl FunctionExpression for ParseRegexFn {
         let value = self.value.resolve(ctx)?;
         let numeric_groups = self
             .numeric_groups
-            .map_resolve_with_default(ctx, || DEFAULT_NUMERIC_GROUPS.clone())?;
-        let pattern = &self.pattern;
+            .map_resolve_with_default(ctx, || DEFAULT_NUMERIC_GROUPS.clone())?
+            .try_boolean()?;
 
-        parse_regex(&value, numeric_groups.try_boolean()?, pattern)
+        match &self.pattern {
+            ConstOrExpr::Const(pattern) => parse_regex(&value, numeric_groups, pattern),
+            ConstOrExpr::Expr(expr) => {
+                let resolved = expr.resolve(ctx)?;
+                let pattern = resolved
+                    .as_regex()
+                    .ok_or_else(|| ExpressionError::from("failed to resolve regex"))?;
+                parse_regex(&value, numeric_groups, pattern)
+            }
+        }
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {
-        TypeDef::object(util::regex_kind(&self.pattern)).fallible()
+        match &self.pattern {
+            ConstOrExpr::Const(regex) => TypeDef::object(util::regex_kind(regex)).fallible(),
+            ConstOrExpr::Expr(_) => {
+                TypeDef::object(Collection::from_unknown(Kind::bytes() | Kind::null())).fallible()
+            }
+        }
     }
 }
 

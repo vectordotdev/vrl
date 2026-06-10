@@ -21,7 +21,10 @@ pub use super::Resolved;
 pub use super::{
     Context, Expression, ExpressionError, ExpressionExt, Function, FunctionExpression, Parameter,
     TimeZone, TypeDef, expression,
-    function::{self, ArgumentList, Closure, Compiled, Example, FunctionCompileContext, closure},
+    function::{
+        self, ArgumentList, Closure, Compiled, ConstOrExpr, Example, FunctionCompileContext,
+        closure,
+    },
     state::{self, TypeInfo, TypeState},
     type_def,
     value::{ValueError, VrlValueArithmetic, VrlValueConvert, kind},
