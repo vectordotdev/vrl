@@ -93,6 +93,8 @@ impl Function for Log {
         ctx: &mut FunctionCompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
+        use tracing::Level;
+
         let levels: &[Value] = &[
             "trace".into(),
             "debug".into(),
@@ -107,6 +109,16 @@ impl Function for Log {
             .unwrap_or_else(|| DEFAULT_LEVEL.clone())
             .try_bytes()
             .expect("log level not bytes");
+
+        let level = match level.as_ref() {
+            b"trace" => Level::TRACE,
+            b"debug" => Level::DEBUG,
+            b"info" => Level::INFO,
+            b"warn" => Level::WARN,
+            b"error" => Level::ERROR,
+            _ => unreachable!(),
+        };
+
         let rate_limit_secs = ConstOrExpr::<i64>::default(
             arguments.optional("rate_limit_secs"),
             state,
@@ -135,26 +147,26 @@ impl Function for Log {
 
 #[cfg(not(target_arch = "wasm32"))]
 mod implementation {
-    use tracing::{debug, error, info, trace, warn};
+    use tracing::{Level, debug, error, info, trace, warn};
 
     use crate::compiler::prelude::*;
 
-    pub(super) fn log(rate_limit_secs: i64, level: &Bytes, value: &Value, span: Span) -> Resolved {
+    pub(super) fn log(rate_limit_secs: i64, level: Level, value: &Value, span: Span) -> Resolved {
         let res = value.to_string_lossy();
-        match level.as_ref() {
-            b"trace" => {
+        match level {
+            Level::TRACE => {
                 trace!(message = %res, internal_log_rate_secs = rate_limit_secs, vrl_position = span.start());
             }
-            b"debug" => {
+            Level::DEBUG => {
                 debug!(message = %res, internal_log_rate_secs = rate_limit_secs, vrl_position = span.start());
             }
-            b"warn" => {
+            Level::WARN => {
                 warn!(message = %res, internal_log_rate_secs = rate_limit_secs, vrl_position = span.start());
             }
-            b"error" => {
+            Level::ERROR => {
                 error!(message = %res, internal_log_rate_secs = rate_limit_secs, vrl_position = span.start());
             }
-            _ => {
+            Level::INFO => {
                 info!(message = %res, internal_log_rate_secs = rate_limit_secs, vrl_position = span.start());
             }
         }
@@ -165,7 +177,7 @@ mod implementation {
     pub(super) struct LogFn {
         pub(super) span: Span,
         pub(super) value: Box<dyn Expression>,
-        pub(super) level: Bytes,
+        pub(super) level: Level,
         pub(super) rate_limit_secs: ConstOrExpr<i64>,
     }
 
@@ -176,7 +188,7 @@ mod implementation {
 
             let span = self.span;
 
-            log(rate_limit_secs, &self.level, &value, span)
+            log(rate_limit_secs, self.level, &value, span)
         }
 
         fn type_def(&self, _: &state::TypeState) -> TypeDef {
@@ -188,6 +200,7 @@ mod implementation {
 #[cfg(all(test, not(target_arch = "wasm32")))]
 mod tests {
     use tracing_test::traced_test;
+    use tracing::Level;
 
     use super::*;
     use crate::value;
@@ -210,7 +223,7 @@ mod tests {
         // Check that a message is logged without additional quotes
         implementation::log(
             1,
-            &Bytes::from("warn"),
+            Level::WARN,
             &value!("simple test message"),
             Span::default(),
         )
