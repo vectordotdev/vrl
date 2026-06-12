@@ -797,20 +797,6 @@ bench_function! {
     ip_ntop => vrl::stdlib::IpNtop;
 
     ipv4 {
-        args: func_args![value: "1.2.3.4"],
-        want: Ok(value!("\x01\x02\x03\x04")),
-    }
-
-    ipv6 {
-        args: func_args![value: "102:304:506:708:90a:b0c:d0e:f10"],
-        want: Ok(value!("\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10")),
-    }
-}
-
-bench_function! {
-    ip_pton => vrl::stdlib::IpPton;
-
-    ipv4 {
         args: func_args![value: "\x01\x02\x03\x04"],
         want: Ok(value!("1.2.3.4")),
     }
@@ -818,6 +804,20 @@ bench_function! {
     ipv6 {
         args: func_args![value: "\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10"],
         want: Ok(value!("102:304:506:708:90a:b0c:d0e:f10")),
+    }
+}
+
+bench_function! {
+    ip_pton => vrl::stdlib::IpPton;
+
+    ipv4 {
+        args: func_args![value: "1.2.3.4"],
+        want: Ok(value!("\x01\x02\x03\x04")),
+    }
+
+    ipv6 {
+        args: func_args![value: "102:304:506:708:90a:b0c:d0e:f10"],
+        want: Ok(value!("\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10")),
     }
 }
 
@@ -963,7 +963,7 @@ bench_function! {
 
     not_string {
         args: func_args![value: 42],
-        want: Ok(false),
+        want: Err("expected string, got integer"),
     }
 
     ipv4 {
@@ -987,7 +987,7 @@ bench_function! {
 
     not_string {
         args: func_args![value: 42],
-        want: Ok(false),
+        want: Err("expected string, got integer"),
     }
 
     ipv4 {
@@ -1020,7 +1020,7 @@ bench_function! {
     }
 
     exact_variant {
-        args: func_args![value: r#"{"key": "value""#, variant: "object"],
+        args: func_args![value: r#"{"key": "value"}"#, variant: "object"],
         want: Ok(true),
     }
 }
@@ -1263,7 +1263,7 @@ bench_function! {
     }
 
     equals_facet {
-        args: func_args![value: value!({"custom": {"z": 1}}), query: "@z:1"],
+        args: func_args![value: value!({"z": 1}), query: "@z:1"],
         want: Ok(true),
     }
 
@@ -1278,7 +1278,7 @@ bench_function! {
     }
 
     wildcard_suffix_facet {
-        args: func_args![value: value!({"custom": {"a": "vector"}}), query: "@a:vec*"],
+        args: func_args![value: value!({"a": "vector"}), query: "@a:vec*"],
         want: Ok(true),
     }
 
@@ -1323,7 +1323,7 @@ bench_function! {
     }
 
     kitchen_sink_2 {
-        args: func_args![value: value!({"tags": ["c:that", "d:the_other"], "custom": {"b": "testing", "e": 3}}), query: "host:this OR ((@b:test* AND c:that) AND d:the_other @e:[1 TO 5])"],
+        args: func_args![value: value!({"tags": ["c:that", "d:the_other"], "b": "testing", "e": 3}), query: "host:this OR ((@b:test* AND c:that) AND d:the_other @e:[1 TO 5])"],
         want: Ok(true),
     }
 }
@@ -1467,6 +1467,7 @@ bench_function! {
             "target_status_code_list": ["200"],
             "timestamp": "2018-07-02T22:23:00.186641Z",
             "trace_id": "Root=1-58337262-36d228ad5d99923122bbe354",
+            "traceability_id": null,
             "type": "http",
             "user_agent": "curl/7.46.0"
         })),
@@ -1528,7 +1529,7 @@ bench_function! {
             format: "version interface_id account_id vpc_id subnet_id instance_id srcaddr dstaddr srcport dstport protocol tcp_flags type pkt_srcaddr pkt_dstaddr action log_status",
         ],
         want: Ok(value!({
-            "account_id": 123456789010i64,
+            "account_id": "123456789010",
             "action": "ACCEPT",
             "dstaddr": "10.40.2.236",
             "dstport": 80,
@@ -1964,7 +1965,7 @@ bench_function! {
 
     combined {
         args: func_args![
-            value: r#"172.17.0.1 alice - [01/Apr/2021:12:02:31 +0000] "POST /not-found HTTP/1.1" 404 153 "http://localhost/somewhere" "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.119 Safari/537.36" "2.75""#,
+            value: r#"172.17.0.1 - alice [01/Apr/2021:12:02:31 +0000] "POST /not-found HTTP/1.1" 404 153 "http://localhost/somewhere" "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.119 Safari/537.36" "2.75""#,
             format: "combined",
         ],
         want: Ok(value!({
@@ -1972,9 +1973,6 @@ bench_function! {
             "user": "alice",
             "timestamp": (DateTime::parse_from_rfc3339("2021-04-01T12:02:31Z").unwrap().with_timezone(&Utc)),
             "request": "POST /not-found HTTP/1.1",
-            "method": "POST",
-            "path": "/not-found",
-            "protocol": "HTTP/1.1",
             "status": 404,
             "size": 153,
             "referer": "http://localhost/somewhere",
@@ -1992,9 +1990,6 @@ bench_function! {
             "remote_addr": "0.0.0.0",
             "timestamp": (DateTime::parse_from_rfc3339("2023-03-18T15:00:00Z").unwrap().with_timezone(&Utc)),
             "request": "GET /some/path HTTP/2.0",
-            "method": "GET",
-            "path": "/some/path",
-            "protocol": "HTTP/2.0",
             "status": 200,
             "body_bytes_size": 12312,
             "http_referer": "https://10.0.0.1/some/referer",
@@ -2074,7 +2069,7 @@ const PARSE_REGEX_LARGE_INPUT: &str = concat!(
     " HTTP/1.1\" 200 20574 \"-\" \"Mozilla/5.0 (compatible; Datadog Agent/7.x; +https://docs.datadoghq.com/agent/)\"",
     " 0.042 upstream_addr=10.0.1.55:8080 upstream_status=200 request_id=req-abc123def456",
 );
-const PARSE_REGEX_SINGLE_MATCH_PATTERN: &str = "(?P<number>.*?) group";
+const PARSE_REGEX_SINGLE_MATCH_PATTERN: &str = r"(?P<number>[^\s-]*?) group";
 const PARSE_REGEX_LARGE_INPUT_SMALL_CAPTURES_PATTERN: &str =
     r#"^(?P<host>[\w\.]+) - [\w]+ [\d]+ \[(?P<timestamp>[^\]]+)\]"#;
 const PARSE_REGEX_LARGE_INPUT_PATTERN: &str = r#"^(?P<host>[\w\.]+) - (?P<user>[\w]+) (?P<bytes_in>[\d]+) \[(?P<timestamp>[^\]]+)\] "(?P<method>[\w]+) (?P<path>\S+) HTTP/[\d\.]+" (?P<status>[\d]+) (?P<bytes_out>[\d]+)"#;
@@ -2797,13 +2792,13 @@ bench_function! {
     sieve => vrl::stdlib::Sieve;
 
     regex {
-        args: func_args![value: value!("test123%456.فوائد.net."), permitted_characters: regex::Regex::new("[a-z.0-9]").unwrap(), replace_single: "X", replace_repeated: "<REMOVED>"],
+        args: func_args![value: value!("test123%456.فوائد.net."), permitted_characters: Regex::new("[a-z.0-9]").unwrap(), replace_single: "X", replace_repeated: "<REMOVED>"],
         want: Ok(value!("test123X456.<REMOVED>.net.")),
     }
 
     string {
-        args: func_args![value: value!("37ccx6a5uf52a7dv2hfxgpmltji09x6xkg0zv6yxsoi4kqs9atmjh7k50dcjb7z.فوائد.net."), permitted_characters: "acx.", replace_single: "0", replace_repeated: "<REMOVED>"],
-        want: Ok(value!("<REMOVED>ccx0a<REMOVED>a<REMOVED>x<REMOVED>x0x<Removed>x<Removed>a<Removed>c<REMOVED>.<REMOVED>.<REMOVED>.")),
+        args: func_args![value: value!("37ccx6a5uf52a7dv2hfxgpmltji09x6xkg0zv6yxsoi4kqs9atmjh7k50dcjb7z.فوائد.net."), permitted_characters: Regex::new(r"[acx\.]").unwrap(), replace_single: "0", replace_repeated: "<REMOVED>"],
+        want: Ok(value!("<REMOVED>ccx0a<REMOVED>a<REMOVED>x<REMOVED>x0x<REMOVED>x<REMOVED>a<REMOVED>c<REMOVED>.<REMOVED>.<REMOVED>.")),
     }
 }
 
