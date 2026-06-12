@@ -579,7 +579,7 @@ bench_function! {
 
     str_too_long {
         args: func_args![value: "foo", pattern: "foobar"],
-        want: Ok(value!(-1)),
+        want: Ok(value!(null)),
     }
 
     regex_matching_start {
