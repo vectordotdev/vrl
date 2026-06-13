@@ -10,7 +10,7 @@ static DEFAULT_TIMESTAMP_FORMAT_STR: &str = "%d/%b/%Y:%T %z";
 static DEFAULT_TIMESTAMP_FORMAT: Value =
     Value::Bytes(Bytes::from_static(DEFAULT_TIMESTAMP_FORMAT_STR.as_bytes()));
 
-static FORMAT_ENUM: &[EnumVariant] = &[
+const FORMAT_ENUM: &[EnumVariant] = &[
     EnumVariant {
         value: "combined",
         description: "Nginx combined format",
@@ -315,14 +315,14 @@ impl FunctionExpression for ParseNginxLogFn {
 fn kind_combined() -> BTreeMap<Field, Kind> {
     BTreeMap::from([
         ("client".into(), Kind::bytes()),
-        ("user".into(), Kind::bytes().or_null()),
+        ("user".into(), Kind::bytes().or_undefined()),
         ("timestamp".into(), Kind::timestamp()),
         ("request".into(), Kind::bytes()),
         ("status".into(), Kind::integer()),
         ("size".into(), Kind::integer()),
-        ("referer".into(), Kind::bytes().or_null()),
-        ("agent".into(), Kind::bytes().or_null()),
-        ("compression".into(), Kind::bytes().or_null()),
+        ("referer".into(), Kind::bytes().or_undefined()),
+        ("agent".into(), Kind::bytes().or_undefined()),
+        ("compression".into(), Kind::bytes().or_undefined()),
     ])
 }
 
@@ -344,9 +344,9 @@ fn kind_ingress_upstreaminfo() -> BTreeMap<Field, Kind> {
             Kind::bytes().or_undefined(),
         ),
         ("upstream_addr".into(), Kind::bytes()),
-        ("upstream_response_length".into(), Kind::integer()),
-        ("upstream_response_time".into(), Kind::float()),
-        ("upstream_status".into(), Kind::integer()),
+        ("upstream_response_length".into(), Kind::integer().or_undefined()),
+        ("upstream_response_time".into(), Kind::float().or_undefined()),
+        ("upstream_status".into(), Kind::integer().or_undefined()),
         ("req_id".into(), Kind::bytes()),
     ])
 }
@@ -371,16 +371,18 @@ fn kind_error() -> BTreeMap<Field, Kind> {
         ("severity".into(), Kind::bytes()),
         ("pid".into(), Kind::integer()),
         ("tid".into(), Kind::integer()),
-        ("cid".into(), Kind::integer()),
+        ("cid".into(), Kind::integer().or_undefined()),
         ("message".into(), Kind::bytes()),
-        ("excess".into(), Kind::float().or_null()),
-        ("zone".into(), Kind::bytes().or_null()),
-        ("client".into(), Kind::bytes().or_null()),
-        ("server".into(), Kind::bytes().or_null()),
-        ("request".into(), Kind::bytes().or_null()),
-        ("upstream".into(), Kind::bytes().or_null()),
-        ("host".into(), Kind::bytes().or_null()),
-        ("port".into(), Kind::bytes().or_null()),
+        ("excess".into(), Kind::float().or_undefined()),
+        ("zone".into(), Kind::bytes().or_undefined()),
+        ("client".into(), Kind::bytes().or_undefined()),
+        ("server".into(), Kind::bytes().or_undefined()),
+        ("request".into(), Kind::bytes().or_undefined()),
+        ("upstream".into(), Kind::bytes().or_undefined()),
+        ("host".into(), Kind::bytes().or_undefined()),
+        ("port".into(), Kind::bytes().or_undefined()),
+        ("referer".into(), Kind::bytes().or_undefined()),
+        ("tags".into(), Kind::bytes().or_undefined()),
     ])
 }
 
@@ -709,6 +711,50 @@ mod tests {
                 "request" => "GET /favicon.ico HTTP/1.1",
                 "host" => "65.21.190.83:31256",
                 "referer" => "http://65.21.190.83:31256/",
+            }),
+            tdef: TypeDef::object(kind_error()).fallible(),
+        }
+
+        error_line_with_one_extra_tag {
+            args: func_args![
+                value: r#"2021/06/03 09:30:50 [error] 32#32: *6 open() "/usr/share/nginx/html/favicon.ico" failed (2: No such file or directory), client: 10.244.0.0, server: localhost, request: "GET /favicon.ico HTTP/1.1", host: "65.21.190.83:31256", referrer: "http://65.21.190.83:31256/", request_id: "d41d8cd98f00b204e9800998ecf8427e""#,
+                format: "error"
+            ],
+            want: Ok(btreemap! {
+                "timestamp" => Value::Timestamp(DateTime::parse_from_rfc3339("2021-06-03T09:30:50Z").unwrap().into()),
+                "severity" => "error",
+                "pid" => 32,
+                "tid" => 32,
+                "cid" => 6,
+                "message" => "open() \"/usr/share/nginx/html/favicon.ico\" failed (2: No such file or directory)",
+                "client" => "10.244.0.0",
+                "server" => "localhost",
+                "request" => "GET /favicon.ico HTTP/1.1",
+                "host" => "65.21.190.83:31256",
+                "referer" => "http://65.21.190.83:31256/",
+                "tags" => "request_id: \"d41d8cd98f00b204e9800998ecf8427e\"",
+            }),
+            tdef: TypeDef::object(kind_error()).fallible(),
+        }
+
+        error_line_with_multiple_extra_tags {
+            args: func_args![
+                value: r#"2021/06/03 09:30:50 [error] 32#32: *6 open() "/usr/share/nginx/html/favicon.ico" failed (2: No such file or directory), client: 10.244.0.0, server: localhost, request: "GET /favicon.ico HTTP/1.1", host: "65.21.190.83:31256", referrer: "http://65.21.190.83:31256/", request_id: "d41d8cd98f00b204e9800998ecf8427e", another: "tag""#,
+                format: "error"
+            ],
+            want: Ok(btreemap! {
+                "timestamp" => Value::Timestamp(DateTime::parse_from_rfc3339("2021-06-03T09:30:50Z").unwrap().into()),
+                "severity" => "error",
+                "pid" => 32,
+                "tid" => 32,
+                "cid" => 6,
+                "message" => "open() \"/usr/share/nginx/html/favicon.ico\" failed (2: No such file or directory)",
+                "client" => "10.244.0.0",
+                "server" => "localhost",
+                "request" => "GET /favicon.ico HTTP/1.1",
+                "host" => "65.21.190.83:31256",
+                "referer" => "http://65.21.190.83:31256/",
+                "tags" => "request_id: \"d41d8cd98f00b204e9800998ecf8427e\", another: \"tag\"",
             }),
             tdef: TypeDef::object(kind_error()).fallible(),
         }
