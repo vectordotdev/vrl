@@ -31,7 +31,8 @@ criterion_group!(
               decode_percent,
               decode_punycode,
               decrypt,
-              dns_lookup,
+              // dns_lookup do network calls so doens't make sense to benchmark it
+              //dns_lookup,
               del,
               decrypt_ip,
               downcase,
@@ -141,7 +142,8 @@ criterion_group!(
               redact,
               remove,
               replace,
-              reverse_dns,
+              // reverse_dns do network calls so doens't make sense to benchmark it
+              //reverse_dns,
               round,
               seahash,
               set,
