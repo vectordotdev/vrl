@@ -500,9 +500,9 @@ cfg_if::cfg_if! {
             #[cfg(feature = "enable_crypto_functions")]
             self::xxhash::Xxhash,
             #[cfg(feature = "enable_crypto_functions")]
-            sha2::Sha2,
+            self::sha2::Sha2,
             #[cfg(feature = "enable_crypto_functions")]
-            sha3::Sha3,
+            self::sha3::Sha3,
         }
 
         #[cfg(feature = "enable_system_functions")]
