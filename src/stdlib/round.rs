@@ -113,8 +113,15 @@ impl FunctionExpression for RoundFn {
         round(precision, value)
     }
 
-    fn type_def(&self, _: &state::TypeState) -> TypeDef {
-        TypeDef::integer().infallible()
+    fn type_def(&self, state: &state::TypeState) -> TypeDef {
+        let kind = self.value.type_def(state).kind().clone();
+        let contains_float = kind.contains_float();
+        let contains_integer = kind.contains_integer();
+        match (contains_float, contains_integer) {
+            (true, false) => TypeDef::float().infallible(),
+            (false, true) => TypeDef::integer().infallible(),
+            _ => TypeDef::float().or_integer().infallible(),
+        }
     }
 }
 
@@ -128,13 +135,13 @@ mod tests {
         down {
              args: func_args![value: 1234.2],
              want: Ok(1234.0),
-             tdef: TypeDef::integer().infallible(),
+             tdef: TypeDef::float().infallible(),
          }
 
         up {
              args: func_args![value: 1234.8],
              want: Ok(1235.0),
-             tdef: TypeDef::integer().infallible(),
+             tdef: TypeDef::float().infallible(),
          }
 
         integer {
@@ -148,7 +155,7 @@ mod tests {
                               precision: 1
              ],
              want: Ok(1234.4),
-             tdef: TypeDef::integer().infallible(),
+             tdef: TypeDef::float().infallible(),
          }
 
         bigger_precision  {
@@ -156,7 +163,7 @@ mod tests {
                              precision: 4
             ],
             want: Ok(1234.5679),
-            tdef: TypeDef::integer().infallible(),
+            tdef: TypeDef::float().infallible(),
         }
 
         huge {
@@ -164,7 +171,7 @@ mod tests {
                               precision: 5
              ],
              want: Ok(9_876_543_210_123_456_789_098_765_432_101_234_567_890_987_654_321.987_65),
-             tdef: TypeDef::integer().infallible(),
+             tdef: TypeDef::float().infallible(),
          }
     ];
 }

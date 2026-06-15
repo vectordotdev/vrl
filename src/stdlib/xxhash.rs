@@ -151,9 +151,9 @@ impl FunctionExpression for XxhashFn {
                 .is_some_and(|variant| VALID_VARIANTS.contains(&variant.to_uppercase().as_str()));
 
         if valid_static_variant {
-            TypeDef::bytes().infallible()
+            TypeDef::bytes().or_integer().infallible()
         } else {
-            TypeDef::bytes().fallible()
+            TypeDef::bytes().or_integer().fallible()
         }
     }
 }
@@ -169,61 +169,61 @@ mod tests {
     hash_xxh32_default {
         args: func_args![value: "foo"],
         want: Ok(value!(3_792_637_401_i64)),
-        tdef: TypeDef::bytes().infallible(),
+        tdef: TypeDef::bytes().or_integer().infallible(),
     }
 
     hash_xxh32 {
         args: func_args![value: "foo", variant: "XXH32"],
         want: Ok(value!(3_792_637_401_i64)),
-        tdef: TypeDef::bytes().infallible(),
+        tdef: TypeDef::bytes().or_integer().infallible(),
     }
 
     hash_xxh64 {
         args: func_args![value: "foo", variant: "XXH64"],
         want: Ok(value!(3_728_699_739_546_630_719_i64)),
-        tdef: TypeDef::bytes().infallible(),
+        tdef: TypeDef::bytes().or_integer().infallible(),
     }
 
     hash_xxh3_64 {
         args: func_args![value: "foo", variant: "XXH3-64"],
         want: Ok(value!(-6_093_828_362_558_603_894_i64)),
-        tdef: TypeDef::bytes().infallible(),
+        tdef: TypeDef::bytes().or_integer().infallible(),
     }
 
     hash_xxh3_128 {
         args: func_args![value: "foo", variant: "XXH3-128"],
         want: Ok(value!("161745101148472925293886522910304009610")),
-        tdef: TypeDef::bytes().infallible(),
+        tdef: TypeDef::bytes().or_integer().infallible(),
     }
 
     long_string_xxh32 {
         args: func_args![value: "vrl xxhash hash function"],
         want: Ok(value!(919_261_294_i64)),
-        tdef: TypeDef::bytes().infallible(),
+        tdef: TypeDef::bytes().or_integer().infallible(),
     }
 
     long_string_xxh64 {
         args: func_args![value: "vrl xxhash hash function", variant: "XXH64"],
         want: Ok(value!(7_826_295_616_420_964_813_i64)),
-        tdef: TypeDef::bytes().infallible(),
+        tdef: TypeDef::bytes().or_integer().infallible(),
     }
 
     long_string_xxh3_64 {
         args: func_args![value: "vrl xxhash hash function", variant: "XXH3-64"],
         want: Ok(value!(-7_714_906_473_624_552_998_i64)),
-        tdef: TypeDef::bytes().infallible(),
+        tdef: TypeDef::bytes().or_integer().infallible(),
     }
 
     long_string_xxh3_128 {
         args: func_args![value: "vrl xxhash hash function", variant: "XXH3-128"],
         want: Ok(value!("89621485359950851650871997518391357172")),
-        tdef: TypeDef::bytes().infallible(),
+        tdef: TypeDef::bytes().or_integer().infallible(),
     }
 
     hash_invalid_variant {
         args: func_args![value: "foo", variant: "XXH16"],
         want: Err("Variant must be either 'XXH32', 'XXH64', 'XXH3-64', or 'XXH3-128'"),
-        tdef: TypeDef::bytes().fallible(),
+        tdef: TypeDef::bytes().or_integer().fallible(),
     }
     ];
 }

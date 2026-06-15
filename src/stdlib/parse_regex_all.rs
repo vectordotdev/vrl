@@ -204,12 +204,23 @@ impl FunctionExpression for ParseRegexAllFn {
         }
     }
 
-    fn type_def(&self, _: &state::TypeState) -> TypeDef {
+    fn type_def(&self, state: &state::TypeState) -> TypeDef {
+        let numeric_groups = self
+            .numeric_groups
+            .as_ref()
+            .and_then(|n| n.resolve_constant(state))
+            .and_then(|v| v.as_boolean())
+            .unwrap_or(false);
+
         match &self.pattern {
-            ConstOrExpr::Const(regex) => TypeDef::array(Collection::from_unknown(
-                Kind::object(util::regex_kind(regex)).or_null(),
-            ))
-            .fallible(),
+            ConstOrExpr::Const(regex) => {
+                let kind = if numeric_groups {
+                    util::regex_kind(regex)
+                } else {
+                    util::named_group_kind(regex)
+                };
+                TypeDef::array(Collection::from_unknown(Kind::object(kind).or_null())).fallible()
+            }
             ConstOrExpr::Expr(_) => TypeDef::array(Collection::from_unknown(
                 Kind::object(Collection::from_unknown(Kind::bytes() | Kind::null())).or_null(),
             ))
@@ -240,9 +251,6 @@ mod tests {
             tdef: TypeDef::array(Collection::from_unknown(Kind::null().or_object(btreemap! {
                     Field::from("fruit") => Kind::bytes(),
                     Field::from("veg") => Kind::bytes(),
-                    Field::from("0") => Kind::bytes() | Kind::null(),
-                    Field::from("1") => Kind::bytes() | Kind::null(),
-                    Field::from("2") => Kind::bytes() | Kind::null(),
                 }))).fallible(),
         }
 
@@ -280,9 +288,6 @@ mod tests {
             tdef: TypeDef::array(Collection::from_unknown(Kind::null().or_object(btreemap! {
                     Field::from("fruit") => Kind::bytes(),
                     Field::from("veg") => Kind::bytes(),
-                    Field::from("0") => Kind::bytes() | Kind::null(),
-                    Field::from("1") => Kind::bytes() | Kind::null(),
-                    Field::from("2") => Kind::bytes() | Kind::null(),
                 }))).fallible(),
         }
     ];

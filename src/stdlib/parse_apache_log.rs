@@ -229,44 +229,144 @@ impl FunctionExpression for ParseApacheLogFn {
 
 fn kind_common() -> BTreeMap<Field, Kind> {
     BTreeMap::from([
-        (Field::from("host"), Kind::bytes() | Kind::null()),
-        (Field::from("identity"), Kind::bytes() | Kind::null()),
-        (Field::from("user"), Kind::bytes() | Kind::null()),
-        (Field::from("timestamp"), Kind::timestamp() | Kind::null()),
-        (Field::from("message"), Kind::bytes() | Kind::null()),
-        (Field::from("method"), Kind::bytes() | Kind::null()),
-        (Field::from("path"), Kind::bytes() | Kind::null()),
-        (Field::from("protocol"), Kind::bytes() | Kind::null()),
-        (Field::from("status"), Kind::integer() | Kind::null()),
-        (Field::from("size"), Kind::integer() | Kind::null()),
+        (
+            Field::from("host"),
+            Kind::bytes() | Kind::null() | Kind::undefined(),
+        ),
+        (
+            Field::from("identity"),
+            Kind::bytes() | Kind::null() | Kind::undefined(),
+        ),
+        (
+            Field::from("user"),
+            Kind::bytes() | Kind::null() | Kind::undefined(),
+        ),
+        (
+            Field::from("timestamp"),
+            Kind::timestamp() | Kind::null() | Kind::undefined(),
+        ),
+        (
+            Field::from("message"),
+            Kind::bytes() | Kind::null() | Kind::undefined(),
+        ),
+        (
+            Field::from("method"),
+            Kind::bytes() | Kind::null() | Kind::undefined(),
+        ),
+        (
+            Field::from("path"),
+            Kind::bytes() | Kind::null() | Kind::undefined(),
+        ),
+        (
+            Field::from("protocol"),
+            Kind::bytes() | Kind::null() | Kind::undefined(),
+        ),
+        (
+            Field::from("status"),
+            Kind::integer() | Kind::null() | Kind::undefined(),
+        ),
+        (
+            Field::from("size"),
+            Kind::integer() | Kind::null() | Kind::undefined(),
+        ),
     ])
 }
 
 fn kind_combined() -> BTreeMap<Field, Kind> {
     BTreeMap::from([
-        (Field::from("host"), Kind::bytes() | Kind::null()),
-        (Field::from("identity"), Kind::bytes() | Kind::null()),
-        (Field::from("user"), Kind::bytes() | Kind::null()),
-        (Field::from("timestamp"), Kind::timestamp() | Kind::null()),
-        (Field::from("message"), Kind::bytes() | Kind::null()),
-        (Field::from("method"), Kind::bytes() | Kind::null()),
-        (Field::from("path"), Kind::bytes() | Kind::null()),
-        (Field::from("protocol"), Kind::bytes() | Kind::null()),
-        (Field::from("status"), Kind::integer() | Kind::null()),
-        (Field::from("size"), Kind::integer() | Kind::null()),
-        (Field::from("referrer"), Kind::bytes() | Kind::null()),
-        (Field::from("agent"), Kind::bytes() | Kind::null()),
+        (
+            Field::from("host"),
+            Kind::bytes() | Kind::null() | Kind::undefined(),
+        ),
+        (
+            Field::from("identity"),
+            Kind::bytes() | Kind::null() | Kind::undefined(),
+        ),
+        (
+            Field::from("user"),
+            Kind::bytes() | Kind::null() | Kind::undefined(),
+        ),
+        (
+            Field::from("timestamp"),
+            Kind::timestamp() | Kind::null() | Kind::undefined(),
+        ),
+        (
+            Field::from("message"),
+            Kind::bytes() | Kind::null() | Kind::undefined(),
+        ),
+        (
+            Field::from("method"),
+            Kind::bytes() | Kind::null() | Kind::undefined(),
+        ),
+        (
+            Field::from("path"),
+            Kind::bytes() | Kind::null() | Kind::undefined(),
+        ),
+        (
+            Field::from("protocol"),
+            Kind::bytes() | Kind::null() | Kind::undefined(),
+        ),
+        (
+            Field::from("status"),
+            Kind::integer() | Kind::null() | Kind::undefined(),
+        ),
+        (
+            Field::from("size"),
+            Kind::integer() | Kind::null() | Kind::undefined(),
+        ),
+        (
+            Field::from("referrer"),
+            Kind::bytes() | Kind::null() | Kind::undefined(),
+        ),
+        (
+            Field::from("agent"),
+            Kind::bytes() | Kind::null() | Kind::undefined(),
+        ),
     ])
 }
 
 fn kind_error() -> BTreeMap<Field, Kind> {
     BTreeMap::from([
-        (Field::from("timestamp"), Kind::timestamp() | Kind::null()),
-        (Field::from("module"), Kind::bytes() | Kind::null()),
-        (Field::from("severity"), Kind::bytes() | Kind::null()),
-        (Field::from("thread"), Kind::bytes() | Kind::null()),
-        (Field::from("port"), Kind::bytes() | Kind::null()),
-        (Field::from("message"), Kind::bytes() | Kind::null()),
+        (
+            Field::from("timestamp"),
+            Kind::timestamp() | Kind::null() | Kind::undefined(),
+        ),
+        (
+            Field::from("module"),
+            Kind::bytes() | Kind::null() | Kind::undefined(),
+        ),
+        (
+            Field::from("severity"),
+            Kind::bytes() | Kind::null() | Kind::undefined(),
+        ),
+        (
+            Field::from("thread"),
+            Kind::bytes() | Kind::null() | Kind::undefined(),
+        ),
+        (
+            Field::from("port"),
+            Kind::integer() | Kind::null() | Kind::undefined(),
+        ),
+        (
+            Field::from("message"),
+            Kind::bytes() | Kind::null() | Kind::undefined(),
+        ),
+        (
+            Field::from("pid"),
+            Kind::integer() | Kind::null() | Kind::undefined(),
+        ),
+        (
+            Field::from("client"),
+            Kind::bytes() | Kind::null() | Kind::undefined(),
+        ),
+        (
+            Field::from("message1"),
+            Kind::bytes() | Kind::null() | Kind::undefined(),
+        ),
+        (
+            Field::from("message2"),
+            Kind::bytes() | Kind::null() | Kind::undefined(),
+        ),
     ])
 }
 

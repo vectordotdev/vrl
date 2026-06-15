@@ -171,44 +171,122 @@ impl FunctionExpression for ParseAwsVpcFlowLogFn {
 
 fn inner_kind() -> BTreeMap<Field, Kind> {
     BTreeMap::from([
-        (Field::from("account_id"), Kind::bytes() | Kind::null()),
-        (Field::from("action"), Kind::bytes() | Kind::null()),
-        (Field::from("az_id"), Kind::bytes() | Kind::null()),
-        (Field::from("bytes"), Kind::integer() | Kind::null()),
-        (Field::from("dstaddr"), Kind::bytes() | Kind::null()),
-        (Field::from("dstport"), Kind::integer() | Kind::null()),
-        (Field::from("end"), Kind::integer() | Kind::null()),
-        (Field::from("flow_direction"), Kind::bytes() | Kind::null()),
-        (Field::from("instance_id"), Kind::bytes() | Kind::null()),
-        (Field::from("interface_id"), Kind::bytes() | Kind::null()),
-        (Field::from("log_status"), Kind::bytes() | Kind::null()),
-        (Field::from("packets"), Kind::integer() | Kind::null()),
-        (Field::from("pkt_dstaddr"), Kind::bytes() | Kind::null()),
+        (
+            Field::from("account_id"),
+            Kind::bytes() | Kind::null() | Kind::undefined(),
+        ),
+        (
+            Field::from("action"),
+            Kind::bytes() | Kind::null() | Kind::undefined(),
+        ),
+        (
+            Field::from("az_id"),
+            Kind::bytes() | Kind::null() | Kind::undefined(),
+        ),
+        (
+            Field::from("bytes"),
+            Kind::integer() | Kind::null() | Kind::undefined(),
+        ),
+        (
+            Field::from("dstaddr"),
+            Kind::bytes() | Kind::null() | Kind::undefined(),
+        ),
+        (
+            Field::from("dstport"),
+            Kind::integer() | Kind::null() | Kind::undefined(),
+        ),
+        (
+            Field::from("end"),
+            Kind::integer() | Kind::null() | Kind::undefined(),
+        ),
+        (
+            Field::from("flow_direction"),
+            Kind::bytes() | Kind::null() | Kind::undefined(),
+        ),
+        (
+            Field::from("instance_id"),
+            Kind::bytes() | Kind::null() | Kind::undefined(),
+        ),
+        (
+            Field::from("interface_id"),
+            Kind::bytes() | Kind::null() | Kind::undefined(),
+        ),
+        (
+            Field::from("log_status"),
+            Kind::bytes() | Kind::null() | Kind::undefined(),
+        ),
+        (
+            Field::from("packets"),
+            Kind::integer() | Kind::null() | Kind::undefined(),
+        ),
+        (
+            Field::from("pkt_dstaddr"),
+            Kind::bytes() | Kind::null() | Kind::undefined(),
+        ),
         (
             Field::from("pkt_dst_aws_service"),
-            Kind::bytes() | Kind::null(),
+            Kind::bytes() | Kind::null() | Kind::undefined(),
         ),
-        (Field::from("pkt_srcaddr"), Kind::bytes() | Kind::null()),
+        (
+            Field::from("pkt_srcaddr"),
+            Kind::bytes() | Kind::null() | Kind::undefined(),
+        ),
         (
             Field::from("pkt_src_aws_service"),
-            Kind::bytes() | Kind::null(),
+            Kind::bytes() | Kind::null() | Kind::undefined(),
         ),
-        (Field::from("protocol"), Kind::integer() | Kind::null()),
-        (Field::from("region"), Kind::bytes() | Kind::null()),
-        (Field::from("srcaddr"), Kind::bytes() | Kind::null()),
-        (Field::from("srcport"), Kind::integer() | Kind::null()),
-        (Field::from("start"), Kind::integer() | Kind::null()),
-        (Field::from("sublocation_id"), Kind::bytes() | Kind::null()),
+        (
+            Field::from("protocol"),
+            Kind::integer() | Kind::null() | Kind::undefined(),
+        ),
+        (
+            Field::from("region"),
+            Kind::bytes() | Kind::null() | Kind::undefined(),
+        ),
+        (
+            Field::from("srcaddr"),
+            Kind::bytes() | Kind::null() | Kind::undefined(),
+        ),
+        (
+            Field::from("srcport"),
+            Kind::integer() | Kind::null() | Kind::undefined(),
+        ),
+        (
+            Field::from("start"),
+            Kind::integer() | Kind::null() | Kind::undefined(),
+        ),
+        (
+            Field::from("sublocation_id"),
+            Kind::bytes() | Kind::null() | Kind::undefined(),
+        ),
         (
             Field::from("sublocation_type"),
-            Kind::bytes() | Kind::null(),
+            Kind::bytes() | Kind::null() | Kind::undefined(),
         ),
-        (Field::from("subnet_id"), Kind::bytes() | Kind::null()),
-        (Field::from("tcp_flags"), Kind::integer() | Kind::null()),
-        (Field::from("traffic_path"), Kind::integer() | Kind::null()),
-        (Field::from("type"), Kind::bytes() | Kind::null()),
-        (Field::from("version"), Kind::integer() | Kind::null()),
-        (Field::from("vpc_id"), Kind::bytes() | Kind::null()),
+        (
+            Field::from("subnet_id"),
+            Kind::bytes() | Kind::null() | Kind::undefined(),
+        ),
+        (
+            Field::from("tcp_flags"),
+            Kind::integer() | Kind::null() | Kind::undefined(),
+        ),
+        (
+            Field::from("traffic_path"),
+            Kind::integer() | Kind::null() | Kind::undefined(),
+        ),
+        (
+            Field::from("type"),
+            Kind::bytes() | Kind::null() | Kind::undefined(),
+        ),
+        (
+            Field::from("version"),
+            Kind::integer() | Kind::null() | Kind::undefined(),
+        ),
+        (
+            Field::from("vpc_id"),
+            Kind::bytes() | Kind::null() | Kind::undefined(),
+        ),
     ])
 }
 

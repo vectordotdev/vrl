@@ -135,6 +135,15 @@ macro_rules! test_function {
                         assert!(got_value == want, "assertion failed for `{}` case:\n  got:    {:?}\n  wanted: {:?}", stringify!($case), got_value, want);
                         let got_tdef = expression.type_def(&state);
                         assert_eq!(got_tdef, $tdef);
+                        if let Ok(ref value) = got_value {
+                            assert!(
+                                $tdef.kind().is_superset(&value.kind()).is_ok(),
+                                "tdef for `{}` case does not contain the kind of the returned value: tdef={:?}, value={:?}",
+                                stringify!($case),
+                                $tdef,
+                                value,
+                            );
+                        }
                     }
                     err@Err(_) => {
                         // Allow tests against compiler errors.

@@ -134,6 +134,22 @@ impl FunctionExpression for MergeFn {
     }
 
     fn type_def(&self, state: &state::TypeState) -> TypeDef {
+        if let (Some(to_val), Some(from_val)) = (
+            self.to.resolve_constant(state),
+            self.from.resolve_constant(state),
+        ) {
+            let deep = self
+                .deep
+                .as_ref()
+                .and_then(|d| d.resolve_constant(state))
+                .and_then(|v| v.as_boolean())
+                .unwrap_or(false);
+            if let (Value::Object(mut to_map), Value::Object(from_map)) = (to_val, from_val) {
+                merge_maps(&mut to_map, &from_map, deep);
+                return TypeDef::from(Kind::from(Value::Object(to_map)));
+            }
+        }
+
         // TODO: this has a known bug when deep is true
         // see: https://github.com/vectordotdev/vector/issues/13597
         self.to
@@ -246,6 +262,7 @@ mod tests {
                 Field::from("key1") => Kind::bytes(),
                 Field::from("key2") => Kind::bytes(),
                 Field::from("child") => TypeDef::object(btreemap! {
+                    Field::from("grandchild1") => Kind::bytes(),
                     Field::from("grandchild2") => Kind::boolean(),
                 }),
             }),

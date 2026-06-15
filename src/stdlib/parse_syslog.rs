@@ -112,7 +112,7 @@ impl FunctionExpression for ParseSyslogFn {
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {
-        TypeDef::object(inner_kind()).fallible()
+        TypeDef::object(inner_collection()).fallible()
     }
 }
 
@@ -191,15 +191,27 @@ fn message_to_value(message: Message<&str>) -> Value {
 fn inner_kind() -> BTreeMap<Field, Kind> {
     BTreeMap::from([
         ("message".into(), Kind::bytes()),
-        ("hostname".into(), Kind::bytes().or_null()),
-        ("severity".into(), Kind::bytes().or_null()),
-        ("facility".into(), Kind::bytes().or_null()),
-        ("appname".into(), Kind::bytes().or_null()),
-        ("msgid".into(), Kind::bytes().or_null()),
-        ("timestamp".into(), Kind::timestamp().or_null()),
-        ("procid".into(), Kind::bytes().or_integer().or_null()),
-        ("version".into(), Kind::integer().or_null()),
+        ("hostname".into(), Kind::bytes().or_null().or_undefined()),
+        ("severity".into(), Kind::bytes().or_null().or_undefined()),
+        ("facility".into(), Kind::bytes().or_null().or_undefined()),
+        ("appname".into(), Kind::bytes().or_null().or_undefined()),
+        ("msgid".into(), Kind::bytes().or_null().or_undefined()),
+        (
+            "timestamp".into(),
+            Kind::timestamp().or_null().or_undefined(),
+        ),
+        (
+            "procid".into(),
+            Kind::bytes().or_integer().or_null().or_undefined(),
+        ),
+        ("version".into(), Kind::integer().or_null().or_undefined()),
     ])
+}
+
+fn inner_collection() -> Collection<Field> {
+    let mut collection = Collection::from(inner_kind());
+    collection.set_unknown(Kind::object(Collection::from_unknown(Kind::bytes())));
+    collection
 }
 
 #[cfg(test)]
@@ -230,13 +242,13 @@ mod tests {
                 "message" => "Try to override the THX port, maybe it will reboot the neural interface!",
                 "version" => 1,
             }),
-            tdef: TypeDef::object(inner_kind()).fallible(),
+            tdef: TypeDef::object(inner_collection()).fallible(),
         }
 
         invalid {
             args: func_args![value: "not much of a syslog message"],
             want: Err("unable to parse input as valid syslog message".to_string()),
-            tdef: TypeDef::object(inner_kind()).fallible(),
+            tdef: TypeDef::object(inner_collection()).fallible(),
         }
 
         haproxy {
@@ -249,7 +261,7 @@ mod tests {
                     "appname" => "haproxy",
                     "procid" => 73411,
             }),
-            tdef: TypeDef::object(inner_kind()).fallible(),
+            tdef: TypeDef::object(inner_collection()).fallible(),
         }
 
         missing_pri {
@@ -260,7 +272,7 @@ mod tests {
                 "appname" => "haproxy",
                 "procid" => 73411,
             }),
-            tdef: TypeDef::object(inner_kind()).fallible(),
+            tdef: TypeDef::object(inner_collection()).fallible(),
         }
 
         empty_sd_element {
@@ -277,7 +289,7 @@ mod tests {
                 "version" => 1,
                 "empty" => btreemap! {},
             }),
-            tdef: TypeDef::object(inner_kind()).fallible(),
+            tdef: TypeDef::object(inner_collection()).fallible(),
         }
 
         non_empty_sd_element {
@@ -297,7 +309,7 @@ mod tests {
                 },
                 "empty" => btreemap! {},
             }),
-            tdef: TypeDef::object(inner_kind()).fallible(),
+            tdef: TypeDef::object(inner_collection()).fallible(),
         }
 
         empty_sd_value {
@@ -317,7 +329,7 @@ mod tests {
                     "x" => "",
                 },
             }),
-            tdef: TypeDef::object(inner_kind()).fallible(),
+            tdef: TypeDef::object(inner_collection()).fallible(),
         }
 
         non_structured_data_in_message {
@@ -330,7 +342,7 @@ mod tests {
                 "timestamp" => Utc.with_ymd_and_hms(Utc::now().year(), 6, 8, 11, 54, 8).unwrap(),
                 "message" => "[Tue Jun 08 11:54:08.929301 2021] [php7:emerg] [pid 1374899] [client 95.223.77.60:41888] rest of message",
             }),
-            tdef: TypeDef::object(inner_kind()).fallible(),
+            tdef: TypeDef::object(inner_collection()).fallible(),
         }
 
         escapes_in_structured_data_quote {
@@ -348,7 +360,7 @@ mod tests {
                 "timestamp" => Utc.with_ymd_and_hms(2003, 10, 11, 22, 14, 15).unwrap().with_nanosecond(3_000_000).unwrap(),
                 "version" => 1
             }),
-            tdef: TypeDef::object(inner_kind()).fallible(),
+            tdef: TypeDef::object(inner_collection()).fallible(),
         }
 
         escapes_in_structured_data_slash {
@@ -366,7 +378,7 @@ mod tests {
                 "timestamp" => Utc.with_ymd_and_hms(2003, 10, 11, 22, 14, 15).unwrap().with_nanosecond(3_000_000).unwrap(),
                 "version" => 1
             }),
-            tdef: TypeDef::object(inner_kind()).fallible(),
+            tdef: TypeDef::object(inner_collection()).fallible(),
         }
 
         escapes_in_structured_data_bracket {
@@ -384,7 +396,7 @@ mod tests {
                 "timestamp" => Utc.with_ymd_and_hms(2003, 10, 11, 22, 14, 15).unwrap().with_nanosecond(3_000_000).unwrap(),
                 "version" => 1
             }),
-            tdef: TypeDef::object(inner_kind()).fallible(),
+            tdef: TypeDef::object(inner_collection()).fallible(),
         }
     ];
 }

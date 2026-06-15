@@ -150,16 +150,46 @@ impl FunctionExpression for ParseCommonLogFn {
 
 fn inner_kind() -> BTreeMap<Field, Kind> {
     BTreeMap::from([
-        (Field::from("host"), Kind::bytes() | Kind::null()),
-        (Field::from("identity"), Kind::bytes() | Kind::null()),
-        (Field::from("user"), Kind::bytes() | Kind::null()),
-        (Field::from("timestamp"), Kind::timestamp() | Kind::null()),
-        (Field::from("message"), Kind::bytes() | Kind::null()),
-        (Field::from("method"), Kind::bytes() | Kind::null()),
-        (Field::from("path"), Kind::bytes() | Kind::null()),
-        (Field::from("protocol"), Kind::bytes() | Kind::null()),
-        (Field::from("status"), Kind::integer() | Kind::null()),
-        (Field::from("size"), Kind::integer() | Kind::null()),
+        (
+            Field::from("host"),
+            Kind::bytes() | Kind::null() | Kind::undefined(),
+        ),
+        (
+            Field::from("identity"),
+            Kind::bytes() | Kind::null() | Kind::undefined(),
+        ),
+        (
+            Field::from("user"),
+            Kind::bytes() | Kind::null() | Kind::undefined(),
+        ),
+        (
+            Field::from("timestamp"),
+            Kind::timestamp() | Kind::null() | Kind::undefined(),
+        ),
+        (
+            Field::from("message"),
+            Kind::bytes() | Kind::null() | Kind::undefined(),
+        ),
+        (
+            Field::from("method"),
+            Kind::bytes() | Kind::null() | Kind::undefined(),
+        ),
+        (
+            Field::from("path"),
+            Kind::bytes() | Kind::null() | Kind::undefined(),
+        ),
+        (
+            Field::from("protocol"),
+            Kind::bytes() | Kind::null() | Kind::undefined(),
+        ),
+        (
+            Field::from("status"),
+            Kind::integer() | Kind::null() | Kind::undefined(),
+        ),
+        (
+            Field::from("size"),
+            Kind::integer() | Kind::null() | Kind::undefined(),
+        ),
     ])
 }
 

@@ -94,7 +94,7 @@ impl FunctionExpression for ParseTokensFn {
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {
-        TypeDef::array(Collection::from_unknown(Kind::bytes()))
+        TypeDef::array(Collection::from_unknown(Kind::bytes() | Kind::null()))
     }
 }
 
@@ -117,7 +117,7 @@ mod tests {
                             "11881".into(),
 
                     ]),
-            tdef: TypeDef::array(Collection::from_unknown(Kind::bytes())),
+            tdef: TypeDef::array(Collection::from_unknown(Kind::bytes() | Kind::null())),
         }
     ];
 }

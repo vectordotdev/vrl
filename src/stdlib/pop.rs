@@ -72,6 +72,10 @@ impl FunctionExpression for PopFn {
     }
 
     fn type_def(&self, state: &state::TypeState) -> TypeDef {
+        if let Some(Value::Array(mut arr)) = self.value.resolve_constant(state) {
+            arr.pop();
+            return TypeDef::from(Kind::from(Value::Array(arr)));
+        }
         self.value
             .type_def(state)
             .fallible_unless(Kind::array(Collection::any()))
@@ -108,7 +112,6 @@ mod tests {
                 Index::from(2) => Kind::integer(),
                 Index::from(3) => Kind::boolean(),
                 Index::from(4) => Kind::float(),
-                Index::from(5) => Kind::bytes(),
             }),
         }
 
@@ -119,7 +122,6 @@ mod tests {
                 Index::from(0) => Kind::integer(),
                 Index::from(1) => Kind::integer(),
                 Index::from(2) => Kind::integer(),
-                Index::from(3) => Kind::integer(),
             }),
         }
 

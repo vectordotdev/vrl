@@ -93,6 +93,17 @@ pub(crate) fn regex_kind(
     inner_type
 }
 
+pub(crate) fn named_group_kind(
+    regex: &regex::Regex,
+) -> std::collections::BTreeMap<crate::value::kind::Field, crate::value::kind::Kind> {
+    use crate::value::kind::Kind;
+    let mut inner_type = std::collections::BTreeMap::new();
+    for name in regex.capture_names().flatten() {
+        inner_type.insert(name.to_owned().into(), Kind::bytes());
+    }
+    inner_type
+}
+
 pub(crate) fn is_nullish(value: &Value) -> bool {
     match value {
         Value::Bytes(v) => {

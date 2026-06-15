@@ -152,6 +152,31 @@ impl FunctionExpression for SliceFn {
     }
 
     fn type_def(&self, state: &state::TypeState) -> TypeDef {
+        // If all three parameters are compile-time constants, we can compute the exact result type.
+        if let (Some(value), Some(start_val)) = (
+            self.value.resolve_constant(state),
+            self.start.resolve_constant(state),
+        ) {
+            let start = match start_val {
+                Value::Integer(i) => i,
+                _ => {
+                    return TypeDef::from(Kind::never())
+                        .fallible()
+                        .or_bytes()
+                        .or_array(Collection::any());
+                }
+            };
+            let end = self
+                .end
+                .as_ref()
+                .and_then(|e| e.resolve_constant(state))
+                .and_then(|v| v.as_integer());
+
+            if let Ok(result) = slice(start, end, value) {
+                return TypeDef::from(Kind::from(&result)).fallible();
+            }
+        }
+
         let td = TypeDef::from(Kind::never()).fallible();
 
         match self.value.type_def(state) {
@@ -276,7 +301,6 @@ mod tests {
             tdef: TypeDef::array(Collection::from_parts(BTreeMap::from([
                 (Index::from(0), Kind::integer()),
                 (Index::from(1), Kind::integer()),
-                (Index::from(2), Kind::integer()),
             ]), Kind::undefined())).fallible(),
         }
 
@@ -288,7 +312,6 @@ mod tests {
             tdef: TypeDef::array(Collection::from_parts(BTreeMap::from([
                 (Index::from(0), Kind::integer()),
                 (Index::from(1), Kind::integer()),
-                (Index::from(2), Kind::integer()),
             ]), Kind::undefined())).fallible(),
         }
 
@@ -297,10 +320,9 @@ mod tests {
                              start: 1
             ],
             want: Ok(value!(["ook", true])),
-                       tdef: TypeDef::array(Collection::from_parts(BTreeMap::from([
-                (Index::from(0), Kind::integer()),
-                (Index::from(1), Kind::bytes()),
-                (Index::from(2), Kind::boolean()),
+            tdef: TypeDef::array(Collection::from_parts(BTreeMap::from([
+                (Index::from(0), Kind::bytes()),
+                (Index::from(1), Kind::boolean()),
             ]), Kind::undefined())).fallible(),
         }
 

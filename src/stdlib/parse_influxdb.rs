@@ -297,8 +297,8 @@ fn gauge_kind() -> Kind {
 fn metric_kind() -> BTreeMap<Field, Kind> {
     btreemap! {
         "name" => Kind::bytes(),
-        "tags" => tags_kind(),
-        "timestamp" => Kind::timestamp() | Kind::null(),
+        "tags" => tags_kind() | Kind::undefined(),
+        "timestamp" => Kind::timestamp() | Kind::null() | Kind::undefined(),
         "kind" => Kind::bytes(),
         "gauge" => gauge_kind(),
     }

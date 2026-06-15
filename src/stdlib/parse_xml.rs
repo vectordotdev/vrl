@@ -218,7 +218,7 @@ fn type_def() -> TypeDef {
 }
 
 fn inner_kind() -> Kind {
-    Kind::object(Collection::any())
+    Kind::any()
 }
 
 #[cfg(test)]

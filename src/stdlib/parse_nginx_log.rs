@@ -315,14 +315,14 @@ impl FunctionExpression for ParseNginxLogFn {
 fn kind_combined() -> BTreeMap<Field, Kind> {
     BTreeMap::from([
         ("client".into(), Kind::bytes()),
-        ("user".into(), Kind::bytes().or_null()),
+        ("user".into(), Kind::bytes().or_null().or_undefined()),
         ("timestamp".into(), Kind::timestamp()),
         ("request".into(), Kind::bytes()),
         ("status".into(), Kind::integer()),
         ("size".into(), Kind::integer()),
-        ("referer".into(), Kind::bytes().or_null()),
-        ("agent".into(), Kind::bytes().or_null()),
-        ("compression".into(), Kind::bytes().or_null()),
+        ("referer".into(), Kind::bytes().or_null().or_undefined()),
+        ("agent".into(), Kind::bytes().or_null().or_undefined()),
+        ("compression".into(), Kind::bytes().or_null().or_undefined()),
     ])
 }
 
@@ -344,9 +344,15 @@ fn kind_ingress_upstreaminfo() -> BTreeMap<Field, Kind> {
             Kind::bytes().or_undefined(),
         ),
         ("upstream_addr".into(), Kind::bytes()),
-        ("upstream_response_length".into(), Kind::integer()),
-        ("upstream_response_time".into(), Kind::float()),
-        ("upstream_status".into(), Kind::integer()),
+        (
+            "upstream_response_length".into(),
+            Kind::integer().or_undefined(),
+        ),
+        (
+            "upstream_response_time".into(),
+            Kind::float().or_undefined(),
+        ),
+        ("upstream_status".into(), Kind::integer().or_undefined()),
         ("req_id".into(), Kind::bytes()),
     ])
 }
@@ -371,16 +377,17 @@ fn kind_error() -> BTreeMap<Field, Kind> {
         ("severity".into(), Kind::bytes()),
         ("pid".into(), Kind::integer()),
         ("tid".into(), Kind::integer()),
-        ("cid".into(), Kind::integer()),
+        ("cid".into(), Kind::integer().or_undefined()),
         ("message".into(), Kind::bytes()),
-        ("excess".into(), Kind::float().or_null()),
-        ("zone".into(), Kind::bytes().or_null()),
-        ("client".into(), Kind::bytes().or_null()),
-        ("server".into(), Kind::bytes().or_null()),
-        ("request".into(), Kind::bytes().or_null()),
-        ("upstream".into(), Kind::bytes().or_null()),
-        ("host".into(), Kind::bytes().or_null()),
-        ("port".into(), Kind::bytes().or_null()),
+        ("excess".into(), Kind::float().or_null().or_undefined()),
+        ("zone".into(), Kind::bytes().or_null().or_undefined()),
+        ("client".into(), Kind::bytes().or_null().or_undefined()),
+        ("server".into(), Kind::bytes().or_null().or_undefined()),
+        ("request".into(), Kind::bytes().or_null().or_undefined()),
+        ("upstream".into(), Kind::bytes().or_null().or_undefined()),
+        ("host".into(), Kind::bytes().or_null().or_undefined()),
+        ("port".into(), Kind::bytes().or_null().or_undefined()),
+        ("referer".into(), Kind::bytes().or_null().or_undefined()),
     ])
 }
 
