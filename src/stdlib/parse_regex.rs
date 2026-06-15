@@ -1,7 +1,7 @@
-use crate::compiler::prelude::*;
-use regex::Regex;
-
 use super::util;
+use crate::compiler::prelude::*;
+use crate::stdlib::util::RegexWithCaptureInfo;
+use regex::Regex;
 
 static DEFAULT_NUMERIC_GROUPS: Value = Value::Boolean(false);
 
@@ -99,17 +99,15 @@ impl Function for ParseRegex {
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
-        let pattern = arguments.required_regex("pattern", state);
-        let capture_info = match &pattern {
-            ConstOrExpr::Const(r) => Some(util::build_capture_info(r)),
-            ConstOrExpr::Expr(_) => None,
+        let pattern = match arguments.required_regex("pattern", state) {
+            ConstOrExpr::Const(r) => ConstOrExpr::Const(RegexWithCaptureInfo::new(r)),
+            ConstOrExpr::Expr(e) => ConstOrExpr::Expr(e),
         };
         let numeric_groups = arguments.optional("numeric_groups");
 
         Ok(ParseRegexFn {
             value,
             pattern,
-            capture_info,
             numeric_groups,
         }
         .as_expr())
@@ -167,8 +165,7 @@ impl Function for ParseRegex {
 #[derive(Debug, Clone)]
 pub(crate) struct ParseRegexFn {
     value: Box<dyn Expression>,
-    pattern: ConstOrExpr<Regex>,
-    capture_info: Option<Vec<(crate::value::KeyString, usize)>>,
+    pattern: ConstOrExpr<RegexWithCaptureInfo>,
     numeric_groups: Option<Box<dyn Expression>>,
 }
 
@@ -181,13 +178,12 @@ impl FunctionExpression for ParseRegexFn {
             .try_boolean()?;
 
         match &self.pattern {
-            ConstOrExpr::Const(pattern) => {
-                let capture_info = self
-                    .capture_info
-                    .as_deref()
-                    .expect("capture_info always set for Const pattern");
-                parse_regex(&value, pattern, capture_info, numeric_groups)
-            }
+            ConstOrExpr::Const(pattern) => parse_regex(
+                &value,
+                &pattern.regex,
+                &pattern.capture_info,
+                numeric_groups,
+            ),
             ConstOrExpr::Expr(expr) => {
                 let resolved = expr.resolve(ctx)?;
                 let pattern = resolved
@@ -201,7 +197,9 @@ impl FunctionExpression for ParseRegexFn {
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {
         match &self.pattern {
-            ConstOrExpr::Const(regex) => TypeDef::object(util::regex_kind(regex)).fallible(),
+            ConstOrExpr::Const(pattern) => {
+                TypeDef::object(util::regex_kind(&pattern.regex)).fallible()
+            }
             ConstOrExpr::Expr(_) => {
                 TypeDef::object(Collection::from_unknown(Kind::bytes() | Kind::null())).fallible()
             }
