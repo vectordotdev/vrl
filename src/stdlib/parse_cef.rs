@@ -155,17 +155,17 @@ impl Function for ParseCef {
                 ),
             },
             example! {
-                title: "Parse non-compliant CEF with unescaped equals in values",
-                source: indoc! {r#"
-                    parse_cef!(
-                        "CEF:0|Vendor|Product|1.0|100|Event|5|src=10.0.0.1 msg=status=ok reason=none dst=2.2.2.2",
-                        strict: false
-                    )
-                "#},
-                result: Ok(
-                    r#"{"cefVersion":"0","deviceVendor":"Vendor","deviceProduct":"Product","deviceVersion":"1.0","deviceEventClassId":"100","name":"Event","severity":"5","src":"10.0.0.1","msg":"status=ok reason=none","dst":"2.2.2.2"}"#,
-                ),
-            },
+    title: "Parse non-compliant CEF with unescaped equals in values",
+    source: indoc! {r#"
+        parse_cef!(
+            "CEF:0|Vendor|Product|1.0|100|Event|5|src=10.0.0.1 request=https://foo.com?id=foo&a=bar dst=2.2.2.2",
+            strict: false
+        )
+    "#},
+    result: Ok(
+        r#"{"cefVersion":"0","deviceVendor":"Vendor","deviceProduct":"Product","deviceVersion":"1.0","deviceEventClassId":"100","name":"Event","severity":"5","src":"10.0.0.1","request":"https://foo.com?id=foo&a=bar","dst":"2.2.2.2"}"#,
+    ),
+},
         ]
     }
 
