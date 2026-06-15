@@ -13,6 +13,7 @@ use nom_language::error::VerboseError;
 use std::collections::{BTreeMap, HashMap};
 
 static DEFAULT_TRANSLATE_CUSTOM_FIELDS: Value = Value::Boolean(false);
+static DEFAULT_STRICT: Value = Value::Boolean(true);
 
 const PARAMETERS: &[Parameter] = &[
     Parameter::required("value", kind::BYTES, "The string to parse."),
@@ -21,7 +22,13 @@ const PARAMETERS: &[Parameter] = &[
         kind::BOOLEAN,
         "Toggles translation of custom field pairs to `key:value`.",
     )
-    .default(&DEFAULT_TRANSLATE_CUSTOM_FIELDS),
+        .default(&DEFAULT_TRANSLATE_CUSTOM_FIELDS),
+    Parameter::optional(
+        "strict",
+        kind::BOOLEAN,
+        "When set to `false`, attempts best-effort parsing of malformed CEF input rather than failing.",
+    )
+        .default(&DEFAULT_STRICT),
 ];
 
 fn build_map() -> HashMap<&'static str, (usize, CustomField)> {
@@ -49,10 +56,10 @@ fn build_map() -> HashMap<&'static str, (usize, CustomField)> {
         ("flexString1Label", "flexString1"),
         ("flexString2Label", "flexString2"),
     ]
-    .iter()
-    .enumerate()
-    .flat_map(|(i, (k, v))| [(*k, (i, CustomField::Label)), (*v, (i, CustomField::Value))])
-    .collect()
+        .iter()
+        .enumerate()
+        .flat_map(|(i, (k, v))| [(*k, (i, CustomField::Label)), (*v, (i, CustomField::Value))])
+        .collect()
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -147,6 +154,18 @@ impl Function for ParseCef {
                     r#"{"cefVersion":"0","deviceVendor":"security","deviceProduct":"threatmanager","deviceVersion":"1.0","deviceEventClassId":"100","name":"Detected a | in message. No action needed.","severity":"10","src":"10.0.0.1","msg":"Detected a threat.\n No action needed","act":"blocked a =", "dst":"1.1.1.1"}"#,
                 ),
             },
+            example! {
+                title: "Parse non-compliant CEF with unescaped equals in values",
+                source: indoc! {r#"
+                    parse_cef!(
+                        "CEF:0|Vendor|Product|1.0|100|Event|5|src=10.0.0.1 msg=status=ok reason=none dst=2.2.2.2",
+                        strict: false
+                    )
+                "#},
+                result: Ok(
+                    r#"{"cefVersion":"0","deviceVendor":"Vendor","deviceProduct":"Product","deviceVersion":"1.0","deviceEventClassId":"100","name":"Event","severity":"5","src":"10.0.0.1","msg":"status=ok reason=none","dst":"2.2.2.2"}"#,
+                ),
+            },
         ]
     }
 
@@ -158,14 +177,16 @@ impl Function for ParseCef {
     ) -> Compiled {
         let value = arguments.required("value");
         let translate_custom_fields = arguments.optional("translate_custom_fields");
+        let strict = arguments.optional("strict");
         let custom_field_map = build_map();
 
         Ok(ParseCefFn {
             value,
             translate_custom_fields,
+            strict,
             custom_field_map,
         }
-        .as_expr())
+            .as_expr())
     }
 }
 
@@ -173,6 +194,7 @@ impl Function for ParseCef {
 pub(crate) struct ParseCefFn {
     pub(crate) value: Box<dyn Expression>,
     pub(crate) translate_custom_fields: Option<Box<dyn Expression>>,
+    pub(crate) strict: Option<Box<dyn Expression>>,
     custom_field_map: HashMap<&'static str, (usize, CustomField)>,
 }
 
@@ -184,8 +206,12 @@ impl FunctionExpression for ParseCefFn {
             .translate_custom_fields
             .map_resolve_with_default(ctx, || DEFAULT_TRANSLATE_CUSTOM_FIELDS.clone())?
             .try_boolean()?;
+        let strict = self
+            .strict
+            .map_resolve_with_default(ctx, || DEFAULT_STRICT.clone())?
+            .try_boolean()?;
 
-        let result = parse(&bytes)?;
+        let result = parse(&bytes, strict)?;
 
         if translate_custom_fields {
             let mut custom_fields = HashMap::<_, [Option<String>; 2]>::new();
@@ -203,7 +229,7 @@ impl FunctionExpression for ParseCefFn {
                                     CustomField::Value => "value",
                                 }
                             )
-                            .into()));
+                                .into()));
                         }
                         None
                     } else {
@@ -238,24 +264,27 @@ enum CustomField {
     Value = 1,
 }
 
-fn parse(input: &str) -> ExpressionResult<impl Iterator<Item = (String, String)> + '_> {
-    let (rest, (header, mut extension)) = pair(parse_header, parse_extension)
+fn parse(
+    input: &str,
+    strict: bool,
+) -> ExpressionResult<impl Iterator<Item = (String, String)> + '_> {
+    let (rest, (header, mut extension)) = pair(parse_header, |i| parse_extension(i, strict))
         .parse(input)
         .map_err(|e| match e {
             nom::Err::Error(e) | nom::Err::Failure(e) => {
-                // Create a descriptive error message if possible.
                 nom_language::error::convert_error(input, e)
             }
             nom::Err::Incomplete(_) => e.to_string(),
         })?;
 
-    // Trim trailing whitespace on last extension value
     if let Some((_, value)) = extension.last_mut() {
         let suffix = value.trim_end_matches(' ');
         value.truncate(suffix.len());
     }
 
-    if rest.trim().is_empty() {
+    // In non-strict mode, return whatever was successfully parsed even if the
+    // whole input could not be consumed (e.g. unescaped `=` in values).
+    if rest.trim().is_empty() || !strict {
         let headers = [
             "cefVersion",
             "deviceVendor",
@@ -265,13 +294,12 @@ fn parse(input: &str) -> ExpressionResult<impl Iterator<Item = (String, String)>
             "name",
             "severity",
         ]
-        .into_iter()
-        .zip(header);
+            .into_iter()
+            .zip(header);
         let result = extension
             .into_iter()
             .chain(headers)
             .map(|(key, mut value)| {
-                // Strip quotes from value
                 if value.starts_with('"') && value.ends_with('"') && value.len() >= 2 {
                     value = value[1..value.len() - 1].to_string();
                 }
@@ -290,7 +318,7 @@ fn parse_header(input: &str) -> IResult<&str, Vec<String>, VerboseError<&str>> {
         pair(take_until("CEF:"), tag("CEF:")),
         count(parse_header_value, 7),
     )
-    .parse(input)
+        .parse(input)
 }
 
 fn parse_header_value(input: &str) -> IResult<&str, String, VerboseError<&str>> {
@@ -308,22 +336,35 @@ fn parse_header_value(input: &str) -> IResult<&str, String, VerboseError<&str>> 
             ),
         )),
     )
-    .parse(input)
+        .parse(input)
 }
 
-fn parse_extension(input: &str) -> IResult<&str, Vec<(&str, String)>, VerboseError<&str>> {
-    alt((many1(parse_key_value), map(tag("|"), |_| vec![]))).parse(input)
+fn parse_extension(
+    input: &str,
+    strict: bool,
+) -> IResult<&str, Vec<(&str, String)>, VerboseError<&str>> {
+    alt((
+        many1(|i| parse_key_value(i, strict)),
+        map(tag("|"), |_| vec![]),
+    ))
+        .parse(input)
 }
 
-fn parse_key_value(input: &str) -> IResult<&str, (&str, String), VerboseError<&str>> {
-    pair(parse_key, parse_value).parse(input)
+fn parse_key_value(input: &str, strict: bool) -> IResult<&str, (&str, String), VerboseError<&str>> {
+    pair(parse_key, |i| parse_value(i, strict)).parse(input)
 }
 
-fn parse_value(input: &str) -> IResult<&str, String, VerboseError<&str>> {
+fn parse_value(input: &str, strict: bool) -> IResult<&str, String, VerboseError<&str>> {
     alt((
         map(peek(parse_key), |_| String::new()),
         escaped_transform(
-            take_till1_input(|input| alt((tag("\\"), tag("="), parse_key)).parse(input).is_ok()),
+            take_till1_input(|input| {
+                let stop_on_equals = strict
+                    && tag::<&str, &str, VerboseError<&str>>("=")
+                    .parse(input)
+                    .is_ok();
+                stop_on_equals || alt((tag("\\"), parse_key)).parse(input).is_ok()
+            }),
             '\\',
             alt((
                 value('=', char('=')),
@@ -333,7 +374,7 @@ fn parse_value(input: &str) -> IResult<&str, String, VerboseError<&str>> {
             )),
         ),
     ))
-    .parse(input)
+        .parse(input)
 }
 
 /// As take `take_till1` but can have condition on input instead of `Input::Item`.
@@ -363,7 +404,7 @@ fn parse_key(input: &str) -> IResult<&str, &str, VerboseError<&str>> {
         take_till1(|c| c == ' ' || c == '=' || c == '\\'),
         char('='),
     )
-    .parse(input)
+        .parse(input)
 }
 
 fn type_def() -> TypeDef {
@@ -379,7 +420,7 @@ fn type_def() -> TypeDef {
         ]),
         Kind::bytes(),
     ))
-    .fallible()
+        .fallible()
 }
 
 #[cfg(test)]
@@ -399,7 +440,10 @@ mod test {
                 ("name".to_string(), "worm successfully stopped".into()),
                 ("severity".to_string(), "10".into()),
             ]),
-            parse("CEF:1|Security|threatmanager|1.0|100|worm successfully stopped|10|")
+            parse(
+                "CEF:1|Security|threatmanager|1.0|100|worm successfully stopped|10|",
+                true
+            )
                 .map(Iterator::collect)
         );
     }
@@ -419,7 +463,7 @@ mod test {
                 ("name".to_string(), "worm successfully stopped".into()),
                 ("severity".to_string(), "10".into()),
             ]),
-            parse("CEF:1|Security|threatmanager|1.0|100|worm successfully stopped|10|src=10.0.0.1 dst=2.1.2.2 spt=1232")
+            parse("CEF:1|Security|threatmanager|1.0|100|worm successfully stopped|10|src=10.0.0.1 dst=2.1.2.2 spt=1232", true)
                 .map(Iterator::collect)
         );
     }
@@ -438,7 +482,10 @@ mod test {
                 ("name".to_string(), "worm successfully stopped".into()),
                 ("severity".to_string(), String::new()),
             ]),
-            parse("CEF:1|Security|threatmanager||100|worm successfully stopped||src= dst=2.1.2.2")
+            parse(
+                "CEF:1|Security|threatmanager||100|worm successfully stopped||src= dst=2.1.2.2",
+                true
+            )
                 .map(Iterator::collect)
         );
     }
@@ -458,7 +505,7 @@ mod test {
                 ("name".to_string(), "worm successfully stopped".into()),
                 ("severity".to_string(), "10".into()),
             ]),
-            parse(r#"CEF:1|"Security"|threatmanager|1.0|100|"worm successfully stopped"|10|src="10.0.0.1" dst=2.1.2.2 spt="1232""#)
+            parse(r#"CEF:1|"Security"|threatmanager|1.0|100|"worm successfully stopped"|10|src="10.0.0.1" dst=2.1.2.2 spt="1232""#, true)
                 .map(Iterator::collect)
         );
     }
@@ -478,7 +525,7 @@ mod test {
                 ("name".to_string(), "worm successfully stopped".into()),
                 ("severity".to_string(), "10".into()),
             ]),
-            parse("Sep 29 08:26:10 host CEF:1|Security|threatmanager|1.0|100|worm successfully stopped|10|src=10.0.0.1 dst=2.1.2.2 spt=1232")
+            parse("Sep 29 08:26:10 host CEF:1|Security|threatmanager|1.0|100|worm successfully stopped|10|src=10.0.0.1 dst=2.1.2.2 spt=1232", true)
                 .map(Iterator::collect)
         );
     }
@@ -495,7 +542,10 @@ mod test {
                 ("name".to_string(), "worm | successfully | stopped".into()),
                 ("severity".to_string(), "10".into()),
             ]),
-            parse(r"CEF:1|Security|threatmanager|1.0|100|worm \| successfully \| stopped|10|")
+            parse(
+                r"CEF:1|Security|threatmanager|1.0|100|worm \| successfully \| stopped|10|",
+                true
+            )
                 .map(Iterator::collect)
         );
     }
@@ -512,7 +562,10 @@ mod test {
                 ("name".to_string(), "worm \\ successfully \\ stopped".into()),
                 ("severity".to_string(), "10".into()),
             ]),
-            parse(r"CEF:1|Security|threatmanager|1.0|100|worm \\ successfully \\ stopped|10|")
+            parse(
+                r"CEF:1|Security|threatmanager|1.0|100|worm \\ successfully \\ stopped|10|",
+                true
+            )
                 .map(Iterator::collect)
         );
     }
@@ -532,7 +585,7 @@ mod test {
                 ("name".to_string(), "worm successfully stopped".into()),
                 ("severity".to_string(), "10".into()),
             ]),
-            parse(r"CEF:1|Security|threatmanager|1.0|100|worm successfully stopped|10|src=ip\=10.0.0.1 dst=2.1.2.2 spt=1232")
+            parse(r"CEF:1|Security|threatmanager|1.0|100|worm successfully stopped|10|src=ip\=10.0.0.1 dst=2.1.2.2 spt=1232", true)
                 .map(Iterator::collect)
         );
     }
@@ -552,7 +605,7 @@ mod test {
                 ("name".to_string(), "worm successfully stopped".into()),
                 ("severity".to_string(), "10".into()),
             ]),
-            parse(r"CEF:1|Security|threatmanager|1.0|100|worm successfully stopped|10|dst=2.1.2.2 path=\\home\\ spt=1232")
+            parse(r"CEF:1|Security|threatmanager|1.0|100|worm successfully stopped|10|dst=2.1.2.2 path=\\home\\ spt=1232", true)
                 .map(Iterator::collect)
         );
     }
@@ -572,7 +625,7 @@ mod test {
                 ("name".to_string(), "worm successfully stopped".into()),
                 ("severity".to_string(), "10".into()),
             ]),
-            parse(r"CEF:1|Security|threatmanager|1.0|100|worm successfully stopped|10|dst=2.1.2.2 msg=Detected a threat.\r No action needed spt=1232")
+            parse(r"CEF:1|Security|threatmanager|1.0|100|worm successfully stopped|10|dst=2.1.2.2 msg=Detected a threat.\r No action needed spt=1232", true)
                 .map(Iterator::collect)
         );
     }
@@ -592,7 +645,7 @@ mod test {
                 ("name".to_string(), "worm successfully stopped".into()),
                 ("severity".to_string(), "10".into()),
             ]),
-            parse("CEF:1|Security|threatmanager|1.0|100|worm successfully stopped|10|dst=2.1.2.2 msg=Detected a threat. No action needed   spt=1232")
+            parse("CEF:1|Security|threatmanager|1.0|100|worm successfully stopped|10|dst=2.1.2.2 msg=Detected a threat. No action needed   spt=1232", true)
                 .map(Iterator::collect)
         );
     }
@@ -611,7 +664,7 @@ mod test {
                 ("name".to_string(), "worm successfully stopped".into()),
                 ("severity".to_string(), "10".into()),
             ]),
-            parse("CEF:1|Security|threatmanager|1.0|100|worm successfully stopped|10|dst=2.1.2.2 msg=Detected a threat. No action needed   ")
+            parse("CEF:1|Security|threatmanager|1.0|100|worm successfully stopped|10|dst=2.1.2.2 msg=Detected a threat. No action needed   ", true)
                 .map(Iterator::collect)
         );
     }
@@ -637,173 +690,234 @@ mod test {
                 ("name".to_string(), "Unauthorized Access Attempt".into()),
                 ("severity".to_string(), "10".into()),
             ]),
-            parse("CEF:0|SecurityVendor|SecurityProduct|1.0|100|Unauthorized Access Attempt|10| src=192.168.1.100 dst=10.0.0.5 spt=12345 dpt=80 proto=TCP msg=Blocked unauthorized access attempt act=blocked outcome=failure rt=2025-06-29T23:35:00Z")
+            parse("CEF:0|SecurityVendor|SecurityProduct|1.0|100|Unauthorized Access Attempt|10| src=192.168.1.100 dst=10.0.0.5 spt=12345 dpt=80 proto=TCP msg=Blocked unauthorized access attempt act=blocked outcome=failure rt=2025-06-29T23:35:00Z", true)
+                .map(Iterator::collect)
+        );
+    }
+
+    #[test]
+    fn test_unescaped_equals_in_value() {
+        assert_eq!(
+            Ok(vec![
+                ("src".to_string(), "10.0.0.1".into()),
+                ("msg".to_string(), "status=ok".into()),
+                ("reason".to_string(), "none".into()),
+                ("dst".to_string(), "2.1.2.2".into()),
+                ("cefVersion".to_string(), "1".into()),
+                ("deviceVendor".to_string(), "Security".into()),
+                ("deviceProduct".to_string(), "threatmanager".into()),
+                ("deviceVersion".to_string(), "1.0".into()),
+                ("deviceEventClassId".to_string(), "100".into()),
+                ("name".to_string(), "worm successfully stopped".into()),
+                ("severity".to_string(), "10".into()),
+            ]),
+            parse("CEF:1|Security|threatmanager|1.0|100|worm successfully stopped|10|src=10.0.0.1 msg=status=ok reason=none dst=2.1.2.2", false)
+                .map(Iterator::collect)
+        );
+    }
+
+    #[test]
+    fn test_unescaped_equals_in_url_value() {
+        assert_eq!(
+            Ok(vec![
+                ("cs4".to_string(), "None".into()),
+                ("request".to_string(), "https://foo.com?id=foo&a=bar".into()),
+                ("abc".to_string(), "lol".into()),
+                ("cefVersion".to_string(), "1".into()),
+                ("deviceVendor".to_string(), "Security".into()),
+                ("deviceProduct".to_string(), "threatmanager".into()),
+                ("deviceVersion".to_string(), "1.0".into()),
+                ("deviceEventClassId".to_string(), "100".into()),
+                ("name".to_string(), "worm successfully stopped".into()),
+                ("severity".to_string(), "10".into()),
+            ]),
+            parse(r#"CEF:1|Security|threatmanager|1.0|100|worm successfully stopped|10|cs4=None request="https://foo.com?id=foo&a=bar" abc=lol"#, false)
                 .map(Iterator::collect)
         );
     }
 
     test_function![
-        parse_cef => ParseCef;
+            parse_cef => ParseCef;
 
-        default {
-            args: func_args! [
-                value: "CEF:0|CyberArk|PTA|12.6|1|Suspected credentials theft|8|suser=mike2@prod1.domain.com shost=prod1.domain.com src=1.1.1.1",
-            ],
-            want: Ok(value!({
-                "cefVersion":"0",
-                "deviceVendor":"CyberArk",
-                "deviceProduct":"PTA",
-                "deviceVersion":"12.6",
-                "deviceEventClassId":"1",
-                "name":"Suspected credentials theft",
-                "severity":"8",
-                "suser":"mike2@prod1.domain.com",
-                "shost":"prod1.domain.com",
-                "src":"1.1.1.1"
-            })),
-            tdef: type_def(),
-        }
+            default {
+                args: func_args! [
+                    value: "CEF:0|CyberArk|PTA|12.6|1|Suspected credentials theft|8|suser=mike2@prod1.domain.com shost=prod1.domain.com src=1.1.1.1",
+                ],
+                want: Ok(value!({
+                    "cefVersion":"0",
+                    "deviceVendor":"CyberArk",
+                    "deviceProduct":"PTA",
+                    "deviceVersion":"12.6",
+                    "deviceEventClassId":"1",
+                    "name":"Suspected credentials theft",
+                    "severity":"8",
+                    "suser":"mike2@prod1.domain.com",
+                    "shost":"prod1.domain.com",
+                    "src":"1.1.1.1"
+                })),
+                tdef: type_def(),
+            }
 
-        real_case {
-            args: func_args! [
-                value: r"CEF:0|Check Point|VPN-1 & FireWall-1|Check Point|Log|https|Unknown|act=Accept destinationTranslatedAddress=0.0.0.0 destinationTranslatedPort=0 deviceDirection=0 rt=1543270652000 sourceTranslatedAddress=192.168.103.254 sourceTranslatedPort=35398 spt=49363 dpt=443 cs2Label=Rule Name layer_name=Network layer_uuid=b406b732-2437-4848-9741-6eae1f5bf112 match_id=4 parent_rule=0 rule_action=Accept rule_uid=9e5e6e74-aa9a-4693-b9fe-53712dd27bea ifname=eth0 logid=0 loguid={0x5bfc70fc,0x1,0xfe65a8c0,0xc0000001} origin=192.168.101.254 originsicname=CN\=R80,O\=R80_M..6u6bdo sequencenum=1 version=5 dst=52.173.84.157 inzone=Internal nat_addtnl_rulenum=1 nat_rulenum=4 outzone=External product=VPN-1 & FireWall-1 proto=6 service_id=https src=192.168.101.100",
-            ],
-            want: Ok(value!({
-                "cefVersion":"0",
-                "deviceVendor":"Check Point",
-                "deviceProduct":"VPN-1 & FireWall-1",
-                "deviceVersion":"Check Point",
-                "deviceEventClassId":"Log",
-                "name":"https",
-                "severity":"Unknown",
-                "act": "Accept",
-                "destinationTranslatedAddress": "0.0.0.0",
-                "destinationTranslatedPort": "0",
-                "deviceDirection": "0",
-                "rt": "1543270652000",
-                "sourceTranslatedAddress": "192.168.103.254",
-                "sourceTranslatedPort": "35398",
-                "spt": "49363",
-                "dpt": "443",
-                "cs2Label": "Rule Name",
-                "layer_name": "Network",
-                "layer_uuid": "b406b732-2437-4848-9741-6eae1f5bf112",
-                "match_id": "4",
-                "parent_rule": "0",
-                "rule_action": "Accept",
-                "rule_uid": "9e5e6e74-aa9a-4693-b9fe-53712dd27bea",
-                "ifname": "eth0",
-                "logid": "0",
-                "loguid": "{0x5bfc70fc,0x1,0xfe65a8c0,0xc0000001}",
-                "origin": "192.168.101.254",
-                "originsicname": "CN=R80,O=R80_M..6u6bdo",
-                "sequencenum": "1",
-                "version": "5",
-                "dst": "52.173.84.157",
-                "inzone": "Internal",
-                "nat_addtnl_rulenum": "1",
-                "nat_rulenum": "4",
-                "outzone": "External",
-                "product": "VPN-1 & FireWall-1",
-                "proto": "6",
-                "service_id": "https",
-                "src": "192.168.101.100",
-            })),
-            tdef: type_def(),
-        }
+            real_case {
+                args: func_args! [
+                    value: r"CEF:0|Check Point|VPN-1 & FireWall-1|Check Point|Log|https|Unknown|act=Accept destinationTranslatedAddress=0.0.0.0 destinationTranslatedPort=0 deviceDirection=0 rt=1543270652000 sourceTranslatedAddress=192.168.103.254 sourceTranslatedPort=35398 spt=49363 dpt=443 cs2Label=Rule Name layer_name=Network layer_uuid=b406b732-2437-4848-9741-6eae1f5bf112 match_id=4 parent_rule=0 rule_action=Accept rule_uid=9e5e6e74-aa9a-4693-b9fe-53712dd27bea ifname=eth0 logid=0 loguid={0x5bfc70fc,0x1,0xfe65a8c0,0xc0000001} origin=192.168.101.254 originsicname=CN\=R80,O\=R80_M..6u6bdo sequencenum=1 version=5 dst=52.173.84.157 inzone=Internal nat_addtnl_rulenum=1 nat_rulenum=4 outzone=External product=VPN-1 & FireWall-1 proto=6 service_id=https src=192.168.101.100",
+                ],
+                want: Ok(value!({
+                    "cefVersion":"0",
+                    "deviceVendor":"Check Point",
+                    "deviceProduct":"VPN-1 & FireWall-1",
+                    "deviceVersion":"Check Point",
+                    "deviceEventClassId":"Log",
+                    "name":"https",
+                    "severity":"Unknown",
+                    "act": "Accept",
+                    "destinationTranslatedAddress": "0.0.0.0",
+                    "destinationTranslatedPort": "0",
+                    "deviceDirection": "0",
+                    "rt": "1543270652000",
+                    "sourceTranslatedAddress": "192.168.103.254",
+                    "sourceTranslatedPort": "35398",
+                    "spt": "49363",
+                    "dpt": "443",
+                    "cs2Label": "Rule Name",
+                    "layer_name": "Network",
+                    "layer_uuid": "b406b732-2437-4848-9741-6eae1f5bf112",
+                    "match_id": "4",
+                    "parent_rule": "0",
+                    "rule_action": "Accept",
+                    "rule_uid": "9e5e6e74-aa9a-4693-b9fe-53712dd27bea",
+                    "ifname": "eth0",
+                    "logid": "0",
+                    "loguid": "{0x5bfc70fc,0x1,0xfe65a8c0,0xc0000001}",
+                    "origin": "192.168.101.254",
+                    "originsicname": "CN=R80,O=R80_M..6u6bdo",
+                    "sequencenum": "1",
+                    "version": "5",
+                    "dst": "52.173.84.157",
+                    "inzone": "Internal",
+                    "nat_addtnl_rulenum": "1",
+                    "nat_rulenum": "4",
+                    "outzone": "External",
+                    "product": "VPN-1 & FireWall-1",
+                    "proto": "6",
+                    "service_id": "https",
+                    "src": "192.168.101.100",
+                })),
+                tdef: type_def(),
+            }
 
+            translate_custom_fields {
+                args: func_args! [
+                    value: "CEF:0|CyberArk|PTA|12.6|1|Suspected credentials theft|8|suser=mike2@prod1.domain.com cn1=1254323565 shost=prod1.domain.com src=1.1.1.1 cfp1Label=Uptime hours cfp1=35.46 cn1Label=Internal ID",
+                    translate_custom_fields: true
+                ],
+                want: Ok(value!({
+                    "cefVersion":"0",
+                    "deviceVendor":"CyberArk",
+                    "deviceProduct":"PTA",
+                    "deviceVersion":"12.6",
+                    "deviceEventClassId":"1",
+                    "name":"Suspected credentials theft",
+                    "severity":"8",
+                    "suser":"mike2@prod1.domain.com",
+                    "shost":"prod1.domain.com",
+                    "src":"1.1.1.1",
+                    "Uptime hours":"35.46",
+                    "Internal ID":"1254323565",
+                })),
+                tdef: type_def(),
+            }
 
-        translate_custom_fields {
-            args: func_args! [
-                value: "CEF:0|CyberArk|PTA|12.6|1|Suspected credentials theft|8|suser=mike2@prod1.domain.com cn1=1254323565 shost=prod1.domain.com src=1.1.1.1 cfp1Label=Uptime hours cfp1=35.46 cn1Label=Internal ID",
-                translate_custom_fields: true
-            ],
-            want: Ok(value!({
-                "cefVersion":"0",
-                "deviceVendor":"CyberArk",
-                "deviceProduct":"PTA",
-                "deviceVersion":"12.6",
-                "deviceEventClassId":"1",
-                "name":"Suspected credentials theft",
-                "severity":"8",
-                "suser":"mike2@prod1.domain.com",
-                "shost":"prod1.domain.com",
-                "src":"1.1.1.1",
-                "Uptime hours":"35.46",
-                "Internal ID":"1254323565",
-            })),
-            tdef: type_def(),
-        }
+            missing_value {
+                args: func_args! [
+                    value: "CEF:0|CyberArk|PTA|12.6||Suspected credentials theft||suser=mike2@prod1.domain.com shost= src=1.1.1.1",
+                ],
+                want: Ok(value!({
+                    "cefVersion":"0",
+                    "deviceVendor":"CyberArk",
+                    "deviceProduct":"PTA",
+                    "deviceVersion":"12.6",
+                    "deviceEventClassId":"",
+                    "name":"Suspected credentials theft",
+                    "severity":"",
+                    "suser":"mike2@prod1.domain.com",
+                    "shost":"",
+                    "src":"1.1.1.1"
+                })),
+                tdef: type_def(),
+            }
 
-        missing_value {
-            args: func_args! [
-                value: "CEF:0|CyberArk|PTA|12.6||Suspected credentials theft||suser=mike2@prod1.domain.com shost= src=1.1.1.1",
-            ],
-            want: Ok(value!({
-                "cefVersion":"0",
-                "deviceVendor":"CyberArk",
-                "deviceProduct":"PTA",
-                "deviceVersion":"12.6",
-                "deviceEventClassId":"",
-                "name":"Suspected credentials theft",
-                "severity":"",
-                "suser":"mike2@prod1.domain.com",
-                "shost":"",
-                "src":"1.1.1.1"
-            })),
-            tdef: type_def(),
-        }
+            missing_key {
+                args: func_args! [
+                    value: "CEF:0|Check Point|VPN-1 & FireWall-1|Check Point|Log|https|Unknown|act=Accept =0.0.0.0",
+                ],
+                want: Err("Could not parse whole line successfully"),
+                tdef: type_def(),
+            }
 
-        missing_key {
-            args: func_args! [
-                value: "CEF:0|Check Point|VPN-1 & FireWall-1|Check Point|Log|https|Unknown|act=Accept =0.0.0.0",
-            ],
-            want: Err("Could not parse whole line successfully"),
-            tdef: type_def(),
-        }
+            incomplete_header {
+                args: func_args! [
+                    value: "CEF:0|Check Point|VPN-1 & FireWall-1|Check Point|Log|https|",
+                ],
+                want: Err("0: at line 1, in Tag:\nCEF:0|Check Point|VPN-1 & FireWall-1|Check Point|Log|https|\n                                                           ^\n\n1: at line 1, in Alt:\nCEF:0|Check Point|VPN-1 & FireWall-1|Check Point|Log|https|\n                                                           ^\n\n"),
+                tdef: type_def(),
+            }
 
-        incomplete_header {
-            args: func_args! [
-                value: "CEF:0|Check Point|VPN-1 & FireWall-1|Check Point|Log|https|",
-            ],
-            want: Err("0: at line 1, in Tag:\nCEF:0|Check Point|VPN-1 & FireWall-1|Check Point|Log|https|\n                                                           ^\n\n1: at line 1, in Alt:\nCEF:0|Check Point|VPN-1 & FireWall-1|Check Point|Log|https|\n                                                           ^\n\n"),
-            tdef: type_def(),
-        }
+            utf8_escape {
+                args: func_args! [
+                    value: r"CEF:0|xxx|xxx|123456|xxx|xxx|5|TestField={'blabla': 'blabla\xc3\xaablabla'}",
+                ],
+                want: Ok(value!({
+                    "cefVersion":"0",
+                    "deviceVendor":"xxx",
+                    "deviceProduct":"xxx",
+                    "deviceVersion":"123456",
+                    "deviceEventClassId":"xxx",
+                    "name":"xxx",
+                    "severity":"5",
+                    "TestField": r"{'blabla': 'blabla\xc3\xaablabla'}",
+                })),
+                tdef: type_def(),
+            }
 
-        utf8_escape {
-            args: func_args! [
-                value: r"CEF:0|xxx|xxx|123456|xxx|xxx|5|TestField={'blabla': 'blabla\xc3\xaablabla'}",
-            ],
-            want: Ok(value!({
-                "cefVersion":"0",
-                "deviceVendor":"xxx",
-                "deviceProduct":"xxx",
-                "deviceVersion":"123456",
-                "deviceEventClassId":"xxx",
-                "name":"xxx",
-                "severity":"5",
-                "TestField": r"{'blabla': 'blabla\xc3\xaablabla'}",
-            })),
-            tdef: type_def(),
-        }
+            missing_custom_label {
+                args: func_args! [
+                    value: "CEF:0|CyberArk|PTA|12.6|1|Suspected credentials theft|8|cfp1=1.23",
+                    translate_custom_fields: true
+                ],
+                want: Err("Custom field with missing label or value"),
+                tdef: type_def(),
+            }
 
-        missing_custom_label {
-            args: func_args! [
-                value: "CEF:0|CyberArk|PTA|12.6|1|Suspected credentials theft|8|cfp1=1.23",
-                translate_custom_fields: true
-            ],
-            want: Err("Custom field with missing label or value"),
-            tdef: type_def(),
-        }
+            duplicate_value {
+                args: func_args! [
+                    value: "CEF:0|CyberArk|PTA|12.6|1|Suspected credentials theft|8|flexString1=1.23 flexString1=1.24 flexString1Label=Version",
+                    translate_custom_fields: true
+                ],
+                want: Err("Custom field with duplicate value"),
+                tdef: type_def(),
+            }
 
-        duplicate_value {
-            args: func_args! [
-                value: "CEF:0|CyberArk|PTA|12.6|1|Suspected credentials theft|8|flexString1=1.23 flexString1=1.24 flexString1Label=Version",
-                translate_custom_fields: true
-            ],
-            want: Err("Custom field with duplicate value"),
-            tdef: type_def(),
-        }
+    non_strict_unescaped_equals {
+        args: func_args! [
+            value: "CEF:0|Vendor|Product|1.0|100|Event|5|src=10.0.0.1 msg=status=ok reason=none dst=2.2.2.2",
+            strict: false
+        ],
+        want: Ok(value!({
+            "cefVersion":"0",
+            "deviceVendor":"Vendor",
+            "deviceProduct":"Product",
+            "deviceVersion":"1.0",
+            "deviceEventClassId":"100",
+            "name":"Event",
+            "severity":"5",
+            "src":"10.0.0.1",
+            "msg":"status=ok",
+            "reason":"none",
+            "dst":"2.2.2.2",
+        })),
+        tdef: type_def(),
+    }
 
-    ];
+        ];
 }
