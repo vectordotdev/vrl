@@ -1,7 +1,7 @@
 use crate::compiler::function::EnumVariant;
 use crate::compiler::prelude::*;
 use hmac::{Hmac as HmacHasher, Mac};
-use sha_2::{Sha224, Sha256, Sha384, Sha512};
+use sha2::{Sha224, Sha256, Sha384, Sha512};
 use sha1::Sha1;
 
 macro_rules! hmac {
