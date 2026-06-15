@@ -3405,17 +3405,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "sha-1"
-version = "0.10.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f5058ada175748e33390e40e872bd0fe59a19f265d0158daa551c5a88a76009c"
-dependencies = [
- "cfg-if",
- "cpufeatures 0.2.17",
- "digest",
-]
-
-[[package]]
 name = "sha1"
 version = "0.10.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4344,7 +4333,7 @@ dependencies = [
  "serde_json",
  "serde_yaml",
  "serde_yaml_ng",
- "sha-1",
+ "sha1",
  "sha2",
  "sha3",
  "simdutf8",
