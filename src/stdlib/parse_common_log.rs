@@ -17,7 +17,7 @@ fn parse_common_log(bytes: &Value, timestamp_format: &Value, ctx: &Context) -> R
     let timestamp_format = timestamp_format.try_bytes_utf8_lossy()?.to_string();
 
     log_util::parse_message(
-        &log_util::REGEX_APACHE_COMMON_LOG,
+        log_util::REGEX_APACHE_COMMON_LOG.as_ref(),
         &message,
         &timestamp_format,
         *ctx.timezone(),

@@ -7,8 +7,8 @@ use std::sync::LazyLock;
 // Information about the common log format taken from the
 // - W3C specification: https://www.w3.org/Daemon/User/Config/Logging.html#common-logfile-format
 // - Apache HTTP Server docs: https://httpd.apache.org/docs/1.3/logs.html#common
-pub(crate) static REGEX_APACHE_COMMON_LOG: LazyLock<Vec<Regex>> = LazyLock::new(|| {
-    vec![
+pub(crate) static REGEX_APACHE_COMMON_LOG: LazyLock<[Regex; 1]> = LazyLock::new(|| {
+    [
         Regex::new(
             r#"(?x)                                 # Ignore whitespace and comments in the regex expression.
             ^\s*                                    # Start with any number of whitespaces.
@@ -32,8 +32,8 @@ pub(crate) static REGEX_APACHE_COMMON_LOG: LazyLock<Vec<Regex>> = LazyLock::new(
 });
 
 // - Apache HTTP Server docs: https://httpd.apache.org/docs/1.3/logs.html#combined
-pub(crate) static REGEX_APACHE_COMBINED_LOG: LazyLock<Vec<Regex>> = LazyLock::new(|| {
-    vec![
+pub(crate) static REGEX_APACHE_COMBINED_LOG: LazyLock<[Regex; 1]> = LazyLock::new(|| {
+    [
         Regex::new(
             r#"(?x)                                 # Ignore whitespace and comments in the regex expression.
             ^\s*                                    # Start with any number of whitespaces.
@@ -64,8 +64,8 @@ pub(crate) static REGEX_APACHE_COMBINED_LOG: LazyLock<Vec<Regex>> = LazyLock::ne
 });
 
 // It is possible to customise the format output by apache.
-pub(crate) static REGEX_APACHE_ERROR_LOG: LazyLock<Vec<Regex>> = LazyLock::new(|| {
-    vec![
+pub(crate) static REGEX_APACHE_ERROR_LOG: LazyLock<[Regex; 2]> = LazyLock::new(|| {
+    [
         // Simple format
         // https://github.com/mingrammer/flog/blob/9bc83b14408ca446e934c32e4a88a81a46e78d83/log.go#L16
         Regex::new(
@@ -266,7 +266,7 @@ pub(crate) fn log_fields(
 
 /// Attempts to extract log fields from each of the list of regexes
 pub(crate) fn parse_message(
-    regexes: &Vec<Regex>,
+    regexes: &[Regex],
     message: &str,
     timestamp_format: &str,
     timezone: TimeZone,
