@@ -1,6 +1,6 @@
 use crate::compiler::prelude::*;
 use nom::{
-    self, IResult, Parser,
+    self,
     branch::alt,
     bytes::complete::{escaped_transform, tag, take_till1, take_until},
     character::complete::{char, one_of, satisfy},
@@ -8,6 +8,7 @@ use nom::{
     error::{ErrorKind, ParseError},
     multi::{count, many1},
     sequence::{delimited, pair, preceded},
+    IResult, Parser,
 };
 use nom_language::error::VerboseError;
 use std::collections::{BTreeMap, HashMap};
@@ -56,10 +57,10 @@ fn build_map() -> HashMap<&'static str, (usize, CustomField)> {
         ("flexString1Label", "flexString1"),
         ("flexString2Label", "flexString2"),
     ]
-        .iter()
-        .enumerate()
-        .flat_map(|(i, (k, v))| [(*k, (i, CustomField::Label)), (*v, (i, CustomField::Value))])
-        .collect()
+    .iter()
+    .enumerate()
+    .flat_map(|(i, (k, v))| [(*k, (i, CustomField::Label)), (*v, (i, CustomField::Value))])
+    .collect()
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -155,17 +156,17 @@ impl Function for ParseCef {
                 ),
             },
             example! {
-    title: "Parse non-compliant CEF with unescaped equals in values",
-    source: indoc! {r#"
+                title: "Parse non-compliant CEF with unescaped equals in values",
+                source: indoc! {r#"
         parse_cef!(
             "CEF:0|Vendor|Product|1.0|100|Event|5|src=10.0.0.1 request=https://foo.com?id=foo&a=bar dst=2.2.2.2",
             strict: false
         )
     "#},
-    result: Ok(
-        r#"{"cefVersion":"0","deviceVendor":"Vendor","deviceProduct":"Product","deviceVersion":"1.0","deviceEventClassId":"100","name":"Event","severity":"5","src":"10.0.0.1","request":"https://foo.com?id=foo&a=bar","dst":"2.2.2.2"}"#,
-    ),
-},
+                result: Ok(
+                    r#"{"cefVersion":"0","deviceVendor":"Vendor","deviceProduct":"Product","deviceVersion":"1.0","deviceEventClassId":"100","name":"Event","severity":"5","src":"10.0.0.1","request":"https://foo.com?id=foo&a=bar","dst":"2.2.2.2"}"#,
+                ),
+            },
         ]
     }
 
@@ -186,7 +187,7 @@ impl Function for ParseCef {
             strict,
             custom_field_map,
         }
-            .as_expr())
+        .as_expr())
     }
 }
 
@@ -229,7 +230,7 @@ impl FunctionExpression for ParseCefFn {
                                     CustomField::Value => "value",
                                 }
                             )
-                                .into()));
+                            .into()));
                         }
                         None
                     } else {
@@ -294,8 +295,8 @@ fn parse(
             "name",
             "severity",
         ]
-            .into_iter()
-            .zip(header);
+        .into_iter()
+        .zip(header);
         let result = extension
             .into_iter()
             .chain(headers)
@@ -318,7 +319,7 @@ fn parse_header(input: &str) -> IResult<&str, Vec<String>, VerboseError<&str>> {
         pair(take_until("CEF:"), tag("CEF:")),
         count(parse_header_value, 7),
     )
-        .parse(input)
+    .parse(input)
 }
 
 fn parse_header_value(input: &str) -> IResult<&str, String, VerboseError<&str>> {
@@ -336,7 +337,7 @@ fn parse_header_value(input: &str) -> IResult<&str, String, VerboseError<&str>> 
             ),
         )),
     )
-        .parse(input)
+    .parse(input)
 }
 
 fn parse_extension(
@@ -347,7 +348,7 @@ fn parse_extension(
         many1(|i| parse_key_value(i, strict)),
         map(tag("|"), |_| vec![]),
     ))
-        .parse(input)
+    .parse(input)
 }
 
 fn parse_key_value(input: &str, strict: bool) -> IResult<&str, (&str, String), VerboseError<&str>> {
@@ -361,8 +362,8 @@ fn parse_value(input: &str, strict: bool) -> IResult<&str, String, VerboseError<
             take_till1_input(|input| {
                 let stop_on_equals = strict
                     && tag::<&str, &str, VerboseError<&str>>("=")
-                    .parse(input)
-                    .is_ok();
+                        .parse(input)
+                        .is_ok();
                 stop_on_equals || alt((tag("\\"), parse_key)).parse(input).is_ok()
             }),
             '\\',
@@ -374,7 +375,7 @@ fn parse_value(input: &str, strict: bool) -> IResult<&str, String, VerboseError<
             )),
         ),
     ))
-        .parse(input)
+    .parse(input)
 }
 
 /// As take `take_till1` but can have condition on input instead of `Input::Item`.
@@ -404,7 +405,7 @@ fn parse_key(input: &str) -> IResult<&str, &str, VerboseError<&str>> {
         take_till1(|c| c == ' ' || c == '=' || c == '\\'),
         char('='),
     )
-        .parse(input)
+    .parse(input)
 }
 
 fn type_def() -> TypeDef {
@@ -420,7 +421,7 @@ fn type_def() -> TypeDef {
         ]),
         Kind::bytes(),
     ))
-        .fallible()
+    .fallible()
 }
 
 #[cfg(test)]
@@ -444,7 +445,7 @@ mod test {
                 "CEF:1|Security|threatmanager|1.0|100|worm successfully stopped|10|",
                 true
             )
-                .map(Iterator::collect)
+            .map(Iterator::collect)
         );
     }
 
@@ -486,7 +487,7 @@ mod test {
                 "CEF:1|Security|threatmanager||100|worm successfully stopped||src= dst=2.1.2.2",
                 true
             )
-                .map(Iterator::collect)
+            .map(Iterator::collect)
         );
     }
 
@@ -546,7 +547,7 @@ mod test {
                 r"CEF:1|Security|threatmanager|1.0|100|worm \| successfully \| stopped|10|",
                 true
             )
-                .map(Iterator::collect)
+            .map(Iterator::collect)
         );
     }
 
@@ -566,7 +567,7 @@ mod test {
                 r"CEF:1|Security|threatmanager|1.0|100|worm \\ successfully \\ stopped|10|",
                 true
             )
-                .map(Iterator::collect)
+            .map(Iterator::collect)
         );
     }
 
