@@ -299,6 +299,7 @@ mod tests {
     use crate::protobuf::descriptor::get_message_descriptor;
     use crate::protobuf::parse::parse_proto;
     use crate::value;
+    use crate::value::ObjectMap;
     use bytes::Bytes;
     use chrono::DateTime;
     use ordered_float::NotNan;
@@ -410,7 +411,7 @@ mod tests {
     fn test_encode_integer_as_float() {
         let message = encode_message(
             &test_message_descriptor("Floats"),
-            Value::Object(BTreeMap::from([("f".into(), Value::Integer(123))])),
+            Value::Object(ObjectMap::from([("f".into(), Value::Integer(123))])),
             &Options::default(),
         )
         .unwrap();
@@ -423,7 +424,7 @@ mod tests {
         for (i, expected) in [(0, false), (1, true), (42, true), (-1, true)] {
             let message = encode_message(
                 &descriptor,
-                Value::Object(BTreeMap::from([("b".into(), Value::Integer(i))])),
+                Value::Object(ObjectMap::from([("b".into(), Value::Integer(i))])),
                 &Options::default(),
             )
             .unwrap();
@@ -437,7 +438,7 @@ mod tests {
         for s in ["true", "TRUE", "True", "1", "yes", "YES", "y", "Y", "t"] {
             let message = encode_message(
                 &descriptor,
-                Value::Object(BTreeMap::from([("b".into(), Value::from(s))])),
+                Value::Object(ObjectMap::from([("b".into(), Value::from(s))])),
                 &Options::default(),
             )
             .unwrap();
@@ -446,7 +447,7 @@ mod tests {
         for s in ["false", "FALSE", "False", "0", "no", "NO", "n", "N", "f"] {
             let message = encode_message(
                 &descriptor,
-                Value::Object(BTreeMap::from([("b".into(), Value::from(s))])),
+                Value::Object(ObjectMap::from([("b".into(), Value::from(s))])),
                 &Options::default(),
             )
             .unwrap();
@@ -456,7 +457,7 @@ mod tests {
         for s in ["", "invalid", "maybe"] {
             let result = encode_message(
                 &descriptor,
-                Value::Object(BTreeMap::from([("b".into(), Value::from(s))])),
+                Value::Object(ObjectMap::from([("b".into(), Value::from(s))])),
                 &Options::default(),
             );
             assert!(result.is_err(), "expected error for s={s:?}");
@@ -704,7 +705,7 @@ mod tests {
         for (label, value) in cases {
             let result = encode_message(
                 &descriptor,
-                Value::Object(BTreeMap::from([("text".into(), value)])),
+                Value::Object(ObjectMap::from([("text".into(), value)])),
                 &strict,
             );
             assert!(result.is_err(), "expected strict mode to reject {label}");
@@ -814,8 +815,8 @@ mod tests {
         // Round-trip a VRL Object containing one map per supported proto key type
         // through encode_proto -> parse_proto. Non-string keys must survive the
         // string-to-MapKey-to-string conversion on both sides.
-        let entry = |k: &str| Value::Object(BTreeMap::from([(k.into(), Value::from("v"))]));
-        let input = Value::Object(BTreeMap::from([
+        let entry = |k: &str| Value::Object(ObjectMap::from([(k.into(), Value::from("v"))]));
+        let input = Value::Object(ObjectMap::from([
             ("by_bool".into(), entry("true")),
             ("by_int32".into(), entry("-5")),
             ("by_int64".into(), entry("-9999999999")),

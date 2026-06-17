@@ -124,7 +124,10 @@ fn bench_keystring_micro(c: &mut Criterion) {
 fn build_event() -> Value {
     let mut map = ObjectMap::new();
     let fields = [
-        ("message", "2024-01-15T10:30:00Z INFO server started successfully on port 8080"),
+        (
+            "message",
+            "2024-01-15T10:30:00Z INFO server started successfully on port 8080",
+        ),
         ("hostname", "web-prod-01.us-east-1.compute.internal"),
         ("status", "info"),
         ("severity", "informational"),
@@ -222,10 +225,9 @@ fn bench_path_ops(c: &mut Criterion) {
         b.iter_batched(
             || nested_event.clone(),
             |mut value| {
-                black_box(value.insert(
-                    &owned_nested_path,
-                    Value::Bytes(Bytes::from_static(b"new")),
-                ));
+                black_box(
+                    value.insert(&owned_nested_path, Value::Bytes(Bytes::from_static(b"new"))),
+                );
             },
             BatchSize::SmallInput,
         );

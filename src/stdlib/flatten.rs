@@ -198,11 +198,7 @@ struct MapFlatten<'a> {
 }
 
 impl<'a> MapFlatten<'a> {
-    fn new(
-        values: ObjectMapIter<'a>,
-        separator: &'a str,
-        except: &'a HashSet<KeyString>,
-    ) -> Self {
+    fn new(values: ObjectMapIter<'a>, separator: &'a str, except: &'a HashSet<KeyString>) -> Self {
         Self {
             values,
             separator,

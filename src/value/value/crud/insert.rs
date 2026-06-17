@@ -16,8 +16,7 @@ pub fn insert<'a, T: ValueCollection>(
                 insert(map, field.into(), path_iter, insert_value)
             } else {
                 let mut map = ObjectMap::new();
-                let prev_value =
-                    insert(&mut map, field.into(), path_iter, insert_value);
+                let prev_value = insert(&mut map, field.into(), path_iter, insert_value);
                 value.insert_value(key, Value::Object(map));
                 prev_value
             }

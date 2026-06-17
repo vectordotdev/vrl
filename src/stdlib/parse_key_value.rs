@@ -1,7 +1,7 @@
 use crate::compiler::function::EnumVariant;
 use crate::compiler::prelude::*;
-use crate::value::ObjectMapEntry;
 use crate::value;
+use crate::value::ObjectMapEntry;
 use nom::{
     self, IResult, Parser,
     branch::alt,

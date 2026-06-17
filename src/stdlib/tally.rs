@@ -14,12 +14,7 @@ fn tally(value: Value) -> Resolved {
     }
     let map: ObjectMap = map
         .into_iter()
-        .map(|(k, v)| {
-            (
-                String::from_utf8_lossy(&k).into(),
-                Value::from(v),
-            )
-        })
+        .map(|(k, v)| (String::from_utf8_lossy(&k).into(), Value::from(v)))
         .collect();
     Ok(map.into())
 }

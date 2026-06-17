@@ -64,7 +64,9 @@ impl fmt::Debug for ObjectMap {
             Self::BTree(map) => f.debug_map().entries(map.iter()).finish(),
             _ => {
                 let s = self.as_flat_slice().unwrap();
-                f.debug_map().entries(s.iter().map(|(k, v)| (k, v))).finish()
+                f.debug_map()
+                    .entries(s.iter().map(|(k, v)| (k, v)))
+                    .finish()
             }
         }
     }
@@ -252,10 +254,18 @@ pub struct VecFlatOccupiedEntry<'a> {
 }
 
 impl<'a> VecFlatOccupiedEntry<'a> {
-    pub fn get(&self) -> &Value { &self.vec[self.index].1 }
-    pub fn get_mut(&mut self) -> &mut Value { &mut self.vec[self.index].1 }
-    pub fn insert(&mut self, value: Value) -> Value { std::mem::replace(&mut self.vec[self.index].1, value) }
-    pub fn into_mut(self) -> &'a mut Value { &mut self.vec[self.index].1 }
+    pub fn get(&self) -> &Value {
+        &self.vec[self.index].1
+    }
+    pub fn get_mut(&mut self) -> &mut Value {
+        &mut self.vec[self.index].1
+    }
+    pub fn insert(&mut self, value: Value) -> Value {
+        std::mem::replace(&mut self.vec[self.index].1, value)
+    }
+    pub fn into_mut(self) -> &'a mut Value {
+        &mut self.vec[self.index].1
+    }
 }
 
 pub struct VecFlatVacantEntry<'a> {
@@ -369,12 +379,12 @@ enum SelectedBackend {
 fn selected_backend() -> SelectedBackend {
     use std::sync::OnceLock;
     static SELECTED: OnceLock<SelectedBackend> = OnceLock::new();
-    *SELECTED.get_or_init(|| {
-        match std::env::var("VRL_OBJECT_MAP").ok().as_deref() {
-            Some(s) if s.eq_ignore_ascii_case("btree") => SelectedBackend::BTree,
-            Some(s) if s.eq_ignore_ascii_case("vec") || s.eq_ignore_ascii_case("vecflat") => SelectedBackend::VecFlat,
-            _ => SelectedBackend::Flat,
+    *SELECTED.get_or_init(|| match std::env::var("VRL_OBJECT_MAP").ok().as_deref() {
+        Some(s) if s.eq_ignore_ascii_case("btree") => SelectedBackend::BTree,
+        Some(s) if s.eq_ignore_ascii_case("vec") || s.eq_ignore_ascii_case("vecflat") => {
+            SelectedBackend::VecFlat
         }
+        _ => SelectedBackend::Flat,
     })
 }
 
@@ -426,7 +436,9 @@ impl ObjectMap {
     pub fn get(&self, key: &str) -> Option<&Value> {
         match self {
             Self::BTree(map) => map.get(key),
-            _ => self.as_flat_slice().unwrap()
+            _ => self
+                .as_flat_slice()
+                .unwrap()
                 .iter()
                 .find(|(k, _)| k.as_str() == key)
                 .map(|(_, v)| v),
@@ -464,7 +476,11 @@ impl ObjectMap {
     pub fn contains_key(&self, key: &str) -> bool {
         match self {
             Self::BTree(map) => map.contains_key(key),
-            _ => self.as_flat_slice().unwrap().iter().any(|(k, _)| k.as_str() == key),
+            _ => self
+                .as_flat_slice()
+                .unwrap()
+                .iter()
+                .any(|(k, _)| k.as_str() == key),
         }
     }
 
@@ -530,7 +546,9 @@ impl ObjectMap {
     pub fn into_keys(self) -> ObjectMapIntoKeys {
         match self {
             Self::BTree(map) => ObjectMapIntoKeys::BTree(map.into_keys()),
-            Self::Flat(vec) => ObjectMapIntoKeys::Flat(vec.into_iter().collect::<Vec<_>>().into_iter()),
+            Self::Flat(vec) => {
+                ObjectMapIntoKeys::Flat(vec.into_iter().collect::<Vec<_>>().into_iter())
+            }
             Self::VecFlat(vec) => ObjectMapIntoKeys::Flat(vec.into_iter()),
         }
     }
@@ -538,7 +556,9 @@ impl ObjectMap {
     pub fn into_values(self) -> ObjectMapIntoValues {
         match self {
             Self::BTree(map) => ObjectMapIntoValues::BTree(map.into_values()),
-            Self::Flat(vec) => ObjectMapIntoValues::Flat(vec.into_iter().collect::<Vec<_>>().into_iter()),
+            Self::Flat(vec) => {
+                ObjectMapIntoValues::Flat(vec.into_iter().collect::<Vec<_>>().into_iter())
+            }
             Self::VecFlat(vec) => ObjectMapIntoValues::Flat(vec.into_iter()),
         }
     }
@@ -554,20 +574,24 @@ impl ObjectMap {
                 }
             },
             Self::Flat(vec) => match vec.iter().position(|(k, _)| *k == key) {
-                Some(index) => ObjectMapEntry::Occupied(ObjectMapOccupiedEntry::Flat(
-                    FlatOccupiedEntry { vec, index },
-                )),
-                None => ObjectMapEntry::Vacant(ObjectMapVacantEntry::Flat(
-                    FlatVacantEntry { vec, key },
-                )),
+                Some(index) => {
+                    ObjectMapEntry::Occupied(ObjectMapOccupiedEntry::Flat(FlatOccupiedEntry {
+                        vec,
+                        index,
+                    }))
+                }
+                None => {
+                    ObjectMapEntry::Vacant(ObjectMapVacantEntry::Flat(FlatVacantEntry { vec, key }))
+                }
             },
             Self::VecFlat(vec) => match vec.iter().position(|(k, _)| *k == key) {
                 Some(index) => ObjectMapEntry::Occupied(ObjectMapOccupiedEntry::VecFlat(
                     VecFlatOccupiedEntry { vec, index },
                 )),
-                None => ObjectMapEntry::Vacant(ObjectMapVacantEntry::VecFlat(
-                    VecFlatVacantEntry { vec, key },
-                )),
+                None => ObjectMapEntry::Vacant(ObjectMapVacantEntry::VecFlat(VecFlatVacantEntry {
+                    vec,
+                    key,
+                })),
             },
         }
     }

@@ -19,8 +19,7 @@ pub use self::keystring::KeyString;
 pub use self::secrets::Secrets;
 #[allow(clippy::module_name_repetitions)]
 pub use self::value::{
-    ObjectMap, ObjectMapEntry, ObjectMapIter, ObjectMapKeys, ObjectMapValues,
-    Value, ValueRegex,
+    ObjectMap, ObjectMapEntry, ObjectMapIter, ObjectMapKeys, ObjectMapValues, Value, ValueRegex,
 };
 
 /// A macro to easily generate Values

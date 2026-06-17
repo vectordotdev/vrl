@@ -8,8 +8,8 @@ use regex::{Regex, RegexBuilder};
 use roxmltree::NodeType;
 pub use roxmltree::{Document, Node};
 use rust_decimal::prelude::Zero;
-use std::sync::LazyLock;
 use std::borrow::Cow;
+use std::sync::LazyLock;
 
 /// A lazily initialized regular expression that matches excess whitespace between XML/HTML tags.
 ///
@@ -224,10 +224,7 @@ pub fn process_node(node: Node, config: &ParseXmlConfig) -> Value {
                         if node.is_element() {
                             let mut map = ObjectMap::new();
 
-                            map.insert(
-                                node.tag_name().name().into(),
-                                process_node(node, config),
-                            );
+                            map.insert(node.tag_name().name().into(), process_node(node, config));
 
                             Value::Object(map)
                         } else {

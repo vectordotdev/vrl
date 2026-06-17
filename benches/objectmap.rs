@@ -303,7 +303,11 @@ fn benchmark_nested_build(c: &mut Criterion) {
                 &case,
                 |b, case| {
                     b.iter(|| {
-                        black_box(nested_value_insert_child(case.depth, case.siblings, backend));
+                        black_box(nested_value_insert_child(
+                            case.depth,
+                            case.siblings,
+                            backend,
+                        ));
                     });
                 },
             );
