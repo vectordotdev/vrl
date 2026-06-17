@@ -9,7 +9,6 @@ use smol_str::SmolStr;
 /// a typical regex (e.g. "host", "user", "timestamp") fits inline, making
 /// `clone()` a plain 24-byte stack copy — no malloc, no atomic ops.
 #[derive(Clone, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
-#[cfg_attr(any(test, feature = "proptest"), derive(proptest_derive::Arbitrary))]
 #[serde(transparent)]
 pub struct KeyString(SmolStr);
 
@@ -107,6 +106,19 @@ impl quickcheck::Arbitrary for KeyString {
     fn shrink(&self) -> Box<dyn Iterator<Item = Self>> {
         let s = self.0.as_str().to_string();
         Box::new(s.shrink().map(Into::into))
+    }
+}
+
+#[cfg(any(test, feature = "proptest"))]
+impl proptest::arbitrary::Arbitrary for KeyString {
+    type Parameters = ();
+    type Strategy = proptest::strategy::BoxedStrategy<Self>;
+
+    fn arbitrary_with((): Self::Parameters) -> Self::Strategy {
+        use proptest::prelude::Strategy;
+        proptest::arbitrary::any::<String>()
+            .prop_map(KeyString::from)
+            .boxed()
     }
 }
 
