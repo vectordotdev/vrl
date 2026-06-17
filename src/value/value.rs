@@ -242,8 +242,11 @@ pub struct FlatVacantEntry<'a> {
 
 impl<'a> FlatVacantEntry<'a> {
     pub fn insert(self, value: Value) -> &'a mut Value {
-        self.vec.push((self.key, value));
-        let idx = self.vec.len() - 1;
+        let idx = self
+            .vec
+            .binary_search_by(|(k, _)| k.cmp(&self.key))
+            .unwrap_or_else(|idx| idx);
+        self.vec.insert(idx, (self.key, value));
         &mut self.vec.make_mut()[idx].1
     }
 }
@@ -275,8 +278,11 @@ pub struct VecFlatVacantEntry<'a> {
 
 impl<'a> VecFlatVacantEntry<'a> {
     pub fn insert(self, value: Value) -> &'a mut Value {
-        self.vec.push((self.key, value));
-        let idx = self.vec.len() - 1;
+        let idx = self
+            .vec
+            .binary_search_by(|(k, _)| k.cmp(&self.key))
+            .unwrap_or_else(|idx| idx);
+        self.vec.insert(idx, (self.key, value));
         &mut self.vec[idx].1
     }
 }
@@ -414,22 +420,20 @@ impl ObjectMap {
     pub fn insert(&mut self, key: KeyString, value: Value) -> Option<Value> {
         match self {
             Self::BTree(map) => map.insert(key, value),
-            Self::Flat(vec) => {
-                if let Some(pos) = vec.iter().position(|(k, _)| *k == key) {
-                    Some(std::mem::replace(&mut vec.make_mut()[pos].1, value))
-                } else {
-                    vec.push((key, value));
+            Self::Flat(vec) => match vec.binary_search_by(|(k, _)| k.cmp(&key)) {
+                Ok(pos) => Some(std::mem::replace(&mut vec.make_mut()[pos].1, value)),
+                Err(pos) => {
+                    vec.insert(pos, (key, value));
                     None
                 }
-            }
-            Self::VecFlat(vec) => {
-                if let Some(pos) = vec.iter().position(|(k, _)| *k == key) {
-                    Some(std::mem::replace(&mut vec[pos].1, value))
-                } else {
-                    vec.push((key, value));
+            },
+            Self::VecFlat(vec) => match vec.binary_search_by(|(k, _)| k.cmp(&key)) {
+                Ok(pos) => Some(std::mem::replace(&mut vec[pos].1, value)),
+                Err(pos) => {
+                    vec.insert(pos, (key, value));
                     None
                 }
-            }
+            },
         }
     }
 
@@ -468,7 +472,7 @@ impl ObjectMap {
             }
             Self::VecFlat(vec) => {
                 let pos = vec.iter().position(|(k, _)| k.as_str() == key)?;
-                Some(vec.swap_remove(pos).1)
+                Some(vec.remove(pos).1)
             }
         }
     }
@@ -573,25 +577,27 @@ impl ObjectMap {
                     ObjectMapEntry::Vacant(ObjectMapVacantEntry::BTree(entry))
                 }
             },
-            Self::Flat(vec) => match vec.iter().position(|(k, _)| *k == key) {
-                Some(index) => {
+            Self::Flat(vec) => match vec.binary_search_by(|(k, _)| k.cmp(&key)) {
+                Ok(index) => {
                     ObjectMapEntry::Occupied(ObjectMapOccupiedEntry::Flat(FlatOccupiedEntry {
                         vec,
                         index,
                     }))
                 }
-                None => {
+                Err(_) => {
                     ObjectMapEntry::Vacant(ObjectMapVacantEntry::Flat(FlatVacantEntry { vec, key }))
                 }
             },
-            Self::VecFlat(vec) => match vec.iter().position(|(k, _)| *k == key) {
-                Some(index) => ObjectMapEntry::Occupied(ObjectMapOccupiedEntry::VecFlat(
+            Self::VecFlat(vec) => match vec.binary_search_by(|(k, _)| k.cmp(&key)) {
+                Ok(index) => ObjectMapEntry::Occupied(ObjectMapOccupiedEntry::VecFlat(
                     VecFlatOccupiedEntry { vec, index },
                 )),
-                None => ObjectMapEntry::Vacant(ObjectMapVacantEntry::VecFlat(VecFlatVacantEntry {
-                    vec,
-                    key,
-                })),
+                Err(_) => {
+                    ObjectMapEntry::Vacant(ObjectMapVacantEntry::VecFlat(VecFlatVacantEntry {
+                        vec,
+                        key,
+                    }))
+                }
             },
         }
     }
@@ -704,11 +710,9 @@ impl<'a> IntoIterator for &'a mut ObjectMap {
 
 impl FromIterator<(KeyString, Value)> for ObjectMap {
     fn from_iter<I: IntoIterator<Item = (KeyString, Value)>>(iter: I) -> Self {
-        let vec: Vec<_> = iter.into_iter().collect();
-        match selected_backend() {
-            SelectedBackend::VecFlat => Self::VecFlat(vec),
-            _ => Self::Flat(EcoVec::from(vec)),
-        }
+        let mut map = Self::new();
+        map.extend(iter);
+        map
     }
 }
 
@@ -727,19 +731,16 @@ impl Extend<(KeyString, Value)> for ObjectMap {
 
 impl<const N: usize> From<[(KeyString, Value); N]> for ObjectMap {
     fn from(arr: [(KeyString, Value); N]) -> Self {
-        match selected_backend() {
-            SelectedBackend::VecFlat => Self::VecFlat(Vec::from(arr)),
-            _ => Self::Flat(EcoVec::from(Vec::from(arr))),
-        }
+        arr.into_iter().collect()
     }
 }
 
 impl From<BTreeMap<KeyString, Value>> for ObjectMap {
     fn from(map: BTreeMap<KeyString, Value>) -> Self {
-        let vec: Vec<_> = map.into_iter().collect();
         match selected_backend() {
-            SelectedBackend::VecFlat => Self::VecFlat(vec),
-            _ => Self::Flat(EcoVec::from(vec)),
+            SelectedBackend::BTree => Self::BTree(map),
+            SelectedBackend::Flat => Self::Flat(EcoVec::from(map.into_iter().collect::<Vec<_>>())),
+            SelectedBackend::VecFlat => Self::VecFlat(map.into_iter().collect()),
         }
     }
 }
