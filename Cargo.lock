@@ -3469,6 +3469,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "67b1b7a3b5fe4f1376887184045fcf45c69e92af734b7aaddc05fb777b6fbd03"
 
 [[package]]
+name = "smol_str"
+version = "0.3.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4aaa7368fcf4852a4c2dd92df0cace6a71f2091ca0a23391ce7f3a31833f1523"
+dependencies = [
+ "serde_core",
+]
+
+[[package]]
 name = "snafu"
 version = "0.7.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4323,6 +4332,7 @@ dependencies = [
  "sha2",
  "sha3",
  "simdutf8",
+ "smol_str",
  "snafu 0.8.9",
  "snap",
  "strip-ansi-escapes",
