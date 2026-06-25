@@ -32,6 +32,22 @@ where
     fun(num * multiplier) / multiplier
 }
 
+#[derive(Debug, Clone)]
+pub(crate) struct RegexWithCaptureInfo {
+    pub regex: regex::Regex,
+    pub capture_info: Vec<(KeyString, usize)>,
+}
+
+impl RegexWithCaptureInfo {
+    pub fn new(regex: regex::Regex) -> Self {
+        let capture_info = build_capture_info(&regex);
+        Self {
+            regex,
+            capture_info,
+        }
+    }
+}
+
 pub(crate) fn build_capture_info(regex: &regex::Regex) -> Vec<(KeyString, usize)> {
     regex
         .capture_names()

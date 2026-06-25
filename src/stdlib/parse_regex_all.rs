@@ -1,8 +1,8 @@
 use regex::Regex;
 
-use crate::compiler::prelude::*;
-
 use super::util;
+use crate::compiler::prelude::*;
+use crate::stdlib::util::RegexWithCaptureInfo;
 
 static DEFAULT_NUMERIC_GROUPS: Value = Value::Boolean(false);
 
@@ -25,7 +25,7 @@ contains the whole match.",
 fn parse_regex_all(
     value: &Value,
     pattern: &Regex,
-    capture_info: &[(crate::value::KeyString, usize)],
+    capture_info: &[(KeyString, usize)],
     numeric_groups: bool,
 ) -> Resolved {
     let value = value.try_bytes_utf8_lossy()?;
@@ -100,17 +100,15 @@ impl Function for ParseRegexAll {
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
-        let pattern = arguments.required_regex("pattern", state);
-        let capture_info = match &pattern {
-            ConstOrExpr::Const(r) => Some(util::build_capture_info(r)),
-            ConstOrExpr::Expr(_) => None,
+        let pattern = match arguments.required_regex("pattern", state) {
+            ConstOrExpr::Const(r) => ConstOrExpr::Const(RegexWithCaptureInfo::new(r)),
+            ConstOrExpr::Expr(e) => ConstOrExpr::Expr(e),
         };
         let numeric_groups = arguments.optional("numeric_groups");
 
         Ok(ParseRegexAllFn {
             value,
             pattern,
-            capture_info,
             numeric_groups,
         }
         .as_expr())
@@ -172,8 +170,7 @@ impl Function for ParseRegexAll {
 #[derive(Debug, Clone)]
 pub(crate) struct ParseRegexAllFn {
     value: Box<dyn Expression>,
-    pattern: ConstOrExpr<Regex>,
-    capture_info: Option<Vec<(crate::value::KeyString, usize)>>,
+    pattern: ConstOrExpr<RegexWithCaptureInfo>,
     numeric_groups: Option<Box<dyn Expression>>,
 }
 
@@ -186,13 +183,12 @@ impl FunctionExpression for ParseRegexAllFn {
             .try_boolean()?;
 
         match &self.pattern {
-            ConstOrExpr::Const(pattern) => {
-                let capture_info = self
-                    .capture_info
-                    .as_deref()
-                    .expect("capture_info always set for Const pattern");
-                parse_regex_all(&value, pattern, capture_info, numeric_groups)
-            }
+            ConstOrExpr::Const(pattern) => parse_regex_all(
+                &value,
+                &pattern.regex,
+                &pattern.capture_info,
+                numeric_groups,
+            ),
             ConstOrExpr::Expr(expr) => {
                 let resolved = expr.resolve(ctx)?;
                 let pattern = resolved
@@ -206,8 +202,8 @@ impl FunctionExpression for ParseRegexAllFn {
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {
         match &self.pattern {
-            ConstOrExpr::Const(regex) => TypeDef::array(Collection::from_unknown(
-                Kind::object(util::regex_kind(regex)).or_null(),
+            ConstOrExpr::Const(pattern) => TypeDef::array(Collection::from_unknown(
+                Kind::object(util::regex_kind(&pattern.regex)).or_null(),
             ))
             .fallible(),
             ConstOrExpr::Expr(_) => TypeDef::array(Collection::from_unknown(

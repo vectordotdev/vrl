@@ -1,10 +1,9 @@
+use super::log_util;
 use crate::compiler::function::EnumVariant;
 use crate::compiler::prelude::*;
+use crate::stdlib::util::RegexWithCaptureInfo;
 use crate::value;
-use regex::Regex;
 use std::collections::BTreeMap;
-
-use super::log_util;
 
 static DEFAULT_TIMESTAMP_FORMAT_STR: &str = "%d/%b/%Y:%T %z";
 static DEFAULT_TIMESTAMP_FORMAT: Value =
@@ -60,10 +59,18 @@ fn parse_nginx_log(
         Some(timestamp_format) => timestamp_format.try_bytes_utf8_lossy()?.to_string(),
     };
     let regex = regex_for_format(&format);
-    let captures = regex.captures(&message).ok_or("failed parsing log line")?;
-    log_util::log_fields(regex, &captures, &timestamp_format, *ctx.timezone())
-        .map(rename_referrer)
-        .map_err(Into::into)
+    let captures = regex
+        .regex
+        .captures(&message)
+        .ok_or("failed parsing log line")?;
+    log_util::log_fields(
+        &regex.capture_info,
+        &captures,
+        &timestamp_format,
+        *ctx.timezone(),
+    )
+    .map(rename_referrer)
+    .map_err(Into::into)
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -255,7 +262,7 @@ impl Function for ParseNginxLog {
     }
 }
 
-fn regex_for_format(format: &Variant) -> &Regex {
+fn regex_for_format(format: &Variant) -> &RegexWithCaptureInfo {
     match format {
         Variant::Combined => &log_util::REGEX_NGINX_COMBINED_LOG,
         Variant::IngressUpstreamInfo => &log_util::REGEX_INGRESS_NGINX_UPSTREAMINFO_LOG,
