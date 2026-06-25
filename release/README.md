@@ -30,9 +30,10 @@ The release flow:
 3. Bumps version in `Cargo.toml`
 4. Generates changelog from `changelog.d/` fragments
 5. Pauses for you to review/edit `CHANGELOG.md`
-6. Publishes to crates.io
-7. Tags and pushes
-8. Creates a PR to merge the release into main
+6. Pushes the branch and creates a PR
+7. Waits for the PR to be merged to main
+8. Switches to main, tags the release commit
+9. Checks out the tag, publishes to crates.io, pushes the tag
 
 ### Check Changelog Fragments
 
