@@ -695,6 +695,7 @@ impl Function for DnsLookup {
 #[cfg(test)]
 #[cfg(not(target_arch = "wasm32"))]
 mod tests {
+    #[cfg(feature = "test")]
     use std::collections::HashSet;
 
     use super::*;

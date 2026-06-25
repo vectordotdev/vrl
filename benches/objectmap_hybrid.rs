@@ -6,13 +6,11 @@
 //! hybrid designs that attempt to keep the cheap-clone property while
 //! closing the lookup gap:
 //!
-//!   * `btree`            — baseline BTreeMap<KeyString, Value>
-//!   * `flat`             — unsorted EcoVec with linear-scan lookup (current
-//!                          Flat backend)
-//!   * `sorted`           — sorted EcoVec with binary-search lookup (proposed)
-//!   * `threshold(N)`     — sorted EcoVec up to N entries, then BTree (also
-//!                          proposed, but harder to justify unless `sorted`
-//!                          loses to BTree somewhere)
+//! * `btree` — baseline BTreeMap<KeyString, Value>
+//! * `flat` — unsorted EcoVec with linear-scan lookup (current Flat backend)
+//! * `sorted` — sorted EcoVec with binary-search lookup (proposed)
+//! * `threshold(N)` — sorted EcoVec up to N entries, then BTree (also proposed,
+//!   but harder to justify unless `sorted` loses to BTree somewhere)
 //!
 //! These are implemented inline in the bench so we can iterate without
 //! churning the library. Results tell us whether a hybrid design is worth
@@ -603,6 +601,7 @@ fn bench_build_then_many_reads(c: &mut Criterion) {
 
 /// Prints the size (and memory layout) of each candidate type. Called
 /// before the bench suite runs so the numbers are visible in bench output.
+#[allow(clippy::print_stderr)]
 fn print_sizes() {
     use std::mem::size_of;
     eprintln!("---- type sizes ----");

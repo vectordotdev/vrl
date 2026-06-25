@@ -62,12 +62,14 @@ impl fmt::Debug for ObjectMap {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::BTree(map) => f.debug_map().entries(map.iter()).finish(),
-            _ => {
-                let s = self.as_flat_slice().unwrap();
-                f.debug_map()
-                    .entries(s.iter().map(|(k, v)| (k, v)))
-                    .finish()
-            }
+            Self::Flat(vec) => f
+                .debug_map()
+                .entries(vec.iter().map(|(k, v)| (k, v)))
+                .finish(),
+            Self::VecFlat(vec) => f
+                .debug_map()
+                .entries(vec.iter().map(|(k, v)| (k, v)))
+                .finish(),
         }
     }
 }
@@ -218,6 +220,7 @@ pub struct FlatOccupiedEntry<'a> {
 }
 
 impl<'a> FlatOccupiedEntry<'a> {
+    #[must_use]
     pub fn get(&self) -> &Value {
         &self.vec[self.index].1
     }
@@ -230,6 +233,7 @@ impl<'a> FlatOccupiedEntry<'a> {
         std::mem::replace(&mut self.vec.make_mut()[self.index].1, value)
     }
 
+    #[must_use]
     pub fn into_mut(self) -> &'a mut Value {
         &mut self.vec.make_mut()[self.index].1
     }
@@ -257,15 +261,20 @@ pub struct VecFlatOccupiedEntry<'a> {
 }
 
 impl<'a> VecFlatOccupiedEntry<'a> {
+    #[must_use]
     pub fn get(&self) -> &Value {
         &self.vec[self.index].1
     }
+
     pub fn get_mut(&mut self) -> &mut Value {
         &mut self.vec[self.index].1
     }
+
     pub fn insert(&mut self, value: Value) -> Value {
         std::mem::replace(&mut self.vec[self.index].1, value)
     }
+
+    #[must_use]
     pub fn into_mut(self) -> &'a mut Value {
         &mut self.vec[self.index].1
     }
@@ -294,6 +303,7 @@ pub enum ObjectMapOccupiedEntry<'a> {
 }
 
 impl ObjectMapOccupiedEntry<'_> {
+    #[must_use]
     pub fn get(&self) -> &Value {
         match self {
             Self::BTree(entry) => entry.get(),
@@ -336,6 +346,7 @@ impl<'a> ObjectMapVacantEntry<'a> {
 }
 
 impl<'a> ObjectMapEntry<'a> {
+    #[must_use]
     pub fn and_modify<F>(self, f: F) -> Self
     where
         F: FnOnce(&mut Value),
@@ -395,14 +406,6 @@ fn selected_backend() -> SelectedBackend {
 }
 
 impl ObjectMap {
-    fn as_flat_slice(&self) -> Option<&[(KeyString, Value)]> {
-        match self {
-            Self::Flat(vec) => Some(vec),
-            Self::VecFlat(vec) => Some(vec),
-            Self::BTree(_) => None,
-        }
-    }
-
     #[must_use]
     pub fn new() -> Self {
         match selected_backend() {
@@ -437,15 +440,12 @@ impl ObjectMap {
         }
     }
 
+    #[must_use]
     pub fn get(&self, key: &str) -> Option<&Value> {
         match self {
             Self::BTree(map) => map.get(key),
-            _ => self
-                .as_flat_slice()
-                .unwrap()
-                .iter()
-                .find(|(k, _)| k.as_str() == key)
-                .map(|(_, v)| v),
+            Self::Flat(vec) => vec.iter().find(|(k, _)| k.as_str() == key).map(|(_, v)| v),
+            Self::VecFlat(vec) => vec.iter().find(|(k, _)| k.as_str() == key).map(|(_, v)| v),
         }
     }
 
@@ -477,28 +477,30 @@ impl ObjectMap {
         }
     }
 
+    #[must_use]
     pub fn contains_key(&self, key: &str) -> bool {
         match self {
             Self::BTree(map) => map.contains_key(key),
-            _ => self
-                .as_flat_slice()
-                .unwrap()
-                .iter()
-                .any(|(k, _)| k.as_str() == key),
+            Self::Flat(vec) => vec.iter().any(|(k, _)| k.as_str() == key),
+            Self::VecFlat(vec) => vec.iter().any(|(k, _)| k.as_str() == key),
         }
     }
 
+    #[must_use]
     pub fn len(&self) -> usize {
         match self {
             Self::BTree(map) => map.len(),
-            _ => self.as_flat_slice().unwrap().len(),
+            Self::Flat(vec) => vec.len(),
+            Self::VecFlat(vec) => vec.len(),
         }
     }
 
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         match self {
             Self::BTree(map) => map.is_empty(),
-            _ => self.as_flat_slice().unwrap().is_empty(),
+            Self::Flat(vec) => vec.is_empty(),
+            Self::VecFlat(vec) => vec.is_empty(),
         }
     }
 
@@ -510,17 +512,21 @@ impl ObjectMap {
         }
     }
 
+    #[must_use]
     pub fn keys(&self) -> ObjectMapKeys<'_> {
         match self {
             Self::BTree(map) => ObjectMapKeys::BTree(map.keys()),
-            _ => ObjectMapKeys::Flat(self.as_flat_slice().unwrap().iter()),
+            Self::Flat(vec) => ObjectMapKeys::Flat(vec.iter()),
+            Self::VecFlat(vec) => ObjectMapKeys::Flat(vec.iter()),
         }
     }
 
+    #[must_use]
     pub fn values(&self) -> ObjectMapValues<'_> {
         match self {
             Self::BTree(map) => ObjectMapValues::BTree(map.values()),
-            _ => ObjectMapValues::Flat(self.as_flat_slice().unwrap().iter()),
+            Self::Flat(vec) => ObjectMapValues::Flat(vec.iter()),
+            Self::VecFlat(vec) => ObjectMapValues::Flat(vec.iter()),
         }
     }
 
@@ -532,10 +538,12 @@ impl ObjectMap {
         }
     }
 
+    #[must_use]
     pub fn iter(&self) -> ObjectMapIter<'_> {
         match self {
             Self::BTree(map) => ObjectMapIter::BTree(map.iter()),
-            _ => ObjectMapIter::Flat(self.as_flat_slice().unwrap().iter()),
+            Self::Flat(vec) => ObjectMapIter::Flat(vec.iter()),
+            Self::VecFlat(vec) => ObjectMapIter::Flat(vec.iter()),
         }
     }
 
@@ -547,6 +555,7 @@ impl ObjectMap {
         }
     }
 
+    #[must_use]
     pub fn into_keys(self) -> ObjectMapIntoKeys {
         match self {
             Self::BTree(map) => ObjectMapIntoKeys::BTree(map.into_keys()),
@@ -557,6 +566,7 @@ impl ObjectMap {
         }
     }
 
+    #[must_use]
     pub fn into_values(self) -> ObjectMapIntoValues {
         match self {
             Self::BTree(map) => ObjectMapIntoValues::BTree(map.into_values()),
@@ -625,16 +635,57 @@ impl ObjectMap {
 
     /// Insert a new empty child `ObjectMap` at the given key and return a
     /// mutable reference to it.  The child uses the same variant as the parent.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the inserted child value is unexpectedly not an object. This
+    /// should be unreachable because the value is constructed immediately before
+    /// insertion.
     pub fn insert_child(&mut self, key: KeyString) -> &mut ObjectMap {
-        let child = match self {
-            Self::BTree(_) => ObjectMap::new_btree(),
-            Self::Flat(_) => ObjectMap::Flat(EcoVec::new()),
-            Self::VecFlat(_) => ObjectMap::VecFlat(Vec::new()),
+        let value = match self {
+            Self::BTree(map) => {
+                let child = Value::Object(ObjectMap::new_btree());
+                match map.entry(key) {
+                    btree_map::Entry::Occupied(mut entry) => {
+                        entry.insert(child);
+                        entry.into_mut()
+                    }
+                    btree_map::Entry::Vacant(entry) => entry.insert(child),
+                }
+            }
+            Self::Flat(vec) => {
+                let child = Value::Object(ObjectMap::Flat(EcoVec::new()));
+                let index = match vec.binary_search_by(|(k, _)| k.cmp(&key)) {
+                    Ok(index) => {
+                        vec.make_mut()[index].1 = child;
+                        index
+                    }
+                    Err(index) => {
+                        vec.insert(index, (key, child));
+                        index
+                    }
+                };
+                &mut vec.make_mut()[index].1
+            }
+            Self::VecFlat(vec) => {
+                let child = Value::Object(ObjectMap::VecFlat(Vec::new()));
+                let index = match vec.binary_search_by(|(k, _)| k.cmp(&key)) {
+                    Ok(index) => {
+                        vec[index].1 = child;
+                        index
+                    }
+                    Err(index) => {
+                        vec.insert(index, (key, child));
+                        index
+                    }
+                };
+                &mut vec[index].1
+            }
         };
-        self.insert(key.clone(), Value::Object(child));
-        match self.get_mut(key.as_ref()).unwrap() {
+
+        match value {
             Value::Object(map) => map,
-            _ => unreachable!(),
+            _ => unreachable!("inserted child value must be an object"),
         }
     }
 }
@@ -655,7 +706,7 @@ impl Eq for ObjectMap {}
 impl Hash for ObjectMap {
     fn hash<H: Hasher>(&self, state: &mut H) {
         let mut entries = self.iter().collect::<Vec<_>>();
-        entries.sort_unstable_by(|(left_key, _), (right_key, _)| left_key.cmp(right_key));
+        entries.sort_unstable_by_key(|(key, _)| *key);
         for (key, value) in entries {
             key.hash(state);
             value.hash(state);
@@ -667,8 +718,8 @@ impl PartialOrd for ObjectMap {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         let mut left = self.iter().collect::<Vec<_>>();
         let mut right = other.iter().collect::<Vec<_>>();
-        left.sort_unstable_by(|(left_key, _), (right_key, _)| left_key.cmp(right_key));
-        right.sort_unstable_by(|(left_key, _), (right_key, _)| left_key.cmp(right_key));
+        left.sort_unstable_by_key(|(key, _)| *key);
+        right.sort_unstable_by_key(|(key, _)| *key);
 
         left.partial_cmp(&right)
     }
@@ -786,10 +837,16 @@ impl ::serde::Serialize for ObjectMap {
         use ::serde::ser::SerializeMap;
         match self {
             Self::BTree(map) => map.serialize(serializer),
-            _ => {
-                let s = self.as_flat_slice().unwrap();
-                let mut map = serializer.serialize_map(Some(s.len()))?;
-                for (k, v) in s {
+            Self::Flat(vec) => {
+                let mut map = serializer.serialize_map(Some(vec.len()))?;
+                for (k, v) in vec {
+                    map.serialize_entry(k, v)?;
+                }
+                map.end()
+            }
+            Self::VecFlat(vec) => {
+                let mut map = serializer.serialize_map(Some(vec.len()))?;
+                for (k, v) in vec {
                     map.serialize_entry(k, v)?;
                 }
                 map.end()

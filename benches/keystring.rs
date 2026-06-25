@@ -360,7 +360,7 @@ fn bench_vrl_programs(c: &mut Criterion) {
 
     group.bench_function("remap_fields", |b| {
         b.iter_batched(
-            || build_remap_target(),
+            build_remap_target,
             |mut target| {
                 black_box(runtime.resolve(&mut target, &remap_program, &tz).unwrap());
             },
@@ -373,7 +373,7 @@ fn bench_vrl_programs(c: &mut Criterion) {
 
     group.bench_function("parse_syslog", |b| {
         b.iter_batched(
-            || build_syslog_target(),
+            build_syslog_target,
             |mut target| {
                 black_box(runtime.resolve(&mut target, &syslog_program, &tz).unwrap());
             },
@@ -386,7 +386,7 @@ fn bench_vrl_programs(c: &mut Criterion) {
 
     group.bench_function("parse_and_flatten", |b| {
         b.iter_batched(
-            || build_syslog_target(),
+            build_syslog_target,
             |mut target| {
                 black_box(runtime.resolve(&mut target, &flatten_program, &tz).unwrap());
             },
@@ -414,7 +414,7 @@ fn bench_vrl_programs(c: &mut Criterion) {
 
     group.bench_function("object_construction", |b| {
         b.iter_batched(
-            || build_object_construction_target(),
+            build_object_construction_target,
             |mut target| {
                 black_box(runtime.resolve(&mut target, &obj_program, &tz).unwrap());
             },

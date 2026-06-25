@@ -339,8 +339,8 @@ mod tests {
                             ("bar".into(), "baz".into()),
                         ])
                         .into(),
-                        true.into(),
                         "baz".into(),
+                        true.into(),
                     ],
                 },
             ),
@@ -357,9 +357,9 @@ mod tests {
                     .into(),
                     recursive: true,
                     items: vec![
+                        true.into(),
                         ObjectMap::from([("bar".into(), Value::Null)]).into(),
                         Value::Null,
-                        true.into(),
                     ],
                 },
             ),

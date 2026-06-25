@@ -1,3 +1,5 @@
+#![allow(clippy::print_stdout)]
+
 use std::mem;
 use vrl::value::{KeyString, ObjectMap, Value};
 
