@@ -4,6 +4,7 @@ pub mod closure;
 use crate::diagnostic::{DiagnosticMessage, Label, Note};
 use crate::parser::ast::Ident;
 use crate::path::OwnedTargetPath;
+use crate::prelude::{ValueError, VrlValueConvert};
 use crate::value::{KeyString, Value, kind::Collection};
 use std::{
     collections::{BTreeMap, HashMap},
@@ -403,6 +404,76 @@ impl ConstOrExpr<Value> {
         match self {
             Self::Const(value) => Ok(value.clone()),
             Self::Expr(expr) => expr.resolve(ctx),
+        }
+    }
+}
+
+impl ConstOrExpr<bool> {
+    pub fn new(expr: Box<dyn Expression>, state: &TypeState) -> Result<Self, ValueError> {
+        Ok(match expr.resolve_constant(state) {
+            Some(cnst) => Self::Const(cnst.try_boolean()?),
+            None => Self::Expr(expr),
+        })
+    }
+
+    pub fn default(
+        expr: Option<Box<dyn Expression>>,
+        state: &TypeState,
+        default: &'static Value,
+    ) -> Result<Self, ValueError> {
+        debug_assert!(
+            default.is_boolean(),
+            "default value for ConstOrExpr<bool> must be boolean"
+        );
+        match expr {
+            None => match default {
+                Value::Boolean(bool) => Ok(Self::Const(*bool)),
+                _ => unreachable!("Invalid default value type provided, must be boolean"),
+            },
+            Some(expression) => Self::new(expression, state),
+        }
+    }
+
+    #[inline]
+    pub fn resolve(&self, ctx: &mut Context) -> Result<bool, ValueError> {
+        match self {
+            Self::Const(value) => Ok(*value),
+            Self::Expr(expr) => expr.resolve(ctx)?.try_boolean(),
+        }
+    }
+}
+
+impl ConstOrExpr<i64> {
+    pub fn new(expr: Box<dyn Expression>, state: &TypeState) -> Result<Self, ValueError> {
+        Ok(match expr.resolve_constant(state) {
+            Some(cnst) => Self::Const(cnst.try_integer()?),
+            None => Self::Expr(expr),
+        })
+    }
+
+    pub fn default(
+        expr: Option<Box<dyn Expression>>,
+        state: &TypeState,
+        default: &'static Value,
+    ) -> Result<Self, ValueError> {
+        debug_assert!(
+            default.is_integer(),
+            "default value for ConstOrExpr<i64> must be integer"
+        );
+        match expr {
+            None => match default {
+                Value::Integer(int) => Ok(Self::Const(*int)),
+                _ => unreachable!("Invalid default value type provided, must be integer"),
+            },
+            Some(expression) => Self::new(expression, state),
+        }
+    }
+
+    #[inline]
+    pub fn resolve(&self, ctx: &mut Context) -> Result<i64, ValueError> {
+        match self {
+            Self::Const(value) => Ok(*value),
+            Self::Expr(expr) => expr.resolve(ctx)?.try_integer(),
         }
     }
 }
