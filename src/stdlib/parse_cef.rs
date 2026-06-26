@@ -737,187 +737,187 @@ mod test {
     }
 
     test_function![
-            parse_cef => ParseCef;
+        parse_cef => ParseCef;
 
-            default {
-                args: func_args! [
-                    value: "CEF:0|CyberArk|PTA|12.6|1|Suspected credentials theft|8|suser=mike2@prod1.domain.com shost=prod1.domain.com src=1.1.1.1",
-                ],
-                want: Ok(value!({
-                    "cefVersion":"0",
-                    "deviceVendor":"CyberArk",
-                    "deviceProduct":"PTA",
-                    "deviceVersion":"12.6",
-                    "deviceEventClassId":"1",
-                    "name":"Suspected credentials theft",
-                    "severity":"8",
-                    "suser":"mike2@prod1.domain.com",
-                    "shost":"prod1.domain.com",
-                    "src":"1.1.1.1"
-                })),
-                tdef: type_def(),
-            }
+        default {
+            args: func_args! [
+                value: "CEF:0|CyberArk|PTA|12.6|1|Suspected credentials theft|8|suser=mike2@prod1.domain.com shost=prod1.domain.com src=1.1.1.1",
+            ],
+            want: Ok(value!({
+                "cefVersion":"0",
+                "deviceVendor":"CyberArk",
+                "deviceProduct":"PTA",
+                "deviceVersion":"12.6",
+                "deviceEventClassId":"1",
+                "name":"Suspected credentials theft",
+                "severity":"8",
+                "suser":"mike2@prod1.domain.com",
+                "shost":"prod1.domain.com",
+                "src":"1.1.1.1"
+            })),
+            tdef: type_def(),
+        }
 
-            real_case {
-                args: func_args! [
-                    value: r"CEF:0|Check Point|VPN-1 & FireWall-1|Check Point|Log|https|Unknown|act=Accept destinationTranslatedAddress=0.0.0.0 destinationTranslatedPort=0 deviceDirection=0 rt=1543270652000 sourceTranslatedAddress=192.168.103.254 sourceTranslatedPort=35398 spt=49363 dpt=443 cs2Label=Rule Name layer_name=Network layer_uuid=b406b732-2437-4848-9741-6eae1f5bf112 match_id=4 parent_rule=0 rule_action=Accept rule_uid=9e5e6e74-aa9a-4693-b9fe-53712dd27bea ifname=eth0 logid=0 loguid={0x5bfc70fc,0x1,0xfe65a8c0,0xc0000001} origin=192.168.101.254 originsicname=CN\=R80,O\=R80_M..6u6bdo sequencenum=1 version=5 dst=52.173.84.157 inzone=Internal nat_addtnl_rulenum=1 nat_rulenum=4 outzone=External product=VPN-1 & FireWall-1 proto=6 service_id=https src=192.168.101.100",
-                ],
-                want: Ok(value!({
-                    "cefVersion":"0",
-                    "deviceVendor":"Check Point",
-                    "deviceProduct":"VPN-1 & FireWall-1",
-                    "deviceVersion":"Check Point",
-                    "deviceEventClassId":"Log",
-                    "name":"https",
-                    "severity":"Unknown",
-                    "act": "Accept",
-                    "destinationTranslatedAddress": "0.0.0.0",
-                    "destinationTranslatedPort": "0",
-                    "deviceDirection": "0",
-                    "rt": "1543270652000",
-                    "sourceTranslatedAddress": "192.168.103.254",
-                    "sourceTranslatedPort": "35398",
-                    "spt": "49363",
-                    "dpt": "443",
-                    "cs2Label": "Rule Name",
-                    "layer_name": "Network",
-                    "layer_uuid": "b406b732-2437-4848-9741-6eae1f5bf112",
-                    "match_id": "4",
-                    "parent_rule": "0",
-                    "rule_action": "Accept",
-                    "rule_uid": "9e5e6e74-aa9a-4693-b9fe-53712dd27bea",
-                    "ifname": "eth0",
-                    "logid": "0",
-                    "loguid": "{0x5bfc70fc,0x1,0xfe65a8c0,0xc0000001}",
-                    "origin": "192.168.101.254",
-                    "originsicname": "CN=R80,O=R80_M..6u6bdo",
-                    "sequencenum": "1",
-                    "version": "5",
-                    "dst": "52.173.84.157",
-                    "inzone": "Internal",
-                    "nat_addtnl_rulenum": "1",
-                    "nat_rulenum": "4",
-                    "outzone": "External",
-                    "product": "VPN-1 & FireWall-1",
-                    "proto": "6",
-                    "service_id": "https",
-                    "src": "192.168.101.100",
-                })),
-                tdef: type_def(),
-            }
+        real_case {
+            args: func_args! [
+                value: r"CEF:0|Check Point|VPN-1 & FireWall-1|Check Point|Log|https|Unknown|act=Accept destinationTranslatedAddress=0.0.0.0 destinationTranslatedPort=0 deviceDirection=0 rt=1543270652000 sourceTranslatedAddress=192.168.103.254 sourceTranslatedPort=35398 spt=49363 dpt=443 cs2Label=Rule Name layer_name=Network layer_uuid=b406b732-2437-4848-9741-6eae1f5bf112 match_id=4 parent_rule=0 rule_action=Accept rule_uid=9e5e6e74-aa9a-4693-b9fe-53712dd27bea ifname=eth0 logid=0 loguid={0x5bfc70fc,0x1,0xfe65a8c0,0xc0000001} origin=192.168.101.254 originsicname=CN\=R80,O\=R80_M..6u6bdo sequencenum=1 version=5 dst=52.173.84.157 inzone=Internal nat_addtnl_rulenum=1 nat_rulenum=4 outzone=External product=VPN-1 & FireWall-1 proto=6 service_id=https src=192.168.101.100",
+            ],
+            want: Ok(value!({
+                "cefVersion":"0",
+                "deviceVendor":"Check Point",
+                "deviceProduct":"VPN-1 & FireWall-1",
+                "deviceVersion":"Check Point",
+                "deviceEventClassId":"Log",
+                "name":"https",
+                "severity":"Unknown",
+                "act": "Accept",
+                "destinationTranslatedAddress": "0.0.0.0",
+                "destinationTranslatedPort": "0",
+                "deviceDirection": "0",
+                "rt": "1543270652000",
+                "sourceTranslatedAddress": "192.168.103.254",
+                "sourceTranslatedPort": "35398",
+                "spt": "49363",
+                "dpt": "443",
+                "cs2Label": "Rule Name",
+                "layer_name": "Network",
+                "layer_uuid": "b406b732-2437-4848-9741-6eae1f5bf112",
+                "match_id": "4",
+                "parent_rule": "0",
+                "rule_action": "Accept",
+                "rule_uid": "9e5e6e74-aa9a-4693-b9fe-53712dd27bea",
+                "ifname": "eth0",
+                "logid": "0",
+                "loguid": "{0x5bfc70fc,0x1,0xfe65a8c0,0xc0000001}",
+                "origin": "192.168.101.254",
+                "originsicname": "CN=R80,O=R80_M..6u6bdo",
+                "sequencenum": "1",
+                "version": "5",
+                "dst": "52.173.84.157",
+                "inzone": "Internal",
+                "nat_addtnl_rulenum": "1",
+                "nat_rulenum": "4",
+                "outzone": "External",
+                "product": "VPN-1 & FireWall-1",
+                "proto": "6",
+                "service_id": "https",
+                "src": "192.168.101.100",
+            })),
+            tdef: type_def(),
+        }
 
-            translate_custom_fields {
-                args: func_args! [
-                    value: "CEF:0|CyberArk|PTA|12.6|1|Suspected credentials theft|8|suser=mike2@prod1.domain.com cn1=1254323565 shost=prod1.domain.com src=1.1.1.1 cfp1Label=Uptime hours cfp1=35.46 cn1Label=Internal ID",
-                    translate_custom_fields: true
-                ],
-                want: Ok(value!({
-                    "cefVersion":"0",
-                    "deviceVendor":"CyberArk",
-                    "deviceProduct":"PTA",
-                    "deviceVersion":"12.6",
-                    "deviceEventClassId":"1",
-                    "name":"Suspected credentials theft",
-                    "severity":"8",
-                    "suser":"mike2@prod1.domain.com",
-                    "shost":"prod1.domain.com",
-                    "src":"1.1.1.1",
-                    "Uptime hours":"35.46",
-                    "Internal ID":"1254323565",
-                })),
-                tdef: type_def(),
-            }
+        translate_custom_fields {
+            args: func_args! [
+                value: "CEF:0|CyberArk|PTA|12.6|1|Suspected credentials theft|8|suser=mike2@prod1.domain.com cn1=1254323565 shost=prod1.domain.com src=1.1.1.1 cfp1Label=Uptime hours cfp1=35.46 cn1Label=Internal ID",
+                translate_custom_fields: true
+            ],
+            want: Ok(value!({
+                "cefVersion":"0",
+                "deviceVendor":"CyberArk",
+                "deviceProduct":"PTA",
+                "deviceVersion":"12.6",
+                "deviceEventClassId":"1",
+                "name":"Suspected credentials theft",
+                "severity":"8",
+                "suser":"mike2@prod1.domain.com",
+                "shost":"prod1.domain.com",
+                "src":"1.1.1.1",
+                "Uptime hours":"35.46",
+                "Internal ID":"1254323565",
+            })),
+            tdef: type_def(),
+        }
 
-            missing_value {
-                args: func_args! [
-                    value: "CEF:0|CyberArk|PTA|12.6||Suspected credentials theft||suser=mike2@prod1.domain.com shost= src=1.1.1.1",
-                ],
-                want: Ok(value!({
-                    "cefVersion":"0",
-                    "deviceVendor":"CyberArk",
-                    "deviceProduct":"PTA",
-                    "deviceVersion":"12.6",
-                    "deviceEventClassId":"",
-                    "name":"Suspected credentials theft",
-                    "severity":"",
-                    "suser":"mike2@prod1.domain.com",
-                    "shost":"",
-                    "src":"1.1.1.1"
-                })),
-                tdef: type_def(),
-            }
+        missing_value {
+            args: func_args! [
+                value: "CEF:0|CyberArk|PTA|12.6||Suspected credentials theft||suser=mike2@prod1.domain.com shost= src=1.1.1.1",
+            ],
+            want: Ok(value!({
+                "cefVersion":"0",
+                "deviceVendor":"CyberArk",
+                "deviceProduct":"PTA",
+                "deviceVersion":"12.6",
+                "deviceEventClassId":"",
+                "name":"Suspected credentials theft",
+                "severity":"",
+                "suser":"mike2@prod1.domain.com",
+                "shost":"",
+                "src":"1.1.1.1"
+            })),
+            tdef: type_def(),
+        }
 
-            missing_key {
-                args: func_args! [
-                    value: "CEF:0|Check Point|VPN-1 & FireWall-1|Check Point|Log|https|Unknown|act=Accept =0.0.0.0",
-                ],
-                want: Err("Could not parse whole line successfully"),
-                tdef: type_def(),
-            }
+        missing_key {
+            args: func_args! [
+                value: "CEF:0|Check Point|VPN-1 & FireWall-1|Check Point|Log|https|Unknown|act=Accept =0.0.0.0",
+            ],
+            want: Err("Could not parse whole line successfully"),
+            tdef: type_def(),
+        }
 
-            incomplete_header {
-                args: func_args! [
-                    value: "CEF:0|Check Point|VPN-1 & FireWall-1|Check Point|Log|https|",
-                ],
-                want: Err("0: at line 1, in Tag:\nCEF:0|Check Point|VPN-1 & FireWall-1|Check Point|Log|https|\n                                                           ^\n\n1: at line 1, in Alt:\nCEF:0|Check Point|VPN-1 & FireWall-1|Check Point|Log|https|\n                                                           ^\n\n"),
-                tdef: type_def(),
-            }
+        incomplete_header {
+            args: func_args! [
+                value: "CEF:0|Check Point|VPN-1 & FireWall-1|Check Point|Log|https|",
+            ],
+            want: Err("0: at line 1, in Tag:\nCEF:0|Check Point|VPN-1 & FireWall-1|Check Point|Log|https|\n                                                           ^\n\n1: at line 1, in Alt:\nCEF:0|Check Point|VPN-1 & FireWall-1|Check Point|Log|https|\n                                                           ^\n\n"),
+            tdef: type_def(),
+        }
 
-            utf8_escape {
-                args: func_args! [
-                    value: r"CEF:0|xxx|xxx|123456|xxx|xxx|5|TestField={'blabla': 'blabla\xc3\xaablabla'}",
-                ],
-                want: Ok(value!({
-                    "cefVersion":"0",
-                    "deviceVendor":"xxx",
-                    "deviceProduct":"xxx",
-                    "deviceVersion":"123456",
-                    "deviceEventClassId":"xxx",
-                    "name":"xxx",
-                    "severity":"5",
-                    "TestField": r"{'blabla': 'blabla\xc3\xaablabla'}",
-                })),
-                tdef: type_def(),
-            }
+        utf8_escape {
+            args: func_args! [
+                value: r"CEF:0|xxx|xxx|123456|xxx|xxx|5|TestField={'blabla': 'blabla\xc3\xaablabla'}",
+            ],
+            want: Ok(value!({
+                "cefVersion":"0",
+                "deviceVendor":"xxx",
+                "deviceProduct":"xxx",
+                "deviceVersion":"123456",
+                "deviceEventClassId":"xxx",
+                "name":"xxx",
+                "severity":"5",
+                "TestField": r"{'blabla': 'blabla\xc3\xaablabla'}",
+            })),
+            tdef: type_def(),
+        }
 
-            missing_custom_label {
-                args: func_args! [
-                    value: "CEF:0|CyberArk|PTA|12.6|1|Suspected credentials theft|8|cfp1=1.23",
-                    translate_custom_fields: true
-                ],
-                want: Err("Custom field with missing label or value"),
-                tdef: type_def(),
-            }
+        missing_custom_label {
+            args: func_args! [
+                value: "CEF:0|CyberArk|PTA|12.6|1|Suspected credentials theft|8|cfp1=1.23",
+                translate_custom_fields: true
+            ],
+            want: Err("Custom field with missing label or value"),
+            tdef: type_def(),
+        }
 
-            duplicate_value {
-                args: func_args! [
-                    value: "CEF:0|CyberArk|PTA|12.6|1|Suspected credentials theft|8|flexString1=1.23 flexString1=1.24 flexString1Label=Version",
-                    translate_custom_fields: true
-                ],
-                want: Err("Custom field with duplicate value"),
-                tdef: type_def(),
-            }
+        duplicate_value {
+            args: func_args! [
+                value: "CEF:0|CyberArk|PTA|12.6|1|Suspected credentials theft|8|flexString1=1.23 flexString1=1.24 flexString1Label=Version",
+                translate_custom_fields: true
+            ],
+            want: Err("Custom field with duplicate value"),
+            tdef: type_def(),
+        }
 
-    non_strict_unescaped_equals {
-        args: func_args! [
-            value: "CEF:0|Vendor|Product|1.0|100|Event|5|src=10.0.0.1 msg=status=ok reason=none dst=2.2.2.2",
-            strict: false
-        ],
-        want: Ok(value!({
-            "cefVersion":"0",
-            "deviceVendor":"Vendor",
-            "deviceProduct":"Product",
-            "deviceVersion":"1.0",
-            "deviceEventClassId":"100",
-            "name":"Event",
-            "severity":"5",
-            "src":"10.0.0.1",
-            "msg":"status=ok",
-            "reason":"none",
-            "dst":"2.2.2.2",
-        })),
-        tdef: type_def(),
-    }
+        non_strict_unescaped_equals {
+            args: func_args! [
+                value: "CEF:0|Vendor|Product|1.0|100|Event|5|src=10.0.0.1 msg=status=ok reason=none dst=2.2.2.2",
+                strict: false
+            ],
+            want: Ok(value!({
+                "cefVersion":"0",
+                "deviceVendor":"Vendor",
+                "deviceProduct":"Product",
+                "deviceVersion":"1.0",
+                "deviceEventClassId":"100",
+                "name":"Event",
+                "severity":"5",
+                "src":"10.0.0.1",
+                "msg":"status=ok",
+                "reason":"none",
+                "dst":"2.2.2.2",
+            })),
+            tdef: type_def(),
+        }
 
-        ];
+    ];
 }
