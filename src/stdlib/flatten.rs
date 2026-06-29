@@ -1,31 +1,34 @@
 use std::collections::HashSet;
-use std::collections::btree_map;
+use std::sync::LazyLock;
 
 use crate::compiler::expression::Expr;
 use crate::compiler::prelude::*;
+use crate::value::ObjectMapIter;
 
-static DEFAULT_SEPARATOR: Value = Value::Bytes(Bytes::from_static(".".as_bytes()));
-static DEFAULT_EXCEPT: Value = Value::Array(vec![]);
+static DEFAULT_SEPARATOR: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from(".")));
+static DEFAULT_EXCEPT: LazyLock<Value> = LazyLock::new(|| Value::Array(vec![]));
 
-const PARAMETERS: &[Parameter] = &[
-    Parameter::required(
-        "value",
-        kind::OBJECT | kind::ARRAY,
-        "The array or object to flatten.",
-    ),
-    Parameter::optional(
-        "separator",
-        kind::BYTES,
-        "The separator to join nested keys",
-    )
-    .default(&DEFAULT_SEPARATOR),
-    Parameter::optional(
-        "except",
-        kind::ARRAY,
-        "An array of key names to exclude from flattening at any depth.",
-    )
-    .default(&DEFAULT_EXCEPT),
-];
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter::required(
+            "value",
+            kind::OBJECT | kind::ARRAY,
+            "The array or object to flatten.",
+        ),
+        Parameter::optional(
+            "separator",
+            kind::BYTES,
+            "The separator to join nested keys",
+        )
+        .default(&DEFAULT_SEPARATOR),
+        Parameter::optional(
+            "except",
+            kind::ARRAY,
+            "An array of key names to exclude from flattening at any depth.",
+        )
+        .default(&DEFAULT_EXCEPT),
+    ]
+});
 
 fn flatten(value: Value, separator: &Value, except: &HashSet<KeyString>) -> Resolved {
     let separator = separator.try_bytes_utf8_lossy()?;
@@ -72,7 +75,7 @@ impl Function for Flatten {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        PARAMETERS
+        PARAMETERS.as_slice()
     }
 
     fn examples(&self) -> &'static [Example] {
@@ -187,7 +190,7 @@ impl FunctionExpression for FlattenFn {
 
 /// An iterator to walk over maps allowing us to flatten nested maps to a single level.
 struct MapFlatten<'a> {
-    values: btree_map::Iter<'a, KeyString, Value>,
+    values: ObjectMapIter<'a>,
     separator: &'a str,
     inner: Option<Box<MapFlatten<'a>>>,
     parent: Option<KeyString>,
@@ -195,11 +198,7 @@ struct MapFlatten<'a> {
 }
 
 impl<'a> MapFlatten<'a> {
-    fn new(
-        values: btree_map::Iter<'a, KeyString, Value>,
-        separator: &'a str,
-        except: &'a HashSet<KeyString>,
-    ) -> Self {
+    fn new(values: ObjectMapIter<'a>, separator: &'a str, except: &'a HashSet<KeyString>) -> Self {
         Self {
             values,
             separator,
@@ -211,7 +210,7 @@ impl<'a> MapFlatten<'a> {
 
     fn new_from_parent(
         parent: KeyString,
-        values: btree_map::Iter<'a, KeyString, Value>,
+        values: ObjectMapIter<'a>,
         separator: &'a str,
         except: &'a HashSet<KeyString>,
     ) -> Self {
@@ -227,7 +226,7 @@ impl<'a> MapFlatten<'a> {
     /// Returns the key with the parent prepended.
     fn new_key(&self, key: &str) -> KeyString {
         match self.parent {
-            None => key.to_string().into(),
+            None => key.into(),
             Some(ref parent) => format!("{parent}{}{key}", self.separator).into(),
         }
     }

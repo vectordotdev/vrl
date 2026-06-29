@@ -66,32 +66,35 @@ mod non_wasm {
 #[allow(clippy::wildcard_imports)]
 #[cfg(not(target_arch = "wasm32"))]
 use non_wasm::*;
+use std::sync::LazyLock;
 #[cfg(not(target_arch = "wasm32"))]
 use std::{fs::File, io::BufReader, path::Path};
 
-static DEFAULT_ALIASES: Value = Value::Object(std::collections::BTreeMap::new());
-static DEFAULT_ALIAS_SOURCES: Value = Value::Array(vec![]);
+static DEFAULT_ALIASES: LazyLock<Value> = LazyLock::new(|| Value::Object(ObjectMap::new()));
+static DEFAULT_ALIAS_SOURCES: LazyLock<Value> = LazyLock::new(|| Value::Array(vec![]));
 
-const PARAMETERS: &[Parameter] = &[
-    Parameter::required("value", kind::BYTES, "The string to parse."),
-    Parameter::required(
-        "patterns",
-        kind::ARRAY,
-        "The [Grok patterns](https://github.com/daschl/grok/tree/master/patterns), which are tried in order until the first match.",
-    ),
-    Parameter::optional(
-        "aliases",
-        kind::OBJECT,
-        "The shared set of grok aliases that can be referenced in the patterns to simplify them.",
-    )
-    .default(&DEFAULT_ALIASES),
-    Parameter::optional(
-        "alias_sources",
-        kind::ARRAY,
-        "Path to the file containing aliases in a JSON format.",
-    )
-    .default(&DEFAULT_ALIAS_SOURCES),
-];
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter::required("value", kind::BYTES, "The string to parse."),
+        Parameter::required(
+            "patterns",
+            kind::ARRAY,
+            "The [Grok patterns](https://github.com/daschl/grok/tree/master/patterns), which are tried in order until the first match.",
+        ),
+        Parameter::optional(
+            "aliases",
+            kind::OBJECT,
+            "The shared set of grok aliases that can be referenced in the patterns to simplify them.",
+        )
+        .default(&DEFAULT_ALIASES),
+        Parameter::optional(
+            "alias_sources",
+            kind::ARRAY,
+            "Path to the file containing aliases in a JSON format.",
+        )
+        .default(&DEFAULT_ALIAS_SOURCES),
+    ]
+});
 
 #[derive(Clone, Copy, Debug)]
 pub struct ParseGroks;
@@ -130,7 +133,7 @@ impl Function for ParseGroks {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        PARAMETERS
+        PARAMETERS.as_slice()
     }
 
     fn examples(&self) -> &'static [Example] {
@@ -472,10 +475,10 @@ mod test {
                     "_x_forwarded_for": r#"%{regex("[^\\\"]*"):http._x_forwarded_for:nullIf("-")}"#
                 })
             ],
-            want: Ok(Value::Object(btreemap! {
+            want: Ok(Value::from(btreemap! {
                 "date_access" => "13/Jul/2016:10:55:36",
                 "duration" => 202_000_000,
-                "http" => btreemap! {
+                "http" => Value::from(btreemap! {
                     "auth" => "frank",
                     "ident" => "-",
                     "method" => "GET",
@@ -484,13 +487,13 @@ mod test {
                     "version" => "1.0",
                     "referer" => "http://www.perdu.com/",
                     "useragent" => "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.87 Safari/537.36",
-                },
-                "network" => btreemap! {
+                }),
+                "network" => Value::from(btreemap! {
                     "bytes_written" => 2326,
-                    "client" => btreemap! {
+                    "client" => Value::from(btreemap! {
                         "ip" => "127.0.0.1"
-                    }
-                }
+                    })
+                })
             })),
             tdef: TypeDef::object(Collection::any()).fallible(),
         }

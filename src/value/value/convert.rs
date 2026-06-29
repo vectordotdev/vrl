@@ -1,3 +1,4 @@
+use std::collections::BTreeMap;
 use std::sync::Arc;
 use std::{borrow::Cow, num::NonZero};
 
@@ -347,6 +348,12 @@ impl From<f64> for Value {
 impl From<ObjectMap> for Value {
     fn from(value: ObjectMap) -> Self {
         Self::Object(value)
+    }
+}
+
+impl From<BTreeMap<KeyString, Value>> for Value {
+    fn from(value: BTreeMap<KeyString, Value>) -> Self {
+        Self::Object(ObjectMap::from(value))
     }
 }
 

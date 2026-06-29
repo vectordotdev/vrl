@@ -118,8 +118,8 @@ impl FunctionExpression for UuidV7Fn {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::value::ObjectMap;
     use crate::value::Value;
-    use std::collections::BTreeMap;
 
     test_type_def![default {
         expr: |_| { UuidV7Fn { timestamp: None } },
@@ -129,7 +129,7 @@ mod tests {
     #[test]
     fn uuid_v7() {
         let mut state = state::RuntimeState::default();
-        let mut object: Value = Value::Object(BTreeMap::new());
+        let mut object: Value = Value::Object(ObjectMap::new());
         let tz = TimeZone::default();
         let mut ctx = Context::new(&mut object, &mut state, &tz);
         let value = UuidV7Fn { timestamp: None }.resolve(&mut ctx).unwrap();

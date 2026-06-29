@@ -18,7 +18,7 @@ fn influxdb_line_to_metrics(line: ParsedLine) -> Result<Vec<ObjectMap>, Expressi
 
     let tags: Option<ObjectMap> = series.tag_set.as_ref().map(|tags| {
         tags.iter()
-            .map(|t| (t.0.to_string().into(), t.1.to_string().into()))
+            .map(|t| (KeyString::from(&*t.0), Value::from(&*t.1)))
             .collect()
     });
 

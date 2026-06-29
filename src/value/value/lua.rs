@@ -2,7 +2,15 @@ use mlua::prelude::LuaResult;
 use mlua::{FromLua, IntoLua, Lua, Value as LuaValue};
 use ordered_float::NotNan;
 
-use crate::value::Value;
+use std::collections::BTreeMap;
+
+use crate::value::{KeyString, ObjectMap, Value};
+
+impl FromLua for ObjectMap {
+    fn from_lua(value: LuaValue, lua: &Lua) -> LuaResult<Self> {
+        <BTreeMap<KeyString, Value>>::from_lua(value, lua).map(Self::from)
+    }
+}
 
 impl IntoLua for Value {
     #![allow(clippy::wrong_self_convention)] // this trait is defined by mlua
@@ -43,7 +51,7 @@ impl FromLua for Value {
                 } else if table_is_timestamp(&t)? {
                     table_to_timestamp(t).map(Self::Timestamp)
                 } else {
-                    <_>::from_lua(LuaValue::Table(t), lua).map(Self::Object)
+                    ObjectMap::from_lua(LuaValue::Table(t), lua).map(Self::Object)
                 }
             }
             other => Err(mlua::Error::FromLuaConversionError {

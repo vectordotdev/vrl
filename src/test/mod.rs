@@ -2,7 +2,7 @@
 #![allow(clippy::print_stderr)] // tests
 
 use std::path::{MAIN_SEPARATOR, PathBuf};
-use std::{collections::BTreeMap, env, str::FromStr, time::Instant};
+use std::{env, str::FromStr, time::Instant};
 
 use chrono::{DateTime, SecondsFormat, Utc};
 use nu_ansi_term::Color;
@@ -17,6 +17,7 @@ use crate::compiler::{
     value::VrlValueConvert,
 };
 use crate::diagnostic::{DiagnosticList, Formatter};
+use crate::value::ObjectMap;
 use crate::value::Secrets;
 use crate::value::Value;
 
@@ -471,7 +472,7 @@ fn run_vrl(
     timezone: TimeZone,
     vrl_runtime: VrlRuntime,
 ) -> Result<Value, Terminate> {
-    let mut metadata = Value::from(BTreeMap::new());
+    let mut metadata = Value::from(ObjectMap::new());
     let mut target = TargetValueRef {
         value: test_object,
         metadata: &mut metadata,

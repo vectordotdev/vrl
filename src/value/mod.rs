@@ -18,7 +18,9 @@ pub use kind::Kind;
 pub use self::keystring::KeyString;
 pub use self::secrets::Secrets;
 #[allow(clippy::module_name_repetitions)]
-pub use self::value::{ObjectMap, Value, ValueRegex};
+pub use self::value::{
+    ObjectMap, ObjectMapEntry, ObjectMapIter, ObjectMapKeys, ObjectMapValues, Value, ValueRegex,
+};
 
 /// A macro to easily generate Values
 #[macro_export]
@@ -33,13 +35,13 @@ macro_rules! value {
     });
 
     ({}) => ({
-        $crate::value::Value::Object(::std::collections::BTreeMap::default())
+        $crate::value::Value::Object($crate::value::ObjectMap::default())
     });
 
     ({$($($k1:literal)? $($k2:ident)?: $v:tt),+ $(,)?}) => ({
-        let map = vec![$((String::from($($k1)? $(stringify!($k2))?).into(), $crate::value!($v))),+]
+        let map = vec![$(($crate::value::KeyString::from($($k1)? $(stringify!($k2))?), $crate::value!($v))),+]
             .into_iter()
-            .collect::<::std::collections::BTreeMap<_, $crate::value::Value>>();
+            .collect::<$crate::value::ObjectMap>();
 
         $crate::value::Value::Object(map)
     });

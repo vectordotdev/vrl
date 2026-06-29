@@ -1,18 +1,20 @@
 use crate::compiler::prelude::*;
-use std::collections::BTreeMap;
+use std::sync::LazyLock;
 
-static DEFAULT_DEEP: Value = Value::Boolean(false);
+static DEFAULT_DEEP: LazyLock<Value> = LazyLock::new(|| Value::Boolean(false));
 
-const PARAMETERS: &[Parameter] = &[
-    Parameter::required("to", kind::OBJECT, "The object to merge into."),
-    Parameter::required("from", kind::OBJECT, "The object to merge from."),
-    Parameter::optional(
-        "deep",
-        kind::BOOLEAN,
-        "A deep merge is performed if `true`, otherwise only top-level fields are merged.",
-    )
-    .default(&DEFAULT_DEEP),
-];
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter::required("to", kind::OBJECT, "The object to merge into."),
+        Parameter::required("from", kind::OBJECT, "The object to merge from."),
+        Parameter::optional(
+            "deep",
+            kind::BOOLEAN,
+            "A deep merge is performed if `true`, otherwise only top-level fields are merged.",
+        )
+        .default(&DEFAULT_DEEP),
+    ]
+});
 
 #[derive(Clone, Copy, Debug)]
 pub struct Merge;
@@ -43,7 +45,7 @@ fields are also objects.",
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        PARAMETERS
+        PARAMETERS.as_slice()
     }
 
     fn examples(&self) -> &'static [Example] {
@@ -160,12 +162,9 @@ impl FunctionExpression for MergeFn {
 /// merge maps with a depth of 3,500 before encountering issues. So I think that
 /// is likely to be within acceptable limits. If it becomes a problem, we can
 /// unroll this function, but that will come at a cost of extra code complexity.
-fn merge_maps<K>(map1: &mut BTreeMap<K, Value>, map2: &BTreeMap<K, Value>, deep: bool)
-where
-    K: std::cmp::Ord + Clone,
-{
+fn merge_maps(map1: &mut ObjectMap, map2: &ObjectMap, deep: bool) {
     for (key2, value2) in map2 {
-        match (deep, map1.get_mut(key2), value2) {
+        match (deep, map1.get_mut(key2.as_str()), value2) {
             (true, Some(Value::Object(child1)), Value::Object(child2)) => {
                 // We are doing a deep merge and both fields are maps.
                 merge_maps(child1, child2, deep);
