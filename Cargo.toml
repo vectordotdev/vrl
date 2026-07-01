@@ -274,17 +274,17 @@ community-id = { version = "0.2", optional = true }
 zstd = { version = "0.13", default-features = false, features = ["wasm"], optional = true }
 
 # Cryptography
-aes = { version = "0.8", optional = true }
+aes = { version = "0.9", optional = true }
 aes-siv = { version = "0.7.0", optional = true }
 chacha20poly1305 = { version = "0.10", optional = true }
 crypto_secretbox = { version = "0.1", features = ["salsa20"], optional = true }
 ipcrypt-rs = { version = "0.9.4", optional = true, default-features = false }
 
 # Cryptography - Block Modes
-ctr = { version = "0.9", optional = true }
-cbc = { version = "0.1", optional = true, features = ["alloc"] }
-cfb-mode = { version = "0.8", optional = true }
-ofb = { version = "0.6", optional = true }
+ctr = { version = "0.10", optional = true }
+cbc = { version = "0.2", optional = true, features = ["alloc", "block-padding"] }
+cfb-mode = { version = "0.9", optional = true }
+ofb = { version = "0.7", optional = true }
 
 # Protobuf support.
 prost = { version = "0.13", default-features = false, optional = true, features = ["std"] }
