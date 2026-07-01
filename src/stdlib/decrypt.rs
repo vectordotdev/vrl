@@ -1,10 +1,8 @@
 use crate::compiler::prelude::*;
 use crate::value::Value;
-use aes::cipher::{
-    AsyncStreamCipher, BlockDecryptMut, KeyIvInit, StreamCipher,
-    block_padding::{AnsiX923, Iso7816, Iso10126, Pkcs7},
-    generic_array::GenericArray,
-};
+use aes::cipher::{BlockModeDecrypt, Iv, Key, KeyIvInit, StreamCipher};
+use aes_siv::aead::generic_array::GenericArray as AeadArray;
+use cbc::cipher::block_padding::{AnsiX923, Iso7816, Iso10126, Pkcs7};
 use aes_siv::{Aes128SivAead, Aes256SivAead};
 use cfb_mode::Decryptor as Cfb;
 use chacha20poly1305::{ChaCha20Poly1305, KeyInit, XChaCha20Poly1305, aead::Aead};
@@ -22,11 +20,11 @@ macro_rules! decrypt {
     ($algorithm:ty, $ciphertext:expr_2021, $key:expr_2021, $iv:expr_2021) => {{
         let mut buffer = vec![0; $ciphertext.len()];
         <$algorithm>::new(
-            &GenericArray::from(get_key_bytes($key)?),
-            &GenericArray::from(get_iv_bytes($iv)?),
+            &Key::<$algorithm>::from(get_key_bytes($key)?),
+            &Iv::<$algorithm>::from(get_iv_bytes($iv)?),
         )
         .decrypt_b2b($ciphertext.as_ref(), buffer.as_mut())
-        .unwrap();
+        .expect("buffer sizes match");
         buffer
     }};
 }
@@ -34,10 +32,10 @@ macro_rules! decrypt {
 macro_rules! decrypt_padded {
     ($algorithm:ty, $padding:ty, $ciphertext:expr_2021, $key:expr_2021, $iv:expr_2021) => {{
         <$algorithm>::new(
-            &GenericArray::from(get_key_bytes($key)?),
-            &GenericArray::from(get_iv_bytes($iv)?),
+            &Key::<$algorithm>::from(get_key_bytes($key)?),
+            &Iv::<$algorithm>::from(get_iv_bytes($iv)?),
         )
-        .decrypt_padded_vec_mut::<$padding>($ciphertext.as_ref())
+        .decrypt_padded_vec::<$padding>($ciphertext.as_ref())
         .map_err(|_| format!("Invalid input"))?
     }};
 }
@@ -46,19 +44,18 @@ macro_rules! decrypt_keystream {
     ($algorithm:ty, $ciphertext:expr_2021, $key:expr_2021, $iv:expr_2021) => {{
         let mut buffer = vec![0; $ciphertext.len()];
         <$algorithm>::new(
-            &GenericArray::from(get_key_bytes($key)?),
-            &GenericArray::from(get_iv_bytes($iv)?),
+            &Key::<$algorithm>::from(get_key_bytes($key)?),
+            &Iv::<$algorithm>::from(get_iv_bytes($iv)?),
         )
-        .apply_keystream_b2b($ciphertext.as_ref(), buffer.as_mut())
-        .unwrap();
+        .apply_keystream_b2b($ciphertext.as_ref(), buffer.as_mut());
         buffer
     }};
 }
 
 macro_rules! decrypt_stream {
     ($algorithm:ty, $plaintext:expr_2021, $key:expr_2021, $iv:expr_2021) => {{
-        <$algorithm>::new(&GenericArray::from(get_key_bytes($key)?))
-            .decrypt(&GenericArray::from(get_iv_bytes($iv)?), $plaintext.as_ref())
+        <$algorithm>::new(&AeadArray::from(get_key_bytes($key)?))
+            .decrypt(&AeadArray::from(get_iv_bytes($iv)?), $plaintext.as_ref())
             .expect("key/iv sizes were already checked")
     }};
 }
