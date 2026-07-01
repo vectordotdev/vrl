@@ -204,12 +204,12 @@ clap = { workspace = true, optional = true }
 codespan-reporting = { version = "0.12", optional = true }
 convert_case = { version = "0.7.1", optional = true }
 crc = { version = "3.3.0", optional = true }
-digest = { version = "0.10", optional = true }
+digest = { version = "0.11", optional = true }
 dyn-clone = { version = "1", default-features = false, optional = true }
 exitcode = { version = "1", optional = true }
 flate2 = { version = "1.1.2", default-features = false, features = ["zlib-rs"], optional = true }
 hex = { version = "0.4", optional = true }
-hmac = { version = "0.12", optional = true }
+hmac = { version = "0.13", optional = true }
 iana-time-zone = { version = "0.1", optional = true }
 idna = { version = "1.0", optional = true }
 indexmap = { version = "2", default-features = false, features = ["std"], optional = true }
@@ -220,7 +220,7 @@ lalrpop-util = { version = "0.22", optional = true }
 mlua = { version = "0.11", default-features = false, features = ["lua54", "send", "vendored"], optional = true }
 nom = { version = "8", default-features = false, features = ["std"], optional = true }
 ordered-float = { version = "4", default-features = false, optional = true }
-md-5 = { version = "0.10", optional = true }
+md-5 = { version = "0.11", optional = true }
 parse-size = { version = "1.1.0",  optional = true }
 peeking_take_while = { version = "1", default-features = false, optional = true }
 percent-encoding = { version = "2", optional = true }
@@ -247,9 +247,9 @@ serde_json = { version = "1", default-features = false, optional = true, feature
 serde_yaml_ng = { version = "0.10.0" }
 simdutf8 = { version = "0.1.5", optional = true }
 fancy-regex = { version = "0.17", default-features = false, optional = true }
-sha1 = { version = "0.10", optional = true }
-sha2 = { version = "0.10", optional = true }
-sha3 = { version = "0.10", optional = true }
+sha1 = { version = "0.11", optional = true }
+sha2 = { version = "0.11", optional = true }
+sha3 = { version = "0.12", optional = true }
 strip-ansi-escapes = { version = "0.2", optional = true }
 snap = { version = "1", optional = true }
 syslog_loose = { version = "0.22", optional = true }
@@ -274,17 +274,17 @@ community-id = { version = "0.2", optional = true }
 zstd = { version = "0.13", default-features = false, features = ["wasm"], optional = true }
 
 # Cryptography
-aes = { version = "0.8", optional = true }
+aes = { version = "0.9", optional = true }
 aes-siv = { version = "0.7.0", optional = true }
 chacha20poly1305 = { version = "0.10", optional = true }
 crypto_secretbox = { version = "0.1", features = ["salsa20"], optional = true }
 ipcrypt-rs = { version = "0.9.4", optional = true, default-features = false }
 
 # Cryptography - Block Modes
-ctr = { version = "0.9", optional = true }
-cbc = { version = "0.1", optional = true, features = ["alloc"] }
-cfb-mode = { version = "0.8", optional = true }
-ofb = { version = "0.6", optional = true }
+ctr = { version = "0.10", optional = true }
+cbc = { version = "0.2", optional = true, features = ["alloc", "block-padding"] }
+cfb-mode = { version = "0.9", optional = true }
+ofb = { version = "0.7", optional = true }
 
 # Protobuf support.
 prost = { version = "0.13", default-features = false, optional = true, features = ["std"] }
