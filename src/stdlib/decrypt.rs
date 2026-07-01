@@ -1,6 +1,7 @@
 use crate::compiler::prelude::*;
 use crate::value::Value;
-use aes::cipher::{BlockModeDecrypt, Iv, Key, KeyIvInit, StreamCipher};
+use aes::cipher::{BlockModeDecrypt, Iv, Key, KeyIvInit, StreamCipher, consts::{U12, U16}};
+use aes_gcm::{Aes128Gcm, Aes256Gcm, AesGcm, Key as GcmKey};
 use aes_siv::aead::{Aead as Aead5, KeyInit as KeyInit5, generic_array::GenericArray as AeadArray};
 use aes_siv::{Aes128SivAead, Aes256SivAead};
 use cbc::cipher::block_padding::{AnsiX923, Iso7816, Iso10126, Pkcs7};
@@ -16,6 +17,12 @@ use super::encrypt::{get_iv_bytes, get_key_bytes, is_valid_algorithm};
 type Aes128Cbc = cbc::Decryptor<aes::Aes128>;
 type Aes192Cbc = cbc::Decryptor<aes::Aes192>;
 type Aes256Cbc = cbc::Decryptor<aes::Aes256>;
+
+type Aes192Gcm = AesGcm<aes::Aes192, U12>;
+
+type Aes128Gcm16 = AesGcm<aes::Aes128, U16>;
+type Aes192Gcm16 = AesGcm<aes::Aes192, U16>;
+type Aes256Gcm16 = AesGcm<aes::Aes256, U16>;
 
 macro_rules! decrypt {
     ($algorithm:ty, $ciphertext:expr_2021, $key:expr_2021, $iv:expr_2021) => {{
@@ -61,6 +68,16 @@ macro_rules! decrypt_stream {
     }};
 }
 
+macro_rules! decrypt_gcm {
+    ($algorithm:ty, $ciphertext:expr_2021, $key:expr_2021, $iv:expr_2021) => {{
+        <$algorithm>::new(&GcmKey::<$algorithm>::from(get_key_bytes($key)?))
+            .decrypt(
+                &aes_gcm::aead::Nonce::<$algorithm>::from(get_iv_bytes($iv)?),
+                $ciphertext.as_ref(),
+            )
+            .map_err(|e| format!("Decryption failed: {e}"))?
+    }};
+}
 
 fn decrypt(ciphertext: Value, algorithm: &str, key: Value, iv: Value) -> Resolved {
     let ciphertext = ciphertext.try_bytes()?;
@@ -98,6 +115,12 @@ fn decrypt(ciphertext: Value, algorithm: &str, key: Value, iv: Value) -> Resolve
         "AES-128-CBC-ISO10126" => decrypt_padded!(Aes128Cbc, Iso10126, ciphertext, key, iv),
         "AES-128-SIV" => decrypt_stream!(Aes128SivAead, ciphertext, key, iv),
         "AES-256-SIV" => decrypt_stream!(Aes256SivAead, ciphertext, key, iv),
+        "AES-128-GCM" => decrypt_gcm!(Aes128Gcm, ciphertext, key, iv),
+        "AES-192-GCM" => decrypt_gcm!(Aes192Gcm, ciphertext, key, iv),
+        "AES-256-GCM" => decrypt_gcm!(Aes256Gcm, ciphertext, key, iv),
+        "AES-128-GCM-16" => decrypt_gcm!(Aes128Gcm16, ciphertext, key, iv),
+        "AES-192-GCM-16" => decrypt_gcm!(Aes192Gcm16, ciphertext, key, iv),
+        "AES-256-GCM-16" => decrypt_gcm!(Aes256Gcm16, ciphertext, key, iv),
         "CHACHA20-POLY1305" => ChaCha20Poly1305::new(&ChaChaKey::<ChaCha20Poly1305>::from(get_key_bytes(key)?))
             .decrypt(&ChaChaNonce::<ChaCha20Poly1305>::from(get_iv_bytes(iv)?), ciphertext.as_ref())
             .expect("key/iv sizes were already checked"),
@@ -154,6 +177,12 @@ impl Function for Decrypt {
             * AES-256-CBC-ISO10126 (key = 32 bytes, iv = 16 bytes)
             * AES-192-CBC-ISO10126 (key = 24 bytes, iv = 16 bytes)
             * AES-128-CBC-ISO10126 (key = 16 bytes, iv = 16 bytes)
+            * AES-128-GCM (key = 16 bytes, iv = 12 bytes)
+            * AES-192-GCM (key = 24 bytes, iv = 12 bytes)
+            * AES-256-GCM (key = 32 bytes, iv = 12 bytes)
+            * AES-128-GCM-16 (key = 16 bytes, iv = 16 bytes)
+            * AES-192-GCM-16 (key = 24 bytes, iv = 16 bytes)
+            * AES-256-GCM-16 (key = 32 bytes, iv = 16 bytes)
             * CHACHA20-POLY1305 (key = 32 bytes, iv = 12 bytes)
             * XCHACHA20-POLY1305 (key = 32 bytes, iv = 24 bytes)
             * XSALSA20-POLY1305 (key = 32 bytes, iv = 24 bytes)
@@ -433,6 +462,42 @@ mod tests {
 
         aes_256_siv {
             args: func_args![ciphertext: value!(b"[\x9b>c\x8c\xb9\xf8\xa4\xb9\xf8\x15\xb0\xf9g \xbf\x84{\x16\xfa\xef\xcd4',O/0\xf6\xcdx\x0b\"A\xb95"), algorithm: "AES-256-SIV", key: "64_bytes_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", iv: "16_bytes_xxxxxxx"],
+            want: Ok(value!("morethan1blockofdata")),
+            tdef: TypeDef::bytes().fallible(),
+        }
+
+        aes_128_gcm {
+            args: func_args![ciphertext: value!(b"\xc2\xf1\x8b\t\xd5\x0c\xad/B\x08W\xcb\x13\xdb\xe2$\x96A\xcc\xb8T`+\x99f\x0cc/\x08B\x083\xb1m\xb8\x05"), algorithm: "AES-128-GCM", key: b"16_bytes_xxxxxxx", iv: b"12_bytes_xxx"],
+            want: Ok(value!("morethan1blockofdata")),
+            tdef: TypeDef::bytes().fallible(),
+        }
+
+        aes_192_gcm {
+            args: func_args![ciphertext: value!(b",\x8fI\xe6\x15\x8c\xeb\x95lq}\xe52\xfc\x0e\x808\x8b@\xca\\\xe5\xd0uR\x9cS\x02\xf6\xad\xa1\xb2W\xf47\xe2"), algorithm: "AES-192-GCM", key: b"24_bytes_xxxxxxxxxxxxxxx", iv: b"12_bytes_xxx"],
+            want: Ok(value!("morethan1blockofdata")),
+            tdef: TypeDef::bytes().fallible(),
+        }
+
+        aes_256_gcm {
+            args: func_args![ciphertext: value!(b"\xc7\x03\xe0\xbd\xf7=N\x8cg\xc5\x94\xa3[\xa0\x1b<yF\xe9\xe7\xab{\xbc5\xc3\xcb\xc6Em\xb8\x02\xa8\x1ej\x86L"), algorithm: "AES-256-GCM", key: b"32_bytes_xxxxxxxxxxxxxxxxxxxxxxx", iv: b"12_bytes_xxx"],
+            want: Ok(value!("morethan1blockofdata")),
+            tdef: TypeDef::bytes().fallible(),
+        }
+
+        aes_128_gcm_16 {
+            args: func_args![ciphertext: value!(b"PW{y.\x07\xa2.6\x93\x0b\x03z\xe1\xccI\x90\x98A\xb9\xe1\x1d\xc2\xb2Q\xbbl\xf2XX\xe1\x15|\xebKh"), algorithm: "AES-128-GCM-16", key: b"16_bytes_xxxxxxx", iv: b"16_bytes_xxxxxxx"],
+            want: Ok(value!("morethan1blockofdata")),
+            tdef: TypeDef::bytes().fallible(),
+        }
+
+        aes_192_gcm_16 {
+            args: func_args![ciphertext: value!(b"\x01\xb7\xcc\xb14\xb4rM\x1b\xab\x96&~9p~\x038\xcd\xafN\xed\x1f#&\xc5C\xec\xf3\xc4\xc6iA\x07\xa6\xaa"), algorithm: "AES-192-GCM-16", key: b"24_bytes_xxxxxxxxxxxxxxx", iv: b"16_bytes_xxxxxxx"],
+            want: Ok(value!("morethan1blockofdata")),
+            tdef: TypeDef::bytes().fallible(),
+        }
+
+        aes_256_gcm_16 {
+            args: func_args![ciphertext: value!(b"\xd0\xe9@m\r\xc0b/Qg)\x10\x86\x91\xfb\xe7\x86\xa3\xc9C\xff0\xd3\x99\xdb3\xf0\xc3\xce\xf4\x05\xbb\xcc\xa0\x97B"), algorithm: "AES-256-GCM-16", key: b"32_bytes_xxxxxxxxxxxxxxxxxxxxxxx", iv: b"16_bytes_xxxxxxx"],
             want: Ok(value!("morethan1blockofdata")),
             tdef: TypeDef::bytes().fallible(),
         }

@@ -97,6 +97,7 @@ enable_network_functions = ["dep:reqwest", "dep:reqwest-middleware", "dep:reqwes
 # Enables cryptographic functions: hashing (MD5, SHA, xxHash, etc.), encryption (AES, ChaCha20, etc.), and MACs.
 enable_crypto_functions = [
   "dep:aes",
+  "dep:aes-gcm",
   "dep:aes-siv",
   "dep:cbc",
   "dep:cfb-mode",
@@ -275,6 +276,7 @@ zstd = { version = "0.13", default-features = false, features = ["wasm"], option
 
 # Cryptography
 aes = { version = "0.9", optional = true }
+aes-gcm = { version = "0.11", optional = true }
 aes-siv = { version = "0.7.0", optional = true }
 chacha20poly1305 = { version = "0.11", optional = true }
 crypto_secretbox = { version = "0.1", features = ["salsa20"], optional = true }
@@ -310,8 +312,12 @@ jsonschema = { version = "0.38.1", default-features = false }
 
 # Dependencies used for WASM
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-getrandom = { version = "0.3", features = ["wasm_js"] }
-getrandom04 = { package = "getrandom", version = "0.4", features = ["wasm_js"] }
+# Three getrandom overrides are needed because aes-siv/crypto_secretbox/ipcrypt-rs (aead 0.5),
+# rand 0.9, and the new RustCrypto stack (aead 0.6) each pin a different major version.
+# Track consolidation: https://github.com/vectordotdev/vrl/issues/1845
+getrandom02 = { package = "getrandom", version = "0.2", features = ["js"] }
+getrandom03 = { package = "getrandom", version = "0.3", features = ["wasm_js"] }
+getrandom = { package = "getrandom", version = "0.4", features = ["wasm_js"] }
 uuid = { version = "1", features = ["v4", "v7", "js"], optional = true }
 
 [dev-dependencies]
