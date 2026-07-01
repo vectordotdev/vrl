@@ -5,8 +5,13 @@ cfg_if::cfg_if! {
     }
 }
 
-use crate::compiler::{Context, Expression, Resolved, TypeState};
 use crate::value::{KeyString, ObjectMap, Value};
+
+pub(crate) const DYNAMIC_REGEX_NOTICE: &str = indoc::indoc! {"
+    When `pattern` is a dynamic expression (e.g. a variable or the result of `to_regex`),
+    the regex is compiled on every function call. For high-throughput pipelines, prefer
+    a regex literal so the pattern is compiled once at program compile time.
+"};
 
 #[cfg(feature = "enable_network_functions")]
 pub(crate) const NETWORK_CALL_NOTICE: &str = indoc::indoc! {"
@@ -27,23 +32,32 @@ where
     fun(num * multiplier) / multiplier
 }
 
-/// Takes a set of captures that have resulted from matching a regular expression
-/// against some text and fills a `BTreeMap` with the result.
+pub(crate) fn build_capture_info(regex: &regex::Regex) -> Vec<(KeyString, usize)> {
+    regex
+        .capture_names()
+        .enumerate()
+        .filter_map(|(i, name)| name.map(|n| (KeyString::from(n), i)))
+        .collect()
+}
+
+/// Fills an [`ObjectMap`] from a regex [`Captures`](regex::Captures).
 ///
-/// All captures are inserted with a key as the numeric index of that capture
-/// "0" is the overall match.
-/// Any named captures are also added to the Map with the key as the name.
+/// Named captures are inserted under their group name; numeric groups (when
+/// `numeric_groups` is `true`) are inserted under their zero-based index, with
+/// `"0"` holding the full match.
 ///
+/// `capture_info` must be the pre-computed `(name, group_index)` slice
+/// (computed once at VRL compile time).  Group indices allow direct O(1)
+/// array access via [`regex::Captures::get`] instead of name-based hash
+/// lookups.
 pub(crate) fn capture_regex_to_map(
-    regex: &regex::Regex,
     capture: &regex::Captures,
+    capture_info: &[(KeyString, usize)],
     numeric_groups: bool,
 ) -> ObjectMap {
-    let names = regex.capture_names().flatten().map(|name| {
-        (
-            name.to_owned().into(),
-            capture.name(name).map(|s| s.as_str()).into(),
-        )
+    let names = capture_info.iter().map(|(name, idx)| {
+        let value: Value = capture.get(*idx).map(|m| m.as_str()).into();
+        (name.clone(), value)
     });
 
     if numeric_groups {
@@ -107,32 +121,6 @@ impl Base64Charset {
             b"standard" => Ok(Self::Standard),
             b"url_safe" => Ok(Self::UrlSafe),
             _ => Err("unknown charset"),
-        }
-    }
-}
-
-#[derive(Clone, Debug)]
-pub(super) enum ConstOrExpr {
-    Const(Value),
-    Expr(Box<dyn Expression>),
-}
-
-impl ConstOrExpr {
-    pub(super) fn new(expr: Box<dyn Expression>, state: &TypeState) -> Self {
-        match expr.resolve_constant(state) {
-            Some(cnst) => Self::Const(cnst),
-            None => Self::Expr(expr),
-        }
-    }
-
-    pub(super) fn optional(expr: Option<Box<dyn Expression>>, state: &TypeState) -> Option<Self> {
-        expr.map(|expr| Self::new(expr, state))
-    }
-
-    pub(super) fn resolve(&self, ctx: &mut Context) -> Resolved {
-        match self {
-            Self::Const(value) => Ok(value.clone()),
-            Self::Expr(expr) => expr.resolve(ctx),
         }
     }
 }

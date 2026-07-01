@@ -1,26 +1,23 @@
 use crate::compiler::prelude::*;
-use std::sync::LazyLock;
 use xxhash_rust::{xxh3, xxh32, xxh64};
 
-static DEFAULT_VARIANT: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from("XXH32")));
+static DEFAULT_VARIANT: Value = Value::Bytes(Bytes::from_static("XXH32".as_bytes()));
 
 const VALID_VARIANTS: &[&str] = &["XXH32", "XXH64", "XXH3-64", "XXH3-128"];
 
-static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
-    vec![
-        Parameter::required(
-            "value",
-            kind::BYTES,
-            "The string to calculate the hash for.",
-        ),
-        Parameter::optional(
-            "variant",
-            kind::BYTES,
-            "The xxHash hashing algorithm to use.",
-        )
-        .default(&DEFAULT_VARIANT),
-    ]
-});
+const PARAMETERS: &[Parameter] = &[
+    Parameter::required(
+        "value",
+        kind::BYTES,
+        "The string to calculate the hash for.",
+    ),
+    Parameter::optional(
+        "variant",
+        kind::BYTES,
+        "The xxHash hashing algorithm to use.",
+    )
+    .default(&DEFAULT_VARIANT),
+];
 
 #[allow(clippy::cast_possible_wrap)]
 fn xxhash(value: Value, variant: &Value) -> Resolved {
@@ -74,7 +71,7 @@ impl Function for Xxhash {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        PARAMETERS.as_slice()
+        PARAMETERS
     }
 
     fn notices(&self) -> &'static [&'static str] {

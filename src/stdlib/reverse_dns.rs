@@ -116,22 +116,37 @@ mod tests {
             tdef: TypeDef::bytes().fallible(),
         }
 
-        google_ipv4 {
-            args: func_args![value: value!("8.8.8.8")],
-            want: Ok(value!("dns.google")),
-            tdef: TypeDef::bytes().fallible(),
-        }
-
-        google_ipv6 {
-            args: func_args![value: value!("2001:4860:4860::8844")],
-            want: Ok(value!("dns.google")),
-            tdef: TypeDef::bytes().fallible(),
-        }
-
         invalid_type {
             args: func_args![value: value!(1)],
             want: Err("expected string, got integer"),
             tdef: TypeDef::bytes().fallible(),
         }
     ];
+
+    #[cfg(feature = "test")]
+    fn execute_reverse_dns(ip_fn: &ReverseDnsFn) -> crate::value::Value {
+        let tz = TimeZone::default();
+        let mut object = value!({});
+        let mut runtime_state = state::RuntimeState::default();
+        let mut ctx = Context::new(&mut object, &mut runtime_state, &tz);
+        ip_fn.resolve(&mut ctx).unwrap()
+    }
+
+    #[cfg(feature = "test")]
+    #[test]
+    fn google_ipv4() {
+        let result = execute_reverse_dns(&ReverseDnsFn {
+            value: expr!("8.8.8.8"),
+        });
+        assert_eq!(result, value!("dns.google"));
+    }
+
+    #[cfg(feature = "test")]
+    #[test]
+    fn google_ipv6() {
+        let result = execute_reverse_dns(&ReverseDnsFn {
+            value: expr!("2001:4860:4860::8844"),
+        });
+        assert_eq!(result, value!("dns.google"));
+    }
 }

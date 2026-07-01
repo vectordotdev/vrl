@@ -1,20 +1,16 @@
 use crate::compiler::prelude::*;
-use std::sync::LazyLock;
 
-static DEFAULT_FROM: LazyLock<Value> = LazyLock::new(|| Value::Integer(0));
+static DEFAULT_FROM: Value = Value::Integer(0);
 
-static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
-    vec![
-        Parameter::required("value", kind::BYTES, "The string to find the pattern in."),
-        Parameter::required(
-            "pattern",
-            kind::BYTES | kind::REGEX,
-            "The regular expression or string pattern to match against.",
-        ),
-        Parameter::optional("from", kind::INTEGER, "Offset to start searching.")
-            .default(&DEFAULT_FROM),
-    ]
-});
+const PARAMETERS: &[Parameter] = &[
+    Parameter::required("value", kind::BYTES, "The string to find the pattern in."),
+    Parameter::required(
+        "pattern",
+        kind::BYTES | kind::REGEX,
+        "The regular expression or string pattern to match against.",
+    ),
+    Parameter::optional("from", kind::INTEGER, "Offset to start searching.").default(&DEFAULT_FROM),
+];
 
 #[allow(clippy::cast_possible_wrap)]
 fn find(value: Value, pattern: Value, from: Value) -> Resolved {
@@ -35,7 +31,7 @@ impl Function for Find {
     }
 
     fn usage(&self) -> &'static str {
-        "Determines from left to right the start position of the first found element in `value` that matches `pattern`. Returns `-1` if not found."
+        "Determines from left to right the start position of the first found element in `value` that matches `pattern`. Returns null if not found."
     }
 
     fn category(&self) -> &'static str {
@@ -43,11 +39,11 @@ impl Function for Find {
     }
 
     fn return_kind(&self) -> u16 {
-        kind::INTEGER
+        kind::NULL | kind::INTEGER
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        PARAMETERS.as_slice()
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {
@@ -157,7 +153,7 @@ impl FunctionExpression for FindFn {
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {
-        TypeDef::integer().infallible()
+        TypeDef::null().or_integer().infallible()
     }
 }
 
@@ -175,43 +171,49 @@ mod tests {
         str_matching_end {
             args: func_args![value: "foobar", pattern: "bar"],
             want: Ok(value!(3)),
-            tdef: TypeDef::integer().infallible(),
+            tdef: TypeDef::null().or_integer().infallible(),
         }
 
         str_matching_beginning {
             args: func_args![value: "foobar", pattern: "foo"],
             want: Ok(value!(0)),
-            tdef: TypeDef::integer().infallible(),
+            tdef: TypeDef::null().or_integer().infallible(),
         }
 
         str_matching_middle {
             args: func_args![value: "foobar", pattern: "ob"],
             want: Ok(value!(2)),
-            tdef: TypeDef::integer().infallible(),
+            tdef: TypeDef::null().or_integer().infallible(),
         }
 
         str_too_long {
             args: func_args![value: "foo", pattern: "foobar"],
             want: Ok(value!(null)),
-            tdef: TypeDef::integer().infallible(),
+            tdef: TypeDef::null().or_integer().infallible(),
         }
 
         regex_matching_end {
             args: func_args![value: "foobar", pattern: Value::Regex(Regex::new("bar").unwrap().into())],
             want: Ok(value!(3)),
-            tdef: TypeDef::integer().infallible(),
+            tdef: TypeDef::null().or_integer().infallible(),
         }
 
         regex_matching_start {
             args: func_args![value: "foobar", pattern: Value::Regex(Regex::new("fo+z?").unwrap().into())],
             want: Ok(value!(0)),
-            tdef: TypeDef::integer().infallible(),
+            tdef: TypeDef::null().or_integer().infallible(),
+        }
+
+        regex_no_match {
+            args: func_args![value: "foo", pattern: Value::Regex(Regex::new("foobar").unwrap().into())],
+            want: Ok(value!(null)),
+            tdef: TypeDef::null().or_integer().infallible(),
         }
 
         wrong_pattern {
             args: func_args![value: "foobar", pattern: Value::Integer(42)],
             want: Err("expected string or regex, got integer"),
-            tdef: TypeDef::integer().infallible(),
+            tdef: TypeDef::null().or_integer().infallible(),
         }
     ];
 }

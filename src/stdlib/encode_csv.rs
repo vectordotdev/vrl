@@ -1,20 +1,17 @@
 use crate::{compiler::prelude::*, stdlib::csv_utils::parse_single_byte_delimiter};
 use csv::WriterBuilder;
-use std::sync::LazyLock;
 
-static DEFAULT_DELIMITER: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from(",")));
+static DEFAULT_DELIMITER: Value = Value::Bytes(Bytes::from_static(",".as_bytes()));
 
-static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
-    vec![
-        Parameter::required("value", kind::ANY, "The value to convert to a CSV string."),
-        Parameter::optional(
-            "delimiter",
-            kind::BYTES,
-            "The field delimiter to use when encoding. Must be a single-byte UTF-8 character.",
-        )
-        .default(&DEFAULT_DELIMITER),
-    ]
-});
+const PARAMETERS: &[Parameter] = &[
+    Parameter::required("value", kind::ANY, "The value to convert to a CSV string."),
+    Parameter::optional(
+        "delimiter",
+        kind::BYTES,
+        "The field delimiter to use when encoding. Must be a single-byte UTF-8 character.",
+    )
+    .default(&DEFAULT_DELIMITER),
+];
 
 fn encode_csv(value: Value, delimiter: Value) -> Resolved {
     let value_array = value
@@ -122,7 +119,7 @@ impl Function for EncodeCsv {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        PARAMETERS.as_slice()
+        PARAMETERS
     }
 }
 

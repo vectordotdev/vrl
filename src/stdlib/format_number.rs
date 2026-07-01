@@ -1,35 +1,31 @@
 use crate::compiler::prelude::*;
 use rust_decimal::{Decimal, prelude::FromPrimitive};
-use std::sync::LazyLock;
 
-static DEFAULT_DECIMAL_SEPARATOR: LazyLock<Value> =
-    LazyLock::new(|| Value::Bytes(Bytes::from(".")));
+static DEFAULT_DECIMAL_SEPARATOR: Value = Value::Bytes(Bytes::from_static(".".as_bytes()));
 
-static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
-    vec![
-        Parameter::required(
-            "value",
-            kind::INTEGER | kind::FLOAT,
-            "The number to format as a string.",
-        ),
-        Parameter::optional(
-            "scale",
-            kind::INTEGER,
-            "The number of decimal places to display.",
-        ),
-        Parameter::optional(
-            "decimal_separator",
-            kind::BYTES,
-            "The character to use between the whole and decimal parts of the number.",
-        )
-        .default(&DEFAULT_DECIMAL_SEPARATOR),
-        Parameter::optional(
-            "grouping_separator",
-            kind::BYTES,
-            "The character to use between each thousands part of the number.",
-        ),
-    ]
-});
+const PARAMETERS: &[Parameter] = &[
+    Parameter::required(
+        "value",
+        kind::INTEGER | kind::FLOAT,
+        "The number to format as a string.",
+    ),
+    Parameter::optional(
+        "scale",
+        kind::INTEGER,
+        "The number of decimal places to display.",
+    ),
+    Parameter::optional(
+        "decimal_separator",
+        kind::BYTES,
+        "The character to use between the whole and decimal parts of the number.",
+    )
+    .default(&DEFAULT_DECIMAL_SEPARATOR),
+    Parameter::optional(
+        "grouping_separator",
+        kind::BYTES,
+        "The character to use between each thousands part of the number.",
+    ),
+];
 
 fn format_number(
     value: Value,
@@ -130,7 +126,7 @@ impl Function for FormatNumber {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        PARAMETERS.as_slice()
+        PARAMETERS
     }
 
     fn compile(

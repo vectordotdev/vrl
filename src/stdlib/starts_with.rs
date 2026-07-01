@@ -1,24 +1,21 @@
 use crate::compiler::prelude::*;
-use std::sync::LazyLock;
 
-static DEFAULT_CASE_SENSITIVE: LazyLock<Value> = LazyLock::new(|| Value::Boolean(true));
+static DEFAULT_CASE_SENSITIVE: Value = Value::Boolean(true);
 
-static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
-    vec![
-        Parameter::required("value", kind::BYTES, "The string to search."),
-        Parameter::required(
-            "substring",
-            kind::BYTES,
-            "The substring that the `value` must start with.",
-        ),
-        Parameter::optional(
-            "case_sensitive",
-            kind::BOOLEAN,
-            "Whether the match should be case sensitive.",
-        )
-        .default(&DEFAULT_CASE_SENSITIVE),
-    ]
-});
+const PARAMETERS: &[Parameter] = &[
+    Parameter::required("value", kind::BYTES, "The string to search."),
+    Parameter::required(
+        "substring",
+        kind::BYTES,
+        "The substring that the `value` must start with.",
+    ),
+    Parameter::optional(
+        "case_sensitive",
+        kind::BOOLEAN,
+        "Whether the match should be case sensitive.",
+    )
+    .default(&DEFAULT_CASE_SENSITIVE),
+];
 
 struct Chars<'a> {
     bytes: &'a Bytes,
@@ -105,7 +102,7 @@ impl Function for StartsWith {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        PARAMETERS.as_slice()
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {

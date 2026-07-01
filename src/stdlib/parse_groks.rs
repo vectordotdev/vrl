@@ -66,28 +66,32 @@ mod non_wasm {
 #[allow(clippy::wildcard_imports)]
 #[cfg(not(target_arch = "wasm32"))]
 use non_wasm::*;
-use std::sync::LazyLock;
 #[cfg(not(target_arch = "wasm32"))]
 use std::{fs::File, io::BufReader, path::Path};
 
-static DEFAULT_ALIASES: LazyLock<Value> =
-    LazyLock::new(|| Value::Object(std::collections::BTreeMap::new()));
-static DEFAULT_ALIAS_SOURCES: LazyLock<Value> = LazyLock::new(|| Value::Array(vec![]));
+static DEFAULT_ALIASES: Value = Value::Object(std::collections::BTreeMap::new());
+static DEFAULT_ALIAS_SOURCES: Value = Value::Array(vec![]);
 
-static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
-    vec![
-        Parameter::required("value", kind::BYTES, "The string to parse."),
-        Parameter::required(
-            "patterns",
-            kind::ARRAY,
-            "The [Grok patterns](https://github.com/daschl/grok/tree/master/patterns), which are tried in order until the first match.",
-        ),
-        Parameter::optional("aliases", kind::OBJECT, "The shared set of grok aliases that can be referenced in the patterns to simplify them.")
-            .default(&DEFAULT_ALIASES),
-        Parameter::optional("alias_sources", kind::ARRAY, "Path to the file containing aliases in a JSON format.")
-            .default(&DEFAULT_ALIAS_SOURCES),
-    ]
-});
+const PARAMETERS: &[Parameter] = &[
+    Parameter::required("value", kind::BYTES, "The string to parse."),
+    Parameter::required(
+        "patterns",
+        kind::ARRAY,
+        "The [Grok patterns](https://github.com/daschl/grok/tree/master/patterns), which are tried in order until the first match.",
+    ),
+    Parameter::optional(
+        "aliases",
+        kind::OBJECT,
+        "The shared set of grok aliases that can be referenced in the patterns to simplify them.",
+    )
+    .default(&DEFAULT_ALIASES),
+    Parameter::optional(
+        "alias_sources",
+        kind::ARRAY,
+        "Path to the file containing aliases in a JSON format.",
+    )
+    .default(&DEFAULT_ALIAS_SOURCES),
+];
 
 #[derive(Clone, Copy, Debug)]
 pub struct ParseGroks;
@@ -126,7 +130,7 @@ impl Function for ParseGroks {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        PARAMETERS.as_slice()
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {
@@ -196,7 +200,7 @@ impl Function for ParseGroks {
                     .resolve_constant(state)
                     .ok_or(function::Error::ExpectedStaticExpression {
                         keyword: "patterns",
-                        expr: expr.clone(),
+                        expr: Box::new(expr.clone()),
                     })?
                     .try_bytes_utf8_lossy()
                     .map_err(|_| function::Error::InvalidArgument {
@@ -219,7 +223,7 @@ impl Function for ParseGroks {
                     .resolve_constant(state)
                     .ok_or(function::Error::ExpectedStaticExpression {
                         keyword: "aliases",
-                        expr: expr.clone(),
+                        expr: Box::new(expr.clone()),
                     })?
                     .try_bytes_utf8_lossy()
                     .map_err(|_| function::Error::InvalidArgument {
@@ -256,7 +260,7 @@ impl Function for ParseGroks {
                     .resolve_constant(state)
                     .ok_or(function::Error::ExpectedStaticExpression {
                         keyword: "alias_sources",
-                        expr: expr.clone(),
+                        expr: Box::new(expr.clone()),
                     })?
                     .try_bytes_utf8_lossy()
                     .map_err(|_| function::Error::InvalidArgument {

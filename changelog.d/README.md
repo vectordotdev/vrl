@@ -29,7 +29,7 @@ The format for fragments is: `<pr_number>.<fragment_type>.md`
 When fragments are used to generate the updated changelog, the content of the fragment file is
 rendered as an item in a bulleted list under the "type" of fragment.
 
-The contents of the file must be valid markdown.
+The contents of the file must be valid markdown, followed by a required `authors:` line at the end.
 
 Filename rules:
 
@@ -55,6 +55,21 @@ For this reason, when creating the content in a fragment, the format must be ren
 As an example, separating content with markdown header syntax should be avoided, as that will render
 as a heading in the main changelog and not the list. Instead, separate content with newlines.
 
+#### Authors
+
+Every fragment **must** end with an `authors:` line listing the GitHub username(s) of the contributor(s).
+Multiple authors are comma-separated. The authors are rendered as GitHub profile links in the changelog.
+
+```
+authors: github_username
+```
+
+or for multiple contributors:
+
+```
+authors: username1, username2
+```
+
 ### Breaking changes
 
 When using the type 'breaking' to add notes for a breaking change, these should be more verbose than
@@ -70,3 +85,5 @@ Here is an example of a changelog fragment that adds a breaking change explanati
     explaining the change has to span multiple lines of text.
 
     It even necessitates a line break. It is a breaking change after all.
+
+    authors: your_github_username

@@ -11,21 +11,25 @@ use nom::{
 };
 use nom_language::error::VerboseError;
 use std::collections::{BTreeMap, HashMap};
-use std::sync::LazyLock;
 
-static DEFAULT_TRANSLATE_CUSTOM_FIELDS: LazyLock<Value> = LazyLock::new(|| Value::Boolean(false));
+static DEFAULT_TRANSLATE_CUSTOM_FIELDS: Value = Value::Boolean(false);
+static DEFAULT_STRICT: Value = Value::Boolean(true);
 
-static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
-    vec![
-        Parameter::required("value", kind::BYTES, "The string to parse."),
-        Parameter::optional(
-            "translate_custom_fields",
-            kind::BOOLEAN,
-            "Toggles translation of custom field pairs to `key:value`.",
-        )
+const PARAMETERS: &[Parameter] = &[
+    Parameter::required("value", kind::BYTES, "The string to parse."),
+    Parameter::optional(
+        "translate_custom_fields",
+        kind::BOOLEAN,
+        "Toggles translation of custom field pairs to `key:value`.",
+    )
         .default(&DEFAULT_TRANSLATE_CUSTOM_FIELDS),
-    ]
-});
+    Parameter::optional(
+        "strict",
+        kind::BOOLEAN,
+        "When set to `false`, attempts best-effort parsing of malformed CEF input rather than failing.",
+    )
+        .default(&DEFAULT_STRICT),
+];
 
 fn build_map() -> HashMap<&'static str, (usize, CustomField)> {
     [
@@ -90,7 +94,7 @@ impl Function for ParseCef {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        PARAMETERS.as_slice()
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {
@@ -150,6 +154,18 @@ impl Function for ParseCef {
                     r#"{"cefVersion":"0","deviceVendor":"security","deviceProduct":"threatmanager","deviceVersion":"1.0","deviceEventClassId":"100","name":"Detected a | in message. No action needed.","severity":"10","src":"10.0.0.1","msg":"Detected a threat.\n No action needed","act":"blocked a =", "dst":"1.1.1.1"}"#,
                 ),
             },
+            example! {
+                title: "Parse non-compliant CEF with unescaped equals in values",
+                source: indoc! {r#"
+        parse_cef!(
+            "CEF:0|Vendor|Product|1.0|100|Event|5|src=10.0.0.1 request=https://foo.com?id=foo&a=bar dst=2.2.2.2",
+            strict: false
+        )
+    "#},
+                result: Ok(
+                    r#"{"cefVersion":"0","deviceVendor":"Vendor","deviceProduct":"Product","deviceVersion":"1.0","deviceEventClassId":"100","name":"Event","severity":"5","src":"10.0.0.1","request":"https://foo.com?id=foo&a=bar","dst":"2.2.2.2"}"#,
+                ),
+            },
         ]
     }
 
@@ -161,11 +177,13 @@ impl Function for ParseCef {
     ) -> Compiled {
         let value = arguments.required("value");
         let translate_custom_fields = arguments.optional("translate_custom_fields");
+        let strict = arguments.optional("strict");
         let custom_field_map = build_map();
 
         Ok(ParseCefFn {
             value,
             translate_custom_fields,
+            strict,
             custom_field_map,
         }
         .as_expr())
@@ -176,6 +194,7 @@ impl Function for ParseCef {
 pub(crate) struct ParseCefFn {
     pub(crate) value: Box<dyn Expression>,
     pub(crate) translate_custom_fields: Option<Box<dyn Expression>>,
+    pub(crate) strict: Option<Box<dyn Expression>>,
     custom_field_map: HashMap<&'static str, (usize, CustomField)>,
 }
 
@@ -187,8 +206,12 @@ impl FunctionExpression for ParseCefFn {
             .translate_custom_fields
             .map_resolve_with_default(ctx, || DEFAULT_TRANSLATE_CUSTOM_FIELDS.clone())?
             .try_boolean()?;
+        let strict = self
+            .strict
+            .map_resolve_with_default(ctx, || DEFAULT_STRICT.clone())?
+            .try_boolean()?;
 
-        let result = parse(&bytes)?;
+        let result = parse(&bytes, strict)?;
 
         if translate_custom_fields {
             let mut custom_fields = HashMap::<_, [Option<String>; 2]>::new();
@@ -241,24 +264,27 @@ enum CustomField {
     Value = 1,
 }
 
-fn parse(input: &str) -> ExpressionResult<impl Iterator<Item = (String, String)> + '_> {
-    let (rest, (header, mut extension)) = pair(parse_header, parse_extension)
+fn parse(
+    input: &str,
+    strict: bool,
+) -> ExpressionResult<impl Iterator<Item = (String, String)> + '_> {
+    let (rest, (header, mut extension)) = pair(parse_header, |i| parse_extension(i, strict))
         .parse(input)
         .map_err(|e| match e {
             nom::Err::Error(e) | nom::Err::Failure(e) => {
-                // Create a descriptive error message if possible.
                 nom_language::error::convert_error(input, e)
             }
             nom::Err::Incomplete(_) => e.to_string(),
         })?;
 
-    // Trim trailing whitespace on last extension value
     if let Some((_, value)) = extension.last_mut() {
         let suffix = value.trim_end_matches(' ');
         value.truncate(suffix.len());
     }
 
-    if rest.trim().is_empty() {
+    // In non-strict mode, return whatever was successfully parsed even if the
+    // whole input could not be consumed (e.g. unescaped `=` in values).
+    if rest.trim().is_empty() || !strict {
         let headers = [
             "cefVersion",
             "deviceVendor",
@@ -274,7 +300,6 @@ fn parse(input: &str) -> ExpressionResult<impl Iterator<Item = (String, String)>
             .into_iter()
             .chain(headers)
             .map(|(key, mut value)| {
-                // Strip quotes from value
                 if value.starts_with('"') && value.ends_with('"') && value.len() >= 2 {
                     value = value[1..value.len() - 1].to_string();
                 }
@@ -314,19 +339,32 @@ fn parse_header_value(input: &str) -> IResult<&str, String, VerboseError<&str>> 
     .parse(input)
 }
 
-fn parse_extension(input: &str) -> IResult<&str, Vec<(&str, String)>, VerboseError<&str>> {
-    alt((many1(parse_key_value), map(tag("|"), |_| vec![]))).parse(input)
+fn parse_extension(
+    input: &str,
+    strict: bool,
+) -> IResult<&str, Vec<(&str, String)>, VerboseError<&str>> {
+    alt((
+        many1(|i| parse_key_value(i, strict)),
+        map(tag("|"), |_| vec![]),
+    ))
+    .parse(input)
 }
 
-fn parse_key_value(input: &str) -> IResult<&str, (&str, String), VerboseError<&str>> {
-    pair(parse_key, parse_value).parse(input)
+fn parse_key_value(input: &str, strict: bool) -> IResult<&str, (&str, String), VerboseError<&str>> {
+    pair(parse_key, |i| parse_value(i, strict)).parse(input)
 }
 
-fn parse_value(input: &str) -> IResult<&str, String, VerboseError<&str>> {
+fn parse_value(input: &str, strict: bool) -> IResult<&str, String, VerboseError<&str>> {
     alt((
         map(peek(parse_key), |_| String::new()),
         escaped_transform(
-            take_till1_input(|input| alt((tag("\\"), tag("="), parse_key)).parse(input).is_ok()),
+            take_till1_input(|input| {
+                let stop_on_equals = strict
+                    && tag::<&str, &str, VerboseError<&str>>("=")
+                        .parse(input)
+                        .is_ok();
+                stop_on_equals || alt((tag("\\"), parse_key)).parse(input).is_ok()
+            }),
             '\\',
             alt((
                 value('=', char('=')),
@@ -402,8 +440,11 @@ mod test {
                 ("name".to_string(), "worm successfully stopped".into()),
                 ("severity".to_string(), "10".into()),
             ]),
-            parse("CEF:1|Security|threatmanager|1.0|100|worm successfully stopped|10|")
-                .map(Iterator::collect)
+            parse(
+                "CEF:1|Security|threatmanager|1.0|100|worm successfully stopped|10|",
+                true
+            )
+            .map(Iterator::collect)
         );
     }
 
@@ -422,7 +463,7 @@ mod test {
                 ("name".to_string(), "worm successfully stopped".into()),
                 ("severity".to_string(), "10".into()),
             ]),
-            parse("CEF:1|Security|threatmanager|1.0|100|worm successfully stopped|10|src=10.0.0.1 dst=2.1.2.2 spt=1232")
+            parse("CEF:1|Security|threatmanager|1.0|100|worm successfully stopped|10|src=10.0.0.1 dst=2.1.2.2 spt=1232", true)
                 .map(Iterator::collect)
         );
     }
@@ -441,8 +482,11 @@ mod test {
                 ("name".to_string(), "worm successfully stopped".into()),
                 ("severity".to_string(), String::new()),
             ]),
-            parse("CEF:1|Security|threatmanager||100|worm successfully stopped||src= dst=2.1.2.2")
-                .map(Iterator::collect)
+            parse(
+                "CEF:1|Security|threatmanager||100|worm successfully stopped||src= dst=2.1.2.2",
+                true
+            )
+            .map(Iterator::collect)
         );
     }
 
@@ -461,7 +505,7 @@ mod test {
                 ("name".to_string(), "worm successfully stopped".into()),
                 ("severity".to_string(), "10".into()),
             ]),
-            parse(r#"CEF:1|"Security"|threatmanager|1.0|100|"worm successfully stopped"|10|src="10.0.0.1" dst=2.1.2.2 spt="1232""#)
+            parse(r#"CEF:1|"Security"|threatmanager|1.0|100|"worm successfully stopped"|10|src="10.0.0.1" dst=2.1.2.2 spt="1232""#, true)
                 .map(Iterator::collect)
         );
     }
@@ -481,7 +525,7 @@ mod test {
                 ("name".to_string(), "worm successfully stopped".into()),
                 ("severity".to_string(), "10".into()),
             ]),
-            parse("Sep 29 08:26:10 host CEF:1|Security|threatmanager|1.0|100|worm successfully stopped|10|src=10.0.0.1 dst=2.1.2.2 spt=1232")
+            parse("Sep 29 08:26:10 host CEF:1|Security|threatmanager|1.0|100|worm successfully stopped|10|src=10.0.0.1 dst=2.1.2.2 spt=1232", true)
                 .map(Iterator::collect)
         );
     }
@@ -498,8 +542,11 @@ mod test {
                 ("name".to_string(), "worm | successfully | stopped".into()),
                 ("severity".to_string(), "10".into()),
             ]),
-            parse(r"CEF:1|Security|threatmanager|1.0|100|worm \| successfully \| stopped|10|")
-                .map(Iterator::collect)
+            parse(
+                r"CEF:1|Security|threatmanager|1.0|100|worm \| successfully \| stopped|10|",
+                true
+            )
+            .map(Iterator::collect)
         );
     }
 
@@ -515,8 +562,11 @@ mod test {
                 ("name".to_string(), "worm \\ successfully \\ stopped".into()),
                 ("severity".to_string(), "10".into()),
             ]),
-            parse(r"CEF:1|Security|threatmanager|1.0|100|worm \\ successfully \\ stopped|10|")
-                .map(Iterator::collect)
+            parse(
+                r"CEF:1|Security|threatmanager|1.0|100|worm \\ successfully \\ stopped|10|",
+                true
+            )
+            .map(Iterator::collect)
         );
     }
 
@@ -535,7 +585,7 @@ mod test {
                 ("name".to_string(), "worm successfully stopped".into()),
                 ("severity".to_string(), "10".into()),
             ]),
-            parse(r"CEF:1|Security|threatmanager|1.0|100|worm successfully stopped|10|src=ip\=10.0.0.1 dst=2.1.2.2 spt=1232")
+            parse(r"CEF:1|Security|threatmanager|1.0|100|worm successfully stopped|10|src=ip\=10.0.0.1 dst=2.1.2.2 spt=1232", true)
                 .map(Iterator::collect)
         );
     }
@@ -555,7 +605,7 @@ mod test {
                 ("name".to_string(), "worm successfully stopped".into()),
                 ("severity".to_string(), "10".into()),
             ]),
-            parse(r"CEF:1|Security|threatmanager|1.0|100|worm successfully stopped|10|dst=2.1.2.2 path=\\home\\ spt=1232")
+            parse(r"CEF:1|Security|threatmanager|1.0|100|worm successfully stopped|10|dst=2.1.2.2 path=\\home\\ spt=1232", true)
                 .map(Iterator::collect)
         );
     }
@@ -575,7 +625,7 @@ mod test {
                 ("name".to_string(), "worm successfully stopped".into()),
                 ("severity".to_string(), "10".into()),
             ]),
-            parse(r"CEF:1|Security|threatmanager|1.0|100|worm successfully stopped|10|dst=2.1.2.2 msg=Detected a threat.\r No action needed spt=1232")
+            parse(r"CEF:1|Security|threatmanager|1.0|100|worm successfully stopped|10|dst=2.1.2.2 msg=Detected a threat.\r No action needed spt=1232", true)
                 .map(Iterator::collect)
         );
     }
@@ -595,7 +645,7 @@ mod test {
                 ("name".to_string(), "worm successfully stopped".into()),
                 ("severity".to_string(), "10".into()),
             ]),
-            parse("CEF:1|Security|threatmanager|1.0|100|worm successfully stopped|10|dst=2.1.2.2 msg=Detected a threat. No action needed   spt=1232")
+            parse("CEF:1|Security|threatmanager|1.0|100|worm successfully stopped|10|dst=2.1.2.2 msg=Detected a threat. No action needed   spt=1232", true)
                 .map(Iterator::collect)
         );
     }
@@ -614,7 +664,7 @@ mod test {
                 ("name".to_string(), "worm successfully stopped".into()),
                 ("severity".to_string(), "10".into()),
             ]),
-            parse("CEF:1|Security|threatmanager|1.0|100|worm successfully stopped|10|dst=2.1.2.2 msg=Detected a threat. No action needed   ")
+            parse("CEF:1|Security|threatmanager|1.0|100|worm successfully stopped|10|dst=2.1.2.2 msg=Detected a threat. No action needed   ", true)
                 .map(Iterator::collect)
         );
     }
@@ -640,7 +690,48 @@ mod test {
                 ("name".to_string(), "Unauthorized Access Attempt".into()),
                 ("severity".to_string(), "10".into()),
             ]),
-            parse("CEF:0|SecurityVendor|SecurityProduct|1.0|100|Unauthorized Access Attempt|10| src=192.168.1.100 dst=10.0.0.5 spt=12345 dpt=80 proto=TCP msg=Blocked unauthorized access attempt act=blocked outcome=failure rt=2025-06-29T23:35:00Z")
+            parse("CEF:0|SecurityVendor|SecurityProduct|1.0|100|Unauthorized Access Attempt|10| src=192.168.1.100 dst=10.0.0.5 spt=12345 dpt=80 proto=TCP msg=Blocked unauthorized access attempt act=blocked outcome=failure rt=2025-06-29T23:35:00Z", true)
+                .map(Iterator::collect)
+        );
+    }
+
+    #[test]
+    fn test_unescaped_equals_in_value() {
+        assert_eq!(
+            Ok(vec![
+                ("src".to_string(), "10.0.0.1".into()),
+                ("msg".to_string(), "status=ok".into()),
+                ("reason".to_string(), "none".into()),
+                ("dst".to_string(), "2.1.2.2".into()),
+                ("cefVersion".to_string(), "1".into()),
+                ("deviceVendor".to_string(), "Security".into()),
+                ("deviceProduct".to_string(), "threatmanager".into()),
+                ("deviceVersion".to_string(), "1.0".into()),
+                ("deviceEventClassId".to_string(), "100".into()),
+                ("name".to_string(), "worm successfully stopped".into()),
+                ("severity".to_string(), "10".into()),
+            ]),
+            parse("CEF:1|Security|threatmanager|1.0|100|worm successfully stopped|10|src=10.0.0.1 msg=status=ok reason=none dst=2.1.2.2", false)
+                .map(Iterator::collect)
+        );
+    }
+
+    #[test]
+    fn test_unescaped_equals_in_url_value() {
+        assert_eq!(
+            Ok(vec![
+                ("cs4".to_string(), "None".into()),
+                ("request".to_string(), "https://foo.com?id=foo&a=bar".into()),
+                ("abc".to_string(), "lol".into()),
+                ("cefVersion".to_string(), "1".into()),
+                ("deviceVendor".to_string(), "Security".into()),
+                ("deviceProduct".to_string(), "threatmanager".into()),
+                ("deviceVersion".to_string(), "1.0".into()),
+                ("deviceEventClassId".to_string(), "100".into()),
+                ("name".to_string(), "worm successfully stopped".into()),
+                ("severity".to_string(), "10".into()),
+            ]),
+            parse(r#"CEF:1|Security|threatmanager|1.0|100|worm successfully stopped|10|cs4=None request="https://foo.com?id=foo&a=bar" abc=lol"#, false)
                 .map(Iterator::collect)
         );
     }
@@ -714,7 +805,6 @@ mod test {
             })),
             tdef: type_def(),
         }
-
 
         translate_custom_fields {
             args: func_args! [
@@ -805,6 +895,27 @@ mod test {
                 translate_custom_fields: true
             ],
             want: Err("Custom field with duplicate value"),
+            tdef: type_def(),
+        }
+
+        non_strict_unescaped_equals {
+            args: func_args! [
+                value: "CEF:0|Vendor|Product|1.0|100|Event|5|src=10.0.0.1 msg=status=ok reason=none dst=2.2.2.2",
+                strict: false
+            ],
+            want: Ok(value!({
+                "cefVersion":"0",
+                "deviceVendor":"Vendor",
+                "deviceProduct":"Product",
+                "deviceVersion":"1.0",
+                "deviceEventClassId":"100",
+                "name":"Event",
+                "severity":"5",
+                "src":"10.0.0.1",
+                "msg":"status=ok",
+                "reason":"none",
+                "dst":"2.2.2.2",
+            })),
             tdef: type_def(),
         }
 
