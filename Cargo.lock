@@ -4512,6 +4512,7 @@ dependencies = [
  "exitcode",
  "fancy-regex 0.18.0",
  "flate2",
+ "getrandom 0.2.17",
  "getrandom 0.3.4",
  "getrandom 0.4.2",
  "grok",
