@@ -310,8 +310,9 @@ jsonschema = { version = "0.38.1", default-features = false }
 
 # Dependencies used for WASM
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-getrandom = { version = "0.3", features = ["wasm_js"] }
-getrandom04 = { package = "getrandom", version = "0.4", features = ["wasm_js"] }
+getrandom02 = { package = "getrandom", version = "0.2", features = ["js"] }
+getrandom03 = { package = "getrandom", version = "0.3", features = ["wasm_js"] }
+getrandom = { package = "getrandom", version = "0.4", features = ["wasm_js"] }
 uuid = { version = "1", features = ["v4", "v7", "js"], optional = true }
 
 [dev-dependencies]
