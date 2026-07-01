@@ -1,15 +1,13 @@
 use crate::compiler::prelude::*;
 use crate::value::Value;
-use aes::cipher::{
-    AsyncStreamCipher, BlockDecryptMut, KeyIvInit, StreamCipher,
-    block_padding::{AnsiX923, Iso7816, Iso10126, Pkcs7},
-    consts::{U12, U16},
-    generic_array::GenericArray,
-};
-use aes_gcm::{Aes128Gcm, Aes256Gcm, AesGcm};
+use aes::cipher::{BlockModeDecrypt, Iv, Key, KeyIvInit, StreamCipher, consts::{U12, U16}};
+use aes_gcm::{Aes128Gcm, Aes256Gcm, AesGcm, Key as GcmKey};
+use aes_siv::aead::{Aead as Aead5, KeyInit as KeyInit5, generic_array::GenericArray as AeadArray};
 use aes_siv::{Aes128SivAead, Aes256SivAead};
+use cbc::cipher::block_padding::{AnsiX923, Iso7816, Iso10126, Pkcs7};
 use cfb_mode::Decryptor as Cfb;
-use chacha20poly1305::{ChaCha20Poly1305, KeyInit, XChaCha20Poly1305, aead::Aead};
+use chacha20poly1305::aead::{Aead as ChaChaAead, KeyInit as ChaChaKeyInit, Key as ChaChaKey, Nonce as ChaChaNonce};
+use chacha20poly1305::{ChaCha20Poly1305, XChaCha20Poly1305};
 use crypto_secretbox::XSalsa20Poly1305;
 use ctr::{Ctr64BE, Ctr64LE};
 use ofb::Ofb;
@@ -30,11 +28,11 @@ macro_rules! decrypt {
     ($algorithm:ty, $ciphertext:expr_2021, $key:expr_2021, $iv:expr_2021) => {{
         let mut buffer = vec![0; $ciphertext.len()];
         <$algorithm>::new(
-            &GenericArray::from(get_key_bytes($key)?),
-            &GenericArray::from(get_iv_bytes($iv)?),
+            &Key::<$algorithm>::from(get_key_bytes($key)?),
+            &Iv::<$algorithm>::from(get_iv_bytes($iv)?),
         )
         .decrypt_b2b($ciphertext.as_ref(), buffer.as_mut())
-        .unwrap();
+        .expect("buffer sizes match");
         buffer
     }};
 }
@@ -42,10 +40,10 @@ macro_rules! decrypt {
 macro_rules! decrypt_padded {
     ($algorithm:ty, $padding:ty, $ciphertext:expr_2021, $key:expr_2021, $iv:expr_2021) => {{
         <$algorithm>::new(
-            &GenericArray::from(get_key_bytes($key)?),
-            &GenericArray::from(get_iv_bytes($iv)?),
+            &Key::<$algorithm>::from(get_key_bytes($key)?),
+            &Iv::<$algorithm>::from(get_iv_bytes($iv)?),
         )
-        .decrypt_padded_vec_mut::<$padding>($ciphertext.as_ref())
+        .decrypt_padded_vec::<$padding>($ciphertext.as_ref())
         .map_err(|_| format!("Invalid input"))?
     }};
 }
@@ -54,28 +52,27 @@ macro_rules! decrypt_keystream {
     ($algorithm:ty, $ciphertext:expr_2021, $key:expr_2021, $iv:expr_2021) => {{
         let mut buffer = vec![0; $ciphertext.len()];
         <$algorithm>::new(
-            &GenericArray::from(get_key_bytes($key)?),
-            &GenericArray::from(get_iv_bytes($iv)?),
+            &Key::<$algorithm>::from(get_key_bytes($key)?),
+            &Iv::<$algorithm>::from(get_iv_bytes($iv)?),
         )
-        .apply_keystream_b2b($ciphertext.as_ref(), buffer.as_mut())
-        .unwrap();
+        .apply_keystream_b2b($ciphertext.as_ref(), buffer.as_mut());
         buffer
     }};
 }
 
 macro_rules! decrypt_stream {
     ($algorithm:ty, $plaintext:expr_2021, $key:expr_2021, $iv:expr_2021) => {{
-        <$algorithm>::new(&GenericArray::from(get_key_bytes($key)?))
-            .decrypt(&GenericArray::from(get_iv_bytes($iv)?), $plaintext.as_ref())
+        <$algorithm as KeyInit5>::new(&AeadArray::from(get_key_bytes($key)?))
+            .decrypt(&AeadArray::from(get_iv_bytes($iv)?), $plaintext.as_ref())
             .expect("key/iv sizes were already checked")
     }};
 }
 
 macro_rules! decrypt_gcm {
     ($algorithm:ty, $ciphertext:expr_2021, $key:expr_2021, $iv:expr_2021) => {{
-        <$algorithm>::new(&GenericArray::from(get_key_bytes($key)?))
+        <$algorithm>::new(&GcmKey::<$algorithm>::from(get_key_bytes($key)?))
             .decrypt(
-                &GenericArray::from(get_iv_bytes($iv)?),
+                &aes_gcm::aead::Nonce::<$algorithm>::from(get_iv_bytes($iv)?),
                 $ciphertext.as_ref(),
             )
             .map_err(|e| format!("Decryption failed: {e}"))?
@@ -124,8 +121,12 @@ fn decrypt(ciphertext: Value, algorithm: &str, key: Value, iv: Value) -> Resolve
         "AES-128-GCM-16" => decrypt_gcm!(Aes128Gcm16, ciphertext, key, iv),
         "AES-192-GCM-16" => decrypt_gcm!(Aes192Gcm16, ciphertext, key, iv),
         "AES-256-GCM-16" => decrypt_gcm!(Aes256Gcm16, ciphertext, key, iv),
-        "CHACHA20-POLY1305" => decrypt_stream!(ChaCha20Poly1305, ciphertext, key, iv),
-        "XCHACHA20-POLY1305" => decrypt_stream!(XChaCha20Poly1305, ciphertext, key, iv),
+        "CHACHA20-POLY1305" => ChaCha20Poly1305::new(&ChaChaKey::<ChaCha20Poly1305>::from(get_key_bytes(key)?))
+            .decrypt(&ChaChaNonce::<ChaCha20Poly1305>::from(get_iv_bytes(iv)?), ciphertext.as_ref())
+            .expect("key/iv sizes were already checked"),
+        "XCHACHA20-POLY1305" => XChaCha20Poly1305::new(&ChaChaKey::<XChaCha20Poly1305>::from(get_key_bytes(key)?))
+            .decrypt(&ChaChaNonce::<XChaCha20Poly1305>::from(get_iv_bytes(iv)?), ciphertext.as_ref())
+            .expect("key/iv sizes were already checked"),
         "XSALSA20-POLY1305" => decrypt_stream!(XSalsa20Poly1305, ciphertext, key, iv),
         other => return Err(format!("Invalid algorithm: {other}").into()),
     };
