@@ -272,7 +272,7 @@ fn parse(
         .parse(input)
         .map_err(|e| match e {
             nom::Err::Error(e) | nom::Err::Failure(e) => {
-                nom_language::error::convert_error(input, e)
+                crate::parsing::safe_convert_error(input, e)
             }
             nom::Err::Incomplete(_) => e.to_string(),
         })?;
