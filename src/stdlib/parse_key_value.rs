@@ -614,8 +614,13 @@ mod test {
         // line that has no `=` delimiter forces a nom Err at EOF, which used
         // to invoke convert_error and panic.
         let input = "a".repeat(65535);
-        let result = parse(&input, "=", " ", Whitespace::Lenient, false);
-        assert!(result.is_err(), "expected parse error for long-line input");
+        let err = parse(&input, "=", " ", Whitespace::Lenient, false)
+            .expect_err("expected parse error for long-line input");
+        let msg = err.to_string();
+        assert!(
+            msg.contains("line 1") && msg.contains("column 65536"),
+            "unexpected error message: {msg}"
+        );
     }
 
     #[test]
