@@ -168,7 +168,7 @@ Changelog is generated from fragments in `changelog.d/` by the `release` crate.
 
   [PR #1618](https://github.com/vectordotdev/vrl/pull/1618) by [@thomasqueirozb](https://github.com/thomasqueirozb)
 - Corrected the type definition of the `basename` function to indicate that it can also return `null`.
-  Previously the type definitition indicated that the function could only return bytes (or strings).
+  Previously the type definition indicated that the function could only return bytes (or strings).
 
   [PR #1635](https://github.com/vectordotdev/vrl/pull/1635) by [@thomasqueirozb](https://github.com/thomasqueirozb)
 - Fixed incorrect parameter types in several stdlib functions:

@@ -1,0 +1,40 @@
+[files]
+ignore-hidden = false
+extend-exclude = [
+  # Upstream user-agent regex data — contains intentional misspellings from third-party sources
+  "data/user_agent_regexes.yaml",
+  # Third-party license CSV — contains upstream crate names and copyrighted text verbatim
+  "LICENSE-3rdparty.csv",
+  # Git object store — binary data
+  ".git/",
+]
+
+[default.extend-words]
+# GitHub handles used in changelog/release `authors:` lines
+pront = "pront"
+aso = "aso"
+# Punycode encoding of "café.com" — intentional in punycode test fixtures
+caf = "caf"
+# Intentional misspelling used as an example in VRL error diagnostics tests
+strng = "strng"
+# Intentional misspellings used in VRL parser diagnostics tests (misnamed_literal_type.vrl)
+tru = "tru"
+fals = "fals"
+# Part of IPv6 addresses and regex patterns in test data
+ba = "ba"
+# Test data value in parse_key_value tests (arbitrary quoted string)
+zink = "zink"
+# Result of replace("and", "a", "o") in replace.rs tests — intentional garbled output
+ond = "ond"
+# Appears inside a trace ID example value in parse_aws_alb_log tests
+daa = "daa"
+# Part of "FOO" in starts_with test data
+FO = "FO"
+# "mis-" prefix in hyphenated compound words e.g. "mis-match"
+mis = "mis"
+# Part of "2nd" in test name identifiers (e.g. "error_failed_2nd_unit") and NaiveDate variable name `nd`
+nd = "nd"
+# Part of base64-encoded gzip test data
+OT = "OT"
+# Canva.cn domain name used in punycode test fixtures (Canva the company)
+canva = "canva"
