@@ -1,5 +1,5 @@
-.PHONY: help all clippy fmt fmt-check test vrl-test typos \
-	check-features check-licenses check-msrv check-deny check-wasm32 \
+.PHONY: help all clippy fmt fmt-check test vrl-test \
+	check-typos check-features check-licenses check-msrv check-deny check-wasm32 \
 	check-docs check-lockfile generate-docs
 
 CARGO_DENY_VERSION        := 0.18.9
@@ -37,7 +37,7 @@ test: ## Run cargo tests
 vrl-test: ## Run VRL integration tests
 	cargo run --package vrl-tests --bin vrl-tests
 
-typos: ## Check spelling with `typos`
+check-typos: ## Check spelling with `typos`
 	$(call ensure-cargo-tool,typos-cli,$(TYPOS_CLI_VERSION))
 	typos
 
