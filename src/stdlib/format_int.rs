@@ -152,13 +152,13 @@ mod tests {
             tdef: TypeDef::bytes().fallible(),
         }
 
-        hexidecimal {
+        hexadecimal {
             args: func_args![value: 42, base: 16],
             want: Ok(value!("2a")),
             tdef: TypeDef::bytes().fallible(),
         }
 
-        negative_hexidecimal {
+        negative_hexadecimal {
             args: func_args![value: -42, base: 16],
             want: Ok(value!("-2a")),
             tdef: TypeDef::bytes().fallible(),

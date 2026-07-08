@@ -228,7 +228,7 @@ struct RedactFn {
 
 fn redact(value: Value, filters: &[Filter], redactor: &Redactor) -> Value {
     // possible optimization. match the redactor here, and use different calls depending on
-    // the value, so that we don't have to do the comparision in the loop of replacment.
+    // the value, so that we don't have to do the comparison in the loop of replacement.
     // that would complicate the code though.
     match value {
         Value::Bytes(bytes) => {
@@ -375,7 +375,7 @@ enum Redactor {
     /// Replace with a fixed string
     Text(String), // possible optimization: use Arc<str> instead of String to speed up cloning
     // using function pointers simplifies the code,
-    // but the Debug implmentation probably isn't very useful
+    // but the Debug implementation probably isn't very useful
     // alternatively we could have a separate variant for each hash algorithm/variant combination
     // we could also create a custom Debug implementation that does a comparison of the fn pointer
     // to function pointers we might use.

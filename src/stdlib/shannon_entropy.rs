@@ -39,12 +39,12 @@ cases.",
 ];
 
 // Casting to f64 in this function is only done to enable proper division (when calculating probability)
-// Since numbers being casted represent lenghts of input strings and number of character occurences,
+// Since numbers being casted represent lengths of input strings and number of character occurrences,
 // we can assume that there will never really be precision loss here, because that would mean that
 // the string is at least 2^52 bytes in size (4.5 PB)
 #[allow(clippy::cast_precision_loss)]
 fn shannon_entropy(value: &Value, segmentation: &Segmentation) -> Resolved {
-    let (occurence_counts, total_length): (Vec<usize>, usize) = match segmentation {
+    let (occurrence_counts, total_length): (Vec<usize>, usize) = match segmentation {
         Segmentation::Byte => {
             // Optimized version for bytes, since there is a limited number of options, that could
             // easily be kept track of
@@ -99,10 +99,10 @@ fn shannon_entropy(value: &Value, segmentation: &Segmentation) -> Resolved {
     };
 
     Ok(Value::from_f64_or_zero(
-        occurence_counts
+        occurrence_counts
             .iter()
-            // Calculate probability of each item by diving occurence count by total length
-            .map(|occurence_count| *occurence_count as f64 / total_length as f64)
+            // Calculate probability of each item by diving occurrence count by total length
+            .map(|occurrence_count| *occurrence_count as f64 / total_length as f64)
             // Calculate entropy using definition: sum(-p * log2(p))
             .fold(0f64, |acc, p| acc - (p * p.log2())),
     ))
