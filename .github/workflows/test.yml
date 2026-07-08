@@ -33,7 +33,7 @@ jobs:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
       - name: "clippy"
-        run: ./scripts/clippy.sh
+        run: make clippy
 
   fmt:
     runs-on: ubuntu-latest
@@ -41,7 +41,7 @@ jobs:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
       - name: "Format check"
-        run: ./scripts/format_check.sh
+        run: make fmt-check
 
   test:
     runs-on: ${{ matrix.os }}
@@ -53,7 +53,7 @@ jobs:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
       - name: "Tests"
-        run: ./scripts/tests.sh
+        run: make test
 
   vrl:
     runs-on: ${{ matrix.os }}
@@ -65,7 +65,7 @@ jobs:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
       - name: "VRL tests"
-        run: ./scripts/vrl_tests.sh
+        run: make vrl-test
 
   check-licenses:
     runs-on: ubuntu-latest
@@ -73,7 +73,7 @@ jobs:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
       - name: "Check that the 3rd-party license file is up to date"
-        run: ./scripts/check_licenses.sh
+        run: make check-licenses
 
   check-msrv:
     runs-on: ubuntu-latest
@@ -81,7 +81,7 @@ jobs:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
       - name: "Check that the MSRV is up to date"
-        run: ./scripts/check_msrv.sh
+        run: make check-msrv
 
   check-deny:
     runs-on: ubuntu-latest
@@ -89,7 +89,7 @@ jobs:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
       - name: "Check dependencies with cargo-deny"
-        run: ./scripts/check_deny.sh
+        run: make check-deny
 
   check-docs:
     runs-on: ubuntu-latest
@@ -97,7 +97,7 @@ jobs:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
       - name: "Check that docs generate without issues"
-        run: cargo doc --no-deps --workspace
+        run: make check-docs
 
   check-lockfile:
     runs-on: ubuntu-latest
@@ -105,7 +105,7 @@ jobs:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
       - name: "Check that Cargo.lock is in sync with Cargo.toml"
-        run: cargo update --workspace --locked
+        run: make check-lockfile
 
   wasm32-unknown-unknown:
     runs-on: ubuntu-latest
@@ -113,4 +113,4 @@ jobs:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
       - name: "Check wasm32-unknown-unknown target"
-        run: ./scripts/check_wasm32.sh
+        run: make check-wasm32
