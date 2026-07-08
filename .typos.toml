@@ -5,14 +5,14 @@ extend-exclude = [
   "data/user_agent_regexes.yaml",
   # Third-party license CSV — contains upstream crate names and copyrighted text verbatim
   "LICENSE-3rdparty.csv",
+  # Changelog files contain arbitrary GitHub handles in author lines
+  "changelog.d/",
+  "CHANGELOG.md",
   # Git object store — binary data
   ".git/",
 ]
 
 [default.extend-words]
-# GitHub handles used in changelog/release `authors:` lines
-pront = "pront"
-aso = "aso"
 # Punycode encoding of "café.com" — intentional in punycode test fixtures
 caf = "caf"
 # Intentional misspelling used as an example in VRL error diagnostics tests
