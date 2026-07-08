@@ -6,6 +6,7 @@ CARGO_DENY_VERSION        := 0.18.9
 CARGO_HACK_VERSION        := 0.5.29
 CARGO_MSRV_VERSION        := 0.17.1
 DD_LICENSE_TOOL_VERSION   := 1.0.6
+TYPOS_CLI_VERSION         := 1.33.1
 
 # Install a cargo tool at a pinned version if not already installed.
 # $(1) = tool name, $(2) = version
@@ -36,7 +37,8 @@ test: ## Run cargo tests
 vrl-test: ## Run VRL integration tests
 	cargo run --package vrl-tests --bin vrl-tests
 
-typos: ## Check spelling with `typos` (must be installed)
+typos: ## Check spelling with `typos`
+	$(call ensure-cargo-tool,typos-cli,$(TYPOS_CLI_VERSION))
 	typos
 
 check-features: ## Verify all feature combinations compile
