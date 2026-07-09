@@ -62,15 +62,6 @@
 //!
 //! To convert a string into an owned path, use either [parse_value_path] or [parse_target_path].
 //!
-//! # String Paths
-//! [ValuePath] and [TargetPath] are implemented for [&str]. That means a raw / unparsed string can
-//! be used as a path. This use is discouraged, and may be removed in the future. It mostly
-//! exists for backwards compatibility in places where String paths are used instead of owned paths.
-//! Using string paths is slightly slower than using an owned path. It's still very fast
-//! but it is easy to introduce bugs since some compile-time type information is missing -
-//! such as whether it is a target vs value path, or if the entire string is meant
-//! to be treated as a single segment vs being parsed as a path.
-//!
 //! # Macros
 //! Several macros exist to make creating paths easier. These are used if the structure of the
 //! path being created is already known. <strong>The macros do not parse paths</strong>. Use
@@ -252,28 +243,6 @@ pub trait ValuePath<'a>: Clone {
     }
 }
 
-#[cfg(any(feature = "string_path", test))]
-impl<'a> ValuePath<'a> for &'a str {
-    type Iter = jit::JitValuePathIter<'a>;
-
-    fn segment_iter(&self) -> Self::Iter {
-        JitValuePath::new(self).segment_iter()
-    }
-}
-
-#[cfg(any(feature = "string_path", test))]
-impl<'a> TargetPath<'a> for &'a str {
-    type ValuePath = &'a str;
-
-    fn prefix(&self) -> PathPrefix {
-        get_target_prefix(self).0
-    }
-
-    fn value_path(&self) -> Self::ValuePath {
-        get_target_prefix(self).1
-    }
-}
-
 impl<'a> TargetPath<'a> for &'a OwnedTargetPath {
     type ValuePath = &'a OwnedValuePath;
 
@@ -340,6 +309,7 @@ mod test {
     use crate::path::TargetPath;
     use crate::path::ValuePath;
     use crate::path::parse_target_path;
+    use crate::path::parse_value_path;
 
     #[test]
     fn test_parse_target_path() {
@@ -348,27 +318,29 @@ mod test {
 
     #[test]
     fn test_path_macro() {
-        assert!(ValuePath::eq(&path!("a", "b"), "a.b"))
+        let expected = parse_value_path("a.b").unwrap();
+        assert!(ValuePath::eq(&path!("a", "b"), &expected))
     }
 
     #[test]
     fn test_event_path_macro() {
         let path = event_path!("a", "b");
-        let expected = "a.b";
-        assert!(ValuePath::eq(&path.value_path(), expected));
+        let expected = parse_value_path("a.b").unwrap();
+        assert!(ValuePath::eq(&path.value_path(), &expected));
         assert_eq!(path.prefix(), PathPrefix::Event);
     }
 
     #[test]
     fn test_metadata_path_macro() {
         let path = metadata_path!("a", "b");
-        let expected = "a.b";
-        assert!(ValuePath::eq(&path.value_path(), expected));
+        let expected = parse_value_path("a.b").unwrap();
+        assert!(ValuePath::eq(&path.value_path(), &expected));
         assert_eq!(path.prefix(), PathPrefix::Metadata);
     }
 
     #[test]
     fn test_owned_value_path_macro() {
-        assert!(ValuePath::eq(&&owned_value_path!("a", "b"), "a.b"))
+        let expected = parse_value_path("a.b").unwrap();
+        assert!(ValuePath::eq(&&owned_value_path!("a", "b"), &expected))
     }
 }
