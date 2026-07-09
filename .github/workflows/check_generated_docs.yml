@@ -36,7 +36,7 @@ jobs:
               - "src/docs/**"
               - "src/stdlib/**"
               - "lib/docs/**"
-              - "scripts/generate_docs.sh"
+              - "Makefile"
               - ".github/workflows/check_generated_docs.yml"
 
   run-check-generated-docs:
@@ -53,7 +53,7 @@ jobs:
       - uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
 
       - name: Regenerate docs
-        run: ./scripts/generate_docs.sh
+        run: make generate-docs
 
       - name: Check for changes
         id: check
@@ -117,7 +117,7 @@ jobs:
       - name: Fail if docs are out of date
         if: steps.check.outputs.changed == 'true' && steps.push.outcome != 'success'
         run: |
-          echo "docs/generated/ is out of date. Regenerate with: ./scripts/generate_docs.sh"
+          echo "docs/generated/ is out of date. Regenerate with: make generate-docs"
           exit 1
 
   check-generated-docs:

@@ -37,7 +37,7 @@ jobs:
             }
 
             const marker = '<!-- generated-docs-check -->';
-            const body = marker + '\nThe `docs/generated/` folder is out of date but I was unable to push the fix automatically.\n\nPlease run the following and commit the result:\n\n```\n./scripts/generate_docs.sh\n```';
+            const body = marker + '\nThe `docs/generated/` folder is out of date but I was unable to push the fix automatically.\n\nPlease run the following and commit the result:\n\n```\nmake generate-docs\n```';
 
             const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
