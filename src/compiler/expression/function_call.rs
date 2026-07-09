@@ -1,6 +1,7 @@
 use std::{fmt, sync::Arc};
 
 use super::Block;
+use crate::compiler::codes;
 use crate::compiler::expression::function_call::Warning::AbortInfallible;
 use crate::compiler::state::{TypeInfo, TypeState};
 use crate::compiler::{
@@ -916,7 +917,7 @@ pub(crate) enum FunctionCallError {
 impl DiagnosticMessage for Warning {
     fn code(&self) -> usize {
         match self {
-            AbortInfallible { .. } => 620,
+            AbortInfallible { .. } => codes::CompilerCode::AbortInfallible as usize,
         }
     }
 
@@ -952,18 +953,20 @@ impl DiagnosticMessage for FunctionCallError {
         };
 
         match self {
-            Undefined { .. } => 105,
-            WrongNumberOfArgs { .. } => 106,
-            UnknownKeyword { .. } => 108,
-            Compilation { .. } => 610,
-            MissingArgument { .. } => 107,
-            InvalidArgumentKind { .. } => 110,
-            FallibleArgument { .. } => 630,
-            UnexpectedClosure { .. } => 109,
-            MissingClosure { .. } => 111,
-            ClosureArityMismatch { .. } => 120,
-            ClosureParameterTypeMismatch { .. } => 121,
-            ReturnTypeMismatch { .. } => 122,
+            Undefined { .. } => codes::ExprCode::UndefinedFunction as usize,
+            WrongNumberOfArgs { .. } => codes::ExprCode::WrongNumberOfArgs as usize,
+            UnknownKeyword { .. } => codes::ExprCode::UnknownKeyword as usize,
+            Compilation { .. } => codes::CompilerCode::FunctionCompilation as usize,
+            MissingArgument { .. } => codes::ExprCode::MissingArgument as usize,
+            InvalidArgumentKind { .. } => codes::ExprCode::InvalidArgumentKind as usize,
+            FallibleArgument { .. } => codes::CompilerCode::FallibleArgument as usize,
+            UnexpectedClosure { .. } => codes::ExprCode::UnexpectedClosure as usize,
+            MissingClosure { .. } => codes::ExprCode::MissingClosure as usize,
+            ClosureArityMismatch { .. } => codes::ExprCode::ClosureArityMismatch as usize,
+            ClosureParameterTypeMismatch { .. } => {
+                codes::ExprCode::ClosureParameterTypeMismatch as usize
+            }
+            ReturnTypeMismatch { .. } => codes::ExprCode::ReturnTypeMismatch as usize,
         }
     }
 

@@ -1,5 +1,6 @@
 use super::Kind;
 use crate::compiler::ExpressionError;
+use crate::compiler::codes;
 use crate::diagnostic::DiagnosticMessage;
 use crate::prelude::ValueError::OutOfRange;
 
@@ -69,23 +70,23 @@ impl DiagnosticMessage for ValueError {
         };
 
         match self {
-            Expected { .. } => 300,
-            Coerce(..) => 301,
-            Rem(..) => 302,
-            Mul(..) => 303,
-            Div(..) => 304,
-            DivideByZero => 305,
-            NanFloat => 306,
-            Add(..) => 307,
-            Sub(..) => 308,
-            Or(..) => 309,
-            And(..) => 310,
-            Gt(..) => 311,
-            Ge(..) => 312,
-            Lt(..) => 313,
-            Le(..) => 314,
-            Merge(..) => 315,
-            OutOfRange(..) => 316,
+            Expected { .. } => codes::ValueCode::ExpectedType as usize,
+            Coerce(..) => codes::ValueCode::Coerce as usize,
+            Rem(..) => codes::ValueCode::Remainder as usize,
+            Mul(..) => codes::ValueCode::Multiply as usize,
+            Div(..) => codes::ValueCode::Divide as usize,
+            DivideByZero => codes::ValueCode::DivideByZero as usize,
+            NanFloat => codes::ValueCode::NanFloat as usize,
+            Add(..) => codes::ValueCode::Add as usize,
+            Sub(..) => codes::ValueCode::Subtract as usize,
+            Or(..) => codes::ValueCode::Or as usize,
+            And(..) => codes::ValueCode::And as usize,
+            Gt(..) => codes::ValueCode::GreaterThan as usize,
+            Ge(..) => codes::ValueCode::GreaterThanOrEqual as usize,
+            Lt(..) => codes::ValueCode::LessThan as usize,
+            Le(..) => codes::ValueCode::LessThanOrEqual as usize,
+            Merge(..) => codes::ValueCode::ReadOnlyMutation as usize,
+            OutOfRange(..) => codes::ValueCode::OutOfRange as usize,
         }
     }
 }

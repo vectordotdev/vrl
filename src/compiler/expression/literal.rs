@@ -1,5 +1,6 @@
 use std::{borrow::Cow, convert::TryFrom, fmt, sync::Arc};
 
+use crate::compiler::codes;
 use crate::diagnostic::{DiagnosticMessage, Label, Note, Urls};
 use crate::value::{Value, ValueRegex};
 use bytes::Bytes;
@@ -281,9 +282,9 @@ impl DiagnosticMessage for Error {
         use ErrorVariant::{InvalidRegex, InvalidTimestamp, NanFloat};
 
         match &self.variant {
-            InvalidRegex(..) => 101,
-            InvalidTimestamp(..) => 601,
-            NanFloat => 602,
+            InvalidRegex(..) => codes::ExprCode::InvalidRegex as usize,
+            InvalidTimestamp(..) => codes::CompilerCode::InvalidTimestamp as usize,
+            NanFloat => codes::CompilerCode::NanFloatLiteral as usize,
         }
     }
 
