@@ -240,7 +240,7 @@ mod tests {
     use std::collections::BTreeMap;
 
     use crate::{
-        btreemap,
+        btreemap, path,
         stdlib::parse_key_value::{Whitespace, parse_key_value},
         value,
     };
@@ -251,7 +251,7 @@ mod tests {
     fn test_encode_decode_cycle() {
         let before: Value = {
             let mut map = Value::from(BTreeMap::default());
-            map.insert("key", r#"this has a " quote"#);
+            map.insert(path!("key"), r#"this has a " quote"#);
             map
         };
 

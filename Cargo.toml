@@ -91,10 +91,8 @@ enable_crypto_functions = [
 # Preserves float precision during JSON serialization/deserialization.
 float_roundtrip = ["dep:serde_json", "serde_json/float_roundtrip"]
 
-string_path = []
-
 # Testing Utilities. Enables additional tests, including those with external dependencies such as network calls.
-test = ["string_path"]
+test = []
 
 # Documentation generation support.
 docs = ["stdlib", "indexmap/serde", "serde_json/preserve_order", "dep:clap", "dep:thiserror", "dep:exitcode"]
