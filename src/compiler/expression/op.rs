@@ -1,5 +1,6 @@
 use std::fmt;
 
+use crate::compiler::codes;
 use crate::compiler::state::{TypeInfo, TypeState};
 use crate::compiler::{
     Context, Expression, TypeDef,
@@ -363,9 +364,9 @@ impl DiagnosticMessage for Error {
         use Error::{ChainedComparison, Expr, MergeNonObjects, UnnecessaryCoalesce};
 
         match self {
-            ChainedComparison { .. } => 650,
-            UnnecessaryCoalesce { .. } => 651,
-            MergeNonObjects { .. } => 652,
+            ChainedComparison { .. } => codes::CompilerCode::ChainedComparison as usize,
+            UnnecessaryCoalesce { .. } => codes::CompilerCode::UnnecessaryCoalesce as usize,
+            MergeNonObjects { .. } => codes::CompilerCode::MergeNonObjects as usize,
             Expr(err) => err.code(),
         }
     }

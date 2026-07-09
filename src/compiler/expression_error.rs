@@ -1,5 +1,6 @@
 use ExpressionError::{Abort, Error, Fallible, Missing, Return};
 
+use crate::compiler::codes;
 use crate::diagnostic::{Diagnostic, DiagnosticMessage, Label, Note, Severity, Span};
 use crate::value::Value;
 
@@ -59,8 +60,8 @@ impl DiagnosticMessage for ExpressionError {
     fn code(&self) -> usize {
         match self {
             Abort { .. } | Return { .. } | Error { .. } => 0,
-            Fallible { .. } => 100,
-            Missing { .. } => 900,
+            Fallible { .. } => codes::ExprCode::FallibleExpression as usize,
+            Missing { .. } => codes::ExprCode::ExpressionTypeUnavailable as usize,
         }
     }
 

@@ -1,5 +1,6 @@
 use std::fmt::{Display, Formatter};
 
+use crate::compiler::codes;
 use crate::diagnostic::{DiagnosticMessage, Label, Note, Severity};
 
 use super::Span;
@@ -52,7 +53,7 @@ impl Display for DeprecationWarning {
 
 impl DiagnosticMessage for DeprecationWarning {
     fn code(&self) -> usize {
-        801
+        codes::WarningCode::Deprecation as usize
     }
 
     fn message(&self) -> String {

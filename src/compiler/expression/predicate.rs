@@ -1,5 +1,6 @@
 use std::fmt;
 
+use crate::compiler::codes;
 use crate::diagnostic::{DiagnosticMessage, Label, Note, Urls};
 
 use crate::compiler::expression::Block;
@@ -124,7 +125,7 @@ impl DiagnosticMessage for Error {
         use Error::{Fallible, NonBoolean};
 
         match self {
-            NonBoolean { .. } => 102,
+            NonBoolean { .. } => codes::ExprCode::NonBooleanPredicate as usize,
             Fallible { code, .. } => *code,
         }
     }

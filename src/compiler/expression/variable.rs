@@ -1,3 +1,4 @@
+use crate::compiler::codes;
 use crate::diagnostic::{DiagnosticMessage, Label};
 use crate::value::Value;
 use std::fmt;
@@ -107,7 +108,7 @@ impl DiagnosticMessage for Error {
         use ErrorVariant::Undefined;
 
         match &self.variant {
-            Undefined { .. } => 701,
+            Undefined { .. } => codes::VariableCode::UndefinedVariable as usize,
         }
     }
 
