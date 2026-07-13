@@ -262,6 +262,22 @@ pub struct Parameter {
     /// error.
     pub kind: u16,
 
+    /// For array parameters, the type kind(s) allowed for the array's elements.
+    ///
+    /// When [`kind`] includes [`kind::ARRAY`] and this is not [`kind::ANY`], the
+    /// compiler restricts the array's element kind accordingly:
+    /// - If the argument's element kind is a subset, the call is infallible.
+    /// - If the argument's element kind is unknown or a superset, the call is
+    ///   automatically marked fallible.
+    ///
+    /// This lets stdlib functions declare constraints like "array of strings"
+    /// without hand-rolling the check in their `type_def()`.
+    ///
+    /// Defaults to [`kind::ANY`] (no element-type constraint) for backwards
+    /// compatibility with existing declarations. Ignored when [`kind`] does not
+    /// include [`kind::ARRAY`].
+    pub element_kind: u16,
+
     /// Whether or not this is a required parameter.
     ///
     /// If it isn't, the function can be called without errors, even if the
@@ -292,6 +308,7 @@ impl Parameter {
         Self {
             keyword,
             kind,
+            element_kind: kind::ANY,
             required: true,
             description,
             default: None,
@@ -305,11 +322,25 @@ impl Parameter {
         Self {
             keyword,
             kind,
+            element_kind: kind::ANY,
             required: false,
             description,
             default: None,
             enum_variants: None,
         }
+    }
+
+    /// For an array parameter, restrict the kind of its elements.
+    ///
+    /// The compiler enforces this constraint on the argument's element type:
+    /// arguments whose element kind is a subset of `element_kind` produce
+    /// infallible calls; those whose element kind may include other types
+    /// produce fallible calls. Ignored when [`kind`] does not include
+    /// [`kind::ARRAY`].
+    #[must_use]
+    pub const fn element_kind(mut self, element_kind: u16) -> Self {
+        self.element_kind = element_kind;
+        self
     }
 
     /// Set the default value for this parameter.
@@ -329,52 +360,54 @@ impl Parameter {
     #[allow(arithmetic_overflow)]
     #[must_use]
     pub fn kind(&self) -> Kind {
-        let mut kind = Kind::never();
+        let mut kind = kind_from_bits(self.kind);
 
-        let n = self.kind;
-
-        if (n & kind::BYTES) == kind::BYTES {
-            kind.add_bytes();
-        }
-
-        if (n & kind::INTEGER) == kind::INTEGER {
-            kind.add_integer();
-        }
-
-        if (n & kind::FLOAT) == kind::FLOAT {
-            kind.add_float();
-        }
-
-        if (n & kind::BOOLEAN) == kind::BOOLEAN {
-            kind.add_boolean();
-        }
-
-        if (n & kind::OBJECT) == kind::OBJECT {
-            kind.add_object(Collection::any());
-        }
-
-        if (n & kind::ARRAY) == kind::ARRAY {
-            kind.add_array(Collection::any());
-        }
-
-        if (n & kind::TIMESTAMP) == kind::TIMESTAMP {
-            kind.add_timestamp();
-        }
-
-        if (n & kind::REGEX) == kind::REGEX {
-            kind.add_regex();
-        }
-
-        if (n & kind::NULL) == kind::NULL {
-            kind.add_null();
-        }
-
-        if (n & kind::UNDEFINED) == kind::UNDEFINED {
-            kind.add_undefined();
+        // Refine the array element kind if the parameter narrowed it.
+        if (self.kind & kind::ARRAY) == kind::ARRAY && self.element_kind != kind::ANY {
+            let element = kind_from_bits(self.element_kind);
+            kind.add_array(Collection::from_unknown(element));
         }
 
         kind
     }
+}
+
+#[allow(arithmetic_overflow)]
+fn kind_from_bits(n: u16) -> Kind {
+    let mut kind = Kind::never();
+
+    if (n & kind::BYTES) == kind::BYTES {
+        kind.add_bytes();
+    }
+    if (n & kind::INTEGER) == kind::INTEGER {
+        kind.add_integer();
+    }
+    if (n & kind::FLOAT) == kind::FLOAT {
+        kind.add_float();
+    }
+    if (n & kind::BOOLEAN) == kind::BOOLEAN {
+        kind.add_boolean();
+    }
+    if (n & kind::OBJECT) == kind::OBJECT {
+        kind.add_object(Collection::any());
+    }
+    if (n & kind::ARRAY) == kind::ARRAY {
+        kind.add_array(Collection::any());
+    }
+    if (n & kind::TIMESTAMP) == kind::TIMESTAMP {
+        kind.add_timestamp();
+    }
+    if (n & kind::REGEX) == kind::REGEX {
+        kind.add_regex();
+    }
+    if (n & kind::NULL) == kind::NULL {
+        kind.add_null();
+    }
+    if (n & kind::UNDEFINED) == kind::UNDEFINED {
+        kind.add_undefined();
+    }
+
+    kind
 }
 
 // -----------------------------------------------------------------------------

@@ -46,7 +46,8 @@ impl Function for ContainsAll {
                 "substrings",
                 kind::ARRAY,
                 "An array of substrings to search for in `value`.",
-            ),
+            )
+            .element_kind(kind::BYTES),
             Parameter::optional(
                 "case_sensitive",
                 kind::BOOLEAN,
@@ -114,11 +115,10 @@ impl FunctionExpression for ContainsAllFn {
         contains_all(&value, substrings, case_sensitive)
     }
 
-    fn type_def(&self, state: &TypeState) -> TypeDef {
-        let substring_type_def = self.substrings.type_def(state);
-        let collection = substring_type_def.as_array().expect("must be an array");
-        let bytes_collection = Collection::from_unknown(Kind::bytes());
-        TypeDef::boolean().maybe_fallible(bytes_collection.is_superset(collection).is_err())
+    fn type_def(&self, _state: &TypeState) -> TypeDef {
+        // Element-kind constraint on `substrings` is enforced by the compiler
+        // via `Parameter::element_kind`, which also drives fallibility.
+        TypeDef::boolean()
     }
 }
 
@@ -138,11 +138,16 @@ mod tests {
             tdef: TypeDef::boolean().infallible(),
         }
 
+        // The function body's `type_def` is now unconditionally infallible;
+        // element-kind fallibility for the `substrings` argument is inferred by
+        // the compiler at the call site via `Parameter::element_kind`. See the
+        // `compiler_flags_non_bytes_element_as_fallible` test below for the
+        // end-to-end check.
         substring_type {
             args: func_args![value: value!("The Needle In The Haystack"),
                              substrings: value!([1, 2])],
             want: Err("expected string, got integer"),
-            tdef: TypeDef::boolean().fallible(),
+            tdef: TypeDef::boolean(),
         }
 
         yes {
@@ -182,4 +187,35 @@ mod tests {
             tdef: TypeDef::boolean().infallible(),
         }
     ];
+
+    /// End-to-end check: `Parameter::element_kind(kind::BYTES)` should drive the
+    /// compiler to mark a `contains_all` call fallible when it cannot prove the
+    /// array elements are strings.
+    #[test]
+    fn compiler_flags_non_bytes_element_as_fallible() {
+        let fns = vec![Box::new(ContainsAll) as Box<dyn crate::compiler::Function>];
+
+        // All string literals: element kind is a subset of `bytes` -> infallible.
+        let src = r#"contains_all("The Needle", ["Needle", "Hay"])"#;
+        let res = crate::compiler::compile(src, &fns).expect("compiles");
+        assert!(
+            !res.program.info().fallible,
+            "call with string literals should be infallible"
+        );
+
+        // Element kind cannot be proven a subset of `bytes` -> fallible.
+        // (Since the compiler rejects unhandled-fallible expressions, we
+        // handle the error explicitly with `??` and assert it compiled.)
+        let src = r#"contains_all("The Needle", [1, 2]) ?? false"#;
+        crate::compiler::compile(src, &fns)
+            .expect("compiles with `??` handler because call is now fallible");
+
+        // Sanity: without the `??` handler the same call must be rejected at
+        // compile time due to the induced fallibility.
+        let src = r#"contains_all("The Needle", [1, 2])"#;
+        assert!(
+            crate::compiler::compile(src, &fns).is_err(),
+            "unhandled fallible call should fail to compile"
+        );
+    }
 }
