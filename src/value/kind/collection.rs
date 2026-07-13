@@ -987,4 +987,49 @@ mod tests {
             assert_eq!(this.reduced_kind(), want, "{title}");
         }
     }
+
+    #[test]
+    fn test_collection_intersects() {
+        use std::collections::BTreeMap;
+
+        // Both empty: always intersect.
+        let empty: Collection<Index> = Collection::empty();
+        assert!(empty.intersects(&empty));
+
+        // Unknown-only collections with disjoint element kinds still intersect
+        // because both could be empty.
+        let bytes_col = Collection::<Index>::from_unknown(Kind::bytes());
+        let int_col = Collection::<Index>::from_unknown(Kind::integer());
+        assert!(bytes_col.intersects(&int_col));
+
+        // Known element on lhs is disjoint from rhs unknown → no intersection.
+        let lhs: Collection<Index> = Collection::from_parts(
+            BTreeMap::from([(0.into(), Kind::integer())]),
+            Kind::undefined(),
+        );
+        assert!(!lhs.intersects(&bytes_col));
+        // Symmetric.
+        assert!(!bytes_col.intersects(&lhs));
+
+        // Known element on lhs matches rhs unknown → intersect.
+        let lhs_bytes: Collection<Index> = Collection::from_parts(
+            BTreeMap::from([(0.into(), Kind::bytes())]),
+            Kind::undefined(),
+        );
+        assert!(lhs_bytes.intersects(&bytes_col));
+
+        // Both have matching known elements → intersect.
+        let rhs_with_known: Collection<Index> = Collection::from_parts(
+            BTreeMap::from([(0.into(), Kind::bytes())]),
+            Kind::undefined(),
+        );
+        assert!(lhs_bytes.intersects(&rhs_with_known));
+
+        // lhs known element disjoint from rhs known at same index → no intersection.
+        let rhs_int_known: Collection<Index> = Collection::from_parts(
+            BTreeMap::from([(0.into(), Kind::integer())]),
+            Kind::undefined(),
+        );
+        assert!(!lhs_bytes.intersects(&rhs_int_known));
+    }
 }

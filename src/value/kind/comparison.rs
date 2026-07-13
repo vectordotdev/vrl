@@ -627,4 +627,90 @@ mod tests {
             assert_eq!(kind.is_exact(), want, "{title}");
         }
     }
+
+    #[test]
+    fn test_intersects_arrays() {
+        struct TestCase {
+            lhs: Kind,
+            rhs: Kind,
+            want: bool,
+        }
+
+        for (title, TestCase { lhs, rhs, want }) in HashMap::from([
+            (
+                "array<bytes> vs array<bytes>",
+                TestCase {
+                    lhs: Kind::array(Collection::from_unknown(Kind::bytes())),
+                    rhs: Kind::array(Collection::from_unknown(Kind::bytes())),
+                    want: true,
+                },
+            ),
+            (
+                "array<bytes> vs array<integer>: disjoint unknowns but both could be empty",
+                TestCase {
+                    lhs: Kind::array(Collection::from_unknown(Kind::bytes())),
+                    rhs: Kind::array(Collection::from_unknown(Kind::integer())),
+                    want: true,
+                },
+            ),
+            (
+                "array<any> vs array<bytes>",
+                TestCase {
+                    lhs: Kind::array(Collection::any()),
+                    rhs: Kind::array(Collection::from_unknown(Kind::bytes())),
+                    want: true,
+                },
+            ),
+            (
+                "literal [integer, integer] vs array<bytes>: known elements are disjoint",
+                TestCase {
+                    lhs: Kind::array(BTreeMap::from([
+                        (0.into(), Kind::integer()),
+                        (1.into(), Kind::integer()),
+                    ])),
+                    rhs: Kind::array(Collection::from_unknown(Kind::bytes())),
+                    want: false,
+                },
+            ),
+            (
+                "literal [bytes] vs array<bytes>: known element matches",
+                TestCase {
+                    lhs: Kind::array(BTreeMap::from([(0.into(), Kind::bytes())])),
+                    rhs: Kind::array(Collection::from_unknown(Kind::bytes())),
+                    want: true,
+                },
+            ),
+            (
+                "empty literal [] vs array<bytes>: no known elements to violate",
+                TestCase {
+                    lhs: Kind::array(BTreeMap::default()),
+                    rhs: Kind::array(Collection::from_unknown(Kind::bytes())),
+                    want: true,
+                },
+            ),
+            (
+                "literal [bytes, integer] vs array<bytes>: one known element is disjoint",
+                TestCase {
+                    lhs: Kind::array(BTreeMap::from([
+                        (0.into(), Kind::bytes()),
+                        (1.into(), Kind::integer()),
+                    ])),
+                    rhs: Kind::array(Collection::from_unknown(Kind::bytes())),
+                    want: false,
+                },
+            ),
+            (
+                "non-array vs array: never intersect",
+                TestCase {
+                    lhs: Kind::integer(),
+                    rhs: Kind::array(Collection::from_unknown(Kind::bytes())),
+                    want: false,
+                },
+            ),
+        ]) {
+            assert_eq!(lhs.intersects(&rhs), want, "{title}");
+            // intersects must be symmetric
+            assert_eq!(rhs.intersects(&lhs), want, "{title} (reversed)");
+        }
+    }
 }
