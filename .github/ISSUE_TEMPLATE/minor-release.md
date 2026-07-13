@@ -5,7 +5,6 @@ title: "VRL [version] release"
 labels: "domain: releasing"
 ---
 
-- [ ] Validate changelog fragments: `cargo run -p release -- check-changelog`.
 - [ ] (Optional) Preview the release: `cargo run -p release -- --dry-run`.
 - [ ] Run the release: `cargo run -p release` (defaults to a minor bump; pass `major`, `patch`, or an exact version to override). This bumps `Cargo.toml`, generates the changelog, publishes to crates.io, tags, and opens the merge PR. See [release/README.md](https://github.com/vectordotdev/vrl/blob/main/release/README.md) for details.
 - [ ] Review and merge the release PR opened by the tool.
