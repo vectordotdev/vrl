@@ -256,6 +256,24 @@ impl Changelog {
         Ok(new_content)
     }
 
+    /// Validate every fragment file currently on disk in `changelog.d/` —
+    /// what the release will consume. Unlike [`check_fragments`], this does
+    /// not diff against `origin/main`, so it works on a synced release branch
+    /// where no fragments are "newly added" but plenty exist to consume.
+    pub fn validate_fragments_on_disk(&self) -> Result<(), String> {
+        let paths = Self::read_fragment_dir(&self.changelog_dir())?;
+        if paths.is_empty() {
+            return Err(
+                "No changelog fragments found in changelog.d/ — nothing to release.".to_string(),
+            );
+        }
+        for path in &paths {
+            Self::parse_fragment(path)?;
+        }
+        println!("Validated {} changelog fragment(s).", paths.len());
+        Ok(())
+    }
+
     /// Validate changelog fragment filenames added on the current branch vs origin/main.
     pub fn check_fragments(&self) -> Result<(), String> {
         let output = std::process::Command::new("git")
