@@ -4506,7 +4506,7 @@ checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
 
 [[package]]
 name = "vrl"
-version = "0.33.1"
+version = "0.34.0"
 dependencies = [
  "aes 0.9.1",
  "aes-siv",
