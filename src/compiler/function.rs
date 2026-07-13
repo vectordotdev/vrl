@@ -270,12 +270,8 @@ pub struct Parameter {
     /// - If the argument's element kind is unknown or a superset, the call is
     ///   automatically marked fallible.
     ///
-    /// This lets stdlib functions declare constraints like "array of strings"
-    /// without hand-rolling the check in their `type_def()`.
-    ///
-    /// Defaults to [`kind::ANY`] (no element-type constraint) for backwards
-    /// compatibility with existing declarations. Ignored when [`kind`] does not
-    /// include [`kind::ARRAY`].
+    /// Defaults to [`kind::ANY`] (no element-type constraint). Ignored when
+    /// [`kind`] does not include [`kind::ARRAY`].
     pub element_kind: u16,
 
     /// Whether or not this is a required parameter.
@@ -330,19 +326,6 @@ impl Parameter {
         }
     }
 
-    /// For an array parameter, restrict the kind of its elements.
-    ///
-    /// The compiler enforces this constraint on the argument's element type:
-    /// arguments whose element kind is a subset of `element_kind` produce
-    /// infallible calls; those whose element kind may include other types
-    /// produce fallible calls. Ignored when [`kind`] does not include
-    /// [`kind::ARRAY`].
-    #[must_use]
-    pub const fn element_kind(mut self, element_kind: u16) -> Self {
-        self.element_kind = element_kind;
-        self
-    }
-
     /// Set the default value for this parameter.
     #[must_use]
     pub const fn default(mut self, value: &'static Value) -> Self {
@@ -357,12 +340,22 @@ impl Parameter {
         self
     }
 
+    /// For an array parameter, restrict the kind of its elements.
+    ///
+    /// The compiler uses this to infer call-site fallibility: a subset match is
+    /// infallible; a superset or unknown match is fallible; a disjoint match is
+    /// a compile error. Ignored when [`kind`] does not include [`kind::ARRAY`].
+    #[must_use]
+    pub const fn with_element_kind(mut self, element_kind: u16) -> Self {
+        self.element_kind = element_kind;
+        self
+    }
+
     #[allow(arithmetic_overflow)]
     #[must_use]
     pub fn kind(&self) -> Kind {
         let mut kind = kind_from_bits(self.kind);
 
-        // Refine the array element kind if the parameter narrowed it.
         if (self.kind & kind::ARRAY) == kind::ARRAY && self.element_kind != kind::ANY {
             let element = kind_from_bits(self.element_kind);
             kind.add_array(Collection::from_unknown(element));

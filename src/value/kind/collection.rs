@@ -273,6 +273,41 @@ impl<T: Ord + Clone + CollectionKey> Collection<T> {
     /// # Errors
     /// If the type is not a superset, a path to one field that doesn't match is returned.
     /// This is mostly useful for debugging.
+    /// Check if `self` and `other` could hold a common value.
+    ///
+    /// Two collections intersect unless a **known** element on one side is
+    /// provably disjoint from the corresponding kind on the other side.  If
+    /// both collections have no known elements they always intersect (both
+    /// could be the empty collection, e.g. `[]` or `{}`).
+    pub fn intersects(&self, other: &Self) -> bool {
+        // A known element in `self` must be compatible with whatever `other`
+        // expects at that position (its own known kind, or its unknown kind).
+        for (key, self_kind) in &self.known {
+            let other_kind = other
+                .known
+                .get(key)
+                .cloned()
+                .unwrap_or_else(|| other.unknown_kind());
+            if !self_kind.intersects(&other_kind) {
+                return false;
+            }
+        }
+
+        // Symmetric check from `other`'s perspective.
+        for (key, other_kind) in &other.known {
+            let self_kind = self
+                .known
+                .get(key)
+                .cloned()
+                .unwrap_or_else(|| self.unknown_kind());
+            if !self_kind.intersects(other_kind) {
+                return false;
+            }
+        }
+
+        true
+    }
+
     pub fn is_superset(&self, other: &Self) -> Result<(), OwnedValuePath> {
         // `self`'s `unknown` needs to be  a superset of `other`'s.
         self.unknown
