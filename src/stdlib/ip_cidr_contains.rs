@@ -90,7 +90,8 @@ impl Function for IpCidrContains {
                 "cidr",
                 kind::BYTES | kind::ARRAY,
                 "The CIDR mask (v4 or v6).",
-            ),
+            )
+            .with_element_kind(kind::BYTES),
             Parameter::required("value", kind::BYTES, "The IP address (v4 or v6)."),
         ];
         PARAMETERS
