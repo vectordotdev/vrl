@@ -90,7 +90,7 @@
     }
   ],
   "notices": [
-    "If `fields_ordering` is specified then the function is fallible else it is infallible."
+    "This function is fallible if `fields_ordering` contains non-string elements."
   ],
   "pure": true
 }
