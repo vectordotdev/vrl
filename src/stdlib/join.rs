@@ -69,12 +69,12 @@ impl Function for Join {
         &[
             example! {
                 title: "Join array (no separator)",
-                source: r#"join!(["bring", "us", "together"])"#,
+                source: r#"join(["bring", "us", "together"])"#,
                 result: Ok("bringustogether"),
             },
             example! {
                 title: "Join array (comma separator)",
-                source: r#"join!(["sources", "transforms", "sinks"], separator: ", ")"#,
+                source: r#"join(["sources", "transforms", "sinks"], separator: ", ")"#,
                 result: Ok("sources, transforms, sinks"),
             },
         ]

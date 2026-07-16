@@ -120,7 +120,7 @@ impl Function for EncodeKeyValue {
             example! {
                 title: "Encode with default delimiters (fields ordering)",
                 source: indoc! {r#"
-                    encode_key_value!(
+                    encode_key_value(
                         {
                             "ts": "2021-06-05T17:20:00Z",
                             "msg": "This is a message",
@@ -148,7 +148,7 @@ impl Function for EncodeKeyValue {
             example! {
                 title: "Encode with default delimiters (nested fields ordering)",
                 source: indoc! {r#"
-                    encode_key_value!(
+                    encode_key_value(
                         {
                             "agent": {"name": "foo"},
                             "log": {"file": {"path": "my.log"}},
