@@ -279,6 +279,7 @@ impl<T: Ord + Clone + CollectionKey> Collection<T> {
     /// provably disjoint from the corresponding kind on the other side.  If
     /// both collections have no known elements they always intersect (both
     /// could be the empty collection, e.g. `[]` or `{}`).
+    #[must_use]
     pub fn intersects(&self, other: &Self) -> bool {
         // A known element in `self` must be compatible with whatever `other`
         // expects at that position (its own known kind, or its unknown kind).
@@ -308,6 +309,9 @@ impl<T: Ord + Clone + CollectionKey> Collection<T> {
         true
     }
 
+    /// # Errors
+    ///
+    /// Returns the path of the first element where `self` is not a superset of `other`.
     pub fn is_superset(&self, other: &Self) -> Result<(), OwnedValuePath> {
         // `self`'s `unknown` needs to be  a superset of `other`'s.
         self.unknown
