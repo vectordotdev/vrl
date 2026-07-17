@@ -228,7 +228,7 @@ struct RedactFn {
 
 fn redact(value: Value, filters: &[Filter], redactor: &Redactor) -> Value {
     // possible optimization. match the redactor here, and use different calls depending on
-    // the value, so that we don't have to do the comparision in the loop of replacment.
+    // the value, so that we don't have to do the comparison in the loop of replacement.
     // that would complicate the code though.
     match value {
         Value::Bytes(bytes) => {
@@ -375,7 +375,7 @@ enum Redactor {
     /// Replace with a fixed string
     Text(String), // possible optimization: use Arc<str> instead of String to speed up cloning
     // using function pointers simplifies the code,
-    // but the Debug implmentation probably isn't very useful
+    // but the Debug implementation probably isn't very useful
     // alternatively we could have a separate variant for each hash algorithm/variant combination
     // we could also create a custom Debug implementation that does a comparison of the fn pointer
     // to function pointers we might use.
@@ -437,16 +437,16 @@ impl Redactor {
                         .ok_or("`variant` must be a string")?
                         .as_ref()
                     {
-                        b"SHA-224" => encoded_hash::<sha_2::Sha224>,
-                        b"SHA-256" => encoded_hash::<sha_2::Sha256>,
-                        b"SHA-384" => encoded_hash::<sha_2::Sha384>,
-                        b"SHA-512" => encoded_hash::<sha_2::Sha512>,
-                        b"SHA-512/224" => encoded_hash::<sha_2::Sha512_224>,
-                        b"SHA-512/256" => encoded_hash::<sha_2::Sha512_256>,
+                        b"SHA-224" => encoded_hash::<sha2::Sha224>,
+                        b"SHA-256" => encoded_hash::<sha2::Sha256>,
+                        b"SHA-384" => encoded_hash::<sha2::Sha384>,
+                        b"SHA-512" => encoded_hash::<sha2::Sha512>,
+                        b"SHA-512/224" => encoded_hash::<sha2::Sha512_224>,
+                        b"SHA-512/256" => encoded_hash::<sha2::Sha512_256>,
                         _ => return Err("invalid sha2 variant"),
                     }
                 } else {
-                    encoded_hash::<sha_2::Sha512_256>
+                    encoded_hash::<sha2::Sha512_256>
                 };
                 let encoder = obj
                     .get("encoding")
@@ -463,14 +463,14 @@ impl Redactor {
                         .ok_or("`variant must be a string")?
                         .as_ref()
                     {
-                        b"SHA3-224" => encoded_hash::<sha_3::Sha3_224>,
-                        b"SHA3-256" => encoded_hash::<sha_3::Sha3_256>,
-                        b"SHA3-384" => encoded_hash::<sha_3::Sha3_384>,
-                        b"SHA3-512" => encoded_hash::<sha_3::Sha3_512>,
+                        b"SHA3-224" => encoded_hash::<sha3::Sha3_224>,
+                        b"SHA3-256" => encoded_hash::<sha3::Sha3_256>,
+                        b"SHA3-384" => encoded_hash::<sha3::Sha3_384>,
+                        b"SHA3-512" => encoded_hash::<sha3::Sha3_512>,
                         _ => return Err("invalid sha2 variant"),
                     }
                 } else {
-                    encoded_hash::<sha_3::Sha3_512>
+                    encoded_hash::<sha3::Sha3_512>
                 };
                 let encoder = obj
                     .get("encoding")
@@ -509,12 +509,12 @@ impl TryFrom<Value> for Redactor {
                 b"full" => Ok(Redactor::Full),
                 #[cfg(feature = "enable_crypto_functions")]
                 b"sha2" => Ok(Redactor::Hash {
-                    hasher: encoded_hash::<sha_2::Sha512_256>,
+                    hasher: encoded_hash::<sha2::Sha512_256>,
                     encoder: Encoder::Base64,
                 }),
                 #[cfg(feature = "enable_crypto_functions")]
                 b"sha3" => Ok(Redactor::Hash {
-                    hasher: encoded_hash::<sha_3::Sha3_512>,
+                    hasher: encoded_hash::<sha3::Sha3_512>,
                     encoder: Encoder::Base64,
                 }),
                 _ => Err("unknown name of redactor"),

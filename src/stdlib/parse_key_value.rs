@@ -351,10 +351,7 @@ fn parse<'a>(
         standalone_key,
     )
     .map_err(|e| match e {
-        nom::Err::Error(e) | nom::Err::Failure(e) => {
-            // Create a descriptive error message if possible.
-            nom_language::error::convert_error(input, e)
-        }
+        nom::Err::Error(e) | nom::Err::Failure(e) => crate::parsing::safe_convert_error(input, e),
         nom::Err::Incomplete(_) => e.to_string(),
     })?;
 
@@ -609,6 +606,22 @@ fn type_def() -> TypeDef {
 #[cfg(test)]
 mod test {
     use super::*;
+
+    #[test]
+    fn test_long_line_does_not_panic() {
+        // nom's convert_error panics on Rust ≥ 1.87 when any column offset
+        // ≥ 65535 (fmt width capped at 0xffff).  With standalone_key=false a
+        // line that has no `=` delimiter forces a nom Err at EOF, which used
+        // to invoke convert_error and panic.
+        let input = "a".repeat(65535);
+        let err = parse(&input, "=", " ", Whitespace::Lenient, false)
+            .expect_err("expected parse error for long-line input");
+        let msg = err.to_string();
+        assert!(
+            msg.contains("line 1") && msg.contains("column 65536"),
+            "unexpected error message: {msg}"
+        );
+    }
 
     #[test]
     fn test_quote_and_escape_char() {

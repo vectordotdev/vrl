@@ -1,5 +1,6 @@
 use std::{fmt, iter::Peekable, str::CharIndices};
 
+use crate::compiler::codes;
 use crate::diagnostic::{DiagnosticMessage, Label, Span};
 use ordered_float::NotNan;
 
@@ -105,19 +106,27 @@ impl DiagnosticMessage for Error {
 
         match self {
             ParseError { source, .. } => match source {
-                lalrpop_util::ParseError::InvalidToken { .. } => 200,
-                lalrpop_util::ParseError::ExtraToken { .. } => 201,
-                lalrpop_util::ParseError::User { .. } => 202,
-                lalrpop_util::ParseError::UnrecognizedToken { .. } => 203,
-                lalrpop_util::ParseError::UnrecognizedEof { .. } => 204,
+                lalrpop_util::ParseError::InvalidToken { .. } => {
+                    codes::ParserCode::InvalidToken as usize
+                }
+                lalrpop_util::ParseError::ExtraToken { .. } => {
+                    codes::ParserCode::ExtraToken as usize
+                }
+                lalrpop_util::ParseError::User { .. } => codes::ParserCode::User as usize,
+                lalrpop_util::ParseError::UnrecognizedToken { .. } => {
+                    codes::ParserCode::UnrecognizedToken as usize
+                }
+                lalrpop_util::ParseError::UnrecognizedEof { .. } => {
+                    codes::ParserCode::UnrecognizedEof as usize
+                }
             },
-            ReservedKeyword { .. } => 205,
-            NumericLiteral { .. } => 206,
-            StringLiteral { .. } => 207,
-            Literal { .. } => 208,
-            EscapeChar { .. } => 209,
-            UnexpectedParseError(..) => 210,
-            UnicodeEscape { .. } => 211,
+            ReservedKeyword { .. } => codes::ParserCode::ReservedKeyword as usize,
+            NumericLiteral { .. } => codes::ParserCode::NumericLiteral as usize,
+            StringLiteral { .. } => codes::ParserCode::StringLiteral as usize,
+            Literal { .. } => codes::ParserCode::Literal as usize,
+            EscapeChar { .. } => codes::ParserCode::EscapeChar as usize,
+            UnexpectedParseError(..) => codes::ParserCode::UnexpectedParse as usize,
+            UnicodeEscape { .. } => codes::ParserCode::UnicodeEscape as usize,
         }
     }
 

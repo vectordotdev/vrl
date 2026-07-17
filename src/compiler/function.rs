@@ -1,6 +1,7 @@
 #![allow(clippy::missing_errors_doc)]
 pub mod closure;
 
+use crate::compiler::codes;
 use crate::diagnostic::{DiagnosticMessage, Label, Note};
 use crate::parser::ast::Ident;
 use crate::path::OwnedTargetPath;
@@ -728,12 +729,14 @@ impl crate::diagnostic::DiagnosticMessage for Error {
         };
 
         match self {
-            UnexpectedExpression { .. } => 400,
-            InvalidEnumVariant { .. } => 401,
-            ExpectedStaticExpression { .. } => 402,
-            InvalidArgument { .. } => 403,
-            ExpectedFunctionClosure => 420,
-            ReadOnlyMutation { .. } => 315,
+            UnexpectedExpression { .. } => codes::FunctionCode::UnexpectedExpression as usize,
+            InvalidEnumVariant { .. } => codes::FunctionCode::InvalidEnumVariant as usize,
+            ExpectedStaticExpression { .. } => {
+                codes::FunctionCode::ExpectedStaticExpression as usize
+            }
+            InvalidArgument { .. } => codes::FunctionCode::InvalidArgument as usize,
+            ExpectedFunctionClosure => codes::FunctionCode::ExpectedFunctionClosure as usize,
+            ReadOnlyMutation { .. } => codes::ValueCode::ReadOnlyMutation as usize,
         }
     }
 

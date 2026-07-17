@@ -1,8 +1,8 @@
-#[cfg(feature = "datadog_filter")]
+#[cfg(feature = "datadog")]
 pub mod filter;
 
-#[cfg(all(feature = "datadog_grok", not(target_arch = "wasm32")))]
+#[cfg(all(feature = "datadog", not(target_arch = "wasm32")))]
 pub mod grok;
 
-#[cfg(feature = "datadog_search")]
+#[cfg(feature = "datadog")]
 pub mod search;

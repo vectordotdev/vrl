@@ -1,5 +1,6 @@
 use std::{convert::TryFrom, fmt};
 
+use crate::compiler::codes;
 use crate::compiler::expression::function_call::FunctionCallError::InvalidArgumentKind;
 use crate::compiler::expression::function_call::InvalidArgumentErrorContext;
 use crate::compiler::{
@@ -670,12 +671,14 @@ impl DiagnosticMessage for Error {
         };
 
         match &self.variant {
-            UnnecessaryNoop(..) => 640,
-            FallibleAssignment(..) => 103,
-            InfallibleAssignment(..) => 104,
-            InvalidTarget(..) => 641,
-            InvalidParentPathSegment { .. } => 642,
-            ReadOnly => 315,
+            UnnecessaryNoop(..) => codes::CompilerCode::UnnecessaryNoop as usize,
+            FallibleAssignment(..) => codes::ExprCode::FallibleAssignment as usize,
+            InfallibleAssignment(..) => codes::ExprCode::InfallibleAssignment as usize,
+            InvalidTarget(..) => codes::CompilerCode::InvalidTarget as usize,
+            InvalidParentPathSegment { .. } => {
+                codes::CompilerCode::InvalidParentPathSegment as usize
+            }
+            ReadOnly => codes::ValueCode::ReadOnlyMutation as usize,
         }
     }
 
@@ -818,6 +821,7 @@ impl DiagnosticMessage for Error {
 
 #[cfg(test)]
 mod test {
+    use crate::compiler::codes;
     use crate::compiler::state::{ExternalEnv, LocalEnv};
     use crate::compiler::{CompileConfig, TypeState, compile_with_state};
     use crate::value::Kind;
@@ -1002,7 +1006,10 @@ mod test {
     fn op_hard_error_drains_subexpression_fallibilities() {
         assert_eq!(
             error_codes_and_spans("1 ?? parse_json(\"{}\")"),
-            vec![(651, "1".to_owned())],
+            vec![(
+                codes::CompilerCode::UnnecessaryCoalesce as usize,
+                "1".to_owned()
+            )],
         );
     }
 

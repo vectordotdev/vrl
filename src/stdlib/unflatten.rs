@@ -454,7 +454,7 @@ mod test {
             tdef: TypeDef::object(Collection::any()),
         }
 
-        traling_separator{
+        trailing_separator{
             args: func_args![value: value!({
                 "a.": 1,
             })],

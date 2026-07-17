@@ -13,7 +13,7 @@ provide everything you need to get started.
 3. [Create a new Git branch][urls.create_branch].
 4. Make your changes.
 5. Add and/or update tests to cover your changes.
-6. Run `./scripts/checks.sh` to run tests and other checks. These checks are also run by the CI.
+6. Run `make all` to run tests and other checks. These checks are also run by the CI. Run `make help` to see all available targets.
 7. [Submit the branch as a pull request][urls.submit_pr] to the repo. A team member should
    comment and/or review your pull request.
 8. Add a changelog fragment to `changelog.d/`. See [changelog.d/README.md](changelog.d/README.md) for details.

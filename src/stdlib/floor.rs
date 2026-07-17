@@ -58,7 +58,7 @@ impl Function for Floor {
 
     fn return_rules(&self) -> &'static [&'static str] {
         &[
-            "Returns an integer if `precision` is `0` (this is the default). Returns a float otherwise.",
+            "Returns an integer if `value` is an integer. Returns a float otherwise, regardless of `precision`.",
         ]
     }
 
