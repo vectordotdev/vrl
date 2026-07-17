@@ -157,7 +157,6 @@ mod tests {
         mixed_ascii_unicode {
             args: func_args![value: "ab你好",
                              chunk_size: 4,
-                             utf8: false
             ],
             want: Ok(value!([b"ab\xe4\xbd", b"\xa0\xe5\xa5\xbd"])),
             tdef: TypeDef::array(Collection::from_unknown(Kind::bytes())),
