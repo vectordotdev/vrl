@@ -52,7 +52,9 @@ impl Function for Round {
     }
 
     fn return_rules(&self) -> &'static [&'static str] {
-        &["If `precision` is `0`, then an integer is returned, otherwise a float is returned."]
+        &[
+            "Returns an integer if `value` is an integer or `precision` is `0`. Returns a float otherwise.",
+        ]
     }
 
     fn parameters(&self) -> &'static [Parameter] {
