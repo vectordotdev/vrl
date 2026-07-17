@@ -60,6 +60,7 @@ impl Function for ToFloat {
             "If `value` is a string, it must be the string representation of an float or else an error is raised.",
             "If `value` is a boolean, `0.0` is returned for `false` and `1.0` is returned for `true`.",
             "If `value` is a timestamp, a [Unix timestamp](https://en.wikipedia.org/wiki/Unix_time) with fractional seconds is returned.",
+            "If `value` is null, `0.0` is returned.",
         ]
     }
 
