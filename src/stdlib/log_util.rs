@@ -190,6 +190,7 @@ pub(crate) static REGEX_NGINX_ERROR_LOG: LazyLock<Regex> = LazyLock::new(|| {
         (,\s+upstream:\s+"(?P<upstream>[^"]*)")?                                 # Match any character after ', upstream: '
         (,\s+host:\s+"(?P<host>[^"]*)")?                                         # Match any character then ':' then any character after ', host: '
         (,\s+refer?rer:\s+"(?P<referer>[^"]*)")?                                 # Match any character after ', referrer: '
+        (,\s+(?P<tags>([\w-]+:\s+"([^"]*)",?\s*)*))?                             # Match any additional tags
         \s*$                                                                     # Match any number of whitespaces (to be discarded).
     "#)
     .expect("failed compiling regex for Nginx error log")
