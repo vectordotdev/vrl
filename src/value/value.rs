@@ -21,10 +21,10 @@ mod iter;
 mod path;
 mod regex;
 
-#[cfg(any(test, feature = "proptest"))]
-pub mod proptest;
 #[cfg(any(test, feature = "lua"))]
 mod lua;
+#[cfg(any(test, feature = "proptest"))]
+pub mod proptest;
 mod serde;
 
 /// A boxed `std::error::Error`.

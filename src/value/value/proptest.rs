@@ -3,8 +3,8 @@ use chrono::{DateTime, Utc};
 use ordered_float::NotNan;
 use proptest::prelude::*;
 
-use crate::value::KeyString;
 use super::Value;
+use crate::value::KeyString;
 
 const SIZE: u32 = 4;
 const MAX_F64_SIZE: f64 = 1_000_000.0;
@@ -34,8 +34,7 @@ fn value_leaf_strategy() -> impl Strategy<Value = Value> {
         any::<bool>().prop_map(Value::Boolean),
         any::<i64>().prop_map(Value::Integer),
         float_strategy(),
-        proptest::collection::vec(any::<u8>(), 0..=16)
-            .prop_map(|b| Value::Bytes(Bytes::from(b))),
+        proptest::collection::vec(any::<u8>(), 0..=16).prop_map(|b| Value::Bytes(Bytes::from(b))),
         datetime_strategy().prop_map(Value::Timestamp),
     ]
 }
