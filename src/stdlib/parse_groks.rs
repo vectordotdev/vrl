@@ -78,7 +78,8 @@ const PARAMETERS: &[Parameter] = &[
         "patterns",
         kind::ARRAY,
         "The [Grok patterns](https://github.com/daschl/grok/tree/master/patterns), which are tried in order until the first match.",
-    ),
+    )
+    .with_element_kind(kind::BYTES),
     Parameter::optional(
         "aliases",
         kind::OBJECT,
@@ -90,6 +91,7 @@ const PARAMETERS: &[Parameter] = &[
         kind::ARRAY,
         "Path to the file containing aliases in a JSON format.",
     )
+    .with_element_kind(kind::BYTES)
     .default(&DEFAULT_ALIAS_SOURCES),
 ];
 

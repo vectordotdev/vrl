@@ -4,4 +4,4 @@
 strings = []
 for_each(.) -> |key, value| { strings = push(strings, key + "=" + encode_json(value)) }
 
-"{" + join!(strings, ",") + "}"
+"{" + join(strings, ",") + "}"

@@ -287,7 +287,7 @@ impl Kind {
     ///
     /// Returns `true` if there are type states common to both `self` and `other`.
     #[must_use]
-    pub const fn intersects(&self, other: &Self) -> bool {
+    pub fn intersects(&self, other: &Self) -> bool {
         // a "never" type can be treated as any type
         if self.is_never() || other.is_never() {
             return true;
@@ -325,8 +325,11 @@ impl Kind {
             return true;
         }
 
-        if self.contains_array() && other.contains_array() {
-            return true;
+        // For arrays, also check that their element kinds are not provably
+        // disjoint. A known element on either side that cannot satisfy the
+        // other side's element kind rules out any common value.
+        if let (Some(lhs), Some(rhs)) = (self.array.as_ref(), other.array.as_ref()) {
+            return lhs.intersects(rhs);
         }
 
         if self.contains_object() && other.contains_object() {
@@ -622,6 +625,92 @@ mod tests {
             ),
         ]) {
             assert_eq!(kind.is_exact(), want, "{title}");
+        }
+    }
+
+    #[test]
+    fn test_intersects_arrays() {
+        struct TestCase {
+            lhs: Kind,
+            rhs: Kind,
+            want: bool,
+        }
+
+        for (title, TestCase { lhs, rhs, want }) in HashMap::from([
+            (
+                "array<bytes> vs array<bytes>",
+                TestCase {
+                    lhs: Kind::array(Collection::from_unknown(Kind::bytes())),
+                    rhs: Kind::array(Collection::from_unknown(Kind::bytes())),
+                    want: true,
+                },
+            ),
+            (
+                "array<bytes> vs array<integer>: disjoint unknowns but both could be empty",
+                TestCase {
+                    lhs: Kind::array(Collection::from_unknown(Kind::bytes())),
+                    rhs: Kind::array(Collection::from_unknown(Kind::integer())),
+                    want: true,
+                },
+            ),
+            (
+                "array<any> vs array<bytes>",
+                TestCase {
+                    lhs: Kind::array(Collection::any()),
+                    rhs: Kind::array(Collection::from_unknown(Kind::bytes())),
+                    want: true,
+                },
+            ),
+            (
+                "literal [integer, integer] vs array<bytes>: known elements are disjoint",
+                TestCase {
+                    lhs: Kind::array(BTreeMap::from([
+                        (0.into(), Kind::integer()),
+                        (1.into(), Kind::integer()),
+                    ])),
+                    rhs: Kind::array(Collection::from_unknown(Kind::bytes())),
+                    want: false,
+                },
+            ),
+            (
+                "literal [bytes] vs array<bytes>: known element matches",
+                TestCase {
+                    lhs: Kind::array(BTreeMap::from([(0.into(), Kind::bytes())])),
+                    rhs: Kind::array(Collection::from_unknown(Kind::bytes())),
+                    want: true,
+                },
+            ),
+            (
+                "empty literal [] vs array<bytes>: no known elements to violate",
+                TestCase {
+                    lhs: Kind::array(BTreeMap::default()),
+                    rhs: Kind::array(Collection::from_unknown(Kind::bytes())),
+                    want: true,
+                },
+            ),
+            (
+                "literal [bytes, integer] vs array<bytes>: one known element is disjoint",
+                TestCase {
+                    lhs: Kind::array(BTreeMap::from([
+                        (0.into(), Kind::bytes()),
+                        (1.into(), Kind::integer()),
+                    ])),
+                    rhs: Kind::array(Collection::from_unknown(Kind::bytes())),
+                    want: false,
+                },
+            ),
+            (
+                "non-array vs array: never intersect",
+                TestCase {
+                    lhs: Kind::integer(),
+                    rhs: Kind::array(Collection::from_unknown(Kind::bytes())),
+                    want: false,
+                },
+            ),
+        ]) {
+            assert_eq!(lhs.intersects(&rhs), want, "{title}");
+            // intersects must be symmetric
+            assert_eq!(rhs.intersects(&lhs), want, "{title} (reversed)");
         }
     }
 }
