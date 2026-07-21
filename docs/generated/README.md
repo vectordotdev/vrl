@@ -7,5 +7,5 @@ Do **not** alter these files directly as they will be overwritten by CI automati
 To regenerate:
 
 ```sh
-./scripts/generate_docs.sh
+make generate-docs
 ```

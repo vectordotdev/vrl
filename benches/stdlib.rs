@@ -1872,12 +1872,12 @@ bench_function! {
         want: Ok(-42),
     }
 
-    hexidecimal {
+    hexadecimal {
         args: func_args![value: "0x2a"],
         want: Ok(42),
     }
 
-    explicit_hexidecimal {
+    explicit_hexadecimal {
         args: func_args![value: "2a", base: 16],
         want: Ok(42),
     }

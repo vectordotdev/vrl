@@ -20,6 +20,15 @@
         "boolean"
       ],
       "default": "false"
+    },
+    {
+      "name": "strict",
+      "description": "When set to `false`, attempts best-effort parsing of malformed CEF input rather than failing.",
+      "required": false,
+      "type": [
+        "boolean"
+      ],
+      "default": "true"
     }
   ],
   "return": {
@@ -134,6 +143,22 @@
         "msg": "Detected a threat.\n No action needed",
         "act": "blocked a =",
         "dst": "1.1.1.1"
+      }
+    },
+    {
+      "title": "Parse non-compliant CEF with unescaped equals in values",
+      "source": "parse_cef!(\n    \"CEF:0|Vendor|Product|1.0|100|Event|5|src=10.0.0.1 request=https://foo.com?id=foo&a=bar dst=2.2.2.2\",\n    strict: false\n)\n",
+      "return": {
+        "cefVersion": "0",
+        "deviceVendor": "Vendor",
+        "deviceProduct": "Product",
+        "deviceVersion": "1.0",
+        "deviceEventClassId": "100",
+        "name": "Event",
+        "severity": "5",
+        "src": "10.0.0.1",
+        "request": "https://foo.com?id=foo&a=bar",
+        "dst": "2.2.2.2"
       }
     }
   ],

@@ -67,7 +67,7 @@ impl Function for ParseRegexAll {
     fn return_rules(&self) -> &'static [&'static str] {
         &[
             "Matches return all capture groups corresponding to the leftmost matches in the text.",
-            "Raises an error if no match is found.",
+            "Returns an empty array if no matches are found.",
         ]
     }
 

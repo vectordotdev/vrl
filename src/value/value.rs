@@ -225,7 +225,7 @@ mod test {
     use quickcheck::{QuickCheck, TestResult};
 
     use crate::path;
-    use crate::path::BorrowedSegment;
+    use crate::path::{BorrowedSegment, parse_value_path};
 
     use super::*;
 
@@ -235,44 +235,44 @@ mod test {
         #[test]
         fn remove_prune_map_with_map() {
             let mut value = Value::from(BTreeMap::default());
-            let key = "foo.bar";
+            let key = parse_value_path("foo.bar").unwrap();
             let marker = Value::from(true);
-            assert_eq!(value.insert(key, marker.clone()), None);
+            assert_eq!(value.insert(&key, marker.clone()), None);
             // Since the `foo` map is now empty, this should get cleaned.
-            assert_eq!(value.remove(key, true), Some(marker));
-            assert!(!value.contains("foo"));
+            assert_eq!(value.remove(&key, true), Some(marker));
+            assert!(!value.contains(path!("foo")));
         }
 
         #[test]
         fn remove_prune_map_with_array() {
             let mut value = Value::from(BTreeMap::default());
-            let key = "foo[0]";
+            let key = parse_value_path("foo[0]").unwrap();
             let marker = Value::from(true);
-            assert_eq!(value.insert(key, marker.clone()), None);
+            assert_eq!(value.insert(&key, marker.clone()), None);
             // Since the `foo` map is now empty, this should get cleaned.
-            assert_eq!(value.remove(key, true), Some(marker));
-            assert!(!value.contains("foo"));
+            assert_eq!(value.remove(&key, true), Some(marker));
+            assert!(!value.contains(path!("foo")));
         }
 
         #[test]
         fn remove_prune_array_with_map() {
             let mut value = Value::from(Vec::<Value>::default());
-            let key = "[0].bar";
+            let key = parse_value_path("[0].bar").unwrap();
             let marker = Value::from(true);
-            assert_eq!(value.insert(key, marker.clone()), None);
+            assert_eq!(value.insert(&key, marker.clone()), None);
             // Since the `foo` map is now empty, this should get cleaned.
-            assert_eq!(value.remove(key, true), Some(marker));
+            assert_eq!(value.remove(&key, true), Some(marker));
             assert!(!value.contains(path!(0)));
         }
 
         #[test]
         fn remove_prune_array_with_array() {
             let mut value = Value::from(Vec::<Value>::default());
-            let key = "[0][0]";
+            let key = parse_value_path("[0][0]").unwrap();
             let marker = Value::from(true);
-            assert_eq!(value.insert(key, marker.clone()), None);
+            assert_eq!(value.insert(&key, marker.clone()), None);
             // Since the `foo` map is now empty, this should get cleaned.
-            assert_eq!(value.remove(key, true), Some(marker));
+            assert_eq!(value.remove(&key, true), Some(marker));
             assert!(!value.contains(path!(0)));
         }
     }

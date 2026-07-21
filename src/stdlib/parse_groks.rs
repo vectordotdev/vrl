@@ -24,7 +24,7 @@ mod non_wasm {
 
     impl DiagnosticMessage for Error {
         fn code(&self) -> usize {
-            109
+            crate::compiler::codes::ExprCode::InvalidGrokPattern as usize
         }
 
         fn labels(&self) -> Vec<Label> {

@@ -31,15 +31,23 @@ fn parse_authors(raw: &str) -> Result<(String, Vec<String>), String> {
         .ok_or("Fragment content is empty")?;
 
     let last = lines[last_idx].trim();
-    let authors_str = last.strip_prefix("authors:").ok_or_else(|| {
-        "Fragment is missing required 'authors:' field on the last line. \
-         Example: 'authors: github_username'"
-            .to_string()
-    })?;
+    let last_lower = last.to_ascii_lowercase();
+    let prefix_len = if last_lower.starts_with("authors:") {
+        "authors:".len()
+    } else if last_lower.starts_with("author:") {
+        "author:".len()
+    } else {
+        return Err(
+            "Fragment is missing required 'authors:' field on the last line. \
+                    Example: 'authors: github_username'"
+                .to_string(),
+        );
+    };
+    let authors_str = &last[prefix_len..];
 
     let authors: Vec<String> = authors_str
         .split(',')
-        .map(|s| s.trim().to_string())
+        .map(|s| s.trim().trim_start_matches('@').to_string())
         .filter(|s| !s.is_empty())
         .collect();
 
@@ -75,7 +83,8 @@ fn validate_fragment_filename(filename: &str) -> Result<(&str, &str), String> {
     }
 
     let valid_types: Vec<&str> = FRAGMENT_TYPES.iter().map(|(t, _)| *t).collect();
-    if !valid_types.contains(&parts[1]) {
+    let type_lower = parts[1].to_ascii_lowercase();
+    if !valid_types.contains(&type_lower.as_str()) {
         return Err(format!(
             "Invalid fragment type '{}' in '{filename}'. Valid types: {}",
             parts[1],
@@ -117,7 +126,7 @@ impl Changelog {
 
         Ok(Fragment {
             pr_number: pr_number.to_string(),
-            fragment_type: fragment_type.to_string(),
+            fragment_type: fragment_type.to_ascii_lowercase(),
             content,
             authors,
         })
@@ -247,6 +256,24 @@ impl Changelog {
         Ok(new_content)
     }
 
+    /// Validate every fragment file currently on disk in `changelog.d/` —
+    /// what the release will consume. Unlike [`check_fragments`], this does
+    /// not diff against `origin/main`, so it works on a synced release branch
+    /// where no fragments are "newly added" but plenty exist to consume.
+    pub fn validate_fragments_on_disk(&self) -> Result<(), String> {
+        let paths = Self::read_fragment_dir(&self.changelog_dir())?;
+        if paths.is_empty() {
+            return Err(
+                "No changelog fragments found in changelog.d/ — nothing to release.".to_string(),
+            );
+        }
+        for path in &paths {
+            Self::parse_fragment(path)?;
+        }
+        println!("Validated {} changelog fragment(s).", paths.len());
+        Ok(())
+    }
+
     /// Validate changelog fragment filenames added on the current branch vs origin/main.
     pub fn check_fragments(&self) -> Result<(), String> {
         let output = std::process::Command::new("git")
@@ -361,6 +388,12 @@ mod tests {
     }
 
     #[test]
+    fn fragment_type_case_insensitive() {
+        let (_, ty) = validate_fragment_filename("1234.Fix.md").unwrap();
+        assert_eq!(ty, "Fix"); // raw value; normalized to lowercase in parse_fragment
+    }
+
+    #[test]
     fn non_numeric_pr() {
         let err = validate_fragment_filename("abc.feature.md").unwrap_err();
         assert!(err.contains("must be a PR number"), "{err}");
@@ -392,6 +425,26 @@ mod tests {
         let (desc, authors) = parse_authors("A feature.\n\nauthors: alice, bob").unwrap();
         assert_eq!(desc, "A feature.");
         assert_eq!(authors, vec!["alice", "bob"]);
+    }
+
+    #[test]
+    fn parse_authors_singular_accepted() {
+        let (desc, authors) = parse_authors("Fixed a bug.\n\nauthor: alice").unwrap();
+        assert_eq!(desc, "Fixed a bug.");
+        assert_eq!(authors, vec!["alice"]);
+    }
+
+    #[test]
+    fn parse_authors_at_prefix_stripped() {
+        let (_, authors) = parse_authors("Fixed a bug.\n\nauthors: @alice, @bob").unwrap();
+        assert_eq!(authors, vec!["alice", "bob"]);
+    }
+
+    #[test]
+    fn parse_authors_capital_key_accepted() {
+        let (desc, authors) = parse_authors("Fixed a bug.\n\nAuthors: alice").unwrap();
+        assert_eq!(desc, "Fixed a bug.");
+        assert_eq!(authors, vec!["alice"]);
     }
 
     #[test]
