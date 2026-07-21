@@ -7,7 +7,7 @@ use std::collections::BTreeMap;
 static DEFAULT_TIMESTAMP_FORMAT: Value =
     Value::Bytes(Bytes::from_static("%d/%b/%Y:%T %z".as_bytes()));
 
-static FORMAT_ENUM: &[EnumVariant] = &[
+const FORMAT_ENUM: &[EnumVariant] = &[
     EnumVariant {
         value: "common",
         description: "Common format",
@@ -40,9 +40,9 @@ fn parse_apache_log(
     let message = bytes.try_bytes_utf8_lossy()?;
     let timestamp_format = timestamp_format.try_bytes_utf8_lossy()?.to_string();
     let regexes = match format.as_ref() {
-        b"common" => &*log_util::REGEX_APACHE_COMMON_LOG,
-        b"combined" => &*log_util::REGEX_APACHE_COMBINED_LOG,
-        b"error" => &*log_util::REGEX_APACHE_ERROR_LOG,
+        b"common" => log_util::REGEX_APACHE_COMMON_LOG.as_ref(),
+        b"combined" => log_util::REGEX_APACHE_COMBINED_LOG.as_ref(),
+        b"error" => log_util::REGEX_APACHE_ERROR_LOG.as_ref(),
         _ => unreachable!(),
     };
 

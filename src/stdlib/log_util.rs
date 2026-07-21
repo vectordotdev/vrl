@@ -1,4 +1,6 @@
 use crate::compiler::TimeZone;
+use crate::prelude::KeyString;
+use crate::stdlib::util::RegexWithCaptureInfo;
 use crate::value::{ObjectMap, Value};
 use chrono::prelude::{DateTime, Utc};
 use regex::{Captures, Regex};
@@ -7,9 +9,10 @@ use std::sync::LazyLock;
 // Information about the common log format taken from the
 // - W3C specification: https://www.w3.org/Daemon/User/Config/Logging.html#common-logfile-format
 // - Apache HTTP Server docs: https://httpd.apache.org/docs/1.3/logs.html#common
-pub(crate) static REGEX_APACHE_COMMON_LOG: LazyLock<Vec<Regex>> = LazyLock::new(|| {
-    vec![
-        Regex::new(
+pub(crate) static REGEX_APACHE_COMMON_LOG: LazyLock<[RegexWithCaptureInfo; 1]> = LazyLock::new(
+    || {
+        [
+        RegexWithCaptureInfo::new(Regex::new(
             r#"(?x)                                 # Ignore whitespace and comments in the regex expression.
             ^\s*                                    # Start with any number of whitespaces.
             (-|(?P<host>.*?))\s+                    # Match `-` or any character (non-greedily) and at least one whitespace.
@@ -27,14 +30,16 @@ pub(crate) static REGEX_APACHE_COMMON_LOG: LazyLock<Vec<Regex>> = LazyLock::new(
             (-|(?P<size>\d+))                       # Match `-` or at least one digit.
             \s*$                                    # Match any number of whitespaces (to be discarded).
         "#)
-        .expect("failed compiling regex for common log")
+        .expect("failed compiling regex for common log"))
     ]
-});
+    },
+);
 
 // - Apache HTTP Server docs: https://httpd.apache.org/docs/1.3/logs.html#combined
-pub(crate) static REGEX_APACHE_COMBINED_LOG: LazyLock<Vec<Regex>> = LazyLock::new(|| {
-    vec![
-        Regex::new(
+pub(crate) static REGEX_APACHE_COMBINED_LOG: LazyLock<[RegexWithCaptureInfo; 1]> = LazyLock::new(
+    || {
+        [
+        RegexWithCaptureInfo::new(Regex::new(
             r#"(?x)                                 # Ignore whitespace and comments in the regex expression.
             ^\s*                                    # Start with any number of whitespaces.
             (-|(?P<host>.*?))\s+                    # Match `-` or any character (non-greedily) and at least one whitespace.
@@ -59,16 +64,18 @@ pub(crate) static REGEX_APACHE_COMBINED_LOG: LazyLock<Vec<Regex>> = LazyLock::ne
             ")))                                    # Match the closing quote
             #\s*$                                   # Match any number of whitespaces (to be discarded).
         "#)
-        .expect("failed compiling regex for combined log")
+        .expect("failed compiling regex for combined log"))
     ]
-});
+    },
+);
 
 // It is possible to customise the format output by apache.
-pub(crate) static REGEX_APACHE_ERROR_LOG: LazyLock<Vec<Regex>> = LazyLock::new(|| {
-    vec![
+pub(crate) static REGEX_APACHE_ERROR_LOG: LazyLock<[RegexWithCaptureInfo; 2]> = LazyLock::new(
+    || {
+        [
         // Simple format
         // https://github.com/mingrammer/flog/blob/9bc83b14408ca446e934c32e4a88a81a46e78d83/log.go#L16
-        Regex::new(
+        RegexWithCaptureInfo::new(Regex::new(
             r"(?x)                                     # Ignore whitespace and comments in the regex expression.
             ^\s*                                        # Start with any number of whitespaces.
             (-|\[(-|(?P<timestamp>[^\[]*))\])\s+        # Match `-` or `[` followed by `-` or any character except `]`, `]` and at least one whitespace.
@@ -81,11 +88,11 @@ pub(crate) static REGEX_APACHE_ERROR_LOG: LazyLock<Vec<Regex>> = LazyLock::new(|
             (-|(?P<message>.*))                         # Match `-` or any character.
             \s*$                                        # Match any number of whitespaces (to be discarded).
         ")
-        .expect("failed compiling regex for error log"),
+        .expect("failed compiling regex for error log")),
 
         // threaded MPM format
         // https://httpd.apache.org/docs/current/mod/core.html#errorlogformat
-        Regex::new(
+        RegexWithCaptureInfo::new(Regex::new(
             r"(?x)                                              # Ignore whitespace and comments in the regex expression.
             ^\s*                                                 # Start with any number of whitespaces.
             \[(?P<timestamp>[^\]]+)\]\s+                         # [%{u}t]
@@ -97,13 +104,14 @@ pub(crate) static REGEX_APACHE_ERROR_LOG: LazyLock<Vec<Regex>> = LazyLock::new(|
             (, referer .*)?                                      # ,\ referer\ %{Referer}
             \s*$                                                 # Match any number of whitespaces (to be discarded).
         ")
-        .expect("failed compiling regex for error log")
+        .expect("failed compiling regex for error log"))
     ]
-});
+    },
+);
 
 // - Nginx HTTP Server docs: http://nginx.org/en/docs/http/ngx_http_log_module.html
-pub(crate) static REGEX_NGINX_COMBINED_LOG: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(
+pub(crate) static REGEX_NGINX_COMBINED_LOG: LazyLock<RegexWithCaptureInfo> = LazyLock::new(|| {
+    RegexWithCaptureInfo::new(Regex::new(
         r#"(?x)                                 # Ignore whitespace and comments in the regex expression.
         ^\s*                                    # Start with any number of whitespaces.
         (-|(?P<client>\S+))\s+                  # Match `-` or any non space character
@@ -118,12 +126,13 @@ pub(crate) static REGEX_NGINX_COMBINED_LOG: LazyLock<Regex> = LazyLock::new(|| {
         (\s+"(-|(?P<compression>[^"]+))")?      # Match `-` or any non double-quote character
         \s*$                                    # Match any number of whitespaces (to be discarded).
     "#)
-    .expect("failed compiling regex for Nginx combined log")
+    .expect("failed compiling regex for Nginx combined log"))
 });
 
 // - Ingress Nginx docs: https://kubernetes.github.io/ingress-nginx/user-guide/nginx-configuration/log-format/
-pub(crate) static REGEX_INGRESS_NGINX_UPSTREAMINFO_LOG: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(
+pub(crate) static REGEX_INGRESS_NGINX_UPSTREAMINFO_LOG: LazyLock<RegexWithCaptureInfo> =
+    LazyLock::new(|| {
+        RegexWithCaptureInfo::new(Regex::new(
         r#"(?x)                                             # Ignore whitespace and comments in the regex expression.
         ^\s*                                                # Start with any number of whitespaces
         (-|(?P<remote_addr>\S+))\s+                         # Match `-` or any non space character
@@ -146,16 +155,16 @@ pub(crate) static REGEX_INGRESS_NGINX_UPSTREAMINFO_LOG: LazyLock<Regex> = LazyLo
         (?P<req_id>\S+)                                     # Match any non space character
         \s*$                                                # Match any number of whitespaces (to be discarded).
     "#)
-    .expect("failed compiling regex for Ingress Nginx upstreaminfo log")
-});
+    .expect("failed compiling regex for Ingress Nginx upstreaminfo log"))
+    });
 
 // - Main Nginx docs:
 //   - https://nginx.org/en/linux_packages.html
 //   - https://hg.nginx.org/pkg-oss/file/tip/alpine/alpine/nginx.conf
 //   - https://hg.nginx.org/pkg-oss/file/tip/debian/debian/nginx.conf
 //   - https://hg.nginx.org/pkg-oss/file/tip/rpm/SOURCES/nginx.conf
-pub(crate) static REGEX_NGINX_MAIN_LOG: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(
+pub(crate) static REGEX_NGINX_MAIN_LOG: LazyLock<RegexWithCaptureInfo> = LazyLock::new(|| {
+    RegexWithCaptureInfo::new(Regex::new(
         r#"(?x)                                             # Ignore whitespace and comments in the regex expression.
         ^\s*                                                # Start with any number of whitespaces
         (-|(?P<remote_addr>\S+))\s+                         # Match `-` or any non space character
@@ -170,11 +179,11 @@ pub(crate) static REGEX_NGINX_MAIN_LOG: LazyLock<Regex> = LazyLock::new(|| {
         "(-|(?P<http_x_forwarded_for>[^"]+))"               # Match `-` or any non double-quote character
         \s*$                                                # Match any number of whitespaces (to be discarded).
     "#)
-    .expect("failed compiling regex for Nginx main log")
+    .expect("failed compiling regex for Nginx main log"))
 });
 
-pub(crate) static REGEX_NGINX_ERROR_LOG: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(
+pub(crate) static REGEX_NGINX_ERROR_LOG: LazyLock<RegexWithCaptureInfo> = LazyLock::new(|| {
+    RegexWithCaptureInfo::new(Regex::new(
         r#"(?x)                                                                  # Ignore whitespace and comments in the regex expression.
         ^\s*                                                                     # Start with any number of whitespaces.
         (?P<timestamp>.+)\s+                                                     # Match any character until [
@@ -192,7 +201,7 @@ pub(crate) static REGEX_NGINX_ERROR_LOG: LazyLock<Regex> = LazyLock::new(|| {
         (,\s+refer?rer:\s+"(?P<referer>[^"]*)")?                                 # Match any character after ', referrer: '
         \s*$                                                                     # Match any number of whitespaces (to be discarded).
     "#)
-    .expect("failed compiling regex for Nginx error log")
+    .expect("failed compiling regex for Nginx error log"))
 });
 
 // Parse the time as Utc from the given timezone
@@ -215,7 +224,7 @@ fn capture_value(
     value: &str,
     timestamp_format: &str,
     timezone: TimeZone,
-) -> std::result::Result<Value, String> {
+) -> Result<Value, String> {
     Ok(match name {
         "timestamp" => Value::Timestamp(parse_time(value, timestamp_format, timezone)?),
         "status"
@@ -243,38 +252,34 @@ fn capture_value(
 
 /// Extracts the log fields from the regex and adds them to a `Value::Object`.
 pub(crate) fn log_fields(
-    regex: &Regex,
-    captures: &Captures,
+    capture_info: &[(KeyString, usize)],
+    capture: &Captures,
     timestamp_format: &str,
     timezone: TimeZone,
-) -> std::result::Result<Value, String> {
-    Ok(regex
-        .capture_names()
-        .filter_map(|name| {
-            name.and_then(|name| {
-                captures.name(name).map(|value| {
-                    Ok((
-                        name.to_string().into(),
-                        capture_value(name, value.as_str(), timestamp_format, timezone)?,
-                    ))
-                })
-            })
-        })
-        .collect::<std::result::Result<ObjectMap, String>>()?
-        .into())
+) -> Result<Value, String> {
+    let mut map = ObjectMap::new();
+    for (name, idx) in capture_info {
+        if let Some(value) = capture.get(*idx).map(|m| m.as_str()) {
+            map.insert(
+                name.clone(),
+                capture_value(name, value, timestamp_format, timezone)?,
+            );
+        }
+    }
+    Ok(map.into())
 }
 
 /// Attempts to extract log fields from each of the list of regexes
 pub(crate) fn parse_message(
-    regexes: &Vec<Regex>,
+    regexes: &[RegexWithCaptureInfo],
     message: &str,
     timestamp_format: &str,
     timezone: TimeZone,
     log_type: &str,
-) -> std::result::Result<Value, String> {
+) -> Result<Value, String> {
     for regex in regexes {
-        if let Some(captures) = regex.captures(message) {
-            return log_fields(regex, &captures, timestamp_format, timezone);
+        if let Some(captures) = regex.regex.captures(message) {
+            return log_fields(&regex.capture_info, &captures, timestamp_format, timezone);
         }
     }
     Err(format!("failed parsing {log_type} log line"))
