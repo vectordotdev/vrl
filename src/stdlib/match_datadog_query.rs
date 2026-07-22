@@ -1060,6 +1060,42 @@ mod test {
             tdef: type_def(),
         }
 
+        wildcard_facet_trailing_newline {
+            args: func_args![value: value!({"a": "hello world\n"}), query: "@a:*"],
+            want: Ok(true),
+            tdef: type_def(),
+        }
+
+        wildcard_contains_facet_trailing_newline {
+            args: func_args![value: value!({"a": "here is some content\n"}), query: "@a:*some*"],
+            want: Ok(true),
+            tdef: type_def(),
+        }
+
+        wildcard_suffix_facet_trailing_newline {
+            args: func_args![value: value!({"a": "hello world\n"}), query: "@a:hello*"],
+            want: Ok(true),
+            tdef: type_def(),
+        }
+
+        wildcard_prefix_facet_trailing_newline_no_match {
+            args: func_args![value: value!({"a": "here is some\n"}), query: "@a:*some"],
+            want: Ok(false),
+            tdef: type_def(),
+        }
+
+        wildcard_facet_multiline {
+            args: func_args![value: value!({"a": "line1\nline2"}), query: "@a:*line2"],
+            want: Ok(true),
+            tdef: type_def(),
+        }
+
+        wildcard_message_multiline {
+            args: func_args![value: value!({"message": "foo\nbar"}), query: "foo*bar"],
+            want: Ok(true),
+            tdef: type_def(),
+        }
+
         range_message_unbounded {
             args: func_args![value: value!({"message": "1"}), query: "[* TO *]"],
             want: Ok(true),
