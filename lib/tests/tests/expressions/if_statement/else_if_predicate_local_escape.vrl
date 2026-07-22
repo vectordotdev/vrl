@@ -1,0 +1,10 @@
+# result: 1
+
+# Locals assigned in an else-if predicate are visible after the chain
+# (same as the first if predicate; flatten peels nested else { if }).
+if false {
+  null
+} else if (x = 1; true) {
+  null
+}
+x
