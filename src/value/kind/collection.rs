@@ -4,7 +4,10 @@ mod field;
 mod index;
 mod unknown;
 
+use std::cmp::Ordering;
 use std::collections::BTreeMap;
+use std::ops::Deref;
+use std::sync::Arc;
 
 use crate::path::OwnedSegment;
 use crate::path::OwnedValuePath;
@@ -18,13 +21,48 @@ pub trait CollectionKey {
     fn to_segment(&self) -> OwnedSegment;
 }
 
+/// Shared known-key map for [`Collection`].
+///
+/// `Kind` / `TypeState` clones (e.g. forking at `if` arms) share the map until a write goes through
+/// [`Self::make_mut`]. Private so callers cannot mutate the `Arc` without copy-on-write.
+#[derive(Debug, Clone, Eq, PartialEq)]
+struct SharedMap<T: Ord>(Arc<BTreeMap<T, Kind>>);
+
+impl<T: Ord> SharedMap<T> {
+    fn new(map: BTreeMap<T, Kind>) -> Self {
+        Self(Arc::new(map))
+    }
+
+    fn empty() -> Self {
+        Self::new(BTreeMap::new())
+    }
+}
+
+impl<T: Ord + Clone> SharedMap<T> {
+    fn make_mut(&mut self) -> &mut BTreeMap<T, Kind> {
+        Arc::make_mut(&mut self.0)
+    }
+
+    fn into_map(self) -> BTreeMap<T, Kind> {
+        Arc::try_unwrap(self.0).unwrap_or_else(|arc| (*arc).clone())
+    }
+}
+
+impl<T: Ord> Deref for SharedMap<T> {
+    type Target = BTreeMap<T, Kind>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
 /// The kinds of a collection (e.g. array or object).
 ///
 /// A collection contains one or more kinds for known positions within the collection (e.g. indices
 /// or fields), and contains a global "unknown" state that applies to all unknown paths.
-#[derive(Debug, Clone, Eq, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Collection<T: Ord> {
-    known: BTreeMap<T, Kind>,
+    known: SharedMap<T>,
 
     /// The kind of other unknown fields.
     ///
@@ -34,12 +72,25 @@ pub struct Collection<T: Ord> {
     unknown: Unknown,
 }
 
+impl<T: Ord> PartialOrd for Collection<T>
+where
+    T: PartialOrd,
+    BTreeMap<T, Kind>: PartialOrd,
+{
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        match self.known.deref().partial_cmp(other.known.deref()) {
+            Some(Ordering::Equal) => self.unknown.partial_cmp(&other.unknown),
+            non_eq => non_eq,
+        }
+    }
+}
+
 impl<T: Ord + Clone> Collection<T> {
     /// Create a new collection from its parts.
     #[must_use]
     pub fn from_parts(known: BTreeMap<T, Kind>, unknown: impl Into<Kind>) -> Self {
         Self {
-            known,
+            known: SharedMap::new(known),
             unknown: unknown.into().into(),
         }
     }
@@ -60,7 +111,7 @@ impl<T: Ord + Clone> Collection<T> {
     #[must_use]
     pub fn from_unknown(unknown: impl Into<Kind>) -> Self {
         Self {
-            known: BTreeMap::default(),
+            known: SharedMap::empty(),
             unknown: unknown.into().into(),
         }
     }
@@ -69,7 +120,7 @@ impl<T: Ord + Clone> Collection<T> {
     #[must_use]
     pub fn empty() -> Self {
         Self {
-            known: BTreeMap::default(),
+            known: SharedMap::empty(),
             unknown: Kind::undefined().into(),
         }
     }
@@ -78,7 +129,7 @@ impl<T: Ord + Clone> Collection<T> {
     #[must_use]
     pub fn any() -> Self {
         Self {
-            known: BTreeMap::default(),
+            known: SharedMap::empty(),
             unknown: Unknown::any(),
         }
     }
@@ -87,7 +138,7 @@ impl<T: Ord + Clone> Collection<T> {
     #[must_use]
     pub fn json() -> Self {
         Self {
-            known: BTreeMap::default(),
+            known: SharedMap::empty(),
             unknown: Unknown::json(),
         }
     }
@@ -107,9 +158,11 @@ impl<T: Ord + Clone> Collection<T> {
     }
 
     /// Get a mutable reference to the "known" elements in the collection.
+    ///
+    /// Clones the map if other `Kind` values still share it.
     #[must_use]
     pub fn known_mut(&mut self) -> &mut BTreeMap<T, Kind> {
-        &mut self.known
+        self.known.make_mut()
     }
 
     /// Gets the type of "unknown" elements in the collection.
@@ -172,17 +225,19 @@ impl<T: Ord + Clone> Collection<T> {
     /// has an object with a field "bar" results in a collection of which any field can have an
     /// object that has a field "bar".
     pub fn anonymize(&mut self) {
-        let known_unknown = self
-            .known
-            .values_mut()
-            .reduce(|lhs, rhs| {
-                lhs.merge_keep(rhs.clone(), false);
-                lhs
-            })
-            .cloned()
-            .unwrap_or(Kind::never());
-
-        self.known.clear();
+        let known_unknown = {
+            let known = self.known_mut();
+            let known_unknown = known
+                .values_mut()
+                .reduce(|lhs, rhs| {
+                    lhs.merge_keep(rhs.clone(), false);
+                    lhs
+                })
+                .cloned()
+                .unwrap_or(Kind::never());
+            known.clear();
+            known_unknown
+        };
         self.unknown = self.unknown.to_kind().union(known_unknown).into();
     }
 
@@ -201,23 +256,26 @@ impl<T: Ord + Clone> Collection<T> {
     /// For *unknown fields or indices*:
     ///
     /// - Both `Unknown`s are merged, similar to merging two `Kind`s.
-    pub fn merge(&mut self, mut other: Self, overwrite: bool) {
-        for (key, self_kind) in &mut self.known {
-            if let Some(other_kind) = other.known.remove(key) {
+    pub fn merge(&mut self, other: Self, overwrite: bool) {
+        let mut other_known = other.known.into_map();
+        let other_unknown = other.unknown;
+
+        for (key, self_kind) in self.known_mut() {
+            if let Some(other_kind) = other_known.remove(key) {
                 if overwrite {
                     *self_kind = other_kind;
                 } else {
                     self_kind.merge_keep(other_kind, overwrite);
                 }
-            } else if other.unknown_kind().contains_any_defined() {
+            } else if other_unknown.to_kind().contains_any_defined() {
                 if overwrite {
                     // the specific field being merged isn't guaranteed to exist, so merge it with the known type of self
-                    *self_kind = other
-                        .unknown_kind()
+                    *self_kind = other_unknown
+                        .to_kind()
                         .without_undefined()
                         .union(self_kind.clone());
                 } else {
-                    self_kind.merge_keep(other.unknown_kind(), overwrite);
+                    self_kind.merge_keep(other_unknown.to_kind(), overwrite);
                 }
             } else if !overwrite {
                 // other is missing this field, which returns null
@@ -227,21 +285,21 @@ impl<T: Ord + Clone> Collection<T> {
 
         let self_unknown_kind = self.unknown_kind();
         if self_unknown_kind.contains_any_defined() {
-            for (key, mut other_kind) in other.known {
+            for (key, mut other_kind) in other_known {
                 if !overwrite {
                     other_kind.merge_keep(self_unknown_kind.clone(), overwrite);
                 }
                 self.known_mut().insert(key, other_kind);
             }
         } else if overwrite {
-            self.known.extend(other.known);
+            self.known_mut().extend(other_known);
         } else {
-            for (key, other_kind) in other.known {
+            for (key, other_kind) in other_known {
                 // self is missing this field, which returns null
-                self.known.insert(key, other_kind.or_undefined());
+                self.known_mut().insert(key, other_kind.or_undefined());
             }
         }
-        self.unknown.merge(other.unknown, overwrite);
+        self.unknown.merge(other_unknown, overwrite);
     }
 
     /// Return the reduced `Kind` of the items within the collection.
@@ -281,7 +339,7 @@ impl<T: Ord + Clone + CollectionKey> Collection<T> {
 
         // All known fields in `other` need to either be a subset of a matching known field in
         // `self`, or a subset of self's `unknown` type state.
-        for (key, other_kind) in &other.known {
+        for (key, other_kind) in other.known.iter() {
             match self.known.get(key) {
                 Some(self_kind) => {
                     self_kind
@@ -298,7 +356,7 @@ impl<T: Ord + Clone + CollectionKey> Collection<T> {
 
         // All known fields in `self` not known in `other` need to be a superset of other's
         // `unknown` type state.
-        for (key, self_kind) in &self.known {
+        for (key, self_kind) in self.known.iter() {
             if !other.known.contains_key(key) {
                 self_kind
                     .is_superset(&other.unknown_kind())
@@ -332,7 +390,7 @@ pub enum EmptyState {
 impl<T: Ord> From<BTreeMap<T, Kind>> for Collection<T> {
     fn from(known: BTreeMap<T, Kind>) -> Self {
         Self {
-            known,
+            known: SharedMap::new(known),
             unknown: Kind::undefined().into(),
         }
     }
