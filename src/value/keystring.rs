@@ -95,18 +95,6 @@ impl From<KeyString> for String {
     }
 }
 
-#[cfg(any(test, feature = "arbitrary"))]
-impl quickcheck::Arbitrary for KeyString {
-    fn arbitrary(g: &mut quickcheck::Gen) -> Self {
-        String::arbitrary(g).into()
-    }
-
-    fn shrink(&self) -> Box<dyn Iterator<Item = Self>> {
-        let s = self.0.clone();
-        Box::new(s.shrink().map(Into::into))
-    }
-}
-
 #[cfg(any(test, feature = "lua"))]
 mod lua {
     use mlua::prelude::LuaResult;

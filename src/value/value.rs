@@ -21,10 +21,10 @@ mod iter;
 mod path;
 mod regex;
 
-#[cfg(any(test, feature = "arbitrary"))]
-mod arbitrary;
 #[cfg(any(test, feature = "lua"))]
 mod lua;
+#[cfg(any(test, feature = "proptest"))]
+pub mod proptest;
 mod serde;
 
 /// A boxed `std::error::Error`.
@@ -222,7 +222,7 @@ pub fn timestamp_to_string(timestamp: &DateTime<Utc>) -> String {
 
 #[cfg(test)]
 mod test {
-    use quickcheck::{QuickCheck, TestResult};
+    use ::proptest::prelude::*;
 
     use crate::path;
     use crate::path::{BorrowedSegment, parse_value_path};
@@ -277,32 +277,24 @@ mod test {
         }
     }
 
-    #[test]
-    fn quickcheck_value() {
-        fn inner(mut path: Vec<BorrowedSegment<'static>>) -> TestResult {
+    proptest! {
+        #[test]
+        fn proptest_value(mut path in ::proptest::collection::vec(any::<BorrowedSegment<'static>>(), 0..8)) {
             let mut value = Value::from(BTreeMap::default());
             let mut marker = Value::from(true);
 
             // Push a field at the start of the path so the top level is a map.
             path.insert(0, BorrowedSegment::from("field"));
 
-            assert_eq!(value.insert(&path, marker.clone()), None, "inserting value");
-            assert_eq!(value.get(&path), Some(&marker), "retrieving value");
-            assert_eq!(
+            prop_assert_eq!(value.insert(&path, marker.clone()), None, "inserting value");
+            prop_assert_eq!(value.get(&path), Some(&marker), "retrieving value");
+            prop_assert_eq!(
                 value.get_mut(&path),
                 Some(&mut marker),
                 "retrieving mutable value"
             );
-
-            assert_eq!(value.remove(&path, true), Some(marker), "removing value");
-
-            TestResult::passed()
+            prop_assert_eq!(value.remove(&path, true), Some(marker), "removing value");
         }
-
-        QuickCheck::new()
-            .tests(100)
-            .max_tests(200)
-            .quickcheck(inner as fn(Vec<BorrowedSegment<'static>>) -> TestResult);
     }
 
     #[test]

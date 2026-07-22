@@ -111,30 +111,17 @@ impl<'a, 'b> TargetPath<'a> for BorrowedTargetPath<'a, 'b> {
     }
 }
 
-#[cfg(any(test, feature = "arbitrary"))]
-impl quickcheck::Arbitrary for BorrowedSegment<'static> {
-    fn arbitrary(g: &mut quickcheck::Gen) -> Self {
-        if bool::arbitrary(g) {
-            if bool::arbitrary(g) {
-                BorrowedSegment::Index((usize::arbitrary(g) % 20) as isize)
-            } else {
-                BorrowedSegment::Index(-((usize::arbitrary(g) % 20) as isize))
-            }
-        } else {
-            BorrowedSegment::Field(String::arbitrary(g).into())
-        }
-    }
+#[cfg(any(test, feature = "proptest"))]
+impl proptest::arbitrary::Arbitrary for BorrowedSegment<'static> {
+    type Parameters = ();
+    type Strategy = proptest::strategy::BoxedStrategy<Self>;
 
-    fn shrink(&self) -> Box<dyn Iterator<Item = Self>> {
-        match self {
-            BorrowedSegment::Invalid => Box::new(std::iter::empty()),
-            BorrowedSegment::Index(index) => Box::new(index.shrink().map(BorrowedSegment::Index)),
-            BorrowedSegment::Field(field) => Box::new(
-                field
-                    .to_string()
-                    .shrink()
-                    .map(|f| BorrowedSegment::Field(f.into())),
-            ),
-        }
+    fn arbitrary_with((): Self::Parameters) -> Self::Strategy {
+        use proptest::prelude::*;
+        prop_oneof![
+            any::<String>().prop_map(|s| BorrowedSegment::Field(s.into())),
+            (-19isize..=19isize).prop_map(BorrowedSegment::Index),
+        ]
+        .boxed()
     }
 }
