@@ -311,7 +311,15 @@ impl Expression for Assignment {
     }
 
     fn type_info(&self, state: &TypeState) -> TypeInfo {
-        self.variant.type_info(state)
+        let mut state = state.clone();
+        let result = self.apply_type_info(&mut state);
+        TypeInfo::new(state, result)
+    }
+
+    /// Mutate `state` in place. The default `apply_type_info` clones via `type_info`;
+    /// assignments are dense in remap programs so avoid that full `TypeState` clone.
+    fn apply_type_info(&self, state: &mut TypeState) -> TypeDef {
+        self.variant.apply_type_info(state)
     }
 }
 
@@ -353,33 +361,30 @@ impl Target {
         match self {
             Self::Noop => {}
             Self::Internal(ident, path) => {
-                let type_def = match state.local.variable(ident) {
-                    None => TypeDef::never().with_type_inserted(path, new_type_def),
-                    Some(Details { type_def, .. }) => {
-                        type_def.clone().with_type_inserted(path, new_type_def)
-                    }
-                };
-
-                let details = Details { type_def, value };
-                state.local.insert_variable(ident.clone(), details);
+                if let Some(details) = state.local.variable_mut(ident) {
+                    details.type_def.insert_type(path, new_type_def);
+                    details.value = value;
+                } else {
+                    let type_def = TypeDef::never().with_type_inserted(path, new_type_def);
+                    state
+                        .local
+                        .insert_variable(ident.clone(), Details { type_def, value });
+                }
             }
 
             Self::External(target_path) => match target_path.prefix {
                 PathPrefix::Event => {
-                    state.external.update_target(Details {
-                        type_def: state
-                            .external
-                            .target()
-                            .type_def
-                            .clone()
-                            .with_type_inserted(&target_path.path, new_type_def),
-                        value,
-                    });
+                    let details = state.external.target_mut();
+                    details
+                        .type_def
+                        .insert_type(&target_path.path, new_type_def);
+                    details.value = value;
                 }
                 PathPrefix::Metadata => {
-                    let mut kind = state.external.metadata_kind().clone();
-                    kind.insert(&target_path.path, new_type_def.kind().clone());
-                    state.external.update_metadata(kind);
+                    state
+                        .external
+                        .metadata_kind_mut()
+                        .insert(&target_path.path, new_type_def.kind().clone());
                 }
             },
         }
@@ -551,15 +556,14 @@ where
         Ok(value)
     }
 
-    fn type_info(&self, state: &TypeState) -> TypeInfo {
-        let mut state = state.clone();
+    fn apply_type_info(&self, state: &mut TypeState) -> TypeDef {
         match &self {
             Variant::Single { target, expr } => {
-                let expr_result = expr.apply_type_info(&mut state).impure();
+                let expr_result = expr.apply_type_info(state).impure();
 
-                let const_value = expr.resolve_constant(&state);
-                target.insert_type_def(&mut state, expr_result.clone(), const_value);
-                TypeInfo::new(state, expr_result)
+                let const_value = expr.resolve_constant(state);
+                target.insert_type_def(state, expr_result.clone(), const_value);
+                expr_result
             }
             Variant::Infallible {
                 ok,
@@ -567,7 +571,7 @@ where
                 expr,
                 default,
             } => {
-                let expr_result = expr.apply_type_info(&mut state);
+                let expr_result = expr.apply_type_info(state);
 
                 // The "ok" type is either the result of the expression, or a "default" value when the expression fails.
                 let ok_type = expr_result
@@ -575,19 +579,23 @@ where
                     .union(TypeDef::from(default.kind()))
                     .infallible();
 
-                let const_value = expr.resolve_constant(&state);
-                ok.insert_type_def(&mut state, ok_type, const_value);
+                let const_value = expr.resolve_constant(state);
+                ok.insert_type_def(state, ok_type, const_value);
 
                 // The "err" type is either the error message "bytes" or "null" (not undefined).
                 let err_type = TypeDef::from(Kind::bytes().or_null());
-                err.insert_type_def(&mut state, err_type, None);
+                err.insert_type_def(state, err_type, None);
 
                 // Return type of the assignment expression itself is either the "expr" type or "bytes (the error message).
-                let assignment_result = expr_result.infallible().impure().or_bytes();
-
-                TypeInfo::new(state, assignment_result)
+                expr_result.infallible().impure().or_bytes()
             }
         }
+    }
+
+    fn type_info(&self, state: &TypeState) -> TypeInfo {
+        let mut state = state.clone();
+        let result = self.apply_type_info(&mut state);
+        TypeInfo::new(state, result)
     }
 }
 
