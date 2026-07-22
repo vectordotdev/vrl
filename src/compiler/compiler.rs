@@ -4,7 +4,7 @@ use crate::compiler::{
     CompileConfig, Function, Program, TypeDef,
     expression::{
         Abort, Array, Assignment, Block, Container, Expr, Expression, FunctionArgument,
-        FunctionCall, Group, IfStatement, Literal, Noop, Not, Object, Op, Predicate, Query, Return,
+        FunctionCall, Group, IfArm, IfStatement, Literal, Noop, Not, Object, Op, Predicate, Query, Return,
         Target, Unary, Variable, assignment, function_call, literal, predicate, query,
     },
     parser::ast::RootExpr,
@@ -384,32 +384,37 @@ impl<'a> Compiler<'a> {
             else_node,
         } = node.into_inner();
 
+        // Peel parser-emitted `else { if ... }` chains into a flat arm list so
+        // typecheck visits each arm once (nested form re-walked suffixes).
+        let (ast_arms, final_else) = flatten_ast_else_if_chain(predicate, if_node, else_node);
+
         let original_state = state.clone();
+        let mut pred_state = original_state.clone();
+        let mut arms = Vec::with_capacity(ast_arms.len());
 
-        let predicate = self
-            .compile_predicate(predicate, state)?
-            .map_err(|err| self.diagnostics.push(Box::new(err)))
-            .ok()?;
+        for (predicate, if_node) in ast_arms {
+            *state = pred_state.clone();
 
-        let after_predicate_state = state.clone();
+            let predicate = self
+                .compile_predicate(predicate, state)?
+                .map_err(|err| self.diagnostics.push(Box::new(err)))
+                .ok()?;
 
-        let if_block = self.compile_block(if_node, state)?;
+            pred_state = state.clone();
+            let block = self.compile_block(if_node, state)?;
+            arms.push(IfArm { predicate, block });
+        }
 
-        let else_block = if let Some(else_node) = else_node {
-            *state = after_predicate_state;
+        let else_block = if let Some(else_node) = final_else {
+            *state = pred_state;
             Some(self.compile_block(else_node, state)?)
         } else {
             None
         };
 
-        let if_statement = IfStatement {
-            predicate,
-            if_block,
-            else_block,
-        };
+        let if_statement = IfStatement::new(arms, else_block);
 
-        // The current state is from one of the branches. Restore it and calculate
-        // the type state from the full "if statement" expression.
+        // Restore and calculate type state from the full flat if expression once.
         *state = original_state;
         if_statement.apply_type_info(state);
         Some(if_statement)
@@ -944,5 +949,45 @@ impl<'a> Compiler<'a> {
         };
 
         self.skip_missing_query_target.push(query);
+    }
+}
+
+/// Peel parser `else { if ... }` nesting into a flat list of arms.
+///
+/// The VRL parser builds `else if` as `else` wrapping a block that contains a
+/// single nested `if`. Walking that nest during compile/typecheck re-visits
+/// suffixes and is quadratic in arm count.
+fn flatten_ast_else_if_chain(
+    predicate: Node<ast::Predicate>,
+    if_node: Node<ast::Block>,
+    mut else_node: Option<Node<ast::Block>>,
+) -> (
+    Vec<(Node<ast::Predicate>, Node<ast::Block>)>,
+    Option<Node<ast::Block>>,
+) {
+    let mut arms = vec![(predicate, if_node)];
+
+    loop {
+        let Some(else_block) = else_node.take() else {
+            return (arms, None);
+        };
+
+        let is_else_if = matches!(
+            else_block.inner().0.as_slice(),
+            [stmt] if matches!(stmt.inner(), ast::Expr::IfStatement(_))
+        );
+
+        if !is_else_if {
+            return (arms, Some(else_block));
+        }
+
+        let mut stmts = else_block.into_inner().into_inner();
+        let only = stmts.pop().expect("checked single stmt");
+        let ast::Expr::IfStatement(inner) = only.into_inner() else {
+            unreachable!("checked IfStatement");
+        };
+        let inner = inner.into_inner();
+        arms.push((inner.predicate, inner.if_node));
+        else_node = inner.else_node;
     }
 }
