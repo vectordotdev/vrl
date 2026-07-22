@@ -66,6 +66,10 @@ impl LocalEnv {
         self.bindings.get(ident)
     }
 
+    pub(crate) fn variable_mut(&mut self, ident: &Ident) -> Option<&mut Details> {
+        self.bindings.get_mut(ident)
+    }
+
     pub(crate) fn insert_variable(&mut self, ident: Ident, details: Details) {
         self.bindings.insert(ident, details);
     }
@@ -145,6 +149,10 @@ impl ExternalEnv {
         &self.target
     }
 
+    pub(crate) fn target_mut(&mut self) -> &mut Details {
+        &mut self.target
+    }
+
     pub fn target_kind(&self) -> &Kind {
         self.target().type_def.kind()
     }
@@ -159,6 +167,10 @@ impl ExternalEnv {
 
     pub fn metadata_kind(&self) -> &Kind {
         &self.metadata
+    }
+
+    pub(crate) fn metadata_kind_mut(&mut self) -> &mut Kind {
+        &mut self.metadata
     }
 
     pub(crate) fn update_target(&mut self, details: Details) {
