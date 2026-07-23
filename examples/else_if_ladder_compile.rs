@@ -12,6 +12,8 @@
 //! `--env-width` / `--env-depth` / `--env-seed-fields` shape the starting event `Kind`
 //! (incoming schema), independent of the program text.
 
+#![allow(clippy::print_stdout, clippy::print_stderr)]
+
 use std::collections::BTreeMap;
 use std::env;
 use std::fs;
@@ -186,7 +188,10 @@ fn build_env_event_kind(width: usize, depth: usize, seed_limit: usize) -> Kind {
                 known.insert(Field::from("n"), kind);
             }
         } else {
-            known.insert(Field::from("n"), level(width, depth_left - 1, counter, limit));
+            known.insert(
+                Field::from("n"),
+                level(width, depth_left - 1, counter, limit),
+            );
         }
         Kind::object(Collection::from_parts(known, Kind::any()))
     }

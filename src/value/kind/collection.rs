@@ -78,7 +78,7 @@ where
     BTreeMap<T, Kind>: PartialOrd,
 {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        match self.known.deref().partial_cmp(other.known.deref()) {
+        match (*self.known).partial_cmp(&*other.known) {
             Some(Ordering::Equal) => self.unknown.partial_cmp(&other.unknown),
             non_eq => non_eq,
         }

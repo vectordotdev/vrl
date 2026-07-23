@@ -4,8 +4,8 @@ use crate::compiler::{
     CompileConfig, Function, Program, TypeDef,
     expression::{
         Abort, Array, Assignment, Block, Container, Expr, Expression, FunctionArgument,
-        FunctionCall, Group, IfArm, IfStatement, Literal, Noop, Not, Object, Op, Predicate, Query, Return,
-        Target, Unary, Variable, assignment, function_call, literal, predicate, query,
+        FunctionCall, Group, IfArm, IfStatement, Literal, Noop, Not, Object, Op, Predicate, Query,
+        Return, Target, Unary, Variable, assignment, function_call, literal, predicate, query,
     },
     parser::ast::RootExpr,
     program::ProgramInfo,
@@ -952,6 +952,11 @@ impl<'a> Compiler<'a> {
     }
 }
 
+type FlattenedElseIfChain = (
+    Vec<(Node<ast::Predicate>, Node<ast::Block>)>,
+    Option<Node<ast::Block>>,
+);
+
 /// Peel parser `else { if ... }` nesting into a flat list of arms.
 ///
 /// The VRL parser builds `else if` as `else` wrapping a block that contains a
@@ -961,10 +966,7 @@ fn flatten_ast_else_if_chain(
     predicate: Node<ast::Predicate>,
     if_node: Node<ast::Block>,
     mut else_node: Option<Node<ast::Block>>,
-) -> (
-    Vec<(Node<ast::Predicate>, Node<ast::Block>)>,
-    Option<Node<ast::Block>>,
-) {
+) -> FlattenedElseIfChain {
     let mut arms = vec![(predicate, if_node)];
 
     loop {
