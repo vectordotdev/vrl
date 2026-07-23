@@ -12,11 +12,11 @@
 #   = see language documentation at https://vrl.dev
 #   = try your code in the VRL REPL, learn more at https://vrl.dev/examples
 
-# Locals first assigned in an else-if predicate must not escape the chain
-# (same as nested else { if } Block scope before flatten).
+# Else-if body-only local must not escape (merged arm state must not leak body bindings after flatten).
 if false {
   null
-} else if (x = 1; true) {
+} else if (true) {
+  x = 1
   null
 }
 x
