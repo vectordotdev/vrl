@@ -56,10 +56,17 @@ impl Expression for IfStatement {
         let mut returns = Kind::never();
         let mut arm_states: Vec<TypeState> = Vec::with_capacity(self.arms.len());
         let mut result_def: Option<crate::compiler::TypeDef> = None;
+        // Locals present after arm 0's predicate (inbound + first-pred assigns).
+        // Used below to drop bindings first introduced by later predicates.
+        let mut locals_after_first_predicate = None;
 
         for arm in &self.arms {
             let predicate_info = arm.predicate.apply_type_info(&mut running);
             returns.merge_keep(predicate_info.returns().clone(), false);
+
+            if locals_after_first_predicate.is_none() {
+                locals_after_first_predicate = Some(running.local.clone());
+            }
 
             let arm_info = arm.block.type_info(&running);
             result_def = Some(match result_def {
@@ -71,7 +78,7 @@ impl Expression for IfStatement {
 
         let mut result = result_def.expect("at least one arm");
 
-        let final_state = if let Some(else_block) = &self.else_block {
+        let mut final_state = if let Some(else_block) = &self.else_block {
             let else_info = else_block.type_info(&running);
             result = result.union(else_info.result);
 
@@ -86,6 +93,16 @@ impl Expression for IfStatement {
                 .into_iter()
                 .fold(running, |acc, arm_state| acc.merge(arm_state))
         };
+
+        // Flattened else-if peels parser `else { if }` wrappers. Those Blocks
+        // used `apply_child_scope`, so locals first assigned in a later
+        // predicate did not escape the chain. Re-apply that rule: keep/merge
+        // updates to locals that already existed after arm 0's predicate;
+        // drop bindings introduced only by later predicates (they are not
+        // definite when an earlier arm matched).
+        if let Some(baseline) = locals_after_first_predicate {
+            final_state.local = baseline.apply_child_scope(final_state.local);
+        }
 
         result.returns_mut().merge_keep(returns, false);
         TypeInfo::new(final_state, result)
