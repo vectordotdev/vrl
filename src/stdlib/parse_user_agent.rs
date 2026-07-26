@@ -1,12 +1,8 @@
 use crate::compiler::function::EnumVariant;
 use crate::compiler::prelude::*;
-use std::{
-    borrow::Cow,
-    collections::BTreeMap,
-    fmt,
-    str::FromStr,
-    sync::{Arc, LazyLock},
-};
+use crate::value::value::simdutf_bytes_utf8_lossy;
+use std::sync::{Arc, Mutex};
+use std::{borrow::Cow, collections::BTreeMap, fmt, str::FromStr, sync::LazyLock};
 use woothee::parser::Parser as WootheeParser;
 
 static UA_EXTRACTOR: LazyLock<ua_parser::Extractor> = LazyLock::new(|| {
@@ -16,7 +12,7 @@ static UA_EXTRACTOR: LazyLock<ua_parser::Extractor> = LazyLock::new(|| {
 
 static DEFAULT_MODE: Value = Value::Bytes(Bytes::from_static("fast".as_bytes()));
 
-static MODE_ENUM: &[EnumVariant] = &[
+const MODE_ENUM: &[EnumVariant] = &[
     EnumVariant {
         value: "fast",
         description: "Fastest mode but most unreliable. Uses parser from project [Woothee](https://github.com/woothee/woothee).",
@@ -48,6 +44,11 @@ const PARAMETERS: &[Parameter] = &[
     )
     .default(&DEFAULT_MODE)
     .enum_variants(MODE_ENUM),
+    Parameter::optional(
+        "cache",
+        kind::INTEGER,
+        "Defines how many parsed agents can be stored in cache.",
+    ),
 ];
 
 #[derive(Clone, Copy, Debug)]
@@ -195,61 +196,67 @@ impl Function for ParseUserAgent {
             .map(|s| Mode::from_str(&s).expect("validated enum"))
             .expect("mode not bytes");
 
-        let parser = match mode {
-            Mode::Fast => {
-                let parser = WootheeParser::new();
+        let cache = arguments
+            .optional_literal("cache", state)?
+            .map(|c| {
+                c.clone()
+                    .try_integer()
+                    .map_err(|_| function::Error::InvalidArgument {
+                        keyword: "cache",
+                        value: c,
+                        error: "must be integer literal",
+                    })
+            })
+            .transpose()?;
 
-                Arc::new(move |s: &str| parser.parse_user_agent(s).partial_schema()) as Arc<_>
-            }
-            Mode::Reliable => {
-                let fast = WootheeParser::new();
-                let slow = &UA_EXTRACTOR;
-
-                Arc::new(move |s: &str| {
-                    let ua = fast.parse_user_agent(s);
-                    let ua = if ua.browser.family.is_none() || ua.os.family.is_none() {
-                        let better_ua = slow.parse_user_agent(s);
-                        better_ua.or(ua)
-                    } else {
-                        ua
-                    };
-                    ua.partial_schema()
-                }) as Arc<_>
-            }
-            Mode::Enriched => {
-                let fast = WootheeParser::new();
-                let slow = &UA_EXTRACTOR;
-
-                Arc::new(move |s: &str| {
-                    slow.parse_user_agent(s)
-                        .or(fast.parse_user_agent(s))
-                        .full_schema()
-                }) as Arc<_>
-            }
-        };
-
-        Ok(ParseUserAgentFn {
-            value,
-            mode,
-            parser,
-        }
-        .as_expr())
+        Ok(
+            if let Some(cache_size) = cache
+                && cache_size > 0
+            {
+                #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+                let cache = Arc::new(Mutex::new(hashlink::LruCache::new(cache_size as usize)));
+                ParseUserAgentWithCacheFn { value, mode, cache }.as_expr()
+            } else {
+                ParseUserAgentFn { value, mode }.as_expr()
+            },
+        )
     }
 }
 
-#[derive(Clone)]
+fn parse_user_agent(bytes: &Bytes, mode: Mode) -> Value {
+    let string = simdutf_bytes_utf8_lossy(bytes);
+    match mode {
+        Mode::Fast => WootheeParser::new()
+            .parse_user_agent(&string)
+            .partial_schema(),
+        Mode::Reliable => {
+            let ua = WootheeParser::new().parse_user_agent(&string);
+            if ua.browser.family.is_none() || ua.os.family.is_none() {
+                let better_ua = UA_EXTRACTOR.parse_user_agent(&string);
+                better_ua.or(ua)
+            } else {
+                ua
+            }
+            .partial_schema()
+        }
+        Mode::Enriched => UA_EXTRACTOR
+            .parse_user_agent(&string)
+            .or(WootheeParser::new().parse_user_agent(&string))
+            .full_schema(),
+    }
+}
+
+#[derive(Clone, Debug)]
 struct ParseUserAgentFn {
     value: Box<dyn Expression>,
     mode: Mode,
-    parser: Arc<dyn Fn(&str) -> Value + Send + Sync>,
 }
 
 impl FunctionExpression for ParseUserAgentFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let value = self.value.resolve(ctx)?;
-        let string = value.try_bytes_utf8_lossy()?;
-
-        Ok((self.parser)(&string))
+        let bytes = value.try_bytes()?;
+        Ok(parse_user_agent(&bytes, self.mode))
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {
@@ -257,12 +264,48 @@ impl FunctionExpression for ParseUserAgentFn {
     }
 }
 
-impl fmt::Debug for ParseUserAgentFn {
+#[derive(Clone)]
+struct ParseUserAgentWithCacheFn {
+    value: Box<dyn Expression>,
+    mode: Mode,
+    cache: Arc<Mutex<hashlink::LruCache<Bytes, Value>>>,
+}
+
+impl FunctionExpression for ParseUserAgentWithCacheFn {
+    fn resolve(&self, ctx: &mut Context) -> Resolved {
+        let value = self.value.resolve(ctx)?;
+        let bytes = value.try_bytes()?;
+
+        if bytes.len() > 512 {
+            // Do not cache unusually big user agents
+            return Ok(parse_user_agent(&bytes, self.mode));
+        }
+
+        if let Some(value) = self.cache.lock().unwrap().get(&bytes) {
+            return Ok(value.clone());
+        }
+
+        let value = parse_user_agent(&bytes, self.mode);
+
+        let cloned = value.clone();
+        self.cache.lock().unwrap().insert(bytes, cloned);
+
+        Ok(value)
+    }
+
+    fn type_def(&self, _: &state::TypeState) -> TypeDef {
+        self.mode.type_def()
+    }
+}
+
+impl fmt::Debug for ParseUserAgentWithCacheFn {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,
-            "ParseUserAgentFn{{ value: {:?}, mode: {:?}}}",
-            self.value, self.mode
+            "ParseUserAgentWithCacheFn{{ value: {:?}, mode: {:?}, cache: {}}}",
+            self.value,
+            self.mode,
+            self.cache.lock().unwrap().capacity()
         )
     }
 }
@@ -661,6 +704,12 @@ mod tests {
 
         parses {
             args: func_args![ value: "Mozilla/4.0 (compatible; MSIE 7.66; Windows NT 5.1; SV1)" ],
+            want: Ok(value!({ browser: { family: "Internet Explorer", version: "7.66" }, device: { category: "pc" }, os: { family: "Windows XP", version: "NT 5.1" } })),
+            tdef: Mode::Fast.type_def(),
+        }
+
+        parses_with_cache {
+            args: func_args![ value: "Mozilla/4.0 (compatible; MSIE 7.66; Windows NT 5.1; SV1)", cache: 10 ],
             want: Ok(value!({ browser: { family: "Internet Explorer", version: "7.66" }, device: { category: "pc" }, os: { family: "Windows XP", version: "NT 5.1" } })),
             tdef: Mode::Fast.type_def(),
         }
