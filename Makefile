@@ -1,5 +1,5 @@
 .PHONY: help all clippy fmt fmt-check test vrl-test \
-	check-typos check-features check-licenses check-msrv check-deny check-wasm32 \
+	check-typos check-features check-licenses write-licenses check-msrv check-deny check-wasm32 \
 	check-docs check-lockfile generate-docs
 
 CARGO_DENY_VERSION        := 0.18.9
@@ -48,6 +48,10 @@ check-features: ## Verify all feature combinations compile
 check-licenses: ## Verify the 3rd-party license file is up to date
 	$(call ensure-cargo-tool,dd-rust-license-tool,$(DD_LICENSE_TOOL_VERSION))
 	dd-rust-license-tool check
+
+write-licenses: ## Update the 3rd-party license file
+	$(call ensure-cargo-tool,dd-rust-license-tool,$(DD_LICENSE_TOOL_VERSION))
+	dd-rust-license-tool write
 
 check-msrv: ## Verify MSRV
 	$(call ensure-cargo-tool,cargo-msrv,$(CARGO_MSRV_VERSION))
