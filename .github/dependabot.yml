@@ -26,12 +26,32 @@ updates:
         - "prost-*"
       rustcrypto-digest:
         patterns:
-        - "digest"
-        - "hmac"
-        - "md-5"
-        - "sha1"
-        - "sha2"
-        - "sha3"
+          - "digest"
+          - "hmac"
+          - "md-5"
+          - "sha1"
+          - "sha2"
+          - "sha3"
+      cargo-other:
+        applies-to: version-updates
+        patterns:
+          - "*"
+        update-types:
+          - "patch"
+          - "minor"
+      # Keep major bumps in one PR. Without this group, majors matching a
+      # dependency-specific group may be silently dropped instead of falling
+      # back to individual PRs (dependabot-core#14202).
+      cargo-major:
+        applies-to: version-updates
+        patterns:
+          - "*"
+        update-types:
+          - "major"
+      cargo-security:
+        applies-to: security-updates
+        patterns:
+          - "*"
   - package-ecosystem: "npm"
     directory: "/scripts/npm-tools"
     schedule:
