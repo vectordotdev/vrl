@@ -1,4 +1,4 @@
-.PHONY: help all clippy fmt fmt-check test vrl-test \
+.PHONY: help all check-clippy fmt fmt-check test vrl-test \
 	check-typos check-features check-licenses write-licenses check-msrv check-deny check-wasm32 \
 	check-docs check-lockfile generate-docs
 
