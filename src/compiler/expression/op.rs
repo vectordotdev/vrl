@@ -18,6 +18,10 @@ pub struct Op {
     pub(crate) opcode: ast::Opcode,
 }
 
+fn is_number(value: &Value) -> bool {
+    value.is_integer() || value.is_float()
+}
+
 fn constant_arithmetic_produces_nan(
     opcode: ast::Opcode,
     lhs_value: Option<&Value>,
@@ -28,9 +32,7 @@ fn constant_arithmetic_produces_nan(
     let (Some(lhs), Some(rhs)) = (lhs_value, rhs_value) else {
         return false;
     };
-    let lhs_is_number = lhs.is_integer() || lhs.is_float();
-    let rhs_is_number = rhs.is_integer() || rhs.is_float();
-    if !lhs_is_number || !rhs_is_number || !(lhs.is_float() || rhs.is_float()) {
+    if !is_number(lhs) || !is_number(rhs) || !(lhs.is_float() || rhs.is_float()) {
         return false;
     }
 
@@ -169,6 +171,10 @@ impl Expression for Op {
 
         let lhs = self.lhs.resolve_constant(state)?;
         let rhs = self.rhs.resolve_constant(state)?;
+
+        if !is_number(&lhs) || !is_number(&rhs) {
+            return None;
+        }
 
         match self.opcode {
             Mul => lhs.try_mul(rhs),
