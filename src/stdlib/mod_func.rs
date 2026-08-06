@@ -26,6 +26,7 @@ impl Function for Mod {
             "`value` is not an integer or float.",
             "`modulus` is not an integer or float.",
             "`modulus` is equal to 0.",
+            "The operation would produce NaN.",
         ]
     }
 
@@ -85,8 +86,14 @@ impl FunctionExpression for ModFn {
     }
 
     fn type_def(&self, state: &state::TypeState) -> TypeDef {
-        // Division is infallible if the rhs is a literal normal float or a literal non-zero integer.
-        match self.modulus.resolve_constant(state) {
+        let value_is_infinite = match self.value.resolve_constant(state) {
+            Some(Value::Float(value)) => value.is_infinite(),
+            _ => false,
+        };
+
+        // Preserve the existing infallible typing for a known-safe modulus, unless the
+        // dividend is a constant infinity that is known to produce NaN.
+        let type_def = match self.modulus.resolve_constant(state) {
             Some(value) if value.is_float() || value.is_integer() => match value {
                 Value::Float(v) if v.is_normal() => TypeDef::float().infallible(),
                 Value::Float(_) => TypeDef::float().fallible(),
@@ -95,6 +102,12 @@ impl FunctionExpression for ModFn {
                 _ => TypeDef::float().or_integer().fallible(),
             },
             _ => TypeDef::float().or_integer().fallible(),
+        };
+
+        if value_is_infinite {
+            type_def.fallible()
+        } else {
+            type_def
         }
     }
 }
@@ -117,6 +130,12 @@ mod tests {
             args: func_args![value: 5.0, modulus: 2.0],
             want: Ok(value!(1.0)),
             tdef: TypeDef::float().infallible(),
+        }
+
+        nan_mod {
+            args: func_args![value: f64::INFINITY, modulus: 1.0],
+            want: Err("operation would produce NaN"),
+            tdef: TypeDef::float().fallible(),
         }
 
         fallible_mod {

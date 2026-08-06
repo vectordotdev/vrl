@@ -20,10 +20,7 @@ endef
 help: ## Show available targets
 	@awk 'BEGIN {FS = ":.*##"} /^[a-zA-Z_-]+:.*##/ {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
-all: fmt-check clippy test vrl-test check-licenses check-wasm32 ## Run the common pre-PR checks
-
-clippy: ## Lint with clippy (workspace, all targets, all features)
-	cargo clippy --workspace --all-targets --all-features -- -D warnings
+all: fmt-check test vrl-test check-clippy check-licenses check-wasm32 ## Run the common pre-PR checks
 
 fmt: ## Format all code
 	cargo fmt --all
@@ -36,6 +33,9 @@ test: ## Run cargo tests
 
 vrl-test: ## Run VRL integration tests
 	cargo run --package vrl-tests --bin vrl-tests
+
+check-clippy: ## Lint with clippy (workspace, all targets, all features)
+	cargo clippy --workspace --all-targets --all-features -- -D warnings
 
 check-typos: ## Check spelling with `typos`
 	$(call ensure-cargo-tool,typos-cli,$(TYPOS_CLI_VERSION))
