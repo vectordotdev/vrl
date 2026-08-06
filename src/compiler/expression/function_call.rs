@@ -18,6 +18,7 @@ use crate::compiler::{
 };
 use crate::diagnostic::{DiagnosticMessage, Label, Note, Severity, Urls};
 use crate::prelude::Note::SeeErrorDocs;
+use crate::value::Value;
 
 pub(crate) struct Builder<'a> {
     abort_on_error: bool,
@@ -682,6 +683,10 @@ impl Expression for FunctionCall {
                 }
             }
         })
+    }
+
+    fn resolve_constant(&self, state: &TypeState) -> Option<Value> {
+        self.expr.resolve_constant(state)
     }
 
     fn type_info(&self, state: &TypeState) -> TypeInfo {
