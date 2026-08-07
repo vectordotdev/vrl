@@ -27,6 +27,9 @@ pub struct IfStatement {
 }
 
 impl IfStatement {
+    /// # Panics
+    ///
+    /// Panics if `arms` is empty.
     #[must_use]
     pub fn new(arms: Vec<IfArm>, else_block: Option<Block>) -> Self {
         assert!(!arms.is_empty(), "if statement requires at least one arm");
@@ -84,14 +87,12 @@ impl Expression for IfStatement {
 
             arm_states
                 .into_iter()
-                .fold(else_info.state, |acc, arm_state| acc.merge(arm_state))
+                .fold(else_info.state, TypeState::merge)
         } else {
             // All predicates false → null, and state is the post-predicate state
             // merged with every arm (same as nested `if` without `else`).
             result = result.or_null();
-            arm_states
-                .into_iter()
-                .fold(running, |acc, arm_state| acc.merge(arm_state))
+            arm_states.into_iter().fold(running, TypeState::merge)
         };
 
         // Flattened else-if peels parser `else { if }` wrappers. Those Blocks
