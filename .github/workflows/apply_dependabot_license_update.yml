@@ -5,8 +5,8 @@ on:
     workflows: ["Generate Dependabot License Update"]
     types: [completed]
 
-# The built-in token only reads the triggering run and its artifact. Repository
-# writes use a current-repository-only vectordotdev-bot installation token.
+# The built-in token validates the triggering run, artifact, and pull request.
+# Only validated updates mint a current-repository-only vectordotdev-bot token.
 # This requires the GH_APP_VECTORDOTDEV_BOT_CLIENT_ID and
 # GH_APP_VECTORDOTDEV_BOT_APP_PRIVATE_KEY Actions secrets.
 permissions:
@@ -71,25 +71,13 @@ jobs:
           run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ github.token }}
 
-      - name: Create vectordotdev-bot token
-        if: steps.artifact.outputs.present == 'true'
-        id: app-token
-        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
-        with:
-          # With no owner/repositories input, the token is scoped to this repo.
-          client-id: ${{ secrets.GH_APP_VECTORDOTDEV_BOT_CLIENT_ID }}
-          private-key: ${{ secrets.GH_APP_VECTORDOTDEV_BOT_APP_PRIVATE_KEY }}
-          permission-contents: write
-          permission-pull-requests: read
-
       # Do not check out or execute pull request code here. The downloaded files
-      # are treated only as untrusted data and the resulting tree changes one
-      # fixed path.
-      - name: Validate and apply update
+      # are treated only as untrusted data.
+      - name: Validate update
         if: steps.artifact.outputs.present == 'true'
+        id: validation
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
-          github-token: ${{ steps.app-token.outputs.token }}
           script: |
             const fs = require('fs');
             const path = require('path');
@@ -240,13 +228,50 @@ jobs:
               return;
             }
 
+            core.setOutput('apply', 'true');
+
+      - name: Create vectordotdev-bot token
+        if: steps.validation.outputs.apply == 'true'
+        id: app-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          # With no owner/repositories input, the token is scoped to this repo.
+          client-id: ${{ secrets.GH_APP_VECTORDOTDEV_BOT_CLIENT_ID }}
+          private-key: ${{ secrets.GH_APP_VECTORDOTDEV_BOT_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: read
+
+      # Re-check mutable PR state after minting the token, then change one fixed
+      # path with a non-forcing ref update.
+      - name: Apply validated update
+        if: steps.validation.outputs.apply == 'true'
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          github-token: ${{ steps.app-token.outputs.token }}
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+
+            const expectedRepository = `${context.repo.owner}/${context.repo.repo}`;
+            const artifactDir = path.resolve('dependabot-license-update');
+            const metadata = JSON.parse(
+              fs.readFileSync(path.join(artifactDir, 'metadata.json'), 'utf8'),
+            );
+            const csv = fs.readFileSync(path.join(artifactDir, 'LICENSE-3rdparty.csv'));
+
             // Re-check the live head immediately before constructing the commit.
             const { data: freshPr } = await github.rest.pulls.get({
               owner: context.repo.owner,
               repo: context.repo.repo,
               pull_number: metadata.pull_request,
             });
-            if (freshPr.state !== 'open' || freshPr.head.sha !== metadata.head_sha) {
+            if (freshPr.state !== 'open'
+                || freshPr.user?.login !== 'dependabot[bot]'
+                || freshPr.base?.repo?.full_name !== expectedRepository
+                || freshPr.base?.ref !== 'main'
+                || freshPr.head?.repo?.full_name !== expectedRepository
+                || freshPr.head.ref !== metadata.head_ref
+                || freshPr.head.sha !== metadata.head_sha) {
               core.notice('The pull request changed during validation; no update was applied.');
               return;
             }
