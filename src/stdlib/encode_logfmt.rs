@@ -78,7 +78,7 @@ impl Function for EncodeLogfmt {
             },
             example! {
                 title: "Encode to logfmt (fields ordering)",
-                source: r#"encode_logfmt!({"ts": "2021-06-05T17:20:00Z", "msg": "This is a message", "lvl": "info", "log_id": 12345}, ["ts", "lvl", "msg"])"#,
+                source: r#"encode_logfmt({"ts": "2021-06-05T17:20:00Z", "msg": "This is a message", "lvl": "info", "log_id": 12345}, ["ts", "lvl", "msg"])"#,
                 result: Ok(r#"ts=2021-06-05T17:20:00Z lvl=info msg="This is a message" log_id=12345"#),
             },
             example! {
@@ -88,7 +88,7 @@ impl Function for EncodeLogfmt {
             },
             example! {
                 title: "Encode to logfmt (nested fields ordering)",
-                source: r#"encode_logfmt!({"agent": {"name": "foo"}, "log": {"file": {"path": "my.log"}}, "event": "log"}, ["event", "log.file.path", "agent.name"])"#,
+                source: r#"encode_logfmt({"agent": {"name": "foo"}, "log": {"file": {"path": "my.log"}}, "event": "log"}, ["event", "log.file.path", "agent.name"])"#,
                 result: Ok(r"event=log log.file.path=my.log agent.name=foo"),
             },
         ]

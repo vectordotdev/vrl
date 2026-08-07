@@ -65,6 +65,7 @@ impl Function for FromEntries {
         &[Parameter {
             keyword: "value",
             kind: kind::ARRAY,
+            element_kind: kind::ANY,
             required: true,
             description: "The array of key/value objects to convert.",
             default: None,
