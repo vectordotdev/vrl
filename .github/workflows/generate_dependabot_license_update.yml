@@ -1,0 +1,97 @@
+name: Generate Dependabot License Update
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+    paths:
+      - "Cargo.lock"
+      - "Cargo.toml"
+      - "**/Cargo.toml"
+
+# This workflow executes pull-request-controlled code. Keep it read-only and do
+# not add secrets. The generated artifact is untrusted input to the updater.
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  generate:
+    name: Generate license update
+    if: >
+      github.event.pull_request.user.login == 'dependabot[bot]'
+      && github.event.pull_request.head.repo.full_name == github.repository
+      && startsWith(github.event.pull_request.head.ref, 'dependabot/cargo/')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+
+      - name: Generate license inventory
+        run: make write-licenses
+
+      - name: Verify generated file scope
+        run: |
+          if ! git diff --quiet HEAD -- . ':(exclude)LICENSE-3rdparty.csv'; then
+            echo "License generation modified unexpected tracked files:"
+            git status --short
+            exit 1
+          fi
+
+          if [[ -n "$(git ls-files --others --exclude-standard)" ]]; then
+            echo "License generation created unexpected files:"
+            git status --short
+            exit 1
+          fi
+
+      - name: Check for a license update
+        id: changes
+        run: |
+          if git diff --quiet HEAD -- LICENSE-3rdparty.csv; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Prepare update artifact
+        if: steps.changes.outputs.changed == 'true'
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+
+            const artifactDir = 'dependabot-license-update';
+            fs.mkdirSync(artifactDir, { recursive: false });
+            fs.copyFileSync(
+              'LICENSE-3rdparty.csv',
+              path.join(artifactDir, 'LICENSE-3rdparty.csv'),
+            );
+
+            const metadata = {
+              version: 1,
+              repository: `${context.repo.owner}/${context.repo.repo}`,
+              pull_request: context.payload.pull_request.number,
+              head_ref: context.payload.pull_request.head.ref,
+              head_sha: context.payload.pull_request.head.sha,
+              run_id: context.runId,
+            };
+            fs.writeFileSync(
+              path.join(artifactDir, 'metadata.json'),
+              `${JSON.stringify(metadata, null, 2)}\n`,
+              { encoding: 'utf8', flag: 'wx' },
+            );
+
+      - name: Upload update artifact
+        if: steps.changes.outputs.changed == 'true'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: dependabot-license-update
+          path: dependabot-license-update/
+          if-no-files-found: error
+          retention-days: 1
