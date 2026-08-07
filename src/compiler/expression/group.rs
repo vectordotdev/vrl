@@ -5,6 +5,7 @@ use crate::compiler::{
     Context, Expression,
     expression::{Expr, Resolved},
 };
+use crate::value::Value;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Group {
@@ -22,6 +23,10 @@ impl Group {
 impl Expression for Group {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         self.inner.resolve(ctx)
+    }
+
+    fn resolve_constant(&self, state: &TypeState) -> Option<Value> {
+        self.inner.resolve_constant(state)
     }
 
     fn type_info(&self, state: &TypeState) -> TypeInfo {

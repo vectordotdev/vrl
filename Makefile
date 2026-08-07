@@ -1,5 +1,5 @@
-.PHONY: help all clippy fmt fmt-check test vrl-test \
-	check-typos check-features check-licenses check-msrv check-deny check-wasm32 \
+.PHONY: help all check-clippy fmt fmt-check test vrl-test \
+	check-typos check-features check-licenses write-licenses check-msrv check-deny check-wasm32 \
 	check-docs check-lockfile generate-docs
 
 CARGO_DENY_VERSION        := 0.18.9
@@ -20,10 +20,7 @@ endef
 help: ## Show available targets
 	@awk 'BEGIN {FS = ":.*##"} /^[a-zA-Z_-]+:.*##/ {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
-all: fmt-check clippy test vrl-test check-licenses check-wasm32 ## Run the common pre-PR checks
-
-clippy: ## Lint with clippy (workspace, all targets, all features)
-	cargo clippy --workspace --all-targets --all-features -- -D warnings
+all: fmt-check test vrl-test check-clippy check-licenses check-wasm32 ## Run the common pre-PR checks
 
 fmt: ## Format all code
 	cargo fmt --all
@@ -37,6 +34,9 @@ test: ## Run cargo tests
 vrl-test: ## Run VRL integration tests
 	cargo run --package vrl-tests --bin vrl-tests
 
+check-clippy: ## Lint with clippy (workspace, all targets, all features)
+	cargo clippy --workspace --all-targets --all-features -- -D warnings
+
 check-typos: ## Check spelling with `typos`
 	$(call ensure-cargo-tool,typos-cli,$(TYPOS_CLI_VERSION))
 	typos
@@ -48,6 +48,10 @@ check-features: ## Verify all feature combinations compile
 check-licenses: ## Verify the 3rd-party license file is up to date
 	$(call ensure-cargo-tool,dd-rust-license-tool,$(DD_LICENSE_TOOL_VERSION))
 	dd-rust-license-tool check
+
+write-licenses: ## Update the 3rd-party license file
+	$(call ensure-cargo-tool,dd-rust-license-tool,$(DD_LICENSE_TOOL_VERSION))
+	dd-rust-license-tool write
 
 check-msrv: ## Verify MSRV
 	$(call ensure-cargo-tool,cargo-msrv,$(CARGO_MSRV_VERSION))
