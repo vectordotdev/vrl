@@ -1,0 +1,124 @@
+# result: true
+
+# Flattened else-if local semantics (compile-success cases).
+# Complements if_predicate_local_escape / else_if_predicate_local_escape
+# and body-assign coverage in if_else_local_assignment / if_local_assignment.
+
+# Later predicate reads a local introduced in an earlier predicate.
+r_pred = if false {
+  null
+} else if (x = 5; x < 0) {
+  x
+} else if (y = 6; y > x) {
+  y
+} else {
+  10
+}
+assert!(r_pred == 6)
+
+# Later arm body reads a local introduced in an earlier predicate.
+r_body = if false {
+  null
+} else if (x = 5; false) {
+  null
+} else if (true) {
+  x
+} else {
+  10
+}
+assert!(r_body == 5)
+
+# Final else reads a local introduced in a prior predicate
+# (all predicates ran and were false).
+r_else = if false {
+  null
+} else if (x = 5; false) {
+  null
+} else {
+  x
+}
+assert!(r_else == 5)
+
+# Third arm body uses locals from two earlier predicates.
+r_third = if false {
+  null
+} else if (x = 1; false) {
+  null
+} else if (y = 2; false) {
+  null
+} else if (true) {
+  x + y
+} else {
+  0
+}
+assert!(r_third == 3)
+
+# Peeled sole-stmt else { if } matches else if for cross-arm predicate locals.
+r_braced = if false {
+  null
+} else {
+  if (x = 5; x < 0) {
+    x
+  } else if (y = 6; y > x) {
+    y
+  } else {
+    10
+  }
+}
+assert!(r_braced == 6)
+
+# Multi-stmt else (not peeled): predicate local usable later in the same else block.
+r_mid_else = if false {
+  null
+} else {
+  if (x = 7; false) {
+    null
+  }
+  x
+}
+assert!(r_mid_else == 7)
+
+# First-predicate local remains visible after an else-if chain
+# (first predicate always runs; also guards against stripping too early).
+if (z = 1; false) {
+  null
+} else if (false) {
+  null
+} else {
+  null
+}
+assert!(z == 1)
+
+# Pre-existing local reassigned in else-if predicate: different type, arm taken.
+b = 1
+if false {
+  null
+} else if (b = 0.5; true) {
+  null
+}
+assert!(b == 0.5)
+assert!(type_def(b) == {"integer": true, "float": true})
+
+# Pre-existing local reassigned in else-if predicate: different type, arm not taken.
+# c == 1: skipped predicate is not evaluated at runtime.
+# type_def union: that predicate is still typechecked (side effects in the type env).
+c = 1
+if true {
+  null
+} else if (c = "x"; true) {
+  null
+}
+assert!(c == 1)
+assert!(type_def(c) == {"integer": true, "bytes": true})
+
+# Pre-existing local updated in first pred and again in else-if pred.
+e = 1
+if (e = 2; false) {
+  null
+} else if (e = "hi"; true) {
+  null
+}
+assert!(e == "hi")
+assert!(type_def(e) == {"integer": true, "bytes": true})
+
+true
