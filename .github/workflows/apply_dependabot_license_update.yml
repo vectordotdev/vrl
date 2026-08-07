@@ -7,7 +7,7 @@ on:
 
 # The built-in token only reads the triggering run and its artifact. Repository
 # writes use a current-repository-only vectordotdev-bot installation token.
-# This requires an Actions secret named VECTORDOTDEV_BOT_PRIVATE_KEY.
+# This requires the GH_APP_VECTORDOTDEV_BOT_APP_PRIVATE_KEY Actions secret.
 permissions:
   actions: read
   contents: read
@@ -78,7 +78,7 @@ jobs:
           # Public client ID for https://github.com/apps/vectordotdev-bot.
           # With no owner/repositories input, the token is scoped to this repo.
           client-id: Iv23liAjL1tBXjGfaNyo
-          private-key: ${{ secrets.VECTORDOTDEV_BOT_PRIVATE_KEY }}
+          private-key: ${{ secrets.GH_APP_VECTORDOTDEV_BOT_APP_PRIVATE_KEY }}
           permission-contents: write
           permission-pull-requests: read
 
