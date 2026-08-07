@@ -28,7 +28,7 @@ pub enum ValueError {
     #[error("can't divide by zero")]
     DivideByZero,
 
-    #[error("floats can't be NaN")]
+    #[error("operation would produce NaN")]
     NanFloat,
 
     #[error("can't add type {1} to {0}")]

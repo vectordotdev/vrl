@@ -9,17 +9,14 @@ permissions:
 
 jobs:
   check-vector:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout VRL
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           path: vrl
 
       - uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
-
-      - name: Install protoc
-        uses: arduino/setup-protoc@c65c819552d16ad3c9b72d9dfd5ba5237b9c906b # v3.0.0
 
       - name: Install system packages
         run: |
@@ -31,7 +28,10 @@ jobs:
             libsasl2-dev \
             libssl-dev \
             llvm \
-            pkg-config
+            pkg-config \
+            protobuf-compiler
+
+          protoc --version
 
       - name: Clone Vector repo and update VRL dependency
         env:

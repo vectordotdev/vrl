@@ -96,6 +96,26 @@
         "version": 5,
         "vpc_id": "vpc-abcdefab012345678"
       }
+    },
+    {
+      "title": "Parse AWS VPC Flow log including v11 fields",
+      "source": "parse_aws_vpc_flow_log!(\n    \"11 10.0.0.71 52.95.128.179 34210 80 6 1616729292 1616729349 REJECT OK BPA nat-0c50d5961bcb2d47b 1 nat_gateway\",\n    format: \"version srcaddr dstaddr srcport dstport protocol start end action log_status reject_reason resource_id encryption_status interface_type\"\n)\n",
+      "return": {
+        "action": "REJECT",
+        "dstaddr": "52.95.128.179",
+        "dstport": 80,
+        "encryption_status": 1,
+        "end": 1616729349,
+        "interface_type": "nat_gateway",
+        "log_status": "OK",
+        "protocol": 6,
+        "reject_reason": "BPA",
+        "resource_id": "nat-0c50d5961bcb2d47b",
+        "srcaddr": "10.0.0.71",
+        "srcport": 34210,
+        "start": 1616729292,
+        "version": 11
+      }
     }
   ],
   "pure": true
