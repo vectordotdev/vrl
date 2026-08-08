@@ -7,9 +7,8 @@ on:
 
 # The built-in token validates the triggering run, artifact, and pull request.
 # Only validated updates mint a current-repository-only vectordotdev-bot token.
-# This requires GH_APP_VECTORDOTDEV_BOT_CLIENT_ID and
-# GH_APP_VECTORDOTDEV_BOT_APP_PRIVATE_KEY as environment secrets in the
-# main-only dependabot-license-update environment.
+# This requires the GH_APP_VECTORDOTDEV_BOT_CLIENT_ID and
+# GH_APP_VECTORDOTDEV_BOT_APP_PRIVATE_KEY Actions secrets.
 permissions:
   actions: read
   contents: read
@@ -22,7 +21,6 @@ concurrency:
 jobs:
   apply:
     name: Apply license update
-    environment: dependabot-license-update
     if: >
       github.event.workflow_run.conclusion == 'success'
       && github.event.workflow_run.event == 'pull_request'
@@ -83,7 +81,6 @@ jobs:
           script: |
             const fs = require('fs');
             const path = require('path');
-            const crypto = require('crypto');
             const { TextDecoder } = require('util');
 
             const fail = message => {
@@ -231,13 +228,6 @@ jobs:
               return;
             }
 
-            core.setOutput('pull_request', String(metadata.pull_request));
-            core.setOutput('head_ref', metadata.head_ref);
-            core.setOutput('head_sha', metadata.head_sha);
-            core.setOutput(
-              'csv_sha256',
-              crypto.createHash('sha256').update(csv).digest('hex'),
-            );
             core.setOutput('apply', 'true');
 
       - name: Create vectordotdev-bot token
@@ -256,51 +246,32 @@ jobs:
       - name: Apply validated update
         if: steps.validation.outputs.apply == 'true'
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
-        env:
-          VALIDATED_PULL_REQUEST: ${{ steps.validation.outputs.pull_request }}
-          VALIDATED_HEAD_REF: ${{ steps.validation.outputs.head_ref }}
-          VALIDATED_HEAD_SHA: ${{ steps.validation.outputs.head_sha }}
-          VALIDATED_CSV_SHA256: ${{ steps.validation.outputs.csv_sha256 }}
         with:
           github-token: ${{ steps.app-token.outputs.token }}
           script: |
             const fs = require('fs');
-            const crypto = require('crypto');
+            const path = require('path');
 
             const expectedRepository = `${context.repo.owner}/${context.repo.repo}`;
-            const pullRequest = Number(process.env.VALIDATED_PULL_REQUEST);
-            const headRef = process.env.VALIDATED_HEAD_REF;
-            const headSha = process.env.VALIDATED_HEAD_SHA;
-            const expectedCsvSha256 = process.env.VALIDATED_CSV_SHA256;
-            if (!Number.isSafeInteger(pullRequest) || pullRequest <= 0
-                || typeof headRef !== 'string'
-                || !headRef.startsWith('dependabot/cargo/')
-                || typeof headSha !== 'string'
-                || !/^[0-9a-f]{40}$/.test(headSha)
-                || typeof expectedCsvSha256 !== 'string'
-                || !/^[0-9a-f]{64}$/.test(expectedCsvSha256)) {
-              throw new Error('Validated update outputs are missing or malformed.');
-            }
-
-            const csv = fs.readFileSync('dependabot-license-update/LICENSE-3rdparty.csv');
-            const actualCsvSha256 = crypto.createHash('sha256').update(csv).digest('hex');
-            if (actualCsvSha256 !== expectedCsvSha256) {
-              throw new Error('License inventory changed after validation.');
-            }
+            const artifactDir = path.resolve('dependabot-license-update');
+            const metadata = JSON.parse(
+              fs.readFileSync(path.join(artifactDir, 'metadata.json'), 'utf8'),
+            );
+            const csv = fs.readFileSync(path.join(artifactDir, 'LICENSE-3rdparty.csv'));
 
             // Re-check the live head immediately before constructing the commit.
             const { data: freshPr } = await github.rest.pulls.get({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              pull_number: pullRequest,
+              pull_number: metadata.pull_request,
             });
             if (freshPr.state !== 'open'
                 || freshPr.user?.login !== 'dependabot[bot]'
                 || freshPr.base?.repo?.full_name !== expectedRepository
                 || freshPr.base?.ref !== 'main'
                 || freshPr.head?.repo?.full_name !== expectedRepository
-                || freshPr.head.ref !== headRef
-                || freshPr.head.sha !== headSha) {
+                || freshPr.head.ref !== metadata.head_ref
+                || freshPr.head.sha !== metadata.head_sha) {
               core.notice('The pull request changed during validation; no update was applied.');
               return;
             }
@@ -308,7 +279,7 @@ jobs:
             const { data: parent } = await github.rest.git.getCommit({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              commit_sha: headSha,
+              commit_sha: metadata.head_sha,
             });
             const { data: blob } = await github.rest.git.createBlob({
               owner: context.repo.owner,
@@ -332,7 +303,7 @@ jobs:
               repo: context.repo.repo,
               message: 'chore(deps): update licenses',
               tree: tree.sha,
-              parents: [headSha],
+              parents: [metadata.head_sha],
             });
 
             // force:false makes a concurrent Dependabot rebase or maintainer push
@@ -340,7 +311,7 @@ jobs:
             await github.rest.git.updateRef({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              ref: `heads/${headRef}`,
+              ref: `heads/${metadata.head_ref}`,
               sha: commit.sha,
               force: false,
             });
