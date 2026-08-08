@@ -1,0 +1,318 @@
+name: Apply Dependabot License Update
+
+on:
+  workflow_run:
+    workflows: ["Generate Dependabot License Update"]
+    types: [completed]
+
+# The built-in token validates the triggering run, artifact, and pull request.
+# Only validated updates mint a current-repository-only vectordotdev-bot token.
+# This requires the GH_APP_VECTORDOTDEV_BOT_CLIENT_ID and
+# GH_APP_VECTORDOTDEV_BOT_APP_PRIVATE_KEY Actions secrets.
+permissions:
+  actions: read
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.workflow_run.head_branch || github.event.workflow_run.id }}
+  cancel-in-progress: true
+
+jobs:
+  apply:
+    name: Apply license update
+    if: >
+      github.event.workflow_run.conclusion == 'success'
+      && github.event.workflow_run.event == 'pull_request'
+      && github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Find update artifact
+        id: artifact
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            const artifacts = await github.paginate(
+              github.rest.actions.listWorkflowRunArtifacts,
+              {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                run_id: context.payload.workflow_run.id,
+                per_page: 100,
+              },
+            );
+            const matches = artifacts.filter(
+              artifact => artifact.name === 'dependabot-license-update',
+            );
+
+            if (matches.length === 0) {
+              core.notice('No license update was generated.');
+              core.setOutput('present', 'false');
+              return;
+            }
+            if (matches.length !== 1) {
+              core.setFailed(`Expected one update artifact, found ${matches.length}.`);
+              return;
+            }
+            if (matches[0].expired) {
+              core.setFailed('The license update artifact has expired.');
+              return;
+            }
+
+            core.setOutput('present', 'true');
+
+      - name: Download update artifact
+        if: steps.artifact.outputs.present == 'true'
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: dependabot-license-update
+          path: dependabot-license-update
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+
+      # Do not check out or execute pull request code here. The downloaded files
+      # are treated only as untrusted data.
+      - name: Validate update
+        if: steps.artifact.outputs.present == 'true'
+        id: validation
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            const { TextDecoder } = require('util');
+
+            const fail = message => {
+              throw new Error(message);
+            };
+            const expectedRepository = `${context.repo.owner}/${context.repo.repo}`;
+            const artifactDir = path.resolve('dependabot-license-update');
+            const expectedFiles = ['LICENSE-3rdparty.csv', 'metadata.json'];
+
+            const entries = fs.readdirSync(artifactDir, { withFileTypes: true });
+            for (const entry of entries) {
+              if (!entry.isFile()) {
+                fail(`Artifact entry is not a regular file: ${entry.name}`);
+              }
+            }
+            const files = entries.map(entry => entry.name).sort();
+            if (JSON.stringify(files) !== JSON.stringify(expectedFiles)) {
+              fail(`Unexpected artifact contents: ${files.join(', ')}`);
+            }
+
+            const metadataPath = path.join(artifactDir, 'metadata.json');
+            const metadataStat = fs.statSync(metadataPath);
+            if (metadataStat.size === 0 || metadataStat.size > 4096) {
+              fail(`Invalid metadata size: ${metadataStat.size}`);
+            }
+
+            let metadata;
+            try {
+              metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf8'));
+            } catch (error) {
+              fail(`Invalid metadata JSON: ${error.message}`);
+            }
+
+            const metadataKeys = Object.keys(metadata).sort();
+            const expectedMetadataKeys = [
+              'head_ref',
+              'head_sha',
+              'pull_request',
+              'repository',
+              'run_id',
+              'version',
+            ];
+            if (JSON.stringify(metadataKeys) !== JSON.stringify(expectedMetadataKeys)) {
+              fail(`Unexpected metadata fields: ${metadataKeys.join(', ')}`);
+            }
+
+            const run = context.payload.workflow_run;
+            if (run.name !== 'Generate Dependabot License Update') {
+              fail(`Unexpected workflow name: ${run.name}`);
+            }
+            if (run.path !== '.github/workflows/generate_dependabot_license_update.yml') {
+              fail(`Unexpected workflow path: ${run.path}`);
+            }
+            if (run.event !== 'pull_request' || run.conclusion !== 'success') {
+              fail(`Unexpected workflow result: ${run.event}/${run.conclusion}`);
+            }
+            if (run.head_repository?.full_name !== expectedRepository) {
+              fail(`Unexpected head repository: ${run.head_repository?.full_name}`);
+            }
+
+            if (metadata.version !== 1) {
+              fail(`Unsupported metadata version: ${metadata.version}`);
+            }
+            if (metadata.repository !== expectedRepository) {
+              fail(`Unexpected metadata repository: ${metadata.repository}`);
+            }
+            if (!Number.isSafeInteger(metadata.pull_request) || metadata.pull_request <= 0) {
+              fail(`Invalid pull request number: ${metadata.pull_request}`);
+            }
+            if (!Number.isSafeInteger(metadata.run_id) || metadata.run_id !== run.id) {
+              fail(`Metadata run ID does not match triggering run: ${metadata.run_id}`);
+            }
+            if (typeof metadata.head_ref !== 'string'
+                || !metadata.head_ref.startsWith('dependabot/cargo/')
+                || metadata.head_ref.length > 255) {
+              fail(`Invalid Dependabot head ref: ${metadata.head_ref}`);
+            }
+            if (typeof metadata.head_sha !== 'string'
+                || !/^[0-9a-f]{40}$/.test(metadata.head_sha)) {
+              fail(`Invalid head SHA: ${metadata.head_sha}`);
+            }
+            if (metadata.head_ref !== run.head_branch || metadata.head_sha !== run.head_sha) {
+              fail('Artifact head does not match the triggering workflow run.');
+            }
+
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: metadata.pull_request,
+            });
+
+            if (pr.state !== 'open') {
+              core.notice(`Pull request #${metadata.pull_request} is no longer open.`);
+              return;
+            }
+            if (pr.user?.login !== 'dependabot[bot]') {
+              fail(`Unexpected pull request author: ${pr.user?.login}`);
+            }
+            if (pr.base?.repo?.full_name !== expectedRepository || pr.base?.ref !== 'main') {
+              fail(`Unexpected pull request base: ${pr.base?.repo?.full_name}:${pr.base?.ref}`);
+            }
+            if (pr.head?.repo?.full_name !== expectedRepository) {
+              fail(`Unexpected pull request head repository: ${pr.head?.repo?.full_name}`);
+            }
+            if (pr.head.ref !== metadata.head_ref) {
+              fail(`Pull request head ref does not match artifact: ${pr.head.ref}`);
+            }
+            if (pr.head.sha !== metadata.head_sha) {
+              core.notice('The pull request advanced after license generation; ignoring stale artifact.');
+              return;
+            }
+
+            const csvPath = path.join(artifactDir, 'LICENSE-3rdparty.csv');
+            const csv = fs.readFileSync(csvPath);
+            if (csv.length === 0 || csv.length > 1024 * 1024) {
+              fail(`Invalid license inventory size: ${csv.length}`);
+            }
+
+            let csvText;
+            try {
+              csvText = new TextDecoder('utf-8', { fatal: true }).decode(csv);
+            } catch (error) {
+              fail(`License inventory is not valid UTF-8: ${error.message}`);
+            }
+            if (csvText.includes('\0')) {
+              fail('License inventory contains a NUL byte.');
+            }
+            if (csvText.split(/\r?\n/, 1)[0] !== 'Component,Origin,License,Copyright') {
+              fail('License inventory has an unexpected header.');
+            }
+
+            const { data: currentFile } = await github.rest.repos.getContent({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              path: 'LICENSE-3rdparty.csv',
+              ref: metadata.head_sha,
+            });
+            if (Array.isArray(currentFile) || currentFile.type !== 'file'
+                || currentFile.encoding !== 'base64') {
+              fail('Unable to read the current license inventory as a file.');
+            }
+            const current = Buffer.from(currentFile.content.replace(/\s/g, ''), 'base64');
+            if (current.equals(csv)) {
+              core.notice('The pull request already contains the generated license inventory.');
+              return;
+            }
+
+            core.setOutput('apply', 'true');
+
+      - name: Create vectordotdev-bot token
+        if: steps.validation.outputs.apply == 'true'
+        id: app-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          # With no owner/repositories input, the token is scoped to this repo.
+          client-id: ${{ secrets.GH_APP_VECTORDOTDEV_BOT_CLIENT_ID }}
+          private-key: ${{ secrets.GH_APP_VECTORDOTDEV_BOT_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: read
+
+      # Re-check mutable PR state after minting the token, then change one fixed
+      # path with a non-forcing ref update.
+      - name: Apply validated update
+        if: steps.validation.outputs.apply == 'true'
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          github-token: ${{ steps.app-token.outputs.token }}
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+
+            const expectedRepository = `${context.repo.owner}/${context.repo.repo}`;
+            const artifactDir = path.resolve('dependabot-license-update');
+            const metadata = JSON.parse(
+              fs.readFileSync(path.join(artifactDir, 'metadata.json'), 'utf8'),
+            );
+            const csv = fs.readFileSync(path.join(artifactDir, 'LICENSE-3rdparty.csv'));
+
+            // Re-check the live head immediately before constructing the commit.
+            const { data: freshPr } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: metadata.pull_request,
+            });
+            if (freshPr.state !== 'open'
+                || freshPr.user?.login !== 'dependabot[bot]'
+                || freshPr.base?.repo?.full_name !== expectedRepository
+                || freshPr.base?.ref !== 'main'
+                || freshPr.head?.repo?.full_name !== expectedRepository
+                || freshPr.head.ref !== metadata.head_ref
+                || freshPr.head.sha !== metadata.head_sha) {
+              core.notice('The pull request changed during validation; no update was applied.');
+              return;
+            }
+
+            const { data: parent } = await github.rest.git.getCommit({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: metadata.head_sha,
+            });
+            const { data: blob } = await github.rest.git.createBlob({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              content: csv.toString('base64'),
+              encoding: 'base64',
+            });
+            const { data: tree } = await github.rest.git.createTree({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              base_tree: parent.tree.sha,
+              tree: [{
+                path: 'LICENSE-3rdparty.csv',
+                mode: '100644',
+                type: 'blob',
+                sha: blob.sha,
+              }],
+            });
+            const { data: commit } = await github.rest.git.createCommit({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              message: 'chore(deps): update licenses',
+              tree: tree.sha,
+              parents: [metadata.head_sha],
+            });
+
+            // force:false makes a concurrent Dependabot rebase or maintainer push
+            // fail rather than replacing the newer branch head.
+            await github.rest.git.updateRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: `heads/${metadata.head_ref}`,
+              sha: commit.sha,
+              force: false,
+            });
+            core.notice(`Updated licenses in commit ${commit.sha}.`);
