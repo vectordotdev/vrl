@@ -23,10 +23,9 @@ const PARAMETERS: &[Parameter] = &[
 ];
 
 #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)] // TODO consider removal options
-fn replace(value: &Value, with_value: &Value, count: Value, pattern: Value) -> Resolved {
+fn replace(value: &Value, with_value: &Value, count: i64, pattern: Value) -> Resolved {
     let value = value.try_bytes_utf8_lossy()?;
     let with = with_value.try_bytes_utf8_lossy()?;
-    let count = count.try_integer()?;
     match pattern {
         Value::Bytes(bytes) => {
             let pattern = String::from_utf8_lossy(&bytes);
@@ -132,14 +131,15 @@ impl Function for Replace {
 
     fn compile(
         &self,
-        _state: &state::TypeState,
+        state: &state::TypeState,
         _ctx: &mut FunctionCompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
         let pattern = arguments.required("pattern");
         let with = arguments.required("with");
-        let count = arguments.optional("count");
+        let count =
+            ConstOrExpr::<i64>::default(arguments.optional("count"), state, &DEFAULT_COUNT)?;
 
         Ok(ReplaceFn {
             value,
@@ -156,16 +156,14 @@ struct ReplaceFn {
     value: Box<dyn Expression>,
     pattern: Box<dyn Expression>,
     with: Box<dyn Expression>,
-    count: Option<Box<dyn Expression>>,
+    count: ConstOrExpr<i64>,
 }
 
 impl FunctionExpression for ReplaceFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let value = self.value.resolve(ctx)?;
         let with_value = self.with.resolve(ctx)?;
-        let count = self
-            .count
-            .map_resolve_with_default(ctx, || DEFAULT_COUNT.clone())?;
+        let count = self.count.resolve(ctx)?;
         let pattern = self.pattern.resolve(ctx)?;
 
         replace(&value, &with_value, count, pattern)

@@ -1,8 +1,8 @@
 use crate::compiler::prelude::*;
 
-fn split(value: &Value, limit: Value, pattern: Value) -> Resolved {
+fn split(value: &Value, limit: i64, pattern: Value) -> Resolved {
     let string = value.try_bytes_utf8_lossy()?;
-    let limit = match limit.try_integer()? {
+    let limit = match limit {
         x if x < 0 => 0,
         // TODO consider removal options
         #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
@@ -99,13 +99,17 @@ impl Function for Split {
 
     fn compile(
         &self,
-        _state: &state::TypeState,
+        state: &state::TypeState,
         _ctx: &mut FunctionCompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
         let pattern = arguments.required("pattern");
-        let limit = arguments.optional("limit").unwrap_or(expr!(999_999_999));
+        let limit = arguments
+            .optional("limit")
+            .map_or(Ok(ConstOrExpr::Const(999_999_999)), |expression| {
+                ConstOrExpr::<i64>::new(expression, state)
+            })?;
 
         Ok(SplitFn {
             value,
@@ -120,7 +124,7 @@ impl Function for Split {
 pub(crate) struct SplitFn {
     value: Box<dyn Expression>,
     pattern: Box<dyn Expression>,
-    limit: Box<dyn Expression>,
+    limit: ConstOrExpr<i64>,
 }
 
 impl FunctionExpression for SplitFn {
