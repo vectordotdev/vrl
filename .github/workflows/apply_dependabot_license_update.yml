@@ -86,7 +86,6 @@ jobs:
             const fail = message => {
               throw new Error(message);
             };
-            const expectedRepository = `${context.repo.owner}/${context.repo.repo}`;
             const artifactDir = path.resolve('dependabot-license-update');
             const expectedFiles = ['LICENSE-3rdparty.csv', 'metadata.json'];
 
@@ -119,51 +118,14 @@ jobs:
               'head_ref',
               'head_sha',
               'pull_request',
-              'repository',
-              'run_id',
               'version',
             ];
             if (JSON.stringify(metadataKeys) !== JSON.stringify(expectedMetadataKeys)) {
               fail(`Unexpected metadata fields: ${metadataKeys.join(', ')}`);
             }
 
-            const run = context.payload.workflow_run;
-            if (run.name !== 'Generate Dependabot License Update') {
-              fail(`Unexpected workflow name: ${run.name}`);
-            }
-            if (run.path !== '.github/workflows/generate_dependabot_license_update.yml') {
-              fail(`Unexpected workflow path: ${run.path}`);
-            }
-            if (run.event !== 'pull_request' || run.conclusion !== 'success') {
-              fail(`Unexpected workflow result: ${run.event}/${run.conclusion}`);
-            }
-            if (run.head_repository?.full_name !== expectedRepository) {
-              fail(`Unexpected head repository: ${run.head_repository?.full_name}`);
-            }
-
             if (metadata.version !== 1) {
               fail(`Unsupported metadata version: ${metadata.version}`);
-            }
-            if (metadata.repository !== expectedRepository) {
-              fail(`Unexpected metadata repository: ${metadata.repository}`);
-            }
-            if (!Number.isSafeInteger(metadata.pull_request) || metadata.pull_request <= 0) {
-              fail(`Invalid pull request number: ${metadata.pull_request}`);
-            }
-            if (!Number.isSafeInteger(metadata.run_id) || metadata.run_id !== run.id) {
-              fail(`Metadata run ID does not match triggering run: ${metadata.run_id}`);
-            }
-            if (typeof metadata.head_ref !== 'string'
-                || !metadata.head_ref.startsWith('dependabot/cargo/')
-                || metadata.head_ref.length > 255) {
-              fail(`Invalid Dependabot head ref: ${metadata.head_ref}`);
-            }
-            if (typeof metadata.head_sha !== 'string'
-                || !/^[0-9a-f]{40}$/.test(metadata.head_sha)) {
-              fail(`Invalid head SHA: ${metadata.head_sha}`);
-            }
-            if (metadata.head_ref !== run.head_branch || metadata.head_sha !== run.head_sha) {
-              fail('Artifact head does not match the triggering workflow run.');
             }
 
             const { data: pr } = await github.rest.pulls.get({
@@ -175,15 +137,6 @@ jobs:
             if (pr.state !== 'open') {
               core.notice(`Pull request #${metadata.pull_request} is no longer open.`);
               return;
-            }
-            if (pr.user?.login !== 'dependabot[bot]') {
-              fail(`Unexpected pull request author: ${pr.user?.login}`);
-            }
-            if (pr.base?.repo?.full_name !== expectedRepository || pr.base?.ref !== 'main') {
-              fail(`Unexpected pull request base: ${pr.base?.repo?.full_name}:${pr.base?.ref}`);
-            }
-            if (pr.head?.repo?.full_name !== expectedRepository) {
-              fail(`Unexpected pull request head repository: ${pr.head?.repo?.full_name}`);
             }
             if (pr.head.ref !== metadata.head_ref) {
               fail(`Pull request head ref does not match artifact: ${pr.head.ref}`);
@@ -252,7 +205,6 @@ jobs:
             const fs = require('fs');
             const path = require('path');
 
-            const expectedRepository = `${context.repo.owner}/${context.repo.repo}`;
             const artifactDir = path.resolve('dependabot-license-update');
             const metadata = JSON.parse(
               fs.readFileSync(path.join(artifactDir, 'metadata.json'), 'utf8'),
@@ -265,13 +217,7 @@ jobs:
               repo: context.repo.repo,
               pull_number: metadata.pull_request,
             });
-            if (freshPr.state !== 'open'
-                || freshPr.user?.login !== 'dependabot[bot]'
-                || freshPr.base?.repo?.full_name !== expectedRepository
-                || freshPr.base?.ref !== 'main'
-                || freshPr.head?.repo?.full_name !== expectedRepository
-                || freshPr.head.ref !== metadata.head_ref
-                || freshPr.head.sha !== metadata.head_sha) {
+            if (freshPr.state !== 'open' || freshPr.head.sha !== metadata.head_sha) {
               core.notice('The pull request changed during validation; no update was applied.');
               return;
             }

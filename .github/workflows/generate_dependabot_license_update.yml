@@ -24,6 +24,7 @@ jobs:
       github.event.pull_request.user.login == 'dependabot[bot]'
       && github.event.pull_request.head.repo.full_name == github.repository
       && startsWith(github.event.pull_request.head.ref, 'dependabot/cargo/')
+      && github.event.pull_request.base.ref == 'main'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -75,11 +76,9 @@ jobs:
 
             const metadata = {
               version: 1,
-              repository: `${context.repo.owner}/${context.repo.repo}`,
               pull_request: context.payload.pull_request.number,
               head_ref: context.payload.pull_request.head.ref,
               head_sha: context.payload.pull_request.head.sha,
-              run_id: context.runId,
             };
             fs.writeFileSync(
               path.join(artifactDir, 'metadata.json'),
