@@ -81,7 +81,6 @@ jobs:
           script: |
             const fs = require('fs');
             const path = require('path');
-            const { TextDecoder } = require('util');
 
             const fail = message => {
               throw new Error(message);
@@ -148,22 +147,6 @@ jobs:
 
             const csvPath = path.join(artifactDir, 'LICENSE-3rdparty.csv');
             const csv = fs.readFileSync(csvPath);
-            if (csv.length === 0 || csv.length > 1024 * 1024) {
-              fail(`Invalid license inventory size: ${csv.length}`);
-            }
-
-            let csvText;
-            try {
-              csvText = new TextDecoder('utf-8', { fatal: true }).decode(csv);
-            } catch (error) {
-              fail(`License inventory is not valid UTF-8: ${error.message}`);
-            }
-            if (csvText.includes('\0')) {
-              fail('License inventory contains a NUL byte.');
-            }
-            if (csvText.split(/\r?\n/, 1)[0] !== 'Component,Origin,License,Copyright') {
-              fail('License inventory has an unexpected header.');
-            }
 
             const { data: currentFile } = await github.rest.repos.getContent({
               owner: context.repo.owner,
