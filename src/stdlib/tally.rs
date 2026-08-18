@@ -47,7 +47,7 @@ impl Function for Tally {
     fn examples(&self) -> &'static [Example] {
         &[example! {
             title: "tally",
-            source: r#"tally!(["foo", "bar", "foo", "baz"])"#,
+            source: r#"tally(["foo", "bar", "foo", "baz"])"#,
             result: Ok(r#"{"foo": 2, "bar": 1, "baz": 1}"#),
         }]
     }
@@ -68,7 +68,8 @@ impl Function for Tally {
             "value",
             kind::ARRAY,
             "The array of strings to count occurrences for.",
-        )];
+        )
+        .with_element_kind(kind::BYTES)];
         PARAMETERS
     }
 }
@@ -85,7 +86,7 @@ impl FunctionExpression for TallyFn {
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {
-        TypeDef::object(Collection::from_unknown(Kind::integer())).fallible()
+        TypeDef::object(Collection::from_unknown(Kind::integer()))
     }
 }
 
@@ -102,15 +103,17 @@ mod tests {
                 value: value!(["bar", "foo", "baz", "foo"]),
             ],
             want: Ok(value!({"bar": 1, "foo": 2, "baz": 1})),
-            tdef: TypeDef::object(Collection::from_unknown(Kind::integer())).fallible(),
+            tdef: TypeDef::object(Collection::from_unknown(Kind::integer())),
         }
 
+        // Runtime error still fires; compiler-level fallibility is driven by
+        // `element_kind(kind::BYTES)` on the parameter, not by `type_def()`.
         non_string_values {
             args: func_args![
                 value: value!(["foo", [1,2,3], "123abc", 1, true, [1,2,3], "foo", true, 1]),
             ],
             want: Err("all values must be strings, found: Array([Integer(1), Integer(2), Integer(3)])"),
-            tdef: TypeDef::object(Collection::from_unknown(Kind::integer())).fallible(),
+            tdef: TypeDef::object(Collection::from_unknown(Kind::integer())),
         }
     ];
 }
