@@ -42,7 +42,7 @@ Providing this information upfront will facilitate a smoother review process. --
 ## Does this PR include user facing changes?
 
 - [ ] Yes. Please add a changelog fragment based on
-  our [guidelines](https://github.com/vectordotdev/vector/blob/master/changelog.d/README.md).
+  our [guidelines](https://github.com/vectordotdev/vrl/blob/main/changelog.d/README.md).
 - [ ] No. A maintainer will apply the "no-changelog" label to this PR.
 
 ## Checklist

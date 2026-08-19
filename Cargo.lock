@@ -3226,6 +3226,7 @@ dependencies = [
  "indoc",
  "semver",
  "serde",
+ "serde_json",
  "tempfile",
  "toml_edit",
  "ureq",
