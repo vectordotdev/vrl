@@ -1,6 +1,9 @@
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
+#[cfg(not(test))]
+use serde::Deserialize;
+
 const FRAGMENT_TYPES: &[(&str, &str)] = &[
     ("breaking", "Breaking Changes & Upgrade Guide"),
     ("security", "Security"),
@@ -18,6 +21,12 @@ struct Fragment {
     fragment_type: String,
     content: String,
     authors: Vec<String>,
+}
+
+#[cfg(not(test))]
+#[derive(Deserialize)]
+struct PullRequest {
+    number: u64,
 }
 
 /// Strip the trailing `authors: ...` line from fragment content, returning
@@ -67,18 +76,18 @@ fn format_authors(authors: &[String]) -> String {
         .join(", ")
 }
 
-/// Validate a fragment filename, returning (pr_number, fragment_type).
+/// Validate a fragment filename, returning (description, fragment_type).
 fn validate_fragment_filename(filename: &str) -> Result<(&str, &str), String> {
     let parts: Vec<&str> = filename.splitn(3, '.').collect();
     if parts.len() != 3 || parts[2] != "md" {
         return Err(format!(
-            "Invalid fragment filename '{filename}': expected '<pr_number>.<type>.md'"
+            "Invalid fragment filename '{filename}': expected '<description>.<type>.md'"
         ));
     }
 
-    if parts[0].is_empty() || !parts[0].chars().all(|c| c.is_ascii_digit()) {
+    if parts[0].is_empty() {
         return Err(format!(
-            "Invalid fragment filename '{filename}': first segment must be a PR number"
+            "Invalid fragment filename '{filename}': first segment must describe the change"
         ));
     }
 
@@ -116,7 +125,7 @@ impl Changelog {
             .and_then(|f| f.to_str())
             .ok_or_else(|| format!("Invalid fragment path: {}", path.display()))?;
 
-        let (pr_number, fragment_type) = validate_fragment_filename(filename)?;
+        let (_, fragment_type) = validate_fragment_filename(filename)?;
 
         let raw = std::fs::read_to_string(path)
             .map_err(|e| format!("Failed to read {}: {e}", path.display()))?;
@@ -125,7 +134,7 @@ impl Changelog {
             parse_authors(raw.trim()).map_err(|e| format!("{} (in {})", e, path.display()))?;
 
         Ok(Fragment {
-            pr_number: pr_number.to_string(),
+            pr_number: String::new(),
             fragment_type: fragment_type.to_ascii_lowercase(),
             content,
             authors,
@@ -133,10 +142,13 @@ impl Changelog {
     }
 
     fn collect_fragments(&self) -> Result<BTreeMap<String, Vec<Fragment>>, String> {
+        self.ensure_complete_history()?;
+
         let mut grouped: BTreeMap<String, Vec<Fragment>> = BTreeMap::new();
 
         for entry in Self::read_fragment_dir(&self.changelog_dir())? {
-            let fragment = Self::parse_fragment(&entry)?;
+            let mut fragment = Self::parse_fragment(&entry)?;
+            fragment.pr_number = lookup_pull_request(&self.repo_root, &entry)?;
             grouped
                 .entry(fragment.fragment_type.clone())
                 .or_default()
@@ -148,6 +160,25 @@ impl Changelog {
         }
 
         Ok(grouped)
+    }
+
+    fn ensure_complete_history(&self) -> Result<(), String> {
+        #[cfg(not(test))]
+        {
+            let is_shallow = run_command(
+                "git",
+                ["rev-parse", "--is-shallow-repository"],
+                &self.repo_root,
+            )?;
+            if is_shallow.trim() == "true" {
+                return Err(
+                    "Cannot resolve changelog PRs from a shallow repository. Fetch the full history and retry."
+                        .to_string(),
+                );
+            }
+        }
+
+        Ok(())
     }
 
     /// List fragment file paths in changelog.d/, excluding README.md and non-files.
@@ -219,15 +250,13 @@ impl Changelog {
         Ok(Self::render_section(&grouped, version, &date))
     }
 
-    /// Generate the changelog section, insert it into CHANGELOG.md, and remove fragments.
-    pub fn generate_and_apply(&self, version: &semver::Version) -> Result<(), String> {
-        let section = self.generate_section(version)?;
-
+    /// Insert a pre-generated changelog section into CHANGELOG.md and remove fragments.
+    pub fn apply_section(&self, version: &semver::Version, section: &str) -> Result<(), String> {
         let changelog_path = self.repo_root.join("CHANGELOG.md");
         let content = std::fs::read_to_string(&changelog_path)
             .map_err(|e| format!("Failed to read CHANGELOG.md: {e}"))?;
 
-        let new_content = Self::insert_section(&content, &section)?;
+        let new_content = Self::insert_section(&content, section)?;
         std::fs::write(&changelog_path, new_content)
             .map_err(|e| format!("Failed to write CHANGELOG.md: {e}"))?;
         println!("Updated CHANGELOG.md with {version} section.");
@@ -254,24 +283,6 @@ impl Changelog {
         new_content.push_str(&content[insert_pos..]);
 
         Ok(new_content)
-    }
-
-    /// Validate every fragment file currently on disk in `changelog.d/` —
-    /// what the release will consume. Unlike [`check_fragments`], this does
-    /// not diff against `origin/main`, so it works on a synced release branch
-    /// where no fragments are "newly added" but plenty exist to consume.
-    pub fn validate_fragments_on_disk(&self) -> Result<(), String> {
-        let paths = Self::read_fragment_dir(&self.changelog_dir())?;
-        if paths.is_empty() {
-            return Err(
-                "No changelog fragments found in changelog.d/ — nothing to release.".to_string(),
-            );
-        }
-        for path in &paths {
-            Self::parse_fragment(path)?;
-        }
-        println!("Validated {} changelog fragment(s).", paths.len());
-        Ok(())
     }
 
     /// Validate changelog fragment filenames added on the current branch vs origin/main.
@@ -322,6 +333,105 @@ impl Changelog {
     }
 }
 
+/// Find the merged PR that introduced a fragment. The file's adding commit is
+/// stable even when the PR is later amended, and GitHub's PR search indexes it
+/// for merge, squash, and rebase workflows.
+#[cfg(not(test))]
+fn lookup_pull_request(repo_root: &Path, fragment_path: &Path) -> Result<String, String> {
+    let relative_path = fragment_path.strip_prefix(repo_root).map_err(|_| {
+        format!(
+            "Fragment path {} is outside the repository root {}",
+            fragment_path.display(),
+            repo_root.display()
+        )
+    })?;
+    let relative_path = relative_path.to_str().ok_or_else(|| {
+        format!(
+            "Fragment path is not valid UTF-8: {}",
+            fragment_path.display()
+        )
+    })?;
+
+    let commit = run_command(
+        "git",
+        [
+            "log",
+            "--follow",
+            "-1",
+            "--format=%H",
+            "--diff-filter=A",
+            "--",
+            relative_path,
+        ],
+        repo_root,
+    )?;
+    let commit = commit.trim();
+    if commit.is_empty() {
+        return Err(format!(
+            "Could not find the commit that added {relative_path}; cannot determine its pull request."
+        ));
+    }
+
+    let output = run_command(
+        "gh",
+        [
+            "pr",
+            "list",
+            "--repo",
+            "vectordotdev/vrl",
+            "--state",
+            "merged",
+            "--search",
+            commit,
+            "--json",
+            "number",
+            "--limit",
+            "2",
+        ],
+        repo_root,
+    )?;
+    let pull_requests: Vec<PullRequest> = serde_json::from_str(&output)
+        .map_err(|e| format!("Could not parse GitHub PR lookup for commit {commit}: {e}"))?;
+
+    match pull_requests.as_slice() {
+        [pull_request] => Ok(pull_request.number.to_string()),
+        [] => Err(format!(
+            "No merged GitHub PR found for commit {commit} that added {relative_path}."
+        )),
+        _ => Err(format!(
+            "Multiple merged GitHub PRs found for commit {commit} that added {relative_path}."
+        )),
+    }
+}
+
+#[cfg(test)]
+fn lookup_pull_request(_: &Path, _: &Path) -> Result<String, String> {
+    // Unit tests exercise local parsing and rendering; the release dry run
+    // verifies the real GitHub lookup without requiring network access here.
+    Ok("42".to_string())
+}
+
+#[cfg(not(test))]
+fn run_command<const N: usize>(cmd: &str, args: [&str; N], cwd: &Path) -> Result<String, String> {
+    let display = format!("{cmd} {}", args.join(" "));
+    let output = std::process::Command::new(cmd)
+        .args(args)
+        .current_dir(cwd)
+        .output()
+        .map_err(|e| format!("Failed to run `{display}`: {e}"))?;
+
+    if !output.status.success() {
+        return Err(format!(
+            "`{display}` failed (exit {}):\n{}{}",
+            output.status,
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr),
+        ));
+    }
+
+    Ok(String::from_utf8_lossy(&output.stdout).into_owned())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -362,53 +472,36 @@ mod tests {
     // --- validate_fragment_filename ---
 
     #[test]
-    fn valid_filename() {
-        let (pr, ty) = validate_fragment_filename("1234.feature.md").unwrap();
-        assert_eq!(pr, "1234");
+    fn valid_fragment_filenames() {
+        let (description, ty) = validate_fragment_filename("add-feature.feature.md").unwrap();
+        assert_eq!(description, "add-feature");
         assert_eq!(ty, "feature");
-    }
 
-    #[test]
-    fn all_fragment_types_accepted() {
         for (ty, _) in FRAGMENT_TYPES {
-            validate_fragment_filename(&format!("1.{ty}.md")).unwrap();
+            validate_fragment_filename(&format!("description.{ty}.md")).unwrap();
         }
-    }
 
-    #[test]
-    fn empty_pr_number() {
-        let err = validate_fragment_filename(".feature.md").unwrap_err();
-        assert!(err.contains("must be a PR number"), "{err}");
-    }
-
-    #[test]
-    fn invalid_type() {
-        let err = validate_fragment_filename("1.unknown.md").unwrap_err();
-        assert!(err.contains("Invalid fragment type 'unknown'"), "{err}");
-    }
-
-    #[test]
-    fn fragment_type_case_insensitive() {
-        let (_, ty) = validate_fragment_filename("1234.Fix.md").unwrap();
+        let (_, ty) = validate_fragment_filename("description.Fix.md").unwrap();
         assert_eq!(ty, "Fix"); // raw value; normalized to lowercase in parse_fragment
+
+        let (description, _) = validate_fragment_filename("improve-docs.feature.md").unwrap();
+        assert_eq!(description, "improve-docs");
     }
 
     #[test]
-    fn non_numeric_pr() {
-        let err = validate_fragment_filename("abc.feature.md").unwrap_err();
-        assert!(err.contains("must be a PR number"), "{err}");
-    }
-
-    #[test]
-    fn wrong_extension() {
-        let err = validate_fragment_filename("1.feature.txt").unwrap_err();
-        assert!(err.contains("expected '<pr_number>.<type>.md'"), "{err}");
-    }
-
-    #[test]
-    fn too_few_dots() {
-        let err = validate_fragment_filename("1.md").unwrap_err();
-        assert!(err.contains("expected '<pr_number>.<type>.md'"), "{err}");
+    fn invalid_fragment_filenames() {
+        for (filename, expected) in [
+            (".feature.md", "must describe the change"),
+            ("description.unknown.md", "Invalid fragment type 'unknown'"),
+            (
+                "description.feature.txt",
+                "expected '<description>.<type>.md'",
+            ),
+            ("description.md", "expected '<description>.<type>.md'"),
+        ] {
+            let err = validate_fragment_filename(filename).unwrap_err();
+            assert!(err.contains(expected), "{err}");
+        }
     }
 
     // --- parse_authors ---
@@ -464,11 +557,11 @@ mod tests {
     #[test]
     fn parse_reads_content_and_authors() {
         let dir = tempfile::tempdir().unwrap();
-        let path = dir.path().join("42.fix.md");
+        let path = dir.path().join("fix-bug.fix.md");
         fs::write(&path, "Fixed a bug.\n\nauthors: alice\n").unwrap();
 
         let fragment = Changelog::parse_fragment(&path).unwrap();
-        assert_eq!(fragment.pr_number, "42");
+        assert!(fragment.pr_number.is_empty());
         assert_eq!(fragment.fragment_type, "fix");
         assert_eq!(fragment.content, "Fixed a bug.");
         assert_eq!(fragment.authors, vec!["alice"]);
@@ -477,7 +570,7 @@ mod tests {
     #[test]
     fn parse_fragment_missing_authors_errors() {
         let dir = tempfile::tempdir().unwrap();
-        let path = dir.path().join("42.fix.md");
+        let path = dir.path().join("fix-bug.fix.md");
         fs::write(&path, "Fixed a bug.\n").unwrap();
 
         let err = Changelog::parse_fragment(&path).unwrap_err();
@@ -489,9 +582,9 @@ mod tests {
     #[test]
     fn groups_by_type() {
         let dir = setup_test_repo(&[
-            ("10.feature.md", "Feature A\n\nauthors: alice"),
-            ("11.feature.md", "Feature B\n\nauthors: bob"),
-            ("20.fix.md", "Bug fix\n\nauthors: carol"),
+            ("feature-a.feature.md", "Feature A\n\nauthors: alice"),
+            ("feature-b.feature.md", "Feature B\n\nauthors: bob"),
+            ("bug-fix.fix.md", "Bug fix\n\nauthors: carol"),
         ]);
         let grouped = Changelog::new(dir.path()).collect_fragments().unwrap();
 
@@ -502,7 +595,7 @@ mod tests {
 
     #[test]
     fn skips_readme() {
-        let dir = setup_test_repo(&[("10.feature.md", "A feature\n\nauthors: alice")]);
+        let dir = setup_test_repo(&[("feature.feature.md", "A feature\n\nauthors: alice")]);
         let grouped = Changelog::new(dir.path()).collect_fragments().unwrap();
 
         assert_eq!(grouped.len(), 1);
@@ -528,6 +621,7 @@ mod tests {
             vec!["init", "-b", "base"],
             vec!["config", "user.email", "test@test.com"],
             vec!["config", "user.name", "Test"],
+            vec!["config", "commit.gpgsign", "false"],
         ] {
             std::process::Command::new("git")
                 .args(&cmd)
@@ -576,14 +670,15 @@ mod tests {
 
     #[test]
     fn check_fragments_valid_passes() {
-        let dir = setup_git_check_repo(&[("123.fix.md", "Fixed something.\n\nauthors: alice")]);
+        let dir =
+            setup_git_check_repo(&[("fix-something.fix.md", "Fixed something.\n\nauthors: alice")]);
         let result = Changelog::new(dir.path()).check_fragments();
         assert!(result.is_ok(), "{result:?}");
     }
 
     #[test]
     fn check_fragments_missing_authors_fails() {
-        let dir = setup_git_check_repo(&[("123.fix.md", "Fixed something.\n")]);
+        let dir = setup_git_check_repo(&[("fix-something.fix.md", "Fixed something.\n")]);
         let err = Changelog::new(dir.path()).check_fragments().unwrap_err();
         assert!(err.contains("authors"), "{err}");
     }
@@ -747,18 +842,19 @@ mod tests {
         assert!(err.contains("marker"), "{err}");
     }
 
-    // --- generate_and_apply (integration) ---
+    // --- apply_section (integration) ---
 
     #[test]
-    fn updates_changelog_and_removes_fragments() {
+    fn applies_section_and_removes_fragments() {
         let dir = setup_test_repo(&[
-            ("10.feature.md", "New feature\n\nauthors: alice"),
-            ("20.fix.md", "Bug fix\n\nauthors: bob"),
+            ("new-feature.feature.md", "New feature\n\nauthors: alice"),
+            ("bug-fix.fix.md", "Bug fix\n\nauthors: bob"),
         ]);
 
-        Changelog::new(dir.path())
-            .generate_and_apply(&semver::Version::new(1, 0, 0))
-            .unwrap();
+        let changelog = Changelog::new(dir.path());
+        let version = semver::Version::new(1, 0, 0);
+        let section = changelog.generate_section(&version).unwrap();
+        changelog.apply_section(&version, &section).unwrap();
 
         let content = fs::read_to_string(dir.path().join("CHANGELOG.md")).unwrap();
         assert!(content.contains("## [1.0.0"));

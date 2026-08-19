@@ -40,4 +40,4 @@ The release flow:
 cargo run -p release -- check-changelog
 ```
 
-Validates that changelog fragment filenames follow the `<pr_number>.<type>.md` convention.
+Validates that changelog fragment filenames follow the `<description>.<type>.md` convention.
