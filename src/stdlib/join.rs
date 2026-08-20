@@ -42,7 +42,8 @@ impl Function for Join {
                 "value",
                 kind::ARRAY,
                 "The array of strings to join together.",
-            ),
+            )
+            .with_element_kind(kind::BYTES),
             Parameter::optional(
                 "separator",
                 kind::BYTES,
@@ -68,12 +69,12 @@ impl Function for Join {
         &[
             example! {
                 title: "Join array (no separator)",
-                source: r#"join!(["bring", "us", "together"])"#,
+                source: r#"join(["bring", "us", "together"])"#,
                 result: Ok("bringustogether"),
             },
             example! {
                 title: "Join array (comma separator)",
-                source: r#"join!(["sources", "transforms", "sinks"], separator: ", ")"#,
+                source: r#"join(["sources", "transforms", "sinks"], separator: ", ")"#,
                 result: Ok("sources, transforms, sinks"),
             },
         ]
@@ -99,7 +100,7 @@ impl FunctionExpression for JoinFn {
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {
-        TypeDef::bytes().fallible()
+        TypeDef::bytes()
     }
 }
 
@@ -113,25 +114,25 @@ mod test {
         with_comma_separator {
             args: func_args![value: value!(["one", "two", "three"]), separator: ", "],
             want: Ok(value!("one, two, three")),
-            tdef: TypeDef::bytes().fallible(),
+            tdef: TypeDef::bytes(),
         }
 
         with_space_separator {
             args: func_args![value: value!(["one", "two", "three"]), separator: " "],
             want: Ok(value!("one two three")),
-            tdef: TypeDef::bytes().fallible(),
+            tdef: TypeDef::bytes(),
         }
 
         without_separator {
             args: func_args![value: value!(["one", "two", "three"])],
             want: Ok(value!("onetwothree")),
-            tdef: TypeDef::bytes().fallible(),
+            tdef: TypeDef::bytes(),
         }
 
         non_string_array_item_throws_error {
             args: func_args![value: value!(["one", "two", 3])],
             want: Err("all array items must be strings"),
-            tdef: TypeDef::bytes().fallible(),
+            tdef: TypeDef::bytes(),
         }
     ];
 }

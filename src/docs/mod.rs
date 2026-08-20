@@ -130,6 +130,7 @@ pub fn build_function_doc(func: &dyn Function) -> FunctionDoc {
                 description,
                 default,
                 enum_variants,
+                element_kind: _,
             } = param;
 
             let name = keyword.trim().to_string();

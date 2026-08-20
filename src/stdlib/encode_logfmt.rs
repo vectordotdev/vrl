@@ -9,7 +9,8 @@ const PARAMETERS: &[Parameter] = &[
         "The value to convert to a logfmt string.",
     ),
     Parameter::optional("fields_ordering", kind::ARRAY, "The ordering of fields to preserve. Any fields not in this list are listed unordered, after all ordered fields.")
-        .default(&DEFAULT_FIELDS_ORDERING),
+        .default(&DEFAULT_FIELDS_ORDERING)
+        .with_element_kind(kind::BYTES),
 ];
 
 #[derive(Clone, Copy, Debug)]
@@ -37,7 +38,7 @@ impl Function for EncodeLogfmt {
     }
 
     fn notices(&self) -> &'static [&'static str] {
-        &["If `fields_ordering` is specified then the function is fallible else it is infallible."]
+        &["This function is fallible if `fields_ordering` contains non-string elements."]
     }
 
     fn parameters(&self) -> &'static [Parameter] {
@@ -78,7 +79,7 @@ impl Function for EncodeLogfmt {
             },
             example! {
                 title: "Encode to logfmt (fields ordering)",
-                source: r#"encode_logfmt!({"ts": "2021-06-05T17:20:00Z", "msg": "This is a message", "lvl": "info", "log_id": 12345}, ["ts", "lvl", "msg"])"#,
+                source: r#"encode_logfmt({"ts": "2021-06-05T17:20:00Z", "msg": "This is a message", "lvl": "info", "log_id": 12345}, ["ts", "lvl", "msg"])"#,
                 result: Ok(r#"ts=2021-06-05T17:20:00Z lvl=info msg="This is a message" log_id=12345"#),
             },
             example! {
@@ -88,7 +89,7 @@ impl Function for EncodeLogfmt {
             },
             example! {
                 title: "Encode to logfmt (nested fields ordering)",
-                source: r#"encode_logfmt!({"agent": {"name": "foo"}, "log": {"file": {"path": "my.log"}}, "event": "log"}, ["event", "log.file.path", "agent.name"])"#,
+                source: r#"encode_logfmt({"agent": {"name": "foo"}, "log": {"file": {"path": "my.log"}}, "event": "log"}, ["event", "log.file.path", "agent.name"])"#,
                 result: Ok(r"event=log log.file.path=my.log agent.name=foo"),
             },
         ]
