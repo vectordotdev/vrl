@@ -1,6 +1,10 @@
 use crate::path::PathPrefix;
 use crate::value::{Kind, Value};
 use std::collections::{HashMap, hash_map::Entry};
+#[cfg(feature = "execution_cancellation")]
+use std::sync::Arc;
+#[cfg(feature = "execution_cancellation")]
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use super::{TypeDef, parser::ast::Ident, type_def::Details, value::Collection};
 
@@ -176,6 +180,11 @@ impl ExternalEnv {
 pub struct RuntimeState {
     /// The [`Value`] stored in each variable.
     variables: HashMap<Ident, Value>,
+
+    /// An optional flag the running program is cancelled through.
+    /// See [`RuntimeState::set_cancellation_flag`].
+    #[cfg(feature = "execution_cancellation")]
+    cancel_flag: Option<Arc<AtomicBool>>,
 }
 
 impl RuntimeState {
@@ -213,5 +222,65 @@ impl RuntimeState {
                 None
             }
         }
+    }
+}
+
+#[cfg(feature = "execution_cancellation")]
+impl RuntimeState {
+    /// Registers a flag the running program will check on every expression
+    /// resolution. Set it to `true` from any thread — after your own
+    /// timeout elapses, on a client disconnect, on shutdown, whatever your
+    /// cancellation source is — and the program panics the next time it's
+    /// observed, rather than running to completion.
+    ///
+    /// This is a hard safety net against runaway scripts, not a regular
+    /// control-flow mechanism: cancellation panics rather than returning a
+    /// `Terminate` error.
+    pub fn set_cancellation_flag(&mut self, flag: Arc<AtomicBool>) {
+        self.cancel_flag = Some(flag);
+    }
+
+    /// Removes any previously registered cancellation flag.
+    pub fn clear_cancellation_flag(&mut self) {
+        self.cancel_flag = None;
+    }
+
+    pub(crate) fn check_cancellation(&self) {
+        if let Some(flag) = &self.cancel_flag {
+            assert!(
+                !flag.load(Ordering::Relaxed),
+                "VRL program execution was cancelled"
+            );
+        }
+    }
+}
+
+#[cfg(all(test, feature = "execution_cancellation"))]
+mod execution_cancellation_tests {
+    use super::RuntimeState;
+    use std::sync::Arc;
+    use std::sync::atomic::{AtomicBool, Ordering};
+
+    #[test]
+    fn panics_once_the_flag_is_set() {
+        let flag = Arc::new(AtomicBool::new(false));
+        let mut state = RuntimeState::default();
+        state.set_cancellation_flag(Arc::clone(&flag));
+
+        state.check_cancellation();
+
+        flag.store(true, Ordering::Relaxed);
+
+        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            state.check_cancellation();
+        }));
+
+        assert!(result.is_err(), "expected check_cancellation to panic");
+    }
+
+    #[test]
+    fn no_flag_configured_never_panics() {
+        let state = RuntimeState::default();
+        state.check_cancellation();
     }
 }

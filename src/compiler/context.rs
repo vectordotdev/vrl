@@ -49,4 +49,22 @@ impl<'a> Context<'a> {
     pub fn timezone(&self) -> &TimeZone {
         self.timezone
     }
+
+    /// Checks whether the program has been cancelled via a caller-supplied
+    /// flag, panicking if so. Called on every expression resolution — it is
+    /// used for cancellation only, hence the name.
+    ///
+    /// A no-op unless the `execution_cancellation` feature is enabled and a
+    /// flag has been registered via
+    /// [`RuntimeState::set_cancellation_flag`](super::state::RuntimeState::set_cancellation_flag).
+    #[cfg(feature = "execution_cancellation")]
+    #[inline]
+    pub(crate) fn cancel_breakpoint(&mut self) {
+        self.state.check_cancellation();
+    }
+
+    #[cfg(not(feature = "execution_cancellation"))]
+    #[inline(always)]
+    #[allow(clippy::unused_self)]
+    pub(crate) fn cancel_breakpoint(&mut self) {}
 }

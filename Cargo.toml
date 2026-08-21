@@ -56,6 +56,13 @@ lua = ["dep:mlua"]
 # Property-based testing support via proptest.
 proptest = ["dep:proptest", "dep:proptest-derive"]
 
+# Enables checking a caller-supplied cancellation flag on every expression resolution,
+# via `Runtime::set_cancellation_flag`. A no-op unless a flag is actually registered;
+# intended for embedders that need a hard safety net against runaway scripts (set the
+# flag from another thread, e.g. after your own timeout elapses, and the program panics
+# the next time it's observed).
+execution_cancellation = ["compiler"]
+
 # Enables environment variable access functions (e.g. `get_env_var`).
 enable_env_functions = []
 
