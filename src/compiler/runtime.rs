@@ -1,4 +1,6 @@
 use std::{error::Error, fmt};
+#[cfg(feature = "execution_timeout")]
+use std::time::Duration;
 
 use crate::path::OwnedTargetPath;
 use crate::value::Value;
@@ -125,5 +127,57 @@ impl Runtime {
             ) => Err(Terminate::Abort(err)),
             Err(err @ ExpressionError::Error { .. }) => Err(Terminate::Error(err)),
         }
+    }
+}
+
+#[cfg(feature = "execution_timeout")]
+impl Runtime {
+    /// Bounds the wall-clock time [`Runtime::resolve`] is allowed to spend
+    /// executing the program. If execution runs past this timeout, the
+    /// program panics rather than returning a [`RuntimeResult`] — this is
+    /// intended as a hard safety net against runaway scripts, not a regular
+    /// control-flow mechanism.
+    pub fn set_timeout(&mut self, timeout: Duration) {
+        self.state.set_timeout(timeout);
+    }
+}
+
+#[cfg(all(test, feature = "execution_timeout", feature = "stdlib"))]
+mod execution_timeout_tests {
+    use std::collections::BTreeMap;
+    use std::time::Duration;
+
+    use super::{Runtime, TimeZone};
+    use crate::compiler::state::RuntimeState;
+    use crate::value::Value;
+
+    #[test]
+    fn for_each_loop_panics_past_the_timeout() {
+        let source = r#"
+            count = 0
+            for_each(array!(.items)) -> |_index, _value| {
+                count = count + 1
+            }
+            count
+        "#;
+
+        let program = crate::compiler::compile(source, &crate::stdlib::all())
+            .expect("program should compile")
+            .program;
+
+        let mut target: Value =
+            BTreeMap::from([("items".into(), Value::Array(vec![Value::from(1); 5_000]))]).into();
+
+        let mut runtime = Runtime::new(RuntimeState::default());
+        runtime.set_timeout(Duration::from_nanos(1));
+
+        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            runtime.resolve(&mut target, &program, &TimeZone::default())
+        }));
+
+        assert!(
+            result.is_err(),
+            "expected the for_each loop to hit the execution timeout"
+        );
     }
 }

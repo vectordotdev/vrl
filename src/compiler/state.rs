@@ -1,6 +1,8 @@
 use crate::path::PathPrefix;
 use crate::value::{Kind, Value};
 use std::collections::{HashMap, hash_map::Entry};
+#[cfg(feature = "execution_timeout")]
+use std::time::{Duration, Instant};
 
 use super::{TypeDef, parser::ast::Ident, type_def::Details, value::Collection};
 
@@ -176,6 +178,11 @@ impl ExternalEnv {
 pub struct RuntimeState {
     /// The [`Value`] stored in each variable.
     variables: HashMap<Ident, Value>,
+
+    /// An optional wall-clock deadline the running program must not exceed.
+    /// See [`RuntimeState::set_timeout`].
+    #[cfg(feature = "execution_timeout")]
+    timeout: Option<ExecutionTimeout>,
 }
 
 impl RuntimeState {
@@ -212,6 +219,110 @@ impl RuntimeState {
                 v.insert(value);
                 None
             }
+        }
+    }
+}
+
+#[cfg(feature = "execution_timeout")]
+impl RuntimeState {
+    /// Bounds the total wall-clock time the program is allowed to spend
+    /// resolving expressions. Once set, every expression resolution checks
+    /// the deadline and panics if it has passed.
+    ///
+    /// This is a hard safety net against runaway scripts, not a regular
+    /// control-flow mechanism: exceeding the timeout panics rather than
+    /// returning a `Terminate` error.
+    pub fn set_timeout(&mut self, timeout: Duration) {
+        self.timeout = Some(ExecutionTimeout::new(timeout));
+    }
+
+    /// Removes any previously configured timeout.
+    pub fn clear_timeout(&mut self) {
+        self.timeout = None;
+    }
+
+    pub(crate) fn check_timeout(&mut self) {
+        if let Some(timeout) = self.timeout.as_mut() {
+            timeout.check();
+        }
+    }
+}
+
+/// Number of expression evaluations between deadline checks. Consulting the
+/// system clock on every single expression resolution would add needless
+/// overhead to the interpreter's hottest path, so the deadline is only
+/// actually checked once every `CHECK_INTERVAL` calls.
+#[cfg(feature = "execution_timeout")]
+const CHECK_INTERVAL: u32 = 1024;
+
+#[cfg(feature = "execution_timeout")]
+#[derive(Debug, Clone, Copy)]
+struct ExecutionTimeout {
+    deadline: Instant,
+    calls_until_check: u32,
+}
+
+#[cfg(feature = "execution_timeout")]
+impl ExecutionTimeout {
+    fn new(timeout: Duration) -> Self {
+        let now = Instant::now();
+        Self {
+            deadline: now.checked_add(timeout).unwrap_or(now),
+            calls_until_check: CHECK_INTERVAL,
+        }
+    }
+
+    fn check(&mut self) {
+        self.calls_until_check -= 1;
+        if self.calls_until_check != 0 {
+            return;
+        }
+        self.calls_until_check = CHECK_INTERVAL;
+
+        assert!(
+            Instant::now() < self.deadline,
+            "VRL program exceeded its execution timeout"
+        );
+    }
+}
+
+#[cfg(all(test, feature = "execution_timeout"))]
+mod execution_timeout_tests {
+    use super::{CHECK_INTERVAL, RuntimeState};
+    use std::time::Duration;
+
+    #[test]
+    fn panics_once_deadline_passes() {
+        let mut state = RuntimeState::default();
+        state.set_timeout(Duration::from_millis(1));
+        std::thread::sleep(Duration::from_millis(5));
+
+        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            for _ in 0..CHECK_INTERVAL {
+                state.check_timeout();
+            }
+        }));
+
+        assert!(result.is_err(), "expected check_timeout to panic");
+    }
+
+    #[test]
+    fn does_not_check_the_clock_before_the_interval_elapses() {
+        let mut state = RuntimeState::default();
+        state.set_timeout(Duration::from_millis(1));
+        std::thread::sleep(Duration::from_millis(5));
+
+        for _ in 0..CHECK_INTERVAL - 1 {
+            state.check_timeout();
+        }
+    }
+
+    #[test]
+    fn no_timeout_configured_never_panics() {
+        let mut state = RuntimeState::default();
+
+        for _ in 0..CHECK_INTERVAL * 4 {
+            state.check_timeout();
         }
     }
 }

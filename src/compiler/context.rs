@@ -49,4 +49,21 @@ impl<'a> Context<'a> {
     pub fn timezone(&self) -> &TimeZone {
         self.timezone
     }
+
+    /// Checks whether the program has exceeded a configured execution
+    /// timeout, panicking if so. Called on every expression resolution.
+    ///
+    /// A no-op unless the `execution_timeout` feature is enabled and a
+    /// timeout has been set via
+    /// [`RuntimeState::set_timeout`](super::state::RuntimeState::set_timeout).
+    #[cfg(feature = "execution_timeout")]
+    #[inline]
+    pub(crate) fn breakpoint(&mut self) {
+        self.state.check_timeout();
+    }
+
+    #[cfg(not(feature = "execution_timeout"))]
+    #[inline(always)]
+    #[allow(clippy::unused_self)]
+    pub(crate) fn breakpoint(&mut self) {}
 }

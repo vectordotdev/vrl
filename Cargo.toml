@@ -56,6 +56,11 @@ lua = ["dep:mlua"]
 # Property-based testing support via proptest.
 proptest = ["dep:proptest", "dep:proptest-derive"]
 
+# Enables bounding a program's wall-clock execution time via `Runtime::set_timeout`.
+# A no-op unless a timeout is actually configured; intended for embedders that need
+# a hard safety net against runaway scripts (the program panics past the deadline).
+execution_timeout = ["compiler"]
+
 # Enables environment variable access functions (e.g. `get_env_var`).
 enable_env_functions = []
 
