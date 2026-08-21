@@ -1,6 +1,8 @@
 use std::{error::Error, fmt};
-#[cfg(feature = "execution_timeout")]
-use std::time::Duration;
+#[cfg(feature = "execution_cancellation")]
+use std::sync::Arc;
+#[cfg(feature = "execution_cancellation")]
+use std::sync::atomic::AtomicBool;
 
 use crate::path::OwnedTargetPath;
 use crate::value::Value;
@@ -130,29 +132,30 @@ impl Runtime {
     }
 }
 
-#[cfg(feature = "execution_timeout")]
+#[cfg(feature = "execution_cancellation")]
 impl Runtime {
-    /// Bounds the wall-clock time [`Runtime::resolve`] is allowed to spend
-    /// executing the program. If execution runs past this timeout, the
-    /// program panics rather than returning a [`RuntimeResult`] — this is
-    /// intended as a hard safety net against runaway scripts, not a regular
-    /// control-flow mechanism.
-    pub fn set_timeout(&mut self, timeout: Duration) {
-        self.state.set_timeout(timeout);
+    /// Registers a cancellation flag [`Runtime::resolve`] will check on
+    /// every expression resolution. Set it to `true` from any thread —
+    /// after your own timeout elapses, on a client disconnect, on shutdown,
+    /// whatever your cancellation source is — to abort a running program;
+    /// it panics rather than returning a [`RuntimeResult`].
+    pub fn set_cancellation_flag(&mut self, flag: Arc<AtomicBool>) {
+        self.state.set_cancellation_flag(flag);
     }
 }
 
-#[cfg(all(test, feature = "execution_timeout", feature = "stdlib"))]
-mod execution_timeout_tests {
+#[cfg(all(test, feature = "execution_cancellation", feature = "stdlib"))]
+mod execution_cancellation_tests {
     use std::collections::BTreeMap;
+    use std::sync::Arc;
+    use std::sync::atomic::{AtomicBool, Ordering};
     use std::time::Duration;
 
     use super::{Runtime, TimeZone};
     use crate::compiler::state::RuntimeState;
     use crate::value::Value;
 
-    #[test]
-    fn for_each_loop_panics_past_the_timeout() {
+    fn for_each_loop_program(len: usize) -> (crate::compiler::Program, Value) {
         let source = r#"
             count = 0
             for_each(array!(.items)) -> |_index, _value| {
@@ -165,11 +168,19 @@ mod execution_timeout_tests {
             .expect("program should compile")
             .program;
 
-        let mut target: Value =
-            BTreeMap::from([("items".into(), Value::Array(vec![Value::from(1); 5_000]))]).into();
+        let target: Value =
+            BTreeMap::from([("items".into(), Value::Array(vec![Value::from(1); len]))]).into();
 
+        (program, target)
+    }
+
+    #[test]
+    fn for_each_loop_panics_when_already_cancelled() {
+        let (program, mut target) = for_each_loop_program(5_000);
+
+        let flag = Arc::new(AtomicBool::new(true));
         let mut runtime = Runtime::new(RuntimeState::default());
-        runtime.set_timeout(Duration::from_nanos(1));
+        runtime.set_cancellation_flag(flag);
 
         let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
             runtime.resolve(&mut target, &program, &TimeZone::default())
@@ -177,7 +188,28 @@ mod execution_timeout_tests {
 
         assert!(
             result.is_err(),
-            "expected the for_each loop to hit the execution timeout"
+            "expected the for_each loop to be cancelled before it started"
+        );
+    }
+
+    #[test]
+    fn for_each_loop_panics_once_cancelled_mid_execution() {
+        let (program, mut target) = for_each_loop_program(500_000);
+
+        let flag = Arc::new(AtomicBool::new(false));
+        let mut runtime = Runtime::new(RuntimeState::default());
+        runtime.set_cancellation_flag(Arc::clone(&flag));
+
+        let handle = std::thread::spawn(move || {
+            runtime.resolve(&mut target, &program, &TimeZone::default())
+        });
+
+        std::thread::sleep(Duration::from_millis(5));
+        flag.store(true, Ordering::Relaxed);
+
+        assert!(
+            handle.join().is_err(),
+            "expected the for_each loop to be cancelled mid-execution"
         );
     }
 }

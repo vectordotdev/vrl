@@ -234,7 +234,7 @@ impl Expression for Expr {
             Return, Unary, Variable,
         };
 
-        ctx.breakpoint();
+        ctx.cancel_breakpoint();
 
         match self {
             Literal(v) => v.resolve(ctx),

@@ -1,8 +1,10 @@
 use crate::path::PathPrefix;
 use crate::value::{Kind, Value};
 use std::collections::{HashMap, hash_map::Entry};
-#[cfg(feature = "execution_timeout")]
-use std::time::{Duration, Instant};
+#[cfg(feature = "execution_cancellation")]
+use std::sync::Arc;
+#[cfg(feature = "execution_cancellation")]
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use super::{TypeDef, parser::ast::Ident, type_def::Details, value::Collection};
 
@@ -179,10 +181,10 @@ pub struct RuntimeState {
     /// The [`Value`] stored in each variable.
     variables: HashMap<Ident, Value>,
 
-    /// An optional wall-clock deadline the running program must not exceed.
-    /// See [`RuntimeState::set_timeout`].
-    #[cfg(feature = "execution_timeout")]
-    timeout: Option<ExecutionTimeout>,
+    /// An optional flag the running program is cancelled through.
+    /// See [`RuntimeState::set_cancellation_flag`].
+    #[cfg(feature = "execution_cancellation")]
+    cancel_flag: Option<Arc<AtomicBool>>,
 }
 
 impl RuntimeState {
@@ -223,106 +225,62 @@ impl RuntimeState {
     }
 }
 
-#[cfg(feature = "execution_timeout")]
+#[cfg(feature = "execution_cancellation")]
 impl RuntimeState {
-    /// Bounds the total wall-clock time the program is allowed to spend
-    /// resolving expressions. Once set, every expression resolution checks
-    /// the deadline and panics if it has passed.
+    /// Registers a flag the running program will check on every expression
+    /// resolution. Set it to `true` from any thread — after your own
+    /// timeout elapses, on a client disconnect, on shutdown, whatever your
+    /// cancellation source is — and the program panics the next time it's
+    /// observed, rather than running to completion.
     ///
     /// This is a hard safety net against runaway scripts, not a regular
-    /// control-flow mechanism: exceeding the timeout panics rather than
-    /// returning a `Terminate` error.
-    pub fn set_timeout(&mut self, timeout: Duration) {
-        self.timeout = Some(ExecutionTimeout::new(timeout));
+    /// control-flow mechanism: cancellation panics rather than returning a
+    /// `Terminate` error.
+    pub fn set_cancellation_flag(&mut self, flag: Arc<AtomicBool>) {
+        self.cancel_flag = Some(flag);
     }
 
-    /// Removes any previously configured timeout.
-    pub fn clear_timeout(&mut self) {
-        self.timeout = None;
+    /// Removes any previously registered cancellation flag.
+    pub fn clear_cancellation_flag(&mut self) {
+        self.cancel_flag = None;
     }
 
-    pub(crate) fn check_timeout(&mut self) {
-        if let Some(timeout) = self.timeout.as_mut() {
-            timeout.check();
+    pub(crate) fn check_cancellation(&self) {
+        if let Some(flag) = &self.cancel_flag {
+            assert!(
+                !flag.load(Ordering::Relaxed),
+                "VRL program execution was cancelled"
+            );
         }
     }
 }
 
-/// Number of expression evaluations between deadline checks. Consulting the
-/// system clock on every single expression resolution would add needless
-/// overhead to the interpreter's hottest path, so the deadline is only
-/// actually checked once every `CHECK_INTERVAL` calls.
-#[cfg(feature = "execution_timeout")]
-const CHECK_INTERVAL: u32 = 1024;
-
-#[cfg(feature = "execution_timeout")]
-#[derive(Debug, Clone, Copy)]
-struct ExecutionTimeout {
-    deadline: Instant,
-    calls_until_check: u32,
-}
-
-#[cfg(feature = "execution_timeout")]
-impl ExecutionTimeout {
-    fn new(timeout: Duration) -> Self {
-        let now = Instant::now();
-        Self {
-            deadline: now.checked_add(timeout).unwrap_or(now),
-            calls_until_check: CHECK_INTERVAL,
-        }
-    }
-
-    fn check(&mut self) {
-        self.calls_until_check -= 1;
-        if self.calls_until_check != 0 {
-            return;
-        }
-        self.calls_until_check = CHECK_INTERVAL;
-
-        assert!(
-            Instant::now() < self.deadline,
-            "VRL program exceeded its execution timeout"
-        );
-    }
-}
-
-#[cfg(all(test, feature = "execution_timeout"))]
-mod execution_timeout_tests {
-    use super::{CHECK_INTERVAL, RuntimeState};
-    use std::time::Duration;
+#[cfg(all(test, feature = "execution_cancellation"))]
+mod execution_cancellation_tests {
+    use super::RuntimeState;
+    use std::sync::Arc;
+    use std::sync::atomic::{AtomicBool, Ordering};
 
     #[test]
-    fn panics_once_deadline_passes() {
+    fn panics_once_the_flag_is_set() {
+        let flag = Arc::new(AtomicBool::new(false));
         let mut state = RuntimeState::default();
-        state.set_timeout(Duration::from_millis(1));
-        std::thread::sleep(Duration::from_millis(5));
+        state.set_cancellation_flag(Arc::clone(&flag));
+
+        state.check_cancellation();
+
+        flag.store(true, Ordering::Relaxed);
 
         let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            for _ in 0..CHECK_INTERVAL {
-                state.check_timeout();
-            }
+            state.check_cancellation();
         }));
 
-        assert!(result.is_err(), "expected check_timeout to panic");
+        assert!(result.is_err(), "expected check_cancellation to panic");
     }
 
     #[test]
-    fn does_not_check_the_clock_before_the_interval_elapses() {
-        let mut state = RuntimeState::default();
-        state.set_timeout(Duration::from_millis(1));
-        std::thread::sleep(Duration::from_millis(5));
-
-        for _ in 0..CHECK_INTERVAL - 1 {
-            state.check_timeout();
-        }
-    }
-
-    #[test]
-    fn no_timeout_configured_never_panics() {
-        let mut state = RuntimeState::default();
-
-        for _ in 0..CHECK_INTERVAL * 4 {
-            state.check_timeout();
-        }
+    fn no_flag_configured_never_panics() {
+        let state = RuntimeState::default();
+        state.check_cancellation();
     }
 }

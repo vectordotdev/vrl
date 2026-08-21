@@ -50,20 +50,21 @@ impl<'a> Context<'a> {
         self.timezone
     }
 
-    /// Checks whether the program has exceeded a configured execution
-    /// timeout, panicking if so. Called on every expression resolution.
+    /// Checks whether the program has been cancelled via a caller-supplied
+    /// flag, panicking if so. Called on every expression resolution — it is
+    /// used for cancellation only, hence the name.
     ///
-    /// A no-op unless the `execution_timeout` feature is enabled and a
-    /// timeout has been set via
-    /// [`RuntimeState::set_timeout`](super::state::RuntimeState::set_timeout).
-    #[cfg(feature = "execution_timeout")]
+    /// A no-op unless the `execution_cancellation` feature is enabled and a
+    /// flag has been registered via
+    /// [`RuntimeState::set_cancellation_flag`](super::state::RuntimeState::set_cancellation_flag).
+    #[cfg(feature = "execution_cancellation")]
     #[inline]
-    pub(crate) fn breakpoint(&mut self) {
-        self.state.check_timeout();
+    pub(crate) fn cancel_breakpoint(&mut self) {
+        self.state.check_cancellation();
     }
 
-    #[cfg(not(feature = "execution_timeout"))]
+    #[cfg(not(feature = "execution_cancellation"))]
     #[inline(always)]
     #[allow(clippy::unused_self)]
-    pub(crate) fn breakpoint(&mut self) {}
+    pub(crate) fn cancel_breakpoint(&mut self) {}
 }
