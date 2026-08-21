@@ -1,8 +1,8 @@
-use std::{error::Error, fmt};
 #[cfg(feature = "execution_cancellation")]
 use std::sync::Arc;
 #[cfg(feature = "execution_cancellation")]
 use std::sync::atomic::AtomicBool;
+use std::{error::Error, fmt};
 
 use crate::path::OwnedTargetPath;
 use crate::value::Value;
@@ -156,13 +156,13 @@ mod execution_cancellation_tests {
     use crate::value::Value;
 
     fn for_each_loop_program(len: usize) -> (crate::compiler::Program, Value) {
-        let source = r#"
+        let source = r"
             count = 0
             for_each(array!(.items)) -> |_index, _value| {
                 count = count + 1
             }
             count
-        "#;
+        ";
 
         let program = crate::compiler::compile(source, &crate::stdlib::all())
             .expect("program should compile")
