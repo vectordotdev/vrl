@@ -227,15 +227,9 @@ impl RuntimeState {
 
 #[cfg(feature = "execution_cancellation")]
 impl RuntimeState {
-    /// Registers a flag the running program will check on every expression
-    /// resolution. Set it to `true` from any thread — after your own
-    /// timeout elapses, on a client disconnect, on shutdown, whatever your
-    /// cancellation source is — and the program panics the next time it's
-    /// observed, rather than running to completion.
-    ///
-    /// This is a hard safety net against runaway scripts, not a regular
-    /// control-flow mechanism: cancellation panics rather than returning a
-    /// `Terminate` error.
+    /// Registers a flag checked on every expression resolution. Set it to
+    /// `true` from any thread — e.g. after your own timeout elapses, or on
+    /// a client disconnect — to abort the running program.
     pub fn set_cancellation_flag(&mut self, flag: Arc<AtomicBool>) {
         self.cancel_flag = Some(flag);
     }
@@ -246,23 +240,41 @@ impl RuntimeState {
     }
 
     pub(crate) fn check_cancellation(&self) {
-        if let Some(flag) = &self.cancel_flag {
-            assert!(
-                !flag.load(Ordering::Relaxed),
-                "VRL program execution was cancelled"
-            );
+        if let Some(flag) = &self.cancel_flag
+            && flag.load(Ordering::Relaxed)
+        {
+            std::panic::panic_any(Cancelled);
         }
     }
 }
 
+/// Panic payload raised when a program is aborted through a cancellation
+/// flag (see [`RuntimeState::set_cancellation_flag`]), as opposed to any
+/// other panic. Callers wrapping [`super::runtime::Runtime::resolve`] in
+/// `std::panic::catch_unwind` can distinguish the two by downcasting the
+/// caught payload to this type.
+#[cfg(feature = "execution_cancellation")]
+#[derive(Debug)]
+pub struct Cancelled;
+
+#[cfg(feature = "execution_cancellation")]
+impl std::fmt::Display for Cancelled {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("VRL program execution was cancelled")
+    }
+}
+
+#[cfg(feature = "execution_cancellation")]
+impl std::error::Error for Cancelled {}
+
 #[cfg(all(test, feature = "execution_cancellation"))]
 mod execution_cancellation_tests {
-    use super::RuntimeState;
+    use super::{Cancelled, RuntimeState};
     use std::sync::Arc;
     use std::sync::atomic::{AtomicBool, Ordering};
 
     #[test]
-    fn panics_once_the_flag_is_set() {
+    fn panics_with_cancelled_once_the_flag_is_set() {
         let flag = Arc::new(AtomicBool::new(false));
         let mut state = RuntimeState::default();
         state.set_cancellation_flag(Arc::clone(&flag));
@@ -271,11 +283,12 @@ mod execution_cancellation_tests {
 
         flag.store(true, Ordering::Relaxed);
 
-        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        let payload = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
             state.check_cancellation();
-        }));
+        }))
+        .expect_err("expected check_cancellation to panic");
 
-        assert!(result.is_err(), "expected check_cancellation to panic");
+        assert!(payload.downcast_ref::<Cancelled>().is_some());
     }
 
     #[test]

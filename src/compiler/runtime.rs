@@ -134,11 +134,10 @@ impl Runtime {
 
 #[cfg(feature = "execution_cancellation")]
 impl Runtime {
-    /// Registers a cancellation flag [`Runtime::resolve`] will check on
-    /// every expression resolution. Set it to `true` from any thread —
-    /// after your own timeout elapses, on a client disconnect, on shutdown,
-    /// whatever your cancellation source is — to abort a running program;
-    /// it panics rather than returning a [`RuntimeResult`].
+    /// Registers a flag [`Runtime::resolve`] checks on every expression
+    /// resolution. Set it to `true` from any thread to abort a running
+    /// program — it panics with [`state::Cancelled`] rather than returning
+    /// a [`RuntimeResult`].
     pub fn set_cancellation_flag(&mut self, flag: Arc<AtomicBool>) {
         self.state.set_cancellation_flag(flag);
     }
@@ -151,7 +150,7 @@ mod execution_cancellation_tests {
     use std::sync::atomic::AtomicBool;
 
     use super::{Runtime, TimeZone};
-    use crate::compiler::state::RuntimeState;
+    use crate::compiler::state::{Cancelled, RuntimeState};
     use crate::value::Value;
 
     #[test]
@@ -175,13 +174,11 @@ mod execution_cancellation_tests {
         let mut runtime = Runtime::new(RuntimeState::default());
         runtime.set_cancellation_flag(flag);
 
-        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        let payload = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
             runtime.resolve(&mut target, &program, &TimeZone::default())
-        }));
+        }))
+        .expect_err("expected the for_each loop to be cancelled before it started");
 
-        assert!(
-            result.is_err(),
-            "expected the for_each loop to be cancelled before it started"
-        );
+        assert!(payload.downcast_ref::<Cancelled>().is_some());
     }
 }
