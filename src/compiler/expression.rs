@@ -234,6 +234,7 @@ impl Expression for Expr {
             Return, Unary, Variable,
         };
 
+        #[cfg(feature = "execution_cancellation")]
         ctx.cancel_breakpoint();
 
         match self {

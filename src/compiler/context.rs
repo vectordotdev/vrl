@@ -54,17 +54,15 @@ impl<'a> Context<'a> {
     /// flag, panicking if so. Called on every expression resolution — it is
     /// used for cancellation only, hence the name.
     ///
-    /// A no-op unless the `execution_cancellation` feature is enabled and a
-    /// flag has been registered via
-    /// [`RuntimeState::set_cancellation_flag`](super::state::RuntimeState::set_cancellation_flag).
+    /// Only compiled in when the `execution_cancellation` feature is
+    /// enabled; the call site in [`Expr::resolve`](super::expression::Expr)
+    /// is `#[cfg]`-gated the same way, so this is a true no-op otherwise. A
+    /// flag must also be registered via
+    /// [`RuntimeState::set_cancellation_flag`](super::state::RuntimeState::set_cancellation_flag)
+    /// for the check to do anything.
     #[cfg(feature = "execution_cancellation")]
     #[inline]
     pub(crate) fn cancel_breakpoint(&mut self) {
         self.state.check_cancellation();
     }
-
-    #[cfg(not(feature = "execution_cancellation"))]
-    #[inline(always)]
-    #[allow(clippy::unused_self)]
-    pub(crate) fn cancel_breakpoint(&mut self) {}
 }
