@@ -230,6 +230,17 @@ impl RuntimeState {
     /// Registers a flag checked on every expression resolution. Set it to
     /// `true` from any thread — e.g. after your own timeout elapses, or on
     /// a client disconnect — to abort the running program.
+    ///
+    /// Two limits of this mechanism:
+    /// - The flag is only checked between expressions, not during one. A
+    ///   single long-running or blocking call — a network function waiting
+    ///   out its own timeout, a stdlib function looping over a large
+    ///   input — still runs to completion before the next check.
+    /// - After catching the resulting panic, discard this `RuntimeState`
+    ///   rather than reusing it. Cancelling mid-iteration (e.g. inside a
+    ///   `for_each` closure) can unwind before the closure's cleanup
+    ///   restores a shadowed outer variable, leaving stale iteration state
+    ///   behind.
     pub fn set_cancellation_flag(&mut self, flag: Arc<AtomicBool>) {
         self.cancel_flag = Some(flag);
     }

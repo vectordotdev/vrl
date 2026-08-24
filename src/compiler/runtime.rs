@@ -137,7 +137,9 @@ impl Runtime {
     /// Registers a flag [`Runtime::resolve`] checks on every expression
     /// resolution. Set it to `true` from any thread to abort a running
     /// program — it panics with [`state::Cancelled`] rather than returning
-    /// a [`RuntimeResult`].
+    /// a [`RuntimeResult`]. See
+    /// [`RuntimeState::set_cancellation_flag`](state::RuntimeState::set_cancellation_flag)
+    /// for this mechanism's limits.
     pub fn set_cancellation_flag(&mut self, flag: Arc<AtomicBool>) {
         self.state.set_cancellation_flag(flag);
     }
