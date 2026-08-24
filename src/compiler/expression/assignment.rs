@@ -4,7 +4,7 @@ use crate::compiler::codes;
 use crate::compiler::expression::function_call::FunctionCallError::InvalidArgumentKind;
 use crate::compiler::expression::function_call::InvalidArgumentErrorContext;
 use crate::compiler::{
-    CompileConfig, Context, Expression, Span, TypeDef,
+    CompileConfig, Context, Expression, ExpressionError, Span, TypeDef,
     compiler::CompilerError,
     expression::{Expr, Resolved, assignment::ErrorVariant::InvalidParentPathSegment},
     parser::{
@@ -540,6 +540,10 @@ where
                     value
                 }
                 Err(error) => {
+                    if matches!(error, ExpressionError::Interrupted) {
+                        return Err(error);
+                    }
+
                     ok.insert(default.clone(), ctx);
                     let value = Value::from(error.to_string());
                     err.insert(value.clone(), ctx);

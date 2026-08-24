@@ -1,11 +1,12 @@
-use super::TimeZone;
+use std::ops::ControlFlow;
 
-use super::{Target, state::RuntimeState};
+use super::{ExpressionError, Target, TimeZone, runtime::ExecutionControl, state::RuntimeState};
 
 pub struct Context<'a> {
     target: &'a mut dyn Target,
     state: &'a mut RuntimeState,
     timezone: &'a TimeZone,
+    execution_control: Option<&'a mut dyn ExecutionControl>,
 }
 
 impl<'a> Context<'a> {
@@ -19,6 +20,21 @@ impl<'a> Context<'a> {
             target,
             state,
             timezone,
+            execution_control: None,
+        }
+    }
+
+    pub(crate) fn new_with_control(
+        target: &'a mut dyn Target,
+        state: &'a mut RuntimeState,
+        timezone: &'a TimeZone,
+        execution_control: &'a mut dyn ExecutionControl,
+    ) -> Self {
+        Self {
+            target,
+            state,
+            timezone,
+            execution_control: Some(execution_control),
         }
     }
 
@@ -50,13 +66,24 @@ impl<'a> Context<'a> {
         self.timezone
     }
 
-    /// Panics if the program has been cancelled via a caller-supplied flag.
-    /// Called on every expression resolution; a no-op unless a flag was
-    /// registered via
-    /// [`RuntimeState::set_cancellation_flag`](super::state::RuntimeState::set_cancellation_flag).
-    #[cfg(feature = "execution_cancellation")]
+    /// Checks whether the embedder has requested that execution stop.
+    ///
+    /// VRL calls this between expressions. Functions that perform long-running
+    /// work can call it at additional safe points.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ExpressionError::Interrupted`] when the configured
+    /// [`ExecutionControl`] requests interruption. With no execution control,
+    /// this always succeeds.
     #[inline]
-    pub(crate) fn cancel_breakpoint(&mut self) {
-        self.state.check_cancellation();
+    pub fn checkpoint(&mut self) -> Result<(), ExpressionError> {
+        match self.execution_control.as_deref_mut() {
+            Some(control) => match control.checkpoint() {
+                ControlFlow::Break(()) => Err(ExpressionError::Interrupted),
+                ControlFlow::Continue(()) => Ok(()),
+            },
+            None => Ok(()),
+        }
     }
 }

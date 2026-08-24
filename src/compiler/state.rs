@@ -1,10 +1,6 @@
 use crate::path::PathPrefix;
 use crate::value::{Kind, Value};
 use std::collections::{HashMap, hash_map::Entry};
-#[cfg(feature = "execution_cancellation")]
-use std::sync::Arc;
-#[cfg(feature = "execution_cancellation")]
-use std::sync::atomic::{AtomicBool, Ordering};
 
 use super::{TypeDef, parser::ast::Ident, type_def::Details, value::Collection};
 
@@ -180,11 +176,6 @@ impl ExternalEnv {
 pub struct RuntimeState {
     /// The [`Value`] stored in each variable.
     variables: HashMap<Ident, Value>,
-
-    /// An optional flag the running program is cancelled through.
-    /// See [`RuntimeState::set_cancellation_flag`].
-    #[cfg(feature = "execution_cancellation")]
-    cancel_flag: Option<Arc<AtomicBool>>,
 }
 
 impl RuntimeState {
@@ -222,89 +213,5 @@ impl RuntimeState {
                 None
             }
         }
-    }
-}
-
-#[cfg(feature = "execution_cancellation")]
-impl RuntimeState {
-    /// Registers a flag checked on every expression resolution. Set it to
-    /// `true` from any thread — e.g. after your own timeout elapses, or on
-    /// a client disconnect — to abort the running program.
-    ///
-    /// Two limits of this mechanism:
-    /// - The flag is only checked between expressions, not during one. A
-    ///   single long-running or blocking call — a network function waiting
-    ///   out its own timeout, a stdlib function looping over a large
-    ///   input — still runs to completion before the next check.
-    /// - After catching the resulting panic, discard this `RuntimeState`
-    ///   rather than reusing it. Cancelling mid-iteration (e.g. inside a
-    ///   `for_each` closure) can unwind before the closure's cleanup
-    ///   restores a shadowed outer variable, leaving stale iteration state
-    ///   behind.
-    pub fn set_cancellation_flag(&mut self, flag: Arc<AtomicBool>) {
-        self.cancel_flag = Some(flag);
-    }
-
-    /// Removes any previously registered cancellation flag.
-    pub fn clear_cancellation_flag(&mut self) {
-        self.cancel_flag = None;
-    }
-
-    pub(crate) fn check_cancellation(&self) {
-        if let Some(flag) = &self.cancel_flag
-            && flag.load(Ordering::Relaxed)
-        {
-            std::panic::panic_any(Cancelled);
-        }
-    }
-}
-
-/// Panic payload raised when a program is aborted through a cancellation
-/// flag (see [`RuntimeState::set_cancellation_flag`]), as opposed to any
-/// other panic. Callers wrapping [`super::runtime::Runtime::resolve`] in
-/// `std::panic::catch_unwind` can distinguish the two by downcasting the
-/// caught payload to this type.
-#[cfg(feature = "execution_cancellation")]
-#[derive(Debug)]
-pub struct Cancelled;
-
-#[cfg(feature = "execution_cancellation")]
-impl std::fmt::Display for Cancelled {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str("VRL program execution was cancelled")
-    }
-}
-
-#[cfg(feature = "execution_cancellation")]
-impl std::error::Error for Cancelled {}
-
-#[cfg(all(test, feature = "execution_cancellation"))]
-mod execution_cancellation_tests {
-    use super::{Cancelled, RuntimeState};
-    use std::sync::Arc;
-    use std::sync::atomic::{AtomicBool, Ordering};
-
-    #[test]
-    fn panics_with_cancelled_once_the_flag_is_set() {
-        let flag = Arc::new(AtomicBool::new(false));
-        let mut state = RuntimeState::default();
-        state.set_cancellation_flag(Arc::clone(&flag));
-
-        state.check_cancellation();
-
-        flag.store(true, Ordering::Relaxed);
-
-        let payload = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            state.check_cancellation();
-        }))
-        .expect_err("expected check_cancellation to panic");
-
-        assert!(payload.downcast_ref::<Cancelled>().is_some());
-    }
-
-    #[test]
-    fn no_flag_configured_never_panics() {
-        let state = RuntimeState::default();
-        state.check_cancellation();
     }
 }
