@@ -649,7 +649,8 @@ impl FunctionCall {
 impl Expression for FunctionCall {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         self.expr.resolve(ctx).map_err(|err| match err {
-            ExpressionError::Abort { .. }
+            ExpressionError::Interrupted
+            | ExpressionError::Abort { .. }
             | ExpressionError::Fallible { .. }
             | ExpressionError::Missing { .. } => {
                 // propagate the error
