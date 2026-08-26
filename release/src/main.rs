@@ -205,9 +205,9 @@ fn release(version_arg: Option<&str>, dry_run: bool, issue: Option<&str>) -> Res
     run("git", &["push", "origin", &tag], &root)?;
 
     println!("Creating pull request...");
-    let title = format!("chore(releasing): Prepare {new_version} release");
+    let title = format!("chore(releasing): Post-release {new_version}");
     let mut body = formatdoc! {"
-        Release {new_version}
+        Post-release update for VRL {new_version}
 
         Published to crates.io: https://crates.io/crates/vrl/{new_version}
         Tag: `{tag}`"
