@@ -157,7 +157,7 @@ fn release(version_arg: Option<&str>, dry_run: bool, issue: Option<&str>) -> Res
         println!("\n[dry-run] Generating changelog preview:\n");
         println!(
             "{}",
-            changelog.generate_section(&new_version, changelog::PullRequestMetadata::Optional,)?
+            changelog.generate_section(&new_version, changelog::PullRequestMetadata::Optional)?
         );
         return Ok(());
     }
