@@ -96,9 +96,10 @@ fn preflight(root: &Path, new_version: &semver::Version) -> Result<String, Strin
     run("gh", &["auth", "status"], root)
         .map_err(|e| format!("`gh` is not authenticated. Run `gh auth login` first.\n{e}"))?;
 
-    // Generate the section now so all GitHub lookups finish before the release
+    // Generate the section now so all PR metadata is validated before the release
     // mutates the branch. The cached section is applied after the version bump.
-    let changelog_section = changelog::Changelog::new(root).generate_section(new_version)?;
+    let changelog_section = changelog::Changelog::new(root)
+        .generate_section(new_version, changelog::PullRequestMetadata::Required)?;
 
     // Version not already published.
     crates_io::assert_not_published(new_version)?;
@@ -154,7 +155,10 @@ fn release(version_arg: Option<&str>, dry_run: bool, issue: Option<&str>) -> Res
 
     if dry_run {
         println!("\n[dry-run] Generating changelog preview:\n");
-        println!("{}", changelog.generate_section(&new_version)?);
+        println!(
+            "{}",
+            changelog.generate_section(&new_version, changelog::PullRequestMetadata::Optional)?
+        );
         return Ok(());
     }
 

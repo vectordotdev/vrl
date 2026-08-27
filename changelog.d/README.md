@@ -10,8 +10,7 @@ The changelog fragments are located in `changelog.d/`.
 Fragments for unreleased changes are placed in the root of this directory alongside the changes they describe.
 
 During a release, `cargo run -p release` is run which automatically generates the
-changes to the CHANGELOG.md file, links each entry to the merged PR that added its
-fragment, and removes the fragment files.
+changes to the CHANGELOG.md file.
 
 ### Submitting changes
 
