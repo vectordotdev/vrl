@@ -1,9 +1,6 @@
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
-#[cfg(not(test))]
-use serde::Deserialize;
-
 const FRAGMENT_TYPES: &[(&str, &str)] = &[
     ("breaking", "Breaking Changes & Upgrade Guide"),
     ("security", "Security"),
@@ -17,16 +14,16 @@ const CHANGELOG_MARKER: &str = "<!-- changelog start -->\n";
 
 #[derive(Debug)]
 struct Fragment {
-    pr_number: String,
+    pr_numbers: Vec<u64>,
     fragment_type: String,
     content: String,
     authors: Vec<String>,
 }
 
-#[cfg(not(test))]
-#[derive(Deserialize)]
-struct PullRequest {
-    number: u64,
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(super) enum PullRequestMetadata {
+    Optional,
+    Required,
 }
 
 /// Strip the trailing `authors: ...` line from fragment content, returning
@@ -71,7 +68,15 @@ fn parse_authors(raw: &str) -> Result<(String, Vec<String>), String> {
 fn format_authors(authors: &[String]) -> String {
     authors
         .iter()
-        .map(|a| format!("[@{a}](https://github.com/{a})"))
+        .map(|a| format!("[{a}](https://github.com/{a})"))
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
+fn format_pull_requests(pr_numbers: &[u64]) -> String {
+    pr_numbers
+        .iter()
+        .map(|pr| format!("[#{pr}](https://github.com/vectordotdev/vrl/pull/{pr})"))
         .collect::<Vec<_>>()
         .join(", ")
 }
@@ -134,21 +139,27 @@ impl Changelog {
             parse_authors(raw.trim()).map_err(|e| format!("{} (in {})", e, path.display()))?;
 
         Ok(Fragment {
-            pr_number: String::new(),
+            pr_numbers: Vec::new(),
             fragment_type: fragment_type.to_ascii_lowercase(),
             content,
             authors,
         })
     }
 
-    fn collect_fragments(&self) -> Result<BTreeMap<String, Vec<Fragment>>, String> {
-        self.ensure_complete_history()?;
+    fn collect_fragments(
+        &self,
+        pull_request_metadata: PullRequestMetadata,
+    ) -> Result<BTreeMap<String, Vec<Fragment>>, String> {
+        if pull_request_metadata == PullRequestMetadata::Required {
+            self.ensure_complete_history()?;
+        }
 
         let mut grouped: BTreeMap<String, Vec<Fragment>> = BTreeMap::new();
 
         for entry in Self::read_fragment_dir(&self.changelog_dir())? {
             let mut fragment = Self::parse_fragment(&entry)?;
-            fragment.pr_number = lookup_pull_request(&self.repo_root, &entry)?;
+            fragment.pr_numbers =
+                lookup_pull_requests(&self.repo_root, &entry, pull_request_metadata)?;
             grouped
                 .entry(fragment.fragment_type.clone())
                 .or_default()
@@ -232,11 +243,18 @@ impl Changelog {
                 for fragment in fragments {
                     let indented = Self::indent_continuation(&fragment.content);
                     let authors = format_authors(&fragment.authors);
-                    let pr = &fragment.pr_number;
-                    let url = format!("https://github.com/vectordotdev/vrl/pull/{pr}");
-                    section.push_str(&format!(
-                        "- {indented}\n\n  [PR #{pr}]({url}) by {authors}\n"
-                    ));
+                    let attribution = if fragment.pr_numbers.is_empty() {
+                        format!("Thanks to {authors} for contributing this change!")
+                    } else {
+                        let pull_requests = format_pull_requests(&fragment.pr_numbers);
+                        let label = if fragment.pr_numbers.len() == 1 {
+                            "PR"
+                        } else {
+                            "PRs"
+                        };
+                        format!("Thanks to {authors} for contributing {label} {pull_requests}!")
+                    };
+                    section.push_str(&format!("- {indented}\n\n  *{attribution}*\n"));
                 }
             }
         }
@@ -244,8 +262,12 @@ impl Changelog {
         section
     }
 
-    pub fn generate_section(&self, version: &semver::Version) -> Result<String, String> {
-        let grouped = self.collect_fragments()?;
+    pub fn generate_section(
+        &self,
+        version: &semver::Version,
+        pull_request_metadata: PullRequestMetadata,
+    ) -> Result<String, String> {
+        let grouped = self.collect_fragments(pull_request_metadata)?;
         let date = chrono::Utc::now().format("%Y-%m-%d").to_string();
         Ok(Self::render_section(&grouped, version, &date))
     }
@@ -333,11 +355,22 @@ impl Changelog {
     }
 }
 
-/// Find the merged PR that introduced a fragment. The file's adding commit is
-/// stable even when the PR is later amended, and GitHub's PR search indexes it
-/// for merge, squash, and rebase workflows.
+/// Find every PR that added, edited, or renamed the current lifetime of a
+/// changelog fragment from each commit's `... (#12345)` title.
 #[cfg(not(test))]
-fn lookup_pull_request(repo_root: &Path, fragment_path: &Path) -> Result<String, String> {
+fn lookup_pull_requests(
+    repo_root: &Path,
+    fragment_path: &Path,
+    pull_request_metadata: PullRequestMetadata,
+) -> Result<Vec<u64>, String> {
+    lookup_pull_requests_from_git(repo_root, fragment_path, pull_request_metadata)
+}
+
+fn lookup_pull_requests_from_git(
+    repo_root: &Path,
+    fragment_path: &Path,
+    pull_request_metadata: PullRequestMetadata,
+) -> Result<Vec<u64>, String> {
     let relative_path = fragment_path.strip_prefix(repo_root).map_err(|_| {
         format!(
             "Fragment path {} is outside the repository root {}",
@@ -352,12 +385,11 @@ fn lookup_pull_request(repo_root: &Path, fragment_path: &Path) -> Result<String,
         )
     })?;
 
-    let commit = run_command(
+    let addition_commits = run_command(
         "git",
         [
             "log",
             "--follow",
-            "-1",
             "--format=%H",
             "--diff-filter=A",
             "--",
@@ -365,53 +397,40 @@ fn lookup_pull_request(repo_root: &Path, fragment_path: &Path) -> Result<String,
         ],
         repo_root,
     )?;
-    let commit = commit.trim();
-    if commit.is_empty() {
-        return Err(format!(
-            "Could not find the commit that added {relative_path}; cannot determine its pull request."
-        ));
-    }
+    let Some(latest_addition) = addition_commits.lines().next() else {
+        return match pull_request_metadata {
+            PullRequestMetadata::Optional => Ok(Vec::new()),
+            PullRequestMetadata::Required => Err(format!(
+                "Could not find the commit that added {relative_path}; cannot determine its pull requests."
+            )),
+        };
+    };
 
-    let output = run_command(
-        "gh",
+    let commit_history = run_command(
+        "git",
         [
-            "pr",
-            "list",
-            "--repo",
-            "vectordotdev/vrl",
-            "--state",
-            "merged",
-            "--search",
-            commit,
-            "--json",
-            "number",
-            "--limit",
-            "2",
+            "log",
+            "--follow",
+            "--format=%H%x09%s",
+            "--diff-filter=AMR",
+            "--",
+            relative_path,
         ],
         repo_root,
     )?;
-    let pull_requests: Vec<PullRequest> = serde_json::from_str(&output)
-        .map_err(|e| format!("Could not parse GitHub PR lookup for commit {commit}: {e}"))?;
 
-    match pull_requests.as_slice() {
-        [pull_request] => Ok(pull_request.number.to_string()),
-        [] => Err(format!(
-            "No merged GitHub PR found for commit {commit} that added {relative_path}."
-        )),
-        _ => Err(format!(
-            "Multiple merged GitHub PRs found for commit {commit} that added {relative_path}."
-        )),
-    }
+    parse_pull_request_history(&commit_history, latest_addition, pull_request_metadata).map_err(
+        |error| {
+            format!("Could not determine every PR that added or edited {relative_path}: {error}")
+        },
+    )
 }
 
 #[cfg(test)]
-fn lookup_pull_request(_: &Path, _: &Path) -> Result<String, String> {
-    // Unit tests exercise local parsing and rendering; the release dry run
-    // verifies the real GitHub lookup without requiring network access here.
-    Ok("42".to_string())
+fn lookup_pull_requests(_: &Path, _: &Path, _: PullRequestMetadata) -> Result<Vec<u64>, String> {
+    Ok(vec![42])
 }
 
-#[cfg(not(test))]
 fn run_command<const N: usize>(cmd: &str, args: [&str; N], cwd: &Path) -> Result<String, String> {
     let display = format!("{cmd} {}", args.join(" "));
     let output = std::process::Command::new(cmd)
@@ -430,6 +449,54 @@ fn run_command<const N: usize>(cmd: &str, args: [&str; N], cwd: &Path) -> Result
     }
 
     Ok(String::from_utf8_lossy(&output.stdout).into_owned())
+}
+
+fn parse_pull_request_history(
+    commit_history: &str,
+    latest_addition: &str,
+    pull_request_metadata: PullRequestMetadata,
+) -> Result<Vec<u64>, String> {
+    let mut numbers = Vec::new();
+    for line in commit_history
+        .lines()
+        .filter(|line| !line.trim().is_empty())
+    {
+        let (commit, title) = line
+            .split_once('\t')
+            .ok_or_else(|| format!("Malformed git log entry `{line}`"))?;
+
+        match parse_pull_request_number(title) {
+            Ok(number) if !numbers.contains(&number) => numbers.push(number),
+            Ok(_) => {}
+            Err(_) if pull_request_metadata == PullRequestMetadata::Optional => {}
+            Err(error) => return Err(format!("Commit {commit} `{title}`: {error}")),
+        }
+
+        if commit == latest_addition {
+            return Ok(numbers);
+        }
+    }
+
+    match pull_request_metadata {
+        PullRequestMetadata::Optional => Ok(Vec::new()),
+        PullRequestMetadata::Required => Err(format!(
+            "Could not find latest addition commit {latest_addition} in the fragment history"
+        )),
+    }
+}
+
+fn parse_pull_request_number(commit_title: &str) -> Result<u64, String> {
+    let number = commit_title
+        .trim()
+        .strip_suffix(')')
+        .and_then(|title| title.rsplit_once("(#"))
+        .map(|(_, number)| number)
+        .filter(|number| !number.is_empty() && number.bytes().all(|byte| byte.is_ascii_digit()))
+        .ok_or_else(|| "Commit title must end with `(#<PR number>)`".to_string())?;
+
+    number
+        .parse()
+        .map_err(|error| format!("Invalid PR number in commit title `{commit_title}`: {error}"))
 }
 
 #[cfg(test)]
@@ -467,6 +534,110 @@ mod tests {
         .unwrap();
 
         dir
+    }
+
+    #[test]
+    fn parses_current_fragment_lifetime_pull_requests() {
+        let history = indoc! {"
+            current-edit	fix(foo): adjust entry (#300)
+            current-add	feat(foo): add entry (#298)
+            old-edit	fix(foo): old adjustment (#120)
+            old-add	feat(foo): old addition (#119)
+        "};
+
+        assert_eq!(
+            parse_pull_request_history(history, "current-add", PullRequestMetadata::Required)
+                .unwrap(),
+            vec![300, 298]
+        );
+    }
+
+    #[test]
+    fn optional_pull_request_metadata_skips_unmerged_commits() {
+        let history = indoc! {"
+            edit	fix(foo): adjust entry
+            add	feat(foo): add entry (#123)
+        "};
+
+        assert_eq!(
+            parse_pull_request_history(history, "add", PullRequestMetadata::Optional).unwrap(),
+            vec![123]
+        );
+        assert!(parse_pull_request_history(history, "add", PullRequestMetadata::Required).is_err());
+    }
+
+    #[test]
+    fn pull_request_lookup_handles_renames_and_uncommitted_fragments() {
+        let dir = tempfile::tempdir().unwrap();
+        let repo = dir.path();
+        let changelog_dir = repo.join("changelog.d");
+        fs::create_dir(&changelog_dir).unwrap();
+
+        run_command("git", ["init", "--quiet", "-b", "test"], repo).unwrap();
+        run_command("git", ["config", "core.hooksPath", "/dev/null"], repo).unwrap();
+        run_command("git", ["config", "user.name", "VRL Test"], repo).unwrap();
+        run_command("git", ["config", "user.email", "vrl@example.com"], repo).unwrap();
+        run_command("git", ["config", "commit.gpgsign", "false"], repo).unwrap();
+
+        let original = changelog_dir.join("original.enhancement.md");
+        let renamed = changelog_dir.join("renamed.enhancement.md");
+        fs::write(
+            &original,
+            "Original entry.\nIt documents the first behavior.\nIt includes more detail.\n",
+        )
+        .unwrap();
+        run_command("git", ["add", "changelog.d/original.enhancement.md"], repo).unwrap();
+        run_command(
+            "git",
+            ["commit", "--quiet", "-m", "feat(foo): add entry (#100)"],
+            repo,
+        )
+        .unwrap();
+
+        run_command(
+            "git",
+            [
+                "mv",
+                "changelog.d/original.enhancement.md",
+                "changelog.d/renamed.enhancement.md",
+            ],
+            repo,
+        )
+        .unwrap();
+        fs::write(
+            &renamed,
+            "Original entry.\nIt documents the first behavior.\nIt includes more detail.\nOne extra detail.\n",
+        )
+        .unwrap();
+        run_command("git", ["add", "changelog.d/renamed.enhancement.md"], repo).unwrap();
+        run_command(
+            "git",
+            [
+                "commit",
+                "--quiet",
+                "-m",
+                "fix(foo): rename and edit entry (#101)",
+            ],
+            repo,
+        )
+        .unwrap();
+
+        assert_eq!(
+            lookup_pull_requests_from_git(repo, &renamed, PullRequestMetadata::Required).unwrap(),
+            vec![101, 100]
+        );
+
+        let uncommitted = changelog_dir.join("uncommitted.fix.md");
+        fs::write(&uncommitted, "Uncommitted entry.\n").unwrap();
+        assert_eq!(
+            lookup_pull_requests_from_git(repo, &uncommitted, PullRequestMetadata::Optional)
+                .unwrap(),
+            Vec::<u64>::new()
+        );
+        assert!(
+            lookup_pull_requests_from_git(repo, &uncommitted, PullRequestMetadata::Required)
+                .is_err()
+        );
     }
 
     // --- validate_fragment_filename ---
@@ -561,7 +732,7 @@ mod tests {
         fs::write(&path, "Fixed a bug.\n\nauthors: alice\n").unwrap();
 
         let fragment = Changelog::parse_fragment(&path).unwrap();
-        assert!(fragment.pr_number.is_empty());
+        assert!(fragment.pr_numbers.is_empty());
         assert_eq!(fragment.fragment_type, "fix");
         assert_eq!(fragment.content, "Fixed a bug.");
         assert_eq!(fragment.authors, vec!["alice"]);
@@ -586,7 +757,9 @@ mod tests {
             ("feature-b.feature.md", "Feature B\n\nauthors: bob"),
             ("bug-fix.fix.md", "Bug fix\n\nauthors: carol"),
         ]);
-        let grouped = Changelog::new(dir.path()).collect_fragments().unwrap();
+        let grouped = Changelog::new(dir.path())
+            .collect_fragments(PullRequestMetadata::Optional)
+            .unwrap();
 
         assert_eq!(grouped.len(), 2);
         assert_eq!(grouped["feature"].len(), 2);
@@ -596,7 +769,9 @@ mod tests {
     #[test]
     fn skips_readme() {
         let dir = setup_test_repo(&[("feature.feature.md", "A feature\n\nauthors: alice")]);
-        let grouped = Changelog::new(dir.path()).collect_fragments().unwrap();
+        let grouped = Changelog::new(dir.path())
+            .collect_fragments(PullRequestMetadata::Optional)
+            .unwrap();
 
         assert_eq!(grouped.len(), 1);
         assert!(!grouped.contains_key("README"));
@@ -605,7 +780,9 @@ mod tests {
     #[test]
     fn errors_when_empty() {
         let dir = setup_test_repo(&[]);
-        let err = Changelog::new(dir.path()).collect_fragments().unwrap_err();
+        let err = Changelog::new(dir.path())
+            .collect_fragments(PullRequestMetadata::Optional)
+            .unwrap_err();
         assert!(err.contains("No changelog fragments found"), "{err}");
     }
 
@@ -691,7 +868,7 @@ mod tests {
         grouped.insert(
             "fix".to_string(),
             vec![Fragment {
-                pr_number: "20".to_string(),
+                pr_numbers: vec![20],
                 fragment_type: "fix".to_string(),
                 content: "Fixed a bug".to_string(),
                 authors: vec!["alice".to_string()],
@@ -700,7 +877,7 @@ mod tests {
         grouped.insert(
             "breaking".to_string(),
             vec![Fragment {
-                pr_number: "10".to_string(),
+                pr_numbers: vec![10],
                 fragment_type: "breaking".to_string(),
                 content: "Removed old API".to_string(),
                 authors: vec!["bob".to_string()],
@@ -721,7 +898,7 @@ mod tests {
         grouped.insert(
             "fix".to_string(),
             vec![Fragment {
-                pr_number: "1".to_string(),
+                pr_numbers: vec![1],
                 fragment_type: "fix".to_string(),
                 content: "A fix".to_string(),
                 authors: vec!["alice".to_string()],
@@ -742,7 +919,7 @@ mod tests {
         grouped.insert(
             "feature".to_string(),
             vec![Fragment {
-                pr_number: "42".to_string(),
+                pr_numbers: vec![42],
                 fragment_type: "feature".to_string(),
                 content: "Added something cool".to_string(),
                 authors: vec!["alice".to_string()],
@@ -759,7 +936,7 @@ mod tests {
 
             - Added something cool
 
-              [PR #42](https://github.com/vectordotdev/vrl/pull/42) by [@alice](https://github.com/alice)
+              *Thanks to [alice](https://github.com/alice) for contributing PR [#42](https://github.com/vectordotdev/vrl/pull/42)!*
         "};
         assert_eq!(section, expected);
     }
@@ -770,7 +947,7 @@ mod tests {
         grouped.insert(
             "fix".to_string(),
             vec![Fragment {
-                pr_number: "7".to_string(),
+                pr_numbers: vec![7, 8],
                 fragment_type: "fix".to_string(),
                 content: "A fix".to_string(),
                 authors: vec!["alice".to_string(), "bob".to_string()],
@@ -780,8 +957,31 @@ mod tests {
         let section =
             Changelog::render_section(&grouped, &semver::Version::new(0, 1, 0), "2026-01-01");
 
+        assert!(section.contains(
+            "*Thanks to [alice](https://github.com/alice), [bob](https://github.com/bob) for contributing PRs [#7](https://github.com/vectordotdev/vrl/pull/7), [#8](https://github.com/vectordotdev/vrl/pull/8)!*"
+        ), "{section}");
+    }
+
+    #[test]
+    fn section_format_without_pull_request() {
+        let mut grouped = BTreeMap::new();
+        grouped.insert(
+            "fix".to_string(),
+            vec![Fragment {
+                pr_numbers: Vec::new(),
+                fragment_type: "fix".to_string(),
+                content: "An unmerged fix".to_string(),
+                authors: vec!["alice".to_string()],
+            }],
+        );
+
+        let section =
+            Changelog::render_section(&grouped, &semver::Version::new(0, 1, 0), "2026-01-01");
+
         assert!(
-            section.contains("[@alice](https://github.com/alice), [@bob](https://github.com/bob)"),
+            section.contains(
+                "*Thanks to [alice](https://github.com/alice) for contributing this change!*"
+            ),
             "{section}"
         );
     }
@@ -792,7 +992,7 @@ mod tests {
         grouped.insert(
             "breaking".to_string(),
             vec![Fragment {
-                pr_number: "99".to_string(),
+                pr_numbers: vec![99],
                 fragment_type: "breaking".to_string(),
                 content: "Removed the old API.\n\nMigrate by changing `foo()` to `bar()`."
                     .to_string(),
@@ -812,7 +1012,7 @@ mod tests {
 
               Migrate by changing `foo()` to `bar()`.
 
-              [PR #99](https://github.com/vectordotdev/vrl/pull/99) by [@alice](https://github.com/alice)
+              *Thanks to [alice](https://github.com/alice) for contributing PR [#99](https://github.com/vectordotdev/vrl/pull/99)!*
         "};
         assert_eq!(section, expected);
     }
@@ -853,7 +1053,9 @@ mod tests {
 
         let changelog = Changelog::new(dir.path());
         let version = semver::Version::new(1, 0, 0);
-        let section = changelog.generate_section(&version).unwrap();
+        let section = changelog
+            .generate_section(&version, PullRequestMetadata::Optional)
+            .unwrap();
         changelog.apply_section(&version, &section).unwrap();
 
         let content = fs::read_to_string(dir.path().join("CHANGELOG.md")).unwrap();

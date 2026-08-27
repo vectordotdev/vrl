@@ -28,7 +28,8 @@ The release flow:
 1. Resolves and validates the version (not already on crates.io)
 2. Creates a release branch
 3. Bumps version in `Cargo.toml`
-4. Generates changelog from `changelog.d/` fragments
+4. Generates changelog from `changelog.d/` fragments, inferring contributor PRs from
+   commit titles
 5. Pauses for you to review/edit `CHANGELOG.md`
 6. Publishes to crates.io
 7. Tags and pushes
