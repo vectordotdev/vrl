@@ -15,6 +15,7 @@ sample.log
 scripts/package-lock.json
 target
 node_modules
+.pi/
 tests/data/wasm/*/target
 heaptrack.*
 massif.*
