@@ -17,6 +17,8 @@ pub use kind::Kind;
 
 pub use self::keystring::KeyString;
 pub use self::secrets::Secrets;
+#[cfg(any(test, feature = "proptest"))]
+pub use self::value::proptest;
 #[allow(clippy::module_name_repetitions)]
 pub use self::value::{ObjectMap, Value, ValueRegex};
 
