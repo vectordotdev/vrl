@@ -1,0 +1,22 @@
+# result:
+#
+# error[E701]: call to undefined variable
+#   ┌─ :6:12
+#   │
+# 6 │ } else if (x > 0) {
+#   │            ^
+#   │            │
+#   │            undefined variable
+#   │            did you mean "null"?
+#   │
+#   = see language documentation at https://vrl.dev
+#   = try your code in the VRL REPL, learn more at https://vrl.dev/examples
+
+# Body locals stay in arm scope (flatten control: fails typing the later pred, not via post-chain strip).
+if false {
+  x = 1
+  null
+} else if (x > 0) {
+  null
+}
+null

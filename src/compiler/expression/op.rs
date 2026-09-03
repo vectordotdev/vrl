@@ -507,7 +507,7 @@ mod tests {
         Opcode::{Add, And, Div, Eq, Err, Ge, Gt, Le, Lt, Mul, Ne, Or, Sub},
     };
 
-    use crate::compiler::expression::{Block, IfStatement, Literal, Predicate, Variable};
+    use crate::compiler::expression::{Block, IfArm, IfStatement, Literal, Predicate, Variable};
     use crate::test_type_def;
 
     use super::*;
@@ -907,11 +907,13 @@ mod tests {
         or_nullable {
             expr: |_| Op {
                 lhs: Box::new(
-                    IfStatement {
-                        predicate: Predicate::new_unchecked(vec![Literal::from(true).into()]),
-                        if_block: Block::new_scoped(vec![Literal::from("string").into()]),
-                        else_block: None,
-                    }.into()),
+                    IfStatement::new(
+                        vec![IfArm {
+                            predicate: Predicate::new_unchecked(vec![Literal::from(true).into()]),
+                            block: Block::new_scoped(vec![Literal::from("string").into()]),
+                        }],
+                        None,
+                    ).into()),
                 rhs: Box::new(Literal::from("another string").into()),
                 opcode: Or,
             },
@@ -921,11 +923,13 @@ mod tests {
         or_not_nullable {
             expr: |_| Op {
                 lhs: Box::new(
-                    IfStatement {
-                        predicate: Predicate::new_unchecked(vec![Literal::from(true).into()]),
-                        if_block: Block::new_scoped(vec![Literal::from("string").into()]),
-                        else_block:  Some(Block::new_scoped(vec![Literal::from(42).into()]))
-                }.into()),
+                    IfStatement::new(
+                        vec![IfArm {
+                            predicate: Predicate::new_unchecked(vec![Literal::from(true).into()]),
+                            block: Block::new_scoped(vec![Literal::from("string").into()]),
+                        }],
+                        Some(Block::new_scoped(vec![Literal::from(42).into()])),
+                    ).into()),
                 rhs: Box::new(Literal::from("another string").into()),
                 opcode: Or,
             },

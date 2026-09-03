@@ -1,0 +1,7 @@
+# result: 1
+
+# Locals assigned in an if predicate are visible after the if.
+if (x = 1; true) {
+  null
+}
+x
