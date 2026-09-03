@@ -63,7 +63,7 @@ fn run(cmd: &str, args: &[&str], cwd: &Path) -> Result<String, String> {
 /// Any half-completed release run — commits made but publish/tag skipped — has to be
 /// unwound by hand, so it's cheap to be paranoid up front. Order the checks so the
 /// fastest / most likely to fail run first.
-fn preflight(root: &Path, new_version: &semver::Version) -> Result<(), String> {
+fn preflight(root: &Path, new_version: &semver::Version) -> Result<String, String> {
     println!("Running pre-flight checks...");
 
     // Git: clean tree, on main, up-to-date with origin/main.
@@ -96,11 +96,10 @@ fn preflight(root: &Path, new_version: &semver::Version) -> Result<(), String> {
     run("gh", &["auth", "status"], root)
         .map_err(|e| format!("`gh` is not authenticated. Run `gh auth login` first.\n{e}"))?;
 
-    // Every fragment currently in changelog.d/ must parse — that's what the
-    // release will consume. `check_fragments` is the PR-time validator that
-    // diffs against origin/main, so it would see zero additions on a synced
-    // release branch and abort here; don't use it for release-time validation.
-    changelog::Changelog::new(root).validate_fragments_on_disk()?;
+    // Generate the section now so all PR metadata is validated before the release
+    // mutates the branch. The cached section is applied after the version bump.
+    let changelog_section = changelog::Changelog::new(root)
+        .generate_section(new_version, changelog::PullRequestMetadata::Required)?;
 
     // Version not already published.
     crates_io::assert_not_published(new_version)?;
@@ -123,7 +122,7 @@ fn preflight(root: &Path, new_version: &semver::Version) -> Result<(), String> {
     }
 
     println!("\nPre-flight checks passed.\n");
-    Ok(())
+    Ok(changelog_section)
 }
 
 fn repo_root() -> PathBuf {
@@ -156,11 +155,14 @@ fn release(version_arg: Option<&str>, dry_run: bool, issue: Option<&str>) -> Res
 
     if dry_run {
         println!("\n[dry-run] Generating changelog preview:\n");
-        println!("{}", changelog.generate_section(&new_version)?);
+        println!(
+            "{}",
+            changelog.generate_section(&new_version, changelog::PullRequestMetadata::Optional)?
+        );
         return Ok(());
     }
 
-    preflight(&root, &new_version)?;
+    let changelog_section = preflight(&root, &new_version)?;
 
     let branch = format!("prepare-{new_version}-release");
     println!("\nCreating branch: {branch}");
@@ -181,7 +183,7 @@ fn release(version_arg: Option<&str>, dry_run: bool, issue: Option<&str>) -> Res
     )?;
 
     println!("Generating changelog...");
-    changelog.generate_and_apply(&new_version)?;
+    changelog.apply_section(&new_version, &changelog_section)?;
 
     pause_for_review();
 
@@ -207,9 +209,9 @@ fn release(version_arg: Option<&str>, dry_run: bool, issue: Option<&str>) -> Res
     run("git", &["push", "origin", &tag], &root)?;
 
     println!("Creating pull request...");
-    let title = format!("chore(releasing): Prepare {new_version} release");
+    let title = format!("chore(releasing): Post-release {new_version}");
     let mut body = formatdoc! {"
-        Release {new_version}
+        Post-release update for VRL {new_version}
 
         Published to crates.io: https://crates.io/crates/vrl/{new_version}
         Tag: `{tag}`"

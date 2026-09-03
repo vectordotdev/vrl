@@ -1,5 +1,5 @@
-# result: operation would produce NaN
+# result: 0
 
 large = to_float!("1.7976931348623157e+308")
 inf_float = large + large
-inf_float - inf_float
+(inf_float / inf_float) ?? 0

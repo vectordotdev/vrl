@@ -29,7 +29,7 @@ lalrpop_mod!(
         unused_comparisons
     )]
     parser,
-    "/src/parser/parser.rs"
+    "/parser/parser.rs"
 );
 
 pub mod ast;

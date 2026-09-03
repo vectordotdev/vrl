@@ -6,7 +6,7 @@ lalrpop_mod!(
     #[allow(clippy::all)]
     #[allow(unused)]
     parser,
-    "/src/datadog/grok/parser.rs"
+    "/datadog/grok/parser.rs"
 );
 
 /// Parses grok patterns as %{MATCHER:FIELD:FILTER}
