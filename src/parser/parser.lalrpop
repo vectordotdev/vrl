@@ -109,7 +109,7 @@ RootExprs: Vec<Node<RootExpr>> = {
 };
 
 RootExpr: Node<RootExpr> = {
-    Expr => Node::new(<>.span(), RootExpr::Expr(<>)),
+    <expr:Expr> => Node::new(expr.span(), RootExpr::Expr(expr)),
 
     // Root expressions are allowed to fail. The parser will continue with the
     // next expression in the program.
@@ -174,7 +174,7 @@ Exprs: Vec<Node<Expr>> = {
 
 
 Expr: Node<Expr> = {
-    Sp<IfStatement> => Node::new(<>.span(), Expr::IfStatement(<>)),
+    <if_statement:Sp<IfStatement>> => Node::new(if_statement.span(), Expr::IfStatement(if_statement)),
     Sp<AbortExpr>,
     Sp<ReturnExpr>,
     AssignmentExpr,
@@ -224,7 +224,7 @@ AnyIdent: Ident = {
 // -----------------------------------------------------------------------------
 
 AssignmentExpr: Node<Expr> = {
-    Assignment => Node::new(<>.span(), Expr::Assignment(<>)),
+    <assignment:Assignment> => Node::new(assignment.span(), Expr::Assignment(assignment)),
     ArithmeticExpr,
 };
 
