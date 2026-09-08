@@ -1,4 +1,4 @@
-# result: [false, "fallback"]
+# result: [false, "fallback", "fallback"]
 
 substrings = ["x"]
 contains_all_result = contains_all({ substrings = [1]; "x" }, substrings) ?? false
@@ -9,4 +9,10 @@ encode_key_value_result = encode_key_value(
     fields_ordering,
 ) ?? "fallback"
 
-[contains_all_result, encode_key_value_result]
+reordered_fields_ordering = ["a"]
+reordered_encode_key_value_result = encode_key_value(
+    fields_ordering: reordered_fields_ordering,
+    value: { reordered_fields_ordering = [1]; {} },
+) ?? "fallback"
+
+[contains_all_result, encode_key_value_result, reordered_encode_key_value_result]

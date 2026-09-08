@@ -564,16 +564,26 @@ fn apply_argument_type_info(
 ) -> bool {
     debug_assert_eq!(arguments.len(), parameters.len());
 
-    let mut may_fail_type_check = false;
-    for (argument, parameter) in arguments.iter().zip(parameters) {
-        let argument_type_def = argument.inner().expr().apply_type_info(state);
-        may_fail_type_check |= parameter
-            .kind()
-            .is_superset(argument_type_def.kind())
-            .is_err();
+    // Function implementations do not consistently resolve keyword arguments
+    // in source order. Preserve every state observed while applying them so a
+    // constrained argument is fallible if another argument can invalidate it,
+    // regardless of which one the function resolves first at runtime.
+    let mut possible_states = state.clone();
+    for argument in arguments {
+        let _result = argument.inner().expr().apply_type_info(state);
+        possible_states = possible_states.merge(state.clone());
     }
 
-    may_fail_type_check
+    arguments
+        .iter()
+        .zip(parameters)
+        .any(|(argument, parameter)| {
+            let argument_type_def = argument.inner().expr().type_info(&possible_states).result;
+            parameter
+                .kind()
+                .is_superset(argument_type_def.kind())
+                .is_err()
+        })
 }
 
 #[derive(Clone)]
