@@ -20,10 +20,15 @@ use crate::diagnostic::{DiagnosticMessage, Label, Note, Severity, Urls};
 use crate::prelude::Note::SeeErrorDocs;
 use crate::value::Value;
 
+#[derive(Clone, Copy)]
+struct ArgumentParameter {
+    index: usize,
+    parameter: Parameter,
+}
+
 pub(crate) struct Builder<'a> {
     abort_on_error: bool,
-    arguments_in_parameter_order: bool,
-    argument_parameters: Vec<Parameter>,
+    argument_parameters: Vec<ArgumentParameter>,
     arguments_with_unknown_type_validity: Vec<(Parameter, Node<FunctionArgument>)>,
     call_span: Span,
     ident_span: Span,
@@ -106,8 +111,6 @@ impl<'a> Builder<'a> {
                 .type_def(state_before_function_args)
                 .is_pure()
         });
-        let mut arguments_in_parameter_order = true;
-        let mut previous_parameter_index = None;
         let mut argument_parameters = Vec::with_capacity(arguments.len());
         let mut arguments_with_unknown_type_validity = vec![];
         for node in &arguments {
@@ -180,10 +183,10 @@ impl<'a> Builder<'a> {
                 });
             }
 
-            arguments_in_parameter_order &=
-                previous_parameter_index.is_none_or(|previous| previous <= parameter_index);
-            previous_parameter_index = Some(parameter_index);
-            argument_parameters.push(*parameter);
+            argument_parameters.push(ArgumentParameter {
+                index: parameter_index,
+                parameter: *parameter,
+            });
             list.insert(parameter.keyword, argument.into_inner());
         }
 
@@ -214,7 +217,6 @@ impl<'a> Builder<'a> {
 
         Ok(Self {
             abort_on_error,
-            arguments_in_parameter_order,
             argument_parameters,
             arguments_with_unknown_type_validity,
             call_span,
@@ -464,7 +466,6 @@ impl<'a> Builder<'a> {
         let arguments_may_fail_type_check = apply_argument_type_info(
             &self.arguments,
             &self.argument_parameters,
-            self.arguments_in_parameter_order,
             &mut state_after_arguments,
         );
 
@@ -514,7 +515,6 @@ impl<'a> Builder<'a> {
             function_call: FunctionCall {
                 abort_on_error: self.abort_on_error,
                 expr,
-                arguments_in_parameter_order: self.arguments_in_parameter_order,
                 argument_parameters: self.argument_parameters,
                 closure_fallible,
                 closure,
@@ -584,17 +584,18 @@ impl<'a> Builder<'a> {
 
 fn apply_argument_type_info(
     arguments: &[Node<FunctionArgument>],
-    parameters: &[Parameter],
-    arguments_in_parameter_order: bool,
+    parameters: &[ArgumentParameter],
     state: &mut TypeState,
 ) -> bool {
     debug_assert_eq!(arguments.len(), parameters.len());
 
+    let arguments_in_parameter_order = parameters.is_sorted_by_key(|parameter| parameter.index);
     let mut may_fail_type_check = false;
     let mut possible_states = (!arguments_in_parameter_order).then(|| state.clone());
     for (argument, parameter) in arguments.iter().zip(parameters) {
         let argument_type_def = argument.inner().expr().apply_type_info(state);
         may_fail_type_check |= parameter
+            .parameter
             .kind()
             .is_superset(argument_type_def.kind())
             .is_err();
@@ -613,6 +614,7 @@ fn apply_argument_type_info(
                     let argument_type_def =
                         argument.inner().expr().type_info(&possible_states).result;
                     parameter
+                        .parameter
                         .kind()
                         .is_superset(argument_type_def.kind())
                         .is_err()
@@ -624,8 +626,7 @@ fn apply_argument_type_info(
 pub struct FunctionCall {
     abort_on_error: bool,
     expr: Box<dyn Expression>,
-    arguments_in_parameter_order: bool,
-    argument_parameters: Vec<Parameter>,
+    argument_parameters: Vec<ArgumentParameter>,
     closure_fallible: bool,
     // will be used with: https://github.com/vectordotdev/vector/issues/13782
     #[allow(dead_code)]
@@ -771,12 +772,8 @@ impl Expression for FunctionCall {
         // This doesn't actually match current runtime behavior in some cases,
         // but that will be changed.
         // see: https://github.com/vectordotdev/vector/issues/13752
-        let arguments_may_fail_type_check = apply_argument_type_info(
-            &self.arguments,
-            &self.argument_parameters,
-            self.arguments_in_parameter_order,
-            &mut state,
-        );
+        let arguments_may_fail_type_check =
+            apply_argument_type_info(&self.arguments, &self.argument_parameters, &mut state);
 
         let mut expr_result = self.expr.apply_type_info(&mut state);
 
