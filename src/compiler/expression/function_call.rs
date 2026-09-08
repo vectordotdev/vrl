@@ -150,7 +150,7 @@ impl<'a> Builder<'a> {
         }
 
         let mut state_before_argument = state_before_function_args.clone();
-        let applied_arguments = apply_arguments_in_parameter_order(
+        let applied_arguments = apply_arguments_for_type_check(
             &arguments,
             &argument_parameters,
             &mut state_before_argument,
@@ -602,7 +602,7 @@ impl<'a> Builder<'a> {
     }
 }
 
-fn apply_arguments_in_parameter_order(
+fn apply_arguments_for_type_check(
     arguments: &[Node<FunctionArgument>],
     parameters: &[ArgumentParameter],
     state: &mut TypeState,
@@ -610,7 +610,15 @@ fn apply_arguments_in_parameter_order(
     debug_assert_eq!(arguments.len(), parameters.len());
 
     let mut indices = (0..arguments.len()).collect::<Vec<_>>();
-    indices.sort_by_key(|&index| parameters[index].index);
+    // Functions with element-kind constraints resolve arguments in parameter order. Other
+    // functions do not yet share a runtime ordering contract, so preserve the compiler's prior
+    // source-order behavior for them.
+    if parameters
+        .iter()
+        .any(|parameter| parameter.parameter.has_element_kind_constraint())
+    {
+        indices.sort_by_key(|&index| parameters[index].index);
+    }
 
     let mut applied_arguments = (0..arguments.len()).map(|_| None).collect::<Vec<_>>();
     let mut preceded_by_side_effects = false;
@@ -636,7 +644,7 @@ fn apply_argument_type_info(
     parameters: &[ArgumentParameter],
     state: &mut TypeState,
 ) -> bool {
-    apply_arguments_in_parameter_order(arguments, parameters, state)
+    apply_arguments_for_type_check(arguments, parameters, state)
         .into_iter()
         .zip(parameters)
         .any(|(argument, parameter)| {
@@ -1296,6 +1304,15 @@ impl DiagnosticMessage for FunctionCallError {
                 } else if kind.is_object() {
                     format!("object!({argument})")
                 } else if kind.is_array() {
+                    if context.parameter.has_element_kind_constraint()
+                        && context
+                            .parameter
+                            .kind_without_element_constraint()
+                            .is_superset(&context.got)
+                            .is_ok()
+                    {
+                        return vec![Note::SeeErrorDocs];
+                    }
                     format!("array!({argument})")
                 } else if kind.is_timestamp() {
                     format!("timestamp!({argument})")
@@ -1492,6 +1509,21 @@ mod tests {
             &stdlib::all(),
         ) else {
             panic!("a later parameter cannot change an earlier argument");
+        };
+
+        assert_eq!(
+            diagnostics.errors()[0].code,
+            codes::ExprCode::InvalidArgumentKind as usize
+        );
+    }
+
+    #[test]
+    fn unconstrained_function_preserves_source_order_type_effects() {
+        let Err(diagnostics) = crate::compiler::compile(
+            r#"x = 0; slice!(start: { x = "ok"; 0 }, value: { x = 1; "abc" }); upcase(x)"#,
+            &stdlib::all(),
+        ) else {
+            panic!("unconstrained calls must preserve source-order type effects");
         };
 
         assert_eq!(
