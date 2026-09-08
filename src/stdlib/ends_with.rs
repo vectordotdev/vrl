@@ -18,8 +18,7 @@ const PARAMETERS: &[Parameter] = &[
     .default(&DEFAULT_CASE_SENSITIVE),
 ];
 
-fn ends_with(value: &Value, substring: &Value, case_sensitive: Value) -> Resolved {
-    let case_sensitive = case_sensitive.try_boolean()?;
+fn ends_with(value: &Value, substring: &Value, case_sensitive: bool) -> Resolved {
     let value = convert_to_string(value, !case_sensitive)?;
     let substring = convert_to_string(substring, !case_sensitive)?;
     Ok(value.ends_with(substring.as_ref()).into())
@@ -51,13 +50,17 @@ impl Function for EndsWith {
 
     fn compile(
         &self,
-        _state: &state::TypeState,
+        state: &state::TypeState,
         _ctx: &mut FunctionCompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
         let substring = arguments.required("substring");
-        let case_sensitive = arguments.optional("case_sensitive");
+        let case_sensitive = ConstOrExpr::<bool>::default(
+            arguments.optional("case_sensitive"),
+            state,
+            &DEFAULT_CASE_SENSITIVE,
+        )?;
 
         Ok(EndsWithFn {
             value,
@@ -92,14 +95,12 @@ impl Function for EndsWith {
 struct EndsWithFn {
     value: Box<dyn Expression>,
     substring: Box<dyn Expression>,
-    case_sensitive: Option<Box<dyn Expression>>,
+    case_sensitive: ConstOrExpr<bool>,
 }
 
 impl FunctionExpression for EndsWithFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let case_sensitive = self
-            .case_sensitive
-            .map_resolve_with_default(ctx, || DEFAULT_CASE_SENSITIVE.clone())?;
+        let case_sensitive = self.case_sensitive.resolve(ctx)?;
         let substring = self.substring.resolve(ctx)?;
         let value = self.value.resolve(ctx)?;
 

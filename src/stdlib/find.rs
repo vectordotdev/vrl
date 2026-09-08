@@ -13,10 +13,10 @@ const PARAMETERS: &[Parameter] = &[
 ];
 
 #[allow(clippy::cast_possible_wrap)]
-fn find(value: Value, pattern: Value, from: Value) -> Resolved {
+fn find(value: Value, pattern: Value, from: i64) -> Resolved {
     // TODO consider removal options
     #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
-    let from = from.try_integer()? as usize;
+    let from = from as usize;
 
     Ok(FindFn::find(value, pattern, from)?
         .map_or(Value::Null, |value| Value::Integer(value as i64)))
@@ -78,13 +78,13 @@ impl Function for Find {
 
     fn compile(
         &self,
-        _state: &state::TypeState,
+        state: &state::TypeState,
         _ctx: &mut FunctionCompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
         let pattern = arguments.required("pattern");
-        let from = arguments.optional("from");
+        let from = ConstOrExpr::<i64>::default(arguments.optional("from"), state, &DEFAULT_FROM)?;
 
         Ok(FindFn {
             value,
@@ -99,7 +99,7 @@ impl Function for Find {
 struct FindFn {
     value: Box<dyn Expression>,
     pattern: Box<dyn Expression>,
-    from: Option<Box<dyn Expression>>,
+    from: ConstOrExpr<i64>,
 }
 
 impl FindFn {
@@ -145,9 +145,7 @@ impl FunctionExpression for FindFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let value = self.value.resolve(ctx)?;
         let pattern = self.pattern.resolve(ctx)?;
-        let from = self
-            .from
-            .map_resolve_with_default(ctx, || DEFAULT_FROM.clone())?;
+        let from = self.from.resolve(ctx)?;
 
         find(value, pattern, from)
     }

@@ -1,8 +1,7 @@
 use crate::compiler::prelude::*;
 
-fn truncate(value: &Value, limit: Value, suffix: &Value) -> Resolved {
+fn truncate(value: &Value, limit: i64, suffix: &Value) -> Resolved {
     let mut value = value.try_bytes_utf8_lossy()?.into_owned();
-    let limit = limit.try_integer()?;
     // TODO consider removal options
     #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
     let limit = if limit < 0 { 0 } else { limit as usize };
@@ -90,12 +89,12 @@ impl Function for Truncate {
 
     fn compile(
         &self,
-        _state: &TypeState,
+        state: &TypeState,
         _ctx: &mut FunctionCompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
-        let limit = arguments.required("limit");
+        let limit = ConstOrExpr::<i64>::new(arguments.required("limit"), state)?;
         let suffix = arguments.optional("suffix").unwrap_or(expr!(""));
 
         Ok(TruncateFn {
@@ -110,7 +109,7 @@ impl Function for Truncate {
 #[derive(Debug, Clone)]
 struct TruncateFn {
     value: Box<dyn Expression>,
-    limit: Box<dyn Expression>,
+    limit: ConstOrExpr<i64>,
     suffix: Box<dyn Expression>,
 }
 

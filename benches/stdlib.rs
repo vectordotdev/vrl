@@ -24,6 +24,7 @@ criterion_group!(
               community_id,
               compact,
               contains,
+              contains_all,
               crc,
               decode_base16,
               decode_base64,
@@ -296,6 +297,20 @@ bench_function! {
 
     case_insensitive {
         args: func_args![value: "abcdefg", substring: "CDE", case_sensitive: false],
+        want: Ok(value!(true)),
+    }
+}
+
+bench_function! {
+    contains_all => vrl::stdlib::ContainsAll;
+
+    case_sensitive {
+        args: func_args![value: "abcdefg", substrings: value!(["cde"]), case_sensitive: true],
+        want: Ok(value!(true)),
+    }
+
+    case_insensitive {
+        args: func_args![value: "abcdefg", substrings: value!(["CDE"]), case_sensitive: false],
         want: Ok(value!(true)),
     }
 }
