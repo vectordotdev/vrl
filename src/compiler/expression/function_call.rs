@@ -22,6 +22,7 @@ use crate::value::Value;
 
 pub(crate) struct Builder<'a> {
     abort_on_error: bool,
+    arguments_in_parameter_order: bool,
     argument_parameters: Vec<Parameter>,
     arguments_with_unknown_type_validity: Vec<(Parameter, Node<FunctionArgument>)>,
     call_span: Span,
@@ -98,16 +99,29 @@ impl<'a> Builder<'a> {
         let mut index = 0;
         let mut list = ArgumentList::default();
 
+        let arguments_have_side_effects = arguments.iter().any(|argument| {
+            !argument
+                .inner()
+                .expr()
+                .type_def(state_before_function_args)
+                .is_pure()
+        });
+        let mut arguments_in_parameter_order = true;
+        let mut previous_parameter_index = None;
         let mut argument_parameters = Vec::with_capacity(arguments.len());
         let mut arguments_with_unknown_type_validity = vec![];
         for node in &arguments {
             let (argument_span, argument) = node.clone().take();
 
-            let parameter = match argument.keyword() {
+            let (parameter_index, parameter) = match argument.keyword() {
                 // positional argument
                 None => {
+                    let parameter_index = index;
                     index += 1;
-                    function.parameters().get(index - 1)
+                    function
+                        .parameters()
+                        .get(parameter_index)
+                        .map(|parameter| (parameter_index, parameter))
                 }
 
                 // keyword argument
@@ -116,12 +130,12 @@ impl<'a> Builder<'a> {
                     .iter()
                     .enumerate()
                     .find(|(_, param)| param.keyword == k)
-                    .map(|(pos, param)| {
-                        if pos == index {
+                    .map(|(parameter_index, parameter)| {
+                        if parameter_index == index {
                             index += 1;
                         }
 
-                        param
+                        (parameter_index, parameter)
                     }),
             }
             .ok_or_else(|| FunctionCallError::UnknownKeyword {
@@ -133,9 +147,14 @@ impl<'a> Builder<'a> {
             // Check if the argument is of the expected type.
             let argument_type_def = argument.expr().type_def(state_before_function_args);
             let expr_kind = argument_type_def.kind();
+            let base_param_kind = parameter.kind_without_element_constraint();
             let param_kind = parameter.kind();
+            let defer_element_kind_check =
+                arguments_have_side_effects && parameter.has_element_kind_constraint();
 
-            if !param_kind.intersects(expr_kind) {
+            if !base_param_kind.intersects(expr_kind)
+                || (!param_kind.intersects(expr_kind) && !defer_element_kind_check)
+            {
                 return Err(FunctionCallError::InvalidArgumentKind(
                     InvalidArgumentErrorContext {
                         function_ident: function.identifier(),
@@ -150,7 +169,7 @@ impl<'a> Builder<'a> {
                         argument_span,
                     },
                 ));
-            } else if param_kind.is_superset(expr_kind).is_err() {
+            } else if !defer_element_kind_check && param_kind.is_superset(expr_kind).is_err() {
                 arguments_with_unknown_type_validity.push((*parameter, node.clone()));
             }
 
@@ -161,6 +180,9 @@ impl<'a> Builder<'a> {
                 });
             }
 
+            arguments_in_parameter_order &=
+                previous_parameter_index.is_none_or(|previous| previous <= parameter_index);
+            previous_parameter_index = Some(parameter_index);
             argument_parameters.push(*parameter);
             list.insert(parameter.keyword, argument.into_inner());
         }
@@ -192,6 +214,7 @@ impl<'a> Builder<'a> {
 
         Ok(Self {
             abort_on_error,
+            arguments_in_parameter_order,
             argument_parameters,
             arguments_with_unknown_type_validity,
             call_span,
@@ -441,6 +464,7 @@ impl<'a> Builder<'a> {
         let arguments_may_fail_type_check = apply_argument_type_info(
             &self.arguments,
             &self.argument_parameters,
+            self.arguments_in_parameter_order,
             &mut state_after_arguments,
         );
 
@@ -490,6 +514,7 @@ impl<'a> Builder<'a> {
             function_call: FunctionCall {
                 abort_on_error: self.abort_on_error,
                 expr,
+                arguments_in_parameter_order: self.arguments_in_parameter_order,
                 argument_parameters: self.argument_parameters,
                 closure_fallible,
                 closure,
@@ -560,29 +585,38 @@ impl<'a> Builder<'a> {
 fn apply_argument_type_info(
     arguments: &[Node<FunctionArgument>],
     parameters: &[Parameter],
+    arguments_in_parameter_order: bool,
     state: &mut TypeState,
 ) -> bool {
     debug_assert_eq!(arguments.len(), parameters.len());
 
-    // Function implementations do not consistently resolve keyword arguments
-    // in source order. Preserve every state observed while applying them so a
-    // constrained argument is fallible if another argument can invalidate it,
-    // regardless of which one the function resolves first at runtime.
-    let mut possible_states = state.clone();
-    for argument in arguments {
-        let _result = argument.inner().expr().apply_type_info(state);
-        possible_states = possible_states.merge(state.clone());
+    let mut may_fail_type_check = false;
+    let mut possible_states = (!arguments_in_parameter_order).then(|| state.clone());
+    for (argument, parameter) in arguments.iter().zip(parameters) {
+        let argument_type_def = argument.inner().expr().apply_type_info(state);
+        may_fail_type_check |= parameter
+            .kind()
+            .is_superset(argument_type_def.kind())
+            .is_err();
+
+        if let Some(possible_states) = &mut possible_states {
+            *possible_states = possible_states.clone().merge(state.clone());
+        }
     }
 
-    arguments
-        .iter()
-        .zip(parameters)
-        .any(|(argument, parameter)| {
-            let argument_type_def = argument.inner().expr().type_info(&possible_states).result;
-            parameter
-                .kind()
-                .is_superset(argument_type_def.kind())
-                .is_err()
+    may_fail_type_check
+        || possible_states.is_some_and(|possible_states| {
+            arguments
+                .iter()
+                .zip(parameters)
+                .any(|(argument, parameter)| {
+                    let argument_type_def =
+                        argument.inner().expr().type_info(&possible_states).result;
+                    parameter
+                        .kind()
+                        .is_superset(argument_type_def.kind())
+                        .is_err()
+                })
         })
 }
 
@@ -590,6 +624,7 @@ fn apply_argument_type_info(
 pub struct FunctionCall {
     abort_on_error: bool,
     expr: Box<dyn Expression>,
+    arguments_in_parameter_order: bool,
     argument_parameters: Vec<Parameter>,
     closure_fallible: bool,
     // will be used with: https://github.com/vectordotdev/vector/issues/13782
@@ -736,8 +771,12 @@ impl Expression for FunctionCall {
         // This doesn't actually match current runtime behavior in some cases,
         // but that will be changed.
         // see: https://github.com/vectordotdev/vector/issues/13752
-        let arguments_may_fail_type_check =
-            apply_argument_type_info(&self.arguments, &self.argument_parameters, &mut state);
+        let arguments_may_fail_type_check = apply_argument_type_info(
+            &self.arguments,
+            &self.argument_parameters,
+            self.arguments_in_parameter_order,
+            &mut state,
+        );
 
         let mut expr_result = self.expr.apply_type_info(&mut state);
 

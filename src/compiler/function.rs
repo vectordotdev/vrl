@@ -351,10 +351,18 @@ impl Parameter {
         self
     }
 
+    pub(crate) const fn has_element_kind_constraint(&self) -> bool {
+        (self.kind & kind::ARRAY) == kind::ARRAY && self.element_kind != kind::ANY
+    }
+
+    pub(crate) fn kind_without_element_constraint(&self) -> Kind {
+        kind_from_bits(self.kind)
+    }
+
     #[allow(arithmetic_overflow)]
     #[must_use]
     pub fn kind(&self) -> Kind {
-        let mut kind = kind_from_bits(self.kind);
+        let mut kind = self.kind_without_element_constraint();
 
         if (self.kind & kind::ARRAY) == kind::ARRAY && self.element_kind != kind::ANY {
             let element = kind_from_bits(self.element_kind);
