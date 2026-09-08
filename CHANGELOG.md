@@ -4,6 +4,24 @@ Changelog is generated from fragments in `changelog.d/` by the `release` crate.
 
 <!-- changelog start -->
 
+## [0.35.0 (2026-08-20)](https://github.com/vectordotdev/vrl/releases/tag/v0.35.0)
+
+### Enhancements
+
+- The `parse_aws_vpc_flow_log` function now recognizes all fields introduced in AWS VPC Flow Logs versions 7 through 11, including the v7 ECS metadata fields, v8 `reject_reason`, v9 `resource_id`, v10 `encryption_status`, and the v11 tag/interface/next-hop fields.
+
+  [PR #1879](https://github.com/vectordotdev/vrl/pull/1879) by [@avestuk](https://github.com/avestuk)
+
+### Fixes
+
+- Fixed `round`'s type definition, which previously always claimed to return an integer even though it returns a float for float inputs.
+
+  [PR #1862](https://github.com/vectordotdev/vrl/pull/1862) by [@thomasqueirozb](https://github.com/thomasqueirozb)
+- Prevent float arithmetic that produces NaN from panicking or silently returning zero. Such operations now return a runtime error.
+
+  [PR #1890](https://github.com/vectordotdev/vrl/pull/1890) by [@pront](https://github.com/pront)
+
+
 ## [0.34.0 (2026-07-13)](https://github.com/vectordotdev/vrl/releases/tag/v0.34.0)
 
 ### New Features

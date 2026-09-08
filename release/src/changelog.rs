@@ -14,10 +14,16 @@ const CHANGELOG_MARKER: &str = "<!-- changelog start -->\n";
 
 #[derive(Debug)]
 struct Fragment {
-    pr_number: String,
+    pr_numbers: Vec<u64>,
     fragment_type: String,
     content: String,
     authors: Vec<String>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(super) enum PullRequestMetadata {
+    Optional,
+    Required,
 }
 
 /// Strip the trailing `authors: ...` line from fragment content, returning
@@ -62,23 +68,31 @@ fn parse_authors(raw: &str) -> Result<(String, Vec<String>), String> {
 fn format_authors(authors: &[String]) -> String {
     authors
         .iter()
-        .map(|a| format!("[@{a}](https://github.com/{a})"))
+        .map(|a| format!("[{a}](https://github.com/{a})"))
         .collect::<Vec<_>>()
         .join(", ")
 }
 
-/// Validate a fragment filename, returning (pr_number, fragment_type).
+fn format_pull_requests(pr_numbers: &[u64]) -> String {
+    pr_numbers
+        .iter()
+        .map(|pr| format!("[#{pr}](https://github.com/vectordotdev/vrl/pull/{pr})"))
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
+/// Validate a fragment filename, returning (description, fragment_type).
 fn validate_fragment_filename(filename: &str) -> Result<(&str, &str), String> {
     let parts: Vec<&str> = filename.splitn(3, '.').collect();
     if parts.len() != 3 || parts[2] != "md" {
         return Err(format!(
-            "Invalid fragment filename '{filename}': expected '<pr_number>.<type>.md'"
+            "Invalid fragment filename '{filename}': expected '<description>.<type>.md'"
         ));
     }
 
-    if parts[0].is_empty() || !parts[0].chars().all(|c| c.is_ascii_digit()) {
+    if parts[0].is_empty() {
         return Err(format!(
-            "Invalid fragment filename '{filename}': first segment must be a PR number"
+            "Invalid fragment filename '{filename}': first segment must describe the change"
         ));
     }
 
@@ -116,7 +130,7 @@ impl Changelog {
             .and_then(|f| f.to_str())
             .ok_or_else(|| format!("Invalid fragment path: {}", path.display()))?;
 
-        let (pr_number, fragment_type) = validate_fragment_filename(filename)?;
+        let (_, fragment_type) = validate_fragment_filename(filename)?;
 
         let raw = std::fs::read_to_string(path)
             .map_err(|e| format!("Failed to read {}: {e}", path.display()))?;
@@ -125,18 +139,27 @@ impl Changelog {
             parse_authors(raw.trim()).map_err(|e| format!("{} (in {})", e, path.display()))?;
 
         Ok(Fragment {
-            pr_number: pr_number.to_string(),
+            pr_numbers: Vec::new(),
             fragment_type: fragment_type.to_ascii_lowercase(),
             content,
             authors,
         })
     }
 
-    fn collect_fragments(&self) -> Result<BTreeMap<String, Vec<Fragment>>, String> {
+    fn collect_fragments(
+        &self,
+        pull_request_metadata: PullRequestMetadata,
+    ) -> Result<BTreeMap<String, Vec<Fragment>>, String> {
+        if pull_request_metadata == PullRequestMetadata::Required {
+            self.ensure_complete_history()?;
+        }
+
         let mut grouped: BTreeMap<String, Vec<Fragment>> = BTreeMap::new();
 
         for entry in Self::read_fragment_dir(&self.changelog_dir())? {
-            let fragment = Self::parse_fragment(&entry)?;
+            let mut fragment = Self::parse_fragment(&entry)?;
+            fragment.pr_numbers =
+                lookup_pull_requests(&self.repo_root, &entry, pull_request_metadata)?;
             grouped
                 .entry(fragment.fragment_type.clone())
                 .or_default()
@@ -148,6 +171,25 @@ impl Changelog {
         }
 
         Ok(grouped)
+    }
+
+    fn ensure_complete_history(&self) -> Result<(), String> {
+        #[cfg(not(test))]
+        {
+            let is_shallow = run_command(
+                "git",
+                ["rev-parse", "--is-shallow-repository"],
+                &self.repo_root,
+            )?;
+            if is_shallow.trim() == "true" {
+                return Err(
+                    "Cannot resolve changelog PRs from a shallow repository. Fetch the full history and retry."
+                        .to_string(),
+                );
+            }
+        }
+
+        Ok(())
     }
 
     /// List fragment file paths in changelog.d/, excluding README.md and non-files.
@@ -201,11 +243,18 @@ impl Changelog {
                 for fragment in fragments {
                     let indented = Self::indent_continuation(&fragment.content);
                     let authors = format_authors(&fragment.authors);
-                    let pr = &fragment.pr_number;
-                    let url = format!("https://github.com/vectordotdev/vrl/pull/{pr}");
-                    section.push_str(&format!(
-                        "- {indented}\n\n  [PR #{pr}]({url}) by {authors}\n"
-                    ));
+                    let attribution = if fragment.pr_numbers.is_empty() {
+                        format!("Thanks to {authors} for contributing this change!")
+                    } else {
+                        let pull_requests = format_pull_requests(&fragment.pr_numbers);
+                        let label = if fragment.pr_numbers.len() == 1 {
+                            "PR"
+                        } else {
+                            "PRs"
+                        };
+                        format!("Thanks to {authors} for contributing {label} {pull_requests}!")
+                    };
+                    section.push_str(&format!("- {indented}\n\n  *{attribution}*\n"));
                 }
             }
         }
@@ -213,21 +262,23 @@ impl Changelog {
         section
     }
 
-    pub fn generate_section(&self, version: &semver::Version) -> Result<String, String> {
-        let grouped = self.collect_fragments()?;
+    pub fn generate_section(
+        &self,
+        version: &semver::Version,
+        pull_request_metadata: PullRequestMetadata,
+    ) -> Result<String, String> {
+        let grouped = self.collect_fragments(pull_request_metadata)?;
         let date = chrono::Utc::now().format("%Y-%m-%d").to_string();
         Ok(Self::render_section(&grouped, version, &date))
     }
 
-    /// Generate the changelog section, insert it into CHANGELOG.md, and remove fragments.
-    pub fn generate_and_apply(&self, version: &semver::Version) -> Result<(), String> {
-        let section = self.generate_section(version)?;
-
+    /// Insert a pre-generated changelog section into CHANGELOG.md and remove fragments.
+    pub fn apply_section(&self, version: &semver::Version, section: &str) -> Result<(), String> {
         let changelog_path = self.repo_root.join("CHANGELOG.md");
         let content = std::fs::read_to_string(&changelog_path)
             .map_err(|e| format!("Failed to read CHANGELOG.md: {e}"))?;
 
-        let new_content = Self::insert_section(&content, &section)?;
+        let new_content = Self::insert_section(&content, section)?;
         std::fs::write(&changelog_path, new_content)
             .map_err(|e| format!("Failed to write CHANGELOG.md: {e}"))?;
         println!("Updated CHANGELOG.md with {version} section.");
@@ -254,24 +305,6 @@ impl Changelog {
         new_content.push_str(&content[insert_pos..]);
 
         Ok(new_content)
-    }
-
-    /// Validate every fragment file currently on disk in `changelog.d/` —
-    /// what the release will consume. Unlike [`check_fragments`], this does
-    /// not diff against `origin/main`, so it works on a synced release branch
-    /// where no fragments are "newly added" but plenty exist to consume.
-    pub fn validate_fragments_on_disk(&self) -> Result<(), String> {
-        let paths = Self::read_fragment_dir(&self.changelog_dir())?;
-        if paths.is_empty() {
-            return Err(
-                "No changelog fragments found in changelog.d/ — nothing to release.".to_string(),
-            );
-        }
-        for path in &paths {
-            Self::parse_fragment(path)?;
-        }
-        println!("Validated {} changelog fragment(s).", paths.len());
-        Ok(())
     }
 
     /// Validate changelog fragment filenames added on the current branch vs origin/main.
@@ -322,6 +355,150 @@ impl Changelog {
     }
 }
 
+/// Find every PR that added, edited, or renamed the current lifetime of a
+/// changelog fragment from each commit's `... (#12345)` title.
+#[cfg(not(test))]
+fn lookup_pull_requests(
+    repo_root: &Path,
+    fragment_path: &Path,
+    pull_request_metadata: PullRequestMetadata,
+) -> Result<Vec<u64>, String> {
+    lookup_pull_requests_from_git(repo_root, fragment_path, pull_request_metadata)
+}
+
+fn lookup_pull_requests_from_git(
+    repo_root: &Path,
+    fragment_path: &Path,
+    pull_request_metadata: PullRequestMetadata,
+) -> Result<Vec<u64>, String> {
+    let relative_path = fragment_path.strip_prefix(repo_root).map_err(|_| {
+        format!(
+            "Fragment path {} is outside the repository root {}",
+            fragment_path.display(),
+            repo_root.display()
+        )
+    })?;
+    let relative_path = relative_path.to_str().ok_or_else(|| {
+        format!(
+            "Fragment path is not valid UTF-8: {}",
+            fragment_path.display()
+        )
+    })?;
+
+    let addition_commits = run_command(
+        "git",
+        [
+            "log",
+            "--follow",
+            "--format=%H",
+            "--diff-filter=A",
+            "--",
+            relative_path,
+        ],
+        repo_root,
+    )?;
+    let Some(latest_addition) = addition_commits.lines().next() else {
+        return match pull_request_metadata {
+            PullRequestMetadata::Optional => Ok(Vec::new()),
+            PullRequestMetadata::Required => Err(format!(
+                "Could not find the commit that added {relative_path}; cannot determine its pull requests."
+            )),
+        };
+    };
+
+    let commit_history = run_command(
+        "git",
+        [
+            "log",
+            "--follow",
+            "--format=%H%x09%s",
+            "--diff-filter=AMR",
+            "--",
+            relative_path,
+        ],
+        repo_root,
+    )?;
+
+    parse_pull_request_history(&commit_history, latest_addition, pull_request_metadata).map_err(
+        |error| {
+            format!("Could not determine every PR that added or edited {relative_path}: {error}")
+        },
+    )
+}
+
+#[cfg(test)]
+fn lookup_pull_requests(_: &Path, _: &Path, _: PullRequestMetadata) -> Result<Vec<u64>, String> {
+    Ok(vec![42])
+}
+
+fn run_command<const N: usize>(cmd: &str, args: [&str; N], cwd: &Path) -> Result<String, String> {
+    let display = format!("{cmd} {}", args.join(" "));
+    let output = std::process::Command::new(cmd)
+        .args(args)
+        .current_dir(cwd)
+        .output()
+        .map_err(|e| format!("Failed to run `{display}`: {e}"))?;
+
+    if !output.status.success() {
+        return Err(format!(
+            "`{display}` failed (exit {}):\n{}{}",
+            output.status,
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr),
+        ));
+    }
+
+    Ok(String::from_utf8_lossy(&output.stdout).into_owned())
+}
+
+fn parse_pull_request_history(
+    commit_history: &str,
+    latest_addition: &str,
+    pull_request_metadata: PullRequestMetadata,
+) -> Result<Vec<u64>, String> {
+    let mut numbers = Vec::new();
+    for line in commit_history
+        .lines()
+        .filter(|line| !line.trim().is_empty())
+    {
+        let (commit, title) = line
+            .split_once('\t')
+            .ok_or_else(|| format!("Malformed git log entry `{line}`"))?;
+
+        match parse_pull_request_number(title) {
+            Ok(number) if !numbers.contains(&number) => numbers.push(number),
+            Ok(_) => {}
+            Err(_) if pull_request_metadata == PullRequestMetadata::Optional => {}
+            Err(error) => return Err(format!("Commit {commit} `{title}`: {error}")),
+        }
+
+        if commit == latest_addition {
+            return Ok(numbers);
+        }
+    }
+
+    match pull_request_metadata {
+        PullRequestMetadata::Optional => Ok(Vec::new()),
+        PullRequestMetadata::Required => Err(format!(
+            "Could not find latest addition commit {latest_addition} in the fragment history"
+        )),
+    }
+}
+
+fn parse_pull_request_number(commit_title: &str) -> Result<u64, String> {
+    let number = commit_title
+        .trim()
+        .strip_suffix(')')
+        .and_then(|title| title.rsplit_once("(#"))
+        .map(|(_, number)| number)
+        .filter(|number| !number.is_empty() && number.bytes().all(|byte| byte.is_ascii_digit()))
+        .ok_or_else(|| "Commit title must end with `(#<PR number>)`".to_string())?;
+
+    number
+        .parse()
+        .map_err(|error| format!("Invalid PR number in commit title `{commit_title}`: {error}"))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -359,56 +536,143 @@ mod tests {
         dir
     }
 
+    #[test]
+    fn parses_current_fragment_lifetime_pull_requests() {
+        let history = indoc! {"
+            current-edit	fix(foo): adjust entry (#300)
+            current-add	feat(foo): add entry (#298)
+            old-edit	fix(foo): old adjustment (#120)
+            old-add	feat(foo): old addition (#119)
+        "};
+
+        assert_eq!(
+            parse_pull_request_history(history, "current-add", PullRequestMetadata::Required)
+                .unwrap(),
+            vec![300, 298]
+        );
+    }
+
+    #[test]
+    fn optional_pull_request_metadata_skips_unmerged_commits() {
+        let history = indoc! {"
+            edit	fix(foo): adjust entry
+            add	feat(foo): add entry (#123)
+        "};
+
+        assert_eq!(
+            parse_pull_request_history(history, "add", PullRequestMetadata::Optional).unwrap(),
+            vec![123]
+        );
+        assert!(parse_pull_request_history(history, "add", PullRequestMetadata::Required).is_err());
+    }
+
+    #[test]
+    fn pull_request_lookup_handles_renames_and_uncommitted_fragments() {
+        let dir = tempfile::tempdir().unwrap();
+        let repo = dir.path();
+        let changelog_dir = repo.join("changelog.d");
+        fs::create_dir(&changelog_dir).unwrap();
+
+        run_command("git", ["init", "--quiet", "-b", "test"], repo).unwrap();
+        run_command("git", ["config", "core.hooksPath", "/dev/null"], repo).unwrap();
+        run_command("git", ["config", "user.name", "VRL Test"], repo).unwrap();
+        run_command("git", ["config", "user.email", "vrl@example.com"], repo).unwrap();
+        run_command("git", ["config", "commit.gpgsign", "false"], repo).unwrap();
+
+        let original = changelog_dir.join("original.enhancement.md");
+        let renamed = changelog_dir.join("renamed.enhancement.md");
+        fs::write(
+            &original,
+            "Original entry.\nIt documents the first behavior.\nIt includes more detail.\n",
+        )
+        .unwrap();
+        run_command("git", ["add", "changelog.d/original.enhancement.md"], repo).unwrap();
+        run_command(
+            "git",
+            ["commit", "--quiet", "-m", "feat(foo): add entry (#100)"],
+            repo,
+        )
+        .unwrap();
+
+        run_command(
+            "git",
+            [
+                "mv",
+                "changelog.d/original.enhancement.md",
+                "changelog.d/renamed.enhancement.md",
+            ],
+            repo,
+        )
+        .unwrap();
+        fs::write(
+            &renamed,
+            "Original entry.\nIt documents the first behavior.\nIt includes more detail.\nOne extra detail.\n",
+        )
+        .unwrap();
+        run_command("git", ["add", "changelog.d/renamed.enhancement.md"], repo).unwrap();
+        run_command(
+            "git",
+            [
+                "commit",
+                "--quiet",
+                "-m",
+                "fix(foo): rename and edit entry (#101)",
+            ],
+            repo,
+        )
+        .unwrap();
+
+        assert_eq!(
+            lookup_pull_requests_from_git(repo, &renamed, PullRequestMetadata::Required).unwrap(),
+            vec![101, 100]
+        );
+
+        let uncommitted = changelog_dir.join("uncommitted.fix.md");
+        fs::write(&uncommitted, "Uncommitted entry.\n").unwrap();
+        assert_eq!(
+            lookup_pull_requests_from_git(repo, &uncommitted, PullRequestMetadata::Optional)
+                .unwrap(),
+            Vec::<u64>::new()
+        );
+        assert!(
+            lookup_pull_requests_from_git(repo, &uncommitted, PullRequestMetadata::Required)
+                .is_err()
+        );
+    }
+
     // --- validate_fragment_filename ---
 
     #[test]
-    fn valid_filename() {
-        let (pr, ty) = validate_fragment_filename("1234.feature.md").unwrap();
-        assert_eq!(pr, "1234");
+    fn valid_fragment_filenames() {
+        let (description, ty) = validate_fragment_filename("add-feature.feature.md").unwrap();
+        assert_eq!(description, "add-feature");
         assert_eq!(ty, "feature");
-    }
 
-    #[test]
-    fn all_fragment_types_accepted() {
         for (ty, _) in FRAGMENT_TYPES {
-            validate_fragment_filename(&format!("1.{ty}.md")).unwrap();
+            validate_fragment_filename(&format!("description.{ty}.md")).unwrap();
         }
-    }
 
-    #[test]
-    fn empty_pr_number() {
-        let err = validate_fragment_filename(".feature.md").unwrap_err();
-        assert!(err.contains("must be a PR number"), "{err}");
-    }
-
-    #[test]
-    fn invalid_type() {
-        let err = validate_fragment_filename("1.unknown.md").unwrap_err();
-        assert!(err.contains("Invalid fragment type 'unknown'"), "{err}");
-    }
-
-    #[test]
-    fn fragment_type_case_insensitive() {
-        let (_, ty) = validate_fragment_filename("1234.Fix.md").unwrap();
+        let (_, ty) = validate_fragment_filename("description.Fix.md").unwrap();
         assert_eq!(ty, "Fix"); // raw value; normalized to lowercase in parse_fragment
+
+        let (description, _) = validate_fragment_filename("improve-docs.feature.md").unwrap();
+        assert_eq!(description, "improve-docs");
     }
 
     #[test]
-    fn non_numeric_pr() {
-        let err = validate_fragment_filename("abc.feature.md").unwrap_err();
-        assert!(err.contains("must be a PR number"), "{err}");
-    }
-
-    #[test]
-    fn wrong_extension() {
-        let err = validate_fragment_filename("1.feature.txt").unwrap_err();
-        assert!(err.contains("expected '<pr_number>.<type>.md'"), "{err}");
-    }
-
-    #[test]
-    fn too_few_dots() {
-        let err = validate_fragment_filename("1.md").unwrap_err();
-        assert!(err.contains("expected '<pr_number>.<type>.md'"), "{err}");
+    fn invalid_fragment_filenames() {
+        for (filename, expected) in [
+            (".feature.md", "must describe the change"),
+            ("description.unknown.md", "Invalid fragment type 'unknown'"),
+            (
+                "description.feature.txt",
+                "expected '<description>.<type>.md'",
+            ),
+            ("description.md", "expected '<description>.<type>.md'"),
+        ] {
+            let err = validate_fragment_filename(filename).unwrap_err();
+            assert!(err.contains(expected), "{err}");
+        }
     }
 
     // --- parse_authors ---
@@ -464,11 +728,11 @@ mod tests {
     #[test]
     fn parse_reads_content_and_authors() {
         let dir = tempfile::tempdir().unwrap();
-        let path = dir.path().join("42.fix.md");
+        let path = dir.path().join("fix-bug.fix.md");
         fs::write(&path, "Fixed a bug.\n\nauthors: alice\n").unwrap();
 
         let fragment = Changelog::parse_fragment(&path).unwrap();
-        assert_eq!(fragment.pr_number, "42");
+        assert!(fragment.pr_numbers.is_empty());
         assert_eq!(fragment.fragment_type, "fix");
         assert_eq!(fragment.content, "Fixed a bug.");
         assert_eq!(fragment.authors, vec!["alice"]);
@@ -477,7 +741,7 @@ mod tests {
     #[test]
     fn parse_fragment_missing_authors_errors() {
         let dir = tempfile::tempdir().unwrap();
-        let path = dir.path().join("42.fix.md");
+        let path = dir.path().join("fix-bug.fix.md");
         fs::write(&path, "Fixed a bug.\n").unwrap();
 
         let err = Changelog::parse_fragment(&path).unwrap_err();
@@ -489,11 +753,13 @@ mod tests {
     #[test]
     fn groups_by_type() {
         let dir = setup_test_repo(&[
-            ("10.feature.md", "Feature A\n\nauthors: alice"),
-            ("11.feature.md", "Feature B\n\nauthors: bob"),
-            ("20.fix.md", "Bug fix\n\nauthors: carol"),
+            ("feature-a.feature.md", "Feature A\n\nauthors: alice"),
+            ("feature-b.feature.md", "Feature B\n\nauthors: bob"),
+            ("bug-fix.fix.md", "Bug fix\n\nauthors: carol"),
         ]);
-        let grouped = Changelog::new(dir.path()).collect_fragments().unwrap();
+        let grouped = Changelog::new(dir.path())
+            .collect_fragments(PullRequestMetadata::Optional)
+            .unwrap();
 
         assert_eq!(grouped.len(), 2);
         assert_eq!(grouped["feature"].len(), 2);
@@ -502,8 +768,10 @@ mod tests {
 
     #[test]
     fn skips_readme() {
-        let dir = setup_test_repo(&[("10.feature.md", "A feature\n\nauthors: alice")]);
-        let grouped = Changelog::new(dir.path()).collect_fragments().unwrap();
+        let dir = setup_test_repo(&[("feature.feature.md", "A feature\n\nauthors: alice")]);
+        let grouped = Changelog::new(dir.path())
+            .collect_fragments(PullRequestMetadata::Optional)
+            .unwrap();
 
         assert_eq!(grouped.len(), 1);
         assert!(!grouped.contains_key("README"));
@@ -512,7 +780,9 @@ mod tests {
     #[test]
     fn errors_when_empty() {
         let dir = setup_test_repo(&[]);
-        let err = Changelog::new(dir.path()).collect_fragments().unwrap_err();
+        let err = Changelog::new(dir.path())
+            .collect_fragments(PullRequestMetadata::Optional)
+            .unwrap_err();
         assert!(err.contains("No changelog fragments found"), "{err}");
     }
 
@@ -528,6 +798,7 @@ mod tests {
             vec!["init", "-b", "base"],
             vec!["config", "user.email", "test@test.com"],
             vec!["config", "user.name", "Test"],
+            vec!["config", "commit.gpgsign", "false"],
         ] {
             std::process::Command::new("git")
                 .args(&cmd)
@@ -576,14 +847,15 @@ mod tests {
 
     #[test]
     fn check_fragments_valid_passes() {
-        let dir = setup_git_check_repo(&[("123.fix.md", "Fixed something.\n\nauthors: alice")]);
+        let dir =
+            setup_git_check_repo(&[("fix-something.fix.md", "Fixed something.\n\nauthors: alice")]);
         let result = Changelog::new(dir.path()).check_fragments();
         assert!(result.is_ok(), "{result:?}");
     }
 
     #[test]
     fn check_fragments_missing_authors_fails() {
-        let dir = setup_git_check_repo(&[("123.fix.md", "Fixed something.\n")]);
+        let dir = setup_git_check_repo(&[("fix-something.fix.md", "Fixed something.\n")]);
         let err = Changelog::new(dir.path()).check_fragments().unwrap_err();
         assert!(err.contains("authors"), "{err}");
     }
@@ -596,7 +868,7 @@ mod tests {
         grouped.insert(
             "fix".to_string(),
             vec![Fragment {
-                pr_number: "20".to_string(),
+                pr_numbers: vec![20],
                 fragment_type: "fix".to_string(),
                 content: "Fixed a bug".to_string(),
                 authors: vec!["alice".to_string()],
@@ -605,7 +877,7 @@ mod tests {
         grouped.insert(
             "breaking".to_string(),
             vec![Fragment {
-                pr_number: "10".to_string(),
+                pr_numbers: vec![10],
                 fragment_type: "breaking".to_string(),
                 content: "Removed old API".to_string(),
                 authors: vec!["bob".to_string()],
@@ -626,7 +898,7 @@ mod tests {
         grouped.insert(
             "fix".to_string(),
             vec![Fragment {
-                pr_number: "1".to_string(),
+                pr_numbers: vec![1],
                 fragment_type: "fix".to_string(),
                 content: "A fix".to_string(),
                 authors: vec!["alice".to_string()],
@@ -647,7 +919,7 @@ mod tests {
         grouped.insert(
             "feature".to_string(),
             vec![Fragment {
-                pr_number: "42".to_string(),
+                pr_numbers: vec![42],
                 fragment_type: "feature".to_string(),
                 content: "Added something cool".to_string(),
                 authors: vec!["alice".to_string()],
@@ -664,7 +936,7 @@ mod tests {
 
             - Added something cool
 
-              [PR #42](https://github.com/vectordotdev/vrl/pull/42) by [@alice](https://github.com/alice)
+              *Thanks to [alice](https://github.com/alice) for contributing PR [#42](https://github.com/vectordotdev/vrl/pull/42)!*
         "};
         assert_eq!(section, expected);
     }
@@ -675,7 +947,7 @@ mod tests {
         grouped.insert(
             "fix".to_string(),
             vec![Fragment {
-                pr_number: "7".to_string(),
+                pr_numbers: vec![7, 8],
                 fragment_type: "fix".to_string(),
                 content: "A fix".to_string(),
                 authors: vec!["alice".to_string(), "bob".to_string()],
@@ -685,8 +957,31 @@ mod tests {
         let section =
             Changelog::render_section(&grouped, &semver::Version::new(0, 1, 0), "2026-01-01");
 
+        assert!(section.contains(
+            "*Thanks to [alice](https://github.com/alice), [bob](https://github.com/bob) for contributing PRs [#7](https://github.com/vectordotdev/vrl/pull/7), [#8](https://github.com/vectordotdev/vrl/pull/8)!*"
+        ), "{section}");
+    }
+
+    #[test]
+    fn section_format_without_pull_request() {
+        let mut grouped = BTreeMap::new();
+        grouped.insert(
+            "fix".to_string(),
+            vec![Fragment {
+                pr_numbers: Vec::new(),
+                fragment_type: "fix".to_string(),
+                content: "An unmerged fix".to_string(),
+                authors: vec!["alice".to_string()],
+            }],
+        );
+
+        let section =
+            Changelog::render_section(&grouped, &semver::Version::new(0, 1, 0), "2026-01-01");
+
         assert!(
-            section.contains("[@alice](https://github.com/alice), [@bob](https://github.com/bob)"),
+            section.contains(
+                "*Thanks to [alice](https://github.com/alice) for contributing this change!*"
+            ),
             "{section}"
         );
     }
@@ -697,7 +992,7 @@ mod tests {
         grouped.insert(
             "breaking".to_string(),
             vec![Fragment {
-                pr_number: "99".to_string(),
+                pr_numbers: vec![99],
                 fragment_type: "breaking".to_string(),
                 content: "Removed the old API.\n\nMigrate by changing `foo()` to `bar()`."
                     .to_string(),
@@ -717,7 +1012,7 @@ mod tests {
 
               Migrate by changing `foo()` to `bar()`.
 
-              [PR #99](https://github.com/vectordotdev/vrl/pull/99) by [@alice](https://github.com/alice)
+              *Thanks to [alice](https://github.com/alice) for contributing PR [#99](https://github.com/vectordotdev/vrl/pull/99)!*
         "};
         assert_eq!(section, expected);
     }
@@ -747,18 +1042,21 @@ mod tests {
         assert!(err.contains("marker"), "{err}");
     }
 
-    // --- generate_and_apply (integration) ---
+    // --- apply_section (integration) ---
 
     #[test]
-    fn updates_changelog_and_removes_fragments() {
+    fn applies_section_and_removes_fragments() {
         let dir = setup_test_repo(&[
-            ("10.feature.md", "New feature\n\nauthors: alice"),
-            ("20.fix.md", "Bug fix\n\nauthors: bob"),
+            ("new-feature.feature.md", "New feature\n\nauthors: alice"),
+            ("bug-fix.fix.md", "Bug fix\n\nauthors: bob"),
         ]);
 
-        Changelog::new(dir.path())
-            .generate_and_apply(&semver::Version::new(1, 0, 0))
+        let changelog = Changelog::new(dir.path());
+        let version = semver::Version::new(1, 0, 0);
+        let section = changelog
+            .generate_section(&version, PullRequestMetadata::Optional)
             .unwrap();
+        changelog.apply_section(&version, &section).unwrap();
 
         let content = fs::read_to_string(dir.path().join("CHANGELOG.md")).unwrap();
         assert!(content.contains("## [1.0.0"));
