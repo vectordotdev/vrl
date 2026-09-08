@@ -31,7 +31,7 @@ impl CollectionRemove for Collection<Field> {
     type Key = Field;
 
     fn remove_known(&mut self, key: &Field) {
-        self.known.remove(key);
+        self.known_mut().remove(key);
     }
 }
 
