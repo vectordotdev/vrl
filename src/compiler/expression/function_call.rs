@@ -56,6 +56,7 @@ impl<'a> Builder<'a> {
         ident: Node<Ident>,
         abort_on_error: bool,
         arguments: Vec<Node<FunctionArgument>>,
+        states_before_arguments: &[TypeState],
         funcs: &'a [Box<dyn Function>],
         state_before_function_args: &TypeState,
         state: &mut TypeState,
@@ -104,18 +105,10 @@ impl<'a> Builder<'a> {
         let mut index = 0;
         let mut list = ArgumentList::default();
 
-        let arguments_have_side_effects = arguments.iter().any(|argument| {
-            !argument
-                .inner()
-                .expr()
-                .type_def(state_before_function_args)
-                .is_pure()
-        });
+        debug_assert_eq!(arguments.len(), states_before_arguments.len());
         let mut argument_parameters = Vec::with_capacity(arguments.len());
-        let mut arguments_with_unknown_type_validity = vec![];
         for node in &arguments {
-            let (argument_span, argument) = node.clone().take();
-
+            let argument = node.inner();
             let (parameter_index, parameter) = match argument.keyword() {
                 // positional argument
                 None => {
@@ -147,13 +140,54 @@ impl<'a> Builder<'a> {
                 keywords: function.parameters().iter().map(|p| p.keyword).collect(),
             })?;
 
+            argument_parameters.push(ArgumentParameter {
+                index: parameter_index,
+                parameter: *parameter,
+            });
+        }
+
+        let arguments_in_parameter_order =
+            argument_parameters.is_sorted_by_key(|parameter| parameter.index);
+        // Function implementations can resolve reordered keyword arguments in parameter order,
+        // so include every state observed while compiling those arguments.
+        let possible_argument_state = (!arguments_in_parameter_order).then(|| {
+            states_before_arguments
+                .iter()
+                .chain(std::iter::once(&*state))
+                .fold(state_before_function_args.clone(), |possible, state| {
+                    possible.merge(state.clone())
+                })
+        });
+
+        let mut arguments_with_unknown_type_validity = vec![];
+        for ((node, argument_parameter), state_before_argument) in arguments
+            .iter()
+            .zip(&argument_parameters)
+            .zip(states_before_arguments)
+        {
+            let (argument_span, argument) = node.clone().take();
+            let parameter = &argument_parameter.parameter;
+
             // Check if the argument is of the expected type.
             let argument_type_def = argument.expr().type_def(state_before_function_args);
             let expr_kind = argument_type_def.kind();
             let base_param_kind = parameter.kind_without_element_constraint();
             let param_kind = parameter.kind();
+            let initial_kind_is_valid = param_kind.is_superset(expr_kind).is_ok();
+            // Only defer when argument side effects can improve compatibility with the element
+            // constraint. Unrelated side effects leave an invalid argument as a hard error.
             let defer_element_kind_check =
-                arguments_have_side_effects && parameter.has_element_kind_constraint();
+                parameter.has_element_kind_constraint() && !initial_kind_is_valid && {
+                    let reachable_type_def = argument.expr().type_def(
+                        possible_argument_state
+                            .as_ref()
+                            .unwrap_or(state_before_argument),
+                    );
+                    let reachable_kind = reachable_type_def.kind();
+
+                    (!param_kind.intersects(expr_kind) && param_kind.intersects(reachable_kind))
+                        || param_kind.is_superset(reachable_kind).is_ok()
+                };
 
             if !base_param_kind.intersects(expr_kind)
                 || (!param_kind.intersects(expr_kind) && !defer_element_kind_check)
@@ -172,7 +206,7 @@ impl<'a> Builder<'a> {
                         argument_span,
                     },
                 ));
-            } else if !defer_element_kind_check && param_kind.is_superset(expr_kind).is_err() {
+            } else if !defer_element_kind_check && !initial_kind_is_valid {
                 arguments_with_unknown_type_validity.push((*parameter, node.clone()));
             }
 
@@ -183,10 +217,6 @@ impl<'a> Builder<'a> {
                 });
             }
 
-            argument_parameters.push(ArgumentParameter {
-                index: parameter_index,
-                parameter: *parameter,
-            });
             list.insert(parameter.keyword, argument.into_inner());
         }
 
@@ -1338,7 +1368,10 @@ impl DiagnosticMessage for FunctionCallError {
 
 #[cfg(test)]
 mod tests {
-    use crate::compiler::{Category, FunctionExpression, value::kind};
+    use crate::{
+        compiler::{Category, FunctionExpression, codes, value::kind},
+        stdlib,
+    };
 
     use super::*;
 
@@ -1416,11 +1449,13 @@ mod tests {
         let mut state = TypeState::default();
         let original_state = state.clone();
         let mut config = CompileConfig::default();
+        let states_before_arguments = vec![original_state.clone(); arguments.len()];
         Builder::new(
             Span::new(0, 0),
             Node::new(Span::new(0, 0), Ident::new("test")),
             false,
             arguments,
+            &states_before_arguments,
             &[Box::new(TestFn) as _],
             &original_state,
             &mut state,
@@ -1436,6 +1471,21 @@ mod tests {
         )
         .unwrap()
         .function_call
+    }
+
+    #[test]
+    fn unrelated_side_effect_does_not_defer_element_kind_error() {
+        let Err(diagnostics) = crate::compiler::compile(
+            r#"items = [1]; join(items, { foo = 1; "," }) ?? "fallback""#,
+            &stdlib::all(),
+        ) else {
+            panic!("invalid array element kind should fail compilation");
+        };
+
+        assert_eq!(
+            diagnostics.errors()[0].code,
+            codes::ExprCode::InvalidArgumentKind as usize
+        );
     }
 
     #[test]

@@ -773,9 +773,11 @@ impl<'a> Compiler<'a> {
         // is re-pushed below via `result.error`).
         let function_info = self
             .consuming_fallibility(|c| {
+                let mut states_before_arguments = Vec::with_capacity(arguments.len());
                 let arguments: Vec<_> = arguments
                     .into_iter()
                     .map(|node| {
+                        states_before_arguments.push(state.clone());
                         Some(Node::new(
                             node.span(),
                             c.compile_function_argument(node, state)?,
@@ -788,6 +790,7 @@ impl<'a> Compiler<'a> {
                     ident,
                     abort_on_error,
                     arguments,
+                    &states_before_arguments,
                     c.fns,
                     &state_before_function,
                     state,
