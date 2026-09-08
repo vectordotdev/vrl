@@ -57,6 +57,10 @@ macro_rules! bench_function {
                     let tz = $crate::compiler::TimeZone::Named(chrono_tz::Tz::UTC);
                     let mut ctx = $crate::compiler::Context::new(&mut target, &mut runtime_state, &tz);
 
+                    // Checks if function returns correct result before starting benchmarking
+                    let got = expression.resolve(&mut ctx).map_err(|e| e.to_string());
+                    assert_eq!(got, want);
+
                     b.iter(|| {
                         let got = expression.resolve(&mut ctx).map_err(|e| e.to_string());
                         debug_assert_eq!(got, want);
@@ -82,6 +86,13 @@ macro_rules! bench_query_function {
                     let expression = expression.unwrap();
                     let tz = $crate::compiler::TimeZone::Named(chrono_tz::Tz::UTC);
                     let event: $crate::value::Value = $event.into();
+
+                    // Checks if function returns correct result before starting benchmarking
+                    let mut runtime_state = $crate::compiler::state::RuntimeState::default();
+                    let mut target = event.clone();
+                    let mut ctx = $crate::compiler::Context::new(&mut target, &mut runtime_state, &tz);
+                    let got = expression.resolve(&mut ctx).map_err(|e| e.to_string());
+                    assert_eq!(got, want);
 
                     b.iter_batched(|| {
                         let mut runtime_state = $crate::compiler::state::RuntimeState::default();
