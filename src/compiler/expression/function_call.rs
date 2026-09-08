@@ -1103,7 +1103,18 @@ impl DiagnosticMessage for FunctionCallError {
                     if kind.is_any() {
                         kind.to_string()
                     } else if kind.is_exact() {
-                        format!("the exact type {kind}")
+                        let array_kind = kind.as_array().and_then(|array| {
+                            let element_kind = array.unknown_kind().without_undefined();
+                            (!array.is_any()
+                                && array.known().is_empty()
+                                && element_kind.contains_any_defined())
+                            .then(|| format!("array<{element_kind}>"))
+                        });
+
+                        format!(
+                            "the exact type {}",
+                            array_kind.unwrap_or_else(|| kind.to_string())
+                        )
                     } else {
                         format!("one of {kind}")
                     }

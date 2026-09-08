@@ -7,7 +7,7 @@
 #   │                         ^^^^^^^^
 #   │                         │
 #   │                         this expression resolves to the exact type [string, integer]
-#   │                         but the parameter "fields_ordering" expects the exact type array
+#   │                         but the parameter "fields_ordering" expects the exact type array<string>
 #   │
 #   = try: ensuring an appropriate type at runtime
 #   =
