@@ -19,6 +19,9 @@
       "type": [
         "array"
       ],
+      "element_type": [
+        "string"
+      ],
       "default": "[]"
     }
   ],
@@ -51,9 +54,6 @@
       "source": "encode_logfmt({\"agent\": {\"name\": \"foo\"}, \"log\": {\"file\": {\"path\": \"my.log\"}}, \"event\": \"log\"}, [\"event\", \"log.file.path\", \"agent.name\"])",
       "return": "event=log log.file.path=my.log agent.name=foo"
     }
-  ],
-  "notices": [
-    "This function is fallible if `fields_ordering` contains non-string elements."
   ],
   "pure": true
 }

@@ -139,11 +139,6 @@ mod tests {
             tdef: TypeDef::boolean().infallible(),
         }
 
-        // The function body's `type_def` is now unconditionally infallible;
-        // element-kind fallibility for `substrings` is inferred by the compiler
-        // at the call site via `Parameter::with_element_kind`. See the
-        // `compiler_flags_non_bytes_element_as_fallible` test for end-to-end
-        // verification.
         substring_type {
             args: func_args![value: value!("The Needle In The Haystack"),
                              substrings: value!([1, 2])],

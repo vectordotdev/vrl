@@ -1,0 +1,22 @@
+# result:
+#
+# error[E110]: invalid argument type
+#   ┌─ :2:25
+#   │
+# 2 │ encode_logfmt({"a": 1}, [1])
+#   │                         ^^^
+#   │                         │
+#   │                         this expression resolves to the exact type [integer]
+#   │                         but the parameter "fields_ordering" expects the exact type array
+#   │
+#   = try: ensuring an appropriate type at runtime
+#   =
+#   =     [1] = array!([1])
+#   =     encode_logfmt({ "a": 1 }, [1])
+#   =
+#   = see documentation about error handling at https://errors.vrl.dev/#handling
+#   = learn more about error code 110 at https://errors.vrl.dev/110
+#   = see language documentation at https://vrl.dev
+#   = try your code in the VRL REPL, learn more at https://vrl.dev/examples
+
+encode_logfmt({"a": 1}, [1])

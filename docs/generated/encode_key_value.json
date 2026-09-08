@@ -19,6 +19,9 @@
       "type": [
         "array"
       ],
+      "element_type": [
+        "string"
+      ],
       "default": "[]"
     },
     {
@@ -88,9 +91,6 @@
       "source": "encode_key_value(\n    {\"ts\": \"2021-06-05T17:20:00Z\", \"msg\": \"This is a message\", \"lvl\": \"info\", \"beta\": true, \"dropped\": false},\n    field_delimiter: \",\",\n    key_value_delimiter: \":\",\n    flatten_boolean: true\n)\n",
       "return": "beta,lvl:info,msg:\"This is a message\",ts:2021-06-05T17:20:00Z"
     }
-  ],
-  "notices": [
-    "This function is fallible if `fields_ordering` contains non-string elements."
   ],
   "pure": true
 }

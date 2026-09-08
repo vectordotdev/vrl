@@ -37,6 +37,8 @@ pub struct ArgumentDoc {
     pub description: String,
     pub required: bool,
     pub r#type: Vec<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub element_type: Vec<String>,
     #[serde(skip_serializing_if = "IndexMap::is_empty")]
     pub r#enum: IndexMap<String, String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -130,13 +132,18 @@ pub fn build_function_doc(func: &dyn Function) -> FunctionDoc {
                 description,
                 default,
                 enum_variants,
-                element_kind: _,
+                element_kind,
             } = param;
 
             let name = keyword.trim().to_string();
             let description = description.trim().to_string();
             let default = default.map(pretty_value);
             let r#type = kind_to_types(*kind);
+            let element_type = if *element_kind == kind::ANY {
+                Vec::new()
+            } else {
+                kind_to_types(*element_kind)
+            };
             let r#enum = enum_variants
                 .unwrap_or_default()
                 .iter()
@@ -150,6 +157,7 @@ pub fn build_function_doc(func: &dyn Function) -> FunctionDoc {
                 description,
                 required: *required,
                 r#type,
+                element_type,
                 default,
                 r#enum,
             }

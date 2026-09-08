@@ -71,10 +71,6 @@ impl Function for EncodeKeyValue {
         kind::BYTES
     }
 
-    fn notices(&self) -> &'static [&'static str] {
-        &["This function is fallible if `fields_ordering` contains non-string elements."]
-    }
-
     fn parameters(&self) -> &'static [Parameter] {
         PARAMETERS
     }
