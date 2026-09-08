@@ -1,4 +1,4 @@
-# result: [false, "fallback", "fallback", true, "a"]
+# result: [false, "fallback", "fallback", true, true, "a"]
 
 substrings = ["x"]
 contains_all_result = contains_all({ substrings = [1]; "x" }, substrings) ?? false
@@ -21,6 +21,12 @@ initially_invalid_result = contains_all(
     initially_invalid_substrings,
 )
 
+reordered_initially_invalid_substrings = [1]
+reordered_initially_invalid_result = contains_all(
+    substrings: reordered_initially_invalid_substrings,
+    value: { reordered_initially_invalid_substrings = ["x"]; "x" },
+)
+
 join_fields = ["a"]
 join_result = join(value: join_fields, separator: { join_fields = [1]; "," })
 
@@ -29,5 +35,6 @@ join_result = join(value: join_fields, separator: { join_fields = [1]; "," })
     encode_key_value_result,
     reordered_encode_key_value_result,
     initially_invalid_result,
+    reordered_initially_invalid_result,
     join_result,
 ]

@@ -26,10 +26,15 @@ struct ArgumentParameter {
     parameter: Parameter,
 }
 
+struct AppliedArgument {
+    type_def: TypeDef,
+    preceded_by_side_effects: bool,
+}
+
 pub(crate) struct Builder<'a> {
     abort_on_error: bool,
     argument_parameters: Vec<ArgumentParameter>,
-    arguments_with_unknown_type_validity: Vec<(Parameter, Node<FunctionArgument>)>,
+    arguments_with_unknown_type_validity: Vec<(Parameter, Node<FunctionArgument>, Kind)>,
     call_span: Span,
     ident_span: Span,
     function_id: usize,
@@ -56,7 +61,6 @@ impl<'a> Builder<'a> {
         ident: Node<Ident>,
         abort_on_error: bool,
         arguments: Vec<Node<FunctionArgument>>,
-        states_before_arguments: &[TypeState],
         funcs: &'a [Box<dyn Function>],
         state_before_function_args: &TypeState,
         state: &mut TypeState,
@@ -105,7 +109,6 @@ impl<'a> Builder<'a> {
         let mut index = 0;
         let mut list = ArgumentList::default();
 
-        debug_assert_eq!(arguments.len(), states_before_arguments.len());
         let mut argument_parameters = Vec::with_capacity(arguments.len());
         for node in &arguments {
             let argument = node.inner();
@@ -146,48 +149,35 @@ impl<'a> Builder<'a> {
             });
         }
 
-        let arguments_in_parameter_order =
-            argument_parameters.is_sorted_by_key(|parameter| parameter.index);
-        // Function implementations can resolve reordered keyword arguments in parameter order,
-        // so include every state observed while compiling those arguments.
-        let possible_argument_state = (!arguments_in_parameter_order).then(|| {
-            states_before_arguments
-                .iter()
-                .chain(std::iter::once(&*state))
-                .fold(state_before_function_args.clone(), |possible, state| {
-                    possible.merge(state.clone())
-                })
-        });
+        let mut state_before_argument = state_before_function_args.clone();
+        let applied_arguments = apply_arguments_in_parameter_order(
+            &arguments,
+            &argument_parameters,
+            &mut state_before_argument,
+        );
 
         let mut arguments_with_unknown_type_validity = vec![];
-        for ((node, argument_parameter), state_before_argument) in arguments
+        for ((node, argument_parameter), applied_argument) in arguments
             .iter()
             .zip(&argument_parameters)
-            .zip(states_before_arguments)
+            .zip(applied_arguments)
         {
             let (argument_span, argument) = node.clone().take();
             let parameter = &argument_parameter.parameter;
 
             // Check if the argument is of the expected type.
-            let argument_type_def = argument.expr().type_def(state_before_function_args);
-            let expr_kind = argument_type_def.kind();
+            let expr_kind = applied_argument.type_def.kind();
             let base_param_kind = parameter.kind_without_element_constraint();
             let param_kind = parameter.kind();
-            let initial_kind_is_valid = param_kind.is_superset(expr_kind).is_ok();
-            // Only defer when argument side effects can improve compatibility with the element
-            // constraint. Unrelated side effects leave an invalid argument as a hard error.
-            let defer_element_kind_check =
-                parameter.has_element_kind_constraint() && !initial_kind_is_valid && {
-                    let reachable_type_def = argument.expr().type_def(
-                        possible_argument_state
-                            .as_ref()
-                            .unwrap_or(state_before_argument),
-                    );
-                    let reachable_kind = reachable_type_def.kind();
-
-                    (!param_kind.intersects(expr_kind) && param_kind.intersects(reachable_kind))
-                        || param_kind.is_superset(reachable_kind).is_ok()
-                };
+            let runtime_kind_is_valid = param_kind.is_superset(expr_kind).is_ok();
+            // If an earlier parameter can make a constrained argument invalid, retain runtime
+            // fallibility. Re-check the initial kind only for that candidate, avoiding a second
+            // recursive pass over every argument.
+            let defer_element_kind_check = parameter.has_element_kind_constraint()
+                && !runtime_kind_is_valid
+                && applied_argument.preceded_by_side_effects
+                && param_kind
+                    .intersects(argument.expr().type_def(state_before_function_args).kind());
 
             if !base_param_kind.intersects(expr_kind)
                 || (!param_kind.intersects(expr_kind) && !defer_element_kind_check)
@@ -206,12 +196,16 @@ impl<'a> Builder<'a> {
                         argument_span,
                     },
                 ));
-            } else if !defer_element_kind_check && !initial_kind_is_valid {
-                arguments_with_unknown_type_validity.push((*parameter, node.clone()));
+            } else if !runtime_kind_is_valid {
+                arguments_with_unknown_type_validity.push((
+                    *parameter,
+                    node.clone(),
+                    expr_kind.clone(),
+                ));
             }
 
             // Check if the argument is infallible.
-            if argument_type_def.is_fallible() {
+            if applied_argument.type_def.is_fallible() {
                 return Err(FunctionCallError::FallibleArgument {
                     expr_span: argument.span(),
                 });
@@ -514,7 +508,7 @@ impl<'a> Builder<'a> {
         // and one or more arguments are of an invalid type, so we'll return the
         // appropriate error.
         let mut invalid_argument_error = None;
-        if let Some((parameter, argument)) =
+        if let Some((parameter, argument, got)) =
             self.arguments_with_unknown_type_validity.first().cloned()
             && !self.abort_on_error
         {
@@ -528,11 +522,7 @@ impl<'a> Builder<'a> {
                         .map(|arg| arg.inner().to_string())
                         .collect::<Vec<_>>(),
                     parameter,
-                    got: argument
-                        .expr()
-                        .type_info(state_before_function_args)
-                        .result
-                        .into(),
+                    got,
                     argument: argument.clone().into_inner(),
                     argument_span: argument
                         .keyword_span()
@@ -612,43 +602,49 @@ impl<'a> Builder<'a> {
     }
 }
 
+fn apply_arguments_in_parameter_order(
+    arguments: &[Node<FunctionArgument>],
+    parameters: &[ArgumentParameter],
+    state: &mut TypeState,
+) -> Vec<AppliedArgument> {
+    debug_assert_eq!(arguments.len(), parameters.len());
+
+    let mut indices = (0..arguments.len()).collect::<Vec<_>>();
+    indices.sort_by_key(|&index| parameters[index].index);
+
+    let mut applied_arguments = (0..arguments.len()).map(|_| None).collect::<Vec<_>>();
+    let mut preceded_by_side_effects = false;
+    for index in indices {
+        let state_before_argument = state.clone();
+        let type_def = arguments[index].inner().expr().apply_type_info(state);
+        let has_side_effects = *state != state_before_argument;
+        applied_arguments[index] = Some(AppliedArgument {
+            type_def,
+            preceded_by_side_effects,
+        });
+        preceded_by_side_effects |= has_side_effects;
+    }
+
+    applied_arguments
+        .into_iter()
+        .map(|argument| argument.expect("each argument has a parameter"))
+        .collect()
+}
+
 fn apply_argument_type_info(
     arguments: &[Node<FunctionArgument>],
     parameters: &[ArgumentParameter],
     state: &mut TypeState,
 ) -> bool {
-    debug_assert_eq!(arguments.len(), parameters.len());
-
-    let arguments_in_parameter_order = parameters.is_sorted_by_key(|parameter| parameter.index);
-    let mut may_fail_type_check = false;
-    let mut possible_states = (!arguments_in_parameter_order).then(|| state.clone());
-    for (argument, parameter) in arguments.iter().zip(parameters) {
-        let argument_type_def = argument.inner().expr().apply_type_info(state);
-        may_fail_type_check |= parameter
-            .parameter
-            .kind()
-            .is_superset(argument_type_def.kind())
-            .is_err();
-
-        if let Some(possible_states) = &mut possible_states {
-            *possible_states = possible_states.clone().merge(state.clone());
-        }
-    }
-
-    may_fail_type_check
-        || possible_states.is_some_and(|possible_states| {
-            arguments
-                .iter()
-                .zip(parameters)
-                .any(|(argument, parameter)| {
-                    let argument_type_def =
-                        argument.inner().expr().type_info(&possible_states).result;
-                    parameter
-                        .parameter
-                        .kind()
-                        .is_superset(argument_type_def.kind())
-                        .is_err()
-                })
+    apply_arguments_in_parameter_order(arguments, parameters, state)
+        .into_iter()
+        .zip(parameters)
+        .any(|(argument, parameter)| {
+            parameter
+                .parameter
+                .kind()
+                .is_superset(argument.type_def.kind())
+                .is_err()
         })
 }
 
@@ -1178,7 +1174,7 @@ impl DiagnosticMessage for FunctionCallError {
                 let kind_str = |kind: &Kind| {
                     if kind.is_any() {
                         kind.to_string()
-                    } else if kind.is_exact() {
+                    } else {
                         let array_kind = kind.as_array().and_then(|array| {
                             let element_kind = array.unknown_kind().without_undefined();
                             (!array.is_any()
@@ -1186,13 +1182,16 @@ impl DiagnosticMessage for FunctionCallError {
                                 && element_kind.contains_any_defined())
                             .then(|| format!("array<{element_kind}>"))
                         });
+                        let display = array_kind.map_or_else(
+                            || kind.to_string(),
+                            |array_kind| kind.to_string().replacen("array", &array_kind, 1),
+                        );
 
-                        format!(
-                            "the exact type {}",
-                            array_kind.unwrap_or_else(|| kind.to_string())
-                        )
-                    } else {
-                        format!("one of {kind}")
+                        if kind.is_exact() {
+                            format!("the exact type {display}")
+                        } else {
+                            format!("one of {display}")
+                        }
                     }
                 };
 
@@ -1449,13 +1448,11 @@ mod tests {
         let mut state = TypeState::default();
         let original_state = state.clone();
         let mut config = CompileConfig::default();
-        let states_before_arguments = vec![original_state.clone(); arguments.len()];
         Builder::new(
             Span::new(0, 0),
             Node::new(Span::new(0, 0), Ident::new("test")),
             false,
             arguments,
-            &states_before_arguments,
             &[Box::new(TestFn) as _],
             &original_state,
             &mut state,
@@ -1480,6 +1477,21 @@ mod tests {
             &stdlib::all(),
         ) else {
             panic!("invalid array element kind should fail compilation");
+        };
+
+        assert_eq!(
+            diagnostics.errors()[0].code,
+            codes::ExprCode::InvalidArgumentKind as usize
+        );
+    }
+
+    #[test]
+    fn later_parameter_side_effect_does_not_defer_element_kind_error() {
+        let Err(diagnostics) = crate::compiler::compile(
+            r#"items = [1]; contains_all(substrings: items, case_sensitive: { items = ["x"]; true }, value: "x") ?? false"#,
+            &stdlib::all(),
+        ) else {
+            panic!("a later parameter cannot change an earlier argument");
         };
 
         assert_eq!(

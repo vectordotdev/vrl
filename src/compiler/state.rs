@@ -35,7 +35,7 @@ impl From<&TypeState> for TypeState {
 }
 
 #[allow(clippy::module_name_repetitions)]
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq)]
 pub struct TypeState {
     pub local: LocalEnv,
     pub external: ExternalEnv,
@@ -101,7 +101,7 @@ impl LocalEnv {
 }
 
 /// A lexical scope within the program.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ExternalEnv {
     /// The external target of the program.
     target: Details,
