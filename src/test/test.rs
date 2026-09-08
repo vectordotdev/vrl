@@ -191,13 +191,13 @@ fn test_category(path: &Path) -> String {
 
     stripped_path
         .clone()
-        .rsplit_once('/')
+        .rsplit_once(['/', '\\'])
         .map_or(stripped_path, |x| x.0.to_owned())
 }
 
 fn test_name(path: &Path) -> String {
     path.to_string_lossy()
-        .rsplit_once('/')
+        .rsplit_once(['/', '\\'])
         .unwrap()
         .1
         .trim_end_matches(".vrl")
