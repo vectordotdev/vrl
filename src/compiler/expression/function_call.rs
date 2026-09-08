@@ -22,6 +22,7 @@ use crate::value::Value;
 
 pub(crate) struct Builder<'a> {
     abort_on_error: bool,
+    argument_parameters: Vec<Parameter>,
     arguments_with_unknown_type_validity: Vec<(Parameter, Node<FunctionArgument>)>,
     call_span: Span,
     ident_span: Span,
@@ -97,6 +98,7 @@ impl<'a> Builder<'a> {
         let mut index = 0;
         let mut list = ArgumentList::default();
 
+        let mut argument_parameters = Vec::with_capacity(arguments.len());
         let mut arguments_with_unknown_type_validity = vec![];
         for node in &arguments {
             let (argument_span, argument) = node.clone().take();
@@ -159,6 +161,7 @@ impl<'a> Builder<'a> {
                 });
             }
 
+            argument_parameters.push(*parameter);
             list.insert(parameter.keyword, argument.into_inner());
         }
 
@@ -189,6 +192,7 @@ impl<'a> Builder<'a> {
 
         Ok(Self {
             abort_on_error,
+            argument_parameters,
             arguments_with_unknown_type_validity,
             call_span,
             ident_span,
@@ -433,13 +437,17 @@ impl<'a> Builder<'a> {
         // Asking for an infallible function to abort on error makes no sense.
         // We consider this an error at compile-time, because it makes the
         // resulting program incorrectly convey this function call might fail.
+        let mut state_after_arguments = state_before_function_args.clone();
+        let arguments_may_fail_type_check = apply_argument_type_info(
+            &self.arguments,
+            &self.argument_parameters,
+            &mut state_after_arguments,
+        );
+
         let mut warnings = Vec::new();
         if self.abort_on_error
-            && self.arguments_with_unknown_type_validity.is_empty()
-            && !expr
-                .type_info(state_before_function_args)
-                .result
-                .is_fallible()
+            && !arguments_may_fail_type_check
+            && !expr.type_info(&state_after_arguments).result.is_fallible()
         {
             warnings.push(AbortInfallible {
                 ident_span,
@@ -482,7 +490,7 @@ impl<'a> Builder<'a> {
             function_call: FunctionCall {
                 abort_on_error: self.abort_on_error,
                 expr,
-                arguments_with_unknown_type_validity: self.arguments_with_unknown_type_validity,
+                argument_parameters: self.argument_parameters,
                 closure_fallible,
                 closure,
                 span: call_span,
@@ -549,11 +557,30 @@ impl<'a> Builder<'a> {
     }
 }
 
+fn apply_argument_type_info(
+    arguments: &[Node<FunctionArgument>],
+    parameters: &[Parameter],
+    state: &mut TypeState,
+) -> bool {
+    debug_assert_eq!(arguments.len(), parameters.len());
+
+    let mut may_fail_type_check = false;
+    for (argument, parameter) in arguments.iter().zip(parameters) {
+        let argument_type_def = argument.inner().expr().apply_type_info(state);
+        may_fail_type_check |= parameter
+            .kind()
+            .is_superset(argument_type_def.kind())
+            .is_err();
+    }
+
+    may_fail_type_check
+}
+
 #[derive(Clone)]
 pub struct FunctionCall {
     abort_on_error: bool,
     expr: Box<dyn Expression>,
-    arguments_with_unknown_type_validity: Vec<(Parameter, Node<FunctionArgument>)>,
+    argument_parameters: Vec<Parameter>,
     closure_fallible: bool,
     // will be used with: https://github.com/vectordotdev/vector/issues/13782
     #[allow(dead_code)]
@@ -699,9 +726,8 @@ impl Expression for FunctionCall {
         // This doesn't actually match current runtime behavior in some cases,
         // but that will be changed.
         // see: https://github.com/vectordotdev/vector/issues/13752
-        for arg_node in &*self.arguments {
-            let _result = arg_node.inner().expr().apply_type_info(&mut state);
-        }
+        let arguments_may_fail_type_check =
+            apply_argument_type_info(&self.arguments, &self.argument_parameters, &mut state);
 
         let mut expr_result = self.expr.apply_type_info(&mut state);
 
@@ -762,7 +788,7 @@ impl Expression for FunctionCall {
         // For the third event, both functions fail.
         //
 
-        if !self.arguments_with_unknown_type_validity.is_empty() {
+        if arguments_may_fail_type_check {
             expr_result = expr_result.fallible();
         }
 

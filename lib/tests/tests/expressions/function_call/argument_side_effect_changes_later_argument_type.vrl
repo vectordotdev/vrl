@@ -1,0 +1,12 @@
+# result: [false, "fallback"]
+
+substrings = ["x"]
+contains_all_result = contains_all({ substrings = [1]; "x" }, substrings) ?? false
+
+fields_ordering = ["a"]
+encode_key_value_result = encode_key_value(
+    { fields_ordering = [1]; {"a": 1} },
+    fields_ordering,
+) ?? "fallback"
+
+[contains_all_result, encode_key_value_result]
