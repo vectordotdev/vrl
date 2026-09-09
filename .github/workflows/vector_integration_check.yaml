@@ -1,4 +1,4 @@
-name: Vector Integration Check
+name: Vector Compatibility Advisory
 
 on:
   pull_request:
@@ -9,6 +9,7 @@ permissions:
 
 jobs:
   check-vector:
+    name: Vector compatibility (advisory)
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout VRL
@@ -33,7 +34,7 @@ jobs:
 
           protoc --version
 
-      - name: Clone Vector repo and update VRL dependency
+      - name: Clone Vector repo and point it at this PR
         env:
           VRL_GITHUB_REPO: ${{ github.event.pull_request.head.repo.full_name }}
           VRL_GITHUB_BRANCH: ${{ github.head_ref }}
@@ -59,10 +60,43 @@ jobs:
           # Replace the old vrl line
           sed -i.bak -E "s|vrl = \{[^}]*\}|$NEW_VRL_DEP_LINE|" Cargo.toml
 
-          cargo update -p vrl
-
       - name: Cargo Check Vector
+        id: vector-check
+        continue-on-error: true
         run: |
           cd vector
           cargo update -p vrl
           cargo check --workspace
+
+      - name: Summarize compatibility result
+        if: steps.vector-check.outcome == 'success' || steps.vector-check.outcome == 'failure'
+        env:
+          VECTOR_CHECK_OUTCOME: ${{ steps.vector-check.outcome }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          mkdir -p /tmp/vector-compatibility-advisory
+          echo "$PR_NUMBER" > /tmp/vector-compatibility-advisory/pr-number
+          echo "$VECTOR_CHECK_OUTCOME" > /tmp/vector-compatibility-advisory/outcome
+
+          if [[ "$VECTOR_CHECK_OUTCOME" == "failure" ]]; then
+            echo "::warning title=Vector compatibility impact::Vector does not compile with this VRL change. This advisory does not block merging."
+            {
+              echo "## :warning: Vector compatibility impact"
+              echo
+              echo "Vector does not compile with this VRL change. This is advisory and does not block merging. No change to this PR is necessarily required; review the failure to determine whether Vector needs a follow-up change."
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            {
+              echo "## :white_check_mark: Vector compatibility"
+              echo
+              echo "Vector compiles with this VRL change."
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload compatibility result
+        if: steps.vector-check.outcome == 'success' || steps.vector-check.outcome == 'failure'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: vector-compatibility-advisory
+          path: /tmp/vector-compatibility-advisory
+          retention-days: 1
