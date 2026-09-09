@@ -139,7 +139,7 @@ jobs:
           body: |
             ### :warning: Vector compatibility advisory
 
-            Vector does not currently compile with this VRL change. This is advisory and does **not** block merging. No change to this PR is necessarily required; review [the workflow run](${{ github.event.workflow_run.html_url }}) to determine whether Vector needs a follow-up change.
+            This check tests whether Vector can update to the VRL version in this PR without additional changes. Dependency changes can make that update significantly harder. If the required Vector changes are reasonable, you can ignore this advisory. [Review the workflow run](${{ github.event.workflow_run.html_url }}) for details.
 
       - name: Remove resolved compatibility advisory
         if: >
