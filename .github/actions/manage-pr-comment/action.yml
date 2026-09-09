@@ -1,10 +1,7 @@
 name: Manage PR comment
-description: Create, update, or delete a PR comment identified by a stable key
+description: Create or update a PR comment identified by a stable key
 
 inputs:
-  github-token:
-    description: GitHub token with permission to write PR comments
-    required: true
   pr-number:
     description: Pull request number
     required: true
@@ -12,13 +9,9 @@ inputs:
     description: Stable key used to identify the comment
     required: true
   body:
-    description: Markdown comment body, required when mode is upsert
+    description: Markdown comment body; omit to mark an existing comment as outdated
     required: false
     default: ""
-  mode:
-    description: Whether to upsert or delete the comment
-    required: false
-    default: upsert
 
 runs:
   using: composite
@@ -29,14 +22,11 @@ runs:
         PR_NUMBER: ${{ inputs.pr-number }}
         COMMENT_KEY: ${{ inputs.comment-key }}
         COMMENT_BODY: ${{ inputs.body }}
-        COMMENT_MODE: ${{ inputs.mode }}
       with:
-        github-token: ${{ inputs.github-token }}
         script: |
           const rawPRNumber = process.env.PR_NUMBER;
           const key = process.env.COMMENT_KEY;
           const body = process.env.COMMENT_BODY;
-          const mode = process.env.COMMENT_MODE;
 
           if (!/^\d+$/.test(rawPRNumber)) {
             core.setFailed('Invalid PR number');
@@ -46,15 +36,6 @@ runs:
             core.setFailed('Invalid comment key');
             return;
           }
-          if (!['upsert', 'delete'].includes(mode)) {
-            core.setFailed('Invalid comment mode');
-            return;
-          }
-          if (mode === 'upsert' && body.trim() === '') {
-            core.setFailed('Comment body is required when mode is upsert');
-            return;
-          }
-
           const prNumber = Number(rawPRNumber);
           const marker = `<!-- ${key} -->`;
           const comments = await github.paginate(github.rest.issues.listComments, {
@@ -68,12 +49,13 @@ runs:
               && comment.body?.startsWith(marker)
           );
 
-          if (mode === 'delete') {
+          if (body.trim() === '') {
             if (existing) {
-              await github.rest.issues.deleteComment({
+              await github.rest.issues.updateComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 comment_id: existing.id,
+                body: `${marker}\n_Edit: Outdated._`,
               });
             }
             return;
