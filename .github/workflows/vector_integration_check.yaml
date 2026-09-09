@@ -60,13 +60,18 @@ jobs:
           # Replace the old vrl line
           sed -i.bak -E "s|vrl = \{[^}]*\}|$NEW_VRL_DEP_LINE|" Cargo.toml
 
+      - name: Prepare Vector dependencies
+        run: |
+          cd vector
+          cargo update -p vrl
+          cargo fetch --locked
+
       - name: Cargo Check Vector
         id: vector-check
         continue-on-error: true
         run: |
           cd vector
-          cargo update -p vrl
-          cargo check --workspace
+          cargo check --workspace --locked --offline
 
       - name: Summarize compatibility result
         if: steps.vector-check.outcome == 'success' || steps.vector-check.outcome == 'failure'
