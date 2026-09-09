@@ -63,7 +63,10 @@ runs:
             issue_number: prNumber,
             per_page: 100,
           });
-          const existing = comments.find(comment => comment.body?.startsWith(marker));
+          const existing = comments.find(comment =>
+            comment.performed_via_github_app?.slug === 'github-actions'
+              && comment.body?.startsWith(marker)
+          );
 
           if (mode === 'delete') {
             if (existing) {
