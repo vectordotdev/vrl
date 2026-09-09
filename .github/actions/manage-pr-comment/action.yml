@@ -1,0 +1,94 @@
+name: Manage PR comment
+description: Create, update, or delete a PR comment identified by a stable key
+
+inputs:
+  github-token:
+    description: GitHub token with permission to write PR comments
+    required: true
+  pr-number:
+    description: Pull request number
+    required: true
+  comment-key:
+    description: Stable key used to identify the comment
+    required: true
+  body:
+    description: Markdown comment body, required when mode is upsert
+    required: false
+    default: ""
+  mode:
+    description: Whether to upsert or delete the comment
+    required: false
+    default: upsert
+
+runs:
+  using: composite
+  steps:
+    - name: Manage comment
+      uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+      env:
+        PR_NUMBER: ${{ inputs.pr-number }}
+        COMMENT_KEY: ${{ inputs.comment-key }}
+        COMMENT_BODY: ${{ inputs.body }}
+        COMMENT_MODE: ${{ inputs.mode }}
+      with:
+        github-token: ${{ inputs.github-token }}
+        script: |
+          const rawPRNumber = process.env.PR_NUMBER;
+          const key = process.env.COMMENT_KEY;
+          const body = process.env.COMMENT_BODY;
+          const mode = process.env.COMMENT_MODE;
+
+          if (!/^\d+$/.test(rawPRNumber)) {
+            core.setFailed('Invalid PR number');
+            return;
+          }
+          if (!/^[a-z0-9][a-z0-9-]*$/.test(key)) {
+            core.setFailed('Invalid comment key');
+            return;
+          }
+          if (!['upsert', 'delete'].includes(mode)) {
+            core.setFailed('Invalid comment mode');
+            return;
+          }
+          if (mode === 'upsert' && body.trim() === '') {
+            core.setFailed('Comment body is required when mode is upsert');
+            return;
+          }
+
+          const prNumber = Number(rawPRNumber);
+          const marker = `<!-- ${key} -->`;
+          const comments = await github.paginate(github.rest.issues.listComments, {
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: prNumber,
+            per_page: 100,
+          });
+          const existing = comments.find(comment => comment.body?.startsWith(marker));
+
+          if (mode === 'delete') {
+            if (existing) {
+              await github.rest.issues.deleteComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+              });
+            }
+            return;
+          }
+
+          const markedBody = `${marker}\n${body}`;
+          if (existing) {
+            await github.rest.issues.updateComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: existing.id,
+              body: markedBody,
+            });
+          } else {
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+              body: markedBody,
+            });
+          }
