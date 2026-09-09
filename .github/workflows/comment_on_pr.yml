@@ -102,16 +102,14 @@ jobs:
           echo "pr-number=$pr_number" >> "$GITHUB_OUTPUT"
           echo "outcome=$outcome" >> "$GITHUB_OUTPUT"
 
-      - name: Validate result and update label
-        id: label
+      - name: Validate result
+        id: validation
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
           PR_NUMBER: ${{ steps.metadata.outputs.pr-number }}
-          OUTCOME: ${{ steps.metadata.outputs.outcome }}
         with:
           script: |
             const prNumber = Number(process.env.PR_NUMBER);
-            const outcome = process.env.OUTCOME;
             const run = context.payload.workflow_run;
             const { data: pull } = await github.rest.pulls.get({
               owner: context.repo.owner,
@@ -129,48 +127,9 @@ jobs:
             }
             core.setOutput('current', 'true');
 
-            const label = 'vector integration impact';
-            if (outcome === 'failure') {
-              try {
-                await github.rest.issues.getLabel({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  name: label,
-                });
-              } catch (error) {
-                if (error.status !== 404) throw error;
-                await github.rest.issues.createLabel({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  name: label,
-                  color: 'FBCA04',
-                  description: 'This PR requires evaluation or follow-up changes in Vector',
-                });
-              }
-
-              await github.rest.issues.addLabels({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: prNumber,
-                labels: [label],
-              });
-              return;
-            }
-
-            try {
-              await github.rest.issues.removeLabel({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: prNumber,
-                name: label,
-              });
-            } catch (error) {
-              if (error.status !== 404) throw error;
-            }
-
       - name: Post compatibility advisory
         if: >
-          steps.label.outputs.current == 'true'
+          steps.validation.outputs.current == 'true'
           && steps.metadata.outputs.outcome == 'failure'
         uses: ./.github/actions/manage-pr-comment
         with:
@@ -184,7 +143,7 @@ jobs:
 
       - name: Remove resolved compatibility advisory
         if: >
-          steps.label.outputs.current == 'true'
+          steps.validation.outputs.current == 'true'
           && steps.metadata.outputs.outcome == 'success'
         uses: ./.github/actions/manage-pr-comment
         with:
