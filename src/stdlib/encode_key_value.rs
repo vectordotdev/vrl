@@ -37,7 +37,8 @@ static DEFAULT_FLATTEN_BOOLEAN: Value = Value::Boolean(false);
 const PARAMETERS: &[Parameter] = &[
     Parameter::required("value", kind::OBJECT, "The value to convert to a string."),
     Parameter::optional("fields_ordering", kind::ARRAY, "The ordering of fields to preserve. Any fields not in this list are listed unordered, after all ordered fields.")
-        .default(&DEFAULT_FIELDS_ORDERING),
+        .default(&DEFAULT_FIELDS_ORDERING)
+        .with_element_kind(kind::BYTES),
     Parameter::optional("key_value_delimiter", kind::BYTES, "The string that separates the key from the value.")
         .default(&DEFAULT_KEY_VALUE_DELIMITER),
     Parameter::optional("field_delimiter", kind::BYTES, "The string that separates each key-value pair.")
@@ -68,10 +69,6 @@ impl Function for EncodeKeyValue {
 
     fn return_kind(&self) -> u16 {
         kind::BYTES
-    }
-
-    fn notices(&self) -> &'static [&'static str] {
-        &["If `fields_ordering` is specified then the function is fallible else it is infallible."]
     }
 
     fn parameters(&self) -> &'static [Parameter] {
@@ -119,7 +116,7 @@ impl Function for EncodeKeyValue {
             example! {
                 title: "Encode with default delimiters (fields ordering)",
                 source: indoc! {r#"
-                    encode_key_value!(
+                    encode_key_value(
                         {
                             "ts": "2021-06-05T17:20:00Z",
                             "msg": "This is a message",
@@ -147,7 +144,7 @@ impl Function for EncodeKeyValue {
             example! {
                 title: "Encode with default delimiters (nested fields ordering)",
                 source: indoc! {r#"
-                    encode_key_value!(
+                    encode_key_value(
                         {
                             "agent": {"name": "foo"},
                             "log": {"file": {"path": "my.log"}},
@@ -231,7 +228,7 @@ impl FunctionExpression for EncodeKeyValueFn {
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {
-        TypeDef::bytes().maybe_fallible(self.fields.is_some())
+        TypeDef::bytes()
     }
 }
 
@@ -427,7 +424,7 @@ mod tests {
                 fields_ordering: value!(["lvl", "msg"])
             ],
             want: Ok(r#"lvl=info msg="This is a log message" log_id=12345"#),
-            tdef: TypeDef::bytes().fallible(),
+            tdef: TypeDef::bytes(),
         }
 
         nested_fields_ordering {
@@ -446,7 +443,7 @@ mod tests {
                 fields_ordering:  value!(["event", "log.file.path", "agent.name"])
             ],
             want: Ok("event=log log.file.path=encode_key_value.rs agent.name=vector"),
-            tdef: TypeDef::bytes().fallible(),
+            tdef: TypeDef::bytes(),
         }
 
         fields_ordering_invalid_field_type {
@@ -463,7 +460,7 @@ mod tests {
                         got: Kind::integer(),
                         expected: Kind::bytes()
                     })),
-            tdef: TypeDef::bytes().fallible(),
+            tdef: TypeDef::bytes(),
         }
     ];
 }

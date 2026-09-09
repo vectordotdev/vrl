@@ -90,7 +90,8 @@ impl Function for IpCidrContains {
                 "cidr",
                 kind::BYTES | kind::ARRAY,
                 "The CIDR mask (v4 or v6).",
-            ),
+            )
+            .with_element_kind(kind::BYTES),
             Parameter::required("value", kind::BYTES, "The IP address (v4 or v6)."),
         ];
         PARAMETERS
@@ -172,12 +173,14 @@ struct IpCidrContainsFn {
 
 impl FunctionExpression for IpCidrContainsFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = self.value.resolve(ctx)?;
-
         match &self.cidr {
-            ConstOrExpr::Const(cidr_vec) => ip_cidr_contains_constant(&value, cidr_vec),
+            ConstOrExpr::Const(cidr_vec) => {
+                let value = self.value.resolve(ctx)?;
+                ip_cidr_contains_constant(&value, cidr_vec)
+            }
             ConstOrExpr::Expr(expr) => {
                 let cidr = expr.resolve(ctx)?;
+                let value = self.value.resolve(ctx)?;
                 ip_cidr_contains(&value, &cidr)
             }
         }
