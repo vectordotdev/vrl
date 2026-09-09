@@ -93,6 +93,10 @@ impl DiagnosticMessage for ValueError {
 
 impl From<ValueError> for ExpressionError {
     fn from(err: ValueError) -> Self {
+        if let ValueError::Or(ExpressionError::Interrupted) = err {
+            return Self::Interrupted;
+        }
+
         Self::Error {
             message: err.message(),
             labels: vec![],

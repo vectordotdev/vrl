@@ -234,6 +234,8 @@ impl Expression for Expr {
             Return, Unary, Variable,
         };
 
+        ctx.checkpoint()?;
+
         match self {
             Literal(v) => v.resolve(ctx),
             Container(v) => v.resolve(ctx),
