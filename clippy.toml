@@ -21,4 +21,5 @@ arithmetic-side-effects-allowed = [
 # https://rust-lang.github.io/rust-clippy/master/index.html#disallowed_method
 disallowed-methods = [
   { path = "std::io::Write::write", reason = "This doesn't handle short writes, use `write_all` instead." },
+  { path = "nom_language::error::convert_error", reason = "Panics on Rust ≥ 1.87 (https://github.com/rust-bakery/nom/issues/1867). Use crate::parsing::safe_convert_error instead." },
 ]

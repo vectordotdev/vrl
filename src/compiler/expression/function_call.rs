@@ -1,6 +1,7 @@
 use std::{fmt, sync::Arc};
 
 use super::Block;
+use crate::compiler::codes;
 use crate::compiler::expression::function_call::Warning::AbortInfallible;
 use crate::compiler::state::{TypeInfo, TypeState};
 use crate::compiler::{
@@ -17,10 +18,23 @@ use crate::compiler::{
 };
 use crate::diagnostic::{DiagnosticMessage, Label, Note, Severity, Urls};
 use crate::prelude::Note::SeeErrorDocs;
+use crate::value::Value;
+
+#[derive(Clone, Copy)]
+struct ArgumentParameter {
+    index: usize,
+    parameter: Parameter,
+}
+
+struct AppliedArgument {
+    type_def: TypeDef,
+    preceded_by_side_effects: bool,
+}
 
 pub(crate) struct Builder<'a> {
     abort_on_error: bool,
-    arguments_with_unknown_type_validity: Vec<(Parameter, Node<FunctionArgument>)>,
+    argument_parameters: Vec<ArgumentParameter>,
+    arguments_with_unknown_type_validity: Vec<(Parameter, Node<FunctionArgument>, Kind)>,
     call_span: Span,
     ident_span: Span,
     function_id: usize,
@@ -95,15 +109,18 @@ impl<'a> Builder<'a> {
         let mut index = 0;
         let mut list = ArgumentList::default();
 
-        let mut arguments_with_unknown_type_validity = vec![];
+        let mut argument_parameters = Vec::with_capacity(arguments.len());
         for node in &arguments {
-            let (argument_span, argument) = node.clone().take();
-
-            let parameter = match argument.keyword() {
+            let argument = node.inner();
+            let (parameter_index, parameter) = match argument.keyword() {
                 // positional argument
                 None => {
+                    let parameter_index = index;
                     index += 1;
-                    function.parameters().get(index - 1)
+                    function
+                        .parameters()
+                        .get(parameter_index)
+                        .map(|parameter| (parameter_index, parameter))
                 }
 
                 // keyword argument
@@ -112,12 +129,12 @@ impl<'a> Builder<'a> {
                     .iter()
                     .enumerate()
                     .find(|(_, param)| param.keyword == k)
-                    .map(|(pos, param)| {
-                        if pos == index {
+                    .map(|(parameter_index, parameter)| {
+                        if parameter_index == index {
                             index += 1;
                         }
 
-                        param
+                        (parameter_index, parameter)
                     }),
             }
             .ok_or_else(|| FunctionCallError::UnknownKeyword {
@@ -126,12 +143,45 @@ impl<'a> Builder<'a> {
                 keywords: function.parameters().iter().map(|p| p.keyword).collect(),
             })?;
 
-            // Check if the argument is of the expected type.
-            let argument_type_def = argument.expr().type_def(state_before_function_args);
-            let expr_kind = argument_type_def.kind();
-            let param_kind = parameter.kind();
+            argument_parameters.push(ArgumentParameter {
+                index: parameter_index,
+                parameter: *parameter,
+            });
+        }
 
-            if !param_kind.intersects(expr_kind) {
+        let mut state_before_argument = state_before_function_args.clone();
+        let applied_arguments = apply_arguments_for_type_check(
+            &arguments,
+            &argument_parameters,
+            &mut state_before_argument,
+        );
+
+        let mut arguments_with_unknown_type_validity = vec![];
+        for ((node, argument_parameter), applied_argument) in arguments
+            .iter()
+            .zip(&argument_parameters)
+            .zip(applied_arguments)
+        {
+            let (argument_span, argument) = node.clone().take();
+            let parameter = &argument_parameter.parameter;
+
+            // Check if the argument is of the expected type.
+            let expr_kind = applied_argument.type_def.kind();
+            let base_param_kind = parameter.kind_without_element_constraint();
+            let param_kind = parameter.kind();
+            let runtime_kind_is_valid = param_kind.is_superset(expr_kind).is_ok();
+            // If an earlier parameter can make a constrained argument invalid, retain runtime
+            // fallibility. Re-check the initial kind only for that candidate, avoiding a second
+            // recursive pass over every argument.
+            let defer_element_kind_check = parameter.has_element_kind_constraint()
+                && !runtime_kind_is_valid
+                && applied_argument.preceded_by_side_effects
+                && param_kind
+                    .intersects(argument.expr().type_def(state_before_function_args).kind());
+
+            if !base_param_kind.intersects(expr_kind)
+                || (!param_kind.intersects(expr_kind) && !defer_element_kind_check)
+            {
                 return Err(FunctionCallError::InvalidArgumentKind(
                     InvalidArgumentErrorContext {
                         function_ident: function.identifier(),
@@ -146,12 +196,16 @@ impl<'a> Builder<'a> {
                         argument_span,
                     },
                 ));
-            } else if param_kind.is_superset(expr_kind).is_err() {
-                arguments_with_unknown_type_validity.push((*parameter, node.clone()));
+            } else if !runtime_kind_is_valid {
+                arguments_with_unknown_type_validity.push((
+                    *parameter,
+                    node.clone(),
+                    expr_kind.clone(),
+                ));
             }
 
             // Check if the argument is infallible.
-            if argument_type_def.is_fallible() {
+            if applied_argument.type_def.is_fallible() {
                 return Err(FunctionCallError::FallibleArgument {
                     expr_span: argument.span(),
                 });
@@ -187,6 +241,7 @@ impl<'a> Builder<'a> {
 
         Ok(Self {
             abort_on_error,
+            argument_parameters,
             arguments_with_unknown_type_validity,
             call_span,
             ident_span,
@@ -431,13 +486,17 @@ impl<'a> Builder<'a> {
         // Asking for an infallible function to abort on error makes no sense.
         // We consider this an error at compile-time, because it makes the
         // resulting program incorrectly convey this function call might fail.
+        let mut state_after_arguments = state_before_function_args.clone();
+        let arguments_may_fail_type_check = apply_argument_type_info(
+            &self.arguments,
+            &self.argument_parameters,
+            &mut state_after_arguments,
+        );
+
         let mut warnings = Vec::new();
         if self.abort_on_error
-            && self.arguments_with_unknown_type_validity.is_empty()
-            && !expr
-                .type_info(state_before_function_args)
-                .result
-                .is_fallible()
+            && !arguments_may_fail_type_check
+            && !expr.type_info(&state_after_arguments).result.is_fallible()
         {
             warnings.push(AbortInfallible {
                 ident_span,
@@ -449,7 +508,7 @@ impl<'a> Builder<'a> {
         // and one or more arguments are of an invalid type, so we'll return the
         // appropriate error.
         let mut invalid_argument_error = None;
-        if let Some((parameter, argument)) =
+        if let Some((parameter, argument, got)) =
             self.arguments_with_unknown_type_validity.first().cloned()
             && !self.abort_on_error
         {
@@ -463,11 +522,7 @@ impl<'a> Builder<'a> {
                         .map(|arg| arg.inner().to_string())
                         .collect::<Vec<_>>(),
                     parameter,
-                    got: argument
-                        .expr()
-                        .type_info(state_before_function_args)
-                        .result
-                        .into(),
+                    got,
                     argument: argument.clone().into_inner(),
                     argument_span: argument
                         .keyword_span()
@@ -480,7 +535,7 @@ impl<'a> Builder<'a> {
             function_call: FunctionCall {
                 abort_on_error: self.abort_on_error,
                 expr,
-                arguments_with_unknown_type_validity: self.arguments_with_unknown_type_validity,
+                argument_parameters: self.argument_parameters,
                 closure_fallible,
                 closure,
                 span: call_span,
@@ -547,11 +602,65 @@ impl<'a> Builder<'a> {
     }
 }
 
+fn apply_arguments_for_type_check(
+    arguments: &[Node<FunctionArgument>],
+    parameters: &[ArgumentParameter],
+    state: &mut TypeState,
+) -> Vec<AppliedArgument> {
+    debug_assert_eq!(arguments.len(), parameters.len());
+
+    let mut indices = (0..arguments.len()).collect::<Vec<_>>();
+    // Functions with element-kind constraints resolve arguments in parameter order. Other
+    // functions do not yet share a runtime ordering contract, so preserve the compiler's prior
+    // source-order behavior for them.
+    if parameters
+        .iter()
+        .any(|parameter| parameter.parameter.has_element_kind_constraint())
+    {
+        indices.sort_by_key(|&index| parameters[index].index);
+    }
+
+    let mut applied_arguments = (0..arguments.len()).map(|_| None).collect::<Vec<_>>();
+    let mut preceded_by_side_effects = false;
+    for index in indices {
+        let state_before_argument = state.clone();
+        let type_def = arguments[index].inner().expr().apply_type_info(state);
+        let has_side_effects = *state != state_before_argument;
+        applied_arguments[index] = Some(AppliedArgument {
+            type_def,
+            preceded_by_side_effects,
+        });
+        preceded_by_side_effects |= has_side_effects;
+    }
+
+    applied_arguments
+        .into_iter()
+        .map(|argument| argument.expect("each argument has a parameter"))
+        .collect()
+}
+
+fn apply_argument_type_info(
+    arguments: &[Node<FunctionArgument>],
+    parameters: &[ArgumentParameter],
+    state: &mut TypeState,
+) -> bool {
+    apply_arguments_for_type_check(arguments, parameters, state)
+        .into_iter()
+        .zip(parameters)
+        .any(|(argument, parameter)| {
+            parameter
+                .parameter
+                .kind()
+                .is_superset(argument.type_def.kind())
+                .is_err()
+        })
+}
+
 #[derive(Clone)]
 pub struct FunctionCall {
     abort_on_error: bool,
     expr: Box<dyn Expression>,
-    arguments_with_unknown_type_validity: Vec<(Parameter, Node<FunctionArgument>)>,
+    argument_parameters: Vec<ArgumentParameter>,
     closure_fallible: bool,
     // will be used with: https://github.com/vectordotdev/vector/issues/13782
     #[allow(dead_code)]
@@ -647,7 +756,8 @@ impl FunctionCall {
 impl Expression for FunctionCall {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         self.expr.resolve(ctx).map_err(|err| match err {
-            ExpressionError::Abort { .. }
+            ExpressionError::Interrupted
+            | ExpressionError::Abort { .. }
             | ExpressionError::Fallible { .. }
             | ExpressionError::Missing { .. } => {
                 // propagate the error
@@ -683,6 +793,10 @@ impl Expression for FunctionCall {
         })
     }
 
+    fn resolve_constant(&self, state: &TypeState) -> Option<Value> {
+        self.expr.resolve_constant(state)
+    }
+
     fn type_info(&self, state: &TypeState) -> TypeInfo {
         let mut state = state.clone();
 
@@ -693,9 +807,8 @@ impl Expression for FunctionCall {
         // This doesn't actually match current runtime behavior in some cases,
         // but that will be changed.
         // see: https://github.com/vectordotdev/vector/issues/13752
-        for arg_node in &*self.arguments {
-            let _result = arg_node.inner().expr().apply_type_info(&mut state);
-        }
+        let arguments_may_fail_type_check =
+            apply_argument_type_info(&self.arguments, &self.argument_parameters, &mut state);
 
         let mut expr_result = self.expr.apply_type_info(&mut state);
 
@@ -756,7 +869,7 @@ impl Expression for FunctionCall {
         // For the third event, both functions fail.
         //
 
-        if !self.arguments_with_unknown_type_validity.is_empty() {
+        if arguments_may_fail_type_check {
             expr_result = expr_result.fallible();
         }
 
@@ -916,7 +1029,7 @@ pub(crate) enum FunctionCallError {
 impl DiagnosticMessage for Warning {
     fn code(&self) -> usize {
         match self {
-            AbortInfallible { .. } => 620,
+            AbortInfallible { .. } => codes::CompilerCode::AbortInfallible as usize,
         }
     }
 
@@ -952,18 +1065,20 @@ impl DiagnosticMessage for FunctionCallError {
         };
 
         match self {
-            Undefined { .. } => 105,
-            WrongNumberOfArgs { .. } => 106,
-            UnknownKeyword { .. } => 108,
-            Compilation { .. } => 610,
-            MissingArgument { .. } => 107,
-            InvalidArgumentKind { .. } => 110,
-            FallibleArgument { .. } => 630,
-            UnexpectedClosure { .. } => 109,
-            MissingClosure { .. } => 111,
-            ClosureArityMismatch { .. } => 120,
-            ClosureParameterTypeMismatch { .. } => 121,
-            ReturnTypeMismatch { .. } => 122,
+            Undefined { .. } => codes::ExprCode::UndefinedFunction as usize,
+            WrongNumberOfArgs { .. } => codes::ExprCode::WrongNumberOfArgs as usize,
+            UnknownKeyword { .. } => codes::ExprCode::UnknownKeyword as usize,
+            Compilation { .. } => codes::CompilerCode::FunctionCompilation as usize,
+            MissingArgument { .. } => codes::ExprCode::MissingArgument as usize,
+            InvalidArgumentKind { .. } => codes::ExprCode::InvalidArgumentKind as usize,
+            FallibleArgument { .. } => codes::CompilerCode::FallibleArgument as usize,
+            UnexpectedClosure { .. } => codes::ExprCode::UnexpectedClosure as usize,
+            MissingClosure { .. } => codes::ExprCode::MissingClosure as usize,
+            ClosureArityMismatch { .. } => codes::ExprCode::ClosureArityMismatch as usize,
+            ClosureParameterTypeMismatch { .. } => {
+                codes::ExprCode::ClosureParameterTypeMismatch as usize
+            }
+            ReturnTypeMismatch { .. } => codes::ExprCode::ReturnTypeMismatch as usize,
         }
     }
 
@@ -1068,10 +1183,24 @@ impl DiagnosticMessage for FunctionCallError {
                 let kind_str = |kind: &Kind| {
                     if kind.is_any() {
                         kind.to_string()
-                    } else if kind.is_exact() {
-                        format!("the exact type {kind}")
                     } else {
-                        format!("one of {kind}")
+                        let array_kind = kind.as_array().and_then(|array| {
+                            let element_kind = array.unknown_kind().without_undefined();
+                            (!array.is_any()
+                                && array.known().is_empty()
+                                && element_kind.contains_any_defined())
+                            .then(|| format!("array<{element_kind}>"))
+                        });
+                        let display = array_kind.map_or_else(
+                            || kind.to_string(),
+                            |array_kind| kind.to_string().replacen("array", &array_kind, 1),
+                        );
+
+                        if kind.is_exact() {
+                            format!("the exact type {display}")
+                        } else {
+                            format!("one of {display}")
+                        }
                     }
                 };
 
@@ -1176,6 +1305,15 @@ impl DiagnosticMessage for FunctionCallError {
                 } else if kind.is_object() {
                     format!("object!({argument})")
                 } else if kind.is_array() {
+                    if context.parameter.has_element_kind_constraint()
+                        && context
+                            .parameter
+                            .kind_without_element_constraint()
+                            .is_superset(&context.got)
+                            .is_ok()
+                    {
+                        return vec![Note::SeeErrorDocs];
+                    }
                     format!("array!({argument})")
                 } else if kind.is_timestamp() {
                     format!("timestamp!({argument})")
@@ -1247,7 +1385,10 @@ impl DiagnosticMessage for FunctionCallError {
 
 #[cfg(test)]
 mod tests {
-    use crate::compiler::{Category, FunctionExpression, value::kind};
+    use crate::{
+        compiler::{Category, FunctionExpression, codes, value::kind},
+        stdlib,
+    };
 
     use super::*;
 
@@ -1345,6 +1486,51 @@ mod tests {
         )
         .unwrap()
         .function_call
+    }
+
+    #[test]
+    fn unrelated_side_effect_does_not_defer_element_kind_error() {
+        let Err(diagnostics) = crate::compiler::compile(
+            r#"items = [1]; join(items, { foo = 1; "," }) ?? "fallback""#,
+            &stdlib::all(),
+        ) else {
+            panic!("invalid array element kind should fail compilation");
+        };
+
+        assert_eq!(
+            diagnostics.errors()[0].code,
+            codes::ExprCode::InvalidArgumentKind as usize
+        );
+    }
+
+    #[test]
+    fn later_parameter_side_effect_does_not_defer_element_kind_error() {
+        let Err(diagnostics) = crate::compiler::compile(
+            r#"items = [1]; contains_all(substrings: items, case_sensitive: { items = ["x"]; true }, value: "x") ?? false"#,
+            &stdlib::all(),
+        ) else {
+            panic!("a later parameter cannot change an earlier argument");
+        };
+
+        assert_eq!(
+            diagnostics.errors()[0].code,
+            codes::ExprCode::InvalidArgumentKind as usize
+        );
+    }
+
+    #[test]
+    fn unconstrained_function_preserves_source_order_type_effects() {
+        let Err(diagnostics) = crate::compiler::compile(
+            r#"x = 0; slice!(start: { x = "ok"; 0 }, value: { x = 1; "abc" }); upcase(x)"#,
+            &stdlib::all(),
+        ) else {
+            panic!("unconstrained calls must preserve source-order type effects");
+        };
+
+        assert_eq!(
+            diagnostics.errors()[0].code,
+            codes::ExprCode::InvalidArgumentKind as usize
+        );
     }
 
     #[test]

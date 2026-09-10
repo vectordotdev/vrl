@@ -18,6 +18,11 @@ generate-desc:
 	       --descriptor_set_out=test_protobuf3/v1/test_protobuf3.desc \
 	       test_protobuf3/v1/test_protobuf3.proto
 
+	protoc --proto_path=. \
+	       --include_imports \
+	       --descriptor_set_out=test_protobuf_maps/v1/test_protobuf_maps.desc \
+	       test_protobuf_maps/v1/test_protobuf_maps.proto
+
 # Generates serialized binary .pb test files from .txt input
 generate-pb:
 	protoc --proto_path=. \
@@ -37,5 +42,5 @@ generate-pb:
 
 # Clean generated files
 clean:
-	rm -f test/**/*.desc test_protobuf/**/*.desc test_protobuf3/**/*.desc
+	rm -f test/**/*.desc test_protobuf/**/*.desc test_protobuf3/**/*.desc test_protobuf_maps/**/*.desc
 	rm -f test_protobuf/input/*.pb

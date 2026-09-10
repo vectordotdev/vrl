@@ -1,9 +1,8 @@
 use crate::compiler::function::EnumVariant;
 use crate::compiler::prelude::*;
-use std::sync::LazyLock;
 
-static DEFAULT_LEVEL: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from("info")));
-static DEFAULT_RATE_LIMIT_SECS: LazyLock<Value> = LazyLock::new(|| Value::Integer(1));
+static DEFAULT_LEVEL: Value = Value::Bytes(Bytes::from_static("info".as_bytes()));
+static DEFAULT_RATE_LIMIT_SECS: Value = Value::Integer(1);
 
 static LEVEL_ENUM: &[EnumVariant] = &[
     EnumVariant {
@@ -28,17 +27,15 @@ static LEVEL_ENUM: &[EnumVariant] = &[
     },
 ];
 
-static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
-    vec![
-        Parameter::required("value", kind::ANY, "The value to log."),
-        Parameter::optional("level", kind::BYTES, "The log level.")
-            .default(&DEFAULT_LEVEL)
-            .enum_variants(LEVEL_ENUM),
-        Parameter::optional("rate_limit_secs", kind::INTEGER, "Specifies that the log message is output no more than once per the given number of seconds.
+const PARAMETERS: &[Parameter] = &[
+    Parameter::required("value", kind::ANY, "The value to log."),
+    Parameter::optional("level", kind::BYTES, "The log level.")
+        .default(&DEFAULT_LEVEL)
+        .enum_variants(LEVEL_ENUM),
+    Parameter::optional("rate_limit_secs", kind::INTEGER, "Specifies that the log message is output no more than once per the given number of seconds.
 Use a value of `0` to turn rate limiting off.")
-            .default(&DEFAULT_RATE_LIMIT_SECS),
-    ]
-});
+        .default(&DEFAULT_RATE_LIMIT_SECS),
+];
 
 #[derive(Clone, Copy, Debug)]
 pub struct Log;
@@ -65,7 +62,7 @@ impl Function for Log {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        PARAMETERS.as_slice()
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {

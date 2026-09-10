@@ -1,9 +1,8 @@
 use crate::compiler::function::EnumVariant;
 use crate::compiler::prelude::*;
 use crate::stdlib::util::Base64Charset;
-use std::sync::LazyLock;
 
-static DEFAULT_CHARSET: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from("standard")));
+static DEFAULT_CHARSET: Value = Value::Bytes(Bytes::from_static("standard".as_bytes()));
 
 static CHARSET_ENUM: &[EnumVariant] = &[
     EnumVariant {
@@ -16,22 +15,20 @@ static CHARSET_ENUM: &[EnumVariant] = &[
     },
 ];
 
-static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
-    vec![
-        Parameter::required(
-            "value",
-            kind::BYTES,
-            "The [Base64](https://en.wikipedia.org/wiki/Base64) data to decode.",
-        ),
-        Parameter::optional(
-            "charset",
-            kind::BYTES,
-            "The character set to use when decoding the data.",
-        )
-        .default(&DEFAULT_CHARSET)
-        .enum_variants(CHARSET_ENUM),
-    ]
-});
+const PARAMETERS: &[Parameter] = &[
+    Parameter::required(
+        "value",
+        kind::BYTES,
+        "The [Base64](https://en.wikipedia.org/wiki/Base64) data to decode.",
+    ),
+    Parameter::optional(
+        "charset",
+        kind::BYTES,
+        "The character set to use when decoding the data.",
+    )
+    .default(&DEFAULT_CHARSET)
+    .enum_variants(CHARSET_ENUM),
+];
 
 fn decode_base64(charset: Value, value: Value) -> Resolved {
     let value = value.try_bytes()?;
@@ -81,7 +78,7 @@ impl Function for DecodeBase64 {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        PARAMETERS.as_slice()
+        PARAMETERS
     }
 
     fn compile(

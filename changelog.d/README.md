@@ -7,12 +7,12 @@ The changelog fragments are located in `changelog.d/`.
 
 ## Process
 
-Fragments for un-released changes are placed in the root of this directory during PRs.
+Fragments for unreleased changes are placed in the root of this directory alongside the changes they describe.
 
 During a release, `cargo run -p release` is run which automatically generates the
-changes to the CHANGELOG.md file and removes the fragment files.
+changes to the CHANGELOG.md file.
 
-### Pull Requests
+### Submitting changes
 
 By default, PRs are required to add at least one entry to this directory.
 This is enforced during CI.
@@ -22,18 +22,18 @@ To mark a PR as not requiring changelog notes, add the label 'no-changelog'.
 To run the same check that is run in CI to validate that your changelog fragments have
 the correct syntax: `cargo run -p release -- check-changelog`
 
-The format for fragments is: `<pr_number>.<fragment_type>.md`
+The format for fragments is: `<description>.<fragment_type>.md`
 
 ### Fragment conventions
 
 When fragments are used to generate the updated changelog, the content of the fragment file is
 rendered as an item in a bulleted list under the "type" of fragment.
 
-The contents of the file must be valid markdown.
+The contents of the file must be valid markdown, followed by a required `authors:` line at the end.
 
 Filename rules:
 
-- The first segment (pr_number) must match the GitHub PR the change is introduced in.
+- The first segment is a short, unique description of the change and must not contain periods.
 - The type must be one of the valid types in [Fragment types](#types)
 - Only the two period delimiters can be used.
 - The file must be markdown.
@@ -55,6 +55,21 @@ For this reason, when creating the content in a fragment, the format must be ren
 As an example, separating content with markdown header syntax should be avoided, as that will render
 as a heading in the main changelog and not the list. Instead, separate content with newlines.
 
+#### Authors
+
+Every fragment **must** end with an `authors:` line listing the GitHub username(s) of the contributor(s).
+Multiple authors are comma-separated. The authors are rendered as GitHub profile links in the changelog.
+
+```
+authors: github_username
+```
+
+or for multiple contributors:
+
+```
+authors: username1, username2
+```
+
 ### Breaking changes
 
 When using the type 'breaking' to add notes for a breaking change, these should be more verbose than
@@ -65,8 +80,10 @@ to handle upgrading to the breaking change.
 
 Here is an example of a changelog fragment that adds a breaking change explanation.
 
-    $ cat changelog.d/42.breaking.md
+    $ cat changelog.d/remove-old-api.breaking.md
     This change is so great. It's such a great change that this sentence
     explaining the change has to span multiple lines of text.
 
     It even necessitates a line break. It is a breaking change after all.
+
+    authors: your_github_username

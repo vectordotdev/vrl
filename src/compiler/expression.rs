@@ -185,7 +185,7 @@ impl Expr {
             None => Err(super::function::Error::UnexpectedExpression {
                 keyword,
                 expected: "literal",
-                expr: self.clone(),
+                expr: Box::new(self.clone()),
             }),
         }
     }
@@ -233,6 +233,8 @@ impl Expression for Expr {
             Abort, Assignment, Container, FunctionCall, IfStatement, Literal, Noop, Op, Query,
             Return, Unary, Variable,
         };
+
+        ctx.checkpoint()?;
 
         match self {
             Literal(v) => v.resolve(ctx),

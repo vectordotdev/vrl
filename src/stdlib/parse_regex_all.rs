@@ -1,27 +1,37 @@
 use regex::Regex;
 
-use crate::compiler::prelude::*;
-
 use super::util;
-use std::sync::LazyLock;
+use crate::compiler::prelude::*;
+use crate::stdlib::util::RegexWithCaptureInfo;
 
-static DEFAULT_NUMERIC_GROUPS: LazyLock<Value> = LazyLock::new(|| Value::Boolean(false));
+static DEFAULT_NUMERIC_GROUPS: Value = Value::Boolean(false);
 
-static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
-    vec![
-        Parameter::required("value", kind::ANY, "The string to search."),
-        Parameter::required("pattern", kind::REGEX, "The regular expression pattern to search against."),
-        Parameter::optional("numeric_groups", kind::BOOLEAN, "If `true`, the index of each group in the regular expression is also captured. Index `0`
-contains the whole match.")
-            .default(&DEFAULT_NUMERIC_GROUPS),
-    ]
-});
+const PARAMETERS: &[Parameter] = &[
+    Parameter::required("value", kind::ANY, "The string to search."),
+    Parameter::required(
+        "pattern",
+        kind::REGEX,
+        "The regular expression pattern to search against.",
+    ),
+    Parameter::optional(
+        "numeric_groups",
+        kind::BOOLEAN,
+        "If `true`, the index of each group in the regular expression is also captured. Index `0`
+contains the whole match.",
+    )
+    .default(&DEFAULT_NUMERIC_GROUPS),
+];
 
-fn parse_regex_all(value: &Value, numeric_groups: bool, pattern: &Regex) -> Resolved {
+fn parse_regex_all(
+    value: &Value,
+    pattern: &Regex,
+    capture_info: &[(KeyString, usize)],
+    numeric_groups: bool,
+) -> Resolved {
     let value = value.try_bytes_utf8_lossy()?;
     Ok(pattern
         .captures_iter(&value)
-        .map(|capture| util::capture_regex_to_map(pattern, &capture, numeric_groups).into())
+        .map(|capture| util::capture_regex_to_map(&capture, capture_info, numeric_groups).into())
         .collect::<Vec<Value>>()
         .into())
 }
@@ -57,7 +67,7 @@ impl Function for ParseRegexAll {
     fn return_rules(&self) -> &'static [&'static str] {
         &[
             "Matches return all capture groups corresponding to the leftmost matches in the text.",
-            "Raises an error if no match is found.",
+            "Returns an empty array if no matches are found.",
         ]
     }
 
@@ -75,21 +85,25 @@ impl Function for ParseRegexAll {
                 All values are returned as strings. We recommend manually coercing values to desired
                 types as you see fit.
             "},
+            util::DYNAMIC_REGEX_NOTICE,
         ]
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        PARAMETERS.as_slice()
+        PARAMETERS
     }
 
     fn compile(
         &self,
-        _state: &state::TypeState,
+        state: &state::TypeState,
         _ctx: &mut FunctionCompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
-        let pattern = arguments.required("pattern");
+        let pattern = match arguments.required_regex("pattern", state) {
+            ConstOrExpr::Const(r) => ConstOrExpr::Const(RegexWithCaptureInfo::new(r)),
+            ConstOrExpr::Expr(e) => ConstOrExpr::Expr(e),
+        };
         let numeric_groups = arguments.optional("numeric_groups");
 
         Ok(ParseRegexAllFn {
@@ -156,7 +170,7 @@ impl Function for ParseRegexAll {
 #[derive(Debug, Clone)]
 pub(crate) struct ParseRegexAllFn {
     value: Box<dyn Expression>,
-    pattern: Box<dyn Expression>,
+    pattern: ConstOrExpr<RegexWithCaptureInfo>,
     numeric_groups: Option<Box<dyn Expression>>,
 }
 
@@ -165,31 +179,38 @@ impl FunctionExpression for ParseRegexAllFn {
         let value = self.value.resolve(ctx)?;
         let numeric_groups = self
             .numeric_groups
-            .map_resolve_with_default(ctx, || DEFAULT_NUMERIC_GROUPS.clone())?;
-        let pattern = self
-            .pattern
-            .resolve(ctx)?
-            .as_regex()
-            .ok_or_else(|| ExpressionError::from("failed to resolve regex"))?
-            .clone();
+            .map_resolve_with_default(ctx, || DEFAULT_NUMERIC_GROUPS.clone())?
+            .try_boolean()?;
 
-        parse_regex_all(&value, numeric_groups.try_boolean()?, &pattern)
+        match &self.pattern {
+            ConstOrExpr::Const(pattern) => parse_regex_all(
+                &value,
+                &pattern.regex,
+                &pattern.capture_info,
+                numeric_groups,
+            ),
+            ConstOrExpr::Expr(expr) => {
+                let resolved = expr.resolve(ctx)?;
+                let pattern = resolved
+                    .as_regex()
+                    .ok_or_else(|| ExpressionError::from("failed to resolve regex"))?;
+                let dynamic_capture_info = util::build_capture_info(pattern);
+                parse_regex_all(&value, pattern, &dynamic_capture_info, numeric_groups)
+            }
+        }
     }
 
-    fn type_def(&self, state: &state::TypeState) -> TypeDef {
-        if let Some(value) = self.pattern.resolve_constant(state)
-            && let Some(regex) = value.as_regex()
-        {
-            return TypeDef::array(Collection::from_unknown(
-                Kind::object(util::regex_kind(regex)).or_null(),
+    fn type_def(&self, _: &state::TypeState) -> TypeDef {
+        match &self.pattern {
+            ConstOrExpr::Const(pattern) => TypeDef::array(Collection::from_unknown(
+                Kind::object(util::regex_kind(&pattern.regex)).or_null(),
             ))
-            .fallible();
+            .fallible(),
+            ConstOrExpr::Expr(_) => TypeDef::array(Collection::from_unknown(
+                Kind::object(Collection::from_unknown(Kind::bytes() | Kind::null())).or_null(),
+            ))
+            .fallible(),
         }
-
-        TypeDef::array(Collection::from_unknown(
-            Kind::object(Collection::from_unknown(Kind::bytes() | Kind::null())).or_null(),
-        ))
-        .fallible()
     }
 }
 

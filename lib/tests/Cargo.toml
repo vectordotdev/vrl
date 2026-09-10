@@ -13,7 +13,7 @@ glob = "0.3"
 tracing-subscriber = { version = "0.3.23", default-features = false, features = ["fmt"] }
 
 [target.'cfg(not(target_env = "msvc"))'.dependencies]
-tikv-jemallocator = { version = "0.6.1" }
+tikv-jemallocator = { version = "0.7.0" }
 
 [features]
 default = []

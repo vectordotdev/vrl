@@ -21,6 +21,10 @@ message Bytes {
   bytes binary = 2;
 }
 
+message Booleans {
+  bool b = 1;
+}
+
 message Map {
   message Person {
     string nickname = 1;

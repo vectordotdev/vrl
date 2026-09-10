@@ -1,24 +1,21 @@
 use super::util::round_to_precision;
 use crate::compiler::prelude::*;
-use std::sync::LazyLock;
 
-static DEFAULT_PRECISION: LazyLock<Value> = LazyLock::new(|| Value::Integer(0));
+static DEFAULT_PRECISION: Value = Value::Integer(0);
 
-static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
-    vec![
-        Parameter::required(
-            "value",
-            kind::FLOAT | kind::INTEGER,
-            "The number to round up.",
-        ),
-        Parameter::optional(
-            "precision",
-            kind::INTEGER,
-            "The number of decimal places to round to.",
-        )
-        .default(&DEFAULT_PRECISION),
-    ]
-});
+const PARAMETERS: &[Parameter] = &[
+    Parameter::required(
+        "value",
+        kind::FLOAT | kind::INTEGER,
+        "The number to round up.",
+    ),
+    Parameter::optional(
+        "precision",
+        kind::INTEGER,
+        "The number of decimal places to round to.",
+    )
+    .default(&DEFAULT_PRECISION),
+];
 
 fn ceil(value: Value, precision: Value) -> Resolved {
     let precision = precision.try_integer()?;
@@ -60,12 +57,12 @@ impl Function for Ceil {
 
     fn return_rules(&self) -> &'static [&'static str] {
         &[
-            "Returns an integer if `precision` is `0` (this is the default). Returns a float otherwise.",
+            "Returns an integer if `value` is an integer. Returns a float otherwise, regardless of `precision`.",
         ]
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        PARAMETERS.as_slice()
+        PARAMETERS
     }
 
     fn compile(

@@ -182,12 +182,10 @@ where
             err @ Err(_) => err,
         };
 
-        let value = result?;
-
         cleanup(ctx.state_mut(), key_ident, old_key);
         cleanup(ctx.state_mut(), value_ident, old_value);
 
-        Ok(value)
+        result
     }
 
     /// Run the closure to completion, given the provided index/value pair, and
@@ -211,12 +209,12 @@ where
         let old_index = insert(ctx.state_mut(), index_ident, index.into());
         let old_value = insert(ctx.state_mut(), value_ident, cloned_value);
 
-        let value = (self.runner)(ctx)?;
+        let result = (self.runner)(ctx);
 
         cleanup(ctx.state_mut(), index_ident, old_index);
         cleanup(ctx.state_mut(), value_ident, old_value);
 
-        Ok(value)
+        result
     }
 
     /// Run the closure to completion, given the provided key, and the runtime
@@ -233,9 +231,11 @@ where
         let ident = self.ident(0);
         let old_key = insert(ctx.state_mut(), ident, cloned_key.into());
 
-        *key = (self.runner)(ctx)?.try_bytes_utf8_lossy()?.into();
+        let result = (self.runner)(ctx);
 
         cleanup(ctx.state_mut(), ident, old_key);
+
+        *key = result?.try_bytes_utf8_lossy()?.into();
 
         Ok(())
     }
@@ -254,9 +254,11 @@ where
         let ident = self.ident(0);
         let old_value = insert(ctx.state_mut(), ident, cloned_value);
 
-        *value = (self.runner)(ctx)?;
+        let result = (self.runner)(ctx);
 
         cleanup(ctx.state_mut(), ident, old_value);
+
+        *value = result?;
 
         Ok(())
     }

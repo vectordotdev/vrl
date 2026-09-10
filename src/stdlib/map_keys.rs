@@ -1,19 +1,16 @@
 use crate::compiler::prelude::*;
-use std::sync::LazyLock;
 
-static DEFAULT_RECURSIVE: LazyLock<Value> = LazyLock::new(|| Value::Boolean(false));
+static DEFAULT_RECURSIVE: Value = Value::Boolean(false);
 
-static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
-    vec![
-        Parameter::required("value", kind::OBJECT, "The object to iterate."),
-        Parameter::optional(
-            "recursive",
-            kind::BOOLEAN,
-            "Whether to recursively iterate the collection.",
-        )
-        .default(&DEFAULT_RECURSIVE),
-    ]
-});
+const PARAMETERS: &[Parameter] = &[
+    Parameter::required("value", kind::OBJECT, "The object to iterate."),
+    Parameter::optional(
+        "recursive",
+        kind::BOOLEAN,
+        "Whether to recursively iterate the collection.",
+    )
+    .default(&DEFAULT_RECURSIVE),
+];
 
 fn map_keys<T>(
     value: Value,
@@ -88,7 +85,7 @@ impl Function for MapKeys {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        PARAMETERS.as_slice()
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {

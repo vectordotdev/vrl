@@ -1,11 +1,12 @@
 use std::fmt;
 
+use crate::compiler::codes;
 use crate::compiler::state::{TypeInfo, TypeState};
 use crate::compiler::{
-    Context, Expression, TypeDef,
+    Context, Expression, ExpressionError, TypeDef,
     expression::{self, Expr, Resolved},
     parser::{Node, ast},
-    value::VrlValueArithmetic,
+    value::{ValueError, VrlValueArithmetic},
 };
 use crate::diagnostic::{DiagnosticMessage, Label, Note, Span, Urls};
 use crate::value::Value;
@@ -15,6 +16,34 @@ pub struct Op {
     pub(crate) lhs: Box<Expr>,
     pub(crate) rhs: Box<Expr>,
     pub(crate) opcode: ast::Opcode,
+}
+
+fn is_number(value: &Value) -> bool {
+    value.is_integer() || value.is_float()
+}
+
+fn constant_arithmetic_produces_nan(
+    opcode: ast::Opcode,
+    lhs_value: Option<&Value>,
+    rhs_value: Option<&Value>,
+) -> bool {
+    use ast::Opcode::{Add, Mul, Sub};
+
+    let (Some(lhs), Some(rhs)) = (lhs_value, rhs_value) else {
+        return false;
+    };
+    if !is_number(lhs) || !is_number(rhs) || !(lhs.is_float() || rhs.is_float()) {
+        return false;
+    }
+
+    let result = match opcode {
+        Add => lhs.clone().try_add(rhs.clone()),
+        Sub => lhs.clone().try_sub(rhs.clone()),
+        Mul => lhs.clone().try_mul(rhs.clone()),
+        _ => unreachable!("only addition, subtraction, and multiplication are checked"),
+    };
+
+    matches!(result, Err(ValueError::NanFloat))
 }
 
 impl Op {
@@ -99,7 +128,15 @@ impl Expression for Op {
         use ast::Opcode::{Add, And, Div, Eq, Err, Ge, Gt, Le, Lt, Merge, Mul, Ne, Or, Sub};
 
         match self.opcode {
-            Err => return self.lhs.resolve(ctx).or_else(|_| self.rhs.resolve(ctx)),
+            Err => {
+                return match self.lhs.resolve(ctx) {
+                    std::result::Result::Err(error @ ExpressionError::Interrupted) => {
+                        std::result::Result::Err(error)
+                    }
+                    std::result::Result::Err(_) => self.rhs.resolve(ctx),
+                    result => result,
+                };
+            }
             Or => {
                 return self
                     .lhs
@@ -135,6 +172,26 @@ impl Expression for Op {
             And | Or | Err => unreachable!(),
         }
         .map_err(Into::into)
+    }
+
+    fn resolve_constant(&self, state: &TypeState) -> Option<Value> {
+        use ast::Opcode::{Add, Div, Mul, Sub};
+
+        let lhs = self.lhs.resolve_constant(state)?;
+        let rhs = self.rhs.resolve_constant(state)?;
+
+        if !is_number(&lhs) || !is_number(&rhs) {
+            return None;
+        }
+
+        match self.opcode {
+            Mul => lhs.try_mul(rhs),
+            Div => lhs.try_div(rhs),
+            Add => lhs.try_add(rhs),
+            Sub => lhs.try_sub(rhs),
+            _ => return None,
+        }
+        .ok()
     }
 
     #[allow(clippy::too_many_lines)]
@@ -261,7 +318,15 @@ impl Expression for Op {
 
             Add | Sub | Mul => {
                 // none of these operations short-circuit, so the type of RHS can be applied
+                let rhs_value = self.rhs.resolve_constant(&state);
                 let rhs_def = self.rhs.apply_type_info(&mut state);
+                // Preserve the existing infallible typing for dynamic arithmetic. Only a
+                // constant operation that is known to produce NaN becomes fallible.
+                let nan_fallible = constant_arithmetic_produces_nan(
+                    self.opcode,
+                    lhs_value.as_ref(),
+                    rhs_value.as_ref(),
+                );
 
                 match self.opcode {
                     // "bar" + ...
@@ -279,10 +344,18 @@ impl Expression for Op {
                     // 1.0 - ...
                     // 1.0 * ...
                     // 1.0 % ...
-                    Add | Sub | Mul if lhs_def.is_float() || rhs_def.is_float() => lhs_def
-                        .fallible_unless(K::integer().or_float())
-                        .union(rhs_def.fallible_unless(K::integer().or_float()))
-                        .with_kind(K::float()),
+                    Add | Sub | Mul if lhs_def.is_float() || rhs_def.is_float() => {
+                        let type_def = lhs_def
+                            .fallible_unless(K::integer().or_float())
+                            .union(rhs_def.fallible_unless(K::integer().or_float()))
+                            .with_kind(K::float());
+
+                        if nan_fallible {
+                            type_def.fallible()
+                        } else {
+                            type_def
+                        }
+                    }
 
                     // 1 + 1
                     // 1 - 1
@@ -363,9 +436,9 @@ impl DiagnosticMessage for Error {
         use Error::{ChainedComparison, Expr, MergeNonObjects, UnnecessaryCoalesce};
 
         match self {
-            ChainedComparison { .. } => 650,
-            UnnecessaryCoalesce { .. } => 651,
-            MergeNonObjects { .. } => 652,
+            ChainedComparison { .. } => codes::CompilerCode::ChainedComparison as usize,
+            UnnecessaryCoalesce { .. } => codes::CompilerCode::UnnecessaryCoalesce as usize,
+            MergeNonObjects { .. } => codes::CompilerCode::MergeNonObjects as usize,
             Expr(err) => err.code(),
         }
     }

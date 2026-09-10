@@ -14,7 +14,7 @@ static UA_EXTRACTOR: LazyLock<ua_parser::Extractor> = LazyLock::new(|| {
     ua_parser::Extractor::try_from(regexes).expect("Regex file is not valid.")
 });
 
-static DEFAULT_MODE: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from("fast")));
+static DEFAULT_MODE: Value = Value::Bytes(Bytes::from_static("fast".as_bytes()));
 
 static MODE_ENUM: &[EnumVariant] = &[
     EnumVariant {
@@ -39,18 +39,16 @@ static MODE_ENUM: &[EnumVariant] = &[
     },
 ];
 
-static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
-    vec![
-        Parameter::required("value", kind::BYTES, "The string to parse."),
-        Parameter::optional(
-            "mode",
-            kind::BYTES,
-            "Determines performance and reliability characteristics.",
-        )
-        .default(&DEFAULT_MODE)
-        .enum_variants(MODE_ENUM),
-    ]
-});
+const PARAMETERS: &[Parameter] = &[
+    Parameter::required("value", kind::BYTES, "The string to parse."),
+    Parameter::optional(
+        "mode",
+        kind::BYTES,
+        "Determines performance and reliability characteristics.",
+    )
+    .default(&DEFAULT_MODE)
+    .enum_variants(MODE_ENUM),
+];
 
 #[derive(Clone, Copy, Debug)]
 pub struct ParseUserAgent;
@@ -94,7 +92,7 @@ impl Function for ParseUserAgent {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        PARAMETERS.as_slice()
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {

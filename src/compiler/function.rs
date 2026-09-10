@@ -1,6 +1,7 @@
 #![allow(clippy::missing_errors_doc)]
 pub mod closure;
 
+use crate::compiler::codes;
 use crate::diagnostic::{DiagnosticMessage, Label, Note};
 use crate::parser::ast::Ident;
 use crate::path::OwnedTargetPath;
@@ -11,7 +12,7 @@ use std::{
 };
 
 use super::{
-    CompileConfig, Span, TypeDef,
+    CompileConfig, Context, Resolved, Span, TypeDef,
     expression::{Block, Container, Expr, Expression, container::Variant},
     state::TypeState,
     value::{Kind, kind},
@@ -261,6 +262,18 @@ pub struct Parameter {
     /// error.
     pub kind: u16,
 
+    /// For array parameters, the type kind(s) allowed for the array's elements.
+    ///
+    /// When [`kind`] includes [`kind::ARRAY`] and this is not [`kind::ANY`], the
+    /// compiler restricts the array's element kind accordingly:
+    /// - If the argument's element kind is a subset, the call is infallible.
+    /// - If the argument's element kind is unknown or a superset, the call is
+    ///   automatically marked fallible.
+    ///
+    /// Defaults to [`kind::ANY`] (no element-type constraint). Ignored when
+    /// [`kind`] does not include [`kind::ARRAY`].
+    pub element_kind: u16,
+
     /// Whether or not this is a required parameter.
     ///
     /// If it isn't, the function can be called without errors, even if the
@@ -291,6 +304,7 @@ impl Parameter {
         Self {
             keyword,
             kind,
+            element_kind: kind::ANY,
             required: true,
             description,
             default: None,
@@ -304,6 +318,7 @@ impl Parameter {
         Self {
             keyword,
             kind,
+            element_kind: kind::ANY,
             required: false,
             description,
             default: None,
@@ -325,58 +340,107 @@ impl Parameter {
         self
     }
 
+    /// For an array parameter, restrict the kind of its elements.
+    ///
+    /// The compiler uses this to infer call-site fallibility: a subset match is
+    /// infallible; a superset or unknown match is fallible; a disjoint match is
+    /// a compile error. Ignored when [`kind`] does not include [`kind::ARRAY`].
+    #[must_use]
+    pub const fn with_element_kind(mut self, element_kind: u16) -> Self {
+        self.element_kind = element_kind;
+        self
+    }
+
+    pub(crate) const fn has_element_kind_constraint(&self) -> bool {
+        (self.kind & kind::ARRAY) == kind::ARRAY && self.element_kind != kind::ANY
+    }
+
+    pub(crate) fn kind_without_element_constraint(&self) -> Kind {
+        kind_from_bits(self.kind)
+    }
+
     #[allow(arithmetic_overflow)]
     #[must_use]
     pub fn kind(&self) -> Kind {
-        let mut kind = Kind::never();
+        let mut kind = self.kind_without_element_constraint();
 
-        let n = self.kind;
-
-        if (n & kind::BYTES) == kind::BYTES {
-            kind.add_bytes();
-        }
-
-        if (n & kind::INTEGER) == kind::INTEGER {
-            kind.add_integer();
-        }
-
-        if (n & kind::FLOAT) == kind::FLOAT {
-            kind.add_float();
-        }
-
-        if (n & kind::BOOLEAN) == kind::BOOLEAN {
-            kind.add_boolean();
-        }
-
-        if (n & kind::OBJECT) == kind::OBJECT {
-            kind.add_object(Collection::any());
-        }
-
-        if (n & kind::ARRAY) == kind::ARRAY {
-            kind.add_array(Collection::any());
-        }
-
-        if (n & kind::TIMESTAMP) == kind::TIMESTAMP {
-            kind.add_timestamp();
-        }
-
-        if (n & kind::REGEX) == kind::REGEX {
-            kind.add_regex();
-        }
-
-        if (n & kind::NULL) == kind::NULL {
-            kind.add_null();
-        }
-
-        if (n & kind::UNDEFINED) == kind::UNDEFINED {
-            kind.add_undefined();
+        if (self.kind & kind::ARRAY) == kind::ARRAY && self.element_kind != kind::ANY {
+            let element = kind_from_bits(self.element_kind);
+            kind.add_array(Collection::from_unknown(element));
         }
 
         kind
     }
 }
 
+#[allow(arithmetic_overflow)]
+fn kind_from_bits(n: u16) -> Kind {
+    let mut kind = Kind::never();
+
+    if (n & kind::BYTES) == kind::BYTES {
+        kind.add_bytes();
+    }
+    if (n & kind::INTEGER) == kind::INTEGER {
+        kind.add_integer();
+    }
+    if (n & kind::FLOAT) == kind::FLOAT {
+        kind.add_float();
+    }
+    if (n & kind::BOOLEAN) == kind::BOOLEAN {
+        kind.add_boolean();
+    }
+    if (n & kind::OBJECT) == kind::OBJECT {
+        kind.add_object(Collection::any());
+    }
+    if (n & kind::ARRAY) == kind::ARRAY {
+        kind.add_array(Collection::any());
+    }
+    if (n & kind::TIMESTAMP) == kind::TIMESTAMP {
+        kind.add_timestamp();
+    }
+    if (n & kind::REGEX) == kind::REGEX {
+        kind.add_regex();
+    }
+    if (n & kind::NULL) == kind::NULL {
+        kind.add_null();
+    }
+    if (n & kind::UNDEFINED) == kind::UNDEFINED {
+        kind.add_undefined();
+    }
+
+    kind
+}
+
 // -----------------------------------------------------------------------------
+
+/// A value that is either a compile-time constant or a runtime expression.
+#[derive(Debug, Clone)]
+pub enum ConstOrExpr<T = Value> {
+    /// Value resolved at compile time.
+    Const(T),
+    /// Expression resolved at runtime on every call.
+    Expr(Box<dyn Expression>),
+}
+
+impl ConstOrExpr<Value> {
+    pub fn new(expr: Box<dyn Expression>, state: &TypeState) -> Self {
+        match expr.resolve_constant(state) {
+            Some(cnst) => Self::Const(cnst),
+            None => Self::Expr(expr),
+        }
+    }
+
+    pub fn optional(expr: Option<Box<dyn Expression>>, state: &TypeState) -> Option<Self> {
+        expr.map(|expr| Self::new(expr, state))
+    }
+
+    pub fn resolve(&self, ctx: &mut Context) -> Resolved {
+        match self {
+            Self::Const(value) => Ok(value.clone()),
+            Self::Expr(expr) => expr.resolve(ctx),
+        }
+    }
+}
 
 #[derive(Debug, Default, Clone)]
 pub struct ArgumentList {
@@ -413,7 +477,7 @@ impl ArgumentList {
                 _ => Err(Error::UnexpectedExpression {
                     keyword,
                     expected: "literal",
-                    expr,
+                    expr: Box::new(expr),
                 }),
             })
             .transpose()
@@ -467,7 +531,7 @@ impl ArgumentList {
                 expr => Err(Error::UnexpectedExpression {
                     keyword,
                     expected: "query",
-                    expr,
+                    expr: Box::new(expr),
                 }),
             })
             .transpose()
@@ -480,29 +544,31 @@ impl ArgumentList {
         Ok(required(self.optional_query(keyword)?))
     }
 
+    /// Cloning a `Const` variant allocates a fresh `Pool` per clone so each worker thread gets its
+    /// own pool (the underlying NFA/DFA is `Arc`-shared). A shared `Arc<Regex>` would collapse all
+    /// workers onto one pool, routing all but one through the slow path.
     pub fn optional_regex(
         &self,
         keyword: &'static str,
         state: &TypeState,
-    ) -> Result<Option<regex::Regex>, Error> {
-        self.optional_expr(keyword)
-            .map(|expr| match expr.resolve_constant(state) {
-                Some(Value::Regex(regex)) => Ok((*regex).clone()),
-                _ => Err(Error::UnexpectedExpression {
-                    keyword,
-                    expected: "regex",
-                    expr,
-                }),
-            })
-            .transpose()
+    ) -> Option<ConstOrExpr<regex::Regex>> {
+        self.optional_expr(keyword).map(|expr| {
+            match expr
+                .resolve_constant(state)
+                .and_then(|v| v.as_regex().cloned())
+            {
+                Some(regex) => ConstOrExpr::Const(regex),
+                None => ConstOrExpr::Expr(Box::new(expr)),
+            }
+        })
     }
 
     pub fn required_regex(
         &self,
         keyword: &'static str,
         state: &TypeState,
-    ) -> Result<regex::Regex, Error> {
-        Ok(required(self.optional_regex(keyword, state)?))
+    ) -> ConstOrExpr<regex::Regex> {
+        required(self.optional_regex(keyword, state))
     }
 
     pub fn optional_object(
@@ -517,7 +583,7 @@ impl ArgumentList {
                 expr => Err(Error::UnexpectedExpression {
                     keyword,
                     expected: "object",
-                    expr,
+                    expr: Box::new(expr),
                 }),
             })
             .transpose()
@@ -539,7 +605,7 @@ impl ArgumentList {
                 expr => Err(Error::UnexpectedExpression {
                     keyword,
                     expected: "array",
-                    expr,
+                    expr: Box::new(expr),
                 }),
             })
             .transpose()
@@ -589,7 +655,7 @@ fn required<T>(argument: Option<T>) -> T {
 #[cfg(any(test, feature = "test"))]
 mod test_impls {
     use super::{ArgumentList, HashMap, Span, Value};
-    use crate::compiler::expression::FunctionArgument;
+    use crate::compiler::expression::{Expr, FunctionArgument};
     use crate::compiler::parser::Node;
 
     impl From<HashMap<&'static str, Value>> for ArgumentList {
@@ -599,6 +665,15 @@ mod test_impls {
                     .into_iter()
                     .map(|(k, v)| (k, v.into()))
                     .collect::<HashMap<_, _>>(),
+                closure: None,
+            }
+        }
+    }
+
+    impl From<HashMap<&'static str, Expr>> for ArgumentList {
+        fn from(map: HashMap<&'static str, Expr>) -> Self {
+            Self {
+                arguments: map,
                 closure: None,
             }
         }
@@ -650,7 +725,7 @@ pub enum Error {
     UnexpectedExpression {
         keyword: &'static str,
         expected: &'static str,
-        expr: Expr,
+        expr: Box<Expr>,
     },
 
     #[error(r#"invalid enum variant""#)]
@@ -661,7 +736,10 @@ pub enum Error {
     },
 
     #[error("this argument must be a static expression")]
-    ExpectedStaticExpression { keyword: &'static str, expr: Expr },
+    ExpectedStaticExpression {
+        keyword: &'static str,
+        expr: Box<Expr>,
+    },
 
     #[error("invalid argument")]
     InvalidArgument {
@@ -685,12 +763,14 @@ impl crate::diagnostic::DiagnosticMessage for Error {
         };
 
         match self {
-            UnexpectedExpression { .. } => 400,
-            InvalidEnumVariant { .. } => 401,
-            ExpectedStaticExpression { .. } => 402,
-            InvalidArgument { .. } => 403,
-            ExpectedFunctionClosure => 420,
-            ReadOnlyMutation { .. } => 315,
+            UnexpectedExpression { .. } => codes::FunctionCode::UnexpectedExpression as usize,
+            InvalidEnumVariant { .. } => codes::FunctionCode::InvalidEnumVariant as usize,
+            ExpectedStaticExpression { .. } => {
+                codes::FunctionCode::ExpectedStaticExpression as usize
+            }
+            InvalidArgument { .. } => codes::FunctionCode::InvalidArgument as usize,
+            ExpectedFunctionClosure => codes::FunctionCode::ExpectedFunctionClosure as usize,
+            ReadOnlyMutation { .. } => codes::ValueCode::ReadOnlyMutation as usize,
         }
     }
 

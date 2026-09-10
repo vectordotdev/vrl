@@ -1,0 +1,5 @@
+# result: function call error for "mod" at (72:91): operation would produce NaN
+
+large = to_float!("1.7976931348623157e+308")
+inf_float = large + large
+mod(inf_float, 1.0)

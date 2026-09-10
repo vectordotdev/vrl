@@ -1,21 +1,18 @@
 use crate::compiler::prelude::*;
 
 use super::util::round_to_precision;
-use std::sync::LazyLock;
 
-static DEFAULT_PRECISION: LazyLock<Value> = LazyLock::new(|| Value::Integer(0));
+static DEFAULT_PRECISION: Value = Value::Integer(0);
 
-static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
-    vec![
-        Parameter::required("value", kind::INTEGER | kind::FLOAT, "The number to round."),
-        Parameter::optional(
-            "precision",
-            kind::INTEGER,
-            "The number of decimal places to round to.",
-        )
-        .default(&DEFAULT_PRECISION),
-    ]
-});
+const PARAMETERS: &[Parameter] = &[
+    Parameter::required("value", kind::INTEGER | kind::FLOAT, "The number to round."),
+    Parameter::optional(
+        "precision",
+        kind::INTEGER,
+        "The number of decimal places to round to.",
+    )
+    .default(&DEFAULT_PRECISION),
+];
 
 fn round(precision: Value, value: Value) -> Resolved {
     let precision = precision.try_integer()?;
@@ -55,11 +52,13 @@ impl Function for Round {
     }
 
     fn return_rules(&self) -> &'static [&'static str] {
-        &["If `precision` is `0`, then an integer is returned, otherwise a float is returned."]
+        &[
+            "Returns an integer if `value` is an integer. Returns a float otherwise, regardless of `precision`.",
+        ]
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        PARAMETERS.as_slice()
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {
@@ -116,8 +115,11 @@ impl FunctionExpression for RoundFn {
         round(precision, value)
     }
 
-    fn type_def(&self, _: &state::TypeState) -> TypeDef {
-        TypeDef::integer().infallible()
+    fn type_def(&self, state: &state::TypeState) -> TypeDef {
+        match Kind::from(self.value.type_def(state)) {
+            v if v.is_float() || v.is_integer() => v.into(),
+            _ => Kind::integer().or_float().into(),
+        }
     }
 }
 
@@ -131,19 +133,19 @@ mod tests {
         down {
              args: func_args![value: 1234.2],
              want: Ok(1234.0),
-             tdef: TypeDef::integer().infallible(),
+             tdef: TypeDef::float(),
          }
 
         up {
              args: func_args![value: 1234.8],
              want: Ok(1235.0),
-             tdef: TypeDef::integer().infallible(),
+             tdef: TypeDef::float(),
          }
 
         integer {
              args: func_args![value: 1234],
              want: Ok(1234),
-             tdef: TypeDef::integer().infallible(),
+             tdef: TypeDef::integer(),
          }
 
         precision {
@@ -151,7 +153,7 @@ mod tests {
                               precision: 1
              ],
              want: Ok(1234.4),
-             tdef: TypeDef::integer().infallible(),
+             tdef: TypeDef::float(),
          }
 
         bigger_precision  {
@@ -159,7 +161,7 @@ mod tests {
                              precision: 4
             ],
             want: Ok(1234.5679),
-            tdef: TypeDef::integer().infallible(),
+            tdef: TypeDef::float(),
         }
 
         huge {
@@ -167,7 +169,7 @@ mod tests {
                               precision: 5
              ],
              want: Ok(9_876_543_210_123_456_789_098_765_432_101_234_567_890_987_654_321.987_65),
-             tdef: TypeDef::integer().infallible(),
+             tdef: TypeDef::float(),
          }
     ];
 }

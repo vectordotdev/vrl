@@ -33,14 +33,22 @@ pub fn get<'a>(
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::path;
     use serde_json::json;
 
     #[test]
     fn test_negative_index() {
         assert_eq!(
-            Value::from(json!([0, 1, 2, 3])).get("[-1]").cloned(),
+            Value::from(json!([0, 1, 2, 3]))
+                .get(path!(-1_isize))
+                .cloned(),
             Some(Value::from(3))
         );
-        assert_eq!(Value::from(json!([0, 1, 2, 3])).get("[-5]").cloned(), None);
+        assert_eq!(
+            Value::from(json!([0, 1, 2, 3]))
+                .get(path!(-5_isize))
+                .cloned(),
+            None
+        );
     }
 }

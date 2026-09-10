@@ -1,7 +1,6 @@
 use crate::compiler::prelude::*;
 use crate::core::encode_key_value;
 use crate::value::KeyString;
-use std::sync::LazyLock;
 
 /// Also used by `encode_logfmt`.
 pub(crate) fn encode_key_value(
@@ -30,25 +29,23 @@ pub(crate) fn encode_key_value(
     .into())
 }
 
-pub(super) static DEFAULT_FIELDS_ORDERING: LazyLock<Value> = LazyLock::new(|| Value::Array(vec![]));
-static DEFAULT_KEY_VALUE_DELIMITER: LazyLock<Value> =
-    LazyLock::new(|| Value::Bytes(Bytes::from("=")));
-static DEFAULT_FIELD_DELIMITER: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from(" ")));
-static DEFAULT_FLATTEN_BOOLEAN: LazyLock<Value> = LazyLock::new(|| Value::Boolean(false));
+pub(super) static DEFAULT_FIELDS_ORDERING: Value = Value::Array(vec![]);
+static DEFAULT_KEY_VALUE_DELIMITER: Value = Value::Bytes(Bytes::from_static("=".as_bytes()));
+static DEFAULT_FIELD_DELIMITER: Value = Value::Bytes(Bytes::from_static(" ".as_bytes()));
+static DEFAULT_FLATTEN_BOOLEAN: Value = Value::Boolean(false);
 
-static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
-    vec![
-        Parameter::required("value", kind::OBJECT, "The value to convert to a string."),
-        Parameter::optional("fields_ordering", kind::ARRAY, "The ordering of fields to preserve. Any fields not in this list are listed unordered, after all ordered fields.")
-            .default(&DEFAULT_FIELDS_ORDERING),
-        Parameter::optional("key_value_delimiter", kind::BYTES, "The string that separates the key from the value.")
-            .default(&DEFAULT_KEY_VALUE_DELIMITER),
-        Parameter::optional("field_delimiter", kind::BYTES, "The string that separates each key-value pair.")
-            .default(&DEFAULT_FIELD_DELIMITER),
-        Parameter::optional("flatten_boolean", kind::BOOLEAN, "Whether to encode key-value with a boolean value as a standalone key if `true` and nothing if `false`.")
-            .default(&DEFAULT_FLATTEN_BOOLEAN),
-    ]
-});
+const PARAMETERS: &[Parameter] = &[
+    Parameter::required("value", kind::OBJECT, "The value to convert to a string."),
+    Parameter::optional("fields_ordering", kind::ARRAY, "The ordering of fields to preserve. Any fields not in this list are listed unordered, after all ordered fields.")
+        .default(&DEFAULT_FIELDS_ORDERING)
+        .with_element_kind(kind::BYTES),
+    Parameter::optional("key_value_delimiter", kind::BYTES, "The string that separates the key from the value.")
+        .default(&DEFAULT_KEY_VALUE_DELIMITER),
+    Parameter::optional("field_delimiter", kind::BYTES, "The string that separates each key-value pair.")
+        .default(&DEFAULT_FIELD_DELIMITER),
+    Parameter::optional("flatten_boolean", kind::BOOLEAN, "Whether to encode key-value with a boolean value as a standalone key if `true` and nothing if `false`.")
+        .default(&DEFAULT_FLATTEN_BOOLEAN),
+];
 
 #[derive(Clone, Copy, Debug)]
 pub struct EncodeKeyValue;
@@ -74,12 +71,8 @@ impl Function for EncodeKeyValue {
         kind::BYTES
     }
 
-    fn notices(&self) -> &'static [&'static str] {
-        &["If `fields_ordering` is specified then the function is fallible else it is infallible."]
-    }
-
     fn parameters(&self) -> &'static [Parameter] {
-        PARAMETERS.as_slice()
+        PARAMETERS
     }
 
     fn compile(
@@ -123,7 +116,7 @@ impl Function for EncodeKeyValue {
             example! {
                 title: "Encode with default delimiters (fields ordering)",
                 source: indoc! {r#"
-                    encode_key_value!(
+                    encode_key_value(
                         {
                             "ts": "2021-06-05T17:20:00Z",
                             "msg": "This is a message",
@@ -151,7 +144,7 @@ impl Function for EncodeKeyValue {
             example! {
                 title: "Encode with default delimiters (nested fields ordering)",
                 source: indoc! {r#"
-                    encode_key_value!(
+                    encode_key_value(
                         {
                             "agent": {"name": "foo"},
                             "log": {"file": {"path": "my.log"}},
@@ -235,7 +228,7 @@ impl FunctionExpression for EncodeKeyValueFn {
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {
-        TypeDef::bytes().maybe_fallible(self.fields.is_some())
+        TypeDef::bytes()
     }
 }
 
@@ -244,7 +237,7 @@ mod tests {
     use std::collections::BTreeMap;
 
     use crate::{
-        btreemap,
+        btreemap, path,
         stdlib::parse_key_value::{Whitespace, parse_key_value},
         value,
     };
@@ -255,7 +248,7 @@ mod tests {
     fn test_encode_decode_cycle() {
         let before: Value = {
             let mut map = Value::from(BTreeMap::default());
-            map.insert("key", r#"this has a " quote"#);
+            map.insert(path!("key"), r#"this has a " quote"#);
             map
         };
 
@@ -431,7 +424,7 @@ mod tests {
                 fields_ordering: value!(["lvl", "msg"])
             ],
             want: Ok(r#"lvl=info msg="This is a log message" log_id=12345"#),
-            tdef: TypeDef::bytes().fallible(),
+            tdef: TypeDef::bytes(),
         }
 
         nested_fields_ordering {
@@ -450,7 +443,7 @@ mod tests {
                 fields_ordering:  value!(["event", "log.file.path", "agent.name"])
             ],
             want: Ok("event=log log.file.path=encode_key_value.rs agent.name=vector"),
-            tdef: TypeDef::bytes().fallible(),
+            tdef: TypeDef::bytes(),
         }
 
         fields_ordering_invalid_field_type {
@@ -467,7 +460,7 @@ mod tests {
                         got: Kind::integer(),
                         expected: Kind::bytes()
                     })),
-            tdef: TypeDef::bytes().fallible(),
+            tdef: TypeDef::bytes(),
         }
     ];
 }

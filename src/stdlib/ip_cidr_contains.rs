@@ -90,7 +90,8 @@ impl Function for IpCidrContains {
                 "cidr",
                 kind::BYTES | kind::ARRAY,
                 "The CIDR mask (v4 or v6).",
-            ),
+            )
+            .with_element_kind(kind::BYTES),
             Parameter::required("value", kind::BYTES, "The IP address (v4 or v6)."),
         ];
         PARAMETERS
@@ -137,8 +138,8 @@ impl Function for IpCidrContains {
         let cidr = arguments.required("cidr");
 
         let cidr = match cidr.resolve_constant(state) {
-            None => IpCidrType::Expression(cidr),
-            Some(value) => IpCidrType::Constant(match value {
+            None => ConstOrExpr::Expr(cidr),
+            Some(value) => ConstOrExpr::Const(match value {
                 Value::Bytes(_) => vec![value_to_cidr(&value)?],
                 Value::Array(vec) => {
                     let mut output = Vec::with_capacity(vec.len());
@@ -165,25 +166,21 @@ impl Function for IpCidrContains {
 }
 
 #[derive(Debug, Clone)]
-enum IpCidrType {
-    Constant(Vec<IpCidr>),
-    Expression(Box<dyn Expression>),
-}
-
-#[derive(Debug, Clone)]
 struct IpCidrContainsFn {
-    cidr: IpCidrType,
+    cidr: ConstOrExpr<Vec<IpCidr>>,
     value: Box<dyn Expression>,
 }
 
 impl FunctionExpression for IpCidrContainsFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = self.value.resolve(ctx)?;
-
         match &self.cidr {
-            IpCidrType::Constant(cidr_vec) => ip_cidr_contains_constant(&value, cidr_vec),
-            IpCidrType::Expression(exp) => {
-                let cidr = exp.resolve(ctx)?;
+            ConstOrExpr::Const(cidr_vec) => {
+                let value = self.value.resolve(ctx)?;
+                ip_cidr_contains_constant(&value, cidr_vec)
+            }
+            ConstOrExpr::Expr(expr) => {
+                let cidr = expr.resolve(ctx)?;
+                let value = self.value.resolve(ctx)?;
                 ip_cidr_contains(&value, &cidr)
             }
         }

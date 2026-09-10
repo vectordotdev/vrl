@@ -1,31 +1,28 @@
 use crate::compiler::prelude::*;
-use std::sync::LazyLock;
 
-static DEFAULT_REPLACE_SINGLE: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from("")));
-static DEFAULT_REPLACE_REPEATED: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from("")));
+static DEFAULT_REPLACE_SINGLE: Value = Value::Bytes(Bytes::from_static("".as_bytes()));
+static DEFAULT_REPLACE_REPEATED: Value = Value::Bytes(Bytes::from_static("".as_bytes()));
 
-static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
-    vec![
-        Parameter::required("value", kind::BYTES, "The original string."),
-        Parameter::required(
-            "permitted_characters",
-            kind::REGEX,
-            "Keep all matches of this pattern.",
-        ),
-        Parameter::optional(
-            "replace_single",
-            kind::BYTES,
-            "The string to use to replace single rejected characters.",
-        )
-        .default(&DEFAULT_REPLACE_SINGLE),
-        Parameter::optional(
-            "replace_repeated",
-            kind::BYTES,
-            "The string to use to replace multiple sequential instances of rejected characters.",
-        )
-        .default(&DEFAULT_REPLACE_REPEATED),
-    ]
-});
+const PARAMETERS: &[Parameter] = &[
+    Parameter::required("value", kind::BYTES, "The original string."),
+    Parameter::required(
+        "permitted_characters",
+        kind::REGEX,
+        "Keep all matches of this pattern.",
+    ),
+    Parameter::optional(
+        "replace_single",
+        kind::BYTES,
+        "The string to use to replace single rejected characters.",
+    )
+    .default(&DEFAULT_REPLACE_SINGLE),
+    Parameter::optional(
+        "replace_repeated",
+        kind::BYTES,
+        "The string to use to replace multiple sequential instances of rejected characters.",
+    )
+    .default(&DEFAULT_REPLACE_REPEATED),
+];
 
 fn sieve(
     value: &Value,
@@ -86,7 +83,7 @@ impl Function for Sieve {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        PARAMETERS.as_slice()
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {

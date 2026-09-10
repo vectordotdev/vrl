@@ -31,14 +31,14 @@ pub static XML_RE: LazyLock<Regex> = LazyLock::new(|| {
         .expect("trim regex failed")
 });
 
-pub static DEFAULT_TRIM: LazyLock<Value> = LazyLock::new(|| Value::Boolean(true));
-pub static DEFAULT_INCLUDE_ATTR: LazyLock<Value> = LazyLock::new(|| Value::Boolean(true));
-pub static DEFAULT_ATTR_PREFIX: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from("@")));
-pub static DEFAULT_TEXT_KEY: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from("text")));
-pub static DEFAULT_ALWAYS_USE_TEXT_KEY: LazyLock<Value> = LazyLock::new(|| Value::Boolean(false));
-pub static DEFAULT_PARSE_BOOL: LazyLock<Value> = LazyLock::new(|| Value::Boolean(true));
-pub static DEFAULT_PARSE_NULL: LazyLock<Value> = LazyLock::new(|| Value::Boolean(true));
-pub static DEFAULT_PARSE_NUMBER: LazyLock<Value> = LazyLock::new(|| Value::Boolean(true));
+pub static DEFAULT_TRIM: Value = Value::Boolean(true);
+pub static DEFAULT_INCLUDE_ATTR: Value = Value::Boolean(true);
+pub static DEFAULT_ATTR_PREFIX: Value = Value::Bytes(Bytes::from_static("@".as_bytes()));
+pub static DEFAULT_TEXT_KEY: Value = Value::Bytes(Bytes::from_static("text".as_bytes()));
+pub static DEFAULT_ALWAYS_USE_TEXT_KEY: Value = Value::Boolean(false);
+pub static DEFAULT_PARSE_BOOL: Value = Value::Boolean(true);
+pub static DEFAULT_PARSE_NULL: Value = Value::Boolean(true);
+pub static DEFAULT_PARSE_NUMBER: Value = Value::Boolean(true);
 
 /// Configuration to determine which XML options will be used when
 /// parsing a roxmltree `Node`.

@@ -238,7 +238,7 @@ impl<'a> Iterator for JitValuePathIter<'a> {
 
 #[cfg(test)]
 mod test {
-    use super::{BorrowedSegment, ValuePath};
+    use super::{BorrowedSegment, JitValuePath, ValuePath};
 
     #[test]
     fn parsing() {
@@ -368,12 +368,13 @@ mod test {
         ];
 
         for (path, expected) in test_cases {
-            if !ValuePath::eq(&path, &expected) {
+            let jit = JitValuePath::new(path);
+            if !ValuePath::eq(&jit, &expected) {
                 panic!(
                     "Not equal. Input={:?}\nExpected: {:?}\nActual: {:?}",
                     path,
                     (&expected).segment_iter().collect::<Vec<_>>(),
-                    path.segment_iter().collect::<Vec<_>>()
+                    jit.segment_iter().collect::<Vec<_>>()
                 );
             }
         }

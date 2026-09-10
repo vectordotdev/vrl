@@ -29,7 +29,7 @@ pub fn convert_time_format(format: &str) -> Result<String, String> {
                 's' => time_format.push_str("%S"),
                 // fraction of second
                 'S' => {
-                    time_format.pop(); // drop the fraction charactor(e.g. . or , )
+                    time_format.pop(); // drop the fraction character(e.g. . or , )
                     time_format.push_str("%.f"); // Decimal fraction of a second. Consumes the leading dot.
                 }
                 // year

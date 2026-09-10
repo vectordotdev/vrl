@@ -109,6 +109,10 @@ user_agent_parsers:
   - regex: '(NewRelicPinger)/(\d+)\.(\d+)'
     family_replacement: 'NewRelicPingerBot'
 
+  # Dynatrace/Ruxit synthetic monitor
+  - regex: '(RuxitSynthetic)/(\d+)\.(\d+)'
+    family_replacement: 'Ruxit Synthetic'
+
   # Tableau
   - regex: '(Tableau)/(\d+)\.(\d+)'
     family_replacement: 'Tableau'
@@ -164,7 +168,7 @@ user_agent_parsers:
     family_replacement: 'Pinterestbot'
 
   # Bots
-  - regex: '(CSimpleSpider|Cityreview Robot|CrawlDaddy|CrawlFire|Finderbots|Index crawler|Job Roboter|KiwiStatus Spider|Lijit Crawler|QuerySeekerSpider|ScollSpider|Trends Crawler|USyd-NLP-Spider|SiteCat Webbot|BotName\/\$BotVersion|123metaspider-Bot|1470\.net crawler|50\.nu|8bo Crawler Bot|Aboundex|Accoona-[A-z]{1,30}-Agent|AdsBot-Google(?:-[a-z]{1,30}|)|altavista|AppEngine-Google|archive.{0,30}\.org_bot|archiver|Ask Jeeves|[Bb]ai[Dd]u[Ss]pider(?:-[A-Za-z]{1,30})(?:-[A-Za-z]{1,30}|)|bingbot|BingPreview|blitzbot|BlogBridge|Bloglovin|BoardReader Blog Indexer|BoardReader Favicon Fetcher|boitho.com-dc|BotSeer|BUbiNG|\b\w{0,30}favicon\w{0,30}\b|\bYeti(?:-[a-z]{1,30}|)|Catchpoint(?: bot|)|[Cc]harlotte|Checklinks|clumboot|Comodo HTTP\(S\) Crawler|Comodo-Webinspector-Crawler|ConveraCrawler|CRAWL-E|CrawlConvera|Daumoa(?:-feedfetcher|)|Feed Seeker Bot|Feedbin|findlinks|Flamingo_SearchEngine|FollowSite Bot|furlbot|Genieo|gigabot|GomezAgent|gonzo1|(?:[a-zA-Z]{1,30}-|)Googlebot(?:-[a-zA-Z]{1,30}|)|GoogleOther|Google SketchUp|grub-client|gsa-crawler|heritrix|HiddenMarket|holmes|HooWWWer|htdig|ia_archiver|ICC-Crawler|Icarus6j|ichiro(?:/mobile|)|IconSurf|IlTrovatore(?:-Setaccio|)|InfuzApp|Innovazion Crawler|InternetArchive|IP2[a-z]{1,30}Bot|jbot\b|KaloogaBot|Kraken|Kurzor|larbin|LEIA|LesnikBot|Linguee Bot|LinkAider|LinkedInBot|Lite Bot|Llaut|lycos|Mail\.RU_Bot|masscan|masidani_bot|Mediapartners-Google|Microsoft .{0,30} Bot|mogimogi|mozDex|MJ12bot|msnbot(?:-media {0,2}|)|msrbot|Mtps Feed Aggregation System|netresearch|Netvibes|NewsGator[^/]{0,30}|^NING|Nutch[^/]{0,30}|Nymesis|ObjectsSearch|OgScrper|Orbiter|OOZBOT|PagePeeker|PagesInventory|PaxleFramework|Peeplo Screenshot Bot|PHPCrawl|PlantyNet_WebRobot|Pompos|Qwantify|Read%20Later|Reaper|RedCarpet|Retreiver|Riddler|Rival IQ|scooter|Scrapy|Scrubby|searchsight|seekbot|semanticdiscovery|SemrushBot|Simpy|SimplePie|SEOstats|SimpleRSS|SiteCon|Slackbot-LinkExpanding|Slack-ImgProxy|Slurp|snappy|Speedy Spider|Squrl Java|Stringer|TheUsefulbot|ThumbShotsBot|Thumbshots\.ru|Tiny Tiny RSS|Twitterbot|WhatsApp|URL2PNG|Vagabondo|VoilaBot|^vortex|Votay bot|^voyager|WASALive.Bot|Web-sniffer|WebThumb|WeSEE:[A-z]{1,30}|WhatWeb|WIRE|WordPress|Wotbox|www\.almaden\.ibm\.com|Xenu(?:.s|) Link Sleuth|Xerka [A-z]{1,30}Bot|yacy(?:bot|)|YahooSeeker|Yahoo! Slurp|Yandex\w{1,30}|YodaoBot(?:-[A-z]{1,30}|)|YottaaMonitor|Yowedo|^Zao|^Zao-Crawler|ZeBot_www\.ze\.bz|ZooShot|ZyBorg|ArcGIS Hub Indexer|GPTBot)(?:[ /]v?(\d+)(?:\.(\d+)(?:\.(\d+)|)|)|)'
+  - regex: '(CSimpleSpider|Cityreview Robot|CrawlDaddy|CrawlFire|Finderbots|Index crawler|Job Roboter|KiwiStatus Spider|Lijit Crawler|QuerySeekerSpider|ScollSpider|Trends Crawler|USyd-NLP-Spider|SiteCat Webbot|BotName\/\$BotVersion|123metaspider-Bot|1470\.net crawler|50\.nu|8bo Crawler Bot|Aboundex|Accoona-[A-z]{1,30}-Agent|AdsBot-Google(?:-[a-z]{1,30}|)|altavista|AppEngine-Google|archive.{0,30}\.org_bot|archiver|Ask Jeeves|[Bb]ai[Dd]u[Ss]pider(?:-[A-Za-z]{1,30})(?:-[A-Za-z]{1,30}|)|bingbot|BingPreview|blitzbot|BlogBridge|Bloglovin|BoardReader Blog Indexer|BoardReader Favicon Fetcher|boitho.com-dc|BotSeer|BUbiNG|\b\w{0,30}favicon\w{0,30}\b|\bYeti(?:-[a-z]{1,30}|)|Catchpoint(?: bot|)|[Cc]harlotte|Checklinks|clumboot|Comodo HTTP\(S\) Crawler|Comodo-Webinspector-Crawler|ConveraCrawler|CRAWL-E|CrawlConvera|Daumoa(?:-feedfetcher|)|Feed Seeker Bot|Feedbin|findlinks|Flamingo_SearchEngine|FollowSite Bot|furlbot|Genieo|gigabot|GomezAgent|gonzo1|(?:[a-zA-Z]{1,30}-|)Googlebot(?:-[a-zA-Z]{1,30}|)|GoogleOther|Google SketchUp|grub-client|gsa-crawler|heritrix|HiddenMarket|holmes|HooWWWer|htdig|ia_archiver|ICC-Crawler|Icarus6j|ichiro(?:/mobile|)|IconSurf|IlTrovatore(?:-Setaccio|)|InfuzApp|Innovazion Crawler|InternetArchive|IP2[a-z]{1,30}Bot|jbot\b|KaloogaBot|Kraken|Kurzor|larbin|LEIA|LesnikBot|Linguee Bot|LinkAider|LinkedInBot|Lite Bot|Llaut|lycos|Mail\.RU_Bot|masscan|masidani_bot|Mediapartners-Google|Microsoft .{0,30} Bot|mogimogi|mozDex|MJ12bot|msnbot(?:-media {0,2}|)|msrbot|Mtps Feed Aggregation System|netresearch|Netvibes|NewsGator[^/]{0,30}|^NING|Nutch[^/]{0,30}|Nymesis|ObjectsSearch|OgScrper|Orbiter|OOZBOT|PagePeeker|PagesInventory|PaxleFramework|Peeplo Screenshot Bot|PHPCrawl|PlantyNet_WebRobot|Pompos|Qwantify|Read%20Later|Reaper|RedCarpet|Retreiver|Riddler|Rival IQ|scooter|Scrapy|Scrubby|searchsight|seekbot|semanticdiscovery|SemrushBot|Simpy|SimplePie|SEOstats|SimpleRSS|SiteCon|Slackbot-LinkExpanding|Slack-ImgProxy|Slurp|snappy|Speedy Spider|Squrl Java|Stringer|TheUsefulbot|ThumbShotsBot|Thumbshots\.ru|Tiny Tiny RSS|Twitterbot|WhatsApp|URL2PNG|Vagabondo|VoilaBot|^vortex|Votay bot|^voyager|WASALive.Bot|Web-sniffer|WebThumb|WeSEE:[A-z]{1,30}|WhatWeb|WIRE|WordPress|Wotbox|www\.almaden\.ibm\.com|Xenu(?:.s|) Link Sleuth|Xerka [A-z]{1,30}Bot|yacy(?:bot|)|YahooSeeker|Yahoo! Slurp|Yandex\w{1,30}|YodaoBot(?:-[A-z]{1,30}|)|YottaaMonitor|Yowedo|^Zao|^Zao-Crawler|ZeBot_www\.ze\.bz|ZooShot|ZyBorg|ArcGIS Hub Indexer|GPTBot|Google-InspectionTool)(?:[ /]v?(\d+)(?:\.(\d+)(?:\.(\d+)|)|)|)'
 
   # AWS S3 Clients
   # must come before "Bots General matcher" to catch "boto"/"boto3" before "bot"
@@ -222,7 +226,12 @@ user_agent_parsers:
   - regex: '\[(Pinterest)/[^\]]{1,50}\]'
   - regex: '(Pinterest)(?: for Android(?: Tablet|)|)/(\d+)(?:\.(\d+)|)(?:\.(\d+)|)'
   # Instagram app
+  # iOS Instagram embeds the token inside a full WebKit UA:
+  #   Mozilla/5.0 (iPhone; ...) Mobile/... Instagram VERSION (...)
+  # Android Instagram uses a bare format with no browser wrapper:
+  #   Instagram VERSION Android (...)
   - regex: 'Mozilla.{1,200}Mobile.{1,100}(Instagram).(\d+)\.(\d+)\.(\d+)'
+  - regex: '(Instagram) (\d+)\.(\d+)\.(\d+)'
   # Flipboard app
   - regex: 'Mozilla.{1,200}Mobile.{1,100}(Flipboard).(\d+)\.(\d+)\.(\d+)'
   # Flipboard-briefing app
@@ -241,6 +250,12 @@ user_agent_parsers:
     family_replacement: 'TikTok'
   - regex: '(BytedanceWebview)\/[a-z0-9]+'
     family_replacement: 'TikTok'
+  # KakaoTalk
+  - regex: 'Mozilla.{1,200}Mobile.{1,100}(KAKAOTALK)/(\d+)\.(\d+)\.(\d+)'
+    family_replacement: 'KakaoTalk'
+  # Telegram
+  - regex: '(Telegram-Android)/(\d+)\.(\d+)\.(\d+)'
+    family_replacement: 'Telegram'
 
   # Phantom app
   - regex: 'Mozilla.{1,200}Mobile.{1,100}(Phantom\/ios|Phantom\/android).(\d+)\.(\d+)\.(\d+)'
@@ -260,6 +275,10 @@ user_agent_parsers:
   # Pale Moon
   - regex: '(PaleMoon)/(\d+)\.(\d+)(?:\.(\d+)|)'
     family_replacement: 'Pale Moon'
+
+  # Camoufox - anti-detect Firefox fork for web scraping/automation; replaces the
+  # Firefox version token with "Camoufox Camoufox VERSION" in the UA string
+  - regex: '(Camoufox) Camoufox (\d+)\.(\d+)'
 
   # Firefox
   - regex: '(Fennec)/(\d+)\.(\d+)\.?([ab]?\d+[a-z]*)'
@@ -309,7 +328,7 @@ user_agent_parsers:
 
   # UC Browser
   # we need check it before opera. In other case case UC Browser detected look like Opera Mini
-  - regex: '(UC? ?Browser|UCWEB|U3)[ /]?(\d+)\.(\d+)\.(\d+)'
+  - regex: '(UC? ?Browser|UCWEB|UCMobile|U3)[ /]?(\d+)\.(\d+)\.(\d+)'
     family_replacement: 'UC Browser'
 
   # Opera will stop at 9.80 and hide the real version in the Version string.
@@ -333,6 +352,14 @@ user_agent_parsers:
   # Opera >=15 for Desktop is similar to Chrome but includes an "OPR" Version string.
   - regex: '(?:Chrome).{1,300}(OPR)/(\d+)\.(\d+)\.(\d+)'
     family_replacement: 'Opera'
+
+  # Opera GX uses "OPX" instead of "OPR"
+  - regex: '(OPX)/(\d+)\.(\d+)(?:\.(\d+)|)'
+    family_replacement: 'Opera GX'
+
+  # Opera Touch uses "OPT"
+  - regex: '(OPT)/(\d+)\.(\d+)(?:\.(\d+)|)'
+    family_replacement: 'Opera Touch'
 
   # Opera Coast
   - regex: '(Coast)/(\d+).(\d+).(\d+)'
@@ -420,11 +447,15 @@ user_agent_parsers:
   - regex: '(Instabridge)/(\d+)(?:\.(\d+)|)(?:\.(\d+)|)'
 
   # Aloha Browser
-  - regex: '(AlohaBrowser)/(\d+)\.(\d+)\.(\d+)(?:\.(\d+)|)'
+  - regex: '(AlohaBrowser|ABB)/(\d+)\.(\d+)\.(\d+)(?:\.(\d+)|)'
     family_replacement: 'Aloha Browser'
 
-  # Brave Browser https://brave.com/ , should go before Safari and Chrome Mobile
+  # Brave Browser, should go before Safari and Chrome Mobile
   - regex: '((?:B|b)rave(?:\sChrome)?)/(\d+)(?:\.(\d+)|)(?:\.(\d+)|)(?:\.(\d+)|)'
+    family_replacement: 'Brave'
+
+  # Brave iOS Browser, checks for (Brave) or Brave at end
+  - regex: '(?:\()?Brave(?:\))?\s*$'
     family_replacement: 'Brave'
 
   # Amazon Silk, should go before Safari and Chrome Mobile
@@ -452,15 +483,9 @@ user_agent_parsers:
   - regex: '(SznProhlizec)/(\d+)\.(\d+)(?:\.(\d+)|)'
     family_replacement: 'Seznam prohlížeč'
 
-  # Coc Coc browser, based on Chrome (used in Vietnam)
+  # Coc Coc browser, based on Chrome (used in Vietnam)
   - regex: '(coc_coc_browser)/(\d+)\.(\d+)(?:\.(\d+)|)'
     family_replacement: 'Coc Coc'
-
-  # Baidu Browsers (desktop spoofs chrome & IE, explorer is mobile)
-  - regex: '(baidubrowser)[/\s](\d+)(?:\.(\d+)|)(?:\.(\d+)|)'
-    family_replacement: 'Baidu Browser'
-  - regex: '(FlyFlow)/(\d+)\.(\d+)'
-    family_replacement: 'Baidu Explorer'
 
   # MxBrowser is Maxthon. Must go before Mobile Chrome for Android
   - regex: '(MxBrowser)/(\d+)\.(\d+)(?:\.(\d+)|)'
@@ -489,6 +514,12 @@ user_agent_parsers:
   # Google Search App on Android, eg:
   - regex: 'Mozilla.{1,200}Android.{1,200}(GSA)/(\d+)\.(\d+)\.(\d+)'
     family_replacement: 'Google'
+
+  # Baidu Browsers (desktop spoofs chrome & IE, explorer is mobile)
+  - regex: '(baidubrowser)[/\s](\d+)(?:\.(\d+)|)(?:\.(\d+)|)'
+    family_replacement: 'Baidu Browser'
+  - regex: '(FlyFlow|flyflow|baiduboxapp)/(\d+)\.(\d+)(?:\.(\d+)|)(?:\.(\d+)|)'
+    family_replacement: 'Baidu Explorer'
 
   # QQ Browsers
   - regex: '(MQQBrowser/Mini)(?:(\d+)(?:\.(\d+)|)(?:\.(\d+)|)|)'
@@ -519,10 +550,34 @@ user_agent_parsers:
     family_replacement: 'Ecosia Android'
 
   # VivoBrowser
-  - regex: '(VivoBrowser)\/(\d+)\.(\d+)\.(\d+)\.(\d+)'
+  - regex: '(VivoBrowser)\/(\d+)\.(\d+)\.(\d+)(?:\.(\d+)|)'
 
   # HiBrowser
-  - regex: '(HiBrowser)\/v(\d+)\.(\d+)\.(\d+)\.(\d+)'
+  - regex: '(H[Ii]Browser)\/v(\d+)\.(\d+)\.(\d+)\.(\d+)'
+    family_replacement: 'HiBrowser'
+
+  # Honor Browser
+  - regex: '(HonorBrowser)/(\d+)\.(\d+)\.(\d+)(?:\.(\d+)|)'
+    family_replacement: 'Honor Browser'
+
+  # Honor Browser
+  - regex: '(bdhonorbrowser)/(\d+)\.(\d+)\.(\d+)\.(\d+)'
+    family_replacement: 'Honor Browser'
+
+  # HeyTap Browser
+  - regex: '(HeyTapBrowser)/(\d+)\.(\d+)\.(\d+)\.(\d+)'
+    family_replacement: 'HeyTap Browser'
+
+  # Weibo
+  # Must before Chrome Mobile WebView
+  - regex: '(weibo)__(\d+)\.(\d+)\.(\d+)'
+    family_replacement: 'Weibo'
+  - regex: '(WeiboliteiOS|WeiboIntliOS)'
+    family_replacement: 'Weibo'
+
+  # Phoenix Browser
+  - regex: '(PHX)/(\d+)\.(\d+)'
+    family_replacement: 'Phoenix Browser'
 
   # Chrome Mobile
   - regex: 'Version/.{1,300}(Chrome)/(\d+)\.(\d+)\.(\d+)\.(\d+)'
@@ -625,7 +680,7 @@ user_agent_parsers:
     family_replacement: 'Quark PC'
 
   # Smart Lenovo Browser
-  - regex: '(SLBrowser)/(\d+)\.(\d+)\.(\d+)\.(\d+) SLBChan/(\d+)'
+  - regex: '(SLBrowser)/(\d+)\.(\d+)\.(\d+)'
     family_replacement: 'Smart Lenovo Browser'
 
   # Atom Browser
@@ -647,6 +702,82 @@ user_agent_parsers:
   # Chromium GOST Browser
   - regex: '(Chromium GOST)'
     family_replacement: 'Chromium GOST Browser'
+
+  # AOL Shield Browser
+  - regex: '(AOLShield)/(\d+)\.(\d+)\.(\d+)\.(\d+)'
+    family_replacement: 'AOL Shield Browser'
+
+  # Hola Browser
+  - regex: '(Hola)/(\d+)\.(\d+)\.(\d+)'
+    family_replacement: 'Hola Browser'
+
+  # Craving Explorer Browser
+  - regex: '(CravingExplorer)/(\d+)\.(\d+)\.(\d+)'
+    family_replacement: 'Craving Explorer Browser'
+
+  # Talon Cyber Security Browser
+  - regex: '(Talon)'
+    family_replacement: 'Talon Cyber Security Browser'
+
+  # QAX Browser
+  - regex: '(Qaxbrowser)'
+    family_replacement: 'QAX Browser'
+
+  # AOL Desktop Gold Browser
+  - regex: '(ADG)/(\d+)\.(\d+)\.(\d+)'
+    family_replacement: 'AOL Desktop Gold Browser'
+
+  # Sber Browser
+  - regex: '(SberBrowser)/(\d+)\.(\d+)\.(\d+)\.(\d+)'
+    family_replacement: 'Sber Browser'
+
+  # JiSu Browser
+  - regex: '(JiSu)/(\d+)\.(\d+)\.(\d+)'
+    family_replacement: 'JiSu Browser'
+
+  # Wolvic Browser
+  - regex: '(Wolvic)/(\d+)\.(\d+)\.(\d+)'
+    family_replacement: 'Wolvic Browser'
+
+  # SmartTV WebBrowser
+  - regex: '(Thano)/(\d+)\.(\d+)'
+    family_replacement: 'SmartTV WebBrowser'
+
+  # WeChat Browser
+  - regex: '(MicroMessenger)/(\d+)\.(\d+)(?:\.(\d+)|)'
+    family_replacement: 'WeChat Browser'
+
+  # Odin Browser
+  - regex: '(Odin)/(\d+)\.(\d+)\.(\d+)\.(\d+)'
+    family_replacement: 'Odin'
+  
+  # NetCast Smart TV
+  - regex: '(Colt)/(\d+)\.(\d+)'
+    family_replacement: 'NetCast Smart TV'
+  # Lite Browser
+  - regex: '(Lite Browser)/(\d+)\.(\d+)'
+    family_replacement: 'Lite Browser'
+
+  # Vewd Browser
+  - regex: '(OMI)/(\d+)\.(\d+)\.(\d+)'
+    family_replacement: 'Vewd Browser'
+
+  # Mypal
+  - regex: '(Mypal)/(\d+)\.(\d+)\.(\d+)'
+    family_replacement: 'Mypal Browser'
+
+  # Chess.com native app
+  - regex: '(Chesscom-Android)/(\d+)\.(\d+)\.(\d+)'
+
+  # Roblox native app
+  - regex: '(RobloxApp)/(\d+)\.(\d+)\.(\d+)'
+    family_replacement: 'Roblox App'
+
+  # Roadrunner iOS app (not the legacy Time Warner Cable ISP identifier)
+  - regex: '(Roadrunner)/IOS/\d+/(\d+)\.(\d+)\.(\d+)'
+
+  # Ancestry.com Android app
+  - regex: '(AncestryAndroid)/(\d+)\.(\d+)(?:\.(\d+)|)'
 
   #### END SPECIAL CASES TOP ####
 
@@ -719,6 +850,10 @@ user_agent_parsers:
   # Vivaldi
   - regex: '(Vivaldi)/(\d+)(?:\.(\d+)|)(?:\.(\d+)|)'
 
+  # Microsoft Teams embedded browser (needs to be before Edge and Chrome)
+  - regex: '.{0,200}(Teams)/(\d+)\.(\d+)\.(\d+)'
+    family_replacement: 'Microsoft Teams'
+
   # Edge/major_version.minor_version
   # Edge with chromium Edg/major_version.minor_version.patch.minor_patch
   - regex: '(Edge?)/(\d+)(?:\.(\d+)|)(?:\.(\d+)|)(?:\.(\d+)|)'
@@ -744,6 +879,99 @@ user_agent_parsers:
 
   # Browser/major_version.minor_version
   - regex: '(bingbot|Bolt|AdobeAIR|Jasmine|IceCat|Skyfire|Midori|Maxthon|Lynx|Arora|IBrowse|Dillo|Camino|Shiira|Fennec|Phoenix|Flock|Netscape|Lunascape|Epiphany|WebPilot|Opera Mini|Opera|NetFront|Netfront|Konqueror|Googlebot|SeaMonkey|Kazehakase|Vienna|Iceape|Iceweasel|IceWeasel|Iron|K-Meleon|Sleipnir|Galeon|GranParadiso|iCab|iTunes|MacAppStore|NetNewsWire|Space Bison|Stainless|Orca|Dolfin|BOLT|Minimo|Tizen Browser|Polaris|Abrowser|Planetweb|ICE Browser|mDolphin|qutebrowser|Otter|QupZilla|MailBar|kmail2|YahooMobileMail|ExchangeWebServices|ExchangeServicesClient|Dragon|Outlook-iOS-Android)/(\d+)\.(\d+)(?:\.(\d+)|)'
+
+  # Qt Web Engine embedded browser, must be before Chrome
+  - regex: '(QtWebEngine)/(\d+)\.(\d+)\.(\d+)'
+    family_replacement: 'Qt Web Engine'
+
+  # OpenWave browser (Chromium-based), must be before Chrome
+  - regex: '(OpenWave)/(\d+)\.(\d+)\.(\d+)'
+    family_replacement: 'Open Wave'
+
+  # AtContent - confirmed APT29/Nobelium (Cozy Bear) C2 malware marker. The implant
+  # (AcroSup.dll, side-loaded via Adobe WCChromeNativeMessagingHost.exe) uses a hardcoded
+  # UA of the form 'Chrome/100.0.4896.75 Safari/537.36 AtContent/91.5.2444.45' to
+  # communicate with Dropbox C2. Also observed appended after Edg/ tokens.
+  # Source: Cluster25/DuskRise 'Cozy Smuggled Into the Box', May 2022
+  # (https://www.duskrise.com/2022/05/13/cozy-smuggled-into-the-box-apt29-abusing-legitimate-software-for-targeted-operations-in-europe/)
+
+  - regex: '(AtContent)/(\d+)\.(\d+)\.(\d+)'
+  # Trailer - suspicious fake UA token appended to Chrome/Edge/Opera UA strings
+  # (TOKEN/MAJOR.MINOR.BUILD.PATCH). No known legitimate browser uses this token.
+  # Structurally identical to AtContent (confirmed APT29/Nobelium C2 marker; see
+  # Cluster25/DuskRise 'Cozy Smuggled Into the Box', May 2022). Unconfirmed attribution;
+  # may be same actor rotating token names or a copycat using the same spoofing technique.
+  - regex: '(Trailer)/(\d+)\.(\d+)\.(\d+)'
+
+  # Agency - suspicious fake UA token appended to Chrome UA strings
+  # (TOKEN/MAJOR.MINOR.BUILD.PATCH). No known legitimate browser uses this token.
+  # Structurally identical to AtContent (confirmed APT29/Nobelium C2 marker; see
+  # Cluster25/DuskRise 'Cozy Smuggled Into the Box', May 2022). Unconfirmed attribution;
+  # may be same actor rotating token names or a copycat using the same spoofing technique.
+  - regex: '(Agency)/(\d+)\.(\d+)\.(\d+)'
+
+  # Herring - suspicious fake UA token appended to Chrome UA strings
+  # (TOKEN/MAJOR.MINOR.BUILD.PATCH). No known legitimate browser uses this token.
+  # Structurally identical to AtContent (confirmed APT29/Nobelium C2 marker; see
+  # Cluster25/DuskRise 'Cozy Smuggled Into the Box', May 2022). Unconfirmed attribution;
+  # may be same actor rotating token names or a copycat using the same spoofing technique.
+  - regex: '(Herring)/(\d+)\.(\d+)\.(\d+)'
+
+  # Config - suspicious fake UA token appended to Chrome UA strings
+  # (TOKEN/MAJOR.MINOR.BUILD.PATCH). No known legitimate browser uses this token.
+  # Structurally identical to AtContent (confirmed APT29/Nobelium C2 marker; see
+  # Cluster25/DuskRise 'Cozy Smuggled Into the Box', May 2022). Unconfirmed attribution;
+  # may be same actor rotating token names or a copycat using the same spoofing technique.
+  - regex: '(Config)/(\d+)\.(\d+)\.(\d+)'
+
+  # Viewer - suspicious fake UA token appended to Chrome UA strings
+  # (TOKEN/MAJOR.MINOR.BUILD.PATCH). No known legitimate browser uses this token.
+  # Structurally identical to AtContent (confirmed APT29/Nobelium C2 marker; see
+  # Cluster25/DuskRise 'Cozy Smuggled Into the Box', May 2022). Unconfirmed attribution;
+  # may be same actor rotating token names or a copycat using the same spoofing technique.
+  - regex: '(Viewer)/(\d+)\.(\d+)\.(\d+)'
+
+  # LikeWise - suspicious fake UA token appended to Chrome UA strings
+  # (TOKEN/MAJOR.MINOR.BUILD.PATCH). No known legitimate browser uses this token.
+  # Structurally identical to AtContent (confirmed APT29/Nobelium C2 marker; see
+  # Cluster25/DuskRise 'Cozy Smuggled Into the Box', May 2022). Unconfirmed attribution;
+  # may be same actor rotating token names or a copycat using the same spoofing technique.
+  - regex: '(LikeWise)/(\d+)\.(\d+)\.(\d+)'
+
+  # Unique - suspicious fake UA token appended to Chrome/Opera UA strings
+  # (TOKEN/MAJOR.MINOR.BUILD.PATCH). No known legitimate browser uses this token.
+  # Structurally identical to AtContent (confirmed APT29/Nobelium C2 marker; see
+  # Cluster25/DuskRise 'Cozy Smuggled Into the Box', May 2022). Unconfirmed attribution;
+  # may be same actor rotating token names or a copycat using the same spoofing technique.
+  - regex: '(Unique)/(\d+)\.(\d+)\.(\d+)'
+
+  # CitizenFX - embedded Chromium browser in FiveM/RedM (GTA V / RDR2 game mod frameworks)
+  - regex: '(CitizenFX)/(\d+)\.(\d+)\.(\d+)'
+
+  # R2Client - R2Games game launcher embedded browser (CEF-based)
+  - regex: '(R2Client)/(\d+)\.(\d+)(?:\.(\d+)|)'
+
+  # OBS Studio embedded browser (CEF-based, used for browser sources/docks)
+  - regex: '(OBS)/(\d+)\.(\d+)\.(\d+)'
+    family_replacement: 'OBS Studio'
+
+  # Adobe CEP - embedded Chromium runtime for extension panels in Adobe CC apps
+  - regex: '(AdobeCEP)/(\d+)\.(\d+)\.(\d+)'
+    family_replacement: 'Adobe CEP'
+
+  # Steam embedded browsers; version from Chrome. Must be before Chrome.
+  # GameOverlay = in-game overlay browser (Shift+Tab)
+  - regex: 'Valve Steam (GameOverlay).{1,200}Chrome/(\d+)\.(\d+)\.(\d+)'
+    family_replacement: 'Steam GameOverlay'
+  # Steam Deck built-in browser
+  - regex: 'Valve Steam (Gamepad)/Steam Deck.{1,200}Chrome/(\d+)\.(\d+)\.(\d+)'
+    family_replacement: 'Steam Deck'
+  # Steam desktop client browser
+  - regex: '(Valve(?: Steam|) Client).{1,200}Chrome/(\d+)\.(\d+)\.(\d+)'
+    family_replacement: 'Steam Client'
+
+  # Ladybird
+  - regex: '(Ladybird)/(\d+)\.(\d+)(?:\.(\d+)|)'
 
   # Chrome/Chromium/major_version.minor_version
   - regex: '(Chromium|Chrome)/(\d+)\.(\d+)(?:\.(\d+)|)(?:\.(\d+)|)'
@@ -1994,7 +2222,7 @@ device_parsers:
   # Mobile Spiders
   # Catch the mobile crawler before checking for iPhones / Androids.
   #########
-  - regex: '^.{0,100}?(?:(?:iPhone|Windows CE|Windows Phone|Android).{0,300}(?:(?:Bot|Yeti)-Mobile|YRSpider|BingPreview|bots?/\d|(?:bot|spider)\.html)|AdsBot-Google-Mobile.{0,200}iPhone)'
+  - regex: '^.{0,100}?(?:(?:iPhone|Windows CE|Windows Phone|Android).{0,300}(?:(?:Bot|Yeti)-Mobile|YRSpider|BingPreview|bots?/\d|(?:bot|spider)\.html|Google-InspectionTool)|AdsBot-Google-Mobile.{0,200}iPhone)'
     regex_flag: 'i'
     device_replacement: 'Spider'
     brand_replacement: 'Spider'
@@ -3196,7 +3424,7 @@ device_parsers:
     device_replacement: 'HTC $1'
     brand_replacement: 'HTC'
     model_replacement: '$1'
-  - regex: '; {0,2}(ADR6200|ADR6400L|ADR6425LVW|Amaze|DesireS?|EndeavorU|Eris|EVO|Evo\d[A-Z]+|HD2|IncredibleS?|Inspire[A-Z0-9]*|Inspire[A-Z0-9]*|Sensation[A-Z0-9]*|Wildfire)[ _-](.{1,200}?)(?:[/;\)]|Build|MIUI|1\.0)'
+  - regex: '; {0,2}(ADR6200|ADR6400L|ADR6425LVW|Amaze|DesireS?|EndeavorU|Eris|EVO|Evo\d[A-Z]+|HD2|IncredibleS?|Inspire[A-Z0-9]*|Sensation[A-Z0-9]*|Wildfire)[ _-](.{1,200}?)(?:[/;\)]|Build|MIUI|1\.0)'
     regex_flag: 'i'
     device_replacement: 'HTC $1 $2'
     brand_replacement: 'HTC'
@@ -5600,7 +5828,6 @@ device_parsers:
     brand_replacement: 'Asus'
     model_replacement: '$1'
 
-
   ##########
   # Bird
   ##########
@@ -5799,7 +6026,6 @@ device_parsers:
     device_replacement: 'Motorola$2'
     brand_replacement: 'Motorola'
     model_replacement: '$2'
-
 
   ##########
   # nintendo
@@ -6004,7 +6230,7 @@ device_parsers:
   ##########
   # Spiders (this is a hack...)
   ##########
-  - regex: '^.{0,100}(bot|BUbiNG|zao|borg|DBot|oegp|silk|Xenu|zeal|^NING|CCBot|crawl|htdig|lycos|slurp|teoma|voila|yahoo|Sogou|CiBra|Nutch|^Java/|^JNLP/|Daumoa|Daum|Genieo|ichiro|larbin|pompos|Scrapy|snappy|speedy|spider|msnbot|msrbot|vortex|^vortex|crawler|favicon|indexer|Riddler|scooter|scraper|scrubby|WhatWeb|WinHTTP|bingbot|BingPreview|openbot|gigabot|furlbot|polybot|seekbot|^voyager|archiver|Icarus6j|mogimogi|Netvibes|blitzbot|altavista|charlotte|findlinks|Retreiver|TLSProber|WordPress|SeznamBot|ProoXiBot|wsr\-agent|Squrl Java|EtaoSpider|PaperLiBot|SputnikBot|A6\-Indexer|netresearch|searchsight|baiduspider|YisouSpider|ICC\-Crawler|http%20client|Python-urllib|dataparksearch|converacrawler|Screaming Frog|AppEngine-Google|YahooCacheSystem|fast\-webcrawler|Sogou Pic Spider|semanticdiscovery|Innovazion Crawler|facebookexternalhit|Google.{0,200}/\+/web/snippet|Google-HTTP-Java-Client|BlogBridge|IlTrovatore-Setaccio|InternetArchive|GomezAgent|WebThumbnail|heritrix|NewsGator|PagePeeker|Reaper|ZooShot|holmes|NL-Crawler|Pingdom|StatusCake|WhatsApp|masscan|Google Web Preview|Qwantify|Yeti|OgScrper|RecipeRadar|GPTBot)'
+  - regex: '^.{0,100}(bot|BUbiNG|zao|borg|DBot|oegp|silk|Xenu|zeal|^NING|CCBot|crawl|htdig|lycos|slurp|teoma|voila|yahoo|Sogou|CiBra|Nutch|^Java/|^JNLP/|Daumoa|Daum|Genieo|ichiro|larbin|pompos|Scrapy|snappy|speedy|spider|msnbot|msrbot|vortex|^vortex|crawler|favicon|indexer|Riddler|scooter|scraper|scrubby|WhatWeb|WinHTTP|bingbot|BingPreview|openbot|gigabot|furlbot|polybot|seekbot|^voyager|archiver|Icarus6j|mogimogi|Netvibes|blitzbot|altavista|charlotte|findlinks|Retreiver|TLSProber|WordPress|SeznamBot|ProoXiBot|wsr\-agent|Squrl Java|EtaoSpider|PaperLiBot|SputnikBot|A6\-Indexer|netresearch|searchsight|baiduspider|YisouSpider|ICC\-Crawler|http%20client|Python-urllib|dataparksearch|converacrawler|Screaming Frog|AppEngine-Google|YahooCacheSystem|fast\-webcrawler|Sogou Pic Spider|semanticdiscovery|Innovazion Crawler|facebookexternalhit|Google.{0,200}/\+/web/snippet|Google-HTTP-Java-Client|BlogBridge|IlTrovatore-Setaccio|InternetArchive|GomezAgent|WebThumbnail|heritrix|NewsGator|PagePeeker|Reaper|ZooShot|holmes|NL-Crawler|Pingdom|StatusCake|WhatsApp|masscan|Google Web Preview|Qwantify|Yeti|OgScrper|RecipeRadar|GPTBot|Google-InspectionTool)'
     regex_flag: 'i'
     device_replacement: 'Spider'
     brand_replacement: 'Spider'

@@ -1,26 +1,23 @@
 use super::log_util;
 use crate::compiler::prelude::*;
 use std::collections::BTreeMap;
-use std::sync::LazyLock;
 
-static DEFAULT_TIMESTAMP_FORMAT: LazyLock<Value> =
-    LazyLock::new(|| Value::Bytes(Bytes::from("%d/%b/%Y:%T %z")));
+static DEFAULT_TIMESTAMP_FORMAT: Value =
+    Value::Bytes(Bytes::from_static("%d/%b/%Y:%T %z".as_bytes()));
 
-static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
-    vec![
-        Parameter::required("value", kind::BYTES, "The string to parse."),
-        Parameter::optional("timestamp_format", kind::BYTES, "The [date/time format](https://docs.rs/chrono/latest/chrono/format/strftime/index.html) to use for
+const PARAMETERS: &[Parameter] = &[
+    Parameter::required("value", kind::BYTES, "The string to parse."),
+    Parameter::optional("timestamp_format", kind::BYTES, "The [date/time format](https://docs.rs/chrono/latest/chrono/format/strftime/index.html) to use for
 encoding the timestamp.")
-            .default(&DEFAULT_TIMESTAMP_FORMAT),
-    ]
-});
+        .default(&DEFAULT_TIMESTAMP_FORMAT),
+];
 
 fn parse_common_log(bytes: &Value, timestamp_format: &Value, ctx: &Context) -> Resolved {
     let message = bytes.try_bytes_utf8_lossy()?;
     let timestamp_format = timestamp_format.try_bytes_utf8_lossy()?.to_string();
 
     log_util::parse_message(
-        &log_util::REGEX_APACHE_COMMON_LOG,
+        log_util::REGEX_APACHE_COMMON_LOG.as_ref(),
         &message,
         &timestamp_format,
         *ctx.timezone(),
@@ -64,7 +61,7 @@ impl Function for ParseCommonLog {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        PARAMETERS.as_slice()
+        PARAMETERS
     }
 
     fn compile(

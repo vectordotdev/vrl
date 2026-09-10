@@ -16,8 +16,7 @@ pub fn parse_ruby_hash(input: &str) -> ExpressionResult<Value> {
     let result = parse_hash(input)
         .map_err(|err| match err {
             nom::Err::Error(err) | nom::Err::Failure(err) => {
-                // Create a descriptive error message if possible.
-                nom_language::error::convert_error(input, err)
+                crate::parsing::safe_convert_error(input, err)
             }
             nom::Err::Incomplete(_) => err.to_string(),
         })

@@ -1,5 +1,6 @@
 use std::fmt;
 
+use crate::compiler::codes;
 use crate::compiler::{
     Context, Expression, Span, TypeDef,
     expression::{ExpressionError, Resolved},
@@ -111,8 +112,8 @@ impl DiagnosticMessage for Error {
         use ErrorVariant::{FallibleExpr, NonString};
 
         match self.variant {
-            FallibleExpr => 631,
-            NonString(_) => 300,
+            FallibleExpr => codes::CompilerCode::FallibleExpr as usize,
+            NonString(_) => codes::ExprCode::NonStringAbortMessage as usize,
         }
     }
 

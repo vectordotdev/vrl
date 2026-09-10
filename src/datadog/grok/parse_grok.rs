@@ -28,7 +28,7 @@ pub enum InternalError {
 pub struct ParsedGrokObject {
     /// Resulting parsed object from the Grok operation.
     pub parsed: Value,
-    /// List of internal errors that were encounted during the parsing.
+    /// List of internal errors that were encountered during the parsing.
     pub internal_errors: Vec<InternalError>,
 }
 
@@ -94,7 +94,7 @@ fn apply_grok_rule(source: &str, grok_rule: &GrokRule) -> Result<ParsedGrokObjec
                             Value::Object(map) if field.is_root() => {
                                 parsed.as_object_mut().expect("root is object").extend(map);
                             }
-                            // anything else at the root leve must be ignored
+                            // anything else at the root level must be ignored
                             _ if field.is_root() => {}
                             // otherwise just apply VRL lookup insert logic
                             _ => match parsed.get(field).cloned() {
@@ -1056,7 +1056,7 @@ mod tests {
                     }
                 })),
             ),
-            // capture all possilbe key-value pairs from the string
+            // capture all possible key-value pairs from the string
             (
                 "%{data::keyvalue}",
                 r#" , key1=value1 "key2"="value2",key3=value3 "#,

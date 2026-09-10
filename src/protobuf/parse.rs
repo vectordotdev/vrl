@@ -81,15 +81,24 @@ pub fn proto_to_value(
                 Value::from(
                     v.iter()
                         .map(|kv| {
+                            // Proto map keys can be any scalar type (bool, int32, int64, uint32,
+                            // uint64, string). VRL's ObjectMap requires string keys, so we convert
+                            // non-string map keys to their decimal string representation.
+                            let key: KeyString = match &kv.0 {
+                                prost_reflect::MapKey::Bool(v) => v.to_string().into(),
+                                prost_reflect::MapKey::I32(v) => v.to_string().into(),
+                                prost_reflect::MapKey::I64(v) => v.to_string().into(),
+                                prost_reflect::MapKey::U32(v) => v.to_string().into(),
+                                prost_reflect::MapKey::U64(v) => v.to_string().into(),
+                                prost_reflect::MapKey::String(v) => v.clone().into(),
+                            };
                             Ok((
-                                kv.0.as_str()
-                                    .ok_or_else(|| {
-                                        format!(
-                                            "Internal error while parsing protobuf map. Field descriptor: {field_descriptor:?}"
-                                        )
-                                    })?
-                                    .into(),
-                                proto_to_value(kv.1, Some(&message_desc.map_entry_value_field()), options)?,
+                                key,
+                                proto_to_value(
+                                    kv.1,
+                                    Some(&message_desc.map_entry_value_field()),
+                                    options,
+                                )?,
                             ))
                         })
                         .collect::<std::result::Result<ObjectMap, String>>()?,

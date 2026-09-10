@@ -2,10 +2,8 @@ use crate::compiler::function::EnumVariant;
 use crate::compiler::prelude::*;
 use crate::value;
 use percent_encoding::{AsciiSet, utf8_percent_encode};
-use std::sync::LazyLock;
 
-static DEFAULT_ASCII_SET: LazyLock<Value> =
-    LazyLock::new(|| Value::Bytes(Bytes::from("NON_ALPHANUMERIC")));
+static DEFAULT_ASCII_SET: Value = Value::Bytes(Bytes::from_static("NON_ALPHANUMERIC".as_bytes()));
 
 static ASCII_SET_ENUM: &[EnumVariant] = &[
     EnumVariant {
@@ -46,18 +44,16 @@ static ASCII_SET_ENUM: &[EnumVariant] = &[
     },
 ];
 
-static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
-    vec![
-        Parameter::required("value", kind::BYTES, "The string to encode."),
-        Parameter::optional(
-            "ascii_set",
-            kind::BYTES,
-            "The ASCII set to use when encoding the data.",
-        )
-        .default(&DEFAULT_ASCII_SET)
-        .enum_variants(ASCII_SET_ENUM),
-    ]
-});
+const PARAMETERS: &[Parameter] = &[
+    Parameter::required("value", kind::BYTES, "The string to encode."),
+    Parameter::optional(
+        "ascii_set",
+        kind::BYTES,
+        "The ASCII set to use when encoding the data.",
+    )
+    .default(&DEFAULT_ASCII_SET)
+    .enum_variants(ASCII_SET_ENUM),
+];
 
 fn encode_percent(value: &Value, ascii_set: &Bytes) -> Resolved {
     let string = value.try_bytes_utf8_lossy()?;
@@ -154,7 +150,7 @@ impl Function for EncodePercent {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        PARAMETERS.as_slice()
+        PARAMETERS
     }
 
     fn compile(

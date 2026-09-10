@@ -22,10 +22,10 @@ impl Kind {
         self.undefined = self.undefined.or(other.undefined);
     }
 
-    fn merge_objects(&mut self, other: Option<Collection<Field>>, overwrite: bool) {
+    fn merge_objects(&mut self, other: Option<Box<Collection<Field>>>, overwrite: bool) {
         match (self.object.as_mut(), other) {
             (None, rhs @ Some(_)) => self.object = rhs,
-            (Some(lhs), Some(rhs)) => lhs.merge(rhs, overwrite),
+            (Some(lhs), Some(rhs)) => lhs.merge(*rhs, overwrite),
             _ => {}
         }
     }
@@ -46,7 +46,7 @@ impl Kind {
 
         match (self.array.as_mut(), other.array) {
             (None, Some(rhs)) => self.array = Some(rhs),
-            (Some(lhs), Some(rhs)) => lhs.merge(rhs, overwrite),
+            (Some(lhs), Some(rhs)) => lhs.merge(*rhs, overwrite),
             _ => {}
         }
     }

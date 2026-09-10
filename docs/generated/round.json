@@ -29,7 +29,7 @@
       "float"
     ],
     "rules": [
-      "If `precision` is `0`, then an integer is returned, otherwise a float is returned."
+      "Returns an integer if `value` is an integer. Returns a float otherwise, regardless of `precision`."
     ]
   },
   "examples": [

@@ -1,8 +1,6 @@
 name: Feature
-type: 'Feature'
+type: "Feature"
 description: 🚀 Suggest a new feature.
-labels:
-  - 'type: feature'
 body:
   - type: markdown
     attributes:
@@ -33,7 +31,6 @@ body:
 
         Please keep this section focused on the problem and not on the suggested
         solution. We'll get to that in a moment, below!
-
 
   - type: textarea
     id: attempted-solutions

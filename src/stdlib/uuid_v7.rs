@@ -1,21 +1,16 @@
 use crate::compiler::prelude::*;
 use bytes::Bytes;
 use chrono::{DateTime, Utc};
-use std::sync::LazyLock;
 use uuid::{NoContext, timestamp::Timestamp};
 
-static DEFAULT_TIMESTAMP: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from("`now()`")));
+static DEFAULT_TIMESTAMP: Value = Value::Bytes(Bytes::from_static("`now()`".as_bytes()));
 
-static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
-    vec![
-        Parameter::optional(
-            "timestamp",
-            kind::TIMESTAMP,
-            "The timestamp used to generate the UUIDv7.",
-        )
-        .default(&DEFAULT_TIMESTAMP),
-    ]
-});
+const PARAMETERS: &[Parameter] = &[Parameter::optional(
+    "timestamp",
+    kind::TIMESTAMP,
+    "The timestamp used to generate the UUIDv7.",
+)
+.default(&DEFAULT_TIMESTAMP)];
 
 #[allow(clippy::cast_sign_loss)] // TODO consider removal options
 fn uuid_v7(timestamp: Option<Value>) -> Resolved {
@@ -61,7 +56,7 @@ impl Function for UuidV7 {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        PARAMETERS.as_slice()
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {

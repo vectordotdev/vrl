@@ -108,7 +108,7 @@ and add a `vdev` command that generates website-ready docs from VRL functions al
       * The website dynamically generates all functions' documentation when it spins up. This will
         likely make the website deployment heavier and more complex than what it is right now.
 
-3. Add JSON documentation genaration logic in VRL so that both repos can utilize it. The
+3. Add JSON documentation generation logic in VRL so that both repos can utilize it. The
    documentation will be dynamically generated based solely on the methods provided by
    the `Function` trait.
 

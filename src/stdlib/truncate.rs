@@ -6,7 +6,7 @@ fn truncate(value: &Value, limit: Value, suffix: &Value) -> Resolved {
     // TODO consider removal options
     #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
     let limit = if limit < 0 { 0 } else { limit as usize };
-    let suffix = suffix.try_bytes_utf8_lossy()?.to_string();
+    let suffix = suffix.try_bytes_utf8_lossy()?;
     let pos = if let Some((pos, chr)) = value.char_indices().take(limit).last() {
         // char_indices gives us the starting position of the character at limit,
         // we want the end position.

@@ -18,7 +18,7 @@
 /// ## Caveats
 /// - **Closures**: Closure support is minimal. For now, we are only ensuring that there are no false positives.
 /// - **Variable Shadowing**: Variable shadowing is not supported. Unused variables will not be detected in this case.
-use crate::compiler::codes::WARNING_UNUSED_CODE;
+use crate::compiler::codes;
 use crate::compiler::parser::{Ident, Node};
 use crate::diagnostic::{Diagnostic, DiagnosticList, Label, Note, Severity};
 use crate::parser::ast::{
@@ -155,7 +155,7 @@ impl VisitorState {
     fn append_diagnostic(&mut self, message: String, span: &Span) {
         self.diagnostics.push(Diagnostic {
             severity: Severity::Warning,
-            code: WARNING_UNUSED_CODE,
+            code: codes::WarningCode::UnusedCode as usize,
             message,
             labels: Vec::from([Label::primary(
                 "help: use the result of this expression or remove it",
@@ -430,7 +430,7 @@ impl AstVisitor<'_> {
 
 #[cfg(test)]
 mod test {
-    use crate::compiler::codes::WARNING_UNUSED_CODE;
+    use crate::compiler::codes;
     use crate::stdlib;
     use indoc::indoc;
 
@@ -443,7 +443,7 @@ mod test {
 
         for (i, content) in expected_warnings.iter().enumerate() {
             let warning = warnings.get(i).unwrap();
-            assert_eq!(warning.code, WARNING_UNUSED_CODE);
+            assert_eq!(warning.code, codes::WarningCode::UnusedCode as usize);
             assert!(
                 warning.message.contains(content),
                 "expected message `{}` to contain `{content}`",

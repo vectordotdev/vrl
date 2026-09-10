@@ -1,21 +1,18 @@
 use crate::compiler::prelude::*;
-use std::sync::LazyLock;
 
-static DEFAULT_VALIDATE: LazyLock<Value> = LazyLock::new(|| Value::Boolean(true));
+static DEFAULT_VALIDATE: Value = Value::Boolean(true);
 
 const PUNYCODE_PREFIX: &str = "xn--";
 
-static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
-    vec![
-        Parameter::required("value", kind::BYTES, "The string to encode."),
-        Parameter::optional(
-            "validate",
-            kind::BOOLEAN,
-            "Whether to validate the input string to check if it is a valid domain name.",
-        )
-        .default(&DEFAULT_VALIDATE),
-    ]
-});
+const PARAMETERS: &[Parameter] = &[
+    Parameter::required("value", kind::BYTES, "The string to encode."),
+    Parameter::optional(
+        "validate",
+        kind::BOOLEAN,
+        "Whether to validate the input string to check if it is a valid domain name.",
+    )
+    .default(&DEFAULT_VALIDATE),
+];
 
 #[derive(Clone, Copy, Debug)]
 pub struct EncodePunycode;
@@ -42,7 +39,7 @@ impl Function for EncodePunycode {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        PARAMETERS.as_slice()
+        PARAMETERS
     }
 
     fn compile(

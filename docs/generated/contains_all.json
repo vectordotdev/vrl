@@ -18,6 +18,9 @@
       "required": true,
       "type": [
         "array"
+      ],
+      "element_type": [
+        "string"
       ]
     },
     {

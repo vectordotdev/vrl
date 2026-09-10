@@ -78,7 +78,7 @@ impl<'a> Iterator for MatchesIter<'a> {
 pub struct Pattern {
     // NOTE this Arc exists solely to satisfy Clone and provide a Sync + Send
     // constraint for calling code in VRL. Theoretically we could remove this
-    // entirely and have it be the responsibilty of the caller to provide for
+    // entirely and have it be the responsibility of the caller to provide for
     // Clone + Sync + Send.
     regex: Arc<Regex>,
     names: BTreeMap<String, usize>,

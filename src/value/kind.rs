@@ -33,8 +33,11 @@ pub struct Kind {
     regex: Option<()>,
     null: Option<()>,
     undefined: Option<()>,
-    array: Option<Collection<Index>>,
-    object: Option<Collection<Field>>,
+    // NOTE: The collections are boxed to keep `Kind` small. Without the indirection, each
+    // collection inlines a `BTreeMap` plus an `Unknown`, making `Kind` large enough to trip
+    // `clippy::result_large_err` when it appears in `Result` error variants.
+    array: Option<Box<Collection<Index>>>,
+    object: Option<Box<Collection<Field>>>,
 }
 
 impl std::fmt::Display for Kind {
@@ -152,10 +155,10 @@ impl Kind {
         let mut output = self.clone();
 
         if let Some(object) = &mut output.object {
-            *object = object.canonicalize();
+            **object = object.canonicalize();
         }
         if let Some(array) = &mut output.array {
-            *array = array.canonicalize();
+            **array = array.canonicalize();
         }
         output
     }

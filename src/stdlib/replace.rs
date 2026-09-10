@@ -1,29 +1,26 @@
 use crate::compiler::prelude::*;
-use std::sync::LazyLock;
 
-static DEFAULT_COUNT: LazyLock<Value> = LazyLock::new(|| Value::Integer(-1));
+static DEFAULT_COUNT: Value = Value::Integer(-1);
 
-static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
-    vec![
-        Parameter::required("value", kind::BYTES, "The original string."),
-        Parameter::required(
-            "pattern",
-            kind::BYTES | kind::REGEX,
-            "Replace all matches of this pattern. Can be a static string or a regular expression.",
-        ),
-        Parameter::required(
-            "with",
-            kind::BYTES,
-            "The string that the matches are replaced with.",
-        ),
-        Parameter::optional(
-            "count",
-            kind::INTEGER,
-            "The maximum number of replacements to perform. `-1` means replace all matches.",
-        )
-        .default(&DEFAULT_COUNT),
-    ]
-});
+const PARAMETERS: &[Parameter] = &[
+    Parameter::required("value", kind::BYTES, "The original string."),
+    Parameter::required(
+        "pattern",
+        kind::BYTES | kind::REGEX,
+        "Replace all matches of this pattern. Can be a static string or a regular expression.",
+    ),
+    Parameter::required(
+        "with",
+        kind::BYTES,
+        "The string that the matches are replaced with.",
+    ),
+    Parameter::optional(
+        "count",
+        kind::INTEGER,
+        "The maximum number of replacements to perform. `-1` means replace all matches.",
+    )
+    .default(&DEFAULT_COUNT),
+];
 
 #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)] // TODO consider removal options
 fn replace(value: &Value, with_value: &Value, count: Value, pattern: Value) -> Resolved {
@@ -96,7 +93,7 @@ impl Function for Replace {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        PARAMETERS.as_slice()
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {

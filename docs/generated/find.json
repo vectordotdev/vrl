@@ -2,7 +2,7 @@
   "anchor": "find",
   "name": "find",
   "category": "String",
-  "description": "Determines from left to right the start position of the first found element in `value` that matches `pattern`. Returns `-1` if not found.",
+  "description": "Determines from left to right the start position of the first found element in `value` that matches `pattern`. Returns null if not found.",
   "arguments": [
     {
       "name": "value",
@@ -33,7 +33,8 @@
   ],
   "return": {
     "types": [
-      "integer"
+      "integer",
+      "null"
     ]
   },
   "examples": [

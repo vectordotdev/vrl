@@ -1,6 +1,6 @@
 # result:
 #
-# error[E300]: non-string abort message
+# error[E113]: non-string abort message
 #   ┌─ :2:7
 #   │
 # 2 │ abort .

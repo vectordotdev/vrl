@@ -146,147 +146,151 @@ impl ValueCollection for Vec<Value> {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::path::parse_value_path;
 
     #[test]
     fn single_field() {
         let mut value = Value::from(ObjectMap::default());
-        let key = "root";
+        let key = parse_value_path("root").unwrap();
         let mut marker = Value::from(true);
-        assert_eq!(value.insert(key, marker.clone()), None);
-        assert_eq!(value.as_object().unwrap()[key], marker);
-        assert_eq!(value.get(key), Some(&marker));
-        assert_eq!(value.get_mut(key), Some(&mut marker));
-        assert_eq!(value.remove(key, false), Some(marker));
+        assert_eq!(value.insert(&key, marker.clone()), None);
+        assert_eq!(value.as_object().unwrap()["root"], marker);
+        assert_eq!(value.get(&key), Some(&marker));
+        assert_eq!(value.get_mut(&key), Some(&mut marker));
+        assert_eq!(value.remove(&key, false), Some(marker));
     }
 
     #[test]
     fn nested_field() {
         let mut value = Value::from(ObjectMap::default());
-        let key = "root.doot";
+        let key = parse_value_path("root.doot").unwrap();
         let mut marker = Value::from(true);
-        assert_eq!(value.insert(key, marker.clone()), None);
+        assert_eq!(value.insert(&key, marker.clone()), None);
         assert_eq!(
             value.as_object().unwrap()["root"].as_object().unwrap()["doot"],
             marker
         );
-        assert_eq!(value.get(key), Some(&marker));
-        assert_eq!(value.get_mut(key), Some(&mut marker));
-        assert_eq!(value.remove(key, false), Some(marker));
+        assert_eq!(value.get(&key), Some(&marker));
+        assert_eq!(value.get_mut(&key), Some(&mut marker));
+        assert_eq!(value.remove(&key, false), Some(marker));
     }
 
     #[test]
     fn double_nested_field() {
         let mut value = Value::from(ObjectMap::default());
-        let key = "root.doot.toot";
+        let key = parse_value_path("root.doot.toot").unwrap();
         let mut marker = Value::from(true);
-        assert_eq!(value.insert(key, marker.clone()), None);
+        assert_eq!(value.insert(&key, marker.clone()), None);
         assert_eq!(
             value.as_object().unwrap()["root"].as_object().unwrap()["doot"]
                 .as_object()
                 .unwrap()["toot"],
             marker
         );
-        assert_eq!(value.get(key), Some(&marker));
-        assert_eq!(value.get_mut(key), Some(&mut marker));
-        assert_eq!(value.remove(key, false), Some(marker));
+        assert_eq!(value.get(&key), Some(&marker));
+        assert_eq!(value.get_mut(&key), Some(&mut marker));
+        assert_eq!(value.remove(&key, false), Some(marker));
     }
 
     #[test]
     fn single_index() {
         let mut value = Value::from(Vec::<Value>::default());
-        let key = "[0]";
+        let key = parse_value_path("[0]").unwrap();
         let mut marker = Value::from(true);
-        assert_eq!(value.insert(key, marker.clone()), None);
+        assert_eq!(value.insert(&key, marker.clone()), None);
         assert_eq!(value.as_array_unwrap()[0], marker);
-        assert_eq!(value.get(key), Some(&marker));
-        assert_eq!(value.get_mut(key), Some(&mut marker));
-        assert_eq!(value.remove(key, false), Some(marker));
+        assert_eq!(value.get(&key), Some(&marker));
+        assert_eq!(value.get_mut(&key), Some(&mut marker));
+        assert_eq!(value.remove(&key, false), Some(marker));
     }
 
     #[test]
     fn nested_index() {
         let mut value = Value::from(Vec::<Value>::default());
-        let key = "[0][0]";
+        let key = parse_value_path("[0][0]").unwrap();
         let mut marker = Value::from(true);
-        assert_eq!(value.insert(key, marker.clone()), None);
+        assert_eq!(value.insert(&key, marker.clone()), None);
         assert_eq!(value.as_array_unwrap()[0].as_array_unwrap()[0], marker);
-        assert_eq!(value.get(key), Some(&marker));
-        assert_eq!(value.get_mut(key), Some(&mut marker));
-        assert_eq!(value.remove(key, false), Some(marker));
+        assert_eq!(value.get(&key), Some(&marker));
+        assert_eq!(value.get_mut(&key), Some(&mut marker));
+        assert_eq!(value.remove(&key, false), Some(marker));
     }
 
     #[test]
     fn field_index() {
         let mut value = Value::from(ObjectMap::default());
-        let key = "root[0]";
+        let key = parse_value_path("root[0]").unwrap();
         let mut marker = Value::from(true);
-        assert_eq!(value.insert(key, marker.clone()), None);
+        assert_eq!(value.insert(&key, marker.clone()), None);
         assert_eq!(
             value.as_object().unwrap()["root"].as_array_unwrap()[0],
             marker
         );
-        assert_eq!(value.get(key), Some(&marker));
-        assert_eq!(value.get_mut(key), Some(&mut marker));
-        assert_eq!(value.remove(key, false), Some(marker));
+        assert_eq!(value.get(&key), Some(&marker));
+        assert_eq!(value.get_mut(&key), Some(&mut marker));
+        assert_eq!(value.remove(&key, false), Some(marker));
     }
 
     #[test]
     fn index_field() {
         let mut value = Value::from(Vec::<Value>::default());
-        let key = "[0].boot";
+        let key = parse_value_path("[0].boot").unwrap();
         let mut marker = Value::from(true);
-        assert_eq!(value.insert(key, marker.clone()), None);
+        assert_eq!(value.insert(&key, marker.clone()), None);
         assert_eq!(
             value.as_array_unwrap()[0].as_object().unwrap()["boot"],
             marker
         );
-        assert_eq!(value.get(key), Some(&marker));
-        assert_eq!(value.get_mut(key), Some(&mut marker));
-        assert_eq!(value.remove(key, false), Some(marker));
+        assert_eq!(value.get(&key), Some(&marker));
+        assert_eq!(value.get_mut(&key), Some(&mut marker));
+        assert_eq!(value.remove(&key, false), Some(marker));
     }
 
     #[test]
     fn nested_index_field() {
         let mut value = Value::from(Vec::<Value>::default());
-        let key = "[0][0].boot";
+        let key = parse_value_path("[0][0].boot").unwrap();
         let mut marker = Value::from(true);
-        assert_eq!(value.insert(key, marker.clone()), None);
+        assert_eq!(value.insert(&key, marker.clone()), None);
         assert_eq!(
             value.as_array_unwrap()[0].as_array_unwrap()[0]
                 .as_object()
                 .unwrap()["boot"],
             marker
         );
-        assert_eq!(value.get(key), Some(&marker));
-        assert_eq!(value.get_mut(key), Some(&mut marker));
-        assert_eq!(value.remove(key, false), Some(marker));
+        assert_eq!(value.get(&key), Some(&marker));
+        assert_eq!(value.get_mut(&key), Some(&mut marker));
+        assert_eq!(value.remove(&key, false), Some(marker));
     }
 
     #[test]
     fn field_with_nested_index_field() {
         let mut value = Value::from(ObjectMap::default());
-        let key = "root[0][0].boot";
+        let key = parse_value_path("root[0][0].boot").unwrap();
         let mut marker = Value::from(true);
-        assert_eq!(value.insert(key, marker.clone()), None);
+        assert_eq!(value.insert(&key, marker.clone()), None);
         assert_eq!(
             value.as_object().unwrap()["root"].as_array_unwrap()[0].as_array_unwrap()[0]
                 .as_object()
                 .unwrap()["boot"],
             marker
         );
-        assert_eq!(value.get(key), Some(&marker));
-        assert_eq!(value.get_mut(key), Some(&mut marker));
-        assert_eq!(value.remove(key, false), Some(marker));
+        assert_eq!(value.get(&key), Some(&marker));
+        assert_eq!(value.get_mut(&key), Some(&mut marker));
+        assert_eq!(value.remove(&key, false), Some(marker));
     }
 
     #[test]
     fn populated_field() {
         let mut value = Value::from(ObjectMap::default());
         let marker = Value::from(true);
-        assert_eq!(value.insert("a[2]", marker.clone()), None);
+        assert_eq!(
+            value.insert(&parse_value_path("a[2]").unwrap(), marker.clone()),
+            None
+        );
 
-        let key = "a[0]";
-        assert_eq!(value.insert(key, marker.clone()), Some(Value::Null));
+        let key = parse_value_path("a[0]").unwrap();
+        assert_eq!(value.insert(&key, marker.clone()), Some(Value::Null));
 
         assert_eq!(value.as_object().unwrap()["a"].as_array_unwrap().len(), 3);
         assert_eq!(value.as_object().unwrap()["a"].as_array_unwrap()[0], marker);
@@ -298,7 +302,7 @@ mod test {
 
         // Replace the value at 0.
         let marker = Value::from(false);
-        assert_eq!(value.insert(key, marker.clone()), Some(Value::from(true)));
+        assert_eq!(value.insert(&key, marker.clone()), Some(Value::from(true)));
         assert_eq!(value.as_object().unwrap()["a"].as_array_unwrap()[0], marker);
     }
 }
