@@ -57,6 +57,7 @@ Construction routing:
 - `From<Bytes>` and the byte-slice `From`s keep producing `Value::Bytes`. Callers holding UTF-8 `Bytes` opt in by wrapping a `ByteString`, or via the infallible `Value::from_utf8_or_bytes` constructor (valid UTF-8 → `String`, otherwise `Bytes`; zero-copy either way).
 - VRL string and template-string literals (UTF-8 by the lexer) construct `Value::String`.
 - Serde honors the source format: string visitors → `Value::String`; byte visitors → `Value::Bytes`.
+- `Value` expression round-trips preserve the variant: raw `Bytes` must not be promoted to `String`.
 
 String concat (arithmetic `+` and `Value::merge`): `String + String` → `String`; any mixed pair → `Bytes`. String repeat preserves the operand's variant. Comparisons are byte-wise across variants. Display of `Value::String` is byte-identical to Display of valid-UTF-8 `Value::Bytes`.
 
@@ -124,7 +125,7 @@ Output `TypeDef` tightening is optional and incremental: class 1 outputs become 
 
 `string!` remains a bytes-tag check, not a UTF-8 validator: it stays infallible when the input `is_bytes()` (both variants, including unrefined `Kind::bytes()`), and a bytes passthrough stays `Kind::bytes()`. `to_string` keeps its existing array/object/regex fallibility rule; its bytes passthrough stays unrefined, while paths that construct UTF-8 or passthrough an `is_only_string()` input may tighten to `Kind::string()`. Operations that actually require a UTF-8 witness are infallible only when the input `is_only_string()` -- `contains_string()` is too permissive (`Kind::string() | Kind::null()` keeps the refinement but still errors on null).
 
-**Backwards compatibility.** Zero source changes for VRL programs or external Rust consumers -- `is_bytes()` is the linchpin. The Phase A variant-addition cost is already paid. Test fixtures are *not* automatically compatible: `Kind::PartialEq` is structural, so a refined-string `TypeDef` will not equal `Kind::bytes()`. The test framework needs a way to write `Kind::string()` in fixtures; each output tightening is paired with its fixture update; untightened functions keep existing fixtures.
+**Backwards compatibility.** No VRL-language source changes -- `is_bytes()` is the linchpin. The Phase A variant-addition cost is already paid. `Kind::PartialEq` is structural, so a refined-string kind will not compare equal to `Kind::bytes()`: that hits test fixtures (`vrl_test_framework` needs a way to write `Kind::string()`; each output tightening is paired with its fixture update; untightened functions keep existing fixtures) and any external consumer that compares `Kind` values or keys collections by `Kind` rather than `is_bytes()`.
 
 ## Alternatives
 
