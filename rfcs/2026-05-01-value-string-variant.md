@@ -22,7 +22,7 @@ The [`bytestring`](https://crates.io/crates/bytestring) crate provides a `ByteSt
 2. Preserve VRL `==` semantics: `Value::Bytes(b"foo") == Value::String("foo".into())` continues to hold (and they hash identically), so user programs see no behavior change at the equality layer.
 3. Allow incremental adoption: each phase compiles standalone, tests pass at every phase boundary, and downstream consumers (notably Vector) can absorb the change without coordinated rollouts.
 4. Ultimately let the type system prove "this kind has a UTF-8 witness" so `string!` / `to_string` and similar coercions can be infallible on values where the proof is available.
-5. Preserve VRL program-level semantics: at the runtime/value level, byte-equal values remain `==`/`Hash`-equivalent regardless of variant, and the `is_bytes()` accessor on `Value` continues to admit both variants. Phase A is *not* a free lunch for downstream Rust consumers, however: it is both a source break for exhaustive matches over `Value` (must add a `Value::String(_)` arm) *and* a silent-semantic break for any code that inspects the variant non-exhaustively (`if let Value::Bytes(_) = ...`, `matches!(..., Value::Bytes(_))`, custom predicates that pattern-match the variant) -- such code keeps compiling but starts skipping every value that arrived as `Value::String`. The Phase A migration story for downstream crates therefore includes both a compile-time arm-addition pass and a hand audit of every `Value::Bytes` pattern occurrence; the RFC documents this explicitly in Phase A.
+5. Preserve VRL program-level semantics: at the runtime/value level, byte-equal values remain `==`/`Hash`-equivalent regardless of variant, and the `is_bytes()` accessor on `Value` continues to admit both variants. Downstream Rust source-and-silent breaks from adding the variant are documented in Phase A.
 
 ## Out of scope
 
@@ -30,7 +30,7 @@ The [`bytestring`](https://crates.io/crates/bytestring) crate provides a `ByteSt
 2. **Automatic UTF-8 promotion at runtime.** This RFC never silently validates `Value::Bytes` content to opportunistically promote it to `Value::String`. Promotion is always explicit (Phase A `From<&str>` redirections and the new `Value::from_utf8_or_bytes` constructor, Phase B producer migrations).
 3. **VRL surface-language type syntax changes.** The user-visible "string" type label is preserved.
 4. **Performance benchmarking and tuning.** This RFC focuses on correctness and code structure. Benchmarks that quantify the win from skipping UTF-8 validation are future work.
-5. **External consumer (Vector) coordination beyond Phase A's downstream audit.** When downstream crates (notably Vector) bump to the VRL release that includes Phase A, they must (a) add a `Value::String(_)` arm to every exhaustive match over `Value` (compile-time error caught by the compiler) and (b) audit every non-exhaustive variant check (`if let Value::Bytes(_)`, `matches!(_, Value::Bytes(_))`, custom predicates) and decide whether each one should accept the new variant too (silent at compile time -- this audit is on the consumer). Running the audit and fixing the resulting matches is left to each consumer. Deeper Vector integration (e.g. emitting `Value::String` from Vector source code) is left to a follow-up.
+5. **External consumer (Vector) coordination beyond Phase A's downstream audit.** Running that audit and fixing matches is left to each consumer. Deeper Vector integration (e.g. emitting `Value::String` from Vector source code) is left to a follow-up.
 
 ## Proposal
 
@@ -49,123 +49,48 @@ Phase A delivers the new variant and threads UTF-8 sources to it; both variants 
 
 Phase A delivers the new variant end-to-end so the codebase compiles and tests pass with `Value::String` populated by the natural UTF-8 sources. No `Kind` changes; both variants map to `Kind::bytes()`.
 
-Adding a variant to `Value` (a public enum without `#[non_exhaustive]`, see [src/value/value.rs](../src/value/value.rs)) breaks downstream consumers in two ways: a compile-time error at exhaustive matches, and a silent semantic regression at non-exhaustive variant checks (`if let`, `matches!`, ad-hoc predicates). Phase A also needs an internal audit of every place in this crate that special-cases `Value::Bytes` so the new variant is handled identically. Both audits are enumerated in the [Phase A audit appendix](#phase-a-audit-appendix) at the end of this section. Behavior on every existing runtime `Value` value is preserved by the custom `PartialEq`/`Hash`, and the chokepoint helpers in `vrl::compiler` continue to accept the legacy variant unchanged.
+The new variant is `Value::String(bytestring::ByteString)`. Custom `PartialEq` / `Eq` / `Hash` / `PartialOrd` treat `Bytes` and `String` of equal byte content as equal, identically hashed, and ordered by content -- not by discriminant. All other variants keep their current behavior.
 
-Most of the work in this crate is mechanical: add `Value::String(_)` arms to the exhaustive matches in [src/value/](../src/value/) and [src/compiler/](../src/compiler/); teach string-extracting helpers (`is_bytes`, `as_bytes`, `as_str`, `encode_as_bytes`, `coerce_to_bytes`, `to_string_lossy`) to accept either arm; and audit CRUD code in [src/value/value/crud/](../src/value/value/crud/) (mostly variant-agnostic).
+Construction routing:
 
-The non-obvious specifications follow.
+- `From<&str>`, `From<String>`, `From<Cow<'_, str>>`, `From<KeyString>`, and `From<ByteString>` produce `Value::String`.
+- `From<Bytes>` and the byte-slice `From`s keep producing `Value::Bytes`. Callers holding UTF-8 `Bytes` opt in by wrapping a `ByteString`, or via the infallible `Value::from_utf8_or_bytes` constructor (valid UTF-8 → `String`, otherwise `Bytes`; zero-copy either way).
+- VRL string and template-string literals (UTF-8 by the lexer) construct `Value::String`.
+- Serde honors the source format: string visitors → `Value::String`; byte visitors → `Value::Bytes`.
 
-The new variant in [src/value/value.rs](../src/value/value.rs):
+String concat: `String + String` → `String`; any mixed pair → `Bytes`. String repeat preserves the operand's variant. Comparisons are byte-wise across variants. Display of `Value::String` is byte-identical to Display of valid-UTF-8 `Value::Bytes`.
 
-```rust
-/// UTF-8 string (guaranteed valid).
-String(bytestring::ByteString),
-```
+**Backwards compatibility.** VRL programs see no behavior change: `==` still holds across origins, `is_bytes()` on `Value` admits both variants, and `"foo" + null` still concatenates. Chokepoint helpers (`try_bytes`, `is_bytes`, and the other string-extracting accessors) accept either variant, so stdlib callers that already go through them keep working.
 
-Drop the derived `PartialEq`/`Eq`/`Hash` and implement them manually so `Bytes` and `String` of equal byte content compare equal and hash identically. All other variants retain the behavior of the current derived impls.
+Adding a variant to `Value` (a public enum without `#[non_exhaustive]`) is not free for downstream Rust consumers. It is a compile-time break at exhaustive `match`, and a silent semantic break at non-exhaustive checks (`if let Value::Bytes(_)`, `matches!(..., Value::Bytes(_))`, ad-hoc predicates): those keep compiling but skip every value that arrived as `Value::String`, which after Phase A includes most VRL literals, JSON strings, and parser outputs. Consumers must add `Value::String` arms *and* audit every non-exhaustive `Value::Bytes` check -- either switch to an accessor that already accepts both variants, or add a sibling arm.
 
-```rust
-impl PartialEq for Value {
-    fn eq(&self, other: &Self) -> bool {
-        match (self, other) {
-            (Self::Bytes(a), Self::Bytes(b)) => a == b,
-            (Self::String(a), Self::String(b)) => a == b,
-            (Self::Bytes(a), Self::String(b)) | (Self::String(b), Self::Bytes(a)) => {
-                a.as_ref() == b.as_bytes()
-            }
-            // all other variants: compare the discriminant, then the inner value
-            ...
-        }
-    }
-}
-```
+**Compatibility hazards** (missing one breaks tests or silently changes behavior):
 
-`Hash` must give `Value::Bytes` and `Value::String` the same hash for byte-equal content; the other variants retain their current (derived) behavior. The simplest implementation hashes the same discriminant byte for both string-y variants and delegates to the derived discriminant scheme for the rest:
+1. Stdlib functions that match `Value::Bytes` directly (not via `try_bytes`) -- e.g. `string!` and `length` -- must accept `Value::String` too, or `string!("x")` / `length("x")` start erroring once literals route to the new variant.
+2. Display must keep escaping `\`, `"`, and newlines; writing the contained `&str` raw would fail snapshot tests.
+3. Arithmetic special cases that treat `Bytes + Null` / `Null + Bytes` as no-op concat need the same behavior for `String`.
+4. Downstream exhaustive matches (compiler-caught) and non-exhaustive variant checks (not compiler-caught), as above.
 
-```rust
-impl Hash for Value {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        match self {
-            // Bytes and String share a discriminant byte and hash their
-            // contained bytes directly, so byte-equal values hash identically.
-            Self::Bytes(b)  => { 0u8.hash(state); b.as_ref().hash(state); }
-            Self::String(s) => { 0u8.hash(state); s.as_bytes().hash(state); }
-            // Every other variant: hash std::mem::discriminant + inner value,
-            // matching what derive(Hash) produced before.
-            other => {
-                std::mem::discriminant(other).hash(state);
-                match other { ... }
-            }
-        }
-    }
-}
-```
-
-`PartialOrd::partial_cmp` likewise compares `Bytes` and `String` by byte content -- it must not short-circuit on discriminant for that pair.
-
-`From<&str>`, `From<String>`, `From<Cow<'_, str>>`, `From<KeyString>`, and a new `From<ByteString>` produce `Value::String`. `From<Bytes>`, `From<&[u8]>`, `From<[u8; N]>`, and `From<&[u8; N]>` keep producing `Value::Bytes` (callers who hold a `Bytes` known to be UTF-8 must construct a `ByteString` themselves to opt into the new variant). For the case where the caller has a `Bytes` and wants to opportunistically promote it, add an infallible constructor `Value::from_utf8_or_bytes(b: Bytes) -> Value`: if the bytes are valid UTF-8 the result is `Value::String`, otherwise `Value::Bytes`. The caller never has to handle an error and never re-allocates -- the validation either succeeds (the `Bytes` is moved into the new `ByteString` zero-copy) or the original `Bytes` is wrapped in `Value::Bytes` directly.
-
-`From<&Value> for Kind` maps the new variant to `Kind::bytes()` -- no new `Kind` flag in Phase A.
-
-`Value::merge` and `try_add` (string concat) follow the rule `String + String` -> `String`, any mixed string-y pair (`Bytes + String` or `String + Bytes`) -> `Bytes`. `try_mul` (string repeat) preserves the operand's variant. Comparisons (`try_gt`/`ge`/`lt`/`le`, `eq_lossy`) compare byte-wise across variants. The existing `Bytes`-special-cased arms in [src/compiler/value/arithmetic.rs](../src/compiler/value/arithmetic.rs) (notably the `Bytes + Null` / `Null + Bytes` no-op concat arms) need sibling `String` arms; see the [Phase A audit appendix](#phase-a-audit-appendix). The `is_bytes() && is_bytes() => infallible` invariant in [src/compiler/expression/op.rs](../src/compiler/expression/op.rs) is preserved because `is_bytes()` returns true for both variants.
-
-Update `VrlValueConvert::try_bytes` and `try_bytes_utf8_lossy` in [src/compiler/value/convert.rs](../src/compiler/value/convert.rs) to extract `&[u8]` from either variant:
-
-```rust
-fn try_bytes(self) -> Result<Bytes, ValueError> {
-    match self {
-        Value::Bytes(b) => Ok(b),
-        Value::String(s) => Ok(s.into_bytes()),
-        v => Err(...),
-    }
-}
-```
-
-This update covers every stdlib function that already extracts bytes via `try_bytes`. Functions that match `Value::Bytes(_)` directly need separate per-function arm additions; see the [Phase A audit appendix](#phase-a-audit-appendix).
-
-Change `expression::Literal::String` in [src/compiler/expression/literal.rs](../src/compiler/expression/literal.rs) to wrap `ByteString` instead of `Bytes`, and update `compile_literal` in [src/compiler/compiler.rs](../src/compiler/compiler.rs) to construct `ByteString::from(s)` from the lexer's UTF-8-guaranteed string and template-string literals.
-
-`Value::String`'s `Display` arm produces output byte-identical to the `Bytes` arm when the bytes are valid UTF-8, so snapshot tests round-trip cleanly across the variant migration. See the [Phase A audit appendix](#phase-a-audit-appendix) for the helper-extraction prescription that makes this hold.
-
-Serde routing honors the source format's distinction: `visit_str` / `visit_string` / `visit_borrowed_str` -> `Value::String`; `visit_bytes` / `visit_byte_buf` -> `Value::Bytes` (CBOR/MessagePack distinguish, honor the source); `serde_json::Value::String` -> `Value::String`; `Value::String` serializes via `serialize_str`.
-
-The quickcheck/proptest `Arbitrary` impl produces both variants randomly: random UTF-8 strings -> `Value::String`, random byte arrays -> `Value::Bytes`.
-
-#### Phase A audit appendix
-
-The design above implies a set of specific call-site updates beyond the mechanical exhaustive-match arms. Each item below is a known hazard surfaced during RFC review of the current source; missing one would either break tests or produce a silent semantic regression. The audit splits into items the Phase A PR must include and items each downstream consumer crate handles when bumping the VRL dependency.
-
-In the Phase A PR:
-
-1. *Stdlib direct-match audit.* Stdlib functions that destructure `Value::Bytes(_)` directly without going through `try_bytes` (known examples: [src/stdlib/string.rs](../src/stdlib/string.rs) -- `string` / `string!`, [src/stdlib/length.rs](../src/stdlib/length.rs) -- `length`) need a sibling `Value::String(s) => ...` arm or a rewrite that uses a chokepoint helper. Without this, basic calls like `string!("x")` and `length("x")` start erroring at runtime once literals route to `Value::String`. Audit query: `rg "Value::Bytes\(" src/stdlib/`.
-2. *`Display` escape helper.* The existing `Bytes` arm at [src/value/value/display.rs](../src/value/value/display.rs) escapes `\\`, `"`, and `\n` before wrapping in `"`. Factor that escape-and-quote logic into a helper taking `&str` and call it from both arms; the `String` arm's only divergence from `Bytes` is skipping the leading `String::from_utf8_lossy`. Writing the contained `&str` raw would silently fail tests like `test_display_string_with_newlines` for any value containing backslashes, quotes, or newlines.
-3. *Arithmetic special-case sweep.* [src/compiler/value/arithmetic.rs](../src/compiler/value/arithmetic.rs) has arms that special-case `Value::Bytes` non-symmetrically -- notably `(Bytes, Null) -> Bytes` and `(Null, Bytes) -> Bytes` in `try_add`, which treat null as an empty-string no-op for concat. Add sibling `String + Null` / `Null + String` arms with the same behavior. Without them, `"foo" + null` (a common idiom and present in existing tests) starts erroring at runtime. Audit query: `rg "Value::Bytes" src/compiler/value/arithmetic.rs`; review each match for whether a `Value::String` sibling is needed.
-
-For each downstream consumer crate (notably Vector), at the time of the VRL dependency bump:
-
-4. *Exhaustive `match` over `Value`.* Every exhaustive match must add a `Value::String(_)` arm. The Rust compiler catches these for the consumer.
-5. *Non-exhaustive variant checks.* `if let Value::Bytes(_) = v`, `matches!(v, Value::Bytes(_))`, ad-hoc predicates, deserialize/conversion dispatch -- the compiler does *not* catch these, but they silently start excluding values that arrived as `Value::String`, which after Phase A includes most VRL string literals, JSON string fields, parser outputs, and the rest of Phase B's migrated producers. Audit query: `rg "Value::Bytes\b"` in each consuming crate. For each occurrence, decide either:
-   - replace the variant pattern with the relevant accessor on `Value` (`is_bytes()`, `as_bytes()`, `as_str()`, `try_bytes()`, etc.), all of which already accept either runtime variant, or
-   - add a sibling `Value::String(_)` arm that does the same thing the `Value::Bytes(_)` arm does.
-
-The VRL changelog for the Phase A release ships this appendix's guidance with worked examples drawn from Vector.
+The VRL changelog for the Phase A release ships this guidance with worked examples drawn from Vector.
 
 ### Phase B -- Migrate UTF-8 producers to `Value::String` (incremental)
 
-Inputs across the codebase already accept both variants by the time Phase B starts: Phase A's combination of the `try_bytes` chokepoint update and the direct-match audit ensures every VRL function tolerates `Value::String` input. This phase is purely about tightening output construction sites. The work is incremental: each producer (or small group) can land as its own PR, and the phase can stop at any point if priorities shift -- the variant remains correct and unmigrated producers continue to emit `Value::Bytes`.
+By Phase B, every VRL function already accepts `Value::String` input. This phase only tightens output construction. It is incremental: each producer can land as its own PR, and the phase can stop at any point as unmigrated producers keep emitting `Value::Bytes`.
 
-The migration is per-function. The audit triages each function that today constructs `Value::Bytes` (or constructs `Value::Bytes` values inside an aggregate output) into one of four classes:
+Triage each function that constructs `Value::Bytes` into one of four classes:
 
-1. *Top-level UTF-8 string producers.* Functions whose top-level output is a `Value::Bytes` whose bytes are guaranteed UTF-8 by construction. These migrate to emit `Value::String`. Typical members: pure string-transformation functions (case folding, slicing, replacement, padding/trimming), top-level-text decoders, and ASCII textual encoders (hex/base/UUID, hash digests that are explicitly text-encoded before the `Value` is constructed).
-2. *Aggregate containers with UTF-8 string elements.* Functions returning `Value::Array` or `Value::Object` whose contained string elements are UTF-8 by construction. The function's top-level kind doesn't change; each per-element/per-field string construction site migrates to `Value::String`. Typical members: string-splitting functions, structured-log parsers that pre-validate UTF-8.
-3. *Raw-bytes producers.* Functions whose output is arbitrary bytes that are not guaranteed UTF-8. These stay on `Value::Bytes`. Typical members: cryptographic / MAC output, random-bytes generation, raw compression output, binary decoders (including base64, which decodes to arbitrary bytes), parsers that pass input bytes through unvalidated.
-4. *Mixed / non-string output.* Functions whose return type is a union (e.g. integer or string depending on parameters), or whose output is not a string at all (integer / timestamp / object / etc.). The function's overall `TypeDef` stays as-is. If specific construction sites within the function demonstrably build UTF-8 strings, those individual sites can migrate to `Value::String`, but the function's declared output kind must not tighten -- doing so would break existing type expectations.
+1. *Top-level UTF-8 string producers.* Output is guaranteed UTF-8 by construction (case folding, slicing, hex/base/UUID, text-encoded hashes). Migrate to `Value::String`.
+2. *Aggregate containers with UTF-8 string elements.* Arrays/objects whose contained strings are UTF-8 by construction. Top-level kind unchanged; per-element construction migrates.
+3. *Raw-bytes producers.* Arbitrary bytes, not guaranteed UTF-8 (crypto, random bytes, compression, binary decode including base64, unvalidated passthrough). Stay on `Value::Bytes`.
+4. *Mixed / non-string output.* Union return types or non-string output. The declared `TypeDef` stays as-is; individual UTF-8 construction sites may migrate.
 
-The class boundary is "is this output's bytes guaranteed UTF-8 right now, before we change anything?" -- answered by inspecting the function's source. Use of byte-level processing (raw digest output, byte-level record readers, untransformed input passthrough) puts a function in class 3. Output constructed from `to_string()` on a number, `hex::encode`, or similarly UTF-8-by-construction calls is class 1 (or class 2 within an aggregate). Migration is opt-in per function; nothing migrates without per-function verification, and any function whose triage is uncertain stays in its current variant until verified.
+The class boundary is "is this output guaranteed UTF-8 *today*, before we change anything?" Uncertain functions stay on `Value::Bytes` until verified.
+
+**Backwards compatibility.** No public-API changes and no VRL-language changes. Runtime `==` continues to cross variants, so migrating a producer does not change user-visible equality.
 
 ### Phase C -- `Kind::string` as a refinement of `Kind::bytes`
 
-Phases A-B left both variants sharing `Kind::bytes()`. Phase C adds a `string` flag to `Kind` that acts as a refinement guarantee -- "this kind has a UTF-8 witness" -- without removing the `bytes` flag. The set of values described by `Kind::string` is a subset of those described by `Kind::bytes`:
+Phases A-B left both variants sharing `Kind::bytes()`. Phase C adds a `string` flag that means "this kind has a UTF-8 witness" without removing `bytes`. `Kind::string` is a subset of `Kind::bytes`:
 
 ```mermaid
 flowchart LR
@@ -177,51 +102,29 @@ flowchart LR
   end
 ```
 
-The new flag in [src/value/kind.rs](../src/value/kind.rs):
+The refinement invariant: `string` implies `bytes`. `Kind::string()` sets both flags; `From<&Value> for Kind` maps `Value::String` → `Kind::string()` and `Value::Bytes` → `Kind::bytes()`. Existing `is_bytes()` / `contains_bytes()` keep their meaning -- they check the `bytes` flag -- so existing call sites and the concat-infallibility check continue to work. New predicates: `contains_string()` (the flag is set) and `is_only_string()` (the kind is exactly the refined string).
 
-```rust
-pub struct Kind {
-    bytes: Option<()>,
-    string: Option<()>,   // NEW: refinement; string=Some implies bytes=Some
-    integer: Option<()>,
-    ...
-}
-```
+User-facing `Display` still renders `"string"` for both refined and unrefined kinds. The refinement may surface in `Debug`.
 
-The refinement invariant -- `string=Some` implies `bytes=Some` -- is enforced by `canonicalize`: if `output.string.is_some()`, ensure `output.bytes = Some(())`. Every `Kind` flowing through canonicalization satisfies the invariant unconditionally; constructors and mutators (`Kind::string()`, `add_string`, `or_string`, `remove_bytes`) maintain it directly.
-
-The `Kind::string()` constructor sets both flags; `From<&Value> for Kind` now maps `Value::String(_)` to `Kind::string()` and `Value::Bytes(_)` to `Kind::bytes()`. The existing `is_bytes()` / `contains_bytes()` predicates keep their meaning unchanged -- they check the `bytes` flag, which is set for both unrefined-bytes kinds and refined-string kinds -- so the dozens of existing call sites and the `is_bytes() && is_bytes() => infallible` invariant in [src/compiler/expression/op.rs](../src/compiler/expression/op.rs) continue to work without modification. Two new predicates land for code that wants to prove UTF-8: `contains_string()` (true iff `self.string.is_some()`) and `is_only_string()` (true iff the kind is exactly the refined-string kind).
-
-The user-visible label remains `"string"` in `Display` -- refined and unrefined kinds render identically (the user already calls both "string" today). The refinement may surface in `Debug` output (e.g. `"bytes (utf8)"`).
-
-Merging two kinds preserves the existing OR semantics for the `bytes` flag (and for every other base flag): `Kind::bytes() | Kind::null()` keeps the `bytes` flag, `Kind::string() | Kind::null()` keeps both `bytes` and `string` flags (so an optional refined-string remains a refined-string -- the null branch contributes no string-y values and so cannot dilute the witness), and so on. The refinement is dropped only when *both* sides could produce string-y values and at least one side is unrefined: `Kind::bytes() | Kind::string()` produces a kind with `bytes` set but `string` cleared, because the `bytes`-only branch could yield a `Value::Bytes` we have no UTF-8 witness for. Concretely:
+Merge preserves OR for `bytes`. The refinement is dropped only when *both* sides could produce string-y values and at least one is unrefined:
 
 ```
-merged.bytes  = a.bytes  || b.bytes      // OR, as today
+merged.bytes  = a.bytes  || b.bytes
 merged.string = match (a.bytes, b.bytes) {
-    (None,    None)    => None,          // neither branch is string-y; nothing to refine
+    (None,    None)    => None,          // neither branch is string-y
     (Some(_), None)    => a.string,      // only a is string-y; preserve a's refinement
     (None,    Some(_)) => b.string,      // only b is string-y; preserve b's refinement
     (Some(_), Some(_)) => a.string && b.string,  // both string-y; survive only if both refined
 }
 ```
 
-The same rule applies to any other refinement flag added in the future: a refinement survives a merge iff every branch that contributes to the base flag also carries the refinement.
+A refinement survives a merge iff every branch that contributes to the base flag also carries the refinement. String concat follows the same rule: both `is_only_string()` → `Kind::string()`; any other string-like combination → `Kind::bytes()`. Repeat preserves the operand's refinement. Comparisons still require only `is_bytes()`.
 
-The result type of string concat (`+`) follows the same rule: both operands `is_only_string()` -> `Kind::string()` (refinement preserved); any other string-like combination -> `Kind::bytes()` (refinement dropped, matching the Phase A runtime rule). `try_mul` (string repeat) preserves the operand's refinement. Comparisons (`<`, `>`, `<=`, `>=`) require only `is_bytes()` and are unaffected.
+Stdlib output `TypeDef` tightening is optional and incremental: class 1 outputs become `Kind::string()`; class 2 tightens contained string kinds; classes 3–4 unchanged. Inputs need no change because `is_bytes()` still admits both.
 
-Stdlib output `TypeDef` polish is optional and incremental, and overlaps with Phase B's runtime migrations: it tightens the same functions to declared `Kind::string()`. Class 1 functions (top-level UTF-8 producers) tighten their top-level output from `Kind::bytes()` to `Kind::string()`. Class 2 functions (aggregate containers) keep their top-level kind (`array` / `object`) and tighten the contained string `Kind` from `bytes` to `string`. Classes 3 and 4 get no `TypeDef` change. Inputs require no change because `is_bytes()` still admits both variants.
+`string!` (and other UTF-8-witness coercions) become infallible only when the input `is_only_string()`. `contains_string()` is too permissive: `Kind::string() | Kind::null()` keeps the refinement (null contributes no string-y values) but `string!` still errors on null. The fallible form's output type is `Kind::string()`, so one call promotes the rest of the flow. No other function's fallibility changes; `to_string` keeps its existing array/object/regex rule. Tightening `to_string`'s output `TypeDef` to `Kind::string()` is opt-in polish.
 
-Tightened outputs unlock the fallibility wins. `string!` (in [src/stdlib/string.rs](../src/stdlib/string.rs)) and any other coercion that today does runtime UTF-8 validation become infallible only when the input `is_only_string()` -- i.e., the kind is exactly the refined-string kind with no other variants admitted -- and stay fallible otherwise. `contains_string()` is too permissive: a kind like `Kind::string() | Kind::null()` retains the `string` refinement under the merge rule (the null branch contributes no string-y values and so cannot dilute the witness), but `string!` on that kind would still error at runtime when the value happens to be null. The predicate must therefore reject any kind that admits a non-string variant. The fallible form's output type is `Kind::string()`, so calling it once promotes the kind for the rest of the program flow. Phase C does not modify the fallibility analysis of any function other than the UTF-8-witness coercions described above. In particular, `to_string` (see [src/stdlib/to_string.rs](../src/stdlib/to_string.rs)) keeps its existing rule -- fallible when the input kind could be an array, object, or regex (`maybe_fallible(td.contains_array() || td.contains_object() || td.contains_regex())`), infallible otherwise. The only Phase C-eligible polish for `to_string` is tightening its declared output `TypeDef` from `Kind::bytes()` to `Kind::string()`, since the success path is UTF-8 by construction; that tightening is opt-in polish on its own schedule. Document: "operations that require a UTF-8 witness are infallible only when the input kind admits no variants other than the refined string; merely containing the refinement in a union is not enough."
-
-Backwards compatibility: zero source changes required in Phase C itself for VRL programs or external Rust consumers, because `is_bytes()` semantics are preserved -- this is the linchpin. The Phase A variant-addition migration is a one-time cost that's already paid for downstream crates by the time Phase C lands.
-
-Test fixtures, however, are *not* automatically backwards-compatible: `Kind::PartialEq` is structural (see [src/value/kind.rs](../src/value/kind.rs)) and the `vrl_test_framework` test helpers assert exact `TypeDef` equality, so adding the `string` flag means a refined-string `TypeDef` will not compare equal to `Kind::bytes()`. Two parts of Phase C therefore need test-framework attention:
-
-1. Extend the `vrl_test_framework` type-spec syntax with a way to express the refined-string kind in fixture syntax -- a new keyword (e.g. `kind: refined_string`, distinct from whatever syntax maps to `Kind::bytes()` today) or an equivalent annotation. The only requirement is being able to write a fixture whose expected `TypeDef` is `Kind::string()`.
-2. Pair every per-function output tightening (the optional polish above) with the corresponding fixture update in the same change. Functions whose output is *not* tightened in Phase C keep their existing fixtures unchanged -- the un-refined `Kind::bytes()` output structure is unaffected by the new flag, so structural equality against an un-tightened fixture continues to hold.
-
-New property tests should cover the refinement invariant (`Kind::string().contains_bytes()` is true; `Kind::bytes().union(Kind::string()).contains_string()` is false), the `Value -> Kind` roundtrip, and the asymmetric merge rule.
+**Backwards compatibility.** Zero source changes for VRL programs or external Rust consumers -- `is_bytes()` is the linchpin. The Phase A variant-addition cost is already paid. Test fixtures are *not* automatically compatible: `Kind::PartialEq` is structural, so a refined-string `TypeDef` will not equal `Kind::bytes()`. The test framework needs a way to write `Kind::string()` in fixtures; each output tightening is paired with its fixture update; untightened functions keep existing fixtures.
 
 ## Alternatives
 
