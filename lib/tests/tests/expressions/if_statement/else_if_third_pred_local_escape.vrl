@@ -1,0 +1,25 @@
+# result:
+#
+# error[E701]: call to undefined variable
+#    ┌─ :12:1
+#    │
+# 12 │ x
+#    │ ^
+#    │ │
+#    │ undefined variable
+#    │ did you mean "null"?
+#    │
+#    = see language documentation at https://vrl.dev
+#    = try your code in the VRL REPL, learn more at https://vrl.dev/examples
+
+# Third-or-later pred local must not escape, with a final else (2nd-arm/no-else: else_if_predicate_local_escape).
+if false {
+  null
+} else if (false) {
+  null
+} else if (x = 1; true) {
+  null
+} else {
+  null
+}
+x

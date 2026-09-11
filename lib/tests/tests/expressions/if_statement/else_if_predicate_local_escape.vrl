@@ -1,0 +1,22 @@
+# result:
+#
+# error[E701]: call to undefined variable
+#   ┌─ :9:1
+#   │
+# 9 │ x
+#   │ ^
+#   │ │
+#   │ undefined variable
+#   │ did you mean "null"?
+#   │
+#   = see language documentation at https://vrl.dev
+#   = try your code in the VRL REPL, learn more at https://vrl.dev/examples
+
+# Locals first assigned in an else-if predicate must not escape the chain
+# (same as nested else { if } Block scope before flatten).
+if false {
+  null
+} else if (x = 1; true) {
+  null
+}
+x
