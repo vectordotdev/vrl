@@ -1,3 +1,5 @@
+#![deny(warnings, clippy::pedantic)]
+
 extern crate lalrpop;
 
 use std::{
@@ -64,10 +66,6 @@ fn read_grok_patterns() {
 
 #[cfg(feature = "stdlib-base")]
 fn convert_user_agent_regexes() {
-    let regexes = fs::read("data/user_agent_regexes.yaml").expect("Could not read regexes");
-    let regexes: ua_parser::Regexes =
-        serde_yaml_ng::from_slice(&regexes).expect("Regex file is not valid yaml");
-
     fn write_item(output: &mut Vec<u8>, name: &'static str, value: Option<Cow<str>>) {
         if let Some(value) = value {
             output.extend(format!("    {name}: Some(r#\"{value}\"#.into()),\n").bytes());
@@ -75,6 +73,10 @@ fn convert_user_agent_regexes() {
             output.extend(format!("    {name}: None,\n").bytes());
         }
     }
+
+    let regexes = fs::read("data/user_agent_regexes.yaml").expect("Could not read regexes");
+    let regexes: ua_parser::Regexes =
+        serde_yaml_ng::from_slice(&regexes).expect("Regex file is not valid yaml");
 
     let mut output = Vec::new();
 

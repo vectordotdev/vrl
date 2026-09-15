@@ -6,6 +6,9 @@ edition = "2021"
 publish = false
 license = "MPL-2.0"
 
+[lints]
+workspace = true
+
 [[bin]]
 name = "fuzz"
 path = "src/main.rs"

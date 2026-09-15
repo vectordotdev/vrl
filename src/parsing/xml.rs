@@ -43,6 +43,7 @@ pub static DEFAULT_PARSE_NUMBER: Value = Value::Boolean(true);
 /// Configuration to determine which XML options will be used when
 /// parsing a roxmltree `Node`.
 #[derive(Debug, Clone)]
+#[allow(clippy::struct_excessive_bools)] // Each flag controls an independent parsing behavior.
 pub struct ParseXmlConfig<'a> {
     /// Include XML attributes. Default: true,
     pub include_attr: bool,
@@ -96,6 +97,7 @@ pub struct ParseOptions {
 ///
 /// # Errors
 /// - Returns an error if the input is not valid XML or if any step in processing fails.
+#[allow(clippy::needless_pass_by_value)] // The public parser interface consumes its input value.
 pub fn parse_xml(value: Value, options: ParseOptions) -> Resolved {
     let string = value.try_bytes_utf8_lossy()?;
     let trim = options
@@ -152,7 +154,13 @@ pub fn parse_xml(value: Value, options: ParseOptions) -> Resolved {
     Ok(value)
 }
 
-/// Process an XML `Node` and return a VRL `Value`.
+/// Processes an XML `Node` and returns a VRL `Value`.
+///
+/// # Panics
+///
+/// Panics if the node structure violates `roxmltree`'s invariants for element
+/// and text nodes.
+#[must_use]
 pub fn process_node(node: Node, config: &ParseXmlConfig) -> Value {
     // Helper to recurse over a `Node`s children, and build an object.
     let recurse = |node: Node| -> ObjectMap {
@@ -192,7 +200,7 @@ pub fn process_node(node: Node, config: &ParseXmlConfig) -> Value {
                                 v.extend_from_slice(&[prev, value]);
                             }
                         }
-                    };
+                    }
                 }
                 Entry::Vacant(entry) => {
                     entry.insert(value);

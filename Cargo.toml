@@ -12,6 +12,9 @@ keywords = ["vector", "dsl", "processing", "observability", "datadog"]
 categories = ["compilers"]
 rust-version = "1.95" # msrv
 
+[lints]
+workspace = true
+
 [workspace]
 members = [
   ".",
@@ -21,6 +24,14 @@ members = [
   "release",
 ]
 default-members = ["."]
+
+[workspace.lints.clippy]
+await_holding_lock = "warn"
+unused_async = "warn"
+uninlined_format_args = "warn"
+borrow_as_ptr = "warn"
+checked_conversions = "warn"
+ptr_as_ptr = "warn"
 
 [workspace.dependencies]
 clap = { version = "4", features = ["derive"] }
@@ -330,3 +341,6 @@ name = "break_iteration"
 harness = false
 required-features = ["default", "test"]
 
+[[bench]]
+name = "for_each"
+harness = false

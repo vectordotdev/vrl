@@ -1,4 +1,5 @@
 use std::collections::BTreeMap;
+use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
 
 const FRAGMENT_TYPES: &[(&str, &str)] = &[
@@ -13,6 +14,7 @@ const FRAGMENT_TYPES: &[(&str, &str)] = &[
 const CHANGELOG_MARKER: &str = "<!-- changelog start -->\n";
 
 #[derive(Debug)]
+#[allow(clippy::struct_field_names)] // `fragment_type` distinguishes it from its content.
 struct Fragment {
     pr_numbers: Vec<u64>,
     fragment_type: String,
@@ -81,7 +83,7 @@ fn format_pull_requests(pr_numbers: &[u64]) -> String {
         .join(", ")
 }
 
-/// Validate a fragment filename, returning (description, fragment_type).
+/// Validate a fragment filename, returning `(description, fragment_type)`.
 fn validate_fragment_filename(filename: &str) -> Result<(&str, &str), String> {
     let parts: Vec<&str> = filename.splitn(3, '.').collect();
     if parts.len() != 3 || parts[2] != "md" {
@@ -173,6 +175,8 @@ impl Changelog {
         Ok(grouped)
     }
 
+    // Test builds skip the Git history check but retain the production signature.
+    #[cfg_attr(test, allow(clippy::unused_self, clippy::unnecessary_wraps))]
     fn ensure_complete_history(&self) -> Result<(), String> {
         #[cfg(not(test))]
         {
@@ -239,7 +243,8 @@ impl Changelog {
 
         for (type_key, type_heading) in FRAGMENT_TYPES {
             if let Some(fragments) = grouped.get(*type_key) {
-                section.push_str(&format!("\n### {type_heading}\n\n"));
+                writeln!(section, "\n### {type_heading}\n")
+                    .expect("writing to a String cannot fail");
                 for fragment in fragments {
                     let indented = Self::indent_continuation(&fragment.content);
                     let authors = format_authors(&fragment.authors);
@@ -254,7 +259,8 @@ impl Changelog {
                         };
                         format!("Thanks to {authors} for contributing {label} {pull_requests}!")
                     };
-                    section.push_str(&format!("- {indented}\n\n  *{attribution}*\n"));
+                    writeln!(section, "- {indented}\n\n  *{attribution}*")
+                        .expect("writing to a String cannot fail");
                 }
             }
         }
@@ -427,6 +433,7 @@ fn lookup_pull_requests_from_git(
 }
 
 #[cfg(test)]
+#[allow(clippy::unnecessary_wraps)] // Matches the production implementation's signature.
 fn lookup_pull_requests(_: &Path, _: &Path, _: PullRequestMetadata) -> Result<Vec<u64>, String> {
     Ok(vec![42])
 }

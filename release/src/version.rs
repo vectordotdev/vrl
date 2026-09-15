@@ -54,7 +54,7 @@ fn validate_bump(current: &semver::Version, new: &semver::Version) -> Result<(),
     Ok(())
 }
 
-/// Resolve a version argument into a concrete semver::Version.
+/// Resolve a version argument into a concrete `semver::Version`.
 ///
 /// - `None` / `"minor"` → bump minor (default)
 /// - `"major"` / `"patch"` → bump accordingly

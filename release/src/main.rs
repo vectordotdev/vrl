@@ -1,3 +1,4 @@
+#![deny(warnings, clippy::pedantic)]
 #![allow(clippy::print_stdout, clippy::print_stderr)]
 
 use clap::{Parser, Subcommand};
@@ -7,6 +8,7 @@ mod changelog;
 mod crates_io;
 mod version;
 
+use std::fmt::Write as _;
 use std::io::{Write, stdin, stdout};
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -217,7 +219,7 @@ fn release(version_arg: Option<&str>, dry_run: bool, issue: Option<&str>) -> Res
         Tag: `{tag}`"
     };
     if let Some(link) = issue {
-        body.push_str(&format!("\n\nRelated issue: {link}"));
+        write!(body, "\n\nRelated issue: {link}").expect("writing to a String cannot fail");
     }
     run(
         "gh",

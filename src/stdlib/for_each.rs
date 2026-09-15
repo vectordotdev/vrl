@@ -4,20 +4,28 @@ fn for_each<T>(value: Value, ctx: &mut Context, runner: &closure::Runner<T>) -> 
 where
     T: Fn(&mut Context) -> Resolved,
 {
-    for item in value.into_iter(false) {
-        match item {
-            IterItem::KeyValue(key, value) => match runner.run_key_value(ctx, key, value) {
-                Ok(_) => {}
-                Err(ExpressionError::Break { .. }) => break,
-                Err(err) => return Err(err),
-            },
-            IterItem::IndexValue(index, value) => match runner.run_index_value(ctx, index, value) {
-                Ok(_) => {}
-                Err(ExpressionError::Break { .. }) => break,
-                Err(err) => return Err(err),
-            },
-            IterItem::Value(_) => {}
+    match value {
+        Value::Array(array) => {
+            let mut scoped = runner.scoped_loop(ctx);
+            for (index, value) in array.into_iter().enumerate() {
+                match scoped.run_index_value(index, value) {
+                    Ok(_) => {}
+                    Err(ExpressionError::Break { .. }) => break,
+                    Err(err) => return Err(err),
+                }
+            }
         }
+        Value::Object(object) => {
+            let mut scoped = runner.scoped_loop(ctx);
+            for (key, value) in object {
+                match scoped.run_key_value(key, value) {
+                    Ok(_) => {}
+                    Err(ExpressionError::Break { .. }) => break,
+                    Err(err) => return Err(err),
+                }
+            }
+        }
+        _ => {}
     }
 
     Ok(Value::Null)
@@ -182,5 +190,386 @@ impl FunctionExpression for ForEachFn {
 
     fn type_def(&self, _ctx: &state::TypeState) -> TypeDef {
         TypeDef::null()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::parser::ast::Ident;
+    use std::cell::RefCell;
+
+    fn ident(s: &str) -> Ident {
+        Ident::from(s.to_string())
+    }
+
+    fn test_context() -> (Value, state::RuntimeState, TimeZone) {
+        (
+            Value::Null,
+            state::RuntimeState::default(),
+            TimeZone::default(),
+        )
+    }
+
+    #[test]
+    fn test_for_each_empty_collections() {
+        let (mut target, mut runtime_state, tz) = test_context();
+        let mut ctx = Context::new(&mut target, &mut runtime_state, &tz);
+
+        let count = RefCell::new(0);
+        let variables = [ident("k"), ident("v")];
+        let runner = closure::Runner::new(&variables, |_ctx| {
+            *count.borrow_mut() += 1;
+            Ok(Value::Null)
+        });
+
+        for value in [Value::Array(vec![]), Value::Object(ObjectMap::new())] {
+            assert_eq!(for_each(value, &mut ctx, &runner), Ok(Value::Null));
+        }
+        assert_eq!(*count.borrow(), 0);
+    }
+
+    #[test]
+    fn test_for_each_array_index_and_value() {
+        let (mut target, mut runtime_state, tz) = test_context();
+        let mut ctx = Context::new(&mut target, &mut runtime_state, &tz);
+
+        let visited = RefCell::new(Vec::new());
+        let variables = [ident("i"), ident("v")];
+        let runner = closure::Runner::new(&variables, |ctx| {
+            let i = ctx.state().variable(&ident("i")).cloned().unwrap();
+            let v = ctx.state().variable(&ident("v")).cloned().unwrap();
+            visited.borrow_mut().push((i, v));
+            Ok(Value::Null)
+        });
+
+        let array = Value::Array(vec![Value::from("first"), Value::from("second")]);
+        let res = for_each(array, &mut ctx, &runner);
+        assert_eq!(res, Ok(Value::Null));
+        assert_eq!(
+            visited.into_inner(),
+            vec![
+                (Value::Integer(0), Value::from("first")),
+                (Value::Integer(1), Value::from("second")),
+            ]
+        );
+    }
+
+    #[test]
+    fn test_for_each_object_key_and_value() {
+        let (mut target, mut runtime_state, tz) = test_context();
+        let mut ctx = Context::new(&mut target, &mut runtime_state, &tz);
+
+        let visited = RefCell::new(Vec::new());
+        let variables = [ident("k"), ident("v")];
+        let runner = closure::Runner::new(&variables, |ctx| {
+            let k = ctx.state().variable(&ident("k")).cloned().unwrap();
+            let v = ctx.state().variable(&ident("v")).cloned().unwrap();
+            visited.borrow_mut().push((k, v));
+            Ok(Value::Null)
+        });
+
+        let mut map = ObjectMap::new();
+        map.insert("a".into(), Value::Integer(10));
+        map.insert("b".into(), Value::Integer(20));
+
+        let res = for_each(Value::Object(map), &mut ctx, &runner);
+        assert_eq!(res, Ok(Value::Null));
+        assert_eq!(
+            visited.into_inner(),
+            vec![
+                (Value::from("a"), Value::Integer(10)),
+                (Value::from("b"), Value::Integer(20)),
+            ]
+        );
+    }
+
+    #[test]
+    fn test_for_each_non_collection() {
+        let (mut target, mut runtime_state, tz) = test_context();
+        let mut ctx = Context::new(&mut target, &mut runtime_state, &tz);
+
+        let count = RefCell::new(0);
+        let variables = [ident("k"), ident("v")];
+        let runner = closure::Runner::new(&variables, |_ctx| {
+            *count.borrow_mut() += 1;
+            Ok(Value::Null)
+        });
+
+        let non_collections = vec![
+            Value::Null,
+            Value::Integer(42),
+            Value::from("string"),
+            Value::Boolean(true),
+        ];
+
+        for val in non_collections {
+            let res = for_each(val, &mut ctx, &runner);
+            assert_eq!(res, Ok(Value::Null));
+        }
+        assert_eq!(*count.borrow(), 0);
+    }
+
+    #[test]
+    fn test_for_each_array_propagates_return_error_and_halts() {
+        let (mut target, mut runtime_state, tz) = test_context();
+        let mut ctx = Context::new(&mut target, &mut runtime_state, &tz);
+
+        let count = RefCell::new(0);
+        let variables = [ident("i"), ident("v")];
+        let runner = closure::Runner::new(&variables, |_ctx| {
+            *count.borrow_mut() += 1;
+            Err(ExpressionError::Return {
+                span: Span::new(0, 0),
+                value: Value::from(42),
+            })
+        });
+
+        let array = Value::Array(vec![Value::from(1), Value::from(2), Value::from(3)]);
+        let res = for_each(array, &mut ctx, &runner);
+        assert_eq!(
+            res,
+            Err(ExpressionError::Return {
+                span: Span::new(0, 0),
+                value: Value::from(42),
+            })
+        );
+        assert_eq!(*count.borrow(), 1);
+    }
+
+    #[test]
+    fn test_for_each_object_handles_early_return_in_closure() {
+        let (mut target, mut runtime_state, tz) = test_context();
+        let mut ctx = Context::new(&mut target, &mut runtime_state, &tz);
+
+        let count = RefCell::new(0);
+        let variables = [ident("k"), ident("v")];
+        let runner = closure::Runner::new(&variables, |_ctx| {
+            *count.borrow_mut() += 1;
+            Err(ExpressionError::Return {
+                span: Span::new(0, 0),
+                value: Value::from(42),
+            })
+        });
+
+        let mut map = ObjectMap::new();
+        map.insert("a".into(), Value::Integer(1));
+        map.insert("b".into(), Value::Integer(2));
+
+        let res = for_each(Value::Object(map), &mut ctx, &runner);
+        assert_eq!(res, Ok(Value::Null));
+        assert_eq!(*count.borrow(), 2);
+    }
+
+    #[test]
+    fn test_for_each_error_halts_iteration() {
+        let (mut target, mut runtime_state, tz) = test_context();
+        let mut ctx = Context::new(&mut target, &mut runtime_state, &tz);
+
+        let count = RefCell::new(0);
+        let variables = [ident("i"), ident("v")];
+        let runner = closure::Runner::new(&variables, |_ctx| {
+            *count.borrow_mut() += 1;
+            Err(ExpressionError::from("abort error"))
+        });
+
+        let array = Value::Array(vec![Value::from(1), Value::from(2), Value::from(3)]);
+        let res = for_each(array, &mut ctx, &runner);
+        assert!(res.is_err());
+        assert_eq!(*count.borrow(), 1);
+    }
+
+    #[test]
+    fn test_for_each_array_wildcard_index() {
+        let (mut target, mut runtime_state, tz) = test_context();
+        let mut ctx = Context::new(&mut target, &mut runtime_state, &tz);
+
+        let visited = RefCell::new(Vec::new());
+        // First parameter is wildcard `_` (represented as empty ident)
+        let variables = [ident(""), ident("v")];
+        let runner = closure::Runner::new(&variables, |ctx| {
+            assert!(ctx.state().variable(&ident("")).is_none());
+            let v = ctx.state().variable(&ident("v")).cloned().unwrap();
+            visited.borrow_mut().push(v);
+            Ok(Value::Null)
+        });
+
+        let array = Value::Array(vec![Value::from("alpha"), Value::from("beta")]);
+        let res = for_each(array, &mut ctx, &runner);
+        assert_eq!(res, Ok(Value::Null));
+        assert_eq!(
+            visited.into_inner(),
+            vec![Value::from("alpha"), Value::from("beta")]
+        );
+    }
+
+    #[test]
+    fn test_for_each_object_wildcard_key() {
+        let (mut target, mut runtime_state, tz) = test_context();
+        let mut ctx = Context::new(&mut target, &mut runtime_state, &tz);
+
+        let visited = RefCell::new(Vec::new());
+        // Key parameter is wildcard `_`
+        let variables = [ident("_"), ident("v")];
+        let runner = closure::Runner::new(&variables, |ctx| {
+            assert!(ctx.state().variable(&ident("_")).is_none());
+            let v = ctx.state().variable(&ident("v")).cloned().unwrap();
+            visited.borrow_mut().push(v);
+            Ok(Value::Null)
+        });
+
+        let mut map = ObjectMap::new();
+        map.insert("k1".into(), Value::Integer(100));
+        map.insert("k2".into(), Value::Integer(200));
+
+        let res = for_each(Value::Object(map), &mut ctx, &runner);
+        assert_eq!(res, Ok(Value::Null));
+        assert_eq!(
+            visited.into_inner(),
+            vec![Value::Integer(100), Value::Integer(200)]
+        );
+    }
+
+    #[test]
+    fn test_for_each_outer_variable_preserved_after_completion() {
+        let (mut target, mut runtime_state, tz) = test_context();
+        let i_ident = ident("i");
+        let v_ident = ident("v");
+        runtime_state.insert_variable(i_ident.clone(), Value::from("outer_i"));
+        runtime_state.insert_variable(v_ident.clone(), Value::from("outer_v"));
+        let mut ctx = Context::new(&mut target, &mut runtime_state, &tz);
+
+        let variables = [i_ident.clone(), v_ident.clone()];
+        let runner = closure::Runner::new(&variables, |ctx| {
+            let i = ctx.state().variable(&ident("i")).cloned().unwrap();
+            let v = ctx.state().variable(&ident("v")).cloned().unwrap();
+            assert_ne!(i, Value::from("outer_i"));
+            assert_ne!(v, Value::from("outer_v"));
+            Ok(Value::Null)
+        });
+
+        let array = Value::Array(vec![Value::from(10), Value::from(20)]);
+        let res = for_each(array, &mut ctx, &runner);
+        assert_eq!(res, Ok(Value::Null));
+
+        assert_eq!(
+            ctx.state().variable(&i_ident),
+            Some(&Value::from("outer_i"))
+        );
+        assert_eq!(
+            ctx.state().variable(&v_ident),
+            Some(&Value::from("outer_v"))
+        );
+
+        // Object iteration preservation
+        let k_ident = ident("k");
+        ctx.state_mut()
+            .insert_variable(k_ident.clone(), Value::from("outer_k"));
+        let obj_variables = [k_ident.clone(), v_ident.clone()];
+        let obj_runner = closure::Runner::new(&obj_variables, |_ctx| Ok(Value::Null));
+
+        let mut map = ObjectMap::new();
+        map.insert("entry1".into(), Value::from("val1"));
+        let res = for_each(Value::Object(map), &mut ctx, &obj_runner);
+        assert_eq!(res, Ok(Value::Null));
+
+        assert_eq!(
+            ctx.state().variable(&k_ident),
+            Some(&Value::from("outer_k"))
+        );
+        assert_eq!(
+            ctx.state().variable(&v_ident),
+            Some(&Value::from("outer_v"))
+        );
+    }
+
+    #[test]
+    fn test_for_each_outer_variable_preserved_on_error() {
+        let (mut target, mut runtime_state, tz) = test_context();
+        let i_ident = ident("i");
+        let v_ident = ident("v");
+        runtime_state.insert_variable(i_ident.clone(), Value::from(999));
+        runtime_state.insert_variable(v_ident.clone(), Value::from("persisted"));
+        let mut ctx = Context::new(&mut target, &mut runtime_state, &tz);
+
+        let count = RefCell::new(0);
+        let variables = [i_ident.clone(), v_ident.clone()];
+        let runner = closure::Runner::new(&variables, |_ctx| {
+            *count.borrow_mut() += 1;
+            Err(ExpressionError::from("abort on error"))
+        });
+
+        let array = Value::Array(vec![Value::from(1), Value::from(2)]);
+        let res = for_each(array, &mut ctx, &runner);
+        assert!(res.is_err());
+        assert_eq!(*count.borrow(), 1);
+
+        assert_eq!(ctx.state().variable(&i_ident), Some(&Value::from(999)));
+        assert_eq!(
+            ctx.state().variable(&v_ident),
+            Some(&Value::from("persisted"))
+        );
+    }
+
+    #[test]
+    fn test_for_each_outer_variable_preserved_on_early_return() {
+        let (mut target, mut runtime_state, tz) = test_context();
+        let i_ident = ident("i");
+        let v_ident = ident("v");
+        runtime_state.insert_variable(i_ident.clone(), Value::from("saved_i"));
+        runtime_state.insert_variable(v_ident.clone(), Value::from("saved_v"));
+        let mut ctx = Context::new(&mut target, &mut runtime_state, &tz);
+
+        let count = RefCell::new(0);
+        let variables = [i_ident.clone(), v_ident.clone()];
+        let runner = closure::Runner::new(&variables, |_ctx| {
+            *count.borrow_mut() += 1;
+            Err(ExpressionError::Return {
+                span: Span::new(0, 0),
+                value: Value::from("early"),
+            })
+        });
+
+        let array = Value::Array(vec![Value::from(1), Value::from(2)]);
+        let res = for_each(array, &mut ctx, &runner);
+        assert_eq!(
+            res,
+            Err(ExpressionError::Return {
+                span: Span::new(0, 0),
+                value: Value::from("early"),
+            })
+        );
+        assert_eq!(*count.borrow(), 1);
+
+        assert_eq!(
+            ctx.state().variable(&i_ident),
+            Some(&Value::from("saved_i"))
+        );
+        assert_eq!(
+            ctx.state().variable(&v_ident),
+            Some(&Value::from("saved_v"))
+        );
+    }
+
+    #[test]
+    fn test_for_each_closure_new_variables_cleaned_up() {
+        let (mut target, mut runtime_state, tz) = test_context();
+        let mut ctx = Context::new(&mut target, &mut runtime_state, &tz);
+
+        let i_ident = ident("i");
+        let v_ident = ident("v");
+        assert!(ctx.state().variable(&i_ident).is_none());
+        assert!(ctx.state().variable(&v_ident).is_none());
+
+        let variables = [i_ident.clone(), v_ident.clone()];
+        let runner = closure::Runner::new(&variables, |_ctx| Ok(Value::Null));
+
+        let array = Value::Array(vec![Value::from(1), Value::from(2)]);
+        let res = for_each(array, &mut ctx, &runner);
+        assert_eq!(res, Ok(Value::Null));
+
+        // After completion, parameters should be removed from runtime state
+        assert!(ctx.state().variable(&i_ident).is_none());
+        assert!(ctx.state().variable(&v_ident).is_none());
     }
 }
