@@ -1,3 +1,5 @@
+#![deny(warnings, clippy::pedantic)]
+
 pub mod query_string;
 pub mod ruby_hash;
 pub mod xml;
@@ -18,8 +20,7 @@ pub(crate) fn safe_convert_error(
             .iter()
             .rev()
             .position(|&b| b == b'\n')
-            .map(|pos| offset - pos)
-            .unwrap_or(0);
+            .map_or(0, |pos| offset - pos);
         let column = input[line_begin..].offset(substring) + 1;
         column >= 65535
     });
@@ -29,13 +30,12 @@ pub(crate) fn safe_convert_error(
         let (substring, _) = &e.errors[0];
         let offset = input.offset(substring);
         let prefix = &input.as_bytes()[..offset];
-        let line = prefix.iter().filter(|&&b| b == b'\n').count() + 1;
+        let line = prefix.split(|&b| b == b'\n').count();
         let line_begin = prefix
             .iter()
             .rev()
             .position(|&b| b == b'\n')
-            .map(|pos| offset - pos)
-            .unwrap_or(0);
+            .map_or(0, |pos| offset - pos);
         let column = input[line_begin..].offset(substring) + 1;
         format!("parse error at line {line}, column {column} (line too long to display context)")
     } else {
