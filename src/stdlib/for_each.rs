@@ -189,24 +189,7 @@ mod tests {
     }
 
     #[test]
-    fn test_for_each_empty_array() {
-        let (mut target, mut runtime_state, tz) = test_context();
-        let mut ctx = Context::new(&mut target, &mut runtime_state, &tz);
-
-        let count = RefCell::new(0);
-        let variables = [ident("i"), ident("v")];
-        let runner = closure::Runner::new(&variables, |_ctx| {
-            *count.borrow_mut() += 1;
-            Ok(Value::Null)
-        });
-
-        let res = for_each(Value::Array(vec![]), &mut ctx, &runner);
-        assert_eq!(res, Ok(Value::Null));
-        assert_eq!(*count.borrow(), 0);
-    }
-
-    #[test]
-    fn test_for_each_empty_object() {
+    fn test_for_each_empty_collections() {
         let (mut target, mut runtime_state, tz) = test_context();
         let mut ctx = Context::new(&mut target, &mut runtime_state, &tz);
 
@@ -217,8 +200,9 @@ mod tests {
             Ok(Value::Null)
         });
 
-        let res = for_each(Value::Object(ObjectMap::new()), &mut ctx, &runner);
-        assert_eq!(res, Ok(Value::Null));
+        for value in [Value::Array(vec![]), Value::Object(ObjectMap::new())] {
+            assert_eq!(for_each(value, &mut ctx, &runner), Ok(Value::Null));
+        }
         assert_eq!(*count.borrow(), 0);
     }
 

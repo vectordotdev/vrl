@@ -274,30 +274,10 @@ where
         key: KeyString,
         value: Value,
     ) -> Result<Value, ExpressionError> {
-        let key_ident = self.ident(0);
-        let value_ident = self.ident(1);
-
-        let old_key = if key_ident.is_some() {
-            insert(ctx.state_mut(), key_ident, Value::from(key))
-        } else {
-            None
-        };
-
-        let old_value = if value_ident.is_some() {
-            insert(ctx.state_mut(), value_ident, value)
-        } else {
-            None
-        };
-
-        let result = match (self.runner)(ctx) {
+        match self.run_owned(ctx, Value::from(key), value) {
             Ok(val) | Err(ExpressionError::Return { value: val, .. }) => Ok(val),
             err @ Err(_) => err,
-        };
-
-        cleanup(ctx.state_mut(), key_ident, old_key);
-        cleanup(ctx.state_mut(), value_ident, old_value);
-
-        result
+        }
     }
 
     /// Run the closure to completion, consuming the provided index and value,
@@ -311,24 +291,24 @@ where
         index: usize,
         value: Value,
     ) -> Result<Value, ExpressionError> {
-        let index_ident = self.ident(0);
+        self.run_owned(ctx, Value::from(index), value)
+    }
+
+    fn run_owned(
+        &self,
+        ctx: &mut Context,
+        first: Value,
+        second: Value,
+    ) -> Result<Value, ExpressionError> {
+        let first_ident = self.ident(0);
         let value_ident = self.ident(1);
 
-        let old_index = if index_ident.is_some() {
-            insert(ctx.state_mut(), index_ident, Value::from(index))
-        } else {
-            None
-        };
-
-        let old_value = if value_ident.is_some() {
-            insert(ctx.state_mut(), value_ident, value)
-        } else {
-            None
-        };
+        let old_first = insert(ctx.state_mut(), first_ident, first);
+        let old_value = insert(ctx.state_mut(), value_ident, second);
 
         let result = (self.runner)(ctx);
 
-        cleanup(ctx.state_mut(), index_ident, old_index);
+        cleanup(ctx.state_mut(), first_ident, old_first);
         cleanup(ctx.state_mut(), value_ident, old_value);
 
         result
@@ -475,28 +455,30 @@ mod tests {
     use crate::compiler::{Span, TimeZone};
     use std::collections::BTreeMap;
 
+    fn ident(value: &str) -> Ident {
+        Ident::from(value.to_owned())
+    }
+
+    fn test_context() -> (Value, RuntimeState, TimeZone) {
+        (
+            Value::from(BTreeMap::default()),
+            RuntimeState::default(),
+            TimeZone::Named(chrono_tz::Tz::UTC),
+        )
+    }
+
     #[test]
     fn run_key_value_owned_accesses_consumed_value_and_cleans_up() {
-        let mut target = Value::from(BTreeMap::default());
-        let mut state = RuntimeState::default();
-        let key_ident = Ident::from("k".to_string());
-        let val_ident = Ident::from("v".to_string());
+        let (mut target, mut state, tz) = test_context();
+        let key_ident = ident("k");
+        let val_ident = ident("v");
         state.insert_variable(val_ident.clone(), Value::from("outer_val"));
-        let tz = TimeZone::Named(chrono_tz::Tz::UTC);
         let mut ctx = Context::new(&mut target, &mut state, &tz);
 
         let variables = vec![key_ident.clone(), val_ident.clone()];
         let runner = Runner::new(&variables, |ctx| {
-            let k = ctx
-                .state()
-                .variable(&Ident::from("k".to_string()))
-                .cloned()
-                .unwrap();
-            let v = ctx
-                .state()
-                .variable(&Ident::from("v".to_string()))
-                .cloned()
-                .unwrap();
+            let k = ctx.state().variable(&ident("k")).cloned().unwrap();
+            let v = ctx.state().variable(&ident("v")).cloned().unwrap();
             assert_eq!(k, Value::from("my_key"));
             assert_eq!(v, Value::from("my_val"));
             Ok(Value::from("done"))
@@ -514,26 +496,16 @@ mod tests {
 
     #[test]
     fn run_index_value_owned_accesses_consumed_value_and_cleans_up() {
-        let mut target = Value::from(BTreeMap::default());
-        let mut state = RuntimeState::default();
-        let idx_ident = Ident::from("idx".to_string());
-        let val_ident = Ident::from("val".to_string());
+        let (mut target, mut state, tz) = test_context();
+        let idx_ident = ident("idx");
+        let val_ident = ident("val");
         state.insert_variable(idx_ident.clone(), Value::from(999));
-        let tz = TimeZone::Named(chrono_tz::Tz::UTC);
         let mut ctx = Context::new(&mut target, &mut state, &tz);
 
         let variables = vec![idx_ident.clone(), val_ident.clone()];
         let runner = Runner::new(&variables, |ctx| {
-            let i = ctx
-                .state()
-                .variable(&Ident::from("idx".to_string()))
-                .cloned()
-                .unwrap();
-            let v = ctx
-                .state()
-                .variable(&Ident::from("val".to_string()))
-                .cloned()
-                .unwrap();
+            let i = ctx.state().variable(&ident("idx")).cloned().unwrap();
+            let v = ctx.state().variable(&ident("val")).cloned().unwrap();
             assert_eq!(i, Value::Integer(5));
             assert_eq!(v, Value::from("item_val"));
             Ok(Value::Null)
@@ -547,20 +519,14 @@ mod tests {
 
     #[test]
     fn wildcard_parameter_executes_without_binding_variable_to_state() {
-        let mut target = Value::from(BTreeMap::default());
-        let mut state = RuntimeState::default();
-        let tz = TimeZone::Named(chrono_tz::Tz::UTC);
+        let (mut target, mut state, tz) = test_context();
         let mut ctx = Context::new(&mut target, &mut state, &tz);
 
         // Test with empty ident (parser representation of _) and "_"
-        let variables = vec![Ident::from(String::new()), Ident::from("_".to_string())];
+        let variables = vec![ident(""), ident("_")];
         let runner = Runner::new(&variables, |ctx| {
-            assert!(ctx.state().variable(&Ident::from(String::new())).is_none());
-            assert!(
-                ctx.state()
-                    .variable(&Ident::from("_".to_string()))
-                    .is_none()
-            );
+            assert!(ctx.state().variable(&ident("")).is_none());
+            assert!(ctx.state().variable(&ident("_")).is_none());
             Ok(Value::from("wildcard_ok"))
         });
 
@@ -571,28 +537,22 @@ mod tests {
         let index_value_result = runner.run_index_value_owned(&mut ctx, 0, Value::from("val"));
         assert_eq!(index_value_result, Ok(Value::from("wildcard_ok")));
 
-        assert!(ctx.state().variable(&Ident::from(String::new())).is_none());
-        assert!(
-            ctx.state()
-                .variable(&Ident::from("_".to_string()))
-                .is_none()
-        );
+        assert!(ctx.state().variable(&ident("")).is_none());
+        assert!(ctx.state().variable(&ident("_")).is_none());
     }
 
     #[test]
     fn unused_parameter_does_not_overwrite_outer_variable() {
-        let mut target = Value::from(BTreeMap::default());
-        let mut state = RuntimeState::default();
-        let outer_ident = Ident::from("outer".to_string());
+        let (mut target, mut state, tz) = test_context();
+        let outer_ident = ident("outer");
         state.insert_variable(outer_ident.clone(), Value::from("preserved"));
-        let tz = TimeZone::Named(chrono_tz::Tz::UTC);
         let mut ctx = Context::new(&mut target, &mut state, &tz);
 
         // Runner has only 1 variable (value only, key omitted or wildcard)
-        let variables = vec![Ident::from(String::new()), Ident::from("v".to_string())];
+        let variables = vec![ident(""), ident("v")];
         let runner = Runner::new(&variables, |ctx| {
             assert_eq!(
-                ctx.state().variable(&Ident::from("outer".to_string())),
+                ctx.state().variable(&ident("outer")),
                 Some(&Value::from("preserved"))
             );
             Ok(Value::Null)
@@ -608,14 +568,12 @@ mod tests {
 
     #[test]
     fn owned_runners_handle_early_return() {
-        let mut target = Value::from(BTreeMap::default());
-        let mut state = RuntimeState::default();
-        let tz = TimeZone::Named(chrono_tz::Tz::UTC);
+        let (mut target, mut state, tz) = test_context();
         let mut ctx = Context::new(&mut target, &mut state, &tz);
 
-        let variables = vec![Ident::from("i".to_string()), Ident::from("v".to_string())];
+        let variables = vec![ident("i"), ident("v")];
 
-        // Early return produces Ok(value)
+        // Early returns are propagated unchanged.
         let runner_ret = Runner::new(&variables, |_ctx| {
             Err(ExpressionError::Return {
                 span: Span::new(0, 0),
@@ -635,27 +593,17 @@ mod tests {
 
     #[test]
     fn scoped_loop_updates_in_place_and_restores_outer_variables() {
-        let mut target = Value::from(BTreeMap::default());
-        let mut state = RuntimeState::default();
-        let key_ident = Ident::from("k".to_string());
-        let val_ident = Ident::from("v".to_string());
+        let (mut target, mut state, tz) = test_context();
+        let key_ident = ident("k");
+        let val_ident = ident("v");
         state.insert_variable(key_ident.clone(), Value::from("initial_k"));
         state.insert_variable(val_ident.clone(), Value::from("initial_v"));
-        let tz = TimeZone::Named(chrono_tz::Tz::UTC);
         let mut ctx = Context::new(&mut target, &mut state, &tz);
 
         let variables = vec![key_ident.clone(), val_ident.clone()];
         let runner = Runner::new(&variables, |ctx| {
-            let k = ctx
-                .state()
-                .variable(&Ident::from("k".to_string()))
-                .cloned()
-                .unwrap();
-            let v = ctx
-                .state()
-                .variable(&Ident::from("v".to_string()))
-                .cloned()
-                .unwrap();
+            let k = ctx.state().variable(&ident("k")).cloned().unwrap();
+            let v = ctx.state().variable(&ident("v")).cloned().unwrap();
             Ok(Value::Array(vec![k, v]))
         });
 
@@ -679,11 +627,9 @@ mod tests {
 
     #[test]
     fn scoped_loop_cleans_up_new_variables_on_drop() {
-        let mut target = Value::from(BTreeMap::default());
-        let mut state = RuntimeState::default();
-        let idx_ident = Ident::from("idx".to_string());
-        let val_ident = Ident::from("val".to_string());
-        let tz = TimeZone::Named(chrono_tz::Tz::UTC);
+        let (mut target, mut state, tz) = test_context();
+        let idx_ident = ident("idx");
+        let val_ident = ident("val");
         let mut ctx = Context::new(&mut target, &mut state, &tz);
 
         let variables = vec![idx_ident.clone(), val_ident.clone()];
@@ -711,13 +657,11 @@ mod tests {
 
     #[test]
     fn scoped_loop_restores_outer_variables_on_early_return_and_error() {
-        let mut target = Value::from(BTreeMap::default());
-        let mut state = RuntimeState::default();
-        let idx_ident = Ident::from("i".to_string());
-        let val_ident = Ident::from("v".to_string());
+        let (mut target, mut state, tz) = test_context();
+        let idx_ident = ident("i");
+        let val_ident = ident("v");
         state.insert_variable(idx_ident.clone(), Value::from(100));
         state.insert_variable(val_ident.clone(), Value::from(200));
-        let tz = TimeZone::Named(chrono_tz::Tz::UTC);
         let mut ctx = Context::new(&mut target, &mut state, &tz);
 
         let variables = vec![idx_ident.clone(), val_ident.clone()];
@@ -758,23 +702,17 @@ mod tests {
 
     #[test]
     fn scoped_loop_handles_wildcard_parameters() {
-        let mut target = Value::from(BTreeMap::default());
-        let mut state = RuntimeState::default();
-        let outer_ident = Ident::from("outer".to_string());
+        let (mut target, mut state, tz) = test_context();
+        let outer_ident = ident("outer");
         state.insert_variable(outer_ident.clone(), Value::from("outer_saved"));
-        let tz = TimeZone::Named(chrono_tz::Tz::UTC);
         let mut ctx = Context::new(&mut target, &mut state, &tz);
 
-        let variables = vec![Ident::from(String::new()), Ident::from("_".to_string())];
+        let variables = vec![ident(""), ident("_")];
         let runner = Runner::new(&variables, |ctx| {
-            assert!(ctx.state().variable(&Ident::from(String::new())).is_none());
-            assert!(
-                ctx.state()
-                    .variable(&Ident::from("_".to_string()))
-                    .is_none()
-            );
+            assert!(ctx.state().variable(&ident("")).is_none());
+            assert!(ctx.state().variable(&ident("_")).is_none());
             assert_eq!(
-                ctx.state().variable(&Ident::from("outer".to_string())),
+                ctx.state().variable(&ident("outer")),
                 Some(&Value::from("outer_saved"))
             );
             Ok(Value::Null)
@@ -786,12 +724,8 @@ mod tests {
             assert_eq!(res, Ok(Value::Null));
         }
 
-        assert!(ctx.state().variable(&Ident::from(String::new())).is_none());
-        assert!(
-            ctx.state()
-                .variable(&Ident::from("_".to_string()))
-                .is_none()
-        );
+        assert!(ctx.state().variable(&ident("")).is_none());
+        assert!(ctx.state().variable(&ident("_")).is_none());
         assert_eq!(
             ctx.state().variable(&outer_ident),
             Some(&Value::from("outer_saved"))
@@ -800,18 +734,16 @@ mod tests {
 
     #[test]
     fn scoped_loop_shadows_and_restores_outer_variable_without_cloning() {
-        let mut target = Value::from(BTreeMap::default());
-        let mut state = RuntimeState::default();
-        let idx_ident = Ident::from("i".to_string());
-        let val_ident = Ident::from("v".to_string());
+        let (mut target, mut state, tz) = test_context();
+        let idx_ident = ident("i");
+        let val_ident = ident("v");
         let initial_array = Value::Array(vec![Value::from(1), Value::from(2), Value::from(3)]);
         state.insert_variable(val_ident.clone(), initial_array.clone());
-        let tz = TimeZone::Named(chrono_tz::Tz::UTC);
         let mut ctx = Context::new(&mut target, &mut state, &tz);
 
         let variables = vec![idx_ident.clone(), val_ident.clone()];
         let runner = Runner::new(&variables, |ctx| {
-            let current_v = ctx.state().variable(&Ident::from("v".to_string())).unwrap();
+            let current_v = ctx.state().variable(&ident("v")).unwrap();
             assert_ne!(
                 current_v,
                 &Value::Array(vec![Value::from(1), Value::from(2), Value::from(3)])
