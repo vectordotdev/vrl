@@ -5,6 +5,9 @@ authors = ["Vector Contributors <vector@datadoghq.com>"]
 edition = "2021"
 publish = false
 
+[lints]
+workspace = true
+
 [dependencies]
 vrl = { path = "../../", features = ["test_framework"] }
 chrono-tz = "0.10"
