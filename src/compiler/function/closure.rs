@@ -812,7 +812,10 @@ mod tests {
         let variables = vec![idx_ident.clone(), val_ident.clone()];
         let runner = Runner::new(&variables, |ctx| {
             let current_v = ctx.state().variable(&Ident::from("v".to_string())).unwrap();
-            assert_ne!(current_v, &Value::Array(vec![Value::from(1), Value::from(2), Value::from(3)]));
+            assert_ne!(
+                current_v,
+                &Value::Array(vec![Value::from(1), Value::from(2), Value::from(3)])
+            );
             Ok(Value::Null)
         });
 
