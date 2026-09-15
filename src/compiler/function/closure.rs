@@ -326,10 +326,7 @@ where
             None
         };
 
-        let result = match (self.runner)(ctx) {
-            Ok(val) | Err(ExpressionError::Return { value: val, .. }) => Ok(val),
-            err @ Err(_) => err,
-        };
+        let result = (self.runner)(ctx);
 
         cleanup(ctx.state_mut(), index_ident, old_index);
         cleanup(ctx.state_mut(), value_ident, old_value);
@@ -431,10 +428,7 @@ where
             self.ctx.state_mut().set_or_insert_variable(ident, value);
         }
 
-        match (self.runner.runner)(self.ctx) {
-            Ok(val) | Err(ExpressionError::Return { value: val, .. }) => Ok(val),
-            err @ Err(_) => err,
-        }
+        (self.runner.runner)(self.ctx)
     }
 }
 
@@ -630,7 +624,13 @@ mod tests {
         });
 
         let res_ret = runner_ret.run_index_value_owned(&mut ctx, 1, Value::from("val"));
-        assert_eq!(res_ret, Ok(Value::from("early_ret")));
+        assert_eq!(
+            res_ret,
+            Err(ExpressionError::Return {
+                span: Span::new(0, 0),
+                value: Value::from("early_ret"),
+            })
+        );
     }
 
     #[test]
@@ -733,7 +733,13 @@ mod tests {
         {
             let mut scoped = runner_ret.scoped_loop(&mut ctx);
             let res = scoped.run_index_value(0, Value::from("temp"));
-            assert_eq!(res, Ok(Value::from("early_val")));
+            assert_eq!(
+                res,
+                Err(ExpressionError::Return {
+                    span: Span::new(0, 0),
+                    value: Value::from("early_val"),
+                })
+            );
         }
         assert_eq!(ctx.state().variable(&idx_ident), Some(&Value::from(100)));
         assert_eq!(ctx.state().variable(&val_ident), Some(&Value::from(200)));

@@ -304,7 +304,34 @@ mod tests {
     }
 
     #[test]
-    fn test_for_each_early_return_in_closure() {
+    fn test_for_each_array_propagates_return_error_and_halts() {
+        let (mut target, mut runtime_state, tz) = test_context();
+        let mut ctx = Context::new(&mut target, &mut runtime_state, &tz);
+
+        let count = RefCell::new(0);
+        let variables = [ident("i"), ident("v")];
+        let runner = closure::Runner::new(&variables, |_ctx| {
+            *count.borrow_mut() += 1;
+            Err(ExpressionError::Return {
+                span: Span::new(0, 0),
+                value: Value::from(42),
+            })
+        });
+
+        let array = Value::Array(vec![Value::from(1), Value::from(2), Value::from(3)]);
+        let res = for_each(array, &mut ctx, &runner);
+        assert_eq!(
+            res,
+            Err(ExpressionError::Return {
+                span: Span::new(0, 0),
+                value: Value::from(42),
+            })
+        );
+        assert_eq!(*count.borrow(), 1);
+    }
+
+    #[test]
+    fn test_for_each_object_handles_early_return_in_closure() {
         let (mut target, mut runtime_state, tz) = test_context();
         let mut ctx = Context::new(&mut target, &mut runtime_state, &tz);
 
@@ -498,8 +525,14 @@ mod tests {
 
         let array = Value::Array(vec![Value::from(1), Value::from(2)]);
         let res = for_each(array, &mut ctx, &runner);
-        assert_eq!(res, Ok(Value::Null));
-        assert_eq!(*count.borrow(), 2);
+        assert_eq!(
+            res,
+            Err(ExpressionError::Return {
+                span: Span::new(0, 0),
+                value: Value::from("early"),
+            })
+        );
+        assert_eq!(*count.borrow(), 1);
 
         assert_eq!(
             ctx.state().variable(&i_ident),
