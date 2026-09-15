@@ -201,8 +201,8 @@ impl RuntimeState {
         self.variables.insert(ident, value);
     }
 
-    pub(crate) fn remove_variable(&mut self, ident: &Ident) {
-        self.variables.remove(ident);
+    pub(crate) fn remove_variable(&mut self, ident: &Ident) -> Option<Value> {
+        self.variables.remove(ident)
     }
 
     pub(crate) fn swap_variable(&mut self, ident: Ident, value: Value) -> Option<Value> {

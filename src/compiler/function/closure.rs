@@ -380,12 +380,12 @@ where
         let first_ident = runner.ident(0).cloned();
         let first_old_value = first_ident
             .as_ref()
-            .and_then(|ident| ctx.state().variable(ident).cloned());
+            .and_then(|ident| ctx.state_mut().remove_variable(ident));
 
         let second_ident = runner.ident(1).cloned();
         let second_old_value = second_ident
             .as_ref()
-            .and_then(|ident| ctx.state().variable(ident).cloned());
+            .and_then(|ident| ctx.state_mut().remove_variable(ident));
 
         Self {
             runner,
@@ -442,14 +442,18 @@ impl<T> Drop for LoopScopeGuard<'_, '_, '_, T> {
     fn drop(&mut self) {
         if let Some(ident) = &self.first_ident {
             match self.first_old_value.take() {
-                Some(val) => self.ctx.state_mut().insert_variable(ident.clone(), val),
-                None => self.ctx.state_mut().remove_variable(ident),
+                Some(val) => self.ctx.state_mut().set_or_insert_variable(ident, val),
+                None => {
+                    self.ctx.state_mut().remove_variable(ident);
+                }
             }
         }
         if let Some(ident) = &self.second_ident {
             match self.second_old_value.take() {
-                Some(val) => self.ctx.state_mut().insert_variable(ident.clone(), val),
-                None => self.ctx.state_mut().remove_variable(ident),
+                Some(val) => self.ctx.state_mut().set_or_insert_variable(ident, val),
+                None => {
+                    self.ctx.state_mut().remove_variable(ident);
+                }
             }
         }
     }
@@ -464,7 +468,9 @@ fn cleanup(state: &mut RuntimeState, ident: Option<&Ident>, data: Option<Value>)
         (Some(ident), Some(value)) => {
             state.insert_variable(ident.clone(), value);
         }
-        (Some(ident), None) => state.remove_variable(ident),
+        (Some(ident), None) => {
+            state.remove_variable(ident);
+        }
         _ => {}
     }
 }
@@ -784,5 +790,31 @@ mod tests {
             ctx.state().variable(&outer_ident),
             Some(&Value::from("outer_saved"))
         );
+    }
+
+    #[test]
+    fn scoped_loop_shadows_and_restores_outer_variable_without_cloning() {
+        let mut target = Value::from(BTreeMap::default());
+        let mut state = RuntimeState::default();
+        let idx_ident = Ident::from("i".to_string());
+        let val_ident = Ident::from("v".to_string());
+        let initial_array = Value::Array(vec![Value::from(1), Value::from(2), Value::from(3)]);
+        state.insert_variable(val_ident.clone(), initial_array.clone());
+        let tz = TimeZone::Named(chrono_tz::Tz::UTC);
+        let mut ctx = Context::new(&mut target, &mut state, &tz);
+
+        let variables = vec![idx_ident.clone(), val_ident.clone()];
+        let runner = Runner::new(&variables, |ctx| {
+            let current_v = ctx.state().variable(&Ident::from("v".to_string())).unwrap();
+            assert_ne!(current_v, &Value::Array(vec![Value::from(1), Value::from(2), Value::from(3)]));
+            Ok(Value::Null)
+        });
+
+        {
+            let mut scoped = runner.scoped_loop(&mut ctx);
+            assert!(scoped.run_index_value(0, Value::from("new_val")).is_ok());
+        }
+
+        assert_eq!(ctx.state().variable(&val_ident), Some(&initial_array));
     }
 }
