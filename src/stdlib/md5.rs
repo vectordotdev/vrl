@@ -1,12 +1,16 @@
 use crate::compiler::prelude::*;
 use md5::Digest;
 
-fn md5(value: Value) -> Resolved {
-    let value = value.try_bytes()?;
-    let digest = md5::Md5::digest(&value);
+fn md5_hex(value: &[u8]) -> Bytes {
+    let digest = md5::Md5::digest(value);
     let mut buf = [0u8; 32];
     hex::encode_to_slice(digest, &mut buf).expect("32 bytes");
-    Ok(Value::Bytes(Bytes::copy_from_slice(&buf)))
+    Bytes::copy_from_slice(&buf)
+}
+
+fn md5(value: Value) -> Resolved {
+    let value = value.try_bytes()?;
+    Ok(Value::Bytes(md5_hex(&value)))
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -57,11 +61,8 @@ impl Function for Md5 {
         if let Some(val) = value.resolve_constant(state)
             && let Ok(bytes) = val.try_bytes()
         {
-            let digest = md5::Md5::digest(&bytes);
-            let mut buf = [0u8; 32];
-            hex::encode_to_slice(digest, &mut buf).expect("32 bytes");
             return Ok(Box::new(crate::compiler::expression::Literal::String(
-                Bytes::copy_from_slice(&buf),
+                md5_hex(&bytes),
             )));
         }
 
