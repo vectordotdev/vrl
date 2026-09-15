@@ -1335,6 +1335,16 @@ bench_function! {
         args: func_args![value: "foo"],
         want: Ok("acbd18db4cc2f85cedef654fccc4a4d8"),
     }
+
+    medium_256b {
+        args: func_args![value: "a".repeat(256)],
+        want: Ok("81109eec5aa1a284fb5327b10e9c16b9"),
+    }
+
+    large_4kb {
+        args: func_args![value: "a".repeat(4096)],
+        want: Ok("21a199c53f422a380e20b162fb6ebe9c"),
+    }
 }
 
 bench_function! {
