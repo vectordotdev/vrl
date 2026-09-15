@@ -263,10 +263,173 @@ where
         Ok(())
     }
 
+    /// Run the closure to completion, consuming the provided key/value pair,
+    /// and the runtime context.
+    ///
+    /// Avoids cloning the value and skips binding parameters that are wildcards
+    /// or omitted.
+    pub fn run_key_value_owned(
+        &self,
+        ctx: &mut Context,
+        key: KeyString,
+        value: Value,
+    ) -> Result<Value, ExpressionError> {
+        match self.run_owned(ctx, Value::from(key), value) {
+            Ok(val) | Err(ExpressionError::Return { value: val, .. }) => Ok(val),
+            err @ Err(_) => err,
+        }
+    }
+
+    /// Run the closure to completion, consuming the provided index and value,
+    /// and the runtime context.
+    ///
+    /// Avoids cloning the value and skips binding parameters that are wildcards
+    /// or omitted.
+    pub fn run_index_value_owned(
+        &self,
+        ctx: &mut Context,
+        index: usize,
+        value: Value,
+    ) -> Result<Value, ExpressionError> {
+        self.run_owned(ctx, Value::from(index), value)
+    }
+
+    fn run_owned(
+        &self,
+        ctx: &mut Context,
+        first: Value,
+        second: Value,
+    ) -> Result<Value, ExpressionError> {
+        let first_ident = self.ident(0);
+        let value_ident = self.ident(1);
+
+        let old_first = insert(ctx.state_mut(), first_ident, first);
+        let old_value = insert(ctx.state_mut(), value_ident, second);
+
+        let result = (self.runner)(ctx);
+
+        cleanup(ctx.state_mut(), first_ident, old_first);
+        cleanup(ctx.state_mut(), value_ident, old_value);
+
+        result
+    }
+
+    /// Create a scoped loop runner that amortizes variable scoping across loop iterations.
+    ///
+    /// Snapshots outer variable values before the loop begins, updates slots in-place
+    /// across iterations avoiding re-allocation and ident cloning, and restores outer
+    /// variables via an RAII drop guard upon normal completion, error, or early return.
+    pub fn scoped_loop<'c, 'b>(
+        &'a self,
+        ctx: &'c mut Context<'b>,
+    ) -> LoopScopeGuard<'a, 'c, 'b, T> {
+        LoopScopeGuard::new(self, ctx)
+    }
+
     fn ident(&self, index: usize) -> Option<&Ident> {
         self.variables
             .get(index)
-            .and_then(|v| (!v.is_empty()).then_some(v))
+            .and_then(|v| (!v.is_empty() && v.as_ref() != "_").then_some(v))
+    }
+}
+
+/// An RAII guard that manages closure variable bindings across loop iterations.
+///
+/// It snapshots outer scope variable values before the loop begins,
+/// updates slots in-place during the loop without allocations or clones,
+/// and restores the outer state upon completion, early return, or error.
+pub struct LoopScopeGuard<'a, 'c, 'b, T> {
+    runner: &'a Runner<'a, T>,
+    ctx: &'c mut Context<'b>,
+    first_ident: Option<Ident>,
+    first_old_value: Option<Value>,
+    second_ident: Option<Ident>,
+    second_old_value: Option<Value>,
+}
+
+pub type ScopedLoop<'a, 'c, 'b, T> = LoopScopeGuard<'a, 'c, 'b, T>;
+
+impl<'a, 'c, 'b, T> LoopScopeGuard<'a, 'c, 'b, T>
+where
+    T: Fn(&mut Context) -> Result<Value, ExpressionError>,
+{
+    pub fn new(runner: &'a Runner<'a, T>, ctx: &'c mut Context<'b>) -> Self {
+        let first_ident = runner.ident(0).cloned();
+        let first_old_value = first_ident
+            .as_ref()
+            .and_then(|ident| ctx.state_mut().remove_variable(ident));
+
+        let second_ident = runner.ident(1).cloned();
+        let second_old_value = second_ident
+            .as_ref()
+            .and_then(|ident| ctx.state_mut().remove_variable(ident));
+
+        Self {
+            runner,
+            ctx,
+            first_ident,
+            first_old_value,
+            second_ident,
+            second_old_value,
+        }
+    }
+
+    pub fn run_key_value(
+        &mut self,
+        key: KeyString,
+        value: Value,
+    ) -> Result<Value, ExpressionError> {
+        if let Some(ident) = &self.first_ident {
+            self.ctx
+                .state_mut()
+                .set_or_insert_variable(ident, Value::from(key));
+        }
+        if let Some(ident) = &self.second_ident {
+            self.ctx.state_mut().set_or_insert_variable(ident, value);
+        }
+
+        match (self.runner.runner)(self.ctx) {
+            Ok(val) | Err(ExpressionError::Return { value: val, .. }) => Ok(val),
+            err @ Err(_) => err,
+        }
+    }
+
+    pub fn run_index_value(
+        &mut self,
+        index: usize,
+        value: Value,
+    ) -> Result<Value, ExpressionError> {
+        if let Some(ident) = &self.first_ident {
+            self.ctx
+                .state_mut()
+                .set_or_insert_variable(ident, Value::from(index));
+        }
+        if let Some(ident) = &self.second_ident {
+            self.ctx.state_mut().set_or_insert_variable(ident, value);
+        }
+
+        (self.runner.runner)(self.ctx)
+    }
+}
+
+impl<T> Drop for LoopScopeGuard<'_, '_, '_, T> {
+    fn drop(&mut self) {
+        if let Some(ident) = &self.first_ident {
+            match self.first_old_value.take() {
+                Some(val) => self.ctx.state_mut().set_or_insert_variable(ident, val),
+                None => {
+                    self.ctx.state_mut().remove_variable(ident);
+                }
+            }
+        }
+        if let Some(ident) = &self.second_ident {
+            match self.second_old_value.take() {
+                Some(val) => self.ctx.state_mut().set_or_insert_variable(ident, val),
+                None => {
+                    self.ctx.state_mut().remove_variable(ident);
+                }
+            }
+        }
     }
 }
 
@@ -279,7 +442,320 @@ fn cleanup(state: &mut RuntimeState, ident: Option<&Ident>, data: Option<Value>)
         (Some(ident), Some(value)) => {
             state.insert_variable(ident.clone(), value);
         }
-        (Some(ident), None) => state.remove_variable(ident),
+        (Some(ident), None) => {
+            state.remove_variable(ident);
+        }
         _ => {}
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::compiler::{Span, TimeZone};
+    use std::collections::BTreeMap;
+
+    fn ident(value: &str) -> Ident {
+        Ident::from(value.to_owned())
+    }
+
+    fn test_context() -> (Value, RuntimeState, TimeZone) {
+        (
+            Value::from(BTreeMap::default()),
+            RuntimeState::default(),
+            TimeZone::Named(chrono_tz::Tz::UTC),
+        )
+    }
+
+    #[test]
+    fn run_key_value_owned_accesses_consumed_value_and_cleans_up() {
+        let (mut target, mut state, tz) = test_context();
+        let key_ident = ident("k");
+        let val_ident = ident("v");
+        state.insert_variable(val_ident.clone(), Value::from("outer_val"));
+        let mut ctx = Context::new(&mut target, &mut state, &tz);
+
+        let variables = vec![key_ident.clone(), val_ident.clone()];
+        let runner = Runner::new(&variables, |ctx| {
+            let k = ctx.state().variable(&ident("k")).cloned().unwrap();
+            let v = ctx.state().variable(&ident("v")).cloned().unwrap();
+            assert_eq!(k, Value::from("my_key"));
+            assert_eq!(v, Value::from("my_val"));
+            Ok(Value::from("done"))
+        });
+
+        let res =
+            runner.run_key_value_owned(&mut ctx, KeyString::from("my_key"), Value::from("my_val"));
+        assert_eq!(res, Ok(Value::from("done")));
+        assert!(ctx.state().variable(&key_ident).is_none());
+        assert_eq!(
+            ctx.state().variable(&val_ident),
+            Some(&Value::from("outer_val"))
+        );
+    }
+
+    #[test]
+    fn run_index_value_owned_accesses_consumed_value_and_cleans_up() {
+        let (mut target, mut state, tz) = test_context();
+        let idx_ident = ident("idx");
+        let val_ident = ident("val");
+        state.insert_variable(idx_ident.clone(), Value::from(999));
+        let mut ctx = Context::new(&mut target, &mut state, &tz);
+
+        let variables = vec![idx_ident.clone(), val_ident.clone()];
+        let runner = Runner::new(&variables, |ctx| {
+            let i = ctx.state().variable(&ident("idx")).cloned().unwrap();
+            let v = ctx.state().variable(&ident("val")).cloned().unwrap();
+            assert_eq!(i, Value::Integer(5));
+            assert_eq!(v, Value::from("item_val"));
+            Ok(Value::Null)
+        });
+
+        let res = runner.run_index_value_owned(&mut ctx, 5, Value::from("item_val"));
+        assert_eq!(res, Ok(Value::Null));
+        assert_eq!(ctx.state().variable(&idx_ident), Some(&Value::from(999)));
+        assert!(ctx.state().variable(&val_ident).is_none());
+    }
+
+    #[test]
+    fn wildcard_parameter_executes_without_binding_variable_to_state() {
+        let (mut target, mut state, tz) = test_context();
+        let mut ctx = Context::new(&mut target, &mut state, &tz);
+
+        // Test with empty ident (parser representation of _) and "_"
+        let variables = vec![ident(""), ident("_")];
+        let runner = Runner::new(&variables, |ctx| {
+            assert!(ctx.state().variable(&ident("")).is_none());
+            assert!(ctx.state().variable(&ident("_")).is_none());
+            Ok(Value::from("wildcard_ok"))
+        });
+
+        let key_value_result =
+            runner.run_key_value_owned(&mut ctx, KeyString::from("key"), Value::from("val"));
+        assert_eq!(key_value_result, Ok(Value::from("wildcard_ok")));
+
+        let index_value_result = runner.run_index_value_owned(&mut ctx, 0, Value::from("val"));
+        assert_eq!(index_value_result, Ok(Value::from("wildcard_ok")));
+
+        assert!(ctx.state().variable(&ident("")).is_none());
+        assert!(ctx.state().variable(&ident("_")).is_none());
+    }
+
+    #[test]
+    fn unused_parameter_does_not_overwrite_outer_variable() {
+        let (mut target, mut state, tz) = test_context();
+        let outer_ident = ident("outer");
+        state.insert_variable(outer_ident.clone(), Value::from("preserved"));
+        let mut ctx = Context::new(&mut target, &mut state, &tz);
+
+        // Runner has only 1 variable (value only, key omitted or wildcard)
+        let variables = vec![ident(""), ident("v")];
+        let runner = Runner::new(&variables, |ctx| {
+            assert_eq!(
+                ctx.state().variable(&ident("outer")),
+                Some(&Value::from("preserved"))
+            );
+            Ok(Value::Null)
+        });
+
+        let res = runner.run_key_value_owned(&mut ctx, KeyString::from("k"), Value::from("v_val"));
+        assert_eq!(res, Ok(Value::Null));
+        assert_eq!(
+            ctx.state().variable(&outer_ident),
+            Some(&Value::from("preserved"))
+        );
+    }
+
+    #[test]
+    fn owned_runners_handle_early_return() {
+        let (mut target, mut state, tz) = test_context();
+        let mut ctx = Context::new(&mut target, &mut state, &tz);
+
+        let variables = vec![ident("i"), ident("v")];
+
+        // Early returns are propagated unchanged.
+        let runner_ret = Runner::new(&variables, |_ctx| {
+            Err(ExpressionError::Return {
+                span: Span::new(0, 0),
+                value: Value::from("early_ret"),
+            })
+        });
+
+        let res_ret = runner_ret.run_index_value_owned(&mut ctx, 1, Value::from("val"));
+        assert_eq!(
+            res_ret,
+            Err(ExpressionError::Return {
+                span: Span::new(0, 0),
+                value: Value::from("early_ret"),
+            })
+        );
+    }
+
+    #[test]
+    fn scoped_loop_updates_in_place_and_restores_outer_variables() {
+        let (mut target, mut state, tz) = test_context();
+        let key_ident = ident("k");
+        let val_ident = ident("v");
+        state.insert_variable(key_ident.clone(), Value::from("initial_k"));
+        state.insert_variable(val_ident.clone(), Value::from("initial_v"));
+        let mut ctx = Context::new(&mut target, &mut state, &tz);
+
+        let variables = vec![key_ident.clone(), val_ident.clone()];
+        let runner = Runner::new(&variables, |ctx| {
+            let k = ctx.state().variable(&ident("k")).cloned().unwrap();
+            let v = ctx.state().variable(&ident("v")).cloned().unwrap();
+            Ok(Value::Array(vec![k, v]))
+        });
+
+        {
+            let mut scoped = runner.scoped_loop(&mut ctx);
+            let r1 = scoped.run_key_value(KeyString::from("a"), Value::from(1));
+            assert_eq!(r1, Ok(Value::Array(vec![Value::from("a"), Value::from(1)])));
+            let r2 = scoped.run_key_value(KeyString::from("b"), Value::from(2));
+            assert_eq!(r2, Ok(Value::Array(vec![Value::from("b"), Value::from(2)])));
+        }
+
+        assert_eq!(
+            ctx.state().variable(&key_ident),
+            Some(&Value::from("initial_k"))
+        );
+        assert_eq!(
+            ctx.state().variable(&val_ident),
+            Some(&Value::from("initial_v"))
+        );
+    }
+
+    #[test]
+    fn scoped_loop_cleans_up_new_variables_on_drop() {
+        let (mut target, mut state, tz) = test_context();
+        let idx_ident = ident("idx");
+        let val_ident = ident("val");
+        let mut ctx = Context::new(&mut target, &mut state, &tz);
+
+        let variables = vec![idx_ident.clone(), val_ident.clone()];
+        let runner = Runner::new(&variables, |_ctx| Ok(Value::Null));
+
+        {
+            let mut scoped = runner.scoped_loop(&mut ctx);
+            assert!(scoped.run_index_value(0, Value::from("x")).is_ok());
+            assert!(scoped.run_index_value(1, Value::from("y")).is_ok());
+            // Inside the loop, variables exist in state
+            assert_eq!(
+                scoped.ctx.state().variable(&idx_ident),
+                Some(&Value::Integer(1))
+            );
+            assert_eq!(
+                scoped.ctx.state().variable(&val_ident),
+                Some(&Value::from("y"))
+            );
+        }
+
+        // After loop drop, variables are completely removed
+        assert!(ctx.state().variable(&idx_ident).is_none());
+        assert!(ctx.state().variable(&val_ident).is_none());
+    }
+
+    #[test]
+    fn scoped_loop_restores_outer_variables_on_early_return_and_error() {
+        let (mut target, mut state, tz) = test_context();
+        let idx_ident = ident("i");
+        let val_ident = ident("v");
+        state.insert_variable(idx_ident.clone(), Value::from(100));
+        state.insert_variable(val_ident.clone(), Value::from(200));
+        let mut ctx = Context::new(&mut target, &mut state, &tz);
+
+        let variables = vec![idx_ident.clone(), val_ident.clone()];
+
+        // Test early return
+        let runner_ret = Runner::new(&variables, |_ctx| {
+            Err(ExpressionError::Return {
+                span: Span::new(0, 0),
+                value: Value::from("early_val"),
+            })
+        });
+
+        {
+            let mut scoped = runner_ret.scoped_loop(&mut ctx);
+            let res = scoped.run_index_value(0, Value::from("temp"));
+            assert_eq!(
+                res,
+                Err(ExpressionError::Return {
+                    span: Span::new(0, 0),
+                    value: Value::from("early_val"),
+                })
+            );
+        }
+        assert_eq!(ctx.state().variable(&idx_ident), Some(&Value::from(100)));
+        assert_eq!(ctx.state().variable(&val_ident), Some(&Value::from(200)));
+
+        // Test error exit
+        let runner_err = Runner::new(&variables, |_ctx| Err(ExpressionError::from("test error")));
+
+        {
+            let mut scoped = runner_err.scoped_loop(&mut ctx);
+            let res = scoped.run_index_value(0, Value::from("temp"));
+            assert!(res.is_err());
+        }
+        assert_eq!(ctx.state().variable(&idx_ident), Some(&Value::from(100)));
+        assert_eq!(ctx.state().variable(&val_ident), Some(&Value::from(200)));
+    }
+
+    #[test]
+    fn scoped_loop_handles_wildcard_parameters() {
+        let (mut target, mut state, tz) = test_context();
+        let outer_ident = ident("outer");
+        state.insert_variable(outer_ident.clone(), Value::from("outer_saved"));
+        let mut ctx = Context::new(&mut target, &mut state, &tz);
+
+        let variables = vec![ident(""), ident("_")];
+        let runner = Runner::new(&variables, |ctx| {
+            assert!(ctx.state().variable(&ident("")).is_none());
+            assert!(ctx.state().variable(&ident("_")).is_none());
+            assert_eq!(
+                ctx.state().variable(&ident("outer")),
+                Some(&Value::from("outer_saved"))
+            );
+            Ok(Value::Null)
+        });
+
+        {
+            let mut scoped = runner.scoped_loop(&mut ctx);
+            let res = scoped.run_key_value(KeyString::from("k"), Value::from("v"));
+            assert_eq!(res, Ok(Value::Null));
+        }
+
+        assert!(ctx.state().variable(&ident("")).is_none());
+        assert!(ctx.state().variable(&ident("_")).is_none());
+        assert_eq!(
+            ctx.state().variable(&outer_ident),
+            Some(&Value::from("outer_saved"))
+        );
+    }
+
+    #[test]
+    fn scoped_loop_shadows_and_restores_outer_variable_without_cloning() {
+        let (mut target, mut state, tz) = test_context();
+        let idx_ident = ident("i");
+        let val_ident = ident("v");
+        let initial_array = Value::Array(vec![Value::from(1), Value::from(2), Value::from(3)]);
+        state.insert_variable(val_ident.clone(), initial_array.clone());
+        let mut ctx = Context::new(&mut target, &mut state, &tz);
+
+        let variables = vec![idx_ident.clone(), val_ident.clone()];
+        let runner = Runner::new(&variables, |ctx| {
+            let current_v = ctx.state().variable(&ident("v")).unwrap();
+            assert_ne!(
+                current_v,
+                &Value::Array(vec![Value::from(1), Value::from(2), Value::from(3)])
+            );
+            Ok(Value::Null)
+        });
+
+        {
+            let mut scoped = runner.scoped_loop(&mut ctx);
+            assert!(scoped.run_index_value(0, Value::from("new_val")).is_ok());
+        }
+
+        assert_eq!(ctx.state().variable(&val_ident), Some(&initial_array));
     }
 }
