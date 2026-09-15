@@ -7,6 +7,7 @@ use crate::test::{example_vrl_path, test_prefix};
 use crate::value::Value;
 
 #[derive(Debug)]
+#[allow(clippy::struct_excessive_bools)] // Each flag records an independent test expectation.
 pub struct Test {
     pub name: String,
     pub category: String,
@@ -32,6 +33,14 @@ enum CaptureMode {
 }
 
 impl Test {
+    /// Loads a test case from a VRL fixture file.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the fixture cannot be read or contains an invalid read-only
+    /// path declaration.
+    #[must_use]
+    #[allow(clippy::too_many_lines)] // Parsing the line-oriented fixture format is clearer in one pass.
     pub fn from_path(path: &Path) -> Self {
         let name = test_name(path);
         let category = test_category(path);
@@ -100,7 +109,7 @@ impl Test {
                 }
 
                 match capture_mode {
-                    CaptureMode::None | CaptureMode::Done => continue,
+                    CaptureMode::None | CaptureMode::Done => {}
                     CaptureMode::Result => {
                         result.push_str(line);
                         result.push('\n');
@@ -113,7 +122,7 @@ impl Test {
                 capture_mode = CaptureMode::Done;
 
                 source.push_str(line);
-                source.push('\n')
+                source.push('\n');
             }
         }
 
@@ -127,9 +136,7 @@ impl Test {
             })
         };
 
-        {
-            result = result.trim_end().to_owned();
-        }
+        result.truncate(result.trim_end().len());
 
         Self {
             name,
@@ -148,6 +155,13 @@ impl Test {
         }
     }
 
+    /// Builds a test case from a function example.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the example declares invalid JSON input.
+    #[must_use]
+    #[allow(clippy::needless_pass_by_value)] // Accepts both borrowed identifiers and owned labels.
     pub fn from_example(func: impl ToString, example: &Example) -> Self {
         let object = match example.input {
             Some(input) => {
