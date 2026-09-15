@@ -124,6 +124,11 @@ fn parse_field_delimiters(arg: Option<&FunctionArgument>) -> Option<(String, Str
     }
 }
 
+#[must_use]
+#[allow(
+    clippy::needless_pass_by_value,
+    reason = "preserve the public configuration helper's existing owned-tuple API"
+)]
 pub fn regex_from_config(
     key_value_delimiter: &str,
     value_re: &str,
@@ -171,7 +176,7 @@ impl KeyValueFilter {
                 let mut result = Value::Object(BTreeMap::default());
                 let value = String::from_utf8_lossy(bytes);
                 self.re_pattern.captures_iter(value.as_ref()).for_each(|c| {
-                    self.parse_key_value_capture(&mut result, c);
+                    self.parse_key_value_capture(&mut result, &c);
                 });
                 Ok(result)
             }
@@ -182,10 +187,14 @@ impl KeyValueFilter {
         }
     }
 
-    fn parse_key_value_capture(&self, result: &mut Value, c: Result<Captures, fancy_regex::Error>) {
-        let key = parse_key(extract_capture(&c, 1), &self.quotes);
+    fn parse_key_value_capture(
+        &self,
+        result: &mut Value,
+        c: &Result<Captures, fancy_regex::Error>,
+    ) {
+        let key = parse_key(extract_capture(c, 1), &self.quotes);
         if !key.contains(' ') {
-            let value = extract_capture(&c, 2);
+            let value = extract_capture(c, 2);
             // trim trailing comma for value
             let value = value.trim_end_matches(',');
 
@@ -277,6 +286,11 @@ fn parse_string(input: &str) -> SResult<'_, Value> {
     .parse(input)
 }
 
+#[allow(
+    clippy::cast_possible_truncation,
+    clippy::cast_precision_loss,
+    reason = "Datadog number parsing intentionally converts exactly integral f64 values to i64"
+)]
 fn parse_number(input: &str) -> SResult<'_, Value> {
     map_res(terminated(double, eof), |v| {
         // can be safely converted to Integer without precision loss
@@ -315,9 +329,7 @@ fn parse_boolean(input: &str) -> SResult<'_, Value> {
 
 /// Removes quotes from the key if needed.
 fn parse_key<'a>(input: &'a str, quotes: &'a [(char, char)]) -> &'a str {
-    quoted(quotes)(input)
-        .map(|(_, key)| key)
-        .unwrap_or_else(|_| input)
+    quoted(quotes)(input).map_or_else(|_| input, |(_, key)| key)
 }
 
 #[cfg(test)]
@@ -328,7 +340,7 @@ mod tests {
     fn test_parse_key() {
         assert_eq!("key", parse_key("key", DEFAULT_QUOTES));
         assert_eq!("key", parse_key(r#""key""#, DEFAULT_QUOTES));
-        assert_eq!("key", parse_key(r#"#key#"#, &[('#', '#')]));
+        assert_eq!("key", parse_key(r"#key#", &[('#', '#')]));
     }
 
     #[test]
@@ -350,27 +362,24 @@ mod tests {
         // remove non-default quotes
         assert_eq!(
             Ok(("", Value::from("value"))),
-            parse_value(r#"#value#"#, &[('#', '#')])
+            parse_value(r"#value#", &[('#', '#')])
         );
-        assert_eq!(
-            Ok(("", Value::Null)),
-            parse_value(r#"null"#, DEFAULT_QUOTES)
-        );
+        assert_eq!(Ok(("", Value::Null)), parse_value(r"null", DEFAULT_QUOTES));
         assert_eq!(
             Ok(("", Value::from(true))),
-            parse_value(r#"true"#, DEFAULT_QUOTES)
+            parse_value(r"true", DEFAULT_QUOTES)
         );
         assert_eq!(
             Ok(("", Value::from(false))),
-            parse_value(r#"false"#, DEFAULT_QUOTES)
+            parse_value(r"false", DEFAULT_QUOTES)
         );
         assert_eq!(
             Ok(("", Value::from(12))),
-            parse_value(r#"12"#, DEFAULT_QUOTES)
+            parse_value(r"12", DEFAULT_QUOTES)
         );
         assert_eq!(
             Ok(("", Value::from(1.2))),
-            parse_value(r#"1.2"#, DEFAULT_QUOTES)
+            parse_value(r"1.2", DEFAULT_QUOTES)
         );
     }
 }

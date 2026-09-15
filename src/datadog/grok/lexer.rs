@@ -56,7 +56,9 @@ impl<'input> Iterator for Lexer<'input> {
     type Item = SpannedResult<'input, usize>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        use Token::*;
+        use Token::{
+            Colon, Comma, Dot, Invalid, LBracket, LParen, LRule, RBracket, RParen, RRule, Sign,
+        };
 
         loop {
             if let Some((start, ch)) = self.bump() {
@@ -89,9 +91,8 @@ impl<'input> Iterator for Lexer<'input> {
                 };
 
                 return result;
-            } else {
-                return None;
             }
+            return None;
         }
     }
 }
@@ -130,9 +131,8 @@ impl<'input> Lexer<'input> {
         while let Some((end, ch)) = self.peek() {
             if terminate(ch) {
                 return (end, self.slice(start, end));
-            } else {
-                self.bump();
             }
+            self.bump();
         }
 
         let loc = self.next_index();
@@ -157,15 +157,10 @@ impl<'input> Lexer<'input> {
 
     fn token(&mut self, start: usize, token: Token<&'input str>) -> Spanned<'input, usize> {
         let end = self.next_index();
-        self.token2(start, end, token)
+        Self::token2(start, end, token)
     }
 
-    fn token2(
-        &mut self,
-        start: usize,
-        end: usize,
-        token: Token<&'input str>,
-    ) -> Spanned<'input, usize> {
+    fn token2(start: usize, end: usize, token: Token<&'input str>) -> Spanned<'input, usize> {
         (start, token, end)
     }
 
@@ -192,7 +187,7 @@ impl<'input> Lexer<'input> {
     }
 
     fn identifier(&mut self, start: usize) -> Spanned<'input, usize> {
-        use Token::*;
+        use Token::{ExtendedIdentifier, False, Identifier, Null, True};
 
         let (end, ident) = self.take_while(start, is_ident_continue);
 
@@ -242,8 +237,7 @@ fn is_ident_start(ch: char) -> bool {
 
 fn is_ident_continue(ch: char) -> bool {
     match ch {
-        '0'..='9' => true,
-        '-' => true,
+        '0'..='9' | '-' => true,
         ch => is_ident_start(ch),
     }
 }

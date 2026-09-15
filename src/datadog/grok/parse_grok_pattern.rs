@@ -56,8 +56,8 @@ mod tests {
         for (i, arg) in args.iter().enumerate() {
             match arg {
                 FunctionArgument::Arg(arg) => assert_eq!(arg, expected_args.get(i).unwrap()),
-                _ => panic!("failed to parse arguments"),
-            };
+                FunctionArgument::Function(_) => panic!("failed to parse arguments"),
+            }
         }
     }
 

@@ -70,6 +70,10 @@ impl fmt::Display for GrokFilter {
 impl TryFrom<&Function> for GrokFilter {
     type Error = GrokStaticError;
 
+    #[allow(
+        clippy::cast_precision_loss,
+        reason = "Datadog scale factors use f64, including when configured with an integer"
+    )]
     fn try_from(f: &Function) -> Result<Self, Self::Error> {
         match f.name.as_str() {
             "scale" => match f.args.as_ref() {
@@ -118,7 +122,14 @@ impl TryFrom<&Function> for GrokFilter {
 }
 
 /// Applies a given Grok filter to the value and returns the result or error.
-/// For detailed description and examples of specific filters check out https://docs.datadoghq.com/logs/log_configuration/parsing/?tab=filters
+/// For detailed description and examples of specific filters check out <https://docs.datadoghq.com/logs/log_configuration/parsing/?tab=filters>
+#[allow(
+    clippy::cast_possible_truncation,
+    clippy::cast_precision_loss,
+    clippy::float_cmp,
+    clippy::too_many_lines,
+    reason = "Datadog numeric filters intentionally preserve their existing f64-to-i64 conversion semantics"
+)]
 pub fn apply_filter(value: &Value, filter: &GrokFilter) -> Result<Value, InternalError> {
     match filter {
         GrokFilter::Integer => match value {
@@ -246,7 +257,7 @@ pub fn apply_filter(value: &Value, filter: &GrokFilter) -> Result<Value, Interna
                 brackets
                     .as_ref()
                     .map(|(start, end)| (start.as_str(), end.as_str())),
-                delimiter.as_ref().map(|s| s.as_str()),
+                delimiter.as_ref().map(std::string::String::as_str),
             )
             .map_err(|_e| InternalError::FailedToApplyFilter(filter.to_string(), value.to_string()))
             .and_then(|values| {
