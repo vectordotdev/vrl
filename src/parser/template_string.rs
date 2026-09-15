@@ -13,7 +13,12 @@ pub enum StringSegment {
 impl fmt::Display for StringSegment {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            StringSegment::Literal(s, _) => write!(f, "{s}"),
+            StringSegment::Literal(s, _) => {
+                let s = format!("{s:?}");
+                let len = s.len();
+
+                write!(f, "{}", &s.as_str()[1..len - 1])
+            }
             StringSegment::Template(s, _) => write!(f, "{{{{ {s} }}}}"),
         }
     }

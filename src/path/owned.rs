@@ -277,7 +277,7 @@ impl From<&OwnedValuePath> for String {
         for (i, segment) in owned.segments.iter().enumerate() {
             match segment {
                 OwnedSegment::Field(field) => {
-                    serialize_field(&mut output, field.as_ref(), (i != 0).then_some("."))
+                    serialize_field(&mut output, field.as_ref(), Some("."))
                 }
                 OwnedSegment::Index(index) => {
                     write!(output, "[{index}]").expect("Could not write to string")
