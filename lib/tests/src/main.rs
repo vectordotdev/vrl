@@ -1,3 +1,5 @@
+#![deny(warnings, clippy::pedantic)]
+
 use chrono_tz::Tz;
 use clap::Parser;
 use glob::glob;
@@ -11,6 +13,7 @@ static ALLOC: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
 
 #[derive(Parser, Debug)]
 #[clap(name = "VRL Tests", about = "Vector Remap Language Tests")]
+#[allow(clippy::struct_excessive_bools)] // Each flag is an independent CLI switch.
 pub struct Cmd {
     #[clap(short, long)]
     pattern: Option<String>,
@@ -55,7 +58,7 @@ impl Cmd {
     }
 }
 
-fn should_run(name: &str, pat: &Option<String>) -> bool {
+fn should_run(name: &str, pat: Option<&str>) -> bool {
     // name.contains("truncate")
     if let Some(pat) = pat {
         if !name.contains(pat) {
@@ -89,7 +92,7 @@ fn main() {
         &cfg,
         &vrl::stdlib::all(),
         || (CompileConfig::default(), ()),
-        |_| {},
+        |()| {},
     );
 }
 
@@ -105,6 +108,11 @@ fn get_tests(cmd: &Cmd) -> Vec<Test> {
             Some(Test::from_path(&path))
         })
         .chain(get_tests_from_functions(vrl::stdlib::all()))
-        .filter(|test| should_run(&format!("{}/{}", test.category, test.name), &cmd.pattern))
+        .filter(|test| {
+            should_run(
+                &format!("{}/{}", test.category, test.name),
+                cmd.pattern.as_deref(),
+            )
+        })
         .collect::<Vec<_>>()
 }

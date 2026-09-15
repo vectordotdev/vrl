@@ -1,3 +1,5 @@
+#![deny(warnings, clippy::pedantic)]
+
 #[macro_use]
 extern crate afl;
 

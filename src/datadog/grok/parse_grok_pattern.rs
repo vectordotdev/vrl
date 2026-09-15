@@ -3,7 +3,8 @@ use lalrpop_util::{ParseError, lalrpop_mod};
 use super::{ast::GrokPattern, lexer::Lexer};
 
 lalrpop_mod!(
-    #[allow(clippy::all)]
+    // Generated parser code is outside this crate's linting control.
+    #[allow(clippy::all, clippy::pedantic)]
     #[allow(unused)]
     parser,
     "/datadog/grok/parser.rs"
