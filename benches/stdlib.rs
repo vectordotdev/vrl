@@ -1,3 +1,5 @@
+#![deny(warnings, clippy::pedantic)]
+
 use chrono::{DateTime, Datelike, TimeZone, Utc};
 use constcat::concat;
 use criterion::{Criterion, criterion_group, criterion_main};
@@ -655,7 +657,7 @@ bench_function! {
 
     literal {
         args: func_args![
-            value: 11222333444.56789,
+            value: 11_222_333_444.567_89,
             scale: 3,
             decimal_separator: ",",
             grouping_separator: "."
@@ -761,7 +763,7 @@ bench_function! {
 
     valid {
         args: func_args![value: "1.2.3.4"],
-        want: Ok(value!(16909060)),
+        want: Ok(value!(16_909_060)),
     }
 }
 
@@ -788,7 +790,7 @@ bench_function! {
     ip_ntoa => vrl::stdlib::IpNtoa;
 
     valid {
-        args: func_args![value: 16909060],
+        args: func_args![value: 16_909_060],
         want: Ok(value!("1.2.3.4")),
     }
 }
@@ -1518,11 +1520,11 @@ bench_function! {
             "subscription_filters":  ["Destination"],
             "log_events": [{
                 "id":  "35683658089614582423604394983260738922885519999578275840",
-                "timestamp":  (Utc.timestamp_opt(1600110569, 39000000).single().expect("invalid timestamp")),
+                "timestamp":  (Utc.timestamp_opt(1_600_110_569, 39_000_000).single().expect("invalid timestamp")),
                 "message":  r#"{"bytes":26780,"datetime":"14/Sep/2020:11:45:41 -0400","host":"157.130.216.193","method":"PUT","protocol":"HTTP/1.0","referer":"https://www.principalcross-platform.io/markets/ubiquitous","request":"/expedite/convergence","source_type":"stdin","status":301,"user-identifier":"-"}"#,
             }, {
                 "id":  "35683658089659183914001456229543810359430816722590236673",
-                "timestamp":  (Utc.timestamp_opt(1600110569, 41000000).single().expect("invalid timestamp")),
+                "timestamp":  (Utc.timestamp_opt(1_600_110_569, 41_000_000).single().expect("invalid timestamp")),
                 "message":  r#"{"bytes":17707,"datetime":"14/Sep/2020:11:45:41 -0400","host":"109.81.244.252","method":"GET","protocol":"HTTP/2.0","referer":"http://www.investormission-critical.io/24/7/vortals","request":"/scale/functionalities/optimize","source_type":"stdin","status":502,"user-identifier":"feeney1708"}"#,
             }]
         }))
@@ -1538,7 +1540,7 @@ bench_function! {
             format: "version interface_id account_id vpc_id subnet_id instance_id srcaddr dstaddr srcport dstport protocol tcp_flags type pkt_srcaddr pkt_dstaddr action log_status",
         ],
         want: Ok(value!({
-            "account_id": 123456789010i64,
+            "account_id": 123_456_789_010_i64,
             "action": "ACCEPT",
             "dstaddr": "10.40.2.236",
             "dstport": 80,
@@ -2086,7 +2088,7 @@ const PARSE_REGEX_LARGE_INPUT: &str = concat!(
 );
 const PARSE_REGEX_SINGLE_MATCH_PATTERN: &str = "(?P<number>.*?) group";
 const PARSE_REGEX_LARGE_INPUT_SMALL_CAPTURES_PATTERN: &str =
-    r#"^(?P<host>[\w\.]+) - [\w]+ [\d]+ \[(?P<timestamp>[^\]]+)\]"#;
+    r"^(?P<host>[\w\.]+) - [\w]+ [\d]+ \[(?P<timestamp>[^\]]+)\]";
 const PARSE_REGEX_LARGE_INPUT_PATTERN: &str = r#"^(?P<host>[\w\.]+) - (?P<user>[\w]+) (?P<bytes_in>[\d]+) \[(?P<timestamp>[^\]]+)\] "(?P<method>[\w]+) (?P<path>\S+) HTTP/[\d\.]+" (?P<status>[\d]+) (?P<bytes_out>[\d]+)"#;
 
 static LARGE_INPUT_SMALL_CAPTURES_RESULT: LazyLock<Value> = LazyLock::new(|| {
@@ -2216,7 +2218,9 @@ fn parse_regex_concurrent(c: &mut Criterion) {
 
     group.bench_function(format!("{REGEX_CONCURRENT_THREADS}_threads"), |b| {
         b.iter_custom(|iters| {
-            let per_thread = (iters as usize).max(1);
+            let per_thread = usize::try_from(iters)
+                .expect("benchmark iteration count fits usize")
+                .max(1);
             let start = Instant::now();
             std::thread::scope(|s| {
                 for expr in &expressions {
@@ -2324,7 +2328,9 @@ fn parse_regex_all_concurrent(c: &mut Criterion) {
 
     group.bench_function(format!("{REGEX_CONCURRENT_THREADS}_threads"), |b| {
         b.iter_custom(|iters| {
-            let per_thread = (iters as usize).max(1);
+            let per_thread = usize::try_from(iters)
+                .expect("benchmark iteration count fits usize")
+                .max(1);
             let start = Instant::now();
             std::thread::scope(|s| {
                 for expr in &expressions {
@@ -3143,7 +3149,7 @@ bench_function! {
 
     default {
         args: func_args![value: Utc.with_ymd_and_hms(2021, 1, 1, 0, 0, 0).unwrap()],
-        want: Ok(1609459200),
+        want: Ok(1_609_459_200),
     }
 }
 
