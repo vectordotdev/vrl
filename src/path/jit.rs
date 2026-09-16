@@ -32,6 +32,24 @@ pub struct JitValuePathIter<'a> {
 }
 
 impl<'a> JitValuePathIter<'a> {
+    fn finish(&mut self) -> Option<BorrowedSegment<'a>> {
+        let result = match self.state {
+            JitState::Start
+            | JitState::IndexStart
+            | JitState::Index { .. }
+            | JitState::NegativeIndex { .. }
+            | JitState::Quote { .. }
+            | JitState::EscapedQuote
+            | JitState::Dot => Some(BorrowedSegment::Invalid),
+            JitState::Continue | JitState::EventRoot | JitState::End => None,
+            JitState::Field { start } => {
+                Some(BorrowedSegment::Field(Cow::Borrowed(&self.path[start..])))
+            }
+        };
+        self.state = JitState::End;
+        result
+    }
+
     pub fn new(path: &'a str) -> Self {
         Self {
             chars: path.char_indices(),
@@ -65,31 +83,63 @@ enum JitState {
     End,
 }
 
+type Transition<'a> = (Option<Option<BorrowedSegment<'a>>>, JitState);
+
+impl<'a> JitValuePathIter<'a> {
+    fn escaped_quote_transition(&mut self, c: char) -> Transition<'a> {
+        match c {
+            '"' => (
+                Some(Some(BorrowedSegment::Field(
+                    std::mem::take(&mut self.escape_buffer).into(),
+                ))),
+                JitState::Continue,
+            ),
+            '\\' => match self.chars.next() {
+                Some((_, escaped @ ('\\' | '"'))) => {
+                    self.escape_buffer.push(escaped);
+                    (None, JitState::EscapedQuote)
+                }
+                Some(_) | None => (Some(Some(BorrowedSegment::Invalid)), JitState::End),
+            },
+            _ => {
+                self.escape_buffer.push(c);
+                (None, JitState::EscapedQuote)
+            }
+        }
+    }
+
+    fn index_transition(value: isize, c: char, negative: bool) -> Transition<'a> {
+        match c {
+            '0'..='9' => {
+                let digit = c as isize - '0' as isize;
+                let value = if negative {
+                    value * 10 - digit
+                } else {
+                    value * 10 + digit
+                };
+                let state = if negative {
+                    JitState::NegativeIndex { value }
+                } else {
+                    JitState::Index { value }
+                };
+                (None, state)
+            }
+            ']' => (
+                Some(Some(BorrowedSegment::Index(value))),
+                JitState::Continue,
+            ),
+            _ => (Some(Some(BorrowedSegment::Invalid)), JitState::End),
+        }
+    }
+}
+
 impl<'a> Iterator for JitValuePathIter<'a> {
     type Item = BorrowedSegment<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
             match self.chars.next() {
-                None => {
-                    let result = match self.state {
-                        JitState::Start
-                        | JitState::IndexStart
-                        | JitState::Index { .. }
-                        | JitState::NegativeIndex { .. }
-                        | JitState::Quote { .. }
-                        | JitState::EscapedQuote
-                        | JitState::Dot => Some(BorrowedSegment::Invalid),
-
-                        JitState::Continue | JitState::EventRoot | JitState::End => None,
-
-                        JitState::Field { start } => {
-                            Some(BorrowedSegment::Field(Cow::Borrowed(&self.path[start..])))
-                        }
-                    };
-                    self.state = JitState::End;
-                    return result;
-                }
+                None => return self.finish(),
                 Some((index, c)) => {
                     let (result, state) = match self.state {
                         JitState::Start => match c {
@@ -160,28 +210,7 @@ impl<'a> Iterator for JitValuePathIter<'a> {
                             }
                             _ => (None, JitState::Quote { start }),
                         },
-                        JitState::EscapedQuote => match c {
-                            '\"' => (
-                                (Some(Some(BorrowedSegment::Field(
-                                    std::mem::take(&mut self.escape_buffer).into(),
-                                )))),
-                                JitState::Continue,
-                            ),
-                            '\\' => match self.chars.next() {
-                                Some((_, c)) => match c {
-                                    '\\' | '\"' => {
-                                        self.escape_buffer.push(c);
-                                        (None, JitState::EscapedQuote)
-                                    }
-                                    _ => (Some(Some(BorrowedSegment::Invalid)), JitState::End),
-                                },
-                                None => (Some(Some(BorrowedSegment::Invalid)), JitState::End),
-                            },
-                            _ => {
-                                self.escape_buffer.push(c);
-                                (None, JitState::EscapedQuote)
-                            }
-                        },
+                        JitState::EscapedQuote => self.escaped_quote_transition(c),
                         JitState::IndexStart => match c {
                             '0'..='9' => (
                                 None,
@@ -192,38 +221,8 @@ impl<'a> Iterator for JitValuePathIter<'a> {
                             '-' => (None, JitState::NegativeIndex { value: 0 }),
                             _ => (Some(Some(BorrowedSegment::Invalid)), JitState::End),
                         },
-                        JitState::Index { value } => match c {
-                            '0'..='9' => {
-                                let new_digit = c as isize - '0' as isize;
-                                (
-                                    None,
-                                    JitState::Index {
-                                        value: value * 10 + new_digit,
-                                    },
-                                )
-                            }
-                            ']' => (
-                                Some(Some(BorrowedSegment::Index(value))),
-                                JitState::Continue,
-                            ),
-                            _ => (Some(Some(BorrowedSegment::Invalid)), JitState::End),
-                        },
-                        JitState::NegativeIndex { value } => match c {
-                            '0'..='9' => {
-                                let new_digit = c as isize - '0' as isize;
-                                (
-                                    None,
-                                    JitState::NegativeIndex {
-                                        value: value * 10 - new_digit,
-                                    },
-                                )
-                            }
-                            ']' => (
-                                Some(Some(BorrowedSegment::Index(value))),
-                                JitState::Continue,
-                            ),
-                            _ => (Some(Some(BorrowedSegment::Invalid)), JitState::End),
-                        },
+                        JitState::Index { value } => Self::index_transition(value, c, false),
+                        JitState::NegativeIndex { value } => Self::index_transition(value, c, true),
                         JitState::End => (Some(None), JitState::End),
                     };
                     self.state = state;
@@ -310,6 +309,13 @@ mod test {
                     BorrowedSegment::Field("foo".into()),
                 ],
             ),
+        ];
+        assert_paths(test_cases);
+    }
+
+    #[test]
+    fn parsing_indexes_and_quotes() {
+        let test_cases = vec![
             (
                 "foo.[42]",
                 vec![
@@ -367,16 +373,19 @@ mod test {
             ("(a)", vec![BorrowedSegment::Invalid]),
         ];
 
+        assert_paths(test_cases);
+    }
+
+    fn assert_paths(test_cases: Vec<(&str, Vec<BorrowedSegment<'_>>)>) {
         for (path, expected) in test_cases {
             let jit = JitValuePath::new(path);
-            if !ValuePath::eq(&jit, &expected) {
-                panic!(
-                    "Not equal. Input={:?}\nExpected: {:?}\nActual: {:?}",
-                    path,
-                    (&expected).segment_iter().collect::<Vec<_>>(),
-                    jit.segment_iter().collect::<Vec<_>>()
-                );
-            }
+            assert!(
+                ValuePath::eq(&jit, &expected),
+                "Not equal. Input={:?}\nExpected: {:?}\nActual: {:?}",
+                path,
+                (&expected).segment_iter().collect::<Vec<_>>(),
+                jit.segment_iter().collect::<Vec<_>>()
+            );
         }
     }
 }
