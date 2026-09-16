@@ -19,6 +19,7 @@ pub enum Comparison {
 
 impl Comparison {
     /// Returns a string representing this comparison in Lucene query formatting.
+    #[must_use]
     pub fn as_lucene(&self) -> String {
         match self {
             Comparison::Gt => String::from(">"),
@@ -53,6 +54,7 @@ impl std::fmt::Display for ComparisonValue {
 
 impl ComparisonValue {
     /// Returns a string representing this value in Lucene query formatting
+    #[must_use]
     pub fn to_lucene(&self) -> String {
         match self {
             Self::String(s) => QueryNode::lucene_escape(s),
@@ -87,14 +89,14 @@ pub enum Range {
     Value(ComparisonValue),
 }
 
-/// This enum represents the AND or OR Boolean operations we might perform on QueryNodes.
+/// This enum represents the AND or OR Boolean operations we might perform on `QueryNodes`.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum BooleanType {
     And,
     Or,
 }
 
-/// QueryNodes represent specific search criteria to be enforced.
+/// `QueryNodes` represent specific search criteria to be enforced.
 #[derive(Clone, Debug, PartialEq)]
 pub enum QueryNode {
     /// Match all documents.
@@ -127,7 +129,7 @@ pub enum QueryNode {
     AttributePrefix { attr: String, prefix: String },
     /// Search for an attribute that matches a wildcard or glob string.
     AttributeWildcard { attr: String, wildcard: String },
-    /// Container node denoting negation of the QueryNode within.
+    /// Container node denoting negation of the `QueryNode` within.
     NegatedNode { node: Box<QueryNode> },
     /// Container node for compound Boolean operations.
     Boolean {
@@ -138,6 +140,8 @@ pub enum QueryNode {
 
 impl QueryNode {
     /// Returns a string representing this node in Lucene query formatting.
+    #[must_use]
+    #[allow(clippy::too_many_lines)] // Each query-node variant has distinct formatting rules.
     pub fn to_lucene(&self) -> String {
         // TODO:  I'm using push_string here and there are more efficient string building methods if we care about performance here (we won't)
         match self {
@@ -251,6 +255,8 @@ impl QueryNode {
         }
     }
 
+    /// Escapes Lucene query syntax characters in a string.
+    #[must_use]
     pub fn lucene_escape(input: &str) -> String {
         let mut output = String::with_capacity(input.len());
         for c in input.chars() {
@@ -306,10 +312,12 @@ impl QueryNode {
     }
 
     /// Group a list of nodes into a single node, using the given conjunction.
-    /// If the group has only one node, return a clone of that node.
+    /// If the group has only one node, return that node.
+    #[must_use]
     pub fn new_boolean(conjunction: BooleanType, nodes: Vec<QueryNode>) -> QueryNode {
-        if nodes.len() == 1 {
-            return nodes.into_iter().next().expect("Known to have length 1");
+        let mut nodes = nodes;
+        if let [node] = nodes.as_mut_slice() {
+            return std::mem::replace(node, QueryNode::MatchNoDocs);
         }
 
         QueryNode::Boolean {
