@@ -1,3 +1,4 @@
+#![deny(warnings, clippy::pedantic)]
 #![allow(clippy::print_stdout)] // tests
 #![allow(clippy::print_stderr)] // tests
 
@@ -33,6 +34,7 @@ where
     (result, duration) // Return the result of the closure and the elapsed time
 }
 
+#[allow(clippy::struct_excessive_bools)] // Each flag controls an independent test-runner option.
 pub struct TestConfig {
     pub fail_early: bool,
     pub verbose: bool,
@@ -51,38 +53,50 @@ struct FailedTest {
     source_line: u32,
 }
 
+/// Returns the root directory used by the VRL test framework.
+///
+/// # Panics
+///
+/// Panics if Cargo did not provide `CARGO_MANIFEST_DIR`.
+#[must_use]
 pub fn test_dir() -> PathBuf {
     PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap())
 }
 
+/// Returns the path prefix containing VRL test fixtures.
+#[must_use]
 pub fn test_prefix() -> String {
     let mut prefix = test_dir().join("tests").to_string_lossy().to_string();
     prefix.push(MAIN_SEPARATOR);
     prefix
 }
 
+/// Returns the path to the example VRL program.
+#[must_use]
 pub fn example_vrl_path() -> PathBuf {
     test_dir().join("tests").join("example.vrl")
 }
 
+/// Builds test cases from function examples and closure inputs.
+#[must_use]
 pub fn get_tests_from_functions(functions: Vec<Box<dyn Function>>) -> Vec<Test> {
     let mut tests = vec![];
-    functions.into_iter().for_each(|function| {
+    for function in functions {
         if let Some(closure) = function.closure() {
-            closure.inputs.iter().for_each(|input| {
+            for input in &closure.inputs {
                 let test = Test::from_example(
                     format!("{} (closure)", function.identifier()),
                     &input.example,
                 );
                 tests.push(test);
-            });
+            }
         }
 
-        function.examples().iter().for_each(|example| {
+        for example in function.examples() {
             let test = Test::from_example(function.identifier(), example);
-            tests.push(test)
-        })
-    });
+            tests.push(test);
+        }
+    }
 
     tests
 }
@@ -97,13 +111,13 @@ pub fn run_tests<T>(
     let total_count = tests.len();
     let mut failed_count = 0;
     let mut warnings_count = 0;
-    let mut category = "".to_owned();
+    let mut category = String::new();
     let mut failed_tests: Vec<FailedTest> = Vec::new();
 
     for mut test in tests {
         if category != test.category {
             category.clone_from(&test.category);
-            println!("{}", Color::Fixed(3).bold().paint(category.to_string()));
+            println!("{}", Color::Fixed(3).bold().paint(category.as_str()));
         }
 
         if let Some(err) = test.error {
@@ -146,12 +160,12 @@ pub fn run_tests<T>(
                     println!("{}", Color::Yellow.bold().paint("OK (compile only)"));
                     false
                 } else if test.check_diagnostics {
-                    process_compilation_diagnostics(&test, cfg, warnings, compile_timing_fmt)
+                    process_compilation_diagnostics(&test, cfg, warnings, &compile_timing_fmt)
                 } else if warnings.is_empty() {
                     let run_start = Instant::now();
 
                     finalize_config(config_metadata);
-                    let result = run_vrl(program, &mut test.object, cfg.timezone, cfg.runtime);
+                    let result = run_vrl(&program, &mut test.object, cfg.timezone, cfg.runtime);
                     let run_end = run_start.elapsed();
 
                     let timings = {
@@ -164,7 +178,7 @@ pub fn run_tests<T>(
                         Color::Fixed(timings_color).paint(timings_fmt).to_string()
                     };
 
-                    process_result(result, &mut test, cfg, timings)
+                    process_result(result, &mut test, cfg, &timings)
                 } else {
                     println!("{} (diagnostics)", Color::Red.bold().paint("FAILED"));
                     let formatter = Formatter::new(&test.source, warnings);
@@ -175,7 +189,7 @@ pub fn run_tests<T>(
             }
             Err(diagnostics) => {
                 warnings_count += diagnostics.warnings().len();
-                process_compilation_diagnostics(&test, cfg, diagnostics, compile_timing_fmt)
+                process_compilation_diagnostics(&test, cfg, diagnostics, &compile_timing_fmt)
             }
         };
         if failed {
@@ -196,7 +210,7 @@ fn process_result(
     result: Result<Value, Terminate>,
     test: &mut Test,
     config: &TestConfig,
-    timings: String,
+    timings: &str,
 ) -> bool {
     match result {
         Ok(got) => {
@@ -314,7 +328,7 @@ fn process_compilation_diagnostics(
     test: &Test,
     cfg: &TestConfig,
     diagnostics: DiagnosticList,
-    compile_timing_fmt: String,
+    compile_timing_fmt: &str,
 ) -> bool {
     let mut failed = false;
 
@@ -416,10 +430,10 @@ fn compare_partial_diagnostic(got: &str, want: &str) -> bool {
 }
 
 fn vrl_value_to_json_value(value: Value) -> serde_json::Value {
-    use serde_json::Value::*;
-
     match value {
-        v @ Value::Bytes(_) => String(v.try_bytes_utf8_lossy().unwrap().into_owned()),
+        v @ Value::Bytes(_) => {
+            serde_json::Value::String(v.try_bytes_utf8_lossy().unwrap().into_owned())
+        }
         Value::Integer(v) => v.into(),
         Value::Float(v) => v.into_inner().into(),
         Value::Boolean(v) => v.into(),
@@ -433,7 +447,7 @@ fn vrl_value_to_json_value(value: Value) -> serde_json::Value {
             .collect::<serde_json::Value>(),
         Value::Timestamp(v) => v.to_rfc3339_opts(SecondsFormat::AutoSi, true).into(),
         Value::Regex(v) => v.to_string().into(),
-        Value::Null => Null,
+        Value::Null => serde_json::Value::Null,
     }
 }
 
@@ -466,7 +480,7 @@ impl MatchMode {
 }
 
 fn run_vrl(
-    program: Program,
+    program: &Program,
     test_object: &mut Value,
     timezone: TimeZone,
     vrl_runtime: VrlRuntime,
@@ -486,7 +500,7 @@ fn run_vrl(
         VrlRuntime::Ast => {
             // test_enrichment.finish_load();
             let mut runtime = Runtime::new(RuntimeState::default());
-            runtime.resolve(&mut target, &program, &timezone)
+            runtime.resolve(&mut target, program, &timezone)
         }
     }
 }

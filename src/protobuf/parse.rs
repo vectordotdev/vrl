@@ -8,6 +8,12 @@ pub struct Options {
     pub use_json_names: bool,
 }
 
+/// Converts a reflected protobuf value into a VRL value.
+///
+/// # Errors
+///
+/// Returns an error if an enum descriptor is missing or invalid, a floating
+/// point value is NaN, or a nested protobuf value cannot be converted.
 pub fn proto_to_value(
     prost_reflect_value: &prost_reflect::Value,
     field_descriptor: Option<&prost_reflect::FieldDescriptor>,
@@ -153,7 +159,7 @@ mod tests {
         );
         let parsed_value = parsed_value.unwrap();
         let value = value!({ name: "Someone", phones: [{number: "123-456"}] });
-        assert_eq!(value, parsed_value)
+        assert_eq!(value, parsed_value);
     }
 
     #[test]
@@ -170,7 +176,7 @@ mod tests {
         let parsed_value = parsed_value.unwrap();
         let value = value!({ name: "Someone",
                                     phones: [{number: "123-456", type: "PHONE_TYPE_MOBILE"}] });
-        assert_eq!(value, parsed_value)
+        assert_eq!(value, parsed_value);
     }
 
     #[test]

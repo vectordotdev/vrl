@@ -57,6 +57,12 @@ fn parse_map_key(kind: &Kind, key: &str) -> Result<MapKey, String> {
 /// Convert a single raw `Value` into a protobuf `Value`.
 ///
 /// Unlike `convert_value`, this ignores any field metadata such as cardinality.
+#[allow(
+    clippy::cast_possible_truncation,
+    clippy::cast_precision_loss,
+    clippy::cast_sign_loss,
+    clippy::too_many_lines
+)] // Protobuf scalar coercions intentionally preserve the existing Rust `as` semantics.
 fn convert_value_raw(
     value: Value,
     kind: &Kind,
@@ -105,16 +111,18 @@ fn convert_value_raw(
                 .map_err(|e| format!("Cannot parse `{string}` as float: {e}"))?;
             Ok(prost_reflect::Value::F32(val))
         }
-        (Value::Integer(i), Kind::Int32) => Ok(prost_reflect::Value::I32(i as i32)),
-        (Value::Integer(i), Kind::Int64) => Ok(prost_reflect::Value::I64(i)),
-        (Value::Integer(i), Kind::Sint32) => Ok(prost_reflect::Value::I32(i as i32)),
-        (Value::Integer(i), Kind::Sint64) => Ok(prost_reflect::Value::I64(i)),
-        (Value::Integer(i), Kind::Sfixed32) => Ok(prost_reflect::Value::I32(i as i32)),
-        (Value::Integer(i), Kind::Sfixed64) => Ok(prost_reflect::Value::I64(i)),
-        (Value::Integer(i), Kind::Uint32) => Ok(prost_reflect::Value::U32(i as u32)),
-        (Value::Integer(i), Kind::Uint64) => Ok(prost_reflect::Value::U64(i as u64)),
-        (Value::Integer(i), Kind::Fixed32) => Ok(prost_reflect::Value::U32(i as u32)),
-        (Value::Integer(i), Kind::Fixed64) => Ok(prost_reflect::Value::U64(i as u64)),
+        (Value::Integer(i), Kind::Int32 | Kind::Sint32 | Kind::Sfixed32) => {
+            Ok(prost_reflect::Value::I32(i as i32))
+        }
+        (Value::Integer(i), Kind::Int64 | Kind::Sint64 | Kind::Sfixed64) => {
+            Ok(prost_reflect::Value::I64(i))
+        }
+        (Value::Integer(i), Kind::Uint32 | Kind::Fixed32) => {
+            Ok(prost_reflect::Value::U32(i as u32))
+        }
+        (Value::Integer(i), Kind::Uint64 | Kind::Fixed64) => {
+            Ok(prost_reflect::Value::U64(i as u64))
+        }
         (Value::Integer(i), Kind::Double) => Ok(prost_reflect::Value::F64(i as f64)),
         (Value::Integer(i), Kind::Float) => Ok(prost_reflect::Value::F32(i as f32)),
         (Value::Integer(i), Kind::Enum(_)) => Ok(prost_reflect::Value::EnumNumber(i as i32)),
@@ -152,7 +160,7 @@ fn convert_value_raw(
                 let value_field = message_descriptor.map_entry_value_field();
                 let key_kind = key_field.kind();
                 let mut map: HashMap<MapKey, prost_reflect::Value> = HashMap::new();
-                for (key, val) in o.into_iter() {
+                for (key, val) in o {
                     let map_key = parse_map_key(&key_kind, &key)?;
                     match convert_value(&value_field, val, options) {
                         Ok(prost_val) => {
@@ -182,7 +190,12 @@ fn convert_value_raw(
                 .try_set_field_by_name("seconds", prost_reflect::Value::I64(t.timestamp()))
                 .map_err(|e| format!("Error setting 'seconds' field: {e}"))?;
             message
-                .try_set_field_by_name("nanos", prost_reflect::Value::I32(t.nanosecond() as i32))
+                .try_set_field_by_name(
+                    "nanos",
+                    prost_reflect::Value::I32(
+                        i32::try_from(t.nanosecond()).expect("nanoseconds always fit in i32"),
+                    ),
+                )
                 .map_err(|e| format!("Error setting 'nanos' field: {e}"))?;
             Ok(prost_reflect::Value::Message(message))
         }
@@ -738,7 +751,7 @@ mod tests {
             parsed_value.unwrap_err()
         );
         let parsed_value = parsed_value.unwrap();
-        assert_eq!(value, parsed_value)
+        assert_eq!(value, parsed_value);
     }
 
     #[test]
@@ -764,7 +777,7 @@ mod tests {
             parsed_value.unwrap_err()
         );
         let parsed_value = parsed_value.unwrap();
-        assert_eq!(value, parsed_value)
+        assert_eq!(value, parsed_value);
     }
 
     #[test]
