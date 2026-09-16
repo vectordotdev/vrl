@@ -1,4 +1,4 @@
-use std::fmt::Formatter;
+use std::fmt::{Formatter, Write};
 
 use crate::value::Value;
 use chrono::{
@@ -149,14 +149,13 @@ pub fn time_format_to_regex(format: &str, with_captures: bool) -> Result<RegexRe
             let token: String = chars.by_ref().peeking_take_while(|&cn| cn == c).collect();
             match c {
                 'h' | 'H' | 'm' | 's' | 'Y' | 'x' | 'c' | 'C' | 'e' | 'D' | 'w' => {
-                    regex.push_str(format!("[\\d]{{{}}}", token.len()).as_str())
+                    regex.push_str(format!("[\\d]{{{}}}", token.len()).as_str());
                 }
-                // days
-                'd' if token.len() == 1 => regex.push_str("[\\d]{1,2}"), // support 0-padding
-                'd' => regex.push_str(format!("[\\d]{{{}}}", token.len()).as_str()),
+                // days/months with optional 0-padding
+                'd' | 'M' if token.len() == 1 => regex.push_str("[\\d]{1,2}"),
                 // years
                 'y' if token.len() == 1 => regex.push_str("[\\d]{4}"), // expand y to yyyy
-                'y' => regex.push_str(format!("[\\d]{{{}}}", token.len()).as_str()),
+                'd' | 'y' => regex.push_str(format!("[\\d]{{{}}}", token.len()).as_str()),
                 // decimal fraction of a second
                 'S' => {
                     if let Some(fraction_char) = regex.pop() {
@@ -176,29 +175,24 @@ pub fn time_format_to_regex(format: &str, with_captures: bool) -> Result<RegexRe
                             regex.push_str(&fraction_char);
                         }
                     }
-                    regex.push_str(&format!("[\\d]{{{}}}", token.len()));
+                    write!(regex, "[\\d]{{{}}}", token.len())
+                        .expect("writing to a String cannot fail");
                 }
                 // Month number
-                'M' if token.len() == 1 => regex.push_str("[\\d]{1,2}"), // with 0-padding
                 'M' if token.len() == 2 => regex.push_str("[\\d]{2}"),
-                'M' if token.len() == 3 =>
-                // Abbreviated month name. Always 3 letters.
+                'M' | 'E' if token.len() == 3 =>
+                // Abbreviated month/day name. Always 3 letters.
                 {
-                    regex.push_str("[\\w]{3}")
+                    regex.push_str("[\\w]{3}");
                 }
                 'M' if token.len() > 3 =>
                 // Full month name
                 {
-                    regex.push_str("[\\w]+")
+                    regex.push_str("[\\w]+");
                 }
                 // AM/PM
                 'a' => regex.push_str("(?:[aA][mM]|[pP][mM])"),
                 // dayOfWeek (text)
-                'E' if token.len() == 3 =>
-                // Abbreviated day name. Always 3 letters.
-                {
-                    regex.push_str("[\\w]{3}")
-                }
                 'E' if token.len() > 3 => regex.push_str("[\\w]+"),
                 // time zone (text)
                 'z' => {
@@ -266,7 +260,7 @@ pub fn apply_date_filter(value: &Value, filter: &DateFilter) -> Result<Value, In
     if datetime.ends_with('Z') && filter.original_format.ends_with('Z') {
         datetime.pop(); // drop Z
         datetime.push_str("+0000");
-    };
+    }
 
     if filter.with_tz_capture {
         let tz = filter
@@ -435,7 +429,7 @@ mod tests {
         assert_eq!(
             expected_datetime,
             NaiveDateTime::parse_from_str(&adj_value, &adj_format).unwrap()
-        )
+        );
     }
 
     #[test]
@@ -451,6 +445,6 @@ mod tests {
         assert_eq!(
             expected_datetime,
             NaiveDateTime::parse_from_str(&adj_value, &adj_format).unwrap()
-        )
+        );
     }
 }
