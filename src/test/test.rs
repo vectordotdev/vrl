@@ -161,8 +161,8 @@ impl Test {
     ///
     /// Panics if the example declares invalid JSON input.
     #[must_use]
-    #[allow(clippy::needless_pass_by_value)] // Accepts both borrowed identifiers and owned labels.
-    pub fn from_example(func: impl ToString, example: &Example) -> Self {
+    pub fn from_example(func: impl Into<String>, example: &Example) -> Self {
+        let func = func.into();
         let object = match example.input {
             Some(input) => {
                 serde_json::from_str::<Value>(input).expect("example input should be valid JSON")
@@ -176,7 +176,7 @@ impl Test {
 
         Self {
             name: example.title.to_owned(),
-            category: format!("functions/{}", func.to_string()),
+            category: format!("functions/{func}"),
             error: None,
             source: example.source.to_owned(),
             object,
