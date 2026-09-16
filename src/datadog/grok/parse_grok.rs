@@ -281,6 +281,7 @@ mod tests {
     fn supports_filters() {
         test_grok_pattern(vec![
             ("%{data:field:number}", "1.0", Ok(Value::from(1))),
+            ("%{data:field:number}", "NaN", Ok(Value::from(0))),
             ("%{data:field:integer}", "1", Ok(Value::from(1))),
             (
                 "%{data:field:lowercase}",

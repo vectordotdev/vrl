@@ -259,7 +259,12 @@ pub(super) fn f64_to_i64_if_integral(value: f64) -> Option<i64> {
 }
 
 fn number_value(value: f64) -> Value {
-    f64_to_i64_if_integral(value).map_or_else(|| Value::from_f64_or_zero(value), Value::Integer)
+    let normalized = Value::from_f64_or_zero(value);
+    let Value::Float(value) = &normalized else {
+        return normalized;
+    };
+
+    f64_to_i64_if_integral(value.into_inner()).map_or(normalized, Value::Integer)
 }
 
 fn scale_value(value: f64, scale_factor: f64) -> Value {
