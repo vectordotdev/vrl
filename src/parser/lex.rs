@@ -1035,8 +1035,11 @@ impl<'input> Lexer<'input> {
                 '[' if braces == 0 && parens == 0 && brackets == 0 => {
                     brackets += 1;
 
-                    valid = matches!(last_char, Some(']' | '}' | ')'))
-                        || last_char.is_some_and(is_ident_continue);
+                    if matches!(last_char, Some(']' | '}' | ')'))
+                        || last_char.is_some_and(is_ident_continue)
+                    {
+                        valid = true;
+                    }
                 }
                 '[' => brackets += 1,
 
@@ -2255,6 +2258,28 @@ mod test {
                 ("                                     ~     ", Dot),
                 ("                                      ~~~~~", Identifier("child")),
                 ("                                          ~", RQuery),
+            ],
+        );
+    }
+
+    #[test]
+    #[rustfmt::skip]
+    fn quoted_path_index_query() {
+        use StringLiteralToken as S;
+        use StringLiteral as L;
+
+        test(
+            data(r#".foo."bar"[0]"#),
+            vec![
+                ("~            ", LQuery),
+                ("~            ", Dot),
+                (" ~~~         ", Identifier("foo")),
+                ("    ~        ", Dot),
+                ("     ~~~~~   ", L(S("bar"))),
+                ("          ~  ", LBracket),
+                ("           ~ ", IntegerLiteral(0)),
+                ("            ~", RBracket),
+                ("            ~", RQuery),
             ],
         );
     }
