@@ -1,7 +1,9 @@
+#![deny(warnings, clippy::pedantic)]
+
 use std::hint::black_box;
 
 use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
-use vrl::compiler::state::{ExternalEnv, RuntimeState, TypeState};
+use vrl::compiler::state::{ExternalEnv, LocalEnv, RuntimeState, TypeState};
 use vrl::compiler::{CompileConfig, Context, TargetValue, TimeZone, compile_with_state};
 use vrl::value::kind::Collection;
 use vrl::value::{KeyString, Kind, ObjectMap, Secrets, Value};
@@ -12,13 +14,13 @@ fn bench_for_each(c: &mut Criterion) {
     for size in [10, 1_000, 10_000] {
         // Array benchmark
         let array_val: Value = (0..size)
-            .map(|i| Value::from(i as i64))
+            .map(|i| Value::from(i64::from(i)))
             .collect::<Vec<_>>()
             .into();
         let array_program = "sum = 0\nfor_each(.) -> |index, val| { sum = sum + val }";
         let fns = vrl::stdlib::all();
         let array_state = TypeState {
-            local: Default::default(),
+            local: LocalEnv::default(),
             external: ExternalEnv::new_with_kind(
                 Kind::array(Collection::from_unknown(Kind::integer())),
                 Kind::object(Collection::any()),
@@ -67,12 +69,15 @@ fn bench_for_each(c: &mut Criterion) {
         // Object benchmark
         let mut map = ObjectMap::new();
         for i in 0..size {
-            map.insert(KeyString::from(format!("key_{i}")), Value::from(i as i64));
+            map.insert(
+                KeyString::from(format!("key_{i}")),
+                Value::from(i64::from(i)),
+            );
         }
         let object_val = Value::Object(map);
         let object_program = "sum = 0\nfor_each(.) -> |key, val| { sum = sum + val }";
         let object_state = TypeState {
-            local: Default::default(),
+            local: LocalEnv::default(),
             external: ExternalEnv::new_with_kind(
                 Kind::object(Collection::from_unknown(Kind::integer())),
                 Kind::object(Collection::any()),

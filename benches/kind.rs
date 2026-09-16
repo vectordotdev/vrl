@@ -1,3 +1,5 @@
+#![deny(warnings, clippy::pedantic)]
+
 use std::fmt;
 
 use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
@@ -29,7 +31,7 @@ fn benchmark_kind_display(c: &mut Criterion) {
         let kind = parameter.kind();
 
         group.bench_with_input(BenchmarkId::from_parameter(param), &kind, |b, kind| {
-            b.iter(|| kind.to_string())
+            b.iter(|| kind.to_string());
         });
     }
 }
@@ -41,7 +43,7 @@ fn benchmark_kind_from_value_display(c: &mut Criterion) {
 
     let array_value: Value = (0_i64..10).map(Value::Integer).collect::<Vec<_>>().into();
     group.bench_function("array_10_elems", |b| {
-        b.iter(|| format!("expected boolean, got {}", array_value.kind()))
+        b.iter(|| format!("expected boolean, got {}", array_value.kind()));
     });
 
     let object_value: Value = (0_i64..10)
@@ -54,12 +56,12 @@ fn benchmark_kind_from_value_display(c: &mut Criterion) {
         .collect::<std::collections::BTreeMap<_, _>>()
         .into();
     group.bench_function("object_10_keys", |b| {
-        b.iter(|| format!("expected boolean, got {}", object_value.kind()))
+        b.iter(|| format!("expected boolean, got {}", object_value.kind()));
     });
 
     let bytes_value: Value = Value::from("hello");
     group.bench_function("bytes", |b| {
-        b.iter(|| format!("expected boolean, got {}", bytes_value.kind()))
+        b.iter(|| format!("expected boolean, got {}", bytes_value.kind()));
     });
 }
 
