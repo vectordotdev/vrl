@@ -26,10 +26,10 @@ members = [
 default-members = ["."]
 
 [workspace.lints.rust]
-warnings = { level = "deny", priority = -1 }
+warnings = "deny"
 
 [workspace.lints.clippy]
-pedantic = { level = "warn", priority = -1 }
+pedantic = "warn"
 await_holding_lock = "warn"
 unused_async = "warn"
 uninlined_format_args = "warn"
