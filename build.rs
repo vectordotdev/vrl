@@ -1,5 +1,3 @@
-#![deny(warnings)]
-
 extern crate lalrpop;
 
 use std::{

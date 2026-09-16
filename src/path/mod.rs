@@ -1,5 +1,3 @@
-#![deny(warnings)]
-
 //! This module contains all of the logic for paths.
 //!
 //! Paths can be thought of as similar to file paths (in an operating system) pointing

@@ -1,5 +1,4 @@
 #![deny(
-    warnings,
     clippy::all,
     unreachable_pub,
     unused_allocation,

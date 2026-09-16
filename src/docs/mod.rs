@@ -1,4 +1,3 @@
-#![deny(warnings)]
 pub mod cmd;
 
 pub use cmd::{Opts, docs};

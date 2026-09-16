@@ -1,5 +1,3 @@
-#![deny(warnings)]
-
 use std::collections::BTreeMap;
 use vrl::{
     compiler::{Context, TargetValue, TimeZone, state::RuntimeState},

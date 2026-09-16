@@ -1,5 +1,3 @@
-#![deny(warnings)]
-
 use std::fmt;
 
 use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};

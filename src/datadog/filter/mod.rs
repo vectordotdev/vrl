@@ -1,5 +1,3 @@
-#![deny(warnings)]
-
 #[allow(clippy::module_inception)]
 mod filter;
 mod matcher;

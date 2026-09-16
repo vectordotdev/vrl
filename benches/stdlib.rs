@@ -1,5 +1,3 @@
-#![deny(warnings)]
-
 use chrono::{DateTime, Datelike, TimeZone, Utc};
 use constcat::concat;
 use criterion::{Criterion, criterion_group, criterion_main};

@@ -1,4 +1,3 @@
-#![deny(warnings)]
 #![allow(clippy::print_stdout)] // tests
 #![allow(clippy::print_stderr)] // tests
 
