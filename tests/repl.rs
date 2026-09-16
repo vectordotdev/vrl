@@ -1,3 +1,5 @@
+#![deny(warnings, clippy::pedantic)]
+
 use std::io::Write;
 use std::process::{Command, Stdio};
 
