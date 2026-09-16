@@ -8,12 +8,6 @@
     unused_assignments,
     unused_comparisons
 )]
-#![allow(
-    clippy::missing_errors_doc, // allowed in initial deny commit
-    clippy::semicolon_if_nothing_returned, // allowed in initial deny commit
-    clippy::too_many_lines, // allowed in initial deny commit
-)]
-
 use std::borrow::ToOwned;
 
 use lalrpop_util::lalrpop_mod;
@@ -40,6 +34,11 @@ pub use crate::diagnostic::Span;
 pub use ast::{Literal, Program};
 pub use lex::{Error, Token};
 
+/// Parses a VRL program.
+///
+/// # Errors
+///
+/// Returns a parser or lexer error when the input is not a valid VRL program.
 pub fn parse(input: impl AsRef<str>) -> Result<Program, Error> {
     let lexer = lex::Lexer::new(input.as_ref());
 
@@ -57,6 +56,11 @@ pub fn parse(input: impl AsRef<str>) -> Result<Program, Error> {
         })
 }
 
+/// Parses a single VRL literal.
+///
+/// # Errors
+///
+/// Returns a parser or lexer error when the input is not a valid VRL literal.
 pub fn parse_literal(input: impl AsRef<str>) -> Result<Literal, Error> {
     let lexer = lex::Lexer::new(input.as_ref());
 
