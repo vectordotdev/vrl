@@ -120,13 +120,9 @@ pub enum Error {
 /// # Errors
 ///
 /// Returns an error when a pattern or alias is invalid.
-#[allow(
-    clippy::needless_pass_by_value,
-    reason = "the public API takes ownership of aliases and clones them into each rule context"
-)]
 pub fn parse_grok_rules(
     patterns: &[String],
-    aliases: BTreeMap<KeyString, String>,
+    aliases: &BTreeMap<KeyString, String>,
 ) -> Result<Vec<GrokRule>, Error> {
     let mut grok = Grok::with_patterns();
 
@@ -447,7 +443,7 @@ mod tests {
     fn supports_escaped_quotes() {
         let rules = parse_grok_rules(
             &[r#"%{notSpace:field:nullIf("with \"escaped\" quotes")}"#.to_string()],
-            BTreeMap::new(),
+            &BTreeMap::new(),
         )
         .expect("couldn't parse rules");
         assert!(matches!(

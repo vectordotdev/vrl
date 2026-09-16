@@ -16,7 +16,7 @@ fn make_filter() -> KeyValueFilter {
             "=",
             r"\w.\-_@",
             quotes.clone(),
-            ("|".to_string(), "|".to_string()),
+            &("|".to_string(), "|".to_string()),
         )
         .unwrap(),
         quotes: vec![('"', '"'), ('\'', '\''), ('<', '>')],

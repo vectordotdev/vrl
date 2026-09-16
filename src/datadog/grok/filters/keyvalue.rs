@@ -77,7 +77,7 @@ impl KeyValueFilter {
                 key_value_delimiter,
                 &value_re,
                 quotes.clone(),
-                field_delimiters,
+                &field_delimiters,
             )?,
             quotes,
         })
@@ -125,15 +125,11 @@ fn parse_field_delimiters(arg: Option<&FunctionArgument>) -> Option<(String, Str
 }
 
 #[must_use]
-#[allow(
-    clippy::needless_pass_by_value,
-    reason = "preserve the public configuration helper's existing owned-tuple API"
-)]
 pub fn regex_from_config(
     key_value_delimiter: &str,
     value_re: &str,
     quotes: Vec<(char, char)>,
-    field_delimiters: (String, String),
+    field_delimiters: &(String, String),
 ) -> Option<Regex> {
     // start group
     let mut quoting = String::from("(");
@@ -286,15 +282,10 @@ fn parse_string(input: &str) -> SResult<'_, Value> {
     .parse(input)
 }
 
-#[allow(
-    clippy::cast_possible_truncation,
-    clippy::cast_precision_loss,
-    reason = "Datadog number parsing intentionally converts exactly integral f64 values to i64"
-)]
 fn parse_number(input: &str) -> SResult<'_, Value> {
     map_res(terminated(double, eof), |v| {
         // can be safely converted to Integer without precision loss
-        if ((v as i64) as f64 - v).abs() == 0.0 {
+        if let Some(integer) = super::super::grok_filter::f64_to_i64_if_integral(v) {
             // Check if it is a valid octal number(start with 0) - keep parsed as a decimal though.
             if input.starts_with('0') && input.contains(['8', '9']) {
                 Err(nom::Err::<&str, (&str, nom::error::ErrorKind)>::Error((
@@ -302,7 +293,7 @@ fn parse_number(input: &str) -> SResult<'_, Value> {
                     nom::error::ErrorKind::OctDigit,
                 )))
             } else {
-                Ok(Value::Integer(v as i64))
+                Ok(Value::Integer(integer))
             }
         } else {
             Ok(Value::Float(NotNan::new(v).expect("not a float")))

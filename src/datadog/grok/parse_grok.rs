@@ -189,7 +189,7 @@ mod tests {
                 "%{TIMESTAMP_ISO8601:timestamp} %{LOGLEVEL:level} %{GREEDYDATA:message}"
                     .to_string(),
             ],
-            BTreeMap::new(),
+            &BTreeMap::new(),
         )
         .expect("couldn't parse rules");
         let parsed = parse_grok("2020-10-02T23:22:12.223222Z info Hello world", &rules)
@@ -215,7 +215,7 @@ mod tests {
                 r#"%{access.common} (%{number:duration:scale(1000000000)} )?"%{_referer}" "%{_user_agent}"( "%{_x_forwarded_for}")?.*"#.to_string()
             ],
             // aliases
-            btreemap! {
+            &btreemap! {
                 "access.common" => r#"%{_client_ip} %{_ident} %{_auth} \[%{_date_access}\] "(?>%{_method} |)%{_url}(?> %{_version}|)" %{_status_code} (?>%{_bytes_written}|-)"#.to_string(),
                 "_auth" => r#"%{notSpace:http.auth:nullIf("-")}"#.to_string(),
                 "_bytes_written" => "%{integer:network.bytes_written}".to_string(),
@@ -304,7 +304,7 @@ mod tests {
                 internal_errors: vec![],
             });
             let rules =
-                parse_grok_rules(&[filter.to_string()], BTreeMap::new()).unwrap_or_else(|error| {
+                parse_grok_rules(&[filter.to_string()], &BTreeMap::new()).unwrap_or_else(|error| {
                     panic!("failed to parse {k} with filter {filter}: {error}")
                 });
             let parsed = parse_grok(k, &rules);
@@ -331,7 +331,7 @@ mod tests {
                 parsed,
                 internal_errors: vec![],
             });
-            let rules = parse_grok_rules(&[filter.to_string()], BTreeMap::new())
+            let rules = parse_grok_rules(&[filter.to_string()], &BTreeMap::new())
                 .unwrap_or_else(|_| panic!("failed to parse {k} with filter {filter}"));
             let parsed = parse_grok(k, &rules);
 
@@ -343,7 +343,7 @@ mod tests {
         tests: Vec<(&str, &str, Result<ParsedGrokObject, FatalError>)>,
     ) {
         for (filter, k, v) in tests {
-            let rules = parse_grok_rules(&[filter.to_string()], BTreeMap::new())
+            let rules = parse_grok_rules(&[filter.to_string()], &BTreeMap::new())
                 .unwrap_or_else(|_| panic!("failed to parse {k} with filter {filter}"));
             let parsed = parse_grok(k, &rules);
 
@@ -354,7 +354,7 @@ mod tests {
     #[test]
     fn fails_on_unknown_pattern_definition() {
         assert_eq!(
-            parse_grok_rules(&["%{unknown}".to_string()], BTreeMap::new())
+            parse_grok_rules(&["%{unknown}".to_string()], &BTreeMap::new())
                 .unwrap_err()
                 .to_string(),
             r#"failed to parse grok expression '(?m)\A%{unknown}\z': The given pattern definition name "unknown" could not be found in the definition map"#
@@ -366,7 +366,7 @@ mod tests {
         assert_eq!(
             parse_grok_rules(
                 &["%{data:field:unknownFilter}".to_string()],
-                BTreeMap::new(),
+                &BTreeMap::new(),
             )
             .unwrap_err()
             .to_string(),
@@ -377,7 +377,7 @@ mod tests {
     #[test]
     fn fails_on_invalid_matcher_parameter() {
         assert_eq!(
-            parse_grok_rules(&["%{regex(1):field}".to_string()], BTreeMap::new())
+            parse_grok_rules(&["%{regex(1):field}".to_string()], &BTreeMap::new())
                 .unwrap_err()
                 .to_string(),
             "invalid arguments for the function 'regex'"
@@ -387,7 +387,7 @@ mod tests {
     #[test]
     fn fails_on_invalid_filter_parameter() {
         assert_eq!(
-            parse_grok_rules(&["%{data:field:scale()}".to_string()], BTreeMap::new())
+            parse_grok_rules(&["%{data:field:scale()}".to_string()], &BTreeMap::new())
                 .unwrap_err()
                 .to_string(),
             "invalid arguments for the function 'scale'"
@@ -489,7 +489,7 @@ mod tests {
                 "%{TIMESTAMP_ISO8601:timestamp} %{LOGLEVEL:level} %{GREEDYDATA:message}"
                     .to_string(),
             ],
-            BTreeMap::new(),
+            &BTreeMap::new(),
         )
         .expect("couldn't parse rules");
         let error = parse_grok("an ungrokkable message", &rules).unwrap_err();
@@ -510,7 +510,7 @@ mod tests {
         let rules = parse_grok_rules(
             // patterns
             &[pattern],
-            BTreeMap::new(),
+            &BTreeMap::new(),
         )
         .expect("couldn't parse rules");
 
@@ -526,7 +526,7 @@ mod tests {
                 r#"%{integer:nested.field} %{notSpace:nested.field:uppercase} %{notSpace:nested.field:nullIf("-")}"#
                     .to_string(),
             ],
-            BTreeMap::new(),
+            &BTreeMap::new(),
         )
             .expect("couldn't parse rules");
         let parsed = parse_grok("1 info message", &rules).unwrap().parsed;
@@ -547,7 +547,7 @@ mod tests {
             // patterns
             &["%{pattern1}".to_string()],
             // aliases with a circular dependency
-            btreemap! {
+            &btreemap! {
             "pattern1" => "%{pattern2}".to_string(),
             "pattern2" => "%{pattern1}".to_string()},
         )
@@ -579,14 +579,7 @@ mod tests {
     }
 
     #[test]
-    #[allow(clippy::too_many_lines)]
     fn supports_date_matcher() {
-        let now = Utc::now();
-        let now = NaiveDate::from_ymd_opt(now.year(), now.month(), now.day())
-            .unwrap()
-            .and_hms_opt(12, 13, 14)
-            .unwrap()
-            .and_utc();
         test_grok_pattern(vec![
             (
                 r#"%{date("dd/MMM/yyyy"):field}"#,
@@ -653,6 +646,18 @@ mod tests {
                 "Thu Jun 16 08:29:03 2016",
                 Ok(Value::Integer(1_466_054_943_000)),
             ),
+        ]);
+    }
+
+    #[test]
+    fn supports_more_date_matcher_formats() {
+        let now = Utc::now();
+        let now = NaiveDate::from_ymd_opt(now.year(), now.month(), now.day())
+            .unwrap()
+            .and_hms_opt(12, 13, 14)
+            .unwrap()
+            .and_utc();
+        test_grok_pattern(vec![
             (
                 r#"%{date("EEE MMM dd HH:mm:ss yyyy", "-0300"):field}"#,
                 "Thu Jun 16 08:29:03 2016",
@@ -728,12 +733,14 @@ mod tests {
                 Ok(Value::Integer(now.timestamp() * 1000)),
             ),
         ]);
+    }
 
-        // check error handling
+    #[test]
+    fn rejects_invalid_date_matchers() {
         assert_eq!(
             parse_grok_rules(
                 &[r#"%{date("ABC:XYZ"):field}"#.to_string()],
-                BTreeMap::new(),
+                &BTreeMap::new(),
             )
             .unwrap_err()
             .to_string(),
@@ -742,7 +749,7 @@ mod tests {
         assert_eq!(
             parse_grok_rules(
                 &[r#"%{date("EEE MMM dd HH:mm:ss yyyy", "unknown timezone"):field}"#.to_string()],
-                BTreeMap::new(),
+                &BTreeMap::new(),
             )
             .unwrap_err()
             .to_string(),
@@ -844,7 +851,6 @@ mod tests {
     }
 
     #[test]
-    #[allow(clippy::too_many_lines)]
     fn parses_keyvalue() {
         test_full_grok(vec![
             (
@@ -944,6 +950,12 @@ mod tests {
                     "key2" => "value2",
                 })),
             ),
+        ]);
+    }
+
+    #[test]
+    fn parses_keyvalue_values() {
+        test_full_grok(vec![
             (
                 r#"%{data::keyvalue(":=","","<>")}"#,
                 r#"key1:=valueStr key2:=</valueStr2> key3:="valueStr3""#,
@@ -1035,6 +1047,12 @@ mod tests {
                 "key =valueStr",
                 Ok(Value::from(BTreeMap::new())),
             ),
+        ]);
+    }
+
+    #[test]
+    fn parses_keyvalue_edge_cases() {
+        test_full_grok(vec![
             (
                 r#"%{data::keyvalue(":")}"#,
                 "kafka_cluster_status:8ca7b736f0aa43e5",
@@ -1133,7 +1151,7 @@ mod tests {
             // patterns
             &["%{notSpace:field:number} %{alias}".to_string()],
             // aliases
-            btreemap! {
+            &btreemap! {
                 "alias" => "%{notSpace:field:integer}".to_string()
             },
         )
@@ -1154,7 +1172,7 @@ mod tests {
             // patterns
             &["%{alias:field:uppercase}".to_string()],
             // aliases
-            btreemap! {
+            &btreemap! {
                 "alias" => "%{notSpace:subfield1} %{notSpace:subfield2:integer}".to_string()
             },
         )
