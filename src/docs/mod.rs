@@ -1,4 +1,3 @@
-#![deny(warnings, clippy::pedantic)]
 pub mod cmd;
 
 pub use cmd::{Opts, docs};

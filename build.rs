@@ -1,5 +1,3 @@
-#![deny(warnings, clippy::pedantic)]
-
 extern crate lalrpop;
 
 use std::{

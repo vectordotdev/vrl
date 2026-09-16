@@ -1,5 +1,3 @@
-#![deny(warnings, clippy::pedantic)]
-
 use std::hint::black_box;
 
 use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};

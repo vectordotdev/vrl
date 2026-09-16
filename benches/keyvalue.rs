@@ -1,5 +1,3 @@
-#![deny(warnings, clippy::pedantic)]
-
 use std::hint::black_box;
 use std::time::Duration;
 

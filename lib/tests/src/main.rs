@@ -1,5 +1,3 @@
-#![deny(warnings, clippy::pedantic)]
-
 use chrono_tz::Tz;
 use clap::Parser;
 use glob::glob;

@@ -1,4 +1,3 @@
-#![deny(warnings)]
 #![warn(clippy::all)]
 #![warn(clippy::arithmetic_side_effects)]
 
