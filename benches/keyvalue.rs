@@ -1,4 +1,4 @@
-#![deny(warnings, clippy::pedantic)]
+#![deny(warnings)]
 
 use std::hint::black_box;
 use std::time::Duration;

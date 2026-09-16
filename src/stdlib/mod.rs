@@ -1,4 +1,4 @@
-#![deny(warnings, clippy::pedantic)]
+#![deny(warnings)]
 pub use wasm_unsupported_function::WasmUnsupportedFunction;
 
 use crate::compiler::Function;

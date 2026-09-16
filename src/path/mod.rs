@@ -1,4 +1,4 @@
-#![deny(warnings, clippy::pedantic)]
+#![deny(warnings)]
 
 //! This module contains all of the logic for paths.
 //!

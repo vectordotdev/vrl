@@ -1,4 +1,4 @@
-#![deny(warnings, clippy::pedantic)]
+#![deny(warnings)]
 
 use chrono::{DateTime, Datelike, TimeZone, Utc};
 use constcat::concat;

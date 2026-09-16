@@ -1,5 +1,5 @@
 #![deny(warnings)]
-#![deny(clippy::all, clippy::pedantic)]
+#![deny(clippy::all)]
 #![deny(unused_allocation)]
 #![deny(unused_extern_crates)]
 #![deny(unused_assignments)]

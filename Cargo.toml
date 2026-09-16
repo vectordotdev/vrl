@@ -26,6 +26,7 @@ members = [
 default-members = ["."]
 
 [workspace.lints.clippy]
+pedantic = { level = "warn", priority = -1 }
 await_holding_lock = "warn"
 unused_async = "warn"
 uninlined_format_args = "warn"
@@ -339,4 +340,3 @@ required-features = ["default", "test"]
 [[bench]]
 name = "for_each"
 harness = false
-

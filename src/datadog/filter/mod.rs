@@ -1,4 +1,4 @@
-#![deny(warnings, clippy::pedantic)]
+#![deny(warnings)]
 
 #[allow(clippy::module_inception)]
 mod filter;

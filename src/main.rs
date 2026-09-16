@@ -1,4 +1,4 @@
-#![deny(warnings, clippy::pedantic)]
+#![deny(warnings)]
 
 use clap::Parser;
 use vrl::cli::{Opts, cmd::cmd};
