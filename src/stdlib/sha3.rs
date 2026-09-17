@@ -39,16 +39,19 @@ const PARAMETERS: &[Parameter] = &[
     .enum_variants(VARIANT_ENUM),
 ];
 
+fn sha3_hex(value: &[u8], variant: &[u8]) -> Bytes {
+    match variant {
+        b"SHA3-224" => hex_encode::<56>(Sha3_224::digest(value)),
+        b"SHA3-256" => hex_encode::<64>(Sha3_256::digest(value)),
+        b"SHA3-384" => hex_encode::<96>(Sha3_384::digest(value)),
+        b"SHA3-512" => hex_encode::<128>(Sha3_512::digest(value)),
+        _ => unreachable!("enum invariant"),
+    }
+}
+
 fn sha3(value: Value, variant: &Bytes) -> Resolved {
     let value = value.try_bytes()?;
-    let hash = match variant.as_ref() {
-        b"SHA3-224" => encode::<Sha3_224>(&value),
-        b"SHA3-256" => encode::<Sha3_256>(&value),
-        b"SHA3-384" => encode::<Sha3_384>(&value),
-        b"SHA3-512" => encode::<Sha3_512>(&value),
-        _ => unreachable!("enum invariant"),
-    };
-    Ok(hash.into())
+    Ok(Value::Bytes(sha3_hex(&value, variant)))
 }
 
 fn variants() -> Vec<Value> {
@@ -121,7 +124,15 @@ impl Function for Sha3 {
             .try_bytes()
             .expect("variant not bytes");
 
-        Ok(Sha3Fn { value, variant }.as_expr())
+        if let Some(val) = value.resolve_constant(state)
+            && let Ok(bytes) = val.try_bytes()
+        {
+            Ok(Box::new(crate::compiler::expression::Literal::String(
+                sha3_hex(&bytes, &variant),
+            )))
+        } else {
+            Ok(Sha3Fn { value, variant }.as_expr())
+        }
     }
 }
 
@@ -145,8 +156,10 @@ impl FunctionExpression for Sha3Fn {
 }
 
 #[inline]
-fn encode<T: Digest>(value: &[u8]) -> String {
-    hex::encode(T::digest(value))
+fn hex_encode<const N: usize>(digest: impl AsRef<[u8]>) -> Bytes {
+    let mut buf = [0u8; N];
+    hex::encode_to_slice(digest, &mut buf).expect("hex buffer sized for digest");
+    Bytes::copy_from_slice(&buf)
 }
 
 #[cfg(test)]
@@ -192,4 +205,47 @@ mod tests {
              tdef: TypeDef::bytes().infallible(),
          }
     ];
+
+    #[test]
+    fn test_sha3_compiles_to_literal() {
+        use crate::compiler::CompileConfig;
+
+        let state = state::TypeState::default();
+        let mut ctx = FunctionCompileContext::new(Span::default(), CompileConfig::default());
+        let mut args = ArgumentList::default();
+        args.insert("value", Value::from("foo").into());
+
+        let expr = Sha3.compile(&state, &mut ctx, args).unwrap();
+        assert_eq!(
+            expr.resolve_constant(&state),
+            Some(Value::from(
+                "4bca2b137edc580fe50a88983ef860ebaca36c857b1f492839d6d7392452a63c82cbebc68e3b70a2a1480b4bb5d437a7cba6ecf9d89f9ff3ccd14cd6146ea7e7"
+            ))
+        );
+    }
+
+    #[test]
+    fn test_sha3_compiles_dynamic() {
+        use crate::compiler::CompileConfig;
+        use crate::compiler::expression::Variable;
+        use crate::compiler::parser::Ident;
+
+        let mut state = state::TypeState::default();
+        state.local.insert_variable(
+            Ident::new("foo"),
+            type_def::Details {
+                type_def: TypeDef::bytes(),
+                value: None,
+            },
+        );
+
+        let mut ctx = FunctionCompileContext::new(Span::default(), CompileConfig::default());
+        let var = Variable::new((0, 0).into(), Ident::new("foo"), &state.local).unwrap();
+
+        let mut args = ArgumentList::default();
+        args.insert("value", var.into());
+
+        let expr = Sha3.compile(&state, &mut ctx, args).unwrap();
+        assert!(expr.resolve_constant(&state).is_none());
+    }
 }
