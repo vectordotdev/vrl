@@ -337,10 +337,5 @@ harness = false
 required-features = ["default", "test"]
 
 [[bench]]
-name = "break_iteration"
-harness = false
-required-features = ["default", "test"]
-
-[[bench]]
 name = "for_each"
 harness = false
