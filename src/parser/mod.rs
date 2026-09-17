@@ -72,3 +72,129 @@ pub fn parse_literal(input: impl AsRef<str>) -> Result<Literal, Error> {
             dropped_tokens: vec![],
         })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_for_single_variable() {
+        let source = "for x in [1, 2] { .foo = x }";
+        let parsed = parse(source).expect("should parse single variable for loop");
+        assert_eq!(parsed.len(), 1);
+        let ast::RootExpr::Expr(ref expr) = parsed[0].node else {
+            panic!("expected RootExpr::Expr, got {:?}", parsed[0].node);
+        };
+        let ast::Expr::For(ref for_stmt) = expr.node else {
+            panic!("expected Expr::For, got {:?}", expr.node);
+        };
+        let ast::ForPattern::Single(ref ident) = for_stmt.pattern else {
+            panic!("expected ForPattern::Single, got {:?}", for_stmt.pattern);
+        };
+        assert_eq!(&ident.0, "x");
+        assert_eq!(for_stmt.block.0.len(), 1);
+    }
+
+    #[test]
+    fn test_parse_for_key_value() {
+        let source = "for k, v in { \"a\": 1 } { .foo = v }";
+        let parsed = parse(source).expect("should parse key-value for loop");
+        assert_eq!(parsed.len(), 1);
+        let ast::RootExpr::Expr(ref expr) = parsed[0].node else {
+            panic!("expected RootExpr::Expr, got {:?}", parsed[0].node);
+        };
+        let ast::Expr::For(ref for_stmt) = expr.node else {
+            panic!("expected Expr::For, got {:?}", expr.node);
+        };
+        let ast::ForPattern::KeyValue(ref key, ref value) = for_stmt.pattern else {
+            panic!("expected ForPattern::KeyValue, got {:?}", for_stmt.pattern);
+        };
+        assert_eq!(&key.0, "k");
+        assert_eq!(&value.0, "v");
+        assert_eq!(for_stmt.block.0.len(), 1);
+    }
+
+    #[test]
+    fn test_parse_for_with_break_and_continue() {
+        let source = "for x in [1, 2] { if x == 1 { continue } else { break } }";
+        let parsed = parse(source).expect("should parse for loop with break and continue");
+        assert_eq!(parsed.len(), 1);
+        let ast::RootExpr::Expr(ref expr) = parsed[0].node else {
+            panic!("expected RootExpr::Expr, got {:?}", parsed[0].node);
+        };
+        let ast::Expr::For(ref for_stmt) = expr.node else {
+            panic!("expected Expr::For, got {:?}", expr.node);
+        };
+        assert_eq!(for_stmt.block.0.len(), 1);
+        let ast::Expr::IfStatement(ref if_stmt) = for_stmt.block.0[0].node else {
+            panic!("expected IfStatement, got {:?}", for_stmt.block.0[0].node);
+        };
+        assert_eq!(if_stmt.if_node.0.len(), 1);
+        assert!(matches!(if_stmt.if_node.0[0].node, ast::Expr::Continue(_)));
+        let else_node = if_stmt.else_node.as_ref().expect("expected else node");
+        assert_eq!(else_node.0.len(), 1);
+        assert!(matches!(else_node.0[0].node, ast::Expr::Break(_)));
+    }
+
+    #[test]
+    fn test_parse_for_nested() {
+        let source = "for x in [1, 2] { for y in [3, 4] { continue } }";
+        let parsed = parse(source).expect("should parse nested for loops");
+        assert_eq!(parsed.len(), 1);
+        let ast::RootExpr::Expr(ref expr) = parsed[0].node else {
+            panic!("expected RootExpr::Expr, got {:?}", parsed[0].node);
+        };
+        let ast::Expr::For(ref outer_for) = expr.node else {
+            panic!("expected Expr::For, got {:?}", expr.node);
+        };
+        assert_eq!(outer_for.block.0.len(), 1);
+        let ast::Expr::For(ref inner_for) = outer_for.block.0[0].node else {
+            panic!(
+                "expected inner Expr::For, got {:?}",
+                outer_for.block.0[0].node
+            );
+        };
+        assert_eq!(inner_for.block.0.len(), 1);
+        assert!(matches!(inner_for.block.0[0].node, ast::Expr::Continue(_)));
+    }
+
+    #[test]
+    fn test_path_field_keywords_compatibility() {
+        let source = ".for = .in\n.break = .continue";
+        let parsed = parse(source).expect("should parse path fields matching keywords");
+        assert_eq!(parsed.len(), 2);
+        assert!(!matches!(&parsed[0].node, ast::RootExpr::Error(_)));
+        assert!(!matches!(&parsed[1].node, ast::RootExpr::Error(_)));
+    }
+
+    #[test]
+    fn test_ast_display() {
+        let pattern_single =
+            ast::ForPattern::Single(ast::Node::new(Span::new(0, 1), ast::Ident::new("item")));
+        assert_eq!(format!("{pattern_single}"), "item");
+
+        let pattern_kv = ast::ForPattern::KeyValue(
+            ast::Node::new(Span::new(0, 1), ast::Ident::new("k")),
+            ast::Node::new(Span::new(3, 4), ast::Ident::new("v")),
+        );
+        assert_eq!(format!("{pattern_kv}"), "k, v");
+
+        let brk = ast::Break;
+        assert_eq!(format!("{brk}"), "break");
+
+        let cont = ast::Continue;
+        assert_eq!(format!("{cont}"), "continue");
+    }
+
+    #[test]
+    fn test_parse_for_multiline_block() {
+        let source = "for x in [1, 2]\n{\n  continue\n}";
+        let parsed = parse(source).expect("should parse for loop with newline before block");
+        assert_eq!(parsed.len(), 1);
+
+        let source_multiple_newlines = "for k, v in { \"a\": 1 }\n\n{\n  continue\n}";
+        let parsed_mult = parse(source_multiple_newlines)
+            .expect("should parse for loop with multiple newlines before block");
+        assert_eq!(parsed_mult.len(), 1);
+    }
+}

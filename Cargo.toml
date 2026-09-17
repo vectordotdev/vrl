@@ -360,3 +360,7 @@ required-features = ["default", "test"]
 name = "large_objects"
 harness = false
 required-features = ["default", "test"]
+
+[[bench]]
+name = "for_loop"
+harness = false
