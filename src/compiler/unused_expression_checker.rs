@@ -22,8 +22,9 @@ use crate::compiler::codes;
 use crate::compiler::parser::{Ident, Node};
 use crate::diagnostic::{Diagnostic, DiagnosticList, Label, Note, Severity};
 use crate::parser::ast::{
-    Array, Assignment, AssignmentOp, AssignmentTarget, Block, Container, Expr, FunctionCall,
-    IfStatement, Object, Predicate, QueryTarget, Return, RootExpr, Unary,
+    Array, Assignment, AssignmentOp, AssignmentTarget, Block, Container, Expr, ForPattern,
+    ForStatement, FunctionCall, IfStatement, Object, Predicate, QueryTarget, Return, RootExpr,
+    Unary,
 };
 use crate::parser::template_string::StringSegment;
 use crate::parser::{Literal, Program, Span};
@@ -241,7 +242,8 @@ impl AstVisitor<'_> {
             Expr::Variable(variable) => {
                 state.mark_identifier_used(&variable.node);
             }
-            Expr::Abort(_) | Expr::Break(_) => {}
+            Expr::For(for_stmt) => self.visit_for_statement(for_stmt, state),
+            Expr::Break(_) | Expr::Continue(_) | Expr::Abort(_) => {}
             Expr::Return(r#return) => self.visit_return(r#return, state),
         }
     }
@@ -306,6 +308,26 @@ impl AstVisitor<'_> {
                 self.visit_block(else_block, state);
             });
         }
+    }
+
+    fn visit_for_statement(&self, for_statement: &Node<ForStatement>, state: &mut VisitorState) {
+        scoped_visit(state, |state| {
+            self.visit_node(&for_statement.iterable, state);
+        });
+
+        match &for_statement.pattern {
+            ForPattern::Single(val) => {
+                state.mark_identifier_pending_usage(&val.node, &val.span);
+            }
+            ForPattern::KeyValue(key, val) => {
+                state.mark_identifier_pending_usage(&key.node, &key.span);
+                state.mark_identifier_pending_usage(&val.node, &val.span);
+            }
+        }
+
+        scoped_visit(state, |state| {
+            self.visit_block(&for_statement.block, state);
+        });
     }
 
     fn visit_assignment(&self, assignment: &Node<Assignment>, state: &mut VisitorState) {
@@ -438,7 +460,6 @@ mod test {
         let warnings = crate::compiler::compile(source, &stdlib::all())
             .unwrap()
             .warnings;
-
         assert_eq!(warnings.len(), expected_warnings.len());
 
         for (i, content) in expected_warnings.iter().enumerate() {
@@ -713,6 +734,76 @@ mod test {
                 if !done {
                     done = true
                 }
+            }
+        "};
+        unused_test(source, &[]);
+    }
+
+    #[test]
+    fn for_loop_used_variable() {
+        let source = indoc! {r"
+            for x in [1, 2] {
+                .foo = x
+            }
+        "};
+        unused_test(source, &[]);
+    }
+
+    #[test]
+    fn for_loop_unused_variable() {
+        let source = indoc! {r"
+            for x in [1, 2] {
+                .foo = 1
+            }
+        "};
+        unused_test(source, &["unused variable `x`".to_string()]);
+    }
+
+    #[test]
+    fn for_loop_wildcard_variable_ignored() {
+        let source = indoc! {r"
+            for _ in [1, 2] {
+                .foo = 1
+            }
+            for _x in [1, 2] {
+                .bar = 2
+            }
+        "};
+        unused_test(source, &[]);
+    }
+
+    #[test]
+    fn for_loop_key_value() {
+        let source = indoc! {r#"
+            for k, v in { "a": 1 } {
+                .foo = k
+                .bar = v
+            }
+        "#};
+        unused_test(source, &[]);
+    }
+
+    #[test]
+    fn for_loop_key_value_partial_unused() {
+        let source = indoc! {r#"
+            for k, v in { "a": 1 } {
+                .foo = k
+            }
+        "#};
+        unused_test(source, &["unused variable `v`".to_string()]);
+    }
+
+    #[test]
+    fn for_loop_control_flow() {
+        let source = indoc! {r"
+            for x in [1, 2, 3] {
+                if x == 2 {
+                    continue
+                }
+                if x == 3 {
+                    break
+                }
+                .foo = x
             }
         "};
         unused_test(source, &[]);
