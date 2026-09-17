@@ -1,4 +1,4 @@
-use ExpressionError::{Abort, Error, Fallible, Interrupted, Missing, Return};
+use ExpressionError::{Abort, Break, Continue, Error, Fallible, Interrupted, Missing, Return};
 
 use crate::compiler::codes;
 use crate::diagnostic::{Diagnostic, DiagnosticMessage, Label, Note, Severity, Span};
@@ -22,6 +22,12 @@ pub enum ExpressionError {
         span: Span,
         value: Value,
     },
+    Break {
+        span: Span,
+    },
+    Continue {
+        span: Span,
+    },
     Error {
         message: String,
         labels: Vec<Label>,
@@ -36,6 +42,23 @@ pub enum ExpressionError {
         span: Span,
         feature: &'static str,
     },
+}
+
+impl ExpressionError {
+    /// Returns `true` if this error represents a non-catchable control flow signal
+    /// (such as `break`, `continue`, `return`, `abort`, or runtime interruption)
+    /// rather than a catchable runtime data error.
+    #[must_use]
+    pub const fn is_control_flow(&self) -> bool {
+        matches!(
+            self,
+            Self::Interrupted
+                | Self::Abort { .. }
+                | Self::Return { .. }
+                | Self::Break { .. }
+                | Self::Continue { .. }
+        )
+    }
 }
 
 impl std::fmt::Display for ExpressionError {
@@ -66,6 +89,7 @@ impl DiagnosticMessage for ExpressionError {
     fn code(&self) -> usize {
         match self {
             Interrupted | Abort { .. } | Return { .. } | Error { .. } => 0,
+            Break { .. } | Continue { .. } => codes::CompilerCode::LoopControlOutsideLoop as usize,
             Fallible { .. } => codes::ExprCode::FallibleExpression as usize,
             Missing { .. } => codes::ExprCode::ExpressionTypeUnavailable as usize,
         }
@@ -76,6 +100,8 @@ impl DiagnosticMessage for ExpressionError {
             Interrupted => "execution interrupted".to_owned(),
             Abort { message, .. } => message.clone().unwrap_or_else(|| "aborted".to_owned()),
             Return { .. } => "return".to_string(),
+            Break { .. } => "break".to_string(),
+            Continue { .. } => "continue".to_string(),
             Error { message, .. } => message.clone(),
             Fallible { .. } => "unhandled error".to_string(),
             Missing { .. } => "expression type unavailable".to_string(),
@@ -88,6 +114,8 @@ impl DiagnosticMessage for ExpressionError {
                 vec![Label::primary("aborted", span)]
             }
             Interrupted | Return { .. } => Vec::new(),
+            Break { span } => vec![Label::primary("break outside of loop", *span)],
+            Continue { span } => vec![Label::primary("continue outside of loop", *span)],
             Error { labels, .. } => labels.clone(),
             Fallible { span } => vec![
                 Label::primary("expression can result in runtime error", span),
@@ -105,7 +133,14 @@ impl DiagnosticMessage for ExpressionError {
 
     fn notes(&self) -> Vec<Note> {
         match self {
-            Interrupted | Return { .. } | Abort { .. } | Missing { .. } => vec![],
+            Interrupted
+            | Return { .. }
+            | Abort { .. }
+            | Missing { .. }
+            | Break { .. }
+            | Continue { .. } => {
+                vec![]
+            }
             Error { notes, .. } => notes.clone(),
             Fallible { .. } => vec![Note::SeeErrorDocs],
         }
@@ -125,5 +160,49 @@ impl From<String> for ExpressionError {
 impl From<&str> for ExpressionError {
     fn from(message: &str) -> Self {
         message.to_owned().into()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_is_control_flow() {
+        let span = Span::new(0, 5);
+        assert!(ExpressionError::Interrupted.is_control_flow());
+        assert!(
+            ExpressionError::Abort {
+                span,
+                message: None
+            }
+            .is_control_flow()
+        );
+        assert!(
+            ExpressionError::Return {
+                span,
+                value: Value::Null
+            }
+            .is_control_flow()
+        );
+        assert!(ExpressionError::Break { span }.is_control_flow());
+        assert!(ExpressionError::Continue { span }.is_control_flow());
+
+        assert!(
+            !ExpressionError::Error {
+                message: "runtime error".to_owned(),
+                labels: vec![],
+                notes: vec![],
+            }
+            .is_control_flow()
+        );
+        assert!(!ExpressionError::Fallible { span }.is_control_flow());
+        assert!(
+            !ExpressionError::Missing {
+                span,
+                feature: "test"
+            }
+            .is_control_flow()
+        );
     }
 }

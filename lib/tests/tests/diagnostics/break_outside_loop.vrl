@@ -1,0 +1,12 @@
+# result:
+#
+# error[E632]: break outside of loop
+#   ┌─ :2:1
+#   │
+# 2 │ break
+#   │ ^^^^^ break outside of loop
+#   │
+#   = see language documentation at https://vrl.dev
+#   = try your code in the VRL REPL, learn more at https://vrl.dev/examples
+
+break

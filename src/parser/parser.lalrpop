@@ -43,6 +43,10 @@ extern {
         "false" => Token::False,
         "abort" => Token::Abort,
         "return" => Token::Return,
+        "for" => Token::For,
+        "in" => Token::In,
+        "break" => Token::Break,
+        "continue" => Token::Continue,
 
         ";" => Token::SemiColon,
         "\n" => Token::Newline,
@@ -175,6 +179,9 @@ Exprs: Vec<Node<Expr>> = {
 
 Expr: Node<Expr> = {
     <if_statement:Sp<IfStatement>> => Node::new(if_statement.span(), Expr::IfStatement(if_statement)),
+    <for_statement: Sp<ForStatement>> => Node::new(for_statement.span(), Expr::For(for_statement)),
+    <brk: Sp<Break>> => Node::new(brk.span(), Expr::Break(brk)),
+    <cont: Sp<Continue>> => Node::new(cont.span(), Expr::Continue(cont)),
     Sp<AbortExpr>,
     Sp<ReturnExpr>,
     AssignmentExpr,
@@ -205,6 +212,25 @@ ReturnExpr: Expr = {
     },
 };
 
+#[inline]
+ForVariable: Node<Ident> = {
+    Sp<Ident> => <>,
+    Sp<"_"> => <>.map(|_| Ident("".to_owned())),
+};
+
+ForPattern: ForPattern = {
+    <ident: ForVariable> => ForPattern::Single(ident),
+    <key: ForVariable> "," <value: ForVariable> => ForPattern::KeyValue(key, value),
+};
+
+ForStatement: ForStatement = {
+    "for" <pattern: ForPattern> "in" <iterable: ArithmeticExpr> NonterminalNewline* <block: Sp<Block>> =>
+        ForStatement { pattern, iterable: Box::new(iterable), block },
+};
+
+Break: Break = "break" => Break;
+Continue: Continue = "continue" => Continue;
+
 // An identifier that is allowed to include reserved keywords.
 #[inline]
 AnyIdent: Ident = {
@@ -217,6 +243,10 @@ AnyIdent: Ident = {
     "false" => Ident("false".to_owned()),
     "abort" => Ident("abort".to_owned()),
     "return" => Ident("return".to_owned()),
+    "for" => Ident("for".to_owned()),
+    "in" => Ident("in".to_owned()),
+    "break" => Ident("break".to_owned()),
+    "continue" => Ident("continue".to_owned()),
 };
 
 // -----------------------------------------------------------------------------

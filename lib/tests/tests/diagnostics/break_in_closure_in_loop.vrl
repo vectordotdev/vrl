@@ -1,0 +1,16 @@
+# result:
+#
+# error[E632]: break outside of loop
+#   ┌─ :4:5
+#   │
+# 4 │     break
+#   │     ^^^^^ break outside of loop
+#   │
+#   = see language documentation at https://vrl.dev
+#   = try your code in the VRL REPL, learn more at https://vrl.dev/examples
+
+for x in [1, 2] {
+  for_each([3, 4]) -> |_i, _v| {
+    break
+  }
+}

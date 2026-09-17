@@ -1,0 +1,11 @@
+# result:
+# {"count": 0}
+
+.count = 0
+for _v in [] {
+  .count = 1
+}
+for _k, _v in {} {
+  .count = 2
+}
+.

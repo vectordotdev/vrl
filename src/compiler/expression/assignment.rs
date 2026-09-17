@@ -4,7 +4,7 @@ use crate::compiler::codes;
 use crate::compiler::expression::function_call::FunctionCallError::InvalidArgumentKind;
 use crate::compiler::expression::function_call::InvalidArgumentErrorContext;
 use crate::compiler::{
-    CompileConfig, Context, Expression, ExpressionError, Span, TypeDef,
+    CompileConfig, Context, Expression, Span, TypeDef,
     compiler::CompilerError,
     expression::{Expr, Resolved, assignment::ErrorVariant::InvalidParentPathSegment},
     parser::{
@@ -540,7 +540,7 @@ where
                     value
                 }
                 Err(error) => {
-                    if matches!(error, ExpressionError::Interrupted) {
+                    if error.is_control_flow() {
                         return Err(error);
                     }
 
