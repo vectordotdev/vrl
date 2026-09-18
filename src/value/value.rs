@@ -81,6 +81,22 @@ impl Value {
         }
     }
 
+    #[cfg(test)]
+    pub const fn kind_id(&self) -> u16 {
+        use crate::compiler::value::kind;
+        match self {
+            Self::Bytes(_) => kind::BYTES,
+            Self::Regex(_) => kind::REGEX,
+            Self::Timestamp(_) => kind::TIMESTAMP,
+            Self::Integer(_) => kind::INTEGER,
+            Self::Float(_) => kind::FLOAT,
+            Self::Boolean(_) => kind::BOOLEAN,
+            Self::Object(_) => kind::OBJECT,
+            Self::Array(_) => kind::ARRAY,
+            Self::Null => kind::NULL,
+        }
+    }
+
     /// Merges `incoming` value into self.
     ///
     /// Will concatenate `Bytes` and overwrite the rest value kinds.
