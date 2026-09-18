@@ -1368,6 +1368,77 @@ bench_function! {
     }
 }
 
+fn bench_merge_flat_map(start: usize, end: usize, val_prefix: &str) -> Value {
+    let map = (start..end)
+        .map(|i| {
+            (
+                format!("key_{i:02}").into(),
+                Value::from(format!("{val_prefix}_{i:02}")),
+            )
+        })
+        .collect::<ObjectMap>();
+    Value::Object(map)
+}
+
+fn bench_merge_flat_map_combined(
+    base_start: usize,
+    base_end: usize,
+    base_prefix: &str,
+    overlay_start: usize,
+    overlay_end: usize,
+    overlay_prefix: &str,
+) -> Value {
+    let mut map = (base_start..base_end)
+        .map(|i| {
+            (
+                format!("key_{i:02}").into(),
+                Value::from(format!("{base_prefix}_{i:02}")),
+            )
+        })
+        .collect::<ObjectMap>();
+    for i in overlay_start..overlay_end {
+        map.insert(
+            format!("key_{i:02}").into(),
+            Value::from(format!("{overlay_prefix}_{i:02}")),
+        );
+    }
+    Value::Object(map)
+}
+
+fn bench_merge_nested_map(count: usize, subkey: &str, val_prefix: &str) -> Value {
+    let map = (0..count)
+        .map(|i| {
+            let inner = [
+                (subkey.into(), Value::from(format!("{val_prefix}_{i:02}"))),
+                (
+                    "shared".into(),
+                    Value::from(format!("{val_prefix}_shared_{i:02}")),
+                ),
+            ]
+            .into_iter()
+            .collect::<ObjectMap>();
+            (format!("parent_{i:02}").into(), Value::Object(inner))
+        })
+        .collect::<ObjectMap>();
+    Value::Object(map)
+}
+
+fn bench_merge_nested_merged(count: usize) -> Value {
+    let map = (0..count)
+        .map(|i| {
+            let inner = [
+                ("key_a".into(), Value::from(format!("to_{i:02}"))),
+                ("key_b".into(), Value::from(format!("from_{i:02}"))),
+                ("shared".into(), Value::from(format!("from_shared_{i:02}"))),
+            ]
+            .into_iter()
+            .collect::<ObjectMap>();
+            (format!("parent_{i:02}").into(), Value::Object(inner))
+        })
+        .collect::<ObjectMap>();
+    Value::Object(map)
+}
+
 bench_function! {
     merge => vrl::stdlib::Merge;
 
@@ -1420,6 +1491,54 @@ bench_function! {
                 "grandchild2": "val2",
             },
         }))
+    }
+
+    empty_from {
+        args: func_args![
+            to: value!({
+                "key1": "val1",
+                "key2": "val2",
+            }),
+            from: value!({}),
+        ],
+        want: Ok(value!({
+            "key1": "val1",
+            "key2": "val2",
+        }))
+    }
+
+    asymmetric_small_into_large {
+        args: func_args![
+            to: bench_merge_flat_map(0, 50, "to"),
+            from: bench_merge_flat_map(49, 51, "from"),
+        ],
+        want: Ok(bench_merge_flat_map_combined(0, 50, "to", 49, 51, "from")),
+    }
+
+    asymmetric_large_into_small {
+        args: func_args![
+            to: bench_merge_flat_map(0, 2, "to"),
+            from: bench_merge_flat_map(1, 51, "from"),
+        ],
+        want: Ok(bench_merge_flat_map_combined(0, 2, "to", 1, 51, "from")),
+    }
+
+    large_shallow {
+        args: func_args![
+            to: bench_merge_flat_map(0, 50, "to"),
+            from: bench_merge_flat_map(25, 75, "from"),
+            deep: false,
+        ],
+        want: Ok(bench_merge_flat_map_combined(0, 50, "to", 25, 75, "from")),
+    }
+
+    large_deep {
+        args: func_args![
+            to: bench_merge_nested_map(20, "key_a", "to"),
+            from: bench_merge_nested_map(20, "key_b", "from"),
+            deep: true,
+        ],
+        want: Ok(bench_merge_nested_merged(20)),
     }
 }
 
