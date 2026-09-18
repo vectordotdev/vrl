@@ -1,15 +1,5 @@
 use crate::compiler::prelude::*;
-use crate::prelude::{
-    ArgumentList, Collection, Compiled, Example, Expression, FunctionCompileContext, kind,
-};
-use crate::value::{KeyString, ObjectMap};
-
-fn make_key_string(key: Value) -> ExpressionResult<KeyString> {
-    match key {
-        Value::Bytes(key) => Ok(String::from_utf8_lossy(&key).into()),
-        _ => Err("object keys must be strings".into()),
-    }
-}
+use crate::value::ObjectMap;
 
 fn select_key(entry: &ObjectMap) -> Value {
     ["key", "Key", "name", "Name"]
@@ -26,7 +16,7 @@ fn from_entries(value: Value) -> Resolved {
     for entry in array {
         let mut entry = entry.try_object()?;
         let key = select_key(&entry);
-        let key = make_key_string(key)?;
+        let key = key.to_key_string().ok_or("object keys must be strings")?;
         let value = entry
             .remove("value")
             .or_else(|| entry.remove("Value"))

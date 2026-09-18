@@ -180,9 +180,8 @@ impl Filter<Value> for VrlFilter {
 
                 resolve_value(
                     buf,
-                    Run::boxed(move |value| match value {
-                        Value::Bytes(val) => re.is_match(&String::from_utf8_lossy(val)),
-                        _ => false,
+                    Run::boxed(move |value: &Value| {
+                        value.as_str().is_some_and(|s| re.is_match(&s))
                     }),
                 )
             }
@@ -451,10 +450,9 @@ fn lookup_field(field: &Field) -> Result<OwnedValuePath, PathParseError> {
 /// implementation by treating Bytes values as special-- returning the UTF8 representation
 /// instead of the raw control characters.
 fn string_value(value: &Value) -> Cow<'_, str> {
-    match value {
-        Value::Bytes(val) => String::from_utf8_lossy(val),
-        _ => Cow::from(value.to_string()),
-    }
+    value
+        .as_str()
+        .unwrap_or_else(|| Cow::from(value.to_string()))
 }
 
 #[cfg(test)]

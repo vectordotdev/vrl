@@ -1,32 +1,9 @@
 use crate::compiler::prelude::*;
-use crate::path::{OwnedSegment, OwnedValuePath};
+use crate::path::OwnedValuePath;
 
 fn set(path: Value, mut value: Value, data: Value) -> Resolved {
     let path = match path {
-        Value::Array(segments) => {
-            let mut insert = OwnedValuePath::root();
-
-            for segment in segments {
-                let segment = match segment {
-                    Value::Bytes(path) => {
-                        OwnedSegment::Field(String::from_utf8_lossy(&path).into())
-                    }
-                    #[allow(clippy::cast_possible_truncation)] //TODO evaluate removal options
-                    Value::Integer(index) => OwnedSegment::Index(index as isize),
-                    value => {
-                        return Err(format!(
-                            "path segment must be either string or integer, not {}",
-                            value.kind()
-                        )
-                        .into());
-                    }
-                };
-
-                insert.push_segment(segment);
-            }
-
-            insert
-        }
+        Value::Array(segments) => OwnedValuePath::try_from(segments)?,
         value => {
             return Err(ValueError::Expected {
                 got: value.kind(),

@@ -9,9 +9,9 @@ fn format_timestamp_with_tz(ts: Value, format: &Value, timezone: Option<Value>) 
     let ts: DateTime<Utc> = ts.try_timestamp()?;
 
     let format = format.try_bytes_utf8_lossy()?;
-
-    let timezone_bytes = timezone.map(VrlValueConvert::try_bytes).transpose()?;
-    let timezone = timezone_bytes.as_ref().map(|b| String::from_utf8_lossy(b));
+    let timezone = timezone
+        .map(|tz| tz.try_bytes_utf8_lossy().map(std::borrow::Cow::into_owned))
+        .transpose()?;
 
     try_format_with_timezone(ts, &format, timezone.as_deref()).map(Into::into)
 }

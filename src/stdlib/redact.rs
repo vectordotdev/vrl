@@ -231,12 +231,9 @@ fn redact(value: Value, filters: &[Filter], redactor: &Redactor) -> Value {
     // the value, so that we don't have to do the comparison in the loop of replacement.
     // that would complicate the code though.
     match value {
+        Value::String(s) => Value::Bytes(redact_str(Cow::Borrowed(&s), filters, redactor).into()),
         Value::Bytes(bytes) => {
-            let input = String::from_utf8_lossy(&bytes);
-            let output = filters.iter().fold(input, |input, filter| {
-                filter.redact(&input, redactor).into_owned().into()
-            });
-            Value::Bytes(output.into_owned().into())
+            Value::Bytes(redact_str(String::from_utf8_lossy(&bytes), filters, redactor).into())
         }
         Value::Array(values) => {
             let values = values
@@ -254,6 +251,15 @@ fn redact(value: Value, filters: &[Filter], redactor: &Redactor) -> Value {
         }
         _ => value,
     }
+}
+
+fn redact_str(input: Cow<'_, str>, filters: &[Filter], redactor: &Redactor) -> String {
+    filters
+        .iter()
+        .fold(input, |input, filter| {
+            filter.redact(&input, redactor).into_owned().into()
+        })
+        .into_owned()
 }
 
 impl FunctionExpression for RedactFn {
@@ -285,6 +291,31 @@ enum Pattern {
     String(String),
 }
 
+fn match_filter_name(name: &[u8]) -> std::result::Result<Filter, &'static str> {
+    match name {
+        b"pattern" => Err("pattern cannot be used without arguments"),
+        b"us_social_security_number" => Ok(Filter::UsSocialSecurityNumber),
+        _ => Err("unknown filter name"),
+    }
+}
+
+fn match_redactor_name(name: &[u8]) -> std::result::Result<Redactor, &'static str> {
+    match name {
+        b"full" => Ok(Redactor::Full),
+        #[cfg(feature = "enable_crypto_functions")]
+        b"sha2" => Ok(Redactor::Hash {
+            hasher: encoded_hash::<sha2::Sha512_256>,
+            encoder: Encoder::Base64,
+        }),
+        #[cfg(feature = "enable_crypto_functions")]
+        b"sha3" => Ok(Redactor::Hash {
+            hasher: encoded_hash::<sha3::Sha3_512>,
+            encoder: Encoder::Base64,
+        }),
+        _ => Err("unknown name of redactor"),
+    }
+}
+
 impl TryFrom<Value> for Filter {
     type Error = &'static str;
 
@@ -295,7 +326,7 @@ impl TryFrom<Value> for Filter {
                     .get("type")
                     .ok_or("filters specified as objects must have type parameter")?
                 {
-                    Value::Bytes(bytes) => Ok(bytes.clone()),
+                    v if let Some(b) = v.as_bytes() => Ok(b.clone()),
                     _ => Err("type key in filters must be a string"),
                 }?;
 
@@ -310,6 +341,7 @@ impl TryFrom<Value> for Filter {
                                 .iter()
                                 .map(|value| match value {
                                     Value::Regex(regex) => Ok(Pattern::Regex((**regex).clone())),
+                                    Value::String(s) => Ok(Pattern::String(s.to_string())),
                                     Value::Bytes(bytes) => Ok(Pattern::String(
                                         String::from_utf8_lossy(bytes).into_owned(),
                                     )),
@@ -323,11 +355,8 @@ impl TryFrom<Value> for Filter {
                     _ => Err("unknown filter name"),
                 }
             }
-            Value::Bytes(bytes) => match bytes.as_ref() {
-                b"pattern" => Err("pattern cannot be used without arguments"),
-                b"us_social_security_number" => Ok(Filter::UsSocialSecurityNumber),
-                _ => Err("unknown filter name"),
-            },
+            Value::String(s) => match_filter_name(s.as_bytes()),
+            Value::Bytes(b) => match_filter_name(&b),
             Value::Regex(regex) => Ok(Filter::Pattern(vec![Pattern::Regex((*regex).clone())])),
             _ => Err("unknown literal for filter, must be a regex, filter name, or object"),
         }
@@ -412,7 +441,7 @@ impl Redactor {
             "redactor specified as objects must have type
         parameter",
         )? {
-            Value::Bytes(bytes) => Ok(bytes.clone()),
+            v if let Some(b) = v.as_bytes() => Ok(b.clone()),
             _ => Err("type key in redactor must be a string"),
         }?;
 
@@ -423,6 +452,7 @@ impl Redactor {
                     "text redactor must have
                 `replacement` specified",
                 )? {
+                    Value::String(s) => Ok(Redactor::Text(s.to_string())),
                     Value::Bytes(bytes) => {
                         Ok(Redactor::Text(String::from_utf8_lossy(bytes).into_owned()))
                     }
@@ -505,20 +535,8 @@ impl TryFrom<Value> for Redactor {
     fn try_from(value: Value) -> std::result::Result<Self, Self::Error> {
         match value {
             Value::Object(object) => Redactor::from_object(&object),
-            Value::Bytes(bytes) => match bytes.as_ref() {
-                b"full" => Ok(Redactor::Full),
-                #[cfg(feature = "enable_crypto_functions")]
-                b"sha2" => Ok(Redactor::Hash {
-                    hasher: encoded_hash::<sha2::Sha512_256>,
-                    encoder: Encoder::Base64,
-                }),
-                #[cfg(feature = "enable_crypto_functions")]
-                b"sha3" => Ok(Redactor::Hash {
-                    hasher: encoded_hash::<sha3::Sha3_512>,
-                    encoder: Encoder::Base64,
-                }),
-                _ => Err("unknown name of redactor"),
-            },
+            Value::String(s) => match_redactor_name(s.as_bytes()),
+            Value::Bytes(b) => match_redactor_name(&b),
             _ => Err("unknown literal for redactor, must be redactor name or object"),
         }
     }

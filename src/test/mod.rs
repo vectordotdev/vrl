@@ -14,7 +14,6 @@ use crate::compiler::{
     VrlRuntime, compile_with_external,
     runtime::{Runtime, Terminate},
     state::{ExternalEnv, RuntimeState},
-    value::VrlValueConvert,
 };
 use crate::diagnostic::{DiagnosticList, Formatter};
 use crate::value::Secrets;
@@ -430,9 +429,8 @@ fn compare_partial_diagnostic(got: &str, want: &str) -> bool {
 
 fn vrl_value_to_json_value(value: Value) -> serde_json::Value {
     match value {
-        v @ Value::Bytes(_) => {
-            serde_json::Value::String(v.try_bytes_utf8_lossy().unwrap().into_owned())
-        }
+        Value::String(s) => serde_json::Value::String(s.to_string()),
+        Value::Bytes(b) => serde_json::Value::String(String::from_utf8_lossy(&b).into_owned()),
         Value::Integer(v) => v.into(),
         Value::Float(v) => v.into_inner().into(),
         Value::Boolean(v) => v.into(),

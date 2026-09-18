@@ -15,6 +15,7 @@ impl Value {
     pub fn coerce_to_bytes(&self) -> Bytes {
         match self {
             Self::Bytes(bytes) => bytes.clone(), // cloning `Bytes` is cheap
+            Self::String(s) => s.as_bytes().clone(), // `ByteString` contains a `Bytes` internally
             Self::Regex(regex) => regex.as_bytes(),
             Self::Timestamp(timestamp) => Bytes::from(timestamp_to_string(timestamp)),
             Self::Integer(num) => Bytes::from(num.to_string()),
@@ -37,6 +38,7 @@ impl Value {
     pub fn to_string_lossy(&self) -> Cow<'_, str> {
         match self {
             Self::Bytes(bytes) => simdutf_bytes_utf8_lossy(bytes),
+            Self::String(s) => Cow::Borrowed(s.as_ref()),
             Self::Regex(regex) => regex.as_str().into(),
             Self::Timestamp(timestamp) => timestamp_to_string(timestamp).into(),
             Self::Integer(num) => num.to_string().into(),
@@ -63,6 +65,7 @@ impl Serialize for Value {
             Self::Float(f) => serializer.serialize_f64(f.into_inner()),
             Self::Boolean(b) => serializer.serialize_bool(*b),
             Self::Bytes(b) => serializer.serialize_str(simdutf_bytes_utf8_lossy(b).as_ref()),
+            Self::String(s) => serializer.serialize_str(s.as_ref()),
             Self::Timestamp(ts) => serializer.serialize_str(&timestamp_to_string(ts)),
             Self::Regex(regex) => serializer.serialize_str(regex.as_str()),
             Self::Object(m) => serializer.collect_map(m),
@@ -134,12 +137,22 @@ impl<'de> Deserialize<'de> for Value {
             where
                 E: serde::de::Error,
             {
-                Ok(Value::Bytes(Bytes::copy_from_slice(value.as_bytes())))
+                Ok(value.into())
             }
 
             #[inline]
             fn visit_string<E>(self, value: String) -> Result<Value, E> {
-                Ok(Value::Bytes(value.into()))
+                Ok(value.into())
+            }
+
+            #[inline]
+            fn visit_bytes<E>(self, value: &[u8]) -> Result<Value, E> {
+                Ok(Value::from(value))
+            }
+
+            #[inline]
+            fn visit_byte_buf<E>(self, value: Vec<u8>) -> Result<Value, E> {
+                Ok(Value::from(Bytes::from(value)))
             }
 
             #[inline]
@@ -200,7 +213,7 @@ impl From<serde_json::Value> for Value {
                 NotNan::new(n.as_f64().unwrap()).unwrap().into()
             }
             serde_json::Value::Number(n) => n.to_string().into(),
-            serde_json::Value::String(s) => Self::Bytes(Bytes::from(s)),
+            serde_json::Value::String(s) => s.into(),
             serde_json::Value::Object(obj) => Self::Object(
                 obj.into_iter()
                     .map(|(key, value)| (key.into(), Self::from(value)))
@@ -227,6 +240,7 @@ impl TryInto<serde_json::Value> for Value {
             Self::Integer(v) => Ok(serde_json::Value::from(v)),
             Self::Float(v) => Ok(serde_json::Value::from(v.into_inner())),
             Self::Bytes(v) => Ok(serde_json::Value::from(simdutf8::compat::from_utf8(&v)?)),
+            Self::String(v) => Ok(serde_json::Value::from(&*v)),
             Self::Regex(regex) => Ok(serde_json::Value::from(regex.as_str().to_string())),
             Self::Object(v) => Ok(serde_json::to_value(v)?),
             Self::Array(v) => Ok(serde_json::to_value(v)?),
@@ -288,7 +302,7 @@ mod test {
                                 let is_match = match vector_value {
                                     Value::Boolean(_) => expected_type.eq("boolean"),
                                     Value::Integer(_) => expected_type.eq("integer"),
-                                    Value::Bytes(_) => expected_type.eq("bytes"),
+                                    Value::Bytes(_) | Value::String(_) => expected_type.eq("bytes"),
                                     Value::Array { .. } => expected_type.eq("array"),
                                     Value::Object(_) => expected_type.eq("map"),
                                     Value::Null => expected_type.eq("null"),
@@ -307,5 +321,27 @@ mod test {
                 },
             );
         }
+    }
+
+    #[test]
+    fn json_strings_deserialize_as_value_string() {
+        let value: Value = serde_json::from_str(r#""hello""#).unwrap();
+        assert!(matches!(value, Value::String(_)));
+        assert_eq!(value, Value::from("hello"));
+    }
+
+    #[test]
+    fn from_bytes_does_not_promote_utf8() {
+        let value = Value::from_static_bytes("hello");
+        assert!(matches!(value, Value::Bytes(_)));
+        assert_eq!(value, Value::from("hello"));
+    }
+
+    #[test]
+    fn bytes_and_string_serialize_as_json_strings() {
+        let string = Value::from("hello");
+        let bytes = Value::from_static_bytes("hello");
+        assert_eq!(serde_json::to_string(&string).unwrap(), r#""hello""#);
+        assert_eq!(serde_json::to_string(&bytes).unwrap(), r#""hello""#);
     }
 }
