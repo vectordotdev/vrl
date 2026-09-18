@@ -1,0 +1,24 @@
+# result:
+#
+# error[E701]: call to undefined variable
+#    ┌─ :11:1
+#    │
+# 11 │ x
+#    │ ^
+#    │ │
+#    │ undefined variable
+#    │ did you mean "null"?
+#    │
+#    = see language documentation at https://vrl.dev
+#    = try your code in the VRL REPL, learn more at https://vrl.dev/examples
+
+# Multi-stmt else is not peeled: mid-else x OK; after outer if fails via Block scope (not flatten strip).
+if false {
+  null
+} else {
+  if (x = 1; false) {
+    null
+  }
+  x
+}
+x

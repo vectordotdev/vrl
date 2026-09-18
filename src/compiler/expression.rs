@@ -12,7 +12,7 @@ pub use function::FunctionExpression;
 pub use function_argument::FunctionArgument;
 pub use function_call::FunctionCall;
 pub use group::Group;
-pub use if_statement::IfStatement;
+pub use if_statement::{IfArm, IfStatement};
 pub use literal::Literal;
 pub use noop::Noop;
 pub use not::Not;
