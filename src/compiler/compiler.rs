@@ -62,7 +62,7 @@ pub struct Compiler<'a> {
     pending_fallibilities: Vec<CompilerError>,
 
     config: CompileConfig,
-    in_breakable_context: usize,
+    in_breakable_context: bool,
 }
 
 // TODO: The diagnostic related code is in dire need of refactoring.
@@ -135,7 +135,7 @@ impl<'a> Compiler<'a> {
             skip_missing_query_target: vec![],
             pending_fallibilities: vec![],
             config,
-            in_breakable_context: 0,
+            in_breakable_context: false,
         };
         let expressions = compiler.compile_root_exprs(ast, &mut state);
 
@@ -805,7 +805,7 @@ impl<'a> Compiler<'a> {
                     Some(block) => {
                         let span = block.span();
                         let prev_breakable = self.in_breakable_context;
-                        self.in_breakable_context = usize::from(builder.supports_break());
+                        self.in_breakable_context = builder.supports_break();
                         let compiled = self.compile_block_with_type(block, state);
                         self.in_breakable_context = prev_breakable;
                         match compiled {
@@ -931,7 +931,7 @@ impl<'a> Compiler<'a> {
 
     fn compile_break(&mut self, node: &Node<ast::Break>, _state: &mut TypeState) -> Option<Break> {
         let span = node.span();
-        if self.in_breakable_context == 0 {
+        if !self.in_breakable_context {
             self.diagnostics.push(Box::new(break_::Error::new(span)));
             return None;
         }
