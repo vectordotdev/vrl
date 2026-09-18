@@ -130,9 +130,9 @@ impl Expression for Op {
         match self.opcode {
             Err => {
                 return match self.lhs.resolve(ctx) {
-                    std::result::Result::Err(error @ ExpressionError::Interrupted) => {
-                        std::result::Result::Err(error)
-                    }
+                    std::result::Result::Err(
+                        error @ (ExpressionError::Interrupted | ExpressionError::Break { .. }),
+                    ) => std::result::Result::Err(error),
                     std::result::Result::Err(_) => self.rhs.resolve(ctx),
                     result => result,
                 };

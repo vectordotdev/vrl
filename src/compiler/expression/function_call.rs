@@ -54,6 +54,12 @@ impl<'a> Builder<'a> {
         &self.list
     }
 
+    pub(crate) fn supports_break(&self) -> bool {
+        self.function
+            .closure()
+            .is_some_and(|def| def.supports_break)
+    }
+
     #[allow(clippy::too_many_lines)]
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
@@ -758,6 +764,7 @@ impl Expression for FunctionCall {
         self.expr.resolve(ctx).map_err(|err| match err {
             ExpressionError::Interrupted
             | ExpressionError::Abort { .. }
+            | ExpressionError::Break { .. }
             | ExpressionError::Fallible { .. }
             | ExpressionError::Missing { .. } => {
                 // propagate the error

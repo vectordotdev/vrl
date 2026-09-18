@@ -6,6 +6,7 @@ pub use abort::Abort;
 pub use array::Array;
 pub use assignment::Assignment;
 pub use block::Block;
+pub use break_::Break;
 pub use container::{Container, Variant};
 #[allow(clippy::module_name_repetitions)]
 pub use function::FunctionExpression;
@@ -35,6 +36,7 @@ use super::{Context, TypeDef};
 mod abort;
 mod array;
 mod block;
+pub(crate) mod break_;
 mod function_argument;
 mod group;
 mod if_statement;
@@ -122,13 +124,14 @@ pub enum Expr {
     Unary(Unary),
     Abort(Abort),
     Return(Return),
+    Break(Break),
 }
 
 impl Expr {
     pub fn as_str(&self) -> &str {
         use Expr::{
-            Abort, Assignment, Container, FunctionCall, IfStatement, Literal, Noop, Op, Query,
-            Return, Unary, Variable,
+            Abort, Assignment, Break, Container, FunctionCall, IfStatement, Literal, Noop, Op,
+            Query, Return, Unary, Variable,
         };
         use container::Variant::{Array, Block, Group, Object};
 
@@ -150,6 +153,7 @@ impl Expr {
             Unary(..) => "unary operation",
             Abort(..) => "abort operation",
             Return(..) => "return",
+            Break(..) => "break",
         }
     }
 
@@ -230,8 +234,8 @@ impl Expr {
 impl Expression for Expr {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         use Expr::{
-            Abort, Assignment, Container, FunctionCall, IfStatement, Literal, Noop, Op, Query,
-            Return, Unary, Variable,
+            Abort, Assignment, Break, Container, FunctionCall, IfStatement, Literal, Noop, Op,
+            Query, Return, Unary, Variable,
         };
 
         ctx.checkpoint()?;
@@ -249,13 +253,14 @@ impl Expression for Expr {
             Unary(v) => v.resolve(ctx),
             Abort(v) => v.resolve(ctx),
             Return(v) => v.resolve(ctx),
+            Break(v) => v.resolve(ctx),
         }
     }
 
     fn resolve_constant(&self, state: &TypeState) -> Option<Value> {
         use Expr::{
-            Abort, Assignment, Container, FunctionCall, IfStatement, Literal, Noop, Op, Query,
-            Return, Unary, Variable,
+            Abort, Assignment, Break, Container, FunctionCall, IfStatement, Literal, Noop, Op,
+            Query, Return, Unary, Variable,
         };
 
         match self {
@@ -271,13 +276,14 @@ impl Expression for Expr {
             Unary(v) => Expression::resolve_constant(v, state),
             Abort(v) => Expression::resolve_constant(v, state),
             Return(v) => Expression::resolve_constant(v, state),
+            Break(v) => Expression::resolve_constant(v, state),
         }
     }
 
     fn type_info(&self, state: &TypeState) -> TypeInfo {
         use Expr::{
-            Abort, Assignment, Container, FunctionCall, IfStatement, Literal, Noop, Op, Query,
-            Return, Unary, Variable,
+            Abort, Assignment, Break, Container, FunctionCall, IfStatement, Literal, Noop, Op,
+            Query, Return, Unary, Variable,
         };
 
         match self {
@@ -293,6 +299,7 @@ impl Expression for Expr {
             Unary(v) => v.type_info(state),
             Abort(v) => v.type_info(state),
             Return(v) => v.type_info(state),
+            Break(v) => v.type_info(state),
         }
     }
 }
@@ -300,8 +307,8 @@ impl Expression for Expr {
 impl fmt::Display for Expr {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use Expr::{
-            Abort, Assignment, Container, FunctionCall, IfStatement, Literal, Noop, Op, Query,
-            Return, Unary, Variable,
+            Abort, Assignment, Break, Container, FunctionCall, IfStatement, Literal, Noop, Op,
+            Query, Return, Unary, Variable,
         };
 
         match self {
@@ -317,6 +324,7 @@ impl fmt::Display for Expr {
             Unary(v) => v.fmt(f),
             Abort(v) => v.fmt(f),
             Return(v) => v.fmt(f),
+            Break(v) => v.fmt(f),
         }
     }
 }
@@ -392,6 +400,12 @@ impl From<Abort> for Expr {
 impl From<Return> for Expr {
     fn from(r#return: Return) -> Self {
         Expr::Return(r#return)
+    }
+}
+
+impl From<Break> for Expr {
+    fn from(r#break: Break) -> Self {
+        Expr::Break(r#break)
     }
 }
 

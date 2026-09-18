@@ -154,6 +154,7 @@ impl Function for MapValues {
                 },
             }],
             is_iterator: true,
+            supports_break: false,
         })
     }
 }

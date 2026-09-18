@@ -3,9 +3,9 @@ use crate::compiler::expression::function_call::FunctionCallError;
 use crate::compiler::{
     CompileConfig, Function, Program, TypeDef,
     expression::{
-        Abort, Array, Assignment, Block, Container, Expr, Expression, FunctionArgument,
+        Abort, Array, Assignment, Block, Break, Container, Expr, Expression, FunctionArgument,
         FunctionCall, Group, IfStatement, Literal, Noop, Not, Object, Op, Predicate, Query, Return,
-        Target, Unary, Variable, assignment, function_call, literal, predicate, query,
+        Target, Unary, Variable, assignment, break_, function_call, literal, predicate, query,
     },
     parser::ast::RootExpr,
     program::ProgramInfo,
@@ -62,6 +62,7 @@ pub struct Compiler<'a> {
     pending_fallibilities: Vec<CompilerError>,
 
     config: CompileConfig,
+    in_breakable_context: bool,
 }
 
 // TODO: The diagnostic related code is in dire need of refactoring.
@@ -134,6 +135,7 @@ impl<'a> Compiler<'a> {
             skip_missing_query_target: vec![],
             pending_fallibilities: vec![],
             config,
+            in_breakable_context: false,
         };
         let expressions = compiler.compile_root_exprs(ast, &mut state);
 
@@ -181,8 +183,8 @@ impl<'a> Compiler<'a> {
 
     fn compile_expr(&mut self, node: Node<ast::Expr>, state: &mut TypeState) -> Option<Expr> {
         use ast::Expr::{
-            Abort, Assignment, Container, FunctionCall, IfStatement, Literal, Op, Query, Return,
-            Unary, Variable,
+            Abort, Assignment, Break, Container, FunctionCall, IfStatement, Literal, Op, Query,
+            Return, Unary, Variable,
         };
         let original_state = state.clone();
         let pre_compile_pending = self.pending_fallibilities.len();
@@ -212,6 +214,7 @@ impl<'a> Compiler<'a> {
             Unary(node) => self.compile_unary(node, state).map(Into::into),
             Abort(node) => self.compile_abort(node, state).map(Into::into),
             Return(node) => self.compile_return(node, state).map(Into::into),
+            Break(node) => self.compile_break(&node, state).map(Into::into),
         }?;
 
         // If the compiled expression is fallible and no sub-expression has
@@ -801,7 +804,11 @@ impl<'a> Compiler<'a> {
                     None => None,
                     Some(block) => {
                         let span = block.span();
-                        match self.compile_block_with_type(block, state) {
+                        let prev_breakable = self.in_breakable_context;
+                        self.in_breakable_context = builder.supports_break();
+                        let compiled = self.compile_block_with_type(block, state);
+                        self.in_breakable_context = prev_breakable;
+                        match compiled {
                             Some(block_with_type) => Some(Node::new(span, block_with_type)),
                             None => return None,
                         }
@@ -920,6 +927,16 @@ impl<'a> Compiler<'a> {
                 .map_err(|err| c.diagnostics.push(Box::new(err)))
                 .ok()
         })
+    }
+
+    fn compile_break(&mut self, node: &Node<ast::Break>, _state: &mut TypeState) -> Option<Break> {
+        let span = node.span();
+        if !self.in_breakable_context {
+            self.diagnostics.push(Box::new(break_::Error::new(span)));
+            return None;
+        }
+
+        Some(Break::new(span))
     }
 
     fn handle_parser_error(&mut self, error: crate::parser::Error) {
