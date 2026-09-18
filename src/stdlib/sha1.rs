@@ -1,9 +1,16 @@
 use crate::compiler::prelude::*;
 use ::sha1::Digest;
 
+fn sha1_hex(value: &[u8]) -> Bytes {
+    let digest = sha1::Sha1::digest(value);
+    let mut buf = [0u8; 40];
+    hex::encode_to_slice(digest, &mut buf).expect("40 bytes");
+    Bytes::copy_from_slice(&buf)
+}
+
 fn sha1(value: Value) -> Resolved {
     let value = value.try_bytes()?;
-    Ok(hex::encode(sha1::Sha1::digest(&value)).into())
+    Ok(Value::Bytes(sha1_hex(&value)))
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -45,13 +52,21 @@ impl Function for Sha1 {
 
     fn compile(
         &self,
-        _state: &state::TypeState,
+        state: &state::TypeState,
         _ctx: &mut FunctionCompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
 
-        Ok(Sha1Fn { value }.as_expr())
+        if let Some(val) = value.resolve_constant(state)
+            && let Ok(bytes) = val.try_bytes()
+        {
+            Ok(Box::new(crate::compiler::expression::Literal::String(
+                sha1_hex(&bytes),
+            )))
+        } else {
+            Ok(Sha1Fn { value }.as_expr())
+        }
     }
 }
 
@@ -83,5 +98,58 @@ mod tests {
              want: Ok("0beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33"),
              tdef: TypeDef::bytes().infallible(),
          }
+
+        sha1_empty {
+            args: func_args![value: ""],
+            want: Ok("da39a3ee5e6b4b0d3255bfef95601890afd80709"),
+            tdef: TypeDef::bytes().infallible(),
+        }
+
+        sha1_sentence {
+            args: func_args![value: "The quick brown fox jumps over the lazy dog"],
+            want: Ok("2fd4e1c67a2d28fced849ee1bb76e7391b93eb12"),
+            tdef: TypeDef::bytes().infallible(),
+        }
     ];
+
+    #[test]
+    fn test_sha1_compiles_to_literal() {
+        use crate::compiler::CompileConfig;
+
+        let state = state::TypeState::default();
+        let mut ctx = FunctionCompileContext::new(Span::default(), CompileConfig::default());
+        let mut args = ArgumentList::default();
+        args.insert("value", Value::from("foo").into());
+
+        let expr = Sha1.compile(&state, &mut ctx, args).unwrap();
+        assert_eq!(
+            expr.resolve_constant(&state),
+            Some(Value::from("0beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33"))
+        );
+    }
+
+    #[test]
+    fn test_sha1_compiles_dynamic() {
+        use crate::compiler::CompileConfig;
+        use crate::compiler::expression::Variable;
+        use crate::compiler::parser::Ident;
+
+        let mut state = state::TypeState::default();
+        state.local.insert_variable(
+            Ident::new("foo"),
+            type_def::Details {
+                type_def: TypeDef::bytes(),
+                value: None,
+            },
+        );
+
+        let mut ctx = FunctionCompileContext::new(Span::default(), CompileConfig::default());
+        let var = Variable::new((0, 0).into(), Ident::new("foo"), &state.local).unwrap();
+
+        let mut args = ArgumentList::default();
+        args.insert("value", var.into());
+
+        let expr = Sha1.compile(&state, &mut ctx, args).unwrap();
+        assert!(expr.resolve_constant(&state).is_none());
+    }
 }

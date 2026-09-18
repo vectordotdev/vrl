@@ -4,10 +4,16 @@ use criterion::{Criterion, criterion_group, criterion_main};
 use regex::Regex;
 
 use crate::value::Value;
-use std::{env, path::PathBuf, sync::LazyLock};
+use std::{collections::HashMap, env, path::PathBuf, sync::LazyLock};
 use vrl::{
     bench_function, bench_query_function, btreemap, compiler::prelude::*, func_args, query, value,
 };
+
+fn hash_message_args() -> HashMap<&'static str, expression::Expr> {
+    let mut args = func_args![];
+    args.insert("value", query!(".message"));
+    args
+}
 
 criterion_group!(
     name = benches;
@@ -1328,21 +1334,24 @@ bench_function! {
     }
 }
 
-bench_function! {
+bench_query_function! {
     md5  => vrl::stdlib::Md5;
 
     literal {
-        args: func_args![value: "foo"],
+        args: hash_message_args(),
+        event: btreemap! { "message" => "foo" },
         want: Ok("acbd18db4cc2f85cedef654fccc4a4d8"),
     }
 
     medium_256b {
-        args: func_args![value: "a".repeat(256)],
+        args: hash_message_args(),
+        event: btreemap! { "message" => "a".repeat(256) },
         want: Ok("81109eec5aa1a284fb5327b10e9c16b9"),
     }
 
     large_4kb {
-        args: func_args![value: "a".repeat(4096)],
+        args: hash_message_args(),
+        event: btreemap! { "message" => "a".repeat(4096) },
         want: Ok("21a199c53f422a380e20b162fb6ebe9c"),
     }
 }
@@ -2880,30 +2889,69 @@ bench_function! {
     }
 }
 
-bench_function! {
+bench_query_function! {
     sha1 => vrl::stdlib::Sha1;
 
     literal {
-        args: func_args![value: "foo"],
-        want: Ok("0beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33")
+        args: hash_message_args(),
+        event: btreemap! { "message" => "foo" },
+        want: Ok("0beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33"),
+    }
+
+    medium_256b {
+        args: hash_message_args(),
+        event: btreemap! { "message" => "a".repeat(256) },
+        want: Ok("9c78512ad150c8b5d8918395ad0e5169397d2b62"),
+    }
+
+    large_4kb {
+        args: hash_message_args(),
+        event: btreemap! { "message" => "a".repeat(4096) },
+        want: Ok("8c51fb6a0b587ec95ca74acfa43df7539b486297"),
     }
 }
 
-bench_function! {
+bench_query_function! {
     sha2 => vrl::stdlib::Sha2;
 
     default {
-        args: func_args![value: "foo"],
-        want: Ok("d58042e6aa5a335e03ad576c6a9e43b41591bfd2077f72dec9df7930e492055d")
+        args: hash_message_args(),
+        event: btreemap! { "message" => "foo" },
+        want: Ok("d58042e6aa5a335e03ad576c6a9e43b41591bfd2077f72dec9df7930e492055d"),
+    }
+
+    medium_256b {
+        args: hash_message_args(),
+        event: btreemap! { "message" => "a".repeat(256) },
+        want: Ok("d43f85191c3058fd3b2383077f8e1aa800aae7fdf6eb829440fa45f189562c07"),
+    }
+
+    large_4kb {
+        args: hash_message_args(),
+        event: btreemap! { "message" => "a".repeat(4096) },
+        want: Ok("f02b1d57f4f111bc134a3b65e3b3fe6365278b7720f6735a7bd99594cb2ab07f"),
     }
 }
 
-bench_function! {
+bench_query_function! {
     sha3 => vrl::stdlib::Sha3;
 
     default {
-        args: func_args![value: "foo"],
-        want: Ok("4bca2b137edc580fe50a88983ef860ebaca36c857b1f492839d6d7392452a63c82cbebc68e3b70a2a1480b4bb5d437a7cba6ecf9d89f9ff3ccd14cd6146ea7e7")
+        args: hash_message_args(),
+        event: btreemap! { "message" => "foo" },
+        want: Ok("4bca2b137edc580fe50a88983ef860ebaca36c857b1f492839d6d7392452a63c82cbebc68e3b70a2a1480b4bb5d437a7cba6ecf9d89f9ff3ccd14cd6146ea7e7"),
+    }
+
+    medium_256b {
+        args: hash_message_args(),
+        event: btreemap! { "message" => "a".repeat(256) },
+        want: Ok("0adb817bb9e117d66161ff11e1f578695fed2a02a418ab0af082c9042c85c30fb1b555e54dad918465058a878fa897e744c059a298bae292af3ac1176ad4c819"),
+    }
+
+    large_4kb {
+        args: hash_message_args(),
+        event: btreemap! { "message" => "a".repeat(4096) },
+        want: Ok("ae813750efcfea6d87ee97e6ba6e5f686f96d8ac6d9c22627e5ea0449c3ef031e91455b545aa5065ad3092171c1a9fb604c529c3ab0159ff4e3245749ae0ee7f"),
     }
 }
 
