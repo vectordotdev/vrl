@@ -118,10 +118,10 @@ impl Function for ObjectFromArray {
         _ctx: &mut FunctionCompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
-        let values = ConstOrExpr::new(arguments.required("values"), state);
+        let values = ConstOrExpr::<Value>::new(arguments.required("values"), state);
         let keys = arguments
             .optional("keys")
-            .map(|keys| ConstOrExpr::new(keys, state));
+            .map(|keys| ConstOrExpr::<Value>::new(keys, state));
 
         Ok(OFAFn { keys, values }.as_expr())
     }
