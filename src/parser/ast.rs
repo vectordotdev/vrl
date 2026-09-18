@@ -226,6 +226,9 @@ pub enum Expr {
     Literal(Node<Literal>),
     Container(Node<Container>),
     IfStatement(Node<IfStatement>),
+    For(Node<ForStatement>),
+    Break(Node<Break>),
+    Continue(Node<Continue>),
     Op(Node<Op>),
     Assignment(Node<Assignment>),
     Query(Node<Query>),
@@ -239,8 +242,8 @@ pub enum Expr {
 impl fmt::Debug for Expr {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use Expr::{
-            Abort, Assignment, Container, FunctionCall, IfStatement, Literal, Op, Query, Return,
-            Unary, Variable,
+            Abort, Assignment, Break, Container, Continue, For, FunctionCall, IfStatement, Literal,
+            Op, Query, Return, Unary, Variable,
         };
 
         let value = match self {
@@ -248,6 +251,9 @@ impl fmt::Debug for Expr {
             Container(v) => format!("{v:?}"),
             Op(v) => format!("{v:?}"),
             IfStatement(v) => format!("{v:?}"),
+            For(v) => format!("{v:?}"),
+            Break(v) => format!("{v:?}"),
+            Continue(v) => format!("{v:?}"),
             Assignment(v) => format!("{v:?}"),
             Query(v) => format!("{v:?}"),
             FunctionCall(v) => format!("{v:?}"),
@@ -264,8 +270,8 @@ impl fmt::Debug for Expr {
 impl fmt::Display for Expr {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use Expr::{
-            Abort, Assignment, Container, FunctionCall, IfStatement, Literal, Op, Query, Return,
-            Unary, Variable,
+            Abort, Assignment, Break, Container, Continue, For, FunctionCall, IfStatement, Literal,
+            Op, Query, Return, Unary, Variable,
         };
 
         match self {
@@ -273,6 +279,9 @@ impl fmt::Display for Expr {
             Container(v) => v.fmt(f),
             Op(v) => v.fmt(f),
             IfStatement(v) => v.fmt(f),
+            For(v) => v.fmt(f),
+            Break(v) => v.fmt(f),
+            Continue(v) => v.fmt(f),
             Assignment(v) => v.fmt(f),
             Query(v) => v.fmt(f),
             FunctionCall(v) => v.fmt(f),
@@ -331,6 +340,12 @@ impl fmt::Debug for Ident {
 impl From<String> for Ident {
     fn from(ident: String) -> Self {
         Ident(ident)
+    }
+}
+
+impl From<&str> for Ident {
+    fn from(ident: &str) -> Self {
+        Ident(ident.to_string())
     }
 }
 
@@ -681,6 +696,60 @@ impl fmt::Debug for Predicate {
                 f.write_str(")")
             }
         }
+    }
+}
+
+// -----------------------------------------------------------------------------
+// for statement
+// -----------------------------------------------------------------------------
+
+#[derive(Clone, PartialEq, Debug)]
+pub enum ForPattern {
+    Single(Node<Ident>),
+    KeyValue(Node<Ident>, Node<Ident>),
+}
+
+impl fmt::Display for ForPattern {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Single(ident) => ident.fmt(f),
+            Self::KeyValue(key, value) => write!(f, "{key}, {value}"),
+        }
+    }
+}
+
+#[derive(Clone, PartialEq, Debug)]
+pub struct ForStatement {
+    pub pattern: ForPattern,
+    pub iterable: Box<Node<Expr>>,
+    pub block: Node<Block>,
+}
+
+impl fmt::Display for ForStatement {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "for {} in {} {}",
+            self.pattern, self.iterable, self.block
+        )
+    }
+}
+
+#[derive(Clone, PartialEq, Debug)]
+pub struct Break;
+
+impl fmt::Display for Break {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("break")
+    }
+}
+
+#[derive(Clone, PartialEq, Debug)]
+pub struct Continue;
+
+impl fmt::Display for Continue {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("continue")
     }
 }
 

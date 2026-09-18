@@ -3,7 +3,7 @@ use std::fmt;
 use crate::compiler::codes;
 use crate::compiler::state::{TypeInfo, TypeState};
 use crate::compiler::{
-    Context, Expression, ExpressionError, TypeDef,
+    Context, Expression, TypeDef,
     expression::{self, Expr, Resolved},
     parser::{Node, ast},
     value::{ValueError, VrlValueArithmetic},
@@ -130,7 +130,7 @@ impl Expression for Op {
         match self.opcode {
             Err => {
                 return match self.lhs.resolve(ctx) {
-                    std::result::Result::Err(error @ ExpressionError::Interrupted) => {
+                    std::result::Result::Err(error) if error.is_control_flow() => {
                         std::result::Result::Err(error)
                     }
                     std::result::Result::Err(_) => self.rhs.resolve(ctx),

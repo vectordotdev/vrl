@@ -30,6 +30,38 @@ where
     }
 }
 
+/// Limits the number of cooperative execution checkpoints.
+///
+/// Hosts evaluating untrusted or user-authored VRL should use
+/// `Runtime::resolve_with_limit` or provide their own `ExecutionControl`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct StepBudget {
+    remaining: usize,
+}
+
+impl StepBudget {
+    #[must_use]
+    pub const fn new(limit: usize) -> Self {
+        Self { remaining: limit }
+    }
+
+    #[must_use]
+    pub const fn remaining(&self) -> usize {
+        self.remaining
+    }
+}
+
+impl ExecutionControl for StepBudget {
+    fn checkpoint(&mut self) -> ControlFlow<()> {
+        if self.remaining == 0 {
+            ControlFlow::Break(())
+        } else {
+            self.remaining -= 1;
+            ControlFlow::Continue(())
+        }
+    }
+}
+
 #[derive(Debug, Default)]
 pub struct Runtime {
     state: state::RuntimeState,
@@ -76,6 +108,9 @@ impl Error for Terminate {
         None
     }
 }
+
+#[allow(clippy::module_name_repetitions)]
+pub type RuntimeError = Terminate;
 
 impl Runtime {
     #[must_use]
@@ -154,6 +189,26 @@ impl Runtime {
         self.resolve_inner(target, program, *timezone, Some(control))
     }
 
+    /// Resolves a program with a hard cooperative execution step budget.
+    ///
+    /// When the number of checkpoints exceeds `limit`, execution halts
+    /// cooperatively and returns `Err(Terminate::Interrupted)`.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Terminate::Interrupted`] when the step budget is exhausted.
+    /// Other termination conditions are the same as [`Runtime::resolve`].
+    pub fn resolve_with_limit(
+        &mut self,
+        target: &mut dyn Target,
+        program: &Program,
+        timezone: &TimeZone,
+        limit: usize,
+    ) -> RuntimeResult {
+        let mut budget = StepBudget::new(limit);
+        self.resolve_with_control(target, program, timezone, &mut budget)
+    }
+
     fn resolve_inner(
         &mut self,
         target: &mut dyn Target,
@@ -189,7 +244,11 @@ impl Runtime {
                 | ExpressionError::Fallible { .. }
                 | ExpressionError::Missing { .. }),
             ) => Err(Terminate::Abort(err)),
-            Err(err @ ExpressionError::Error { .. }) => Err(Terminate::Error(err)),
+            Err(
+                err @ (ExpressionError::Error { .. }
+                | ExpressionError::Break { .. }
+                | ExpressionError::Continue { .. }),
+            ) => Err(Terminate::Error(err)),
         }
     }
 }
@@ -365,5 +424,614 @@ mod execution_control_tests {
             runtime.state.variable(&Ident::new("item")),
             Some(&Value::from("outer")),
         );
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::BTreeMap;
+
+    use super::*;
+    use crate::compiler::Program;
+    use crate::compiler::TargetValue;
+    use crate::compiler::TypeDef;
+    use crate::compiler::expression::{self, Block, Expr, Return, Variable};
+    use crate::compiler::parser::ast::{ForPattern, Ident, Node};
+    use crate::compiler::program::ProgramInfo;
+    use crate::compiler::state::{LocalEnv, RuntimeState, TypeState};
+    use crate::compiler::type_def::Details;
+    use crate::diagnostic::Span;
+    use crate::value::{ObjectMap, Secrets, Value};
+    use indoc::indoc;
+
+    fn make_program(expressions: Vec<Expr>) -> Program {
+        Program {
+            initial_state: TypeState::default(),
+            expressions: Block::new_inline(expressions),
+            info: ProgramInfo {
+                fallible: false,
+                abortable: false,
+                target_queries: vec![],
+                target_assignments: vec![],
+            },
+        }
+    }
+
+    fn test_variable_expr(ident: &str) -> Expr {
+        let mut local = LocalEnv::default();
+        local.insert_variable(
+            Ident::new(ident),
+            Details {
+                type_def: TypeDef::any(),
+                value: None,
+            },
+        );
+        Expr::Variable(Variable::new(Span::new(0, 0), Ident::new(ident), &local).unwrap())
+    }
+
+    #[test]
+    fn test_runtime_for_loop_array() {
+        let span = Span::new(0, 0);
+        let pattern = ForPattern::Single(Node::new(span, Ident::new("x")));
+        let iterable = Box::new(Expr::from(Value::Array(vec![
+            Value::from(1),
+            Value::from(2),
+            Value::from(3),
+        ])));
+        let body_expr = test_variable_expr("x");
+        let block = Block::new_scoped(vec![body_expr]);
+        let for_expr = Expr::For(expression::For::new(span, pattern, iterable, block));
+
+        let program = make_program(vec![for_expr]);
+        let mut target = Value::Object(BTreeMap::new());
+        let mut runtime = Runtime::new(RuntimeState::default());
+        let res = runtime.resolve(&mut target, &program, &TimeZone::default());
+        assert_eq!(res, Ok(Value::Null));
+
+        // Loop variable x should have been dropped
+        assert!(runtime.state.variable(&Ident::new("x")).is_none());
+    }
+
+    #[test]
+    fn test_runtime_for_loop_break() {
+        let span = Span::new(0, 0);
+        let pattern = ForPattern::Single(Node::new(span, Ident::new("x")));
+        let iterable = Box::new(Expr::from(Value::Array(vec![
+            Value::from(1),
+            Value::from(2),
+            Value::from(3),
+            Value::from(4),
+        ])));
+        let block = Block::new_scoped(vec![Expr::Break(expression::Break::new(span))]);
+        let for_expr = Expr::For(expression::For::new(span, pattern, iterable, block));
+
+        let program = make_program(vec![for_expr]);
+        let mut target = Value::Object(BTreeMap::new());
+        let mut runtime = Runtime::new(RuntimeState::default());
+        let res = runtime.resolve(&mut target, &program, &TimeZone::default());
+        assert_eq!(res, Ok(Value::Null));
+    }
+
+    #[test]
+    fn test_runtime_for_loop_continue() {
+        let span = Span::new(0, 0);
+        let pattern = ForPattern::Single(Node::new(span, Ident::new("x")));
+        let iterable = Box::new(Expr::from(Value::Array(vec![
+            Value::from(1),
+            Value::from(2),
+            Value::from(3),
+        ])));
+        let block = Block::new_scoped(vec![Expr::Continue(expression::Continue::new(span))]);
+        let for_expr = Expr::For(expression::For::new(span, pattern, iterable, block));
+
+        let program = make_program(vec![for_expr]);
+        let mut target = Value::Object(BTreeMap::new());
+        let mut runtime = Runtime::new(RuntimeState::default());
+        let res = runtime.resolve(&mut target, &program, &TimeZone::default());
+        assert_eq!(res, Ok(Value::Null));
+    }
+
+    #[test]
+    fn test_runtime_for_loop_return() {
+        let span = Span::new(0, 0);
+        let pattern = ForPattern::Single(Node::new(span, Ident::new("x")));
+        let iterable = Box::new(Expr::from(Value::Array(vec![
+            Value::from(1),
+            Value::from(2),
+            Value::from(3),
+        ])));
+        let ret_expr = Expr::Return(
+            Return::new(
+                span,
+                Node::new(span, Expr::from(Value::from(42))),
+                &TypeState::default(),
+            )
+            .unwrap(),
+        );
+        let block = Block::new_scoped(vec![ret_expr]);
+        let for_expr = Expr::For(expression::For::new(span, pattern, iterable, block));
+
+        let program = make_program(vec![for_expr]);
+        let mut target = Value::Object(BTreeMap::new());
+        let mut runtime = Runtime::new(RuntimeState::default());
+        let res = runtime.resolve(&mut target, &program, &TimeZone::default());
+        assert_eq!(res, Ok(Value::from(42)));
+    }
+
+    #[test]
+    fn test_runtime_for_loop_shadowing_outer_preserved() {
+        let span = Span::new(0, 0);
+        let pattern = ForPattern::Single(Node::new(span, Ident::new("x")));
+        let iterable = Box::new(Expr::from(Value::Array(vec![
+            Value::from(1),
+            Value::from(2),
+        ])));
+        let block = Block::new_scoped(vec![test_variable_expr("x")]);
+        let for_expr = Expr::For(expression::For::new(span, pattern, iterable, block));
+
+        let program = make_program(vec![for_expr]);
+        let mut target = Value::Object(BTreeMap::new());
+        let mut runtime = Runtime::new(RuntimeState::default());
+        runtime
+            .state
+            .insert_variable(Ident::new("x"), Value::from("outer_x"));
+
+        let res = runtime.resolve(&mut target, &program, &TimeZone::default());
+        assert_eq!(res, Ok(Value::Null));
+        assert_eq!(
+            runtime.state.variable(&Ident::new("x")),
+            Some(&Value::from("outer_x"))
+        );
+    }
+
+    #[test]
+    fn test_runtime_for_loop_shadowing_on_break() {
+        let span = Span::new(0, 0);
+        let pattern = ForPattern::Single(Node::new(span, Ident::new("x")));
+        let iterable = Box::new(Expr::from(Value::Array(vec![
+            Value::from(1),
+            Value::from(2),
+        ])));
+        let block = Block::new_scoped(vec![Expr::Break(expression::Break::new(span))]);
+        let for_expr = Expr::For(expression::For::new(span, pattern, iterable, block));
+
+        let program = make_program(vec![for_expr]);
+        let mut target = Value::Object(BTreeMap::new());
+        let mut runtime = Runtime::new(RuntimeState::default());
+        runtime
+            .state
+            .insert_variable(Ident::new("x"), Value::from("outer_x"));
+
+        let res = runtime.resolve(&mut target, &program, &TimeZone::default());
+        assert_eq!(res, Ok(Value::Null));
+        assert_eq!(
+            runtime.state.variable(&Ident::new("x")),
+            Some(&Value::from("outer_x"))
+        );
+    }
+
+    #[test]
+    fn test_runtime_for_loop_shadowing_on_return() {
+        let span = Span::new(0, 0);
+        let pattern = ForPattern::Single(Node::new(span, Ident::new("x")));
+        let iterable = Box::new(Expr::from(Value::Array(vec![
+            Value::from(1),
+            Value::from(2),
+        ])));
+        let ret_expr = Expr::Return(
+            Return::new(
+                span,
+                Node::new(span, Expr::from(Value::from("early"))),
+                &TypeState::default(),
+            )
+            .unwrap(),
+        );
+        let block = Block::new_scoped(vec![ret_expr]);
+        let for_expr = Expr::For(expression::For::new(span, pattern, iterable, block));
+
+        let program = make_program(vec![for_expr]);
+        let mut target = Value::Object(BTreeMap::new());
+        let mut runtime = Runtime::new(RuntimeState::default());
+        runtime
+            .state
+            .insert_variable(Ident::new("x"), Value::from("outer_x"));
+
+        let res = runtime.resolve(&mut target, &program, &TimeZone::default());
+        assert_eq!(res, Ok(Value::from("early")));
+        assert_eq!(
+            runtime.state.variable(&Ident::new("x")),
+            Some(&Value::from("outer_x"))
+        );
+    }
+
+    #[test]
+    fn test_runtime_for_loop_array_key_value() {
+        let span = Span::new(0, 0);
+        let pattern = ForPattern::KeyValue(
+            Node::new(span, Ident::new("i")),
+            Node::new(span, Ident::new("v")),
+        );
+        let iterable = Box::new(Expr::from(Value::Array(vec![
+            Value::from("first"),
+            Value::from("second"),
+        ])));
+        let block = Block::new_scoped(vec![test_variable_expr("v")]);
+        let for_expr = Expr::For(expression::For::new(span, pattern, iterable, block));
+
+        let program = make_program(vec![for_expr]);
+        let mut target = Value::Object(BTreeMap::new());
+        let mut runtime = Runtime::new(RuntimeState::default());
+        let res = runtime.resolve(&mut target, &program, &TimeZone::default());
+        assert_eq!(res, Ok(Value::Null));
+        assert!(runtime.state.variable(&Ident::new("i")).is_none());
+        assert!(runtime.state.variable(&Ident::new("v")).is_none());
+    }
+
+    #[test]
+    fn test_runtime_for_loop_object_key_value() {
+        let span = Span::new(0, 0);
+        let pattern = ForPattern::KeyValue(
+            Node::new(span, Ident::new("k")),
+            Node::new(span, Ident::new("v")),
+        );
+        let mut map = ObjectMap::new();
+        map.insert("a".into(), Value::Integer(10));
+        map.insert("b".into(), Value::Integer(20));
+        let iterable = Box::new(Expr::from(Value::Object(map)));
+        let block = Block::new_scoped(vec![test_variable_expr("v")]);
+        let for_expr = Expr::For(expression::For::new(span, pattern, iterable, block));
+
+        let program = make_program(vec![for_expr]);
+        let mut target = Value::Object(BTreeMap::new());
+        let mut runtime = Runtime::new(RuntimeState::default());
+        let res = runtime.resolve(&mut target, &program, &TimeZone::default());
+        assert_eq!(res, Ok(Value::Null));
+        assert!(runtime.state.variable(&Ident::new("k")).is_none());
+        assert!(runtime.state.variable(&Ident::new("v")).is_none());
+    }
+
+    #[test]
+    fn test_runtime_for_loop_non_collection_error() {
+        let span = Span::new(0, 0);
+        let pattern = ForPattern::Single(Node::new(span, Ident::new("x")));
+        let iterable = Box::new(Expr::from(Value::Integer(42)));
+        let block = Block::new_scoped(vec![test_variable_expr("x")]);
+        let for_expr = Expr::For(expression::For::new(span, pattern, iterable, block));
+
+        let program = make_program(vec![for_expr]);
+        let mut target = Value::Object(BTreeMap::new());
+        let mut runtime = Runtime::new(RuntimeState::default());
+        let res = runtime.resolve(&mut target, &program, &TimeZone::default());
+        assert!(matches!(res, Err(Terminate::Error(_))));
+    }
+
+    #[test]
+    fn test_runtime_for_loop_single_var_object_error() {
+        let span = Span::new(0, 0);
+        let pattern = ForPattern::Single(Node::new(span, Ident::new("x")));
+        let mut map = ObjectMap::new();
+        map.insert("a".into(), Value::Integer(10));
+        let iterable = Box::new(Expr::from(Value::Object(map)));
+        let block = Block::new_scoped(vec![test_variable_expr("x")]);
+        let for_expr = Expr::For(expression::For::new(span, pattern, iterable, block));
+
+        let program = make_program(vec![for_expr]);
+        let mut target = Value::Object(BTreeMap::new());
+        let mut runtime = Runtime::new(RuntimeState::default());
+        let res = runtime.resolve(&mut target, &program, &TimeZone::default());
+        assert!(matches!(res, Err(Terminate::Error(_))));
+    }
+
+    #[test]
+    fn test_runtime_for_loop_empty_collections() {
+        let span = Span::new(0, 0);
+        let pattern = ForPattern::Single(Node::new(span, Ident::new("x")));
+        let iterable = Box::new(Expr::from(Value::Array(vec![])));
+        let block = Block::new_scoped(vec![Expr::Break(expression::Break::new(span))]);
+        let for_expr = Expr::For(expression::For::new(span, pattern, iterable, block));
+
+        let program = make_program(vec![for_expr]);
+        let mut target = Value::Object(BTreeMap::new());
+        let mut runtime = Runtime::new(RuntimeState::default());
+        let res = runtime.resolve(&mut target, &program, &TimeZone::default());
+        assert_eq!(res, Ok(Value::Null));
+    }
+
+    #[test]
+    fn test_runtime_for_loop_wildcard() {
+        let span = Span::new(0, 0);
+        let pattern = ForPattern::KeyValue(
+            Node::new(span, Ident::new("_")),
+            Node::new(span, Ident::new("v")),
+        );
+        let iterable = Box::new(Expr::from(Value::Array(vec![Value::from(10)])));
+        let block = Block::new_scoped(vec![test_variable_expr("v")]);
+        let for_expr = Expr::For(expression::For::new(span, pattern, iterable, block));
+
+        let program = make_program(vec![for_expr]);
+        let mut target = Value::Object(BTreeMap::new());
+        let mut runtime = Runtime::new(RuntimeState::default());
+        let res = runtime.resolve(&mut target, &program, &TimeZone::default());
+        assert_eq!(res, Ok(Value::Null));
+        assert!(runtime.state.variable(&Ident::new("_")).is_none());
+        assert!(runtime.state.variable(&Ident::new("v")).is_none());
+    }
+
+    #[test]
+    fn break_is_not_caught_by_infallible_assignment_in_for_loop() {
+        let source = indoc! {r#"
+            count = 0
+            for val in [1, 2, 3] {
+                count = count + 1
+                _, err = if val == 2 {
+                    break
+                } else {
+                    parse_int("not_a_number")
+                }
+            }
+            count
+        "#};
+
+        let fns = crate::stdlib::all();
+        let program = crate::compiler::compile(source, &fns)
+            .expect("program compiles")
+            .program;
+
+        let mut target = TargetValue {
+            value: Value::Null,
+            metadata: Value::Null,
+            secrets: Secrets::new(),
+        };
+        let mut state = RuntimeState::default();
+        let tz = TimeZone::default();
+        let mut ctx = Context::new(&mut target, &mut state, &tz);
+
+        let result = program.resolve(&mut ctx);
+        assert_eq!(result, Ok(Value::from(2)));
+    }
+
+    #[test]
+    fn continue_is_not_caught_by_infallible_assignment_in_for_loop() {
+        let source = indoc! {r#"
+            sum = 0
+            for val in [1, 2, 3] {
+                _, err = if val == 2 {
+                    continue
+                } else {
+                    parse_int("not_a_number")
+                }
+                sum = sum + val
+            }
+            sum
+        "#};
+
+        let fns = crate::stdlib::all();
+        let program = crate::compiler::compile(source, &fns)
+            .expect("program compiles")
+            .program;
+
+        let mut target = TargetValue {
+            value: Value::Null,
+            metadata: Value::Null,
+            secrets: Secrets::new(),
+        };
+        let mut state = RuntimeState::default();
+        let tz = TimeZone::default();
+        let mut ctx = Context::new(&mut target, &mut state, &tz);
+
+        let result = program.resolve(&mut ctx);
+        assert_eq!(result, Ok(Value::from(4))); // 1 + 3 (2 skipped)
+    }
+
+    #[test]
+    fn break_is_not_caught_by_error_coalescing_in_for_loop() {
+        let source = indoc! {r#"
+            count = 0
+            for val in [1, 2, 3] {
+                count = count + 1
+                res = { if val == 2 { break } else { parse_int("not_a_number") } } ?? 999
+            }
+            count
+        "#};
+
+        let fns = crate::stdlib::all();
+        let program = crate::compiler::compile(source, &fns)
+            .expect("program compiles")
+            .program;
+
+        let mut target = TargetValue {
+            value: Value::Null,
+            metadata: Value::Null,
+            secrets: Secrets::new(),
+        };
+        let mut state = RuntimeState::default();
+        let tz = TimeZone::default();
+        let mut ctx = Context::new(&mut target, &mut state, &tz);
+
+        let result = program.resolve(&mut ctx);
+        assert_eq!(result, Ok(Value::from(2)));
+    }
+
+    #[test]
+    fn continue_is_not_caught_by_error_coalescing_in_for_loop() {
+        let source = indoc! {r#"
+            sum = 0
+            for val in [1, 2, 3] {
+                res = { if val == 2 { continue } else { parse_int("not_a_number") } } ?? 999
+                sum = sum + val
+            }
+            sum
+        "#};
+
+        let fns = crate::stdlib::all();
+        let program = crate::compiler::compile(source, &fns)
+            .expect("program compiles")
+            .program;
+
+        let mut target = TargetValue {
+            value: Value::Null,
+            metadata: Value::Null,
+            secrets: Secrets::new(),
+        };
+        let mut state = RuntimeState::default();
+        let tz = TimeZone::default();
+        let mut ctx = Context::new(&mut target, &mut state, &tz);
+
+        let result = program.resolve(&mut ctx);
+        assert_eq!(result, Ok(Value::from(4))); // 1 + 3 (2 skipped)
+    }
+
+    #[test]
+    fn break_is_not_wrapped_by_boolean_or_in_for_loop() {
+        let source = indoc! {r"
+            count = 0
+            for val in [1, 2, 3] {
+                count = count + 1
+                if false || { if val == 2 { break } else { true } } {
+                    res = val
+                }
+            }
+            count
+        "};
+
+        let fns = crate::stdlib::all();
+        let program = crate::compiler::compile(source, &fns)
+            .expect("program compiles")
+            .program;
+
+        let mut target = TargetValue {
+            value: Value::Null,
+            metadata: Value::Null,
+            secrets: Secrets::new(),
+        };
+        let mut state = RuntimeState::default();
+        let tz = TimeZone::default();
+        let mut ctx = Context::new(&mut target, &mut state, &tz);
+
+        let result = program.resolve(&mut ctx);
+        assert_eq!(result, Ok(Value::from(2)));
+    }
+
+    #[test]
+    fn continue_is_not_wrapped_by_boolean_or_in_for_loop() {
+        let source = indoc! {r"
+            sum = 0
+            for val in [1, 2, 3] {
+                if false || { if val == 2 { continue } else { true } } {
+                    sum = sum + val
+                }
+            }
+            sum
+        "};
+
+        let fns = crate::stdlib::all();
+        let program = crate::compiler::compile(source, &fns)
+            .expect("program compiles")
+            .program;
+
+        let mut target = TargetValue {
+            value: Value::Null,
+            metadata: Value::Null,
+            secrets: Secrets::new(),
+        };
+        let mut state = RuntimeState::default();
+        let tz = TimeZone::default();
+        let mut ctx = Context::new(&mut target, &mut state, &tz);
+
+        let result = program.resolve(&mut ctx);
+        assert_eq!(result, Ok(Value::from(4))); // 1 + 3 (2 skipped)
+    }
+
+    fn compile_test_program(source: &str) -> Program {
+        // VRL grammar requires blocks to contain at least one expression.
+        // Normalize empty or comment-only blocks to include `null`.
+        let normalized = source.replace("{ }", "{ null }").replace(
+            "{\n  # interrupts here\n}",
+            "{\n  # interrupts here\n  null\n}",
+        );
+        let external = crate::compiler::state::ExternalEnv::new_with_kind(
+            crate::value::Kind::array(crate::compiler::value::Collection::any()),
+            crate::value::Kind::object(crate::compiler::value::Collection::any()),
+        );
+        let fns = crate::stdlib::all();
+        crate::compiler::compile_with_external(
+            &normalized,
+            &fns,
+            &external,
+            crate::compiler::CompileConfig::default(),
+        )
+        .expect("test program compiles")
+        .program
+    }
+
+    #[test]
+    fn resolve_with_limit_zero_budget_interrupts_immediately() {
+        let mut runtime = Runtime::default();
+        let mut target = TargetValue::new(Value::from(vec![1, 2, 3]));
+        let program = compile_test_program("for x in . { }");
+        let res = runtime.resolve_with_limit(&mut target, &program, &TimeZone::default(), 0);
+        assert!(matches!(res, Err(RuntimeError::Interrupted)));
+    }
+
+    #[test]
+    fn resolve_with_limit_exhausts_during_direct_loop() {
+        let mut runtime = Runtime::default();
+        let mut target =
+            TargetValue::new(Value::from((0..100).map(Value::from).collect::<Vec<_>>()));
+        let program = compile_test_program("count = 0\nfor x in . { count = count + 1 }");
+        // Limit to 10 steps on a 100-element array
+        let res = runtime.resolve_with_limit(&mut target, &program, &TimeZone::default(), 10);
+        assert!(matches!(res, Err(RuntimeError::Interrupted)));
+    }
+
+    #[test]
+    fn resolve_with_limit_exhausts_in_nested_loops() {
+        let mut runtime = Runtime::default();
+        let mut target =
+            TargetValue::new(Value::from((0..10).map(Value::from).collect::<Vec<_>>()));
+        let program = compile_test_program(
+            "count = 0\nfor x in . {\n  for y in . {\n    count = count + 1\n  }\n}",
+        );
+        // 10x10 = 100 iterations. Budget of 15 should interrupt during the second outer iteration.
+        let res = runtime.resolve_with_limit(&mut target, &program, &TimeZone::default(), 15);
+        assert!(matches!(res, Err(RuntimeError::Interrupted)));
+    }
+
+    #[test]
+    fn resolve_with_limit_restores_shadowed_variable_on_interruption() {
+        let mut runtime = Runtime::default();
+        let mut target = TargetValue::new(Value::from(vec![10, 20, 30]));
+        let program = compile_test_program("x = 999\nfor x in . {\n  # interrupts here\n}");
+        let res = runtime.resolve_with_limit(&mut target, &program, &TimeZone::default(), 2);
+        assert!(matches!(res, Err(RuntimeError::Interrupted)));
+        // Verify outer x is restored in runtime state
+        let ident = crate::parser::ast::Ident::from("x");
+        assert_eq!(runtime.state.variable(&ident), Some(&Value::from(999)));
+    }
+
+    #[test]
+    fn step_budget_counts_down_and_breaks_at_zero() {
+        let mut budget = StepBudget::new(2);
+        assert_eq!(budget.remaining(), 2);
+        assert_eq!(budget.checkpoint(), ControlFlow::Continue(()));
+        assert_eq!(budget.remaining(), 1);
+        assert_eq!(budget.checkpoint(), ControlFlow::Continue(()));
+        assert_eq!(budget.remaining(), 0);
+        assert_eq!(budget.checkpoint(), ControlFlow::Break(()));
+        assert_eq!(budget.remaining(), 0);
+        assert_eq!(budget.checkpoint(), ControlFlow::Break(()));
+
+        let copy = budget;
+        assert_eq!(budget, copy);
+        assert_eq!(format!("{budget:?}"), "StepBudget { remaining: 0 }");
+    }
+
+    #[test]
+    fn resolve_with_limit_sufficient_budget_succeeds() {
+        let mut runtime = Runtime::default();
+        let mut target = TargetValue::new(Value::from(vec![1, 2, 3]));
+        let program = compile_test_program("count = 0\nfor x in . { count = count + 1 }\ncount");
+        let res = runtime.resolve_with_limit(&mut target, &program, &TimeZone::default(), 100);
+        assert_eq!(res, Ok(Value::from(3)));
     }
 }

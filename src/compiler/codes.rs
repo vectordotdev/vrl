@@ -88,6 +88,14 @@ pub enum CompilerCode {
     FallibleArgument = 630,
     /// Fallible expression used where only infallible is allowed (abort/return message).
     FallibleExpr = 631,
+    /// Jump statement (break/continue) used outside of a loop.
+    LoopControlOutsideLoop = 632,
+    /// Non-collection expression used where an array or object is required in a for loop.
+    NonCollectionIterable = 633,
+    /// Single variable pattern used when iterating over an object.
+    ObjectSingleVarPattern = 634,
+    /// Duplicate variable identifier in a loop pattern.
+    DuplicatePatternIdent = 635,
     UnnecessaryNoop = 640,
     InvalidTarget = 641,
     InvalidParentPathSegment = 642,
@@ -200,6 +208,10 @@ mod tests {
                 CompilerCode::AbortInfallible,
                 CompilerCode::FallibleArgument,
                 CompilerCode::FallibleExpr,
+                CompilerCode::LoopControlOutsideLoop,
+                CompilerCode::NonCollectionIterable,
+                CompilerCode::ObjectSingleVarPattern,
+                CompilerCode::DuplicatePatternIdent,
                 CompilerCode::UnnecessaryNoop,
                 CompilerCode::InvalidTarget,
                 CompilerCode::InvalidParentPathSegment,

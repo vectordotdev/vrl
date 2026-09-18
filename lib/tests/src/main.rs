@@ -56,10 +56,10 @@ impl Cmd {
     }
 }
 
-fn should_run(name: &str, pat: Option<&str>) -> bool {
+fn should_run(name: &str, source_file: &str, pat: Option<&str>) -> bool {
     // name.contains("truncate")
     if let Some(pat) = pat {
-        if !name.contains(pat) {
+        if !name.contains(pat) && !source_file.contains(pat) {
             return false;
         }
     }
@@ -109,6 +109,7 @@ fn get_tests(cmd: &Cmd) -> Vec<Test> {
         .filter(|test| {
             should_run(
                 &format!("{}/{}", test.category, test.name),
+                &test.source_file,
                 cmd.pattern.as_deref(),
             )
         })

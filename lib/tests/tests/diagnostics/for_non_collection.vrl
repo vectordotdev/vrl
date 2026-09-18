@@ -1,0 +1,14 @@
+# result:
+#
+# error[E633]: expected array or object, got integer
+#   ┌─ :2:10
+#   │
+# 2 │ for x in 42 {
+#   │          ^^ expected array or object
+#   │
+#   = see language documentation at https://vrl.dev
+#   = try your code in the VRL REPL, learn more at https://vrl.dev/examples
+
+for x in 42 {
+  .foo = x
+}

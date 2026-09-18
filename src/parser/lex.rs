@@ -436,6 +436,10 @@ pub enum Token<S> {
     True,
     Abort,
     Return,
+    For,
+    In,
+    Break,
+    Continue,
 
     // tokens
     Colon,
@@ -497,12 +501,12 @@ pub enum Token<S> {
 impl<S> Token<S> {
     pub(crate) fn map<R>(self, f: impl Fn(S) -> R) -> Token<R> {
         use self::Token::{
-            Abort, Ampersand, Arrow, Bang, Colon, Comma, Dot, Else, Equals, Escape, False,
-            FloatLiteral, FunctionCall, Identifier, If, IntegerLiteral, InvalidToken, LBrace,
-            LBracket, LParen, LQuery, MergeEquals, Newline, Null, Operator, PathField, Percent,
-            Question, RBrace, RBracket, RParen, RQuery, RawStringLiteral, RegexLiteral,
-            ReservedIdentifier, Return, SemiColon, StringLiteral, TimestampLiteral, True,
-            Underscore,
+            Abort, Ampersand, Arrow, Bang, Break, Colon, Comma, Continue, Dot, Else, Equals,
+            Escape, False, FloatLiteral, For, FunctionCall, Identifier, If, In, IntegerLiteral,
+            InvalidToken, LBrace, LBracket, LParen, LQuery, MergeEquals, Newline, Null, Operator,
+            PathField, Percent, Question, RBrace, RBracket, RParen, RQuery, RawStringLiteral,
+            RegexLiteral, ReservedIdentifier, Return, SemiColon, StringLiteral, TimestampLiteral,
+            True, Underscore,
         };
 
         match self {
@@ -532,6 +536,10 @@ impl<S> Token<S> {
             True => True,
             Abort => Abort,
             Return => Return,
+            For => For,
+            In => In,
+            Break => Break,
+            Continue => Continue,
 
             // tokens
             Colon => Colon,
@@ -568,12 +576,12 @@ where
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         use self::Token::{
-            Abort, Ampersand, Arrow, Bang, Colon, Comma, Dot, Else, Equals, Escape, False,
-            FloatLiteral, FunctionCall, Identifier, If, IntegerLiteral, InvalidToken, LBrace,
-            LBracket, LParen, LQuery, MergeEquals, Newline, Null, Operator, PathField, Percent,
-            Question, RBrace, RBracket, RParen, RQuery, RawStringLiteral, RegexLiteral,
-            ReservedIdentifier, Return, SemiColon, StringLiteral, TimestampLiteral, True,
-            Underscore,
+            Abort, Ampersand, Arrow, Bang, Break, Colon, Comma, Continue, Dot, Else, Equals,
+            Escape, False, FloatLiteral, For, FunctionCall, Identifier, If, In, IntegerLiteral,
+            InvalidToken, LBrace, LBracket, LParen, LQuery, MergeEquals, Newline, Null, Operator,
+            PathField, Percent, Question, RBrace, RBracket, RParen, RQuery, RawStringLiteral,
+            RegexLiteral, ReservedIdentifier, Return, SemiColon, StringLiteral, TimestampLiteral,
+            True, Underscore,
         };
 
         let s = match *self {
@@ -597,6 +605,10 @@ where
             True => "True",
             Abort => "Abort",
             Return => "Return",
+            For => "For",
+            In => "In",
+            Break => "Break",
+            Continue => "Continue",
 
             // tokens
             Colon => "Colon",
@@ -633,7 +645,8 @@ impl<'input> Token<&'input str> {
     /// Returns either a literal, reserved, or generic identifier.
     fn ident(s: &'input str) -> Self {
         use Token::{
-            Abort, Else, False, Identifier, If, Null, PathField, ReservedIdentifier, Return, True,
+            Abort, Break, Continue, Else, False, For, Identifier, If, In, Null, PathField,
+            ReservedIdentifier, Return, True,
         };
 
         match s {
@@ -644,14 +657,16 @@ impl<'input> Token<&'input str> {
             "null" => Null,
             "abort" => Abort,
             "return" => Return,
+            "for" => For,
+            "in" => In,
+            "break" => Break,
+            "continue" => Continue,
 
             // reserved identifiers
-            "array" | "bool" | "boolean" | "break" | "continue" | "do" | "emit" | "float"
-            | "for" | "forall" | "foreach" | "all" | "each" | "any" | "try" | "undefined"
-            | "int" | "integer" | "iter" | "object" | "regex" | "string" | "traverse"
-            | "timestamp" | "duration" | "unless" | "walk" | "while" | "loop" => {
-                ReservedIdentifier(s)
-            }
+            "array" | "bool" | "boolean" | "do" | "emit" | "float" | "forall" | "foreach"
+            | "all" | "each" | "any" | "try" | "undefined" | "int" | "integer" | "iter"
+            | "object" | "regex" | "string" | "traverse" | "timestamp" | "duration" | "unless"
+            | "walk" | "while" | "loop" => ReservedIdentifier(s),
 
             _ if s.contains('@') => PathField(s),
 

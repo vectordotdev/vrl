@@ -3,9 +3,10 @@ use crate::compiler::expression::function_call::FunctionCallError;
 use crate::compiler::{
     CompileConfig, Function, Program, TypeDef,
     expression::{
-        Abort, Array, Assignment, Block, Container, Expr, Expression, FunctionArgument,
-        FunctionCall, Group, IfStatement, Literal, Noop, Not, Object, Op, Predicate, Query, Return,
-        Target, Unary, Variable, assignment, function_call, literal, predicate, query,
+        Abort, Array, Assignment, Block, Break, Container, Continue, Expr, Expression, For,
+        FunctionArgument, FunctionCall, Group, IfStatement, Literal, Noop, Not, Object, Op,
+        Predicate, Query, Return, Target, Unary, Variable, assignment, function_call, literal,
+        predicate, query,
     },
     parser::ast::RootExpr,
     program::ProgramInfo,
@@ -60,6 +61,8 @@ pub struct Compiler<'a> {
     /// when both a discarded fallible call and a later fallible assignment
     /// exist in the same block.
     pending_fallibilities: Vec<CompilerError>,
+
+    loop_depth: usize,
 
     config: CompileConfig,
 }
@@ -133,6 +136,7 @@ impl<'a> Compiler<'a> {
             external_assignments: vec![],
             skip_missing_query_target: vec![],
             pending_fallibilities: vec![],
+            loop_depth: 0,
             config,
         };
         let expressions = compiler.compile_root_exprs(ast, &mut state);
@@ -181,8 +185,8 @@ impl<'a> Compiler<'a> {
 
     fn compile_expr(&mut self, node: Node<ast::Expr>, state: &mut TypeState) -> Option<Expr> {
         use ast::Expr::{
-            Abort, Assignment, Container, FunctionCall, IfStatement, Literal, Op, Query, Return,
-            Unary, Variable,
+            Abort, Assignment, Break, Container, Continue, For, FunctionCall, IfStatement, Literal,
+            Op, Query, Return, Unary, Variable,
         };
         let original_state = state.clone();
         let pre_compile_pending = self.pending_fallibilities.len();
@@ -212,6 +216,9 @@ impl<'a> Compiler<'a> {
             Unary(node) => self.compile_unary(node, state).map(Into::into),
             Abort(node) => self.compile_abort(node, state).map(Into::into),
             Return(node) => self.compile_return(node, state).map(Into::into),
+            For(node) => self.compile_for_statement(node, state).map(Into::into),
+            Break(node) => self.compile_break(node, state).map(Into::into),
+            Continue(node) => self.compile_continue(node, state).map(Into::into),
         }?;
 
         // If the compiled expression is fallible and no sub-expression has
@@ -801,7 +808,11 @@ impl<'a> Compiler<'a> {
                     None => None,
                     Some(block) => {
                         let span = block.span();
-                        match self.compile_block_with_type(block, state) {
+                        let saved_loop_depth = self.loop_depth;
+                        self.loop_depth = 0;
+                        let block_result = self.compile_block_with_type(block, state);
+                        self.loop_depth = saved_loop_depth;
+                        match block_result {
                             Some(block_with_type) => Some(Node::new(span, block_with_type)),
                             None => return None,
                         }
@@ -920,6 +931,114 @@ impl<'a> Compiler<'a> {
                 .map_err(|err| c.diagnostics.push(Box::new(err)))
                 .ok()
         })
+    }
+
+    fn compile_break(&mut self, node: Node<ast::Break>, _state: &mut TypeState) -> Option<Break> {
+        let (span, _break) = node.take();
+        if self.loop_depth == 0 {
+            self.diagnostics
+                .push(Box::new(expression::break_::Error::new(span)));
+            return None;
+        }
+        Some(Break::new(span))
+    }
+
+    fn compile_continue(
+        &mut self,
+        node: Node<ast::Continue>,
+        _state: &mut TypeState,
+    ) -> Option<Continue> {
+        let (span, _continue) = node.take();
+        if self.loop_depth == 0 {
+            self.diagnostics
+                .push(Box::new(expression::continue_::Error::new(span)));
+            return None;
+        }
+        Some(Continue::new(span))
+    }
+
+    fn compile_for_statement(
+        &mut self,
+        node: Node<ast::ForStatement>,
+        state: &mut TypeState,
+    ) -> Option<For> {
+        let (for_span, for_statement) = node.take();
+        let ast::ForStatement {
+            pattern,
+            iterable,
+            block,
+        } = for_statement;
+
+        let iterable_span = iterable.span();
+        let compiled_iterable = self.compile_expr(*iterable, state)?;
+        let iterable_type = compiled_iterable.type_info(state).result;
+        let iterable_kind = iterable_type.kind();
+
+        // Reject if iterable contains any non-collection type or contains neither array nor object.
+        if expression::for_loop::contains_non_collection_kind(iterable_kind)
+            || (!iterable_kind.contains_array() && !iterable_kind.contains_object())
+        {
+            self.diagnostics
+                .push(Box::new(expression::for_loop::Error::non_collection(
+                    iterable_span,
+                    iterable_kind.clone(),
+                )));
+            return None;
+        }
+
+        // Single-variable pattern is only valid if object iteration is impossible.
+        // If iterable can be an object, require key-value pattern: `for key, value in ...`
+        if let ast::ForPattern::Single(val_node) = &pattern
+            && iterable_kind.contains_object()
+        {
+            self.diagnostics
+                .push(Box::new(expression::for_loop::Error::single_var_object(
+                    val_node.span(),
+                )));
+            return None;
+        }
+
+        // For KeyValue pattern: reject duplicate variable names.
+        if let ast::ForPattern::KeyValue(key_node, val_node) = &pattern {
+            let k = key_node.inner();
+            let v = val_node.inner();
+            if k.as_ref() == v.as_ref() && k.as_ref() != "_" && !k.as_ref().is_empty() {
+                self.diagnostics.push(Box::new(
+                    expression::for_loop::Error::duplicate_pattern_ident(
+                        val_node.span(),
+                        k.to_string(),
+                    ),
+                ));
+                return None;
+            }
+        }
+
+        // Snapshot pre-loop state for restoration and merging.
+        let pre_loop_state = state.clone();
+
+        // Insert pattern variables into state.local.
+        let pattern_idents = expression::for_loop::bind_for_pattern(&pattern, iterable_kind, state);
+
+        self.loop_depth += 1;
+        let compiled_block = self.compile_block(block, state);
+        self.loop_depth -= 1;
+        let compiled_block = compiled_block?;
+
+        // Restore pattern variables in body_state to their pre-loop state before merging.
+        let mut body_state = state.clone();
+        expression::for_loop::restore_pattern_variables(
+            &mut body_state,
+            &pre_loop_state,
+            &pattern_idents,
+        );
+        *state = body_state.merge(pre_loop_state);
+
+        Some(For::new(
+            for_span,
+            pattern,
+            Box::new(compiled_iterable),
+            compiled_block,
+        ))
     }
 
     fn handle_parser_error(&mut self, error: crate::parser::Error) {

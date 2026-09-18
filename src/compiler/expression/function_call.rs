@@ -759,7 +759,9 @@ impl Expression for FunctionCall {
             ExpressionError::Interrupted
             | ExpressionError::Abort { .. }
             | ExpressionError::Fallible { .. }
-            | ExpressionError::Missing { .. } => {
+            | ExpressionError::Missing { .. }
+            | ExpressionError::Break { .. }
+            | ExpressionError::Continue { .. } => {
                 // propagate the error
                 err
             }
