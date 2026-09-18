@@ -10,6 +10,7 @@ use crate::prelude::{Example, Parameter};
 use indexmap::IndexMap;
 use serde::Serialize;
 use std::path::Path;
+use std::str;
 use std::{fs, io};
 use tracing::{debug, info};
 
@@ -261,10 +262,10 @@ fn kind_to_types(kind_bits: u16) -> Vec<String> {
 }
 
 fn pretty_value(v: &Value) -> String {
-    if let Value::Bytes(b) = v {
-        str::from_utf8(b).map_or_else(|_| v.to_string(), String::from)
-    } else {
-        v.to_string()
+    match v {
+        Value::String(s) => s.to_string(),
+        Value::Bytes(b) => str::from_utf8(b).map_or_else(|_| v.to_string(), String::from),
+        _ => v.to_string(),
     }
 }
 

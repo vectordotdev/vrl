@@ -1,3 +1,4 @@
+use super::util::hex_encode;
 use crate::compiler::function::EnumVariant;
 use crate::compiler::prelude::*;
 use crate::value;
@@ -47,7 +48,7 @@ const PARAMETERS: &[Parameter] = &[
     .enum_variants(VARIANT_ENUM),
 ];
 
-fn sha2_hex(value: &[u8], variant: &[u8]) -> Bytes {
+fn sha2_hex(value: &[u8], variant: &[u8]) -> bytestring::ByteString {
     match variant {
         b"SHA-224" => hex_encode::<56>(Sha224::digest(value)),
         b"SHA-256" => hex_encode::<64>(Sha256::digest(value)),
@@ -61,7 +62,7 @@ fn sha2_hex(value: &[u8], variant: &[u8]) -> Bytes {
 
 fn sha2(value: Value, variant: &Bytes) -> Resolved {
     let value = value.try_bytes()?;
-    Ok(Value::Bytes(sha2_hex(&value, variant)))
+    Ok(Value::String(sha2_hex(&value, variant)))
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -137,7 +138,7 @@ impl Function for Sha2 {
         if let Some(val) = value.resolve_constant(state)
             && let Ok(bytes) = val.try_bytes()
         {
-            Ok(Box::new(crate::compiler::expression::Literal::String(
+            Ok(Box::new(crate::compiler::expression::Literal::from(
                 sha2_hex(&bytes, &variant),
             )))
         } else {
@@ -163,13 +164,6 @@ impl FunctionExpression for Sha2Fn {
     fn type_def(&self, _: &state::TypeState) -> TypeDef {
         TypeDef::bytes().infallible()
     }
-}
-
-#[inline]
-fn hex_encode<const N: usize>(digest: impl AsRef<[u8]>) -> Bytes {
-    let mut buf = [0u8; N];
-    hex::encode_to_slice(digest, &mut buf).expect("hex buffer sized for digest");
-    Bytes::copy_from_slice(&buf)
 }
 
 #[cfg(test)]

@@ -63,157 +63,189 @@ fn parse_map_key(kind: &Kind, key: &str) -> Result<MapKey, String> {
     clippy::cast_sign_loss,
     clippy::too_many_lines
 )] // Protobuf scalar coercions intentionally preserve the existing Rust `as` semantics.
+fn convert_bytes_like(
+    b: Bytes,
+    kind: &Kind,
+    kind_str: &str,
+) -> Result<prost_reflect::Value, String> {
+    match kind {
+        Kind::Bool => match Conversion::Boolean.convert(b) {
+            Ok(Value::Boolean(v)) => Ok(prost_reflect::Value::Bool(v)),
+            Ok(_) => unreachable!("Conversion::Boolean always yields Value::Boolean"),
+            Err(e) => Err(e.to_string()),
+        },
+        Kind::Bytes => Ok(prost_reflect::Value::Bytes(b)),
+        _ => convert_utf8(&simdutf_bytes_utf8_lossy(&b), kind, kind_str),
+    }
+}
+
+fn convert_utf8(string: &str, kind: &Kind, kind_str: &str) -> Result<prost_reflect::Value, String> {
+    match kind {
+        Kind::Bool => {
+            match Conversion::Boolean.convert(Bytes::copy_from_slice(string.as_bytes())) {
+                Ok(Value::Boolean(v)) => Ok(prost_reflect::Value::Bool(v)),
+                Ok(_) => unreachable!("Conversion::Boolean always yields Value::Boolean"),
+                Err(e) => Err(e.to_string()),
+            }
+        }
+        Kind::Bytes => Ok(prost_reflect::Value::Bytes(Bytes::copy_from_slice(
+            string.as_bytes(),
+        ))),
+        Kind::String => Ok(prost_reflect::Value::String(string.to_owned())),
+        Kind::Enum(descriptor) => {
+            match descriptor
+                .values()
+                .find(|v| v.name().eq_ignore_ascii_case(string))
+            {
+                Some(d) => Ok(prost_reflect::Value::EnumNumber(d.number())),
+                None => Err(format!(
+                    "Enum `{}` has no value that matches string '{string}'",
+                    descriptor.full_name(),
+                )),
+            }
+        }
+        Kind::Double => {
+            let val = string
+                .parse::<f64>()
+                .map_err(|e| format!("Cannot parse `{string}` as double: {e}"))?;
+            Ok(prost_reflect::Value::F64(val))
+        }
+        Kind::Float => {
+            let val = string
+                .parse::<f32>()
+                .map_err(|e| format!("Cannot parse `{string}` as float: {e}"))?;
+            Ok(prost_reflect::Value::F32(val))
+        }
+        Kind::Int32 | Kind::Sfixed32 | Kind::Sint32 => {
+            let number: i32 = string
+                .parse()
+                .map_err(|e| format!("Can't convert '{string}' to i32: {e}"))?;
+            Ok(prost_reflect::Value::I32(number))
+        }
+        Kind::Int64 | Kind::Sfixed64 | Kind::Sint64 => {
+            let number: i64 = string
+                .parse()
+                .map_err(|e| format!("Can't convert '{string}' to i64: {e}"))?;
+            Ok(prost_reflect::Value::I64(number))
+        }
+        Kind::Uint32 | Kind::Fixed32 => {
+            let number: u32 = string
+                .parse()
+                .map_err(|e| format!("Can't convert '{string}' to u32: {e}"))?;
+            Ok(prost_reflect::Value::U32(number))
+        }
+        Kind::Uint64 | Kind::Fixed64 => {
+            let number: u64 = string
+                .parse()
+                .map_err(|e| format!("Can't convert '{string}' to u64: {e}"))?;
+            Ok(prost_reflect::Value::U64(number))
+        }
+        Kind::Message(_) => Err(format!(
+            "Cannot encode `{kind_str}` into protobuf `{kind:?}`",
+        )),
+    }
+}
+
+#[allow(
+    clippy::cast_possible_truncation,
+    clippy::cast_possible_wrap,
+    clippy::cast_sign_loss,
+    clippy::cast_precision_loss
+)] // Protobuf scalar coercions intentionally preserve the existing Rust `as` semantics.
 fn convert_value_raw(
     value: Value,
     kind: &Kind,
     options: &Options,
 ) -> Result<prost_reflect::Value, String> {
     let kind_str = value.kind_str().to_owned();
-    match (value, kind) {
-        (Value::Boolean(b), Kind::Bool) => Ok(prost_reflect::Value::Bool(b)),
-        (Value::Integer(i), Kind::Bool) => Ok(prost_reflect::Value::Bool(i != 0)),
-        (Value::Bytes(b), Kind::Bool) => match Conversion::Boolean.convert(b) {
-            Ok(Value::Boolean(v)) => Ok(prost_reflect::Value::Bool(v)),
-            Ok(_) => unreachable!("Conversion::Boolean always yields Value::Boolean"),
-            Err(e) => Err(e.to_string()),
-        },
-        (Value::Bytes(b), Kind::Bytes) => Ok(prost_reflect::Value::Bytes(b)),
-        (Value::Bytes(b), Kind::String) => Ok(prost_reflect::Value::String(
-            simdutf_bytes_utf8_lossy(&b).into_owned(),
-        )),
-        (Value::Bytes(b), Kind::Enum(descriptor)) => {
-            let string = simdutf_bytes_utf8_lossy(&b);
-            match descriptor
-                .values()
-                .find(|v| v.name().eq_ignore_ascii_case(&string))
-            {
-                Some(d) => Ok(prost_reflect::Value::EnumNumber(d.number())),
-                None => Err(format!(
-                    "Enum `{}` has no value that matches string '{}'",
-                    descriptor.full_name(),
-                    string
-                )),
+    match value {
+        Value::String(s) => convert_utf8(&s, kind, &kind_str),
+        Value::Bytes(b) => convert_bytes_like(b, kind, &kind_str),
+        value => match (value, kind) {
+            (Value::Boolean(b), Kind::Bool) => Ok(prost_reflect::Value::Bool(b)),
+            (Value::Integer(i), Kind::Bool) => Ok(prost_reflect::Value::Bool(i != 0)),
+            (Value::Integer(i), Kind::Int32 | Kind::Sint32 | Kind::Sfixed32) => {
+                Ok(prost_reflect::Value::I32(i as i32))
             }
-        }
-        (Value::Float(f), Kind::Double) => Ok(prost_reflect::Value::F64(f.into_inner())),
-        (Value::Float(f), Kind::Float) => Ok(prost_reflect::Value::F32(f.into_inner() as f32)),
-        (Value::Bytes(b), Kind::Double) => {
-            let string = simdutf_bytes_utf8_lossy(&b);
-            let val = string
-                .parse::<f64>()
-                .map_err(|e| format!("Cannot parse `{string}` as double: {e}"))?;
-            Ok(prost_reflect::Value::F64(val))
-        }
-        (Value::Bytes(b), Kind::Float) => {
-            let string = simdutf_bytes_utf8_lossy(&b);
-            let val = string
-                .parse::<f32>()
-                .map_err(|e| format!("Cannot parse `{string}` as float: {e}"))?;
-            Ok(prost_reflect::Value::F32(val))
-        }
-        (Value::Integer(i), Kind::Int32 | Kind::Sint32 | Kind::Sfixed32) => {
-            Ok(prost_reflect::Value::I32(i as i32))
-        }
-        (Value::Integer(i), Kind::Int64 | Kind::Sint64 | Kind::Sfixed64) => {
-            Ok(prost_reflect::Value::I64(i))
-        }
-        (Value::Integer(i), Kind::Uint32 | Kind::Fixed32) => {
-            Ok(prost_reflect::Value::U32(i as u32))
-        }
-        (Value::Integer(i), Kind::Uint64 | Kind::Fixed64) => {
-            Ok(prost_reflect::Value::U64(i as u64))
-        }
-        (Value::Integer(i), Kind::Double) => Ok(prost_reflect::Value::F64(i as f64)),
-        (Value::Integer(i), Kind::Float) => Ok(prost_reflect::Value::F32(i as f32)),
-        (Value::Integer(i), Kind::Enum(_)) => Ok(prost_reflect::Value::EnumNumber(i as i32)),
-        (Value::Bytes(b), Kind::Int32 | Kind::Sfixed32 | Kind::Sint32) => {
-            let string = simdutf_bytes_utf8_lossy(&b);
-            let number: i32 = string
-                .parse()
-                .map_err(|e| format!("Can't convert '{string}' to i32: {e}"))?;
-            Ok(prost_reflect::Value::I32(number))
-        }
-        (Value::Bytes(b), Kind::Int64 | Kind::Sfixed64 | Kind::Sint64) => {
-            let string = simdutf_bytes_utf8_lossy(&b);
-            let number: i64 = string
-                .parse()
-                .map_err(|e| format!("Can't convert '{string}' to i64: {e}"))?;
-            Ok(prost_reflect::Value::I64(number))
-        }
-        (Value::Bytes(b), Kind::Uint32 | Kind::Fixed32) => {
-            let string = simdutf_bytes_utf8_lossy(&b);
-            let number: u32 = string
-                .parse()
-                .map_err(|e| format!("Can't convert '{string}' to u32: {e}"))?;
-            Ok(prost_reflect::Value::U32(number))
-        }
-        (Value::Bytes(b), Kind::Uint64 | Kind::Fixed64) => {
-            let string = simdutf_bytes_utf8_lossy(&b);
-            let number: u64 = string
-                .parse()
-                .map_err(|e| format!("Can't convert '{string}' to u64: {e}"))?;
-            Ok(prost_reflect::Value::U64(number))
-        }
-        (Value::Object(o), Kind::Message(message_descriptor)) => {
-            if message_descriptor.is_map_entry() {
-                let key_field = message_descriptor.map_entry_key_field();
-                let value_field = message_descriptor.map_entry_value_field();
-                let key_kind = key_field.kind();
-                let mut map: HashMap<MapKey, prost_reflect::Value> = HashMap::new();
-                for (key, val) in o {
-                    let map_key = parse_map_key(&key_kind, &key)?;
-                    match convert_value(&value_field, val, options) {
-                        Ok(prost_val) => {
-                            map.insert(map_key, prost_val);
+            (Value::Integer(i), Kind::Int64 | Kind::Sint64 | Kind::Sfixed64) => {
+                Ok(prost_reflect::Value::I64(i))
+            }
+            (Value::Integer(i), Kind::Uint32 | Kind::Fixed32) => {
+                Ok(prost_reflect::Value::U32(i as u32))
+            }
+            (Value::Integer(i), Kind::Uint64 | Kind::Fixed64) => {
+                Ok(prost_reflect::Value::U64(i as u64))
+            }
+            (Value::Integer(i), Kind::Double) => Ok(prost_reflect::Value::F64(i as f64)),
+            (Value::Integer(i), Kind::Float) => Ok(prost_reflect::Value::F32(i as f32)),
+            (Value::Integer(i), Kind::Enum(_)) => Ok(prost_reflect::Value::EnumNumber(i as i32)),
+            (Value::Float(f), Kind::Double) => Ok(prost_reflect::Value::F64(f.into_inner())),
+            (Value::Float(f), Kind::Float) => Ok(prost_reflect::Value::F32(f.into_inner() as f32)),
+            (Value::Object(o), Kind::Message(message_descriptor)) => {
+                if message_descriptor.is_map_entry() {
+                    let key_field = message_descriptor.map_entry_key_field();
+                    let value_field = message_descriptor.map_entry_value_field();
+                    let key_kind = key_field.kind();
+                    let mut map: HashMap<MapKey, prost_reflect::Value> = HashMap::new();
+                    for (key, val) in o {
+                        let map_key = parse_map_key(&key_kind, &key)?;
+                        match convert_value(&value_field, val, options) {
+                            Ok(prost_val) => {
+                                map.insert(map_key, prost_val);
+                            }
+                            Err(e) => return Err(e),
                         }
-                        Err(e) => return Err(e),
                     }
+                    Ok(prost_reflect::Value::Map(map))
+                } else {
+                    // if it's not a map, it's an actual message
+                    Ok(prost_reflect::Value::Message(encode_message(
+                        message_descriptor,
+                        Value::Object(o),
+                        options,
+                    )?))
                 }
-                Ok(prost_reflect::Value::Map(map))
-            } else {
-                // if it's not a map, it's an actual message
-                Ok(prost_reflect::Value::Message(encode_message(
-                    message_descriptor,
-                    Value::Object(o),
-                    options,
-                )?))
             }
-        }
-        (Value::Regex(r), Kind::String) => Ok(prost_reflect::Value::String(r.as_str().to_owned())),
-        (Value::Regex(r), Kind::Bytes) => Ok(prost_reflect::Value::Bytes(r.as_bytes())),
-        (Value::Timestamp(t), Kind::Int64) => Ok(prost_reflect::Value::I64(t.timestamp_micros())),
-        (Value::Timestamp(t), Kind::Message(descriptor))
-            if descriptor.full_name() == "google.protobuf.Timestamp" =>
-        {
-            let mut message = DynamicMessage::new(descriptor.clone());
-            message
-                .try_set_field_by_name("seconds", prost_reflect::Value::I64(t.timestamp()))
-                .map_err(|e| format!("Error setting 'seconds' field: {e}"))?;
-            message
-                .try_set_field_by_name(
-                    "nanos",
-                    prost_reflect::Value::I32(
-                        i32::try_from(t.nanosecond()).expect("nanoseconds always fit in i32"),
-                    ),
-                )
-                .map_err(|e| format!("Error setting 'nanos' field: {e}"))?;
-            Ok(prost_reflect::Value::Message(message))
-        }
-        (Value::Boolean(b), Kind::String) if options.allow_lossy_string_coercion => {
-            Ok(prost_reflect::Value::String(b.to_string()))
-        }
-        (Value::Integer(i), Kind::String) if options.allow_lossy_string_coercion => {
-            Ok(prost_reflect::Value::String(i.to_string()))
-        }
-        (Value::Float(f), Kind::String) if options.allow_lossy_string_coercion => {
-            Ok(prost_reflect::Value::String(f.to_string()))
-        }
-        (Value::Timestamp(t), Kind::String) if options.allow_lossy_string_coercion => {
-            Ok(prost_reflect::Value::String(t.to_string()))
-        }
-        _ => Err(format!(
-            "Cannot encode `{kind_str}` into protobuf `{kind:?}`",
-        )),
+            (Value::Regex(r), Kind::String) => {
+                Ok(prost_reflect::Value::String(r.as_str().to_owned()))
+            }
+            (Value::Regex(r), Kind::Bytes) => Ok(prost_reflect::Value::Bytes(r.as_bytes())),
+            (Value::Timestamp(t), Kind::Int64) => {
+                Ok(prost_reflect::Value::I64(t.timestamp_micros()))
+            }
+            (Value::Timestamp(t), Kind::Message(descriptor))
+                if descriptor.full_name() == "google.protobuf.Timestamp" =>
+            {
+                let mut message = DynamicMessage::new(descriptor.clone());
+                message
+                    .try_set_field_by_name("seconds", prost_reflect::Value::I64(t.timestamp()))
+                    .map_err(|e| format!("Error setting 'seconds' field: {e}"))?;
+                message
+                    .try_set_field_by_name(
+                        "nanos",
+                        prost_reflect::Value::I32(
+                            i32::try_from(t.nanosecond()).expect("nanoseconds always fit in i32"),
+                        ),
+                    )
+                    .map_err(|e| format!("Error setting 'nanos' field: {e}"))?;
+                Ok(prost_reflect::Value::Message(message))
+            }
+            (Value::Boolean(b), Kind::String) if options.allow_lossy_string_coercion => {
+                Ok(prost_reflect::Value::String(b.to_string()))
+            }
+            (Value::Integer(i), Kind::String) if options.allow_lossy_string_coercion => {
+                Ok(prost_reflect::Value::String(i.to_string()))
+            }
+            (Value::Float(f), Kind::String) if options.allow_lossy_string_coercion => {
+                Ok(prost_reflect::Value::String(f.to_string()))
+            }
+            (Value::Timestamp(t), Kind::String) if options.allow_lossy_string_coercion => {
+                Ok(prost_reflect::Value::String(t.to_string()))
+            }
+            _ => Err(format!(
+                "Cannot encode `{kind_str}` into protobuf `{kind:?}`",
+            )),
+        },
     }
 }
 

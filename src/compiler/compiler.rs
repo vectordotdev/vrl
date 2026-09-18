@@ -232,14 +232,13 @@ impl<'a> Compiler<'a> {
 
     fn compile_literal(&mut self, node: Node<ast::Literal>, state: &mut TypeState) -> Option<Expr> {
         use ast::Literal::{Boolean, Float, Integer, Null, RawString, Regex, String, Timestamp};
-        use bytes::Bytes;
 
         let (span, lit) = node.take();
 
         let literal = match lit {
             String(template) => {
                 if let Some(v) = template.as_literal_string() {
-                    Ok(Literal::String(Bytes::from(v.to_string())))
+                    Ok(Literal::from(v.to_string()))
                 } else {
                     // Rewrite the template into an expression and compile that block.
                     return self.compile_expr(
@@ -248,7 +247,7 @@ impl<'a> Compiler<'a> {
                     );
                 }
             }
-            RawString(v) => Ok(Literal::String(Bytes::from(v))),
+            RawString(v) => Ok(Literal::from(v)),
             Integer(v) => Ok(Literal::Integer(v)),
             Float(v) => Ok(Literal::Float(v)),
             Boolean(v) => Ok(Literal::Boolean(v)),

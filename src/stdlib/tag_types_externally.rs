@@ -105,7 +105,7 @@ impl FunctionExpression for TagTypesExternallyFn {
 
 fn tag_type_externally(value: Value) -> Value {
     let (key, value) = match value {
-        value @ Value::Bytes(_) => (Some("string"), value),
+        value @ (Value::Bytes(_) | Value::String(_)) => (Some("string"), value),
         value @ Value::Integer(_) => (Some("integer"), value),
         value @ Value::Float(_) => (Some("float"), value),
         value @ Value::Boolean(_) => (Some("boolean"), value),

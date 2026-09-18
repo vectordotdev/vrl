@@ -3,7 +3,8 @@
 
 use crate::compiler::{ExpressionError, value::VrlValueConvert};
 use crate::value::{ObjectMap, Value};
-use bytes::{BufMut, Bytes, BytesMut};
+use bytes::Bytes;
+use bytestring::ByteString;
 use ordered_float::NotNan;
 
 use super::ValueError;
@@ -57,6 +58,12 @@ pub trait VrlValueArithmetic: Sized {
     fn eq_lossy(&self, rhs: &Self) -> bool;
 }
 
+fn repeat_string(s: &ByteString, n: usize) -> Value {
+    let bytes = Bytes::from(s.as_bytes().repeat(n));
+    // SAFETY: repeating a UTF-8 string is UTF-8.
+    Value::String(unsafe { ByteString::from_bytes_unchecked(bytes) })
+}
+
 fn float_result(value: f64) -> Result<Value, ValueError> {
     NotNan::new(value)
         .map(Value::Float)
@@ -75,6 +82,7 @@ impl VrlValueArithmetic for Value {
             (Value::Integer(lhs), Value::Bytes(rhs)) => {
                 Bytes::from(rhs.repeat(as_usize(lhs))).into()
             }
+            (Value::Integer(lhs), Value::String(rhs)) => repeat_string(&rhs, as_usize(lhs)),
             (Value::Integer(lhs), Value::Float(rhs)) => {
                 float_result(lhs as f64 * rhs.into_inner())?
             }
@@ -88,6 +96,7 @@ impl VrlValueArithmetic for Value {
             (Value::Bytes(lhs), Value::Integer(rhs)) => {
                 Bytes::from(lhs.repeat(as_usize(rhs))).into()
             }
+            (Value::String(lhs), Value::Integer(rhs)) => repeat_string(&lhs, as_usize(rhs)),
             (lhs, rhs) => return Err(ValueError::Mul(lhs.kind(), rhs.kind())),
         };
 
@@ -122,15 +131,18 @@ impl VrlValueArithmetic for Value {
             (Value::Float(lhs), Value::Float(rhs)) => {
                 float_result(lhs.into_inner() + rhs.into_inner())?
             }
-            (lhs @ Value::Bytes(_), Value::Null) => lhs,
-            (Value::Bytes(lhs), Value::Bytes(rhs)) => {
-                #[allow(clippy::arithmetic_side_effects)]
-                let mut value = BytesMut::with_capacity(lhs.len() + rhs.len());
-                value.put(lhs);
-                value.put(rhs);
-                value.freeze().into()
+            (lhs @ (Value::Bytes(_) | Value::String(_)), Value::Null) => lhs,
+            (Value::String(lhs), Value::String(rhs)) => {
+                Value::String(Value::concat_strings(&lhs, &rhs))
             }
-            (Value::Null, rhs @ Value::Bytes(_)) => rhs,
+            (Value::Bytes(lhs), Value::Bytes(rhs)) => Value::concat_bytes(&lhs, &rhs).into(),
+            (Value::Bytes(lhs), Value::String(rhs)) => {
+                Value::concat_bytes_with_string(&lhs, &rhs).into()
+            }
+            (Value::String(lhs), Value::Bytes(rhs)) => {
+                Value::concat_string_with_bytes(&lhs, &rhs).into()
+            }
+            (Value::Null, rhs @ (Value::Bytes(_) | Value::String(_))) => rhs,
             (lhs, rhs) => return Err(ValueError::Add(lhs.kind(), rhs.kind())),
         };
 
@@ -216,7 +228,9 @@ impl VrlValueArithmetic for Value {
             (Value::Integer(lhs), Value::Float(rhs)) => (lhs as f64 > rhs.into_inner()).into(),
             (Value::Float(lhs), Value::Integer(rhs)) => (lhs.into_inner() > rhs as f64).into(),
             (Value::Float(lhs), Value::Float(rhs)) => (lhs > rhs).into(),
-            (Value::Bytes(lhs), rhs) => (lhs > rhs.try_bytes()?).into(),
+            (lhs @ (Value::Bytes(_) | Value::String(_)), rhs) => {
+                (lhs.try_bytes()? > rhs.try_bytes()?).into()
+            }
             (Value::Timestamp(lhs), rhs) => (lhs > rhs.try_timestamp()?).into(),
             (lhs, rhs) => return Err(ValueError::Rem(lhs.kind(), rhs.kind())),
         };
@@ -231,7 +245,9 @@ impl VrlValueArithmetic for Value {
             (Value::Integer(lhs), Value::Float(rhs)) => (lhs as f64 >= rhs.into_inner()).into(),
             (Value::Float(lhs), Value::Integer(rhs)) => (lhs.into_inner() >= rhs as f64).into(),
             (Value::Float(lhs), Value::Float(rhs)) => (lhs >= rhs).into(),
-            (Value::Bytes(lhs), rhs) => (lhs >= rhs.try_bytes()?).into(),
+            (lhs @ (Value::Bytes(_) | Value::String(_)), rhs) => {
+                (lhs.try_bytes()? >= rhs.try_bytes()?).into()
+            }
             (Value::Timestamp(lhs), rhs) => (lhs >= rhs.try_timestamp()?).into(),
             (lhs, rhs) => return Err(ValueError::Ge(lhs.kind(), rhs.kind())),
         };
@@ -246,7 +262,9 @@ impl VrlValueArithmetic for Value {
             (Value::Integer(lhs), Value::Float(rhs)) => ((lhs as f64) < rhs.into_inner()).into(),
             (Value::Float(lhs), Value::Integer(rhs)) => (lhs.into_inner() < rhs as f64).into(),
             (Value::Float(lhs), Value::Float(rhs)) => (lhs < rhs).into(),
-            (Value::Bytes(lhs), rhs) => (lhs < rhs.try_bytes()?).into(),
+            (lhs @ (Value::Bytes(_) | Value::String(_)), rhs) => {
+                (lhs.try_bytes()? < rhs.try_bytes()?).into()
+            }
             (Value::Timestamp(lhs), rhs) => (lhs < rhs.try_timestamp()?).into(),
             (lhs, rhs) => return Err(ValueError::Ge(lhs.kind(), rhs.kind())),
         };
@@ -261,7 +279,9 @@ impl VrlValueArithmetic for Value {
             (Value::Integer(lhs), Value::Float(rhs)) => (lhs as f64 <= rhs.into_inner()).into(),
             (Value::Float(lhs), Value::Integer(rhs)) => (lhs.into_inner() <= rhs as f64).into(),
             (Value::Float(lhs), Value::Float(rhs)) => (lhs <= rhs).into(),
-            (Value::Bytes(lhs), rhs) => (lhs <= rhs.try_bytes()?).into(),
+            (lhs @ (Value::Bytes(_) | Value::String(_)), rhs) => {
+                (lhs.try_bytes()? <= rhs.try_bytes()?).into()
+            }
             (Value::Timestamp(lhs), rhs) => (lhs <= rhs.try_timestamp()?).into(),
             (lhs, rhs) => return Err(ValueError::Ge(lhs.kind(), rhs.kind())),
         };
@@ -422,5 +442,36 @@ mod tests {
             .expect_err("NaN-producing arithmetic must fail");
 
         assert!(error.to_string().contains("operation would produce NaN"));
+    }
+
+    #[test]
+    fn string_concat_and_repeat_preserve_variant() {
+        let concatenated = Value::from("a").try_add(Value::from("b")).unwrap();
+        assert!(matches!(concatenated, Value::String(_)));
+        assert_eq!(concatenated, Value::from("ab"));
+
+        let mixed = Value::from("a")
+            .try_add(Value::from_static_bytes("b"))
+            .unwrap();
+        assert!(matches!(mixed, Value::Bytes(_)));
+        assert_eq!(mixed, Value::from("ab"));
+
+        let with_null = Value::from("foo").try_add(Value::Null).unwrap();
+        assert!(matches!(with_null, Value::String(_)));
+        assert_eq!(with_null, Value::from("foo"));
+
+        let from_null = Value::Null.try_add(Value::from("foo")).unwrap();
+        assert!(matches!(from_null, Value::String(_)));
+        assert_eq!(from_null, Value::from("foo"));
+
+        let repeated = Value::from("ab").try_mul(Value::Integer(3)).unwrap();
+        assert!(matches!(repeated, Value::String(_)));
+        assert_eq!(repeated, Value::from("ababab"));
+
+        let repeated_bytes = Value::from_static_bytes("ab")
+            .try_mul(Value::Integer(2))
+            .unwrap();
+        assert!(matches!(repeated_bytes, Value::Bytes(_)));
+        assert_eq!(repeated_bytes, Value::from("abab"));
     }
 }

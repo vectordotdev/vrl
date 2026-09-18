@@ -400,11 +400,12 @@ impl From<Value> for Expr {
         use std::collections::BTreeMap;
 
         use crate::value::Value::{
-            Array, Boolean, Bytes, Float, Integer, Null, Object, Regex, Timestamp,
+            Array, Boolean, Bytes, Float, Integer, Null, Object, Regex, String, Timestamp,
         };
 
         match value {
-            Bytes(v) => Literal::from(v).into(),
+            Bytes(v) => Literal::Bytes(v).into(),
+            String(v) => Literal::String(v).into(),
             Integer(v) => Literal::from(v).into(),
             Float(v) => Literal::from(v).into(),
             Boolean(v) => Literal::from(v).into(),
