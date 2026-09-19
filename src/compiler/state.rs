@@ -1,8 +1,32 @@
 use crate::path::PathPrefix;
 use crate::value::{Kind, Value};
 use std::collections::{HashMap, hash_map::Entry};
+use std::ops::Deref;
+use std::sync::Arc;
 
 use super::{TypeDef, parser::ast::Ident, type_def::Details, value::Collection};
+
+/// Shared local bindings: `TypeState` clones share until a write via [`Self::make_mut`].
+#[derive(Debug, Clone, Default, PartialEq)]
+pub(crate) struct SharedBindings(Arc<HashMap<Ident, Details>>);
+
+impl SharedBindings {
+    fn make_mut(&mut self) -> &mut HashMap<Ident, Details> {
+        Arc::make_mut(&mut self.0)
+    }
+
+    fn into_map(self) -> HashMap<Ident, Details> {
+        Arc::try_unwrap(self.0).unwrap_or_else(|arc| (*arc).clone())
+    }
+}
+
+impl Deref for SharedBindings {
+    type Target = HashMap<Ident, Details>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct TypeInfo {
@@ -54,7 +78,7 @@ impl TypeState {
 /// Local environment, limited to a given scope.
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct LocalEnv {
-    pub(crate) bindings: HashMap<Ident, Details>,
+    pub(crate) bindings: SharedBindings,
 }
 
 impl LocalEnv {
@@ -66,18 +90,22 @@ impl LocalEnv {
         self.bindings.get(ident)
     }
 
+    pub(crate) fn variable_mut(&mut self, ident: &Ident) -> Option<&mut Details> {
+        self.bindings.make_mut().get_mut(ident)
+    }
+
     pub(crate) fn insert_variable(&mut self, ident: Ident, details: Details) {
-        self.bindings.insert(ident, details);
+        self.bindings.make_mut().insert(ident, details);
     }
 
     pub(crate) fn remove_variable(&mut self, ident: &Ident) -> Option<Details> {
-        self.bindings.remove(ident)
+        self.bindings.make_mut().remove(ident)
     }
 
     /// Any state the child scope modified that was part of the parent is copied to the parent scope
     pub(crate) fn apply_child_scope(mut self, child: Self) -> Self {
-        for (ident, child_details) in child.bindings {
-            if let Some(self_details) = self.bindings.get_mut(&ident) {
+        for (ident, child_details) in child.bindings.into_map() {
+            if let Some(self_details) = self.bindings.make_mut().get_mut(&ident) {
                 *self_details = child_details;
             }
         }
@@ -89,11 +117,12 @@ impl LocalEnv {
     /// where different `LocalEnv`'s can be created, and the result is decided at runtime.
     /// The compile-time type must be the union of the options.
     pub(crate) fn merge(mut self, other: Self) -> Self {
-        for (ident, other_details) in other.bindings {
-            if let Some(self_details) = self.bindings.get_mut(&ident) {
+        for (ident, other_details) in other.bindings.into_map() {
+            let bindings = self.bindings.make_mut();
+            if let Some(self_details) = bindings.get_mut(&ident) {
                 *self_details = self_details.clone().merge(other_details);
             } else {
-                self.bindings.insert(ident, other_details);
+                bindings.insert(ident, other_details);
             }
         }
         self
@@ -145,6 +174,10 @@ impl ExternalEnv {
         &self.target
     }
 
+    pub(crate) fn target_mut(&mut self) -> &mut Details {
+        &mut self.target
+    }
+
     pub fn target_kind(&self) -> &Kind {
         self.target().type_def.kind()
     }
@@ -159,6 +192,10 @@ impl ExternalEnv {
 
     pub fn metadata_kind(&self) -> &Kind {
         &self.metadata
+    }
+
+    pub(crate) fn metadata_kind_mut(&mut self) -> &mut Kind {
+        &mut self.metadata
     }
 
     pub(crate) fn update_target(&mut self, details: Details) {

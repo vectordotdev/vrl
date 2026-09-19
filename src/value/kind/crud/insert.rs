@@ -42,10 +42,15 @@ impl Kind {
             match segment {
                 BorrowedSegment::Field(field) => {
                     // Field insertion converts the value to an object, so remove all other types.
-                    *self =
-                        Self::object(self.as_object().cloned().unwrap_or_else(Collection::empty));
+                    // If already an exact object, mutate in place: cloning the Collection on every
+                    // nested field write makes progressive event typing O(known²).
+                    if !(self.is_object() && self.object.is_some()) {
+                        *self = Self::object(
+                            self.as_object().cloned().unwrap_or_else(Collection::empty),
+                        );
+                    }
 
-                    let collection = self.object.as_mut().expect("object was just inserted");
+                    let collection = self.object.as_mut().expect("object present after coerce");
                     let unknown_kind = collection.unknown_kind();
 
                     collection
@@ -56,8 +61,12 @@ impl Kind {
                 }
                 BorrowedSegment::Index(mut index) => {
                     // Array insertion converts the value to an array, so remove all other types.
-                    *self = Self::array(self.as_array().cloned().unwrap_or_else(Collection::empty));
-                    let collection = self.array.as_mut().expect("array was just inserted");
+                    // Same in-place fast path as objects when already an exact array.
+                    if !(self.is_array() && self.array.is_some()) {
+                        *self =
+                            Self::array(self.as_array().cloned().unwrap_or_else(Collection::empty));
+                    }
+                    let collection = self.array.as_mut().expect("array present after coerce");
 
                     if index < 0 {
                         let largest_known_index = collection.largest_known_index();
