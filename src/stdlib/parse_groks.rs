@@ -295,7 +295,7 @@ impl Function for ParseGroks {
 
         // we use a datadog library here because it is a superset of grok
         let grok_rules = crate::datadog_grok::parse_grok_rules::parse_grok_rules(
-            &patterns, aliases,
+            &patterns, &aliases,
         )
         .map_err(|e| Box::new(Error::InvalidGrokPattern(e)) as Box<dyn DiagnosticMessage>)?;
 

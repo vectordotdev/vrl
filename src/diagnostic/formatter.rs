@@ -25,7 +25,7 @@ impl<'a> Formatter<'a> {
     }
 
     pub fn enable_colors(&mut self, color: bool) {
-        self.color = color
+        self.color = color;
     }
 
     #[must_use]

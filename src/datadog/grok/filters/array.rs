@@ -19,7 +19,7 @@ use super::super::{
 
 pub fn filter_from_function(f: &Function) -> Result<GrokFilter, GrokStaticError> {
     let args = f.args.as_ref();
-    let args_len = args.map_or(0, |args| args.len());
+    let args_len = args.map_or(0, std::vec::Vec::len);
 
     let mut delimiter = None;
     let mut value_filter = None;
@@ -30,7 +30,9 @@ pub fn filter_from_function(f: &Function) -> Result<GrokFilter, GrokStaticError>
                 delimiter = Some(String::from_utf8_lossy(bytes).to_string());
             }
             FunctionArgument::Function(f) => value_filter = Some(GrokFilter::try_from(f)?),
-            _ => return Err(GrokStaticError::InvalidFunctionArguments(f.name.clone())),
+            FunctionArgument::Arg(_) => {
+                return Err(GrokStaticError::InvalidFunctionArguments(f.name.clone()));
+            }
         }
     } else if args_len == 2 {
         match (&args.unwrap()[0], &args.unwrap()[1]) {

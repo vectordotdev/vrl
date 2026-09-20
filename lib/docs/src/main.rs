@@ -1,5 +1,3 @@
-#![deny(warnings, clippy::pedantic)]
-
 use std::process::ExitCode;
 
 use clap::Parser;

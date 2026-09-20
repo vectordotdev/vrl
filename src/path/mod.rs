@@ -1,5 +1,3 @@
-#![deny(warnings)]
-
 //! This module contains all of the logic for paths.
 //!
 //! Paths can be thought of as similar to file paths (in an operating system) pointing
@@ -31,19 +29,19 @@
 //! There are 2 main traits that define a path. Most functions that use a path for querying
 //! will require one of these traits, rather than a concrete type.
 //!
-//! - [ValuePath] is a path that points to a field inside of a `Value`.
-//! - [TargetPath] is a path that points to a field inside of a `target`. A `target` in VRL refers to
+//! - [`ValuePath`] is a path that points to a field inside of a `Value`.
+//! - [`TargetPath`] is a path that points to a field inside of a `target`. A `target` in VRL refers to
 //!   the external data being processed by a VRL script. A `target` has two main sections that can be
-//!   pointed to, `event` and `metadata`.  [TargetPath::prefix] identifies the section, and
-//!   [TargetPath::value_path] is a [ValuePath] pointing into that section.
+//!   pointed to, `event` and `metadata`.  [`TargetPath::prefix`] identifies the section, and
+//!   [`TargetPath::value_path`] is a [`ValuePath`] pointing into that section.
 //!
-//! Note that for performance reasons, since [ValuePath] and [TargetPath] require [Clone], these
+//! Note that for performance reasons, since [`ValuePath`] and [`TargetPath`] require [Clone], these
 //! traits are only implemented on types that are cheap to clone (usually references). That means
-//! when passing in a value (e.g. [OwnedValuePath]) into a function that requires `impl ValuePath`,
+//! when passing in a value (e.g. [`OwnedValuePath`]) into a function that requires `impl ValuePath`,
 //! it will generally need to be passed in as a reference.
 //!
 //! # Owned Paths
-//! [OwnedValuePath] and [OwnedTargetPath] are pre-parsed paths. That means that accessing fields
+//! [`OwnedValuePath`] and [`OwnedTargetPath`] are pre-parsed paths. That means that accessing fields
 //! using an owned path is very fast. There is an upfront cost however, since owned paths are parsed
 //! when they are created, and the segments are heap allocated. Owned paths should be preferred
 //! if they can be created when performance isn't as much of a concern (e.g. startup time)
@@ -52,25 +50,25 @@
 //! segments that make up the path.
 //!
 //! If a path is being created and will only be used once, it may make sense to use other types.
-//! For example here are two different ways to append a segment to a [OwnedValuePath]  before querying
+//! For example here are two different ways to append a segment to a [`OwnedValuePath`]  before querying
 //! a `Value`:
-//! - Use [OwnedValuePath::with_field_appended] to create a new [OwnedValuePath] and use that. This
+//! - Use [`OwnedValuePath::with_field_appended`] to create a new [`OwnedValuePath`] and use that. This
 //!   method is preferred if the new path will be used multiple times and the path adjustment can be
 //!   done in a non performance-critical part of the code (e.g. at startup).
-//! - Use [ValuePath::concat] which con concatenate two [ValuePath]'s very efficiently without
+//! - Use [`ValuePath::concat`] which con concatenate two [`ValuePath`]'s very efficiently without
 //!   allocating on the heap.
 //!
-//! To convert a string into an owned path, use either [parse_value_path] or [parse_target_path].
+//! To convert a string into an owned path, use either [`parse_value_path`] or [`parse_target_path`].
 //!
 //! # Macros
 //! Several macros exist to make creating paths easier. These are used if the structure of the
 //! path being created is already known. <strong>The macros do not parse paths</strong>. Use
-//! [parse_value_path] or [parse_target_path] instead if the path needs to be parsed.
+//! [`parse_value_path`] or [`parse_target_path`] instead if the path needs to be parsed.
 //!
 //! You need to pass in each segment into the macro as separate arguments. A single argument is treated as
 //! a single segment. This is true for all of the path macros.
 //!
-//! For example, [owned_value_path!][crate::owned_value_path] can be used to easily created owned paths.
+//! For example, [`owned_value_path!`][crate::owned_value_path] can be used to easily create owned paths.
 //! - `owned_value_path!("foo.bar", "x")` will create a path with *two* segments. Equivalent to `."foo.bar".x`
 //!
 
@@ -162,10 +160,14 @@ macro_rules! owned_metadata_path {
 /// This parses a value path, which is a path without a target prefix.
 ///
 /// See `parse_target_path` if the path contains a target prefix.
+///
+/// # Errors
+///
+/// Returns an error if `path` is not valid value-path syntax.
 pub fn parse_value_path(path: &str) -> Result<OwnedValuePath, PathParseError> {
     JitValuePath::new(path)
         .to_owned_value_path()
-        .map_err(|_| PathParseError::InvalidPathSyntax {
+        .map_err(|()| PathParseError::InvalidPathSyntax {
             path: path.to_owned(),
         })
 }
@@ -175,6 +177,10 @@ pub fn parse_value_path(path: &str) -> Result<OwnedValuePath, PathParseError> {
 /// This parses a target path, which is a path that contains a target prefix.
 ///
 /// See `parse_value_path` if the path doesn't contain a prefix.
+///
+/// # Errors
+///
+/// Returns an error if the value-path portion of `path` is not valid.
 pub fn parse_target_path(path: &str) -> Result<OwnedTargetPath, PathParseError> {
     let (prefix, value_path) = get_target_prefix(path);
     let value_path = parse_value_path(value_path)?;
@@ -212,16 +218,14 @@ pub trait ValuePath<'a>: Clone {
     }
 
     fn can_start_with(&self, prefix: impl ValuePath<'a>) -> bool {
-        let (self_path, prefix_path) = if let (Ok(self_path), Ok(prefix_path)) =
+        let (Ok(self_path), Ok(prefix_path)) =
             (self.to_owned_value_path(), prefix.to_owned_value_path())
-        {
-            (self_path, prefix_path)
-        } else {
+        else {
             return false;
         };
 
         let mut self_segments = self_path.segments.into_iter();
-        for prefix_segment in prefix_path.segments.iter() {
+        for prefix_segment in &prefix_path.segments {
             match self_segments.next() {
                 None => return false,
                 Some(self_segment) => {
@@ -235,6 +239,11 @@ pub trait ValuePath<'a>: Clone {
     }
 
     #[allow(clippy::result_unit_err)]
+    /// Converts the path to its owned representation.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the path contains an invalid borrowed segment.
     fn to_owned_value_path(&self) -> Result<OwnedValuePath, ()> {
         self.segment_iter()
             .map(OwnedSegment::try_from)
@@ -268,8 +277,8 @@ impl<'a, T: ValuePath<'a>> TargetPath<'a> for (PathPrefix, T) {
     }
 }
 
-/// Determines the prefix of a "TargetPath", and also returns the remaining
-/// "ValuePath" portion of the string.
+/// Determines the prefix of a "`TargetPath`", and also returns the remaining
+/// "`ValuePath`" portion of the string.
 fn get_target_prefix(path: &str) -> (PathPrefix, &str) {
     match path.chars().next() {
         Some('.') => {
@@ -319,7 +328,7 @@ mod test {
     #[test]
     fn test_path_macro() {
         let expected = parse_value_path("a.b").unwrap();
-        assert!(ValuePath::eq(&path!("a", "b"), &expected))
+        assert!(ValuePath::eq(&path!("a", "b"), &expected));
     }
 
     #[test]
@@ -341,6 +350,6 @@ mod test {
     #[test]
     fn test_owned_value_path_macro() {
         let expected = parse_value_path("a.b").unwrap();
-        assert!(ValuePath::eq(&&owned_value_path!("a", "b"), &expected))
+        assert!(ValuePath::eq(&&owned_value_path!("a", "b"), &expected));
     }
 }

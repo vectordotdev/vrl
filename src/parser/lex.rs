@@ -97,6 +97,81 @@ impl Error {
     }
 }
 
+fn update_expected(expected: Vec<String>) -> Vec<String> {
+    expected
+        .into_iter()
+        .map(|expect| match expect.as_str() {
+            "LQuery" => r#""path literal""#.to_owned(),
+            _ => expect,
+        })
+        .collect()
+}
+
+fn parse_error_labels(
+    span: &Span,
+    source: &lalrpop_util::ParseError<usize, Token<String>, String>,
+) -> Vec<Label> {
+    match source {
+        lalrpop_util::ParseError::InvalidToken { location } => vec![Label::primary(
+            "invalid token",
+            Span::new(*location, *location + 1),
+        )],
+        lalrpop_util::ParseError::ExtraToken { token } => {
+            let (start, token, end) = token;
+            vec![Label::primary(
+                format!("unexpected extra token: {token}"),
+                Span::new(*start, *end),
+            )]
+        }
+        lalrpop_util::ParseError::User { error } => {
+            vec![Label::primary(format!("unexpected error: {error}"), span)]
+        }
+        lalrpop_util::ParseError::UnrecognizedToken { token, expected } => {
+            let (start, token, end) = token;
+            let span = Span::new(*start, *end);
+            let got = token.to_string();
+            let mut expected = update_expected(expected.clone());
+
+            // Temporary hack to improve error messages for `AnyIdent` parser rule.
+            let any_ident = [
+                r#""reserved identifier""#,
+                r#""else""#,
+                r#""false""#,
+                r#""null""#,
+                r#""true""#,
+                r#""if""#,
+            ];
+            if any_ident
+                .iter()
+                .all(|item| expected.contains(&(*item).to_string()))
+            {
+                expected.retain(|item| !any_ident.contains(&item.as_str()));
+            }
+
+            if token == &Token::RQuery {
+                return vec![
+                    Label::primary("unexpected end of query path", span),
+                    Label::context(format!("expected one of: {}", expected.join(", ")), span),
+                ];
+            }
+
+            vec![
+                Label::primary(format!(r#"unexpected syntax token: "{got}""#), span),
+                Label::context(format!("expected one of: {}", expected.join(", ")), span),
+            ]
+        }
+        lalrpop_util::ParseError::UnrecognizedEof { location, expected } => {
+            let span = Span::new(*location, *location);
+            let expected = update_expected(expected.clone());
+
+            vec![
+                Label::primary("unexpected end of program", span),
+                Label::context(format!("expected one of: {}", expected.join(", ")), span),
+            ]
+        }
+    }
+}
+
 impl DiagnosticMessage for Error {
     fn code(&self) -> usize {
         use Error::{
@@ -136,83 +211,8 @@ impl DiagnosticMessage for Error {
             UnexpectedParseError, UnicodeEscape,
         };
 
-        fn update_expected(expected: Vec<String>) -> Vec<String> {
-            expected
-                .into_iter()
-                .map(|expect| match expect.as_str() {
-                    "LQuery" => r#""path literal""#.to_owned(),
-                    _ => expect,
-                })
-                .collect::<Vec<_>>()
-        }
-
         match self {
-            ParseError { span, source, .. } => match source {
-                lalrpop_util::ParseError::InvalidToken { location } => vec![Label::primary(
-                    "invalid token",
-                    Span::new(*location, *location + 1),
-                )],
-                lalrpop_util::ParseError::ExtraToken { token } => {
-                    let (start, token, end) = token;
-                    vec![Label::primary(
-                        format!("unexpected extra token: {token}"),
-                        Span::new(*start, *end),
-                    )]
-                }
-                lalrpop_util::ParseError::User { error } => {
-                    vec![Label::primary(format!("unexpected error: {error}"), span)]
-                }
-                lalrpop_util::ParseError::UnrecognizedToken { token, expected } => {
-                    let (start, token, end) = token;
-                    let span = Span::new(*start, *end);
-                    let got = token.to_string();
-                    let mut expected = update_expected(expected.clone());
-
-                    // Temporary hack to improve error messages for `AnyIdent`
-                    // parser rule.
-                    let any_ident = [
-                        r#""reserved identifier""#,
-                        r#""else""#,
-                        r#""false""#,
-                        r#""null""#,
-                        r#""true""#,
-                        r#""if""#,
-                    ];
-                    let is_any_ident = any_ident
-                        .iter()
-                        .all(|i| expected.contains(&(*i).to_string()));
-                    if is_any_ident {
-                        expected = expected
-                            .into_iter()
-                            .filter(|e| !any_ident.contains(&e.as_str()))
-                            .collect::<Vec<_>>();
-                    }
-
-                    if token == &Token::RQuery {
-                        return vec![
-                            Label::primary("unexpected end of query path", span),
-                            Label::context(
-                                format!("expected one of: {}", expected.join(", ")),
-                                span,
-                            ),
-                        ];
-                    }
-
-                    vec![
-                        Label::primary(format!(r#"unexpected syntax token: "{got}""#), span),
-                        Label::context(format!("expected one of: {}", expected.join(", ")), span),
-                    ]
-                }
-                lalrpop_util::ParseError::UnrecognizedEof { location, expected } => {
-                    let span = Span::new(*location, *location);
-                    let expected = update_expected(expected.clone());
-
-                    vec![
-                        Label::primary("unexpected end of program", span),
-                        Label::context(format!("expected one of: {}", expected.join(", ")), span),
-                    ]
-                }
-            },
+            ParseError { span, source, .. } => parse_error_labels(span, source),
 
             ReservedKeyword { start, end, .. } => {
                 let span = Span::new(*start, *end);
@@ -290,6 +290,13 @@ pub(crate) struct Lexer<'input> {
     ///   ~~~~~~~~~~  0..10
     ///    ~~~~       1..5
     rquery_indices: Vec<usize>,
+}
+
+enum QueryLiteral {
+    String,
+    RawString,
+    Regex,
+    Timestamp,
 }
 
 impl<'input> Lexer<'input> {
@@ -839,6 +846,127 @@ impl<'input> Lexer<'input> {
         }
     }
 
+    fn advance_query_literal(
+        &self,
+        pos: usize,
+        ch: char,
+        chars: &mut Peekable<CharIndices<'input>>,
+        last_char: &mut Option<char>,
+        end: &mut usize,
+    ) -> Option<bool> {
+        let kind = match ch {
+            '"' => QueryLiteral::String,
+            's' if chars.peek().map(|(_, ch)| ch) == Some(&'\'') => QueryLiteral::RawString,
+            'r' if chars.peek().map(|(_, ch)| ch) == Some(&'\'') => QueryLiteral::Regex,
+            't' if chars.peek().map(|(_, ch)| ch) == Some(&'\'') => QueryLiteral::Timestamp,
+            _ => return None,
+        };
+        let mut lexer = Lexer::new(&self.input[pos + 1..]);
+        let result = match kind {
+            QueryLiteral::String => lexer.string_literal(0),
+            QueryLiteral::RawString => lexer.raw_string_literal(0),
+            QueryLiteral::Regex => lexer.regex_literal(0),
+            QueryLiteral::Timestamp => lexer.timestamp_literal(0),
+        };
+
+        Some(match result {
+            Ok((_, _, new)) => {
+                for (index, ch) in chars.by_ref() {
+                    *last_char = Some(ch);
+                    if index == new + pos {
+                        break;
+                    }
+                }
+                *end = pos + new;
+                true
+            }
+            Err(_) => false,
+        })
+    }
+
+    fn char_after_query_literal(
+        pos: usize,
+        result: &Spanned<'input, usize>,
+        chars: &mut Peekable<CharIndices<'input>>,
+        description: &str,
+    ) -> Result<char, Error> {
+        let (_, _, new) = result;
+        for (index, _) in chars.by_ref() {
+            if index == *new + pos {
+                break;
+            }
+        }
+        chars.peek().map(|(_, ch)| *ch).ok_or_else(|| {
+            Error::UnexpectedParseError(format!(
+                "Expected characters at end of {description} literal."
+            ))
+        })
+    }
+
+    fn delimited_query_char(
+        &self,
+        pos: usize,
+        chars: &mut Peekable<CharIndices<'input>>,
+    ) -> Result<char, Error> {
+        let input = &self.input[pos..];
+        if input.starts_with('#') {
+            for (_, ch) in chars.by_ref() {
+                if ch == '\n' {
+                    break;
+                }
+            }
+            return chars.peek().map(|(_, ch)| *ch).ok_or_else(|| {
+                Error::UnexpectedParseError("Expected characters at end of comment.".to_string())
+            });
+        }
+
+        let mut lexer = Lexer::new(&self.input[pos + 1..]);
+        let (result, description) = if input.starts_with('"') {
+            (lexer.string_literal(0), "string")
+        } else if input.starts_with("s'") {
+            (lexer.raw_string_literal(0), "raw string")
+        } else if input.starts_with("r'") {
+            (lexer.regex_literal(0), "regex")
+        } else if input.starts_with("t'") {
+            (lexer.timestamp_literal(0), "timestamp")
+        } else {
+            return Ok(chars.peek().expect("query character is present").1);
+        };
+        let result = result.map_err(|error| error.offset_by(pos + 1))?;
+        Self::char_after_query_literal(pos, &result, chars, description)
+    }
+
+    fn skip_delimited_query(
+        &self,
+        chars: &mut Peekable<CharIndices<'input>>,
+        braces: usize,
+        brackets: usize,
+    ) -> Result<(), Error> {
+        let (start_delimiter, end_delimiter) = if braces > 0 {
+            ('{', '}')
+        } else if brackets > 0 {
+            ('[', ']')
+        } else {
+            ('(', ')')
+        };
+        let mut nested_delimiters = 0;
+
+        while let Some((pos, _)) = chars.peek() {
+            let ch = self.delimited_query_char(*pos, chars)?;
+            if nested_delimiters == 0 && ch == end_delimiter {
+                break;
+            }
+            if let Some((_, ch)) = chars.next() {
+                if ch == start_delimiter {
+                    nested_delimiters += 1;
+                } else if ch == end_delimiter {
+                    nested_delimiters -= 1;
+                }
+            }
+        }
+        Ok(())
+    }
+
     fn query_start(&mut self, start: usize) -> Result<bool, Error> {
         // If we already opened a query for the current position, we don't want
         // to open another one.
@@ -895,23 +1023,14 @@ impl<'input> Lexer<'input> {
 
         let mut end = 0;
         while let Some((pos, ch)) = chars.next() {
-            let take_until_end =
-                |result: SpannedResult<'input, usize>,
-                 last_char: &mut Option<char>,
-                 end: &mut usize,
-                 chars: &mut Peekable<CharIndices<'input>>| {
-                    result.map(|(_, _, new)| {
-                        for (i, ch) in chars {
-                            *last_char = Some(ch);
-                            if i == new + pos {
-                                break;
-                            }
-                        }
-
-                        *end = pos + new;
-                    })
-                };
-
+            if let Some(advanced) =
+                self.advance_query_literal(pos, ch, &mut chars, &mut last_char, &mut end)
+            {
+                if advanced {
+                    continue;
+                }
+                break;
+            }
             match ch {
                 // containers
                 '{' => braces += 1,
@@ -919,53 +1038,13 @@ impl<'input> Lexer<'input> {
                 '[' if braces == 0 && parens == 0 && brackets == 0 => {
                     brackets += 1;
 
-                    if last_char == Some(']') {
-                        valid = true
-                    }
-
-                    if last_char == Some('}') {
-                        valid = true
-                    }
-
-                    if last_char == Some(')') {
-                        valid = true
-                    }
-
-                    if last_char.is_some_and(is_ident_continue) {
-                        valid = true
+                    if matches!(last_char, Some(']' | '}' | ')'))
+                        || last_char.is_some_and(is_ident_continue)
+                    {
+                        valid = true;
                     }
                 }
                 '[' => brackets += 1,
-
-                // literals
-                '"' => {
-                    let result = Lexer::new(&self.input[pos + 1..]).string_literal(0);
-                    match take_until_end(result, &mut last_char, &mut end, &mut chars) {
-                        Ok(()) => continue,
-                        Err(_) => break,
-                    }
-                }
-                's' if chars.peek().map(|(_, ch)| ch) == Some(&'\'') => {
-                    let result = Lexer::new(&self.input[pos + 1..]).raw_string_literal(0);
-                    match take_until_end(result, &mut last_char, &mut end, &mut chars) {
-                        Ok(()) => continue,
-                        Err(_) => break,
-                    }
-                }
-                'r' if chars.peek().map(|(_, ch)| ch) == Some(&'\'') => {
-                    let result = Lexer::new(&self.input[pos + 1..]).regex_literal(0);
-                    match take_until_end(result, &mut last_char, &mut end, &mut chars) {
-                        Ok(()) => continue,
-                        Err(_) => break,
-                    }
-                }
-                't' if chars.peek().map(|(_, ch)| ch) == Some(&'\'') => {
-                    let result = Lexer::new(&self.input[pos + 1..]).timestamp_literal(0);
-                    match take_until_end(result, &mut last_char, &mut end, &mut chars) {
-                        Ok(()) => continue,
-                        Err(_) => break,
-                    }
-                }
 
                 '}' if braces == 0 => break,
                 '}' => braces -= 1,
@@ -979,122 +1058,7 @@ impl<'input> Lexer<'input> {
                 // the lexer doesn't care about the semantic validity inside
                 // delimited regions in a query.
                 _ if braces > 0 || brackets > 0 || parens > 0 => {
-                    let (start_delim, end_delim) = if braces > 0 {
-                        ('{', '}')
-                    } else if brackets > 0 {
-                        ('[', ']')
-                    } else {
-                        ('(', ')')
-                    };
-
-                    let mut skip_delim = 0;
-                    while let Some((pos, ch)) = chars.peek() {
-                        let pos = *pos;
-
-                        let literal_check = |result: Spanned<'input, usize>, chars: &mut Peekable<CharIndices<'input>>| {
-                            let (_, _, new) = result;
-
-                            #[allow(clippy::while_let_on_iterator)]
-                            while let Some((i, _)) = chars.next() {
-                                if i == new + pos {
-                                    break;
-                                }
-                            }
-                            match chars.peek().map(|(_, ch)| ch) {
-                                Some(ch) => Ok(*ch),
-                                None => Err(()),
-                            }
-                        };
-
-                        let ch = match &self.input[pos..] {
-                            s if s.starts_with('#') => {
-                                for (_, chr) in chars.by_ref() {
-                                    if chr == '\n' {
-                                        break;
-                                    }
-                                }
-                                match chars.peek().map(|(_, ch)| ch) {
-                                    Some(ch) => *ch,
-                                    None => {
-                                        return Err(Error::UnexpectedParseError(
-                                            "Expected characters at end of comment.".to_string(),
-                                        ));
-                                    }
-                                }
-                            }
-                            s if s.starts_with('"') => {
-                                let r = Lexer::new(&self.input[pos + 1..])
-                                    .string_literal(0)
-                                    .map_err(|e| e.offset_by(pos + 1))?;
-                                match literal_check(r, &mut chars) {
-                                    Ok(ch) => ch,
-                                    Err(()) => {
-                                        // The call to lexer above should have raised an appropriate error by now,
-                                        // so these errors should only occur if there is a bug somewhere previously.
-                                        return Err(Error::UnexpectedParseError(
-                                            "Expected characters at end of string literal."
-                                                .to_string(),
-                                        ));
-                                    }
-                                }
-                            }
-                            s if s.starts_with("s'") => {
-                                let r = Lexer::new(&self.input[pos + 1..])
-                                    .raw_string_literal(0)
-                                    .map_err(|e| e.offset_by(pos + 1))?;
-                                match literal_check(r, &mut chars) {
-                                    Ok(ch) => ch,
-                                    Err(()) => {
-                                        return Err(Error::UnexpectedParseError(
-                                            "Expected characters at end of raw string literal."
-                                                .to_string(),
-                                        ));
-                                    }
-                                }
-                            }
-                            s if s.starts_with("r'") => {
-                                let r = Lexer::new(&self.input[pos + 1..])
-                                    .regex_literal(0)
-                                    .map_err(|e| e.offset_by(pos + 1))?;
-                                match literal_check(r, &mut chars) {
-                                    Ok(ch) => ch,
-                                    Err(()) => {
-                                        return Err(Error::UnexpectedParseError(
-                                            "Expected characters at end of regex literal."
-                                                .to_string(),
-                                        ));
-                                    }
-                                }
-                            }
-                            s if s.starts_with("t'") => {
-                                let r = Lexer::new(&self.input[pos + 1..])
-                                    .timestamp_literal(0)
-                                    .map_err(|e| e.offset_by(pos + 1))?;
-                                match literal_check(r, &mut chars) {
-                                    Ok(ch) => ch,
-                                    Err(()) => {
-                                        return Err(Error::UnexpectedParseError(
-                                            "Expected characters at end of timestamp literal."
-                                                .to_string(),
-                                        ));
-                                    }
-                                }
-                            }
-                            _ => *ch,
-                        };
-
-                        if skip_delim == 0 && ch == end_delim {
-                            break;
-                        }
-                        if let Some((_, c)) = chars.next() {
-                            if c == start_delim {
-                                skip_delim += 1;
-                            }
-                            if c == end_delim {
-                                skip_delim -= 1;
-                            }
-                        }
-                    }
+                    self.skip_delimited_query(&mut chars, braces, brackets)?;
                 }
                 '.' | '%' if last_char.is_none() => valid = true,
                 '.' if last_char == Some(')') => valid = true,
@@ -1110,7 +1074,7 @@ impl<'input> Lexer<'input> {
                         .all(|ch| is_digit(ch) || ch == '_');
 
                     if !digits {
-                        valid = true
+                        valid = true;
                     }
                 }
 
@@ -2297,6 +2261,28 @@ mod test {
                 ("                                     ~     ", Dot),
                 ("                                      ~~~~~", Identifier("child")),
                 ("                                          ~", RQuery),
+            ],
+        );
+    }
+
+    #[test]
+    #[rustfmt::skip]
+    fn quoted_path_index_query() {
+        use StringLiteralToken as S;
+        use StringLiteral as L;
+
+        test(
+            data(r#".foo."bar"[0]"#),
+            vec![
+                ("~            ", LQuery),
+                ("~            ", Dot),
+                (" ~~~         ", Identifier("foo")),
+                ("    ~        ", Dot),
+                ("     ~~~~~   ", L(S("bar"))),
+                ("          ~  ", LBracket),
+                ("           ~ ", IntegerLiteral(0)),
+                ("            ~", RBracket),
+                ("            ~", RQuery),
             ],
         );
     }

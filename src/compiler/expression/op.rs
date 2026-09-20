@@ -520,18 +520,19 @@ mod tests {
 
     use super::*;
 
-    #[allow(clippy::needless_pass_by_value)]
     fn op(
         opcode: ast::Opcode,
-        lhs: impl TryInto<Literal> + fmt::Debug + Clone,
-        rhs: impl TryInto<Literal> + fmt::Debug + Clone,
+        lhs: impl TryInto<Literal> + fmt::Debug,
+        rhs: impl TryInto<Literal> + fmt::Debug,
     ) -> Op {
-        let Ok(lhs) = lhs.clone().try_into() else {
-            panic!("not a valid lhs expression: {lhs:?}")
+        let lhs_debug = format!("{lhs:?}");
+        let Ok(lhs) = lhs.try_into() else {
+            panic!("not a valid lhs expression: {lhs_debug}")
         };
 
-        let Ok(rhs) = rhs.clone().try_into() else {
-            panic!("not a valid rhs expression: {rhs:?}")
+        let rhs_debug = format!("{rhs:?}");
+        let Ok(rhs) = rhs.try_into() else {
+            panic!("not a valid rhs expression: {rhs_debug}")
         };
 
         Op {

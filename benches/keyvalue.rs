@@ -16,7 +16,7 @@ fn make_filter() -> KeyValueFilter {
             "=",
             r"\w.\-_@",
             quotes.clone(),
-            ("|".to_string(), "|".to_string()),
+            &("|".to_string(), "|".to_string()),
         )
         .unwrap(),
         quotes: vec![('"', '"'), ('\'', '\''), ('<', '>')],
@@ -37,7 +37,7 @@ fn apply_filter_bench(c: &mut Criterion) {
                 assert_eq!(object.len(), 1);
             },
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("apply_filter key1=value1|key2=value2", move |b| {
@@ -54,7 +54,7 @@ fn apply_filter_bench(c: &mut Criterion) {
                 assert_eq!(object.len(), 2);
             },
             BatchSize::SmallInput,
-        )
+        );
     });
 }
 
@@ -62,7 +62,7 @@ criterion_group!(
     name = benches;
     config = Criterion::default()
         .warm_up_time(Duration::from_secs(5))
-        .measurement_time(Duration::from_secs(120))
+        .measurement_time(Duration::from_mins(2))
         // degree of noise to ignore in measurements, here 1%
         .noise_threshold(0.01)
         // likelihood of noise registering as difference, here 5%

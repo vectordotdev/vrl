@@ -1,21 +1,11 @@
 #![deny(
-    warnings,
     clippy::all,
-    clippy::pedantic,
     unreachable_pub,
     unused_allocation,
     unused_extern_crates,
     unused_assignments,
     unused_comparisons
 )]
-#![allow(
-clippy::match_bool, // allowed in initial deny commit
-clippy::missing_errors_doc, // allowed in initial deny commit
-clippy::module_name_repetitions, // allowed in initial deny commit
-clippy::semicolon_if_nothing_returned,  // allowed in initial deny commit
-clippy::needless_pass_by_value,  // allowed in initial deny commit
-)]
-
 pub use diagnostic::{Diagnostic, DiagnosticList};
 pub use formatter::Formatter;
 pub use label::Label;

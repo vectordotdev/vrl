@@ -99,23 +99,30 @@ pub enum Error {
 /// Parses DD grok rules.
 ///
 /// Here is an example:
+/// ```text
 /// patterns:
 ///  %{access.common} \[%{_date_access}\] "(?>%{_method} |)%{_url}(?> %{_version}|)" %{_status_code} (?>%{_bytes_written}|-)
 ///  %{access.common} (%{number:duration:scale(1000000000)} )?"%{_referer}" "%{_user_agent}"( "%{_x_forwarded_for}")?.*"#
 /// aliases:
 ///  "access.common" : %{_client_ip} %{_ident} %{_auth}
+/// ```
 ///
 /// You can write grok patterns with the %{MATCHER:EXTRACT:FILTER} syntax:
 /// - Matcher: A rule (possibly a reference to another token rule) that describes what to expect (number, word, notSpace, etc.)
 /// - Extract (optional): An identifier representing the capture destination for the piece of text matched by the Matcher.
 /// - Filter (optional): A post-processor of the match to transform it.
 ///
-/// Rules can reference aliases as %{alias_name}, aliases can reference each other themselves, cross-references or circular dependencies are not allowed and result in an error.
+/// Rules can reference aliases as `%{alias_name}`. Aliases can reference each other themselves;
+/// cross-references or circular dependencies are not allowed and result in an error.
 /// Only one can match any given log. The first one that matches, from top to bottom, is the one that does the parsing.
 /// For further documentation and the full list of available matcher and filters check out <https://docs.datadoghq.com/logs/processing/parsing>
+///
+/// # Errors
+///
+/// Returns an error when a pattern or alias is invalid.
 pub fn parse_grok_rules(
     patterns: &[String],
-    aliases: BTreeMap<KeyString, String>,
+    aliases: &BTreeMap<KeyString, String>,
 ) -> Result<Vec<GrokRule>, Error> {
     let mut grok = Grok::with_patterns();
 
@@ -148,11 +155,10 @@ fn parse_alias(
     // track circular dependencies
     if context.alias_stack.iter().any(|a| a == name) {
         return Err(Error::CircularDependencyInAliasDefinition(
-            context.alias_stack.first().unwrap().to_string(),
+            context.alias_stack.first().unwrap().clone(),
         ));
-    } else {
-        context.alias_stack.push(name.to_string());
     }
+    context.alias_stack.push(name.to_string());
 
     parse_grok_rule(definition, context)?;
 
@@ -299,13 +305,13 @@ fn resolve_grok_pattern(
                     context.append_regex("(?:"); // non-capturing group
                 }
             }
-            resolves_match_function(grok_alias, pattern, context)?;
+            resolves_match_function(grok_alias.as_ref(), pattern, context)?;
             context.append_regex(")");
         }
         None => {
             // these will be converted to "pure" grok patterns %{PATTERN:DESTINATION} but without filters
             context.append_regex("%{");
-            resolves_match_function(grok_alias.clone(), pattern, context)?;
+            resolves_match_function(grok_alias.as_ref(), pattern, context)?;
 
             if let Some(grok_alias) = &grok_alias {
                 context.append_regex(&format!(":{grok_alias}"));
@@ -321,7 +327,7 @@ fn resolve_grok_pattern(
 /// - returns a grok expression(a grok pattern or a regular expression) corresponding to a given match function
 /// - some match functions(e.g. number) implicitly introduce a filter to be applied to an extracted value - stores it to `fields`.
 fn resolves_match_function(
-    grok_alias: Option<String>,
+    grok_alias: Option<&String>,
     pattern: &ast::GrokPattern,
     context: &mut GrokRuleParseContext,
 ) -> Result<(), Error> {
@@ -437,7 +443,7 @@ mod tests {
     fn supports_escaped_quotes() {
         let rules = parse_grok_rules(
             &[r#"%{notSpace:field:nullIf("with \"escaped\" quotes")}"#.to_string()],
-            BTreeMap::new(),
+            &BTreeMap::new(),
         )
         .expect("couldn't parse rules");
         assert!(matches!(
