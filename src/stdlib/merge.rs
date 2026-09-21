@@ -208,6 +208,13 @@ fn deep_merge_kind(to: &Kind, from: &Kind) -> Kind {
             merged_obj.union(from_non_obj)
         };
 
+        if to_child
+            .without_object()
+            .without_undefined()
+            .contains_any_defined()
+        {
+            final_child = final_child.union(from_obj);
+        }
         if to_child.contains_undefined() {
             final_child = final_child.union(from_child.clone().without_undefined());
         }
@@ -773,5 +780,27 @@ mod tests {
         let mut ctx = crate::compiler::Context::new(&mut target, &mut state, &tz);
         let _ = prog.program.resolve(&mut ctx).expect("resolves");
         assert_eq!(target, value!({ res_a: "FOO", res_b: "BAR" }));
+    }
+
+    #[test]
+    fn deep_merge_rejects_to_only_field_when_to_may_not_be_object() {
+        let fns = vec![
+            Box::new(Merge) as Box<dyn crate::compiler::Function>,
+            Box::new(crate::stdlib::Upcase) as Box<dyn crate::compiler::Function>,
+        ];
+        let src = indoc! {r#"
+            input = if .flag == true {
+                {"k": {"a": "foo"}}
+            } else {
+                {"k": "not-object"}
+            }
+            res = merge(input, {"k": {"b": "bar"}}, deep: true)
+            .result = upcase(res.k.a)
+        "#};
+
+        assert!(
+            crate::compiler::compile(src, &fns).is_err(),
+            "res.k.a is only guaranteed when input.k is an object"
+        );
     }
 }
