@@ -1,3 +1,4 @@
+use crate::compiler::expression::{Expr, Literal};
 use crate::compiler::prelude::*;
 use std::collections::{
     BTreeMap,
@@ -103,19 +104,17 @@ fields are also objects.",
 
     fn compile(
         &self,
-        state: &state::TypeState,
+        _state: &state::TypeState,
         _ctx: &mut FunctionCompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
         let to = arguments.required("to");
         let from = arguments.required("from");
-        let deep_expr = arguments.optional("deep");
+        let deep_expr = arguments.optional_expr("deep");
 
         let deep = match deep_expr {
-            Some(expr) => match expr.resolve_constant(state) {
-                Some(Value::Boolean(b)) => DeepMode::Const(b),
-                _ => DeepMode::Dynamic(expr),
-            },
+            Some(Expr::Literal(Literal::Boolean(b))) => DeepMode::Const(b),
+            Some(expr) => DeepMode::Dynamic(Box::new(expr)),
             None => DeepMode::Const(false),
         };
 
@@ -154,9 +153,75 @@ impl FunctionExpression for MergeFn {
 
         match &self.deep {
             DeepMode::Const(false) => to.merge_overwrite(from),
-            DeepMode::Const(true) | DeepMode::Dynamic(_) => to.union(from),
+            DeepMode::Const(true) => deep_merge_type_def(to, from),
+            DeepMode::Dynamic(_) => {
+                let shallow = to.clone().merge_overwrite(from.clone());
+                let deep = deep_merge_type_def(to, from);
+                shallow.union(deep)
+            }
         }
     }
+}
+
+fn deep_merge_type_def(to: TypeDef, from: TypeDef) -> TypeDef {
+    let to_kind: Kind = to.clone().into();
+    let from_kind: Kind = from.clone().into();
+    let merged_kind = deep_merge_kind(&to_kind, &from_kind);
+    to.merge_overwrite(from).with_kind(merged_kind)
+}
+
+fn deep_merge_kind(to: &Kind, from: &Kind) -> Kind {
+    let mut result = to.clone();
+    result.merge_keep(from.clone(), true);
+
+    let (Some(to_col), Some(from_col), Some(res_col)) =
+        (to.as_object(), from.as_object(), result.as_object_mut())
+    else {
+        return result;
+    };
+
+    for (key, from_child) in from_col.known() {
+        let Some(to_child) = to_col.known().get(key) else {
+            continue;
+        };
+        if !to_child.contains_object() || !from_child.contains_object() {
+            continue;
+        }
+
+        let to_obj = Kind::object(
+            to_child
+                .as_object()
+                .cloned()
+                .unwrap_or_else(Collection::empty),
+        );
+        let from_obj = Kind::object(
+            from_child
+                .as_object()
+                .cloned()
+                .unwrap_or_else(Collection::empty),
+        );
+        let merged_obj = deep_merge_kind(&to_obj, &from_obj);
+        let from_non_obj = from_child.without_object();
+        let mut final_child = if from_non_obj.is_never() {
+            merged_obj
+        } else {
+            merged_obj.union(from_non_obj)
+        };
+
+        if to_child.contains_undefined() {
+            final_child = final_child.union(from_child.clone().without_undefined());
+        }
+        if from_child.contains_undefined() {
+            final_child = final_child.union(to_child.clone().without_undefined());
+        }
+        if to_child.contains_undefined() && from_child.contains_undefined() {
+            final_child.add_undefined();
+        }
+
+        res_col.known_mut().insert(key.clone(), final_child);
+    }
+
+    result
 }
 
 /// Merges two `ObjectMap`s of Values. The second map is merged into the first one.
@@ -319,11 +384,11 @@ mod tests {
                 },
             })),
             tdef: TypeDef::object(btreemap! {
-                Field::from("key1") => Kind::bytes().or_undefined(),
-                Field::from("key2") => Kind::bytes().or_undefined(),
+                Field::from("key1") => Kind::bytes(),
+                Field::from("key2") => Kind::bytes(),
                 Field::from("child") => TypeDef::object(btreemap! {
-                    Field::from("grandchild1") => Kind::bytes().or_undefined(),
-                    Field::from("grandchild2") => Kind::boolean().or_undefined(),
+                    Field::from("grandchild1") => Kind::bytes(),
+                    Field::from("grandchild2") => Kind::boolean(),
                 }),
             }),
         }
@@ -356,8 +421,8 @@ mod tests {
             })),
             tdef: TypeDef::object(btreemap! {
                 Field::from("key1") => TypeDef::object(btreemap! {
-                    Field::from("sub1") => Kind::bytes().or_undefined(),
-                    Field::from("sub2") => Kind::bytes().or_undefined(),
+                    Field::from("sub1") => Kind::bytes(),
+                    Field::from("sub2") => Kind::bytes(),
                 }),
             }),
         }
@@ -429,9 +494,7 @@ mod tests {
             ],
             want: Ok(value!({ a: "replaced" })),
             tdef: TypeDef::object(btreemap! {
-                Field::from("a") => Kind::bytes().or_object(btreemap! {
-                    Field::from("nested") => Kind::integer(),
-                }),
+                Field::from("a") => Kind::bytes(),
             }),
         }
 
@@ -443,7 +506,7 @@ mod tests {
             ],
             want: Ok(value!({ a: { nested: 2 } })),
             tdef: TypeDef::object(btreemap! {
-                Field::from("a") => Kind::bytes().or_object(btreemap! {
+                Field::from("a") => Kind::object(btreemap! {
                     Field::from("nested") => Kind::integer(),
                 }),
             }),
@@ -485,12 +548,12 @@ mod tests {
             tdef: TypeDef::object(btreemap! {
                 Field::from("l1") => TypeDef::object(btreemap! {
                     Field::from("l2") => TypeDef::object(btreemap! {
-                        Field::from("a") => Kind::integer().or_undefined(),
+                        Field::from("a") => Kind::integer(),
                         Field::from("b") => Kind::integer(),
-                        Field::from("c") => Kind::integer().or_undefined(),
+                        Field::from("c") => Kind::integer(),
                     }),
-                    Field::from("keep") => Kind::bytes().or_undefined(),
-                    Field::from("new") => Kind::bytes().or_undefined(),
+                    Field::from("keep") => Kind::bytes(),
+                    Field::from("new") => Kind::bytes(),
                 }),
             }),
         }
@@ -624,5 +687,91 @@ mod tests {
         let mut ctx = crate::compiler::Context::new(&mut target, &mut state, &tz);
         let val = prog.program.resolve(&mut ctx).expect("resolves");
         assert_eq!(val, Value::from(1));
+    }
+
+    #[test]
+    fn pront_example_1_stale_deep_flag() {
+        let fns = vec![Box::new(Merge) as Box<dyn crate::compiler::Function>];
+        let src = indoc! {r#"
+            flag = false
+            . = merge(
+              { flag = true; {"k": {"a": 1}} },
+              {"k": {"b": 2}},
+              deep: flag
+            )
+        "#};
+        let prog = crate::compiler::compile(src, &fns).expect("compiles successfully");
+        let mut target = value!({});
+        let mut state = crate::compiler::state::RuntimeState::default();
+        let tz = crate::compiler::TimeZone::default();
+        let mut ctx = crate::compiler::Context::new(&mut target, &mut state, &tz);
+        let _ = prog.program.resolve(&mut ctx).expect("resolves");
+        assert_eq!(
+            target,
+            value!({
+                k: {
+                    a: 1,
+                    b: 2,
+                }
+            })
+        );
+    }
+
+    #[test]
+    fn pront_example_2_guaranteed_string() {
+        let fns = vec![
+            Box::new(Merge) as Box<dyn crate::compiler::Function>,
+            Box::new(crate::stdlib::Upcase) as Box<dyn crate::compiler::Function>,
+        ];
+        let src = indoc! {r#"
+            res = merge({}, {"a": "hello"}, deep: true)
+            .result = upcase(res.a)
+        "#};
+        let prog = crate::compiler::compile(src, &fns).expect("compiles successfully");
+        let mut target = value!({});
+        let mut state = crate::compiler::state::RuntimeState::default();
+        let tz = crate::compiler::TimeZone::default();
+        let mut ctx = crate::compiler::Context::new(&mut target, &mut state, &tz);
+        let _ = prog.program.resolve(&mut ctx).expect("resolves");
+        assert_eq!(target, value!({ result: "HELLO" }));
+    }
+
+    #[test]
+    fn dynamic_deep_guaranteed_string() {
+        let fns = vec![
+            Box::new(Merge) as Box<dyn crate::compiler::Function>,
+            Box::new(crate::stdlib::Upcase) as Box<dyn crate::compiler::Function>,
+        ];
+        let src = indoc! {r#"
+            res = merge({}, {"a": "hello"}, deep: .flag == true)
+            .result = upcase(res.a)
+        "#};
+        let prog = crate::compiler::compile(src, &fns).expect("compiles successfully");
+        let mut target = value!({ flag: true });
+        let mut state = crate::compiler::state::RuntimeState::default();
+        let tz = crate::compiler::TimeZone::default();
+        let mut ctx = crate::compiler::Context::new(&mut target, &mut state, &tz);
+        let _ = prog.program.resolve(&mut ctx).expect("resolves");
+        assert_eq!(target, value!({ flag: true, result: "HELLO" }));
+    }
+
+    #[test]
+    fn deep_merge_nested_guaranteed_strings() {
+        let fns = vec![
+            Box::new(Merge) as Box<dyn crate::compiler::Function>,
+            Box::new(crate::stdlib::Upcase) as Box<dyn crate::compiler::Function>,
+        ];
+        let src = indoc! {r#"
+            res = merge({"k": {"a": "foo"}}, {"k": {"b": "bar"}}, deep: true)
+            .res_a = upcase(res.k.a)
+            .res_b = upcase(res.k.b)
+        "#};
+        let prog = crate::compiler::compile(src, &fns).expect("compiles successfully");
+        let mut target = value!({});
+        let mut state = crate::compiler::state::RuntimeState::default();
+        let tz = crate::compiler::TimeZone::default();
+        let mut ctx = crate::compiler::Context::new(&mut target, &mut state, &tz);
+        let _ = prog.program.resolve(&mut ctx).expect("resolves");
+        assert_eq!(target, value!({ res_a: "FOO", res_b: "BAR" }));
     }
 }
