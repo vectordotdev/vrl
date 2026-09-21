@@ -1,7 +1,7 @@
 use crate::compiler::prelude::*;
 use std::net::IpAddr;
 
-fn ipv6_to_ipv4(value: &Value) -> ValueResult {
+fn ipv6_to_ipv4(value: &Value) -> Resolved {
     let ip = value
         .try_bytes_utf8_lossy()?
         .parse()
@@ -87,8 +87,8 @@ struct Ipv6ToIpV4Fn {
 
 impl FunctionExpression for Ipv6ToIpV4Fn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = crate::resolve_value!(self.value.resolve(ctx));
-        ipv6_to_ipv4(&value).map(EvaluationOutcome::Value)
+        let value = self.value.resolve(ctx)?;
+        ipv6_to_ipv4(&value)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

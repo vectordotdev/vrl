@@ -164,13 +164,12 @@ struct ParseEtldFn {
 
 impl FunctionExpression for ParseEtldFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = crate::resolve_value!(self.value.resolve(ctx));
+        let value = self.value.resolve(ctx)?;
         let string = value.try_bytes_utf8_lossy()?;
 
-        let plus_parts_value = crate::resolve_value!(
-            self.plus_parts
-                .map_resolve_with_default(ctx, || DEFAULT_PLUS_PARTS.clone())
-        );
+        let plus_parts_value = self
+            .plus_parts
+            .map_resolve_with_default(ctx, || DEFAULT_PLUS_PARTS.clone())?;
         let plus_parts = match plus_parts_value.try_integer()? {
             x if x < 0 => 0,
             // TODO consider removal options
@@ -205,11 +204,10 @@ impl FunctionExpression for ParseEtldFn {
         map.insert("etld_plus", etld_plus.into());
         map.insert("known_suffix", etld.is_known().into());
 
-        Ok(EvaluationOutcome::Value(
-            map.into_iter()
-                .map(|(k, v)| (k.to_owned(), v))
-                .collect::<Value>(),
-        ))
+        Ok(map
+            .into_iter()
+            .map(|(k, v)| (k.to_owned(), v))
+            .collect::<Value>())
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

@@ -1,7 +1,7 @@
 use crate::compiler::prelude::*;
 use std::collections::BTreeMap;
 
-fn parse_aws_vpc_flow_log(value: Value, format: Option<Value>) -> ValueResult {
+fn parse_aws_vpc_flow_log(value: Value, format: Option<Value>) -> Resolved {
     let bytes = value.try_bytes()?;
     let input = String::from_utf8_lossy(&bytes);
     if let Some(expr) = format {
@@ -180,10 +180,14 @@ impl ParseAwsVpcFlowLogFn {
 
 impl FunctionExpression for ParseAwsVpcFlowLogFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = crate::resolve_value!(self.value.resolve(ctx));
-        let format = crate::resolve_value!(self.format.map_resolve(ctx));
+        let value = self.value.resolve(ctx)?;
+        let format = self
+            .format
+            .as_ref()
+            .map(|expr| expr.resolve(ctx))
+            .transpose()?;
 
-        parse_aws_vpc_flow_log(value, format).map(EvaluationOutcome::Value)
+        parse_aws_vpc_flow_log(value, format)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

@@ -51,14 +51,14 @@ impl Abort {
 
 impl Expression for Abort {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let message = match &self.message {
-            Some(expr) => Some(
-                crate::resolve_value!(expr.resolve(ctx))
-                    .try_bytes_utf8_lossy()?
-                    .to_string(),
-            ),
-            None => None,
-        };
+        let message = self
+            .message
+            .as_ref()
+            .map::<Result<_, ExpressionError>, _>(|expr| {
+                Ok(expr.resolve(ctx)?.try_bytes_utf8_lossy()?.to_string())
+            })
+            .transpose()?;
+
         Err(ExpressionError::Abort {
             span: self.span,
             message,

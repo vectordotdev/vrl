@@ -2,13 +2,13 @@ use regex::Regex;
 
 use crate::compiler::prelude::*;
 
-fn match_(value: &Value, pattern: Value) -> ValueResult {
+fn match_(value: &Value, pattern: Value) -> Resolved {
     let string = value.try_bytes_utf8_lossy()?;
     let pattern = pattern.try_regex()?;
     Ok(pattern.is_match(&string).into())
 }
 
-fn match_static(value: &Value, pattern: &Regex) -> ValueResult {
+fn match_static(value: &Value, pattern: &Regex) -> Resolved {
     let string = value.try_bytes_utf8_lossy()?;
     Ok(pattern.is_match(&string).into())
 }
@@ -94,10 +94,10 @@ pub(crate) struct MatchFn {
 
 impl FunctionExpression for MatchFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = crate::resolve_value!(self.value.resolve(ctx));
-        let pattern = crate::resolve_value!(self.pattern.resolve(ctx));
+        let value = self.value.resolve(ctx)?;
+        let pattern = self.pattern.resolve(ctx)?;
 
-        match_(&value, pattern).map(EvaluationOutcome::Value)
+        match_(&value, pattern)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {
@@ -113,9 +113,9 @@ pub(crate) struct MatchStaticFn {
 
 impl FunctionExpression for MatchStaticFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = crate::resolve_value!(self.value.resolve(ctx));
+        let value = self.value.resolve(ctx)?;
 
-        match_static(&value, &self.pattern).map(EvaluationOutcome::Value)
+        match_static(&value, &self.pattern)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

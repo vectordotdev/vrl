@@ -201,8 +201,7 @@ impl Function for ValidateJsonSchema {
 #[cfg(not(target_arch = "wasm32"))]
 mod non_wasm {
     use super::{
-        Context, EvaluationOutcome, Expression, FunctionExpression, Resolved, TypeDef,
-        VrlValueConvert, state,
+        Context, Expression, FunctionExpression, Resolved, TypeDef, VrlValueConvert, state,
     };
     use crate::prelude::ExpressionError;
     use crate::stdlib::json_utils::bom::StripBomFromUTF8;
@@ -226,9 +225,8 @@ mod non_wasm {
 
     impl FunctionExpression for ValidateJsonSchemaFn {
         fn resolve(&self, ctx: &mut Context) -> Resolved {
-            let value = crate::resolve_value!(self.value.resolve(ctx));
-            let ignore_unknown_formats =
-                crate::resolve_value!(self.ignore_unknown_formats.resolve(ctx)).try_boolean()?;
+            let value = self.value.resolve(ctx)?;
+            let ignore_unknown_formats = self.ignore_unknown_formats.resolve(ctx)?.try_boolean()?;
 
             // Get bytes without extra allocation if possible
             let bytes = value.try_bytes()?;
@@ -236,8 +234,7 @@ mod non_wasm {
 
             // Quick empty check
             if bytes.is_empty() {
-                return Err(ExpressionError::from("Empty JSON value"))
-                    .map(EvaluationOutcome::Value); // Empty JSON is typically invalid
+                return Err(ExpressionError::from("Empty JSON value")); // Empty JSON is typically invalid
             }
 
             // Fast path: check if it's valid JSON first (cheaper than full parsing)
@@ -266,14 +263,13 @@ mod non_wasm {
                 .collect::<Vec<String>>()
                 .join(", ");
 
-            (if validation_errors.is_empty() {
+            if validation_errors.is_empty() {
                 Ok(value!(true))
             } else {
                 Err(ExpressionError::from(format!(
                     "JSON schema validation failed: {validation_errors}"
                 )))
-            })
-            .map(EvaluationOutcome::Value)
+            }
         }
 
         fn type_def(&self, _: &state::TypeState) -> TypeDef {

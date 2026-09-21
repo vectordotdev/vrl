@@ -8,7 +8,7 @@ fn md5_hex(value: &[u8]) -> Bytes {
     Bytes::copy_from_slice(&buf)
 }
 
-fn md5(value: Value) -> ValueResult {
+fn md5(value: Value) -> Resolved {
     let value = value.try_bytes()?;
     Ok(Value::Bytes(md5_hex(&value)))
 }
@@ -77,8 +77,8 @@ struct Md5Fn {
 
 impl FunctionExpression for Md5Fn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = crate::resolve_value!(self.value.resolve(ctx));
-        md5(value).map(EvaluationOutcome::Value)
+        let value = self.value.resolve(ctx)?;
+        md5(value)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {
@@ -118,7 +118,8 @@ mod tests {
         use crate::compiler::CompileConfig;
 
         let state = state::TypeState::default();
-        let mut ctx = FunctionCompileContext::new(Span::default(), CompileConfig::default());
+        let mut ctx =
+            FunctionCompileContext::new(Span::default(), CompileConfig::default());
         let mut args = ArgumentList::default();
         args.insert("value", Value::from("foo").into());
 
@@ -145,7 +146,8 @@ mod tests {
             },
         );
 
-        let mut ctx = FunctionCompileContext::new(Span::default(), CompileConfig::default());
+        let mut ctx =
+            FunctionCompileContext::new(Span::default(), CompileConfig::default());
         let var = Variable::new((0, 0).into(), Ident::new("foo"), &state.local).unwrap();
 
         let mut args = ArgumentList::default();

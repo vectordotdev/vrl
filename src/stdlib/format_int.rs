@@ -15,7 +15,7 @@ const PARAMETERS: &[Parameter] = &[
 ];
 
 #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)] // TODO consider removal options
-fn format_int(value: Value, base: Value) -> ValueResult {
+fn format_int(value: Value, base: Value) -> Resolved {
     let value = value.try_integer()?;
     let base = base.try_integer()?;
     if !(2..=36).contains(&base) {
@@ -96,13 +96,12 @@ struct FormatIntFn {
 
 impl FunctionExpression for FormatIntFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = crate::resolve_value!(self.value.resolve(ctx));
-        let base = crate::resolve_value!(
-            self.base
-                .map_resolve_with_default(ctx, || DEFAULT_BASE.clone())
-        );
+        let value = self.value.resolve(ctx)?;
+        let base = self
+            .base
+            .map_resolve_with_default(ctx, || DEFAULT_BASE.clone())?;
 
-        format_int(value, base).map(EvaluationOutcome::Value)
+        format_int(value, base)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

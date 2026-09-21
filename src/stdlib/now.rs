@@ -45,7 +45,7 @@ struct NowFn;
 
 impl FunctionExpression for NowFn {
     fn resolve(&self, _: &mut Context) -> Resolved {
-        Ok(EvaluationOutcome::Value(Utc::now().into()))
+        Ok(Utc::now().into())
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

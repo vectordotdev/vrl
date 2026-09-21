@@ -76,9 +76,7 @@ struct IsNullFn {
 
 impl FunctionExpression for IsNullFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        Ok(EvaluationOutcome::Value(value!(
-            crate::resolve_value!(self.value.resolve(ctx)).is_null()
-        )))
+        self.value.resolve(ctx).map(|v| value!(v.is_null()))
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

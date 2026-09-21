@@ -141,7 +141,7 @@ mod implementation {
         level: &Bytes,
         value: &Value,
         span: Span,
-    ) -> ValueResult {
+    ) -> Resolved {
         let rate_limit_secs = rate_limit_secs.try_integer()?;
         let res = value.to_string_lossy();
         match level.as_ref() {
@@ -174,15 +174,14 @@ mod implementation {
 
     impl FunctionExpression for LogFn {
         fn resolve(&self, ctx: &mut Context) -> Resolved {
-            let value = crate::resolve_value!(self.value.resolve(ctx));
-            let rate_limit_secs = crate::resolve_value!(
-                self.rate_limit_secs
-                    .map_resolve_with_default(ctx, || DEFAULT_RATE_LIMIT_SECS.clone())
-            );
+            let value = self.value.resolve(ctx)?;
+            let rate_limit_secs = self
+                .rate_limit_secs
+                .map_resolve_with_default(ctx, || DEFAULT_RATE_LIMIT_SECS.clone())?;
 
             let span = self.span;
 
-            log(rate_limit_secs, &self.level, &value, span).map(EvaluationOutcome::Value)
+            log(rate_limit_secs, &self.level, &value, span)
         }
 
         fn type_def(&self, _: &state::TypeState) -> TypeDef {

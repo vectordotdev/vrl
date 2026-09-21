@@ -1,6 +1,6 @@
 use crate::compiler::prelude::*;
 
-fn to_syslog_level(value: Value) -> ValueResult {
+fn to_syslog_level(value: Value) -> Resolved {
     let value = value.try_integer()?;
     // Severity levels: https://en.wikipedia.org/wiki/Syslog#Severity_level
     let level = match value {
@@ -88,9 +88,9 @@ struct ToSyslogLevelFn {
 
 impl FunctionExpression for ToSyslogLevelFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = crate::resolve_value!(self.value.resolve(ctx));
+        let value = self.value.resolve(ctx)?;
 
-        to_syslog_level(value).map(EvaluationOutcome::Value)
+        to_syslog_level(value)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

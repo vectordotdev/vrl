@@ -50,9 +50,7 @@ impl Not {
 
 impl Expression for Not {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        Ok(crate::compiler::EvaluationOutcome::Value(
-            (!crate::resolve_value!(self.inner.resolve(ctx)).try_boolean()?).into(),
-        ))
+        Ok((!self.inner.resolve(ctx)?.try_boolean()?).into())
     }
 
     fn type_info(&self, state: &TypeState) -> TypeInfo {

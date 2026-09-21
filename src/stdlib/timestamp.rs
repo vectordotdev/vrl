@@ -1,6 +1,6 @@
 use crate::compiler::prelude::*;
 
-fn timestamp(value: Value) -> ValueResult {
+fn timestamp(value: Value) -> Resolved {
     match value {
         v @ Value::Timestamp(_) => Ok(v),
         v => Err(format!("expected timestamp, got {}", v.kind()).into()),
@@ -83,8 +83,8 @@ struct TimestampFn {
 
 impl FunctionExpression for TimestampFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = crate::resolve_value!(self.value.resolve(ctx));
-        timestamp(value).map(EvaluationOutcome::Value)
+        let value = self.value.resolve(ctx)?;
+        timestamp(value)
     }
 
     fn type_def(&self, state: &state::TypeState) -> TypeDef {

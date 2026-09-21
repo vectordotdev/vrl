@@ -21,7 +21,7 @@ const PARAMETERS: &[Parameter] = &[
     .default(&DEFAULT_RECURSIVE),
 ];
 
-fn unflatten(value: Value, separator: &Value, recursive: Value) -> ValueResult {
+fn unflatten(value: Value, separator: &Value, recursive: Value) -> Resolved {
     let separator = separator.try_bytes_utf8_lossy()?.into_owned();
     let recursive = recursive.try_boolean()?;
     let map = value.try_object()?;
@@ -258,17 +258,15 @@ struct UnflattenFn {
 
 impl FunctionExpression for UnflattenFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = crate::resolve_value!(self.value.resolve(ctx));
-        let separator = crate::resolve_value!(
-            self.separator
-                .map_resolve_with_default(ctx, || DEFAULT_SEPARATOR.clone())
-        );
-        let recursive = crate::resolve_value!(
-            self.recursive
-                .map_resolve_with_default(ctx, || DEFAULT_RECURSIVE.clone())
-        );
+        let value = self.value.resolve(ctx)?;
+        let separator = self
+            .separator
+            .map_resolve_with_default(ctx, || DEFAULT_SEPARATOR.clone())?;
+        let recursive = self
+            .recursive
+            .map_resolve_with_default(ctx, || DEFAULT_RECURSIVE.clone())?;
 
-        unflatten(value, &separator, recursive).map(EvaluationOutcome::Value)
+        unflatten(value, &separator, recursive)
     }
 
     fn type_def(&self, _: &TypeState) -> TypeDef {

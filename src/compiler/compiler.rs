@@ -923,7 +923,7 @@ impl<'a> Compiler<'a> {
             let expr = c.compile_expr(*r#return.expr, state)?;
             let node = Node::new(span, expr);
 
-            Return::new(node, state)
+            Return::new(span, node, state)
                 .map_err(|err| c.diagnostics.push(Box::new(err)))
                 .ok()
         })
@@ -936,7 +936,7 @@ impl<'a> Compiler<'a> {
             return None;
         }
 
-        Some(Break)
+        Some(Break::new(span))
     }
 
     fn handle_parser_error(&mut self, error: crate::parser::Error) {

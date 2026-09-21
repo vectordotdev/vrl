@@ -1,6 +1,6 @@
 use crate::compiler::prelude::*;
 
-fn strlen(value: &Value) -> ValueResult {
+fn strlen(value: &Value) -> Resolved {
     let v = value.try_bytes_utf8_lossy()?;
 
     Ok(v.chars().count().into())
@@ -65,9 +65,9 @@ struct StrlenFn {
 
 impl FunctionExpression for StrlenFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = crate::resolve_value!(self.value.resolve(ctx));
+        let value = self.value.resolve(ctx)?;
 
-        strlen(&value).map(EvaluationOutcome::Value)
+        strlen(&value)
     }
 
     fn type_def(&self, _state: &state::TypeState) -> TypeDef {

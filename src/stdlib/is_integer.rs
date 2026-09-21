@@ -76,9 +76,7 @@ struct IsIntegerFn {
 
 impl FunctionExpression for IsIntegerFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        Ok(EvaluationOutcome::Value(value!(
-            crate::resolve_value!(self.value.resolve(ctx)).is_integer()
-        )))
+        self.value.resolve(ctx).map(|v| value!(v.is_integer()))
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

@@ -23,7 +23,7 @@ const PARAMETERS: &[Parameter] = &[
         ]),
 ];
 
-fn encode_base64(value: Value, padding: Value, charset: Value) -> ValueResult {
+fn encode_base64(value: Value, padding: Value, charset: Value) -> Resolved {
     let value = value.try_bytes()?;
     let padding = padding.try_boolean()?;
     let charset = Base64Charset::from_slice(&charset.try_bytes()?)?;
@@ -115,17 +115,15 @@ struct EncodeBase64Fn {
 
 impl FunctionExpression for EncodeBase64Fn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = crate::resolve_value!(self.value.resolve(ctx));
-        let padding = crate::resolve_value!(
-            self.padding
-                .map_resolve_with_default(ctx, || DEFAULT_PADDING.clone())
-        );
-        let charset = crate::resolve_value!(
-            self.charset
-                .map_resolve_with_default(ctx, || DEFAULT_CHARSET.clone())
-        );
+        let value = self.value.resolve(ctx)?;
+        let padding = self
+            .padding
+            .map_resolve_with_default(ctx, || DEFAULT_PADDING.clone())?;
+        let charset = self
+            .charset
+            .map_resolve_with_default(ctx, || DEFAULT_CHARSET.clone())?;
 
-        encode_base64(value, padding, charset).map(EvaluationOutcome::Value)
+        encode_base64(value, padding, charset)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

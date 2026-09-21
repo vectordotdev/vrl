@@ -1,6 +1,6 @@
 use crate::compiler::prelude::*;
 
-fn array(value: Value) -> ValueResult {
+fn array(value: Value) -> Resolved {
     match value {
         v @ Value::Array(_) => Ok(v),
         v => Err(format!("expected array, got {}", v.kind()).into()),
@@ -89,7 +89,7 @@ struct ArrayFn {
 
 impl FunctionExpression for ArrayFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        array(crate::resolve_value!(self.value.resolve(ctx))).map(EvaluationOutcome::Value)
+        array(self.value.resolve(ctx)?)
     }
 
     fn type_def(&self, state: &state::TypeState) -> TypeDef {

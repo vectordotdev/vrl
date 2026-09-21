@@ -22,7 +22,7 @@ fn value_to_cidr(value: &Value) -> Result<IpCidr, function::Error> {
     })
 }
 
-fn ip_cidr_contains(value: &Value, cidr: &Value) -> ValueResult {
+fn ip_cidr_contains(value: &Value, cidr: &Value) -> Resolved {
     let bytes = value.try_bytes_utf8_lossy()?;
     let ip_addr =
         IpAddr::from_str(&bytes).map_err(|err| format!("unable to parse IP address: {err}"))?;
@@ -49,7 +49,7 @@ fn ip_cidr_contains(value: &Value, cidr: &Value) -> ValueResult {
     }
 }
 
-fn ip_cidr_contains_constant(value: &Value, cidr_vec: &[IpCidr]) -> ValueResult {
+fn ip_cidr_contains_constant(value: &Value, cidr_vec: &[IpCidr]) -> Resolved {
     let bytes = value.try_bytes_utf8_lossy()?;
     let ip_addr =
         IpAddr::from_str(&bytes).map_err(|err| format!("unable to parse IP address: {err}"))?;
@@ -173,18 +173,17 @@ struct IpCidrContainsFn {
 
 impl FunctionExpression for IpCidrContainsFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        (match &self.cidr {
+        match &self.cidr {
             ConstOrExpr::Const(cidr_vec) => {
-                let value = crate::resolve_value!(self.value.resolve(ctx));
+                let value = self.value.resolve(ctx)?;
                 ip_cidr_contains_constant(&value, cidr_vec)
             }
             ConstOrExpr::Expr(expr) => {
-                let cidr = crate::resolve_value!(expr.resolve(ctx));
-                let value = crate::resolve_value!(self.value.resolve(ctx));
+                let cidr = expr.resolve(ctx)?;
+                let value = self.value.resolve(ctx)?;
                 ip_cidr_contains(&value, &cidr)
             }
-        })
-        .map(EvaluationOutcome::Value)
+        }
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

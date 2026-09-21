@@ -31,7 +31,7 @@ impl Program {
         &self.info
     }
 
-    /// Evaluate the program to a value or a control-flow outcome.
+    /// Resolve the program to its final [`Value`](`crate::value::Value`).
     ///
     /// # Errors
     ///

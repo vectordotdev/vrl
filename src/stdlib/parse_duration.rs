@@ -53,7 +53,7 @@ const PARAMETERS: &[Parameter] = &[
         .enum_variants(UNIT_ENUM),
 ];
 
-fn parse_duration(bytes: &Value, unit: &Value) -> ValueResult {
+fn parse_duration(bytes: &Value, unit: &Value) -> Resolved {
     let value = bytes.try_bytes_utf8_lossy()?;
     let mut value = &value[..];
     let conversion_factor = {
@@ -181,10 +181,10 @@ struct ParseDurationFn {
 
 impl FunctionExpression for ParseDurationFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let bytes = crate::resolve_value!(self.value.resolve(ctx));
-        let unit = crate::resolve_value!(self.unit.resolve(ctx));
+        let bytes = self.value.resolve(ctx)?;
+        let unit = self.unit.resolve(ctx)?;
 
-        parse_duration(&bytes, &unit).map(EvaluationOutcome::Value)
+        parse_duration(&bytes, &unit)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

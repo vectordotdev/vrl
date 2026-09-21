@@ -52,7 +52,6 @@ macro_rules! bench_function {
 
                     let (expression, want) = $crate::__prep_bench_or_test!($func, &state, $args, $(Ok($crate::value::Value::from($ok)))? $(Err($err.to_owned()))?);
                     let expression = expression.unwrap();
-                    let want = want.map($crate::compiler::EvaluationOutcome::Value);
                     let mut runtime_state = $crate::compiler::state::RuntimeState::default();
                     let mut target: $crate::value::Value = ::std::collections::BTreeMap::default().into();
                     let tz = $crate::compiler::TimeZone::Named(chrono_tz::Tz::UTC);
@@ -81,7 +80,6 @@ macro_rules! bench_query_function {
 
                     let (expression, want) = $crate::__prep_bench_or_test!($func, &state, $args, $(Ok($crate::value::Value::from($ok)))? $(Err($err.to_owned()))?);
                     let expression = expression.unwrap();
-                    let want = want.map($crate::compiler::EvaluationOutcome::Value);
                     let tz = $crate::compiler::TimeZone::Named(chrono_tz::Tz::UTC);
                     let event: $crate::value::Value = $event.into();
 
@@ -134,7 +132,7 @@ macro_rules! test_function {
                         let got_value = expression.resolve(&mut ctx)
                             .map_err(|e| format!("{:#}", anyhow::anyhow!(e)));
 
-                        assert!(got_value == want.clone().map($crate::compiler::EvaluationOutcome::Value), "assertion failed for `{}` case:\n  got:    {:?}\n  wanted: {:?}", stringify!($case), got_value, want);
+                        assert!(got_value == want, "assertion failed for `{}` case:\n  got:    {:?}\n  wanted: {:?}", stringify!($case), got_value, want);
                         let got_tdef = expression.type_def(&state);
                         assert_eq!(got_tdef, $tdef);
                     }

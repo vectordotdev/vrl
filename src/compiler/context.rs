@@ -1,6 +1,9 @@
 use std::ops::ControlFlow;
 
-use super::{ExpressionError, Target, TimeZone, runtime::ExecutionControl, state::RuntimeState};
+use super::{
+    ControlSignal, ExpressionError, Target, TimeZone, runtime::ExecutionControl,
+    state::RuntimeState,
+};
 
 pub struct Context<'a> {
     target: &'a mut dyn Target,
@@ -73,14 +76,16 @@ impl<'a> Context<'a> {
     ///
     /// # Errors
     ///
-    /// Returns [`ExpressionError::Interrupted`] when the configured
+    /// Returns an interruption control signal when the configured
     /// [`ExecutionControl`] requests interruption. With no execution control,
     /// this always succeeds.
     #[inline]
     pub fn checkpoint(&mut self) -> Result<(), ExpressionError> {
         match self.execution_control.as_deref_mut() {
             Some(control) => match control.checkpoint() {
-                ControlFlow::Break(()) => Err(ExpressionError::Interrupted),
+                ControlFlow::Break(()) => {
+                    Err(ExpressionError::ControlFlow(ControlSignal::Interrupted))
+                }
                 ControlFlow::Continue(()) => Ok(()),
             },
             None => Ok(()),

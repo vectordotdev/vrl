@@ -3,7 +3,7 @@ use crate::stdlib::ip_utils::to_key;
 use ipcrypt_rs::{Ipcrypt, IpcryptPfx};
 use std::net::IpAddr;
 
-fn encrypt_ip(ip: &Value, key: Value, mode: &Value) -> ValueResult {
+fn encrypt_ip(ip: &Value, key: Value, mode: &Value) -> Resolved {
     let ip_str = ip.try_bytes_utf8_lossy()?;
     let ip_addr: IpAddr = ip_str
         .parse()
@@ -142,10 +142,10 @@ struct EncryptIpFn {
 
 impl FunctionExpression for EncryptIpFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let ip = crate::resolve_value!(self.ip.resolve(ctx));
-        let key = crate::resolve_value!(self.key.resolve(ctx));
-        let mode = crate::resolve_value!(self.mode.resolve(ctx));
-        encrypt_ip(&ip, key, &mode).map(EvaluationOutcome::Value)
+        let ip = self.ip.resolve(ctx)?;
+        let key = self.key.resolve(ctx)?;
+        let mode = self.mode.resolve(ctx)?;
+        encrypt_ip(&ip, key, &mode)
     }
 
     fn type_def(&self, _: &TypeState) -> TypeDef {

@@ -5,7 +5,7 @@ const MAX_LENGTH: i64 = 1024 * 64;
 const LENGTH_TOO_LARGE_ERR: &str = "Length is too large. Maximum is 64k";
 const LENGTH_TOO_SMALL_ERR: &str = "Length cannot be negative";
 
-fn random_bytes(length: Value) -> ValueResult {
+fn random_bytes(length: Value) -> Resolved {
     let mut output = vec![0_u8; get_length(length)?];
 
     // ThreadRng is a cryptographically secure generator
@@ -108,8 +108,8 @@ struct RandomBytesFn {
 
 impl FunctionExpression for RandomBytesFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let length = crate::resolve_value!(self.length.resolve(ctx));
-        random_bytes(length).map(EvaluationOutcome::Value)
+        let length = self.length.resolve(ctx)?;
+        random_bytes(length)
     }
 
     fn type_def(&self, state: &state::TypeState) -> TypeDef {

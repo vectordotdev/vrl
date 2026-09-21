@@ -1,8 +1,8 @@
 use crate::compiler::function::EnumVariant;
 use crate::compiler::prelude::*;
 use hmac::{Hmac as HmacHasher, Mac, digest::KeyInit};
-use sha1::Sha1;
 use sha2::{Sha224, Sha256, Sha384, Sha512};
+use sha1::Sha1;
 
 macro_rules! hmac {
     ($algorithm:ty, $key:expr_2021, $val:expr_2021) => {{
@@ -56,7 +56,7 @@ const PARAMETERS: &[Parameter] = &[
         .enum_variants(ALGORITHM_ENUM),
 ];
 
-fn hmac(value: Value, key: Value, algorithm: &Value) -> ValueResult {
+fn hmac(value: Value, key: Value, algorithm: &Value) -> Resolved {
     let value = value.try_bytes()?;
     let key = key.try_bytes()?;
     let algorithm = algorithm.try_bytes_utf8_lossy()?.as_ref().to_uppercase();
@@ -166,14 +166,13 @@ struct HmacFn {
 
 impl FunctionExpression for HmacFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = crate::resolve_value!(self.value.resolve(ctx));
-        let key = crate::resolve_value!(self.key.resolve(ctx));
-        let algorithm = crate::resolve_value!(
-            self.algorithm
-                .map_resolve_with_default(ctx, || DEFAULT_ALGORITHM.clone())
-        );
+        let value = self.value.resolve(ctx)?;
+        let key = self.key.resolve(ctx)?;
+        let algorithm = self
+            .algorithm
+            .map_resolve_with_default(ctx, || DEFAULT_ALGORITHM.clone())?;
 
-        hmac(value, key, &algorithm).map(EvaluationOutcome::Value)
+        hmac(value, key, &algorithm)
     }
 
     fn type_def(&self, state: &state::TypeState) -> TypeDef {

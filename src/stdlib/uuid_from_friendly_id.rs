@@ -1,7 +1,7 @@
 use crate::compiler::prelude::*;
 use bytes::Bytes;
 
-fn uuid_from_friendly_id(value: &Value) -> ValueResult {
+fn uuid_from_friendly_id(value: &Value) -> Resolved {
     let mut buf = [0; 36];
     let value = value.try_bytes_utf8_lossy()?;
     match base62::decode(value.as_ref()) {
@@ -77,8 +77,8 @@ struct UuidFromFriendlyIdFn {
 
 impl FunctionExpression for UuidFromFriendlyIdFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = crate::resolve_value!(self.value.resolve(ctx));
-        uuid_from_friendly_id(&value).map(EvaluationOutcome::Value)
+        let value = self.value.resolve(ctx)?;
+        uuid_from_friendly_id(&value)
     }
 
     fn type_def(&self, _: &TypeState) -> TypeDef {

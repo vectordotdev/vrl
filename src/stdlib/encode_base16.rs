@@ -1,6 +1,6 @@
 use crate::compiler::prelude::*;
 
-fn encode_base16(value: Value) -> ValueResult {
+fn encode_base16(value: Value) -> Resolved {
     let value = value.try_bytes()?;
     Ok(base16::encode_lower(&value).into())
 }
@@ -61,9 +61,9 @@ struct EncodeBase16Fn {
 
 impl FunctionExpression for EncodeBase16Fn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = crate::resolve_value!(self.value.resolve(ctx));
+        let value = self.value.resolve(ctx)?;
 
-        encode_base16(value).map(EvaluationOutcome::Value)
+        encode_base16(value)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

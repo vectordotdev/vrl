@@ -2,7 +2,7 @@ use crate::compiler::prelude::*;
 use crate::stdlib::json_utils::json_type_def::json_type_def;
 use ciborium::de::from_reader;
 
-fn parse_cbor(value: Value) -> ValueResult {
+fn parse_cbor(value: Value) -> Resolved {
     let bytes = value.try_bytes()?;
     let value = from_reader(bytes.as_ref()).map_err(|e| format!("unable to parse cbor: {e}"))?;
     Ok(value)
@@ -108,8 +108,8 @@ struct ParseCborFn {
 
 impl FunctionExpression for ParseCborFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = crate::resolve_value!(self.value.resolve(ctx));
-        parse_cbor(value).map(EvaluationOutcome::Value)
+        let value = self.value.resolve(ctx)?;
+        parse_cbor(value)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

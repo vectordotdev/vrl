@@ -1,18 +1,31 @@
 use std::fmt;
 
 use crate::compiler::{
-    Context, Expression, Span, TypeDef, codes,
+    Context, ControlSignal, Expression, Span, TypeDef, codes,
     expression::Resolved,
     state::{TypeInfo, TypeState},
 };
 use crate::diagnostic::{DiagnosticMessage, Label, Note};
 
+use super::ExpressionError;
+
 #[derive(Debug, Clone, PartialEq)]
-pub struct Break;
+pub struct Break {
+    span: Span,
+}
+
+impl Break {
+    #[must_use]
+    pub fn new(span: Span) -> Self {
+        Self { span }
+    }
+}
 
 impl Expression for Break {
     fn resolve(&self, _ctx: &mut Context) -> Resolved {
-        Ok(crate::compiler::EvaluationOutcome::Break)
+        Err(ExpressionError::ControlFlow(ControlSignal::Break {
+            span: self.span,
+        }))
     }
 
     fn type_info(&self, state: &TypeState) -> TypeInfo {

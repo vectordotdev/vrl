@@ -109,23 +109,20 @@ impl Expression for Query {
                     prefix: *prefix,
                     path: self.path.clone(),
                 };
-                return Ok(crate::compiler::EvaluationOutcome::Value(
-                    ctx.target()
-                        .target_get(&path)
-                        .ok()
-                        .flatten()
-                        .cloned()
-                        .unwrap_or(Value::Null),
-                ));
+                return Ok(ctx
+                    .target()
+                    .target_get(&path)
+                    .ok()
+                    .flatten()
+                    .cloned()
+                    .unwrap_or(Value::Null));
             }
-            Internal(variable) => crate::resolve_value!(variable.resolve(ctx)),
-            FunctionCall(call) => crate::resolve_value!(call.resolve(ctx)),
-            Container(container) => crate::resolve_value!(container.resolve(ctx)),
+            Internal(variable) => variable.resolve(ctx)?,
+            FunctionCall(call) => call.resolve(ctx)?,
+            Container(container) => container.resolve(ctx)?,
         };
 
-        Ok(crate::compiler::EvaluationOutcome::Value(
-            value.get(&self.path).cloned().unwrap_or(Value::Null),
-        ))
+        Ok(value.get(&self.path).cloned().unwrap_or(Value::Null))
     }
 
     fn resolve_constant(&self, state: &TypeState) -> Option<Value> {

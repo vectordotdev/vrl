@@ -47,14 +47,14 @@ mod non_wasm {
 
     impl FunctionExpression for ParseGroksFn {
         fn resolve(&self, ctx: &mut Context) -> Resolved {
-            let value = crate::resolve_value!(self.value.resolve(ctx));
+            let value = self.value.resolve(ctx)?;
             let bytes = value.try_bytes_utf8_lossy()?;
 
             let v = parse_grok::parse_grok(bytes.as_ref(), &self.grok_rules)
                 .map_err(|err| format!("unable to parse grok: {err}"))?
                 .parsed;
 
-            Ok(EvaluationOutcome::Value(v))
+            Ok(v)
         }
 
         fn type_def(&self, _: &state::TypeState) -> TypeDef {

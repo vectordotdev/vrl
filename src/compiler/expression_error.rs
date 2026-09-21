@@ -1,15 +1,30 @@
-use ExpressionError::{Abort, Error, Fallible, Interrupted, Missing};
+use ExpressionError::{Abort, ControlFlow, Error, Fallible, Missing};
 
 use crate::compiler::codes;
 use crate::diagnostic::{Diagnostic, DiagnosticMessage, Label, Note, Severity, Span};
+use crate::value::Value;
+
+pub type Resolved = Result<Value, ExpressionError>;
+
+/// Control signals that travel through evaluation using ordinary `?` propagation.
+/// They are not runtime errors and must bypass error recovery and error wrapping.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ControlSignal {
+    /// Stop execution at an embedder-provided checkpoint.
+    Interrupted,
+    Return {
+        span: Span,
+        value: Value,
+    },
+    Break {
+        span: Span,
+    },
+}
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ExpressionError {
-    /// Execution was interrupted by an embedder-provided execution control.
-    ///
-    /// Unlike an ordinary expression error, this cannot be caught by VRL's
-    /// error-coalescing or infallible-assignment expressions.
-    Interrupted,
+    /// Nonlocal control flow, propagated through evaluation without error recovery.
+    ControlFlow(ControlSignal),
 
     Abort {
         span: Span,
@@ -58,7 +73,7 @@ impl From<ExpressionError> for Diagnostic {
 impl DiagnosticMessage for ExpressionError {
     fn code(&self) -> usize {
         match self {
-            Interrupted | Abort { .. } | Error { .. } => 0,
+            ControlFlow(_) | Abort { .. } | Error { .. } => 0,
             Fallible { .. } => codes::ExprCode::FallibleExpression as usize,
             Missing { .. } => codes::ExprCode::ExpressionTypeUnavailable as usize,
         }
@@ -66,8 +81,10 @@ impl DiagnosticMessage for ExpressionError {
 
     fn message(&self) -> String {
         match self {
-            Interrupted => "execution interrupted".to_owned(),
+            ControlFlow(ControlSignal::Interrupted) => "execution interrupted".to_owned(),
             Abort { message, .. } => message.clone().unwrap_or_else(|| "aborted".to_owned()),
+            ControlFlow(ControlSignal::Return { .. }) => "return".to_string(),
+            ControlFlow(ControlSignal::Break { .. }) => "break".to_string(),
             Error { message, .. } => message.clone(),
             Fallible { .. } => "unhandled error".to_string(),
             Missing { .. } => "expression type unavailable".to_string(),
@@ -79,7 +96,7 @@ impl DiagnosticMessage for ExpressionError {
             Abort { span, .. } => {
                 vec![Label::primary("aborted", span)]
             }
-            Interrupted => Vec::new(),
+            ControlFlow(_) => Vec::new(),
             Error { labels, .. } => labels.clone(),
             Fallible { span } => vec![
                 Label::primary("expression can result in runtime error", span),
@@ -97,7 +114,7 @@ impl DiagnosticMessage for ExpressionError {
 
     fn notes(&self) -> Vec<Note> {
         match self {
-            Interrupted | Abort { .. } | Missing { .. } => vec![],
+            ControlFlow(_) | Abort { .. } | Missing { .. } => vec![],
             Error { notes, .. } => notes.clone(),
             Fallible { .. } => vec![Note::SeeErrorDocs],
         }

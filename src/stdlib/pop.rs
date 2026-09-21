@@ -1,6 +1,6 @@
 use crate::compiler::prelude::*;
 
-fn pop(value: Value) -> ValueResult {
+fn pop(value: Value) -> Resolved {
     let mut value = value.try_array()?;
     value.pop();
     Ok(value.into())
@@ -66,9 +66,9 @@ struct PopFn {
 
 impl FunctionExpression for PopFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = crate::resolve_value!(self.value.resolve(ctx));
+        let value = self.value.resolve(ctx)?;
 
-        pop(value).map(EvaluationOutcome::Value)
+        pop(value)
     }
 
     fn type_def(&self, state: &state::TypeState) -> TypeDef {

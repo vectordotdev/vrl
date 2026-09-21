@@ -10,7 +10,7 @@ use std::fmt::Debug;
 /// and compile time.
 #[allow(clippy::module_name_repetitions)]
 pub trait FunctionExpression: Send + Sync + fmt::Debug + DynClone + Clone + 'static {
-    /// Evaluate the function expression, yielding a value or a control-flow outcome.
+    /// Resolves the function expression to a concrete [`Value`].
     /// This method is executed at runtime.
     /// An expression is allowed to fail, which aborts the running program.
     // This should be a read-only reference to `Context`, but function args
@@ -21,7 +21,7 @@ pub trait FunctionExpression: Send + Sync + fmt::Debug + DynClone + Clone + 'sta
     /// * `ctx` - The context in which to resolve the expression.
     ///
     /// # Returns
-    /// A successful evaluation outcome or a runtime error.
+    /// A `Result` containing the resolved value or an error.
     ///
     /// # Errors
     /// Returns an error if the resolution fails.

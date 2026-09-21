@@ -1,6 +1,6 @@
 use crate::compiler::prelude::*;
 
-fn parse_ruby_hash(value: &Value) -> ValueResult {
+fn parse_ruby_hash(value: &Value) -> Resolved {
     let input = value.try_bytes_utf8_lossy()?;
     crate::parsing::ruby_hash::parse_ruby_hash(&input)
 }
@@ -80,8 +80,8 @@ struct ParseRubyHashFn {
 
 impl FunctionExpression for ParseRubyHashFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = crate::resolve_value!(self.value.resolve(ctx));
-        parse_ruby_hash(&value).map(EvaluationOutcome::Value)
+        let value = self.value.resolve(ctx)?;
+        parse_ruby_hash(&value)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

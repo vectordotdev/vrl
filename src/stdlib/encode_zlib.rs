@@ -19,7 +19,7 @@ const PARAMETERS: &[Parameter] = &[
     .default(&DEFAULT_COMPRESSION_LEVEL),
 ];
 
-fn encode_zlib(value: Value, compression_level: Value) -> ValueResult {
+fn encode_zlib(value: Value, compression_level: Value) -> Resolved {
     // TODO consider removal options
     #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
     let level = compression_level.try_integer()? as u32;
@@ -97,14 +97,13 @@ struct EncodeZlibFn {
 
 impl FunctionExpression for EncodeZlibFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = crate::resolve_value!(self.value.resolve(ctx));
+        let value = self.value.resolve(ctx)?;
 
-        let compression_level = crate::resolve_value!(
-            self.compression_level
-                .map_resolve_with_default(ctx, || DEFAULT_COMPRESSION_LEVEL.clone())
-        );
+        let compression_level = self
+            .compression_level
+            .map_resolve_with_default(ctx, || DEFAULT_COMPRESSION_LEVEL.clone())?;
 
-        encode_zlib(value, compression_level).map(EvaluationOutcome::Value)
+        encode_zlib(value, compression_level)
     }
 
     fn type_def(&self, state: &state::TypeState) -> TypeDef {

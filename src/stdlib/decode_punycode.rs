@@ -83,20 +83,19 @@ struct DecodePunycodeFn {
 
 impl FunctionExpression for DecodePunycodeFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = crate::resolve_value!(self.value.resolve(ctx));
+        let value = self.value.resolve(ctx)?;
         let string = value.try_bytes_utf8_lossy()?;
 
         if !string.contains(PUNYCODE_PREFIX) {
-            return Ok(EvaluationOutcome::Value(string.into()));
+            return Ok(string.into());
         }
 
-        let validate = crate::resolve_value!(
-            self.validate
-                .map_resolve_with_default(ctx, || DEFAULT_VALIDATE.clone())
-        )
-        .try_boolean()?;
+        let validate = self
+            .validate
+            .map_resolve_with_default(ctx, || DEFAULT_VALIDATE.clone())?
+            .try_boolean()?;
 
-        (if validate {
+        if validate {
             let (decoded, result) = idna::domain_to_unicode(&string);
 
             result.map_err(|_errors| "unable to decode punycode".to_string())?;
@@ -114,8 +113,7 @@ impl FunctionExpression for DecodePunycodeFn {
                 .collect::<Vec<String>>()
                 .join(".");
             Ok(decoded.into())
-        })
-        .map(EvaluationOutcome::Value)
+        }
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

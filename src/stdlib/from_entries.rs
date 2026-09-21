@@ -19,7 +19,7 @@ fn select_key(entry: &ObjectMap) -> Value {
         .unwrap_or(Value::Null)
 }
 
-fn from_entries(value: Value) -> ValueResult {
+fn from_entries(value: Value) -> Resolved {
     let array = value.try_array()?;
     let mut object = ObjectMap::new();
 
@@ -106,8 +106,8 @@ struct FromEntriesFn {
 
 impl FunctionExpression for FromEntriesFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = crate::resolve_value!(self.value.resolve(ctx));
-        from_entries(value).map(EvaluationOutcome::Value)
+        let value = self.value.resolve(ctx)?;
+        from_entries(value)
     }
 
     fn type_def(&self, _state: &TypeState) -> TypeDef {

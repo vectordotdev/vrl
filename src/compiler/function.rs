@@ -436,7 +436,7 @@ impl ConstOrExpr<Value> {
 
     pub fn resolve(&self, ctx: &mut Context) -> Resolved {
         match self {
-            Self::Const(value) => Ok(crate::compiler::EvaluationOutcome::Value(value.clone())),
+            Self::Const(value) => Ok(value.clone()),
             Self::Expr(expr) => expr.resolve(ctx),
         }
     }

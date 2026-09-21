@@ -109,19 +109,17 @@ struct ParseUrlFn {
 
 impl FunctionExpression for ParseUrlFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = crate::resolve_value!(self.value.resolve(ctx));
+        let value = self.value.resolve(ctx)?;
         let string = value.try_bytes_utf8_lossy()?;
 
-        let default_known_ports = crate::resolve_value!(
-            self.default_known_ports
-                .map_resolve_with_default(ctx, || DEFAULT_DEFAULT_KNOWN_PORTS.clone())
-        )
-        .try_boolean()?;
+        let default_known_ports = self
+            .default_known_ports
+            .map_resolve_with_default(ctx, || DEFAULT_DEFAULT_KNOWN_PORTS.clone())?
+            .try_boolean()?;
 
         Url::parse(&string)
             .map_err(|e| format!("unable to parse url: {e}").into())
             .map(|url| url_to_value(&url, default_known_ports))
-            .map(EvaluationOutcome::Value)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

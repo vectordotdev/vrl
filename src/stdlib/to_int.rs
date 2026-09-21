@@ -1,7 +1,7 @@
 use crate::compiler::conversion::Conversion;
 use crate::compiler::prelude::*;
 
-fn to_int(value: Value) -> ValueResult {
+fn to_int(value: Value) -> Resolved {
     use Value::{Boolean, Bytes, Float, Integer, Null, Timestamp};
 
     match value {
@@ -152,9 +152,9 @@ struct ToIntFn {
 
 impl FunctionExpression for ToIntFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = crate::resolve_value!(self.value.resolve(ctx));
+        let value = self.value.resolve(ctx)?;
 
-        to_int(value).map(EvaluationOutcome::Value)
+        to_int(value)
     }
 
     fn type_def(&self, state: &state::TypeState) -> TypeDef {

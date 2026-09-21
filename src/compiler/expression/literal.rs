@@ -49,7 +49,7 @@ impl Literal {
 
 impl Expression for Literal {
     fn resolve(&self, _: &mut Context) -> Resolved {
-        Ok(crate::compiler::EvaluationOutcome::Value(self.to_value()))
+        Ok(self.to_value())
     }
 
     fn resolve_constant(&self, _state: &TypeState) -> Option<Value> {

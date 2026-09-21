@@ -8,7 +8,7 @@ use url::form_urlencoded;
 ///
 /// This function currently always succeeds. The result type is retained for a
 /// uniform interface with the other parsing helpers.
-pub fn parse_query_string(bytes: &Bytes, ignore_keys_without_values: bool) -> ValueResult {
+pub fn parse_query_string(bytes: &Bytes, ignore_keys_without_values: bool) -> Resolved {
     let mut query_string = bytes.as_ref();
     if !query_string.is_empty() && query_string[0] == b'?' {
         query_string = &query_string[1..];

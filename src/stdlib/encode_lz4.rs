@@ -14,7 +14,7 @@ const PARAMETERS: &[Parameter] = &[
     .default(&DEFAULT_PREPEND_SIZE),
 ];
 
-fn encode_lz4(value: Value, prepend_size: bool) -> ValueResult {
+fn encode_lz4(value: Value, prepend_size: bool) -> Resolved {
     let value = value.try_bytes()?;
     if prepend_size {
         let encoded = compress_prepend_size(value.as_bytes());
@@ -86,14 +86,13 @@ struct EncodeLz4Fn {
 
 impl FunctionExpression for EncodeLz4Fn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = crate::resolve_value!(self.value.resolve(ctx));
-        let prepend_size = crate::resolve_value!(
-            self.prepend_size
-                .map_resolve_with_default(ctx, || DEFAULT_PREPEND_SIZE.clone())
-        )
-        .try_boolean()?;
+        let value = self.value.resolve(ctx)?;
+        let prepend_size = self
+            .prepend_size
+            .map_resolve_with_default(ctx, || DEFAULT_PREPEND_SIZE.clone())?
+            .try_boolean()?;
 
-        encode_lz4(value, prepend_size).map(EvaluationOutcome::Value)
+        encode_lz4(value, prepend_size)
     }
 
     fn type_def(&self, _state: &state::TypeState) -> TypeDef {

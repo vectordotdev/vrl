@@ -1,7 +1,7 @@
 use crate::compiler::prelude::*;
 use tracing::warn;
 
-fn to_regex(value: &Value) -> ValueResult {
+fn to_regex(value: &Value) -> Resolved {
     let string = value.try_bytes_utf8_lossy()?;
     let regex = regex::Regex::new(string.as_ref())
         .map_err(|err| format!("could not create regex: {err}"))
@@ -83,8 +83,8 @@ struct ToRegexFn {
 
 impl FunctionExpression for ToRegexFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = crate::resolve_value!(self.value.resolve(ctx));
-        to_regex(&value).map(EvaluationOutcome::Value)
+        let value = self.value.resolve(ctx)?;
+        to_regex(&value)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

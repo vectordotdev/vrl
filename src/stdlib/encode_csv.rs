@@ -13,7 +13,7 @@ const PARAMETERS: &[Parameter] = &[
     .default(&DEFAULT_DELIMITER),
 ];
 
-fn encode_csv(value: Value, delimiter: Value) -> ValueResult {
+fn encode_csv(value: Value, delimiter: Value) -> Resolved {
     let value_array = value
         .try_array()?
         .into_iter()
@@ -131,14 +131,13 @@ struct EncodeCsvFn {
 
 impl FunctionExpression for EncodeCsvFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = crate::resolve_value!(self.value.resolve(ctx));
+        let value = self.value.resolve(ctx)?;
 
-        let delimiter = crate::resolve_value!(
-            self.delimiter
-                .map_resolve_with_default(ctx, || DEFAULT_DELIMITER.clone())
-        );
+        let delimiter = self
+            .delimiter
+            .map_resolve_with_default(ctx, || DEFAULT_DELIMITER.clone())?;
 
-        encode_csv(value, delimiter).map(crate::compiler::EvaluationOutcome::Value)
+        encode_csv(value, delimiter)
     }
 
     fn type_def(&self, _state: &TypeState) -> TypeDef {

@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 use vrl::{
-    compiler::{Context, EvaluationOutcome, TargetValue, TimeZone, state::RuntimeState},
+    compiler::{Context, TargetValue, TimeZone, state::RuntimeState},
     value,
     value::{Secrets, Value},
 };
@@ -37,5 +37,5 @@ fn main() {
     // This executes the VRL program, making any modifications to the target, and returning a result.
     let value = result.program.resolve(&mut ctx).unwrap();
 
-    assert_eq!(value, EvaluationOutcome::Value(value!(1)));
+    assert_eq!(value, value!(1));
 }

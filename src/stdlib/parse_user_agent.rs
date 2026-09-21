@@ -246,10 +246,10 @@ struct ParseUserAgentFn {
 
 impl FunctionExpression for ParseUserAgentFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = crate::resolve_value!(self.value.resolve(ctx));
+        let value = self.value.resolve(ctx)?;
         let string = value.try_bytes_utf8_lossy()?;
 
-        Ok(EvaluationOutcome::Value((self.parser)(&string)))
+        Ok((self.parser)(&string))
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

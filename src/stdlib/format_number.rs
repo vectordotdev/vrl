@@ -32,7 +32,7 @@ fn format_number(
     scale: Option<Value>,
     grouping_separator: Option<Value>,
     decimal_separator: Value,
-) -> ValueResult {
+) -> Resolved {
     let value: Decimal = match value {
         Value::Integer(v) => v.into(),
         Value::Float(v) => Decimal::from_f64(*v).expect("not NaN"),
@@ -180,16 +180,22 @@ struct FormatNumberFn {
 
 impl FunctionExpression for FormatNumberFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = crate::resolve_value!(self.value.resolve(ctx));
-        let scale = crate::resolve_value!(self.scale.map_resolve(ctx));
-        let grouping_separator = crate::resolve_value!(self.grouping_separator.map_resolve(ctx));
-        let decimal_separator = crate::resolve_value!(
-            self.decimal_separator
-                .map_resolve_with_default(ctx, || DEFAULT_DECIMAL_SEPARATOR.clone())
-        );
+        let value = self.value.resolve(ctx)?;
+        let scale = self
+            .scale
+            .as_ref()
+            .map(|expr| expr.resolve(ctx))
+            .transpose()?;
+        let grouping_separator = self
+            .grouping_separator
+            .as_ref()
+            .map(|expr| expr.resolve(ctx))
+            .transpose()?;
+        let decimal_separator = self
+            .decimal_separator
+            .map_resolve_with_default(ctx, || DEFAULT_DECIMAL_SEPARATOR.clone())?;
 
         format_number(value, scale, grouping_separator, decimal_separator)
-            .map(EvaluationOutcome::Value)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

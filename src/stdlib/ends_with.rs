@@ -18,7 +18,7 @@ const PARAMETERS: &[Parameter] = &[
     .default(&DEFAULT_CASE_SENSITIVE),
 ];
 
-fn ends_with(value: &Value, substring: &Value, case_sensitive: Value) -> ValueResult {
+fn ends_with(value: &Value, substring: &Value, case_sensitive: Value) -> Resolved {
     let case_sensitive = case_sensitive.try_boolean()?;
     let value = convert_to_string(value, !case_sensitive)?;
     let substring = convert_to_string(substring, !case_sensitive)?;
@@ -97,14 +97,13 @@ struct EndsWithFn {
 
 impl FunctionExpression for EndsWithFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let case_sensitive = crate::resolve_value!(
-            self.case_sensitive
-                .map_resolve_with_default(ctx, || DEFAULT_CASE_SENSITIVE.clone())
-        );
-        let substring = crate::resolve_value!(self.substring.resolve(ctx));
-        let value = crate::resolve_value!(self.value.resolve(ctx));
+        let case_sensitive = self
+            .case_sensitive
+            .map_resolve_with_default(ctx, || DEFAULT_CASE_SENSITIVE.clone())?;
+        let substring = self.substring.resolve(ctx)?;
+        let value = self.value.resolve(ctx)?;
 
-        ends_with(&value, &substring, case_sensitive).map(EvaluationOutcome::Value)
+        ends_with(&value, &substring, case_sensitive)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

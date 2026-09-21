@@ -1,6 +1,6 @@
 use crate::compiler::prelude::*;
 
-fn split(value: &Value, limit: Value, pattern: Value) -> ValueResult {
+fn split(value: &Value, limit: Value, pattern: Value) -> Resolved {
     let string = value.try_bytes_utf8_lossy()?;
     let limit = match limit.try_integer()? {
         x if x < 0 => 0,
@@ -125,11 +125,11 @@ pub(crate) struct SplitFn {
 
 impl FunctionExpression for SplitFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = crate::resolve_value!(self.value.resolve(ctx));
-        let limit = crate::resolve_value!(self.limit.resolve(ctx));
-        let pattern = crate::resolve_value!(self.pattern.resolve(ctx));
+        let value = self.value.resolve(ctx)?;
+        let limit = self.limit.resolve(ctx)?;
+        let pattern = self.pattern.resolve(ctx)?;
 
-        split(&value, limit, pattern).map(EvaluationOutcome::Value)
+        split(&value, limit, pattern)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

@@ -31,13 +31,11 @@ impl Deref for Array {
 
 impl Expression for Array {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let mut values = Vec::with_capacity(self.inner.len());
-        for expr in &self.inner {
-            values.push(crate::resolve_value!(expr.resolve(ctx)));
-        }
-        Ok(crate::compiler::EvaluationOutcome::Value(Value::Array(
-            values,
-        )))
+        self.inner
+            .iter()
+            .map(|expr| expr.resolve(ctx))
+            .collect::<Result<Vec<_>, _>>()
+            .map(Value::Array)
     }
 
     fn resolve_constant(&self, state: &TypeState) -> Option<Value> {

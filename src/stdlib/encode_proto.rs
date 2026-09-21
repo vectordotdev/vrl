@@ -138,17 +138,16 @@ struct EncodeProtoFn {
 
 impl FunctionExpression for EncodeProtoFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = crate::resolve_value!(self.value.resolve(ctx));
-        let allow_lossy_string_coercion = crate::resolve_value!(
-            self.allow_lossy_string_coercion
-                .map_resolve_with_default(ctx, || DEFAULT_ALLOW_LOSSY_STRING_COERCION.clone())
-        )
-        .try_boolean()?;
+        let value = self.value.resolve(ctx)?;
+        let allow_lossy_string_coercion = self
+            .allow_lossy_string_coercion
+            .map_resolve_with_default(ctx, || DEFAULT_ALLOW_LOSSY_STRING_COERCION.clone())?
+            .try_boolean()?;
         let options = Options {
             allow_lossy_string_coercion,
             ..Options::default()
         };
-        encode_proto(&self.descriptor, value, &options).map(EvaluationOutcome::Value)
+        encode_proto(&self.descriptor, value, &options)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

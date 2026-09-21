@@ -1,43 +1,37 @@
 use crate::compiler::prelude::*;
 use std::collections::BTreeMap;
 
-fn filter<T>(value: Value, ctx: &mut Context, runner: &closure::Runner<T>) -> ValueResult
+fn filter<T>(value: Value, ctx: &mut Context, runner: &closure::Runner<T>) -> Resolved
 where
     T: Fn(&mut Context) -> Resolved,
 {
     match value {
         Value::Object(object) => object
             .into_iter()
-            .filter_map(|(key, value)| {
-                match runner
-                    .run_key_value(ctx, &key, &value)
-                    .and_then(closure::closure_value)
-                {
+            .filter_map(
+                |(key, value)| match runner.run_key_value(ctx, &key, &value) {
                     Ok(v) => v
                         .as_boolean()
                         .expect("compiler guarantees boolean return type")
                         .then_some(Ok((key, value))),
                     Err(err) => Some(Err(err)),
-                }
-            })
+                },
+            )
             .collect::<ExpressionResult<BTreeMap<_, _>>>()
             .map(Into::into),
 
         Value::Array(array) => array
             .into_iter()
             .enumerate()
-            .filter_map(|(index, value)| {
-                match runner
-                    .run_index_value(ctx, index, &value)
-                    .and_then(closure::closure_value)
-                {
+            .filter_map(
+                |(index, value)| match runner.run_index_value(ctx, index, &value) {
                     Ok(v) => v
                         .as_boolean()
                         .expect("compiler guarantees boolean return type")
                         .then_some(Ok(value)),
                     Err(err) => Some(Err(err)),
-                }
-            })
+                },
+            )
             .collect::<ExpressionResult<Vec<_>>>()
             .map(Into::into),
 
@@ -162,8 +156,8 @@ struct FilterFn {
 }
 
 impl FunctionExpression for FilterFn {
-    fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = crate::resolve_value!(self.value.resolve(ctx));
+    fn resolve(&self, ctx: &mut Context) -> ExpressionResult<Value> {
+        let value = self.value.resolve(ctx)?;
         let Closure {
             variables,
             block,
@@ -171,7 +165,7 @@ impl FunctionExpression for FilterFn {
         } = &self.closure;
         let runner = closure::Runner::new(variables, |ctx| block.resolve(ctx));
 
-        filter(value, ctx, &runner).map(EvaluationOutcome::Value)
+        filter(value, ctx, &runner)
     }
 
     fn type_def(&self, ctx: &state::TypeState) -> TypeDef {

@@ -1,7 +1,7 @@
 use crate::compiler::prelude::*;
 use crate::path::{OwnedSegment, OwnedValuePath};
 
-fn set(path: Value, mut value: Value, data: Value) -> ValueResult {
+fn set(path: Value, mut value: Value, data: Value) -> Resolved {
     let path = match path {
         Value::Array(segments) => {
             let mut insert = OwnedValuePath::root();
@@ -167,11 +167,11 @@ pub(crate) struct SetFn {
 
 impl FunctionExpression for SetFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let path = crate::resolve_value!(self.path.resolve(ctx));
-        let value = crate::resolve_value!(self.value.resolve(ctx));
-        let data = crate::resolve_value!(self.data.resolve(ctx));
+        let path = self.path.resolve(ctx)?;
+        let value = self.value.resolve(ctx)?;
+        let data = self.data.resolve(ctx)?;
 
-        set(path, value, data).map(EvaluationOutcome::Value)
+        set(path, value, data)
     }
 
     fn type_def(&self, state: &state::TypeState) -> TypeDef {

@@ -88,16 +88,15 @@ struct EncodePunycodeFn {
 
 impl FunctionExpression for EncodePunycodeFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = crate::resolve_value!(self.value.resolve(ctx));
+        let value = self.value.resolve(ctx)?;
         let string = value.try_bytes_utf8_lossy()?;
 
-        let validate = crate::resolve_value!(
-            self.validate
-                .map_resolve_with_default(ctx, || DEFAULT_VALIDATE.clone())
-        )
-        .try_boolean()?;
+        let validate = self
+            .validate
+            .map_resolve_with_default(ctx, || DEFAULT_VALIDATE.clone())?
+            .try_boolean()?;
 
-        (if validate {
+        if validate {
             let encoded = idna::domain_to_ascii(&string)
                 .map_err(|_errors| "unable to encode to punycode".to_string())?;
             Ok(encoded.into())
@@ -106,7 +105,7 @@ impl FunctionExpression for EncodePunycodeFn {
                 .chars()
                 .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '.')
             {
-                return Ok(EvaluationOutcome::Value(string.into()));
+                return Ok(string.into());
             }
 
             let encoded = string
@@ -126,8 +125,7 @@ impl FunctionExpression for EncodePunycodeFn {
                 .collect::<Vec<String>>()
                 .join(".");
             Ok(encoded.into())
-        })
-        .map(EvaluationOutcome::Value)
+        }
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

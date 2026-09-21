@@ -21,7 +21,7 @@ const PARAMETERS: &[Parameter] = &[
         .default(&DEFAULT_STRICT_MODE),
 ];
 
-fn parse_aws_alb_log(bytes: Value, strict_mode: Value) -> ValueResult {
+fn parse_aws_alb_log(bytes: Value, strict_mode: Value) -> Resolved {
     let bytes = bytes.try_bytes()?;
     let strict_mode = strict_mode.try_boolean()?;
     parse_log(&String::from_utf8_lossy(&bytes), strict_mode)
@@ -176,12 +176,11 @@ impl ParseAwsAlbLogFn {
 
 impl FunctionExpression for ParseAwsAlbLogFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let bytes = crate::resolve_value!(self.value.resolve(ctx));
-        let strict_mode = crate::resolve_value!(
-            self.strict_mode
-                .map_resolve_with_default(ctx, || DEFAULT_STRICT_MODE.clone())
-        );
-        parse_aws_alb_log(bytes, strict_mode).map(EvaluationOutcome::Value)
+        let bytes = self.value.resolve(ctx)?;
+        let strict_mode = self
+            .strict_mode
+            .map_resolve_with_default(ctx, || DEFAULT_STRICT_MODE.clone())?;
+        parse_aws_alb_log(bytes, strict_mode)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

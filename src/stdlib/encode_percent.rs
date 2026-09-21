@@ -55,7 +55,7 @@ const PARAMETERS: &[Parameter] = &[
     .enum_variants(ASCII_SET_ENUM),
 ];
 
-fn encode_percent(value: &Value, ascii_set: &Bytes) -> ValueResult {
+fn encode_percent(value: &Value, ascii_set: &Bytes) -> Resolved {
     let string = value.try_bytes_utf8_lossy()?;
     let ascii_set = match ascii_set.as_ref() {
         b"NON_ALPHANUMERIC" => percent_encoding::NON_ALPHANUMERIC,
@@ -198,8 +198,8 @@ struct EncodePercentFn {
 
 impl FunctionExpression for EncodePercentFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = crate::resolve_value!(self.value.resolve(ctx));
-        encode_percent(&value, &self.ascii_set).map(EvaluationOutcome::Value)
+        let value = self.value.resolve(ctx)?;
+        encode_percent(&value, &self.ascii_set)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

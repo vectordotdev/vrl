@@ -49,9 +49,9 @@ impl Expression for Block {
         // in scope can be accessed here, so it doesn't need to be checked at runtime.
         let (last, other) = self.inner.split_last().expect("at least one expression");
 
-        for expr in other {
-            crate::resolve_value!(expr.resolve(ctx));
-        }
+        other
+            .iter()
+            .try_for_each(|expr| expr.resolve(ctx).map(|_| ()))?;
 
         last.resolve(ctx)
     }

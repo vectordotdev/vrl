@@ -13,7 +13,7 @@ pub fn get_name_for_timezone(tz: &TimeZone) -> Cow<'_, str> {
 }
 
 #[allow(clippy::unnecessary_wraps)]
-fn get_timezone_name(ctx: &mut Context) -> ValueResult {
+fn get_timezone_name(ctx: &mut Context) -> Resolved {
     Ok(get_name_for_timezone(ctx.timezone()).into())
 }
 
@@ -73,7 +73,7 @@ struct GetTimezoneNameFn;
 
 impl FunctionExpression for GetTimezoneNameFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        get_timezone_name(ctx).map(EvaluationOutcome::Value)
+        get_timezone_name(ctx)
     }
 
     fn type_def(&self, _: &TypeState) -> TypeDef {

@@ -1,7 +1,7 @@
 use crate::compiler::prelude::*;
 use indexmap::IndexSet;
 
-fn unique(value: Value) -> ValueResult {
+fn unique(value: Value) -> Resolved {
     let value = value.try_array()?;
     let set: IndexSet<_> = value.into_iter().collect();
     Ok(set.into_iter().collect())
@@ -67,8 +67,8 @@ pub(crate) struct UniqueFn {
 
 impl FunctionExpression for UniqueFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = crate::resolve_value!(self.value.resolve(ctx));
-        unique(value).map(EvaluationOutcome::Value)
+        let value = self.value.resolve(ctx)?;
+        unique(value)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

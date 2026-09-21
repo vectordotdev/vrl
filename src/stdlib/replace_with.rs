@@ -27,9 +27,9 @@ fn replace_with<T>(
     count: Value,
     ctx: &mut Context,
     runner: &closure::Runner<T>,
-) -> ValueResult
+) -> Resolved
 where
-    T: Fn(&mut Context) -> Resolved,
+    T: Fn(&mut Context) -> Result<Value, ExpressionError>,
 {
     let haystack = value.try_bytes_utf8_lossy()?;
     let count = match count.try_integer()? {
@@ -58,9 +58,9 @@ fn make_replacement<T>(
     capture_names: &CaptureNames,
     ctx: &mut Context,
     runner: &closure::Runner<T>,
-) -> ValueResult
+) -> Resolved
 where
-    T: Fn(&mut Context) -> Resolved,
+    T: Fn(&mut Context) -> Result<Value, ExpressionError>,
 {
     // possible optimization: peek at first capture, if none return the original value.
     let mut replaced = String::with_capacity(haystack.len());
@@ -284,9 +284,9 @@ struct ReplaceWithFn {
 }
 
 impl FunctionExpression for ReplaceWithFn {
-    fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = crate::resolve_value!(self.value.resolve(ctx));
-        let pattern = crate::resolve_value!(self.pattern.resolve(ctx));
+    fn resolve(&self, ctx: &mut Context) -> ExpressionResult<Value> {
+        let value = self.value.resolve(ctx)?;
+        let pattern = self.pattern.resolve(ctx)?;
         let pattern = pattern
             .as_regex()
             .ok_or_else(|| ExpressionError::from("failed to resolve regex"))?;
@@ -294,21 +294,19 @@ impl FunctionExpression for ReplaceWithFn {
             if name == STRING_NAME || name == CAPTURES_NAME {
                 return Err(ExpressionError::from(
                     r#"Capture group cannot be named "string" or "captures""#,
-                ))
-                .map(EvaluationOutcome::Value);
+                ));
             }
         }
-        let count = crate::resolve_value!(
-            self.count
-                .map_resolve_with_default(ctx, || DEFAULT_COUNT.clone())
-        );
+        let count = self
+            .count
+            .map_resolve_with_default(ctx, || DEFAULT_COUNT.clone())?;
         let Closure {
             variables, block, ..
         } = &self.closure;
 
         let runner = closure::Runner::new(variables, |ctx| block.resolve(ctx));
 
-        replace_with(value, pattern, count, ctx, &runner).map(EvaluationOutcome::Value)
+        replace_with(value, pattern, count, ctx, &runner)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

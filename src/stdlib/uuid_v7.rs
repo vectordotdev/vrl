@@ -13,7 +13,7 @@ const PARAMETERS: &[Parameter] = &[Parameter::optional(
 .default(&DEFAULT_TIMESTAMP)];
 
 #[allow(clippy::cast_sign_loss)] // TODO consider removal options
-fn uuid_v7(timestamp: Option<Value>) -> ValueResult {
+fn uuid_v7(timestamp: Option<Value>) -> Resolved {
     let utc_timestamp: DateTime<Utc> = if let Some(timestamp) = timestamp {
         timestamp.try_timestamp()?
     } else {
@@ -101,9 +101,13 @@ struct UuidV7Fn {
 
 impl FunctionExpression for UuidV7Fn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let timestamp = crate::resolve_value!(self.timestamp.map_resolve(ctx));
+        let timestamp = self
+            .timestamp
+            .as_ref()
+            .map(|m| m.resolve(ctx))
+            .transpose()?;
 
-        uuid_v7(timestamp).map(EvaluationOutcome::Value)
+        uuid_v7(timestamp)
     }
 
     fn type_def(&self, _: &TypeState) -> TypeDef {
@@ -128,10 +132,7 @@ mod tests {
         let mut object: Value = Value::Object(BTreeMap::new());
         let tz = TimeZone::default();
         let mut ctx = Context::new(&mut object, &mut state, &tz);
-        let value = UuidV7Fn { timestamp: None }
-            .resolve(&mut ctx)
-            .and_then(closure::closure_value)
-            .unwrap();
+        let value = UuidV7Fn { timestamp: None }.resolve(&mut ctx).unwrap();
 
         assert!(matches!(&value, Value::Bytes(_)));
 

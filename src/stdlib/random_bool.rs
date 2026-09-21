@@ -2,7 +2,7 @@ use crate::compiler::prelude::*;
 use rand::random;
 
 #[allow(clippy::unnecessary_wraps)] // match other VRL function implementations
-fn random_bool() -> ValueResult {
+fn random_bool() -> Resolved {
     let b: bool = random();
 
     Ok(Value::Boolean(b))
@@ -55,7 +55,7 @@ struct RandomBoolFn {}
 
 impl FunctionExpression for RandomBoolFn {
     fn resolve(&self, _ctx: &mut Context) -> Resolved {
-        random_bool().map(EvaluationOutcome::Value)
+        random_bool()
     }
 
     fn type_def(&self, _state: &state::TypeState) -> TypeDef {

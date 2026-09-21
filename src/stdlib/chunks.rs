@@ -1,6 +1,6 @@
 use crate::compiler::prelude::*;
 
-fn chunks(value: Value, chunk_size: Value) -> ValueResult {
+fn chunks(value: Value, chunk_size: Value) -> Resolved {
     let bytes = value.try_bytes()?;
     let chunk_size = chunk_size.try_integer()?;
 
@@ -124,10 +124,10 @@ struct ChunksFn {
 
 impl FunctionExpression for ChunksFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = crate::resolve_value!(self.value.resolve(ctx));
-        let chunk_size = crate::resolve_value!(self.chunk_size.resolve(ctx));
+        let value = self.value.resolve(ctx)?;
+        let chunk_size = self.chunk_size.resolve(ctx)?;
 
-        chunks(value, chunk_size).map(EvaluationOutcome::Value)
+        chunks(value, chunk_size)
     }
 
     fn type_def(&self, state: &TypeState) -> TypeDef {

@@ -1,6 +1,6 @@
 use crate::compiler::prelude::*;
 
-fn push(list: Value, item: Value) -> ValueResult {
+fn push(list: Value, item: Value) -> Resolved {
     let mut list = list.try_array()?;
     list.push(item);
     Ok(list.into())
@@ -74,10 +74,10 @@ struct PushFn {
 
 impl FunctionExpression for PushFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let list = crate::resolve_value!(self.value.resolve(ctx));
-        let item = crate::resolve_value!(self.item.resolve(ctx));
+        let list = self.value.resolve(ctx)?;
+        let item = self.item.resolve(ctx)?;
 
-        push(list, item).map(EvaluationOutcome::Value)
+        push(list, item)
     }
 
     fn type_def(&self, state: &state::TypeState) -> TypeDef {

@@ -7,7 +7,7 @@ mod non_wasm {
     use dns_lookup::lookup_addr;
     use std::net::IpAddr;
 
-    fn reverse_dns(value: &Value) -> ValueResult {
+    fn reverse_dns(value: &Value) -> Resolved {
         let ip: IpAddr = value
             .try_bytes_utf8_lossy()?
             .parse()
@@ -24,8 +24,8 @@ mod non_wasm {
 
     impl FunctionExpression for ReverseDnsFn {
         fn resolve(&self, ctx: &mut Context) -> Resolved {
-            let value = crate::resolve_value!(self.value.resolve(ctx));
-            reverse_dns(&value).map(EvaluationOutcome::Value)
+            let value = self.value.resolve(ctx)?;
+            reverse_dns(&value)
         }
 
         fn type_def(&self, _: &state::TypeState) -> TypeDef {
@@ -129,10 +129,7 @@ mod tests {
         let mut object = value!({});
         let mut runtime_state = state::RuntimeState::default();
         let mut ctx = Context::new(&mut object, &mut runtime_state, &tz);
-        ip_fn
-            .resolve(&mut ctx)
-            .and_then(closure::closure_value)
-            .unwrap()
+        ip_fn.resolve(&mut ctx).unwrap()
     }
 
     #[cfg(feature = "test")]

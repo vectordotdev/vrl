@@ -30,7 +30,7 @@ const PARAMETERS: &[Parameter] = &[
         .enum_variants(UNIT_ENUM),
 ];
 
-fn to_unix_timestamp(value: Value, unit: Unit) -> ValueResult {
+fn to_unix_timestamp(value: Value, unit: Unit) -> Resolved {
     let ts = value.try_timestamp()?;
     let time = match unit {
         Unit::Seconds => ts.timestamp(),
@@ -179,10 +179,10 @@ struct ToUnixTimestampFn {
 
 impl FunctionExpression for ToUnixTimestampFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = crate::resolve_value!(self.value.resolve(ctx));
+        let value = self.value.resolve(ctx)?;
         let unit = self.unit;
 
-        to_unix_timestamp(value, unit).map(EvaluationOutcome::Value)
+        to_unix_timestamp(value, unit)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

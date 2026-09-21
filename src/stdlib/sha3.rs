@@ -49,7 +49,7 @@ fn sha3_hex(value: &[u8], variant: &[u8]) -> Bytes {
     }
 }
 
-fn sha3(value: Value, variant: &Bytes) -> ValueResult {
+fn sha3(value: Value, variant: &Bytes) -> Resolved {
     let value = value.try_bytes()?;
     Ok(Value::Bytes(sha3_hex(&value, variant)))
 }
@@ -144,10 +144,10 @@ struct Sha3Fn {
 
 impl FunctionExpression for Sha3Fn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = crate::resolve_value!(self.value.resolve(ctx));
+        let value = self.value.resolve(ctx)?;
         let variant = &self.variant;
 
-        sha3(value, variant).map(EvaluationOutcome::Value)
+        sha3(value, variant)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

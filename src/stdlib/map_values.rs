@@ -21,7 +21,7 @@ fn map_values<T>(
     recursive: bool,
     ctx: &mut Context,
     runner: &closure::Runner<T>,
-) -> ValueResult
+) -> Resolved
 where
     T: Fn(&mut Context) -> Resolved,
 {
@@ -167,14 +167,13 @@ struct MapValuesFn {
 }
 
 impl FunctionExpression for MapValuesFn {
-    fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let recursive = crate::resolve_value!(
-            self.recursive
-                .map_resolve_with_default(ctx, || DEFAULT_RECURSIVE.clone())
-        )
-        .try_boolean()?;
+    fn resolve(&self, ctx: &mut Context) -> ExpressionResult<Value> {
+        let recursive = self
+            .recursive
+            .map_resolve_with_default(ctx, || DEFAULT_RECURSIVE.clone())?
+            .try_boolean()?;
 
-        let value = crate::resolve_value!(self.value.resolve(ctx));
+        let value = self.value.resolve(ctx)?;
         let Closure {
             variables,
             block,
@@ -182,7 +181,7 @@ impl FunctionExpression for MapValuesFn {
         } = &self.closure;
         let runner = closure::Runner::new(variables, |ctx| block.resolve(ctx));
 
-        map_values(value, recursive, ctx, &runner).map(EvaluationOutcome::Value)
+        map_values(value, recursive, ctx, &runner)
     }
 
     fn type_def(&self, ctx: &state::TypeState) -> TypeDef {

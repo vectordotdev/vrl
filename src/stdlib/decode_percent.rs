@@ -1,7 +1,7 @@
 use crate::compiler::prelude::*;
 use percent_encoding::percent_decode;
 
-fn decode_percent(value: Value) -> ValueResult {
+fn decode_percent(value: Value) -> Resolved {
     let value = value.try_bytes()?;
     Ok(percent_decode(&value)
         .decode_utf8_lossy()
@@ -65,9 +65,9 @@ struct DecodePercentFn {
 
 impl FunctionExpression for DecodePercentFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = crate::resolve_value!(self.value.resolve(ctx));
+        let value = self.value.resolve(ctx)?;
 
-        decode_percent(value).map(EvaluationOutcome::Value)
+        decode_percent(value)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

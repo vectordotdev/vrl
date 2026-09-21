@@ -81,9 +81,7 @@ struct IsArrayFn {
 
 impl FunctionExpression for IsArrayFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        Ok(EvaluationOutcome::Value(value!(
-            crate::resolve_value!(self.value.resolve(ctx)).is_array()
-        )))
+        self.value.resolve(ctx).map(|v| value!(v.is_array()))
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

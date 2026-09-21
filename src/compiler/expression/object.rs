@@ -32,13 +32,11 @@ impl Deref for Object {
 
 impl Expression for Object {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let mut values = BTreeMap::new();
-        for (key, expr) in &self.inner {
-            values.insert(key.clone(), crate::resolve_value!(expr.resolve(ctx)));
-        }
-        Ok(crate::compiler::EvaluationOutcome::Value(Value::Object(
-            values,
-        )))
+        self.inner
+            .iter()
+            .map(|(key, expr)| expr.resolve(ctx).map(|v| (key.clone(), v)))
+            .collect::<Result<BTreeMap<_, _>, _>>()
+            .map(Value::Object)
     }
 
     fn resolve_constant(&self, state: &TypeState) -> Option<Value> {

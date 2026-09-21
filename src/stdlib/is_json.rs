@@ -43,7 +43,7 @@ const PARAMETERS: &[Parameter] = &[
     .enum_variants(VARIANT_ENUM),
 ];
 
-fn is_json(value: Value) -> ValueResult {
+fn is_json(value: Value) -> Resolved {
     let bytes = value.try_bytes()?;
 
     match serde_json::from_slice::<'_, serde::de::IgnoredAny>(&bytes) {
@@ -52,7 +52,7 @@ fn is_json(value: Value) -> ValueResult {
     }
 }
 
-fn is_json_with_variant(value: Value, variant: &Bytes) -> ValueResult {
+fn is_json_with_variant(value: Value, variant: &Bytes) -> Resolved {
     let bytes = value.try_bytes()?;
 
     if serde_json::from_slice::<'_, serde::de::IgnoredAny>(&bytes).is_ok() {
@@ -174,8 +174,8 @@ struct IsJsonFn {
 
 impl FunctionExpression for IsJsonFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = crate::resolve_value!(self.value.resolve(ctx));
-        is_json(value).map(EvaluationOutcome::Value)
+        let value = self.value.resolve(ctx)?;
+        is_json(value)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {
@@ -191,10 +191,10 @@ struct IsJsonVariantsFn {
 
 impl FunctionExpression for IsJsonVariantsFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = crate::resolve_value!(self.value.resolve(ctx));
+        let value = self.value.resolve(ctx)?;
         let variant = &self.variant;
 
-        is_json_with_variant(value, variant).map(EvaluationOutcome::Value)
+        is_json_with_variant(value, variant)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

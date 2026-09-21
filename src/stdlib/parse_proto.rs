@@ -128,8 +128,8 @@ struct ParseProtoFn {
 
 impl FunctionExpression for ParseProtoFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = crate::resolve_value!(self.value.resolve(ctx));
-        parse_proto(&self.descriptor, value).map(EvaluationOutcome::Value)
+        let value = self.value.resolve(ctx)?;
+        parse_proto(&self.descriptor, value)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

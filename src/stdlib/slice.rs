@@ -26,7 +26,7 @@ const PARAMETERS: &[Parameter] = &[
 #[allow(clippy::cast_possible_wrap)]
 #[allow(clippy::cast_sign_loss)]
 #[allow(clippy::cast_possible_truncation)] //TODO evaluate removal options
-fn slice(start: i64, end: Option<i64>, value: Value) -> ValueResult {
+fn slice(start: i64, end: Option<i64>, value: Value) -> Resolved {
     let range = |len: i64| -> ExpressionResult<Range<usize>> {
         let start = match start {
             start if start < 0 => start + len,
@@ -141,14 +141,14 @@ struct SliceFn {
 
 impl FunctionExpression for SliceFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let start = crate::resolve_value!(self.start.resolve(ctx)).try_integer()?;
+        let start = self.start.resolve(ctx)?.try_integer()?;
         let end = match &self.end {
-            Some(expr) => Some(crate::resolve_value!(expr.resolve(ctx)).try_integer()?),
+            Some(expr) => Some(expr.resolve(ctx)?.try_integer()?),
             None => None,
         };
-        let value = crate::resolve_value!(self.value.resolve(ctx));
+        let value = self.value.resolve(ctx)?;
 
-        slice(start, end, value).map(EvaluationOutcome::Value)
+        slice(start, end, value)
     }
 
     fn type_def(&self, state: &state::TypeState) -> TypeDef {

@@ -13,7 +13,7 @@ const PARAMETERS: &[Parameter] = &[
     .default(&DEFAULT_COMPRESSION_LEVEL),
 ];
 
-fn encode_zstd(value: Value, compression_level: Value) -> ValueResult {
+fn encode_zstd(value: Value, compression_level: Value) -> Resolved {
     #[allow(clippy::cast_possible_truncation)] //TODO evaluate removal options
     let compression_level = compression_level.try_integer()? as i32;
 
@@ -82,14 +82,13 @@ struct EncodeZstdFn {
 
 impl FunctionExpression for EncodeZstdFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = crate::resolve_value!(self.value.resolve(ctx));
+        let value = self.value.resolve(ctx)?;
 
-        let compression_level = crate::resolve_value!(
-            self.compression_level
-                .map_resolve_with_default(ctx, || DEFAULT_COMPRESSION_LEVEL.clone())
-        );
+        let compression_level = self
+            .compression_level
+            .map_resolve_with_default(ctx, || DEFAULT_COMPRESSION_LEVEL.clone())?;
 
-        encode_zstd(value, compression_level).map(EvaluationOutcome::Value)
+        encode_zstd(value, compression_level)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

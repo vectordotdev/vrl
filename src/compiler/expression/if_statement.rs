@@ -18,15 +18,14 @@ pub struct IfStatement {
 
 impl Expression for IfStatement {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let predicate = crate::resolve_value!(self.predicate.resolve(ctx)).try_boolean()?;
+        let predicate = self.predicate.resolve(ctx)?.try_boolean()?;
 
         if predicate {
             self.if_block.resolve(ctx)
         } else {
-            self.else_block.as_ref().map_or(
-                Ok(crate::compiler::EvaluationOutcome::Value(Value::Null)),
-                |block| block.resolve(ctx),
-            )
+            self.else_block
+                .as_ref()
+                .map_or(Ok(Value::Null), |block| block.resolve(ctx))
         }
     }
 

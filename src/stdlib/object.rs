@@ -1,6 +1,6 @@
 use crate::compiler::prelude::*;
 
-fn object(value: Value) -> ValueResult {
+fn object(value: Value) -> Resolved {
     match value {
         v @ Value::Object(_) => Ok(v),
         v => Err(format!("expected object, got {}", v.kind()).into()),
@@ -86,7 +86,7 @@ struct ObjectFn {
 
 impl FunctionExpression for ObjectFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        object(crate::resolve_value!(self.value.resolve(ctx))).map(EvaluationOutcome::Value)
+        object(self.value.resolve(ctx)?)
     }
 
     fn type_def(&self, state: &state::TypeState) -> TypeDef {

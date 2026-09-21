@@ -5,7 +5,7 @@ use crate::compiler::codes;
 use crate::compiler::expression::function_call::Warning::AbortInfallible;
 use crate::compiler::state::{TypeInfo, TypeState};
 use crate::compiler::{
-    CompileConfig, Context, Expression, Function, Resolved, Span, TypeDef,
+    CompileConfig, Context, ControlSignal, Expression, Function, Resolved, Span, TypeDef,
     expression::{ExpressionError, FunctionArgument, levenstein},
     function::{
         ArgumentList, Closure, Example, FunctionCompileContext, Parameter,
@@ -762,7 +762,17 @@ impl FunctionCall {
 impl Expression for FunctionCall {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         self.expr.resolve(ctx).map_err(|err| match err {
-            ExpressionError::Interrupted
+            ExpressionError::ControlFlow(ControlSignal::Return { span, .. }) => {
+                ExpressionError::Error {
+                    message: "return cannot be used inside closures".to_owned(),
+                    labels: vec![Label::primary(
+                        "return cannot be used inside closures",
+                        span,
+                    )],
+                    notes: Vec::new(),
+                }
+            }
+            ExpressionError::ControlFlow(_)
             | ExpressionError::Abort { .. }
             | ExpressionError::Fallible { .. }
             | ExpressionError::Missing { .. } => {

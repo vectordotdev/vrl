@@ -1,7 +1,7 @@
 use crate::compiler::prelude::*;
 use crate::core::tokenize;
 
-fn parse_tokens(value: &Value) -> ValueResult {
+fn parse_tokens(value: &Value) -> Resolved {
     let string = value.try_bytes_utf8_lossy()?;
     let tokens: Value = tokenize::parse(&string)
         .into_iter()
@@ -89,8 +89,8 @@ struct ParseTokensFn {
 
 impl FunctionExpression for ParseTokensFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = crate::resolve_value!(self.value.resolve(ctx));
-        parse_tokens(&value).map(EvaluationOutcome::Value)
+        let value = self.value.resolve(ctx)?;
+        parse_tokens(&value)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

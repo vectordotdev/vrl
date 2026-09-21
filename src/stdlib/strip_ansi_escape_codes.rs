@@ -1,7 +1,7 @@
 use crate::compiler::prelude::*;
 use bytes::Bytes;
 
-fn strip_ansi_escape_codes(bytes: Value) -> ValueResult {
+fn strip_ansi_escape_codes(bytes: Value) -> Resolved {
     let bytes = bytes.try_bytes()?;
     let stripped_bytes = Bytes::from(strip_ansi_escapes::strip(&bytes));
     Ok(stripped_bytes.into())
@@ -59,9 +59,9 @@ struct StripAnsiEscapeCodesFn {
 
 impl FunctionExpression for StripAnsiEscapeCodesFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let bytes = crate::resolve_value!(self.value.resolve(ctx));
+        let bytes = self.value.resolve(ctx)?;
 
-        strip_ansi_escape_codes(bytes).map(EvaluationOutcome::Value)
+        strip_ansi_escape_codes(bytes)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

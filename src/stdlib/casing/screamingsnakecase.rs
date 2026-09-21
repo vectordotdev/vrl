@@ -90,9 +90,8 @@ struct ScreamingSnakecaseFn {
 
 impl FunctionExpression for ScreamingSnakecaseFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = crate::resolve_value!(self.value.resolve(ctx));
+        let value = self.value.resolve(ctx)?;
         super::convert_case(&value, Case::Constant, self.original_case)
-            .map(EvaluationOutcome::Value)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

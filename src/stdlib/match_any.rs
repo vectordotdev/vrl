@@ -1,7 +1,7 @@
 use crate::compiler::prelude::*;
 use regex::bytes::RegexSet;
 
-fn match_any(value: Value, pattern: &RegexSet) -> ValueResult {
+fn match_any(value: Value, pattern: &RegexSet) -> Resolved {
     let bytes = value.try_bytes()?;
     Ok(pattern.is_match(&bytes).into())
 }
@@ -91,8 +91,8 @@ struct MatchAnyFn {
 
 impl FunctionExpression for MatchAnyFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = crate::resolve_value!(self.value.resolve(ctx));
-        match_any(value, &self.regex_set).map(EvaluationOutcome::Value)
+        let value = self.value.resolve(ctx)?;
+        match_any(value, &self.regex_set)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

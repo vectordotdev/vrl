@@ -88,10 +88,10 @@ struct TagTypesExternallyFn {
 
 impl FunctionExpression for TagTypesExternallyFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = crate::resolve_value!(self.value.resolve(ctx));
+        let value = self.value.resolve(ctx)?;
         let tagged_externally = tag_type_externally(value);
 
-        Ok(EvaluationOutcome::Value(tagged_externally))
+        Ok(tagged_externally)
     }
 
     fn type_def(&self, state: &state::TypeState) -> TypeDef {

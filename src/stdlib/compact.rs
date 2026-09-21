@@ -36,7 +36,7 @@ fn compact(
     array: Value,
     nullish: Value,
     value: Value,
-) -> ValueResult {
+) -> Resolved {
     let options = CompactOptions {
         recursive: recursive.try_boolean()?,
         null: null.try_boolean()?,
@@ -196,34 +196,27 @@ impl CompactOptions {
 
 impl FunctionExpression for CompactFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let recursive = crate::resolve_value!(
-            self.recursive
-                .map_resolve_with_default(ctx, || DEFAULT_RECURSIVE.clone())
-        );
-        let null = crate::resolve_value!(
-            self.null
-                .map_resolve_with_default(ctx, || DEFAULT_NULL.clone())
-        );
-        let string = crate::resolve_value!(
-            self.string
-                .map_resolve_with_default(ctx, || DEFAULT_STRING.clone())
-        );
-        let object = crate::resolve_value!(
-            self.object
-                .map_resolve_with_default(ctx, || DEFAULT_OBJECT.clone())
-        );
-        let array = crate::resolve_value!(
-            self.array
-                .map_resolve_with_default(ctx, || DEFAULT_ARRAY.clone())
-        );
-        let nullish = crate::resolve_value!(
-            self.nullish
-                .map_resolve_with_default(ctx, || DEFAULT_NULLISH.clone())
-        );
-        let value = crate::resolve_value!(self.value.resolve(ctx));
+        let recursive = self
+            .recursive
+            .map_resolve_with_default(ctx, || DEFAULT_RECURSIVE.clone())?;
+        let null = self
+            .null
+            .map_resolve_with_default(ctx, || DEFAULT_NULL.clone())?;
+        let string = self
+            .string
+            .map_resolve_with_default(ctx, || DEFAULT_STRING.clone())?;
+        let object = self
+            .object
+            .map_resolve_with_default(ctx, || DEFAULT_OBJECT.clone())?;
+        let array = self
+            .array
+            .map_resolve_with_default(ctx, || DEFAULT_ARRAY.clone())?;
+        let nullish = self
+            .nullish
+            .map_resolve_with_default(ctx, || DEFAULT_NULLISH.clone())?;
+        let value = self.value.resolve(ctx)?;
 
         compact(recursive, null, string, object, array, nullish, value)
-            .map(EvaluationOutcome::Value)
     }
 
     fn type_def(&self, state: &state::TypeState) -> TypeDef {

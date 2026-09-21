@@ -524,7 +524,7 @@ where
 
         let value = match self {
             Single { target, expr } => {
-                let value = crate::resolve_value!(expr.resolve(ctx));
+                let value = expr.resolve(ctx)?;
                 target.insert(value.clone(), ctx);
                 value
             }
@@ -534,14 +534,13 @@ where
                 expr,
                 default,
             } => match expr.resolve(ctx) {
-                Ok(crate::compiler::EvaluationOutcome::Value(value)) => {
+                Ok(value) => {
                     ok.insert(value.clone(), ctx);
                     err.insert(Value::Null, ctx);
                     value
                 }
-                Ok(outcome) => return Ok(outcome),
                 Err(error) => {
-                    if matches!(error, ExpressionError::Interrupted) {
+                    if matches!(error, ExpressionError::ControlFlow(_)) {
                         return Err(error);
                     }
 
@@ -553,7 +552,7 @@ where
             },
         };
 
-        Ok(crate::compiler::EvaluationOutcome::Value(value))
+        Ok(value)
     }
 
     fn type_info(&self, state: &TypeState) -> TypeInfo {

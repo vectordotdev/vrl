@@ -94,17 +94,15 @@ struct DecodeLz4Fn {
 
 impl FunctionExpression for DecodeLz4Fn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = crate::resolve_value!(self.value.resolve(ctx));
-        let buf_size = crate::resolve_value!(
-            self.buf_size
-                .map_resolve_with_default(ctx, || DEFAULT_BUF_SIZE.clone())
-        )
-        .try_integer()?;
-        let prepended_size = crate::resolve_value!(
-            self.prepended_size
-                .map_resolve_with_default(ctx, || DEFAULT_PREPENDED_SIZE.clone())
-        )
-        .try_boolean()?;
+        let value = self.value.resolve(ctx)?;
+        let buf_size = self
+            .buf_size
+            .map_resolve_with_default(ctx, || DEFAULT_BUF_SIZE.clone())?
+            .try_integer()?;
+        let prepended_size = self
+            .prepended_size
+            .map_resolve_with_default(ctx, || DEFAULT_PREPENDED_SIZE.clone())?
+            .try_boolean()?;
 
         let buffer_size: usize;
         if let Ok(sz) = u32::try_from(buf_size) {
@@ -113,7 +111,7 @@ impl FunctionExpression for DecodeLz4Fn {
             // If the buffer size is too large, we default to a maximum size
             buffer_size = usize::MAX;
         }
-        decode_lz4(value, buffer_size, prepended_size).map(EvaluationOutcome::Value)
+        decode_lz4(value, buffer_size, prepended_size)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {
@@ -122,7 +120,7 @@ impl FunctionExpression for DecodeLz4Fn {
     }
 }
 
-fn decode_lz4(value: Value, buf_size: usize, prepended_size: bool) -> ValueResult {
+fn decode_lz4(value: Value, buf_size: usize, prepended_size: bool) -> Resolved {
     let compressed_data = value.try_bytes()?;
 
     if is_lz4_frame(&compressed_data) {
@@ -136,7 +134,7 @@ fn is_lz4_frame(data: &[u8]) -> bool {
     data.starts_with(&LZ4_FRAME_MAGIC)
 }
 
-fn decode_lz4_frame(compressed_data: &[u8], initial_capacity: usize) -> ValueResult {
+fn decode_lz4_frame(compressed_data: &[u8], initial_capacity: usize) -> Resolved {
     let mut output_buffer = Vec::with_capacity(initial_capacity);
     let mut decoder = FrameDecoder::new(std::io::Cursor::new(compressed_data));
 
@@ -146,7 +144,7 @@ fn decode_lz4_frame(compressed_data: &[u8], initial_capacity: usize) -> ValueRes
     }
 }
 
-fn decode_lz4_block(compressed_data: &[u8], buf_size: usize, prepended_size: bool) -> ValueResult {
+fn decode_lz4_block(compressed_data: &[u8], buf_size: usize, prepended_size: bool) -> Resolved {
     let decompression_result = if prepended_size {
         // The compressed data includes the original size as a prefix
         decompress_size_prepended(compressed_data)
