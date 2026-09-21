@@ -28,6 +28,11 @@ pub struct Definition {
     /// collection elements to determine the eventual type definition of the
     /// closure variable(s) (see `Variable`).
     pub is_iterator: bool,
+
+    /// Defines whether the closure supports the `break` statement for early
+    /// loop exit. Only closures whose implementations consume
+    /// `ExpressionError::Break` (e.g. `for_each`) should set this to `true`.
+    pub supports_break: bool,
 }
 
 /// One input variant for a function-closure.
@@ -757,5 +762,45 @@ mod tests {
         }
 
         assert_eq!(ctx.state().variable(&val_ident), Some(&initial_array));
+    }
+
+    #[test]
+    fn run_index_value_propagates_break_and_cleans_up() {
+        let (mut target, mut state, tz) = test_context();
+        let val_ident = ident("val");
+        state.insert_variable(val_ident.clone(), Value::from(42));
+        let mut ctx = Context::new(&mut target, &mut state, &tz);
+
+        let variables = vec![ident("idx"), val_ident.clone()];
+        let runner = Runner::new(&variables, |_ctx| {
+            Err(ExpressionError::Break {
+                span: Span::new(0, 5),
+            })
+        });
+
+        let res = runner.run_index_value(&mut ctx, 0, &Value::from(10));
+        assert!(matches!(res, Err(ExpressionError::Break { .. })));
+        assert!(ctx.state().variable(&ident("idx")).is_none());
+        assert_eq!(ctx.state().variable(&val_ident), Some(&Value::from(42)));
+    }
+
+    #[test]
+    fn run_key_value_propagates_break_and_cleans_up() {
+        let (mut target, mut state, tz) = test_context();
+        let val_ident = ident("val");
+        state.insert_variable(val_ident.clone(), Value::from(42));
+        let mut ctx = Context::new(&mut target, &mut state, &tz);
+
+        let variables = vec![ident("key"), val_ident.clone()];
+        let runner = Runner::new(&variables, |_ctx| {
+            Err(ExpressionError::Break {
+                span: Span::new(0, 5),
+            })
+        });
+
+        let res = runner.run_key_value(&mut ctx, "k", &Value::from(10));
+        assert!(matches!(res, Err(ExpressionError::Break { .. })));
+        assert!(ctx.state().variable(&ident("key")).is_none());
+        assert_eq!(ctx.state().variable(&val_ident), Some(&Value::from(42)));
     }
 }
