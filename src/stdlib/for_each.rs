@@ -8,13 +8,21 @@ where
         Value::Array(array) => {
             let mut scoped = runner.scoped_loop(ctx);
             for (index, value) in array.into_iter().enumerate() {
-                scoped.run_index_value(index, value)?;
+                match scoped.run_index_value(index, value) {
+                    Ok(_) => {}
+                    Err(ExpressionError::Break { .. }) => break,
+                    Err(err) => return Err(err),
+                }
             }
         }
         Value::Object(object) => {
             let mut scoped = runner.scoped_loop(ctx);
             for (key, value) in object {
-                scoped.run_key_value(key, value)?;
+                match scoped.run_key_value(key, value) {
+                    Ok(_) => {}
+                    Err(ExpressionError::Break { .. }) => break,
+                    Err(err) => return Err(err),
+                }
             }
         }
         _ => {}
@@ -104,6 +112,20 @@ impl Function for ForEach {
                 "},
                 result: Ok("9"),
             },
+            example! {
+                title: "Early termination with break",
+                source: indoc! {r"
+                    found = null
+                    for_each([1, 2, 3, 4, 5]) -> |_index, value| {
+                        if value == 3 {
+                            found = value
+                            break
+                        }
+                    }
+                    found
+                "},
+                result: Ok("3"),
+            },
         ]
     }
 
@@ -142,6 +164,7 @@ impl Function for ForEach {
                 },
             }],
             is_iterator: true,
+            supports_break: true,
         })
     }
 }

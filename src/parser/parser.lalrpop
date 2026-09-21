@@ -43,6 +43,7 @@ extern {
         "false" => Token::False,
         "abort" => Token::Abort,
         "return" => Token::Return,
+        "break" => Token::Break,
 
         ";" => Token::SemiColon,
         "\n" => Token::Newline,
@@ -177,6 +178,7 @@ Expr: Node<Expr> = {
     <if_statement:Sp<IfStatement>> => Node::new(if_statement.span(), Expr::IfStatement(if_statement)),
     Sp<AbortExpr>,
     Sp<ReturnExpr>,
+    Sp<BreakExpr>,
     AssignmentExpr,
 };
 
@@ -205,6 +207,10 @@ ReturnExpr: Expr = {
     },
 };
 
+BreakExpr: Expr = {
+    Sp<"break"> => Expr::Break(<>.map(|_| Break)),
+};
+
 // An identifier that is allowed to include reserved keywords.
 #[inline]
 AnyIdent: Ident = {
@@ -217,6 +223,7 @@ AnyIdent: Ident = {
     "false" => Ident("false".to_owned()),
     "abort" => Ident("abort".to_owned()),
     "return" => Ident("return".to_owned()),
+    "break" => Ident("break".to_owned()),
 };
 
 // -----------------------------------------------------------------------------

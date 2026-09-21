@@ -270,6 +270,7 @@ impl Function for ReplaceWith {
                 },
             }],
             is_iterator: false,
+            supports_break: false,
         })
     }
 }

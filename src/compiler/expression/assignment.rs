@@ -540,7 +540,10 @@ where
                     value
                 }
                 Err(error) => {
-                    if matches!(error, ExpressionError::Interrupted) {
+                    if matches!(
+                        error,
+                        ExpressionError::Interrupted | ExpressionError::Break { .. }
+                    ) {
                         return Err(error);
                     }
 

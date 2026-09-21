@@ -165,6 +165,7 @@ impl Function for MapKeys {
                 },
             }],
             is_iterator: true,
+            supports_break: false,
         })
     }
 }
