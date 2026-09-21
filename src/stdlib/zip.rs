@@ -1,6 +1,6 @@
 use crate::compiler::prelude::*;
 
-fn zip2(value0: Value, value1: Value) -> Resolved {
+fn zip2(value0: Value, value1: Value) -> ValueResult {
     Ok(value0
         .try_array()?
         .into_iter()
@@ -9,7 +9,7 @@ fn zip2(value0: Value, value1: Value) -> Resolved {
         .collect())
 }
 
-fn zip_all(value: Value) -> Resolved {
+fn zip_all(value: Value) -> ValueResult {
     Ok(MultiZip(
         value
             .try_array()?
@@ -130,11 +130,12 @@ struct ZipFn {
 
 impl FunctionExpression for ZipFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let array_0 = self.array_0.resolve(ctx)?;
-        match &self.array_1 {
+        let array_0 = crate::resolve_value!(self.array_0.resolve(ctx));
+        (match &self.array_1 {
             None => zip_all(array_0),
-            Some(array_1) => zip2(array_0, array_1.resolve(ctx)?),
-        }
+            Some(array_1) => zip2(array_0, crate::resolve_value!(array_1.resolve(ctx))),
+        })
+        .map(EvaluationOutcome::Value)
     }
 
     fn type_def(&self, _state: &TypeState) -> TypeDef {

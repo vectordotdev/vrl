@@ -1,7 +1,7 @@
 use crate::compiler::prelude::*;
 use std::net::Ipv6Addr;
 
-fn is_ipv6(value: &Value) -> Resolved {
+fn is_ipv6(value: &Value) -> ValueResult {
     let value_str = value.try_bytes_utf8_lossy()?;
     Ok(value_str.parse::<Ipv6Addr>().is_ok().into())
 }
@@ -81,7 +81,7 @@ struct IsIpv6Fn {
 
 impl FunctionExpression for IsIpv6Fn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        self.value.resolve(ctx).and_then(|v| is_ipv6(&v))
+        is_ipv6(&crate::resolve_value!(self.value.resolve(ctx))).map(EvaluationOutcome::Value)
     }
 
     fn type_def(&self, _: &TypeState) -> TypeDef {

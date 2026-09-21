@@ -5,7 +5,9 @@ use aes_siv::aead::{Aead as Aead5, KeyInit as KeyInit5, generic_array::GenericAr
 use aes_siv::{Aes128SivAead, Aes256SivAead};
 use cbc::cipher::block_padding::{AnsiX923, Iso7816, Iso10126, Pkcs7};
 use cfb_mode::Decryptor as Cfb;
-use chacha20poly1305::aead::{Aead as ChaChaAead, KeyInit as ChaChaKeyInit, Key as ChaChaKey, Nonce as ChaChaNonce};
+use chacha20poly1305::aead::{
+    Aead as ChaChaAead, Key as ChaChaKey, KeyInit as ChaChaKeyInit, Nonce as ChaChaNonce,
+};
 use chacha20poly1305::{ChaCha20Poly1305, XChaCha20Poly1305};
 use crypto_secretbox::XSalsa20Poly1305;
 use ctr::{Ctr64BE, Ctr64LE};
@@ -61,8 +63,7 @@ macro_rules! decrypt_stream {
     }};
 }
 
-
-fn decrypt(ciphertext: Value, algorithm: &str, key: Value, iv: Value) -> Resolved {
+fn decrypt(ciphertext: Value, algorithm: &str, key: Value, iv: Value) -> ValueResult {
     let ciphertext = ciphertext.try_bytes()?;
 
     let ciphertext = match algorithm {
@@ -98,12 +99,22 @@ fn decrypt(ciphertext: Value, algorithm: &str, key: Value, iv: Value) -> Resolve
         "AES-128-CBC-ISO10126" => decrypt_padded!(Aes128Cbc, Iso10126, ciphertext, key, iv),
         "AES-128-SIV" => decrypt_stream!(Aes128SivAead, ciphertext, key, iv),
         "AES-256-SIV" => decrypt_stream!(Aes256SivAead, ciphertext, key, iv),
-        "CHACHA20-POLY1305" => ChaCha20Poly1305::new(&ChaChaKey::<ChaCha20Poly1305>::from(get_key_bytes(key)?))
-            .decrypt(&ChaChaNonce::<ChaCha20Poly1305>::from(get_iv_bytes(iv)?), ciphertext.as_ref())
-            .expect("key/iv sizes were already checked"),
-        "XCHACHA20-POLY1305" => XChaCha20Poly1305::new(&ChaChaKey::<XChaCha20Poly1305>::from(get_key_bytes(key)?))
-            .decrypt(&ChaChaNonce::<XChaCha20Poly1305>::from(get_iv_bytes(iv)?), ciphertext.as_ref())
-            .expect("key/iv sizes were already checked"),
+        "CHACHA20-POLY1305" => {
+            ChaCha20Poly1305::new(&ChaChaKey::<ChaCha20Poly1305>::from(get_key_bytes(key)?))
+                .decrypt(
+                    &ChaChaNonce::<ChaCha20Poly1305>::from(get_iv_bytes(iv)?),
+                    ciphertext.as_ref(),
+                )
+                .expect("key/iv sizes were already checked")
+        }
+        "XCHACHA20-POLY1305" => {
+            XChaCha20Poly1305::new(&ChaChaKey::<XChaCha20Poly1305>::from(get_key_bytes(key)?))
+                .decrypt(
+                    &ChaChaNonce::<XChaCha20Poly1305>::from(get_iv_bytes(iv)?),
+                    ciphertext.as_ref(),
+                )
+                .expect("key/iv sizes were already checked")
+        }
         "XSALSA20-POLY1305" => decrypt_stream!(XSalsa20Poly1305, ciphertext, key, iv),
         other => return Err(format!("Invalid algorithm: {other}").into()),
     };
@@ -260,13 +271,13 @@ struct DecryptFn {
 
 impl FunctionExpression for DecryptFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let ciphertext = self.ciphertext.resolve(ctx)?;
-        let algorithm = self.algorithm.resolve(ctx)?;
-        let key = self.key.resolve(ctx)?;
-        let iv = self.iv.resolve(ctx)?;
+        let ciphertext = crate::resolve_value!(self.ciphertext.resolve(ctx));
+        let algorithm = crate::resolve_value!(self.algorithm.resolve(ctx));
+        let key = crate::resolve_value!(self.key.resolve(ctx));
+        let iv = crate::resolve_value!(self.iv.resolve(ctx));
 
         let algorithm = algorithm.try_bytes_utf8_lossy()?.as_ref().to_uppercase();
-        decrypt(ciphertext, algorithm.as_str(), key, iv)
+        decrypt(ciphertext, algorithm.as_str(), key, iv).map(EvaluationOutcome::Value)
     }
 
     fn type_def(&self, _state: &state::TypeState) -> TypeDef {

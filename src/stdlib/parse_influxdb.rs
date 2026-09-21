@@ -94,7 +94,7 @@ impl From<Error> for ExpressionError {
     }
 }
 
-fn parse_influxdb(bytes: Value) -> Resolved {
+fn parse_influxdb(bytes: Value) -> ValueResult {
     let bytes = bytes.try_bytes()?;
     let line = String::from_utf8_lossy(&bytes);
     let parsed_line = influxdb_line_protocol::parse_lines(&line);
@@ -274,9 +274,9 @@ struct ParseInfluxDBFn {
 
 impl FunctionExpression for ParseInfluxDBFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = self.value.resolve(ctx)?;
+        let value = crate::resolve_value!(self.value.resolve(ctx));
 
-        parse_influxdb(value)
+        parse_influxdb(value).map(EvaluationOutcome::Value)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

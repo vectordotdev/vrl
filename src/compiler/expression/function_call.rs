@@ -764,20 +764,11 @@ impl Expression for FunctionCall {
         self.expr.resolve(ctx).map_err(|err| match err {
             ExpressionError::Interrupted
             | ExpressionError::Abort { .. }
-            | ExpressionError::Break { .. }
             | ExpressionError::Fallible { .. }
             | ExpressionError::Missing { .. } => {
                 // propagate the error
                 err
             }
-            ExpressionError::Return { span, .. } => ExpressionError::Error {
-                message: "return cannot be used inside closures".to_owned(),
-                labels: vec![Label::primary(
-                    "return cannot be used inside closures",
-                    span,
-                )],
-                notes: Vec::new(),
-            },
             ExpressionError::Error {
                 message,
                 mut labels,

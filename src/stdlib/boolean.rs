@@ -1,6 +1,6 @@
 use crate::compiler::prelude::*;
 
-fn boolean(value: Value) -> Resolved {
+fn boolean(value: Value) -> ValueResult {
     match value {
         v @ Value::Boolean(_) => Ok(v),
         v => Err(format!("expected boolean, got {}", v.kind()).into()),
@@ -93,7 +93,7 @@ struct BooleanFn {
 
 impl FunctionExpression for BooleanFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        boolean(self.value.resolve(ctx)?)
+        boolean(crate::resolve_value!(self.value.resolve(ctx))).map(EvaluationOutcome::Value)
     }
 
     fn type_def(&self, state: &state::TypeState) -> TypeDef {

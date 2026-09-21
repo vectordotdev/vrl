@@ -7,23 +7,12 @@ use crate::compiler::{
 };
 use crate::diagnostic::{DiagnosticMessage, Label, Note};
 
-use super::ExpressionError;
-
 #[derive(Debug, Clone, PartialEq)]
-pub struct Break {
-    span: Span,
-}
-
-impl Break {
-    #[must_use]
-    pub fn new(span: Span) -> Self {
-        Self { span }
-    }
-}
+pub struct Break;
 
 impl Expression for Break {
     fn resolve(&self, _ctx: &mut Context) -> Resolved {
-        Err(ExpressionError::Break { span: self.span })
+        Ok(crate::compiler::EvaluationOutcome::Break)
     }
 
     fn type_info(&self, state: &TypeState) -> TypeInfo {

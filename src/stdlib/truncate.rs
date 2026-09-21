@@ -1,6 +1,6 @@
 use crate::compiler::prelude::*;
 
-fn truncate(value: &Value, limit: Value, suffix: &Value) -> Resolved {
+fn truncate(value: &Value, limit: Value, suffix: &Value) -> ValueResult {
     let mut value = value.try_bytes_utf8_lossy()?.into_owned();
     let limit = limit.try_integer()?;
     // TODO consider removal options
@@ -116,11 +116,11 @@ struct TruncateFn {
 
 impl FunctionExpression for TruncateFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = self.value.resolve(ctx)?;
-        let limit = self.limit.resolve(ctx)?;
-        let suffix = self.suffix.resolve(ctx)?;
+        let value = crate::resolve_value!(self.value.resolve(ctx));
+        let limit = crate::resolve_value!(self.limit.resolve(ctx));
+        let suffix = crate::resolve_value!(self.suffix.resolve(ctx));
 
-        truncate(&value, limit, &suffix)
+        truncate(&value, limit, &suffix).map(EvaluationOutcome::Value)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

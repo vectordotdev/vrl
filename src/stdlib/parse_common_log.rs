@@ -12,7 +12,7 @@ encoding the timestamp.")
         .default(&DEFAULT_TIMESTAMP_FORMAT),
 ];
 
-fn parse_common_log(bytes: &Value, timestamp_format: &Value, ctx: &Context) -> Resolved {
+fn parse_common_log(bytes: &Value, timestamp_format: &Value, ctx: &Context) -> ValueResult {
     let message = bytes.try_bytes_utf8_lossy()?;
     let timestamp_format = timestamp_format.try_bytes_utf8_lossy()?.to_string();
 
@@ -135,12 +135,13 @@ struct ParseCommonLogFn {
 
 impl FunctionExpression for ParseCommonLogFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let bytes = self.value.resolve(ctx)?;
-        let timestamp_format = self
-            .timestamp_format
-            .map_resolve_with_default(ctx, || DEFAULT_TIMESTAMP_FORMAT.clone())?;
+        let bytes = crate::resolve_value!(self.value.resolve(ctx));
+        let timestamp_format = crate::resolve_value!(
+            self.timestamp_format
+                .map_resolve_with_default(ctx, || DEFAULT_TIMESTAMP_FORMAT.clone())
+        );
 
-        parse_common_log(&bytes, &timestamp_format, ctx)
+        parse_common_log(&bytes, &timestamp_format, ctx).map(EvaluationOutcome::Value)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

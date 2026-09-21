@@ -1,6 +1,6 @@
 use crate::compiler::prelude::*;
 
-fn to_string(value: Value) -> Resolved {
+fn to_string(value: Value) -> ValueResult {
     use Value::{Boolean, Bytes, Float, Integer, Null, Timestamp};
     use chrono::SecondsFormat;
     let value = match value {
@@ -137,9 +137,9 @@ struct ToStringFn {
 
 impl FunctionExpression for ToStringFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = self.value.resolve(ctx)?;
+        let value = crate::resolve_value!(self.value.resolve(ctx));
 
-        to_string(value)
+        to_string(value).map(EvaluationOutcome::Value)
     }
 
     fn type_def(&self, state: &state::TypeState) -> TypeDef {

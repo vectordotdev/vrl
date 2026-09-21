@@ -2,7 +2,7 @@ use crate::compiler::prelude::*;
 use flate2::read::MultiGzDecoder;
 use std::io::Read;
 
-fn decode_gzip(value: Value) -> Resolved {
+fn decode_gzip(value: Value) -> ValueResult {
     let value = value.try_bytes()?;
     let mut buf = Vec::new();
     let result = MultiGzDecoder::new(std::io::Cursor::new(value)).read_to_end(&mut buf);
@@ -73,9 +73,9 @@ struct DecodeGzipFn {
 
 impl FunctionExpression for DecodeGzipFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = self.value.resolve(ctx)?;
+        let value = crate::resolve_value!(self.value.resolve(ctx));
 
-        decode_gzip(value)
+        decode_gzip(value).map(EvaluationOutcome::Value)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

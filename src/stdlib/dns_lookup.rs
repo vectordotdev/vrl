@@ -26,7 +26,7 @@ mod non_wasm {
     use crate::compiler::prelude::*;
     use crate::value::Value;
 
-    fn dns_lookup(value: &Value, qtype: &Value, qclass: &Value, options: Value) -> Resolved {
+    fn dns_lookup(value: &Value, qtype: &Value, qclass: &Value, options: Value) -> ValueResult {
         let host: Name<Vec<_>> = value
             .try_bytes_utf8_lossy()?
             .to_string()
@@ -238,17 +238,20 @@ mod non_wasm {
 
     impl FunctionExpression for DnsLookupFn {
         fn resolve(&self, ctx: &mut Context) -> Resolved {
-            let value = self.value.resolve(ctx)?;
-            let qtype = self
-                .qtype
-                .map_resolve_with_default(ctx, || super::DEFAULT_QTYPE.clone())?;
-            let class = self
-                .class
-                .map_resolve_with_default(ctx, || super::DEFAULT_CLASS.clone())?;
-            let options = self
-                .options
-                .map_resolve_with_default(ctx, || super::DEFAULT_OPTIONS.clone())?;
-            dns_lookup(&value, &qtype, &class, options)
+            let value = crate::resolve_value!(self.value.resolve(ctx));
+            let qtype = crate::resolve_value!(
+                self.qtype
+                    .map_resolve_with_default(ctx, || super::DEFAULT_QTYPE.clone())
+            );
+            let class = crate::resolve_value!(
+                self.class
+                    .map_resolve_with_default(ctx, || super::DEFAULT_CLASS.clone())
+            );
+            let options = crate::resolve_value!(
+                self.options
+                    .map_resolve_with_default(ctx, || super::DEFAULT_OPTIONS.clone())
+            );
+            dns_lookup(&value, &qtype, &class, options).map(EvaluationOutcome::Value)
         }
 
         fn type_def(&self, _: &state::TypeState) -> TypeDef {
@@ -325,11 +328,9 @@ mod non_wasm {
 #[cfg(not(target_arch = "wasm32"))]
 use non_wasm::*;
 
-
 static DEFAULT_QTYPE: Value = Value::Bytes(Bytes::from_static("A".as_bytes()));
 static DEFAULT_CLASS: Value = Value::Bytes(Bytes::from_static("IN".as_bytes()));
-static DEFAULT_OPTIONS: Value =
-    Value::Object(std::collections::BTreeMap::new());
+static DEFAULT_OPTIONS: Value = Value::Object(std::collections::BTreeMap::new());
 
 const PARAMETERS: &[Parameter] = &[
     Parameter::required("value", kind::BYTES, "The domain name to query."),
@@ -852,12 +853,14 @@ mod tests {
         );
     }
 
-    fn prepare_dns_lookup(dns_lookup_fn: &DnsLookupFn) -> Resolved {
+    fn prepare_dns_lookup(dns_lookup_fn: &DnsLookupFn) -> ValueResult {
         let tz = TimeZone::default();
         let mut object: Value = Value::Object(BTreeMap::new());
         let mut runtime_state = state::RuntimeState::default();
         let mut ctx = Context::new(&mut object, &mut runtime_state, &tz);
-        dns_lookup_fn.resolve(&mut ctx)
+        dns_lookup_fn
+            .resolve(&mut ctx)
+            .and_then(closure::closure_value)
     }
 
     #[cfg(feature = "test")]

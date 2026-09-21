@@ -5,7 +5,7 @@ use chrono::{
     format::{Item, strftime::StrftimeItems},
 };
 
-fn format_timestamp_with_tz(ts: Value, format: &Value, timezone: Option<Value>) -> Resolved {
+fn format_timestamp_with_tz(ts: Value, format: &Value, timezone: Option<Value>) -> ValueResult {
     let ts: DateTime<Utc> = ts.try_timestamp()?;
 
     let format = format.try_bytes_utf8_lossy()?;
@@ -106,15 +106,11 @@ struct FormatTimestampFn {
 
 impl FunctionExpression for FormatTimestampFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let bytes = self.format.resolve(ctx)?;
-        let ts = self.value.resolve(ctx)?;
-        let tz = self
-            .timezone
-            .as_ref()
-            .map(|tz| tz.resolve(ctx))
-            .transpose()?;
+        let bytes = crate::resolve_value!(self.format.resolve(ctx));
+        let ts = crate::resolve_value!(self.value.resolve(ctx));
+        let tz = crate::resolve_value!(self.timezone.map_resolve(ctx));
 
-        format_timestamp_with_tz(ts, &bytes, tz)
+        format_timestamp_with_tz(ts, &bytes, tz).map(EvaluationOutcome::Value)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

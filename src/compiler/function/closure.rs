@@ -1,3 +1,4 @@
+use crate::compiler::{EvaluationOutcome, Resolved};
 use std::collections::BTreeMap;
 
 use crate::compiler::{
@@ -31,7 +32,7 @@ pub struct Definition {
 
     /// Defines whether the closure supports the `break` statement for early
     /// loop exit. Only closures whose implementations consume
-    /// `ExpressionError::Break` (e.g. `for_each`) should set this to `true`.
+    /// `EvaluationOutcome::Break` (e.g. `for_each`) should set this to `true`.
     pub supports_break: bool,
 }
 
@@ -154,7 +155,7 @@ pub struct Runner<'a, T> {
 #[allow(clippy::missing_errors_doc)]
 impl<'a, T> Runner<'a, T>
 where
-    T: Fn(&mut Context) -> Result<Value, ExpressionError>,
+    T: Fn(&mut Context) -> Resolved,
 {
     pub fn new(variables: &'a [Ident], runner: T) -> Self {
         Self { variables, runner }
@@ -165,12 +166,7 @@ where
     ///
     /// The provided values are *NOT* mutated during the run. See `map_key` or
     /// `map_value` for mutating alternatives.
-    pub fn run_key_value(
-        &self,
-        ctx: &mut Context,
-        key: &str,
-        value: &Value,
-    ) -> Result<Value, ExpressionError> {
+    pub fn run_key_value(&self, ctx: &mut Context, key: &str, value: &Value) -> Resolved {
         // TODO: we need to allow `LocalEnv` to take a mutable reference to
         // values, instead of owning them.
         let cloned_key = key.to_owned();
@@ -183,8 +179,8 @@ where
         let old_value = insert(ctx.state_mut(), value_ident, cloned_value);
 
         let result = match (self.runner)(ctx) {
-            Ok(value) | Err(ExpressionError::Return { value, .. }) => Ok(value),
-            err @ Err(_) => err,
+            Ok(EvaluationOutcome::Return(value)) => Ok(EvaluationOutcome::Value(value)),
+            result => result,
         };
 
         cleanup(ctx.state_mut(), key_ident, old_key);
@@ -198,12 +194,7 @@ where
     ///
     /// The provided values are *NOT* mutated during the run. See `map_key` or
     /// `map_value` for mutating alternatives.
-    pub fn run_index_value(
-        &self,
-        ctx: &mut Context,
-        index: usize,
-        value: &Value,
-    ) -> Result<Value, ExpressionError> {
+    pub fn run_index_value(&self, ctx: &mut Context, index: usize, value: &Value) -> Resolved {
         // TODO: we need to allow `LocalEnv` to take a mutable reference to
         // values, instead of owning them.
         let cloned_value = value.clone();
@@ -240,7 +231,7 @@ where
 
         cleanup(ctx.state_mut(), ident, old_key);
 
-        *key = result?.try_bytes_utf8_lossy()?.into();
+        *key = closure_value(result?)?.try_bytes_utf8_lossy()?.into();
 
         Ok(())
     }
@@ -263,7 +254,7 @@ where
 
         cleanup(ctx.state_mut(), ident, old_value);
 
-        *value = result?;
+        *value = closure_value(result?)?;
 
         Ok(())
     }
@@ -273,15 +264,10 @@ where
     ///
     /// Avoids cloning the value and skips binding parameters that are wildcards
     /// or omitted.
-    pub fn run_key_value_owned(
-        &self,
-        ctx: &mut Context,
-        key: KeyString,
-        value: Value,
-    ) -> Result<Value, ExpressionError> {
+    pub fn run_key_value_owned(&self, ctx: &mut Context, key: KeyString, value: Value) -> Resolved {
         match self.run_owned(ctx, Value::from(key), value) {
-            Ok(val) | Err(ExpressionError::Return { value: val, .. }) => Ok(val),
-            err @ Err(_) => err,
+            Ok(EvaluationOutcome::Return(val)) => Ok(EvaluationOutcome::Value(val)),
+            result => result,
         }
     }
 
@@ -290,21 +276,11 @@ where
     ///
     /// Avoids cloning the value and skips binding parameters that are wildcards
     /// or omitted.
-    pub fn run_index_value_owned(
-        &self,
-        ctx: &mut Context,
-        index: usize,
-        value: Value,
-    ) -> Result<Value, ExpressionError> {
+    pub fn run_index_value_owned(&self, ctx: &mut Context, index: usize, value: Value) -> Resolved {
         self.run_owned(ctx, Value::from(index), value)
     }
 
-    fn run_owned(
-        &self,
-        ctx: &mut Context,
-        first: Value,
-        second: Value,
-    ) -> Result<Value, ExpressionError> {
+    fn run_owned(&self, ctx: &mut Context, first: Value, second: Value) -> Resolved {
         let first_ident = self.ident(0);
         let value_ident = self.ident(1);
 
@@ -356,7 +332,7 @@ pub type ScopedLoop<'a, 'c, 'b, T> = LoopScopeGuard<'a, 'c, 'b, T>;
 
 impl<'a, 'c, 'b, T> LoopScopeGuard<'a, 'c, 'b, T>
 where
-    T: Fn(&mut Context) -> Result<Value, ExpressionError>,
+    T: Fn(&mut Context) -> Resolved,
 {
     pub fn new(runner: &'a Runner<'a, T>, ctx: &'c mut Context<'b>) -> Self {
         let first_ident = runner.ident(0).cloned();
@@ -379,11 +355,7 @@ where
         }
     }
 
-    pub fn run_key_value(
-        &mut self,
-        key: KeyString,
-        value: Value,
-    ) -> Result<Value, ExpressionError> {
+    pub fn run_key_value(&mut self, key: KeyString, value: Value) -> Resolved {
         if let Some(ident) = &self.first_ident {
             self.ctx
                 .state_mut()
@@ -394,16 +366,12 @@ where
         }
 
         match (self.runner.runner)(self.ctx) {
-            Ok(val) | Err(ExpressionError::Return { value: val, .. }) => Ok(val),
-            err @ Err(_) => err,
+            Ok(EvaluationOutcome::Return(val)) => Ok(EvaluationOutcome::Value(val)),
+            result => result,
         }
     }
 
-    pub fn run_index_value(
-        &mut self,
-        index: usize,
-        value: Value,
-    ) -> Result<Value, ExpressionError> {
+    pub fn run_index_value(&mut self, index: usize, value: Value) -> Resolved {
         if let Some(ident) = &self.first_ident {
             self.ctx
                 .state_mut()
@@ -454,10 +422,19 @@ fn cleanup(state: &mut RuntimeState, ident: Option<&Ident>, data: Option<Value>)
     }
 }
 
+/// Validate the result of a closure whose caller requires an ordinary value.
+pub(crate) fn closure_value(outcome: EvaluationOutcome) -> Result<Value, ExpressionError> {
+    match outcome {
+        EvaluationOutcome::Value(value) => Ok(value),
+        EvaluationOutcome::Return(_) => Err("return cannot be used inside closures".into()),
+        EvaluationOutcome::Break => Err("break outside of loop or iterator".into()),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::compiler::{Span, TimeZone};
+    use crate::compiler::TimeZone;
     use std::collections::BTreeMap;
 
     fn ident(value: &str) -> Ident {
@@ -486,12 +463,12 @@ mod tests {
             let v = ctx.state().variable(&ident("v")).cloned().unwrap();
             assert_eq!(k, Value::from("my_key"));
             assert_eq!(v, Value::from("my_val"));
-            Ok(Value::from("done"))
+            Ok(EvaluationOutcome::Value(Value::from("done")))
         });
 
         let res =
             runner.run_key_value_owned(&mut ctx, KeyString::from("my_key"), Value::from("my_val"));
-        assert_eq!(res, Ok(Value::from("done")));
+        assert_eq!(res, Ok(EvaluationOutcome::Value(Value::from("done"))));
         assert!(ctx.state().variable(&key_ident).is_none());
         assert_eq!(
             ctx.state().variable(&val_ident),
@@ -513,11 +490,11 @@ mod tests {
             let v = ctx.state().variable(&ident("val")).cloned().unwrap();
             assert_eq!(i, Value::Integer(5));
             assert_eq!(v, Value::from("item_val"));
-            Ok(Value::Null)
+            Ok(EvaluationOutcome::Value(Value::Null))
         });
 
         let res = runner.run_index_value_owned(&mut ctx, 5, Value::from("item_val"));
-        assert_eq!(res, Ok(Value::Null));
+        assert_eq!(res, Ok(EvaluationOutcome::Value(Value::Null)));
         assert_eq!(ctx.state().variable(&idx_ident), Some(&Value::from(999)));
         assert!(ctx.state().variable(&val_ident).is_none());
     }
@@ -532,15 +509,21 @@ mod tests {
         let runner = Runner::new(&variables, |ctx| {
             assert!(ctx.state().variable(&ident("")).is_none());
             assert!(ctx.state().variable(&ident("_")).is_none());
-            Ok(Value::from("wildcard_ok"))
+            Ok(EvaluationOutcome::Value(Value::from("wildcard_ok")))
         });
 
         let key_value_result =
             runner.run_key_value_owned(&mut ctx, KeyString::from("key"), Value::from("val"));
-        assert_eq!(key_value_result, Ok(Value::from("wildcard_ok")));
+        assert_eq!(
+            key_value_result,
+            Ok(EvaluationOutcome::Value(Value::from("wildcard_ok")))
+        );
 
         let index_value_result = runner.run_index_value_owned(&mut ctx, 0, Value::from("val"));
-        assert_eq!(index_value_result, Ok(Value::from("wildcard_ok")));
+        assert_eq!(
+            index_value_result,
+            Ok(EvaluationOutcome::Value(Value::from("wildcard_ok")))
+        );
 
         assert!(ctx.state().variable(&ident("")).is_none());
         assert!(ctx.state().variable(&ident("_")).is_none());
@@ -560,11 +543,11 @@ mod tests {
                 ctx.state().variable(&ident("outer")),
                 Some(&Value::from("preserved"))
             );
-            Ok(Value::Null)
+            Ok(EvaluationOutcome::Value(Value::Null))
         });
 
         let res = runner.run_key_value_owned(&mut ctx, KeyString::from("k"), Value::from("v_val"));
-        assert_eq!(res, Ok(Value::Null));
+        assert_eq!(res, Ok(EvaluationOutcome::Value(Value::Null)));
         assert_eq!(
             ctx.state().variable(&outer_ident),
             Some(&Value::from("preserved"))
@@ -580,19 +563,13 @@ mod tests {
 
         // Early returns are propagated unchanged.
         let runner_ret = Runner::new(&variables, |_ctx| {
-            Err(ExpressionError::Return {
-                span: Span::new(0, 0),
-                value: Value::from("early_ret"),
-            })
+            Ok(EvaluationOutcome::Return(Value::from("early_ret")))
         });
 
         let res_ret = runner_ret.run_index_value_owned(&mut ctx, 1, Value::from("val"));
         assert_eq!(
             res_ret,
-            Err(ExpressionError::Return {
-                span: Span::new(0, 0),
-                value: Value::from("early_ret"),
-            })
+            Ok(EvaluationOutcome::Return(Value::from("early_ret")))
         );
     }
 
@@ -609,15 +586,27 @@ mod tests {
         let runner = Runner::new(&variables, |ctx| {
             let k = ctx.state().variable(&ident("k")).cloned().unwrap();
             let v = ctx.state().variable(&ident("v")).cloned().unwrap();
-            Ok(Value::Array(vec![k, v]))
+            Ok(EvaluationOutcome::Value(Value::Array(vec![k, v])))
         });
 
         {
             let mut scoped = runner.scoped_loop(&mut ctx);
             let r1 = scoped.run_key_value(KeyString::from("a"), Value::from(1));
-            assert_eq!(r1, Ok(Value::Array(vec![Value::from("a"), Value::from(1)])));
+            assert_eq!(
+                r1,
+                Ok(EvaluationOutcome::Value(Value::Array(vec![
+                    Value::from("a"),
+                    Value::from(1)
+                ])))
+            );
             let r2 = scoped.run_key_value(KeyString::from("b"), Value::from(2));
-            assert_eq!(r2, Ok(Value::Array(vec![Value::from("b"), Value::from(2)])));
+            assert_eq!(
+                r2,
+                Ok(EvaluationOutcome::Value(Value::Array(vec![
+                    Value::from("b"),
+                    Value::from(2)
+                ])))
+            );
         }
 
         assert_eq!(
@@ -638,7 +627,7 @@ mod tests {
         let mut ctx = Context::new(&mut target, &mut state, &tz);
 
         let variables = vec![idx_ident.clone(), val_ident.clone()];
-        let runner = Runner::new(&variables, |_ctx| Ok(Value::Null));
+        let runner = Runner::new(&variables, |_ctx| Ok(EvaluationOutcome::Value(Value::Null)));
 
         {
             let mut scoped = runner.scoped_loop(&mut ctx);
@@ -673,22 +662,13 @@ mod tests {
 
         // Test early return
         let runner_ret = Runner::new(&variables, |_ctx| {
-            Err(ExpressionError::Return {
-                span: Span::new(0, 0),
-                value: Value::from("early_val"),
-            })
+            Ok(EvaluationOutcome::Return(Value::from("early_val")))
         });
 
         {
             let mut scoped = runner_ret.scoped_loop(&mut ctx);
             let res = scoped.run_index_value(0, Value::from("temp"));
-            assert_eq!(
-                res,
-                Err(ExpressionError::Return {
-                    span: Span::new(0, 0),
-                    value: Value::from("early_val"),
-                })
-            );
+            assert_eq!(res, Ok(EvaluationOutcome::Return(Value::from("early_val"))));
         }
         assert_eq!(ctx.state().variable(&idx_ident), Some(&Value::from(100)));
         assert_eq!(ctx.state().variable(&val_ident), Some(&Value::from(200)));
@@ -720,13 +700,13 @@ mod tests {
                 ctx.state().variable(&ident("outer")),
                 Some(&Value::from("outer_saved"))
             );
-            Ok(Value::Null)
+            Ok(EvaluationOutcome::Value(Value::Null))
         });
 
         {
             let mut scoped = runner.scoped_loop(&mut ctx);
             let res = scoped.run_key_value(KeyString::from("k"), Value::from("v"));
-            assert_eq!(res, Ok(Value::Null));
+            assert_eq!(res, Ok(EvaluationOutcome::Value(Value::Null)));
         }
 
         assert!(ctx.state().variable(&ident("")).is_none());
@@ -753,7 +733,7 @@ mod tests {
                 current_v,
                 &Value::Array(vec![Value::from(1), Value::from(2), Value::from(3)])
             );
-            Ok(Value::Null)
+            Ok(EvaluationOutcome::Value(Value::Null))
         });
 
         {
@@ -772,14 +752,10 @@ mod tests {
         let mut ctx = Context::new(&mut target, &mut state, &tz);
 
         let variables = vec![ident("idx"), val_ident.clone()];
-        let runner = Runner::new(&variables, |_ctx| {
-            Err(ExpressionError::Break {
-                span: Span::new(0, 5),
-            })
-        });
+        let runner = Runner::new(&variables, |_ctx| Ok(EvaluationOutcome::Break));
 
         let res = runner.run_index_value(&mut ctx, 0, &Value::from(10));
-        assert!(matches!(res, Err(ExpressionError::Break { .. })));
+        assert!(matches!(res, Ok(EvaluationOutcome::Break)));
         assert!(ctx.state().variable(&ident("idx")).is_none());
         assert_eq!(ctx.state().variable(&val_ident), Some(&Value::from(42)));
     }
@@ -792,14 +768,10 @@ mod tests {
         let mut ctx = Context::new(&mut target, &mut state, &tz);
 
         let variables = vec![ident("key"), val_ident.clone()];
-        let runner = Runner::new(&variables, |_ctx| {
-            Err(ExpressionError::Break {
-                span: Span::new(0, 5),
-            })
-        });
+        let runner = Runner::new(&variables, |_ctx| Ok(EvaluationOutcome::Break));
 
         let res = runner.run_key_value(&mut ctx, "k", &Value::from(10));
-        assert!(matches!(res, Err(ExpressionError::Break { .. })));
+        assert!(matches!(res, Ok(EvaluationOutcome::Break)));
         assert!(ctx.state().variable(&ident("key")).is_none());
         assert_eq!(ctx.state().variable(&val_ident), Some(&Value::from(42)));
     }

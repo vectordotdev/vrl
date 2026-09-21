@@ -1,6 +1,6 @@
 use crate::compiler::prelude::*;
 
-fn assert(condition: Value, message: Option<Value>, format: Option<String>) -> Resolved {
+fn assert(condition: Value, message: Option<Value>, format: Option<String>) -> ValueResult {
     if condition.try_boolean()? {
         Ok(true.into())
     } else if let Some(message) = message {
@@ -110,11 +110,11 @@ struct AssertFn {
 
 impl FunctionExpression for AssertFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let condition = self.condition.resolve(ctx)?;
+        let condition = crate::resolve_value!(self.condition.resolve(ctx));
         let format = self.condition.format();
-        let message = self.message.as_ref().map(|m| m.resolve(ctx)).transpose()?;
+        let message = crate::resolve_value!(self.message.map_resolve(ctx));
 
-        assert(condition, message, format)
+        assert(condition, message, format).map(EvaluationOutcome::Value)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

@@ -1,7 +1,7 @@
 use crate::compiler::prelude::*;
 use std::collections::{BTreeMap, HashMap};
 
-fn tally(value: Value) -> Resolved {
+fn tally(value: Value) -> ValueResult {
     let value = value.try_array()?;
     #[allow(clippy::mutable_key_type)] // false positive due to bytes::Bytes
     let mut map: HashMap<Bytes, usize> = HashMap::new();
@@ -81,8 +81,8 @@ pub(crate) struct TallyFn {
 
 impl FunctionExpression for TallyFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = self.value.resolve(ctx)?;
-        tally(value)
+        let value = crate::resolve_value!(self.value.resolve(ctx));
+        tally(value).map(EvaluationOutcome::Value)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

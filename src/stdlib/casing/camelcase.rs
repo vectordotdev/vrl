@@ -86,8 +86,8 @@ struct CamelcaseFn {
 
 impl FunctionExpression for CamelcaseFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = self.value.resolve(ctx)?;
-        super::convert_case(&value, Case::Camel, self.original_case)
+        let value = crate::resolve_value!(self.value.resolve(ctx));
+        super::convert_case(&value, Case::Camel, self.original_case).map(EvaluationOutcome::Value)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

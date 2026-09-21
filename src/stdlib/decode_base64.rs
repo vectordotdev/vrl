@@ -30,7 +30,7 @@ const PARAMETERS: &[Parameter] = &[
     .enum_variants(CHARSET_ENUM),
 ];
 
-fn decode_base64(charset: Value, value: Value) -> Resolved {
+fn decode_base64(charset: Value, value: Value) -> ValueResult {
     let value = value.try_bytes()?;
     let charset = Base64Charset::from_slice(&charset.try_bytes()?)?;
 
@@ -117,12 +117,13 @@ struct DecodeBase64Fn {
 
 impl FunctionExpression for DecodeBase64Fn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = self.value.resolve(ctx)?;
-        let charset = self
-            .charset
-            .map_resolve_with_default(ctx, || DEFAULT_CHARSET.clone())?;
+        let value = crate::resolve_value!(self.value.resolve(ctx));
+        let charset = crate::resolve_value!(
+            self.charset
+                .map_resolve_with_default(ctx, || DEFAULT_CHARSET.clone())
+        );
 
-        decode_base64(charset, value)
+        decode_base64(charset, value).map(EvaluationOutcome::Value)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

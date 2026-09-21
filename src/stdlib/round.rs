@@ -14,7 +14,7 @@ const PARAMETERS: &[Parameter] = &[
     .default(&DEFAULT_PRECISION),
 ];
 
-fn round(precision: Value, value: Value) -> Resolved {
+fn round(precision: Value, value: Value) -> ValueResult {
     let precision = precision.try_integer()?;
     match value {
         Value::Float(f) => Ok(Value::from_f64_or_zero(round_to_precision(
@@ -107,12 +107,13 @@ struct RoundFn {
 
 impl FunctionExpression for RoundFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let precision = self
-            .precision
-            .map_resolve_with_default(ctx, || DEFAULT_PRECISION.clone())?;
-        let value = self.value.resolve(ctx)?;
+        let precision = crate::resolve_value!(
+            self.precision
+                .map_resolve_with_default(ctx, || DEFAULT_PRECISION.clone())
+        );
+        let value = crate::resolve_value!(self.value.resolve(ctx));
 
-        round(precision, value)
+        round(precision, value).map(EvaluationOutcome::Value)
     }
 
     fn type_def(&self, state: &state::TypeState) -> TypeDef {

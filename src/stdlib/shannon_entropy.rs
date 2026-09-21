@@ -43,7 +43,7 @@ cases.",
 // we can assume that there will never really be precision loss here, because that would mean that
 // the string is at least 2^52 bytes in size (4.5 PB)
 #[allow(clippy::cast_precision_loss)]
-fn shannon_entropy(value: &Value, segmentation: &Segmentation) -> Resolved {
+fn shannon_entropy(value: &Value, segmentation: &Segmentation) -> ValueResult {
     let (occurrence_counts, total_length): (Vec<usize>, usize) = match segmentation {
         Segmentation::Byte => {
             // Optimized version for bytes, since there is a limited number of options, that could
@@ -212,9 +212,9 @@ struct ShannonEntropyFn {
 
 impl FunctionExpression for ShannonEntropyFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = self.value.resolve(ctx)?;
+        let value = crate::resolve_value!(self.value.resolve(ctx));
 
-        shannon_entropy(&value, &self.segmentation)
+        shannon_entropy(&value, &self.segmentation).map(EvaluationOutcome::Value)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {
@@ -324,12 +324,12 @@ mod tests {
         );
     }
 
-    fn prepare_function(function: &ShannonEntropyFn) -> Resolved {
+    fn prepare_function(function: &ShannonEntropyFn) -> ValueResult {
         let tz = TimeZone::default();
         let mut object: Value = Value::Object(BTreeMap::new());
         let mut runtime_state = state::RuntimeState::default();
         let mut ctx = Context::new(&mut object, &mut runtime_state, &tz);
-        function.resolve(&mut ctx)
+        function.resolve(&mut ctx).and_then(closure::closure_value)
     }
 
     fn execute_function(function: &ShannonEntropyFn) -> Value {

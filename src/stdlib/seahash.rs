@@ -1,7 +1,7 @@
 use crate::compiler::prelude::*;
 
 #[allow(clippy::cast_possible_wrap)]
-fn seahash(value: Value) -> Resolved {
+fn seahash(value: Value) -> ValueResult {
     let value = value.try_bytes()?;
     Ok(Value::Integer(seahash::hash(&value) as i64))
 }
@@ -72,8 +72,8 @@ struct SeahashFn {
 
 impl FunctionExpression for SeahashFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = self.value.resolve(ctx)?;
-        seahash(value)
+        let value = crate::resolve_value!(self.value.resolve(ctx));
+        seahash(value).map(EvaluationOutcome::Value)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

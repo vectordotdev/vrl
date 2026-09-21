@@ -111,7 +111,7 @@ pub(crate) fn into_boundary(s: &str) -> Result<convert_case::Boundary, Box<dyn D
 }
 
 #[inline]
-pub(crate) fn convert_case(value: &Value, to_case: Case, from_case: Option<Case>) -> Resolved {
+pub(crate) fn convert_case(value: &Value, to_case: Case, from_case: Option<Case>) -> ValueResult {
     let string_value = value.try_bytes_utf8_lossy()?;
 
     match from_case {

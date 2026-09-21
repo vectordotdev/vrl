@@ -204,19 +204,23 @@ fn resolve_fields(fields: Value) -> ExpressionResult<Vec<KeyString>> {
 
 impl FunctionExpression for EncodeKeyValueFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = self.value.resolve(ctx)?;
-        let fields = self
-            .fields
-            .map_resolve_with_default(ctx, || DEFAULT_FIELDS_ORDERING.clone())?;
-        let key_value_delimiter = self
-            .key_value_delimiter
-            .map_resolve_with_default(ctx, || DEFAULT_KEY_VALUE_DELIMITER.clone())?;
-        let field_delimiter = self
-            .field_delimiter
-            .map_resolve_with_default(ctx, || DEFAULT_FIELD_DELIMITER.clone())?;
-        let flatten_boolean = self
-            .flatten_boolean
-            .map_resolve_with_default(ctx, || DEFAULT_FLATTEN_BOOLEAN.clone())?;
+        let value = crate::resolve_value!(self.value.resolve(ctx));
+        let fields = crate::resolve_value!(
+            self.fields
+                .map_resolve_with_default(ctx, || DEFAULT_FIELDS_ORDERING.clone())
+        );
+        let key_value_delimiter = crate::resolve_value!(
+            self.key_value_delimiter
+                .map_resolve_with_default(ctx, || DEFAULT_KEY_VALUE_DELIMITER.clone())
+        );
+        let field_delimiter = crate::resolve_value!(
+            self.field_delimiter
+                .map_resolve_with_default(ctx, || DEFAULT_FIELD_DELIMITER.clone())
+        );
+        let flatten_boolean = crate::resolve_value!(
+            self.flatten_boolean
+                .map_resolve_with_default(ctx, || DEFAULT_FLATTEN_BOOLEAN.clone())
+        );
 
         encode_key_value(
             Some(fields),
@@ -225,6 +229,7 @@ impl FunctionExpression for EncodeKeyValueFn {
             &field_delimiter,
             flatten_boolean,
         )
+        .map(EvaluationOutcome::Value)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

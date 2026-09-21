@@ -52,7 +52,7 @@ fn parse_nginx_log(
     timestamp_format: Option<Value>,
     format: Variant,
     ctx: &Context,
-) -> Resolved {
+) -> ValueResult {
     let message = bytes.try_bytes_utf8_lossy()?;
     let timestamp_format = match timestamp_format {
         None => time_format_for_format(format),
@@ -298,14 +298,10 @@ struct ParseNginxLogFn {
 
 impl FunctionExpression for ParseNginxLogFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let bytes = self.value.resolve(ctx)?;
-        let timestamp_format = self
-            .timestamp_format
-            .as_ref()
-            .map(|expr| expr.resolve(ctx))
-            .transpose()?;
+        let bytes = crate::resolve_value!(self.value.resolve(ctx));
+        let timestamp_format = crate::resolve_value!(self.timestamp_format.map_resolve(ctx));
 
-        parse_nginx_log(&bytes, timestamp_format, self.format, ctx)
+        parse_nginx_log(&bytes, timestamp_format, self.format, ctx).map(EvaluationOutcome::Value)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

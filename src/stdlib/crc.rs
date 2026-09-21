@@ -582,7 +582,7 @@ const PARAMETERS: &[Parameter] = &[
 ];
 
 #[allow(clippy::too_many_lines)]
-fn crc(value: Value, algorithm: &str) -> Resolved {
+fn crc(value: Value, algorithm: &str) -> ValueResult {
     let value = value.try_bytes()?;
 
     let checksum = match algorithm {
@@ -999,13 +999,14 @@ struct CrcFn {
 
 impl FunctionExpression for CrcFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = self.value.resolve(ctx)?;
-        let algorithm = self
-            .algorithm
-            .map_resolve_with_default(ctx, || DEFAULT_ALGORITHM.clone())?;
+        let value = crate::resolve_value!(self.value.resolve(ctx));
+        let algorithm = crate::resolve_value!(
+            self.algorithm
+                .map_resolve_with_default(ctx, || DEFAULT_ALGORITHM.clone())
+        );
 
         let algorithm = algorithm.try_bytes_utf8_lossy()?.as_ref().to_uppercase();
-        crc(value, &algorithm)
+        crc(value, &algorithm).map(EvaluationOutcome::Value)
     }
 
     fn type_def(&self, state: &state::TypeState) -> TypeDef {

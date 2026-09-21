@@ -33,7 +33,7 @@ if there are any invalid UTF-8 characters present.",
     .default(&DEFAULT_LOSSY),
 ];
 
-fn parse_json(value: Value, lossy: Value) -> Resolved {
+fn parse_json(value: Value, lossy: Value) -> ValueResult {
     let lossy = lossy.try_boolean()?;
     Ok(if lossy {
         serde_json::from_str(value.try_bytes_utf8_lossy()?.strip_bom())
@@ -45,7 +45,7 @@ fn parse_json(value: Value, lossy: Value) -> Resolved {
 
 // parse_json_with_depth method recursively traverses the value and returns raw JSON-formatted bytes
 // after reaching provided depth.
-fn parse_json_with_depth(value: Value, max_depth: Value, lossy: Value) -> Resolved {
+fn parse_json_with_depth(value: Value, max_depth: Value, lossy: Value) -> ValueResult {
     let parsed_depth = validate_depth(max_depth)?;
     let lossy = lossy.try_boolean()?;
     let bytes = if lossy {
@@ -250,11 +250,12 @@ struct ParseJsonFn {
 
 impl FunctionExpression for ParseJsonFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = self.value.resolve(ctx)?;
-        let lossy = self
-            .lossy
-            .map_resolve_with_default(ctx, || DEFAULT_LOSSY.clone())?;
-        parse_json(value, lossy)
+        let value = crate::resolve_value!(self.value.resolve(ctx));
+        let lossy = crate::resolve_value!(
+            self.lossy
+                .map_resolve_with_default(ctx, || DEFAULT_LOSSY.clone())
+        );
+        parse_json(value, lossy).map(EvaluationOutcome::Value)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {
@@ -271,12 +272,13 @@ struct ParseJsonMaxDepthFn {
 
 impl FunctionExpression for ParseJsonMaxDepthFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = self.value.resolve(ctx)?;
-        let max_depth = self.max_depth.resolve(ctx)?;
-        let lossy = self
-            .lossy
-            .map_resolve_with_default(ctx, || DEFAULT_LOSSY.clone())?;
-        parse_json_with_depth(value, max_depth, lossy)
+        let value = crate::resolve_value!(self.value.resolve(ctx));
+        let max_depth = crate::resolve_value!(self.max_depth.resolve(ctx));
+        let lossy = crate::resolve_value!(
+            self.lossy
+                .map_resolve_with_default(ctx, || DEFAULT_LOSSY.clone())
+        );
+        parse_json_with_depth(value, max_depth, lossy).map(EvaluationOutcome::Value)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

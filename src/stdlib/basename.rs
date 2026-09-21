@@ -1,7 +1,7 @@
 use crate::compiler::prelude::*;
 use std::path::Path;
 
-fn basename(value: &Value) -> Resolved {
+fn basename(value: &Value) -> ValueResult {
     let path_str_cow = value.try_bytes_utf8_lossy()?;
     let path_str = path_str_cow.as_ref();
     let path = Path::new(path_str);
@@ -87,8 +87,8 @@ struct BaseNameFn {
 
 impl FunctionExpression for BaseNameFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = self.value.resolve(ctx)?;
-        basename(&value)
+        let value = crate::resolve_value!(self.value.resolve(ctx));
+        basename(&value).map(EvaluationOutcome::Value)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

@@ -2,7 +2,7 @@ use crate::compiler::prelude::*;
 use crate::stdlib::json_utils::bom::StripBomFromUTF8;
 use crate::stdlib::json_utils::json_type_def::json_type_def;
 
-fn parse_yaml(value: Value) -> Resolved {
+fn parse_yaml(value: Value) -> ValueResult {
     Ok(serde_yaml_ng::from_slice(value.try_bytes()?.strip_bom())
         .map_err(|e| format!("unable to parse yaml: {e}"))?)
 }
@@ -155,8 +155,8 @@ struct ParseYamlFn {
 
 impl FunctionExpression for ParseYamlFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = self.value.resolve(ctx)?;
-        parse_yaml(value)
+        let value = crate::resolve_value!(self.value.resolve(ctx));
+        parse_yaml(value).map(EvaluationOutcome::Value)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

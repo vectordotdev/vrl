@@ -118,7 +118,7 @@ pub fn proto_to_value(
 }
 
 #[cfg(feature = "enable_system_functions")]
-pub(crate) fn parse_proto(descriptor: &MessageDescriptor, value: Value) -> Resolved {
+pub(crate) fn parse_proto(descriptor: &MessageDescriptor, value: Value) -> ValueResult {
     let bytes = value.try_bytes()?;
 
     let dynamic_message = DynamicMessage::decode(descriptor.clone(), bytes)

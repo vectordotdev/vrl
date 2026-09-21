@@ -153,23 +153,26 @@ struct StartsWithFn {
 
 impl FunctionExpression for StartsWithFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let case_sensitive = self
-            .case_sensitive
-            .map_resolve_with_default(ctx, || DEFAULT_CASE_SENSITIVE.clone())?
-            .try_boolean()?;
+        let case_sensitive = crate::resolve_value!(
+            self.case_sensitive
+                .map_resolve_with_default(ctx, || DEFAULT_CASE_SENSITIVE.clone())
+        )
+        .try_boolean()?;
         let case_sensitive = if case_sensitive {
             Case::Sensitive
         } else {
             Case::Insensitive
         };
 
-        let substring = self.substring.resolve(ctx)?;
+        let substring = crate::resolve_value!(self.substring.resolve(ctx));
         let substring = substring.try_bytes()?;
 
-        let value = self.value.resolve(ctx)?;
+        let value = crate::resolve_value!(self.value.resolve(ctx));
         let value = value.try_bytes()?;
 
-        Ok(starts_with(&value, &substring, case_sensitive).into())
+        Ok(EvaluationOutcome::Value(
+            starts_with(&value, &substring, case_sensitive).into(),
+        ))
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

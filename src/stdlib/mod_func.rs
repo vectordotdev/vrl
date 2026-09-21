@@ -1,6 +1,6 @@
 use crate::compiler::prelude::*;
 
-fn r#mod(value: Value, modulus: Value) -> Resolved {
+fn r#mod(value: Value, modulus: Value) -> ValueResult {
     let result = value.try_rem(modulus)?;
     Ok(result)
 }
@@ -80,9 +80,9 @@ struct ModFn {
 
 impl FunctionExpression for ModFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = self.value.resolve(ctx)?;
-        let modulus = self.modulus.resolve(ctx)?;
-        r#mod(value, modulus)
+        let value = crate::resolve_value!(self.value.resolve(ctx));
+        let modulus = crate::resolve_value!(self.modulus.resolve(ctx));
+        r#mod(value, modulus).map(EvaluationOutcome::Value)
     }
 
     fn type_def(&self, state: &state::TypeState) -> TypeDef {

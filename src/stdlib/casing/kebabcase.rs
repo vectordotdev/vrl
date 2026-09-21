@@ -85,8 +85,8 @@ struct KebabcaseFn {
 
 impl FunctionExpression for KebabcaseFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = self.value.resolve(ctx)?;
-        super::convert_case(&value, Case::Kebab, self.original_case)
+        let value = crate::resolve_value!(self.value.resolve(ctx));
+        super::convert_case(&value, Case::Kebab, self.original_case).map(EvaluationOutcome::Value)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

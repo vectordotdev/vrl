@@ -8,7 +8,7 @@ fn sha1_hex(value: &[u8]) -> Bytes {
     Bytes::copy_from_slice(&buf)
 }
 
-fn sha1(value: Value) -> Resolved {
+fn sha1(value: Value) -> ValueResult {
     let value = value.try_bytes()?;
     Ok(Value::Bytes(sha1_hex(&value)))
 }
@@ -77,8 +77,8 @@ struct Sha1Fn {
 
 impl FunctionExpression for Sha1Fn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = self.value.resolve(ctx)?;
-        sha1(value)
+        let value = crate::resolve_value!(self.value.resolve(ctx));
+        sha1(value).map(EvaluationOutcome::Value)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

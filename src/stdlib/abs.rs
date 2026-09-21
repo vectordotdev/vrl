@@ -1,6 +1,6 @@
 use crate::compiler::prelude::*;
 
-fn abs(value: Value) -> Resolved {
+fn abs(value: Value) -> ValueResult {
     match value {
         Value::Float(f) => Ok(Value::from_f64_or_zero(f.abs())),
         Value::Integer(i) => Ok(Value::from(i.abs())),
@@ -84,9 +84,9 @@ struct AbsFn {
 
 impl FunctionExpression for AbsFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = self.value.resolve(ctx)?;
+        let value = crate::resolve_value!(self.value.resolve(ctx));
 
-        abs(value)
+        abs(value).map(EvaluationOutcome::Value)
     }
 
     fn type_def(&self, state: &state::TypeState) -> TypeDef {

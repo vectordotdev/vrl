@@ -7,7 +7,7 @@ fn parse_timestamp(
     format: &Value,
     timezone: Option<Value>,
     ctx: &Context,
-) -> Resolved {
+) -> ValueResult {
     match value {
         Value::Bytes(v) => {
             let format = format.try_bytes_utf8_lossy()?;
@@ -111,14 +111,10 @@ struct ParseTimestampFn {
 
 impl FunctionExpression for ParseTimestampFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = self.value.resolve(ctx)?;
-        let format = self.format.resolve(ctx)?;
-        let tz = self
-            .timezone
-            .as_ref()
-            .map(|tz| tz.resolve(ctx))
-            .transpose()?;
-        parse_timestamp(value, &format, tz, ctx)
+        let value = crate::resolve_value!(self.value.resolve(ctx));
+        let format = crate::resolve_value!(self.format.resolve(ctx));
+        let tz = crate::resolve_value!(self.timezone.map_resolve(ctx));
+        parse_timestamp(value, &format, tz, ctx).map(EvaluationOutcome::Value)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

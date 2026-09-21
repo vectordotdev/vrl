@@ -258,11 +258,11 @@ fn redact(value: Value, filters: &[Filter], redactor: &Redactor) -> Value {
 
 impl FunctionExpression for RedactFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = self.value.resolve(ctx)?;
+        let value = crate::resolve_value!(self.value.resolve(ctx));
         let filters = &self.filters;
         let redactor = &self.redactor;
 
-        Ok(redact(value, filters, redactor))
+        Ok(EvaluationOutcome::Value(redact(value, filters, redactor)))
     }
 
     fn type_def(&self, state: &state::TypeState) -> TypeDef {

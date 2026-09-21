@@ -59,7 +59,7 @@ fn sha2_hex(value: &[u8], variant: &[u8]) -> Bytes {
     }
 }
 
-fn sha2(value: Value, variant: &Bytes) -> Resolved {
+fn sha2(value: Value, variant: &Bytes) -> ValueResult {
     let value = value.try_bytes()?;
     Ok(Value::Bytes(sha2_hex(&value, variant)))
 }
@@ -154,10 +154,10 @@ struct Sha2Fn {
 
 impl FunctionExpression for Sha2Fn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = self.value.resolve(ctx)?;
+        let value = crate::resolve_value!(self.value.resolve(ctx));
         let variant = &self.variant;
 
-        sha2(value, variant)
+        sha2(value, variant).map(EvaluationOutcome::Value)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

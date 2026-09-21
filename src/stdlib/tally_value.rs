@@ -1,6 +1,6 @@
 use crate::compiler::prelude::*;
 
-fn tally_value(array: Value, value: &Value) -> Resolved {
+fn tally_value(array: Value, value: &Value) -> ValueResult {
     let array = array.try_array()?;
     Ok(array.iter().filter(|&v| v == value).count().into())
 }
@@ -66,10 +66,10 @@ pub(crate) struct TallyValueFn {
 
 impl FunctionExpression for TallyValueFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let array = self.array.resolve(ctx)?;
-        let value = self.value.resolve(ctx)?;
+        let array = crate::resolve_value!(self.array.resolve(ctx));
+        let value = crate::resolve_value!(self.value.resolve(ctx));
 
-        tally_value(array, &value)
+        tally_value(array, &value).map(EvaluationOutcome::Value)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

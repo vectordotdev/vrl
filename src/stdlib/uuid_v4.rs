@@ -51,7 +51,7 @@ struct UuidV4Fn;
 
 impl FunctionExpression for UuidV4Fn {
     fn resolve(&self, _: &mut Context) -> Resolved {
-        Ok(uuid_v4())
+        Ok(EvaluationOutcome::Value(uuid_v4()))
     }
 
     fn type_def(&self, _: &TypeState) -> TypeDef {
@@ -76,7 +76,10 @@ mod tests {
         let mut object: Value = Value::Object(BTreeMap::new());
         let tz = TimeZone::default();
         let mut ctx = Context::new(&mut object, &mut state, &tz);
-        let value = UuidV4Fn.resolve(&mut ctx).unwrap();
+        let value = UuidV4Fn
+            .resolve(&mut ctx)
+            .and_then(closure::closure_value)
+            .unwrap();
 
         assert!(matches!(&value, Value::Bytes(_)));
 

@@ -1,7 +1,7 @@
 use crate::compiler::prelude::*;
 use snap::raw::Decoder;
 
-fn decode_snappy(value: Value) -> Resolved {
+fn decode_snappy(value: Value) -> ValueResult {
     let value = value.try_bytes()?;
     let mut decoder = Decoder::new();
     let result = decoder.decompress_vec(&value);
@@ -72,9 +72,9 @@ struct DecodeSnappyFn {
 
 impl FunctionExpression for DecodeSnappyFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = self.value.resolve(ctx)?;
+        let value = crate::resolve_value!(self.value.resolve(ctx));
 
-        decode_snappy(value)
+        decode_snappy(value).map(EvaluationOutcome::Value)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

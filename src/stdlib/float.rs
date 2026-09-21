@@ -1,6 +1,6 @@
 use crate::compiler::prelude::*;
 
-fn float(value: Value) -> Resolved {
+fn float(value: Value) -> ValueResult {
     match value {
         v @ Value::Float(_) => Ok(v),
         v => Err(format!("expected float, got {}", v.kind()).into()),
@@ -91,7 +91,7 @@ struct FloatFn {
 
 impl FunctionExpression for FloatFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        float(self.value.resolve(ctx)?)
+        float(crate::resolve_value!(self.value.resolve(ctx))).map(EvaluationOutcome::Value)
     }
 
     fn type_def(&self, state: &state::TypeState) -> TypeDef {

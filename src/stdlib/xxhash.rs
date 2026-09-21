@@ -20,7 +20,7 @@ const PARAMETERS: &[Parameter] = &[
 ];
 
 #[allow(clippy::cast_possible_wrap)]
-fn xxhash(value: Value, variant: &Value) -> Resolved {
+fn xxhash(value: Value, variant: &Value) -> ValueResult {
     let bytes = value.try_bytes()?;
     let variant = variant.try_bytes_utf8_lossy()?.as_ref().to_uppercase();
 
@@ -134,12 +134,13 @@ struct XxhashFn {
 
 impl FunctionExpression for XxhashFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = self.value.resolve(ctx)?;
-        let variant = self
-            .variant
-            .map_resolve_with_default(ctx, || DEFAULT_VARIANT.clone())?;
+        let value = crate::resolve_value!(self.value.resolve(ctx));
+        let variant = crate::resolve_value!(
+            self.variant
+                .map_resolve_with_default(ctx, || DEFAULT_VARIANT.clone())
+        );
 
-        xxhash(value, &variant)
+        xxhash(value, &variant).map(EvaluationOutcome::Value)
     }
 
     fn type_def(&self, state: &state::TypeState) -> TypeDef {

@@ -1,7 +1,7 @@
 use crate::compiler::prelude::*;
 
 #[cfg(not(target_arch = "wasm32"))]
-fn get_hostname() -> Resolved {
+fn get_hostname() -> ValueResult {
     Ok(hostname::get()
         .map_err(|error| format!("failed to get hostname: {error}"))?
         .to_string_lossy()
@@ -69,7 +69,7 @@ struct GetHostnameFn;
 #[cfg(not(target_arch = "wasm32"))]
 impl FunctionExpression for GetHostnameFn {
     fn resolve(&self, _: &mut Context) -> Resolved {
-        get_hostname()
+        get_hostname().map(EvaluationOutcome::Value)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

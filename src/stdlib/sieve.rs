@@ -29,7 +29,7 @@ fn sieve(
     permitted_characters: Value,
     replace_single: &Value,
     replace_repeated: &Value,
-) -> Resolved {
+) -> ValueResult {
     let value = value.try_bytes_utf8_lossy()?;
     let replace_single = replace_single.try_bytes_utf8_lossy()?;
     let replace_repeated = replace_repeated.try_bytes_utf8_lossy()?;
@@ -137,14 +137,16 @@ struct SieveFn {
 
 impl FunctionExpression for SieveFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = self.value.resolve(ctx)?;
-        let permitted_characters = self.permitted_characters.resolve(ctx)?;
-        let replace_single = self
-            .replace_single
-            .map_resolve_with_default(ctx, || DEFAULT_REPLACE_SINGLE.clone())?;
-        let replace_repeated = self
-            .replace_repeated
-            .map_resolve_with_default(ctx, || DEFAULT_REPLACE_REPEATED.clone())?;
+        let value = crate::resolve_value!(self.value.resolve(ctx));
+        let permitted_characters = crate::resolve_value!(self.permitted_characters.resolve(ctx));
+        let replace_single = crate::resolve_value!(
+            self.replace_single
+                .map_resolve_with_default(ctx, || DEFAULT_REPLACE_SINGLE.clone())
+        );
+        let replace_repeated = crate::resolve_value!(
+            self.replace_repeated
+                .map_resolve_with_default(ctx, || DEFAULT_REPLACE_REPEATED.clone())
+        );
 
         sieve(
             &value,
@@ -152,6 +154,7 @@ impl FunctionExpression for SieveFn {
             &replace_single,
             &replace_repeated,
         )
+        .map(EvaluationOutcome::Value)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

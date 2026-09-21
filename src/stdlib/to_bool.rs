@@ -1,7 +1,7 @@
 use crate::compiler::conversion::Conversion;
 use crate::compiler::prelude::*;
 
-fn to_bool(value: Value) -> Resolved {
+fn to_bool(value: Value) -> ValueResult {
     use Value::{Boolean, Bytes, Float, Integer, Null};
 
     match value {
@@ -190,9 +190,9 @@ struct ToBoolFn {
 
 impl FunctionExpression for ToBoolFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = self.value.resolve(ctx)?;
+        let value = crate::resolve_value!(self.value.resolve(ctx));
 
-        to_bool(value)
+        to_bool(value).map(EvaluationOutcome::Value)
     }
 
     fn type_def(&self, state: &state::TypeState) -> TypeDef {

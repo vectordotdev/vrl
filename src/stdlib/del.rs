@@ -18,7 +18,7 @@ applies to the path being deleted, and any parent paths.",
 fn del(query: &expression::Query, compact: bool, ctx: &mut Context) -> Resolved {
     let path = query.path();
 
-    if let Some(target_path) = query.external_path() {
+    let value: ValueResult = if let Some(target_path) = query.external_path() {
         Ok(ctx
             .target_mut()
             .target_remove(&target_path, compact)
@@ -35,14 +35,15 @@ fn del(query: &expression::Query, compact: bool, ctx: &mut Context) -> Resolved 
             None => Ok(Value::Null),
         }
     } else if let Some(expr) = query.expression_target() {
-        let value = expr.resolve(ctx)?;
+        let value = crate::resolve_value!(expr.resolve(ctx));
 
         // No need to do the actual deletion, as the expression is only
         // available as an argument to the function.
         Ok(value.get(path).cloned().unwrap_or(Value::Null))
     } else {
         Ok(Value::Null)
-    }
+    };
+    value.map(EvaluationOutcome::Value)
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -211,10 +212,11 @@ impl Expression for DelFn {
     //
     // see tracking issue: https://github.com/vectordotdev/vector/issues/5887
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let compact = self
-            .compact
-            .map_resolve_with_default(ctx, || DEFAULT_COMPACT.clone())?
-            .try_boolean()?;
+        let compact = crate::resolve_value!(
+            self.compact
+                .map_resolve_with_default(ctx, || DEFAULT_COMPACT.clone())
+        )
+        .try_boolean()?;
         del(&self.query, compact, ctx)
     }
 
@@ -311,7 +313,7 @@ mod tests {
             let got = func
                 .resolve(&mut ctx)
                 .map_err(|e| format!("{:#}", anyhow::anyhow!(e)));
-            assert_eq!(got, exp);
+            assert_eq!(got, exp.map(EvaluationOutcome::Value));
         }
     }
 }

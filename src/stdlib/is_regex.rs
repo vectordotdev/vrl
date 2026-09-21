@@ -76,7 +76,9 @@ struct IsRegexFn {
 
 impl FunctionExpression for IsRegexFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        self.value.resolve(ctx).map(|v| value!(v.is_regex()))
+        Ok(EvaluationOutcome::Value(value!(
+            crate::resolve_value!(self.value.resolve(ctx)).is_regex()
+        )))
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

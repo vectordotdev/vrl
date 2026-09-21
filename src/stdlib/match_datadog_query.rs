@@ -106,11 +106,11 @@ struct MatchDatadogQueryFn {
 
 impl FunctionExpression for MatchDatadogQueryFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = self.value.resolve(ctx)?;
+        let value = crate::resolve_value!(self.value.resolve(ctx));
 
         // Provide the current VRL event `Value` to the matcher function to determine
         // whether the data matches the given Datadog Search syntax literal.
-        Ok(self.filter.run(&value).into())
+        Ok(EvaluationOutcome::Value(self.filter.run(&value).into()))
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

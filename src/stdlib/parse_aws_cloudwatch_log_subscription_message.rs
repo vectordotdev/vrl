@@ -40,7 +40,7 @@ impl AwsCloudWatchLogsSubscriptionMessageType {
     }
 }
 
-fn parse_aws_cloudwatch_log_subscription_message(bytes: Value) -> Resolved {
+fn parse_aws_cloudwatch_log_subscription_message(bytes: Value) -> ValueResult {
     let bytes = bytes.try_bytes()?;
     let message = serde_json::from_slice::<AwsCloudWatchLogsSubscriptionMessage>(&bytes)
         .map_err(|e| format!("unable to parse: {e}"))?;
@@ -167,8 +167,8 @@ struct ParseAwsCloudWatchLogSubscriptionMessageFn {
 
 impl FunctionExpression for ParseAwsCloudWatchLogSubscriptionMessageFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let bytes = self.value.resolve(ctx)?;
-        parse_aws_cloudwatch_log_subscription_message(bytes)
+        let bytes = crate::resolve_value!(self.value.resolve(ctx));
+        parse_aws_cloudwatch_log_subscription_message(bytes).map(EvaluationOutcome::Value)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

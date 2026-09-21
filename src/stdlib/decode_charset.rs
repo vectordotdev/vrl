@@ -86,7 +86,7 @@ impl Function for DecodeCharset {
     }
 }
 
-fn decode_charset(value: &[u8], from_charset: &[u8]) -> Resolved {
+fn decode_charset(value: &[u8], from_charset: &[u8]) -> ValueResult {
     let decoder = Encoding::for_label(from_charset).ok_or_else(|| create_error(from_charset))?;
 
     let (output, _, _) = decoder.decode(value);
@@ -115,10 +115,11 @@ struct DecodeCharsetFn {
 
 impl FunctionExpression for DecodeCharsetFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = self.value.resolve(ctx)?.try_bytes()?;
-        let from = self.from_charset.resolve(ctx)?.try_bytes()?;
+        let value = crate::resolve_value!(self.value.resolve(ctx)).try_bytes()?;
+        let from = crate::resolve_value!(self.from_charset.resolve(ctx)).try_bytes()?;
 
         decode_charset(value.as_bytes(), from.as_bytes())
+            .map(crate::compiler::EvaluationOutcome::Value)
     }
 
     fn type_def(&self, _state: &TypeState) -> TypeDef {

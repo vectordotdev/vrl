@@ -1,6 +1,6 @@
 use crate::compiler::prelude::*;
 
-fn is_empty(value: Value) -> Resolved {
+fn is_empty(value: Value) -> ValueResult {
     let empty = match value {
         Value::Object(v) => v.is_empty(),
         Value::Array(v) => v.is_empty(),
@@ -109,8 +109,8 @@ struct IsEmptyFn {
 
 impl FunctionExpression for IsEmptyFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = self.value.resolve(ctx)?;
-        is_empty(value)
+        let value = crate::resolve_value!(self.value.resolve(ctx));
+        is_empty(value).map(EvaluationOutcome::Value)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

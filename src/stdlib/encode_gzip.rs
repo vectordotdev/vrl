@@ -19,7 +19,7 @@ const PARAMETERS: &[Parameter] = &[
     .default(&DEFAULT_COMPRESSION_LEVEL),
 ];
 
-fn encode_gzip(value: Value, compression_level: Value) -> Resolved {
+fn encode_gzip(value: Value, compression_level: Value) -> ValueResult {
     // TODO consider removal options
     #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
     let level = compression_level.try_integer()? as u32;
@@ -96,13 +96,14 @@ struct EncodeGzipFn {
 
 impl FunctionExpression for EncodeGzipFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = self.value.resolve(ctx)?;
+        let value = crate::resolve_value!(self.value.resolve(ctx));
 
-        let compression_level = self
-            .compression_level
-            .map_resolve_with_default(ctx, || DEFAULT_COMPRESSION_LEVEL.clone())?;
+        let compression_level = crate::resolve_value!(
+            self.compression_level
+                .map_resolve_with_default(ctx, || DEFAULT_COMPRESSION_LEVEL.clone())
+        );
 
-        encode_gzip(value, compression_level)
+        encode_gzip(value, compression_level).map(EvaluationOutcome::Value)
     }
 
     fn type_def(&self, state: &state::TypeState) -> TypeDef {

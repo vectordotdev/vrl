@@ -101,10 +101,10 @@ struct DirNameFn {
 
 impl FunctionExpression for DirNameFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = self.value.resolve(ctx)?;
+        let value = crate::resolve_value!(self.value.resolve(ctx));
         let path_str_cow = value.try_bytes_utf8_lossy()?;
         let path_str = path_str_cow.as_ref();
-        Ok(Value::from(dirname(path_str)))
+        Ok(EvaluationOutcome::Value(Value::from(dirname(path_str))))
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

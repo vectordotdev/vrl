@@ -73,9 +73,11 @@ struct StripWhitespaceFn {
 
 impl FunctionExpression for StripWhitespaceFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = self.value.resolve(ctx)?;
+        let value = crate::resolve_value!(self.value.resolve(ctx));
 
-        Ok(value.try_bytes_utf8_lossy()?.trim().into())
+        Ok(EvaluationOutcome::Value(
+            value.try_bytes_utf8_lossy()?.trim().into(),
+        ))
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

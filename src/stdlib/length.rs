@@ -1,6 +1,6 @@
 use crate::compiler::prelude::*;
 
-fn length(value: Value) -> Resolved {
+fn length(value: Value) -> ValueResult {
     match value {
         Value::Array(v) => Ok(v.len().into()),
         Value::Object(v) => Ok(v.len().into()),
@@ -119,9 +119,9 @@ struct LengthFn {
 
 impl FunctionExpression for LengthFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = self.value.resolve(ctx)?;
+        let value = crate::resolve_value!(self.value.resolve(ctx));
 
-        length(value)
+        length(value).map(EvaluationOutcome::Value)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

@@ -23,7 +23,7 @@ const PARAMETERS: &[Parameter] = &[
 ];
 
 #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)] // TODO consider removal options
-fn replace(value: &Value, with_value: &Value, count: Value, pattern: Value) -> Resolved {
+fn replace(value: &Value, with_value: &Value, count: Value, pattern: Value) -> ValueResult {
     let value = value.try_bytes_utf8_lossy()?;
     let with = with_value.try_bytes_utf8_lossy()?;
     let count = count.try_integer()?;
@@ -161,14 +161,15 @@ struct ReplaceFn {
 
 impl FunctionExpression for ReplaceFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = self.value.resolve(ctx)?;
-        let with_value = self.with.resolve(ctx)?;
-        let count = self
-            .count
-            .map_resolve_with_default(ctx, || DEFAULT_COUNT.clone())?;
-        let pattern = self.pattern.resolve(ctx)?;
+        let value = crate::resolve_value!(self.value.resolve(ctx));
+        let with_value = crate::resolve_value!(self.with.resolve(ctx));
+        let count = crate::resolve_value!(
+            self.count
+                .map_resolve_with_default(ctx, || DEFAULT_COUNT.clone())
+        );
+        let pattern = crate::resolve_value!(self.pattern.resolve(ctx));
 
-        replace(&value, &with_value, count, pattern)
+        replace(&value, &with_value, count, pattern).map(EvaluationOutcome::Value)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

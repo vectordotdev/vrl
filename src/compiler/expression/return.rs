@@ -9,11 +9,10 @@ use crate::compiler::{
 use crate::diagnostic::{DiagnosticMessage, Label, Note};
 use crate::parser::ast::Node;
 
-use super::{Expr, ExpressionError};
+use super::Expr;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Return {
-    span: Span,
     expr: Box<Expr>,
 }
 
@@ -21,7 +20,7 @@ impl Return {
     /// # Errors
     ///
     /// * The returned value must not be fallible
-    pub fn new(span: Span, expr: Node<Expr>, state: &TypeState) -> Result<Self, Error> {
+    pub fn new(expr: Node<Expr>, state: &TypeState) -> Result<Self, Error> {
         let (expr_span, expr) = expr.take();
         let type_def = expr.type_info(state).result;
 
@@ -33,7 +32,6 @@ impl Return {
         }
 
         Ok(Self {
-            span,
             expr: Box::new(expr),
         })
     }
@@ -41,10 +39,9 @@ impl Return {
 
 impl Expression for Return {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        Err(ExpressionError::Return {
-            span: self.span,
-            value: self.expr.resolve(ctx)?,
-        })
+        Ok(crate::compiler::EvaluationOutcome::Return(
+            crate::resolve_value!(self.expr.resolve(ctx)),
+        ))
     }
 
     fn type_info(&self, state: &TypeState) -> TypeInfo {

@@ -1,7 +1,7 @@
 use crate::compiler::prelude::*;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
-fn ip_subnet(value: &Value, mask: &Value) -> Resolved {
+fn ip_subnet(value: &Value, mask: &Value) -> ValueResult {
     let value: IpAddr = value
         .try_bytes_utf8_lossy()?
         .parse()
@@ -120,10 +120,10 @@ struct IpSubnetFn {
 
 impl FunctionExpression for IpSubnetFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = self.value.resolve(ctx)?;
-        let mask = self.subnet.resolve(ctx)?;
+        let value = crate::resolve_value!(self.value.resolve(ctx));
+        let mask = crate::resolve_value!(self.subnet.resolve(ctx));
 
-        ip_subnet(&value, &mask)
+        ip_subnet(&value, &mask).map(EvaluationOutcome::Value)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

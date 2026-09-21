@@ -200,20 +200,22 @@ pub(crate) struct ParseCefFn {
 
 impl FunctionExpression for ParseCefFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let bytes = self.value.resolve(ctx)?;
+        let bytes = crate::resolve_value!(self.value.resolve(ctx));
         let bytes = bytes.try_bytes_utf8_lossy()?;
-        let translate_custom_fields = self
-            .translate_custom_fields
-            .map_resolve_with_default(ctx, || DEFAULT_TRANSLATE_CUSTOM_FIELDS.clone())?
-            .try_boolean()?;
-        let strict = self
-            .strict
-            .map_resolve_with_default(ctx, || DEFAULT_STRICT.clone())?
-            .try_boolean()?;
+        let translate_custom_fields = crate::resolve_value!(
+            self.translate_custom_fields
+                .map_resolve_with_default(ctx, || DEFAULT_TRANSLATE_CUSTOM_FIELDS.clone())
+        )
+        .try_boolean()?;
+        let strict = crate::resolve_value!(
+            self.strict
+                .map_resolve_with_default(ctx, || DEFAULT_STRICT.clone())
+        )
+        .try_boolean()?;
 
         let result = parse(&bytes, strict)?;
 
-        if translate_custom_fields {
+        (if translate_custom_fields {
             let mut custom_fields = HashMap::<_, [Option<String>; 2]>::new();
 
             let mut result = result
@@ -243,14 +245,18 @@ impl FunctionExpression for ParseCefFn {
                     [Some(label), value] => {
                         result.insert(label.into(), value.into());
                     }
-                    _ => return Err("Custom field with missing label or value".into()),
+                    _ => {
+                        return Err("Custom field with missing label or value".into())
+                            .map(EvaluationOutcome::Value);
+                    }
                 }
             }
 
             Ok(Value::Object(result))
         } else {
             Ok(result.map(|(k, v)| (k, v.into())).collect())
-        }
+        })
+        .map(EvaluationOutcome::Value)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

@@ -38,11 +38,12 @@ impl Variable {
 
 impl Expression for Variable {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        Ok(ctx
-            .state()
-            .variable(&self.ident)
-            .cloned()
-            .unwrap_or(Value::Null))
+        Ok(crate::compiler::EvaluationOutcome::Value(
+            ctx.state()
+                .variable(&self.ident)
+                .cloned()
+                .unwrap_or(Value::Null),
+        ))
     }
 
     fn resolve_constant(&self, state: &TypeState) -> Option<Value> {

@@ -1,6 +1,6 @@
 use crate::compiler::prelude::*;
 
-fn int(value: Value) -> Resolved {
+fn int(value: Value) -> ValueResult {
     match value {
         v @ Value::Integer(_) => Ok(v),
         v => Err(format!("expected integer, got {}", v.kind()).into()),
@@ -91,7 +91,7 @@ struct IntegerFn {
 
 impl FunctionExpression for IntegerFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        int(self.value.resolve(ctx)?)
+        int(crate::resolve_value!(self.value.resolve(ctx))).map(EvaluationOutcome::Value)
     }
 
     fn type_def(&self, state: &state::TypeState) -> TypeDef {

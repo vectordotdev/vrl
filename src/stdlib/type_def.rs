@@ -74,7 +74,9 @@ struct TypeDefFn {
 
 impl FunctionExpression for TypeDefFn {
     fn resolve(&self, _ctx: &mut Context) -> Resolved {
-        Ok(type_def(&self.type_def.clone()))
+        Ok(crate::compiler::EvaluationOutcome::Value(type_def(
+            &self.type_def.clone(),
+        )))
     }
 
     fn type_def(&self, _state: &state::TypeState) -> VrlTypeDef {

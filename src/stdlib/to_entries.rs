@@ -14,7 +14,7 @@ fn build_entry(key: Value, value: Value) -> Value {
     Value::Object(entry)
 }
 
-fn to_entries(value: Value) -> Resolved {
+fn to_entries(value: Value) -> ValueResult {
     match value {
         Value::Object(object) => Ok(Value::Array(
             object
@@ -113,8 +113,8 @@ struct ToEntriesFn {
 
 impl FunctionExpression for ToEntriesFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = self.value.resolve(ctx)?;
-        to_entries(value)
+        let value = crate::resolve_value!(self.value.resolve(ctx));
+        to_entries(value).map(EvaluationOutcome::Value)
     }
 
     fn type_def(&self, _state: &TypeState) -> TypeDef {

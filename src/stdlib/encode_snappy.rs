@@ -1,7 +1,7 @@
 use crate::compiler::prelude::*;
 use snap::raw::Encoder;
 
-fn encode_snappy(value: Value) -> Resolved {
+fn encode_snappy(value: Value) -> ValueResult {
     let value = value.try_bytes()?;
     let mut encoder = Encoder::new();
     let result = encoder.compress_vec(&value);
@@ -72,9 +72,9 @@ struct EncodeSnappyFn {
 
 impl FunctionExpression for EncodeSnappyFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = self.value.resolve(ctx)?;
+        let value = crate::resolve_value!(self.value.resolve(ctx));
 
-        encode_snappy(value)
+        encode_snappy(value).map(EvaluationOutcome::Value)
     }
 
     fn type_def(&self, _state: &state::TypeState) -> TypeDef {

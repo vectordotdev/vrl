@@ -18,7 +18,7 @@ const PARAMETERS: &[Parameter] = &[
     .default(&DEFAULT_PRECISION),
 ];
 
-fn floor(precision: Value, value: Value) -> Resolved {
+fn floor(precision: Value, value: Value) -> ValueResult {
     let precision = precision.try_integer()?;
 
     match value {
@@ -102,12 +102,13 @@ struct FloorFn {
 
 impl FunctionExpression for FloorFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let precision = self
-            .precision
-            .map_resolve_with_default(ctx, || DEFAULT_PRECISION.clone())?;
-        let value = self.value.resolve(ctx)?;
+        let precision = crate::resolve_value!(
+            self.precision
+                .map_resolve_with_default(ctx, || DEFAULT_PRECISION.clone())
+        );
+        let value = crate::resolve_value!(self.value.resolve(ctx));
 
-        floor(precision, value)
+        floor(precision, value).map(EvaluationOutcome::Value)
     }
 
     fn type_def(&self, state: &state::TypeState) -> TypeDef {

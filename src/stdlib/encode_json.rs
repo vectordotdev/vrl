@@ -89,12 +89,13 @@ struct EncodeJsonFn {
 
 impl FunctionExpression for EncodeJsonFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = self.value.resolve(ctx)?;
-        let pretty = self
-            .pretty
-            .map_resolve_with_default(ctx, || DEFAULT_PRETTY.clone())?
-            .try_boolean()?;
-        Ok(encode_json(&value, pretty))
+        let value = crate::resolve_value!(self.value.resolve(ctx));
+        let pretty = crate::resolve_value!(
+            self.pretty
+                .map_resolve_with_default(ctx, || DEFAULT_PRETTY.clone())
+        )
+        .try_boolean()?;
+        Ok(EvaluationOutcome::Value(encode_json(&value, pretty)))
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

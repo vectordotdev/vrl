@@ -31,7 +31,7 @@ const PARAMETERS: &[Parameter] = &[
         .enum_variants(UNIT_ENUM),
 ];
 
-fn from_unix_timestamp(value: Value, unit: Unit) -> Resolved {
+fn from_unix_timestamp(value: Value, unit: Unit) -> ValueResult {
     use Value::Integer;
 
     let value = match value {
@@ -184,9 +184,9 @@ struct FromUnixTimestampFn {
 
 impl FunctionExpression for FromUnixTimestampFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = self.value.resolve(ctx)?;
+        let value = crate::resolve_value!(self.value.resolve(ctx));
         let unit = self.unit;
-        from_unix_timestamp(value, unit)
+        from_unix_timestamp(value, unit).map(EvaluationOutcome::Value)
     }
 
     fn type_def(&self, _state: &state::TypeState) -> TypeDef {

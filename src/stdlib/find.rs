@@ -13,7 +13,7 @@ const PARAMETERS: &[Parameter] = &[
 ];
 
 #[allow(clippy::cast_possible_wrap)]
-fn find(value: Value, pattern: Value, from: Value) -> Resolved {
+fn find(value: Value, pattern: Value, from: Value) -> ValueResult {
     // TODO consider removal options
     #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
     let from = from.try_integer()? as usize;
@@ -143,13 +143,14 @@ impl FindFn {
 
 impl FunctionExpression for FindFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = self.value.resolve(ctx)?;
-        let pattern = self.pattern.resolve(ctx)?;
-        let from = self
-            .from
-            .map_resolve_with_default(ctx, || DEFAULT_FROM.clone())?;
+        let value = crate::resolve_value!(self.value.resolve(ctx));
+        let pattern = crate::resolve_value!(self.pattern.resolve(ctx));
+        let from = crate::resolve_value!(
+            self.from
+                .map_resolve_with_default(ctx, || DEFAULT_FROM.clone())
+        );
 
-        find(value, pattern, from)
+        find(value, pattern, from).map(EvaluationOutcome::Value)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

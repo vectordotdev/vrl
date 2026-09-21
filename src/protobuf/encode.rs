@@ -297,7 +297,7 @@ pub(crate) fn encode_proto(
     descriptor: &MessageDescriptor,
     value: Value,
     options: &Options,
-) -> Resolved {
+) -> ValueResult {
     let message = encode_message(descriptor, value, options)?;
     let mut buf = Vec::new();
     message

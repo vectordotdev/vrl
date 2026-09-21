@@ -88,9 +88,9 @@ struct SplitPathFn {
 
 impl FunctionExpression for SplitPathFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = self.value.resolve(ctx)?;
+        let value = crate::resolve_value!(self.value.resolve(ctx));
         let path_str = value.try_bytes_utf8_lossy()?;
-        Ok(split_path(&path_str))
+        Ok(EvaluationOutcome::Value(split_path(&path_str)))
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

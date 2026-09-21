@@ -19,6 +19,7 @@ impl FunctionExpression for WasmUnsupportedFunction {
             span: self.span,
             message: Some("This function is not supported in WebAssembly".to_owned()),
         })
+        .map(EvaluationOutcome::Value)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

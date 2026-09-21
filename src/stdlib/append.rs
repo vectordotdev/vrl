@@ -1,6 +1,6 @@
 use crate::compiler::prelude::*;
 
-fn append(value: Value, items: Value) -> Resolved {
+fn append(value: Value, items: Value) -> ValueResult {
     let mut value = value.try_array()?;
     let mut items = items.try_array()?;
     value.append(&mut items);
@@ -64,10 +64,10 @@ struct AppendFn {
 
 impl FunctionExpression for AppendFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = self.value.resolve(ctx)?;
-        let items = self.items.resolve(ctx)?;
+        let value = crate::resolve_value!(self.value.resolve(ctx));
+        let items = crate::resolve_value!(self.items.resolve(ctx));
 
-        append(value, items)
+        append(value, items).map(EvaluationOutcome::Value)
     }
 
     fn type_def(&self, state: &state::TypeState) -> TypeDef {

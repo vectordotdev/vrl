@@ -4,7 +4,7 @@ use std::ops::Range;
 
 const INVALID_RANGE_ERR: &str = "max must be greater than min";
 
-fn random_float(min: Value, max: Value) -> Resolved {
+fn random_float(min: Value, max: Value) -> ValueResult {
     let min = min.try_float()?;
     let max = max.try_float()?;
 
@@ -102,10 +102,10 @@ struct RandomFloatFn {
 
 impl FunctionExpression for RandomFloatFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let min = self.min.resolve(ctx)?;
-        let max = self.max.resolve(ctx)?;
+        let min = crate::resolve_value!(self.min.resolve(ctx));
+        let max = crate::resolve_value!(self.max.resolve(ctx));
 
-        random_float(min, max)
+        random_float(min, max).map(EvaluationOutcome::Value)
     }
 
     fn type_def(&self, state: &state::TypeState) -> TypeDef {

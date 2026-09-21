@@ -23,7 +23,7 @@ arrays left are also removed.",
     .default(&DEFAULT_COMPACT),
 ];
 
-fn remove(path: Value, compact: Value, mut value: Value) -> Resolved {
+fn remove(path: Value, compact: Value, mut value: Value) -> ValueResult {
     let path = match path {
         Value::Array(path) => {
             let mut lookup = OwnedValuePath::root();
@@ -198,13 +198,14 @@ pub(crate) struct RemoveFn {
 
 impl FunctionExpression for RemoveFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let path = self.path.resolve(ctx)?;
-        let compact = self
-            .compact
-            .map_resolve_with_default(ctx, || DEFAULT_COMPACT.clone())?;
-        let value = self.value.resolve(ctx)?;
+        let path = crate::resolve_value!(self.path.resolve(ctx));
+        let compact = crate::resolve_value!(
+            self.compact
+                .map_resolve_with_default(ctx, || DEFAULT_COMPACT.clone())
+        );
+        let value = crate::resolve_value!(self.value.resolve(ctx));
 
-        remove(path, compact, value)
+        remove(path, compact, value).map(EvaluationOutcome::Value)
     }
 
     fn type_def(&self, state: &state::TypeState) -> TypeDef {

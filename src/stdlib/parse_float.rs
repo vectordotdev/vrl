@@ -1,7 +1,7 @@
 use crate::compiler::prelude::*;
 use crate::stdlib::to_float::bytes_to_float;
 
-fn parse_float(value: Value) -> Resolved {
+fn parse_float(value: Value) -> ValueResult {
     bytes_to_float(value.try_bytes()?)
 }
 
@@ -81,9 +81,9 @@ struct ParseFloatFn {
 
 impl FunctionExpression for ParseFloatFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = self.value.resolve(ctx)?;
+        let value = crate::resolve_value!(self.value.resolve(ctx));
 
-        parse_float(value)
+        parse_float(value).map(EvaluationOutcome::Value)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

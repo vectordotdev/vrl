@@ -1,7 +1,7 @@
 use crate::compiler::prelude::*;
 use std::borrow::Cow;
 
-fn join(array: Value, separator: Option<Value>) -> Resolved {
+fn join(array: Value, separator: Option<Value>) -> ValueResult {
     let array = array.try_array()?;
     let string_vec = array
         .iter()
@@ -89,14 +89,10 @@ struct JoinFn {
 
 impl FunctionExpression for JoinFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let array = self.value.resolve(ctx)?;
-        let separator = self
-            .separator
-            .as_ref()
-            .map(|s| s.resolve(ctx))
-            .transpose()?;
+        let array = crate::resolve_value!(self.value.resolve(ctx));
+        let separator = crate::resolve_value!(self.separator.map_resolve(ctx));
 
-        join(array, separator)
+        join(array, separator).map(EvaluationOutcome::Value)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

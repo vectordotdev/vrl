@@ -93,8 +93,8 @@ struct IsNullishFn {
 
 impl FunctionExpression for IsNullishFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = self.value.resolve(ctx)?;
-        Ok(is_nullish(&value).into())
+        let value = crate::resolve_value!(self.value.resolve(ctx));
+        Ok(EvaluationOutcome::Value(is_nullish(&value).into()))
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

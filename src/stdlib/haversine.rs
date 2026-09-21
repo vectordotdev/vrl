@@ -17,7 +17,7 @@ fn haversine_distance(
     latitude2: Value,
     longitude2: Value,
     measurement_unit: &MeasurementUnit,
-) -> Resolved {
+) -> ValueResult {
     let latitude1 = latitude1.try_float()?.to_radians();
     let longitude1 = longitude1.try_float()?.to_radians();
     let latitude2 = latitude2.try_float()?.to_radians();
@@ -186,10 +186,10 @@ struct HaversineFn {
 
 impl FunctionExpression for HaversineFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let latitude1 = self.latitude1.resolve(ctx)?;
-        let longitude1 = self.longitude1.resolve(ctx)?;
-        let latitude2 = self.latitude2.resolve(ctx)?;
-        let longitude2 = self.longitude2.resolve(ctx)?;
+        let latitude1 = crate::resolve_value!(self.latitude1.resolve(ctx));
+        let longitude1 = crate::resolve_value!(self.longitude1.resolve(ctx));
+        let latitude2 = crate::resolve_value!(self.latitude2.resolve(ctx));
+        let longitude2 = crate::resolve_value!(self.longitude2.resolve(ctx));
 
         haversine_distance(
             latitude1,
@@ -198,6 +198,7 @@ impl FunctionExpression for HaversineFn {
             longitude2,
             &self.measurement_unit,
         )
+        .map(EvaluationOutcome::Value)
     }
 
     fn type_def(&self, _state: &state::TypeState) -> TypeDef {

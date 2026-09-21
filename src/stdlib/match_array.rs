@@ -17,7 +17,7 @@ const PARAMETERS: &[Parameter] = &[
     .default(&DEFAULT_ALL),
 ];
 
-fn match_array(list: Value, pattern: Value, all: Value) -> Resolved {
+fn match_array(list: Value, pattern: Value, all: Value) -> ValueResult {
     let pattern = pattern.try_regex()?;
     let list = list.try_array()?;
     let all = all.try_boolean()?;
@@ -110,13 +110,14 @@ pub(crate) struct MatchArrayFn {
 
 impl FunctionExpression for MatchArrayFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let list = self.value.resolve(ctx)?;
-        let pattern = self.pattern.resolve(ctx)?;
-        let all = self
-            .all
-            .map_resolve_with_default(ctx, || DEFAULT_ALL.clone())?;
+        let list = crate::resolve_value!(self.value.resolve(ctx));
+        let pattern = crate::resolve_value!(self.pattern.resolve(ctx));
+        let all = crate::resolve_value!(
+            self.all
+                .map_resolve_with_default(ctx, || DEFAULT_ALL.clone())
+        );
 
-        match_array(list, pattern, all)
+        match_array(list, pattern, all).map(EvaluationOutcome::Value)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

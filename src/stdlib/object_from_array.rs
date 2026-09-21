@@ -1,6 +1,6 @@
 use crate::compiler::prelude::*;
 
-fn make_object_1(values: Vec<Value>) -> Resolved {
+fn make_object_1(values: Vec<Value>) -> ValueResult {
     values
         .into_iter()
         .filter_map(|kv| make_key_value(kv).transpose())
@@ -8,7 +8,7 @@ fn make_object_1(values: Vec<Value>) -> Resolved {
         .map(Value::Object)
 }
 
-fn make_object_2(keys: Vec<Value>, values: Vec<Value>) -> Resolved {
+fn make_object_2(keys: Vec<Value>, values: Vec<Value>) -> ValueResult {
     keys.into_iter()
         .zip(values)
         .filter_map(|(key, value)| {
@@ -135,11 +135,15 @@ struct OFAFn {
 
 impl FunctionExpression for OFAFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let values = self.values.resolve(ctx)?.try_array()?;
-        match &self.keys {
+        let values = crate::resolve_value!(self.values.resolve(ctx)).try_array()?;
+        (match &self.keys {
             None => make_object_1(values),
-            Some(keys) => make_object_2(keys.resolve(ctx)?.try_array()?, values),
-        }
+            Some(keys) => make_object_2(
+                crate::resolve_value!(keys.resolve(ctx)).try_array()?,
+                values,
+            ),
+        })
+        .map(EvaluationOutcome::Value)
     }
 
     fn type_def(&self, _state: &TypeState) -> TypeDef {

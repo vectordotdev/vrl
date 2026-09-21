@@ -27,7 +27,7 @@ const PARAMETERS: &[Parameter] = &[
     .default(&DEFAULT_EXCEPT),
 ];
 
-fn flatten(value: Value, separator: &Value, except: &HashSet<KeyString>) -> Resolved {
+fn flatten(value: Value, separator: &Value, except: &HashSet<KeyString>) -> ValueResult {
     let separator = separator.try_bytes_utf8_lossy()?;
 
     match value {
@@ -164,14 +164,15 @@ struct FlattenFn {
 
 impl FunctionExpression for FlattenFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = self.value.resolve(ctx)?;
-        let separator = self
-            .separator
-            .map_resolve_with_default(ctx, || DEFAULT_SEPARATOR.clone())?;
+        let value = crate::resolve_value!(self.value.resolve(ctx));
+        let separator = crate::resolve_value!(
+            self.separator
+                .map_resolve_with_default(ctx, || DEFAULT_SEPARATOR.clone())
+        );
         let empty = HashSet::new();
         let except = self.except.as_ref().unwrap_or(&empty);
 
-        flatten(value, &separator, except)
+        flatten(value, &separator, except).map(EvaluationOutcome::Value)
     }
 
     fn type_def(&self, state: &state::TypeState) -> TypeDef {

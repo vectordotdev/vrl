@@ -59,7 +59,7 @@ pub mod query;
 
 #[allow(clippy::missing_errors_doc)]
 pub trait Expression: Send + Sync + fmt::Debug + DynClone {
-    /// Resolve an expression to a concrete [`Value`].
+    /// Evaluate an expression, yielding a value or a control-flow outcome.
     ///
     /// This method is executed at runtime.
     ///
@@ -448,21 +448,27 @@ impl From<Value> for Expr {
 // Helper trait
 #[allow(clippy::missing_errors_doc)]
 pub trait ExpressionExt {
-    fn map_resolve(&self, ctx: &mut Context) -> Result<Option<Value>, ExpressionError>;
+    fn map_resolve(&self, ctx: &mut Context) -> super::Resolved<Option<Value>>;
     fn map_resolve_with_default<F>(&self, ctx: &mut Context, default_fn: F) -> Resolved
     where
         F: FnOnce() -> Value;
 }
 
 impl ExpressionExt for Option<Box<dyn Expression>> {
-    fn map_resolve(&self, ctx: &mut Context) -> Result<Option<Value>, ExpressionError> {
-        self.as_ref().map(|expr| expr.resolve(ctx)).transpose()
+    fn map_resolve(&self, ctx: &mut Context) -> super::Resolved<Option<Value>> {
+        let value = match self {
+            Some(expr) => Some(crate::resolve_value!(expr.resolve(ctx))),
+            None => None,
+        };
+        Ok(super::EvaluationOutcome::Value(value))
     }
 
     fn map_resolve_with_default<F>(&self, ctx: &mut Context, default_fn: F) -> Resolved
     where
         F: FnOnce() -> Value,
     {
-        Ok(self.map_resolve(ctx)?.unwrap_or_else(default_fn))
+        Ok(super::EvaluationOutcome::Value(
+            crate::resolve_value!(self.map_resolve(ctx)).unwrap_or_else(default_fn),
+        ))
     }
 }

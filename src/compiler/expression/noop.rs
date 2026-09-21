@@ -10,7 +10,7 @@ pub struct Noop;
 
 impl Expression for Noop {
     fn resolve(&self, _: &mut Context) -> Resolved {
-        Ok(Value::Null)
+        Ok(crate::compiler::EvaluationOutcome::Value(Value::Null))
     }
 
     fn type_info(&self, state: &TypeState) -> TypeInfo {

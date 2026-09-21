@@ -13,7 +13,7 @@ const PARAMETERS: &[Parameter] = &[
     .default(&DEFAULT_DELIMITER),
 ];
 
-fn parse_csv(csv_string: Value, delimiter: Value) -> Resolved {
+fn parse_csv(csv_string: Value, delimiter: Value) -> ValueResult {
     let csv_string = csv_string.try_bytes()?;
     let delimiter = parse_single_byte_delimiter(delimiter)?;
 
@@ -112,12 +112,13 @@ struct ParseCsvFn {
 
 impl FunctionExpression for ParseCsvFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let csv_string = self.value.resolve(ctx)?;
-        let delimiter = self
-            .delimiter
-            .map_resolve_with_default(ctx, || DEFAULT_DELIMITER.clone())?;
+        let csv_string = crate::resolve_value!(self.value.resolve(ctx));
+        let delimiter = crate::resolve_value!(
+            self.delimiter
+                .map_resolve_with_default(ctx, || DEFAULT_DELIMITER.clone())
+        );
 
-        parse_csv(csv_string, delimiter)
+        parse_csv(csv_string, delimiter).map(crate::compiler::EvaluationOutcome::Value)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

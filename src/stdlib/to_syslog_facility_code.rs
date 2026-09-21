@@ -1,6 +1,6 @@
 use crate::compiler::prelude::*;
 
-fn to_syslog_facility_code(facility: &Value) -> Resolved {
+fn to_syslog_facility_code(facility: &Value) -> ValueResult {
     let facility = facility.try_bytes_utf8_lossy()?;
     // Facility codes: https://en.wikipedia.org/wiki/Syslog#Facility
     let code = match &facility[..] {
@@ -102,8 +102,8 @@ struct ToSyslogFacilityCodeFn {
 
 impl FunctionExpression for ToSyslogFacilityCodeFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let facility = self.value.resolve(ctx)?;
-        to_syslog_facility_code(&facility)
+        let facility = crate::resolve_value!(self.value.resolve(ctx));
+        to_syslog_facility_code(&facility).map(EvaluationOutcome::Value)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

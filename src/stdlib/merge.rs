@@ -121,16 +121,17 @@ pub(crate) struct MergeFn {
 
 impl FunctionExpression for MergeFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let mut to_value = self.to.resolve(ctx)?.try_object()?;
-        let from_value = self.from.resolve(ctx)?.try_object()?;
-        let deep = self
-            .deep
-            .map_resolve_with_default(ctx, || DEFAULT_DEEP.clone())?
-            .try_boolean()?;
+        let mut to_value = crate::resolve_value!(self.to.resolve(ctx)).try_object()?;
+        let from_value = crate::resolve_value!(self.from.resolve(ctx)).try_object()?;
+        let deep = crate::resolve_value!(
+            self.deep
+                .map_resolve_with_default(ctx, || DEFAULT_DEEP.clone())
+        )
+        .try_boolean()?;
 
         merge_maps(&mut to_value, &from_value, deep);
 
-        Ok(to_value.into())
+        Ok(EvaluationOutcome::Value(to_value.into()))
     }
 
     fn type_def(&self, state: &state::TypeState) -> TypeDef {

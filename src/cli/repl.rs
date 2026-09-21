@@ -615,7 +615,7 @@ mod tests {
         impl FunctionExpression for OnceFn {
             fn resolve(&self, _ctx: &mut Context) -> Resolved {
                 RUN_COUNTER.fetch_add(1, Ordering::SeqCst);
-                Ok(Value::Null)
+                Ok(crate::compiler::EvaluationOutcome::Value(Value::Null))
             }
 
             fn type_def(&self, _state: &state::TypeState) -> TypeDef {

@@ -2,7 +2,7 @@ use crate::compiler::prelude::*;
 use flate2::read::ZlibDecoder;
 use std::io::Read;
 
-fn decode_zlib(value: Value) -> Resolved {
+fn decode_zlib(value: Value) -> ValueResult {
     let value = value.try_bytes()?;
     let mut buf = Vec::new();
     let result = ZlibDecoder::new(std::io::Cursor::new(value)).read_to_end(&mut buf);
@@ -73,9 +73,9 @@ struct DecodeZlibFn {
 
 impl FunctionExpression for DecodeZlibFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = self.value.resolve(ctx)?;
+        let value = crate::resolve_value!(self.value.resolve(ctx));
 
-        decode_zlib(value)
+        decode_zlib(value).map(EvaluationOutcome::Value)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

@@ -82,29 +82,30 @@ fn exists(query: &expression::Query, ctx: &mut Context) -> Resolved {
     let path = query.path();
 
     if let Some(target_path) = query.external_path() {
-        return Ok(ctx
-            .target_mut()
-            .target_get(&target_path)
-            .ok()
-            .flatten()
-            .is_some()
-            .into());
+        return Ok(EvaluationOutcome::Value(
+            ctx.target_mut()
+                .target_get(&target_path)
+                .ok()
+                .flatten()
+                .is_some()
+                .into(),
+        ));
     }
 
     if let Some(ident) = query.variable_ident() {
         return match ctx.state().variable(ident) {
-            Some(value) => Ok(value.get(path).is_some().into()),
-            None => Ok(false.into()),
+            Some(value) => Ok(EvaluationOutcome::Value(value.get(path).is_some().into())),
+            None => Ok(EvaluationOutcome::Value(false.into())),
         };
     }
 
     if let Some(expr) = query.expression_target() {
-        let value = expr.resolve(ctx)?;
+        let value = crate::resolve_value!(expr.resolve(ctx));
 
-        return Ok(value.get(path).is_some().into());
+        return Ok(EvaluationOutcome::Value(value.get(path).is_some().into()));
     }
 
-    Ok(false.into())
+    Ok(EvaluationOutcome::Value(false.into()))
 }
 
 impl FunctionExpression for ExistsFn {

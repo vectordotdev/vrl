@@ -26,7 +26,7 @@ fn parse_regex(
     pattern: &Regex,
     capture_info: &[(KeyString, usize)],
     numeric_groups: bool,
-) -> Resolved {
+) -> ValueResult {
     let value = value.try_bytes_utf8_lossy()?;
     let parsed = pattern
         .captures(&value)
@@ -171,13 +171,14 @@ pub(crate) struct ParseRegexFn {
 
 impl FunctionExpression for ParseRegexFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = self.value.resolve(ctx)?;
-        let numeric_groups = self
-            .numeric_groups
-            .map_resolve_with_default(ctx, || DEFAULT_NUMERIC_GROUPS.clone())?
-            .try_boolean()?;
+        let value = crate::resolve_value!(self.value.resolve(ctx));
+        let numeric_groups = crate::resolve_value!(
+            self.numeric_groups
+                .map_resolve_with_default(ctx, || DEFAULT_NUMERIC_GROUPS.clone())
+        )
+        .try_boolean()?;
 
-        match &self.pattern {
+        (match &self.pattern {
             ConstOrExpr::Const(pattern) => parse_regex(
                 &value,
                 &pattern.regex,
@@ -185,14 +186,15 @@ impl FunctionExpression for ParseRegexFn {
                 numeric_groups,
             ),
             ConstOrExpr::Expr(expr) => {
-                let resolved = expr.resolve(ctx)?;
+                let resolved = crate::resolve_value!(expr.resolve(ctx));
                 let pattern = resolved
                     .as_regex()
                     .ok_or_else(|| ExpressionError::from("failed to resolve regex"))?;
                 let dynamic_capture_info = util::build_capture_info(pattern);
                 parse_regex(&value, pattern, &dynamic_capture_info, numeric_groups)
             }
-        }
+        })
+        .map(EvaluationOutcome::Value)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

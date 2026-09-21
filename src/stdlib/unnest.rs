@@ -4,7 +4,7 @@ use crate::path::{OwnedTargetPath, OwnedValuePath};
 fn unnest(path: &expression::Query, ctx: &mut Context) -> Resolved {
     let lookup_buf = path.path();
 
-    match path.target() {
+    let value = match path.target() {
         expression::Target::External(prefix) => {
             let root = ctx
                 .target()
@@ -19,19 +19,20 @@ fn unnest(path: &expression::Query, ctx: &mut Context) -> Resolved {
             unnest_root(root, lookup_buf)
         }
         expression::Target::Container(expr) => {
-            let value = expr.resolve(ctx)?;
+            let value = crate::resolve_value!(expr.resolve(ctx));
             let root = value.get(&OwnedValuePath::root()).expect("always a value");
             unnest_root(root, lookup_buf)
         }
         expression::Target::FunctionCall(expr) => {
-            let value = expr.resolve(ctx)?;
+            let value = crate::resolve_value!(expr.resolve(ctx));
             let root = value.get(&OwnedValuePath::root()).expect("always a value");
             unnest_root(root, lookup_buf)
         }
-    }
+    }?;
+    Ok(EvaluationOutcome::Value(value))
 }
 
-fn unnest_root(root: &Value, path: &OwnedValuePath) -> Resolved {
+fn unnest_root(root: &Value, path: &OwnedValuePath) -> ValueResult {
     let mut trimmed = root.clone();
     let values = trimmed
         .remove(path, true)
@@ -431,7 +432,7 @@ mod tests {
                 .resolve(&mut ctx)
                 .map_err(|e| format!("{:#}", anyhow::anyhow!(e)));
 
-            assert_eq!(got, expected);
+            assert_eq!(got, expected.map(EvaluationOutcome::Value));
             assert_eq!(got_typedef, expected_typedef);
         }
     }

@@ -1,7 +1,7 @@
 use crate::compiler::prelude::*;
 use std::{convert::TryInto, net::Ipv4Addr};
 
-fn ip_ntoa(value: Value) -> Resolved {
+fn ip_ntoa(value: Value) -> ValueResult {
     let i: u32 = value
         .try_integer()?
         .try_into()
@@ -75,8 +75,8 @@ struct IpNtoaFn {
 
 impl FunctionExpression for IpNtoaFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = self.value.resolve(ctx)?;
-        ip_ntoa(value)
+        let value = crate::resolve_value!(self.value.resolve(ctx));
+        ip_ntoa(value).map(EvaluationOutcome::Value)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

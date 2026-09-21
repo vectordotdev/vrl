@@ -81,7 +81,9 @@ struct IsFloatFn {
 
 impl FunctionExpression for IsFloatFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        self.value.resolve(ctx).map(|v| value!(v.is_float()))
+        Ok(EvaluationOutcome::Value(value!(
+            crate::resolve_value!(self.value.resolve(ctx)).is_float()
+        )))
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

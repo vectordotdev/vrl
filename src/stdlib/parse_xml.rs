@@ -151,59 +151,27 @@ struct ParseXmlFn {
 
 impl FunctionExpression for ParseXmlFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = self.value.resolve(ctx)?;
+        let value = crate::resolve_value!(self.value.resolve(ctx));
 
         let options = ParseOptions {
-            trim: self
-                .trim
-                .as_ref()
-                .map(|expr| expr.resolve(ctx))
-                .transpose()?,
+            trim: crate::resolve_value!(self.trim.map_resolve(ctx)),
 
-            include_attr: self
-                .include_attr
-                .as_ref()
-                .map(|expr| expr.resolve(ctx))
-                .transpose()?,
+            include_attr: crate::resolve_value!(self.include_attr.map_resolve(ctx)),
 
-            attr_prefix: self
-                .attr_prefix
-                .as_ref()
-                .map(|expr| expr.resolve(ctx))
-                .transpose()?,
+            attr_prefix: crate::resolve_value!(self.attr_prefix.map_resolve(ctx)),
 
-            text_key: self
-                .text_key
-                .as_ref()
-                .map(|expr| expr.resolve(ctx))
-                .transpose()?,
+            text_key: crate::resolve_value!(self.text_key.map_resolve(ctx)),
 
-            always_use_text_key: self
-                .always_use_text_key
-                .as_ref()
-                .map(|expr| expr.resolve(ctx))
-                .transpose()?,
+            always_use_text_key: crate::resolve_value!(self.always_use_text_key.map_resolve(ctx)),
 
-            parse_bool: self
-                .parse_bool
-                .as_ref()
-                .map(|expr| expr.resolve(ctx))
-                .transpose()?,
+            parse_bool: crate::resolve_value!(self.parse_bool.map_resolve(ctx)),
 
-            parse_null: self
-                .parse_null
-                .as_ref()
-                .map(|expr| expr.resolve(ctx))
-                .transpose()?,
+            parse_null: crate::resolve_value!(self.parse_null.map_resolve(ctx)),
 
-            parse_number: self
-                .parse_number
-                .as_ref()
-                .map(|expr| expr.resolve(ctx))
-                .transpose()?,
+            parse_number: crate::resolve_value!(self.parse_number.map_resolve(ctx)),
         };
 
-        parse_xml(value, options)
+        parse_xml(value, options).map(EvaluationOutcome::Value)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

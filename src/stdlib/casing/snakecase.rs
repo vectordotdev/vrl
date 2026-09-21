@@ -145,12 +145,12 @@ struct SnakecaseFn {
 
 impl FunctionExpression for SnakecaseFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = self.value.resolve(ctx)?;
+        let value = crate::resolve_value!(self.value.resolve(ctx));
         let string_value = value
             .try_bytes_utf8_lossy()
             .expect("can't convert to string");
 
-        match &self.excluded_boundaries {
+        (match &self.excluded_boundaries {
             Some(boundaries) if !boundaries.is_empty() => {
                 Ok(super::convert_case_with_excluded_boundaries(
                     &string_value,
@@ -160,7 +160,8 @@ impl FunctionExpression for SnakecaseFn {
                 ))
             }
             _ => super::convert_case(&value, Case::Snake, self.original_case),
-        }
+        })
+        .map(EvaluationOutcome::Value)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

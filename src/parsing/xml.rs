@@ -74,7 +74,7 @@ pub struct ParseOptions {
     pub parse_number: Option<Value>,
 }
 
-/// Parses an XML string into a structured `Resolved` format based on the provided `ParseOptions`.
+/// Parses an XML string into a structured `ValueResult` format based on the provided `ParseOptions`.
 ///
 /// This function processes an XML document, applying transformations and extracting elements
 /// according to the given parsing options.
@@ -92,13 +92,13 @@ pub struct ParseOptions {
 ///   - `parse_number`: Whether to attempt parsing numeric values (default: `true`).
 ///
 /// # Returns
-/// - `Ok(Resolved)`: The structured representation of the parsed XML.
+/// - `Ok(ValueResult)`: The structured representation of the parsed XML.
 /// - `Err(String)`: If XML parsing fails or an error occurs during processing.
 ///
 /// # Errors
 /// - Returns an error if the input is not valid XML or if any step in processing fails.
 #[allow(clippy::needless_pass_by_value)] // The public parser interface consumes its input value.
-pub fn parse_xml(value: Value, options: ParseOptions) -> Resolved {
+pub fn parse_xml(value: Value, options: ParseOptions) -> ValueResult {
     let string = value.try_bytes_utf8_lossy()?;
     let trim = options
         .trim

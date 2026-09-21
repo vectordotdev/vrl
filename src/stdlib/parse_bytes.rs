@@ -80,7 +80,7 @@ const PARAMETERS: &[Parameter] = &[
     .default(&DEFAULT_BASE),
 ];
 
-fn parse_bytes(bytes: &Value, unit: Value, base: &Bytes) -> Resolved {
+fn parse_bytes(bytes: &Value, unit: Value, base: &Bytes) -> ValueResult {
     let (units, parse_config) = match base.as_ref() {
         b"2" => (&*BIN_UNITS, Config::new().with_binary()),
         b"10" => (&*DEC_UNITS, Config::new().with_decimal()),
@@ -242,10 +242,10 @@ struct ParseBytesFn {
 
 impl FunctionExpression for ParseBytesFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let bytes = self.value.resolve(ctx)?;
-        let unit = self.unit.resolve(ctx)?;
+        let bytes = crate::resolve_value!(self.value.resolve(ctx));
+        let unit = crate::resolve_value!(self.unit.resolve(ctx));
 
-        parse_bytes(&bytes, unit, &self.base)
+        parse_bytes(&bytes, unit, &self.base).map(EvaluationOutcome::Value)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

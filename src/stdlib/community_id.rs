@@ -11,7 +11,7 @@ fn community_id(
     src_port: Option<Value>,
     dst_port: Option<Value>,
     seed: Option<Value>,
-) -> Resolved {
+) -> ValueResult {
     let src_ip: IpAddr = src_ip
         .try_bytes_utf8_lossy()?
         .parse()
@@ -210,29 +210,18 @@ struct CommunityIDFn {
 
 impl FunctionExpression for CommunityIDFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let src_ip: Value = self.src_ip.resolve(ctx)?;
-        let dst_ip: Value = self.dst_ip.resolve(ctx)?;
-        let protocol = self.protocol.resolve(ctx)?;
+        let src_ip: Value = crate::resolve_value!(self.src_ip.resolve(ctx));
+        let dst_ip: Value = crate::resolve_value!(self.dst_ip.resolve(ctx));
+        let protocol = crate::resolve_value!(self.protocol.resolve(ctx));
 
-        let src_port = self
-            .src_port
-            .as_ref()
-            .map(|expr| expr.resolve(ctx))
-            .transpose()?;
+        let src_port = crate::resolve_value!(self.src_port.map_resolve(ctx));
 
-        let dst_port = self
-            .dst_port
-            .as_ref()
-            .map(|expr| expr.resolve(ctx))
-            .transpose()?;
+        let dst_port = crate::resolve_value!(self.dst_port.map_resolve(ctx));
 
-        let seed = self
-            .seed
-            .as_ref()
-            .map(|expr| expr.resolve(ctx))
-            .transpose()?;
+        let seed = crate::resolve_value!(self.seed.map_resolve(ctx));
 
         community_id(&src_ip, &dst_ip, protocol, src_port, dst_port, seed)
+            .map(EvaluationOutcome::Value)
     }
 
     fn type_def(&self, _state: &state::TypeState) -> TypeDef {

@@ -1,6 +1,6 @@
 use crate::compiler::prelude::*;
 
-fn keys(value: Value) -> Resolved {
+fn keys(value: Value) -> ValueResult {
     let object = value.try_object()?;
     let keys = object.into_keys().map(Value::from);
     Ok(Value::Array(keys.collect()))
@@ -70,7 +70,7 @@ struct KeysFn {
 
 impl FunctionExpression for KeysFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        keys(self.value.resolve(ctx)?)
+        keys(crate::resolve_value!(self.value.resolve(ctx))).map(EvaluationOutcome::Value)
     }
 
     fn type_def(&self, _state: &state::TypeState) -> TypeDef {

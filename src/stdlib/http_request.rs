@@ -11,8 +11,8 @@ use crate::compiler::prelude::*;
 #[allow(clippy::similar_names)]
 mod non_wasm {
     use super::{
-        Context, Expression, ExpressionError, ExpressionExt, FunctionExpression, Resolved, TypeDef,
-        TypeState, Value, VrlValueConvert,
+        Context, EvaluationOutcome, Expression, ExpressionError, ExpressionExt, FunctionExpression,
+        Resolved, TypeDef, TypeState, Value, ValueResult, VrlValueConvert,
     };
     use crate::value::value::ObjectMap;
     use reqwest_middleware::{
@@ -89,7 +89,7 @@ mod non_wasm {
         headers: Value,
         body: &Value,
         redact_headers: bool,
-    ) -> Resolved {
+    ) -> ValueResult {
         let url = url.try_bytes_utf8_lossy()?;
         let method = method.try_bytes_utf8_lossy()?.to_uppercase();
         let headers = headers.try_object()?;
@@ -236,30 +236,25 @@ mod non_wasm {
             }
         }
 
-        fn get_client(&self, ctx: &mut Context) -> Result<ClientWithMiddleware, ExpressionError> {
-            match self {
-                Self::Client(client) => Ok(client.clone()),
+        fn get_client(&self, ctx: &mut Context) -> Resolved<ClientWithMiddleware> {
+            let client = match self {
+                Self::Client(client) => client.clone(),
                 Self::Proxies {
                     http_proxy,
                     https_proxy,
                 } => {
-                    let http_proxy = http_proxy
-                        .as_ref()
-                        .map(|http_proxy| http_proxy.resolve(ctx))
-                        .transpose()?;
+                    let http_proxy = crate::resolve_value!(http_proxy.map_resolve(ctx));
 
-                    let https_proxy = https_proxy
-                        .as_ref()
-                        .map(|https_proxy| https_proxy.resolve(ctx))
-                        .transpose()?;
+                    let https_proxy = crate::resolve_value!(https_proxy.map_resolve(ctx));
 
                     if let Some(proxies) = make_proxies(http_proxy, https_proxy)? {
-                        Ok(build_client(Some(proxies)))
+                        build_client(Some(proxies))
                     } else {
-                        Ok(STD_CLIENT.clone())
+                        STD_CLIENT.clone()
                     }
                 }
-            }
+            };
+            Ok(EvaluationOutcome::Value(client))
         }
     }
 
@@ -275,21 +270,25 @@ mod non_wasm {
 
     impl FunctionExpression for HttpRequestFn {
         fn resolve(&self, ctx: &mut Context) -> Resolved {
-            let url = self.url.resolve(ctx)?;
-            let method = self
-                .method
-                .map_resolve_with_default(ctx, || super::DEFAULT_METHOD.clone())?;
-            let headers = self
-                .headers
-                .map_resolve_with_default(ctx, || super::DEFAULT_HEADERS.clone())?;
-            let body = self
-                .body
-                .map_resolve_with_default(ctx, || super::DEFAULT_BODY.clone())?;
-            let client = self.client_or_proxies.get_client(ctx)?;
-            let redact_headers = self
-                .redact_headers
-                .map_resolve_with_default(ctx, || super::DEFAULT_REDACT_HEADERS.clone())?
-                .try_boolean()?;
+            let url = crate::resolve_value!(self.url.resolve(ctx));
+            let method = crate::resolve_value!(
+                self.method
+                    .map_resolve_with_default(ctx, || super::DEFAULT_METHOD.clone())
+            );
+            let headers = crate::resolve_value!(
+                self.headers
+                    .map_resolve_with_default(ctx, || super::DEFAULT_HEADERS.clone())
+            );
+            let body = crate::resolve_value!(
+                self.body
+                    .map_resolve_with_default(ctx, || super::DEFAULT_BODY.clone())
+            );
+            let client = crate::resolve_value!(self.client_or_proxies.get_client(ctx));
+            let redact_headers = crate::resolve_value!(
+                self.redact_headers
+                    .map_resolve_with_default(ctx, || super::DEFAULT_REDACT_HEADERS.clone())
+            )
+            .try_boolean()?;
 
             // block_in_place runs the HTTP request synchronously
             // without blocking Tokio's async worker threads.
@@ -310,6 +309,7 @@ mod non_wasm {
                     })
                 }
             })
+            .map(EvaluationOutcome::Value)
         }
 
         fn type_def(&self, _: &TypeState) -> TypeDef {
@@ -523,12 +523,14 @@ mod tests {
     use crate::compiler::value::VrlValueConvert;
     use crate::value;
 
-    fn execute_http_request(http_request_fn: &HttpRequestFn) -> Resolved {
+    fn execute_http_request(http_request_fn: &HttpRequestFn) -> ValueResult {
         let tz = TimeZone::default();
         let mut object = value!({});
         let mut runtime_state = state::RuntimeState::default();
         let mut ctx = Context::new(&mut object, &mut runtime_state, &tz);
-        http_request_fn.resolve(&mut ctx)
+        http_request_fn
+            .resolve(&mut ctx)
+            .and_then(closure::closure_value)
     }
 
     async fn start_mock_server(body: String) -> u16 {

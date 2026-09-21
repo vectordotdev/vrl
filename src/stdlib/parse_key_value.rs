@@ -54,7 +54,7 @@ pub fn parse_key_value(
     field_delimiter: &Value,
     standalone_key: Value,
     whitespace: Whitespace,
-) -> Resolved {
+) -> ValueResult {
     let bytes = bytes.try_bytes_utf8_lossy()?;
     let key_value_delimiter = key_value_delimiter.try_bytes_utf8_lossy()?;
     let field_delimiter = field_delimiter.try_bytes_utf8_lossy()?;
@@ -310,16 +310,19 @@ pub(crate) struct ParseKeyValueFn {
 
 impl FunctionExpression for ParseKeyValueFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let bytes = self.value.resolve(ctx)?;
-        let key_value_delimiter = self
-            .key_value_delimiter
-            .map_resolve_with_default(ctx, || DEFAULT_KEY_VALUE_DELIMITER.clone())?;
-        let field_delimiter = self
-            .field_delimiter
-            .map_resolve_with_default(ctx, || DEFAULT_FIELD_DELIMITER.clone())?;
-        let standalone_key = self
-            .standalone_key
-            .map_resolve_with_default(ctx, || DEFAULT_ACCEPT_STANDALONE_KEY.clone())?;
+        let bytes = crate::resolve_value!(self.value.resolve(ctx));
+        let key_value_delimiter = crate::resolve_value!(
+            self.key_value_delimiter
+                .map_resolve_with_default(ctx, || DEFAULT_KEY_VALUE_DELIMITER.clone())
+        );
+        let field_delimiter = crate::resolve_value!(
+            self.field_delimiter
+                .map_resolve_with_default(ctx, || DEFAULT_FIELD_DELIMITER.clone())
+        );
+        let standalone_key = crate::resolve_value!(
+            self.standalone_key
+                .map_resolve_with_default(ctx, || DEFAULT_ACCEPT_STANDALONE_KEY.clone())
+        );
         let whitespace = self.whitespace;
 
         parse_key_value(
@@ -329,6 +332,7 @@ impl FunctionExpression for ParseKeyValueFn {
             standalone_key,
             whitespace,
         )
+        .map(EvaluationOutcome::Value)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

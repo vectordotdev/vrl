@@ -1,6 +1,6 @@
 use crate::compiler::prelude::*;
 
-fn includes(list: Value, item: &Value) -> Resolved {
+fn includes(list: Value, item: &Value) -> ValueResult {
     let list = list.try_array()?;
     let included = list.iter().any(|i| i == item);
     Ok(included.into())
@@ -75,10 +75,10 @@ struct IncludesFn {
 
 impl FunctionExpression for IncludesFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let list = self.value.resolve(ctx)?;
-        let item = self.item.resolve(ctx)?;
+        let list = crate::resolve_value!(self.value.resolve(ctx));
+        let item = crate::resolve_value!(self.item.resolve(ctx));
 
-        includes(list, &item)
+        includes(list, &item).map(EvaluationOutcome::Value)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

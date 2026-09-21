@@ -183,15 +183,19 @@ impl Runtime {
 
         match program.resolve(&mut ctx) {
             Err(ExpressionError::Interrupted) => Err(Terminate::Interrupted),
-            Ok(value) | Err(ExpressionError::Return { value, .. }) => Ok(value),
+            Ok(
+                crate::compiler::EvaluationOutcome::Value(value)
+                | crate::compiler::EvaluationOutcome::Return(value),
+            ) => Ok(value),
+            Ok(crate::compiler::EvaluationOutcome::Break) => {
+                Err(Terminate::Error("break outside of loop or iterator".into()))
+            }
             Err(
                 err @ (ExpressionError::Abort { .. }
                 | ExpressionError::Fallible { .. }
                 | ExpressionError::Missing { .. }),
             ) => Err(Terminate::Abort(err)),
-            Err(err @ (ExpressionError::Error { .. } | ExpressionError::Break { .. })) => {
-                Err(Terminate::Error(err))
-            }
+            Err(err @ ExpressionError::Error { .. }) => Err(Terminate::Error(err)),
         }
     }
 }
@@ -247,6 +251,66 @@ mod execution_control_tests {
             ("value".into(), Value::from("1")),
         ])
         .into()
+    }
+
+    #[test]
+    fn return_propagates_through_value_consumers() {
+        let expressions = [
+            r"[{ if .stop == true { return 7 } else { 1 } }, { .visited = true; 2 }]",
+            r#"{"a": { if .stop == true { return 7 } else { 1 } }, "b": { .visited = true; 2 }}"#,
+            r#"length({ if .stop == true { return 7 } else { "value" } })"#,
+            r#"join!(["a"], separator: { if .stop == true { return 7 } else { "," } })"#,
+            r#"{ if .stop == true { return 7 } else { parse_int("bad") } } ?? { .visited = true; 0 }"#,
+            r#"ok, err = if .stop == true { return 7 } else { parse_int("bad") }"#,
+            r"false || { if .stop == true { return 7 } else { true } }",
+            r"true && { if .stop == true { return 7 } else { true } }",
+            r"!{ if .stop == true { return 7 } else { true } }",
+            r"{ if .stop == true { return 7 } else { 1 } } + { .visited = true; 2 }",
+            r"if { if .stop == true { return 7 } else { true } } { .visited = true }",
+        ];
+        for expression in expressions {
+            let source = format!(".stop = true\n{expression}\n.visited = true\n0");
+            let program = crate::compiler::compile(&source, &crate::stdlib::all())
+                .unwrap_or_else(|errors| panic!("{source}: {errors:?}"))
+                .program;
+            let mut target = Value::Object(BTreeMap::new());
+            let mut runtime = Runtime::new(RuntimeState::default());
+            assert_eq!(
+                runtime.resolve(&mut target, &program, &TimeZone::default()),
+                Ok(Value::from(7)),
+                "{source}",
+            );
+            assert_eq!(target, crate::value!({"stop": true}), "{source}");
+        }
+    }
+
+    #[test]
+    fn break_propagates_through_value_consumers() {
+        let expressions = [
+            r"[{ if value == 2 { break } else { 1 } }, { visited = true; 2 }]",
+            r#"{"a": { if value == 2 { break } else { 1 } }, "b": { visited = true; 2 }}"#,
+            r#"length({ if value == 2 { break } else { "value" } })"#,
+            r#"join!(["a"], separator: { if value == 2 { break } else { "," } })"#,
+            r"true && { if value == 2 { break } else { true } }",
+            r"!{ if value == 2 { break } else { true } }",
+            r"{ if value == 2 { break } else { 1 } } + { visited = true; 2 }",
+            r"if { if value == 2 { break } else { true } } { visited = true }",
+        ];
+        for expression in expressions {
+            let source = format!(
+                "count = 0\nvisited = false\nfor_each([1, 2, 3]) -> |_index, value| {{\ncount = count + 1\nvisited = false\n{expression}\nvisited = true\n}}\n[count, visited]"
+            );
+            let program = crate::compiler::compile(&source, &crate::stdlib::all())
+                .unwrap_or_else(|errors| panic!("{source}: {errors:?}"))
+                .program;
+            let mut target = Value::Object(BTreeMap::new());
+            let mut runtime = Runtime::new(RuntimeState::default());
+            assert_eq!(
+                runtime.resolve(&mut target, &program, &TimeZone::default()),
+                Ok(crate::value!([2, false])),
+                "{source}",
+            );
+        }
     }
 
     #[test]
@@ -399,7 +463,10 @@ mod execution_control_tests {
         let mut ctx = Context::new(&mut target, &mut state, &tz);
 
         let result = program.resolve(&mut ctx);
-        assert_eq!(result, Ok(Value::from(2)));
+        assert_eq!(
+            result,
+            Ok(crate::compiler::EvaluationOutcome::Value(Value::from(2)))
+        );
     }
 
     #[test]
@@ -426,7 +493,10 @@ mod execution_control_tests {
         let mut ctx = Context::new(&mut target, &mut state, &tz);
 
         let result = program.resolve(&mut ctx);
-        assert_eq!(result, Ok(Value::from(2)));
+        assert_eq!(
+            result,
+            Ok(crate::compiler::EvaluationOutcome::Value(Value::from(2)))
+        );
     }
 
     #[test]
@@ -455,6 +525,9 @@ mod execution_control_tests {
         let mut ctx = Context::new(&mut target, &mut state, &tz);
 
         let result = program.resolve(&mut ctx);
-        assert_eq!(result, Ok(Value::from(2)));
+        assert_eq!(
+            result,
+            Ok(crate::compiler::EvaluationOutcome::Value(Value::from(2)))
+        );
     }
 }

@@ -9,8 +9,9 @@ where
             let mut scoped = runner.scoped_loop(ctx);
             for (index, value) in array.into_iter().enumerate() {
                 match scoped.run_index_value(index, value) {
-                    Ok(_) => {}
-                    Err(ExpressionError::Break { .. }) => break,
+                    Ok(EvaluationOutcome::Value(_)) => {}
+                    Ok(EvaluationOutcome::Break) => break,
+                    Ok(outcome @ EvaluationOutcome::Return(_)) => return Ok(outcome),
                     Err(err) => return Err(err),
                 }
             }
@@ -19,8 +20,9 @@ where
             let mut scoped = runner.scoped_loop(ctx);
             for (key, value) in object {
                 match scoped.run_key_value(key, value) {
-                    Ok(_) => {}
-                    Err(ExpressionError::Break { .. }) => break,
+                    Ok(EvaluationOutcome::Value(_)) => {}
+                    Ok(EvaluationOutcome::Break) => break,
+                    Ok(outcome @ EvaluationOutcome::Return(_)) => return Ok(outcome),
                     Err(err) => return Err(err),
                 }
             }
@@ -28,7 +30,7 @@ where
         _ => {}
     }
 
-    Ok(Value::Null)
+    Ok(EvaluationOutcome::Value(Value::Null))
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -176,8 +178,8 @@ struct ForEachFn {
 }
 
 impl FunctionExpression for ForEachFn {
-    fn resolve(&self, ctx: &mut Context) -> ExpressionResult<Value> {
-        let value = self.value.resolve(ctx)?;
+    fn resolve(&self, ctx: &mut Context) -> Resolved {
+        let value = crate::resolve_value!(self.value.resolve(ctx));
         let Closure {
             variables,
             block,
@@ -186,6 +188,8 @@ impl FunctionExpression for ForEachFn {
         let runner = closure::Runner::new(variables, |ctx| block.resolve(ctx));
 
         for_each(value, ctx, &runner)
+            .and_then(closure::closure_value)
+            .map(EvaluationOutcome::Value)
     }
 
     fn type_def(&self, _ctx: &state::TypeState) -> TypeDef {
@@ -220,11 +224,14 @@ mod tests {
         let variables = [ident("k"), ident("v")];
         let runner = closure::Runner::new(&variables, |_ctx| {
             *count.borrow_mut() += 1;
-            Ok(Value::Null)
+            Ok(EvaluationOutcome::Value(Value::Null))
         });
 
         for value in [Value::Array(vec![]), Value::Object(ObjectMap::new())] {
-            assert_eq!(for_each(value, &mut ctx, &runner), Ok(Value::Null));
+            assert_eq!(
+                for_each(value, &mut ctx, &runner),
+                Ok(EvaluationOutcome::Value(Value::Null))
+            );
         }
         assert_eq!(*count.borrow(), 0);
     }
@@ -240,12 +247,12 @@ mod tests {
             let i = ctx.state().variable(&ident("i")).cloned().unwrap();
             let v = ctx.state().variable(&ident("v")).cloned().unwrap();
             visited.borrow_mut().push((i, v));
-            Ok(Value::Null)
+            Ok(EvaluationOutcome::Value(Value::Null))
         });
 
         let array = Value::Array(vec![Value::from("first"), Value::from("second")]);
         let res = for_each(array, &mut ctx, &runner);
-        assert_eq!(res, Ok(Value::Null));
+        assert_eq!(res, Ok(EvaluationOutcome::Value(Value::Null)));
         assert_eq!(
             visited.into_inner(),
             vec![
@@ -266,7 +273,7 @@ mod tests {
             let k = ctx.state().variable(&ident("k")).cloned().unwrap();
             let v = ctx.state().variable(&ident("v")).cloned().unwrap();
             visited.borrow_mut().push((k, v));
-            Ok(Value::Null)
+            Ok(EvaluationOutcome::Value(Value::Null))
         });
 
         let mut map = ObjectMap::new();
@@ -274,7 +281,7 @@ mod tests {
         map.insert("b".into(), Value::Integer(20));
 
         let res = for_each(Value::Object(map), &mut ctx, &runner);
-        assert_eq!(res, Ok(Value::Null));
+        assert_eq!(res, Ok(EvaluationOutcome::Value(Value::Null)));
         assert_eq!(
             visited.into_inner(),
             vec![
@@ -293,7 +300,7 @@ mod tests {
         let variables = [ident("k"), ident("v")];
         let runner = closure::Runner::new(&variables, |_ctx| {
             *count.borrow_mut() += 1;
-            Ok(Value::Null)
+            Ok(EvaluationOutcome::Value(Value::Null))
         });
 
         let non_collections = vec![
@@ -305,13 +312,13 @@ mod tests {
 
         for val in non_collections {
             let res = for_each(val, &mut ctx, &runner);
-            assert_eq!(res, Ok(Value::Null));
+            assert_eq!(res, Ok(EvaluationOutcome::Value(Value::Null)));
         }
         assert_eq!(*count.borrow(), 0);
     }
 
     #[test]
-    fn test_for_each_array_propagates_return_error_and_halts() {
+    fn test_for_each_array_propagates_return_and_halts() {
         let (mut target, mut runtime_state, tz) = test_context();
         let mut ctx = Context::new(&mut target, &mut runtime_state, &tz);
 
@@ -319,21 +326,12 @@ mod tests {
         let variables = [ident("i"), ident("v")];
         let runner = closure::Runner::new(&variables, |_ctx| {
             *count.borrow_mut() += 1;
-            Err(ExpressionError::Return {
-                span: Span::new(0, 0),
-                value: Value::from(42),
-            })
+            Ok(EvaluationOutcome::Return(Value::from(42)))
         });
 
         let array = Value::Array(vec![Value::from(1), Value::from(2), Value::from(3)]);
         let res = for_each(array, &mut ctx, &runner);
-        assert_eq!(
-            res,
-            Err(ExpressionError::Return {
-                span: Span::new(0, 0),
-                value: Value::from(42),
-            })
-        );
+        assert_eq!(res, Ok(EvaluationOutcome::Return(Value::from(42))));
         assert_eq!(*count.borrow(), 1);
     }
 
@@ -346,10 +344,7 @@ mod tests {
         let variables = [ident("k"), ident("v")];
         let runner = closure::Runner::new(&variables, |_ctx| {
             *count.borrow_mut() += 1;
-            Err(ExpressionError::Return {
-                span: Span::new(0, 0),
-                value: Value::from(42),
-            })
+            Ok(EvaluationOutcome::Return(Value::from(42)))
         });
 
         let mut map = ObjectMap::new();
@@ -357,7 +352,7 @@ mod tests {
         map.insert("b".into(), Value::Integer(2));
 
         let res = for_each(Value::Object(map), &mut ctx, &runner);
-        assert_eq!(res, Ok(Value::Null));
+        assert_eq!(res, Ok(EvaluationOutcome::Value(Value::Null)));
         assert_eq!(*count.borrow(), 2);
     }
 
@@ -391,12 +386,12 @@ mod tests {
             assert!(ctx.state().variable(&ident("")).is_none());
             let v = ctx.state().variable(&ident("v")).cloned().unwrap();
             visited.borrow_mut().push(v);
-            Ok(Value::Null)
+            Ok(EvaluationOutcome::Value(Value::Null))
         });
 
         let array = Value::Array(vec![Value::from("alpha"), Value::from("beta")]);
         let res = for_each(array, &mut ctx, &runner);
-        assert_eq!(res, Ok(Value::Null));
+        assert_eq!(res, Ok(EvaluationOutcome::Value(Value::Null)));
         assert_eq!(
             visited.into_inner(),
             vec![Value::from("alpha"), Value::from("beta")]
@@ -415,7 +410,7 @@ mod tests {
             assert!(ctx.state().variable(&ident("_")).is_none());
             let v = ctx.state().variable(&ident("v")).cloned().unwrap();
             visited.borrow_mut().push(v);
-            Ok(Value::Null)
+            Ok(EvaluationOutcome::Value(Value::Null))
         });
 
         let mut map = ObjectMap::new();
@@ -423,7 +418,7 @@ mod tests {
         map.insert("k2".into(), Value::Integer(200));
 
         let res = for_each(Value::Object(map), &mut ctx, &runner);
-        assert_eq!(res, Ok(Value::Null));
+        assert_eq!(res, Ok(EvaluationOutcome::Value(Value::Null)));
         assert_eq!(
             visited.into_inner(),
             vec![Value::Integer(100), Value::Integer(200)]
@@ -445,12 +440,12 @@ mod tests {
             let v = ctx.state().variable(&ident("v")).cloned().unwrap();
             assert_ne!(i, Value::from("outer_i"));
             assert_ne!(v, Value::from("outer_v"));
-            Ok(Value::Null)
+            Ok(EvaluationOutcome::Value(Value::Null))
         });
 
         let array = Value::Array(vec![Value::from(10), Value::from(20)]);
         let res = for_each(array, &mut ctx, &runner);
-        assert_eq!(res, Ok(Value::Null));
+        assert_eq!(res, Ok(EvaluationOutcome::Value(Value::Null)));
 
         assert_eq!(
             ctx.state().variable(&i_ident),
@@ -466,12 +461,14 @@ mod tests {
         ctx.state_mut()
             .insert_variable(k_ident.clone(), Value::from("outer_k"));
         let obj_variables = [k_ident.clone(), v_ident.clone()];
-        let obj_runner = closure::Runner::new(&obj_variables, |_ctx| Ok(Value::Null));
+        let obj_runner = closure::Runner::new(&obj_variables, |_ctx| {
+            Ok(EvaluationOutcome::Value(Value::Null))
+        });
 
         let mut map = ObjectMap::new();
         map.insert("entry1".into(), Value::from("val1"));
         let res = for_each(Value::Object(map), &mut ctx, &obj_runner);
-        assert_eq!(res, Ok(Value::Null));
+        assert_eq!(res, Ok(EvaluationOutcome::Value(Value::Null)));
 
         assert_eq!(
             ctx.state().variable(&k_ident),
@@ -524,21 +521,12 @@ mod tests {
         let variables = [i_ident.clone(), v_ident.clone()];
         let runner = closure::Runner::new(&variables, |_ctx| {
             *count.borrow_mut() += 1;
-            Err(ExpressionError::Return {
-                span: Span::new(0, 0),
-                value: Value::from("early"),
-            })
+            Ok(EvaluationOutcome::Return(Value::from("early")))
         });
 
         let array = Value::Array(vec![Value::from(1), Value::from(2)]);
         let res = for_each(array, &mut ctx, &runner);
-        assert_eq!(
-            res,
-            Err(ExpressionError::Return {
-                span: Span::new(0, 0),
-                value: Value::from("early"),
-            })
-        );
+        assert_eq!(res, Ok(EvaluationOutcome::Return(Value::from("early"))));
         assert_eq!(*count.borrow(), 1);
 
         assert_eq!(
@@ -562,11 +550,12 @@ mod tests {
         assert!(ctx.state().variable(&v_ident).is_none());
 
         let variables = [i_ident.clone(), v_ident.clone()];
-        let runner = closure::Runner::new(&variables, |_ctx| Ok(Value::Null));
+        let runner =
+            closure::Runner::new(&variables, |_ctx| Ok(EvaluationOutcome::Value(Value::Null)));
 
         let array = Value::Array(vec![Value::from(1), Value::from(2)]);
         let res = for_each(array, &mut ctx, &runner);
-        assert_eq!(res, Ok(Value::Null));
+        assert_eq!(res, Ok(EvaluationOutcome::Value(Value::Null)));
 
         // After completion, parameters should be removed from runtime state
         assert!(ctx.state().variable(&i_ident).is_none());

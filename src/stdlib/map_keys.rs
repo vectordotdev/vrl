@@ -17,7 +17,7 @@ fn map_keys<T>(
     recursive: bool,
     ctx: &mut Context,
     runner: &closure::Runner<T>,
-) -> Resolved
+) -> ValueResult
 where
     T: Fn(&mut Context) -> Resolved,
 {
@@ -178,13 +178,14 @@ struct MapKeysFn {
 }
 
 impl FunctionExpression for MapKeysFn {
-    fn resolve(&self, ctx: &mut Context) -> ExpressionResult<Value> {
-        let recursive = self
-            .recursive
-            .map_resolve_with_default(ctx, || DEFAULT_RECURSIVE.clone())?
-            .try_boolean()?;
+    fn resolve(&self, ctx: &mut Context) -> Resolved {
+        let recursive = crate::resolve_value!(
+            self.recursive
+                .map_resolve_with_default(ctx, || DEFAULT_RECURSIVE.clone())
+        )
+        .try_boolean()?;
 
-        let value = self.value.resolve(ctx)?;
+        let value = crate::resolve_value!(self.value.resolve(ctx));
         let Closure {
             variables,
             block,
@@ -192,7 +193,7 @@ impl FunctionExpression for MapKeysFn {
         } = &self.closure;
         let runner = closure::Runner::new(variables, |ctx| block.resolve(ctx));
 
-        map_keys(value, recursive, ctx, &runner)
+        map_keys(value, recursive, ctx, &runner).map(EvaluationOutcome::Value)
     }
 
     fn type_def(&self, ctx: &state::TypeState) -> TypeDef {

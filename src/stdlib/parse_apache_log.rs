@@ -36,7 +36,7 @@ fn parse_apache_log(
     timestamp_format: &Value,
     format: &Bytes,
     ctx: &Context,
-) -> Resolved {
+) -> ValueResult {
     let message = bytes.try_bytes_utf8_lossy()?;
     let timestamp_format = timestamp_format.try_bytes_utf8_lossy()?.to_string();
     let regexes = match format.as_ref() {
@@ -208,12 +208,13 @@ struct ParseApacheLogFn {
 
 impl FunctionExpression for ParseApacheLogFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let bytes = self.value.resolve(ctx)?;
-        let timestamp_format = self
-            .timestamp_format
-            .map_resolve_with_default(ctx, || DEFAULT_TIMESTAMP_FORMAT.clone())?;
+        let bytes = crate::resolve_value!(self.value.resolve(ctx));
+        let timestamp_format = crate::resolve_value!(
+            self.timestamp_format
+                .map_resolve_with_default(ctx, || DEFAULT_TIMESTAMP_FORMAT.clone())
+        );
 
-        parse_apache_log(&bytes, &timestamp_format, &self.format, ctx)
+        parse_apache_log(&bytes, &timestamp_format, &self.format, ctx).map(EvaluationOutcome::Value)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

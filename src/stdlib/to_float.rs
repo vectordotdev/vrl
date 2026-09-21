@@ -1,14 +1,14 @@
 use crate::compiler::conversion::Conversion;
 use crate::compiler::prelude::*;
 
-pub(crate) fn bytes_to_float(bytes: Bytes) -> Resolved {
+pub(crate) fn bytes_to_float(bytes: Bytes) -> ValueResult {
     Conversion::Float
         .convert(bytes)
         .map_err(|e| e.to_string().into())
 }
 
 #[allow(clippy::cast_precision_loss)] //TODO evaluate removal options
-fn to_float(value: Value) -> Resolved {
+fn to_float(value: Value) -> ValueResult {
     use Value::{Boolean, Bytes, Float, Integer, Null, Timestamp};
     match value {
         Float(_) => Ok(value),
@@ -160,9 +160,9 @@ struct ToFloatFn {
 
 impl FunctionExpression for ToFloatFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = self.value.resolve(ctx)?;
+        let value = crate::resolve_value!(self.value.resolve(ctx));
 
-        to_float(value)
+        to_float(value).map(EvaluationOutcome::Value)
     }
 
     fn type_def(&self, state: &state::TypeState) -> TypeDef {

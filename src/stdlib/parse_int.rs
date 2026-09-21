@@ -1,6 +1,6 @@
 use crate::compiler::prelude::*;
 
-fn parse_int(value: &Value, base: Option<Value>) -> Resolved {
+fn parse_int(value: &Value, base: Option<Value>) -> ValueResult {
     let string = value.try_bytes_utf8_lossy()?;
     let (base, index) = match base {
         Some(base) => {
@@ -127,14 +127,10 @@ struct ParseIntFn {
 
 impl FunctionExpression for ParseIntFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = self.value.resolve(ctx)?;
-        let base = self
-            .base
-            .as_ref()
-            .map(|expr| expr.resolve(ctx))
-            .transpose()?;
+        let value = crate::resolve_value!(self.value.resolve(ctx));
+        let base = crate::resolve_value!(self.base.map_resolve(ctx));
 
-        parse_int(&value, base)
+        parse_int(&value, base).map(EvaluationOutcome::Value)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

@@ -95,7 +95,6 @@ impl From<ValueError> for ExpressionError {
     fn from(err: ValueError) -> Self {
         match err {
             ValueError::Or(ExpressionError::Interrupted) => Self::Interrupted,
-            ValueError::Or(err @ ExpressionError::Break { .. }) => err,
             _ => Self::Error {
                 message: err.message(),
                 labels: vec![],

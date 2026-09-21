@@ -1,7 +1,7 @@
 use crate::compiler::prelude::*;
 use std::net::IpAddr;
 
-fn ip_ntop(value: Value) -> Resolved {
+fn ip_ntop(value: Value) -> ValueResult {
     let value = value.try_bytes()?;
 
     match value.len() {
@@ -97,8 +97,8 @@ struct IpNtopFn {
 
 impl FunctionExpression for IpNtopFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = self.value.resolve(ctx)?;
-        ip_ntop(value)
+        let value = crate::resolve_value!(self.value.resolve(ctx));
+        ip_ntop(value).map(EvaluationOutcome::Value)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

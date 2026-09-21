@@ -124,39 +124,38 @@ impl Op {
 
 impl Expression for Op {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
+        use crate::compiler::EvaluationOutcome;
         use crate::value::Value::{Boolean, Null};
         use ast::Opcode::{Add, And, Div, Eq, Err, Ge, Gt, Le, Lt, Merge, Mul, Ne, Or, Sub};
 
-        match self.opcode {
-            Err => {
-                return match self.lhs.resolve(ctx) {
-                    std::result::Result::Err(
-                        error @ (ExpressionError::Interrupted | ExpressionError::Break { .. }),
-                    ) => std::result::Result::Err(error),
-                    std::result::Result::Err(_) => self.rhs.resolve(ctx),
-                    result => result,
-                };
-            }
-            Or => {
-                return self
-                    .lhs
-                    .resolve(ctx)?
-                    .try_or(|| self.rhs.resolve(ctx))
-                    .map_err(Into::into);
-            }
-            And => {
-                return match self.lhs.resolve(ctx)? {
-                    Null | Boolean(false) => Ok(false.into()),
-                    v => v.try_and(self.rhs.resolve(ctx)?).map_err(Into::into),
-                };
-            }
-            _ => (),
+        if self.opcode == Err {
+            return match self.lhs.resolve(ctx) {
+                std::result::Result::Err(ExpressionError::Interrupted) => {
+                    std::result::Result::Err(ExpressionError::Interrupted)
+                }
+                std::result::Result::Err(_) => self.rhs.resolve(ctx),
+                result => result,
+            };
         }
+        let lhs = crate::resolve_value!(self.lhs.resolve(ctx));
+        match self.opcode {
+            Or => {
+                return match lhs {
+                    Null | Boolean(false) => self
+                        .rhs
+                        .resolve(ctx)
+                        .map_err(|err| ValueError::Or(err).into()),
+                    value => Ok(EvaluationOutcome::Value(value)),
+                };
+            }
+            And if matches!(lhs, Null | Boolean(false)) => {
+                return Ok(EvaluationOutcome::Value(false.into()));
+            }
+            _ => {}
+        }
+        let rhs = crate::resolve_value!(self.rhs.resolve(ctx));
 
-        let lhs = self.lhs.resolve(ctx)?;
-        let rhs = self.rhs.resolve(ctx)?;
-
-        // Arithmetic that can overflow should wrap
+        // Arithmetic that can overflow should wrap.
         match self.opcode {
             Mul => lhs.try_mul(rhs),
             Div => lhs.try_div(rhs),
@@ -169,8 +168,10 @@ impl Expression for Op {
             Lt => lhs.try_lt(rhs),
             Le => lhs.try_le(rhs),
             Merge => lhs.try_merge(rhs),
-            And | Or | Err => unreachable!(),
+            And => lhs.try_and(rhs),
+            Or | Err => unreachable!(),
         }
+        .map(EvaluationOutcome::Value)
         .map_err(Into::into)
     }
 
