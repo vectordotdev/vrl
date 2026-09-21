@@ -88,6 +88,8 @@ pub enum CompilerCode {
     FallibleArgument = 630,
     /// Fallible expression used where only infallible is allowed (abort/return message).
     FallibleExpr = 631,
+    /// Break statement used outside of a loop or iterator.
+    BreakOutsideLoop = 632,
     UnnecessaryNoop = 640,
     InvalidTarget = 641,
     InvalidParentPathSegment = 642,
@@ -207,6 +209,7 @@ mod tests {
                 CompilerCode::UnnecessaryCoalesce,
                 CompilerCode::MergeNonObjects,
                 CompilerCode::NonBooleanNot,
+                CompilerCode::BreakOutsideLoop,
             ),
             &exhaustive_codes!(VariableCode, VariableCode::UndefinedVariable,),
             &exhaustive_codes!(

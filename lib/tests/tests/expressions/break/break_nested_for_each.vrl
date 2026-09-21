@@ -1,0 +1,12 @@
+# result: [[1, 10], [1, 20], [2, 10], [2, 20]]
+
+pairs = []
+for_each([1, 2]) -> |_i, outer| {
+  for_each([10, 20, 30, 40]) -> |_j, inner| {
+    if inner > 20 {
+      break
+    }
+    pairs = push(pairs, [outer, inner])
+  }
+}
+pairs

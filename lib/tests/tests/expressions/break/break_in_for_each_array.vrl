@@ -1,0 +1,10 @@
+# result: [1, 2]
+
+visited = []
+for_each([1, 2, 3, 4, 5]) -> |_index, value| {
+  visited = push(visited, value)
+  if value == 2 {
+    break
+  }
+}
+visited
