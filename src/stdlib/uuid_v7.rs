@@ -22,8 +22,7 @@ fn uuid_v7(timestamp: Option<Value>) -> Resolved {
 
     let seconds = utc_timestamp.timestamp() as u64;
     let nanoseconds = match utc_timestamp.timestamp_nanos_opt() {
-        #[allow(clippy::cast_possible_truncation)] //TODO evaluate removal options
-        Some(nanos) => nanos as u32,
+        Some(_) => utc_timestamp.timestamp_subsec_nanos(),
         None => return Err(ValueError::OutOfRange(Kind::timestamp()).into()),
     };
     let timestamp = Timestamp::from_unix(NoContext, seconds, nanoseconds);
@@ -76,7 +75,7 @@ impl Function for UuidV7 {
             example! {
                 title: "Create a UUIDv7 with custom timestamp",
                 source: "uuid_v7(t'2020-12-30T22:20:53.824727Z')",
-                result: Ok("0176b5bd-5d19-794c-a7a2-088f260104c0"),
+                result: Ok("0176b5bd-58c0-794c-a7a2-088f260104c0"),
                 deterministic: false,
             },
         ]
@@ -142,6 +141,29 @@ mod tests {
                 uuid::Uuid::parse_str(&val).expect("valid UUID V7");
             }
             _ => unreachable!(),
+        }
+    }
+
+    #[test]
+    fn uuid_v7_preserves_millisecond_timestamp() {
+        for input in [
+            "1970-01-01T00:00:00Z",
+            "2020-12-30T22:20:53.824727Z",
+            "2026-01-01T00:00:00.123456789Z",
+            "2026-01-01T00:00:00.999999999Z",
+        ] {
+            let timestamp: DateTime<Utc> = input.parse().unwrap();
+            let expected = (
+                u64::try_from(timestamp.timestamp()).unwrap(),
+                timestamp.timestamp_subsec_millis() * 1_000_000,
+            );
+
+            let Value::Bytes(encoded) = super::uuid_v7(Some(timestamp.into())).unwrap() else {
+                panic!("UUIDv7 must be a string");
+            };
+
+            let id = uuid::Uuid::parse_str(std::str::from_utf8(&encoded).unwrap()).unwrap();
+            assert_eq!(id.get_timestamp().unwrap().to_unix(), expected, "{input}");
         }
     }
 }
