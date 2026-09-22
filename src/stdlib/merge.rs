@@ -697,7 +697,7 @@ mod tests {
     }
 
     #[test]
-    fn pront_example_1_stale_deep_flag() {
+    fn stale_deep_flag() {
         let fns = vec![Box::new(Merge) as Box<dyn crate::compiler::Function>];
         let src = indoc! {r#"
             flag = false
@@ -725,7 +725,7 @@ mod tests {
     }
 
     #[test]
-    fn pront_example_2_guaranteed_string() {
+    fn guaranteed_string() {
         let fns = vec![
             Box::new(Merge) as Box<dyn crate::compiler::Function>,
             Box::new(crate::stdlib::Upcase) as Box<dyn crate::compiler::Function>,
