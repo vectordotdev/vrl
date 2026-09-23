@@ -9,8 +9,7 @@ The changelog fragments are located in `changelog.d/`.
 
 Fragments for unreleased changes are placed in the root of this directory alongside the changes they describe.
 
-During a release, `cargo run -p release` is run which automatically generates the
-changes to the CHANGELOG.md file.
+During a release, `cargo run -p release` automatically updates `CHANGELOG.md`.
 
 ### Submitting changes
 
@@ -72,18 +71,30 @@ authors: username1, username2
 
 ### Breaking changes
 
-When using the type 'breaking' to add notes for a breaking change, these should be more verbose than
-other entries typically. It should include all details that would be relevant for the user to need
-to handle upgrading to the breaking change.
+Breaking fragments must explain what changed, who is affected, and how to migrate.
+Include **Before** and **After** examples showing the required changes to VRL programs or
+the change in output. If users do not need to change their programs, state that explicitly.
 
 ## Example
 
-Here is an example of a changelog fragment that adds a breaking change explanation.
+The following illustrates a hypothetical change to the default behavior of `parse_json`.
 
-    $ cat changelog.d/remove-old-api.breaking.md
-    This change is so great. It's such a great change that this sentence
-    explaining the change has to span multiple lines of text.
+    $ cat changelog.d/parse-json-strict-default.breaking.md
+    `parse_json` now rejects invalid UTF-8 by default instead of replacing invalid
+    characters. Programs that parse messages containing invalid UTF-8 may now fail.
 
-    It even necessitates a line break. It is a breaking change after all.
+    To preserve the previous behavior, pass `lossy: true` explicitly.
+
+    **Before:**
+
+    ```vrl
+    .parsed = parse_json!(.message)
+    ```
+
+    **After:**
+
+    ```vrl
+    .parsed = parse_json!(.message, lossy: true)
+    ```
 
     authors: your_github_username
