@@ -34,7 +34,8 @@ fn make_key_string(key: &Value) -> ExpressionResult<Option<KeyString>> {
         return Ok(None);
     }
     Ok(Some(
-        key.to_key_string().ok_or("object keys must be strings")?,
+        key.to_key_string_lossy()
+            .ok_or("object keys must be strings")?,
     ))
 }
 

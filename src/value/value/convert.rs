@@ -137,7 +137,7 @@ impl Value {
     /// invariant and is undefined behavior in later `str` operations (deref,
     /// formatting, serde, display).
     #[must_use]
-    pub unsafe fn from_utf8_bytes(bytes: Bytes) -> Self {
+    pub unsafe fn from_utf8_unchecked(bytes: Bytes) -> Self {
         // SAFETY: caller must uphold this function's safety contract.
         Self::String(unsafe { ByteString::from_bytes_unchecked(bytes) })
     }
@@ -183,7 +183,7 @@ impl Value {
 
     /// Returns a `KeyString` if self is `Value::Bytes` or `Value::String`.
     #[must_use]
-    pub fn to_key_string(&self) -> Option<KeyString> {
+    pub fn to_key_string_lossy(&self) -> Option<KeyString> {
         self.as_str().map(Cow::into_owned).map(KeyString::from)
     }
 

@@ -53,11 +53,11 @@ impl Literal {
     ///
     /// # Safety
     ///
-    /// `bytes` must be valid UTF-8. See [`Value::from_utf8_bytes`].
-    pub unsafe fn from_utf8_bytes(bytes: Bytes) -> Self {
+    /// `bytes` must be valid UTF-8. See [`Value::from_utf8_unchecked`].
+    pub unsafe fn from_utf8_unchecked(bytes: Bytes) -> Self {
         // SAFETY: caller must uphold this function's safety contract.
-        let Value::String(v) = (unsafe { Value::from_utf8_bytes(bytes) }) else {
-            unreachable!("from_utf8_bytes always returns Value::String");
+        let Value::String(v) = (unsafe { Value::from_utf8_unchecked(bytes) }) else {
+            unreachable!("from_utf8_unchecked always returns Value::String");
         };
         Self::String(v)
     }

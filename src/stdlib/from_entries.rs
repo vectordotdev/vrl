@@ -16,7 +16,9 @@ fn from_entries(value: Value) -> Resolved {
     for entry in array {
         let mut entry = entry.try_object()?;
         let key = select_key(&entry);
-        let key = key.to_key_string().ok_or("object keys must be strings")?;
+        let key = key
+            .to_key_string_lossy()
+            .ok_or("object keys must be strings")?;
         let value = entry
             .remove("value")
             .or_else(|| entry.remove("Value"))

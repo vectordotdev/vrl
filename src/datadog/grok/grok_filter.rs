@@ -125,7 +125,7 @@ pub fn apply_filter(value: &Value, filter: &GrokFilter) -> Result<Value, Interna
         GrokFilter::Json => parse_value_error_prone(value, filter, |b| {
             serde_json::from_slice::<'_, serde_json::Value>(b)
         }),
-        GrokFilter::Rubyhash => apply_utf8_filter_error_prone(value, filter, parse_ruby_hash),
+        GrokFilter::Rubyhash => try_apply_utf8_filter(value, filter, parse_ruby_hash),
         GrokFilter::Querystring => {
             parse_value_error_prone(value, filter, |s| parse_query_string(s, true))
         }
@@ -266,7 +266,7 @@ fn apply_utf8_filter<V: Into<Value>>(
         .ok_or_else(|| filter_error(filter, value))
 }
 
-fn apply_utf8_filter_error_prone<V: Into<Value>, E: std::error::Error>(
+fn try_apply_utf8_filter<V: Into<Value>, E: std::error::Error>(
     value: &Value,
     filter: &GrokFilter,
     parse: impl Fn(&str) -> Result<V, E>,
