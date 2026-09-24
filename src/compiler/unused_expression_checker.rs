@@ -315,19 +315,52 @@ impl AstVisitor<'_> {
             self.visit_node(&for_statement.iterable, state);
         });
 
+        let mut shadowed_variables = HashMap::new();
+        let mut bind_pattern = |ident: &Node<Ident>, state: &mut VisitorState| {
+            if let Some(existing) = state.ident_to_state.remove(&ident.node) {
+                shadowed_variables.insert(ident.node.clone(), existing);
+            }
+            state.mark_identifier_pending_usage(&ident.node, &ident.span);
+        };
+
         match &for_statement.pattern {
             ForPattern::Single(val) => {
-                state.mark_identifier_pending_usage(&val.node, &val.span);
+                bind_pattern(val, state);
             }
             ForPattern::KeyValue(key, val) => {
-                state.mark_identifier_pending_usage(&key.node, &key.span);
-                state.mark_identifier_pending_usage(&val.node, &val.span);
+                bind_pattern(key, state);
+                bind_pattern(val, state);
             }
         }
 
         scoped_visit(state, |state| {
             self.visit_block(&for_statement.block, state);
         });
+
+        let mut restore_pattern = |ident: &Node<Ident>, state: &mut VisitorState| {
+            if let Some(ident_state) = state.ident_to_state.remove(&ident.node)
+                && ident_state.pending_usage
+                && !ident_state.used_in_closure
+            {
+                state.append_diagnostic(
+                    format!("unused variable `{}`", ident.node),
+                    &ident_state.span,
+                );
+            }
+            if let Some(existing) = shadowed_variables.remove(&ident.node) {
+                state.ident_to_state.insert(ident.node.clone(), existing);
+            }
+        };
+
+        match &for_statement.pattern {
+            ForPattern::Single(val) => {
+                restore_pattern(val, state);
+            }
+            ForPattern::KeyValue(key, val) => {
+                restore_pattern(key, state);
+                restore_pattern(val, state);
+            }
+        }
     }
 
     fn visit_assignment(&self, assignment: &Node<Assignment>, state: &mut VisitorState) {
@@ -807,5 +840,30 @@ mod test {
             }
         "};
         unused_test(source, &[]);
+    }
+
+    #[test]
+    fn for_loop_shadowing_unused_outer() {
+        let source = indoc! {r"
+            x = 1
+            for x in [1, 2] {
+                .foo = x
+            }
+        "};
+        // Outer x is unused, inner x is used. We should get a warning for the outer x.
+        unused_test(source, &["unused variable `x`".to_string()]);
+    }
+
+    #[test]
+    fn for_loop_shadowing_used_outer() {
+        let source = indoc! {r"
+            x = 1
+            for x in [1, 2] {
+                .foo = 1
+            }
+            .bar = x
+        "};
+        // Inner x is unused, outer x is used. We should get a warning for the inner x.
+        unused_test(source, &["unused variable `x`".to_string()]);
     }
 }
