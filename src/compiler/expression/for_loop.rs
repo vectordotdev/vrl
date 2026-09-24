@@ -182,8 +182,7 @@ impl Expression for For {
             fallible |= body_info.result.is_fallible();
             final_returns = final_returns.union(body_info.result.returns().clone());
 
-            let mut next_state = current_state.clone();
-            next_state = next_state.merge(final_body_state);
+            let next_state = current_state.clone().merge(final_body_state);
 
             if next_state == current_state {
                 break;
