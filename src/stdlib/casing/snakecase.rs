@@ -182,6 +182,12 @@ mod tests {
             tdef: TypeDef::bytes(),
         }
 
+        repeated_delimiters {
+            args: func_args![value: value!("--foo--bar")],
+            want: Ok(value!("foo_bar")),
+            tdef: TypeDef::bytes(),
+        }
+
         no_case {
             args: func_args![value: value!("camelCase")],
             want: Ok(value!("camel_case")),
