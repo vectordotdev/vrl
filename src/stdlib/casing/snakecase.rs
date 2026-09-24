@@ -139,7 +139,7 @@ impl Function for Snakecase {
 #[derive(Debug, Clone)]
 struct SnakecaseFn {
     value: Box<dyn Expression>,
-    original_case: Option<Case>,
+    original_case: Option<Case<'static>>,
     excluded_boundaries: Option<Vec<convert_case::Boundary>>,
 }
 
