@@ -119,7 +119,11 @@ pub(crate) fn convert_case(
     let string_value = value.try_bytes_utf8_lossy()?;
 
     match from_case {
-        Some(case) => Ok(string_value.from_case(case).remove_empty().to_case(to_case).into()),
+        Some(case) => Ok(string_value
+            .from_case(case)
+            .remove_empty()
+            .to_case(to_case)
+            .into()),
         None => Ok(string_value.remove_empty().to_case(to_case).into()),
     }
 }
@@ -135,11 +139,13 @@ pub(crate) fn convert_case_with_excluded_boundaries(
         Some(case) => string_value
             .from_case(case)
             .remove_boundaries(excluded_boundaries)
-            .remove_empty().to_case(to_case)
+            .remove_empty()
+            .to_case(to_case)
             .into(),
         None => string_value
             .remove_boundaries(excluded_boundaries)
-            .remove_empty().to_case(to_case)
+            .remove_empty()
+            .to_case(to_case)
             .into(),
     }
 }
