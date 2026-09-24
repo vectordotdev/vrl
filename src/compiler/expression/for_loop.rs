@@ -169,7 +169,7 @@ impl Expression for For {
 
         let iterable_kind = iterable_info.result.kind();
         let mut fallible = iterable_info.result.is_fallible();
-        let mut final_returns = Kind::never();
+        let mut final_returns = iterable_info.result.returns().clone();
 
         loop {
             let mut iter_state = current_state.clone();
@@ -1267,5 +1267,20 @@ mod tests {
             panic!("expected fallibility error from mutating outer variable");
         };
         assert_eq!(err[0].code, codes::ExprCode::FallibleExpression as usize);
+    }
+
+    #[test]
+    fn test_for_type_info_propagates_iterable_returns() {
+        let source = r#"
+            for _ in { return "foo"; [1, 2] } {
+                return 1
+            }
+        "#;
+        let Ok(info) = crate::compiler::compile(source, &[]) else {
+            panic!("expected successful compilation");
+        };
+        let final_type_info = info.program.final_type_info(); let returns = final_type_info.result.returns();
+        assert!(returns.is_superset(&crate::value::Kind::integer()).is_ok());
+        assert!(returns.is_superset(&crate::value::Kind::bytes()).is_ok());
     }
 }
