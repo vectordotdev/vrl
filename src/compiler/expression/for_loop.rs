@@ -165,22 +165,38 @@ impl Expression for For {
     fn type_info(&self, state: &TypeState) -> TypeInfo {
         let iterable_info = self.iterable.type_info(state);
         let pre_loop_state = iterable_info.state;
-        let mut body_state = pre_loop_state.clone();
+        let mut current_state = pre_loop_state.clone();
 
         let iterable_kind = iterable_info.result.kind();
-        let pattern_idents = bind_for_pattern(&self.pattern, iterable_kind, &mut body_state);
+        let mut fallible = iterable_info.result.is_fallible();
+        let mut final_returns = Kind::never();
 
-        let body_info = self.block.type_info(&body_state);
-        let mut final_body_state = body_info.state;
-        restore_pattern_variables(&mut final_body_state, &pre_loop_state, &pattern_idents);
+        loop {
+            let mut iter_state = current_state.clone();
+            let pattern_idents = bind_for_pattern(&self.pattern, iterable_kind, &mut iter_state);
 
-        let final_state = final_body_state.merge(pre_loop_state);
-        let fallible = iterable_info.result.is_fallible() || body_info.result.is_fallible();
+            let body_info = self.block.type_info(&iter_state);
+            let mut final_body_state = body_info.state;
+            restore_pattern_variables(&mut final_body_state, &pre_loop_state, &pattern_idents);
+
+            fallible |= body_info.result.is_fallible();
+            final_returns = final_returns.union(body_info.result.returns().clone());
+
+            let mut next_state = current_state.clone();
+            next_state = next_state.merge(final_body_state);
+
+            if next_state == current_state {
+                break;
+            }
+            current_state = next_state;
+        }
+
+        let final_state = current_state.merge(pre_loop_state);
         TypeInfo::new(
             final_state,
             TypeDef::null()
                 .maybe_fallible(fallible)
-                .with_returns(body_info.result.returns().clone()),
+                .with_returns(final_returns),
         )
     }
 }
@@ -1234,5 +1250,23 @@ mod tests {
             state_obj.variable(&Ident::new("x")),
             Some(&Value::from("outer"))
         );
+    }
+
+    #[test]
+    fn test_for_type_info_fixed_point_widening() {
+        // x mutates from integer to string. On the second iteration, x + 1 is fallible.
+        // Because the compiler enforces fallibility, this should return a compiler error
+        // complaining about a fallible expression (E631 or similar).
+        let source = r#"
+            x = 1
+            for _ in [1, 2] {
+                y = x + 1
+                x = "s"
+            }
+        "#;
+        let Err(err) = crate::compiler::compile(source, &[]) else {
+            panic!("expected fallibility error from mutating outer variable");
+        };
+        assert_eq!(err[0].code, codes::ExprCode::FallibleExpression as usize);
     }
 }
