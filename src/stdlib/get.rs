@@ -1,31 +1,9 @@
 use crate::compiler::prelude::*;
-use crate::path::{OwnedSegment, OwnedValuePath};
+use crate::path::OwnedValuePath;
 
-#[allow(clippy::cast_possible_truncation)] // TODO consider removal options
 fn get(value: &Value, value_path: Value) -> Resolved {
     let path = match value_path {
-        Value::Array(array) => {
-            let mut path = OwnedValuePath::root();
-
-            for segment in array {
-                let segment = match segment {
-                    Value::Bytes(field) => {
-                        OwnedSegment::field(String::from_utf8_lossy(&field).as_ref())
-                    }
-                    Value::Integer(index) => OwnedSegment::index(index as isize),
-                    value => {
-                        return Err(format!(
-                            "path segment must be either string or integer, not {}",
-                            value.kind()
-                        )
-                        .into());
-                    }
-                };
-                path.push(segment);
-            }
-
-            path
-        }
+        Value::Array(array) => OwnedValuePath::try_from(array)?,
         value => {
             return Err(ValueError::Expected {
                 got: value.kind(),

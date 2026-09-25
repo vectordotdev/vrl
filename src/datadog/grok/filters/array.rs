@@ -20,50 +20,43 @@ use super::super::{
 pub fn filter_from_function(f: &Function) -> Result<GrokFilter, GrokStaticError> {
     let args = f.args.as_ref();
     let args_len = args.map_or(0, std::vec::Vec::len);
+    let invalid = || GrokStaticError::InvalidFunctionArguments(f.name.clone());
 
     let mut delimiter = None;
     let mut value_filter = None;
     let mut brackets = None;
     if args_len == 1 {
         match &args.unwrap()[0] {
-            FunctionArgument::Arg(Value::Bytes(bytes)) => {
-                delimiter = Some(String::from_utf8_lossy(bytes).to_string());
-            }
             FunctionArgument::Function(f) => value_filter = Some(GrokFilter::try_from(f)?),
-            FunctionArgument::Arg(_) => {
-                return Err(GrokStaticError::InvalidFunctionArguments(f.name.clone()));
+            arg @ FunctionArgument::Arg(_) => {
+                delimiter = Some(arg.to_utf8_lossy().ok_or_else(invalid)?);
             }
         }
     } else if args_len == 2 {
-        match (&args.unwrap()[0], &args.unwrap()[1]) {
-            (
-                FunctionArgument::Arg(Value::Bytes(brackets_b)),
-                FunctionArgument::Arg(Value::Bytes(delimiter_b)),
-            ) => {
-                brackets = Some(String::from_utf8_lossy(brackets_b).to_string());
-                delimiter = Some(String::from_utf8_lossy(delimiter_b).to_string());
+        let args = args.unwrap();
+        match (args[0].to_utf8_lossy(), args[1].to_utf8_lossy(), &args[1]) {
+            (Some(left), Some(right), _) => {
+                brackets = Some(left);
+                delimiter = Some(right);
             }
-            (FunctionArgument::Arg(Value::Bytes(delimiter_b)), FunctionArgument::Function(f)) => {
-                delimiter = Some(String::from_utf8_lossy(delimiter_b).to_string());
-                value_filter = Some(GrokFilter::try_from(f)?);
+            (Some(delim), None, FunctionArgument::Function(func)) => {
+                delimiter = Some(delim);
+                value_filter = Some(GrokFilter::try_from(func)?);
             }
-            _ => return Err(GrokStaticError::InvalidFunctionArguments(f.name.clone())),
+            _ => return Err(invalid()),
         }
     } else if args_len == 3 {
-        match (&args.unwrap()[0], &args.unwrap()[1], &args.unwrap()[2]) {
-            (
-                FunctionArgument::Arg(Value::Bytes(brackets_b)),
-                FunctionArgument::Arg(Value::Bytes(delimiter_b)),
-                FunctionArgument::Function(f),
-            ) => {
-                brackets = Some(String::from_utf8_lossy(brackets_b).to_string());
-                delimiter = Some(String::from_utf8_lossy(delimiter_b).to_string());
-                value_filter = Some(GrokFilter::try_from(f)?);
+        let args = args.unwrap();
+        match (args[0].to_utf8_lossy(), args[1].to_utf8_lossy(), &args[2]) {
+            (Some(left), Some(right), FunctionArgument::Function(func)) => {
+                brackets = Some(left);
+                delimiter = Some(right);
+                value_filter = Some(GrokFilter::try_from(func)?);
             }
-            _ => return Err(GrokStaticError::InvalidFunctionArguments(f.name.clone())),
+            _ => return Err(invalid()),
         }
     } else if args_len > 3 {
-        return Err(GrokStaticError::InvalidFunctionArguments(f.name.clone()));
+        return Err(invalid());
     }
 
     let brackets = match &brackets {
@@ -75,7 +68,7 @@ pub fn filter_from_function(f: &Function) -> Result<GrokFilter, GrokStaticError>
         }
         Some(b) if b.len() == 2 => Some((&b[..1], &b[1..2])),
         _ => {
-            return Err(GrokStaticError::InvalidFunctionArguments(f.name.clone()));
+            return Err(invalid());
         }
     };
 

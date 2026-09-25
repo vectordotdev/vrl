@@ -1,5 +1,5 @@
 use crate::path::OwnedValuePath;
-use crate::value::{KeyString, Value};
+use crate::value::KeyString;
 use std::sync::LazyLock;
 use std::{
     collections::{BTreeMap, HashMap},
@@ -335,8 +335,8 @@ fn resolves_match_function(
     match match_fn.name.as_ref() {
         "regex" => match match_fn.args.as_ref() {
             Some(args) if !args.is_empty() => {
-                if let ast::FunctionArgument::Arg(Value::Bytes(ref b)) = args[0] {
-                    context.append_regex(&String::from_utf8_lossy(b));
+                if let Some(regex) = args[0].to_utf8_lossy() {
+                    context.append_regex(&regex);
                     return Ok(());
                 }
                 Err(Error::InvalidFunctionArguments(match_fn.name.clone()))
@@ -374,8 +374,7 @@ fn resolves_match_function(
         "date" => {
             match match_fn.args.as_ref() {
                 Some(args) if !args.is_empty() && args.len() <= 2 => {
-                    if let ast::FunctionArgument::Arg(Value::Bytes(b)) = &args[0] {
-                        let format = String::from_utf8_lossy(b);
+                    if let Some(format) = args[0].to_utf8_lossy() {
                         // get regex with captures, so that we can extract timezone and fraction char in the filter
                         let result = date::time_format_to_regex(&format, true)
                             .map_err(|_e| Error::InvalidFunctionArguments(match_fn.name.clone()))?;
@@ -390,17 +389,16 @@ fn resolves_match_function(
                         })?;
                         let mut target_tz = None;
                         if args.len() == 2
-                            && let ast::FunctionArgument::Arg(Value::Bytes(b)) = &args[1]
+                            && let Some(tz) = args[1].to_utf8_lossy()
                         {
-                            let tz = String::from_utf8_lossy(b);
                             date::parse_timezone(&tz).map_err(|error| {
                                 error!(message = "Invalid(unrecognized) timezone", %error);
                                 Error::InvalidFunctionArguments(match_fn.name.clone())
                             })?;
-                            target_tz = Some(tz.to_string());
+                            target_tz = Some(tz);
                         }
                         let filter = GrokFilter::Date(DateFilter {
-                            original_format: format.to_string(),
+                            original_format: format.clone(),
                             strp_format,
                             regex: filter_re,
                             target_tz,

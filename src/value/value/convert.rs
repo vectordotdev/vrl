@@ -4,6 +4,7 @@ use std::{borrow::Cow, num::NonZero};
 use crate::value::value::regex::ValueRegex;
 use crate::value::value::simdutf_bytes_utf8_lossy;
 use bytes::Bytes;
+use bytestring::ByteString;
 use chrono::{DateTime, Utc};
 use ordered_float::NotNan;
 use regex::Regex;
@@ -115,23 +116,75 @@ impl Value {
         )
     }
 
-    /// Returns true if self is `Value::Bytes`.
-    pub fn is_bytes(&self) -> bool {
-        matches!(self, Self::Bytes(_))
+    /// Construct a `Value::Bytes` from a static UTF-8 string without promoting to `Value::String`.
+    ///
+    /// `From<&str>` produces `Value::String`. Tests that need the `Bytes` discriminant for
+    /// otherwise-valid UTF-8 should use this instead.
+    #[cfg(test)]
+    #[must_use]
+    pub fn from_static_bytes(s: &'static str) -> Self {
+        Self::Bytes(Bytes::from_static(s.as_bytes()))
     }
 
-    /// Returns self as `&Bytes`, only if self is `Value::Bytes`.
+    /// Construct a `Value::String` from bytes that are UTF-8 by construction
+    /// (for example hex-encoded hashes).
+    ///
+    /// Prefer [`Self::from_utf8_or_bytes`] when the encoding is not already proven.
+    ///
+    /// # Safety
+    ///
+    /// `bytes` must be valid UTF-8. Passing invalid UTF-8 violates `ByteString`'s
+    /// invariant and is undefined behavior in later `str` operations (deref,
+    /// formatting, serde, display).
+    #[must_use]
+    pub unsafe fn from_utf8_unchecked(bytes: Bytes) -> Self {
+        // SAFETY: caller must uphold this function's safety contract.
+        Self::String(unsafe { ByteString::from_bytes_unchecked(bytes) })
+    }
+
+    /// Construct a `Value` from `bytes` without copying the buffer.
+    ///
+    /// Valid UTF-8 becomes `Value::String`; anything else stays `Value::Bytes`.
+    /// Does not silently promote an existing `Value::Bytes`.
+    #[must_use]
+    pub fn from_utf8_or_bytes(bytes: Bytes) -> Self {
+        if simdutf8::basic::from_utf8(&bytes).is_ok() {
+            // SAFETY: just validated UTF-8.
+            Self::String(unsafe { ByteString::from_bytes_unchecked(bytes) })
+        } else {
+            Self::Bytes(bytes)
+        }
+    }
+
+    /// Returns true if self is `Value::Bytes` or `Value::String`.
+    pub fn is_bytes(&self) -> bool {
+        matches!(self, Self::Bytes(_) | Self::String(_))
+    }
+
+    /// Returns self as `&Bytes`, only if self is `Value::Bytes` or `Value::String`.
     pub fn as_bytes(&self) -> Option<&Bytes> {
         match self {
             Self::Bytes(v) => Some(v),
+            Self::String(v) => Some(v.as_bytes()),
             _ => None,
         }
     }
 
-    /// Returns self as `Cow<str>`, only if self is `Value::Bytes`
+    /// Returns self as `Cow<str>`, only if self is `Value::Bytes` or `Value::String`.
+    ///
+    /// `Value::String` is borrowed; `Value::Bytes` is decoded with a lossy UTF-8 conversion.
     pub fn as_str(&self) -> Option<Cow<'_, str>> {
-        self.as_bytes()
-            .map(|bytes| simdutf_bytes_utf8_lossy(bytes.as_ref()))
+        match self {
+            Self::Bytes(bytes) => Some(simdutf_bytes_utf8_lossy(bytes.as_ref())),
+            Self::String(s) => Some(Cow::Borrowed(s.as_ref())),
+            _ => None,
+        }
+    }
+
+    /// Returns a `KeyString` if self is `Value::Bytes` or `Value::String`.
+    #[must_use]
+    pub fn to_key_string_lossy(&self) -> Option<KeyString> {
+        self.as_str().map(Cow::into_owned).map(KeyString::from)
     }
 
     /// Converts the Value into a byte representation regardless of its original type.
@@ -143,6 +196,7 @@ impl Value {
     pub fn encode_as_bytes(&self) -> Result<Bytes, String> {
         match self {
             Self::Bytes(bytes) => Ok(bytes.clone()),
+            Self::String(s) => Ok(s.as_bytes().clone()),
             Self::Integer(i) => Ok(Bytes::copy_from_slice(&i.to_le_bytes())),
             Self::Float(f) => Ok(Bytes::copy_from_slice(&f.into_inner().to_le_bytes())),
             Self::Boolean(b) => Ok(if *b {
@@ -284,19 +338,25 @@ impl<T: Into<Self>> From<Vec<T>> for Value {
 
 impl From<String> for Value {
     fn from(string: String) -> Self {
-        Self::Bytes(string.into())
+        Self::String(string.into())
     }
 }
 
 impl From<KeyString> for Value {
     fn from(string: KeyString) -> Self {
-        Self::Bytes(string.into_bytes().into())
+        Self::from(String::from(string))
     }
 }
 
 impl From<&str> for Value {
     fn from(v: &str) -> Self {
-        Self::Bytes(Bytes::copy_from_slice(v.as_bytes()))
+        Self::String(v.into())
+    }
+}
+
+impl From<ByteString> for Value {
+    fn from(string: ByteString) -> Self {
+        Self::String(string)
     }
 }
 
@@ -314,7 +374,10 @@ impl From<()> for Value {
 
 impl From<Cow<'_, str>> for Value {
     fn from(v: Cow<'_, str>) -> Self {
-        v.as_ref().into()
+        match v {
+            Cow::Borrowed(s) => s.into(),
+            Cow::Owned(s) => s.into(),
+        }
     }
 }
 
@@ -452,5 +515,34 @@ impl From<u64> for Value {
 impl From<bool> for Value {
     fn from(value: bool) -> Self {
         Self::Boolean(value)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use bytes::Bytes;
+
+    #[test]
+    fn from_str_is_string_variant() {
+        assert!(matches!(Value::from("foo"), Value::String(_)));
+        assert!(matches!(Value::from(String::from("foo")), Value::String(_)));
+    }
+
+    #[test]
+    fn from_bytes_stays_bytes() {
+        assert!(matches!(Value::from_static_bytes("foo"), Value::Bytes(_)));
+    }
+
+    #[test]
+    fn from_utf8_or_bytes_splits_on_utf8() {
+        assert!(matches!(
+            Value::from_utf8_or_bytes(Bytes::from_static(b"foo")),
+            Value::String(_)
+        ));
+        assert!(matches!(
+            Value::from_utf8_or_bytes(Bytes::from_static(b"foo\xff")),
+            Value::Bytes(_)
+        ));
     }
 }

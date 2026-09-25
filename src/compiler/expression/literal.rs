@@ -4,6 +4,7 @@ use crate::compiler::codes;
 use crate::diagnostic::{DiagnosticMessage, Label, Note, Urls};
 use crate::value::{Value, ValueRegex};
 use bytes::Bytes;
+use bytestring::ByteString;
 use chrono::{DateTime, SecondsFormat, Utc};
 use ordered_float::NotNan;
 use regex::Regex;
@@ -16,7 +17,8 @@ use crate::compiler::{
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Literal {
-    String(Bytes),
+    String(ByteString),
+    Bytes(Bytes),
     Integer(i64),
     Float(NotNan<f64>),
     Boolean(bool),
@@ -33,10 +35,11 @@ impl Literal {
     /// the case of `Literal` means it always returns `Some(Value)`, requiring
     /// an extra `unwrap()`.
     pub fn to_value(&self) -> Value {
-        use Literal::{Boolean, Float, Integer, Null, Regex, String, Timestamp};
+        use Literal::{Boolean, Bytes, Float, Integer, Null, Regex, String, Timestamp};
 
         match self {
-            String(v) => Value::Bytes(v.clone()),
+            String(v) => Value::String(v.clone()),
+            Bytes(v) => Value::Bytes(v.clone()),
             Integer(v) => Value::Integer(*v),
             Float(v) => Value::Float(*v),
             Boolean(v) => Value::Boolean(*v),
@@ -44,6 +47,19 @@ impl Literal {
             Timestamp(v) => Value::Timestamp(*v),
             Null => Value::Null,
         }
+    }
+
+    /// Build a UTF-8 string literal from bytes that are UTF-8 by construction.
+    ///
+    /// # Safety
+    ///
+    /// `bytes` must be valid UTF-8. See [`Value::from_utf8_unchecked`].
+    pub unsafe fn from_utf8_unchecked(bytes: Bytes) -> Self {
+        // SAFETY: caller must uphold this function's safety contract.
+        let Value::String(v) = (unsafe { Value::from_utf8_unchecked(bytes) }) else {
+            unreachable!("from_utf8_unchecked always returns Value::String");
+        };
+        Self::String(v)
     }
 }
 
@@ -57,10 +73,10 @@ impl Expression for Literal {
     }
 
     fn type_info(&self, state: &TypeState) -> TypeInfo {
-        use Literal::{Boolean, Float, Integer, Null, Regex, String, Timestamp};
+        use Literal::{Boolean, Bytes, Float, Integer, Null, Regex, String, Timestamp};
 
         let type_def = match self {
-            String(_) => TypeDef::bytes(),
+            String(_) | Bytes(_) => TypeDef::bytes(),
             Integer(_) => TypeDef::integer(),
             Float(_) => TypeDef::float(),
             Boolean(_) => TypeDef::boolean(),
@@ -75,10 +91,11 @@ impl Expression for Literal {
 
 impl fmt::Display for Literal {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        use Literal::{Boolean, Float, Integer, Null, Regex, String, Timestamp};
+        use Literal::{Boolean, Bytes, Float, Integer, Null, Regex, String, Timestamp};
 
         match self {
-            String(v) => write!(f, r#""{}""#, std::string::String::from_utf8_lossy(v)),
+            String(v) => write!(f, r#""{}""#, &**v),
+            Bytes(v) => write!(f, r#""{}""#, std::string::String::from_utf8_lossy(v)),
             Integer(v) => v.fmt(f),
             Float(v) => v.fmt(f),
             Boolean(v) => v.fmt(f),
@@ -89,10 +106,16 @@ impl fmt::Display for Literal {
     }
 }
 
-// Literal::String -------------------------------------------------------------
+// Literal::String / Literal::Bytes --------------------------------------------
 
 impl From<Bytes> for Literal {
     fn from(v: Bytes) -> Self {
+        Literal::Bytes(v)
+    }
+}
+
+impl From<ByteString> for Literal {
+    fn from(v: ByteString) -> Self {
         Literal::String(v)
     }
 }
@@ -105,13 +128,13 @@ impl From<Cow<'_, str>> for Literal {
 
 impl From<Vec<u8>> for Literal {
     fn from(v: Vec<u8>) -> Self {
-        v.as_slice().into()
+        Literal::Bytes(Bytes::from(v))
     }
 }
 
 impl From<&[u8]> for Literal {
     fn from(v: &[u8]) -> Self {
-        Literal::String(Bytes::copy_from_slice(v))
+        Literal::Bytes(Bytes::copy_from_slice(v))
     }
 }
 
@@ -123,7 +146,7 @@ impl From<String> for Literal {
 
 impl From<&str> for Literal {
     fn from(v: &str) -> Self {
-        Literal::String(Bytes::copy_from_slice(v.as_bytes()))
+        Literal::String(v.into())
     }
 }
 
@@ -362,7 +385,10 @@ impl From<(Span, chrono::ParseError)> for Error {
 #[cfg(test)]
 mod tests {
     use crate::compiler::TypeDef;
+    use crate::compiler::expression::Expr;
+    use crate::value::Value;
     use crate::{expr, test_type_def};
+    use bytes::Bytes;
 
     test_type_def![
         bytes {
@@ -375,4 +401,32 @@ mod tests {
             want: TypeDef::integer(),
         }
     ];
+
+    #[test]
+    fn value_round_trip_does_not_promote_bytes() {
+        let utf8 = Value::from_static_bytes("foo");
+        let Expr::Literal(literal) = Expr::from(utf8.clone()) else {
+            panic!("expected literal");
+        };
+        assert!(matches!(literal.to_value(), Value::Bytes(_)));
+        assert_eq!(literal.to_value(), utf8);
+
+        let raw = Value::Bytes(Bytes::from_static(b"foo\xff"));
+        let Expr::Literal(literal) = Expr::from(raw.clone()) else {
+            panic!("expected literal");
+        };
+        assert!(matches!(literal.to_value(), Value::Bytes(_)));
+        assert_eq!(literal.to_value(), raw);
+    }
+
+    #[test]
+    fn value_round_trip_preserves_string() {
+        let string = Value::from("foo");
+        assert!(matches!(string, Value::String(_)));
+        let Expr::Literal(literal) = Expr::from(string.clone()) else {
+            panic!("expected literal");
+        };
+        assert!(matches!(literal.to_value(), Value::String(_)));
+        assert_eq!(literal.to_value(), string);
+    }
 }
