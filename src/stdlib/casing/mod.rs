@@ -80,7 +80,7 @@ pub(crate) fn variants_msg() -> String {
         .join(", ")
 }
 
-pub(crate) fn into_case(s: &str) -> Result<Case, Box<dyn DiagnosticMessage>> {
+pub(crate) fn into_case(s: &str) -> Result<Case<'static>, Box<dyn DiagnosticMessage>> {
     match s {
         "camelCase" => Ok(Case::Camel),
         "PascalCase" => Ok(Case::Pascal),
@@ -96,13 +96,13 @@ pub(crate) fn into_case(s: &str) -> Result<Case, Box<dyn DiagnosticMessage>> {
 
 pub(crate) fn into_boundary(s: &str) -> Result<convert_case::Boundary, Box<dyn DiagnosticMessage>> {
     match s {
-        "lower_upper" => Ok(convert_case::Boundary::LOWER_UPPER),
-        "upper_lower" => Ok(convert_case::Boundary::UPPER_LOWER),
-        "acronym" => Ok(convert_case::Boundary::ACRONYM),
-        "lower_digit" => Ok(convert_case::Boundary::LOWER_DIGIT),
-        "upper_digit" => Ok(convert_case::Boundary::UPPER_DIGIT),
-        "digit_lower" => Ok(convert_case::Boundary::DIGIT_LOWER),
-        "digit_upper" => Ok(convert_case::Boundary::DIGIT_UPPER),
+        "lower_upper" => Ok(convert_case::Boundary::LowerUpper),
+        "upper_lower" => Ok(convert_case::Boundary::UpperLower),
+        "acronym" => Ok(convert_case::Boundary::Acronym),
+        "lower_digit" => Ok(convert_case::Boundary::LowerDigit),
+        "upper_digit" => Ok(convert_case::Boundary::UpperDigit),
+        "digit_lower" => Ok(convert_case::Boundary::DigitLower),
+        "digit_upper" => Ok(convert_case::Boundary::DigitUpper),
         _ => Err(Box::new(ExpressionError::from(format!(
             "boundary must match one of: {}",
             boundaries_msg()
@@ -111,30 +111,40 @@ pub(crate) fn into_boundary(s: &str) -> Result<convert_case::Boundary, Box<dyn D
 }
 
 #[inline]
-pub(crate) fn convert_case(value: &Value, to_case: Case, from_case: Option<Case>) -> Resolved {
+pub(crate) fn convert_case(
+    value: &Value,
+    to_case: Case<'static>,
+    from_case: Option<Case<'static>>,
+) -> Resolved {
     let string_value = value.try_bytes_utf8_lossy()?;
 
     match from_case {
-        Some(case) => Ok(string_value.from_case(case).to_case(to_case).into()),
-        None => Ok(string_value.to_case(to_case).into()),
+        Some(case) => Ok(string_value
+            .from_case(case)
+            .remove_empty()
+            .to_case(to_case)
+            .into()),
+        None => Ok(string_value.remove_empty().to_case(to_case).into()),
     }
 }
 
 #[inline]
 pub(crate) fn convert_case_with_excluded_boundaries(
     string_value: &str,
-    to_case: Case,
-    from_case: Option<Case>,
+    to_case: Case<'static>,
+    from_case: Option<Case<'static>>,
     excluded_boundaries: &[Boundary],
 ) -> Value {
     match from_case {
         Some(case) => string_value
             .from_case(case)
-            .without_boundaries(excluded_boundaries)
+            .remove_boundaries(excluded_boundaries)
+            .remove_empty()
             .to_case(to_case)
             .into(),
         None => string_value
-            .without_boundaries(excluded_boundaries)
+            .remove_boundaries(excluded_boundaries)
+            .remove_empty()
             .to_case(to_case)
             .into(),
     }
