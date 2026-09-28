@@ -193,7 +193,7 @@ mod non_wasm {
                 question_obj.insert("class".into(), q.qclass().to_string().into());
                 question_obj.insert("domainName".into(), q.qname().to_string().into());
                 let qtype = q.qtype();
-                question_obj.insert("questionType".into(), qtype.to_string().into());
+                question_obj.insert("questionType".into(), record_type_name(qtype));
                 question_obj.insert("questionTypeId".into(), qtype.to_int().into());
                 questions.push(question_obj);
             }
@@ -228,12 +228,28 @@ mod non_wasm {
                 .map_err(|err| format!("parsing rData failed: {err}"))?
                 .map(|r| r.data().to_string());
             record_obj.insert("rData".into(), record_data.into());
-            record_obj.insert("recordType".into(), rtype.to_string().into());
+            record_obj.insert("recordType".into(), record_type_name(rtype));
             record_obj.insert("recordTypeId".into(), rtype.to_int().into());
             record_obj.insert("ttl".into(), r.ttl().as_secs().into());
             records.push(record_obj);
         }
         Ok(records)
+    }
+
+    fn record_type_name(rtype: Rtype) -> Value {
+        // Keep VRL output stable for record types newly named in domain 0.12.3.
+        let name: &'static [u8] = match rtype {
+            Rtype::DSYNC => b"TYPE66",
+            Rtype::HHIT => b"TYPE67",
+            Rtype::BRID => b"TYPE68",
+            Rtype::AMTRELAY => b"TYPE260",
+            Rtype::RESINFO => b"TYPE261",
+            Rtype::WALLET => b"TYPE262",
+            Rtype::CLA => b"TYPE263",
+            Rtype::IPN => b"TYPE264",
+            _ => return rtype.to_string().into(),
+        };
+        Value::Bytes(Bytes::from_static(name))
     }
 
     impl FunctionExpression for DnsLookupFn {
@@ -709,6 +725,83 @@ mod tests {
                 options: None,
             }
         }
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn preserves_record_type_names() {
+        let cases = [
+            (1_u16, "A"),
+            (66, "TYPE66"),
+            (67, "TYPE67"),
+            (68, "TYPE68"),
+            (99, "SPF"),
+            (260, "TYPE260"),
+            (261, "TYPE261"),
+            (262, "TYPE262"),
+            (263, "TYPE263"),
+            (264, "TYPE264"),
+            (65280, "TYPE65280"),
+        ];
+        let socket = tokio::net::UdpSocket::bind("127.0.0.1:0").await.unwrap();
+        let server_addr = socket.local_addr().unwrap().to_string();
+        let query_count = cases.len();
+        let server = tokio::spawn(async move {
+            let mut buffer = [0; 4096];
+            for _ in 0..query_count {
+                let (len, peer) = socket.recv_from(&mut buffer).await.unwrap();
+                let request = domain::base::Message::from_octets(&buffer[..len]).unwrap();
+                let question = request.first_question().unwrap();
+                let mut response = domain::base::MessageBuilder::new_vec();
+                response.header_mut().set_id(request.header().id());
+                response.header_mut().set_qr(true);
+                let mut response = response.question();
+                response.push(question).unwrap();
+
+                // These bytes are valid for both the A and SPF control records.
+                let data = domain::base::rdata::UnknownRecordData::from_octets(
+                    question.qtype(),
+                    b"\x03foo".as_slice(),
+                )
+                .unwrap();
+                let record = (question.qname(), question.qclass(), 60, data);
+                let mut response = response.answer();
+                response.push(&record).unwrap();
+                let mut response = response.authority();
+                response.push(&record).unwrap();
+                let mut response = response.additional();
+                response.push(&record).unwrap();
+                socket.send_to(&response.finish(), peer).await.unwrap();
+            }
+        });
+
+        for (type_id, expected_name) in cases {
+            let result = prepare_dns_lookup(&DnsLookupFn {
+                value: expr!("example.test"),
+                qtype: Some(expr!(format!("TYPE{type_id}"))),
+                options: Some(expr!({
+                    "servers": [(server_addr.as_str())],
+                    "timeout": 1,
+                    "attempts": 1,
+                })),
+                ..Default::default()
+            })
+            .unwrap()
+            .try_object()
+            .unwrap();
+
+            let question = result["question"].as_array_unwrap()[0]
+                .as_object()
+                .unwrap();
+            assert_eq!(question["questionType"], Value::from(expected_name));
+            assert_eq!(question["questionTypeId"], Value::Integer(i64::from(type_id)));
+            for section in ["answers", "authority", "additional"] {
+                let record = result[section].as_array_unwrap()[0].as_object().unwrap();
+                assert_eq!(record["recordType"], Value::from(expected_name), "{section}");
+                assert_eq!(record["recordTypeId"], Value::Integer(i64::from(type_id)));
+            }
+        }
+
+        server.await.unwrap();
     }
 
     #[cfg(feature = "test")]
