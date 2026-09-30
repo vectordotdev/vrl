@@ -1,0 +1,10 @@
+# result:
+# {"keys": ["a", "b"], "sum": 30}
+
+.keys = []
+.sum = 0
+for k, v in { "a": 10, "b": 20 } {
+  .keys = push(.keys, k)
+  .sum = .sum + v
+}
+.

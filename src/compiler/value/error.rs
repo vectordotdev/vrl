@@ -94,9 +94,8 @@ impl DiagnosticMessage for ValueError {
 impl From<ValueError> for ExpressionError {
     fn from(err: ValueError) -> Self {
         match err {
-            ValueError::Or(ExpressionError::Interrupted) => Self::Interrupted,
-            ValueError::Or(err @ ExpressionError::Break { .. }) => err,
-            _ => Self::Error {
+            ValueError::Or(inner) if inner.is_control_flow() => inner,
+            err => Self::Error {
                 message: err.message(),
                 labels: vec![],
                 notes: vec![],

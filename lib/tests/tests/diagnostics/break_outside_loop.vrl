@@ -1,0 +1,13 @@
+# result:
+#
+# error[E632]: break outside of loop or iterator
+#   ┌─ :2:1
+#   │
+# 2 │ break
+#   │ ^^^^^ break can only be used inside a loop or iterator
+#   │
+#   = see documentation about error handling at https://errors.vrl.dev/#handling
+#   = see language documentation at https://vrl.dev
+#   = try your code in the VRL REPL, learn more at https://vrl.dev/examples
+
+break

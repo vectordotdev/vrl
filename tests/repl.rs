@@ -36,7 +36,7 @@ fn run_vrl_repl(input: Option<&str>, args: &[&str]) -> String {
 // abs is just a random stdlib function
 fn test_abs_works() {
     let stdout = run_vrl_repl(Some("abs(-1)"), &["-q"]);
-    assert_eq!(stdout, "1\n\n");
+    assert_eq!(stdout.replace("$ ", ""), "1\n\n");
 }
 
 #[test]
@@ -45,7 +45,16 @@ fn nan_arithmetic_error_can_be_coalesced() {
         Some(r#"(parse_float!("inf") + parse_float!("-inf")) ?? 0"#),
         &["-q"],
     );
-    assert_eq!(stdout, "0\n\n");
+    assert_eq!(stdout.replace("$ ", ""), "0\n\n");
+}
+
+#[test]
+fn test_for_loop_works() {
+    let stdout = run_vrl_repl(
+        Some("sum = 0; for v in [1, 2, 3] { sum = sum + v }; sum"),
+        &["-q"],
+    );
+    assert_eq!(stdout.replace("$ ", ""), "6\n\n");
 }
 
 #[test]
