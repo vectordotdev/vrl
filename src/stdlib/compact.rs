@@ -29,21 +29,21 @@ const PARAMETERS: &[Parameter] = &[
 ];
 
 fn compact(
-    recursive: Value,
-    null: Value,
-    string: Value,
-    object: Value,
-    array: Value,
-    nullish: Value,
+    recursive: bool,
+    null: bool,
+    string: bool,
+    object: bool,
+    array: bool,
+    nullish: bool,
     value: Value,
 ) -> Resolved {
     let options = CompactOptions {
-        recursive: recursive.try_boolean()?,
-        null: null.try_boolean()?,
-        string: string.try_boolean()?,
-        object: object.try_boolean()?,
-        array: array.try_boolean()?,
-        nullish: nullish.try_boolean()?,
+        recursive,
+        null,
+        string,
+        object,
+        array,
+        nullish,
     };
 
     match value {
@@ -117,17 +117,25 @@ impl Function for Compact {
 
     fn compile(
         &self,
-        _state: &state::TypeState,
+        state: &state::TypeState,
         _ctx: &mut FunctionCompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
-        let recursive = arguments.optional("recursive");
-        let null = arguments.optional("null");
-        let string = arguments.optional("string");
-        let object = arguments.optional("object");
-        let array = arguments.optional("array");
-        let nullish = arguments.optional("nullish");
+        let recursive = ConstOrExpr::<bool>::default(
+            arguments.optional("recursive"),
+            state,
+            &DEFAULT_RECURSIVE,
+        )?;
+        let null = ConstOrExpr::<bool>::default(arguments.optional("null"), state, &DEFAULT_NULL)?;
+        let string =
+            ConstOrExpr::<bool>::default(arguments.optional("string"), state, &DEFAULT_STRING)?;
+        let object =
+            ConstOrExpr::<bool>::default(arguments.optional("object"), state, &DEFAULT_OBJECT)?;
+        let array =
+            ConstOrExpr::<bool>::default(arguments.optional("array"), state, &DEFAULT_ARRAY)?;
+        let nullish =
+            ConstOrExpr::<bool>::default(arguments.optional("nullish"), state, &DEFAULT_NULLISH)?;
 
         Ok(CompactFn {
             value,
@@ -145,12 +153,12 @@ impl Function for Compact {
 #[derive(Debug, Clone)]
 struct CompactFn {
     value: Box<dyn Expression>,
-    recursive: Option<Box<dyn Expression>>,
-    null: Option<Box<dyn Expression>>,
-    string: Option<Box<dyn Expression>>,
-    object: Option<Box<dyn Expression>>,
-    array: Option<Box<dyn Expression>>,
-    nullish: Option<Box<dyn Expression>>,
+    recursive: ConstOrExpr<bool>,
+    null: ConstOrExpr<bool>,
+    string: ConstOrExpr<bool>,
+    object: ConstOrExpr<bool>,
+    array: ConstOrExpr<bool>,
+    nullish: ConstOrExpr<bool>,
 }
 
 #[derive(Debug)]
@@ -196,24 +204,12 @@ impl CompactOptions {
 
 impl FunctionExpression for CompactFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let recursive = self
-            .recursive
-            .map_resolve_with_default(ctx, || DEFAULT_RECURSIVE.clone())?;
-        let null = self
-            .null
-            .map_resolve_with_default(ctx, || DEFAULT_NULL.clone())?;
-        let string = self
-            .string
-            .map_resolve_with_default(ctx, || DEFAULT_STRING.clone())?;
-        let object = self
-            .object
-            .map_resolve_with_default(ctx, || DEFAULT_OBJECT.clone())?;
-        let array = self
-            .array
-            .map_resolve_with_default(ctx, || DEFAULT_ARRAY.clone())?;
-        let nullish = self
-            .nullish
-            .map_resolve_with_default(ctx, || DEFAULT_NULLISH.clone())?;
+        let recursive = self.recursive.resolve(ctx)?;
+        let null = self.null.resolve(ctx)?;
+        let string = self.string.resolve(ctx)?;
+        let object = self.object.resolve(ctx)?;
+        let array = self.array.resolve(ctx)?;
+        let nullish = self.nullish.resolve(ctx)?;
         let value = self.value.resolve(ctx)?;
 
         compact(recursive, null, string, object, array, nullish, value)
@@ -272,7 +268,7 @@ mod test {
 
     #[test]
     fn test_compacted_array() {
-        let cases = vec![
+        let cases = [
             (
                 vec!["".into(), "".into()],              // expected
                 vec!["".into(), Value::Null, "".into()], // original
@@ -333,7 +329,7 @@ mod test {
     #[test]
     #[allow(clippy::too_many_lines)]
     fn test_compacted_map() {
-        let cases = vec![
+        let cases = [
             (
                 btreemap! {
                     "key1" => "",
