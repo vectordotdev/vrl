@@ -1,9 +1,8 @@
 use crate::compiler::prelude::*;
-use bytes::Bytes;
 use chrono::{DateTime, Utc};
 use uuid::{NoContext, timestamp::Timestamp};
 
-static DEFAULT_TIMESTAMP: Value = Value::Bytes(Bytes::from_static("`now()`".as_bytes()));
+static DEFAULT_TIMESTAMP: Value = Value::from_static_str("`now()`");
 
 const PARAMETERS: &[Parameter] = &[Parameter::optional(
     "timestamp",

@@ -19,9 +19,9 @@ use std::{
     str::{Chars, FromStr},
 };
 
-static DEFAULT_KEY_VALUE_DELIMITER: Value = Value::Bytes(Bytes::from_static("=".as_bytes()));
-static DEFAULT_FIELD_DELIMITER: Value = Value::Bytes(Bytes::from_static(" ".as_bytes()));
-static DEFAULT_WHITESPACE: Value = Value::Bytes(Bytes::from_static("lenient".as_bytes()));
+static DEFAULT_KEY_VALUE_DELIMITER: Value = Value::from_static_str("=");
+static DEFAULT_FIELD_DELIMITER: Value = Value::from_static_str(" ");
+static DEFAULT_WHITESPACE: Value = Value::from_static_str("lenient");
 static DEFAULT_ACCEPT_STANDALONE_KEY: Value = Value::Boolean(true);
 
 static WHITESPACE_ENUM: &[EnumVariant] = &[
