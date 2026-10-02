@@ -4,7 +4,7 @@ use crate::compiler::prelude::*;
 use crate::value;
 use sha3::{Digest, Sha3_224, Sha3_256, Sha3_384, Sha3_512};
 
-static DEFAULT_VARIANT: Value = Value::Bytes(Bytes::from_static("SHA3-512".as_bytes()));
+static DEFAULT_VARIANT: Value = Value::from_static_str("SHA3-512");
 
 static VARIANT_ENUM: &[EnumVariant] = &[
     EnumVariant {

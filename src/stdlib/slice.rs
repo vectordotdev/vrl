@@ -2,7 +2,7 @@ use std::ops::Range;
 
 use crate::compiler::prelude::*;
 
-static DEFAULT_END: Value = Value::Bytes(Bytes::from_static("String length".as_bytes()));
+static DEFAULT_END: Value = Value::from_static_str("String length");
 
 const PARAMETERS: &[Parameter] = &[
     Parameter::required(

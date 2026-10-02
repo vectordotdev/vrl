@@ -3,7 +3,7 @@ use crate::compiler::prelude::*;
 use crate::value;
 use percent_encoding::{AsciiSet, utf8_percent_encode};
 
-static DEFAULT_ASCII_SET: Value = Value::Bytes(Bytes::from_static("NON_ALPHANUMERIC".as_bytes()));
+static DEFAULT_ASCII_SET: Value = Value::from_static_str("NON_ALPHANUMERIC");
 
 static ASCII_SET_ENUM: &[EnumVariant] = &[
     EnumVariant {
