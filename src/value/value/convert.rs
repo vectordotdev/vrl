@@ -122,8 +122,8 @@ impl Value {
     /// otherwise-valid UTF-8 should use this instead.
     #[cfg(test)]
     #[must_use]
-    pub fn from_static_bytes(s: &'static str) -> Self {
-        Self::Bytes(Bytes::from_static(s.as_bytes()))
+    pub fn from_static_bytes(bytes: &'static [u8]) -> Self {
+        Self::Bytes(Bytes::from_static(bytes))
     }
 
     /// Construct a `Value::String` from bytes that are UTF-8 by construction
@@ -531,7 +531,7 @@ mod tests {
 
     #[test]
     fn from_bytes_stays_bytes() {
-        assert!(matches!(Value::from_static_bytes("foo"), Value::Bytes(_)));
+        assert!(matches!(Value::from_static_bytes(b"foo"), Value::Bytes(_)));
     }
 
     #[test]
