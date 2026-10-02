@@ -4,17 +4,17 @@ use chrono::SecondsFormat;
 
 use super::Value;
 
+fn escape_quoted(s: &str) -> String {
+    s.replace('\\', r"\\")
+        .replace('"', r#"\""#)
+        .replace('\n', r"\n")
+}
+
 impl fmt::Display for Value {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Bytes(val) => write!(
-                f,
-                r#""{}""#,
-                String::from_utf8_lossy(val)
-                    .replace('\\', r"\\")
-                    .replace('"', r#"\""#)
-                    .replace('\n', r"\n")
-            ),
+            Self::String(s) => write!(f, r#""{}""#, escape_quoted(s)),
+            Self::Bytes(b) => write!(f, r#""{}""#, escape_quoted(&String::from_utf8_lossy(b))),
             Self::Integer(val) => write!(f, "{val}"),
             Self::Float(val) => write!(f, "{val}"),
             Self::Boolean(val) => write!(f, "{val}"),
@@ -45,7 +45,6 @@ impl fmt::Display for Value {
 
 #[cfg(test)]
 mod test {
-    use bytes::Bytes;
     use chrono::DateTime;
     use indoc::indoc;
     use ordered_float::NotNan;
@@ -53,40 +52,35 @@ mod test {
 
     use super::Value;
 
+    fn assert_display(s: &'static str, expected: &str) {
+        assert_eq!(Value::from(s).to_string(), expected);
+        assert_eq!(Value::from_static_bytes(s).to_string(), expected);
+    }
+
     #[test]
     fn test_display_string() {
-        assert_eq!(
-            Value::Bytes(Bytes::from("Hello, world!")).to_string(),
-            r#""Hello, world!""#
-        );
+        assert_display("Hello, world!", r#""Hello, world!""#);
     }
 
     #[test]
     fn test_display_string_with_backslashes() {
-        assert_eq!(
-            Value::Bytes(Bytes::from(r"foo \ bar \ baz")).to_string(),
-            r#""foo \\ bar \\ baz""#
-        );
+        assert_display(r"foo \ bar \ baz", r#""foo \\ bar \\ baz""#);
     }
 
     #[test]
     fn test_display_string_with_quotes() {
-        assert_eq!(
-            Value::Bytes(Bytes::from(r#""Hello, world!""#)).to_string(),
-            r#""\"Hello, world!\"""#
-        );
+        assert_display(r#""Hello, world!""#, r#""\"Hello, world!\"""#);
     }
 
     #[test]
     fn test_display_string_with_newlines() {
-        assert_eq!(
-            Value::Bytes(Bytes::from(indoc! {"
+        assert_display(
+            indoc! {"
                 Some
                 new
                 lines
-            "}))
-            .to_string(),
-            r#""Some\nnew\nlines\n""#
+            "},
+            r#""Some\nnew\nlines\n""#,
         );
     }
 

@@ -185,7 +185,9 @@ impl CompactOptions {
         }
 
         match value {
-            Value::Bytes(bytes) => self.string && bytes.len() == 0,
+            v @ (Value::Bytes(_) | Value::String(_)) => {
+                self.string && v.as_bytes().expect("bytes-like").is_empty()
+            }
             Value::Null => self.null,
             Value::Object(object) => self.object && object.is_empty(),
             Value::Array(array) => self.array && array.is_empty(),

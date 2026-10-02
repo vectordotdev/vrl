@@ -49,9 +49,12 @@ fn slice(start: i64, end: Option<i64>, value: Value) -> Resolved {
         }
     };
     match value {
-        Value::Bytes(v) => range(v.len() as i64)
-            .map(|range| v.slice(range))
-            .map(Value::from),
+        v @ (Value::Bytes(_) | Value::String(_)) => {
+            let v = v.try_bytes().expect("bytes-like");
+            range(v.len() as i64)
+                .map(|range| v.slice(range))
+                .map(Value::from)
+        }
         Value::Array(mut v) => range(v.len() as i64)
             .map(|range| v.drain(range).collect::<Vec<_>>())
             .map(Value::from),
