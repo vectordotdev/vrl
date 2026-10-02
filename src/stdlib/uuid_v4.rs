@@ -1,10 +1,9 @@
 use crate::compiler::prelude::*;
-use bytes::Bytes;
 
 fn uuid_v4() -> Value {
     let mut buf = [0; 36];
     let uuid = uuid::Uuid::new_v4().hyphenated().encode_lower(&mut buf);
-    Bytes::copy_from_slice(uuid.as_bytes()).into()
+    Value::from(&*uuid)
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -78,12 +77,11 @@ mod tests {
         let mut ctx = Context::new(&mut object, &mut state, &tz);
         let value = UuidV4Fn.resolve(&mut ctx).unwrap();
 
-        assert!(matches!(&value, Value::Bytes(_)));
+        assert!(matches!(&value, Value::String(_)));
 
         match value {
-            Value::Bytes(val) => {
-                let val = String::from_utf8_lossy(&val);
-                uuid::Uuid::parse_str(&val).expect("valid UUID V4");
+            Value::String(val) => {
+                uuid::Uuid::parse_str(val.as_ref()).expect("valid UUID V4");
             }
             _ => unreachable!(),
         }
