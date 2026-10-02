@@ -52,7 +52,7 @@ fn community_id(
     let id = calculate_community_id(seed, src_ip, dst_ip, src_port, dst_port, protocol, false);
 
     match id {
-        Ok(id) => Ok(Value::Bytes(id.into())),
+        Ok(id) => Ok(id.into()),
         Err(err) => Err(ExpressionError::from(err.to_string())),
     }
 }

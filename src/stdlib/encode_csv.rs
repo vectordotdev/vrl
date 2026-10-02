@@ -24,7 +24,7 @@ fn encode_csv(value: Value, delimiter: Value) -> Resolved {
     // The csv crate writes an empty record as "" which is valid CSV, but we want empty arrays to
     // produce empty strings.
     if value_array.is_empty() {
-        return Ok(Value::Bytes(Bytes::from("")));
+        return Ok(Value::from(""));
     }
 
     let single_byte_delimiter = parse_single_byte_delimiter(delimiter)?;
