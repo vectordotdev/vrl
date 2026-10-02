@@ -388,8 +388,6 @@ mod tests {
     use crate::compiler::expression::Expr;
     use crate::value::Value;
     use crate::{expr, test_type_def};
-    use bytes::Bytes;
-
     test_type_def![
         bytes {
             expr: |_| expr!("foo"),
@@ -404,14 +402,14 @@ mod tests {
 
     #[test]
     fn value_round_trip_does_not_promote_bytes() {
-        let utf8 = Value::from_static_bytes("foo");
+        let utf8 = Value::from_static_bytes(b"foo");
         let Expr::Literal(literal) = Expr::from(utf8.clone()) else {
             panic!("expected literal");
         };
         assert!(matches!(literal.to_value(), Value::Bytes(_)));
         assert_eq!(literal.to_value(), utf8);
 
-        let raw = Value::Bytes(Bytes::from_static(b"foo\xff"));
+        let raw = Value::from_static_bytes(b"foo\xff");
         let Expr::Literal(literal) = Expr::from(raw.clone()) else {
             panic!("expected literal");
         };

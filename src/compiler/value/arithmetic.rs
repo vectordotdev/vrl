@@ -451,7 +451,7 @@ mod tests {
         assert_eq!(concatenated, Value::from("ab"));
 
         let mixed = Value::from("a")
-            .try_add(Value::from_static_bytes("b"))
+            .try_add(Value::from_static_bytes(b"b"))
             .unwrap();
         assert!(matches!(mixed, Value::Bytes(_)));
         assert_eq!(mixed, Value::from("ab"));
@@ -468,7 +468,7 @@ mod tests {
         assert!(matches!(repeated, Value::String(_)));
         assert_eq!(repeated, Value::from("ababab"));
 
-        let repeated_bytes = Value::from_static_bytes("ab")
+        let repeated_bytes = Value::from_static_bytes(b"ab")
             .try_mul(Value::Integer(2))
             .unwrap();
         assert!(matches!(repeated_bytes, Value::Bytes(_)));
