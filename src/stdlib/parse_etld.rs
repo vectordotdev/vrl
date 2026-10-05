@@ -2,31 +2,28 @@ use psl::Psl;
 use publicsuffix::List;
 
 use crate::compiler::prelude::*;
-use std::sync::LazyLock;
 use std::{collections::BTreeMap, path::Path};
 
-static DEFAULT_PLUS_PARTS: LazyLock<Value> = LazyLock::new(|| Value::Integer(0));
+static DEFAULT_PLUS_PARTS: Value = Value::Integer(0);
 
-static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
-    vec![
-        Parameter::required("value", kind::BYTES, "The domain string."),
-        Parameter::optional(
-            "plus_parts",
-            kind::INTEGER,
-            "Can be provided to get additional parts of the domain name. When 1 is passed,
+const PARAMETERS: &[Parameter] = &[
+    Parameter::required("value", kind::BYTES, "The domain string."),
+    Parameter::optional(
+        "plus_parts",
+        kind::INTEGER,
+        "Can be provided to get additional parts of the domain name. When 1 is passed,
 eTLD+1 will be returned, which represents a domain registrable by a single
 organization. Higher numbers will return subdomains.",
-        )
-        .default(&DEFAULT_PLUS_PARTS),
-        Parameter::optional(
-            "psl",
-            kind::BYTES,
-            "Can be provided to use a different public suffix list.
+    )
+    .default(&DEFAULT_PLUS_PARTS),
+    Parameter::optional(
+        "psl",
+        kind::BYTES,
+        "Can be provided to use a different public suffix list.
 
 By default, https://publicsuffix.org/list/public_suffix_list.dat is used.",
-        ),
-    ]
-});
+    ),
+];
 
 #[derive(Clone, Copy, Debug)]
 pub struct ParseEtld;
@@ -53,7 +50,7 @@ impl Function for ParseEtld {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        PARAMETERS.as_slice()
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {
@@ -122,7 +119,7 @@ impl Function for ParseEtld {
                 .resolve_constant(state)
                 .ok_or(function::Error::ExpectedStaticExpression {
                     keyword: "psl",
-                    expr: psl_expr.clone(),
+                    expr: Box::new(psl_expr.clone()),
                 })?
                 .try_bytes_utf8_lossy()
                 .map_err(|_| function::Error::InvalidArgument {

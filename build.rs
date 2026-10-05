@@ -22,14 +22,10 @@ fn main() {
     println!("cargo:rerun-if-changed=src/parser/parser.lalrpop");
     lalrpop::Configuration::new()
         .always_use_colors()
-        .process_dir("src/datadog/grok")
-        .unwrap();
-
-    lalrpop::Configuration::new()
-        .always_use_colors()
         .emit_rerun_directives(true)
         .emit_whitespace(false)
-        .process_dir("src/parser")
+        .use_cargo_dir_conventions()
+        .process()
         .unwrap();
 }
 
@@ -68,10 +64,6 @@ fn read_grok_patterns() {
 
 #[cfg(feature = "stdlib-base")]
 fn convert_user_agent_regexes() {
-    let regexes = fs::read("data/user_agent_regexes.yaml").expect("Could not read regexes");
-    let regexes: ua_parser::Regexes =
-        serde_yaml::from_slice(&regexes).expect("Regex file is not valid yaml");
-
     fn write_item(output: &mut Vec<u8>, name: &'static str, value: Option<Cow<str>>) {
         if let Some(value) = value {
             output.extend(format!("    {name}: Some(r#\"{value}\"#.into()),\n").bytes());
@@ -79,6 +71,10 @@ fn convert_user_agent_regexes() {
             output.extend(format!("    {name}: None,\n").bytes());
         }
     }
+
+    let regexes = fs::read("data/user_agent_regexes.yaml").expect("Could not read regexes");
+    let regexes: ua_parser::Regexes =
+        serde_yaml_ng::from_slice(&regexes).expect("Regex file is not valid yaml");
 
     let mut output = Vec::new();
 

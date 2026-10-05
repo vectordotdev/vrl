@@ -85,7 +85,7 @@ impl Function for ScreamingSnakecase {
 #[derive(Debug, Clone)]
 struct ScreamingSnakecaseFn {
     value: Box<dyn Expression>,
-    original_case: Option<Case>,
+    original_case: Option<Case<'static>>,
 }
 
 impl FunctionExpression for ScreamingSnakecaseFn {

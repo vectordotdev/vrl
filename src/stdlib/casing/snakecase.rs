@@ -139,7 +139,7 @@ impl Function for Snakecase {
 #[derive(Debug, Clone)]
 struct SnakecaseFn {
     value: Box<dyn Expression>,
-    original_case: Option<Case>,
+    original_case: Option<Case<'static>>,
     excluded_boundaries: Option<Vec<convert_case::Boundary>>,
 }
 
@@ -179,6 +179,12 @@ mod tests {
         simple {
             args: func_args![value: value!("camelCase"), original_case: "camelCase"],
             want: Ok(value!("camel_case")),
+            tdef: TypeDef::bytes(),
+        }
+
+        repeated_delimiters {
+            args: func_args![value: value!("--foo--bar")],
+            want: Ok(value!("foo_bar")),
             tdef: TypeDef::bytes(),
         }
 

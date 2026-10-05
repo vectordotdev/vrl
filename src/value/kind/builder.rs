@@ -17,8 +17,8 @@ impl Kind {
             regex: Some(()),
             null: Some(()),
             undefined: Some(()),
-            array: Some(Collection::any()),
-            object: Some(Collection::any()),
+            array: Some(Box::new(Collection::any())),
+            object: Some(Box::new(Collection::any())),
         }
     }
 
@@ -37,8 +37,8 @@ impl Kind {
             regex: None,
             null: Some(()),
             undefined: None,
-            array: Some(Collection::json()),
-            object: Some(Collection::json()),
+            array: Some(Box::new(Collection::json())),
+            object: Some(Box::new(Collection::json())),
         }
     }
 
@@ -207,7 +207,7 @@ impl Kind {
             regex: None,
             null: None,
             undefined: None,
-            array: Some(collection.into()),
+            array: Some(Box::new(collection.into())),
             object: None,
         }
     }
@@ -225,7 +225,7 @@ impl Kind {
             null: None,
             undefined: None,
             array: None,
-            object: Some(collection.into()),
+            object: Some(Box::new(collection.into())),
         }
     }
 
@@ -297,14 +297,14 @@ impl Kind {
     /// Add the `array` state to the type.
     #[must_use]
     pub fn or_array(mut self, collection: impl Into<Collection<Index>>) -> Self {
-        self.array = Some(collection.into());
+        self.array = Some(Box::new(collection.into()));
         self
     }
 
     /// Add the `object` state to the type.
     #[must_use]
     pub fn or_object(mut self, collection: impl Into<Collection<Field>>) -> Self {
-        self.object = Some(collection.into());
+        self.object = Some(Box::new(collection.into()));
         self
     }
 }
@@ -371,14 +371,14 @@ impl Kind {
     ///
     /// If the type already included this state, the function returns `false`.
     pub fn add_array(&mut self, collection: impl Into<Collection<Index>>) -> bool {
-        self.array.replace(collection.into()).is_none()
+        self.array.replace(Box::new(collection.into())).is_none()
     }
 
     /// Add the `object` state to the type.
     ///
     /// If the type already included this state, the function returns `false`.
     pub fn add_object(&mut self, collection: impl Into<Collection<Field>>) -> bool {
-        self.object.replace(collection.into()).is_none()
+        self.object.replace(Box::new(collection.into())).is_none()
     }
 }
 

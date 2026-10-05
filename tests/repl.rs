@@ -40,6 +40,15 @@ fn test_abs_works() {
 }
 
 #[test]
+fn nan_arithmetic_error_can_be_coalesced() {
+    let stdout = run_vrl_repl(
+        Some(r#"(parse_float!("inf") + parse_float!("-inf")) ?? 0"#),
+        &["-q"],
+    );
+    assert_eq!(stdout, "0\n\n");
+}
+
+#[test]
 fn without_quiet_flag_prints_banner() {
     let stdout = run_vrl_repl(None, &[]);
     assert!(

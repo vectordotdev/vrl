@@ -1,0 +1,10 @@
+# result: ["a", "b"]
+
+visited = []
+for_each({"a": 1, "b": 2, "c": 3, "d": 4}) -> |key, _value| {
+  visited = push(visited, key)
+  if key == "b" {
+    break
+  }
+}
+visited

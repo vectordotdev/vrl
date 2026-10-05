@@ -80,7 +80,7 @@ impl Function for Kebabcase {
 #[derive(Debug, Clone)]
 struct KebabcaseFn {
     value: Box<dyn Expression>,
-    original_case: Option<Case>,
+    original_case: Option<Case<'static>>,
 }
 
 impl FunctionExpression for KebabcaseFn {

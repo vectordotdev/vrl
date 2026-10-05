@@ -9,13 +9,15 @@ fn str_to_cidr(v: &str) -> Result<IpCidr, String> {
 
 #[allow(clippy::result_large_err)]
 fn value_to_cidr(value: &Value) -> Result<IpCidr, function::Error> {
-    let str = &value.as_str().ok_or(function::Error::InvalidArgument {
-        keyword: "ip_cidr_contains",
-        value: value.clone(),
-        error: r#""cidr" must be string"#,
-    })?;
+    let cidr = value
+        .as_str()
+        .ok_or_else(|| function::Error::InvalidArgument {
+            keyword: "ip_cidr_contains",
+            value: value.clone(),
+            error: r#""cidr" must be string"#,
+        })?;
 
-    str_to_cidr(str).map_err(|_| function::Error::InvalidArgument {
+    str_to_cidr(&cidr).map_err(|_| function::Error::InvalidArgument {
         keyword: "ip_cidr_contains",
         value: value.clone(),
         error: r#""cidr" must be valid cidr"#,
@@ -23,15 +25,11 @@ fn value_to_cidr(value: &Value) -> Result<IpCidr, function::Error> {
 }
 
 fn ip_cidr_contains(value: &Value, cidr: &Value) -> Resolved {
-    let bytes = value.try_bytes_utf8_lossy()?;
+    let ip = value.try_bytes_utf8_lossy()?;
     let ip_addr =
-        IpAddr::from_str(&bytes).map_err(|err| format!("unable to parse IP address: {err}"))?;
+        IpAddr::from_str(&ip).map_err(|err| format!("unable to parse IP address: {err}"))?;
 
     match cidr {
-        Value::Bytes(v) => {
-            let cidr = str_to_cidr(&String::from_utf8_lossy(v))?;
-            Ok(cidr.contains(&ip_addr).into())
-        }
         Value::Array(vec) => {
             for v in vec {
                 let cidr = str_to_cidr(&v.try_bytes_utf8_lossy()?)?;
@@ -41,6 +39,9 @@ fn ip_cidr_contains(value: &Value, cidr: &Value) -> Resolved {
             }
             Ok(false.into())
         }
+        cidr if cidr.is_bytes() => Ok(str_to_cidr(&cidr.try_bytes_utf8_lossy()?)?
+            .contains(&ip_addr)
+            .into()),
         value => Err(ValueError::Expected {
             got: value.kind(),
             expected: Kind::bytes() | Kind::array(Collection::any()),
@@ -90,7 +91,8 @@ impl Function for IpCidrContains {
                 "cidr",
                 kind::BYTES | kind::ARRAY,
                 "The CIDR mask (v4 or v6).",
-            ),
+            )
+            .with_element_kind(kind::BYTES),
             Parameter::required("value", kind::BYTES, "The IP address (v4 or v6)."),
         ];
         PARAMETERS
@@ -137,9 +139,9 @@ impl Function for IpCidrContains {
         let cidr = arguments.required("cidr");
 
         let cidr = match cidr.resolve_constant(state) {
-            None => IpCidrType::Expression(cidr),
-            Some(value) => IpCidrType::Constant(match value {
-                Value::Bytes(_) => vec![value_to_cidr(&value)?],
+            None => ConstOrExpr::Expr(cidr),
+            Some(value) => ConstOrExpr::Const(match value {
+                Value::Bytes(_) | Value::String(_) => vec![value_to_cidr(&value)?],
                 Value::Array(vec) => {
                     let mut output = Vec::with_capacity(vec.len());
                     for value in vec {
@@ -165,25 +167,21 @@ impl Function for IpCidrContains {
 }
 
 #[derive(Debug, Clone)]
-enum IpCidrType {
-    Constant(Vec<IpCidr>),
-    Expression(Box<dyn Expression>),
-}
-
-#[derive(Debug, Clone)]
 struct IpCidrContainsFn {
-    cidr: IpCidrType,
+    cidr: ConstOrExpr<Vec<IpCidr>>,
     value: Box<dyn Expression>,
 }
 
 impl FunctionExpression for IpCidrContainsFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let value = self.value.resolve(ctx)?;
-
         match &self.cidr {
-            IpCidrType::Constant(cidr_vec) => ip_cidr_contains_constant(&value, cidr_vec),
-            IpCidrType::Expression(exp) => {
-                let cidr = exp.resolve(ctx)?;
+            ConstOrExpr::Const(cidr_vec) => {
+                let value = self.value.resolve(ctx)?;
+                ip_cidr_contains_constant(&value, cidr_vec)
+            }
+            ConstOrExpr::Expr(expr) => {
+                let cidr = expr.resolve(ctx)?;
+                let value = self.value.resolve(ctx)?;
                 ip_cidr_contains(&value, &cidr)
             }
         }

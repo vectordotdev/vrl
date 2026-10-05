@@ -1,11 +1,11 @@
-use std::{convert::TryFrom, fmt, string::ToString};
+use std::{convert::TryFrom, fmt, num::FpCategory, string::ToString};
 
 use crate::compiler::prelude::Bytes;
+use crate::compiler::value::VrlValueConvert;
 use crate::parsing::query_string::parse_query_string;
 use crate::parsing::ruby_hash::parse_ruby_hash;
 use crate::parsing::xml::{ParseOptions, parse_xml};
 use crate::value::Value;
-use ordered_float::NotNan;
 use percent_encoding::percent_decode;
 
 use super::{
@@ -75,7 +75,9 @@ impl TryFrom<&Function> for GrokFilter {
             "scale" => match f.args.as_ref() {
                 Some(args) if !args.is_empty() => {
                     let scale_factor = match args[0] {
-                        FunctionArgument::Arg(Value::Integer(scale_factor)) => scale_factor as f64,
+                        FunctionArgument::Arg(Value::Integer(scale_factor)) => {
+                            i64_to_f64(scale_factor)
+                        }
                         FunctionArgument::Arg(Value::Float(scale_factor)) => {
                             scale_factor.into_inner()
                         }
@@ -100,15 +102,7 @@ impl TryFrom<&Function> for GrokFilter {
             "nullIf" => f
                 .args
                 .as_ref()
-                .and_then(|args| {
-                    if let FunctionArgument::Arg(Value::Bytes(null_value)) = &args[0] {
-                        Some(GrokFilter::NullIf(
-                            String::from_utf8_lossy(null_value).to_string(),
-                        ))
-                    } else {
-                        None
-                    }
-                })
+                .and_then(|args| args.first()?.to_utf8_lossy().map(GrokFilter::NullIf))
                 .ok_or_else(|| GrokStaticError::InvalidFunctionArguments(f.name.clone())),
             "array" => array::filter_from_function(f),
             "keyvalue" => keyvalue::filter_from_function(f),
@@ -118,97 +112,24 @@ impl TryFrom<&Function> for GrokFilter {
 }
 
 /// Applies a given Grok filter to the value and returns the result or error.
-/// For detailed description and examples of specific filters check out https://docs.datadoghq.com/logs/log_configuration/parsing/?tab=filters
+/// For detailed description and examples of specific filters check out <https://docs.datadoghq.com/logs/log_configuration/parsing/?tab=filters>
 pub fn apply_filter(value: &Value, filter: &GrokFilter) -> Result<Value, InternalError> {
     match filter {
-        GrokFilter::Integer => match value {
-            Value::Bytes(v) => Ok(String::from_utf8_lossy(v)
-                .parse::<i64>()
-                .map_err(|_e| {
-                    InternalError::FailedToApplyFilter(filter.to_string(), value.to_string())
-                })?
-                .into()),
-            _ => Err(InternalError::FailedToApplyFilter(
-                filter.to_string(),
-                value.to_string(),
-            )),
-        },
-        GrokFilter::IntegerExt => match value {
-            Value::Bytes(v) => Ok(String::from_utf8_lossy(v)
-                .parse::<f64>()
-                .map_err(|_e| {
-                    InternalError::FailedToApplyFilter(filter.to_string(), value.to_string())
-                })
-                .map(|f| (f as i64).into())?),
-            _ => Err(InternalError::FailedToApplyFilter(
-                filter.to_string(),
-                value.to_string(),
-            )),
-        },
-        GrokFilter::Number | GrokFilter::NumberExt => match value {
-            Value::Bytes(v) => {
-                let v = Ok(Value::from_f64_or_zero(
-                    String::from_utf8_lossy(v).parse::<f64>().map_err(|_e| {
-                        InternalError::FailedToApplyFilter(filter.to_string(), value.to_string())
-                    })?,
-                ));
-                match v {
-                    Ok(Value::Float(v)) if (v.into_inner() as i64) as f64 == v.into_inner() => {
-                        Ok(Value::Integer(v.into_inner() as i64))
-                    }
-                    _ => v,
-                }
-            }
-            _ => Err(InternalError::FailedToApplyFilter(
-                filter.to_string(),
-                value.to_string(),
-            )),
-        },
-        GrokFilter::Scale(scale_factor) => {
-            let scale_factor = scale_factor * 1000_f64 / 1000_f64;
-            let v = match value {
-                Value::Integer(v) => Ok(Value::Float(
-                    NotNan::new((*v as f64) * scale_factor).expect("NaN"),
-                )),
-                Value::Float(v) => Ok(Value::Float(
-                    NotNan::new(v.into_inner() * scale_factor).expect("NaN"),
-                )),
-                Value::Bytes(v) => {
-                    let v = String::from_utf8_lossy(v).parse::<f64>().map_err(|_e| {
-                        InternalError::FailedToApplyFilter(filter.to_string(), value.to_string())
-                    })?;
-                    Ok(Value::Float(NotNan::new(v * scale_factor).expect("NaN")))
-                }
-                _ => Err(InternalError::FailedToApplyFilter(
-                    filter.to_string(),
-                    value.to_string(),
-                )),
-            };
-            match v {
-                Ok(Value::Float(v)) if (v.into_inner() as i64) as f64 == v.into_inner() => {
-                    Ok(Value::Integer(v.into_inner() as i64))
-                }
-                _ => v,
-            }
-        }
-        GrokFilter::Lowercase => {
-            parse_value(value, filter, |b| String::from_utf8_lossy(b).to_lowercase())
-        }
-        GrokFilter::Uppercase => {
-            parse_value(value, filter, |b| String::from_utf8_lossy(b).to_uppercase())
-        }
+        GrokFilter::Integer
+        | GrokFilter::IntegerExt
+        | GrokFilter::Number
+        | GrokFilter::NumberExt
+        | GrokFilter::Scale(_) => apply_numeric_filter(value, filter),
+        GrokFilter::Lowercase => apply_utf8_filter(value, filter, str::to_lowercase),
+        GrokFilter::Uppercase => apply_utf8_filter(value, filter, str::to_uppercase),
         GrokFilter::Json => parse_value_error_prone(value, filter, |b| {
             serde_json::from_slice::<'_, serde_json::Value>(b)
         }),
-        GrokFilter::Rubyhash => parse_value_error_prone(value, filter, |b| {
-            parse_ruby_hash(String::from_utf8_lossy(b).as_ref())
-        }),
+        GrokFilter::Rubyhash => try_apply_utf8_filter(value, filter, parse_ruby_hash),
         GrokFilter::Querystring => {
             parse_value_error_prone(value, filter, |s| parse_query_string(s, true))
         }
-        GrokFilter::Boolean => parse_value(value, filter, |b| {
-            "true".eq_ignore_ascii_case(String::from_utf8_lossy(b).as_ref())
-        }),
+        GrokFilter::Boolean => apply_utf8_filter(value, filter, |s| "true".eq_ignore_ascii_case(s)),
         GrokFilter::Decodeuricomponent => parse_value(value, filter, |b| {
             percent_decode(b).decode_utf8_lossy().to_string()
         }),
@@ -225,42 +146,36 @@ pub fn apply_filter(value: &Value, filter: &GrokFilter) -> Result<Value, Interna
                 },
             )
         }),
-        GrokFilter::NullIf(null_value) => match value {
-            Value::Bytes(bytes) => {
-                if String::from_utf8_lossy(bytes) == *null_value {
-                    Ok(Value::Null)
-                } else {
-                    Ok(value.to_owned())
-                }
-            }
-            _ => Err(InternalError::FailedToApplyFilter(
+        GrokFilter::NullIf(null_value) => match value.as_str() {
+            Some(s) if s == *null_value => Ok(Value::Null),
+            Some(_) => Ok(value.to_owned()),
+            None => Err(InternalError::FailedToApplyFilter(
                 filter.to_string(),
                 value.to_string(),
             )),
         },
         GrokFilter::Date(date_filter) => apply_date_filter(value, date_filter),
         GrokFilter::KeyValue(keyvalue_filter) => keyvalue_filter.apply_filter(value),
-        GrokFilter::Array(brackets, delimiter, value_filter) => match value {
-            Value::Bytes(bytes) => array::parse(
-                String::from_utf8_lossy(bytes).as_ref(),
+        GrokFilter::Array(brackets, delimiter, value_filter) => match value.as_str() {
+            Some(input) => array::parse(
+                &input,
                 brackets
                     .as_ref()
                     .map(|(start, end)| (start.as_str(), end.as_str())),
-                delimiter.as_ref().map(|s| s.as_str()),
+                delimiter.as_ref().map(std::string::String::as_str),
             )
             .map_err(|_e| InternalError::FailedToApplyFilter(filter.to_string(), value.to_string()))
             .and_then(|values| {
                 if let Some(value_filter) = value_filter.as_ref() {
-                    let result = values
+                    return values
                         .iter()
                         .map(|v| apply_filter(v, value_filter))
                         .collect::<Result<Vec<Value>, _>>()
                         .map(Value::from);
-                    return result;
                 }
                 Ok(values.into())
             }),
-            _ => Err(InternalError::FailedToApplyFilter(
+            None => Err(InternalError::FailedToApplyFilter(
                 filter.to_string(),
                 value.to_string(),
             )),
@@ -268,14 +183,112 @@ pub fn apply_filter(value: &Value, filter: &GrokFilter) -> Result<Value, Interna
     }
 }
 
+fn apply_numeric_filter(value: &Value, filter: &GrokFilter) -> Result<Value, InternalError> {
+    if let Some(s) = value.as_str() {
+        return parse_numeric_str(&s, filter, value);
+    }
+    match (filter, value) {
+        (GrokFilter::Scale(scale_factor), Value::Integer(int_value)) => {
+            Ok(scale_value(i64_to_f64(*int_value), *scale_factor))
+        }
+        (GrokFilter::Scale(scale_factor), Value::Float(float_value)) => {
+            Ok(scale_value(float_value.into_inner(), *scale_factor))
+        }
+        _ => Err(filter_error(filter, value)),
+    }
+}
+
+fn parse_numeric_str(s: &str, filter: &GrokFilter, value: &Value) -> Result<Value, InternalError> {
+    match filter {
+        GrokFilter::Integer => s
+            .parse::<i64>()
+            .map(Value::Integer)
+            .map_err(|_| filter_error(filter, value)),
+        GrokFilter::IntegerExt => s
+            .parse::<f64>()
+            .map(|parsed| Value::Integer(f64_to_i64(parsed)))
+            .map_err(|_| filter_error(filter, value)),
+        GrokFilter::Number | GrokFilter::NumberExt => s
+            .parse::<f64>()
+            .map(number_value)
+            .map_err(|_| filter_error(filter, value)),
+        GrokFilter::Scale(scale_factor) => s
+            .parse::<f64>()
+            .map(|parsed| scale_value(parsed, *scale_factor))
+            .map_err(|_| filter_error(filter, value)),
+        _ => unreachable!("called only for numeric filters"),
+    }
+}
+
+fn filter_error(filter: &GrokFilter, value: &Value) -> InternalError {
+    InternalError::FailedToApplyFilter(filter.to_string(), value.to_string())
+}
+
+fn i64_to_f64(value: i64) -> f64 {
+    Value::Integer(value)
+        .try_into_f64()
+        .expect("integer values can always be converted to f64")
+}
+
+fn f64_to_i64(value: f64) -> i64 {
+    Value::from_f64_or_zero(value)
+        .try_into_i64()
+        .expect("float values can always be converted to i64")
+}
+
+pub(super) fn f64_to_i64_if_integral(value: f64) -> Option<i64> {
+    let integer = f64_to_i64(value);
+    matches!((i64_to_f64(integer) - value).classify(), FpCategory::Zero).then_some(integer)
+}
+
+fn number_value(value: f64) -> Value {
+    let normalized = Value::from_f64_or_zero(value);
+    let Value::Float(value) = &normalized else {
+        return normalized;
+    };
+
+    f64_to_i64_if_integral(value.into_inner()).map_or(normalized, Value::Integer)
+}
+
+fn scale_value(value: f64, scale_factor: f64) -> Value {
+    let scale_factor = scale_factor * 1000_f64 / 1000_f64;
+    number_value(value * scale_factor)
+}
+
+fn apply_utf8_filter<V: Into<Value>>(
+    value: &Value,
+    filter: &GrokFilter,
+    parse: impl Fn(&str) -> V,
+) -> Result<Value, InternalError> {
+    value
+        .as_str()
+        .map(|s| parse(&s).into())
+        .ok_or_else(|| filter_error(filter, value))
+}
+
+fn try_apply_utf8_filter<V: Into<Value>, E: std::error::Error>(
+    value: &Value,
+    filter: &GrokFilter,
+    parse: impl Fn(&str) -> Result<V, E>,
+) -> Result<Value, InternalError> {
+    value
+        .as_str()
+        .ok_or_else(|| filter_error(filter, value))
+        .and_then(|s| {
+            parse(&s)
+                .map(Into::into)
+                .map_err(|_e| filter_error(filter, value))
+        })
+}
+
 fn parse_value<V: Into<Value>>(
     value: &Value,
     filter: &GrokFilter,
     parse: impl Fn(&Bytes) -> V,
 ) -> Result<Value, InternalError> {
-    match value {
-        Value::Bytes(bytes) => Ok(parse(bytes).into()),
-        _ => Err(InternalError::FailedToApplyFilter(
+    match value.as_bytes() {
+        Some(bytes) => Ok(parse(bytes).into()),
+        None => Err(InternalError::FailedToApplyFilter(
             filter.to_string(),
             value.to_string(),
         )),
@@ -287,8 +300,8 @@ fn parse_value_error_prone<V: Into<Value>, E: std::error::Error>(
     filter: &GrokFilter,
     parse: impl Fn(&Bytes) -> Result<V, E>,
 ) -> Result<Value, InternalError> {
-    match value {
-        Value::Bytes(bytes) => parse(bytes)
+    match value.as_bytes() {
+        Some(bytes) => parse(bytes)
             .map_err(|_e| InternalError::FailedToApplyFilter(filter.to_string(), value.to_string()))
             .map(Into::into),
         _ => Err(InternalError::FailedToApplyFilter(

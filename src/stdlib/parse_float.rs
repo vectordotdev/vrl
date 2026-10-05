@@ -60,19 +60,23 @@ impl Function for ParseFloat {
 
     fn compile(
         &self,
-        _state: &state::TypeState,
+        state: &state::TypeState,
         _ctx: &mut FunctionCompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
+        let constant = value
+            .resolve_constant(state)
+            .and_then(|value| parse_float(value).ok());
 
-        Ok(ParseFloatFn { value }.as_expr())
+        Ok(ParseFloatFn { value, constant }.as_expr())
     }
 }
 
 #[derive(Debug, Clone)]
 struct ParseFloatFn {
     value: Box<dyn Expression>,
+    constant: Option<Value>,
 }
 
 impl FunctionExpression for ParseFloatFn {
@@ -84,6 +88,10 @@ impl FunctionExpression for ParseFloatFn {
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {
         TypeDef::float().fallible()
+    }
+
+    fn as_value(&self) -> Option<Value> {
+        self.constant.clone()
     }
 }
 

@@ -1,5 +1,6 @@
-use ExpressionError::{Abort, Error, Fallible, Missing, Return};
+use ExpressionError::{Abort, Break, Error, Fallible, Interrupted, Missing, Return};
 
+use crate::compiler::codes;
 use crate::diagnostic::{Diagnostic, DiagnosticMessage, Label, Note, Severity, Span};
 use crate::value::Value;
 
@@ -7,6 +8,12 @@ pub type Resolved = Result<Value, ExpressionError>;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ExpressionError {
+    /// Execution was interrupted by an embedder-provided execution control.
+    ///
+    /// Unlike an ordinary expression error, this cannot be caught by VRL's
+    /// error-coalescing or infallible-assignment expressions.
+    Interrupted,
+
     Abort {
         span: Span,
         message: Option<String>,
@@ -14,6 +21,9 @@ pub enum ExpressionError {
     Return {
         span: Span,
         value: Value,
+    },
+    Break {
+        span: Span,
     },
     Error {
         message: String,
@@ -58,16 +68,18 @@ impl From<ExpressionError> for Diagnostic {
 impl DiagnosticMessage for ExpressionError {
     fn code(&self) -> usize {
         match self {
-            Abort { .. } | Return { .. } | Error { .. } => 0,
-            Fallible { .. } => 100,
-            Missing { .. } => 900,
+            Interrupted | Abort { .. } | Return { .. } | Break { .. } | Error { .. } => 0,
+            Fallible { .. } => codes::ExprCode::FallibleExpression as usize,
+            Missing { .. } => codes::ExprCode::ExpressionTypeUnavailable as usize,
         }
     }
 
     fn message(&self) -> String {
         match self {
+            Interrupted => "execution interrupted".to_owned(),
             Abort { message, .. } => message.clone().unwrap_or_else(|| "aborted".to_owned()),
             Return { .. } => "return".to_string(),
+            Break { .. } => "break".to_string(),
             Error { message, .. } => message.clone(),
             Fallible { .. } => "unhandled error".to_string(),
             Missing { .. } => "expression type unavailable".to_string(),
@@ -79,7 +91,7 @@ impl DiagnosticMessage for ExpressionError {
             Abort { span, .. } => {
                 vec![Label::primary("aborted", span)]
             }
-            Return { .. } => Vec::new(),
+            Interrupted | Return { .. } | Break { .. } => Vec::new(),
             Error { labels, .. } => labels.clone(),
             Fallible { span } => vec![
                 Label::primary("expression can result in runtime error", span),
@@ -97,7 +109,7 @@ impl DiagnosticMessage for ExpressionError {
 
     fn notes(&self) -> Vec<Note> {
         match self {
-            Return { .. } | Abort { .. } | Missing { .. } => vec![],
+            Interrupted | Return { .. } | Break { .. } | Abort { .. } | Missing { .. } => vec![],
             Error { notes, .. } => notes.clone(),
             Fallible { .. } => vec![Note::SeeErrorDocs],
         }

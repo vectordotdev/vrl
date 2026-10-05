@@ -48,12 +48,11 @@ pub enum Field {
 }
 
 impl Field {
+    /// Returns the field name.
+    #[must_use]
     pub fn as_str(&self) -> &str {
         match self {
-            Self::Default(s) => s,
-            Self::Reserved(s) => s,
-            Self::Attribute(s) => s,
-            Self::Tag(s) => s,
+            Self::Default(s) | Self::Reserved(s) | Self::Attribute(s) | Self::Tag(s) => s,
         }
     }
 }

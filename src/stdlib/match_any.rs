@@ -68,7 +68,7 @@ impl Function for MatchAny {
                 expr.resolve_constant(state)
                     .ok_or(function::Error::ExpectedStaticExpression {
                         keyword: "patterns",
-                        expr,
+                        expr: Box::new(expr),
                     })?;
 
             let re = value

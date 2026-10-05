@@ -1,19 +1,16 @@
 use crate::compiler::prelude::*;
-use std::sync::LazyLock;
 
-static DEFAULT_PRETTY: LazyLock<Value> = LazyLock::new(|| Value::Boolean(false));
+static DEFAULT_PRETTY: Value = Value::Boolean(false);
 
-static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
-    vec![
-        Parameter::required("value", kind::ANY, "The value to convert to a JSON string."),
-        Parameter::optional(
-            "pretty",
-            kind::BOOLEAN,
-            "Whether to pretty print the JSON string or not.",
-        )
-        .default(&DEFAULT_PRETTY),
-    ]
-});
+const PARAMETERS: &[Parameter] = &[
+    Parameter::required("value", kind::ANY, "The value to convert to a JSON string."),
+    Parameter::optional(
+        "pretty",
+        kind::BOOLEAN,
+        "Whether to pretty print the JSON string or not.",
+    )
+    .default(&DEFAULT_PRETTY),
+];
 
 fn encode_json(value: &Value, pretty: bool) -> Value {
     // With `vrl::Value` it should not be possible to get `Err`.
@@ -51,7 +48,7 @@ impl Function for EncodeJson {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        PARAMETERS.as_slice()
+        PARAMETERS
     }
 
     fn compile(

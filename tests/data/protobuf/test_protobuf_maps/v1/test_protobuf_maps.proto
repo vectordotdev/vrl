@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package test_protobuf_maps.v1;
+
+// Fixture exercising every supported proto map key type. Used by
+// encode_proto/parse_proto round-trip tests to verify that non-string
+// keys are correctly converted to/from their decimal string form.
+message Maps {
+  map<bool,   string> by_bool   = 1;
+  map<int32,  string> by_int32  = 2;
+  map<int64,  string> by_int64  = 3;
+  map<uint32, string> by_uint32 = 4;
+  map<uint64, string> by_uint64 = 5;
+  map<string, string> by_string = 6;
+}

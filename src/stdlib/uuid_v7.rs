@@ -1,21 +1,15 @@
 use crate::compiler::prelude::*;
-use bytes::Bytes;
 use chrono::{DateTime, Utc};
-use std::sync::LazyLock;
 use uuid::{NoContext, timestamp::Timestamp};
 
-static DEFAULT_TIMESTAMP: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from("`now()`")));
+static DEFAULT_TIMESTAMP: Value = Value::from_static_str("`now()`");
 
-static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
-    vec![
-        Parameter::optional(
-            "timestamp",
-            kind::TIMESTAMP,
-            "The timestamp used to generate the UUIDv7.",
-        )
-        .default(&DEFAULT_TIMESTAMP),
-    ]
-});
+const PARAMETERS: &[Parameter] = &[Parameter::optional(
+    "timestamp",
+    kind::TIMESTAMP,
+    "The timestamp used to generate the UUIDv7.",
+)
+.default(&DEFAULT_TIMESTAMP)];
 
 #[allow(clippy::cast_sign_loss)] // TODO consider removal options
 fn uuid_v7(timestamp: Option<Value>) -> Resolved {
@@ -27,8 +21,7 @@ fn uuid_v7(timestamp: Option<Value>) -> Resolved {
 
     let seconds = utc_timestamp.timestamp() as u64;
     let nanoseconds = match utc_timestamp.timestamp_nanos_opt() {
-        #[allow(clippy::cast_possible_truncation)] //TODO evaluate removal options
-        Some(nanos) => nanos as u32,
+        Some(_) => utc_timestamp.timestamp_subsec_nanos(),
         None => return Err(ValueError::OutOfRange(Kind::timestamp()).into()),
     };
     let timestamp = Timestamp::from_unix(NoContext, seconds, nanoseconds);
@@ -37,7 +30,7 @@ fn uuid_v7(timestamp: Option<Value>) -> Resolved {
     let uuid = uuid::Uuid::new_v7(timestamp)
         .hyphenated()
         .encode_lower(&mut buffer);
-    Ok(Bytes::copy_from_slice(uuid.as_bytes()).into())
+    Ok(Value::from(&*uuid))
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -61,7 +54,7 @@ impl Function for UuidV7 {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        PARAMETERS.as_slice()
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {
@@ -81,7 +74,7 @@ impl Function for UuidV7 {
             example! {
                 title: "Create a UUIDv7 with custom timestamp",
                 source: "uuid_v7(t'2020-12-30T22:20:53.824727Z')",
-                result: Ok("0176b5bd-5d19-794c-a7a2-088f260104c0"),
+                result: Ok("0176b5bd-58c0-794c-a7a2-088f260104c0"),
                 deterministic: false,
             },
         ]
@@ -139,14 +132,28 @@ mod tests {
         let mut ctx = Context::new(&mut object, &mut state, &tz);
         let value = UuidV7Fn { timestamp: None }.resolve(&mut ctx).unwrap();
 
-        assert!(matches!(&value, Value::Bytes(_)));
+        uuid::Uuid::parse_str(value.as_str().expect("UUIDv7 must be a string").as_ref())
+            .expect("valid UUID V7");
+    }
 
-        match value {
-            Value::Bytes(val) => {
-                let val = String::from_utf8_lossy(&val);
-                uuid::Uuid::parse_str(&val).expect("valid UUID V7");
-            }
-            _ => unreachable!(),
+    #[test]
+    fn uuid_v7_preserves_millisecond_timestamp() {
+        for input in [
+            "1970-01-01T00:00:00Z",
+            "2020-12-30T22:20:53.824727Z",
+            "2026-01-01T00:00:00.123456789Z",
+            "2026-01-01T00:00:00.999999999Z",
+        ] {
+            let timestamp: DateTime<Utc> = input.parse().unwrap();
+            let expected = (
+                u64::try_from(timestamp.timestamp()).unwrap(),
+                timestamp.timestamp_subsec_millis() * 1_000_000,
+            );
+
+            let encoded = super::uuid_v7(Some(timestamp.into())).unwrap();
+            let encoded = encoded.as_str().expect("UUIDv7 must be a string");
+            let id = uuid::Uuid::parse_str(encoded.as_ref()).unwrap();
+            assert_eq!(id.get_timestamp().unwrap().to_unix(), expected, "{input}");
         }
     }
 }

@@ -37,6 +37,7 @@ impl Function for ParseAwsVpcFlowLog {
         kind::OBJECT
     }
 
+    #[allow(clippy::too_many_lines)] // data-heavy list of examples
     fn examples(&self) -> &'static [Example] {
         &[
             example! {
@@ -116,6 +117,31 @@ impl Function for ParseAwsVpcFlowLog {
                     "vpc_id": "vpc-abcdefab012345678"
                 }"# }),
             },
+            example! {
+                title: "Parse AWS VPC Flow log including v11 fields",
+                source: indoc! {r#"
+                    parse_aws_vpc_flow_log!(
+                        "11 10.0.0.71 52.95.128.179 34210 80 6 1616729292 1616729349 REJECT OK BPA nat-0c50d5961bcb2d47b 1 nat_gateway",
+                        format: "version srcaddr dstaddr srcport dstport protocol start end action log_status reject_reason resource_id encryption_status interface_type"
+                    )
+                "#},
+                result: Ok(indoc! { r#"{
+                    "action": "REJECT",
+                    "dstaddr": "52.95.128.179",
+                    "dstport": 80,
+                    "encryption_status": 1,
+                    "end": 1616729349,
+                    "interface_type": "nat_gateway",
+                    "log_status": "OK",
+                    "protocol": 6,
+                    "reject_reason": "BPA",
+                    "resource_id": "nat-0c50d5961bcb2d47b",
+                    "srcaddr": "10.0.0.71",
+                    "srcport": 34210,
+                    "start": 1616729292,
+                    "version": 11
+                }"# }),
+            },
         ]
     }
 
@@ -173,15 +199,71 @@ fn inner_kind() -> BTreeMap<Field, Kind> {
     BTreeMap::from([
         (Field::from("account_id"), Kind::bytes() | Kind::null()),
         (Field::from("action"), Kind::bytes() | Kind::null()),
+        (Field::from("asg_tag"), Kind::bytes() | Kind::null()),
+        (Field::from("asg_tag_2"), Kind::bytes() | Kind::null()),
         (Field::from("az_id"), Kind::bytes() | Kind::null()),
         (Field::from("bytes"), Kind::integer() | Kind::null()),
         (Field::from("dstaddr"), Kind::bytes() | Kind::null()),
         (Field::from("dstport"), Kind::integer() | Kind::null()),
+        (Field::from("ecs_cluster_arn"), Kind::bytes() | Kind::null()),
+        (
+            Field::from("ecs_cluster_name"),
+            Kind::bytes() | Kind::null(),
+        ),
+        (
+            Field::from("ecs_container_id"),
+            Kind::bytes() | Kind::null(),
+        ),
+        (
+            Field::from("ecs_container_instance_arn"),
+            Kind::bytes() | Kind::null(),
+        ),
+        (
+            Field::from("ecs_container_instance_id"),
+            Kind::bytes() | Kind::null(),
+        ),
+        (
+            Field::from("ecs_second_container_id"),
+            Kind::bytes() | Kind::null(),
+        ),
+        (
+            Field::from("ecs_service_name"),
+            Kind::bytes() | Kind::null(),
+        ),
+        (Field::from("ecs_task_arn"), Kind::bytes() | Kind::null()),
+        (
+            Field::from("ecs_task_definition_arn"),
+            Kind::bytes() | Kind::null(),
+        ),
+        (Field::from("ecs_task_id"), Kind::bytes() | Kind::null()),
+        (
+            Field::from("encryption_status"),
+            Kind::integer() | Kind::null(),
+        ),
         (Field::from("end"), Kind::integer() | Kind::null()),
         (Field::from("flow_direction"), Kind::bytes() | Kind::null()),
         (Field::from("instance_id"), Kind::bytes() | Kind::null()),
+        (Field::from("instance_tag"), Kind::bytes() | Kind::null()),
+        (Field::from("instance_tag_2"), Kind::bytes() | Kind::null()),
         (Field::from("interface_id"), Kind::bytes() | Kind::null()),
+        (Field::from("interface_tag"), Kind::bytes() | Kind::null()),
+        (Field::from("interface_tag_2"), Kind::bytes() | Kind::null()),
+        (Field::from("interface_type"), Kind::bytes() | Kind::null()),
         (Field::from("log_status"), Kind::bytes() | Kind::null()),
+        (Field::from("next_hop_az_id"), Kind::bytes() | Kind::null()),
+        (
+            Field::from("next_hop_interface_id"),
+            Kind::bytes() | Kind::null(),
+        ),
+        (
+            Field::from("next_hop_interface_type"),
+            Kind::bytes() | Kind::null(),
+        ),
+        (
+            Field::from("next_hop_subnet_id"),
+            Kind::bytes() | Kind::null(),
+        ),
+        (Field::from("next_hop_vpc_id"), Kind::bytes() | Kind::null()),
         (Field::from("packets"), Kind::integer() | Kind::null()),
         (Field::from("pkt_dstaddr"), Kind::bytes() | Kind::null()),
         (
@@ -195,6 +277,8 @@ fn inner_kind() -> BTreeMap<Field, Kind> {
         ),
         (Field::from("protocol"), Kind::integer() | Kind::null()),
         (Field::from("region"), Kind::bytes() | Kind::null()),
+        (Field::from("reject_reason"), Kind::bytes() | Kind::null()),
+        (Field::from("resource_id"), Kind::bytes() | Kind::null()),
         (Field::from("srcaddr"), Kind::bytes() | Kind::null()),
         (Field::from("srcport"), Kind::integer() | Kind::null()),
         (Field::from("start"), Kind::integer() | Kind::null()),
@@ -257,15 +341,38 @@ fn parse_log(input: &str, format: Option<&str>) -> ParseResult<Value> {
                     log, key, value,
                     "account_id" => identity,
                     "action" => identity,
+                    "asg_tag" => identity,
+                    "asg_tag_2" => identity,
                     "az_id" => identity,
                     "bytes" => parse_i64,
                     "dstaddr" => identity,
                     "dstport" => parse_i64,
+                    "ecs_cluster_arn" => identity,
+                    "ecs_cluster_name" => identity,
+                    "ecs_container_id" => identity,
+                    "ecs_container_instance_arn" => identity,
+                    "ecs_container_instance_id" => identity,
+                    "ecs_second_container_id" => identity,
+                    "ecs_service_name" => identity,
+                    "ecs_task_arn" => identity,
+                    "ecs_task_definition_arn" => identity,
+                    "ecs_task_id" => identity,
+                    "encryption_status" => parse_i64,
                     "end" => parse_i64,
                     "flow_direction" => identity,
                     "instance_id" => identity,
+                    "instance_tag" => identity,
+                    "instance_tag_2" => identity,
                     "interface_id" => identity,
+                    "interface_tag" => identity,
+                    "interface_tag_2" => identity,
+                    "interface_type" => identity,
                     "log_status" => identity,
+                    "next_hop_az_id" => identity,
+                    "next_hop_interface_id" => identity,
+                    "next_hop_interface_type" => identity,
+                    "next_hop_subnet_id" => identity,
+                    "next_hop_vpc_id" => identity,
                     "packets" => parse_i64,
                     "pkt_dstaddr" => identity,
                     "pkt_dst_aws_service" => identity,
@@ -273,6 +380,8 @@ fn parse_log(input: &str, format: Option<&str>) -> ParseResult<Value> {
                     "pkt_src_aws_service" => identity,
                     "protocol" => parse_i64,
                     "region" => identity,
+                    "reject_reason" => identity,
+                    "resource_id" => identity,
                     "srcaddr" => identity,
                     "srcport" => parse_i64,
                     "start" => parse_i64,
@@ -360,6 +469,25 @@ mod tests {
                 vec![
                     "5 52.95.128.179 10.0.0.71 80 34210 6 1616729292 1616729349 IPv4 14 15044 123456789012 vpc-abcdefab012345678 subnet-aaaaaaaa012345678 i-0c50d5961bcb2d47b eni-1235b8ca123456789 ap-southeast-2 apse2-az3 - - ACCEPT 19 52.95.128.179 10.0.0.71 S3 - - ingress OK",
                     "5 10.0.0.71 52.95.128.179 34210 80 6 1616729292 1616729349 IPv4 7 471 123456789012 vpc-abcdefab012345678 subnet-aaaaaaaa012345678 i-0c50d5961bcb2d47b eni-1235b8ca123456789 ap-southeast-2 apse2-az3 - - ACCEPT 3 10.0.0.71 52.95.128.179 - S3 8 egress OK",
+                ],
+            ),
+            // v7 ECS fields
+            (
+                Some(
+                    "version srcaddr dstaddr srcport dstport protocol start end action log_status ecs_cluster_arn ecs_cluster_name ecs_container_instance_arn ecs_container_instance_id ecs_container_id ecs_second_container_id ecs_service_name ecs_task_definition_arn ecs_task_arn ecs_task_id",
+                ),
+                vec![
+                    "7 10.0.0.71 52.95.128.179 34210 80 6 1616729292 1616729349 ACCEPT OK arn:aws:ecs:us-east-1:123456789012:cluster/my-cluster my-cluster arn:aws:ecs:us-east-1:123456789012:container-instance/my-cluster/abcd i-0c50d5961bcb2d47b 1234567890abcdef - my-service arn:aws:ecs:us-east-1:123456789012:task-definition/my-task:1 arn:aws:ecs:us-east-1:123456789012:task/my-cluster/abcd abcd1234",
+                ],
+            ),
+            // v8 - v11 fields
+            (
+                Some(
+                    "version srcaddr dstaddr srcport dstport protocol start end action log_status reject_reason resource_id encryption_status instance_tag instance_tag_2 interface_tag interface_tag_2 asg_tag asg_tag_2 interface_type next_hop_interface_id next_hop_subnet_id next_hop_az_id next_hop_vpc_id next_hop_interface_type",
+                ),
+                vec![
+                    "11 10.0.0.71 52.95.128.179 34210 80 6 1616729292 1616729349 REJECT OK BPA nat-0c50d5961bcb2d47b 1 web web-2 eth0 eth0-2 my-asg my-asg-2 nat_gateway eni-1111aaaa2222bbbb3 subnet-aaaaaaaa012345678 apse2-az3 vpc-abcdefab012345678 network_load_balancer",
+                    "11 10.0.0.71 52.95.128.179 34210 80 6 1616729292 1616729349 ACCEPT OK - - - - - - - - - - - - - - -",
                 ],
             ),
         ];

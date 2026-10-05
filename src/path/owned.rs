@@ -18,10 +18,12 @@ pub struct OwnedValuePath {
 }
 
 impl OwnedValuePath {
+    #[must_use]
     pub fn is_root(&self) -> bool {
         self.segments.is_empty()
     }
 
+    #[must_use]
     pub fn root() -> Self {
         vec![].into()
     }
@@ -42,16 +44,19 @@ impl OwnedValuePath {
         self.segments.insert(0, segment);
     }
 
+    #[must_use]
     pub fn with_field_appended(&self, field: &str) -> Self {
         let mut new_path = self.clone();
         new_path.push_field(field);
         new_path
     }
 
+    #[must_use]
     pub fn with_field_prefix(&self, field: &str) -> Self {
         self.with_segment_prefix(OwnedSegment::field(field))
     }
 
+    #[must_use]
     pub fn with_segment_prefix(&self, segment: OwnedSegment) -> Self {
         let mut new_path = self.clone();
         new_path.push_front_segment(segment);
@@ -62,12 +67,14 @@ impl OwnedValuePath {
         self.segments.push(OwnedSegment::index(index));
     }
 
+    #[must_use]
     pub fn with_index_appended(&self, index: isize) -> Self {
         let mut new_path = self.clone();
         new_path.push_index(index);
         new_path
     }
 
+    #[must_use]
     pub fn single_field(field: &str) -> Self {
         vec![OwnedSegment::field(field)].into()
     }
@@ -80,6 +87,7 @@ impl OwnedValuePath {
     ///
     /// eg, .tags.nork.noog will never be an accepted path so we don't need to spend the time
     /// collecting it.
+    #[must_use]
     pub fn to_alternative_components(&self, limit: usize) -> Option<Vec<&str>> {
         let mut components = vec![];
         for segment in self.segments.iter().take(limit) {
@@ -125,13 +133,16 @@ pub struct OwnedTargetPath {
 }
 
 impl OwnedTargetPath {
+    #[must_use]
     pub fn event_root() -> Self {
         Self::root(PathPrefix::Event)
     }
+    #[must_use]
     pub fn metadata_root() -> Self {
         Self::root(PathPrefix::Metadata)
     }
 
+    #[must_use]
     pub fn root(prefix: PathPrefix) -> Self {
         Self {
             prefix,
@@ -139,6 +150,7 @@ impl OwnedTargetPath {
         }
     }
 
+    #[must_use]
     pub fn event(path: OwnedValuePath) -> Self {
         Self {
             prefix: PathPrefix::Event,
@@ -146,6 +158,7 @@ impl OwnedTargetPath {
         }
     }
 
+    #[must_use]
     pub fn metadata(path: OwnedValuePath) -> Self {
         Self {
             prefix: PathPrefix::Metadata,
@@ -153,6 +166,7 @@ impl OwnedTargetPath {
         }
     }
 
+    #[must_use]
     pub fn can_start_with(&self, prefix: &Self) -> bool {
         if self.prefix != prefix.prefix {
             return false;
@@ -160,6 +174,7 @@ impl OwnedTargetPath {
         (&self.path).can_start_with(&prefix.path)
     }
 
+    #[must_use]
     pub fn with_field_appended(&self, field: &str) -> Self {
         let mut new_path = self.path.clone();
         new_path.push_field(field);
@@ -169,6 +184,7 @@ impl OwnedTargetPath {
         }
     }
 
+    #[must_use]
     pub fn with_index_appended(&self, index: isize) -> Self {
         let mut new_path = self.path.clone();
         new_path.push_index(index);
@@ -277,10 +293,10 @@ impl From<&OwnedValuePath> for String {
         for (i, segment) in owned.segments.iter().enumerate() {
             match segment {
                 OwnedSegment::Field(field) => {
-                    serialize_field(&mut output, field.as_ref(), (i != 0).then_some("."))
+                    serialize_field(&mut output, field.as_ref(), (i != 0).then_some("."));
                 }
                 OwnedSegment::Index(index) => {
-                    write!(output, "[{index}]").expect("Could not write to string")
+                    write!(output, "[{index}]").expect("Could not write to string");
                 }
             }
         }
@@ -297,7 +313,7 @@ fn serialize_field(string: &mut String, field: &str, separator: Option<&str>) {
 
     // Reserve enough to fit the field, a `.` and two `"` characters. This
     // should suffice for the majority of cases when no escape sequence is used.
-    let separator_len = separator.map_or(0, |x| x.len());
+    let separator_len = separator.map_or(0, str::len);
     string.reserve(field.len() + 2 + separator_len);
     if let Some(separator) = separator {
         string.push_str(separator);
@@ -330,20 +346,25 @@ pub enum OwnedSegment {
 }
 
 impl OwnedSegment {
+    #[must_use]
     pub fn field(value: &str) -> OwnedSegment {
         OwnedSegment::Field(value.into())
     }
+    #[must_use]
     pub fn index(value: isize) -> OwnedSegment {
         OwnedSegment::Index(value)
     }
 
+    #[must_use]
     pub fn is_field(&self) -> bool {
         matches!(self, OwnedSegment::Field(_))
     }
+    #[must_use]
     pub fn is_index(&self) -> bool {
         matches!(self, OwnedSegment::Index(_))
     }
 
+    #[must_use]
     pub fn can_start_with(&self, prefix: &OwnedSegment) -> bool {
         match (self, prefix) {
             (OwnedSegment::Index(a), OwnedSegment::Index(b)) => a == b,
@@ -517,28 +538,28 @@ mod test {
         for (path, expected) in test_cases {
             let path = parse_value_path(path).map(String::from).ok();
 
-            assert_eq!(path, expected.map(|x| x.to_owned()));
+            assert_eq!(path, expected.map(std::borrow::ToOwned::to_owned));
         }
     }
 
-    fn reparse_thing<T: std::fmt::Debug + std::fmt::Display + Eq + FromStr>(thing: T)
+    fn reparse_thing<T: std::fmt::Debug + std::fmt::Display + Eq + FromStr>(thing: &T)
     where
         <T as FromStr>::Err: std::fmt::Debug,
     {
         let text = thing.to_string();
         let thing2: T = text.parse().unwrap();
-        assert_eq!(thing, thing2);
+        assert_eq!(thing, &thing2);
     }
 
     proptest::proptest! {
         #[test]
         fn reparses_valid_value_path(path: OwnedValuePath) {
-            reparse_thing(path);
+            reparse_thing(&path);
         }
 
         #[test]
         fn reparses_valid_target_path(path: OwnedTargetPath) {
-            reparse_thing(path);
+            reparse_thing(&path);
         }
     }
 }

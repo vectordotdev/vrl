@@ -35,7 +35,7 @@ impl From<&TypeState> for TypeState {
 }
 
 #[allow(clippy::module_name_repetitions)]
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq)]
 pub struct TypeState {
     pub local: LocalEnv,
     pub external: ExternalEnv,
@@ -101,7 +101,7 @@ impl LocalEnv {
 }
 
 /// A lexical scope within the program.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ExternalEnv {
     /// The external target of the program.
     target: Details,
@@ -201,8 +201,8 @@ impl RuntimeState {
         self.variables.insert(ident, value);
     }
 
-    pub(crate) fn remove_variable(&mut self, ident: &Ident) {
-        self.variables.remove(ident);
+    pub(crate) fn remove_variable(&mut self, ident: &Ident) -> Option<Value> {
+        self.variables.remove(ident)
     }
 
     pub(crate) fn swap_variable(&mut self, ident: Ident, value: Value) -> Option<Value> {
@@ -212,6 +212,14 @@ impl RuntimeState {
                 v.insert(value);
                 None
             }
+        }
+    }
+
+    pub(crate) fn set_or_insert_variable(&mut self, ident: &Ident, value: Value) {
+        if let Some(slot) = self.variables.get_mut(ident) {
+            *slot = value;
+        } else {
+            self.variables.insert(ident.clone(), value);
         }
     }
 }

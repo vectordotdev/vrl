@@ -18,7 +18,7 @@
 /// ## Caveats
 /// - **Closures**: Closure support is minimal. For now, we are only ensuring that there are no false positives.
 /// - **Variable Shadowing**: Variable shadowing is not supported. Unused variables will not be detected in this case.
-use crate::compiler::codes::WARNING_UNUSED_CODE;
+use crate::compiler::codes;
 use crate::compiler::parser::{Ident, Node};
 use crate::diagnostic::{Diagnostic, DiagnosticList, Label, Note, Severity};
 use crate::parser::ast::{
@@ -106,14 +106,12 @@ impl VisitorState {
             return;
         }
 
+        // Shadowing is not supported yet (https://github.com/vectordotdev/vrl/issues/1216).
+        // Only the first assignment of an identifier is tracked; subsequent re-assignments
+        // are ignored so a variable used before being shadowed is not incorrectly flagged as
+        // unused (https://github.com/vectordotdev/vrl/issues/1742).
         self.ident_to_state
             .entry(ident.clone())
-            .and_modify(|state| {
-                state.pending_usage = true;
-                if self.visiting_closure {
-                    state.used_in_closure = true;
-                }
-            })
             .or_insert(IdentState {
                 span: *span,
                 pending_usage: true,
@@ -157,7 +155,7 @@ impl VisitorState {
     fn append_diagnostic(&mut self, message: String, span: &Span) {
         self.diagnostics.push(Diagnostic {
             severity: Severity::Warning,
-            code: WARNING_UNUSED_CODE,
+            code: codes::WarningCode::UnusedCode as usize,
             message,
             labels: Vec::from([Label::primary(
                 "help: use the result of this expression or remove it",
@@ -243,7 +241,7 @@ impl AstVisitor<'_> {
             Expr::Variable(variable) => {
                 state.mark_identifier_used(&variable.node);
             }
-            Expr::Abort(_) => {}
+            Expr::Abort(_) | Expr::Break(_) => {}
             Expr::Return(r#return) => self.visit_return(r#return, state),
         }
     }
@@ -432,7 +430,7 @@ impl AstVisitor<'_> {
 
 #[cfg(test)]
 mod test {
-    use crate::compiler::codes::WARNING_UNUSED_CODE;
+    use crate::compiler::codes;
     use crate::stdlib;
     use indoc::indoc;
 
@@ -445,7 +443,7 @@ mod test {
 
         for (i, content) in expected_warnings.iter().enumerate() {
             let warning = warnings.get(i).unwrap();
-            assert_eq!(warning.code, WARNING_UNUSED_CODE);
+            assert_eq!(warning.code, codes::WarningCode::UnusedCode as usize);
             assert!(
                 warning.message.contains(content),
                 "expected message `{}` to contain `{content}`",
@@ -691,6 +689,18 @@ mod test {
             x = {}
             x |= { "a" : 1}
             .
+        "#};
+        unused_test(source, &[]);
+    }
+
+    #[test]
+    fn reassignment_after_use_is_not_flagged() {
+        // Regression test for https://github.com/vectordotdev/vrl/issues/1742
+        let source = indoc! {r#"
+            p, err = to_float(.message)
+            .p = p
+            .e = err
+            err = ""
         "#};
         unused_test(source, &[]);
     }

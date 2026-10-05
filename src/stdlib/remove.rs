@@ -1,57 +1,31 @@
 use crate::compiler::prelude::*;
-use crate::path::{OwnedSegment, OwnedValuePath};
-use std::sync::LazyLock;
+use crate::path::OwnedValuePath;
 
-static DEFAULT_COMPACT: LazyLock<Value> = LazyLock::new(|| Value::Boolean(false));
+static DEFAULT_COMPACT: Value = Value::Boolean(false);
 
-static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
-    vec![
-        Parameter::required(
-            "value",
-            kind::OBJECT | kind::ARRAY,
-            "The object or array to remove data from.",
-        ),
-        Parameter::required(
-            "path",
-            kind::ARRAY,
-            "An array of path segments to remove the value from.",
-        ),
-        Parameter::optional(
-            "compact",
-            kind::BOOLEAN,
-            "After deletion, if `compact` is `true`, any empty objects or
+const PARAMETERS: &[Parameter] = &[
+    Parameter::required(
+        "value",
+        kind::OBJECT | kind::ARRAY,
+        "The object or array to remove data from.",
+    ),
+    Parameter::required(
+        "path",
+        kind::ARRAY,
+        "An array of path segments to remove the value from.",
+    ),
+    Parameter::optional(
+        "compact",
+        kind::BOOLEAN,
+        "After deletion, if `compact` is `true`, any empty objects or
 arrays left are also removed.",
-        )
-        .default(&DEFAULT_COMPACT),
-    ]
-});
+    )
+    .default(&DEFAULT_COMPACT),
+];
 
 fn remove(path: Value, compact: Value, mut value: Value) -> Resolved {
     let path = match path {
-        Value::Array(path) => {
-            let mut lookup = OwnedValuePath::root();
-
-            for segment in path {
-                let segment = match segment {
-                    Value::Bytes(field) => {
-                        OwnedSegment::Field(String::from_utf8_lossy(&field).into())
-                    }
-                    #[allow(clippy::cast_possible_truncation)] //TODO evaluate removal options
-                    Value::Integer(index) => OwnedSegment::Index(index as isize),
-                    value => {
-                        return Err(format!(
-                            "path segment must be either string or integer, not {}",
-                            value.kind()
-                        )
-                        .into());
-                    }
-                };
-
-                lookup.segments.push(segment);
-            }
-
-            lookup
-        }
+        Value::Array(path) => OwnedValuePath::try_from(path)?,
         value => {
             return Err(ValueError::Expected {
                 got: value.kind(),
@@ -99,7 +73,7 @@ impl Function for Remove {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        PARAMETERS.as_slice()
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {

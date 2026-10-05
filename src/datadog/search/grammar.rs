@@ -15,9 +15,9 @@ pub const DEFAULT_FIELD: &str = "_default_";
 const EXISTS_FIELD: &str = "_exists_";
 const MISSING_FIELD: &str = "_missing_";
 
-/// The QueryVisitor is responsible for going through the output of our
+/// The `QueryVisitor` is responsible for going through the output of our
 /// parser and consuming the various tokens produced, digesting them and
-/// converting them into QueryNodes.  As per the name, we're doing this
+/// converting them into `QueryNodes`.  As per the name, we're doing this
 /// via a Visitor pattern and walking our way through the syntax tree.
 pub struct QueryVisitor;
 
@@ -57,7 +57,7 @@ impl QueryVisitor {
                             and_group = Vec::new();
                         }
                         _ => unreachable!(),
-                    };
+                    }
                     None
                 }
                 Rule::modifiers => {
@@ -68,7 +68,7 @@ impl QueryVisitor {
                             is_not = true;
                         }
                         _ => unreachable!(),
-                    };
+                    }
                     None
                 }
                 Rule::clause => Some(Self::visit_clause(node, default_field)),
@@ -106,7 +106,7 @@ impl QueryVisitor {
         for node in contents {
             match node.as_rule() {
                 // Can probably get a bit more suave with string allocation here but meh.
-                Rule::TERM => terms.push(Self::visit_term(node)),
+                Rule::TERM => terms.push(Self::visit_term(&node)),
                 _ => unreachable!(),
             }
         }
@@ -116,6 +116,7 @@ impl QueryVisitor {
         }
     }
 
+    #[allow(clippy::too_many_lines)] // The grammar alternatives are clearest in one match.
     fn visit_clause(clause: Pair<Rule>, default_field: &str) -> QueryNode {
         let mut field: Option<&str> = None;
         for item in clause.into_inner() {
@@ -133,22 +134,22 @@ impl QueryVisitor {
                     match ((field.unwrap_or(default_field)), value_contents.as_rule()) {
                         (EXISTS_FIELD, Rule::TERM) => {
                             return QueryNode::AttributeExists {
-                                attr: Self::visit_term(value_contents),
+                                attr: Self::visit_term(&value_contents),
                             };
                         }
                         (EXISTS_FIELD, Rule::PHRASE) => {
                             return QueryNode::AttributeExists {
-                                attr: Self::visit_phrase(value_contents),
+                                attr: Self::visit_phrase(&value_contents),
                             };
                         }
                         (MISSING_FIELD, Rule::TERM) => {
                             return QueryNode::AttributeMissing {
-                                attr: Self::visit_term(value_contents),
+                                attr: Self::visit_term(&value_contents),
                             };
                         }
                         (MISSING_FIELD, Rule::PHRASE) => {
                             return QueryNode::AttributeMissing {
-                                attr: Self::visit_phrase(value_contents),
+                                attr: Self::visit_phrase(&value_contents),
                             };
                         }
                         (DEFAULT_FIELD, Rule::STAR) => return QueryNode::MatchAllDocs,
@@ -161,25 +162,25 @@ impl QueryVisitor {
                         (f, Rule::TERM) => {
                             return QueryNode::AttributeTerm {
                                 attr: unescape(f),
-                                value: Self::visit_term(value_contents),
+                                value: Self::visit_term(&value_contents),
                             };
                         }
                         (f, Rule::PHRASE) => {
                             return QueryNode::QuotedAttribute {
                                 attr: unescape(f),
-                                phrase: Self::visit_phrase(value_contents),
+                                phrase: Self::visit_phrase(&value_contents),
                             };
                         }
                         (f, Rule::TERM_PREFIX) => {
                             return QueryNode::AttributePrefix {
                                 attr: unescape(f),
-                                prefix: Self::visit_prefix(value_contents),
+                                prefix: Self::visit_prefix(&value_contents),
                             };
                         }
                         (f, Rule::TERM_GLOB) => {
                             return QueryNode::AttributeWildcard {
                                 attr: unescape(f),
-                                wildcard: Self::visit_wildcard(value_contents),
+                                wildcard: Self::visit_wildcard(&value_contents),
                             };
                         }
                         (f, Rule::range) => {
@@ -188,7 +189,7 @@ impl QueryVisitor {
                             // There should always be 4; brackets + 2 range values.
                             let (lower_inclusive, lower, upper, upper_inclusive) =
                                 match range_values
-                                    .map(Self::visit_range_value)
+                                    .map(|token| Self::visit_range_value(&token))
                                     .collect_tuple()
                                     .expect("should be exactly 4 range values")
                                 {
@@ -216,15 +217,15 @@ impl QueryVisitor {
                         (f, Rule::comparison) => {
                             let mut compiter = value_contents.into_inner();
                             let comparator = Self::visit_operator(
-                                compiter.next().unwrap().into_inner().next().unwrap(),
+                                &compiter.next().unwrap().into_inner().next().unwrap(),
                             );
                             let comparison_value = compiter.next().unwrap();
                             let value = match comparison_value.as_rule() {
                                 Rule::TERM => {
-                                    ComparisonValue::String(Self::visit_term(comparison_value))
+                                    ComparisonValue::String(Self::visit_term(&comparison_value))
                                 }
                                 Rule::PHRASE => {
-                                    ComparisonValue::String(Self::visit_phrase(comparison_value))
+                                    ComparisonValue::String(Self::visit_phrase(&comparison_value))
                                 }
                                 Rule::NUMERIC_TERM => comparison_value.as_str().into(),
                                 _ => unreachable!(),
@@ -247,19 +248,17 @@ impl QueryVisitor {
         QueryNode::MatchAllDocs
     }
 
-    fn visit_operator(token: Pair<Rule>) -> Comparison {
+    fn visit_operator(token: &Pair<Rule>) -> Comparison {
         match token.as_rule() {
-            Rule::GT => Comparison::Gt,
+            Rule::GT | Rule::LBRACKET => Comparison::Gt,
             Rule::GT_EQ => Comparison::Gte,
-            Rule::LT => Comparison::Lt,
+            Rule::LT | Rule::RBRACKET => Comparison::Lt,
             Rule::LT_EQ => Comparison::Lte,
-            Rule::LBRACKET => Comparison::Gt,
-            Rule::RBRACKET => Comparison::Lt,
             _ => unreachable!(),
         }
     }
 
-    fn visit_range_value(token: Pair<Rule>) -> Range {
+    fn visit_range_value(token: &Pair<Rule>) -> Range {
         match token.as_rule() {
             Rule::RANGE_VALUE => Range::Value(token.as_str().into()),
             Rule::LBRACKET => Range::Comparison(Comparison::Gt),
@@ -270,20 +269,20 @@ impl QueryVisitor {
         }
     }
 
-    fn visit_term(token: Pair<Rule>) -> String {
+    fn visit_term(token: &Pair<Rule>) -> String {
         unescape(token.as_str())
     }
 
-    fn visit_prefix(token: Pair<Rule>) -> String {
+    fn visit_prefix(token: &Pair<Rule>) -> String {
         let prefix_string = token.as_str();
         unescape(&prefix_string[..prefix_string.len() - 1])
     }
 
-    fn visit_wildcard(token: Pair<Rule>) -> String {
+    fn visit_wildcard(token: &Pair<Rule>) -> String {
         unescape(token.as_str())
     }
 
-    fn visit_phrase(token: Pair<Rule>) -> String {
+    fn visit_phrase(token: &Pair<Rule>) -> String {
         let quoted_string = token.as_str();
         unescape(&quoted_string[1..quoted_string.len() - 1])
     }
@@ -312,7 +311,7 @@ pub fn unescape(input: &str) -> String {
         } else if c == '\\' {
             escape_sequence = true;
         } else {
-            output.push(c)
+            output.push(c);
         }
     }
     // TODO:  Check for unterminated escape sequence and signal a problem

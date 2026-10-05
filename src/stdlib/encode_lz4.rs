@@ -1,21 +1,18 @@
 use crate::compiler::prelude::*;
 use lz4_flex::block::{compress, compress_prepend_size};
 use nom::AsBytes;
-use std::sync::LazyLock;
 
-static DEFAULT_PREPEND_SIZE: LazyLock<Value> = LazyLock::new(|| Value::Boolean(true));
+static DEFAULT_PREPEND_SIZE: Value = Value::Boolean(true);
 
-static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
-    vec![
-        Parameter::required("value", kind::BYTES, "The string to encode."),
-        Parameter::optional(
-            "prepend_size",
-            kind::BOOLEAN,
-            "Whether to prepend the original size to the compressed data.",
-        )
-        .default(&DEFAULT_PREPEND_SIZE),
-    ]
-});
+const PARAMETERS: &[Parameter] = &[
+    Parameter::required("value", kind::BYTES, "The string to encode."),
+    Parameter::optional(
+        "prepend_size",
+        kind::BOOLEAN,
+        "Whether to prepend the original size to the compressed data.",
+    )
+    .default(&DEFAULT_PREPEND_SIZE),
+];
 
 fn encode_lz4(value: Value, prepend_size: bool) -> Resolved {
     let value = value.try_bytes()?;
@@ -77,7 +74,7 @@ impl Function for EncodeLz4 {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        PARAMETERS.as_slice()
+        PARAMETERS
     }
 }
 

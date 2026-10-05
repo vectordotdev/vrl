@@ -81,7 +81,7 @@ impl Function for Camelcase {
 #[derive(Debug, Clone)]
 struct CamelcaseFn {
     value: Box<dyn Expression>,
-    original_case: Option<Case>,
+    original_case: Option<Case<'static>>,
 }
 
 impl FunctionExpression for CamelcaseFn {

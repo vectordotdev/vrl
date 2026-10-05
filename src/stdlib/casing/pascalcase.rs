@@ -81,7 +81,7 @@ impl Function for Pascalcase {
 #[derive(Debug, Clone)]
 struct PascalcaseFn {
     value: Box<dyn Expression>,
-    original_case: Option<Case>,
+    original_case: Option<Case<'static>>,
 }
 
 impl FunctionExpression for PascalcaseFn {

@@ -31,18 +31,19 @@ pub static XML_RE: LazyLock<Regex> = LazyLock::new(|| {
         .expect("trim regex failed")
 });
 
-pub static DEFAULT_TRIM: LazyLock<Value> = LazyLock::new(|| Value::Boolean(true));
-pub static DEFAULT_INCLUDE_ATTR: LazyLock<Value> = LazyLock::new(|| Value::Boolean(true));
-pub static DEFAULT_ATTR_PREFIX: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from("@")));
-pub static DEFAULT_TEXT_KEY: LazyLock<Value> = LazyLock::new(|| Value::Bytes(Bytes::from("text")));
-pub static DEFAULT_ALWAYS_USE_TEXT_KEY: LazyLock<Value> = LazyLock::new(|| Value::Boolean(false));
-pub static DEFAULT_PARSE_BOOL: LazyLock<Value> = LazyLock::new(|| Value::Boolean(true));
-pub static DEFAULT_PARSE_NULL: LazyLock<Value> = LazyLock::new(|| Value::Boolean(true));
-pub static DEFAULT_PARSE_NUMBER: LazyLock<Value> = LazyLock::new(|| Value::Boolean(true));
+pub static DEFAULT_TRIM: Value = Value::Boolean(true);
+pub static DEFAULT_INCLUDE_ATTR: Value = Value::Boolean(true);
+pub static DEFAULT_ATTR_PREFIX: Value = Value::from_static_str("@");
+pub static DEFAULT_TEXT_KEY: Value = Value::from_static_str("text");
+pub static DEFAULT_ALWAYS_USE_TEXT_KEY: Value = Value::Boolean(false);
+pub static DEFAULT_PARSE_BOOL: Value = Value::Boolean(true);
+pub static DEFAULT_PARSE_NULL: Value = Value::Boolean(true);
+pub static DEFAULT_PARSE_NUMBER: Value = Value::Boolean(true);
 
 /// Configuration to determine which XML options will be used when
 /// parsing a roxmltree `Node`.
 #[derive(Debug, Clone)]
+#[allow(clippy::struct_excessive_bools)] // Each flag controls an independent parsing behavior.
 pub struct ParseXmlConfig<'a> {
     /// Include XML attributes. Default: true,
     pub include_attr: bool,
@@ -96,6 +97,7 @@ pub struct ParseOptions {
 ///
 /// # Errors
 /// - Returns an error if the input is not valid XML or if any step in processing fails.
+#[allow(clippy::needless_pass_by_value)] // The public parser interface consumes its input value.
 pub fn parse_xml(value: Value, options: ParseOptions) -> Resolved {
     let string = value.try_bytes_utf8_lossy()?;
     let trim = options
@@ -152,7 +154,13 @@ pub fn parse_xml(value: Value, options: ParseOptions) -> Resolved {
     Ok(value)
 }
 
-/// Process an XML `Node` and return a VRL `Value`.
+/// Processes an XML `Node` and returns a VRL `Value`.
+///
+/// # Panics
+///
+/// Panics if the node structure violates `roxmltree`'s invariants for element
+/// and text nodes.
+#[must_use]
 pub fn process_node(node: Node, config: &ParseXmlConfig) -> Value {
     // Helper to recurse over a `Node`s children, and build an object.
     let recurse = |node: Node| -> ObjectMap {
@@ -192,7 +200,7 @@ pub fn process_node(node: Node, config: &ParseXmlConfig) -> Value {
                                 v.extend_from_slice(&[prev, value]);
                             }
                         }
-                    };
+                    }
                 }
                 Entry::Vacant(entry) => {
                     entry.insert(value);

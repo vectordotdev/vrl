@@ -144,6 +144,7 @@ impl Function for Filter {
                 },
             }],
             is_iterator: true,
+            supports_break: false,
         })
     }
 }

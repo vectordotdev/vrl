@@ -1,5 +1,6 @@
 use std::{fmt, iter::Peekable, str::CharIndices};
 
+use crate::compiler::codes;
 use crate::diagnostic::{DiagnosticMessage, Label, Span};
 use ordered_float::NotNan;
 
@@ -40,6 +41,9 @@ pub enum Error {
 
     #[error("invalid escape character: \\{}", .ch.unwrap_or_default())]
     EscapeChar { start: usize, ch: Option<char> },
+
+    #[error("invalid unicode escape sequence")]
+    UnicodeEscape { start: usize, end: usize },
 
     #[error("unexpected parse error")]
     UnexpectedParseError(String),
@@ -84,7 +88,86 @@ impl Error {
                 start: start + offset,
                 ch,
             },
+            Error::UnicodeEscape { start, end } => Error::UnicodeEscape {
+                start: start + offset,
+                end: end + offset,
+            },
             Error::UnexpectedParseError(s) => Error::UnexpectedParseError(s),
+        }
+    }
+}
+
+fn update_expected(expected: Vec<String>) -> Vec<String> {
+    expected
+        .into_iter()
+        .map(|expect| match expect.as_str() {
+            "LQuery" => r#""path literal""#.to_owned(),
+            _ => expect,
+        })
+        .collect()
+}
+
+fn parse_error_labels(
+    span: &Span,
+    source: &lalrpop_util::ParseError<usize, Token<String>, String>,
+) -> Vec<Label> {
+    match source {
+        lalrpop_util::ParseError::InvalidToken { location } => vec![Label::primary(
+            "invalid token",
+            Span::new(*location, *location + 1),
+        )],
+        lalrpop_util::ParseError::ExtraToken { token } => {
+            let (start, token, end) = token;
+            vec![Label::primary(
+                format!("unexpected extra token: {token}"),
+                Span::new(*start, *end),
+            )]
+        }
+        lalrpop_util::ParseError::User { error } => {
+            vec![Label::primary(format!("unexpected error: {error}"), span)]
+        }
+        lalrpop_util::ParseError::UnrecognizedToken { token, expected } => {
+            let (start, token, end) = token;
+            let span = Span::new(*start, *end);
+            let got = token.to_string();
+            let mut expected = update_expected(expected.clone());
+
+            // Temporary hack to improve error messages for `AnyIdent` parser rule.
+            let any_ident = [
+                r#""reserved identifier""#,
+                r#""else""#,
+                r#""false""#,
+                r#""null""#,
+                r#""true""#,
+                r#""if""#,
+            ];
+            if any_ident
+                .iter()
+                .all(|item| expected.contains(&(*item).to_string()))
+            {
+                expected.retain(|item| !any_ident.contains(&item.as_str()));
+            }
+
+            if token == &Token::RQuery {
+                return vec![
+                    Label::primary("unexpected end of query path", span),
+                    Label::context(format!("expected one of: {}", expected.join(", ")), span),
+                ];
+            }
+
+            vec![
+                Label::primary(format!(r#"unexpected syntax token: "{got}""#), span),
+                Label::context(format!("expected one of: {}", expected.join(", ")), span),
+            ]
+        }
+        lalrpop_util::ParseError::UnrecognizedEof { location, expected } => {
+            let span = Span::new(*location, *location);
+            let expected = update_expected(expected.clone());
+
+            vec![
+                Label::primary("unexpected end of program", span),
+                Label::context(format!("expected one of: {}", expected.join(", ")), span),
+            ]
         }
     }
 }
@@ -93,109 +176,43 @@ impl DiagnosticMessage for Error {
     fn code(&self) -> usize {
         use Error::{
             EscapeChar, Literal, NumericLiteral, ParseError, ReservedKeyword, StringLiteral,
-            UnexpectedParseError,
+            UnexpectedParseError, UnicodeEscape,
         };
 
         match self {
             ParseError { source, .. } => match source {
-                lalrpop_util::ParseError::InvalidToken { .. } => 200,
-                lalrpop_util::ParseError::ExtraToken { .. } => 201,
-                lalrpop_util::ParseError::User { .. } => 202,
-                lalrpop_util::ParseError::UnrecognizedToken { .. } => 203,
-                lalrpop_util::ParseError::UnrecognizedEof { .. } => 204,
+                lalrpop_util::ParseError::InvalidToken { .. } => {
+                    codes::ParserCode::InvalidToken as usize
+                }
+                lalrpop_util::ParseError::ExtraToken { .. } => {
+                    codes::ParserCode::ExtraToken as usize
+                }
+                lalrpop_util::ParseError::User { .. } => codes::ParserCode::User as usize,
+                lalrpop_util::ParseError::UnrecognizedToken { .. } => {
+                    codes::ParserCode::UnrecognizedToken as usize
+                }
+                lalrpop_util::ParseError::UnrecognizedEof { .. } => {
+                    codes::ParserCode::UnrecognizedEof as usize
+                }
             },
-            ReservedKeyword { .. } => 205,
-            NumericLiteral { .. } => 206,
-            StringLiteral { .. } => 207,
-            Literal { .. } => 208,
-            EscapeChar { .. } => 209,
-            UnexpectedParseError(..) => 210,
+            ReservedKeyword { .. } => codes::ParserCode::ReservedKeyword as usize,
+            NumericLiteral { .. } => codes::ParserCode::NumericLiteral as usize,
+            StringLiteral { .. } => codes::ParserCode::StringLiteral as usize,
+            Literal { .. } => codes::ParserCode::Literal as usize,
+            EscapeChar { .. } => codes::ParserCode::EscapeChar as usize,
+            UnexpectedParseError(..) => codes::ParserCode::UnexpectedParse as usize,
+            UnicodeEscape { .. } => codes::ParserCode::UnicodeEscape as usize,
         }
     }
 
     fn labels(&self) -> Vec<Label> {
         use Error::{
             EscapeChar, Literal, NumericLiteral, ParseError, ReservedKeyword, StringLiteral,
-            UnexpectedParseError,
+            UnexpectedParseError, UnicodeEscape,
         };
 
-        fn update_expected(expected: Vec<String>) -> Vec<String> {
-            expected
-                .into_iter()
-                .map(|expect| match expect.as_str() {
-                    "LQuery" => r#""path literal""#.to_owned(),
-                    _ => expect,
-                })
-                .collect::<Vec<_>>()
-        }
-
         match self {
-            ParseError { span, source, .. } => match source {
-                lalrpop_util::ParseError::InvalidToken { location } => vec![Label::primary(
-                    "invalid token",
-                    Span::new(*location, *location + 1),
-                )],
-                lalrpop_util::ParseError::ExtraToken { token } => {
-                    let (start, token, end) = token;
-                    vec![Label::primary(
-                        format!("unexpected extra token: {token}"),
-                        Span::new(*start, *end),
-                    )]
-                }
-                lalrpop_util::ParseError::User { error } => {
-                    vec![Label::primary(format!("unexpected error: {error}"), span)]
-                }
-                lalrpop_util::ParseError::UnrecognizedToken { token, expected } => {
-                    let (start, token, end) = token;
-                    let span = Span::new(*start, *end);
-                    let got = token.to_string();
-                    let mut expected = update_expected(expected.clone());
-
-                    // Temporary hack to improve error messages for `AnyIdent`
-                    // parser rule.
-                    let any_ident = [
-                        r#""reserved identifier""#,
-                        r#""else""#,
-                        r#""false""#,
-                        r#""null""#,
-                        r#""true""#,
-                        r#""if""#,
-                    ];
-                    let is_any_ident = any_ident
-                        .iter()
-                        .all(|i| expected.contains(&(*i).to_string()));
-                    if is_any_ident {
-                        expected = expected
-                            .into_iter()
-                            .filter(|e| !any_ident.contains(&e.as_str()))
-                            .collect::<Vec<_>>();
-                    }
-
-                    if token == &Token::RQuery {
-                        return vec![
-                            Label::primary("unexpected end of query path", span),
-                            Label::context(
-                                format!("expected one of: {}", expected.join(", ")),
-                                span,
-                            ),
-                        ];
-                    }
-
-                    vec![
-                        Label::primary(format!(r#"unexpected syntax token: "{got}""#), span),
-                        Label::context(format!("expected one of: {}", expected.join(", ")), span),
-                    ]
-                }
-                lalrpop_util::ParseError::UnrecognizedEof { location, expected } => {
-                    let span = Span::new(*location, *location);
-                    let expected = update_expected(expected.clone());
-
-                    vec![
-                        Label::primary("unexpected end of program", span),
-                        Label::context(format!("expected one of: {}", expected.join(", ")), span),
-                    ]
-                }
-            },
+            ParseError { span, source, .. } => parse_error_labels(span, source),
 
             ReservedKeyword { start, end, .. } => {
                 let span = Span::new(*start, *end);
@@ -227,10 +244,14 @@ impl DiagnosticMessage for Error {
             EscapeChar { start, ch } => vec![Label::primary(
                 format!(
                     "invalid escape character: {}",
-                    ch.map(|ch| ch.to_string())
-                        .unwrap_or_else(|| "none".to_string())
+                    ch.map_or_else(|| "none".to_string(), |ch| ch.to_string())
                 ),
                 Span::new(*start, *start + 1),
+            )],
+
+            UnicodeEscape { start, end } => vec![Label::primary(
+                "invalid unicode escape sequence",
+                Span::new(*start, *end),
             )],
 
             UnexpectedParseError(string) => vec![Label::primary(string, Span::default())],
@@ -269,6 +290,13 @@ pub(crate) struct Lexer<'input> {
     ///   ~~~~~~~~~~  0..10
     ///    ~~~~       1..5
     rquery_indices: Vec<usize>,
+}
+
+enum QueryLiteral {
+    String,
+    RawString,
+    Regex,
+    Timestamp,
 }
 
 impl<'input> Lexer<'input> {
@@ -313,6 +341,7 @@ impl<'input> Lexer<'input> {
                     '"' => Some(self.string_literal(start)),
 
                     ';' => Some(Ok(self.token(start, SemiColon))),
+                    '\n' if self.next_significant_is_else() => continue,
                     '\n' => Some(Ok(self.token(start, Newline))),
                     '\\' => Some(Ok(self.token(start, Escape))),
 
@@ -407,6 +436,7 @@ pub enum Token<S> {
     True,
     Abort,
     Return,
+    Break,
 
     // tokens
     Colon,
@@ -468,7 +498,7 @@ pub enum Token<S> {
 impl<S> Token<S> {
     pub(crate) fn map<R>(self, f: impl Fn(S) -> R) -> Token<R> {
         use self::Token::{
-            Abort, Ampersand, Arrow, Bang, Colon, Comma, Dot, Else, Equals, Escape, False,
+            Abort, Ampersand, Arrow, Bang, Break, Colon, Comma, Dot, Else, Equals, Escape, False,
             FloatLiteral, FunctionCall, Identifier, If, IntegerLiteral, InvalidToken, LBrace,
             LBracket, LParen, LQuery, MergeEquals, Newline, Null, Operator, PathField, Percent,
             Question, RBrace, RBracket, RParen, RQuery, RawStringLiteral, RegexLiteral,
@@ -503,6 +533,7 @@ impl<S> Token<S> {
             True => True,
             Abort => Abort,
             Return => Return,
+            Break => Break,
 
             // tokens
             Colon => Colon,
@@ -539,7 +570,7 @@ where
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         use self::Token::{
-            Abort, Ampersand, Arrow, Bang, Colon, Comma, Dot, Else, Equals, Escape, False,
+            Abort, Ampersand, Arrow, Bang, Break, Colon, Comma, Dot, Else, Equals, Escape, False,
             FloatLiteral, FunctionCall, Identifier, If, IntegerLiteral, InvalidToken, LBrace,
             LBracket, LParen, LQuery, MergeEquals, Newline, Null, Operator, PathField, Percent,
             Question, RBrace, RBracket, RParen, RQuery, RawStringLiteral, RegexLiteral,
@@ -568,6 +599,7 @@ where
             True => "True",
             Abort => "Abort",
             Return => "Return",
+            Break => "Break",
 
             // tokens
             Colon => "Colon",
@@ -604,7 +636,8 @@ impl<'input> Token<&'input str> {
     /// Returns either a literal, reserved, or generic identifier.
     fn ident(s: &'input str) -> Self {
         use Token::{
-            Abort, Else, False, Identifier, If, Null, PathField, ReservedIdentifier, Return, True,
+            Abort, Break, Else, False, Identifier, If, Null, PathField, ReservedIdentifier, Return,
+            True,
         };
 
         match s {
@@ -615,14 +648,13 @@ impl<'input> Token<&'input str> {
             "null" => Null,
             "abort" => Abort,
             "return" => Return,
+            "break" => Break,
 
             // reserved identifiers
-            "array" | "bool" | "boolean" | "break" | "continue" | "do" | "emit" | "float"
-            | "for" | "forall" | "foreach" | "all" | "each" | "any" | "try" | "undefined"
-            | "int" | "integer" | "iter" | "object" | "regex" | "string" | "traverse"
-            | "timestamp" | "duration" | "unless" | "walk" | "while" | "loop" => {
-                ReservedIdentifier(s)
-            }
+            "array" | "bool" | "boolean" | "continue" | "do" | "emit" | "float" | "for"
+            | "forall" | "foreach" | "all" | "each" | "any" | "try" | "undefined" | "int"
+            | "integer" | "iter" | "object" | "regex" | "string" | "traverse" | "timestamp"
+            | "duration" | "unless" | "walk" | "while" | "loop" => ReservedIdentifier(s),
 
             _ if s.contains('@') => PathField(s),
 
@@ -762,11 +794,177 @@ impl<'input> Lexer<'input> {
         (start, token, self.next_index())
     }
 
+    /// Peek past whitespace, comments, and additional newlines to see whether
+    /// the next significant token is the `else` keyword.
+    ///
+    /// Used to allow `else` (and `else if`) on a line following the closing
+    /// `}` of an `if`-block — without this, the trailing newline terminates
+    /// the `if`-expression at the parser level. See issue #129.
+    ///
+    /// "The next significant token is `else`" means: after `"else"` the input
+    /// has either ended, or has a character that is not [`is_ident_continue`].
+    /// That is the same boundary [`Lexer::identifier_or_function_call`] uses
+    /// to terminate an identifier, so this check agrees with how the keyword
+    /// would otherwise be tokenized.
+    ///
+    /// This intentionally returns true for inputs the parser will later reject
+    /// (e.g. `else %x`, `else #comment` with no block). The lexer's job is
+    /// only to disambiguate the `else` keyword from an identifier — well-
+    /// formedness of the if-statement is the parser's problem, and the
+    /// downstream error is the same one that occurs without a preceding
+    /// newline.
+    fn next_significant_is_else(&self) -> bool {
+        let mut chars = self.chars.clone();
+        loop {
+            match chars.peek().copied() {
+                None => return false,
+                Some((_, ch)) if ch.is_whitespace() => {
+                    chars.next();
+                }
+                Some((_, '#')) => {
+                    chars.next();
+                    for (_, ch) in chars.by_ref() {
+                        if ch == '\n' {
+                            break;
+                        }
+                    }
+                }
+                Some((start, _)) => {
+                    let rest = &self.input[start..];
+                    return rest.strip_prefix("else").is_some_and(|after| {
+                        after.chars().next().is_none_or(|c| !is_ident_continue(c))
+                    });
+                }
+            }
+        }
+    }
+
     fn query_end(&mut self, start: usize) -> Option<usize> {
         match self.rquery_indices.last() {
             Some(end) if start > 0 && start.saturating_sub(1) == *end => self.rquery_indices.pop(),
             _ => None,
         }
+    }
+
+    fn advance_query_literal(
+        &self,
+        pos: usize,
+        ch: char,
+        chars: &mut Peekable<CharIndices<'input>>,
+        last_char: &mut Option<char>,
+        end: &mut usize,
+    ) -> Option<bool> {
+        let kind = match ch {
+            '"' => QueryLiteral::String,
+            's' if chars.peek().map(|(_, ch)| ch) == Some(&'\'') => QueryLiteral::RawString,
+            'r' if chars.peek().map(|(_, ch)| ch) == Some(&'\'') => QueryLiteral::Regex,
+            't' if chars.peek().map(|(_, ch)| ch) == Some(&'\'') => QueryLiteral::Timestamp,
+            _ => return None,
+        };
+        let mut lexer = Lexer::new(&self.input[pos + 1..]);
+        let result = match kind {
+            QueryLiteral::String => lexer.string_literal(0),
+            QueryLiteral::RawString => lexer.raw_string_literal(0),
+            QueryLiteral::Regex => lexer.regex_literal(0),
+            QueryLiteral::Timestamp => lexer.timestamp_literal(0),
+        };
+
+        Some(match result {
+            Ok((_, _, new)) => {
+                for (index, ch) in chars.by_ref() {
+                    *last_char = Some(ch);
+                    if index == new + pos {
+                        break;
+                    }
+                }
+                *end = pos + new;
+                true
+            }
+            Err(_) => false,
+        })
+    }
+
+    fn char_after_query_literal(
+        pos: usize,
+        result: &Spanned<'input, usize>,
+        chars: &mut Peekable<CharIndices<'input>>,
+        description: &str,
+    ) -> Result<char, Error> {
+        let (_, _, new) = result;
+        for (index, _) in chars.by_ref() {
+            if index == *new + pos {
+                break;
+            }
+        }
+        chars.peek().map(|(_, ch)| *ch).ok_or_else(|| {
+            Error::UnexpectedParseError(format!(
+                "Expected characters at end of {description} literal."
+            ))
+        })
+    }
+
+    fn delimited_query_char(
+        &self,
+        pos: usize,
+        chars: &mut Peekable<CharIndices<'input>>,
+    ) -> Result<char, Error> {
+        let input = &self.input[pos..];
+        if input.starts_with('#') {
+            for (_, ch) in chars.by_ref() {
+                if ch == '\n' {
+                    break;
+                }
+            }
+            return chars.peek().map(|(_, ch)| *ch).ok_or_else(|| {
+                Error::UnexpectedParseError("Expected characters at end of comment.".to_string())
+            });
+        }
+
+        let mut lexer = Lexer::new(&self.input[pos + 1..]);
+        let (result, description) = if input.starts_with('"') {
+            (lexer.string_literal(0), "string")
+        } else if input.starts_with("s'") {
+            (lexer.raw_string_literal(0), "raw string")
+        } else if input.starts_with("r'") {
+            (lexer.regex_literal(0), "regex")
+        } else if input.starts_with("t'") {
+            (lexer.timestamp_literal(0), "timestamp")
+        } else {
+            return Ok(chars.peek().expect("query character is present").1);
+        };
+        let result = result.map_err(|error| error.offset_by(pos + 1))?;
+        Self::char_after_query_literal(pos, &result, chars, description)
+    }
+
+    fn skip_delimited_query(
+        &self,
+        chars: &mut Peekable<CharIndices<'input>>,
+        braces: usize,
+        brackets: usize,
+    ) -> Result<(), Error> {
+        let (start_delimiter, end_delimiter) = if braces > 0 {
+            ('{', '}')
+        } else if brackets > 0 {
+            ('[', ']')
+        } else {
+            ('(', ')')
+        };
+        let mut nested_delimiters = 0;
+
+        while let Some((pos, _)) = chars.peek() {
+            let ch = self.delimited_query_char(*pos, chars)?;
+            if nested_delimiters == 0 && ch == end_delimiter {
+                break;
+            }
+            if let Some((_, ch)) = chars.next() {
+                if ch == start_delimiter {
+                    nested_delimiters += 1;
+                } else if ch == end_delimiter {
+                    nested_delimiters -= 1;
+                }
+            }
+        }
+        Ok(())
     }
 
     fn query_start(&mut self, start: usize) -> Result<bool, Error> {
@@ -825,23 +1023,14 @@ impl<'input> Lexer<'input> {
 
         let mut end = 0;
         while let Some((pos, ch)) = chars.next() {
-            let take_until_end =
-                |result: SpannedResult<'input, usize>,
-                 last_char: &mut Option<char>,
-                 end: &mut usize,
-                 chars: &mut Peekable<CharIndices<'input>>| {
-                    result.map(|(_, _, new)| {
-                        for (i, ch) in chars {
-                            *last_char = Some(ch);
-                            if i == new + pos {
-                                break;
-                            }
-                        }
-
-                        *end = pos + new;
-                    })
-                };
-
+            if let Some(advanced) =
+                self.advance_query_literal(pos, ch, &mut chars, &mut last_char, &mut end)
+            {
+                if advanced {
+                    continue;
+                }
+                break;
+            }
             match ch {
                 // containers
                 '{' => braces += 1,
@@ -849,53 +1038,13 @@ impl<'input> Lexer<'input> {
                 '[' if braces == 0 && parens == 0 && brackets == 0 => {
                     brackets += 1;
 
-                    if last_char == Some(']') {
-                        valid = true
-                    }
-
-                    if last_char == Some('}') {
-                        valid = true
-                    }
-
-                    if last_char == Some(')') {
-                        valid = true
-                    }
-
-                    if last_char.is_some_and(is_ident_continue) {
-                        valid = true
+                    if matches!(last_char, Some(']' | '}' | ')'))
+                        || last_char.is_some_and(is_ident_continue)
+                    {
+                        valid = true;
                     }
                 }
                 '[' => brackets += 1,
-
-                // literals
-                '"' => {
-                    let result = Lexer::new(&self.input[pos + 1..]).string_literal(0);
-                    match take_until_end(result, &mut last_char, &mut end, &mut chars) {
-                        Ok(()) => continue,
-                        Err(_) => break,
-                    }
-                }
-                's' if chars.peek().map(|(_, ch)| ch) == Some(&'\'') => {
-                    let result = Lexer::new(&self.input[pos + 1..]).raw_string_literal(0);
-                    match take_until_end(result, &mut last_char, &mut end, &mut chars) {
-                        Ok(()) => continue,
-                        Err(_) => break,
-                    }
-                }
-                'r' if chars.peek().map(|(_, ch)| ch) == Some(&'\'') => {
-                    let result = Lexer::new(&self.input[pos + 1..]).regex_literal(0);
-                    match take_until_end(result, &mut last_char, &mut end, &mut chars) {
-                        Ok(()) => continue,
-                        Err(_) => break,
-                    }
-                }
-                't' if chars.peek().map(|(_, ch)| ch) == Some(&'\'') => {
-                    let result = Lexer::new(&self.input[pos + 1..]).timestamp_literal(0);
-                    match take_until_end(result, &mut last_char, &mut end, &mut chars) {
-                        Ok(()) => continue,
-                        Err(_) => break,
-                    }
-                }
 
                 '}' if braces == 0 => break,
                 '}' => braces -= 1,
@@ -909,122 +1058,7 @@ impl<'input> Lexer<'input> {
                 // the lexer doesn't care about the semantic validity inside
                 // delimited regions in a query.
                 _ if braces > 0 || brackets > 0 || parens > 0 => {
-                    let (start_delim, end_delim) = if braces > 0 {
-                        ('{', '}')
-                    } else if brackets > 0 {
-                        ('[', ']')
-                    } else {
-                        ('(', ')')
-                    };
-
-                    let mut skip_delim = 0;
-                    while let Some((pos, ch)) = chars.peek() {
-                        let pos = *pos;
-
-                        let literal_check = |result: Spanned<'input, usize>, chars: &mut Peekable<CharIndices<'input>>| {
-                            let (_, _, new) = result;
-
-                            #[allow(clippy::while_let_on_iterator)]
-                            while let Some((i, _)) = chars.next() {
-                                if i == new + pos {
-                                    break;
-                                }
-                            }
-                            match chars.peek().map(|(_, ch)| ch) {
-                                Some(ch) => Ok(*ch),
-                                None => Err(()),
-                            }
-                        };
-
-                        let ch = match &self.input[pos..] {
-                            s if s.starts_with('#') => {
-                                for (_, chr) in chars.by_ref() {
-                                    if chr == '\n' {
-                                        break;
-                                    }
-                                }
-                                match chars.peek().map(|(_, ch)| ch) {
-                                    Some(ch) => *ch,
-                                    None => {
-                                        return Err(Error::UnexpectedParseError(
-                                            "Expected characters at end of comment.".to_string(),
-                                        ));
-                                    }
-                                }
-                            }
-                            s if s.starts_with('"') => {
-                                let r = Lexer::new(&self.input[pos + 1..])
-                                    .string_literal(0)
-                                    .map_err(|e| e.offset_by(pos + 1))?;
-                                match literal_check(r, &mut chars) {
-                                    Ok(ch) => ch,
-                                    Err(()) => {
-                                        // The call to lexer above should have raised an appropriate error by now,
-                                        // so these errors should only occur if there is a bug somewhere previously.
-                                        return Err(Error::UnexpectedParseError(
-                                            "Expected characters at end of string literal."
-                                                .to_string(),
-                                        ));
-                                    }
-                                }
-                            }
-                            s if s.starts_with("s'") => {
-                                let r = Lexer::new(&self.input[pos + 1..])
-                                    .raw_string_literal(0)
-                                    .map_err(|e| e.offset_by(pos + 1))?;
-                                match literal_check(r, &mut chars) {
-                                    Ok(ch) => ch,
-                                    Err(()) => {
-                                        return Err(Error::UnexpectedParseError(
-                                            "Expected characters at end of raw string literal."
-                                                .to_string(),
-                                        ));
-                                    }
-                                }
-                            }
-                            s if s.starts_with("r'") => {
-                                let r = Lexer::new(&self.input[pos + 1..])
-                                    .regex_literal(0)
-                                    .map_err(|e| e.offset_by(pos + 1))?;
-                                match literal_check(r, &mut chars) {
-                                    Ok(ch) => ch,
-                                    Err(()) => {
-                                        return Err(Error::UnexpectedParseError(
-                                            "Expected characters at end of regex literal."
-                                                .to_string(),
-                                        ));
-                                    }
-                                }
-                            }
-                            s if s.starts_with("t'") => {
-                                let r = Lexer::new(&self.input[pos + 1..])
-                                    .timestamp_literal(0)
-                                    .map_err(|e| e.offset_by(pos + 1))?;
-                                match literal_check(r, &mut chars) {
-                                    Ok(ch) => ch,
-                                    Err(()) => {
-                                        return Err(Error::UnexpectedParseError(
-                                            "Expected characters at end of timestamp literal."
-                                                .to_string(),
-                                        ));
-                                    }
-                                }
-                            }
-                            _ => *ch,
-                        };
-
-                        if skip_delim == 0 && ch == end_delim {
-                            break;
-                        }
-                        if let Some((_, c)) = chars.next() {
-                            if c == start_delim {
-                                skip_delim += 1;
-                            }
-                            if c == end_delim {
-                                skip_delim -= 1;
-                            }
-                        }
-                    }
+                    self.skip_delimited_query(&mut chars, braces, brackets)?;
                 }
                 '.' | '%' if last_char.is_none() => valid = true,
                 '.' if last_char == Some(')') => valid = true,
@@ -1040,7 +1074,7 @@ impl<'input> Lexer<'input> {
                         .all(|ch| is_digit(ch) || ch == '_');
 
                     if !digits {
-                        valid = true
+                        valid = true;
                     }
                 }
 
@@ -1276,11 +1310,60 @@ impl<'input> Lexer<'input> {
     fn escape_code(&mut self, start: usize) -> Result<(), Error> {
         match self.bump() {
             Some((_, '\n' | '\'' | '"' | '\\' | 'n' | 'r' | 't' | '{' | '}' | '0')) => Ok(()),
-            Some((start, ch)) => Err(Error::EscapeChar {
-                start,
+            Some((_, 'u')) => self.unicode_escape(start),
+            Some((s, ch)) => Err(Error::EscapeChar {
+                start: s,
                 ch: Some(ch),
             }),
             None => Err(Error::EscapeChar { start, ch: None }),
+        }
+    }
+
+    /// Validates a `\u{HEX}` Unicode escape sequence after the `u` has been consumed.
+    ///
+    /// `start` is the byte position of the leading `\`. All `UnicodeEscape` errors
+    /// span from `start` to the current position so the entire `\u{...}` sequence
+    /// is highlighted in diagnostics.
+    fn unicode_escape(&mut self, start: usize) -> Result<(), Error> {
+        match self.bump() {
+            Some((_, '{')) => {}
+            Some((s, ch)) => {
+                return Err(Error::EscapeChar {
+                    start: s,
+                    ch: Some(ch),
+                });
+            }
+            None => return Err(Error::EscapeChar { start, ch: None }),
+        }
+        let hex_start = self.next_index();
+        let mut count = 0usize;
+        loop {
+            match self.peek() {
+                Some((_, '}')) => {
+                    let hex_end = self.next_index();
+                    self.bump();
+                    let end = self.next_index();
+                    if count == 0 {
+                        return Err(Error::UnicodeEscape { start, end });
+                    }
+                    let hex = &self.input[hex_start..hex_end];
+                    let codepoint = u32::from_str_radix(hex, 16)
+                        .map_err(|_| Error::UnicodeEscape { start, end })?;
+                    char::from_u32(codepoint).ok_or(Error::UnicodeEscape { start, end })?;
+                    return Ok(());
+                }
+                Some((_, ch)) if ch.is_ascii_hexdigit() => {
+                    self.bump();
+                    count += 1;
+                }
+                Some((pos, ch)) => {
+                    return Err(Error::EscapeChar {
+                        start: pos,
+                        ch: Some(ch),
+                    });
+                }
+                None => return Err(Error::EscapeChar { start, ch: None }),
+            }
         }
     }
 }
@@ -1289,10 +1372,19 @@ impl<'input> Lexer<'input> {
 // generic helpers
 // -----------------------------------------------------------------------------
 
+/// Characters allowed at the start of an identifier.
 fn is_ident_start(ch: char) -> bool {
     matches!(ch, '@' | '_' | 'a'..='z' | 'A'..='Z')
 }
 
+/// Characters allowed inside an identifier after the first character.
+///
+/// This is the canonical "is the identifier still going" predicate — it's
+/// what [`Lexer::identifier_or_function_call`] uses (via `take_while`) to
+/// decide where an identifier ends. Any other lexer logic that needs to
+/// distinguish a keyword (e.g. `else`) from a longer identifier prefixed
+/// with that keyword (e.g. `elsewhere`) should use this same predicate so
+/// the boundary stays consistent with tokenization.
 fn is_ident_continue(ch: char) -> bool {
     match ch {
         '0'..='9' => true,
@@ -1332,6 +1424,20 @@ fn unescape_string_literal(mut s: &str) -> String {
                 .map(char::len_utf8)
                 .sum();
             s = &s[i + whitespace + 2..];
+        } else if next == b'u' {
+            // \u{HEX} Unicode escape. The lexer already validated the syntax
+            // and codepoint value in unicode_escape(), so these operations are
+            // guaranteed to succeed. from_str_radix is called a second time
+            // here because the token stores a raw string slice; there is no
+            // cheaper way to decode the value without changing the token type.
+            string.push_str(&s[..i]);
+            let rest = &s[i + 3..]; // skip past `\u{`
+            let close = rest.find('}').expect("closing } validated by lexer");
+            let hex = &rest[..close];
+            let codepoint = u32::from_str_radix(hex, 16).expect("hex validated by lexer");
+            let ch = char::from_u32(codepoint).expect("codepoint validated by lexer");
+            string.push(ch);
+            s = &rest[close + 1..];
         } else {
             let c = match next {
                 b'\'' => '\'',
@@ -1342,6 +1448,7 @@ fn unescape_string_literal(mut s: &str) -> String {
                 b't' => '\t',
                 b'0' => '\0',
                 b'{' => '{',
+                b'}' => '}',
                 _ => unimplemented!("invalid escape"),
             };
 
@@ -1381,7 +1488,7 @@ mod test {
         let mut lexer = lexer(input);
         let mut count = 0;
         let length = expected.len();
-        for (token, (expected_span, expected_tok)) in lexer.by_ref().zip(expected.into_iter()) {
+        for (token, (expected_span, expected_tok)) in lexer.by_ref().zip(expected) {
             count += 1;
             println!("{token:?}");
             let start = expected_span.find('~').unwrap_or_default();
@@ -1565,6 +1672,93 @@ mod test {
             lexer(r#"foo "bar\"\n baz"#).last(),
             Some(Err(Error::StringLiteral { start: 4 }))
         );
+    }
+
+    #[test]
+    fn unicode_escape_basic() {
+        let mut lexer = lexer(r#""\u{41}""#);
+        match lexer.next() {
+            Some(Ok((_, StringLiteral(s), _))) => {
+                assert_eq!("A", s.unescape());
+            }
+            other => panic!("unexpected: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn unicode_escape_multibyte() {
+        let mut lexer = lexer(r#""\u{1F30E}""#);
+        match lexer.next() {
+            Some(Ok((_, StringLiteral(s), _))) => {
+                assert_eq!("\u{1F30E}", s.unescape());
+            }
+            other => panic!("unexpected: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn unicode_escape_in_string() {
+        let mut lexer = lexer(r#""hello\u{1F30E}world""#);
+        match lexer.next() {
+            Some(Ok((_, StringLiteral(s), _))) => {
+                assert_eq!("hello\u{1F30E}world", s.unescape());
+            }
+            other => panic!("unexpected: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn unicode_escape_null() {
+        let mut lexer = lexer(r#""\u{0}""#);
+        match lexer.next() {
+            Some(Ok((_, StringLiteral(s), _))) => {
+                assert_eq!("\u{0}", s.unescape());
+            }
+            other => panic!("unexpected: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn unicode_escape_invalid_codepoint() {
+        // U+D800 is a surrogate — not a valid Unicode scalar value
+        assert!(matches!(
+            lexer(r#""\u{D800}""#).last(),
+            Some(Err(Error::StringLiteral { .. }))
+        ));
+        // U+110000 is above the Unicode range (max is U+10FFFF)
+        assert!(matches!(
+            lexer(r#""\u{110000}""#).last(),
+            Some(Err(Error::StringLiteral { .. }))
+        ));
+
+        // boundary values that are valid scalar values
+        for (input, expected) in [
+            (r#""\u{D799}""#, "\u{D799}"),     // just below surrogate range
+            (r#""\u{E000}""#, "\u{E000}"),     // just above surrogate range
+            (r#""\u{10FFFF}""#, "\u{10FFFF}"), // maximum Unicode scalar value
+        ] {
+            let mut lex = lexer(input);
+            match lex.next() {
+                Some(Ok((_, StringLiteral(s), _))) => assert_eq!(expected, s.unescape()),
+                other => panic!("expected valid string for {input:?}, got {other:?}"),
+            }
+        }
+    }
+
+    #[test]
+    fn unicode_escape_empty_braces() {
+        assert!(matches!(
+            lexer(r#""\u{}""#).last(),
+            Some(Err(Error::StringLiteral { .. }))
+        ));
+    }
+
+    #[test]
+    fn unicode_escape_missing_open_brace() {
+        assert!(matches!(
+            lexer(r#""\u41""#).last(),
+            Some(Err(Error::StringLiteral { .. }))
+        ));
     }
 
     #[test]
@@ -2072,6 +2266,28 @@ mod test {
     }
 
     #[test]
+    #[rustfmt::skip]
+    fn quoted_path_index_query() {
+        use StringLiteralToken as S;
+        use StringLiteral as L;
+
+        test(
+            data(r#".foo."bar"[0]"#),
+            vec![
+                ("~            ", LQuery),
+                ("~            ", Dot),
+                (" ~~~         ", Identifier("foo")),
+                ("    ~        ", Dot),
+                ("     ~~~~~   ", L(S("bar"))),
+                ("          ~  ", LBracket),
+                ("           ~ ", IntegerLiteral(0)),
+                ("            ~", RBracket),
+                ("            ~", RQuery),
+            ],
+        );
+    }
+
+    #[test]
     fn queries_digit_path() {
         test(
             data(".0foo foo.00_7bar.tar"),
@@ -2251,6 +2467,93 @@ mod test {
                 ("                  ~  ", Identifier("v")),
                 ("                    ~", RBrace),
             ],
+        );
+    }
+
+    fn token_kinds(input: &str) -> Vec<Tok<'_>> {
+        Lexer::new(input)
+            .map(|res| res.expect("lex error").1)
+            .collect()
+    }
+
+    #[test]
+    fn newline_before_else_is_elided() {
+        assert_eq!(
+            token_kinds("if x { 1 }\nelse { 2 }"),
+            vec![
+                If,
+                Identifier("x"),
+                LBrace,
+                IntegerLiteral(1),
+                RBrace,
+                Else,
+                LBrace,
+                IntegerLiteral(2),
+                RBrace,
+            ],
+        );
+    }
+
+    #[test]
+    fn blank_lines_before_else_are_elided() {
+        assert_eq!(
+            token_kinds("if x { 1 }\n\n\nelse { 2 }"),
+            vec![
+                If,
+                Identifier("x"),
+                LBrace,
+                IntegerLiteral(1),
+                RBrace,
+                Else,
+                LBrace,
+                IntegerLiteral(2),
+                RBrace,
+            ],
+        );
+    }
+
+    #[test]
+    fn comment_between_brace_and_else_is_handled() {
+        assert_eq!(
+            token_kinds("if x { 1 }\n# comment\nelse { 2 }"),
+            vec![
+                If,
+                Identifier("x"),
+                LBrace,
+                IntegerLiteral(1),
+                RBrace,
+                Else,
+                LBrace,
+                IntegerLiteral(2),
+                RBrace,
+            ],
+        );
+    }
+
+    #[test]
+    fn newline_kept_when_else_does_not_follow() {
+        // No `else` after the if-block; the newline must terminate the statement.
+        assert_eq!(
+            token_kinds("if x { 1 }\nfoo"),
+            vec![
+                If,
+                Identifier("x"),
+                LBrace,
+                IntegerLiteral(1),
+                RBrace,
+                Newline,
+                Identifier("foo"),
+            ],
+        );
+    }
+
+    #[test]
+    fn newline_kept_when_followed_by_else_prefixed_identifier() {
+        // `elsewhere` is an identifier, not the `else` keyword — newline stays.
+        let kinds = token_kinds("if x { 1 }\nelsewhere");
+        assert!(
+            kinds.contains(&Newline),
+            "expected a Newline token, got {kinds:?}",
         );
     }
 }

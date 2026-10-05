@@ -27,6 +27,15 @@
       "type": [
         "string"
       ]
+    },
+    {
+      "name": "allow_lossy_string_coercion",
+      "description": "Whether to permit lossy coercion of `Boolean`, `Integer`, `Float`, and `Timestamp` values into protobuf `string` fields by stringifying the value. Defaults to `true` to preserve permissive behavior; set to `false` for strict, spec-compliant encoding (see the [protobuf JSON mapping](https://protobuf.dev/programming-guides/json/)).",
+      "required": false,
+      "type": [
+        "boolean"
+      ],
+      "default": "true"
     }
   ],
   "return": {

@@ -37,7 +37,7 @@ Most stdlib functions are supported. The following functions compile but abort a
 - `reverse_dns`
 - `validate_json_schema`
 
-Note: the `datadog_grok` feature is excluded entirely when targeting wasm32.
+Note: the grok parser within the `datadog` feature is excluded entirely when targeting wasm32.
 
 [vector]: https://vector.dev
 [vrl]: https://vrl.dev

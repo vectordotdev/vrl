@@ -11,6 +11,9 @@
       "type": [
         "string",
         "array"
+      ],
+      "element_type": [
+        "string"
       ]
     },
     {

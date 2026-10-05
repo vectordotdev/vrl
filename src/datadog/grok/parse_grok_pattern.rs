@@ -3,10 +3,11 @@ use lalrpop_util::{ParseError, lalrpop_mod};
 use super::{ast::GrokPattern, lexer::Lexer};
 
 lalrpop_mod!(
-    #[allow(clippy::all)]
+    // Generated parser code is outside this crate's linting control.
+    #[allow(clippy::all, clippy::pedantic)]
     #[allow(unused)]
     parser,
-    "/src/datadog/grok/parser.rs"
+    "/datadog/grok/parser.rs"
 );
 
 /// Parses grok patterns as %{MATCHER:FIELD:FILTER}
@@ -55,8 +56,8 @@ mod tests {
         for (i, arg) in args.iter().enumerate() {
             match arg {
                 FunctionArgument::Arg(arg) => assert_eq!(arg, expected_args.get(i).unwrap()),
-                _ => panic!("failed to parse arguments"),
-            };
+                FunctionArgument::Function(_) => panic!("failed to parse arguments"),
+            }
         }
     }
 

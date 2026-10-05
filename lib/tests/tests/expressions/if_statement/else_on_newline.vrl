@@ -1,0 +1,40 @@
+# result: ["a", "b", "c", "d", "e", "f", "k8s-plain"]
+
+# `else` on a new line directly after the closing brace.
+v1 = if true { "a" }
+else { "z" }
+
+# `else` on the next line for the false branch.
+v2 = if false { "y" }
+else { "b" }
+
+# Blank line(s) between the closing brace and `else`.
+v3 = if true { "c" }
+
+
+else { "z" }
+
+# `else if` on a new line.
+v4 = if false { "y" }
+else if true { "d" }
+else { "z" }
+
+# Multiple `else if`s split across lines.
+v5 = if false { "y" }
+else if false { "y2" }
+else if true { "e" }
+else { "z" }
+
+# Comment between the closing brace and `else`.
+v6 = if true { "f" }
+# trailing comment on its own line
+else { "z" }
+
+# Original example from issue #129: a multi-line predicate together with
+# `else` on the next line.
+image = "k8s.gcr.io/kube-apiserver"
+v7 = if (starts_with(image, "k8s.gcr.io/kube-apiserver") ||
+         starts_with(image, "k8s.gcr.io/kube-scheduler")) {"k8s-plain"}
+     else {"unknown"}
+
+[v1, v2, v3, v4, v5, v6, v7]

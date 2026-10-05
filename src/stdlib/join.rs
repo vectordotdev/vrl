@@ -1,17 +1,16 @@
 use crate::compiler::prelude::*;
-use std::borrow::Cow;
 
 fn join(array: Value, separator: Option<Value>) -> Resolved {
     let array = array.try_array()?;
     let string_vec = array
         .iter()
-        .map(|s| s.try_bytes_utf8_lossy().map_err(Into::into))
-        .collect::<ExpressionResult<Vec<Cow<'_, str>>>>()
-        .map_err(|_| "all array items must be strings")?;
-    let separator: String = separator
-        .map(Value::try_bytes)
-        .transpose()?
-        .map_or_else(String::new, |s| String::from_utf8_lossy(&s).to_string());
+        .map(|s| s.as_str().ok_or(()))
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|()| "all array items must be strings")?;
+    let separator = match separator {
+        None => String::new(),
+        Some(value) => value.try_bytes_utf8_lossy()?.into_owned(),
+    };
     let joined = string_vec.join(&separator);
     Ok(Value::from(joined))
 }
@@ -42,7 +41,8 @@ impl Function for Join {
                 "value",
                 kind::ARRAY,
                 "The array of strings to join together.",
-            ),
+            )
+            .with_element_kind(kind::BYTES),
             Parameter::optional(
                 "separator",
                 kind::BYTES,
@@ -68,12 +68,12 @@ impl Function for Join {
         &[
             example! {
                 title: "Join array (no separator)",
-                source: r#"join!(["bring", "us", "together"])"#,
+                source: r#"join(["bring", "us", "together"])"#,
                 result: Ok("bringustogether"),
             },
             example! {
                 title: "Join array (comma separator)",
-                source: r#"join!(["sources", "transforms", "sinks"], separator: ", ")"#,
+                source: r#"join(["sources", "transforms", "sinks"], separator: ", ")"#,
                 result: Ok("sources, transforms, sinks"),
             },
         ]
@@ -99,7 +99,7 @@ impl FunctionExpression for JoinFn {
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {
-        TypeDef::bytes().fallible()
+        TypeDef::bytes()
     }
 }
 
@@ -113,25 +113,25 @@ mod test {
         with_comma_separator {
             args: func_args![value: value!(["one", "two", "three"]), separator: ", "],
             want: Ok(value!("one, two, three")),
-            tdef: TypeDef::bytes().fallible(),
+            tdef: TypeDef::bytes(),
         }
 
         with_space_separator {
             args: func_args![value: value!(["one", "two", "three"]), separator: " "],
             want: Ok(value!("one two three")),
-            tdef: TypeDef::bytes().fallible(),
+            tdef: TypeDef::bytes(),
         }
 
         without_separator {
             args: func_args![value: value!(["one", "two", "three"])],
             want: Ok(value!("onetwothree")),
-            tdef: TypeDef::bytes().fallible(),
+            tdef: TypeDef::bytes(),
         }
 
         non_string_array_item_throws_error {
             args: func_args![value: value!(["one", "two", 3])],
             want: Err("all array items must be strings"),
-            tdef: TypeDef::bytes().fallible(),
+            tdef: TypeDef::bytes(),
         }
     ];
 }

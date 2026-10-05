@@ -8,26 +8,31 @@ use nom::{
     sequence::{delimited, preceded},
 };
 use std::collections::BTreeMap;
-use std::sync::LazyLock;
 
-static DEFAULT_STRICT_MODE: LazyLock<Value> = LazyLock::new(|| Value::Boolean(true));
+static DEFAULT_STRICT_MODE: Value = Value::Boolean(true);
 
-static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
-    vec![
-        Parameter::required(
-            "value",
-            kind::BYTES,
-            "Access log of the Application Load Balancer.",
-        ),
-        Parameter::optional("strict_mode", kind::BOOLEAN, "When set to `false`, the parser ignores any newly added or trailing fields in AWS ALB logs instead of failing. Defaults to `true` to preserve strict parsing behavior.")
-            .default(&DEFAULT_STRICT_MODE),
-    ]
-});
+const PARAMETERS: &[Parameter] = &[
+    Parameter::required(
+        "value",
+        kind::BYTES,
+        "Access log of the Application Load Balancer.",
+    ),
+    Parameter::optional("strict_mode", kind::BOOLEAN, "When set to `false`, the parser ignores any newly added or trailing fields in AWS ALB logs instead of failing. Defaults to `true` to preserve strict parsing behavior.")
+        .default(&DEFAULT_STRICT_MODE),
+];
 
 fn parse_aws_alb_log(bytes: Value, strict_mode: Value) -> Resolved {
     let bytes = bytes.try_bytes()?;
     let strict_mode = strict_mode.try_boolean()?;
     parse_log(&String::from_utf8_lossy(&bytes), strict_mode)
+}
+
+fn null_if_dash(value: Value) -> Value {
+    if value.as_bytes().is_some_and(|bytes| bytes.as_ref() == b"-") {
+        Value::Null
+    } else {
+        value
+    }
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -161,7 +166,7 @@ impl Function for ParseAwsAlbLog {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        PARAMETERS.as_slice()
+        PARAMETERS
     }
 }
 
@@ -271,10 +276,7 @@ fn parse_log(mut input: &str, strict_mode: bool) -> ExpressionResult<Value> {
         ($name:expr_2021, $parser:expr_2021, $err:ty) => {
             log.insert(
                 $name.into(),
-                match get_value!($name, $parser, $err).into() {
-                    Value::Bytes(bytes) if bytes == "-" => Value::Null,
-                    value => value,
-                },
+                null_if_dash(get_value!($name, $parser, $err).into()),
             )
         };
         ($name:expr_2021, $parser:expr_2021) => {
@@ -327,20 +329,14 @@ fn parse_log(mut input: &str, strict_mode: bool) -> ExpressionResult<Value> {
     let mut iter = request.splitn(2, ' ');
     log.insert(
         "request_method".to_owned().into(),
-        match iter.next().unwrap().into() {
-            Value::Bytes(bytes) if bytes == "-" => Value::Null,
-            value => value,
-        },
+        null_if_dash(iter.next().unwrap().into()),
     ); // split always have at least 1 item
     match iter.next() {
         Some(value) => {
             let mut iter = value.rsplitn(2, ' ');
             log.insert(
                 "request_protocol".to_owned().into(),
-                match iter.next().unwrap().into() {
-                    Value::Bytes(bytes) if bytes == "-" => Value::Null,
-                    value => value,
-                },
+                null_if_dash(iter.next().unwrap().into()),
             ); // same as previous one
             match iter.next() {
                 Some(value) => log.insert("request_url".into(), value.into()),

@@ -1,4 +1,4 @@
-# result: can't subtract type float from float
+# result: operation would produce NaN
 
 large = to_float!("1.7976931348623157e+308")
 inf_float = large + large

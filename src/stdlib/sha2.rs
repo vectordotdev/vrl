@@ -1,11 +1,10 @@
+use super::util::hex_encode;
 use crate::compiler::function::EnumVariant;
 use crate::compiler::prelude::*;
 use crate::value;
-use sha_2::{Digest, Sha224, Sha256, Sha384, Sha512, Sha512_224, Sha512_256};
-use std::sync::LazyLock;
+use sha2::{Digest, Sha224, Sha256, Sha384, Sha512, Sha512_224, Sha512_256};
 
-static DEFAULT_VARIANT: LazyLock<Value> =
-    LazyLock::new(|| Value::Bytes(Bytes::from("SHA-512/256")));
+static DEFAULT_VARIANT: Value = Value::from_static_str("SHA-512/256");
 
 static VARIANT_ENUM: &[EnumVariant] = &[
     EnumVariant {
@@ -34,35 +33,36 @@ static VARIANT_ENUM: &[EnumVariant] = &[
     },
 ];
 
-static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
-    vec![
-        Parameter::required(
-            "value",
-            kind::BYTES,
-            "The string to calculate the hash for.",
-        ),
-        Parameter::optional(
-            "variant",
-            kind::BYTES,
-            "The variant of the algorithm to use.",
-        )
-        .default(&DEFAULT_VARIANT)
-        .enum_variants(VARIANT_ENUM),
-    ]
-});
+const PARAMETERS: &[Parameter] = &[
+    Parameter::required(
+        "value",
+        kind::BYTES,
+        "The string to calculate the hash for.",
+    ),
+    Parameter::optional(
+        "variant",
+        kind::BYTES,
+        "The variant of the algorithm to use.",
+    )
+    .default(&DEFAULT_VARIANT)
+    .enum_variants(VARIANT_ENUM),
+];
+
+fn sha2_hex(value: &[u8], variant: &[u8]) -> bytestring::ByteString {
+    match variant {
+        b"SHA-224" => hex_encode::<56>(Sha224::digest(value)),
+        b"SHA-256" => hex_encode::<64>(Sha256::digest(value)),
+        b"SHA-384" => hex_encode::<96>(Sha384::digest(value)),
+        b"SHA-512" => hex_encode::<128>(Sha512::digest(value)),
+        b"SHA-512/224" => hex_encode::<56>(Sha512_224::digest(value)),
+        b"SHA-512/256" => hex_encode::<64>(Sha512_256::digest(value)),
+        _ => unreachable!("enum invariant"),
+    }
+}
 
 fn sha2(value: Value, variant: &Bytes) -> Resolved {
     let value = value.try_bytes()?;
-    let hash = match variant.as_ref() {
-        b"SHA-224" => encode::<Sha224>(&value),
-        b"SHA-256" => encode::<Sha256>(&value),
-        b"SHA-384" => encode::<Sha384>(&value),
-        b"SHA-512" => encode::<Sha512>(&value),
-        b"SHA-512/224" => encode::<Sha512_224>(&value),
-        b"SHA-512/256" => encode::<Sha512_256>(&value),
-        _ => unreachable!("enum invariant"),
-    };
-    Ok(hash.into())
+    Ok(Value::String(sha2_hex(&value, variant)))
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -97,7 +97,7 @@ impl Function for Sha2 {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        PARAMETERS.as_slice()
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {
@@ -135,7 +135,15 @@ impl Function for Sha2 {
             .try_bytes()
             .expect("variant not bytes");
 
-        Ok(Sha2Fn { value, variant }.as_expr())
+        if let Some(val) = value.resolve_constant(state)
+            && let Ok(bytes) = val.try_bytes()
+        {
+            Ok(Box::new(crate::compiler::expression::Literal::from(
+                sha2_hex(&bytes, &variant),
+            )))
+        } else {
+            Ok(Sha2Fn { value, variant }.as_expr())
+        }
     }
 }
 
@@ -156,11 +164,6 @@ impl FunctionExpression for Sha2Fn {
     fn type_def(&self, _: &state::TypeState) -> TypeDef {
         TypeDef::bytes().infallible()
     }
-}
-
-#[inline]
-fn encode<T: Digest>(value: &[u8]) -> String {
-    hex::encode(T::digest(value))
 }
 
 #[cfg(test)]
@@ -224,4 +227,47 @@ mod tests {
              tdef: TypeDef::bytes().infallible(),
          }
     ];
+
+    #[test]
+    fn test_sha2_compiles_to_literal() {
+        use crate::compiler::CompileConfig;
+
+        let state = state::TypeState::default();
+        let mut ctx = FunctionCompileContext::new(Span::default(), CompileConfig::default());
+        let mut args = ArgumentList::default();
+        args.insert("value", Value::from("foo").into());
+
+        let expr = Sha2.compile(&state, &mut ctx, args).unwrap();
+        assert_eq!(
+            expr.resolve_constant(&state),
+            Some(Value::from(
+                "d58042e6aa5a335e03ad576c6a9e43b41591bfd2077f72dec9df7930e492055d"
+            ))
+        );
+    }
+
+    #[test]
+    fn test_sha2_compiles_dynamic() {
+        use crate::compiler::CompileConfig;
+        use crate::compiler::expression::Variable;
+        use crate::compiler::parser::Ident;
+
+        let mut state = state::TypeState::default();
+        state.local.insert_variable(
+            Ident::new("foo"),
+            type_def::Details {
+                type_def: TypeDef::bytes(),
+                value: None,
+            },
+        );
+
+        let mut ctx = FunctionCompileContext::new(Span::default(), CompileConfig::default());
+        let var = Variable::new((0, 0).into(), Ident::new("foo"), &state.local).unwrap();
+
+        let mut args = ArgumentList::default();
+        args.insert("value", var.into());
+
+        let expr = Sha2.compile(&state, &mut ctx, args).unwrap();
+        assert!(expr.resolve_constant(&state).is_none());
+    }
 }

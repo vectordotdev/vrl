@@ -16,6 +16,9 @@ env:
   COMMIT_MESSAGE: "Update generated docs"
   COMMIT_AUTHOR: "github-actions[bot]"
 
+permissions:
+  contents: read
+
 jobs:
   changes:
     runs-on: ubuntu-latest
@@ -24,8 +27,8 @@ jobs:
     outputs:
       docs: ${{ steps.filter.outputs.docs }}
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
         id: filter
         with:
           filters: |
@@ -33,24 +36,24 @@ jobs:
               - "src/docs/**"
               - "src/stdlib/**"
               - "lib/docs/**"
-              - "scripts/generate_docs.sh"
+              - "Makefile"
               - ".github/workflows/check_generated_docs.yml"
 
   run-check-generated-docs:
     needs: changes
     if: needs.changes.outputs.docs == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
-      - uses: Swatinem/rust-cache@c676846f29d98ff6b0106d3608c7ffd4048af17b # v2.9.0
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
 
       - name: Regenerate docs
-        run: ./scripts/generate_docs.sh
+        run: make generate-docs
 
       - name: Check for changes
         id: check
@@ -106,7 +109,7 @@ jobs:
           && steps.last-commit.outputs.is-auto != 'true'
           && github.event_name == 'pull_request'
           && steps.push.outcome != 'success'
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: docs-check-pr
           path: /tmp/docs-check/pr-number
@@ -114,7 +117,7 @@ jobs:
       - name: Fail if docs are out of date
         if: steps.check.outputs.changed == 'true' && steps.push.outcome != 'success'
         run: |
-          echo "docs/generated/ is out of date. Regenerate with: ./scripts/generate_docs.sh"
+          echo "docs/generated/ is out of date. Regenerate with: make generate-docs"
           exit 1
 
   check-generated-docs:

@@ -1,3 +1,4 @@
+use crate::compiler::conversion::Conversion;
 use crate::compiler::prelude::*;
 use crate::value::value::simdutf_bytes_utf8_lossy;
 use chrono::Timelike;
@@ -6,142 +7,245 @@ use prost::Message;
 use prost_reflect::{DynamicMessage, FieldDescriptor, Kind, MapKey, MessageDescriptor};
 use std::collections::HashMap;
 
-#[derive(Default, Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Options {
     pub use_json_names: bool,
+    /// Allow stringifying non-string scalars (`Boolean`, `Integer`, `Float`,
+    /// `Timestamp`) when encoding into a protobuf `string` field.
+    ///
+    /// VRL accepts this by default as a convenience for callers handling loosely
+    /// typed input. The [protobuf JSON mapping](https://protobuf.dev/programming-guides/json/)
+    /// itself only accepts a JSON string for a `string` field, so set this to
+    /// `false` if you need strict, spec-compliant encoding.
+    pub allow_lossy_string_coercion: bool,
+}
+
+impl Default for Options {
+    fn default() -> Self {
+        Self {
+            use_json_names: false,
+            allow_lossy_string_coercion: true,
+        }
+    }
+}
+
+/// Parse a string map key into a `MapKey` matching the proto key field's kind.
+///
+/// Proto map keys can be any scalar type (bool, int32, int64, uint32, uint64,
+/// string), but VRL `Object` keys are always strings, so non-string keys are
+/// parsed back from their decimal string representation. This is the inverse
+/// of the stringification done in `parse_proto`.
+fn parse_map_key(kind: &Kind, key: &str) -> Result<MapKey, String> {
+    fn parse<T: std::str::FromStr>(key: &str, ty: &str) -> Result<T, String>
+    where
+        T::Err: std::fmt::Display,
+    {
+        key.parse::<T>()
+            .map_err(|e| format!("Cannot parse map key '{key}' as {ty}: {e}"))
+    }
+    Ok(match kind {
+        Kind::String => MapKey::String(key.into()),
+        Kind::Bool => MapKey::Bool(parse(key, "bool")?),
+        Kind::Int32 | Kind::Sint32 | Kind::Sfixed32 => MapKey::I32(parse(key, "i32")?),
+        Kind::Int64 | Kind::Sint64 | Kind::Sfixed64 => MapKey::I64(parse(key, "i64")?),
+        Kind::Uint32 | Kind::Fixed32 => MapKey::U32(parse(key, "u32")?),
+        Kind::Uint64 | Kind::Fixed64 => MapKey::U64(parse(key, "u64")?),
+        k => return Err(format!("Unsupported proto map key type: {k:?}")),
+    })
 }
 
 /// Convert a single raw `Value` into a protobuf `Value`.
 ///
 /// Unlike `convert_value`, this ignores any field metadata such as cardinality.
+#[allow(
+    clippy::cast_possible_truncation,
+    clippy::cast_precision_loss,
+    clippy::cast_sign_loss,
+    clippy::too_many_lines
+)] // Protobuf scalar coercions intentionally preserve the existing Rust `as` semantics.
+fn convert_bytes_like(
+    b: Bytes,
+    kind: &Kind,
+    kind_str: &str,
+) -> Result<prost_reflect::Value, String> {
+    match kind {
+        Kind::Bool => match Conversion::Boolean.convert(b) {
+            Ok(Value::Boolean(v)) => Ok(prost_reflect::Value::Bool(v)),
+            Ok(_) => unreachable!("Conversion::Boolean always yields Value::Boolean"),
+            Err(e) => Err(e.to_string()),
+        },
+        Kind::Bytes => Ok(prost_reflect::Value::Bytes(b)),
+        _ => convert_utf8(&simdutf_bytes_utf8_lossy(&b), kind, kind_str),
+    }
+}
+
+fn convert_utf8(string: &str, kind: &Kind, kind_str: &str) -> Result<prost_reflect::Value, String> {
+    match kind {
+        Kind::Bool => {
+            match Conversion::Boolean.convert(Bytes::copy_from_slice(string.as_bytes())) {
+                Ok(Value::Boolean(v)) => Ok(prost_reflect::Value::Bool(v)),
+                Ok(_) => unreachable!("Conversion::Boolean always yields Value::Boolean"),
+                Err(e) => Err(e.to_string()),
+            }
+        }
+        Kind::Bytes => Ok(prost_reflect::Value::Bytes(Bytes::copy_from_slice(
+            string.as_bytes(),
+        ))),
+        Kind::String => Ok(prost_reflect::Value::String(string.to_owned())),
+        Kind::Enum(descriptor) => {
+            match descriptor
+                .values()
+                .find(|v| v.name().eq_ignore_ascii_case(string))
+            {
+                Some(d) => Ok(prost_reflect::Value::EnumNumber(d.number())),
+                None => Err(format!(
+                    "Enum `{}` has no value that matches string '{string}'",
+                    descriptor.full_name(),
+                )),
+            }
+        }
+        Kind::Double => {
+            let val = string
+                .parse::<f64>()
+                .map_err(|e| format!("Cannot parse `{string}` as double: {e}"))?;
+            Ok(prost_reflect::Value::F64(val))
+        }
+        Kind::Float => {
+            let val = string
+                .parse::<f32>()
+                .map_err(|e| format!("Cannot parse `{string}` as float: {e}"))?;
+            Ok(prost_reflect::Value::F32(val))
+        }
+        Kind::Int32 | Kind::Sfixed32 | Kind::Sint32 => {
+            let number: i32 = string
+                .parse()
+                .map_err(|e| format!("Can't convert '{string}' to i32: {e}"))?;
+            Ok(prost_reflect::Value::I32(number))
+        }
+        Kind::Int64 | Kind::Sfixed64 | Kind::Sint64 => {
+            let number: i64 = string
+                .parse()
+                .map_err(|e| format!("Can't convert '{string}' to i64: {e}"))?;
+            Ok(prost_reflect::Value::I64(number))
+        }
+        Kind::Uint32 | Kind::Fixed32 => {
+            let number: u32 = string
+                .parse()
+                .map_err(|e| format!("Can't convert '{string}' to u32: {e}"))?;
+            Ok(prost_reflect::Value::U32(number))
+        }
+        Kind::Uint64 | Kind::Fixed64 => {
+            let number: u64 = string
+                .parse()
+                .map_err(|e| format!("Can't convert '{string}' to u64: {e}"))?;
+            Ok(prost_reflect::Value::U64(number))
+        }
+        Kind::Message(_) => Err(format!(
+            "Cannot encode `{kind_str}` into protobuf `{kind:?}`",
+        )),
+    }
+}
+
+#[allow(
+    clippy::cast_possible_truncation,
+    clippy::cast_possible_wrap,
+    clippy::cast_sign_loss,
+    clippy::cast_precision_loss
+)] // Protobuf scalar coercions intentionally preserve the existing Rust `as` semantics.
 fn convert_value_raw(
     value: Value,
     kind: &Kind,
     options: &Options,
 ) -> Result<prost_reflect::Value, String> {
     let kind_str = value.kind_str().to_owned();
-    match (value, kind) {
-        (Value::Boolean(b), Kind::Bool) => Ok(prost_reflect::Value::Bool(b)),
-        (Value::Bytes(b), Kind::Bytes) => Ok(prost_reflect::Value::Bytes(b)),
-        (Value::Bytes(b), Kind::String) => Ok(prost_reflect::Value::String(
-            simdutf_bytes_utf8_lossy(&b).into_owned(),
-        )),
-        (Value::Bytes(b), Kind::Enum(descriptor)) => {
-            let string = simdutf_bytes_utf8_lossy(&b);
-            match descriptor
-                .values()
-                .find(|v| v.name().eq_ignore_ascii_case(&string))
-            {
-                Some(d) => Ok(prost_reflect::Value::EnumNumber(d.number())),
-                None => Err(format!(
-                    "Enum `{}` has no value that matches string '{}'",
-                    descriptor.full_name(),
-                    string
-                )),
+    match value {
+        Value::String(s) => convert_utf8(&s, kind, &kind_str),
+        Value::Bytes(b) => convert_bytes_like(b, kind, &kind_str),
+        value => match (value, kind) {
+            (Value::Boolean(b), Kind::Bool) => Ok(prost_reflect::Value::Bool(b)),
+            (Value::Integer(i), Kind::Bool) => Ok(prost_reflect::Value::Bool(i != 0)),
+            (Value::Integer(i), Kind::Int32 | Kind::Sint32 | Kind::Sfixed32) => {
+                Ok(prost_reflect::Value::I32(i as i32))
             }
-        }
-        (Value::Float(f), Kind::Double) => Ok(prost_reflect::Value::F64(f.into_inner())),
-        (Value::Float(f), Kind::Float) => Ok(prost_reflect::Value::F32(f.into_inner() as f32)),
-        (Value::Bytes(b), Kind::Double) => {
-            let string = simdutf_bytes_utf8_lossy(&b);
-            let val = string
-                .parse::<f64>()
-                .map_err(|e| format!("Cannot parse `{string}` as double: {e}"))?;
-            Ok(prost_reflect::Value::F64(val))
-        }
-        (Value::Bytes(b), Kind::Float) => {
-            let string = simdutf_bytes_utf8_lossy(&b);
-            let val = string
-                .parse::<f32>()
-                .map_err(|e| format!("Cannot parse `{string}` as float: {e}"))?;
-            Ok(prost_reflect::Value::F32(val))
-        }
-        (Value::Integer(i), Kind::Int32) => Ok(prost_reflect::Value::I32(i as i32)),
-        (Value::Integer(i), Kind::Int64) => Ok(prost_reflect::Value::I64(i)),
-        (Value::Integer(i), Kind::Sint32) => Ok(prost_reflect::Value::I32(i as i32)),
-        (Value::Integer(i), Kind::Sint64) => Ok(prost_reflect::Value::I64(i)),
-        (Value::Integer(i), Kind::Sfixed32) => Ok(prost_reflect::Value::I32(i as i32)),
-        (Value::Integer(i), Kind::Sfixed64) => Ok(prost_reflect::Value::I64(i)),
-        (Value::Integer(i), Kind::Uint32) => Ok(prost_reflect::Value::U32(i as u32)),
-        (Value::Integer(i), Kind::Uint64) => Ok(prost_reflect::Value::U64(i as u64)),
-        (Value::Integer(i), Kind::Fixed32) => Ok(prost_reflect::Value::U32(i as u32)),
-        (Value::Integer(i), Kind::Fixed64) => Ok(prost_reflect::Value::U64(i as u64)),
-        (Value::Integer(i), Kind::Double) => Ok(prost_reflect::Value::F64(i as f64)),
-        (Value::Integer(i), Kind::Enum(_)) => Ok(prost_reflect::Value::EnumNumber(i as i32)),
-        (Value::Bytes(b), Kind::Int32 | Kind::Sfixed32 | Kind::Sint32) => {
-            let string = simdutf_bytes_utf8_lossy(&b);
-            let number: i32 = string
-                .parse()
-                .map_err(|e| format!("Can't convert '{string}' to i32: {e}"))?;
-            Ok(prost_reflect::Value::I32(number))
-        }
-        (Value::Bytes(b), Kind::Int64 | Kind::Sfixed64 | Kind::Sint64) => {
-            let string = simdutf_bytes_utf8_lossy(&b);
-            let number: i64 = string
-                .parse()
-                .map_err(|e| format!("Can't convert '{string}' to i64: {e}"))?;
-            Ok(prost_reflect::Value::I64(number))
-        }
-        (Value::Bytes(b), Kind::Uint32 | Kind::Fixed32) => {
-            let string = simdutf_bytes_utf8_lossy(&b);
-            let number: u32 = string
-                .parse()
-                .map_err(|e| format!("Can't convert '{string}' to u32: {e}"))?;
-            Ok(prost_reflect::Value::U32(number))
-        }
-        (Value::Bytes(b), Kind::Uint64 | Kind::Fixed64) => {
-            let string = simdutf_bytes_utf8_lossy(&b);
-            let number: u64 = string
-                .parse()
-                .map_err(|e| format!("Can't convert '{string}' to u64: {e}"))?;
-            Ok(prost_reflect::Value::U64(number))
-        }
-        (Value::Object(o), Kind::Message(message_descriptor)) => {
-            if message_descriptor.is_map_entry() {
-                let value_field = message_descriptor
-                    .get_field_by_name("value")
-                    .ok_or("Internal error with proto map processing")?;
-                let mut map: HashMap<MapKey, prost_reflect::Value> = HashMap::new();
-                for (key, val) in o.into_iter() {
-                    match convert_value(&value_field, val, options) {
-                        Ok(prost_val) => {
-                            map.insert(MapKey::String(key.into()), prost_val);
+            (Value::Integer(i), Kind::Int64 | Kind::Sint64 | Kind::Sfixed64) => {
+                Ok(prost_reflect::Value::I64(i))
+            }
+            (Value::Integer(i), Kind::Uint32 | Kind::Fixed32) => {
+                Ok(prost_reflect::Value::U32(i as u32))
+            }
+            (Value::Integer(i), Kind::Uint64 | Kind::Fixed64) => {
+                Ok(prost_reflect::Value::U64(i as u64))
+            }
+            (Value::Integer(i), Kind::Double) => Ok(prost_reflect::Value::F64(i as f64)),
+            (Value::Integer(i), Kind::Float) => Ok(prost_reflect::Value::F32(i as f32)),
+            (Value::Integer(i), Kind::Enum(_)) => Ok(prost_reflect::Value::EnumNumber(i as i32)),
+            (Value::Float(f), Kind::Double) => Ok(prost_reflect::Value::F64(f.into_inner())),
+            (Value::Float(f), Kind::Float) => Ok(prost_reflect::Value::F32(f.into_inner() as f32)),
+            (Value::Object(o), Kind::Message(message_descriptor)) => {
+                if message_descriptor.is_map_entry() {
+                    let key_field = message_descriptor.map_entry_key_field();
+                    let value_field = message_descriptor.map_entry_value_field();
+                    let key_kind = key_field.kind();
+                    let mut map: HashMap<MapKey, prost_reflect::Value> = HashMap::new();
+                    for (key, val) in o {
+                        let map_key = parse_map_key(&key_kind, &key)?;
+                        match convert_value(&value_field, val, options) {
+                            Ok(prost_val) => {
+                                map.insert(map_key, prost_val);
+                            }
+                            Err(e) => return Err(e),
                         }
-                        Err(e) => return Err(e),
                     }
+                    Ok(prost_reflect::Value::Map(map))
+                } else {
+                    // if it's not a map, it's an actual message
+                    Ok(prost_reflect::Value::Message(encode_message(
+                        message_descriptor,
+                        Value::Object(o),
+                        options,
+                    )?))
                 }
-                Ok(prost_reflect::Value::Map(map))
-            } else {
-                // if it's not a map, it's an actual message
-                Ok(prost_reflect::Value::Message(encode_message(
-                    message_descriptor,
-                    Value::Object(o),
-                    options,
-                )?))
             }
-        }
-        (Value::Regex(r), Kind::String) => Ok(prost_reflect::Value::String(r.as_str().to_owned())),
-        (Value::Regex(r), Kind::Bytes) => Ok(prost_reflect::Value::Bytes(r.as_bytes())),
-        (Value::Timestamp(t), Kind::Int64) => Ok(prost_reflect::Value::I64(t.timestamp_micros())),
-        (Value::Timestamp(t), Kind::Message(descriptor))
-            if descriptor.full_name() == "google.protobuf.Timestamp" =>
-        {
-            let mut message = DynamicMessage::new(descriptor.clone());
-            message
-                .try_set_field_by_name("seconds", prost_reflect::Value::I64(t.timestamp()))
-                .map_err(|e| format!("Error setting 'seconds' field: {e}"))?;
-            message
-                .try_set_field_by_name("nanos", prost_reflect::Value::I32(t.nanosecond() as i32))
-                .map_err(|e| format!("Error setting 'nanos' field: {e}"))?;
-            Ok(prost_reflect::Value::Message(message))
-        }
-        (Value::Boolean(b), Kind::String) => Ok(prost_reflect::Value::String(b.to_string())),
-        (Value::Integer(i), Kind::String) => Ok(prost_reflect::Value::String(i.to_string())),
-        (Value::Float(f), Kind::String) => Ok(prost_reflect::Value::String(f.to_string())),
-        (Value::Timestamp(t), Kind::String) => Ok(prost_reflect::Value::String(t.to_string())),
-        _ => Err(format!(
-            "Cannot encode `{kind_str}` into protobuf `{kind:?}`",
-        )),
+            (Value::Regex(r), Kind::String) => {
+                Ok(prost_reflect::Value::String(r.as_str().to_owned()))
+            }
+            (Value::Regex(r), Kind::Bytes) => Ok(prost_reflect::Value::Bytes(r.as_bytes())),
+            (Value::Timestamp(t), Kind::Int64) => {
+                Ok(prost_reflect::Value::I64(t.timestamp_micros()))
+            }
+            (Value::Timestamp(t), Kind::Message(descriptor))
+                if descriptor.full_name() == "google.protobuf.Timestamp" =>
+            {
+                let mut message = DynamicMessage::new(descriptor.clone());
+                message
+                    .try_set_field_by_name("seconds", prost_reflect::Value::I64(t.timestamp()))
+                    .map_err(|e| format!("Error setting 'seconds' field: {e}"))?;
+                message
+                    .try_set_field_by_name(
+                        "nanos",
+                        prost_reflect::Value::I32(
+                            i32::try_from(t.nanosecond()).expect("nanoseconds always fit in i32"),
+                        ),
+                    )
+                    .map_err(|e| format!("Error setting 'nanos' field: {e}"))?;
+                Ok(prost_reflect::Value::Message(message))
+            }
+            (Value::Boolean(b), Kind::String) if options.allow_lossy_string_coercion => {
+                Ok(prost_reflect::Value::String(b.to_string()))
+            }
+            (Value::Integer(i), Kind::String) if options.allow_lossy_string_coercion => {
+                Ok(prost_reflect::Value::String(i.to_string()))
+            }
+            (Value::Float(f), Kind::String) if options.allow_lossy_string_coercion => {
+                Ok(prost_reflect::Value::String(f.to_string()))
+            }
+            (Value::Timestamp(t), Kind::String) if options.allow_lossy_string_coercion => {
+                Ok(prost_reflect::Value::String(t.to_string()))
+            }
+            _ => Err(format!(
+                "Cannot encode `{kind_str}` into protobuf `{kind:?}`",
+            )),
+        },
     }
 }
 
@@ -221,8 +325,12 @@ pub fn encode_message(
 }
 
 #[cfg(feature = "enable_system_functions")]
-pub(crate) fn encode_proto(descriptor: &MessageDescriptor, value: Value) -> Resolved {
-    let message = encode_message(descriptor, value, &Options::default())?;
+pub(crate) fn encode_proto(
+    descriptor: &MessageDescriptor,
+    value: Value,
+    options: &Options,
+) -> Resolved {
+    let message = encode_message(descriptor, value, options)?;
     let mut buf = Vec::new();
     message
         .encode(&mut buf)
@@ -341,6 +449,63 @@ mod tests {
         )
         .unwrap();
         assert_eq!(Some(42.0), mfield!(message, "d").as_f64());
+    }
+
+    #[test]
+    fn test_encode_integer_as_float() {
+        let message = encode_message(
+            &test_message_descriptor("Floats"),
+            Value::Object(BTreeMap::from([("f".into(), Value::Integer(123))])),
+            &Options::default(),
+        )
+        .unwrap();
+        assert_eq!(Some(123.0), mfield!(message, "f").as_f32());
+    }
+
+    #[test]
+    fn test_encode_integer_as_bool() {
+        let descriptor = test_message_descriptor("Booleans");
+        for (i, expected) in [(0, false), (1, true), (42, true), (-1, true)] {
+            let message = encode_message(
+                &descriptor,
+                Value::Object(BTreeMap::from([("b".into(), Value::Integer(i))])),
+                &Options::default(),
+            )
+            .unwrap();
+            assert_eq!(Some(expected), mfield!(message, "b").as_bool(), "i={i}");
+        }
+    }
+
+    #[test]
+    fn test_encode_string_as_bool() {
+        let descriptor = test_message_descriptor("Booleans");
+        for s in ["true", "TRUE", "True", "1", "yes", "YES", "y", "Y", "t"] {
+            let message = encode_message(
+                &descriptor,
+                Value::Object(BTreeMap::from([("b".into(), Value::from(s))])),
+                &Options::default(),
+            )
+            .unwrap();
+            assert_eq!(Some(true), mfield!(message, "b").as_bool(), "s={s:?}");
+        }
+        for s in ["false", "FALSE", "False", "0", "no", "NO", "n", "N", "f"] {
+            let message = encode_message(
+                &descriptor,
+                Value::Object(BTreeMap::from([("b".into(), Value::from(s))])),
+                &Options::default(),
+            )
+            .unwrap();
+            assert_eq!(Some(false), mfield!(message, "b").as_bool(), "s={s:?}");
+        }
+        // Invalid strings propagate as an encode error.
+        for s in ["", "invalid", "maybe"] {
+            let result = encode_message(
+                &descriptor,
+                Value::Object(BTreeMap::from([("b".into(), Value::from(s))])),
+                &Options::default(),
+            );
+            assert!(result.is_err(), "expected error for s={s:?}");
+        }
     }
 
     #[test]
@@ -563,6 +728,34 @@ mod tests {
         );
     }
 
+    #[test]
+    fn test_strict_string_coercion_rejects_non_strings() {
+        let strict = Options {
+            allow_lossy_string_coercion: false,
+            ..Options::default()
+        };
+        let descriptor = test_message_descriptor("Bytes");
+        let cases: Vec<(&str, Value)> = vec![
+            ("bool", Value::Boolean(true)),
+            ("int", Value::Integer(123)),
+            ("float", Value::Float(NotNan::new(45.67).unwrap())),
+            (
+                "timestamp",
+                Value::Timestamp(
+                    DateTime::from_timestamp(8675, 309).expect("could not compute timestamp"),
+                ),
+            ),
+        ];
+        for (label, value) in cases {
+            let result = encode_message(
+                &descriptor,
+                Value::Object(BTreeMap::from([("text".into(), value)])),
+                &strict,
+            );
+            assert!(result.is_err(), "expected strict mode to reject {label}");
+        }
+    }
+
     fn read_pb_file(protobuf_bin_message_path: &str) -> String {
         fs::read_to_string(test_data_dir().join(protobuf_bin_message_path)).unwrap()
     }
@@ -573,7 +766,7 @@ mod tests {
         let path = test_data_dir().join("test_protobuf/v1/test_protobuf.desc");
         let descriptor = get_message_descriptor(&path, "test_protobuf.v1.Person").unwrap();
         let expected_value = value!(read_pb_file("test_protobuf/v1/input/person_someone.pb"));
-        let encoded_value = encode_proto(&descriptor, value.clone());
+        let encoded_value = encode_proto(&descriptor, value.clone(), &Options::default());
         assert!(
             encoded_value.is_ok(),
             "Failed to encode proto: {:?}",
@@ -590,7 +783,7 @@ mod tests {
             parsed_value.unwrap_err()
         );
         let parsed_value = parsed_value.unwrap();
-        assert_eq!(value, parsed_value)
+        assert_eq!(value, parsed_value);
     }
 
     #[test]
@@ -599,7 +792,7 @@ mod tests {
             value!({name: "Someone",phones: [{number: "123-456", type: "PHONE_TYPE_MOBILE"}]});
         let descriptor = test_protobuf3_descriptor();
         let expected_value = value!(read_pb_file("test_protobuf3/v1/input/person_someone.pb"));
-        let encoded_value = encode_proto(&descriptor, value.clone());
+        let encoded_value = encode_proto(&descriptor, value.clone(), &Options::default());
         assert!(
             encoded_value.is_ok(),
             "Failed to encode proto: {:?}",
@@ -616,7 +809,7 @@ mod tests {
             parsed_value.unwrap_err()
         );
         let parsed_value = parsed_value.unwrap();
-        assert_eq!(value, parsed_value)
+        assert_eq!(value, parsed_value);
     }
 
     #[test]
@@ -649,6 +842,7 @@ mod tests {
             value,
             &Options {
                 use_json_names: true,
+                ..Options::default()
             },
         )
         .unwrap();
@@ -658,5 +852,28 @@ mod tests {
             Some("Software Engineer"),
             mfield!(message, "job_description").as_str()
         );
+    }
+
+    #[test]
+    fn test_encode_decode_map_all_key_types() {
+        // Round-trip a VRL Object containing one map per supported proto key type
+        // through encode_proto -> parse_proto. Non-string keys must survive the
+        // string-to-MapKey-to-string conversion on both sides.
+        let entry = |k: &str| Value::Object(BTreeMap::from([(k.into(), Value::from("v"))]));
+        let input = Value::Object(BTreeMap::from([
+            ("by_bool".into(), entry("true")),
+            ("by_int32".into(), entry("-5")),
+            ("by_int64".into(), entry("-9999999999")),
+            ("by_uint32".into(), entry("100")),
+            ("by_uint64".into(), entry("18446744073709551615")),
+            ("by_string".into(), entry("hello")),
+        ]));
+
+        let path = test_data_dir().join("test_protobuf_maps/v1/test_protobuf_maps.desc");
+        let descriptor = get_message_descriptor(&path, "test_protobuf_maps.v1.Maps").unwrap();
+        let encoded = encode_proto(&descriptor, input.clone(), &Options::default())
+            .expect("encode_proto failed");
+        let decoded = parse_proto(&descriptor, encoded).expect("parse_proto failed");
+        assert_eq!(input, decoded, "round-trip mismatch");
     }
 }

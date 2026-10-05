@@ -14,7 +14,6 @@ use nom::{
     number::complete::double,
     sequence::{delimited, terminated},
 };
-use onig::EncodedChars;
 use ordered_float::NotNan;
 
 use super::super::{
@@ -55,17 +54,12 @@ impl std::fmt::Display for KeyValueFilter {
 impl KeyValueFilter {
     fn from_args<'a>(mut args: impl Iterator<Item = &'a FunctionArgument>) -> Option<Self> {
         let key_value_delimiter = match args.next() {
-            Some(FunctionArgument::Arg(Value::Bytes(bytes))) => &String::from_utf8_lossy(bytes),
-            Some(_) => return None,
-            None => DEFAULT_KEYVALUE_DELIMITER,
+            Some(arg) => arg.to_utf8_lossy()?,
+            None => DEFAULT_KEYVALUE_DELIMITER.to_string(),
         };
 
         let value_re = match args.next() {
-            Some(FunctionArgument::Arg(Value::Bytes(bytes))) => {
-                [DEFAULT_VALUE_RE, &String::from_utf8_lossy(bytes)].concat()
-            }
-            Some(_) => return None,
-            // default allowed unescaped symbols
+            Some(arg) => [DEFAULT_VALUE_RE, &arg.to_utf8_lossy()?].concat(),
             None => DEFAULT_VALUE_RE.to_string(),
         };
 
@@ -74,10 +68,10 @@ impl KeyValueFilter {
 
         Some(Self {
             re_pattern: regex_from_config(
-                key_value_delimiter,
+                &key_value_delimiter,
                 &value_re,
                 quotes.clone(),
-                field_delimiters,
+                &field_delimiters,
             )?,
             quotes,
         })
@@ -86,8 +80,8 @@ impl KeyValueFilter {
 
 fn parse_quotes(arg: Option<&FunctionArgument>) -> Option<Vec<(char, char)>> {
     match arg {
-        Some(FunctionArgument::Arg(Value::Bytes(bytes))) => {
-            let pair = String::from_utf8_lossy(bytes);
+        Some(arg) => {
+            let pair = arg.to_utf8_lossy()?;
             match pair {
                 pair if pair.len() == 2 => {
                     let mut chars = pair.chars();
@@ -100,15 +94,14 @@ fn parse_quotes(arg: Option<&FunctionArgument>) -> Option<Vec<(char, char)>> {
                 _ => None,
             }
         }
-        Some(_) => None,
         None => Some(Vec::from(DEFAULT_QUOTES)),
     }
 }
 
 fn parse_field_delimiters(arg: Option<&FunctionArgument>) -> Option<(String, String)> {
     match arg {
-        Some(FunctionArgument::Arg(Value::Bytes(bytes))) => {
-            let delimiter_str = String::from_utf8_lossy(bytes);
+        Some(arg) => {
+            let delimiter_str = arg.to_utf8_lossy()?;
             let mut chars = delimiter_str.chars();
             match (chars.next(), chars.next(), chars.as_str()) {
                 (Some(single), None, _) => Some((single.to_string(), single.to_string())),
@@ -116,7 +109,6 @@ fn parse_field_delimiters(arg: Option<&FunctionArgument>) -> Option<(String, Str
                 _ => None,
             }
         }
-        Some(_) => None,
         None => Some((
             DEFAULT_DELIMITERS.0.to_string(),
             DEFAULT_DELIMITERS.1.to_string(),
@@ -124,11 +116,12 @@ fn parse_field_delimiters(arg: Option<&FunctionArgument>) -> Option<(String, Str
     }
 }
 
+#[must_use]
 pub fn regex_from_config(
     key_value_delimiter: &str,
     value_re: &str,
     quotes: Vec<(char, char)>,
-    field_delimiters: (String, String),
+    field_delimiters: &(String, String),
 ) -> Option<Regex> {
     // start group
     let mut quoting = String::from("(");
@@ -166,32 +159,37 @@ pub fn regex_from_config(
 
 impl KeyValueFilter {
     pub fn apply_filter(&self, value: &Value) -> Result<Value, InternalError> {
-        match value {
-            Value::Bytes(bytes) => {
-                let mut result = Value::Object(BTreeMap::default());
-                let value = String::from_utf8_lossy(bytes);
-                self.re_pattern.captures_iter(value.as_ref()).for_each(|c| {
-                    self.parse_key_value_capture(&mut result, c);
-                });
-                Ok(result)
-            }
-            _ => Err(InternalError::FailedToApplyFilter(
+        match value.as_str() {
+            Some(s) => Ok(self.apply_str(&s)),
+            None => Err(InternalError::FailedToApplyFilter(
                 self.to_string(),
                 value.to_string(),
             )),
         }
     }
 
-    fn parse_key_value_capture(&self, result: &mut Value, c: Result<Captures, fancy_regex::Error>) {
-        let key = parse_key(extract_capture(&c, 1), &self.quotes);
+    fn apply_str(&self, value: &str) -> Value {
+        let mut result = Value::Object(BTreeMap::default());
+        self.re_pattern.captures_iter(value).for_each(|c| {
+            self.parse_key_value_capture(&mut result, &c);
+        });
+        result
+    }
+
+    fn parse_key_value_capture(
+        &self,
+        result: &mut Value,
+        c: &Result<Captures, fancy_regex::Error>,
+    ) {
+        let key = parse_key(extract_capture(c, 1), &self.quotes);
         if !key.contains(' ') {
-            let value = extract_capture(&c, 2);
+            let value = extract_capture(c, 2);
             // trim trailing comma for value
             let value = value.trim_end_matches(',');
 
             if let Ok((_, value)) = parse_value(value, &self.quotes)
                 && !(value.is_null()
-                    || matches!(&value, Value::Bytes(b) if b.is_empty())
+                    || value.as_bytes().is_some_and(Bytes::is_empty)
                     || key.is_empty())
             {
                 let path = crate::path!(key);
@@ -280,7 +278,7 @@ fn parse_string(input: &str) -> SResult<'_, Value> {
 fn parse_number(input: &str) -> SResult<'_, Value> {
     map_res(terminated(double, eof), |v| {
         // can be safely converted to Integer without precision loss
-        if ((v as i64) as f64 - v).abs() == 0.0 {
+        if let Some(integer) = super::super::grok_filter::f64_to_i64_if_integral(v) {
             // Check if it is a valid octal number(start with 0) - keep parsed as a decimal though.
             if input.starts_with('0') && input.contains(['8', '9']) {
                 Err(nom::Err::<&str, (&str, nom::error::ErrorKind)>::Error((
@@ -288,7 +286,7 @@ fn parse_number(input: &str) -> SResult<'_, Value> {
                     nom::error::ErrorKind::OctDigit,
                 )))
             } else {
-                Ok(Value::Integer(v as i64))
+                Ok(Value::Integer(integer))
             }
         } else {
             Ok(Value::Float(NotNan::new(v).expect("not a float")))
@@ -315,9 +313,7 @@ fn parse_boolean(input: &str) -> SResult<'_, Value> {
 
 /// Removes quotes from the key if needed.
 fn parse_key<'a>(input: &'a str, quotes: &'a [(char, char)]) -> &'a str {
-    quoted(quotes)(input)
-        .map(|(_, key)| key)
-        .unwrap_or_else(|_| input)
+    quoted(quotes)(input).map_or_else(|_| input, |(_, key)| key)
 }
 
 #[cfg(test)]
@@ -328,7 +324,7 @@ mod tests {
     fn test_parse_key() {
         assert_eq!("key", parse_key("key", DEFAULT_QUOTES));
         assert_eq!("key", parse_key(r#""key""#, DEFAULT_QUOTES));
-        assert_eq!("key", parse_key(r#"#key#"#, &[('#', '#')]));
+        assert_eq!("key", parse_key(r"#key#", &[('#', '#')]));
     }
 
     #[test]
@@ -350,27 +346,24 @@ mod tests {
         // remove non-default quotes
         assert_eq!(
             Ok(("", Value::from("value"))),
-            parse_value(r#"#value#"#, &[('#', '#')])
+            parse_value(r"#value#", &[('#', '#')])
         );
-        assert_eq!(
-            Ok(("", Value::Null)),
-            parse_value(r#"null"#, DEFAULT_QUOTES)
-        );
+        assert_eq!(Ok(("", Value::Null)), parse_value(r"null", DEFAULT_QUOTES));
         assert_eq!(
             Ok(("", Value::from(true))),
-            parse_value(r#"true"#, DEFAULT_QUOTES)
+            parse_value(r"true", DEFAULT_QUOTES)
         );
         assert_eq!(
             Ok(("", Value::from(false))),
-            parse_value(r#"false"#, DEFAULT_QUOTES)
+            parse_value(r"false", DEFAULT_QUOTES)
         );
         assert_eq!(
             Ok(("", Value::from(12))),
-            parse_value(r#"12"#, DEFAULT_QUOTES)
+            parse_value(r"12", DEFAULT_QUOTES)
         );
         assert_eq!(
             Ok(("", Value::from(1.2))),
-            parse_value(r#"1.2"#, DEFAULT_QUOTES)
+            parse_value(r"1.2", DEFAULT_QUOTES)
         );
     }
 }

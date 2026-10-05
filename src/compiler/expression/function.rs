@@ -55,6 +55,10 @@ impl<T: FunctionExpression + Debug + Clone> Expression for FunctionExpressionAda
         self.inner.resolve(ctx)
     }
 
+    fn resolve_constant(&self, _state: &TypeState) -> Option<Value> {
+        self.inner.as_value()
+    }
+
     fn type_info(&self, state: &TypeState) -> TypeInfo {
         let result = self.inner.type_def(state);
         TypeInfo::new(state, result)

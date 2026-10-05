@@ -12,12 +12,17 @@ use nom::{
 };
 use std::num::ParseIntError;
 
+/// Parses a Ruby hash literal into a VRL value.
+///
+/// # Errors
+///
+/// Returns an error if the input is not a valid Ruby hash literal or contains
+/// trailing non-whitespace characters.
 pub fn parse_ruby_hash(input: &str) -> ExpressionResult<Value> {
     let result = parse_hash(input)
         .map_err(|err| match err {
             nom::Err::Error(err) | nom::Err::Failure(err) => {
-                // Create a descriptive error message if possible.
-                nom_language::error::convert_error(input, err)
+                crate::parsing::safe_convert_error(input, err)
             }
             nom::Err::Incomplete(_) => err.to_string(),
         })

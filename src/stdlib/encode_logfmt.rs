@@ -1,19 +1,17 @@
 use crate::compiler::prelude::*;
-use std::sync::LazyLock;
 
 use super::encode_key_value::{DEFAULT_FIELDS_ORDERING, EncodeKeyValueFn};
 
-static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
-    vec![
-        Parameter::required(
-            "value",
-            kind::OBJECT,
-            "The value to convert to a logfmt string.",
-        ),
-        Parameter::optional("fields_ordering", kind::ARRAY, "The ordering of fields to preserve. Any fields not in this list are listed unordered, after all ordered fields.")
-            .default(&DEFAULT_FIELDS_ORDERING),
-    ]
-});
+const PARAMETERS: &[Parameter] = &[
+    Parameter::required(
+        "value",
+        kind::OBJECT,
+        "The value to convert to a logfmt string.",
+    ),
+    Parameter::optional("fields_ordering", kind::ARRAY, "The ordering of fields to preserve. Any fields not in this list are listed unordered, after all ordered fields.")
+        .default(&DEFAULT_FIELDS_ORDERING)
+        .with_element_kind(kind::BYTES),
+];
 
 #[derive(Clone, Copy, Debug)]
 pub struct EncodeLogfmt;
@@ -39,12 +37,8 @@ impl Function for EncodeLogfmt {
         kind::BYTES
     }
 
-    fn notices(&self) -> &'static [&'static str] {
-        &["If `fields_ordering` is specified then the function is fallible else it is infallible."]
-    }
-
     fn parameters(&self) -> &'static [Parameter] {
-        PARAMETERS.as_slice()
+        PARAMETERS
     }
 
     fn compile(
@@ -81,7 +75,7 @@ impl Function for EncodeLogfmt {
             },
             example! {
                 title: "Encode to logfmt (fields ordering)",
-                source: r#"encode_logfmt!({"ts": "2021-06-05T17:20:00Z", "msg": "This is a message", "lvl": "info", "log_id": 12345}, ["ts", "lvl", "msg"])"#,
+                source: r#"encode_logfmt({"ts": "2021-06-05T17:20:00Z", "msg": "This is a message", "lvl": "info", "log_id": 12345}, ["ts", "lvl", "msg"])"#,
                 result: Ok(r#"ts=2021-06-05T17:20:00Z lvl=info msg="This is a message" log_id=12345"#),
             },
             example! {
@@ -91,7 +85,7 @@ impl Function for EncodeLogfmt {
             },
             example! {
                 title: "Encode to logfmt (nested fields ordering)",
-                source: r#"encode_logfmt!({"agent": {"name": "foo"}, "log": {"file": {"path": "my.log"}}, "event": "log"}, ["event", "log.file.path", "agent.name"])"#,
+                source: r#"encode_logfmt({"agent": {"name": "foo"}, "log": {"file": {"path": "my.log"}}, "event": "log"}, ["event", "log.file.path", "agent.name"])"#,
                 result: Ok(r"event=log log.file.path=my.log agent.name=foo"),
             },
         ]

@@ -1,29 +1,26 @@
 use crate::compiler::prelude::*;
-use std::sync::LazyLock;
 
-static DEFAULT_COUNT: LazyLock<Value> = LazyLock::new(|| Value::Integer(-1));
+static DEFAULT_COUNT: Value = Value::Integer(-1);
 
-static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
-    vec![
-        Parameter::required("value", kind::BYTES, "The original string."),
-        Parameter::required(
-            "pattern",
-            kind::BYTES | kind::REGEX,
-            "Replace all matches of this pattern. Can be a static string or a regular expression.",
-        ),
-        Parameter::required(
-            "with",
-            kind::BYTES,
-            "The string that the matches are replaced with.",
-        ),
-        Parameter::optional(
-            "count",
-            kind::INTEGER,
-            "The maximum number of replacements to perform. `-1` means replace all matches.",
-        )
-        .default(&DEFAULT_COUNT),
-    ]
-});
+const PARAMETERS: &[Parameter] = &[
+    Parameter::required("value", kind::BYTES, "The original string."),
+    Parameter::required(
+        "pattern",
+        kind::BYTES | kind::REGEX,
+        "Replace all matches of this pattern. Can be a static string or a regular expression.",
+    ),
+    Parameter::required(
+        "with",
+        kind::BYTES,
+        "The string that the matches are replaced with.",
+    ),
+    Parameter::optional(
+        "count",
+        kind::INTEGER,
+        "The maximum number of replacements to perform. `-1` means replace all matches.",
+    )
+    .default(&DEFAULT_COUNT),
+];
 
 #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)] // TODO consider removal options
 fn replace(value: &Value, with_value: &Value, count: Value, pattern: Value) -> Resolved {
@@ -31,15 +28,10 @@ fn replace(value: &Value, with_value: &Value, count: Value, pattern: Value) -> R
     let with = with_value.try_bytes_utf8_lossy()?;
     let count = count.try_integer()?;
     match pattern {
+        Value::String(s) => Ok(replace_str(&value, &s, &with, count).into()),
         Value::Bytes(bytes) => {
             let pattern = String::from_utf8_lossy(&bytes);
-            let replaced = match count {
-                i if i > 0 => value.replacen(pattern.as_ref(), &with, i as usize),
-                i if i < 0 => value.replace(pattern.as_ref(), &with),
-                _ => value.into_owned(),
-            };
-
-            Ok(replaced.into())
+            Ok(replace_str(&value, &pattern, &with, count).into())
         }
         Value::Regex(regex) => {
             let replaced = match count {
@@ -61,6 +53,15 @@ fn replace(value: &Value, with_value: &Value, count: Value, pattern: Value) -> R
             expected: Kind::regex() | Kind::bytes(),
         }
         .into()),
+    }
+}
+
+#[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)] // TODO consider removal options
+fn replace_str(value: &str, pattern: &str, with: &str, count: i64) -> String {
+    match count {
+        i if i > 0 => value.replacen(pattern, with, i as usize),
+        i if i < 0 => value.replace(pattern, with),
+        _ => value.to_owned(),
     }
 }
 
@@ -96,7 +97,7 @@ impl Function for Replace {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        PARAMETERS.as_slice()
+        PARAMETERS
     }
 
     fn examples(&self) -> &'static [Example] {

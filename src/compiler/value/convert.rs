@@ -89,6 +89,7 @@ impl VrlValueConvert for Value {
     fn try_bytes(self) -> Result<Bytes, ValueError> {
         match self {
             Value::Bytes(v) => Ok(v),
+            Value::String(v) => Ok(v.into_bytes()),
             _ => Err(ValueError::Expected {
                 got: self.kind(),
                 expected: Kind::bytes(),

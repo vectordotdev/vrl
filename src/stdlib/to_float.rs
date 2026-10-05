@@ -9,7 +9,7 @@ pub(crate) fn bytes_to_float(bytes: Bytes) -> Resolved {
 
 #[allow(clippy::cast_precision_loss)] //TODO evaluate removal options
 fn to_float(value: Value) -> Resolved {
-    use Value::{Boolean, Bytes, Float, Integer, Null, Timestamp};
+    use Value::{Boolean, Bytes, Float, Integer, Null, String, Timestamp};
     match value {
         Float(_) => Ok(value),
         Integer(v) => Ok(Value::from_f64_or_zero(v as f64)),
@@ -22,8 +22,8 @@ fn to_float(value: Value) -> Resolved {
             };
             Ok(Value::from_f64_or_zero(nanoseconds / 1_000_000_000_f64))
         }
-        Bytes(v) => Conversion::Float
-            .convert(v)
+        v @ (Bytes(_) | String(_)) => Conversion::Float
+            .convert(v.try_bytes().expect("bytes-like"))
             .map_err(|e| e.to_string().into()),
         v => Err(format!("unable to coerce {} into float", v.kind()).into()),
     }
@@ -60,6 +60,7 @@ impl Function for ToFloat {
             "If `value` is a string, it must be the string representation of an float or else an error is raised.",
             "If `value` is a boolean, `0.0` is returned for `false` and `1.0` is returned for `true`.",
             "If `value` is a timestamp, a [Unix timestamp](https://en.wikipedia.org/wiki/Unix_time) with fractional seconds is returned.",
+            "If `value` is null, `0.0` is returned.",
         ]
     }
 
@@ -178,7 +179,7 @@ impl FunctionExpression for ToFloatFn {
 
 #[cfg(test)]
 mod tests {
-    use chrono::prelude::*;
+    use chrono::{TimeZone, Timelike, Utc};
 
     use super::*;
 
