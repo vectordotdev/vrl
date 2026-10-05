@@ -2,7 +2,7 @@ use crate::compiler::function::EnumVariant;
 use crate::compiler::prelude::*;
 use crate::stdlib::util::Base64Charset;
 
-static DEFAULT_CHARSET: Value = Value::Bytes(Bytes::from_static("standard".as_bytes()));
+static DEFAULT_CHARSET: Value = Value::from_static_str("standard");
 
 static CHARSET_ENUM: &[EnumVariant] = &[
     EnumVariant {

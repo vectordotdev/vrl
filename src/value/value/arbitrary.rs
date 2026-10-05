@@ -44,16 +44,16 @@ impl Arbitrary for Value {
         // Quickcheck can't derive Arbitrary for enums, see
         // https://github.com/BurntSushi/quickcheck/issues/98.  The magical
         // constant here are the number of fields in `Value`. Because the field
-        // total is a power of two we, happily, don't introduce a bias into the
-        // field picking.
-
-        let choice = u8::arbitrary(g) % 8;
+        // total is not a power of two, this unfortunately introduces bias into
+        // the field picking.
+        const VARIANTS: &[usize] = &[0, 1, 2, 3, 4, 5, 6, 7, 8];
+        let choice = g.choose(VARIANTS).expect("can only fail on empty slice");
 
         // Under `generate-fixtures`, Timestamp (slot 4) is excluded because it
         // doesn't survive a JSON/protobuf round-trip cleanly. Nudge it to
         // Object (slot 5) instead.
         #[cfg(feature = "generate-fixtures")]
-        let choice = { if choice == 4 { 5 } else { choice } };
+        let choice = { if *choice == 4 { 5 } else { *choice } };
 
         match choice {
             0 => {
@@ -94,6 +94,7 @@ impl Arbitrary for Value {
                 Self::Array(Vec::arbitrary(&mut generator))
             }
             7 => Self::Null,
+            8 => Self::String(String::arbitrary(g).into()),
             _ => unreachable!(),
         }
     }

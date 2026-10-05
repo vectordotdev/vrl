@@ -122,9 +122,9 @@ impl FindFn {
 
     fn find(value: Value, pattern: Value, offset: usize) -> ExpressionResult<Option<usize>> {
         match pattern {
-            Value::Bytes(bytes) => Ok(Self::find_bytes_in_bytes(
+            v @ (Value::Bytes(_) | Value::String(_)) => Ok(Self::find_bytes_in_bytes(
                 &value.try_bytes()?,
-                &bytes,
+                v.as_bytes().expect("bytes-like"),
                 offset,
             )),
             Value::Regex(regex) => Ok(Self::find_regex_in_str(

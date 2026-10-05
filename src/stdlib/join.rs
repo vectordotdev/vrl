@@ -1,17 +1,16 @@
 use crate::compiler::prelude::*;
-use std::borrow::Cow;
 
 fn join(array: Value, separator: Option<Value>) -> Resolved {
     let array = array.try_array()?;
     let string_vec = array
         .iter()
-        .map(|s| s.try_bytes_utf8_lossy().map_err(Into::into))
-        .collect::<ExpressionResult<Vec<Cow<'_, str>>>>()
-        .map_err(|_| "all array items must be strings")?;
-    let separator: String = separator
-        .map(Value::try_bytes)
-        .transpose()?
-        .map_or_else(String::new, |s| String::from_utf8_lossy(&s).to_string());
+        .map(|s| s.as_str().ok_or(()))
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|()| "all array items must be strings")?;
+    let separator = match separator {
+        None => String::new(),
+        Some(value) => value.try_bytes_utf8_lossy()?.into_owned(),
+    };
     let joined = string_vec.join(&separator);
     Ok(Value::from(joined))
 }

@@ -1,6 +1,6 @@
 [package]
 name = "vrl"
-version = "0.35.0"
+version = "0.36.0"
 authors = ["Vector Contributors <vector@datadoghq.com>"]
 edition = "2024"
 license = "MPL-2.0"
@@ -44,7 +44,7 @@ clap = { version = "4", features = ["derive"] }
 default = ["compiler", "stdlib", "datadog", "cli", "enable_env_functions", "enable_system_functions", "enable_network_functions", "enable_crypto_functions"]
 
 # Contains the primary data type used in VRL, along with path types. Useful for crates that work with VRL values without needing the full compiler.
-value = ["dep:bytes", "dep:regex", "dep:ordered-float", "dep:chrono", "dep:serde_json", "dep:simdutf8", "dep:serde", "dep:snafu"]
+value = ["dep:bytes", "dep:bytestring", "dep:regex", "dep:ordered-float", "dep:chrono", "dep:serde_json", "dep:simdutf8", "dep:serde", "dep:snafu"]
 
 # Contains the core functionality of VRL: compiling and running VRL programs, parser, and diagnostics.
 compiler = ["value", "dep:chrono-tz", "dep:thiserror", "dep:dyn-clone", "dep:indoc", "dep:lalrpop-util", "dep:codespan-reporting", "dep:termcolor"]
@@ -180,6 +180,7 @@ base16 = { version = "0.2", optional = true }
 base62 = { version = "2.2.1", optional = true }
 base64-simd = { version = "0.8", optional = true }
 bytes = { version = "1", default-features = false, optional = true }
+bytestring = { version = "1", optional = true }
 charset = { version = "0.1", optional = true }
 encoding_rs = { version = "0.8.35", optional = true }
 chrono = { version = "0.4", default-features = false, features = ["clock", "serde", "wasmbind"], optional = true }
@@ -287,7 +288,7 @@ reqwest = { version = "0.12", default-features = false, features = ["http2", "ru
 reqwest-middleware = { version = "0.4", default-features = false, optional = true }
 reqwest-retry = { version = "0.8", default-features = false, optional = true }
 dns-lookup = { version = "3", optional = true }
-domain = { version = "0.12.0", optional = true, features = ["resolv-sync", "serde"] }
+domain = { version = "0.12.3", optional = true, features = ["resolv-sync", "serde"] }
 hostname = { version = "0.4", optional = true }
 grok = { version = "2.4", optional = true }
 onig = { version = "6", default-features = false, optional = true }
