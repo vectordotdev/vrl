@@ -452,7 +452,7 @@ mod test {
     #[test]
     fn bytes_and_string_are_equal_and_hash_equal() {
         let string = Value::from("foo");
-        let bytes = Value::from_static_bytes("foo");
+        let bytes = Value::from_static_bytes(b"foo");
 
         assert!(matches!(string, Value::String(_)));
         assert!(matches!(bytes, Value::Bytes(_)));
@@ -463,15 +463,15 @@ mod test {
     #[test]
     fn bytes_and_string_order_by_content() {
         assert_eq!(
-            Value::from("aaa").partial_cmp(&Value::from_static_bytes("zzz")),
+            Value::from("aaa").partial_cmp(&Value::from_static_bytes(b"zzz")),
             Some(Ordering::Less)
         );
         assert_eq!(
-            Value::from_static_bytes("zzz").partial_cmp(&Value::from("aaa")),
+            Value::from_static_bytes(b"zzz").partial_cmp(&Value::from("aaa")),
             Some(Ordering::Greater)
         );
         assert_eq!(
-            Value::from("foo").partial_cmp(&Value::from_static_bytes("foo")),
+            Value::from("foo").partial_cmp(&Value::from_static_bytes(b"foo")),
             Some(Ordering::Equal)
         );
     }
@@ -484,7 +484,7 @@ mod test {
         assert_eq!(both, Value::from("foobar"));
 
         let mut mixed = Value::from("foo");
-        mixed.merge(Value::from_static_bytes("bar"));
+        mixed.merge(Value::from_static_bytes(b"bar"));
         assert!(matches!(mixed, Value::Bytes(_)));
         assert_eq!(mixed, Value::from("foobar"));
     }

@@ -6,8 +6,7 @@ use crate::value;
 use std::collections::BTreeMap;
 
 static DEFAULT_TIMESTAMP_FORMAT_STR: &str = "%d/%b/%Y:%T %z";
-static DEFAULT_TIMESTAMP_FORMAT: Value =
-    Value::Bytes(Bytes::from_static(DEFAULT_TIMESTAMP_FORMAT_STR.as_bytes()));
+static DEFAULT_TIMESTAMP_FORMAT: Value = Value::from_static_str(DEFAULT_TIMESTAMP_FORMAT_STR);
 
 static FORMAT_ENUM: &[EnumVariant] = &[
     EnumVariant {

@@ -54,7 +54,7 @@ mod test {
 
     fn assert_display(s: &'static str, expected: &str) {
         assert_eq!(Value::from(s).to_string(), expected);
-        assert_eq!(Value::from_static_bytes(s).to_string(), expected);
+        assert_eq!(Value::from_static_bytes(s.as_bytes()).to_string(), expected);
     }
 
     #[test]

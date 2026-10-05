@@ -2,8 +2,7 @@ use super::log_util;
 use crate::compiler::prelude::*;
 use std::collections::BTreeMap;
 
-static DEFAULT_TIMESTAMP_FORMAT: Value =
-    Value::Bytes(Bytes::from_static("%d/%b/%Y:%T %z".as_bytes()));
+static DEFAULT_TIMESTAMP_FORMAT: Value = Value::from_static_str("%d/%b/%Y:%T %z");
 
 const PARAMETERS: &[Parameter] = &[
     Parameter::required("value", kind::BYTES, "The string to parse."),
