@@ -34,11 +34,13 @@ jobs:
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: docs-check-pr
+          path: ${{ runner.temp }}/docs-check-pr
           run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ github.token }}
 
       - name: Read PR number
         id: metadata
+        working-directory: ${{ runner.temp }}/docs-check-pr
         run: |
           pr_number=$(tr -d '[:space:]' < pr-number)
           if [[ ! "$pr_number" =~ ^[0-9]+$ ]]; then
@@ -47,7 +49,37 @@ jobs:
           fi
           echo "pr-number=$pr_number" >> "$GITHUB_OUTPUT"
 
+      - name: Validate result
+        id: validation
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          PR_NUMBER: ${{ steps.metadata.outputs.pr-number }}
+        with:
+          script: |
+            const prNumber = Number(process.env.PR_NUMBER);
+            const run = context.payload.workflow_run;
+            const { data: pull } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber,
+            });
+
+            // Fork runs may omit PR associations; still require matching head identity.
+            const associatedPRs = run.pull_requests ?? [];
+            const matchesRun = (associatedPRs.length === 0
+              || associatedPRs.some(pr => pr.number === prNumber))
+              && pull.head.sha === run.head_sha
+              && pull.head.ref === run.head_branch
+              && pull.head.repo?.full_name === run.head_repository?.full_name;
+            if (!matchesRun || pull.state !== 'open') {
+              core.info('Ignoring an obsolete or unrelated workflow result');
+              core.setOutput('current', 'false');
+              return;
+            }
+            core.setOutput('current', 'true');
+
       - name: Comment on PR
+        if: steps.validation.outputs.current == 'true'
         uses: ./.github/actions/manage-pr-comment
         with:
           pr-number: ${{ steps.metadata.outputs.pr-number }}
@@ -83,11 +115,13 @@ jobs:
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: vector-compatibility-advisory
+          path: ${{ runner.temp }}/vector-compatibility-advisory
           run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ github.token }}
 
       - name: Read compatibility result
         id: metadata
+        working-directory: ${{ runner.temp }}/vector-compatibility-advisory
         run: |
           pr_number=$(tr -d '[:space:]' < pr-number)
           outcome=$(tr -d '[:space:]' < outcome)
@@ -117,7 +151,11 @@ jobs:
               pull_number: prNumber,
             });
 
-            const matchesRun = pull.head.sha === run.head_sha
+            // Fork runs may omit PR associations; still require matching head identity.
+            const associatedPRs = run.pull_requests ?? [];
+            const matchesRun = (associatedPRs.length === 0
+              || associatedPRs.some(pr => pr.number === prNumber))
+              && pull.head.sha === run.head_sha
               && pull.head.ref === run.head_branch
               && pull.head.repo?.full_name === run.head_repository?.full_name;
             if (!matchesRun || pull.state !== 'open') {
