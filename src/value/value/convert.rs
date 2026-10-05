@@ -116,6 +116,14 @@ impl Value {
         )
     }
 
+    /// Construct a `Value::String` from a static UTF-8 string.
+    ///
+    /// This is the const equivalent of `Value::from` for static strings.
+    #[must_use]
+    pub const fn from_static_str(s: &'static str) -> Self {
+        Self::String(ByteString::from_static(s))
+    }
+
     /// Construct a `Value::Bytes` from a static UTF-8 string without promoting to `Value::String`.
     ///
     /// `From<&str>` produces `Value::String`. Tests that need the `Bytes` discriminant for
@@ -527,6 +535,7 @@ mod tests {
     fn from_str_is_string_variant() {
         assert!(matches!(Value::from("foo"), Value::String(_)));
         assert!(matches!(Value::from(String::from("foo")), Value::String(_)));
+        assert!(matches!(Value::from_static_str("foo"), Value::String(_)));
     }
 
     #[test]

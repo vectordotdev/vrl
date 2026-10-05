@@ -30,8 +30,8 @@ pub(crate) fn encode_key_value(
 }
 
 pub(super) static DEFAULT_FIELDS_ORDERING: Value = Value::Array(vec![]);
-static DEFAULT_KEY_VALUE_DELIMITER: Value = Value::Bytes(Bytes::from_static("=".as_bytes()));
-static DEFAULT_FIELD_DELIMITER: Value = Value::Bytes(Bytes::from_static(" ".as_bytes()));
+static DEFAULT_KEY_VALUE_DELIMITER: Value = Value::from_static_str("=");
+static DEFAULT_FIELD_DELIMITER: Value = Value::from_static_str(" ");
 static DEFAULT_FLATTEN_BOOLEAN: Value = Value::Boolean(false);
 
 const PARAMETERS: &[Parameter] = &[
