@@ -326,8 +326,8 @@ mod non_wasm {
 use non_wasm::*;
 
 
-static DEFAULT_QTYPE: Value = Value::Bytes(Bytes::from_static("A".as_bytes()));
-static DEFAULT_CLASS: Value = Value::Bytes(Bytes::from_static("IN".as_bytes()));
+static DEFAULT_QTYPE: Value = Value::from_static_str("A");
+static DEFAULT_CLASS: Value = Value::from_static_str("IN");
 static DEFAULT_OPTIONS: Value =
     Value::Object(std::collections::BTreeMap::new());
 
