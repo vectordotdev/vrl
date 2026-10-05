@@ -28,15 +28,10 @@ fn replace(value: &Value, with_value: &Value, count: Value, pattern: Value) -> R
     let with = with_value.try_bytes_utf8_lossy()?;
     let count = count.try_integer()?;
     match pattern {
+        Value::String(s) => Ok(replace_str(&value, &s, &with, count).into()),
         Value::Bytes(bytes) => {
             let pattern = String::from_utf8_lossy(&bytes);
-            let replaced = match count {
-                i if i > 0 => value.replacen(pattern.as_ref(), &with, i as usize),
-                i if i < 0 => value.replace(pattern.as_ref(), &with),
-                _ => value.into_owned(),
-            };
-
-            Ok(replaced.into())
+            Ok(replace_str(&value, &pattern, &with, count).into())
         }
         Value::Regex(regex) => {
             let replaced = match count {
@@ -58,6 +53,15 @@ fn replace(value: &Value, with_value: &Value, count: Value, pattern: Value) -> R
             expected: Kind::regex() | Kind::bytes(),
         }
         .into()),
+    }
+}
+
+#[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)] // TODO consider removal options
+fn replace_str(value: &str, pattern: &str, with: &str, count: i64) -> String {
+    match count {
+        i if i > 0 => value.replacen(pattern, with, i as usize),
+        i if i < 0 => value.replace(pattern, with),
+        _ => value.to_owned(),
     }
 }
 

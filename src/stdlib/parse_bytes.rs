@@ -7,7 +7,7 @@ use rust_decimal::{Decimal, prelude::FromPrimitive, prelude::ToPrimitive};
 use std::collections::HashMap;
 use std::sync::LazyLock;
 
-static DEFAULT_BASE: Value = Value::Bytes(Bytes::from_static("2".as_bytes()));
+static DEFAULT_BASE: Value = Value::from_static_str("2");
 
 static UNIT_ENUM: &[EnumVariant] = &[
     EnumVariant {

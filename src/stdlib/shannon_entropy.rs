@@ -5,7 +5,7 @@ use unicode_segmentation::UnicodeSegmentation;
 use crate::compiler::function::EnumVariant;
 use crate::compiler::prelude::*;
 
-static DEFAULT_SEGMENTATION: Value = Value::Bytes(Bytes::from_static("byte".as_bytes()));
+static DEFAULT_SEGMENTATION: Value = Value::from_static_str("byte");
 
 static SEGMENTATION_ENUM: &[EnumVariant] = &[
     EnumVariant {

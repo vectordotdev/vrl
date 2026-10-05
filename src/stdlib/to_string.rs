@@ -1,10 +1,10 @@
 use crate::compiler::prelude::*;
 
 fn to_string(value: Value) -> Resolved {
-    use Value::{Boolean, Bytes, Float, Integer, Null, Timestamp};
+    use Value::{Boolean, Bytes, Float, Integer, Null, String as ValueString, Timestamp};
     use chrono::SecondsFormat;
     let value = match value {
-        v @ Bytes(_) => v,
+        v @ (Bytes(_) | ValueString(_)) => v,
         Integer(v) => v.to_string().into(),
         Float(v) => v.to_string().into(),
         Boolean(v) => v.to_string().into(),

@@ -2,7 +2,7 @@ use crate::compiler::prelude::*;
 
 fn string(value: Value) -> Resolved {
     match value {
-        v @ Value::Bytes(_) => Ok(v),
+        v if v.is_bytes() => Ok(v),
         v => Err(format!("expected string, got {}", v.kind()).into()),
     }
 }

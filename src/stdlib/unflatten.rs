@@ -2,7 +2,7 @@ use itertools::Itertools;
 
 use crate::compiler::prelude::*;
 
-static DEFAULT_SEPARATOR: Value = Value::Bytes(Bytes::from_static(".".as_bytes()));
+static DEFAULT_SEPARATOR: Value = Value::from_static_str(".");
 static DEFAULT_RECURSIVE: Value = Value::Boolean(true);
 
 const PARAMETERS: &[Parameter] = &[
