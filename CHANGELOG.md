@@ -36,7 +36,7 @@ Changelog is generated from fragments in `changelog.d/` by the `release` crate.
 
 - Optimize `md5` runtime performance with stack-buffered hex encoding and compile-time constant evaluation for literals.
 
-  *Thanks to [[jimmystewpot]](https://github.com/[jimmystewpot]) for contributing PR [#1930](https://github.com/vectordotdev/vrl/pull/1930)!*
+  *Thanks to [jimmystewpot](https://github.com/jimmystewpot) for contributing PR [#1930](https://github.com/vectordotdev/vrl/pull/1930)!*
 - Improve `for_each` performance and reduce memory allocations by iterating over collections directly, binding only the closure parameters that are used, and reusing compiler variable slots across iterations. Benchmarks show a 23–41% throughput improvement for arrays and objects.
 
   *Thanks to [jimmystewpot](https://github.com/jimmystewpot) for contributing PR [#1932](https://github.com/vectordotdev/vrl/pull/1932)!*

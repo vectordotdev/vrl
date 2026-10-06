@@ -1,7 +1,7 @@
 use crate::compiler::function::EnumVariant;
 use crate::compiler::prelude::*;
 
-static DEFAULT_LEVEL: Value = Value::Bytes(Bytes::from_static("info".as_bytes()));
+static DEFAULT_LEVEL: Value = Value::from_static_str("info");
 static DEFAULT_RATE_LIMIT_SECS: Value = Value::Integer(1);
 
 static LEVEL_ENUM: &[EnumVariant] = &[
