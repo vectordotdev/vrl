@@ -4,7 +4,7 @@ fn is_empty(value: Value) -> Resolved {
     let empty = match value {
         Value::Object(v) => v.is_empty(),
         Value::Array(v) => v.is_empty(),
-        Value::Bytes(v) => v.is_empty(),
+        v @ (Value::Bytes(_) | Value::String(_)) => v.as_bytes().expect("bytes-like").is_empty(),
         value => {
             return Err(ValueError::Expected {
                 got: value.kind(),

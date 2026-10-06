@@ -2,7 +2,7 @@ use crate::compiler::function::EnumVariant;
 use crate::compiler::prelude::*;
 use std::str::FromStr;
 
-static DEFAULT_UNIT: Value = Value::Bytes(Bytes::from_static("seconds".as_bytes()));
+static DEFAULT_UNIT: Value = Value::from_static_str("seconds");
 
 static UNIT_ENUM: &[EnumVariant] = &[
     EnumVariant {

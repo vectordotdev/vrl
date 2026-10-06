@@ -3,23 +3,22 @@ use std::collections::{BTreeMap, HashMap};
 
 fn tally(value: Value) -> Resolved {
     let value = value.try_array()?;
-    #[allow(clippy::mutable_key_type)] // false positive due to bytes::Bytes
-    let mut map: HashMap<Bytes, usize> = HashMap::new();
+    let mut map: HashMap<String, usize> = HashMap::new();
     for value in value {
-        if let Value::Bytes(value) = value {
-            *map.entry(value).or_insert(0) += 1;
-        } else {
-            return Err(format!("all values must be strings, found: {value:?}").into());
+        match value {
+            Value::String(s) => *map.entry(s.to_string()).or_insert(0) += 1,
+            Value::Bytes(bytes) => {
+                *map.entry(String::from_utf8_lossy(&bytes).into_owned())
+                    .or_insert(0) += 1;
+            }
+            value => {
+                return Err(format!("all values must be strings, found: {value:?}").into());
+            }
         }
     }
     let map: BTreeMap<_, _> = map
         .into_iter()
-        .map(|(k, v)| {
-            (
-                String::from_utf8_lossy(&k).into_owned().into(),
-                Value::from(v),
-            )
-        })
+        .map(|(k, v)| (k.into(), Value::from(v)))
         .collect();
     Ok(map.into())
 }

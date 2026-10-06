@@ -1,16 +1,14 @@
+use super::util::hex_encode;
 use crate::compiler::prelude::*;
 use md5::Digest;
 
-fn md5_hex(value: &[u8]) -> Bytes {
-    let digest = md5::Md5::digest(value);
-    let mut buf = [0u8; 32];
-    hex::encode_to_slice(digest, &mut buf).expect("32 bytes");
-    Bytes::copy_from_slice(&buf)
+fn md5_hex(value: &[u8]) -> bytestring::ByteString {
+    hex_encode::<32>(md5::Md5::digest(value))
 }
 
 fn md5(value: Value) -> Resolved {
     let value = value.try_bytes()?;
-    Ok(Value::Bytes(md5_hex(&value)))
+    Ok(Value::String(md5_hex(&value)))
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -61,7 +59,7 @@ impl Function for Md5 {
         if let Some(val) = value.resolve_constant(state)
             && let Ok(bytes) = val.try_bytes()
         {
-            return Ok(Box::new(crate::compiler::expression::Literal::String(
+            return Ok(Box::new(crate::compiler::expression::Literal::from(
                 md5_hex(&bytes),
             )));
         }
@@ -118,8 +116,7 @@ mod tests {
         use crate::compiler::CompileConfig;
 
         let state = state::TypeState::default();
-        let mut ctx =
-            FunctionCompileContext::new(Span::default(), CompileConfig::default());
+        let mut ctx = FunctionCompileContext::new(Span::default(), CompileConfig::default());
         let mut args = ArgumentList::default();
         args.insert("value", Value::from("foo").into());
 
@@ -146,8 +143,7 @@ mod tests {
             },
         );
 
-        let mut ctx =
-            FunctionCompileContext::new(Span::default(), CompileConfig::default());
+        let mut ctx = FunctionCompileContext::new(Span::default(), CompileConfig::default());
         let var = Variable::new((0, 0).into(), Ident::new("foo"), &state.local).unwrap();
 
         let mut args = ArgumentList::default();
