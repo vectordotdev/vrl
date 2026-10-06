@@ -167,7 +167,7 @@ impl Kind {
 impl From<&Value> for Kind {
     fn from(value: &Value) -> Self {
         match value {
-            Value::Bytes(_) => Self::bytes(),
+            Value::Bytes(_) | Value::String(_) => Self::bytes(),
             Value::Integer(_) => Self::integer(),
             Value::Float(_) => Self::float(),
             Value::Boolean(_) => Self::boolean(),

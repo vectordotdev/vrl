@@ -1,9 +1,8 @@
 use crate::compiler::prelude::*;
-use bytes::Bytes;
 use chrono::{DateTime, Utc};
 use uuid::{NoContext, timestamp::Timestamp};
 
-static DEFAULT_TIMESTAMP: Value = Value::Bytes(Bytes::from_static("`now()`".as_bytes()));
+static DEFAULT_TIMESTAMP: Value = Value::from_static_str("`now()`");
 
 const PARAMETERS: &[Parameter] = &[Parameter::optional(
     "timestamp",
@@ -31,7 +30,7 @@ fn uuid_v7(timestamp: Option<Value>) -> Resolved {
     let uuid = uuid::Uuid::new_v7(timestamp)
         .hyphenated()
         .encode_lower(&mut buffer);
-    Ok(Bytes::copy_from_slice(uuid.as_bytes()).into())
+    Ok(Value::from(&*uuid))
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -133,15 +132,8 @@ mod tests {
         let mut ctx = Context::new(&mut object, &mut state, &tz);
         let value = UuidV7Fn { timestamp: None }.resolve(&mut ctx).unwrap();
 
-        assert!(matches!(&value, Value::Bytes(_)));
-
-        match value {
-            Value::Bytes(val) => {
-                let val = String::from_utf8_lossy(&val);
-                uuid::Uuid::parse_str(&val).expect("valid UUID V7");
-            }
-            _ => unreachable!(),
-        }
+        uuid::Uuid::parse_str(value.as_str().expect("UUIDv7 must be a string").as_ref())
+            .expect("valid UUID V7");
     }
 
     #[test]
@@ -158,11 +150,9 @@ mod tests {
                 timestamp.timestamp_subsec_millis() * 1_000_000,
             );
 
-            let Value::Bytes(encoded) = super::uuid_v7(Some(timestamp.into())).unwrap() else {
-                panic!("UUIDv7 must be a string");
-            };
-
-            let id = uuid::Uuid::parse_str(std::str::from_utf8(&encoded).unwrap()).unwrap();
+            let encoded = super::uuid_v7(Some(timestamp.into())).unwrap();
+            let encoded = encoded.as_str().expect("UUIDv7 must be a string");
+            let id = uuid::Uuid::parse_str(encoded.as_ref()).unwrap();
             assert_eq!(id.get_timestamp().unwrap().to_unix(), expected, "{input}");
         }
     }

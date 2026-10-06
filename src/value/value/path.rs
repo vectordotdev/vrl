@@ -1,6 +1,37 @@
-use crate::path::ValuePath;
+use std::convert::TryFrom;
+
+use crate::path::{OwnedSegment, OwnedValuePath, ValuePath};
 
 use crate::value::Value;
+
+impl TryFrom<Value> for OwnedSegment {
+    type Error = String;
+
+    #[allow(clippy::cast_possible_truncation)] // TODO consider removal options
+    fn try_from(value: Value) -> Result<Self, Self::Error> {
+        match value {
+            Value::Integer(index) => Ok(Self::index(index as isize)),
+            value => value.as_str().map(|s| Self::field(&s)).ok_or_else(|| {
+                format!(
+                    "path segment must be either string or integer, not {}",
+                    value.kind()
+                )
+            }),
+        }
+    }
+}
+
+impl TryFrom<Vec<Value>> for OwnedValuePath {
+    type Error = String;
+
+    fn try_from(segments: Vec<Value>) -> Result<Self, Self::Error> {
+        let mut path = Self::root();
+        for segment in segments {
+            path.push_segment(OwnedSegment::try_from(segment)?);
+        }
+        Ok(path)
+    }
+}
 
 impl Value {
     /// Insert the current value into a given path.

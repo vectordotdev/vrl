@@ -9,6 +9,7 @@ impl IntoLua for Value {
     fn into_lua(self, lua: &Lua) -> LuaResult<LuaValue> {
         match self {
             Self::Bytes(b) => lua.create_string(b.as_ref()).map(LuaValue::String),
+            Self::String(s) => lua.create_string(&*s).map(LuaValue::String),
             Self::Regex(regex) => lua
                 .create_string(regex.as_bytes_slice())
                 .map(LuaValue::String),
@@ -26,7 +27,7 @@ impl IntoLua for Value {
 impl FromLua for Value {
     fn from_lua(value: LuaValue, lua: &Lua) -> LuaResult<Self> {
         match value {
-            LuaValue::String(s) => Ok(Self::Bytes(s.as_bytes().to_vec().into())),
+            LuaValue::String(s) => Ok(Self::from_utf8_or_bytes(s.as_bytes().to_vec().into())),
             LuaValue::Integer(i) => Ok(Self::Integer(i)),
             LuaValue::Number(f) => {
                 let f = NotNan::new(f).map_err(|_| mlua::Error::FromLuaConversionError {

@@ -1,5 +1,5 @@
 use crate::compiler::prelude::*;
-use crate::path::{OwnedSegment, OwnedValuePath};
+use crate::path::OwnedValuePath;
 
 static DEFAULT_COMPACT: Value = Value::Boolean(false);
 
@@ -25,30 +25,7 @@ arrays left are also removed.",
 
 fn remove(path: Value, compact: Value, mut value: Value) -> Resolved {
     let path = match path {
-        Value::Array(path) => {
-            let mut lookup = OwnedValuePath::root();
-
-            for segment in path {
-                let segment = match segment {
-                    Value::Bytes(field) => {
-                        OwnedSegment::Field(String::from_utf8_lossy(&field).into())
-                    }
-                    #[allow(clippy::cast_possible_truncation)] //TODO evaluate removal options
-                    Value::Integer(index) => OwnedSegment::Index(index as isize),
-                    value => {
-                        return Err(format!(
-                            "path segment must be either string or integer, not {}",
-                            value.kind()
-                        )
-                        .into());
-                    }
-                };
-
-                lookup.segments.push(segment);
-            }
-
-            lookup
-        }
+        Value::Array(path) => OwnedValuePath::try_from(path)?,
         value => {
             return Err(ValueError::Expected {
                 got: value.kind(),
