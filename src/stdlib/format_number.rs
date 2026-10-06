@@ -1,7 +1,7 @@
 use crate::compiler::prelude::*;
 use rust_decimal::{Decimal, prelude::FromPrimitive};
 
-static DEFAULT_DECIMAL_SEPARATOR: Value = Value::Bytes(Bytes::from_static(".".as_bytes()));
+static DEFAULT_DECIMAL_SEPARATOR: Value = Value::from_static_str(".");
 
 const PARAMETERS: &[Parameter] = &[
     Parameter::required(

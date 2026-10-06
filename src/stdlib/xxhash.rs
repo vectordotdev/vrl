@@ -1,7 +1,7 @@
 use crate::compiler::prelude::*;
 use xxhash_rust::{xxh3, xxh32, xxh64};
 
-static DEFAULT_VARIANT: Value = Value::Bytes(Bytes::from_static("XXH32".as_bytes()));
+static DEFAULT_VARIANT: Value = Value::from_static_str("XXH32");
 
 const VALID_VARIANTS: &[&str] = &["XXH32", "XXH64", "XXH3-64", "XXH3-128"];
 

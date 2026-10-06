@@ -4,7 +4,7 @@ use std::collections::btree_map;
 use crate::compiler::expression::Expr;
 use crate::compiler::prelude::*;
 
-static DEFAULT_SEPARATOR: Value = Value::Bytes(Bytes::from_static(".".as_bytes()));
+static DEFAULT_SEPARATOR: Value = Value::from_static_str(".");
 static DEFAULT_EXCEPT: Value = Value::Array(vec![]);
 
 const PARAMETERS: &[Parameter] = &[

@@ -3,7 +3,7 @@ use crate::compiler::prelude::*;
 use crate::stdlib::util::Base64Charset;
 
 static DEFAULT_PADDING: Value = Value::Boolean(true);
-static DEFAULT_CHARSET: Value = Value::Bytes(Bytes::from_static("standard".as_bytes()));
+static DEFAULT_CHARSET: Value = Value::from_static_str("standard");
 
 const PARAMETERS: &[Parameter] = &[
     Parameter::required("value", kind::BYTES, "The string to encode."),

@@ -322,9 +322,9 @@ mod non_wasm {
 #[cfg(not(target_arch = "wasm32"))]
 use non_wasm::*;
 
-static DEFAULT_METHOD: Value = Value::Bytes(Bytes::from_static("get".as_bytes()));
+static DEFAULT_METHOD: Value = Value::from_static_str("get");
 static DEFAULT_HEADERS: Value = Value::Object(std::collections::BTreeMap::new());
-static DEFAULT_BODY: Value = Value::Bytes(Bytes::from_static("".as_bytes()));
+static DEFAULT_BODY: Value = Value::from_static_str("");
 static DEFAULT_REDACT_HEADERS: Value = Value::Boolean(true);
 
 const PARAMETERS: &[Parameter] = &[

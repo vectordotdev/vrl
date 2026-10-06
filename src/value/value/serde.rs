@@ -332,7 +332,7 @@ mod test {
 
     #[test]
     fn from_bytes_does_not_promote_utf8() {
-        let value = Value::from_static_bytes("hello");
+        let value = Value::from_static_bytes(b"hello");
         assert!(matches!(value, Value::Bytes(_)));
         assert_eq!(value, Value::from("hello"));
     }
@@ -340,7 +340,7 @@ mod test {
     #[test]
     fn bytes_and_string_serialize_as_json_strings() {
         let string = Value::from("hello");
-        let bytes = Value::from_static_bytes("hello");
+        let bytes = Value::from_static_bytes(b"hello");
         assert_eq!(serde_json::to_string(&string).unwrap(), r#""hello""#);
         assert_eq!(serde_json::to_string(&bytes).unwrap(), r#""hello""#);
     }
