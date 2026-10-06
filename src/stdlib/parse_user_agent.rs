@@ -14,7 +14,7 @@ static UA_EXTRACTOR: LazyLock<ua_parser::Extractor> = LazyLock::new(|| {
     ua_parser::Extractor::try_from(regexes).expect("Regex file is not valid.")
 });
 
-static DEFAULT_MODE: Value = Value::Bytes(Bytes::from_static("fast".as_bytes()));
+static DEFAULT_MODE: Value = Value::from_static_str("fast");
 
 static MODE_ENUM: &[EnumVariant] = &[
     EnumVariant {

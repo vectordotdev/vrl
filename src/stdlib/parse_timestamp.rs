@@ -9,26 +9,34 @@ fn parse_timestamp(
     ctx: &Context,
 ) -> Resolved {
     match value {
-        Value::Bytes(v) => {
-            let format = format.try_bytes_utf8_lossy()?;
-
-            let timezone_bytes = timezone.map(VrlValueConvert::try_bytes).transpose()?;
-            let timezone = timezone_bytes.as_ref().map(|b| String::from_utf8_lossy(b));
-            let timezone = timezone
-                .as_deref()
-                .map(|timezone| {
-                    TimeZone::parse(timezone).ok_or(format!("unable to parse timezone: {timezone}"))
-                })
-                .transpose()?
-                .unwrap_or(*ctx.timezone());
-
-            Conversion::timestamp(&format, timezone)
-                .convert(v)
-                .map_err(|e| e.to_string().into())
-        }
+        Value::Bytes(v) => parse_timestamp_bytes(v, format, timezone, ctx),
+        Value::String(s) => parse_timestamp_bytes(s.into_bytes(), format, timezone, ctx),
         Value::Timestamp(_) => Ok(value),
         _ => Err(format!("unable to convert {} value to timestamp", value.kind_str()).into()),
     }
+}
+
+fn parse_timestamp_bytes(
+    v: Bytes,
+    format: &Value,
+    timezone: Option<Value>,
+    ctx: &Context,
+) -> Resolved {
+    let format = format.try_bytes_utf8_lossy()?;
+    let timezone = timezone
+        .map(|tz| tz.try_bytes_utf8_lossy().map(std::borrow::Cow::into_owned))
+        .transpose()?;
+    let timezone = timezone
+        .as_deref()
+        .map(|timezone| {
+            TimeZone::parse(timezone).ok_or(format!("unable to parse timezone: {timezone}"))
+        })
+        .transpose()?
+        .unwrap_or(*ctx.timezone());
+
+    Conversion::timestamp(&format, timezone)
+        .convert(v)
+        .map_err(|e| e.to_string().into())
 }
 
 #[derive(Clone, Copy, Debug)]

@@ -1,7 +1,7 @@
 use crate::compiler::prelude::*;
 
-static DEFAULT_REPLACE_SINGLE: Value = Value::Bytes(Bytes::from_static("".as_bytes()));
-static DEFAULT_REPLACE_REPEATED: Value = Value::Bytes(Bytes::from_static("".as_bytes()));
+static DEFAULT_REPLACE_SINGLE: Value = Value::from_static_str("");
+static DEFAULT_REPLACE_REPEATED: Value = Value::from_static_str("");
 
 const PARAMETERS: &[Parameter] = &[
     Parameter::required("value", kind::BYTES, "The original string."),

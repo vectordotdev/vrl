@@ -2,7 +2,7 @@ use crate::compiler::conversion::Conversion;
 use crate::compiler::prelude::*;
 
 fn to_int(value: Value) -> Resolved {
-    use Value::{Boolean, Bytes, Float, Integer, Null, Timestamp};
+    use Value::{Boolean, Bytes, Float, Integer, Null, String, Timestamp};
 
     match value {
         Integer(_) => Ok(value),
@@ -10,8 +10,8 @@ fn to_int(value: Value) -> Resolved {
         Float(v) => Ok(Integer(v.into_inner() as i64)),
         Boolean(v) => Ok(Integer(i64::from(v))),
         Null => Ok(0.into()),
-        Bytes(v) => Conversion::Integer
-            .convert(v)
+        v @ (Bytes(_) | String(_)) => Conversion::Integer
+            .convert(v.try_bytes().expect("bytes-like"))
             .map_err(|e| e.to_string().into()),
         Timestamp(v) => Ok(v.timestamp().into()),
         v => Err(format!("unable to coerce {} into integer", v.kind()).into()),

@@ -372,6 +372,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fc652a48c352aef3ea3aed32080501cf3ef6ed5da78602a020c991775b0aff04"
 
 [[package]]
+name = "bytestring"
+version = "1.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "86566c496f2f47d9b8147a4c8b02ffdb69c919fe0c2b2e7195d22cbba0e635c9"
+dependencies = [
+ "bytes",
+]
+
+[[package]]
 name = "cast"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1058,9 +1067,9 @@ dependencies = [
 
 [[package]]
 name = "domain"
-version = "0.12.2"
+version = "0.12.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0c13d25dfb29edf328c7eb4ebb24838ade355272d685ba0402b8751567c3dde2"
+checksum = "5b68712c02bff2348323c1441ab2e8528e32af4f8f9edf29356356290328c8e6"
 dependencies = [
  "bumpalo",
  "bytes",
@@ -1079,9 +1088,9 @@ dependencies = [
 
 [[package]]
 name = "domain-macros"
-version = "0.12.2"
+version = "0.12.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e68f247cb4e380bcdf44c1e27d7d046cbb321c4ab4a01271a51dfb19326b6b0e"
+checksum = "4fba8fbc4580c745dfeab102232dcb729f030ac3e2c9ff5374a9dfd6dc9ddf8e"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -3191,9 +3200,9 @@ dependencies = [
 
 [[package]]
 name = "regex"
-version = "1.12.4"
+version = "1.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f1292b7759ae1cb9ec195452d1390a074f0cd8541ab7a5a8c31cd6db45d4a6ba"
+checksum = "f020237b6c8eed93db2e2cb53c00c60a8e1bc73da7d073199a1180401450218d"
 dependencies = [
  "aho-corasick",
  "memchr",
@@ -4524,7 +4533,7 @@ checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
 
 [[package]]
 name = "vrl"
-version = "0.35.0"
+version = "0.36.0"
 dependencies = [
  "aes 0.9.3",
  "aes-siv",
@@ -4534,6 +4543,7 @@ dependencies = [
  "base62",
  "base64-simd",
  "bytes",
+ "bytestring",
  "cbc",
  "cfb-mode",
  "cfg-if",
