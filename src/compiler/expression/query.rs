@@ -117,7 +117,14 @@ impl Expression for Query {
                     .cloned()
                     .unwrap_or(Value::Null));
             }
-            Internal(variable) => variable.resolve(ctx)?,
+            Internal(variable) => {
+                return Ok(ctx
+                    .state()
+                    .variable(variable.ident())
+                    .and_then(|value| value.get(&self.path))
+                    .cloned()
+                    .unwrap_or(Value::Null));
+            }
             FunctionCall(call) => call.resolve(ctx)?,
             Container(container) => container.resolve(ctx)?,
         };
@@ -218,6 +225,64 @@ impl fmt::Debug for Target {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::compiler::{
+        TimeZone, TypeDef,
+        state::{LocalEnv, RuntimeState},
+    };
+    use crate::owned_value_path;
+    use serde_json::json;
+
+    #[test]
+    fn test_resolve_variable_subpaths() {
+        let ident = Ident::new("foo");
+        let mut local = LocalEnv::default();
+        local.insert_variable(
+            ident.clone(),
+            Details {
+                type_def: TypeDef::any(),
+                value: None,
+            },
+        );
+        let variable = Variable::new((0, 0).into(), ident.clone(), &local).unwrap();
+        let input = Value::from(json!({"nested": {"items": [1, 2]}, "scalar": true}));
+        let cases = [
+            (OwnedValuePath::root(), input.clone()),
+            (
+                owned_value_path!("nested"),
+                Value::from(json!({"items": [1, 2]})),
+            ),
+            (
+                owned_value_path!("nested", "items"),
+                Value::from(json!([1, 2])),
+            ),
+            (owned_value_path!("nested", "items", 0), Value::Integer(1)),
+            (owned_value_path!("nested", "items", -1), Value::Integer(2)),
+            (owned_value_path!("nested", "items", 2), Value::Null),
+            (owned_value_path!("scalar", "missing"), Value::Null),
+            (owned_value_path!("missing"), Value::Null),
+        ];
+        let mut state = RuntimeState::default();
+        state.insert_variable(ident.clone(), input.clone());
+        let mut target = Value::Null;
+        let timezone = TimeZone::default();
+
+        for (path, expected) in cases {
+            let query = Query::new(Target::Internal(variable.clone()), path);
+            let mut ctx = Context::new(&mut target, &mut state, &timezone);
+            assert_eq!(query.resolve(&mut ctx), Ok(expected));
+        }
+        assert_eq!(state.variable(&ident), Some(&input));
+
+        state.remove_variable(&ident);
+        for path in [
+            OwnedValuePath::root(),
+            owned_value_path!("nested", "items", 0),
+        ] {
+            let query = Query::new(Target::Internal(variable.clone()), path);
+            let mut ctx = Context::new(&mut target, &mut state, &timezone);
+            assert_eq!(query.resolve(&mut ctx), Ok(Value::Null));
+        }
+    }
 
     #[test]
     fn test_type_def() {
