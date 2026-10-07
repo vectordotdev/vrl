@@ -1,7 +1,6 @@
 use std::convert::TryFrom;
 
 use crate::value::Value;
-use bytes::Bytes;
 use nom::{
     IResult, Parser,
     branch::alt,
@@ -125,7 +124,7 @@ fn parse_value_no_brackets<'a>(delimiter: &'a str) -> impl Fn(&'a str) -> SResul
     move |input| {
         map(
             alt((take_until(delimiter), take(input.len()))),
-            |value: &str| Value::Bytes(Bytes::copy_from_slice(value.as_bytes())),
+            |value: &str| Value::from(value),
         )
         .parse(input)
     }
@@ -138,7 +137,7 @@ fn parse_value<'a>(
     move |input| {
         map(
             alt((take_until(delimiter), take_until(close_bracket))),
-            |value: &str| Value::Bytes(Bytes::copy_from_slice(value.as_bytes())),
+            |value: &str| Value::from(value),
         )
         .parse(input)
     }
