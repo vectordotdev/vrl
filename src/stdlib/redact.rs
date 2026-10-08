@@ -231,9 +231,9 @@ fn redact(value: Value, filters: &[Filter], redactor: &Redactor) -> Value {
     // the value, so that we don't have to do the comparison in the loop of replacement.
     // that would complicate the code though.
     match value {
-        Value::String(s) => Value::Bytes(redact_str(Cow::Borrowed(&s), filters, redactor).into()),
+        Value::String(s) => redact_str(Cow::Borrowed(&s), filters, redactor).into(),
         Value::Bytes(bytes) => {
-            Value::Bytes(redact_str(String::from_utf8_lossy(&bytes), filters, redactor).into())
+            redact_str(String::from_utf8_lossy(&bytes), filters, redactor).into()
         }
         Value::Array(values) => {
             let values = values

@@ -90,7 +90,7 @@ fn decode_charset(value: &[u8], from_charset: &[u8]) -> Resolved {
     let decoder = Encoding::for_label(from_charset).ok_or_else(|| create_error(from_charset))?;
 
     let (output, _, _) = decoder.decode(value);
-    Ok(Value::Bytes(output.as_bytes().to_vec().into()))
+    Ok(output.into())
 }
 
 fn create_error(from_charset: &[u8]) -> ExpressionError {

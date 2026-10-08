@@ -60,6 +60,7 @@ const-oid,https://github.com/RustCrypto/formats,Apache-2.0 OR MIT,RustCrypto Dev
 convert_case,https://github.com/rutrum/convert-case,MIT,rutrum <dave@rutrum.net>
 core-foundation,https://github.com/servo/core-foundation-rs,MIT OR Apache-2.0,The Servo Project Developers
 core-foundation-sys,https://github.com/servo/core-foundation-rs,MIT OR Apache-2.0,The Servo Project Developers
+core_detect,https://github.com/thomcc/core_detect,MIT OR Apache-2.0,Thom Chiovoloni <chiovolonit@gmail.com>
 cpubits,https://github.com/RustCrypto/utils,MIT OR Apache-2.0,RustCrypto Developers
 cpufeatures,https://github.com/RustCrypto/utils,MIT OR Apache-2.0,RustCrypto Developers
 crc,https://github.com/mrhooray/crc-rs,MIT OR Apache-2.0,"Rui Hu <code@mrhooray.com>, Akhil Velagapudi <4@4khil.com>"
@@ -186,6 +187,7 @@ miniz_oxide,https://github.com/Frommi/miniz_oxide/tree/master/miniz_oxide,MIT OR
 mio,https://github.com/tokio-rs/mio,MIT,"Carl Lerche <me@carllerche.com>, Thomas de Zeeuw <thomasdezeeuw@gmail.com>, Tokio Contributors <team@tokio.rs>"
 mlua,https://github.com/mlua-rs/mlua,MIT,"Aleksandr Orlenko <zxteam@pm.me>, kyren <catherine@kyju.org>"
 mlua-sys,https://github.com/mlua-rs/mlua,MIT,Aleksandr Orlenko <zxteam@pm.me>
+multiversion_no_op,https://github.com/hsivonen/multiversion_no_op,Apache-2.0 OR MIT,Henri Sivonen <hsivonen@hsivonen.fi>
 ndk-context,https://github.com/rust-windowing/android-ndk-rs,MIT OR Apache-2.0,The Rust Windowing contributors
 nix,https://github.com/nix-rust/nix,MIT,The nix-rust Project Developers
 nom,https://github.com/Geal/nom,MIT,contact@geoffroycouprie.com
