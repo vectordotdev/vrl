@@ -35,14 +35,8 @@ fn replace(value: &Value, with_value: &Value, count: Value, pattern: Value) -> R
         }
         Value::Regex(regex) => {
             let replaced = match count {
-                i if i > 0 => Bytes::copy_from_slice(
-                    regex.replacen(&value, i as usize, with.as_ref()).as_bytes(),
-                )
-                .into(),
-                i if i < 0 => {
-                    Bytes::copy_from_slice(regex.replace_all(&value, with.as_ref()).as_bytes())
-                        .into()
-                }
+                i if i > 0 => regex.replacen(&value, i as usize, with.as_ref()).into(),
+                i if i < 0 => regex.replace_all(&value, with.as_ref()).into(),
                 _ => value.into(),
             };
 
