@@ -103,6 +103,7 @@ impl Expression for Query {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         use Target::{Container, External, FunctionCall, Internal};
 
+        let owned_value;
         let value = match &self.target {
             External(prefix) => {
                 let path = OwnedTargetPath {
@@ -117,16 +118,18 @@ impl Expression for Query {
                     .cloned()
                     .unwrap_or(Value::Null));
             }
-            Internal(variable) => {
-                return Ok(ctx
-                    .state()
-                    .variable(variable.ident())
-                    .and_then(|value| value.get(&self.path))
-                    .cloned()
-                    .unwrap_or(Value::Null));
+            Internal(variable) => ctx
+                .state()
+                .variable(variable.ident())
+                .unwrap_or(&Value::Null),
+            FunctionCall(call) => {
+                owned_value = call.resolve(ctx)?;
+                &owned_value
             }
-            FunctionCall(call) => call.resolve(ctx)?,
-            Container(container) => container.resolve(ctx)?,
+            Container(container) => {
+                owned_value = container.resolve(ctx)?;
+                &owned_value
+            }
         };
 
         Ok(value.get(&self.path).cloned().unwrap_or(Value::Null))
