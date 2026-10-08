@@ -64,20 +64,21 @@ pub(crate) fn boundaries() -> Vec<Value> {
     ]
 }
 
-pub(crate) fn boundaries_msg() -> String {
-    boundaries()
-        .into_iter()
-        .filter_map(|v| Some(v.as_str()?.into_owned()))
+fn join_string_values(values: &[Value]) -> String {
+    values
+        .iter()
+        .filter_map(Value::as_string)
+        .map(AsRef::<str>::as_ref)
         .collect::<Vec<_>>()
         .join(", ")
 }
 
+pub(crate) fn boundaries_msg() -> String {
+    join_string_values(&boundaries())
+}
+
 pub(crate) fn variants_msg() -> String {
-    variants()
-        .into_iter()
-        .filter_map(|v| Some(v.as_str()?.into_owned()))
-        .collect::<Vec<_>>()
-        .join(", ")
+    join_string_values(&variants())
 }
 
 pub(crate) fn into_case(s: &str) -> Result<Case<'static>, Box<dyn DiagnosticMessage>> {
