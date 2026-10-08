@@ -1,4 +1,5 @@
 use crate::compiler::prelude::*;
+use std::collections::HashSet;
 
 const PARAMETERS: &[Parameter] = &[Parameter::required(
     "value",
@@ -17,6 +18,8 @@ fn encode_xml(value: Value) -> Resolved {
     }
 
     let (root, value) = object.into_iter().next().expect("one root element");
+    let mut validated_names = HashSet::new();
+    validate_element_names(root.as_ref(), &value, &mut validated_names)?;
     let mut output = String::new();
     write_element(&mut output, root.as_ref(), &value)?;
 
@@ -25,6 +28,71 @@ fn encode_xml(value: Value) -> Resolved {
         .map_err(|error| ExpressionError::from(format!("unable to encode XML: {error}")))?;
 
     Ok(output.into())
+}
+
+fn validate_element_names(
+    name: &str,
+    value: &Value,
+    validated_names: &mut HashSet<String>,
+) -> Result<(), String> {
+    validate_xml_name(name, validated_names)?;
+    match value {
+        Value::Object(object) => {
+            for (key, value) in object {
+                if let Some(attribute) = key.strip_prefix('@') {
+                    validate_xml_name(attribute, validated_names)?;
+                } else if key.as_ref() != "text" {
+                    validate_element_names(key.as_ref(), value, validated_names)?;
+                }
+            }
+        }
+        Value::Array(values) => {
+            for value in values {
+                validate_element_names(name, value, validated_names)?;
+            }
+        }
+        _ => {}
+    }
+    Ok(())
+}
+
+fn validate_xml_name(name: &str, validated_names: &mut HashSet<String>) -> Result<(), String> {
+    if validated_names.contains(name) {
+        return Ok(());
+    }
+
+    let mut parts = name.split(':');
+    let is_qname = match (parts.next(), parts.next(), parts.next()) {
+        (Some(local), None, None) => is_xml_ncname(local),
+        (Some(prefix), Some(local), None) => is_xml_ncname(prefix) && is_xml_ncname(local),
+        _ => false,
+    };
+    if !is_qname {
+        return Err("XML element and attribute names must be valid qualified names".to_owned());
+    }
+
+    validated_names.insert(name.to_owned());
+    Ok(())
+}
+
+fn is_xml_ncname(name: &str) -> bool {
+    if name.is_empty() || name.contains(':') {
+        return false;
+    }
+    // Parse the candidate inside a wrapper so XML syntax in an untrusted key cannot
+    // create additional markup that would be mistaken for a valid name.
+    let source = format!("<wrapper><{name}/></wrapper>");
+    let Ok(document) = roxmltree::Document::parse(&source) else {
+        return false;
+    };
+    let mut elements = document
+        .root_element()
+        .children()
+        .filter(roxmltree::Node::is_element);
+    matches!(
+        (elements.next(), elements.next()),
+        (Some(element), None) if element.tag_name().name() == name
+    )
 }
 
 fn write_element(output: &mut String, name: &str, value: &Value) -> Result<(), String> {
@@ -44,8 +112,10 @@ fn write_element(output: &mut String, name: &str, value: &Value) -> Result<(), S
     };
 
     if let Some(object) = object {
-        for (key, value) in object.iter().filter(|(key, _)| key.starts_with('@')) {
-            let attribute = &key[1..];
+        for (attribute, value) in object
+            .iter()
+            .filter_map(|(key, value)| key.strip_prefix('@').map(|attribute| (attribute, value)))
+        {
             output.push(' ');
             output.push_str(attribute);
             output.push_str("=\"");
@@ -56,7 +126,9 @@ fn write_element(output: &mut String, name: &str, value: &Value) -> Result<(), S
 
     let has_children = match value {
         Value::Object(object) => object.iter().any(|(key, value)| {
-            !key.starts_with('@') && !matches!(value, Value::Array(values) if values.is_empty())
+            !(key.starts_with('@')
+                || key.as_ref() == "text" && matches!(value, Value::Null)
+                || matches!(value, Value::Array(values) if values.is_empty()))
         }),
         Value::Array(values) => !values.is_empty(),
         Value::Null => false,
@@ -122,6 +194,9 @@ fn write_text_value(value: &Value, output: &mut String) -> Result<(), String> {
 }
 
 fn value_to_string(value: &Value) -> Result<String, String> {
+    if matches!(value, Value::Null) {
+        return Ok(String::new());
+    }
     if matches!(value, Value::Object(_) | Value::Array(_)) {
         return Err("XML attributes and text values must be scalar".to_owned());
     }
@@ -246,6 +321,12 @@ mod tests {
             tdef: TypeDef::bytes().fallible(),
         }
 
+        null_text_and_attribute_are_empty {
+            args: func_args![value: value!({"root": {"@id": null, "text": null}})],
+            want: Ok(r#"<root id=""/>"#),
+            tdef: TypeDef::bytes().fallible(),
+        }
+
         invalid_root_count {
             args: func_args![value: value!({"one": 1, "two": 2})],
             want: Err("value must be an object with exactly one root element"),
@@ -257,7 +338,36 @@ mod tests {
     #[test]
     fn invalid_element_name_is_rejected() {
         let error = encode_xml(value!({"not an element": "value"})).unwrap_err();
-        assert!(error.to_string().starts_with("unable to encode XML:"));
+        assert!(error.to_string().contains("valid qualified names"));
+    }
+
+    #[test]
+    fn markup_in_element_and_attribute_names_is_rejected() {
+        let element_error = encode_xml(value!({"root": {"item/><injected": null}})).unwrap_err();
+        assert!(element_error.to_string().contains("valid qualified names"));
+
+        let attribute_error =
+            encode_xml(value!({"root": {"@a=\"injected\" b": "value"}})).unwrap_err();
+        assert!(
+            attribute_error
+                .to_string()
+                .contains("valid qualified names")
+        );
+    }
+
+    #[test]
+    fn namespace_qualified_names_remain_supported() {
+        let encoded = encode_xml(value!({
+            "root": {
+                "@xmlns:ns": "urn:example",
+                "ns:item": "value",
+            }
+        }))
+        .unwrap();
+        assert_eq!(
+            encoded,
+            value!(r#"<root xmlns:ns="urn:example"><ns:item>value</ns:item></root>"#)
+        );
     }
 
     #[test]
