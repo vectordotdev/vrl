@@ -1,7 +1,7 @@
 use crate::{compiler::prelude::*, stdlib::csv_utils::parse_single_byte_delimiter};
 use csv::ReaderBuilder;
 
-static DEFAULT_DELIMITER: Value = Value::Bytes(Bytes::from_static(",".as_bytes()));
+static DEFAULT_DELIMITER: Value = Value::from_static_str(",");
 
 const PARAMETERS: &[Parameter] = &[
     Parameter::required("value", kind::BYTES, "The string to parse."),

@@ -1,7 +1,7 @@
 use crate::{compiler::prelude::*, stdlib::csv_utils::parse_single_byte_delimiter};
 use csv::WriterBuilder;
 
-static DEFAULT_DELIMITER: Value = Value::Bytes(Bytes::from_static(",".as_bytes()));
+static DEFAULT_DELIMITER: Value = Value::from_static_str(",");
 
 const PARAMETERS: &[Parameter] = &[
     Parameter::required("value", kind::ANY, "The value to convert to a CSV string."),
@@ -24,7 +24,7 @@ fn encode_csv(value: Value, delimiter: Value) -> Resolved {
     // The csv crate writes an empty record as "" which is valid CSV, but we want empty arrays to
     // produce empty strings.
     if value_array.is_empty() {
-        return Ok(Value::Bytes(Bytes::from("")));
+        return Ok(Value::from(""));
     }
 
     let single_byte_delimiter = parse_single_byte_delimiter(delimiter)?;
