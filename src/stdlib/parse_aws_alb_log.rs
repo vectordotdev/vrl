@@ -21,10 +21,10 @@ const PARAMETERS: &[Parameter] = &[
         .default(&DEFAULT_STRICT_MODE),
 ];
 
-fn parse_aws_alb_log(bytes: Value, strict_mode: Value) -> Resolved {
-    let bytes = bytes.try_bytes()?;
+fn parse_aws_alb_log(bytes: &Value, strict_mode: Value) -> Resolved {
+    let bytes = bytes.try_bytes_utf8_lossy()?;
     let strict_mode = strict_mode.try_boolean()?;
-    parse_log(&String::from_utf8_lossy(&bytes), strict_mode)
+    parse_log(&bytes, strict_mode)
 }
 
 fn null_if_dash(value: Value) -> Value {
@@ -188,7 +188,7 @@ impl FunctionExpression for ParseAwsAlbLogFn {
         let strict_mode = self
             .strict_mode
             .map_resolve_with_default(ctx, || DEFAULT_STRICT_MODE.clone())?;
-        parse_aws_alb_log(bytes, strict_mode)
+        parse_aws_alb_log(&bytes, strict_mode)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

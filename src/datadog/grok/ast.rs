@@ -35,7 +35,7 @@ impl FunctionArgument {
 
     pub fn to_utf8_lossy(&self) -> Option<String> {
         match self {
-            Self::Arg(v) => v.as_str().map(std::borrow::Cow::into_owned),
+            Self::Arg(v) => v.to_str_lossy().map(std::borrow::Cow::into_owned),
             Self::Function(_) => None,
         }
     }

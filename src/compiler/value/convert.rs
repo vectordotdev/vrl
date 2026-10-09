@@ -98,7 +98,7 @@ impl VrlValueConvert for Value {
     }
 
     fn try_bytes_utf8_lossy(&self) -> Result<Cow<'_, str>, ValueError> {
-        self.as_str().ok_or(ValueError::Expected {
+        self.to_str_lossy().ok_or(ValueError::Expected {
             got: self.kind(),
             expected: Kind::bytes(),
         })

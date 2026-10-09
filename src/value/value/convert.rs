@@ -178,10 +178,40 @@ impl Value {
         }
     }
 
+    /// Returns self as `&ByteString` only if self is `Value::String`.
+    pub fn as_string(&self) -> Option<&ByteString> {
+        match self {
+            Self::String(s) => Some(s),
+            _ => None,
+        }
+    }
+
+    /// Returns a UTF-8 string slice, only if self is valid UTF-8 `Value::Bytes` or `Value::String`.
+    ///
+    /// `Value::String` is borrowed. `Value::Bytes` is `Some` only when [`str::from_utf8`]
+    /// succeeds. Every other variant is `None`.
+    pub fn to_str(&self) -> Option<&str> {
+        match self {
+            Self::String(s) => Some(s.as_ref()),
+            Self::Bytes(bytes) => simdutf8::basic::from_utf8(bytes).ok(),
+            _ => None,
+        }
+    }
+
     /// Returns self as `Cow<str>`, only if self is `Value::Bytes` or `Value::String`.
     ///
     /// `Value::String` is borrowed; `Value::Bytes` is decoded with a lossy UTF-8 conversion.
+    /// Equivalent to [`Self::to_str_lossy`].
     pub fn as_str(&self) -> Option<Cow<'_, str>> {
+        self.to_str_lossy()
+    }
+
+    /// Returns a lossy UTF-8 view, only if self is `Value::Bytes` or `Value::String`.
+    ///
+    /// Same conversion as [`Self::to_string_lossy`] for those two variants, and `None`
+    /// otherwise. `Value::String` is borrowed; `Value::Bytes` is decoded with a lossy
+    /// UTF-8 conversion.
+    pub fn to_str_lossy(&self) -> Option<Cow<'_, str>> {
         match self {
             Self::Bytes(bytes) => Some(simdutf_bytes_utf8_lossy(bytes.as_ref())),
             Self::String(s) => Some(Cow::Borrowed(s.as_ref())),
@@ -192,7 +222,7 @@ impl Value {
     /// Returns a `KeyString` if self is `Value::Bytes` or `Value::String`.
     #[must_use]
     pub fn to_key_string_lossy(&self) -> Option<KeyString> {
-        self.as_str().map(Cow::into_owned).map(KeyString::from)
+        self.to_str_lossy().map(|s| KeyString::from(s.into_owned()))
     }
 
     /// Converts the Value into a byte representation regardless of its original type.
@@ -553,5 +583,34 @@ mod tests {
             Value::from_utf8_or_bytes(Bytes::from_static(b"foo\xff")),
             Value::Bytes(_)
         ));
+    }
+
+    #[test]
+    fn to_str_accepts_only_valid_utf8_text() {
+        assert_eq!(Value::from("foo").to_str(), Some("foo"));
+        assert_eq!(Value::from_static_bytes(b"foo").to_str(), Some("foo"));
+        assert_eq!(Value::from_static_bytes(b"foo\xff").to_str(), None);
+        assert_eq!(Value::Integer(1).to_str(), None);
+        assert_eq!(Value::Null.to_str(), None);
+    }
+
+    #[test]
+    fn to_str_lossy_matches_to_string_lossy_for_text_variants() {
+        let string = Value::from("foo");
+        assert_eq!(string.to_str_lossy().as_deref(), Some("foo"));
+        assert_eq!(string.to_string_lossy().as_ref(), "foo");
+        assert_eq!(string.as_str().as_deref(), Some("foo"));
+
+        let valid = Value::from_static_bytes(b"foo");
+        assert_eq!(valid.to_str_lossy().as_deref(), Some("foo"));
+        assert_eq!(valid.to_string_lossy().as_ref(), "foo");
+
+        let invalid = Value::from_static_bytes(b"foo\xff");
+        assert_eq!(invalid.to_str_lossy().as_deref(), Some("foo\u{FFFD}"));
+        assert_eq!(invalid.to_string_lossy().as_ref(), "foo\u{FFFD}");
+        assert_eq!(invalid.as_str().as_deref(), Some("foo\u{FFFD}"));
+
+        assert_eq!(Value::Integer(1).to_str_lossy(), None);
+        assert_eq!(Value::Null.to_str_lossy(), None);
     }
 }

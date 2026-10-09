@@ -4,9 +4,8 @@ use regex::Regex;
 use std::collections::BTreeMap;
 use std::sync::LazyLock;
 
-fn parse_glog(bytes: Value) -> Resolved {
-    let bytes = bytes.try_bytes()?;
-    let message = String::from_utf8_lossy(&bytes);
+fn parse_glog(bytes: &Value) -> Resolved {
+    let message = bytes.try_bytes_utf8_lossy()?;
     let mut log = ObjectMap::new();
     let captures = REGEX_GLOG
         .captures(&message)
@@ -137,7 +136,7 @@ struct ParseGlogFn {
 impl FunctionExpression for ParseGlogFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let bytes = self.value.resolve(ctx)?;
-        parse_glog(bytes)
+        parse_glog(&bytes)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

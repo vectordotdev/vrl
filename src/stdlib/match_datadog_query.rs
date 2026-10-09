@@ -181,7 +181,7 @@ impl Filter<Value> for VrlFilter {
                 resolve_value(
                     buf,
                     Run::boxed(move |value: &Value| {
-                        value.as_str().is_some_and(|s| re.is_match(&s))
+                        value.to_str_lossy().is_some_and(|s| re.is_match(&s))
                     }),
                 )
             }
@@ -451,7 +451,7 @@ fn lookup_field(field: &Field) -> Result<OwnedValuePath, PathParseError> {
 /// instead of the raw control characters.
 fn string_value(value: &Value) -> Cow<'_, str> {
     value
-        .as_str()
+        .to_str_lossy()
         .unwrap_or_else(|| Cow::from(value.to_string()))
 }
 

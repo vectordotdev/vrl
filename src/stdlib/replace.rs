@@ -28,9 +28,10 @@ fn replace(value: &Value, with_value: &Value, count: Value, pattern: Value) -> R
     let with = with_value.try_bytes_utf8_lossy()?;
     let count = count.try_integer()?;
     match pattern {
-        Value::String(s) => Ok(replace_str(&value, &s, &with, count).into()),
-        Value::Bytes(bytes) => {
-            let pattern = String::from_utf8_lossy(&bytes);
+        pattern @ (Value::Bytes(_) | Value::String(_)) => {
+            let pattern = pattern
+                .to_str_lossy()
+                .expect("bytes and string have a text view");
             Ok(replace_str(&value, &pattern, &with, count).into())
         }
         Value::Regex(regex) => {

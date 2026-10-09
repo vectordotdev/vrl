@@ -159,7 +159,7 @@ pub fn regex_from_config(
 
 impl KeyValueFilter {
     pub fn apply_filter(&self, value: &Value) -> Result<Value, InternalError> {
-        match value.as_str() {
+        match value.to_str_lossy() {
             Some(s) => Ok(self.apply_str(&s)),
             None => Err(InternalError::FailedToApplyFilter(
                 self.to_string(),

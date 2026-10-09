@@ -1,6 +1,6 @@
 use std::{borrow::Cow, collections::BTreeMap, fmt};
 
-use crate::value::value::{StdError, Value, simdutf_bytes_utf8_lossy, timestamp_to_string};
+use crate::value::value::{StdError, Value, timestamp_to_string};
 use bytes::Bytes;
 use ordered_float::NotNan;
 use serde::de::Error as SerdeError;
@@ -37,8 +37,9 @@ impl Value {
     /// If map or array serialization fails.
     pub fn to_string_lossy(&self) -> Cow<'_, str> {
         match self {
-            Self::Bytes(bytes) => simdutf_bytes_utf8_lossy(bytes),
-            Self::String(s) => Cow::Borrowed(s.as_ref()),
+            Self::Bytes(_) | Self::String(_) => self
+                .to_str_lossy()
+                .expect("bytes and string have a text view"),
             Self::Regex(regex) => regex.as_str().into(),
             Self::Timestamp(timestamp) => timestamp_to_string(timestamp).into(),
             Self::Integer(num) => num.to_string().into(),
@@ -64,8 +65,11 @@ impl Serialize for Value {
             Self::Integer(i) => serializer.serialize_i64(*i),
             Self::Float(f) => serializer.serialize_f64(f.into_inner()),
             Self::Boolean(b) => serializer.serialize_bool(*b),
-            Self::Bytes(b) => serializer.serialize_str(simdutf_bytes_utf8_lossy(b).as_ref()),
-            Self::String(s) => serializer.serialize_str(s.as_ref()),
+            Self::Bytes(_) | Self::String(_) => serializer.serialize_str(
+                self.to_str_lossy()
+                    .expect("bytes and string have a text view")
+                    .as_ref(),
+            ),
             Self::Timestamp(ts) => serializer.serialize_str(&timestamp_to_string(ts)),
             Self::Regex(regex) => serializer.serialize_str(regex.as_str()),
             Self::Object(m) => serializer.collect_map(m),
