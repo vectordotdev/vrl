@@ -1,0 +1,12 @@
+# object: {"payload":{"items":[1,2]}}
+# result: [{"items":[9,2]},{"items":[8,4]},{"payload":{"items":[1,5]}},{"payload":{"items":[3,6]}},1,3,null,null]
+
+% = {"payload":{"items":[3,4]}}
+event_copy = .payload
+metadata_copy = %payload
+event_copy.items[0] = 9
+metadata_copy.items[0] = 8
+.payload.items[1] = 5
+%payload.items[1] = 6
+
+[event_copy, metadata_copy, ., %, .payload.items[0], %payload.items[0], .missing, %missing]
