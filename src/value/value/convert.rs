@@ -202,6 +202,7 @@ impl Value {
     ///
     /// `Value::String` is borrowed; `Value::Bytes` is decoded with a lossy UTF-8 conversion.
     /// Equivalent to [`Self::to_str_lossy`].
+    #[deprecated(since = "0.37.0", note = "misleading name, use `to_str_lossy` instead")]
     pub fn as_str(&self) -> Option<Cow<'_, str>> {
         self.to_str_lossy()
     }
@@ -595,6 +596,7 @@ mod tests {
     }
 
     #[test]
+    #[expect(deprecated, reason = "left in until `as_str` is removed")]
     fn to_str_lossy_matches_to_string_lossy_for_text_variants() {
         let string = Value::from("foo");
         assert_eq!(string.to_str_lossy().as_deref(), Some("foo"));
