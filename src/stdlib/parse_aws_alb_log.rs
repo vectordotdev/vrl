@@ -298,7 +298,7 @@ fn parse_log(mut input: &str, strict_mode: bool) -> ExpressionResult<Value> {
             log.insert(
                 $name.into(),
                 match get_value!($name, take_tid_or_nothing) {
-                    Some(value) => Value::Bytes(value.to_owned().into()),
+                    Some(value) => Value::from(value),
                     None => Value::Null,
                 },
             )

@@ -269,10 +269,7 @@ fn parse_value<'a>(input: &'a str, quotes: &'a [(char, char)]) -> SResult<'a, Va
 }
 
 fn parse_string(input: &str) -> SResult<'_, Value> {
-    map(rest, |s: &str| {
-        Value::Bytes(Bytes::copy_from_slice(s.trim().as_bytes()))
-    })
-    .parse(input)
+    map(rest, |s: &str| Value::from(s.trim())).parse(input)
 }
 
 fn parse_number(input: &str) -> SResult<'_, Value> {

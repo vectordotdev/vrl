@@ -283,16 +283,8 @@ mod tests {
             ("%{data:field:number}", "1.0", Ok(Value::from(1))),
             ("%{data:field:number}", "NaN", Ok(Value::from(0))),
             ("%{data:field:integer}", "1", Ok(Value::from(1))),
-            (
-                "%{data:field:lowercase}",
-                "aBC",
-                Ok(Value::Bytes("abc".into())),
-            ),
-            (
-                "%{data:field:uppercase}",
-                "Abc",
-                Ok(Value::Bytes("ABC".into())),
-            ),
+            ("%{data:field:lowercase}", "aBC", Ok(Value::from("abc"))),
+            ("%{data:field:uppercase}", "Abc", Ok(Value::from("ABC"))),
             ("%{integer:field:scale(10)}", "1", Ok(Value::from(10))),
             ("%{number:field:scale(0.5)}", "10.0", Ok(Value::from(5))),
         ]);
@@ -413,8 +405,8 @@ mod tests {
             Ok(Value::from(btreemap! {
                 "nested" => btreemap! {
                     "json" =>  Value::Array(vec! [
-                        Value::from(btreemap! { "json_field1" => Value::Bytes("value2".into()) }),
-                        Value::from(btreemap! { "json_field2" => Value::Bytes("value3".into()) }),
+                        Value::from(btreemap! { "json_field1" => Value::from("value2") }),
+                        Value::from(btreemap! { "json_field2" => Value::from("value3") }),
                     ]),
                 }
             })),
@@ -430,7 +422,7 @@ mod tests {
                 "%{data::json}",
                 r#"{ "json_field1": "value2" }"#,
                 Ok(Value::from(btreemap! {
-                    "json_field1" => Value::Bytes("value2".into()),
+                    "json_field1" => Value::from("value2"),
                 })),
             ),
             // ignore non-map root-level fields
@@ -438,7 +430,7 @@ mod tests {
                 "%{notSpace:standalone_field} %{data::integer}",
                 "value1 1",
                 Ok(Value::from(btreemap! {
-                    "standalone_field" => Value::Bytes("value1".into()),
+                    "standalone_field" => Value::from("value1"),
                 })),
             ),
         ]);
@@ -448,9 +440,9 @@ mod tests {
             r#"value1 '{ "json_field1": "value2" }' '{ "json_field2": "value3" }' 3"#,
             Ok(ParsedGrokObject {
                 parsed: Value::from(btreemap! {
-                    "standalone_field" => Value::Bytes("value1".into()),
-                    "json_field1" => Value::Bytes("value2".into()),
-                    "json_field2" => Value::Bytes("value3".into())
+                    "standalone_field" => Value::from("value1"),
+                    "json_field1" => Value::from("value2"),
+                    "json_field2" => Value::from("value3")
                 }),
 
                 internal_errors: vec![InternalError::FailedToApplyFilter(
@@ -561,11 +553,7 @@ mod tests {
 
     #[test]
     fn extracts_field_with_regex_capture() {
-        test_grok_pattern(vec![(
-            r"(?<field>\w+)",
-            "abc",
-            Ok(Value::Bytes("abc".into())),
-        )]);
+        test_grok_pattern(vec![(r"(?<field>\w+)", "abc", Ok(Value::from("abc")))]);
 
         // the group name can only be alphanumeric,
         // though we don't validate group names(it would be unnecessary overhead at boot-time),
@@ -574,7 +562,7 @@ mod tests {
             r"(?<nested.field.name>\w+)",
             "abc",
             Ok(Value::from(btreemap! {
-                "nested.field.name" => Value::Bytes("abc".into()),
+                "nested.field.name" => Value::from("abc"),
             })),
         )]);
     }
@@ -1015,7 +1003,7 @@ mod tests {
                 Ok(Value::from(btreemap! {
                     "float" => Value::Float(NotNan::new(1.2).expect("not a float")),
                     "boolean" => Value::Boolean(true),
-                    "string" => Value::Bytes("abc".into()),
+                    "string" => Value::from("abc"),
                     "integer1" => Value::Integer(11),
                     "integer2" => Value::Integer(12)
                 })),
@@ -1027,7 +1015,7 @@ mod tests {
                 Ok(Value::from(btreemap! {
                     "float" => Value::Float(NotNan::new(1.2).expect("not a float")),
                     "boolean" => Value::Boolean(true),
-                    "string" => Value::Bytes("abc".into()),
+                    "string" => Value::from("abc"),
                     "integer1" => Value::Integer(11),
                     "integer2" => Value::Integer(12)
                 })),
@@ -1183,8 +1171,8 @@ mod tests {
         assert_eq!(
             parsed,
             Value::from(btreemap! {
-                 "field" =>  Value::Bytes("A 1".into()),
-                 "subfield1" =>  Value::Bytes("a".into()),
+                 "field" =>  Value::from("A 1"),
+                 "subfield1" =>  Value::from("a"),
                  "subfield2" =>  Value::Integer(1)
             })
         );
@@ -1197,7 +1185,7 @@ mod tests {
             "(%{integer:field_int}|%{data:field_str})",
             "abc",
             Ok(Value::from(btreemap! {
-                "field_str" =>  Value::Bytes("abc".into()),
+                "field_str" =>  Value::from("abc"),
             })),
         )]);
         assert!(!logs_contain("Error applying filter"));
@@ -1313,7 +1301,7 @@ mod tests {
         test_grok_pattern(vec![(
             "%{data:field:decodeuricomponent}",
             "%2Fservice%2Ftest",
-            Ok(Value::Bytes("/service/test".into())),
+            Ok(Value::from("/service/test")),
         )]);
     }
 

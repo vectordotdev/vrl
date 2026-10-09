@@ -19,7 +19,7 @@ fn parse_glog(bytes: &Value) -> Resolved {
             _ => Err(format!(r#"unrecognized log level "{level}""#)),
         }?;
 
-        log.insert("level".into(), Value::Bytes(level.to_owned().into()));
+        log.insert("level".into(), Value::from(level));
     }
     if let Some(timestamp) = captures.name("timestamp").map(|capture| capture.as_str()) {
         match NaiveDateTime::parse_from_str(timestamp, "%Y%m%d %H:%M:%S%.f") {
@@ -37,7 +37,7 @@ fn parse_glog(bytes: &Value) -> Resolved {
         );
     }
     if let Some(file) = captures.name("file").map(|capture| capture.as_str()) {
-        log.insert("file".into(), Value::Bytes(file.to_owned().into()));
+        log.insert("file".into(), Value::from(file));
     }
     if let Some(line) = captures.name("line").map(|capture| capture.as_str()) {
         log.insert(
@@ -46,7 +46,7 @@ fn parse_glog(bytes: &Value) -> Resolved {
         );
     }
     if let Some(message) = captures.name("message").map(|capture| capture.as_str()) {
-        log.insert("message".into(), Value::Bytes(message.to_owned().into()));
+        log.insert("message".into(), Value::from(message));
     }
     Ok(log.into())
 }
