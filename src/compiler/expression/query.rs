@@ -103,6 +103,7 @@ impl Expression for Query {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         use Target::{Container, External, FunctionCall, Internal};
 
+        let owned_value;
         let value = match &self.target {
             External(prefix) => {
                 let path = OwnedTargetPath {
@@ -117,9 +118,18 @@ impl Expression for Query {
                     .cloned()
                     .unwrap_or(Value::Null));
             }
-            Internal(variable) => variable.resolve(ctx)?,
-            FunctionCall(call) => call.resolve(ctx)?,
-            Container(container) => container.resolve(ctx)?,
+            Internal(variable) => ctx
+                .state()
+                .variable(variable.ident())
+                .unwrap_or(&Value::Null),
+            FunctionCall(call) => {
+                owned_value = call.resolve(ctx)?;
+                &owned_value
+            }
+            Container(container) => {
+                owned_value = container.resolve(ctx)?;
+                &owned_value
+            }
         };
 
         Ok(value.get(&self.path).cloned().unwrap_or(Value::Null))
@@ -218,6 +228,32 @@ impl fmt::Debug for Target {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::compiler::{
+        TimeZone, TypeDef,
+        state::{LocalEnv, RuntimeState},
+    };
+    use crate::owned_value_path;
+
+    #[test]
+    fn variable_query_returns_null_when_runtime_variable_is_missing() {
+        let ident = Ident::new("foo");
+        let mut local = LocalEnv::default();
+        local.insert_variable(
+            ident.clone(),
+            Details {
+                type_def: TypeDef::any(),
+                value: None,
+            },
+        );
+        let variable = Variable::new((0, 0).into(), ident, &local).unwrap();
+        let query = Query::new(Target::Internal(variable), owned_value_path!("field"));
+        let mut state = RuntimeState::default();
+        let mut target = Value::Null;
+        let timezone = TimeZone::default();
+        let mut ctx = Context::new(&mut target, &mut state, &timezone);
+
+        assert_eq!(query.resolve(&mut ctx), Ok(Value::Null));
+    }
 
     #[test]
     fn test_type_def() {
