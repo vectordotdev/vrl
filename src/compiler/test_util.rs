@@ -135,6 +135,10 @@ macro_rules! test_function {
                         assert!(got_value == want, "assertion failed for `{}` case:\n  got:    {:?}\n  wanted: {:?}", stringify!($case), got_value, want);
                         let got_tdef = expression.type_def(&state);
                         assert_eq!(got_tdef, $tdef);
+
+                        if let Ok(got_value) = got_value {
+                            assert!($func.return_kind() & got_value.kind_id() > 0, "assertion failed for `{}` return type, got {}", stringify!($case), got_value.kind_str());
+                        }
                     }
                     err@Err(_) => {
                         // Allow tests against compiler errors.
