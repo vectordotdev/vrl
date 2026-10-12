@@ -1040,6 +1040,35 @@ mod tests {
     }
 
     #[test]
+    fn parses_keyvalue_non_finite_numbers_as_strings() {
+        test_full_grok(vec![
+            (
+                "%{data::keyvalue}",
+                "a=NaN b=nan c=NAN d=inf e=-inf f=Infinity g=-Infinity h=1e999 i=1",
+                Ok(Value::from(btreemap! {
+                    "a" => "NaN",
+                    "b" => "nan",
+                    "c" => "NAN",
+                    "d" => "inf",
+                    "e" => "-inf",
+                    "f" => "Infinity",
+                    "g" => "-Infinity",
+                    "h" => "1e999",
+                    "i" => 1,
+                })),
+            ),
+            (
+                r#"%{data::keyvalue(" = ")}"#,
+                "count = 0 avg = NaN",
+                Ok(Value::from(btreemap! {
+                    "count" => 0,
+                    "avg" => "NaN",
+                })),
+            ),
+        ]);
+    }
+
+    #[test]
     fn parses_keyvalue_edge_cases() {
         test_full_grok(vec![
             (

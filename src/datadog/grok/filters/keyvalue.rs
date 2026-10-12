@@ -273,7 +273,12 @@ fn parse_string(input: &str) -> SResult<'_, Value> {
 }
 
 fn parse_number(input: &str) -> SResult<'_, Value> {
-    map_res(terminated(double, eof), |v| {
+    map_res(terminated(double, eof), |v: f64| {
+        // `double` also accepts `nan`, `inf` and `infinity`, and overflows to infinity (e.g.
+        // `1e999`). Reject non-finite values so they're parsed as strings instead.
+        if !v.is_finite() {
+            return Err(nom::Err::Error((input, nom::error::ErrorKind::Float)));
+        }
         // can be safely converted to Integer without precision loss
         if let Some(integer) = super::super::grok_filter::f64_to_i64_if_integral(v) {
             // Check if it is a valid octal number(start with 0) - keep parsed as a decimal though.
@@ -286,7 +291,9 @@ fn parse_number(input: &str) -> SResult<'_, Value> {
                 Ok(Value::Integer(integer))
             }
         } else {
-            Ok(Value::Float(NotNan::new(v).expect("not a float")))
+            NotNan::new(v)
+                .map(Value::Float)
+                .map_err(|_| nom::Err::Error((input, nom::error::ErrorKind::Float)))
         }
     })
     .parse(input)
@@ -362,5 +369,26 @@ mod tests {
             Ok(("", Value::from(1.2))),
             parse_value(r"1.2", DEFAULT_QUOTES)
         );
+    }
+
+    #[test]
+    fn test_parse_value_non_finite_numbers_as_strings() {
+        for input in [
+            "NaN",
+            "nan",
+            "NAN",
+            "inf",
+            "-inf",
+            "+inf",
+            "Infinity",
+            "-Infinity",
+            "1e999",
+        ] {
+            assert_eq!(
+                Ok(("", Value::from(input))),
+                parse_value(input, DEFAULT_QUOTES),
+                "{input} should be parsed as a string"
+            );
+        }
     }
 }
