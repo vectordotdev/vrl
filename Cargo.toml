@@ -344,8 +344,3 @@ required-features = ["default", "test"]
 [[bench]]
 name = "for_each"
 harness = false
-
-[[bench]]
-name = "variable_reads"
-harness = false
-required-features = ["stdlib-base"]

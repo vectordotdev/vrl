@@ -1,6 +1,6 @@
 use std::hint::black_box;
 
-use criterion::{BatchSize, Criterion, criterion_group, criterion_main};
+use criterion::{BatchSize, Criterion};
 use serde_json::json;
 use vrl::compiler::{TargetValue, TimeZone, compile, runtime::Runtime};
 use vrl::value::{ObjectMap, Secrets, Value};
@@ -49,7 +49,7 @@ fn bench_program(
     });
 }
 
-fn bench_variable_reads(c: &mut Criterion) {
+pub fn variable_reads(c: &mut Criterion) {
     let large = json!({
         "user": {"id": "u-123", "name": "alice", "role": "admin"},
         "event": {"kind": "login", "timestamp": "2026-01-01T00:00:00Z"},
@@ -134,6 +134,3 @@ parsed = parse_json!(.message)
         &remap_result,
     );
 }
-
-criterion_group!(benches, bench_variable_reads);
-criterion_main!(benches);
