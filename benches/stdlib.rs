@@ -9,6 +9,8 @@ use vrl::{
     bench_function, bench_query_function, btreemap, compiler::prelude::*, func_args, query, value,
 };
 
+mod runtime;
+
 fn hash_message_args() -> HashMap<&'static str, expression::Expr> {
     let mut args = func_args![];
     args.insert("value", query!(".message"));
@@ -55,6 +57,7 @@ criterion_group!(
               ends_with,
               // TODO: Cannot pass a Path to bench_function
               //exists
+              runtime::external_field_reads,
               find,
               flatten,
               floor,

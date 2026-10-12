@@ -1,6 +1,6 @@
 use std::hint::black_box;
 
-use criterion::{BatchSize, Criterion, criterion_group, criterion_main};
+use criterion::{BatchSize, Criterion};
 use serde_json::json;
 use vrl::compiler::{TargetValue, TimeZone, compile, runtime::Runtime};
 use vrl::value::{Secrets, Value};
@@ -51,7 +51,7 @@ fn bench_program(
     });
 }
 
-fn bench_external_field_reads(c: &mut Criterion) {
+pub fn external_field_reads(c: &mut Criterion) {
     let empty = Value::from(json!({}));
     for (name, source, event) in [
         ("depth_1", ".a", json!({"a": 42})),
@@ -152,6 +152,3 @@ fn bench_external_field_reads(c: &mut Criterion) {
         &result,
     );
 }
-
-criterion_group!(benches, bench_external_field_reads);
-criterion_main!(benches);
