@@ -47,9 +47,9 @@ impl Query {
     }
 
     #[must_use]
-    pub fn external_path(&self) -> Option<OwnedTargetPath> {
+    pub fn external_path(&self) -> Option<&OwnedTargetPath> {
         match self.target {
-            Target::External(_) => Some(self.path.clone()),
+            Target::External(_) => Some(&self.path),
             _ => None,
         }
     }

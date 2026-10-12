@@ -70,6 +70,26 @@ fn bench_external_field_reads(c: &mut Criterion) {
         );
     }
 
+    let event = Value::from(json!({"a": {"b": {"c": 42}}}));
+    bench_program(
+        c,
+        "external_field_reads/exists_depth_3",
+        "exists(.a.b.c)",
+        &event,
+        &empty,
+        &Value::from(true),
+        &event,
+    );
+    bench_program(
+        c,
+        "external_field_reads/del_depth_3",
+        "del(.a.b.c)",
+        &event,
+        &empty,
+        &Value::from(42),
+        &Value::from(json!({"a": {"b": {}}})),
+    );
+
     let metadata = Value::from(json!({"a": {"b": {"c": 42}}}));
     bench_program(
         c,
