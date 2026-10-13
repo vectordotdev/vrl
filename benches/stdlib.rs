@@ -1,3 +1,6 @@
+#[path = "runtime/variable_reads.rs"]
+mod variable_reads;
+
 use chrono::{DateTime, Datelike, TimeZone, Utc};
 use constcat::concat;
 use criterion::{Criterion, criterion_group, criterion_main};
@@ -188,6 +191,7 @@ criterion_group!(
               //uuidv4,
               upcase,
               values,
+              variable_reads::variable_reads,
               validate_json_schema,
               zip,
 );
