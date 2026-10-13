@@ -13,7 +13,8 @@ use std::fmt;
 #[derive(Clone, PartialEq)]
 pub struct Query {
     target: Target,
-    path: OwnedValuePath,
+    // Only external queries use the prefix; other targets use the value path.
+    path: OwnedTargetPath,
 }
 
 impl Query {
@@ -22,12 +23,17 @@ impl Query {
     // - error when trying to path into array
     #[must_use]
     pub fn new(target: Target, path: OwnedValuePath) -> Self {
+        let prefix = match &target {
+            Target::External(prefix) => *prefix,
+            _ => PathPrefix::Event,
+        };
+        let path = OwnedTargetPath { prefix, path };
         Query { target, path }
     }
 
     #[must_use]
     pub fn path(&self) -> &OwnedValuePath {
-        &self.path
+        &self.path.path
     }
 
     #[must_use]
@@ -41,12 +47,9 @@ impl Query {
     }
 
     #[must_use]
-    pub fn external_path(&self) -> Option<OwnedTargetPath> {
+    pub fn external_path(&self) -> Option<&OwnedTargetPath> {
         match self.target {
-            Target::External(prefix) => Some(OwnedTargetPath {
-                prefix,
-                path: self.path.clone(),
-            }),
+            Target::External(_) => Some(&self.path),
             _ => None,
         }
     }
@@ -105,14 +108,10 @@ impl Expression for Query {
 
         let owned_value;
         let value = match &self.target {
-            External(prefix) => {
-                let path = OwnedTargetPath {
-                    prefix: *prefix,
-                    path: self.path.clone(),
-                };
+            External(_) => {
                 return Ok(ctx
                     .target()
-                    .target_get(&path)
+                    .target_get(&self.path)
                     .ok()
                     .flatten()
                     .cloned()
@@ -132,7 +131,7 @@ impl Expression for Query {
             }
         };
 
-        Ok(value.get(&self.path).cloned().unwrap_or(Value::Null))
+        Ok(value.get(self.path()).cloned().unwrap_or(Value::Null))
     }
 
     fn resolve_constant(&self, state: &TypeState) -> Option<Value> {
@@ -149,19 +148,19 @@ impl Expression for Query {
 
         match &self.target {
             External(prefix) => {
-                let result = state.external.kind(*prefix).at_path(&self.path).into();
+                let result = state.external.kind(*prefix).at_path(self.path()).into();
                 TypeInfo::new(state, result)
             }
             Internal(variable) => {
-                let result = variable.type_def(state).at_path(&self.path);
+                let result = variable.type_def(state).at_path(self.path());
                 TypeInfo::new(state, result)
             }
             FunctionCall(call) => call
                 .type_info(state)
-                .map_result(|result| result.at_path(&self.path)),
+                .map_result(|result| result.at_path(self.path())),
             Container(container) => container
                 .type_info(state)
-                .map_result(|result| result.at_path(&self.path)),
+                .map_result(|result| result.at_path(self.path())),
         }
     }
 }
@@ -170,18 +169,18 @@ impl fmt::Display for Query {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self.target {
             Target::Internal(_)
-                if !self.path.is_root() && !self.path.segments.first().unwrap().is_index() =>
+                if !self.path().is_root() && !self.path().segments.first().unwrap().is_index() =>
             {
-                write!(f, "{}.{}", self.target, self.path)
+                write!(f, "{}.{}", self.target, self.path())
             }
-            _ => write!(f, "{}{}", self.target, self.path),
+            _ => write!(f, "{}{}", self.target, self.path()),
         }
     }
 }
 
 impl fmt::Debug for Query {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Query({:?}, {:?})", self.target, self.path)
+        write!(f, "Query({:?}, {:?})", self.target, self.path())
     }
 }
 
@@ -256,11 +255,8 @@ mod tests {
     }
 
     #[test]
-    fn test_type_def() {
-        let query = Query {
-            target: Target::External(PathPrefix::Event),
-            path: OwnedValuePath::root(),
-        };
+    fn external_root_query_has_infallible_object_type() {
+        let query = Query::new(Target::External(PathPrefix::Event), OwnedValuePath::root());
 
         let state = TypeState::default();
         let type_def = query.type_info(&state).result;
