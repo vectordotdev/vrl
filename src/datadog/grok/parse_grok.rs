@@ -1040,6 +1040,35 @@ mod tests {
     }
 
     #[test]
+    fn parses_keyvalue_nan_as_string() {
+        let inf = Value::Float(NotNan::new(f64::INFINITY).expect("infinity is not NaN"));
+        let neg_inf = Value::Float(NotNan::new(f64::NEG_INFINITY).expect("infinity is not NaN"));
+        test_full_grok(vec![
+            (
+                "%{data::keyvalue}",
+                "a=NaN b=nan c=NAN d=inf e=-1e999 f=1e999 g=1",
+                Ok(Value::from(btreemap! {
+                    "a" => "NaN",
+                    "b" => "nan",
+                    "c" => "NAN",
+                    "d" => inf.clone(),
+                    "e" => neg_inf,
+                    "f" => inf,
+                    "g" => 1,
+                })),
+            ),
+            (
+                r#"%{data::keyvalue(" = ")}"#,
+                "count = 0 avg = NaN",
+                Ok(Value::from(btreemap! {
+                    "count" => 0,
+                    "avg" => "NaN",
+                })),
+            ),
+        ]);
+    }
+
+    #[test]
     fn parses_keyvalue_edge_cases() {
         test_full_grok(vec![
             (

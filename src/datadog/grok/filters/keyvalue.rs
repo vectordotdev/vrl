@@ -273,7 +273,7 @@ fn parse_string(input: &str) -> SResult<'_, Value> {
 }
 
 fn parse_number(input: &str) -> SResult<'_, Value> {
-    map_res(terminated(double, eof), |v| {
+    map_res(terminated(double, eof), |v: f64| {
         // can be safely converted to Integer without precision loss
         if let Some(integer) = super::super::grok_filter::f64_to_i64_if_integral(v) {
             // Check if it is a valid octal number(start with 0) - keep parsed as a decimal though.
@@ -286,7 +286,11 @@ fn parse_number(input: &str) -> SResult<'_, Value> {
                 Ok(Value::Integer(integer))
             }
         } else {
-            Ok(Value::Float(NotNan::new(v).expect("not a float")))
+            // `double` also accepts `nan`, which can't be represented as a `Value::Float`. Reject it
+            // so it's parsed as a string instead.
+            NotNan::new(v)
+                .map(Value::Float)
+                .map_err(|_| nom::Err::Error((input, nom::error::ErrorKind::Float)))
         }
     })
     .parse(input)
@@ -362,5 +366,34 @@ mod tests {
             Ok(("", Value::from(1.2))),
             parse_value(r"1.2", DEFAULT_QUOTES)
         );
+    }
+
+    #[test]
+    fn test_parse_value_nan_as_string() {
+        for input in ["NaN", "nan", "NAN"] {
+            assert_eq!(
+                Ok(("", Value::from(input))),
+                parse_value(input, DEFAULT_QUOTES),
+                "{input} should be parsed as a string"
+            );
+        }
+    }
+
+    #[test]
+    fn test_parse_value_infinity_as_float() {
+        let inf = Value::Float(NotNan::new(f64::INFINITY).expect("infinity is not NaN"));
+        let neg_inf = Value::Float(NotNan::new(f64::NEG_INFINITY).expect("infinity is not NaN"));
+        for (input, expected) in [
+            ("inf", &inf),
+            ("Infinity", &inf),
+            ("1e999", &inf),
+            ("-1e999", &neg_inf),
+        ] {
+            assert_eq!(
+                Ok(("", expected.clone())),
+                parse_value(input, DEFAULT_QUOTES),
+                "{input} should be parsed as a float"
+            );
+        }
     }
 }
