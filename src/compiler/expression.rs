@@ -20,7 +20,7 @@ pub use not::Not;
 pub use object::Object;
 pub use op::Op;
 pub use predicate::Predicate;
-pub use query::{Query, Target};
+pub use query::{Query, Target, TargetRef};
 pub use r#return::Return;
 pub use unary::Unary;
 pub use variable::Variable;

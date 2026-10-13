@@ -1,0 +1,19 @@
+# object: {"items":[1,2]}
+# result: [true,true,true,true,true]
+
+% = {"items":[3,4]}
+local = {"items":[5,6]}
+
+event = unnest!(.items)
+metadata = unnest(%items)
+variable = unnest(local.items)
+container = unnest({"items":[7,8]}.items)
+call = unnest!(parse_json!(s'{"items":[9,10]}').items)
+
+[
+    event[1].items == 2,
+    metadata[1].items == 4,
+    variable[1].items == 6,
+    container[1].items == 8,
+    call[1].items == 10,
+]
