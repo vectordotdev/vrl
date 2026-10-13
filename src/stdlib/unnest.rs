@@ -5,25 +5,25 @@ fn unnest(path: &expression::Query, ctx: &mut Context) -> Resolved {
     let lookup_buf = path.path();
 
     match path.target() {
-        expression::Target::External(prefix) => {
+        expression::TargetRef::External(prefix) => {
             let root = ctx
                 .target()
-                .target_get(&OwnedTargetPath::root(*prefix))
+                .target_get(&OwnedTargetPath::root(prefix))
                 .expect("must never fail")
                 .expect("always a value");
             unnest_root(root, lookup_buf)
         }
-        expression::Target::Internal(v) => {
+        expression::TargetRef::Internal(v) => {
             let value = ctx.state().variable(v.ident()).unwrap_or(&Value::Null);
             let root = value.get(&OwnedValuePath::root()).expect("always a value");
             unnest_root(root, lookup_buf)
         }
-        expression::Target::Container(expr) => {
+        expression::TargetRef::Container(expr) => {
             let value = expr.resolve(ctx)?;
             let root = value.get(&OwnedValuePath::root()).expect("always a value");
             unnest_root(root, lookup_buf)
         }
-        expression::Target::FunctionCall(expr) => {
+        expression::TargetRef::FunctionCall(expr) => {
             let value = expr.resolve(ctx)?;
             let root = value.get(&OwnedValuePath::root()).expect("always a value");
             unnest_root(root, lookup_buf)
@@ -160,16 +160,18 @@ impl FunctionExpression for UnnestFn {
     }
 
     fn type_def(&self, state: &state::TypeState) -> TypeDef {
-        use expression::Target;
+        use expression::TargetRef;
 
         match self.path.target() {
-            Target::External(prefix) => invert_array_at_path(
-                &TypeDef::from(state.external.kind(*prefix)),
+            TargetRef::External(prefix) => invert_array_at_path(
+                &TypeDef::from(state.external.kind(prefix)),
                 self.path.path(),
             ),
-            Target::Internal(v) => invert_array_at_path(&v.type_def(state), self.path.path()),
-            Target::FunctionCall(f) => invert_array_at_path(&f.type_def(state), self.path.path()),
-            Target::Container(c) => invert_array_at_path(&c.type_def(state), self.path.path()),
+            TargetRef::Internal(v) => invert_array_at_path(&v.type_def(state), self.path.path()),
+            TargetRef::FunctionCall(f) => {
+                invert_array_at_path(&f.type_def(state), self.path.path())
+            }
+            TargetRef::Container(c) => invert_array_at_path(&c.type_def(state), self.path.path()),
         }
     }
 }

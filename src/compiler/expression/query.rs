@@ -1,6 +1,6 @@
 use crate::compiler::{
     Context, Expression,
-    expression::{Container, Resolved, Variable},
+    expression::{Container, FunctionCall, Resolved, Variable},
     parser::ast::Ident,
     state::ExternalEnv,
     state::{TypeInfo, TypeState},
@@ -12,9 +12,24 @@ use std::fmt;
 
 #[derive(Clone, PartialEq)]
 pub struct Query {
-    target: Target,
-    // Only external queries use the prefix; other targets use the value path.
-    path: OwnedTargetPath,
+    kind: QueryKind,
+}
+
+#[derive(Clone, PartialEq)]
+enum QueryKind {
+    External(OwnedTargetPath),
+    Internal {
+        variable: Variable,
+        path: OwnedValuePath,
+    },
+    FunctionCall {
+        call: FunctionCall,
+        path: OwnedValuePath,
+    },
+    Container {
+        container: Container,
+        path: OwnedValuePath,
+    },
 }
 
 impl Query {
@@ -23,58 +38,70 @@ impl Query {
     // - error when trying to path into array
     #[must_use]
     pub fn new(target: Target, path: OwnedValuePath) -> Self {
-        let prefix = match &target {
-            Target::External(prefix) => *prefix,
-            _ => PathPrefix::Event,
+        let kind = match target {
+            Target::External(prefix) => QueryKind::External(OwnedTargetPath { prefix, path }),
+            Target::Internal(variable) => QueryKind::Internal { variable, path },
+            Target::FunctionCall(call) => QueryKind::FunctionCall { call, path },
+            Target::Container(container) => QueryKind::Container { container, path },
         };
-        let path = OwnedTargetPath { prefix, path };
-        Query { target, path }
+        Self { kind }
     }
 
     #[must_use]
     pub fn path(&self) -> &OwnedValuePath {
-        &self.path.path
+        match &self.kind {
+            QueryKind::External(path) => &path.path,
+            QueryKind::Internal { path, .. }
+            | QueryKind::FunctionCall { path, .. }
+            | QueryKind::Container { path, .. } => path,
+        }
     }
 
+    /// Borrow the query's target without cloning its expression.
+    ///
+    /// Match on [`TargetRef`] to inspect the target. External prefixes are returned
+    /// by value; variables, function calls, and containers remain borrowed.
     #[must_use]
-    pub fn target(&self) -> &Target {
-        &self.target
+    pub fn target(&self) -> TargetRef<'_> {
+        match &self.kind {
+            QueryKind::External(path) => TargetRef::External(path.prefix),
+            QueryKind::Internal { variable, .. } => TargetRef::Internal(variable),
+            QueryKind::FunctionCall { call, .. } => TargetRef::FunctionCall(call),
+            QueryKind::Container { container, .. } => TargetRef::Container(container),
+        }
     }
 
     #[must_use]
     pub fn is_external(&self) -> bool {
-        matches!(self.target, Target::External(_))
+        matches!(self.kind, QueryKind::External(_))
     }
 
     #[must_use]
     pub fn external_path(&self) -> Option<&OwnedTargetPath> {
-        match self.target {
-            Target::External(_) => Some(&self.path),
+        match &self.kind {
+            QueryKind::External(path) => Some(path),
             _ => None,
         }
     }
 
     #[must_use]
     pub fn as_variable(&self) -> Option<&Variable> {
-        match &self.target {
-            Target::Internal(variable) => Some(variable),
+        match self.target() {
+            TargetRef::Internal(variable) => Some(variable),
             _ => None,
         }
     }
 
     #[must_use]
     pub fn variable_ident(&self) -> Option<&Ident> {
-        match &self.target {
-            Target::Internal(v) => Some(v.ident()),
-            _ => None,
-        }
+        self.as_variable().map(Variable::ident)
     }
 
     #[must_use]
     pub fn expression_target(&self) -> Option<&dyn Expression> {
-        match &self.target {
-            Target::FunctionCall(expr) => Some(expr),
-            Target::Container(expr) => Some(expr),
+        match self.target() {
+            TargetRef::FunctionCall(expr) => Some(expr),
+            TargetRef::Container(expr) => Some(expr),
             _ => None,
         }
     }
@@ -104,29 +131,29 @@ impl Query {
 
 impl Expression for Query {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        use Target::{Container, External, FunctionCall, Internal};
+        use QueryKind::{Container, External, FunctionCall, Internal};
 
-        let value = match &self.target {
-            External(_) => {
+        let value = match &self.kind {
+            External(path) => {
                 return Ok(ctx
                     .target()
-                    .target_get(&self.path)
+                    .target_get(path)
                     .ok()
                     .flatten()
                     .cloned()
                     .unwrap_or(Value::Null));
             }
-            Internal(variable) => variable.resolve(ctx)?,
-            FunctionCall(call) => call.resolve(ctx)?,
-            Container(container) => container.resolve(ctx)?,
+            Internal { variable, .. } => variable.resolve(ctx)?,
+            FunctionCall { call, .. } => call.resolve(ctx)?,
+            Container { container, .. } => container.resolve(ctx)?,
         };
 
         Ok(value.get(self.path()).cloned().unwrap_or(Value::Null))
     }
 
     fn resolve_constant(&self, state: &TypeState) -> Option<Value> {
-        match self.target {
-            Target::Internal(ref variable) => variable
+        match self.target() {
+            TargetRef::Internal(variable) => variable
                 .resolve_constant(state)
                 .and_then(|v| v.get(self.path()).cloned()),
             _ => None,
@@ -134,11 +161,11 @@ impl Expression for Query {
     }
 
     fn type_info(&self, state: &TypeState) -> TypeInfo {
-        use Target::{Container, External, FunctionCall, Internal};
+        use TargetRef::{Container, External, FunctionCall, Internal};
 
-        match &self.target {
+        match self.target() {
             External(prefix) => {
-                let result = state.external.kind(*prefix).at_path(self.path()).into();
+                let result = state.external.kind(prefix).at_path(self.path()).into();
                 TypeInfo::new(state, result)
             }
             Internal(variable) => {
@@ -157,34 +184,68 @@ impl Expression for Query {
 
 impl fmt::Display for Query {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self.target {
-            Target::Internal(_)
+        let target = self.target();
+        match target {
+            TargetRef::Internal(_)
                 if !self.path().is_root() && !self.path().segments.first().unwrap().is_index() =>
             {
-                write!(f, "{}.{}", self.target, self.path())
+                write!(f, "{}.{}", target, self.path())
             }
-            _ => write!(f, "{}{}", self.target, self.path()),
+            _ => write!(f, "{}{}", target, self.path()),
         }
     }
 }
 
 impl fmt::Debug for Query {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Query({:?}, {:?})", self.target, self.path())
+        write!(f, "Query({:?}, {:?})", self.target(), self.path())
     }
 }
 
+/// An owned target used to construct a [`Query`].
 #[derive(Clone, PartialEq)]
 pub enum Target {
     Internal(Variable),
     External(PathPrefix),
-    FunctionCall(crate::compiler::expression::FunctionCall),
+    FunctionCall(FunctionCall),
     Container(Container),
+}
+
+/// A borrowed view of a query target. The external prefix is copied from its stored path.
+#[derive(Clone, Copy, PartialEq)]
+pub enum TargetRef<'a> {
+    Internal(&'a Variable),
+    External(PathPrefix),
+    FunctionCall(&'a FunctionCall),
+    Container(&'a Container),
+}
+
+impl<'a> From<&'a Target> for TargetRef<'a> {
+    fn from(target: &'a Target) -> Self {
+        match target {
+            Target::Internal(variable) => Self::Internal(variable),
+            Target::External(prefix) => Self::External(*prefix),
+            Target::FunctionCall(call) => Self::FunctionCall(call),
+            Target::Container(container) => Self::Container(container),
+        }
+    }
 }
 
 impl fmt::Display for Target {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        use Target::{Container, External, FunctionCall, Internal};
+        TargetRef::from(self).fmt(f)
+    }
+}
+
+impl fmt::Debug for Target {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        TargetRef::from(self).fmt(f)
+    }
+}
+
+impl fmt::Display for TargetRef<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        use TargetRef::{Container, External, FunctionCall, Internal};
 
         match self {
             Internal(v) => v.fmt(f),
@@ -198,9 +259,9 @@ impl fmt::Display for Target {
     }
 }
 
-impl fmt::Debug for Target {
+impl fmt::Debug for TargetRef<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        use Target::{Container, External, FunctionCall, Internal};
+        use TargetRef::{Container, External, FunctionCall, Internal};
 
         match self {
             Internal(v) => write!(f, "Internal({v:?})"),
@@ -217,6 +278,107 @@ impl fmt::Debug for Target {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::compiler::expression::Expr;
+
+    #[test]
+    fn external_paths_preserve_prefixes_and_formatting() {
+        for (prefix, marker, label) in [
+            (PathPrefix::Event, ".", "Event"),
+            (PathPrefix::Metadata, "%", "Metadata"),
+        ] {
+            for path in [
+                OwnedValuePath::root(),
+                OwnedValuePath::single_field("foo").with_index_appended(0),
+            ] {
+                let query = Query::new(Target::External(prefix), path.clone());
+                let external_path = query.external_path().unwrap();
+
+                assert!(query.is_external());
+                assert_eq!(query.target(), TargetRef::External(prefix));
+                assert_eq!(external_path.prefix, prefix);
+                assert_eq!(query.path(), &path);
+                assert!(std::ptr::eq(query.path(), &raw const external_path.path));
+                assert_eq!(query.to_string(), format!("{marker}{path}"));
+                assert_eq!(
+                    format!("{query:?}"),
+                    format!("Query(External({label}), {path:?})")
+                );
+                assert!(query.as_variable().is_none());
+                assert!(query.variable_ident().is_none());
+                assert!(query.expression_target().is_none());
+            }
+        }
+    }
+
+    #[test]
+    fn internal_queries_preserve_formatting_and_constant_lookup() {
+        for (source, expected, value) in [
+            ("foo = 2; foo", "foo", 2),
+            (r#"foo = {"bar": 2}; foo.bar"#, "foo.bar", 2),
+            ("foo = [2, 3]; foo[1]", "foo[1]", 3),
+        ] {
+            let program = crate::compiler::compile(source, &[]).unwrap().program;
+            let query = match program.expressions.exprs().last().unwrap() {
+                Expr::Query(query) => query.clone(),
+                Expr::Variable(variable) => {
+                    Query::new(Target::Internal(variable.clone()), OwnedValuePath::root())
+                }
+                _ => panic!("expected a variable or query"),
+            };
+            let state = program.final_type_info().state;
+            let TargetRef::Internal(variable) = query.target() else {
+                panic!("expected an internal target");
+            };
+
+            assert_eq!(query.to_string(), expected);
+            assert!(std::ptr::eq(query.as_variable().unwrap(), variable));
+            assert_eq!(query.variable_ident(), Some(variable.ident()));
+            assert_eq!(query.resolve_constant(&state), Some(Value::from(value)));
+            assert!(query.type_info(&state).result.is_integer());
+            assert!(!query.is_external());
+            assert!(query.external_path().is_none());
+            assert!(query.expression_target().is_none());
+        }
+    }
+
+    #[cfg(feature = "stdlib-base")]
+    #[test]
+    fn expression_queries_borrow_their_targets() {
+        for (source, is_call) in [
+            (r#"{"foo": 5}.foo"#, false),
+            (r#"parse_json!(s'{"foo": 5}').foo"#, true),
+        ] {
+            let program = crate::compiler::compile(source, &crate::stdlib::all())
+                .unwrap()
+                .program;
+            let Expr::Query(query) = program.expressions.exprs().last().unwrap() else {
+                panic!("expected a query");
+            };
+
+            match query.target() {
+                TargetRef::FunctionCall(call) => {
+                    assert!(is_call);
+                    assert!(std::ptr::addr_eq(
+                        query.expression_target().unwrap(),
+                        call as &dyn Expression,
+                    ));
+                }
+                TargetRef::Container(container) => {
+                    assert!(!is_call);
+                    assert!(std::ptr::addr_eq(
+                        query.expression_target().unwrap(),
+                        container as &dyn Expression,
+                    ));
+                }
+                target => panic!("unexpected target: {target:?}"),
+            }
+            assert_eq!(query.path(), &OwnedValuePath::single_field("foo"));
+            assert!(!query.is_external());
+            assert!(query.external_path().is_none());
+            assert!(query.as_variable().is_none());
+            assert!(query.variable_ident().is_none());
+        }
+    }
 
     #[test]
     fn external_root_query_has_infallible_object_type() {
