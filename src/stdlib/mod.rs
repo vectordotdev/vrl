@@ -147,6 +147,7 @@ cfg_if::cfg_if! {
         mod random_bytes;
         mod random_float;
         mod random_int;
+        mod range;
         mod redact;
         mod remove;
         mod replace;
@@ -407,6 +408,7 @@ cfg_if::cfg_if! {
             random_bytes::RandomBytes,
             random_float::RandomFloat,
             random_int::RandomInt,
+            range::Range,
             redact::Redact,
             remove::Remove,
             replace::Replace,

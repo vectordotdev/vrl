@@ -1,0 +1,87 @@
+{
+  "anchor": "range",
+  "name": "range",
+  "category": "Array",
+  "description": "Returns an array of integers from `start` (inclusive) to `end` (exclusive), incremented by `step`.",
+  "arguments": [
+    {
+      "name": "start",
+      "description": "The first value of the range.",
+      "required": true,
+      "type": [
+        "integer"
+      ]
+    },
+    {
+      "name": "end",
+      "description": "The end of the range. This value is not included in the result.",
+      "required": true,
+      "type": [
+        "integer"
+      ]
+    },
+    {
+      "name": "step",
+      "description": "The increment between values. Can be negative, but not zero.",
+      "required": false,
+      "type": [
+        "integer"
+      ],
+      "default": "1"
+    }
+  ],
+  "return": {
+    "types": [
+      "array"
+    ]
+  },
+  "internal_failure_reasons": [
+    "`step` is zero.",
+    "The resulting array would have more than 100,000 elements."
+  ],
+  "examples": [
+    {
+      "title": "Generate a range of integers",
+      "source": "range!(500, 505)",
+      "return": [
+        500,
+        501,
+        502,
+        503,
+        504
+      ]
+    },
+    {
+      "title": "Generate a range with a step",
+      "source": "range!(0, 10, 3)",
+      "return": [
+        0,
+        3,
+        6,
+        9
+      ]
+    },
+    {
+      "title": "Generate a decreasing range",
+      "source": "range!(5, 0, -1)",
+      "return": [
+        5,
+        4,
+        3,
+        2,
+        1
+      ]
+    },
+    {
+      "title": "Expand a range expressed as a string",
+      "source": "bounds = split(\"1..4\", \"..\"); range!(to_int!(bounds[0]), to_int!(bounds[1]) + 1)",
+      "return": [
+        1,
+        2,
+        3,
+        4
+      ]
+    }
+  ],
+  "pure": true
+}
