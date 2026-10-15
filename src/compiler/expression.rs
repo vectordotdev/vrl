@@ -66,6 +66,13 @@ pub trait Expression: Send + Sync + fmt::Debug + DynClone {
     /// An expression is allowed to fail, which aborts the running program.
     fn resolve(&self, ctx: &mut Context) -> Resolved;
 
+    /// Resolve an expression whose resulting value is not used.
+    ///
+    /// Expressions can override this to avoid producing (e.g. cloning) a result.
+    fn resolve_unused(&self, ctx: &mut Context) -> Result<(), ExpressionError> {
+        self.resolve(ctx).map(|_| ())
+    }
+
     /// Resolve an expression to a value without any context, if possible.
     /// This attempts to resolve expressions using only compile-time information.
     ///
@@ -229,16 +236,13 @@ impl Expr {
             },
         )
     }
-}
 
-impl Expression for Expr {
-    fn resolve(&self, ctx: &mut Context) -> Resolved {
+    /// Dispatch `resolve` to the concrete expression, without a checkpoint.
+    fn resolve_variant(&self, ctx: &mut Context) -> Resolved {
         use Expr::{
             Abort, Assignment, Break, Container, FunctionCall, IfStatement, Literal, Noop, Op,
             Query, Return, Unary, Variable,
         };
-
-        ctx.checkpoint()?;
 
         match self {
             Literal(v) => v.resolve(ctx),
@@ -254,6 +258,24 @@ impl Expression for Expr {
             Abort(v) => v.resolve(ctx),
             Return(v) => v.resolve(ctx),
             Break(v) => v.resolve(ctx),
+        }
+    }
+}
+
+impl Expression for Expr {
+    fn resolve(&self, ctx: &mut Context) -> Resolved {
+        ctx.checkpoint()?;
+        self.resolve_variant(ctx)
+    }
+
+    fn resolve_unused(&self, ctx: &mut Context) -> Result<(), ExpressionError> {
+        ctx.checkpoint()?;
+
+        match self {
+            Expr::Assignment(v) => v.resolve_unused(ctx),
+            Expr::IfStatement(v) => v.resolve_unused(ctx),
+            Expr::Container(v) => v.resolve_unused(ctx),
+            other => other.resolve_variant(ctx).map(|_| ()),
         }
     }
 
