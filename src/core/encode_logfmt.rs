@@ -10,7 +10,9 @@ use super::encode_key_value::{EncodingError, to_string as encode_key_value};
 /// # Errors
 ///
 /// Returns an `EncodingError` if any of the keys are not strings.
-pub fn encode_map<V: Serialize>(input: &BTreeMap<KeyString, V>) -> Result<String, EncodingError> {
+pub fn encode_map<'a, V: Serialize + 'a>(
+    input: impl IntoIterator<Item = (&'a KeyString, &'a V)> + 'a,
+) -> Result<String, EncodingError> {
     encode_key_value(input, &[], "=", " ", true)
 }
 
