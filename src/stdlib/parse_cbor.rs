@@ -134,6 +134,13 @@ mod tests {
         fs::read(test_data_dir().join(cbor_bin_message_path)).unwrap()
     }
 
+    #[test]
+    fn huge_map_length_is_an_error() {
+        // A map header declaring 2^63 - 1 entries, with no entries following.
+        let cbor = [0xbb, 0x7f, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff];
+        assert!(parse_cbor(value!(cbor.as_slice())).is_err());
+    }
+
     test_function![
         parse_cbor => ParseCbor;
 
