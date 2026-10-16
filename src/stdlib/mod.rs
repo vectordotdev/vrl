@@ -51,6 +51,7 @@ cfg_if::cfg_if! {
         mod encode_percent;
         mod encode_punycode;
         mod encode_snappy;
+        mod encode_xml;
         mod encode_zlib;
         mod encode_zstd;
         mod ends_with;
@@ -311,6 +312,7 @@ cfg_if::cfg_if! {
             encode_percent::EncodePercent,
             encode_punycode::EncodePunycode,
             encode_snappy::EncodeSnappy,
+            encode_xml::EncodeXml,
             encode_zlib::EncodeZlib,
             encode_zstd::EncodeZstd,
             ends_with::EndsWith,
