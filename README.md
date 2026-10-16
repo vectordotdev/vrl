@@ -9,7 +9,7 @@ observability data (logs, metrics, and traces). Originally created for [Vector],
 it can also be embedded in other contexts.
 
 VRL is maintained by Datadog's
-[Community Open Source Engineering team][community-team].
+[Community Open Source Engineering team][cose-team].
 
 ## Quickstart
 
@@ -82,4 +82,4 @@ and [DESIGN.md](DESIGN.md) for the language's design principles. Please read the
 [filter]: https://vector.dev/docs/reference/configuration/transforms/filter/
 [route]: https://vector.dev/docs/reference/configuration/transforms/route/
 [rust-api]: https://docs.rs/vrl/latest/vrl/
-[community-team]: https://opensource.datadoghq.com/about/#the-community-open-source-engineering-team
+[cose-team]: https://opensource.datadoghq.com/about/#the-community-open-source-engineering-team
