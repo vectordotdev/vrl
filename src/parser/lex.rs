@@ -905,24 +905,30 @@ impl<'input> Lexer<'input> {
 
     fn delimited_query_char(
         &self,
-        pos: usize,
+        mut pos: usize,
         chars: &mut Peekable<CharIndices<'input>>,
     ) -> Result<char, Error> {
-        let input = &self.input[pos..];
-        if input.starts_with('#') {
+        let mut input = &self.input[pos..];
+        // A comment may be directly followed by another comment or a literal,
+        // which must be skipped as a whole as well. Loop rather than recurse so
+        // long runs of comments don't grow the stack.
+        while input.starts_with('#') {
             for (_, ch) in chars.by_ref() {
                 if ch == '\n' {
                     break;
                 }
             }
-            // The comment may be directly followed by another comment or a
-            // literal, which must be skipped as a whole as well.
-            return match chars.peek() {
-                Some(&(next, _)) => self.delimited_query_char(next, chars),
-                None => Err(Error::UnexpectedParseError(
-                    "Expected characters at end of comment.".to_string(),
-                )),
-            };
+            match chars.peek() {
+                Some(&(next, _)) => {
+                    pos = next;
+                    input = &self.input[pos..];
+                }
+                None => {
+                    return Err(Error::UnexpectedParseError(
+                        "Expected characters at end of comment.".to_string(),
+                    ));
+                }
+            }
         }
 
         // Only slice past the current character once we know it is the
@@ -2590,6 +2596,14 @@ mod test {
                 RQuery,
             ],
         );
+    }
+
+    #[test]
+    fn many_consecutive_comments_in_block() {
+        // Consecutive comments are skipped iteratively, so a long run of them
+        // must not overflow the stack.
+        let source = format!("if x {{\n{}.a = 1\n}}", "#\n".repeat(20_000));
+        assert!(token_kinds(&source).contains(&IntegerLiteral(1)));
     }
 
     #[test]
