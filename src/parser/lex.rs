@@ -905,30 +905,44 @@ impl<'input> Lexer<'input> {
 
     fn delimited_query_char(
         &self,
-        pos: usize,
+        mut pos: usize,
         chars: &mut Peekable<CharIndices<'input>>,
     ) -> Result<char, Error> {
-        let input = &self.input[pos..];
-        if input.starts_with('#') {
+        let mut input = &self.input[pos..];
+        // A comment may be directly followed by another comment or a literal,
+        // which must be skipped as a whole as well. Loop rather than recurse so
+        // long runs of comments don't grow the stack.
+        while input.starts_with('#') {
             for (_, ch) in chars.by_ref() {
                 if ch == '\n' {
                     break;
                 }
             }
-            return chars.peek().map(|(_, ch)| *ch).ok_or_else(|| {
-                Error::UnexpectedParseError("Expected characters at end of comment.".to_string())
-            });
+            match chars.peek() {
+                Some(&(next, _)) => {
+                    pos = next;
+                    input = &self.input[pos..];
+                }
+                None => {
+                    return Err(Error::UnexpectedParseError(
+                        "Expected characters at end of comment.".to_string(),
+                    ));
+                }
+            }
         }
 
-        let mut lexer = Lexer::new(&self.input[pos + 1..]);
+        // Only slice past the current character once we know it is the
+        // (single-byte) opening of a literal: `pos + 1` is not a char boundary
+        // when the current character is multi-byte.
+        let literal_lexer = || Lexer::new(&self.input[pos + 1..]);
         let (result, description) = if input.starts_with('"') {
-            (lexer.string_literal(0), "string")
+            (literal_lexer().string_literal(0), "string")
         } else if input.starts_with("s'") {
-            (lexer.raw_string_literal(0), "raw string")
+            (literal_lexer().raw_string_literal(0), "raw string")
         } else if input.starts_with("r'") {
-            (lexer.regex_literal(0), "regex")
+            (literal_lexer().regex_literal(0), "regex")
         } else if input.starts_with("t'") {
-            (lexer.timestamp_literal(0), "timestamp")
+            (literal_lexer().timestamp_literal(0), "timestamp")
         } else {
             return Ok(chars.peek().expect("query character is present").1);
         };
@@ -2545,6 +2559,51 @@ mod test {
                 Identifier("foo"),
             ],
         );
+    }
+
+    #[test]
+    fn consecutive_comments_with_multibyte_char_in_block() {
+        // https://github.com/vectordotdev/vrl/issues/1989
+        assert_eq!(
+            token_kinds("if !is_object(x) {\n# a\n# b — c\n  .a = 1\n}"),
+            token_kinds("if !is_object(x) {\n# a\n# b - c\n  .a = 1\n}"),
+        );
+    }
+
+    #[test]
+    fn consecutive_comments_with_quote_in_block() {
+        assert_eq!(
+            token_kinds("if x {\n# a\n# it's \"quoted\n.a = 1\n}\n.a"),
+            vec![
+                If,
+                Identifier("x"),
+                LBrace,
+                Newline,
+                Newline,
+                Newline,
+                LQuery,
+                Dot,
+                Identifier("a"),
+                RQuery,
+                Equals,
+                IntegerLiteral(1),
+                Newline,
+                RBrace,
+                Newline,
+                LQuery,
+                Dot,
+                Identifier("a"),
+                RQuery,
+            ],
+        );
+    }
+
+    #[test]
+    fn many_consecutive_comments_in_block() {
+        // Consecutive comments are skipped iteratively, so a long run of them
+        // must not overflow the stack.
+        let source = format!("if x {{\n{}.a = 1\n}}", "#\n".repeat(20_000));
+        assert!(token_kinds(&source).contains(&IntegerLiteral(1)));
     }
 
     #[test]
