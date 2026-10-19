@@ -26,14 +26,26 @@ pub struct Assignment {
 }
 
 impl Assignment {
-    #[allow(clippy::too_many_lines)]
+    #[allow(dead_code)]
     pub(crate) fn new(
         node: Node<Variant<Node<ast::AssignmentTarget>, Node<Expr>>>,
         state: &TypeState,
         fallible_rhs: Option<&CompilerError>,
         config: &CompileConfig,
     ) -> Result<Self, Error> {
+        Self::new_speculative(node, state, fallible_rhs, config, false).map(|(a, _)| a)
+    }
+
+    #[allow(clippy::too_many_lines)]
+    pub(crate) fn new_speculative(
+        node: Node<Variant<Node<ast::AssignmentTarget>, Node<Expr>>>,
+        state: &TypeState,
+        fallible_rhs: Option<&CompilerError>,
+        config: &CompileConfig,
+        allow_infallible_rhs: bool,
+    ) -> Result<(Self, Option<Error>), Error> {
         let (_, variant) = node.take();
+        let mut deferred_error = None;
 
         let variant = match variant {
             Variant::Single { target, expr } => {
@@ -100,7 +112,7 @@ impl Assignment {
 
                 // Infallible expressions do not need fallible assignment.
                 if type_def.is_infallible() {
-                    return Err(Error {
+                    let error = Error {
                         variant: ErrorVariant::InfallibleAssignment(
                             ok.to_string(),
                             expr.to_string(),
@@ -109,7 +121,12 @@ impl Assignment {
                         ),
                         expr_span,
                         assignment_span,
-                    });
+                    };
+                    if allow_infallible_rhs {
+                        deferred_error = Some(error);
+                    } else {
+                        return Err(error);
+                    }
                 }
 
                 let ok_noop = matches!(ok.as_ref(), ast::AssignmentTarget::Noop);
@@ -165,7 +182,7 @@ impl Assignment {
             }
         };
 
-        Ok(Self { variant })
+        Ok((Self { variant }, deferred_error))
     }
 
     /// Get a list of targets for this assignment.

@@ -68,6 +68,16 @@ impl Op {
         rhs: Node<Expr>,
         state: &TypeState,
     ) -> Result<Self, Error> {
+        Self::new_speculative(lhs, opcode, rhs, state, false).map(|(op, _)| op)
+    }
+
+    pub(crate) fn new_speculative(
+        lhs: Node<Expr>,
+        opcode: Node<ast::Opcode>,
+        rhs: Node<Expr>,
+        state: &TypeState,
+        allow_infallible_coalesce: bool,
+    ) -> Result<(Self, Option<Error>), Error> {
         use ast::Opcode::{Eq, Ge, Gt, Le, Lt, Ne};
 
         let mut state = state.clone();
@@ -87,14 +97,20 @@ impl Op {
             return Err(Error::ChainedComparison { span: op_span });
         }
 
+        let mut deferred_error = None;
         if let ast::Opcode::Err = opcode
             && lhs_type_def.is_infallible()
         {
-            return Err(Error::UnnecessaryCoalesce {
+            let err = Error::UnnecessaryCoalesce {
                 lhs_span,
                 rhs_span,
                 op_span,
-            });
+            };
+            if allow_infallible_coalesce {
+                deferred_error = Some(err);
+            } else {
+                return Err(err);
+            }
         }
 
         if let ast::Opcode::Merge = opcode
@@ -114,11 +130,14 @@ impl Op {
             });
         }
 
-        Ok(Op {
-            lhs: Box::new(lhs),
-            rhs: Box::new(rhs),
-            opcode,
-        })
+        Ok((
+            Op {
+                lhs: Box::new(lhs),
+                rhs: Box::new(rhs),
+                opcode,
+            },
+            deferred_error,
+        ))
     }
 }
 

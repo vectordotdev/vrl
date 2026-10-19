@@ -63,9 +63,27 @@ pub struct Compiler<'a> {
     pending_fallibilities: Vec<CompilerError>,
 
     loop_depth: usize,
+    speculative_loop: SpeculativeLoopState,
 
     config: CompileConfig,
     in_breakable_context: bool,
+}
+
+#[derive(Clone, Copy, Default)]
+struct SpeculativeLoopState {
+    depth: usize,
+    had_infallible_error: bool,
+}
+
+struct CompilerSnapshot {
+    diagnostics_len: usize,
+    pending_fallibilities_len: usize,
+    external_queries_len: usize,
+    external_assignments_len: usize,
+    skip_missing_query_target_len: usize,
+    fallible: bool,
+    abortable: bool,
+    speculative_infallible_error: bool,
 }
 
 // TODO: The diagnostic related code is in dire need of refactoring.
@@ -93,6 +111,34 @@ impl CompilerError {
 }
 
 impl<'a> Compiler<'a> {
+    fn snapshot(&self) -> CompilerSnapshot {
+        CompilerSnapshot {
+            diagnostics_len: self.diagnostics.len(),
+            pending_fallibilities_len: self.pending_fallibilities.len(),
+            external_queries_len: self.external_queries.len(),
+            external_assignments_len: self.external_assignments.len(),
+            skip_missing_query_target_len: self.skip_missing_query_target.len(),
+            fallible: self.fallible,
+            abortable: self.abortable,
+            speculative_infallible_error: self.speculative_loop.had_infallible_error,
+        }
+    }
+
+    fn restore_snapshot(&mut self, snapshot: &CompilerSnapshot) {
+        self.diagnostics.truncate(snapshot.diagnostics_len);
+        self.pending_fallibilities
+            .truncate(snapshot.pending_fallibilities_len);
+        self.external_queries
+            .truncate(snapshot.external_queries_len);
+        self.external_assignments
+            .truncate(snapshot.external_assignments_len);
+        self.skip_missing_query_target
+            .truncate(snapshot.skip_missing_query_target_len);
+        self.fallible = snapshot.fallible;
+        self.abortable = snapshot.abortable;
+        self.speculative_loop.had_infallible_error = snapshot.speculative_infallible_error;
+    }
+
     /// Run `f` and drop any pending fallibilities it pushed onto the stack
     /// on exit, regardless of whether `f` returned `Ok`/`Some` or pushed a
     /// hard diagnostic. Use this in helpers where the helper's *own* error
@@ -138,6 +184,7 @@ impl<'a> Compiler<'a> {
             skip_missing_query_target: vec![],
             pending_fallibilities: vec![],
             loop_depth: 0,
+            speculative_loop: SpeculativeLoopState::default(),
             config,
             in_breakable_context: false,
         };
@@ -478,8 +525,15 @@ impl<'a> Compiler<'a> {
         let rhs_span = rhs.span();
         let rhs = Node::new(rhs_span, self.compile_expr(*rhs, state)?);
 
-        let op = match Op::new(lhs, opcode, rhs, state) {
-            Ok(op) => op,
+        let op = match Op::new_speculative(lhs, opcode, rhs, state, self.speculative_loop.depth > 0)
+        {
+            Ok((op, deferred_err)) => {
+                if let Some(err) = deferred_err {
+                    self.diagnostics.push(Box::new(err));
+                    self.speculative_loop.had_infallible_error = true;
+                }
+                op
+            }
             Err(err) => {
                 // The op itself failed (e.g. `1 ?? x` is rejected as
                 // unnecessary error coalescing). Sub-expression fallibilities
@@ -623,10 +677,22 @@ impl<'a> Compiler<'a> {
         // was produced by *this* assignment's RHS — i.e. the first entry past
         // the snapshot. Anything before that belongs to an earlier expression.
         let rhs_fallibility = self.pending_fallibilities.get(pre_assignment_pending);
-        let assignment_result = Assignment::new(node, state, rhs_fallibility, &self.config);
+        let assignment_result = Assignment::new_speculative(
+            node,
+            state,
+            rhs_fallibility,
+            &self.config,
+            self.speculative_loop.depth > 0,
+        );
 
         let assignment = match assignment_result {
-            Ok(a) => a,
+            Ok((a, deferred_err)) => {
+                if let Some(err) = deferred_err {
+                    self.diagnostics.push(Box::new(err));
+                    self.speculative_loop.had_infallible_error = true;
+                }
+                a
+            }
             Err(err) => {
                 // Drop only RHS-produced entries: the hard error subsumes
                 // them. Prior pending entries stay on the stack so they're
@@ -811,12 +877,15 @@ impl<'a> Compiler<'a> {
                     Some(block) => {
                         let span = block.span();
                         let saved_loop_depth = self.loop_depth;
+                        let saved_speculative = self.speculative_loop;
                         let prev_breakable = self.in_breakable_context;
                         self.loop_depth = 0;
+                        self.speculative_loop = SpeculativeLoopState::default();
                         self.in_breakable_context = builder.supports_break();
                         let block_result = self.compile_block_with_type(block, state);
                         self.in_breakable_context = prev_breakable;
                         self.loop_depth = saved_loop_depth;
+                        self.speculative_loop = saved_speculative;
                         match block_result {
                             Some(block_with_type) => Some(Node::new(span, block_with_type)),
                             None => return None,
@@ -966,6 +1035,7 @@ impl<'a> Compiler<'a> {
         node: Node<ast::ForStatement>,
         state: &mut TypeState,
     ) -> Option<For> {
+        let original_state = state.clone();
         let (for_span, for_statement) = node.take();
         let ast::ForStatement {
             pattern,
@@ -1017,32 +1087,72 @@ impl<'a> Compiler<'a> {
             }
         }
 
-        // Snapshot pre-loop state for restoration and merging.
+        // Snapshot pre-loop state after iterable evaluation.
         let pre_loop_state = state.clone();
+        let snapshot = self.snapshot();
+        self.speculative_loop.had_infallible_error = false;
 
-        // Insert pattern variables into state.local.
-        let pattern_idents = expression::for_loop::bind_for_pattern(&pattern, iterable_kind, state);
-
+        // Pass 1: Compile the loop body with initial pre-loop state (deferring
+        // unnecessary-coalesce / infallible-assignment checks in case variables widen on subsequent iterations).
+        expression::for_loop::bind_for_pattern(&pattern, iterable_kind, state);
         self.loop_depth += 1;
-        let compiled_block = self.compile_block(block, state);
+        self.speculative_loop.depth += 1;
+        let compiled_block = self.compile_block(block.clone(), state);
+        self.speculative_loop.depth -= 1;
         self.loop_depth -= 1;
         let compiled_block = compiled_block?;
+        let pass1_had_speculative_error = self.speculative_loop.had_infallible_error;
 
-        // Restore pattern variables in body_state to their pre-loop state before merging.
-        let mut body_state = state.clone();
-        expression::for_loop::restore_pattern_variables(
-            &mut body_state,
-            &pre_loop_state,
-            &pattern_idents,
-        );
-        *state = body_state.merge(pre_loop_state);
-
-        Some(For::new(
+        let mut for_expr = For::new(
             for_span,
-            pattern,
-            Box::new(compiled_iterable),
+            pattern.clone(),
+            Box::new(compiled_iterable.clone()),
             compiled_block,
-        ))
+        );
+
+        // Compute the multi-iteration fixed-point state via `For::type_info`.
+        let fixed_point_state = for_expr.type_info(&original_state).state;
+        let mut widened_pre_loop_state = pre_loop_state.clone();
+        widened_pre_loop_state.external = fixed_point_state.external;
+        for (ident, pre_details) in &mut widened_pre_loop_state.local.bindings {
+            if let Some(fp_details) = fixed_point_state.local.bindings.get(ident) {
+                *pre_details = fp_details.clone();
+            }
+        }
+
+        if widened_pre_loop_state == pre_loop_state {
+            self.speculative_loop.had_infallible_error |= snapshot.speculative_infallible_error;
+            if pass1_had_speculative_error && self.speculative_loop.depth == 0 {
+                return None;
+            }
+        } else {
+            // Re-compile the loop body against the fixed-point multi-iteration TypeState.
+            self.restore_snapshot(&snapshot);
+            *state = widened_pre_loop_state;
+            expression::for_loop::bind_for_pattern(&pattern, iterable_kind, state);
+
+            self.loop_depth += 1;
+            let compiled_block = self.compile_block(block, state);
+            self.loop_depth -= 1;
+            let compiled_block = compiled_block?;
+
+            if self.speculative_loop.had_infallible_error && self.speculative_loop.depth == 0 {
+                return None;
+            }
+
+            for_expr = For::new(
+                for_span,
+                pattern,
+                Box::new(compiled_iterable),
+                compiled_block,
+            );
+        }
+
+        // Update the final post-loop state using `For::type_info` (matching `compile_if_statement`).
+        *state = original_state;
+        for_expr.apply_type_info(state);
+
+        Some(for_expr)
     }
 
     fn handle_parser_error(&mut self, error: crate::parser::Error) {

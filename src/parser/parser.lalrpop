@@ -194,7 +194,10 @@ EndOfExpression: () = {
 
 NonterminalNewline: () = "\n";
 
-Ident: Ident = "identifier" => Ident(<>.to_owned());
+Ident: Ident = {
+    "identifier" => Ident(<>.to_owned()),
+    "in" => Ident("in".to_owned()),
+};
 
 AbortExpr: Expr = {
     Sp<"abort"> => Expr::Abort(<>.map(|_| Abort { message: None })),
