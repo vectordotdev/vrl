@@ -5,19 +5,25 @@ the rest of the release.
 
 ## Release flow
 
-1. A maintainer runs the [Prepare release](../.github/workflows/release_prepare.yml) workflow
-   from the Actions tab. The `version` input is `minor` (default), `major`, `patch`, or an exact
-   version such as `1.2.3`. The optional `issue` input links the release issue in the PR.
+1. A maintainer runs the [Prepare release](https://github.com/vectordotdev/vrl/actions/workflows/release_prepare.yml)
+   workflow on `main`. The `version` input is `minor` (default), `major`, `patch`, or an exact
+   version such as `1.2.3`. The optional `issue` input links a release issue in the PR.
 2. The workflow runs this tool, and `vectordotdev-bot` opens the
    `chore(releasing): prepare vX.Y.Z` PR from the `prepare-X.Y.Z-release` branch.
-3. A maintainer reviews and approves the PR. To change the changelog, push edits to the PR
-   branch.
-4. After the PR merges into `main`, [Tag release](../.github/workflows/release_autotag.yml)
+3. A maintainer reviews, approves, and merges the PR. To change the changelog, push edits to the
+   PR branch.
+4. After the PR merges into `main`, [Tag release](https://github.com/vectordotdev/vrl/actions/workflows/release_autotag.yml)
    sees the version change in `Cargo.toml` and pushes the `vX.Y.Z` tag on the merge commit.
-5. The tag starts [Publish release](../.github/workflows/release_publish.yml), which publishes
-   the crate to crates.io with
+   Confirm that the tag exists: https://github.com/vectordotdev/vrl/tags
+5. The tag starts [Publish release](https://github.com/vectordotdev/vrl/actions/workflows/release_publish.yml),
+   which publishes the crate to crates.io with
    [trusted publishing](https://crates.io/docs/trusted-publishing). No crates.io token is
-   stored in the repository.
+   stored in the repository. Confirm that the release is published: https://crates.io/crates/vrl
+
+> [!IMPORTANT]
+> Do not merge other PRs while the release PR is open. The changelog only includes the fragments
+> that were on `main` when the Prepare release workflow ran. If another PR merges, close the
+> release PR, delete its branch, and run Prepare release again.
 
 ## Usage
 
