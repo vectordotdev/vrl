@@ -1,25 +1,25 @@
 use std::path::Path;
 use toml_edit::DocumentMut;
 
-pub fn read_version(repo_root: &Path) -> Result<semver::Version, String> {
-    let path = repo_root.join("Cargo.toml");
-    let content = std::fs::read_to_string(&path)
+pub fn read_version(path: &Path) -> Result<semver::Version, String> {
+    let content = std::fs::read_to_string(path)
         .map_err(|e| format!("Failed to read {}: {e}", path.display()))?;
     let doc: DocumentMut = content
         .parse()
         .map_err(|e| format!("Failed to parse {}: {e}", path.display()))?;
 
-    let version_str = doc["package"]["version"]
-        .as_str()
-        .ok_or("Missing [package].version in Cargo.toml")?;
+    let version_str = doc
+        .get("package")
+        .and_then(|package| package.get("version"))
+        .and_then(toml_edit::Item::as_str)
+        .ok_or_else(|| format!("Missing [package].version in {}", path.display()))?;
 
     semver::Version::parse(version_str)
-        .map_err(|e| format!("Invalid version '{version_str}' in Cargo.toml: {e}"))
+        .map_err(|e| format!("Invalid version '{version_str}' in {}: {e}", path.display()))
 }
 
-pub fn write_version(repo_root: &Path, version: &semver::Version) -> Result<(), String> {
-    let path = repo_root.join("Cargo.toml");
-    let content = std::fs::read_to_string(&path)
+pub fn write_version(path: &Path, version: &semver::Version) -> Result<(), String> {
+    let content = std::fs::read_to_string(path)
         .map_err(|e| format!("Failed to read {}: {e}", path.display()))?;
     let mut doc: DocumentMut = content
         .parse()
@@ -27,7 +27,7 @@ pub fn write_version(repo_root: &Path, version: &semver::Version) -> Result<(), 
 
     doc["package"]["version"] = toml_edit::value(version.to_string());
 
-    std::fs::write(&path, doc.to_string())
+    std::fs::write(path, doc.to_string())
         .map_err(|e| format!("Failed to write {}: {e}", path.display()))
 }
 
@@ -163,8 +163,9 @@ mod tests {
     #[test]
     fn read_and_write_version_roundtrip() {
         let dir = tempfile::tempdir().unwrap();
+        let manifest = dir.path().join("Cargo.toml");
         fs::write(
-            dir.path().join("Cargo.toml"),
+            &manifest,
             indoc! {r#"
                 [package]
                 name = "test"
@@ -173,9 +174,9 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(read_version(dir.path()).unwrap(), v(1, 2, 3));
+        assert_eq!(read_version(&manifest).unwrap(), v(1, 2, 3));
 
-        write_version(dir.path(), &v(2, 0, 0)).unwrap();
-        assert_eq!(read_version(dir.path()).unwrap(), v(2, 0, 0));
+        write_version(&manifest, &v(2, 0, 0)).unwrap();
+        assert_eq!(read_version(&manifest).unwrap(), v(2, 0, 0));
     }
 }
