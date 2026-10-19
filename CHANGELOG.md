@@ -4,6 +4,30 @@ Changelog is generated from fragments in `changelog.d/` by the `release` crate.
 
 <!-- changelog start -->
 
+## [0.37.0 (2026-10-19)](https://github.com/vectordotdev/vrl/releases/tag/v0.37.0)
+
+### Enhancements
+
+- Avoid allocating lookup paths for each event and metadata field read.
+
+  *Thanks to [gwenaskell](https://github.com/gwenaskell) for contributing PR [#1987](https://github.com/vectordotdev/vrl/pull/1987)!*
+- VRL variable subpath reads clone only the selected value, reducing the cost of reading fields from large objects and arrays.
+
+  *Thanks to [gwenaskell](https://github.com/gwenaskell) for contributing PR [#1984](https://github.com/vectordotdev/vrl/pull/1984)!*
+
+### Fixes
+
+- The lexer no longer panics on a program with consecutive comment lines inside a block when a
+  later comment contains a non-ASCII character, and no longer fails to lex such a program when a
+  later comment contains a quote.
+
+  *Thanks to [DeviousCardi](https://github.com/DeviousCardi) for contributing PR [#1995](https://github.com/vectordotdev/vrl/pull/1995)!*
+- The `keyvalue` filter in `parse_grok` and `parse_groks` no longer panics on unquoted `NaN` values
+  such as `ratio=NaN`. These values are now kept as strings.
+
+  *Thanks to [tessneau](https://github.com/tessneau) for contributing PR [#1990](https://github.com/vectordotdev/vrl/pull/1990)!*
+
+
 ## [0.36.0 (2026-10-01)](https://github.com/vectordotdev/vrl/releases/tag/v0.36.0)
 
 ### Breaking Changes & Upgrade Guide
