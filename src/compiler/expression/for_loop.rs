@@ -163,6 +163,9 @@ impl Expression for For {
     }
 
     fn type_info(&self, state: &TypeState) -> TypeInfo {
+        const WIDEN_AFTER_ITERATIONS: usize = 4;
+        const MAX_TYPE_INFO_ITERATIONS: usize = 8;
+
         let iterable_info = self.iterable.type_info(state);
         let pre_loop_state = iterable_info.state;
         let mut current_state = pre_loop_state.clone();
@@ -170,6 +173,7 @@ impl Expression for For {
         let iterable_kind = iterable_info.result.kind();
         let mut fallible = iterable_info.result.is_fallible();
         let mut final_returns = iterable_info.result.returns().clone();
+        let mut iterations = 0;
 
         loop {
             let mut iter_state = current_state.clone();
@@ -182,12 +186,21 @@ impl Expression for For {
             fallible |= body_info.result.is_fallible();
             final_returns = final_returns.union(body_info.result.returns().clone());
 
-            let next_state = current_state.clone().merge(final_body_state);
+            let mut next_state = current_state.clone().merge(final_body_state);
 
             if next_state == current_state {
                 break;
             }
+
+            iterations += 1;
+            if iterations >= WIDEN_AFTER_ITERATIONS {
+                widen_differing_states(&current_state, &mut next_state);
+            }
             current_state = next_state;
+
+            if iterations >= MAX_TYPE_INFO_ITERATIONS {
+                break;
+            }
         }
 
         let final_state = current_state.merge(pre_loop_state);
@@ -197,6 +210,92 @@ impl Expression for For {
                 .maybe_fallible(fallible)
                 .with_returns(final_returns),
         )
+    }
+}
+
+fn widen_differing_states(prev: &TypeState, next: &mut TypeState) {
+    for (ident, next_details) in &mut next.local.bindings {
+        if let Some(prev_details) = prev.local.bindings.get(ident)
+            && prev_details.type_def.kind() != next_details.type_def.kind()
+        {
+            widen_differing_collections(
+                prev_details.type_def.kind(),
+                next_details.type_def.kind_mut(),
+            );
+            let canonical = next_details.type_def.kind().canonicalize();
+            *next_details.type_def.kind_mut() = canonical;
+        }
+    }
+
+    if prev.external.target_kind() != next.external.target_kind() {
+        let mut target_details = next.external.target().clone();
+        widen_differing_collections(
+            prev.external.target_kind(),
+            target_details.type_def.kind_mut(),
+        );
+        let canonical = target_details.type_def.kind().canonicalize();
+        *target_details.type_def.kind_mut() = canonical;
+        next.external.update_target(target_details);
+    }
+
+    if prev.external.metadata_kind() != next.external.metadata_kind() {
+        let mut metadata_kind = next.external.metadata_kind().clone();
+        widen_differing_collections(prev.external.metadata_kind(), &mut metadata_kind);
+        next.external.update_metadata(metadata_kind.canonicalize());
+    }
+}
+
+fn widen_differing_collections(prev: &Kind, next: &mut Kind) {
+    if let Some(next_arr) = next.as_array_mut() {
+        if let Some(prev_arr) = prev.as_array() {
+            if prev_arr != next_arr {
+                let same_keys = prev_arr.known().len() == next_arr.known().len()
+                    && prev_arr.unknown_kind() == next_arr.unknown_kind()
+                    && next_arr
+                        .known()
+                        .keys()
+                        .all(|k| prev_arr.known().contains_key(k));
+                if same_keys {
+                    for (k, next_child) in next_arr.known_mut() {
+                        if let Some(prev_child) = prev_arr.known().get(k)
+                            && prev_child != next_child
+                        {
+                            widen_differing_collections(prev_child, next_child);
+                        }
+                    }
+                } else {
+                    *next_arr = Collection::any();
+                }
+            }
+        } else {
+            *next_arr = Collection::any();
+        }
+    }
+
+    if let Some(next_obj) = next.as_object_mut() {
+        if let Some(prev_obj) = prev.as_object() {
+            if prev_obj != next_obj {
+                let same_keys = prev_obj.known().len() == next_obj.known().len()
+                    && prev_obj.unknown_kind() == next_obj.unknown_kind()
+                    && next_obj
+                        .known()
+                        .keys()
+                        .all(|k| prev_obj.known().contains_key(k));
+                if same_keys {
+                    for (k, next_child) in next_obj.known_mut() {
+                        if let Some(prev_child) = prev_obj.known().get(k)
+                            && prev_child != next_child
+                        {
+                            widen_differing_collections(prev_child, next_child);
+                        }
+                    }
+                } else {
+                    *next_obj = Collection::any();
+                }
+            }
+        } else {
+            *next_obj = Collection::any();
+        }
     }
 }
 
@@ -1254,17 +1353,30 @@ mod tests {
     #[test]
     fn test_for_type_info_fixed_point_widening() {
         // x mutates from integer to string. On the second iteration, x + 1 is fallible.
-        // Because the compiler enforces fallibility, this should return a compiler error
-        // complaining about a fallible expression (E631 or similar).
-        let source = r#"
+        // Because the compiler re-compiles the loop body against the fixed-point TypeState,
+        // `y = x + 1` is caught as a fallible assignment (E103), and a bare `x + 1`
+        // is caught as an unhandled fallible expression (E100).
+        let assign_source = r#"
             x = 1
             for _ in [1, 2] {
                 y = x + 1
                 x = "s"
             }
         "#;
-        let Err(err) = crate::compiler::compile(source, &[]) else {
-            panic!("expected fallibility error from mutating outer variable");
+        let Err(err) = crate::compiler::compile(assign_source, &[]) else {
+            panic!("expected fallible assignment error from mutating outer variable");
+        };
+        assert_eq!(err[0].code, codes::ExprCode::FallibleAssignment as usize);
+
+        let expr_source = r#"
+            x = 1
+            for _ in [1, 2] {
+                x + 1
+                x = "s"
+            }
+        "#;
+        let Err(err) = crate::compiler::compile(expr_source, &[]) else {
+            panic!("expected fallible expression error from mutating outer variable");
         };
         assert_eq!(err[0].code, codes::ExprCode::FallibleExpression as usize);
     }
@@ -1279,8 +1391,178 @@ mod tests {
         let Ok(info) = crate::compiler::compile(source, &[]) else {
             panic!("expected successful compilation");
         };
-        let final_type_info = info.program.final_type_info(); let returns = final_type_info.result.returns();
+        let final_type_info = info.program.final_type_info();
+        let returns = final_type_info.result.returns();
         assert!(returns.is_superset(&crate::value::Kind::integer()).is_ok());
         assert!(returns.is_superset(&crate::value::Kind::bytes()).is_ok());
+    }
+
+    #[test]
+    fn test_for_type_info_recursive_type_growth_terminates() {
+        // 1. Recursive local array growth terminates and preserves integer | array
+        let res_arr = crate::compiler::compile("x = 1\nfor _ in [1, 2] { x = [x] }\nx", &[]);
+        assert!(res_arr.is_ok());
+        let kind_arr = res_arr
+            .unwrap()
+            .program
+            .final_type_info()
+            .result
+            .kind()
+            .clone();
+        assert!(kind_arr.contains_integer());
+        assert!(kind_arr.contains_array());
+        assert!(!kind_arr.contains_bytes());
+
+        // 2. Recursive local object growth terminates and preserves integer | object
+        let res_obj =
+            crate::compiler::compile("x = 1\nfor _ in [1, 2] { x = { \"a\": x } }\nx", &[]);
+        assert!(res_obj.is_ok());
+        let kind_obj = res_obj
+            .unwrap()
+            .program
+            .final_type_info()
+            .result
+            .kind()
+            .clone();
+        assert!(kind_obj.contains_integer());
+        assert!(kind_obj.contains_object());
+        assert!(!kind_obj.contains_bytes());
+
+        // 3. Recursive external target growth terminates while preserving root object and sibling fields
+        let res_ext = crate::compiler::compile(
+            ".host = \"web-01\"\n.x = 1\nfor _ in [1, 2] { .x = [.x] }\n. |= { \"env\": \"prod\" }\n.host",
+            &[],
+        );
+        assert!(res_ext.is_ok());
+        let kind_host = res_ext
+            .unwrap()
+            .program
+            .final_type_info()
+            .result
+            .kind()
+            .clone();
+        assert!(kind_host.is_bytes());
+
+        // 4. Recursive array starting as array stays purely an array (can be iterated in a follow-up for loop)
+        let res_iter = crate::compiler::compile(
+            "x = [1]\nfor _ in [1, 2] { x = [x] }\nfor item in x { .last = item }",
+            &[],
+        );
+        assert!(res_iter.is_ok());
+    }
+
+    #[test]
+    fn test_compile_for_multi_iteration_type_state() {
+        // 1. Post-loop state reflects multi-iteration fixed-point widening (r4091390581)
+        let Err(err_post_loop) = crate::compiler::compile(
+            "a = 1\nb = 1\nfor _ in [1, 2] {\n    b = a\n    a = \"str\"\n}\nc = b + 1",
+            &[],
+        ) else {
+            panic!("expected c = b + 1 after loop to fail as fallible assignment");
+        };
+        assert_eq!(
+            err_post_loop[0].code,
+            codes::ExprCode::FallibleAssignment as usize
+        );
+
+        // 2. In-loop error coalescing `??` is allowed when variable becomes fallible on iteration 2 (r4090101149)
+        let res_coalesce = crate::compiler::compile(
+            "x = 1\nfor _ in [1, 2] {\n    .y = (x + 1) ?? 0\n    x = \"str\"\n}",
+            &[],
+        );
+        assert!(
+            res_coalesce.is_ok(),
+            "expected (x + 1) ?? 0 to compile when x widens to int|str, got: {:?}",
+            res_coalesce.err()
+        );
+
+        // 3. In-loop infallible assignment `ok, err =` is allowed when variable becomes fallible on iteration 2
+        let res_infallible_assign = crate::compiler::compile(
+            "x = 1\nfor _ in [1, 2] {\n    .y, .err = x + 1\n    x = \"str\"\n}",
+            &[],
+        );
+        assert!(
+            res_infallible_assign.is_ok(),
+            "expected .y, .err = x + 1 to compile when x widens to int|str, got: {:?}",
+            res_infallible_assign.err()
+        );
+
+        // 4. In-loop merge `|=` rejects variable that becomes non-object on iteration 2 (E660)
+        let Err(err_merge) = crate::compiler::compile(
+            "x = {}\nfor _ in [1, 2] {\n    x |= { \"a\": 1 }\n    x = 42\n}",
+            &[],
+        ) else {
+            panic!("expected x |= {{ \"a\": 1 }} to fail when x becomes integer on iteration 2");
+        };
+        assert_eq!(
+            err_merge[0].code,
+            codes::CompilerCode::MergeNonObjects as usize
+        );
+
+        // 5. In-loop nested `for` rejects iterable that becomes non-collection on iteration 2 (E633)
+        let Err(err_nested_for) = crate::compiler::compile(
+            "arr = [1]\nfor _ in [1, 2] {\n    for item in arr { .y = item }\n    arr = 42\n}",
+            &[],
+        ) else {
+            panic!("expected inner for loop to fail when arr becomes integer on iteration 2");
+        };
+        assert_eq!(
+            err_nested_for[0].code,
+            codes::CompilerCode::NonCollectionIterable as usize
+        );
+
+        // 6. Nested loop coalescing succeeds when outer loop widens variable after inner loop
+        let res_nested_coalesce = crate::compiler::compile(
+            "x = 1\nfor _ in [1, 2] {\n    for _ in [1, 2] {\n        .y = (x + 1) ?? 0\n    }\n    x = \"str\"\n}",
+            &[],
+        );
+        assert!(res_nested_coalesce.is_ok());
+
+        // 7. Genuinely unnecessary coalesce inside a loop (when variable never widens) still fails (E651)
+        let Err(err_unnecessary_coalesce) =
+            crate::compiler::compile("x = 1\nfor _ in [1, 2] {\n    .y = (x + 1) ?? 0\n}", &[])
+        else {
+            panic!("expected unnecessary coalesce to fail when x never becomes fallible");
+        };
+        assert_eq!(
+            err_unnecessary_coalesce[0].code,
+            codes::CompilerCode::UnnecessaryCoalesce as usize
+        );
+    }
+
+    #[test]
+    fn test_in_as_contextual_keyword_identifier() {
+        let tz = TimeZone::default();
+        let eval = |script: &str| -> (Resolved, RuntimeState) {
+            let prog = crate::compiler::compile(script, &[]).unwrap();
+            let mut target = TargetValue::new(Value::Null);
+            let mut state = RuntimeState::default();
+            let mut ctx = Context::new(&mut target, &mut state, &tz);
+            let res = prog.program.resolve(&mut ctx);
+            (res, state)
+        };
+
+        // 1. Local variable assignment and arithmetic expression (`in = 1; in + 2`)
+        let (res1, _) = eval("in = 1\nin + 2");
+        assert_eq!(res1.unwrap(), Value::Integer(3));
+
+        // 2. Internal query target (`in = { "foo": "bar" }; in.foo`)
+        let (res2, _) = eval("in = { \"foo\": \"bar\" }\nin.foo");
+        assert_eq!(res2.unwrap(), Value::from("bar"));
+
+        // 3. Loop variable named `in` (`for in in [1, 2] { ... }`)
+        let (res3, _) = eval("acc = 0\nfor in in [1, 2, 3] { acc = acc + in }\nacc");
+        assert_eq!(res3.unwrap(), Value::Integer(6));
+
+        // 4. Iterable variable named `in` (`for x in in { ... }`)
+        let (res4, _) = eval("in = [10, 20]\nacc = 0\nfor x in in { acc = acc + x }\nacc");
+        assert_eq!(res4.unwrap(), Value::Integer(30));
+
+        // 5. Infallible assignment target named `in`
+        let (res5, _) = eval("d = if true { 1 } else { 1 }\nin, err = 2 / d\nin");
+        assert_eq!(
+            res5.unwrap(),
+            Value::Float(ordered_float::NotNan::new(2.0).unwrap())
+        );
     }
 }
