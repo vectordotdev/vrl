@@ -186,7 +186,9 @@ impl FunctionExpression for ToUnixTimestampFn {
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {
-        TypeDef::integer().infallible()
+        // Only nanoseconds can overflow a 64-bit integer (`timestamp_nanos_opt`
+        // returns `None` for out-of-range timestamps), so only that unit is fallible.
+        TypeDef::integer().maybe_fallible(self.unit == Unit::Nanoseconds)
     }
 }
 
@@ -228,14 +230,14 @@ mod test {
                               unit: "nanoseconds"
              ],
              want: Ok(1_609_459_200_000_000_000_i64),
-             tdef: TypeDef::integer().infallible(),
+             tdef: TypeDef::integer().fallible(),
          }
          out_of_range {
              args: func_args![value: Utc.with_ymd_and_hms(0, 1, 1, 0, 0, 0).unwrap(),
                               unit: "nanoseconds"
              ],
              want: Err("can't convert out of range timestamp"),
-             tdef: TypeDef::integer().infallible(),
+             tdef: TypeDef::integer().fallible(),
          }
     ];
 }
