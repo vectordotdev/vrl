@@ -93,7 +93,7 @@ impl Function for ToUnixTimestamp {
             },
             example! {
                 title: "Convert to a Unix timestamp (nanoseconds)",
-                source: r#"to_unix_timestamp(t'2021-01-01T00:00:00Z', unit: "nanoseconds")"#,
+                source: r#"to_unix_timestamp!(t'2021-01-01T00:00:00Z', unit: "nanoseconds")"#,
                 result: Ok("1609459200000000000"),
             },
         ]
