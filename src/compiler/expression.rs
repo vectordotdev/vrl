@@ -236,13 +236,16 @@ impl Expr {
             },
         )
     }
+}
 
-    /// Dispatch `resolve` to the concrete expression, without a checkpoint.
-    fn resolve_variant(&self, ctx: &mut Context) -> Resolved {
+impl Expression for Expr {
+    fn resolve(&self, ctx: &mut Context) -> Resolved {
         use Expr::{
             Abort, Assignment, Break, Container, FunctionCall, IfStatement, Literal, Noop, Op,
             Query, Return, Unary, Variable,
         };
+
+        ctx.checkpoint()?;
 
         match self {
             Literal(v) => v.resolve(ctx),
@@ -260,22 +263,29 @@ impl Expr {
             Break(v) => v.resolve(ctx),
         }
     }
-}
-
-impl Expression for Expr {
-    fn resolve(&self, ctx: &mut Context) -> Resolved {
-        ctx.checkpoint()?;
-        self.resolve_variant(ctx)
-    }
 
     fn resolve_unused(&self, ctx: &mut Context) -> Result<(), ExpressionError> {
+        use Expr::{
+            Abort, Assignment, Break, Container, FunctionCall, IfStatement, Literal, Noop, Op,
+            Query, Return, Unary, Variable,
+        };
+
         ctx.checkpoint()?;
 
         match self {
-            Expr::Assignment(v) => v.resolve_unused(ctx),
-            Expr::IfStatement(v) => v.resolve_unused(ctx),
-            Expr::Container(v) => v.resolve_unused(ctx),
-            other => other.resolve_variant(ctx).map(|_| ()),
+            Literal(v) => v.resolve_unused(ctx),
+            Container(v) => v.resolve_unused(ctx),
+            IfStatement(v) => v.resolve_unused(ctx),
+            Op(v) => v.resolve_unused(ctx),
+            Assignment(v) => v.resolve_unused(ctx),
+            Query(v) => v.resolve_unused(ctx),
+            FunctionCall(v) => v.resolve_unused(ctx),
+            Variable(v) => v.resolve_unused(ctx),
+            Noop(v) => v.resolve_unused(ctx),
+            Unary(v) => v.resolve_unused(ctx),
+            Abort(v) => v.resolve_unused(ctx),
+            Return(v) => v.resolve_unused(ctx),
+            Break(v) => v.resolve_unused(ctx),
         }
     }
 
