@@ -6,7 +6,7 @@ fn to_syslog_severity(level: &Value) -> Resolved {
     let severity = match &level[..] {
         "emerg" | "panic" => 0,
         "alert" => 1,
-        "crit" => 2,
+        "crit" | "critical" => 2,
         "err" | "error" => 3,
         "warning" | "warn" => 4,
         "notice" => 5,
@@ -123,6 +123,12 @@ mod tests {
 
         critical {
             args: func_args![value: value!("crit")],
+            want: Ok(value!(2)),
+            tdef: TypeDef::integer().fallible(),
+        }
+
+        critical_long {
+            args: func_args![value: value!("critical")],
             want: Ok(value!(2)),
             tdef: TypeDef::integer().fallible(),
         }
