@@ -1,3 +1,3 @@
-Updated the bundled Mozilla root certificate store to remove the `emSign ECC Root CA - G3` root following the eMudhra intermediate certificate compromise, along with other roots Mozilla has since distrusted. TLS connections to servers whose chains end at a removed root now fail validation.
+Updated `rustls-webpki` to 0.103.16 to address [RUSTSEC-2026-0382](https://rustsec.org/advisories/RUSTSEC-2026-0382). TLS certificate verification in `http_request` now rejects certificate chains that contain the compromised eMudhra emSign intermediate certificates, even when the system trust store still trusts their root.
 
 authors: thomasqueirozb
