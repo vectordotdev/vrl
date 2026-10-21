@@ -15,7 +15,7 @@ mod non_wasm {
                 let mut result = ObjectMap::new();
 
                 for (name, value) in &matches {
-                    result.insert(name.to_string().into(), Value::from(value));
+                    result.insert(name.into(), Value::from(value));
                 }
 
                 Ok(Value::from(result))
