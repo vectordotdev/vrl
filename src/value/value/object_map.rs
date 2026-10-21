@@ -234,8 +234,10 @@ impl ObjectMap {
     }
 }
 
-/// Upper bound on the initial allocation of an `UnsortedBuilder`.
-const MAX_PREALLOC_BYTES: usize = 1024 * 1024;
+/// Upper bound on the initial allocation of an `UnsortedBuilder`. Kept small
+/// because each level of a nested map can reserve this much before any of its
+/// entries are read.
+const MAX_PREALLOC_BYTES: usize = 16 * 1024;
 
 /// Collects entries in arbitrary order for bulk construction.
 pub(crate) struct UnsortedBuilder(Vec<Entry>);
