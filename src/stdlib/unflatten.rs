@@ -44,7 +44,7 @@ where
         .into_iter()
         .map(|(key, value)| {
             let (head, rest) = match key.split_once(separator) {
-                Some((key, rest)) => (key.to_string().into(), Some(rest.to_string().into())),
+                Some((key, rest)) => (key.into(), Some(rest.into())),
                 None => (key.clone(), None),
             };
             (head, rest, value)
