@@ -328,14 +328,14 @@ fn parse_log(mut input: &str, strict_mode: bool) -> ExpressionResult<Value> {
     let request = get_value!("request", take_quoted1);
     let mut iter = request.splitn(2, ' ');
     log.insert(
-        "request_method".to_owned().into(),
+        "request_method".into(),
         null_if_dash(iter.next().unwrap().into()),
     ); // split always have at least 1 item
     match iter.next() {
         Some(value) => {
             let mut iter = value.rsplitn(2, ' ');
             log.insert(
-                "request_protocol".to_owned().into(),
+                "request_protocol".into(),
                 null_if_dash(iter.next().unwrap().into()),
             ); // same as previous one
             match iter.next() {

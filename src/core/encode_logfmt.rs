@@ -27,7 +27,7 @@ pub fn encode_value(input: &Value) -> Result<String, EncodingError> {
         encode_map(map)
     } else {
         let mut map = BTreeMap::new();
-        map.insert("message".to_string().into(), &input);
+        map.insert("message".into(), &input);
         encode_map(&map)
     }
 }
