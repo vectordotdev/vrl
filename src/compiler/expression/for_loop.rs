@@ -163,11 +163,9 @@ impl Expression for For {
     }
 
     fn type_info(&self, state: &TypeState) -> TypeInfo {
-        const WIDEN_AFTER_ITERATIONS: usize = 4;
-        const MAX_TYPE_INFO_ITERATIONS: usize = 8;
-
         let iterable_info = self.iterable.type_info(state);
-        let pre_loop_state = iterable_info.state;
+        let mut pre_loop_state = iterable_info.state;
+        canonicalize_type_state(&mut pre_loop_state);
         let mut current_state = pre_loop_state.clone();
 
         let iterable_kind = iterable_info.result.kind();
@@ -187,6 +185,7 @@ impl Expression for For {
             final_returns = final_returns.union(body_info.result.returns().clone());
 
             let mut next_state = current_state.clone().merge(final_body_state);
+            canonicalize_type_state(&mut next_state);
 
             if next_state == current_state {
                 break;
@@ -194,16 +193,17 @@ impl Expression for For {
 
             iterations += 1;
             if iterations >= WIDEN_AFTER_ITERATIONS {
-                widen_differing_states(&current_state, &mut next_state);
+                widen_differing_states(
+                    &current_state,
+                    &mut next_state,
+                    iterations >= FALLBACK_WIDEN_ITERATIONS,
+                );
             }
             current_state = next_state;
-
-            if iterations >= MAX_TYPE_INFO_ITERATIONS {
-                break;
-            }
         }
 
-        let final_state = current_state.merge(pre_loop_state);
+        let mut final_state = current_state.merge(pre_loop_state);
+        canonicalize_type_state(&mut final_state);
         TypeInfo::new(
             final_state,
             TypeDef::null()
@@ -213,89 +213,179 @@ impl Expression for For {
     }
 }
 
-fn widen_differing_states(prev: &TypeState, next: &mut TypeState) {
+pub(crate) const WIDEN_AFTER_ITERATIONS: usize = 4;
+pub(crate) const FALLBACK_WIDEN_ITERATIONS: usize = 64;
+
+fn canonicalize_kind(kind: &mut Kind) {
+    if let Some(arr) = kind.as_array_mut() {
+        for child in arr.known_mut().values_mut() {
+            canonicalize_kind(child);
+        }
+    }
+    if let Some(obj) = kind.as_object_mut() {
+        for child in obj.known_mut().values_mut() {
+            canonicalize_kind(child);
+        }
+    }
+    *kind = kind.canonicalize();
+}
+
+pub(crate) fn canonicalize_type_state(state: &mut TypeState) {
+    for details in state.local.bindings.values_mut() {
+        canonicalize_kind(details.type_def.kind_mut());
+    }
+
+    let mut target_details = state.external.target().clone();
+    canonicalize_kind(target_details.type_def.kind_mut());
+    state.external.update_target(target_details);
+
+    let mut canonical_metadata = state.external.metadata_kind().clone();
+    canonicalize_kind(&mut canonical_metadata);
+    state.external.update_metadata(canonical_metadata);
+}
+
+pub(crate) fn widen_differing_states(prev: &TypeState, next: &mut TypeState, force_top: bool) {
     for (ident, next_details) in &mut next.local.bindings {
         if let Some(prev_details) = prev.local.bindings.get(ident)
-            && prev_details.type_def.kind() != next_details.type_def.kind()
+            && prev_details != next_details
         {
-            widen_differing_collections(
-                prev_details.type_def.kind(),
-                next_details.type_def.kind_mut(),
-            );
-            let canonical = next_details.type_def.kind().canonicalize();
-            *next_details.type_def.kind_mut() = canonical;
+            if force_top {
+                *next_details.type_def.kind_mut() = Kind::any();
+                next_details.value = None;
+            } else if prev_details.type_def.kind() != next_details.type_def.kind() {
+                widen_differing_collections(
+                    prev_details.type_def.kind(),
+                    next_details.type_def.kind_mut(),
+                    0,
+                );
+            }
         }
     }
 
-    if prev.external.target_kind() != next.external.target_kind() {
+    if prev.external.target() != next.external.target() {
         let mut target_details = next.external.target().clone();
-        widen_differing_collections(
-            prev.external.target_kind(),
-            target_details.type_def.kind_mut(),
-        );
-        let canonical = target_details.type_def.kind().canonicalize();
-        *target_details.type_def.kind_mut() = canonical;
+        if force_top {
+            *target_details.type_def.kind_mut() = Kind::any();
+            target_details.value = None;
+        } else if prev.external.target_kind() != next.external.target_kind() {
+            widen_differing_collections(
+                prev.external.target_kind(),
+                target_details.type_def.kind_mut(),
+                0,
+            );
+        }
         next.external.update_target(target_details);
     }
 
     if prev.external.metadata_kind() != next.external.metadata_kind() {
-        let mut metadata_kind = next.external.metadata_kind().clone();
-        widen_differing_collections(prev.external.metadata_kind(), &mut metadata_kind);
-        next.external.update_metadata(metadata_kind.canonicalize());
+        if force_top {
+            next.external.update_metadata(Kind::any());
+        } else {
+            let mut metadata_kind = next.external.metadata_kind().clone();
+            widen_differing_collections(prev.external.metadata_kind(), &mut metadata_kind, 0);
+            next.external.update_metadata(metadata_kind);
+        }
     }
+
+    canonicalize_type_state(next);
 }
 
-fn widen_differing_collections(prev: &Kind, next: &mut Kind) {
-    if let Some(next_arr) = next.as_array_mut() {
-        if let Some(prev_arr) = prev.as_array() {
-            if prev_arr != next_arr {
-                let same_keys = prev_arr.known().len() == next_arr.known().len()
-                    && prev_arr.unknown_kind() == next_arr.unknown_kind()
-                    && next_arr
-                        .known()
-                        .keys()
-                        .all(|k| prev_arr.known().contains_key(k));
-                if same_keys {
-                    for (k, next_child) in next_arr.known_mut() {
-                        if let Some(prev_child) = prev_arr.known().get(k)
-                            && prev_child != next_child
-                        {
-                            widen_differing_collections(prev_child, next_child);
-                        }
-                    }
-                } else {
-                    *next_arr = Collection::any();
-                }
+fn has_structural_collection_change(prev: &Kind, next: &Kind) -> bool {
+    if (next.contains_array() && !prev.contains_array())
+        || (next.contains_object() && !prev.contains_object())
+    {
+        return true;
+    }
+
+    if let (Some(prev_arr), Some(next_arr)) = (prev.as_array(), next.as_array())
+        && prev_arr != next_arr
+    {
+        let same_keys = prev_arr.known().len() == next_arr.known().len()
+            && prev_arr.unknown_kind() == next_arr.unknown_kind()
+            && next_arr
+                .known()
+                .keys()
+                .all(|k| prev_arr.known().contains_key(k));
+        if !same_keys {
+            return true;
+        }
+        for (k, next_child) in next_arr.known() {
+            if let Some(prev_child) = prev_arr.known().get(k)
+                && prev_child != next_child
+                && has_structural_collection_change(prev_child, next_child)
+            {
+                return true;
             }
-        } else {
-            *next_arr = Collection::any();
         }
     }
 
-    if let Some(next_obj) = next.as_object_mut() {
-        if let Some(prev_obj) = prev.as_object() {
-            if prev_obj != next_obj {
-                let same_keys = prev_obj.known().len() == next_obj.known().len()
-                    && prev_obj.unknown_kind() == next_obj.unknown_kind()
-                    && next_obj
-                        .known()
-                        .keys()
-                        .all(|k| prev_obj.known().contains_key(k));
-                if same_keys {
-                    for (k, next_child) in next_obj.known_mut() {
-                        if let Some(prev_child) = prev_obj.known().get(k)
-                            && prev_child != next_child
-                        {
-                            widen_differing_collections(prev_child, next_child);
-                        }
-                    }
-                } else {
-                    *next_obj = Collection::any();
+    if let (Some(prev_obj), Some(next_obj)) = (prev.as_object(), next.as_object())
+        && prev_obj != next_obj
+    {
+        let same_keys = prev_obj.known().len() == next_obj.known().len()
+            && prev_obj.unknown_kind() == next_obj.unknown_kind()
+            && next_obj
+                .known()
+                .keys()
+                .all(|k| prev_obj.known().contains_key(k));
+        if !same_keys {
+            return true;
+        }
+        for (k, next_child) in next_obj.known() {
+            if let Some(prev_child) = prev_obj.known().get(k)
+                && prev_child != next_child
+                && has_structural_collection_change(prev_child, next_child)
+            {
+                return true;
+            }
+        }
+    }
+
+    false
+}
+
+const MAX_OBJECT_WIDEN_DEPTH: usize = 8;
+
+fn widen_differing_collections(prev: &Kind, next: &mut Kind, depth: usize) {
+    if !has_structural_collection_change(prev, next) {
+        return;
+    }
+
+    if let Some(next_arr) = next.as_array_mut()
+        && prev.as_array() != Some(next_arr)
+    {
+        *next_arr = Collection::any();
+    }
+
+    let mut recurred_object = false;
+    if depth < MAX_OBJECT_WIDEN_DEPTH
+        && let Some(prev_obj) = prev.as_object()
+        && let Some(next_obj) = next.as_object_mut()
+        && prev_obj != next_obj
+    {
+        let same_keys = prev_obj.known().len() == next_obj.known().len()
+            && prev_obj.unknown_kind() == next_obj.unknown_kind()
+            && next_obj
+                .known()
+                .keys()
+                .all(|k| prev_obj.known().contains_key(k));
+        if same_keys {
+            recurred_object = true;
+            for (k, next_child) in next_obj.known_mut() {
+                if let Some(prev_child) = prev_obj.known().get(k)
+                    && prev_child != next_child
+                {
+                    widen_differing_collections(prev_child, next_child, depth + 1);
                 }
             }
-        } else {
-            *next_obj = Collection::any();
         }
+    }
+
+    if !recurred_object
+        && let Some(next_obj) = next.as_object_mut()
+        && prev.as_object() != Some(next_obj)
+    {
+        *next_obj = Collection::any();
     }
 }
 
@@ -1563,6 +1653,133 @@ mod tests {
         assert_eq!(
             res5.unwrap(),
             Value::Float(ordered_float::NotNan::new(2.0).unwrap())
+        );
+    }
+
+    #[test]
+    fn test_for_type_info_long_shift_chain_reaches_fixed_point() {
+        // 1. 10-variable shift chain (> 8 iterations) must not exit early before reaching fixed point (r4328991311)
+        let source = r#"
+            x0 = 1; x1 = 1; x2 = 1; x3 = 1; x4 = 1; x5 = 1; x6 = 1; x7 = 1; x8 = 1; x9 = 1
+            for _ in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] {
+                x9 = x8
+                x8 = x7
+                x7 = x6
+                x6 = x5
+                x5 = x4
+                x4 = x3
+                x3 = x2
+                x2 = x1
+                x1 = x0
+                x0 = "str"
+            }
+            .out = x9 + 1
+        "#;
+        let Err(err) = crate::compiler::compile(source, &[]) else {
+            panic!(
+                "expected .out = x9 + 1 to fail as fallible assignment after 10-step propagation"
+            );
+        };
+        assert_eq!(err[0].code, codes::ExprCode::FallibleAssignment as usize);
+
+        // 2. Shift chain across object fields converges without destructively widening sibling fields
+        let obj_shift_source = r#"
+            s = { "x0": 1, "x1": 1, "x2": 1, "x3": 1, "x4": 1, "x5": 1, "keep": 42 }
+            for _ in [1, 2, 3, 4, 5, 6] {
+                s.x5 = s.x4
+                s.x4 = s.x3
+                s.x3 = s.x2
+                s.x2 = s.x1
+                s.x1 = s.x0
+                s.x0 = "str"
+            }
+            .ok = s.keep + 1
+            .fail = s.x5 + 1
+        "#;
+        let Err(err_obj) = crate::compiler::compile(obj_shift_source, &[]) else {
+            panic!("expected .fail = s.x5 + 1 to fail as fallible assignment");
+        };
+        assert_eq!(err_obj.len(), 1);
+        assert_eq!(
+            err_obj[0].code,
+            codes::ExprCode::FallibleAssignment as usize
+        );
+
+        // 3. Deeply nested collection widening + delayed scalar shift preserves sibling fields at depth >= 2
+        let deep_nested_source = r#"
+            s = {
+                "a": {
+                    "b": {
+                        "arr": [1],
+                        "keep": 42
+                    }
+                },
+                "x0": [1], "x1": [1], "x2": [1], "x3": [1], "x4": [1]
+            }
+            for _ in [1, 2, 3, 4, 5, 6] {
+                s.a.b.arr = if true { [s.a.b.arr] } else { s.x4 }
+                s.x4 = s.x3
+                s.x3 = s.x2
+                s.x2 = s.x1
+                s.x1 = s.x0
+                s.x0 = "str"
+            }
+            .ok = s.a.b.keep + 1
+        "#;
+        let res_deep = crate::compiler::compile(deep_nested_source, &[]);
+        assert!(
+            res_deep.is_ok(),
+            "expected s.a.b.keep to remain integer after nested array widening + delayed scalar shift, got: {:?}",
+            res_deep.err()
+        );
+    }
+
+    #[test]
+    fn test_for_stateful_iterable_type_info_evaluated_once() {
+        // Stateful iterable `{ x = x[0]; x }` must be evaluated against pre-iterable state (r4328991318)
+        let source = r"
+            x = [[1, 2]]
+            for y in { x = x[0]; x } {
+                .last = y + 1
+            }
+            for z in x {
+                .z = z + 1
+            }
+        ";
+        let res = crate::compiler::compile(source, &[]);
+        assert!(
+            res.is_ok(),
+            "expected stateful iterable to compile cleanly, got: {:?}",
+            res.err()
+        );
+    }
+
+    #[test]
+    fn test_for_multi_pass_infallible_assignment_default_widening() {
+        // Pass 1 sees `x: array` (exact) so `y, err = ...` gets `default = []` (array).
+        // Pass 2 sees `x: array | object` (non-exact) so `y, err = ...` gets `default = null`.
+        // Pass 3 must observe that `y` is now `array | object | null` and reject `for _, item in y` (E633).
+        let source = r#"
+            x = [1]
+            y = [1]
+            d = 1
+            for _ in [1, 2, 3] {
+                for _, item in y {
+                    .last = item
+                }
+                y, err = { 1 / d; x }
+                x = { "a": 1 }
+                d = 0
+            }
+        "#;
+        let Err(err) = crate::compiler::compile(source, &[]) else {
+            panic!(
+                "expected inner for loop over `y` to fail once `y`'s error-default widens to null"
+            );
+        };
+        assert_eq!(
+            err[0].code,
+            codes::CompilerCode::NonCollectionIterable as usize
         );
     }
 }
