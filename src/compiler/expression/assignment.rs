@@ -202,6 +202,10 @@ impl Assignment {
 
         targets
     }
+
+    pub(crate) const fn variant(&self) -> &Variant<Target, Expr> {
+        &self.variant
+    }
 }
 
 fn verify_mutable(
@@ -366,7 +370,12 @@ pub(crate) enum Target {
 }
 
 impl Target {
-    fn insert_type_def(&self, state: &mut TypeState, new_type_def: TypeDef, value: Option<Value>) {
+    pub(crate) fn insert_type_def(
+        &self,
+        state: &mut TypeState,
+        new_type_def: TypeDef,
+        value: Option<Value>,
+    ) {
         match self {
             Self::Noop => {}
             Self::Internal(ident, path) => {

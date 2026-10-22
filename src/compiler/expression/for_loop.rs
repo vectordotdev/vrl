@@ -145,6 +145,79 @@ impl PartialEq for For {
     }
 }
 
+impl For {
+    pub(crate) fn resolve_loop_type_info(&self, state: &TypeState) -> (TypeState, TypeInfo) {
+        let iterable_info = self.iterable.type_info(state);
+        let mut pre_loop_state = iterable_info.state;
+        canonicalize_type_state(&mut pre_loop_state);
+        let mut current_state = pre_loop_state.clone();
+        let mut accumulated_break_state: Option<TypeState> = None;
+
+        let iterable_kind = iterable_info.result.kind();
+        let mut fallible = iterable_info.result.is_fallible();
+        let mut final_returns = iterable_info.result.returns().clone();
+        let mut iterations = 0;
+
+        loop {
+            let mut iter_state = current_state.clone();
+            let pattern_idents = bind_for_pattern(&self.pattern, iterable_kind, &mut iter_state);
+
+            let flow = eval_loop_block(&self.block, &iter_state);
+            fallible |= flow.result.is_fallible();
+            final_returns = final_returns.union(flow.result.returns().clone());
+
+            let back_edge_state = merge_opt_state(flow.normal, flow.continue_state).map(|mut s| {
+                restore_pattern_variables(&mut s, &pre_loop_state, &pattern_idents);
+                canonicalize_type_state(&mut s);
+                s
+            });
+
+            let iter_break_state = flow.break_state.map(|mut s| {
+                restore_pattern_variables(&mut s, &pre_loop_state, &pattern_idents);
+                canonicalize_type_state(&mut s);
+                s
+            });
+            accumulated_break_state = merge_opt_state(accumulated_break_state, iter_break_state);
+            if let Some(ref mut brk) = accumulated_break_state {
+                canonicalize_type_state(brk);
+            }
+
+            let mut next_state = match back_edge_state {
+                Some(back_state) => current_state.clone().merge(back_state),
+                None => current_state.clone(),
+            };
+            canonicalize_type_state(&mut next_state);
+
+            if next_state == current_state {
+                break;
+            }
+
+            iterations += 1;
+            if iterations >= WIDEN_AFTER_ITERATIONS {
+                widen_differing_states(
+                    &current_state,
+                    &mut next_state,
+                    iterations >= FALLBACK_WIDEN_ITERATIONS,
+                );
+            }
+            current_state = next_state;
+        }
+
+        let header_state = current_state.clone();
+        let mut final_state = merge_opt_state(Some(current_state), accumulated_break_state)
+            .expect("at least current_state")
+            .merge(pre_loop_state);
+        canonicalize_type_state(&mut final_state);
+        let type_info = TypeInfo::new(
+            final_state,
+            TypeDef::null()
+                .maybe_fallible(fallible)
+                .with_returns(final_returns),
+        );
+        (header_state, type_info)
+    }
+}
+
 impl Expression for For {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let collection = self.iterable.resolve(ctx)?;
@@ -163,53 +236,540 @@ impl Expression for For {
     }
 
     fn type_info(&self, state: &TypeState) -> TypeInfo {
-        let iterable_info = self.iterable.type_info(state);
-        let mut pre_loop_state = iterable_info.state;
-        canonicalize_type_state(&mut pre_loop_state);
-        let mut current_state = pre_loop_state.clone();
+        self.resolve_loop_type_info(state).1
+    }
+}
 
-        let iterable_kind = iterable_info.result.kind();
-        let mut fallible = iterable_info.result.is_fallible();
-        let mut final_returns = iterable_info.result.returns().clone();
-        let mut iterations = 0;
+struct LoopFlow {
+    normal: Option<TypeState>,
+    break_state: Option<TypeState>,
+    continue_state: Option<TypeState>,
+    result: TypeDef,
+}
 
-        loop {
-            let mut iter_state = current_state.clone();
-            let pattern_idents = bind_for_pattern(&self.pattern, iterable_kind, &mut iter_state);
+fn merge_opt_state(a: Option<TypeState>, b: Option<TypeState>) -> Option<TypeState> {
+    match (a, b) {
+        (Some(a), Some(b)) => Some(a.merge(b)),
+        (Some(a), None) => Some(a),
+        (None, Some(b)) => Some(b),
+        (None, None) => None,
+    }
+}
 
-            let body_info = self.block.type_info(&iter_state);
-            let mut final_body_state = body_info.state;
-            restore_pattern_variables(&mut final_body_state, &pre_loop_state, &pattern_idents);
+fn expr_contains_loop_jump(expr: &crate::compiler::expression::Expr) -> bool {
+    use crate::compiler::expression::{Expr, container::Variant, query::Target, unary};
 
-            fallible |= body_info.result.is_fallible();
-            final_returns = final_returns.union(body_info.result.returns().clone());
-
-            let mut next_state = current_state.clone().merge(final_body_state);
-            canonicalize_type_state(&mut next_state);
-
-            if next_state == current_state {
-                break;
-            }
-
-            iterations += 1;
-            if iterations >= WIDEN_AFTER_ITERATIONS {
-                widen_differing_states(
-                    &current_state,
-                    &mut next_state,
-                    iterations >= FALLBACK_WIDEN_ITERATIONS,
-                );
-            }
-            current_state = next_state;
+    match expr {
+        Expr::Break(_) | Expr::Continue(_) => true,
+        // Nested `for` loops capture their own `break` and `continue`.
+        Expr::For(_) | Expr::Literal(_) | Expr::Variable(_) | Expr::Noop(_) => false,
+        Expr::Container(container) => match &container.variant {
+            Variant::Group(group) => expr_contains_loop_jump(group.inner_expr()),
+            Variant::Block(block) => block.exprs().iter().any(expr_contains_loop_jump),
+            Variant::Array(array) => array.iter().any(expr_contains_loop_jump),
+            Variant::Object(object) => object.values().any(expr_contains_loop_jump),
+        },
+        Expr::IfStatement(if_stmt) => {
+            if_stmt
+                .predicate
+                .block()
+                .exprs()
+                .iter()
+                .any(expr_contains_loop_jump)
+                || if_stmt.if_block.exprs().iter().any(expr_contains_loop_jump)
+                || if_stmt
+                    .else_block
+                    .as_ref()
+                    .is_some_and(|b| b.exprs().iter().any(expr_contains_loop_jump))
         }
+        Expr::Op(op) => expr_contains_loop_jump(&op.lhs) || expr_contains_loop_jump(&op.rhs),
+        Expr::Assignment(assignment) => match assignment.variant() {
+            crate::compiler::expression::assignment::Variant::Single { expr, .. }
+            | crate::compiler::expression::assignment::Variant::Infallible { expr, .. } => {
+                expr_contains_loop_jump(expr)
+            }
+        },
+        Expr::Query(query) => match query.target() {
+            Target::Internal(_) | Target::External(_) => false,
+            Target::Container(container) => {
+                expr_contains_loop_jump(&Expr::Container(container.clone()))
+            }
+            Target::FunctionCall(call) => call
+                .arguments()
+                .iter()
+                .any(|arg| expr_contains_loop_jump(arg.inner().expr())),
+        },
+        // Function closures do not jump to an enclosing `for` loop, only arguments can.
+        Expr::FunctionCall(call) => call
+            .arguments()
+            .iter()
+            .any(|arg| expr_contains_loop_jump(arg.inner().expr())),
+        Expr::Unary(unary) => match unary.variant() {
+            unary::Variant::Not(not) => expr_contains_loop_jump(not.inner_expr()),
+        },
+        Expr::Abort(abort) => abort.message().is_some_and(expr_contains_loop_jump),
+        Expr::Return(ret) => expr_contains_loop_jump(ret.expr()),
+    }
+}
 
-        let mut final_state = current_state.merge(pre_loop_state);
-        canonicalize_type_state(&mut final_state);
-        TypeInfo::new(
-            final_state,
-            TypeDef::null()
-                .maybe_fallible(fallible)
-                .with_returns(final_returns),
-        )
+fn eval_loop_block(block: &Block, state: &TypeState) -> LoopFlow {
+    if !block.exprs().iter().any(expr_contains_loop_jump) {
+        let info = block.type_info(state);
+        return LoopFlow {
+            normal: Some(info.state),
+            break_state: None,
+            continue_state: None,
+            result: info.result,
+        };
+    }
+
+    let parent_locals = state.local.clone();
+    let mut current_normal = Some(state.clone());
+    let mut break_state = None;
+    let mut continue_state = None;
+    let mut result = TypeDef::null();
+    let mut fallible = false;
+    let mut returns = Kind::never();
+    let mut after_never_expression = false;
+
+    for expr in block.exprs() {
+        let Some(ref active_state) = current_normal else {
+            break;
+        };
+        let flow = eval_loop_expr(expr, active_state);
+        result = flow.result;
+
+        if !after_never_expression && result.is_fallible() {
+            fallible = true;
+        }
+        if result.is_never() {
+            after_never_expression = true;
+        }
+        returns.merge_keep(result.returns().clone(), false);
+
+        current_normal = flow.normal;
+        break_state = merge_opt_state(break_state, flow.break_state);
+        continue_state = merge_opt_state(continue_state, flow.continue_state);
+    }
+
+    if block.is_scoped() {
+        if let Some(ref mut normal) = current_normal {
+            normal.local = parent_locals
+                .clone()
+                .apply_child_scope(normal.local.clone());
+        }
+        if let Some(ref mut brk) = break_state {
+            brk.local = parent_locals.clone().apply_child_scope(brk.local.clone());
+        }
+        if let Some(ref mut cont) = continue_state {
+            cont.local = parent_locals.apply_child_scope(cont.local.clone());
+        }
+    }
+
+    LoopFlow {
+        normal: current_normal,
+        break_state,
+        continue_state,
+        result: result.maybe_fallible(fallible).with_returns(returns),
+    }
+}
+
+#[allow(clippy::too_many_lines)]
+fn eval_loop_expr(expr: &crate::compiler::expression::Expr, state: &TypeState) -> LoopFlow {
+    use crate::compiler::expression::{Expr, assignment, container::Variant, query::Target, unary};
+    use crate::parser::ast::Opcode;
+    use std::collections::BTreeMap;
+
+    if !expr_contains_loop_jump(expr) {
+        let info = expr.type_info(state);
+        return LoopFlow {
+            normal: Some(info.state),
+            break_state: None,
+            continue_state: None,
+            result: info.result,
+        };
+    }
+
+    match expr {
+        Expr::Break(_) => LoopFlow {
+            normal: None,
+            break_state: Some(state.clone()),
+            continue_state: None,
+            result: TypeDef::never(),
+        },
+        Expr::Continue(_) => LoopFlow {
+            normal: None,
+            break_state: None,
+            continue_state: Some(state.clone()),
+            result: TypeDef::never(),
+        },
+        Expr::Container(container) => match &container.variant {
+            Variant::Group(group) => eval_loop_expr(group.inner_expr(), state),
+            Variant::Block(block) => eval_loop_block(block, state),
+            Variant::Array(array) => {
+                let mut current_normal = Some(state.clone());
+                let mut break_state = None;
+                let mut continue_state = None;
+                let mut type_defs = Vec::new();
+                let mut fallible = false;
+
+                for item in array.iter() {
+                    let Some(ref active_state) = current_normal else {
+                        break;
+                    };
+                    let flow = eval_loop_expr(item, active_state);
+                    let type_def = flow.result.upgrade_undefined();
+                    fallible |= type_def.is_fallible();
+                    current_normal = flow.normal;
+                    break_state = merge_opt_state(break_state, flow.break_state);
+                    continue_state = merge_opt_state(continue_state, flow.continue_state);
+
+                    if type_def.is_never() || current_normal.is_none() {
+                        return LoopFlow {
+                            normal: None,
+                            break_state,
+                            continue_state,
+                            result: TypeDef::never().maybe_fallible(fallible),
+                        };
+                    }
+                    type_defs.push(type_def);
+                }
+
+                let returns = type_defs.iter().fold(Kind::never(), |returns, type_def| {
+                    returns.union(type_def.returns().clone())
+                });
+                let collection = type_defs
+                    .into_iter()
+                    .enumerate()
+                    .map(|(index, type_def)| (index.into(), type_def.into()))
+                    .collect::<BTreeMap<_, _>>();
+
+                LoopFlow {
+                    normal: current_normal,
+                    break_state,
+                    continue_state,
+                    result: TypeDef::array(collection)
+                        .maybe_fallible(fallible)
+                        .with_returns(returns),
+                }
+            }
+            Variant::Object(object) => {
+                let mut current_normal = Some(state.clone());
+                let mut break_state = None;
+                let mut continue_state = None;
+                let mut type_defs = BTreeMap::new();
+                let mut fallible = false;
+                let mut returns = Kind::never();
+
+                for (k, item) in object.iter() {
+                    let Some(ref active_state) = current_normal else {
+                        break;
+                    };
+                    let flow = eval_loop_expr(item, active_state);
+                    let type_def = flow.result.upgrade_undefined();
+                    returns.merge_keep(type_def.returns().clone(), false);
+                    fallible |= type_def.is_fallible();
+                    current_normal = flow.normal;
+                    break_state = merge_opt_state(break_state, flow.break_state);
+                    continue_state = merge_opt_state(continue_state, flow.continue_state);
+
+                    if type_def.is_never() || current_normal.is_none() {
+                        return LoopFlow {
+                            normal: None,
+                            break_state,
+                            continue_state,
+                            result: TypeDef::never()
+                                .maybe_fallible(fallible)
+                                .with_returns(returns),
+                        };
+                    }
+                    type_defs.insert(k.clone(), type_def);
+                }
+
+                let collection = type_defs
+                    .into_iter()
+                    .map(|(field, type_def)| (field.into(), type_def.into()))
+                    .collect::<BTreeMap<_, _>>();
+
+                LoopFlow {
+                    normal: current_normal,
+                    break_state,
+                    continue_state,
+                    result: TypeDef::object(collection)
+                        .maybe_fallible(fallible)
+                        .with_returns(returns),
+                }
+            }
+        },
+        Expr::IfStatement(if_stmt) => {
+            let pred_flow = eval_loop_block(if_stmt.predicate.block(), state);
+            let returns = pred_flow.result.returns().clone();
+            let pred_fallible = pred_flow.result.is_fallible();
+            let Some(after_pred_state) = pred_flow.normal else {
+                return LoopFlow {
+                    normal: None,
+                    break_state: pred_flow.break_state,
+                    continue_state: pred_flow.continue_state,
+                    result: pred_flow.result,
+                };
+            };
+
+            let if_flow = eval_loop_block(&if_stmt.if_block, &after_pred_state);
+            if let Some(else_block) = &if_stmt.else_block {
+                let else_flow = eval_loop_block(else_block, &after_pred_state);
+                let mut result = if_flow.result.union(else_flow.result);
+                if pred_fallible {
+                    result = result.fallible();
+                }
+                result.returns_mut().merge_keep(returns, false);
+                LoopFlow {
+                    normal: merge_opt_state(if_flow.normal, else_flow.normal),
+                    break_state: merge_opt_state(
+                        pred_flow.break_state,
+                        merge_opt_state(if_flow.break_state, else_flow.break_state),
+                    ),
+                    continue_state: merge_opt_state(
+                        pred_flow.continue_state,
+                        merge_opt_state(if_flow.continue_state, else_flow.continue_state),
+                    ),
+                    result,
+                }
+            } else {
+                let mut result = if_flow.result.or_null();
+                if pred_fallible {
+                    result = result.fallible();
+                }
+                result.returns_mut().merge_keep(returns, false);
+                LoopFlow {
+                    normal: merge_opt_state(if_flow.normal, Some(after_pred_state)),
+                    break_state: merge_opt_state(pred_flow.break_state, if_flow.break_state),
+                    continue_state: merge_opt_state(
+                        pred_flow.continue_state,
+                        if_flow.continue_state,
+                    ),
+                    result,
+                }
+            }
+        }
+        Expr::Assignment(assignment) => match assignment.variant() {
+            assignment::Variant::Single { target, expr } => {
+                let rhs_flow = eval_loop_expr(expr, state);
+                let expr_result = rhs_flow.result.clone().impure();
+                let normal = rhs_flow.normal.map(|mut s| {
+                    let const_value = expr.resolve_constant(&s);
+                    target.insert_type_def(&mut s, expr_result.clone(), const_value);
+                    s
+                });
+                LoopFlow {
+                    normal,
+                    break_state: rhs_flow.break_state,
+                    continue_state: rhs_flow.continue_state,
+                    result: expr_result,
+                }
+            }
+            assignment::Variant::Infallible {
+                ok,
+                err,
+                expr,
+                default,
+            } => {
+                let rhs_flow = eval_loop_expr(expr, state);
+                let expr_result = rhs_flow.result.clone();
+                if let Some(mut s) = rhs_flow.normal {
+                    let ok_type = expr_result
+                        .clone()
+                        .union(TypeDef::from(default.kind()))
+                        .infallible();
+                    let err_type = TypeDef::from(Kind::bytes().or_null());
+                    let assignment_result = expr_result.infallible().impure().or_bytes();
+                    let const_value = expr.resolve_constant(&s);
+                    ok.insert_type_def(&mut s, ok_type, const_value);
+                    err.insert_type_def(&mut s, err_type, None);
+                    LoopFlow {
+                        normal: Some(s),
+                        break_state: rhs_flow.break_state,
+                        continue_state: rhs_flow.continue_state,
+                        result: assignment_result,
+                    }
+                } else {
+                    LoopFlow {
+                        normal: None,
+                        break_state: rhs_flow.break_state,
+                        continue_state: rhs_flow.continue_state,
+                        result: expr_result,
+                    }
+                }
+            }
+        },
+        Expr::Op(op) => {
+            let lhs_flow = eval_loop_expr(&op.lhs, state);
+            let lhs_def = lhs_flow.result.clone();
+            let lhs_value = op.lhs.resolve_constant(state);
+            let Some(lhs_state) = lhs_flow.normal else {
+                return lhs_flow;
+            };
+
+            let normal_from_lhs = match op.opcode {
+                Opcode::Err => Some(lhs_state.clone()),
+                Opcode::Or => {
+                    if lhs_def.is_null() || lhs_value == Some(Value::Boolean(false)) {
+                        None
+                    } else if !(lhs_def.contains_null() || lhs_def.contains_boolean())
+                        || lhs_value == Some(Value::Boolean(true))
+                    {
+                        return LoopFlow {
+                            normal: Some(lhs_state),
+                            break_state: lhs_flow.break_state,
+                            continue_state: lhs_flow.continue_state,
+                            result: lhs_def,
+                        };
+                    } else {
+                        Some(lhs_state.clone())
+                    }
+                }
+                Opcode::And => {
+                    if lhs_def.is_null() || lhs_value == Some(Value::Boolean(false)) {
+                        return LoopFlow {
+                            normal: Some(lhs_state),
+                            break_state: lhs_flow.break_state,
+                            continue_state: lhs_flow.continue_state,
+                            result: TypeDef::boolean(),
+                        };
+                    } else if lhs_value == Some(Value::Boolean(true)) {
+                        None
+                    } else {
+                        Some(lhs_state.clone())
+                    }
+                }
+                _ => None,
+            };
+
+            let rhs_value = op.rhs.resolve_constant(&lhs_state);
+            let rhs_flow = eval_loop_expr(&op.rhs, &lhs_state);
+            let rhs_def = rhs_flow.result;
+            let normal = merge_opt_state(normal_from_lhs, rhs_flow.normal);
+            let result = if normal.is_some() {
+                op.compute_result_type(lhs_def, lhs_value.as_ref(), rhs_def, rhs_value.as_ref())
+            } else {
+                let mut returns = lhs_def.returns().clone();
+                returns.merge_keep(rhs_def.returns().clone(), false);
+                TypeDef::never()
+                    .maybe_fallible(lhs_def.is_fallible() || rhs_def.is_fallible())
+                    .with_returns(returns)
+            };
+            LoopFlow {
+                normal,
+                break_state: merge_opt_state(lhs_flow.break_state, rhs_flow.break_state),
+                continue_state: merge_opt_state(lhs_flow.continue_state, rhs_flow.continue_state),
+                result,
+            }
+        }
+        Expr::Query(query) => match query.target() {
+            Target::Container(container) => {
+                let mut flow = eval_loop_expr(&Expr::Container(container.clone()), state);
+                if flow.normal.is_some() {
+                    flow.result = flow.result.at_path(query.path());
+                }
+                flow
+            }
+            Target::FunctionCall(call) => {
+                let mut flow = eval_loop_expr(&Expr::FunctionCall(call.clone()), state);
+                if flow.normal.is_some() {
+                    flow.result = flow.result.at_path(query.path());
+                }
+                flow
+            }
+            Target::Internal(_) | Target::External(_) => unreachable!(),
+        },
+        Expr::FunctionCall(call) => {
+            let mut current_normal = Some(state.clone());
+            let mut break_state = None;
+            let mut continue_state = None;
+            let mut fallible = false;
+            let mut returns = Kind::never();
+            let mut arg_type_defs = vec![TypeDef::null(); call.arguments().len()];
+
+            for index in call.argument_evaluation_indices() {
+                let Some(ref active_state) = current_normal else {
+                    break;
+                };
+                let flow = eval_loop_expr(call.arguments()[index].inner().expr(), active_state);
+                fallible |= flow.result.is_fallible();
+                returns.merge_keep(flow.result.returns().clone(), false);
+                arg_type_defs[index] = flow.result;
+                current_normal = flow.normal;
+                break_state = merge_opt_state(break_state, flow.break_state);
+                continue_state = merge_opt_state(continue_state, flow.continue_state);
+            }
+
+            if let Some(mut normal_state) = current_normal {
+                let result = call.apply_post_argument_type_info(&mut normal_state, &arg_type_defs);
+                LoopFlow {
+                    normal: Some(normal_state),
+                    break_state,
+                    continue_state,
+                    result,
+                }
+            } else {
+                LoopFlow {
+                    normal: None,
+                    break_state,
+                    continue_state,
+                    result: TypeDef::never()
+                        .maybe_fallible(fallible)
+                        .with_returns(returns),
+                }
+            }
+        }
+        Expr::Unary(unary) => match unary.variant() {
+            unary::Variant::Not(not) => {
+                let inner_flow = eval_loop_expr(not.inner_expr(), state);
+                let base_result = if inner_flow.normal.is_some() {
+                    TypeDef::boolean()
+                } else {
+                    TypeDef::never()
+                };
+                let result = base_result
+                    .maybe_fallible(inner_flow.result.is_fallible())
+                    .with_returns(inner_flow.result.returns().clone());
+                LoopFlow {
+                    normal: inner_flow.normal,
+                    break_state: inner_flow.break_state,
+                    continue_state: inner_flow.continue_state,
+                    result,
+                }
+            }
+        },
+        Expr::Abort(abort) => {
+            if let Some(msg) = abort.message() {
+                let msg_flow = eval_loop_expr(msg, state);
+                let returns = msg_flow.result.returns().clone();
+                LoopFlow {
+                    normal: msg_flow.normal.map(|_| state.clone()),
+                    break_state: msg_flow.break_state,
+                    continue_state: msg_flow.continue_state,
+                    result: TypeDef::never().with_returns(returns),
+                }
+            } else {
+                LoopFlow {
+                    normal: Some(state.clone()),
+                    break_state: None,
+                    continue_state: None,
+                    result: TypeDef::never(),
+                }
+            }
+        }
+        Expr::Return(ret) => {
+            let inner_flow = eval_loop_expr(ret.expr(), state);
+            let returns = inner_flow.result.kind().clone();
+            LoopFlow {
+                normal: inner_flow.normal.map(|_| state.clone()),
+                break_state: inner_flow.break_state,
+                continue_state: inner_flow.continue_state,
+                result: TypeDef::never().with_returns(returns),
+            }
+        }
+        Expr::For(_) | Expr::Literal(_) | Expr::Variable(_) | Expr::Noop(_) => unreachable!(),
     }
 }
 
@@ -1780,6 +2340,231 @@ mod tests {
         assert_eq!(
             err[0].code,
             codes::CompilerCode::NonCollectionIterable as usize
+        );
+    }
+
+    #[test]
+    fn test_for_closure_preserves_speculative_coalesce() {
+        let fns = crate::stdlib::all();
+
+        // 1. Closure inside a loop must participate in speculative pass when outer variable widens later (r4343753072)
+        let source_widens = r#"
+            x = 1
+            for _ in [1, 2] {
+                for_each([1]) -> |_i, _v| {
+                    .y = (x + 1) ?? 0
+                }
+                x = "s"
+            }
+        "#;
+        let res = crate::compiler::compile(source_widens, &fns);
+        assert!(
+            res.is_ok(),
+            "expected closure inside loop to allow speculative coalesce when x widens, got: {:?}",
+            res.err()
+        );
+
+        // 2. Closure inside a loop must still reject unnecessary coalesce when variable never widens
+        let source_infallible = r"
+            x = 1
+            for _ in [1, 2] {
+                for_each([1]) -> |_i, _v| {
+                    .y = (x + 1) ?? 0
+                }
+            }
+        ";
+        let Err(err) = crate::compiler::compile(source_infallible, &fns) else {
+            panic!("expected unnecessary coalesce inside closure to fail when x never widens");
+        };
+        assert_eq!(
+            err[0].code,
+            codes::CompilerCode::UnnecessaryCoalesce as usize
+        );
+    }
+
+    #[test]
+    fn test_for_break_excluded_from_back_edge() {
+        // 1. Unconditional break exits on first iteration; break state must not feed back into next iteration (r4343753074)
+        let unconditional_break = r"
+            x = [0, 1]
+            for _ in [1, 2] {
+                x = [x, 1]
+                break
+            }
+            .y = x[1] + 1
+        ";
+        let res_uncond = crate::compiler::compile(unconditional_break, &[]);
+        assert!(
+            res_uncond.is_ok(),
+            "expected unconditional break not to widen x across back edge, got: {:?}",
+            res_uncond.err()
+        );
+
+        // 2. Conditional break branch must not feed back into next iteration
+        let conditional_break = r"
+            x = [0, 1]
+            for i, _ in [1, 2] {
+                if i == 1 {
+                    x = [x, 1]
+                    break
+                }
+            }
+            .y = x[1] + 1
+        ";
+        let res_cond = crate::compiler::compile(conditional_break, &[]);
+        assert!(
+            res_cond.is_ok(),
+            "expected conditional break not to widen x across back edge, got: {:?}",
+            res_cond.err()
+        );
+
+        // 3. Break branch mutations still flow to post-loop state
+        let break_flows_post_loop = r#"
+            x = 1
+            for i, _ in [1, 2] {
+                if i == 1 {
+                    x = "broken"
+                    break
+                }
+            }
+            .y = x + 1
+        "#;
+        let Err(err_post) = crate::compiler::compile(break_flows_post_loop, &[]) else {
+            panic!("expected break mutation to be visible after the loop");
+        };
+        assert_eq!(
+            err_post[0].code,
+            codes::ExprCode::FallibleAssignment as usize
+        );
+
+        // 4. Continue branch mutations DO flow along the back edge to subsequent iterations
+        let continue_flows_back_edge = r#"
+            x = 1
+            for i, _ in [1, 2] {
+                .y = x + 1
+                if i == 0 {
+                    x = "continued"
+                    continue
+                }
+            }
+        "#;
+        let Err(err_cont) = crate::compiler::compile(continue_flows_back_edge, &[]) else {
+            panic!("expected continue mutation to flow along the back edge");
+        };
+        assert_eq!(
+            err_cont[0].code,
+            codes::ExprCode::FallibleAssignment as usize
+        );
+
+        // 5. Conditional break inside a function argument or binary operator does not leak onto the back edge
+        let fns = crate::stdlib::all();
+        let nested_expr_break = r"
+            x = [0, 1]
+            for i, _ in [1, 2] {
+                .tmp1 = to_string({
+                    if i == 1 {
+                        x = [x, 1]
+                        break
+                    }
+                    i
+                })
+                .tmp2 = ({
+                    if i == 1 {
+                        x = [x, 1]
+                        break
+                    }
+                    1
+                }) + 2
+            }
+            .y = x[1] + 1
+        ";
+        let res_nested = crate::compiler::compile(nested_expr_break, &fns);
+        assert!(
+            res_nested.is_ok(),
+            "expected conditional break inside function arg and op not to widen x across back edge, got: {:?}",
+            res_nested.err()
+        );
+    }
+
+    #[test]
+    fn test_for_speculative_passes_rollback_compile_config() {
+        use crate::compiler::{
+            CompileConfig, Function,
+            function::{ArgumentList, Compiled, FunctionCompileContext},
+        };
+
+        #[derive(Clone, Debug, PartialEq, Eq)]
+        struct CompileCounter(usize);
+
+        #[derive(Clone, Copy, Debug)]
+        struct CountCompileFn;
+
+        #[derive(Clone, Debug, PartialEq)]
+        struct NoopExpr;
+
+        impl Expression for NoopExpr {
+            fn resolve(&self, _ctx: &mut Context) -> Resolved {
+                Ok(Value::Null)
+            }
+
+            fn type_info(&self, state: &TypeState) -> TypeInfo {
+                TypeInfo::new(state, TypeDef::null())
+            }
+        }
+
+        impl Function for CountCompileFn {
+            fn identifier(&self) -> &'static str {
+                "count_compile"
+            }
+
+            fn usage(&self) -> &'static str {
+                "count_compile"
+            }
+
+            fn category(&self) -> &'static str {
+                "test"
+            }
+
+            fn return_kind(&self) -> u16 {
+                crate::compiler::value::kind::NULL
+            }
+
+            fn examples(&self) -> &'static [crate::compiler::function::Example] {
+                &[]
+            }
+
+            fn compile(
+                &self,
+                _state: &TypeState,
+                ctx: &mut FunctionCompileContext,
+                _arguments: ArgumentList,
+            ) -> Compiled {
+                if let Some(counter) = ctx.get_external_context_mut::<CompileCounter>() {
+                    counter.0 += 1;
+                }
+                Ok(Box::new(NoopExpr))
+            }
+        }
+
+        let mut config = CompileConfig::default();
+        config.set_custom(CompileCounter(0));
+        let fns: Vec<Box<dyn Function>> = vec![Box::new(CountCompileFn)];
+
+        let source = r#"
+            x = 1
+            for _ in [1, 2] {
+                count_compile()
+                x = "s"
+            }
+        "#;
+        let program = crate::parser::parse(source).expect("parses");
+        let res = crate::compiler::Compiler::compile(&fns, program, &TypeState::default(), config)
+            .expect("compiles");
+
+        assert_eq!(
+            res.config.get_custom::<CompileCounter>(),
+            Some(&CompileCounter(1)),
+            "expected CompileConfig custom state from speculative pass to be rolled back"
         );
     }
 }

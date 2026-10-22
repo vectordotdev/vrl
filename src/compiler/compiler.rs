@@ -84,6 +84,7 @@ struct CompilerSnapshot {
     fallible: bool,
     abortable: bool,
     speculative_infallible_error: bool,
+    config: CompileConfig,
 }
 
 // TODO: The diagnostic related code is in dire need of refactoring.
@@ -121,6 +122,7 @@ impl<'a> Compiler<'a> {
             fallible: self.fallible,
             abortable: self.abortable,
             speculative_infallible_error: self.speculative_loop.had_infallible_error,
+            config: self.config.clone(),
         }
     }
 
@@ -137,6 +139,7 @@ impl<'a> Compiler<'a> {
         self.fallible = snapshot.fallible;
         self.abortable = snapshot.abortable;
         self.speculative_loop.had_infallible_error = snapshot.speculative_infallible_error;
+        self.config = snapshot.config.clone();
     }
 
     /// Run `f` and drop any pending fallibilities it pushed onto the stack
@@ -877,15 +880,12 @@ impl<'a> Compiler<'a> {
                     Some(block) => {
                         let span = block.span();
                         let saved_loop_depth = self.loop_depth;
-                        let saved_speculative = self.speculative_loop;
                         let prev_breakable = self.in_breakable_context;
                         self.loop_depth = 0;
-                        self.speculative_loop = SpeculativeLoopState::default();
                         self.in_breakable_context = builder.supports_break();
                         let block_result = self.compile_block_with_type(block, state);
                         self.in_breakable_context = prev_breakable;
                         self.loop_depth = saved_loop_depth;
-                        self.speculative_loop = saved_speculative;
                         match block_result {
                             Some(block_with_type) => Some(Node::new(span, block_with_type)),
                             None => return None,
@@ -1118,11 +1118,9 @@ impl<'a> Compiler<'a> {
                 compiled_block,
             );
 
-            // Compute the multi-iteration fixed-point state via `For::type_info`.
-            let fixed_point_state = for_expr.type_info(&original_state).state;
-            let mut next_pre_loop_state = current_pre_loop_state
-                .clone()
-                .merge(fixed_point_state.clone());
+            // Compute the multi-iteration header and post-loop states via `For::resolve_loop_type_info`.
+            let (header_state, loop_type_info) = for_expr.resolve_loop_type_info(&original_state);
+            let mut next_pre_loop_state = current_pre_loop_state.clone().merge(header_state);
             expression::for_loop::canonicalize_type_state(&mut next_pre_loop_state);
 
             if next_pre_loop_state == current_pre_loop_state {
@@ -1130,7 +1128,7 @@ impl<'a> Compiler<'a> {
                 if pass_had_speculative_error && self.speculative_loop.depth == 0 {
                     return None;
                 }
-                break (for_expr, fixed_point_state);
+                break (for_expr, loop_type_info.state);
             }
 
             pass_iterations += 1;
