@@ -1045,7 +1045,10 @@ impl<'a> Compiler<'a> {
 
         let iterable_span = iterable.span();
         let compiled_iterable = self.compile_expr(*iterable, state)?;
-        let iterable_type = compiled_iterable.type_info(state).result;
+        let crate::compiler::state::TypeInfo {
+            state: mut pre_loop_state,
+            result: iterable_type,
+        } = compiled_iterable.type_info(&original_state);
         let iterable_kind = iterable_type.kind();
 
         // Reject if iterable contains any non-collection type or contains neither array nor object.
@@ -1088,69 +1091,60 @@ impl<'a> Compiler<'a> {
         }
 
         // Snapshot pre-loop state after iterable evaluation.
-        let pre_loop_state = state.clone();
+        expression::for_loop::canonicalize_type_state(&mut pre_loop_state);
         let snapshot = self.snapshot();
-        self.speculative_loop.had_infallible_error = false;
 
-        // Pass 1: Compile the loop body with initial pre-loop state (deferring
-        // unnecessary-coalesce / infallible-assignment checks in case variables widen on subsequent iterations).
-        expression::for_loop::bind_for_pattern(&pattern, iterable_kind, state);
-        self.loop_depth += 1;
-        self.speculative_loop.depth += 1;
-        let compiled_block = self.compile_block(block.clone(), state);
-        self.speculative_loop.depth -= 1;
-        self.loop_depth -= 1;
-        let compiled_block = compiled_block?;
-        let pass1_had_speculative_error = self.speculative_loop.had_infallible_error;
+        let mut current_pre_loop_state = pre_loop_state;
+        let mut pass_iterations = 0;
 
-        let mut for_expr = For::new(
-            for_span,
-            pattern.clone(),
-            Box::new(compiled_iterable.clone()),
-            compiled_block,
-        );
-
-        // Compute the multi-iteration fixed-point state via `For::type_info`.
-        let fixed_point_state = for_expr.type_info(&original_state).state;
-        let mut widened_pre_loop_state = pre_loop_state.clone();
-        widened_pre_loop_state.external = fixed_point_state.external;
-        for (ident, pre_details) in &mut widened_pre_loop_state.local.bindings {
-            if let Some(fp_details) = fixed_point_state.local.bindings.get(ident) {
-                *pre_details = fp_details.clone();
-            }
-        }
-
-        if widened_pre_loop_state == pre_loop_state {
-            self.speculative_loop.had_infallible_error |= snapshot.speculative_infallible_error;
-            if pass1_had_speculative_error && self.speculative_loop.depth == 0 {
-                return None;
-            }
-        } else {
-            // Re-compile the loop body against the fixed-point multi-iteration TypeState.
+        let (for_expr, final_state) = loop {
             self.restore_snapshot(&snapshot);
-            *state = widened_pre_loop_state;
+            self.speculative_loop.had_infallible_error = false;
+            *state = current_pre_loop_state.clone();
             expression::for_loop::bind_for_pattern(&pattern, iterable_kind, state);
 
             self.loop_depth += 1;
-            let compiled_block = self.compile_block(block, state);
+            self.speculative_loop.depth += 1;
+            let compiled_block = self.compile_block(block.clone(), state);
+            self.speculative_loop.depth -= 1;
             self.loop_depth -= 1;
             let compiled_block = compiled_block?;
+            let pass_had_speculative_error = self.speculative_loop.had_infallible_error;
 
-            if self.speculative_loop.had_infallible_error && self.speculative_loop.depth == 0 {
-                return None;
-            }
-
-            for_expr = For::new(
+            let for_expr = For::new(
                 for_span,
-                pattern,
-                Box::new(compiled_iterable),
+                pattern.clone(),
+                Box::new(compiled_iterable.clone()),
                 compiled_block,
             );
-        }
 
-        // Update the final post-loop state using `For::type_info` (matching `compile_if_statement`).
-        *state = original_state;
-        for_expr.apply_type_info(state);
+            // Compute the multi-iteration fixed-point state via `For::type_info`.
+            let fixed_point_state = for_expr.type_info(&original_state).state;
+            let mut next_pre_loop_state = current_pre_loop_state
+                .clone()
+                .merge(fixed_point_state.clone());
+            expression::for_loop::canonicalize_type_state(&mut next_pre_loop_state);
+
+            if next_pre_loop_state == current_pre_loop_state {
+                self.speculative_loop.had_infallible_error |= snapshot.speculative_infallible_error;
+                if pass_had_speculative_error && self.speculative_loop.depth == 0 {
+                    return None;
+                }
+                break (for_expr, fixed_point_state);
+            }
+
+            pass_iterations += 1;
+            if pass_iterations >= expression::for_loop::WIDEN_AFTER_ITERATIONS {
+                expression::for_loop::widen_differing_states(
+                    &current_pre_loop_state,
+                    &mut next_pre_loop_state,
+                    pass_iterations >= expression::for_loop::FALLBACK_WIDEN_ITERATIONS,
+                );
+            }
+            current_pre_loop_state = next_pre_loop_state;
+        };
+
+        *state = final_state;
 
         Some(for_expr)
     }
