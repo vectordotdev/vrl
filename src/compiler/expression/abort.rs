@@ -47,6 +47,11 @@ impl Abort {
 
         Ok(Self { span, message })
     }
+
+    #[must_use]
+    pub(crate) fn message(&self) -> Option<&Expr> {
+        self.message.as_deref()
+    }
 }
 
 impl Expression for Abort {
