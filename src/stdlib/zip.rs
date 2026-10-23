@@ -115,8 +115,8 @@ impl Function for Zip {
         _ctx: &mut FunctionCompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
-        let array_0 = ConstOrExpr::new(arguments.required("array_0"), state);
-        let array_1 = ConstOrExpr::optional(arguments.optional("array_1"), state);
+        let array_0 = ConstOrExpr::<Value>::new(arguments.required("array_0"), state);
+        let array_1 = ConstOrExpr::<Value>::optional(arguments.optional("array_1"), state);
 
         Ok(ZipFn { array_0, array_1 }.as_expr())
     }

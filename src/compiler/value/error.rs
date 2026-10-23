@@ -104,3 +104,9 @@ impl From<ValueError> for ExpressionError {
         }
     }
 }
+
+impl From<ValueError> for Box<dyn crate::diagnostic::DiagnosticMessage> {
+    fn from(error: ValueError) -> Self {
+        Box::new(error) as _
+    }
+}
