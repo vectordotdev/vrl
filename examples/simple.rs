@@ -1,8 +1,7 @@
-use std::collections::BTreeMap;
 use vrl::{
     compiler::{Context, TargetValue, TimeZone, state::RuntimeState},
     value,
-    value::{Secrets, Value},
+    value::{ObjectMap, Secrets, Value},
 };
 
 fn main() {
@@ -21,7 +20,7 @@ fn main() {
         // the value starts as just an object with a single field "x" set to 1
         value: value!({x: 1}),
         // the metadata is empty
-        metadata: Value::Object(BTreeMap::new()),
+        metadata: Value::Object(ObjectMap::new()),
         // and there are no secrets associated with the target
         secrets: Secrets::default(),
     };

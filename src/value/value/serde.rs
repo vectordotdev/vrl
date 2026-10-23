@@ -1,4 +1,5 @@
-use std::{borrow::Cow, collections::BTreeMap, fmt};
+use super::object_map::UnsortedBuilder;
+use std::{borrow::Cow, fmt};
 
 use crate::value::value::{StdError, Value, timestamp_to_string};
 use bytes::Bytes;
@@ -194,12 +195,12 @@ impl<'de> Deserialize<'de> for Value {
             where
                 V: MapAccess<'de>,
             {
-                let mut map = BTreeMap::new();
+                let mut builder = UnsortedBuilder::with_capacity(visitor.size_hint().unwrap_or(0));
                 while let Some((key, value)) = visitor.next_entry()? {
-                    map.insert(key, value);
+                    builder.push(key, value);
                 }
 
-                Ok(Value::Object(map))
+                Ok(Value::Object(builder.finish()))
             }
         }
 

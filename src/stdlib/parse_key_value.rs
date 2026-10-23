@@ -1,6 +1,7 @@
 use crate::compiler::function::EnumVariant;
 use crate::compiler::prelude::*;
 use crate::value;
+use crate::value::ObjectMapEntry;
 use nom::{
     self, IResult, Parser,
     branch::alt,
@@ -14,7 +15,6 @@ use nom::{
 use nom_language::error::VerboseError;
 use std::{
     borrow::Cow,
-    collections::{BTreeMap, btree_map::Entry},
     iter::Peekable,
     str::{Chars, FromStr},
 };
@@ -59,7 +59,7 @@ pub fn parse_key_value(
     let key_value_delimiter = key_value_delimiter.try_bytes_utf8_lossy()?;
     let field_delimiter = field_delimiter.try_bytes_utf8_lossy()?;
     let standalone_key = standalone_key.try_boolean()?;
-    let values = parse(
+    let mut values = parse(
         &bytes,
         &key_value_delimiter,
         &field_delimiter,
@@ -69,13 +69,18 @@ pub fn parse_key_value(
 
     // Construct Value::Object by grouping values with the same key into an array.
     // This logic depends on values not being arrays which is true for this parser.
-    let mut map = BTreeMap::new();
+    // For many pairs, sorting first (stably, so repeated keys keep their order)
+    // means each new key is appended rather than inserted into the middle of the map.
+    if values.len() > 32 {
+        values.sort_by(|(a, _), (b, _)| a.cmp(b));
+    }
+    let mut map = ObjectMap::with_capacity(values.len());
     for (key, value) in values {
         match map.entry(key) {
-            Entry::Vacant(entry) => {
+            ObjectMapEntry::Vacant(entry) => {
                 entry.insert(value);
             }
-            Entry::Occupied(mut entry) => {
+            ObjectMapEntry::Occupied(mut entry) => {
                 if let Value::Boolean(true) = value {
                     // We are done
                 } else {
@@ -606,6 +611,40 @@ fn type_def() -> TypeDef {
 #[cfg(test)]
 mod test {
     use super::*;
+
+    #[test]
+    fn test_many_pairs_with_duplicates() {
+        // Enough pairs to take the sorted construction path, in unsorted order,
+        // with repeated keys (which must keep their order) and standalone keys.
+        let mut input = Vec::new();
+        for i in (0..40).rev() {
+            input.push(format!("key{i:02}=v{i}"));
+        }
+        input.push("key05=second".to_owned());
+        input.push("flag".to_owned());
+        input.push("key05=third".to_owned());
+        input.push("key07".to_owned());
+
+        let result = parse_key_value(
+            &Value::from(input.join(" ")),
+            &Value::from("="),
+            &Value::from(" "),
+            Value::Boolean(true),
+            Whitespace::Lenient,
+        )
+        .unwrap();
+
+        let mut expected = ObjectMap::new();
+        for i in 0..40 {
+            expected.insert(format!("key{i:02}").into(), Value::from(format!("v{i}")));
+        }
+        expected.insert(
+            "key05".into(),
+            Value::Array(vec!["v5".into(), "second".into(), "third".into()]),
+        );
+        expected.insert("flag".into(), Value::Boolean(true));
+        assert_eq!(result, Value::Object(expected));
+    }
 
     #[test]
     fn test_long_line_does_not_panic() {
