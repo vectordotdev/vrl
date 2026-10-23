@@ -166,6 +166,18 @@ pub struct TargetValue {
     pub secrets: Secrets,
 }
 
+impl TargetValue {
+    /// Creates a new [`TargetValue`] with null metadata and empty secrets.
+    #[must_use]
+    pub fn new(value: Value) -> Self {
+        Self {
+            value,
+            metadata: Value::Null,
+            secrets: Secrets::new(),
+        }
+    }
+}
+
 impl Target for TargetValue {
     fn target_insert(&mut self, target_path: &OwnedTargetPath, value: Value) -> Result<(), String> {
         match target_path.prefix {

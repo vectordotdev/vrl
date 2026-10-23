@@ -3,9 +3,10 @@ use crate::compiler::expression::function_call::FunctionCallError;
 use crate::compiler::{
     CompileConfig, Function, Program, TypeDef,
     expression::{
-        Abort, Array, Assignment, Block, Break, Container, Expr, Expression, FunctionArgument,
-        FunctionCall, Group, IfStatement, Literal, Noop, Not, Object, Op, Predicate, Query, Return,
-        Target, Unary, Variable, assignment, break_, function_call, literal, predicate, query,
+        Abort, Array, Assignment, Block, Break, Container, Continue, Expr, Expression, For,
+        FunctionArgument, FunctionCall, Group, IfStatement, Literal, Noop, Not, Object, Op,
+        Predicate, Query, Return, Target, Unary, Variable, assignment, break_, function_call,
+        literal, predicate, query,
     },
     parser::ast::RootExpr,
     program::ProgramInfo,
@@ -61,8 +62,29 @@ pub struct Compiler<'a> {
     /// exist in the same block.
     pending_fallibilities: Vec<CompilerError>,
 
+    loop_depth: usize,
+    speculative_loop: SpeculativeLoopState,
+
     config: CompileConfig,
     in_breakable_context: bool,
+}
+
+#[derive(Clone, Copy, Default)]
+struct SpeculativeLoopState {
+    depth: usize,
+    had_infallible_error: bool,
+}
+
+struct CompilerSnapshot {
+    diagnostics_len: usize,
+    pending_fallibilities_len: usize,
+    external_queries_len: usize,
+    external_assignments_len: usize,
+    skip_missing_query_target_len: usize,
+    fallible: bool,
+    abortable: bool,
+    speculative_infallible_error: bool,
+    config: CompileConfig,
 }
 
 // TODO: The diagnostic related code is in dire need of refactoring.
@@ -90,6 +112,36 @@ impl CompilerError {
 }
 
 impl<'a> Compiler<'a> {
+    fn snapshot(&self) -> CompilerSnapshot {
+        CompilerSnapshot {
+            diagnostics_len: self.diagnostics.len(),
+            pending_fallibilities_len: self.pending_fallibilities.len(),
+            external_queries_len: self.external_queries.len(),
+            external_assignments_len: self.external_assignments.len(),
+            skip_missing_query_target_len: self.skip_missing_query_target.len(),
+            fallible: self.fallible,
+            abortable: self.abortable,
+            speculative_infallible_error: self.speculative_loop.had_infallible_error,
+            config: self.config.clone(),
+        }
+    }
+
+    fn restore_snapshot(&mut self, snapshot: &CompilerSnapshot) {
+        self.diagnostics.truncate(snapshot.diagnostics_len);
+        self.pending_fallibilities
+            .truncate(snapshot.pending_fallibilities_len);
+        self.external_queries
+            .truncate(snapshot.external_queries_len);
+        self.external_assignments
+            .truncate(snapshot.external_assignments_len);
+        self.skip_missing_query_target
+            .truncate(snapshot.skip_missing_query_target_len);
+        self.fallible = snapshot.fallible;
+        self.abortable = snapshot.abortable;
+        self.speculative_loop.had_infallible_error = snapshot.speculative_infallible_error;
+        self.config = snapshot.config.clone();
+    }
+
     /// Run `f` and drop any pending fallibilities it pushed onto the stack
     /// on exit, regardless of whether `f` returned `Ok`/`Some` or pushed a
     /// hard diagnostic. Use this in helpers where the helper's *own* error
@@ -134,6 +186,8 @@ impl<'a> Compiler<'a> {
             external_assignments: vec![],
             skip_missing_query_target: vec![],
             pending_fallibilities: vec![],
+            loop_depth: 0,
+            speculative_loop: SpeculativeLoopState::default(),
             config,
             in_breakable_context: false,
         };
@@ -183,8 +237,8 @@ impl<'a> Compiler<'a> {
 
     fn compile_expr(&mut self, node: Node<ast::Expr>, state: &mut TypeState) -> Option<Expr> {
         use ast::Expr::{
-            Abort, Assignment, Break, Container, FunctionCall, IfStatement, Literal, Op, Query,
-            Return, Unary, Variable,
+            Abort, Assignment, Break, Container, Continue, For, FunctionCall, IfStatement, Literal,
+            Op, Query, Return, Unary, Variable,
         };
         let original_state = state.clone();
         let pre_compile_pending = self.pending_fallibilities.len();
@@ -214,7 +268,9 @@ impl<'a> Compiler<'a> {
             Unary(node) => self.compile_unary(node, state).map(Into::into),
             Abort(node) => self.compile_abort(node, state).map(Into::into),
             Return(node) => self.compile_return(node, state).map(Into::into),
-            Break(node) => self.compile_break(&node, state).map(Into::into),
+            For(node) => self.compile_for_statement(node, state).map(Into::into),
+            Break(node) => self.compile_break(node, state).map(Into::into),
+            Continue(node) => self.compile_continue(node, state).map(Into::into),
         }?;
 
         // If the compiled expression is fallible and no sub-expression has
@@ -471,8 +527,15 @@ impl<'a> Compiler<'a> {
         let rhs_span = rhs.span();
         let rhs = Node::new(rhs_span, self.compile_expr(*rhs, state)?);
 
-        let op = match Op::new(lhs, opcode, rhs, state) {
-            Ok(op) => op,
+        let op = match Op::new_speculative(lhs, opcode, rhs, state, self.speculative_loop.depth > 0)
+        {
+            Ok((op, deferred_err)) => {
+                if let Some(err) = deferred_err {
+                    self.diagnostics.push(Box::new(err));
+                    self.speculative_loop.had_infallible_error = true;
+                }
+                op
+            }
             Err(err) => {
                 // The op itself failed (e.g. `1 ?? x` is rejected as
                 // unnecessary error coalescing). Sub-expression fallibilities
@@ -616,10 +679,22 @@ impl<'a> Compiler<'a> {
         // was produced by *this* assignment's RHS — i.e. the first entry past
         // the snapshot. Anything before that belongs to an earlier expression.
         let rhs_fallibility = self.pending_fallibilities.get(pre_assignment_pending);
-        let assignment_result = Assignment::new(node, state, rhs_fallibility, &self.config);
+        let assignment_result = Assignment::new_speculative(
+            node,
+            state,
+            rhs_fallibility,
+            &self.config,
+            self.speculative_loop.depth > 0,
+        );
 
         let assignment = match assignment_result {
-            Ok(a) => a,
+            Ok((a, deferred_err)) => {
+                if let Some(err) = deferred_err {
+                    self.diagnostics.push(Box::new(err));
+                    self.speculative_loop.had_infallible_error = true;
+                }
+                a
+            }
             Err(err) => {
                 // Drop only RHS-produced entries: the hard error subsumes
                 // them. Prior pending entries stay on the stack so they're
@@ -803,11 +878,14 @@ impl<'a> Compiler<'a> {
                     None => None,
                     Some(block) => {
                         let span = block.span();
+                        let saved_loop_depth = self.loop_depth;
                         let prev_breakable = self.in_breakable_context;
+                        self.loop_depth = 0;
                         self.in_breakable_context = builder.supports_break();
-                        let compiled = self.compile_block_with_type(block, state);
+                        let block_result = self.compile_block_with_type(block, state);
                         self.in_breakable_context = prev_breakable;
-                        match compiled {
+                        self.loop_depth = saved_loop_depth;
+                        match block_result {
                             Some(block_with_type) => Some(Node::new(span, block_with_type)),
                             None => return None,
                         }
@@ -928,14 +1006,144 @@ impl<'a> Compiler<'a> {
         })
     }
 
-    fn compile_break(&mut self, node: &Node<ast::Break>, _state: &mut TypeState) -> Option<Break> {
-        let span = node.span();
-        if !self.in_breakable_context {
+    fn compile_break(&mut self, node: Node<ast::Break>, _state: &mut TypeState) -> Option<Break> {
+        let (span, _break) = node.take();
+        if self.loop_depth == 0 && !self.in_breakable_context {
             self.diagnostics.push(Box::new(break_::Error::new(span)));
             return None;
         }
-
         Some(Break::new(span))
+    }
+
+    fn compile_continue(
+        &mut self,
+        node: Node<ast::Continue>,
+        _state: &mut TypeState,
+    ) -> Option<Continue> {
+        let (span, _continue) = node.take();
+        if self.loop_depth == 0 {
+            self.diagnostics
+                .push(Box::new(expression::continue_::Error::new(span)));
+            return None;
+        }
+        Some(Continue::new(span))
+    }
+
+    fn compile_for_statement(
+        &mut self,
+        node: Node<ast::ForStatement>,
+        state: &mut TypeState,
+    ) -> Option<For> {
+        let original_state = state.clone();
+        let (for_span, for_statement) = node.take();
+        let ast::ForStatement {
+            pattern,
+            iterable,
+            block,
+        } = for_statement;
+
+        let iterable_span = iterable.span();
+        let compiled_iterable = self.compile_expr(*iterable, state)?;
+        let crate::compiler::state::TypeInfo {
+            state: mut pre_loop_state,
+            result: iterable_type,
+        } = compiled_iterable.type_info(&original_state);
+        let iterable_kind = iterable_type.kind();
+
+        // Reject if iterable contains any non-collection type or contains neither array nor object.
+        if expression::for_loop::contains_non_collection_kind(iterable_kind)
+            || (!iterable_kind.contains_array() && !iterable_kind.contains_object())
+        {
+            self.diagnostics
+                .push(Box::new(expression::for_loop::Error::non_collection(
+                    iterable_span,
+                    iterable_kind.clone(),
+                )));
+            return None;
+        }
+
+        // Single-variable pattern is only valid if object iteration is impossible.
+        // If iterable can be an object, require key-value pattern: `for key, value in ...`
+        if let ast::ForPattern::Single(val_node) = &pattern
+            && iterable_kind.contains_object()
+        {
+            self.diagnostics
+                .push(Box::new(expression::for_loop::Error::single_var_object(
+                    val_node.span(),
+                )));
+            return None;
+        }
+
+        // For KeyValue pattern: reject duplicate variable names.
+        if let ast::ForPattern::KeyValue(key_node, val_node) = &pattern {
+            let k = key_node.inner();
+            let v = val_node.inner();
+            if k.as_ref() == v.as_ref() && k.as_ref() != "_" && !k.as_ref().is_empty() {
+                self.diagnostics.push(Box::new(
+                    expression::for_loop::Error::duplicate_pattern_ident(
+                        val_node.span(),
+                        k.to_string(),
+                    ),
+                ));
+                return None;
+            }
+        }
+
+        // Snapshot pre-loop state after iterable evaluation.
+        expression::for_loop::canonicalize_type_state(&mut pre_loop_state);
+        let snapshot = self.snapshot();
+
+        let mut current_pre_loop_state = pre_loop_state;
+        let mut pass_iterations = 0;
+
+        let (for_expr, final_state) = loop {
+            self.restore_snapshot(&snapshot);
+            self.speculative_loop.had_infallible_error = false;
+            *state = current_pre_loop_state.clone();
+            expression::for_loop::bind_for_pattern(&pattern, iterable_kind, state);
+
+            self.loop_depth += 1;
+            self.speculative_loop.depth += 1;
+            let compiled_block = self.compile_block(block.clone(), state);
+            self.speculative_loop.depth -= 1;
+            self.loop_depth -= 1;
+            let compiled_block = compiled_block?;
+            let pass_had_speculative_error = self.speculative_loop.had_infallible_error;
+
+            let for_expr = For::new(
+                for_span,
+                pattern.clone(),
+                Box::new(compiled_iterable.clone()),
+                compiled_block,
+            );
+
+            // Compute the multi-iteration header and post-loop states via `For::resolve_loop_type_info`.
+            let (header_state, loop_type_info) = for_expr.resolve_loop_type_info(&original_state);
+            let mut next_pre_loop_state = current_pre_loop_state.clone().merge(header_state);
+            expression::for_loop::canonicalize_type_state(&mut next_pre_loop_state);
+
+            if next_pre_loop_state == current_pre_loop_state {
+                self.speculative_loop.had_infallible_error |= snapshot.speculative_infallible_error;
+                if pass_had_speculative_error && self.speculative_loop.depth == 0 {
+                    return None;
+                }
+                break (for_expr, loop_type_info.state);
+            }
+
+            pass_iterations += 1;
+            if pass_iterations >= expression::for_loop::WIDEN_AFTER_ITERATIONS {
+                expression::for_loop::widen_differing_states(
+                    &current_pre_loop_state,
+                    &mut next_pre_loop_state,
+                    pass_iterations >= expression::for_loop::FALLBACK_WIDEN_ITERATIONS,
+                );
+            }
+            current_pre_loop_state = next_pre_loop_state;
+        };
+
+        *state = final_state;
+
+        Some(for_expr)
     }
 
     fn handle_parser_error(&mut self, error: crate::parser::Error) {
