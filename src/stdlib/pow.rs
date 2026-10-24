@@ -14,9 +14,15 @@ fn to_f64(value: Value) -> Result<f64, ExpressionError> {
 }
 
 fn pow(base: Value, exponent: Value) -> Resolved {
+    // An odd integer exponent above 2^53 can round to an even f64, so take the sign from its parity.
+    let odd_exponent = matches!(exponent, Value::Integer(e) if e % 2 != 0);
     let base = to_f64(base)?;
     let exponent = to_f64(exponent)?;
-    let result = base.powf(exponent);
+    let result = if odd_exponent && base < 0.0 {
+        -(-base).powf(exponent)
+    } else {
+        base.powf(exponent)
+    };
     if !result.is_finite() {
         return Err(
             format!("{base} raised to the power of {exponent} is not a finite number").into(),
@@ -128,6 +134,12 @@ mod tests {
         square_root {
             args: func_args![base: value!(9.0), exponent: value!(0.5)],
             want: Ok(value!(3.0)),
+            tdef: TypeDef::float().fallible(),
+        }
+
+        odd_exponent_beyond_f64_precision {
+            args: func_args![base: value!(-1), exponent: value!(9_007_199_254_740_993_i64)],
+            want: Ok(value!(-1.0)),
             tdef: TypeDef::float().fallible(),
         }
 
