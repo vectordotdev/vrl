@@ -1,0 +1,38 @@
+{
+  "anchor": "log10",
+  "name": "log10",
+  "category": "Number",
+  "description": "Computes the base 10 logarithm of `value`.",
+  "arguments": [
+    {
+      "name": "value",
+      "description": "The number to calculate the base 10 logarithm of.",
+      "required": true,
+      "type": [
+        "integer",
+        "float"
+      ]
+    }
+  ],
+  "return": {
+    "types": [
+      "float"
+    ]
+  },
+  "internal_failure_reasons": [
+    "`value` is less than or equal to 0."
+  ],
+  "examples": [
+    {
+      "title": "Compute the base 10 logarithm of an integer",
+      "source": "log10!(100)",
+      "return": 2.0
+    },
+    {
+      "title": "Convert milliwatts to dBm",
+      "source": "10 * log10!(0.5)",
+      "return": -3.010299956639812
+    }
+  ],
+  "pure": true
+}
