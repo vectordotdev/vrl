@@ -497,14 +497,16 @@ impl TypeDef {
 
     #[must_use]
     pub fn with_type_inserted<'a>(self, path: impl ValuePath<'a>, other: Self) -> Self {
-        let mut kind = self.kind;
-        kind.insert(path, other.kind);
-        Self {
-            fallibility: Fallibility::merge(&self.fallibility, &other.fallibility),
-            kind,
-            purity: Purity::merge(&self.purity, &other.purity),
-            returns: self.returns.clone(),
-        }
+        let mut this = self;
+        this.insert_type(path, other);
+        this
+    }
+
+    /// Insert `other`'s kind at `path` within `self`, mutating in place.
+    pub fn insert_type<'a>(&mut self, path: impl ValuePath<'a>, other: Self) {
+        self.fallibility = Fallibility::merge(&self.fallibility, &other.fallibility);
+        self.kind.insert(path, other.kind);
+        self.purity = Purity::merge(&self.purity, &other.purity);
     }
 
     #[must_use]
