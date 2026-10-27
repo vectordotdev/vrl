@@ -230,7 +230,7 @@ pest_meta,https://github.com/pest-parser/pest,MIT OR Apache-2.0,Dragoș Tiselice
 phf,https://github.com/rust-phf/rust-phf,MIT,Steven Fackler <sfackler@gmail.com>
 phf_shared,https://github.com/rust-phf/rust-phf,MIT,Steven Fackler <sfackler@gmail.com>
 pin-project-lite,https://github.com/taiki-e/pin-project-lite,Apache-2.0 OR MIT,The pin-project-lite Authors
-pin-utils,https://github.com/rust-lang-nursery/pin-utils,MIT OR Apache-2.0,Josef Brandl <mail@josefbrandl.de>
+pin-utils,https://github.com/rust-lang/pin-utils,MIT OR Apache-2.0,Josef Brandl <mail@josefbrandl.de>
 poly1305,https://github.com/RustCrypto/universal-hashes,Apache-2.0 OR MIT,RustCrypto Developers
 portable-atomic,https://github.com/taiki-e/portable-atomic,Apache-2.0 OR MIT,The portable-atomic Authors
 portable-atomic-util,https://github.com/taiki-e/portable-atomic-util,Apache-2.0 OR MIT,The portable-atomic-util Authors
@@ -248,6 +248,7 @@ prost-reflect,https://github.com/andrewhickman/prost-reflect,MIT OR Apache-2.0,A
 prost-types,https://github.com/tokio-rs/prost,Apache-2.0,"Dan Burkert <dan@danburkert.com>, Lucio Franco <luciofranco14@gmail.com>, Casper Meijn <casper@meijn.net>, Tokio Contributors <team@tokio.rs>"
 psl,https://github.com/addr-rs/psl,MIT OR Apache-2.0,rushmorem <rushmore@webenchanter.com>
 psl-types,https://github.com/addr-rs/psl-types,MIT OR Apache-2.0,rushmorem <rushmore@webenchanter.com>
+psm,https://github.com/rust-lang/stacker,MIT OR Apache-2.0,Simonas Kazlauskas <psm@kazlauskas.me>
 publicsuffix,https://github.com/rushmorem/publicsuffix,MIT OR Apache-2.0,rushmorem <rushmore@webenchanter.com>
 quick-error,http://github.com/tailhook/quick-error,MIT OR Apache-2.0,"Paul Colomiets <paul@colomiets.name>, Colin Kiegel <kiegel@gmx.de>"
 quickcheck,https://github.com/BurntSushi/quickcheck,Unlicense OR MIT,Andrew Gallant <jamslam@gmail.com>
@@ -300,7 +301,7 @@ semver,https://github.com/dtolnay/semver,MIT OR Apache-2.0,David Tolnay <dtolnay
 serde,https://github.com/serde-rs/serde,MIT OR Apache-2.0,"Erick Tryzelaar <erick.tryzelaar@gmail.com>, David Tolnay <dtolnay@gmail.com>"
 serde_core,https://github.com/serde-rs/serde,MIT OR Apache-2.0,"Erick Tryzelaar <erick.tryzelaar@gmail.com>, David Tolnay <dtolnay@gmail.com>"
 serde_derive,https://github.com/serde-rs/serde,MIT OR Apache-2.0,"Erick Tryzelaar <erick.tryzelaar@gmail.com>, David Tolnay <dtolnay@gmail.com>"
-serde_json,https://github.com/serde-rs/json,MIT OR Apache-2.0,"Erick Tryzelaar <erick.tryzelaar@gmail.com>, David Tolnay <dtolnay@gmail.com>"
+serde_json,https://github.com/serde-rs/json,MIT OR Apache-2.0,The serde_json Authors
 serde_urlencoded,https://github.com/nox/serde_urlencoded,MIT OR Apache-2.0,Anthony Ramine <n.oxyde@gmail.com>
 serde_yaml_ng,https://github.com/acatton/serde-yaml-ng,MIT,Antoine Catton <devel@antoine.catton.fr>
 sha1,https://github.com/RustCrypto/hashes,MIT OR Apache-2.0,RustCrypto Developers
@@ -318,6 +319,7 @@ snap,https://github.com/BurntSushi/rust-snappy,BSD-3-Clause,Andrew Gallant <jams
 socket2,https://github.com/rust-lang/socket2,MIT OR Apache-2.0,"Alex Crichton <alex@alexcrichton.com>, Thomas de Zeeuw <thomasdezeeuw@gmail.com>"
 sponge-cursor,https://github.com/RustCrypto/utils,MIT OR Apache-2.0,RustCrypto Developers
 stable_deref_trait,https://github.com/storyyeller/stable_deref_trait,MIT OR Apache-2.0,Robert Grosse <n210241048576@gmail.com>
+stacker,https://github.com/rust-lang/stacker,MIT OR Apache-2.0,"Alex Crichton <alex@alexcrichton.com>, Simonas Kazlauskas <stacker@kazlauskas.me>"
 strip-ansi-escapes,https://github.com/luser/strip-ansi-escapes,Apache-2.0 OR MIT,Ted Mielczarek <ted@mielczarek.org>
 strsim,https://github.com/rapidfuzz/strsim-rs,MIT,"Danny Guo <danny@dannyguo.com>, maxbachmann <oss@maxbachmann.de>"
 strum,https://github.com/Peternator7/strum,MIT,Peter Glotfelty <peter.glotfelty@microsoft.com>
