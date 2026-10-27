@@ -28,28 +28,41 @@ mod non_wasm {
     use tokio::time::Duration;
     use tokio::{runtime, task};
 
-    static STD_CLIENT: LazyLock<ClientWithMiddleware> = LazyLock::new(|| build_client(None));
+    static STD_CLIENT: LazyLock<Result<ClientWithMiddleware, ExpressionError>> =
+        LazyLock::new(|| build_client(None));
 
-    fn build_client(proxies: Option<Vec<Proxy>>) -> ClientWithMiddleware {
+    fn build_client(
+        proxies: Option<&[Proxy]>,
+    ) -> Result<ClientWithMiddleware, ExpressionError> {
         let retry_policy = ExponentialBackoff::builder().build_with_max_retries(3);
 
-        let mut client_builder = Client::builder()
-            .connect_timeout(Duration::from_secs(5))
-            .timeout(Duration::from_secs(10));
+        let client_builder = || {
+            let mut builder = Client::builder()
+                .connect_timeout(Duration::from_secs(5))
+                .timeout(Duration::from_secs(10));
 
-        if let Some(proxies) = proxies {
-            for proxy in proxies {
-                client_builder = client_builder.proxy(proxy);
+            if let Some(proxies) = proxies {
+                for proxy in proxies {
+                    builder = builder.proxy(proxy.clone());
+                }
             }
-        }
 
-        let client = client_builder
+            builder
+        };
+
+        let client = client_builder()
             .build()
-            .expect("Failed to create HTTP client");
+            .or_else(|_| {
+                // The platform verifier can fail to initialize, e.g. on Linux without
+                // CA certificates. An empty trust store preserves plain HTTP while
+                // rejecting every HTTPS certificate, including redirects and proxies.
+                client_builder().tls_certs_only([]).build()
+            })
+            .map_err(|e| format!("Failed to create HTTP client: {e}"))?;
 
-        ClientBuilder::new(client)
+        Ok(ClientBuilder::new(client)
             .with(RetryTransientMiddleware::new_with_policy(retry_policy))
-            .build()
+            .build())
     }
 
     /// Redacts sensitive header values to prevent them from appearing in error messages.
@@ -204,16 +217,16 @@ mod non_wasm {
                 (None, None) => Ok(Self::no_proxies()),
                 // Only http proxy specified and could resolve as constant
                 (Some(Some(http)), None) => {
-                    Ok(Self::Client(build_client(make_proxies(Some(http), None)?)))
+                    Ok(Self::Client(build_client(make_proxies(Some(http), None)?.as_deref())?))
                 }
                 // Only https proxy specified and could resolve as constant
                 (None, Some(Some(https))) => {
-                    Ok(Self::Client(build_client(make_proxies(None, Some(https))?)))
+                    Ok(Self::Client(build_client(make_proxies(None, Some(https))?.as_deref())?))
                 }
                 // Both proxies specified and could resolve as constants
                 (Some(Some(http)), Some(Some(https))) => Ok(Self::Client(build_client(
-                    make_proxies(Some(http), Some(https))?,
-                ))),
+                    make_proxies(Some(http), Some(https))?.as_deref(),
+                )?)),
                 // Couldn't evaluate as constants
                 _ => Ok(Self::new_proxies_no_const_resolve(http_proxy, https_proxy)),
             }
@@ -254,9 +267,9 @@ mod non_wasm {
                         .transpose()?;
 
                     if let Some(proxies) = make_proxies(http_proxy, https_proxy)? {
-                        Ok(build_client(Some(proxies)))
+                        build_client(Some(&proxies))
                     } else {
-                        Ok(STD_CLIENT.clone())
+                        STD_CLIENT.clone()
                     }
                 }
             }

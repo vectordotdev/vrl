@@ -66,6 +66,11 @@ jobs:
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
       - name: "VRL tests"
         run: make vrl-test
+      - name: "HTTP requests with an empty CA store"
+        if: runner.os == 'Linux'
+        run: |
+          cargo build --locked --bin vrl
+          python3 scripts/test_http_request_tls.py target/debug/vrl
 
   check-licenses:
     runs-on: ubuntu-latest
