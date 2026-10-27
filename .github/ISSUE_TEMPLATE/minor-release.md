@@ -2,7 +2,7 @@
 name: VRL minor release
 about: Use this template for a new minor release.
 title: "VRL [version] release"
-labels: "domain: releasing"
+labels: "domain:releasing"
 ---
 
 - [ ] (Optional) Preview the release: `cargo run -p release -- --dry-run`.
