@@ -1,4 +1,5 @@
-Assignments whose result value is unused (for example, any statement that is not the last expression of
-a block) no longer clone the assigned value.
+VRL programs that assign objects or arrays now run faster and allocate less: an assignment whose value
+isn't used (for example, any statement that isn't the last expression of a block) no longer makes a deep
+copy of the assigned value.
 
 authors: lukesteensen
