@@ -304,14 +304,18 @@ fn bench_vrl(c: &mut Criterion) {
         };
         run(&mut g, &mut runtime, "unflatten", n, &unflatten, &flattened);
 
-        // Two maps with interleaved keys, half overlapping.
+        // Two maps with interleaved keys: half of the patch keys overwrite base
+        // keys, and half are new keys that sort between them.
         let base = flat(n, KeyStyle::Short);
         let patch: ObjectMap = (0..n / 2)
             .map(|i| {
-                (
-                    KeyString::from(key(KeyStyle::Short, i * 2 + (i % 2))),
-                    Value::Integer(7),
-                )
+                let existing = key(KeyStyle::Short, i * 2);
+                let key = if i % 2 == 0 {
+                    existing
+                } else {
+                    format!("{existing}_new")
+                };
+                (KeyString::from(key), Value::Integer(7))
             })
             .collect();
         let mut root = ObjectMap::new();

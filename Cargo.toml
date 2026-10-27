@@ -260,7 +260,7 @@ xxhash-rust = { version = "0.8", optional = true, features = [
 ] }
 community-id = { version = "0.2", optional = true }
 
-zstd = { version = "0.13", default-features = false, features = ["wasm"], optional = true }
+zstd = { version = "0.14.3", default-features = false, features = ["wasm"], optional = true }
 
 # Cryptography
 aes = { version = "0.9", optional = true }
