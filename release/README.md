@@ -53,17 +53,24 @@ The tool:
 
 It does not commit, tag, push, or publish.
 
-### Print Version
+### Workflow Subcommands
+
+The release workflows call these subcommands. Values go to stdout and messages go to stderr.
 
 ```shell
-# Version in the repository's Cargo.toml
+# Print the version in Cargo.toml
 cargo run -q -p release -- version
 
-# Version in another manifest
-cargo run -q -p release -- version --manifest-path path/to/Cargo.toml
-```
+# Print the version to tag if the Cargo.toml version went up since <rev>.
+# Prints nothing if the version did not change. Fails if it went down.
+cargo run -q -p release -- bumped-version --before <rev>
 
-Prints the `[package].version` of the manifest. The release workflows use it to read versions.
+# Fail unless the tag is v<version> for the Cargo.toml version
+cargo run -q -p release -- check-tag v1.2.3
+
+# Print the release PR body. --issue is optional.
+cargo run -q -p release -- pr-body --issue https://github.com/vectordotdev/vrl/issues/123
+```
 
 ### Check Changelog Fragments
 

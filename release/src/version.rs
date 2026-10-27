@@ -1,21 +1,47 @@
+use std::cmp::Ordering;
 use std::path::Path;
+use std::process::Command;
 use toml_edit::DocumentMut;
 
 pub fn read_version(path: &Path) -> Result<semver::Version, String> {
     let content = std::fs::read_to_string(path)
         .map_err(|e| format!("Failed to read {}: {e}", path.display()))?;
+    parse_version(&content, &path.display().to_string())
+}
+
+/// Read `[package].version` from the `Cargo.toml` stored in Git at `rev`.
+pub fn read_version_at(repo_root: &Path, rev: &str) -> Result<semver::Version, String> {
+    let spec = format!("{rev}:Cargo.toml");
+    let output = Command::new("git")
+        .args(["show", &spec])
+        .current_dir(repo_root)
+        .output()
+        .map_err(|e| format!("Failed to run `git show {spec}`: {e}"))?;
+    if !output.status.success() {
+        return Err(format!(
+            "`git show {spec}` failed ({}):\n{}",
+            output.status,
+            String::from_utf8_lossy(&output.stderr)
+        ));
+    }
+    let content =
+        String::from_utf8(output.stdout).map_err(|e| format!("{spec} is not valid UTF-8: {e}"))?;
+    parse_version(&content, &spec)
+}
+
+fn parse_version(content: &str, origin: &str) -> Result<semver::Version, String> {
     let doc: DocumentMut = content
         .parse()
-        .map_err(|e| format!("Failed to parse {}: {e}", path.display()))?;
+        .map_err(|e| format!("Failed to parse {origin}: {e}"))?;
 
     let version_str = doc
         .get("package")
         .and_then(|package| package.get("version"))
         .and_then(toml_edit::Item::as_str)
-        .ok_or_else(|| format!("Missing [package].version in {}", path.display()))?;
+        .ok_or_else(|| format!("Missing [package].version in {origin}"))?;
 
     semver::Version::parse(version_str)
-        .map_err(|e| format!("Invalid version '{version_str}' in {}: {e}", path.display()))
+        .map_err(|e| format!("Invalid version '{version_str}' in {origin}: {e}"))
 }
 
 pub fn write_version(path: &Path, version: &semver::Version) -> Result<(), String> {
@@ -52,6 +78,27 @@ fn validate_bump(current: &semver::Version, new: &semver::Version) -> Result<(),
     }
 
     Ok(())
+}
+
+/// Decide whether a version change between two commits is a release.
+///
+/// Returns `None` when the version is unchanged and the new version when it went up.
+/// A lower version or a version that is not plain `X.Y.Z` is an error, because the
+/// release tag is `vX.Y.Z`.
+pub fn detect_bump(
+    previous: &semver::Version,
+    current: &semver::Version,
+) -> Result<Option<semver::Version>, String> {
+    if !current.pre.is_empty() || !current.build.is_empty() {
+        return Err(format!(
+            "Version {current} is not a plain MAJOR.MINOR.PATCH release version."
+        ));
+    }
+    match current.cmp(previous) {
+        Ordering::Equal => Ok(None),
+        Ordering::Greater => Ok(Some(current.clone())),
+        Ordering::Less => Err(format!("Version went down from {previous} to {current}.")),
+    }
 }
 
 /// Resolve a version argument into a concrete `semver::Version`.
@@ -158,6 +205,40 @@ mod tests {
     fn invalid_exact_version() {
         let err = resolve(Some("not.a.version"), &v(1, 0, 0)).unwrap_err();
         assert!(err.contains("Invalid version"), "{err}");
+    }
+
+    #[test]
+    fn detect_bump_unchanged_is_not_a_release() {
+        assert_eq!(detect_bump(&v(1, 2, 3), &v(1, 2, 3)).unwrap(), None);
+    }
+
+    #[test]
+    fn detect_bump_increase_is_a_release() {
+        assert_eq!(
+            detect_bump(&v(1, 2, 3), &v(1, 3, 0)).unwrap(),
+            Some(v(1, 3, 0))
+        );
+    }
+
+    #[test]
+    fn detect_bump_compares_numerically() {
+        assert_eq!(
+            detect_bump(&v(0, 9, 0), &v(0, 10, 0)).unwrap(),
+            Some(v(0, 10, 0))
+        );
+    }
+
+    #[test]
+    fn detect_bump_rejects_downgrade() {
+        let err = detect_bump(&v(1, 3, 0), &v(1, 2, 3)).unwrap_err();
+        assert!(err.contains("went down"), "{err}");
+    }
+
+    #[test]
+    fn detect_bump_rejects_prerelease() {
+        let current = semver::Version::parse("1.3.0-rc.1").unwrap();
+        let err = detect_bump(&v(1, 2, 3), &current).unwrap_err();
+        assert!(err.contains("not a plain"), "{err}");
     }
 
     #[test]

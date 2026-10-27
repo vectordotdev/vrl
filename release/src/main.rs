@@ -5,6 +5,7 @@ use clap::{Parser, Subcommand};
 mod changelog;
 mod crates_io;
 mod version;
+mod workflow;
 
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -28,11 +29,25 @@ struct Cli {
 enum Commands {
     /// Validate changelog fragment filenames
     CheckChangelog,
-    /// Print the `[package].version` of a manifest
-    Version {
-        /// Manifest to read. Defaults to the repository's `Cargo.toml`.
+    /// Print the version in the repository's `Cargo.toml`
+    Version,
+    /// Print the version to tag if the `Cargo.toml` version went up since a commit.
+    /// Prints nothing if the version did not change.
+    BumpedVersion {
+        /// Commit to compare with, usually the commit before the push.
         #[arg(long)]
-        manifest_path: Option<PathBuf>,
+        before: String,
+    },
+    /// Fail unless a tag is `v<version>` for the `Cargo.toml` version
+    CheckTag {
+        /// Tag name, for example `v1.2.3`.
+        tag: String,
+    },
+    /// Print the release PR body for the `Cargo.toml` version
+    PrBody {
+        /// Release issue URL to link in the body. An empty value is ignored.
+        #[arg(long)]
+        issue: Option<String>,
     },
 }
 
@@ -110,11 +125,16 @@ fn prepare(version_arg: Option<&str>, dry_run: bool) -> Result<(), String> {
 fn main() {
     let cli = Cli::parse();
 
+    let root = repo_root();
     let result = match cli.command {
-        Some(Commands::CheckChangelog) => changelog::Changelog::new(&repo_root()).check_fragments(),
-        Some(Commands::Version { manifest_path }) => {
-            let path = manifest_path.unwrap_or_else(|| repo_root().join("Cargo.toml"));
-            version::read_version(&path).map(|version| println!("{version}"))
+        Some(Commands::CheckChangelog) => changelog::Changelog::new(&root).check_fragments(),
+        Some(Commands::Version) => {
+            version::read_version(&root.join("Cargo.toml")).map(|version| println!("{version}"))
+        }
+        Some(Commands::BumpedVersion { before }) => workflow::bumped_version(&root, &before),
+        Some(Commands::CheckTag { tag }) => workflow::check_tag(&root, &tag),
+        Some(Commands::PrBody { issue }) => {
+            workflow::pr_body(&root, issue.as_deref()).map(|body| println!("{body}"))
         }
         None => prepare(cli.version.as_deref(), cli.dry_run),
     };

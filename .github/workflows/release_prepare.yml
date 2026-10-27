@@ -56,6 +56,11 @@ jobs:
           version=$(cargo run -q -p release -- version)
           echo "version=${version}" >> "$GITHUB_OUTPUT"
 
+      - name: Write release PR body
+        env:
+          ISSUE: ${{ inputs.issue }}
+        run: cargo run -q -p release -- pr-body --issue "$ISSUE" > "$RUNNER_TEMP/release-pr-body.md"
+
       - name: Package prepared changes
         env:
           BASE_SHA: ${{ steps.base.outputs.sha }}
@@ -68,7 +73,9 @@ jobs:
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: release-preparation
-          path: ${{ runner.temp }}/release-preparation.patch
+          path: |
+            ${{ runner.temp }}/release-preparation.patch
+            ${{ runner.temp }}/release-pr-body.md
           if-no-files-found: error
           retention-days: 1
 
@@ -134,26 +141,13 @@ jobs:
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           VERSION: ${{ needs.generate.outputs.version }}
-          ISSUE: ${{ inputs.issue }}
         run: |
           set -euo pipefail
-          body="Automated release preparation for VRL ${VERSION}.
-
-          - Bumps the version to \`${VERSION}\`.
-          - Moves the \`changelog.d/\` fragments into \`CHANGELOG.md\`. Push edits to this branch to change the changelog.
-
-          Merging this PR tags the merge commit as \`v${VERSION}\` and publishes the crate to crates.io."
-          if [[ -n "$ISSUE" ]]; then
-            body="${body}
-
-          Related issue: ${ISSUE}"
-          fi
-
           url=$(gh pr create \
             --repo "$GITHUB_REPOSITORY" \
             --base main \
             --head "prepare-${VERSION}-release" \
             --title "chore(releasing): prepare v${VERSION}" \
             --label no-changelog \
-            --body "$body")
+            --body-file "$RUNNER_TEMP/release-preparation/release-pr-body.md")
           echo "Opened $url" >> "$GITHUB_STEP_SUMMARY"

@@ -36,22 +36,8 @@ jobs:
           BEFORE_SHA: ${{ github.event.before }}
         run: |
           set -euo pipefail
-          git show "${BEFORE_SHA}:Cargo.toml" > "$RUNNER_TEMP/Cargo.before.toml"
-          current=$(cargo run -q -p release -- version)
-          previous=$(cargo run -q -p release -- version --manifest-path "$RUNNER_TEMP/Cargo.before.toml")
-          [[ "$current" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
-
-          if [[ "$current" == "$previous" ]]; then
-            echo "Version unchanged (${current}), nothing to tag."
-            exit 0
-          fi
-          if [[ "$(printf '%s\n' "$previous" "$current" | sort -V | tail -n 1)" != "$current" ]]; then
-            echo "Version went down from ${previous} to ${current}." >&2
-            exit 1
-          fi
-
-          echo "Version changed from ${previous} to ${current}."
-          echo "version=${current}" >> "$GITHUB_OUTPUT"
+          version=$(cargo run -q -p release -- bumped-version --before "$BEFORE_SHA")
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
 
       - name: Create Vector bot token
         if: steps.version.outputs.version != ''
