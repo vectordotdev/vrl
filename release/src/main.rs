@@ -4,6 +4,7 @@ use clap::{Parser, Subcommand};
 
 mod changelog;
 mod crates_io;
+mod git;
 mod version;
 mod workflow;
 
@@ -31,10 +32,11 @@ enum Commands {
     CheckChangelog,
     /// Print the version in the repository's `Cargo.toml`
     Version,
-    /// Print the version to tag if the `Cargo.toml` version went up since a commit.
-    /// Prints nothing if the version did not change.
-    BumpedVersion {
-        /// Commit to compare with, usually the commit before the push.
+    /// Print the commit in `<before>..HEAD` that raises the `Cargo.toml` version, as
+    /// `sha=` and `version=` lines for `$GITHUB_OUTPUT`. Prints nothing if no commit
+    /// raises it. Fails if changelog fragments remain at that commit.
+    ReleaseCommit {
+        /// Commit to compare with: the commit before the push, or the merge group base.
         #[arg(long)]
         before: String,
     },
@@ -131,7 +133,7 @@ fn main() {
         Some(Commands::Version) => {
             version::read_version(&root.join("Cargo.toml")).map(|version| println!("{version}"))
         }
-        Some(Commands::BumpedVersion { before }) => workflow::bumped_version(&root, &before),
+        Some(Commands::ReleaseCommit { before }) => workflow::release_commit(&root, &before),
         Some(Commands::CheckTag { tag }) => workflow::check_tag(&root, &tag),
         Some(Commands::PrBody { issue }) => {
             workflow::pr_body(&root, issue.as_deref()).map(|body| println!("{body}"))

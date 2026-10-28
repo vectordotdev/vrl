@@ -1,6 +1,6 @@
+use crate::git::git;
 use std::cmp::Ordering;
 use std::path::Path;
-use std::process::Command;
 use toml_edit::DocumentMut;
 
 pub fn read_version(path: &Path) -> Result<semver::Version, String> {
@@ -12,21 +12,7 @@ pub fn read_version(path: &Path) -> Result<semver::Version, String> {
 /// Read `[package].version` from the `Cargo.toml` stored in Git at `rev`.
 pub fn read_version_at(repo_root: &Path, rev: &str) -> Result<semver::Version, String> {
     let spec = format!("{rev}:Cargo.toml");
-    let output = Command::new("git")
-        .args(["show", &spec])
-        .current_dir(repo_root)
-        .output()
-        .map_err(|e| format!("Failed to run `git show {spec}`: {e}"))?;
-    if !output.status.success() {
-        return Err(format!(
-            "`git show {spec}` failed ({}):\n{}",
-            output.status,
-            String::from_utf8_lossy(&output.stderr)
-        ));
-    }
-    let content =
-        String::from_utf8(output.stdout).map_err(|e| format!("{spec} is not valid UTF-8: {e}"))?;
-    parse_version(&content, &spec)
+    parse_version(&git(repo_root, &["show", &spec])?, &spec)
 }
 
 fn parse_version(content: &str, origin: &str) -> Result<semver::Version, String> {

@@ -1,7 +1,12 @@
 name: Tag release
 
-# Tags the merge commit of an approved release PR (see release_prepare.yml).
-# The tag is pushed with the bot token so that it triggers release_publish.yml.
+# Tags the commit of an approved release PR (see release_prepare.yml). The merge
+# queue can land several PRs in one push, so the release commit is not always the
+# head of the push. The tag is pushed with the bot token so that it triggers
+# release_publish.yml.
+#
+# The merge queue already rejects a release PR that would leave changelog fragments
+# behind (merge-queue.yml). This workflow checks again, for merges that skip the queue.
 
 on:
   push:
@@ -30,17 +35,14 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Detect version change
-        id: version
+      - name: Find release commit
+        id: release
         env:
           BEFORE_SHA: ${{ github.event.before }}
-        run: |
-          set -euo pipefail
-          version=$(cargo run -q -p release -- bumped-version --before "$BEFORE_SHA")
-          echo "version=${version}" >> "$GITHUB_OUTPUT"
+        run: cargo run -q -p release -- release-commit --before "$BEFORE_SHA" >> "$GITHUB_OUTPUT"
 
       - name: Create Vector bot token
-        if: steps.version.outputs.version != ''
+        if: steps.release.outputs.sha != ''
         id: app-token
         uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
         with:
@@ -49,10 +51,11 @@ jobs:
           permission-contents: write
 
       - name: Push release tag
-        if: steps.version.outputs.version != ''
+        if: steps.release.outputs.sha != ''
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
-          VERSION: ${{ steps.version.outputs.version }}
+          RELEASE_SHA: ${{ steps.release.outputs.sha }}
+          VERSION: ${{ steps.release.outputs.version }}
         run: |
           set -euo pipefail
           tag="v${VERSION}"
@@ -62,16 +65,16 @@ jobs:
           existing=$(git ls-remote "$remote" "refs/tags/${tag}^{}")
           existing=${existing%%$'\t'*}
           if [[ -n "$existing" ]]; then
-            if [[ "$existing" == "$GITHUB_SHA" ]]; then
-              echo "${tag} already points to ${GITHUB_SHA}."
+            if [[ "$existing" == "$RELEASE_SHA" ]]; then
+              echo "${tag} already points to ${RELEASE_SHA}."
               exit 0
             fi
-            echo "${tag} already points to ${existing}, not ${GITHUB_SHA}." >&2
+            echo "${tag} already points to ${existing}, not ${RELEASE_SHA}." >&2
             exit 1
           fi
 
           git config user.name "vectordotdev-bot[bot]"
           git config user.email "vectordotdev-bot[bot]@users.noreply.github.com"
-          git tag -a "$tag" -m "Release ${VERSION}" "$GITHUB_SHA"
+          git tag -a "$tag" -m "Release ${VERSION}" "$RELEASE_SHA"
           git push "$remote" "refs/tags/${tag}"
-          echo "Pushed ${tag} for ${GITHUB_SHA}." >> "$GITHUB_STEP_SUMMARY"
+          echo "Pushed ${tag} for ${RELEASE_SHA}." >> "$GITHUB_STEP_SUMMARY"

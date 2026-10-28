@@ -10,20 +10,21 @@ the rest of the release.
    version such as `1.2.3`. The optional `issue` input links a release issue in the PR.
 2. The workflow runs this tool, and `vectordotdev-bot` opens the
    `chore(releasing): prepare vX.Y.Z` PR from the `prepare-X.Y.Z-release` branch.
-3. A maintainer reviews, approves, and merges the PR. To change the changelog, push edits to the
-   PR branch.
-4. After the PR merges into `main`, [Tag release](https://github.com/vectordotdev/vrl/actions/workflows/release_autotag.yml)
-   sees the version change in `Cargo.toml` and pushes the `vX.Y.Z` tag on the merge commit.
+3. A maintainer reviews, approves, and adds the PR to the merge queue. To change the changelog,
+   push edits to the PR branch.
+4. The merge queue rejects the release PR if a changelog fragment would remain in `changelog.d/`
+   at the release commit. This happens when another PR merged after Prepare release ran, so the
+   changelog misses its entry. In that case, close the release PR, delete its branch, and run
+   Prepare release again. Other PRs can merge while the release PR is open.
+5. After the PR merges into `main`, [Tag release](https://github.com/vectordotdev/vrl/actions/workflows/release_autotag.yml)
+   finds the commit that raised the version in `Cargo.toml` and pushes the `vX.Y.Z` tag on it.
+   The merge queue can merge other PRs in the same push, so this is not always the newest
+   commit on `main`. Tag release makes the same fragment check, for merges that skip the queue.
    Confirm that the tag exists: https://github.com/vectordotdev/vrl/tags
-5. The tag starts [Publish release](https://github.com/vectordotdev/vrl/actions/workflows/release_publish.yml),
+6. The tag starts [Publish release](https://github.com/vectordotdev/vrl/actions/workflows/release_publish.yml),
    which publishes the crate to crates.io with
    [trusted publishing](https://crates.io/docs/trusted-publishing). No crates.io token is
    stored in the repository. Confirm that the release is published: https://crates.io/crates/vrl
-
-> [!IMPORTANT]
-> Do not merge other PRs while the release PR is open. The changelog only includes the fragments
-> that were on `main` when the Prepare release workflow ran. If another PR merges, close the
-> release PR, delete its branch, and run Prepare release again.
 
 ## Usage
 
@@ -61,9 +62,10 @@ The release workflows call these subcommands. Values go to stdout and messages g
 # Print the version in Cargo.toml
 cargo run -q -p release -- version
 
-# Print the version to tag if the Cargo.toml version went up since <rev>.
-# Prints nothing if the version did not change. Fails if it went down.
-cargo run -q -p release -- bumped-version --before <rev>
+# Print the commit in <rev>..HEAD that raises the Cargo.toml version, as sha= and version=
+# lines. Prints nothing if no commit raises it. Fails if the version goes down, if more than
+# one commit raises it, or if changelog fragments remain at the release commit.
+cargo run -q -p release -- release-commit --before <rev>
 
 # Fail unless the tag is v<version> for the Cargo.toml version
 cargo run -q -p release -- check-tag v1.2.3
