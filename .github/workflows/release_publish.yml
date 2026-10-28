@@ -16,14 +16,13 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  publish:
-    name: Publish to crates.io
+  verify:
+    # Runs repository and dependency code (build scripts, the release tool). It has no
+    # `id-token: write`, so that code cannot request an OIDC token and exchange it for
+    # crates.io credentials.
+    name: Verify package
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    environment: crates-io
-    permissions:
-      contents: read
-      id-token: write # Required to exchange the GitHub OIDC token for a crates.io token
     steps:
       - name: Checkout tag
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -33,10 +32,25 @@ jobs:
       - name: Validate tag matches the crate version
         run: cargo run -q -p release -- check-tag "$GITHUB_REF_NAME"
 
-      # Build and verify the package before the crates.io token exists, so that
-      # build scripts never run with the token in their environment.
       - name: Verify package
         run: cargo publish --dry-run --package vrl
+
+  publish:
+    # Only this job can request an OIDC token. It does not build or run repository code:
+    # `cargo publish --no-verify` packages the sources without compiling them.
+    name: Publish to crates.io
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: crates-io
+    permissions:
+      contents: read
+      id-token: write # Required to exchange the GitHub OIDC token for a crates.io token
+    steps:
+      - name: Checkout tag
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Authenticate with crates.io
         id: auth
