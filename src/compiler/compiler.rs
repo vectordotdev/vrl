@@ -393,6 +393,21 @@ impl<'a> Compiler<'a> {
             .map(|(block, _type_def)| block)
     }
 
+    fn update_state_for_loop_jumps(
+        &self,
+        expr: &Expr,
+        original_state: &TypeState,
+        state: &mut TypeState,
+    ) {
+        if self.loop_depth > 0
+            && expression::for_loop::expr_contains_loop_jump(expr)
+            && let Some(normal_state) =
+                expression::for_loop::eval_loop_expr(expr, original_state).normal
+        {
+            *state = normal_state;
+        }
+    }
+
     fn compile_block_with_type(
         &mut self,
         node: Node<ast::Block>,
@@ -404,8 +419,15 @@ impl<'a> Compiler<'a> {
 
         // The type information from `compile_exprs` doesn't applying the "scoping" from the block.
         // This is recalculated using the block.
-        *state = original_state;
+        *state = original_state.clone();
         let result = block.apply_type_info(state);
+        self.update_state_for_loop_jumps(
+            &Expr::Container(Container::new(expression::container::Variant::Block(
+                block.clone(),
+            ))),
+            &original_state,
+            state,
+        );
         Some((block, result))
     }
 
@@ -469,8 +491,13 @@ impl<'a> Compiler<'a> {
 
         // The current state is from one of the branches. Restore it and calculate
         // the type state from the full "if statement" expression.
-        *state = original_state;
+        *state = original_state.clone();
         if_statement.apply_type_info(state);
+        self.update_state_for_loop_jumps(
+            &Expr::IfStatement(if_statement.clone()),
+            &original_state,
+            state,
+        );
         Some(if_statement)
     }
 
@@ -559,6 +586,7 @@ impl<'a> Compiler<'a> {
         // Both "lhs" and "rhs" are compiled above, but "rhs" isn't always executed.
         // The expression can provide a more accurate type state.
         *state = type_info.state;
+        self.update_state_for_loop_jumps(&Expr::Op(op.clone()), &original_state, state);
         Some(op)
     }
 
@@ -728,8 +756,13 @@ impl<'a> Compiler<'a> {
 
         // The state hasn't been updated from the actual assignment yet. Recalculate the type
         // from the new assignment expression.
-        *state = original_state;
+        *state = original_state.clone();
         assignment.apply_type_info(state);
+        self.update_state_for_loop_jumps(
+            &Expr::Assignment(assignment.clone()),
+            &original_state,
+            state,
+        );
 
         Some(assignment)
     }
@@ -918,6 +951,11 @@ impl<'a> Compiler<'a> {
             self.check_function_deprecations(function, args);
             // Update the final state using the function expression to make sure it's accurate.
             *state = function.type_info(&original_state).state;
+            self.update_state_for_loop_jumps(
+                &Expr::FunctionCall(function.clone()),
+                &original_state,
+                state,
+            );
         }
 
         function_info.map(|info| info.1)
@@ -1049,6 +1087,7 @@ impl<'a> Compiler<'a> {
             state: mut pre_loop_state,
             result: iterable_type,
         } = compiled_iterable.type_info(&original_state);
+        self.update_state_for_loop_jumps(&compiled_iterable, &original_state, &mut pre_loop_state);
         let iterable_kind = iterable_type.kind();
 
         // Reject if iterable contains any non-collection type or contains neither array nor object.
@@ -1143,6 +1182,7 @@ impl<'a> Compiler<'a> {
         };
 
         *state = final_state;
+        self.update_state_for_loop_jumps(&Expr::For(for_expr.clone()), &original_state, state);
 
         Some(for_expr)
     }

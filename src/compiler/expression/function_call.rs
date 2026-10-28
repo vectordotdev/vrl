@@ -763,19 +763,6 @@ impl FunctionCall {
         &self.arguments
     }
 
-    #[must_use]
-    pub(crate) fn argument_evaluation_indices(&self) -> Vec<usize> {
-        let mut indices = (0..self.arguments.len()).collect::<Vec<_>>();
-        if self
-            .argument_parameters
-            .iter()
-            .any(|parameter| parameter.parameter.has_element_kind_constraint())
-        {
-            indices.sort_by_key(|&index| self.argument_parameters[index].index);
-        }
-        indices
-    }
-
     pub(crate) fn apply_post_argument_type_info(
         &self,
         state: &mut TypeState,
