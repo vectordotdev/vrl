@@ -131,7 +131,7 @@ fn tag_type_externally(value: Value) -> Value {
     };
 
     if let Some(key) = key {
-        BTreeMap::from([(key.to_owned().into(), value)]).into()
+        BTreeMap::from([(key.into(), value)]).into()
     } else {
         value
     }

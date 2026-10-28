@@ -53,7 +53,7 @@
     },
     {
       "title": "Convert to a Unix timestamp (nanoseconds)",
-      "source": "to_unix_timestamp(t'2021-01-01T00:00:00Z', unit: \"nanoseconds\")",
+      "source": "to_unix_timestamp!(t'2021-01-01T00:00:00Z', unit: \"nanoseconds\")",
       "return": 1609459200000000000
     }
   ],
