@@ -34,6 +34,11 @@ mod non_wasm {
     fn build_client(
         proxies: Option<&[Proxy]>,
     ) -> Result<ClientWithMiddleware, ExpressionError> {
+        // Respect a provider installed by the embedding application; otherwise use ring.
+        if rustls::crypto::CryptoProvider::get_default().is_none() {
+            let _ = rustls::crypto::ring::default_provider().install_default();
+        }
+
         let retry_policy = ExponentialBackoff::builder().build_with_max_retries(3);
 
         let client_builder = || {
