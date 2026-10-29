@@ -178,7 +178,6 @@ linux-raw-sys,https://github.com/sunfishcode/linux-raw-sys,Apache-2.0 WITH LLVM-
 litemap,https://github.com/unicode-org/icu4x,Unicode-3.0,The ICU4X Project Developers
 lock_api,https://github.com/Amanieu/parking_lot,MIT OR Apache-2.0,Amanieu d'Antras <amanieu@gmail.com>
 log,https://github.com/rust-lang/log,MIT OR Apache-2.0,The Rust Project Developers
-lru-slab,https://github.com/Ralith/lru-slab,MIT OR Apache-2.0 OR Zlib,Benjamin Saunders <ben.e.saunders@gmail.com>
 lz4_flex,https://github.com/pseitz/lz4_flex,MIT,"Pascal Seitz <pascal.seitz@gmail.com>, Arthur Silva <arthurprs@gmail.com>, ticki <Ticki@users.noreply.github.com>"
 md-5,https://github.com/RustCrypto/hashes,MIT OR Apache-2.0,RustCrypto Developers
 memchr,https://github.com/BurntSushi/memchr,Unlicense OR MIT,"Andrew Gallant <jamslam@gmail.com>, bluss"
@@ -251,9 +250,6 @@ psl-types,https://github.com/addr-rs/psl-types,MIT OR Apache-2.0,rushmorem <rush
 publicsuffix,https://github.com/rushmorem/publicsuffix,MIT OR Apache-2.0,rushmorem <rushmore@webenchanter.com>
 quick-error,http://github.com/tailhook/quick-error,MIT OR Apache-2.0,"Paul Colomiets <paul@colomiets.name>, Colin Kiegel <kiegel@gmx.de>"
 quickcheck,https://github.com/BurntSushi/quickcheck,Unlicense OR MIT,Andrew Gallant <jamslam@gmail.com>
-quinn,https://github.com/quinn-rs/quinn,MIT OR Apache-2.0,The quinn Authors
-quinn-proto,https://github.com/quinn-rs/quinn,MIT OR Apache-2.0,The quinn-proto Authors
-quinn-udp,https://github.com/quinn-rs/quinn,MIT OR Apache-2.0,The quinn-udp Authors
 quote,https://github.com/dtolnay/quote,MIT OR Apache-2.0,David Tolnay <dtolnay@gmail.com>
 quoted_printable,https://github.com/staktrace/quoted-printable,0BSD,Kartikaya Gupta <kats@seldon.staktrace.com>
 r-efi,https://github.com/r-efi/r-efi,MIT OR Apache-2.0 OR LGPL-2.1-or-later,The r-efi Authors
@@ -261,7 +257,6 @@ rand,https://github.com/rust-random/rand,MIT OR Apache-2.0,"The Rand Project Dev
 rand_chacha,https://github.com/rust-random/rand,MIT OR Apache-2.0,"The Rand Project Developers, The Rust Project Developers, The CryptoCorrosion Contributors"
 rand_core,https://github.com/rust-random/rand,MIT OR Apache-2.0,"The Rand Project Developers, The Rust Project Developers"
 rand_core,https://github.com/rust-random/rand_core,MIT OR Apache-2.0,The Rand Project Developers
-rand_pcg,https://github.com/rust-random/rngs,MIT OR Apache-2.0,The Rand Project Developers
 rand_xorshift,https://github.com/rust-random/rngs,MIT OR Apache-2.0,"The Rand Project Developers, The Rust Project Developers"
 redox_syscall,https://gitlab.redox-os.org/redox-os/syscall,MIT,Jeremy Soller <jackpot51@gmail.com>
 redox_users,https://gitlab.redox-os.org/redox-os/users,MIT,"Jose Narvaez <goyox86@gmail.com>, Wesley Hershberger <mggmugginsmc@gmail.com>"
@@ -285,6 +280,8 @@ rustix,https://github.com/bytecodealliance/rustix,Apache-2.0 WITH LLVM-exception
 rustls,https://github.com/rustls/rustls,Apache-2.0 OR ISC OR MIT,The rustls Authors
 rustls-native-certs,https://github.com/rustls/rustls-native-certs,Apache-2.0 OR ISC OR MIT,The rustls-native-certs Authors
 rustls-pki-types,https://github.com/rustls/pki-types,MIT OR Apache-2.0,The rustls-pki-types Authors
+rustls-platform-verifier,https://github.com/rustls/rustls-platform-verifier,MIT OR Apache-2.0,The rustls-platform-verifier Authors
+rustls-platform-verifier-android,https://github.com/rustls/rustls-platform-verifier,MIT OR Apache-2.0,The rustls-platform-verifier-android Authors
 rustls-webpki,https://github.com/rustls/webpki,ISC,The rustls-webpki Authors
 rustversion,https://github.com/dtolnay/rustversion,MIT OR Apache-2.0,David Tolnay <dtolnay@gmail.com>
 rusty-fork,https://github.com/altsysrq/rusty-fork,MIT OR Apache-2.0,Jason Lingle
@@ -301,7 +298,6 @@ serde,https://github.com/serde-rs/serde,MIT OR Apache-2.0,"Erick Tryzelaar <eric
 serde_core,https://github.com/serde-rs/serde,MIT OR Apache-2.0,"Erick Tryzelaar <erick.tryzelaar@gmail.com>, David Tolnay <dtolnay@gmail.com>"
 serde_derive,https://github.com/serde-rs/serde,MIT OR Apache-2.0,"Erick Tryzelaar <erick.tryzelaar@gmail.com>, David Tolnay <dtolnay@gmail.com>"
 serde_json,https://github.com/serde-rs/json,MIT OR Apache-2.0,"Erick Tryzelaar <erick.tryzelaar@gmail.com>, David Tolnay <dtolnay@gmail.com>"
-serde_urlencoded,https://github.com/nox/serde_urlencoded,MIT OR Apache-2.0,Anthony Ramine <n.oxyde@gmail.com>
 serde_yaml_ng,https://github.com/acatton/serde-yaml-ng,MIT,Antoine Catton <devel@antoine.catton.fr>
 sha1,https://github.com/RustCrypto/hashes,MIT OR Apache-2.0,RustCrypto Developers
 sha2,https://github.com/RustCrypto/hashes,MIT OR Apache-2.0,RustCrypto Developers
@@ -333,7 +329,6 @@ termcolor,https://github.com/BurntSushi/termcolor,Unlicense OR MIT,Andrew Gallan
 thiserror,https://github.com/dtolnay/thiserror,MIT OR Apache-2.0,David Tolnay <dtolnay@gmail.com>
 thiserror-impl,https://github.com/dtolnay/thiserror,MIT OR Apache-2.0,David Tolnay <dtolnay@gmail.com>
 tinystr,https://github.com/unicode-org/icu4x,Unicode-3.0,The ICU4X Project Developers
-tinyvec,https://github.com/Lokathor/tinyvec,Zlib OR Apache-2.0 OR MIT,Lokathor <zefria@gmail.com>
 tokio,https://github.com/tokio-rs/tokio,MIT,Tokio Contributors <team@tokio.rs>
 tokio-macros,https://github.com/tokio-rs/tokio,MIT,Tokio Contributors <team@tokio.rs>
 tokio-rustls,https://github.com/rustls/tokio-rustls,MIT OR Apache-2.0,The tokio-rustls Authors
@@ -384,8 +379,8 @@ wasm-metadata,https://github.com/bytecodealliance/wasm-tools/tree/main/crates/wa
 wasmparser,https://github.com/bytecodealliance/wasm-tools/tree/main/crates/wasmparser,Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT,Yury Delendik <ydelendik@mozilla.com>
 wasmtimer,https://github.com/whizsid/wasmtimer-rs,MIT,"WhizSid <whizsid@aol.com>, Pierre Krieger <pierre.krieger1708@gmail.com>"
 web-sys,https://github.com/wasm-bindgen/wasm-bindgen/tree/master/crates/web-sys,MIT OR Apache-2.0,The wasm-bindgen Developers
-web-time,https://github.com/daxpedda/web-time,MIT OR Apache-2.0,The web-time Authors
 webbrowser,https://github.com/amodm/webbrowser-rs,MIT OR Apache-2.0,Amod Malviya @amodm
+webpki-root-certs,https://github.com/rustls/webpki-roots,CDLA-Permissive-2.0,The webpki-root-certs Authors
 winapi,https://github.com/retep998/winapi-rs,MIT OR Apache-2.0,Peter Atashian <retep998@gmail.com>
 winapi-i686-pc-windows-gnu,https://github.com/retep998/winapi-rs,MIT OR Apache-2.0,Peter Atashian <retep998@gmail.com>
 winapi-util,https://github.com/BurntSushi/winapi-util,Unlicense OR MIT,Andrew Gallant <jamslam@gmail.com>

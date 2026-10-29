@@ -1,6 +1,6 @@
 [package]
 name = "vrl"
-version = "0.37.0"
+version = "0.38.0"
 authors = ["Vector Contributors <vector@datadoghq.com>"]
 edition = "2024"
 license = "MPL-2.0"
@@ -78,7 +78,7 @@ enable_env_functions = []
 enable_system_functions = ["dep:relative-path"]
 
 # Enables network I/O functions (e.g. `http_request`, `dns_lookup`, `reverse_dns`). Not supported on wasm32.
-enable_network_functions = ["dep:reqwest", "dep:reqwest-middleware", "dep:reqwest-retry"]
+enable_network_functions = ["dep:reqwest", "dep:reqwest-middleware", "dep:reqwest-retry", "dep:rustls"]
 
 # Enables cryptographic functions: hashing (MD5, SHA, xxHash, etc.), encryption (AES, ChaCha20, etc.), and MACs.
 enable_crypto_functions = [
@@ -284,9 +284,11 @@ nom-language = { version = "0.1.0", default-features = false }
 # Dependencies used for non-WASM
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 # HTTP support (optional, gated behind enable_network_functions).
-reqwest = { version = "0.12", default-features = false, features = ["http2", "rustls-tls-native-roots"], optional = true }
-reqwest-middleware = { version = "0.4", default-features = false, optional = true }
-reqwest-retry = { version = "0.8", default-features = false, optional = true }
+reqwest = { version = "0.13", default-features = false, features = ["http2", "rustls-no-provider"], optional = true }
+# Use ring so VRL does not add a second rustls crypto provider to downstream builds.
+rustls = { version = "0.23", default-features = false, features = ["ring", "std"], optional = true }
+reqwest-middleware = { version = "0.5.2", default-features = false, optional = true }
+reqwest-retry = { version = "0.9.1", default-features = false, optional = true }
 dns-lookup = { version = "4.0.2", optional = true }
 domain = { version = "0.12.3", optional = true, features = ["resolv-sync", "serde"] }
 hostname = { version = "0.4", optional = true }
