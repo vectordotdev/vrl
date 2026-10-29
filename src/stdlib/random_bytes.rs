@@ -1,5 +1,5 @@
 use crate::compiler::prelude::*;
-use rand::RngCore;
+use rand::Rng;
 
 const MAX_LENGTH: i64 = 1024 * 64;
 const LENGTH_TOO_LARGE_ERR: &str = "Length is too large. Maximum is 64k";
