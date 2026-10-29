@@ -208,7 +208,7 @@ version = "4.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ef1e3e699d84ab1b0911a1010c5c106aa34ae89aeac103be5ce0c3859db1e891"
 dependencies = [
- "term 1.0.1",
+ "term 1.2.1",
 ]
 
 [[package]]
@@ -2098,7 +2098,7 @@ dependencies = [
  "regex-syntax",
  "sha3 0.10.8",
  "string_cache",
- "term 1.0.1",
+ "term 1.2.1",
  "unicode-xid",
  "walkdir",
 ]
@@ -3921,12 +3921,11 @@ dependencies = [
 
 [[package]]
 name = "term"
-version = "1.0.1"
+version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a3bb6001afcea98122260987f8b7b5da969ecad46dbf0b5453702f776b491a41"
+checksum = "d8c27177b12a6399ffc08b98f76f7c9a1f4fe9fc967c784c5a071fa8d93cf7e1"
 dependencies = [
- "home",
- "windows-sys 0.52.0",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
