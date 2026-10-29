@@ -1,0 +1,153 @@
+name: Prepare release
+
+# Opens a bot-authored PR that bumps the version and generates the changelog.
+# After a maintainer approves and merges it, release_autotag.yml tags the merge
+# commit and release_publish.yml publishes the crate.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release: "major", "minor", "patch", or an exact version such as 0.38.0'
+        required: true
+        default: minor
+        type: string
+      issue:
+        description: Release issue URL to link in the PR (optional)
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-prepare
+  cancel-in-progress: false
+
+jobs:
+  generate:
+    name: Generate release files
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    outputs:
+      base_sha: ${{ steps.base.outputs.sha }}
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          # The release tool reads the full history to link changelog fragments to PRs.
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Record base
+        id: base
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Prepare release files
+        env:
+          VERSION: ${{ inputs.version }}
+        run: cargo run -p release -- "$VERSION"
+
+      - name: Read new version
+        id: version
+        run: |
+          version=$(cargo run -q -p release -- version)
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+
+      - name: Write release PR body
+        env:
+          ISSUE: ${{ inputs.issue }}
+        run: cargo run -q -p release -- pr-body --issue "$ISSUE" > "$RUNNER_TEMP/release-pr-body.md"
+
+      - name: Package prepared changes
+        env:
+          BASE_SHA: ${{ steps.base.outputs.sha }}
+        run: |
+          git add --all
+          git diff --cached --binary "$BASE_SHA" > "$RUNNER_TEMP/release-preparation.patch"
+          test -s "$RUNNER_TEMP/release-preparation.patch"
+
+      - name: Upload prepared changes
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-preparation
+          path: |
+            ${{ runner.temp }}/release-preparation.patch
+            ${{ runner.temp }}/release-pr-body.md
+          if-no-files-found: error
+          retention-days: 1
+
+  open-pr:
+    # Only this job gets the bot token. It does not build or run repository code.
+    name: Open release PR
+    needs: generate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout base
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.generate.outputs.base_sha }}
+          persist-credentials: false
+
+      - name: Download prepared changes
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release-preparation
+          path: ${{ runner.temp }}/release-preparation
+
+      - name: Validate and commit prepared changes
+        env:
+          VERSION: ${{ needs.generate.outputs.version }}
+        run: |
+          set -euo pipefail
+          [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+
+          git apply --index --binary "$RUNNER_TEMP/release-preparation/release-preparation.patch"
+          while IFS= read -r file; do
+            case "$file" in
+              Cargo.toml|Cargo.lock|CHANGELOG.md|changelog.d/*) ;;
+              *) echo "Unexpected release preparation file: $file" >&2; exit 1 ;;
+            esac
+          done < <(git diff --cached --name-only)
+          git diff --cached --quiet && exit 1
+
+          git config user.name "vectordotdev-bot[bot]"
+          git config user.email "vectordotdev-bot[bot]@users.noreply.github.com"
+          git commit -m "chore(releasing): prepare v${VERSION}"
+
+      - name: Create Vector bot token
+        id: app-token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ secrets.GH_APP_VECTORDOTDEV_BOT_CLIENT_ID }}
+          private-key: ${{ secrets.GH_APP_VECTORDOTDEV_BOT_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+
+      - name: Push release branch
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          VERSION: ${{ needs.generate.outputs.version }}
+        run: |
+          # No force push: an existing branch means an earlier run is still pending.
+          git push \
+            "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" \
+            "HEAD:refs/heads/prepare-${VERSION}-release"
+
+      - name: Open release PR
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          VERSION: ${{ needs.generate.outputs.version }}
+        run: |
+          set -euo pipefail
+          url=$(gh pr create \
+            --repo "$GITHUB_REPOSITORY" \
+            --base main \
+            --head "prepare-${VERSION}-release" \
+            --title "chore(releasing): prepare v${VERSION}" \
+            --label no-changelog \
+            --body-file "$RUNNER_TEMP/release-preparation/release-pr-body.md")
+          echo "Opened $url" >> "$GITHUB_STEP_SUMMARY"
