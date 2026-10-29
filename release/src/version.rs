@@ -1,25 +1,37 @@
+use crate::git::git;
+use std::cmp::Ordering;
 use std::path::Path;
 use toml_edit::DocumentMut;
 
-pub fn read_version(repo_root: &Path) -> Result<semver::Version, String> {
-    let path = repo_root.join("Cargo.toml");
-    let content = std::fs::read_to_string(&path)
+pub fn read_version(path: &Path) -> Result<semver::Version, String> {
+    let content = std::fs::read_to_string(path)
         .map_err(|e| format!("Failed to read {}: {e}", path.display()))?;
-    let doc: DocumentMut = content
-        .parse()
-        .map_err(|e| format!("Failed to parse {}: {e}", path.display()))?;
-
-    let version_str = doc["package"]["version"]
-        .as_str()
-        .ok_or("Missing [package].version in Cargo.toml")?;
-
-    semver::Version::parse(version_str)
-        .map_err(|e| format!("Invalid version '{version_str}' in Cargo.toml: {e}"))
+    parse_version(&content, &path.display().to_string())
 }
 
-pub fn write_version(repo_root: &Path, version: &semver::Version) -> Result<(), String> {
-    let path = repo_root.join("Cargo.toml");
-    let content = std::fs::read_to_string(&path)
+/// Read `[package].version` from the `Cargo.toml` stored in Git at `rev`.
+pub fn read_version_at(repo_root: &Path, rev: &str) -> Result<semver::Version, String> {
+    let spec = format!("{rev}:Cargo.toml");
+    parse_version(&git(repo_root, &["show", &spec])?, &spec)
+}
+
+fn parse_version(content: &str, origin: &str) -> Result<semver::Version, String> {
+    let doc: DocumentMut = content
+        .parse()
+        .map_err(|e| format!("Failed to parse {origin}: {e}"))?;
+
+    let version_str = doc
+        .get("package")
+        .and_then(|package| package.get("version"))
+        .and_then(toml_edit::Item::as_str)
+        .ok_or_else(|| format!("Missing [package].version in {origin}"))?;
+
+    semver::Version::parse(version_str)
+        .map_err(|e| format!("Invalid version '{version_str}' in {origin}: {e}"))
+}
+
+pub fn write_version(path: &Path, version: &semver::Version) -> Result<(), String> {
+    let content = std::fs::read_to_string(path)
         .map_err(|e| format!("Failed to read {}: {e}", path.display()))?;
     let mut doc: DocumentMut = content
         .parse()
@@ -27,7 +39,7 @@ pub fn write_version(repo_root: &Path, version: &semver::Version) -> Result<(), 
 
     doc["package"]["version"] = toml_edit::value(version.to_string());
 
-    std::fs::write(&path, doc.to_string())
+    std::fs::write(path, doc.to_string())
         .map_err(|e| format!("Failed to write {}: {e}", path.display()))
 }
 
@@ -52,6 +64,27 @@ fn validate_bump(current: &semver::Version, new: &semver::Version) -> Result<(),
     }
 
     Ok(())
+}
+
+/// Decide whether a version change between two commits is a release.
+///
+/// Returns `None` when the version is unchanged and the new version when it went up.
+/// A lower version or a version that is not plain `X.Y.Z` is an error, because the
+/// release tag is `vX.Y.Z`.
+pub fn detect_bump(
+    previous: &semver::Version,
+    current: &semver::Version,
+) -> Result<Option<semver::Version>, String> {
+    if !current.pre.is_empty() || !current.build.is_empty() {
+        return Err(format!(
+            "Version {current} is not a plain MAJOR.MINOR.PATCH release version."
+        ));
+    }
+    match current.cmp(previous) {
+        Ordering::Equal => Ok(None),
+        Ordering::Greater => Ok(Some(current.clone())),
+        Ordering::Less => Err(format!("Version went down from {previous} to {current}.")),
+    }
 }
 
 /// Resolve a version argument into a concrete `semver::Version`.
@@ -161,10 +194,45 @@ mod tests {
     }
 
     #[test]
+    fn detect_bump_unchanged_is_not_a_release() {
+        assert_eq!(detect_bump(&v(1, 2, 3), &v(1, 2, 3)).unwrap(), None);
+    }
+
+    #[test]
+    fn detect_bump_increase_is_a_release() {
+        assert_eq!(
+            detect_bump(&v(1, 2, 3), &v(1, 3, 0)).unwrap(),
+            Some(v(1, 3, 0))
+        );
+    }
+
+    #[test]
+    fn detect_bump_compares_numerically() {
+        assert_eq!(
+            detect_bump(&v(0, 9, 0), &v(0, 10, 0)).unwrap(),
+            Some(v(0, 10, 0))
+        );
+    }
+
+    #[test]
+    fn detect_bump_rejects_downgrade() {
+        let err = detect_bump(&v(1, 3, 0), &v(1, 2, 3)).unwrap_err();
+        assert!(err.contains("went down"), "{err}");
+    }
+
+    #[test]
+    fn detect_bump_rejects_prerelease() {
+        let current = semver::Version::parse("1.3.0-rc.1").unwrap();
+        let err = detect_bump(&v(1, 2, 3), &current).unwrap_err();
+        assert!(err.contains("not a plain"), "{err}");
+    }
+
+    #[test]
     fn read_and_write_version_roundtrip() {
         let dir = tempfile::tempdir().unwrap();
+        let manifest = dir.path().join("Cargo.toml");
         fs::write(
-            dir.path().join("Cargo.toml"),
+            &manifest,
             indoc! {r#"
                 [package]
                 name = "test"
@@ -173,9 +241,9 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(read_version(dir.path()).unwrap(), v(1, 2, 3));
+        assert_eq!(read_version(&manifest).unwrap(), v(1, 2, 3));
 
-        write_version(dir.path(), &v(2, 0, 0)).unwrap();
-        assert_eq!(read_version(dir.path()).unwrap(), v(2, 0, 0));
+        write_version(&manifest, &v(2, 0, 0)).unwrap();
+        assert_eq!(read_version(&manifest).unwrap(), v(2, 0, 0));
     }
 }
