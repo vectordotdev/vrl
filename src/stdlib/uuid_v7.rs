@@ -132,7 +132,7 @@ mod tests {
         let mut ctx = Context::new(&mut object, &mut state, &tz);
         let value = UuidV7Fn { timestamp: None }.resolve(&mut ctx).unwrap();
 
-        uuid::Uuid::parse_str(value.as_str().expect("UUIDv7 must be a string").as_ref())
+        uuid::Uuid::parse_str(value.as_string().expect("UUIDv7 must be a string"))
             .expect("valid UUID V7");
     }
 
@@ -151,8 +151,8 @@ mod tests {
             );
 
             let encoded = super::uuid_v7(Some(timestamp.into())).unwrap();
-            let encoded = encoded.as_str().expect("UUIDv7 must be a string");
-            let id = uuid::Uuid::parse_str(encoded.as_ref()).unwrap();
+            let encoded = encoded.as_string().expect("UUIDv7 must be a string");
+            let id = uuid::Uuid::parse_str(encoded).unwrap();
             assert_eq!(id.get_timestamp().unwrap().to_unix(), expected, "{input}");
         }
     }

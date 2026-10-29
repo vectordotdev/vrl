@@ -80,7 +80,7 @@ const PARAMETERS: &[Parameter] = &[
     .default(&DEFAULT_BASE),
 ];
 
-fn parse_bytes(bytes: &Value, unit: Value, base: &Bytes) -> Resolved {
+fn parse_bytes(bytes: &Value, unit: &Value, base: &Bytes) -> Resolved {
     let (units, parse_config) = match base.as_ref() {
         b"2" => (&*BIN_UNITS, Config::new().with_binary()),
         b"10" => (&*DEC_UNITS, Config::new().with_decimal()),
@@ -89,8 +89,7 @@ fn parse_bytes(bytes: &Value, unit: Value, base: &Bytes) -> Resolved {
     let value = bytes.try_bytes_utf8_lossy()?;
     let value: &str = value.as_ref();
     let conversion_factor = {
-        let bytes = unit.try_bytes()?;
-        let string = String::from_utf8_lossy(&bytes);
+        let string = unit.try_bytes_utf8_lossy()?;
 
         units
             .get(string.as_ref())
@@ -245,7 +244,7 @@ impl FunctionExpression for ParseBytesFn {
         let bytes = self.value.resolve(ctx)?;
         let unit = self.unit.resolve(ctx)?;
 
-        parse_bytes(&bytes, unit, &self.base)
+        parse_bytes(&bytes, &unit, &self.base)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

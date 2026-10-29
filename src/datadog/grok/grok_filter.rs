@@ -146,7 +146,7 @@ pub fn apply_filter(value: &Value, filter: &GrokFilter) -> Result<Value, Interna
                 },
             )
         }),
-        GrokFilter::NullIf(null_value) => match value.as_str() {
+        GrokFilter::NullIf(null_value) => match value.to_str_lossy() {
             Some(s) if s == *null_value => Ok(Value::Null),
             Some(_) => Ok(value.to_owned()),
             None => Err(InternalError::FailedToApplyFilter(
@@ -156,7 +156,7 @@ pub fn apply_filter(value: &Value, filter: &GrokFilter) -> Result<Value, Interna
         },
         GrokFilter::Date(date_filter) => apply_date_filter(value, date_filter),
         GrokFilter::KeyValue(keyvalue_filter) => keyvalue_filter.apply_filter(value),
-        GrokFilter::Array(brackets, delimiter, value_filter) => match value.as_str() {
+        GrokFilter::Array(brackets, delimiter, value_filter) => match value.to_str_lossy() {
             Some(input) => array::parse(
                 &input,
                 brackets
@@ -184,7 +184,7 @@ pub fn apply_filter(value: &Value, filter: &GrokFilter) -> Result<Value, Interna
 }
 
 fn apply_numeric_filter(value: &Value, filter: &GrokFilter) -> Result<Value, InternalError> {
-    if let Some(s) = value.as_str() {
+    if let Some(s) = value.to_str_lossy() {
         return parse_numeric_str(&s, filter, value);
     }
     match (filter, value) {
@@ -261,7 +261,7 @@ fn apply_utf8_filter<V: Into<Value>>(
     parse: impl Fn(&str) -> V,
 ) -> Result<Value, InternalError> {
     value
-        .as_str()
+        .to_str_lossy()
         .map(|s| parse(&s).into())
         .ok_or_else(|| filter_error(filter, value))
 }
@@ -272,7 +272,7 @@ fn try_apply_utf8_filter<V: Into<Value>, E: std::error::Error>(
     parse: impl Fn(&str) -> Result<V, E>,
 ) -> Result<Value, InternalError> {
     value
-        .as_str()
+        .to_str_lossy()
         .ok_or_else(|| filter_error(filter, value))
         .and_then(|s| {
             parse(&s)

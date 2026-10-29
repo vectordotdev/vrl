@@ -5,16 +5,10 @@ fn tally(value: Value) -> Resolved {
     let value = value.try_array()?;
     let mut map: HashMap<String, usize> = HashMap::new();
     for value in value {
-        match value {
-            Value::String(s) => *map.entry(s.to_string()).or_insert(0) += 1,
-            Value::Bytes(bytes) => {
-                *map.entry(String::from_utf8_lossy(&bytes).into_owned())
-                    .or_insert(0) += 1;
-            }
-            value => {
-                return Err(format!("all values must be strings, found: {value:?}").into());
-            }
-        }
+        let Some(text) = value.to_str_lossy() else {
+            return Err(format!("all values must be strings, found: {value:?}").into());
+        };
+        *map.entry(text.into_owned()).or_insert(0) += 1;
     }
     let map: BTreeMap<_, _> = map
         .into_iter()

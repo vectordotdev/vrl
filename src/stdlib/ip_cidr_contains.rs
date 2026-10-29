@@ -10,7 +10,7 @@ fn str_to_cidr(v: &str) -> Result<IpCidr, String> {
 #[allow(clippy::result_large_err)]
 fn value_to_cidr(value: &Value) -> Result<IpCidr, function::Error> {
     let cidr = value
-        .as_str()
+        .to_str_lossy()
         .ok_or_else(|| function::Error::InvalidArgument {
             keyword: "ip_cidr_contains",
             value: value.clone(),

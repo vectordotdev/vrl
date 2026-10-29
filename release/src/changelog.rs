@@ -322,6 +322,7 @@ impl Changelog {
                 "--diff-filter=A",
                 "--merge-base",
                 "origin/main",
+                "--",
                 "changelog.d",
             ])
             .current_dir(&self.repo_root)
@@ -795,6 +796,21 @@ mod tests {
 
     // --- check_fragments ---
 
+    fn run_git(repo: &std::path::Path, args: &[&str]) {
+        let output = std::process::Command::new("git")
+            .args(args)
+            .current_dir(repo)
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "git {} failed\nstdout:\n{}\nstderr:\n{}",
+            args.join(" "),
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr),
+        );
+    }
+
     fn setup_git_check_repo(fragments: &[(&str, &str)]) -> tempfile::TempDir {
         let dir = tempfile::tempdir().unwrap();
         let repo = dir.path();
@@ -806,48 +822,26 @@ mod tests {
             vec!["config", "user.email", "test@test.com"],
             vec!["config", "user.name", "Test"],
             vec!["config", "commit.gpgsign", "false"],
+            vec!["config", "core.fsmonitor", "false"],
+            vec!["config", "core.untrackedCache", "false"],
         ] {
-            std::process::Command::new("git")
-                .args(&cmd)
-                .current_dir(repo)
-                .output()
-                .unwrap();
+            run_git(repo, &cmd);
         }
 
         let changelog_dir = repo.join("changelog.d");
         fs::create_dir(&changelog_dir).unwrap();
         fs::write(changelog_dir.join("README.md"), "# Changelog fragments").unwrap();
 
-        std::process::Command::new("git")
-            .args(["add", "-A"])
-            .current_dir(repo)
-            .output()
-            .unwrap();
-        std::process::Command::new("git")
-            .args(["commit", "-m", "initial"])
-            .current_dir(repo)
-            .output()
-            .unwrap();
-        std::process::Command::new("git")
-            .args(["update-ref", "refs/remotes/origin/main", "HEAD"])
-            .current_dir(repo)
-            .output()
-            .unwrap();
+        run_git(repo, &["add", "-A"]);
+        run_git(repo, &["commit", "-m", "initial"]);
+        run_git(repo, &["update-ref", "refs/remotes/origin/main", "HEAD"]);
 
         for (name, content) in fragments {
             fs::write(changelog_dir.join(name), content).unwrap();
         }
 
-        std::process::Command::new("git")
-            .args(["add", "-A"])
-            .current_dir(repo)
-            .output()
-            .unwrap();
-        std::process::Command::new("git")
-            .args(["commit", "-m", "add fragments"])
-            .current_dir(repo)
-            .output()
-            .unwrap();
+        run_git(repo, &["add", "-A"]);
+        run_git(repo, &["commit", "-m", "add fragments"]);
 
         dir
     }

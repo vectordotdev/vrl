@@ -429,8 +429,11 @@ fn compare_partial_diagnostic(got: &str, want: &str) -> bool {
 
 fn vrl_value_to_json_value(value: Value) -> serde_json::Value {
     match value {
-        Value::String(s) => serde_json::Value::String(s.to_string()),
-        Value::Bytes(b) => serde_json::Value::String(String::from_utf8_lossy(&b).into_owned()),
+        text @ (Value::Bytes(_) | Value::String(_)) => serde_json::Value::String(
+            text.to_str_lossy()
+                .expect("bytes and string have a text view")
+                .into_owned(),
+        ),
         Value::Integer(v) => v.into(),
         Value::Float(v) => v.into_inner().into(),
         Value::Boolean(v) => v.into(),

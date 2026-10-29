@@ -231,10 +231,13 @@ fn redact(value: Value, filters: &[Filter], redactor: &Redactor) -> Value {
     // the value, so that we don't have to do the comparison in the loop of replacement.
     // that would complicate the code though.
     match value {
-        Value::String(s) => redact_str(Cow::Borrowed(&s), filters, redactor).into(),
-        Value::Bytes(bytes) => {
-            redact_str(String::from_utf8_lossy(&bytes), filters, redactor).into()
-        }
+        text @ (Value::Bytes(_) | Value::String(_)) => redact_str(
+            text.to_str_lossy()
+                .expect("bytes and string have a text view"),
+            filters,
+            redactor,
+        )
+        .into(),
         Value::Array(values) => {
             let values = values
                 .into_iter()
@@ -341,10 +344,9 @@ impl TryFrom<Value> for Filter {
                                 .iter()
                                 .map(|value| match value {
                                     Value::Regex(regex) => Ok(Pattern::Regex((**regex).clone())),
-                                    Value::String(s) => Ok(Pattern::String(s.to_string())),
-                                    Value::Bytes(bytes) => Ok(Pattern::String(
-                                        String::from_utf8_lossy(bytes).into_owned(),
-                                    )),
+                                    text if let Some(text) = text.to_str_lossy() => {
+                                        Ok(Pattern::String(text.into_owned()))
+                                    }
                                     _ => Err("`patterns` must be regular expressions"),
                                 })
                                 .collect::<std::result::Result<Vec<_>, _>>()?),
@@ -448,15 +450,14 @@ impl Redactor {
         match r#type.as_ref() {
             b"full" => Ok(Redactor::Full),
             b"text" => {
-                match obj.get("replacement").ok_or(
+                let text = obj.get("replacement").ok_or(
                     "text redactor must have
                 `replacement` specified",
-                )? {
-                    Value::String(s) => Ok(Redactor::Text(s.to_string())),
-                    Value::Bytes(bytes) => {
-                        Ok(Redactor::Text(String::from_utf8_lossy(bytes).into_owned()))
-                    }
-                    _ => Err("`replacement` must be a string"),
+                )?;
+                if let Some(text) = text.to_str_lossy() {
+                    Ok(Redactor::Text(text.into_owned()))
+                } else {
+                    Err("`replacement` must be a string")
                 }
             }
             #[cfg(feature = "enable_crypto_functions")]

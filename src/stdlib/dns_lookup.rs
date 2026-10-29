@@ -325,11 +325,9 @@ mod non_wasm {
 #[cfg(not(target_arch = "wasm32"))]
 use non_wasm::*;
 
-
 static DEFAULT_QTYPE: Value = Value::from_static_str("A");
 static DEFAULT_CLASS: Value = Value::from_static_str("IN");
-static DEFAULT_OPTIONS: Value =
-    Value::Object(std::collections::BTreeMap::new());
+static DEFAULT_OPTIONS: Value = Value::Object(std::collections::BTreeMap::new());
 
 const PARAMETERS: &[Parameter] = &[
     Parameter::required("value", kind::BYTES, "The domain name to query."),
@@ -803,7 +801,7 @@ mod tests {
             .iter()
             .map(|answer| {
                 answer.as_object().unwrap()["rData"]
-                    .as_str()
+                    .to_str_lossy()
                     .unwrap()
                     .to_string()
             })

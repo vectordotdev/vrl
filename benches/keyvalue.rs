@@ -1,7 +1,6 @@
 use std::hint::black_box;
 use std::time::Duration;
 
-use bytes::Bytes;
 use criterion::{
     BatchSize, BenchmarkGroup, Criterion, SamplingMode, criterion_group, criterion_main,
     measurement::WallTime,
@@ -30,7 +29,7 @@ fn apply_filter_bench(c: &mut Criterion) {
 
     group.bench_function("apply_filter key=valueStr", move |b| {
         b.iter_batched(
-            || (Value::Bytes(Bytes::from("key=valueStr")), make_filter()),
+            || (Value::from("key=valueStr"), make_filter()),
             |(value, filter): (Value, KeyValueFilter)| {
                 let result = black_box(filter.apply_filter(&value)).unwrap();
                 let object = result.as_object().unwrap();
@@ -42,12 +41,7 @@ fn apply_filter_bench(c: &mut Criterion) {
 
     group.bench_function("apply_filter key1=value1|key2=value2", move |b| {
         b.iter_batched(
-            || {
-                (
-                    Value::Bytes(Bytes::from("key1=value1|key2=value2")),
-                    make_filter(),
-                )
-            },
+            || (Value::from("key1=value1|key2=value2"), make_filter()),
             |(value, filter): (Value, KeyValueFilter)| {
                 let result = black_box(filter.apply_filter(&value)).unwrap();
                 let object = result.as_object().unwrap();

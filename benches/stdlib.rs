@@ -1,3 +1,6 @@
+#[path = "runtime/variable_reads.rs"]
+mod variable_reads;
+
 use chrono::{DateTime, Datelike, TimeZone, Utc};
 use constcat::concat;
 use criterion::{Criterion, criterion_group, criterion_main};
@@ -8,6 +11,8 @@ use std::{collections::HashMap, env, path::PathBuf, sync::LazyLock};
 use vrl::{
     bench_function, bench_query_function, btreemap, compiler::prelude::*, func_args, query, value,
 };
+
+mod runtime;
 
 fn hash_message_args() -> HashMap<&'static str, expression::Expr> {
     let mut args = func_args![];
@@ -55,6 +60,7 @@ criterion_group!(
               ends_with,
               // TODO: Cannot pass a Path to bench_function
               //exists
+              runtime::external_field_reads,
               find,
               flatten,
               floor,
@@ -188,6 +194,7 @@ criterion_group!(
               //uuidv4,
               upcase,
               values,
+              variable_reads::variable_reads,
               validate_json_schema,
               zip,
 );

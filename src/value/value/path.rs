@@ -11,12 +11,15 @@ impl TryFrom<Value> for OwnedSegment {
     fn try_from(value: Value) -> Result<Self, Self::Error> {
         match value {
             Value::Integer(index) => Ok(Self::index(index as isize)),
-            value => value.as_str().map(|s| Self::field(&s)).ok_or_else(|| {
-                format!(
-                    "path segment must be either string or integer, not {}",
-                    value.kind()
-                )
-            }),
+            value => value
+                .to_str_lossy()
+                .map(|s| Self::field(&s))
+                .ok_or_else(|| {
+                    format!(
+                        "path segment must be either string or integer, not {}",
+                        value.kind()
+                    )
+                }),
         }
     }
 }

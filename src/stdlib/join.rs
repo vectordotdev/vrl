@@ -4,7 +4,7 @@ fn join(array: Value, separator: Option<Value>) -> Resolved {
     let array = array.try_array()?;
     let string_vec = array
         .iter()
-        .map(|s| s.as_str().ok_or(()))
+        .map(|s| s.to_str_lossy().ok_or(()))
         .collect::<Result<Vec<_>, _>>()
         .map_err(|()| "all array items must be strings")?;
     let separator = match separator {

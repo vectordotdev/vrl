@@ -21,10 +21,10 @@ const PARAMETERS: &[Parameter] = &[
         .default(&DEFAULT_STRICT_MODE),
 ];
 
-fn parse_aws_alb_log(bytes: Value, strict_mode: Value) -> Resolved {
-    let bytes = bytes.try_bytes()?;
+fn parse_aws_alb_log(bytes: &Value, strict_mode: Value) -> Resolved {
+    let bytes = bytes.try_bytes_utf8_lossy()?;
     let strict_mode = strict_mode.try_boolean()?;
-    parse_log(&String::from_utf8_lossy(&bytes), strict_mode)
+    parse_log(&bytes, strict_mode)
 }
 
 fn null_if_dash(value: Value) -> Value {
@@ -188,7 +188,7 @@ impl FunctionExpression for ParseAwsAlbLogFn {
         let strict_mode = self
             .strict_mode
             .map_resolve_with_default(ctx, || DEFAULT_STRICT_MODE.clone())?;
-        parse_aws_alb_log(bytes, strict_mode)
+        parse_aws_alb_log(&bytes, strict_mode)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {
@@ -298,7 +298,7 @@ fn parse_log(mut input: &str, strict_mode: bool) -> ExpressionResult<Value> {
             log.insert(
                 $name.into(),
                 match get_value!($name, take_tid_or_nothing) {
-                    Some(value) => Value::Bytes(value.to_owned().into()),
+                    Some(value) => Value::from(value),
                     None => Value::Null,
                 },
             )
@@ -328,14 +328,14 @@ fn parse_log(mut input: &str, strict_mode: bool) -> ExpressionResult<Value> {
     let request = get_value!("request", take_quoted1);
     let mut iter = request.splitn(2, ' ');
     log.insert(
-        "request_method".to_owned().into(),
+        "request_method".into(),
         null_if_dash(iter.next().unwrap().into()),
     ); // split always have at least 1 item
     match iter.next() {
         Some(value) => {
             let mut iter = value.rsplitn(2, ' ');
             log.insert(
-                "request_protocol".to_owned().into(),
+                "request_protocol".into(),
                 null_if_dash(iter.next().unwrap().into()),
             ); // same as previous one
             match iter.next() {

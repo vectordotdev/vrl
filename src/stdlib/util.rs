@@ -128,16 +128,10 @@ pub(crate) fn regex_kind(
 }
 
 pub(crate) fn is_nullish(value: &Value) -> bool {
-    match value {
-        Value::String(s) => s.is_empty() || &**s == "-" || s.chars().all(char::is_whitespace),
-        Value::Bytes(b) => {
-            b.is_empty()
-                || b.as_ref() == b"-"
-                || String::from_utf8_lossy(b).chars().all(char::is_whitespace)
-        }
-        Value::Null => true,
-        _ => false,
-    }
+    value.is_null()
+        || value.to_str_lossy().is_some_and(|text| {
+            text.is_empty() || text == "-" || text.chars().all(char::is_whitespace)
+        })
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]

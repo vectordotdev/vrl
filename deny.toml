@@ -23,6 +23,8 @@ exceptions = [
   # MPL-2.0 are added case-by-case to make sure we are in compliance. To be in
   # compliance we cannot be modifying the source files.
   { allow = ["MPL-2.0"], name = "vrl", version = "*" },
+  # Mozilla CA certificate data used by rustls-platform-verifier; also allowed in Vector.
+  { allow = ["CDLA-Permissive-2.0"], name = "webpki-root-certs", version = "1" },
 ]
 
 [[licenses.clarify]]
@@ -31,4 +33,9 @@ version = "*"
 expression = "MIT AND ISC AND OpenSSL"
 license-files = [
     { path = "LICENSE", hash = 0xbd0eed23 }
+]
+
+[advisories]
+ignore = [
+  { id = "RUSTSEC-2024-0449", reason = "unsafe-libyaml is unmaintained; serde_yaml_ng migration is pending upstream (https://github.com/acatton/serde-yaml-ng/issues/5)" },
 ]

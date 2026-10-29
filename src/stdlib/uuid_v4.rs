@@ -77,13 +77,7 @@ mod tests {
         let mut ctx = Context::new(&mut object, &mut state, &tz);
         let value = UuidV4Fn.resolve(&mut ctx).unwrap();
 
-        assert!(matches!(&value, Value::String(_)));
-
-        match value {
-            Value::String(val) => {
-                uuid::Uuid::parse_str(val.as_ref()).expect("valid UUID V4");
-            }
-            _ => unreachable!(),
-        }
+        let text = value.as_string().expect("UUIDv4 must be a string");
+        uuid::Uuid::parse_str(text).expect("valid UUID V4");
     }
 }

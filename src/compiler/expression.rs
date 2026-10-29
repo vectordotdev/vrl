@@ -66,6 +66,13 @@ pub trait Expression: Send + Sync + fmt::Debug + DynClone {
     /// An expression is allowed to fail, which aborts the running program.
     fn resolve(&self, ctx: &mut Context) -> Resolved;
 
+    /// Resolve an expression whose resulting value is not used.
+    ///
+    /// Expressions can override this to avoid producing (e.g. cloning) a result.
+    fn resolve_unused(&self, ctx: &mut Context) -> Result<(), ExpressionError> {
+        self.resolve(ctx).map(|_| ())
+    }
+
     /// Resolve an expression to a value without any context, if possible.
     /// This attempts to resolve expressions using only compile-time information.
     ///
@@ -254,6 +261,31 @@ impl Expression for Expr {
             Abort(v) => v.resolve(ctx),
             Return(v) => v.resolve(ctx),
             Break(v) => v.resolve(ctx),
+        }
+    }
+
+    fn resolve_unused(&self, ctx: &mut Context) -> Result<(), ExpressionError> {
+        use Expr::{
+            Abort, Assignment, Break, Container, FunctionCall, IfStatement, Literal, Noop, Op,
+            Query, Return, Unary, Variable,
+        };
+
+        ctx.checkpoint()?;
+
+        match self {
+            Literal(v) => v.resolve_unused(ctx),
+            Container(v) => v.resolve_unused(ctx),
+            IfStatement(v) => v.resolve_unused(ctx),
+            Op(v) => v.resolve_unused(ctx),
+            Assignment(v) => v.resolve_unused(ctx),
+            Query(v) => v.resolve_unused(ctx),
+            FunctionCall(v) => v.resolve_unused(ctx),
+            Variable(v) => v.resolve_unused(ctx),
+            Noop(v) => v.resolve_unused(ctx),
+            Unary(v) => v.resolve_unused(ctx),
+            Abort(v) => v.resolve_unused(ctx),
+            Return(v) => v.resolve_unused(ctx),
+            Break(v) => v.resolve_unused(ctx),
         }
     }
 

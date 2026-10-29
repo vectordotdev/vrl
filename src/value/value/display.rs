@@ -13,8 +13,12 @@ fn escape_quoted(s: &str) -> String {
 impl fmt::Display for Value {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::String(s) => write!(f, r#""{}""#, escape_quoted(s)),
-            Self::Bytes(b) => write!(f, r#""{}""#, escape_quoted(&String::from_utf8_lossy(b))),
+            Self::Bytes(_) | Self::String(_) => {
+                let text = self
+                    .to_str_lossy()
+                    .expect("bytes and string have a text view");
+                write!(f, r#""{}""#, escape_quoted(&text))
+            }
             Self::Integer(val) => write!(f, "{val}"),
             Self::Float(val) => write!(f, "{val}"),
             Self::Boolean(val) => write!(f, "{val}"),

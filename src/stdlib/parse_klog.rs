@@ -4,9 +4,8 @@ use regex::Regex;
 use std::collections::BTreeMap;
 use std::sync::LazyLock;
 
-fn parse_klog(bytes: Value) -> Resolved {
-    let bytes = bytes.try_bytes()?;
-    let message = String::from_utf8_lossy(&bytes);
+fn parse_klog(bytes: &Value) -> Resolved {
+    let message = bytes.try_bytes_utf8_lossy()?;
     let mut log = ObjectMap::new();
     let captures = REGEX_KLOG
         .captures(&message)
@@ -20,7 +19,7 @@ fn parse_klog(bytes: Value) -> Resolved {
             _ => Err(format!(r#"unrecognized log level "{level}""#)),
         }?;
 
-        log.insert("level".into(), Value::Bytes(level.to_owned().into()));
+        log.insert("level".into(), Value::from(level));
     }
     if let Some(timestamp) = captures.name("timestamp").map(|capture| capture.as_str()) {
         let month = captures.name("month").map(|capture| capture.as_str());
@@ -41,7 +40,7 @@ fn parse_klog(bytes: Value) -> Resolved {
         );
     }
     if let Some(file) = captures.name("file").map(|capture| capture.as_str()) {
-        log.insert("file".into(), Value::Bytes(file.to_owned().into()));
+        log.insert("file".into(), Value::from(file));
     }
     if let Some(line) = captures.name("line").map(|capture| capture.as_str()) {
         log.insert(
@@ -50,7 +49,7 @@ fn parse_klog(bytes: Value) -> Resolved {
         );
     }
     if let Some(message) = captures.name("message").map(|capture| capture.as_str()) {
-        log.insert("message".into(), Value::Bytes(message.to_owned().into()));
+        log.insert("message".into(), Value::from(message));
     }
     Ok(log.into())
 }
@@ -158,7 +157,7 @@ struct ParseKlogFn {
 impl FunctionExpression for ParseKlogFn {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let bytes = self.value.resolve(ctx)?;
-        parse_klog(bytes)
+        parse_klog(&bytes)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {
