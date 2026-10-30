@@ -32,7 +32,7 @@ impl Function for Truncate {
         "truncate"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Truncates the `value` string up to the `limit` number of characters."
     }
 

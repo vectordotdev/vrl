@@ -32,7 +32,7 @@ impl Function for EncodeLz4 {
         "encode_lz4"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         indoc! {"
             Encodes the `value` to [Lz4](https://lz4.github.io/lz4/). This function compresses the
             input string into an lz4 block. If `prepend_size` is set to `true`, it prepends the

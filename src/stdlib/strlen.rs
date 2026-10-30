@@ -14,7 +14,7 @@ impl Function for Strlen {
         "strlen"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         indoc! {"
             Returns the number of UTF-8 characters in `value`. This differs from
             `length` which counts the number of bytes of a string.

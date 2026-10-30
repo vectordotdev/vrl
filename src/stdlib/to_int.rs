@@ -26,7 +26,7 @@ impl Function for ToInt {
         "to_int"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Coerces the `value` into an integer."
     }
 

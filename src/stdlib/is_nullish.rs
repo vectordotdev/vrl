@@ -13,7 +13,7 @@ impl Function for IsNullish {
         "is_nullish"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         r#"Determines whether `value` is nullish. Returns `true` if the specified `value` is `null`, an empty string, a string containing only whitespace, or the string `"-"`. Returns `false` otherwise."#
     }
 

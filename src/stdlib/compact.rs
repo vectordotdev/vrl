@@ -65,7 +65,7 @@ impl Function for Compact {
         "compact"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Compacts the `value` by removing empty values, where empty values are defined using the available parameters."
     }
 

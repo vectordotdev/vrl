@@ -9,7 +9,7 @@ impl Function for IsTimestamp {
         "is_timestamp"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Check if `value`'s type is a timestamp."
     }
 

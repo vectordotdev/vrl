@@ -54,11 +54,7 @@ impl Function for Xxhash {
         "xxhash"
     }
 
-    fn summary(&self) -> &'static str {
-        "calculate xxhash hash"
-    }
-
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Calculates a [xxHash](https://github.com/DoumanAsh/xxhash-rust) hash of the `value`."
     }
 

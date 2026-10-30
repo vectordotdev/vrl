@@ -90,7 +90,7 @@ impl Function for ParseGrok {
         "parse_grok"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Parses the `value` using the [`grok`](https://github.com/daschl/grok/tree/master/patterns) format. All patterns [listed here](https://github.com/daschl/grok/tree/master/patterns) are supported."
     }
 

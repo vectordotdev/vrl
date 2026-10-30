@@ -47,7 +47,7 @@ impl Function for ParseTimestamp {
         "parse_timestamp"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Parses the `value` in [strptime](https://docs.rs/chrono/latest/chrono/format/strftime/index.html#specifiers) `format`."
     }
 

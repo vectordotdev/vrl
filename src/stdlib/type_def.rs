@@ -22,7 +22,7 @@ impl Function for TypeDef {
         "type_def"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         indoc! {"
             Returns the type definition of an expression at runtime.
 

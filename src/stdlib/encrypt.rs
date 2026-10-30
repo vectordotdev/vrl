@@ -182,7 +182,7 @@ impl Function for Encrypt {
         "encrypt"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         indoc! {"
             Encrypts a string with a symmetric encryption algorithm.
 

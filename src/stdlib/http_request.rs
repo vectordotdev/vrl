@@ -387,7 +387,7 @@ impl Function for HttpRequest {
         "http_request"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Makes an HTTP request to the specified URL."
     }
 

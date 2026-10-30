@@ -55,7 +55,7 @@ impl Function for Flatten {
         "flatten"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Flattens the `value` into a single-level representation."
     }
 

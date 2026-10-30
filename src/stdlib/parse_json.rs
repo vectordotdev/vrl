@@ -131,11 +131,7 @@ impl Function for ParseJson {
         "parse_json"
     }
 
-    fn summary(&self) -> &'static str {
-        "parse a string to a JSON type"
-    }
-
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         indoc! {"
             Parses the provided `value` as JSON.
 

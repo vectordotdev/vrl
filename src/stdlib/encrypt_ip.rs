@@ -41,7 +41,7 @@ impl Function for EncryptIp {
         "encrypt_ip"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         indoc! {"
             Encrypts an IP address, transforming it into a different valid IP address.
 

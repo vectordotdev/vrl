@@ -9,7 +9,7 @@ impl Function for ParseQueryString {
         "parse_query_string"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Parses the `value` as a query string."
     }
 

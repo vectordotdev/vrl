@@ -21,7 +21,7 @@ impl Function for Match {
         "match"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Determines whether the `value` matches the `pattern`."
     }
 

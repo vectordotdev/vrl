@@ -19,7 +19,7 @@ impl Function for MatchDatadogQuery {
         "match_datadog_query"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Matches an object against a [Datadog Search Syntax](https://docs.datadoghq.com/logs/explorer/search_syntax/) query."
     }
 

@@ -24,7 +24,7 @@ impl Function for ToBool {
         "to_bool"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Coerces the `value` into a boolean."
     }
 

@@ -347,7 +347,7 @@ impl Function for DnsLookup {
         "dns_lookup"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Performs a DNS lookup on the provided domain name."
     }
 

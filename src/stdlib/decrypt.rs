@@ -119,7 +119,7 @@ impl Function for Decrypt {
         "decrypt"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         indoc! {"
             Decrypts a string with a symmetric encryption algorithm.
 

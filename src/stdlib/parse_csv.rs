@@ -47,7 +47,7 @@ impl Function for ParseCsv {
         "parse_csv"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Parses a single CSV formatted row. Only the first row is parsed in case of multiline input value."
     }
 

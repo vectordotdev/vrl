@@ -55,7 +55,7 @@ impl Function for EncodeKeyValue {
         "encode_key_value"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Encodes the `value` into key-value format with customizable delimiters. Default delimiters match the [logfmt](https://brandur.org/logfmt) format."
     }
 

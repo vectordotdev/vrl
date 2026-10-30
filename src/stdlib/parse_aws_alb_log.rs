@@ -43,7 +43,7 @@ impl Function for ParseAwsAlbLog {
         "parse_aws_alb_log"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Parses `value` in the [Elastic Load Balancer Access format](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-access-logs.html#access-log-entry-examples)."
     }
 

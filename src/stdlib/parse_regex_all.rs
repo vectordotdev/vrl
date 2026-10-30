@@ -44,7 +44,7 @@ impl Function for ParseRegexAll {
         "parse_regex_all"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         indoc! {"
             Parses the `value` using the provided [Regex](https://en.wikipedia.org/wiki/Regular_expression) `pattern`.
 

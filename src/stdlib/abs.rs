@@ -20,7 +20,7 @@ impl Function for Abs {
         "abs"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Computes the absolute value of `value`."
     }
 

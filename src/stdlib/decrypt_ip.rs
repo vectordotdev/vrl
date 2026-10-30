@@ -57,7 +57,7 @@ impl Function for DecryptIp {
         "decrypt_ip"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         indoc! {"
             Decrypts an IP address that was previously encrypted, restoring the original IP address.
 

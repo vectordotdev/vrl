@@ -48,7 +48,7 @@ impl Function for EncodeZlib {
         "encode_zlib"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Encodes the `value` to [Zlib](https://www.zlib.net)."
     }
 
