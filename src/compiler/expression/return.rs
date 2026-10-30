@@ -37,6 +37,11 @@ impl Return {
             expr: Box::new(expr),
         })
     }
+
+    #[must_use]
+    pub(crate) fn expr(&self) -> &Expr {
+        &self.expr
+    }
 }
 
 impl Expression for Return {

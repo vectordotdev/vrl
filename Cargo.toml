@@ -346,3 +346,8 @@ required-features = ["default", "test"]
 [[bench]]
 name = "for_each"
 harness = false
+
+[[bench]]
+name = "for_loop"
+harness = false
+

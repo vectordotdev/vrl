@@ -19,6 +19,7 @@ of VRL, the [language documentation][docs] exists for that audience.
     * [Program Optimizations](#program-optimizations)
   * [Diagnostics](#diagnostics)
   * [Syntax](#syntax)
+  * [Iteration](#iteration)
   * [Fallibility](#fallibility)
     * [Fallible Expressions](#fallible-expressions)
     * [Type Checking](#type-checking)
@@ -132,6 +133,14 @@ do so.
   code less clear to reason about. While this is undoubtedly a powerful feature
   to have, the cons do not outweigh the pro's.
 
+* unbounded loops
+
+  To guarantee that programs terminate predictably, VRL does not support
+  unbounded looping constructs such as `while` or `loop`. Iteration is limited
+  to bounded traversal over finite collections (`array` and `object`) via `for`
+  loops and iteration functions such as `for_each`, `map_keys`, and
+  `map_values` (see [Iteration](#iteration)).
+
 [#5507]: https://github.com/vectordotdev/vector/issues/5507
 [#4517]: https://github.com/vectordotdev/vector/issues/4517#issuecomment-754160338
 [#8717]: https://github.com/vectordotdev/vector/pull/8717
@@ -200,6 +209,35 @@ program is.
 Use functions whenever possible, and only introduce new syntax if a common
 pattern warrants a more convenient syntax-based solution, or functions are too
 limited in their capability to solve the required need.
+
+### Iteration
+
+VRL supports bounded collection-based iteration through native `for` loops (see
+[#1960][]) as well as closure-based functions (`for_each`, `map_keys`,
+`map_values`, `filter`).
+
+Historically, [RFC 8381][rfc-8381-for-loop] deferred native `for` loop syntax
+due to concerns around implicit in-place mutation of loop variables, recursive
+traversal syntax, and rebinding `.` relative to nested elements. VRL's `for`
+loops avoid these pitfalls through three design constraints:
+
+* **Single upfront collection evaluation.** The iterable expression (`array` or
+  `object`) is evaluated once before iteration begins. Mutating the source
+  collection or path inside the loop body does not affect the active iteration,
+  preserving bounded execution without introducing unbounded looping.
+
+* **Ordinary local bindings.** Loop variables (`for item in ...` and
+  `for key, value in ...`) are standard lexically-scoped local variables.
+  Reassigning a loop variable inside the body does not implicitly mutate the
+  underlying collection.
+
+* **`.` always refers to the event root.** Inside a `for` loop, `.` remains bound
+  to the root event rather than the current element. Recursive traversal of
+  nested collections remains the responsibility of explicit functions such as
+  `map_keys` and `map_values`.
+
+[#1960]: https://github.com/vectordotdev/vrl/issues/1960
+[rfc-8381-for-loop]: https://github.com/vectordotdev/vector/blob/master/rfcs/2021-08-29-8381-vrl-iteration-support.md#for-loop
 
 ### Fallibility
 

@@ -11,12 +11,12 @@ use super::ExpressionError;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Break {
-    span: Span,
+    pub span: Span,
 }
 
 impl Break {
     #[must_use]
-    pub fn new(span: Span) -> Self {
+    pub const fn new(span: Span) -> Self {
         Self { span }
     }
 }
@@ -33,7 +33,7 @@ impl Expression for Break {
 
 impl fmt::Display for Break {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "break")
+        f.write_str("break")
     }
 }
 
@@ -46,14 +46,14 @@ pub struct Error {
 
 impl Error {
     #[must_use]
-    pub fn new(span: Span) -> Self {
+    pub const fn new(span: Span) -> Self {
         Self { span }
     }
 }
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "break outside of loop or iterator")
+        f.write_str("break outside of loop or iterator")
     }
 }
 

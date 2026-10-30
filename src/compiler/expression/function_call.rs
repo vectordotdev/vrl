@@ -757,6 +757,37 @@ impl FunctionCall {
             .map(|arg| format!("{:?}", arg.inner()))
             .collect::<Vec<_>>()
     }
+
+    #[must_use]
+    pub(crate) fn arguments(&self) -> &[Node<FunctionArgument>] {
+        &self.arguments
+    }
+
+    pub(crate) fn apply_post_argument_type_info(
+        &self,
+        state: &mut TypeState,
+        arg_type_defs: &[TypeDef],
+    ) -> TypeDef {
+        let arguments_may_fail_type_check = arg_type_defs
+            .iter()
+            .zip(&self.argument_parameters)
+            .any(|(type_def, parameter)| {
+                parameter
+                    .parameter
+                    .kind()
+                    .is_superset(type_def.kind())
+                    .is_err()
+            });
+
+        let mut expr_result = self.expr.apply_type_info(state);
+        if arguments_may_fail_type_check || self.closure_fallible {
+            expr_result = expr_result.fallible();
+        }
+        if self.abort_on_error {
+            expr_result = expr_result.infallible();
+        }
+        expr_result
+    }
 }
 
 impl Expression for FunctionCall {
@@ -766,7 +797,8 @@ impl Expression for FunctionCall {
             | ExpressionError::Abort { .. }
             | ExpressionError::Break { .. }
             | ExpressionError::Fallible { .. }
-            | ExpressionError::Missing { .. } => {
+            | ExpressionError::Missing { .. }
+            | ExpressionError::Continue { .. } => {
                 // propagate the error
                 err
             }

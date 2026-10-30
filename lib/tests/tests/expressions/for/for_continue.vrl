@@ -1,0 +1,11 @@
+# result:
+# {"evens": [2, 4]}
+
+.evens = []
+for v in [1, 2, 3, 4, 5] {
+  if mod(v, 2) != 0 {
+    continue
+  }
+  .evens = push(.evens, v)
+}
+.
