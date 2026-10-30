@@ -10,28 +10,6 @@ pub(super) struct BreakingSections {
     migration: String,
 }
 
-pub(super) fn parse_authors(raw: &str) -> Result<(String, Vec<String>), String> {
-    let (body, last) = raw
-        .strip_suffix('\n')
-        .unwrap_or(raw)
-        .rsplit_once('\n')
-        .ok_or("last line must be 'authors: <name> [<name> ...]' (no trailing blank lines)")?;
-    let names = last
-        .strip_prefix("authors: ")
-        .ok_or("last line must be 'authors: <name> [<name> ...]' (no trailing blank lines)")?;
-    if names.trim().is_empty() {
-        return Err("authors line must list at least one GitHub username".into());
-    }
-    if names.contains('@') || names.contains(',') {
-        return Err("authors must be space-delimited GitHub usernames without '@'".into());
-    }
-    let authors: Vec<String> = names.split_whitespace().map(str::to_string).collect();
-    if authors.iter().any(|name| name == "TODO_your_gh_handle") {
-        return Err("replace the authors placeholder with a real GitHub username".into());
-    }
-    Ok((body.to_string(), authors))
-}
-
 impl BreakingSections {
     pub(super) fn parse(body: &str) -> Result<Self, String> {
         const SUMMARY: &str = "\n## Summary\n";

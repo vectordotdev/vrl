@@ -59,8 +59,9 @@ as a heading in the main changelog and not the list. Instead, separate content w
 #### Authors
 
 Every fragment **must** end with an `authors:` line listing the GitHub username(s) of the contributor(s).
-For non-breaking fragments, multiple authors are comma-separated.
-Breaking fragments use Vector's space-delimited authors format (see below).
+Use Vector's space-delimited format for every fragment type, with no `@` prefixes or commas.
+The lowercase `authors:` line must be last, with no trailing blank lines.
+Replace `TODO_your_gh_handle` with a real GitHub username.
 The authors are rendered as GitHub profile links in the changelog.
 
 ```
@@ -70,7 +71,7 @@ authors: github_username
 or for multiple contributors:
 
 ```
-authors: username1, username2
+authors: username1 username2
 ```
 
 ### Breaking changes
@@ -84,9 +85,8 @@ Breaking fragments (`*.breaking.md`) use the same format as
 - Use a nonempty Summary to explain what changed and who is affected.
 - Describe required user actions in Migration. Before/After or Old/New examples are optional.
   Use `N/A` when no user action is required; an empty Migration is also accepted.
-- End with `authors: <username> [<username> ...]`, with space-separated handles, no `@` or commas,
-  and no trailing blank lines.
-- Replace all `TODO` title/body placeholders and the `TODO_your_gh_handle` author placeholder.
+- End with the `authors:` line described above.
+- Replace all `TODO` title/body placeholders.
 
 Anchors default to the title converted to lowercase ASCII words separated by hyphens.
 An explicit anchor must use lowercase ASCII letters, digits, and hyphens, with no leading or
