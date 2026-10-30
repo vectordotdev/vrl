@@ -245,17 +245,9 @@ fn merge_maps(map1: ObjectMap, map2: ObjectMap, deep: bool) -> ObjectMap {
 
     if deep {
         deep_merge_maps(map1, map2)
-    } else if map1.len() < map2.len() {
-        let mut result = map2;
-        for (key1, value1) in map1 {
-            result.entry(key1).or_insert(value1);
-        }
-        result
     } else {
         let mut result = map1;
-        for (key2, value2) in map2 {
-            result.insert(key2, value2);
-        }
+        result.extend(map2);
         result
     }
 }
