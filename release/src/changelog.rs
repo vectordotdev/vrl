@@ -28,43 +28,24 @@ pub(super) enum PullRequestMetadata {
     Required,
 }
 
-/// Strip the trailing `authors: ...` line from fragment content, returning
-/// `(description, authors)`. Fails if the field is absent or empty.
+/// Parse Vector's final `authors: <name> [<name> ...]` line for every fragment type.
 fn parse_authors(raw: &str) -> Result<(String, Vec<String>), String> {
-    let lines: Vec<&str> = raw.lines().collect();
-
-    let last_idx = lines
-        .iter()
-        .rposition(|l| !l.trim().is_empty())
-        .ok_or("Fragment content is empty")?;
-
-    let last = lines[last_idx].trim();
-    let last_lower = last.to_ascii_lowercase();
-    let prefix_len = if last_lower.starts_with("authors:") {
-        "authors:".len()
-    } else if last_lower.starts_with("author:") {
-        "author:".len()
-    } else {
-        return Err(
-            "Fragment is missing required 'authors:' field on the last line. \
-                    Example: 'authors: github_username'"
-                .to_string(),
-        );
-    };
-    let authors_str = &last[prefix_len..];
-
-    let authors: Vec<String> = authors_str
-        .split(',')
-        .map(|s| s.trim().trim_start_matches('@').to_string())
-        .filter(|s| !s.is_empty())
-        .collect();
-
-    if authors.is_empty() {
-        return Err("'authors:' field must list at least one GitHub username".to_string());
+    let raw = raw.strip_suffix('\n').unwrap_or(raw);
+    let (body, last) = raw.rsplit_once('\n').unwrap_or(("", raw));
+    let names = last
+        .strip_prefix("authors: ")
+        .ok_or("last line must be 'authors: <name> [<name> ...]' (no trailing blank lines)")?;
+    if names.trim().is_empty() {
+        return Err("authors line must list at least one GitHub username".into());
     }
-
-    let description = lines[..last_idx].join("\n").trim_end().to_string();
-    Ok((description, authors))
+    if names.contains('@') || names.contains(',') {
+        return Err("authors must be space-delimited GitHub usernames without '@'".into());
+    }
+    let authors: Vec<String> = names.split_whitespace().map(str::to_string).collect();
+    if authors.iter().any(|name| name == "TODO_your_gh_handle") {
+        return Err("replace the authors placeholder with a real GitHub username".into());
+    }
+    Ok((body.to_string(), authors))
 }
 
 fn format_authors(authors: &[String]) -> String {
@@ -137,8 +118,9 @@ impl Changelog {
         let raw = std::fs::read_to_string(path)
             .map_err(|e| format!("Failed to read {}: {e}", path.display()))?;
 
-        let (content, authors) =
-            parse_authors(raw.trim()).map_err(|e| format!("{} (in {})", e, path.display()))?;
+        let (content, authors) = parse_authors(&raw.replace("\r\n", "\n"))
+            .map_err(|e| format!("{e} (in {})", path.display()))?;
+        let content = content.trim().to_string();
 
         Ok(Fragment {
             pr_numbers: Vec::new(),
@@ -688,46 +670,38 @@ mod tests {
     #[test]
     fn parse_authors_single() {
         let (desc, authors) = parse_authors("Fixed a bug.\n\nauthors: alice").unwrap();
-        assert_eq!(desc, "Fixed a bug.");
+        assert_eq!(desc, "Fixed a bug.\n");
         assert_eq!(authors, vec!["alice"]);
     }
 
     #[test]
     fn parse_authors_multiple() {
-        let (desc, authors) = parse_authors("A feature.\n\nauthors: alice, bob").unwrap();
-        assert_eq!(desc, "A feature.");
-        assert_eq!(authors, vec!["alice", "bob"]);
+        for suffix in ["", "\n"] {
+            let (desc, authors) =
+                parse_authors(&format!("A feature.\n\nauthors: alice bob{suffix}")).unwrap();
+            assert_eq!(desc, "A feature.\n");
+            assert_eq!(authors, vec!["alice", "bob"]);
+        }
     }
 
     #[test]
-    fn parse_authors_singular_accepted() {
-        let (desc, authors) = parse_authors("Fixed a bug.\n\nauthor: alice").unwrap();
-        assert_eq!(desc, "Fixed a bug.");
-        assert_eq!(authors, vec!["alice"]);
-    }
-
-    #[test]
-    fn parse_authors_at_prefix_stripped() {
-        let (_, authors) = parse_authors("Fixed a bug.\n\nauthors: @alice, @bob").unwrap();
-        assert_eq!(authors, vec!["alice", "bob"]);
-    }
-
-    #[test]
-    fn parse_authors_capital_key_accepted() {
-        let (desc, authors) = parse_authors("Fixed a bug.\n\nAuthors: alice").unwrap();
-        assert_eq!(desc, "Fixed a bug.");
-        assert_eq!(authors, vec!["alice"]);
-    }
-
-    #[test]
-    fn parse_authors_missing() {
-        let err = parse_authors("Fixed a bug.").unwrap_err();
-        assert!(err.contains("missing required 'authors:'"), "{err}");
+    fn parse_authors_rejects_non_vector_formats() {
+        for invalid in [
+            "Fixed a bug.",
+            "Fixed a bug.\n\nauthor: alice",
+            "Fixed a bug.\n\nAuthors: alice",
+            "Fixed a bug.\n\nauthors: @alice @bob",
+            "Fixed a bug.\n\nauthors: alice, bob",
+            "Fixed a bug.\n\nauthors: TODO_your_gh_handle",
+            "Fixed a bug.\n\nauthors: alice\n\n",
+        ] {
+            assert!(parse_authors(invalid).is_err(), "accepted {invalid:?}");
+        }
     }
 
     #[test]
     fn parse_authors_empty_value() {
-        let err = parse_authors("Fixed a bug.\n\nauthors:").unwrap_err();
+        let err = parse_authors("Fixed a bug.\n\nauthors: ").unwrap_err();
         assert!(err.contains("at least one"), "{err}");
     }
 
@@ -753,7 +727,26 @@ mod tests {
         fs::write(&path, "Fixed a bug.\n").unwrap();
 
         let err = Changelog::parse_fragment(&path).unwrap_err();
-        assert!(err.contains("missing required 'authors:'"), "{err}");
+        assert!(err.contains("authors:"), "{err}");
+    }
+
+    #[test]
+    fn every_fragment_type_uses_vector_authors() {
+        let dir = tempfile::tempdir().unwrap();
+        let content = "A change.\n\nauthors: alice bob\n";
+        for (kind, _) in FRAGMENT_TYPES {
+            let path = dir.path().join(format!("change.{kind}.md"));
+            for valid in [content.to_string(), content.replace('\n', "\r\n")] {
+                fs::write(&path, valid).unwrap();
+                let fragment = Changelog::parse_fragment(&path).unwrap();
+                assert_eq!(fragment.authors, vec!["alice", "bob"], "{kind}");
+            }
+            fs::write(&path, content.replace("alice bob", "alice, bob")).unwrap();
+            assert!(
+                Changelog::parse_fragment(&path).is_err(),
+                "accepted commas in {kind}"
+            );
+        }
     }
 
     // --- collect_fragments ---

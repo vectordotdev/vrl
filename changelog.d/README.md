@@ -57,7 +57,10 @@ as a heading in the main changelog and not the list. Instead, separate content w
 #### Authors
 
 Every fragment **must** end with an `authors:` line listing the GitHub username(s) of the contributor(s).
-Multiple authors are comma-separated. The authors are rendered as GitHub profile links in the changelog.
+Use Vector's space-delimited format for every fragment type, with no `@` prefixes or commas.
+The lowercase `authors:` line must be last, with no trailing blank lines.
+Replace `TODO_your_gh_handle` with a real GitHub username.
+The authors are rendered as GitHub profile links in the changelog.
 
 ```
 authors: github_username
@@ -66,7 +69,7 @@ authors: github_username
 or for multiple contributors:
 
 ```
-authors: username1, username2
+authors: username1 username2
 ```
 
 ### Breaking changes
