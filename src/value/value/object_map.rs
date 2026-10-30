@@ -568,14 +568,29 @@ impl FromIterator<(KeyString, Value)> for ObjectMap {
     }
 }
 
+/// Extending by at most this many entries inserts them one at a time; larger
+/// batches are appended and the whole map is re-sorted once.
+const EXTEND_INSERT_MAX: usize = 16;
+
 impl Extend<(KeyString, Value)> for ObjectMap {
     fn extend<I: IntoIterator<Item = (KeyString, Value)>>(&mut self, iter: I) {
         if self.entries.is_empty() {
             *self = iter.into_iter().collect();
-        } else {
-            for (k, v) in iter {
-                self.insert(k, v);
+            return;
+        }
+        let start = self.entries.len();
+        self.entries.extend(iter);
+        if self.entries.len() - start <= EXTEND_INSERT_MAX {
+            // Each insert shifts at most the existing entries, which is cheaper
+            // than a sort for a few new entries.
+            for (key, value) in self.entries.split_off(start) {
+                self.insert(key, value);
             }
+        } else {
+            // Inserting each entry would shift the vector every time. The
+            // existing entries and a sorted batch are two runs, which the
+            // stable sort merges in linear time; later duplicates win.
+            *self = Self::from_unsorted(std::mem::take(&mut self.entries));
         }
     }
 }
@@ -715,6 +730,32 @@ mod tests {
             assert_eq!(map.get(&format!("key{i:03}")), Some(&Value::from(i as i64)));
         }
         assert_eq!(map.get("missing"), None);
+    }
+
+    #[test]
+    fn extend_matches_insert_semantics() {
+        // Below and above EXTEND_INSERT_MAX, with keys that overlap the map,
+        // fall between its keys, and repeat within the batch.
+        for (len, added) in [(10, 5), (100, 50), (100, 300)] {
+            let mut map: ObjectMap = (0..len)
+                .map(|i| (KeyString::from(format!("key{:04}", i * 2)), Value::from(0)))
+                .collect();
+            let mut expected = map.clone();
+            let batch: Vec<(KeyString, Value)> = (0..added)
+                .map(|i| {
+                    (
+                        KeyString::from(format!("key{:04}", i % 150)),
+                        Value::from(i64::from(i)),
+                    )
+                })
+                .collect();
+            for (key, value) in batch.clone() {
+                expected.insert(key, value);
+            }
+            map.extend(batch);
+            assert!(map.entries.windows(2).all(|w| w[0].0 < w[1].0));
+            assert_eq!(map, expected);
+        }
     }
 
     #[test]
