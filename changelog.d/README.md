@@ -79,16 +79,6 @@ authors: username1 username2
 Breaking fragments (`*.breaking.md`) use the same format as
 [Vector's breaking fragments](https://github.com/vectordotdev/vector/blob/master/changelog.d/README.md#breaking).
 
-Anchors default to the title converted to lowercase ASCII words separated by hyphens.
-An explicit anchor must use lowercase ASCII letters, digits, and hyphens, with no leading or
-trailing hyphen. Anchors must be nonempty and unique among pending breaking fragments.
-As in Vector, `vector-breaking-changes`, `vector-upgrade-guide`, and `upgrade-guide` are reserved.
-
-CI validates added and modified fragments, and release generation checks the same schema.
-Generated changelogs preserve Summary and Migration, nest headings under the release's breaking
-changes section, and prefix anchors with the VRL version to avoid collisions with earlier releases.
-Existing published changelog entries are unchanged.
-
 ## Example
 
 The following illustrates a hypothetical change to the default behavior of `parse_json`.
