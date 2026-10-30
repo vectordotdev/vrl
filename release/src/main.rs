@@ -28,7 +28,7 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    /// Validate changelog fragment filenames and contents
+    /// Validate changelog fragment filenames
     CheckChangelog,
     /// Print the version in the repository's `Cargo.toml`
     Version,
