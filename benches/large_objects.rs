@@ -134,13 +134,17 @@ fn bench_map_ops(c: &mut Criterion) {
                 );
             });
             g.bench_with_input(BenchmarkId::new("extend_half_overlap", n), &n, |b, _| {
-                // Every other key overlaps; the rest interleave with existing keys.
+                // Every other key overlaps; the rest are new keys that sort between
+                // existing ones.
                 let other: Vec<(KeyString, Value)> = (0..n)
                     .map(|i| {
-                        (
-                            KeyString::from(key(style, i * 2 + (i % 2))),
-                            Value::Integer(7),
-                        )
+                        let existing = key(style, i);
+                        let key = if i % 2 == 0 {
+                            existing
+                        } else {
+                            format!("{existing}_new")
+                        };
+                        (KeyString::from(key), Value::Integer(7))
                     })
                     .collect();
                 b.iter_batched(
