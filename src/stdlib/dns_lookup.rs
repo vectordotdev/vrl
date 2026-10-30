@@ -325,19 +325,23 @@ mod non_wasm {
 #[cfg(not(target_arch = "wasm32"))]
 use non_wasm::*;
 
+use std::sync::LazyLock;
+
 static DEFAULT_QTYPE: Value = Value::from_static_str("A");
 static DEFAULT_CLASS: Value = Value::from_static_str("IN");
-static DEFAULT_OPTIONS: Value = Value::Object(std::collections::BTreeMap::new());
+static DEFAULT_OPTIONS: LazyLock<Value> = LazyLock::new(|| Value::Object(ObjectMap::new()));
 
-const PARAMETERS: &[Parameter] = &[
-    Parameter::required("value", kind::BYTES, "The domain name to query."),
-    Parameter::optional("qtype", kind::BYTES, "The DNS record type to query (e.g., A, AAAA, MX, TXT). Defaults to A.")
-        .default(&DEFAULT_QTYPE),
-    Parameter::optional("class", kind::BYTES, "The DNS query class. Defaults to IN (Internet).")
-        .default(&DEFAULT_CLASS),
-    Parameter::optional("options", kind::OBJECT, "DNS resolver options. Supported fields: servers (array of nameserver addresses), timeout (seconds), attempts (number of retry attempts), ndots, aa_only, tcp, recurse, rotate.")
-        .default(&DEFAULT_OPTIONS),
-];
+static PARAMETERS: LazyLock<Vec<Parameter>> = LazyLock::new(|| {
+    vec![
+        Parameter::required("value", kind::BYTES, "The domain name to query."),
+        Parameter::optional("qtype", kind::BYTES, "The DNS record type to query (e.g., A, AAAA, MX, TXT). Defaults to A.")
+            .default(&DEFAULT_QTYPE),
+        Parameter::optional("class", kind::BYTES, "The DNS query class. Defaults to IN (Internet).")
+            .default(&DEFAULT_CLASS),
+        Parameter::optional("options", kind::OBJECT, "DNS resolver options. Supported fields: servers (array of nameserver addresses), timeout (seconds), attempts (number of retry attempts), ndots, aa_only, tcp, recurse, rotate.")
+            .default(&DEFAULT_OPTIONS),
+    ]
+});
 
 #[derive(Clone, Copy, Debug)]
 pub struct DnsLookup;
@@ -364,7 +368,7 @@ impl Function for DnsLookup {
     }
 
     fn parameters(&self) -> &'static [Parameter] {
-        PARAMETERS
+        PARAMETERS.as_slice()
     }
 
     #[allow(clippy::too_many_lines)]
@@ -690,7 +694,6 @@ impl Function for DnsLookup {
 #[cfg(test)]
 #[cfg(not(target_arch = "wasm32"))]
 mod tests {
-    use std::collections::BTreeMap;
     #[cfg(feature = "test")]
     use std::collections::HashSet;
 
@@ -852,7 +855,7 @@ mod tests {
 
     fn prepare_dns_lookup(dns_lookup_fn: &DnsLookupFn) -> Resolved {
         let tz = TimeZone::default();
-        let mut object: Value = Value::Object(BTreeMap::new());
+        let mut object: Value = Value::Object(ObjectMap::new());
         let mut runtime_state = state::RuntimeState::default();
         let mut ctx = Context::new(&mut object, &mut runtime_state, &tz);
         dns_lookup_fn.resolve(&mut ctx)

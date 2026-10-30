@@ -346,3 +346,13 @@ required-features = ["default", "test"]
 [[bench]]
 name = "for_each"
 harness = false
+
+[[bench]]
+name = "layout"
+harness = false
+required-features = ["default", "test"]
+
+[[bench]]
+name = "large_objects"
+harness = false
+required-features = ["default", "test"]
