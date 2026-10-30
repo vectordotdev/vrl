@@ -206,7 +206,7 @@ pub fn build_function_doc(func: &dyn Function) -> FunctionDoc {
         anchor: name.clone(),
         name,
         category: func.category().to_string(),
-        description: trim_str(func.usage()),
+        description: trim_str(func.description()),
         arguments,
         r#return: ReturnDoc {
             types: kind_to_types(func.return_kind()),

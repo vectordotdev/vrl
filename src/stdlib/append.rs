@@ -15,7 +15,7 @@ impl Function for Append {
         "append"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Appends each item in the `items` array to the end of the `value` array."
     }
 

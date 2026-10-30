@@ -58,11 +58,7 @@ impl Function for ParseUserAgent {
         "parse_user_agent"
     }
 
-    fn summary(&self) -> &'static str {
-        "parse a user agent string"
-    }
-
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         indoc! {"
             Parses the provided `value` as a user agent, which has
             [a loosely defined format](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/User-Agent).

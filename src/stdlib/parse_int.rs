@@ -41,7 +41,7 @@ impl Function for ParseInt {
         "parse_int"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Parses the string `value` representing a number in an optional base/radix to an integer."
     }
 

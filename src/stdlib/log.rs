@@ -45,7 +45,7 @@ impl Function for Log {
         "log"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Logs the `value` to [stdout](https://en.wikipedia.org/wiki/Standard_streams#Standard_output_(stdout)) at the specified `level`."
     }
 

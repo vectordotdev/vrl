@@ -19,7 +19,7 @@ impl Function for Md5 {
         "md5"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Calculates an md5 hash of the `value`."
     }
 

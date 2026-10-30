@@ -36,7 +36,7 @@ impl Function for RandomFloat {
         "random_float"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Returns a random float between [min, max)."
     }
 

@@ -47,7 +47,7 @@ impl Function for ObjectFromArray {
         "object_from_array"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         indoc! {"
             Iterate over either one array of arrays or a pair of arrays and create an object out of all the key-value pairs contained in them.
             With one array of arrays, any entries with no value use `null` instead.

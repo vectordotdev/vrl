@@ -19,7 +19,7 @@ impl Function for DecodeZstd {
         "decode_zstd"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Decodes the `value` (a [Zstandard](https://facebook.github.io/zstd) string) into its original string."
     }
 

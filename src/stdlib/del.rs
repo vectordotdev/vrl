@@ -53,7 +53,7 @@ impl Function for Del {
         "del"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         indoc! {"
             Removes the field specified by the static `path` from the target.
 

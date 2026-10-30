@@ -24,7 +24,7 @@ impl Function for Set {
         "set"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         indoc! {"
             Dynamically insert data into the path of a given object or array.
 

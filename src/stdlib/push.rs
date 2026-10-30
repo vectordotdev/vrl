@@ -14,7 +14,7 @@ impl Function for Push {
         "push"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Adds the `item` to the end of the `value` array."
     }
 

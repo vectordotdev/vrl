@@ -14,7 +14,7 @@ impl Function for Pop {
         "pop"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Removes the last item from the `value` array."
     }
 

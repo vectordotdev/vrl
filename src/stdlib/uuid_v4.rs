@@ -14,7 +14,7 @@ impl Function for UuidV4 {
         "uuid_v4"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Generates a random [UUIDv4](https://en.wikipedia.org/wiki/Universally_unique_identifier#Version_4_(random)) string."
     }
 

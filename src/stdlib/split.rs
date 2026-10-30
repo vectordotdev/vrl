@@ -38,7 +38,7 @@ impl Function for Split {
         "split"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Splits the `value` string using `pattern`."
     }
 

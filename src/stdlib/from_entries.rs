@@ -37,7 +37,7 @@ impl Function for FromEntries {
         "from_entries"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Converts array of key/value objects into an object."
     }
 

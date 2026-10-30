@@ -61,7 +61,7 @@ impl Function for DecodeBase64 {
         "decode_base64"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Decodes the `value` (a [Base64](https://en.wikipedia.org/wiki/Base64) string) into its original string."
     }
 

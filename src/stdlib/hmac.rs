@@ -81,7 +81,7 @@ impl Function for Hmac {
         "hmac"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         indoc! {"
             Calculates a [HMAC](https://en.wikipedia.org/wiki/HMAC) of the `value` using the given `key`.
             The hashing `algorithm` used can be optionally specified.

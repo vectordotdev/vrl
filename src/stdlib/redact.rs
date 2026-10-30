@@ -25,7 +25,7 @@ impl Function for Redact {
         "redact"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         indoc! {"
             Redact sensitive data in `value` such as:
 

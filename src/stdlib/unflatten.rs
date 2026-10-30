@@ -120,7 +120,7 @@ impl Function for Unflatten {
         "unflatten"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Unflattens the `value` into a nested representation."
     }
 

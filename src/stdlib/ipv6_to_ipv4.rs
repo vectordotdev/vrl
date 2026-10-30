@@ -23,7 +23,7 @@ impl Function for Ipv6ToIpV4 {
         "ipv6_to_ipv4"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         indoc! {"
             Converts the `ip` to an IPv4 address. `ip` is returned unchanged if it's already an IPv4 address. If `ip` is
             currently an IPv6 address then it needs to be IPv4 compatible, otherwise an error is thrown.

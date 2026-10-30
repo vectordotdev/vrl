@@ -13,7 +13,7 @@ impl Function for Mod {
         "mod"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Calculates the remainder of `value` divided by `modulus`."
     }
 

@@ -13,7 +13,7 @@ impl Function for ParseFloat {
         "parse_float"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Parses the string `value` representing a floating point number in base 10 to a float."
     }
 

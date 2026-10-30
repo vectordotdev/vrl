@@ -47,7 +47,7 @@ impl Function for ToEntries {
         "to_entries"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Converts JSON objects or arrays into array of objects."
     }
 

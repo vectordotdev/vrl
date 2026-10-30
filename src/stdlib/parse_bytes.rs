@@ -159,7 +159,7 @@ impl Function for ParseBytes {
         "parse_bytes"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Parses the `value` into a human-readable bytes format specified by `unit` and `base`."
     }
 

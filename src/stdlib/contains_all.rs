@@ -27,7 +27,7 @@ impl Function for ContainsAll {
         "contains_all"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Determines whether the `value` string contains all the specified `substrings`."
     }
 
