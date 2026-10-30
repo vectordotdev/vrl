@@ -26,8 +26,7 @@ The format for fragments is: `<description>.<fragment_type>.md`
 ### Fragment conventions
 
 When fragments are used to generate the updated changelog, the content of the fragment file is
-rendered under the "type" of fragment. Non-breaking fragments become bulleted list items;
-breaking fragments become structured upgrade-guide entries.
+rendered under the "type" of fragment.
 
 The contents of the file must be valid markdown, followed by a required `authors:` line at the end.
 
