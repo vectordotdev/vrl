@@ -282,14 +282,14 @@ impl Changelog {
                         };
                         format!("Thanks to {authors} for contributing {label} {pull_requests}!")
                     };
-                    if let Some(breaking) = &fragment.breaking {
-                        writeln!(section, "{}\n\n*{attribution}*\n", breaking.render(version))
-                            .expect("writing to a String cannot fail");
-                    } else {
-                        let indented = Self::indent_continuation(&fragment.content);
-                        writeln!(section, "- {indented}\n\n  *{attribution}*")
-                            .expect("writing to a String cannot fail");
-                    }
+                    let breaking_content = fragment
+                        .breaking
+                        .as_ref()
+                        .map(|breaking| breaking.render(version));
+                    let content = breaking_content.as_deref().unwrap_or(&fragment.content);
+                    let indented = Self::indent_continuation(content);
+                    writeln!(section, "- {indented}\n\n  *{attribution}*")
+                        .expect("writing to a String cannot fail");
                 }
             }
         }
@@ -818,11 +818,11 @@ mod tests {
             )
             .unwrap();
         for expected in [
-            "<a id=\"v1.0.0-timestamp-conversion\"></a>\n\n#### Fallible timestamp conversion",
-            "##### Summary\n\nNanosecond conversion can fail.\nHandle the error even when the timestamp usually fits.",
-            "##### Migration\n\nHandle the error:",
-            "###### Old\n\n```vrl\n# Keep this VRL comment unchanged.",
-            "###### New\n\n```vrl\nto_unix_timestamp!(ts, unit: \"nanoseconds\")",
+            "- <a id=\"v1.0.0-timestamp-conversion\"></a> **Fallible timestamp conversion**",
+            "  **Summary**\n\n  Nanosecond conversion can fail.\n  Handle the error even when the timestamp usually fits.",
+            "  **Migration**\n\n  Handle the error:",
+            "  #### Old\n\n  ```vrl\n  # Keep this VRL comment unchanged.",
+            "  #### New\n\n  ```vrl\n  to_unix_timestamp!(ts, unit: \"nanoseconds\")",
             "Thanks to [alice](https://github.com/alice), [bob](https://github.com/bob)",
         ] {
             assert!(

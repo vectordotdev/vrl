@@ -1,7 +1,5 @@
 //! The same breaking-fragment schema used by Vector's changelog tooling.
 
-use std::fmt::Write as _;
-
 #[derive(Debug)]
 pub(super) struct BreakingSections {
     title: String,
@@ -66,19 +64,12 @@ impl BreakingSections {
     }
 
     pub(super) fn render(&self, version: &semver::Version) -> String {
-        // GitHub does not understand Hugo's {#anchor} syntax. Emit an explicit anchor,
-        // with headings nested under the release (H2) and change category (H3).
-        let mut rendered = format!(
-            "<a id=\"v{version}-{}\"></a>\n\n#### {}\n\n##### Summary\n\n{}\n\n##### Migration\n",
-            self.anchor,
-            self.title,
-            nest_headings(&self.summary)
-        );
-        if !self.migration.is_empty() {
-            write!(rendered, "\n{}\n", nest_headings(&self.migration))
-                .expect("writing to a String cannot fail");
-        }
-        rendered.trim_end().to_string()
+        format!(
+            "<a id=\"v{version}-{}\"></a> **{}**\n\n**Summary**\n\n{}\n\n**Migration**\n\n{}",
+            self.anchor, self.title, self.summary, self.migration
+        )
+        .trim_end()
+        .to_string()
     }
 }
 
@@ -118,41 +109,4 @@ fn is_valid_anchor(anchor: &str) -> bool {
         && anchor
             .bytes()
             .all(|ch| ch.is_ascii_lowercase() || ch.is_ascii_digit() || ch == b'-')
-}
-
-/// Demote authored headings alongside Summary/Migration without altering fenced examples.
-fn nest_headings(markdown: &str) -> String {
-    let mut fence: Option<(u8, usize)> = None;
-    markdown
-        .lines()
-        .map(|line| {
-            let trimmed = line.trim_start_matches(' ');
-            let indent = line.len() - trimmed.len();
-            let first = trimmed.as_bytes().first().copied().unwrap_or_default();
-            if indent <= 3 && (first == b'`' || first == b'~') {
-                let count = trimmed.bytes().take_while(|ch| *ch == first).count();
-                if let Some((delimiter, length)) = fence {
-                    if first == delimiter && count >= length && trimmed[count..].trim().is_empty() {
-                        fence = None;
-                    }
-                } else if count >= 3 {
-                    fence = Some((first, count));
-                }
-            } else if fence.is_none() && indent <= 3 {
-                let count = trimmed.bytes().take_while(|ch| *ch == b'#').count();
-                if (1..=6).contains(&count)
-                    && (trimmed.len() == count || trimmed.as_bytes()[count].is_ascii_whitespace())
-                {
-                    return format!(
-                        "{}{}{}",
-                        &line[..indent],
-                        "#".repeat((count + 3).min(6)),
-                        &trimmed[count..]
-                    );
-                }
-            }
-            line.to_string()
-        })
-        .collect::<Vec<_>>()
-        .join("\n")
 }
