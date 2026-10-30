@@ -1,21 +1,21 @@
 use std::borrow::Cow;
 use std::fmt::{self, Display, Formatter};
 
+use compact_str::CompactString;
 use serde::{Deserialize, Serialize};
 
 /// The key type value. This is a simple zero-overhead wrapper set up to make it explicit that
 /// object keys are read-only and their underlying type is opaque and may change for efficiency.
 #[derive(Clone, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
-#[cfg_attr(any(test, feature = "proptest"), derive(proptest_derive::Arbitrary))]
 #[serde(transparent)]
-pub struct KeyString(String);
+pub struct KeyString(CompactString);
 
 impl KeyString {
     /// Convert the key into a boxed slice of bytes (`u8`).
     #[inline]
     #[must_use]
     pub fn into_bytes(self) -> Box<[u8]> {
-        self.0.into_bytes().into()
+        self.0.into_string().into_bytes().into()
     }
 
     /// Is this string empty?
@@ -79,19 +79,33 @@ impl From<&str> for KeyString {
 
 impl From<String> for KeyString {
     fn from(s: String) -> Self {
-        Self(s)
+        Self(CompactString::from(s))
     }
 }
 
 impl From<Cow<'_, str>> for KeyString {
     fn from(s: Cow<'_, str>) -> Self {
-        Self(s.into())
+        Self(CompactString::from(s))
     }
 }
 
 impl From<KeyString> for String {
     fn from(s: KeyString) -> Self {
-        s.0
+        s.0.into_string()
+    }
+}
+
+#[cfg(any(test, feature = "proptest"))]
+impl proptest::arbitrary::Arbitrary for KeyString {
+    type Parameters = ();
+    type Strategy = proptest::strategy::Map<
+        <String as proptest::arbitrary::Arbitrary>::Strategy,
+        fn(String) -> Self,
+    >;
+
+    fn arbitrary_with((): ()) -> Self::Strategy {
+        use proptest::strategy::Strategy;
+        proptest::arbitrary::any::<String>().prop_map(KeyString::from as fn(String) -> Self)
     }
 }
 
@@ -102,7 +116,7 @@ impl quickcheck::Arbitrary for KeyString {
     }
 
     fn shrink(&self) -> Box<dyn Iterator<Item = Self>> {
-        let s = self.0.clone();
+        let s = self.as_str().to_owned();
         Box::new(s.shrink().map(Into::into))
     }
 }
@@ -122,7 +136,7 @@ mod lua {
 
     impl IntoLua for KeyString {
         fn into_lua(self, lua: &Lua) -> LuaResult<LuaValue> {
-            self.0.into_lua(lua)
+            self.as_str().into_lua(lua)
         }
     }
 }

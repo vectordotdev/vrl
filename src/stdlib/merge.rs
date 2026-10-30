@@ -1,9 +1,6 @@
 use crate::compiler::expression::{Expr, Literal};
 use crate::compiler::prelude::*;
-use std::collections::{
-    BTreeMap,
-    btree_map::{self, Entry},
-};
+use crate::value::{ObjectMapEntry, ObjectMapIntoIter};
 
 static DEFAULT_DEEP: Value = Value::Boolean(false);
 
@@ -266,7 +263,7 @@ fn merge_maps(map1: ObjectMap, map2: ObjectMap, deep: bool) -> ObjectMap {
 struct MergeFrame {
     parent_key: Option<KeyString>,
     target: ObjectMap,
-    incoming: btree_map::IntoIter<KeyString, Value>,
+    incoming: ObjectMapIntoIter,
 }
 
 fn deep_merge_maps(map1: ObjectMap, map2: ObjectMap) -> ObjectMap {
@@ -279,16 +276,16 @@ fn deep_merge_maps(map1: ObjectMap, map2: ObjectMap) -> ObjectMap {
     'outer: while let Some(mut frame) = stack.pop() {
         while let Some((key, value2)) = frame.incoming.next() {
             match frame.target.entry(key) {
-                Entry::Occupied(occ) => match (occ.get(), &value2) {
+                ObjectMapEntry::Occupied(occ) => match (occ.get(), &value2) {
                     (Value::Object(_), Value::Object(_)) => {
                         let (child_key, old_val) = occ.remove_entry();
                         let child1 = match old_val {
                             Value::Object(o) => o,
-                            _ => BTreeMap::new(),
+                            _ => ObjectMap::new(),
                         };
                         let child2 = match value2 {
                             Value::Object(o) => o,
-                            _ => BTreeMap::new(),
+                            _ => ObjectMap::new(),
                         };
                         stack.push(frame);
                         stack.push(MergeFrame {
@@ -302,7 +299,7 @@ fn deep_merge_maps(map1: ObjectMap, map2: ObjectMap) -> ObjectMap {
                         *occ.into_mut() = value2;
                     }
                 },
-                Entry::Vacant(entry) => {
+                ObjectMapEntry::Vacant(entry) => {
                     entry.insert(value2);
                 }
             }
@@ -322,7 +319,7 @@ fn deep_merge_maps(map1: ObjectMap, map2: ObjectMap) -> ObjectMap {
         }
     }
 
-    BTreeMap::new()
+    ObjectMap::new()
 }
 
 #[cfg(test)]
@@ -611,8 +608,8 @@ mod tests {
 
         for i in (0..depth).rev() {
             let k: KeyString = format!("k{i}").into();
-            map1 = Value::Object(btreemap! { k.clone() => map1 });
-            map2 = Value::Object(btreemap! { k => map2 });
+            map1 = Value::from(btreemap! { k.clone() => map1 });
+            map2 = Value::from(btreemap! { k => map2 });
         }
 
         let o1 = map1.try_object().expect("object");
@@ -635,18 +632,18 @@ mod tests {
     #[test]
     fn deep_nesting_10_000_levels_preserves_sibling_leaf() {
         let depth = 10_000;
-        let mut map1 = Value::Object(btreemap! {
+        let mut map1 = Value::from(btreemap! {
             KeyString::from("leaf_target") => Value::from("leaf1"),
             KeyString::from("leaf_keep") => Value::from("preserved"),
         });
-        let mut map2 = Value::Object(btreemap! {
+        let mut map2 = Value::from(btreemap! {
             KeyString::from("leaf_target") => Value::from("leaf2"),
         });
 
         for i in (0..depth).rev() {
             let k: KeyString = format!("k{i}").into();
-            map1 = Value::Object(btreemap! { k.clone() => map1 });
-            map2 = Value::Object(btreemap! { k => map2 });
+            map1 = Value::from(btreemap! { k.clone() => map1 });
+            map2 = Value::from(btreemap! { k => map2 });
         }
 
         let o1 = map1.try_object().expect("object");

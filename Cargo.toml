@@ -44,7 +44,7 @@ clap = { version = "4", features = ["derive"] }
 default = ["compiler", "stdlib", "datadog", "cli", "enable_env_functions", "enable_system_functions", "enable_network_functions", "enable_crypto_functions"]
 
 # Contains the primary data type used in VRL, along with path types. Useful for crates that work with VRL values without needing the full compiler.
-value = ["dep:bytes", "dep:bytestring", "dep:regex", "dep:ordered-float", "dep:chrono", "dep:serde_json", "dep:simdutf8", "dep:serde", "dep:snafu"]
+value = ["dep:bytes", "dep:bytestring", "dep:regex", "dep:ordered-float", "dep:chrono", "dep:serde_json", "dep:simdutf8", "dep:serde", "dep:snafu", "dep:compact_str"]
 
 # Contains the core functionality of VRL: compiling and running VRL programs, parser, and diagnostics.
 compiler = ["value", "dep:chrono-tz", "dep:thiserror", "dep:dyn-clone", "dep:indoc", "dep:lalrpop-util", "dep:codespan-reporting", "dep:termcolor"]
@@ -187,6 +187,7 @@ chrono = { version = "0.4", default-features = false, features = ["clock", "serd
 chrono-tz = { version = "0.10", default-features = false, optional = true }
 ciborium = { version = "0.2.2", default-features = false, optional = true }
 cidr = { version = "0.3", optional = true }
+compact_str = { version = "0.9.0", default-features = false, features = ["serde"], optional = true }
 csv = { version = "1", optional = true }
 clap = { workspace = true, optional = true }
 codespan-reporting = { version = "0.12", optional = true }
@@ -346,3 +347,13 @@ required-features = ["default", "test"]
 [[bench]]
 name = "for_each"
 harness = false
+
+[[bench]]
+name = "layout"
+harness = false
+required-features = ["default", "test"]
+
+[[bench]]
+name = "large_objects"
+harness = false
+required-features = ["default", "test"]
