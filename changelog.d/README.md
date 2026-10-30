@@ -77,16 +77,7 @@ authors: username1 username2
 ### Breaking changes
 
 Breaking fragments (`*.breaking.md`) use the same format as
-[Vector's breaking fragments](https://github.com/vectordotdev/vector/blob/master/changelog.d/README.md#breaking):
-
-- Begin with an H1 title, optionally followed by a stable `{#anchor}`.
-- Include exactly one `## Summary` and one `## Migration`, in that order.
-- Put all content in those sections, with nothing between the title and `## Summary`.
-- Use a nonempty Summary to explain what changed and who is affected.
-- Describe required user actions in Migration. Before/After or Old/New examples are optional.
-  Use `N/A` when no user action is required; an empty Migration is also accepted.
-- End with the `authors:` line described above.
-- Replace all `TODO` title/body placeholders.
+[Vector's breaking fragments](https://github.com/vectordotdev/vector/blob/master/changelog.d/README.md#breaking).
 
 Anchors default to the title converted to lowercase ASCII words separated by hyphens.
 An explicit anchor must use lowercase ASCII letters, digits, and hyphens, with no leading or
