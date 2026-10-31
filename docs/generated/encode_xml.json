@@ -1,0 +1,35 @@
+{
+  "anchor": "encode_xml",
+  "name": "encode_xml",
+  "category": "Codec",
+  "description": "Encodes a single-root object as XML, using `@`-prefixed keys for attributes and the `text` key for text content.",
+  "arguments": [
+    {
+      "name": "value",
+      "description": "The object containing one root element. Keys prefixed with `@` become attributes; the `text` key emits text content.",
+      "required": true,
+      "type": [
+        "object"
+      ]
+    }
+  ],
+  "return": {
+    "types": [
+      "string"
+    ]
+  },
+  "internal_failure_reasons": [
+    "`value` must be an object with exactly one root element.",
+    "XML element names and values must form a valid XML 1.0 document.",
+    "XML text values must be scalar and contain valid UTF-8.",
+    "XML elements cannot have array values; use arrays for repeated child elements."
+  ],
+  "examples": [
+    {
+      "title": "Encode an object as XML",
+      "source": "encode_xml!({\"book\": {\"@category\": \"fiction\", \"title\": \"Dune\"}})",
+      "return": "<book category=\"fiction\"><title>Dune</title></book>"
+    }
+  ],
+  "pure": true
+}
