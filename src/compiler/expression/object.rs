@@ -39,11 +39,17 @@ impl Object {
     }
 
     /// Compute and cache the value of this object if it is structurally
-    /// literal (see [`Object::constant`]). Callers must invoke this after the
+    /// literal (see the `constant` field). Callers must invoke this after the
     /// object is fully built, before the program is executed.
     #[must_use]
     pub fn with_constant(mut self) -> Self {
-        self.constant = self.structural_literal_value();
+        let value = self.structural_literal_value();
+        if value.is_some() {
+            // The parent cache now holds a copy of every descendant's value;
+            // drop the descendant caches so nested literals are stored once.
+            self.drop_descendant_constants();
+        }
+        self.constant = value;
         self
     }
 
@@ -54,6 +60,15 @@ impl Object {
             map.insert(key.clone(), literal_expr_value(expr)?);
         }
         Some(Value::Object(map))
+    }
+
+    /// Drop the caches of structurally literal descendant objects. Only used
+    /// after this object's own cache was built from them, so that nested
+    /// literal subtrees are stored exactly once.
+    fn drop_descendant_constants(&mut self) {
+        for expr in self.inner.values_mut() {
+            drop_expr_constant(expr);
+        }
     }
 }
 
@@ -67,7 +82,9 @@ fn literal_expr_value(expr: &Expr) -> Option<Value> {
     match expr {
         Expr::Literal(literal) => Some(literal.to_value()),
         Expr::Container(container) => match &container.variant {
-            container::Variant::Object(object) => object.structural_literal_value(),
+            // Nested objects already computed their cache in `compile_object`;
+            // reuse it instead of re-materializing the subtree.
+            container::Variant::Object(object) => object.constant.clone(),
             container::Variant::Array(array) => array
                 .iter()
                 .map(literal_expr_value)
@@ -77,6 +94,18 @@ fn literal_expr_value(expr: &Expr) -> Option<Value> {
             container::Variant::Block(_) => None,
         },
         _ => None,
+    }
+}
+
+/// Recursively drop the caches of structurally literal descendant objects.
+fn drop_expr_constant(expr: &mut Expr) {
+    if let Expr::Container(container) = expr
+        && let container::Variant::Object(object) = &mut container.variant
+    {
+        object.constant = None;
+        for expr in object.inner.values_mut() {
+            drop_expr_constant(expr);
+        }
     }
 }
 
@@ -91,6 +120,11 @@ impl Deref for Object {
 impl Expression for Object {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         if let Some(value) = &self.constant {
+            // Preserve cooperative interruption: the uncached path checkpoints
+            // around every entry expression via `Expr::resolve`; the cached
+            // path resolves no entries, so checkpoint here explicitly before
+            // the (bounded, literal-only) clone.
+            ctx.checkpoint()?;
             return Ok(value.clone());
         }
 

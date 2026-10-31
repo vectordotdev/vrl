@@ -110,7 +110,7 @@ fn now_not_baked_into_constant() {
     let Value::Object(map) = &res else {
         panic!("expected object, got {res:?}");
     };
-    assert!(map.get("ts").is_some(), "ts must be present");
+    assert!(map.contains_key("ts"), "ts must be present");
 }
 
 /// Nested constant literals (object in object, arrays).
