@@ -4,7 +4,7 @@ use crate::value::{KeyString, Value};
 use crate::{
     compiler::{
         Context, Expression, TypeDef,
-        expression::{Expr, Resolved},
+        expression::{Expr, Resolved, container},
         state::{TypeInfo, TypeState},
     },
     value::Kind,
@@ -13,12 +13,70 @@ use crate::{
 #[derive(Debug, Clone, PartialEq)]
 pub struct Object {
     inner: BTreeMap<KeyString, Expr>,
+    /// Pre-computed value if this object is a *structural* literal (every
+    /// value is a literal, or a nested object/array/group of literals).
+    ///
+    /// `resolve` can then bulk-clone this value instead of re-assembling the
+    /// map (resolving each entry, cloning keys, re-balancing tree nodes) on
+    /// every evaluation.
+    ///
+    /// This intentionally does NOT use `Expression::resolve_constant`:
+    /// that API can fold `Variable`/`Query` expressions based on
+    /// compile-time state, which is unsound as a source of runtime values
+    /// when an earlier object entry runs side effects that mutate the
+    /// variable (see vectordotdev/vrl#1799). Only structurally
+    /// side-effect-free expressions qualify.
+    constant: Option<Value>,
 }
 
 impl Object {
     #[must_use]
     pub fn new(inner: BTreeMap<KeyString, Expr>) -> Self {
-        Self { inner }
+        Self {
+            inner,
+            constant: None,
+        }
+    }
+
+    /// Compute and cache the value of this object if it is structurally
+    /// literal (see [`Object::constant`]). Callers must invoke this after the
+    /// object is fully built, before the program is executed.
+    #[must_use]
+    pub fn with_constant(mut self) -> Self {
+        self.constant = self.structural_literal_value();
+        self
+    }
+
+    /// Build the constant value from structurally literal expressions only.
+    fn structural_literal_value(&self) -> Option<Value> {
+        let mut map = BTreeMap::new();
+        for (key, expr) in &self.inner {
+            map.insert(key.clone(), literal_expr_value(expr)?);
+        }
+        Some(Value::Object(map))
+    }
+}
+
+/// Resolve the value of an expression only if it is structurally
+/// side-effect-free and context-independent: literals, and nested
+/// objects/arrays/groups thereof.
+///
+/// Everything else (variables, queries, ops, function calls, blocks, ...)
+/// yields `None`, falling back to the regular runtime resolve path.
+fn literal_expr_value(expr: &Expr) -> Option<Value> {
+    match expr {
+        Expr::Literal(literal) => Some(literal.to_value()),
+        Expr::Container(container) => match &container.variant {
+            container::Variant::Object(object) => object.structural_literal_value(),
+            container::Variant::Array(array) => array
+                .iter()
+                .map(literal_expr_value)
+                .collect::<Option<Vec<_>>>()
+                .map(Value::Array),
+            container::Variant::Group(group) => literal_expr_value(group.expr()),
+            container::Variant::Block(_) => None,
+        },
+        _ => None,
     }
 }
 
@@ -32,6 +90,10 @@ impl Deref for Object {
 
 impl Expression for Object {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
+        if let Some(value) = &self.constant {
+            return Ok(value.clone());
+        }
+
         self.inner
             .iter()
             .map(|(key, expr)| expr.resolve(ctx).map(|v| (key.clone(), v)))
@@ -99,6 +161,9 @@ impl fmt::Display for Object {
 
 impl From<BTreeMap<KeyString, Expr>> for Object {
     fn from(inner: BTreeMap<KeyString, Expr>) -> Self {
-        Self { inner }
+        Self {
+            inner,
+            constant: None,
+        }
     }
 }

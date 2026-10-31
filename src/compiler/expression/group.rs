@@ -18,6 +18,11 @@ impl Group {
             inner: Box::new(inner),
         }
     }
+
+    /// The grouped expression.
+    pub(crate) fn expr(&self) -> &Expr {
+        &self.inner
+    }
 }
 
 impl Expression for Group {
