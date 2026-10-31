@@ -97,14 +97,25 @@ fn literal_expr_value(expr: &Expr) -> Option<Value> {
     }
 }
 
-/// Recursively drop the caches of structurally literal descendant objects.
+/// Recursively drop the caches of structurally literal descendant objects,
+/// traversing through nested objects, arrays and groups.
 fn drop_expr_constant(expr: &mut Expr) {
-    if let Expr::Container(container) = expr
-        && let container::Variant::Object(object) = &mut container.variant
-    {
-        object.constant = None;
-        for expr in object.inner.values_mut() {
-            drop_expr_constant(expr);
+    if let Expr::Container(container) = expr {
+        match &mut container.variant {
+            container::Variant::Object(object) => {
+                object.constant = None;
+                for expr in object.inner.values_mut() {
+                    drop_expr_constant(expr);
+                }
+            }
+            container::Variant::Array(array) => {
+                for expr in array.iter_mut() {
+                    drop_expr_constant(expr);
+                }
+            }
+            container::Variant::Group(group) => drop_expr_constant(group.expr_mut()),
+            // Blocks never appear inside a structurally literal subtree.
+            container::Variant::Block(_) => {}
         }
     }
 }

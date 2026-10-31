@@ -23,6 +23,11 @@ impl Group {
     pub(crate) fn expr(&self) -> &Expr {
         &self.inner
     }
+
+    /// The grouped expression, mutably.
+    pub(crate) fn expr_mut(&mut self) -> &mut Expr {
+        &mut self.inner
+    }
 }
 
 impl Expression for Group {
