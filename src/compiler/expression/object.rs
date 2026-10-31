@@ -121,10 +121,12 @@ impl Expression for Object {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         if let Some(value) = &self.constant {
             // Preserve cooperative interruption: the uncached path checkpoints
-            // around every entry expression via `Expr::resolve`; the cached
-            // path resolves no entries, so checkpoint here explicitly before
-            // the (bounded, literal-only) clone.
-            ctx.checkpoint()?;
+            // once per entry expression via the `Expr::resolve` dispatcher.
+            // Issue a single checkpoint when there is at least one entry; an
+            // empty object resolved no entries and must not gain one.
+            if !self.inner.is_empty() {
+                ctx.checkpoint()?;
+            }
             return Ok(value.clone());
         }
 
