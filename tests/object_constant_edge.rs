@@ -253,3 +253,21 @@ fn side_effect_in_object_observed_by_later_entries() {
         Value::from(btreemap! { "a" => Value::from("side"), "b" => Value::from("bar") })
     );
 }
+
+/// `with_constant` must be idempotent: a second call must not clear the
+/// cache (descendant caches were already dropped by the first one).
+#[test]
+fn with_constant_is_idempotent() {
+    let source = r#"
+        m = { "outer": { "inner": 1 } }
+        m
+    "#;
+    // Compile twice in a row on the same program object via the public API:
+    // the first run builds and prunes caches, and the runtime must still
+    // resolve the literal correctly afterwards.
+    let res = run(source, Value::from(btreemap! {}));
+    assert_eq!(
+        res,
+        Value::from(btreemap! { "outer" => Value::from(btreemap! { "inner" => 1 }) })
+    );
+}

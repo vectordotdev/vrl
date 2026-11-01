@@ -40,9 +40,14 @@ impl Object {
 
     /// Compute and cache the value of this object if it is structurally
     /// literal (see the `constant` field). Callers must invoke this after the
-    /// object is fully built, before the program is executed.
+    /// object is fully built, before the program is executed. Calling this
+    /// more than once is a no-op: the second pass would find descendant
+    /// caches already dropped and clear the cache by mistake.
     #[must_use]
     pub fn with_constant(mut self) -> Self {
+        if self.constant.is_some() {
+            return self;
+        }
         let value = self.structural_literal_value();
         if value.is_some() {
             // The parent cache now holds a copy of every descendant's value;
