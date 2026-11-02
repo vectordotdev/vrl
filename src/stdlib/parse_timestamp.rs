@@ -124,7 +124,8 @@ impl Function for ParseTimestamp {
     fn parameters(&self) -> &'static [Parameter] {
         const PARAMETERS: &[Parameter] = &[
             Parameter::required("value", kind::BYTES | kind::TIMESTAMP, "The text of the timestamp."),
-            Parameter::required("format", kind::BYTES | kind::ARRAY, "The [strptime](https://docs.rs/chrono/latest/chrono/format/strftime/index.html#specifiers) format, or an array of formats tried in order until one matches."),
+            Parameter::required("format", kind::BYTES | kind::ARRAY, "The [strptime](https://docs.rs/chrono/latest/chrono/format/strftime/index.html#specifiers) format, or an array of formats tried in order until one matches.")
+                .with_element_kind(kind::BYTES),
             Parameter::optional("timezone", kind::BYTES, "The [TZ database](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones) format. By default, this function parses the timestamp by global [`timezone` option](/docs/reference/configuration//global-options#timezone).
 This argument overwrites the setting and is useful for parsing timestamps without a specified timezone, such as `16/10/2019 12:00:00`."),
         ];
@@ -334,4 +335,15 @@ mod tests {
             tz: TimeZone::default(),
         }
     ];
+
+    #[test]
+    fn compiler_rejects_non_string_formats() {
+        let fns = vec![Box::new(ParseTimestamp) as Box<dyn crate::compiler::Function>];
+
+        let src = r#"parse_timestamp!("2021-04-07T23:09:56Z", format: ["%+", "%d/%m/%Y"])"#;
+        assert!(crate::compiler::compile(src, &fns).is_ok());
+
+        let src = r#"parse_timestamp!("2021-04-07T23:09:56Z", format: [1])"#;
+        assert!(crate::compiler::compile(src, &fns).is_err());
+    }
 }
