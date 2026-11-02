@@ -1,5 +1,7 @@
 //! The same breaking-fragment schema used by Vector's changelog tooling.
 
+use pulldown_cmark::{Event, HeadingLevel, Parser, Tag};
+
 #[derive(Debug)]
 pub(super) struct BreakingSections {
     title: String,
@@ -10,8 +12,8 @@ pub(super) struct BreakingSections {
 
 impl BreakingSections {
     pub(super) fn parse(body: &str) -> Result<Self, String> {
-        const SUMMARY: &str = "\n## Summary\n";
-        const MIGRATION: &str = "\n## Migration\n";
+        const SUMMARY: &str = "## Summary";
+        const MIGRATION: &str = "## Migration";
 
         // Match Vector: normalize Windows line endings and allow an empty final section.
         let mut normalized = body.replace("\r\n", "\n");
@@ -29,22 +31,42 @@ impl BreakingSections {
         if body.lines().any(|line| line.starts_with("TODO ")) {
             return Err("replace TODO placeholder lines with real content".into());
         }
-        if after_title.matches(SUMMARY).count() != 1 {
+        let mut summaries = Vec::new();
+        let mut migrations = Vec::new();
+        for (event, range) in Parser::new(after_title).into_offset_iter() {
+            if !matches!(
+                event,
+                Event::Start(Tag::Heading {
+                    level: HeadingLevel::H2,
+                    ..
+                })
+            ) {
+                continue;
+            }
+            // Keep the existing literal section syntax, including the leading newline.
+            if range.start == 0 || after_title.as_bytes()[range.start - 1] != b'\n' {
+                continue;
+            }
+            match after_title[range.clone()].trim_end_matches('\n') {
+                SUMMARY => summaries.push(range),
+                MIGRATION => migrations.push(range),
+                _ => {}
+            }
+        }
+        let [summary_header] = summaries.as_slice() else {
             return Err("exactly one `## Summary` section is required".into());
-        }
-        if after_title.matches(MIGRATION).count() != 1 {
+        };
+        let [migration_header] = migrations.as_slice() else {
             return Err("exactly one `## Migration` section is required".into());
-        }
-        let summary_pos = after_title.find(SUMMARY).expect("checked above");
-        let migration_pos = after_title.find(MIGRATION).expect("checked above");
-        if summary_pos >= migration_pos {
+        };
+        if summary_header.start >= migration_header.start {
             return Err("`## Summary` must come before `## Migration`".into());
         }
-        if !after_title[..summary_pos].trim().is_empty() {
+        if !after_title[..summary_header.start].trim().is_empty() {
             return Err("move content between the title and `## Summary` into a section".into());
         }
-        let summary = after_title[summary_pos + SUMMARY.len()..migration_pos].trim();
-        if summary.is_empty() {
+        let summary = after_title[summary_header.end..migration_header.start].trim_matches('\n');
+        if summary.trim().is_empty() {
             return Err("`## Summary` must not be empty".into());
         }
         let anchor = anchor.map_or_else(|| slugify(title), str::to_string);
@@ -57,8 +79,8 @@ impl BreakingSections {
             title: title.to_string(),
             anchor,
             summary: summary.to_string(),
-            migration: after_title[migration_pos + MIGRATION.len()..]
-                .trim()
+            migration: after_title[migration_header.end..]
+                .trim_matches('\n')
                 .to_string(),
         })
     }
@@ -68,7 +90,7 @@ impl BreakingSections {
             "<a id=\"v{version}-{}\"></a> **{}**\n\n**Summary**\n\n{}\n\n**Migration**\n\n{}",
             self.anchor, self.title, self.summary, self.migration
         )
-        .trim_end()
+        .trim_end_matches('\n')
         .to_string()
     }
 }

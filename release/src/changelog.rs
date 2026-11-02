@@ -833,6 +833,60 @@ mod tests {
     }
 
     #[test]
+    fn breaking_sections_ignore_fenced_schema_markers() {
+        for fence in ["```", "~~~", "````"] {
+            let code = format!("{fence}vrl\n## Summary\n## Migration\n{fence}");
+            let content = format!(
+                "# Fenced comments\n\n## Summary\n\n{code}\n\n## Migration\n\n{code}\n\nauthors: alice\n"
+            );
+            for content in [content.clone(), content.replace('\n', "\r\n")] {
+                let dir = setup_test_repo(&[("comments.breaking.md", &content)]);
+                let section = Changelog::new(dir.path())
+                    .generate_section(
+                        &semver::Version::new(1, 0, 0),
+                        PullRequestMetadata::Optional,
+                    )
+                    .unwrap();
+                assert_eq!(
+                    section.matches("  ## Summary\n  ## Migration").count(),
+                    2,
+                    "{section}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn breaking_sections_preserve_indented_code() {
+        for indent in ["    ", "\t"] {
+            let summary = format!("{indent}.first = 1\n{indent}.second = 2  ");
+            let migration = format!("{indent}# Keep this as code\n{indent}.result = true  ");
+            let content = format!(
+                "# Indented examples\n\n## Summary\n\n{summary}\n\n## Migration\n\n{migration}\n\nauthors: alice\n"
+            );
+            let dir = setup_test_repo(&[("indented.breaking.md", &content)]);
+            let section = Changelog::new(dir.path())
+                .generate_section(
+                    &semver::Version::new(1, 0, 0),
+                    PullRequestMetadata::Optional,
+                )
+                .unwrap();
+            assert!(
+                section.contains(&format!(
+                    "  **Summary**\n\n  {indent}.first = 1\n  {indent}.second = 2  "
+                )),
+                "{section}"
+            );
+            assert!(
+                section.contains(&format!(
+                    "  **Migration**\n\n  {indent}# Keep this as code\n  {indent}.result = true  "
+                )),
+                "{section}"
+            );
+        }
+    }
+
+    #[test]
     fn breaking_schema_matches_vector() {
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("change.breaking.md");
@@ -846,6 +900,7 @@ mod tests {
         }
         for invalid in [
             minimal.replacen("# A change", "A change", 1),
+            minimal.replace("# A change\n\n## Summary", "# A change\n## Summary"),
             minimal.replace("# A change", "# "),
             minimal.replace("# A change", "# TODO title"),
             minimal.replace("# A change", "# A change {#Invalid}"),
@@ -854,6 +909,7 @@ mod tests {
             minimal.replace("## Summary", "## Summary\n\n## Summary"),
             minimal.replace("## Summary", "## Details"),
             minimal.replace("Changed behavior.", ""),
+            minimal.replace("Changed behavior.", "    \t "),
             minimal.replace("Changed behavior.", "TODO describe the change"),
             minimal.replace("## Migration\n", "## Migration\n\nTODO "),
             minimal.replace("## Migration", "## Summary"),
