@@ -15,10 +15,11 @@
     },
     {
       "name": "format",
-      "description": "The [strptime](https://docs.rs/chrono/latest/chrono/format/strftime/index.html#specifiers) format.",
+      "description": "The [strptime](https://docs.rs/chrono/latest/chrono/format/strftime/index.html#specifiers) format, or an array of formats tried in order until one matches.",
       "required": true,
       "type": [
-        "string"
+        "string",
+        "array"
       ]
     },
     {
@@ -36,7 +37,7 @@
     ]
   },
   "internal_failure_reasons": [
-    "`value` fails to parse using the provided `format`.",
+    "`value` fails to parse using the provided `format`, or using every format in the `format` array.",
     "`value` fails to parse using the provided `timezone`."
   ],
   "examples": [
@@ -44,6 +45,11 @@
       "title": "Parse timestamp",
       "source": "parse_timestamp!(\"10-Oct-2020 16:00+00:00\", format: \"%v %R %:z\")",
       "return": "t'2020-10-10T16:00:00Z'"
+    },
+    {
+      "title": "Parse timestamp with the first matching format",
+      "source": "parse_timestamp!(\"07/Apr/2021:23:09:56 +0000\", format: [\"%+\", \"%d/%b/%Y:%H:%M:%S %z\"])",
+      "return": "t'2021-04-07T23:09:56Z'"
     },
     {
       "title": "Parse timestamp with timezone",

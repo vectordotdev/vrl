@@ -22,7 +22,6 @@ fn parse_timestamp_bytes(
     timezone: Option<Value>,
     ctx: &Context,
 ) -> Resolved {
-    let format = format.try_bytes_utf8_lossy()?;
     let timezone = timezone
         .map(|tz| tz.try_bytes_utf8_lossy().map(std::borrow::Cow::into_owned))
         .transpose()?;
@@ -34,9 +33,27 @@ fn parse_timestamp_bytes(
         .transpose()?
         .unwrap_or(*ctx.timezone());
 
-    Conversion::timestamp(&format, timezone)
-        .convert(v)
-        .map_err(|e| e.to_string().into())
+    let Value::Array(formats) = format else {
+        let format = format.try_bytes_utf8_lossy()?;
+        return Conversion::timestamp(&format, timezone)
+            .convert(v)
+            .map_err(|e| e.to_string().into());
+    };
+
+    if formats.is_empty() {
+        return Err("format array must not be empty".into());
+    }
+    for format in formats {
+        let format = format.try_bytes_utf8_lossy()?;
+        if let Ok(timestamp) = Conversion::timestamp(&format, timezone).convert(v.clone()) {
+            return Ok(timestamp);
+        }
+    }
+    Err(format!(
+        "No matching timestamp format found for {:?}",
+        String::from_utf8_lossy(&v)
+    )
+    .into())
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -57,7 +74,7 @@ impl Function for ParseTimestamp {
 
     fn internal_failure_reasons(&self) -> &'static [&'static str] {
         &[
-            "`value` fails to parse using the provided `format`.",
+            "`value` fails to parse using the provided `format`, or using every format in the `format` array.",
             "`value` fails to parse using the provided `timezone`.",
         ]
     }
@@ -72,6 +89,11 @@ impl Function for ParseTimestamp {
                 title: "Parse timestamp",
                 source: r#"parse_timestamp!("10-Oct-2020 16:00+00:00", format: "%v %R %:z")"#,
                 result: Ok("t'2020-10-10T16:00:00Z'"),
+            },
+            example! {
+                title: "Parse timestamp with the first matching format",
+                source: r#"parse_timestamp!("07/Apr/2021:23:09:56 +0000", format: ["%+", "%d/%b/%Y:%H:%M:%S %z"])"#,
+                result: Ok("t'2021-04-07T23:09:56Z'"),
             },
             example! {
                 title: "Parse timestamp with timezone",
@@ -102,7 +124,7 @@ impl Function for ParseTimestamp {
     fn parameters(&self) -> &'static [Parameter] {
         const PARAMETERS: &[Parameter] = &[
             Parameter::required("value", kind::BYTES | kind::TIMESTAMP, "The text of the timestamp."),
-            Parameter::required("format", kind::BYTES, "The [strptime](https://docs.rs/chrono/latest/chrono/format/strftime/index.html#specifiers) format."),
+            Parameter::required("format", kind::BYTES | kind::ARRAY, "The [strptime](https://docs.rs/chrono/latest/chrono/format/strftime/index.html#specifiers) format, or an array of formats tried in order until one matches."),
             Parameter::optional("timezone", kind::BYTES, "The [TZ database](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones) format. By default, this function parses the timestamp by global [`timezone` option](/docs/reference/configuration//global-options#timezone).
 This argument overwrites the setting and is useful for parsing timestamps without a specified timezone, such as `16/10/2019 12:00:00`."),
         ];
@@ -225,6 +247,79 @@ mod tests {
                 timezone: "Europe/Pariss"
             ],
             want: Err("unable to parse timezone: Europe/Pariss"),
+            tdef: TypeDef::timestamp().fallible(),
+            tz: TimeZone::default(),
+        }
+
+        parse_text_with_format_array {
+            args: func_args![
+                value: "07/Apr/2021:23:09:56 +0000",
+                format: value!(["%+", "%d/%b/%Y:%H:%M:%S %z"])
+            ],
+            want: Ok(value!(
+                DateTime::parse_from_rfc2822("Wed, 07 Apr 2021 23:09:56 +0000")
+                    .unwrap()
+                    .with_timezone(&Utc)
+            )),
+            tdef: TypeDef::timestamp().fallible(),
+            tz: TimeZone::default(),
+        }
+
+        parse_text_with_format_array_uses_first_match {
+            args: func_args![
+                value: "01/02/2021:12:00:00",
+                format: value!(["%d/%m/%Y:%H:%M:%S", "%m/%d/%Y:%H:%M:%S"])
+            ],
+            want: Ok(value!(
+                DateTime::parse_from_rfc2822("Mon, 01 Feb 2021 12:00:00 +0000")
+                    .unwrap()
+                    .with_timezone(&Utc)
+            )),
+            tdef: TypeDef::timestamp().fallible(),
+            tz: TimeZone::Named(chrono_tz::UTC),
+        }
+
+        parse_text_with_format_array_and_timezone_args {
+            args: func_args![
+                value: "31/12/2019:12:00:00",
+                format: value!(["%+", "%d/%m/%Y:%H:%M:%S"]),
+                timezone: "Europe/Paris"
+            ],
+            want: Ok(value!(
+                DateTime::parse_from_rfc2822("Tue, 31 Dec 2019 11:00:00 +0000")
+                    .unwrap()
+                    .with_timezone(&Utc)
+            )),
+            tdef: TypeDef::timestamp().fallible(),
+            tz: TimeZone::default(),
+        }
+
+        err_format_array_no_match {
+            args: func_args![
+                value: "not a timestamp",
+                format: value!(["%+", "%d/%m/%Y:%H:%M:%S"])
+            ],
+            want: Err(r#"No matching timestamp format found for "not a timestamp""#),
+            tdef: TypeDef::timestamp().fallible(),
+            tz: TimeZone::default(),
+        }
+
+        err_format_array_empty {
+            args: func_args![
+                value: "16/10/2019:12:00:00",
+                format: value!([])
+            ],
+            want: Err("format array must not be empty"),
+            tdef: TypeDef::timestamp().fallible(),
+            tz: TimeZone::default(),
+        }
+
+        err_format_array_non_string {
+            args: func_args![
+                value: "16/10/2019:12:00:00",
+                format: value!([1])
+            ],
+            want: Err("expected string, got integer"),
             tdef: TypeDef::timestamp().fallible(),
             tz: TimeZone::default(),
         }
