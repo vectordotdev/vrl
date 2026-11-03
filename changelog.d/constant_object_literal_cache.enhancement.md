@@ -10,4 +10,4 @@ expressions; variables, queries, function calls, and blocks never qualify
 (see vectordotdev/vrl#1799 for why compile-time state is not a sound source
 of runtime values).
 
-authors: anton-yakushev
+authors: yackushevas
