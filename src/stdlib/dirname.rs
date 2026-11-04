@@ -27,7 +27,7 @@ impl Function for DirName {
         "dirname"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Returns the directory component of the given `path`. This is similar to the Unix `dirname` command. The directory component is the path with the final component removed."
     }
 

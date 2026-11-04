@@ -14,7 +14,7 @@ impl Function for Values {
         "values"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Returns the values from the object passed into the function."
     }
 

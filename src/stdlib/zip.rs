@@ -38,7 +38,7 @@ impl Function for Zip {
         "zip"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         indoc! {"
             Iterate over several arrays in parallel, producing a new array containing arrays of items from each source.
             The resulting array will be as long as the shortest input array, with all the remaining elements dropped.

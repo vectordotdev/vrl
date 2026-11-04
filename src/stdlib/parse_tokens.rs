@@ -22,7 +22,7 @@ impl Function for ParseTokens {
         "parse_tokens"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         indoc! {r#"
             Parses the `value` in token format. A token is considered to be one of the following:
 

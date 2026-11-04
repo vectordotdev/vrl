@@ -16,11 +16,7 @@ impl Function for ParseCbor {
         "parse_cbor"
     }
 
-    fn summary(&self) -> &'static str {
-        "parse a string to a CBOR type"
-    }
-
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Parses the `value` as [CBOR](https://cbor.io)."
     }
 

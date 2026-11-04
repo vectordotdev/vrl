@@ -14,7 +14,7 @@ impl Function for Keys {
         "keys"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Returns the keys from the object passed into the function."
     }
 

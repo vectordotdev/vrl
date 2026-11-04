@@ -1,3 +1,6 @@
+mod breaking;
+
+use breaking::BreakingSections;
 use std::collections::BTreeMap;
 use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
@@ -20,6 +23,7 @@ struct Fragment {
     fragment_type: String,
     content: String,
     authors: Vec<String>,
+    breaking: Option<BreakingSections>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -28,43 +32,24 @@ pub(super) enum PullRequestMetadata {
     Required,
 }
 
-/// Strip the trailing `authors: ...` line from fragment content, returning
-/// `(description, authors)`. Fails if the field is absent or empty.
+/// Parse Vector's final `authors: <name> [<name> ...]` line for every fragment type.
 fn parse_authors(raw: &str) -> Result<(String, Vec<String>), String> {
-    let lines: Vec<&str> = raw.lines().collect();
-
-    let last_idx = lines
-        .iter()
-        .rposition(|l| !l.trim().is_empty())
-        .ok_or("Fragment content is empty")?;
-
-    let last = lines[last_idx].trim();
-    let last_lower = last.to_ascii_lowercase();
-    let prefix_len = if last_lower.starts_with("authors:") {
-        "authors:".len()
-    } else if last_lower.starts_with("author:") {
-        "author:".len()
-    } else {
-        return Err(
-            "Fragment is missing required 'authors:' field on the last line. \
-                    Example: 'authors: github_username'"
-                .to_string(),
-        );
-    };
-    let authors_str = &last[prefix_len..];
-
-    let authors: Vec<String> = authors_str
-        .split(',')
-        .map(|s| s.trim().trim_start_matches('@').to_string())
-        .filter(|s| !s.is_empty())
-        .collect();
-
-    if authors.is_empty() {
-        return Err("'authors:' field must list at least one GitHub username".to_string());
+    let raw = raw.strip_suffix('\n').unwrap_or(raw);
+    let (body, last) = raw.rsplit_once('\n').unwrap_or(("", raw));
+    let names = last
+        .strip_prefix("authors: ")
+        .ok_or("last line must be 'authors: <name> [<name> ...]' (no trailing blank lines)")?;
+    if names.trim().is_empty() {
+        return Err("authors line must list at least one GitHub username".into());
     }
-
-    let description = lines[..last_idx].join("\n").trim_end().to_string();
-    Ok((description, authors))
+    if names.contains('@') || names.contains(',') {
+        return Err("authors must be space-delimited GitHub usernames without '@'".into());
+    }
+    let authors: Vec<String> = names.split_whitespace().map(str::to_string).collect();
+    if authors.iter().any(|name| name == "TODO_your_gh_handle") {
+        return Err("replace the authors placeholder with a real GitHub username".into());
+    }
+    Ok((body.to_string(), authors))
 }
 
 fn format_authors(authors: &[String]) -> String {
@@ -137,14 +122,25 @@ impl Changelog {
         let raw = std::fs::read_to_string(path)
             .map_err(|e| format!("Failed to read {}: {e}", path.display()))?;
 
-        let (content, authors) =
-            parse_authors(raw.trim()).map_err(|e| format!("{} (in {})", e, path.display()))?;
+        let is_breaking = fragment_type.eq_ignore_ascii_case("breaking");
+        let (content, authors) = parse_authors(&raw.replace("\r\n", "\n"))
+            .map_err(|e| format!("{e} (in {})", path.display()))?;
+        let content = if is_breaking {
+            content
+        } else {
+            content.trim().to_string()
+        };
+        let breaking = is_breaking
+            .then(|| BreakingSections::parse(&content))
+            .transpose()
+            .map_err(|e| format!("{e} (in {})", path.display()))?;
 
         Ok(Fragment {
             pr_numbers: Vec::new(),
             fragment_type: fragment_type.to_ascii_lowercase(),
             content,
             authors,
+            breaking,
         })
     }
 
@@ -156,6 +152,7 @@ impl Changelog {
             self.ensure_complete_history()?;
         }
 
+        self.validate_breaking_anchors()?;
         let mut grouped: BTreeMap<String, Vec<Fragment>> = BTreeMap::new();
 
         for entry in Self::read_fragment_dir(&self.changelog_dir())? {
@@ -218,6 +215,33 @@ impl Changelog {
         Ok(paths)
     }
 
+    fn validate_breaking_anchors(&self) -> Result<(), String> {
+        let mut seen = BTreeMap::new();
+        for path in Self::read_fragment_dir(&self.changelog_dir())? {
+            let filename = path
+                .file_name()
+                .and_then(|name| name.to_str())
+                .unwrap_or("");
+            if !validate_fragment_filename(filename)
+                .is_ok_and(|(_, kind)| kind.eq_ignore_ascii_case("breaking"))
+            {
+                continue;
+            }
+            let fragment = Self::parse_fragment(&path)?;
+            if let Some(sections) = fragment.breaking
+                && let Some(other) = seen.insert(sections.anchor.clone(), path.clone())
+            {
+                return Err(format!(
+                    "duplicate upgrade-guide anchor '#{}' in {} and {}",
+                    sections.anchor,
+                    other.display(),
+                    path.display()
+                ));
+            }
+        }
+        Ok(())
+    }
+
     /// Indent continuation lines of multiline content so they stay inside
     /// the markdown list item (2-space indent to align with `- ` prefix).
     fn indent_continuation(text: &str) -> String {
@@ -246,7 +270,6 @@ impl Changelog {
                 writeln!(section, "\n### {type_heading}\n")
                     .expect("writing to a String cannot fail");
                 for fragment in fragments {
-                    let indented = Self::indent_continuation(&fragment.content);
                     let authors = format_authors(&fragment.authors);
                     let attribution = if fragment.pr_numbers.is_empty() {
                         format!("Thanks to {authors} for contributing this change!")
@@ -259,6 +282,12 @@ impl Changelog {
                         };
                         format!("Thanks to {authors} for contributing {label} {pull_requests}!")
                     };
+                    let breaking_content = fragment
+                        .breaking
+                        .as_ref()
+                        .map(|breaking| breaking.render(version));
+                    let content = breaking_content.as_deref().unwrap_or(&fragment.content);
+                    let indented = Self::indent_continuation(content);
                     writeln!(section, "- {indented}\n\n  *{attribution}*")
                         .expect("writing to a String cannot fail");
                 }
@@ -313,24 +342,30 @@ impl Changelog {
         Ok(new_content)
     }
 
-    /// Validate changelog fragment filenames added on the current branch vs origin/main.
-    pub fn check_fragments(&self) -> Result<(), String> {
-        let output = std::process::Command::new("git")
-            .args([
+    fn changed_fragments(&self, filter: &str) -> Result<Vec<PathBuf>, String> {
+        let output = run_command(
+            "git",
+            [
                 "diff",
                 "--name-only",
-                "--diff-filter=A",
+                &format!("--diff-filter={filter}"),
                 "--merge-base",
                 "origin/main",
                 "--",
                 "changelog.d",
-            ])
-            .current_dir(&self.repo_root)
-            .output()
-            .map_err(|e| format!("Failed to run git diff: {e}"))?;
+            ],
+            &self.repo_root,
+        )?;
+        Ok(output
+            .lines()
+            .map(PathBuf::from)
+            .filter(|path| path.file_name().and_then(|name| name.to_str()) != Some("README.md"))
+            .collect())
+    }
 
-        let stdout = String::from_utf8_lossy(&output.stdout);
-        let filenames: Vec<&str> = stdout.lines().filter(|l| !l.is_empty()).collect();
+    /// Require a new fragment and validate every added, modified, or renamed fragment.
+    pub fn check_fragments(&self) -> Result<(), String> {
+        let filenames = self.changed_fragments("A")?;
 
         if filenames.is_empty() {
             return Err(indoc::indoc! {"
@@ -341,15 +376,11 @@ impl Changelog {
             .to_string());
         }
 
-        for path in &filenames {
-            let filename = Path::new(path)
+        for path in self.changed_fragments("AMR")? {
+            let filename = path
                 .file_name()
                 .and_then(|f| f.to_str())
-                .unwrap_or(path);
-
-            if filename == "README.md" {
-                continue;
-            }
+                .ok_or_else(|| format!("Invalid fragment path: {}", path.display()))?;
 
             println!("validating '{filename}'");
             validate_fragment_filename(filename)?;
@@ -357,6 +388,7 @@ impl Changelog {
             Self::parse_fragment(&full_path)?;
         }
 
+        self.validate_breaking_anchors()?;
         println!("changelog additions are valid.");
         Ok(())
     }
@@ -688,46 +720,38 @@ mod tests {
     #[test]
     fn parse_authors_single() {
         let (desc, authors) = parse_authors("Fixed a bug.\n\nauthors: alice").unwrap();
-        assert_eq!(desc, "Fixed a bug.");
+        assert_eq!(desc, "Fixed a bug.\n");
         assert_eq!(authors, vec!["alice"]);
     }
 
     #[test]
     fn parse_authors_multiple() {
-        let (desc, authors) = parse_authors("A feature.\n\nauthors: alice, bob").unwrap();
-        assert_eq!(desc, "A feature.");
-        assert_eq!(authors, vec!["alice", "bob"]);
+        for suffix in ["", "\n"] {
+            let (desc, authors) =
+                parse_authors(&format!("A feature.\n\nauthors: alice bob{suffix}")).unwrap();
+            assert_eq!(desc, "A feature.\n");
+            assert_eq!(authors, vec!["alice", "bob"]);
+        }
     }
 
     #[test]
-    fn parse_authors_singular_accepted() {
-        let (desc, authors) = parse_authors("Fixed a bug.\n\nauthor: alice").unwrap();
-        assert_eq!(desc, "Fixed a bug.");
-        assert_eq!(authors, vec!["alice"]);
-    }
-
-    #[test]
-    fn parse_authors_at_prefix_stripped() {
-        let (_, authors) = parse_authors("Fixed a bug.\n\nauthors: @alice, @bob").unwrap();
-        assert_eq!(authors, vec!["alice", "bob"]);
-    }
-
-    #[test]
-    fn parse_authors_capital_key_accepted() {
-        let (desc, authors) = parse_authors("Fixed a bug.\n\nAuthors: alice").unwrap();
-        assert_eq!(desc, "Fixed a bug.");
-        assert_eq!(authors, vec!["alice"]);
-    }
-
-    #[test]
-    fn parse_authors_missing() {
-        let err = parse_authors("Fixed a bug.").unwrap_err();
-        assert!(err.contains("missing required 'authors:'"), "{err}");
+    fn parse_authors_rejects_non_vector_formats() {
+        for invalid in [
+            "Fixed a bug.",
+            "Fixed a bug.\n\nauthor: alice",
+            "Fixed a bug.\n\nAuthors: alice",
+            "Fixed a bug.\n\nauthors: @alice @bob",
+            "Fixed a bug.\n\nauthors: alice, bob",
+            "Fixed a bug.\n\nauthors: TODO_your_gh_handle",
+            "Fixed a bug.\n\nauthors: alice\n\n",
+        ] {
+            assert!(parse_authors(invalid).is_err(), "accepted {invalid:?}");
+        }
     }
 
     #[test]
     fn parse_authors_empty_value() {
-        let err = parse_authors("Fixed a bug.\n\nauthors:").unwrap_err();
+        let err = parse_authors("Fixed a bug.\n\nauthors: ").unwrap_err();
         assert!(err.contains("at least one"), "{err}");
     }
 
@@ -753,7 +777,200 @@ mod tests {
         fs::write(&path, "Fixed a bug.\n").unwrap();
 
         let err = Changelog::parse_fragment(&path).unwrap_err();
-        assert!(err.contains("missing required 'authors:'"), "{err}");
+        assert!(err.contains("authors:"), "{err}");
+    }
+
+    const BREAKING_FRAGMENT: &str = indoc! {r#"
+        # Fallible timestamp conversion {#timestamp-conversion}
+
+        ## Summary
+
+        Nanosecond conversion can fail.
+        Handle the error even when the timestamp usually fits.
+
+        ## Migration
+
+        Handle the error:
+
+        #### Old
+
+        ```vrl
+        # Keep this VRL comment unchanged.
+        to_unix_timestamp(ts, unit: "nanoseconds")
+        ```
+
+        #### New
+
+        ```vrl
+        to_unix_timestamp!(ts, unit: "nanoseconds")
+        ```
+
+        authors: alice bob
+    "#};
+
+    #[test]
+    fn breaking_fragment_preserves_sections_examples_and_credit() {
+        let dir = setup_test_repo(&[("timestamp.breaking.md", BREAKING_FRAGMENT)]);
+        let section = Changelog::new(dir.path())
+            .generate_section(
+                &semver::Version::new(1, 0, 0),
+                PullRequestMetadata::Optional,
+            )
+            .unwrap();
+        for expected in [
+            "- <a id=\"v1.0.0-timestamp-conversion\"></a> **Fallible timestamp conversion**",
+            "  **Summary**\n\n  Nanosecond conversion can fail.\n  Handle the error even when the timestamp usually fits.",
+            "  **Migration**\n\n  Handle the error:",
+            "  #### Old\n\n  ```vrl\n  # Keep this VRL comment unchanged.",
+            "  #### New\n\n  ```vrl\n  to_unix_timestamp!(ts, unit: \"nanoseconds\")",
+            "Thanks to [alice](https://github.com/alice), [bob](https://github.com/bob)",
+        ] {
+            assert!(
+                section.contains(expected),
+                "missing {expected:?} in {section}"
+            );
+        }
+    }
+
+    #[test]
+    fn breaking_sections_ignore_fenced_schema_markers() {
+        for fence in ["```", "~~~", "````"] {
+            let code = format!("{fence}vrl\n## Summary\n## Migration\n{fence}");
+            let content = format!(
+                "# Fenced comments\n\n## Summary\n\n{code}\n\n## Migration\n\n{code}\n\nauthors: alice\n"
+            );
+            for content in [content.clone(), content.replace('\n', "\r\n")] {
+                let dir = setup_test_repo(&[("comments.breaking.md", &content)]);
+                let section = Changelog::new(dir.path())
+                    .generate_section(
+                        &semver::Version::new(1, 0, 0),
+                        PullRequestMetadata::Optional,
+                    )
+                    .unwrap();
+                assert_eq!(
+                    section.matches("  ## Summary\n  ## Migration").count(),
+                    2,
+                    "{section}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn breaking_sections_preserve_indented_code() {
+        for indent in ["    ", "\t"] {
+            let summary = format!("{indent}.first = 1\n{indent}.second = 2  ");
+            let migration = format!("{indent}# Keep this as code\n{indent}.result = true  ");
+            let content = format!(
+                "# Indented examples\n\n## Summary\n\n{summary}\n\n## Migration\n\n{migration}\n\nauthors: alice\n"
+            );
+            let dir = setup_test_repo(&[("indented.breaking.md", &content)]);
+            let section = Changelog::new(dir.path())
+                .generate_section(
+                    &semver::Version::new(1, 0, 0),
+                    PullRequestMetadata::Optional,
+                )
+                .unwrap();
+            assert!(
+                section.contains(&format!(
+                    "  **Summary**\n\n  {indent}.first = 1\n  {indent}.second = 2  "
+                )),
+                "{section}"
+            );
+            assert!(
+                section.contains(&format!(
+                    "  **Migration**\n\n  {indent}# Keep this as code\n  {indent}.result = true  "
+                )),
+                "{section}"
+            );
+        }
+    }
+
+    #[test]
+    fn breaking_schema_matches_vector() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("change.breaking.md");
+        let minimal =
+            "# A change\n\n## Summary\n\nChanged behavior.\n\n## Migration\n\nauthors: alice\n";
+        // No examples, an empty Migration, a derived anchor, and CRLF are valid in Vector.
+        for valid in [minimal.to_string(), minimal.replace('\n', "\r\n")] {
+            fs::write(&path, valid).unwrap();
+            let fragment = Changelog::parse_fragment(&path).unwrap();
+            assert_eq!(fragment.breaking.unwrap().anchor, "a-change");
+        }
+        for invalid in [
+            minimal.replacen("# A change", "A change", 1),
+            minimal.replace("# A change\n\n## Summary", "# A change\n## Summary"),
+            minimal.replace("# A change", "# "),
+            minimal.replace("# A change", "# TODO title"),
+            minimal.replace("# A change", "# A change {#Invalid}"),
+            minimal.replace("# A change", "# Upgrade guide"),
+            minimal.replace("## Summary", "Prose before the summary.\n\n## Summary"),
+            minimal.replace("## Summary", "## Summary\n\n## Summary"),
+            minimal.replace("## Summary", "## Details"),
+            minimal.replace("Changed behavior.", ""),
+            minimal.replace("Changed behavior.", "    \t "),
+            minimal.replace("Changed behavior.", "TODO describe the change"),
+            minimal.replace("## Migration\n", "## Migration\n\nTODO "),
+            minimal.replace("## Migration", "## Summary"),
+            minimal
+                .replace("## Summary", "## Swap")
+                .replace("## Migration", "## Summary")
+                .replace("## Swap", "## Migration"),
+            minimal.replace("authors: alice", "authors: @alice"),
+            minimal.replace("authors: alice", "authors: alice, bob"),
+            minimal.replace("authors: alice", "authors: TODO_your_gh_handle"),
+            minimal.replace("authors: alice", "Authors: alice"),
+            format!("{minimal}\n"),
+            format!("\n{minimal}"),
+        ] {
+            fs::write(&path, &invalid).unwrap();
+            assert!(
+                Changelog::parse_fragment(&path).is_err(),
+                "accepted {invalid:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn breaking_anchors_must_be_unique() {
+        let dir = setup_test_repo(&[
+            ("first.breaking.md", BREAKING_FRAGMENT),
+            ("second.breaking.md", BREAKING_FRAGMENT),
+        ]);
+        let error = Changelog::new(dir.path())
+            .generate_section(
+                &semver::Version::new(1, 0, 0),
+                PullRequestMetadata::Optional,
+            )
+            .unwrap_err();
+        assert!(
+            error.contains("duplicate upgrade-guide anchor '#timestamp-conversion'"),
+            "{error}"
+        );
+    }
+
+    #[test]
+    fn every_fragment_type_uses_vector_authors() {
+        let dir = tempfile::tempdir().unwrap();
+        for (kind, _) in FRAGMENT_TYPES {
+            let path = dir.path().join(format!("change.{kind}.md"));
+            let content = if *kind == "breaking" {
+                BREAKING_FRAGMENT
+            } else {
+                "A change.\n\nauthors: alice bob\n"
+            };
+            for valid in [content.to_string(), content.replace('\n', "\r\n")] {
+                fs::write(&path, valid).unwrap();
+                let fragment = Changelog::parse_fragment(&path).unwrap();
+                assert_eq!(fragment.authors, vec!["alice", "bob"], "{kind}");
+            }
+            fs::write(&path, content.replace("alice bob", "alice, bob")).unwrap();
+            assert!(
+                Changelog::parse_fragment(&path).is_err(),
+                "accepted commas in {kind}"
+            );
+        }
     }
 
     // --- collect_fragments ---
@@ -861,6 +1078,30 @@ mod tests {
         assert!(err.contains("authors"), "{err}");
     }
 
+    #[test]
+    fn check_fragments_validates_modified_breaking_fragments() {
+        let dir = setup_git_check_repo(&[("timestamp.breaking.md", BREAKING_FRAGMENT)]);
+        let repo = dir.path();
+        run_git(repo, &["update-ref", "refs/remotes/origin/main", "HEAD"]);
+        fs::write(
+            repo.join("changelog.d/new.fix.md"),
+            "A fix.\n\nauthors: alice\n",
+        )
+        .unwrap();
+        fs::write(
+            repo.join("changelog.d/timestamp.breaking.md"),
+            "Unstructured change.\n\nauthors: alice\n",
+        )
+        .unwrap();
+        run_git(repo, &["add", "-A"]);
+        run_git(
+            repo,
+            &["commit", "-m", "modify breaking fragment and add fix"],
+        );
+        let error = Changelog::new(repo).check_fragments().unwrap_err();
+        assert!(error.contains("H1 title"), "{error}");
+    }
+
     // --- render_section ---
 
     #[test]
@@ -873,6 +1114,7 @@ mod tests {
                 fragment_type: "fix".to_string(),
                 content: "Fixed a bug".to_string(),
                 authors: vec!["alice".to_string()],
+                breaking: None,
             }],
         );
         grouped.insert(
@@ -880,8 +1122,9 @@ mod tests {
             vec![Fragment {
                 pr_numbers: vec![10],
                 fragment_type: "breaking".to_string(),
-                content: "Removed old API".to_string(),
+                content: String::new(),
                 authors: vec!["bob".to_string()],
+                breaking: Some(BreakingSections::parse("# Removed old API\n\n## Summary\n\nOld API removed.\n\n## Migration\n\nUse the new API.").unwrap()),
             }],
         );
 
@@ -903,6 +1146,7 @@ mod tests {
                 fragment_type: "fix".to_string(),
                 content: "A fix".to_string(),
                 authors: vec!["alice".to_string()],
+                breaking: None,
             }],
         );
 
@@ -924,6 +1168,7 @@ mod tests {
                 fragment_type: "feature".to_string(),
                 content: "Added something cool".to_string(),
                 authors: vec!["alice".to_string()],
+                breaking: None,
             }],
         );
 
@@ -952,6 +1197,7 @@ mod tests {
                 fragment_type: "fix".to_string(),
                 content: "A fix".to_string(),
                 authors: vec!["alice".to_string(), "bob".to_string()],
+                breaking: None,
             }],
         );
 
@@ -973,6 +1219,7 @@ mod tests {
                 fragment_type: "fix".to_string(),
                 content: "An unmerged fix".to_string(),
                 authors: vec!["alice".to_string()],
+                breaking: None,
             }],
         );
 
@@ -991,13 +1238,13 @@ mod tests {
     fn multiline_fragment_indents_continuation() {
         let mut grouped = BTreeMap::new();
         grouped.insert(
-            "breaking".to_string(),
+            "enhancement".to_string(),
             vec![Fragment {
                 pr_numbers: vec![99],
-                fragment_type: "breaking".to_string(),
-                content: "Removed the old API.\n\nMigrate by changing `foo()` to `bar()`."
-                    .to_string(),
+                fragment_type: "enhancement".to_string(),
+                content: "Improved the API.\n\nUse `bar()` to enable the new behavior.".to_string(),
                 authors: vec!["alice".to_string()],
+                breaking: None,
             }],
         );
 
@@ -1007,11 +1254,11 @@ mod tests {
         let expected = indoc! {"
             ## [2.0.0 (2026-04-17)](https://github.com/vectordotdev/vrl/releases/tag/v2.0.0)
 
-            ### Breaking Changes & Upgrade Guide
+            ### Enhancements
 
-            - Removed the old API.
+            - Improved the API.
 
-              Migrate by changing `foo()` to `bar()`.
+              Use `bar()` to enable the new behavior.
 
               *Thanks to [alice](https://github.com/alice) for contributing PR [#99](https://github.com/vectordotdev/vrl/pull/99)!*
         "};

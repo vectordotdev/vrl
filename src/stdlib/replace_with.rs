@@ -126,7 +126,7 @@ impl Function for ReplaceWith {
         "replace_with"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         indoc! {"
             Replaces all matching instances of `pattern` using a closure.
 

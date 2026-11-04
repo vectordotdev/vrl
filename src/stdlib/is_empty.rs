@@ -27,7 +27,7 @@ impl Function for IsEmpty {
         "is_empty"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Check if the object, array, or string has a length of `0`."
     }
 

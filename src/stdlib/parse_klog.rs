@@ -100,7 +100,7 @@ impl Function for ParseKlog {
         "parse_klog"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Parses the `value` using the [klog](https://github.com/kubernetes/klog) format used by Kubernetes components."
     }
 

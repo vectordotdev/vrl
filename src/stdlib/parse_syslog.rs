@@ -26,7 +26,7 @@ impl Function for ParseSyslog {
         "parse_syslog"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Parses the `value` in [Syslog](https://en.wikipedia.org/wiki/Syslog) format."
     }
 

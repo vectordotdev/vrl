@@ -8,7 +8,7 @@ impl Function for Exists {
         "exists"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         indoc! {"
             Checks whether the `path` exists for the target.
 

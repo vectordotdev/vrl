@@ -1,6 +1,6 @@
 [package]
 name = "vrl"
-version = "0.37.0"
+version = "0.38.0"
 authors = ["Vector Contributors <vector@datadoghq.com>"]
 edition = "2024"
 license = "MPL-2.0"
@@ -78,7 +78,7 @@ enable_env_functions = []
 enable_system_functions = ["dep:relative-path"]
 
 # Enables network I/O functions (e.g. `http_request`, `dns_lookup`, `reverse_dns`). Not supported on wasm32.
-enable_network_functions = ["dep:reqwest", "dep:reqwest-middleware", "dep:reqwest-retry"]
+enable_network_functions = ["dep:reqwest", "dep:reqwest-middleware", "dep:reqwest-retry", "dep:rustls"]
 
 # Enables cryptographic functions: hashing (MD5, SHA, xxHash, etc.), encryption (AES, ChaCha20, etc.), and MACs.
 enable_crypto_functions = [
@@ -223,7 +223,7 @@ quoted_printable = { version = "0.5", optional = true }
 psl = { version = "2", optional = true }
 psl-types = { version = "2", optional = true }
 publicsuffix = { version = "2", optional = true }
-rand = { version = "0.9.3", optional = true }
+rand = { version = "0.10", optional = true }
 regex = { version = "1", default-features = false, optional = true, features = ["std", "perf", "unicode"] }
 relative-path = { version = "2.0.1", optional = true }
 roxmltree = { version = "0.21", optional = true }
@@ -259,13 +259,14 @@ xxhash-rust = { version = "0.8", optional = true, features = [
 ] }
 community-id = { version = "0.2", optional = true }
 
-zstd = { version = "0.13", default-features = false, features = ["wasm"], optional = true }
+zstd = { version = "0.14.3", default-features = false, features = ["wasm"], optional = true }
 
 # Cryptography
 aes = { version = "0.9", optional = true }
-aes-siv = { version = "0.7.0", optional = true }
+# VRL supplies keys and IVs, so these ciphers do not need their random-generation features.
+aes-siv = { version = "0.7.0", default-features = false, features = ["alloc"], optional = true }
 chacha20poly1305 = { version = "0.11", optional = true }
-crypto_secretbox = { version = "0.1", features = ["salsa20"], optional = true }
+crypto_secretbox = { version = "0.1", default-features = false, features = ["alloc", "salsa20"], optional = true }
 ipcrypt-rs = { version = "0.9.4", optional = true, default-features = false }
 
 # Cryptography - Block Modes
@@ -275,8 +276,8 @@ cfb-mode = { version = "0.9", optional = true }
 ofb = { version = "0.7", optional = true }
 
 # Protobuf support.
-prost = { version = "0.13", default-features = false, optional = true, features = ["std"] }
-prost-reflect = { version = "0.14", default-features = false, optional = true }
+prost = { version = "0.14", default-features = false, optional = true, features = ["std"] }
+prost-reflect = { version = "0.16", default-features = false, optional = true }
 unicode-segmentation = "1.12.0"
 lz4_flex = "0.13.0"
 nom-language = { version = "0.1.0", default-features = false }
@@ -284,9 +285,11 @@ nom-language = { version = "0.1.0", default-features = false }
 # Dependencies used for non-WASM
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 # HTTP support (optional, gated behind enable_network_functions).
-reqwest = { version = "0.12", default-features = false, features = ["http2", "rustls-tls-native-roots"], optional = true }
-reqwest-middleware = { version = "0.4", default-features = false, optional = true }
-reqwest-retry = { version = "0.8", default-features = false, optional = true }
+reqwest = { version = "0.13", default-features = false, features = ["http2", "rustls-no-provider"], optional = true }
+# Use ring so VRL does not add a second rustls crypto provider to downstream builds.
+rustls = { version = "0.23", default-features = false, features = ["ring", "std"], optional = true }
+reqwest-middleware = { version = "0.5.2", default-features = false, optional = true }
+reqwest-retry = { version = "0.9.1", default-features = false, optional = true }
 dns-lookup = { version = "3", optional = true }
 domain = { version = "0.12.3", optional = true, features = ["resolv-sync", "serde"] }
 hostname = { version = "0.4", optional = true }
@@ -298,8 +301,6 @@ jsonschema = { version = "0.38.1", default-features = false }
 
 # Dependencies used for WASM
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-getrandom02 = { package = "getrandom", version = "0.2", features = ["js"] }
-getrandom03 = { package = "getrandom", version = "0.3", features = ["wasm_js"] }
 getrandom = { package = "getrandom", version = "0.4", features = ["wasm_js"] }
 uuid = { version = "1", features = ["v4", "v7", "js"], optional = true }
 

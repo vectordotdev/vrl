@@ -104,7 +104,7 @@ impl Function for ParseKeyValue {
         "parse_key_value"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         indoc! {r#"
             Parses the `value` in key-value format. Also known as [logfmt](https://brandur.org/logfmt).
 

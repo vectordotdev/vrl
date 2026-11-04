@@ -37,7 +37,7 @@ impl Function for ToFloat {
         "to_float"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Coerces the `value` into a float."
     }
 

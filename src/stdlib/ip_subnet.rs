@@ -42,7 +42,7 @@ impl Function for IpSubnet {
         "ip_subnet"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         indoc! {"
             Extracts the subnet address from the `ip` using the supplied `subnet`.
         "}

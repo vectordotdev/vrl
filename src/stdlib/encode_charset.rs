@@ -32,11 +32,7 @@ impl Function for EncodeCharset {
         ]
     }
 
-    fn summary(&self) -> &'static str {
-        "Encode UTF-8 to non UTF-8 charset"
-    }
-
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         indoc! {"
             Encodes the `value` (a UTF8 string) to a non-UTF8 string using the specified
             [character set](https://encoding.spec.whatwg.org/#names-and-labels).

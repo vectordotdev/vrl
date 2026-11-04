@@ -1,44 +1,33 @@
 # VRL Release Tool
 
-A Rust binary that handles the full VRL release process.
+Prepares the files for a VRL release. The release workflows run it.
 
-## Usage
+## How to release
 
-### Release (default)
+1. Run [Prepare release](https://github.com/vectordotdev/vrl/actions/workflows/release_prepare.yml)
+   on `main`. Set `version` to `minor` (default), `major`, `patch`, or an exact version such as
+   `1.2.3`.
+2. Review, approve, and merge the `chore(releasing): prepare vX.Y.Z` PR. To change the
+   changelog, push edits to the PR branch.
+3. After the merge, the `vX.Y.Z` tag is pushed and the crate is published to crates.io. Confirm
+   the [tag](https://github.com/vectordotdev/vrl/tags) and the
+   [crate](https://crates.io/crates/vrl).
+
+If the merge queue rejects the release PR because of remaining changelog fragments, a different
+PR merged after Prepare release ran. Close the release PR, delete its branch, and run Prepare
+release again.
+
+## Local usage
 
 ```shell
-# Bump minor version (default), generate changelog, publish, tag, create PR
-cargo run -p release
-
-# Bump a specific component
-cargo run -p release -- major
-cargo run -p release -- patch
-
-# Exact version
-cargo run -p release -- 1.2.3
-
-# Dry run (preview without changes)
+# Preview the changelog without changes
 cargo run -p release -- --dry-run
 
-# Link a GitHub issue
-cargo run -p release -- --issue https://github.com/vectordotdev/vrl/issues/123
-```
+# Bump the version and generate the changelog (minor by default)
+cargo run -p release -- [major|minor|patch|X.Y.Z]
 
-The release flow:
-1. Resolves and validates the version (not already on crates.io)
-2. Creates a release branch
-3. Bumps version in `Cargo.toml`
-4. Generates changelog from `changelog.d/` fragments, inferring contributor PRs from
-   commit titles
-5. Pauses for you to review/edit `CHANGELOG.md`
-6. Publishes to crates.io
-7. Tags and pushes
-8. Creates a PR to merge the release into main
-
-### Check Changelog Fragments
-
-```shell
+# Validate changelog fragment filenames
 cargo run -p release -- check-changelog
 ```
 
-Validates that changelog fragment filenames follow the `<description>.<type>.md` convention.
+The tool does not commit, tag, push, or publish.

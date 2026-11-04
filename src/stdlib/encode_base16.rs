@@ -13,7 +13,7 @@ impl Function for EncodeBase16 {
         "encode_base16"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Encodes the `value` to [Base16](https://en.wikipedia.org/wiki/Hexadecimal)."
     }
 

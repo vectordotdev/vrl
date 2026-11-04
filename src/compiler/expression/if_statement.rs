@@ -4,7 +4,7 @@ use crate::value::Value;
 
 use crate::compiler::state::{TypeInfo, TypeState};
 use crate::compiler::{
-    Context, Expression,
+    Context, Expression, ExpressionError,
     expression::{Block, Predicate, Resolved},
     value::VrlValueConvert,
 };
@@ -26,6 +26,18 @@ impl Expression for IfStatement {
             self.else_block
                 .as_ref()
                 .map_or(Ok(Value::Null), |block| block.resolve(ctx))
+        }
+    }
+
+    fn resolve_unused(&self, ctx: &mut Context) -> Result<(), ExpressionError> {
+        let predicate = self.predicate.resolve(ctx)?.try_boolean()?;
+
+        if predicate {
+            self.if_block.resolve_unused(ctx)
+        } else {
+            self.else_block
+                .as_ref()
+                .map_or(Ok(()), |block| block.resolve_unused(ctx))
         }
     }
 

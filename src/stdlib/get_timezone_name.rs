@@ -25,7 +25,7 @@ impl Function for GetTimezoneName {
         "get_timezone_name"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         indoc! {r#"
             Returns the name of the timezone in the Vector configuration (see
             [global configuration options](/docs/reference/configuration/global-options)).

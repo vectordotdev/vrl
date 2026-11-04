@@ -68,7 +68,7 @@ impl Function for Replace {
         "replace"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         indoc! {"
             Replaces all matching instances of `pattern` in `value`.
 

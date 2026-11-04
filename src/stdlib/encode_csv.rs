@@ -58,7 +58,7 @@ impl Function for EncodeCsv {
         "encode_csv"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Encodes the `value` to a single CSV formatted row."
     }
 

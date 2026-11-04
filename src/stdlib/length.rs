@@ -25,7 +25,7 @@ impl Function for Length {
         "length"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         indoc! {"
             Returns the length of the `value`.
 

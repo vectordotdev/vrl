@@ -23,7 +23,7 @@ impl Function for ToString {
         "to_string"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Coerces the `value` into a string."
     }
 

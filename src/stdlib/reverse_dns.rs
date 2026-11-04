@@ -46,7 +46,7 @@ impl Function for ReverseDns {
         "reverse_dns"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Performs a reverse DNS lookup on the provided IP address to retrieve the associated hostname."
     }
 

@@ -27,7 +27,7 @@ impl Function for Chunks {
         "chunks"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Chunks `value` into slices of length `chunk_size` bytes."
     }
 

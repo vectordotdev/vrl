@@ -20,7 +20,7 @@ impl Function for EncodeSnappy {
         "encode_snappy"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Encodes the `value` to Snappy."
     }
 

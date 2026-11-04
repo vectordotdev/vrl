@@ -13,7 +13,7 @@ impl Function for TallyValue {
         "tally_value"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Counts the number of times a specific value appears in the provided array."
     }
 

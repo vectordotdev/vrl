@@ -23,7 +23,7 @@ impl Function for Get {
         "get"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         indoc! {"
             Dynamically get the value of a given path.
 

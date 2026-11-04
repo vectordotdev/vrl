@@ -41,7 +41,7 @@ impl Function for MatchArray {
         "match_array"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Determines whether the elements in the `value` array matches the `pattern`. By default, it checks that at least one element matches, but can be set to determine if all the elements match."
     }
 

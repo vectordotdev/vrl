@@ -48,7 +48,7 @@ impl Function for MapValues {
         "map_values"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         indoc! {"
             Map the values within a collection.
 

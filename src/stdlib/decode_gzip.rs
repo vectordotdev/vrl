@@ -21,7 +21,7 @@ impl Function for DecodeGzip {
         "decode_gzip"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Decodes the `value` (a [Gzip](https://www.gzip.org/) string) into its original string."
     }
 

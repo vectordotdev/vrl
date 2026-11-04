@@ -18,7 +18,7 @@ impl Function for IpNtoa {
         "ip_ntoa"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         indoc! {"
             Converts numeric representation of IPv4 address in network-order bytes
             to numbers-and-dots notation.

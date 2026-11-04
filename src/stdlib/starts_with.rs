@@ -89,7 +89,7 @@ impl Function for StartsWith {
         "starts_with"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Determines whether `value` begins with `substring`."
     }
 

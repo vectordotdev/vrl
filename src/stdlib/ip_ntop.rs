@@ -25,7 +25,7 @@ impl Function for IpNtop {
         "ip_ntop"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         indoc! {"
             Converts IPv4 and IPv6 addresses from binary to text form.
 

@@ -41,7 +41,7 @@ impl Function for ToSyslogFacility {
         "to_syslog_facility"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         r#"Converts the `value`, a Syslog [facility code](https://en.wikipedia.org/wiki/Syslog#Facility), into its corresponding Syslog keyword. For example, `0` into `"kern"`, `1` into `"user"`, etc."#
     }
 

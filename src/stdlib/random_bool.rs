@@ -16,7 +16,7 @@ impl Function for RandomBool {
         "random_bool"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Returns a random boolean."
     }
 

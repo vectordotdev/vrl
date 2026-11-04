@@ -74,7 +74,7 @@ impl Function for Slice {
         "slice"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         indoc! {"
             Returns a slice of `value` between the `start` and `end` positions.
 

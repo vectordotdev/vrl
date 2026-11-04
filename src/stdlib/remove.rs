@@ -47,7 +47,7 @@ impl Function for Remove {
         "remove"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         indoc! {"
             Dynamically remove the value for a given path.
 

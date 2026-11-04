@@ -1,5 +1,5 @@
 use crate::compiler::prelude::*;
-use rand::Rng;
+use rand::RngExt;
 use std::ops::Range;
 
 const INVALID_RANGE_ERR: &str = "max must be greater than min";
@@ -36,7 +36,7 @@ impl Function for RandomFloat {
         "random_float"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Returns a random float between [min, max)."
     }
 

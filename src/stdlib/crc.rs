@@ -936,7 +936,7 @@ impl Function for Crc {
         "crc"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         indoc! {
             "Calculates a CRC of the `value`.The CRC `algorithm` used can be optionally specified.
 

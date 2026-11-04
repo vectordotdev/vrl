@@ -47,7 +47,7 @@ impl Function for Filter {
         "filter"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         indoc! {"
             Filter elements from a collection.
 

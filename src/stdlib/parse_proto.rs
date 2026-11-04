@@ -38,11 +38,7 @@ impl Function for ParseProto {
         "parse_proto"
     }
 
-    fn summary(&self) -> &'static str {
-        "parse a string to a protobuf based type"
-    }
-
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Parses the `value` as a protocol buffer payload."
     }
 

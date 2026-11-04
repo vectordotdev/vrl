@@ -79,7 +79,7 @@ impl Function for Haversine {
         "haversine"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Calculates [haversine](https://en.wikipedia.org/wiki/Haversine_formula) distance and bearing between two points."
     }
 

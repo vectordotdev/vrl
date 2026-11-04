@@ -131,11 +131,7 @@ impl Function for ParseJson {
         "parse_json"
     }
 
-    fn summary(&self) -> &'static str {
-        "parse a string to a JSON type"
-    }
-
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         indoc! {"
             Parses the provided `value` as JSON.
 
@@ -372,7 +368,7 @@ mod tests {
 
         invalid_utf8_json_lossy_arg_false {
             args: func_args![ value: Bytes::from_static(&[0x22,0xf5,0x22]), lossy: false],
-            want: Err("unable to parse json: invalid unicode code point at line 1 column 3"),
+            want: Err("unable to parse json: invalid unicode code point at line 1 column 2"),
             tdef: json_type_def(),
         }
 

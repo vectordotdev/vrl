@@ -39,7 +39,7 @@ impl Function for Round {
         "round"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Rounds the `value` to the specified `precision`."
     }
 

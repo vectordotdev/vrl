@@ -61,7 +61,7 @@ impl Function for Unnest {
         "unnest"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         indoc! {"
             Unnest an array field from an object to create an array of objects using that field; keeping all other fields.
 

@@ -65,7 +65,7 @@ impl Function for Sieve {
         "sieve"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         indoc! {"
             Keeps only matches of `pattern` in `value`.
 

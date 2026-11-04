@@ -66,7 +66,7 @@ impl Function for IpCidrContains {
         "ip_cidr_contains"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Determines whether the `ip` is contained in the block referenced by the `cidr`."
     }
 

@@ -24,7 +24,7 @@ impl Function for FormatTimestamp {
         "format_timestamp"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Formats `value` into a string representation of the timestamp."
     }
 

@@ -63,7 +63,7 @@ impl Function for FromUnixTimestamp {
         "from_unix_timestamp"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         indoc! {"
             Converts the `value` integer from a [Unix timestamp](https://en.wikipedia.org/wiki/Unix_time) to a VRL `timestamp`.
 

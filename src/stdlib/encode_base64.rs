@@ -46,7 +46,7 @@ impl Function for EncodeBase64 {
         "encode_base64"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Encodes the `value` to [Base64](https://en.wikipedia.org/wiki/Base64)."
     }
 

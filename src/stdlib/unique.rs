@@ -15,7 +15,7 @@ impl Function for Unique {
         "unique"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         indoc! {"
             Returns the unique values for an array.
 

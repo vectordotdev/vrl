@@ -33,7 +33,7 @@ impl Function for EncodeZstd {
         "encode_zstd"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Encodes the `value` to [Zstandard](https://facebook.github.io/zstd)."
     }
 

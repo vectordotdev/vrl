@@ -310,6 +310,10 @@ impl Expression for Assignment {
         self.variant.resolve(ctx)
     }
 
+    fn resolve_unused(&self, ctx: &mut Context) -> Result<(), ExpressionError> {
+        self.variant.resolve_unused(ctx)
+    }
+
     fn type_info(&self, state: &TypeState) -> TypeInfo {
         self.variant.type_info(state)
     }
@@ -556,6 +560,41 @@ where
         };
 
         Ok(value)
+    }
+
+    fn resolve_unused(&self, ctx: &mut Context) -> Result<(), ExpressionError> {
+        use Variant::{Infallible, Single};
+
+        match self {
+            Single { target, expr } => {
+                let value = expr.resolve(ctx)?;
+                target.insert(value, ctx);
+            }
+            Infallible {
+                ok,
+                err,
+                expr,
+                default,
+            } => match expr.resolve(ctx) {
+                Ok(value) => {
+                    ok.insert(value, ctx);
+                    err.insert(Value::Null, ctx);
+                }
+                Err(error) => {
+                    if matches!(
+                        error,
+                        ExpressionError::Interrupted | ExpressionError::Break { .. }
+                    ) {
+                        return Err(error);
+                    }
+
+                    ok.insert(default.clone(), ctx);
+                    err.insert(Value::from(error.to_string()), ctx);
+                }
+            },
+        }
+
+        Ok(())
     }
 
     fn type_info(&self, state: &TypeState) -> TypeInfo {

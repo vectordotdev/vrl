@@ -39,7 +39,7 @@ impl Function for Range {
         "range"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Returns an array of integers from `start` (inclusive) to `end` (exclusive), incremented by `step`."
     }
 

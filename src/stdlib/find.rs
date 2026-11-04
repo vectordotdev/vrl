@@ -30,7 +30,7 @@ impl Function for Find {
         "find"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Determines from left to right the start position of the first found element in `value` that matches `pattern`. Returns null if not found."
     }
 

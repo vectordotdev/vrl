@@ -113,7 +113,7 @@ impl Function for FormatNumber {
         "format_number"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Formats the `value` into a string representation of the number."
     }
 

@@ -579,7 +579,7 @@ mod tests {
                 "once"
             }
 
-            fn usage(&self) -> &'static str {
+            fn description(&self) -> &'static str {
                 ""
             }
 

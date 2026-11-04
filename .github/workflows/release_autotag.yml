@@ -1,0 +1,80 @@
+name: Tag release
+
+# Tags the commit of an approved release PR (see release_prepare.yml). The merge
+# queue can land several PRs in one push, so the release commit is not always the
+# head of the push. The tag is pushed with the bot token so that it triggers
+# release_publish.yml.
+#
+# The merge queue already rejects a release PR that would leave changelog fragments
+# behind (merge-queue.yml). This workflow checks again, for merges that skip the queue.
+
+on:
+  push:
+    branches: [main]
+    paths: [Cargo.toml]
+
+permissions:
+  contents: read
+
+# By default a new run replaces a pending run in the group. `queue: max` keeps every
+# pending run, so a later `Cargo.toml` push cannot drop a release push before it is tagged.
+concurrency:
+  group: release-autotag
+  queue: max
+  cancel-in-progress: false
+
+jobs:
+  tag:
+    name: Create release tag
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout merged commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Find release commit
+        id: release
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
+        run: cargo run -q -p release -- release-commit --before "$BEFORE_SHA" >> "$GITHUB_OUTPUT"
+
+      - name: Create Vector bot token
+        if: steps.release.outputs.sha != ''
+        id: app-token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ secrets.GH_APP_VECTORDOTDEV_BOT_CLIENT_ID }}
+          private-key: ${{ secrets.GH_APP_VECTORDOTDEV_BOT_APP_PRIVATE_KEY }}
+          permission-contents: write
+
+      - name: Push release tag
+        if: steps.release.outputs.sha != ''
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          RELEASE_SHA: ${{ steps.release.outputs.sha }}
+          VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          set -euo pipefail
+          tag="v${VERSION}"
+          remote="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+
+          # A re-run is safe only when the existing tag already identifies this commit.
+          existing=$(git ls-remote "$remote" "refs/tags/${tag}^{}")
+          existing=${existing%%$'\t'*}
+          if [[ -n "$existing" ]]; then
+            if [[ "$existing" == "$RELEASE_SHA" ]]; then
+              echo "${tag} already points to ${RELEASE_SHA}."
+              exit 0
+            fi
+            echo "${tag} already points to ${existing}, not ${RELEASE_SHA}." >&2
+            exit 1
+          fi
+
+          git config user.name "vectordotdev-bot[bot]"
+          git config user.email "vectordotdev-bot[bot]@users.noreply.github.com"
+          git tag -a "$tag" -m "Release ${VERSION}" "$RELEASE_SHA"
+          git push "$remote" "refs/tags/${tag}"
+          echo "Pushed ${tag} for ${RELEASE_SHA}." >> "$GITHUB_STEP_SUMMARY"

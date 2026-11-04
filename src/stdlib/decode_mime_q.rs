@@ -20,7 +20,7 @@ impl Function for DecodeMimeQ {
         "decode_mime_q"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Replaces q-encoded or base64-encoded [encoded-word](https://datatracker.ietf.org/doc/html/rfc2047#section-2) substrings in the `value` with their original string."
     }
 
