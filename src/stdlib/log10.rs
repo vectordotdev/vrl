@@ -27,7 +27,7 @@ impl Function for Log10 {
         "log10"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Computes the base 10 logarithm of `value`."
     }
 

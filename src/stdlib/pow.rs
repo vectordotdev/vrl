@@ -39,7 +39,7 @@ impl Function for Pow {
         "pow"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Raises `base` to the power of `exponent`."
     }
 
