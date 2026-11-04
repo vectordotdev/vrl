@@ -1,12 +1,12 @@
 use crate::compiler::prelude::*;
 use aes::cipher::{BlockModeEncrypt, Iv, Key, KeyIvInit, StreamCipher};
-use aes_siv::aead::{Aead as Aead5, KeyInit as KeyInit5, generic_array::GenericArray as AeadArray};
+use aes_siv::aead::{Aead, Key as AeadKey, KeyInit as AeadKeyInit, Nonce as AeadNonce};
 use aes_siv::{Aes128SivAead, Aes256SivAead};
 use cbc::cipher::block_padding::{AnsiX923, Iso7816, Iso10126, Pkcs7};
 use cfb_mode::Encryptor as Cfb;
-use chacha20poly1305::aead::{Aead as ChaChaAead, KeyInit as ChaChaKeyInit, Key as ChaChaKey, Nonce as ChaChaNonce};
 use chacha20poly1305::{ChaCha20Poly1305, XChaCha20Poly1305};
 use crypto_secretbox::XSalsa20Poly1305;
+use crypto_secretbox::aead::{Aead as SecretBoxAead, KeyInit as SecretBoxKeyInit, generic_array::GenericArray as SecretBoxArray};
 use ctr::{Ctr64BE, Ctr64LE};
 use ofb::Ofb;
 
@@ -81,8 +81,8 @@ macro_rules! encrypt_keystream {
 
 macro_rules! encrypt_stream {
     ($algorithm:ty, $plaintext:expr_2021, $key:expr_2021, $iv:expr_2021) => {{
-        <$algorithm as KeyInit5>::new(&AeadArray::from(get_key_bytes($key)?))
-            .encrypt(&AeadArray::from(get_iv_bytes($iv)?), $plaintext.as_ref())
+        <$algorithm as AeadKeyInit>::new(&AeadKey::<$algorithm>::from(get_key_bytes($key)?))
+            .encrypt(&AeadNonce::<$algorithm>::from(get_iv_bytes($iv)?), $plaintext.as_ref())
             .expect("key/iv sizes were already checked")
     }};
 }
@@ -161,13 +161,11 @@ fn encrypt(plaintext: Value, algorithm: &str, key: Value, iv: Value) -> Resolved
         "AES-128-CBC-ISO10126" => encrypt_padded!(Aes128Cbc, Iso10126, plaintext, key, iv),
         "AES-128-SIV" => encrypt_stream!(Aes128SivAead, plaintext, key, iv),
         "AES-256-SIV" => encrypt_stream!(Aes256SivAead, plaintext, key, iv),
-        "CHACHA20-POLY1305" => ChaCha20Poly1305::new(&ChaChaKey::<ChaCha20Poly1305>::from(get_key_bytes(key)?))
-            .encrypt(&ChaChaNonce::<ChaCha20Poly1305>::from(get_iv_bytes(iv)?), plaintext.as_ref())
+        "CHACHA20-POLY1305" => encrypt_stream!(ChaCha20Poly1305, plaintext, key, iv),
+        "XCHACHA20-POLY1305" => encrypt_stream!(XChaCha20Poly1305, plaintext, key, iv),
+        "XSALSA20-POLY1305" => <XSalsa20Poly1305 as SecretBoxKeyInit>::new(&SecretBoxArray::from(get_key_bytes(key)?))
+            .encrypt(&SecretBoxArray::from(get_iv_bytes(iv)?), plaintext.as_ref())
             .expect("key/iv sizes were already checked"),
-        "XCHACHA20-POLY1305" => XChaCha20Poly1305::new(&ChaChaKey::<XChaCha20Poly1305>::from(get_key_bytes(key)?))
-            .encrypt(&ChaChaNonce::<XChaCha20Poly1305>::from(get_iv_bytes(iv)?), plaintext.as_ref())
-            .expect("key/iv sizes were already checked"),
-        "XSALSA20-POLY1305" => encrypt_stream!(XSalsa20Poly1305, plaintext, key, iv),
         other => return Err(format!("Invalid algorithm: {other}").into()),
     };
 
