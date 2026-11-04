@@ -22,8 +22,9 @@ use crate::compiler::codes;
 use crate::compiler::parser::{Ident, Node};
 use crate::diagnostic::{Diagnostic, DiagnosticList, Label, Note, Severity};
 use crate::parser::ast::{
-    Array, Assignment, AssignmentOp, AssignmentTarget, Block, Container, Expr, FunctionCall,
-    IfStatement, Object, Predicate, QueryTarget, Return, RootExpr, Unary,
+    Array, Assignment, AssignmentOp, AssignmentTarget, Block, Container, Expr, ForPattern,
+    ForStatement, FunctionCall, IfStatement, Object, Predicate, QueryTarget, Return, RootExpr,
+    Unary,
 };
 use crate::parser::template_string::StringSegment;
 use crate::parser::{Literal, Program, Span};
@@ -241,7 +242,8 @@ impl AstVisitor<'_> {
             Expr::Variable(variable) => {
                 state.mark_identifier_used(&variable.node);
             }
-            Expr::Abort(_) | Expr::Break(_) => {}
+            Expr::For(for_stmt) => self.visit_for_statement(for_stmt, state),
+            Expr::Break(_) | Expr::Continue(_) | Expr::Abort(_) => {}
             Expr::Return(r#return) => self.visit_return(r#return, state),
         }
     }
@@ -305,6 +307,59 @@ impl AstVisitor<'_> {
             scoped_visit(state, |state| {
                 self.visit_block(else_block, state);
             });
+        }
+    }
+
+    fn visit_for_statement(&self, for_statement: &Node<ForStatement>, state: &mut VisitorState) {
+        scoped_visit(state, |state| {
+            self.visit_node(&for_statement.iterable, state);
+        });
+
+        let mut shadowed_variables = HashMap::new();
+        let mut bind_pattern = |ident: &Node<Ident>, state: &mut VisitorState| {
+            if let Some(existing) = state.ident_to_state.remove(&ident.node) {
+                shadowed_variables.insert(ident.node.clone(), existing);
+            }
+            state.mark_identifier_pending_usage(&ident.node, &ident.span);
+        };
+
+        match &for_statement.pattern {
+            ForPattern::Single(val) => {
+                bind_pattern(val, state);
+            }
+            ForPattern::KeyValue(key, val) => {
+                bind_pattern(key, state);
+                bind_pattern(val, state);
+            }
+        }
+
+        scoped_visit(state, |state| {
+            self.visit_block(&for_statement.block, state);
+        });
+
+        let mut restore_pattern = |ident: &Node<Ident>, state: &mut VisitorState| {
+            if let Some(ident_state) = state.ident_to_state.remove(&ident.node)
+                && ident_state.pending_usage
+                && !ident_state.used_in_closure
+            {
+                state.append_diagnostic(
+                    format!("unused variable `{}`", ident.node),
+                    &ident_state.span,
+                );
+            }
+            if let Some(existing) = shadowed_variables.remove(&ident.node) {
+                state.ident_to_state.insert(ident.node.clone(), existing);
+            }
+        };
+
+        match &for_statement.pattern {
+            ForPattern::Single(val) => {
+                restore_pattern(val, state);
+            }
+            ForPattern::KeyValue(key, val) => {
+                restore_pattern(key, state);
+                restore_pattern(val, state);
+            }
         }
     }
 
@@ -438,7 +493,6 @@ mod test {
         let warnings = crate::compiler::compile(source, &stdlib::all())
             .unwrap()
             .warnings;
-
         assert_eq!(warnings.len(), expected_warnings.len());
 
         for (i, content) in expected_warnings.iter().enumerate() {
@@ -716,5 +770,100 @@ mod test {
             }
         "};
         unused_test(source, &[]);
+    }
+
+    #[test]
+    fn for_loop_used_variable() {
+        let source = indoc! {r"
+            for x in [1, 2] {
+                .foo = x
+            }
+        "};
+        unused_test(source, &[]);
+    }
+
+    #[test]
+    fn for_loop_unused_variable() {
+        let source = indoc! {r"
+            for x in [1, 2] {
+                .foo = 1
+            }
+        "};
+        unused_test(source, &["unused variable `x`".to_string()]);
+    }
+
+    #[test]
+    fn for_loop_wildcard_variable_ignored() {
+        let source = indoc! {r"
+            for _ in [1, 2] {
+                .foo = 1
+            }
+            for _x in [1, 2] {
+                .bar = 2
+            }
+        "};
+        unused_test(source, &[]);
+    }
+
+    #[test]
+    fn for_loop_key_value() {
+        let source = indoc! {r#"
+            for k, v in { "a": 1 } {
+                .foo = k
+                .bar = v
+            }
+        "#};
+        unused_test(source, &[]);
+    }
+
+    #[test]
+    fn for_loop_key_value_partial_unused() {
+        let source = indoc! {r#"
+            for k, v in { "a": 1 } {
+                .foo = k
+            }
+        "#};
+        unused_test(source, &["unused variable `v`".to_string()]);
+    }
+
+    #[test]
+    fn for_loop_control_flow() {
+        let source = indoc! {r"
+            for x in [1, 2, 3] {
+                if x == 2 {
+                    continue
+                }
+                if x == 3 {
+                    break
+                }
+                .foo = x
+            }
+        "};
+        unused_test(source, &[]);
+    }
+
+    #[test]
+    fn for_loop_shadowing_unused_outer() {
+        let source = indoc! {r"
+            x = 1
+            for x in [1, 2] {
+                .foo = x
+            }
+        "};
+        // Outer x is unused, inner x is used. We should get a warning for the outer x.
+        unused_test(source, &["unused variable `x`".to_string()]);
+    }
+
+    #[test]
+    fn for_loop_shadowing_used_outer() {
+        let source = indoc! {r"
+            x = 1
+            for x in [1, 2] {
+                .foo = 1
+            }
+            .bar = x
+        "};
+        // Inner x is unused, outer x is used. We should get a warning for the inner x.
+        unused_test(source, &["unused variable `x`".to_string()]);
     }
 }

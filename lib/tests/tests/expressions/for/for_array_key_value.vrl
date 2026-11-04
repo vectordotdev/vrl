@@ -1,0 +1,10 @@
+# result:
+# {"indices": [0, 1, 2], "values": ["a", "b", "c"]}
+
+.indices = []
+.values = []
+for i, v in ["a", "b", "c"] {
+  .indices = push(.indices, i)
+  .values = push(.values, v)
+}
+.

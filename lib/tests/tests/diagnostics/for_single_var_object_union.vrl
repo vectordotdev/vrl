@@ -1,0 +1,19 @@
+# result:
+#
+# error[E634]: iterating over an object requires a key-value pattern: 'for key, value in ...'
+#   ┌─ :7:5
+#   │
+# 7 │ for x in obj {
+#   │     ^ iterating over an object requires key-value pattern
+#   │
+#   = see language documentation at https://vrl.dev
+#   = try your code in the VRL REPL, learn more at https://vrl.dev/examples
+
+obj = { "a": 1 }
+if true {
+  obj = [1, 2]
+}
+
+for x in obj {
+  .foo = x
+}

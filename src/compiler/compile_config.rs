@@ -4,8 +4,35 @@ use std::{
     collections::{BTreeSet, HashMap},
 };
 
-type AnyMap = HashMap<TypeId, Box<dyn Any>>;
+pub trait CloneableAny: Any {
+    fn as_any(&self) -> &dyn Any;
+    fn as_any_mut(&mut self) -> &mut dyn Any;
+    fn clone_box(&self) -> Box<dyn CloneableAny>;
+}
 
+impl<T: Any + Clone> CloneableAny for T {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        self
+    }
+
+    fn clone_box(&self) -> Box<dyn CloneableAny> {
+        Box::new(self.clone())
+    }
+}
+
+impl Clone for Box<dyn CloneableAny> {
+    fn clone(&self) -> Self {
+        (**self).clone_box()
+    }
+}
+
+type AnyMap = HashMap<TypeId, Box<dyn CloneableAny>>;
+
+#[derive(Clone)]
 pub struct CompileConfig {
     /// Custom context injected by the external environment
     custom: AnyMap,
@@ -29,18 +56,18 @@ impl CompileConfig {
     pub fn get_custom<T: 'static>(&self) -> Option<&T> {
         self.custom
             .get(&TypeId::of::<T>())
-            .and_then(|t| t.downcast_ref())
+            .and_then(|t| (**t).as_any().downcast_ref())
     }
 
     /// Get external context data from the external environment.
     pub fn get_custom_mut<T: 'static>(&mut self) -> Option<&mut T> {
         self.custom
             .get_mut(&TypeId::of::<T>())
-            .and_then(|t| t.downcast_mut())
+            .and_then(|t| (**t).as_any_mut().downcast_mut())
     }
 
     /// Sets the external context data for VRL functions to use.
-    pub fn set_custom<T: 'static>(&mut self, data: T) {
+    pub fn set_custom<T: 'static + Clone>(&mut self, data: T) {
         self.custom.insert(TypeId::of::<T>(), Box::new(data) as _);
     }
 
@@ -101,7 +128,7 @@ struct ReadOnlyPath {
 mod tests {
     use super::*;
 
-    #[derive(PartialEq, Eq, Debug)]
+    #[derive(Clone, PartialEq, Eq, Debug)]
     struct Potato(usize);
 
     #[test]

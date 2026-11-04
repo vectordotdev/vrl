@@ -1,0 +1,10 @@
+# result:
+# {"coords": [[0, 0], [0, 1], [1, 0], [1, 1]]}
+
+.coords = []
+for x in [0, 1] {
+  for y in [0, 1] {
+    .coords = push(.coords, [x, y])
+  }
+}
+.
