@@ -6,7 +6,7 @@
   "arguments": [
     {
       "name": "value",
-      "description": "The number to calculate the base 10 logarithm of.",
+      "description": "The number to use to calculate the base 10 logarithm.",
       "required": true,
       "type": [
         "integer",

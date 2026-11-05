@@ -47,7 +47,7 @@ impl Function for Log10 {
         const PARAMETERS: &[Parameter] = &[Parameter::required(
             "value",
             kind::FLOAT | kind::INTEGER,
-            "The number to calculate the base 10 logarithm of.",
+            "The number to use to calculate the base 10 logarithm.",
         )];
         PARAMETERS
     }
