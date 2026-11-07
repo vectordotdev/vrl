@@ -140,9 +140,8 @@ impl Function for Get {
         let value = arguments.required_expr("value");
         let path = arguments.required("path");
 
-        // If the queried value is a structurally literal object or array
-        // (e.g. a lookup table written inline), resolve it once at compile
-        // time instead of re-resolving the literal on every event.
+        // A structurally literal value (e.g. an inline lookup table) is
+        // resolved once at compile time, not re-resolved per event.
         match structural_constant(&value) {
             Some(constant) => Ok(GetConstantFn { constant, path }.as_expr()),
             None => Ok(GetFn {
@@ -154,16 +153,10 @@ impl Function for Get {
     }
 }
 
-/// Resolve a structurally literal expression to its value.
-///
-/// Unlike [`Expression::resolve_constant`], this never consults compile-time
-/// variable state: only literals, and objects/arrays composed solely
-/// of literals, are folded. A structurally literal expression resolves
-/// identically in any runtime context, so freezing it at compile time cannot
-/// diverge from what the generic path would resolve. State-based folding of
-/// expressions that reference variables is unsound because an earlier
-/// argument can mutate the variable at runtime before the folded expression
-/// would have been resolved (see vrl#1799).
+/// Resolve a structurally literal expression (literals, and object/array
+/// trees of literals) to its value. Unlike `Expression::resolve_constant`,
+/// no compile-time variable state is consulted: state-based folding is
+/// unsound when an earlier argument mutates the variable at runtime (vrl#1799).
 fn structural_constant(expr: &Expr) -> Option<Value> {
     fn literal_expr(expr: &Expr) -> Option<Value> {
         match expr {
@@ -179,9 +172,7 @@ fn structural_constant(expr: &Expr) -> Option<Value> {
                     .map(literal_expr)
                     .collect::<Option<Vec<_>>>()
                     .map(Value::Array),
-                // Parenthesized expressions are rare for this argument and
-                // would require exposing the grouped expression; they take
-                // the generic path instead.
+                // Grouped expressions take the generic path instead.
                 Variant::Group(_) | Variant::Block(_) => None,
             },
             _ => None,
