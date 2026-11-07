@@ -46,12 +46,18 @@ impl Object {
     }
 
     /// Build the constant value from structurally literal expressions only.
+    ///
+    /// Eligibility is checked before materializing the map, so an object
+    /// with a dynamic entry does not pay for partial map construction.
     fn structural_literal_value(&self) -> Option<Value> {
-        let mut map = BTreeMap::new();
-        for (key, expr) in &self.inner {
-            map.insert(key.clone(), literal_expr_value(expr)?);
+        if !self.inner.values().all(is_structural_literal) {
+            return None;
         }
-        Some(Value::Object(map))
+        self.inner
+            .iter()
+            .map(|(key, expr)| literal_expr_value(expr).map(|v| (key.clone(), v)))
+            .collect::<Option<BTreeMap<_, _>>>()
+            .map(Value::Object)
     }
 
     /// Drop descendant caches once the parent cache is built from them.
@@ -59,6 +65,22 @@ impl Object {
         for expr in self.inner.values_mut() {
             drop_expr_constant(expr);
         }
+    }
+}
+
+/// Whether `literal_expr_value` returns `Some` for this expression; keep
+/// in sync with it. Cheap tree predicate, no values materialized.
+fn is_structural_literal(expr: &Expr) -> bool {
+    match expr {
+        Expr::Literal(_) => true,
+        Expr::Container(container) => match &container.variant {
+            // A nested object qualifies iff its cache was built.
+            container::Variant::Object(object) => object.constant.is_some(),
+            container::Variant::Array(array) => array.iter().all(is_structural_literal),
+            container::Variant::Group(group) => is_structural_literal(group.expr()),
+            container::Variant::Block(_) => false,
+        },
+        _ => false,
     }
 }
 
