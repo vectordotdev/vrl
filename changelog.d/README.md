@@ -26,7 +26,7 @@ The format for fragments is: `<description>.<fragment_type>.md`
 ### Fragment conventions
 
 When fragments are used to generate the updated changelog, the content of the fragment file is
-rendered as an item in a bulleted list under the "type" of fragment.
+rendered under the "type" of fragment.
 
 The contents of the file must be valid markdown, followed by a required `authors:` line at the end.
 
@@ -40,6 +40,7 @@ Filename rules:
 #### Fragment types {#types}
 
 - breaking: A change that is incompatible with prior versions which requires users to make adjustments.
+  If a change is also a fix or feature, breaking takes precedence.
 - security: A change that has implications for security.
 - deprecation: A change that is introducing a deprecation.
 - feature: A change that is introducing a new feature.
@@ -48,8 +49,9 @@ Filename rules:
 
 #### Fragment contents
 
-When fragments are rendered in the changelog, each fragment becomes an item in a markdown list.
-For this reason, when creating the content in a fragment, the format must be renderable as a markdown list.
+Non-breaking fragments become items in a markdown list.
+Their content must be renderable as a markdown list.
+Breaking fragments follow the structured format in [Breaking changes](#breaking-changes).
 
 As an example, separating content with markdown header syntax should be avoided, as that will render
 as a heading in the main changelog and not the list. Instead, separate content with newlines.
@@ -74,27 +76,32 @@ authors: username1 username2
 
 ### Breaking changes
 
-Breaking fragments must explain what changed, who is affected, and how to migrate.
-Include **Before** and **After** examples showing the required changes to VRL programs or
-the change in output. If users do not need to change their programs, state that explicitly.
+Breaking fragments (`*.breaking.md`) use the same format as
+[Vector's breaking fragments](https://github.com/vectordotdev/vector/blob/master/changelog.d/README.md#breaking).
 
 ## Example
 
 The following illustrates a hypothetical change to the default behavior of `parse_json`.
 
     $ cat changelog.d/parse-json-strict-default.breaking.md
+    # Strict UTF-8 parsing by default {#parse-json-strict-default}
+
+    ## Summary
+
     `parse_json` now rejects invalid UTF-8 by default instead of replacing invalid
     characters. Programs that parse messages containing invalid UTF-8 may now fail.
 
+    ## Migration
+
     To preserve the previous behavior, pass `lossy: true` explicitly.
 
-    **Before:**
+    #### Old
 
     ```vrl
     .parsed = parse_json!(.message)
     ```
 
-    **After:**
+    #### New
 
     ```vrl
     .parsed = parse_json!(.message, lossy: true)
