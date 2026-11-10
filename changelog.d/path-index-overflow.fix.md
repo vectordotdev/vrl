@@ -1,4 +1,4 @@
-Reject field paths with array indices outside the `isize` range instead of
-panicking in debug builds or silently wrapping to a different index in release builds.
+In release builds, reject field paths with array indices outside the `isize` range
+instead of silently wrapping to a different index.
 
 authors: pront
