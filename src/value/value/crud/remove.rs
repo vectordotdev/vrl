@@ -1,25 +1,44 @@
-use super::ValueCollection;
+use super::{ValueCollection, ValueSlot};
 use crate::path::BorrowedSegment;
 use crate::value::Value;
 
 pub fn remove<'a, T: ValueCollection>(
     value: &mut T,
     key: &T::BorrowedKey,
-    mut path_iter: impl Iterator<Item = BorrowedSegment<'a>>,
+    path_iter: impl Iterator<Item = BorrowedSegment<'a>>,
     prune: bool,
 ) -> Option<(Value, bool)> {
+    remove_with_hook(value, key, path_iter, prune, &mut no_hook)
+}
+
+/// Same as [`remove`], calling `hook` right before each removal from the existing tree.
+pub fn remove_with_hook<'a, T: ValueCollection>(
+    value: &mut T,
+    key: &T::BorrowedKey,
+    mut path_iter: impl Iterator<Item = BorrowedSegment<'a>>,
+    prune: bool,
+    hook: &mut impl FnMut(ValueSlot<'_>),
+) -> Option<(Value, bool)> {
     match (value.get_mut_value(key), path_iter.next()) {
-        (_, None) => value.remove_value(key),
+        (current, None) => {
+            if current.is_some() {
+                hook(value.slot(key));
+            }
+            value.remove_value(key)
+        }
         (Some(Value::Object(map)), Some(BorrowedSegment::Field(field))) => {
-            let (prev_value, empty) = remove(map, field.as_ref(), path_iter, prune)?;
+            let (prev_value, empty) =
+                remove_with_hook(map, field.as_ref(), path_iter, prune, hook)?;
             if prune && empty {
+                hook(value.slot(key));
                 value.remove_value(key);
             }
             Some(prev_value)
         }
         (Some(Value::Array(array)), Some(BorrowedSegment::Index(index))) => {
-            let (prev_value, empty) = remove(array, &index, path_iter, prune)?;
+            let (prev_value, empty) = remove_with_hook(array, &index, path_iter, prune, hook)?;
             if prune && empty {
+                hook(value.slot(key));
                 value.remove_value(key);
             }
             Some(prev_value)
@@ -28,6 +47,8 @@ pub fn remove<'a, T: ValueCollection>(
     }
     .map(|prev| (prev, value.is_empty_collection()))
 }
+
+fn no_hook(_: ValueSlot<'_>) {}
 
 #[cfg(test)]
 mod test {
@@ -135,5 +156,40 @@ mod test {
             Some(Value::Integer(5))
         );
         assert_eq!(value, Value::from(json!({})));
+    }
+
+    #[test]
+    fn remove_with_hook() {
+        use crate::value::value::crud::owned_slot;
+
+        let value = json!({"a": {"b": 1}, "c": [1, 2]});
+        let cases = [
+            ("a.b", false, vec![(json!({"b": 1}), "b")]),
+            (
+                "a.b",
+                true,
+                vec![(json!({"b": 1}), "b"), (json!({"a": {}, "c": [1, 2]}), "a")],
+            ),
+            ("c[-1]", false, vec![(json!([1, 2]), "-1")]),
+            ("missing", false, vec![]),
+            ("a.b.c", false, vec![]),
+        ];
+
+        for (path, prune, expected_calls) in cases {
+            let mut value = Value::from(value.clone());
+            let path = parse_value_path(path).unwrap();
+            let mut expected = value.clone();
+            let expected_prev = expected.remove(&path, prune);
+
+            let mut calls = vec![];
+            let prev = value.remove_with_hook(&path, prune, |slot| calls.push(owned_slot(slot)));
+
+            let expected_calls = expected_calls
+                .into_iter()
+                .map(|(parent, key)| (Value::from(parent), key.to_owned()))
+                .collect::<Vec<_>>();
+            assert_eq!(calls, expected_calls, "{path}");
+            assert_eq!((value, prev), (expected, expected_prev), "{path}");
+        }
     }
 }

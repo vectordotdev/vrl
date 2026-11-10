@@ -8,8 +8,32 @@ mod remove;
 
 pub use self::get::get;
 pub use self::get_mut::get_mut;
-pub use self::insert::insert;
-pub use self::remove::remove;
+pub use self::insert::{insert, insert_with_hook};
+pub use self::remove::{remove, remove_with_hook};
+
+/// Slot of a value tree about to be modified by [`Value::insert_with_hook`] or
+/// [`Value::remove_with_hook`], borrowed in its state before the modification.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum ValueSlot<'a> {
+    /// The whole value.
+    Root(&'a Value),
+    /// Field `key` of `object`, which may not exist yet.
+    Field { object: &'a ObjectMap, key: &'a str },
+    /// Element `index` of `array`, which may not exist yet. Negative indices count from the end.
+    Index { array: &'a [Value], index: isize },
+}
+
+impl<'a> ValueSlot<'a> {
+    /// Returns the value currently held by the slot, if any.
+    #[must_use]
+    pub fn current(&self) -> Option<&'a Value> {
+        match *self {
+            Self::Root(value) => Some(value),
+            Self::Field { object, key } => object.get(key),
+            Self::Index { array, index } => array_index(array, index).and_then(|i| array.get(i)),
+        }
+    }
+}
 
 pub trait ValueCollection {
     type Key: Borrow<Self::BorrowedKey>;
@@ -20,6 +44,17 @@ pub trait ValueCollection {
     fn insert_value(&mut self, key: Self::Key, value: Value) -> Option<Value>;
     fn remove_value(&mut self, key: &Self::BorrowedKey) -> Option<Value>;
     fn is_empty_collection(&self) -> bool;
+    fn slot<'a>(&'a self, key: &'a Self::BorrowedKey) -> ValueSlot<'a>;
+}
+
+/// Clones the parts of a slot, so that tests can inspect hook calls afterwards.
+#[cfg(test)]
+fn owned_slot(slot: ValueSlot<'_>) -> (Value, String) {
+    match slot {
+        ValueSlot::Root(value) => (value.clone(), String::new()),
+        ValueSlot::Field { object, key } => (Value::Object(object.clone()), key.to_owned()),
+        ValueSlot::Index { array, index } => (Value::Array(array.to_vec()), index.to_string()),
+    }
 }
 
 impl ValueCollection for Value {
@@ -51,6 +86,10 @@ impl ValueCollection for Value {
     fn is_empty_collection(&self) -> bool {
         false
     }
+
+    fn slot<'a>(&'a self, _key: &'a ()) -> ValueSlot<'a> {
+        ValueSlot::Root(self)
+    }
 }
 
 impl ValueCollection for ObjectMap {
@@ -75,6 +114,10 @@ impl ValueCollection for ObjectMap {
 
     fn is_empty_collection(&self) -> bool {
         self.is_empty()
+    }
+
+    fn slot<'a>(&'a self, key: &'a str) -> ValueSlot<'a> {
+        ValueSlot::Field { object: self, key }
     }
 }
 
@@ -140,6 +183,13 @@ impl ValueCollection for Vec<Value> {
 
     fn is_empty_collection(&self) -> bool {
         self.is_empty()
+    }
+
+    fn slot<'a>(&'a self, key: &'a isize) -> ValueSlot<'a> {
+        ValueSlot::Index {
+            array: self,
+            index: *key,
+        }
     }
 }
 
