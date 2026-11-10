@@ -345,3 +345,8 @@ required-features = ["default", "test"]
 [[bench]]
 name = "for_each"
 harness = false
+
+[[bench]]
+name = "value_insert"
+harness = false
+required-features = ["value"]
