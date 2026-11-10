@@ -3,6 +3,7 @@
 #[allow(clippy::module_name_repetitions)]
 pub use super::value::regex::ValueRegex;
 #[allow(clippy::module_name_repetitions)]
+pub use crud::ValueSlot;
 pub use iter::{IterItem, ValueIter};
 
 use bytes::{Bytes, BytesMut};
@@ -187,6 +188,21 @@ impl Value {
         crud::insert(self, (), path_iter, insert_value)
     }
 
+    /// Same as [`Value::insert`], and calls `hook` once, right before the value is modified.
+    ///
+    /// `hook` receives the slot about to be written and the value written into it: `insert_value`
+    /// itself, or the outermost container created to hold it when `path` goes through missing or
+    /// non-container values. It is not called when `path` is invalid.
+    #[allow(clippy::needless_pass_by_value)]
+    pub fn insert_with_hook<'a>(
+        &mut self,
+        path: impl ValuePath<'a>,
+        insert_value: impl Into<Self>,
+        hook: impl FnOnce(ValueSlot<'_>, &Self),
+    ) -> Option<Self> {
+        crud::insert_with_hook(self, (), path.segment_iter(), insert_value.into(), hook)
+    }
+
     /// Removes field value specified by the given path and return its value.
     ///
     /// A special case worth mentioning: if there is a nested array and an item is removed
@@ -194,6 +210,21 @@ impl Value {
     #[allow(clippy::needless_pass_by_value)]
     pub fn remove<'a>(&mut self, path: impl ValuePath<'a>, prune: bool) -> Option<Self> {
         crud::remove(self, &(), path.segment_iter(), prune)
+            .map(|(prev_value, _is_empty)| prev_value)
+    }
+
+    /// Same as [`Value::remove`], and calls `hook` right before each removal from the value.
+    ///
+    /// `hook` receives the slot about to be removed: first the one at `path` if it holds a value,
+    /// then, with `prune`, each container emptied by that removal.
+    #[allow(clippy::needless_pass_by_value)]
+    pub fn remove_with_hook<'a>(
+        &mut self,
+        path: impl ValuePath<'a>,
+        prune: bool,
+        mut hook: impl FnMut(ValueSlot<'_>),
+    ) -> Option<Self> {
+        crud::remove_with_hook(self, &(), path.segment_iter(), prune, &mut hook)
             .map(|(prev_value, _is_empty)| prev_value)
     }
 
