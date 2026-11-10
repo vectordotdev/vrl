@@ -18,7 +18,7 @@ fn pow(base: Value, exponent: Value) -> Resolved {
     let odd_exponent = matches!(exponent, Value::Integer(e) if e % 2 != 0);
     let base = to_f64(base)?;
     let exponent = to_f64(exponent)?;
-    let result = if odd_exponent && base < 0.0 {
+    let result = if odd_exponent && base.is_sign_negative() {
         -(-base).powf(exponent)
     } else {
         base.powf(exponent)
@@ -155,4 +155,11 @@ mod tests {
             tdef: TypeDef::float().fallible(),
         }
     ];
+
+    // Value equality treats -0.0 and 0.0 as equal, so check the sign bit directly.
+    #[test]
+    fn negative_zero_odd_exponent_beyond_f64_precision() {
+        let result = pow(value!(-0.0), value!(9_007_199_254_740_993_i64)).unwrap();
+        assert!(matches!(result, Value::Float(f) if f.is_sign_negative()));
+    }
 }
