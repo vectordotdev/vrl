@@ -156,7 +156,7 @@ impl Function for Get {
 /// Resolve a structurally literal expression (literals, and object/array
 /// trees of literals) to its value. Unlike `Expression::resolve_constant`,
 /// no compile-time variable state is consulted: state-based folding is
-/// unsound when an earlier argument mutates the variable at runtime (vrl#1799).
+/// unsound when an earlier argument mutates the variable at runtime (vectordotdev/vrl#1799).
 fn structural_constant(expr: &Expr) -> Option<Value> {
     fn literal_expr(expr: &Expr) -> Option<Value> {
         match expr {
@@ -333,7 +333,7 @@ mod tests {
     fn get_variable_value_stays_dynamic() {
         // A variable argument must NOT be folded, even if its compile-time
         // state carries a constant value: the variable can be mutated at
-        // runtime between the assignment and the call (see vrl#1799).
+        // runtime between the assignment and the call (see vectordotdev/vrl#1799).
         use crate::compiler::CompileConfig;
         use crate::compiler::expression::Variable;
         use crate::compiler::parser::Ident;
@@ -361,7 +361,7 @@ mod tests {
 
     #[test]
     fn get_nested_variable_value_not_folded() {
-        // vrl#1799 regression: an object literal that references a variable
+        // vectordotdev/vrl#1799 regression: an object literal that references a variable
         // must NOT be folded, even though compile-time state knows the
         // variable's value. A side effect in an earlier-resolved argument
         // (e.g. the path) can mutate the variable at runtime before the

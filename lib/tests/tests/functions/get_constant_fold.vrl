@@ -1,7 +1,7 @@
 # `get` with a structurally literal value argument (an inline lookup table)
 # is resolved once at compile time. A literal that references a variable must
 # NOT be folded: an earlier-resolved argument (here: the path) can mutate the
-# variable at runtime before the value argument is resolved (vrl#1799 class).
+# variable at runtime before the value argument is resolved (vectordotdev/vrl#1799 class).
 # result: {"dynamic_key": 21, "nested": 42, "unknown_key": null, "mutated": "bar"}
 
 sev = "emerg"
