@@ -1,5 +1,5 @@
 use crate::compiler::prelude::*;
-use rand::Rng;
+use rand::RngExt;
 use std::ops::Range;
 
 const INVALID_RANGE_ERR: &str = "max must be greater than min";

@@ -112,10 +112,15 @@ impl<'a> JitValuePathIter<'a> {
         match c {
             '0'..='9' => {
                 let digit = c as isize - '0' as isize;
-                let value = if negative {
-                    value * 10 - digit
-                } else {
-                    value * 10 + digit
+                let value = value.checked_mul(10).and_then(|value| {
+                    if negative {
+                        value.checked_sub(digit)
+                    } else {
+                        value.checked_add(digit)
+                    }
+                });
+                let Some(value) = value else {
+                    return (Some(Some(BorrowedSegment::Invalid)), JitState::End);
                 };
                 let state = if negative {
                     JitState::NegativeIndex { value }
