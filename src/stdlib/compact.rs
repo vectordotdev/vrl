@@ -340,12 +340,14 @@ mod test {
                 btreemap! {
                     "key1" => "",
                     "key3" => "",
-                }, // expected
+                }
+                .into(), // expected
                 btreemap! {
                     "key1" => "",
                     "key2" => Value::Null,
                     "key3" => "",
-                }, // original
+                }
+                .into(), // original
                 CompactOptions {
                     string: false,
                     ..CompactOptions::default()
@@ -355,12 +357,14 @@ mod test {
                 btreemap! {
                     "key1" => Value::from(1),
                     "key3" => Value::from(2),
-                },
+                }
+                .into(),
                 btreemap! {
                     "key1" => Value::from(1),
                     "key2" => Value::Array(vec![]),
                     "key3" => Value::from(2),
-                },
+                }
+                .into(),
                 CompactOptions::default(),
             ),
             (
@@ -428,12 +432,14 @@ mod test {
                     "key1" => Value::from(1),
                     "key2" => Value::Array(vec![2.into()]),
                     "key3" => Value::from(2),
-                },
+                }
+                .into(),
                 btreemap! {
                     "key1" => Value::from(1),
                     "key2" => Value::Array(vec![Value::Null, 2.into(), Value::Null]),
                     "key3" => Value::from(2),
-                },
+                }
+                .into(),
                 CompactOptions::default(),
             ),
         ];
