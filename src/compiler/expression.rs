@@ -8,6 +8,8 @@ pub use assignment::Assignment;
 pub use block::Block;
 pub use break_::Break;
 pub use container::{Container, Variant};
+pub use continue_::Continue;
+pub use for_loop::{For, ForScopeGuard};
 #[allow(clippy::module_name_repetitions)]
 pub use function::FunctionExpression;
 pub use function_argument::FunctionArgument;
@@ -37,6 +39,8 @@ mod abort;
 mod array;
 mod block;
 pub(crate) mod break_;
+pub(crate) mod continue_;
+pub(crate) mod for_loop;
 mod function_argument;
 mod group;
 mod if_statement;
@@ -122,6 +126,9 @@ pub enum Expr {
     Literal(Literal),
     Container(Container),
     IfStatement(IfStatement),
+    For(For),
+    Break(Break),
+    Continue(Continue),
     Op(Op),
     Assignment(Assignment),
     Query(Query),
@@ -131,14 +138,13 @@ pub enum Expr {
     Unary(Unary),
     Abort(Abort),
     Return(Return),
-    Break(Break),
 }
 
 impl Expr {
     pub fn as_str(&self) -> &str {
         use Expr::{
-            Abort, Assignment, Break, Container, FunctionCall, IfStatement, Literal, Noop, Op,
-            Query, Return, Unary, Variable,
+            Abort, Assignment, Break, Container, Continue, For, FunctionCall, IfStatement, Literal,
+            Noop, Op, Query, Return, Unary, Variable,
         };
         use container::Variant::{Array, Block, Group, Object};
 
@@ -151,6 +157,9 @@ impl Expr {
                 Object(..) => "object",
             },
             IfStatement(..) => "if-statement",
+            For(..) => "for loop",
+            Break(..) => "break",
+            Continue(..) => "continue",
             Op(..) => "operation",
             Assignment(..) => "assignment",
             Query(..) => "query",
@@ -160,7 +169,6 @@ impl Expr {
             Unary(..) => "unary operation",
             Abort(..) => "abort operation",
             Return(..) => "return",
-            Break(..) => "break",
         }
     }
 
@@ -241,8 +249,8 @@ impl Expr {
 impl Expression for Expr {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         use Expr::{
-            Abort, Assignment, Break, Container, FunctionCall, IfStatement, Literal, Noop, Op,
-            Query, Return, Unary, Variable,
+            Abort, Assignment, Break, Container, Continue, For, FunctionCall, IfStatement, Literal,
+            Noop, Op, Query, Return, Unary, Variable,
         };
 
         ctx.checkpoint()?;
@@ -251,6 +259,9 @@ impl Expression for Expr {
             Literal(v) => v.resolve(ctx),
             Container(v) => v.resolve(ctx),
             IfStatement(v) => v.resolve(ctx),
+            For(v) => v.resolve(ctx),
+            Break(v) => v.resolve(ctx),
+            Continue(v) => v.resolve(ctx),
             Op(v) => v.resolve(ctx),
             Assignment(v) => v.resolve(ctx),
             Query(v) => v.resolve(ctx),
@@ -260,7 +271,6 @@ impl Expression for Expr {
             Unary(v) => v.resolve(ctx),
             Abort(v) => v.resolve(ctx),
             Return(v) => v.resolve(ctx),
-            Break(v) => v.resolve(ctx),
         }
     }
 
@@ -291,14 +301,17 @@ impl Expression for Expr {
 
     fn resolve_constant(&self, state: &TypeState) -> Option<Value> {
         use Expr::{
-            Abort, Assignment, Break, Container, FunctionCall, IfStatement, Literal, Noop, Op,
-            Query, Return, Unary, Variable,
+            Abort, Assignment, Break, Container, Continue, For, FunctionCall, IfStatement, Literal,
+            Noop, Op, Query, Return, Unary, Variable,
         };
 
         match self {
             Literal(v) => Expression::resolve_constant(v, state),
             Container(v) => Expression::resolve_constant(v, state),
             IfStatement(v) => Expression::resolve_constant(v, state),
+            For(v) => Expression::resolve_constant(v, state),
+            Break(v) => Expression::resolve_constant(v, state),
+            Continue(v) => Expression::resolve_constant(v, state),
             Op(v) => Expression::resolve_constant(v, state),
             Assignment(v) => Expression::resolve_constant(v, state),
             Query(v) => Expression::resolve_constant(v, state),
@@ -308,20 +321,22 @@ impl Expression for Expr {
             Unary(v) => Expression::resolve_constant(v, state),
             Abort(v) => Expression::resolve_constant(v, state),
             Return(v) => Expression::resolve_constant(v, state),
-            Break(v) => Expression::resolve_constant(v, state),
         }
     }
 
     fn type_info(&self, state: &TypeState) -> TypeInfo {
         use Expr::{
-            Abort, Assignment, Break, Container, FunctionCall, IfStatement, Literal, Noop, Op,
-            Query, Return, Unary, Variable,
+            Abort, Assignment, Break, Container, Continue, For, FunctionCall, IfStatement, Literal,
+            Noop, Op, Query, Return, Unary, Variable,
         };
 
         match self {
             Literal(v) => v.type_info(state),
             Container(v) => v.type_info(state),
             IfStatement(v) => v.type_info(state),
+            For(v) => v.type_info(state),
+            Break(v) => v.type_info(state),
+            Continue(v) => v.type_info(state),
             Op(v) => v.type_info(state),
             Assignment(v) => v.type_info(state),
             Query(v) => v.type_info(state),
@@ -331,7 +346,6 @@ impl Expression for Expr {
             Unary(v) => v.type_info(state),
             Abort(v) => v.type_info(state),
             Return(v) => v.type_info(state),
-            Break(v) => v.type_info(state),
         }
     }
 }
@@ -339,14 +353,17 @@ impl Expression for Expr {
 impl fmt::Display for Expr {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use Expr::{
-            Abort, Assignment, Break, Container, FunctionCall, IfStatement, Literal, Noop, Op,
-            Query, Return, Unary, Variable,
+            Abort, Assignment, Break, Container, Continue, For, FunctionCall, IfStatement, Literal,
+            Noop, Op, Query, Return, Unary, Variable,
         };
 
         match self {
             Literal(v) => v.fmt(f),
             Container(v) => v.fmt(f),
             IfStatement(v) => v.fmt(f),
+            For(v) => v.fmt(f),
+            Break(v) => v.fmt(f),
+            Continue(v) => v.fmt(f),
             Op(v) => v.fmt(f),
             Assignment(v) => v.fmt(f),
             Query(v) => v.fmt(f),
@@ -356,7 +373,6 @@ impl fmt::Display for Expr {
             Unary(v) => v.fmt(f),
             Abort(v) => v.fmt(f),
             Return(v) => v.fmt(f),
-            Break(v) => v.fmt(f),
         }
     }
 }
@@ -435,9 +451,21 @@ impl From<Return> for Expr {
     }
 }
 
+impl From<For> for Expr {
+    fn from(for_: For) -> Self {
+        Expr::For(for_)
+    }
+}
+
 impl From<Break> for Expr {
-    fn from(r#break: Break) -> Self {
-        Expr::Break(r#break)
+    fn from(break_: Break) -> Self {
+        Expr::Break(break_)
+    }
+}
+
+impl From<Continue> for Expr {
+    fn from(continue_: Continue) -> Self {
+        Expr::Continue(continue_)
     }
 }
 

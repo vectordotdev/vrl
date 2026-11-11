@@ -1,0 +1,18 @@
+# result:
+#
+# error[E633]: expected array or object, got null or array
+#   ┌─ :6:10
+#   │
+# 6 │ for x in .val {
+#   │          ^^^^ expected array or object
+#   │
+#   = see language documentation at https://vrl.dev
+#   = try your code in the VRL REPL, learn more at https://vrl.dev/examples
+
+.val = [1, 2]
+if true {
+    .val = null
+}
+for x in .val {
+    x
+}

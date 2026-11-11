@@ -53,6 +53,11 @@ impl Predicate {
             inner: Block::new_inline(inner),
         }
     }
+
+    #[must_use]
+    pub(crate) const fn block(&self) -> &Block {
+        &self.inner
+    }
 }
 
 impl Expression for Predicate {
