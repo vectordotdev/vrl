@@ -1,5 +1,5 @@
 use crate::compiler::prelude::*;
-use std::collections::{BTreeMap, HashMap};
+use std::collections::HashMap;
 
 fn tally(value: Value) -> Resolved {
     let value = value.try_array()?;
@@ -10,7 +10,7 @@ fn tally(value: Value) -> Resolved {
         };
         *map.entry(text.into_owned()).or_insert(0) += 1;
     }
-    let map: BTreeMap<_, _> = map
+    let map: ObjectMap = map
         .into_iter()
         .map(|(k, v)| (k.into(), Value::from(v)))
         .collect();

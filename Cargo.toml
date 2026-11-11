@@ -350,3 +350,13 @@ harness = false
 name = "value_insert"
 harness = false
 required-features = ["value"]
+
+[[bench]]
+name = "layout"
+harness = false
+required-features = ["default", "test"]
+
+[[bench]]
+name = "large_objects"
+harness = false
+required-features = ["default", "test"]
