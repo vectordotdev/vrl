@@ -841,6 +841,7 @@ mod tests {
     #[test]
     fn negative_int_type() {
         let attempts_val = -5;
+        let conversion_error = usize::try_from(attempts_val).unwrap_err();
         let result = execute_dns_lookup_with_expected_error(&DnsLookupFn {
             value: expr!("dns.google"),
             options: Some(expr!({"attempts": attempts_val})),
@@ -849,7 +850,9 @@ mod tests {
 
         assert_eq!(
             result.message(),
-            "attempts has to be a positive integer, got: -5. (out of range integral type conversion attempted)"
+            format!(
+                "attempts has to be a positive integer, got: {attempts_val}. ({conversion_error})"
+            )
         );
     }
 
