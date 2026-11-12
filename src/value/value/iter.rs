@@ -199,26 +199,23 @@ impl<'a> Iterator for ValueIter<'a> {
 
             // The same principle as above applies here, except for array
             // collection types.
-            IterData::Array(array) => match array.get_mut(self.index) {
-                Some(value) => {
-                    if value.is_object() || value.is_array() {
-                        // We *only* want to recurse deeper into nested
-                        // collections, if requested by the caller.
-                        self.must_prepare_recursion = self.recursive;
-                    }
-
-                    // SAFETY:
-                    //
-                    // - We borrow each item in the collection *exactly once*.
-                    // - We take a `&mut self`, so we also only borrow the
-                    //   collection itself exactly once.
-                    let value_mut = unsafe { &mut *std::ptr::addr_of_mut!(*value) };
-
-                    IterItem::IndexValue(self.index, value_mut)
+            IterData::Array(array) => {
+                let value = array.get_mut(self.index)?;
+                if value.is_object() || value.is_array() {
+                    // We *only* want to recurse deeper into nested
+                    // collections, if requested by the caller.
+                    self.must_prepare_recursion = self.recursive;
                 }
 
-                None => return None,
-            },
+                // SAFETY:
+                //
+                // - We borrow each item in the collection *exactly once*.
+                // - We take a `&mut self`, so we also only borrow the
+                //   collection itself exactly once.
+                let value_mut = unsafe { &mut *std::ptr::addr_of_mut!(*value) };
+
+                IterItem::IndexValue(self.index, value_mut)
+            }
 
             // The `IterData::Value` variant indicates we want to return
             // a non-recursive value. This could also be a collection type, if

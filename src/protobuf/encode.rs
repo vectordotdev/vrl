@@ -189,12 +189,8 @@ fn convert_value_raw(
                     let mut map: HashMap<MapKey, prost_reflect::Value> = HashMap::new();
                     for (key, val) in o {
                         let map_key = parse_map_key(&key_kind, &key)?;
-                        match convert_value(&value_field, val, options) {
-                            Ok(prost_val) => {
-                                map.insert(map_key, prost_val);
-                            }
-                            Err(e) => return Err(e),
-                        }
+                        let prost_val = convert_value(&value_field, val, options)?;
+                        map.insert(map_key, prost_val);
                     }
                     Ok(prost_reflect::Value::Map(map))
                 } else {
