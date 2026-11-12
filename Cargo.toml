@@ -22,7 +22,6 @@ members = [
   "lib/fuzz",
   "lib/docs",
   "release",
-  "vdev",
 ]
 default-members = ["."]
 

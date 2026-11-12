@@ -96,6 +96,10 @@ jobs:
           ref: ${{ env.BASE_SHA }}
           path: .deny-base
           persist-credentials: false
+      - name: Install cargo-binstall
+        uses: cargo-bins/cargo-binstall@5885714d0a40a14b2535c6ffc051fd8e49aa9665
+        with:
+          version: v1.27.0
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
       - name: "Check dependencies with cargo-deny"
         if: env.BASE_SHA == ''
