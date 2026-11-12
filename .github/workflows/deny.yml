@@ -1,7 +1,7 @@
 # A separate full scan lets #vector-ops subscribe through the GitHub Slack app
 # without receiving failures from unrelated Test Suite jobs. Daily scans also
 # catch advisories published when there are no new commits.
-# In #vector-ops, configure the GitHub app after this workflow is merged:
+# GitHub app subscription configured in #vector-ops:
 # /github subscribe vectordotdev/vrl workflows:{name:"Deny - Linux" event:"push","schedule","workflow_dispatch" branch:"main"}
 name: Deny - Linux
 

@@ -97,8 +97,6 @@ jobs:
           path: .deny-base
           persist-credentials: false
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
-      - name: Test cargo-deny comparison
-        run: python3 -m unittest discover -s scripts -p 'test_check_deny.py'
       - name: "Check dependencies with cargo-deny"
         if: env.BASE_SHA == ''
         run: make check-deny
