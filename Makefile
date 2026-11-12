@@ -61,7 +61,7 @@ check-msrv: ## Verify MSRV
 
 install-vdev: ## Install the pinned, prebuilt vdev CLI (requires cargo-binstall)
 	@if ! $(VDEV) --version 2>/dev/null | grep -qx 'vdev $(VDEV_VERSION)'; then \
-		cargo binstall vdev --version '=$(VDEV_VERSION)' --no-confirm --force --strategies crate-meta-data; \
+		cargo binstall vdev --version "$(VDEV_VERSION)" --no-confirm --strategies crate-meta-data; \
 	fi
 
 check-deny: install-vdev ## Run cargo-deny checks
