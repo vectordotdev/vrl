@@ -1,5 +1,5 @@
 .PHONY: help all check-clippy fmt fmt-check test vrl-test \
-	check-typos check-features check-licenses write-licenses check-msrv check-deny check-deny-new check-wasm32 \
+	check-typos check-features check-licenses write-licenses check-msrv check-deny check-wasm32 \
 	check-docs check-lockfile generate-docs install-vdev
 
 CARGO_DENY_VERSION        := 0.18.9
@@ -64,13 +64,9 @@ install-vdev: ## Install the pinned, prebuilt vdev CLI (requires cargo-binstall)
 		cargo binstall vdev --version "$(VDEV_VERSION)" --no-confirm --strategies crate-meta-data; \
 	fi
 
-check-deny: install-vdev ## Run cargo-deny checks
+check-deny: install-vdev ## Run cargo-deny checks, optionally comparing against BASE_DIR
 	$(call ensure-cargo-tool,cargo-deny,$(CARGO_DENY_VERSION))
-	$(VDEV) check deny --deny-warnings=false --allow ''
-
-check-deny-new: install-vdev ## Only fail on cargo-deny errors absent from BASE_DIR
-	$(call ensure-cargo-tool,cargo-deny,$(CARGO_DENY_VERSION))
-	$(VDEV) check deny --deny-warnings=false --allow '' --base-dir "$(BASE_DIR)"
+	$(VDEV) check deny --deny-warnings=false --allow '' $(if $(BASE_DIR),--base-dir "$(BASE_DIR)")
 
 check-wasm32: ## Check wasm32-unknown-unknown build of the stdlib
 	rustup target add wasm32-unknown-unknown

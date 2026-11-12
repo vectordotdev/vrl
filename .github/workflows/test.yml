@@ -106,7 +106,7 @@ jobs:
         run: make check-deny
       - name: Check for new cargo-deny errors
         if: env.BASE_SHA != ''
-        run: make check-deny-new BASE_DIR=.deny-base
+        run: make check-deny BASE_DIR=.deny-base
 
   check-docs:
     runs-on: ubuntu-latest
