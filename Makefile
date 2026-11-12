@@ -1,5 +1,5 @@
 .PHONY: help all check-clippy fmt fmt-check test vrl-test \
-	check-typos check-features check-licenses write-licenses check-msrv check-deny check-wasm32 \
+	check-typos check-features check-licenses write-licenses check-msrv check-deny check-deny-new check-wasm32 \
 	check-docs check-lockfile generate-docs
 
 CARGO_DENY_VERSION        := 0.18.9
@@ -60,6 +60,10 @@ check-msrv: ## Verify MSRV
 check-deny: ## Run cargo-deny checks
 	$(call ensure-cargo-tool,cargo-deny,$(CARGO_DENY_VERSION))
 	cargo deny --log-level error --all-features check all
+
+check-deny-new: ## Only fail on cargo-deny errors absent from BASE_DIR
+	$(call ensure-cargo-tool,cargo-deny,$(CARGO_DENY_VERSION))
+	python3 scripts/check_deny.py --base-dir "$(BASE_DIR)"
 
 check-wasm32: ## Check wasm32-unknown-unknown build of the stdlib
 	rustup target add wasm32-unknown-unknown
