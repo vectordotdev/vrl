@@ -2,8 +2,8 @@
 	check-typos check-features check-licenses write-licenses check-msrv check-deny check-wasm32 \
 	check-docs check-lockfile generate-docs install-vdev
 
-CARGO_DENY_VERSION        := 0.18.9
-VDEV_VERSION              := 0.3.45
+CARGO_DENY_VERSION        := 0.20.2
+VDEV_VERSION              := 0.3.44
 VDEV                      ?= vdev
 CARGO_HACK_VERSION        := 0.5.29
 CARGO_MSRV_VERSION        := 0.17.1
@@ -66,7 +66,7 @@ install-vdev: ## Install the pinned, prebuilt vdev CLI (requires cargo-binstall)
 
 check-deny: install-vdev ## Run cargo-deny checks, optionally comparing against BASE_DIR
 	$(call ensure-cargo-tool,cargo-deny,$(CARGO_DENY_VERSION))
-	$(VDEV) check deny --deny-warnings=false --allow '' $(if $(BASE_DIR),--base-dir "$(BASE_DIR)")
+	$(VDEV) check deny $(if $(BASE_DIR),--base-dir "$(BASE_DIR)")
 
 check-wasm32: ## Check wasm32-unknown-unknown build of the stdlib
 	rustup target add wasm32-unknown-unknown
