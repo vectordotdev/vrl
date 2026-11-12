@@ -165,8 +165,8 @@ mod test {
                 ),
             ),
             (
-                "{1, '2', 0.57721566}",
-                Value::Array(vec![1_i64.into(), "2".into(), 0.577_215_66.into()]),
+                "{1, '2', 0.56721566}",
+                Value::Array(vec![1_i64.into(), "2".into(), 0.567_215_66.into()]),
             ),
             (
                 "os.date('!*t', 1584297428)",
@@ -264,12 +264,12 @@ mod test {
                 ",
             ),
             (
-                Value::Array(vec![1_i64.into(), "2".into(), 0.577_215_66.into()]),
+                Value::Array(vec![1_i64.into(), "2".into(), 0.567_215_66.into()]),
                 "
                 function (value)
                     return value[1] == 1 and
                         value[2] == '2' and
-                        value[3] == 0.57721566
+                        value[3] == 0.56721566
                 end
                 ",
             ),
