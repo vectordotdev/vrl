@@ -85,11 +85,28 @@ jobs:
 
   check-deny:
     runs-on: ubuntu-latest
+    env:
+      BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Checkout base revision
+        if: env.BASE_SHA != ''
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.BASE_SHA }}
+          path: .deny-base
+          persist-credentials: false
+      - name: Install cargo-binstall
+        uses: cargo-bins/cargo-binstall@5885714d0a40a14b2535c6ffc051fd8e49aa9665
+        with:
+          version: v1.27.0
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
       - name: "Check dependencies with cargo-deny"
+        if: env.BASE_SHA == ''
         run: make check-deny
+      - name: Check for new cargo-deny errors
+        if: env.BASE_SHA != ''
+        run: make check-deny BASE_DIR=.deny-base
 
   check-docs:
     runs-on: ubuntu-latest
