@@ -10,20 +10,10 @@ pub fn get_mut<'a>(
         match (path_iter.next(), value) {
             (None, value) => return Some(value),
             (Some(BorrowedSegment::Field(key)), Value::Object(map)) => {
-                match map.get_mut_value(key.as_ref()) {
-                    None => return None,
-                    Some(nested_value) => {
-                        value = nested_value;
-                    }
-                }
+                value = map.get_mut_value(key.as_ref())?;
             }
             (Some(BorrowedSegment::Index(index)), Value::Array(array)) => {
-                match array.get_mut_value(&index) {
-                    None => return None,
-                    Some(nested_value) => {
-                        value = nested_value;
-                    }
-                }
+                value = array.get_mut_value(&index)?;
             }
             _ => return None,
         }
