@@ -44,7 +44,7 @@ fn parse_aws_cloudwatch_log_subscription_message(bytes: Value) -> Resolved {
     let bytes = bytes.try_bytes()?;
     let message = serde_json::from_slice::<AwsCloudWatchLogsSubscriptionMessage>(&bytes)
         .map_err(|e| format!("unable to parse: {e}"))?;
-    let map = Value::from(BTreeMap::from([
+    let map = Value::from(ObjectMap::from([
         (KeyString::from("owner"), Value::from(message.owner)),
         (
             KeyString::from("message_type"),
@@ -66,7 +66,7 @@ fn parse_aws_cloudwatch_log_subscription_message(bytes: Value) -> Resolved {
                     .log_events
                     .into_iter()
                     .map(|event| {
-                        Value::from(BTreeMap::from([
+                        Value::from(ObjectMap::from([
                             (KeyString::from("id"), Value::from(event.id)),
                             (KeyString::from("timestamp"), Value::from(event.timestamp)),
                             (KeyString::from("message"), Value::from(event.message)),

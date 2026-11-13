@@ -37,8 +37,8 @@ impl Error for EncodingError {
 /// # Errors
 ///
 /// Returns an `EncodingError` if the input contains non-`String` map keys.
-pub fn to_string<V: Serialize>(
-    input: &BTreeMap<KeyString, V>,
+pub fn to_string<'a, V: Serialize + 'a>(
+    input: impl IntoIterator<Item = (&'a KeyString, &'a V)> + 'a,
     fields_order: &[KeyString],
     key_value_delimiter: &str,
     field_delimiter: &str,
