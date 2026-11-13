@@ -29,6 +29,12 @@ impl Deref for Array {
     }
 }
 
+impl std::ops::DerefMut for Array {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
+
 impl Expression for Array {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         self.inner
