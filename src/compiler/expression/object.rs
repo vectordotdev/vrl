@@ -56,7 +56,7 @@ impl Object {
         self.inner
             .iter()
             .map(|(key, expr)| literal_expr_value(expr).map(|v| (key.clone(), v)))
-            .collect::<Option<BTreeMap<_, _>>>()
+            .collect::<Option<ObjectMap>>()
             .map(Value::Object)
     }
 
