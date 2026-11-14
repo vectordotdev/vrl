@@ -1,5 +1,3 @@
-use std::collections::BTreeMap;
-
 use crate::compiler::expression::{Expr, Variant};
 use crate::compiler::prelude::*;
 use crate::path::OwnedValuePath;
@@ -165,7 +163,7 @@ fn structural_constant(expr: &Expr) -> Option<Value> {
                 Variant::Object(object) => object
                     .iter()
                     .map(|(key, expr)| literal_expr(expr).map(|v| (key.clone(), v)))
-                    .collect::<Option<BTreeMap<_, _>>>()
+                    .collect::<Option<ObjectMap>>()
                     .map(Value::Object),
                 Variant::Array(array) => array
                     .iter()
@@ -223,6 +221,7 @@ impl FunctionExpression for GetConstantFn {
 mod tests {
     use super::*;
     use crate::value;
+    use std::collections::BTreeMap;
 
     test_function![
         get => Get;
