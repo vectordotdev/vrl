@@ -17,6 +17,7 @@ concurrency:
 
 jobs:
   verify:
+    if: github.repository == 'vectordotdev/vrl'
     # Runs repository and dependency code (build scripts, the release tool). It has no
     # `id-token: write`, so that code cannot request an OIDC token and exchange it for
     # crates.io credentials.

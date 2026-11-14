@@ -21,7 +21,7 @@ env:
 
 jobs:
   download:
-    if: github.event.workflow_run.conclusion == 'success'
+    if: github.event.workflow_run.conclusion == 'success' && github.repository == 'vectordotdev/vrl'
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:

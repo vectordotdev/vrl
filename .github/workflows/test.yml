@@ -28,6 +28,8 @@ env:
 
 jobs:
   clippy:
+    # Keep PR checks on forks, but skip runs when syncing their default branch.
+    if: github.event_name != 'push' || github.repository == 'vectordotdev/vrl'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -36,6 +38,7 @@ jobs:
         run: make check-clippy
 
   fmt:
+    if: github.event_name != 'push' || github.repository == 'vectordotdev/vrl'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -44,6 +47,7 @@ jobs:
         run: make fmt-check
 
   test:
+    if: github.event_name != 'push' || github.repository == 'vectordotdev/vrl'
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -56,6 +60,7 @@ jobs:
         run: make test
 
   vrl:
+    if: github.event_name != 'push' || github.repository == 'vectordotdev/vrl'
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -68,6 +73,7 @@ jobs:
         run: make vrl-test
 
   check-licenses:
+    if: github.event_name != 'push' || github.repository == 'vectordotdev/vrl'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -76,6 +82,7 @@ jobs:
         run: make check-licenses
 
   check-msrv:
+    if: github.event_name != 'push' || github.repository == 'vectordotdev/vrl'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -84,6 +91,7 @@ jobs:
         run: make check-msrv
 
   check-deny:
+    if: github.event_name != 'push' || github.repository == 'vectordotdev/vrl'
     runs-on: ubuntu-latest
     env:
       BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
@@ -109,6 +117,7 @@ jobs:
         run: make check-deny BASE_DIR=.deny-base
 
   check-docs:
+    if: github.event_name != 'push' || github.repository == 'vectordotdev/vrl'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -117,6 +126,7 @@ jobs:
         run: make check-docs
 
   check-lockfile:
+    if: github.event_name != 'push' || github.repository == 'vectordotdev/vrl'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -125,6 +135,7 @@ jobs:
         run: make check-lockfile
 
   wasm32-unknown-unknown:
+    if: github.event_name != 'push' || github.repository == 'vectordotdev/vrl'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

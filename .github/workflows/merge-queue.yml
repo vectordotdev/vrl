@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   check-features:
-    if: ${{ github.event_name == 'merge_group' }}
+    if: ${{ github.event_name == 'merge_group' && github.repository == 'vectordotdev/vrl' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -22,7 +22,7 @@ jobs:
     # A release PR is prepared from a fixed `main` commit. If another PR lands first,
     # its changelog fragment stays in `changelog.d/` at the release commit and the
     # release changelog misses it. Reject that group so the release is prepared again.
-    if: ${{ github.event_name == 'merge_group' }}
+    if: ${{ github.event_name == 'merge_group' && github.repository == 'vectordotdev/vrl' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -43,7 +43,7 @@ jobs:
           cargo run -q -p release -- release-commit --before "$BASE_SHA"
 
   merge-queue:
-    if: always()
+    if: always() && github.repository == 'vectordotdev/vrl'
     needs:
       - check-features
       - check-release

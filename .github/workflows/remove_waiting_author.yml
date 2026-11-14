@@ -1,7 +1,7 @@
 name: Remove Awaiting Author Label
 
 on:
-  pull_request:
+  pull_request_target:
     types: [synchronize, review_requested]
 
 permissions:
@@ -9,12 +9,12 @@ permissions:
 
 jobs:
   remove_label:
+    if: github.repository == 'vectordotdev/vrl'
     runs-on: ubuntu-latest
     permissions:
       contents: read
       pull-requests: write
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions-ecosystem/action-remove-labels@2ce5d41b4b6aa8503e285553f75ed56e0a40bae0 # v1.3.0
         with:
           labels: "meta:awaiting author"

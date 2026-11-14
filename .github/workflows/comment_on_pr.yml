@@ -14,7 +14,8 @@ permissions:
 jobs:
   generated-docs:
     if: >
-      github.event.workflow_run.name == 'Check Generated Docs Freshness'
+      github.repository == 'vectordotdev/vrl'
+      && github.event.workflow_run.name == 'Check Generated Docs Freshness'
       && github.event.workflow_run.conclusion == 'failure'
       && github.event.workflow_run.event == 'pull_request'
     runs-on: ubuntu-latest
@@ -95,7 +96,8 @@ jobs:
 
   vector-compatibility:
     if: >
-      github.event.workflow_run.name == 'Vector Compatibility Advisory'
+      github.repository == 'vectordotdev/vrl'
+      && github.event.workflow_run.name == 'Vector Compatibility Advisory'
       && github.event.workflow_run.conclusion == 'success'
       && github.event.workflow_run.event == 'pull_request'
     runs-on: ubuntu-latest

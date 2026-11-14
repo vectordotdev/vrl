@@ -10,6 +10,7 @@ permissions:
 jobs:
   check-vector:
     name: Vector compatibility (advisory)
+    if: github.repository == 'vectordotdev/vrl'
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout VRL
