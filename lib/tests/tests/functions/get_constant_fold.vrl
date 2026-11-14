@@ -1,0 +1,15 @@
+# `get` with a structurally literal value argument (an inline lookup table)
+# is resolved once at compile time. A literal that references a variable must
+# NOT be folded: an earlier-resolved argument (here: the path) can mutate the
+# variable at runtime before the value argument is resolved (vectordotdev/vrl#1799 class).
+# result: {"dynamic_key": 21, "nested": 42, "unknown_key": null, "mutated": "bar"}
+
+sev = "emerg"
+.dynamic_key = get({"emerg": 21, "info": 9}, [sev]) ?? -1
+.nested = get({"tables": [92, 42]}, ["tables", -1]) ?? -1
+.unknown_key = get({"emerg": 21}, [sev, "deeper"]) ?? null
+
+pat = "foo"
+.mutated = get({"k": pat}, [{ pat = "bar"; "k" }]) ?? "fallback"
+
+{"dynamic_key": .dynamic_key, "nested": .nested, "unknown_key": .unknown_key, "mutated": .mutated}
