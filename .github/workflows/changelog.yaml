@@ -22,7 +22,7 @@ permissions:
 jobs:
   validate-changelog:
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' && github.repository == 'vectordotdev/vrl'
     env:
       PR_HAS_LABEL: ${{ contains( github.event.pull_request.labels.*.name, 'no-changelog') }}
     steps:
@@ -48,7 +48,7 @@ jobs:
     name: Changelog
     runs-on: ubuntu-latest
     needs: validate-changelog
-    if: always()
+    if: always() && github.repository == 'vectordotdev/vrl'
     env:
       FAILED: ${{ contains(needs.*.result, 'failure') }}
     steps:

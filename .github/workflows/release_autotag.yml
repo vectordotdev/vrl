@@ -25,6 +25,7 @@ concurrency:
 
 jobs:
   tag:
+    if: github.repository == 'vectordotdev/vrl'
     name: Create release tag
     runs-on: ubuntu-latest
     timeout-minutes: 15

@@ -26,6 +26,7 @@ concurrency:
 
 jobs:
   generate:
+    if: github.repository == 'vectordotdev/vrl'
     name: Generate release files
     runs-on: ubuntu-latest
     timeout-minutes: 30

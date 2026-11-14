@@ -36,6 +36,7 @@ env:
 
 jobs:
   add_label:
+    if: github.repository == 'vectordotdev/vrl'
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
