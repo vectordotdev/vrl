@@ -4,6 +4,7 @@
 #![allow(clippy::cast_possible_wrap, clippy::cast_sign_loss)]
 
 pub mod kind;
+pub mod regex_capture;
 pub mod secrets;
 
 #[allow(clippy::module_inception)]

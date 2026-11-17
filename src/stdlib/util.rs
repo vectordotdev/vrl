@@ -6,6 +6,8 @@ cfg_if::cfg_if! {
 }
 
 use crate::value::{KeyString, ObjectMap, Value};
+use std::{cell::RefCell, sync::Arc};
+use thread_local::ThreadLocal;
 
 pub(crate) const DYNAMIC_REGEX_NOTICE: &str = indoc::indoc! {"
     When `pattern` is a dynamic expression (e.g. a variable or the result of `to_regex`),
@@ -36,14 +38,42 @@ where
 pub(crate) struct RegexWithCaptureInfo {
     pub regex: regex::Regex,
     pub capture_info: Vec<(KeyString, usize)>,
+    scratch: Arc<ThreadLocal<RefCell<regex::CaptureLocations>>>,
 }
 
 impl RegexWithCaptureInfo {
+    pub fn capture_map(
+        &self,
+        subject: &str,
+        numeric: bool,
+        mode: crate::value::regex_capture::RegexCaptureMapMode,
+    ) -> Option<ObjectMap> {
+        let scratch = self
+            .scratch
+            .get_or(|| RefCell::new(self.regex.capture_locations()));
+        // A reentrant invocation uses independent scratch rather than panicking.
+        if let Ok(mut locations) = scratch.try_borrow_mut() {
+            self.regex.captures_read(&mut locations, subject)?;
+            let capture = crate::value::regex_capture::LocatedCaptures::new(subject, &locations);
+            Some(capture_regex_to_map_with_mode(
+                &capture,
+                &self.capture_info,
+                numeric,
+                mode,
+            ))
+        } else {
+            self.regex.captures(subject).map(|capture| {
+                capture_regex_to_map_with_mode(&capture, &self.capture_info, numeric, mode)
+            })
+        }
+    }
+
     pub fn new(regex: regex::Regex) -> Self {
         let capture_info = build_capture_info(&regex);
         Self {
             regex,
             capture_info,
+            scratch: Arc::new(ThreadLocal::new()),
         }
     }
 }
@@ -66,27 +96,20 @@ pub(crate) fn build_capture_info(regex: &regex::Regex) -> Vec<(KeyString, usize)
 /// (computed once at VRL compile time).  Group indices allow direct O(1)
 /// array access via [`regex::Captures::get`] instead of name-based hash
 /// lookups.
-pub(crate) fn capture_regex_to_map(
-    capture: &regex::Captures,
+pub(crate) fn capture_regex_to_map_with_mode<
+    C: crate::value::regex_capture::CaptureGroups + ?Sized,
+>(
+    capture: &C,
     capture_info: &[(KeyString, usize)],
     numeric_groups: bool,
+    mode: crate::value::regex_capture::RegexCaptureMapMode,
 ) -> ObjectMap {
-    let names = capture_info.iter().map(|(name, idx)| {
-        let value: Value = capture.get(*idx).map(|m| m.as_str()).into();
-        (name.clone(), value)
-    });
-
-    if numeric_groups {
-        let indexed = capture
-            .iter()
-            .flatten()
-            .enumerate()
-            .map(|(idx, c)| (KeyString::from(idx.to_string()), c.as_str().into()));
-
-        indexed.chain(names).collect()
-    } else {
-        names.collect()
-    }
+    crate::value::regex_capture::RegexCaptureMap::new(
+        capture,
+        mode,
+        numeric_groups || !capture_info.is_empty(),
+    )
+    .materialize(capture_info, numeric_groups)
 }
 
 pub(crate) fn regex_kind(
@@ -107,6 +130,62 @@ pub(crate) fn regex_kind(
     }
 
     inner_type
+}
+
+#[cfg(test)]
+mod regex_capture_cache_tests {
+    use super::*;
+    use crate::value::regex_capture::RegexCaptureMapMode;
+
+    #[test]
+    fn reused_capture_locations_clear_optional_groups_and_support_reentry() {
+        let regex = regex::Regex::new(r"(?P<a>a)(?P<b>b)?").unwrap();
+        let pattern = RegexWithCaptureInfo::new(regex);
+        for mode in [RegexCaptureMapMode::Owned, RegexCaptureMapMode::Shared] {
+            assert_eq!(
+                pattern.capture_map("ab", false, mode).unwrap()["b"],
+                Value::from("b")
+            );
+            assert_eq!(
+                pattern.capture_map("a", false, mode).unwrap()["b"],
+                Value::Null
+            );
+            assert!(pattern.capture_map("c", false, mode).is_none());
+            let held = pattern
+                .scratch
+                .get_or(|| RefCell::new(pattern.regex.capture_locations()))
+                .borrow_mut();
+            assert_eq!(
+                pattern.capture_map("ab", false, mode).unwrap()["a"],
+                Value::from("a")
+            );
+            drop(held);
+        }
+    }
+
+    #[test]
+    fn worker_clones_keep_capture_storage_isolated() {
+        let pattern = RegexWithCaptureInfo::new(regex::Regex::new(r"(?P<word>\w+)").unwrap());
+        let threads: Vec<_> = (0..8)
+            .map(|index| {
+                let pattern = pattern.clone();
+                std::thread::spawn(move || {
+                    let text = format!("worker{index}");
+                    for _ in 0..100 {
+                        assert_eq!(
+                            pattern
+                                .capture_map(&text, false, RegexCaptureMapMode::Shared)
+                                .unwrap()["word"],
+                            Value::from(text.as_str())
+                        );
+                    }
+                })
+            })
+            .collect();
+        for thread in threads {
+            thread.join().unwrap();
+        }
+    }
 }
 
 pub(crate) fn is_nullish(value: &Value) -> bool {

@@ -4629,6 +4629,7 @@ dependencies = [
  "syslog_loose",
  "termcolor",
  "thiserror 2.0.20",
+ "thread_local",
  "tokio",
  "tracing",
  "tracing-test",

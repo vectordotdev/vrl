@@ -27,11 +27,20 @@ fn parse_regex_all(
     pattern: &Regex,
     capture_info: &[(KeyString, usize)],
     numeric_groups: bool,
+    capture_map: crate::value::regex_capture::RegexCaptureMapMode,
 ) -> Resolved {
     let value = value.try_bytes_utf8_lossy()?;
     Ok(pattern
         .captures_iter(&value)
-        .map(|capture| util::capture_regex_to_map(&capture, capture_info, numeric_groups).into())
+        .map(|capture| {
+            util::capture_regex_to_map_with_mode(
+                &capture,
+                capture_info,
+                numeric_groups,
+                capture_map,
+            )
+            .into()
+        })
         .collect::<Vec<Value>>()
         .into())
 }
@@ -96,7 +105,7 @@ impl Function for ParseRegexAll {
     fn compile(
         &self,
         state: &state::TypeState,
-        _ctx: &mut FunctionCompileContext,
+        ctx: &mut FunctionCompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
@@ -105,11 +114,16 @@ impl Function for ParseRegexAll {
             ConstOrExpr::Expr(e) => ConstOrExpr::Expr(e),
         };
         let numeric_groups = arguments.optional("numeric_groups");
+        let capture_map = ctx
+            .get_external_context::<crate::value::regex_capture::RegexCaptureMapMode>()
+            .copied()
+            .unwrap_or_default();
 
         Ok(ParseRegexAllFn {
             value,
             pattern,
             numeric_groups,
+            capture_map,
         }
         .as_expr())
     }
@@ -172,6 +186,7 @@ pub(crate) struct ParseRegexAllFn {
     value: Box<dyn Expression>,
     pattern: ConstOrExpr<RegexWithCaptureInfo>,
     numeric_groups: Option<Box<dyn Expression>>,
+    capture_map: crate::value::regex_capture::RegexCaptureMapMode,
 }
 
 impl FunctionExpression for ParseRegexAllFn {
@@ -188,6 +203,7 @@ impl FunctionExpression for ParseRegexAllFn {
                 &pattern.regex,
                 &pattern.capture_info,
                 numeric_groups,
+                self.capture_map,
             ),
             ConstOrExpr::Expr(expr) => {
                 let resolved = expr.resolve(ctx)?;
@@ -195,7 +211,13 @@ impl FunctionExpression for ParseRegexAllFn {
                     .as_regex()
                     .ok_or_else(|| ExpressionError::from("failed to resolve regex"))?;
                 let dynamic_capture_info = util::build_capture_info(pattern);
-                parse_regex_all(&value, pattern, &dynamic_capture_info, numeric_groups)
+                parse_regex_all(
+                    &value,
+                    pattern,
+                    &dynamic_capture_info,
+                    numeric_groups,
+                    self.capture_map,
+                )
             }
         }
     }
