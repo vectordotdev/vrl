@@ -54,7 +54,7 @@ macro_rules! bench_function {
                     let expression = expression.unwrap();
                     let mut runtime_state = $crate::compiler::state::RuntimeState::default();
                     let mut target: $crate::value::Value = ::std::collections::BTreeMap::default().into();
-                    let tz = $crate::compiler::TimeZone::Named(chrono_tz::Tz::UTC);
+                    let tz = $crate::compiler::TimeZone::Named(jiff::tz::TimeZone::UTC);
                     let mut ctx = $crate::compiler::Context::new(&mut target, &mut runtime_state, &tz);
 
                     b.iter(|| {
@@ -80,7 +80,7 @@ macro_rules! bench_query_function {
 
                     let (expression, want) = $crate::__prep_bench_or_test!($func, &state, $args, $(Ok($crate::value::Value::from($ok)))? $(Err($err.to_owned()))?);
                     let expression = expression.unwrap();
-                    let tz = $crate::compiler::TimeZone::Named(chrono_tz::Tz::UTC);
+                    let tz = $crate::compiler::TimeZone::Named(jiff::tz::TimeZone::UTC);
                     let event: $crate::value::Value = $event.into();
 
                     b.iter_batched(|| {
@@ -103,7 +103,7 @@ macro_rules! bench_query_function {
 macro_rules! test_function {
 
     ($name:tt => $func:path; $($case:ident { args: $args:expr_2021, want: $(Ok($ok:expr_2021))? $(Err($err:expr_2021))?, tdef: $tdef:expr_2021,  $(,)* })+) => {
-        test_function!($name => $func; before_each => {} $($case { args: $args, want: $(Ok($ok))? $(Err($err))?, tdef: $tdef, tz: $crate::compiler::TimeZone::Named(chrono_tz::Tz::UTC), })+);
+        test_function!($name => $func; before_each => {} $($case { args: $args, want: $(Ok($ok))? $(Err($err))?, tdef: $tdef, tz: $crate::compiler::TimeZone::Named(jiff::tz::TimeZone::UTC), })+);
     };
 
     ($name:tt => $func:path; $($case:ident { args: $args:expr_2021, want: $(Ok($ok:expr_2021))? $(Err($err:expr_2021))?, tdef: $tdef:expr_2021, tz: $tz:expr_2021,  $(,)* })+) => {
@@ -111,7 +111,7 @@ macro_rules! test_function {
     };
 
     ($name:tt => $func:path; before_each => $before:block $($case:ident { args: $args:expr_2021, want: $(Ok($ok:expr_2021))? $(Err($err:expr_2021))?, tdef: $tdef:expr_2021,  $(,)* })+) => {
-        test_function!($name => $func; before_each => $before $($case { args: $args, want: $(Ok($ok))? $(Err($err))?, tdef: $tdef, tz: $crate::compiler::TimeZone::Named(chrono_tz::Tz::UTC), })+);
+        test_function!($name => $func; before_each => $before $($case { args: $args, want: $(Ok($ok))? $(Err($err))?, tdef: $tdef, tz: $crate::compiler::TimeZone::Named(jiff::tz::TimeZone::UTC), })+);
     };
 
     ($name:tt => $func:path; before_each => $before:block $($case:ident { args: $args:expr_2021, want: $(Ok($ok:expr_2021))? $(Err($err:expr_2021))?, tdef: $tdef:expr_2021, tz: $tz:expr_2021,  $(,)* })+) => {

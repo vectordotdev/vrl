@@ -87,15 +87,12 @@ impl FunctionExpression for IsTimestampFn {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use chrono::{DateTime, Utc};
 
     test_function![
         is_timestamp => IsTimestamp;
 
         timestamp {
-            args: func_args![value: value!(DateTime::parse_from_rfc2822("Wed, 17 Mar 2021 12:00:00 +0000")
-                .unwrap()
-                .with_timezone(&Utc))],
+            args: func_args![value: value!(jiff::fmt::rfc2822::parse("Wed, 17 Mar 2021 12:00:00 +0000").unwrap().timestamp())],
             want: Ok(value!(true)),
             tdef: TypeDef::boolean().infallible(),
         }

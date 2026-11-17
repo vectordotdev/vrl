@@ -1,7 +1,6 @@
 #[path = "runtime/variable_reads.rs"]
 mod variable_reads;
 
-use chrono::{DateTime, Datelike, TimeZone, Utc};
 use constcat::concat;
 use criterion::{Criterion, criterion_group, criterion_main};
 use regex::Regex;
@@ -681,7 +680,7 @@ bench_function! {
     format_timestamp => vrl::stdlib::FormatTimestamp;
 
     iso_6801 {
-        args: func_args![value: Utc.timestamp_opt(10, 0).single().expect("invalid timestamp"), format: "%+"],
+        args: func_args![value: jiff::Timestamp::new(10, 0).unwrap(), format: "%+"],
         want: Ok("1970-01-01T00:00:10+00:00"),
     }
 }
@@ -710,7 +709,7 @@ bench_function! {
 
     get {
         args: func_args![],
-        want: Ok(vrl::stdlib::get_name_for_timezone(&vrl::compiler::TimeZone::Named(chrono_tz::Tz::UTC))),
+        want: Ok(vrl::stdlib::get_name_for_timezone(&vrl::compiler::TimeZone::Named(jiff::tz::TimeZone::UTC))),
     }
 }
 
@@ -1122,7 +1121,7 @@ bench_function! {
     is_timestamp => vrl::stdlib::IsTimestamp;
 
     string {
-        args: func_args![value: Utc.with_ymd_and_hms(2021, 1, 1, 0, 0, 0).unwrap()],
+        args: func_args![value: jiff::civil::datetime(2021, 1, 1, 0, 0, 0, 0).to_zoned(jiff::tz::TimeZone::UTC).unwrap().timestamp()],
         want: Ok(true),
     }
 
@@ -1653,11 +1652,11 @@ bench_function! {
             "subscription_filters":  ["Destination"],
             "log_events": [{
                 "id":  "35683658089614582423604394983260738922885519999578275840",
-                "timestamp":  (Utc.timestamp_opt(1_600_110_569, 39_000_000).single().expect("invalid timestamp")),
+                "timestamp":  (jiff::Timestamp::new(1_600_110_569, 39_000_000).unwrap()),
                 "message":  r#"{"bytes":26780,"datetime":"14/Sep/2020:11:45:41 -0400","host":"157.130.216.193","method":"PUT","protocol":"HTTP/1.0","referer":"https://www.principalcross-platform.io/markets/ubiquitous","request":"/expedite/convergence","source_type":"stdin","status":301,"user-identifier":"-"}"#,
             }, {
                 "id":  "35683658089659183914001456229543810359430816722590236673",
-                "timestamp":  (Utc.timestamp_opt(1_600_110_569, 41_000_000).single().expect("invalid timestamp")),
+                "timestamp":  (jiff::Timestamp::new(1_600_110_569, 41_000_000).unwrap()),
                 "message":  r#"{"bytes":17707,"datetime":"14/Sep/2020:11:45:41 -0400","host":"109.81.244.252","method":"GET","protocol":"HTTP/2.0","referer":"http://www.investormission-critical.io/24/7/vortals","request":"/scale/functionalities/optimize","source_type":"stdin","status":502,"user-identifier":"feeney1708"}"#,
             }]
         }))
@@ -1774,7 +1773,7 @@ bench_function! {
             "host": "127.0.0.1",
             "identity": "bob",
             "user": "frank",
-            "timestamp": (DateTime::parse_from_rfc3339("2000-10-10T20:55:36Z").unwrap().with_timezone(&Utc)),
+            "timestamp": ("2000-10-10T20:55:36Z".parse::<jiff::Timestamp>().unwrap()),
             "message": "GET /apache_pb.gif HTTP/1.0",
             "method": "GET",
             "path": "/apache_pb.gif",
@@ -1794,7 +1793,7 @@ bench_function! {
             "identity": "bob",
             "user": "frank",
             "referrer": "http://www.seniorinfomediaries.com/vertical/channels/front-end/bandwidth",
-            "timestamp": (DateTime::parse_from_rfc3339("2000-10-10T20:55:36Z").unwrap().with_timezone(&Utc)),
+            "timestamp": ("2000-10-10T20:55:36Z".parse::<jiff::Timestamp>().unwrap()),
             "message": "GET /apache_pb.gif HTTP/1.0",
             "method": "GET",
             "path": "/apache_pb.gif",
@@ -1816,7 +1815,7 @@ bench_function! {
             "port": 24259,
             "severity": "alert",
             "thread": "3814",
-            "timestamp": (DateTime::parse_from_rfc3339("2021-03-01T12:00:19Z").unwrap().with_timezone(&Utc)),
+            "timestamp": ("2021-03-01T12:00:19Z".parse::<jiff::Timestamp>().unwrap()),
         })),
     }
 }
@@ -1839,7 +1838,7 @@ bench_function! {
             "host": "127.0.0.1",
             "identity": "bob",
             "user": "frank",
-            "timestamp": (DateTime::parse_from_rfc3339("2000-10-10T20:55:36Z").unwrap().with_timezone(&Utc)),
+            "timestamp": ("2000-10-10T20:55:36Z".parse::<jiff::Timestamp>().unwrap()),
             "message": "GET /apache_pb.gif HTTP/1.0",
             "method": "GET",
             "path": "/apache_pb.gif",
@@ -1888,7 +1887,7 @@ bench_function! {
         args: func_args![value: "I20210131 14:48:54.411655 15520 main.c++:9] Hello world!"],
         want: Ok(value!({
             "level": "info",
-            "timestamp": (DateTime::parse_from_rfc3339("2021-01-31T14:48:54.411655Z").unwrap().with_timezone(&Utc)),
+            "timestamp": ("2021-01-31T14:48:54.411655Z".parse::<jiff::Timestamp>().unwrap()),
             "id": 15520,
             "file": "main.c++",
             "line": 9,
@@ -1951,7 +1950,7 @@ bench_function! {
                     "host" => "A",
                     "region" => "us-west",
                 },
-                "timestamp" => DateTime::from_timestamp_nanos(1_590_488_773_254_420_000),
+                "timestamp" => jiff::Timestamp::from_nanosecond(1_590_488_773_254_420_000).unwrap(),
                 "kind" => "absolute",
                 "gauge" => btreemap! {
                     "value" => 64.0,
@@ -1963,7 +1962,7 @@ bench_function! {
                     "host" => "A",
                     "region" => "us-west",
                 },
-                "timestamp" => DateTime::from_timestamp_nanos(1_590_488_773_254_420_000),
+                "timestamp" => jiff::Timestamp::from_nanosecond(1_590_488_773_254_420_000).unwrap(),
                 "kind" => "absolute",
                 "gauge" => btreemap! {
                     "value" => 10.0,
@@ -1975,7 +1974,7 @@ bench_function! {
                     "host" => "A",
                     "region" => "us-west",
                 },
-                "timestamp" => DateTime::from_timestamp_nanos(1_590_488_773_254_420_000),
+                "timestamp" => jiff::Timestamp::from_nanosecond(1_590_488_773_254_420_000).unwrap(),
                 "kind" => "absolute",
                 "gauge" => btreemap! {
                     "value" => 50.5,
@@ -1987,7 +1986,7 @@ bench_function! {
                     "host" => "A",
                     "region" => "us-west",
                 },
-                "timestamp" => DateTime::from_timestamp_nanos(1_590_488_773_254_420_000),
+                "timestamp" => jiff::Timestamp::from_nanosecond(1_590_488_773_254_420_000).unwrap(),
                 "kind" => "absolute",
                 "gauge" => btreemap! {
                     "value" => 1.0,
@@ -1999,7 +1998,7 @@ bench_function! {
                     "host" => "A",
                     "region" => "us-west",
                 },
-                "timestamp" => DateTime::from_timestamp_nanos(1_590_488_773_254_420_000),
+                "timestamp" => jiff::Timestamp::from_nanosecond(1_590_488_773_254_420_000).unwrap(),
                 "kind" => "absolute",
                 "gauge" => btreemap! {
                     "value" => 0.0,
@@ -2095,7 +2094,7 @@ bench_function! {
         args: func_args![value: "I0505 17:59:40.692994   28133 klog.go:70] hello from klog"],
         want: Ok(btreemap! {
             "level" => "info",
-            "timestamp" => Value::Timestamp(DateTime::parse_from_rfc3339(&format!("{}-05-05T17:59:40.692994Z", Utc::now().year())).unwrap().into()),
+            "timestamp" => Value::Timestamp(format!("{}-05-05T17:59:40.692994Z", vrl::compiler::datetime::utc_now().year()).parse::<jiff::Timestamp>().unwrap()),
             "id" => 28133,
             "file" => "klog.go",
             "line" => 70,
@@ -2115,7 +2114,7 @@ bench_function! {
         want: Ok(value!({
             "client": "172.17.0.1",
             "user": "alice",
-            "timestamp": (DateTime::parse_from_rfc3339("2021-04-01T12:02:31Z").unwrap().with_timezone(&Utc)),
+            "timestamp": ("2021-04-01T12:02:31Z".parse::<jiff::Timestamp>().unwrap()),
             "request": "POST /not-found HTTP/1.1",
             "method": "POST",
             "path": "/not-found",
@@ -2135,7 +2134,7 @@ bench_function! {
         ],
         want: Ok(value!({
             "remote_addr": "0.0.0.0",
-            "timestamp": (DateTime::parse_from_rfc3339("2023-03-18T15:00:00Z").unwrap().with_timezone(&Utc)),
+            "timestamp": ("2023-03-18T15:00:00Z".parse::<jiff::Timestamp>().unwrap()),
             "request": "GET /some/path HTTP/2.0",
             "method": "GET",
             "path": "/some/path",
@@ -2162,7 +2161,7 @@ bench_function! {
         ],
         want: Ok(value!({
             "remote_addr": "172.24.0.3",
-            "timestamp": (DateTime::parse_from_rfc3339("2024-12-31T17:32:06Z").unwrap().with_timezone(&Utc)),
+            "timestamp": ("2024-12-31T17:32:06Z".parse::<jiff::Timestamp>().unwrap()),
             "request": "GET / HTTP/1.1",
             "status": 200,
             "body_bytes_size": 615,
@@ -2176,7 +2175,7 @@ bench_function! {
                          format: "error"
         ],
         want: Ok(value!({
-            "timestamp": (DateTime::parse_from_rfc3339("2021-04-01T13:02:31Z").unwrap().with_timezone(&Utc)),
+            "timestamp": ("2021-04-01T13:02:31Z".parse::<jiff::Timestamp>().unwrap()),
             "severity": "error",
             "pid": 31,
             "tid": 31,
@@ -2361,7 +2360,7 @@ fn parse_regex_concurrent(c: &mut Criterion) {
                         let mut runtime_state = vrl::compiler::state::RuntimeState::default();
                         let mut target: vrl::value::Value =
                             std::collections::BTreeMap::default().into();
-                        let tz = vrl::compiler::TimeZone::Named(chrono_tz::Tz::UTC);
+                        let tz = vrl::compiler::TimeZone::Named(jiff::tz::TimeZone::UTC);
                         let mut ctx =
                             vrl::compiler::Context::new(&mut target, &mut runtime_state, &tz);
                         for _ in 0..per_thread {
@@ -2471,7 +2470,7 @@ fn parse_regex_all_concurrent(c: &mut Criterion) {
                         let mut runtime_state = vrl::compiler::state::RuntimeState::default();
                         let mut target: vrl::value::Value =
                             std::collections::BTreeMap::default().into();
-                        let tz = vrl::compiler::TimeZone::Named(chrono_tz::Tz::UTC);
+                        let tz = vrl::compiler::TimeZone::Named(jiff::tz::TimeZone::UTC);
                         let mut ctx =
                             vrl::compiler::Context::new(&mut target, &mut runtime_state, &tz);
                         for _ in 0..per_thread {
@@ -2514,7 +2513,7 @@ bench_function! {
         want: Ok(value!({
             "severity": "info",
             "facility": "local7",
-            "timestamp": (Utc.with_ymd_and_hms(2020, 12, 28, 16, 49, 7).unwrap()),
+            "timestamp": (jiff::civil::datetime(2020, 12, 28, 16, 49, 7, 0).to_zoned(jiff::tz::TimeZone::UTC).unwrap().timestamp()),
             "hostname": "plertrood-thinkpad-x220",
             "appname": "nginx",
             "message": r#"127.0.0.1 - - [28/Dec/2019:16:49:07 +0000] "GET / HTTP/1.1" 304 0 "-" "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:71.0) Gecko/20100101 Firefox/71.0""#,
@@ -2526,7 +2525,7 @@ bench_function! {
         want: Ok(value!({
             "severity": "notice",
             "facility": "user",
-            "timestamp": (Utc.with_ymd_and_hms(2020, 3, 13, 20, 45, 38).unwrap()),
+            "timestamp": (jiff::civil::datetime(2020, 3, 13, 20, 45, 38, 0).to_zoned(jiff::tz::TimeZone::UTC).unwrap().timestamp()),
             "hostname": "dynamicwireless.name",
             "appname": "non",
             "procid": 2426,
@@ -2547,12 +2546,12 @@ bench_function! {
 
     rfc3339 {
         args: func_args![value: "2001-07-08T00:34:60.026490+09:30", format: "%+"],
-        want: Ok(DateTime::parse_from_rfc3339("2001-07-08T00:34:60.026490+09:30").unwrap().with_timezone(&Utc))
+        want: Ok("2001-07-08T00:34:60.026490+09:30".parse::<jiff::Timestamp>().unwrap())
     }
 
     rfc2822 {
         args: func_args![value: "Wed, 16 Oct 2019 12:00:00 +0000", format: "%a, %e %b %Y %T %z"],
-        want: Ok(DateTime::parse_from_rfc2822("Wed, 16 Oct 2019 12:00:00 +0000").unwrap().with_timezone(&Utc))
+        want: Ok(jiff::fmt::rfc2822::parse("Wed, 16 Oct 2019 12:00:00 +0000").unwrap().timestamp())
     }
 }
 
@@ -3124,9 +3123,9 @@ bench_function! {
     }
 
     tag_timestamp {
-        args: func_args![value: Utc.with_ymd_and_hms(2021, 1, 1, 0, 0, 0).unwrap()],
+        args: func_args![value: jiff::civil::datetime(2021, 1, 1, 0, 0, 0, 0).to_zoned(jiff::tz::TimeZone::UTC).unwrap().timestamp()],
         want: Ok(btreemap! {
-            "timestamp" => Utc.with_ymd_and_hms(2021, 1, 1, 0, 0, 0).unwrap()
+            "timestamp" => jiff::civil::datetime(2021, 1, 1, 0, 0, 0, 0).to_zoned(jiff::tz::TimeZone::UTC).unwrap().timestamp()
         }),
     }
 
@@ -3170,8 +3169,8 @@ bench_function! {
     timestamp => vrl::stdlib::Timestamp;
 
     timestamp {
-        args: func_args![value: Utc.with_ymd_and_hms(2021, 1, 1, 0, 0, 0).unwrap()],
-        want: Ok(value!(Utc.with_ymd_and_hms(2021, 1, 1, 0, 0, 0).unwrap())),
+        args: func_args![value: jiff::civil::datetime(2021, 1, 1, 0, 0, 0, 0).to_zoned(jiff::tz::TimeZone::UTC).unwrap().timestamp()],
+        want: Ok(value!(jiff::civil::datetime(2021, 1, 1, 0, 0, 0, 0).to_zoned(jiff::tz::TimeZone::UTC).unwrap().timestamp())),
     }
 }
 
@@ -3320,7 +3319,7 @@ bench_function! {
     to_unix_timestamp => vrl::stdlib::ToUnixTimestamp;
 
     default {
-        args: func_args![value: Utc.with_ymd_and_hms(2021, 1, 1, 0, 0, 0).unwrap()],
+        args: func_args![value: jiff::civil::datetime(2021, 1, 1, 0, 0, 0, 0).to_zoned(jiff::tz::TimeZone::UTC).unwrap().timestamp()],
         want: Ok(1_609_459_200),
     }
 }

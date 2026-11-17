@@ -1,9 +1,17 @@
-use std::fmt::Debug;
-
-use chrono::format::{Parsed, StrftimeItems, parse};
-use chrono::{DateTime, FixedOffset, Local, Offset, ParseError, TimeZone as _, Utc};
-use chrono_tz::Tz;
+use jiff::{Timestamp, civil, tz};
 use serde::{Deserialize, Serialize};
+
+mod strftime;
+
+pub use strftime::{
+    FormatError, ParseError, format, parse, to_naive_datetime, to_offset_timestamp, to_timestamp,
+};
+
+/// The current civil date and time in UTC.
+#[must_use]
+pub fn utc_now() -> civil::DateTime {
+    tz::Offset::UTC.to_datetime(Timestamp::now())
+}
 
 /// Timezone reference.
 ///
@@ -11,7 +19,7 @@ use serde::{Deserialize, Serialize};
 /// refers to the system local timezone.
 ///
 /// [tzdb]: https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Deserialize, Serialize)]
+#[derive(Clone, Debug, Default, Eq, PartialEq, Deserialize, Serialize)]
 #[serde(try_from = "String", into = "String")]
 pub enum TimeZone {
     /// System local timezone.
@@ -23,53 +31,51 @@ pub enum TimeZone {
     /// Must be a valid name in the [TZ database][tzdb].
     ///
     /// [tzdb]: https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
-    Named(Tz),
+    Named(tz::TimeZone),
 }
 
-/// This is a wrapper trait to allow `TimeZone` types to be passed generically.
 impl TimeZone {
-    /// Parse a date/time string into `DateTime<Utc>`.
+    /// Returns the `jiff` time zone this reference resolves to.
+    ///
+    /// `Local` resolves to the system time zone at the time of the call.
+    #[must_use]
+    pub fn to_jiff(&self) -> tz::TimeZone {
+        match self {
+            Self::Local => tz::TimeZone::system(),
+            Self::Named(tz) => tz.clone(),
+        }
+    }
+
+    /// Parse a date/time string with a [chrono-compatible format][format] into a `Timestamp`.
+    ///
+    /// Values without a UTC offset are interpreted in this time zone.
     ///
     /// # Errors
     ///
-    /// Returns parse errors from the underlying time parsing functions.
-    pub fn datetime_from_str(&self, s: &str, format: &str) -> Result<DateTime<Utc>, ParseError> {
-        let mut parsed = Parsed::new();
-        parse(&mut parsed, s, StrftimeItems::new(format))?;
-
-        match self {
-            Self::Local => {
-                let local_datetime = parsed.to_datetime_with_timezone(&Local)?;
-                Ok(datetime_to_utc(&local_datetime))
-            }
-            Self::Named(tz) => {
-                let tz_datetime = parsed.to_datetime_with_timezone(tz)?;
-                Ok(datetime_to_utc(&tz_datetime))
-            }
-        }
+    /// Returns an error if `s` does not match `format`, if `format` lacks the date or time fields,
+    /// or if the local time does not exist (or is ambiguous) in this time zone.
+    ///
+    /// [format]: https://docs.rs/chrono/latest/chrono/format/strftime/index.html#specifiers
+    pub fn datetime_from_str(&self, s: &str, format: &str) -> Result<Timestamp, ParseError> {
+        to_timestamp(&parse(s, format)?, &self.to_jiff())
     }
 
     #[must_use]
     pub fn parse(s: &str) -> Option<Self> {
         match s {
             "" | "local" => Some(Self::Local),
-            _ => s.parse::<Tz>().ok().map(Self::Named),
+            _ => tz::TimeZone::get(s).ok().map(Self::Named),
         }
     }
-}
-
-/// Convert a timestamp with a non-UTC time zone into UTC
-pub(super) fn datetime_to_utc<TZ: chrono::TimeZone>(ts: &DateTime<TZ>) -> DateTime<Utc> {
-    Utc.timestamp_opt(ts.timestamp(), ts.timestamp_subsec_nanos())
-        .single()
-        .expect("invalid timestamp")
 }
 
 impl From<TimeZone> for String {
     fn from(tz: TimeZone) -> Self {
         match tz {
             TimeZone::Local => "local".to_string(),
-            TimeZone::Named(tz) => tz.name().to_string(),
+            // Time zones without an IANA name (fixed offsets) cannot be parsed back, so use the
+            // name `jiff` gives them; deserializing it fails instead of picking a wrong zone.
+            TimeZone::Named(tz) => tz.iana_name().unwrap_or("Etc/Unknown").to_string(),
         }
     }
 }
@@ -81,15 +87,6 @@ impl TryFrom<String> for TimeZone {
         match TimeZone::parse(&value) {
             Some(tz) => Ok(tz),
             None => Err("No such time zone".to_string()),
-        }
-    }
-}
-
-impl From<TimeZone> for FixedOffset {
-    fn from(tz: TimeZone) -> Self {
-        match tz {
-            TimeZone::Local => *Utc::now().with_timezone(&Local).offset(),
-            TimeZone::Named(tz) => Utc::now().with_timezone(&tz).offset().fix(),
         }
     }
 }

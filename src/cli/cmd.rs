@@ -164,7 +164,7 @@ fn run(opts: &Opts, stdlib_functions: Vec<Box<dyn Function>>) -> Result<(), Erro
             let state = RuntimeState::default();
             let runtime = Runtime::new(state);
 
-            let result = execute(&mut target, &program, tz, runtime, opts.runtime).map(|v| {
+            let result = execute(&mut target, &program, &tz, runtime, opts.runtime).map(|v| {
                 if opts.print_object {
                     object.to_string()
                 } else {
@@ -210,13 +210,13 @@ fn repl(
 fn execute(
     object: &mut impl Target,
     program: &Program,
-    timezone: TimeZone,
+    timezone: &TimeZone,
     mut runtime: Runtime,
     vrl_runtime: VrlRuntime,
 ) -> Result<Value, Error> {
     match vrl_runtime {
         VrlRuntime::Ast => runtime
-            .resolve(object, program, &timezone)
+            .resolve(object, program, timezone)
             .map_err(Error::Runtime),
     }
 }

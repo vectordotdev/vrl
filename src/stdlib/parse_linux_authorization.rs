@@ -1,6 +1,6 @@
 use super::parse_syslog::ParseSyslogFn;
+use crate::compiler::datetime;
 use crate::compiler::prelude::*;
-use chrono::{Datelike, Utc};
 use std::sync::LazyLock;
 
 static EXAMPLES: LazyLock<Vec<Example>> = LazyLock::new(|| {
@@ -13,7 +13,7 @@ static EXAMPLES: LazyLock<Vec<Example>> = LazyLock::new(|| {
                 "procid": 1111,
                 "timestamp": "{year}-03-23T01:49:58Z"
             }}"#},
-            year = Utc::now().year()
+            year = datetime::utc_now().year()
         )
         .into_boxed_str(),
     );

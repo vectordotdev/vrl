@@ -1,4 +1,3 @@
-use chrono_tz::Tz;
 use clap::Parser;
 use glob::glob;
 
@@ -51,7 +50,7 @@ impl Cmd {
         if let Some(ref tz) = self.timezone {
             TimeZone::parse(tz).unwrap_or_else(|| panic!("couldn't parse timezone: {tz}"))
         } else {
-            TimeZone::Named(Tz::UTC)
+            TimeZone::Named(jiff::tz::TimeZone::UTC)
         }
     }
 }

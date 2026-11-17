@@ -1,5 +1,6 @@
 use crate::compiler::conversion::Conversion;
 use crate::compiler::prelude::*;
+use crate::value::value::timestamp_seconds;
 
 fn to_int(value: Value) -> Resolved {
     use Value::{Boolean, Bytes, Float, Integer, Null, String, Timestamp};
@@ -13,7 +14,7 @@ fn to_int(value: Value) -> Resolved {
         v @ (Bytes(_) | String(_)) => Conversion::Integer
             .convert(v.try_bytes().expect("bytes-like"))
             .map_err(|e| e.to_string().into()),
-        Timestamp(v) => Ok(v.timestamp().into()),
+        Timestamp(v) => Ok(timestamp_seconds(&v).into()),
         v => Err(format!("unable to coerce {} into integer", v.kind()).into()),
     }
 }
@@ -171,7 +172,7 @@ impl FunctionExpression for ToIntFn {
 
 #[cfg(test)]
 mod tests {
-    use chrono::{DateTime, Utc};
+    use jiff::Timestamp;
 
     use super::*;
 
@@ -191,9 +192,7 @@ mod tests {
         }
 
         timezone {
-             args: func_args![value: DateTime::parse_from_rfc2822("Wed, 16 Oct 2019 12:00:00 +0000")
-                            .unwrap()
-                            .with_timezone(&Utc)],
+             args: func_args![value: "2019-10-16T12:00:00Z".parse::<Timestamp>().unwrap()],
              want: Ok(1_571_227_200),
              tdef: TypeDef::integer().infallible(),
          }

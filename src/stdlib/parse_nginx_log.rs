@@ -66,7 +66,7 @@ fn parse_nginx_log(
         &regex.capture_info,
         &captures,
         &timestamp_format,
-        *ctx.timezone(),
+        ctx.timezone(),
     )
     .map(rename_referrer)
     .map_err(Into::into)
@@ -393,7 +393,6 @@ fn kind_error() -> BTreeMap<Field, Kind> {
 #[cfg(test)]
 mod tests {
     use crate::btreemap;
-    use chrono::prelude::*;
 
     use super::*;
 
@@ -407,7 +406,7 @@ mod tests {
             ],
             want: Ok(btreemap! {
                 "client" => "172.17.0.1",
-                "timestamp" => Value::Timestamp(DateTime::parse_from_rfc3339("2021-03-31T12:04:07Z").unwrap().into()),
+                "timestamp" => Value::Timestamp("2021-03-31T12:04:07Z".parse::<jiff::Timestamp>().unwrap()),
                 "referer" => "-",
                 "request" => "GET / HTTP/1.1",
                 "status" => 200,
@@ -424,7 +423,7 @@ mod tests {
             ],
             want: Ok(btreemap! {
                 "client" => "0.0.0.0",
-                "timestamp" => Value::Timestamp(DateTime::parse_from_rfc3339("2021-04-23T14:59:24Z").unwrap().into()),
+                "timestamp" => Value::Timestamp("2021-04-23T14:59:24Z".parse::<jiff::Timestamp>().unwrap()),
                 "request" => "GET /my-path/manifest.json HTTP/1.1",
                 "status" => 200,
                 "size" => 504,
@@ -441,7 +440,7 @@ mod tests {
             ],
             want: Ok(btreemap! {
                 "client" => "0.0.0.0",
-                "timestamp" => Value::Timestamp(DateTime::parse_from_rfc3339("2022-10-04T04:34:49Z").unwrap().into()),
+                "timestamp" => Value::Timestamp("2022-10-04T04:34:49Z".parse::<jiff::Timestamp>().unwrap()),
                 "request" => "",
                 "status" => 400,
                 "size" => 0,
@@ -458,7 +457,7 @@ mod tests {
             ],
             want: Ok(btreemap! {
                 "client" => "0.0.0.0",
-                "timestamp" => Value::Timestamp(DateTime::parse_from_rfc3339("2022-10-04T03:07:27Z").unwrap().into()),
+                "timestamp" => Value::Timestamp("2022-10-04T03:07:27Z".parse::<jiff::Timestamp>().unwrap()),
                 "request" => r"]&\xDF\xBDV\xE7\xBB<\x10;\xA2b}\xDFM\x1D",
                 "status" => 400,
                 "size" => 150,
@@ -475,7 +474,7 @@ mod tests {
             ],
             want: Ok(btreemap! {
                 "client" => "0.0.0.0",
-                "timestamp" => Value::Timestamp(DateTime::parse_from_rfc3339("2022-10-04T03:07:27Z").unwrap().into()),
+                "timestamp" => Value::Timestamp("2022-10-04T03:07:27Z".parse::<jiff::Timestamp>().unwrap()),
                 "request" => r"]&\xDF\xBDV\xE7\xBB<\x10;\xA2b}\xDFM\x1D",
                 "status" => 400,
                 "size" => 150,
@@ -493,7 +492,7 @@ mod tests {
             want: Ok(btreemap! {
                 "client" => "172.17.0.1",
                 "user" => "alice",
-                "timestamp" => Value::Timestamp(DateTime::parse_from_rfc3339("2021-04-01T12:02:31Z").unwrap().into()),
+                "timestamp" => Value::Timestamp("2021-04-01T12:02:31Z".parse::<jiff::Timestamp>().unwrap()),
                 "request" => "POST /not-found HTTP/1.1",
                 "status" => 404,
                 "size" => 153,
@@ -511,7 +510,7 @@ mod tests {
             ],
             want: Ok(btreemap! {
                 "remote_addr" => "0.0.0.0",
-                "timestamp" => Value::Timestamp(DateTime::parse_from_rfc3339("2023-03-18T15:00:00Z").unwrap().into()),
+                "timestamp" => Value::Timestamp("2023-03-18T15:00:00Z".parse::<jiff::Timestamp>().unwrap()),
                 "request" => "GET /some/path HTTP/2.0",
                 "status" => 200,
                 "body_bytes_size" => 12312,
@@ -536,7 +535,7 @@ mod tests {
             ],
             want: Ok(btreemap! {
                 "remote_addr" => "0.0.0.0",
-                "timestamp" => Value::Timestamp(DateTime::parse_from_rfc3339("2023-03-18T15:00:00Z").unwrap().into()),
+                "timestamp" => Value::Timestamp("2023-03-18T15:00:00Z".parse::<jiff::Timestamp>().unwrap()),
                 "request" => "GET /some/path HTTP/2.0",
                 "status" => 200,
                 "body_bytes_size" => 12312,
@@ -558,7 +557,7 @@ mod tests {
             ],
             want: Ok(btreemap! {
                 "remote_addr" => "0.0.0.0",
-                "timestamp" => Value::Timestamp(DateTime::parse_from_rfc3339("2023-03-18T15:00:00Z").unwrap().into()),
+                "timestamp" => Value::Timestamp("2023-03-18T15:00:00Z".parse::<jiff::Timestamp>().unwrap()),
                 "request" => "GET /some/path HTTP/2.0",
                 "status" => 200,
                 "body_bytes_size" => 12312,
@@ -581,7 +580,7 @@ mod tests {
             want: Ok(btreemap! {
                 "remote_addr" => "0.0.0.0",
                 "remote_user" => "bob",
-                "timestamp" => Value::Timestamp(DateTime::parse_from_rfc3339("2023-03-18T15:00:00Z").unwrap().into()),
+                "timestamp" => Value::Timestamp("2023-03-18T15:00:00Z".parse::<jiff::Timestamp>().unwrap()),
                 "request" => "GET /some/path HTTP/2.0",
                 "status" => 200,
                 "body_bytes_size" => 12312,
@@ -607,7 +606,7 @@ mod tests {
             ],
             want: Ok(btreemap! {
                 "remote_addr" => "172.24.0.3",
-                "timestamp" => Value::Timestamp(DateTime::parse_from_rfc3339("2024-12-31T17:32:06Z").unwrap().into()),
+                "timestamp" => Value::Timestamp("2024-12-31T17:32:06Z".parse::<jiff::Timestamp>().unwrap()),
                 "request" => "GET / HTTP/1.1",
                 "status" => 200,
                 "body_bytes_size" => 615,
@@ -623,7 +622,7 @@ mod tests {
             ],
             want: Ok(btreemap! {
                 "remote_addr" => "172.24.0.3",
-                "timestamp" => Value::Timestamp(DateTime::parse_from_rfc3339("2024-12-31T17:32:06Z").unwrap().into()),
+                "timestamp" => Value::Timestamp("2024-12-31T17:32:06Z".parse::<jiff::Timestamp>().unwrap()),
                 "request" => "GET / HTTP/1.1",
                 "status" => 200,
                 "body_bytes_size" => 615,
@@ -640,7 +639,7 @@ mod tests {
             ],
             want: Ok(btreemap! {
                 "remote_addr" => "172.24.0.3",
-                "timestamp" => Value::Timestamp(DateTime::parse_from_rfc3339("2024-12-31T17:32:06Z").unwrap().into()),
+                "timestamp" => Value::Timestamp("2024-12-31T17:32:06Z".parse::<jiff::Timestamp>().unwrap()),
                 "request" => "GET / HTTP/1.1",
                 "status" => 200,
                 "body_bytes_size" => 615,
@@ -658,7 +657,7 @@ mod tests {
             want: Ok(btreemap! {
                 "remote_addr" => "172.24.0.2",
                 "remote_user" => "alice",
-                "timestamp" => Value::Timestamp(DateTime::parse_from_rfc3339("2025-01-03T16:42:58Z").unwrap().into()),
+                "timestamp" => Value::Timestamp("2025-01-03T16:42:58Z".parse::<jiff::Timestamp>().unwrap()),
                 "request" => "GET / HTTP/1.1",
                 "status" => 200,
                 "body_bytes_size" => 615,
@@ -684,7 +683,7 @@ mod tests {
                 format: "error"
             ],
             want: Ok(btreemap! {
-                "timestamp" => Value::Timestamp(DateTime::parse_from_rfc3339("2021-04-01T13:02:31Z").unwrap().into()),
+                "timestamp" => Value::Timestamp("2021-04-01T13:02:31Z".parse::<jiff::Timestamp>().unwrap()),
                 "severity" => "error",
                 "pid" => 31,
                 "tid" => 31,
@@ -704,7 +703,7 @@ mod tests {
                 format: "error"
             ],
             want: Ok(btreemap! {
-                "timestamp" => Value::Timestamp(DateTime::parse_from_rfc3339("2021-06-03T09:30:50Z").unwrap().into()),
+                "timestamp" => Value::Timestamp("2021-06-03T09:30:50Z".parse::<jiff::Timestamp>().unwrap()),
                 "severity" => "error",
                 "pid" => 32,
                 "tid" => 32,
@@ -725,7 +724,7 @@ mod tests {
                 format: "error"
             ],
             want: Ok(btreemap! {
-                "timestamp" => Value::Timestamp(DateTime::parse_from_rfc3339("2021-06-03T09:30:50Z").unwrap().into()),
+                "timestamp" => Value::Timestamp("2021-06-03T09:30:50Z".parse::<jiff::Timestamp>().unwrap()),
                 "severity" => "error",
                 "pid" => 32,
                 "tid" => 32,
@@ -746,7 +745,7 @@ mod tests {
                 format: "error"
             ],
             want: Ok(btreemap! {
-                "timestamp" => Value::Timestamp(DateTime::parse_from_rfc3339("2021-06-17T19:25:59Z").unwrap().into()),
+                "timestamp" => Value::Timestamp("2021-06-17T19:25:59Z".parse::<jiff::Timestamp>().unwrap()),
                 "severity" => "notice",
                 "pid" => 133_309,
                 "tid" => 133_309,
@@ -761,7 +760,7 @@ mod tests {
                 format: "error"
             ],
             want: Ok(btreemap! {
-                "timestamp" => Value::Timestamp(DateTime::parse_from_rfc3339("2023-09-08T13:50:28Z").unwrap().into()),
+                "timestamp" => Value::Timestamp("2023-09-08T13:50:28Z".parse::<jiff::Timestamp>().unwrap()),
                 "severity" => "warn",
                 "pid" => 3,
                 "tid" => 3,
@@ -783,7 +782,7 @@ mod tests {
                 format: "error"
             ],
             want: Ok(btreemap! {
-                "timestamp" => Value::Timestamp(DateTime::parse_from_rfc3339("2022-04-15T08:16:13Z").unwrap().into()),
+                "timestamp" => Value::Timestamp("2022-04-15T08:16:13Z".parse::<jiff::Timestamp>().unwrap()),
                 "severity" => "error",
                 "pid" => 7164,
                 "tid" => 7164,
@@ -803,7 +802,7 @@ mod tests {
                 format: "error"
             ],
             want: Ok(btreemap! {
-                "timestamp" => Value::Timestamp(DateTime::parse_from_rfc3339("2022-05-30T20:56:22Z").unwrap().into()),
+                "timestamp" => Value::Timestamp("2022-05-30T20:56:22Z".parse::<jiff::Timestamp>().unwrap()),
                 "severity" => "error",
                 "pid" => 7164,
                 "tid" => 7164,
@@ -825,7 +824,7 @@ mod tests {
                 format: "error"
             ],
             want: Ok(btreemap! {
-                "timestamp" => Value::Timestamp(DateTime::parse_from_rfc3339("2022-05-30T20:56:22Z").unwrap().into()),
+                "timestamp" => Value::Timestamp("2022-05-30T20:56:22Z".parse::<jiff::Timestamp>().unwrap()),
                 "severity" => "error",
                 "pid" => 7164,
                 "tid" => 7164,
@@ -847,7 +846,7 @@ mod tests {
                 format: "error"
             ],
             want: Ok(btreemap! {
-                "timestamp" => Value::Timestamp(DateTime::parse_from_rfc3339("2022-05-30T20:56:22Z").unwrap().into()),
+                "timestamp" => Value::Timestamp("2022-05-30T20:56:22Z".parse::<jiff::Timestamp>().unwrap()),
                 "severity" => "info",
                 "pid" => 3134,
                 "tid" => 0,

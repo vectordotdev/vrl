@@ -303,7 +303,7 @@ impl Changelog {
         pull_request_metadata: PullRequestMetadata,
     ) -> Result<String, String> {
         let grouped = self.collect_fragments(pull_request_metadata)?;
-        let date = chrono::Utc::now().format("%Y-%m-%d").to_string();
+        let date = jiff::Timestamp::now().strftime("%Y-%m-%d").to_string();
         Ok(Self::render_section(&grouped, version, &date))
     }
 

@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
-use chrono::DateTime;
 use influxdb_line_protocol::{FieldValue, ParsedLine};
+use jiff::Timestamp;
 
 use crate::compiler::prelude::*;
 use crate::{btreemap, value};
@@ -14,7 +14,9 @@ fn influxdb_line_to_metrics(line: ParsedLine) -> Result<Vec<ObjectMap>, Expressi
         timestamp,
     } = line;
 
-    let timestamp = timestamp.map(DateTime::from_timestamp_nanos);
+    let timestamp = timestamp.map(|nanos| {
+        Timestamp::from_nanosecond(i128::from(nanos)).expect("i64 nanoseconds are in range")
+    });
 
     let tags: Option<ObjectMap> = series.tag_set.as_ref().map(|tags| {
         tags.iter()
@@ -324,7 +326,7 @@ mod test {
                         "host" => "A",
                         "region" => "us-west",
                     },
-                    "timestamp" => DateTime::from_timestamp_nanos(1_590_488_773_254_420_000),
+                    "timestamp" => jiff::Timestamp::from_nanosecond(1_590_488_773_254_420_000).unwrap(),
                     "kind" => "absolute",
                     "gauge" => btreemap! {
                         "value" => 64.0,
@@ -336,7 +338,7 @@ mod test {
                         "host" => "A",
                         "region" => "us-west",
                     },
-                    "timestamp" => DateTime::from_timestamp_nanos(1_590_488_773_254_420_000),
+                    "timestamp" => jiff::Timestamp::from_nanosecond(1_590_488_773_254_420_000).unwrap(),
                     "kind" => "absolute",
                     "gauge" => btreemap! {
                         "value" => 10.0,
@@ -348,7 +350,7 @@ mod test {
                         "host" => "A",
                         "region" => "us-west",
                     },
-                    "timestamp" => DateTime::from_timestamp_nanos(1_590_488_773_254_420_000),
+                    "timestamp" => jiff::Timestamp::from_nanosecond(1_590_488_773_254_420_000).unwrap(),
                     "kind" => "absolute",
                     "gauge" => btreemap! {
                         "value" => 50.5,
@@ -360,7 +362,7 @@ mod test {
                         "host" => "A",
                         "region" => "us-west",
                     },
-                    "timestamp" => DateTime::from_timestamp_nanos(1_590_488_773_254_420_000),
+                    "timestamp" => jiff::Timestamp::from_nanosecond(1_590_488_773_254_420_000).unwrap(),
                     "kind" => "absolute",
                     "gauge" => btreemap! {
                         "value" => 1.0,
@@ -372,7 +374,7 @@ mod test {
                         "host" => "A",
                         "region" => "us-west",
                     },
-                    "timestamp" => DateTime::from_timestamp_nanos(1_590_488_773_254_420_000),
+                    "timestamp" => jiff::Timestamp::from_nanosecond(1_590_488_773_254_420_000).unwrap(),
                     "kind" => "absolute",
                     "gauge" => btreemap! {
                         "value" => 0.0,
@@ -417,7 +419,7 @@ mod test {
             want: Ok(Value::from(vec![
                 Value::from(btreemap! {
                     "name" => "cpu_usage_system",
-                    "timestamp" => DateTime::from_timestamp_nanos(1_590_488_773_254_420_000),
+                    "timestamp" => jiff::Timestamp::from_nanosecond(1_590_488_773_254_420_000).unwrap(),
                     "kind" => "absolute",
                     "gauge" => btreemap! {
                         "value" => 64.0,
@@ -425,7 +427,7 @@ mod test {
                 }),
                 Value::from(btreemap! {
                     "name" => "cpu_usage_user",
-                    "timestamp" => DateTime::from_timestamp_nanos(1_590_488_773_254_420_000),
+                    "timestamp" => jiff::Timestamp::from_nanosecond(1_590_488_773_254_420_000).unwrap(),
                     "kind" => "absolute",
                     "gauge" => btreemap! {
                         "value" => 10.0,

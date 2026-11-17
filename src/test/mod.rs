@@ -2,9 +2,10 @@
 #![allow(clippy::print_stderr)] // tests
 
 use std::path::{MAIN_SEPARATOR, PathBuf};
-use std::{env, str::FromStr, time::Instant};
+use std::{env, time::Instant};
 
-use chrono::{DateTime, SecondsFormat, Utc};
+use crate::compiler::datetime;
+use crate::value::value::timestamp_to_string;
 use nu_ansi_term::Color;
 
 pub use test::Test;
@@ -164,7 +165,7 @@ pub fn run_tests<T>(
                     let run_start = Instant::now();
 
                     finalize_config(config_metadata);
-                    let result = run_vrl(&program, &mut test.object, cfg.timezone, cfg.runtime);
+                    let result = run_vrl(&program, &mut test.object, &cfg.timezone, cfg.runtime);
                     let run_end = run_start.elapsed();
 
                     let timings = {
@@ -229,8 +230,10 @@ fn process_result(
                     Err(_) => want.into(),
                 }
             } else if want.starts_with("t'") && want.ends_with('\'') {
-                match DateTime::<Utc>::from_str(&want[2..want.len() - 1]) {
-                    Ok(dt) => dt.to_rfc3339_opts(SecondsFormat::AutoSi, true).into(),
+                match datetime::parse(&want[2..want.len() - 1], "%+")
+                    .and_then(|tm| datetime::to_offset_timestamp(&tm))
+                {
+                    Ok(dt) => timestamp_to_string(&dt).into(),
                     Err(_) => want.into(),
                 }
             } else if want.starts_with("s'") && want.ends_with('\'') {
@@ -446,7 +449,7 @@ fn vrl_value_to_json_value(value: Value) -> serde_json::Value {
             .into_iter()
             .map(vrl_value_to_json_value)
             .collect::<serde_json::Value>(),
-        Value::Timestamp(v) => v.to_rfc3339_opts(SecondsFormat::AutoSi, true).into(),
+        Value::Timestamp(v) => timestamp_to_string(&v).into(),
         Value::Regex(v) => v.to_string().into(),
         Value::Null => serde_json::Value::Null,
     }
@@ -483,7 +486,7 @@ impl MatchMode {
 fn run_vrl(
     program: &Program,
     test_object: &mut Value,
-    timezone: TimeZone,
+    timezone: &TimeZone,
     vrl_runtime: VrlRuntime,
 ) -> Result<Value, Terminate> {
     let mut metadata = Value::from(ObjectMap::new());
@@ -501,7 +504,7 @@ fn run_vrl(
         VrlRuntime::Ast => {
             // test_enrichment.finish_load();
             let mut runtime = Runtime::new(RuntimeState::default());
-            runtime.resolve(&mut target, program, &timezone)
+            runtime.resolve(&mut target, program, timezone)
         }
     }
 }

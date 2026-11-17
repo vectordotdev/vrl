@@ -1,14 +1,14 @@
 use crate::compiler::prelude::*;
+use crate::value::value::timestamp_to_string;
 
 fn to_string(value: Value) -> Resolved {
     use Value::{Boolean, Bytes, Float, Integer, Null, String as ValueString, Timestamp};
-    use chrono::SecondsFormat;
     let value = match value {
         v @ (Bytes(_) | ValueString(_)) => v,
         Integer(v) => v.to_string().into(),
         Float(v) => v.to_string().into(),
         Boolean(v) => v.to_string().into(),
-        Timestamp(v) => v.to_rfc3339_opts(SecondsFormat::AutoSi, true).into(),
+        Timestamp(v) => timestamp_to_string(&v).into(),
         Null => "".into(),
         v => return Err(format!("unable to coerce {} into string", v.kind()).into()),
     };

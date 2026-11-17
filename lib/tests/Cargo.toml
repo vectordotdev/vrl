@@ -10,8 +10,8 @@ workspace = true
 
 [dependencies]
 vrl = { path = "../../", features = ["test_framework"] }
-chrono-tz = "0.10"
 clap.workspace = true
+jiff = { version = "0.2.38", default-features = false }
 glob = "0.3"
 tracing-subscriber = { version = "0.3.23", default-features = false, features = ["fmt"] }
 

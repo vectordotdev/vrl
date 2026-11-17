@@ -1,5 +1,6 @@
+use crate::compiler::datetime;
 use crate::compiler::prelude::*;
-use chrono::{NaiveDateTime, Utc, offset::TimeZone};
+use jiff::tz;
 use regex::Regex;
 use std::collections::BTreeMap;
 use std::sync::LazyLock;
@@ -22,9 +23,10 @@ fn parse_glog(bytes: &Value) -> Resolved {
         log.insert("level".into(), Value::from(level));
     }
     if let Some(timestamp) = captures.name("timestamp").map(|capture| capture.as_str()) {
-        match NaiveDateTime::parse_from_str(timestamp, "%Y%m%d %H:%M:%S%.f") {
-            Ok(naive_dt) => {
-                let utc_dt = Utc.from_utc_datetime(&naive_dt);
+        match datetime::parse(timestamp, "%Y%m%d %H:%M:%S%.f")
+            .and_then(|tm| datetime::to_timestamp(&tm, &tz::TimeZone::UTC))
+        {
+            Ok(utc_dt) => {
                 log.insert("timestamp".into(), Value::Timestamp(utc_dt));
             }
             Err(e) => return Err(format!("failed parsing timestamp {timestamp}: {e}").into()),
@@ -158,7 +160,6 @@ fn inner_kind() -> BTreeMap<Field, Kind> {
 #[cfg(test)]
 mod tests {
     use crate::btreemap;
-    use chrono::DateTime;
 
     use super::*;
 
@@ -169,7 +170,7 @@ mod tests {
             args: func_args![value: "I20210131 14:48:54.411655 15520 main.c++:9] Hello world!"],
             want: Ok(btreemap! {
                 "level" => "info",
-                "timestamp" => Value::Timestamp(DateTime::parse_from_rfc3339("2021-01-31T14:48:54.411655Z").unwrap().into()),
+                "timestamp" => Value::Timestamp("2021-01-31T14:48:54.411655Z".parse::<jiff::Timestamp>().unwrap()),
                 "id" => 15520,
                 "file" => "main.c++",
                 "line" => 9,
@@ -182,7 +183,7 @@ mod tests {
             args: func_args![value: "\n  I20210131 14:48:54.411655 15520 main.c++:9] Hello world!  \n"],
             want: Ok(btreemap! {
                 "level" => "info",
-                "timestamp" => Value::Timestamp(DateTime::parse_from_rfc3339("2021-01-31T14:48:54.411655Z").unwrap().into()),
+                "timestamp" => Value::Timestamp("2021-01-31T14:48:54.411655Z".parse::<jiff::Timestamp>().unwrap()),
                 "id" => 15520,
                 "file" => "main.c++",
                 "line" => 9,
@@ -195,7 +196,7 @@ mod tests {
             args: func_args![value: "I20210131 14:48:54.411655    20 main.c++:9] Hello world!"],
             want: Ok(btreemap! {
                 "level" => "info",
-                "timestamp" => Value::Timestamp(DateTime::parse_from_rfc3339("2021-01-31T14:48:54.411655Z").unwrap().into()),
+                "timestamp" => Value::Timestamp("2021-01-31T14:48:54.411655Z".parse::<jiff::Timestamp>().unwrap()),
                 "id" => 20,
                 "file" => "main.c++",
                 "line" => 9,
@@ -218,7 +219,7 @@ mod tests {
 
         log_line_invalid_timestamp {
             args: func_args![value: "I20210000 14:48:54.411655 15520 main.c++:9] Hello world!"],
-            want: Err("failed parsing timestamp 20210000 14:48:54.411655: input is out of range"),
+            want: Err("failed parsing timestamp 20210000 14:48:54.411655: strptime parsing failed: %m failed: failed to parse month number: parameter 'month' is not in the required range of 1..=12"),
             tdef: TypeDef::object(inner_kind()).fallible(),
         }
 

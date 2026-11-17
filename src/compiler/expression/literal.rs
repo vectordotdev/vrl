@@ -1,11 +1,11 @@
 use std::{borrow::Cow, convert::TryFrom, fmt, sync::Arc};
 
-use crate::compiler::codes;
+use crate::compiler::{codes, datetime::ParseError};
 use crate::diagnostic::{DiagnosticMessage, Label, Note, Urls};
-use crate::value::{Value, ValueRegex};
+use crate::value::{Value, ValueRegex, value::timestamp_to_string};
 use bytes::Bytes;
 use bytestring::ByteString;
-use chrono::{DateTime, SecondsFormat, Utc};
+use jiff::Timestamp;
 use ordered_float::NotNan;
 use regex::Regex;
 
@@ -23,7 +23,7 @@ pub enum Literal {
     Float(NotNan<f64>),
     Boolean(bool),
     Regex(ValueRegex),
-    Timestamp(DateTime<Utc>),
+    Timestamp(Timestamp),
     Null,
 }
 
@@ -100,7 +100,7 @@ impl fmt::Display for Literal {
             Float(v) => v.fmt(f),
             Boolean(v) => v.fmt(f),
             Regex(v) => v.fmt(f),
-            Timestamp(v) => write!(f, "t'{}'", v.to_rfc3339_opts(SecondsFormat::AutoSi, true)),
+            Timestamp(v) => write!(f, "t'{}'", timestamp_to_string(v)),
             Null => f.write_str("null"),
         }
     }
@@ -262,8 +262,8 @@ impl<T: Into<Literal>> From<Option<T>> for Literal {
 
 // Literal::Regex --------------------------------------------------------------
 
-impl From<DateTime<Utc>> for Literal {
-    fn from(dt: DateTime<Utc>) -> Self {
+impl From<Timestamp> for Literal {
+    fn from(dt: Timestamp) -> Self {
         Literal::Timestamp(dt)
     }
 }
@@ -282,7 +282,7 @@ pub(crate) enum ErrorVariant {
     InvalidRegex(#[from] regex::Error),
 
     #[error("invalid timestamp")]
-    InvalidTimestamp(#[from] chrono::ParseError),
+    InvalidTimestamp(#[from] ParseError),
 
     #[error("float literal can't be NaN")]
     NanFloat,
@@ -373,8 +373,8 @@ impl From<(Span, regex::Error)> for Error {
     }
 }
 
-impl From<(Span, chrono::ParseError)> for Error {
-    fn from((span, err): (Span, chrono::ParseError)) -> Self {
+impl From<(Span, ParseError)> for Error {
+    fn from((span, err): (Span, ParseError)) -> Self {
         Self {
             variant: err.into(),
             span,

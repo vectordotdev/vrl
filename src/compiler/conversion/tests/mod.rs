@@ -1,5 +1,5 @@
 use bytes::Bytes;
-use chrono::{DateTime, Utc};
+use jiff::Timestamp;
 use ordered_float::NotNan;
 
 use crate::compiler::TimeZone;
@@ -11,7 +11,7 @@ mod unix;
 #[derive(PartialEq, Debug, Clone)]
 enum StubValue {
     Bytes(Bytes),
-    Timestamp(DateTime<Utc>),
+    Timestamp(Timestamp),
     Float(f64),
     Integer(i64),
     Boolean(bool),
@@ -23,8 +23,8 @@ impl From<Bytes> for StubValue {
     }
 }
 
-impl From<DateTime<Utc>> for StubValue {
-    fn from(v: DateTime<Utc>) -> Self {
+impl From<Timestamp> for StubValue {
+    fn from(v: Timestamp) -> Self {
         StubValue::Timestamp(v)
     }
 }

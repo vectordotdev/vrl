@@ -171,8 +171,8 @@ fn postprocess_value(value: &mut Value) {
 #[cfg(test)]
 mod tests {
     use crate::btreemap;
+    use crate::compiler::datetime;
     use crate::value::Value;
-    use chrono::{Datelike, NaiveDate, Timelike, Utc};
     use ordered_float::NotNan;
     use std::collections::BTreeMap;
     use tracing_test::traced_test;
@@ -640,12 +640,11 @@ mod tests {
 
     #[test]
     fn supports_more_date_matcher_formats() {
-        let now = Utc::now();
-        let now = NaiveDate::from_ymd_opt(now.year(), now.month(), now.day())
+        let now = datetime::utc_now().date().at(12, 13, 14, 0);
+        let now_millis = jiff::tz::Offset::UTC
+            .to_timestamp(now)
             .unwrap()
-            .and_hms_opt(12, 13, 14)
-            .unwrap()
-            .and_utc();
+            .as_millisecond();
         test_grok_pattern(vec![
             (
                 r#"%{date("EEE MMM dd HH:mm:ss yyyy", "-0300"):field}"#,
@@ -706,7 +705,7 @@ mod tests {
             (
                 r#"%{date("HH:mm:ss"):field}"#,
                 &format!("{}:{}:{}", now.hour(), now.minute(), now.second()),
-                Ok(Value::Integer(now.timestamp() * 1000)),
+                Ok(Value::Integer(now_millis)),
             ),
             // if the year is missing - assume the current year
             (
@@ -719,7 +718,7 @@ mod tests {
                     now.minute(),
                     now.second()
                 ),
-                Ok(Value::Integer(now.timestamp() * 1000)),
+                Ok(Value::Integer(now_millis)),
             ),
         ]);
     }

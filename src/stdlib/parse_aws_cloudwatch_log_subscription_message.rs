@@ -1,6 +1,6 @@
 use crate::compiler::prelude::*;
-use chrono::{DateTime, Utc, serde::ts_milliseconds};
-use serde::Deserialize;
+use jiff::Timestamp;
+use serde::{Deserialize, Deserializer, de::Error as _};
 use std::collections::BTreeMap;
 
 #[derive(Debug, Deserialize, Clone, Copy)]
@@ -14,9 +14,16 @@ enum AwsCloudWatchLogsSubscriptionMessageType {
 #[serde(deny_unknown_fields)]
 struct AwsCloudWatchLogEvent {
     id: String,
-    #[serde(with = "ts_milliseconds")]
-    timestamp: DateTime<Utc>,
+    #[serde(deserialize_with = "timestamp_from_milliseconds")]
+    timestamp: Timestamp,
     message: String,
+}
+
+fn timestamp_from_milliseconds<'de, D: Deserializer<'de>>(
+    deserializer: D,
+) -> Result<Timestamp, D::Error> {
+    let milliseconds = i64::deserialize(deserializer)?;
+    Timestamp::from_millisecond(milliseconds).map_err(D::Error::custom)
 }
 
 #[derive(Debug, Deserialize)]
@@ -203,7 +210,6 @@ fn inner_kind() -> BTreeMap<Field, Kind> {
 
 #[cfg(test)]
 mod tests {
-    use chrono::{TimeZone, Utc};
 
     use super::*;
 
@@ -249,12 +255,12 @@ mod tests {
                 (String::from("log_events"), Value::from(vec![
                     Value::from_iter([
                         (String::from("id"), Value::from( "35683658089614582423604394983260738922885519999578275840")),
-                        (String::from("timestamp"), Value::from(Utc.timestamp_opt(1_600_110_569, 39_000_000).single().expect("invalid timestamp"))),
+                        (String::from("timestamp"), Value::from(jiff::Timestamp::new(1_600_110_569, 39_000_000).unwrap())),
                         (String::from("message"), Value::from("{\"bytes\":26780,\"datetime\":\"14/Sep/2020:11:45:41 -0400\",\"host\":\"157.130.216.193\",\"method\":\"PUT\",\"protocol\":\"HTTP/1.0\",\"referer\":\"https://www.principalcross-platform.io/markets/ubiquitous\",\"request\":\"/expedite/convergence\",\"source_type\":\"stdin\",\"status\":301,\"user-identifier\":\"-\"}")),
                     ]),
                     Value::from_iter([
                         (String::from("id"), Value::from("35683658089659183914001456229543810359430816722590236673")),
-                        (String::from("timestamp"), Value::from(Utc.timestamp_opt(1_600_110_569, 41_000_000).single().expect("invalid timestamp"))),
+                        (String::from("timestamp"), Value::from(jiff::Timestamp::new(1_600_110_569, 41_000_000).unwrap())),
                         (String::from("message"), Value::from("{\"bytes\":17707,\"datetime\":\"14/Sep/2020:11:45:41 -0400\",\"host\":\"109.81.244.252\",\"method\":\"GET\",\"protocol\":\"HTTP/2.0\",\"referer\":\"http://www.investormission-critical.io/24/7/vortals\",\"request\":\"/scale/functionalities/optimize\",\"source_type\":\"stdin\",\"status\":502,\"user-identifier\":\"feeney1708\"}")),
                     ])
                 ])),

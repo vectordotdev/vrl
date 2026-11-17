@@ -468,7 +468,7 @@ mod tests {
         (
             Value::from(BTreeMap::default()),
             RuntimeState::default(),
-            TimeZone::Named(chrono_tz::Tz::UTC),
+            TimeZone::Named(jiff::tz::TimeZone::UTC),
         )
     }
 

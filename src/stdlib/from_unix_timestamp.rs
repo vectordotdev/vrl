@@ -1,6 +1,6 @@
 use crate::compiler::function::EnumVariant;
 use crate::compiler::prelude::*;
-use chrono::{TimeZone as _, Utc};
+use jiff::Timestamp;
 use std::str::FromStr;
 
 static DEFAULT_UNIT: Value = Value::from_static_str("seconds");
@@ -36,20 +36,13 @@ fn from_unix_timestamp(value: Value, unit: Unit) -> Resolved {
 
     let value = match value {
         Integer(v) => match unit {
-            Unit::Seconds => match Utc.timestamp_opt(v, 0).single() {
-                Some(time) => time.into(),
-                None => return Err(format!("unable to coerce {v} into timestamp").into()),
-            },
-            Unit::Milliseconds => match Utc.timestamp_millis_opt(v).single() {
-                Some(time) => time.into(),
-                None => return Err(format!("unable to coerce {v} into timestamp").into()),
-            },
-            Unit::Microseconds => match Utc.timestamp_micros(v).single() {
-                Some(time) => time.into(),
-                None => return Err(format!("unable to coerce {v} into timestamp").into()),
-            },
-            Unit::Nanoseconds => Utc.timestamp_nanos(v).into(),
-        },
+            Unit::Seconds => Timestamp::from_second(v),
+            Unit::Milliseconds => Timestamp::from_millisecond(v),
+            Unit::Microseconds => Timestamp::from_microsecond(v),
+            Unit::Nanoseconds => Timestamp::from_nanosecond(i128::from(v)),
+        }
+        .map_err(|_| format!("unable to coerce {v} into timestamp"))?
+        .into(),
         v => return Err(format!("unable to coerce {} into timestamp", v.kind()).into()),
     };
     Ok(value)
@@ -204,6 +197,10 @@ mod tests {
     use crate::value::ObjectMap;
     use regex::Regex;
 
+    fn new_year_2021() -> Timestamp {
+        "2021-01-01T00:00:00Z".parse().unwrap()
+    }
+
     #[test]
     fn out_of_range_integer() {
         let mut object: Value = ObjectMap::new().into();
@@ -223,31 +220,31 @@ mod tests {
 
         integer {
              args: func_args![value: 1_431_648_000],
-             want: Ok(Utc.with_ymd_and_hms(2015, 5, 15, 0, 0, 0).unwrap()),
+             want: Ok("2015-05-15T00:00:00Z".parse::<Timestamp>().unwrap()),
              tdef: TypeDef::timestamp().fallible(),
         }
 
         integer_seconds {
             args: func_args![value: 1_609_459_200_i64, unit: "seconds"],
-            want: Ok(Utc.with_ymd_and_hms(2021, 1, 1, 0, 0, 0).unwrap()),
+            want: Ok(new_year_2021()),
             tdef: TypeDef::timestamp().fallible(),
         }
 
         integer_milliseconds {
             args: func_args![value: 1_609_459_200_000_i64, unit: "milliseconds"],
-            want: Ok(Utc.with_ymd_and_hms(2021, 1, 1, 0, 0, 0).unwrap()),
+            want: Ok(new_year_2021()),
             tdef: TypeDef::timestamp().fallible(),
         }
 
         integer_microseconds {
             args: func_args![value: 1_609_459_200_000_000_i64, unit: "microseconds"],
-            want: Ok(Utc.with_ymd_and_hms(2021, 1, 1, 0, 0, 0).unwrap()),
+            want: Ok(new_year_2021()),
             tdef: TypeDef::timestamp().fallible(),
         }
 
         integer_nanoseconds {
             args: func_args![value: 1_609_459_200_000_000_000_i64, unit: "nanoseconds"],
-            want: Ok(Utc.with_ymd_and_hms(2021, 1, 1, 0, 0, 0).unwrap()),
+            want: Ok(new_year_2021()),
             tdef: TypeDef::timestamp().fallible(),
         }
 
@@ -264,7 +261,7 @@ mod tests {
         }
 
         timestamp_type_invalid {
-            args: func_args![value: Utc.with_ymd_and_hms(2021, 1, 1, 0, 0, 0).unwrap()],
+            args: func_args![value: new_year_2021()],
             want: Err("unable to coerce timestamp into timestamp"),
             tdef: TypeDef::timestamp().fallible(),
         }

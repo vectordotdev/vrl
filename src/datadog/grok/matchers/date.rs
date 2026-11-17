@@ -1,10 +1,8 @@
 use std::fmt::{Formatter, Write};
 
-use crate::value::Value;
-use chrono::{
-    DateTime, Datelike, FixedOffset, NaiveDate, NaiveDateTime, NaiveTime, Offset, TimeZone, Utc,
-};
-use chrono_tz::{Tz, UTC};
+use crate::compiler::datetime;
+use crate::value::{Value, value::timestamp_milliseconds};
+use jiff::{Timestamp, civil, tz};
 use peeking_take_while::PeekableExt;
 use regex::Regex;
 use tracing::warn;
@@ -105,9 +103,9 @@ pub struct RegexResult {
     pub with_fraction_second: bool,
 }
 
-pub fn parse_timezone(tz: &str) -> Result<FixedOffset, String> {
+pub fn parse_timezone(tz: &str) -> Result<tz::Offset, String> {
     let tz = match tz {
-        "GMT" | "UTC" | "UT" | "Z" => FixedOffset::east_opt(0).expect("invalid timestamp"),
+        "GMT" | "UTC" | "UT" | "Z" => tz::Offset::UTC,
         _ if tz.starts_with('+') || tz.starts_with('-') => parse_offset(tz)?,
         _ if tz.contains('+') => parse_offset(&tz[tz.find('+').unwrap()..])?,
         _ if tz.contains('-') => parse_offset(&tz[tz.find('-').unwrap()..])?,
@@ -116,24 +114,20 @@ pub fn parse_timezone(tz: &str) -> Result<FixedOffset, String> {
     Ok(tz)
 }
 
-fn parse_tz_id_or_name(tz: &str) -> Result<FixedOffset, String> {
-    let tz = tz.parse::<Tz>().map_err(|e| e.to_string())?;
-    Ok(Utc::now().with_timezone(&tz).offset().fix())
+fn parse_tz_id_or_name(tz: &str) -> Result<tz::Offset, String> {
+    let tz = tz::TimeZone::get(tz).map_err(|e| e.to_string())?;
+    Ok(tz.to_offset(Timestamp::now()))
 }
 
-fn parse_offset(tz: &str) -> Result<FixedOffset, String> {
+fn parse_offset(tz: &str) -> Result<tz::Offset, String> {
     if tz.len() <= 3 {
         // +5, -12
         let hours_diff = tz.parse::<i32>().map_err(|e| e.to_string())?;
-        return Ok(FixedOffset::east_opt(hours_diff * 3600).expect("invalid timestamp"));
+        return tz::Offset::from_seconds(hours_diff * 3600).map_err(|e| e.to_string());
     }
     let offset_format = if tz.contains(':') { "%:z" } else { "%z" };
-    // apparently the easiest way to parse tz offset is parsing the complete datetime
-    let date_str = format!("2020-04-12 22:10:57 {tz}");
-    let datetime =
-        DateTime::parse_from_str(&date_str, &format!("%Y-%m-%d %H:%M:%S {offset_format}"))
-            .map_err(|e| e.to_string())?;
-    Ok(datetime.timezone())
+    let tm = datetime::parse(tz, offset_format).map_err(|e| e.to_string())?;
+    Ok(tm.offset().expect("offset directives set the offset"))
 }
 
 const FRACTION_CHAR_GROUP: &str = "fr";
@@ -248,12 +242,20 @@ pub fn time_format_to_regex(format: &str, with_captures: bool) -> Result<RegexRe
     })
 }
 
+/// The milliseconds since the Unix epoch of `dt` in UTC.
+fn utc_milliseconds(dt: civil::DateTime) -> Option<Value> {
+    let timestamp = tz::Offset::UTC.to_timestamp(dt).ok()?;
+    Some(Value::from(timestamp_milliseconds(&timestamp)))
+}
+
 pub fn apply_date_filter(value: &Value, filter: &DateFilter) -> Result<Value, InternalError> {
     let original_value = value
         .to_str_lossy()
         .ok_or_else(|| InternalError::FailedToApplyFilter(filter.to_string(), value.to_string()))?;
     let (strp_format, mut datetime) =
         adjust_strp_format_and_value(&filter.strp_format, &original_value);
+    let failed =
+        || InternalError::FailedToApplyFilter(filter.to_string(), original_value.to_string());
 
     // Ideally this Z should be quoted in the pattern, but DataDog supports this as a special case:
     // yyyy-MM-dd'T'HH:mm:ss.SSSZ - e.g. 2016-09-02T15:02:29.648Z
@@ -270,91 +272,63 @@ pub fn apply_date_filter(value: &Value, filter: &DateFilter) -> Result<Value, In
             .expect("Filter should contain tz capture")
             .as_str();
 
-        let tz: Tz = tz.parse().map_err(|error| {
+        let tz = tz::TimeZone::get(tz).map_err(|error| {
             warn!(message = "Error parsing tz", %tz, %error);
-            InternalError::FailedToApplyFilter(filter.to_string(), original_value.to_string())
+            failed()
         })?;
         replace_sec_fraction_with_dot(filter, &mut datetime);
-        let naive_date = NaiveDateTime::parse_from_str(&datetime, &strp_format).map_err(|error|
-            {
+        let naive_date = datetime::parse(&datetime, &strp_format)
+            .and_then(|tm| datetime::to_naive_datetime(&tm))
+            .map_err(|error| {
                 warn!(message = "Error parsing date", value = %original_value, format = %strp_format, % error);
-            InternalError::FailedToApplyFilter(
-                filter.to_string(),
-                original_value.to_string(),
-            )
+                failed()
             })?;
-        let dt = tz
-            .from_local_datetime(&naive_date)
-            .single()
-            .ok_or_else(|| {
-                InternalError::FailedToApplyFilter(filter.to_string(), original_value.to_string())
-            })?;
-        Ok(Value::from(
-            Utc.from_utc_datetime(&dt.naive_utc()).timestamp_millis(),
-        ))
+        let timestamp = tz
+            .to_ambiguous_timestamp(naive_date)
+            .unambiguous()
+            .map_err(|_| failed())?;
+        Ok(Value::from(timestamp_milliseconds(&timestamp)))
     } else {
         replace_sec_fraction_with_dot(filter, &mut datetime);
+        let tm = datetime::parse(&datetime, &strp_format).map_err(|error| {
+            warn!(message = "Error parsing date", date = %original_value, % error);
+            failed()
+        })?;
         if filter.tz_aware {
             // parse as a tz-aware complete date/time
-            let timestamp = DateTime::parse_from_str(&datetime, &strp_format).map_err(|error| {
+            let timestamp = datetime::to_offset_timestamp(&tm).map_err(|error| {
                 warn!(message = "Error parsing date", date = %original_value, % error);
-                InternalError::FailedToApplyFilter(filter.to_string(), original_value.to_string())
+                failed()
             })?;
-            Ok(Value::from(timestamp.to_utc().timestamp_millis()))
-        } else if let Ok(dt) = NaiveDateTime::parse_from_str(&datetime, &strp_format) {
+            Ok(Value::from(timestamp_milliseconds(&timestamp)))
+        } else if let Ok(dt) = datetime::to_naive_datetime(&tm) {
             // try parsing as a naive datetime
             if let Some(tz) = &filter.target_tz {
-                let tzs = parse_timezone(tz).map_err(|error| {
+                let offset = parse_timezone(tz).map_err(|error| {
                     warn!(message = "Error parsing tz", tz = %tz, % error);
-                    InternalError::FailedToApplyFilter(
-                        filter.to_string(),
-                        original_value.to_string(),
-                    )
+                    failed()
                 })?;
-                let dt = tzs.from_local_datetime(&dt).single().ok_or_else(|| {
+                let timestamp = offset.to_timestamp(dt).map_err(|_| {
                     warn!(message = "Error parsing date", date = %original_value);
-                    InternalError::FailedToApplyFilter(
-                        filter.to_string(),
-                        original_value.to_string(),
-                    )
+                    failed()
                 })?;
-                Ok(Value::from(dt.to_utc().timestamp_millis()))
+                Ok(Value::from(timestamp_milliseconds(&timestamp)))
             } else {
-                Ok(Value::from(dt.and_utc().timestamp_millis()))
+                utc_milliseconds(dt).ok_or_else(failed)
             }
-        } else if let Ok(nt) = NaiveTime::parse_from_str(&datetime, &strp_format) {
+        } else if let Some(time) = tm.hour().and(tm.minute()).and_then(|_| tm.to_time().ok()) {
             // try parsing as a naive time
-            Ok(Value::from(
-                NaiveDateTime::new(
-                    NaiveDate::from_ymd_opt(1970, 1, 1).expect("invalid date"),
-                    nt,
-                )
-                .and_utc()
-                .timestamp_millis(),
-            ))
+            utc_milliseconds(civil::date(1970, 1, 1).to_datetime(time)).ok_or_else(failed)
         } else {
             // try parsing as a naive date
-            let nd = NaiveDate::parse_from_str(&datetime, &strp_format).map_err(|error| {
+            let date = tm.to_date().map_err(|error| {
                 warn!(message = "Error parsing date", date = %original_value, % error);
-                InternalError::FailedToApplyFilter(filter.to_string(), original_value.to_string())
+                failed()
             })?;
-            let datetime_tz = UTC
-                .from_local_datetime(&NaiveDateTime::new(
-                    nd,
-                    NaiveTime::from_hms_opt(0, 0, 0).expect("invalid timestamp"),
-                ))
-                .single()
-                .ok_or_else(|| {
-                    warn!(message = "Error parsing date", date = %original_value);
-                    InternalError::FailedToApplyFilter(
-                        filter.to_string(),
-                        original_value.to_string(),
-                    )
-                })?;
-            Ok(Value::from(
-                Utc.from_utc_datetime(&datetime_tz.naive_utc())
-                    .timestamp_millis(),
-            ))
+            utc_milliseconds(date.to_datetime(civil::Time::midnight())).ok_or_else(|| {
+                warn!(message = "Error parsing date", date = %original_value);
+                failed()
+            })
         }
     }
 }
@@ -363,7 +337,7 @@ pub fn apply_date_filter(value: &Value, filter: &DateFilter) -> Result<Value, In
 pub fn adjust_strp_format_and_value(strp_format: &str, original_value: &str) -> (String, String) {
     let mut adjusted_format = String::from(strp_format);
     let mut adjusted_value = String::from(original_value);
-    let now = Utc::now();
+    let now = datetime::utc_now();
 
     // day is missing
     if !strp_format.contains('d') {
@@ -420,15 +394,13 @@ mod tests {
     #[test]
     fn adjusts_datetime_format_and_value_when_day_missing() {
         let (adj_format, adj_value) = adjust_strp_format_and_value("%H:%M:%S", "12:03:42");
-        let now = Utc::now();
-        let expected_datetime = NaiveDate::from_ymd_opt(now.year(), now.month(), now.day())
-            .unwrap()
-            .and_hms_opt(12, 3, 42)
-            .unwrap();
+        let now = datetime::utc_now();
+        let expected_datetime = now.date().at(12, 3, 42, 0);
         // make sure we can parse the date with the expected result
         assert_eq!(
             expected_datetime,
-            NaiveDateTime::parse_from_str(&adj_value, &adj_format).unwrap()
+            datetime::to_naive_datetime(&datetime::parse(&adj_value, &adj_format).unwrap())
+                .unwrap()
         );
     }
 
@@ -436,15 +408,13 @@ mod tests {
     fn adjusts_datetime_format_and_value_when_year_missing() {
         let (adj_format, adj_value) =
             adjust_strp_format_and_value("%-d/%-m %H:%M:%S", "25/03 12:03:42");
-        let now = Utc::now();
-        let expected_datetime = NaiveDate::from_ymd_opt(now.year(), 3, 25)
-            .unwrap()
-            .and_hms_opt(12, 3, 42)
-            .unwrap();
+        let now = datetime::utc_now();
+        let expected_datetime = civil::date(now.year(), 3, 25).at(12, 3, 42, 0);
         // make sure we can parse the date with the expected result
         assert_eq!(
             expected_datetime,
-            NaiveDateTime::parse_from_str(&adj_value, &adj_format).unwrap()
+            datetime::to_naive_datetime(&datetime::parse(&adj_value, &adj_format).unwrap())
+                .unwrap()
         );
     }
 }

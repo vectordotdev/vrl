@@ -228,7 +228,7 @@ impl Repl {
                         &mut rt,
                         command,
                         &mut state,
-                        timezone,
+                        &timezone,
                         vrl_runtime,
                         &stdlib_functions,
                     );
@@ -261,7 +261,7 @@ impl Repl {
         runtime: &mut Runtime,
         program: &str,
         state: &mut TypeState,
-        timezone: TimeZone,
+        timezone: &TimeZone,
         vrl_runtime: VrlRuntime,
         stdlib_functions: &[Box<dyn Function>],
     ) -> Result<Value, String> {
@@ -281,7 +281,7 @@ impl Repl {
 
         match vrl_runtime {
             VrlRuntime::Ast => runtime
-                .resolve(target, &program, &timezone)
+                .resolve(target, &program, timezone)
                 .map_err(|err| err.to_string()),
         }
     }

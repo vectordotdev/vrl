@@ -4,7 +4,7 @@
 #   ┌─ :2:1
 #   │
 # 2 │ t'foobar'
-#   │ ^^^^^^^^^ invalid timestamp format: input contains invalid characters
+#   │ ^^^^^^^^^ invalid timestamp format: strptime parsing failed: %Y failed: failed to parse year: invalid number, no digits found
 #   │
 #   = see documentation about timestamps at https://vrl.dev/expressions/#timestamp
 #   = see language documentation at https://vrl.dev

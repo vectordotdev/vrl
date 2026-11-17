@@ -1,5 +1,4 @@
 use crate::compiler::prelude::*;
-use chrono::{DateTime, Utc};
 use uuid::{NoContext, timestamp::Timestamp};
 
 static DEFAULT_TIMESTAMP: Value = Value::from_static_str("`now()`");
@@ -13,17 +12,17 @@ const PARAMETERS: &[Parameter] = &[Parameter::optional(
 
 #[allow(clippy::cast_sign_loss)] // TODO consider removal options
 fn uuid_v7(timestamp: Option<Value>) -> Resolved {
-    let utc_timestamp: DateTime<Utc> = if let Some(timestamp) = timestamp {
+    let utc_timestamp = if let Some(timestamp) = timestamp {
         timestamp.try_timestamp()?
     } else {
-        Utc::now()
+        jiff::Timestamp::now()
     };
 
-    let seconds = utc_timestamp.timestamp() as u64;
-    let nanoseconds = match utc_timestamp.timestamp_nanos_opt() {
-        Some(_) => utc_timestamp.timestamp_subsec_nanos(),
-        None => return Err(ValueError::OutOfRange(Kind::timestamp()).into()),
-    };
+    let nanos = i64::try_from(utc_timestamp.as_nanosecond())
+        .map_err(|_| ValueError::OutOfRange(Kind::timestamp()))?;
+    let seconds = nanos.div_euclid(1_000_000_000) as u64;
+    let nanoseconds =
+        u32::try_from(nanos.rem_euclid(1_000_000_000)).expect("sub-second nanoseconds fit in u32");
     let timestamp = Timestamp::from_unix(NoContext, seconds, nanoseconds);
 
     let mut buffer = [0; 36];
@@ -144,10 +143,10 @@ mod tests {
             "2026-01-01T00:00:00.123456789Z",
             "2026-01-01T00:00:00.999999999Z",
         ] {
-            let timestamp: DateTime<Utc> = input.parse().unwrap();
+            let timestamp: jiff::Timestamp = input.parse().unwrap();
             let expected = (
-                u64::try_from(timestamp.timestamp()).unwrap(),
-                timestamp.timestamp_subsec_millis() * 1_000_000,
+                u64::try_from(timestamp.as_second()).unwrap(),
+                u32::try_from(timestamp.subsec_millisecond()).unwrap() * 1_000_000,
             );
 
             let encoded = super::uuid_v7(Some(timestamp.into())).unwrap();

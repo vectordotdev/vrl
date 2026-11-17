@@ -32,7 +32,7 @@ fn parse_timestamp_bytes(
             TimeZone::parse(timezone).ok_or(format!("unable to parse timezone: {timezone}"))
         })
         .transpose()?
-        .unwrap_or(*ctx.timezone());
+        .unwrap_or_else(|| ctx.timezone().clone());
 
     Conversion::timestamp(&format, timezone)
         .convert(v)
@@ -138,23 +138,25 @@ impl FunctionExpression for ParseTimestampFn {
 mod tests {
     use super::*;
     use crate::value;
-    use chrono::{DateTime, Utc};
+    use jiff::{Timestamp, tz};
+
+    fn utc(s: &str) -> Timestamp {
+        s.parse().unwrap()
+    }
+
+    fn named(name: &str) -> TimeZone {
+        TimeZone::Named(tz::TimeZone::get(name).unwrap())
+    }
 
     test_function![
         parse_timestamp => ParseTimestamp;
 
         parse_timestamp {
             args: func_args![
-                value: DateTime::parse_from_rfc2822("Wed, 16 Oct 2019 12:00:00 +0000")
-                    .unwrap()
-                    .with_timezone(&Utc),
+                value: utc("2019-10-16T12:00:00Z"),
                 format:"%d/%m/%Y:%H:%M:%S %z"
             ],
-            want: Ok(value!(
-                DateTime::parse_from_rfc2822("Wed, 16 Oct 2019 12:00:00 +0000")
-                    .unwrap()
-                    .with_timezone(&Utc)
-            )),
+            want: Ok(value!(utc("2019-10-16T12:00:00Z"))),
             tdef: TypeDef::timestamp().fallible(),
             tz: TimeZone::default(),
         }
@@ -164,11 +166,7 @@ mod tests {
                 value: "16/10/2019:12:00:00 +0000",
                 format: "%d/%m/%Y:%H:%M:%S %z"
             ],
-            want: Ok(value!(
-                DateTime::parse_from_rfc2822("Wed, 16 Oct 2019 12:00:00 +0000")
-                    .unwrap()
-                    .with_timezone(&Utc)
-            )),
+            want: Ok(value!(utc("2019-10-16T12:00:00Z"))),
             tdef: TypeDef::timestamp().fallible(),
             tz: TimeZone::default(),
         }
@@ -178,13 +176,9 @@ mod tests {
                 value: "16/10/2019:12:00:00",
                 format: "%d/%m/%Y:%H:%M:%S"
             ],
-            want: Ok(value!(
-                DateTime::parse_from_rfc2822("Wed, 16 Oct 2019 10:00:00 +0000")
-                    .unwrap()
-                    .with_timezone(&Utc)
-            )),
+            want: Ok(value!(utc("2019-10-16T10:00:00Z"))),
             tdef: TypeDef::timestamp().fallible(),
-            tz: TimeZone::Named(chrono_tz::Europe::Paris),
+            tz: named("Europe/Paris"),
         }
 
         // test without Daylight Saving Time (DST)
@@ -194,11 +188,7 @@ mod tests {
                 format: "%d/%m/%Y:%H:%M:%S",
                 timezone: "Europe/Paris"
             ],
-            want: Ok(value!(
-                DateTime::parse_from_rfc2822("Tue, 31 Dec 2019 11:00:00 +0000")
-                    .unwrap()
-                    .with_timezone(&Utc)
-            )),
+            want: Ok(value!(utc("2019-12-31T11:00:00Z"))),
             tdef: TypeDef::timestamp().fallible(),
             tz: TimeZone::default(),
         }
@@ -209,13 +199,9 @@ mod tests {
                 format: "%d/%m/%Y:%H:%M:%S",
                 timezone: "Europe/Paris"
             ],
-            want: Ok(value!(
-                DateTime::parse_from_rfc2822("Tue, 31 Dec 2019 11:00:00 +0000")
-                    .unwrap()
-                    .with_timezone(&Utc)
-            )),
+            want: Ok(value!(utc("2019-12-31T11:00:00Z"))),
             tdef: TypeDef::timestamp().fallible(),
-            tz: TimeZone::Named(chrono_tz::Europe::London),
+            tz: named("Europe/London"),
         }
 
         err_timezone_args {

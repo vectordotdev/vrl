@@ -124,7 +124,7 @@ impl Runtime {
         program: &Program,
         timezone: &TimeZone,
     ) -> RuntimeResult {
-        self.resolve_inner(target, program, *timezone, None)
+        self.resolve_inner(target, program, timezone, None)
     }
 
     /// Resolves the provided [`Program`] with an embedder-provided execution
@@ -151,14 +151,14 @@ impl Runtime {
         timezone: &TimeZone,
         control: &mut dyn ExecutionControl,
     ) -> RuntimeResult {
-        self.resolve_inner(target, program, *timezone, Some(control))
+        self.resolve_inner(target, program, timezone, Some(control))
     }
 
     fn resolve_inner(
         &mut self,
         target: &mut dyn Target,
         program: &Program,
-        timezone: TimeZone,
+        timezone: &TimeZone,
         control: Option<&mut dyn ExecutionControl>,
     ) -> RuntimeResult {
         // Validate that the path is a value.
@@ -177,8 +177,8 @@ impl Runtime {
         }
 
         let mut ctx = match control {
-            Some(control) => Context::new_with_control(target, &mut self.state, &timezone, control),
-            None => Context::new(target, &mut self.state, &timezone),
+            Some(control) => Context::new_with_control(target, &mut self.state, timezone, control),
+            None => Context::new(target, &mut self.state, timezone),
         };
 
         match program.resolve(&mut ctx) {
