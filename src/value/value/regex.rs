@@ -13,7 +13,8 @@ use std::{
 pub struct ValueRegex(Arc<crate::value::regex_engine::Regex>);
 
 impl ValueRegex {
-    /// Create a new `ValueRegex` from the inner `Regex` that is wraps
+    /// Create a new `ValueRegex` from a compiled Rust regex, preserving its
+    /// builder options and Rust execution even when PCRE2 JIT is selected.
     #[must_use]
     pub fn new(regex: Arc<Regex>) -> Self {
         Self(Arc::new(Arc::unwrap_or_clone(regex).into()))

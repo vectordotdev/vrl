@@ -1,5 +1,17 @@
-//! Regex execution shared by VRL's public regex operators. The Rust parser and
-//! metadata remain authoritative; PCRE2 JIT is an explicitly selected backend.
+//! Regex execution shared by VRL's public regex operators. Patterns use Rust
+//! syntax and capture metadata; matching follows the explicitly selected engine.
+//!
+//! PCRE2 can produce different results for repetitions whose body can match the
+//! empty string. For example, `(?P<x>a*)+` on `aaa` captures `x = ""` with PCRE2
+//! and `x = "aaa"` with Rust. Likewise, `(?:a?|b)*` on `aab` matches `aa` with
+//! PCRE2 and `aab` with Rust. These differences can affect whole matches,
+//! captures, iteration, splits, and replacements. Select [`RegexEngine::Rust`]
+//! when exact Rust matching behavior is required.
+//!
+//! Imported [`regex::Regex`] values retain their original Rust execution to
+//! preserve builder options that are not encoded in the pattern text. Byte
+//! regex sets also use Rust for non-ASCII input, since byte matches can begin
+//! inside a UTF-8 character, unlike the string-based JIT API.
 use super::regex_capture::{CaptureGroups, CaptureView, LocatedCaptures};
 use std::{
     borrow::Cow,
@@ -87,7 +99,9 @@ pub struct Regex {
     scratch: Arc<ThreadLocal<RefCell<regex::CaptureLocations>>>,
     fallbacks: Arc<AtomicU64>,
     #[cfg(all(feature = "pcre2-jit", not(target_arch = "wasm32")))]
-    jit: Arc<std::sync::OnceLock<Result<pcre2::Pcre2, String>>>,
+    // Only patterns compiled here have known builder options. Imported Rust
+    // regexes keep their original execution rather than recompiling as_str().
+    jit: Option<Arc<std::sync::OnceLock<Result<pcre2::Pcre2, String>>>>,
 }
 
 impl Regex {
@@ -100,7 +114,13 @@ impl Regex {
     /// # Errors
     /// Returns an error for invalid Rust regex syntax.
     pub fn new(pattern: &str) -> Result<Self, regex::Error> {
-        regex::Regex::new(pattern).map(Self::from)
+        let regex = Self::from(regex::Regex::new(pattern)?);
+        #[cfg(all(feature = "pcre2-jit", not(target_arch = "wasm32")))]
+        let regex = Self {
+            jit: Some(Arc::new(std::sync::OnceLock::new())),
+            ..regex
+        };
+        Ok(regex)
     }
     /// Compile a pattern for the selected backend.
     ///
@@ -112,6 +132,8 @@ impl Regex {
         Ok(regex)
     }
     /// Prepare this pattern for a backend before resolving the program.
+    /// Imported Rust regexes retain their original execution, including builder
+    /// options, even when PCRE2 is selected.
     ///
     /// # Errors
     /// Returns an error if the backend is unavailable or cannot compile this pattern.
@@ -121,8 +143,10 @@ impl Regex {
         }
         #[cfg(all(feature = "pcre2-jit", not(target_arch = "wasm32")))]
         {
-            self.jit
-                .get_or_init(|| pcre2::Pcre2::compile(self.as_str(), self.schema.names.len()))
+            let Some(jit) = &self.jit else {
+                return Ok(());
+            };
+            jit.get_or_init(|| pcre2::Pcre2::compile(self.as_str(), self.schema.names.len()))
                 .as_ref()
                 .map(|_| ())
                 .map_err(|e| regex::Error::Syntax(e.clone()))
@@ -145,7 +169,8 @@ impl Regex {
         #[cfg(all(feature = "pcre2-jit", not(target_arch = "wasm32")))]
         {
             self.jit
-                .get()
+                .as_ref()
+                .and_then(|jit| jit.get())
                 .and_then(|v| v.as_ref().ok())
                 .map(|p| p.jit_bytes)
         }
@@ -173,6 +198,19 @@ impl Regex {
         }
         Some(start)
     }
+    fn uses_rust(&self) -> bool {
+        if RegexEngine::current() == RegexEngine::Rust {
+            return true;
+        }
+        #[cfg(all(feature = "pcre2-jit", not(target_arch = "wasm32")))]
+        {
+            self.jit.is_none()
+        }
+        #[cfg(not(all(feature = "pcre2-jit", not(target_arch = "wasm32"))))]
+        {
+            false
+        }
+    }
     /// Visit capture groups while reusable matching storage is borrowed.
     ///
     /// # Panics
@@ -187,9 +225,8 @@ impl Regex {
         let mut f = Some(f);
         if RegexEngine::current() == RegexEngine::Pcre2Jit {
             #[cfg(all(feature = "pcre2-jit", not(target_arch = "wasm32")))]
-            {
-                match self
-                    .jit
+            if let Some(jit) = &self.jit {
+                match jit
                     .get_or_init(|| pcre2::Pcre2::compile(self.as_str(), self.schema.names.len()))
                     .as_ref()
                 {
@@ -234,7 +271,7 @@ impl Regex {
     }
     #[must_use]
     pub fn is_match(&self, subject: &str) -> bool {
-        if RegexEngine::current() == RegexEngine::Rust {
+        if self.uses_rust() {
             self.rust.is_match(subject)
         } else {
             self.with_captures(subject, 0, |_| ()).is_some()
@@ -251,7 +288,7 @@ impl Regex {
     /// Panics if a backend violates the invariant that a match contains group zero.
     pub fn find_at<'h>(&self, subject: &'h str, start: usize) -> Option<Match<'h>> {
         let start = Self::start(subject, start)?;
-        if RegexEngine::current() == RegexEngine::Rust {
+        if self.uses_rust() {
             self.rust.find_at(subject, start).map(|m| Match {
                 subject,
                 start: m.start(),
@@ -354,7 +391,7 @@ impl From<regex::Regex> for Regex {
             scratch: Arc::new(ThreadLocal::new()),
             fallbacks: Arc::new(AtomicU64::new(0)),
             #[cfg(all(feature = "pcre2-jit", not(target_arch = "wasm32")))]
-            jit: Arc::new(std::sync::OnceLock::new()),
+            jit: None,
         }
     }
 }
@@ -636,13 +673,15 @@ impl RegexSet {
         if RegexEngine::current() == RegexEngine::Rust {
             return self.rust.is_match(subject);
         }
-        if let Ok(subject) = std::str::from_utf8(subject) {
+        if let Ok(subject) = std::str::from_utf8(subject)
+            && subject.is_ascii()
+        {
             self.regexes.iter().any(|r| r.is_match(subject))
         } else {
-            // Preserve match_any's arbitrary-byte behavior without passing
-            // invalid UTF-8 to the JIT API.
+            // Byte regex sets can match inside UTF-8 characters. String regexes
+            // only match at character boundaries, even on valid UTF-8 input.
             if let Some(regex) = self.regexes.first() {
-                regex.fallback("byte regex-set input contains invalid UTF-8");
+                regex.fallback("byte regex-set input is not ASCII");
             }
             self.rust.is_match(subject)
         }
@@ -652,6 +691,194 @@ impl RegexSet {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[cfg(all(feature = "pcre2-jit", not(target_arch = "wasm32")))]
+    #[test]
+    fn imported_regex_builder_options_are_preserved() {
+        let cases = [
+            (
+                regex::RegexBuilder::new("(?P<letter>a)")
+                    .case_insensitive(true)
+                    .build()
+                    .unwrap(),
+                "A",
+            ),
+            (
+                regex::RegexBuilder::new("^b$")
+                    .multi_line(true)
+                    .build()
+                    .unwrap(),
+                "a\nb\nc",
+            ),
+            (
+                regex::RegexBuilder::new("a.b")
+                    .dot_matches_new_line(true)
+                    .build()
+                    .unwrap(),
+                "a\nb",
+            ),
+            (
+                regex::RegexBuilder::new("a b")
+                    .ignore_whitespace(true)
+                    .build()
+                    .unwrap(),
+                "ab",
+            ),
+            (
+                regex::RegexBuilder::new("a+")
+                    .swap_greed(true)
+                    .build()
+                    .unwrap(),
+                "aaa",
+            ),
+            (
+                regex::RegexBuilder::new("^b$")
+                    .multi_line(true)
+                    .line_terminator(b'!')
+                    .build()
+                    .unwrap(),
+                "a!b!c",
+            ),
+        ];
+        let _scope = RegexEngine::Pcre2Jit.enter();
+        let before = JIT_EXECUTIONS.with(Cell::get);
+        for (raw, subject) in cases {
+            for value in [
+                crate::value::ValueRegex::from(raw.clone()),
+                crate::value::ValueRegex::from(Arc::new(raw.clone())),
+            ] {
+                // Exercise lazy matching before explicit preparation as well.
+                for prepared in [false, true] {
+                    if prepared {
+                        value.prepare(RegexEngine::Pcre2Jit).unwrap();
+                    }
+                    assert_eq!(value.is_match(subject), raw.is_match(subject));
+                    assert_eq!(
+                        value.find(subject).map(|m| (m.start(), m.end())),
+                        raw.find(subject).map(|m| (m.start(), m.end()))
+                    );
+                    assert_eq!(
+                        value.captures(subject).map(|c| {
+                            c.iter().map(|m| m.map(|m| m.range())).collect::<Vec<_>>()
+                        }),
+                        raw.captures(subject).map(|c| {
+                            c.iter().map(|m| m.map(|m| m.range())).collect::<Vec<_>>()
+                        })
+                    );
+                    assert_eq!(
+                        value.replace_all(subject, "[$0]"),
+                        raw.replace_all(subject, "[$0]")
+                    );
+                    assert_eq!(value.jit_size(), None);
+                    assert_eq!(value.fallback_count(), 0);
+                }
+            }
+        }
+        assert_eq!(JIT_EXECUTIONS.with(Cell::get), before);
+    }
+
+    #[cfg(all(feature = "pcre2-jit", not(target_arch = "wasm32")))]
+    #[test]
+    fn byte_regex_sets_preserve_interior_utf8_matches() {
+        let patterns = [r"(?-u:\B)"];
+        let rust = regex::bytes::RegexSet::new(patterns).unwrap();
+        let set = RegexSet::new_with_engine(patterns, RegexEngine::Pcre2Jit).unwrap();
+        let _scope = RegexEngine::Pcre2Jit.enter();
+        let before = JIT_EXECUTIONS.with(Cell::get);
+        for subject in ["aéa", "a☃a", "a", "aa", "a-a"] {
+            assert_eq!(
+                set.is_match(subject.as_bytes()),
+                rust.is_match(subject.as_bytes()),
+                "{subject}"
+            );
+        }
+        assert_eq!(set.regexes[0].fallback_count(), 2);
+        assert!(
+            JIT_EXECUTIONS.with(Cell::get) > before,
+            "ASCII still uses JIT"
+        );
+    }
+
+    #[cfg(all(
+        feature = "pcre2-jit",
+        not(target_arch = "wasm32"),
+        feature = "stdlib-base"
+    ))]
+    #[test]
+    fn public_operators_preserve_imported_flags_and_byte_set_matching() {
+        use crate::{
+            compiler::{
+                CompileConfig, TimeZone, compile_with_external, runtime::Runtime,
+                state::ExternalEnv,
+            },
+            value::{Value, regex_capture::RegexCaptureMapMode},
+        };
+        let source = r#"[
+            match!("A", .pattern),
+            match_array!(["A"], .pattern),
+            parse_regex!("A", .pattern),
+            replace!("A", .pattern, "[${letter}]"),
+            match_any("aéa", [r'(?-u:\B)'])
+        ]"#;
+        let raw = regex::RegexBuilder::new("(?P<letter>a)")
+            .case_insensitive(true)
+            .build()
+            .unwrap();
+        for engine in [RegexEngine::Rust, RegexEngine::Pcre2Jit] {
+            for mode in [RegexCaptureMapMode::Owned, RegexCaptureMapMode::Shared] {
+                let mut config = CompileConfig::default();
+                config.set_custom(engine);
+                config.set_custom(mode);
+                let program = compile_with_external(
+                    source,
+                    &crate::stdlib::all(),
+                    &ExternalEnv::default(),
+                    config,
+                )
+                .unwrap()
+                .program;
+                let mut target = Value::Object(
+                    [("pattern".into(), Value::Regex(raw.clone().into()))]
+                        .into_iter()
+                        .collect(),
+                );
+                let before = JIT_EXECUTIONS.with(Cell::get);
+                let value = Runtime::default()
+                    .resolve(&mut target, &program, &TimeZone::default())
+                    .unwrap();
+                assert_eq!(
+                    value,
+                    crate::value!([true, true, {"letter": "A"}, "[A]", true])
+                );
+                assert_eq!(JIT_EXECUTIONS.with(Cell::get), before);
+            }
+        }
+    }
+
+    #[cfg(all(feature = "pcre2-jit", not(target_arch = "wasm32")))]
+    #[test]
+    fn nullable_repetitions_follow_selected_engine_semantics() {
+        for (engine, capture, whole_match, replacement) in [
+            (RegexEngine::Rust, "aaa", "aab", "[aaa]"),
+            (RegexEngine::Pcre2Jit, "", "aa", "[]"),
+        ] {
+            let _scope = engine.enter();
+            let regex = Regex::new_with_engine(r"(?P<x>a*)+", engine).unwrap();
+            let before = JIT_EXECUTIONS.with(Cell::get);
+            assert_eq!(
+                regex.captures("aaa").unwrap().name("x").unwrap().as_str(),
+                capture
+            );
+            assert_eq!(regex.replacen("aaa", 1, "[${x}]"), replacement);
+            let regex = Regex::new_with_engine(r"(?:a?|b)*", engine).unwrap();
+            assert_eq!(regex.find("aab").unwrap().as_str(), whole_match);
+            assert_eq!(
+                JIT_EXECUTIONS.with(Cell::get) > before,
+                engine == RegexEngine::Pcre2Jit
+            );
+            assert_eq!(regex.fallback_count(), 0);
+        }
+    }
 
     #[test]
     fn scopes_restore_after_nested_execution_and_unwinding() {
@@ -859,7 +1086,7 @@ mod tests {
                     .unwrap()
                     .program;
                     let before = JIT_EXECUTIONS.with(Cell::get);
-                    let mut target = Value::Object(Default::default());
+                    let mut target = Value::Object(crate::value::ObjectMap::default());
                     let value = Runtime::default()
                         .resolve(&mut target, &program, &TimeZone::default())
                         .unwrap();
