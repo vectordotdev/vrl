@@ -1943,7 +1943,7 @@ bench_function! {
     parse_influxdb => vrl::stdlib::ParseInfluxDB;
 
     simple {
-        args: func_args![ value: format!("cpu,host=A,region=us-west usage_system=64i,usage_user=10u,temperature=50.5,on=true,sleep=false 1590488773254420000") ],
+        args: func_args![ value: "cpu,host=A,region=us-west usage_system=64i,usage_user=10u,temperature=50.5,on=true,sleep=false 1590488773254420000".to_string() ],
         want: Ok(Value::from(vec![
             Value::from(btreemap! {
                 "name" => "cpu_usage_system",

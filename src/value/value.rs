@@ -10,13 +10,17 @@ use bytestring::ByteString;
 use chrono::{DateTime, SecondsFormat, Utc};
 use ordered_float::NotNan;
 use std::borrow::Cow;
-use std::hash::{Hash, Hasher};
-use std::{cmp::Ordering, collections::BTreeMap};
+use std::{
+    cmp::Ordering,
+    hash::{Hash, Hasher},
+};
 
 use super::KeyString;
 use crate::path::ValuePath;
 
 mod convert;
+mod object_map;
+pub use object_map::*;
 mod crud;
 mod display;
 mod iter;
@@ -31,9 +35,6 @@ mod serde;
 
 /// A boxed `std::error::Error`.
 pub type StdError = Box<dyn std::error::Error + Send + Sync + 'static>;
-
-/// The storage mapping for the `Object` variant.
-pub type ObjectMap = BTreeMap<KeyString, Value>;
 
 /// The main value type used in Vector events, and VRL.
 #[derive(Debug, Clone)]
@@ -138,7 +139,7 @@ impl Value {
     /// Return if the node is empty, that is, it is an array or map with no items.
     ///
     /// ```rust
-    /// use vrl::value::Value;
+    /// use vrl::value::{Value, ObjectMap};
     /// use std::collections::BTreeMap;
     /// use vrl::path;
     ///
@@ -152,7 +153,7 @@ impl Value {
     /// val.insert(path!(3), 1);
     /// assert_eq!(val.is_empty(), false);
     ///
-    /// let mut val = Value::from(BTreeMap::default());
+    /// let mut val = Value::from(ObjectMap::default());
     /// assert_eq!(val.is_empty(), true);
     /// val.insert(path!("foo"), 1);
     /// assert_eq!(val.is_empty(), false);
@@ -342,6 +343,7 @@ pub fn timestamp_to_string(timestamp: &DateTime<Utc>) -> String {
 #[cfg(test)]
 mod test {
     use quickcheck::{QuickCheck, TestResult};
+    use serde_json::json;
 
     use crate::path;
     use crate::path::{BorrowedSegment, parse_value_path};
@@ -353,7 +355,7 @@ mod test {
 
         #[test]
         fn remove_prune_map_with_map() {
-            let mut value = Value::from(BTreeMap::default());
+            let mut value = Value::from(ObjectMap::default());
             let key = parse_value_path("foo.bar").unwrap();
             let marker = Value::from(true);
             assert_eq!(value.insert(&key, marker.clone()), None);
@@ -364,7 +366,7 @@ mod test {
 
         #[test]
         fn remove_prune_map_with_array() {
-            let mut value = Value::from(BTreeMap::default());
+            let mut value = Value::from(ObjectMap::default());
             let key = parse_value_path("foo[0]").unwrap();
             let marker = Value::from(true);
             assert_eq!(value.insert(&key, marker.clone()), None);
@@ -399,7 +401,7 @@ mod test {
     #[test]
     fn quickcheck_value() {
         fn inner(mut path: Vec<BorrowedSegment<'static>>) -> TestResult {
-            let mut value = Value::from(BTreeMap::default());
+            let mut value = Value::from(ObjectMap::default());
             let mut marker = Value::from(true);
 
             // Push a field at the start of the path so the top level is a map.
@@ -487,5 +489,50 @@ mod test {
         mixed.merge(Value::from_static_bytes(b"bar"));
         assert!(matches!(mixed, Value::Bytes(_)));
         assert_eq!(mixed, Value::from("foobar"));
+    }
+
+    #[test]
+    fn object_map_supports_path_crud() {
+        let mut value = Value::Object(ObjectMap::new());
+
+        assert_eq!(value.insert(path!("foo", "bar"), 1), None);
+        assert_eq!(value.get(path!("foo", "bar")), Some(&Value::from(1)));
+        assert_eq!(
+            value.remove(path!("foo", "bar"), true),
+            Some(Value::from(1))
+        );
+        assert!(!value.contains(path!("foo")));
+    }
+
+    #[test]
+    fn object_map_partial_ord_uses_sorted_contents() {
+        let left = ObjectMap::from([
+            ("beta".into(), Value::from(2)),
+            ("alpha".into(), Value::from(1)),
+        ]);
+        let right = ObjectMap::from([
+            ("alpha".into(), Value::from(1)),
+            ("beta".into(), Value::from(3)),
+        ]);
+
+        assert_eq!(left.partial_cmp(&right), Some(Ordering::Less));
+    }
+
+    #[test]
+    fn object_map_round_trips_through_serde() {
+        let map = ObjectMap::from([
+            ("beta".into(), Value::from(2)),
+            ("alpha".into(), Value::from(1)),
+        ]);
+
+        let serialized = serde_json::to_value(&map).unwrap();
+        let deserialized: ObjectMap = serde_json::from_value(json!({
+            "alpha": 1,
+            "beta": 2,
+        }))
+        .unwrap();
+
+        assert_eq!(serialized, json!({"beta": 2, "alpha": 1}));
+        assert_eq!(map, deserialized);
     }
 }

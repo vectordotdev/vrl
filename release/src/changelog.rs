@@ -764,7 +764,7 @@ mod tests {
         fs::write(&path, "Fixed a bug.\n\nauthors: alice\n").unwrap();
 
         let fragment = Changelog::parse_fragment(&path).unwrap();
-        assert!(fragment.pr_numbers.is_empty());
+        assert_eq!(fragment.pr_numbers, [] as [u64; 0]);
         assert_eq!(fragment.fragment_type, "fix");
         assert_eq!(fragment.content, "Fixed a bug.");
         assert_eq!(fragment.authors, vec!["alice"]);

@@ -1,5 +1,4 @@
 use crate::compiler::prelude::*;
-use std::collections::BTreeMap;
 
 fn filter<T>(value: Value, ctx: &mut Context, runner: &closure::Runner<T>) -> Resolved
 where
@@ -17,7 +16,7 @@ where
                     Err(err) => Some(Err(err)),
                 },
             )
-            .collect::<ExpressionResult<BTreeMap<_, _>>>()
+            .collect::<ExpressionResult<ObjectMap>>()
             .map(Into::into),
 
         Value::Array(array) => array

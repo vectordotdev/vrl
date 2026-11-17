@@ -2,7 +2,15 @@ use mlua::prelude::LuaResult;
 use mlua::{FromLua, IntoLua, Lua, Value as LuaValue};
 use ordered_float::NotNan;
 
-use crate::value::Value;
+use std::collections::BTreeMap;
+
+use crate::value::{KeyString, ObjectMap, Value};
+
+impl FromLua for ObjectMap {
+    fn from_lua(value: LuaValue, lua: &Lua) -> LuaResult<Self> {
+        <BTreeMap<KeyString, Value>>::from_lua(value, lua).map(Self::from)
+    }
+}
 
 impl IntoLua for Value {
     #![allow(clippy::wrong_self_convention)] // this trait is defined by mlua
@@ -44,7 +52,7 @@ impl FromLua for Value {
                 } else if table_is_timestamp(&t)? {
                     table_to_timestamp(t).map(Self::Timestamp)
                 } else {
-                    <_>::from_lua(LuaValue::Table(t), lua).map(Self::Object)
+                    ObjectMap::from_lua(LuaValue::Table(t), lua).map(Self::Object)
                 }
             }
             other => Err(mlua::Error::FromLuaConversionError {
@@ -157,8 +165,8 @@ mod test {
                 ),
             ),
             (
-                "{1, '2', 0.57721566}",
-                Value::Array(vec![1_i64.into(), "2".into(), 0.577_215_66.into()]),
+                "{1, '2', 0.56721566}",
+                Value::Array(vec![1_i64.into(), "2".into(), 0.567_215_66.into()]),
             ),
             (
                 "os.date('!*t', 1584297428)",
@@ -256,12 +264,12 @@ mod test {
                 ",
             ),
             (
-                Value::Array(vec![1_i64.into(), "2".into(), 0.577_215_66.into()]),
+                Value::Array(vec![1_i64.into(), "2".into(), 0.567_215_66.into()]),
                 "
                 function (value)
                     return value[1] == 1 and
                         value[2] == '2' and
-                        value[3] == 0.57721566
+                        value[3] == 0.56721566
                 end
                 ",
             ),

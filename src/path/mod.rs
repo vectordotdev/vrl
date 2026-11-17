@@ -326,6 +326,54 @@ mod test {
     }
 
     #[test]
+    fn test_parse_overflowing_indexes() {
+        let indexes = [
+            (isize::MAX as i128 + 1).to_string(),
+            (isize::MIN as i128 - 1).to_string(),
+            format!("{}0", isize::MAX),
+            format!("{}0", isize::MIN),
+            "18446744073709551616".to_owned(),
+            "-18446744073709551616".to_owned(),
+        ];
+        for index in indexes {
+            for path in [format!("[{index}]"), format!("items[{index}].field")] {
+                assert!(parse_value_path(&path).is_err(), "{path}");
+                for prefix in ["", ".", "%"] {
+                    let path = format!("{prefix}{path}");
+                    assert!(parse_target_path(&path).is_err(), "{path}");
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn test_parse_index_boundaries() {
+        for index in [isize::MIN, -1, 0, 1, isize::MAX] {
+            let path = format!("items[{index}]");
+            assert_eq!(
+                parse_value_path(&path),
+                Ok(owned_value_path!("items", index))
+            );
+            assert_eq!(
+                parse_target_path(&path),
+                Ok(owned_event_path!("items", index))
+            );
+            assert_eq!(
+                parse_target_path(&format!("%{path}")),
+                Ok(owned_metadata_path!("items", index))
+            );
+        }
+    }
+
+    #[test]
+    fn test_parse_quoted_overflowing_index() {
+        let field = "items[18446744073709551616]";
+        let path = format!("\"{field}\"");
+        assert_eq!(parse_value_path(&path), Ok(owned_value_path!(field)));
+        assert_eq!(parse_target_path(&path), Ok(owned_event_path!(field)));
+    }
+
+    #[test]
     fn test_path_macro() {
         let expected = parse_value_path("a.b").unwrap();
         assert!(ValuePath::eq(&path!("a", "b"), &expected));

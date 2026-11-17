@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use crate::value::ObjectMap;
 use std::fmt::Formatter;
 
 use crate::value::Value;
@@ -169,7 +169,7 @@ impl KeyValueFilter {
     }
 
     fn apply_str(&self, value: &str) -> Value {
-        let mut result = Value::Object(BTreeMap::default());
+        let mut result = Value::Object(ObjectMap::default());
         self.re_pattern.captures_iter(value).for_each(|c| {
             self.parse_key_value_capture(&mut result, &c);
         });
@@ -179,7 +179,7 @@ impl KeyValueFilter {
     fn parse_key_value_capture(
         &self,
         result: &mut Value,
-        c: &Result<Captures, fancy_regex::Error>,
+        c: &Result<Captures<'_, str>, fancy_regex::Error>,
     ) {
         let key = parse_key(extract_capture(c, 1), &self.quotes);
         if !key.contains(' ') {
@@ -212,7 +212,7 @@ impl KeyValueFilter {
     }
 }
 
-fn extract_capture<'a>(c: &'a Result<Captures<'a>, fancy_regex::Error>, i: usize) -> &'a str {
+fn extract_capture<'a>(c: &'a Result<Captures<'a, str>, fancy_regex::Error>, i: usize) -> &'a str {
     c.as_ref()
         .map(|c| c.get(i).map(|m| m.as_str()))
         .unwrap_or_default()

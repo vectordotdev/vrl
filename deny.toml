@@ -10,9 +10,7 @@ allow = [
   "ISC",
   "MIT",
   "MIT-0",
-  "OpenSSL",
   "Unicode-3.0",
-  "Unicode-DFS-2016",
   "Unlicense",
   "Zlib",
 ]
@@ -25,14 +23,6 @@ exceptions = [
   { allow = ["MPL-2.0"], name = "vrl", version = "*" },
   # Mozilla CA certificate data used by rustls-platform-verifier; also allowed in Vector.
   { allow = ["CDLA-Permissive-2.0"], name = "webpki-root-certs", version = "1" },
-]
-
-[[licenses.clarify]]
-name = "ring"
-version = "*"
-expression = "MIT AND ISC AND OpenSSL"
-license-files = [
-    { path = "LICENSE", hash = 0xbd0eed23 }
 ]
 
 [advisories]

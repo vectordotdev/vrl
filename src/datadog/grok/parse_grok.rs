@@ -4,7 +4,6 @@ use super::{
 };
 use crate::path::parse_value_path;
 use crate::value::{ObjectMap, Value};
-use std::collections::BTreeMap;
 
 /// Errors which cause the Datadog grok algorithm to stop processing and not return a parsed result.
 #[derive(thiserror::Error, Debug, PartialEq, Eq)]
@@ -61,7 +60,7 @@ pub fn parse_grok(
 /// Internal Errors:
 /// - `FailedToApplyFilter` - matches the rule, but there was a runtime error while applying on of the filters
 fn apply_grok_rule(source: &str, grok_rule: &GrokRule) -> Result<ParsedGrokObject, FatalError> {
-    let mut parsed = Value::Object(BTreeMap::new());
+    let mut parsed = Value::Object(ObjectMap::new());
     let mut internal_errors = vec![];
 
     match grok_rule.pattern.match_against(source) {
@@ -175,6 +174,7 @@ mod tests {
     use crate::value::Value;
     use chrono::{Datelike, NaiveDate, Timelike, Utc};
     use ordered_float::NotNan;
+    use std::collections::BTreeMap;
     use tracing_test::traced_test;
 
     use super::super::parse_grok_rules::parse_grok_rules;
@@ -460,7 +460,7 @@ mod tests {
             "%{notSpace:field1:integer} %{data:field2:json}",
             "not_a_number not a json",
             Ok(ParsedGrokObject {
-                parsed: Value::from(BTreeMap::new()),
+                parsed: Value::from(ObjectMap::new()),
                 internal_errors: vec![
                     InternalError::FailedToApplyFilter(
                         "Integer".to_owned(),
@@ -817,7 +817,7 @@ mod tests {
                 "%{data:field:array}",
                 "abc",
                 Ok(ParsedGrokObject {
-                    parsed: Value::from(BTreeMap::new()),
+                    parsed: Value::from(ObjectMap::new()),
                     internal_errors: vec![InternalError::FailedToApplyFilter(
                         "Array(..)".to_owned(),
                         "\"abc\"".to_owned(),
@@ -829,7 +829,7 @@ mod tests {
                 "%{data:field:array(scale(10))}",
                 "[a,b]",
                 Ok(ParsedGrokObject {
-                    parsed: Value::from(BTreeMap::new()),
+                    parsed: Value::from(ObjectMap::new()),
                     internal_errors: vec![InternalError::FailedToApplyFilter(
                         "Scale(..)".to_owned(),
                         "\"a\"".to_owned(),
@@ -972,7 +972,7 @@ mod tests {
             (
                 "%{data::keyvalue}",
                 "key:=valueStr",
-                Ok(Value::from(BTreeMap::new())),
+                Ok(Value::from(ObjectMap::new())),
             ),
             // empty key or null
             (
@@ -994,7 +994,7 @@ mod tests {
             (
                 "%{data::keyvalue}",
                 "=,=value",
-                Ok(Value::from(BTreeMap::new())),
+                Ok(Value::from(ObjectMap::new())),
             ),
             // type inference
             (
@@ -1024,17 +1024,17 @@ mod tests {
             (
                 "%{data::keyvalue}",
                 "key = valueStr",
-                Ok(Value::from(BTreeMap::new())),
+                Ok(Value::from(ObjectMap::new())),
             ),
             (
                 "%{data::keyvalue}",
                 "key= valueStr",
-                Ok(Value::from(BTreeMap::new())),
+                Ok(Value::from(ObjectMap::new())),
             ),
             (
                 "%{data::keyvalue}",
                 "key =valueStr",
-                Ok(Value::from(BTreeMap::new())),
+                Ok(Value::from(ObjectMap::new())),
             ),
         ]);
     }
@@ -1384,7 +1384,7 @@ mod tests {
             (
                 "%{data::json}",
                 r#"{"root": {"object": {"empty": {}}, "string": "abc" }}"#,
-                Ok(Value::Object(btreemap!(
+                Ok(Value::from(btreemap!(
                     "root" => btreemap! (
                         "string" => "abc"
                     )
@@ -1393,7 +1393,7 @@ mod tests {
             (
                 "%{data:field:json}",
                 r#"{"root": {"object": {"empty": {}}, "string": "abc" }}"#,
-                Ok(Value::Object(btreemap!(
+                Ok(Value::from(btreemap!(
                     "field" => btreemap!(
                         "root" => btreemap! (
                             "string" => "abc"
@@ -1403,7 +1403,7 @@ mod tests {
             (
                 r#"%{notSpace:network.destination.ip:nullIf("-")}"#,
                 "-",
-                Ok(Value::Object(btreemap!())),
+                Ok(Value::from(btreemap!())),
             ),
         ]);
     }
@@ -1412,7 +1412,7 @@ mod tests {
         test_full_grok(vec![(
             "%{data::json}",
             r#"{"a.b": "c"}"#,
-            Ok(Value::Object(btreemap!(
+            Ok(Value::from(btreemap!(
                 "a" => btreemap! (
                     "b" => "c"
                 )

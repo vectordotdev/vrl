@@ -4,6 +4,24 @@ Changelog is generated from fragments in `changelog.d/` by the `release` crate.
 
 <!-- changelog start -->
 
+## [0.39.0 (2026-11-16)](https://github.com/vectordotdev/vrl/releases/tag/v0.39.0)
+
+### New Features
+
+- Added a new `log10` function that computes the base 10 logarithm of a number, for example to convert milliwatts to dBm with `10 * log10!(mw)`.
+
+  *Thanks to [lchabert](https://github.com/lchabert) for contributing PR [#2012](https://github.com/vectordotdev/vrl/pull/2012)!*
+- Added a new `pow` function that raises a number to a power, for example to convert dBm to milliwatts with `pow!(10, dbm / 10)`.
+
+  *Thanks to [lchabert](https://github.com/lchabert) for contributing PR [#2012](https://github.com/vectordotdev/vrl/pull/2012)!*
+
+### Fixes
+
+- VRL now rejects field paths with array indices outside the `isize` range instead of silently wrapping to a different index.
+
+  *Thanks to [pront](https://github.com/pront) for contributing PR [#2045](https://github.com/vectordotdev/vrl/pull/2045)!*
+
+
 ## [0.38.0 (2026-10-28)](https://github.com/vectordotdev/vrl/releases/tag/v0.38.0)
 
 ### Security
