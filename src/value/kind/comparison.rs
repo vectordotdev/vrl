@@ -336,11 +336,7 @@ impl Kind {
             return true;
         }
 
-        if self.contains_object() && other.contains_object() {
-            return true;
-        }
-
-        false
+        self.contains_object() && other.contains_object()
     }
 }
 
