@@ -30,9 +30,8 @@ env:
 
 jobs:
   guard:
+    if: github.repository == 'vectordotdev/vrl'
     uses: ./.github/workflows/ci-repo-gate.yml
-    with:
-      upstream-only: true
 
   check:
     needs: guard

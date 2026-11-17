@@ -28,6 +28,7 @@ env:
 
 jobs:
   guard:
+    if: github.repository == 'vectordotdev/vrl' || github.event_name != 'push'
     uses: ./.github/workflows/ci-repo-gate.yml
 
   clippy:
