@@ -20,8 +20,14 @@ env:
   LABEL_NAME: "docs review on hold"
 
 jobs:
+  repo-gate:
+    uses: ./.github/workflows/ci-repo-gate.yml
+    with:
+      upstream-only: true
+
   download:
-    if: github.event.workflow_run.conclusion == 'success' && github.repository == 'vectordotdev/vrl'
+    needs: repo-gate
+    if: github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:

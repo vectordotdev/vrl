@@ -17,9 +17,14 @@ env:
   CARGO_INCREMENTAL: '0'  # Disable incremental compilation for coverage
 
 jobs:
+  repo-gate:
+    uses: ./.github/workflows/ci-repo-gate.yml
+    with:
+      upstream-only: true
+
   coverage:
     # Requires Datadog OIDC credentials that aren't available on forks.
-    if: github.repository == 'vectordotdev/vrl'
+    needs: repo-gate
     runs-on: ubuntu-latest
     permissions:
       contents: read

@@ -9,8 +9,14 @@ permissions:
   contents: read
 
 jobs:
+  repo-gate:
+    uses: ./.github/workflows/ci-repo-gate.yml
+    with:
+      upstream-only: true
+
   check-features:
-    if: ${{ github.event_name == 'merge_group' && github.repository == 'vectordotdev/vrl' }}
+    needs: repo-gate
+    if: ${{ github.event_name == 'merge_group' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -19,10 +25,11 @@ jobs:
         run: make check-features
 
   check-release:
+    needs: repo-gate
     # A release PR is prepared from a fixed `main` commit. If another PR lands first,
     # its changelog fragment stays in `changelog.d/` at the release commit and the
     # release changelog misses it. Reject that group so the release is prepared again.
-    if: ${{ github.event_name == 'merge_group' && github.repository == 'vectordotdev/vrl' }}
+    if: ${{ github.event_name == 'merge_group' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -43,8 +50,10 @@ jobs:
           cargo run -q -p release -- release-commit --before "$BASE_SHA"
 
   merge-queue:
-    if: always() && github.repository == 'vectordotdev/vrl'
+    # Report gate failures; skip only repositories excluded by the gate.
+    if: always() && needs.repo-gate.result != 'skipped'
     needs:
+      - repo-gate
       - check-features
       - check-release
     runs-on: ubuntu-latest

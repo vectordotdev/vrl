@@ -25,8 +25,13 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  repo-gate:
+    uses: ./.github/workflows/ci-repo-gate.yml
+    with:
+      upstream-only: true
+
   generate:
-    if: github.repository == 'vectordotdev/vrl'
+    needs: repo-gate
     name: Generate release files
     runs-on: ubuntu-latest
     timeout-minutes: 30

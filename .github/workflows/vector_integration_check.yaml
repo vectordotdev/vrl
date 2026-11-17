@@ -8,9 +8,14 @@ permissions:
   contents: read
 
 jobs:
+  repo-gate:
+    uses: ./.github/workflows/ci-repo-gate.yml
+    with:
+      upstream-only: true
+
   check-vector:
     name: Vector compatibility (advisory)
-    if: github.repository == 'vectordotdev/vrl'
+    needs: repo-gate
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout VRL
