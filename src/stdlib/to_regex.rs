@@ -20,7 +20,7 @@ impl Function for ToRegex {
         "to_regex"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Coerces the `value` into a regex."
     }
 

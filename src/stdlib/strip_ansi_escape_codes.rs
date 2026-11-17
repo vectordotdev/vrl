@@ -15,7 +15,7 @@ impl Function for StripAnsiEscapeCodes {
         "strip_ansi_escape_codes"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Strips [ANSI escape codes](https://en.wikipedia.org/wiki/ANSI_escape_code) from `value`."
     }
 

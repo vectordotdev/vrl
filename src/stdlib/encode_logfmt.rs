@@ -21,7 +21,7 @@ impl Function for EncodeLogfmt {
         "encode_logfmt"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Encodes the `value` to [logfmt](https://brandur.org/logfmt)."
     }
 

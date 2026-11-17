@@ -2,7 +2,7 @@ use std::fmt;
 
 use crate::compiler::state::{TypeInfo, TypeState};
 use crate::compiler::{
-    Context, Expression,
+    Context, Expression, ExpressionError,
     expression::{Expr, Resolved},
 };
 use crate::value::Value;
@@ -23,6 +23,10 @@ impl Group {
 impl Expression for Group {
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         self.inner.resolve(ctx)
+    }
+
+    fn resolve_unused(&self, ctx: &mut Context) -> Result<(), ExpressionError> {
+        self.inner.resolve_unused(ctx)
     }
 
     fn resolve_constant(&self, state: &TypeState) -> Option<Value> {

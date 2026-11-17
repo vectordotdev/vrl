@@ -179,10 +179,10 @@ impl QueryNode {
                 Self::is_default_attr(attr) + &Self::lucene_escape(value)
             }
             QueryNode::QuotedAttribute { attr, phrase } => {
-                Self::is_default_attr(attr) + &format!("\"{}\"", &Self::quoted_escape(phrase))
+                Self::is_default_attr(attr) + &format!("\"{}\"", Self::quoted_escape(phrase))
             }
             QueryNode::AttributePrefix { attr, prefix } => {
-                Self::is_default_attr(attr) + &format!("{}*", &Self::lucene_escape(prefix))
+                Self::is_default_attr(attr) + &format!("{}*", Self::lucene_escape(prefix))
             }
             QueryNode::AttributeWildcard { attr, wildcard } => {
                 Self::is_default_attr(attr) + wildcard

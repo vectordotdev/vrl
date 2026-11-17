@@ -1,5 +1,4 @@
 use crate::compiler::prelude::*;
-use prost_reflect::ReflectMessage;
 #[cfg(any(feature = "enable_system_functions", test))]
 use prost_reflect::{DynamicMessage, MessageDescriptor};
 
@@ -55,17 +54,14 @@ pub fn proto_to_value(
         }
         prost_reflect::Value::Message(v) => {
             let mut obj_map = ObjectMap::new();
-            for field_desc in v.descriptor().fields() {
-                if v.has_field(&field_desc) {
-                    let field_value = v.get_field(&field_desc);
-                    let out = proto_to_value(field_value.as_ref(), Some(&field_desc), options)?;
-                    let field_key = if options.use_json_names {
-                        field_desc.json_name()
-                    } else {
-                        field_desc.name()
-                    };
-                    obj_map.insert(field_key.into(), out);
-                }
+            for (field_desc, field_value) in v.fields() {
+                let out = proto_to_value(field_value, Some(&field_desc), options)?;
+                let field_key = if options.use_json_names {
+                    field_desc.json_name()
+                } else {
+                    field_desc.name()
+                };
+                obj_map.insert(field_key.into(), out);
             }
             Value::from(obj_map)
         }
@@ -201,5 +197,33 @@ mod tests {
             vrl_value.get(&owned_value_path!("jobDescription")),
             Some(&Value::from("some job"))
         );
+    }
+
+    #[test]
+    fn test_proto_to_value_default_value_presence() {
+        let to_vrl = |message: DynamicMessage| {
+            proto_to_value(
+                &prost_reflect::Value::Message(message),
+                None,
+                &Options::default(),
+            )
+            .unwrap()
+        };
+
+        // Explicit presence keeps an optional field set to its default value.
+        let path = test_data_dir().join("test_protobuf3/v1/test_protobuf3.desc");
+        let descriptor = get_message_descriptor(&path, "test_protobuf3.v1.Person").unwrap();
+        let id = descriptor.get_field_by_name("id").unwrap();
+        let mut message = DynamicMessage::new(descriptor);
+        message.set_field(&id, prost_reflect::Value::I32(0));
+        assert_eq!(to_vrl(message), value!({ id: 0 }));
+
+        // Implicit presence omits a regular proto3 field set to its default value.
+        let path = test_data_dir().join("test/v1/test.desc");
+        let descriptor = get_message_descriptor(&path, "test.v1.Integers").unwrap();
+        let i32_field = descriptor.get_field_by_name("i32").unwrap();
+        let mut message = DynamicMessage::new(descriptor);
+        message.set_field(&i32_field, prost_reflect::Value::I32(0));
+        assert_eq!(to_vrl(message), value!({}));
     }
 }

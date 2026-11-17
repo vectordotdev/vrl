@@ -25,7 +25,7 @@ impl Function for ParseUrl {
         "parse_url"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Parses the `value` in [URL](https://en.wikipedia.org/wiki/URL) format."
     }
 
@@ -159,7 +159,7 @@ fn url_to_value(url: &Url, default_known_ports: bool) -> Value {
     );
 
     map.into_iter()
-        .map(|(k, v)| (k.to_owned(), v))
+        .map(|(k, v)| (KeyString::from(k), v))
         .collect::<Value>()
 }
 

@@ -1,5 +1,4 @@
 use crate::compiler::prelude::*;
-use std::collections::BTreeMap;
 
 #[derive(Clone, Copy, Debug)]
 pub struct TagTypesExternally;
@@ -9,7 +8,7 @@ impl Function for TagTypesExternally {
         "tag_types_externally"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         indoc! {"
             Adds type information to all (nested) scalar values in the provided `value`.
 
@@ -105,7 +104,7 @@ impl FunctionExpression for TagTypesExternallyFn {
 
 fn tag_type_externally(value: Value) -> Value {
     let (key, value) = match value {
-        value @ Value::Bytes(_) => (Some("string"), value),
+        value @ (Value::Bytes(_) | Value::String(_)) => (Some("string"), value),
         value @ Value::Integer(_) => (Some("integer"), value),
         value @ Value::Float(_) => (Some("float"), value),
         value @ Value::Boolean(_) => (Some("boolean"), value),
@@ -131,7 +130,7 @@ fn tag_type_externally(value: Value) -> Value {
     };
 
     if let Some(key) = key {
-        BTreeMap::from([(key.to_owned().into(), value)]).into()
+        ObjectMap::from([(key.into(), value)]).into()
     } else {
         value
     }

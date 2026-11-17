@@ -4,7 +4,7 @@ fn type_def(type_def: &VrlTypeDef) -> Value {
     let mut tree = type_def.kind().canonicalize().debug_info();
 
     if type_def.is_fallible() {
-        tree.insert("fallible".to_owned().into(), true.into());
+        tree.insert("fallible".into(), true.into());
     }
 
     tree.into()
@@ -22,7 +22,7 @@ impl Function for TypeDef {
         "type_def"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         indoc! {"
             Returns the type definition of an expression at runtime.
 

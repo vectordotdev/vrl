@@ -1,9 +1,8 @@
 use crate::compiler::prelude::*;
-use bytes::Bytes;
 use chrono::{DateTime, Utc};
 use uuid::{NoContext, timestamp::Timestamp};
 
-static DEFAULT_TIMESTAMP: Value = Value::Bytes(Bytes::from_static("`now()`".as_bytes()));
+static DEFAULT_TIMESTAMP: Value = Value::from_static_str("`now()`");
 
 const PARAMETERS: &[Parameter] = &[Parameter::optional(
     "timestamp",
@@ -31,7 +30,7 @@ fn uuid_v7(timestamp: Option<Value>) -> Resolved {
     let uuid = uuid::Uuid::new_v7(timestamp)
         .hyphenated()
         .encode_lower(&mut buffer);
-    Ok(Bytes::copy_from_slice(uuid.as_bytes()).into())
+    Ok(Value::from(&*uuid))
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -42,7 +41,7 @@ impl Function for UuidV7 {
         "uuid_v7"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Generates a random [UUIDv7](https://datatracker.ietf.org/doc/html/draft-peabody-dispatch-new-uuid-format-04#name-uuid-version-7) string."
     }
 
@@ -117,8 +116,8 @@ impl FunctionExpression for UuidV7Fn {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::value::ObjectMap;
     use crate::value::Value;
-    use std::collections::BTreeMap;
 
     test_type_def![default {
         expr: |_| { UuidV7Fn { timestamp: None } },
@@ -128,20 +127,13 @@ mod tests {
     #[test]
     fn uuid_v7() {
         let mut state = state::RuntimeState::default();
-        let mut object: Value = Value::Object(BTreeMap::new());
+        let mut object: Value = Value::Object(ObjectMap::new());
         let tz = TimeZone::default();
         let mut ctx = Context::new(&mut object, &mut state, &tz);
         let value = UuidV7Fn { timestamp: None }.resolve(&mut ctx).unwrap();
 
-        assert!(matches!(&value, Value::Bytes(_)));
-
-        match value {
-            Value::Bytes(val) => {
-                let val = String::from_utf8_lossy(&val);
-                uuid::Uuid::parse_str(&val).expect("valid UUID V7");
-            }
-            _ => unreachable!(),
-        }
+        uuid::Uuid::parse_str(value.as_string().expect("UUIDv7 must be a string"))
+            .expect("valid UUID V7");
     }
 
     #[test]
@@ -158,11 +150,9 @@ mod tests {
                 timestamp.timestamp_subsec_millis() * 1_000_000,
             );
 
-            let Value::Bytes(encoded) = super::uuid_v7(Some(timestamp.into())).unwrap() else {
-                panic!("UUIDv7 must be a string");
-            };
-
-            let id = uuid::Uuid::parse_str(std::str::from_utf8(&encoded).unwrap()).unwrap();
+            let encoded = super::uuid_v7(Some(timestamp.into())).unwrap();
+            let encoded = encoded.as_string().expect("UUIDv7 must be a string");
+            let id = uuid::Uuid::parse_str(encoded).unwrap();
             assert_eq!(id.get_timestamp().unwrap().to_unix(), expected, "{input}");
         }
     }

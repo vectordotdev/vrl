@@ -96,6 +96,7 @@ cfg_if::cfg_if! {
         mod keys;
         mod length;
         mod log;
+        mod log10;
         mod log_util;
         mod map_keys;
         mod map_values;
@@ -142,11 +143,13 @@ cfg_if::cfg_if! {
         mod parse_xml;
         mod parse_yaml;
         mod pop;
+        mod pow;
         mod push;
         mod random_bool;
         mod random_bytes;
         mod random_float;
         mod random_int;
+        mod range;
         mod redact;
         mod remove;
         mod replace;
@@ -357,6 +360,7 @@ cfg_if::cfg_if! {
             keys::Keys,
             length::Length,
             log::Log,
+            log10::Log10,
             map_keys::MapKeys,
             map_values::MapValues,
             match_any::MatchAny,
@@ -401,12 +405,14 @@ cfg_if::cfg_if! {
             parse_xml::ParseXml,
             parse_yaml::ParseYaml,
             pop::Pop,
+            pow::Pow,
             push::Push,
             r#match::Match,
             random_bool::RandomBool,
             random_bytes::RandomBytes,
             random_float::RandomFloat,
             random_int::RandomInt,
+            range::Range,
             redact::Redact,
             remove::Remove,
             replace::Replace,

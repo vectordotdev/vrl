@@ -26,13 +26,12 @@ pub trait Function: Send + Sync + fmt::Debug {
     /// The identifier by which the function can be called.
     fn identifier(&self) -> &'static str;
 
-    /// A brief single-line description explaining what this function does.
-    fn summary(&self) -> &'static str {
-        "TODO"
-    }
-
-    /// A more elaborate multi-paragraph description on how to use the function.
-    fn usage(&self) -> &'static str;
+    /// A description of the function in Markdown.
+    ///
+    /// Start with a concise, self-contained paragraph explaining what the function
+    /// does. Additional paragraphs can provide more detail about behavior and usage.
+    /// The first paragraph can be used as a summary in documentation and tooling.
+    fn description(&self) -> &'static str;
 
     /// The category this function belongs to.
     ///

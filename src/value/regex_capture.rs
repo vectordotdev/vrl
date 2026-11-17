@@ -90,11 +90,11 @@ impl<'a, C: CaptureGroups + ?Sized> RegexCaptureMap<'a, C> {
         };
         match &self.backing {
             Some((base, bytes)) if group.start >= *base && group.end - base <= bytes.len() => {
-                Value::Bytes(bytes.slice(group.start - base..group.end - base))
+                Value::from_utf8_or_bytes(bytes.slice(group.start - base..group.end - base))
             }
             // Independent copying also handles captures outside the full match
             // if a future backend permits them (for example in lookarounds).
-            _ => Value::Bytes(Bytes::copy_from_slice(group.text.as_bytes())),
+            _ => Value::from(group.text),
         }
     }
 
@@ -149,6 +149,16 @@ mod tests {
                         )
                         .materialize(&names, numeric);
                         assert_eq!(shared, owned);
+                        assert!(
+                            owned
+                                .values()
+                                .all(|value| matches!(value, Value::String(_) | Value::Null))
+                        );
+                        assert!(
+                            shared
+                                .values()
+                                .all(|value| matches!(value, Value::String(_) | Value::Null))
+                        );
                     }
                 }
             }

@@ -14,14 +14,39 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
       - name: "Check that all features can compile"
         run: make check-features
+
+  check-release:
+    # A release PR is prepared from a fixed `main` commit. If another PR lands first,
+    # its changelog fragment stays in `changelog.d/` at the release commit and the
+    # release changelog misses it. Reject that group so the release is prepared again.
+    if: ${{ github.event_name == 'merge_group' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Check release commit
+        env:
+          BASE_SHA: ${{ github.event.merge_group.base_sha }}
+        run: |
+          set -euo pipefail
+          # Most groups do not touch Cargo.toml. Skip building the release tool for them.
+          if git diff --quiet "$BASE_SHA" HEAD -- Cargo.toml; then
+            echo "Cargo.toml is unchanged, not a release."
+            exit 0
+          fi
+          cargo run -q -p release -- release-commit --before "$BASE_SHA"
 
   merge-queue:
     if: always()
     needs:
       - check-features
+      - check-release
     runs-on: ubuntu-latest
     steps:
       - name: Check result

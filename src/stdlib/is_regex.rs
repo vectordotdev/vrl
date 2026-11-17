@@ -9,7 +9,7 @@ impl Function for IsRegex {
         "is_regex"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Check if `value`'s type is a regex."
     }
 

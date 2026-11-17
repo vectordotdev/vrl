@@ -1,5 +1,5 @@
 use crate::compiler::prelude::*;
-use rand::RngCore;
+use rand::Rng;
 
 const MAX_LENGTH: i64 = 1024 * 64;
 const LENGTH_TOO_LARGE_ERR: &str = "Length is too large. Maximum is 64k";
@@ -22,7 +22,7 @@ impl Function for RandomBytes {
         "random_bytes"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "A cryptographically secure random number generator. Returns a string value containing the number of random bytes requested."
     }
 

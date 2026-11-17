@@ -1,5 +1,5 @@
 <!--
-  Your PR title must conform to the conventional commit spec:
+  We recommend conforming to conventional commit spec for PR titles:
   https://www.conventionalcommits.org/en/v1.0.0/
 
   <type>(<scope>)!: <description>
@@ -22,24 +22,12 @@ Examples:
 <!-- Please provide a brief summary about what this PR does.
 This should help the reviewers give feedback faster and with higher quality. -->
 
-## Change Type
-
-- [ ] Bug fix
-- [ ] New feature
-- [ ] Non-functional (chore, refactoring, docs)
-- [ ] Performance
-
-## Is this a breaking change?
-
-- [ ] Yes
-- [ ] No
-
 ## How did you test this PR?
 
 <!-- Please describe your testing plan here.
 Providing this information upfront will facilitate a smoother review process. -->
 
-## Does this PR include user facing changes?
+## Does this PR include user-facing changes?
 
 - [ ] Yes. Please add a changelog fragment based on
   our [guidelines](https://github.com/vectordotdev/vrl/blob/main/changelog.d/README.md).

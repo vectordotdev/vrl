@@ -2,16 +2,14 @@
 //! that are sufficient to process a `roxmltree::Node`.
 
 use crate::compiler::prelude::*;
+use crate::value::ObjectMapEntry;
 use regex::{Regex, RegexBuilder};
 // Re-export `roxmltree` to match the public API of `process_node`.
 use roxmltree::NodeType;
 pub use roxmltree::{Document, Node};
 use rust_decimal::prelude::Zero;
+use std::borrow::Cow;
 use std::sync::LazyLock;
-use std::{
-    borrow::Cow,
-    collections::{BTreeMap, btree_map::Entry},
-};
 
 /// A lazily initialized regular expression that matches excess whitespace between XML/HTML tags.
 ///
@@ -33,8 +31,8 @@ pub static XML_RE: LazyLock<Regex> = LazyLock::new(|| {
 
 pub static DEFAULT_TRIM: Value = Value::Boolean(true);
 pub static DEFAULT_INCLUDE_ATTR: Value = Value::Boolean(true);
-pub static DEFAULT_ATTR_PREFIX: Value = Value::Bytes(Bytes::from_static("@".as_bytes()));
-pub static DEFAULT_TEXT_KEY: Value = Value::Bytes(Bytes::from_static("text".as_bytes()));
+pub static DEFAULT_ATTR_PREFIX: Value = Value::from_static_str("@");
+pub static DEFAULT_TEXT_KEY: Value = Value::from_static_str("text");
 pub static DEFAULT_ALWAYS_USE_TEXT_KEY: Value = Value::Boolean(false);
 pub static DEFAULT_PARSE_BOOL: Value = Value::Boolean(true);
 pub static DEFAULT_PARSE_NULL: Value = Value::Boolean(true);
@@ -164,7 +162,7 @@ pub fn parse_xml(value: Value, options: ParseOptions) -> Resolved {
 pub fn process_node(node: Node, config: &ParseXmlConfig) -> Value {
     // Helper to recurse over a `Node`s children, and build an object.
     let recurse = |node: Node| -> ObjectMap {
-        let mut map = BTreeMap::new();
+        let mut map = ObjectMap::new();
 
         // Expand attributes, if required.
         if config.include_attr {
@@ -178,8 +176,8 @@ pub fn process_node(node: Node, config: &ParseXmlConfig) -> Value {
 
         for n in node.children().filter(|n| n.is_element() || n.is_text()) {
             let name = match n.node_type() {
-                NodeType::Element => n.tag_name().name().to_string().into(),
-                NodeType::Text => config.text_key.to_string().into(),
+                NodeType::Element => n.tag_name().name().into(),
+                NodeType::Text => KeyString::from(config.text_key.as_ref()),
                 _ => unreachable!("shouldn't be other XML nodes"),
             };
 
@@ -188,7 +186,7 @@ pub fn process_node(node: Node, config: &ParseXmlConfig) -> Value {
 
             // If the key already exists, add it. Otherwise, insert.
             match map.entry(name) {
-                Entry::Occupied(mut entry) => {
+                ObjectMapEntry::Occupied(mut entry) => {
                     let v = entry.get_mut();
 
                     // Push a value onto the existing array, or wrap in a `Value::Array`.
@@ -202,7 +200,7 @@ pub fn process_node(node: Node, config: &ParseXmlConfig) -> Value {
                         }
                     }
                 }
-                Entry::Vacant(entry) => {
+                ObjectMapEntry::Vacant(entry) => {
                     entry.insert(value);
                 }
             }
@@ -232,12 +230,9 @@ pub fn process_node(node: Node, config: &ParseXmlConfig) -> Value {
 
                         // If the node is an element, treat it as an object.
                         if node.is_element() {
-                            let mut map = BTreeMap::new();
+                            let mut map = ObjectMap::new();
 
-                            map.insert(
-                                node.tag_name().name().to_string().into(),
-                                process_node(node, config),
-                            );
+                            map.insert(node.tag_name().name().into(), process_node(node, config));
 
                             Value::Object(map)
                         } else {

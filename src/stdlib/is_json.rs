@@ -93,7 +93,7 @@ impl Function for IsJson {
         "is_json"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Check if the string is a valid JSON document."
     }
 

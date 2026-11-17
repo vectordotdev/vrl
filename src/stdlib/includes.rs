@@ -14,7 +14,7 @@ impl Function for Includes {
         "includes"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Determines whether the `value` array includes the specified `item`."
     }
 

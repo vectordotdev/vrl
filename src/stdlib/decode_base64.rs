@@ -2,7 +2,7 @@ use crate::compiler::function::EnumVariant;
 use crate::compiler::prelude::*;
 use crate::stdlib::util::Base64Charset;
 
-static DEFAULT_CHARSET: Value = Value::Bytes(Bytes::from_static("standard".as_bytes()));
+static DEFAULT_CHARSET: Value = Value::from_static_str("standard");
 
 static CHARSET_ENUM: &[EnumVariant] = &[
     EnumVariant {
@@ -61,7 +61,7 @@ impl Function for DecodeBase64 {
         "decode_base64"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Decodes the `value` (a [Base64](https://en.wikipedia.org/wiki/Base64) string) into its original string."
     }
 

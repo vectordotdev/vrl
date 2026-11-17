@@ -1,16 +1,14 @@
+use super::util::hex_encode;
 use crate::compiler::prelude::*;
 use ::sha1::Digest;
 
-fn sha1_hex(value: &[u8]) -> Bytes {
-    let digest = sha1::Sha1::digest(value);
-    let mut buf = [0u8; 40];
-    hex::encode_to_slice(digest, &mut buf).expect("40 bytes");
-    Bytes::copy_from_slice(&buf)
+fn sha1_hex(value: &[u8]) -> bytestring::ByteString {
+    hex_encode::<40>(sha1::Sha1::digest(value))
 }
 
 fn sha1(value: Value) -> Resolved {
     let value = value.try_bytes()?;
-    Ok(Value::Bytes(sha1_hex(&value)))
+    Ok(Value::String(sha1_hex(&value)))
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -21,7 +19,7 @@ impl Function for Sha1 {
         "sha1"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Calculates a [SHA-1](https://en.wikipedia.org/wiki/SHA-1) hash of the `value`."
     }
 
@@ -61,7 +59,7 @@ impl Function for Sha1 {
         if let Some(val) = value.resolve_constant(state)
             && let Ok(bytes) = val.try_bytes()
         {
-            Ok(Box::new(crate::compiler::expression::Literal::String(
+            Ok(Box::new(crate::compiler::expression::Literal::from(
                 sha1_hex(&bytes),
             )))
         } else {

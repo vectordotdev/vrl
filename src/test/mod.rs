@@ -2,7 +2,7 @@
 #![allow(clippy::print_stderr)] // tests
 
 use std::path::{MAIN_SEPARATOR, PathBuf};
-use std::{collections::BTreeMap, env, str::FromStr, time::Instant};
+use std::{env, str::FromStr, time::Instant};
 
 use chrono::{DateTime, SecondsFormat, Utc};
 use nu_ansi_term::Color;
@@ -14,9 +14,9 @@ use crate::compiler::{
     VrlRuntime, compile_with_external,
     runtime::{Runtime, Terminate},
     state::{ExternalEnv, RuntimeState},
-    value::VrlValueConvert,
 };
 use crate::diagnostic::{DiagnosticList, Formatter};
+use crate::value::ObjectMap;
 use crate::value::Secrets;
 use crate::value::Value;
 
@@ -430,9 +430,11 @@ fn compare_partial_diagnostic(got: &str, want: &str) -> bool {
 
 fn vrl_value_to_json_value(value: Value) -> serde_json::Value {
     match value {
-        v @ Value::Bytes(_) => {
-            serde_json::Value::String(v.try_bytes_utf8_lossy().unwrap().into_owned())
-        }
+        text @ (Value::Bytes(_) | Value::String(_)) => serde_json::Value::String(
+            text.to_str_lossy()
+                .expect("bytes and string have a text view")
+                .into_owned(),
+        ),
         Value::Integer(v) => v.into(),
         Value::Float(v) => v.into_inner().into(),
         Value::Boolean(v) => v.into(),
@@ -484,7 +486,7 @@ fn run_vrl(
     timezone: TimeZone,
     vrl_runtime: VrlRuntime,
 ) -> Result<Value, Terminate> {
-    let mut metadata = Value::from(BTreeMap::new());
+    let mut metadata = Value::from(ObjectMap::new());
     let mut target = TargetValueRef {
         value: test_object,
         metadata: &mut metadata,

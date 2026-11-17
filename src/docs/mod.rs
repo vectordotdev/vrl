@@ -206,7 +206,7 @@ pub fn build_function_doc(func: &dyn Function) -> FunctionDoc {
         anchor: name.clone(),
         name,
         category: func.category().to_string(),
-        description: trim_str(func.usage()),
+        description: trim_str(func.description()),
         arguments,
         r#return: ReturnDoc {
             types: kind_to_types(func.return_kind()),
@@ -261,11 +261,7 @@ fn kind_to_types(kind_bits: u16) -> Vec<String> {
 }
 
 fn pretty_value(v: &Value) -> String {
-    if let Value::Bytes(b) = v {
-        str::from_utf8(b).map_or_else(|_| v.to_string(), String::from)
-    } else {
-        v.to_string()
-    }
+    v.to_str().map_or_else(|| v.to_string(), str::to_owned)
 }
 
 fn trim_str(s: &'static str) -> String {

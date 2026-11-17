@@ -1,0 +1,10 @@
+# object: {"payload": {"nested": {"items": [1, 2]}, "name": "original"}}
+# result: [{"items": [9, 2]}, [1, 8], {"nested": {"items": [1, 7]}, "name": "original"}]
+
+parsed = .payload
+object_copy = parsed.nested
+array_copy = parsed.nested.items
+object_copy.items[0] = 9
+array_copy[1] = 8
+parsed.nested.items[1] = 7
+[object_copy, array_copy, parsed]

@@ -1,25 +1,18 @@
 use crate::compiler::prelude::*;
-use std::collections::{BTreeMap, HashMap};
+use std::collections::HashMap;
 
 fn tally(value: Value) -> Resolved {
     let value = value.try_array()?;
-    #[allow(clippy::mutable_key_type)] // false positive due to bytes::Bytes
-    let mut map: HashMap<Bytes, usize> = HashMap::new();
+    let mut map: HashMap<String, usize> = HashMap::new();
     for value in value {
-        if let Value::Bytes(value) = value {
-            *map.entry(value).or_insert(0) += 1;
-        } else {
+        let Some(text) = value.to_str_lossy() else {
             return Err(format!("all values must be strings, found: {value:?}").into());
-        }
+        };
+        *map.entry(text.into_owned()).or_insert(0) += 1;
     }
-    let map: BTreeMap<_, _> = map
+    let map: ObjectMap = map
         .into_iter()
-        .map(|(k, v)| {
-            (
-                String::from_utf8_lossy(&k).into_owned().into(),
-                Value::from(v),
-            )
-        })
+        .map(|(k, v)| (k.into(), Value::from(v)))
         .collect();
     Ok(map.into())
 }
@@ -32,7 +25,7 @@ impl Function for Tally {
         "tally"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Counts the occurrences of each string value in the provided array and returns an object with the counts."
     }
 

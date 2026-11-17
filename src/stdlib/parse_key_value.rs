@@ -1,6 +1,7 @@
 use crate::compiler::function::EnumVariant;
 use crate::compiler::prelude::*;
 use crate::value;
+use crate::value::ObjectMapEntry;
 use nom::{
     self, IResult, Parser,
     branch::alt,
@@ -14,14 +15,13 @@ use nom::{
 use nom_language::error::VerboseError;
 use std::{
     borrow::Cow,
-    collections::{BTreeMap, btree_map::Entry},
     iter::Peekable,
     str::{Chars, FromStr},
 };
 
-static DEFAULT_KEY_VALUE_DELIMITER: Value = Value::Bytes(Bytes::from_static("=".as_bytes()));
-static DEFAULT_FIELD_DELIMITER: Value = Value::Bytes(Bytes::from_static(" ".as_bytes()));
-static DEFAULT_WHITESPACE: Value = Value::Bytes(Bytes::from_static("lenient".as_bytes()));
+static DEFAULT_KEY_VALUE_DELIMITER: Value = Value::from_static_str("=");
+static DEFAULT_FIELD_DELIMITER: Value = Value::from_static_str(" ");
+static DEFAULT_WHITESPACE: Value = Value::from_static_str("lenient");
 static DEFAULT_ACCEPT_STANDALONE_KEY: Value = Value::Boolean(true);
 
 static WHITESPACE_ENUM: &[EnumVariant] = &[
@@ -69,13 +69,13 @@ pub fn parse_key_value(
 
     // Construct Value::Object by grouping values with the same key into an array.
     // This logic depends on values not being arrays which is true for this parser.
-    let mut map = BTreeMap::new();
+    let mut map = ObjectMap::new();
     for (key, value) in values {
         match map.entry(key) {
-            Entry::Vacant(entry) => {
+            ObjectMapEntry::Vacant(entry) => {
                 entry.insert(value);
             }
-            Entry::Occupied(mut entry) => {
+            ObjectMapEntry::Occupied(mut entry) => {
                 if let Value::Boolean(true) = value {
                     // We are done
                 } else {
@@ -104,7 +104,7 @@ impl Function for ParseKeyValue {
         "parse_key_value"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         indoc! {r#"
             Parses the `value` in key-value format. Also known as [logfmt](https://brandur.org/logfmt).
 
@@ -434,7 +434,7 @@ fn parse_key_value_<'a, E: ParseError<&'a str> + ContextError<&'a str>>(
             },
             |(field, sep, value): (Cow<'_, str>, Vec<&str>, Value)| {
                 (
-                    field.to_string().into(),
+                    field.into(),
                     if sep.len() == 1 { value } else { value!(true) },
                 )
             },

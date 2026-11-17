@@ -2,15 +2,15 @@ use crate::compiler::conversion::Conversion;
 use crate::compiler::prelude::*;
 
 fn to_bool(value: Value) -> Resolved {
-    use Value::{Boolean, Bytes, Float, Integer, Null};
+    use Value::{Boolean, Bytes, Float, Integer, Null, String};
 
     match value {
         Boolean(_) => Ok(value),
         Integer(v) => Ok(Boolean(v != 0)),
         Float(v) => Ok(Boolean(v != 0.0)),
         Null => Ok(Boolean(false)),
-        Bytes(v) => Conversion::Boolean
-            .convert(v)
+        v @ (Bytes(_) | String(_)) => Conversion::Boolean
+            .convert(v.try_bytes().expect("bytes-like"))
             .map_err(|e| e.to_string().into()),
         v => Err(format!("unable to coerce {} into boolean", v.kind()).into()),
     }
@@ -24,7 +24,7 @@ impl Function for ToBool {
         "to_bool"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Coerces the `value` into a boolean."
     }
 

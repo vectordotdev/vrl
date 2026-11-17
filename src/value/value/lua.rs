@@ -2,13 +2,22 @@ use mlua::prelude::LuaResult;
 use mlua::{FromLua, IntoLua, Lua, Value as LuaValue};
 use ordered_float::NotNan;
 
-use crate::value::Value;
+use std::collections::BTreeMap;
+
+use crate::value::{KeyString, ObjectMap, Value};
+
+impl FromLua for ObjectMap {
+    fn from_lua(value: LuaValue, lua: &Lua) -> LuaResult<Self> {
+        <BTreeMap<KeyString, Value>>::from_lua(value, lua).map(Self::from)
+    }
+}
 
 impl IntoLua for Value {
     #![allow(clippy::wrong_self_convention)] // this trait is defined by mlua
     fn into_lua(self, lua: &Lua) -> LuaResult<LuaValue> {
         match self {
             Self::Bytes(b) => lua.create_string(b.as_ref()).map(LuaValue::String),
+            Self::String(s) => lua.create_string(&*s).map(LuaValue::String),
             Self::Regex(regex) => lua
                 .create_string(regex.as_bytes_slice())
                 .map(LuaValue::String),
@@ -26,7 +35,7 @@ impl IntoLua for Value {
 impl FromLua for Value {
     fn from_lua(value: LuaValue, lua: &Lua) -> LuaResult<Self> {
         match value {
-            LuaValue::String(s) => Ok(Self::Bytes(s.as_bytes().to_vec().into())),
+            LuaValue::String(s) => Ok(Self::from_utf8_or_bytes(s.as_bytes().to_vec().into())),
             LuaValue::Integer(i) => Ok(Self::Integer(i)),
             LuaValue::Number(f) => {
                 let f = NotNan::new(f).map_err(|_| mlua::Error::FromLuaConversionError {
@@ -43,7 +52,7 @@ impl FromLua for Value {
                 } else if table_is_timestamp(&t)? {
                     table_to_timestamp(t).map(Self::Timestamp)
                 } else {
-                    <_>::from_lua(LuaValue::Table(t), lua).map(Self::Object)
+                    ObjectMap::from_lua(LuaValue::Table(t), lua).map(Self::Object)
                 }
             }
             other => Err(mlua::Error::FromLuaConversionError {
@@ -156,8 +165,8 @@ mod test {
                 ),
             ),
             (
-                "{1, '2', 0.57721566}",
-                Value::Array(vec![1_i64.into(), "2".into(), 0.577_215_66.into()]),
+                "{1, '2', 0.56721566}",
+                Value::Array(vec![1_i64.into(), "2".into(), 0.567_215_66.into()]),
             ),
             (
                 "os.date('!*t', 1584297428)",
@@ -255,12 +264,12 @@ mod test {
                 ",
             ),
             (
-                Value::Array(vec![1_i64.into(), "2".into(), 0.577_215_66.into()]),
+                Value::Array(vec![1_i64.into(), "2".into(), 0.567_215_66.into()]),
                 "
                 function (value)
                     return value[1] == 1 and
                         value[2] == '2' and
-                        value[3] == 0.57721566
+                        value[3] == 0.56721566
                 end
                 ",
             ),

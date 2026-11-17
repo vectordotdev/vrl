@@ -47,7 +47,7 @@ impl Function for EncodeGzip {
         "encode_gzip"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Encodes the `value` to [Gzip](https://www.gzip.org/)."
     }
 

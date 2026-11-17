@@ -30,7 +30,7 @@ impl Function for Find {
         "find"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Determines from left to right the start position of the first found element in `value` that matches `pattern`. Returns null if not found."
     }
 
@@ -122,9 +122,9 @@ impl FindFn {
 
     fn find(value: Value, pattern: Value, offset: usize) -> ExpressionResult<Option<usize>> {
         match pattern {
-            Value::Bytes(bytes) => Ok(Self::find_bytes_in_bytes(
+            v @ (Value::Bytes(_) | Value::String(_)) => Ok(Self::find_bytes_in_bytes(
                 &value.try_bytes()?,
-                &bytes,
+                v.as_bytes().expect("bytes-like"),
                 offset,
             )),
             Value::Regex(regex) => Ok(Self::find_regex_in_str(

@@ -1,12 +1,11 @@
 use crate::compiler::prelude::*;
 use std::collections::BTreeMap;
 
-fn parse_aws_vpc_flow_log(value: Value, format: Option<Value>) -> Resolved {
-    let bytes = value.try_bytes()?;
-    let input = String::from_utf8_lossy(&bytes);
+fn parse_aws_vpc_flow_log(value: &Value, format: Option<Value>) -> Resolved {
+    let input = value.try_bytes_utf8_lossy()?;
     if let Some(expr) = format {
-        let bytes = expr.try_bytes()?;
-        parse_log(&input, Some(&String::from_utf8_lossy(&bytes)))
+        let format = expr.try_bytes_utf8_lossy()?;
+        parse_log(&input, Some(&format))
     } else {
         parse_log(&input, None)
     }
@@ -21,7 +20,7 @@ impl Function for ParseAwsVpcFlowLog {
         "parse_aws_vpc_flow_log"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Parses `value` in the [VPC Flow Logs format](https://docs.aws.amazon.com/vpc/latest/userguide/flow-logs.html)."
     }
 
@@ -187,7 +186,7 @@ impl FunctionExpression for ParseAwsVpcFlowLogFn {
             .map(|expr| expr.resolve(ctx))
             .transpose()?;
 
-        parse_aws_vpc_flow_log(value, format)
+        parse_aws_vpc_flow_log(&value, format)
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {
@@ -327,7 +326,7 @@ macro_rules! create_match {
 }
 
 fn parse_log(input: &str, format: Option<&str>) -> ParseResult<Value> {
-    let mut log = BTreeMap::new();
+    let mut log = ObjectMap::new();
 
     let mut input = input.split(' ');
     let mut format = format

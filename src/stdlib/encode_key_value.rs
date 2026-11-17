@@ -30,8 +30,8 @@ pub(crate) fn encode_key_value(
 }
 
 pub(super) static DEFAULT_FIELDS_ORDERING: Value = Value::Array(vec![]);
-static DEFAULT_KEY_VALUE_DELIMITER: Value = Value::Bytes(Bytes::from_static("=".as_bytes()));
-static DEFAULT_FIELD_DELIMITER: Value = Value::Bytes(Bytes::from_static(" ".as_bytes()));
+static DEFAULT_KEY_VALUE_DELIMITER: Value = Value::from_static_str("=");
+static DEFAULT_FIELD_DELIMITER: Value = Value::from_static_str(" ");
 static DEFAULT_FLATTEN_BOOLEAN: Value = Value::Boolean(false);
 
 const PARAMETERS: &[Parameter] = &[
@@ -55,7 +55,7 @@ impl Function for EncodeKeyValue {
         "encode_key_value"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Encodes the `value` into key-value format with customizable delimiters. Default delimiters match the [logfmt](https://brandur.org/logfmt) format."
     }
 
@@ -196,7 +196,7 @@ fn resolve_fields(fields: Value) -> ExpressionResult<Vec<KeyString>> {
         .enumerate()
         .map(|(idx, v)| {
             v.try_bytes_utf8_lossy()
-                .map(|v| v.to_string().into())
+                .map(KeyString::from)
                 .map_err(|e| format!("invalid field value type at index {idx}: {e}").into())
         })
         .collect()
@@ -234,7 +234,7 @@ impl FunctionExpression for EncodeKeyValueFn {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::BTreeMap;
+    use crate::value::ObjectMap;
 
     use crate::{
         btreemap, path,
@@ -247,7 +247,7 @@ mod tests {
     #[test]
     fn test_encode_decode_cycle() {
         let before: Value = {
-            let mut map = Value::from(BTreeMap::default());
+            let mut map = Value::from(ObjectMap::default());
             map.insert(path!("key"), r#"this has a " quote"#);
             map
         };

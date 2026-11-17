@@ -9,7 +9,7 @@ impl Function for IsObject {
         "is_object"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Check if `value`'s type is an object."
     }
 

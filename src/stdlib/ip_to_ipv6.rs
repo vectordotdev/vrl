@@ -20,7 +20,7 @@ impl Function for IpToIpv6 {
         "ip_to_ipv6"
     }
 
-    fn usage(&self) -> &'static str {
+    fn description(&self) -> &'static str {
         "Converts the `ip` to an IPv6 address."
     }
 
