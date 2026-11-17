@@ -1,9 +1,10 @@
 use crate::compiler::TimeZone;
 use crate::prelude::KeyString;
 use crate::stdlib::util::RegexWithCaptureInfo;
+use crate::value::regex_capture::CaptureGroups;
+use crate::value::regex_engine::Regex;
 use crate::value::{ObjectMap, Value};
 use chrono::prelude::{DateTime, Utc};
-use regex::{Captures, Regex};
 use std::sync::LazyLock;
 
 // Information about the common log format taken from the
@@ -251,15 +252,15 @@ fn capture_value(
 }
 
 /// Extracts the log fields from the regex and adds them to a `Value::Object`.
-pub(crate) fn log_fields(
+pub(crate) fn log_fields<C: CaptureGroups + ?Sized>(
     capture_info: &[(KeyString, usize)],
-    capture: &Captures,
+    capture: &C,
     timestamp_format: &str,
     timezone: TimeZone,
 ) -> Result<Value, String> {
     let mut map = ObjectMap::new();
     for (name, idx) in capture_info {
-        if let Some(value) = capture.get(*idx).map(|m| m.as_str()) {
+        if let Some(value) = capture.group(*idx).map(|m| m.text) {
             map.insert(
                 name.clone(),
                 capture_value(name, value, timestamp_format, timezone)?,

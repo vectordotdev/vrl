@@ -190,7 +190,7 @@ impl FunctionExpression for ParseRegexFn {
             ConstOrExpr::Expr(expr) => {
                 let resolved = expr.resolve(ctx)?;
                 let pattern = resolved
-                    .as_regex()
+                    .as_engine_regex()
                     .ok_or_else(|| ExpressionError::from("failed to resolve regex"))?;
                 let pattern = RegexWithCaptureInfo::new(pattern.clone());
                 parse_regex(&value, &pattern, numeric_groups, self.capture_map)

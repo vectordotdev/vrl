@@ -3,9 +3,12 @@ use tracing::warn;
 
 fn to_regex(value: &Value) -> Resolved {
     let string = value.try_bytes_utf8_lossy()?;
-    let regex = regex::Regex::new(string.as_ref())
-        .map_err(|err| format!("could not create regex: {err}"))
-        .map(Into::into)?;
+    let regex = crate::value::regex_engine::Regex::new_with_engine(
+        string.as_ref(),
+        crate::value::regex_engine::RegexEngine::current(),
+    )
+    .map_err(|err| format!("could not create regex: {err}"))
+    .map(|regex| Value::Regex(regex.into()))?;
     Ok(regex)
 }
 

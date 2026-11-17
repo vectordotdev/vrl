@@ -5,6 +5,7 @@
 
 pub mod kind;
 pub mod regex_capture;
+pub mod regex_engine;
 pub mod secrets;
 
 #[allow(clippy::module_inception)]

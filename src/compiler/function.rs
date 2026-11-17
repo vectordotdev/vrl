@@ -551,11 +551,11 @@ impl ArgumentList {
         &self,
         keyword: &'static str,
         state: &TypeState,
-    ) -> Option<ConstOrExpr<regex::Regex>> {
+    ) -> Option<ConstOrExpr<crate::value::regex_engine::Regex>> {
         self.optional_expr(keyword).map(|expr| {
             match expr
                 .resolve_constant(state)
-                .and_then(|v| v.as_regex().cloned())
+                .and_then(|v| v.as_engine_regex().cloned())
             {
                 Some(regex) => ConstOrExpr::Const(regex),
                 None => ConstOrExpr::Expr(Box::new(expr)),
@@ -567,7 +567,7 @@ impl ArgumentList {
         &self,
         keyword: &'static str,
         state: &TypeState,
-    ) -> ConstOrExpr<regex::Regex> {
+    ) -> ConstOrExpr<crate::value::regex_engine::Regex> {
         required(self.optional_regex(keyword, state))
     }
 

@@ -5,9 +5,8 @@ cfg_if::cfg_if! {
     }
 }
 
+use crate::value::regex_engine::Regex;
 use crate::value::{KeyString, ObjectMap, Value};
-use std::{cell::RefCell, sync::Arc};
-use thread_local::ThreadLocal;
 
 pub(crate) const DYNAMIC_REGEX_NOTICE: &str = indoc::indoc! {"
     When `pattern` is a dynamic expression (e.g. a variable or the result of `to_regex`),
@@ -36,9 +35,8 @@ where
 
 #[derive(Debug, Clone)]
 pub(crate) struct RegexWithCaptureInfo {
-    pub regex: regex::Regex,
+    pub regex: Regex,
     pub capture_info: Vec<(KeyString, usize)>,
-    scratch: Arc<ThreadLocal<RefCell<regex::CaptureLocations>>>,
 }
 
 impl RegexWithCaptureInfo {
@@ -48,32 +46,17 @@ impl RegexWithCaptureInfo {
         numeric: bool,
         mode: crate::value::regex_capture::RegexCaptureMapMode,
     ) -> Option<ObjectMap> {
-        let scratch = self
-            .scratch
-            .get_or(|| RefCell::new(self.regex.capture_locations()));
-        // A reentrant invocation uses independent scratch rather than panicking.
-        if let Ok(mut locations) = scratch.try_borrow_mut() {
-            self.regex.captures_read(&mut locations, subject)?;
-            let capture = crate::value::regex_capture::LocatedCaptures::new(subject, &locations);
-            Some(capture_regex_to_map_with_mode(
-                &capture,
-                &self.capture_info,
-                numeric,
-                mode,
-            ))
-        } else {
-            self.regex.captures(subject).map(|capture| {
-                capture_regex_to_map_with_mode(&capture, &self.capture_info, numeric, mode)
-            })
-        }
+        self.regex.with_captures(subject, 0, |capture| {
+            capture_regex_to_map_with_mode(capture, &self.capture_info, numeric, mode)
+        })
     }
 
-    pub fn new(regex: regex::Regex) -> Self {
+    pub fn new(regex: impl Into<Regex>) -> Self {
+        let regex = regex.into();
         let capture_info = build_capture_info(&regex);
         Self {
             regex,
             capture_info,
-            scratch: Arc::new(ThreadLocal::new()),
         }
     }
 }
@@ -151,15 +134,15 @@ mod regex_capture_cache_tests {
                 Value::Null
             );
             assert!(pattern.capture_map("c", false, mode).is_none());
-            let held = pattern
-                .scratch
-                .get_or(|| RefCell::new(pattern.regex.capture_locations()))
-                .borrow_mut();
-            assert_eq!(
-                pattern.capture_map("ab", false, mode).unwrap()["a"],
-                Value::from("a")
-            );
-            drop(held);
+            pattern
+                .regex
+                .with_captures("ab", 0, |_| {
+                    assert_eq!(
+                        pattern.capture_map("ab", false, mode).unwrap()["a"],
+                        Value::from("a")
+                    );
+                })
+                .unwrap();
         }
     }
 

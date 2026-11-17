@@ -1,4 +1,4 @@
-use regex::Regex;
+use crate::value::regex_engine::Regex;
 
 use super::util;
 use crate::compiler::prelude::*;
@@ -208,7 +208,7 @@ impl FunctionExpression for ParseRegexAllFn {
             ConstOrExpr::Expr(expr) => {
                 let resolved = expr.resolve(ctx)?;
                 let pattern = resolved
-                    .as_regex()
+                    .as_engine_regex()
                     .ok_or_else(|| ExpressionError::from("failed to resolve regex"))?;
                 let dynamic_capture_info = util::build_capture_info(pattern);
                 parse_regex_all(
@@ -242,6 +242,7 @@ mod tests {
     use crate::{btreemap, value};
 
     use super::*;
+    use regex::Regex;
 
     test_function![
         parse_regex_all => ParseRegexAll;

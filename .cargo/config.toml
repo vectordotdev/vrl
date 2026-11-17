@@ -31,3 +31,7 @@ rustflags = ["-C", "link-args=-rdynamic"]
 [target.x86_64-pc-windows-msvc]
 # https://github.com/dtolnay/inventory/issues/58
 rustflags = ["-C", "codegen-units=1"]
+
+[env]
+# Keep the native backend independent of system PCRE2 versions.
+PCRE2_SYS_STATIC = { value = "1", force = true }

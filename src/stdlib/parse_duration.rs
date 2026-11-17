@@ -1,6 +1,6 @@
 use crate::compiler::function::EnumVariant;
 use crate::compiler::prelude::*;
-use regex::Regex;
+use crate::value::regex_engine::Regex;
 use rust_decimal::{Decimal, prelude::ToPrimitive};
 use std::{collections::HashMap, str::FromStr, sync::LazyLock};
 

@@ -1,5 +1,5 @@
 use crate::compiler::prelude::*;
-use regex::bytes::RegexSet;
+use crate::value::regex_engine::{RegexEngine, RegexSet};
 
 fn match_any(value: Value, pattern: &RegexSet) -> Resolved {
     let bytes = value.try_bytes()?;
@@ -56,7 +56,7 @@ impl Function for MatchAny {
     fn compile(
         &self,
         state: &state::TypeState,
-        _ctx: &mut FunctionCompileContext,
+        ctx: &mut FunctionCompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
@@ -77,7 +77,13 @@ impl Function for MatchAny {
             re_strings.push(re.to_string());
         }
 
-        let regex_set = RegexSet::new(re_strings).expect("regex were already valid");
+        let engine = ctx
+            .get_external_context::<RegexEngine>()
+            .copied()
+            .unwrap_or_default();
+        let regex_set = RegexSet::new_with_engine(re_strings, engine).map_err(|e| {
+            Box::new(ExpressionError::from(e.to_string())) as Box<dyn DiagnosticMessage>
+        })?;
 
         Ok(MatchAnyFn { value, regex_set }.as_expr())
     }

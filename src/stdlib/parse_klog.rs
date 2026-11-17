@@ -1,6 +1,6 @@
 use crate::compiler::prelude::*;
+use crate::value::regex_engine::Regex;
 use chrono::{Datelike, NaiveDateTime, Utc};
-use regex::Regex;
 use std::collections::BTreeMap;
 use std::sync::LazyLock;
 

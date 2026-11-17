@@ -10,13 +10,13 @@ use std::{
 /// Wraps a `Regex` and provides several trait implementations, such as `PartialOrd`
 #[derive(Debug, Clone)]
 #[allow(clippy::module_name_repetitions)]
-pub struct ValueRegex(Arc<Regex>);
+pub struct ValueRegex(Arc<crate::value::regex_engine::Regex>);
 
 impl ValueRegex {
     /// Create a new `ValueRegex` from the inner `Regex` that is wraps
     #[must_use]
-    pub const fn new(regex: Arc<Regex>) -> Self {
-        Self(regex)
+    pub fn new(regex: Arc<Regex>) -> Self {
+        Self(Arc::new(Arc::unwrap_or_clone(regex).into()))
     }
 
     /// Returns a `Bytes` of the string representation of the regex
@@ -34,7 +34,7 @@ impl ValueRegex {
     /// Returns the inner Regex value
     #[must_use]
     pub fn into_inner(self) -> Arc<Regex> {
-        self.0
+        Arc::new(self.0.as_rust().clone())
     }
 }
 
@@ -53,7 +53,7 @@ impl Hash for ValueRegex {
 }
 
 impl Deref for ValueRegex {
-    type Target = Regex;
+    type Target = crate::value::regex_engine::Regex;
 
     fn deref(&self) -> &Self::Target {
         &self.0
@@ -62,7 +62,7 @@ impl Deref for ValueRegex {
 
 impl From<Arc<Regex>> for ValueRegex {
     fn from(regex: Arc<Regex>) -> Self {
-        Self(regex)
+        Self::new(regex)
     }
 }
 
@@ -78,5 +78,11 @@ impl PartialOrd for ValueRegex {
             .as_str()
             .as_bytes()
             .partial_cmp(other.0.as_str().as_bytes())
+    }
+}
+
+impl From<crate::value::regex_engine::Regex> for ValueRegex {
+    fn from(regex: crate::value::regex_engine::Regex) -> Self {
+        Self(Arc::new(regex))
     }
 }

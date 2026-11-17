@@ -41,10 +41,11 @@ ptr_as_ptr = "warn"
 clap = { version = "4", features = ["derive"] }
 
 [features]
+pcre2-jit = ["dep:pcre2-sys", "dep:regex-syntax", "dep:metrics"]
 default = ["compiler", "stdlib", "datadog", "cli", "enable_env_functions", "enable_system_functions", "enable_network_functions", "enable_crypto_functions"]
 
 # Contains the primary data type used in VRL, along with path types. Useful for crates that work with VRL values without needing the full compiler.
-value = ["dep:thread_local", "dep:bytes", "dep:regex", "dep:ordered-float", "dep:chrono", "dep:serde_json", "dep:simdutf8", "dep:serde", "dep:snafu"]
+value = ["dep:regex-automata", "dep:thread_local", "dep:bytes", "dep:regex", "dep:ordered-float", "dep:chrono", "dep:serde_json", "dep:simdutf8", "dep:serde", "dep:snafu"]
 
 # Contains the core functionality of VRL: compiling and running VRL programs, parser, and diagnostics.
 compiler = ["value", "dep:chrono-tz", "dep:thiserror", "dep:dyn-clone", "dep:indoc", "dep:lalrpop-util", "dep:codespan-reporting", "dep:termcolor"]
@@ -171,6 +172,9 @@ stdlib-base = [
 ]
 
 [dependencies]
+regex-syntax = { version = "0.8.5", optional = true }
+metrics = { version = "0.24", default-features = false, optional = true }
+regex-automata = { version = "0.4.14", default-features = false, features = ["std"], optional = true }
 thread_local = { version = "1.1.10", default-features = false, optional = true }
 cfg-if = "1"
 
@@ -283,6 +287,7 @@ nom-language = { version = "0.1.0", default-features = false }
 
 # Dependencies used for non-WASM
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+pcre2-sys = { version = "=0.2.10", optional = true }
 # HTTP support (optional, gated behind enable_network_functions).
 reqwest = { version = "0.12", default-features = false, features = ["http2", "rustls-tls-native-roots"], optional = true }
 reqwest-middleware = { version = "0.4", default-features = false, optional = true }
