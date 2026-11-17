@@ -19,3 +19,12 @@ provide everything you need to get started.
 [urls.existing_issues]: https://github.com/vectordotdev/vrl/issues
 [urls.new_issue]: https://github.com/vectordotdev/vrl/issues/new
 [urls.submit_pr]: https://help.github.com/en/github/collaborating-with-issues-and-pull-requests/creating-a-pull-request-from-a-fork
+
+## Dependency updates
+
+Cargo and Dependabot apply a seven-day cooldown to newly published registry versions to reduce supply-chain risk.
+For a reviewed update, override Cargo's cooldown locally for one command:
+
+```bash
+CARGO_RESOLVER_INCOMPATIBLE_PUBLISH_AGE=allow cargo update -p <crate> --precise <version>
+```
