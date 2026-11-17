@@ -19,3 +19,8 @@ provide everything you need to get started.
 [urls.existing_issues]: https://github.com/vectordotdev/vrl/issues
 [urls.new_issue]: https://github.com/vectordotdev/vrl/issues/new
 [urls.submit_pr]: https://help.github.com/en/github/collaborating-with-issues-and-pull-requests/creating-a-pull-request-from-a-fork
+
+## Dependency updates
+
+Dependabot waits seven days before proposing routine version updates for newly published
+registry versions to reduce supply-chain risk. Security updates are exempt from this cooldown.
