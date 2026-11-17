@@ -49,7 +49,7 @@ jobs:
           cargo run -q -p release -- release-commit --before "$BASE_SHA"
 
   merge-queue:
-    if: always() && needs.guard.result == 'success'
+    if: always() && github.repository == 'vectordotdev/vrl'
     needs:
       - guard
       - check-features
