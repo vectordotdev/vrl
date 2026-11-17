@@ -18,13 +18,9 @@ on:
 permissions: read-all
 
 jobs:
-  guard:
-    if: github.repository == 'vectordotdev/vrl'
-    uses: ./.github/workflows/ci-repo-gate.yml
-
   analysis:
-    needs: guard
     name: Scorecard analysis
+    if: github.repository == 'vectordotdev/vrl'
     runs-on: ubuntu-24.04
     permissions:
       # Needed to upload the results to code-scanning dashboard.

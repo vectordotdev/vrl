@@ -35,12 +35,8 @@ env:
   LABEL_NAME: "docs review on hold"
 
 jobs:
-  guard:
-    if: github.repository == 'vectordotdev/vrl'
-    uses: ./.github/workflows/ci-repo-gate.yml
-
   add_label:
-    needs: guard
+    if: github.repository == 'vectordotdev/vrl'
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:

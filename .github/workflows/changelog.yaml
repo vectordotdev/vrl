@@ -20,14 +20,9 @@ permissions:
   contents: read
 
 jobs:
-  guard:
-    if: github.repository == 'vectordotdev/vrl'
-    uses: ./.github/workflows/ci-repo-gate.yml
-
   validate-changelog:
-    needs: guard
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' && github.repository == 'vectordotdev/vrl'
     env:
       PR_HAS_LABEL: ${{ contains( github.event.pull_request.labels.*.name, 'no-changelog') }}
     steps:
@@ -52,7 +47,7 @@ jobs:
   check-changelog:
     name: Changelog
     runs-on: ubuntu-latest
-    needs: [guard, validate-changelog]
+    needs: validate-changelog
     if: always() && github.repository == 'vectordotdev/vrl'
     env:
       FAILED: ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}

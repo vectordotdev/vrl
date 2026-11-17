@@ -25,12 +25,8 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  guard:
-    if: github.repository == 'vectordotdev/vrl'
-    uses: ./.github/workflows/ci-repo-gate.yml
-
   generate:
-    needs: guard
+    if: github.repository == 'vectordotdev/vrl'
     name: Generate release files
     runs-on: ubuntu-latest
     timeout-minutes: 30
