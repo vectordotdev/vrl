@@ -24,8 +24,13 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  guard:
+    uses: ./.github/workflows/ci-repo-gate.yml
+    with:
+      upstream-only: true
+
   tag:
-    if: github.repository == 'vectordotdev/vrl'
+    needs: guard
     name: Create release tag
     runs-on: ubuntu-latest
     timeout-minutes: 15

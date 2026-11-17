@@ -8,8 +8,13 @@ permissions:
   contents: read
 
 jobs:
+  guard:
+    uses: ./.github/workflows/ci-repo-gate.yml
+    with:
+      upstream-only: true
+
   remove_label:
-    if: github.repository == 'vectordotdev/vrl'
+    needs: guard
     runs-on: ubuntu-latest
     permissions:
       contents: read

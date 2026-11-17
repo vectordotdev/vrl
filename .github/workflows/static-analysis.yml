@@ -11,9 +11,14 @@ permissions:
   contents: read
 
 jobs:
+  guard:
+    uses: ./.github/workflows/ci-repo-gate.yml
+    with:
+      upstream-only: true
+
   static-analysis:
+    needs: guard
     # Requires Datadog OIDC credentials that aren't available on forks.
-    if: github.repository == 'vectordotdev/vrl'
     runs-on: ubuntu-latest
     permissions:
       contents: read
