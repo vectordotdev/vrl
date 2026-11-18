@@ -3,8 +3,15 @@ use crate::stdlib::json_utils::bom::StripBomFromUTF8;
 use crate::stdlib::json_utils::json_type_def::json_type_def;
 
 fn parse_yaml(value: Value) -> Resolved {
-    Ok(serde_saphyr::from_slice(value.try_bytes()?.strip_bom())
-        .map_err(|e| format!("unable to parse yaml: {e}"))?)
+    // Preserve the previous parser's behavior: `.inf`/`-.inf` deserialize to
+    // infinite floats (only NaN is rejected, by `Value::visit_f64`).
+    let options = serde_saphyr::options! {
+        non_finite_float_policy: serde_saphyr::NonFiniteFloatPolicy::PassThrough,
+    };
+    Ok(
+        serde_saphyr::from_slice_with_options(value.try_bytes()?.strip_bom(), options)
+            .map_err(|e| format!("unable to parse yaml: {e}"))?,
+    )
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -164,6 +171,7 @@ impl FunctionExpression for ParseYamlFn {
 mod tests {
     use super::*;
     use crate::value;
+    use ordered_float::NotNan;
 
     test_function![
         parse_yaml => ParseYaml;
@@ -211,6 +219,34 @@ mod tests {
   |
 1 | {"field": "value
   |           ^ unclosed quote"#
+            ),
+            tdef: json_type_def(),
+        }
+
+        parses_inf {
+            args: func_args![ value: r"value: .inf" ],
+            want: Ok({
+                let mut map = ObjectMap::new();
+                map.insert("value".into(), Value::Float(NotNan::new(f64::INFINITY).expect("infinity is not NaN")));
+                Value::Object(map)
+            }),
+            tdef: json_type_def(),
+        }
+
+        parses_neg_inf {
+            args: func_args![ value: "-.inf" ],
+            want: Ok(Value::Float(NotNan::new(f64::NEG_INFINITY).expect("infinity is not NaN"))),
+            tdef: json_type_def(),
+        }
+
+        nan_still_errors {
+            args: func_args![ value: "value: .nan" ],
+            want: Err(
+                r#"unable to parse yaml: error: line 1 column 1: invalid value: floating point `NaN`, expected any valid JSON value
+ --> <input>:1:1
+  |
+1 | value: .nan
+  | ^ invalid value: floating point `NaN`, expected any valid JSON value"#
             ),
             tdef: json_type_def(),
         }
