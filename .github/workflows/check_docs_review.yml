@@ -29,7 +29,13 @@ env:
   LABEL_NAME: "docs review on hold"
 
 jobs:
+  repo-gate:
+    uses: ./.github/workflows/ci-repo-gate.yml
+    with:
+      upstream-only: true
+
   check:
+    needs: repo-gate
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
