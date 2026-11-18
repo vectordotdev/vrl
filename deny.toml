@@ -28,4 +28,6 @@ exceptions = [
 [advisories]
 ignore = [
   { id = "RUSTSEC-2024-0449", reason = "unsafe-libyaml is unmaintained; serde_yaml_ng migration is pending upstream (https://github.com/acatton/serde-yaml-ng/issues/5)" },
+  { id = "RUSTSEC-2026-0543", reason = "chrono is unmaintained with no patched version; it is part of VRL's public API (Value::Timestamp), so migrating to jiff/time needs a dedicated effort (https://github.com/chronotope/chrono/issues/1768)" },
+  { id = "RUSTSEC-2026-0555", reason = "chrono-tz is unmaintained with no patched version; replacement is tied to the chrono migration (https://github.com/chronotope/chrono/issues/1768)" },
 ]
