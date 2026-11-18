@@ -5,7 +5,18 @@ use crate::stdlib::json_utils::json_type_def::json_type_def;
 fn parse_yaml(value: Value) -> Resolved {
     // Preserve the previous parser's behavior: `.inf`/`-.inf` deserialize to
     // infinite floats (only NaN is rejected, by `Value::visit_f64`).
+    // Match the behavior of the previous `serde_yaml_ng`-based parser
+    // (serde_yaml 0.9 semantics) to keep existing VRL programs compatible:
+    // only `true`/`false` are booleans, numeric-looking spellings like `007`
+    // or `1_000` stay strings, duplicate keys keep the last value, merge keys
+    // are not expanded, and `!!binary` scalars are not base64-decoded.
     let options = serde_saphyr::options! {
+        strict_booleans: true,
+        leading_zero_numbers_as_strings: true,
+        underscored_numbers_as_strings: true,
+        duplicate_keys: serde_saphyr::DuplicateKeyPolicy::PassThrough,
+        merge_keys: serde_saphyr::MergeKeyPolicy::AsOrdinary,
+        ignore_binary_tag_for_string: true,
         non_finite_float_policy: serde_saphyr::NonFiniteFloatPolicy::PassThrough,
     };
     Ok(
@@ -248,6 +259,54 @@ mod tests {
 1 | value: .nan
   | ^ invalid value: floating point `NaN`, expected any valid JSON value"#
             ),
+            tdef: json_type_def(),
+        }
+
+        yaml11_booleans_stay_strings {
+            args: func_args![ value: "flag: off" ],
+            want: Ok(value!({ flag: "off" })),
+            tdef: json_type_def(),
+        }
+
+        yes_stays_string {
+            args: func_args![ value: "flag: yes" ],
+            want: Ok(value!({ flag: "yes" })),
+            tdef: json_type_def(),
+        }
+
+        leading_zero_number_stays_string {
+            args: func_args![ value: "n: 007" ],
+            want: Ok(value!({ n: "007" })),
+            tdef: json_type_def(),
+        }
+
+        underscored_number_stays_string {
+            args: func_args![ value: "n: 1_000" ],
+            want: Ok(value!({ n: "1_000" })),
+            tdef: json_type_def(),
+        }
+
+        hex_and_octal_still_parse {
+            args: func_args![ value: "a: 0x10\nb: 0o17" ],
+            want: Ok(value!({ a: 16, b: 15 })),
+            tdef: json_type_def(),
+        }
+
+        duplicate_keys_last_wins {
+            args: func_args![ value: "a: 1\na: 2" ],
+            want: Ok(value!({ a: 2 })),
+            tdef: json_type_def(),
+        }
+
+        merge_keys_not_expanded {
+            args: func_args![ value: "base: &b\n  x: 1\nfoo:\n  <<: *b\n  y: 2" ],
+            want: Ok(value!({ base: { x: 1 }, foo: { "<<": { x: 1 }, y: 2 } })),
+            tdef: json_type_def(),
+        }
+
+        binary_tag_not_decoded {
+            args: func_args![ value: "bin: !!binary aGk=" ],
+            want: Ok(value!({ bin: "aGk=" })),
             tdef: json_type_def(),
         }
     ];
