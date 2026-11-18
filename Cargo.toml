@@ -231,8 +231,8 @@ rustyline = { version = "19.0.0", default-features = false, optional = true }
 rust_decimal = { version = "1", optional = true, default-features = false }
 seahash = { version = "4", optional = true }
 serde = { version = "1", features = ["derive"], optional = true }
+serde-saphyr = { version = "2", default-features = false, features = ["deserialize"] }
 serde_json = { version = "1", default-features = false, optional = true, features = ["std", "raw_value"] }
-serde_yaml_ng = { version = "0.10.0" }
 simdutf8 = { version = "0.1.5", optional = true }
 fancy-regex = { version = "0.20.0", default-features = false, optional = true }
 sha1 = { version = "0.11", optional = true }
@@ -321,7 +321,7 @@ proptest-derive = { version = "0.9.0" }
 
 [build-dependencies]
 lalrpop = { version = "0.23", default-features = false }
-serde_yaml_ng = "0.10"
+serde-saphyr = { version = "2", default-features = false, features = ["deserialize"] }
 ua-parser = { version = "0.2" }
 
 [[bin]]

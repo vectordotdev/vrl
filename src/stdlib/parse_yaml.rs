@@ -3,7 +3,7 @@ use crate::stdlib::json_utils::bom::StripBomFromUTF8;
 use crate::stdlib::json_utils::json_type_def::json_type_def;
 
 fn parse_yaml(value: Value) -> Resolved {
-    Ok(serde_yaml_ng::from_slice(value.try_bytes()?.strip_bom())
+    Ok(serde_saphyr::from_slice(value.try_bytes()?.strip_bom())
         .map_err(|e| format!("unable to parse yaml: {e}"))?)
 }
 
@@ -206,7 +206,11 @@ mod tests {
         incomplete_json_errors {
             args: func_args![ value: r#"{"field": "value"# ],
             want: Err(
-                r"unable to parse yaml: found unexpected end of stream at line 1 column 17, while scanning a quoted scalar at line 1 column 11"
+                r#"unable to parse yaml: error: line 1 column 11: unclosed quote
+ --> <input>:1:11
+  |
+1 | {"field": "value
+  |           ^ unclosed quote"#
             ),
             tdef: json_type_def(),
         }
