@@ -89,6 +89,29 @@ impl CompilerError {
     }
 }
 
+/// Returns `true` if the `value` argument of a function call is a query of the event or its
+/// metadata, such as `.tags` or `%custom`.
+///
+/// The argument is the one named `value`, or else the first positional argument.
+fn value_argument_is_external_query(arguments: &[Node<ast::FunctionArgument>]) -> bool {
+    let value = arguments
+        .iter()
+        .find(|argument| {
+            argument
+                .ident
+                .as_ref()
+                .is_some_and(|ident| ident.as_deref() == "value")
+        })
+        .or_else(|| arguments.iter().find(|argument| argument.ident.is_none()));
+
+    value.is_some_and(|argument| {
+        matches!(
+            argument.expr.inner(),
+            ast::Expr::Query(query) if matches!(query.target.inner(), ast::QueryTarget::External(_))
+        )
+    })
+}
+
 impl<'a> Compiler<'a> {
     /// Run `f` and drop any pending fallibilities it pushed onto the stack
     /// on exit, regardless of whether `f` returned `Ok`/`Some` or pushed a
@@ -738,8 +761,13 @@ impl<'a> Compiler<'a> {
         let original_state = state.clone();
         // TODO: Remove this (hacky) code once dynamic path syntax lands.
         //
+        // `get` reads a path that's only known at runtime, so it's treated as a read of the root.
+        // When the value it reads from is itself an external query, such as `get(.tags, path)`,
+        // that query is already recorded when the argument is compiled, and `get` can only read
+        // inside it, so the root isn't needed.
+        //
         // See: https://github.com/vectordotdev/vector/issues/12547
-        if ident.as_deref() == "get" {
+        if ident.as_deref() == "get" && !value_argument_is_external_query(&arguments) {
             self.external_queries.push(OwnedTargetPath::event_root());
         }
 
@@ -960,5 +988,58 @@ impl<'a> Compiler<'a> {
         };
 
         self.skip_missing_query_target.push(query);
+    }
+}
+
+#[cfg(all(test, feature = "stdlib"))]
+mod tests {
+    use crate::{owned_value_path, path::OwnedTargetPath};
+
+    fn target_queries(source: &str) -> Vec<OwnedTargetPath> {
+        let fns = crate::stdlib::all();
+        crate::compiler::compile(source, &fns)
+            .unwrap()
+            .program
+            .info()
+            .target_queries
+            .clone()
+    }
+
+    #[test]
+    fn get_on_external_query_does_not_query_root() {
+        let tags = OwnedTargetPath::event(owned_value_path!("tags"));
+        for source in [
+            r#"get!(.tags, ["region"])"#,
+            r#"get!(value: .tags, path: ["region"])"#,
+            r#"get!(path: ["region"], value: .tags)"#,
+        ] {
+            assert_eq!(target_queries(source), vec![tags.clone()], "{source}");
+        }
+
+        assert_eq!(
+            target_queries(r#"get!(%custom, ["a"])"#),
+            vec![OwnedTargetPath::metadata(owned_value_path!("custom"))]
+        );
+    }
+
+    #[test]
+    fn get_on_other_values_queries_root() {
+        // The root itself is recorded once, by the argument.
+        assert_eq!(
+            target_queries(r#"get!(., ["tags", "region"])"#),
+            vec![OwnedTargetPath::event_root()]
+        );
+
+        // A value that isn't an external query, such as a variable.
+        let queries = target_queries(
+            r#"
+            tags = .tags
+            get!(tags, ["region"])
+            "#,
+        );
+        assert!(
+            queries.contains(&OwnedTargetPath::event_root()),
+            "{queries:?}"
+        );
     }
 }
