@@ -89,31 +89,6 @@ impl CompilerError {
     }
 }
 
-/// Returns the prefix of the argument named `name`, or else of the first positional argument, if
-/// that argument is a query of the event or its metadata, such as `.items` or `%items`.
-fn external_query_prefix(
-    arguments: &[Node<ast::FunctionArgument>],
-    name: &str,
-) -> Option<PathPrefix> {
-    let argument = arguments
-        .iter()
-        .find(|argument| {
-            argument
-                .ident
-                .as_ref()
-                .is_some_and(|ident| ident.as_deref() == name)
-        })
-        .or_else(|| arguments.iter().find(|argument| argument.ident.is_none()))?;
-
-    match argument.expr.inner() {
-        ast::Expr::Query(query) => match query.target.inner() {
-            ast::QueryTarget::External(prefix) => Some(*prefix),
-            _ => None,
-        },
-        _ => None,
-    }
-}
-
 impl<'a> Compiler<'a> {
     /// Run `f` and drop any pending fallibilities it pushed onto the stack
     /// on exit, regardless of whether `f` returned `Ok`/`Some` or pushed a
@@ -761,13 +736,6 @@ impl<'a> Compiler<'a> {
         } = node.into_inner();
 
         let original_state = state.clone();
-        // `unnest` copies the rest of the target around each element of the array, so it reads the
-        // whole target, not only the path it's given.
-        if ident.as_deref() == "unnest"
-            && let Some(prefix) = external_query_prefix(&arguments, "path")
-        {
-            self.external_queries.push(OwnedTargetPath::root(prefix));
-        }
 
         if abort_on_error {
             self.fallible = true;
@@ -853,6 +821,7 @@ impl<'a> Compiler<'a> {
                     .map_err(|err| self.diagnostics.push(Box::new(err)))
                     .ok()
                     .map(|result| {
+                        self.external_queries.extend(result.target_queries);
                         if let Some(e) = result.error {
                             self.pending_fallibilities
                                 .push(CompilerError::FunctionCallError(e));
@@ -1047,5 +1016,61 @@ mod tests {
             target_queries(r#"obj = {"items": [1, 2]}; unnest!(obj.items)"#),
             Vec::<OwnedTargetPath>::new()
         );
+    }
+
+    /// A host function that happens to be called `unnest`, but only returns its argument.
+    #[derive(Debug, Clone)]
+    struct HostUnnest;
+
+    impl crate::compiler::prelude::Function for HostUnnest {
+        fn identifier(&self) -> &'static str {
+            "unnest"
+        }
+
+        fn description(&self) -> &'static str {
+            "test"
+        }
+
+        fn category(&self) -> &'static str {
+            "test"
+        }
+
+        fn return_kind(&self) -> u16 {
+            crate::compiler::prelude::kind::ANY
+        }
+
+        fn examples(&self) -> &'static [crate::compiler::prelude::Example] {
+            &[]
+        }
+
+        fn parameters(&self) -> &'static [crate::compiler::prelude::Parameter] {
+            use crate::compiler::prelude::{Parameter, kind};
+            const PARAMETERS: &[Parameter] = &[Parameter::required("value", kind::ANY, "value")];
+            PARAMETERS
+        }
+
+        fn compile(
+            &self,
+            _state: &crate::compiler::prelude::TypeState,
+            _ctx: &mut crate::compiler::prelude::FunctionCompileContext,
+            arguments: crate::compiler::prelude::ArgumentList,
+        ) -> crate::compiler::prelude::Compiled {
+            Ok(arguments.required("value"))
+        }
+    }
+
+    #[test]
+    fn host_function_named_unnest_records_only_its_arguments() {
+        let fns: Vec<Box<dyn crate::compiler::prelude::Function>> = vec![Box::new(HostUnnest)];
+        let tags = OwnedTargetPath::event(owned_value_path!("tags"));
+        for source in ["unnest(.tags)", "unnest(value: .tags)"] {
+            let queries = crate::compiler::compile(source, &fns)
+                .unwrap()
+                .program
+                .info()
+                .target_queries
+                .clone();
+            assert_eq!(queries, vec![tags.clone()], "{source}");
+        }
     }
 }
