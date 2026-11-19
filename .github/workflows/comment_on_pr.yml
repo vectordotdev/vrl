@@ -12,7 +12,13 @@ permissions:
   contents: read
 
 jobs:
+  repo-gate:
+    uses: ./.github/workflows/ci-repo-gate.yml
+    with:
+      upstream-only: true
+
   generated-docs:
+    needs: repo-gate
     if: >
       github.event.workflow_run.name == 'Check Generated Docs Freshness'
       && github.event.workflow_run.conclusion == 'failure'
@@ -94,6 +100,7 @@ jobs:
             ```
 
   vector-compatibility:
+    needs: repo-gate
     if: >
       github.event.workflow_run.name == 'Vector Compatibility Advisory'
       && github.event.workflow_run.conclusion == 'success'
