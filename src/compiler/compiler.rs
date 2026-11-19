@@ -89,27 +89,29 @@ impl CompilerError {
     }
 }
 
-/// Returns `true` if the `value` argument of a function call is a query of the event or its
-/// metadata, such as `.tags` or `%custom`.
-///
-/// The argument is the one named `value`, or else the first positional argument.
-fn value_argument_is_external_query(arguments: &[Node<ast::FunctionArgument>]) -> bool {
-    let value = arguments
+/// Returns the prefix of the argument named `name`, or else of the first positional argument, if
+/// that argument is a query of the event or its metadata, such as `.items` or `%items`.
+fn external_query_prefix(
+    arguments: &[Node<ast::FunctionArgument>],
+    name: &str,
+) -> Option<PathPrefix> {
+    let argument = arguments
         .iter()
         .find(|argument| {
             argument
                 .ident
                 .as_ref()
-                .is_some_and(|ident| ident.as_deref() == "value")
+                .is_some_and(|ident| ident.as_deref() == name)
         })
-        .or_else(|| arguments.iter().find(|argument| argument.ident.is_none()));
+        .or_else(|| arguments.iter().find(|argument| argument.ident.is_none()))?;
 
-    value.is_some_and(|argument| {
-        matches!(
-            argument.expr.inner(),
-            ast::Expr::Query(query) if matches!(query.target.inner(), ast::QueryTarget::External(_))
-        )
-    })
+    match argument.expr.inner() {
+        ast::Expr::Query(query) => match query.target.inner() {
+            ast::QueryTarget::External(prefix) => Some(*prefix),
+            _ => None,
+        },
+        _ => None,
+    }
 }
 
 impl<'a> Compiler<'a> {
@@ -759,16 +761,12 @@ impl<'a> Compiler<'a> {
         } = node.into_inner();
 
         let original_state = state.clone();
-        // TODO: Remove this (hacky) code once dynamic path syntax lands.
-        //
-        // `get` reads a path that's only known at runtime, so it's treated as a read of the root.
-        // When the value it reads from is itself an external query, such as `get(.tags, path)`,
-        // that query is already recorded when the argument is compiled, and `get` can only read
-        // inside it, so the root isn't needed.
-        //
-        // See: https://github.com/vectordotdev/vector/issues/12547
-        if ident.as_deref() == "get" && !value_argument_is_external_query(&arguments) {
-            self.external_queries.push(OwnedTargetPath::event_root());
+        // `unnest` copies the rest of the target around each element of the array, so it reads the
+        // whole target, not only the path it's given.
+        if ident.as_deref() == "unnest"
+            && let Some(prefix) = external_query_prefix(&arguments, "path")
+        {
+            self.external_queries.push(OwnedTargetPath::root(prefix));
         }
 
         if abort_on_error {
@@ -1006,16 +1004,21 @@ mod tests {
     }
 
     #[test]
-    fn get_on_external_query_does_not_query_root() {
+    fn get_records_only_the_paths_it_reads() {
         let tags = OwnedTargetPath::event(owned_value_path!("tags"));
         for source in [
             r#"get!(.tags, ["region"])"#,
             r#"get!(value: .tags, path: ["region"])"#,
             r#"get!(path: ["region"], value: .tags)"#,
+            r#"tags = .tags; get!(tags, ["region"])"#,
         ] {
             assert_eq!(target_queries(source), vec![tags.clone()], "{source}");
         }
 
+        assert_eq!(
+            target_queries(r#"get!(., ["tags", "region"])"#),
+            vec![OwnedTargetPath::event_root()]
+        );
         assert_eq!(
             target_queries(r#"get!(%custom, ["a"])"#),
             vec![OwnedTargetPath::metadata(owned_value_path!("custom"))]
@@ -1023,23 +1026,26 @@ mod tests {
     }
 
     #[test]
-    fn get_on_other_values_queries_root() {
-        // The root itself is recorded once, by the argument.
-        assert_eq!(
-            target_queries(r#"get!(., ["tags", "region"])"#),
-            vec![OwnedTargetPath::event_root()]
+    fn unnest_records_the_root_of_its_target() {
+        // `unnest` keeps the other fields of the target around each element.
+        for source in ["unnest!(.tags.region)", "unnest!(path: .tags.region)"] {
+            let queries = target_queries(source);
+            assert!(
+                queries.contains(&OwnedTargetPath::event_root()),
+                "{source}: {queries:?}"
+            );
+        }
+
+        let queries = target_queries("unnest!(%items)");
+        assert!(
+            queries.contains(&OwnedTargetPath::metadata_root()),
+            "{queries:?}"
         );
 
-        // A value that isn't an external query, such as a variable.
-        let queries = target_queries(
-            r#"
-            tags = .tags
-            get!(tags, ["region"])
-            "#,
-        );
-        assert!(
-            queries.contains(&OwnedTargetPath::event_root()),
-            "{queries:?}"
+        // A variable doesn't read the target.
+        assert_eq!(
+            target_queries(r#"obj = {"items": [1, 2]}; unnest!(obj.items)"#),
+            Vec::<OwnedTargetPath>::new()
         );
     }
 }
