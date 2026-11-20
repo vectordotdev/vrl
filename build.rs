@@ -74,7 +74,7 @@ fn convert_user_agent_regexes() {
 
     let regexes = fs::read("data/user_agent_regexes.yaml").expect("Could not read regexes");
     let regexes: ua_parser::Regexes =
-        serde_yaml_ng::from_slice(&regexes).expect("Regex file is not valid yaml");
+        serde_saphyr::from_slice(&regexes).expect("Regex file is not valid yaml");
 
     let mut output = Vec::new();
 

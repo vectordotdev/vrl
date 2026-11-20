@@ -3,8 +3,26 @@ use crate::stdlib::json_utils::bom::StripBomFromUTF8;
 use crate::stdlib::json_utils::json_type_def::json_type_def;
 
 fn parse_yaml(value: Value) -> Resolved {
-    Ok(serde_yaml_ng::from_slice(value.try_bytes()?.strip_bom())
-        .map_err(|e| format!("unable to parse yaml: {e}"))?)
+    // Preserve the previous parser's behavior: `.inf`/`-.inf` deserialize to
+    // infinite floats (only NaN is rejected, by `Value::visit_f64`).
+    // Match the behavior of the previous `serde_yaml_ng`-based parser
+    // (serde_yaml 0.9 semantics) to keep existing VRL programs compatible:
+    // only `true`/`false` are booleans, numeric-looking spellings like `007`
+    // or `1_000` stay strings, duplicate keys keep the last value, merge keys
+    // are not expanded, and `!!binary` scalars are not base64-decoded.
+    let options = serde_saphyr::options! {
+        strict_booleans: true,
+        leading_zero_numbers_as_strings: true,
+        underscored_numbers_as_strings: true,
+        duplicate_keys: serde_saphyr::DuplicateKeyPolicy::PassThrough,
+        merge_keys: serde_saphyr::MergeKeyPolicy::AsOrdinary,
+        ignore_binary_tag_for_string: true,
+        non_finite_float_policy: serde_saphyr::NonFiniteFloatPolicy::PassThrough,
+    };
+    Ok(
+        serde_saphyr::from_slice_with_options(value.try_bytes()?.strip_bom(), options)
+            .map_err(|e| format!("unable to parse yaml: {e}"))?,
+    )
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -164,6 +182,7 @@ impl FunctionExpression for ParseYamlFn {
 mod tests {
     use super::*;
     use crate::value;
+    use ordered_float::NotNan;
 
     test_function![
         parse_yaml => ParseYaml;
@@ -206,8 +225,88 @@ mod tests {
         incomplete_json_errors {
             args: func_args![ value: r#"{"field": "value"# ],
             want: Err(
-                r"unable to parse yaml: found unexpected end of stream at line 1 column 17, while scanning a quoted scalar at line 1 column 11"
+                r#"unable to parse yaml: error: line 1 column 11: unclosed quote
+ --> <input>:1:11
+  |
+1 | {"field": "value
+  |           ^ unclosed quote"#
             ),
+            tdef: json_type_def(),
+        }
+
+        parses_inf {
+            args: func_args![ value: r"value: .inf" ],
+            want: Ok({
+                let mut map = ObjectMap::new();
+                map.insert("value".into(), Value::Float(NotNan::new(f64::INFINITY).expect("infinity is not NaN")));
+                Value::Object(map)
+            }),
+            tdef: json_type_def(),
+        }
+
+        parses_neg_inf {
+            args: func_args![ value: "-.inf" ],
+            want: Ok(Value::Float(NotNan::new(f64::NEG_INFINITY).expect("infinity is not NaN"))),
+            tdef: json_type_def(),
+        }
+
+        nan_still_errors {
+            args: func_args![ value: "value: .nan" ],
+            want: Err(
+                r#"unable to parse yaml: error: line 1 column 1: invalid value: floating point `NaN`, expected any valid JSON value
+ --> <input>:1:1
+  |
+1 | value: .nan
+  | ^ invalid value: floating point `NaN`, expected any valid JSON value"#
+            ),
+            tdef: json_type_def(),
+        }
+
+        yaml11_booleans_stay_strings {
+            args: func_args![ value: "flag: off" ],
+            want: Ok(value!({ flag: "off" })),
+            tdef: json_type_def(),
+        }
+
+        yes_stays_string {
+            args: func_args![ value: "flag: yes" ],
+            want: Ok(value!({ flag: "yes" })),
+            tdef: json_type_def(),
+        }
+
+        leading_zero_number_stays_string {
+            args: func_args![ value: "n: 007" ],
+            want: Ok(value!({ n: "007" })),
+            tdef: json_type_def(),
+        }
+
+        underscored_number_stays_string {
+            args: func_args![ value: "n: 1_000" ],
+            want: Ok(value!({ n: "1_000" })),
+            tdef: json_type_def(),
+        }
+
+        hex_and_octal_still_parse {
+            args: func_args![ value: "a: 0x10\nb: 0o17" ],
+            want: Ok(value!({ a: 16, b: 15 })),
+            tdef: json_type_def(),
+        }
+
+        duplicate_keys_last_wins {
+            args: func_args![ value: "a: 1\na: 2" ],
+            want: Ok(value!({ a: 2 })),
+            tdef: json_type_def(),
+        }
+
+        merge_keys_not_expanded {
+            args: func_args![ value: "base: &b\n  x: 1\nfoo:\n  <<: *b\n  y: 2" ],
+            want: Ok(value!({ base: { x: 1 }, foo: { "<<": { x: 1 }, y: 2 } })),
+            tdef: json_type_def(),
+        }
+
+        binary_tag_not_decoded {
+            args: func_args![ value: "bin: !!binary aGk=" ],
+            want: Ok(value!({ bin: "aGk=" })),
             tdef: json_type_def(),
         }
     ];
