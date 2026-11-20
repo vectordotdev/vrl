@@ -739,12 +739,6 @@ impl<'a> Compiler<'a> {
         } = node.into_inner();
 
         let original_state = state.clone();
-        // TODO: Remove this (hacky) code once dynamic path syntax lands.
-        //
-        // See: https://github.com/vectordotdev/vector/issues/12547
-        if ident.as_deref() == "get" {
-            self.external_queries.push(OwnedTargetPath::event_root());
-        }
 
         if abort_on_error {
             self.fallible = true;
@@ -830,6 +824,7 @@ impl<'a> Compiler<'a> {
                     .map_err(|err| self.diagnostics.push(Box::new(err)))
                     .ok()
                     .map(|result| {
+                        self.external_queries.extend(result.target_queries);
                         if let Some(e) = result.error {
                             self.pending_fallibilities
                                 .push(CompilerError::FunctionCallError(e));
@@ -963,5 +958,122 @@ impl<'a> Compiler<'a> {
         };
 
         self.skip_missing_query_target.push(query);
+    }
+}
+
+#[cfg(all(test, feature = "stdlib"))]
+mod tests {
+    use crate::{owned_value_path, path::OwnedTargetPath};
+
+    fn target_queries(source: &str) -> Vec<OwnedTargetPath> {
+        let fns = crate::stdlib::all();
+        crate::compiler::compile(source, &fns)
+            .unwrap()
+            .program
+            .info()
+            .target_queries
+            .clone()
+    }
+
+    #[test]
+    fn get_records_only_the_paths_it_reads() {
+        let tags = OwnedTargetPath::event(owned_value_path!("tags"));
+        for source in [
+            r#"get!(.tags, ["region"])"#,
+            r#"get!(value: .tags, path: ["region"])"#,
+            r#"get!(path: ["region"], value: .tags)"#,
+            r#"tags = .tags; get!(tags, ["region"])"#,
+        ] {
+            assert_eq!(target_queries(source), vec![tags.clone()], "{source}");
+        }
+
+        assert_eq!(
+            target_queries(r#"get!(., ["tags", "region"])"#),
+            vec![OwnedTargetPath::event_root()]
+        );
+        assert_eq!(
+            target_queries(r#"get!(%custom, ["a"])"#),
+            vec![OwnedTargetPath::metadata(owned_value_path!("custom"))]
+        );
+    }
+
+    #[test]
+    fn unnest_records_the_root_of_its_target() {
+        // `unnest` keeps the other fields of the target around each element.
+        for source in ["unnest!(.tags.region)", "unnest!(path: .tags.region)"] {
+            let queries = target_queries(source);
+            assert!(
+                queries.contains(&OwnedTargetPath::event_root()),
+                "{source}: {queries:?}"
+            );
+        }
+
+        let queries = target_queries("unnest!(%items)");
+        assert!(
+            queries.contains(&OwnedTargetPath::metadata_root()),
+            "{queries:?}"
+        );
+
+        // A variable doesn't read the target.
+        assert_eq!(
+            target_queries(r#"obj = {"items": [1, 2]}; unnest!(obj.items)"#),
+            Vec::<OwnedTargetPath>::new()
+        );
+    }
+
+    /// A host function that happens to be called `unnest`, but only returns its argument.
+    #[derive(Debug, Clone)]
+    struct HostUnnest;
+
+    impl crate::compiler::prelude::Function for HostUnnest {
+        fn identifier(&self) -> &'static str {
+            "unnest"
+        }
+
+        fn description(&self) -> &'static str {
+            "test"
+        }
+
+        fn category(&self) -> &'static str {
+            "test"
+        }
+
+        fn return_kind(&self) -> u16 {
+            crate::compiler::prelude::kind::ANY
+        }
+
+        fn examples(&self) -> &'static [crate::compiler::prelude::Example] {
+            &[]
+        }
+
+        fn parameters(&self) -> &'static [crate::compiler::prelude::Parameter] {
+            use crate::compiler::prelude::{Parameter, kind};
+            const PARAMETERS: &[Parameter] = &[Parameter::required("value", kind::ANY, "value")];
+            PARAMETERS
+        }
+
+        fn compile(
+            &self,
+            _state: &crate::compiler::prelude::TypeState,
+            _ctx: &mut crate::compiler::prelude::FunctionCompileContext,
+            arguments: crate::compiler::prelude::ArgumentList,
+        ) -> crate::compiler::prelude::Compiled {
+            Ok(arguments.required("value"))
+        }
+    }
+
+    #[test]
+    fn host_function_named_unnest_records_only_its_arguments() {
+        let fns: Vec<Box<dyn crate::compiler::prelude::Function>> = vec![Box::new(HostUnnest)];
+        let tags = OwnedTargetPath::event(owned_value_path!("tags"));
+        for source in ["unnest(.tags)", "unnest(value: .tags)"] {
+            let queries = crate::compiler::compile(source, &fns)
+                .unwrap()
+                .program
+                .info()
+                .target_queries
+                .clone();
+            assert_eq!(queries, vec![tags.clone()], "{source}");
+        }
     }
 }
