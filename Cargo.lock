@@ -2222,6 +2222,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf8baf1c55e62ffcace7a9f06f4bd9cd3f0c4beb022d3b367256b91b87513d98"
 
 [[package]]
+name = "metrics"
+version = "0.24.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "89550ee9f79e88fef3119de263694973a8adb26c21d75322164fb8c493039fe2"
+dependencies = [
+ "portable-atomic",
+ "rapidhash",
+]
+
+[[package]]
 name = "minimal-lexical"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2613,6 +2623,17 @@ name = "pastey"
 version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2ee67f1008b1ba2321834326597b8e186293b049a023cdef258527550b9935b4"
+
+[[package]]
+name = "pcre2-sys"
+version = "0.2.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "18b9073c1a2549bd409bf4a32c94d903bb1a09bf845bc306ae148897fa0760a4"
+dependencies = [
+ "cc",
+ "libc",
+ "pkg-config",
+]
 
 [[package]]
 name = "peeking_take_while"
@@ -3041,6 +3062,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "60aa6af80be32871323012e02e6e65f8a7cc7890931ae421d217ad8fe0df2ccf"
 dependencies = [
  "rand_core",
+]
+
+[[package]]
+name = "rapidhash"
+version = "4.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5da7e78a036ce858e8d55b7e7dc8ba3a88b78350fd2155d3591bbd966b58589e"
+dependencies = [
+ "rustversion",
 ]
 
 [[package]]
@@ -4510,6 +4540,7 @@ dependencies = [
  "lalrpop-util",
  "lz4_flex",
  "md-5",
+ "metrics",
  "mlua",
  "nom 8.0.0",
  "nom-language",
@@ -4519,6 +4550,7 @@ dependencies = [
  "ordered-float",
  "parse-size",
  "pastey",
+ "pcre2-sys",
  "peeking_take_while",
  "percent-encoding",
  "pest",
@@ -4536,6 +4568,8 @@ dependencies = [
  "quoted_printable",
  "rand",
  "regex",
+ "regex-automata",
+ "regex-syntax",
  "relative-path",
  "reqwest",
  "reqwest-middleware",
@@ -4560,6 +4594,7 @@ dependencies = [
  "syslog_loose",
  "termcolor",
  "thiserror 2.0.21",
+ "thread_local",
  "tokio",
  "tracing",
  "tracing-test",

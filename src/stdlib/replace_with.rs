@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
 
-use regex::{CaptureMatches, CaptureNames, Captures, Regex};
+use crate::value::regex_engine::{CaptureMatches, Captures, Regex};
+use regex::CaptureNames;
 
 use crate::compiler::prelude::*;
 
@@ -288,7 +289,7 @@ impl FunctionExpression for ReplaceWithFn {
         let value = self.value.resolve(ctx)?;
         let pattern = self.pattern.resolve(ctx)?;
         let pattern = pattern
-            .as_regex()
+            .as_engine_regex()
             .ok_or_else(|| ExpressionError::from("failed to resolve regex"))?;
         for name in pattern.capture_names().flatten() {
             if name == STRING_NAME || name == CAPTURES_NAME {
