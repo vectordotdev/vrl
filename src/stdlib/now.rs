@@ -1,5 +1,5 @@
 use crate::compiler::prelude::*;
-use chrono::Utc;
+use jiff::Timestamp;
 
 #[derive(Clone, Copy, Debug)]
 pub struct Now;
@@ -45,7 +45,7 @@ struct NowFn;
 
 impl FunctionExpression for NowFn {
     fn resolve(&self, _: &mut Context) -> Resolved {
-        Ok(Utc::now().into())
+        Ok(Timestamp::now().into())
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {

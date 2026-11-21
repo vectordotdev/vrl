@@ -1,8 +1,8 @@
-use crate::compiler::TimeZone;
+use crate::compiler::{TimeZone, datetime};
 use crate::prelude::KeyString;
 use crate::stdlib::util::RegexWithCaptureInfo;
 use crate::value::{ObjectMap, Value};
-use chrono::prelude::{DateTime, Utc};
+use jiff::Timestamp;
 use regex::{Captures, Regex};
 use std::sync::LazyLock;
 
@@ -205,14 +205,12 @@ pub(crate) static REGEX_NGINX_ERROR_LOG: LazyLock<RegexWithCaptureInfo> = LazyLo
 });
 
 // Parse the time as Utc from the given timezone
-fn parse_time(
-    time: &str,
-    format: &str,
-    timezone: TimeZone,
-) -> std::result::Result<DateTime<Utc>, String> {
-    timezone
-        .datetime_from_str(time, format)
-        .or_else(|_| DateTime::parse_from_str(time, format).map(Into::into))
+fn parse_time(time: &str, format: &str, timezone: &TimeZone) -> Result<Timestamp, String> {
+    datetime::parse(time, format)
+        .and_then(|tm| {
+            datetime::to_timestamp(&tm, &timezone.to_jiff())
+                .or_else(|_| datetime::to_offset_timestamp(&tm))
+        })
         .map_err(|err| format!("failed parsing timestamp {time} using format {format}: {err}"))
 }
 
@@ -223,7 +221,7 @@ fn capture_value(
     name: &str,
     value: &str,
     timestamp_format: &str,
-    timezone: TimeZone,
+    timezone: &TimeZone,
 ) -> Result<Value, String> {
     Ok(match name {
         "timestamp" => Value::Timestamp(parse_time(value, timestamp_format, timezone)?),
@@ -255,7 +253,7 @@ pub(crate) fn log_fields(
     capture_info: &[(KeyString, usize)],
     capture: &Captures,
     timestamp_format: &str,
-    timezone: TimeZone,
+    timezone: &TimeZone,
 ) -> Result<Value, String> {
     let mut map = ObjectMap::new();
     for (name, idx) in capture_info {
@@ -274,7 +272,7 @@ pub(crate) fn parse_message(
     regexes: &[RegexWithCaptureInfo],
     message: &str,
     timestamp_format: &str,
-    timezone: TimeZone,
+    timezone: &TimeZone,
     log_type: &str,
 ) -> Result<Value, String> {
     for regex in regexes {

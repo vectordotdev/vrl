@@ -1,8 +1,6 @@
 use std::{fmt, string::ToString};
 
-use chrono::SecondsFormat;
-
-use super::Value;
+use super::{Value, timestamp_to_string};
 
 fn escape_quoted(s: &str) -> String {
     s.replace('\\', r"\\")
@@ -38,9 +36,7 @@ impl fmt::Display for Value {
                     .join(", ");
                 write!(f, "[{joined}]")
             }
-            Self::Timestamp(val) => {
-                write!(f, "t'{}'", val.to_rfc3339_opts(SecondsFormat::AutoSi, true))
-            }
+            Self::Timestamp(val) => write!(f, "t'{}'", timestamp_to_string(val)),
             Self::Regex(regex) => write!(f, "r'{}'", **regex),
             Self::Null => write!(f, "null"),
         }
@@ -49,8 +45,8 @@ impl fmt::Display for Value {
 
 #[cfg(test)]
 mod test {
-    use chrono::DateTime;
     use indoc::indoc;
+    use jiff::Timestamp;
     use ordered_float::NotNan;
     use regex::Regex;
 
@@ -131,12 +127,7 @@ mod test {
     #[test]
     fn test_display_timestamp() {
         assert_eq!(
-            Value::Timestamp(
-                DateTime::parse_from_rfc3339("2000-10-10T20:55:36Z")
-                    .unwrap()
-                    .into()
-            )
-            .to_string(),
+            Value::Timestamp("2000-10-10T20:55:36Z".parse::<Timestamp>().unwrap()).to_string(),
             "t'2000-10-10T20:55:36Z'"
         );
     }

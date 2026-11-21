@@ -5,11 +5,11 @@ use std::{
 };
 
 use bytes::Bytes;
-use chrono::{DateTime, LocalResult, ParseError as ChronoParseError, TimeZone as _, Utc};
+use jiff::Timestamp;
 use ordered_float::NotNan;
 use snafu::{ResultExt, Snafu};
 
-use super::datetime::{TimeZone, datetime_to_utc};
+use super::datetime::{self, ParseError, TimeZone};
 
 #[cfg(test)]
 mod tests;
@@ -49,7 +49,7 @@ pub enum Error {
         display("Invalid timestamp {:?}: {}", s, source),
         visibility(pub(super))
     )]
-    TimestampParse { s: String, source: ChronoParseError },
+    TimestampParse { s: String, source: ParseError },
     #[snafu(display("No matching timestamp format found for {:?}", s))]
     AutoTimestampParse { s: String },
 }
@@ -63,7 +63,7 @@ pub enum Error {
 pub fn parse_check_conversion_map(
     types: &HashMap<String, String>,
     names: &[impl AsRef<str>],
-    tz: TimeZone,
+    tz: &TimeZone,
 ) -> Result<HashMap<String, Conversion>, ConversionError> {
     // Check if any named type references a nonexistent field
     let names = names
@@ -90,11 +90,13 @@ pub fn parse_check_conversion_map(
 #[allow(clippy::implicit_hasher)]
 pub fn parse_conversion_map(
     types: &HashMap<String, String>,
-    tz: TimeZone,
+    tz: &TimeZone,
 ) -> Result<HashMap<String, Conversion>, ConversionError> {
     types
         .iter()
-        .map(|(field, typename)| Conversion::parse(typename, tz).map(|conv| (field.clone(), conv)))
+        .map(|(field, typename)| {
+            Conversion::parse(typename, tz.clone()).map(|conv| (field.clone(), conv))
+        })
         .collect()
 }
 
@@ -148,7 +150,7 @@ impl Conversion {
     #[allow(clippy::trait_duplication_in_bounds)] // appears to be a false positive
     pub fn convert<T>(&self, bytes: Bytes) -> Result<T, Error>
     where
-        T: From<Bytes> + From<i64> + From<NotNan<f64>> + From<bool> + From<DateTime<Utc>>,
+        T: From<Bytes> + From<i64> + From<NotNan<f64>> + From<bool> + From<Timestamp>,
     {
         Ok(match self {
             Self::Bytes => bytes.into(),
@@ -167,21 +169,19 @@ impl Conversion {
                 f.into()
             }
             Self::Boolean => parse_bool(&String::from_utf8_lossy(&bytes))?.into(),
-            Self::Timestamp(tz) => parse_timestamp(*tz, &String::from_utf8_lossy(&bytes))?.into(),
+            Self::Timestamp(tz) => parse_timestamp(tz, &String::from_utf8_lossy(&bytes))?.into(),
             Self::TimestampFmt(format, tz) => {
                 let s = String::from_utf8_lossy(&bytes);
-                let dt = tz
-                    .datetime_from_str(&s, format)
-                    .context(TimestampParseSnafu { s })?;
-
-                datetime_to_utc(&dt).into()
+                tz.datetime_from_str(&s, format)
+                    .context(TimestampParseSnafu { s })?
+                    .into()
             }
             Self::TimestampTzFmt(format) => {
                 let s = String::from_utf8_lossy(&bytes);
-                let dt = DateTime::parse_from_str(&s, format)
-                    .with_context(|_| TimestampParseSnafu { s })?;
-
-                datetime_to_utc(&dt).into()
+                datetime::parse(&s, format)
+                    .and_then(|tm| datetime::to_offset_timestamp(&tm))
+                    .with_context(|_| TimestampParseSnafu { s })?
+                    .into()
             }
         })
     }
@@ -251,44 +251,45 @@ const TIMESTAMP_TZ_FORMATS: &[&str] = &[
     "%d/%b/%Y:%T %z",     // Common Log
 ];
 
-fn parse_unix_timestamp(timestamp_str: &str) -> LocalResult<DateTime<Utc>> {
-    if let Ok(seconds_since_epoch) = timestamp_str.parse::<i64>() {
-        Utc.timestamp_opt(seconds_since_epoch, 0)
-    } else {
-        LocalResult::None
-    }
-}
-
 /// Parse a string into a timestamp using one of a set of formats
 ///
 /// # Errors
 ///
 /// Returns an error if the string could not be matched by one of the
 /// predefined timestamp formats.
-fn parse_timestamp(tz: TimeZone, s: &str) -> Result<DateTime<Utc>, Error> {
+fn parse_timestamp(tz: &TimeZone, s: &str) -> Result<Timestamp, Error> {
+    let local_tz = tz.to_jiff();
     for format in TIMESTAMP_LOCAL_FORMATS {
-        if let Ok(result) = tz.datetime_from_str(s, format) {
+        if let Ok(result) =
+            datetime::parse(s, format).and_then(|tm| datetime::to_timestamp(&tm, &local_tz))
+        {
             return Ok(result);
         }
     }
 
     // This is equivalent to the "%s" format.
-    if let LocalResult::Single(result) = parse_unix_timestamp(s) {
+    if let Some(result) = s
+        .parse::<i64>()
+        .ok()
+        .and_then(|secs| Timestamp::from_second(secs).ok())
+    {
         return Ok(result);
     }
 
     // This also handles "%FT%TZ" formats.
-    if let Ok(result) = DateTime::parse_from_rfc3339(s) {
-        return Ok(datetime_to_utc(&result));
+    if let Ok(result) = datetime::parse(s, "%+").and_then(|tm| datetime::to_offset_timestamp(&tm)) {
+        return Ok(result);
     }
 
-    if let Ok(result) = DateTime::parse_from_rfc2822(s) {
-        return Ok(datetime_to_utc(&result));
+    if let Ok(result) = jiff::fmt::rfc2822::parse(s) {
+        return Ok(result.timestamp());
     }
 
     for format in TIMESTAMP_TZ_FORMATS {
-        if let Ok(result) = DateTime::parse_from_str(s, format) {
-            return Ok(datetime_to_utc(&result));
+        if let Ok(result) =
+            datetime::parse(s, format).and_then(|tm| datetime::to_offset_timestamp(&tm))
+        {
+            return Ok(result);
         }
     }
 

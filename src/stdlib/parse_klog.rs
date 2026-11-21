@@ -1,5 +1,6 @@
+use crate::compiler::datetime;
 use crate::compiler::prelude::*;
-use chrono::{Datelike, NaiveDateTime, Utc};
+use jiff::tz;
 use regex::Regex;
 use std::collections::BTreeMap;
 use std::sync::LazyLock;
@@ -25,9 +26,10 @@ fn parse_klog(bytes: &Value) -> Resolved {
         let month = captures.name("month").map(|capture| capture.as_str());
         let year = resolve_year(month);
 
-        match NaiveDateTime::parse_from_str(&format!("{year}{timestamp}"), "%Y%m%d %H:%M:%S%.f") {
-            Ok(naive_dt) => {
-                let utc_dt = naive_dt.and_utc();
+        match datetime::parse(&format!("{year}{timestamp}"), "%Y%m%d %H:%M:%S%.f")
+            .and_then(|tm| datetime::to_timestamp(&tm, &tz::TimeZone::UTC))
+        {
+            Ok(utc_dt) => {
                 log.insert("timestamp".into(), Value::Timestamp(utc_dt));
             }
             Err(e) => return Err(format!("failed parsing timestamp {timestamp}: {e}").into()),
@@ -81,7 +83,7 @@ static EXAMPLES: LazyLock<Vec<Example>> = LazyLock::new(|| {
                 "message": "hello from klog",
                 "timestamp": "{year}-05-05T17:59:40.692994Z"
             }}"#},
-            year = Utc::now().year()
+            year = datetime::utc_now().year()
         )
         .into_boxed_str(),
     );
@@ -167,8 +169,8 @@ impl FunctionExpression for ParseKlogFn {
 
 // same logic as our handling of RFC3164 syslog messages: since we don't know the year, we look at
 // the month to guess the year based on the current month
-fn resolve_year(month: Option<&str>) -> i32 {
-    let now = Utc::now();
+fn resolve_year(month: Option<&str>) -> i16 {
+    let now = datetime::utc_now();
     match (month, now.month()) {
         (Some("12"), 1) => now.year() - 1,
         (_, _) => now.year(),
@@ -189,7 +191,6 @@ fn inner_kind() -> BTreeMap<Field, Kind> {
 #[cfg(test)]
 mod tests {
     use crate::btreemap;
-    use chrono::DateTime;
 
     use super::*;
 
@@ -200,7 +201,7 @@ mod tests {
             args: func_args![value: "I0505 17:59:40.692994   28133 klog.go:70] hello from klog"],
             want: Ok(btreemap! {
                 "level" => "info",
-                "timestamp" => Value::Timestamp(DateTime::parse_from_rfc3339(&format!("{}-05-05T17:59:40.692994Z", Utc::now().year())).unwrap().into()),
+                "timestamp" => Value::Timestamp(format!("{}-05-05T17:59:40.692994Z", datetime::utc_now().year()).parse::<jiff::Timestamp>().unwrap()),
                 "id" => 28133,
                 "file" => "klog.go",
                 "line" => 70,
@@ -213,7 +214,7 @@ mod tests {
             args: func_args![value: "\n     I0505 17:59:40.692994   28133 klog.go:70] hello from klog    \n"],
             want: Ok(btreemap! {
                 "level" => "info",
-                "timestamp" => Value::Timestamp(DateTime::parse_from_rfc3339(&format!("{}-05-05T17:59:40.692994Z", Utc::now().year())).unwrap().into()),
+                "timestamp" => Value::Timestamp(format!("{}-05-05T17:59:40.692994Z", datetime::utc_now().year()).parse::<jiff::Timestamp>().unwrap()),
                 "id" => 28133,
                 "file" => "klog.go",
                 "line" => 70,
@@ -236,7 +237,7 @@ mod tests {
 
         log_line_invalid_timestamp {
             args: func_args![value: "I0000 17:59:40.692994   28133 klog.go:70] hello from klog"],
-            want: Err("failed parsing timestamp 0000 17:59:40.692994: input is out of range"),
+            want: Err("failed parsing timestamp 0000 17:59:40.692994: strptime parsing failed: %m failed: failed to parse month number: parameter 'month' is not in the required range of 1..=12"),
             tdef: TypeDef::object(inner_kind()).fallible(),
         }
 

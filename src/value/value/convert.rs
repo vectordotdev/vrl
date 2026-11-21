@@ -3,10 +3,10 @@ use std::sync::Arc;
 use std::{borrow::Cow, num::NonZero};
 
 use crate::value::value::regex::ValueRegex;
-use crate::value::value::simdutf_bytes_utf8_lossy;
+use crate::value::value::{simdutf_bytes_utf8_lossy, timestamp_seconds};
 use bytes::Bytes;
 use bytestring::ByteString;
-use chrono::{DateTime, Utc};
+use jiff::Timestamp;
 use ordered_float::NotNan;
 use regex::Regex;
 
@@ -29,20 +29,20 @@ impl Value {
         }
     }
 
-    /// Returns self as `&DateTime<Utc>`, only if self is `Value::Timestamp`.
-    pub fn as_timestamp(&self) -> Option<&DateTime<Utc>> {
+    /// Returns self as `&Timestamp`, only if self is `Value::Timestamp`.
+    pub fn as_timestamp(&self) -> Option<&Timestamp> {
         match &self {
             Self::Timestamp(ts) => Some(ts),
             _ => None,
         }
     }
 
-    /// Returns self as a `DateTime<Utc>`.
+    /// Returns self as a `Timestamp`.
     ///
     /// # Panics
     ///
     /// This function will panic if self is anything other than `Value::Timestamp`.
-    pub fn as_timestamp_unwrap(&self) -> &DateTime<Utc> {
+    pub fn as_timestamp_unwrap(&self) -> &Timestamp {
         match self {
             Self::Timestamp(timestamp) => timestamp,
             _ => panic!("Tried to call `Value::as_timestamp_unwrap` on a non-timestamp value."),
@@ -246,7 +246,7 @@ impl Value {
             }),
             Self::Object(_o) => Err("cannot convert object to bytes.".to_string()),
             Self::Array(_a) => Err("cannot convert array to bytes.".to_string()),
-            Self::Timestamp(t) => Ok(Bytes::copy_from_slice(&t.timestamp().to_le_bytes())),
+            Self::Timestamp(t) => Ok(Bytes::copy_from_slice(&timestamp_seconds(t).to_le_bytes())),
             Self::Regex(r) => Ok(r.to_string().into()),
             Self::Null => Ok(Bytes::copy_from_slice(&[0_u8])),
         }
@@ -400,8 +400,8 @@ impl From<ByteString> for Value {
     }
 }
 
-impl From<DateTime<Utc>> for Value {
-    fn from(timestamp: DateTime<Utc>) -> Self {
+impl From<Timestamp> for Value {
+    fn from(timestamp: Timestamp) -> Self {
         Self::Timestamp(timestamp)
     }
 }

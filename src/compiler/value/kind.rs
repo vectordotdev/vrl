@@ -1,5 +1,5 @@
 use crate::value::Value;
-use chrono::{TimeZone, Utc};
+use jiff::Timestamp;
 use ordered_float::NotNan;
 use regex::Regex;
 
@@ -58,11 +58,7 @@ impl DefaultValue for Kind {
         }
 
         if self.is_timestamp() {
-            return Utc
-                .timestamp_opt(0, 0)
-                .single()
-                .expect("invalid timestamp")
-                .into();
+            return Timestamp::UNIX_EPOCH.into();
         }
 
         if self.is_regex() {
@@ -127,7 +123,7 @@ mod tests {
             (
                 "timestamp",
                 TestCase {
-                    value: Utc::now().into(),
+                    value: Timestamp::now().into(),
                     want: Kind::timestamp(),
                 },
             ),

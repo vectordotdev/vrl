@@ -1,13 +1,17 @@
+use crate::compiler::datetime;
 use crate::compiler::prelude::*;
-use chrono::Local;
+use jiff::{Timestamp, tz};
 use std::borrow::Cow;
 
 #[must_use]
 pub fn get_name_for_timezone(tz: &TimeZone) -> Cow<'_, str> {
     match tz {
-        TimeZone::Named(tz) => tz.name().into(),
+        TimeZone::Named(tz) => tz.iana_name().unwrap_or("Etc/Unknown").into(),
         TimeZone::Local => iana_time_zone::get_timezone()
-            .unwrap_or_else(|_| Local::now().offset().to_string())
+            .unwrap_or_else(|_| {
+                datetime::format(Timestamp::now(), &tz::TimeZone::system(), "%:z")
+                    .unwrap_or_default()
+            })
             .into(),
     }
 }
@@ -92,7 +96,7 @@ mod tests {
         // the test harness always initializes the VRL timezone to UTC
         utc {
             args: func_args![],
-            want: Ok(value!(get_name_for_timezone(&TimeZone::Named(chrono_tz::Tz::UTC)))),
+            want: Ok(value!(get_name_for_timezone(&TimeZone::Named(tz::TimeZone::UTC)))),
             tdef: TypeDef::bytes().fallible(),
         }
     ];

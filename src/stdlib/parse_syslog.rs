@@ -1,13 +1,19 @@
+use crate::compiler::datetime;
 use crate::compiler::prelude::*;
-use chrono::{DateTime, Datelike, Utc};
+use chrono::{Datelike, FixedOffset, MappedLocalTime, NaiveDate, NaiveDateTime, Timelike};
+use jiff::{
+    SignedDuration, Timestamp, civil,
+    tz::{self, AmbiguousOffset},
+};
 use std::collections::BTreeMap;
 use syslog_loose::{IncompleteDate, Message, ProcId, Protocol, Variant};
 
 pub(crate) fn parse_syslog(value: &Value, ctx: &Context) -> Resolved {
     let message = value.try_bytes_utf8_lossy()?;
+    // Without a time zone, `syslog_loose` uses the system time zone.
     let timezone = match ctx.timezone() {
         TimeZone::Local => None,
-        TimeZone::Named(tz) => Some(*tz),
+        TimeZone::Named(tz) => Some(ChronoTz(tz)),
     };
     let parsed = syslog_loose::parse_message_with_year_exact_tz(
         &message,
@@ -16,6 +22,80 @@ pub(crate) fn parse_syslog(value: &Value, ctx: &Context) -> Resolved {
         Variant::Either,
     )?;
     Ok(message_to_value(parsed))
+}
+
+/// Adapts a `jiff` time zone to the `chrono` trait that `syslog_loose` requires.
+#[derive(Clone, Copy, Debug)]
+struct ChronoTz<'a>(&'a tz::TimeZone);
+
+#[derive(Clone, Copy, Debug)]
+struct ChronoOffset<'a> {
+    tz: ChronoTz<'a>,
+    fixed: FixedOffset,
+}
+
+impl chrono::Offset for ChronoOffset<'_> {
+    fn fix(&self) -> FixedOffset {
+        self.fixed
+    }
+}
+
+impl<'a> ChronoTz<'a> {
+    fn offset(self, offset: tz::Offset) -> ChronoOffset<'a> {
+        ChronoOffset {
+            tz: self,
+            fixed: FixedOffset::east_opt(offset.seconds()).expect("offsets are less than a day"),
+        }
+    }
+}
+
+fn to_civil(dt: &NaiveDateTime) -> Option<civil::DateTime> {
+    civil::DateTime::new(
+        i16::try_from(dt.year()).ok()?,
+        i8::try_from(dt.month()).ok()?,
+        i8::try_from(dt.day()).ok()?,
+        i8::try_from(dt.hour()).ok()?,
+        i8::try_from(dt.minute()).ok()?,
+        i8::try_from(dt.second()).ok()?,
+        0,
+    )
+    .ok()
+}
+
+impl<'a> chrono::TimeZone for ChronoTz<'a> {
+    type Offset = ChronoOffset<'a>;
+
+    fn from_offset(offset: &Self::Offset) -> Self {
+        offset.tz
+    }
+
+    fn offset_from_local_date(&self, local: &NaiveDate) -> MappedLocalTime<Self::Offset> {
+        self.offset_from_local_datetime(&local.and_time(chrono::NaiveTime::MIN))
+    }
+
+    fn offset_from_local_datetime(&self, local: &NaiveDateTime) -> MappedLocalTime<Self::Offset> {
+        let Some(local) = to_civil(local) else {
+            return MappedLocalTime::None;
+        };
+        match self.0.to_ambiguous_timestamp(local).offset() {
+            AmbiguousOffset::Unambiguous { offset } => MappedLocalTime::Single(self.offset(offset)),
+            AmbiguousOffset::Gap { .. } => MappedLocalTime::None,
+            AmbiguousOffset::Fold { before, after } => {
+                MappedLocalTime::Ambiguous(self.offset(before), self.offset(after))
+            }
+        }
+    }
+
+    fn offset_from_utc_date(&self, utc: &NaiveDate) -> Self::Offset {
+        self.offset_from_utc_datetime(&utc.and_time(chrono::NaiveTime::MIN))
+    }
+
+    fn offset_from_utc_datetime(&self, utc: &NaiveDateTime) -> Self::Offset {
+        let offset = to_civil(utc)
+            .and_then(|utc| tz::Offset::UTC.to_timestamp(utc).ok())
+            .map_or(tz::Offset::UTC, |timestamp| self.0.to_offset(timestamp));
+        self.offset(offset)
+    }
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -120,11 +200,11 @@ impl FunctionExpression for ParseSyslogFn {
 /// year. If the current month is January, and the syslog message is for
 /// December, it will take the previous year. Otherwise, take the current year.
 fn resolve_year((month, _date, _hour, _min, _sec): IncompleteDate) -> i32 {
-    let now = Utc::now();
+    let now = datetime::utc_now();
     if now.month() == 1 && month == 12 {
-        now.year() - 1
+        i32::from(now.year()) - 1
     } else {
-        now.year()
+        i32::from(now.year())
     }
 }
 
@@ -159,8 +239,12 @@ fn message_to_value(message: Message<&str>) -> Value {
     }
 
     if let Some(timestamp) = message.timestamp {
-        let timestamp: DateTime<Utc> = timestamp.into();
-        result.insert("timestamp".into(), timestamp.into());
+        let nanosecond = SignedDuration::from_nanos(i64::from(timestamp.timestamp_subsec_nanos()));
+        if let Ok(timestamp) =
+            Timestamp::from_second(timestamp.timestamp()).and_then(|ts| ts.checked_add(nanosecond))
+        {
+            result.insert("timestamp".into(), timestamp.into());
+        }
     }
 
     if let Some(procid) = message.procid {
@@ -199,7 +283,6 @@ fn inner_kind() -> BTreeMap<Field, Kind> {
 #[cfg(test)]
 mod tests {
     use crate::btreemap;
-    use chrono::{TimeZone, Timelike};
 
     use super::*;
 
@@ -211,7 +294,7 @@ mod tests {
             want: Ok(btreemap! {
                 "severity" => "notice",
                 "facility" => "user",
-                "timestamp" => Utc.with_ymd_and_hms(2020, 3, 13, 20, 45, 38).unwrap().with_nanosecond(119_000_000).unwrap(),
+                "timestamp" => jiff::civil::datetime(2020, 3, 13, 20, 45, 38, 119_000_000).to_zoned(jiff::tz::TimeZone::UTC).unwrap().timestamp(),
                 "hostname" => "dynamicwireless.name",
                 "appname" => "non",
                 "procid" => 2426,
@@ -239,7 +322,7 @@ mod tests {
                     "facility" => "local0",
                     "severity" => "notice",
                     "message" => "Proxy sticky-servers started.",
-                    "timestamp" => Utc.with_ymd_and_hms(Utc::now().year(), 6, 13, 16, 33, 35).unwrap(),
+                    "timestamp" => jiff::civil::datetime(datetime::utc_now().year(), 6, 13, 16, 33, 35, 0).to_zoned(jiff::tz::TimeZone::UTC).unwrap().timestamp(),
                     "appname" => "haproxy",
                     "procid" => 73411,
             }),
@@ -250,7 +333,7 @@ mod tests {
             args: func_args![value: "Jun 13 16:33:35 haproxy[73411]: I am missing a pri."],
             want: Ok(btreemap! {
                 "message" => "I am missing a pri.",
-                "timestamp" => Utc.with_ymd_and_hms(Utc::now().year(), 6, 13, 16, 33, 35).unwrap(),
+                "timestamp" => jiff::civil::datetime(datetime::utc_now().year(), 6, 13, 16, 33, 35, 0).to_zoned(jiff::tz::TimeZone::UTC).unwrap().timestamp(),
                 "appname" => "haproxy",
                 "procid" => 73411,
             }),
@@ -267,7 +350,7 @@ mod tests {
                 "message" => "qwerty",
                 "procid" => 8449,
                 "severity" => "notice",
-                "timestamp" => Utc.with_ymd_and_hms(2019, 2, 13, 19, 48, 34).unwrap(),
+                "timestamp" => jiff::civil::datetime(2019, 2, 13, 19, 48, 34, 0).to_zoned(jiff::tz::TimeZone::UTC).unwrap().timestamp(),
                 "version" => 1,
                 "empty" => btreemap! {},
             }),
@@ -284,7 +367,7 @@ mod tests {
                 "message" => "qwerty",
                 "procid" => 8449,
                 "severity" => "notice",
-                "timestamp" => Utc.with_ymd_and_hms(2019, 2, 13, 19, 48, 34).unwrap(),
+                "timestamp" => jiff::civil::datetime(2019, 2, 13, 19, 48, 34, 0).to_zoned(jiff::tz::TimeZone::UTC).unwrap().timestamp(),
                 "version" => 1,
                 "non_empty" => btreemap! {
                     "x" => "1",
@@ -304,7 +387,7 @@ mod tests {
                 "message" => "qwerty",
                 "procid" => 8449,
                 "severity" => "notice",
-                "timestamp" => Utc.with_ymd_and_hms(2019, 2, 13, 19, 48, 34).unwrap(),
+                "timestamp" => jiff::civil::datetime(2019, 2, 13, 19, 48, 34, 0).to_zoned(jiff::tz::TimeZone::UTC).unwrap().timestamp(),
                 "version" => 1,
                 "empty" => btreemap! {},
                 "non_empty" => btreemap! {
@@ -321,7 +404,7 @@ mod tests {
                 "facility" => "local0",
                 "hostname" => "master",
                 "severity" => "err",
-                "timestamp" => Utc.with_ymd_and_hms(Utc::now().year(), 6, 8, 11, 54, 8).unwrap(),
+                "timestamp" => jiff::civil::datetime(datetime::utc_now().year(), 6, 8, 11, 54, 8, 0).to_zoned(jiff::tz::TimeZone::UTC).unwrap().timestamp(),
                 "message" => "[Tue Jun 08 11:54:08.929301 2021] [php7:emerg] [pid 1374899] [client 95.223.77.60:41888] rest of message",
             }),
             tdef: TypeDef::object(inner_kind()).fallible(),
@@ -339,7 +422,7 @@ mod tests {
                 "message" => "An application event log entry...",
                 "msgid" => "ID47",
                 "severity" => "notice",
-                "timestamp" => Utc.with_ymd_and_hms(2003, 10, 11, 22, 14, 15).unwrap().with_nanosecond(3_000_000).unwrap(),
+                "timestamp" => jiff::civil::datetime(2003, 10, 11, 22, 14, 15, 3_000_000).to_zoned(jiff::tz::TimeZone::UTC).unwrap().timestamp(),
                 "version" => 1
             }),
             tdef: TypeDef::object(inner_kind()).fallible(),
@@ -357,7 +440,7 @@ mod tests {
                 "message" => "An application event log entry...",
                 "msgid" => "ID47",
                 "severity" => "notice",
-                "timestamp" => Utc.with_ymd_and_hms(2003, 10, 11, 22, 14, 15).unwrap().with_nanosecond(3_000_000).unwrap(),
+                "timestamp" => jiff::civil::datetime(2003, 10, 11, 22, 14, 15, 3_000_000).to_zoned(jiff::tz::TimeZone::UTC).unwrap().timestamp(),
                 "version" => 1
             }),
             tdef: TypeDef::object(inner_kind()).fallible(),
@@ -375,7 +458,7 @@ mod tests {
                 "message" => "An application event log entry...",
                 "msgid" => "ID47",
                 "severity" => "notice",
-                "timestamp" => Utc.with_ymd_and_hms(2003, 10, 11, 22, 14, 15).unwrap().with_nanosecond(3_000_000).unwrap(),
+                "timestamp" => jiff::civil::datetime(2003, 10, 11, 22, 14, 15, 3_000_000).to_zoned(jiff::tz::TimeZone::UTC).unwrap().timestamp(),
                 "version" => 1
             }),
             tdef: TypeDef::object(inner_kind()).fallible(),

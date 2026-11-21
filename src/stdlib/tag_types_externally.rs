@@ -139,7 +139,6 @@ fn tag_type_externally(value: Value) -> Value {
 #[cfg(test)]
 mod tests {
     use crate::btreemap;
-    use chrono::{TimeZone, Utc};
     use regex::Regex;
 
     use super::*;
@@ -200,9 +199,9 @@ mod tests {
         }
 
         tag_timestamp {
-            args: func_args![value: Utc.with_ymd_and_hms(2021, 1, 1, 0, 0, 0).unwrap()],
+            args: func_args![value: jiff::civil::datetime(2021, 1, 1, 0, 0, 0, 0).to_zoned(jiff::tz::TimeZone::UTC).unwrap().timestamp()],
             want: Ok(btreemap! {
-                "timestamp" => Utc.with_ymd_and_hms(2021, 1, 1, 0, 0, 0).unwrap()
+                "timestamp" => jiff::civil::datetime(2021, 1, 1, 0, 0, 0, 0).to_zoned(jiff::tz::TimeZone::UTC).unwrap().timestamp()
             }),
             tdef: TypeDef::object(Collection::any()),
         }

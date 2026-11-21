@@ -1,5 +1,6 @@
 use crate::compiler::function::EnumVariant;
 use crate::compiler::prelude::*;
+use crate::value::value::{timestamp_microseconds, timestamp_milliseconds, timestamp_seconds};
 use std::str::FromStr;
 
 static DEFAULT_UNIT: Value = Value::from_static_str("seconds");
@@ -33,13 +34,11 @@ const PARAMETERS: &[Parameter] = &[
 fn to_unix_timestamp(value: Value, unit: Unit) -> Resolved {
     let ts = value.try_timestamp()?;
     let time = match unit {
-        Unit::Seconds => ts.timestamp(),
-        Unit::Milliseconds => ts.timestamp_millis(),
-        Unit::Microseconds => ts.timestamp_micros(),
-        Unit::Nanoseconds => match ts.timestamp_nanos_opt() {
-            None => return Err(ValueError::OutOfRange(Kind::timestamp()).into()),
-            Some(nanos) => nanos,
-        },
+        Unit::Seconds => timestamp_seconds(&ts),
+        Unit::Milliseconds => timestamp_milliseconds(&ts),
+        Unit::Microseconds => timestamp_microseconds(&ts),
+        Unit::Nanoseconds => i64::try_from(ts.as_nanosecond())
+            .map_err(|_| ValueError::OutOfRange(Kind::timestamp()))?,
     };
     Ok(time.into())
 }
@@ -186,15 +185,18 @@ impl FunctionExpression for ToUnixTimestampFn {
     }
 
     fn type_def(&self, _: &state::TypeState) -> TypeDef {
-        // Only nanoseconds can overflow a 64-bit integer (`timestamp_nanos_opt`
-        // returns `None` for out-of-range timestamps), so only that unit is fallible.
+        // Only nanoseconds can overflow a 64-bit integer, so only that unit is fallible.
         TypeDef::integer().maybe_fallible(self.unit == Unit::Nanoseconds)
     }
 }
 
 #[cfg(test)]
 mod test {
-    use chrono::{TimeZone, Utc};
+    use jiff::Timestamp;
+
+    fn new_year_2021() -> Timestamp {
+        "2021-01-01T00:00:00Z".parse().unwrap()
+    }
 
     use super::*;
 
@@ -202,7 +204,7 @@ mod test {
         to_unix_timestamp => ToUnixTimestamp;
 
         seconds {
-            args: func_args![value: Utc.with_ymd_and_hms(2021, 1, 1, 0, 0, 0).unwrap(),
+            args: func_args![value: new_year_2021(),
                              unit: "seconds"
             ],
             want: Ok(1_609_459_200_i64),
@@ -210,7 +212,7 @@ mod test {
         }
 
         milliseconds {
-            args: func_args![value: Utc.with_ymd_and_hms(2021, 1, 1, 0, 0, 0).unwrap(),
+            args: func_args![value: new_year_2021(),
                              unit: "milliseconds"
             ],
             want: Ok(1_609_459_200_000_i64),
@@ -218,7 +220,7 @@ mod test {
         }
 
         microseconds {
-            args: func_args![value: Utc.with_ymd_and_hms(2021, 1, 1, 0, 0, 0).unwrap(),
+            args: func_args![value: new_year_2021(),
                              unit: "microseconds"
             ],
             want: Ok(1_609_459_200_000_000_i64),
@@ -226,14 +228,14 @@ mod test {
         }
 
         nanoseconds {
-             args: func_args![value: Utc.with_ymd_and_hms(2021, 1, 1, 0, 0, 0).unwrap(),
+             args: func_args![value: new_year_2021(),
                               unit: "nanoseconds"
              ],
              want: Ok(1_609_459_200_000_000_000_i64),
              tdef: TypeDef::integer().fallible(),
          }
          out_of_range {
-             args: func_args![value: Utc.with_ymd_and_hms(0, 1, 1, 0, 0, 0).unwrap(),
+             args: func_args![value: "0000-01-01T00:00:00Z".parse::<Timestamp>().unwrap(),
                               unit: "nanoseconds"
              ],
              want: Err("can't convert out of range timestamp"),

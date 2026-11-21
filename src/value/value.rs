@@ -7,7 +7,7 @@ pub use iter::{IterItem, ValueIter};
 
 use bytes::{Bytes, BytesMut};
 use bytestring::ByteString;
-use chrono::{DateTime, SecondsFormat, Utc};
+use jiff::{Timestamp, fmt::temporal::DateTimePrinter};
 use ordered_float::NotNan;
 use std::borrow::Cow;
 use std::{
@@ -60,7 +60,7 @@ pub enum Value {
     Boolean(bool),
 
     /// Timestamp (UTC).
-    Timestamp(DateTime<Utc>),
+    Timestamp(Timestamp),
 
     /// Object.
     Object(ObjectMap),
@@ -334,10 +334,41 @@ pub fn simdutf_bytes_utf8_lossy(v: &[u8]) -> Cow<'_, str> {
     )
 }
 
-/// Converts a timestamp to a `String`.
+/// Converts a timestamp to an RFC 3339 `String` in UTC, with 0, 3, 6 or 9 fractional digits:
+/// whichever is the shortest exact one.
 #[must_use]
-pub fn timestamp_to_string(timestamp: &DateTime<Utc>) -> String {
-    timestamp.to_rfc3339_opts(SecondsFormat::AutoSi, true)
+pub fn timestamp_to_string(timestamp: &Timestamp) -> String {
+    let nanosecond = timestamp.subsec_nanosecond();
+    let precision = if nanosecond == 0 {
+        0
+    } else if nanosecond % 1_000_000 == 0 {
+        3
+    } else if nanosecond % 1_000 == 0 {
+        6
+    } else {
+        9
+    };
+    DateTimePrinter::new()
+        .precision(Some(precision))
+        .timestamp_to_string(timestamp)
+}
+
+/// Whole seconds since the Unix epoch, rounded towards negative infinity.
+#[must_use]
+pub fn timestamp_seconds(timestamp: &Timestamp) -> i64 {
+    timestamp.as_second() - i64::from(timestamp.subsec_nanosecond() < 0)
+}
+
+/// Whole milliseconds since the Unix epoch, rounded towards negative infinity.
+#[must_use]
+pub fn timestamp_milliseconds(timestamp: &Timestamp) -> i64 {
+    timestamp.as_millisecond() - i64::from(timestamp.subsec_nanosecond() % 1_000_000 < 0)
+}
+
+/// Whole microseconds since the Unix epoch, rounded towards negative infinity.
+#[must_use]
+pub fn timestamp_microseconds(timestamp: &Timestamp) -> i64 {
+    timestamp.as_microsecond() - i64::from(timestamp.subsec_nanosecond() % 1_000 < 0)
 }
 
 #[cfg(test)]

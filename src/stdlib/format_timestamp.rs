@@ -1,12 +1,9 @@
-use crate::compiler::TimeZone;
 use crate::compiler::prelude::*;
-use chrono::{
-    DateTime, Utc,
-    format::{Item, strftime::StrftimeItems},
-};
+use crate::compiler::{TimeZone, datetime};
+use jiff::{Timestamp, tz};
 
 fn format_timestamp_with_tz(ts: Value, format: &Value, timezone: Option<Value>) -> Resolved {
-    let ts: DateTime<Utc> = ts.try_timestamp()?;
+    let ts: Timestamp = ts.try_timestamp()?;
 
     let format = format.try_bytes_utf8_lossy()?;
     let timezone = timezone
@@ -123,68 +120,55 @@ impl FunctionExpression for FormatTimestampFn {
 }
 
 fn try_format_with_timezone(
-    dt: DateTime<Utc>,
+    dt: Timestamp,
     format: &str,
     timezone: Option<&str>,
 ) -> ExpressionResult<String> {
-    let items = StrftimeItems::new(format)
-        .map(|item| match item {
-            Item::Error => Err("invalid format".into()),
-            _ => Ok(item),
-        })
-        .collect::<ExpressionResult<Vec<_>>>()?;
+    let timezone = match timezone {
+        Some(timezone) => TimeZone::parse(timezone)
+            .ok_or(format!("unable to parse timezone: {timezone}"))?
+            .to_jiff(),
+        None => tz::TimeZone::UTC,
+    };
 
-    let timezone = timezone
-        .map(|timezone| {
-            TimeZone::parse(timezone).ok_or(format!("unable to parse timezone: {timezone}"))
-        })
-        .transpose()?;
-
-    match timezone {
-        Some(TimeZone::Named(tz)) => Ok(dt
-            .with_timezone(&tz)
-            .format_with_items(items.into_iter())
-            .to_string()),
-        Some(TimeZone::Local) => Ok(dt
-            .with_timezone(&chrono::Local)
-            .format_with_items(items.into_iter())
-            .to_string()),
-        None => Ok(dt.format_with_items(items.into_iter()).to_string()),
-    }
+    datetime::format(dt, &timezone, format).map_err(|_| "invalid format".into())
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::value;
-    use chrono::TimeZone;
+
+    fn ten_seconds() -> Timestamp {
+        Timestamp::from_second(10).expect("invalid timestamp")
+    }
 
     test_function![
         format_timestamp => FormatTimestamp;
 
         invalid {
-            args: func_args![value: Utc.timestamp_opt(10, 0).single().expect("invalid timestamp"),
-                             format: "%Q INVALID"],
+            args: func_args![value: ten_seconds(),
+                             format: "%J INVALID"],
             want: Err("invalid format"),
             tdef: TypeDef::bytes().fallible(),
         }
 
         valid_secs {
-            args: func_args![value: Utc.timestamp_opt(10, 0).single().expect("invalid timestamp"),
+            args: func_args![value: ten_seconds(),
                              format: "%s"],
             want: Ok(value!("10")),
             tdef: TypeDef::bytes().fallible(),
         }
 
         date {
-            args: func_args![value: Utc.timestamp_opt(10, 0).single().expect("invalid timestamp"),
+            args: func_args![value: ten_seconds(),
                              format: "%+"],
             want: Ok(value!("1970-01-01T00:00:10+00:00")),
             tdef: TypeDef::bytes().fallible(),
         }
 
         tz {
-            args: func_args![value: Utc.timestamp_opt(10, 0).single().expect("invalid timestamp"),
+            args: func_args![value: ten_seconds(),
                              format: "%+",
                              timezone: "Europe/Berlin"],
             want: Ok(value!("1970-01-01T01:00:10+01:00")),
@@ -192,7 +176,7 @@ mod tests {
         }
 
         tz_local {
-            args: func_args![value: Utc.timestamp_opt(10, 0).single().expect("invalid timestamp"),
+            args: func_args![value: ten_seconds(),
                              format: "%s",
                              timezone: "local"],
             want: Ok(value!("10")), // Check that there is no error for the local timezone
@@ -200,7 +184,7 @@ mod tests {
         }
 
         invalid_tz {
-            args: func_args![value: Utc.timestamp_opt(10, 0).single().expect("invalid timestamp"),
+            args: func_args![value: ten_seconds(),
                              format: "%+",
                              timezone: "llocal"],
             want: Err("unable to parse timezone: llocal"),

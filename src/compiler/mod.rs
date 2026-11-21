@@ -32,7 +32,6 @@ mod compiler;
 
 mod compile_config;
 mod context;
-mod datetime;
 mod deprecation_warning;
 mod expression_error;
 mod program;
@@ -44,6 +43,7 @@ mod test_util;
 pub mod category;
 pub mod codes;
 pub mod conversion;
+pub mod datetime;
 pub mod expression;
 pub mod function;
 pub mod prelude;

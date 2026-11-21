@@ -1,7 +1,7 @@
 use crate::compiler::expression::ExpressionError;
 use crate::compiler::expression::function_call::FunctionCallError;
 use crate::compiler::{
-    CompileConfig, Function, Program, TypeDef,
+    CompileConfig, Function, Program, TypeDef, datetime,
     expression::{
         Abort, Array, Assignment, Block, Break, Container, Expr, Expression, FunctionArgument,
         FunctionCall, Group, IfStatement, Literal, Noop, Not, Object, Op, Predicate, Query, Return,
@@ -258,8 +258,8 @@ impl<'a> Compiler<'a> {
                 .map_err(|err| literal::Error::from((span, err)))
                 .map(|r| Literal::Regex(r.into())),
             // TODO: support more formats (similar to Vector's `Convert` logic)
-            Timestamp(v) => v
-                .parse()
+            Timestamp(v) => datetime::parse(&v, "%+")
+                .and_then(|tm| datetime::to_offset_timestamp(&tm))
                 .map(Literal::Timestamp)
                 .map_err(|err| literal::Error::from((span, err))),
             Null => Ok(Literal::Null),

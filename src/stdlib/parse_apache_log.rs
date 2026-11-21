@@ -49,7 +49,7 @@ fn parse_apache_log(
         regexes,
         &message,
         &timestamp_format,
-        *ctx.timezone(),
+        ctx.timezone(),
         std::str::from_utf8(format.as_ref()).unwrap(),
     )
     .map_err(Into::into)
@@ -271,14 +271,10 @@ fn kind_error() -> BTreeMap<Field, Kind> {
 
 #[cfg(test)]
 mod tests {
-    use crate::compiler::TimeZone;
-    use chrono::DateTime;
-    use chrono::TimeZone as ChronoTimezone;
-    use chrono::prelude::*;
+    use crate::compiler::{TimeZone, datetime};
 
     use super::*;
     use crate::btreemap;
-    use chrono::Utc;
 
     test_function![
         parse_common_log => ParseApacheLog;
@@ -291,7 +287,7 @@ mod tests {
                 "host" => "127.0.0.1",
                 "identity" => "bob",
                 "user" => "frank",
-                "timestamp" => Value::Timestamp(DateTime::parse_from_rfc3339("2000-10-10T20:55:36Z").unwrap().into()),
+                "timestamp" => Value::Timestamp("2000-10-10T20:55:36Z".parse::<jiff::Timestamp>().unwrap()),
                 "message" => "GET /apache_pb.gif HTTP/1.0",
                 "method" => "GET",
                 "path" => "/apache_pb.gif",
@@ -311,7 +307,7 @@ mod tests {
                 "host" => "224.92.49.50",
                 "identity" => "bob",
                 "user" => "frank",
-                "timestamp" => Value::Timestamp(DateTime::parse_from_rfc3339("2021-02-25T12:44:08Z").unwrap().into()),
+                "timestamp" => Value::Timestamp("2021-02-25T12:44:08Z".parse::<jiff::Timestamp>().unwrap()),
                 "message" => "PATCH /one-to-one HTTP/1.1",
                 "method" => "PATCH",
                 "path" => "/one-to-one",
@@ -333,7 +329,7 @@ mod tests {
                 "host" => "224.92.49.50",
                 "identity" => "bob",
                 "user" => "frank",
-                "timestamp" => Value::Timestamp(DateTime::parse_from_rfc3339("2021-02-25T12:44:08Z").unwrap().into()),
+                "timestamp" => Value::Timestamp("2021-02-25T12:44:08Z".parse::<jiff::Timestamp>().unwrap()),
                 "message" => "PATCH /one-to-one HTTP/1.1",
                 "method" => "PATCH",
                 "path" => "/one-to-one",
@@ -350,7 +346,7 @@ mod tests {
                              format: "error"
                              ],
             want: Ok(btreemap! {
-                "timestamp" => Value::Timestamp(DateTime::parse_from_rfc3339("2021-03-01T12:00:19Z").unwrap().into()),
+                "timestamp" => Value::Timestamp("2021-03-01T12:00:19Z".parse::<jiff::Timestamp>().unwrap()),
                 "message" => "I'll bypass the haptic COM bandwidth, that should matrix the CSS driver!",
                 "module" => "ab",
                 "severity" => "alert",
@@ -368,7 +364,7 @@ mod tests {
                              format: "error"
                              ],
             want: Ok(btreemap! {
-                "timestamp" => Value::Timestamp(DateTime::parse_from_rfc3339("2021-03-01T12:00:19Z").unwrap().into()),
+                "timestamp" => Value::Timestamp("2021-03-01T12:00:19Z".parse::<jiff::Timestamp>().unwrap()),
                 "message" => "I'll bypass the haptic COM bandwidth, that should matrix the CSS driver!",
                 "module" => "ab",
                 "severity" => "alert",
@@ -388,7 +384,7 @@ mod tests {
                 format: "error",
             ],
             want: Ok(btreemap! {
-                "timestamp" => Value::Timestamp(DateTime::parse_from_rfc3339("2021-06-04T15:40:27.000138633Z").unwrap().into()),
+                "timestamp" => Value::Timestamp("2021-06-04T15:40:27.000138633Z".parse::<jiff::Timestamp>().unwrap()),
                 "message" => "PHP Parse error:  syntax error, unexpected \\\'->\\\' (T_OBJECT_OPERATOR) in /var/www/prod/releases/master-c7225365fd9faa26262cffeeb57b31bd7448c94a/source/index.php on line 14",
                 "module" => "php7",
                 "severity" => "emerg",
@@ -398,7 +394,7 @@ mod tests {
 
             }),
             tdef: TypeDef::object(kind_error()).fallible(),
-            tz: TimeZone::Named(chrono_tz::Tz::UTC),
+            tz: TimeZone::Named(jiff::tz::TimeZone::UTC),
         }
 
         error_line_threaded_mpms_valid {
@@ -406,7 +402,7 @@ mod tests {
                              format: "error"
                              ],
             want: Ok(btreemap! {
-                "timestamp" => Value::Timestamp(DateTime::parse_from_rfc3339("2021-03-01T12:00:19Z").unwrap().into()),
+                "timestamp" => Value::Timestamp("2021-03-01T12:00:19Z".parse::<jiff::Timestamp>().unwrap()),
                 "message1" => "(113)No route to host: AH00957: ",
                 "message2" => "HTTP: attempt to connect to 10.1.0.244:9000 (hostname.domain.com) failed",
                 "module" => "proxy",
@@ -437,15 +433,17 @@ mod tests {
 
        log_line_valid_with_local_timestamp_format {
             args: func_args![value: format!("[{}] - - - -",
-                                            Utc.with_ymd_and_hms(2000, 10, 10, 20, 55, 36).unwrap()
-                                              .with_timezone(&Local)
-                                              .format("%a %b %d %H:%M:%S %Y")
+                                            datetime::format(
+                                                "2000-10-10T20:55:36Z".parse().unwrap(),
+                                                &jiff::tz::TimeZone::system(),
+                                                "%a %b %d %H:%M:%S %Y",
+                                            ).unwrap()
                                             ),
                              timestamp_format: "%a %b %d %H:%M:%S %Y",
                              format: "error",
             ],
             want: Ok(btreemap! {
-                "timestamp" => Value::Timestamp(DateTime::parse_from_rfc3339("2000-10-10T20:55:36Z").unwrap().into()),
+                "timestamp" => Value::Timestamp("2000-10-10T20:55:36Z".parse::<jiff::Timestamp>().unwrap()),
             }),
             tdef: TypeDef::object(kind_error()).fallible(),
             tz: TimeZone::default(),
@@ -459,10 +457,10 @@ mod tests {
                 format: "error",
             ],
             want: Ok(btreemap! {
-                "timestamp" => Value::Timestamp(DateTime::parse_from_rfc3339("2021-06-03T07:30:50Z").unwrap().into()),
+                "timestamp" => Value::Timestamp("2021-06-03T07:30:50Z".parse::<jiff::Timestamp>().unwrap()),
             }),
             tdef: TypeDef::object(kind_error()).fallible(),
-            tz: TimeZone::Named(chrono_tz::Europe::Paris),
+            tz: TimeZone::Named(jiff::tz::TimeZone::get("Europe/Paris").unwrap()),
         }
 
         log_line_invalid {
@@ -478,7 +476,7 @@ mod tests {
             args: func_args![value: "- - - [1234] - - - - - ",
                              format: "combined",
             ],
-            want: Err("failed parsing timestamp 1234 using format %d/%b/%Y:%T %z: input contains invalid characters"),
+            want: Err("failed parsing timestamp 1234 using format %d/%b/%Y:%T %z: strptime parsing failed: expected to match literal byte `/` from format string, but found byte `3` in input"),
             tdef: TypeDef::object(kind_combined()).fallible(),
             tz: TimeZone::default(),
         }

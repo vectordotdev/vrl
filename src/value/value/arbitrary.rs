@@ -1,5 +1,5 @@
 use bytes::Bytes;
-use chrono::{DateTime, Utc};
+use jiff::Timestamp;
 use ordered_float::NotNan;
 use quickcheck::{Arbitrary, Gen};
 
@@ -9,13 +9,11 @@ const MAX_ARRAY_SIZE: usize = 4;
 const MAX_MAP_SIZE: usize = 4;
 const MAX_F64_SIZE: f64 = 1_000_000.0;
 
-fn datetime(g: &mut Gen) -> DateTime<Utc> {
-    // `chrono` documents that there is an out-of-range for both second and
-    // nanosecond values but doesn't actually document what the valid ranges
-    // are. We just sort of arbitrarily restrict things.
+fn datetime(g: &mut Gen) -> Timestamp {
+    // Keep timestamps close to the epoch, far from the edges of the supported range.
     let secs = i64::arbitrary(g) % 32_000;
-    let nanoseconds = u32::arbitrary(g) % 32_000;
-    DateTime::<Utc>::from_timestamp(secs, nanoseconds).expect("invalid timestamp")
+    let nanoseconds = u16::arbitrary(g) % 32_000;
+    Timestamp::new(secs, i32::from(nanoseconds)).expect("invalid timestamp")
 }
 
 // When generating fixtures we need f64 values that survive a JSON round-trip

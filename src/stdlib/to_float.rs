@@ -16,9 +16,9 @@ fn to_float(value: Value) -> Resolved {
         Boolean(v) => Ok(NotNan::new(if v { 1.0 } else { 0.0 }).unwrap().into()),
         Null => Ok(NotNan::new(0.0).unwrap().into()),
         Timestamp(v) => {
-            let nanoseconds = match v.timestamp_nanos_opt() {
-                Some(nanos) => nanos as f64,
-                None => return Err(ValueError::OutOfRange(Kind::timestamp()).into()),
+            let nanoseconds = match i64::try_from(v.as_nanosecond()) {
+                Ok(nanos) => nanos as f64,
+                Err(_) => return Err(ValueError::OutOfRange(Kind::timestamp()).into()),
             };
             Ok(Value::from_f64_or_zero(nanoseconds / 1_000_000_000_f64))
         }
@@ -179,7 +179,7 @@ impl FunctionExpression for ToFloatFn {
 
 #[cfg(test)]
 mod tests {
-    use chrono::{TimeZone, Timelike, Utc};
+    use jiff::Timestamp;
 
     use super::*;
 
@@ -199,7 +199,7 @@ mod tests {
         }
 
         timestamp {
-             args: func_args![value: Utc.with_ymd_and_hms(2014, 7, 8, 9, 10, 11).unwrap().with_nanosecond(12_000_000).unwrap()],
+             args: func_args![value: "2014-07-08T09:10:11.012Z".parse::<Timestamp>().unwrap()],
 
              want: Ok(1_404_810_611.012),
              tdef: TypeDef::float().infallible(),

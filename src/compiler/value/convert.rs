@@ -2,7 +2,7 @@ use std::borrow::Cow;
 
 use crate::value::{Value, ValueRegex, kind::Collection};
 use bytes::Bytes;
-use chrono::{DateTime, Utc};
+use jiff::Timestamp;
 
 use crate::compiler::{
     Expression,
@@ -34,7 +34,7 @@ pub trait VrlValueConvert: Sized {
     fn try_null(self) -> Result<(), ValueError>;
     fn try_array(self) -> Result<Vec<Value>, ValueError>;
     fn try_object(self) -> Result<ObjectMap, ValueError>;
-    fn try_timestamp(self) -> Result<DateTime<Utc>, ValueError>;
+    fn try_timestamp(self) -> Result<Timestamp, ValueError>;
 
     fn try_into_i64(&self) -> Result<i64, ValueError>;
     fn try_into_f64(&self) -> Result<f64, ValueError>;
@@ -154,7 +154,7 @@ impl VrlValueConvert for Value {
         }
     }
 
-    fn try_timestamp(self) -> Result<DateTime<Utc>, ValueError> {
+    fn try_timestamp(self) -> Result<Timestamp, ValueError> {
         match self {
             Value::Timestamp(v) => Ok(v),
             _ => Err(ValueError::Expected {

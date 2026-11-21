@@ -19,7 +19,7 @@ fn parse_common_log(bytes: &Value, timestamp_format: &Value, ctx: &Context) -> R
         log_util::REGEX_APACHE_COMMON_LOG.as_ref(),
         &message,
         &timestamp_format,
-        *ctx.timezone(),
+        ctx.timezone(),
         "common",
     )
     .map_err(Into::into)
@@ -165,7 +165,6 @@ fn inner_kind() -> BTreeMap<Field, Kind> {
 #[cfg(test)]
 mod tests {
     use crate::btreemap;
-    use chrono::prelude::*;
 
     use super::*;
 
@@ -178,7 +177,7 @@ mod tests {
                 "host" => "127.0.0.1",
                 "identity" => "bob",
                 "user" => "frank",
-                "timestamp" => Value::Timestamp(DateTime::parse_from_rfc3339("2000-10-10T20:55:36Z").unwrap().into()),
+                "timestamp" => Value::Timestamp("2000-10-10T20:55:36Z".parse::<jiff::Timestamp>().unwrap()),
                 "message" => "GET /apache_pb.gif HTTP/1.0",
                 "method" => "GET",
                 "path" => "/apache_pb.gif",
@@ -206,7 +205,7 @@ mod tests {
                              timestamp_format: "%+",
             ],
             want: Ok(btreemap! {
-                "timestamp" => Value::Timestamp(DateTime::parse_from_rfc3339("2000-10-10T20:55:36Z").unwrap().into()),
+                "timestamp" => Value::Timestamp("2000-10-10T20:55:36Z".parse::<jiff::Timestamp>().unwrap()),
             }),
             tdef: TypeDef::object(inner_kind()).fallible(),
         }
@@ -219,7 +218,7 @@ mod tests {
 
         log_line_invalid_timestamp {
             args: func_args![value: "- - - [1234] - - -"],
-            want: Err("failed parsing timestamp 1234 using format %d/%b/%Y:%T %z: input contains invalid characters"),
+            want: Err("failed parsing timestamp 1234 using format %d/%b/%Y:%T %z: strptime parsing failed: expected to match literal byte `/` from format string, but found byte `3` in input"),
             tdef: TypeDef::object(inner_kind()).fallible(),
         }
     ];

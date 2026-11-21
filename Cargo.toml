@@ -44,10 +44,10 @@ clap = { version = "4", features = ["derive"] }
 default = ["compiler", "stdlib", "datadog", "cli", "enable_env_functions", "enable_system_functions", "enable_network_functions", "enable_crypto_functions"]
 
 # Contains the primary data type used in VRL, along with path types. Useful for crates that work with VRL values without needing the full compiler.
-value = ["dep:bytes", "dep:bytestring", "dep:regex", "dep:ordered-float", "dep:chrono", "dep:serde_json", "dep:simdutf8", "dep:serde", "dep:snafu"]
+value = ["dep:bytes", "dep:bytestring", "dep:regex", "dep:ordered-float", "dep:jiff", "dep:serde_json", "dep:simdutf8", "dep:serde", "dep:snafu"]
 
 # Contains the core functionality of VRL: compiling and running VRL programs, parser, and diagnostics.
-compiler = ["value", "dep:chrono-tz", "dep:thiserror", "dep:dyn-clone", "dep:indoc", "dep:lalrpop-util", "dep:codespan-reporting", "dep:termcolor"]
+compiler = ["value", "dep:thiserror", "dep:dyn-clone", "dep:indoc", "dep:lalrpop-util", "dep:codespan-reporting", "dep:termcolor"]
 
 # Enables all Datadog-specific features (filter, grok, search).
 datadog = ["compiler", "dep:regex", "dep:dyn-clone", "dep:nom", "dep:peeking_take_while", "dep:onig", "dep:percent-encoding", "dep:fancy-regex", "dep:pest", "dep:pest_derive", "dep:itertools", "dep:serde", "dep:url", "dep:roxmltree", "dep:rust_decimal"]
@@ -159,6 +159,8 @@ stdlib-base = [
   "dep:strip-ansi-escapes",
   "dep:strum",
   "dep:strum_macros",
+  # `chrono` is only used to interoperate with `syslog_loose`.
+  "dep:chrono",
   "dep:syslog_loose",
   "dep:tokio",
   "dep:ua-parser",
@@ -183,8 +185,7 @@ bytes = { version = "1", default-features = false, optional = true }
 bytestring = { version = "1", optional = true }
 charset = { version = "0.1", optional = true }
 encoding_rs = { version = "0.8.35", optional = true }
-chrono = { version = "0.4", default-features = false, features = ["clock", "serde", "wasmbind"], optional = true }
-chrono-tz = { version = "0.10", default-features = false, optional = true }
+chrono = { version = "0.4", default-features = false, optional = true }
 ciborium = { version = "0.2.2", default-features = false, optional = true }
 cidr = { version = "0.3", optional = true }
 csv = { version = "1", optional = true }
@@ -201,6 +202,8 @@ hmac = { version = "0.13", optional = true }
 iana-time-zone = { version = "0.1", optional = true }
 idna = { version = "1.0", optional = true }
 indexmap = { version = "2", default-features = false, features = ["std"], optional = true }
+# Bundle the time zone database so named time zones do not depend on the host system.
+jiff = { version = "0.2.38", default-features = false, features = ["std", "tz-system", "tz-fat", "tzdb-bundle-always", "perf-inline", "js"], optional = true }
 influxdb-line-protocol = { version = "2.0.0", optional = true }
 indoc = { version = "2", optional = true }
 itertools = { version = "0.15", default-features = false, features = ["use_std"], optional = true }
@@ -307,7 +310,6 @@ uuid = { version = "1", features = ["v4", "v7", "js"], optional = true }
 [dev-dependencies]
 anyhow = "1"
 criterion = "0.8"
-chrono-tz = "0.10"
 serde_json = "1"
 indoc = "2"
 tracing-test = { version = "0.2", default-features = false }

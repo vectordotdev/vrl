@@ -106,7 +106,6 @@ impl FunctionExpression for EncodeJsonFn {
 mod tests {
     use super::*;
 
-    use chrono::{DateTime, Utc};
     use regex::Regex;
 
     test_function![
@@ -186,9 +185,7 @@ mod tests {
 
         timestamp {
             args: func_args![
-                value: DateTime::parse_from_str("1983 Apr 13 12:09:14.274 +0000", "%Y %b %d %H:%M:%S%.3f %z")
-                    .unwrap()
-                    .with_timezone(&Utc)
+                value: "1983-04-13T12:09:14.274Z".parse::<jiff::Timestamp>().unwrap()
             ],
             want: Ok(r#""1983-04-13T12:09:14.274Z""#),
             tdef: TypeDef::bytes().infallible(),
@@ -196,9 +193,7 @@ mod tests {
 
         timestamp_pretty {
             args: func_args![
-                value: DateTime::parse_from_str("1983 Apr 13 12:09:14.274 +0000", "%Y %b %d %H:%M:%S%.3f %z")
-                    .unwrap()
-                    .with_timezone(&Utc),
+                value: "1983-04-13T12:09:14.274Z".parse::<jiff::Timestamp>().unwrap(),
                 pretty: true
             ],
             want: Ok(r#""1983-04-13T12:09:14.274Z""#),

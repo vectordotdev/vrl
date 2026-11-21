@@ -1,7 +1,6 @@
-use crate::compiler::conversion::Conversion;
 use crate::compiler::prelude::*;
-use crate::value::value::simdutf_bytes_utf8_lossy;
-use chrono::Timelike;
+use crate::compiler::{conversion::Conversion, datetime};
+use crate::value::value::{simdutf_bytes_utf8_lossy, timestamp_microseconds, timestamp_seconds};
 #[cfg(feature = "enable_system_functions")]
 use prost::Message;
 use prost_reflect::{DynamicMessage, FieldDescriptor, Kind, MapKey, MessageDescriptor};
@@ -207,22 +206,21 @@ fn convert_value_raw(
             }
             (Value::Regex(r), Kind::Bytes) => Ok(prost_reflect::Value::Bytes(r.as_bytes())),
             (Value::Timestamp(t), Kind::Int64) => {
-                Ok(prost_reflect::Value::I64(t.timestamp_micros()))
+                Ok(prost_reflect::Value::I64(timestamp_microseconds(&t)))
             }
             (Value::Timestamp(t), Kind::Message(descriptor))
                 if descriptor.full_name() == "google.protobuf.Timestamp" =>
             {
+                // Protobuf timestamps have non-negative nanoseconds, so round seconds down.
+                let seconds = timestamp_seconds(&t);
+                let nanos = i32::try_from(t.as_nanosecond().rem_euclid(1_000_000_000))
+                    .expect("nanoseconds always fit in i32");
                 let mut message = DynamicMessage::new(descriptor.clone());
                 message
-                    .try_set_field_by_name("seconds", prost_reflect::Value::I64(t.timestamp()))
+                    .try_set_field_by_name("seconds", prost_reflect::Value::I64(seconds))
                     .map_err(|e| format!("Error setting 'seconds' field: {e}"))?;
                 message
-                    .try_set_field_by_name(
-                        "nanos",
-                        prost_reflect::Value::I32(
-                            i32::try_from(t.nanosecond()).expect("nanoseconds always fit in i32"),
-                        ),
-                    )
+                    .try_set_field_by_name("nanos", prost_reflect::Value::I32(nanos))
                     .map_err(|e| format!("Error setting 'nanos' field: {e}"))?;
                 Ok(prost_reflect::Value::Message(message))
             }
@@ -236,7 +234,10 @@ fn convert_value_raw(
                 Ok(prost_reflect::Value::String(f.to_string()))
             }
             (Value::Timestamp(t), Kind::String) if options.allow_lossy_string_coercion => {
-                Ok(prost_reflect::Value::String(t.to_string()))
+                // Keeps the format of chrono's `Display` for `DateTime<Utc>`.
+                let string = datetime::format(t, &jiff::tz::TimeZone::UTC, "%F %T%.f UTC")
+                    .map_err(|e| e.to_string())?;
+                Ok(prost_reflect::Value::String(string))
             }
             _ => Err(format!(
                 "Cannot encode `{kind_str}` into protobuf `{kind:?}`",
@@ -342,7 +343,6 @@ mod tests {
     use crate::value;
     use crate::value::ObjectMap;
     use bytes::Bytes;
-    use chrono::DateTime;
     use ordered_float::NotNan;
     use prost_reflect::MapKey;
     use std::collections::HashMap;
@@ -606,7 +606,7 @@ mod tests {
             Value::Object(ObjectMap::from([(
                 "morning".into(),
                 Value::Timestamp(
-                    DateTime::from_timestamp(8675, 309).expect("could not compute timestamp"),
+                    jiff::Timestamp::new(8675, 309).expect("could not compute timestamp"),
                 ),
             )])),
             &Options::default(),
@@ -713,7 +713,7 @@ mod tests {
             Value::Object(ObjectMap::from([(
                 "text".into(),
                 Value::Timestamp(
-                    DateTime::from_timestamp(8675, 309).expect("could not compute timestamp"),
+                    jiff::Timestamp::new(8675, 309).expect("could not compute timestamp"),
                 ),
             )])),
             &Options::default(),
@@ -739,7 +739,7 @@ mod tests {
             (
                 "timestamp",
                 Value::Timestamp(
-                    DateTime::from_timestamp(8675, 309).expect("could not compute timestamp"),
+                    jiff::Timestamp::new(8675, 309).expect("could not compute timestamp"),
                 ),
             ),
         ];

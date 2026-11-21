@@ -507,7 +507,6 @@ impl DiagnosticMessage for Error {
 mod tests {
     use std::convert::TryInto;
 
-    use chrono::Utc;
     use ordered_float::NotNan;
 
     use ast::{
@@ -763,7 +762,7 @@ mod tests {
         }
 
         greater_timestamps {
-            expr: |_| op(Gt, Utc::now(), Utc::now()),
+            expr: |_| op(Gt, jiff::Timestamp::now(), jiff::Timestamp::now()),
             want: TypeDef::boolean().infallible(),
         }
 
@@ -793,7 +792,7 @@ mod tests {
         }
 
         greater_or_equal_timestamps {
-            expr: |_| op(Ge, Utc::now(), Utc::now()),
+            expr: |_| op(Ge, jiff::Timestamp::now(), jiff::Timestamp::now()),
             want: TypeDef::boolean().infallible(),
         }
 
@@ -823,7 +822,7 @@ mod tests {
         }
 
         less_timestamps {
-            expr: |_| op(Lt, Utc::now(), Utc::now()),
+            expr: |_| op(Lt, jiff::Timestamp::now(), jiff::Timestamp::now()),
             want: TypeDef::boolean().infallible(),
         }
 
@@ -853,7 +852,7 @@ mod tests {
         }
 
         less_or_equal_timestamps {
-            expr: |_| op(Le, Utc::now(), Utc::now()),
+            expr: |_| op(Le, jiff::Timestamp::now(), jiff::Timestamp::now()),
             want: TypeDef::boolean().infallible(),
         }
 

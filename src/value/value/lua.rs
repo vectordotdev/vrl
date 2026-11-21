@@ -64,25 +64,26 @@ impl FromLua for Value {
     }
 }
 
-use chrono::{DateTime, Datelike, TimeZone, Timelike, Utc};
+use jiff::{Timestamp, civil, tz::Offset};
 use mlua::prelude::*;
 
-/// Convert a `DateTime<Utc>` to a `LuaTable`.
+/// Convert a `Timestamp` to a `LuaTable`, in UTC.
 ///
 /// # Errors
 ///
 /// This function will fail insertion into the table fails.
-pub fn timestamp_to_table(lua: &Lua, ts: DateTime<Utc>) -> LuaResult<LuaTable> {
+pub fn timestamp_to_table(lua: &Lua, ts: Timestamp) -> LuaResult<LuaTable> {
+    let dt = Offset::UTC.to_datetime(ts);
     let table = lua.create_table()?;
-    table.raw_set("year", ts.year())?;
-    table.raw_set("month", ts.month())?;
-    table.raw_set("day", ts.day())?;
-    table.raw_set("hour", ts.hour())?;
-    table.raw_set("min", ts.minute())?;
-    table.raw_set("sec", ts.second())?;
-    table.raw_set("nanosec", ts.nanosecond())?;
-    table.raw_set("yday", ts.ordinal())?;
-    table.raw_set("wday", ts.weekday().number_from_sunday())?;
+    table.raw_set("year", dt.year())?;
+    table.raw_set("month", dt.month())?;
+    table.raw_set("day", dt.day())?;
+    table.raw_set("hour", dt.hour())?;
+    table.raw_set("min", dt.minute())?;
+    table.raw_set("sec", dt.second())?;
+    table.raw_set("nanosec", dt.subsec_nanosecond())?;
+    table.raw_set("yday", dt.day_of_year())?;
+    table.raw_set("wday", dt.weekday().to_sunday_one_offset())?;
     table.raw_set("isdst", false)?;
 
     Ok(table)
@@ -129,13 +130,13 @@ impl<T: FromLua> FromLua for LuaInt<T> {
     }
 }
 
-/// Convert a `LuaTable` to a `DateTime<Utc>`.
+/// Convert a `LuaTable` in UTC to a `Timestamp`.
 ///
 /// # Errors
 ///
 /// This function will fail if the table is malformed.
 #[allow(clippy::needless_pass_by_value)] // constrained by mlua types
-pub fn table_to_timestamp(t: LuaTable) -> LuaResult<DateTime<Utc>> {
+pub fn table_to_timestamp(t: LuaTable) -> LuaResult<Timestamp> {
     let LuaInt(year) = t.raw_get("year")?;
     let LuaInt(month) = t.raw_get("month")?;
     let LuaInt(day) = t.raw_get("day")?;
@@ -143,28 +144,29 @@ pub fn table_to_timestamp(t: LuaTable) -> LuaResult<DateTime<Utc>> {
     let LuaInt(min) = t.raw_get("min")?;
     let LuaInt(sec) = t.raw_get("sec")?;
     let nano = t
-        .raw_get::<Option<LuaInt<u32>>>("nanosec")?
+        .raw_get::<Option<LuaInt<i32>>>("nanosec")?
         .map_or(0, |LuaInt(nano)| nano);
+    let date = civil::Date::new(year, month, day)
+        .map_err(|_| mlua::Error::external("invalid timestamp"))?;
+    let time = civil::Time::new(hour, min, sec, 0)
+        .map_err(|_| mlua::Error::external("invalid timestamp"))?
+        .with()
+        .subsec_nanosecond(nano)
+        .build()
+        .map_err(|_| mlua::Error::external("could not adjust for nanoseconds"))?;
 
-    let base_dt = Utc
-        .with_ymd_and_hms(year, month, day, hour, min, sec)
-        .single()
-        .ok_or_else(|| mlua::Error::external("invalid timestamp"))?;
-
-    if nano > 0 {
-        base_dt
-            .with_nanosecond(nano)
-            .ok_or_else(|| mlua::Error::external("could not adjust for nanoseconds"))
-    } else {
-        Ok(base_dt)
-    }
+    Offset::UTC
+        .to_timestamp(date.to_datetime(time))
+        .map_err(|_| mlua::Error::external("invalid timestamp"))
 }
 
 #[cfg(test)]
 mod test {
-    use chrono::{TimeZone, Utc};
-
     use super::*;
+
+    fn utc(s: &str) -> Timestamp {
+        s.parse().unwrap()
+    }
 
     #[test]
     fn from_lua() {
@@ -199,29 +201,15 @@ mod test {
             ),
             (
                 "os.date('!*t', 1584297428)",
-                Value::Timestamp(
-                    Utc.with_ymd_and_hms(2020, 3, 15, 18, 37, 8)
-                        .single()
-                        .expect("invalid or ambiguous date and time"),
-                ),
+                Value::Timestamp(utc("2020-03-15T18:37:08Z")),
             ),
             (
                 "{year=2020, month=3, day=15, hour=18, min=37, sec=8}",
-                Value::Timestamp(
-                    Utc.with_ymd_and_hms(2020, 3, 15, 18, 37, 8)
-                        .single()
-                        .expect("invalid or ambiguous date and time"),
-                ),
+                Value::Timestamp(utc("2020-03-15T18:37:08Z")),
             ),
             (
                 "{year=2020, month=3, day=15, hour=18, min=37, sec=8, nanosec=666666666}",
-                Value::Timestamp(
-                    Utc.with_ymd_and_hms(2020, 3, 15, 18, 37, 8)
-                        .single()
-                        .expect("invalid or ambiguous date and time")
-                        .with_nanosecond(666_666_666)
-                        .expect("invalid nanosecond"),
-                ),
+                Value::Timestamp(utc("2020-03-15T18:37:08.666666666Z")),
             ),
         ];
 
@@ -234,13 +222,7 @@ mod test {
 
     #[test]
     fn from_lua_timestamp_truncates_fractional_fields() {
-        let expected = Value::Timestamp(
-            Utc.with_ymd_and_hms(2020, 3, 15, 18, 37, 8)
-                .single()
-                .expect("invalid or ambiguous date and time")
-                .with_nanosecond(333_333_333)
-                .expect("invalid nanosecond"),
-        );
+        let expected = Value::Timestamp(utc("2020-03-15T18:37:08.333333333Z"));
 
         let lua = Lua::new();
         for expression in [
@@ -333,13 +315,7 @@ mod test {
                 ",
             ),
             (
-                Value::Timestamp(
-                    Utc.with_ymd_and_hms(2020, 3, 15, 18, 37, 8)
-                        .single()
-                        .expect("invalid or ambiguous date and time")
-                        .with_nanosecond(666_666_666)
-                        .expect("invalid nanosecond"),
-                ),
+                Value::Timestamp(utc("2020-03-15T18:37:08.666666666Z")),
                 r#"
                 function (value)
                     local expected = os.date("!*t", 1584297428)
