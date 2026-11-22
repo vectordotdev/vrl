@@ -877,7 +877,9 @@ impl<'a> Compiler<'a> {
         // is re-pushed below via `result.error`).
         let function_info = self
             .consuming_fallibility(|c| {
-                let arguments: Vec<_> = arguments
+                let saved_loop_depth = c.loop_depth;
+                c.loop_depth = 0;
+                let arguments = arguments
                     .into_iter()
                     .map(|node| {
                         Some(Node::new(
@@ -885,7 +887,9 @@ impl<'a> Compiler<'a> {
                             c.compile_function_argument(node, state)?,
                         ))
                     })
-                    .collect::<Option<_>>()?;
+                    .collect::<Option<Vec<_>>>();
+                c.loop_depth = saved_loop_depth;
+                let arguments = arguments?;
 
                 function_call::Builder::new(
                     call_span,
@@ -945,11 +949,6 @@ impl<'a> Compiler<'a> {
             self.check_function_deprecations(function, args);
             // Update the final state using the function expression to make sure it's accurate.
             *state = function.type_info(&original_state).state;
-            self.update_state_for_loop_jumps(
-                &Expr::FunctionCall(function.clone()),
-                &original_state,
-                state,
-            );
         }
 
         function_info.map(|info| info.1)
@@ -1136,11 +1135,14 @@ impl<'a> Compiler<'a> {
             *state = current_pre_loop_state.clone();
             expression::for_loop::bind_for_pattern(&pattern, iterable_kind, state);
 
+            let prev_breakable = self.in_breakable_context;
+            self.in_breakable_context = false;
             self.loop_depth += 1;
             self.speculative_loop.depth += 1;
             let compiled_block = self.compile_block(block.clone(), state);
             self.speculative_loop.depth -= 1;
             self.loop_depth -= 1;
+            self.in_breakable_context = prev_breakable;
             let compiled_block = compiled_block?;
             let pass_had_speculative_error = self.speculative_loop.had_infallible_error;
 

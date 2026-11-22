@@ -273,7 +273,8 @@ pub(crate) fn expr_contains_loop_jump(expr: &Expr) -> bool {
         // A nested `for` loop captures jumps from its body, but jumps inside its
         // `iterable` still target the enclosing `for` loop.
         Expr::For(for_expr) => expr_contains_loop_jump(&for_expr.iterable),
-        Expr::Literal(_) | Expr::Variable(_) | Expr::Noop(_) => false,
+        // Neither function arguments nor closures may break/continue an enclosing `for` loop.
+        Expr::Literal(_) | Expr::Variable(_) | Expr::Noop(_) | Expr::FunctionCall(_) => false,
         Expr::Container(container) => match &container.variant {
             Variant::Group(group) => expr_contains_loop_jump(group.inner_expr()),
             Variant::Block(block) => block.exprs().iter().any(expr_contains_loop_jump),
@@ -301,20 +302,11 @@ pub(crate) fn expr_contains_loop_jump(expr: &Expr) -> bool {
             }
         },
         Expr::Query(query) => match query.target() {
-            Target::Internal(_) | Target::External(_) => false,
+            Target::Internal(_) | Target::External(_) | Target::FunctionCall(_) => false,
             Target::Container(container) => {
                 expr_contains_loop_jump(&Expr::Container(container.clone()))
             }
-            Target::FunctionCall(call) => call
-                .arguments()
-                .iter()
-                .any(|arg| expr_contains_loop_jump(arg.inner().expr())),
         },
-        // Function closures do not jump to an enclosing `for` loop, only arguments can.
-        Expr::FunctionCall(call) => call
-            .arguments()
-            .iter()
-            .any(|arg| expr_contains_loop_jump(arg.inner().expr())),
         Expr::Unary(unary) => match unary.variant() {
             unary::Variant::Not(not) => expr_contains_loop_jump(not.inner_expr()),
         },
@@ -689,157 +681,8 @@ pub(crate) fn eval_loop_expr(expr: &Expr, state: &TypeState) -> LoopFlow {
                 }
                 flow
             }
-            Target::FunctionCall(call) => {
-                let mut flow = eval_loop_expr(&Expr::FunctionCall(call.clone()), state);
-                if flow.normal.is_some() {
-                    flow.result = flow.result.at_path(query.path());
-                }
-                flow
-            }
-            Target::Internal(_) | Target::External(_) => unreachable!(),
+            Target::Internal(_) | Target::External(_) | Target::FunctionCall(_) => unreachable!(),
         },
-        Expr::FunctionCall(call) => {
-            let num_args = call.arguments().len();
-            if num_args == 0 {
-                let mut normal_state = state.clone();
-                let result = call.apply_post_argument_type_info(&mut normal_state, &[]);
-                LoopFlow {
-                    normal: Some(normal_state),
-                    break_state: None,
-                    continue_state: None,
-                    result,
-                }
-            } else if num_args <= 6 {
-                // Function implementations may resolve arguments in any order at runtime
-                // (e.g. `ContainsFn::resolve` evaluates `value` before `substring` regardless
-                // of source order). Explore all reachable subset states so each argument is
-                // evaluated at most once per permutation and exit states (`break_state` /
-                // `continue_state`) accurately reflect every possible evaluation order.
-                let num_masks = 1usize << num_args;
-                let mut dp_normal: Vec<Option<TypeState>> = vec![None; num_masks];
-                dp_normal[0] = Some(state.clone());
-
-                let mut break_state = None;
-                let mut continue_state = None;
-                let mut fallible = false;
-                let mut returns = Kind::never();
-                let mut arg_type_defs: Vec<Option<TypeDef>> = vec![None; num_args];
-
-                for mask in 0..num_masks {
-                    let Some(current_state) = dp_normal[mask].clone() else {
-                        continue;
-                    };
-                    for (i, arg) in call.arguments().iter().enumerate() {
-                        if (mask & (1usize << i)) != 0 {
-                            continue;
-                        }
-                        let flow = eval_loop_expr(arg.inner().expr(), &current_state);
-                        fallible |= flow.result.is_fallible();
-                        returns.merge_keep(flow.result.returns().clone(), false);
-                        arg_type_defs[i] = Some(match arg_type_defs[i].take() {
-                            Some(prev) => prev.union(flow.result),
-                            None => flow.result,
-                        });
-                        break_state = merge_opt_state(break_state, flow.break_state);
-                        continue_state = merge_opt_state(continue_state, flow.continue_state);
-                        let next_mask = mask | (1usize << i);
-                        dp_normal[next_mask] =
-                            merge_opt_state(dp_normal[next_mask].take(), flow.normal);
-                    }
-                }
-
-                if let Some(mut normal_state) = dp_normal[num_masks - 1].take() {
-                    let resolved_arg_defs: Vec<TypeDef> = arg_type_defs
-                        .into_iter()
-                        .map(|opt| opt.unwrap_or_else(TypeDef::never))
-                        .collect();
-                    let result =
-                        call.apply_post_argument_type_info(&mut normal_state, &resolved_arg_defs);
-                    LoopFlow {
-                        normal: Some(normal_state),
-                        break_state,
-                        continue_state,
-                        result,
-                    }
-                } else {
-                    LoopFlow {
-                        normal: None,
-                        break_state,
-                        continue_state,
-                        result: TypeDef::never()
-                            .maybe_fallible(fallible)
-                            .with_returns(returns),
-                    }
-                }
-            } else {
-                let mut reachable_state = state.clone();
-                canonicalize_type_state(&mut reachable_state);
-                let mut iterations = 0;
-
-                loop {
-                    let mut next_reachable = reachable_state.clone();
-                    for arg in call.arguments() {
-                        let flow = eval_loop_expr(arg.inner().expr(), &reachable_state);
-                        if let Some(norm) = flow.normal {
-                            next_reachable = next_reachable.merge(norm);
-                        }
-                    }
-                    canonicalize_type_state(&mut next_reachable);
-
-                    if next_reachable == reachable_state {
-                        break;
-                    }
-
-                    iterations += 1;
-                    if iterations >= WIDEN_AFTER_ITERATIONS {
-                        widen_differing_states(
-                            &reachable_state,
-                            &mut next_reachable,
-                            iterations >= FALLBACK_WIDEN_ITERATIONS,
-                        );
-                    }
-                    reachable_state = next_reachable;
-                }
-
-                let mut break_state = None;
-                let mut continue_state = None;
-                let mut fallible = false;
-                let mut returns = Kind::never();
-                let mut arg_type_defs = Vec::with_capacity(num_args);
-                let mut any_diverged = false;
-
-                for arg in call.arguments() {
-                    let flow = eval_loop_expr(arg.inner().expr(), &reachable_state);
-                    fallible |= flow.result.is_fallible();
-                    returns.merge_keep(flow.result.returns().clone(), false);
-                    any_diverged |= flow.normal.is_none();
-                    arg_type_defs.push(flow.result);
-                    break_state = merge_opt_state(break_state, flow.break_state);
-                    continue_state = merge_opt_state(continue_state, flow.continue_state);
-                }
-
-                if any_diverged {
-                    LoopFlow {
-                        normal: None,
-                        break_state,
-                        continue_state,
-                        result: TypeDef::never()
-                            .maybe_fallible(fallible)
-                            .with_returns(returns),
-                    }
-                } else {
-                    let mut normal_state = reachable_state;
-                    let result =
-                        call.apply_post_argument_type_info(&mut normal_state, &arg_type_defs);
-                    LoopFlow {
-                        normal: Some(normal_state),
-                        break_state,
-                        continue_state,
-                        result,
-                    }
-                }
-            }
-        }
         Expr::Unary(unary) => match unary.variant() {
             unary::Variant::Not(not) => {
                 let inner_flow = eval_loop_expr(not.inner_expr(), state);
@@ -895,7 +738,9 @@ pub(crate) fn eval_loop_expr(expr: &Expr, state: &TypeState) -> LoopFlow {
                     .with_returns(returns),
             }
         }
-        Expr::Literal(_) | Expr::Variable(_) | Expr::Noop(_) => unreachable!(),
+        Expr::Literal(_) | Expr::Variable(_) | Expr::Noop(_) | Expr::FunctionCall(_) => {
+            unreachable!()
+        }
     }
 }
 
@@ -2578,18 +2423,10 @@ mod tests {
             codes::ExprCode::FallibleAssignment as usize
         );
 
-        // 5. Conditional break inside a function argument or binary operator does not leak onto the back edge
-        let fns = crate::stdlib::all();
+        // 5. Conditional break inside a binary operator does not leak onto the back edge
         let nested_expr_break = r"
             x = [0, 1]
             for i, _ in [1, 2] {
-                .tmp1 = to_string({
-                    if i == 1 {
-                        x = [x, 1]
-                        break
-                    }
-                    i
-                })
                 .tmp2 = ({
                     if i == 1 {
                         x = [x, 1]
@@ -2600,10 +2437,10 @@ mod tests {
             }
             .y = x[1] + 1
         ";
-        let res_nested = crate::compiler::compile(nested_expr_break, &fns);
+        let res_nested = crate::compiler::compile(nested_expr_break, &[]);
         assert!(
             res_nested.is_ok(),
-            "expected conditional break inside function arg and op not to widen x across back edge, got: {:?}",
+            "expected conditional break inside op not to widen x across back edge, got: {:?}",
             res_nested.err()
         );
     }
@@ -2799,63 +2636,94 @@ mod tests {
     }
 
     #[test]
-    fn test_for_function_call_exit_tracks_any_argument_order() {
+    fn test_for_function_argument_loop_jump_boundary() {
         let fns = crate::stdlib::all();
 
-        // 1. Named arguments where runtime evaluates `value` before `substring`
-        let named_contains_break = r#"
-            x = 1
+        // 1. `break` inside a function argument cannot target an enclosing `for` loop
+        // (prevents unsoundness with functions like `decode_punycode!` that skip arguments)
+        let skipped_arg_break = r#"
+            x = "a"
             for _ in [1] {
-                .tmp = contains(substring: { if true { break }; "a" }, value: { x = "s"; "a" })
+                decode_punycode!("plain", validate: { break; true })
                 x = 1
             }
-            .y = x + 1
+            snakecase(x)
         "#;
-        let Err(err1) = crate::compiler::compile(named_contains_break, &fns) else {
-            panic!("expected break in `substring` to observe mutation from `value`");
+        let Err(err1) = crate::compiler::compile(skipped_arg_break, &fns) else {
+            panic!("expected break in function argument to be rejected");
         };
-        assert_eq!(err1[0].code, codes::ExprCode::FallibleAssignment as usize);
+        assert_eq!(err1[0].code, codes::CompilerCode::BreakOutsideLoop as usize);
 
-        // 2. Reverse order: `value` breaks, `substring` mutates `x`
-        let reverse_contains_break = r#"
-            x = 1
-            for _ in [1] {
-                .tmp = contains(substring: { x = "s"; "a" }, value: { if true { break }; "a" })
-                x = 1
-            }
-            .y = x + 1
-        "#;
-        let Err(err2) = crate::compiler::compile(reverse_contains_break, &fns) else {
-            panic!("expected break in `value` to conservatively observe mutation from `substring`");
-        };
-        assert_eq!(err2[0].code, codes::ExprCode::FallibleAssignment as usize);
-
-        // 3. Unconditional break in one argument while another argument mutates `x`
-        let uncond_contains_break = r#"
-            x = 1
-            for _ in [1] {
-                .tmp = contains(substring: { break; "a" }, value: { x = "s"; "a" })
-                x = 1
-            }
-            .y = x + 1
-        "#;
-        let Err(err3) = crate::compiler::compile(uncond_contains_break, &fns) else {
-            panic!("expected unconditional break in `substring` to observe `value` and skip x = 1");
-        };
-        assert_eq!(err3[0].code, codes::ExprCode::FallibleAssignment as usize);
-
-        // 4. Conditional continue in one argument while another argument mutates `x`
-        let named_contains_continue = r#"
-            x = 1
+        // 2. `continue` inside a function argument cannot target an enclosing `for` loop
+        let arg_continue = r#"
             for _ in [1, 2] {
-                .y = x + 1
-                .tmp = contains(substring: { if true { continue }; "a" }, value: { x = "s"; "a" })
-                x = 1
+                .tmp = contains(substring: { if true { continue }; "a" }, value: "a")
             }
         "#;
-        let Err(err4) = crate::compiler::compile(named_contains_continue, &fns) else {
-            panic!("expected continue in `substring` to propagate `x = \"s\"` along back-edge");
+        let Err(err2) = crate::compiler::compile(arg_continue, &fns) else {
+            panic!("expected continue in function argument to be rejected");
         };
-        assert_eq!(err4[0].code, codes::ExprCode::FallibleAssignment as usize);
+        assert_eq!(err2[0].code, codes::CompilerCode::BreakOutsideLoop as usize);
+
+        // 3. `for` nested inside `for_each` does not leak `for_each`'s breakable context into
+        // function arguments inside the `for` loop
+        let for_in_for_each_arg_break = r"
+            for_each([1, 2]) -> |_i, _v| {
+                for _ in [1] {
+                    .tmp = to_string({ break; 1 })
+                }
+            }
+        ";
+        let Err(err3) = crate::compiler::compile(for_in_for_each_arg_break, &fns) else {
+            panic!("expected break in function argument inside nested for loop to be rejected");
+        };
+        assert_eq!(err3[0].code, codes::CompilerCode::BreakOutsideLoop as usize);
+
+        // 4. `for_each` after a nested `for` loop still allows `break` in its own closure
+        let for_each_after_nested_for = r"
+            count = 0
+            for_each([1, 2, 3]) -> |_i, v| {
+                for _ in [1] {
+                    count = count + 1
+                }
+                if v == 2 {
+                    break
+                }
+            }
+            count
+        ";
+        let compiled_after =
+            crate::compiler::compile(for_each_after_nested_for, &fns).expect("compiles");
+        let mut target = TargetValue::new(Value::Null);
+        let mut state = RuntimeState::default();
+        let tz = TimeZone::default();
+        let mut ctx = Context::new(&mut target, &mut state, &tz);
+        assert_eq!(compiled_after.program.resolve(&mut ctx), Ok(Value::from(2)));
+
+        // 5. A `for` loop nested inside a function argument can still break/continue itself
+        let nested_for_in_arg = r"
+            outer = 0
+            for _ in [1, 2] {
+                .s = to_string({
+                    sum = 0
+                    for v in [1, 2, 3, 4] {
+                        if v == 2 { continue }
+                        if v == 4 { break }
+                        sum = sum + v
+                    }
+                    sum
+                })
+                outer = outer + 1
+            }
+            [outer, .s]
+        ";
+        let compiled_nested = crate::compiler::compile(nested_for_in_arg, &fns).expect("compiles");
+        let mut target = TargetValue::new(Value::Object(ObjectMap::new()));
+        let mut state = RuntimeState::default();
+        let mut ctx = Context::new(&mut target, &mut state, &tz);
+        assert_eq!(
+            compiled_nested.program.resolve(&mut ctx),
+            Ok(Value::from(vec![Value::from(2), Value::from("4")]))
+        );
     }
 }
