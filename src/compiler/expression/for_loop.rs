@@ -132,14 +132,12 @@ impl For {
             canonicalize_type_state(&mut fallback_header);
             return (
                 fallback_header,
-                LoopFlow {
-                    normal: None,
-                    break_state: iter_flow.break_state,
-                    continue_state: iter_flow.continue_state,
-                    result: TypeDef::never()
-                        .maybe_fallible(iter_flow.result.is_fallible())
-                        .with_returns(iter_flow.result.returns().clone()),
-                },
+                LoopFlow::never_with_exits(
+                    iter_flow.break_state,
+                    iter_flow.continue_state,
+                    iter_flow.result.is_fallible(),
+                    iter_flow.result.returns().clone(),
+                ),
             );
         };
 
@@ -257,6 +255,130 @@ pub(crate) struct LoopFlow {
     pub(crate) result: TypeDef,
 }
 
+impl LoopFlow {
+    fn from_type_info(info: TypeInfo) -> Self {
+        Self {
+            normal: Some(info.state),
+            break_state: None,
+            continue_state: None,
+            result: info.result,
+        }
+    }
+
+    fn never_with_exits(
+        break_state: Option<TypeState>,
+        continue_state: Option<TypeState>,
+        fallible: bool,
+        returns: Kind,
+    ) -> Self {
+        Self {
+            normal: None,
+            break_state,
+            continue_state,
+            result: TypeDef::never()
+                .maybe_fallible(fallible)
+                .with_returns(returns),
+        }
+    }
+
+    fn merge_branch(
+        self,
+        other: Self,
+        combine_result: impl FnOnce(TypeDef, TypeDef) -> TypeDef,
+    ) -> Self {
+        Self {
+            normal: merge_opt_state(self.normal, other.normal),
+            break_state: merge_opt_state(self.break_state, other.break_state),
+            continue_state: merge_opt_state(self.continue_state, other.continue_state),
+            result: combine_result(self.result, other.result),
+        }
+    }
+
+    fn with_prefix(mut self, prefix: Self) -> Self {
+        if prefix.result.is_fallible() {
+            self.result = self.result.fallible();
+        }
+        self.result
+            .returns_mut()
+            .merge_keep(prefix.result.returns().clone(), false);
+        self.break_state = merge_opt_state(prefix.break_state, self.break_state);
+        self.continue_state = merge_opt_state(prefix.continue_state, self.continue_state);
+        self
+    }
+
+    fn with_result(mut self, result: TypeDef) -> Self {
+        self.result = result;
+        self
+    }
+
+    fn diverge(self, extra_return: Option<Kind>) -> Self {
+        let mut returns = self.result.returns().clone();
+        if let Some(kind) = extra_return {
+            returns.merge_keep(kind, false);
+        }
+        Self::never_with_exits(
+            self.break_state,
+            self.continue_state,
+            self.result.is_fallible(),
+            returns,
+        )
+    }
+}
+
+struct LoopFlowSeq {
+    normal: Option<TypeState>,
+    break_state: Option<TypeState>,
+    continue_state: Option<TypeState>,
+    fallible: bool,
+    returns: Kind,
+}
+
+impl LoopFlowSeq {
+    fn new(state: &TypeState) -> Self {
+        Self {
+            normal: Some(state.clone()),
+            break_state: None,
+            continue_state: None,
+            fallible: false,
+            returns: Kind::never(),
+        }
+    }
+
+    fn step(&mut self, expr: &Expr, track_fallibility: bool) -> Option<TypeDef> {
+        let active_state = self.normal.as_ref()?;
+        let flow = eval_loop_expr(expr, active_state);
+        if track_fallibility && flow.result.is_fallible() {
+            self.fallible = true;
+        }
+        self.returns
+            .merge_keep(flow.result.returns().clone(), false);
+        self.normal = flow.normal;
+        self.break_state = merge_opt_state(self.break_state.take(), flow.break_state);
+        self.continue_state = merge_opt_state(self.continue_state.take(), flow.continue_state);
+        Some(flow.result)
+    }
+
+    fn finish(self, result: TypeDef) -> LoopFlow {
+        LoopFlow {
+            normal: self.normal,
+            break_state: self.break_state,
+            continue_state: self.continue_state,
+            result: result
+                .maybe_fallible(self.fallible)
+                .with_returns(self.returns),
+        }
+    }
+
+    fn finish_never(self) -> LoopFlow {
+        LoopFlow::never_with_exits(
+            self.break_state,
+            self.continue_state,
+            self.fallible,
+            self.returns,
+        )
+    }
+}
+
 fn merge_opt_state(a: Option<TypeState>, b: Option<TypeState>) -> Option<TypeState> {
     match (a, b) {
         (Some(a), Some(b)) => Some(a.merge(b)),
@@ -318,64 +440,39 @@ pub(crate) fn expr_contains_loop_jump(expr: &Expr) -> bool {
 
 fn eval_loop_block(block: &Block, state: &TypeState) -> LoopFlow {
     if !block.exprs().iter().any(expr_contains_loop_jump) {
-        let info = block.type_info(state);
-        return LoopFlow {
-            normal: Some(info.state),
-            break_state: None,
-            continue_state: None,
-            result: info.result,
-        };
+        return LoopFlow::from_type_info(block.type_info(state));
     }
 
     let parent_locals = state.local.clone();
-    let mut current_normal = Some(state.clone());
-    let mut break_state = None;
-    let mut continue_state = None;
+    let mut seq = LoopFlowSeq::new(state);
     let mut result = TypeDef::null();
-    let mut fallible = false;
-    let mut returns = Kind::never();
     let mut after_never_expression = false;
 
     for expr in block.exprs() {
-        let Some(ref active_state) = current_normal else {
+        let Some(expr_result) = seq.step(expr, !after_never_expression) else {
             break;
         };
-        let flow = eval_loop_expr(expr, active_state);
-        result = flow.result;
-
-        if !after_never_expression && result.is_fallible() {
-            fallible = true;
-        }
-        if result.is_never() {
+        if expr_result.is_never() {
             after_never_expression = true;
         }
-        returns.merge_keep(result.returns().clone(), false);
-
-        current_normal = flow.normal;
-        break_state = merge_opt_state(break_state, flow.break_state);
-        continue_state = merge_opt_state(continue_state, flow.continue_state);
+        result = expr_result;
     }
 
+    let mut flow = seq.finish(result);
     if block.is_scoped() {
-        if let Some(ref mut normal) = current_normal {
+        if let Some(ref mut normal) = flow.normal {
             normal.local = parent_locals
                 .clone()
                 .apply_child_scope(normal.local.clone());
         }
-        if let Some(ref mut brk) = break_state {
+        if let Some(ref mut brk) = flow.break_state {
             brk.local = parent_locals.clone().apply_child_scope(brk.local.clone());
         }
-        if let Some(ref mut cont) = continue_state {
+        if let Some(ref mut cont) = flow.continue_state {
             cont.local = parent_locals.apply_child_scope(cont.local.clone());
         }
     }
-
-    LoopFlow {
-        normal: current_normal,
-        break_state,
-        continue_state,
-        result: result.maybe_fallible(fallible).with_returns(returns),
-    }
+    flow
 }
 
 #[allow(clippy::too_many_lines)]
@@ -385,108 +482,53 @@ pub(crate) fn eval_loop_expr(expr: &Expr, state: &TypeState) -> LoopFlow {
     use std::collections::BTreeMap;
 
     if !expr_contains_loop_jump(expr) {
-        let info = expr.type_info(state);
-        return LoopFlow {
-            normal: Some(info.state),
-            break_state: None,
-            continue_state: None,
-            result: info.result,
-        };
+        return LoopFlow::from_type_info(expr.type_info(state));
     }
 
     match expr {
-        Expr::Break(_) => LoopFlow {
-            normal: None,
-            break_state: Some(state.clone()),
-            continue_state: None,
-            result: TypeDef::never(),
-        },
-        Expr::Continue(_) => LoopFlow {
-            normal: None,
-            break_state: None,
-            continue_state: Some(state.clone()),
-            result: TypeDef::never(),
-        },
+        Expr::Break(_) => {
+            LoopFlow::never_with_exits(Some(state.clone()), None, false, Kind::never())
+        }
+        Expr::Continue(_) => {
+            LoopFlow::never_with_exits(None, Some(state.clone()), false, Kind::never())
+        }
         Expr::For(for_expr) => for_expr.eval_for_in_loop(state).1,
         Expr::Container(container) => match &container.variant {
             Variant::Group(group) => eval_loop_expr(group.inner_expr(), state),
             Variant::Block(block) => eval_loop_block(block, state),
             Variant::Array(array) => {
-                let mut current_normal = Some(state.clone());
-                let mut break_state = None;
-                let mut continue_state = None;
-                let mut type_defs = Vec::new();
-                let mut fallible = false;
+                let mut seq = LoopFlowSeq::new(state);
+                let mut type_defs = Vec::with_capacity(array.len());
 
                 for item in array.iter() {
-                    let Some(ref active_state) = current_normal else {
+                    let Some(type_def) = seq.step(item, true) else {
                         break;
                     };
-                    let flow = eval_loop_expr(item, active_state);
-                    let type_def = flow.result.upgrade_undefined();
-                    fallible |= type_def.is_fallible();
-                    current_normal = flow.normal;
-                    break_state = merge_opt_state(break_state, flow.break_state);
-                    continue_state = merge_opt_state(continue_state, flow.continue_state);
-
-                    if type_def.is_never() || current_normal.is_none() {
-                        return LoopFlow {
-                            normal: None,
-                            break_state,
-                            continue_state,
-                            result: TypeDef::never().maybe_fallible(fallible),
-                        };
+                    let type_def = type_def.upgrade_undefined();
+                    if type_def.is_never() || seq.normal.is_none() {
+                        return seq.finish_never();
                     }
                     type_defs.push(type_def);
                 }
 
-                let returns = type_defs.iter().fold(Kind::never(), |returns, type_def| {
-                    returns.union(type_def.returns().clone())
-                });
                 let collection = type_defs
                     .into_iter()
                     .enumerate()
                     .map(|(index, type_def)| (index.into(), type_def.into()))
                     .collect::<BTreeMap<_, _>>();
-
-                LoopFlow {
-                    normal: current_normal,
-                    break_state,
-                    continue_state,
-                    result: TypeDef::array(collection)
-                        .maybe_fallible(fallible)
-                        .with_returns(returns),
-                }
+                seq.finish(TypeDef::array(collection))
             }
             Variant::Object(object) => {
-                let mut current_normal = Some(state.clone());
-                let mut break_state = None;
-                let mut continue_state = None;
+                let mut seq = LoopFlowSeq::new(state);
                 let mut type_defs = BTreeMap::new();
-                let mut fallible = false;
-                let mut returns = Kind::never();
 
                 for (k, item) in object.iter() {
-                    let Some(ref active_state) = current_normal else {
+                    let Some(type_def) = seq.step(item, true) else {
                         break;
                     };
-                    let flow = eval_loop_expr(item, active_state);
-                    let type_def = flow.result.upgrade_undefined();
-                    returns.merge_keep(type_def.returns().clone(), false);
-                    fallible |= type_def.is_fallible();
-                    current_normal = flow.normal;
-                    break_state = merge_opt_state(break_state, flow.break_state);
-                    continue_state = merge_opt_state(continue_state, flow.continue_state);
-
-                    if type_def.is_never() || current_normal.is_none() {
-                        return LoopFlow {
-                            normal: None,
-                            break_state,
-                            continue_state,
-                            result: TypeDef::never()
-                                .maybe_fallible(fallible)
-                                .with_returns(returns),
-                        };
+                    let type_def = type_def.upgrade_undefined();
+                    if type_def.is_never() || seq.normal.is_none() {
+                        return seq.finish_never();
                     }
                     type_defs.insert(k.clone(), type_def);
                 }
@@ -495,82 +537,39 @@ pub(crate) fn eval_loop_expr(expr: &Expr, state: &TypeState) -> LoopFlow {
                     .into_iter()
                     .map(|(field, type_def)| (field.into(), type_def.into()))
                     .collect::<BTreeMap<_, _>>();
-
-                LoopFlow {
-                    normal: current_normal,
-                    break_state,
-                    continue_state,
-                    result: TypeDef::object(collection)
-                        .maybe_fallible(fallible)
-                        .with_returns(returns),
-                }
+                seq.finish(TypeDef::object(collection))
             }
         },
         Expr::IfStatement(if_stmt) => {
-            let pred_flow = eval_loop_block(if_stmt.predicate.block(), state);
-            let returns = pred_flow.result.returns().clone();
-            let pred_fallible = pred_flow.result.is_fallible();
-            let Some(after_pred_state) = pred_flow.normal else {
-                return LoopFlow {
-                    normal: None,
-                    break_state: pred_flow.break_state,
-                    continue_state: pred_flow.continue_state,
-                    result: pred_flow.result,
-                };
+            let mut pred_flow = eval_loop_block(if_stmt.predicate.block(), state);
+            let Some(after_pred_state) = pred_flow.normal.take() else {
+                return pred_flow;
             };
 
             let if_flow = eval_loop_block(&if_stmt.if_block, &after_pred_state);
-            if let Some(else_block) = &if_stmt.else_block {
+            let branch_flow = if let Some(else_block) = &if_stmt.else_block {
                 let else_flow = eval_loop_block(else_block, &after_pred_state);
-                let mut result = if_flow.result.union(else_flow.result);
-                if pred_fallible {
-                    result = result.fallible();
-                }
-                result.returns_mut().merge_keep(returns, false);
-                LoopFlow {
-                    normal: merge_opt_state(if_flow.normal, else_flow.normal),
-                    break_state: merge_opt_state(
-                        pred_flow.break_state,
-                        merge_opt_state(if_flow.break_state, else_flow.break_state),
-                    ),
-                    continue_state: merge_opt_state(
-                        pred_flow.continue_state,
-                        merge_opt_state(if_flow.continue_state, else_flow.continue_state),
-                    ),
-                    result,
-                }
+                if_flow.merge_branch(else_flow, TypeDef::union)
             } else {
-                let mut result = if_flow.result.or_null();
-                if pred_fallible {
-                    result = result.fallible();
-                }
-                result.returns_mut().merge_keep(returns, false);
-                LoopFlow {
-                    normal: merge_opt_state(if_flow.normal, Some(after_pred_state)),
-                    break_state: merge_opt_state(pred_flow.break_state, if_flow.break_state),
-                    continue_state: merge_opt_state(
-                        pred_flow.continue_state,
-                        if_flow.continue_state,
-                    ),
-                    result,
-                }
-            }
+                let fallthrough = LoopFlow {
+                    normal: Some(after_pred_state),
+                    break_state: None,
+                    continue_state: None,
+                    result: TypeDef::null(),
+                };
+                if_flow.merge_branch(fallthrough, |if_res, _| if_res.or_null())
+            };
+            branch_flow.with_prefix(pred_flow)
         }
         Expr::Assignment(assignment) => match assignment.variant() {
             assignment::Variant::Single { target, expr } => {
-                let rhs_flow = eval_loop_expr(expr, state);
+                let mut rhs_flow = eval_loop_expr(expr, state);
                 let expr_result = rhs_flow.result.clone().impure();
-                let normal = rhs_flow.normal.map(|mut s| {
-                    let const_value = expr.resolve_constant(&s);
-                    target.insert_type_def(&mut s, expr_result.clone(), const_value);
-                    s
-                });
-                LoopFlow {
-                    normal,
-                    break_state: rhs_flow.break_state,
-                    continue_state: rhs_flow.continue_state,
-                    result: expr_result,
+                if let Some(ref mut s) = rhs_flow.normal {
+                    let const_value = expr.resolve_constant(s);
+                    target.insert_type_def(s, expr_result.clone(), const_value);
                 }
+                rhs_flow.with_result(expr_result)
             }
             assignment::Variant::Infallible {
                 ok,
@@ -578,31 +577,21 @@ pub(crate) fn eval_loop_expr(expr: &Expr, state: &TypeState) -> LoopFlow {
                 expr,
                 default,
             } => {
-                let rhs_flow = eval_loop_expr(expr, state);
-                let expr_result = rhs_flow.result.clone();
-                if let Some(mut s) = rhs_flow.normal {
+                let mut rhs_flow = eval_loop_expr(expr, state);
+                if let Some(ref mut s) = rhs_flow.normal {
+                    let expr_result = rhs_flow.result.clone();
                     let ok_type = expr_result
                         .clone()
                         .union(TypeDef::from(default.kind()))
                         .infallible();
                     let err_type = TypeDef::from(Kind::bytes().or_null());
                     let assignment_result = expr_result.infallible().impure().or_bytes();
-                    let const_value = expr.resolve_constant(&s);
-                    ok.insert_type_def(&mut s, ok_type, const_value);
-                    err.insert_type_def(&mut s, err_type, None);
-                    LoopFlow {
-                        normal: Some(s),
-                        break_state: rhs_flow.break_state,
-                        continue_state: rhs_flow.continue_state,
-                        result: assignment_result,
-                    }
+                    let const_value = expr.resolve_constant(s);
+                    ok.insert_type_def(s, ok_type, const_value);
+                    err.insert_type_def(s, err_type, None);
+                    rhs_flow.with_result(assignment_result)
                 } else {
-                    LoopFlow {
-                        normal: None,
-                        break_state: rhs_flow.break_state,
-                        continue_state: rhs_flow.continue_state,
-                        result: expr_result,
-                    }
+                    rhs_flow
                 }
             }
         },
@@ -695,49 +684,20 @@ pub(crate) fn eval_loop_expr(expr: &Expr, state: &TypeState) -> LoopFlow {
                 let result = base_result
                     .maybe_fallible(inner_flow.result.is_fallible())
                     .with_returns(inner_flow.result.returns().clone());
-                LoopFlow {
-                    normal: inner_flow.normal,
-                    break_state: inner_flow.break_state,
-                    continue_state: inner_flow.continue_state,
-                    result,
-                }
+                inner_flow.with_result(result)
             }
         },
-        Expr::Abort(abort) => {
-            if let Some(msg) = abort.message() {
-                let msg_flow = eval_loop_expr(msg, state);
-                let returns = msg_flow.result.returns().clone();
-                LoopFlow {
-                    normal: None,
-                    break_state: msg_flow.break_state,
-                    continue_state: msg_flow.continue_state,
-                    result: TypeDef::never()
-                        .maybe_fallible(msg_flow.result.is_fallible())
-                        .with_returns(returns),
-                }
-            } else {
-                LoopFlow {
-                    normal: None,
-                    break_state: None,
-                    continue_state: None,
-                    result: TypeDef::never(),
-                }
-            }
-        }
+        Expr::Abort(abort) => match abort.message() {
+            Some(msg) => eval_loop_expr(msg, state).diverge(None),
+            None => LoopFlow::never_with_exits(None, None, false, Kind::never()),
+        },
         Expr::Return(ret) => {
             let inner_flow = eval_loop_expr(ret.expr(), state);
-            let mut returns = inner_flow.result.returns().clone();
-            if inner_flow.normal.is_some() {
-                returns.merge_keep(inner_flow.result.kind().clone(), false);
-            }
-            LoopFlow {
-                normal: None,
-                break_state: inner_flow.break_state,
-                continue_state: inner_flow.continue_state,
-                result: TypeDef::never()
-                    .maybe_fallible(inner_flow.result.is_fallible())
-                    .with_returns(returns),
-            }
+            let extra_return = inner_flow
+                .normal
+                .is_some()
+                .then(|| inner_flow.result.kind().clone());
+            inner_flow.diverge(extra_return)
         }
         Expr::Literal(_) | Expr::Variable(_) | Expr::Noop(_) | Expr::FunctionCall(_) => {
             unreachable!()
@@ -1896,6 +1856,21 @@ mod tests {
         let returns = final_type_info.result.returns();
         assert!(returns.is_superset(&crate::value::Kind::integer()).is_ok());
         assert!(returns.is_superset(&crate::value::Kind::bytes()).is_ok());
+    }
+
+    #[test]
+    fn test_for_array_element_divergence_preserves_returns() {
+        let source = r#"
+            for _ in [1] {
+                [{ if true { return "early" }; 1 }, { break; 2 }]
+            }
+        "#;
+        let info = crate::compiler::compile(source, &[]).expect("compiles");
+        let returns = info.program.final_type_info().result.returns().clone();
+        assert!(
+            returns.is_superset(&crate::value::Kind::bytes()).is_ok(),
+            "expected early array divergence to preserve return kind bytes, got: {returns}"
+        );
     }
 
     #[test]
