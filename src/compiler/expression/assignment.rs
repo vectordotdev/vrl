@@ -6,7 +6,9 @@ use crate::compiler::expression::function_call::InvalidArgumentErrorContext;
 use crate::compiler::{
     CompileConfig, Context, Expression, Span, TypeDef,
     compiler::CompilerError,
-    expression::{Expr, Resolved, assignment::ErrorVariant::InvalidParentPathSegment},
+    expression::{
+        Expr, ExpressionError, Resolved, assignment::ErrorVariant::InvalidParentPathSegment,
+    },
     parser::{
         Node,
         ast::{self, Ident},
@@ -604,10 +606,7 @@ where
                     err.insert(Value::Null, ctx);
                 }
                 Err(error) => {
-                    if matches!(
-                        error,
-                        ExpressionError::Interrupted | ExpressionError::Break { .. }
-                    ) {
+                    if error.is_control_flow() {
                         return Err(error);
                     }
 

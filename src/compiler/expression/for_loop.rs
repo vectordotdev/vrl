@@ -54,8 +54,8 @@ impl For {
                 LoopItem::KeyValue(key, value) => guard.set_key_value(key, value),
             }
 
-            match self.block.resolve(guard.ctx_mut()) {
-                Ok(_) | Err(ExpressionError::Continue { .. }) => {}
+            match self.block.resolve_unused(guard.ctx_mut()) {
+                Ok(()) | Err(ExpressionError::Continue { .. }) => {}
                 Err(ExpressionError::Break { .. }) => break,
                 Err(err) => return Err(err),
             }
@@ -2243,7 +2243,7 @@ mod tests {
                 "count_compile"
             }
 
-            fn usage(&self) -> &'static str {
+            fn description(&self) -> &'static str {
                 "count_compile"
             }
 

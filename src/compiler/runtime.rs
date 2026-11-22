@@ -518,8 +518,6 @@ mod execution_control_tests {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::BTreeMap;
-
     use super::*;
     use crate::compiler::Program;
     use crate::compiler::TargetValue;
@@ -571,7 +569,7 @@ mod tests {
         let for_expr = Expr::For(expression::For::new(span, pattern, iterable, block));
 
         let program = make_program(vec![for_expr]);
-        let mut target = Value::Object(BTreeMap::new());
+        let mut target = Value::Object(ObjectMap::new());
         let mut runtime = Runtime::new(RuntimeState::default());
         let res = runtime.resolve(&mut target, &program, &TimeZone::default());
         assert_eq!(res, Ok(Value::Null));
@@ -594,7 +592,7 @@ mod tests {
         let for_expr = Expr::For(expression::For::new(span, pattern, iterable, block));
 
         let program = make_program(vec![for_expr]);
-        let mut target = Value::Object(BTreeMap::new());
+        let mut target = Value::Object(ObjectMap::new());
         let mut runtime = Runtime::new(RuntimeState::default());
         let res = runtime.resolve(&mut target, &program, &TimeZone::default());
         assert_eq!(res, Ok(Value::Null));
@@ -613,7 +611,7 @@ mod tests {
         let for_expr = Expr::For(expression::For::new(span, pattern, iterable, block));
 
         let program = make_program(vec![for_expr]);
-        let mut target = Value::Object(BTreeMap::new());
+        let mut target = Value::Object(ObjectMap::new());
         let mut runtime = Runtime::new(RuntimeState::default());
         let res = runtime.resolve(&mut target, &program, &TimeZone::default());
         assert_eq!(res, Ok(Value::Null));
@@ -640,7 +638,7 @@ mod tests {
         let for_expr = Expr::For(expression::For::new(span, pattern, iterable, block));
 
         let program = make_program(vec![for_expr]);
-        let mut target = Value::Object(BTreeMap::new());
+        let mut target = Value::Object(ObjectMap::new());
         let mut runtime = Runtime::new(RuntimeState::default());
         let res = runtime.resolve(&mut target, &program, &TimeZone::default());
         assert_eq!(res, Ok(Value::from(42)));
@@ -658,7 +656,7 @@ mod tests {
         let for_expr = Expr::For(expression::For::new(span, pattern, iterable, block));
 
         let program = make_program(vec![for_expr]);
-        let mut target = Value::Object(BTreeMap::new());
+        let mut target = Value::Object(ObjectMap::new());
         let mut runtime = Runtime::new(RuntimeState::default());
         runtime
             .state
@@ -684,7 +682,7 @@ mod tests {
         let for_expr = Expr::For(expression::For::new(span, pattern, iterable, block));
 
         let program = make_program(vec![for_expr]);
-        let mut target = Value::Object(BTreeMap::new());
+        let mut target = Value::Object(ObjectMap::new());
         let mut runtime = Runtime::new(RuntimeState::default());
         runtime
             .state
@@ -718,7 +716,7 @@ mod tests {
         let for_expr = Expr::For(expression::For::new(span, pattern, iterable, block));
 
         let program = make_program(vec![for_expr]);
-        let mut target = Value::Object(BTreeMap::new());
+        let mut target = Value::Object(ObjectMap::new());
         let mut runtime = Runtime::new(RuntimeState::default());
         runtime
             .state
@@ -747,7 +745,7 @@ mod tests {
         let for_expr = Expr::For(expression::For::new(span, pattern, iterable, block));
 
         let program = make_program(vec![for_expr]);
-        let mut target = Value::Object(BTreeMap::new());
+        let mut target = Value::Object(ObjectMap::new());
         let mut runtime = Runtime::new(RuntimeState::default());
         let res = runtime.resolve(&mut target, &program, &TimeZone::default());
         assert_eq!(res, Ok(Value::Null));
@@ -770,7 +768,7 @@ mod tests {
         let for_expr = Expr::For(expression::For::new(span, pattern, iterable, block));
 
         let program = make_program(vec![for_expr]);
-        let mut target = Value::Object(BTreeMap::new());
+        let mut target = Value::Object(ObjectMap::new());
         let mut runtime = Runtime::new(RuntimeState::default());
         let res = runtime.resolve(&mut target, &program, &TimeZone::default());
         assert_eq!(res, Ok(Value::Null));
@@ -787,7 +785,7 @@ mod tests {
         let for_expr = Expr::For(expression::For::new(span, pattern, iterable, block));
 
         let program = make_program(vec![for_expr]);
-        let mut target = Value::Object(BTreeMap::new());
+        let mut target = Value::Object(ObjectMap::new());
         let mut runtime = Runtime::new(RuntimeState::default());
         let res = runtime.resolve(&mut target, &program, &TimeZone::default());
         assert!(matches!(res, Err(Terminate::Error(_))));
@@ -804,7 +802,7 @@ mod tests {
         let for_expr = Expr::For(expression::For::new(span, pattern, iterable, block));
 
         let program = make_program(vec![for_expr]);
-        let mut target = Value::Object(BTreeMap::new());
+        let mut target = Value::Object(ObjectMap::new());
         let mut runtime = Runtime::new(RuntimeState::default());
         let res = runtime.resolve(&mut target, &program, &TimeZone::default());
         assert!(matches!(res, Err(Terminate::Error(_))));
@@ -819,7 +817,7 @@ mod tests {
         let for_expr = Expr::For(expression::For::new(span, pattern, iterable, block));
 
         let program = make_program(vec![for_expr]);
-        let mut target = Value::Object(BTreeMap::new());
+        let mut target = Value::Object(ObjectMap::new());
         let mut runtime = Runtime::new(RuntimeState::default());
         let res = runtime.resolve(&mut target, &program, &TimeZone::default());
         assert_eq!(res, Ok(Value::Null));
@@ -837,7 +835,7 @@ mod tests {
         let for_expr = Expr::For(expression::For::new(span, pattern, iterable, block));
 
         let program = make_program(vec![for_expr]);
-        let mut target = Value::Object(BTreeMap::new());
+        let mut target = Value::Object(ObjectMap::new());
         let mut runtime = Runtime::new(RuntimeState::default());
         let res = runtime.resolve(&mut target, &program, &TimeZone::default());
         assert_eq!(res, Ok(Value::Null));
