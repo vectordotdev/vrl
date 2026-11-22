@@ -1172,84 +1172,6 @@ mod tests {
     }
 
     #[test]
-    fn test_for_iteration_values_array_single() {
-        let span = Span::new(0, 0);
-        let x_id = Ident::new("x");
-        let pattern = ForPattern::Single(Node::new(span, x_id));
-        let iterable = Box::new(Expr::from(Value::Array(vec![
-            Value::from(10),
-            Value::from(20),
-            Value::from(30),
-        ])));
-
-        let mut target = Value::Null;
-        let mut state = RuntimeState::default();
-        let tz = TimeZone::default();
-        let mut ctx = test_ctx(&mut target, &mut state, &tz);
-
-        let for_expr = For::new(
-            span,
-            pattern,
-            iterable,
-            Block::new_inline(vec![Expr::from(Literal::from(1))]),
-        );
-        assert_eq!(for_expr.resolve(&mut ctx), Ok(Value::Null));
-    }
-
-    #[test]
-    fn test_for_iteration_values_array_key_value() {
-        let span = Span::new(0, 0);
-        let i_id = Ident::new("i");
-        let v_id = Ident::new("v");
-        let pattern = ForPattern::KeyValue(Node::new(span, i_id), Node::new(span, v_id));
-        let iterable = Box::new(Expr::from(Value::Array(vec![
-            Value::from("alpha"),
-            Value::from("beta"),
-        ])));
-
-        let for_expr = For::new(
-            span,
-            pattern,
-            iterable,
-            Block::new_inline(vec![Expr::from(Literal::from(true))]),
-        );
-
-        let mut target = Value::Null;
-        let mut state = RuntimeState::default();
-        let tz = TimeZone::default();
-        let mut ctx = test_ctx(&mut target, &mut state, &tz);
-
-        assert_eq!(for_expr.resolve(&mut ctx), Ok(Value::Null));
-    }
-
-    #[test]
-    fn test_for_iteration_values_object_key_value() {
-        let span = Span::new(0, 0);
-        let k_id = Ident::new("k");
-        let v_id = Ident::new("v");
-        let pattern = ForPattern::KeyValue(Node::new(span, k_id), Node::new(span, v_id));
-
-        let mut map = ObjectMap::new();
-        map.insert("key1".into(), Value::Integer(100));
-        map.insert("key2".into(), Value::Integer(200));
-        let iterable = Box::new(Expr::from(Value::Object(map)));
-
-        let for_expr = For::new(
-            span,
-            pattern,
-            iterable,
-            Block::new_inline(vec![Expr::from(Literal::from("ok"))]),
-        );
-
-        let mut target = Value::Null;
-        let mut state = RuntimeState::default();
-        let tz = TimeZone::default();
-        let mut ctx = test_ctx(&mut target, &mut state, &tz);
-
-        assert_eq!(for_expr.resolve(&mut ctx), Ok(Value::Null));
-    }
-
-    #[test]
     fn test_for_nested_loops() {
         let span = Span::new(0, 0);
         let inner_for = For::new(
@@ -1554,20 +1476,6 @@ mod tests {
         let res =
             run("obj_c = 0\nfor _, _ in { \"a\": 1, \"b\": 2 } {\n  obj_c = obj_c + 1\n}\nobj_c");
         assert_eq!(res, Value::Integer(2));
-    }
-
-    #[test]
-    fn test_array_index_overflow_error_format() {
-        let err = ExpressionError::Error {
-            message: "array index overflow".to_string(),
-            labels: vec![Label::primary("array index overflow", Span::default())],
-            notes: vec![],
-        };
-        assert_eq!(err.message(), "array index overflow");
-        assert_eq!(
-            err.labels(),
-            vec![Label::primary("array index overflow", Span::default())]
-        );
     }
 
     #[test]

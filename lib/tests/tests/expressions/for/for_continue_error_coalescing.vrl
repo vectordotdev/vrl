@@ -1,0 +1,8 @@
+# result: 4
+
+sum = 0
+for val in [1, 2, 3] {
+  _res = { if val == 2 { continue } else { parse_int("not_a_number") } } ?? 999
+  sum = sum + val
+}
+sum

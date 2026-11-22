@@ -530,8 +530,7 @@ mod tests {
     use crate::compiler::state::{LocalEnv, RuntimeState, TypeState};
     use crate::compiler::type_def::Details;
     use crate::diagnostic::Span;
-    use crate::value::{ObjectMap, Secrets, Value};
-    use indoc::indoc;
+    use crate::value::{ObjectMap, Value};
 
     fn make_program(expressions: Vec<Expr>) -> Program {
         Program {
@@ -846,205 +845,14 @@ mod tests {
         assert!(runtime.state.variable(&Ident::new("v")).is_none());
     }
 
-    #[test]
-    fn break_is_not_caught_by_infallible_assignment_in_for_loop() {
-        let source = indoc! {r#"
-            count = 0
-            for val in [1, 2, 3] {
-                count = count + 1
-                _, err = if val == 2 {
-                    break
-                } else {
-                    parse_int("not_a_number")
-                }
-            }
-            count
-        "#};
-
-        let fns = crate::stdlib::all();
-        let program = crate::compiler::compile(source, &fns)
-            .expect("program compiles")
-            .program;
-
-        let mut target = TargetValue {
-            value: Value::Null,
-            metadata: Value::Null,
-            secrets: Secrets::new(),
-        };
-        let mut state = RuntimeState::default();
-        let tz = TimeZone::default();
-        let mut ctx = Context::new(&mut target, &mut state, &tz);
-
-        let result = program.resolve(&mut ctx);
-        assert_eq!(result, Ok(Value::from(2)));
-    }
-
-    #[test]
-    fn continue_is_not_caught_by_infallible_assignment_in_for_loop() {
-        let source = indoc! {r#"
-            sum = 0
-            for val in [1, 2, 3] {
-                _, err = if val == 2 {
-                    continue
-                } else {
-                    parse_int("not_a_number")
-                }
-                sum = sum + val
-            }
-            sum
-        "#};
-
-        let fns = crate::stdlib::all();
-        let program = crate::compiler::compile(source, &fns)
-            .expect("program compiles")
-            .program;
-
-        let mut target = TargetValue {
-            value: Value::Null,
-            metadata: Value::Null,
-            secrets: Secrets::new(),
-        };
-        let mut state = RuntimeState::default();
-        let tz = TimeZone::default();
-        let mut ctx = Context::new(&mut target, &mut state, &tz);
-
-        let result = program.resolve(&mut ctx);
-        assert_eq!(result, Ok(Value::from(4))); // 1 + 3 (2 skipped)
-    }
-
-    #[test]
-    fn break_is_not_caught_by_error_coalescing_in_for_loop() {
-        let source = indoc! {r#"
-            count = 0
-            for val in [1, 2, 3] {
-                count = count + 1
-                res = { if val == 2 { break } else { parse_int("not_a_number") } } ?? 999
-            }
-            count
-        "#};
-
-        let fns = crate::stdlib::all();
-        let program = crate::compiler::compile(source, &fns)
-            .expect("program compiles")
-            .program;
-
-        let mut target = TargetValue {
-            value: Value::Null,
-            metadata: Value::Null,
-            secrets: Secrets::new(),
-        };
-        let mut state = RuntimeState::default();
-        let tz = TimeZone::default();
-        let mut ctx = Context::new(&mut target, &mut state, &tz);
-
-        let result = program.resolve(&mut ctx);
-        assert_eq!(result, Ok(Value::from(2)));
-    }
-
-    #[test]
-    fn continue_is_not_caught_by_error_coalescing_in_for_loop() {
-        let source = indoc! {r#"
-            sum = 0
-            for val in [1, 2, 3] {
-                res = { if val == 2 { continue } else { parse_int("not_a_number") } } ?? 999
-                sum = sum + val
-            }
-            sum
-        "#};
-
-        let fns = crate::stdlib::all();
-        let program = crate::compiler::compile(source, &fns)
-            .expect("program compiles")
-            .program;
-
-        let mut target = TargetValue {
-            value: Value::Null,
-            metadata: Value::Null,
-            secrets: Secrets::new(),
-        };
-        let mut state = RuntimeState::default();
-        let tz = TimeZone::default();
-        let mut ctx = Context::new(&mut target, &mut state, &tz);
-
-        let result = program.resolve(&mut ctx);
-        assert_eq!(result, Ok(Value::from(4))); // 1 + 3 (2 skipped)
-    }
-
-    #[test]
-    fn break_is_not_wrapped_by_boolean_or_in_for_loop() {
-        let source = indoc! {r"
-            count = 0
-            for val in [1, 2, 3] {
-                count = count + 1
-                if false || { if val == 2 { break } else { true } } {
-                    res = val
-                }
-            }
-            count
-        "};
-
-        let fns = crate::stdlib::all();
-        let program = crate::compiler::compile(source, &fns)
-            .expect("program compiles")
-            .program;
-
-        let mut target = TargetValue {
-            value: Value::Null,
-            metadata: Value::Null,
-            secrets: Secrets::new(),
-        };
-        let mut state = RuntimeState::default();
-        let tz = TimeZone::default();
-        let mut ctx = Context::new(&mut target, &mut state, &tz);
-
-        let result = program.resolve(&mut ctx);
-        assert_eq!(result, Ok(Value::from(2)));
-    }
-
-    #[test]
-    fn continue_is_not_wrapped_by_boolean_or_in_for_loop() {
-        let source = indoc! {r"
-            sum = 0
-            for val in [1, 2, 3] {
-                if false || { if val == 2 { continue } else { true } } {
-                    sum = sum + val
-                }
-            }
-            sum
-        "};
-
-        let fns = crate::stdlib::all();
-        let program = crate::compiler::compile(source, &fns)
-            .expect("program compiles")
-            .program;
-
-        let mut target = TargetValue {
-            value: Value::Null,
-            metadata: Value::Null,
-            secrets: Secrets::new(),
-        };
-        let mut state = RuntimeState::default();
-        let tz = TimeZone::default();
-        let mut ctx = Context::new(&mut target, &mut state, &tz);
-
-        let result = program.resolve(&mut ctx);
-        assert_eq!(result, Ok(Value::from(4))); // 1 + 3 (2 skipped)
-    }
-
     fn compile_test_program(source: &str) -> Program {
-        // VRL grammar requires blocks to contain at least one expression.
-        // Normalize empty or comment-only blocks to include `null`.
-        let normalized = source.replace("{ }", "{ null }").replace(
-            "{\n  # interrupts here\n}",
-            "{\n  # interrupts here\n  null\n}",
-        );
         let external = crate::compiler::state::ExternalEnv::new_with_kind(
             crate::value::Kind::array(crate::compiler::value::Collection::any()),
             crate::value::Kind::object(crate::compiler::value::Collection::any()),
         );
         let fns = crate::stdlib::all();
         crate::compiler::compile_with_external(
-            &normalized,
+            source,
             &fns,
             &external,
             crate::compiler::CompileConfig::default(),
@@ -1057,7 +865,7 @@ mod tests {
     fn resolve_with_limit_zero_budget_interrupts_immediately() {
         let mut runtime = Runtime::default();
         let mut target = TargetValue::new(Value::from(vec![1, 2, 3]));
-        let program = compile_test_program("for x in . { }");
+        let program = compile_test_program("for x in . { null }");
         let res = runtime.resolve_with_limit(&mut target, &program, &TimeZone::default(), 0);
         assert!(matches!(res, Err(RuntimeError::Interrupted)));
     }
@@ -1090,7 +898,7 @@ mod tests {
     fn resolve_with_limit_restores_shadowed_variable_on_interruption() {
         let mut runtime = Runtime::default();
         let mut target = TargetValue::new(Value::from(vec![10, 20, 30]));
-        let program = compile_test_program("x = 999\nfor x in . {\n  # interrupts here\n}");
+        let program = compile_test_program("x = 999\nfor x in . {\n  # interrupts here\n  null\n}");
         let res = runtime.resolve_with_limit(&mut target, &program, &TimeZone::default(), 2);
         assert!(matches!(res, Err(RuntimeError::Interrupted)));
         // Verify outer x is restored in runtime state

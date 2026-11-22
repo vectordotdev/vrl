@@ -1,0 +1,10 @@
+# result: 2
+
+count = 0
+for val in [1, 2, 3] {
+  count = count + 1
+  if false || { if val == 2 { break } else { true } } {
+    _res = val
+  }
+}
+count
