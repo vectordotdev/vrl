@@ -112,14 +112,10 @@ impl<'a, 'c, 'b> BindingScopeGuard<'a, 'c, 'b> {
     pub(crate) fn new(
         ctx: &'c mut Context<'b>,
         first_ident: Option<&'a Ident>,
-        mut second_ident: Option<&'a Ident>,
+        second_ident: Option<&'a Ident>,
     ) -> Self {
+        let first_ident = first_ident.filter(|ident| Some(*ident) != second_ident);
         let first_old_value = first_ident.and_then(|ident| ctx.state_mut().remove_variable(ident));
-
-        if first_ident == second_ident {
-            second_ident = None;
-        }
-
         let second_old_value =
             second_ident.and_then(|ident| ctx.state_mut().remove_variable(ident));
 

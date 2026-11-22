@@ -572,4 +572,50 @@ mod tests {
         assert!(ctx.state().variable(&i_ident).is_none());
         assert!(ctx.state().variable(&v_ident).is_none());
     }
+
+    #[test]
+    fn test_for_each_duplicate_closure_ident_preserves_value_and_restores_outer() {
+        use crate::compiler::{TargetValue, state::RuntimeState};
+
+        let fns = crate::stdlib::all();
+        let tz = TimeZone::default();
+
+        // Array iteration with duplicate parameter `|x, x|` binds the value (second arg) and restores outer `x`.
+        let prog_arr = crate::compiler::compile(
+            r#"
+            x = "outer"
+            for_each(["a"]) -> |x, x| { .out = upcase(x) }
+            [x, .out]
+            "#,
+            &fns,
+        )
+        .expect("compiles")
+        .program;
+        let mut target = TargetValue::new(Value::Object(ObjectMap::new()));
+        let mut state = RuntimeState::default();
+        let mut ctx = Context::new(&mut target, &mut state, &tz);
+        assert_eq!(
+            prog_arr.resolve(&mut ctx),
+            Ok(Value::from(vec![Value::from("outer"), Value::from("A")]))
+        );
+
+        // Object iteration with duplicate parameter `|x, x|` binds the value (second arg) and restores outer `x`.
+        let prog_obj = crate::compiler::compile(
+            r#"
+            x = "outer"
+            for_each({"k": "a"}) -> |x, x| { .out = upcase(x) }
+            [x, .out]
+            "#,
+            &fns,
+        )
+        .expect("compiles")
+        .program;
+        let mut target = TargetValue::new(Value::Object(ObjectMap::new()));
+        let mut state = RuntimeState::default();
+        let mut ctx = Context::new(&mut target, &mut state, &tz);
+        assert_eq!(
+            prog_obj.resolve(&mut ctx),
+            Ok(Value::from(vec![Value::from("outer"), Value::from("A")]))
+        );
+    }
 }
