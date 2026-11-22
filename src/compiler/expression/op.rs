@@ -319,14 +319,12 @@ impl Expression for Op {
         .ok()
     }
 
-    #[allow(clippy::too_many_lines)]
     fn type_info(&self, state: &TypeState) -> TypeInfo {
-        use crate::value::Kind as K;
         use ast::Opcode::{Add, And, Div, Eq, Err, Ge, Gt, Le, Lt, Merge, Mul, Ne, Or, Sub};
         let original_state = state.clone();
 
         let mut state = state.clone();
-        let mut lhs_def = self.lhs.apply_type_info(&mut state);
+        let lhs_def = self.lhs.apply_type_info(&mut state);
         let lhs_value = self.lhs.resolve_constant(&original_state);
 
         // TODO: this is incorrect, but matches the existing behavior of the compiler
@@ -342,180 +340,52 @@ impl Expression for Op {
             rhs_info.result
         };
 
-        let result = match self.opcode {
-            Err => {
-                let rhs_def = maybe_rhs(&mut state);
-
-                // entire expression is only fallible if both lhs and rhs were fallible
-                let fallible = lhs_def.is_fallible() && rhs_def.is_fallible();
-
-                lhs_def.union(rhs_def).maybe_fallible(fallible)
-            }
+        let (rhs_def, rhs_value) = match self.opcode {
+            Err => (maybe_rhs(&mut state), None),
 
             Or => {
                 if lhs_def.is_null() || lhs_value == Some(Value::Boolean(false)) {
                     // lhs is always "false"
-                    self.rhs.apply_type_info(&mut state)
+                    (self.rhs.apply_type_info(&mut state), None)
                 } else if !(lhs_def.contains_null() || lhs_def.contains_boolean())
                     || lhs_value == Some(Value::Boolean(true))
                 {
-                    // lhs is always "true"
-                    lhs_def
+                    // lhs is always "true"; short-circuit without evaluating rhs
+                    return TypeInfo::new(state, lhs_def);
                 } else {
                     // not sure if lhs is true/false, merge both
-
-                    // We can remove Null from the lhs since we know that if the lhs is Null
-                    // we will be returning the rhs and only the rhs type_def will then be relevant.
-                    lhs_def.remove_null();
-
-                    lhs_def.union(maybe_rhs(&mut state))
+                    (maybe_rhs(&mut state), None)
                 }
             }
-
-            // ... | ...
-            Merge => lhs_def.merge_overwrite(self.rhs.apply_type_info(&mut state)),
 
             And => {
                 if lhs_def.is_null() || lhs_value == Some(Value::Boolean(false)) {
-                    // lhs is always "false"
-                    TypeDef::boolean()
+                    // lhs is always "false"; short-circuit without evaluating rhs
+                    return TypeInfo::new(state, TypeDef::boolean());
                 } else if lhs_value == Some(Value::Boolean(true)) {
                     // lhs is always "true"
-                    // keep the fallibility of RHS, but change it to a boolean
-                    self.rhs.apply_type_info(&mut state).with_kind(K::boolean())
+                    (self.rhs.apply_type_info(&mut state), None)
                 } else {
                     // unknown if lhs is true or false
-                    lhs_def
-                        .fallible_unless(K::null().or_boolean())
-                        .union(maybe_rhs(&mut state).fallible_unless(K::null().or_boolean()))
-                        .with_kind(K::boolean())
+                    (maybe_rhs(&mut state), None)
                 }
             }
 
-            // ... == ...
-            // ... != ...
-            Eq | Ne => lhs_def
-                .union(self.rhs.apply_type_info(&mut state))
-                .with_kind(K::boolean()),
+            Merge | Eq | Ne | Gt | Ge | Lt | Le => (self.rhs.apply_type_info(&mut state), None),
 
-            Gt | Ge | Lt | Le => {
-                let rhs_def = self.rhs.apply_type_info(&mut state);
-
-                // "b" >  "a"
-                // "a" >= "a"
-                // "a" <  "b"
-                // "b" <= "b"
-                // t'2023-05-04T22:22:22.234142Z' >  t'2023-04-04T22:22:22.234142Z'
-                // t'2023-05-04T22:22:22.234142Z' >= t'2023-04-04T22:22:22.234142Z'
-                // t'2023-05-04T22:22:22.234142Z' <  t'2023-04-04T22:22:22.234142Z'
-                // t'2023-05-04T22:22:22.234142Z' <= t'2023-04-04T22:22:22.234142Z'
-                if (lhs_def.is_bytes() && rhs_def.is_bytes())
-                    || (lhs_def.is_timestamp() && rhs_def.is_timestamp())
-                {
-                    lhs_def.union(rhs_def).with_kind(K::boolean())
-                }
-                // ... >  ...
-                // ... >= ...
-                // ... <  ...
-                // ... <= ...
-                else {
-                    lhs_def
-                        .fallible_unless(K::integer().or_float())
-                        .union(rhs_def.fallible_unless(K::integer().or_float()))
-                        .with_kind(K::boolean())
-                }
-            }
-
-            // ... / ...
-            Div => {
-                let td = TypeDef::float();
-
-                // Division is infallible if the rhs is a literal normal float or integer.
-                match self.rhs.resolve_constant(&state) {
-                    Some(value) if lhs_def.is_float() || lhs_def.is_integer() => match value {
-                        Value::Float(v) if v.is_normal() => td.infallible(),
-                        Value::Integer(v) if v != 0 => td.infallible(),
-                        _ => td.fallible(),
-                    },
-                    _ => td.fallible(),
-                }
-            }
+            // Division is infallible if the rhs is a literal normal float or integer.
+            Div => (TypeDef::never(), self.rhs.resolve_constant(&state)),
 
             Add | Sub | Mul => {
                 // none of these operations short-circuit, so the type of RHS can be applied
                 let rhs_value = self.rhs.resolve_constant(&state);
                 let rhs_def = self.rhs.apply_type_info(&mut state);
-                // Preserve the existing infallible typing for dynamic arithmetic. Only a
-                // constant operation that is known to produce NaN becomes fallible.
-                let nan_fallible = constant_arithmetic_produces_nan(
-                    self.opcode,
-                    lhs_value.as_ref(),
-                    rhs_value.as_ref(),
-                );
-
-                match self.opcode {
-                    // "bar" + ...
-                    // ... + "bar"
-                    Add if lhs_def.is_bytes() || rhs_def.is_bytes() => lhs_def
-                        .fallible_unless(K::bytes().or_null())
-                        .union(rhs_def.fallible_unless(K::bytes().or_null()))
-                        .with_kind(K::bytes()),
-
-                    // ... + 1.0
-                    // ... - 1.0
-                    // ... * 1.0
-                    // ... % 1.0
-                    // 1.0 + ...
-                    // 1.0 - ...
-                    // 1.0 * ...
-                    // 1.0 % ...
-                    Add | Sub | Mul if lhs_def.is_float() || rhs_def.is_float() => {
-                        let type_def = lhs_def
-                            .fallible_unless(K::integer().or_float())
-                            .union(rhs_def.fallible_unless(K::integer().or_float()))
-                            .with_kind(K::float());
-
-                        if nan_fallible {
-                            type_def.fallible()
-                        } else {
-                            type_def
-                        }
-                    }
-
-                    // 1 + 1
-                    // 1 - 1
-                    // 1 * 1
-                    // 1 % 1
-                    Add | Sub | Mul if lhs_def.is_integer() && rhs_def.is_integer() => {
-                        lhs_def.union(rhs_def).with_kind(K::integer())
-                    }
-
-                    // "bar" * 1
-                    Mul if lhs_def.is_bytes() && rhs_def.is_integer() => {
-                        lhs_def.union(rhs_def).with_kind(K::bytes())
-                    }
-
-                    // 1 * "bar"
-                    Mul if lhs_def.is_integer() && rhs_def.is_bytes() => {
-                        lhs_def.union(rhs_def).with_kind(K::bytes())
-                    }
-
-                    // ... + ...
-                    // ... * ...
-                    Add | Mul => lhs_def
-                        .union(rhs_def)
-                        .fallible()
-                        .with_kind(K::bytes().or_integer().or_float()),
-
-                    // ... - ...
-                    Sub => lhs_def
-                        .union(rhs_def)
-                        .fallible()
-                        .with_kind(K::integer().or_float()),
-                    _ => unreachable!("Add, Sub, or Mul operation not handled"),
-                }
+                (rhs_def, rhs_value)
             }
         };
+
+        let result =
+            self.compute_result_type(lhs_def, lhs_value.as_ref(), rhs_def, rhs_value.as_ref());
         TypeInfo::new(state, result)
     }
 }
