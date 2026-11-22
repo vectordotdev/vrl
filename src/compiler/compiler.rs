@@ -1084,8 +1084,10 @@ impl<'a> Compiler<'a> {
         let iterable_kind = iterable_type.kind();
 
         // Reject if iterable contains any non-collection type or contains neither array nor object.
-        if expression::for_loop::contains_non_collection_kind(iterable_kind)
-            || (!iterable_kind.contains_array() && !iterable_kind.contains_object())
+        // Exempt the bottom type (`never`), e.g. iterating over an element of a statically empty collection.
+        if !iterable_kind.is_never()
+            && (expression::for_loop::contains_non_collection_kind(iterable_kind)
+                || (!iterable_kind.contains_array() && !iterable_kind.contains_object()))
         {
             self.diagnostics
                 .push(Box::new(expression::for_loop::Error::non_collection(
@@ -1098,6 +1100,7 @@ impl<'a> Compiler<'a> {
         // Single-variable pattern is only valid if object iteration is impossible.
         // If iterable can be an object, require key-value pattern: `for key, value in ...`
         if let ast::ForPattern::Single(val_node) = &pattern
+            && !iterable_kind.is_never()
             && iterable_kind.contains_object()
         {
             self.diagnostics

@@ -922,9 +922,14 @@ pub(crate) fn bind_for_pattern(
             let val_ident = val_node.inner();
             if !is_wildcard(val_ident) {
                 pattern_idents.push(val_ident.clone());
-                let val_kind = iterable_kind
-                    .as_array()
-                    .map_or_else(Kind::any, Collection::reduced_kind);
+                let val_kind = if iterable_kind.is_never() {
+                    Kind::never()
+                } else {
+                    iterable_kind
+                        .as_array()
+                        .map_or_else(Kind::any, Collection::reduced_kind)
+                        .without_undefined()
+                };
                 state.local.insert_variable(
                     val_ident.clone(),
                     crate::compiler::type_def::Details {
@@ -938,15 +943,19 @@ pub(crate) fn bind_for_pattern(
             let key_ident = key_node.inner();
             let val_ident = val_node.inner();
 
-            let (key_kind, val_kind) = {
+            let (key_kind, val_kind) = if iterable_kind.is_never() {
+                (Kind::never(), Kind::never())
+            } else {
                 let has_array = iterable_kind.contains_array();
                 let has_object = iterable_kind.contains_object();
                 let arr_val = iterable_kind
                     .as_array()
-                    .map_or_else(Kind::any, Collection::reduced_kind);
+                    .map_or_else(Kind::any, Collection::reduced_kind)
+                    .without_undefined();
                 let obj_val = iterable_kind
                     .as_object()
-                    .map_or_else(Kind::any, Collection::reduced_kind);
+                    .map_or_else(Kind::any, Collection::reduced_kind)
+                    .without_undefined();
 
                 if has_array && has_object {
                     (Kind::integer().or_bytes(), arr_val.union(obj_val))
@@ -2491,6 +2500,63 @@ mod tests {
         assert_eq!(
             compiled_nested.program.resolve(&mut ctx),
             Ok(Value::from(vec![Value::from(2), Value::from("4")]))
+        );
+    }
+
+    #[test]
+    fn test_for_excludes_undefined_from_merged_collections_and_allows_empty_nested_iterables() {
+        // 1. Merged arrays of differing lengths do not leak `undefined` into bound loop values
+        let merged_arrays_single = r"
+            rows = if true { [[1, 2]] } else { [] }
+            for row in rows {
+                for v in row {
+                    .last = v + 1
+                }
+            }
+        ";
+        assert!(
+            crate::compiler::compile(merged_arrays_single, &[]).is_ok(),
+            "expected merged-length array iteration to exclude undefined"
+        );
+
+        // 2. Key-value iteration over merged arrays and merged objects excludes `undefined`
+        let merged_kv = r#"
+            rows = if true { [[1]] } else { [] }
+            for _, row in rows {
+                for v in row {
+                    .a = v + 1
+                }
+            }
+            objs = if true { { "k": [1] } } else { {} }
+            for _, row in objs {
+                for v in row {
+                    .b = v + 1
+                }
+            }
+        "#;
+        assert!(
+            crate::compiler::compile(merged_kv, &[]).is_ok(),
+            "expected key-value iteration over merged collections to exclude undefined"
+        );
+
+        // 3. Nested iteration over elements of statically empty collections (`Kind::never()`) compiles
+        let empty_nested = r"
+            for xs in [] {
+                for x in xs {
+                    for y in x {
+                        .v = y
+                    }
+                }
+            }
+            for _, xs in {} {
+                for x in xs {
+                    .v = x
+                }
+            }
+        ";
+        assert!(
+            crate::compiler::compile(empty_nested, &[]).is_ok(),
+            "expected nested iteration over statically empty collection to compile"
         );
     }
 }
