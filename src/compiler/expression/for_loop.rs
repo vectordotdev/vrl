@@ -2559,4 +2559,43 @@ mod tests {
             "expected nested iteration over statically empty collection to compile"
         );
     }
+
+    #[test]
+    fn test_for_defers_invalid_argument_kind_until_loop_widening() {
+        let fns = crate::stdlib::all();
+
+        // 1. Loop-carried variable starts as `null` and widens to `null | string`:
+        // `upcase(prev) ?? ""` must compile once the loop header widens.
+        let deferred_valid = r#"
+            prev = null
+            for v in ["a", "b"] {
+                if prev != null {
+                    .y = upcase(prev) ?? ""
+                }
+                prev = v
+            }
+            .y
+        "#;
+        let compiled = crate::compiler::compile(deferred_valid, &fns)
+            .expect("expected upcase(prev) ?? \"\" to compile after loop widening");
+        let mut target = TargetValue::new(Value::Object(ObjectMap::new()));
+        let mut state = RuntimeState::default();
+        let tz = TimeZone::default();
+        let mut ctx = Context::new(&mut target, &mut state, &tz);
+        assert_eq!(compiled.program.resolve(&mut ctx), Ok(Value::from("A")));
+
+        // 2. Truly invalid argument type that never widens still reports ONLY E110 (no cascading E651).
+        let truly_invalid = r#"
+            prev = null
+            for v in [1, 2] {
+                .y = upcase(prev) ?? ""
+                prev = v
+            }
+        "#;
+        let Err(err) = crate::compiler::compile(truly_invalid, &fns) else {
+            panic!("expected upcase(prev) with null | integer to fail with E110");
+        };
+        assert_eq!(err.len(), 1, "expected only E110 diagnostic, got: {err:?}");
+        assert_eq!(err[0].code, codes::ExprCode::InvalidArgumentKind as usize);
+    }
 }

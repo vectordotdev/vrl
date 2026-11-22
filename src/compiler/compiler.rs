@@ -72,7 +72,13 @@ pub struct Compiler<'a> {
 #[derive(Clone, Copy, Default)]
 struct SpeculativeLoopState {
     depth: usize,
-    had_infallible_error: bool,
+    had_deferred_error: bool,
+}
+
+enum CompiledCall {
+    Ok(FunctionCall),
+    DeferredInvalidArg,
+    Failed,
 }
 
 struct CompilerSnapshot {
@@ -83,7 +89,7 @@ struct CompilerSnapshot {
     skip_missing_query_target_len: usize,
     fallible: bool,
     abortable: bool,
-    speculative_infallible_error: bool,
+    speculative_deferred_error: bool,
     config: CompileConfig,
 }
 
@@ -121,7 +127,7 @@ impl<'a> Compiler<'a> {
             skip_missing_query_target_len: self.skip_missing_query_target.len(),
             fallible: self.fallible,
             abortable: self.abortable,
-            speculative_infallible_error: self.speculative_loop.had_infallible_error,
+            speculative_deferred_error: self.speculative_loop.had_deferred_error,
             config: self.config.clone(),
         }
     }
@@ -138,7 +144,7 @@ impl<'a> Compiler<'a> {
             .truncate(snapshot.skip_missing_query_target_len);
         self.fallible = snapshot.fallible;
         self.abortable = snapshot.abortable;
-        self.speculative_loop.had_infallible_error = snapshot.speculative_infallible_error;
+        self.speculative_loop.had_deferred_error = snapshot.speculative_deferred_error;
         self.config = snapshot.config.clone();
     }
 
@@ -251,9 +257,8 @@ impl<'a> Compiler<'a> {
             Op(node) => self.compile_op(node, state).map(Into::into),
             Assignment(node) => self.compile_assignment(node, state).map(Into::into),
             Query(node) => self.compile_query(node, state).map(Into::into),
-            FunctionCall(node) => self
-                .compile_function_call(node, state)
-                .map(|function_call| {
+            FunctionCall(node) => match self.compile_function_call_inner(node, state) {
+                CompiledCall::Ok(function_call) => {
                     let v = function_call
                         .warnings
                         .iter()
@@ -262,8 +267,11 @@ impl<'a> Compiler<'a> {
                         .collect::<Vec<_>>();
 
                     self.diagnostics.extend(v);
-                    function_call.into()
-                }),
+                    Some(function_call.into())
+                }
+                CompiledCall::DeferredInvalidArg => Some(Expr::Noop(Noop)),
+                CompiledCall::Failed => None,
+            },
             Variable(node) => self.compile_variable(node, state).map(Into::into),
             Unary(node) => self.compile_unary(node, state).map(Into::into),
             Abort(node) => self.compile_abort(node, state).map(Into::into),
@@ -559,7 +567,7 @@ impl<'a> Compiler<'a> {
             Ok((op, deferred_err)) => {
                 if let Some(err) = deferred_err {
                     self.diagnostics.push(Box::new(err));
-                    self.speculative_loop.had_infallible_error = true;
+                    self.speculative_loop.had_deferred_error = true;
                 }
                 op
             }
@@ -719,7 +727,7 @@ impl<'a> Compiler<'a> {
             Ok((a, deferred_err)) => {
                 if let Some(err) = deferred_err {
                     self.diagnostics.push(Box::new(err));
-                    self.speculative_loop.had_infallible_error = true;
+                    self.speculative_loop.had_deferred_error = true;
                 }
                 a
             }
@@ -835,6 +843,37 @@ impl<'a> Compiler<'a> {
         node: Node<ast::FunctionCall>,
         state: &mut TypeState,
     ) -> Option<FunctionCall> {
+        match self.compile_function_call_inner(node, state) {
+            CompiledCall::Ok(call) => Some(call),
+            CompiledCall::DeferredInvalidArg | CompiledCall::Failed => None,
+        }
+    }
+
+    fn compile_function_arguments(
+        &mut self,
+        arguments: Vec<Node<ast::FunctionArgument>>,
+        state: &mut TypeState,
+    ) -> Option<Vec<Node<FunctionArgument>>> {
+        let saved_loop_depth = self.loop_depth;
+        self.loop_depth = 0;
+        let compiled = arguments
+            .into_iter()
+            .map(|node| {
+                Some(Node::new(
+                    node.span(),
+                    self.compile_function_argument(node, state)?,
+                ))
+            })
+            .collect::<Option<Vec<_>>>();
+        self.loop_depth = saved_loop_depth;
+        compiled
+    }
+
+    fn compile_function_call_inner(
+        &mut self,
+        node: Node<ast::FunctionCall>,
+        state: &mut TypeState,
+    ) -> CompiledCall {
         let call_span = node.span();
         let ast::FunctionCall {
             ident,
@@ -870,6 +909,8 @@ impl<'a> Compiler<'a> {
         // see: https://github.com/vectordotdev/vector/issues/13752
         let state_before_function = original_state.clone();
 
+        let mut deferred_invalid_arg = false;
+
         // Compile arguments and run validation under a consuming scope so
         // any inner fallibility produced during arg compilation is dropped
         // when validation either subsumes it (E630/FallibleArgument) or
@@ -877,19 +918,7 @@ impl<'a> Compiler<'a> {
         // is re-pushed below via `result.error`).
         let function_info = self
             .consuming_fallibility(|c| {
-                let saved_loop_depth = c.loop_depth;
-                c.loop_depth = 0;
-                let arguments = arguments
-                    .into_iter()
-                    .map(|node| {
-                        Some(Node::new(
-                            node.span(),
-                            c.compile_function_argument(node, state)?,
-                        ))
-                    })
-                    .collect::<Option<Vec<_>>>();
-                c.loop_depth = saved_loop_depth;
-                let arguments = arguments?;
+                let arguments = c.compile_function_arguments(arguments, state)?;
 
                 function_call::Builder::new(
                     call_span,
@@ -901,7 +930,15 @@ impl<'a> Compiler<'a> {
                     state,
                     closure_variables,
                 )
-                .map_err(|err| c.diagnostics.push(Box::new(err)))
+                .map_err(|err| {
+                    if matches!(err, FunctionCallError::InvalidArgumentKind(_))
+                        && c.speculative_loop.depth > 0
+                    {
+                        c.speculative_loop.had_deferred_error = true;
+                        deferred_invalid_arg = true;
+                    }
+                    c.diagnostics.push(Box::new(err));
+                })
                 .ok()
             })
             .and_then(|builder| {
@@ -945,13 +982,16 @@ impl<'a> Compiler<'a> {
                     })
             });
 
-        if let Some((args, function)) = &function_info {
-            self.check_function_deprecations(function, args);
+        if let Some((args, function)) = function_info {
+            self.check_function_deprecations(&function, &args);
             // Update the final state using the function expression to make sure it's accurate.
             *state = function.type_info(&original_state).state;
+            CompiledCall::Ok(function)
+        } else if deferred_invalid_arg {
+            CompiledCall::DeferredInvalidArg
+        } else {
+            CompiledCall::Failed
         }
-
-        function_info.map(|info| info.1)
     }
 
     fn compile_function_argument(
@@ -1061,6 +1101,84 @@ impl<'a> Compiler<'a> {
         Some(Continue::new(span))
     }
 
+    fn compile_for_body_pass(
+        &mut self,
+        pattern: &ast::ForPattern,
+        iterable_kind: &crate::value::Kind,
+        block: Node<ast::Block>,
+        header_state: TypeState,
+        state: &mut TypeState,
+        speculative: bool,
+    ) -> Option<Block> {
+        *state = header_state;
+        expression::for_loop::bind_for_pattern(pattern, iterable_kind, state);
+
+        let prev_breakable = self.in_breakable_context;
+        self.in_breakable_context = false;
+        self.loop_depth += 1;
+        if speculative {
+            self.speculative_loop.depth += 1;
+        }
+        let compiled_block = self.compile_block(block, state);
+        if speculative {
+            self.speculative_loop.depth -= 1;
+        }
+        self.loop_depth -= 1;
+        self.in_breakable_context = prev_breakable;
+        compiled_block
+    }
+
+    fn validate_for_header(
+        &mut self,
+        pattern: &ast::ForPattern,
+        iterable_span: crate::diagnostic::Span,
+        iterable_kind: &crate::value::Kind,
+    ) -> bool {
+        // Reject if iterable contains any non-collection type or contains neither array nor object.
+        // Exempt the bottom type (`never`), e.g. iterating over an element of a statically empty collection.
+        if !iterable_kind.is_never()
+            && (expression::for_loop::contains_non_collection_kind(iterable_kind)
+                || (!iterable_kind.contains_array() && !iterable_kind.contains_object()))
+        {
+            self.diagnostics
+                .push(Box::new(expression::for_loop::Error::non_collection(
+                    iterable_span,
+                    iterable_kind.clone(),
+                )));
+            return false;
+        }
+
+        // Single-variable pattern is only valid if object iteration is impossible.
+        // If iterable can be an object, require key-value pattern: `for key, value in ...`
+        if let ast::ForPattern::Single(val_node) = pattern
+            && !iterable_kind.is_never()
+            && iterable_kind.contains_object()
+        {
+            self.diagnostics
+                .push(Box::new(expression::for_loop::Error::single_var_object(
+                    val_node.span(),
+                )));
+            return false;
+        }
+
+        // For KeyValue pattern: reject duplicate variable names.
+        if let ast::ForPattern::KeyValue(key_node, val_node) = pattern {
+            let k = key_node.inner();
+            let v = val_node.inner();
+            if k.as_ref() == v.as_ref() && k.as_ref() != "_" && !k.as_ref().is_empty() {
+                self.diagnostics.push(Box::new(
+                    expression::for_loop::Error::duplicate_pattern_ident(
+                        val_node.span(),
+                        k.to_string(),
+                    ),
+                ));
+                return false;
+            }
+        }
+
+        true
+    }
+
     fn compile_for_statement(
         &mut self,
         node: Node<ast::ForStatement>,
@@ -1083,46 +1201,8 @@ impl<'a> Compiler<'a> {
         self.update_state_for_loop_jumps(&compiled_iterable, &original_state, &mut pre_loop_state);
         let iterable_kind = iterable_type.kind();
 
-        // Reject if iterable contains any non-collection type or contains neither array nor object.
-        // Exempt the bottom type (`never`), e.g. iterating over an element of a statically empty collection.
-        if !iterable_kind.is_never()
-            && (expression::for_loop::contains_non_collection_kind(iterable_kind)
-                || (!iterable_kind.contains_array() && !iterable_kind.contains_object()))
-        {
-            self.diagnostics
-                .push(Box::new(expression::for_loop::Error::non_collection(
-                    iterable_span,
-                    iterable_kind.clone(),
-                )));
+        if !self.validate_for_header(&pattern, iterable_span, iterable_kind) {
             return None;
-        }
-
-        // Single-variable pattern is only valid if object iteration is impossible.
-        // If iterable can be an object, require key-value pattern: `for key, value in ...`
-        if let ast::ForPattern::Single(val_node) = &pattern
-            && !iterable_kind.is_never()
-            && iterable_kind.contains_object()
-        {
-            self.diagnostics
-                .push(Box::new(expression::for_loop::Error::single_var_object(
-                    val_node.span(),
-                )));
-            return None;
-        }
-
-        // For KeyValue pattern: reject duplicate variable names.
-        if let ast::ForPattern::KeyValue(key_node, val_node) = &pattern {
-            let k = key_node.inner();
-            let v = val_node.inner();
-            if k.as_ref() == v.as_ref() && k.as_ref() != "_" && !k.as_ref().is_empty() {
-                self.diagnostics.push(Box::new(
-                    expression::for_loop::Error::duplicate_pattern_ident(
-                        val_node.span(),
-                        k.to_string(),
-                    ),
-                ));
-                return None;
-            }
         }
 
         // Snapshot pre-loop state after iterable evaluation.
@@ -1134,20 +1214,16 @@ impl<'a> Compiler<'a> {
 
         let (for_expr, final_state) = loop {
             self.restore_snapshot(&snapshot);
-            self.speculative_loop.had_infallible_error = false;
-            *state = current_pre_loop_state.clone();
-            expression::for_loop::bind_for_pattern(&pattern, iterable_kind, state);
-
-            let prev_breakable = self.in_breakable_context;
-            self.in_breakable_context = false;
-            self.loop_depth += 1;
-            self.speculative_loop.depth += 1;
-            let compiled_block = self.compile_block(block.clone(), state);
-            self.speculative_loop.depth -= 1;
-            self.loop_depth -= 1;
-            self.in_breakable_context = prev_breakable;
-            let compiled_block = compiled_block?;
-            let pass_had_speculative_error = self.speculative_loop.had_infallible_error;
+            self.speculative_loop.had_deferred_error = false;
+            let compiled_block = self.compile_for_body_pass(
+                &pattern,
+                iterable_kind,
+                block.clone(),
+                current_pre_loop_state.clone(),
+                state,
+                true,
+            )?;
+            let pass_had_speculative_error = self.speculative_loop.had_deferred_error;
 
             let for_expr = For::new(
                 for_span,
@@ -1162,8 +1238,19 @@ impl<'a> Compiler<'a> {
             expression::for_loop::canonicalize_type_state(&mut next_pre_loop_state);
 
             if next_pre_loop_state == current_pre_loop_state {
-                self.speculative_loop.had_infallible_error |= snapshot.speculative_infallible_error;
+                self.speculative_loop.had_deferred_error |= snapshot.speculative_deferred_error;
                 if pass_had_speculative_error && self.speculative_loop.depth == 0 {
+                    // Re-compile non-speculatively at the converged header state so diagnostics
+                    // reflect the real errors without cascading from speculative placeholders.
+                    self.restore_snapshot(&snapshot);
+                    let _ = self.compile_for_body_pass(
+                        &pattern,
+                        iterable_kind,
+                        block,
+                        current_pre_loop_state,
+                        state,
+                        false,
+                    );
                     return None;
                 }
                 break (for_expr, loop_type_info.state);
