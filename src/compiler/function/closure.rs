@@ -331,7 +331,7 @@ where
         LoopScopeGuard::new(self, ctx)
     }
 
-    fn ident(&self, index: usize) -> Option<&Ident> {
+    fn ident(&self, index: usize) -> Option<&'a Ident> {
         self.variables
             .get(index)
             .and_then(|v| (!v.is_empty() && v.as_ref() != "_").then_some(v))
@@ -345,11 +345,7 @@ where
 /// and restores the outer state upon completion, early return, or error.
 pub struct LoopScopeGuard<'a, 'c, 'b, T> {
     runner: &'a Runner<'a, T>,
-    ctx: &'c mut Context<'b>,
-    first_ident: Option<Ident>,
-    first_old_value: Option<Value>,
-    second_ident: Option<Ident>,
-    second_old_value: Option<Value>,
+    guard: crate::compiler::context::BindingScopeGuard<'a, 'c, 'b>,
 }
 
 pub type ScopedLoop<'a, 'c, 'b, T> = LoopScopeGuard<'a, 'c, 'b, T>;
@@ -359,24 +355,10 @@ where
     T: Fn(&mut Context) -> Result<Value, ExpressionError>,
 {
     pub fn new(runner: &'a Runner<'a, T>, ctx: &'c mut Context<'b>) -> Self {
-        let first_ident = runner.ident(0).cloned();
-        let first_old_value = first_ident
-            .as_ref()
-            .and_then(|ident| ctx.state_mut().remove_variable(ident));
+        let guard =
+            crate::compiler::context::BindingScopeGuard::new(ctx, runner.ident(0), runner.ident(1));
 
-        let second_ident = runner.ident(1).cloned();
-        let second_old_value = second_ident
-            .as_ref()
-            .and_then(|ident| ctx.state_mut().remove_variable(ident));
-
-        Self {
-            runner,
-            ctx,
-            first_ident,
-            first_old_value,
-            second_ident,
-            second_old_value,
-        }
+        Self { runner, guard }
     }
 
     pub fn run_key_value(
@@ -384,16 +366,9 @@ where
         key: KeyString,
         value: Value,
     ) -> Result<Value, ExpressionError> {
-        if let Some(ident) = &self.first_ident {
-            self.ctx
-                .state_mut()
-                .set_or_insert_variable(ident, Value::from(key));
-        }
-        if let Some(ident) = &self.second_ident {
-            self.ctx.state_mut().set_or_insert_variable(ident, value);
-        }
+        self.guard.set_key_value(Value::from(key), value);
 
-        match (self.runner.runner)(self.ctx) {
+        match (self.runner.runner)(self.guard.ctx_mut()) {
             Ok(val) | Err(ExpressionError::Return { value: val, .. }) => Ok(val),
             err @ Err(_) => err,
         }
@@ -404,37 +379,9 @@ where
         index: usize,
         value: Value,
     ) -> Result<Value, ExpressionError> {
-        if let Some(ident) = &self.first_ident {
-            self.ctx
-                .state_mut()
-                .set_or_insert_variable(ident, Value::from(index));
-        }
-        if let Some(ident) = &self.second_ident {
-            self.ctx.state_mut().set_or_insert_variable(ident, value);
-        }
+        self.guard.set_key_value(Value::from(index), value);
 
-        (self.runner.runner)(self.ctx)
-    }
-}
-
-impl<T> Drop for LoopScopeGuard<'_, '_, '_, T> {
-    fn drop(&mut self) {
-        if let Some(ident) = &self.first_ident {
-            match self.first_old_value.take() {
-                Some(val) => self.ctx.state_mut().set_or_insert_variable(ident, val),
-                None => {
-                    self.ctx.state_mut().remove_variable(ident);
-                }
-            }
-        }
-        if let Some(ident) = &self.second_ident {
-            match self.second_old_value.take() {
-                Some(val) => self.ctx.state_mut().set_or_insert_variable(ident, val),
-                None => {
-                    self.ctx.state_mut().remove_variable(ident);
-                }
-            }
-        }
+        (self.runner.runner)(self.guard.ctx_mut())
     }
 }
 
@@ -646,11 +593,11 @@ mod tests {
             assert!(scoped.run_index_value(1, Value::from("y")).is_ok());
             // Inside the loop, variables exist in state
             assert_eq!(
-                scoped.ctx.state().variable(&idx_ident),
+                scoped.guard.ctx_mut().state().variable(&idx_ident),
                 Some(&Value::Integer(1))
             );
             assert_eq!(
-                scoped.ctx.state().variable(&val_ident),
+                scoped.guard.ctx_mut().state().variable(&val_ident),
                 Some(&Value::from("y"))
             );
         }

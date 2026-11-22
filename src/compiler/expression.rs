@@ -9,7 +9,7 @@ pub use block::Block;
 pub use break_::Break;
 pub use container::{Container, Variant};
 pub use continue_::Continue;
-pub use for_loop::{For, ForScopeGuard};
+pub use for_loop::For;
 #[allow(clippy::module_name_repetitions)]
 pub use function::FunctionExpression;
 pub use function_argument::FunctionArgument;

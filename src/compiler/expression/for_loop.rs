@@ -1,5 +1,6 @@
 use std::fmt;
 
+use crate::compiler::context::BindingScopeGuard;
 use crate::compiler::expression::{Block, Expr, Resolved};
 use crate::compiler::parser::ast::{ForPattern, Ident};
 use crate::compiler::state::{TypeInfo, TypeState};
@@ -43,7 +44,7 @@ impl For {
     where
         I: IntoIterator<Item = Result<LoopItem, ExpressionError>>,
     {
-        let mut guard = ForScopeGuard::new(ctx, first_ident, second_ident);
+        let mut guard = BindingScopeGuard::new(ctx, first_ident, second_ident);
 
         for item_res in items {
             guard.ctx_mut().checkpoint()?;
@@ -1120,110 +1121,6 @@ impl DiagnosticMessage for Error {
     }
 }
 
-/// An RAII guard that manages variable bindings across loop iterations.
-///
-/// Pre-existing outer variables matching the loop variable names have their
-/// values saved before the loop begins and restored when the loop exits
-/// (via normal completion, break, return, or error).
-/// Loop variable slots are updated in-place during the loop without allocations.
-/// Loop variables that did not exist before the loop are dropped on exit.
-pub struct ForScopeGuard<'a, 'c, 'b> {
-    ctx: &'c mut Context<'b>,
-    first_ident: Option<&'a Ident>,
-    first_old_value: Option<Value>,
-    second_ident: Option<&'a Ident>,
-    second_old_value: Option<Value>,
-}
-
-impl<'a, 'c, 'b> ForScopeGuard<'a, 'c, 'b> {
-    #[must_use]
-    pub fn new(
-        ctx: &'c mut Context<'b>,
-        first_ident: Option<&'a Ident>,
-        mut second_ident: Option<&'a Ident>,
-    ) -> Self {
-        let first_old_value = first_ident.and_then(|ident| ctx.state_mut().remove_variable(ident));
-
-        if first_ident == second_ident {
-            second_ident = None;
-        }
-
-        let second_old_value =
-            second_ident.and_then(|ident| ctx.state_mut().remove_variable(ident));
-
-        Self {
-            ctx,
-            first_ident,
-            first_old_value,
-            second_ident,
-            second_old_value,
-        }
-    }
-
-    #[inline]
-    pub fn ctx_mut(&mut self) -> &mut Context<'b> {
-        self.ctx
-    }
-
-    #[inline]
-    #[must_use]
-    pub fn has_first(&self) -> bool {
-        self.first_ident.is_some()
-    }
-
-    #[inline]
-    #[must_use]
-    pub fn has_second(&self) -> bool {
-        self.second_ident.is_some()
-    }
-
-    #[inline]
-    pub fn set_first(&mut self, value: Value) {
-        if let Some(ident) = self.first_ident {
-            self.ctx.state_mut().set_or_insert_variable(ident, value);
-        }
-    }
-
-    #[inline]
-    pub fn set_second(&mut self, value: Value) {
-        if let Some(ident) = self.second_ident {
-            self.ctx.state_mut().set_or_insert_variable(ident, value);
-        }
-    }
-
-    #[inline]
-    pub fn set_single(&mut self, value: Value) {
-        self.set_first(value);
-    }
-
-    #[inline]
-    pub fn set_key_value(&mut self, key: Value, value: Value) {
-        self.set_first(key);
-        self.set_second(value);
-    }
-}
-
-impl Drop for ForScopeGuard<'_, '_, '_> {
-    fn drop(&mut self) {
-        if let Some(ident) = self.first_ident {
-            match self.first_old_value.take() {
-                Some(val) => self.ctx.state_mut().set_or_insert_variable(ident, val),
-                None => {
-                    self.ctx.state_mut().remove_variable(ident);
-                }
-            }
-        }
-        if let Some(ident) = self.second_ident {
-            match self.second_old_value.take() {
-                Some(val) => self.ctx.state_mut().set_or_insert_variable(ident, val),
-                None => {
-                    self.ctx.state_mut().remove_variable(ident);
-                }
-            }
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1250,7 +1147,7 @@ mod tests {
 
         let x_id = Ident::new("x");
         let y_id = Ident::new("y");
-        let mut guard = ForScopeGuard::new(&mut ctx, Some(&x_id), Some(&y_id));
+        let mut guard = BindingScopeGuard::new(&mut ctx, Some(&x_id), Some(&y_id));
 
         guard.set_key_value(Value::Integer(0), Value::from("first"));
         assert_eq!(
@@ -1283,7 +1180,7 @@ mod tests {
 
         {
             let mut ctx = test_ctx(&mut target, &mut state, &tz);
-            let mut guard = ForScopeGuard::new(&mut ctx, Some(&x_id), None);
+            let mut guard = BindingScopeGuard::new(&mut ctx, Some(&x_id), None);
             guard.set_single(Value::from("in_loop"));
             assert_eq!(
                 guard.ctx_mut().state().variable(&x_id),
@@ -1303,7 +1200,7 @@ mod tests {
 
         {
             let mut ctx = test_ctx(&mut target, &mut state, &tz);
-            let mut guard = ForScopeGuard::new(&mut ctx, Some(&x_id), None);
+            let mut guard = BindingScopeGuard::new(&mut ctx, Some(&x_id), None);
             guard.set_single(Value::from("in_loop"));
             assert_eq!(
                 guard.ctx_mut().state().variable(&x_id),
@@ -1590,19 +1487,6 @@ mod tests {
     use crate::compiler::runtime::Runtime;
 
     #[test]
-    fn test_scope_guard_has_methods() {
-        let mut target = Value::Null;
-        let mut state = RuntimeState::default();
-        let tz = TimeZone::default();
-        let mut ctx = Context::new(&mut target, &mut state, &tz);
-
-        let k = Ident::new("k");
-        let guard = ForScopeGuard::new(&mut ctx, Some(&k), None);
-        assert!(guard.has_first());
-        assert!(!guard.has_second());
-    }
-
-    #[test]
     fn test_scope_guard_selective_setters() {
         let mut target = Value::Null;
         let mut state = RuntimeState::default();
@@ -1614,9 +1498,7 @@ mod tests {
 
         // 1. Both present
         {
-            let mut guard = ForScopeGuard::new(&mut ctx, Some(&k_id), Some(&v_id));
-            assert!(guard.has_first());
-            assert!(guard.has_second());
+            let mut guard = BindingScopeGuard::new(&mut ctx, Some(&k_id), Some(&v_id));
             guard.set_first(Value::from("key1"));
             guard.set_second(Value::Integer(100));
             assert_eq!(
@@ -1628,40 +1510,42 @@ mod tests {
                 Some(&Value::Integer(100))
             );
         }
+        assert!(ctx.state().variable(&k_id).is_none());
+        assert!(ctx.state().variable(&v_id).is_none());
 
         // 2. Only first present (second wildcard)
         {
-            let mut guard_first = ForScopeGuard::new(&mut ctx, Some(&k_id), None);
-            assert!(guard_first.has_first());
-            assert!(!guard_first.has_second());
+            let mut guard_first = BindingScopeGuard::new(&mut ctx, Some(&k_id), None);
             guard_first.set_first(Value::from("key2"));
             guard_first.set_second(Value::Integer(200)); // no-op for second
             assert_eq!(
                 guard_first.ctx_mut().state().variable(&k_id),
                 Some(&Value::from("key2"))
             );
+            assert!(guard_first.ctx_mut().state().variable(&v_id).is_none());
         }
+        assert!(ctx.state().variable(&k_id).is_none());
 
         // 3. Only second present (first wildcard)
         {
-            let mut guard_second = ForScopeGuard::new(&mut ctx, None, Some(&v_id));
-            assert!(!guard_second.has_first());
-            assert!(guard_second.has_second());
+            let mut guard_second = BindingScopeGuard::new(&mut ctx, None, Some(&v_id));
             guard_second.set_first(Value::from("key3")); // no-op for first
             guard_second.set_second(Value::Integer(300));
+            assert!(guard_second.ctx_mut().state().variable(&k_id).is_none());
             assert_eq!(
                 guard_second.ctx_mut().state().variable(&v_id),
                 Some(&Value::Integer(300))
             );
         }
+        assert!(ctx.state().variable(&v_id).is_none());
 
         // 4. Neither present (both wildcards)
         {
-            let mut guard_none = ForScopeGuard::new(&mut ctx, None, None);
-            assert!(!guard_none.has_first());
-            assert!(!guard_none.has_second());
+            let mut guard_none = BindingScopeGuard::new(&mut ctx, None, None);
             guard_none.set_first(Value::from("key4")); // no-op
             guard_none.set_second(Value::Integer(400)); // no-op
+            assert!(guard_none.ctx_mut().state().variable(&k_id).is_none());
+            assert!(guard_none.ctx_mut().state().variable(&v_id).is_none());
         }
     }
 
