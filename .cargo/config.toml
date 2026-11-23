@@ -1,6 +1,3 @@
-[registry]
-global-min-publish-age = "7 days"
-
 [target.'cfg(all())']
 rustflags = [
   "-Dclippy::print_stdout",
