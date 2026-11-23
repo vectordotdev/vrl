@@ -46,10 +46,11 @@ impl Function for EncodeZstd {
     }
 
     fn examples(&self) -> &'static [Example] {
+        // Compressed bytes can change between Zstd versions, so verify the round trip.
         &[example! {
             title: "Encode to Zstd",
-            source: r#"encode_base64(encode_zstd("please encode me"))"#,
-            result: Ok("KLUv/QBYgQAAcGxlYXNlIGVuY29kZSBtZQ=="),
+            source: r#"decode_zstd!(encode_zstd("please encode me"))"#,
+            result: Ok("please encode me"),
         }]
     }
 
