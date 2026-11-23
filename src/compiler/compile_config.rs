@@ -75,6 +75,11 @@ impl CompileConfig {
         &mut self.custom
     }
 
+    #[must_use]
+    pub(crate) fn has_custom(&self) -> bool {
+        !self.custom.is_empty()
+    }
+
     /// Marks everything as read only. Any mutations on read-only values will result in a
     /// compile time error.
     pub fn set_read_only(&mut self) {

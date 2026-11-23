@@ -1,13 +1,19 @@
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::fmt;
 
 use crate::compiler::context::BindingScopeGuard;
 use crate::compiler::expression::{Block, Expr, Resolved};
-use crate::compiler::parser::ast::{ForPattern, Ident};
+use crate::compiler::parser::ast::{self, ForPattern, Ident};
 use crate::compiler::state::{TypeInfo, TypeState};
+use crate::compiler::type_def::Details;
 use crate::compiler::{Context, Expression, ExpressionError, Span, TypeDef, codes};
 use crate::diagnostic::{DiagnosticMessage, Label};
+use crate::path::PathPrefix;
 use crate::value::kind::Collection;
 use crate::value::{Kind, ObjectMap, Value};
+
+pub(crate) const MAX_LOOP_REPASSES: usize = 128;
+pub(crate) const MAX_CACHE_ENTRIES_PER_LOOP: usize = 16;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct For {
@@ -125,8 +131,103 @@ impl For {
 }
 
 impl For {
-    pub(crate) fn eval_for_in_loop(&self, state: &TypeState) -> (TypeState, LoopFlow) {
-        let iter_flow = eval_loop_expr(&self.iterable, state);
+    fn eval_for_body_fixed_point(
+        &self,
+        pre_loop_state: &TypeState,
+        iterable_kind: &Kind,
+        ctx: &mut LoopEvalContext,
+    ) -> (TypeState, Option<TypeState>, bool, Kind, bool) {
+        let mut current_state = pre_loop_state.clone();
+        let body_footprint = LoopFootprint::for_block_with_pattern(&self.pattern, &self.block);
+        let pre_widened = ctx.remaining_repasses == 0;
+        if pre_widened {
+            body_footprint.widen_written_state(&mut current_state);
+        }
+
+        let mut accumulated_break_state: Option<TypeState> = None;
+        let mut fallible = false;
+        let mut final_returns = Kind::never();
+        let mut iterations = 0;
+        let mut budget_widened = pre_widened;
+
+        loop {
+            let mut iter_state = current_state.clone();
+            let pattern_idents = bind_for_pattern(&self.pattern, iterable_kind, &mut iter_state);
+
+            let flow = eval_loop_block_with_ctx(&self.block, &iter_state, ctx);
+            fallible |= flow.result.is_fallible();
+            final_returns = final_returns.union(flow.result.returns().clone());
+
+            let back_edge_state = merge_opt_state(flow.normal, flow.continue_state).map(|mut s| {
+                restore_pattern_variables(&mut s, pre_loop_state, &pattern_idents);
+                canonicalize_type_state(&mut s);
+                s
+            });
+
+            let iter_break_state = flow.break_state.map(|mut s| {
+                restore_pattern_variables(&mut s, pre_loop_state, &pattern_idents);
+                canonicalize_type_state(&mut s);
+                s
+            });
+            accumulated_break_state = merge_opt_state(accumulated_break_state, iter_break_state);
+            if let Some(ref mut brk) = accumulated_break_state {
+                canonicalize_type_state(brk);
+            }
+
+            let mut next_state = match back_edge_state {
+                Some(back_state) => current_state.clone().merge(back_state),
+                None => current_state.clone(),
+            };
+            canonicalize_type_state(&mut next_state);
+
+            if next_state == current_state || pre_widened {
+                current_state = next_state;
+                break;
+            }
+
+            if ctx.remaining_repasses == 0 {
+                body_footprint.widen_written_state(&mut next_state);
+                current_state = next_state;
+                budget_widened = true;
+                break;
+            }
+            ctx.remaining_repasses -= 1;
+
+            iterations += 1;
+            if iterations >= WIDEN_AFTER_ITERATIONS {
+                widen_differing_states(
+                    &current_state,
+                    &mut next_state,
+                    iterations >= FALLBACK_WIDEN_ITERATIONS,
+                );
+            }
+            current_state = next_state;
+        }
+
+        (
+            current_state,
+            accumulated_break_state,
+            fallible,
+            final_returns,
+            budget_widened,
+        )
+    }
+
+    pub(crate) fn eval_for_in_loop_with_ctx(
+        &self,
+        state: &TypeState,
+        ctx: &mut LoopEvalContext,
+    ) -> (TypeState, LoopFlow) {
+        let footprint = LoopFootprint::for_expr(self);
+        let projected_input = (!footprint.opaque).then(|| footprint.project(state));
+
+        if let Some(ref input) = projected_input
+            && let Some(cached) = ctx.lookup(self.span, input)
+        {
+            return cached.apply(state);
+        }
+
+        let iter_flow = eval_loop_expr_with_ctx(&self.iterable, state, ctx);
         let Some(mut pre_loop_state) = iter_flow.normal else {
             let mut fallback_header = self.iterable.type_info(state).state;
             canonicalize_type_state(&mut fallback_header);
@@ -142,80 +243,48 @@ impl For {
         };
 
         canonicalize_type_state(&mut pre_loop_state);
-        let mut current_state = pre_loop_state.clone();
-        let mut accumulated_break_state: Option<TypeState> = None;
+        let (header_state, accumulated_break_state, body_fallible, body_returns, budget_widened) =
+            self.eval_for_body_fixed_point(&pre_loop_state, iter_flow.result.kind(), ctx);
 
-        let iterable_kind = iter_flow.result.kind();
-        let mut fallible = iter_flow.result.is_fallible();
-        let mut final_returns = iter_flow.result.returns().clone();
-        let mut iterations = 0;
-
-        loop {
-            let mut iter_state = current_state.clone();
-            let pattern_idents = bind_for_pattern(&self.pattern, iterable_kind, &mut iter_state);
-
-            let flow = eval_loop_block(&self.block, &iter_state);
-            fallible |= flow.result.is_fallible();
-            final_returns = final_returns.union(flow.result.returns().clone());
-
-            let back_edge_state = merge_opt_state(flow.normal, flow.continue_state).map(|mut s| {
-                restore_pattern_variables(&mut s, &pre_loop_state, &pattern_idents);
-                canonicalize_type_state(&mut s);
-                s
-            });
-
-            let iter_break_state = flow.break_state.map(|mut s| {
-                restore_pattern_variables(&mut s, &pre_loop_state, &pattern_idents);
-                canonicalize_type_state(&mut s);
-                s
-            });
-            accumulated_break_state = merge_opt_state(accumulated_break_state, iter_break_state);
-            if let Some(ref mut brk) = accumulated_break_state {
-                canonicalize_type_state(brk);
-            }
-
-            let mut next_state = match back_edge_state {
-                Some(back_state) => current_state.clone().merge(back_state),
-                None => current_state.clone(),
-            };
-            canonicalize_type_state(&mut next_state);
-
-            if next_state == current_state {
-                break;
-            }
-
-            iterations += 1;
-            if iterations >= WIDEN_AFTER_ITERATIONS {
-                widen_differing_states(
-                    &current_state,
-                    &mut next_state,
-                    iterations >= FALLBACK_WIDEN_ITERATIONS,
-                );
-            }
-            current_state = next_state;
-        }
-
-        let header_state = current_state.clone();
-        let mut post_loop_normal = merge_opt_state(Some(current_state), accumulated_break_state)
-            .expect("at least current_state")
-            .merge(pre_loop_state);
+        let mut post_loop_normal =
+            merge_opt_state(Some(header_state.clone()), accumulated_break_state)
+                .expect("at least header_state")
+                .merge(pre_loop_state);
         canonicalize_type_state(&mut post_loop_normal);
 
-        (
-            header_state,
-            LoopFlow {
-                normal: Some(post_loop_normal),
-                break_state: iter_flow.break_state,
-                continue_state: iter_flow.continue_state,
-                result: TypeDef::null()
-                    .maybe_fallible(fallible)
-                    .with_returns(final_returns),
-            },
-        )
+        let result_flow = LoopFlow {
+            normal: Some(post_loop_normal),
+            break_state: iter_flow.break_state,
+            continue_state: iter_flow.continue_state,
+            result: TypeDef::null()
+                .maybe_fallible(iter_flow.result.is_fallible() || body_fallible)
+                .with_returns(iter_flow.result.returns().clone().union(body_returns)),
+        };
+
+        if let Some(input) = projected_input
+            && !budget_widened
+        {
+            ctx.insert(
+                self.span,
+                input,
+                CachedLoopEntry::from_result(&footprint, &header_state, &result_flow),
+            );
+        }
+
+        (header_state, result_flow)
     }
 
     pub(crate) fn resolve_loop_type_info(&self, state: &TypeState) -> (TypeState, TypeInfo) {
-        let (header_state, flow) = self.eval_for_in_loop(state);
+        let mut ctx = LoopEvalContext::new();
+        self.resolve_loop_type_info_with_ctx(state, &mut ctx)
+    }
+
+    pub(crate) fn resolve_loop_type_info_with_ctx(
+        &self,
+        state: &TypeState,
+        ctx: &mut LoopEvalContext,
+    ) -> (TypeState, TypeInfo) {
+        let (header_state, flow) = self.eval_for_in_loop_with_ctx(state, ctx);
         let mut final_state = merge_opt_state(
             flow.normal,
             merge_opt_state(flow.break_state, flow.continue_state),
@@ -344,9 +413,14 @@ impl LoopFlowSeq {
         }
     }
 
-    fn step(&mut self, expr: &Expr, track_fallibility: bool) -> Option<TypeDef> {
+    fn step_with_ctx(
+        &mut self,
+        expr: &Expr,
+        track_fallibility: bool,
+        ctx: &mut LoopEvalContext,
+    ) -> Option<TypeDef> {
         let active_state = self.normal.as_ref()?;
-        let flow = eval_loop_expr(expr, active_state);
+        let flow = eval_loop_expr_with_ctx(expr, active_state, ctx);
         if track_fallibility && flow.result.is_fallible() {
             self.fallible = true;
         }
@@ -389,20 +463,46 @@ fn merge_opt_state(a: Option<TypeState>, b: Option<TypeState>) -> Option<TypeSta
 }
 
 pub(crate) fn expr_contains_loop_jump(expr: &Expr) -> bool {
+    expr_matches_control_flow(expr, false, true)
+}
+
+pub(crate) fn expr_contains_for(expr: &Expr) -> bool {
+    expr_matches_control_flow(expr, true, false)
+}
+
+fn expr_needs_loop_eval(expr: &Expr) -> bool {
+    expr_matches_control_flow(expr, true, true)
+}
+
+fn expr_matches_control_flow(expr: &Expr, include_nested_for: bool, include_exits: bool) -> bool {
     use crate::compiler::expression::{container::Variant, query::Target, unary};
 
     match expr {
-        Expr::Break(_) | Expr::Continue(_) | Expr::Abort(_) | Expr::Return(_) => true,
+        Expr::Break(_) | Expr::Continue(_) | Expr::Abort(_) | Expr::Return(_) => include_exits,
         // A nested `for` loop captures jumps from its body, but jumps inside its
-        // `iterable` still target the enclosing `for` loop.
-        Expr::For(for_expr) => expr_contains_loop_jump(&for_expr.iterable),
+        // `iterable` still target the enclosing `for` loop. When evaluating with a
+        // shared `LoopEvalContext`, nested `for` loops must also go through
+        // `eval_loop_expr_with_ctx` so they share the summary cache and pass budget.
+        Expr::For(for_expr) => {
+            include_nested_for
+                || expr_matches_control_flow(&for_expr.iterable, false, include_exits)
+        }
         // Neither function arguments nor closures may break/continue an enclosing `for` loop.
         Expr::Literal(_) | Expr::Variable(_) | Expr::Noop(_) | Expr::FunctionCall(_) => false,
         Expr::Container(container) => match &container.variant {
-            Variant::Group(group) => expr_contains_loop_jump(group.inner_expr()),
-            Variant::Block(block) => block.exprs().iter().any(expr_contains_loop_jump),
-            Variant::Array(array) => array.iter().any(expr_contains_loop_jump),
-            Variant::Object(object) => object.values().any(expr_contains_loop_jump),
+            Variant::Group(group) => {
+                expr_matches_control_flow(group.inner_expr(), include_nested_for, include_exits)
+            }
+            Variant::Block(block) => block
+                .exprs()
+                .iter()
+                .any(|e| expr_matches_control_flow(e, include_nested_for, include_exits)),
+            Variant::Array(array) => array
+                .iter()
+                .any(|e| expr_matches_control_flow(e, include_nested_for, include_exits)),
+            Variant::Object(object) => object
+                .values()
+                .any(|e| expr_matches_control_flow(e, include_nested_for, include_exits)),
         },
         Expr::IfStatement(if_stmt) => {
             if_stmt
@@ -410,34 +510,50 @@ pub(crate) fn expr_contains_loop_jump(expr: &Expr) -> bool {
                 .block()
                 .exprs()
                 .iter()
-                .any(expr_contains_loop_jump)
-                || if_stmt.if_block.exprs().iter().any(expr_contains_loop_jump)
+                .any(|e| expr_matches_control_flow(e, include_nested_for, include_exits))
                 || if_stmt
-                    .else_block
-                    .as_ref()
-                    .is_some_and(|b| b.exprs().iter().any(expr_contains_loop_jump))
+                    .if_block
+                    .exprs()
+                    .iter()
+                    .any(|e| expr_matches_control_flow(e, include_nested_for, include_exits))
+                || if_stmt.else_block.as_ref().is_some_and(|b| {
+                    b.exprs()
+                        .iter()
+                        .any(|e| expr_matches_control_flow(e, include_nested_for, include_exits))
+                })
         }
-        Expr::Op(op) => expr_contains_loop_jump(&op.lhs) || expr_contains_loop_jump(&op.rhs),
+        Expr::Op(op) => {
+            expr_matches_control_flow(&op.lhs, include_nested_for, include_exits)
+                || expr_matches_control_flow(&op.rhs, include_nested_for, include_exits)
+        }
         Expr::Assignment(assignment) => match assignment.variant() {
             crate::compiler::expression::assignment::Variant::Single { expr, .. }
             | crate::compiler::expression::assignment::Variant::Infallible { expr, .. } => {
-                expr_contains_loop_jump(expr)
+                expr_matches_control_flow(expr, include_nested_for, include_exits)
             }
         },
         Expr::Query(query) => match query.target() {
             Target::Internal(_) | Target::External(_) | Target::FunctionCall(_) => false,
-            Target::Container(container) => {
-                expr_contains_loop_jump(&Expr::Container(container.clone()))
-            }
+            Target::Container(container) => expr_matches_control_flow(
+                &Expr::Container(container.clone()),
+                include_nested_for,
+                include_exits,
+            ),
         },
         Expr::Unary(unary) => match unary.variant() {
-            unary::Variant::Not(not) => expr_contains_loop_jump(not.inner_expr()),
+            unary::Variant::Not(not) => {
+                expr_matches_control_flow(not.inner_expr(), include_nested_for, include_exits)
+            }
         },
     }
 }
 
-fn eval_loop_block(block: &Block, state: &TypeState) -> LoopFlow {
-    if !block.exprs().iter().any(expr_contains_loop_jump) {
+fn eval_loop_block_with_ctx(
+    block: &Block,
+    state: &TypeState,
+    ctx: &mut LoopEvalContext,
+) -> LoopFlow {
+    if !block.exprs().iter().any(expr_needs_loop_eval) {
         return LoopFlow::from_type_info(block.type_info(state));
     }
 
@@ -447,7 +563,7 @@ fn eval_loop_block(block: &Block, state: &TypeState) -> LoopFlow {
     let mut after_never_expression = false;
 
     for expr in block.exprs() {
-        let Some(expr_result) = seq.step(expr, !after_never_expression) else {
+        let Some(expr_result) = seq.step_with_ctx(expr, !after_never_expression, ctx) else {
             break;
         };
         if expr_result.is_never() {
@@ -474,12 +590,15 @@ fn eval_loop_block(block: &Block, state: &TypeState) -> LoopFlow {
 }
 
 #[allow(clippy::too_many_lines)]
-pub(crate) fn eval_loop_expr(expr: &Expr, state: &TypeState) -> LoopFlow {
+pub(crate) fn eval_loop_expr_with_ctx(
+    expr: &Expr,
+    state: &TypeState,
+    ctx: &mut LoopEvalContext,
+) -> LoopFlow {
     use crate::compiler::expression::{assignment, container::Variant, query::Target, unary};
     use crate::parser::ast::Opcode;
-    use std::collections::BTreeMap;
 
-    if !expr_contains_loop_jump(expr) {
+    if !expr_needs_loop_eval(expr) {
         return LoopFlow::from_type_info(expr.type_info(state));
     }
 
@@ -490,16 +609,16 @@ pub(crate) fn eval_loop_expr(expr: &Expr, state: &TypeState) -> LoopFlow {
         Expr::Continue(_) => {
             LoopFlow::never_with_exits(None, Some(state.clone()), false, Kind::never())
         }
-        Expr::For(for_expr) => for_expr.eval_for_in_loop(state).1,
+        Expr::For(for_expr) => for_expr.eval_for_in_loop_with_ctx(state, ctx).1,
         Expr::Container(container) => match &container.variant {
-            Variant::Group(group) => eval_loop_expr(group.inner_expr(), state),
-            Variant::Block(block) => eval_loop_block(block, state),
+            Variant::Group(group) => eval_loop_expr_with_ctx(group.inner_expr(), state, ctx),
+            Variant::Block(block) => eval_loop_block_with_ctx(block, state, ctx),
             Variant::Array(array) => {
                 let mut seq = LoopFlowSeq::new(state);
                 let mut type_defs = Vec::with_capacity(array.len());
 
                 for item in array.iter() {
-                    let Some(type_def) = seq.step(item, true) else {
+                    let Some(type_def) = seq.step_with_ctx(item, true, ctx) else {
                         break;
                     };
                     let type_def = type_def.upgrade_undefined();
@@ -521,7 +640,7 @@ pub(crate) fn eval_loop_expr(expr: &Expr, state: &TypeState) -> LoopFlow {
                 let mut type_defs = BTreeMap::new();
 
                 for (k, item) in object.iter() {
-                    let Some(type_def) = seq.step(item, true) else {
+                    let Some(type_def) = seq.step_with_ctx(item, true, ctx) else {
                         break;
                     };
                     let type_def = type_def.upgrade_undefined();
@@ -539,14 +658,14 @@ pub(crate) fn eval_loop_expr(expr: &Expr, state: &TypeState) -> LoopFlow {
             }
         },
         Expr::IfStatement(if_stmt) => {
-            let mut pred_flow = eval_loop_block(if_stmt.predicate.block(), state);
+            let mut pred_flow = eval_loop_block_with_ctx(if_stmt.predicate.block(), state, ctx);
             let Some(after_pred_state) = pred_flow.normal.take() else {
                 return pred_flow;
             };
 
-            let if_flow = eval_loop_block(&if_stmt.if_block, &after_pred_state);
+            let if_flow = eval_loop_block_with_ctx(&if_stmt.if_block, &after_pred_state, ctx);
             let branch_flow = if let Some(else_block) = &if_stmt.else_block {
-                let else_flow = eval_loop_block(else_block, &after_pred_state);
+                let else_flow = eval_loop_block_with_ctx(else_block, &after_pred_state, ctx);
                 if_flow.merge_branch(else_flow, TypeDef::union)
             } else {
                 let fallthrough = LoopFlow {
@@ -561,7 +680,7 @@ pub(crate) fn eval_loop_expr(expr: &Expr, state: &TypeState) -> LoopFlow {
         }
         Expr::Assignment(assignment) => match assignment.variant() {
             assignment::Variant::Single { target, expr } => {
-                let mut rhs_flow = eval_loop_expr(expr, state);
+                let mut rhs_flow = eval_loop_expr_with_ctx(expr, state, ctx);
                 let expr_result = rhs_flow.result.clone().impure();
                 if let Some(ref mut s) = rhs_flow.normal {
                     let const_value = expr.resolve_constant(s);
@@ -575,7 +694,7 @@ pub(crate) fn eval_loop_expr(expr: &Expr, state: &TypeState) -> LoopFlow {
                 expr,
                 default,
             } => {
-                let mut rhs_flow = eval_loop_expr(expr, state);
+                let mut rhs_flow = eval_loop_expr_with_ctx(expr, state, ctx);
                 if let Some(ref mut s) = rhs_flow.normal {
                     let expr_result = rhs_flow.result.clone();
                     let ok_type = expr_result
@@ -594,7 +713,7 @@ pub(crate) fn eval_loop_expr(expr: &Expr, state: &TypeState) -> LoopFlow {
             }
         },
         Expr::Op(op) => {
-            let lhs_flow = eval_loop_expr(&op.lhs, state);
+            let lhs_flow = eval_loop_expr_with_ctx(&op.lhs, state, ctx);
             let lhs_def = lhs_flow.result.clone();
             let lhs_value = op.lhs.resolve_constant(state);
             let Some(lhs_state) = lhs_flow.normal else {
@@ -644,7 +763,7 @@ pub(crate) fn eval_loop_expr(expr: &Expr, state: &TypeState) -> LoopFlow {
                 lhs_state
             };
             let rhs_value = op.rhs.resolve_constant(&rhs_input_state);
-            let rhs_flow = eval_loop_expr(&op.rhs, &rhs_input_state);
+            let rhs_flow = eval_loop_expr_with_ctx(&op.rhs, &rhs_input_state, ctx);
             let rhs_def = rhs_flow.result;
             let normal = merge_opt_state(normal_from_lhs, rhs_flow.normal);
             let result = if normal.is_some() {
@@ -665,7 +784,8 @@ pub(crate) fn eval_loop_expr(expr: &Expr, state: &TypeState) -> LoopFlow {
         }
         Expr::Query(query) => match query.target() {
             Target::Container(container) => {
-                let mut flow = eval_loop_expr(&Expr::Container(container.clone()), state);
+                let mut flow =
+                    eval_loop_expr_with_ctx(&Expr::Container(container.clone()), state, ctx);
                 if flow.normal.is_some() {
                     flow.result = flow.result.at_path(query.path());
                 }
@@ -675,7 +795,7 @@ pub(crate) fn eval_loop_expr(expr: &Expr, state: &TypeState) -> LoopFlow {
         },
         Expr::Unary(unary) => match unary.variant() {
             unary::Variant::Not(not) => {
-                let inner_flow = eval_loop_expr(not.inner_expr(), state);
+                let inner_flow = eval_loop_expr_with_ctx(not.inner_expr(), state, ctx);
                 let base_result = if inner_flow.normal.is_some() {
                     TypeDef::boolean()
                 } else {
@@ -688,11 +808,11 @@ pub(crate) fn eval_loop_expr(expr: &Expr, state: &TypeState) -> LoopFlow {
             }
         },
         Expr::Abort(abort) => match abort.message() {
-            Some(msg) => eval_loop_expr(msg, state).diverge(None),
+            Some(msg) => eval_loop_expr_with_ctx(msg, state, ctx).diverge(None),
             None => LoopFlow::never_with_exits(None, None, false, Kind::never()),
         },
         Expr::Return(ret) => {
-            let inner_flow = eval_loop_expr(ret.expr(), state);
+            let inner_flow = eval_loop_expr_with_ctx(ret.expr(), state, ctx);
             let extra_return = inner_flow
                 .normal
                 .is_some()
@@ -701,6 +821,598 @@ pub(crate) fn eval_loop_expr(expr: &Expr, state: &TypeState) -> LoopFlow {
         }
         Expr::Literal(_) | Expr::Variable(_) | Expr::Noop(_) | Expr::FunctionCall(_) => {
             unreachable!()
+        }
+    }
+}
+
+#[derive(Clone, PartialEq)]
+pub(crate) struct ProjectedLoopState {
+    locals: BTreeMap<Ident, Details>,
+    event: Option<Details>,
+    metadata: Option<Kind>,
+}
+
+#[derive(Clone)]
+pub(crate) struct LoopStatePatch {
+    locals: BTreeMap<Ident, Details>,
+    event: Option<Details>,
+    metadata: Option<Kind>,
+}
+
+impl LoopStatePatch {
+    pub(crate) fn apply(&self, base: &TypeState) -> TypeState {
+        let mut out = base.clone();
+        for (ident, details) in &self.locals {
+            out.local.insert_variable(ident.clone(), details.clone());
+        }
+        if let Some(ref event) = self.event {
+            out.external.update_target(event.clone());
+        }
+        if let Some(ref metadata) = self.metadata {
+            out.external.update_metadata(metadata.clone());
+        }
+        canonicalize_type_state(&mut out);
+        out
+    }
+}
+
+struct CachedLoopEntry {
+    header: LoopStatePatch,
+    normal: Option<LoopStatePatch>,
+    break_state: Option<LoopStatePatch>,
+    continue_state: Option<LoopStatePatch>,
+    result: TypeDef,
+}
+
+impl CachedLoopEntry {
+    fn from_result(footprint: &LoopFootprint, header: &TypeState, flow: &LoopFlow) -> Self {
+        Self {
+            header: footprint.patch_from(header),
+            normal: flow.normal.as_ref().map(|s| footprint.patch_from(s)),
+            break_state: flow.break_state.as_ref().map(|s| footprint.patch_from(s)),
+            continue_state: flow
+                .continue_state
+                .as_ref()
+                .map(|s| footprint.patch_from(s)),
+            result: flow.result.clone(),
+        }
+    }
+
+    fn apply(&self, base: &TypeState) -> (TypeState, LoopFlow) {
+        (
+            self.header.apply(base),
+            LoopFlow {
+                normal: self.normal.as_ref().map(|p| p.apply(base)),
+                break_state: self.break_state.as_ref().map(|p| p.apply(base)),
+                continue_state: self.continue_state.as_ref().map(|p| p.apply(base)),
+                result: self.result.clone(),
+            },
+        )
+    }
+}
+
+pub(crate) struct LoopEvalContext {
+    remaining_repasses: usize,
+    cache: HashMap<Span, Vec<(ProjectedLoopState, CachedLoopEntry)>>,
+}
+
+impl LoopEvalContext {
+    pub(crate) fn new() -> Self {
+        Self::with_budget(MAX_LOOP_REPASSES)
+    }
+
+    pub(crate) fn with_budget(remaining_repasses: usize) -> Self {
+        Self {
+            remaining_repasses,
+            cache: HashMap::new(),
+        }
+    }
+
+    pub(crate) fn reset(&mut self) {
+        self.remaining_repasses = MAX_LOOP_REPASSES;
+        self.cache.clear();
+    }
+
+    pub(crate) fn invalidate(&mut self, span: Span) {
+        self.cache.remove(&span);
+    }
+
+    pub(crate) const fn is_exhausted(&self) -> bool {
+        self.remaining_repasses == 0
+    }
+
+    pub(crate) fn consume_repass(&mut self) -> bool {
+        if self.remaining_repasses == 0 {
+            false
+        } else {
+            self.remaining_repasses -= 1;
+            true
+        }
+    }
+
+    fn lookup(&self, span: Span, input: &ProjectedLoopState) -> Option<&CachedLoopEntry> {
+        self.cache
+            .get(&span)?
+            .iter()
+            .find_map(|(cached_in, out)| (cached_in == input).then_some(out))
+    }
+
+    fn insert(&mut self, span: Span, input: ProjectedLoopState, entry: CachedLoopEntry) {
+        let bucket = self.cache.entry(span).or_default();
+        if bucket.len() < MAX_CACHE_ENTRIES_PER_LOOP && !bucket.iter().any(|(k, _)| k == &input) {
+            bucket.push((input, entry));
+        }
+    }
+}
+
+#[derive(Default, Clone, Copy)]
+struct ExternalAccess {
+    reads: bool,
+    writes: bool,
+}
+
+impl ExternalAccess {
+    fn mark_read(&mut self) {
+        self.reads = true;
+    }
+
+    fn mark_read_write(&mut self) {
+        self.reads = true;
+        self.writes = true;
+    }
+
+    const fn touched(self) -> bool {
+        self.reads || self.writes
+    }
+}
+
+#[derive(Default)]
+pub(crate) struct LoopFootprint {
+    read_locals: BTreeSet<Ident>,
+    written_locals: BTreeSet<Ident>,
+    event: ExternalAccess,
+    metadata: ExternalAccess,
+    pub(crate) opaque: bool,
+}
+
+impl LoopFootprint {
+    pub(crate) fn for_expr(for_expr: &For) -> Self {
+        let mut fp = Self::default();
+        let mut shadowed = Vec::new();
+        fp.visit_expr(&for_expr.iterable, &mut shadowed);
+        fp.visit_for_body_expr(&for_expr.pattern, &for_expr.block, &mut shadowed);
+        fp
+    }
+
+    fn for_block_with_pattern(pattern: &ForPattern, block: &Block) -> Self {
+        let mut fp = Self::default();
+        let mut shadowed = Vec::new();
+        fp.visit_for_body_expr(pattern, block, &mut shadowed);
+        fp
+    }
+
+    pub(crate) fn for_ast(for_stmt: &ast::ForStatement) -> Self {
+        let mut fp = Self::default();
+        let mut shadowed = Vec::new();
+        fp.visit_ast_expr(for_stmt.iterable.inner(), &mut shadowed);
+        fp.visit_for_body_ast(&for_stmt.pattern, for_stmt.block.inner(), &mut shadowed);
+        fp
+    }
+
+    pub(crate) fn for_ast_body(pattern: &ForPattern, block: &ast::Block) -> Self {
+        let mut fp = Self::default();
+        let mut shadowed = Vec::new();
+        fp.visit_for_body_ast(pattern, block, &mut shadowed);
+        fp
+    }
+
+    pub(crate) fn project(&self, state: &TypeState) -> ProjectedLoopState {
+        let mut locals = BTreeMap::new();
+        for ident in self.read_locals.union(&self.written_locals) {
+            if let Some(details) = state.local.variable(ident) {
+                locals.insert(ident.clone(), details.clone());
+            }
+        }
+        let event = self
+            .event
+            .touched()
+            .then(|| state.external.target().clone());
+        let metadata = self
+            .metadata
+            .touched()
+            .then(|| state.external.metadata_kind().clone());
+        ProjectedLoopState {
+            locals,
+            event,
+            metadata,
+        }
+    }
+
+    pub(crate) fn patch_from(&self, state: &TypeState) -> LoopStatePatch {
+        let mut locals = BTreeMap::new();
+        for ident in &self.written_locals {
+            if let Some(details) = state.local.variable(ident) {
+                locals.insert(ident.clone(), details.clone());
+            }
+        }
+        let event = self.event.writes.then(|| state.external.target().clone());
+        let metadata = self
+            .metadata
+            .writes
+            .then(|| state.external.metadata_kind().clone());
+        LoopStatePatch {
+            locals,
+            event,
+            metadata,
+        }
+    }
+
+    pub(crate) fn widen_written_state(&self, state: &mut TypeState) {
+        let top = Details {
+            type_def: TypeDef::any().impure(),
+            value: None,
+        };
+        if self.opaque {
+            for details in state.local.bindings.values_mut() {
+                *details = top.clone();
+            }
+            state.external.update_target(top);
+            state.external.update_metadata(Kind::any());
+            canonicalize_type_state(state);
+            return;
+        }
+        for ident in &self.written_locals {
+            if let Some(details) = state.local.bindings.get_mut(ident) {
+                *details = top.clone();
+            }
+        }
+        if self.event.writes {
+            state.external.update_target(top);
+        }
+        if self.metadata.writes {
+            state.external.update_metadata(Kind::any());
+        }
+        canonicalize_type_state(state);
+    }
+
+    fn record_read_local(&mut self, ident: &Ident, shadowed: &[Ident]) {
+        if !is_wildcard(ident) && !shadowed.contains(ident) {
+            self.read_locals.insert(ident.clone());
+        }
+    }
+
+    fn record_write_local(&mut self, ident: &Ident, also_read: bool, shadowed: &[Ident]) {
+        if !is_wildcard(ident) && !shadowed.contains(ident) {
+            self.written_locals.insert(ident.clone());
+            if also_read {
+                self.read_locals.insert(ident.clone());
+            }
+        }
+    }
+
+    fn push_pattern_shadows(pattern: &ForPattern, shadowed: &mut Vec<Ident>) -> usize {
+        let saved_len = shadowed.len();
+        match pattern {
+            ForPattern::Single(val) => {
+                if !is_wildcard(val.inner()) {
+                    shadowed.push(val.inner().clone());
+                }
+            }
+            ForPattern::KeyValue(key, val) => {
+                if !is_wildcard(key.inner()) {
+                    shadowed.push(key.inner().clone());
+                }
+                if !is_wildcard(val.inner()) {
+                    shadowed.push(val.inner().clone());
+                }
+            }
+        }
+        saved_len
+    }
+
+    fn visit_for_body_expr(
+        &mut self,
+        pattern: &ForPattern,
+        block: &Block,
+        shadowed: &mut Vec<Ident>,
+    ) {
+        let saved_len = Self::push_pattern_shadows(pattern, shadowed);
+        for expr in block.exprs() {
+            self.visit_expr(expr, shadowed);
+        }
+        shadowed.truncate(saved_len);
+    }
+
+    fn visit_for_body_ast(
+        &mut self,
+        pattern: &ForPattern,
+        block: &ast::Block,
+        shadowed: &mut Vec<Ident>,
+    ) {
+        let saved_len = Self::push_pattern_shadows(pattern, shadowed);
+        for expr in &block.0 {
+            self.visit_ast_expr(expr.inner(), shadowed);
+        }
+        shadowed.truncate(saved_len);
+    }
+
+    fn visit_expr_target(
+        &mut self,
+        target: &crate::compiler::expression::assignment::Target,
+        shadowed: &[Ident],
+    ) {
+        use crate::compiler::expression::assignment::Target;
+
+        match target {
+            Target::Noop => {}
+            Target::Internal(ident, path) => {
+                self.record_write_local(ident, !path.is_root(), shadowed);
+            }
+            Target::External(path) => match path.prefix {
+                PathPrefix::Event => self.event.mark_read_write(),
+                PathPrefix::Metadata => self.metadata.mark_read_write(),
+            },
+        }
+    }
+
+    fn visit_expr_function_call(
+        &mut self,
+        call: &crate::compiler::expression::FunctionCall,
+        shadowed: &mut Vec<Ident>,
+    ) {
+        self.event.mark_read_write();
+        self.metadata.mark_read_write();
+        if call.is_speculative_placeholder() {
+            self.opaque = true;
+            return;
+        }
+        for arg in call.arguments() {
+            self.visit_expr(arg.inner().expr(), shadowed);
+        }
+        if let Some(closure) = call.closure() {
+            let saved_len = shadowed.len();
+            for ident in &closure.variables {
+                if !is_wildcard(ident) {
+                    shadowed.push(ident.clone());
+                }
+            }
+            for expr in closure.block.exprs() {
+                self.visit_expr(expr, shadowed);
+            }
+            shadowed.truncate(saved_len);
+        }
+    }
+
+    fn visit_expr(&mut self, expr: &Expr, shadowed: &mut Vec<Ident>) {
+        use crate::compiler::expression::{assignment, container::Variant, query::Target, unary};
+
+        match expr {
+            Expr::Literal(_) | Expr::Noop(_) | Expr::Break(_) | Expr::Continue(_) => {}
+            Expr::Variable(var) => self.record_read_local(var.ident(), shadowed),
+            Expr::For(for_expr) => {
+                self.visit_expr(&for_expr.iterable, shadowed);
+                self.visit_for_body_expr(&for_expr.pattern, &for_expr.block, shadowed);
+            }
+            Expr::Container(container) => match &container.variant {
+                Variant::Group(group) => self.visit_expr(group.inner_expr(), shadowed),
+                Variant::Block(block) => {
+                    for e in block.exprs() {
+                        self.visit_expr(e, shadowed);
+                    }
+                }
+                Variant::Array(array) => {
+                    for e in array.iter() {
+                        self.visit_expr(e, shadowed);
+                    }
+                }
+                Variant::Object(object) => {
+                    for e in object.values() {
+                        self.visit_expr(e, shadowed);
+                    }
+                }
+            },
+            Expr::IfStatement(if_stmt) => {
+                for e in if_stmt.predicate.block().exprs() {
+                    self.visit_expr(e, shadowed);
+                }
+                for e in if_stmt.if_block.exprs() {
+                    self.visit_expr(e, shadowed);
+                }
+                if let Some(else_block) = &if_stmt.else_block {
+                    for e in else_block.exprs() {
+                        self.visit_expr(e, shadowed);
+                    }
+                }
+            }
+            Expr::Op(op) => {
+                self.visit_expr(&op.lhs, shadowed);
+                self.visit_expr(&op.rhs, shadowed);
+            }
+            Expr::Assignment(assignment) => match assignment.variant() {
+                assignment::Variant::Single { target, expr } => {
+                    self.visit_expr(expr, shadowed);
+                    self.visit_expr_target(target, shadowed);
+                }
+                assignment::Variant::Infallible { ok, err, expr, .. } => {
+                    self.visit_expr(expr, shadowed);
+                    self.visit_expr_target(ok, shadowed);
+                    self.visit_expr_target(err, shadowed);
+                }
+            },
+            Expr::Query(query) => match query.target() {
+                Target::Internal(var) => self.record_read_local(var.ident(), shadowed),
+                Target::External(PathPrefix::Event) => self.event.mark_read(),
+                Target::External(PathPrefix::Metadata) => self.metadata.mark_read(),
+                Target::Container(container) => {
+                    self.visit_expr(&Expr::Container(container.clone()), shadowed);
+                }
+                Target::FunctionCall(call) => self.visit_expr_function_call(call, shadowed),
+            },
+            Expr::FunctionCall(call) => self.visit_expr_function_call(call, shadowed),
+            Expr::Unary(unary) => match unary.variant() {
+                unary::Variant::Not(not) => self.visit_expr(not.inner_expr(), shadowed),
+            },
+            Expr::Abort(abort) => {
+                if let Some(msg) = abort.message() {
+                    self.visit_expr(msg, shadowed);
+                }
+            }
+            Expr::Return(ret) => self.visit_expr(ret.expr(), shadowed),
+        }
+    }
+
+    fn visit_ast_target(
+        &mut self,
+        target: &ast::AssignmentTarget,
+        is_merge: bool,
+        shadowed: &mut Vec<Ident>,
+    ) {
+        match target {
+            ast::AssignmentTarget::Noop => {}
+            ast::AssignmentTarget::Internal(ident, path) => {
+                self.record_write_local(ident, is_merge || path.is_some(), shadowed);
+            }
+            ast::AssignmentTarget::External(path) => {
+                let prefix = path
+                    .as_ref()
+                    .map_or(PathPrefix::Event, |target_path| target_path.prefix);
+                match prefix {
+                    PathPrefix::Event => self.event.mark_read_write(),
+                    PathPrefix::Metadata => self.metadata.mark_read_write(),
+                }
+            }
+            ast::AssignmentTarget::Query(query) => match query.target.inner() {
+                ast::QueryTarget::Internal(ident) => {
+                    self.record_write_local(ident, true, shadowed);
+                }
+                ast::QueryTarget::External(PathPrefix::Event) => self.event.mark_read_write(),
+                ast::QueryTarget::External(PathPrefix::Metadata) => self.metadata.mark_read_write(),
+                ast::QueryTarget::Container(c) => self.visit_ast_container(c, shadowed),
+                ast::QueryTarget::FunctionCall(fc) => self.visit_ast_function_call(fc, shadowed),
+            },
+        }
+    }
+
+    fn visit_ast_container(&mut self, container: &ast::Container, shadowed: &mut Vec<Ident>) {
+        match container {
+            ast::Container::Group(group) => self.visit_ast_expr(group.inner().0.inner(), shadowed),
+            ast::Container::Block(block) => {
+                for expr in &block.inner().0 {
+                    self.visit_ast_expr(expr.inner(), shadowed);
+                }
+            }
+            ast::Container::Array(array) => {
+                for expr in &array.inner().0 {
+                    self.visit_ast_expr(expr.inner(), shadowed);
+                }
+            }
+            ast::Container::Object(object) => {
+                for expr in object.inner().0.values() {
+                    self.visit_ast_expr(expr.inner(), shadowed);
+                }
+            }
+        }
+    }
+
+    fn visit_ast_function_call(&mut self, call: &ast::FunctionCall, shadowed: &mut Vec<Ident>) {
+        self.event.mark_read_write();
+        self.metadata.mark_read_write();
+        for arg in &call.arguments {
+            self.visit_ast_expr(arg.inner().expr.inner(), shadowed);
+        }
+        if let Some(closure) = &call.closure {
+            let saved_len = shadowed.len();
+            for var in &closure.inner().variables {
+                if !is_wildcard(var.inner()) {
+                    shadowed.push(var.inner().clone());
+                }
+            }
+            for expr in &closure.inner().block.inner().0 {
+                self.visit_ast_expr(expr.inner(), shadowed);
+            }
+            shadowed.truncate(saved_len);
+        }
+    }
+
+    fn visit_ast_expr(&mut self, expr: &ast::Expr, shadowed: &mut Vec<Ident>) {
+        use crate::parser::template_string::StringSegment;
+
+        match expr {
+            ast::Expr::Literal(lit) => {
+                if let ast::Literal::String(template) = lit.inner() {
+                    for seg in &template.0 {
+                        if let StringSegment::Template(name, _) = seg {
+                            self.record_read_local(&Ident::from(name.clone()), shadowed);
+                        }
+                    }
+                }
+            }
+            ast::Expr::Break(_) | ast::Expr::Continue(_) => {}
+            ast::Expr::Variable(ident) => self.record_read_local(ident.inner(), shadowed),
+            ast::Expr::Container(c) => self.visit_ast_container(c.inner(), shadowed),
+            ast::Expr::IfStatement(if_stmt) => {
+                match if_stmt.inner().predicate.inner() {
+                    ast::Predicate::One(e) => self.visit_ast_expr(e.inner(), shadowed),
+                    ast::Predicate::Many(es) => {
+                        for e in es {
+                            self.visit_ast_expr(e.inner(), shadowed);
+                        }
+                    }
+                }
+                for e in &if_stmt.inner().if_node.inner().0 {
+                    self.visit_ast_expr(e.inner(), shadowed);
+                }
+                if let Some(else_node) = &if_stmt.inner().else_node {
+                    for e in &else_node.inner().0 {
+                        self.visit_ast_expr(e.inner(), shadowed);
+                    }
+                }
+            }
+            ast::Expr::For(for_stmt) => {
+                self.visit_ast_expr(for_stmt.inner().iterable.inner(), shadowed);
+                self.visit_for_body_ast(
+                    &for_stmt.inner().pattern,
+                    for_stmt.inner().block.inner(),
+                    shadowed,
+                );
+            }
+            ast::Expr::Op(op) => {
+                self.visit_ast_expr(op.inner().0.inner(), shadowed);
+                self.visit_ast_expr(op.inner().2.inner(), shadowed);
+            }
+            ast::Expr::Assignment(assign) => match assign.inner() {
+                ast::Assignment::Single { target, op, expr } => {
+                    self.visit_ast_expr(expr.inner(), shadowed);
+                    self.visit_ast_target(
+                        target.inner(),
+                        *op == ast::AssignmentOp::Merge,
+                        shadowed,
+                    );
+                }
+                ast::Assignment::Infallible { ok, err, op, expr } => {
+                    self.visit_ast_expr(expr.inner(), shadowed);
+                    let is_merge = *op == ast::AssignmentOp::Merge;
+                    self.visit_ast_target(ok.inner(), is_merge, shadowed);
+                    self.visit_ast_target(err.inner(), is_merge, shadowed);
+                }
+            },
+            ast::Expr::Query(query) => match query.inner().target.inner() {
+                ast::QueryTarget::Internal(ident) => self.record_read_local(ident, shadowed),
+                ast::QueryTarget::External(PathPrefix::Event) => self.event.mark_read(),
+                ast::QueryTarget::External(PathPrefix::Metadata) => self.metadata.mark_read(),
+                ast::QueryTarget::Container(c) => self.visit_ast_container(c, shadowed),
+                ast::QueryTarget::FunctionCall(fc) => self.visit_ast_function_call(fc, shadowed),
+            },
+            ast::Expr::FunctionCall(fc) => self.visit_ast_function_call(fc.inner(), shadowed),
+            ast::Expr::Unary(u) => match u.inner() {
+                ast::Unary::Not(not) => self.visit_ast_expr(not.inner().1.inner(), shadowed),
+            },
+            ast::Expr::Abort(abort) => {
+                if let Some(msg) = &abort.inner().message {
+                    self.visit_ast_expr(msg.inner(), shadowed);
+                }
+            }
+            ast::Expr::Return(ret) => self.visit_ast_expr(ret.inner().expr.inner(), shadowed),
         }
     }
 }
@@ -3020,5 +3732,75 @@ mod tests {
         let mut state = RuntimeState::default();
         let mut ctx = Context::new(&mut target, &mut state, &tz);
         assert_eq!(compiled_post.program.resolve(&mut ctx), Ok(Value::from(2)));
+    }
+
+    #[test]
+    fn test_for_deeply_nested_loops_bound_compile_and_analysis() {
+        use std::fmt::Write as _;
+
+        let tz = TimeZone::default();
+        let depth = 20;
+
+        // 1. Codex's exact constant-churn pattern at depth 20:
+        //    must compile quickly AND preserve exact integer typing (`.out = v19 + 1` stays infallible).
+        let mut const_churn = String::new();
+        for i in 0..depth {
+            let _ = writeln!(const_churn, "v{i} = 0\nfor _ in [1] {{");
+        }
+        let _ = writeln!(const_churn, "v{} = 1\n.out = v{} + 1", depth - 1, depth - 1);
+        for i in (0..depth - 1).rev() {
+            let _ = writeln!(const_churn, "}}\nv{i} = 1");
+        }
+        const_churn.push_str("}\n.out\n");
+
+        let compiled = crate::compiler::compile(&const_churn, &[])
+            .expect("depth-20 constant-churn nested loops should compile cleanly");
+        let mut target = TargetValue::new(Value::Object(ObjectMap::new()));
+        let mut state = RuntimeState::default();
+        let mut ctx = Context::new(&mut target, &mut state, &tz);
+        assert_eq!(compiled.program.resolve(&mut ctx), Ok(Value::from(2)));
+
+        // 2. Independent type-widening nested loops at depth 20.
+        let mut type_widen = String::new();
+        for i in 0..depth {
+            let _ = writeln!(type_widen, "v{i} = 1\nfor _ in [1] {{");
+        }
+        let _ = writeln!(type_widen, "v{} = \"s\"", depth - 1);
+        for i in (0..depth - 1).rev() {
+            let _ = writeln!(type_widen, "}}\nv{i} = \"s\"");
+        }
+        type_widen.push_str("}\nv0\n");
+
+        let compiled_widen = crate::compiler::compile(&type_widen, &[])
+            .expect("depth-20 independent type-widening nested loops should compile cleanly");
+        let mut target = TargetValue::new(Value::Object(ObjectMap::new()));
+        let mut state = RuntimeState::default();
+        let mut ctx = Context::new(&mut target, &mut state, &tz);
+        assert_eq!(
+            compiled_widen.program.resolve(&mut ctx),
+            Ok(Value::from("s"))
+        );
+
+        // 3. Adversarial dependent nested loops at depth 20 where the innermost body reads all outer vars.
+        let mut dependent = String::new();
+        for i in 0..depth {
+            let _ = writeln!(dependent, "v{i} = 1\nfor _ in [1] {{");
+        }
+        let all_vars = (0..depth)
+            .map(|i| format!("v{i}"))
+            .collect::<Vec<_>>()
+            .join(", ");
+        let _ = writeln!(dependent, ".all = [{all_vars}]\nv{} = \"s\"", depth - 1);
+        for i in (0..depth - 1).rev() {
+            let _ = writeln!(dependent, "}}\nv{i} = \"s\"");
+        }
+        dependent.push_str("}\nv0\n");
+
+        let compiled_dep = crate::compiler::compile(&dependent, &[])
+            .expect("depth-20 dependent nested loops should compile in bounded time");
+        let mut target = TargetValue::new(Value::Object(ObjectMap::new()));
+        let mut state = RuntimeState::default();
+        let mut ctx = Context::new(&mut target, &mut state, &tz);
+        assert_eq!(compiled_dep.program.resolve(&mut ctx), Ok(Value::from("s")));
     }
 }

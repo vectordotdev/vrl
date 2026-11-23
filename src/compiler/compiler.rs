@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::compiler::expression::ExpressionError;
 use crate::compiler::expression::function_call::FunctionCallError;
 use crate::compiler::{
@@ -64,6 +66,8 @@ pub struct Compiler<'a> {
 
     loop_depth: usize,
     speculative_loop: SpeculativeLoopState,
+    loop_eval_ctx: expression::for_loop::LoopEvalContext,
+    for_loop_cache: HashMap<crate::diagnostic::Span, Vec<CachedCompiledFor>>,
 
     config: CompileConfig,
     in_breakable_context: bool,
@@ -73,6 +77,23 @@ pub struct Compiler<'a> {
 struct SpeculativeLoopState {
     depth: usize,
     had_deferred_error: bool,
+}
+
+#[derive(PartialEq)]
+struct ForCacheKey {
+    input: expression::for_loop::ProjectedLoopState,
+    in_loop: bool,
+    in_breakable: bool,
+}
+
+struct CachedCompiledFor {
+    key: ForCacheKey,
+    for_expr: For,
+    output_patch: expression::for_loop::LoopStatePatch,
+    external_queries: Vec<OwnedTargetPath>,
+    external_assignments: Vec<OwnedTargetPath>,
+    fallible: bool,
+    abortable: bool,
 }
 
 struct CompilerSnapshot {
@@ -188,6 +209,8 @@ impl<'a> Compiler<'a> {
             pending_fallibilities: vec![],
             loop_depth: 0,
             speculative_loop: SpeculativeLoopState::default(),
+            loop_eval_ctx: expression::for_loop::LoopEvalContext::new(),
+            for_loop_cache: HashMap::new(),
             config,
             in_breakable_context: false,
         };
@@ -392,9 +415,16 @@ impl<'a> Compiler<'a> {
             .map(|(block, _type_def)| block)
     }
 
-    fn expr_type_info(&self, expr: &Expr, state: &TypeState) -> crate::compiler::state::TypeInfo {
-        if self.loop_depth > 0 && expression::for_loop::expr_contains_loop_jump(expr) {
-            let flow = expression::for_loop::eval_loop_expr(expr, state);
+    fn expr_type_info(
+        &mut self,
+        expr: &Expr,
+        state: &TypeState,
+    ) -> crate::compiler::state::TypeInfo {
+        if (self.loop_depth > 0 && expression::for_loop::expr_contains_loop_jump(expr))
+            || expression::for_loop::expr_contains_for(expr)
+        {
+            let flow =
+                expression::for_loop::eval_loop_expr_with_ctx(expr, state, &mut self.loop_eval_ctx);
             let next_state = flow.normal.unwrap_or_else(|| expr.type_info(state).state);
             crate::compiler::state::TypeInfo::new(next_state, flow.result)
         } else {
@@ -629,7 +659,7 @@ impl<'a> Compiler<'a> {
     }
 
     fn jump_aware_infallible_rhs_type(
-        &self,
+        &mut self,
         variant: &assignment::Variant<Node<ast::AssignmentTarget>, Node<Expr>>,
         original_state: &TypeState,
     ) -> Option<TypeDef> {
@@ -1068,7 +1098,11 @@ impl<'a> Compiler<'a> {
         Some(Unary::new(variant))
     }
 
-    fn jump_aware_override_type(&self, expr: &Expr, original_state: &TypeState) -> Option<TypeDef> {
+    fn jump_aware_override_type(
+        &mut self,
+        expr: &Expr,
+        original_state: &TypeState,
+    ) -> Option<TypeDef> {
         (self.loop_depth > 0 && expression::for_loop::expr_contains_loop_jump(expr))
             .then(|| self.expr_type_info(expr, original_state).result)
     }
@@ -1221,13 +1255,179 @@ impl<'a> Compiler<'a> {
         true
     }
 
+    fn lookup_cached_for(
+        &mut self,
+        for_span: crate::diagnostic::Span,
+        key: &ForCacheKey,
+        original_state: &TypeState,
+        state: &mut TypeState,
+    ) -> Option<For> {
+        let cached = self
+            .for_loop_cache
+            .get(&for_span)?
+            .iter()
+            .find(|entry| &entry.key == key)?;
+        self.external_queries
+            .extend(cached.external_queries.iter().cloned());
+        self.external_assignments
+            .extend(cached.external_assignments.iter().cloned());
+        self.fallible |= cached.fallible;
+        self.abortable |= cached.abortable;
+        *state = cached.output_patch.apply(original_state);
+        Some(cached.for_expr.clone())
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn cache_compiled_for(
+        &mut self,
+        for_span: crate::diagnostic::Span,
+        key: ForCacheKey,
+        footprint: &expression::for_loop::LoopFootprint,
+        entry_snapshot: &CompilerSnapshot,
+        for_expr: &For,
+        output_state: &TypeState,
+    ) {
+        let bucket = self.for_loop_cache.entry(for_span).or_default();
+        if bucket.len() >= expression::for_loop::MAX_CACHE_ENTRIES_PER_LOOP
+            || bucket.iter().any(|entry| entry.key == key)
+        {
+            return;
+        }
+        bucket.push(CachedCompiledFor {
+            key,
+            for_expr: for_expr.clone(),
+            output_patch: footprint.patch_from(output_state),
+            external_queries: self.external_queries[entry_snapshot.external_queries_len..].to_vec(),
+            external_assignments: self.external_assignments
+                [entry_snapshot.external_assignments_len..]
+                .to_vec(),
+            fallible: !entry_snapshot.fallible && self.fallible,
+            abortable: !entry_snapshot.abortable && self.abortable,
+        });
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn compile_for_fixed_point(
+        &mut self,
+        for_span: crate::diagnostic::Span,
+        pattern: &ast::ForPattern,
+        iterable_kind: &crate::value::Kind,
+        compiled_iterable: &Expr,
+        block: Node<ast::Block>,
+        original_state: &TypeState,
+        pre_loop_state: TypeState,
+        state: &mut TypeState,
+    ) -> Option<(For, TypeState, bool, bool)> {
+        let body_footprint =
+            expression::for_loop::LoopFootprint::for_ast_body(pattern, block.inner());
+        let snapshot = self.snapshot();
+        let mut current_pre_loop_state = pre_loop_state;
+        let mut budget_widened = self.loop_eval_ctx.is_exhausted();
+        if budget_widened {
+            body_footprint.widen_written_state(&mut current_pre_loop_state);
+        }
+        let mut pass_iterations = 0;
+
+        loop {
+            self.restore_snapshot(&snapshot);
+            self.speculative_loop.had_deferred_error = false;
+            let compiled_block = self.compile_for_body_pass(
+                pattern,
+                iterable_kind,
+                block.clone(),
+                current_pre_loop_state.clone(),
+                state,
+                true,
+            )?;
+            let pass_had_speculative_error = self.speculative_loop.had_deferred_error;
+
+            let for_expr = For::new(
+                for_span,
+                pattern.clone(),
+                Box::new(compiled_iterable.clone()),
+                compiled_block,
+            );
+
+            // Compute the multi-iteration header and post-loop states via `For::resolve_loop_type_info_with_ctx`,
+            // sharing our single `LoopEvalContext` cache and repass budget across nested loops.
+            // Invalidate any cached summary for `for_span` since `compiled_block` may have changed.
+            self.loop_eval_ctx.invalidate(for_span);
+            let (header_state, loop_type_info) =
+                for_expr.resolve_loop_type_info_with_ctx(original_state, &mut self.loop_eval_ctx);
+            let mut next_pre_loop_state = current_pre_loop_state.clone().merge(header_state);
+            expression::for_loop::canonicalize_type_state(&mut next_pre_loop_state);
+
+            if next_pre_loop_state == current_pre_loop_state || budget_widened {
+                self.speculative_loop.had_deferred_error |= snapshot.speculative_deferred_error;
+                if pass_had_speculative_error && self.speculative_loop.depth == 0 {
+                    // Re-compile non-speculatively at the converged header state so diagnostics
+                    // reflect the real errors without cascading from speculative placeholders.
+                    self.restore_snapshot(&snapshot);
+                    let _ = self.compile_for_body_pass(
+                        pattern,
+                        iterable_kind,
+                        block,
+                        current_pre_loop_state,
+                        state,
+                        false,
+                    );
+                    return None;
+                }
+                return Some((
+                    for_expr,
+                    loop_type_info.state,
+                    pass_had_speculative_error,
+                    budget_widened,
+                ));
+            }
+
+            if !self.loop_eval_ctx.consume_repass() {
+                body_footprint.widen_written_state(&mut next_pre_loop_state);
+                budget_widened = true;
+                current_pre_loop_state = next_pre_loop_state;
+                continue;
+            }
+
+            pass_iterations += 1;
+            if pass_iterations >= expression::for_loop::WIDEN_AFTER_ITERATIONS {
+                expression::for_loop::widen_differing_states(
+                    &current_pre_loop_state,
+                    &mut next_pre_loop_state,
+                    pass_iterations >= expression::for_loop::FALLBACK_WIDEN_ITERATIONS,
+                );
+            }
+            current_pre_loop_state = next_pre_loop_state;
+        }
+    }
+
     fn compile_for_statement(
         &mut self,
         node: Node<ast::ForStatement>,
         state: &mut TypeState,
     ) -> Option<For> {
         let original_state = state.clone();
+        let entry_snapshot = self.snapshot();
         let (for_span, for_statement) = node.take();
+        let ast_footprint = expression::for_loop::LoopFootprint::for_ast(&for_statement);
+        let can_cache = !self.config.has_custom()
+            && !ast_footprint.opaque
+            && self.skip_missing_query_target.is_empty();
+        let cache_key = can_cache.then(|| ForCacheKey {
+            input: ast_footprint.project(&original_state),
+            in_loop: self.loop_depth > 0,
+            in_breakable: self.in_breakable_context,
+        });
+
+        if let Some(ref key) = cache_key
+            && let Some(cached) = self.lookup_cached_for(for_span, key, &original_state, state)
+        {
+            return Some(cached);
+        }
+
+        if self.speculative_loop.depth == 0 {
+            self.loop_eval_ctx.reset();
+        }
+
         let ast::ForStatement {
             pattern,
             iterable,
@@ -1246,67 +1446,18 @@ impl<'a> Compiler<'a> {
             return None;
         }
 
-        // Snapshot pre-loop state after iterable evaluation.
         expression::for_loop::canonicalize_type_state(&mut pre_loop_state);
-        let snapshot = self.snapshot();
-
-        let mut current_pre_loop_state = pre_loop_state;
-        let mut pass_iterations = 0;
-
-        let (for_expr, final_state) = loop {
-            self.restore_snapshot(&snapshot);
-            self.speculative_loop.had_deferred_error = false;
-            let compiled_block = self.compile_for_body_pass(
+        let (for_expr, final_state, pass_had_speculative_error, budget_widened) = self
+            .compile_for_fixed_point(
+                for_span,
                 &pattern,
                 iterable_kind,
-                block.clone(),
-                current_pre_loop_state.clone(),
+                &compiled_iterable,
+                block,
+                &original_state,
+                pre_loop_state,
                 state,
-                true,
             )?;
-            let pass_had_speculative_error = self.speculative_loop.had_deferred_error;
-
-            let for_expr = For::new(
-                for_span,
-                pattern.clone(),
-                Box::new(compiled_iterable.clone()),
-                compiled_block,
-            );
-
-            // Compute the multi-iteration header and post-loop states via `For::resolve_loop_type_info`.
-            let (header_state, loop_type_info) = for_expr.resolve_loop_type_info(&original_state);
-            let mut next_pre_loop_state = current_pre_loop_state.clone().merge(header_state);
-            expression::for_loop::canonicalize_type_state(&mut next_pre_loop_state);
-
-            if next_pre_loop_state == current_pre_loop_state {
-                self.speculative_loop.had_deferred_error |= snapshot.speculative_deferred_error;
-                if pass_had_speculative_error && self.speculative_loop.depth == 0 {
-                    // Re-compile non-speculatively at the converged header state so diagnostics
-                    // reflect the real errors without cascading from speculative placeholders.
-                    self.restore_snapshot(&snapshot);
-                    let _ = self.compile_for_body_pass(
-                        &pattern,
-                        iterable_kind,
-                        block,
-                        current_pre_loop_state,
-                        state,
-                        false,
-                    );
-                    return None;
-                }
-                break (for_expr, loop_type_info.state);
-            }
-
-            pass_iterations += 1;
-            if pass_iterations >= expression::for_loop::WIDEN_AFTER_ITERATIONS {
-                expression::for_loop::widen_differing_states(
-                    &current_pre_loop_state,
-                    &mut next_pre_loop_state,
-                    pass_iterations >= expression::for_loop::FALLBACK_WIDEN_ITERATIONS,
-                );
-            }
-            current_pre_loop_state = next_pre_loop_state;
-        };
 
         *state = if self.loop_depth > 0
             && expression::for_loop::expr_contains_loop_jump(&Expr::For(for_expr.clone()))
@@ -1316,6 +1467,23 @@ impl<'a> Compiler<'a> {
         } else {
             final_state
         };
+
+        if let Some(key) = cache_key
+            && !pass_had_speculative_error
+            && !budget_widened
+            && self.diagnostics.len() == entry_snapshot.diagnostics_len
+            && self.pending_fallibilities.len() == entry_snapshot.pending_fallibilities_len
+            && self.skip_missing_query_target.len() == entry_snapshot.skip_missing_query_target_len
+        {
+            self.cache_compiled_for(
+                for_span,
+                key,
+                &ast_footprint,
+                &entry_snapshot,
+                &for_expr,
+                state,
+            );
+        }
 
         Some(for_expr)
     }

@@ -552,6 +552,7 @@ impl<'a> Builder<'a> {
                 ident: self.function.identifier(),
                 function_id: self.function_id,
                 arguments: self.arguments.clone(),
+                speculative_placeholder: false,
                 warnings,
             },
             error: invalid_argument_error,
@@ -709,6 +710,7 @@ pub struct FunctionCall {
     #[allow(dead_code)]
     function_id: usize,
     arguments: Arc<Vec<Node<FunctionArgument>>>,
+    speculative_placeholder: bool,
 
     pub(crate) warnings: Vec<Warning>,
 }
@@ -733,8 +735,24 @@ impl FunctionCall {
             ident,
             function_id: 0,
             arguments: Arc::new(Vec::new()),
+            speculative_placeholder: true,
             warnings: Vec::new(),
         }
+    }
+
+    #[must_use]
+    pub(crate) fn arguments(&self) -> &[Node<FunctionArgument>] {
+        &self.arguments
+    }
+
+    #[must_use]
+    pub(crate) fn closure(&self) -> Option<&Closure> {
+        self.closure.as_ref()
+    }
+
+    #[must_use]
+    pub(crate) const fn is_speculative_placeholder(&self) -> bool {
+        self.speculative_placeholder
     }
 
     /// Takes the arguments passed and resolves them into the order they are defined
