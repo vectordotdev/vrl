@@ -2765,4 +2765,98 @@ mod tests {
             codes::ExprCode::InfallibleAssignment as usize
         );
     }
+
+    #[test]
+    fn test_for_jump_aware_not_abort_and_return_validation() {
+        let tz = TimeZone::default();
+
+        // 1. `!{ ... }` excludes the breaking branch's mutation from the operand type check.
+        let not_break = r#"
+            b = true
+            for i, _ in [1, 2] {
+                .y = !{
+                    if i == 1 {
+                        b = "s"
+                        break
+                    }
+                    b
+                }
+            }
+            .y
+        "#;
+        let compiled_not = crate::compiler::compile(not_break, &[])
+            .expect("expected negation of jump-aware boolean block to compile");
+        let mut target = TargetValue::new(Value::Object(ObjectMap::new()));
+        let mut state = RuntimeState::default();
+        let mut ctx = Context::new(&mut target, &mut state, &tz);
+        assert_eq!(
+            compiled_not.program.resolve(&mut ctx),
+            Ok(Value::from(false))
+        );
+
+        // 2. `abort { ... }` excludes the breaking branch's mutation from the message check.
+        let abort_break = r#"
+            msg = "err"
+            for i, _ in [1, 2] {
+                if i == 1 {
+                    abort {
+                        if i == 1 {
+                            msg = 1
+                            break
+                        }
+                        msg
+                    }
+                }
+            }
+            msg
+        "#;
+        let compiled_abort = crate::compiler::compile(abort_break, &[])
+            .expect("expected abort with jump-aware string block to compile");
+        let mut target = TargetValue::new(Value::Object(ObjectMap::new()));
+        let mut state = RuntimeState::default();
+        let mut ctx = Context::new(&mut target, &mut state, &tz);
+        assert_eq!(compiled_abort.program.resolve(&mut ctx), Ok(Value::from(1)));
+
+        // 3. `return { ... }` excludes the breaking branch's mutation from the fallibility check.
+        let return_break = r#"
+            x = 1
+            for i, _ in [1, 2] {
+                return {
+                    if i == 0 {
+                        x = "s"
+                        break
+                    }
+                    x + 1
+                }
+            }
+            x
+        "#;
+        let compiled_return = crate::compiler::compile(return_break, &[])
+            .expect("expected return with jump-aware infallible block to compile");
+        let mut target = TargetValue::new(Value::Object(ObjectMap::new()));
+        let mut state = RuntimeState::default();
+        let mut ctx = Context::new(&mut target, &mut state, &tz);
+        assert_eq!(
+            compiled_return.program.resolve(&mut ctx),
+            Ok(Value::from("s"))
+        );
+
+        // 4. Negative: genuinely non-boolean negation still fails when the normal path mutates `b`.
+        let invalid_not = r#"
+            b = true
+            for i, _ in [1, 2] {
+                .y = !{
+                    if i == 1 {
+                        break
+                    }
+                    b = "s"
+                    b
+                }
+            }
+        "#;
+        assert!(
+            crate::compiler::compile(invalid_not, &[]).is_err(),
+            "expected genuinely non-boolean negation to fail compilation"
+        );
+    }
 }

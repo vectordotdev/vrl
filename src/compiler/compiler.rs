@@ -634,13 +634,10 @@ impl<'a> Compiler<'a> {
         original_state: &TypeState,
     ) -> Option<TypeDef> {
         match variant {
-            assignment::Variant::Infallible { expr, .. }
-                if self.loop_depth > 0
-                    && expression::for_loop::expr_contains_loop_jump(expr.inner()) =>
-            {
-                Some(self.expr_type_info(expr.inner(), original_state).result)
+            assignment::Variant::Infallible { expr, .. } => {
+                self.jump_aware_override_type(expr.inner(), original_state)
             }
-            _ => None,
+            assignment::Variant::Single { .. } => None,
         }
     }
 
@@ -1071,18 +1068,26 @@ impl<'a> Compiler<'a> {
         Some(Unary::new(variant))
     }
 
+    fn jump_aware_override_type(&self, expr: &Expr, original_state: &TypeState) -> Option<TypeDef> {
+        (self.loop_depth > 0 && expression::for_loop::expr_contains_loop_jump(expr))
+            .then(|| self.expr_type_info(expr, original_state).result)
+    }
+
     fn compile_not(&mut self, node: Node<ast::Not>, state: &mut TypeState) -> Option<Not> {
+        let original_state = state.clone();
         let (not, expr) = node.into_inner().take();
 
         let node = Node::new(expr.span(), self.compile_expr(*expr, state)?);
+        let override_type_def = self.jump_aware_override_type(node.inner(), &original_state);
 
-        Not::new(node, not.span(), state)
+        Not::new_with_type_def(node, not.span(), state, override_type_def)
             .map_err(|err| self.diagnostics.push(Box::new(err)))
             .ok()
     }
 
     fn compile_abort(&mut self, node: Node<ast::Abort>, state: &mut TypeState) -> Option<Abort> {
         self.abortable = true;
+        let original_state = state.clone();
         let (span, abort) = node.take();
         self.consuming_fallibility(|c| {
             let message = match abort.message {
@@ -1091,20 +1096,25 @@ impl<'a> Compiler<'a> {
                 }
                 None => None,
             };
+            let override_type_def = message
+                .as_ref()
+                .and_then(|msg| c.jump_aware_override_type(msg.inner(), &original_state));
 
-            Abort::new(span, message, state)
+            Abort::new_with_type_def(span, message, state, override_type_def)
                 .map_err(|err| c.diagnostics.push(Box::new(err)))
                 .ok()
         })
     }
 
     fn compile_return(&mut self, node: Node<ast::Return>, state: &mut TypeState) -> Option<Return> {
+        let original_state = state.clone();
         let (span, r#return) = node.take();
         self.consuming_fallibility(|c| {
             let expr = c.compile_expr(*r#return.expr, state)?;
+            let override_type_def = c.jump_aware_override_type(&expr, &original_state);
             let node = Node::new(span, expr);
 
-            Return::new(span, node, state)
+            Return::new_with_type_def(span, node, state, override_type_def)
                 .map_err(|err| c.diagnostics.push(Box::new(err)))
                 .ok()
         })

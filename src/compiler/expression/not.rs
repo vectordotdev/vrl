@@ -31,8 +31,17 @@ impl Not {
     /// # Returns
     /// A `Result` containing the new `Not` expression or an error.
     pub fn new(node: Node<Expr>, not_span: Span, state: &TypeState) -> Result {
+        Self::new_with_type_def(node, not_span, state, None)
+    }
+
+    pub(crate) fn new_with_type_def(
+        node: Node<Expr>,
+        not_span: Span,
+        state: &TypeState,
+        override_type_def: Option<TypeDef>,
+    ) -> Result {
         let (expr_span, expr) = node.take();
-        let type_def = expr.type_info(state).result;
+        let type_def = override_type_def.unwrap_or_else(|| expr.type_info(state).result);
 
         if !type_def.is_boolean() {
             return Err(Error {
