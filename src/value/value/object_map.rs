@@ -8,6 +8,7 @@ use std::cmp::Ordering;
 use std::collections::{BTreeMap, btree_map};
 use std::fmt;
 use std::hash::{Hash, Hasher};
+use std::ops::RangeFull;
 
 use super::{KeyString, Value};
 
@@ -121,6 +122,19 @@ impl ObjectMap {
         F: FnMut(&KeyString, &mut Value) -> bool,
     {
         self.map.retain(|k, v| f(k, v));
+    }
+
+    /// Removes and yields, in key order, the entries for which `pred` returns
+    /// `true`.
+    ///
+    /// Entries the iterator does not reach stay in the map, so dropping it early
+    /// keeps them, as with [`BTreeMap::extract_if`].
+    #[inline]
+    pub fn extract_if<F>(&mut self, pred: F) -> ObjectMapExtractIf<'_, F>
+    where
+        F: FnMut(&KeyString, &mut Value) -> bool,
+    {
+        ObjectMapExtractIf(self.map.extract_if(.., pred))
     }
 
     /// Insert a new empty child `ObjectMap` at the given key and return a
@@ -275,6 +289,27 @@ impl Iterator for ObjectMapIntoValues {
 pub struct ObjectMapIntoIter(btree_map::IntoIter<KeyString, Value>);
 
 impl Iterator for ObjectMapIntoIter {
+    type Item = (KeyString, Value);
+
+    #[inline]
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0.next()
+    }
+
+    #[inline]
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.0.size_hint()
+    }
+}
+
+pub struct ObjectMapExtractIf<'a, F>(btree_map::ExtractIf<'a, KeyString, Value, RangeFull, F>)
+where
+    F: FnMut(&KeyString, &mut Value) -> bool;
+
+impl<F> Iterator for ObjectMapExtractIf<'_, F>
+where
+    F: FnMut(&KeyString, &mut Value) -> bool,
+{
     type Item = (KeyString, Value);
 
     #[inline]
@@ -506,5 +541,64 @@ impl<'de> ::serde::Deserialize<'de> for ObjectMap {
     #[inline]
     fn deserialize<D: ::serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         BTreeMap::deserialize(deserializer).map(|map| Self { map })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn sample() -> ObjectMap {
+        ObjectMap::from([
+            ("a".into(), Value::from(1)),
+            ("b.c".into(), Value::from(2)),
+            ("d".into(), Value::from(3)),
+            ("e.f".into(), Value::from(4)),
+        ])
+    }
+
+    #[test]
+    fn extract_if_removes_matching_entries_in_key_order() {
+        let mut map = sample();
+
+        let extracted: Vec<_> = map.extract_if(|key, _| key.contains('.')).collect();
+
+        assert_eq!(
+            extracted,
+            vec![
+                ("b.c".into(), Value::from(2)),
+                ("e.f".into(), Value::from(4))
+            ]
+        );
+        assert_eq!(
+            map,
+            ObjectMap::from([("a".into(), Value::from(1)), ("d".into(), Value::from(3))])
+        );
+    }
+
+    #[test]
+    fn extract_if_keeps_unvisited_entries_when_dropped_early() {
+        let mut map = sample();
+
+        let first = map.extract_if(|key, _| key.contains('.')).next();
+
+        assert_eq!(first, Some(("b.c".into(), Value::from(2))));
+        assert_eq!(map.len(), 3);
+        assert!(map.contains_key("e.f"));
+    }
+
+    #[test]
+    fn extract_if_predicate_can_mutate_kept_values() {
+        let mut map = sample();
+
+        let extracted: Vec<_> = map
+            .extract_if(|_, value| {
+                *value = Value::from(value.as_integer().unwrap() * 10);
+                false
+            })
+            .collect();
+
+        assert_eq!(extracted, vec![]);
+        assert_eq!(map.get("d"), Some(&Value::from(30)));
     }
 }
