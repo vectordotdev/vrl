@@ -671,10 +671,8 @@ fn eval_function_call_with_ctx(
 ) -> LoopFlow {
     let mut error_state = None;
     let mut caught_return_state = None;
-    let mut returns = Kind::never();
     let mut info = call.eval_with_arg_mapper(state, |arg, st| {
         let flow = eval_loop_expr_with_ctx(arg, st, ctx);
-        returns.merge_keep(flow.result.returns().clone(), false);
         error_state = merge_opt_state(error_state.take(), flow.error_state);
         if let Some(ret_state) = flow.return_state {
             caught_return_state =
@@ -692,7 +690,6 @@ fn eval_function_call_with_ctx(
     if info.result.is_fallible() {
         error_state = merge_opt_state(error_state, Some(state.clone().merge(info.state.clone())));
     }
-    info.result.returns_mut().merge_keep(returns, false);
     LoopFlow {
         normal: Some(info.state),
         break_state: None,
@@ -4205,6 +4202,23 @@ mod tests {
             crate::compiler::compile(query_abort_arg, &fns).is_ok(),
             "expected aborting query-target function argument not to widen x: {:?}",
             crate::compiler::compile(query_abort_arg, &fns).err()
+        );
+
+        // 5. Bits #4661503669: `return` inside a function argument is converted to a catchable
+        //    runtime error by `FunctionCall::resolve`, so its value cannot escape as an enclosing
+        //    closure return type.
+        let caught_arg_return_in_closure = r#"
+            filter([1]) -> |_, _| {
+                for _ in [1] {
+                    parse_json({ return "ignored" }) ?? {}
+                }
+                true
+            }
+        "#;
+        assert!(
+            crate::compiler::compile(caught_arg_return_in_closure, &fns).is_ok(),
+            "expected caught argument return not to pollute enclosing closure return type: {:?}",
+            crate::compiler::compile(caught_arg_return_in_closure, &fns).err()
         );
     }
 
