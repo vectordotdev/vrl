@@ -9,7 +9,13 @@ permissions:
   contents: read
 
 jobs:
+  repo-gate:
+    uses: ./.github/workflows/ci-repo-gate.yml
+    with:
+      upstream-only: true
+
   check-features:
+    needs: repo-gate
     if: ${{ github.event_name == 'merge_group' }}
     runs-on: ubuntu-latest
     steps:
@@ -19,6 +25,7 @@ jobs:
         run: make check-features
 
   check-release:
+    needs: repo-gate
     # A release PR is prepared from a fixed `main` commit. If another PR lands first,
     # its changelog fragment stays in `changelog.d/` at the release commit and the
     # release changelog misses it. Reject that group so the release is prepared again.
@@ -43,8 +50,10 @@ jobs:
           cargo run -q -p release -- release-commit --before "$BASE_SHA"
 
   merge-queue:
-    if: always()
+    # Report gate failures; skip only repositories excluded by the gate.
+    if: always() && needs.repo-gate.result != 'skipped'
     needs:
+      - repo-gate
       - check-features
       - check-release
     runs-on: ubuntu-latest
