@@ -68,7 +68,7 @@ impl Op {
         rhs: Node<Expr>,
         state: &TypeState,
     ) -> Result<Self, Error> {
-        Self::new_speculative(lhs, opcode, rhs, state, false).map(|(op, _)| op)
+        Self::new_speculative(lhs, opcode, rhs, state, false, None).map(|(op, _)| op)
     }
 
     pub(crate) fn new_speculative(
@@ -77,6 +77,7 @@ impl Op {
         rhs: Node<Expr>,
         state: &TypeState,
         allow_infallible_coalesce: bool,
+        override_operand_types: Option<(TypeDef, TypeDef)>,
     ) -> Result<(Self, Option<Error>), Error> {
         use ast::Opcode::{Eq, Ge, Gt, Le, Lt, Ne};
 
@@ -85,8 +86,13 @@ impl Op {
         let (op_span, opcode) = opcode.take();
 
         let (lhs_span, lhs) = lhs.take();
-        let lhs_type_def = lhs.apply_type_info(&mut state);
-        let rhs_type_def = rhs.apply_type_info(&mut state);
+        let (lhs_type_def, rhs_type_def) = match override_operand_types {
+            Some(types) => types,
+            None => (
+                lhs.apply_type_info(&mut state),
+                rhs.apply_type_info(&mut state),
+            ),
+        };
 
         let (rhs_span, rhs) = rhs.take();
 

@@ -24,6 +24,7 @@ impl Predicate {
         node: Node<Vec<Expr>>,
         state: &TypeState,
         fallible_predicate: Option<&dyn DiagnosticMessage>,
+        override_type_def: Option<crate::compiler::TypeDef>,
     ) -> Result {
         let (span, exprs) = node.take();
 
@@ -36,7 +37,7 @@ impl Predicate {
         }
 
         let block = Block::new_inline(exprs);
-        let type_def = block.type_info(state).result;
+        let type_def = override_type_def.unwrap_or_else(|| block.type_info(state).result);
         if !type_def.is_boolean() {
             return Err(Error::NonBoolean {
                 kind: type_def.into(),

@@ -2661,4 +2661,108 @@ mod tests {
         assert_eq!(err.len(), 1, "expected only E110 diagnostic, got: {err:?}");
         assert_eq!(err[0].code, codes::ExprCode::InvalidArgumentKind as usize);
     }
+
+    #[test]
+    fn test_for_jump_aware_block_and_predicate_result_typing() {
+        let tz = TimeZone::default();
+
+        // 1. Block result after conditional `break` excludes the breaking branch's mutation
+        let block_break = r#"
+            x = 1
+            for i, _ in [1, 2] {
+                .y = {
+                    if i == 1 {
+                        x = "s"
+                        break
+                    }
+                    x + 1
+                }
+            }
+            .y
+        "#;
+        let compiled_block = crate::compiler::compile(block_break, &[])
+            .expect("expected block after breaking branch to be infallible");
+        let mut target = TargetValue::new(Value::Object(ObjectMap::new()));
+        let mut state = RuntimeState::default();
+        let mut ctx = Context::new(&mut target, &mut state, &tz);
+        assert_eq!(compiled_block.program.resolve(&mut ctx), Ok(Value::from(2)));
+
+        // 2. Contrast: conditional `continue` DOES feed `x = "s"` back into the next iteration
+        let block_continue = r#"
+            x = 1
+            for i, _ in [1, 2] {
+                .y = {
+                    if i == 1 {
+                        x = "s"
+                        continue
+                    }
+                    x + 1
+                }
+            }
+        "#;
+        let Err(err_cont) = crate::compiler::compile(block_continue, &[]) else {
+            panic!("expected continue mutation to make x + 1 fallible on iteration 2");
+        };
+        assert_eq!(
+            err_cont[0].code,
+            codes::ExprCode::FallibleAssignment as usize
+        );
+
+        // 3. Predicate block after conditional `break` stays boolean
+        let pred_break = r#"
+            x = true
+            .hit = false
+            for i, _ in [1, 2] {
+                if { if i == 1 { x = "s"; break }; x } {
+                    .hit = true
+                }
+            }
+            .hit
+        "#;
+        let compiled_pred = crate::compiler::compile(pred_break, &[])
+            .expect("expected predicate after breaking branch to stay boolean");
+        let mut target = TargetValue::new(Value::Object(ObjectMap::new()));
+        let mut state = RuntimeState::default();
+        let mut ctx = Context::new(&mut target, &mut state, &tz);
+        assert_eq!(
+            compiled_pred.program.resolve(&mut ctx),
+            Ok(Value::from(true))
+        );
+
+        // 4. Operator operand after conditional `break` stays infallible
+        let op_break = r#"
+            x = 1
+            for i, _ in [1, 2] {
+                .z = ({ if i == 1 { x = "s"; break }; x + 1 }) + 2
+            }
+            .z
+        "#;
+        let compiled_op = crate::compiler::compile(op_break, &[])
+            .expect("expected op operand after breaking branch to stay infallible");
+        let mut target = TargetValue::new(Value::Object(ObjectMap::new()));
+        let mut state = RuntimeState::default();
+        let mut ctx = Context::new(&mut target, &mut state, &tz);
+        assert_eq!(compiled_op.program.resolve(&mut ctx), Ok(Value::from(4)));
+
+        // 5. Infallible assignment (`ok, err =`) rejects infallible block after breaking branch (E104)
+        let infallible_assign = r#"
+            x = 1
+            for i, _ in [1, 2] {
+                .ok, .err = {
+                    if i == 1 {
+                        x = "s"
+                        break
+                    }
+                    x + 1
+                }
+            }
+        "#;
+        let Err(err_infallible) = crate::compiler::compile(infallible_assign, &[]) else {
+            panic!("expected infallible assignment on infallible block to fail with E104");
+        };
+        assert_eq!(
+            err_infallible[0].code,
+            codes::ExprCode::InfallibleAssignment as usize
+        );
+    }
 }

@@ -35,7 +35,7 @@ impl Assignment {
         fallible_rhs: Option<&CompilerError>,
         config: &CompileConfig,
     ) -> Result<Self, Error> {
-        Self::new_speculative(node, state, fallible_rhs, config, false).map(|(a, _)| a)
+        Self::new_speculative(node, state, fallible_rhs, config, false, None).map(|(a, _)| a)
     }
 
     #[allow(clippy::too_many_lines)]
@@ -45,6 +45,7 @@ impl Assignment {
         fallible_rhs: Option<&CompilerError>,
         config: &CompileConfig,
         allow_infallible_rhs: bool,
+        override_rhs_type: Option<TypeDef>,
     ) -> Result<(Self, Option<Error>), Error> {
         let (_, variant) = node.take();
         let mut deferred_error = None;
@@ -110,7 +111,7 @@ impl Assignment {
                 let err_span = err.span();
                 let expr_span = expr.span();
                 let assignment_span = Span::new(ok_span.start(), err_span.end());
-                let type_def = expr.type_info(state).result;
+                let type_def = override_rhs_type.unwrap_or_else(|| expr.type_info(state).result);
 
                 // Infallible expressions do not need fallible assignment.
                 if type_def.is_infallible() {

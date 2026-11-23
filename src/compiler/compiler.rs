@@ -278,7 +278,7 @@ impl<'a> Compiler<'a> {
         // outer-most fallible point in the current chain. Avoiding double
         // counting (e.g. `a + b()` where b is fallible already pushed) means
         // checking that the pending stack didn't grow during compilation.
-        let type_def = expr.type_info(&original_state).result;
+        let type_def = self.expr_type_info(&expr, &original_state).result;
         if type_def.is_fallible() && self.pending_fallibilities.len() == pre_compile_pending {
             self.pending_fallibilities
                 .push(CompilerError::ExpressionError(
@@ -392,18 +392,13 @@ impl<'a> Compiler<'a> {
             .map(|(block, _type_def)| block)
     }
 
-    fn update_state_for_loop_jumps(
-        &self,
-        expr: &Expr,
-        original_state: &TypeState,
-        state: &mut TypeState,
-    ) {
-        if self.loop_depth > 0
-            && expression::for_loop::expr_contains_loop_jump(expr)
-            && let Some(normal_state) =
-                expression::for_loop::eval_loop_expr(expr, original_state).normal
-        {
-            *state = normal_state;
+    fn expr_type_info(&self, expr: &Expr, state: &TypeState) -> crate::compiler::state::TypeInfo {
+        if self.loop_depth > 0 && expression::for_loop::expr_contains_loop_jump(expr) {
+            let flow = expression::for_loop::eval_loop_expr(expr, state);
+            let next_state = flow.normal.unwrap_or_else(|| expr.type_info(state).state);
+            crate::compiler::state::TypeInfo::new(next_state, flow.result)
+        } else {
+            expr.type_info(state)
         }
     }
 
@@ -418,16 +413,12 @@ impl<'a> Compiler<'a> {
 
         // The type information from `compile_exprs` doesn't applying the "scoping" from the block.
         // This is recalculated using the block.
-        *state = original_state.clone();
-        let result = block.apply_type_info(state);
-        self.update_state_for_loop_jumps(
-            &Expr::Container(Container::new(expression::container::Variant::Block(
-                block.clone(),
-            ))),
-            &original_state,
-            state,
-        );
-        Some((block, result))
+        let block_expr = Expr::Container(Container::new(expression::container::Variant::Block(
+            block.clone(),
+        )));
+        let info = self.expr_type_info(&block_expr, &original_state);
+        *state = info.state;
+        Some((block, info.result))
     }
 
     fn compile_array(&mut self, node: Node<ast::Array>, state: &mut TypeState) -> Option<Array> {
@@ -490,13 +481,8 @@ impl<'a> Compiler<'a> {
 
         // The current state is from one of the branches. Restore it and calculate
         // the type state from the full "if statement" expression.
-        *state = original_state.clone();
-        if_statement.apply_type_info(state);
-        self.update_state_for_loop_jumps(
-            &Expr::IfStatement(if_statement.clone()),
-            &original_state,
-            state,
-        );
+        let info = self.expr_type_info(&Expr::IfStatement(if_statement.clone()), &original_state);
+        *state = info.state;
         Some(if_statement)
     }
 
@@ -507,6 +493,7 @@ impl<'a> Compiler<'a> {
     ) -> Option<predicate::Result> {
         use ast::Predicate::{Many, One};
 
+        let original_state = state.clone();
         let (span, predicate) = node.take();
         let pre_pending = self.pending_fallibilities.len();
 
@@ -515,6 +502,17 @@ impl<'a> Compiler<'a> {
                 One(node) => vec![c.compile_expr(*node, state)?],
                 Many(nodes) => c.compile_exprs(nodes, state)?,
             };
+
+            let override_type_def = (c.loop_depth > 0
+                && exprs
+                    .iter()
+                    .any(expression::for_loop::expr_contains_loop_jump))
+            .then(|| {
+                let pred_block = Expr::Container(Container::new(
+                    expression::container::Variant::Block(Block::new_inline(exprs.clone())),
+                ));
+                c.expr_type_info(&pred_block, &original_state).result
+            });
 
             // The predicate's own fallibility is anything pushed during its
             // own compilation — never a stale prior entry from before it.
@@ -526,6 +524,7 @@ impl<'a> Compiler<'a> {
                 Node::new(span, exprs),
                 state,
                 predicate_fallibility,
+                override_type_def,
             ))
         })
     }
@@ -552,10 +551,27 @@ impl<'a> Compiler<'a> {
         }
 
         let rhs_span = rhs.span();
+        let state_after_lhs = state.clone();
         let rhs = Node::new(rhs_span, self.compile_expr(*rhs, state)?);
 
-        let op = match Op::new_speculative(lhs, opcode, rhs, state, self.speculative_loop.depth > 0)
-        {
+        let override_operand_types = (self.loop_depth > 0
+            && (expression::for_loop::expr_contains_loop_jump(lhs.inner())
+                || expression::for_loop::expr_contains_loop_jump(rhs.inner())))
+        .then(|| {
+            (
+                self.expr_type_info(lhs.inner(), &original_state).result,
+                self.expr_type_info(rhs.inner(), &state_after_lhs).result,
+            )
+        });
+
+        let op = match Op::new_speculative(
+            lhs,
+            opcode,
+            rhs,
+            state,
+            self.speculative_loop.depth > 0,
+            override_operand_types,
+        ) {
             Ok((op, deferred_err)) => {
                 if let Some(err) = deferred_err {
                     self.diagnostics.push(Box::new(err));
@@ -573,7 +589,7 @@ impl<'a> Compiler<'a> {
             }
         };
 
-        let type_info = op.type_info(&original_state);
+        let type_info = self.expr_type_info(&Expr::Op(op.clone()), &original_state);
 
         // If the op as a whole is infallible (e.g. `?? default` or a
         // short-circuit boolean made it so), drop fallibility produced by
@@ -585,7 +601,6 @@ impl<'a> Compiler<'a> {
         // Both "lhs" and "rhs" are compiled above, but "rhs" isn't always executed.
         // The expression can provide a more accurate type state.
         *state = type_info.state;
-        self.update_state_for_loop_jumps(&Expr::Op(op.clone()), &original_state, state);
         Some(op)
     }
 
@@ -611,6 +626,22 @@ impl<'a> Compiler<'a> {
                 state,
             )?),
         )))
+    }
+
+    fn jump_aware_infallible_rhs_type(
+        &self,
+        variant: &assignment::Variant<Node<ast::AssignmentTarget>, Node<Expr>>,
+        original_state: &TypeState,
+    ) -> Option<TypeDef> {
+        match variant {
+            assignment::Variant::Infallible { expr, .. }
+                if self.loop_depth > 0
+                    && expression::for_loop::expr_contains_loop_jump(expr.inner()) =>
+            {
+                Some(self.expr_type_info(expr.inner(), original_state).result)
+            }
+            _ => None,
+        }
     }
 
     fn compile_assignment(
@@ -703,6 +734,8 @@ impl<'a> Compiler<'a> {
             }
         };
 
+        let override_rhs_type = self.jump_aware_infallible_rhs_type(node.inner(), &original_state);
+
         // The fallibility relevant to `Assignment::new`'s check is whatever
         // was produced by *this* assignment's RHS — i.e. the first entry past
         // the snapshot. Anything before that belongs to an earlier expression.
@@ -713,6 +746,7 @@ impl<'a> Compiler<'a> {
             rhs_fallibility,
             &self.config,
             self.speculative_loop.depth > 0,
+            override_rhs_type,
         );
 
         let assignment = match assignment_result {
@@ -755,13 +789,8 @@ impl<'a> Compiler<'a> {
 
         // The state hasn't been updated from the actual assignment yet. Recalculate the type
         // from the new assignment expression.
-        *state = original_state.clone();
-        assignment.apply_type_info(state);
-        self.update_state_for_loop_jumps(
-            &Expr::Assignment(assignment.clone()),
-            &original_state,
-            state,
-        );
+        let info = self.expr_type_info(&Expr::Assignment(assignment.clone()), &original_state);
+        *state = info.state;
 
         Some(assignment)
     }
@@ -1200,8 +1229,7 @@ impl<'a> Compiler<'a> {
         let crate::compiler::state::TypeInfo {
             state: mut pre_loop_state,
             result: iterable_type,
-        } = compiled_iterable.type_info(&original_state);
-        self.update_state_for_loop_jumps(&compiled_iterable, &original_state, &mut pre_loop_state);
+        } = self.expr_type_info(&compiled_iterable, &original_state);
         let iterable_kind = iterable_type.kind();
 
         if !self.validate_for_header(&pattern, iterable_span, iterable_kind) {
@@ -1270,8 +1298,14 @@ impl<'a> Compiler<'a> {
             current_pre_loop_state = next_pre_loop_state;
         };
 
-        *state = final_state;
-        self.update_state_for_loop_jumps(&Expr::For(for_expr.clone()), &original_state, state);
+        *state = if self.loop_depth > 0
+            && expression::for_loop::expr_contains_loop_jump(&Expr::For(for_expr.clone()))
+        {
+            self.expr_type_info(&Expr::For(for_expr.clone()), &original_state)
+                .state
+        } else {
+            final_state
+        };
 
         Some(for_expr)
     }
