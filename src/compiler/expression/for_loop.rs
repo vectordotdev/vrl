@@ -258,7 +258,7 @@ pub(crate) struct LoopFlow {
 impl LoopFlow {
     fn from_type_info(info: TypeInfo) -> Self {
         Self {
-            normal: Some(info.state),
+            normal: (!info.result.is_never()).then_some(info.state),
             break_state: None,
             continue_state: None,
             result: info.result,
@@ -392,7 +392,7 @@ pub(crate) fn expr_contains_loop_jump(expr: &Expr) -> bool {
     use crate::compiler::expression::{container::Variant, query::Target, unary};
 
     match expr {
-        Expr::Break(_) | Expr::Continue(_) => true,
+        Expr::Break(_) | Expr::Continue(_) | Expr::Abort(_) | Expr::Return(_) => true,
         // A nested `for` loop captures jumps from its body, but jumps inside its
         // `iterable` still target the enclosing `for` loop.
         Expr::For(for_expr) => expr_contains_loop_jump(&for_expr.iterable),
@@ -433,8 +433,6 @@ pub(crate) fn expr_contains_loop_jump(expr: &Expr) -> bool {
         Expr::Unary(unary) => match unary.variant() {
             unary::Variant::Not(not) => expr_contains_loop_jump(not.inner_expr()),
         },
-        Expr::Abort(abort) => abort.message().is_some_and(expr_contains_loop_jump),
-        Expr::Return(ret) => expr_contains_loop_jump(ret.expr()),
     }
 }
 
@@ -1764,7 +1762,7 @@ mod tests {
     #[test]
     fn test_for_type_info_propagates_iterable_returns() {
         let source = r#"
-            for _ in { return "foo"; [1, 2] } {
+            for _ in { if .x == 1 { return "foo" }; [1, 2] } {
                 return 1
             }
         "#;
@@ -2941,5 +2939,86 @@ mod tests {
             crate::compiler::compile(and_fallible_lhs, &[]).is_err(),
             "expected short-circuit && to reject unhandled fallible LHS"
         );
+    }
+
+    #[test]
+    fn test_for_diverging_return_and_abort_excluded_from_back_edge() {
+        let tz = TimeZone::default();
+
+        // 1. Body ending in `return` cannot reach the back edge.
+        let return_body = r#"
+            x = 1
+            for _ in [1, 2] {
+                .y = x + 1
+                x = "s"
+                return 0
+            }
+        "#;
+        let compiled_ret = crate::compiler::compile(return_body, &[])
+            .expect("expected return-only loop body not to widen x across back edge");
+        assert_eq!(
+            compiled_ret.program.final_type_info().result.returns(),
+            &Kind::integer()
+        );
+        let mut target = TargetValue::new(Value::Object(ObjectMap::new()));
+        let mut state = RuntimeState::default();
+        let mut ctx = Context::new(&mut target, &mut state, &tz);
+        assert!(matches!(
+            compiled_ret.program.resolve(&mut ctx),
+            Err(ExpressionError::Return { value, .. }) if value == Value::from(0)
+        ));
+        assert_eq!(target.value.get(crate::path!("y")), Some(&Value::from(2)));
+
+        // 2. Body ending in `abort` cannot reach the back edge.
+        let abort_body = r#"
+            x = 1
+            for _ in [1, 2] {
+                .y = x + 1
+                x = "s"
+                abort "stop"
+            }
+        "#;
+        assert!(
+            crate::compiler::compile(abort_body, &[]).is_ok(),
+            "expected abort-only loop body not to widen x across back edge"
+        );
+
+        // 3. Conditional `return` branch does not leak its mutation to the normal path or back edge.
+        let cond_return = r#"
+            x = 1
+            for i, _ in [1, 2] {
+                if i == 1 {
+                    x = "s"
+                    return 0
+                }
+                .y = x + 1
+            }
+        "#;
+        let compiled_cond = crate::compiler::compile(cond_return, &[])
+            .expect("expected conditional return branch not to widen x");
+        let mut target = TargetValue::new(Value::Object(ObjectMap::new()));
+        let mut state = RuntimeState::default();
+        let mut ctx = Context::new(&mut target, &mut state, &tz);
+        assert!(matches!(
+            compiled_cond.program.resolve(&mut ctx),
+            Err(ExpressionError::Return { value, .. }) if value == Value::from(0)
+        ));
+        assert_eq!(target.value.get(crate::path!("y")), Some(&Value::from(2)));
+
+        // 4. Post-loop code after a diverging body keeps pre-loop type when iterable is empty.
+        let post_loop = r#"
+            x = 1
+            for _ in [] {
+                x = "s"
+                return 0
+            }
+            x + 1
+        "#;
+        let compiled_post = crate::compiler::compile(post_loop, &[])
+            .expect("expected post-loop code after diverging body to retain integer x");
+        let mut target = TargetValue::new(Value::Object(ObjectMap::new()));
+        let mut state = RuntimeState::default();
+        let mut ctx = Context::new(&mut target, &mut state, &tz);
+        assert_eq!(compiled_post.program.resolve(&mut ctx), Ok(Value::from(2)));
     }
 }
