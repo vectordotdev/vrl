@@ -556,154 +556,71 @@ mod tests {
     }
 
     #[test]
-    fn test_runtime_for_loop_array() {
+    fn test_runtime_for_loop_drops_pattern_bindings() {
         let span = Span::new(0, 0);
-        let pattern = ForPattern::Single(Node::new(span, Ident::new("x")));
-        let iterable = Box::new(Expr::from(Value::Array(vec![
-            Value::from(1),
-            Value::from(2),
-            Value::from(3),
-        ])));
-        let body_expr = test_variable_expr("x");
-        let block = Block::new_scoped(vec![body_expr]);
-        let for_expr = Expr::For(expression::For::new(span, pattern, iterable, block));
+        let mut map = ObjectMap::new();
+        map.insert("a".into(), Value::Integer(10));
+        map.insert("b".into(), Value::Integer(20));
 
-        let program = make_program(vec![for_expr]);
-        let mut target = Value::Object(ObjectMap::new());
-        let mut runtime = Runtime::new(RuntimeState::default());
-        let res = runtime.resolve(&mut target, &program, &TimeZone::default());
-        assert_eq!(res, Ok(Value::Null));
+        let cases = [
+            (
+                ForPattern::Single(Node::new(span, Ident::new("x"))),
+                Value::Array(vec![Value::from(1), Value::from(2)]),
+                test_variable_expr("x"),
+                vec!["x"],
+            ),
+            (
+                ForPattern::KeyValue(
+                    Node::new(span, Ident::new("i")),
+                    Node::new(span, Ident::new("v")),
+                ),
+                Value::Array(vec![Value::from("first"), Value::from("second")]),
+                test_variable_expr("v"),
+                vec!["i", "v"],
+            ),
+            (
+                ForPattern::KeyValue(
+                    Node::new(span, Ident::new("k")),
+                    Node::new(span, Ident::new("v")),
+                ),
+                Value::Object(map),
+                test_variable_expr("v"),
+                vec!["k", "v"],
+            ),
+            (
+                ForPattern::KeyValue(
+                    Node::new(span, Ident::new("_")),
+                    Node::new(span, Ident::new("v")),
+                ),
+                Value::Array(vec![Value::from(10)]),
+                test_variable_expr("v"),
+                vec!["_", "v"],
+            ),
+        ];
 
-        // Loop variable x should have been dropped
-        assert!(runtime.state.variable(&Ident::new("x")).is_none());
-    }
-
-    #[test]
-    fn test_runtime_for_loop_break() {
-        let span = Span::new(0, 0);
-        let pattern = ForPattern::Single(Node::new(span, Ident::new("x")));
-        let iterable = Box::new(Expr::from(Value::Array(vec![
-            Value::from(1),
-            Value::from(2),
-            Value::from(3),
-            Value::from(4),
-        ])));
-        let block = Block::new_scoped(vec![Expr::Break(expression::Break::new(span))]);
-        let for_expr = Expr::For(expression::For::new(span, pattern, iterable, block));
-
-        let program = make_program(vec![for_expr]);
-        let mut target = Value::Object(ObjectMap::new());
-        let mut runtime = Runtime::new(RuntimeState::default());
-        let res = runtime.resolve(&mut target, &program, &TimeZone::default());
-        assert_eq!(res, Ok(Value::Null));
-    }
-
-    #[test]
-    fn test_runtime_for_loop_continue() {
-        let span = Span::new(0, 0);
-        let pattern = ForPattern::Single(Node::new(span, Ident::new("x")));
-        let iterable = Box::new(Expr::from(Value::Array(vec![
-            Value::from(1),
-            Value::from(2),
-            Value::from(3),
-        ])));
-        let block = Block::new_scoped(vec![Expr::Continue(expression::Continue::new(span))]);
-        let for_expr = Expr::For(expression::For::new(span, pattern, iterable, block));
-
-        let program = make_program(vec![for_expr]);
-        let mut target = Value::Object(ObjectMap::new());
-        let mut runtime = Runtime::new(RuntimeState::default());
-        let res = runtime.resolve(&mut target, &program, &TimeZone::default());
-        assert_eq!(res, Ok(Value::Null));
-    }
-
-    #[test]
-    fn test_runtime_for_loop_return() {
-        let span = Span::new(0, 0);
-        let pattern = ForPattern::Single(Node::new(span, Ident::new("x")));
-        let iterable = Box::new(Expr::from(Value::Array(vec![
-            Value::from(1),
-            Value::from(2),
-            Value::from(3),
-        ])));
-        let ret_expr = Expr::Return(
-            Return::new(
+        for (pattern, iterable, body_expr, idents) in cases {
+            let for_expr = Expr::For(expression::For::new(
                 span,
-                Node::new(span, Expr::from(Value::from(42))),
-                &TypeState::default(),
-            )
-            .unwrap(),
-        );
-        let block = Block::new_scoped(vec![ret_expr]);
-        let for_expr = Expr::For(expression::For::new(span, pattern, iterable, block));
-
-        let program = make_program(vec![for_expr]);
-        let mut target = Value::Object(ObjectMap::new());
-        let mut runtime = Runtime::new(RuntimeState::default());
-        let res = runtime.resolve(&mut target, &program, &TimeZone::default());
-        assert_eq!(res, Ok(Value::from(42)));
+                pattern,
+                Box::new(Expr::from(iterable)),
+                Block::new_scoped(vec![body_expr]),
+            ));
+            let program = make_program(vec![for_expr]);
+            let mut target = Value::Object(ObjectMap::new());
+            let mut runtime = Runtime::new(RuntimeState::default());
+            assert_eq!(
+                runtime.resolve(&mut target, &program, &TimeZone::default()),
+                Ok(Value::Null)
+            );
+            for ident in idents {
+                assert!(runtime.state.variable(&Ident::new(ident)).is_none());
+            }
+        }
     }
 
     #[test]
-    fn test_runtime_for_loop_shadowing_outer_preserved() {
+    fn test_runtime_for_loop_restores_shadowed_binding_on_all_exits() {
         let span = Span::new(0, 0);
-        let pattern = ForPattern::Single(Node::new(span, Ident::new("x")));
-        let iterable = Box::new(Expr::from(Value::Array(vec![
-            Value::from(1),
-            Value::from(2),
-        ])));
-        let block = Block::new_scoped(vec![test_variable_expr("x")]);
-        let for_expr = Expr::For(expression::For::new(span, pattern, iterable, block));
-
-        let program = make_program(vec![for_expr]);
-        let mut target = Value::Object(ObjectMap::new());
-        let mut runtime = Runtime::new(RuntimeState::default());
-        runtime
-            .state
-            .insert_variable(Ident::new("x"), Value::from("outer_x"));
-
-        let res = runtime.resolve(&mut target, &program, &TimeZone::default());
-        assert_eq!(res, Ok(Value::Null));
-        assert_eq!(
-            runtime.state.variable(&Ident::new("x")),
-            Some(&Value::from("outer_x"))
-        );
-    }
-
-    #[test]
-    fn test_runtime_for_loop_shadowing_on_break() {
-        let span = Span::new(0, 0);
-        let pattern = ForPattern::Single(Node::new(span, Ident::new("x")));
-        let iterable = Box::new(Expr::from(Value::Array(vec![
-            Value::from(1),
-            Value::from(2),
-        ])));
-        let block = Block::new_scoped(vec![Expr::Break(expression::Break::new(span))]);
-        let for_expr = Expr::For(expression::For::new(span, pattern, iterable, block));
-
-        let program = make_program(vec![for_expr]);
-        let mut target = Value::Object(ObjectMap::new());
-        let mut runtime = Runtime::new(RuntimeState::default());
-        runtime
-            .state
-            .insert_variable(Ident::new("x"), Value::from("outer_x"));
-
-        let res = runtime.resolve(&mut target, &program, &TimeZone::default());
-        assert_eq!(res, Ok(Value::Null));
-        assert_eq!(
-            runtime.state.variable(&Ident::new("x")),
-            Some(&Value::from("outer_x"))
-        );
-    }
-
-    #[test]
-    fn test_runtime_for_loop_shadowing_on_return() {
-        let span = Span::new(0, 0);
-        let pattern = ForPattern::Single(Node::new(span, Ident::new("x")));
-        let iterable = Box::new(Expr::from(Value::Array(vec![
-            Value::from(1),
-            Value::from(2),
-        ])));
         let ret_expr = Expr::Return(
             Return::new(
                 span,
@@ -712,135 +629,61 @@ mod tests {
             )
             .unwrap(),
         );
-        let block = Block::new_scoped(vec![ret_expr]);
-        let for_expr = Expr::For(expression::For::new(span, pattern, iterable, block));
+        let cases = [
+            (test_variable_expr("x"), Value::Null),
+            (Expr::Break(expression::Break::new(span)), Value::Null),
+            (ret_expr, Value::from("early")),
+        ];
 
-        let program = make_program(vec![for_expr]);
-        let mut target = Value::Object(ObjectMap::new());
-        let mut runtime = Runtime::new(RuntimeState::default());
-        runtime
-            .state
-            .insert_variable(Ident::new("x"), Value::from("outer_x"));
+        for (body_expr, expected) in cases {
+            let for_expr = Expr::For(expression::For::new(
+                span,
+                ForPattern::Single(Node::new(span, Ident::new("x"))),
+                Box::new(Expr::from(Value::Array(vec![
+                    Value::from(1),
+                    Value::from(2),
+                ]))),
+                Block::new_scoped(vec![body_expr]),
+            ));
+            let program = make_program(vec![for_expr]);
+            let mut target = Value::Object(ObjectMap::new());
+            let mut runtime = Runtime::new(RuntimeState::default());
+            runtime
+                .state
+                .insert_variable(Ident::new("x"), Value::from("outer_x"));
 
-        let res = runtime.resolve(&mut target, &program, &TimeZone::default());
-        assert_eq!(res, Ok(Value::from("early")));
-        assert_eq!(
-            runtime.state.variable(&Ident::new("x")),
-            Some(&Value::from("outer_x"))
-        );
+            assert_eq!(
+                runtime.resolve(&mut target, &program, &TimeZone::default()),
+                Ok(expected)
+            );
+            assert_eq!(
+                runtime.state.variable(&Ident::new("x")),
+                Some(&Value::from("outer_x"))
+            );
+        }
     }
 
     #[test]
-    fn test_runtime_for_loop_array_key_value() {
+    fn test_runtime_for_loop_invalid_ast_errors() {
         let span = Span::new(0, 0);
-        let pattern = ForPattern::KeyValue(
-            Node::new(span, Ident::new("i")),
-            Node::new(span, Ident::new("v")),
-        );
-        let iterable = Box::new(Expr::from(Value::Array(vec![
-            Value::from("first"),
-            Value::from("second"),
-        ])));
-        let block = Block::new_scoped(vec![test_variable_expr("v")]);
-        let for_expr = Expr::For(expression::For::new(span, pattern, iterable, block));
-
-        let program = make_program(vec![for_expr]);
-        let mut target = Value::Object(ObjectMap::new());
-        let mut runtime = Runtime::new(RuntimeState::default());
-        let res = runtime.resolve(&mut target, &program, &TimeZone::default());
-        assert_eq!(res, Ok(Value::Null));
-        assert!(runtime.state.variable(&Ident::new("i")).is_none());
-        assert!(runtime.state.variable(&Ident::new("v")).is_none());
-    }
-
-    #[test]
-    fn test_runtime_for_loop_object_key_value() {
-        let span = Span::new(0, 0);
-        let pattern = ForPattern::KeyValue(
-            Node::new(span, Ident::new("k")),
-            Node::new(span, Ident::new("v")),
-        );
         let mut map = ObjectMap::new();
         map.insert("a".into(), Value::Integer(10));
-        map.insert("b".into(), Value::Integer(20));
-        let iterable = Box::new(Expr::from(Value::Object(map)));
-        let block = Block::new_scoped(vec![test_variable_expr("v")]);
-        let for_expr = Expr::For(expression::For::new(span, pattern, iterable, block));
 
-        let program = make_program(vec![for_expr]);
-        let mut target = Value::Object(ObjectMap::new());
-        let mut runtime = Runtime::new(RuntimeState::default());
-        let res = runtime.resolve(&mut target, &program, &TimeZone::default());
-        assert_eq!(res, Ok(Value::Null));
-        assert!(runtime.state.variable(&Ident::new("k")).is_none());
-        assert!(runtime.state.variable(&Ident::new("v")).is_none());
-    }
-
-    #[test]
-    fn test_runtime_for_loop_non_collection_error() {
-        let span = Span::new(0, 0);
-        let pattern = ForPattern::Single(Node::new(span, Ident::new("x")));
-        let iterable = Box::new(Expr::from(Value::Integer(42)));
-        let block = Block::new_scoped(vec![test_variable_expr("x")]);
-        let for_expr = Expr::For(expression::For::new(span, pattern, iterable, block));
-
-        let program = make_program(vec![for_expr]);
-        let mut target = Value::Object(ObjectMap::new());
-        let mut runtime = Runtime::new(RuntimeState::default());
-        let res = runtime.resolve(&mut target, &program, &TimeZone::default());
-        assert!(matches!(res, Err(Terminate::Error(_))));
-    }
-
-    #[test]
-    fn test_runtime_for_loop_single_var_object_error() {
-        let span = Span::new(0, 0);
-        let pattern = ForPattern::Single(Node::new(span, Ident::new("x")));
-        let mut map = ObjectMap::new();
-        map.insert("a".into(), Value::Integer(10));
-        let iterable = Box::new(Expr::from(Value::Object(map)));
-        let block = Block::new_scoped(vec![test_variable_expr("x")]);
-        let for_expr = Expr::For(expression::For::new(span, pattern, iterable, block));
-
-        let program = make_program(vec![for_expr]);
-        let mut target = Value::Object(ObjectMap::new());
-        let mut runtime = Runtime::new(RuntimeState::default());
-        let res = runtime.resolve(&mut target, &program, &TimeZone::default());
-        assert!(matches!(res, Err(Terminate::Error(_))));
-    }
-
-    #[test]
-    fn test_runtime_for_loop_empty_collections() {
-        let span = Span::new(0, 0);
-        let pattern = ForPattern::Single(Node::new(span, Ident::new("x")));
-        let iterable = Box::new(Expr::from(Value::Array(vec![])));
-        let block = Block::new_scoped(vec![Expr::Break(expression::Break::new(span))]);
-        let for_expr = Expr::For(expression::For::new(span, pattern, iterable, block));
-
-        let program = make_program(vec![for_expr]);
-        let mut target = Value::Object(ObjectMap::new());
-        let mut runtime = Runtime::new(RuntimeState::default());
-        let res = runtime.resolve(&mut target, &program, &TimeZone::default());
-        assert_eq!(res, Ok(Value::Null));
-    }
-
-    #[test]
-    fn test_runtime_for_loop_wildcard() {
-        let span = Span::new(0, 0);
-        let pattern = ForPattern::KeyValue(
-            Node::new(span, Ident::new("_")),
-            Node::new(span, Ident::new("v")),
-        );
-        let iterable = Box::new(Expr::from(Value::Array(vec![Value::from(10)])));
-        let block = Block::new_scoped(vec![test_variable_expr("v")]);
-        let for_expr = Expr::For(expression::For::new(span, pattern, iterable, block));
-
-        let program = make_program(vec![for_expr]);
-        let mut target = Value::Object(ObjectMap::new());
-        let mut runtime = Runtime::new(RuntimeState::default());
-        let res = runtime.resolve(&mut target, &program, &TimeZone::default());
-        assert_eq!(res, Ok(Value::Null));
-        assert!(runtime.state.variable(&Ident::new("_")).is_none());
-        assert!(runtime.state.variable(&Ident::new("v")).is_none());
+        for iterable in [Value::Integer(42), Value::Object(map)] {
+            let for_expr = Expr::For(expression::For::new(
+                span,
+                ForPattern::Single(Node::new(span, Ident::new("x"))),
+                Box::new(Expr::from(iterable)),
+                Block::new_scoped(vec![test_variable_expr("x")]),
+            ));
+            let program = make_program(vec![for_expr]);
+            let mut target = Value::Object(ObjectMap::new());
+            let mut runtime = Runtime::new(RuntimeState::default());
+            assert!(matches!(
+                runtime.resolve(&mut target, &program, &TimeZone::default()),
+                Err(Terminate::Error(_))
+            ));
+        }
     }
 
     fn compile_test_program(source: &str) -> Program {
