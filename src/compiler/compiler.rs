@@ -258,6 +258,35 @@ impl<'a> Compiler<'a> {
         Some(exprs)
     }
 
+    fn compile_block_exprs(
+        &mut self,
+        nodes: impl IntoIterator<Item = Node<ast::Expr>>,
+        state: &mut TypeState,
+    ) -> Option<Vec<Expr>> {
+        if self.speculative_loop.depth == 0 {
+            return self.compile_exprs(nodes, state);
+        }
+
+        let mut exprs = vec![];
+        for node in nodes {
+            let stmt_state = state.clone();
+            let pre_pending = self.pending_fallibilities.len();
+            let pre_skip = self.skip_missing_query_target.len();
+            if let Some(expr) = self.compile_expr(node, state) {
+                exprs.push(expr);
+            } else {
+                // Recover during speculative loop passes so subsequent widening statements
+                // (e.g. `prev = v`) still run and converge the loop header.
+                *state = stmt_state;
+                self.pending_fallibilities.truncate(pre_pending);
+                self.skip_missing_query_target.truncate(pre_skip);
+                self.speculative_loop.had_deferred_error = true;
+                exprs.push(Expr::Noop(Noop));
+            }
+        }
+        Some(exprs)
+    }
+
     fn compile_expr(&mut self, node: Node<ast::Expr>, state: &mut TypeState) -> Option<Expr> {
         use ast::Expr::{
             Abort, Assignment, Break, Container, Continue, For, FunctionCall, IfStatement, Literal,
@@ -438,7 +467,7 @@ impl<'a> Compiler<'a> {
         state: &mut TypeState,
     ) -> Option<(Block, TypeDef)> {
         let original_state = state.clone();
-        let exprs = self.compile_exprs(node.into_inner(), state)?;
+        let exprs = self.compile_block_exprs(node.into_inner(), state)?;
         let block = Block::new_scoped(exprs);
 
         // The type information from `compile_exprs` doesn't applying the "scoping" from the block.

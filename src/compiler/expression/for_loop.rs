@@ -3838,4 +3838,132 @@ mod tests {
             "expected budget-widened return type to include integer, got: {returns}"
         );
     }
+
+    #[test]
+    fn test_for_speculative_recovery_allows_header_widening() {
+        let fns = crate::stdlib::all();
+        let tz = TimeZone::default();
+
+        // 1. Bits #4660894136: `parse_csv(prev)` deferred call whose coarse placeholder
+        //    initially gives `array<any>`, causing `.last = upcase(field)` to fail on pass 1
+        //    before `prev = s` widens `prev` to `null | string`.
+        let parse_csv_src = r#"
+            prev = null
+            .last = ""
+            for s in ["a,b", "c,d"] {
+                for field in (parse_csv(prev) ?? []) {
+                    .last = upcase(field)
+                }
+                prev = s
+            }
+            .last
+        "#;
+        let compiled_csv = crate::compiler::compile(parse_csv_src, &fns)
+            .expect("expected parse_csv deferred loop to compile after header widens");
+        let mut target = TargetValue::new(Value::Object(ObjectMap::new()));
+        let mut state = RuntimeState::default();
+        let mut ctx = Context::new(&mut target, &mut state, &tz);
+        assert_eq!(compiled_csv.program.resolve(&mut ctx), Ok(Value::from("B")));
+
+        // 2. Codex #4660906178: guarded field mutation `prev.a = 0` when `prev` starts as `null`
+        //    and widens to `null | object` later in the loop body.
+        let parent_path_src = r#"
+            prev = null
+            .mutated = null
+            for v in [{"a": 1}, {"a": 2}] {
+                if prev != null {
+                    prev.a = 0
+                    .mutated = prev
+                }
+                prev = v
+            }
+            .mutated.a
+        "#;
+        let compiled_path = crate::compiler::compile(parent_path_src, &fns)
+            .expect("expected guarded prev.a = 0 to compile after prev widens to null | object");
+        let mut target = TargetValue::new(Value::Object(ObjectMap::new()));
+        let mut state = RuntimeState::default();
+        let mut ctx = Context::new(&mut target, &mut state, &tz);
+        assert_eq!(compiled_path.program.resolve(&mut ctx), Ok(Value::from(0)));
+
+        // 3. Codex #4660906180: polymorphic `slice!([10], start)` whose coarse placeholder
+        //    reports `string | array`, failing inner `for` header validation on pass 1 before
+        //    `start = i` widens `start` to `null | integer`.
+        let slice_src = r"
+            start = null
+            .out = 0
+            for i in [0, 1] {
+                if start != null {
+                    for v in slice!([10], start) {
+                        .out = v
+                    }
+                }
+                start = i
+            }
+            .out
+        ";
+        let compiled_slice = crate::compiler::compile(slice_src, &fns)
+            .expect("expected slice!([10], start) loop to compile after start widens");
+        let mut target = TargetValue::new(Value::Object(ObjectMap::new()));
+        let mut state = RuntimeState::default();
+        let mut ctx = Context::new(&mut target, &mut state, &tz);
+        assert_eq!(
+            compiled_slice.program.resolve(&mut ctx),
+            Ok(Value::from(10))
+        );
+    }
+
+    #[test]
+    fn test_for_speculative_recovery_preserves_real_diagnostics() {
+        let fns = crate::stdlib::all();
+
+        // 1. `prev.a = 0` when `prev` never becomes an object still fails with E642.
+        let invalid_parent = r"
+            prev = null
+            for _ in [1, 2] {
+                prev.a = 0
+            }
+        ";
+        let Err(err_parent) = crate::compiler::compile(invalid_parent, &fns) else {
+            panic!("expected prev.a = 0 on permanently-null prev to fail with E642");
+        };
+        assert_eq!(
+            err_parent[0].code,
+            codes::CompilerCode::InvalidParentPathSegment as usize
+        );
+
+        // 5. Negative: `parse_csv(prev)` when `prev` widens to `null | integer` still fails with E110.
+        let invalid_csv = r"
+            prev = null
+            for s in [1, 2] {
+                for field in (parse_csv(prev) ?? []) {
+                    .last = upcase(field)
+                }
+                prev = s
+            }
+        ";
+        let Err(err_csv) = crate::compiler::compile(invalid_csv, &fns) else {
+            panic!("expected parse_csv on null | integer to fail with E110");
+        };
+        assert_eq!(
+            err_csv[0].code,
+            codes::ExprCode::InvalidArgumentKind as usize
+        );
+
+        // 6. Negative: `slice!("abc", 0)` as `for` iterable still fails with E633.
+        let invalid_slice = r#"
+            for _ in [1, 2] {
+                for v in slice!("abc", 0) {
+                    .out = v
+                }
+            }
+        "#;
+        let Err(err_slice) = crate::compiler::compile(invalid_slice, &fns) else {
+            panic!("expected for over string slice to fail with E633");
+        };
+        assert_eq!(
+            err_slice[0].code,
+            codes::CompilerCode::NonCollectionIterable as usize
+        );
+    }
 }
