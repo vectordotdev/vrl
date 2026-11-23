@@ -17,6 +17,7 @@ use crate::compiler::{
     value::Kind,
 };
 use crate::diagnostic::{DiagnosticMessage, Label, Note, Severity, Urls};
+use crate::path::OwnedTargetPath;
 use crate::prelude::Note::SeeErrorDocs;
 use crate::value::Value;
 
@@ -47,6 +48,8 @@ pub(crate) struct Builder<'a> {
 pub(crate) struct CallCompilationResult {
     pub(crate) function_call: FunctionCall,
     pub(crate) error: Option<FunctionCallError>,
+    /// Paths of the target that the function reported reading while it compiled.
+    pub(crate) target_queries: Vec<OwnedTargetPath>,
 }
 
 impl<'a> Builder<'a> {
@@ -487,7 +490,8 @@ impl<'a> Builder<'a> {
             .map_err(|error| FunctionCallError::Compilation { call_span, error })?;
 
         // Re-insert the external context into the compiler state.
-        *config = compile_ctx.into_config();
+        let (compile_config, target_queries) = compile_ctx.into_parts();
+        *config = compile_config;
 
         // Asking for an infallible function to abort on error makes no sense.
         // We consider this an error at compile-time, because it makes the
@@ -551,6 +555,7 @@ impl<'a> Builder<'a> {
                 warnings,
             },
             error: invalid_argument_error,
+            target_queries,
         })
     }
 
