@@ -310,6 +310,10 @@ impl Expression for Assignment {
         self.variant.resolve(ctx)
     }
 
+    fn resolve_discard(&self, ctx: &mut Context) -> Result<(), ExpressionError> {
+        self.variant.resolve_discard(ctx)
+    }
+
     fn type_info(&self, state: &TypeState) -> TypeInfo {
         self.variant.type_info(state)
     }
@@ -553,6 +557,39 @@ where
         };
 
         Ok(value)
+    }
+
+    fn resolve_discard(&self, ctx: &mut Context) -> Result<(), ExpressionError> {
+        use Variant::{Infallible, Single};
+
+        match self {
+            Single { target, expr } => {
+                let value = expr.resolve(ctx)?;
+                target.insert(value, ctx);
+                Ok(())
+            }
+            Infallible {
+                ok,
+                err,
+                expr,
+                default,
+            } => match expr.resolve(ctx) {
+                Ok(value) => {
+                    ok.insert(value, ctx);
+                    err.insert(Value::Null, ctx);
+                    Ok(())
+                }
+                Err(error) => {
+                    if matches!(error, ExpressionError::Interrupted) {
+                        return Err(error);
+                    }
+
+                    ok.insert(default.clone(), ctx);
+                    err.insert(Value::from(error.to_string()), ctx);
+                    Ok(())
+                }
+            },
+        }
     }
 
     fn type_info(&self, state: &TypeState) -> TypeInfo {
@@ -824,11 +861,269 @@ impl DiagnosticMessage for Error {
 }
 
 #[cfg(test)]
-mod test {
+pub(crate) mod tests {
+    use std::collections::BTreeMap;
+    use std::ops::ControlFlow;
+
     use crate::compiler::codes;
-    use crate::compiler::state::{ExternalEnv, LocalEnv};
-    use crate::compiler::{CompileConfig, TypeState, compile_with_state};
-    use crate::value::Kind;
+    use crate::compiler::state::{ExternalEnv, LocalEnv, RuntimeState};
+    use crate::compiler::{
+        CompileConfig, Context, Expression, ExpressionError, SecretTarget, Target, TargetValue,
+        TimeZone, TypeState, compile_with_state,
+    };
+    use crate::owned_value_path;
+    use crate::path::OwnedTargetPath;
+    use crate::value::{Kind, Secrets, Value};
+
+    #[derive(Debug)]
+    pub(crate) struct SpyTarget {
+        pub(crate) inner: TargetValue,
+        pub(crate) inserted_unique: Vec<bool>,
+    }
+
+    impl SpyTarget {
+        pub(crate) fn new() -> Self {
+            Self {
+                inner: TargetValue {
+                    value: Value::Object(BTreeMap::new()),
+                    metadata: Value::Object(BTreeMap::new()),
+                    secrets: Secrets::new(),
+                },
+                inserted_unique: Vec::new(),
+            }
+        }
+    }
+
+    impl Target for SpyTarget {
+        fn target_insert(
+            &mut self,
+            path: &OwnedTargetPath,
+            mut value: Value,
+        ) -> Result<(), String> {
+            if let Value::Bytes(b) = value {
+                match b.try_into_mut() {
+                    Ok(mut_b) => {
+                        self.inserted_unique.push(true);
+                        value = Value::Bytes(mut_b.freeze());
+                    }
+                    Err(b) => {
+                        self.inserted_unique.push(false);
+                        value = Value::Bytes(b);
+                    }
+                }
+            }
+            self.inner.target_insert(path, value)
+        }
+
+        fn target_get(&self, path: &OwnedTargetPath) -> Result<Option<&Value>, String> {
+            self.inner.target_get(path)
+        }
+
+        fn target_get_mut(&mut self, path: &OwnedTargetPath) -> Result<Option<&mut Value>, String> {
+            self.inner.target_get_mut(path)
+        }
+
+        fn target_remove(
+            &mut self,
+            path: &OwnedTargetPath,
+            compact: bool,
+        ) -> Result<Option<Value>, String> {
+            self.inner.target_remove(path, compact)
+        }
+    }
+
+    impl SecretTarget for SpyTarget {
+        fn get_secret(&self, key: &str) -> Option<&str> {
+            self.inner.get_secret(key)
+        }
+
+        fn insert_secret(&mut self, key: &str, value: &str) {
+            self.inner.insert_secret(key, value);
+        }
+
+        fn remove_secret(&mut self, key: &str) {
+            self.inner.remove_secret(key);
+        }
+    }
+
+    #[cfg(feature = "stdlib")]
+    #[test]
+    fn resolve_discard_single_moves_without_cloning() {
+        let compiled =
+            crate::compiler::compile(r#".a = upcase("hello")"#, &crate::stdlib::all()).unwrap();
+        let expr = &compiled.program.expressions.exprs()[0];
+
+        let mut spy = SpyTarget::new();
+        let mut state = RuntimeState::default();
+        let tz = TimeZone::default();
+        let mut ctx = Context::new(&mut spy, &mut state, &tz);
+
+        assert_eq!(expr.resolve_discard(&mut ctx), Ok(()));
+        assert_eq!(spy.inserted_unique, vec![true]);
+        assert_eq!(
+            spy.target_get(&OwnedTargetPath::event(owned_value_path!("a"))),
+            Ok(Some(&Value::from("HELLO")))
+        );
+    }
+
+    #[cfg(feature = "stdlib")]
+    #[test]
+    fn resolve_discard_infallible_ok_moves_without_cloning() {
+        let compiled = crate::compiler::compile(
+            r#".a, .err = decode_base64("aGVsbG8=")"#,
+            &crate::stdlib::all(),
+        )
+        .unwrap();
+        let expr = &compiled.program.expressions.exprs()[0];
+
+        let mut spy = SpyTarget::new();
+        let mut state = RuntimeState::default();
+        let tz = TimeZone::default();
+        let mut ctx = Context::new(&mut spy, &mut state, &tz);
+
+        assert_eq!(expr.resolve_discard(&mut ctx), Ok(()));
+        assert_eq!(spy.inserted_unique, vec![true]);
+        assert_eq!(
+            spy.target_get(&OwnedTargetPath::event(owned_value_path!("a"))),
+            Ok(Some(&Value::from("hello")))
+        );
+        assert_eq!(
+            spy.target_get(&OwnedTargetPath::event(owned_value_path!("err"))),
+            Ok(Some(&Value::Null))
+        );
+    }
+
+    #[cfg(feature = "stdlib")]
+    #[test]
+    fn resolve_discard_infallible_err_moves_error_without_cloning() {
+        let compiled = crate::compiler::compile(
+            r#".a, .err = decode_base64("!!!invalid!!!")"#,
+            &crate::stdlib::all(),
+        )
+        .unwrap();
+        let expr = &compiled.program.expressions.exprs()[0];
+
+        let mut spy = SpyTarget::new();
+        let mut state = RuntimeState::default();
+        let tz = TimeZone::default();
+        let mut ctx = Context::new(&mut spy, &mut state, &tz);
+
+        assert_eq!(expr.resolve_discard(&mut ctx), Ok(()));
+        // `.a` receives `default.clone()` (`""`, static empty Bytes -> `false`),
+        // and `.err` receives the newly allocated error string moved without cloning (`true`).
+        assert_eq!(spy.inserted_unique, vec![false, true]);
+        assert_eq!(
+            spy.target_get(&OwnedTargetPath::event(owned_value_path!("a"))),
+            Ok(Some(&Value::from("")))
+        );
+        let err_val = spy
+            .target_get(&OwnedTargetPath::event(owned_value_path!("err")))
+            .unwrap()
+            .expect(".err should be written");
+        match err_val {
+            Value::Bytes(b) => assert!(!b.is_empty(), "error string should be non-empty"),
+            other => panic!("expected Value::Bytes for .err, got {other:?}"),
+        }
+    }
+
+    #[cfg(feature = "stdlib")]
+    #[test]
+    fn resolve_discard_infallible_noop_err_still_mutates_ok() {
+        let compiled = crate::compiler::compile(
+            r#".a, _ = decode_base64("aGVsbG8=")"#,
+            &crate::stdlib::all(),
+        )
+        .unwrap();
+        let expr = &compiled.program.expressions.exprs()[0];
+
+        let mut spy = SpyTarget::new();
+        let mut state = RuntimeState::default();
+        let tz = TimeZone::default();
+        let mut ctx = Context::new(&mut spy, &mut state, &tz);
+
+        assert_eq!(expr.resolve_discard(&mut ctx), Ok(()));
+        assert_eq!(spy.inserted_unique, vec![true]);
+        assert_eq!(
+            spy.target_get(&OwnedTargetPath::event(owned_value_path!("a"))),
+            Ok(Some(&Value::from("hello")))
+        );
+    }
+
+    #[cfg(feature = "stdlib")]
+    #[test]
+    fn resolve_discard_infallible_propagates_interrupted() {
+        let compiled = crate::compiler::compile(
+            r#".a, .err = decode_base64("aGVsbG8=")"#,
+            &crate::stdlib::all(),
+        )
+        .unwrap();
+        let expr = &compiled.program.expressions.exprs()[0];
+
+        let mut spy = SpyTarget::new();
+        let mut state = RuntimeState::default();
+        let tz = TimeZone::default();
+        let mut checkpoints = 0usize;
+        let mut control = || {
+            checkpoints += 1;
+            if checkpoints == 1 {
+                ControlFlow::Continue(())
+            } else {
+                ControlFlow::Break(())
+            }
+        };
+        let mut ctx = Context::new_with_control(&mut spy, &mut state, &tz, &mut control);
+
+        assert_eq!(
+            expr.resolve_discard(&mut ctx),
+            Err(ExpressionError::Interrupted)
+        );
+        assert_eq!(checkpoints, 2);
+        assert_eq!(
+            spy.target_get(&OwnedTargetPath::event(owned_value_path!("a"))),
+            Ok(None)
+        );
+        assert_eq!(
+            spy.target_get(&OwnedTargetPath::event(owned_value_path!("err"))),
+            Ok(None)
+        );
+    }
+
+    #[test]
+    fn resolve_discard_single_propagates_return_and_abort() {
+        let compiled_return = crate::compiler::compile(".a = { return 7 }", &[]).unwrap();
+        let expr_return = &compiled_return.program.expressions.exprs()[0];
+
+        let mut spy = SpyTarget::new();
+        let mut state = RuntimeState::default();
+        let tz = TimeZone::default();
+        let mut ctx = Context::new(&mut spy, &mut state, &tz);
+
+        assert!(matches!(
+            expr_return.resolve_discard(&mut ctx),
+            Err(ExpressionError::Return { value, .. }) if value == Value::from(7)
+        ));
+        assert_eq!(
+            spy.target_get(&OwnedTargetPath::event(owned_value_path!("a"))),
+            Ok(None)
+        );
+
+        let compiled_abort = crate::compiler::compile(r#".a = { abort "stop" }"#, &[]).unwrap();
+        let expr_abort = &compiled_abort.program.expressions.exprs()[0];
+
+        let mut spy = SpyTarget::new();
+        let mut state = RuntimeState::default();
+        let tz = TimeZone::default();
+        let mut ctx = Context::new(&mut spy, &mut state, &tz);
+
+        assert!(matches!(
+            expr_abort.resolve_discard(&mut ctx),
+            Err(ExpressionError::Abort { message: Some(ref msg), .. }) if msg == "stop"
+        ));
+        assert_eq!(
+            spy.target_get(&OwnedTargetPath::event(owned_value_path!("a"))),
+            Ok(None)
+        );
+    }
 
     #[test]
     fn never_assignment_to_target() {
