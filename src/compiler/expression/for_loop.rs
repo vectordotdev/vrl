@@ -2598,4 +2598,67 @@ mod tests {
         assert_eq!(err.len(), 1, "expected only E110 diagnostic, got: {err:?}");
         assert_eq!(err[0].code, codes::ExprCode::InvalidArgumentKind as usize);
     }
+
+    #[test]
+    fn test_for_deferred_call_preserves_return_type() {
+        let fns = crate::stdlib::all();
+        let tz = TimeZone::default();
+
+        // 1. Deferred call inside a predicate (`starts_with(prev, "a") ?? false`) must preserve boolean return type
+        let pred_source = r#"
+            prev = null
+            .hit = false
+            for v in ["a", "b"] {
+                if (starts_with(prev, "a") ?? false) {
+                    .hit = true
+                }
+                prev = v
+            }
+            .hit
+        "#;
+        let compiled_pred = crate::compiler::compile(pred_source, &fns)
+            .expect("expected deferred starts_with in predicate to compile after loop widening");
+        let mut target = TargetValue::new(Value::Object(ObjectMap::new()));
+        let mut state = RuntimeState::default();
+        let mut ctx = Context::new(&mut target, &mut state, &tz);
+        assert_eq!(
+            compiled_pred.program.resolve(&mut ctx),
+            Ok(Value::from(true))
+        );
+
+        // 2. Deferred call as a query target (`parse_json(prev).a ?? 0`)
+        let query_source = r#"
+            prev = null
+            .val = 0
+            for v in ["{\"a\": 1}", "{\"a\": 2}"] {
+                if prev != null {
+                    .val = parse_json(prev).a ?? 0
+                }
+                prev = v
+            }
+            .val
+        "#;
+        let compiled_query = crate::compiler::compile(query_source, &fns)
+            .expect("expected deferred parse_json query target to compile after loop widening");
+        let mut target = TargetValue::new(Value::Object(ObjectMap::new()));
+        let mut state = RuntimeState::default();
+        let mut ctx = Context::new(&mut target, &mut state, &tz);
+        assert_eq!(compiled_query.program.resolve(&mut ctx), Ok(Value::from(1)));
+
+        // 3. Truly invalid call in predicate that never widens still fails with E110 only
+        let invalid_pred = r#"
+            prev = null
+            for v in [1, 2] {
+                if (starts_with(prev, "a") ?? false) {
+                    .hit = true
+                }
+                prev = v
+            }
+        "#;
+        let Err(err) = crate::compiler::compile(invalid_pred, &fns) else {
+            panic!("expected starts_with on null | integer to fail with E110");
+        };
+        assert_eq!(err.len(), 1, "expected only E110 diagnostic, got: {err:?}");
+        assert_eq!(err[0].code, codes::ExprCode::InvalidArgumentKind as usize);
+    }
 }

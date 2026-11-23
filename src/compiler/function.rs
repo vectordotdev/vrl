@@ -393,7 +393,7 @@ impl Parameter {
 }
 
 #[allow(arithmetic_overflow)]
-fn kind_from_bits(n: u16) -> Kind {
+pub(crate) fn kind_from_bits(n: u16) -> Kind {
     let mut kind = Kind::never();
 
     if (n & kind::BYTES) == kind::BYTES {

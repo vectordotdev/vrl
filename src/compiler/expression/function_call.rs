@@ -667,6 +667,26 @@ fn apply_argument_type_info(
         })
 }
 
+#[derive(Clone, Debug)]
+struct SpeculativePlaceholder {
+    result: TypeDef,
+    arguments: Vec<Node<FunctionArgument>>,
+}
+
+impl Expression for SpeculativePlaceholder {
+    fn resolve(&self, _ctx: &mut Context) -> Resolved {
+        unreachable!("speculative placeholder expression is never executed")
+    }
+
+    fn type_info(&self, state: &TypeState) -> TypeInfo {
+        let mut state = state.clone();
+        for arg in &self.arguments {
+            arg.inner().expr().apply_type_info(&mut state);
+        }
+        TypeInfo::new(state, self.result.clone())
+    }
+}
+
 #[derive(Clone)]
 pub struct FunctionCall {
     abort_on_error: bool,
@@ -694,6 +714,29 @@ pub struct FunctionCall {
 }
 
 impl FunctionCall {
+    pub(crate) fn new_speculative_placeholder(
+        span: Span,
+        ident: &'static str,
+        abort_on_error: bool,
+        arguments: Vec<Node<FunctionArgument>>,
+        return_kind: u16,
+    ) -> Self {
+        let result = TypeDef::from(crate::compiler::function::kind_from_bits(return_kind))
+            .maybe_fallible(!abort_on_error);
+        Self {
+            abort_on_error,
+            expr: Box::new(SpeculativePlaceholder { result, arguments }),
+            argument_parameters: Vec::new(),
+            closure_fallible: false,
+            closure: None,
+            span,
+            ident,
+            function_id: 0,
+            arguments: Arc::new(Vec::new()),
+            warnings: Vec::new(),
+        }
+    }
+
     /// Takes the arguments passed and resolves them into the order they are defined
     /// in the function
     /// The error path in this function should never really be hit as the compiler should

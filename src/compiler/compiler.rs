@@ -75,12 +75,6 @@ struct SpeculativeLoopState {
     had_deferred_error: bool,
 }
 
-enum CompiledCall {
-    Ok(FunctionCall),
-    DeferredInvalidArg,
-    Failed,
-}
-
 struct CompilerSnapshot {
     diagnostics_len: usize,
     pending_fallibilities_len: usize,
@@ -257,8 +251,9 @@ impl<'a> Compiler<'a> {
             Op(node) => self.compile_op(node, state).map(Into::into),
             Assignment(node) => self.compile_assignment(node, state).map(Into::into),
             Query(node) => self.compile_query(node, state).map(Into::into),
-            FunctionCall(node) => match self.compile_function_call_inner(node, state) {
-                CompiledCall::Ok(function_call) => {
+            FunctionCall(node) => self
+                .compile_function_call(node, state)
+                .map(|function_call| {
                     let v = function_call
                         .warnings
                         .iter()
@@ -267,11 +262,8 @@ impl<'a> Compiler<'a> {
                         .collect::<Vec<_>>();
 
                     self.diagnostics.extend(v);
-                    Some(function_call.into())
-                }
-                CompiledCall::DeferredInvalidArg => Some(Expr::Noop(Noop)),
-                CompiledCall::Failed => None,
-            },
+                    function_call.into()
+                }),
             Variable(node) => self.compile_variable(node, state).map(Into::into),
             Unary(node) => self.compile_unary(node, state).map(Into::into),
             Abort(node) => self.compile_abort(node, state).map(Into::into),
@@ -838,15 +830,21 @@ impl<'a> Compiler<'a> {
     ) {
     }
 
-    fn compile_function_call(
-        &mut self,
-        node: Node<ast::FunctionCall>,
-        state: &mut TypeState,
+    fn speculative_call_placeholder(
+        &self,
+        span: crate::diagnostic::Span,
+        ident: &str,
+        abort_on_error: bool,
+        arguments: Vec<Node<FunctionArgument>>,
     ) -> Option<FunctionCall> {
-        match self.compile_function_call_inner(node, state) {
-            CompiledCall::Ok(call) => Some(call),
-            CompiledCall::DeferredInvalidArg | CompiledCall::Failed => None,
-        }
+        let func = self.fns.iter().find(|f| f.identifier() == ident)?;
+        Some(FunctionCall::new_speculative_placeholder(
+            span,
+            func.identifier(),
+            abort_on_error,
+            arguments,
+            func.return_kind(),
+        ))
     }
 
     fn compile_function_arguments(
@@ -869,11 +867,11 @@ impl<'a> Compiler<'a> {
         compiled
     }
 
-    fn compile_function_call_inner(
+    fn compile_function_call(
         &mut self,
         node: Node<ast::FunctionCall>,
         state: &mut TypeState,
-    ) -> CompiledCall {
+    ) -> Option<FunctionCall> {
         let call_span = node.span();
         let ast::FunctionCall {
             ident,
@@ -909,7 +907,7 @@ impl<'a> Compiler<'a> {
         // see: https://github.com/vectordotdev/vector/issues/13752
         let state_before_function = original_state.clone();
 
-        let mut deferred_invalid_arg = false;
+        let mut speculative_placeholder = None;
 
         // Compile arguments and run validation under a consuming scope so
         // any inner fallibility produced during arg compilation is dropped
@@ -919,6 +917,8 @@ impl<'a> Compiler<'a> {
         let function_info = self
             .consuming_fallibility(|c| {
                 let arguments = c.compile_function_arguments(arguments, state)?;
+                let speculative_args = (c.speculative_loop.depth > 0).then(|| arguments.clone());
+                let ident_name = ident.as_ref().to_owned();
 
                 function_call::Builder::new(
                     call_span,
@@ -932,10 +932,15 @@ impl<'a> Compiler<'a> {
                 )
                 .map_err(|err| {
                     if matches!(err, FunctionCallError::InvalidArgumentKind(_))
-                        && c.speculative_loop.depth > 0
+                        && let Some(args) = speculative_args
                     {
                         c.speculative_loop.had_deferred_error = true;
-                        deferred_invalid_arg = true;
+                        speculative_placeholder = c.speculative_call_placeholder(
+                            call_span,
+                            &ident_name,
+                            abort_on_error,
+                            args,
+                        );
                     }
                     c.diagnostics.push(Box::new(err));
                 })
@@ -986,11 +991,9 @@ impl<'a> Compiler<'a> {
             self.check_function_deprecations(&function, &args);
             // Update the final state using the function expression to make sure it's accurate.
             *state = function.type_info(&original_state).state;
-            CompiledCall::Ok(function)
-        } else if deferred_invalid_arg {
-            CompiledCall::DeferredInvalidArg
+            Some(function)
         } else {
-            CompiledCall::Failed
+            speculative_placeholder
         }
     }
 
