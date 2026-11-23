@@ -245,44 +245,61 @@ impl<'a> Compiler<'a> {
         Ok(result)
     }
 
+    fn expr_result_uses_noop(expr: &Expr) -> bool {
+        use expression::container::Variant;
+
+        match expr {
+            Expr::Noop(_) => true,
+            Expr::Container(container) => match &container.variant {
+                Variant::Group(group) => Self::expr_result_uses_noop(group.inner_expr()),
+                Variant::Block(block) => block
+                    .exprs()
+                    .last()
+                    .is_some_and(Self::expr_result_uses_noop),
+                Variant::Array(array) => array.iter().any(Self::expr_result_uses_noop),
+                Variant::Object(object) => object.values().any(Self::expr_result_uses_noop),
+            },
+            _ => false,
+        }
+    }
+
+    fn compile_expr_speculative_recover(
+        &mut self,
+        node: Node<ast::Expr>,
+        state: &mut TypeState,
+    ) -> Expr {
+        let stmt_state = state.clone();
+        let pre_pending = self.pending_fallibilities.len();
+        let pre_skip = self.skip_missing_query_target.len();
+        if let Some(expr) = self.compile_expr(node, state) {
+            expr
+        } else {
+            // Recover during speculative loop passes so subsequent widening expressions
+            // (e.g. `prev = v` inside blocks, arrays, objects, or call arguments) still
+            // run and converge the loop header.
+            *state = stmt_state;
+            self.pending_fallibilities.truncate(pre_pending);
+            self.skip_missing_query_target.truncate(pre_skip);
+            self.speculative_loop.had_deferred_error = true;
+            Expr::Noop(Noop)
+        }
+    }
+
     fn compile_exprs(
         &mut self,
         nodes: impl IntoIterator<Item = Node<ast::Expr>>,
         state: &mut TypeState,
     ) -> Option<Vec<Expr>> {
         let mut exprs = vec![];
+        if self.speculative_loop.depth > 0 {
+            for node in nodes {
+                exprs.push(self.compile_expr_speculative_recover(node, state));
+            }
+            return Some(exprs);
+        }
         for node in nodes {
             let expr = self.compile_expr(node, state)?;
             exprs.push(expr);
-        }
-        Some(exprs)
-    }
-
-    fn compile_block_exprs(
-        &mut self,
-        nodes: impl IntoIterator<Item = Node<ast::Expr>>,
-        state: &mut TypeState,
-    ) -> Option<Vec<Expr>> {
-        if self.speculative_loop.depth == 0 {
-            return self.compile_exprs(nodes, state);
-        }
-
-        let mut exprs = vec![];
-        for node in nodes {
-            let stmt_state = state.clone();
-            let pre_pending = self.pending_fallibilities.len();
-            let pre_skip = self.skip_missing_query_target.len();
-            if let Some(expr) = self.compile_expr(node, state) {
-                exprs.push(expr);
-            } else {
-                // Recover during speculative loop passes so subsequent widening statements
-                // (e.g. `prev = v`) still run and converge the loop header.
-                *state = stmt_state;
-                self.pending_fallibilities.truncate(pre_pending);
-                self.skip_missing_query_target.truncate(pre_skip);
-                self.speculative_loop.had_deferred_error = true;
-                exprs.push(Expr::Noop(Noop));
-            }
         }
         Some(exprs)
     }
@@ -467,7 +484,7 @@ impl<'a> Compiler<'a> {
         state: &mut TypeState,
     ) -> Option<(Block, TypeDef)> {
         let original_state = state.clone();
-        let exprs = self.compile_block_exprs(node.into_inner(), state)?;
+        let exprs = self.compile_exprs(node.into_inner(), state)?;
         let block = Block::new_scoped(exprs);
 
         // The type information from `compile_exprs` doesn't applying the "scoping" from the block.
@@ -487,6 +504,20 @@ impl<'a> Compiler<'a> {
     }
 
     fn compile_object(&mut self, node: Node<ast::Object>, state: &mut TypeState) -> Option<Object> {
+        if self.speculative_loop.depth > 0 {
+            let entries = node
+                .into_inner()
+                .into_iter()
+                .map(|(k, expr)| {
+                    (
+                        k.into_inner().into(),
+                        self.compile_expr_speculative_recover(expr, state),
+                    )
+                })
+                .collect();
+            return Some(Object::new(entries));
+        }
+
         let (keys, exprs): (Vec<String>, Vec<Option<Expr>>) = node
             .into_inner()
             .into_iter()
@@ -700,6 +731,31 @@ impl<'a> Compiler<'a> {
         }
     }
 
+    fn try_speculative_noop_assignment(
+        &mut self,
+        node: &Node<assignment::Variant<Node<ast::AssignmentTarget>, Node<Expr>>>,
+        original_state: &TypeState,
+        pre_assignment_pending: usize,
+        state: &mut TypeState,
+    ) -> Option<Assignment> {
+        if self.speculative_loop.depth == 0 {
+            return None;
+        }
+        let rhs_expr = match node.inner() {
+            assignment::Variant::Single { expr, .. }
+            | assignment::Variant::Infallible { expr, .. } => expr.inner(),
+        };
+        if !Self::expr_result_uses_noop(rhs_expr) {
+            return None;
+        }
+        self.speculative_loop.had_deferred_error = true;
+        self.pending_fallibilities.truncate(pre_assignment_pending);
+        let assignment = Assignment::new_speculative_noop_target(rhs_expr.clone());
+        let info = self.expr_type_info(&Expr::Assignment(assignment.clone()), original_state);
+        *state = info.state;
+        Some(assignment)
+    }
+
     fn compile_assignment(
         &mut self,
         node: Node<ast::Assignment>,
@@ -749,36 +805,16 @@ impl<'a> Compiler<'a> {
             Infallible { ok, err, op, expr } => {
                 let span = expr.span();
 
-                let node = match op {
-                    AssignmentOp::Assign => {
-                        let expr = self
-                            .compile_expr(*expr, state)
-                            .map(|expr| Box::new(Node::new(span, expr)))
-                            .or_else(|| {
-                                self.skip_missing_assignment_target(&ok.clone().into_inner());
-                                self.skip_missing_assignment_target(&err.clone().into_inner());
-                                None
-                            })?;
-
-                        let node = Variant::Infallible {
-                            ok,
-                            err,
-                            expr,
-                            default: Value::Null,
-                        };
-                        Node::new(span, node)
-                    }
-                    AssignmentOp::Merge => {
-                        let expr = self.rewrite_to_merge(span, &ok, expr, state)?;
-                        let node = Variant::Infallible {
-                            ok,
-                            err,
-                            expr,
-                            default: Value::Null,
-                        };
-
-                        Node::new(span, node)
-                    }
+                let expr = match op {
+                    AssignmentOp::Assign => self
+                        .compile_expr(*expr, state)
+                        .map(|expr| Box::new(Node::new(span, expr)))
+                        .or_else(|| {
+                            self.skip_missing_assignment_target(&ok.clone().into_inner());
+                            self.skip_missing_assignment_target(&err.clone().into_inner());
+                            None
+                        })?,
+                    AssignmentOp::Merge => self.rewrite_to_merge(span, &ok, expr, state)?,
                 };
 
                 // The infallible-form (`x, err = ...`) consumes any fallibility
@@ -786,9 +822,26 @@ impl<'a> Compiler<'a> {
                 // pending errors stay on the stack.
                 self.pending_fallibilities.truncate(pre_assignment_pending);
 
-                node
+                Node::new(
+                    span,
+                    Variant::Infallible {
+                        ok,
+                        err,
+                        expr,
+                        default: Value::Null,
+                    },
+                )
             }
         };
+
+        if let Some(assignment) = self.try_speculative_noop_assignment(
+            &node,
+            &original_state,
+            pre_assignment_pending,
+            state,
+        ) {
+            return Some(assignment);
+        }
 
         let override_rhs_type = self.jump_aware_infallible_rhs_type(node.inner(), &original_state);
 
@@ -939,15 +992,36 @@ impl<'a> Compiler<'a> {
     ) -> Option<Vec<Node<FunctionArgument>>> {
         let saved_loop_depth = self.loop_depth;
         self.loop_depth = 0;
-        let compiled = arguments
-            .into_iter()
-            .map(|node| {
-                Some(Node::new(
-                    node.span(),
-                    self.compile_function_argument(node, state)?,
-                ))
-            })
-            .collect::<Option<Vec<_>>>();
+        let compiled = if self.speculative_loop.depth > 0 {
+            Some(
+                arguments
+                    .into_iter()
+                    .map(|node| {
+                        let arg_span = node.span();
+                        let ast::FunctionArgument {
+                            ident,
+                            expr: ast_expr,
+                        } = node.into_inner();
+                        let expr_span = ast_expr.span();
+                        let expr = self.compile_expr_speculative_recover(ast_expr, state);
+                        Node::new(
+                            arg_span,
+                            FunctionArgument::new(ident, Node::new(expr_span, expr)),
+                        )
+                    })
+                    .collect(),
+            )
+        } else {
+            arguments
+                .into_iter()
+                .map(|node| {
+                    Some(Node::new(
+                        node.span(),
+                        self.compile_function_argument(node, state)?,
+                    ))
+                })
+                .collect::<Option<Vec<_>>>()
+        };
         self.loop_depth = saved_loop_depth;
         compiled
     }
@@ -1033,8 +1107,11 @@ impl<'a> Compiler<'a> {
                     closure_variables,
                 )
                 .map_err(|err| {
-                    if matches!(err, FunctionCallError::InvalidArgumentKind(_))
-                        && let Some(args) = speculative_args
+                    if matches!(
+                        err,
+                        FunctionCallError::InvalidArgumentKind(_)
+                            | FunctionCallError::FallibleArgument { .. }
+                    ) && let Some(args) = speculative_args
                     {
                         c.speculative_loop.had_deferred_error = true;
                         speculative_placeholder = c.speculative_call_placeholder(
@@ -1347,6 +1424,130 @@ impl<'a> Compiler<'a> {
     }
 
     #[allow(clippy::too_many_arguments)]
+    fn try_clean_for_verification(
+        &mut self,
+        for_span: crate::diagnostic::Span,
+        pattern: &ast::ForPattern,
+        iterable_kind: &crate::value::Kind,
+        compiled_iterable: &Expr,
+        block: &Node<ast::Block>,
+        original_state: &TypeState,
+        header_state: &TypeState,
+        snapshot: &CompilerSnapshot,
+        state: &mut TypeState,
+    ) -> Option<(For, TypeState)> {
+        self.restore_snapshot(snapshot);
+        let saved_depth = self.speculative_loop.depth;
+        self.speculative_loop.depth = 0;
+        self.speculative_loop.had_deferred_error = false;
+        let compiled_block = self.compile_for_body_pass(
+            pattern,
+            iterable_kind,
+            block.clone(),
+            header_state.clone(),
+            state,
+            false,
+        );
+        let had_deferred = self.speculative_loop.had_deferred_error;
+        self.speculative_loop.depth = saved_depth;
+
+        let compiled_block = compiled_block?;
+        let has_errors = self.diagnostics[snapshot.diagnostics_len..]
+            .iter()
+            .any(|d| {
+                matches!(
+                    d.severity(),
+                    crate::diagnostic::Severity::Bug | crate::diagnostic::Severity::Error
+                )
+            });
+        if had_deferred || has_errors {
+            return None;
+        }
+
+        let clean_for = For::new(
+            for_span,
+            pattern.clone(),
+            Box::new(compiled_iterable.clone()),
+            compiled_block,
+        );
+        self.loop_eval_ctx.invalidate(for_span);
+        let (clean_header, clean_info) =
+            clean_for.resolve_loop_type_info_with_ctx(original_state, &mut self.loop_eval_ctx);
+        (clean_header == *header_state).then_some((clean_for, clean_info.state))
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn finalize_for_fixed_point(
+        &mut self,
+        for_span: crate::diagnostic::Span,
+        pattern: &ast::ForPattern,
+        iterable_kind: &crate::value::Kind,
+        compiled_iterable: &Expr,
+        block: Node<ast::Block>,
+        original_state: &TypeState,
+        current_pre_loop_state: TypeState,
+        header_state: &TypeState,
+        for_expr: For,
+        final_state: TypeState,
+        pass_had_speculative_error: bool,
+        budget_widened: bool,
+        snapshot: &CompilerSnapshot,
+        state: &mut TypeState,
+    ) -> Option<(For, TypeState, bool, bool)> {
+        if pass_had_speculative_error && header_state != &current_pre_loop_state {
+            if let Some((clean_for, clean_final_state)) = self.try_clean_for_verification(
+                for_span,
+                pattern,
+                iterable_kind,
+                compiled_iterable,
+                &block,
+                original_state,
+                header_state,
+                snapshot,
+                state,
+            ) {
+                self.speculative_loop.had_deferred_error = snapshot.speculative_deferred_error;
+                return Some((clean_for, clean_final_state, false, budget_widened));
+            }
+            if self.speculative_loop.depth > 0 {
+                self.restore_snapshot(snapshot);
+                self.speculative_loop.had_deferred_error = false;
+                let _ = self.compile_for_body_pass(
+                    pattern,
+                    iterable_kind,
+                    block,
+                    current_pre_loop_state,
+                    state,
+                    true,
+                );
+                self.speculative_loop.had_deferred_error = true;
+                return Some((for_expr, final_state, true, budget_widened));
+            }
+        }
+        self.speculative_loop.had_deferred_error |= snapshot.speculative_deferred_error;
+        if pass_had_speculative_error && self.speculative_loop.depth == 0 {
+            // Re-compile non-speculatively at the converged header state so diagnostics
+            // reflect the real errors without cascading from speculative placeholders.
+            self.restore_snapshot(snapshot);
+            let _ = self.compile_for_body_pass(
+                pattern,
+                iterable_kind,
+                block,
+                current_pre_loop_state,
+                state,
+                false,
+            );
+            return None;
+        }
+        Some((
+            for_expr,
+            final_state,
+            pass_had_speculative_error,
+            budget_widened,
+        ))
+    }
+
+    #[allow(clippy::too_many_arguments)]
     fn compile_for_fixed_point(
         &mut self,
         for_span: crate::diagnostic::Span,
@@ -1394,31 +1595,27 @@ impl<'a> Compiler<'a> {
             self.loop_eval_ctx.invalidate(for_span);
             let (header_state, loop_type_info) =
                 for_expr.resolve_loop_type_info_with_ctx(original_state, &mut self.loop_eval_ctx);
-            let mut next_pre_loop_state = current_pre_loop_state.clone().merge(header_state);
+            let mut next_pre_loop_state =
+                current_pre_loop_state.clone().merge(header_state.clone());
             expression::for_loop::canonicalize_type_state(&mut next_pre_loop_state);
 
             if next_pre_loop_state == current_pre_loop_state || budget_widened {
-                self.speculative_loop.had_deferred_error |= snapshot.speculative_deferred_error;
-                if pass_had_speculative_error && self.speculative_loop.depth == 0 {
-                    // Re-compile non-speculatively at the converged header state so diagnostics
-                    // reflect the real errors without cascading from speculative placeholders.
-                    self.restore_snapshot(&snapshot);
-                    let _ = self.compile_for_body_pass(
-                        pattern,
-                        iterable_kind,
-                        block,
-                        current_pre_loop_state,
-                        state,
-                        false,
-                    );
-                    return None;
-                }
-                return Some((
+                return self.finalize_for_fixed_point(
+                    for_span,
+                    pattern,
+                    iterable_kind,
+                    compiled_iterable,
+                    block,
+                    original_state,
+                    current_pre_loop_state,
+                    &header_state,
                     for_expr,
                     loop_type_info.state,
                     pass_had_speculative_error,
                     budget_widened,
-                ));
+                    &snapshot,
+                    state,
+                );
             }
 
             if !self.loop_eval_ctx.consume_repass() {

@@ -44,7 +44,7 @@ impl Assignment {
         state: &TypeState,
         fallible_rhs: Option<&CompilerError>,
         config: &CompileConfig,
-        allow_infallible_rhs: bool,
+        speculative: bool,
         override_rhs_type: Option<TypeDef>,
     ) -> Result<(Self, Option<Error>), Error> {
         let (_, variant) = node.take();
@@ -72,11 +72,16 @@ impl Assignment {
                         },
                     };
 
-                    return Err(Error {
+                    let error = Error {
                         variant: ErrorVariant::FallibleAssignment(assignment_error_data),
                         expr_span,
                         assignment_span,
-                    });
+                    };
+                    if speculative {
+                        deferred_error = Some(error);
+                    } else {
+                        return Err(error);
+                    }
                 }
 
                 // Single-target no-op assignments are useless.
@@ -125,7 +130,7 @@ impl Assignment {
                         expr_span,
                         assignment_span,
                     };
-                    if allow_infallible_rhs {
+                    if speculative {
                         deferred_error = Some(error);
                     } else {
                         return Err(error);
@@ -186,6 +191,18 @@ impl Assignment {
         };
 
         Ok((Self { variant }, deferred_error))
+    }
+
+    /// Wraps a speculative RHS whose value contains a recovered `Noop` so that
+    /// sibling side effects inside `expr` still execute without polluting the
+    /// assignment target with synthetic `null` types.
+    pub(crate) fn new_speculative_noop_target(expr: Expr) -> Self {
+        Self {
+            variant: Variant::Single {
+                target: Target::Noop,
+                expr: Box::new(expr),
+            },
+        }
     }
 
     /// Get a list of targets for this assignment.
@@ -627,7 +644,7 @@ where
                 let expr_result = expr.apply_type_info(&mut state).impure();
 
                 let const_value = expr.resolve_constant(&state);
-                target.insert_type_def(&mut state, expr_result.clone(), const_value);
+                target.insert_type_def(&mut state, expr_result.clone().infallible(), const_value);
                 TypeInfo::new(state, expr_result)
             }
             Variant::Infallible {

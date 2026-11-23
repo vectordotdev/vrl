@@ -811,7 +811,7 @@ pub(crate) fn eval_loop_expr_with_ctx(
                 let expr_result = rhs_flow.result.clone().impure();
                 if let Some(ref mut s) = rhs_flow.normal {
                     let const_value = expr.resolve_constant(s);
-                    target.insert_type_def(s, expr_result.clone(), const_value);
+                    target.insert_type_def(s, expr_result.clone().infallible(), const_value);
                 }
                 rhs_flow.with_result(expr_result)
             }
@@ -4286,5 +4286,159 @@ mod tests {
                 "expected {label} to fail with E103 (fallible `x + 1` on integer | string), got: {errs:?}"
             );
         }
+    }
+
+    #[test]
+    fn test_for_speculative_compound_statement_widening() {
+        let fns = crate::stdlib::all();
+
+        // 1. Bits #4661276701: assignment fails E103 on pass 1 while its compound RHS widens `prev`.
+        let compound_array = r#"
+            prev = null
+            for s in ["a,b", "c,d"] {
+                .out = [join(parse_csv(prev) ?? []), { prev = s; true }]
+            }
+            .out
+        "#;
+        let compiled = crate::compiler::compile(compound_array, &fns).unwrap_or_else(|e| {
+            panic!("expected compound array widening to compile: {e:?}");
+        });
+        let mut target = TargetValue::new(Value::Object(ObjectMap::new()));
+        let mut runtime = Runtime::new(RuntimeState::default());
+        let resolved = runtime
+            .resolve(&mut target, &compiled.program, &TimeZone::default())
+            .expect("expected runtime execution to succeed");
+        assert_eq!(
+            resolved,
+            Value::Array(vec![Value::from("ab"), Value::Boolean(true)])
+        );
+
+        // 2. Deferring E103 on pass 1 must not poison local target `y` with fallibility.
+        let no_fallibility_poison = r#"
+            prev = null
+            y = 0
+            for s in ["a,b", "c,d"] {
+                y = length(join(parse_csv(prev) ?? []))
+                prev = s
+            }
+            .z = y + 1
+        "#;
+        assert!(
+            crate::compiler::compile(no_fallibility_poison, &fns).is_ok(),
+            "expected deferred E103 not to poison y with fallibility: {:?}",
+            crate::compiler::compile(no_fallibility_poison, &fns).err()
+        );
+
+        // 3. Array element recovery with clean verification pass eliminates pass-1 Noop null pollution.
+        let array_elem_recovery = r#"
+            arr = [1, 2]
+            prev = null
+            for v in [{"a": 1}, {"a": 2}] {
+                .x = arr[0] + 1
+                arr = [(prev.a = 0), { prev = v; 2 }]
+            }
+            .after = arr[0] + 1
+        "#;
+        assert!(
+            crate::compiler::compile(array_elem_recovery, &fns).is_ok(),
+            "expected array element recovery + clean verification to compile: {:?}",
+            crate::compiler::compile(array_elem_recovery, &fns).err()
+        );
+
+        // 4. Object value recovery preserves sibling widening.
+        let object_val_recovery = r#"
+            prev = null
+            for v in [{"a": 1}, {"a": 2}] {
+                .obj = { "first": (prev.a = 0), "second": { prev = v; 1 } }
+            }
+        "#;
+        assert!(
+            crate::compiler::compile(object_val_recovery, &fns).is_ok(),
+            "expected object value recovery to preserve sibling widening: {:?}",
+            crate::compiler::compile(object_val_recovery, &fns).err()
+        );
+
+        // 5. Function call with fallible argument preserves sibling argument widening.
+        let call_arg_recovery = r#"
+            prev = null
+            for s in ["a,b", "c,d"] {
+                .out = push([join(parse_csv(prev) ?? [])], { prev = s; "ok" })
+            }
+        "#;
+        assert!(
+            crate::compiler::compile(call_arg_recovery, &fns).is_ok(),
+            "expected fallible-arg function call to preserve sibling arg widening: {:?}",
+            crate::compiler::compile(call_arg_recovery, &fns).err()
+        );
+
+        // 6. Nested loop containing pass-1 Noop recovery also verifies cleanly.
+        let nested_clean_verify = r#"
+            for _ in [1] {
+                arr = [1, 2]
+                prev = null
+                for v in [{"a": 1}, {"a": 2}] {
+                    .x = arr[0] + 1
+                    arr = [(prev.a = 0), { prev = v; 2 }]
+                }
+            }
+        "#;
+        assert!(
+            crate::compiler::compile(nested_clean_verify, &fns).is_ok(),
+            "expected nested loop clean verification to compile: {:?}",
+            crate::compiler::compile(nested_clean_verify, &fns).err()
+        );
+    }
+
+    #[test]
+    fn test_for_speculative_compound_recovery_preserves_real_errors() {
+        let fns = crate::stdlib::all();
+
+        // 1. Widening to incompatible type inside compound array still fails with E110.
+        let invalid_csv = r"
+            prev = null
+            for s in [1, 2] {
+                .out = [join(parse_csv(prev) ?? []), { prev = s; true }]
+            }
+        ";
+        let Err(errs) = crate::compiler::compile(invalid_csv, &fns) else {
+            panic!("expected incompatible compound widening to fail");
+        };
+        assert!(
+            errs.iter()
+                .any(|d| d.code == codes::ExprCode::InvalidArgumentKind as usize),
+            "expected E110 InvalidArgumentKind, got: {errs:?}"
+        );
+
+        // 2. Permanently fallible single assignment still fails with E103.
+        let perm_fallible = r#"
+            for _ in [1, 2] {
+                .y = to_int("bad")
+            }
+        "#;
+        let Err(errs) = crate::compiler::compile(perm_fallible, &fns) else {
+            panic!("expected permanently fallible assignment to fail");
+        };
+        assert!(
+            errs.iter().any(|d| d.code == 103),
+            "expected E103 FallibleAssignment, got: {errs:?}"
+        );
+
+        // 3. Permanently invalid parent path segment inside array element still fails with E642.
+        let perm_invalid_parent = r"
+            arr = [1, 2]
+            prev = null
+            for _ in [1, 2] {
+                .x = arr[0] + 1
+                arr = [(prev.a = 0), 2]
+            }
+        ";
+        let Err(errs) = crate::compiler::compile(perm_invalid_parent, &fns) else {
+            panic!("expected permanently invalid parent path segment to fail");
+        };
+        assert!(
+            errs.iter()
+                .any(|d| d.code == codes::CompilerCode::InvalidParentPathSegment as usize),
+            "expected E642 InvalidParentPathSegment, got: {errs:?}"
+        );
     }
 }
