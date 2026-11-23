@@ -150,7 +150,7 @@ impl Function for Del {
 
     fn compile(
         &self,
-        state: &state::TypeState,
+        _state: &state::TypeState,
         ctx: &mut FunctionCompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
@@ -165,12 +165,12 @@ impl Function for Del {
             .into());
         }
 
-        let compact = match arguments.optional("compact") {
+        let compact = match arguments.optional_expr("compact") {
             None => ConstOrExpr::Const(false),
-            Some(expr) => match expr.resolve_constant(state) {
-                Some(Value::Boolean(b)) => ConstOrExpr::Const(b),
-                _ => ConstOrExpr::Expr(expr),
-            },
+            Some(expression::Expr::Literal(expression::Literal::Boolean(b))) => {
+                ConstOrExpr::Const(b)
+            }
+            Some(expr) => ConstOrExpr::Expr(Box::new(expr)),
         };
 
         Ok(Box::new(DelFn { query, compact }))
@@ -560,6 +560,27 @@ mod tests {
         assert!(
             a_kind.is_object() && !a_kind.contains_undefined(),
             "expected .a to remain a definite object when compact is omitted, got {a_kind:?}"
+        );
+    }
+
+    #[test]
+    fn del_compact_not_miscompiled_by_stale_local_value() {
+        // After deleting v.a, v.a is null at runtime; compact must NOT be folded to stale `true`.
+        let err = eval_vrl(
+            r#"v = {"a": true}; del(v.a); del(.foo.bar, v.a)"#,
+            value!({"foo": {"bar": 1}}),
+        )
+        .expect_err("expected runtime type error when deleted v.a is null");
+        assert!(err.contains("expected boolean"), "unexpected error: {err}");
+
+        // Partial path assignment overwrites TypeState's cached Details.value on `v`,
+        // but v.a is still `true` at runtime and must compact `.foo`.
+        assert_eq!(
+            eval_vrl(
+                r#"v = {"a": true}; v.b = {"a": false}; del(.foo.bar, v.a); ."#,
+                value!({"foo": {"bar": 1}})
+            ),
+            Ok(value!({}))
         );
     }
 }
