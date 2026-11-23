@@ -435,4 +435,168 @@ mod tests {
             assert_eq!(got_typedef, expected_typedef);
         }
     }
+
+    #[test]
+    #[allow(clippy::too_many_lines)]
+    fn unnest_edge_cases() {
+        use crate::compiler::{Span, compile, parser::ast::Ident, type_def::Details};
+
+        let tz = TimeZone::default();
+
+        // External target edge cases: empty/single arrays, deep pure-Field paths,
+        // root path, null/missing fields, and indexed paths (prune-and-reinsert).
+        let external_cases = vec![
+            (
+                ".events",
+                value!({"host": "a", "events": []}),
+                Ok(value!([])),
+            ),
+            (
+                ".events",
+                value!({"host": "a", "events": [1]}),
+                Ok(value!([{"host": "a", "events": 1}])),
+            ),
+            (
+                ".a.b.events",
+                value!({"host": "a", "a": {"keep": 1, "b": {"events": [1, 2]}}}),
+                Ok(value!([
+                    {"host": "a", "a": {"keep": 1, "b": {"events": 1}}},
+                    {"host": "a", "a": {"keep": 1, "b": {"events": 2}}},
+                ])),
+            ),
+            (
+                ".a.b.events",
+                value!({"a": {"b": {"events": [1, 2]}}}),
+                Ok(value!([
+                    {"a": {"b": {"events": 1}}},
+                    {"a": {"b": {"events": 2}}},
+                ])),
+            ),
+            (".", value!([1, 2]), Ok(value!([1, 2]))),
+            (".", value!([]), Ok(value!([]))),
+            (
+                ".",
+                value!({"a": 1}),
+                Err("expected array, got { a: integer }".to_owned()),
+            ),
+            (
+                ".events",
+                value!({"events": null}),
+                Err("expected array, got null".to_owned()),
+            ),
+            (
+                ".events",
+                value!({}),
+                Err("expected array, got null".to_owned()),
+            ),
+            (
+                ".a[0].events",
+                value!({"a": [{"events": [1, 2]}, {"other": 3}]}),
+                Ok(value!([
+                    {"a": [{"other": 3, "events": 1}]},
+                    {"a": [{"other": 3, "events": 2}]},
+                ])),
+            ),
+            (
+                ".a[0]",
+                value!({"a": [[1, 2], [3, 4]]}),
+                Ok(value!([{"a": [1]}, {"a": [2]}])),
+            ),
+            (
+                ".a[0].events",
+                value!({"a": [{"events": [1], "keep": true}]}),
+                Ok(value!([{"a": [{"events": 1, "keep": true}]}])),
+            ),
+            (
+                ".a[-1].events",
+                value!({"a": [{"other": 1}, {"events": [2, 3], "keep": true}]}),
+                Ok(value!([
+                    {"a": [{"other": 1}, {"events": 2, "keep": true}]},
+                    {"a": [{"other": 1}, {"events": 3, "keep": true}]},
+                ])),
+            ),
+        ];
+
+        for (path, mut target, expected) in external_cases {
+            let func = UnnestFn::new(path);
+            let mut runtime_state = state::RuntimeState::default();
+            let mut ctx = Context::new(&mut target, &mut runtime_state, &tz);
+            let got = func
+                .resolve(&mut ctx)
+                .map_err(|e| format!("{:#}", anyhow::anyhow!(e)));
+            assert_eq!(got, expected, "path={path}");
+        }
+
+        // Target::Internal (set variable and unset variable).
+        let ident = Ident::new("v".to_owned());
+        let mut local = state::LocalEnv::default();
+        local.insert_variable(
+            ident.clone(),
+            Details {
+                type_def: TypeDef::any().infallible(),
+                value: None,
+            },
+        );
+        let var = expression::Variable::new(Span::new(0, 1), ident.clone(), &local).unwrap();
+        let internal_func = UnnestFn {
+            path: expression::Query::new(
+                expression::Target::Internal(var),
+                parse_value_path("events").unwrap(),
+            ),
+        };
+
+        let mut target = value!({});
+        let mut runtime_state = state::RuntimeState::default();
+        runtime_state.insert_variable(ident, value!({"a": 1, "events": [1, 2]}));
+        let mut ctx = Context::new(&mut target, &mut runtime_state, &tz);
+        let got = internal_func
+            .resolve(&mut ctx)
+            .map_err(|e| format!("{:#}", anyhow::anyhow!(e)));
+        assert_eq!(
+            got,
+            Ok(value!([{"a": 1, "events": 1}, {"a": 1, "events": 2}])),
+            "Target::Internal (set)"
+        );
+
+        let mut target = value!({});
+        let mut empty_state = state::RuntimeState::default();
+        let mut ctx = Context::new(&mut target, &mut empty_state, &tz);
+        let got = internal_func
+            .resolve(&mut ctx)
+            .map_err(|e| format!("{:#}", anyhow::anyhow!(e)));
+        assert_eq!(
+            got,
+            Err("expected array, got null".to_owned()),
+            "Target::Internal (unset)"
+        );
+
+        // Target::Container and Target::FunctionCall via compiled VRL.
+        let fns: Vec<Box<dyn Function>> =
+            vec![Box::new(Unnest), Box::new(crate::stdlib::merge::Merge)];
+
+        for (label, src) in [
+            (
+                "Target::Container",
+                r#"unnest({"a": 1, "events": [1, 2]}.events)"#,
+            ),
+            (
+                "Target::FunctionCall",
+                r#"unnest(merge({"a": 1}, {"events": [1, 2]}).events)"#,
+            ),
+        ] {
+            let compiled = compile(src, &fns).expect("program compiles");
+            let mut target = value!({});
+            let mut runtime_state = state::RuntimeState::default();
+            let mut ctx = Context::new(&mut target, &mut runtime_state, &tz);
+            let got = compiled
+                .program
+                .resolve(&mut ctx)
+                .expect("program resolves");
+            assert_eq!(
+                got,
+                value!([{"a": 1, "events": 1}, {"a": 1, "events": 2}]),
+                "{label}"
+            );
+        }
+    }
 }
