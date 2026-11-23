@@ -1,0 +1,24 @@
+name: CI Repository Gate
+
+on:
+  workflow_call:
+    inputs:
+      upstream-only:
+        description: Restrict this workflow to the upstream repository.
+        type: boolean
+        default: false
+
+permissions: {}
+
+# Skipping this job also skips the caller and its dependent jobs.
+# Jobs using always() must handle a skipped gate explicitly.
+jobs:
+  repo-gate:
+    if: >-
+      github.repository == 'vectordotdev/vrl' ||
+      (!inputs.upstream-only && github.event_name != 'push')
+    runs-on: ubuntu-latest
+    timeout-minutes: 1
+    steps:
+      - name: Allow dependent jobs
+        run: "true"
