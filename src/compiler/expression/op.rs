@@ -46,6 +46,13 @@ fn constant_arithmetic_produces_nan(
     matches!(result, Err(ValueError::NanFloat))
 }
 
+fn with_lhs_effects(lhs_def: &TypeDef, rhs_def: TypeDef) -> TypeDef {
+    let fallible = lhs_def.is_fallible() || rhs_def.is_fallible();
+    let mut returns = lhs_def.returns().clone();
+    returns.merge_keep(rhs_def.returns().clone(), false);
+    rhs_def.maybe_fallible(fallible).with_returns(returns)
+}
+
 impl Op {
     /// Creates a new `Op` expression.
     ///
@@ -163,7 +170,7 @@ impl Op {
             }
             Or => {
                 if lhs_def.is_null() || lhs_value == Some(&Value::Boolean(false)) {
-                    rhs_def
+                    with_lhs_effects(&lhs_def, rhs_def)
                 } else if !(lhs_def.contains_null() || lhs_def.contains_boolean())
                     || lhs_value == Some(&Value::Boolean(true))
                 {
@@ -176,9 +183,9 @@ impl Op {
             Merge => lhs_def.merge_overwrite(rhs_def),
             And => {
                 if lhs_def.is_null() || lhs_value == Some(&Value::Boolean(false)) {
-                    TypeDef::boolean()
+                    with_lhs_effects(&lhs_def, TypeDef::boolean())
                 } else if lhs_value == Some(&Value::Boolean(true)) {
-                    rhs_def.with_kind(K::boolean())
+                    with_lhs_effects(&lhs_def, rhs_def.with_kind(K::boolean()))
                 } else {
                     lhs_def
                         .fallible_unless(K::null().or_boolean())
@@ -367,7 +374,12 @@ impl Expression for Op {
             And => {
                 if lhs_def.is_null() || lhs_value == Some(Value::Boolean(false)) {
                     // lhs is always "false"; short-circuit without evaluating rhs
-                    return TypeInfo::new(state, TypeDef::boolean());
+                    return TypeInfo::new(
+                        state,
+                        TypeDef::boolean()
+                            .maybe_fallible(lhs_def.is_fallible())
+                            .with_returns(lhs_def.returns().clone()),
+                    );
                 } else if lhs_value == Some(Value::Boolean(true)) {
                     // lhs is always "true"
                     (self.rhs.apply_type_info(&mut state), None)

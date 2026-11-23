@@ -627,7 +627,9 @@ pub(crate) fn eval_loop_expr(expr: &Expr, state: &TypeState) -> LoopFlow {
                             normal: Some(lhs_state),
                             break_state: lhs_flow.break_state,
                             continue_state: lhs_flow.continue_state,
-                            result: TypeDef::boolean(),
+                            result: TypeDef::boolean()
+                                .maybe_fallible(lhs_def.is_fallible())
+                                .with_returns(lhs_def.returns().clone()),
                         };
                     } else if lhs_value == Some(Value::Boolean(true)) {
                         None
@@ -2857,6 +2859,87 @@ mod tests {
         assert!(
             crate::compiler::compile(invalid_not, &[]).is_err(),
             "expected genuinely non-boolean negation to fail compilation"
+        );
+    }
+
+    #[test]
+    fn test_for_short_circuit_op_preserves_lhs_fallibility_and_returns() {
+        // 1. Short-circuit `&&` on null LHS must preserve `return` types from LHS.
+        let and_returns = r#"
+            for i, _ in [1, 2] {
+                .x = ({
+                    if i == 1 {
+                        break
+                    }
+                    if i == 0 {
+                        return "hi"
+                    }
+                    null
+                }) && true
+            }
+        "#;
+        let compiled_and =
+            crate::compiler::compile(and_returns, &[]).expect("short-circuit && compiles");
+        assert_eq!(
+            compiled_and.program.final_type_info().result.returns(),
+            &Kind::bytes(),
+            "expected short-circuit && to preserve string return type from LHS"
+        );
+
+        // 2. Short-circuit `||` on null LHS must preserve `return` types from LHS.
+        let or_returns = r#"
+            for i, _ in [1, 2] {
+                .x = ({
+                    if i == 1 {
+                        break
+                    }
+                    if i == 0 {
+                        return "hi"
+                    }
+                    null
+                }) || 1
+            }
+        "#;
+        let compiled_or =
+            crate::compiler::compile(or_returns, &[]).expect("short-circuit || compiles");
+        assert_eq!(
+            compiled_or.program.final_type_info().result.returns(),
+            &Kind::bytes(),
+            "expected short-circuit || to preserve string return type from LHS"
+        );
+
+        // 3. Short-circuit `||` on null LHS must not swallow unhandled fallibility from LHS.
+        let or_fallible_lhs = r#"
+            for i, _ in [1, 2] {
+                .x = ({
+                    if i == 1 {
+                        break
+                    }
+                    1 + "a"
+                    null
+                }) || 1
+            }
+        "#;
+        assert!(
+            crate::compiler::compile(or_fallible_lhs, &[]).is_err(),
+            "expected short-circuit || to reject unhandled fallible LHS"
+        );
+
+        // 4. Short-circuit `&&` on null LHS must not swallow unhandled fallibility from LHS.
+        let and_fallible_lhs = r#"
+            for i, _ in [1, 2] {
+                .x = ({
+                    if i == 1 {
+                        break
+                    }
+                    1 + "a"
+                    null
+                }) && true
+            }
+        "#;
+        assert!(
+            crate::compiler::compile(and_fallible_lhs, &[]).is_err(),
+            "expected short-circuit && to reject unhandled fallible LHS"
         );
     }
 }
