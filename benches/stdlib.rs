@@ -8,9 +8,7 @@ use regex::Regex;
 
 use crate::value::Value;
 use std::{collections::HashMap, env, path::PathBuf, sync::LazyLock};
-use vrl::{
-    bench_function, bench_query_function, btreemap, compiler::prelude::*, func_args, query, value,
-};
+use vrl::{bench_function, btreemap, compiler::prelude::*, func_args, value};
 
 mod runtime;
 
@@ -3528,26 +3526,232 @@ bench_function! {
     }
 }
 
-bench_query_function! {
-    del => vrl::stdlib::Del;
+fn build_del_payload(target_bytes: usize) -> Value {
+    use vrl::value::ObjectMap;
 
-    default {
-        args: {
-            let mut hashmap = func_args![];
-            hashmap.insert("target", query!(".test"));
-            hashmap
-        },
-        event: btreemap! { "test" => true },
-        want: Ok(value!(true)),
+    let mut root = ObjectMap::new();
+    let chunk_value = "x".repeat(64);
+    let entry_bytes = 80; // approximate serialized size per key/value entry
+
+    // ~25% of target payload in `large_subtree` as nested objects/strings.
+    let subtree_entries = (target_bytes / 4 / entry_bytes).max(4);
+    let mut subtree = ObjectMap::new();
+    for i in 0..subtree_entries {
+        let mut child = ObjectMap::new();
+        child.insert("payload".into(), Value::from(chunk_value.as_str()));
+        child.insert("idx".into(), Value::Integer(i as i64));
+        subtree.insert(format!("sub_{i:05}").into(), Value::Object(child));
+    }
+    root.insert("large_subtree".into(), Value::Object(subtree));
+
+    // Deep nested leaf for leaf-deletion benchmarks.
+    root.insert("nested".into(), value!({ "deep": { "leaf": "value" } }));
+
+    // Remaining ~75% as sibling keys to reach target_bytes.
+    let sibling_entries = ((target_bytes * 3) / 4 / entry_bytes).max(4);
+    for i in 0..sibling_entries {
+        root.insert(
+            format!("field_{i:05}").into(),
+            Value::from(chunk_value.as_str()),
+        );
     }
 
-    compact {
-        args: {
-            let mut hashmap = func_args![compact: true];
-            hashmap.insert("target", query!(".test.test"));
-            hashmap
-        },
-        event: btreemap! { "test" => btreemap! { "test" => true } },
-        want: Ok(value!(true)),
+    Value::Object(root)
+}
+
+fn del(c: &mut Criterion) {
+    use criterion::{BatchSize, BenchmarkId};
+    use vrl::compiler::{
+        CompileConfig, TargetValue, TimeZone as VrlTimeZone, compile_with_state, state,
+    };
+    use vrl::value::{ObjectMap, Secrets};
+
+    let mut group = c.benchmark_group("vrl_stdlib/functions/del");
+    group.throughput(criterion::Throughput::Elements(1));
+
+    let fns = vrl::stdlib::all();
+    let tz = VrlTimeZone::Named(chrono_tz::Tz::UTC);
+
+    let default_state = state::TypeState::default();
+    let var_setup = compile_with_state("var = .", &fns, &default_state, CompileConfig::default())
+        .unwrap()
+        .program;
+    let var_state = var_setup.final_type_info().state;
+
+    let compile_program = |source: &str, type_state: &state::TypeState| {
+        compile_with_state(source, &fns, type_state, CompileConfig::default())
+            .unwrap()
+            .program
+    };
+
+    // Original baseline cases
+    {
+        let program = compile_program("del(.test)", &default_state);
+        let event: Value = btreemap! { "test" => true }.into();
+        group.bench_function("default", |b| {
+            b.iter_batched(
+                || {
+                    (
+                        state::RuntimeState::default(),
+                        TargetValue {
+                            value: event.clone(),
+                            metadata: Value::Object(ObjectMap::new()),
+                            secrets: Secrets::default(),
+                        },
+                    )
+                },
+                |(mut runtime_state, mut target)| {
+                    let mut ctx = Context::new(&mut target, &mut runtime_state, &tz);
+                    let got = program.resolve(&mut ctx);
+                    debug_assert_eq!(got, Ok(value!(true)));
+                    (got, target, runtime_state)
+                },
+                BatchSize::PerIteration,
+            );
+        });
     }
+    {
+        let program = compile_program("del(.test.test, true)", &default_state);
+        let event: Value = btreemap! { "test" => btreemap! { "test" => true } }.into();
+        group.bench_function("compact", |b| {
+            b.iter_batched(
+                || {
+                    (
+                        state::RuntimeState::default(),
+                        TargetValue {
+                            value: event.clone(),
+                            metadata: Value::Object(ObjectMap::new()),
+                            secrets: Secrets::default(),
+                        },
+                    )
+                },
+                |(mut runtime_state, mut target)| {
+                    let mut ctx = Context::new(&mut target, &mut runtime_state, &tz);
+                    let got = program.resolve(&mut ctx);
+                    debug_assert_eq!(got, Ok(value!(true)));
+                    (got, target, runtime_state)
+                },
+                BatchSize::PerIteration,
+            );
+        });
+    }
+
+    let ext_subtree = compile_program("del(.large_subtree)", &default_state);
+    let var_subtree = compile_program("del(var.large_subtree)", &var_state);
+    let ext_leaf = compile_program("del(.nested.deep.leaf)", &default_state);
+    let var_leaf = compile_program("del(var.nested.deep.leaf)", &var_state);
+
+    for (label, size_bytes) in [("1kb", 1024), ("64kb", 64 * 1024), ("1mb", 1024 * 1024)] {
+        let payload = build_del_payload(size_bytes);
+
+        group.bench_with_input(
+            BenchmarkId::new("external_large_subtree", label),
+            &payload,
+            |b, payload| {
+                b.iter_batched(
+                    || {
+                        (
+                            state::RuntimeState::default(),
+                            TargetValue {
+                                value: payload.clone(),
+                                metadata: Value::Object(ObjectMap::new()),
+                                secrets: Secrets::default(),
+                            },
+                        )
+                    },
+                    |(mut runtime_state, mut target)| {
+                        let mut ctx = Context::new(&mut target, &mut runtime_state, &tz);
+                        let got = ext_subtree.resolve(&mut ctx);
+                        debug_assert!(got.as_ref().is_ok_and(Value::is_object));
+                        (got, target, runtime_state)
+                    },
+                    BatchSize::PerIteration,
+                );
+            },
+        );
+
+        group.bench_with_input(
+            BenchmarkId::new("variable_large_subtree", label),
+            &payload,
+            |b, payload| {
+                b.iter_batched(
+                    || {
+                        let mut runtime_state = state::RuntimeState::default();
+                        let mut target = TargetValue {
+                            value: payload.clone(),
+                            metadata: Value::Object(ObjectMap::new()),
+                            secrets: Secrets::default(),
+                        };
+                        let mut ctx = Context::new(&mut target, &mut runtime_state, &tz);
+                        var_setup.resolve(&mut ctx).unwrap();
+                        target.value = Value::Object(ObjectMap::new());
+                        (runtime_state, target)
+                    },
+                    |(mut runtime_state, mut target)| {
+                        let mut ctx = Context::new(&mut target, &mut runtime_state, &tz);
+                        let got = var_subtree.resolve(&mut ctx);
+                        debug_assert!(got.as_ref().is_ok_and(Value::is_object));
+                        (got, target, runtime_state)
+                    },
+                    BatchSize::PerIteration,
+                );
+            },
+        );
+
+        group.bench_with_input(
+            BenchmarkId::new("external_nested_leaf", label),
+            &payload,
+            |b, payload| {
+                b.iter_batched(
+                    || {
+                        (
+                            state::RuntimeState::default(),
+                            TargetValue {
+                                value: payload.clone(),
+                                metadata: Value::Object(ObjectMap::new()),
+                                secrets: Secrets::default(),
+                            },
+                        )
+                    },
+                    |(mut runtime_state, mut target)| {
+                        let mut ctx = Context::new(&mut target, &mut runtime_state, &tz);
+                        let got = ext_leaf.resolve(&mut ctx);
+                        debug_assert_eq!(got, Ok(value!("value")));
+                        (got, target, runtime_state)
+                    },
+                    BatchSize::PerIteration,
+                );
+            },
+        );
+
+        group.bench_with_input(
+            BenchmarkId::new("variable_nested_leaf", label),
+            &payload,
+            |b, payload| {
+                b.iter_batched(
+                    || {
+                        let mut runtime_state = state::RuntimeState::default();
+                        let mut target = TargetValue {
+                            value: payload.clone(),
+                            metadata: Value::Object(ObjectMap::new()),
+                            secrets: Secrets::default(),
+                        };
+                        let mut ctx = Context::new(&mut target, &mut runtime_state, &tz);
+                        var_setup.resolve(&mut ctx).unwrap();
+                        target.value = Value::Object(ObjectMap::new());
+                        (runtime_state, target)
+                    },
+                    |(mut runtime_state, mut target)| {
+                        let mut ctx = Context::new(&mut target, &mut runtime_state, &tz);
+                        let got = var_leaf.resolve(&mut ctx);
+                        debug_assert_eq!(got, Ok(value!("value")));
+                        (got, target, runtime_state)
+                    },
+                    BatchSize::PerIteration,
+                );
+            },
+        );
+    }
+
+    group.finish();
 }
