@@ -175,7 +175,10 @@ impl Value {
         }
     }
 
-    /// Returns a reference to a field value specified by a path iter.
+    /// Inserts a value at the given path, returning the previous value, if any.
+    ///
+    /// If the path contains an invalid segment, returns `None` without modifying
+    /// this value.
     #[allow(clippy::needless_pass_by_value)]
     pub fn insert<'a>(
         &mut self,
