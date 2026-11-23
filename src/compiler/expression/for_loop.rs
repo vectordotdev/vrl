@@ -707,7 +707,10 @@ fn eval_function_call_with_ctx(
     if let Some(ret_state) = caught_return_state {
         info.state = info.state.merge(ret_state);
     }
-    if info.result.is_fallible() {
+    // Bang-calls (`foo!(...)`) force `info.result` infallible in `type_info`,
+    // but `FunctionCall::resolve` still returns a catchable `ExpressionError::Error`
+    // at runtime that an enclosing `??` or `ok, err =` can catch.
+    if info.result.is_fallible() || call.is_abort_on_error() {
         error_state = merge_opt_state(error_state, Some(state.clone().merge(info.state.clone())));
     }
     LoopFlow {
@@ -4397,6 +4400,21 @@ mod tests {
                         ok, err = { { x = "s"; 1 / 0; x = 1 }; break }
                         .z = [ok, err]
                     }
+                    .y = x + 1
+                "#,
+            ),
+            (
+                "bang-call failure inside loop caught by enclosing ??",
+                r#"
+                    x = 1
+                    {
+                        for _ in [1] {
+                            x = "s"
+                            to_int!("bad")
+                            x = 1
+                        }
+                        1 / 0
+                    } ?? null
                     .y = x + 1
                 "#,
             ),

@@ -763,6 +763,11 @@ impl FunctionCall {
         self.speculative_placeholder
     }
 
+    #[must_use]
+    pub(crate) const fn is_abort_on_error(&self) -> bool {
+        self.abort_on_error
+    }
+
     /// Takes the arguments passed and resolves them into the order they are defined
     /// in the function
     /// The error path in this function should never really be hit as the compiler should
