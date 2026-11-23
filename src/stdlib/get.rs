@@ -1,5 +1,71 @@
 use crate::compiler::prelude::*;
-use crate::path::OwnedValuePath;
+use crate::path::{BorrowedSegment, OwnedSegment, OwnedValuePath, ValuePath};
+
+#[allow(dead_code)] // Wired into GetFn in Task 2
+fn validate_path_segments(segments: &[Value]) -> ExpressionResult<()> {
+    for value in segments {
+        match value {
+            Value::String(_) | Value::Bytes(_) | Value::Integer(_) => {}
+            _ => {
+                return Err(format!(
+                    "path segment must be either string or integer, not {}",
+                    value.kind()
+                )
+                .into());
+            }
+        }
+    }
+    Ok(())
+}
+
+#[allow(dead_code)] // Wired into GetFn in Task 2
+#[derive(Clone, Copy)]
+struct BorrowedValuePath<'a>(&'a [Value]);
+
+#[allow(dead_code)] // Wired into GetFn in Task 2
+#[derive(Clone)]
+struct BorrowedValuePathIter<'a>(std::slice::Iter<'a, Value>);
+
+impl<'a> ValuePath<'a> for BorrowedValuePath<'a> {
+    type Iter = BorrowedValuePathIter<'a>;
+
+    fn segment_iter(&self) -> Self::Iter {
+        BorrowedValuePathIter(self.0.iter())
+    }
+}
+
+impl<'a> Iterator for BorrowedValuePathIter<'a> {
+    type Item = BorrowedSegment<'a>;
+
+    #[allow(clippy::cast_possible_truncation)]
+    fn next(&mut self) -> Option<Self::Item> {
+        match self.0.next()? {
+            Value::Integer(i) => Some(BorrowedSegment::Index(*i as isize)),
+            other => other.to_str_lossy().map(BorrowedSegment::Field),
+        }
+    }
+}
+
+#[allow(dead_code)] // Wired into Get::compile in Task 2
+#[allow(clippy::cast_possible_truncation)]
+fn try_compile_const_path(value: &Value) -> Option<OwnedValuePath> {
+    let Value::Array(segments) = value else {
+        return None;
+    };
+
+    let mut path = Vec::with_capacity(segments.len());
+    for segment in segments {
+        match segment {
+            Value::Integer(i) => path.push(OwnedSegment::index(*i as isize)),
+            other => {
+                let field = other.to_str_lossy()?;
+                path.push(OwnedSegment::field(field.as_ref()));
+            }
+        }
+    }
+
+    Some(OwnedValuePath { segments: path })
+}
 
 fn get(value: &Value, value_path: Value) -> Resolved {
     let path = match value_path {
@@ -174,4 +240,68 @@ mod tests {
             tdef: TypeDef::any().fallible(),
         }
     ];
+
+    #[test]
+    fn validate_path_segments_accepts_bytes_and_integers_and_rejects_others() {
+        let valid = vec![
+            Value::Bytes(bytes::Bytes::from_static(b"foo")),
+            Value::Integer(-1),
+            Value::Bytes(bytes::Bytes::from_static(b"\xff")),
+        ];
+        assert!(validate_path_segments(&valid).is_ok());
+        assert!(validate_path_segments(&[]).is_ok());
+
+        let invalid = vec![
+            Value::Bytes(bytes::Bytes::from_static(b"missing")),
+            Value::Boolean(true),
+        ];
+        let err = validate_path_segments(&invalid).unwrap_err();
+        assert_eq!(
+            err.to_string(),
+            "path segment must be either string or integer, not boolean"
+        );
+    }
+
+    #[test]
+    fn borrowed_value_path_traverses_objects_arrays_non_utf8_and_bounds() {
+        let target = value!({
+            "foo": ["a", "b", "c"],
+            "\u{FFFD}": 99,
+        });
+
+        let segs = vec![value!("foo"), value!(-2)];
+        assert_eq!(target.get(BorrowedValuePath(&segs)), Some(&value!("b")));
+
+        let oob = vec![value!("foo"), value!(-100)];
+        assert_eq!(target.get(BorrowedValuePath(&oob)), None);
+
+        let non_utf8 = vec![Value::Bytes(bytes::Bytes::from_static(b"\xff"))];
+        assert_eq!(target.get(BorrowedValuePath(&non_utf8)), Some(&value!(99)));
+
+        assert_eq!(target.get(BorrowedValuePath(&[])), Some(&target));
+    }
+
+    #[test]
+    fn try_compile_const_path_handles_valid_and_invalid_constants() {
+        let valid = Value::Array(vec![value!("nested"), value!(0), value!(-1)]);
+        let compiled = try_compile_const_path(&valid).expect("valid constant path");
+        assert_eq!(
+            compiled.segments,
+            vec![
+                OwnedSegment::field("nested"),
+                OwnedSegment::index(0),
+                OwnedSegment::index(-1),
+            ]
+        );
+
+        let non_utf8 = Value::Array(vec![Value::Bytes(bytes::Bytes::from_static(b"\xff"))]);
+        let compiled_non_utf8 = try_compile_const_path(&non_utf8).expect("lossy utf8 path");
+        assert_eq!(
+            compiled_non_utf8.segments,
+            vec![OwnedSegment::field("\u{FFFD}")]
+        );
+
+        assert!(try_compile_const_path(&value!(["foo", true])).is_none());
+        assert!(try_compile_const_path(&value!("not_an_array")).is_none());
+    }
 }
