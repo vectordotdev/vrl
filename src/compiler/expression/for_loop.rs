@@ -136,7 +136,7 @@ impl For {
         pre_loop_state: &TypeState,
         iterable_kind: &Kind,
         ctx: &mut LoopEvalContext,
-    ) -> (TypeState, Option<TypeState>, bool, Kind, bool) {
+    ) -> ForBodyFixedPoint {
         let mut current_state = pre_loop_state.clone();
         let body_footprint = LoopFootprint::for_block_with_pattern(&self.pattern, &self.block);
         let mut budget_widened = ctx.remaining_repasses == 0;
@@ -145,6 +145,8 @@ impl For {
         }
 
         let mut accumulated_break_state: Option<TypeState> = None;
+        let mut accumulated_return_state: Option<TypeState> = None;
+        let mut accumulated_error_state: Option<TypeState> = None;
         let mut fallible = false;
         let mut final_returns = Kind::never();
         let mut iterations = 0;
@@ -157,20 +159,33 @@ impl For {
             fallible |= flow.result.is_fallible();
             final_returns = final_returns.union(flow.result.returns().clone());
 
-            let back_edge_state = merge_opt_state(flow.normal, flow.continue_state).map(|mut s| {
-                restore_pattern_variables(&mut s, pre_loop_state, &pattern_idents);
-                canonicalize_type_state(&mut s);
-                s
-            });
+            let restore_and_canon = |opt: Option<TypeState>| {
+                opt.map(|mut s| {
+                    restore_pattern_variables(&mut s, pre_loop_state, &pattern_idents);
+                    canonicalize_type_state(&mut s);
+                    s
+                })
+            };
 
-            let iter_break_state = flow.break_state.map(|mut s| {
-                restore_pattern_variables(&mut s, pre_loop_state, &pattern_idents);
-                canonicalize_type_state(&mut s);
-                s
-            });
-            accumulated_break_state = merge_opt_state(accumulated_break_state, iter_break_state);
+            let back_edge_state =
+                restore_and_canon(merge_opt_state(flow.normal, flow.continue_state));
+
+            accumulated_break_state =
+                merge_opt_state(accumulated_break_state, restore_and_canon(flow.break_state));
             if let Some(ref mut brk) = accumulated_break_state {
                 canonicalize_type_state(brk);
+            }
+            accumulated_return_state = merge_opt_state(
+                accumulated_return_state,
+                restore_and_canon(flow.return_state),
+            );
+            if let Some(ref mut ret) = accumulated_return_state {
+                canonicalize_type_state(ret);
+            }
+            accumulated_error_state =
+                merge_opt_state(accumulated_error_state, restore_and_canon(flow.error_state));
+            if let Some(ref mut err) = accumulated_error_state {
+                canonicalize_type_state(err);
             }
 
             let mut next_state = match back_edge_state {
@@ -203,13 +218,15 @@ impl For {
             current_state = next_state;
         }
 
-        (
-            current_state,
-            accumulated_break_state,
+        ForBodyFixedPoint {
+            header_state: current_state,
+            break_state: accumulated_break_state,
+            return_state: accumulated_return_state,
+            error_state: accumulated_error_state,
             fallible,
-            final_returns,
+            returns: final_returns,
             budget_widened,
-        )
+        }
     }
 
     pub(crate) fn eval_for_in_loop_with_ctx(
@@ -232,21 +249,24 @@ impl For {
             canonicalize_type_state(&mut fallback_header);
             return (
                 fallback_header,
-                LoopFlow::never_with_exits(
-                    iter_flow.break_state,
-                    iter_flow.continue_state,
-                    iter_flow.result.is_fallible(),
-                    iter_flow.result.returns().clone(),
-                ),
+                LoopFlow {
+                    normal: None,
+                    break_state: iter_flow.break_state,
+                    continue_state: iter_flow.continue_state,
+                    return_state: iter_flow.return_state,
+                    error_state: iter_flow.error_state,
+                    result: TypeDef::never()
+                        .maybe_fallible(iter_flow.result.is_fallible())
+                        .with_returns(iter_flow.result.returns().clone()),
+                },
             );
         };
 
         canonicalize_type_state(&mut pre_loop_state);
-        let (header_state, accumulated_break_state, body_fallible, body_returns, budget_widened) =
-            self.eval_for_body_fixed_point(&pre_loop_state, iter_flow.result.kind(), ctx);
+        let fixed = self.eval_for_body_fixed_point(&pre_loop_state, iter_flow.result.kind(), ctx);
 
         let mut post_loop_normal =
-            merge_opt_state(Some(header_state.clone()), accumulated_break_state)
+            merge_opt_state(Some(fixed.header_state.clone()), fixed.break_state)
                 .expect("at least header_state")
                 .merge(pre_loop_state);
         canonicalize_type_state(&mut post_loop_normal);
@@ -255,22 +275,24 @@ impl For {
             normal: Some(post_loop_normal),
             break_state: iter_flow.break_state,
             continue_state: iter_flow.continue_state,
+            return_state: merge_opt_state(iter_flow.return_state, fixed.return_state),
+            error_state: merge_opt_state(iter_flow.error_state, fixed.error_state),
             result: TypeDef::null()
-                .maybe_fallible(iter_flow.result.is_fallible() || body_fallible)
-                .with_returns(iter_flow.result.returns().clone().union(body_returns)),
+                .maybe_fallible(iter_flow.result.is_fallible() || fixed.fallible)
+                .with_returns(iter_flow.result.returns().clone().union(fixed.returns)),
         };
 
         if let Some(input) = projected_input
-            && !budget_widened
+            && !fixed.budget_widened
         {
             ctx.insert(
                 self.span,
                 input,
-                CachedLoopEntry::from_result(&footprint, &header_state, &result_flow),
+                CachedLoopEntry::from_result(&footprint, &fixed.header_state, &result_flow),
             );
         }
 
-        (header_state, result_flow)
+        (fixed.header_state, result_flow)
     }
 
     pub(crate) fn resolve_loop_type_info(&self, state: &TypeState) -> (TypeState, TypeInfo) {
@@ -316,36 +338,50 @@ impl Expression for For {
     }
 }
 
+struct ForBodyFixedPoint {
+    header_state: TypeState,
+    break_state: Option<TypeState>,
+    return_state: Option<TypeState>,
+    error_state: Option<TypeState>,
+    fallible: bool,
+    returns: Kind,
+    budget_widened: bool,
+}
+
 pub(crate) struct LoopFlow {
     pub(crate) normal: Option<TypeState>,
     pub(crate) break_state: Option<TypeState>,
     pub(crate) continue_state: Option<TypeState>,
+    pub(crate) return_state: Option<TypeState>,
+    pub(crate) error_state: Option<TypeState>,
     pub(crate) result: TypeDef,
 }
 
 impl LoopFlow {
-    fn from_type_info(info: TypeInfo) -> Self {
+    fn from_type_info(info: TypeInfo, input_state: &TypeState) -> Self {
+        let error_state = info
+            .result
+            .is_fallible()
+            .then(|| input_state.clone().merge(info.state.clone()));
+        let normal = (!info.result.is_never()).then_some(info.state);
         Self {
-            normal: (!info.result.is_never()).then_some(info.state),
+            normal,
             break_state: None,
             continue_state: None,
+            return_state: None,
+            error_state,
             result: info.result,
         }
     }
 
-    fn never_with_exits(
-        break_state: Option<TypeState>,
-        continue_state: Option<TypeState>,
-        fallible: bool,
-        returns: Kind,
-    ) -> Self {
+    fn never() -> Self {
         Self {
             normal: None,
-            break_state,
-            continue_state,
-            result: TypeDef::never()
-                .maybe_fallible(fallible)
-                .with_returns(returns),
+            break_state: None,
+            continue_state: None,
+            return_state: None,
+            error_state: None,
+            result: TypeDef::never(),
         }
     }
 
@@ -358,6 +394,8 @@ impl LoopFlow {
             normal: merge_opt_state(self.normal, other.normal),
             break_state: merge_opt_state(self.break_state, other.break_state),
             continue_state: merge_opt_state(self.continue_state, other.continue_state),
+            return_state: merge_opt_state(self.return_state, other.return_state),
+            error_state: merge_opt_state(self.error_state, other.error_state),
             result: combine_result(self.result, other.result),
         }
     }
@@ -371,6 +409,8 @@ impl LoopFlow {
             .merge_keep(prefix.result.returns().clone(), false);
         self.break_state = merge_opt_state(prefix.break_state, self.break_state);
         self.continue_state = merge_opt_state(prefix.continue_state, self.continue_state);
+        self.return_state = merge_opt_state(prefix.return_state, self.return_state);
+        self.error_state = merge_opt_state(prefix.error_state, self.error_state);
         self
     }
 
@@ -379,17 +419,34 @@ impl LoopFlow {
         self
     }
 
-    fn diverge(self, extra_return: Option<Kind>) -> Self {
-        let mut returns = self.result.returns().clone();
-        if let Some(kind) = extra_return {
-            returns.merge_keep(kind, false);
+    fn diverge_abort(self) -> Self {
+        Self {
+            normal: None,
+            break_state: self.break_state,
+            continue_state: self.continue_state,
+            return_state: self.return_state,
+            error_state: self.error_state,
+            result: TypeDef::never()
+                .maybe_fallible(self.result.is_fallible())
+                .with_returns(self.result.returns().clone()),
         }
-        Self::never_with_exits(
-            self.break_state,
-            self.continue_state,
-            self.result.is_fallible(),
-            returns,
-        )
+    }
+
+    fn diverge_return(self) -> Self {
+        let mut returns = self.result.returns().clone();
+        if self.normal.is_some() {
+            returns.merge_keep(self.result.kind().clone(), false);
+        }
+        Self {
+            normal: None,
+            break_state: self.break_state,
+            continue_state: self.continue_state,
+            return_state: merge_opt_state(self.return_state, self.normal),
+            error_state: self.error_state,
+            result: TypeDef::never()
+                .maybe_fallible(self.result.is_fallible())
+                .with_returns(returns),
+        }
     }
 }
 
@@ -397,6 +454,8 @@ struct LoopFlowSeq {
     normal: Option<TypeState>,
     break_state: Option<TypeState>,
     continue_state: Option<TypeState>,
+    return_state: Option<TypeState>,
+    error_state: Option<TypeState>,
     fallible: bool,
     returns: Kind,
 }
@@ -407,6 +466,8 @@ impl LoopFlowSeq {
             normal: Some(state.clone()),
             break_state: None,
             continue_state: None,
+            return_state: None,
+            error_state: None,
             fallible: false,
             returns: Kind::never(),
         }
@@ -428,6 +489,8 @@ impl LoopFlowSeq {
         self.normal = flow.normal;
         self.break_state = merge_opt_state(self.break_state.take(), flow.break_state);
         self.continue_state = merge_opt_state(self.continue_state.take(), flow.continue_state);
+        self.return_state = merge_opt_state(self.return_state.take(), flow.return_state);
+        self.error_state = merge_opt_state(self.error_state.take(), flow.error_state);
         Some(flow.result)
     }
 
@@ -436,6 +499,8 @@ impl LoopFlowSeq {
             normal: self.normal,
             break_state: self.break_state,
             continue_state: self.continue_state,
+            return_state: self.return_state,
+            error_state: self.error_state,
             result: result
                 .maybe_fallible(self.fallible)
                 .with_returns(self.returns),
@@ -443,12 +508,16 @@ impl LoopFlowSeq {
     }
 
     fn finish_never(self) -> LoopFlow {
-        LoopFlow::never_with_exits(
-            self.break_state,
-            self.continue_state,
-            self.fallible,
-            self.returns,
-        )
+        LoopFlow {
+            normal: None,
+            break_state: self.break_state,
+            continue_state: self.continue_state,
+            return_state: self.return_state,
+            error_state: self.error_state,
+            result: TypeDef::never()
+                .maybe_fallible(self.fallible)
+                .with_returns(self.returns),
+        }
     }
 }
 
@@ -486,8 +555,13 @@ fn expr_matches_control_flow(expr: &Expr, include_nested_for: bool, include_exit
             include_nested_for
                 || expr_matches_control_flow(&for_expr.iterable, false, include_exits)
         }
-        // Neither function arguments nor closures may break/continue an enclosing `for` loop.
-        Expr::Literal(_) | Expr::Variable(_) | Expr::Noop(_) | Expr::FunctionCall(_) => false,
+        Expr::Literal(_) | Expr::Variable(_) | Expr::Noop(_) => false,
+        // Function arguments cannot `break`/`continue` an enclosing `for` loop, but they can
+        // `abort`, `return`, or contain a nested `for` loop. Closures are excluded because their
+        // bodies execute lazily and are not evaluated into the outer `TypeState`.
+        Expr::FunctionCall(call) => call.arguments().iter().any(|arg| {
+            expr_matches_control_flow(arg.inner().expr(), include_nested_for, include_exits)
+        }),
         Expr::Container(container) => match &container.variant {
             Variant::Group(group) => {
                 expr_matches_control_flow(group.inner_expr(), include_nested_for, include_exits)
@@ -532,7 +606,10 @@ fn expr_matches_control_flow(expr: &Expr, include_nested_for: bool, include_exit
             }
         },
         Expr::Query(query) => match query.target() {
-            Target::Internal(_) | Target::External(_) | Target::FunctionCall(_) => false,
+            Target::Internal(_) | Target::External(_) => false,
+            Target::FunctionCall(call) => call.arguments().iter().any(|arg| {
+                expr_matches_control_flow(arg.inner().expr(), include_nested_for, include_exits)
+            }),
             Target::Container(container) => expr_matches_control_flow(
                 &Expr::Container(container.clone()),
                 include_nested_for,
@@ -553,7 +630,7 @@ fn eval_loop_block_with_ctx(
     ctx: &mut LoopEvalContext,
 ) -> LoopFlow {
     if !block.exprs().iter().any(expr_needs_loop_eval) {
-        return LoopFlow::from_type_info(block.type_info(state));
+        return LoopFlow::from_type_info(block.type_info(state), state);
     }
 
     let parent_locals = state.local.clone();
@@ -573,19 +650,57 @@ fn eval_loop_block_with_ctx(
 
     let mut flow = seq.finish(result);
     if block.is_scoped() {
-        if let Some(ref mut normal) = flow.normal {
-            normal.local = parent_locals
-                .clone()
-                .apply_child_scope(normal.local.clone());
-        }
-        if let Some(ref mut brk) = flow.break_state {
-            brk.local = parent_locals.clone().apply_child_scope(brk.local.clone());
-        }
-        if let Some(ref mut cont) = flow.continue_state {
-            cont.local = parent_locals.apply_child_scope(cont.local.clone());
-        }
+        let apply_scope = |opt: &mut Option<TypeState>| {
+            if let Some(s) = opt {
+                s.local = parent_locals.clone().apply_child_scope(s.local.clone());
+            }
+        };
+        apply_scope(&mut flow.normal);
+        apply_scope(&mut flow.break_state);
+        apply_scope(&mut flow.continue_state);
+        apply_scope(&mut flow.return_state);
+        apply_scope(&mut flow.error_state);
     }
     flow
+}
+
+fn eval_function_call_with_ctx(
+    call: &crate::compiler::expression::FunctionCall,
+    state: &TypeState,
+    ctx: &mut LoopEvalContext,
+) -> LoopFlow {
+    let mut error_state = None;
+    let mut caught_return_state = None;
+    let mut returns = Kind::never();
+    let mut info = call.eval_with_arg_mapper(state, |arg, st| {
+        let flow = eval_loop_expr_with_ctx(arg, st, ctx);
+        returns.merge_keep(flow.result.returns().clone(), false);
+        error_state = merge_opt_state(error_state.take(), flow.error_state);
+        if let Some(ret_state) = flow.return_state {
+            caught_return_state =
+                merge_opt_state(caught_return_state.take(), Some(ret_state.clone()));
+            error_state = merge_opt_state(error_state.take(), Some(ret_state));
+        }
+        if let Some(next_state) = flow.normal {
+            *st = next_state;
+        }
+        flow.result
+    });
+    if let Some(ret_state) = caught_return_state {
+        info.state = info.state.merge(ret_state);
+    }
+    if info.result.is_fallible() {
+        error_state = merge_opt_state(error_state, Some(state.clone().merge(info.state.clone())));
+    }
+    info.result.returns_mut().merge_keep(returns, false);
+    LoopFlow {
+        normal: Some(info.state),
+        break_state: None,
+        continue_state: None,
+        return_state: None,
+        error_state,
+        result: info.result,
+    }
 }
 
 #[allow(clippy::too_many_lines)]
@@ -598,17 +713,28 @@ pub(crate) fn eval_loop_expr_with_ctx(
     use crate::parser::ast::Opcode;
 
     if !expr_needs_loop_eval(expr) {
-        return LoopFlow::from_type_info(expr.type_info(state));
+        return LoopFlow::from_type_info(expr.type_info(state), state);
     }
 
     match expr {
-        Expr::Break(_) => {
-            LoopFlow::never_with_exits(Some(state.clone()), None, false, Kind::never())
-        }
-        Expr::Continue(_) => {
-            LoopFlow::never_with_exits(None, Some(state.clone()), false, Kind::never())
-        }
+        Expr::Break(_) => LoopFlow {
+            normal: None,
+            break_state: Some(state.clone()),
+            continue_state: None,
+            return_state: None,
+            error_state: None,
+            result: TypeDef::never(),
+        },
+        Expr::Continue(_) => LoopFlow {
+            normal: None,
+            break_state: None,
+            continue_state: Some(state.clone()),
+            return_state: None,
+            error_state: None,
+            result: TypeDef::never(),
+        },
         Expr::For(for_expr) => for_expr.eval_for_in_loop_with_ctx(state, ctx).1,
+        Expr::FunctionCall(call) => eval_function_call_with_ctx(call, state, ctx),
         Expr::Container(container) => match &container.variant {
             Variant::Group(group) => eval_loop_expr_with_ctx(group.inner_expr(), state, ctx),
             Variant::Block(block) => eval_loop_block_with_ctx(block, state, ctx),
@@ -671,6 +797,8 @@ pub(crate) fn eval_loop_expr_with_ctx(
                     normal: Some(after_pred_state),
                     break_state: None,
                     continue_state: None,
+                    return_state: None,
+                    error_state: None,
                     result: TypeDef::null(),
                 };
                 if_flow.merge_branch(fallthrough, |if_res, _| if_res.or_null())
@@ -693,21 +821,36 @@ pub(crate) fn eval_loop_expr_with_ctx(
                 expr,
                 default,
             } => {
-                let mut rhs_flow = eval_loop_expr_with_ctx(expr, state, ctx);
-                if let Some(ref mut s) = rhs_flow.normal {
-                    let expr_result = rhs_flow.result.clone();
+                let rhs_flow = eval_loop_expr_with_ctx(expr, state, ctx);
+                let catch_state = merge_opt_state(rhs_flow.normal, rhs_flow.error_state);
+                if let Some(mut s) = catch_state {
+                    let expr_result = rhs_flow.result;
                     let ok_type = expr_result
                         .clone()
                         .union(TypeDef::from(default.kind()))
                         .infallible();
                     let err_type = TypeDef::from(Kind::bytes().or_null());
                     let assignment_result = expr_result.infallible().impure().or_bytes();
-                    let const_value = expr.resolve_constant(s);
-                    ok.insert_type_def(s, ok_type, const_value);
-                    err.insert_type_def(s, err_type, None);
-                    rhs_flow.with_result(assignment_result)
+                    let const_value = expr.resolve_constant(&s);
+                    ok.insert_type_def(&mut s, ok_type, const_value);
+                    err.insert_type_def(&mut s, err_type, None);
+                    LoopFlow {
+                        normal: Some(s),
+                        break_state: rhs_flow.break_state,
+                        continue_state: rhs_flow.continue_state,
+                        return_state: rhs_flow.return_state,
+                        error_state: None,
+                        result: assignment_result,
+                    }
                 } else {
-                    rhs_flow
+                    LoopFlow {
+                        normal: None,
+                        break_state: rhs_flow.break_state,
+                        continue_state: rhs_flow.continue_state,
+                        return_state: rhs_flow.return_state,
+                        error_state: None,
+                        result: rhs_flow.result,
+                    }
                 }
             }
         },
@@ -715,52 +858,72 @@ pub(crate) fn eval_loop_expr_with_ctx(
             let lhs_flow = eval_loop_expr_with_ctx(&op.lhs, state, ctx);
             let lhs_def = lhs_flow.result.clone();
             let lhs_value = op.lhs.resolve_constant(state);
-            let Some(lhs_state) = lhs_flow.normal else {
-                return lhs_flow;
-            };
 
-            let normal_from_lhs = match op.opcode {
-                Opcode::Err => Some(lhs_state.clone()),
-                Opcode::Or => {
-                    if lhs_def.is_null() || lhs_value == Some(Value::Boolean(false)) {
-                        None
-                    } else if !(lhs_def.contains_null() || lhs_def.contains_boolean())
-                        || lhs_value == Some(Value::Boolean(true))
+            let (normal_from_lhs, rhs_input_state) = match lhs_flow.normal {
+                None => {
+                    if op.opcode == Opcode::Err
+                        && let Some(err_state) = lhs_flow.error_state.clone()
                     {
-                        return LoopFlow {
-                            normal: Some(lhs_state),
-                            break_state: lhs_flow.break_state,
-                            continue_state: lhs_flow.continue_state,
-                            result: lhs_def,
-                        };
+                        (None, err_state)
                     } else {
-                        Some(lhs_state.clone())
+                        return lhs_flow;
                     }
                 }
-                Opcode::And => {
-                    if lhs_def.is_null() || lhs_value == Some(Value::Boolean(false)) {
-                        return LoopFlow {
-                            normal: Some(lhs_state),
-                            break_state: lhs_flow.break_state,
-                            continue_state: lhs_flow.continue_state,
-                            result: TypeDef::boolean()
-                                .maybe_fallible(lhs_def.is_fallible())
-                                .with_returns(lhs_def.returns().clone()),
-                        };
-                    } else if lhs_value == Some(Value::Boolean(true)) {
-                        None
+                Some(lhs_state) => {
+                    let normal_from_lhs = match op.opcode {
+                        Opcode::Err => Some(lhs_state.clone()),
+                        Opcode::Or => {
+                            if lhs_def.is_null() || lhs_value == Some(Value::Boolean(false)) {
+                                None
+                            } else if !(lhs_def.contains_null() || lhs_def.contains_boolean())
+                                || lhs_value == Some(Value::Boolean(true))
+                            {
+                                return LoopFlow {
+                                    normal: Some(lhs_state),
+                                    break_state: lhs_flow.break_state,
+                                    continue_state: lhs_flow.continue_state,
+                                    return_state: lhs_flow.return_state,
+                                    error_state: lhs_flow.error_state,
+                                    result: lhs_def,
+                                };
+                            } else {
+                                Some(lhs_state.clone())
+                            }
+                        }
+                        Opcode::And => {
+                            if lhs_def.is_null() || lhs_value == Some(Value::Boolean(false)) {
+                                return LoopFlow {
+                                    normal: Some(lhs_state),
+                                    break_state: lhs_flow.break_state,
+                                    continue_state: lhs_flow.continue_state,
+                                    return_state: lhs_flow.return_state,
+                                    error_state: lhs_flow.error_state,
+                                    result: TypeDef::boolean()
+                                        .maybe_fallible(lhs_def.is_fallible())
+                                        .with_returns(lhs_def.returns().clone()),
+                                };
+                            } else if lhs_value == Some(Value::Boolean(true)) {
+                                None
+                            } else {
+                                Some(lhs_state.clone())
+                            }
+                        }
+                        _ => None,
+                    };
+
+                    let rhs_input_state = if op.opcode == Opcode::Err {
+                        let base = state.clone().merge(lhs_state);
+                        match lhs_flow.error_state.clone() {
+                            Some(err_state) => base.merge(err_state),
+                            None => base,
+                        }
                     } else {
-                        Some(lhs_state.clone())
-                    }
+                        lhs_state
+                    };
+                    (normal_from_lhs, rhs_input_state)
                 }
-                _ => None,
             };
 
-            let rhs_input_state = if op.opcode == Opcode::Err {
-                state.clone().merge(lhs_state)
-            } else {
-                lhs_state
-            };
             let rhs_value = op.rhs.resolve_constant(&rhs_input_state);
             let rhs_flow = eval_loop_expr_with_ctx(&op.rhs, &rhs_input_state, ctx);
             let rhs_def = rhs_flow.result;
@@ -774,10 +937,22 @@ pub(crate) fn eval_loop_expr_with_ctx(
                     .maybe_fallible(lhs_def.is_fallible() || rhs_def.is_fallible())
                     .with_returns(returns)
             };
+            let mut error_state = if op.opcode == Opcode::Err {
+                rhs_flow.error_state
+            } else {
+                merge_opt_state(lhs_flow.error_state, rhs_flow.error_state)
+            };
+            if result.is_fallible()
+                && let Some(ref n) = normal
+            {
+                error_state = merge_opt_state(error_state, Some(n.clone()));
+            }
             LoopFlow {
                 normal,
                 break_state: merge_opt_state(lhs_flow.break_state, rhs_flow.break_state),
                 continue_state: merge_opt_state(lhs_flow.continue_state, rhs_flow.continue_state),
+                return_state: merge_opt_state(lhs_flow.return_state, rhs_flow.return_state),
+                error_state,
                 result,
             }
         }
@@ -790,7 +965,14 @@ pub(crate) fn eval_loop_expr_with_ctx(
                 }
                 flow
             }
-            Target::Internal(_) | Target::External(_) | Target::FunctionCall(_) => unreachable!(),
+            Target::FunctionCall(call) => {
+                let mut flow = eval_function_call_with_ctx(call, state, ctx);
+                if flow.normal.is_some() {
+                    flow.result = flow.result.at_path(query.path());
+                }
+                flow
+            }
+            Target::Internal(_) | Target::External(_) => unreachable!(),
         },
         Expr::Unary(unary) => match unary.variant() {
             unary::Variant::Not(not) => {
@@ -807,20 +989,11 @@ pub(crate) fn eval_loop_expr_with_ctx(
             }
         },
         Expr::Abort(abort) => match abort.message() {
-            Some(msg) => eval_loop_expr_with_ctx(msg, state, ctx).diverge(None),
-            None => LoopFlow::never_with_exits(None, None, false, Kind::never()),
+            Some(msg) => eval_loop_expr_with_ctx(msg, state, ctx).diverge_abort(),
+            None => LoopFlow::never(),
         },
-        Expr::Return(ret) => {
-            let inner_flow = eval_loop_expr_with_ctx(ret.expr(), state, ctx);
-            let extra_return = inner_flow
-                .normal
-                .is_some()
-                .then(|| inner_flow.result.kind().clone());
-            inner_flow.diverge(extra_return)
-        }
-        Expr::Literal(_) | Expr::Variable(_) | Expr::Noop(_) | Expr::FunctionCall(_) => {
-            unreachable!()
-        }
+        Expr::Return(ret) => eval_loop_expr_with_ctx(ret.expr(), state, ctx).diverge_return(),
+        Expr::Literal(_) | Expr::Variable(_) | Expr::Noop(_) => unreachable!(),
     }
 }
 
@@ -860,6 +1033,8 @@ struct CachedLoopEntry {
     normal: Option<LoopStatePatch>,
     break_state: Option<LoopStatePatch>,
     continue_state: Option<LoopStatePatch>,
+    return_state: Option<LoopStatePatch>,
+    error_state: Option<LoopStatePatch>,
     result: TypeDef,
 }
 
@@ -873,6 +1048,8 @@ impl CachedLoopEntry {
                 .continue_state
                 .as_ref()
                 .map(|s| footprint.patch_from(s)),
+            return_state: flow.return_state.as_ref().map(|s| footprint.patch_from(s)),
+            error_state: flow.error_state.as_ref().map(|s| footprint.patch_from(s)),
             result: flow.result.clone(),
         }
     }
@@ -884,6 +1061,8 @@ impl CachedLoopEntry {
                 normal: self.normal.as_ref().map(|p| p.apply(base)),
                 break_state: self.break_state.as_ref().map(|p| p.apply(base)),
                 continue_state: self.continue_state.as_ref().map(|p| p.apply(base)),
+                return_state: self.return_state.as_ref().map(|p| p.apply(base)),
+                error_state: self.error_state.as_ref().map(|p| p.apply(base)),
                 result: self.result.clone(),
             },
         )
@@ -3965,5 +4144,147 @@ mod tests {
             err_slice[0].code,
             codes::CompilerCode::NonCollectionIterable as usize
         );
+    }
+
+    #[test]
+    fn test_for_aborting_function_arguments_flow_analysis() {
+        let fns = crate::stdlib::all();
+
+        // 1. Codex #4661009266: unconditional abort in function argument does not leak
+        //    its mutation onto the loop back edge.
+        let abort_arg = r#"
+            x = 1
+            for _ in [1, 2] {
+                .y = x + 1
+                contains({ x = "s"; abort }, "a")
+            }
+        "#;
+        assert!(
+            crate::compiler::compile(abort_arg, &fns).is_ok(),
+            "expected aborting function argument not to widen x across back edge: {:?}",
+            crate::compiler::compile(abort_arg, &fns).err()
+        );
+
+        // 2. Same-iteration follow-up after an aborting function argument stays integer.
+        let same_iter = r#"
+            x = 1
+            for _ in [1, 2] {
+                contains({ x = "s"; abort }, "a")
+                .y = x + 1
+            }
+        "#;
+        assert!(
+            crate::compiler::compile(same_iter, &fns).is_ok(),
+            "expected aborting function argument not to mutate x for subsequent statements: {:?}",
+            crate::compiler::compile(same_iter, &fns).err()
+        );
+
+        // 3. Conditional abort inside a function argument excludes the aborting branch's mutation.
+        let cond_abort_arg = r#"
+            x = 1
+            for _ in [1, 2] {
+                .y = x + 1
+                contains({ if .flag == true { x = "s"; abort }; "a" }, "a")
+            }
+        "#;
+        assert!(
+            crate::compiler::compile(cond_abort_arg, &fns).is_ok(),
+            "expected conditional abort in function argument not to widen x: {:?}",
+            crate::compiler::compile(cond_abort_arg, &fns).err()
+        );
+
+        // 4. Query target function call with aborting argument does not leak its mutation.
+        let query_abort_arg = r#"
+            x = 1
+            for _ in [1, 2] {
+                .y = x + 1
+                .z = parse_json({ x = "s"; abort }).a ?? 0
+            }
+        "#;
+        assert!(
+            crate::compiler::compile(query_abort_arg, &fns).is_ok(),
+            "expected aborting query-target function argument not to widen x: {:?}",
+            crate::compiler::compile(query_abort_arg, &fns).err()
+        );
+    }
+
+    #[test]
+    fn test_for_catchable_exits_inside_arguments_and_blocks_widen_loop_state() {
+        let fns = crate::stdlib::all();
+
+        // Soundness: `return` inside a function argument is converted by `FunctionCall::resolve`
+        // into a catchable runtime error, so `??` can catch it and leak `x = "s"` to iteration 2
+        // (and to the `??` fallback RHS). Dead code after `return` must not erase `x = "s"`,
+        // and fallible expressions before `abort` caught by `??` or `ok, err =` must also widen.
+        for (label, source) in [
+            (
+                "direct return in fallible call arg",
+                r#"
+                    x = 1
+                    for _ in [1, 2] {
+                        .y = x + 1
+                        .z = parse_json({ x = "s"; return 0 }) ?? {}
+                    }
+                "#,
+            ),
+            (
+                "dead assignment after return in call arg",
+                r#"
+                    x = 1
+                    for _ in [1, 2] {
+                        .y = x + 1
+                        .z = parse_json({ x = "s"; return 0; x = 1 }) ?? {}
+                    }
+                "#,
+            ),
+            (
+                "nested for-loop return in call arg",
+                r#"
+                    x = 1
+                    for _ in [1, 2] {
+                        .y = x + 1
+                        .z = parse_json({ for _ in [1] { x = "s"; return 0 }; "{}" }) ?? {}
+                    }
+                "#,
+            ),
+            (
+                "return in call arg visible in ?? rhs",
+                r#"
+                    x = 1
+                    for _ in [1, 2] {
+                        .z = parse_json({ x = "s"; return 0 }) ?? (x + 1)
+                    }
+                "#,
+            ),
+            (
+                "fallible expr before abort caught by ??",
+                r#"
+                    x = 1
+                    for _ in [1, 2] {
+                        .y = x + 1
+                        .z = ({ x = "s"; to_int("bad"); abort }) ?? false
+                    }
+                "#,
+            ),
+            (
+                "fallible expr before abort caught by ok, err =",
+                r#"
+                    x = 1
+                    for _ in [1, 2] {
+                        .y = x + 1
+                        ok, err = { x = "s"; to_int("bad"); abort }
+                        .z = [ok, err]
+                    }
+                "#,
+            ),
+        ] {
+            let Err(errs) = crate::compiler::compile(source, &fns) else {
+                panic!("expected {label} to widen x and fail compilation");
+            };
+            assert!(
+                errs.iter().any(|d| d.code == 103),
+                "expected {label} to fail with E103 (fallible `x + 1` on integer | string), got: {errs:?}"
+            );
+        }
     }
 }

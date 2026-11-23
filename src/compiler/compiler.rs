@@ -952,6 +952,23 @@ impl<'a> Compiler<'a> {
         compiled
     }
 
+    fn compile_closure_block(
+        &mut self,
+        block: Node<ast::Block>,
+        supports_break: bool,
+        state: &mut TypeState,
+    ) -> Option<Node<(Block, TypeDef)>> {
+        let span = block.span();
+        let saved_loop_depth = self.loop_depth;
+        let prev_breakable = self.in_breakable_context;
+        self.loop_depth = 0;
+        self.in_breakable_context = supports_break;
+        let block_result = self.compile_block_with_type(block, state);
+        self.in_breakable_context = prev_breakable;
+        self.loop_depth = saved_loop_depth;
+        block_result.map(|block_with_type| Node::new(span, block_with_type))
+    }
+
     fn compile_function_call(
         &mut self,
         node: Node<ast::FunctionCall>,
@@ -1035,18 +1052,7 @@ impl<'a> Compiler<'a> {
                 let block = match closure_block {
                     None => None,
                     Some(block) => {
-                        let span = block.span();
-                        let saved_loop_depth = self.loop_depth;
-                        let prev_breakable = self.in_breakable_context;
-                        self.loop_depth = 0;
-                        self.in_breakable_context = builder.supports_break();
-                        let block_result = self.compile_block_with_type(block, state);
-                        self.in_breakable_context = prev_breakable;
-                        self.loop_depth = saved_loop_depth;
-                        match block_result {
-                            Some(block_with_type) => Some(Node::new(span, block_with_type)),
-                            None => return None,
-                        }
+                        Some(self.compile_closure_block(block, builder.supports_break(), state)?)
                     }
                 };
 
@@ -1072,14 +1078,19 @@ impl<'a> Compiler<'a> {
                     })
             });
 
-        if let Some((args, function)) = function_info {
+        let compiled = if let Some((args, function)) = function_info {
             self.check_function_deprecations(&function, &args);
-            // Update the final state using the function expression to make sure it's accurate.
-            *state = function.type_info(&original_state).state;
             Some(function)
         } else {
             speculative_placeholder
-        }
+        }?;
+
+        // Update the final state using the function expression to make sure it's accurate,
+        // accounting for aborting arguments and nested loops via `expr_type_info`.
+        *state = self
+            .expr_type_info(&Expr::FunctionCall(compiled.clone()), &original_state)
+            .state;
+        Some(compiled)
     }
 
     fn compile_function_argument(
