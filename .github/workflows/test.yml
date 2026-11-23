@@ -27,7 +27,11 @@ env:
   PROFILE: debug
 
 jobs:
+  repo-gate:
+    uses: ./.github/workflows/ci-repo-gate.yml
+
   clippy:
+    needs: repo-gate
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -36,6 +40,7 @@ jobs:
         run: make check-clippy
 
   fmt:
+    needs: repo-gate
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -44,6 +49,7 @@ jobs:
         run: make fmt-check
 
   test:
+    needs: repo-gate
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -56,6 +62,7 @@ jobs:
         run: make test
 
   vrl:
+    needs: repo-gate
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -68,6 +75,7 @@ jobs:
         run: make vrl-test
 
   check-licenses:
+    needs: repo-gate
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -76,6 +84,7 @@ jobs:
         run: make check-licenses
 
   check-msrv:
+    needs: repo-gate
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -84,6 +93,7 @@ jobs:
         run: make check-msrv
 
   check-deny:
+    needs: repo-gate
     runs-on: ubuntu-latest
     env:
       BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
@@ -109,6 +119,7 @@ jobs:
         run: make check-deny BASE_DIR=.deny-base
 
   check-docs:
+    needs: repo-gate
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -117,6 +128,7 @@ jobs:
         run: make check-docs
 
   check-lockfile:
+    needs: repo-gate
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -125,6 +137,7 @@ jobs:
         run: make check-lockfile
 
   wasm32-unknown-unknown:
+    needs: repo-gate
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

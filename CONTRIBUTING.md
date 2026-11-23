@@ -22,9 +22,5 @@ provide everything you need to get started.
 
 ## Dependency updates
 
-Cargo and Dependabot apply a seven-day cooldown to newly published registry versions to reduce supply-chain risk.
-For a reviewed update, override Cargo's cooldown locally for one command:
-
-```bash
-CARGO_RESOLVER_INCOMPATIBLE_PUBLISH_AGE=allow cargo update -p <crate> --precise <version>
-```
+Dependabot waits seven days before proposing routine version updates for newly published
+registry versions to reduce supply-chain risk. Security updates are exempt from this cooldown.
