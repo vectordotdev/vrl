@@ -279,11 +279,11 @@ impl Function for Get {
 
     fn compile(
         &self,
-        state: &state::TypeState,
+        _state: &state::TypeState,
         _ctx: &mut FunctionCompileContext,
         arguments: ArgumentList,
     ) -> Compiled {
-        Ok(GetFn::compile(state, &arguments).as_expr())
+        Ok(GetFn::compile(&arguments).as_expr())
     }
 }
 
@@ -294,11 +294,14 @@ pub(crate) struct GetFn {
 }
 
 impl GetFn {
-    fn compile(state: &state::TypeState, arguments: &ArgumentList) -> Self {
+    fn compile(arguments: &ArgumentList) -> Self {
         let value = ValueSource::from_expr(arguments.required_expr("value"));
         let path_expr = arguments.required("path");
+        // Resolve against an empty TypeState so only state-independent constant
+        // expressions are folded; captured local variables may be reassigned
+        // across iterator closure invocations (e.g. `for_each`).
         let path = match path_expr
-            .resolve_constant(state)
+            .resolve_constant(&state::TypeState::default())
             .as_ref()
             .and_then(try_compile_const_path)
         {
@@ -482,11 +485,10 @@ mod tests {
         value_expr: crate::compiler::expression::Expr,
         path_expr: crate::compiler::expression::Expr,
     ) -> GetFn {
-        let state = state::TypeState::default();
         let mut args = ArgumentList::default();
         args.arguments.insert("value", value_expr);
         args.arguments.insert("path", path_expr);
-        GetFn::compile(&state, &args)
+        GetFn::compile(&args)
     }
 
     #[test]
@@ -681,6 +683,26 @@ mod tests {
         assert!(
             !err.contains("path segment must be"),
             "unexpected path segment error: {err}"
+        );
+    }
+
+    #[test]
+    fn captured_path_variable_reassigned_in_closure() {
+        assert_eq!(
+            run_vrl(
+                r#"p = ["a"]; for_each([0, 1]) -> |_i, _v| { .result = get!({"a": 1, "b": 2}, p); p = ["b"] }; .result"#,
+                value!({}),
+                value!({})
+            ),
+            Ok(value!(2))
+        );
+        assert_eq!(
+            run_vrl(
+                r#"k = "a"; for_each([0, 1]) -> |_i, _v| { .result = get!({"a": 1, "b": 2}, [k]); k = "b" }; .result"#,
+                value!({}),
+                value!({})
+            ),
+            Ok(value!(2))
         );
     }
 
