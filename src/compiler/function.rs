@@ -202,12 +202,17 @@ macro_rules! example {
 pub struct FunctionCompileContext {
     span: Span,
     config: CompileConfig,
+    target_queries: Vec<OwnedTargetPath>,
 }
 
 impl FunctionCompileContext {
     #[must_use]
     pub fn new(span: Span, config: CompileConfig) -> Self {
-        Self { span, config }
+        Self {
+            span,
+            config,
+            target_queries: Vec::new(),
+        }
     }
 
     /// Span information for the function call.
@@ -236,6 +241,21 @@ impl FunctionCompileContext {
     #[must_use]
     pub fn into_config(self) -> CompileConfig {
         self.config
+    }
+
+    /// Records a path of the target that the function reads, in addition to the queries passed to
+    /// it as arguments.
+    ///
+    /// Recorded paths are added to [`ProgramInfo::target_queries`](crate::compiler::ProgramInfo),
+    /// which targets can use to prepare only the fields a program reads. For example, `unnest`
+    /// records the root of its target, because it copies the rest of the target around each
+    /// element of the array.
+    pub fn record_target_query(&mut self, path: OwnedTargetPath) {
+        self.target_queries.push(path);
+    }
+
+    pub(crate) fn into_parts(self) -> (CompileConfig, Vec<OwnedTargetPath>) {
+        (self.config, self.target_queries)
     }
 }
 
