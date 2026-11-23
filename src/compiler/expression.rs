@@ -64,6 +64,14 @@ pub trait Expression: Send + Sync + fmt::Debug + DynClone {
     /// An expression is allowed to fail, which aborts the running program.
     fn resolve(&self, ctx: &mut Context) -> Resolved;
 
+    /// Evaluate an expression for its side effects and discard the resulting [`Value`].
+    ///
+    /// Expressions that do not need to materialize an unused value (such as assignments, blocks,
+    /// and conditional branches) can override this to avoid unnecessary allocations or clones.
+    fn resolve_discard(&self, ctx: &mut Context) -> Result<(), ExpressionError> {
+        self.resolve(ctx).map(|_| ())
+    }
+
     /// Resolve an expression to a value without any context, if possible.
     /// This attempts to resolve expressions using only compile-time information.
     ///
@@ -249,6 +257,30 @@ impl Expression for Expr {
             Unary(v) => v.resolve(ctx),
             Abort(v) => v.resolve(ctx),
             Return(v) => v.resolve(ctx),
+        }
+    }
+
+    fn resolve_discard(&self, ctx: &mut Context) -> Result<(), ExpressionError> {
+        use Expr::{
+            Abort, Assignment, Container, FunctionCall, IfStatement, Literal, Noop, Op, Query,
+            Return, Unary, Variable,
+        };
+
+        ctx.checkpoint()?;
+
+        match self {
+            Container(v) => v.resolve_discard(ctx),
+            IfStatement(v) => v.resolve_discard(ctx),
+            Assignment(v) => v.resolve_discard(ctx),
+            Literal(v) => v.resolve(ctx).map(|_| ()),
+            Op(v) => v.resolve(ctx).map(|_| ()),
+            Query(v) => v.resolve(ctx).map(|_| ()),
+            FunctionCall(v) => v.resolve(ctx).map(|_| ()),
+            Variable(v) => v.resolve(ctx).map(|_| ()),
+            Noop(v) => v.resolve(ctx).map(|_| ()),
+            Unary(v) => v.resolve(ctx).map(|_| ()),
+            Abort(v) => v.resolve(ctx).map(|_| ()),
+            Return(v) => v.resolve(ctx).map(|_| ()),
         }
     }
 
@@ -450,5 +482,94 @@ impl ExpressionExt for Option<Box<dyn Expression>> {
         F: FnOnce() -> Value,
     {
         Ok(self.map_resolve(ctx)?.unwrap_or_else(default_fn))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::ops::ControlFlow;
+
+    use crate::compiler::{
+        Context, Expression, ExpressionError, Span, TargetValue, TimeZone, TypeDef,
+        expression::{Abort, Expr, Literal, Resolved},
+        state::{RuntimeState, TypeInfo, TypeState},
+    };
+    use crate::value::{Secrets, Value};
+
+    #[derive(Debug, Clone)]
+    struct DefaultDiscardExpr;
+
+    impl Expression for DefaultDiscardExpr {
+        fn resolve(&self, _ctx: &mut Context) -> Resolved {
+            Ok(Value::from(42))
+        }
+
+        fn type_info(&self, state: &TypeState) -> TypeInfo {
+            TypeInfo::new(state, TypeDef::integer())
+        }
+    }
+
+    fn empty_target() -> TargetValue {
+        TargetValue {
+            value: Value::Null,
+            metadata: Value::Null,
+            secrets: Secrets::new(),
+        }
+    }
+
+    #[test]
+    fn default_resolve_discard_delegates_to_resolve() {
+        let mut target = empty_target();
+        let mut state = RuntimeState::default();
+        let tz = TimeZone::default();
+        let mut ctx = Context::new(&mut target, &mut state, &tz);
+
+        assert_eq!(DefaultDiscardExpr.resolve_discard(&mut ctx), Ok(()));
+    }
+
+    #[test]
+    fn expr_resolve_discard_invokes_checkpoint() {
+        let mut target = empty_target();
+        let mut state = RuntimeState::default();
+        let tz = TimeZone::default();
+        let mut checkpoints = 0usize;
+        let mut control = || {
+            checkpoints += 1;
+            ControlFlow::Break(())
+        };
+        let mut ctx = Context::new_with_control(&mut target, &mut state, &tz, &mut control);
+
+        let expr = Expr::Literal(Literal::Integer(1));
+        assert_eq!(
+            expr.resolve_discard(&mut ctx),
+            Err(ExpressionError::Interrupted)
+        );
+        assert_eq!(checkpoints, 1);
+    }
+
+    #[test]
+    fn expr_resolve_discard_evaluates_when_checkpoint_continues() {
+        let mut target = empty_target();
+        let mut state = RuntimeState::default();
+        let tz = TimeZone::default();
+        let mut checkpoints = 0usize;
+        let mut control = || {
+            checkpoints += 1;
+            ControlFlow::Continue(())
+        };
+        let mut ctx = Context::new_with_control(&mut target, &mut state, &tz, &mut control);
+
+        let literal = Expr::Literal(Literal::Integer(1));
+        assert_eq!(literal.resolve_discard(&mut ctx), Ok(()));
+
+        let abort = Expr::Abort(
+            Abort::new(Span::default(), None, &TypeState::default())
+                .expect("abort without message should build"),
+        );
+        assert!(matches!(
+            abort.resolve_discard(&mut ctx),
+            Err(ExpressionError::Abort { .. })
+        ));
+        assert_eq!(checkpoints, 2);
     }
 }
