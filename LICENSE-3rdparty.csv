@@ -419,4 +419,4 @@ zlib-rs,https://github.com/trifectatechfoundation/zlib-rs,Zlib,The zlib-rs Autho
 zmij,https://github.com/dtolnay/zmij,MIT,David Tolnay <dtolnay@gmail.com>
 zstd,https://github.com/gyscos/zstd-rs,BSD-3-Clause,Alexandre Bury <alexandre.bury@gmail.com>
 zstd-safe,https://github.com/gyscos/zstd-rs,BSD-3-Clause,Alexandre Bury <alexandre.bury@gmail.com>
-zstd-sys,https://github.com/gyscos/zstd-rs,BSD-3-Clause,Alexandre Bury <alexandre.bury@gmail.com>
+zstd-sys,https://github.com/gyscos/zstd-rs,BSD-3-Clause AND BSD-2-Clause,Alexandre Bury <alexandre.bury@gmail.com>
