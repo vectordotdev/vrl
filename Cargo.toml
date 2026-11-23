@@ -324,3 +324,8 @@ harness = false
 name = "stdlib"
 harness = false
 required-features = ["default", "test"]
+
+[[bench]]
+name = "assignment"
+harness = false
+required-features = ["default"]
