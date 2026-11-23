@@ -139,8 +139,8 @@ impl For {
     ) -> (TypeState, Option<TypeState>, bool, Kind, bool) {
         let mut current_state = pre_loop_state.clone();
         let body_footprint = LoopFootprint::for_block_with_pattern(&self.pattern, &self.block);
-        let pre_widened = ctx.remaining_repasses == 0;
-        if pre_widened {
+        let mut budget_widened = ctx.remaining_repasses == 0;
+        if budget_widened {
             body_footprint.widen_written_state(&mut current_state);
         }
 
@@ -148,7 +148,6 @@ impl For {
         let mut fallible = false;
         let mut final_returns = Kind::never();
         let mut iterations = 0;
-        let mut budget_widened = pre_widened;
 
         loop {
             let mut iter_state = current_state.clone();
@@ -180,7 +179,7 @@ impl For {
             };
             canonicalize_type_state(&mut next_state);
 
-            if next_state == current_state || pre_widened {
+            if next_state == current_state || budget_widened {
                 current_state = next_state;
                 break;
             }
@@ -189,7 +188,7 @@ impl For {
                 body_footprint.widen_written_state(&mut next_state);
                 current_state = next_state;
                 budget_widened = true;
-                break;
+                continue;
             }
             ctx.remaining_repasses -= 1;
 
@@ -3802,5 +3801,41 @@ mod tests {
         let mut state = RuntimeState::default();
         let mut ctx = Context::new(&mut target, &mut state, &tz);
         assert_eq!(compiled_dep.program.resolve(&mut ctx), Ok(Value::from("s")));
+    }
+
+    #[test]
+    fn test_for_budget_exhaustion_recomputes_return_types() {
+        use std::fmt::Write as _;
+
+        // A shift chain longer than `MAX_LOOP_REPASSES` exhausts the analysis budget
+        // before `"s"` reaches the final variable `v_last`. After budget-triggered
+        // widening, the loop body must be re-evaluated once so `returns()` includes `bytes`.
+        let chain_len = MAX_LOOP_REPASSES + 8;
+        let mut source = String::new();
+        for i in 0..chain_len {
+            let _ = writeln!(source, "v{i} = 0");
+        }
+        source.push_str("for _ in [1, 2] {\n");
+        let _ = writeln!(
+            source,
+            "    if .flag == true {{ return v{} }}",
+            chain_len - 1
+        );
+        for i in (1..chain_len).rev() {
+            let _ = writeln!(source, "    v{i} = v{}", i - 1);
+        }
+        source.push_str("    v0 = \"s\"\n}\n");
+
+        let compiled =
+            crate::compiler::compile(&source, &[]).expect("long shift chain should compile");
+        let returns = compiled.program.final_type_info().result.returns().clone();
+        assert!(
+            returns.is_superset(&Kind::bytes()).is_ok(),
+            "expected budget-widened return type to include bytes, got: {returns}"
+        );
+        assert!(
+            returns.is_superset(&Kind::integer()).is_ok(),
+            "expected budget-widened return type to include integer, got: {returns}"
+        );
     }
 }
