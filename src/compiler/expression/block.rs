@@ -2,7 +2,7 @@ use std::fmt;
 
 use crate::compiler::state::{TypeInfo, TypeState};
 use crate::compiler::{
-    Context, Expression, TypeDef,
+    Context, Expression, ExpressionError, TypeDef,
     expression::{Expr, Resolved},
 };
 use crate::value::Kind;
@@ -51,9 +51,15 @@ impl Expression for Block {
 
         other
             .iter()
-            .try_for_each(|expr| expr.resolve(ctx).map(|_| ()))?;
+            .try_for_each(|expr| expr.resolve_discard(ctx))?;
 
         last.resolve(ctx)
+    }
+
+    fn resolve_discard(&self, ctx: &mut Context) -> Result<(), ExpressionError> {
+        self.inner
+            .iter()
+            .try_for_each(|expr| expr.resolve_discard(ctx))
     }
 
     fn type_info(&self, state: &TypeState) -> TypeInfo {
@@ -99,5 +105,225 @@ impl fmt::Display for Block {
         }
 
         f.write_str("\n}")
+    }
+}
+
+#[cfg(all(test, feature = "stdlib"))]
+mod tests {
+    use std::ops::ControlFlow;
+
+    use crate::compiler::expression::assignment::tests::SpyTarget;
+    use crate::compiler::runtime::{Runtime, Terminate};
+    use crate::compiler::state::RuntimeState;
+    use crate::compiler::{Context, ExpressionError, Target, TimeZone, compile};
+    use crate::owned_value_path;
+    use crate::path::OwnedTargetPath;
+    use crate::value::Value;
+
+    #[test]
+    fn non_final_assignment_in_block_moves_without_cloning() {
+        let compiled = compile(r#".a = upcase("hello"); "done""#, &crate::stdlib::all()).unwrap();
+
+        let mut spy = SpyTarget::new();
+        let mut state = RuntimeState::default();
+        let tz = TimeZone::default();
+        let mut ctx = Context::new(&mut spy, &mut state, &tz);
+
+        assert_eq!(compiled.program.resolve(&mut ctx), Ok(Value::from("done")));
+        assert_eq!(spy.inserted_unique, vec![true]);
+        assert_eq!(
+            spy.target_get(&OwnedTargetPath::event(owned_value_path!("a"))),
+            Ok(Some(&Value::from("HELLO")))
+        );
+    }
+
+    #[test]
+    fn nested_block_group_and_if_propagate_resolve_discard() {
+        let src = indoc::indoc! {r#"
+            { .a = upcase("one") }
+            (.b = upcase("two"))
+            if true { .c = upcase("three") }
+            if false { .d = upcase("unused") } else { .e = upcase("four") }
+            null
+        "#};
+        let compiled = compile(src, &crate::stdlib::all()).unwrap();
+
+        let mut spy = SpyTarget::new();
+        let mut state = RuntimeState::default();
+        let tz = TimeZone::default();
+        let mut ctx = Context::new(&mut spy, &mut state, &tz);
+
+        assert_eq!(compiled.program.resolve(&mut ctx), Ok(Value::Null));
+        assert_eq!(spy.inserted_unique, vec![true, true, true, true]);
+        assert_eq!(
+            spy.target_get(&OwnedTargetPath::event(owned_value_path!("a"))),
+            Ok(Some(&Value::from("ONE")))
+        );
+        assert_eq!(
+            spy.target_get(&OwnedTargetPath::event(owned_value_path!("b"))),
+            Ok(Some(&Value::from("TWO")))
+        );
+        assert_eq!(
+            spy.target_get(&OwnedTargetPath::event(owned_value_path!("c"))),
+            Ok(Some(&Value::from("THREE")))
+        );
+        assert_eq!(
+            spy.target_get(&OwnedTargetPath::event(owned_value_path!("d"))),
+            Ok(None)
+        );
+        assert_eq!(
+            spy.target_get(&OwnedTargetPath::event(owned_value_path!("e"))),
+            Ok(Some(&Value::from("FOUR")))
+        );
+    }
+
+    #[test]
+    fn if_without_else_false_in_discard_position() {
+        let compiled = compile(
+            r#"if false { .a = upcase("nope") }; 123"#,
+            &crate::stdlib::all(),
+        )
+        .unwrap();
+
+        let mut spy = SpyTarget::new();
+        let mut state = RuntimeState::default();
+        let tz = TimeZone::default();
+        let mut ctx = Context::new(&mut spy, &mut state, &tz);
+
+        assert_eq!(compiled.program.resolve(&mut ctx), Ok(Value::from(123)));
+        assert!(spy.inserted_unique.is_empty());
+        assert_eq!(
+            spy.target_get(&OwnedTargetPath::event(owned_value_path!("a"))),
+            Ok(None)
+        );
+    }
+
+    #[test]
+    fn final_and_value_position_assignments_still_return_value() {
+        let tz = TimeZone::default();
+
+        // Single-statement assignment.
+        let compiled = compile(r#".a = upcase("hello")"#, &crate::stdlib::all()).unwrap();
+        let mut spy = SpyTarget::new();
+        let mut state = RuntimeState::default();
+        let mut ctx = Context::new(&mut spy, &mut state, &tz);
+        assert_eq!(compiled.program.resolve(&mut ctx), Ok(Value::from("HELLO")));
+        assert_eq!(
+            spy.target_get(&OwnedTargetPath::event(owned_value_path!("a"))),
+            Ok(Some(&Value::from("HELLO")))
+        );
+
+        // Multi-statement with assignment in final position.
+        let compiled = compile(r#".a = 1; .b = upcase("world")"#, &crate::stdlib::all()).unwrap();
+        let mut spy = SpyTarget::new();
+        let mut state = RuntimeState::default();
+        let mut ctx = Context::new(&mut spy, &mut state, &tz);
+        assert_eq!(compiled.program.resolve(&mut ctx), Ok(Value::from("WORLD")));
+        assert_eq!(
+            spy.target_get(&OwnedTargetPath::event(owned_value_path!("a"))),
+            Ok(Some(&Value::from(1)))
+        );
+        assert_eq!(
+            spy.target_get(&OwnedTargetPath::event(owned_value_path!("b"))),
+            Ok(Some(&Value::from("WORLD")))
+        );
+
+        // Chained / parenthesized assignment in value position.
+        let compiled = compile(r#".a = (.b = upcase("chain"))"#, &crate::stdlib::all()).unwrap();
+        let mut spy = SpyTarget::new();
+        let mut state = RuntimeState::default();
+        let mut ctx = Context::new(&mut spy, &mut state, &tz);
+        assert_eq!(compiled.program.resolve(&mut ctx), Ok(Value::from("CHAIN")));
+        assert_eq!(
+            spy.target_get(&OwnedTargetPath::event(owned_value_path!("a"))),
+            Ok(Some(&Value::from("CHAIN")))
+        );
+        assert_eq!(
+            spy.target_get(&OwnedTargetPath::event(owned_value_path!("b"))),
+            Ok(Some(&Value::from("CHAIN")))
+        );
+
+        // Final `if` branch assignment.
+        let compiled = compile(
+            r#"if true { .a = upcase("branch") }"#,
+            &crate::stdlib::all(),
+        )
+        .unwrap();
+        let mut spy = SpyTarget::new();
+        let mut state = RuntimeState::default();
+        let mut ctx = Context::new(&mut spy, &mut state, &tz);
+        assert_eq!(
+            compiled.program.resolve(&mut ctx),
+            Ok(Value::from("BRANCH"))
+        );
+        assert_eq!(
+            spy.target_get(&OwnedTargetPath::event(owned_value_path!("a"))),
+            Ok(Some(&Value::from("BRANCH")))
+        );
+    }
+
+    #[test]
+    fn return_and_abort_inside_discarded_block_and_if_short_circuit() {
+        let tz = TimeZone::default();
+
+        let compiled_return = compile(
+            "if true { return 42 }; .after = true",
+            &crate::stdlib::all(),
+        )
+        .unwrap();
+        let mut spy = SpyTarget::new();
+        let mut runtime = Runtime::default();
+        assert_eq!(
+            runtime.resolve(&mut spy, &compiled_return.program, &tz),
+            Ok(Value::from(42))
+        );
+        assert_eq!(
+            spy.target_get(&OwnedTargetPath::event(owned_value_path!("after"))),
+            Ok(None)
+        );
+
+        let compiled_abort = compile(
+            r#"if true { abort "halt" }; .after = true"#,
+            &crate::stdlib::all(),
+        )
+        .unwrap();
+        let mut spy = SpyTarget::new();
+        let mut runtime = Runtime::default();
+        assert!(matches!(
+            runtime.resolve(&mut spy, &compiled_abort.program, &tz),
+            Err(Terminate::Abort(ExpressionError::Abort { message: Some(ref msg), .. })) if msg == "halt"
+        ));
+        assert_eq!(
+            spy.target_get(&OwnedTargetPath::event(owned_value_path!("after"))),
+            Ok(None)
+        );
+    }
+
+    #[test]
+    fn execution_control_interrupts_non_final_assignment_in_block() {
+        let compiled = compile(".a = 1; .b = 2; .c = 3; null", &crate::stdlib::all()).unwrap();
+
+        let mut spy = SpyTarget::new();
+        let mut runtime = Runtime::default();
+        let tz = TimeZone::default();
+        let mut checkpoints = 0usize;
+        let mut control = || {
+            checkpoints += 1;
+            if checkpoints >= 2 {
+                ControlFlow::Break(())
+            } else {
+                ControlFlow::Continue(())
+            }
+        };
+
+        assert_eq!(
+            runtime.resolve_with_control(&mut spy, &compiled.program, &tz, &mut control),
+            Err(Terminate::Interrupted)
+        );
+        assert_eq!(checkpoints, 2);
+        assert_eq!(
+            spy.target_get(&OwnedTargetPath::event(owned_value_path!("c"))),
+            Ok(None)
+        );
     }
 }
