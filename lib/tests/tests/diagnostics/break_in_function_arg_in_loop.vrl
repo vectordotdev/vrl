@@ -1,0 +1,15 @@
+# result:
+#
+# error[E632]: break outside of loop or iterator
+#   ┌─ :3:15
+#   │
+# 3 │   to_string({ break; 1 })
+#   │               ^^^^^ break can only be used inside a loop or iterator
+#   │
+#   = see documentation about error handling at https://errors.vrl.dev/#handling
+#   = see language documentation at https://vrl.dev
+#   = try your code in the VRL REPL, learn more at https://vrl.dev/examples
+
+for _ in [1, 2] {
+  to_string({ break; 1 })
+}

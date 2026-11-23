@@ -497,10 +497,11 @@ impl<'a> Builder<'a> {
         // We consider this an error at compile-time, because it makes the
         // resulting program incorrectly convey this function call might fail.
         let mut state_after_arguments = state_before_function_args.clone();
-        let arguments_may_fail_type_check = apply_argument_type_info(
+        let arguments_may_fail_type_check = apply_argument_type_info_with(
             &self.arguments,
             &self.argument_parameters,
             &mut state_after_arguments,
+            crate::compiler::Expression::apply_type_info,
         );
 
         let mut warnings = Vec::new();
@@ -552,6 +553,7 @@ impl<'a> Builder<'a> {
                 ident: self.function.identifier(),
                 function_id: self.function_id,
                 arguments: self.arguments.clone(),
+                speculative_placeholder: false,
                 warnings,
             },
             error: invalid_argument_error,
@@ -618,6 +620,17 @@ fn apply_arguments_for_type_check(
     parameters: &[ArgumentParameter],
     state: &mut TypeState,
 ) -> Vec<AppliedArgument> {
+    apply_arguments_for_type_check_with(arguments, parameters, state, |expr, st| {
+        expr.apply_type_info(st)
+    })
+}
+
+fn apply_arguments_for_type_check_with(
+    arguments: &[Node<FunctionArgument>],
+    parameters: &[ArgumentParameter],
+    state: &mut TypeState,
+    mut eval_arg: impl FnMut(&crate::compiler::expression::Expr, &mut TypeState) -> TypeDef,
+) -> Vec<AppliedArgument> {
     debug_assert_eq!(arguments.len(), parameters.len());
 
     let mut indices = (0..arguments.len()).collect::<Vec<_>>();
@@ -635,7 +648,7 @@ fn apply_arguments_for_type_check(
     let mut preceded_by_side_effects = false;
     for index in indices {
         let state_before_argument = state.clone();
-        let type_def = arguments[index].inner().expr().apply_type_info(state);
+        let type_def = eval_arg(arguments[index].inner().expr(), state);
         let has_side_effects = *state != state_before_argument;
         applied_arguments[index] = Some(AppliedArgument {
             type_def,
@@ -650,12 +663,13 @@ fn apply_arguments_for_type_check(
         .collect()
 }
 
-fn apply_argument_type_info(
+fn apply_argument_type_info_with(
     arguments: &[Node<FunctionArgument>],
     parameters: &[ArgumentParameter],
     state: &mut TypeState,
+    eval_arg: impl FnMut(&crate::compiler::expression::Expr, &mut TypeState) -> TypeDef,
 ) -> bool {
-    apply_arguments_for_type_check(arguments, parameters, state)
+    apply_arguments_for_type_check_with(arguments, parameters, state, eval_arg)
         .into_iter()
         .zip(parameters)
         .any(|(argument, parameter)| {
@@ -665,6 +679,21 @@ fn apply_argument_type_info(
                 .is_superset(argument.type_def.kind())
                 .is_err()
         })
+}
+
+#[derive(Clone, Debug)]
+struct SpeculativePlaceholder {
+    result: TypeDef,
+}
+
+impl Expression for SpeculativePlaceholder {
+    fn resolve(&self, _ctx: &mut Context) -> Resolved {
+        unreachable!("speculative placeholder expression is never executed")
+    }
+
+    fn type_info(&self, state: &TypeState) -> TypeInfo {
+        TypeInfo::new(state.clone(), self.result.clone())
+    }
 }
 
 #[derive(Clone)]
@@ -689,11 +718,56 @@ pub struct FunctionCall {
     #[allow(dead_code)]
     function_id: usize,
     arguments: Arc<Vec<Node<FunctionArgument>>>,
+    speculative_placeholder: bool,
 
     pub(crate) warnings: Vec<Warning>,
 }
 
 impl FunctionCall {
+    pub(crate) fn new_speculative_placeholder(
+        span: Span,
+        ident: &'static str,
+        abort_on_error: bool,
+        arguments: Vec<Node<FunctionArgument>>,
+        return_kind: u16,
+    ) -> Self {
+        let result = TypeDef::from(crate::compiler::function::kind_from_bits(return_kind))
+            .maybe_fallible(!abort_on_error);
+        Self {
+            abort_on_error,
+            expr: Box::new(SpeculativePlaceholder { result }),
+            argument_parameters: Vec::new(),
+            closure_fallible: false,
+            closure: None,
+            span,
+            ident,
+            function_id: 0,
+            arguments: Arc::new(arguments),
+            speculative_placeholder: true,
+            warnings: Vec::new(),
+        }
+    }
+
+    #[must_use]
+    pub(crate) fn arguments(&self) -> &[Node<FunctionArgument>] {
+        &self.arguments
+    }
+
+    #[must_use]
+    pub(crate) fn closure(&self) -> Option<&Closure> {
+        self.closure.as_ref()
+    }
+
+    #[must_use]
+    pub(crate) const fn is_speculative_placeholder(&self) -> bool {
+        self.speculative_placeholder
+    }
+
+    #[must_use]
+    pub(crate) const fn is_abort_on_error(&self) -> bool {
+        self.abort_on_error
+    }
+
     /// Takes the arguments passed and resolves them into the order they are defined
     /// in the function
     /// The error path in this function should never really be hit as the compiler should
@@ -747,6 +821,52 @@ impl FunctionCall {
         Ok(result)
     }
 
+    pub(crate) fn eval_with_arg_mapper(
+        &self,
+        state: &TypeState,
+        mut eval_arg: impl FnMut(&crate::compiler::expression::Expr, &mut TypeState) -> TypeDef,
+    ) -> TypeInfo {
+        let mut state = state.clone();
+
+        if self.speculative_placeholder {
+            for arg in self.arguments.iter() {
+                eval_arg(arg.inner().expr(), &mut state);
+            }
+            let expr_result = self.expr.apply_type_info(&mut state);
+            return TypeInfo::new(state, expr_result);
+        }
+
+        // TODO: functions with a closure do not correctly calculate type definitions
+        // see: https://github.com/vectordotdev/vector/issues/13782
+
+        // Evaluate arguments to correctly calculate any side-effects from them.
+        // This doesn't actually match current runtime behavior in some cases,
+        // but that will be changed.
+        // see: https://github.com/vectordotdev/vector/issues/13752
+        let arguments_may_fail_type_check = apply_argument_type_info_with(
+            &self.arguments,
+            &self.argument_parameters,
+            &mut state,
+            eval_arg,
+        );
+
+        let mut expr_result = self.expr.apply_type_info(&mut state);
+
+        if arguments_may_fail_type_check {
+            expr_result = expr_result.fallible();
+        }
+
+        if self.closure_fallible {
+            expr_result = expr_result.fallible();
+        }
+
+        if self.abort_on_error {
+            expr_result = expr_result.infallible();
+        }
+
+        TypeInfo::new(state, expr_result)
+    }
+
     #[must_use]
     pub fn arguments_fmt(&self) -> Vec<String> {
         self.arguments
@@ -771,7 +891,8 @@ impl Expression for FunctionCall {
             | ExpressionError::Abort { .. }
             | ExpressionError::Break { .. }
             | ExpressionError::Fallible { .. }
-            | ExpressionError::Missing { .. } => {
+            | ExpressionError::Missing { .. }
+            | ExpressionError::Continue { .. } => {
                 // propagate the error
                 err
             }
@@ -810,102 +931,7 @@ impl Expression for FunctionCall {
     }
 
     fn type_info(&self, state: &TypeState) -> TypeInfo {
-        let mut state = state.clone();
-
-        // TODO: functions with a closure do not correctly calculate type definitions
-        // see: https://github.com/vectordotdev/vector/issues/13782
-
-        // Evaluate arguments to correctly calculate any side-effects from them.
-        // This doesn't actually match current runtime behavior in some cases,
-        // but that will be changed.
-        // see: https://github.com/vectordotdev/vector/issues/13752
-        let arguments_may_fail_type_check =
-            apply_argument_type_info(&self.arguments, &self.argument_parameters, &mut state);
-
-        let mut expr_result = self.expr.apply_type_info(&mut state);
-
-        // If one of the arguments only partially matches the function type
-        // definition, then we mark the entire function as fallible.
-        //
-        // This allows for progressive type-checking, by handling any potential
-        // type error the function throws, instead of having to enforce
-        // exact-type invariants for individual arguments.
-        //
-        // That is, this program triggers the `InvalidArgumentKind` error:
-        //
-        //     slice(10, 1)
-        //
-        // This is because `slice` expects either a string or an array, but it
-        // receives an integer. The concept of "progressive type checking" does
-        // not apply in this case, because this call can never succeed.
-        //
-        // However, given these example events:
-        //
-        //     { "foo": "bar" }
-        //     { "foo": 10.5 }
-        //
-        // If we were to run the same program, but against the `foo` field:
-        //
-        //     slice(.foo, 1)
-        //
-        // In this situation, progressive type checking _does_ make sense,
-        // because we can't know at compile-time what the eventual value of
-        // `.foo` will be. We mark `.foo` as "any", which includes the "array"
-        // and "string" types, so the program can now be made infallible by
-        // handling any potential type error the function returns:
-        //
-        //     slice(.foo, 1) ?? []
-        //
-        // Note that this rule doesn't just apply to "any" kind (in fact, "any"
-        // isn't a kind, it's simply a term meaning "all possible VRL values"),
-        // but it applies whenever there's an _intersection_ but not an exact
-        // _match_ between two types.
-        //
-        // Here's another example to demonstrate this:
-        //
-        //     { "foo": "foobar" }
-        //     { "foo": ["foo", "bar"] }
-        //     { "foo": 10.5 }
-        //
-        //     foo = slice(.foo, 1) ?? .foo
-        //     .foo = upcase(foo) ?? foo
-        //
-        // This would result in the following outcomes:
-        //
-        //     { "foo": "OOBAR" }
-        //     { "foo": ["bar", "baz"] }
-        //     { "foo": 10.5 }
-        //
-        // For the first event, both the `slice` and `upcase` functions succeed.
-        // For the second event, only the `slice` function succeeds.
-        // For the third event, both functions fail.
-        //
-
-        if arguments_may_fail_type_check {
-            expr_result = expr_result.fallible();
-        }
-
-        // If the function has a closure attached, and that closure is fallible,
-        // then the function call itself becomes fallible.
-        //
-        // Given that `FunctionClosure` also implements `Expression`, and
-        // function implementations can access this closure, it is possible the
-        // function implementation already handles potential closure
-        // fallibility, but to be on the safe side, we ensure it is set properly
-        // here.
-        //
-        // Note that, since closures are tied to function calls, it is still
-        // possible to silence potential closure errors using the "abort on
-        // error" function-call feature (see below).
-        if self.closure_fallible {
-            expr_result = expr_result.fallible();
-        }
-
-        if self.abort_on_error {
-            expr_result = expr_result.infallible();
-        }
-
-        TypeInfo::new(state, expr_result)
+        self.eval_with_arg_mapper(state, crate::compiler::Expression::apply_type_info)
     }
 }
 

@@ -1,0 +1,9 @@
+# result: 4
+
+sum = 0
+for val in [1, 2, 3] {
+  if false || { if val == 2 { continue } else { true } } {
+    sum = sum + val
+  }
+}
+sum

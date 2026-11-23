@@ -16,6 +16,11 @@ impl Unary {
     pub fn new(variant: Variant) -> Self {
         Self { variant }
     }
+
+    #[must_use]
+    pub(crate) const fn variant(&self) -> &Variant {
+        &self.variant
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]

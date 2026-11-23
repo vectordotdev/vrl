@@ -30,6 +30,38 @@ where
     }
 }
 
+/// Limits the number of cooperative execution checkpoints.
+///
+/// Hosts evaluating untrusted or user-authored VRL should use
+/// `Runtime::resolve_with_limit` or provide their own `ExecutionControl`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct StepBudget {
+    remaining: usize,
+}
+
+impl StepBudget {
+    #[must_use]
+    pub const fn new(limit: usize) -> Self {
+        Self { remaining: limit }
+    }
+
+    #[must_use]
+    pub const fn remaining(&self) -> usize {
+        self.remaining
+    }
+}
+
+impl ExecutionControl for StepBudget {
+    fn checkpoint(&mut self) -> ControlFlow<()> {
+        if self.remaining == 0 {
+            ControlFlow::Break(())
+        } else {
+            self.remaining -= 1;
+            ControlFlow::Continue(())
+        }
+    }
+}
+
 #[derive(Debug, Default)]
 pub struct Runtime {
     state: state::RuntimeState,
@@ -76,6 +108,9 @@ impl Error for Terminate {
         None
     }
 }
+
+#[allow(clippy::module_name_repetitions)]
+pub type RuntimeError = Terminate;
 
 impl Runtime {
     #[must_use]
@@ -154,6 +189,26 @@ impl Runtime {
         self.resolve_inner(target, program, *timezone, Some(control))
     }
 
+    /// Resolves a program with a hard cooperative execution step budget.
+    ///
+    /// When the number of checkpoints exceeds `limit`, execution halts
+    /// cooperatively and returns `Err(Terminate::Interrupted)`.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Terminate::Interrupted`] when the step budget is exhausted.
+    /// Other termination conditions are the same as [`Runtime::resolve`].
+    pub fn resolve_with_limit(
+        &mut self,
+        target: &mut dyn Target,
+        program: &Program,
+        timezone: &TimeZone,
+        limit: usize,
+    ) -> RuntimeResult {
+        let mut budget = StepBudget::new(limit);
+        self.resolve_with_control(target, program, timezone, &mut budget)
+    }
+
     fn resolve_inner(
         &mut self,
         target: &mut dyn Target,
@@ -189,9 +244,11 @@ impl Runtime {
                 | ExpressionError::Fallible { .. }
                 | ExpressionError::Missing { .. }),
             ) => Err(Terminate::Abort(err)),
-            Err(err @ (ExpressionError::Error { .. } | ExpressionError::Break { .. })) => {
-                Err(Terminate::Error(err))
-            }
+            Err(
+                err @ (ExpressionError::Error { .. }
+                | ExpressionError::Break { .. }
+                | ExpressionError::Continue { .. }),
+            ) => Err(Terminate::Error(err)),
         }
     }
 }
@@ -456,5 +513,263 @@ mod execution_control_tests {
 
         let result = program.resolve(&mut ctx);
         assert_eq!(result, Ok(Value::from(2)));
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::compiler::Program;
+    use crate::compiler::TargetValue;
+    use crate::compiler::TypeDef;
+    use crate::compiler::expression::{self, Block, Expr, Return, Variable};
+    use crate::compiler::parser::ast::{ForPattern, Ident, Node};
+    use crate::compiler::program::ProgramInfo;
+    use crate::compiler::state::{LocalEnv, RuntimeState, TypeState};
+    use crate::compiler::type_def::Details;
+    use crate::diagnostic::Span;
+    use crate::value::{ObjectMap, Value};
+
+    fn make_program(expressions: Vec<Expr>) -> Program {
+        Program {
+            initial_state: TypeState::default(),
+            expressions: Block::new_inline(expressions),
+            info: ProgramInfo {
+                fallible: false,
+                abortable: false,
+                target_queries: vec![],
+                target_assignments: vec![],
+            },
+        }
+    }
+
+    fn test_variable_expr(ident: &str) -> Expr {
+        let mut local = LocalEnv::default();
+        local.insert_variable(
+            Ident::new(ident),
+            Details {
+                type_def: TypeDef::any(),
+                value: None,
+            },
+        );
+        Expr::Variable(Variable::new(Span::new(0, 0), Ident::new(ident), &local).unwrap())
+    }
+
+    #[test]
+    fn test_runtime_for_loop_drops_pattern_bindings() {
+        let span = Span::new(0, 0);
+        let mut map = ObjectMap::new();
+        map.insert("a".into(), Value::Integer(10));
+        map.insert("b".into(), Value::Integer(20));
+
+        let cases = [
+            (
+                ForPattern::Single(Node::new(span, Ident::new("x"))),
+                Value::Array(vec![Value::from(1), Value::from(2)]),
+                test_variable_expr("x"),
+                vec!["x"],
+            ),
+            (
+                ForPattern::KeyValue(
+                    Node::new(span, Ident::new("i")),
+                    Node::new(span, Ident::new("v")),
+                ),
+                Value::Array(vec![Value::from("first"), Value::from("second")]),
+                test_variable_expr("v"),
+                vec!["i", "v"],
+            ),
+            (
+                ForPattern::KeyValue(
+                    Node::new(span, Ident::new("k")),
+                    Node::new(span, Ident::new("v")),
+                ),
+                Value::Object(map),
+                test_variable_expr("v"),
+                vec!["k", "v"],
+            ),
+            (
+                ForPattern::KeyValue(
+                    Node::new(span, Ident::new("_")),
+                    Node::new(span, Ident::new("v")),
+                ),
+                Value::Array(vec![Value::from(10)]),
+                test_variable_expr("v"),
+                vec!["_", "v"],
+            ),
+        ];
+
+        for (pattern, iterable, body_expr, idents) in cases {
+            let for_expr = Expr::For(expression::For::new(
+                span,
+                pattern,
+                Box::new(Expr::from(iterable)),
+                Block::new_scoped(vec![body_expr]),
+            ));
+            let program = make_program(vec![for_expr]);
+            let mut target = Value::Object(ObjectMap::new());
+            let mut runtime = Runtime::new(RuntimeState::default());
+            assert_eq!(
+                runtime.resolve(&mut target, &program, &TimeZone::default()),
+                Ok(Value::Null)
+            );
+            for ident in idents {
+                assert!(runtime.state.variable(&Ident::new(ident)).is_none());
+            }
+        }
+    }
+
+    #[test]
+    fn test_runtime_for_loop_restores_shadowed_binding_on_all_exits() {
+        let span = Span::new(0, 0);
+        let ret_expr = Expr::Return(
+            Return::new(
+                span,
+                Node::new(span, Expr::from(Value::from("early"))),
+                &TypeState::default(),
+            )
+            .unwrap(),
+        );
+        let cases = [
+            (test_variable_expr("x"), Value::Null),
+            (Expr::Break(expression::Break::new(span)), Value::Null),
+            (ret_expr, Value::from("early")),
+        ];
+
+        for (body_expr, expected) in cases {
+            let for_expr = Expr::For(expression::For::new(
+                span,
+                ForPattern::Single(Node::new(span, Ident::new("x"))),
+                Box::new(Expr::from(Value::Array(vec![
+                    Value::from(1),
+                    Value::from(2),
+                ]))),
+                Block::new_scoped(vec![body_expr]),
+            ));
+            let program = make_program(vec![for_expr]);
+            let mut target = Value::Object(ObjectMap::new());
+            let mut runtime = Runtime::new(RuntimeState::default());
+            runtime
+                .state
+                .insert_variable(Ident::new("x"), Value::from("outer_x"));
+
+            assert_eq!(
+                runtime.resolve(&mut target, &program, &TimeZone::default()),
+                Ok(expected)
+            );
+            assert_eq!(
+                runtime.state.variable(&Ident::new("x")),
+                Some(&Value::from("outer_x"))
+            );
+        }
+    }
+
+    #[test]
+    fn test_runtime_for_loop_invalid_ast_errors() {
+        let span = Span::new(0, 0);
+        let mut map = ObjectMap::new();
+        map.insert("a".into(), Value::Integer(10));
+
+        for iterable in [Value::Integer(42), Value::Object(map)] {
+            let for_expr = Expr::For(expression::For::new(
+                span,
+                ForPattern::Single(Node::new(span, Ident::new("x"))),
+                Box::new(Expr::from(iterable)),
+                Block::new_scoped(vec![test_variable_expr("x")]),
+            ));
+            let program = make_program(vec![for_expr]);
+            let mut target = Value::Object(ObjectMap::new());
+            let mut runtime = Runtime::new(RuntimeState::default());
+            assert!(matches!(
+                runtime.resolve(&mut target, &program, &TimeZone::default()),
+                Err(Terminate::Error(_))
+            ));
+        }
+    }
+
+    fn compile_test_program(source: &str) -> Program {
+        let external = crate::compiler::state::ExternalEnv::new_with_kind(
+            crate::value::Kind::array(crate::compiler::value::Collection::any()),
+            crate::value::Kind::object(crate::compiler::value::Collection::any()),
+        );
+        let fns = crate::stdlib::all();
+        crate::compiler::compile_with_external(
+            source,
+            &fns,
+            &external,
+            crate::compiler::CompileConfig::default(),
+        )
+        .expect("test program compiles")
+        .program
+    }
+
+    #[test]
+    fn resolve_with_limit_zero_budget_interrupts_immediately() {
+        let mut runtime = Runtime::default();
+        let mut target = TargetValue::new(Value::from(vec![1, 2, 3]));
+        let program = compile_test_program("for x in . { null }");
+        let res = runtime.resolve_with_limit(&mut target, &program, &TimeZone::default(), 0);
+        assert!(matches!(res, Err(RuntimeError::Interrupted)));
+    }
+
+    #[test]
+    fn resolve_with_limit_exhausts_during_direct_loop() {
+        let mut runtime = Runtime::default();
+        let mut target =
+            TargetValue::new(Value::from((0..100).map(Value::from).collect::<Vec<_>>()));
+        let program = compile_test_program("count = 0\nfor x in . { count = count + 1 }");
+        // Limit to 10 steps on a 100-element array
+        let res = runtime.resolve_with_limit(&mut target, &program, &TimeZone::default(), 10);
+        assert!(matches!(res, Err(RuntimeError::Interrupted)));
+    }
+
+    #[test]
+    fn resolve_with_limit_exhausts_in_nested_loops() {
+        let mut runtime = Runtime::default();
+        let mut target =
+            TargetValue::new(Value::from((0..10).map(Value::from).collect::<Vec<_>>()));
+        let program = compile_test_program(
+            "count = 0\nfor x in . {\n  for y in . {\n    count = count + 1\n  }\n}",
+        );
+        // 10x10 = 100 iterations. Budget of 15 should interrupt during the second outer iteration.
+        let res = runtime.resolve_with_limit(&mut target, &program, &TimeZone::default(), 15);
+        assert!(matches!(res, Err(RuntimeError::Interrupted)));
+    }
+
+    #[test]
+    fn resolve_with_limit_restores_shadowed_variable_on_interruption() {
+        let mut runtime = Runtime::default();
+        let mut target = TargetValue::new(Value::from(vec![10, 20, 30]));
+        let program = compile_test_program("x = 999\nfor x in . {\n  # interrupts here\n  null\n}");
+        let res = runtime.resolve_with_limit(&mut target, &program, &TimeZone::default(), 2);
+        assert!(matches!(res, Err(RuntimeError::Interrupted)));
+        // Verify outer x is restored in runtime state
+        let ident = crate::parser::ast::Ident::from("x");
+        assert_eq!(runtime.state.variable(&ident), Some(&Value::from(999)));
+    }
+
+    #[test]
+    fn step_budget_counts_down_and_breaks_at_zero() {
+        let mut budget = StepBudget::new(2);
+        assert_eq!(budget.remaining(), 2);
+        assert_eq!(budget.checkpoint(), ControlFlow::Continue(()));
+        assert_eq!(budget.remaining(), 1);
+        assert_eq!(budget.checkpoint(), ControlFlow::Continue(()));
+        assert_eq!(budget.remaining(), 0);
+        assert_eq!(budget.checkpoint(), ControlFlow::Break(()));
+        assert_eq!(budget.remaining(), 0);
+        assert_eq!(budget.checkpoint(), ControlFlow::Break(()));
+
+        let copy = budget;
+        assert_eq!(budget, copy);
+        assert_eq!(format!("{budget:?}"), "StepBudget { remaining: 0 }");
+    }
+
+    #[test]
+    fn resolve_with_limit_sufficient_budget_succeeds() {
+        let mut runtime = Runtime::default();
+        let mut target = TargetValue::new(Value::from(vec![1, 2, 3]));
+        let program = compile_test_program("count = 0\nfor x in . { count = count + 1 }\ncount");
+        let res = runtime.resolve_with_limit(&mut target, &program, &TimeZone::default(), 100);
+        assert_eq!(res, Ok(Value::from(3)));
     }
 }

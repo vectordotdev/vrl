@@ -1,0 +1,14 @@
+# result:
+#
+# error[E632]: continue outside of loop
+#   ┌─ :3:15
+#   │
+# 3 │   to_string({ continue; 1 })
+#   │               ^^^^^^^^ continue outside of loop
+#   │
+#   = see language documentation at https://vrl.dev
+#   = try your code in the VRL REPL, learn more at https://vrl.dev/examples
+
+for _ in [1, 2] {
+  to_string({ continue; 1 })
+}

@@ -41,6 +41,11 @@ impl Block {
     pub fn exprs(&self) -> &Vec<Expr> {
         &self.inner
     }
+
+    #[must_use]
+    pub(crate) const fn is_scoped(&self) -> bool {
+        self.new_scope
+    }
 }
 
 impl Expression for Block {

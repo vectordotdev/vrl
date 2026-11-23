@@ -1,0 +1,11 @@
+# result:
+# {"outer_before": "initial", "outer_after": "initial", "sum": 6}
+
+x = "initial"
+.outer_before = x
+.sum = 0
+for x in [1, 2, 3] {
+  .sum = .sum + x
+}
+.outer_after = x
+.

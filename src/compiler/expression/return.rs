@@ -22,8 +22,17 @@ impl Return {
     ///
     /// * The returned value must not be fallible
     pub fn new(span: Span, expr: Node<Expr>, state: &TypeState) -> Result<Self, Error> {
+        Self::new_with_type_def(span, expr, state, None)
+    }
+
+    pub(crate) fn new_with_type_def(
+        span: Span,
+        expr: Node<Expr>,
+        state: &TypeState,
+        override_type_def: Option<TypeDef>,
+    ) -> Result<Self, Error> {
         let (expr_span, expr) = expr.take();
-        let type_def = expr.type_info(state).result;
+        let type_def = override_type_def.unwrap_or_else(|| expr.type_info(state).result);
 
         if type_def.is_fallible() {
             return Err(Error {
@@ -36,6 +45,11 @@ impl Return {
             span,
             expr: Box::new(expr),
         })
+    }
+
+    #[must_use]
+    pub(crate) fn expr(&self) -> &Expr {
+        &self.expr
     }
 }
 

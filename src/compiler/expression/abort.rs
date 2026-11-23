@@ -24,10 +24,19 @@ impl Abort {
     /// * The optional message is fallible.
     /// * The optional message does not resolve to a string.
     pub fn new(span: Span, message: Option<Node<Expr>>, state: &TypeState) -> Result<Self, Error> {
+        Self::new_with_type_def(span, message, state, None)
+    }
+
+    pub(crate) fn new_with_type_def(
+        span: Span,
+        message: Option<Node<Expr>>,
+        state: &TypeState,
+        override_type_def: Option<TypeDef>,
+    ) -> Result<Self, Error> {
         let message = message
             .map(|node| {
                 let (expr_span, expr) = node.take();
-                let type_def = expr.type_info(state).result;
+                let type_def = override_type_def.unwrap_or_else(|| expr.type_info(state).result);
 
                 if type_def.is_fallible() {
                     Err(Error {
@@ -46,6 +55,11 @@ impl Abort {
             .transpose()?;
 
         Ok(Self { span, message })
+    }
+
+    #[must_use]
+    pub(crate) fn message(&self) -> Option<&Expr> {
+        self.message.as_deref()
     }
 }
 
