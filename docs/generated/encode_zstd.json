@@ -30,8 +30,8 @@
   "examples": [
     {
       "title": "Encode to Zstd",
-      "source": "decode_zstd!(encode_zstd(\"please encode me\"))",
-      "return": "please encode me"
+      "source": "encode_base64(encode_zstd(\"please encode me\"))",
+      "return": "KLUv/QBYgQAAcGxlYXNlIGVuY29kZSBtZQ=="
     }
   ],
   "pure": true
