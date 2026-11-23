@@ -165,13 +165,10 @@ impl Function for Del {
             .into());
         }
 
-        let compact = match arguments.optional_expr("compact") {
-            None => ConstOrExpr::Const(false),
-            Some(expression::Expr::Literal(expression::Literal::Boolean(b))) => {
-                ConstOrExpr::Const(b)
-            }
-            Some(expr) => ConstOrExpr::Expr(Box::new(expr)),
-        };
+        let compact = arguments.optional_expr("compact").map(|expr| match expr {
+            expression::Expr::Literal(expression::Literal::Boolean(b)) => ConstOrExpr::Const(b),
+            expr => ConstOrExpr::Expr(Box::new(expr)),
+        });
 
         Ok(Box::new(DelFn { query, compact }))
     }
@@ -180,7 +177,7 @@ impl Function for Del {
 #[derive(Debug, Clone)]
 pub(crate) struct DelFn {
     query: expression::Query,
-    compact: ConstOrExpr<bool>,
+    compact: Option<ConstOrExpr<bool>>,
 }
 
 impl DelFn {
@@ -193,7 +190,7 @@ impl DelFn {
                 expression::Target::External(PathPrefix::Event),
                 parse_value_path(path).unwrap(),
             ),
-            compact: ConstOrExpr::Const(false),
+            compact: None,
         }
     }
 }
@@ -215,8 +212,9 @@ impl Expression for DelFn {
     // see tracking issue: https://github.com/vectordotdev/vector/issues/5887
     fn resolve(&self, ctx: &mut Context) -> Resolved {
         let compact = match &self.compact {
-            ConstOrExpr::Const(compact) => *compact,
-            ConstOrExpr::Expr(expr) => expr.resolve(ctx)?.try_boolean()?,
+            None => false,
+            Some(ConstOrExpr::Const(compact)) => *compact,
+            Some(ConstOrExpr::Expr(expr)) => expr.resolve(ctx)?.try_boolean()?,
         };
         del(&self.query, compact, ctx)
     }
@@ -226,26 +224,24 @@ impl Expression for DelFn {
 
         let return_type = self.query.apply_type_info(&mut state).impure();
 
-        match &self.compact {
-            ConstOrExpr::Const(compact) => {
-                self.query.delete_type_def(&mut state.external, *compact);
-            }
-            ConstOrExpr::Expr(expr) => {
-                if let Some(compact) = expr
-                    .resolve_constant(&state)
-                    .and_then(|compact| compact.as_boolean())
-                {
-                    self.query.delete_type_def(&mut state.external, compact);
-                } else {
-                    let mut false_result = state.external.clone();
-                    self.query.delete_type_def(&mut false_result, false);
+        let compact = match &self.compact {
+            None => None,
+            Some(ConstOrExpr::Const(compact)) => Some(*compact),
+            Some(ConstOrExpr::Expr(expr)) => expr
+                .resolve_constant(&state)
+                .and_then(|compact| compact.as_boolean()),
+        };
 
-                    let mut true_result = state.external.clone();
-                    self.query.delete_type_def(&mut true_result, true);
+        if let Some(compact) = compact {
+            self.query.delete_type_def(&mut state.external, compact);
+        } else {
+            let mut false_result = state.external.clone();
+            self.query.delete_type_def(&mut false_result, false);
 
-                    state.external = false_result.merge(true_result);
-                }
-            }
+            let mut true_result = state.external.clone();
+            self.query.delete_type_def(&mut true_result, true);
+
+            state.external = false_result.merge(true_result);
         }
 
         TypeInfo::new(state, return_type)
@@ -381,7 +377,7 @@ mod tests {
         );
         let func = DelFn {
             query,
-            compact: ConstOrExpr::Const(false),
+            compact: None,
         };
         let tz = TimeZone::default();
 
@@ -425,7 +421,7 @@ mod tests {
         )));
         let func = DelFn {
             query: Query::new(Target::Container(container), OwnedValuePath::root()),
-            compact: ConstOrExpr::Const(false),
+            compact: None,
         };
         let mut target = TargetValue {
             value: value!({}),
@@ -516,8 +512,8 @@ mod tests {
 
         // ...and DelFn::resolve itself errors on a non-boolean runtime compact expression.
         let mut func = DelFn::new(".a");
-        func.compact = ConstOrExpr::Expr(Box::new(crate::compiler::expression::Literal::from(
-            "not_a_bool",
+        func.compact = Some(ConstOrExpr::Expr(Box::new(
+            crate::compiler::expression::Literal::from("not_a_bool"),
         )));
         let mut object: Value = btreemap! { "a" => 1 }.into();
         let mut runtime_state = state::RuntimeState::default();
@@ -534,32 +530,15 @@ mod tests {
     }
 
     #[test]
-    fn del_type_info_omitted_compact_is_false() {
-        use crate::path::parse_value_path;
-
-        let func = DelFn::new(".a.b");
-        let mut state = state::TypeState::default();
-        let inner = Kind::object(Collection::from(BTreeMap::from([(
-            "b".into(),
-            Kind::integer(),
-        )])));
-        let root = Kind::object(Collection::from(BTreeMap::from([("a".into(), inner)])));
-        state
-            .external
-            .update_target(crate::compiler::type_def::Details {
-                type_def: TypeDef::from(root),
-                value: None,
-            });
-
-        let info = func.type_info(&state);
-        let a_kind = info
-            .state
-            .external
-            .target_kind()
-            .at_path(&parse_value_path(".a").unwrap());
-        assert!(
-            a_kind.is_object() && !a_kind.contains_undefined(),
-            "expected .a to remain a definite object when compact is omitted, got {a_kind:?}"
+    fn del_type_info_preserves_omitted_compact_compat() {
+        // Existing VRL programs rely on omitted `compact` merging compacted and uncompacted
+        // type states so `object(.a)` remains fallible (avoiding E104).
+        assert_eq!(
+            eval_vrl(
+                r#". = {"a": {"b": 1}}; del(.a.b); v, err = object(.a); v"#,
+                value!({})
+            ),
+            Ok(value!({}))
         );
     }
 
