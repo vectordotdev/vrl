@@ -4277,6 +4277,32 @@ mod tests {
                     }
                 "#,
             ),
+            (
+                "fallible expr before break caught by ?? resumes body",
+                r#"
+                    x = 1
+                    {
+                        for _ in [1] {
+                            { 1 / 0; break } ?? null
+                            x = "s"
+                        }
+                        1 / 0
+                    } ?? null
+                    .y = x + 1
+                "#,
+            ),
+            (
+                "fallible expr before break caught by ok, err = resumes body",
+                r#"
+                    x = 1
+                    for _ in [1] {
+                        ok, err = { 1 / 0; break }
+                        .z = [ok, err]
+                        x = "s"
+                    }
+                    .y = x + 1
+                "#,
+            ),
         ] {
             let Err(errs) = crate::compiler::compile(source, &fns) else {
                 panic!("expected {label} to widen x and fail compilation");
