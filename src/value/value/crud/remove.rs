@@ -8,23 +8,25 @@ pub fn remove<'a, T: ValueCollection>(
     mut path_iter: impl Iterator<Item = BorrowedSegment<'a>>,
     prune: bool,
 ) -> Option<(Value, bool)> {
-    match (value.get_mut_value(key), path_iter.next()) {
-        (_, None) => value.remove_value(key),
-        (Some(Value::Object(map)), Some(BorrowedSegment::Field(field))) => {
-            let (prev_value, empty) = remove(map, field.as_ref(), path_iter, prune)?;
-            if prune && empty {
-                value.remove_value(key);
+    match path_iter.next() {
+        None => value.remove_value(key),
+        Some(next_segment) => match (value.get_mut_value(key), next_segment) {
+            (Some(Value::Object(map)), BorrowedSegment::Field(field)) => {
+                let (prev_value, empty) = remove(map, field.as_ref(), path_iter, prune)?;
+                if prune && empty {
+                    value.remove_value(key);
+                }
+                Some(prev_value)
             }
-            Some(prev_value)
-        }
-        (Some(Value::Array(array)), Some(BorrowedSegment::Index(index))) => {
-            let (prev_value, empty) = remove(array, &index, path_iter, prune)?;
-            if prune && empty {
-                value.remove_value(key);
+            (Some(Value::Array(array)), BorrowedSegment::Index(index)) => {
+                let (prev_value, empty) = remove(array, &index, path_iter, prune)?;
+                if prune && empty {
+                    value.remove_value(key);
+                }
+                Some(prev_value)
             }
-            Some(prev_value)
-        }
-        _ => return None,
+            _ => return None,
+        },
     }
     .map(|prev| (prev, value.is_empty_collection()))
 }
@@ -135,5 +137,78 @@ mod test {
             Some(Value::Integer(5))
         );
         assert_eq!(value, Value::from(json!({})));
+    }
+
+    #[test]
+    fn remove_leaf_does_not_call_get_mut_value() {
+        use super::super::ValueCollection;
+        use super::remove;
+        use crate::path::{BorrowedSegment, ValuePath};
+        use crate::value::{KeyString, ObjectMap};
+
+        struct CountingMap {
+            inner: ObjectMap,
+            get_mut_calls: usize,
+            remove_calls: usize,
+        }
+
+        impl ValueCollection for CountingMap {
+            type Key = KeyString;
+            type BorrowedKey = str;
+
+            fn get_value(&self, key: &str) -> Option<&Value> {
+                self.inner.get(key)
+            }
+
+            fn get_mut_value(&mut self, key: &str) -> Option<&mut Value> {
+                self.get_mut_calls += 1;
+                self.inner.get_mut(key)
+            }
+
+            fn insert_value(&mut self, key: KeyString, value: Value) -> Option<Value> {
+                self.inner.insert(key, value)
+            }
+
+            fn remove_value(&mut self, key: &str) -> Option<Value> {
+                self.remove_calls += 1;
+                self.inner.remove(key)
+            }
+
+            fn is_empty_collection(&self) -> bool {
+                self.inner.is_empty()
+            }
+        }
+
+        // Leaf removal should call remove_value directly without calling get_mut_value.
+        let mut leaf_map = CountingMap {
+            inner: ObjectMap::from([("leaf".into(), Value::Integer(42))]),
+            get_mut_calls: 0,
+            remove_calls: 0,
+        };
+        let res = remove(
+            &mut leaf_map,
+            "leaf",
+            std::iter::empty::<BorrowedSegment<'_>>(),
+            false,
+        );
+        assert_eq!(res, Some((Value::Integer(42), true)));
+        assert_eq!(leaf_map.get_mut_calls, 0);
+        assert_eq!(leaf_map.remove_calls, 1);
+
+        // Nested removal should call get_mut_value only for the intermediate segment.
+        let mut nested_map = CountingMap {
+            inner: ObjectMap::from([("nested".into(), Value::from(json!({ "leaf": 7 })))]),
+            get_mut_calls: 0,
+            remove_calls: 0,
+        };
+        let res = remove(
+            &mut nested_map,
+            "nested",
+            path!("leaf").segment_iter(),
+            false,
+        );
+        assert_eq!(res, Some((Value::Integer(7), false)));
+        assert_eq!(nested_map.get_mut_calls, 1);
+        assert_eq!(nested_map.remove_calls, 0);
     }
 }
