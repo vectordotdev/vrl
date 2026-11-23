@@ -136,6 +136,7 @@ impl For {
         pre_loop_state: &TypeState,
         iterable_kind: &Kind,
         ctx: &mut LoopEvalContext,
+        track_errors: bool,
     ) -> ForBodyFixedPoint {
         let mut current_state = pre_loop_state.clone();
         let body_footprint = LoopFootprint::for_block_with_pattern(&self.pattern, &self.block);
@@ -155,7 +156,7 @@ impl For {
             let mut iter_state = current_state.clone();
             let pattern_idents = bind_for_pattern(&self.pattern, iterable_kind, &mut iter_state);
 
-            let flow = eval_loop_block_with_ctx(&self.block, &iter_state, ctx);
+            let flow = eval_loop_block_with_ctx(&self.block, &iter_state, ctx, track_errors);
             fallible |= flow.result.is_fallible();
             final_returns = final_returns.union(flow.result.returns().clone());
 
@@ -234,8 +235,18 @@ impl For {
         state: &TypeState,
         ctx: &mut LoopEvalContext,
     ) -> (TypeState, LoopFlow) {
+        self.eval_for_in_loop_inner(state, ctx, false)
+    }
+
+    fn eval_for_in_loop_inner(
+        &self,
+        state: &TypeState,
+        ctx: &mut LoopEvalContext,
+        track_errors: bool,
+    ) -> (TypeState, LoopFlow) {
         let footprint = LoopFootprint::for_expr(self);
-        let projected_input = (!footprint.opaque).then(|| footprint.project(state));
+        let projected_input =
+            (!footprint.opaque && !track_errors).then(|| footprint.project(state));
 
         if let Some(ref input) = projected_input
             && let Some(cached) = ctx.lookup(self.span, input)
@@ -243,7 +254,7 @@ impl For {
             return cached.apply(state);
         }
 
-        let iter_flow = eval_loop_expr_with_ctx(&self.iterable, state, ctx);
+        let iter_flow = eval_loop_expr_inner(&self.iterable, state, ctx, track_errors);
         let Some(mut pre_loop_state) = iter_flow.normal else {
             let mut fallback_header = self.iterable.type_info(state).state;
             canonicalize_type_state(&mut fallback_header);
@@ -263,7 +274,12 @@ impl For {
         };
 
         canonicalize_type_state(&mut pre_loop_state);
-        let fixed = self.eval_for_body_fixed_point(&pre_loop_state, iter_flow.result.kind(), ctx);
+        let fixed = self.eval_for_body_fixed_point(
+            &pre_loop_state,
+            iter_flow.result.kind(),
+            ctx,
+            track_errors,
+        );
 
         let mut post_loop_normal =
             merge_opt_state(Some(fixed.header_state.clone()), fixed.break_state)
@@ -478,9 +494,10 @@ impl LoopFlowSeq {
         expr: &Expr,
         track_fallibility: bool,
         ctx: &mut LoopEvalContext,
+        track_errors: bool,
     ) -> Option<TypeDef> {
         let active_state = self.normal.as_ref()?;
-        let flow = eval_loop_expr_with_ctx(expr, active_state, ctx);
+        let flow = eval_loop_expr_inner(expr, active_state, ctx, track_errors);
         if track_fallibility && flow.result.is_fallible() {
             self.fallible = true;
         }
@@ -628,8 +645,9 @@ fn eval_loop_block_with_ctx(
     block: &Block,
     state: &TypeState,
     ctx: &mut LoopEvalContext,
+    track_errors: bool,
 ) -> LoopFlow {
-    if !block.exprs().iter().any(expr_needs_loop_eval) {
+    if !track_errors && !block.exprs().iter().any(expr_needs_loop_eval) {
         return LoopFlow::from_type_info(block.type_info(state), state);
     }
 
@@ -639,7 +657,8 @@ fn eval_loop_block_with_ctx(
     let mut after_never_expression = false;
 
     for expr in block.exprs() {
-        let Some(expr_result) = seq.step_with_ctx(expr, !after_never_expression, ctx) else {
+        let Some(expr_result) = seq.step_with_ctx(expr, !after_never_expression, ctx, track_errors)
+        else {
             break;
         };
         if expr_result.is_never() {
@@ -668,11 +687,12 @@ fn eval_function_call_with_ctx(
     call: &crate::compiler::expression::FunctionCall,
     state: &TypeState,
     ctx: &mut LoopEvalContext,
+    track_errors: bool,
 ) -> LoopFlow {
     let mut error_state = None;
     let mut caught_return_state = None;
     let mut info = call.eval_with_arg_mapper(state, |arg, st| {
-        let flow = eval_loop_expr_with_ctx(arg, st, ctx);
+        let flow = eval_loop_expr_inner(arg, st, ctx, track_errors);
         error_state = merge_opt_state(error_state.take(), flow.error_state);
         if let Some(ret_state) = flow.return_state {
             caught_return_state =
@@ -700,16 +720,30 @@ fn eval_function_call_with_ctx(
     }
 }
 
-#[allow(clippy::too_many_lines)]
 pub(crate) fn eval_loop_expr_with_ctx(
     expr: &Expr,
     state: &TypeState,
     ctx: &mut LoopEvalContext,
 ) -> LoopFlow {
+    eval_loop_expr_inner(expr, state, ctx, false)
+}
+
+#[allow(clippy::too_many_lines)]
+fn eval_loop_expr_inner(
+    expr: &Expr,
+    state: &TypeState,
+    ctx: &mut LoopEvalContext,
+    track_errors: bool,
+) -> LoopFlow {
     use crate::compiler::expression::{assignment, container::Variant, query::Target, unary};
     use crate::parser::ast::Opcode;
 
-    if !expr_needs_loop_eval(expr) {
+    let is_leaf = matches!(expr, Expr::Literal(_) | Expr::Variable(_) | Expr::Noop(_))
+        || matches!(
+            expr,
+            Expr::Query(q) if matches!(q.target(), Target::Internal(_) | Target::External(_))
+        );
+    if (!track_errors && !expr_needs_loop_eval(expr)) || is_leaf {
         return LoopFlow::from_type_info(expr.type_info(state), state);
     }
 
@@ -730,17 +764,19 @@ pub(crate) fn eval_loop_expr_with_ctx(
             error_state: None,
             result: TypeDef::never(),
         },
-        Expr::For(for_expr) => for_expr.eval_for_in_loop_with_ctx(state, ctx).1,
-        Expr::FunctionCall(call) => eval_function_call_with_ctx(call, state, ctx),
+        Expr::For(for_expr) => for_expr.eval_for_in_loop_inner(state, ctx, track_errors).1,
+        Expr::FunctionCall(call) => eval_function_call_with_ctx(call, state, ctx, track_errors),
         Expr::Container(container) => match &container.variant {
-            Variant::Group(group) => eval_loop_expr_with_ctx(group.inner_expr(), state, ctx),
-            Variant::Block(block) => eval_loop_block_with_ctx(block, state, ctx),
+            Variant::Group(group) => {
+                eval_loop_expr_inner(group.inner_expr(), state, ctx, track_errors)
+            }
+            Variant::Block(block) => eval_loop_block_with_ctx(block, state, ctx, track_errors),
             Variant::Array(array) => {
                 let mut seq = LoopFlowSeq::new(state);
                 let mut type_defs = Vec::with_capacity(array.len());
 
                 for item in array.iter() {
-                    let Some(type_def) = seq.step_with_ctx(item, true, ctx) else {
+                    let Some(type_def) = seq.step_with_ctx(item, true, ctx, track_errors) else {
                         break;
                     };
                     let type_def = type_def.upgrade_undefined();
@@ -762,7 +798,7 @@ pub(crate) fn eval_loop_expr_with_ctx(
                 let mut type_defs = BTreeMap::new();
 
                 for (k, item) in object.iter() {
-                    let Some(type_def) = seq.step_with_ctx(item, true, ctx) else {
+                    let Some(type_def) = seq.step_with_ctx(item, true, ctx, track_errors) else {
                         break;
                     };
                     let type_def = type_def.upgrade_undefined();
@@ -780,14 +816,17 @@ pub(crate) fn eval_loop_expr_with_ctx(
             }
         },
         Expr::IfStatement(if_stmt) => {
-            let mut pred_flow = eval_loop_block_with_ctx(if_stmt.predicate.block(), state, ctx);
+            let mut pred_flow =
+                eval_loop_block_with_ctx(if_stmt.predicate.block(), state, ctx, track_errors);
             let Some(after_pred_state) = pred_flow.normal.take() else {
                 return pred_flow;
             };
 
-            let if_flow = eval_loop_block_with_ctx(&if_stmt.if_block, &after_pred_state, ctx);
+            let if_flow =
+                eval_loop_block_with_ctx(&if_stmt.if_block, &after_pred_state, ctx, track_errors);
             let branch_flow = if let Some(else_block) = &if_stmt.else_block {
-                let else_flow = eval_loop_block_with_ctx(else_block, &after_pred_state, ctx);
+                let else_flow =
+                    eval_loop_block_with_ctx(else_block, &after_pred_state, ctx, track_errors);
                 if_flow.merge_branch(else_flow, TypeDef::union)
             } else {
                 let fallthrough = LoopFlow {
@@ -804,7 +843,7 @@ pub(crate) fn eval_loop_expr_with_ctx(
         }
         Expr::Assignment(assignment) => match assignment.variant() {
             assignment::Variant::Single { target, expr } => {
-                let mut rhs_flow = eval_loop_expr_with_ctx(expr, state, ctx);
+                let mut rhs_flow = eval_loop_expr_inner(expr, state, ctx, track_errors);
                 let expr_result = rhs_flow.result.clone().impure();
                 if let Some(ref mut s) = rhs_flow.normal {
                     let const_value = expr.resolve_constant(s);
@@ -818,7 +857,7 @@ pub(crate) fn eval_loop_expr_with_ctx(
                 expr,
                 default,
             } => {
-                let rhs_flow = eval_loop_expr_with_ctx(expr, state, ctx);
+                let rhs_flow = eval_loop_expr_inner(expr, state, ctx, true);
                 let catch_state = merge_opt_state(rhs_flow.normal, rhs_flow.error_state);
                 if let Some(mut s) = catch_state {
                     let expr_result = rhs_flow.result;
@@ -852,7 +891,8 @@ pub(crate) fn eval_loop_expr_with_ctx(
             }
         },
         Expr::Op(op) => {
-            let lhs_flow = eval_loop_expr_with_ctx(&op.lhs, state, ctx);
+            let lhs_track_errors = track_errors || op.opcode == Opcode::Err;
+            let lhs_flow = eval_loop_expr_inner(&op.lhs, state, ctx, lhs_track_errors);
             let lhs_def = lhs_flow.result.clone();
             let lhs_value = op.lhs.resolve_constant(state);
 
@@ -922,7 +962,7 @@ pub(crate) fn eval_loop_expr_with_ctx(
             };
 
             let rhs_value = op.rhs.resolve_constant(&rhs_input_state);
-            let rhs_flow = eval_loop_expr_with_ctx(&op.rhs, &rhs_input_state, ctx);
+            let rhs_flow = eval_loop_expr_inner(&op.rhs, &rhs_input_state, ctx, track_errors);
             let rhs_def = rhs_flow.result;
             let normal = merge_opt_state(normal_from_lhs, rhs_flow.normal);
             let result = if normal.is_some() {
@@ -955,15 +995,19 @@ pub(crate) fn eval_loop_expr_with_ctx(
         }
         Expr::Query(query) => match query.target() {
             Target::Container(container) => {
-                let mut flow =
-                    eval_loop_expr_with_ctx(&Expr::Container(container.clone()), state, ctx);
+                let mut flow = eval_loop_expr_inner(
+                    &Expr::Container(container.clone()),
+                    state,
+                    ctx,
+                    track_errors,
+                );
                 if flow.normal.is_some() {
                     flow.result = flow.result.at_path(query.path());
                 }
                 flow
             }
             Target::FunctionCall(call) => {
-                let mut flow = eval_function_call_with_ctx(call, state, ctx);
+                let mut flow = eval_function_call_with_ctx(call, state, ctx, track_errors);
                 if flow.normal.is_some() {
                     flow.result = flow.result.at_path(query.path());
                 }
@@ -973,7 +1017,7 @@ pub(crate) fn eval_loop_expr_with_ctx(
         },
         Expr::Unary(unary) => match unary.variant() {
             unary::Variant::Not(not) => {
-                let inner_flow = eval_loop_expr_with_ctx(not.inner_expr(), state, ctx);
+                let inner_flow = eval_loop_expr_inner(not.inner_expr(), state, ctx, track_errors);
                 let base_result = if inner_flow.normal.is_some() {
                     TypeDef::boolean()
                 } else {
@@ -986,10 +1030,12 @@ pub(crate) fn eval_loop_expr_with_ctx(
             }
         },
         Expr::Abort(abort) => match abort.message() {
-            Some(msg) => eval_loop_expr_with_ctx(msg, state, ctx).diverge_abort(),
+            Some(msg) => eval_loop_expr_inner(msg, state, ctx, track_errors).diverge_abort(),
             None => LoopFlow::never(),
         },
-        Expr::Return(ret) => eval_loop_expr_with_ctx(ret.expr(), state, ctx).diverge_return(),
+        Expr::Return(ret) => {
+            eval_loop_expr_inner(ret.expr(), state, ctx, track_errors).diverge_return()
+        }
         Expr::Literal(_) | Expr::Variable(_) | Expr::Noop(_) => unreachable!(),
     }
 }
@@ -4313,6 +4359,43 @@ mod tests {
                         ok, err = { 1 / 0; break }
                         .z = [ok, err]
                         x = "s"
+                    }
+                    .y = x + 1
+                "#,
+            ),
+        ] {
+            let Err(errs) = crate::compiler::compile(source, &fns) else {
+                panic!("expected {label} to widen x and fail compilation");
+            };
+            assert!(
+                errs.iter().any(|d| d.code == 103),
+                "expected {label} to fail with E103 (fallible `x + 1` on integer | string), got: {errs:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn test_for_intermediate_error_state_in_jump_free_sub_blocks() {
+        let fns = crate::stdlib::all();
+
+        for (label, source) in [
+            (
+                "intermediate error state in jump-free sub-block before break caught by ??",
+                r#"
+                    x = 1
+                    for _ in [1] {
+                        { { x = "s"; 1 / 0; x = 1 }; break } ?? null
+                    }
+                    .y = x + 1
+                "#,
+            ),
+            (
+                "intermediate error state in jump-free sub-block before break caught by ok, err =",
+                r#"
+                    x = 1
+                    for _ in [1] {
+                        ok, err = { { x = "s"; 1 / 0; x = 1 }; break }
+                        .z = [ok, err]
                     }
                     .y = x + 1
                 "#,
