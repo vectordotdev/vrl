@@ -175,8 +175,7 @@ criterion_group!(
               truncate,
               unflatten,
               unique,
-              // TODO: Cannot pass a Path to bench_function
-              //unnest
+              unnest,
               uuid_from_friendly_id,
               // TODO: value is dynamic so we cannot assert equality
               //uuidv4,
@@ -3362,4 +3361,162 @@ bench_query_function! {
         event: btreemap! { "test" => btreemap! { "test" => true } },
         want: Ok(value!(true)),
     }
+}
+
+fn build_unnest_payload(
+    sibling_bytes: usize,
+    item_count: usize,
+    item_bytes: usize,
+    nested: bool,
+) -> Value {
+    let mut root = ObjectMap::new();
+    root.insert("service".into(), Value::from("checkout-api"));
+    root.insert("host".into(), Value::from("prod-us-east-1-042"));
+    root.insert("env".into(), Value::from("production"));
+    root.insert("empty_events".into(), Value::Array(Vec::new()));
+    root.insert("not_array".into(), Value::from("not-an-array"));
+
+    if sibling_bytes > 0 {
+        let chunk_size = if sibling_bytes <= 1024 { 128 } else { 4096 };
+        let chunk_count = sibling_bytes.div_ceil(chunk_size);
+        let filler = "x".repeat(chunk_size);
+        let mut context = ObjectMap::new();
+        for i in 0..chunk_count {
+            context.insert(
+                format!("attr_{i:04}").into(),
+                Value::from(format!("val-{i:04}-{filler}")),
+            );
+        }
+        root.insert("context".into(), Value::Object(context));
+    }
+
+    let item_filler = "e".repeat(item_bytes);
+    let mut events = Vec::with_capacity(item_count);
+    for i in 0..item_count {
+        let mut item = ObjectMap::new();
+        item.insert("id".into(), Value::from(format!("evt-{i:04}")));
+        item.insert("kind".into(), Value::from("span"));
+        if !item_filler.is_empty() {
+            item.insert("detail".into(), Value::from(item_filler.as_str()));
+        }
+        events.push(Value::Object(item));
+    }
+
+    if nested {
+        let mut nested_obj = ObjectMap::new();
+        nested_obj.insert("keep".into(), Value::from("sibling"));
+        nested_obj.insert("events".into(), Value::Array(events));
+        root.insert("nested".into(), Value::Object(nested_obj));
+    } else {
+        root.insert("events".into(), Value::Array(events));
+    }
+
+    Value::Object(root)
+}
+
+fn compile_unnest(path: expression::Expr) -> Box<dyn Expression> {
+    let state = vrl::compiler::state::TypeState::default();
+    let mut args = func_args![];
+    args.insert("path", path);
+    let config = vrl::compiler::CompileConfig::default();
+    let mut ctx = vrl::compiler::function::FunctionCompileContext::new(
+        vrl::diagnostic::Span::new(0, 0),
+        config,
+    );
+    vrl::stdlib::Unnest
+        .compile(&state, &mut ctx, args.into())
+        .expect("unnest should compile")
+}
+
+fn unnest(c: &mut Criterion) {
+    let mut group = c.benchmark_group("vrl_stdlib/functions/unnest");
+    group.throughput(criterion::Throughput::Elements(1));
+
+    let tz = vrl::compiler::TimeZone::Named(chrono_tz::Tz::UTC);
+
+    let container_query = expression::Expr::Query(expression::Query::new(
+        expression::Target::Container(expression::Container::new(expression::Variant::Group(
+            expression::Group::new(query!(".")),
+        ))),
+        vrl::path::parse_value_path(".events").expect("valid path"),
+    ));
+
+    let cases: [(&str, expression::Expr, Value, Option<usize>); 9] = [
+        (
+            "empty_1kb",
+            query!(".empty_events"),
+            build_unnest_payload(1024, 0, 0, false),
+            Some(0),
+        ),
+        (
+            "empty_1mb",
+            query!(".empty_events"),
+            build_unnest_payload(1024 * 1024, 0, 0, false),
+            Some(0),
+        ),
+        (
+            "error_not_array_1mb",
+            query!(".not_array"),
+            build_unnest_payload(1024 * 1024, 0, 0, false),
+            None,
+        ),
+        (
+            "small_1kb_10_items",
+            query!(".events"),
+            build_unnest_payload(512, 10, 48, false),
+            Some(10),
+        ),
+        (
+            "large_500kb_1_item",
+            query!(".events"),
+            build_unnest_payload(512 * 1024, 1, 256, false),
+            Some(1),
+        ),
+        (
+            "large_500kb_10_items",
+            query!(".events"),
+            build_unnest_payload(512 * 1024, 10, 256, false),
+            Some(10),
+        ),
+        (
+            "large_1mb_100_items",
+            query!(".events"),
+            build_unnest_payload(512 * 1024, 100, 5 * 1024, false),
+            Some(100),
+        ),
+        (
+            "nested_field_500kb_10_items",
+            query!(".nested.events"),
+            build_unnest_payload(512 * 1024, 10, 256, true),
+            Some(10),
+        ),
+        (
+            "owned_container_500kb_1_item",
+            container_query,
+            build_unnest_payload(512 * 1024, 1, 256, false),
+            Some(1),
+        ),
+    ];
+
+    for (name, path_expr, mut target, expected_len) in cases {
+        let expr = compile_unnest(path_expr);
+        let mut runtime_state = vrl::compiler::state::RuntimeState::default();
+        let mut ctx = Context::new(&mut target, &mut runtime_state, &tz);
+
+        match (expr.resolve(&mut ctx), expected_len) {
+            (Ok(Value::Array(arr)), Some(want_len)) => {
+                assert_eq!(arr.len(), want_len, "unnest/{name}: unexpected array len");
+            }
+            (Err(_), None) => {}
+            (other, want) => {
+                panic!("unnest/{name}: unexpected result {other:?} (expected_len={want:?})");
+            }
+        }
+
+        group.bench_function(name, |b| {
+            b.iter(|| std::hint::black_box(expr.resolve(&mut ctx)))
+        });
+    }
+
+    group.finish();
 }
