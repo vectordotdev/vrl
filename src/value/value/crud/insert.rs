@@ -9,23 +9,34 @@ pub fn insert<'a, T: ValueCollection>(
     // Traversing an existing ancestor only needs a borrowed key. Convert to an
     // owned collection key only when storing a leaf or replacing a container.
     key: impl Borrow<T::BorrowedKey> + Into<T::Key>,
-    mut path_iter: impl Iterator<Item = BorrowedSegment<'a>>,
+    path_iter: impl Iterator<Item = BorrowedSegment<'a>>,
     insert_value: Value,
 ) -> Option<Value> {
+    try_insert(value, key, path_iter, insert_value).unwrap_or(None)
+}
+
+// Distinguish an invalid path from a successful insertion with no previous
+// value, so replacement containers are only installed after insertion succeeds.
+fn try_insert<'a, T: ValueCollection>(
+    value: &mut T,
+    key: impl Borrow<T::BorrowedKey> + Into<T::Key>,
+    mut path_iter: impl Iterator<Item = BorrowedSegment<'a>>,
+    insert_value: Value,
+) -> Result<Option<Value>, ()> {
     match path_iter.next() {
         Some(BorrowedSegment::Field(field)) => {
             if let Some(Value::Object(map)) = value.get_mut_value(key.borrow()) {
-                insert(map, field, path_iter, insert_value)
+                try_insert(map, field, path_iter, insert_value)
             } else {
                 let mut map = ObjectMap::new();
-                let prev_value = insert(&mut map, field, path_iter, insert_value);
+                let prev_value = try_insert(&mut map, field, path_iter, insert_value)?;
                 value.insert_value(key.into(), Value::Object(map));
-                prev_value
+                Ok(prev_value)
             }
         }
         Some(BorrowedSegment::Index(index)) => {
             if let Some(Value::Array(array)) = value.get_mut_value(key.borrow()) {
-                insert(array, index, path_iter, insert_value)
+                try_insert(array, index, path_iter, insert_value)
             } else {
                 let capacity = if index >= 0 {
                     (index as usize) + 1
@@ -33,13 +44,13 @@ pub fn insert<'a, T: ValueCollection>(
                     (-index) as usize
                 };
                 let mut array = Vec::with_capacity(capacity);
-                let prev_value = insert(&mut array, index, path_iter, insert_value);
+                let prev_value = try_insert(&mut array, index, path_iter, insert_value)?;
                 value.insert_value(key.into(), Value::Array(array));
-                prev_value
+                Ok(prev_value)
             }
         }
-        Some(BorrowedSegment::Invalid) => None,
-        None => value.insert_value(key.into(), insert_value),
+        Some(BorrowedSegment::Invalid) => Err(()),
+        None => Ok(value.insert_value(key.into(), insert_value)),
     }
 }
 
@@ -99,7 +110,7 @@ mod test {
     }
 
     #[test]
-    fn test_insert_invalid_segments_preserves_partial_mutations() {
+    fn test_insert_invalid_segments_preserves_original_value() {
         use BorrowedSegment::{Field, Index, Invalid};
 
         let cases = [
@@ -120,13 +131,13 @@ mod test {
                 "missing object root",
                 json!(null),
                 vec![Field("a".into()), Invalid],
-                json!({}),
+                json!(null),
             ),
             (
                 "replace scalar with object",
                 json!({"a": 1, "keep": 2}),
                 vec![Field("a".into()), Field("b".into()), Invalid],
-                json!({"a": {}, "keep": 2}),
+                json!({"a": 1, "keep": 2}),
             ),
             (
                 "existing array prefix",
@@ -138,19 +149,43 @@ mod test {
                 "replace scalar with array",
                 json!({"a": 1, "keep": 2}),
                 vec![Field("a".into()), Index(0), Invalid],
-                json!({"a": [], "keep": 2}),
+                json!({"a": 1, "keep": 2}),
             ),
             (
                 "missing array root",
                 json!(null),
                 vec![Index(0), Invalid],
-                json!([]),
+                json!(null),
             ),
             (
                 "missing mixed containers",
                 json!(null),
                 vec![Index(0), Field("a".into()), Invalid],
-                json!([{}]),
+                json!(null),
+            ),
+            (
+                "grow existing array",
+                json!([1]),
+                vec![Index(3), Field("a".into()), Invalid],
+                json!([1]),
+            ),
+            (
+                "grow existing array backwards",
+                json!([1]),
+                vec![Index(-3), Field("a".into()), Invalid],
+                json!([1]),
+            ),
+            (
+                "replace nested array element",
+                json!({"a": [1, {"keep": 2}]}),
+                vec![Field("a".into()), Index(0), Field("b".into()), Invalid],
+                json!({"a": [1, {"keep": 2}]}),
+            ),
+            (
+                "invalid before trailing segments",
+                json!({"a": 1}),
+                vec![Field("a".into()), Field("b".into()), Invalid, Index(0)],
+                json!({"a": 1}),
             ),
         ];
 
