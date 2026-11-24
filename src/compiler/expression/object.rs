@@ -55,17 +55,6 @@ impl Object {
         self
     }
 
-    /// Build an object that already resolves to `value`, with `inner` as its
-    /// entry tree. The caller guarantees `inner` is the expression image of
-    /// `value` (used by `Expr::from(Value)`, where both derive from the same
-    /// value, so the cache cannot diverge from the entries).
-    pub(crate) fn with_constant_value(inner: BTreeMap<KeyString, Expr>, value: Value) -> Self {
-        Self {
-            inner,
-            constant: Some(value),
-        }
-    }
-
     /// Build the constant value from structurally literal expressions only.
     ///
     /// Eligibility is checked before materializing the map, so an object
@@ -304,24 +293,5 @@ mod tests {
         let plain = literal_object();
         let cached = plain.clone().with_constant();
         assert_eq!(plain, cached);
-    }
-
-    #[test]
-    fn expr_from_value_carries_the_cache() {
-        let expr = Expr::from(Value::Object(
-            [(KeyString::from("a"), Value::from(1))]
-                .into_iter()
-                .collect(),
-        ));
-        let Expr::Container(container) = expr else {
-            panic!("expected container");
-        };
-        let Variant::Object(object) = container.variant else {
-            panic!("expected object variant");
-        };
-        assert!(
-            object.constant.is_some(),
-            "Expr::from(Value) objects carry their pre-resolved cache"
-        );
     }
 }

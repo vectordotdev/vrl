@@ -456,14 +456,10 @@ impl From<Value> for Expr {
             Float(v) => Literal::from(v).into(),
             Boolean(v) => Literal::from(v).into(),
             Object(v) => {
-                // The value is already resolved: seed the object's constant
-                // cache with it instead of re-deriving it from the tree.
-                let constant = Value::Object(v.clone());
-                let object = super::expression::Object::with_constant_value(
+                let object = super::expression::Object::from(
                     v.into_iter()
                         .map(|(k, v)| (k, v.into()))
                         .collect::<BTreeMap<_, _>>(),
-                    constant,
                 );
 
                 Container::new(container::Variant::from(object)).into()
