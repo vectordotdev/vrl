@@ -10,7 +10,7 @@ use crate::{
     value::Kind,
 };
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone)]
 pub struct Object {
     inner: BTreeMap<KeyString, Expr>,
     /// Pre-computed value if this object is a *structural* literal (nested
@@ -126,7 +126,7 @@ fn drop_expr_constant(expr: &mut Expr) {
                 }
             }
             container::Variant::Array(array) => {
-                for expr in array.iter_mut() {
+                for expr in array.exprs_mut() {
                     drop_expr_constant(expr);
                 }
             }
@@ -142,6 +142,15 @@ impl Deref for Object {
 
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+
+impl PartialEq for Object {
+    fn eq(&self, other: &Self) -> bool {
+        // Equality is structural: the constant cache is an optimization
+        // detail and must not affect it (the same tree compares equal
+        // whether its cache was built or pruned by an ancestor).
+        self.inner == other.inner
     }
 }
 
@@ -234,6 +243,19 @@ impl From<BTreeMap<KeyString, Expr>> for Object {
 mod tests {
     use super::*;
     use crate::compiler::expression::{Container, Literal, Variant};
+
+    fn literal_object() -> Object {
+        let mut inner = BTreeMap::new();
+        inner.insert(KeyString::from("a"), Expr::from(Literal::from(1)));
+        Object::new(inner)
+    }
+
+    #[test]
+    fn equality_ignores_cache_state() {
+        let plain = literal_object();
+        let cached = plain.clone().with_constant();
+        assert_eq!(plain, cached);
+    }
 
     #[test]
     fn expr_from_value_carries_the_cache() {

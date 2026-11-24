@@ -19,6 +19,12 @@ impl Array {
     pub(crate) fn new(inner: Vec<Expr>) -> Self {
         Self { inner }
     }
+
+    /// Iterate the element expressions mutably (crate-internal; used to
+    /// prune nested constant caches).
+    pub(crate) fn exprs_mut(&mut self) -> std::slice::IterMut<'_, Expr> {
+        self.inner.iter_mut()
+    }
 }
 
 impl Deref for Array {
@@ -26,12 +32,6 @@ impl Deref for Array {
 
     fn deref(&self) -> &Self::Target {
         &self.inner
-    }
-}
-
-impl std::ops::DerefMut for Array {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.inner
     }
 }
 
