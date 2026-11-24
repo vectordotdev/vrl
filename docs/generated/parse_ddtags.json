@@ -1,0 +1,84 @@
+{
+  "anchor": "parse_ddtags",
+  "name": "parse_ddtags",
+  "category": "Parse",
+  "description": "Parses the `value` as a Datadog tag string: comma-separated `key:value` pairs\nsuch as `\"env:prod,host:server1,host:server2\"`.\n\nWhen `multivalue` is `true` (the default), every value is wrapped in an array so\nthat duplicate keys are preserved. When `multivalue` is `false`, the first\nvalue for each key wins and values are stored as plain strings.",
+  "arguments": [
+    {
+      "name": "value",
+      "description": "The Datadog tag string to parse (comma-separated key:value pairs).",
+      "required": true,
+      "type": [
+        "string"
+      ]
+    },
+    {
+      "name": "multivalue",
+      "description": "If true (default), all values are wrapped in arrays to support duplicate keys. If false, the first value for each key wins.",
+      "required": false,
+      "type": [
+        "boolean"
+      ],
+      "default": "true"
+    }
+  ],
+  "return": {
+    "types": [
+      "object"
+    ],
+    "rules": [
+      "When `multivalue` is `true`, returns an object mapping each key to an array of strings (or booleans for standalone keys).",
+      "When `multivalue` is `false`, returns an object mapping each key to a single string (or boolean). Duplicate keys are resolved in favor of the first occurrence."
+    ]
+  },
+  "internal_failure_reasons": [
+    "`value` is not a string."
+  ],
+  "examples": [
+    {
+      "title": "Parse Datadog tags (multivalue, default)",
+      "source": "parse_ddtags!(\"env:prod,host:server1\")",
+      "return": {
+        "env": [
+          "prod"
+        ],
+        "host": [
+          "server1"
+        ]
+      }
+    },
+    {
+      "title": "Parse Datadog tags with duplicate keys",
+      "source": "parse_ddtags!(\"env:prod,host:a,host:b\")",
+      "return": {
+        "env": [
+          "prod"
+        ],
+        "host": [
+          "a",
+          "b"
+        ]
+      }
+    },
+    {
+      "title": "Parse Datadog tags (single-value mode)",
+      "source": "parse_ddtags!(\"env:prod,host:a,host:b\", multivalue: false)",
+      "return": {
+        "env": "prod",
+        "host": "a"
+      }
+    },
+    {
+      "title": "Standalone keys and colons in values",
+      "source": "parse_ddtags!(\"novalue,url:https://example.com:8080/path\", multivalue: false)",
+      "return": {
+        "novalue": true,
+        "url": "https://example.com:8080/path"
+      }
+    }
+  ],
+  "notices": [
+    "Tags without a colon become standalone keys with a boolean `true` value.\nOnly the first colon separates the key from the value, so values can contain\ncolons. Whitespace around keys and values is trimmed. Empty segments from\nleading, trailing, or consecutive commas are ignored."
+  ],
+  "pure": true
+}
