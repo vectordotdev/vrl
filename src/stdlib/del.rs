@@ -26,20 +26,16 @@ fn del(query: &expression::Query, compact: bool, ctx: &mut Context) -> Resolved 
             .flatten()
             .unwrap_or(Value::Null))
     } else if let Some(ident) = query.variable_ident() {
-        match ctx.state_mut().variable_mut(ident) {
-            Some(value) => {
-                let new_value = value.get(path).cloned();
-                value.remove(path, compact);
-                Ok(new_value.unwrap_or(Value::Null))
-            }
-            None => Ok(Value::Null),
-        }
+        Ok(ctx
+            .state_mut()
+            .variable_mut(ident)
+            .and_then(|value| value.remove(path, compact))
+            .unwrap_or(Value::Null))
     } else if let Some(expr) = query.expression_target() {
-        let value = expr.resolve(ctx)?;
+        let mut value = expr.resolve(ctx)?;
 
-        // No need to do the actual deletion, as the expression is only
-        // available as an argument to the function.
-        Ok(value.get(path).cloned().unwrap_or(Value::Null))
+        // Move the target out of the temporary owned value without cloning.
+        Ok(value.remove(path, false).unwrap_or(Value::Null))
     } else {
         Ok(Value::Null)
     }
@@ -159,7 +155,6 @@ impl Function for Del {
         arguments: ArgumentList,
     ) -> Compiled {
         let query = arguments.required_query("target")?;
-        let compact = arguments.optional("compact");
 
         if let Some(target_path) = query.external_path()
             && ctx.is_read_only_path(target_path)
@@ -170,6 +165,11 @@ impl Function for Del {
             .into());
         }
 
+        let compact = arguments.optional_expr("compact").map(|expr| match expr {
+            expression::Expr::Literal(expression::Literal::Boolean(b)) => ConstOrExpr::Const(b),
+            expr => ConstOrExpr::Expr(Box::new(expr)),
+        });
+
         Ok(Box::new(DelFn { query, compact }))
     }
 }
@@ -177,7 +177,7 @@ impl Function for Del {
 #[derive(Debug, Clone)]
 pub(crate) struct DelFn {
     query: expression::Query,
-    compact: Option<Box<dyn Expression>>,
+    compact: Option<ConstOrExpr<bool>>,
 }
 
 impl DelFn {
@@ -211,10 +211,11 @@ impl Expression for DelFn {
     //
     // see tracking issue: https://github.com/vectordotdev/vector/issues/5887
     fn resolve(&self, ctx: &mut Context) -> Resolved {
-        let compact = self
-            .compact
-            .map_resolve_with_default(ctx, || DEFAULT_COMPACT.clone())?
-            .try_boolean()?;
+        let compact = match &self.compact {
+            None => false,
+            Some(ConstOrExpr::Const(compact)) => *compact,
+            Some(ConstOrExpr::Expr(expr)) => expr.resolve(ctx)?.try_boolean()?,
+        };
         del(&self.query, compact, ctx)
     }
 
@@ -223,11 +224,13 @@ impl Expression for DelFn {
 
         let return_type = self.query.apply_type_info(&mut state).impure();
 
-        let compact: Option<bool> = self
-            .compact
-            .as_ref()
-            .and_then(|compact| compact.resolve_constant(&state))
-            .and_then(|compact| compact.as_boolean());
+        let compact = match &self.compact {
+            None => None,
+            Some(ConstOrExpr::Const(compact)) => Some(*compact),
+            Some(ConstOrExpr::Expr(expr)) => expr
+                .resolve_constant(&state)
+                .and_then(|compact| compact.as_boolean()),
+        };
 
         if let Some(compact) = compact {
             self.query.delete_type_def(&mut state.external, compact);
@@ -253,9 +256,13 @@ impl fmt::Display for DelFn {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::BTreeMap;
+
     use super::*;
     use crate::btreemap;
+    use crate::compiler::TargetValue;
     use crate::value;
+    use crate::value::Secrets;
 
     #[test]
     fn del() {
@@ -313,5 +320,246 @@ mod tests {
                 .map_err(|e| format!("{:#}", anyhow::anyhow!(e)));
             assert_eq!(got, exp);
         }
+    }
+
+    fn eval_vrl(source: &str, event: Value) -> Result<Value, String> {
+        let fns = crate::stdlib::all();
+        let compiled =
+            crate::compiler::compile(source, &fns).map_err(|diags| format!("{diags:?}"))?;
+        let mut target = TargetValue {
+            value: event,
+            metadata: Value::Object(ObjectMap::new()),
+            secrets: Secrets::default(),
+        };
+        let mut runtime_state = state::RuntimeState::default();
+        let tz = TimeZone::default();
+        let mut ctx = Context::new(&mut target, &mut runtime_state, &tz);
+        compiled
+            .program
+            .resolve(&mut ctx)
+            .map_err(|e| e.to_string())
+    }
+
+    #[test]
+    fn del_variable_field_and_root() {
+        use crate::compiler::expression::{Query, Target, Variable};
+        use crate::compiler::parser::ast::Ident;
+        use crate::path::OwnedValuePath;
+
+        assert_eq!(
+            eval_vrl(
+                r#"var = {"a": {"b": 1}, "c": 2}; r = del(var.a); [r, var]"#,
+                value!({})
+            ),
+            Ok(value!([{"b": 1}, {"c": 2}]))
+        );
+
+        // Root-path Query on an internal variable (object, array, and scalar).
+        let ident = Ident::new("var");
+        let mut local_env = state::LocalEnv::default();
+        local_env.insert_variable(
+            ident.clone(),
+            crate::compiler::type_def::Details {
+                type_def: TypeDef::any(),
+                value: None,
+            },
+        );
+        let query = Query::new(
+            Target::Internal(
+                Variable::new(
+                    crate::diagnostic::Span::default(),
+                    ident.clone(),
+                    &local_env,
+                )
+                .unwrap(),
+            ),
+            OwnedValuePath::root(),
+        );
+        let func = DelFn {
+            query,
+            compact: None,
+        };
+        let tz = TimeZone::default();
+
+        for (initial, expected_return, expected_remaining) in [
+            (value!({"a": 1}), value!({"a": 1}), value!({})),
+            (value!([1, 2]), value!([1, 2]), value!([])),
+            (value!(42), value!(42), value!(null)),
+        ] {
+            let mut target = TargetValue {
+                value: value!({}),
+                metadata: Value::Object(ObjectMap::new()),
+                secrets: Secrets::default(),
+            };
+            let mut runtime_state = state::RuntimeState::default();
+            runtime_state.insert_variable(ident.clone(), initial);
+            let mut ctx = Context::new(&mut target, &mut runtime_state, &tz);
+
+            let ret = func.resolve(&mut ctx).unwrap();
+            assert_eq!(ret, expected_return);
+            assert_eq!(runtime_state.variable(&ident), Some(&expected_remaining));
+        }
+    }
+
+    #[test]
+    fn del_expression_target() {
+        use crate::compiler::expression::{Container, Literal, Object, Query, Target};
+        use crate::path::OwnedValuePath;
+
+        assert_eq!(
+            eval_vrl(r#"del({"a": {"b": 1}, "c": 2}.a)"#, value!({})),
+            Ok(value!({"b": 1}))
+        );
+        assert_eq!(
+            eval_vrl(r#"del(merge({"a": 1}, {"b": 2}).b)"#, value!({})),
+            Ok(value!(2))
+        );
+
+        // Root-path Query on a Container expression target.
+        let container = Container::new(crate::compiler::expression::Variant::Object(Object::from(
+            BTreeMap::from([(KeyString::from("a"), Literal::Integer(1).into())]),
+        )));
+        let func = DelFn {
+            query: Query::new(Target::Container(container), OwnedValuePath::root()),
+            compact: None,
+        };
+        let mut target = TargetValue {
+            value: value!({}),
+            metadata: Value::Object(ObjectMap::new()),
+            secrets: Secrets::default(),
+        };
+        let mut runtime_state = state::RuntimeState::default();
+        let tz = TimeZone::default();
+        let mut ctx = Context::new(&mut target, &mut runtime_state, &tz);
+        assert_eq!(func.resolve(&mut ctx).unwrap(), value!({"a": 1}));
+    }
+
+    #[test]
+    fn del_compact_and_arrays() {
+        assert_eq!(
+            eval_vrl(
+                r#"var = {"a": {"b": 1}, "c": 2}; del(var.a.b, true); var"#,
+                value!({})
+            ),
+            Ok(value!({"c": 2}))
+        );
+        assert_eq!(
+            eval_vrl(
+                r#"var = {"a": {"b": 1}, "c": 2}; del(var.a.b, false); var"#,
+                value!({})
+            ),
+            Ok(value!({"a": {}, "c": 2}))
+        );
+        assert_eq!(
+            eval_vrl("var = [10, 20, 30]; r = del(var[-1]); [r, var]", value!({})),
+            Ok(value!([30, [10, 20]]))
+        );
+        assert_eq!(
+            eval_vrl("var = [10, 20]; r = del(var[-5]); [r, var]", value!({})),
+            Ok(value!([null, [10, 20]]))
+        );
+        assert_eq!(
+            eval_vrl(r#"var = {"a": [1]}; del(var.a[0], true); var"#, value!({})),
+            Ok(value!({}))
+        );
+        assert_eq!(
+            eval_vrl(
+                r#"var = {"a": {}}; r = del(var.a.missing, true); [r, var]"#,
+                value!({})
+            ),
+            Ok(value!([null, {"a": {}}]))
+        );
+    }
+
+    #[test]
+    fn del_read_only_path_rejected() {
+        use crate::compiler::{CompileConfig, compile_with_state};
+        use crate::path::parse_target_path;
+
+        let fns = crate::stdlib::all();
+        let state = state::TypeState::default();
+        let mut config = CompileConfig::default();
+        config.set_read_only_path(parse_target_path(".ro").unwrap(), true);
+
+        let err = compile_with_state("del(.ro)", &fns, &state, config)
+            .err()
+            .expect("expected read-only path error");
+        let msg = format!("{err:?}");
+        assert!(
+            msg.contains("is read-only, and cannot be deleted"),
+            "unexpected error: {msg}"
+        );
+    }
+
+    #[test]
+    fn del_dynamic_compact_side_effects_and_type_error() {
+        // Dynamic compact with side effects mutating the same variable must run before del.
+        assert_eq!(
+            eval_vrl(
+                r#"var = {"a": 1}; r = del(var.a, { var.a = 2; false }); [r, var]"#,
+                value!({})
+            ),
+            Ok(value!([2, {}]))
+        );
+
+        // Non-boolean compact is rejected by VRL's type checker at compile time...
+        let err = eval_vrl("del(.a, .flag)", value!({"a": 1, "flag": "not_a_bool"}))
+            .expect_err("expected compile-time type error for non-boolean compact");
+        assert!(
+            err.contains("invalid argument type"),
+            "unexpected error: {err}"
+        );
+
+        // ...and DelFn::resolve itself errors on a non-boolean runtime compact expression.
+        let mut func = DelFn::new(".a");
+        func.compact = Some(ConstOrExpr::Expr(Box::new(
+            crate::compiler::expression::Literal::from("not_a_bool"),
+        )));
+        let mut object: Value = btreemap! { "a" => 1 }.into();
+        let mut runtime_state = state::RuntimeState::default();
+        let tz = TimeZone::default();
+        let mut ctx = Context::new(&mut object, &mut runtime_state, &tz);
+        let err = func
+            .resolve(&mut ctx)
+            .expect_err("expected runtime boolean error")
+            .to_string();
+        assert!(
+            err.contains("expected boolean"),
+            "unexpected runtime error: {err}"
+        );
+    }
+
+    #[test]
+    fn del_type_info_preserves_omitted_compact_compat() {
+        // Existing VRL programs rely on omitted `compact` merging compacted and uncompacted
+        // type states so `object(.a)` remains fallible (avoiding E104).
+        assert_eq!(
+            eval_vrl(
+                r#". = {"a": {"b": 1}}; del(.a.b); v, err = object(.a); v"#,
+                value!({})
+            ),
+            Ok(value!({}))
+        );
+    }
+
+    #[test]
+    fn del_compact_not_miscompiled_by_stale_local_value() {
+        // After deleting v.a, v.a is null at runtime; compact must NOT be folded to stale `true`.
+        let err = eval_vrl(
+            r#"v = {"a": true}; del(v.a); del(.foo.bar, v.a)"#,
+            value!({"foo": {"bar": 1}}),
+        )
+        .expect_err("expected runtime type error when deleted v.a is null");
+        assert!(err.contains("expected boolean"), "unexpected error: {err}");
+
+        // Partial path assignment overwrites TypeState's cached Details.value on `v`,
+        // but v.a is still `true` at runtime and must compact `.foo`.
+        assert_eq!(
+            eval_vrl(
+                r#"v = {"a": true}; v.b = {"a": false}; del(.foo.bar, v.a); ."#,
+                value!({"foo": {"bar": 1}})
+            ),
+            Ok(value!({}))
+        );
     }
 }
