@@ -1,8 +1,7 @@
 use crate::compiler::prelude::*;
 
-fn chunks(value: Value, chunk_size: Value) -> Resolved {
+fn chunks(value: Value, chunk_size: i64) -> Resolved {
     let bytes = value.try_bytes()?;
-    let chunk_size = chunk_size.try_integer()?;
 
     if chunk_size < 1 {
         return Err(r#""chunk_size" must be at least 1 byte"#.into());
@@ -86,17 +85,15 @@ impl Function for Chunks {
         arguments: ArgumentList,
     ) -> Compiled {
         let value = arguments.required("value");
-        let chunk_size = arguments.required("chunk_size");
+        let chunk_size = ConstOrExpr::<i64>::new(arguments.required("chunk_size"), state)?;
 
         // chunk_size is converted to a usize, so if a user-supplied Value::Integer (i64) is
         // larger than the platform's usize::MAX, it could fail to convert.
-        if let Some(literal) = chunk_size.resolve_constant(state)
-            && let Some(integer) = literal.as_integer()
-        {
+        if let ConstOrExpr::Const(integer) = chunk_size {
             if integer < 1 {
                 return Err(function::Error::InvalidArgument {
                     keyword: "chunk_size",
-                    value: literal,
+                    value: Value::Integer(integer),
                     error: r#""chunk_size" must be at least 1 byte"#,
                 }
                 .into());
@@ -105,7 +102,7 @@ impl Function for Chunks {
             if usize::try_from(integer).is_err() {
                 return Err(function::Error::InvalidArgument {
                     keyword: "chunk_size",
-                    value: literal,
+                    value: Value::Integer(integer),
                     error: r#""chunk_size" is too large"#,
                 }
                 .into());
@@ -119,7 +116,7 @@ impl Function for Chunks {
 #[derive(Debug, Clone)]
 struct ChunksFn {
     value: Box<dyn Expression>,
-    chunk_size: Box<dyn Expression>,
+    chunk_size: ConstOrExpr<i64>,
 }
 
 impl FunctionExpression for ChunksFn {
@@ -130,8 +127,8 @@ impl FunctionExpression for ChunksFn {
         chunks(value, chunk_size)
     }
 
-    fn type_def(&self, state: &TypeState) -> TypeDef {
-        let not_literal = self.chunk_size.resolve_constant(state).is_none();
+    fn type_def(&self, _state: &TypeState) -> TypeDef {
+        let not_literal = matches!(self.chunk_size, ConstOrExpr::Expr(_));
 
         TypeDef::array(Collection::from_unknown(Kind::bytes())).maybe_fallible(not_literal)
     }
