@@ -120,6 +120,7 @@ criterion_group!(
               parse_bytes,
               parse_common_log,
               parse_csv,
+              parse_ddtags,
               parse_duration,
               parse_etld,
               parse_glog,
@@ -1856,6 +1857,30 @@ bench_function! {
     literal {
         args: func_args![value: "foo,bar"],
         want: Ok(value!(["foo","bar"]))
+    }
+}
+
+bench_function! {
+    parse_ddtags => vrl::stdlib::ParseDdtags;
+
+    multivalue {
+        args: func_args![value: "env:prod,host:server1,url:https://example.com:8080/path,host:server2,standalone"],
+        want: Ok(value!({
+            "env": ["prod"],
+            "host": ["server1", "server2"],
+            "standalone": [true],
+            "url": ["https://example.com:8080/path"],
+        }))
+    }
+
+    single_value {
+        args: func_args![value: "env:prod,host:server1,url:https://example.com:8080/path,host:server2,standalone", multivalue: false],
+        want: Ok(value!({
+            "env": "prod",
+            "host": "server1",
+            "standalone": true,
+            "url": "https://example.com:8080/path",
+        }))
     }
 }
 

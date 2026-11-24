@@ -118,6 +118,7 @@ cfg_if::cfg_if! {
         mod parse_cef;
         mod parse_common_log;
         mod parse_csv;
+        mod parse_ddtags;
         mod parse_duration;
         mod parse_float;
         mod parse_glog;
@@ -380,6 +381,7 @@ cfg_if::cfg_if! {
             parse_cef::ParseCef,
             parse_common_log::ParseCommonLog,
             parse_csv::ParseCsv,
+            parse_ddtags::ParseDdtags,
             parse_duration::ParseDuration,
             parse_float::ParseFloat,
             parse_glog::ParseGlog,
