@@ -1,4 +1,4 @@
-use regex::Regex;
+use crate::value::regex_engine::Regex;
 
 use crate::compiler::prelude::*;
 
@@ -75,9 +75,7 @@ impl Function for Match {
                     .try_regex()
                     .map_err(|e| Box::new(e) as Box<dyn DiagnosticMessage>)?;
 
-                let pattern = Regex::new(pattern.as_str()).map_err(|e| {
-                    Box::new(ExpressionError::from(e.to_string())) as Box<dyn DiagnosticMessage>
-                })?;
+                let pattern = (*pattern).clone();
 
                 Ok(MatchStaticFn { value, pattern }.as_expr())
             }
@@ -129,6 +127,7 @@ mod tests {
     use crate::value;
 
     use super::*;
+    use regex::Regex;
 
     test_function![
         r#match => Match;

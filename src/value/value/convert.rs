@@ -273,7 +273,16 @@ impl Value {
     /// Returns self as `&ValueRegex`, only if self is `Value::Regex`.
     pub fn as_regex(&self) -> Option<&Regex> {
         match self {
-            Self::Regex(v) => Some(v),
+            Self::Regex(v) => Some(v.as_rust()),
+            _ => None,
+        }
+    }
+
+    /// The engine-aware regex used by VRL operators. `as_regex` retains the
+    /// previous Rust-regex view for existing embedding integrations.
+    pub fn as_engine_regex(&self) -> Option<&crate::value::regex_engine::Regex> {
+        match self {
+            Self::Regex(regex) => Some(regex),
             _ => None,
         }
     }
@@ -561,6 +570,12 @@ impl From<u64> for Value {
 impl From<bool> for Value {
     fn from(value: bool) -> Self {
         Self::Boolean(value)
+    }
+}
+
+impl From<crate::value::regex_engine::Regex> for Value {
+    fn from(regex: crate::value::regex_engine::Regex) -> Self {
+        Self::Regex(regex.into())
     }
 }
 

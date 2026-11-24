@@ -153,6 +153,11 @@ impl<'a> Compiler<'a> {
 
         let result = CompilationResult {
             program: Program {
+                regex_engine: compiler
+                    .config
+                    .get_custom::<crate::value::regex_engine::RegexEngine>()
+                    .copied()
+                    .unwrap_or_default(),
                 expressions: Block::new_inline(expressions),
                 info: ProgramInfo {
                     fallible: compiler.fallible,
@@ -254,9 +259,15 @@ impl<'a> Compiler<'a> {
             Integer(v) => Ok(Literal::Integer(v)),
             Float(v) => Ok(Literal::Float(v)),
             Boolean(v) => Ok(Literal::Boolean(v)),
-            Regex(v) => regex::Regex::new(&v)
-                .map_err(|err| literal::Error::from((span, err)))
-                .map(|r| Literal::Regex(r.into())),
+            Regex(v) => crate::value::regex_engine::Regex::new_with_engine(
+                &v,
+                self.config
+                    .get_custom::<crate::value::regex_engine::RegexEngine>()
+                    .copied()
+                    .unwrap_or_default(),
+            )
+            .map_err(|err| literal::Error::from((span, err)))
+            .map(|r| Literal::Regex(r.into())),
             // TODO: support more formats (similar to Vector's `Convert` logic)
             Timestamp(v) => v
                 .parse()

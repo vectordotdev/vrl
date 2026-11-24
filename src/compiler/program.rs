@@ -5,6 +5,7 @@ use super::{Context, Expression, Resolved, expression::Block};
 
 #[derive(Debug, Clone)]
 pub struct Program {
+    pub(crate) regex_engine: crate::value::regex_engine::RegexEngine,
     /// The initial state that the program was compiled with.
     pub(crate) initial_state: TypeState,
     pub(crate) expressions: Block,
@@ -37,6 +38,7 @@ impl Program {
     ///
     /// Returns an error if the program resulted in a runtime error.
     pub fn resolve(&self, ctx: &mut Context) -> Resolved {
+        let _regex_engine = self.regex_engine.enter();
         self.expressions.resolve(ctx)
     }
 }
