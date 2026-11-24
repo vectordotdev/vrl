@@ -1,5 +1,5 @@
 use crate::compiler::prelude::*;
-use crate::path::{OwnedTargetPath, OwnedValuePath};
+use crate::path::{OwnedSegment, OwnedTargetPath, OwnedValuePath};
 
 fn unnest(path: &expression::Query, ctx: &mut Context) -> Resolved {
     let lookup_buf = path.path();
@@ -8,32 +8,105 @@ fn unnest(path: &expression::Query, ctx: &mut Context) -> Resolved {
         expression::Target::External(prefix) => {
             let root = ctx
                 .target()
-                .target_get(&OwnedTargetPath::root(*prefix))
-                .expect("must never fail")
-                .expect("always a value");
-            unnest_root(root, lookup_buf)
+                .target_get(&OwnedTargetPath::root(*prefix))?
+                .unwrap_or(&Value::Null);
+            unnest_borrowed(root, lookup_buf)
         }
         expression::Target::Internal(v) => {
-            let value = ctx.state().variable(v.ident()).unwrap_or(&Value::Null);
-            let root = value.get(&OwnedValuePath::root()).expect("always a value");
-            unnest_root(root, lookup_buf)
+            let root = ctx.state().variable(v.ident()).unwrap_or(&Value::Null);
+            unnest_borrowed(root, lookup_buf)
         }
         expression::Target::Container(expr) => {
             let value = expr.resolve(ctx)?;
-            let root = value.get(&OwnedValuePath::root()).expect("always a value");
-            unnest_root(root, lookup_buf)
+            unnest_owned(value, lookup_buf)
         }
         expression::Target::FunctionCall(expr) => {
             let value = expr.resolve(ctx)?;
-            let root = value.get(&OwnedValuePath::root()).expect("always a value");
-            unnest_root(root, lookup_buf)
+            unnest_owned(value, lookup_buf)
         }
     }
 }
 
-fn unnest_root(root: &Value, path: &OwnedValuePath) -> Resolved {
-    let mut trimmed = root.clone();
-    let values = trimmed
+fn validate_array<'a>(root: &'a Value, path: &OwnedValuePath) -> Result<&'a [Value], ValueError> {
+    match root.get(path) {
+        Some(Value::Array(arr)) => Ok(arr),
+        Some(other) => Err(ValueError::Expected {
+            got: other.kind(),
+            expected: Kind::array(Collection::any()),
+        }),
+        None => Err(ValueError::Expected {
+            got: Kind::null(),
+            expected: Kind::array(Collection::any()),
+        }),
+    }
+}
+
+fn unnest_borrowed(root: &Value, path: &OwnedValuePath) -> Resolved {
+    let values = validate_array(root, path)?;
+    if values.is_empty() {
+        return Ok(Value::Array(Vec::new()));
+    }
+    if path.segments.is_empty() {
+        return Ok(Value::Array(values.to_vec()));
+    }
+    unnest_owned(root.clone(), path)
+}
+
+fn unnest_owned(mut root: Value, path: &OwnedValuePath) -> Resolved {
+    let len = validate_array(&root, path)?.len();
+    if len == 0 {
+        return Ok(Value::Array(Vec::new()));
+    }
+    if path.segments.is_empty() {
+        return Ok(root);
+    }
+
+    let has_index = path
+        .segments
+        .iter()
+        .any(|s| matches!(s, OwnedSegment::Index(_)));
+
+    if !has_index {
+        let Some(slot) = root.get_mut(path) else {
+            return Err(ValueError::Expected {
+                got: Kind::null(),
+                expected: Kind::array(Collection::any()),
+            }
+            .into());
+        };
+        let mut values = match std::mem::replace(slot, Value::Null) {
+            Value::Array(values) => values,
+            other => {
+                return Err(ValueError::Expected {
+                    got: other.kind(),
+                    expected: Kind::array(Collection::any()),
+                }
+                .into());
+            }
+        };
+
+        let Some(last) = values.pop() else {
+            return Ok(Value::Array(Vec::new()));
+        };
+
+        let mut events = Vec::with_capacity(len);
+        for value in values {
+            let mut event = root.clone();
+            if let Some(slot) = event.get_mut(path) {
+                *slot = value;
+            }
+            events.push(event);
+        }
+
+        if let Some(slot) = root.get_mut(path) {
+            *slot = last;
+        }
+        events.push(root);
+
+        return Ok(Value::Array(events));
+    }
+
+    let mut values = root
         .remove(path, true)
         .ok_or(ValueError::Expected {
             got: Kind::null(),
@@ -41,14 +114,19 @@ fn unnest_root(root: &Value, path: &OwnedValuePath) -> Resolved {
         })?
         .try_array()?;
 
-    let events = values
-        .into_iter()
-        .map(|value| {
-            let mut event = trimmed.clone();
-            event.insert(path, value);
-            event
-        })
-        .collect::<Vec<_>>();
+    let Some(last) = values.pop() else {
+        return Ok(Value::Array(Vec::new()));
+    };
+
+    let mut events = Vec::with_capacity(len);
+    for value in values {
+        let mut event = root.clone();
+        event.insert(path, value);
+        events.push(event);
+    }
+
+    root.insert(path, last);
+    events.push(root);
 
     Ok(Value::Array(events))
 }
@@ -87,6 +165,7 @@ impl Function for Unnest {
     fn return_rules(&self) -> &'static [&'static str] {
         &[
             "Returns an array of objects that matches the original object, but each with the specified path replaced with a single element from the original path.",
+            "When `path` traverses array indices (for example, `.a[0].events` or `.a[0]`), empty intermediate containers are pruned before each element is reinserted at `path`, which may shift or overwrite subsequent array elements.",
         ]
     }
 
@@ -440,6 +519,280 @@ mod tests {
 
             assert_eq!(got, expected);
             assert_eq!(got_typedef, expected_typedef);
+        }
+    }
+
+    #[test]
+    #[allow(clippy::too_many_lines)]
+    fn unnest_edge_cases() {
+        use crate::compiler::{Span, compile, parser::ast::Ident, type_def::Details};
+
+        let tz = TimeZone::default();
+
+        // External target edge cases: empty/single arrays, deep pure-Field paths,
+        // root path, null/missing fields, and indexed paths (prune-and-reinsert).
+        let external_cases = vec![
+            (
+                ".events",
+                value!({"host": "a", "events": []}),
+                Ok(value!([])),
+            ),
+            (
+                ".events",
+                value!({"host": "a", "events": [1]}),
+                Ok(value!([{"host": "a", "events": 1}])),
+            ),
+            (
+                ".a.b.events",
+                value!({"host": "a", "a": {"keep": 1, "b": {"events": [1, 2]}}}),
+                Ok(value!([
+                    {"host": "a", "a": {"keep": 1, "b": {"events": 1}}},
+                    {"host": "a", "a": {"keep": 1, "b": {"events": 2}}},
+                ])),
+            ),
+            (
+                ".a.b.events",
+                value!({"a": {"b": {"events": [1, 2]}}}),
+                Ok(value!([
+                    {"a": {"b": {"events": 1}}},
+                    {"a": {"b": {"events": 2}}},
+                ])),
+            ),
+            (".", value!([1, 2]), Ok(value!([1, 2]))),
+            (".", value!([]), Ok(value!([]))),
+            (
+                ".",
+                value!({"a": 1}),
+                Err("expected array, got { a: integer }".to_owned()),
+            ),
+            (
+                ".events",
+                value!({"events": null}),
+                Err("expected array, got null".to_owned()),
+            ),
+            (
+                ".events",
+                value!({}),
+                Err("expected array, got null".to_owned()),
+            ),
+            (
+                ".a[0].events",
+                value!({"a": [{"events": [1, 2]}, {"other": 3}]}),
+                Ok(value!([
+                    {"a": [{"other": 3, "events": 1}]},
+                    {"a": [{"other": 3, "events": 2}]},
+                ])),
+            ),
+            (
+                ".a[0]",
+                value!({"a": [[1, 2], [3, 4]]}),
+                Ok(value!([{"a": [1]}, {"a": [2]}])),
+            ),
+            (
+                ".a[0].events",
+                value!({"a": [{"events": [1], "keep": true}]}),
+                Ok(value!([{"a": [{"events": 1, "keep": true}]}])),
+            ),
+            (
+                ".a[-1].events",
+                value!({"a": [{"other": 1}, {"events": [2, 3], "keep": true}]}),
+                Ok(value!([
+                    {"a": [{"other": 1}, {"events": 2, "keep": true}]},
+                    {"a": [{"other": 1}, {"events": 3, "keep": true}]},
+                ])),
+            ),
+        ];
+
+        for (path, mut target, expected) in external_cases {
+            let func = UnnestFn::new(path);
+            let mut runtime_state = state::RuntimeState::default();
+            let mut ctx = Context::new(&mut target, &mut runtime_state, &tz);
+            let got = func
+                .resolve(&mut ctx)
+                .map_err(|e| format!("{:#}", anyhow::anyhow!(e)));
+            assert_eq!(got, expected, "path={path}");
+        }
+
+        // Target::Internal (set variable and unset variable).
+        let ident = Ident::new("v".to_owned());
+        let mut local = state::LocalEnv::default();
+        local.insert_variable(
+            ident.clone(),
+            Details {
+                type_def: TypeDef::any().infallible(),
+                value: None,
+            },
+        );
+        let var = expression::Variable::new(Span::new(0, 1), ident.clone(), &local).unwrap();
+        let internal_func = UnnestFn {
+            path: expression::Query::new(
+                expression::Target::Internal(var),
+                parse_value_path("events").unwrap(),
+            ),
+        };
+
+        let mut target = value!({});
+        let mut runtime_state = state::RuntimeState::default();
+        runtime_state.insert_variable(ident, value!({"a": 1, "events": [1, 2]}));
+        let mut ctx = Context::new(&mut target, &mut runtime_state, &tz);
+        let got = internal_func
+            .resolve(&mut ctx)
+            .map_err(|e| format!("{:#}", anyhow::anyhow!(e)));
+        assert_eq!(
+            got,
+            Ok(value!([{"a": 1, "events": 1}, {"a": 1, "events": 2}])),
+            "Target::Internal (set)"
+        );
+
+        let mut target = value!({});
+        let mut empty_state = state::RuntimeState::default();
+        let mut ctx = Context::new(&mut target, &mut empty_state, &tz);
+        let got = internal_func
+            .resolve(&mut ctx)
+            .map_err(|e| format!("{:#}", anyhow::anyhow!(e)));
+        assert_eq!(
+            got,
+            Err("expected array, got null".to_owned()),
+            "Target::Internal (unset)"
+        );
+
+        // Target::Container and Target::FunctionCall via compiled VRL.
+        let fns: Vec<Box<dyn Function>> =
+            vec![Box::new(Unnest), Box::new(crate::stdlib::merge::Merge)];
+
+        for (label, src) in [
+            (
+                "Target::Container",
+                r#"unnest({"a": 1, "events": [1, 2]}.events)"#,
+            ),
+            (
+                "Target::FunctionCall",
+                r#"unnest(merge({"a": 1}, {"events": [1, 2]}).events)"#,
+            ),
+        ] {
+            let compiled = compile(src, &fns).expect("program compiles");
+            let mut target = value!({});
+            let mut runtime_state = state::RuntimeState::default();
+            let mut ctx = Context::new(&mut target, &mut runtime_state, &tz);
+            let got = compiled
+                .program
+                .resolve(&mut ctx)
+                .expect("program resolves");
+            assert_eq!(
+                got,
+                value!([{"a": 1, "events": 1}, {"a": 1, "events": 2}]),
+                "{label}"
+            );
+        }
+    }
+
+    #[test]
+    #[allow(clippy::too_many_lines)]
+    fn unnest_borrowed_and_owned_direct() {
+        let expected_null_err: Resolved = Err(ValueError::Expected {
+            got: Kind::null(),
+            expected: Kind::array(Collection::any()),
+        }
+        .into());
+        let expected_bytes_err: Resolved = Err(ValueError::Expected {
+            got: Kind::bytes(),
+            expected: Kind::array(Collection::any()),
+        }
+        .into());
+
+        let cases: Vec<(&str, Value, Resolved)> = vec![
+            // Missing path and null value -> Err with Kind::null()
+            (".events", value!({"host": "a"}), expected_null_err.clone()),
+            (".events", value!({"events": null}), expected_null_err),
+            // Non-array value -> Err with Kind::bytes()
+            (
+                ".events",
+                value!({"events": "not-an-array"}),
+                expected_bytes_err,
+            ),
+            // Empty array -> Ok(Value::Array(vec![]))
+            (
+                ".events",
+                value!({"host": "a", "events": []}),
+                Ok(Value::Array(vec![])),
+            ),
+            // Root path `.` on `[1, 2]` -> Ok(value!([1, 2]))
+            (".", value!([1, 2]), Ok(value!([1, 2]))),
+            // Pure-Field nested path with N = 1 and N = 3 (with siblings)
+            (
+                ".a.b.events",
+                value!({"host": "h", "a": {"keep": 1, "b": {"events": [10]}}}),
+                Ok(value!([{"host": "h", "a": {"keep": 1, "b": {"events": 10}}}])),
+            ),
+            (
+                ".a.b.events",
+                value!({"host": "h", "a": {"keep": 1, "b": {"events": [1, 2, 3]}}}),
+                Ok(value!([
+                    {"host": "h", "a": {"keep": 1, "b": {"events": 1}}},
+                    {"host": "h", "a": {"keep": 1, "b": {"events": 2}}},
+                    {"host": "h", "a": {"keep": 1, "b": {"events": 3}}},
+                ])),
+            ),
+            // Pure-Field nested path with no siblings (N = 1 and N = 3)
+            (
+                ".a.b.events",
+                value!({"a": {"b": {"events": [42]}}}),
+                Ok(value!([{"a": {"b": {"events": 42}}}])),
+            ),
+            (
+                ".a.b.events",
+                value!({"a": {"b": {"events": [1, 2, 3]}}}),
+                Ok(value!([
+                    {"a": {"b": {"events": 1}}},
+                    {"a": {"b": {"events": 2}}},
+                    {"a": {"b": {"events": 3}}},
+                ])),
+            ),
+            // Indexed paths (.a[0].events, .a[0], .a[-1].events) with N = 1 and N = 2
+            (
+                ".a[0].events",
+                value!({"a": [{"events": [1], "keep": true}]}),
+                Ok(value!([{"a": [{"events": 1, "keep": true}]}])),
+            ),
+            (
+                ".a[0].events",
+                value!({"a": [{"events": [1, 2]}, {"other": 3}]}),
+                Ok(value!([
+                    {"a": [{"other": 3, "events": 1}]},
+                    {"a": [{"other": 3, "events": 2}]},
+                ])),
+            ),
+            (
+                ".a[0]",
+                value!({"a": [[1], [2, 3]]}),
+                Ok(value!([{"a": [1]}])),
+            ),
+            (
+                ".a[0]",
+                value!({"a": [[1, 2], [3, 4]]}),
+                Ok(value!([{"a": [1]}, {"a": [2]}])),
+            ),
+            (
+                ".a[-1].events",
+                value!({"a": [{"other": 1}, {"events": [2], "keep": true}]}),
+                Ok(value!([{"a": [{"other": 1}, {"events": 2, "keep": true}]}])),
+            ),
+            (
+                ".a[-1].events",
+                value!({"a": [{"other": 1}, {"events": [2, 3], "keep": true}]}),
+                Ok(value!([
+                    {"a": [{"other": 1}, {"events": 2, "keep": true}]},
+                    {"a": [{"other": 1}, {"events": 3, "keep": true}]},
+                ])),
+            ),
+        ];
+
+        for (path_str, input, expected) in cases {
+            let path = parse_value_path(path_str).unwrap();
+            let got_borrowed = unnest_borrowed(&input, &path);
+            let got_owned = unnest_owned(input, &path);
+            assert_eq!(got_borrowed, expected, "unnest_borrowed path={path_str}");
+            assert_eq!(got_owned, expected, "unnest_owned path={path_str}");
         }
     }
 }
