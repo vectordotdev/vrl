@@ -3,7 +3,7 @@ mod variable_reads;
 
 use chrono::{DateTime, Datelike, TimeZone, Utc};
 use constcat::concat;
-use criterion::{Criterion, criterion_group, criterion_main};
+use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
 use regex::Regex;
 
 use crate::value::Value;
@@ -69,6 +69,7 @@ criterion_group!(
               format_number,
               format_timestamp,
               get,
+              get_payload_sizes,
               get_env_var,
               get_hostname,
               get_timezone_name,
@@ -1196,6 +1197,134 @@ bench_function! {
         args: func_args![value: value!([0, 42, 91]), path: vec![-2]],
         want: Ok(42),
     }
+}
+
+fn build_structured_payload(approx_bytes: usize) -> Value {
+    let mut map = ObjectMap::new();
+    map.insert(
+        "nested".into(),
+        value!({ "deep": { "leaf": "target_value" } }),
+    );
+    map.insert("path".into(), value!(["nested", "deep", "leaf"]));
+
+    let padding = "x".repeat(64);
+    let mut current_bytes = serde_json::to_string(&Value::Object(map.clone()))
+        .expect("payload should serialize")
+        .len();
+
+    let mut idx = 0usize;
+    while current_bytes < approx_bytes {
+        let key = format!("field_{idx:04}");
+        let idx_i64 = i64::try_from(idx).unwrap_or(i64::MAX);
+        let mut entry = ObjectMap::new();
+        entry.insert("a".into(), Value::from(padding.as_str()));
+        entry.insert("b".into(), Value::from(idx_i64));
+        // Account for `,"<key>":{"a":"<padding>","b":<idx>}`
+        let entry_bytes = key.len() + padding.len() + idx.to_string().len() + 17;
+        map.insert(key.into(), Value::Object(entry));
+        current_bytes += entry_bytes;
+        idx += 1;
+    }
+
+    Value::Object(map)
+}
+
+fn get_payload_sizes(c: &mut Criterion) {
+    let fns = vrl::stdlib::all();
+    let external_const_path =
+        vrl::compiler::compile(r#"get!(., ["nested", "deep", "leaf"])"#, &fns)
+            .expect("external_const_path should compile")
+            .program;
+    let external_subpath_const_path =
+        vrl::compiler::compile(r#"get!(.nested, ["deep", "leaf"])"#, &fns)
+            .expect("external_subpath_const_path should compile")
+            .program;
+    let external_dynamic_path = vrl::compiler::compile("get!(., .path)", &fns)
+        .expect("external_dynamic_path should compile")
+        .program;
+    let static_baseline = vrl::compiler::compile(".nested.deep.leaf", &fns)
+        .expect("static_baseline should compile")
+        .program;
+
+    let var_setup = vrl::compiler::compile("var = .", &fns)
+        .expect("var_setup should compile")
+        .program;
+    let var_type_state = var_setup.final_type_info().state;
+    let variable_const_path = vrl::compiler::compile_with_state(
+        r#"get!(var, ["nested", "deep", "leaf"])"#,
+        &fns,
+        &var_type_state,
+        vrl::compiler::CompileConfig::default(),
+    )
+    .expect("variable_const_path should compile")
+    .program;
+    let variable_dynamic_path = vrl::compiler::compile_with_state(
+        "get!(var, .path)",
+        &fns,
+        &var_type_state,
+        vrl::compiler::CompileConfig::default(),
+    )
+    .expect("variable_dynamic_path should compile")
+    .program;
+
+    let expected = Ok(value!("target_value"));
+    let timezone = vrl::compiler::TimeZone::default();
+    let mut group = c.benchmark_group("stdlib/get_payload_sizes");
+
+    for (size_label, approx_bytes) in [("1kb", 1_024), ("64kb", 65_536), ("1mb", 1_048_576)] {
+        let payload = build_structured_payload(approx_bytes);
+
+        for (case_name, program) in [
+            ("external_const_path", &external_const_path),
+            ("external_subpath_const_path", &external_subpath_const_path),
+            ("external_dynamic_path", &external_dynamic_path),
+            ("static_baseline", &static_baseline),
+        ] {
+            let mut target = vrl::compiler::TargetValue {
+                value: payload.clone(),
+                metadata: value!({}),
+                secrets: vrl::value::Secrets::default(),
+            };
+            let mut state = vrl::compiler::state::RuntimeState::default();
+            let mut ctx = Context::new(&mut target, &mut state, &timezone);
+            assert_eq!(program.resolve(&mut ctx), expected);
+
+            group.bench_with_input(
+                BenchmarkId::new(case_name, size_label),
+                &size_label,
+                |b, _| {
+                    b.iter(|| std::hint::black_box(program.resolve(&mut ctx)));
+                },
+            );
+        }
+
+        for (case_name, program) in [
+            ("variable_const_path", &variable_const_path),
+            ("variable_dynamic_path", &variable_dynamic_path),
+        ] {
+            let mut target = vrl::compiler::TargetValue {
+                value: payload.clone(),
+                metadata: value!({}),
+                secrets: vrl::value::Secrets::default(),
+            };
+            let mut state = vrl::compiler::state::RuntimeState::default();
+            let mut ctx = Context::new(&mut target, &mut state, &timezone);
+            var_setup
+                .resolve(&mut ctx)
+                .expect("var setup should succeed");
+            assert_eq!(program.resolve(&mut ctx), expected);
+
+            group.bench_with_input(
+                BenchmarkId::new(case_name, size_label),
+                &size_label,
+                |b, _| {
+                    b.iter(|| std::hint::black_box(program.resolve(&mut ctx)));
+                },
+            );
+        }
+    }
+
+    group.finish();
 }
 
 bench_function! {
