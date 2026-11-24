@@ -17,6 +17,10 @@ pub struct Object {
     /// literals only), cloned wholesale on resolve. Not
     /// `Expression::resolve_constant`: that can fold variables from
     /// compile-time state, which is unsound (vectordotdev/vrl#1799).
+    ///
+    /// The entry tree is kept alongside the cache (for `Display`, type
+    /// checking and `resolve_constant`), so a cached object stores its
+    /// literal data twice — bounded by program size, not per-event.
     constant: Option<Value>,
 }
 
@@ -30,7 +34,13 @@ impl Object {
     }
 
     /// Compute and cache the value if this object is structurally literal.
-    /// Idempotent; call once the object is fully built.
+    ///
+    /// Idempotent; call once the object is fully built. Two invariants must
+    /// hold: nested object expressions already had their cache computed
+    /// (the compiler builds objects bottom-up, so an inner literal object
+    /// can be reused instead of re-derived), and the entries of a cached
+    /// object are never mutated afterwards — the cache would diverge from
+    /// the tree.
     #[must_use]
     pub fn with_constant(mut self) -> Self {
         if self.constant.is_some() {
@@ -251,6 +261,45 @@ mod tests {
     }
 
     #[test]
+    fn with_constant_is_idempotent() {
+        let once = literal_object().with_constant();
+        assert!(once.constant.is_some());
+        let twice = once.with_constant();
+        assert!(
+            twice.constant.is_some(),
+            "a repeated call must not clear the cache"
+        );
+    }
+
+    #[test]
+    fn with_constant_prunes_nested_and_stays_cached() {
+        let nested = literal_object().with_constant();
+        let mut outer_inner = BTreeMap::new();
+        outer_inner.insert(
+            KeyString::from("nested"),
+            Expr::from(Container::new(Variant::from(nested))),
+        );
+        let outer = Object::new(outer_inner).with_constant();
+        assert!(outer.constant.is_some());
+        let outer = outer.with_constant();
+        assert!(
+            outer.constant.is_some(),
+            "outer cache must survive a repeated call after pruning"
+        );
+
+        let Expr::Container(container) = outer.get(&KeyString::from("nested")).unwrap() else {
+            panic!("expected container");
+        };
+        let Variant::Object(object) = &container.variant else {
+            panic!("expected object variant");
+        };
+        assert!(
+            object.constant.is_none(),
+            "the nested cache must be pruned once the parent caches"
+        );
+    }
+
+    #[test]
     fn equality_ignores_cache_state() {
         let plain = literal_object();
         let cached = plain.clone().with_constant();
@@ -260,7 +309,9 @@ mod tests {
     #[test]
     fn expr_from_value_carries_the_cache() {
         let expr = Expr::from(Value::Object(
-            [(KeyString::from("a"), Value::from(1))].into_iter().collect(),
+            [(KeyString::from("a"), Value::from(1))]
+                .into_iter()
+                .collect(),
         ));
         let Expr::Container(container) = expr else {
             panic!("expected container");
