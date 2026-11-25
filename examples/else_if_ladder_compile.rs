@@ -16,6 +16,7 @@
 
 use std::collections::BTreeMap;
 use std::env;
+use std::fmt::Write as _;
 use std::fs;
 use std::path::PathBuf;
 use std::process;
@@ -229,19 +230,19 @@ fn build_ladder(arm_count: usize, fields_per_arm: usize) -> String {
 
     for i in 0..arm_count {
         if i == 0 {
-            out.push_str(&format!("if eid == {i} {{\n"));
+            writeln!(out, "if eid == {i} {{").unwrap();
         } else {
-            out.push_str(&format!("}} else if eid == {i} {{\n"));
+            writeln!(out, "}} else if eid == {i} {{").unwrap();
         }
         for f in 0..fields_per_arm {
-            out.push_str(&format!("  ._itl.f{f} = \"a{i}_f{f}\"\n"));
+            writeln!(out, "  ._itl.f{f} = \"a{i}_f{f}\"").unwrap();
         }
         out.push_str("  ._itl.class = \"NOTABLE\"\n");
-        out.push_str(&format!("  ._itl.arm = {i}\n"));
+        writeln!(out, "  ._itl.arm = {i}").unwrap();
     }
     out.push_str("} else {\n");
     for f in 0..fields_per_arm {
-        out.push_str(&format!("  ._itl.f{f} = \"else_f{f}\"\n"));
+        writeln!(out, "  ._itl.f{f} = \"else_f{f}\"").unwrap();
     }
     out.push_str("  ._itl.class = \"CONTEXT\"\n");
     out.push_str("  ._itl.arm = -1\n");
@@ -266,7 +267,7 @@ fn median_ms(samples: &mut [f64]) -> f64 {
     if n % 2 == 1 {
         samples[n / 2]
     } else {
-        (samples[n / 2 - 1] + samples[n / 2]) / 2.0
+        f64::midpoint(samples[n / 2 - 1], samples[n / 2])
     }
 }
 
@@ -292,8 +293,8 @@ fn time_src(
         samples.push(t0.elapsed().as_secs_f64() * 1000.0);
     }
 
-    let min = samples.iter().cloned().fold(f64::INFINITY, f64::min);
-    let max = samples.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
+    let min = samples.iter().copied().fold(f64::INFINITY, f64::min);
+    let max = samples.iter().copied().fold(f64::NEG_INFINITY, f64::max);
     let med = median_ms(&mut samples);
 
     println!(
@@ -348,9 +349,10 @@ fn main() {
             samples.push(t0.elapsed().as_secs_f64() * 1000.0);
         }
 
-        let min = samples.iter().cloned().fold(f64::INFINITY, f64::min);
-        let max = samples.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
+        let min = samples.iter().copied().fold(f64::INFINITY, f64::min);
+        let max = samples.iter().copied().fold(f64::NEG_INFINITY, f64::max);
         let med = median_ms(&mut samples);
+        #[allow(clippy::cast_precision_loss)] // Arm counts are far below 2^52.
         let per_n2 = if n > 0 {
             med / ((n as f64) * (n as f64))
         } else {
